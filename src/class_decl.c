@@ -1846,6 +1846,7 @@ capture described by lcp.  Return the field entry.
     /* ... except the pointer from the init_state back to the associated
        decl_parse_state. */
     decl_info.decl_state.init_state.decl_parse_state = &decl_info.decl_state;
+    decl_info.is_captured_pack_element = lcp->is_pack_expansion;
   } else {
     /* A simple capture. */
     if (vp != NULL) {
@@ -1903,6 +1904,8 @@ capture described by lcp.  Return the field entry.
         } else {
           make_locator_for_symbol(symbol_for(parent_field), &locator);
         }  /* if */
+        decl_info.is_captured_pack_element =
+                                       parent_field->is_captured_pack_element;
         field_type = parent_field->type;
       } else if (lcp->is_param_ref_capture) {
         /* A capture of "this" or "*this" in a context with no "this"
@@ -32166,7 +32169,9 @@ issue an error at the given position and return TRUE.  Otherwise, return FALSE.
 
 static void scan_init_capture(a_lambda_ptr           lambda,
                               a_boolean              is_ref,
-                              a_source_position_ptr  capture_pos)
+                              a_source_position_ptr  capture_pos,
+                              a_boolean              is_init_pack,
+                              a_boolean              check_duplicate)
 /*
 Scan a C++14-style init-capture for the given lambda.  If is_ref is TRUE, an
 ampersand has already been scanned for this capture.  For example, in
@@ -32175,7 +32180,10 @@ ampersand has already been scanned for this capture.  For example, in
 closure class that will be initialized as indicated.  However, since the
 closure class is not being defined yet, the initializer is prescanned and the
 result of that prescan is recorded in a dynamically allocated declaration parse
-state block.
+state block.  is_init_pack is TRUE if the init-capture is a pack (i.e., it
+was preceded by "...").  check_duplicate is TRUE if we should check for a
+prior capture of this name.  For an init-capture that is a pack expansion,
+it is TRUE only for the first expansion.
 
 *capture_pos is the position to record for the capture.
 */
@@ -32185,7 +32193,8 @@ state block.
   a_symbol_header_ptr   sym_hdr = locator_for_curr_id.symbol_header;
   a_boolean             err = FALSE;
 
-  if (diagnose_duplicate_capture(lambda, sym_hdr, capture_pos)) {
+  if (check_duplicate &&
+      diagnose_duplicate_capture(lambda, sym_hdr, capture_pos)) {
     /* Allocate an unattached lambda capture entry for the error case. */
     lcp = alloc_lambda_capture();
     err = TRUE;
@@ -32193,6 +32202,7 @@ state block.
     lcp = alloc_capture_for_lambda(lambda);
   }  /* if */
   lcp->is_init_capture = TRUE;
+  lcp->is_pack_expansion = is_init_pack;
   lcp->capture_by_reference = is_ref;
   lcp->capture_info.init_capture_dps = dps;
   lcp->position = *capture_pos;
@@ -32275,10 +32285,10 @@ caller has already moved past the '[', and this routine leaves the trailing
         simple-capture | init-capture
 
     simple-capture:
-        identifier | '&' identifier | 'this' | '*' 'this'
+        identifier...(opt) | '&' identifier...(opt) | 'this' | '*' 'this'
 
     init-capture:
-        identifier initializer | '&' identifier initializer
+        ...(opt) identifier initializer | '&' ...(opt) identifier initializer
 */
 {
   a_token_kind       tok_after_ref = tok_error;
@@ -32313,29 +32323,40 @@ caller has already moved past the '[', and this routine leaves the trailing
     do {
       a_pack_expansion_stack_entry_ptr pesep;
       a_boolean                        any_more, check_duplicate = TRUE;
+      a_boolean                        is_init_pack = FALSE;
+      a_source_position                pos_capture;
+      a_boolean                        by_ref = FALSE;
+      pos_capture = pos_curr_token;
+      if (curr_token == tok_ampersand) {
+        by_ref = TRUE;
+        (void)get_token();
+      }  /* if */
+      capture_pos = pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      capture_end_pos = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       any_more = begin_potential_pack_expansion_context(&pesep);
       /* This inner loop repeats if there is a variadic template pack
          expansion. */
       while (any_more) {
         a_pack_expansion_descr_ptr pedep;
         a_lambda_capture_ptr       lcp = NULL;
-        a_source_position          pos_capture;
         a_variable_ptr             var = NULL;
         a_field_ptr                field = NULL;
         a_symbol_header_ptr        sym_hdr = NULL;
-        a_boolean                  by_ref = FALSE;
         a_boolean                  is_this = FALSE;
         a_boolean                  is_star_this = FALSE;
         a_boolean                  no_impl_capture = FALSE;
-        pos_capture = pos_curr_token;
-        if (curr_token == tok_ampersand) {
-          by_ref = TRUE;
-          (void)get_token();
+        /* If the current token is an ellipsis then this is an init-capture
+           pack expansion.  If the ellipsis occurs after the capture it is
+           a capture of a pack. */
+        is_init_pack = curr_token == tok_ellipsis;
+        if (is_init_pack) {
+          if (!pack_init_capture_enabled) {
+            pos_error(ec_pack_init_capture_not_enabled, &pos_curr_token);
+          }  /* if */
+          record_pack_expansion_ellipsis();
         }  /* if */
-        capture_pos = pos_curr_token;
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-        capture_end_pos = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         if (curr_token == tok_this ||
             (capture_star_this_enabled && curr_token == tok_star &&
              next_token() == tok_this)) {
@@ -32390,7 +32411,8 @@ caller has already moved past the '[', and this routine leaves the trailing
             /* A C++14-style init-capture.  Save the locator for the current
                identifier, and prescan the initializer as if for an auto
                variable declaration. */
-            scan_init_capture(lambda, by_ref, &capture_pos);
+            scan_init_capture(lambda, by_ref, &capture_pos, is_init_pack,
+                              check_duplicate);
             goto capture_processed;
           } else {
             /* Explicit capture of what should be a local automatic variable.
@@ -32460,12 +32482,13 @@ caller has already moved past the '[', and this routine leaves the trailing
           }  /* if */
         }  /* if */
 capture_processed:
-        pedep = end_potential_pack_expansion_context(pesep,
-                                                     /*is_declarator=*/FALSE);
+        pedep = end_potential_pack_expansion_context(pesep, is_init_pack);
         if (pedep != NULL && lcp != NULL) {
-          /* This capture is a variadic template pack expansion, i.e.,
-             it's followed by "...".  Furthermore, we're in the prototype
-             instantiation, so mark the capture as a pack expansion. */
+          /* This capture is a variadic template pack expansion (i.e.,
+             it's followed by "..."), or pack expansion in an init-capture
+             (i.e., it is preceded by "...").  Furthermore, we're in the
+             prototype instantiation, so mark the capture as a pack
+             expansion. */
           lcp->is_pack_expansion = TRUE;
         }  /* if */
         any_more = advance_to_next_pack_element(pesep);

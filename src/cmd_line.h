@@ -624,6 +624,11 @@ EXTERN a_boolean
 			   inaccessible entities is enabled. */
 
 EXTERN a_boolean
+		pack_init_capture_enabled;
+			/* TRUE if C++20 pack expansions in init-captures
+			   is enabled. */
+
+EXTERN a_boolean
 		struct_bindings_enabled;
 			/* TRUE if structured bindings (a C++17 feature) are
 			   accepted. */

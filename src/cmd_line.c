@@ -3673,6 +3673,7 @@ default mode (e.g., exception handling).
         adl_for_non_visible_templates = TRUE;
         relaxed_typename_enabled = TRUE;
         relaxed_specialization_access_checking = TRUE;
+        pack_init_capture_enabled = TRUE;
         rvalue_allowed_with_const_qual_memptr = TRUE;
         va_opt_enabled = TRUE;
         nested_inline_namespace_definitions_enabled = TRUE;
@@ -11724,6 +11725,7 @@ variables declared in cmd_line.h.
   adl_for_non_visible_templates = FALSE;
   relaxed_typename_enabled = FALSE;
   relaxed_specialization_access_checking = FALSE;
+  pack_init_capture_enabled = FALSE;
   user_defined_literals_enabled = FALSE;
   macro_preempts_udl_suffix = FALSE;
   raw_string_literals_enabled = FALSE;

@@ -10945,8 +10945,9 @@ typedef struct a_field {
   a_bit_field	is_captured_pack_element:1;
 			/* TRUE if this is a field of a closure type that was
 			   generated to capture a variadic function template's
-			   parameter pack element.  In such cases, there may
-			   be multiple fields with the same name. */
+			   parameter pack element or an init-capture that
+			   is a pack.  In such cases, there may be multiple
+			   fields with the same name. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	is_initonly:1;
 			/* TRUE if the "initonly" context-sensitive keyword
@@ -16745,8 +16746,11 @@ typedef struct a_lambda_capture {
 			   in the capture list. */
   a_bit_field
 		is_pack_expansion:1;
-			/* TRUE if this capture is a variadic template
-			   pack expansion, i.e., it's followed by "...". */
+			/* TRUE if this capture is either a variadic template
+			   pack expansion (i.e., it is followed by "..." and
+			   is_init_capture is FALSE), or a pack expansion in
+			   an init-capture (i.e., it is preceded by "..."
+			   and is_init_capture is TRUE). */
   a_bit_field
 		direct_init:1;
 			/* TRUE if init-capture is TRUE and the initializer

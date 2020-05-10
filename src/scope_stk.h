@@ -304,6 +304,7 @@ typedef enum /* a_pack_reference_kind */ {
 			   variable. */
   prk_parameter,	/* An argument pack represented by a parameter
 			   symbol. */
+  prk_init_capture,	/* An init-capture that is a pack. */
   prk_bases		/* A generated pack that represents a g++ __bases
 			   or __direct_bases trait. */
 } a_pack_reference_kind;
@@ -347,10 +348,11 @@ typedef struct a_pack_reference {
 		kind;
 			/* Specifies the kind of entity to which this
 			   entry refers. */
-  a_symbol_ptr	primary_var_or_param_symbol;
-			/* When kind == prk_variable or prk_parameter in
-			   an actual instantiation, this points to the primary
-			   variable symbol that is found by name lookup. */
+  a_symbol_ptr	primary_pack_symbol;
+			/* When kind == prk_variable, prk_parameter, or
+			   prk_init_capture in an actual instantiation,
+			   this points to the variable, parameter, or
+			   field symbol that is found by name lookup. */
   uint32_t	function_scopes_to_skip;
 			/* When kind == prk_variable, this indicates the number
 			   of function scopes to be bypassed to look for the
@@ -390,6 +392,12 @@ typedef struct a_pack_reference {
 			/* When kind == prk_parameter and this is not a rescan
 			   context, this points to the parameter to
 			   be used for the current expansion. */
+    a_field_ptr
+		field;
+			/* When kind == prk_init_capture this points to the
+			   field entry of the closure class that represents
+			   the init-capture to be used for the current
+			   expansion. */
     a_template_arg_ptr
 		template_arg;
 			/* When kind == prk_template_param or prk_bases, this

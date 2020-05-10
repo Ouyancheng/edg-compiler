@@ -3199,6 +3199,7 @@ ec_missing_constinit;;"variable was previously declared with \"constinit\" %p"
 ec_use_of_non_prototype_func_declarator;;"use of non-prototype function declarator"
 ec_cannot_be_const_qualified;;"argument cannot have a const-qualified type"
 ec_ptr_to_mem_of_incomplete_class;;"a pointer-to-member of an incomplete type %t is not allowed"
+ec_pack_init_capture_not_enabled;;"pack expansion in init-capture not enabled in this mode"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

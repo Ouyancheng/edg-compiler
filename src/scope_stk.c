@@ -10298,7 +10298,7 @@ in such cases.
   prp->param_num = 0;
   prp->position = null_source_position;
   prp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
-  prp->primary_var_or_param_symbol = NULL;
+  prp->primary_pack_symbol = NULL;
   prp->function_scopes_to_skip = 0;
   prp->param_info = NULL;
   prp->coordinates = NULL;
@@ -10313,6 +10313,9 @@ in such cases.
       /* Both entries are initialized to handle union-as-struct testing. */
       prp->curr_argument.param_id = NULL;
       prp->curr_argument.param_type = NULL;
+      break;
+    case prk_init_capture:
+      prp->curr_argument.field = NULL;
       break;
     default:
       unexpected_condition();
@@ -10869,6 +10872,55 @@ done:
 }  /* find_variable_for_pack */
 
 
+static a_field_ptr find_init_capture_for_pack(
+				a_pack_reference_ptr	prp,
+				uint32_t		*elements)
+/*
+Return the initial field associated with the variadic init-capture for
+the lambda body being evaluated.  prp describes the symbol that was
+referenced from the prototype instantiation.  If there are no actual
+fields for the pack, return NULL.  Return the number of actual arguments
+in *elements.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+  a_field_ptr			fp = NULL;
+  a_field_ptr			result_fp = NULL;
+  a_const_char			*capture_name;
+  a_const_char			*field_name;
+
+  capture_name = prp->symbol->header->identifier;
+  /* For any scope stack entries for closure classes, look for a field with
+     the name of the pack being referenced. */
+  for (ssep = &scope_stack_top(); ssep != NULL;
+       ssep = previous_scope_of(ssep)) {
+    /* Only consider class scopes for lambdas. */
+    a_type_ptr	tp = ssep->assoc_type;
+    if (scope_is(ssep, sck_class_struct_union) &&
+        class_type_supp(tp)->is_lambda_closure_class) {
+      for (fp = tp->variant.class_struct_union.field_list; fp != NULL;
+           fp = fp->next) {
+        a_const_char *field_name = fp->source_corresp.name;
+        if (field_name != NULL && strcmp(capture_name, field_name) == 0) {
+          result_fp = fp;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* for */
+  *elements = 0;
+  if (result_fp != NULL) {
+    /* Count the number of pack elements. */
+    field_name = result_fp->source_corresp.name;
+    for (fp = result_fp; fp != NULL; fp = fp->next) {
+      if (fp->source_corresp.name != field_name) break;
+      (*elements)++;
+    }  /* for */
+  }  /* if */
+  return result_fp;
+}  /* find_init_capture_for_pack */
+
+
 static a_template_arg_ptr find_placeholder_arg_for_pack(
 				a_template_param_ptr	templ_param_list,
 				a_template_arg_ptr	templ_arg_list,
@@ -11154,10 +11206,10 @@ lengths) *err is set to TRUE, FALSE otherwise.
         check_assertion((vp == NULL) == (sym == NULL) || total_errors != 0);
         if (sym != NULL) {
           new_prp->curr_argument.variable = vp;
-          new_prp->primary_var_or_param_symbol = symbol_for(vp);
-          new_prp->primary_var_or_param_symbol->variant.variable.ptr = vp;
+          new_prp->primary_pack_symbol = symbol_for(vp);
+          new_prp->primary_pack_symbol->variant.variable.ptr = vp;
         } else {
-          new_prp->primary_var_or_param_symbol = NULL;
+          new_prp->primary_pack_symbol = NULL;
         }  /* if */
       } else if (prp->kind == prk_template_param) {
         a_template_arg_ptr	tap;
@@ -11167,6 +11219,19 @@ lengths) *err is set to TRUE, FALSE otherwise.
                                          &tpp, is_rescan, is_deduction);
         new_prp->curr_argument.template_arg = tap;
         new_prp->template_param = tpp;
+      } else if (prp->kind == prk_init_capture) {
+        a_field_ptr	fp;
+        a_symbol_ptr	sym;
+        fp = find_init_capture_for_pack(prp, &elements_for_pack);
+        sym = fp == NULL ? NULL : symbol_for(fp);
+        check_assertion((fp == NULL) == (sym == NULL) || total_errors != 0);
+        if (sym != NULL) {
+          new_prp->curr_argument.field = fp;
+          new_prp->primary_pack_symbol = sym;
+          new_prp->primary_pack_symbol->variant.field.ptr = fp;
+        } else {
+          new_prp->primary_pack_symbol = NULL;
+        }  /* if */
       } else if (prp->kind == prk_bases) {
         /* A g++ __bases or __direct_bases operator. */
         a_template_arg_ptr	tap;
@@ -11203,9 +11268,9 @@ lengths) *err is set to TRUE, FALSE otherwise.
           param_id = find_parameter_for_pack(prp, &elements_for_pack);
           if (param_id != NULL) {
             new_prp->curr_argument.param_id = param_id;
-            new_prp->primary_var_or_param_symbol = param_id->symbol;
+            new_prp->primary_pack_symbol = param_id->symbol;
           } else {
-            new_prp->primary_var_or_param_symbol = NULL;
+            new_prp->primary_pack_symbol = NULL;
           }  /* if */
         }  /* if */
       }  /* if */
@@ -11297,16 +11362,21 @@ pack expansion stack entry for which the symbols are to be updated.
         set_template_param_symbol_to_error(sym);
       }  /* if */
     } else if (param_prp->kind == prk_variable) {
-      if (arg_prp->primary_var_or_param_symbol != NULL) {
-        arg_prp->primary_var_or_param_symbol->variant.variable.ptr =
+      if (arg_prp->primary_pack_symbol != NULL) {
+        arg_prp->primary_pack_symbol->variant.variable.ptr =
                                                arg_prp->curr_argument.variable;
+      }  /* if */
+    } else if (param_prp->kind == prk_init_capture) {
+      if (arg_prp->primary_pack_symbol != NULL) {
+        arg_prp->primary_pack_symbol->variant.field.ptr =
+                                               arg_prp->curr_argument.field;
       }  /* if */
     } else if (param_prp->kind == prk_bases) {
       /* There is nothing to be done for this case. */
     } else {
       check_assertion(param_prp->kind == prk_parameter);
-      if (arg_prp->primary_var_or_param_symbol != NULL) {
-        arg_prp->primary_var_or_param_symbol->variant.param_id =
+      if (arg_prp->primary_pack_symbol != NULL) {
+        arg_prp->primary_pack_symbol->variant.param_id =
                                                arg_prp->curr_argument.param_id;
       }  /* if */
     }  /* if */
@@ -12339,7 +12409,7 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
       a_symbol_ptr	sym = param_prp->symbol;
       if (param_prp->kind == prk_variable) {
         /* The symbol for the first pack element is found by lookup.  Update
-           that symbol (pointed to by primary_var_or_param_symbol) to point
+           that symbol (pointed to by primary_pack_symbol) to point
            to the current variable to be used. */
         a_variable_ptr	vp = arg_prp->curr_argument.variable;
         a_variable_ptr	next_vp = vp == NULL ? NULL : vp->next;
@@ -12351,7 +12421,7 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
           done = TRUE;
         } else {
           arg_prp->curr_argument.variable = next_vp;
-          arg_prp->primary_var_or_param_symbol->variant.variable.ptr = next_vp;
+          arg_prp->primary_pack_symbol->variant.variable.ptr = next_vp;
         }  /* if */
       } else if (param_prp->kind == prk_template_param) {
         /* A template argument. */
@@ -12388,6 +12458,18 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
             update_template_param_symbol(sym, tap);
           }  /* if */
         }  /* if */
+      } else if (param_prp->kind == prk_init_capture) {
+        /* A lambda init-capture. */
+        a_field_ptr	fp = arg_prp->curr_argument.field;
+        a_field_ptr	next_fp = fp == NULL ? NULL : fp->next;
+        if (next_fp == NULL ||
+            fp->source_corresp.name != next_fp->source_corresp.name) {
+          arg_prp->curr_argument.field = NULL;
+          done = TRUE;
+        } else {
+          arg_prp->curr_argument.field = next_fp;
+          arg_prp->primary_pack_symbol->variant.field.ptr = next_fp;
+        }  /* if */
       } else if (param_prp->kind == prk_bases) {
         /* A template argument. */
         a_template_arg_ptr	tap = arg_prp->curr_argument.template_arg;
@@ -12413,8 +12495,8 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
           arg_prp->curr_argument.param_type = next_ptp;
         } else {
           /* The symbol for the first pack element is found by lookup.  Update
-             that symbol (pointed to by primary_var_or_param_symbol) to point
-             to the current param_id to be used. */
+             that symbol (pointed to by primary_pack_symbol) to point to the
+             current param_id to be used. */
           a_param_id_ptr	param_id = arg_prp->curr_argument.param_id;
           a_param_id_ptr	next_param_id = param_id->next;
           arg_prp->curr_argument.param_id = next_param_id;
@@ -12422,8 +12504,7 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
               param_id->param_num != next_param_id->param_num) {
             done = TRUE;
           } else {
-            arg_prp->primary_var_or_param_symbol->variant.param_id =
-                                                                 next_param_id;
+            arg_prp->primary_pack_symbol->variant.param_id = next_param_id;
           }  /* if */
         }  /* if */
       }  /* if */
@@ -12583,10 +12664,12 @@ form.
         /* Determine the kind of entity being represented. */
         if (bases_type != NULL) {
           kind = prk_bases;
-        } else if (pack_symbol->kind == (a_symbol_kind)sk_variable) {
+        } else if (symbol_is(pack_symbol, sk_variable)) {
           kind = prk_variable;
-        } else if (pack_symbol->kind == (a_symbol_kind)sk_parameter) {
+        } else if (symbol_is(pack_symbol, sk_parameter)) {
           kind = prk_parameter;
+        } else if (symbol_is(pack_symbol, sk_field)) {
+          kind = prk_init_capture;
         } else {
           kind = prk_template_param;
         }  /* if */
@@ -12606,6 +12689,8 @@ form.
           if (pip->uses_only_enclosing_pack) {
             prp->uses_enclosing_pack = TRUE;
           }  /* if */
+        } else if (kind == prk_init_capture) {
+          /* No additional information is needed for an init-capture. */
         } else if (kind == prk_bases) {
           prp->direct_bases = direct_bases;
         } else {

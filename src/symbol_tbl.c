@@ -1895,6 +1895,12 @@ Return TRUE if sym is a template parameter pack or function parameter pack.
     case sk_parameter:
       result = sym->variant.param_id->is_parameter_pack;
       break;
+    case sk_field:
+      /* For fields, an init-capture that is a pack expansion is a pack. */
+      { a_field_ptr	fp = sym->variant.field.ptr;
+        result = fp->is_init_capture && fp->is_captured_pack_element;
+      }
+      break;
     default:
       break;
   }  /* switch */
