@@ -1,5 +1,25 @@
 Version 6.1
 
+5/11/20  [EDGcpfe/20024,EDGcpfe/20274,EDGcpfe/22506]
+C++20: Pack expansion in lambda init-capture
+
+The front end now implements pack expansions in lambda-init captures in
+C++20 mode.  The feature is also supported in g++ and clang modes when
+the language mode is C++11 or later.
+
+  template <class... T> inline void g(T... ts){}
+  template <typename... Args> inline void f(Args... args) {
+    [...xs=args]{
+      g(xs...); // xs is an init-capture pack
+    }();
+  }
+  int main() {
+    f();  // OK: xs contains zero init-captures
+    f(1); // OK: xs contains one init-capture
+    f(1,2); // OK: xs contains two init-captures
+  }
+
+
 5/10/20  [EDGcpfe/22743]
 File handle leaked on Windows when using precompiled header files
 
