@@ -4939,6 +4939,12 @@ before this routine is called.
     /* g++ 7.0 and clang 4.0 and later accept if constexpr in C++11 mode. */
     constexpr_if_enabled =  TRUE;
   }  /* if */
+  if (cpp11_mode &&
+      (gpp_version_is(>= 90000) || clangcpp_version_is(>= 90000))) {
+    /* g++ 9.0 and clang 9.0 and later accept pack expansions in an
+       init-capture in C++11 mode. */
+    pack_init_capture_enabled = TRUE;
+  }  /* if */
   if (gnu_version >= 40700 && variadic_templates_enabled && !ms_compat &&
       !(option_kind_used[(int)optk_parse_nonclass_templates] &&
         !nonclass_prototype_instantiations)) {

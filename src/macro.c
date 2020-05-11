@@ -4600,8 +4600,10 @@ static a_feature_support feature_support_list[] = {
   { "cxx_init_capture",
     201402,
     &init_capture_enabled,
-    "__cpp_init_captures",
-    "201304L" },
+    NULL,		/* __cpp_init_captures has a different value depending
+			   on whether C++20 pack expansions in init-captures
+			   are allowed. */
+    NULL },
   { "cxx_inline_namespaces",
     201103,
     &inline_namespaces_enabled,
@@ -11084,6 +11086,15 @@ command line -D options.
           value = terse_static_assert_enabled ? "201411L" : "200410L";
         }  /* if */
         (void)enter_predef_macro(value, "__cpp_static_assert",
+                                 /*cannot_be_redefined=*/TRUE,
+                                 /*ref_suppresses_pch_file=*/FALSE);
+      }  /* if */
+      if (init_capture_enabled) {
+        /* __cpp_init_captures has a different value depending on whether
+           C++20 pack expansions in init-captures are allowed. */
+        a_const_char *value;
+        value = pack_init_capture_enabled ? "201803L" : "201304L";
+        (void)enter_predef_macro(value, "__cpp_init_captures",
                                  /*cannot_be_redefined=*/TRUE,
                                  /*ref_suppresses_pch_file=*/FALSE);
       }  /* if */

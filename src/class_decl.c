@@ -32356,6 +32356,8 @@ caller has already moved past the '[', and this routine leaves the trailing
             pos_error(ec_pack_init_capture_not_enabled, &pos_curr_token);
           }  /* if */
           record_pack_expansion_ellipsis();
+          report_gnu_cpp20_extension_if_needed(&pos_curr_token,
+                                               ec_pack_init_capture_is_cpp20);
         }  /* if */
         if (curr_token == tok_this ||
             (capture_star_this_enabled && curr_token == tok_star &&
