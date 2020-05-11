@@ -11899,6 +11899,8 @@ indication in *rcblock).
                              pesep;
   a_pack_expansion_descr_ptr pedep = NULL;
   a_memory_region_number     region_to_switch_back_to = NULL_region_number;
+  a_symbol_locator           field_locator;
+  a_boolean                  locator_set = FALSE;
 
   db_enter(4, "scan_sizeof_pack_operator");
   id_position = null_source_position;
@@ -11949,6 +11951,12 @@ indication in *rcblock).
           if (sym->kind != (a_symbol_kind)sk_overloaded_function) {
             /* Record a reference against the identifier. */
             (void)ref_entry(sym, &pos_curr_token);
+          }  /* if */
+          if (symbol_is(sym, sk_field) && !locator_set) {
+            /* For a field (representing an init-capture), save the locator
+               for use later. */
+            field_locator = locator_for_curr_id;
+            locator_set = TRUE;
           }  /* if */
           /* When the instantiation_descr is non-NULL this is a nondependent
              expansion occurring in a prototype instantiation context
@@ -12071,6 +12079,9 @@ indication in *rcblock).
         make_param_ref_operand(&operand, sym);
       } else if (sym->kind == (a_symbol_kind)sk_constant) {
         make_sym_constant_operand(sym, &operand);
+      } else if (symbol_is(sym, sk_field) && locator_set) {
+        make_field_operand(&field_locator, &id_position,
+                           end_position_or_null(&id_end_position), &operand);
       } else {
         unexpected_condition();
       }  /* if */
