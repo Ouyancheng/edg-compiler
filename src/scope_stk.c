@@ -10887,7 +10887,6 @@ in *elements.
   a_field_ptr			fp = NULL;
   a_field_ptr			result_fp = NULL;
   a_const_char			*capture_name;
-  a_const_char			*field_name;
 
   capture_name = prp->symbol->header->identifier;
   /* For any scope stack entries for closure classes, look for a field with
@@ -10911,7 +10910,7 @@ in *elements.
   *elements = 0;
   if (result_fp != NULL) {
     /* Count the number of pack elements. */
-    field_name = result_fp->source_corresp.name;
+    a_const_char *field_name = result_fp->source_corresp.name;
     for (fp = result_fp; fp != NULL; fp = fp->next) {
       if (fp->source_corresp.name != field_name) break;
       (*elements)++;
