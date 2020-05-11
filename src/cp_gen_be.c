@@ -11142,7 +11142,7 @@ Generate the name of the field from the indicated node (an enk_field node).
   check_assertion_str(node->kind == (an_expr_node_kind)enk_field,
                       "gen_field_reference: not enk_field");
   field = node_field(node);
-  if (field->is_captured_pack_element) {
+  if (field->is_captured_pack_element && !field->is_init_capture) {
     /* Number captured pack elements in a way that matches the numbering
        created by gen_param_name. */
     unsigned long count = 1;
@@ -14402,6 +14402,9 @@ Render the list of lambda captures, including the delimiting brackets.
         /* A C++14-style init-capture.  Use the field to render the name and
            initializer. */
         a_field_ptr  fp = lcp->closure_field;
+        if (lcp->is_pack_expansion) {
+          write_tok_str("...");
+        }  /* if */
         gen_bare_name(&fp->source_corresp, (an_il_entry_kind)iek_field);
         write_tok_str(!lcp->direct_init       ? " = " :
                       lcp->parenthesized_init ? "(" :
@@ -14431,7 +14434,7 @@ Render the list of lambda captures, including the delimiting brackets.
         gen_bare_name(&lcp->captured.variable->source_corresp,
                       (an_il_entry_kind)iek_variable);
       }  /* if */
-      if (lcp->is_pack_expansion) {
+      if (lcp->is_pack_expansion && !lcp->is_init_capture) {
         write_tok_str("...");
       }  /* if */
       comma_needed = TRUE;
