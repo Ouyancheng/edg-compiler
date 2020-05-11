@@ -20588,6 +20588,7 @@ been instantiated, update the befriending information for the instances.
   clep->next = tssp->befriending_classes;
   clep->class_type = class_declared_in;
   tssp->befriending_classes = clep;
+  check_assertion(class_declared_in != NULL);
   /* Update any instances that have already been created. */
   for (slep = tssp->variant.class_template.instantiations;
        slep != NULL; slep = slep->next) {
