@@ -31893,6 +31893,7 @@ scanned yet.
         a_boolean	err = FALSE;
         if (sub_gcp->kind == (a_generic_constraint_kind)gck_naked_type_param) {
           if (sub_gcp->type->variant.template_param.being_checked) {
+            check_assertion(naked_type_gcp != NULL);
             pos_ty2_error(ec_circular_constraints, pos,
                           naked_type_gcp->type, param_type);
             any_errors = TRUE;
