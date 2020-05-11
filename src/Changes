@@ -5,7 +5,7 @@ File handle leaked on Windows when using precompiled header files
 
 On Windows, the use of precompiled header files could cause file handles
 to leak.  This is not a problem for most configurations as they would
-be released when the front end exits.  But when using MAKE_FRONT_END_CALLABLE,
+be released when the front end exits, but when using MAKE_FRONT_END_CALLABLE,
 this could be more problematic.  Now fixed.
 
 
