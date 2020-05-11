@@ -1,5 +1,22 @@
 Version 6.1
 
+5/11/20  [EDGcpfe/21748]
+Label addresses as the result of folding constant-expressions
+
+The changes of EDGcpfe/20980 (enabling folding of GNU statement expressions)
+accidentally accepted attempts to produce labels as results of such folding.
+For example (in GNU C mode):
+
+  void g(void) {
+    void *p = ({ L: &&L; });  // Previously constant-folded.  Now no longer
+  }                           // folded.
+
+However, this resulted in nonsensical IL since the folding operation made the
+label declaration itself disappear.  In some configuration, this could result
+in aborts.  That issue is now fixed by not folding an expression whose result
+would be the address of a label.
+
+
 5/11/20  [EDGcpfe/20024,EDGcpfe/20274,EDGcpfe/22506]
 C++20: Pack expansion in lambda init-capture
 

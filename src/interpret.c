@@ -17254,8 +17254,8 @@ diagnostic in *ips.
           /* Catch the case of a pointer or reference to a variable that is
              not constant-valued. */
           if (constant_is(rt_con, ck_address)) {
-            if (rt_con->variant.address.kind ==
-                                         (an_address_base_kind)abk_variable) {
+            an_address_base_kind  abk = rt_con->variant.address.kind;
+            if (abk == (an_address_base_kind)abk_variable) {
               a_variable_ptr  vp = rt_con->variant.address.variant.variable;
               if (!variable_has_constant_address(vp)) {
                 a_symbol_ptr  var_sym = symbol_for(vp);
@@ -17272,14 +17272,18 @@ diagnostic in *ips.
                 }  /* if */
                 break;
               }  /* if */
-            } else if (rt_con->variant.address.kind ==
-                                          (an_address_base_kind)abk_routine) {
+            } else if (abk == (an_address_base_kind)abk_routine) {
               a_routine_ptr  rp = rt_con->variant.address.variant.routine;
               if (rp->is_consteval) {
                 info_with_pos_sym(ec_address_of_consteval_function,
                                   &ips->position, symbol_for(rp), ips);
                 do_constexpr_fail(result);
               }  /* if */
+            } else if (abk == (an_address_base_kind)abk_label) {
+              a_label_ptr  lp = rt_con->variant.address.variant.label;
+              info_with_pos(ec_constexpr_access_to_runtime_storage,
+                            &lp->source_corresp.decl_position, ips);
+              do_constexpr_fail(result);
             }  /* if */
           } else {
             /* Some "address" constants are integers cast to a pointer type. */
