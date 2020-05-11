@@ -2289,7 +2289,7 @@ typedef struct a_ctws_state {
 			   supplied template arguments so that the resulting
 			   type will still be usable to deduce the remaining
 			   pack elements. */
-  a_boolean	ignore_enclosing_expansions;
+  a_boolean	in_parent_substitution;
 			/* TRUE if this is the substitution of an enclosing
 			   pack expansion and such expansions should be
 			   ignored unless the pack uses only non-enclosing

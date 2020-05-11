@@ -11194,14 +11194,20 @@ lengths) *err is set to TRUE, FALSE otherwise.
     } else {
       /* In non-deduction contexts, find the current pack element to
          be used. */
+      a_boolean  not_found = FALSE;
       if (prp->kind == prk_variable) {
         a_variable_ptr	vp;
         a_symbol_ptr	sym;
         vp = find_variable_for_pack(prp, &elements_for_pack);
-        /* In some error cases the variable might not have a symbol.
-           treat this as an empty pack (except that elements_for_pack is
-           not changed). */
-        sym = vp == NULL ? NULL : symbol_for(vp);
+        if (vp != NULL) {
+          sym = symbol_for(vp);
+        } else {
+          sym = NULL;
+          not_found = TRUE;
+        }  /* if */
+        /* In some error cases the variable might not have a symbol.  Treat
+           this as an empty pack (except that elements_for_pack is not
+           changed). */
         check_assertion((vp == NULL) == (sym == NULL) || total_errors != 0);
         if (sym != NULL) {
           new_prp->curr_argument.variable = vp;
@@ -11216,13 +11222,19 @@ lengths) *err is set to TRUE, FALSE otherwise.
         tap = find_template_arg_for_pack(templ_param_list, templ_arg_list,
                                          prp->symbol, &elements_for_pack,
                                          &tpp, is_rescan, is_deduction);
+        if (tap == NULL) not_found = TRUE;
         new_prp->curr_argument.template_arg = tap;
         new_prp->template_param = tpp;
       } else if (prp->kind == prk_init_capture) {
         a_field_ptr	fp;
         a_symbol_ptr	sym;
         fp = find_init_capture_for_pack(prp, &elements_for_pack);
-        sym = fp == NULL ? NULL : symbol_for(fp);
+        if (fp != NULL) {
+          sym = symbol_for(fp);
+        } else {
+          sym = NULL;
+          not_found = TRUE;
+        }  /* if */
         check_assertion((fp == NULL) == (sym == NULL) || total_errors != 0);
         if (sym != NULL) {
           new_prp->curr_argument.field = fp;
@@ -11257,6 +11269,7 @@ lengths) *err is set to TRUE, FALSE otherwise.
               new_prp->curr_argument.param_type = vpip->param_type;
             } else {
               new_prp->curr_argument.param_type = NULL;
+              not_found = TRUE;
             }  /* if */
             new_prp->param_info = vpip;
           }  /* if */
@@ -11285,9 +11298,13 @@ lengths) *err is set to TRUE, FALSE otherwise.
                         pedp->packs_referenced->symbol->header->identifier);
         }  /* if */
         /* A pack length mismatch is not an error when preserve_deduced_packs
-           is TRUE (i.e., in rescan contexts for the first pass of
-           substitution when deduction is still to be done). */
-        any_errors = !is_rescan || !ctws_state->preserve_deduced_packs;
+           is TRUE (i.e., in rescan contexts for the first pass of substitution
+           when deduction is still to be done) or when in_parent_substitution
+           is TRUE and we found a pack reference for an "inner" pack that isn't
+           found at this level. */
+        any_errors = !is_rescan ||
+                     !(ctws_state->preserve_deduced_packs ||
+                       (not_found && ctws_state->in_parent_substitution));
       }  /* if */
     }  /* if */
   }  /* for */
@@ -12483,11 +12500,12 @@ TRUE is returned if there are any more elements in the pack.  FALSE otherwise.
           a_param_type_ptr	ptp;
           a_param_type_ptr	next_ptp;
           /* Advance to the next element on the list if the parameter number
-             and level match the current value. */
+             and level match the current value.  In some cases, no parameter
+             is found because it belongs to an "inner" pack while substituting
+             an "outer" pack (i.e., a pack from a parent template). */
           ptp = arg_prp->curr_argument.param_type;
-          next_ptp = ptp->next;
-          if (next_ptp == NULL ||
-              ptp->param_num != next_ptp->param_num) {
+          next_ptp = ptp != NULL ? ptp->next : NULL;
+          if (next_ptp == NULL || ptp->param_num != next_ptp->param_num) {
             next_ptp = NULL;
             done = TRUE;
           }  /* if */

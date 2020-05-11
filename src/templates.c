@@ -608,7 +608,7 @@ Initialize a template argument substitution state block.
   csp->routine_type_levels = -1;
   csp->parent_levels = 0;
   csp->preserve_deduced_packs = FALSE;
-  csp->ignore_enclosing_expansions = FALSE;
+  csp->in_parent_substitution = FALSE;
 }  /* init_ctws_state */
 
 
@@ -14012,16 +14012,15 @@ to an alias template, the substituted type is returned in *new_type
                       orig_type->
                         variant.class_struct_union.is_prototype_instantiation;
   if (orig_is_prototype && orig_tssp->primary_template_sym == NULL &&
-      ctws_state->ignore_enclosing_expansions) {
-    /* The ignore_enclosing_expansions flag is set when we are doing
-       special substitution of something like a noexcept argument.  That
-       process involves doing substitution of enclosing classes, which are
-       typically rescanned from tokens.  For such special substitution,
-       when we hit a prototype instantiation, create a special template
-       argument list that includes pack expansion descriptors for the
-       prototype argument list elements that are packs.  This is not done
-       for partial specializations where the template argument list is
-       not synthesized. */
+      ctws_state->in_parent_substitution) {
+    /* The in_parent_substitution flag is set when we are doing special
+       substitution of something like a noexcept argument.  That process
+       involves doing substitution of enclosing classes, which are typically
+       rescanned from tokens.  For such special substitution, when we hit a
+       prototype instantiation, create a special template argument list that
+       includes pack expansion descriptors for the prototype argument list
+       elements that are packs.  This is not done for partial specializations
+       where the template argument list is not synthesized. */
     tap = create_prototype_arg_list(template_sym, templ_param_list,
                                     /*add_pack_descr=*/TRUE);
   }  /* if */

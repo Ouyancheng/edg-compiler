@@ -2675,7 +2675,7 @@ done.
   eriep = get_expr_rescan_info(expr, (an_expr_rescan_info_entry *)NULL);
   pedep = eriep->saved_operand.pack_expansion_descr;
   check_assertion(expr->is_pack_expansion && pedep != NULL);
-  if (rcblock->ctws_state->ignore_enclosing_expansions &&
+  if (rcblock->ctws_state->in_parent_substitution &&
       !pedep->uses_any_enclosing_packs) {
     add_expr_copy = TRUE;
   } else {
