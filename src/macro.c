@@ -1103,8 +1103,7 @@ growth of the list.
 
   if (index >= 0 && index < num_macro_invocation_records) {
     for (mirbp = last_macro_invocation_record_block;
-         mirbp != NULL && mirbp->first_record_in_block > index;
-         mirbp = mirbp->prev) {}
+         mirbp->first_record_in_block > index; mirbp = mirbp->prev) {}
     index_in_block = index - mirbp->first_record_in_block;
     mirp = mirbp->records + index_in_block;
   }  /* if */
