@@ -22663,12 +22663,10 @@ orig_operand to the function operand created before assembling the final call.
                                                alep,
                                                /*dependent_expression=*/FALSE);
         make_constant_operand(member_sym->variant.constant, &function_operand);
-        if (selector_operand != NULL) {
-          bind_member_function_operand_to_selector(
-                                          selector_operand,
-                                          /*selector_is_object_pointer=*/FALSE,
-                                          &function_operand);
-        }  /* if */
+        bind_member_function_operand_to_selector(
+                                        selector_operand,
+                                        /*selector_is_object_pointer=*/FALSE,
+                                        &function_operand);
       } else {
         if (expr_error_should_be_issued()) {
           pos_stty_error(ec_not_a_type_member, &selector_operand->position,
