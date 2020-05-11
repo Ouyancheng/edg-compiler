@@ -15345,7 +15345,7 @@ entries for the operands.
      operands that are throws. */
   if (op2_is_temp_init && !op3_is_temp_init &&
       is_class_struct_union_type(operand_3->type)) {
-    temp_init_from_operand_full(operand_3, operand_2->type,
+    temp_init_from_operand_full(operand_3, operand_3->type,
                                 /*result_is_lvalue=*/FALSE);
     op3_is_temp_init = operand_is_temp_init_full(operand_3, &op_3);
   } else if (!op2_is_temp_init && op3_is_temp_init &&
