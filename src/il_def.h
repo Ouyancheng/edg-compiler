@@ -11889,10 +11889,14 @@ typedef struct a_routine {
 			   types without linkage. */
   a_bit_field	is_defaulted:1;
 			/* In C++, TRUE if this is a special member function
-			   declared with the "= default" syntax.  If
+			   or a comparison function declared with the
+			   "= default" syntax.  For class members, if
 			   defined_outside_of_parent is FALSE, the "= default"
-			   appeared on the in-class declaration; otherwise, it
-			   appeared on the out-of-class definition. */
+			   appeared on the in-class declaration and on the
+			   out-of-class definition otherwise.  For friend
+			   comparison operators, the "= default" appeared on
+			   the in-class definition if defined_in_friend_decl
+			   is TRUE. */
   a_bit_field	is_deleted:1;
 			/* In C++, TRUE if this is a function declared with
 			   the "= delete" syntax.  Also TRUE for functions

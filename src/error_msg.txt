@@ -3046,7 +3046,7 @@ ec_cannot_be_common_internal_linkage;;"a variable cannot have both \"common\" an
 ec_internal_linkage_not_on_prior_declaration;;"the \"internal_linkage\" attribute did not appear on a prior declaration"
 ec_no_class_template_guide;;"no viable template argument deduction candidate found for %n"
 ec_fully_qualified_constructor_call;;"a fully qualified constructor call is not allowed"
-ec_bad_scope_for_defaulted_comparison;;"a comparison operator can only be defaulted in a class definition"
+ec_bad_scope_for_defaulted_comparison;;"a defaulted comparison operator must be a member or a friend of the class it applies to"
 ec_bad_param_type_for_defaulted_comparison;;"bad type %t for parameter of defaulted comparison operator (must be \"reference to const X\" where X is the enclosing class type)"
 ec_return_type_of_default_comparison_must_be_bool;;"return type of defaulted comparison operator must be \"bool\""
 ec_nonconst_defaulted_member_comparison;;"a defaulted member comparison operator must be \"const\""
@@ -3201,6 +3201,7 @@ ec_cannot_be_const_qualified;;"argument cannot have a const-qualified type"
 ec_ptr_to_mem_of_incomplete_class;;"a pointer-to-member of an incomplete type %t is not allowed"
 ec_pack_init_capture_not_enabled;;"pack expansion in init-capture not enabled in this mode"
 ec_pack_init_capture_is_cpp20;;"pack expansion in init-capture is a C++20 feature"
+ec_comparison_defaulted_in_class_must_be_first_decl;;"a comparison operator defaulted in a class definition must be the first declaration of that comparison operator (%nd)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

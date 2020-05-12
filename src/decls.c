@@ -10128,6 +10128,15 @@ skip_overloading:;
   if (is_function_def && is_friend_decl) {
     /* Mark this function as defined in a friend declaration. */
     routine_ptr->defined_in_friend_decl = TRUE;
+    if (!dps->first_decl && func_info->is_defaulted &&
+        special_kind_is(routine_ptr, sfk_operator) &&
+        opname_is_comparison(routine_ptr->variant.opname_kind)) {
+      /* N4861 [class.compare.default]/1:
+         "A definition of a comparison operator as defaulted that appears in a
+          class shall be the first declaration of that function." */
+      pos_sy_error(ec_comparison_defaulted_in_class_must_be_first_decl,
+                   &locator->source_position, dps->sym);
+    }  /* if */
   }  /* if */
   /* Restore the scope stack. */
   if (idlb.namespace_reactivated)  {
@@ -17191,15 +17200,7 @@ proceed after the call.
       /* "= delete" or "= default". */
       if (defaulted) {
         /* The current token is "default" (keyword or identifier). */
-        if (locator->is_class_member) {
-          func_info->is_defaulted = TRUE;
-        } else {
-          /* "= default" on a nonmember function: Issue an error (and ignore
-             the tokens). */
-          (void)get_token();
-          pos_error(ec_invalid_function_to_be_defaulted, &pos_curr_token);
-          (void)get_token();
-        }  /* if */
+        func_info->is_defaulted = TRUE;
       } else {
         func_info->is_deleted = TRUE;
         report_gnu_cpp11_extension_if_needed(

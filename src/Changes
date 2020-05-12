@@ -1,5 +1,21 @@
 Version 6.1
 
+5/12/20  [EDGcpfe/22358,EDGcpfe/22463]
+Defaulted comparison operators
+
+The front end now implements the changes in the C++ standardization committee's
+paper P2085("Consistent defaulted comparisons").  This allows defaulting
+comparison operators outside the definition of the class to which the operator
+applies.  For example:
+
+  struct S {
+    int i = 0, j = 0;
+    bool operator==(S const&) const;
+  } x, y;
+  bool S::operator==(S const&) const = default;  // Previously an error.
+  int r = x == y;                                // Now okay.
+
+
 5/12/20  [EDGcpfe/21610]
 Diagnosing expressions with no effect
 

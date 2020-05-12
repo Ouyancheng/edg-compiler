@@ -13472,19 +13472,54 @@ otherwise (and take precautions for error recovery in that case).  def_pos is
 the position of the "= default" construct.
 */
 {
-  a_boolean      err = FALSE;
-  a_routine_ptr  rp = dps->sym->variant.routine.ptr;
+  a_boolean         err = FALSE, in_class = FALSE;
+  a_routine_ptr     rp = dps->sym->variant.routine.ptr;
+  a_type_ptr        rtp = skip_typerefs(rp->type);
+  a_routine_type_supplement_ptr
+                    rtsp = rout_type_supp(rtp);
+  a_param_type_ptr  ptp = rtsp->param_type_list;
+  a_type_ptr        class_type;
 
-  if (!scope_is(&scope_stack_top(), sck_class_struct_union)) {
-    pos_error(ec_bad_scope_for_defaulted_comparison, def_pos);
-    err = TRUE;
+  if (scope_is(&scope_stack_top(), sck_class_struct_union)) {
+    class_type = scope_stack_top().assoc_type;
+    in_class = TRUE;
   } else {
-    a_type_ptr        class_type = scope_stack_top().assoc_type;
-    a_type_ptr        rtp = skip_typerefs(rp->type);
-    a_routine_type_supplement_ptr
-                      rtsp = rout_type_supp(rtp);
-    a_param_type_ptr  ptp = rtsp->param_type_list;
-    a_boolean         is_member = rtsp->this_class != NULL;
+    class_type = skip_typerefs(ptp->type);
+    if (is_reference_type(class_type)) {
+      class_type = skip_typerefs(type_pointed_to(class_type));
+    }  /* if */
+    if (!is_immediate_class_type(class_type)) {
+      class_type = NULL;
+    } else {
+      if (dps->sym->is_class_member) {
+        /* Ensure we're dealing with a member of class type. */
+        if (!same_entities(class_type, sym_parent_class(dps->sym))) {
+          class_type = NULL;
+        }  /* if */
+      } else {
+        /* Ensure we're dealing with a friend of class type. */
+        a_class_list_entry_ptr  clep;
+        clep = rp->friends_or_originator.befriending_classes;
+        for (; clep != NULL; clep = clep->next) {
+          if (clep->class_type == class_type) {
+            /* Okay: class_type is a friend of this comparison operator. */
+            break;
+          }  /* if */
+        }  /* for */
+        if (clep == NULL) {
+          /* class_type is not a friend of the comparison operator: That should
+             elicit an error. */
+          class_type = NULL;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    if (class_type == NULL) {
+      pos_error(ec_bad_scope_for_defaulted_comparison, def_pos);
+      err = TRUE;
+    }  /* if */
+  }  /* if */
+  if (!err) {
+    a_boolean  is_member = rtsp->this_class != NULL;
     if (is_member) {
       if (rtsp->qualifiers != TQ_CONST) {
         pos_error(ec_nonconst_defaulted_member_comparison, def_pos);
@@ -13518,8 +13553,6 @@ the position of the "= default" construct.
     }  /* if */
     if (opname_kind_is(rp, onk_spaceship)) {
       a_type_ptr  auto_tp = skip_typerefs(rtp->variant.routine.return_type);
-      a_class_def_state 
-                  *cdsp = scope_stack_top().class_def_state;
       if (rp->has_deducible_return_type &&
          (!is_auto_type(auto_tp) ||
            auto_tp->variant.template_param.extra_info->coordinates.position
@@ -13528,8 +13561,8 @@ the position of the "= default" construct.
                   def_pos);
         err = TRUE;
       }  /* if */
-      if (!err) {
-        cdsp->defaulted_spaceship = TRUE;
+      if (!err && in_class) {
+        scope_stack_top().class_def_state->defaulted_spaceship = TRUE;
       }  /* if */
     } else if (!is_bool_type(rtp->variant.routine.return_type)) {
       /* Defaulted comparison operators other than operator<=> must have a
@@ -13548,7 +13581,9 @@ the position of the "= default" construct.
     rp->is_inline = FALSE;
     rp->storage_class = (a_storage_class)sc_extern;
   } else {
-    scope_stack_top().class_def_state->any_defaulted_special_members = TRUE;
+    if (in_class) {
+      scope_stack_top().class_def_state->any_defaulted_special_members = TRUE;
+    }  /* if */
     rp->is_defaulted = TRUE;
   }  /* if */
 }  /* check_defaulted_comparison */
