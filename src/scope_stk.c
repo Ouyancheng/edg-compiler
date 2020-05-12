@@ -12616,7 +12616,7 @@ enclosing context.
 }  /* any_packs_referenced_in_curr_context */
 
 
-static void record_potential_pack_reference_full(
+void record_potential_pack_reference_full(
 				a_symbol_ptr		pack_symbol,
 				a_source_position_ptr	position,
 				a_type_ptr		bases_type,
@@ -12760,17 +12760,6 @@ form.
   }  /* if */
 }  /* record_potential_pack_reference_full */
 
-
-void record_potential_pack_reference(a_symbol_ptr		pack_symbol,
-				     a_source_position_ptr	position)
-/*
-Interface to record_potential_pack_reference_full for the most common
-case where only a pack_symbol and position are provided.
-*/
-{
-  record_potential_pack_reference_full(pack_symbol, position, (a_type_ptr)NULL,
-                                       /*direct_bases=*/FALSE);
-}  /* record_potential_pack_reference */
 
 #if GNU_EXTENSIONS_ALLOWED
 
