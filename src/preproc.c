@@ -1464,6 +1464,10 @@ can only occur inside a global module fragment.
   a_symbol_ptr             module_sym = NULL;
   a_boolean                err = FALSE;
 
+  if (generate_pp_output) {
+    pass_directive_to_output();
+    goto done;
+  }  /* if */
   midp = alloc_module_import_decl();
   midp->position = *start_pos;
   if (scope_stack_top().in_export_block) {
@@ -1518,6 +1522,7 @@ can only occur inside a global module fragment.
       import_module(midp, module_sym);
     }  /* if */
   }  /* if */
+done:;
 }  /* proc_modules_import */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

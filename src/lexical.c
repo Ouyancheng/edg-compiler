@@ -12946,11 +12946,11 @@ directive scanned or ppd_not_valid if neither was found.
   a_pp_directive_kind result = ppd_not_valid;
 
   if (!any_tokens_gotten_from_curr_source_line && modules_enabled) {
-    if (strncmp(curr_char_loc, "import", 6) == 0 &&
+    if (strncmp(curr_char_loc, "import ", 7) == 0 &&
         !isalpha(curr_char_loc[6])) {
       result = ppd_import;
       curr_char_loc += 6;
-    } else if (strncmp(curr_char_loc, "export", 6) == 0 &&
+    } else if (strncmp(curr_char_loc, "export ", 7) == 0 &&
                !isalpha(curr_char_loc[6])) {
       a_const_char *saved_curr_char_loc = curr_char_loc;
       check_assertion(start_of_curr_token == curr_char_loc);
@@ -12958,7 +12958,7 @@ directive scanned or ppd_not_valid if neither was found.
       in_preprocessing_directive = TRUE;
       skip_white_space();
       in_preprocessing_directive = FALSE;
-      if (strncmp(curr_char_loc, "import", 6) == 0 &&
+      if (strncmp(curr_char_loc, "import ", 7) == 0 &&
           !isalpha(curr_char_loc[6])) {
         result = ppd_export_import;
         curr_char_loc += 6;
@@ -13676,6 +13676,9 @@ literal_prefix_scan:
       { a_pp_directive_kind ppd;
         a_source_position   start_pos;
 
+        if (currently_in_pp_if_skip) {
+          goto id_scan;
+        }  /* if */
         macro_line_loc_to_source_pos(start_of_curr_token, start_pos)
         /* Probably an identifier, but check for import/export import
            preprocessing directives. */
