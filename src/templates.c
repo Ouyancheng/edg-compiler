@@ -23707,6 +23707,7 @@ friend_template_checks_done:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }	/* if */
   if (decl_state->is_template_friend &&
+      decl_state->class_declared_in != NULL &&
       !is_nonreal_instantiation_context()) {
     /* This is a template friend declaration, add the current class to
        the list of friend classes associated with this template. */
