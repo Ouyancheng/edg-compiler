@@ -815,7 +815,7 @@ corresponding data structure for that partition.
 #  define CHECK_SIZE(data) \
   if (sizeof(an_ifc_##data) != 1 && sizeof(an_ifc_##data) != pp->entry_size) {\
     (void)fprintf(f_debug, "Partition for %s expects entity to have size %d, "\
-                           "but has size %d\n", #data, pp->entry_size,        \
+                           "but has size %ld\n", #data, pp->entry_size,       \
                            sizeof(an_ifc_##data));                            \
   }  /* if */                                                                 \
   break /* user ; */
