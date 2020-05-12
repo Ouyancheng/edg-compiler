@@ -1,7 +1,7 @@
 Version 6.1
 
 5/12/20  [EDGcpfe/21610]
-Diagnostic expressions with no effect
+Diagnosing expressions with no effect
 
 The front end attempts to issue a warning for expressions that have no effect.
 For example:
