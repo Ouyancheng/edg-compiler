@@ -19394,21 +19394,20 @@ instance to the definitions list for the template.
     for (; vp != NULL; vp = vp->next) {
       a_template_instance_ptr	tip;
       sym = (a_symbol_ptr)vp->source_corresp.assoc_info;
+      check_assertion(sym != NULL);
       tip = template_instance_for_symbol(sym);
-      if (sym != NULL) {
-        if (tip == NULL) {
-          /* Something went very wrong with this symbol, discard it. */
-          check_assertion(sym->is_error);
-          sym = NULL;
+      if (tip == NULL) {
+        /* Something went very wrong with this symbol, discard it. */
+        check_assertion(sym->is_error);
+        sym = NULL;
+      } else {
+        a_template_symbol_supplement_ptr	tssp;
+        tssp = template_supplement_for_symbol(sym);
+        check_assertion(tssp != NULL);
+        if (tssp->token_sequence_number == token_sequence_number) {
+          break;
         } else {
-          a_template_symbol_supplement_ptr	tssp;
-          tssp = template_supplement_for_symbol(sym);
-          check_assertion(tssp != NULL);
-          if (tssp->token_sequence_number == token_sequence_number) {
-            break;
-          } else {
-            sym = NULL;
-          }  /* if */
+          sym = NULL;
         }  /* if */
       }  /* if */
     }  /* for */
