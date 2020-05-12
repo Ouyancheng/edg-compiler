@@ -236,7 +236,7 @@ Utility to print some debug information for every access to an IFC module file.
                     ((char *)byte_buffer -
                        ((char *)mmap_addr + debug_partition->offset) - length),
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
-                    (long)(ftell(f_module)) - debug_partition->offset - length,
+                    (long)(ftell(f_module) - debug_partition->offset - length),
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
                     (int)length);
     }  /* if */
@@ -814,7 +814,7 @@ corresponding data structure for that partition.
 #if DEBUG
 #  define CHECK_SIZE(data) \
   if (sizeof(an_ifc_##data) != 1 && sizeof(an_ifc_##data) != pp->entry_size) {\
-    (void)fprintf(f_debug, "Partition for %s expects entity to have size %d, "\
+    (void)fprintf(f_debug, "Partition for %s expects entity to have size %u, "\
                            "but has size %ld\n", #data, pp->entry_size,       \
                            sizeof(an_ifc_##data));                            \
   }  /* if */                                                                 \
