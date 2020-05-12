@@ -2056,9 +2056,9 @@ template argument matching.
       }  /* if */
     }  /* if */
     /* Iterate over the arguments and parameters that are associated with
-       a given template parameter pack that is an expansion.  See the test
-       at the bottom of the loop. */
-    for (;; tap = tap->next, tpp = tpp->next) {
+       a given template parameter pack that is an expansion.  See also the
+       test at the bottom of the loop, which can also exit the loop. */
+    for (; tap != NULL; tap = tap->next, tpp = tpp->next) {
       has_value = template_arg_has_value(tap);
       if (tpp == NULL) {
         if (is_templ_templ_param_check) {
