@@ -20981,6 +20981,9 @@ sure it matches the primary template.
        already occurred. */
     sym->next = primary_tssp->partial_specializations;
     primary_tssp->partial_specializations = sym;
+    if (decl_state->template_decl->constraint.requires_clause != NULL) {
+      primary_tssp->has_partial_spec_with_requires_clause = TRUE;
+    }  /* if */
     /* Make sure that the type kind of the partial specialization matches the
        type kind of the primary template. */
     if ((type_kind == (a_type_kind)tk_union) !=
@@ -22779,14 +22782,14 @@ block.
       } else {
         tssp = primary_templ->variant.template_info;
       }  /* if */
-      if ((rcp != NULL || !is_primary_proto) &&
+      if ((rcp != NULL || (!is_primary_proto &&
+                           tssp->has_partial_spec_with_requires_clause)) &&
           tp->variant.class_struct_union.is_nonreal_class) {
         /* If a requires clause was specified, sym does not represent the
            correct nonreal instance since lookup does not take requires
-           clauses into account.
-           If there is no requires clause and we found a partial
-           specialization, we may have accidentally found an unrelated partial
-           specialization.  For example:
+           clauses into account.  If there is no requires clause and we found
+           a partial specialization, we may have accidentally found an
+           unrelated partial specialization.  For example:
              template<typename> struct X;
              template<typename T> requires (!T()) struct X<T*>; // (1)
              template<typename T> struct X<T*>; // (2)
@@ -22794,7 +22797,9 @@ block.
            (1), but the declaration of a new partial specialization.
            In both cases, search through the partial specializations to see
            if a match already exists.  Otherwise, create a new nonreal
-           instance. */
+           instance.  If the template-id does not designate a non-real class,
+           this is an error that will be diagnosed later (something like
+           "template<typename T> struct X<int>;"). */
         a_symbol_ptr  pp_sym = tssp->partial_specializations;
         sym = NULL;
         for (; pp_sym != NULL; pp_sym = pp_sym->next) {

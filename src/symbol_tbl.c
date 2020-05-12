@@ -3579,6 +3579,7 @@ and return a pointer to it.
   tssp->is_variadic = FALSE;
   tssp->has_variadic_template_params = FALSE;
   tssp->has_template_param_constraint = FALSE;
+  tssp->has_partial_spec_with_requires_clause = FALSE;
   tssp->is_generic = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tssp->is_delegate = FALSE;
