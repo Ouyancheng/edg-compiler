@@ -2138,28 +2138,27 @@ private:
 			   there is no template declaration being processed. */
 
 public:
-  an_ifc_module() noexcept : a_module_interface((a_module_kind)mk_ifc) {}
-  VIRTUAL ~an_ifc_module() noexcept = default;
+  an_ifc_module() : a_module_interface((a_module_kind)mk_ifc) {}
+  VIRTUAL ~an_ifc_module() EDG_NOEXCEPT = default;
 
-  inline a_boolean is_open() const noexcept OVERRIDE {
+  inline a_boolean is_open() const OVERRIDE {
     return f_module != NULL;
   }
 
-  a_boolean import(a_module_import_decl_ptr midp) noexcept OVERRIDE;
-  void close() noexcept OVERRIDE;
-  void pch_reset(a_module_import_decl_ptr midp) noexcept OVERRIDE;
+  a_boolean import(a_module_import_decl_ptr midp) OVERRIDE;
+  void close() OVERRIDE;
+  void pch_reset(a_module_import_decl_ptr midp) OVERRIDE;
 
   void process_ifc_declaration(a_module_entity_ptr mep,
                                a_boolean           defer,
-                               a_type_ptr          enumeration_type)
-                                                                const noexcept;
+                               a_type_ptr          enumeration_type) const;
   void get_definition_of_module_class(a_module_entity_ptr mep,
                                       a_text_buffer       *buffer)
-                                                       const noexcept OVERRIDE;
+                                                                const OVERRIDE;
 
 #if DEBUG
-  void debug() const noexcept OVERRIDE;
-  void db_module_entity(a_module_entity_ptr mep) const noexcept OVERRIDE;
+  void debug() const OVERRIDE;
+  void db_module_entity(a_module_entity_ptr mep) const OVERRIDE;
 #endif /* DEBUG */
 
 private:
@@ -2169,42 +2168,37 @@ private:
     ntk_namespace,
     ntk_empty_pack_expansion,
   };
-  inline void init_byte_buffer(size_t offset, size_t length) const noexcept;
+  inline void init_byte_buffer(size_t offset, size_t length) const;
   inline void get_bytes_from_buffer(void   *addr,
-                                    size_t length) const noexcept;
+                                    size_t length) const;
   inline void get_mismatched_endian_bytes(void   *entity,
-                                          size_t length) const noexcept;
+                                          size_t length) const;
   inline void get_bytes(void      *entity,
                         size_t    length,
-                        a_boolean header_bytes) const noexcept;
-  a_boolean open_and_map_ifc_module_file(a_module_import_decl_ptr midp)
-                                                                      noexcept;
-  static an_ifc_partition_map *find_ifc_partition(a_const_char *name) noexcept;
+                        a_boolean header_bytes) const;
+  a_boolean open_and_map_ifc_module_file(a_module_import_decl_ptr midp);
+  static an_ifc_partition_map *find_ifc_partition(a_const_char *name);
   void process_ifc_scope(ifc_ScopeIndex scope_index,
-                         a_scope_ptr    scope) const noexcept;
+                         a_scope_ptr    scope) const;
   /* Module entity getters. */
   a_module_entity_ptr get_ifc_module_entity_ptr(
                                        an_ifc_partition_kind partition,
-                                       ifc_Index_type        index)
-                                                                const noexcept;
+                                       ifc_Index_type        index) const;
   inline a_module_entity_ptr get_ifc_module_entity_ptr(ifc_TypeIndex index)
-                                                                const noexcept;
+                                                                         const;
   inline a_module_entity_ptr get_ifc_module_entity_ptr(ifc_DeclIndex index)
-                                                                const noexcept;
-  a_scope_ptr get_ifc_scope(ifc_DeclIndex scope_index) const noexcept;
+                                                                         const;
+  a_scope_ptr get_ifc_scope(ifc_DeclIndex scope_index) const;
   a_type_ptr type_for_type_index(ifc_TypeIndex   type_index,
-                                 a_non_type_kind *kind) const noexcept;
-  a_type_ptr type_for_template_id(an_ifc_ExprSort_TemplateId *templ_id)
-                                                                const noexcept;
-  a_template_arg_ptr template_arg_for_expr(ifc_ExprIndex expr_index)
-                                                                const noexcept;
+                                 a_non_type_kind *kind) const;
+  a_type_ptr type_for_template_id(an_ifc_ExprSort_TemplateId *templ_id) const;
+  a_template_arg_ptr template_arg_for_expr(ifc_ExprIndex expr_index) const;
   void source_position_from_locus(a_source_position  *pos,
-                                  ifc_SourceLocation *locus) const noexcept;
-  inline a_const_char *get_string_at_offset(ifc_TextOffset offset)
-                                                                const noexcept;
+                                  ifc_SourceLocation *locus) const;
+  inline a_const_char *get_string_at_offset(ifc_TextOffset offset) const;
   a_const_char *string_from_name_index(ifc_NameIndex    name_index,
-                                       a_symbol_locator *loc) const noexcept;
-  a_const_char *name_from_decl(ifc_DeclIndex decl) const noexcept;
+                                       a_symbol_locator *loc) const;
+  a_const_char *name_from_decl(ifc_DeclIndex decl) const;
   void init_dps(a_decl_parse_state          *dps,
                 ifc_SourceLocation          *locus,
                 ifc_TypeIndex               type_index,
@@ -2212,155 +2206,148 @@ private:
                 ifc_MsvcTraits              msvc_traits,
                 ifc_BasicSpecifiers         specifiers,
                 ifc_Access                  access,
-                a_partial_scope_stack_state *psssp) const noexcept;
+                a_partial_scope_stack_state *psssp) const;
   void init_locator_from_name(ifc_NameIndex      name_index,
                               ifc_TextOffset     text_offset,
                               ifc_SourceLocation *locus,
-                              a_symbol_locator   *loc) const noexcept;
+                              a_symbol_locator   *loc) const;
   a_constant_ptr constant_for_expr_index(ifc_ExprIndex expr_index,
-                                         a_type_ptr    default_type)
-                                                                const noexcept;
+                                         a_type_ptr    default_type) const;
   /* Token caching. */
   void cache_scope(a_token_cache_ptr  cache,
                    ifc_ScopeIndex     scope,
-                   ifc_SourceLocation *locus) const noexcept;
+                   ifc_SourceLocation *locus) const;
   void cache_type(a_token_cache_ptr  cache,
                   ifc_TypeIndex      type,
-                  ifc_SourceLocation *locus) const noexcept;
+                  ifc_SourceLocation *locus) const;
   void cache_decl(a_token_cache_ptr  cache,
-                  ifc_DeclIndex      decl) const noexcept;
+                  ifc_DeclIndex      decl) const;
   void cache_chart(a_token_cache_ptr  cache,
                    ifc_ChartIndex     chart,
-                   ifc_SourceLocation *locus) const noexcept;
+                   ifc_SourceLocation *locus) const;
   void cache_sentence(a_token_cache_ptr cache,
-                      ifc_SentenceIndex sentence) const noexcept;
+                      ifc_SentenceIndex sentence) const;
   void cache_word(a_token_cache_ptr     cache,
-                  an_ifc_Word           *word) const noexcept;
+                  an_ifc_Word           *word) const;
   void cache_source_directive(a_token_cache_ptr     cache,
                               ifc_SourceDirective   directive,
-                              ifc_SourceLocation    *locus) const noexcept;
+                              ifc_SourceLocation    *locus) const;
   void cache_source_punctuator(a_token_cache_ptr     cache,
                                ifc_SourcePunctuator  punctuator,
-                               ifc_SourceLocation    *locus) const noexcept;
+                               ifc_SourceLocation    *locus) const;
   void cache_source_literal(a_token_cache_ptr     cache,
                             ifc_SourceLiteral     literal,
                             ifc_Index             index,
-                            ifc_SourceLocation    *locus) const noexcept;
+                            ifc_SourceLocation    *locus) const;
   void cache_source_operator(a_token_cache_ptr     cache,
                              ifc_SourceOperator    op,
-                             ifc_SourceLocation    *locus) const noexcept;
+                             ifc_SourceLocation    *locus) const;
   void cache_source_keyword(a_token_cache_ptr     cache,
                             ifc_SourceKeyword     keyword,
-                            ifc_SourceLocation    *locus) const noexcept;
+                            ifc_SourceLocation    *locus) const;
   void cache_source_identifier(a_token_cache_ptr     cache,
                                ifc_SourceIdentifier  id,
                                ifc_Index             index,
-                               ifc_SourceLocation    *locus) const noexcept;
+                               ifc_SourceLocation    *locus) const;
   void cache_decl_template(a_token_cache_ptr        cache,
-                           an_ifc_DeclSort_Template *decl) const noexcept;
+                           an_ifc_DeclSort_Template *decl) const;
   /* Readers and reading helpers. */
   inline size_t file_offset_of(an_ifc_partition_kind partition,
-                               ifc_Index_type        index) const noexcept;
+                               ifc_Index_type        index) const;
   inline void read_partition_at_offset(an_ifc_partition_kind partition,
-                                       size_t                offset)
-                                                                const noexcept;
+                                       size_t                offset) const;
   inline void read_partition_at_index(an_ifc_partition_kind partition,
-                                      ifc_Index_type        index)
-                                                                const noexcept;
+                                      ifc_Index_type        index) const;
   inline void read_partition_at_index(ifc_TypeSort   type_kind,
-                                      ifc_Index_type index) const noexcept;
+                                      ifc_Index_type index) const;
   inline void read_partition_at_index(ifc_ExprSort   expr_kind,
-                                      ifc_Index_type index) const noexcept;
+                                      ifc_Index_type index) const;
   inline void read_partition_at_index(ifc_StmtSort   stmt_kind,
-                                      ifc_Index_type index) const noexcept;
+                                      ifc_Index_type index) const;
   inline void read_partition_at_index(ifc_DeclSort   decl_kind,
-                                      ifc_Index_type index) const noexcept;
+                                      ifc_Index_type index) const;
   inline void read_partition_at_index(ifc_NameSort   name_kind,
-                                      ifc_Index_type index) const noexcept;
+                                      ifc_Index_type index) const;
   inline void read_partition_at_index(ifc_ChartSort  chart_kind,
-                                      ifc_Index_type index) const noexcept;
+                                      ifc_Index_type index) const;
   inline void read_partition_at_index(ifc_SyntaxSort syntax_kind,
-                                      ifc_Index_type index) const noexcept;
+                                      ifc_Index_type index) const;
   inline ifc_Index read_index_from_heap(an_ifc_partition_kind heap_partition,
-                                        ifc_Index_type        index)
-                                                                const noexcept;
+                                        ifc_Index_type        index) const;
   /* Stringizers. */
   void str_ifc_text_offset(ifc_TextOffset     offset,
-                           a_str_control_block *scbp) const noexcept;
+                           a_str_control_block *scbp) const;
   void str_ifc_name_index(ifc_NameIndex       name_index,
-                          a_str_control_block *scbp) const noexcept;
+                          a_str_control_block *scbp) const;
   void str_ifc_class_name(ifc_DeclIndex       home_scope,
-                          a_str_control_block *scbp) const noexcept;
+                          a_str_control_block *scbp) const;
   void str_ifc_add_number(a_host_large_unsigned value,
-                          a_str_control_block   *scbp) const noexcept;
+                          a_str_control_block   *scbp) const;
 #if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
   void str_ifc_add_number(an_integer_value    &value,
-                          a_str_control_block *scbp) const noexcept;
+                          a_str_control_block *scbp) const;
 #endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
   void str_ifc_source_location(ifc_SourceLocation  *locus,
-                               a_str_control_block *scbp) const noexcept;
+                               a_str_control_block *scbp) const;
   void str_ifc_access(ifc_Access          access,
-                      a_str_control_block *scbp) const noexcept;
+                      a_str_control_block *scbp) const;
   void str_ifc_qualifiers(ifc_Qualifiers      qualifiers,
-                          a_str_control_block *scbp) const noexcept;
+                          a_str_control_block *scbp) const;
   void str_ifc_basic_specifiers(ifc_BasicSpecifiers specifiers,
-                                a_str_control_block *scbp) const noexcept;
+                                a_str_control_block *scbp) const;
   void str_ifc_object_traits(ifc_ObjectTraits    traits,
-                             a_str_control_block *scbp) const noexcept;
+                             a_str_control_block *scbp) const;
   void str_ifc_msvc_traits(ifc_MsvcTraits      traits,
-                           a_str_control_block *scbp) const noexcept;
+                           a_str_control_block *scbp) const;
   void str_ifc_function_type_traits(ifc_FunctionTypeTraits traits,
-                                    a_str_control_block    *scbp)
-                                                                const noexcept;
+                                    a_str_control_block    *scbp) const;
   void str_ifc_noexcept_specification(ifc_NoexceptSpecification *eh_spec,
-                                      a_str_control_block       *scbp)
-                                                                const noexcept;
+                                      a_str_control_block       *scbp) const;
   void str_ifc_function_traits(ifc_FunctionTraits  traits,
                                a_boolean           prefix,
-                               a_str_control_block *scbp) const noexcept;
+                               a_str_control_block *scbp) const;
   void str_ifc_expr_index(ifc_ExprIndex       expr_index,
-                          a_str_control_block *scbp) const noexcept;
+                          a_str_control_block *scbp) const;
   void str_ifc_scope_index(ifc_ScopeIndex      scope_index,
-                           a_str_control_block *scbp) const noexcept;
+                           a_str_control_block *scbp) const;
   void str_ifc_type_index_first_part(ifc_TypeIndex       type_index,
-                                     a_str_control_block *scbp) const noexcept;
+                                     a_str_control_block *scbp) const;
   void str_ifc_type_index_second_part(ifc_TypeIndex       type_index,
-                                      a_str_control_block *scbp)
-                                                                const noexcept;
+                                      a_str_control_block *scbp) const;
   void str_ifc_type_index(ifc_TypeIndex       type_index,
-                          a_str_control_block *scbp) const noexcept;
+                          a_str_control_block *scbp) const;
   void str_ifc_common_decl(ifc_SourceLocation  *locus,
                            ifc_Access          access,
                            ifc_BasicSpecifiers specifiers,
                            ifc_ObjectTraits    traits,
-                           a_str_control_block *scbp) const noexcept;
+                           a_str_control_block *scbp) const;
   void str_ifc_class_definition(an_ifc_DeclSort_Scope *idssp,
-                                a_str_control_block   *scbp) const noexcept;
+                                a_str_control_block   *scbp) const;
   void str_ifc_declaration(ifc_DeclIndex       decl_index,
                            a_boolean           is_designated_type,
-                           a_str_control_block *scbp) const noexcept;
+                           a_str_control_block *scbp) const;
   void str_ifc_statement(ifc_StmtIndex       stmt_index,
-                         a_str_control_block *scbp) const noexcept;
+                         a_str_control_block *scbp) const;
   void str_ifc_string_literal(ifc_StringIndex     str_index,
-                              a_str_control_block *scbp) const noexcept;
+                              a_str_control_block *scbp) const;
   void str_ifc_chart(ifc_ChartIndex      chart_index,
-                     a_str_control_block *scbp) const noexcept;
+                     a_str_control_block *scbp) const;
   template<typename T>
   void str_ifc_associated_trait(ifc_DeclIndex       decl_index,
-                                a_str_control_block *scbp) const noexcept;
+                                a_str_control_block *scbp) const;
   void str_ifc_syntax_node(ifc_SyntaxIndex     syntax_index,
-                           a_str_control_block *scbp) const noexcept;
+                           a_str_control_block *scbp) const;
   void str_ifc_sentence(ifc_SentenceIndex   sentence_index,
-                        a_str_control_block *scbp) const noexcept;
+                        a_str_control_block *scbp) const;
   void str_ifc_word(ifc_WordIndex       word_index,
-                    a_str_control_block *scbp) const noexcept;
+                    a_str_control_block *scbp) const;
 
 #if DEBUG
-  void db_ifc_file_header() const noexcept;
+  void db_ifc_file_header() const;
 #if EXPENSIVE_CHECKING
   void f_db_get_byte(a_const_char *value_str,
                      void         *addr,
-                     size_t       length) const noexcept;
+                     size_t       length) const;
 #endif /* EXPENSIVE_CHECKING */
 #endif /* DEBUG */
 
@@ -2369,7 +2356,7 @@ private:
   inline concat(an_ifc_, name) * concat(get_, name) ( \
                                   concat(an_ifc_, name) *ptr, \
                                   ARG_UNUSED a_boolean  fill_storage = FALSE) \
-                                                                const noexcept;
+                                                                         const;
   #define IFC_DECL_FIELD(field, type) /**/
   #define IFC_DECL_END(name) /**/
   /*lint -e451 included more than once. */
@@ -2382,53 +2369,43 @@ private:
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Deprecated>
                                             (ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp)
-                                                                const noexcept;
+                                             a_str_control_block *scbp) const;
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Specialization>
                                             (ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp)
-                                                                const noexcept;
+                                             a_str_control_block *scbp) const;
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Friend>
                                             (ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp)
-                                                                const noexcept;
+                                             a_str_control_block *scbp) const;
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_ConstexprFunction>
                                             (ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp)
-                                                                const noexcept;
+                                             a_str_control_block *scbp) const;
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_FunctionTemplate>
                                             (ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp)
-                                                                const noexcept;
+                                             a_str_control_block *scbp) const;
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_ClassTemplate>
                                             (ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp)
-                                                                const noexcept;
+                                             a_str_control_block *scbp) const;
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_AliasTemplate>
                                             (ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp)
-                                                                const noexcept;
+                                             a_str_control_block *scbp) const;
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_VariableTemplate>
                                             (ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp)
-                                                                const noexcept;
+                                             a_str_control_block *scbp) const;
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcVendorTrait>
                                             (ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp)
-                                                                const noexcept;
+                                             a_str_control_block *scbp) const;
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcUuid>
                                             (ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp)
-                                                                const noexcept;
+                                             a_str_control_block *scbp) const;
 
 extern void ifc_modules_one_time_init();
 

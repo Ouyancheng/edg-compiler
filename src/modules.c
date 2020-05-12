@@ -530,12 +530,12 @@ the specified module.
 
 #if USE_VIRTUAL_FUNCTIONS
 
-a_module_interface::~a_module_interface() noexcept = default;
+a_module_interface::~a_module_interface() EDG_NOEXCEPT = default;
 
 #else /* !USE_VIRTUAL_FUNCTIONS */
 
 /*lint -save -e1540*/
-a_module_interface::~a_module_interface() noexcept
+a_module_interface::~a_module_interface() EDG_NOEXCEPT
 {
   switch (mod_kind) {
     case mk_none:
@@ -557,7 +557,7 @@ a_module_interface::~a_module_interface() noexcept
 
 
 /*lint -esym(1714,*a_module_interface::is_open)*/ /* FIXME: temporary*/
-a_boolean a_module_interface::is_open() const noexcept
+a_boolean a_module_interface::is_open() const
 /*
 Dispatch the is_open() call to the variant for the actual object.
 */
@@ -584,7 +584,7 @@ Dispatch the is_open() call to the variant for the actual object.
 
 
 /*lint -esym(1762,*a_module_interface::import)*/ /* FIXME: temporary*/
-a_boolean a_module_interface::import(a_module_import_decl_ptr midp) noexcept
+a_boolean a_module_interface::import(a_module_import_decl_ptr midp)
 /*
 Dispatch the import() call to the variant for the actual object.
 */
@@ -611,7 +611,7 @@ Dispatch the import() call to the variant for the actual object.
 
 
 /*lint -esym(1762,*a_module_interface::close)*/ /* FIXME: temporary*/
-void a_module_interface::close() noexcept
+void a_module_interface::close()
 /*
 Dispatch the close() call to the variant for the actual object.
 */
@@ -635,7 +635,7 @@ Dispatch the close() call to the variant for the actual object.
 
 
 /*lint -esym(1762,*a_module_interface::pch_reset)*/ /* FIXME: temporary*/
-void a_module_interface::pch_reset(a_module_import_decl_ptr midp) noexcept
+void a_module_interface::pch_reset(a_module_import_decl_ptr midp)
 /*
 Dispatch the pch_reset() call to the variant for the actual object.
 */
@@ -659,7 +659,7 @@ Dispatch the pch_reset() call to the variant for the actual object.
 
 #endif /* USE_VIRTUAL_FUNCTIONS */
 
-void a_module_interface::set_name(a_const_char *module_name) noexcept
+void a_module_interface::set_name(a_const_char *module_name)
 /*
 Set the name of this module to the provided module_name.
 */
@@ -681,7 +681,7 @@ Set the name of this module to the provided module_name.
 void a_module_interface::get_definition_of_module_class(
                                                    a_module_entity_ptr mep,
                                                    a_text_buffer       *buffer)
-                                                                 const noexcept
+                                                                          const
 /*
 Dispatch the get_definition_of_module_class() call to the variant for the
 actual object.
@@ -706,7 +706,7 @@ actual object.
 
 #if DEBUG
 
-void a_module_interface::debug() const noexcept
+void a_module_interface::debug() const
 /*
 Dispatch the debug() call to the variant for the actual object.
 */
@@ -729,8 +729,7 @@ Dispatch the debug() call to the variant for the actual object.
 }  /* debug */
 
 
-void a_module_interface::db_module_entity(a_module_entity_ptr mep)
-                                                                 const noexcept
+void a_module_interface::db_module_entity(a_module_entity_ptr mep) const
 /*
 Dispatch the db_module_entity() call to the variant for the actual object.
 */

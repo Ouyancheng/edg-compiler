@@ -108,32 +108,31 @@ struct a_module_interface {
 #endif /* EDG_WIN32 */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
-  a_module_interface() noexcept = delete;
-  a_module_interface(a_module_kind iface_kind) noexcept
+  a_module_interface() = delete;
+  a_module_interface(a_module_kind iface_kind)
 #if !USE_VIRTUAL_FUNCTIONS
     : mod_kind(iface_kind)
 #endif /* !USE_VIRTUAL_FUNCTIONS */
     {}
-  VIRTUAL ~a_module_interface() noexcept;
+  VIRTUAL ~a_module_interface() EDG_NOEXCEPT;
 
 /* State query functions. */
-  VIRTUAL a_boolean is_open() const noexcept ABSTRACT;
+  VIRTUAL a_boolean is_open() const ABSTRACT;
 
 /* Disk interface functions. */
-  VIRTUAL a_boolean import(a_module_import_decl_ptr midp) noexcept ABSTRACT;
-  VIRTUAL void close() noexcept ABSTRACT;
-  VIRTUAL void pch_reset(a_module_import_decl_ptr midp) noexcept ABSTRACT;
+  VIRTUAL a_boolean import(a_module_import_decl_ptr midp) ABSTRACT;
+  VIRTUAL void close() ABSTRACT;
+  VIRTUAL void pch_reset(a_module_import_decl_ptr midp) ABSTRACT;
 
 /* Module interface functions. */
-  void set_name(a_const_char *module_name) noexcept;
+  void set_name(a_const_char *module_name);
   VIRTUAL void get_definition_of_module_class(a_module_entity_ptr mep,
                                               a_text_buffer       *buffer)
-                                                       const noexcept ABSTRACT;
+                                                                const ABSTRACT;
 
 #if DEBUG
-  VIRTUAL void debug() const noexcept ABSTRACT;
-  VIRTUAL void db_module_entity(a_module_entity_ptr mep)
-                                                       const noexcept ABSTRACT;
+  VIRTUAL void debug() const ABSTRACT;
+  VIRTUAL void db_module_entity(a_module_entity_ptr mep) const ABSTRACT;
 #endif /* DEBUG */
 };  /* a_module_interface */
 
@@ -182,29 +181,28 @@ EDG implementation of modules.
 */
 /*lint -save -e1511 -e1762 -e1790*/
 struct an_edg_module : public a_module_interface {
-  an_edg_module() noexcept : a_module_interface((a_module_kind)mk_edg) {}
-  ~an_edg_module() noexcept = default;
+  an_edg_module() : a_module_interface((a_module_kind)mk_edg) {}
+  ~an_edg_module() EDG_NOEXCEPT = default;
 
-  a_boolean is_open() const noexcept OVERRIDE
+  a_boolean is_open() const OVERRIDE
     { unexpected_condition_str("Unimplemented"); /*lint -e527*/ return FALSE; }
 
-  a_boolean import(ARG_UNUSED a_module_import_decl_ptr midp) noexcept OVERRIDE
+  a_boolean import(ARG_UNUSED a_module_import_decl_ptr midp) OVERRIDE
     { unexpected_condition_str("Unimplemented"); /*lint -e527*/ return FALSE; }
-  void close() noexcept OVERRIDE
+  void close() OVERRIDE
     { unexpected_condition_str("Unimplemented"); }
-  void pch_reset(ARG_UNUSED a_module_import_decl_ptr midp) noexcept OVERRIDE
+  void pch_reset(ARG_UNUSED a_module_import_decl_ptr midp) OVERRIDE
     { unexpected_condition_str("Unimplemented"); }
 
   void get_definition_of_module_class(ARG_UNUSED a_module_entity_ptr mep,
                                       ARG_UNUSED a_text_buffer       *buffer)
-                                                        const noexcept OVERRIDE
+                                                                 const OVERRIDE
     { unexpected_condition_str("Unimplemented"); }
 
 #if DEBUG
-  void debug() const noexcept OVERRIDE
+  void debug() const OVERRIDE
     { unexpected_condition_str("Unimplemented"); }
-  void db_module_entity(ARG_UNUSED a_module_entity_ptr mep)
-                                                        const noexcept OVERRIDE
+  void db_module_entity(ARG_UNUSED a_module_entity_ptr mep) const OVERRIDE
     { unexpected_condition_str("Unimplemented"); }
 #endif /* DEBUG */
 };  /* an_edg_module */

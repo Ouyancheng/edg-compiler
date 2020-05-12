@@ -298,6 +298,10 @@ limit portability.
 #define ABSTRACT /* nothing */
 #endif /* USE_VIRTUAL_FUNCTIONS */
 
+#ifndef EDG_NOEXCEPT
+#define EDG_NOEXCEPT noexcept
+#endif /* ifndef EDG_NOEXCEPT */
+
 /*
 Flag that is TRUE if, when USE_STDINT_HEADER and USE_INT_TYPES_HEADER
 are both FALSE, the EDG-supplied definitions of the stdint.h types should
