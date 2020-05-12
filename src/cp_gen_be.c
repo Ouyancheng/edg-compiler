@@ -20009,7 +20009,14 @@ this one is such a continuation.
     } else if (var->declared_constinit) {
       write_tok_str((!gpp_mode || cpp20_mode) ? "constinit " : "__constinit ");
     }  /* if */
-    if (var->is_inline && !in_class_decl_no_init) {
+    if (var->is_inline &&
+        !(in_class_decl_no_init && (is_const_qualified_type(var_type) ||
+                                    is_reference_type(var_type)))) {
+      /* If this is the in-class declaration of a static data member and no
+         in-class initializer was supplied, putting the "inline" specifier
+         on it would make it a definition and require an initializer if it
+         has a const-qualified or reference type, so we suppress the
+         specifier in that case. */
       write_tok_str("inline ");
     }  /* if */
     if (var->is_thread_local) {
