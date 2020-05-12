@@ -4788,7 +4788,7 @@ this is not allowed, an error will be issued by the caller.
                   symbol_is(fund_old_sym, sk_concept_template)) &&
                  !(gpp_mode && !clang_mode)) {
         /* Concept templates must be unique in their scope, but GCC allows
-           to coexist with tag types. */
+           them to coexist with tag types. */
         /* err = TRUE; */
       } else if (is_tag_symbol(fund_new_sym) &&
                  !is_type_symbol(fund_old_sym) &&
