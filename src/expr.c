@@ -1169,7 +1169,7 @@ changed below to be TRUE for certain kinds of expressions and/or contexts.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_constant_operand(operand)) {
       a_constant_ptr con = &operand->variant.constant;
-      if (con->kind == (a_constant_repr_kind)ck_template_param) {
+      if (constant_is(con, ck_template_param)) {
         suppress_warning = TRUE;
       } else if (con->is_result_of_constexpr_call) {
         suppress_warning = TRUE;
@@ -1222,6 +1222,10 @@ changed below to be TRUE for certain kinds of expressions and/or contexts.
          attribute applies.  Look further to see if a warning is appropriate.*/
       check_expression_for_nodiscard_warning(node);
     }  /* if */
+  }  /* if */
+  if (!suppress_warning && is_void_type(operand->type)) {
+    /* Don't warn for void expressions. */
+    suppress_warning = TRUE;
   }  /* if */
   if (!suppress_warning) {
     /* Give a warning on an expression that has no effect. */
