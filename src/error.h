@@ -770,7 +770,7 @@ extern void embedded_cplusplus_noncompliance_diagnostic(
     }  /* if */                                                             \
   }
 
-/* Macro to warn about C++11 features enabled in default non-c++11 GNU C++
+/* Macro to warn about C++11 features enabled in default non-C++11 GNU C++
    modes. */
 #define report_gnu_cpp11_extension_if_needed(pos, error_code)               \
   { if (gpp_mode && !cpp11_mode) {                                          \
@@ -778,7 +778,7 @@ extern void embedded_cplusplus_noncompliance_diagnostic(
     }  /* if */                                                             \
   }
 
-/* Macro to warn about C++17 features enabled in default non-c++17 GNU C++
+/* Macro to warn about C++17 features enabled in default non-C++17 GNU C++
    modes. */
 #define report_gnu_cpp17_extension_if_needed(pos, error_code)               \
   { if (gpp_mode && !cpp17_mode) {                                          \
