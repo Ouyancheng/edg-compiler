@@ -103,7 +103,6 @@ IFC_DECL_START(DeclSort_Variable)
   IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(home_scope, DeclIndex)
   IFC_DECL_FIELD(initializer, ExprIndex)
-/* Spec says this should be Alignment, IFC files suggest ExprIndex. */
   IFC_DECL_FIELD(alignment, ExprIndex)
   IFC_DECL_FIELD(traits, ObjectTraits)
   IFC_DECL_FIELD(specifier, BasicSpecifiers)
@@ -155,7 +154,6 @@ IFC_DECL_END(DeclSort_Bitfield)
 
 /* DeclSort::Scope */
 IFC_DECL_START(DeclSort_Scope)
-/* Spec says this is a TextOffset, but IFC files seem to be using NameIndex. */
   IFC_DECL_FIELD(name, NameIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
@@ -412,7 +410,7 @@ IFC_DECL_START(TypeSort_Fundamental)
   IFC_DECL_FIELD(basis, TypeBasis)
   IFC_DECL_FIELD(precision, TypePrecision)
   IFC_DECL_FIELD(sign, TypeSign)
-  IFC_DECL_FIELD(__padding__, uint8_t)
+  IFC_DECL_FIELD(__padding__, u8)
 IFC_DECL_END(TypeSort_Fundamental)
 
 /* TypeSort::Designated */
@@ -504,9 +502,6 @@ IFC_DECL_END(TypeSort_Base)
 /* TypeSort::Decltype */
 IFC_DECL_START(TypeSort_Decltype)
   IFC_DECL_FIELD(expr, SyntaxIndex)
-/* Spec claims this will be removed in the future - but it seems to already be
-   removed from current IFC files. */
-  /*IFC_DECL_FIELD(words, SentenceIndex)*/
 IFC_DECL_END(TypeSort_Decltype)
 
 /* TypeSort::Placeholder */
@@ -578,7 +573,7 @@ IFC_DECL_END(StmtSort_While)
 
 /* StmtSort::Block */
 IFC_DECL_START(StmtSort_Block)
-  IFC_DECL_FIELD(start, Offset)
+  IFC_DECL_FIELD(start, Index)
   IFC_DECL_FIELD(cardinality, Cardinality)
 IFC_DECL_END(StmtSort_Block)
 
@@ -635,6 +630,7 @@ IFC_DECL_END(StmtSort_VariableDecl)
 
 /* StmtSort::Expansion */
 IFC_DECL_START(StmtSort_Expansion)
+  IFC_DECL_FIELD(operand, StmtIndex)
 IFC_DECL_END(StmtSort_Expansion)
 
 /* StmtSort::SyntaxTree */
@@ -693,13 +689,13 @@ IFC_DECL_START(ExprSort_TemplateId)
   IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_TemplateId)
 
-/* ExprSort::Identifier */
-IFC_DECL_START(ExprSort_Identifier)
+/* ExprSort::UnqualifiedId */
+IFC_DECL_START(ExprSort_UnqualifiedId)
   IFC_DECL_FIELD(name, NameIndex)
   IFC_DECL_FIELD(resolution, ExprIndex)
   IFC_DECL_FIELD(template_keyword, SourceLocation)
   IFC_DECL_FIELD(locus, SourceLocation)
-IFC_DECL_END(ExprSort_Identifier)
+IFC_DECL_END(ExprSort_UnqualifiedId)
 
 /* ExprSort::SimpleIdentifier */
 IFC_DECL_START(ExprSort_SimpleIdentifier)
@@ -721,8 +717,6 @@ IFC_DECL_END(ExprSort_QualifiedName)
 IFC_DECL_START(ExprSort_Path)
   IFC_DECL_FIELD(scope, ExprIndex)
   IFC_DECL_FIELD(member, ExprIndex)
-/* Spec has this present, but IFC files don't seem to have it. */
-  /*IFC_DECL_FIELD(locus, SourceLocation)*/
 IFC_DECL_END(ExprSort_Path)
 
 /* ExprSort::Read */
@@ -808,74 +802,130 @@ IFC_DECL_END(ExprSort_InheritancePath)
 
 /* ExprSort::InitializerList */
 IFC_DECL_START(ExprSort_InitializerList)
+  IFC_DECL_FIELD(elements, ExprIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_InitializerList)
 
 /* ExprSort::Cast */
 IFC_DECL_START(ExprSort_Cast)
+  IFC_DECL_FIELD(kind, CoercionSort)
+  IFC_DECL_FIELD(source, ExprIndex)
+  IFC_DECL_FIELD(target, Index)
+  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_Cast)
 
 /* ExprSort::Condition */
 IFC_DECL_START(ExprSort_Condition)
+  IFC_DECL_FIELD(expr, ExprIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_Condition)
 
 /* ExprSort::ExpressionList */
 IFC_DECL_START(ExprSort_ExpressionList)
+  IFC_DECL_FIELD(contents, ExprIndex)
+  IFC_DECL_FIELD(delimiter, DelimiterSort)
+  IFC_DECL_FIELD(left, SourceLocation)
+  IFC_DECL_FIELD(right, SourceLocation)
 IFC_DECL_END(ExprSort_ExpressionList)
 
 /* ExprSort::SizeofType */
 IFC_DECL_START(ExprSort_SizeofType)
+  IFC_DECL_FIELD(operand, SyntaxIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_SizeofType)
 
 /* ExprSort::Alignof */
 IFC_DECL_START(ExprSort_Alignof)
+  IFC_DECL_FIELD(operand, SourceLocation)
+  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_Alignof)
 
 /* ExprSort::New */
 IFC_DECL_START(ExprSort_New)
+  IFC_DECL_FIELD(type, SyntaxIndex)
+  IFC_DECL_FIELD(where, SyntaxIndex)
+  IFC_DECL_FIELD(initializer, SyntaxIndex)
+  IFC_DECL_FIELD(new_locus, SourceLocation)
+  IFC_DECL_FIELD(global_locus, SourceLocation)
 IFC_DECL_END(ExprSort_New)
 
 /* ExprSort::Delete */
 IFC_DECL_START(ExprSort_Delete)
+  IFC_DECL_FIELD(address, SyntaxIndex)
+  IFC_DECL_FIELD(delete_locus, SourceLocation)
+  IFC_DECL_FIELD(global_locus, SourceLocation)
 IFC_DECL_END(ExprSort_Delete)
 
 /* ExprSort::Typeid */
 IFC_DECL_START(ExprSort_Typeid)
+  IFC_DECL_FIELD(operand, SyntaxIndex)
+  IFC_DECL_FIELD(locus, SyntaxIndex)
 IFC_DECL_END(ExprSort_Typeid)
 
 /* ExprSort::DestructorCall */
 IFC_DECL_START(ExprSort_DestructorCall)
+  IFC_DECL_FIELD(name, ExprIndex)
+  /* IFC Spec missing the type for this. */
+  IFC_DECL_FIELD(decltype_specifier, SyntaxIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(cleanup, DestructorSort)
 IFC_DECL_END(ExprSort_DestructorCall)
 
 /* ExprSort::SyntaxTree */
 IFC_DECL_START(ExprSort_SyntaxTree)
+  IFC_DECL_FIELD(syntax, SyntaxIndex)
 IFC_DECL_END(ExprSort_SyntaxTree)
 
 /* ExprSort::FunctionString */
 IFC_DECL_START(ExprSort_FunctionString)
+  IFC_DECL_FIELD(name, TextOffset)
+  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_FunctionString)
 
 /* ExprSort::CompoundString */
 IFC_DECL_START(ExprSort_CompoundString)
+  IFC_DECL_FIELD(name, NameIndex)
+  IFC_DECL_FIELD(string, ExprIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_CompoundString)
 
 /* ExprSort::StringSequence */
 IFC_DECL_START(ExprSort_StringSequence)
+  IFC_DECL_FIELD(strings, ExprIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_StringSequence)
 
 /* ExprSort::Initializer */
 IFC_DECL_START(ExprSort_Initializer)
+  IFC_DECL_FIELD(expr, ExprIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(sort, InitializerSort)
 IFC_DECL_END(ExprSort_Initializer)
 
 /* ExprSort::Requires */
 IFC_DECL_START(ExprSort_Requires)
+  IFC_DECL_FIELD(parameters, SyntaxIndex)
+  IFC_DECL_FIELD(body, SyntaxIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_Requires)
 
 /* ExprSort::UnaryFold */
 IFC_DECL_START(ExprSort_UnaryFold)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(expr, ExprIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(operation, OperatorCategory)
+  IFC_DECL_FIELD(associativity, Associativity)
 IFC_DECL_END(ExprSort_UnaryFold)
 
 /* ExprSort::BinaryFold */
 IFC_DECL_START(ExprSort_BinaryFold)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(left, ExprIndex)
+  IFC_DECL_FIELD(right, ExprIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(operation, OperatorCategory)
+  IFC_DECL_FIELD(associativity, Associativity)
 IFC_DECL_END(ExprSort_BinaryFold)
 
 /* ExprSort::HierarchyConversion */
@@ -891,10 +941,22 @@ IFC_DECL_END(ExprSort_HierarchyConversion)
 
 /* ExprSort::ProductTypeValue */
 IFC_DECL_START(ExprSort_ProductTypeValue)
+  IFC_DECL_FIELD(class_decl, DeclIndex)
+  IFC_DECL_FIELD(members, ExprIndex)
+  IFC_DECL_FIELD(base_subobjects, ExprIndex)
+  IFC_DECL_FIELD(vtable, ExprIndex)
+  IFC_DECL_FIELD(type, TypeIndex)
+/* Size of entry in IFC files indicates a field is missing in the spec. */
+  IFC_DECL_FIELD(__padding__, u32)
 IFC_DECL_END(ExprSort_ProductTypeValue)
 
 /* ExprSort::SumTypeValue */
 IFC_DECL_START(ExprSort_SumTypeValue)
+  IFC_DECL_FIELD(union_decl, DeclIndex)
+  IFC_DECL_FIELD(discriminant, ActiveMember)
+  IFC_DECL_FIELD(value, ExprIndex)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_SumTypeValue)
 
 /* ExprSort::SubobjectValue */
@@ -903,22 +965,36 @@ IFC_DECL_END(ExprSort_SubobjectValue)
 
 /* ExprSort::ArrayValue */
 IFC_DECL_START(ExprSort_ArrayValue)
+  IFC_DECL_FIELD(elements, ExprIndex)
+  IFC_DECL_FIELD(element_type, TypeIndex)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_ArrayValue)
 
 /* ExprSort::DynamicDispatch */
 IFC_DECL_START(ExprSort_DynamicDispatch)
+  IFC_DECL_FIELD(pivot, ExprIndex)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_DynamicDispatch)
 
 /* ExprSort::VirtualFunctionConversion */
 IFC_DECL_START(ExprSort_VirtualFunctionConversion)
+  IFC_DECL_FIELD(function, DeclIndex)
+  IFC_DECL_FIELD(target, TypeIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_VirtualFunctionConversion)
 
 /* ExprSort::Placeholder */
 IFC_DECL_START(ExprSort_Placeholder)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_Placeholder)
 
 /* ExprSort::Expansion */
 IFC_DECL_START(ExprSort_Expansion)
+  IFC_DECL_FIELD(operand, ExprIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_Expansion)
 
 /* ExprSort::Generic */
@@ -934,10 +1010,12 @@ IFC_DECL_END(ExprSort_Tuple)
 
 /* ExprSort::Nullptr */
 IFC_DECL_START(ExprSort_Nullptr)
+  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_Nullptr)
 
 /* ExprSort::This */
 IFC_DECL_START(ExprSort_This)
+  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_This)
 
 /* ExprSort::TemplateReference */
@@ -946,7 +1024,6 @@ IFC_DECL_START(ExprSort_TemplateReference)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(scope, TypeIndex)
   IFC_DECL_FIELD(arguments, ExprIndex)
-/* Spec stops here, but apparently there's an additional SourceLocation!. */
   IFC_DECL_FIELD(locus2, SourceLocation)
 IFC_DECL_END(ExprSort_TemplateReference)
 
@@ -968,10 +1045,14 @@ IFC_DECL_END(ExprSort_TypeTraitIntrinsic)
 
 /* ExprSort::DesignatedInitializer */
 IFC_DECL_START(ExprSort_DesignatedInitializer)
+  IFC_DECL_FIELD(member, TextOffset)
+  IFC_DECL_FIELD(initializer, ExprIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_DesignatedInitializer)
 
 /* ExprSort::PackedTemplateArguments */
 IFC_DECL_START(ExprSort_PackedTemplateArguments)
+  IFC_DECL_FIELD(arguments, ExprIndex)
 IFC_DECL_END(ExprSort_PackedTemplateArguments)
 
 /* ExprSort::Tokens */
@@ -982,6 +1063,8 @@ IFC_DECL_END(ExprSort_Tokens)
 
 /* ExprSort::AssignInitializer */
 IFC_DECL_START(ExprSort_AssignInitializer)
+  IFC_DECL_FIELD(initializer, ExprIndex)
+  IFC_DECL_FIELD(equal, SourceLocation)
 IFC_DECL_END(ExprSort_AssignInitializer)
 
 /* String::Literal */
@@ -1035,15 +1118,15 @@ IFC_DECL_END(ChartSort_None)
 
 /* ChartSort::Unilevel */
 IFC_DECL_START(ChartSort_Unilevel)
-  IFC_DECL_FIELD(start, Offset)
+  IFC_DECL_FIELD(start, Index)
   IFC_DECL_FIELD(cardinality, Cardinality)
-/* Entity size in files indicates at least one field is missing. */
-  IFC_DECL_FIELD(__padding__, uint32_t)
+/* Size of entry in IFC files indicates a field is missing in the spec. */
+  IFC_DECL_FIELD(__padding__, u32)
 IFC_DECL_END(ChartSort_Unilevel)
 
 /* ChartSort::Multilevel */
 IFC_DECL_START(ChartSort_Multilevel)
-  IFC_DECL_FIELD(start, Offset)
+  IFC_DECL_FIELD(start, Index)
   IFC_DECL_FIELD(cardinality, Cardinality)
 IFC_DECL_END(ChartSort_Multilevel)
 
@@ -1503,55 +1586,56 @@ IFC_DECL_END(Source_Line)
 /* Trait::Deprecated */
 IFC_DECL_START(Trait_Deprecated)
   IFC_DECL_FIELD(decl, DeclIndex)
-  IFC_DECL_FIELD(trait, uint32_t)
+  IFC_DECL_FIELD(trait, u32)
 IFC_DECL_END(Trait_Deprecated)
 
 /* Trait::Specialization */
 IFC_DECL_START(Trait_Specialization)
   IFC_DECL_FIELD(decl, DeclIndex)
-  IFC_DECL_FIELD(trait, uint32_t)
-  IFC_DECL_FIELD(__padding__, uint32_t)
+  IFC_DECL_FIELD(trait, u32)
+  IFC_DECL_FIELD(__padding__, u32)
 IFC_DECL_END(Trait_Specialization)
 
 /* Trait::Friend */
 IFC_DECL_START(Trait_Friend)
   IFC_DECL_FIELD(decl, DeclIndex)
-  IFC_DECL_FIELD(trait, uint32_t)
-  IFC_DECL_FIELD(__padding__, uint32_t)
+  IFC_DECL_FIELD(trait, u32)
+  IFC_DECL_FIELD(__padding__, u32)
 IFC_DECL_END(Trait_Friend)
 
 /* Trait::ConstexprFunction */
 IFC_DECL_START(Trait_ConstexprFunction)
-  IFC_DECL_FIELD(decl, DeclIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(function, DeclIndex)
   IFC_DECL_FIELD(parameters, ChartIndex)
   IFC_DECL_FIELD(initializers, ExprIndex)
   IFC_DECL_FIELD(body, StmtIndex)
+/* Size of entry in IFC files indicates a field is missing in the spec. */
+  IFC_DECL_FIELD(__padding__, u32)
 IFC_DECL_END(Trait_ConstexprFunction)
 
 /* Trait::FunctionTemplate */
 IFC_DECL_START(Trait_FunctionTemplate)
   IFC_DECL_FIELD(decl, DeclIndex)
-  IFC_DECL_FIELD(trait, uint32_t)
+  IFC_DECL_FIELD(trait, u32)
 IFC_DECL_END(Trait_FunctionTemplate)
 
 /* Trait::ClassTemplate */
 IFC_DECL_START(Trait_ClassTemplate)
   IFC_DECL_FIELD(decl, DeclIndex)
-  IFC_DECL_FIELD(trait, uint32_t)
+  IFC_DECL_FIELD(trait, u32)
 IFC_DECL_END(Trait_ClassTemplate)
 
 /* Trait::AliasTemplate */
 IFC_DECL_START(Trait_AliasTemplate)
   IFC_DECL_FIELD(decl, DeclIndex)
-  IFC_DECL_FIELD(trait, uint32_t)
+  IFC_DECL_FIELD(trait, u32)
 IFC_DECL_END(Trait_AliasTemplate)
 
 /* Trait::VariableTemplate */
 IFC_DECL_START(Trait_VariableTemplate)
   IFC_DECL_FIELD(decl, DeclIndex)
-  IFC_DECL_FIELD(trait, uint32_t)
+  IFC_DECL_FIELD(trait, u32)
 IFC_DECL_END(Trait_VariableTemplate)
 
 /* Trait::MsvcVendorTrait */
@@ -1563,7 +1647,7 @@ IFC_DECL_END(Trait_MsvcVendorTrait)
 /* Trait::MsvcUuid */
 IFC_DECL_START(Trait_MsvcUuid)
   IFC_DECL_FIELD(decl, DeclIndex)
-  IFC_DECL_FIELD(uuid, uint16_t)
+  IFC_DECL_FIELD(uuid, u16)
 IFC_DECL_END(Trait_MsvcUuid)
 
 /* Sentences: Internal token stream from MSVC. */
@@ -1577,9 +1661,9 @@ IFC_DECL_END(Sentence)
 IFC_DECL_START(Word)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(index, Index)
-  IFC_DECL_FIELD(value, uint16_t)
+  IFC_DECL_FIELD(value, u16)
   IFC_DECL_FIELD(sort, WordSort)
-  IFC_DECL_FIELD(__padding__, uint8_t)
+  IFC_DECL_FIELD(__padding__, u8)
 IFC_DECL_END(Word)
 
 /* #undef macros that were set by the #includer. */

@@ -326,8 +326,10 @@ Handle nested structures differently (and check for padding).
 #define GET_ByteOffset(x, from_header)         GET_int(x, from_header)
 #define GET_Cardinality(x, from_header)        GET_int(x, from_header)
 #define GET_ChartIndex(x, from_header)         GET_int(x, from_header)
+#define GET_CoercionSort(x, from_header)       GET_int(x, from_header)
 #define GET_Column(x, from_header)             GET_int(x, from_header)
 #define GET_DeclIndex(x, from_header)          GET_int(x, from_header)
+#define GET_DelimiterSort(x, from_header)      GET_int(x, from_header)
 #define GET_EntitySize(x, from_header)         GET_int(x, from_header)
 #define GET_ExprIndex(x, from_header)          GET_int(x, from_header)
 #define GET_Index(x, from_header)              GET_int(x, from_header)
@@ -337,7 +339,6 @@ Handle nested structures differently (and check for padding).
 #define GET_LitIndex(x, from_header)           GET_int(x, from_header)
 #define GET_MsvcTraits(x, from_header)         GET_int(x, from_header)
 #define GET_NameIndex(x, from_header)          GET_int(x, from_header)
-#define GET_Offset(x, from_header)             GET_int(x, from_header)
 #define GET_ParameterLevel(x, from_header)     GET_int(x, from_header)
 #define GET_ParameterPosition(x, from_header)  GET_int(x, from_header)
 #define GET_ScopeIndex(x, from_header)         GET_int(x, from_header)
@@ -360,11 +361,15 @@ Handle nested structures differently (and check for padding).
 
 #define GET_Abi(x, from_header)                GET_byte(x, from_header)
 #define GET_Access(x, from_header)             GET_byte(x, from_header)
+#define GET_ActiveMember(x, from_header)       GET_byte(x, from_header)
 #define GET_Architecture(x, from_header)       GET_byte(x, from_header)
+#define GET_Associativity(x, from_header)      GET_byte(x, from_header)
 #define GET_BasicSpecifiers(x, from_header)    GET_byte(x, from_header)
 #define GET_CallingConvention(x, from_header)  GET_byte(x, from_header)
+#define GET_DestructorSort(x, from_header)     GET_byte(x, from_header)
 #define GET_ExpansionMode(x, from_header)      GET_byte(x, from_header)
 #define GET_FunctionTypeTraits(x, from_header) GET_byte(x, from_header)
+#define GET_InitializerSort(x, from_header)    GET_byte(x, from_header)
 #define GET_NoexceptSort(x, from_header)       GET_byte(x, from_header)
 #define GET_ObjectTraits(x, from_header)       GET_byte(x, from_header)
 #define GET_ParameterSort(x, from_header)      GET_byte(x, from_header)
@@ -381,9 +386,9 @@ Handle nested structures differently (and check for padding).
 #define GET_WordSort(x, from_header)           GET_byte(x, from_header)
 
 #define GET_bool(x, from_header)               GET_byte(x, from_header)
-#define GET_uint8_t(x, from_header)            GET_byte(x, from_header)
-#define GET_uint16_t(x, from_header)           GET_short(x, from_header)
-#define GET_uint32_t(x, from_header)           GET_int(x, from_header)
+#define GET_u8(x, from_header)                 GET_byte(x, from_header)
+#define GET_u16(x, from_header)                GET_short(x, from_header)
+#define GET_u32(x, from_header)                GET_int(x, from_header)
 
 #define GET_Checksum(x, from_header)           GET_256bit_int(x, from_header)
 
@@ -806,9 +811,17 @@ corresponding data structure for that partition.
 {
 /* Some data structures are still unspecified (sizeof == 1).  That allowance
    should be removed once the spec is complete. */
-#define CHECK_SIZE(data) \
-  check_assertion(sizeof(an_ifc_##data) == 1 || \
-                  sizeof(an_ifc_##data) == pp->entry_size); break /* user ; */
+#if DEBUG
+#  define CHECK_SIZE(data) \
+  if (sizeof(an_ifc_##data) != 1 && sizeof(an_ifc_##data) != pp->entry_size) {\
+    (void)fprintf(f_debug, "Partition for %s expects entity to have size %d, "\
+                           "but has size %d\n", #data, pp->entry_size,        \
+                           sizeof(an_ifc_##data));                            \
+  }  /* if */                                                                 \
+  break /* user ; */
+#else /* !DEBUG */
+#  define CHECK_SIZE(data) break /* user ; */
+#endif /* DEBUG */
   switch (kind) {
     case ifc_decl_vendor_extension:
       CHECK_SIZE(DeclSort_VendorExtension);
@@ -948,8 +961,8 @@ corresponding data structure for that partition.
       CHECK_SIZE(ExprSort_UnresolvedId);
     case ifc_expr_template_id:
       CHECK_SIZE(ExprSort_TemplateId);
-    case ifc_expr_identifier:
-      CHECK_SIZE(ExprSort_Identifier);
+    case ifc_expr_unqualified_id:
+      CHECK_SIZE(ExprSort_UnqualifiedId);
     case ifc_expr_simple_identifier:
       CHECK_SIZE(ExprSort_SimpleIdentifier);
     case ifc_expr_pointer:
@@ -1356,6 +1369,7 @@ corresponding data structure for that partition.
     case ifc_macro_obj_like:
     case ifc_msvc_trait_code_segment:
     case ifc_msvc_trait_codegen_expr_trees:
+    case ifc_msvc_trait_entity_init_locus:
     case ifc_msvc_trait_named_func_params:
     case ifc_msvc_trait_spec_encodings:
     case ifc_msvc_trait_suppressed_warnings:
@@ -1565,9 +1579,9 @@ constants for that type).
             /* FIXME: lots more to do here. */
             a_variable_ptr vp;
             /* FIXME: idsvp->alignment exists but is an ExprIndex. */
-            init_dps(&dps, &idsvp->locus, idsvp->type, (ifc_Alignment)0,
-                     idsvp->traits, ifc_MsvcTraits_None, idsvp->specifier,
-                     idsvp->access, &psss);
+            init_dps(&dps, &idsvp->locus, idsvp->type, idsvp->traits,
+                     ifc_MsvcTraits_None, idsvp->specifier, idsvp->access,
+                     &psss);
             if (mep->scope == NULL) {
               mep->scope = get_ifc_scope(idsvp->home_scope);
             }  /* if */
@@ -1602,9 +1616,9 @@ constants for that type).
           } else {
             /* FIXME: lots more to do here. */
             a_routine_ptr rp;
-            init_dps(&dps, &idsfp->locus, idsfp->type, (ifc_Alignment)0,
-                     ifc_ObjectTraits_None, ifc_MsvcTraits_None,
-                     idsfp->specifiers, idsfp->access, &psss);
+            init_dps(&dps, &idsfp->locus, idsfp->type, ifc_ObjectTraits_None,
+                     ifc_MsvcTraits_None, idsfp->specifiers, idsfp->access,
+                     &psss);
             if (mep->scope == NULL) {
               mep->scope = get_ifc_scope(idsfp->home_scope);
             }  /* if */
@@ -1633,9 +1647,9 @@ constants for that type).
           } else {
             /* FIXME: lots more to do here (just copied
                ifc_DeclSort_Function).*/
-            init_dps(&dps, &idsip->locus, idsip->type, (ifc_Alignment)0,
-                     ifc_ObjectTraits_None, ifc_MsvcTraits_None,
-                     idsip->specifiers, idsip->access, &psss);
+            init_dps(&dps, &idsip->locus, idsip->type, ifc_ObjectTraits_None,
+                     ifc_MsvcTraits_None, idsip->specifiers, idsip->access,
+                     &psss);
             clear_func_info(&func_info);
             clear_decl_pos_block(&decl_pos_block);
             decl_routine(&loc, &dps, &func_info, SRK_DECLARATION, &linkage_ptr,
@@ -1805,9 +1819,8 @@ class_struct_union_case:
             if (itsfp->basis == ifc_TypeBasis_Typename) {
               /* A type alias; declare a typedef for this case. */
               init_dps(&dps, &idstap->locus, idstap->aliasee,
-                       (ifc_Alignment)0, ifc_ObjectTraits_None,
-                       ifc_MsvcTraits_None, idstap->specifiers, idstap->access,
-                       &psss);
+                       ifc_ObjectTraits_None, ifc_MsvcTraits_None,
+                       idstap->specifiers, idstap->access, &psss);
               clear_decl_pos_block(&decl_pos_block);
               decl_typedef(&loc, &dps, (a_type_ptr)NULL, &decl_pos_block);
               restore_partial_scope_stack_if_necessary(&psss);
@@ -1860,9 +1873,9 @@ class_struct_union_case:
             a_symbol_ptr tag_sym;
             check_assertion(idsep->base != 0);
             /* FIXME: idsep->alignment exists but is an ExprIndex. */
-            init_dps(&dps, &idsep->locus, idsep->base, (ifc_Alignment)0,
-                     ifc_ObjectTraits_None, ifc_MsvcTraits_None,
-                     idsep->specifiers, idsep->access, &psss);
+            init_dps(&dps, &idsep->locus, idsep->base, ifc_ObjectTraits_None,
+                     ifc_MsvcTraits_None, idsep->specifiers, idsep->access,
+                     &psss);
             clear_decl_pos_block(&decl_pos_block);
             /* Allocate an integer type and set its size based on the type
                specified by idsep->base. */
@@ -2012,7 +2025,6 @@ class_struct_union_case:
             defer_symbol_creation(mep, &loc);
           } else {
             a_tmpl_decl_state  decl_state;
-            a_decl_parse_state dps;
             a_template_ptr     tmpl;
             a_token_cache      cache;
             a_token_kind       final_token = tok_semicolon;
@@ -3423,7 +3435,6 @@ Given a declaration, return the name associated with that declaration.
 void an_ifc_module::init_dps(a_decl_parse_state          *dps,
                              ifc_SourceLocation          *locus,
                              ifc_TypeIndex               type_index,
-                             ifc_Alignment               alignment,
                              ifc_ObjectTraits            traits,
                              ifc_MsvcTraits              msvc_traits,
                              ifc_BasicSpecifiers         specifiers,
@@ -3446,8 +3457,6 @@ after the declaration has been processed.
     dps->type = type_for_type_index(type_index, /*kind=*/NULL);
   }  /* if */
   source_position_from_locus(&dps->start_pos, locus);
-  check_assertion(alignment < targ_maximum_pack_alignment);
-  dps->alignment = (a_targ_alignment)alignment;
   if (traits != ifc_ObjectTraits_None) {
     if (traits & ifc_ObjectTraits_Constexpr) {
       dps->dso_flags |= DSO_CONSTEXPR;
@@ -5653,20 +5662,6 @@ Add an access specifier to the current string, if needed.
 }  /* str_ifc_access */
 
 
-void an_ifc_module::str_ifc_alignment(ifc_Alignment       alignment,
-                                      a_str_control_block *scbp) const noexcept
-/*
-Add an alignment specifier to the current string, if needed.
-*/
-{
-  if (alignment != 0) {
-    add_string_to_text_buffer(scbp->text_buffer, "alignas(");
-    str_ifc_add_number((a_host_large_unsigned)alignment, scbp);
-    add_string_to_text_buffer(scbp->text_buffer, ") ");
-  }  /* if */
-}  /* str_ifc_alignment */
-
-
 void an_ifc_module::str_ifc_qualifiers(ifc_Qualifiers      qualifiers,
                                        a_str_control_block *scbp)
                                                                  const noexcept
@@ -5974,9 +5969,9 @@ the output buffer.
         /* FIXME: Handle this. */
       }
       break;
-    case ifc_ExprSort_Identifier:
-      { an_ifc_ExprSort_Identifier ieid;
-        get_ExprSort_Identifier(&ieid);
+    case ifc_ExprSort_UnqualifiedId:
+      { an_ifc_ExprSort_UnqualifiedId ieuid;
+        get_ExprSort_UnqualifiedId(&ieuid);
         /* FIXME: Handle this. */
       }
       break;
@@ -6730,7 +6725,6 @@ void an_ifc_module::str_ifc_common_decl(ifc_SourceLocation  *locus,
                                         ifc_Access          access,
                                         ifc_BasicSpecifiers specifiers,
                                         ifc_ObjectTraits    traits,
-                                        ifc_Alignment       alignment,
                                         a_str_control_block *scbp)
                                                                  const noexcept
 /*
@@ -6751,9 +6745,6 @@ output).
   }  /* if */
   if (traits != ifc_ObjectTraits_None) {
     str_ifc_object_traits(traits, scbp);
-  }  /* if */
-  if (alignment != 0) {
-    str_ifc_alignment(alignment, scbp);
   }  /* if */
 }  /* str_ifc_common_decl */
 
@@ -6806,7 +6797,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         /* Emit a variable declaration. */
         /* FIXME: idsvp->alignment exists but is an ExprIndex. */
         str_ifc_common_decl(&idsvp->locus, idsvp->access, idsvp->specifier,
-                            idsvp->traits, (ifc_Alignment)0, scbp);
+                            idsvp->traits, scbp);
         str_ifc_type_index(idsvp->type, scbp);
         add_char_to_text_buffer(scbp->text_buffer, ' ');
         str_ifc_name_index(idsvp->name, scbp);
@@ -6843,7 +6834,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         idsfp = get_DeclSort_Field(&idsf);
         /* FIXME: idsfp->alignment exists but is an ExprIndex. */
         str_ifc_common_decl(&idsfp->locus, idsfp->access, idsfp->specifier,
-                            idsfp->traits, (ifc_Alignment)0, scbp);
+                            idsfp->traits, scbp);
         str_ifc_type_index(idsfp->type, scbp);
         add_char_to_text_buffer(scbp->text_buffer, ' ');
         str_ifc_text_offset(idsfp->name, scbp);
@@ -6853,7 +6844,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
       { an_ifc_DeclSort_Bitfield idsb, *idsbp;
         idsbp = get_DeclSort_Bitfield(&idsb);
         str_ifc_common_decl(&idsbp->locus, idsbp->access, idsbp->specifier,
-                            idsbp->traits, (ifc_Alignment)0, scbp);
+                            idsbp->traits, scbp);
         str_ifc_type_index(idsbp->type, scbp);
         add_char_to_text_buffer(scbp->text_buffer, ' ');
         str_ifc_text_offset(idsbp->name, scbp);
@@ -6866,7 +6857,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         idsfp = get_DeclSort_Function(&idsf);
         str_ifc_common_decl(&idsfp->locus, idsfp->access,
                             (ifc_BasicSpecifiers)ifc_BasicSpecifiers_Cxx,
-                            ifc_ObjectTraits_None, (ifc_Alignment)0, scbp);
+                            ifc_ObjectTraits_None, scbp);
         str_ifc_function_traits(idsfp->traits, /*prefix=*/TRUE, scbp);
         str_ifc_type_index_first_part(idsfp->type, scbp);
         add_char_to_text_buffer(scbp->text_buffer, ' ');
@@ -6881,7 +6872,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         idsmp = get_DeclSort_Method(&idsm);
         str_ifc_common_decl(&idsmp->locus, idsmp->access,
                             (ifc_BasicSpecifiers)ifc_BasicSpecifiers_Cxx,
-                            ifc_ObjectTraits_None, (ifc_Alignment)0, scbp);
+                            ifc_ObjectTraits_None, scbp);
         str_ifc_function_traits(idsmp->traits, /*prefix=*/TRUE, scbp);
         /* FIXME: Need to suppress return type on conversion functions. */
         str_ifc_type_index_first_part(idsmp->type, scbp);
@@ -6897,7 +6888,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         idsip = get_DeclSort_Intrinsic(&idsi);
         str_ifc_common_decl(&idsip->locus, idsip->access,
                             (ifc_BasicSpecifiers)ifc_BasicSpecifiers_Cxx,
-                            ifc_ObjectTraits_None, (ifc_Alignment)0, scbp);
+                            ifc_ObjectTraits_None, scbp);
         str_ifc_type_index_first_part(idsip->type, scbp);
         add_char_to_text_buffer(scbp->text_buffer, ' ');
         str_ifc_text_offset(idsip->name, scbp);
@@ -6909,7 +6900,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         idscp = get_DeclSort_Constructor(&idsc);
         str_ifc_common_decl(&idscp->locus, idscp->access,
                             (ifc_BasicSpecifiers)ifc_BasicSpecifiers_Cxx,
-                            ifc_ObjectTraits_None, (ifc_Alignment)0, scbp);
+                            ifc_ObjectTraits_None, scbp);
         str_ifc_function_traits(idscp->traits, /*prefix=*/TRUE, scbp);
         /* Note that idscp->name points to a "{ctor}" string, so get the
            type's name by going through the home_scope field. */
@@ -6929,7 +6920,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         idsdp = get_DeclSort_Destructor(&idsd);
         str_ifc_common_decl(&idsdp->locus, idsdp->access,
                             (ifc_BasicSpecifiers)ifc_BasicSpecifiers_Cxx,
-                            ifc_ObjectTraits_None, (ifc_Alignment)0, scbp);
+                            ifc_ObjectTraits_None, scbp);
         str_ifc_function_traits(idsdp->traits, /*prefix=*/TRUE, scbp);
         add_char_to_text_buffer(scbp->text_buffer, '~');
         /* Note that idsdp->name points to a "{dtor}" string, so get the
@@ -6972,8 +6963,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         /* Emit an enumeration declaration. */
         /* FIXME: idsep->alignment exists but is an ExprIndex. */
         str_ifc_common_decl(&idsep->locus, idsep->access, idsep->specifiers,
-                            (ifc_ObjectTraits)ifc_ObjectTraits_None,
-                            (ifc_Alignment)0, scbp);
+                            (ifc_ObjectTraits)ifc_ObjectTraits_None, scbp);
         check_assertion(type_tag(idsep->type) == ifc_TypeSort_Fundamental);
         /* Read the type to see what kind it is. */
         read_partition_at_index(ifc_type_fundamental, type_value(idsep->type));
@@ -7015,8 +7005,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         /* Emit an enumerator declaration. */
         /* FIXME: idsep->access unused here (to suppress access field): */
         str_ifc_common_decl(&idsep->locus, ifc_Access_None, idsep->specifier,
-                            (ifc_ObjectTraits)ifc_ObjectTraits_None,
-                            (ifc_Alignment)0, scbp);
+                            (ifc_ObjectTraits)ifc_ObjectTraits_None, scbp);
         add_char_to_text_buffer(scbp->text_buffer, ' ');
         str_ifc_text_offset(idsep->name, scbp);
         if (idsep->initializer != 0) {

@@ -45,8 +45,10 @@ typedef uint32_t ifc_Index_type;
 enum ifc_ByteOffset : uint32_t;
 enum ifc_Cardinality : uint32_t;
 enum ifc_ChartIndex : ifc_Index_type;
+enum ifc_CoercionSort : uint32_t;
 enum ifc_Column : uint32_t;
 enum ifc_DeclIndex : ifc_Index_type;
+enum ifc_DelimiterSort : uint32_t;
 enum ifc_EntitySize : uint32_t;
 enum ifc_ExprIndex : ifc_Index_type;
 enum ifc_Index : ifc_Index_type;
@@ -56,8 +58,6 @@ enum ifc_LineNumber : uint32_t;
 enum ifc_LitIndex : ifc_Index_type;
 enum ifc_MsvcTraits : uint32_t;
 enum ifc_NameIndex : ifc_Index_type;
-/* Used but not defined by the spec. */
-enum ifc_Offset : uint32_t;
 enum ifc_ParameterLevel : uint32_t;
 enum ifc_ParameterPosition : uint32_t;
 enum ifc_ScopeIndex : ifc_Index_type;
@@ -76,7 +76,6 @@ enum ifc_WordIndex : ifc_Index_type;
 /* 16-bit types: */
 typedef uint16_t ifc_Category_type;
 
-enum ifc_Alignment : uint16_t;
 enum ifc_EHFlags : uint16_t;
 enum ifc_FunctionTraits : uint16_t;
 enum ifc_OperatorCategory : ifc_Category_type;
@@ -93,11 +92,15 @@ typedef uint8_t ifc_Sort_type;
 
 enum ifc_Abi : uint8_t;
 enum ifc_Access : uint8_t;
+enum ifc_ActiveMember : uint8_t;
 enum ifc_Architecture : uint8_t;
+enum ifc_Associativity : uint8_t;
 enum ifc_BasicSpecifiers : uint8_t;
 enum ifc_CallingConvention : uint8_t;
+enum ifc_DestructorSort : ifc_Sort_type;
 enum ifc_ExpansionMode : uint8_t;
 enum ifc_FunctionTypeTraits : uint8_t;
+enum ifc_InitializerSort : ifc_Sort_type;
 enum ifc_NoexceptSort : ifc_Sort_type;
 enum ifc_ObjectTraits : uint8_t;
 enum ifc_ParameterSort : ifc_Sort_type;
@@ -126,9 +129,9 @@ enum ifc_UnitSort : ifc_Sort_type;
 
 /* Some IFC fields have fundamental types. */
 typedef uint8_t  ifc_bool;
-typedef uint8_t  ifc_uint8_t;
-typedef uint16_t ifc_uint16_t;
-typedef uint32_t ifc_uint32_t;
+typedef uint8_t  ifc_u8;
+typedef uint16_t ifc_u16;
+typedef uint32_t ifc_u32;
 
 /* SHA256 checksum. */
 typedef uint8_t sha256_t[32];
@@ -256,6 +259,8 @@ enum ifc_BasicSpecifiers : uint8_t {
   ifc_BasicSpecifiers_InitializedInClass= 1 << 5, /* Defined or initialized in
                                                      class */
   ifc_BasicSpecifiers_NonExported       = 1 << 6, /* Not explicitly exported */
+  ifc_BasicSpecifiers_IsMemberOfGlobalModules =
+                                      1 << 7, /* Member of the global module */
 };
 
 /* Enumeration for ObjectTraits. */
@@ -450,7 +455,7 @@ enum ifc_ExprSort : ifc_Sort_type {
   ifc_ExprSort_NamedDecl,
   ifc_ExprSort_UnresolvedId,
   ifc_ExprSort_TemplateId,
-  ifc_ExprSort_Identifier,
+  ifc_ExprSort_UnqualifiedId,
   ifc_ExprSort_SimpleIdentifier,
   ifc_ExprSort_Pointer,
   ifc_ExprSort_QualifiedName,
@@ -516,6 +521,13 @@ enum ifc_ReadConversionSort : ifc_Sort_type {
   ifc_ReadConversionSort_IntegralConversion,
 };
 
+/* Enumeration for InitializerSort (i.e., kinds of initialization) */
+enum ifc_InitializerSort : ifc_Sort_type {
+  ifc_InitializerSort_Unknown,
+  ifc_InitializerSort_Direct,
+  ifc_InitializerSort_Copy,
+};
+
 /* Macros used to access StringIndex::tag and StringIndex::value. */
 #define str_tag(str) ((ifc_StringSort)((str) & 0x0000000F))
 #define str_value(str) ((ifc_Index)((str) >> 4))
@@ -575,12 +587,10 @@ enum ifc_TypeSign : uint8_t {
 };
 
 /* Macros used to access DeclIndex::tag and DeclIndex::value. */
-/* Note: IFC spec says the tag has a width of 5 bits, not 6 - IFC files
-   seem to indicate otherwise. */
-#define decl_tag(decl) ((ifc_DeclSort)((decl) & 0x0000003F))
-#define decl_value(decl) ((ifc_Index)((decl) >> 6))
+#define decl_tag(decl) ((ifc_DeclSort)((decl) & 0x0000001F))
+#define decl_value(decl) ((ifc_Index)((decl) >> 5))
 #define make_decl_index(tag, idx) \
-  ((ifc_DeclIndex)(((idx) << 6) | ((tag) & 0x0000003F)))
+  ((ifc_DeclIndex)(((idx) << 5) | ((tag) & 0x0000001F)))
 
 /* Enumeration for DeclSort (i.e., types of declarations). */
 enum ifc_DeclSort : ifc_Sort_type {
@@ -1410,7 +1420,7 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_expr_decl = ifc_expr_start + ifc_ExprSort_NamedDecl,
   ifc_expr_unresolved_id = ifc_expr_start + ifc_ExprSort_UnresolvedId,
   ifc_expr_template_id = ifc_expr_start + ifc_ExprSort_TemplateId,
-  ifc_expr_identifier = ifc_expr_start + ifc_ExprSort_Identifier,
+  ifc_expr_unqualified_id = ifc_expr_start + ifc_ExprSort_UnqualifiedId,
   ifc_expr_simple_identifier = ifc_expr_start + ifc_ExprSort_SimpleIdentifier,
   ifc_expr_pointer = ifc_expr_start + ifc_ExprSort_Pointer,
   ifc_expr_qualified_name = ifc_expr_start + ifc_ExprSort_QualifiedName,
@@ -1706,6 +1716,7 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_macro_obj_like,
   ifc_msvc_trait_code_segment,
   ifc_msvc_trait_codegen_expr_trees,
+  ifc_msvc_trait_entity_init_locus,
   ifc_msvc_trait_named_func_params,
   ifc_msvc_trait_spec_encodings,
   ifc_msvc_trait_suppressed_warnings,
@@ -1755,6 +1766,8 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { ".msvc.trait.codegen-expression-trees",
                                        ifc_msvc_trait_codegen_expr_trees },
   /* Not mentioned in spec.  Found in IFC files. */
+  { ".msvc.trait.entity-initializer-locus", ifc_msvc_trait_entity_init_locus },
+  /* Not mentioned in spec.  Found in IFC files. */
   { ".msvc.trait.named-function-parameters",
                                        ifc_msvc_trait_named_func_params },
   /* Not mentioned in spec.  Found in IFC files. */
@@ -1788,11 +1801,8 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "decl.explicit-instantiation",     ifc_decl_explicit_instantiation },
   { "decl.explicit-specialization",    ifc_decl_explicit_specialization },
   { "decl.field",                      ifc_decl_field },
-  /* Spec says decl.friend-declaration, but Changes entry says it was renamed
-     to decl.friend and IFC files agree. */
   { "decl.friend",                     ifc_decl_friend },
   { "decl.function",                   ifc_decl_function },
-  /* Not mentioned in spec.  DeclSort::InheritedConstructor not elaborated. */
   { "decl.inherited-constructor",      ifc_decl_inh_ctor },
   { "decl.intrinsic",                  ifc_decl_intrinsic },
   { "decl.method",                     ifc_decl_method },
@@ -1811,26 +1821,27 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "decl.variable",                   ifc_decl_variable },
   { "decl.vendor-extension",           ifc_decl_vendor_extension },
   { "expr.alignof-type-id",            ifc_expr_alignof_type },
-  /* Not mentioned in spec.  ExprSort::ArrayValue is not elaborated. */
   { "expr.array-value",                ifc_expr_array },
   { "expr.assign-initializer",         ifc_expr_assign_initializer },
+  { "expr.binary-fold",                ifc_expr_binaryfold },
   { "expr.call",                       ifc_expr_call },
   { "expr.cast",                       ifc_expr_cast },
-  /* Not mentioned in spec.  ExprSort::SubobjectValue is not elaborated. */
   { "expr.class-subobject-value",      ifc_expr_subobject },
   { "expr.compound-string",            ifc_expr_compound_string },
   { "expr.condition",                  ifc_expr_condition },
   { "expr.decl",                       ifc_expr_decl },
   { "expr.delete",                     ifc_expr_delete },
+  { "expr.designated-init",            ifc_expr_des_init },
   { "expr.destructor-call",            ifc_expr_destructor_call },
   { "expr.dyad",                       ifc_expr_dyad },
-  /* Not mentioned in spec.  ExprSort::DynamicDispatch is not elaborated. */
   { "expr.dynamic-dispatch",           ifc_expr_dynamic_dispatch },
   { "expr.empty",                      ifc_expr_empty },
+  { "expr.expansion",                  ifc_expr_expansion },
   { "expr.expression-list",            ifc_expr_expression_list },
   { "expr.function-string",            ifc_expr_function_string },
+  { "expr.generic",                    ifc_expr_generic },
   { "expr.hierarchy-conversion",       ifc_expr_hierarchy_conversion },
-  { "expr.identifier",                 ifc_expr_identifier },
+  { "expr.unqualified-id",             ifc_expr_unqualified_id },
   { "expr.inheritance-path",           ifc_expr_inheritance_path },
   { "expr.initializer",                ifc_expr_initializer },
   { "expr.initializer-list",           ifc_expr_initializer_list },
@@ -1843,20 +1854,17 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "expr.nullptr",                    ifc_expr_nullptr },
   { "expr.packed-template-arguments",  ifc_expr_packed_template_arguments },
   { "expr.path",                       ifc_expr_path },
+  { "expr.placeholder",                ifc_expr_placeholder },
   { "expr.pointer",                    ifc_expr_pointer },
-  /* Not mentioned in spec.  ExprSort::ProductTypeValue is not elaborated. */
   { "expr.product-type-value",         ifc_expr_product },
   { "expr.push-state",                 ifc_expr_push_state },
   { "expr.qualified-name",             ifc_expr_qualified_name },
   { "expr.read",                       ifc_expr_read },
-  /* Not mentioned in spec.  ExprSort::Requires is not elaborated. */
-  { "expr.requires-expression",        ifc_expr_requires },
+  { "expr.requires",                   ifc_expr_requires },
   { "expr.simple-identifier",          ifc_expr_simple_identifier },
-  /* Spec says expr.sizeof-type-id, IFC files have this, however. */
   { "expr.sizeof-type",                ifc_expr_sizeof_type },
   { "expr.string-sequence",            ifc_expr_string_sequence },
   { "expr.strings",                    ifc_expr_string },
-  /* Not mentioned in spec.  ExprSort::SumTypeValue is not elaborated. */
   { "expr.sum-type-value",             ifc_expr_sum },
   { "expr.syntax-tree",                ifc_expr_syntax_tree },
   { "expr.template-id",                ifc_expr_template_id },
@@ -1869,12 +1877,9 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "expr.type",                       ifc_expr_type },
   { "expr.type-trait",                 ifc_expr_type_trait },
   { "expr.typeid",                     ifc_expr_typeid },
-  /* Not mentioned in spec.  ExprSort::UnaryFold is not elaborated. */
-  { "expr.unary-fold-expression",      ifc_expr_unaryfold },
+  { "expr.unary-fold",                 ifc_expr_unaryfold },
   { "expr.unresolved",                 ifc_expr_unresolved_id },
   { "expr.vendor-extension",           ifc_expr_vendor_extension },
-  /* Not mentioned in spec.  ExprSort::VirtualFunctionConversion is not
-     elaborated. */
   { "expr.virtual-function-conversion",ifc_expr_virtual_function },
   { "form.spec",                       ifc_form_spec },
   { "heap.chart",                      ifc_heap_chart },
@@ -1883,9 +1888,7 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "heap.stmt",                       ifc_heap_stmt },
   { "heap.syn",                        ifc_heap_syn },
   { "heap.type",                       ifc_heap_type },
-  /* Not mentioned in spec.  Found in IFC files. */
   { "macro.function-like",             ifc_macro_func_like },
-  /* Not mentioned in spec.  Found in IFC files. */
   { "macro.object-like",               ifc_macro_obj_like },
   { "module.exported",                 ifc_module_exported },
   { "module.imported",                 ifc_module_imported },
@@ -1949,7 +1952,8 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "syntax.decl-specifier-seq",       ifc_syntax_decl_specifier_seq },
   { "syntax.declaration-statement",    ifc_syntax_declaration_statement },
   { "syntax.declarator",               ifc_syntax_declarator },
-  { "syntax.decltype-auto-specifier",  ifc_syntax_placeholder_type_specifier },
+  { "syntax.placeholder-type-specifier",
+                                       ifc_syntax_placeholder_type_specifier },
   { "syntax.decltype-specifier",       ifc_syntax_decltype_specifier },
   { "syntax.do-statement",             ifc_syntax_do_statement },
   { "syntax.dynamic-exception-spec",   ifc_syntax_dynamic_exception_spec },
@@ -2032,6 +2036,7 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "syntax.using-declaration",        ifc_syntax_using_declaration },
   { "syntax.using-declarator",         ifc_syntax_using_declarator },
   { "syntax.using-directive",          ifc_syntax_using_directive },
+  { "syntax.using-enum-declaration",   ifc_syntax_using_enum_decl },
   { "syntax.vendor-extension",         ifc_syntax_vendor_extension },
   { "syntax.virtual-specifier-seq",    ifc_syntax_virtual_specifier_seq },
   { "syntax.while-statement",          ifc_syntax_while_statement },
@@ -2058,9 +2063,6 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "type.nonstatic-member-function",  ifc_type_method },
   { "type.placeholder",                ifc_type_placeholder },
   { "type.pointer",                    ifc_type_pointer },
-  /* Spec says this is the partition name for TypeSort::LvalueReference,
-     however the IFC files themselves use "type.lvalue-reference" instead. */
-  /*{ "type.pointer-lvalue-reference",   ifc_type_lvalue_reference },*/
   { "type.pointer-to-member",          ifc_type_pointer_to_member },
   { "type.qualified",                  ifc_type_qualified },
   { "type.rvalue-reference",           ifc_type_rvalue_reference },
@@ -2070,16 +2072,9 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "type.typename",                   ifc_type_typename },
   { "type.unaligned",                  ifc_type_unaligned },
   { "type.vendor-extension",           ifc_type_vendor_extension },
-  /* Partitions for these are not mentioned in the spec. */
-  { NULL,                              ifc_expr_binaryfold },
-  { NULL,                              ifc_expr_des_init },
-  { NULL,                              ifc_expr_expansion },
-  { NULL,                              ifc_expr_generic },
-  { NULL,                              ifc_expr_placeholder },
-  { NULL,                              ifc_syntax_using_enum_decl },
-  { NULL,                              ifc_none },
   /* No special partition - name identifiers use the string table. */
   { NULL,                              ifc_name_identifier },
+  { NULL,                              ifc_none },
   { NULL,                              ifc_last } /* Must be last. */
 }
 #endif /* VAR_INITIALIZERS */
@@ -2213,7 +2208,6 @@ private:
   void init_dps(a_decl_parse_state          *dps,
                 ifc_SourceLocation          *locus,
                 ifc_TypeIndex               type_index,
-                ifc_Alignment               alignment,
                 ifc_ObjectTraits            traits,
                 ifc_MsvcTraits              msvc_traits,
                 ifc_BasicSpecifiers         specifiers,
@@ -2307,8 +2301,6 @@ private:
                                a_str_control_block *scbp) const noexcept;
   void str_ifc_access(ifc_Access          access,
                       a_str_control_block *scbp) const noexcept;
-  void str_ifc_alignment(ifc_Alignment       alignment,
-                         a_str_control_block *scbp) const noexcept;
   void str_ifc_qualifiers(ifc_Qualifiers      qualifiers,
                           a_str_control_block *scbp) const noexcept;
   void str_ifc_basic_specifiers(ifc_BasicSpecifiers specifiers,
@@ -2341,7 +2333,6 @@ private:
                            ifc_Access          access,
                            ifc_BasicSpecifiers specifiers,
                            ifc_ObjectTraits    traits,
-                           ifc_Alignment       alignment,
                            a_str_control_block *scbp) const noexcept;
   void str_ifc_class_definition(an_ifc_DeclSort_Scope *idssp,
                                 a_str_control_block   *scbp) const noexcept;
