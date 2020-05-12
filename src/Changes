@@ -1,5 +1,26 @@
 Version 6.1
 
+5/12/20  [EDGcpfe/21604,EDGcpfe/21715]
+Spurious failure to fold call to generated copy/move constructors
+
+Generated copy and move constructors were previously never marked as constexpr
+if their associated class has variant members.  That in turn resulted in
+spurious errors.  For example:
+
+  template<typename> struct X {
+    constexpr X(): i() { }
+    constexpr X(float): i() { }
+    constexpr X(bool, X): X(0 ? X() : float{}) {}
+      // This delegating constructor was previously treated as non-constexpr
+      // because it invokes the generated move constructor which was
+      // erroneously marked as non-constexpr for moving a variant data member.
+    union { int i; };
+  };
+  constexpr X<void> x(true, X<void>{});  // Previously an error.  Now okay.
+
+That is now fixed.
+
+
 5/11/20  [EDGcpfe/21748]
 Label addresses as the result of folding constant-expressions
 

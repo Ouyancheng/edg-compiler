@@ -15840,6 +15840,7 @@ is returned.
   set_routine_special_kind(ctor, (a_special_function_kind)sfk_constructor);
   ctor->compiler_generated = TRUE;
   ctor->is_trivial_copy_function = TRUE;
+  ctor->is_constexpr = TRUE;
   if (class_type->variant.class_struct_union.is_prototype_instantiation) {
     ctor->is_prototype_instantiation = TRUE;
   }  /* if */
@@ -15889,6 +15890,7 @@ is returned.
   set_routine_special_kind(ctor, (a_special_function_kind)sfk_constructor);
   ctor->compiler_generated = TRUE;
   ctor->is_trivial_copy_function = TRUE;
+  ctor->is_constexpr = TRUE;
   if (class_type->variant.class_struct_union.is_prototype_instantiation) {
     ctor->is_prototype_instantiation = TRUE;
   }  /* if */
@@ -21152,11 +21154,6 @@ warnings or remarks may be issued.
                                                      variant_field);
       }  /* if */
       if (variant_field) {
-        /* Constexpr copy functions cannot deal with variant members. */
-        gsfd->copy_ctor_not_constexpr = TRUE;
-        gsfd->move_ctor_not_constexpr = TRUE;
-        gsfd->copy_assign_not_constexpr = TRUE;
-        gsfd->move_assign_not_constexpr = TRUE;
         any_variant_members = TRUE;
         if (!tp_is_const) all_variant_members_const = FALSE;
       }  /* if */
@@ -22216,9 +22213,11 @@ deleted, disable bitwise copying.
               cssp->construction_by_bitwise_copy_allowed = FALSE;
             }
           } else {
-            rp->is_trivial_copy_function =
-                          is_move ? !cssp->makes_move_construction_nontrivial
-                                  : !cssp->makes_copy_construction_nontrivial;
+            if (is_move ? !cssp->makes_move_construction_nontrivial
+                        : !cssp->makes_copy_construction_nontrivial) {
+              rp->is_trivial_copy_function = TRUE;
+              rp->is_constexpr = TRUE;
+            }  /* if */
             if (rp->is_deleted) {
 #if DELETED_COPY_FUNCTION_CLEARS_BITWISE_COPY_FLAG
               class_state->rule_out_bitwise_copy_for_deleted_ctor = TRUE;
@@ -22252,9 +22251,11 @@ deleted, disable bitwise copying.
             rp->is_trivial_copy_function = FALSE;
             cssp->makes_copy_assignment_nontrivial = TRUE;
           } else {
-            rp->is_trivial_copy_function =
-                            is_move ? !cssp->makes_move_assignment_nontrivial
-                                    : !cssp->makes_copy_assignment_nontrivial;
+            if (is_move ? !cssp->makes_move_assignment_nontrivial
+                        : !cssp->makes_copy_assignment_nontrivial) {
+              rp->is_trivial_copy_function = TRUE;
+              rp->is_constexpr = TRUE;
+            }  /* if */
             if (rp->is_deleted) {
 #if DELETED_COPY_FUNCTION_CLEARS_BITWISE_COPY_FLAG
               class_state->rule_out_bitwise_assign_for_deleted_operator = TRUE;

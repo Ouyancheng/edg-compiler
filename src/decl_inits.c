@@ -9121,7 +9121,8 @@ initialized.  These are addressed in the course of the processing.
           variant_init = FALSE;
           variant_explicit_init = FALSE;
         }  /* if */
-        if (field_sym->variant.field.extra_info->is_first_variant_member) {
+        if (field_sym->variant.field.extra_info->is_first_variant_member &&
+            !(is_generated_cctor || is_generated_mctor)) {
           /* The first field of an anonymous union: Look ahead through the
              entries for this union to check if any are initialized by an
              explicit mem-initializer or by a field initializer. */
