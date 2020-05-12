@@ -786,7 +786,7 @@ extern void embedded_cplusplus_noncompliance_diagnostic(
     }  /* if */                                                             \
   }
 
-/* Macro to warn about C++20 features enabled in default non-c++20 GNU C++
+/* Macro to warn about C++20 features enabled in default non-C++20 GNU C++
    modes. */
 #define report_gnu_cpp20_extension_if_needed(pos, error_code)               \
   { if (gpp_mode && !cpp20_mode) {                                          \

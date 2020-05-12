@@ -626,7 +626,7 @@ EXTERN a_boolean
 EXTERN a_boolean
 		pack_init_capture_enabled;
 			/* TRUE if C++20 pack expansions in init-captures
-			   is enabled. */
+			   are enabled. */
 
 EXTERN a_boolean
 		struct_bindings_enabled;
