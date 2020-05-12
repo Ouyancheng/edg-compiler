@@ -7453,7 +7453,7 @@ error type.
     vector_type = alloc_type((a_type_kind)tk_vector);
     vector_type->source_corresp.decl_position = ap->position;
     vector_type->size = size;
-    vector_type->alignment = size;
+    vector_type->alignment = (a_targ_alignment)size;
     vector_type->variant.vector.element_type = elem_type;
     vector_type->variant.vector.size_constant = size_con;
     if (dps != NULL) {
@@ -7545,7 +7545,7 @@ error type.
     vector_type = alloc_type((a_type_kind)tk_vector);
     vector_type->source_corresp.decl_position = ap->position;
     vector_type->size = size;
-    vector_type->alignment = size;
+    vector_type->alignment = (a_targ_alignment)size;
     vector_type->variant.vector.element_type = elem_type;
     vector_type->variant.vector.size_constant = size_con;
     vector_type->variant.vector.is_ext_vector_type = TRUE;

@@ -3180,7 +3180,7 @@ results in *seq, *column, and *macro_context.
     /* Apply the offset from the start of the region in the buffer to the
        column position. */
     *column = mtmep->corresponding_source_pos.column +
-                                             (offset - mtmep->start_of_region);
+                            (a_column_number)(offset - mtmep->start_of_region);
   } else {
     /* Special positions like predefined macros and command line macros are
        identified by special values of the column field, which must be

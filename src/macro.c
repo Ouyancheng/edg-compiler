@@ -709,7 +709,7 @@ source entry will be preserved.
        requiring the column of the corresponding source position to be adjusted
        accordingly. */
     adjusted_column = mtmep->corresponding_source_pos.column +
-                                (starting_src_offset - mtmep->start_of_region);
+               (a_column_number)(starting_src_offset - mtmep->start_of_region);
   }  /* if */
   add_entry_to_macro_text_map(targ_map, starting_targ_offset,
                               mtmep->corresponding_source_pos.seq,
@@ -7243,7 +7243,7 @@ end_arg_expansion:;
                                         (sizeof_t)(src_loc - rescan_loc - 1),
                                         tmep->corresponding_source_pos.seq,
                                         tmep->corresponding_source_pos.column +
-                                                                    src_offset,
+                                                   (a_column_number)src_offset,
                                         this_macro_invocation_record);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
             }  /* if */

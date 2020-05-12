@@ -8807,12 +8807,12 @@ a_qualified_name an_import_scope::name_from_typedef(
     auto last_generic_argument_iter = first_generic_argument_iter +
                                                                 generic_arity;
     if (unresolved_generic_argument == nullptr) {
-      find_if(first_generic_argument_iter,
-              last_generic_argument_iter,
-              [&](const a_const_type_wrapper_ptr &generic_argument) {
-                return generic_argument->uses_unresolved_type(
+      (void)find_if(first_generic_argument_iter,
+                    last_generic_argument_iter,
+                    [&](const a_const_type_wrapper_ptr &generic_argument) {
+                      return generic_argument->uses_unresolved_type(
                                                  unresolved_generic_argument);
-              });
+                    });
     }  /* if */
     qualified_name.append_generic_arguments(first_generic_argument_iter,
                                             last_generic_argument_iter);
