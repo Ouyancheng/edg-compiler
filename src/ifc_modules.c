@@ -811,7 +811,7 @@ corresponding data structure for that partition.
   if (sizeof(an_ifc_##data) != 1 && sizeof(an_ifc_##data) != pp->entry_size) {\
     (void)fprintf(f_debug, "Partition for %s expects entity to have size %u, "\
                            "but has size %lu\n", #data, pp->entry_size,       \
-                           sizeof(an_ifc_##data));                            \
+                           (unsigned long)sizeof(an_ifc_##data));             \
   }  /* if */                                                                 \
   break /* user ; */
 #else /* !DEBUG */
