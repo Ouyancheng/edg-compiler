@@ -12946,20 +12946,23 @@ directive scanned or ppd_not_valid if neither was found.
   a_pp_directive_kind result = ppd_not_valid;
 
   if (!any_tokens_gotten_from_curr_source_line && modules_enabled) {
-    if (strncmp(curr_char_loc, "import ", 7) == 0 &&
-        !isalpha(curr_char_loc[6])) {
+    if (strncmp(curr_char_loc, "import", 6) == 0 &&
+        !is_identifier_char(&curr_char_loc[6], /*len=*/NULL,
+                            /*is_identifier_start=*/FALSE)) {
       result = ppd_import;
       curr_char_loc += 6;
-    } else if (strncmp(curr_char_loc, "export ", 7) == 0 &&
-               !isalpha(curr_char_loc[6])) {
+    } else if (strncmp(curr_char_loc, "export", 6) == 0 &&
+               !is_identifier_char(&curr_char_loc[6], /*len=*/NULL,
+                                   /*is_identifier_start=*/FALSE)) {
       a_const_char *saved_curr_char_loc = curr_char_loc;
       check_assertion(start_of_curr_token == curr_char_loc);
       curr_char_loc += 6;
       in_preprocessing_directive = TRUE;
       skip_white_space();
       in_preprocessing_directive = FALSE;
-      if (strncmp(curr_char_loc, "import ", 7) == 0 &&
-          !isalpha(curr_char_loc[6])) {
+      if (strncmp(curr_char_loc, "import", 6) == 0 &&
+          !is_identifier_char(&curr_char_loc[6], /*len=*/NULL,
+                              /*is_identifier_start=*/FALSE)) {
         result = ppd_export_import;
         curr_char_loc += 6;
       } else {
