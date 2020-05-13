@@ -17200,7 +17200,16 @@ proceed after the call.
       /* "= delete" or "= default". */
       if (defaulted) {
         /* The current token is "default" (keyword or identifier). */
-        func_info->is_defaulted = TRUE;
+        if ((state->do_flags & (DO_IS_CONSTRUCTOR || DO_IS_DESTRUCTOR)) != 0 ||
+            (locator->is_operator_name &&
+             (locator->variant.opname == (an_opname_kind)onk_assign ||
+              opname_is_comparison(locator->variant.opname)))) {
+            func_info->is_defaulted = TRUE;
+        } else {
+          (void)get_token();
+          pos_error(ec_invalid_function_to_be_defaulted, &pos_curr_token);
+          (void)get_token();
+        }  /* if */
       } else {
         func_info->is_deleted = TRUE;
         report_gnu_cpp11_extension_if_needed(

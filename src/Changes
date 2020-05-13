@@ -4,7 +4,7 @@ Version 6.1
 Defaulted comparison operators
 
 The front end now implements the changes in the C++ standardization committee's
-paper P2085("Consistent defaulted comparisons").  This allows defaulting
+paper P2085 ("Consistent defaulted comparisons").  This allows defaulting
 comparison operators outside the definition of the class to which the operator
 applies.  For example:
 
