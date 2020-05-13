@@ -17200,7 +17200,7 @@ proceed after the call.
       /* "= delete" or "= default". */
       if (defaulted) {
         /* The current token is "default" (keyword or identifier). */
-        if ((state->do_flags & (DO_IS_CONSTRUCTOR || DO_IS_DESTRUCTOR)) != 0 ||
+        if ((state->do_flags & (DO_IS_CONSTRUCTOR | DO_IS_DESTRUCTOR)) != 0 ||
             (locator->is_operator_name &&
              (locator->variant.opname == (an_opname_kind)onk_assign ||
               opname_is_comparison(locator->variant.opname)))) {
