@@ -324,10 +324,8 @@ IFC_DECL_END(DeclSort_Destructor)
 
 /* DeclSort::Reference */
 IFC_DECL_START(DeclSort_Reference)
-  IFC_DECL_FIELD(owner, TextOffset)
-  IFC_DECL_FIELD(locus, SourceLocation)
-/* Spec has this, IFC files seem to be omitting it. */
-  /*IFC_DECL_FIELD(local_index, DeclIndex)*/
+  IFC_DECL_FIELD(unit, ModuleReference)
+  IFC_DECL_FIELD(local_index, DeclIndex)
 IFC_DECL_END(DeclSort_Reference)
 
 /* DeclSort::UsingDeclaration */
@@ -789,9 +787,8 @@ IFC_DECL_END(ExprSort_MemberInitializer)
 /* ExprSort::MemberAccess */
 IFC_DECL_START(ExprSort_MemberAccess)
   IFC_DECL_FIELD(member, DeclIndex)
-/* Spec has this, but IFC files seem to be missing it. */
-  /*IFC_DECL_FIELD(offset, ExprIndex)*/
-  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(offset, ExprIndex)
+  IFC_DECL_FIELD(name, TextOffset)
 IFC_DECL_END(ExprSort_MemberAccess)
 
 /* ExprSort::InheritancePath */
@@ -836,7 +833,7 @@ IFC_DECL_END(ExprSort_SizeofType)
 
 /* ExprSort::Alignof */
 IFC_DECL_START(ExprSort_Alignof)
-  IFC_DECL_FIELD(operand, SourceLocation)
+  IFC_DECL_FIELD(operand, SyntaxIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_Alignof)
 
@@ -851,7 +848,7 @@ IFC_DECL_END(ExprSort_New)
 
 /* ExprSort::Delete */
 IFC_DECL_START(ExprSort_Delete)
-  IFC_DECL_FIELD(address, SyntaxIndex)
+  IFC_DECL_FIELD(address, ExprIndex)
   IFC_DECL_FIELD(delete_locus, SourceLocation)
   IFC_DECL_FIELD(global_locus, SourceLocation)
 IFC_DECL_END(ExprSort_Delete)
@@ -878,13 +875,13 @@ IFC_DECL_END(ExprSort_SyntaxTree)
 
 /* ExprSort::FunctionString */
 IFC_DECL_START(ExprSort_FunctionString)
-  IFC_DECL_FIELD(name, TextOffset)
+  IFC_DECL_FIELD(macro, TextOffset)
   IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_FunctionString)
 
 /* ExprSort::CompoundString */
 IFC_DECL_START(ExprSort_CompoundString)
-  IFC_DECL_FIELD(name, NameIndex)
+  IFC_DECL_FIELD(prefix, TextOffset)
   IFC_DECL_FIELD(string, ExprIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_CompoundString)
@@ -944,10 +941,8 @@ IFC_DECL_START(ExprSort_ProductTypeValue)
   IFC_DECL_FIELD(class_decl, DeclIndex)
   IFC_DECL_FIELD(members, ExprIndex)
   IFC_DECL_FIELD(base_subobjects, ExprIndex)
-  IFC_DECL_FIELD(vtable, ExprIndex)
   IFC_DECL_FIELD(type, TypeIndex)
-/* Size of entry in IFC files indicates a field is missing in the spec. */
-  IFC_DECL_FIELD(__padding__, u32)
+  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_ProductTypeValue)
 
 /* ExprSort::SumTypeValue */
@@ -1120,8 +1115,7 @@ IFC_DECL_END(ChartSort_None)
 IFC_DECL_START(ChartSort_Unilevel)
   IFC_DECL_FIELD(start, Index)
   IFC_DECL_FIELD(cardinality, Cardinality)
-/* Size of entry in IFC files indicates a field is missing in the spec. */
-  IFC_DECL_FIELD(__padding__, u32)
+  IFC_DECL_FIELD(constraint, ExprIndex)
 IFC_DECL_END(ChartSort_Unilevel)
 
 /* ChartSort::Multilevel */

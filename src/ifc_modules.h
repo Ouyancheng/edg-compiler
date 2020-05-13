@@ -42,6 +42,7 @@ constexpr a_byte ifc_magic_numbers[] = { 0x54, 0x51, 0x45, 0x1A };
 /* 32-bit types: */
 typedef uint32_t ifc_Index_type;
 
+enum ifc_ActiveMember : uint32_t;
 enum ifc_ByteOffset : uint32_t;
 enum ifc_Cardinality : uint32_t;
 enum ifc_ChartIndex : ifc_Index_type;
@@ -92,7 +93,6 @@ typedef uint8_t ifc_Sort_type;
 
 enum ifc_Abi : uint8_t;
 enum ifc_Access : uint8_t;
-enum ifc_ActiveMember : uint8_t;
 enum ifc_Architecture : uint8_t;
 enum ifc_Associativity : uint8_t;
 enum ifc_BasicSpecifiers : uint8_t;

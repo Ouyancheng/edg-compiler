@@ -321,6 +321,7 @@ visual indicator that they change the value of their argument.
 Handle nested structures differently (and check for padding).
 */
 
+#define GET_ActiveMember(x, from_header)       GET_int(x, from_header)
 #define GET_ByteOffset(x, from_header)         GET_int(x, from_header)
 #define GET_Cardinality(x, from_header)        GET_int(x, from_header)
 #define GET_ChartIndex(x, from_header)         GET_int(x, from_header)
@@ -359,7 +360,6 @@ Handle nested structures differently (and check for padding).
 
 #define GET_Abi(x, from_header)                GET_byte(x, from_header)
 #define GET_Access(x, from_header)             GET_byte(x, from_header)
-#define GET_ActiveMember(x, from_header)       GET_byte(x, from_header)
 #define GET_Architecture(x, from_header)       GET_byte(x, from_header)
 #define GET_Associativity(x, from_header)      GET_byte(x, from_header)
 #define GET_BasicSpecifiers(x, from_header)    GET_byte(x, from_header)
@@ -2123,10 +2123,7 @@ class_struct_union_case:
         { an_ifc_DeclSort_Reference idsr, *idsrp;
           a_module_entity_ptr       dmep;
           idsrp = get_DeclSort_Reference(&idsr);
-          unexpected_condition_str("DeclSort::Reference missing local index");
-          /* FIXME: local_index missing from IFC files */
-          /* dmep = get_ifc_module_entity_ptr(idsrp->local_index); */
-          dmep = get_ifc_module_entity_ptr((ifc_DeclIndex)idsrp->owner);
+          dmep = get_ifc_module_entity_ptr(idsrp->local_index);
           process_ifc_declaration(dmep, /*defer=*/FALSE,
                                   /*enumeration_type=*/NULL);
           il_entity = dmep->entity.ptr;
@@ -3336,10 +3333,7 @@ Given a declaration, return the name associated with that declaration.
     case ifc_DeclSort_Reference:
       { an_ifc_DeclSort_Reference idsr, *idsrp;
         idsrp = get_DeclSort_Reference(&idsr);
-        unexpected_condition_str("DeclSort::Reference "
-                                 "is missing required information");
-        /* result = name_from_decl(idsrp->local_index); */
-        result = get_string_at_offset(idsrp->owner);
+        result = name_from_decl(idsrp->local_index);
       }
       break;
     case ifc_DeclSort_UsingDeclaration:
