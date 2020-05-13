@@ -1,5 +1,25 @@
 Version 6.1
 
+5/13/20  [EDGcpfe/22540]
+Use of local constexpr variable in nontype template argument
+
+Consider:
+
+  template<int> void f() {}
+  template<typename T> void g() {
+    constexpr T N{3};
+    f<N>();
+  }
+
+Previously, in the prototype instantiation of g(), "f<N>" was represented as
+"f<{3}>" where "{3}" is a template-dependent constant.  The C++-generating
+back end also rendered the call in that form ("f<{3}>()"), which is invalid.
+Now, a representation that maintains the designation of the variable is used
+instead (specifically, a ck_template_param/tpck_expression constant pointing
+to an enk_variable expression node).  This also fixes the rendering of the
+C++-generating back end.
+
+
 5/12/20  [EDGcpfe/22358,EDGcpfe/22463]
 Defaulted comparison operators
 

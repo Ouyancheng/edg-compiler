@@ -8858,19 +8858,6 @@ and saved in the IL with enough information to recover whether it
 was an lvalue or rvalue, etc.
 */
 {
-  a_variable_ptr var;
-
-  if (is_expression_operand(operand) &&
-      is_an_lvalue(operand) &&
-      value_of_constant_var_glvalue_expr(operand->variant.expression,
-                                         /*copy_for_reuse=*/FALSE,
-                                         &var) != NULL &&
-      var->source_corresp.is_local_to_function /*lint !e413*/) {
-    /* Convert a use of a function-local const variable to its value so
-       that we don't end up with memory region problems.   You can't use
-       a reference to such a variable as a nontype template parameter. */
-    conv_glvalue_to_prvalue(operand);
-  }  /* if */
   prep_generic_operand(operand);
   if (is_error_operand(operand)) {
     normalize_error_operand(operand);
