@@ -32523,10 +32523,11 @@ capture_processed:
         pedep = end_potential_pack_expansion_context(pesep, is_init_pack);
         if (pedep != NULL && lcp != NULL) {
           /* This capture is a variadic template pack expansion (i.e.,
-             it's followed by "..."), or pack expansion in an init-capture
-             (i.e., it is preceded by "...").  Furthermore, we're in the
+             it's followed by "...").  Furthermore, we're in the
              prototype instantiation, so mark the capture as a pack
-             expansion. */
+             expansion.  We don't get here for init-captures (lcp will
+             be NULL in that case).  For init-captures, this flag is set, if
+             needed, in scan_init_capture. */
           lcp->is_pack_expansion = TRUE;
         }  /* if */
         any_more = advance_to_next_pack_element(pesep);

@@ -10895,7 +10895,9 @@ in *elements.
        ssep = previous_scope_of(ssep)) {
     /* Only consider class scopes for lambdas. */
     a_type_ptr	tp = ssep->assoc_type;
-    if (scope_is(ssep, sck_class_struct_union) &&
+    if ((scope_is(ssep, sck_class_struct_union) ||
+         scope_is(ssep, sck_class_reactivation)) &&
+        tp != NULL &&
         class_type_supp(tp)->is_lambda_closure_class) {
       for (fp = tp->variant.class_struct_union.field_list; fp != NULL;
            fp = fp->next) {
