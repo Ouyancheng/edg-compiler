@@ -13454,6 +13454,7 @@ list checking (e.g., for the presence of too few arguments).
     a_param_type_ptr ptp = arg_block->curr_param_type;
     if (ptp != NULL) {
       /* Not enough arguments? */
+      error_position = arg_block->closing_paren_position;
       /* If there is a default argument value, or several, use them. */
       if (ptp->default_arg_expr != NULL ||
           (ptp->has_unevaluated_template_default &&
@@ -13491,6 +13492,7 @@ list checking (e.g., for the presence of too few arguments).
                        &arg_block->closing_paren_position);
         for (; ptp != NULL; ptp = ptp->next) {
           an_expr_node_ptr  node = error_node();
+          node->position = arg_block->closing_paren_position;
           if (error_nodes == NULL) {
             last_node = node;
           } else {

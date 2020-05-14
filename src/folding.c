@@ -6135,8 +6135,8 @@ error.  *err_pos is used as the position for any diagnostics issued.
 }  /* binary_operation */
 
 
-static a_boolean fold_expr(an_expr_node_ptr             expr,
-                           a_constant                   *result_con)
+a_boolean fold_expr(an_expr_node_ptr             expr,
+                    a_constant                   *result_con)
 /*
 Attempt to fold the expression "expr" to a constant as part of a
 constexpr evaluation, by substituting argument constant values for

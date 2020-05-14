@@ -20302,14 +20302,8 @@ be called to start a copy.
            in a default argument list and that list is being copied.  The
            source location to be used is the call to the function with the
            default arguments so fold the expression now. */
-        a_diag_list    diag_list;
-        a_boolean      folded;
         a_constant_ptr constant = local_constant();
-        clear_diag_list(&diag_list);
-        folded = interpret_expr(expr, /*is_constant_evaluated=*/FALSE,
-                                /*force_prvalue=*/FALSE, constant, &diag_list);
-        discard_more_info_list(&diag_list);
-        if (folded) {
+        if (fold_expr(expr, constant)) {
           expr_copy = alloc_node_for_constant(constant);
           /* Clear the backing expression (it's not in the proper memory
              region). */

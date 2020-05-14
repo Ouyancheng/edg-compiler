@@ -91,6 +91,9 @@ extern void binary_operation(an_expr_operator_kind op,
                              an_error_code         *error_detected,
                              a_source_position     *err_pos);
 
+extern a_boolean fold_expr(an_expr_node_ptr             expr,
+                           a_constant                   *result_con);
+
 extern void check_shift_count(a_constant    *shift_count_constant,
                               a_type_ptr    operand_type,
                               an_error_code *err_code);

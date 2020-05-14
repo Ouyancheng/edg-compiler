@@ -7764,19 +7764,24 @@ lowering does the work.
       scope_stack_top().in_field_initializer) {
     /* As mentioned above, uses in default arguments and default member
        initializers are deferred. */
-    result = FALSE;
+    do_constexpr_fail(result);
   } else {
     /* Determine the appropriate source position for this invocation and
        convert it to the appropriate integer (COLUMN, LINE) or string (FILE,
        FUNCTION). */
-    /* FIXME: Daveed: I still wonder if call_node->position isn't right for 
-       some cases. */
     a_source_position *use_pos;
     if (ips->curr_call_frame == NULL ||
-        ips->curr_call_frame->variant.position == NULL) {
+        ips->curr_call_frame->routine == NULL) {
+      /* This is the usual case: The __builtin_... is folded right away when
+         it is scanned, or when it is copied from a default argument.  In that
+         case error_position ought to be the position of the call. */
       use_pos = &error_position;
     } else {
-      use_pos = ips->curr_call_frame->variant.position;
+      /* If the __builtin_... was called in a default member initializer, the
+         interpreter doesn't get to it until a constructor "uses" that
+         initializer.  Get the position of the constructor from the call
+         stack. */
+      use_pos = &ips->curr_call_frame->routine->source_corresp.decl_position;
     }  /* if */
     switch (callee->variant.builtin_function_kind) {
       case bfk_COLUMN:
@@ -7847,7 +7852,9 @@ lowering does the work.
             /* Return the result. */
             clear_address(result_storage, string_bytes);
             mark_complete_object_initialized(result_storage);
-            ((a_constexpr_address*)result_storage)->flags |= CA_CONST_STORAGE;
+            ((a_constexpr_address*)result_storage)->flags |=
+                                          CA_CONST_STORAGE | CA_ARRAY_ELEMENT;
+            ((a_constexpr_address*)result_storage)->length = length;
           } else {
             *p_result = FALSE;
           }  /* if */
