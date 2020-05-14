@@ -22967,7 +22967,7 @@ static a_symbol_ptr check_tmpl_class_sym_redecl(
                           a_boolean                        *is_redecl,
                           a_boolean                        *supp_redecl_err)
 /*
-Check whether sym valid for a template class redeclaration.  Return sym and
+Check whether sym is valid for a template class redeclaration.  Return sym and
 set *is_redecl to TRUE if sym is valid enough to be used in a redeclaration,
 NULL otherwise.  templ_params are the template parameters being used in the
 declaration of the template class.  loc is the locator for sym.  type_kind is
@@ -22981,7 +22981,8 @@ redeclaration) and any redeclaration error should be suppressed.
   a_boolean err = FALSE;
 
   if (templ_params == NULL) {
-    /* Don't create a real symbol no template parameter list was provided. */
+    /* Don't create a real symbol, as no template parameter list was
+       provided. */
     err = TRUE;
   } else if (sym == NULL) {
     /* Suppress the following error tests if the no symbol was found. */
@@ -23089,7 +23090,7 @@ redeclaration) and any redeclaration error should be suppressed.
     }  /* if */
     err = TRUE;
   } else {
-    /* Force the call to enter symbol, which will report the name clash. */
+    /* Force the call to enter a symbol, which will report the name clash. */
     sym = NULL;
   }  /* if */
   if (err) {
@@ -23103,10 +23104,9 @@ redeclaration) and any redeclaration error should be suppressed.
 
 static void class_template_declaration(
                          a_tmpl_decl_state_ptr decl_state,
-		         a_symbol_ptr          *p_sym_ptr,
-		         a_boolean             *resolution,
-			 a_boolean	       out_of_class_partial_spec)
-
+                         a_symbol_ptr          *p_sym_ptr,
+                         a_boolean             *resolution,
+                         a_boolean	       out_of_class_partial_spec)
 /*
 The beginning of a template declaration or definition has been scanned,
 e.g.,
@@ -32839,11 +32839,12 @@ static void template_or_specialization_declaration(
                                            a_decl_parse_state  *orig_dps)
 /*
 Wrapper for template_or_specialization_declaration_full.  *final_token should
-be tok_semicolon and might be updated to tok_rbrace.
-
-export_present is TRUE if the template keyword was preceded by "export".
-If export_present is TRUE, export_pos is the position of the export
-keyword.  is_generic is TRUE if this is a C++/CLI generic declaration.
+be tok_semicolon and might be updated to tok_rbrace. export_present is TRUE if
+the template keyword was preceded by "export".  If export_present is TRUE,
+export_pos is the position of the export keyword.  is_generic is TRUE if this
+is a C++/CLI generic declaration.  If this function is called for an
+abbreviated function template, orig_dps is non-NULL, otherwise, orig_dps is
+NULL.  See template_or_specialization_declaration_full for more details.
 */
 {
   a_tmpl_decl_state  decl_state;

@@ -2372,10 +2372,10 @@ a_module_entity_ptr an_ifc_module::get_ifc_module_entity_ptr(
                                         an_ifc_partition_kind partition,
                                         ifc_Index_type        index) const
 /*
-Utility to return a module entity pointer given a module, IFC partition, and
-index into that partition.  For cases where the module entity has just been
-created, the partition is set according to the partition supplied by the
-caller.
+Utility to return a module entity pointer for this module given an IFC
+partition, and an index into that partition.  For cases where the module entity
+has just been created, the partition is set according to the partition supplied
+by the caller.
 */
 {
   a_module_entity_ptr mep;
@@ -2443,9 +2443,8 @@ Given a scope index find and return the associated scope.
 a_type_ptr an_ifc_module::type_for_type_index(ifc_TypeIndex   type_index,
                                               a_non_type_kind *kind) const
 /*
-Return the type that corresponds to the specified TypeIndex in the module
-file indicated.  If there is no corresponding type, set *kind to the
-appropriate non-type kind and return NULL.
+Return the type that corresponds to the specified TypeIndex.  If there is no
+corresponding type, set *kind to the appropriate non-type kind and return NULL.
 */
 {
   a_type_ptr          result = NULL;
@@ -3710,7 +3709,7 @@ Add the pragma given by kind to cache.  pos is the position of the pragma.
     cache_token(cache, tok_error, pos);
   }  /* if */
   next_pragma = &cache->last_token->variant.pragmas;
-  /* Find end of pragma list. */
+  /* Find the end of the pragma list. */
   for (; *next_pragma != NULL; next_pragma = &(*next_pragma)->next) {}
   *next_pragma = ppp;
 #if DEBUG
@@ -5356,7 +5355,7 @@ Cache the tokens corresponding to the given declaration.
 inline size_t an_ifc_module::file_offset_of(an_ifc_partition_kind partition,
                                             ifc_Index_type        index) const
 /*
-Returns the IFC file offset of the specified index into the given partition
+Return the IFC file offset of the specified index into the given partition
 of the module.  This value is used as a key to uniquely identify the IFC entity
 (and is purposely not kept as a pointer because the underlying address space is
 typically memory-mapped and could change during PCH file processing).
@@ -5378,7 +5377,7 @@ inline void an_ifc_module::read_partition_at_offset(
                                                size_t                offset)
                                                                           const
 /*
-Sets the read buffer to the provided offset for the given partition in
+Set the read buffer to the provided offset for the given partition in
 preparation for a call to GET_byte, GET_short, etc.
 */
 {
@@ -5394,7 +5393,7 @@ inline void an_ifc_module::read_partition_at_index(
                                                ifc_Index_type        index)
                                                                           const
 /*
-Sets the read buffer to the appropriate offset for an entity at the provided
+Set the read buffer to the appropriate offset for an entity at the provided
 index into the given partition in preparation for a call to GET_byte,
 GET_short, etc.
 */
