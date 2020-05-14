@@ -98,7 +98,10 @@ spurious errors.  For example:
   };
   constexpr X<void> x(true, X<void>{});  // Previously an error.  Now okay.
 
-That is now fixed.
+That is now fixed.  The changes for EDGcpfe/20539 in version 5.1 interacted
+with this issue in a way that caused apparent regressions (although the
+underlying issue was pre-existing); for example, the code above was accepted
+in version 5.0 but triggered an error in 5.1.
 
 
 5/11/20  [EDGcpfe/21748]
