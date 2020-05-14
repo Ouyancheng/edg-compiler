@@ -20224,6 +20224,9 @@ be called to start a copy.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_gcnew_supplement_ptr      gsp, copy_gsp;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if BUILTIN_FUNCTIONS_ENABLED
+  a_builtin_function_kind     bfk;
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
   /* Copy the top node. */
   expr_copy = copy_node(expr);
@@ -20283,6 +20286,40 @@ be called to start a copy.
         break;
       }  /* if */
 #endif /* MINIMAL_INLINING */
+#if BUILTIN_FUNCTIONS_ENABLED
+      if ((options & CE_COPYING_EVALUATED_DEFAULT_ARG_EXPR) &&
+          node_operator_is(expr, eok_call) &&
+          is_routine_node(expr->variant.operation.operands) &&
+          is_gnu_builtin_function(
+                            node_routine(expr->variant.operation.operands)) &&
+          (bfk = node_routine(expr->variant.operation.operands)->
+                                                variant.builtin_function_kind),
+           (bfk == (a_builtin_function_kind)bfk_COLUMN ||
+            bfk == (a_builtin_function_kind)bfk_LINE ||
+            bfk == (a_builtin_function_kind)bfk_FUNCTION ||
+            bfk == (a_builtin_function_kind)bfk_FILE)) {
+        /* A call to a builtin source location operation is being performed
+           in a default argument list and that list is being copied.  The
+           source location to be used is the call to the function with the
+           default arguments so fold the expression now. */
+        a_diag_list    diag_list;
+        a_boolean      folded;
+        a_constant_ptr constant = local_constant();
+        clear_diag_list(&diag_list);
+        folded = interpret_expr(expr, /*is_constant_evaluated=*/FALSE,
+                                /*force_prvalue=*/FALSE, constant, &diag_list);
+        discard_more_info_list(&diag_list);
+        if (folded) {
+          expr_copy = alloc_node_for_constant(constant);
+          /* Clear the backing expression (it's not in the proper memory
+             region). */
+          expr_copy->variant.constant.ptr->expr = NULL;
+          release_local_constant(&constant);
+          break;
+        }  /* if */
+        release_local_constant(&constant);
+      }  /* if */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
       expr_copy->variant.operation.operands =
                     i_copy_list_of_expr_trees(expr->variant.operation.operands,
                                               options, cblock);

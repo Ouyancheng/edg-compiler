@@ -7737,6 +7737,130 @@ done:
 }  /* do_constexpr_builtin_strcmp */
 
 
+static a_boolean do_constexpr_builtin_source_location(
+                                          an_interpreter_state *ips,
+                                          a_routine_ptr        callee,
+                                          a_byte               *result_storage,
+                                          a_boolean            *p_result)
+/*
+If possible, fold the source location builtin (i.e., __builtin_COLUMN,
+__builtin_LINE, __builtin_FILE, __builtin_FUNCTION) into the appropriate
+constant.  Generally, these calls are easily folded, but if they occur
+in a default argument list or a default member initializer, they are not
+folded here.  For default arguments, the folding occurs in i_copy_expr_tree
+when the expression is being copied, and for default member initializers,
+lowering does the work.
+*/
+{
+  a_boolean       result = TRUE;
+  a_const_char    *result_string, *file_name, *full_name;
+  a_line_number   line_number;
+  a_boolean       at_end_of_source;
+  a_byte_count    length, k;
+  a_type_ptr      type;
+  a_byte          *string_bytes;
+
+  if ((expr_stack != NULL && expr_stack->is_default_arg_expression) ||
+      scope_stack_top().in_field_initializer) {
+    /* As mentioned above, uses in default arguments and default member
+       initializers are deferred. */
+    result = FALSE;
+  } else {
+    /* Determine the appropriate source position for this invocation and
+       convert it to the appropriate integer (COLUMN, LINE) or string (FILE,
+       FUNCTION). */
+    /* FIXME: Daveed: I still wonder if call_node->position isn't right for 
+       some cases. */
+    a_source_position *use_pos;
+    if (ips->curr_call_frame == NULL ||
+        ips->curr_call_frame->variant.position == NULL) {
+      use_pos = &error_position;
+    } else {
+      use_pos = ips->curr_call_frame->variant.position;
+    }  /* if */
+    switch (callee->variant.builtin_function_kind) {
+      case bfk_COLUMN:
+        set_integer_value((an_integer_value*)result_storage,
+                          (a_host_large_integer)use_pos->column);
+        break;
+      case bfk_LINE:
+        conv_seq_to_file_and_line(use_pos->seq, &file_name, &full_name,
+                                  &line_number, &at_end_of_source);
+        set_integer_value((an_integer_value*)result_storage,
+                          (a_host_large_integer)line_number);
+        break;
+      case bfk_FILE:
+      case bfk_FUNCTION:
+        {
+          if (callee->variant.builtin_function_kind ==
+                                           (a_builtin_function_kind)bfk_FILE) {
+            conv_seq_to_file_and_line(use_pos->seq, &file_name, &full_name,
+                                      &line_number, &at_end_of_source);
+            result_string = file_name;
+          } else {
+            /* Use the same string as if using __func__. */
+            result_string = get_string_for_function_name(tok_func_name,
+                                                      /*include_quote=*/FALSE);
+          }  /* if */
+          /* FIXME: See if we can find a_constant already allocated for the
+             string. */
+          a_constant_ptr cp = fs_constant(ck_string);
+          length = strlen(result_string)+1;
+          type = string_type(length);
+          cp->type = type;
+          cp->variant.string.length = length;
+          cp->variant.string.value =
+                                alloc_text_of_string_literal((sizeof_t)length);
+          (void)strcpy((char *)cp->variant.string.value, result_string);
+          get_stack_bytes(ips, cp->variant.string.value, string_bytes);
+          if (string_bytes == NULL) {
+            /* First time seeing this string; allocate it in static storage. */
+            alloc_static_object(ips, type, string_bytes, &result);
+            if (result) {
+              /* Copy the string from host-format to interpreter format (i.e.,
+                 an integer for each character). */
+              a_type_ptr     etp =
+                               skip_typerefs(type->variant.array.element_type);
+              a_byte_count   elem_size =
+                                       value_bytes_for_type(ips, etp, &result);
+              a_targ_size_t  char_size = etp->size;
+              a_const_char   *char_ptr = cp->variant.string.value;
+              a_byte         *elem = string_bytes;
+              if (result) {
+                for (k = 0; k<length; ++k, elem += elem_size) {
+                  unsigned long char_val = extract_character_from_string(
+                                                      char_ptr,
+                                                      (unsigned int)char_size);
+                  set_integer_value((an_integer_value*)elem,
+                                    (a_host_large_integer)char_val);
+                  char_ptr += char_size;
+                  mark_subobject_initialized(elem, string_bytes);
+                }  /* for */
+                mark_complete_object_initialized(string_bytes);
+                /* Create a mapping to the string so the original IL constant
+                   can be found. */
+                map_stack_bytes(ips, string_bytes, (a_byte*)cp);
+              }  /* if */
+            }  /* if */
+          }  /* if */
+          if (result) {
+            /* Return the result. */
+            clear_address(result_storage, string_bytes);
+            mark_complete_object_initialized(result_storage);
+            ((a_constexpr_address*)result_storage)->flags |= CA_CONST_STORAGE;
+          } else {
+            *p_result = FALSE;
+          }  /* if */
+        }
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+  }  /* if */
+  return result;
+}  /* do_constexpr_builtin_source_location */
+
+
 static a_boolean do_constexpr_builtin_function(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -8271,6 +8395,23 @@ to FALSE and the reason for the failure is recorded in *ips.
           }  /* if */
         }  /* if */
       }
+      break;
+    case bfk_COLUMN:
+    case bfk_LINE:
+    case bfk_FILE:
+    case bfk_FUNCTION:
+      /* Handle source location intrinsics. */
+      interpreted = FALSE;
+      if (args != NULL) {
+        unexpected_condition();
+      } else {
+        if (do_constexpr_builtin_source_location(ips, callee, result_storage,
+                                                 p_result)) {
+          interpreted = TRUE;
+        } else {
+          do_constexpr_fail(*p_result);
+        }  /* if */
+      }  /* if */
       break;
     default:
       interpreted = FALSE;

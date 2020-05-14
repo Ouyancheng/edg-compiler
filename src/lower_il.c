@@ -13045,6 +13045,12 @@ an eok_call of a builtin function.  The expression has already been lowered.
   switch (routine->variant.builtin_function_kind) {
     case bfk_none:
       unexpected_condition();
+    case bfk_COLUMN:
+    case bfk_LINE:
+    case bfk_FILE:
+    case bfk_FUNCTION:
+      /* These should have been handled by the front end. */
+      unexpected_condition();
     case bfk_zero_non_value_bits:
       lower_builtin_zero_non_value_bits(expr);
       break;

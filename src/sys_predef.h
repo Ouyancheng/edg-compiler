@@ -431,6 +431,17 @@ EXTERN a_builtin_user_descr builtin_user_table[]
   { "__builtin_operator_new", "L+", "void* (__edg_size_type__,...)",
     bfk_operator_new },
 
+  /* Clang supports these builtin functions (but they are not reported as
+     typical builtins, so they're manually added here). */
+  { "__builtin_COLUMN",   "Lx(90000-)", "int (void) __edg_throw__()",
+    bfk_COLUMN},
+  { "__builtin_LINE",     "Lx(90000-)", "int (void) __edg_throw__()",
+    bfk_LINE },
+  { "__builtin_FILE",     "Lx(90000-)", "const char*(void) __edg_throw__()",
+    bfk_FILE },
+  { "__builtin_FUNCTION", "Lx(90000-)", "const char*(void) __edg_throw__()",
+    bfk_FUNCTION },
+
   { NULL, NULL, 0, bfk_none }   /* end of table marker */
 }
 #endif /* VAR_INITIALIZERS */

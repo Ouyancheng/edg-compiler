@@ -1084,6 +1084,7 @@ enum a_builtin_function_type_index {
   bfti_5f2c578696,
   bfti_5f33e1ee3f,
   bfti_5f36a958b6,
+  bfti_5f3ea06228,
   bfti_5f8e9bc1c7,
   bfti_6001b0602b,
   bfti_6004795e19,
@@ -4015,6 +4016,7 @@ EXTERN a_builtin_type_string builtin_type_strings[]
   /* bfti_5f2c578696 */ "__edg_vector_type__(long long,2) (__edg_vector_type__(long long,2),const long long*,__edg_vector_type__(long long,2),unsigned char,int)",
   /* bfti_5f33e1ee3f */ "__edg_vector_type__(int,16) (__edg_vector_type__(int,16),__edg_vector_type__(int,4))",
   /* bfti_5f36a958b6 */ "__edg_vector_type__(long long,2) (__edg_vector_type__(long long,2),__edg_vector_type__(long long,2),char)",
+  /* bfti_5f3ea06228 */ "const char*(void) __edg_throw__()",
   /* bfti_5f8e9bc1c7 */ "__edg_vector_type__(float,4) (__edg_vector_type__(float,4),const void*,__edg_vector_type__(long long,4),unsigned char,int) __edg_throw__()",
   /* bfti_6001b0602b */ "__edg_vector_type__(double,8) (__edg_vector_type__(double,8),__edg_vector_type__(double,8),unsigned char,const int)",
   /* bfti_6004795e19 */ "__edg_vector_type__(short,16) (__edg_vector_type__(short,16),__edg_vector_type__(short,16),__edg_vector_type__(short,16),unsigned short)",
@@ -6632,6 +6634,7 @@ EXTERN a_builtin_condition_string builtin_condition_strings[]
 /* Enumeration for each automatically-generated builtin function. */
 enum a_builtin_function_kind_tag {
   bfk_none = 0, /* flag meaning the routine is not a builtin */
+  bfk_COLUMN,
   bfk_FILE,
   bfk_FUNCTION,
   bfk_GOMP_atomic_end,
@@ -11670,7 +11673,10 @@ EXTERN a_builtin_descr builtin_table[]
   { "__atomic_xor_fetch_4", bfci_ab11f6964c, bfti_e2dcbe343e, bfk_atomic_xor_fetch_4 },
   { "__atomic_xor_fetch_8", bfci_7292666ab4, bfti_403da3b35d, bfk_atomic_xor_fetch_8 },
   { "__atomic_xor_fetch_8", bfci_779f906272, bfti_3ffbfacfc3, bfk_atomic_xor_fetch_8 },
+  { "__builtin_COLUMN", bfci_9fa29d44e3, bfti_c0b9a64723, bfk_COLUMN },
+  { "__builtin_FILE", bfci_9fa29d44e3, bfti_5f3ea06228, bfk_FILE },
   { "__builtin_FILE", bfci_e153c0eaa5, bfti_2d4097d376, bfk_FILE },
+  { "__builtin_FUNCTION", bfci_9fa29d44e3, bfti_5f3ea06228, bfk_FUNCTION },
   { "__builtin_FUNCTION", bfci_e153c0eaa5, bfti_2d4097d376, bfk_FUNCTION },
   { "__builtin_GOMP_atomic_end", bfci_b51a2bbe85, bfti_cb9f72e7da, bfk_GOMP_atomic_end },
   { "__builtin_GOMP_atomic_start", bfci_b51a2bbe85, bfti_cb9f72e7da, bfk_GOMP_atomic_start },
@@ -11751,6 +11757,7 @@ EXTERN a_builtin_descr builtin_table[]
   { "__builtin_GOMP_taskwait", bfci_b51a2bbe85, bfti_cb9f72e7da, bfk_GOMP_taskwait },
   { "__builtin_GOMP_taskyield", bfci_b686ebed1a, bfti_cb9f72e7da, bfk_GOMP_taskyield },
   { "__builtin_GOMP_teams", bfci_828d52a9f4, bfti_dee8d7ed9e, bfk_GOMP_teams },
+  { "__builtin_LINE", bfci_9fa29d44e3, bfti_c0b9a64723, bfk_LINE },
   { "__builtin_LINE", bfci_e153c0eaa5, bfti_c2c14da164, bfk_LINE },
   { "__builtin__Exit", bfci_c3a192d6c1, bfti_c833811d37, bfk__Exit },
   { "__builtin___CFStringMakeConstantString", bfci_520a754f09, bfti_9c27f920d2, bfk___CFStringMakeConstantString },

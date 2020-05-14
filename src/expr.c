@@ -36203,24 +36203,105 @@ returned is not in the IL and must be copied if needed there.
 }  /* spelling_for_function_name_token */
 
 
-static void finalize_function_name_string(a_const_char *name_str)
+static void finalize_function_name_string(a_const_char *name_str,
+                                          a_boolean    include_quote)
 /*
 name_str points either to the beginning of the temporary text buffer or to
 a string to be added to it.  Copy name_str into the temporary text buffer
 if necessary and then add a trailing quote character to terminate the
-string.
+string (if include_quote is TRUE).
 */
 {
   if (name_str != temp_text_buffer) {
     put_str_to_temp_text_buffer(name_str);
   }  /* if */
-  if (pos_in_temp_text_buffer > 0 &&
-      temp_text_buffer[pos_in_temp_text_buffer - 1] == 0) {
-    /* The quote must overwrite the terminating null character. */
-    --pos_in_temp_text_buffer;
+  if (include_quote) {
+    if (pos_in_temp_text_buffer > 0 &&
+        temp_text_buffer[pos_in_temp_text_buffer - 1] == 0) {
+      /* The quote must overwrite the terminating null character. */
+      --pos_in_temp_text_buffer;
+    }  /* if */
+    put_str_to_temp_text_buffer("\"");
   }  /* if */
-  put_str_to_temp_text_buffer("\"");
 }  /* finalize_function_name_string */
+
+
+a_const_char *get_string_for_function_name(a_token_kind token,
+                                           a_boolean    include_quote)
+/*
+Return a string literal for the specified token.  The string varies depending
+on the language and emulation mode.  If include_quote is TRUE, a trailing
+quote character is included.  The result may be returned in a temporary
+text buffer so the caller should copy it quickly.
+*/
+{
+  a_const_char  *name_str = NULL;
+
+  if (innermost_function_scope == NULL) {
+    /* Not in a function. */
+    if (include_quote) {
+      name_str = "\"";
+    } else {
+      name_str = "";
+    }  /* if */
+  } else {
+    a_routine_ptr rp = innermost_function_scope->variant.routine.ptr;
+    pos_in_temp_text_buffer = 0;
+    switch (token) {
+      case tok_func_name:
+      case tok_function_name:
+        if ((ms_extensions && !C_mode() && token == tok_function_name) ||
+            (cpp11_mode && token == tok_func_name &&
+             !(gpp_mode || clang_mode || ms_extensions))) {
+          /* Microsoft's __FUNCTION__ expands to the fully qualified name of
+             the function.  In non-GNU/Clang/Microsoft C++11 mode, we use the
+             same expansion for __func__. */
+          an_il_to_str_output_control_block octl;
+          clear_il_to_str_output_control_block(&octl);
+          octl.output_str = put_str_to_temp_text_buffer_octl;
+          octl.suppress_typedefs = TRUE;
+          form_name(&rp->source_corresp, (an_il_entry_kind)iek_routine, &octl);
+          finalize_function_name_string(temp_text_buffer, include_quote);
+          name_str = temp_text_buffer; 
+        } else {
+simple_name:
+          /* The simple name of the function. */
+          if (has_name(rp)) {
+            put_str_to_temp_text_buffer(
+                                       unmangled_name_of(&rp->source_corresp));
+            finalize_function_name_string(temp_text_buffer, include_quote);
+            name_str = temp_text_buffer;
+          } else {
+            if (include_quote) {
+              name_str = "\"";
+            } else {
+              name_str = "";
+            }  /* if */
+          }  /* if */
+        }  /* if */
+        break;
+      case tok_pretty_function_name:
+        /* In GNU C mode, __PRETTY_FUNCTION__ is the same as __FUNCTION__. */
+        if (gcc_mode) goto simple_name;
+        /* The name of the function with parameter and return types. */
+        name_str = get_pretty_function_name(rp);
+        finalize_function_name_string(name_str, include_quote);
+        name_str = temp_text_buffer;
+        break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      case tok_decorated_function_name:
+        /* The "decorated" name of the function, i.e., the mangled name. */
+        name_str = get_decorated_function_name(rp);
+        finalize_function_name_string(name_str, include_quote);
+        name_str = temp_text_buffer;
+        break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      default:
+        unexpected_condition();
+    }  /* switch */
+  }  /* if */
+  return name_str;
+}  /* get_string_for_function_name */
 
 
 void set_curr_token_to_function_name_string(
@@ -36240,7 +36321,7 @@ subsequent string literals.
   /* Set up name_str to point to a string suitable for processing by
      scan_string_literal - that is, beginning with the first character
      after the (assumed) leading quote and ending with the closing
-     quote. */     
+     quote. */
   if (innermost_function_scope == NULL) {
     /* We are outside of a function.  This is allowed in GNU mode.
        The name is empty. */
@@ -36252,56 +36333,9 @@ subsequent string literals.
     }  /* if */
     name_str = "\"";
   } else {
-    a_routine_ptr rp = innermost_function_scope->variant.routine.ptr;
-    pos_in_temp_text_buffer = 0;
-    switch (curr_token) {
-      case tok_func_name:
-      case tok_function_name:
-        if ((ms_extensions && !C_mode() && curr_token == tok_function_name) ||
-            (cpp11_mode && curr_token == tok_func_name &&
-             !(gpp_mode || clang_mode || ms_extensions))) {
-          /* Microsoft's __FUNCTION__ expands to the fully qualified name of
-             the function.  In non-GNU/Clang/Microsoft C++11 mode, we use the
-             same expansion for __func__. */
-          an_il_to_str_output_control_block octl;
-          clear_il_to_str_output_control_block(&octl);
-          octl.output_str = put_str_to_temp_text_buffer_octl;
-          octl.suppress_typedefs = TRUE;
-          form_name(&rp->source_corresp, (an_il_entry_kind)iek_routine, &octl);
-          finalize_function_name_string(temp_text_buffer);
-          name_str = temp_text_buffer; 
-        } else {
-simple_name:
-          /* The simple name of the function. */
-          if (has_name(rp)) {
-            put_str_to_temp_text_buffer(
-                                       unmangled_name_of(&rp->source_corresp));
-            finalize_function_name_string(temp_text_buffer);
-            name_str = temp_text_buffer;
-          } else {
-            name_str = "\"";
-          }  /* if */
-        }  /* if */
-        break;
-      case tok_pretty_function_name:
-        /* In GNU C mode, __PRETTY_FUNCTION__ is the same as __FUNCTION__. */
-        if (gcc_mode) goto simple_name;
-        /* The name of the function with parameter and return types. */
-        name_str = get_pretty_function_name(rp);
-        finalize_function_name_string(name_str);
-        name_str = temp_text_buffer;
-        break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      case tok_decorated_function_name:
-        /* The "decorated" name of the function, i.e., the mangled name. */
-        name_str = get_decorated_function_name(rp);
-        finalize_function_name_string(name_str);
-        name_str = temp_text_buffer;
-        break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      default:
-        unexpected_condition();
-    }  /* switch */
+    /* Get the string corresponding to the current token. */
+    name_str = get_string_for_function_name(curr_token,
+                                            /*include_quote=*/TRUE);
   }  /* if */
   /* Create a string literal constant for name_str in const_for_curr_token. */
   curr_char_loc = name_str;

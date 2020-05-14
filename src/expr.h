@@ -1129,6 +1129,9 @@ typedef struct an_initializer_cache *an_initializer_cache_ptr;
 extern void prescan_parenthesized_mem_init_expr(
                                          an_initializer_cache_ptr  init_cache);
 
+extern a_const_char *get_string_for_function_name(a_token_kind token,
+                                                  a_boolean    include_quote);
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 
