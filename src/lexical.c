@@ -17504,7 +17504,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
   start_position = pos_curr_token;
   /* Save the current locator. */
   orig_locator = locator_for_curr_id;
-  if ((ms_extensions || gpp_mode || sun_mode) &&
+  if ((ms_extensions || gpp_version_is(< 40000) || sun_mode) &&
       template_sym != NULL && next_tok == tok_lt &&
       is_constructor_symbol(template_sym)) {
     /* The symbol passed in is a constructor symbol followed by a template

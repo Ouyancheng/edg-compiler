@@ -1,5 +1,17 @@
 Version 6.1
 
+5/14/20  [EDGcpfe/22785]
+GNU/clang compatibility: diagnose invalid class template constructor
+
+In g++ and clang modes the front end accepted in invalid constructor
+declaration in which the constructor name included a template argument
+list.  A diagnostic is now issued in g++ mode when gnu_version >= 40000,
+and in all clang modes (it is still accepted in Microsoft mode).
+
+  template <class T> struct A { A();};
+  template <class T> A<T>::A<T>() {};  // Now an error
+
+
 5/14/20  [EDGcpfe/22780]
 Incorrect initialization resulted in assertion failure in bigint_divmod
 
