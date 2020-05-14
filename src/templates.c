@@ -496,6 +496,16 @@ static void add_instantiation(
 
 static void update_il_template_parameter(a_template_param_ptr     tpp);
 
+static void create_prototype_type(
+                   a_tmpl_decl_state_ptr            decl_state,
+                   a_symbol_ptr                     sym,
+                   a_template_symbol_supplement_ptr tssp,
+                   a_symbol_ptr                     partial_spec_nonreal_sym,
+                   a_boolean                        is_partial_specialization);
+
+static void complete_il_template_entry(a_tmpl_decl_state_ptr  decl_state,
+                                       a_symbol_ptr           sym);
+
 
 void init_templ_decl_state(a_tmpl_decl_state_ptr	tdsp,
                            a_decl_parse_state    *dps)
@@ -826,7 +836,7 @@ Return TRUE if the template specified by sym is exported.
 } /* template_is_exported */
 
 
-a_template_ptr make_il_template_entry(a_tmpl_decl_state_ptr decl_state)
+static a_template_ptr make_il_template_entry(a_tmpl_decl_state_ptr decl_state)
 /*  
 Allocate an IL template entry.  Don't add the entry to the templates list
 of its scope: the appropriate scope is not known for sure yet, since this
@@ -5415,7 +5425,7 @@ so that they can still be put in the token string that is generated.
 }  /* remove_expression_from_cache */
 
 
-a_template_cache_segment_ptr extract_member_bodies(
+static a_template_cache_segment_ptr extract_member_bodies(
 		a_template_cache_ptr			tcp,
 		a_template_cache_segment_ptr		cache_segments,
 		a_boolean				keep_default_args)
@@ -5541,10 +5551,11 @@ and a list of the unprocessed entries is returned to the caller.
 }  /* extract_member_bodies */
 
 
-void instantiate_class_template(a_symbol_ptr                 template_sym,
-                                a_type_ptr                   prototype_type,
-                                a_template_cache_segment_ptr *tcsp,
-                                a_tmpl_decl_state_ptr        decl_state)
+static void instantiate_class_template(
+                                   a_symbol_ptr                 template_sym,
+                                   a_type_ptr                   prototype_type,
+                                   a_template_cache_segment_ptr *tcsp,
+                                   a_tmpl_decl_state_ptr        decl_state)
 /*
 This routine is called to do a "prototype instantiation" of a class template,
 namely, to scan the template definition even though the template parameters
@@ -20820,9 +20831,10 @@ is the type kind associated with this declaration.
 }  /* update_nested_template_class_symbol_info */
 
 
-void record_specialization(a_symbol_ptr				template_sym,
-   		           a_template_symbol_supplement_ptr	tssp,
-			   a_source_position			*error_pos)
+static void record_specialization(
+			a_symbol_ptr				template_sym,
+			a_template_symbol_supplement_ptr	tssp,
+			a_source_position			*error_pos)
 /*
 Update the template specified by template_sym to indicate that it is
 now specialized.  Make sure that no instantiations have already been
@@ -20932,7 +20944,7 @@ the text of the message to be issued.
 }  /* same_name_as_template_param */
 
 
-a_symbol_ptr add_partial_specialization(
+static a_symbol_ptr add_partial_specialization(
 			a_tmpl_decl_state_ptr	decl_state,
 			a_symbol_ptr		partial_spec_nonreal_sym,
 			a_symbol_locator	*locator,
@@ -21119,7 +21131,7 @@ the names of the template parameters specified by templ_param_list.
   }  /* for */
 } /* rename_prototype_arg_list */
 
-void create_prototype_type(
+static void create_prototype_type(
         a_tmpl_decl_state_ptr			decl_state,
 	a_symbol_ptr				sym,
 	a_template_symbol_supplement_ptr	tssp,
@@ -21999,8 +22011,8 @@ because the extra parameter clause is not in fact ignored.
   return result;
 }  /* allow_extra_gpp_mode_param_clauses */
 
-void set_membership_of_template(a_tmpl_decl_state_ptr	decl_state,
-				a_symbol_ptr		sym)
+static void set_membership_of_template(a_tmpl_decl_state_ptr	decl_state,
+				       a_symbol_ptr		sym)
 /*
 Set the class or namespace membership of the template specified by sym.
 */
@@ -22699,10 +22711,10 @@ thereof.
 }  /* should_cancel_friend_class_template_lookup */
 
 
-a_boolean check_requires_redecl(a_template_decl_info  *old_tdip,
-                                a_template_decl_info  *new_tdip,
-                                a_symbol_locator      *loc,
-                                a_symbol_ptr          sym)
+static a_boolean check_requires_redecl(a_template_decl_info  *old_tdip,
+                                       a_template_decl_info  *new_tdip,
+                                       a_symbol_locator      *loc,
+                                       a_symbol_ptr          sym)
 /*
 Compare the requires clauses for two template declarations described by
 old_tdip and new_tdip (the latter is a redeclaration of the former).  If they
@@ -22733,9 +22745,9 @@ Otherwise return TRUE.
 }  /* check_requires_redecl */
 
 
-a_symbol_ptr underlying_tmpl_class_sym(a_symbol_ptr          sym,
-                                       a_symbol_locator      *loc,
-                                       a_tmpl_decl_state_ptr decl_state)
+static a_symbol_ptr underlying_tmpl_class_sym(a_symbol_ptr          sym,
+                                              a_symbol_locator      *loc,
+                                              a_tmpl_decl_state_ptr decl_state)
 /*
 If sym refers (directly or indirectly) to a template class, check whether a
 partial specialization is possible and return the underlying template symbol.
@@ -22860,7 +22872,7 @@ block.
 }  /* underlying_tmpl_class_sym */
 
 
-a_symbol_ptr check_tmpl_class_partial_spec(
+static a_symbol_ptr check_tmpl_class_partial_spec(
                                a_symbol_ptr          sym,
                                a_symbol_locator      *loc,
                                a_tmpl_decl_state_ptr decl_state,
@@ -22944,7 +22956,7 @@ sym.  decl_state is the template declaration state block. */
 }  /* check_tmpl_class_partial_spec */
 
 
-a_symbol_ptr check_tmpl_class_sym_redecl(
+static a_symbol_ptr check_tmpl_class_sym_redecl(
                           a_symbol_ptr                     sym,
                           a_template_param_ptr             templ_params,
                           a_symbol_locator                 *loc,
@@ -26413,8 +26425,8 @@ Make the string version of the template specified by sym and tssp.
 
 #endif /* RECORD_TEMPLATE_STRINGS */
 
-void complete_il_template_entry(a_tmpl_decl_state_ptr  decl_state,
-                                a_symbol_ptr           sym)
+static void complete_il_template_entry(a_tmpl_decl_state_ptr  decl_state,
+                                       a_symbol_ptr           sym)
 /*
 Finish up establishing the IL template entry.  (Its decl_position has been
 set, and its source sequence entry, if any, has been put out.)
@@ -28920,9 +28932,9 @@ in a abbreviated function template or a generic lambda).
 }  /* add_implicit_templ_params_for_auto_func_params */
 
 
-void set_up_template_decl(a_tmpl_decl_state         *state,
-                          a_source_position         *template_pos,
-                          a_template_decl_info_ptr  *p_templ_decl_info)
+static void set_up_template_decl(a_tmpl_decl_state         *state,
+                                 a_source_position         *template_pos,
+                                 a_template_decl_info_ptr  *p_templ_decl_info)
 /*
 Set up a level of parameterization for the template declaration associated
 with state.  Traditionally, this corresponds to a "template< param-list >"
@@ -29132,9 +29144,8 @@ obtained from decl_state.
 }  /* check_alias_template_param_usage */
 
 
-void alias_prototype_instantiation(
-			ARG_UNUSED a_tmpl_decl_state_ptr	decl_state,
-			a_symbol_ptr				template_sym)
+static void alias_prototype_instantiation(a_tmpl_decl_state_ptr	decl_state,
+					  a_symbol_ptr		template_sym)
 /*
 This routine is called to do the prototype instantiation of the template
 alias specified by template_sym.  This is done to detect those errors that
@@ -29231,8 +29242,8 @@ can be diagnosed at template definition time.
 }  /* alias_prototype_instantiation */
 
 
-void check_alias_template_redecl(a_tmpl_decl_state_ptr	decl_state,
-				 a_symbol_ptr		orig_sym)
+static void check_alias_template_redecl(a_tmpl_decl_state_ptr	decl_state,
+					a_symbol_ptr		orig_sym)
 /*
 decl_state->new_alias_symbol is a redeclaration of the alias template
 specified by orig_sym.  Make sure the new type is the same as the

@@ -475,36 +475,6 @@ a_template_cache_ptr cache_for_template(a_template_symbol_supplement_ptr tssp);
 extern void init_templ_decl_state(a_tmpl_decl_state_ptr	tdsp,
                                   a_decl_parse_state    *dps);
 
-extern void set_up_template_decl(a_tmpl_decl_state         *state,
-                                 a_source_position         *template_pos,
-                                 a_template_decl_info_ptr  *p_templ_decl_info);
-
-extern a_boolean check_requires_redecl(a_template_decl_info  *old_tdip,
-                                       a_template_decl_info  *new_tdip,
-                                       a_symbol_locator      *loc,
-                                       a_symbol_ptr          sym);
-
-extern void set_membership_of_template(a_tmpl_decl_state_ptr	decl_state,
-				       a_symbol_ptr		sym);
-
-extern a_template_ptr make_il_template_entry(a_tmpl_decl_state_ptr decl_state);
-
-extern void complete_il_template_entry(a_tmpl_decl_state_ptr  decl_state,
-		                       a_symbol_ptr           sym);
-
-extern void create_prototype_type(
-        a_tmpl_decl_state_ptr			decl_state,
-	a_symbol_ptr				sym,
-	a_template_symbol_supplement_ptr	tssp,
-        a_symbol_ptr				partial_spec_nonreal_sym,
-	a_boolean				is_partial_specialization);
-
-extern void alias_prototype_instantiation(a_tmpl_decl_state_ptr decl_state,
-					  a_symbol_ptr          template_sym);
-
-extern void check_alias_template_redecl(a_tmpl_decl_state_ptr	decl_state,
-					a_symbol_ptr		orig_sym);
-
 extern a_template_arg_ptr templ_arg_list_for_class(a_type_ptr class_type);
 
 extern
@@ -577,39 +547,6 @@ extern a_symbol_ptr find_template_class(
 			     a_boolean		 instantiate_nonreal,
 			     a_boolean		 do_not_create,
 			     a_boolean		 in_subtitution);
-
-extern a_symbol_ptr add_partial_specialization(
-                                a_tmpl_decl_state_ptr decl_state,
-                                a_symbol_ptr          partial_spec_nonreal_sym,
-                                a_symbol_locator      *locator,
-                                a_type_kind           type_kind);
-
-extern void record_specialization(
-                                 a_symbol_ptr                     template_sym,
-                                 a_template_symbol_supplement_ptr tssp,
-                                 a_source_position                *error_pos);
-
-extern a_symbol_ptr underlying_tmpl_class_sym(
-                                             a_symbol_ptr          sym,
-                                             a_symbol_locator      *loc,
-                                             a_tmpl_decl_state_ptr decl_state);
-
-extern a_symbol_ptr check_tmpl_class_partial_spec(
-                              a_symbol_ptr          sym,
-                              a_symbol_locator      *loc,
-                              a_tmpl_decl_state_ptr decl_state,
-                              a_symbol_ptr          *partial_spec_nonreal_sym);
-
-extern a_symbol_ptr check_tmpl_class_sym_redecl(
-                          a_symbol_ptr                     sym,
-                          a_template_param_ptr             templ_params,
-                          a_symbol_locator                 *loc,
-                          a_type_kind                      type_kind,
-                          a_template_symbol_supplement_ptr tssp,
-                          a_tmpl_decl_state_ptr            decl_state,
-                          a_boolean                        is_nested_class_def,
-                          a_boolean                        *is_redecl,
-                          a_boolean                        *supp_redecl_err);
 
 extern a_symbol_ptr find_class_template_instance(
                                               a_symbol_ptr        class_templ,
@@ -1011,17 +948,6 @@ void proto_instantiate_exception_spec_redecl(a_tmpl_decl_state_ptr  decl_state,
                                              a_symbol_ptr           sym);
 
 extern void instantiate_field_initializer_if_needed(a_field_ptr  field);
-
-extern void instantiate_class_template(
-                                   a_symbol_ptr                 template_sym,
-                                   a_type_ptr                   prototype_type,
-                                   a_template_cache_segment_ptr *tcsp,
-                                   a_tmpl_decl_state_ptr        decl_state);
-
-extern a_template_cache_segment_ptr extract_member_bodies(
-                               a_template_cache_ptr         tcp,
-                               a_template_cache_segment_ptr cache_segments,
-                               a_boolean                    keep_default_args);
 
 extern void prescan_function_template_default_arg_expr(
 					a_param_type_ptr  ptp,
