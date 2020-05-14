@@ -734,6 +734,8 @@ Initialize SMALL_TENS and BIG_TENS arrays.
   an_fp_binary bin;
 #endif  /* !FP_USE_EMULATION */
 
+  /* Re-initialize exponent (this routine may be called multiple times). */
+  DEC.exponent = (1 << EXP_SHIFT) + 1;
   /* Set SMALL_TENS[0] to 1e0L. */
 #if FP_USE_EMULATION
   MAKE_FP_BIN_ZERO(&SMALL_TENS[0]);

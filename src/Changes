@@ -1,5 +1,13 @@
 Version 6.1
 
+5/14/20  [EDGcpfe/22780]
+Incorrect initialization resulted in assertion failure in bigint_divmod
+
+In configurations where USE_HOST_FP_CONVERSION_ROUTINES is FALSE and
+MAKE_FRONT_END_CALLABLE is TRUE, invoking the front end multiple times
+had resulted in an assertion failure in bigint_divmod.  This is now fixed.
+
+
 5/13/20  [EDGcpfe/22540]
 Use of local constexpr variable in nontype template argument
 
