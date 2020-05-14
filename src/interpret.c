@@ -16992,9 +16992,11 @@ the value representation of the integer value.
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     case enk_initializer:
-      do_constexpr_dynamic_init(ips, expr->variant.initializer.dyn_init,
-                                &expr->position,
-                                result_storage, complete_object);
+      if (!do_constexpr_dynamic_init(ips, expr->variant.initializer.dyn_init,
+                                     &expr->position,
+                                     result_storage, complete_object)) {
+        result = FALSE;
+      }  /* if */
       break;
     case enk_error:
       ips->input_error = TRUE;
