@@ -4201,9 +4201,9 @@ enclosing template.
 /* Forward declarations. */
 static void class_template_declaration(
                          a_tmpl_decl_state_ptr decl_state,
-		         a_symbol_ptr          *p_sym_ptr,
-		         a_boolean             *resolution,
-			 a_boolean	       out_of_class_partial_spec);
+                         a_symbol_ptr          *p_sym_ptr,
+                         a_boolean             *resolution,
+                         a_boolean             out_of_class_partial_spec);
 
 static a_symbol_ptr instantiate_out_of_class_variable_template_decl(
                                   a_tmpl_decl_state_ptr            decl_state,

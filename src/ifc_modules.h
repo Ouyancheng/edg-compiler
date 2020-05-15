@@ -251,7 +251,7 @@ enum ifc_Access : uint8_t {
 enum ifc_BasicSpecifiers : uint8_t {
   ifc_BasicSpecifiers_Cxx               = 0,      /* C++ language linkage */
   ifc_BasicSpecifiers_C                 = 1 << 0, /* C language linkage */
-  ifc_BasicSpecifiers_Internal          = 1 << 1,
+  ifc_BasicSpecifiers_Internal          = 1 << 1, /* Internal linkage */
   ifc_BasicSpecifiers_Vague             = 1 << 2, /* Vague linkage, e.g.
                                                      COMDAT, still external */
   ifc_BasicSpecifiers_External          = 1 << 3, /* External linkage */
@@ -259,8 +259,9 @@ enum ifc_BasicSpecifiers : uint8_t {
   ifc_BasicSpecifiers_InitializedInClass= 1 << 5, /* Defined or initialized in
                                                      class */
   ifc_BasicSpecifiers_NonExported       = 1 << 6, /* Not explicitly exported */
-  ifc_BasicSpecifiers_IsMemberOfGlobalModules =
-                                      1 << 7, /* Member of the global module */
+  ifc_BasicSpecifiers_IsMemberOfGlobalModules
+                                        = 1 << 7, /* Member of the global
+                                                     module */
 };
 
 /* Enumeration for ObjectTraits. */
