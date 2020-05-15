@@ -557,15 +557,38 @@ Macro to test a routine entry's special_kind field.
   ((rp)->special_kind == (a_special_function_kind)(sfk))
 
 /*
-Macro to test whether a routine is a specific GNU built-in function.
+Functions and macros to test whether a routine is a GNU built-in function.
 */
-#if GNU_EXTENSIONS_ALLOWED
+#if BUILTIN_FUNCTIONS_ENABLED
+
+inline a_boolean is_gnu_builtin_function(a_routine_ptr  rp)
+/*
+Return TRUE if and only if the given routine represents a GNU-style built-in
+function.
+*/
+{
+  return special_kind_is(rp, sfk_none) &&
+         rp->variant.builtin_function_kind != (a_builtin_function_kind)0;
+}  /* is_gnu_builtin_function */
+
+
+inline a_boolean is_specific_builtin(a_routine_ptr            rp,
+                                     a_builtin_function_kind  bfk)
+/*
+Return TRUE if and only if the given routine represents a GNU-style built-in
+function of the given kind.
+*/
+{
+  return special_kind_is(rp, sfk_none) &&
+         rp->variant.builtin_function_kind == (a_builtin_function_kind)bfk;
+}  /* is_specific_builtin */
+
 #define rout_is_specific_builtin(rp, bfk)                                   \
-  (special_kind_is(rp, sfk_none) &&                                         \
-   (rp)->variant.builtin_function_kind == (a_builtin_function_kind)(bfk))
-#else /* !GNU_EXTENSIONS_ALLOWED */
+   is_specific_builtin(rp,(a_builtin_function_kind)(bfk))
+#else /* !BUILTIN_FUNCTIONS_ENABLED */
+#define is_gnu_builtin_function(rp) FALSE
 #define rout_is_specific_builtin(rp, bfk) FALSE
-#endif /* GNU_EXTENSIONS_ALLOWED */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 /*
 Macro to test an operator routine entry's opname_kind field.
@@ -1711,6 +1734,8 @@ extern a_boolean has_non_file_scope_ref(a_constant *cp);
 extern a_boolean constant_is_shareable(a_constant *cp);
 
 extern a_constant_ptr alloc_shareable_constant(a_constant *cp);
+
+extern a_constant_ptr shareable_fs_string_constant(a_const_char *str);
 
 extern void add_backing_expression_for_named_constant(a_constant *cp);
 

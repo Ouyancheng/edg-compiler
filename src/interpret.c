@@ -4661,6 +4661,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       do_constexpr_fail(result);
       goto done;
     } else if (con->expr != NULL && !con->is_reinterpret_like_cast &&
+               !con->is_result_of_constexpr_call &&
                !(constant_is(con, ck_integer) ||
                  (constant_is(con, ck_address) &&
                   con->variant.address.kind ==
@@ -7797,6 +7798,7 @@ lowering does the work.
       case bfk_FILE:
       case bfk_FUNCTION:
         {
+          a_constant_ptr  cp;
           if (callee->variant.builtin_function_kind ==
                                            (a_builtin_function_kind)bfk_FILE) {
             conv_seq_to_file_and_line(use_pos->seq, &file_name, &full_name,
@@ -7807,23 +7809,10 @@ lowering does the work.
             result_string = get_string_for_function_name(tok_func_name,
                                                       /*include_quote=*/FALSE);
           }  /* if */
-          /* Allocate a shareable constant for the string in the file scope
-             (it's likely that it will occur multiple times). */
-          a_memory_region_number region_to_switch_back_to;
-          a_constant_ptr cp, string_con = local_constant();
-          length = (a_byte_count)strlen(result_string)+1;
-          clear_constant(string_con, (a_constant_repr_kind)ck_string);
-          type = string_type(length);
-          string_con->type = type;
-          string_con->variant.string.length = length;
-          string_con->variant.string.value =
-                                alloc_text_of_string_literal((sizeof_t)length);
-          (void)strcpy((char *)string_con->variant.string.value,
-                       result_string);
-          switch_to_file_scope_region(&region_to_switch_back_to);
-          cp = alloc_shareable_constant(string_con);
-          switch_back_to_original_region(region_to_switch_back_to);
-          release_local_constant(&string_con);
+          /* Obtain a shareable ck_string constant for the name. */
+          cp = shareable_fs_string_constant(result_string);
+          type = cp->type;
+          length = cp->variant.string.length;
           /* Do we have an interpreter version of the string already? */
           get_stack_bytes(ips, cp->variant.string.value, string_bytes);
           if (string_bytes == NULL) {
@@ -9375,6 +9364,7 @@ otherwise, return FALSE and update *ips accordingly.
                                           (a_builtin_function_kind)bfk_none &&
         do_constexpr_builtin_function(ips, eff_callee, call_node,
                                       result_storage, &result)) {
+      ips->call_seen = TRUE;
       goto done;
     } else if (!result) {
       goto done;

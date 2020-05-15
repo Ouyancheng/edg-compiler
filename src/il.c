@@ -5355,20 +5355,6 @@ fix them.
 }  /* fix_memory_region_problems_in_copied_constant */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-#if BUILTIN_FUNCTIONS_ENABLED
-
-a_boolean is_gnu_builtin_function(a_routine_ptr  rp)
-/*
-Return TRUE if and only if the given routine represents a GNU-style built-in
-function.
-*/
-{
-  return rp->special_kind == (a_special_function_kind)sfk_none &&
-         rp->variant.builtin_function_kind !=
-                                            (a_builtin_function_kind)bfk_none;
-}  /* is_gnu_builtin_function */
-
-#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 a_source_correspondence *source_corresp_for_il_entry(
                                                  char              *entity_ptr,
@@ -8770,6 +8756,75 @@ put it on a list of constants).
   }  /* if */
   return scp;
 }  /* alloc_shareable_constant */
+
+
+a_constant_ptr shareable_fs_string_constant(a_const_char  *str)
+/*
+Return a shareable version of the given string allocated in file scope.
+This ignores the "string_literals_shared" flag (the given string is not the
+result of a string literal, but, e.g., of a call to a built-in function).
+*/
+{
+  a_hash_value    hash_value;
+  a_constant_ptr  cp = local_constant(), scp, prev_scp, *list_ptr;
+  sizeof_t        length = strlen(str)+1;
+
+  clear_constant(cp, (a_constant_repr_kind)ck_string);
+  cp->type = string_type(length);
+  cp->variant.string.length = length;
+  cp->variant.string.value = str;
+  hash_value = hash_constant(cp) % SIZE_SHAREABLE_CONSTANTS_TABLE;
+  list_ptr = &shareable_constants_table[hash_value];
+  if (list_ptr != NULL) {
+    /* Search the entries in the list, if any. */
+    for (prev_scp = NULL, scp = *list_ptr;
+         scp != NULL;
+         prev_scp = scp, scp = scp->next) {
+#if DEBUG
+      num_compares_for_shareable_constants++;
+#endif /* DEBUG */
+      /* Compare the constant in the list with the desired constant. */
+      if (identical_constants(scp, cp)) {
+        /* The constants are the same: We have found a reusable constant. */
+        /* Remove the constant from the list.  It will be re-added at the
+           front of the list below.  This is so that common constants stay
+           near the front of the bucket list, to speed lookup. */
+        if (prev_scp == NULL) {
+          *list_ptr = scp->next;
+        } else {
+          prev_scp->next = scp->next;
+        }  /* if */
+        break;
+      }  /* if */
+    }  /* for */
+  } else {
+    /* No constants match this hash value yet. */
+    scp = NULL;
+  }  /* if */
+  if (scp == NULL) {
+    /* No identical constant exists in the table, so create one. */
+    scp = fs_constant((a_constant_repr_kind)ck_string);
+    copy_constant(cp, scp);
+    scp->variant.string.value = alloc_text_of_string_literal((sizeof_t)length);
+    (void)strcpy((char*)scp->variant.string.value, cp->variant.string.value);
+    fix_memory_region_problems_in_copied_constant(scp);
+#if DEBUG
+    if (list_ptr != NULL) {
+      num_shareable_constants++;
+      if (*list_ptr == NULL) {
+        num_used_shareable_constant_buckets++;
+      }  /* if */
+    }  /* if */
+#endif /* DEBUG */
+  }  /* if */
+  if (list_ptr != NULL) {
+    /* Add the shareable constant to the front of the proper list. */
+    scp->next = *list_ptr;
+    *list_ptr = scp;
+  }  /* if */
+  release_local_constant(&cp);
+  return scp;
+}  /* shareable_fs_string_constant */
 
 
 void add_backing_expression_for_named_constant(a_constant *cp)

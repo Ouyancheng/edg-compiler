@@ -5955,8 +5955,7 @@ the current context.
   /* Note that folding should always be done for noexcept operands since it
      affects the outcome of the operand.  That is true even in template-
      dependent contexts because the operand may not be itself dependent. */
-  if (constexpr_enabled &&
-      !expr_stack->suppress_constexpr_call_folding &&
+  if (!expr_stack->suppress_constexpr_call_folding &&
       ((curr_expr_is_evaluated() &&
         (!is_prototype_instantiation_context() ||
          curr_expr_kind_is_const())) ||
@@ -18155,17 +18154,20 @@ whether the call was folded or not.
       a_boolean    call_folded_to_constant = FALSE;
       a_diag_list  diag_list;
       clear_diag_list(&diag_list);
-      if (constexpr_enabled &&
-          (rout == NULL ||
-#if GNU_EXTENSIONS_ALLOWED
-           rout->implicit_alias ||
-#endif /* GNU_EXTENSIONS_ALLOWED */
+      if (
 #if BUILTIN_FUNCTIONS_ENABLED
-           is_gnu_builtin_function(rout) ||
+          ((rout != NULL && is_gnu_builtin_function(rout) &&
+            !rout_type_supp(skip_typerefs(rout->type))->has_ellipsis &&
+            rout_type_supp(skip_typerefs(rout->type))->prototyped) ||
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
-           (rout->is_constexpr || rout->is_consteval ||
-            (rout->is_virtual && constexpr_virtual_enabled &&
-             !virtual_suppressed))) &&
+           (constexpr_enabled &&
+            (rout == NULL ||
+#if GNU_EXTENSIONS_ALLOWED
+             rout->implicit_alias ||
+#endif /* GNU_EXTENSIONS_ALLOWED */
+             (rout->is_constexpr || rout->is_consteval ||
+              (rout->is_virtual && constexpr_virtual_enabled &&
+               !virtual_suppressed))))) &&
           (!expr_stack->in_noexcept_operand_expression ||
            core_constant_expr_is_noexcept || microsoft_mode) &&
           expr_fold_constexpr_call(function_call_node, &rout, result,
