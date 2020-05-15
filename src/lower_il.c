@@ -13048,7 +13048,7 @@ builtin (which will be replaced by an appropriate constant).
   a_const_char      *result_string, *file_name, *full_name;
   a_line_number     line_number;
   a_boolean         at_end_of_source;
-  an_expr_node_ptr  new_expr;
+  an_expr_node_ptr  new_expr = NULL;
 
   check_assertion(innermost_function_scope != NULL &&
                   innermost_function_scope->variant.routine.ptr->special_kind
