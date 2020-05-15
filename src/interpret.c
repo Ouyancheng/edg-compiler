@@ -7807,16 +7807,24 @@ lowering does the work.
             result_string = get_string_for_function_name(tok_func_name,
                                                       /*include_quote=*/FALSE);
           }  /* if */
-          /* FIXME: See if we can find a_constant already allocated for the
-             string. */
-          a_constant_ptr cp = fs_constant(ck_string);
-          length = strlen(result_string)+1;
+          /* Allocate a shareable constant for the string in the file scope
+             (it's likely that it will occur multiple times). */
+          a_memory_region_number region_to_switch_back_to;
+          a_constant_ptr cp, string_con = local_constant();
+          length = (a_byte_count)strlen(result_string)+1;
+          clear_constant(string_con, (a_constant_repr_kind)ck_string);
           type = string_type(length);
-          cp->type = type;
-          cp->variant.string.length = length;
-          cp->variant.string.value =
+          string_con->type = type;
+          string_con->variant.string.length = length;
+          string_con->variant.string.value =
                                 alloc_text_of_string_literal((sizeof_t)length);
-          (void)strcpy((char *)cp->variant.string.value, result_string);
+          (void)strcpy((char *)string_con->variant.string.value,
+                       result_string);
+          switch_to_file_scope_region(&region_to_switch_back_to);
+          cp = alloc_shareable_constant(string_con);
+          switch_back_to_original_region(region_to_switch_back_to);
+          release_local_constant(&string_con);
+          /* Do we have an interpreter version of the string already? */
           get_stack_bytes(ips, cp->variant.string.value, string_bytes);
           if (string_bytes == NULL) {
             /* First time seeing this string; allocate it in static storage. */

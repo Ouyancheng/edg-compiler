@@ -20292,12 +20292,12 @@ be called to start a copy.
           is_routine_node(expr->variant.operation.operands) &&
           is_gnu_builtin_function(
                             node_routine(expr->variant.operation.operands)) &&
-          (bfk = node_routine(expr->variant.operation.operands)->
+          ((bfk = node_routine(expr->variant.operation.operands)->
                                                 variant.builtin_function_kind),
-           (bfk == (a_builtin_function_kind)bfk_COLUMN ||
-            bfk == (a_builtin_function_kind)bfk_LINE ||
-            bfk == (a_builtin_function_kind)bfk_FUNCTION ||
-            bfk == (a_builtin_function_kind)bfk_FILE)) {
+            (bfk == (a_builtin_function_kind)bfk_COLUMN ||
+             bfk == (a_builtin_function_kind)bfk_LINE ||
+             bfk == (a_builtin_function_kind)bfk_FUNCTION ||
+             bfk == (a_builtin_function_kind)bfk_FILE))) {
         /* A call to a builtin source location operation is being performed
            in a default argument list and that list is being copied.  The
            source location to be used is the call to the function with the
