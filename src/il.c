@@ -19482,11 +19482,14 @@ options.
             if (expr_copy == NULL) {
               /* The expression folds to a constant. */
               /* con_copy and constant are already set correctly. */
-            } else if (!cpp11_sfinae_enabled && !expr_copy->is_lvalue) {
+            } else if ((!cpp11_sfinae_enabled && !expr_copy->is_lvalue) ||
+                       (options & CTWS_IN_PARENT_SUBSTITUTION) != 0) {
               /* The expression remains an expression.  If the expression
                  changed, make a new tpck_expression constant for it.  With
                  C++11 SFINAE, tpck_expression constants are rescanned, and
-                 this isn't needed. */
+                 this is usually not needed, but if we're doing a parent
+                 substitution and subsequent substitution of nested template
+                 parameters is about to follow. */
               if (expr != expr_copy) {
                 make_template_param_expr_constant(expr_copy, constant);
                 con_copy = NULL;

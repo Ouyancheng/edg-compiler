@@ -1,5 +1,15 @@
 Version 6.1
 
+5/15/20  [EDGcpfe/21210]
+Spurious substitution failure in nested template in complex some cases
+
+In some complex cases involving nested templates the front end sometimes
+incorrectly failed to substitute a constant expression represented by a
+tpck_expression entry in function copy_template_param_con.  The specific
+circumstances of the failure are difficult to describe concisely, but they
+were encountered during a specific use of the GNU std::variant implementation.
+
+
 5/15/20  [EDGcpfe/15504,EDGcpfe/20605,EDGcpfe/22391]
 Folding of source location builtins
 
