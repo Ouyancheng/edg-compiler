@@ -3812,7 +3812,7 @@ information in the specified id-linkage block.
      being defined) outside their parent class: */
   check_assertion(idlbp->locator->specific_symbol == NULL ||
                   !idlbp->locator->specific_symbol->is_class_member ||
-                  microsoft_mode);
+                  microsoft_mode || total_errors != 0);
   is_function = idlbp->func_info != NULL;
   is_object = !is_function;
   if (is_error_locator(*idlbp->locator)) {
@@ -17184,7 +17184,7 @@ proceed after the call.
   a_boolean     out_of_class_redecl = FALSE;
   an_id_linkage_kind
                 linkage = idl_none;
-  a_boolean     has_initializer = FALSE;
+  a_boolean     has_initializer = FALSE, defaulted = FALSE;
 
   if (state->routine_fixup != NULL) {
     /* The fixup was created while scanning the parameters and at that time
@@ -17195,7 +17195,6 @@ proceed after the call.
   }  /* if */
   /* Check for "= default" or "= delete". */
   if (curr_token == tok_assign) {
-    a_boolean  defaulted;
     if (deleted_or_defaulted_def_next(&defaulted)) {
       /* "= delete" or "= default". */
       if (defaulted) {
@@ -17428,7 +17427,13 @@ proceed after the call.
     /* A qualified name that identifies a function is allowed only when the
        function body is present (or for some special Microsoft and GNU cases
        handled like function definitions). */
-    report_member_function_redeclaration(locator, state);
+    if (defaulted) {
+      /* If "= default" was specified in an invalid context and error was
+         already issued. */
+      expect_error();
+    } else {
+      report_member_function_redeclaration(locator, state);
+    }  /* if */
   }  /* if */
   if (!C_mode()) {
     /* Issue diagnostic on an incomplete-type in an exception specification.
