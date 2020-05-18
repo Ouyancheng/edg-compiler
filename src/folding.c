@@ -232,8 +232,25 @@ The cast is implicit if is_implicit_cast is TRUE.
   if (!is_implicit_cast) {
     /* Note that the TRUE setting of explicit_cast_applied is sticky. */
     cp->explicit_cast_applied = TRUE;
-    if (cp->orig_type == NULL && !types_are_compatible(cp->type, new_type) &&
-        !types_are_similar(cp->type, new_type)) {
+  }  /* if */
+  if (cp->orig_type == NULL) {
+    /* Record that some conversions are not normally valid constant-expressions
+       (i.e., they're "reinterpret-like") so the interpreter can fail
+       evaluation if needed. */
+    if (types_are_interpreter_compatible(cp->type, new_type)) {
+      /* Catch the case where exception specifications are strengthened. */
+      a_type_ptr  src_tp = skip_typerefs(cp->type),
+                  dst_tp = skip_typerefs(new_type);
+      if (type_is(src_tp, tk_pointer) && type_is(dst_tp, tk_pointer)) {
+        src_tp = skip_typerefs(src_tp->variant.pointer.type);
+        dst_tp = skip_typerefs(dst_tp->variant.pointer.type);
+        if (type_is(src_tp, tk_routine) && type_is(dst_tp, tk_routine) &&
+            !exception_spec_conversion_possible(src_tp, dst_tp)) {
+          cp->is_reinterpret_like_cast = TRUE;
+        }  /* if */
+      }  /* if */
+    } else if (!(is_pointer_type(cp->type) &&
+                 is_pointer_to_void_type(new_type))) {
       cp->is_reinterpret_like_cast = TRUE;
     }  /* if */
   }  /* if */
@@ -6278,7 +6295,8 @@ through the usual interface because a field cannot be passed as a constant.
        overflow/object-size checking is needed, since the field has to be
        within the underlying object. */
     set_pointer_offset(result, offset, &err);
-    implicit_cast(result, result_type);
+    result->type = result_type;
+    result->implicit_cast = TRUE;
     /* Update the subobject path if applicable. */
     if (field_path != NULL) {
       *last_subobject_path_link(result) = field_path;

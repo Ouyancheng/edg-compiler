@@ -21586,7 +21586,8 @@ current mode -- just do it.
        the pointer. */
     a_type_ptr ptr_type =
                         type_after_array_to_pointer_transformation(expr->type);
-    implicit_cast(conaddr, ptr_type);
+    conaddr->type = ptr_type;
+    conaddr->implicit_cast = TRUE;
     make_constant_operand(conaddr, operand);
     need_expr = curr_expr_kind_is_one_in_which_const_exprs_are_recorded();
     need_expr_for_constant = need_expr;

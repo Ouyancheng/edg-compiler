@@ -9184,8 +9184,10 @@ cast away const, and this routine returns FALSE) but is suspect, return
 }  /* cast_removes_qualifiers */
 
 
-a_boolean types_are_similar(a_type_ptr  tp1,
-                            a_type_ptr  tp2)
+static a_boolean types_have_same_shape(a_type_ptr  tp1,
+                                       a_type_ptr  tp2,
+                                       a_type_ptr  *p_utp1,
+                                       a_type_ptr  *p_utp2)
 /*
 Return TRUE if the given types are of the form:
 
@@ -9193,7 +9195,9 @@ Return TRUE if the given types are of the form:
 
 where Pk represents "pointer to", "pointer to member of class Ck", "array of Nk
 elements", or "array of unknown bound", the types are identical or they only
-differ in the const/volatile qualifiers cvk, and n >= 1.
+differ in the const/volatile qualifiers cvk and the underlying type U.  If TRUE
+is returned, also return the underlying types U for tp1 and tp2 in *p_utp1 and
+*p_utp2, respectively.
 */
 {
   a_boolean  result = FALSE;
@@ -9230,14 +9234,51 @@ differ in the const/volatile qualifiers cvk, and n >= 1.
       tp1 = tp1->variant.array.element_type;
       tp2 = tp2->variant.array.element_type;
     } else {
-      if (!identical_types(tp1, tp2)) {
-        result = FALSE;
-      }  /* if */
       break;
     }  /* if */
   }  /* for */
+  *p_utp1 = tp1;
+  *p_utp2 = tp2;
   return result;
+}  /* types_have_same_shape */
+
+
+a_boolean types_are_similar(a_type_ptr  tp1,
+                            a_type_ptr  tp2)
+/*
+Return TRUE if the given types are of the form:
+
+  cv0 P0 cv1 P1 .. cv(n-1) P(n-1) cvn U
+
+where Pk represents "pointer to", "pointer to member of class Ck", "array of Nk
+elements", or "array of unknown bound", the types are identical or they only
+differ in the const/volatile qualifiers cvk, and n >= 1.
+*/
+{
+  a_boolean  result = types_have_same_shape(tp1, tp2, &tp1, &tp2);
+  return result && identical_types(tp1, tp2);
 }  /* types_are_similar */
+
+
+a_boolean types_are_interpreter_compatible(a_type_ptr  tp1,
+                                           a_type_ptr  tp2)
+/*
+Return TRUE if the type tp1 and tp2 can be assumed to have the same
+representation in the interpreter.
+*/
+{
+  a_boolean  result = types_have_same_shape(tp1, tp2, &tp1, &tp2);
+
+  if (result) {
+    check_assertion(tp1->kind == tp2->kind);
+    if (type_is(tp1, tk_integer) || type_is(tp2, tk_float)) {
+      result = tp1->size == tp2->size;
+    } else {
+      result = identical_types_full(tp1, tp2, ITF_IGNORE_TOP_LEVEL_NOEXCEPT);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* types_are_interpreter_compatible */
 
 #if UPC_EXTENSIONS_ALLOWED
 
