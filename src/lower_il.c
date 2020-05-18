@@ -9639,9 +9639,14 @@ Do IL lowering of the indicated variable and everything under it.
                variable->storage_class == (a_storage_class)sc_extern) {
       /* A member constant (static data member initialized within the
          class) should be considered uninitialized if no definition
-         appeared. */
+         appeared.  The (unlowered) constant initializer remains in the IL
+         (though it is not needed for code generation). */
+      if (variable->init_kind != (an_init_kind)initk_static) {
+        /* Ensure that only a static initializer stays in the IL. */
+        variable->initializer.dynamic = NULL;
+        variable->initializer.bound_expr = NULL;
+      }  /* if */
       variable->init_kind = (an_init_kind)initk_none;
-      variable->is_member_constant = FALSE;
     }  /* if */
     if (variable->source_corresp.name_linkage ==
                                            (a_name_linkage_kind)nlk_internal &&

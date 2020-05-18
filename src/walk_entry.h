@@ -614,12 +614,16 @@ over the list of nonstatic variables in the scope.
 #endif /* CHECKING */
 
 #undef walk_initializer
-#define walk_initializer(init_kind, initializer)                      \
+#define walk_initializer(init_kind, initializer, is_member_constant)  \
 { switch (init_kind) {                                                \
-    case initk_none:                                                  \
     case initk_zero:                                                  \
     case initk_function_local:                                        \
       /* No pointers. */                                              \
+      break;                                                          \
+    case initk_none:                                                  \
+      if (is_member_constant) {                                       \
+        walk_ptr((initializer).constant, a_constant_ptr, iek_constant);\
+      }  /* if */                                                     \
       break;                                                          \
     case initk_static:                                                \
       walk_ptr((initializer).constant, a_constant_ptr, iek_constant); \
@@ -1239,7 +1243,8 @@ debug builds) don't recognize that these variables are mutually-exclusive.
           remap_ptr_not_needed(eptr->variant.assoc_param_type,
                                a_param_type_ptr, iek_param_type);
         }  /* if */
-        walk_initializer(eptr->init_kind, eptr->initializer);
+        walk_initializer(eptr->init_kind, eptr->initializer,
+                         eptr->is_member_constant);
         walk_list(eptr->entities_defined_in_initializer,
                   an_il_entity_list_entry_ptr, iek_il_entity_list_entry);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3066,7 +3071,8 @@ do_set_proper_definition_needed_flag:
         remap_next_ptr(eptr->next, a_local_static_variable_init_ptr,
                        iek_local_static_variable_init);
         remap_ptr_not_needed(eptr->variable, a_variable_ptr, iek_variable);
-        walk_initializer(eptr->init_kind, eptr->initializer);
+        walk_initializer(eptr->init_kind, eptr->initializer,
+                         /*is_member_constant=*/FALSE);
         remap_ptr_not_needed(eptr->lifetime, an_object_lifetime_ptr,
                              iek_object_lifetime);
 #undef eptr

@@ -1,5 +1,23 @@
 Version 6.1
 
+5/18/20  [EDGcpfe/22723]
+Maintain static data member constant initialization during lowering
+
+In cases where a static data member has an initializer but is not defined,
+there is no initialization to be performed, so lowering changes the
+initialization of the static data member to initk_none, thereby effectively
+removing the constant from the lowered IL.  A change has been made, in cases
+where is_member_constant is TRUE, to maintain the (unlowered) constant.
+
+  struct A {
+    static const int X = 42;    // 42 remains in the lowered IL now.
+  };
+  int f() {
+    const int* px = &A::X;
+    return *px;
+  }
+
+
 5/15/20  [EDGcpfe/21210]
 Spurious substitution failure in nested template in complex some cases
 

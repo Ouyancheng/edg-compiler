@@ -2612,16 +2612,24 @@ Display the indicated decl modifiers.
 
 #endif /* DECL_MODIFIERS_IN_USE */
 
-static void disp_initializer(an_init_kind        kind,
-                             an_initializer_ptr  ptr)
+static void disp_initializer(an_init_kind         kind,
+                             an_initializer_ptr   ptr,
+                             ARG_UNUSED a_boolean is_member_constant)
 /*
-Display the indicated init kind and initializer.
+Display the indicated init kind and initializer.  If is_member_constant is
+TRUE, a constant can be indicated even if kind is initk_none.  This only occurs
+in configurations that perform lowering.
 */
 {
   disp_name("init_kind");
   switch (kind) {
     case initk_none:
       (void)printf ("initk_none\n");
+#if DO_IL_LOWERING
+      if (is_member_constant) {
+        disp_ptr("constant", (char *)ptr->constant, iek_constant);
+      }  /* if */
+#endif /* DO_IL_LOWERING */
       break;
     case initk_static:
       (void)printf("initk_static\n");
@@ -2888,7 +2896,8 @@ Display the indicated variable.
   if (ptr->extends_lifetime) {
     disp_boolean("extends_lifetime", TRUE);
   }  /* if */
-  disp_initializer(ptr->init_kind, &ptr->initializer);
+  disp_initializer(ptr->init_kind, &ptr->initializer,
+                   ptr->is_member_constant);
   if (ptr->entities_defined_in_initializer != NULL) {
     disp_entity_list("entities_defined_in_initializer",
                      ptr->entities_defined_in_initializer);
@@ -6746,7 +6755,8 @@ Display the indicated local_static_variable_init entry.
 {
   disp_ptr("next", (char *)ptr->next, iek_local_static_variable_init);
   disp_ptr("variable", (char *)ptr->variable, iek_variable);
-  disp_initializer(ptr->init_kind, &ptr->initializer);
+  disp_initializer(ptr->init_kind, &ptr->initializer,
+                   /*is_member_constant=*/FALSE);
   disp_ptr("lifetime", (char *)ptr->lifetime, iek_object_lifetime);
 }  /* disp_local_static_variable_init */
 
