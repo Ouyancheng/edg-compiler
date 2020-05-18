@@ -7812,7 +7812,7 @@ lowering does the work.
           /* Obtain a shareable ck_string constant for the name. */
           cp = shareable_fs_string_constant(result_string);
           type = cp->type;
-          length = cp->variant.string.length;
+          length = (a_byte_count)cp->variant.string.length;
           /* Do we have an interpreter version of the string already? */
           get_stack_bytes(ips, cp->variant.string.value, string_bytes);
           if (string_bytes == NULL) {
