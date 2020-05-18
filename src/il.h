@@ -982,10 +982,6 @@ extern a_boolean is_template_param_cast_constant(a_constant_ptr  con,
                                                  a_constant_ptr  *p_base_con,
                                                  a_boolean       *is_explicit);
 
-#if BUILTIN_FUNCTIONS_ENABLED
-extern a_boolean is_gnu_builtin_function(a_routine_ptr  rp);
-#endif /* BUILTIN_FUNCTIONS_ENABLED */
-
 #if GNU_EXTENSIONS_ALLOWED
 extern void set_label_address_constant(a_label_ptr label,
                                        a_constant  *con);
