@@ -9206,7 +9206,6 @@ is returned, also return the underlying types U for tp1 and tp2 in *p_utp1 and
     tp1 = skip_typerefs(tp1);
     tp2 = skip_typerefs(tp2);
     if (tp1->kind != tp2->kind) {
-      result = FALSE;
       break;
     }  /* if */
     if (tp1->kind == (a_type_kind)tk_pointer &&
@@ -9256,7 +9255,7 @@ differ in the const/volatile qualifiers cvk, and n >= 1.
 */
 {
   a_boolean  result = types_have_same_shape(tp1, tp2, &tp1, &tp2);
-  return result && identical_types(tp1, tp2);
+  return result && (tp1->kind == tp2->kind) && identical_types(tp1, tp2);
 }  /* types_are_similar */
 
 
@@ -9270,8 +9269,12 @@ representation in the interpreter.
   a_boolean  result = types_have_same_shape(tp1, tp2, &tp1, &tp2);
 
   if (result) {
-    check_assertion(tp1->kind == tp2->kind);
-    if (type_is(tp1, tk_integer) || type_is(tp2, tk_float)) {
+    if (type_is(tp1, tk_error) || type_is(tp2, tk_error)) {
+      /* If either underlying type is an error type treat them as compatible
+         to avoid extraneous errors later on. */
+    } else if (tp1->kind != tp2->kind) {
+      result = FALSE;
+    } else if (type_is(tp1, tk_integer) || type_is(tp2, tk_float)) {
       result = tp1->size == tp2->size;
     } else {
       result = identical_types_full(tp1, tp2, ITF_IGNORE_TOP_LEVEL_NOEXCEPT);

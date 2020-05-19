@@ -237,10 +237,10 @@ The cast is implicit if is_implicit_cast is TRUE.
     /* Record that some conversions are not normally valid constant-expressions
        (i.e., they're "reinterpret-like") so the interpreter can fail
        evaluation if needed. */
-    if (types_are_interpreter_compatible(cp->type, new_type)) {
+    a_type_ptr  src_tp = skip_typerefs(cp->type),
+                dst_tp = skip_typerefs(new_type);
+    if (types_are_interpreter_compatible(src_tp, dst_tp)) {
       /* Catch the case where exception specifications are strengthened. */
-      a_type_ptr  src_tp = skip_typerefs(cp->type),
-                  dst_tp = skip_typerefs(new_type);
       if (type_is(src_tp, tk_pointer) && type_is(dst_tp, tk_pointer)) {
         src_tp = skip_typerefs(src_tp->variant.pointer.type);
         dst_tp = skip_typerefs(dst_tp->variant.pointer.type);
@@ -249,9 +249,21 @@ The cast is implicit if is_implicit_cast is TRUE.
           cp->is_reinterpret_like_cast = TRUE;
         }  /* if */
       }  /* if */
-    } else if (!(is_pointer_type(cp->type) &&
-                 is_pointer_to_void_type(new_type))) {
-      cp->is_reinterpret_like_cast = TRUE;
+    } else {
+      /* The types are fundamentally different to the interpreter.  Even in
+         that case, do not mark as "reinterpret-like" conversions of pointers
+         to void* or nullptr to a pointer or pointer-to-member type. */
+      if (type_is(dst_tp, tk_pointer) &&
+          (is_pointer_type(src_tp) && is_pointer_to_void_type(dst_tp))) {
+        /* A conversion from a pointer type or a pointer-to-void type can be
+           handled by the interpreter. */
+      } else if (type_is(src_tp, tk_nullptr) &&
+                 (is_pointer_type(dst_tp) || is_ptr_to_member_type(dst_tp))) {
+        /* A conversion from a nullptr_t type to a pointer or pointer-to-member
+           type can be handled by the interpreter. */
+      } else {
+        cp->is_reinterpret_like_cast = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   cp->type = new_type;
@@ -7057,8 +7069,8 @@ prefer to handle that higher up.
                 is_pointer_type(con->type)) {
               a_type_ptr atype = type_pointed_to(con->type);
               if (is_array_type(atype)) {
-                implicit_cast(con,
-                            type_after_array_to_pointer_transformation(atype));
+                con->type = type_after_array_to_pointer_transformation(atype);
+                con->implicit_cast = TRUE;
                 is_constant_ptr = TRUE;
               }  /* if */
             }  /* if */
