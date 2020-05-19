@@ -7819,7 +7819,7 @@ lowering does the work.
             /* First time seeing this string; allocate it in static storage. */
             alloc_static_object(ips, type, string_bytes, &result);
             if (result) {
-              /* Copy the string from host-format to interpreter format (i.e.,
+              /* Copy the string from host format to interpreter format (i.e.,
                  an integer for each character). */
               a_type_ptr     etp =
                                skip_typerefs(type->variant.array.element_type);
