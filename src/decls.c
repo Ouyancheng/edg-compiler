@@ -17428,7 +17428,7 @@ proceed after the call.
        function body is present (or for some special Microsoft and GNU cases
        handled like function definitions). */
     if (defaulted) {
-      /* If "= default" was specified in an invalid context and error was
+      /* If "= default" was specified in an invalid context, an error was
          already issued. */
       expect_error();
     } else {
