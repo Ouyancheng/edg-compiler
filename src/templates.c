@@ -33783,7 +33783,7 @@ template entities.
       tssp = template_supplement_for_symbol(template_sym);
       template_def = cache_for_template(tssp)->tokens.first_token != NULL ||
                      exported_definition_is_available(tip) ||
-                     rp->is_deleted;
+                     rp->is_deleted || rp->is_defaulted;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
       if (!template_def && !specialized && !tip->suppress_instantiation &&
           implicit_inclusion_okay && implicit_template_inclusion_mode) {

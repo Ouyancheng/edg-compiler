@@ -1,5 +1,37 @@
 Version 6.1
 
+5/19/20  [EDGcpfe/22813]
+Missing definition of defaulted member function with explicit instantiation
+
+When a class template instance is explicitly instantiated in one translation
+unit and instantiations are suppressed in another translation through use
+of "extern template", a definition of the default function was not emitted
+when it should have been.  Now fixed.  This was observed with the IA-64
+ABI when using LOWER_EXTERN_INLINE, but could potentially affect other
+configurations.  Now fixed.
+
+
+  file x.h:
+  struct B { B(const B&); };
+  template <typename _Tp> struct A {
+    A (const A&) = default;
+    B b;
+  };
+  extern template class A<int>;
+
+  file t1.c:
+  #include "x.h"
+  template class A<int>;
+  B::B(const B&){}
+
+  file t2.c:
+  #include "x.h"
+  void f(const A<int> &a) {
+    A<int> a2(a);
+  }
+  int main() {}
+
+
 5/18/20  [EDGcpfe/22723]
 Maintain static data member constant initialization during lowering
 
