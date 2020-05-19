@@ -19,7 +19,7 @@ where is_member_constant is TRUE, to maintain the (unlowered) constant.
 
 
 5/15/20  [EDGcpfe/21210]
-Spurious substitution failure in nested template in complex some cases
+Spurious substitution failure in nested template in some complex cases
 
 In some complex cases involving nested templates the front end sometimes
 incorrectly failed to substitute a constant expression represented by a

@@ -19487,9 +19487,10 @@ options.
               /* The expression remains an expression.  If the expression
                  changed, make a new tpck_expression constant for it.  With
                  C++11 SFINAE, tpck_expression constants are rescanned, and
-                 this is usually not needed, but if we're doing a parent
-                 substitution and subsequent substitution of nested template
-                 parameters is about to follow. */
+                 this is usually not needed.  It is required, however, if
+                 we're doing a parent substitution because subsequent
+                 substitution of nested template parameters is about to
+                 follow. */
               if (expr != expr_copy) {
                 make_template_param_expr_constant(expr_copy, constant);
                 con_copy = NULL;
