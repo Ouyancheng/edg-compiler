@@ -622,7 +622,9 @@ over the list of nonstatic variables in the scope.
       break;                                                          \
     case initk_none:                                                  \
       if (is_member_constant) {                                       \
-        walk_ptr((initializer).constant, a_constant_ptr, iek_constant);\
+        /* Un-lowered constant is not used, but kept in the IL. */    \
+        walk_ptr_not_needed((initializer).constant, a_constant_ptr,   \
+                            iek_constant);                            \
       }  /* if */                                                     \
       break;                                                          \
     case initk_static:                                                \
