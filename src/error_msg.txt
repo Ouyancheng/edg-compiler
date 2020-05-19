@@ -3202,6 +3202,7 @@ ec_ptr_to_mem_of_incomplete_class;;"a pointer-to-member of an incomplete type %t
 ec_pack_init_capture_not_enabled;;"pack expansion in init-capture not enabled in this mode"
 ec_pack_init_capture_is_cpp20;;"pack expansion in init-capture is a C++20 feature"
 ec_comparison_defaulted_in_class_must_be_first_decl;;"a comparison operator defaulted in a class definition must be the first declaration of that comparison operator (%nd)"
+ec_pack_init_capture_in_non_variadic_context;;"a pack expansion in an init-capture can be used only in a variadic template"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

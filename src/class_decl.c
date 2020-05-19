@@ -32388,7 +32388,11 @@ caller has already moved past the '[', and this routine leaves the trailing
            a capture of a pack. */
         is_init_pack = curr_token == tok_ellipsis;
         if (is_init_pack) {
-          if (!pack_init_capture_enabled) {
+          if (!is_variadic_template_context()) {
+            /* The "..." does not occur in a variadic template. */
+            pos_error(ec_pack_init_capture_in_non_variadic_context,
+                      &pos_curr_token);
+          } else if (!pack_init_capture_enabled) {
             pos_error(ec_pack_init_capture_not_enabled, &pos_curr_token);
           }  /* if */
           record_pack_expansion_ellipsis();
