@@ -1,5 +1,24 @@
 Version 6.1
 
+5/20/20  [EDGcpfe/18333]
+Internal error on use of variable template within a prototype instantiation
+
+An internal error could occur (in push_template_instantiation_scope) if
+a variable template that was a member of a class template was instantiated
+with a non-dependent template argument list within the prototype instantiation
+of another member of the class template.  Now fixed.
+
+  template <class T> struct A {
+    template <class U> static void (*fp)(U);
+    static void f() {
+      void (*k)(float) = fp<float>;
+    }
+  };
+  int main() {
+    A<int>::f();
+  }
+
+
 5/20/20  [EDGcpfe/22773]
 C++-generating back end: internal error with local classes
 

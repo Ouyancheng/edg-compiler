@@ -10947,9 +10947,17 @@ If template constraints are not satisfied, return NULL.
                                    &new_list_without_local_types,
                                    &list_for_instantiation, &list_copied,
                                    &dependent_arg_list);
-  /* See if the template argument list contains any dependent types. */
   if (dependent_arg_list) {
+    /* The instantiation is nonreal if any of its template arguments is
+       dependent. */
     is_nonreal = TRUE;
+  } else if (template_sym->is_class_member) {
+    /* The instantiation is nonreal if the template is a member of a class
+       template. */
+    a_type_ptr parent_class = sym_parent_class(template_sym);
+    if (parent_class->variant.class_struct_union.is_nonreal_class) {
+      is_nonreal = TRUE;
+    }  /* if */
   }  /* if */
   /* The template symbol must be for the primary template. */
   check_assertion(tssp->primary_template_sym == NULL);
