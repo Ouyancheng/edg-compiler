@@ -24754,10 +24754,11 @@ Scan that token and an optional template argument list that follows to form
 a type constraint.  Return that constraint.  In error cases, return NULL.
 */
 {
-  an_expr_node_ptr  constraint;
-  a_boolean         err = FALSE;
+  an_expr_node_ptr      constraint;
+  a_boolean             err = FALSE;
   a_template_symbol_supplement_ptr
-                    tssp = concept_templ->variant.template_info;
+                        tssp = concept_templ->variant.template_info;
+  a_template_param_ptr  tpp = tssp->cache.decl_info->parameters;
 
   constraint = alloc_expr_node((an_expr_node_kind)enk_concept_id);
   constraint->type = bool_type();
@@ -24782,13 +24783,19 @@ a type constraint.  Return that constraint.  In error cases, return NULL.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     remove_stop_token(tok_gt);
   } else {
-    a_template_param_ptr  tpp = tssp->cache.decl_info->parameters;
     if (tpp == NULL || tpp->next != NULL) {
       /* If no concept arguments are specified, the concept should have
          exactly one parameter. */
       pos_error(ec_exp_lt, &pos_curr_token);
       err = TRUE;
     }  /* if */
+  }  /* if */
+  if (!err && (tpp == NULL || !symbol_is(tpp->param_symbol, sk_type))) {
+    /* The concept should be a "type concept": A template whose first parameter
+       is a type parameter. */
+    pos_error(ec_type_constraint_requires_type_concept,&
+              tpp->param_symbol->decl_position);
+    err = TRUE;
   }  /* if */
   if (err) {
     /* Ignore the constraint. */

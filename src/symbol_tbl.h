@@ -2089,7 +2089,8 @@ typedef struct a_template_param {
                         /* Pointer to the next template parameter. */
   a_symbol_ptr	param_symbol;
 			/* Symbol entry for a formal parameter of the
-                           template. */
+			   template.  During instantiations, this resolves
+			   to the corresponding template argument. */
   a_template_cache
 		cache;
 			/* Contains the cached tokens that comprise the
