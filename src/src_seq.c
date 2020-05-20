@@ -1768,7 +1768,13 @@ innermost such class.
            is to a member template of a currently-active class and we cannot
            (and shouldn't) insert the template instance before its parent
            definition. */
-        insert_point = rssep->assoc_type->source_corresp.source_sequence_entry;
+        a_type_ptr     tp = rssep->assoc_type;
+        a_scope_depth  ss_list_depth = class_symbol_supp(symbol_for(tp))
+                                                               ->ss_list_depth;
+        insert_point = tp->source_corresp.source_sequence_entry;
+        if (ss_list_depth != NO_SCOPE_DEPTH) {
+          insert_scope_depth = ss_list_depth;
+        }  /* if */
         break;
       } else if (is_unnamed_or_originally_unnamed_tag(rssep->assoc_type)) {
         /* If a reference was made in a member of an unnamed class, then that
