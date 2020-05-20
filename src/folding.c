@@ -251,12 +251,13 @@ The cast is implicit if is_implicit_cast is TRUE.
       }  /* if */
     } else {
       /* The types are fundamentally different to the interpreter.  Even in
-         that case, do not mark as "reinterpret-like" conversions of pointers
-         to void* or nullptr to a pointer or pointer-to-member type. */
+         that case, do not mark as "reinterpret-like" the conversion of
+         nullptr_t to a pointer or pointer-to-member type, nor of a T* to
+         void*. */
       if (type_is(dst_tp, tk_pointer) &&
           (is_pointer_type(src_tp) && is_pointer_to_void_type(dst_tp))) {
-        /* A conversion from a pointer type or a pointer-to-void type can be
-           handled by the interpreter. */
+        /* A conversion from a T* to a void* type can be handled by the
+           interpreter. */
       } else if (type_is(src_tp, tk_nullptr) &&
                  (is_pointer_type(dst_tp) || is_ptr_to_member_type(dst_tp))) {
         /* A conversion from a nullptr_t type to a pointer or pointer-to-member
