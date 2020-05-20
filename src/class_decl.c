@@ -32388,16 +32388,20 @@ caller has already moved past the '[', and this routine leaves the trailing
            a capture of a pack. */
         is_init_pack = curr_token == tok_ellipsis;
         if (is_init_pack) {
-          if (!is_variadic_template_context()) {
+          if (!pack_init_capture_enabled) {
+            /* This C++20 feature is not enabled in the current mode. */
+            pos_error(ec_pack_init_capture_not_enabled, &pos_curr_token);
+          } else if (!is_variadic_template_context()) {
             /* The "..." does not occur in a variadic template. */
             pos_error(ec_pack_init_capture_in_non_variadic_context,
                       &pos_curr_token);
-          } else if (!pack_init_capture_enabled) {
-            pos_error(ec_pack_init_capture_not_enabled, &pos_curr_token);
+          } else {
+            /* Issue a warning if the feature is enabled in GNU mode for
+               an pre-C++20 language dialect. */
+            report_gnu_cpp20_extension_if_needed(
+                               &pos_curr_token, ec_pack_init_capture_is_cpp20);
           }  /* if */
           record_pack_expansion_ellipsis();
-          report_gnu_cpp20_extension_if_needed(&pos_curr_token,
-                                               ec_pack_init_capture_is_cpp20);
         }  /* if */
         if (curr_token == tok_this ||
             (capture_star_this_enabled && curr_token == tok_star &&
