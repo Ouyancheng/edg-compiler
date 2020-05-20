@@ -847,6 +847,10 @@ class, too, and thus must be flagged as requiring qualification.
     a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
     if (base_class->variant.class_struct_union.is_prototype_instantiation) {
       ps_options |= PS_PROTOTYPE_INSTANTIATION;
+    } else if (base_class->variant.class_struct_union.is_nonreal_class) {
+      /* A nonreal class, which includes local classes of prototype
+         instantiations. */
+      ps_options |= PS_NONREAL_INSTANTIATION;
     }  /* if */
     push_class_and_template_reactivation_scope_full(
                               base_class, /*is_specialization=*/FALSE,

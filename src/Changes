@@ -1,5 +1,28 @@
 Version 6.1
 
+5/20/20  [EDGcpfe/22773]
+C++-generating back end: internal error with local classes
+
+In versions with hidden name processing enabled (e.g., C++-generating
+back end versions), an internal error could occur when doing hidden
+name processing for a local class of a prototype instantiation.  The
+internal error occurred in push_template_instantiation_scope when
+(indirectly) called from clone_inherited_hidden_members.  Now fixed.
+
+  template <class T> struct C {
+    struct A {
+      int g();
+    };
+    A a;
+    template <class U> int f(U u) {
+      struct B : public A {
+        B(A i) : A(i) {}
+       };
+       return a.g();
+    }
+  };
+
+
 5/19/20  [EDGcpfe/22813]
 Missing definition of defaulted member function with explicit instantiation
 
