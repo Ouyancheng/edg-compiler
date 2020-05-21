@@ -11812,7 +11812,8 @@ process_enum_specifier:
             /* Presumably something like "C<8> auto x = 42;". */
             state->type_constraint =
                                  scan_type_constraint(curr_token_type_symbol);
-            if (curr_token != tok_auto && !decltype_auto_tokens_next()) {
+            if (curr_token != tok_auto &&
+                !(curr_token == tok_decltype && decltype_auto_tokens_next())) {
               pos_error(ec_exp_auto, &pos_curr_token);
               state->type_constraint = NULL;
             }  /* if */
