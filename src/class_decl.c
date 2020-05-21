@@ -11735,17 +11735,17 @@ was used).
 {
   a_symbol_ptr        sym, new_sym = NULL;
   an_error_code       error_code;
-  a_boolean           suppress_redecl_error = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean           multiple_selective_overriders = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_decl_parse_state  *dps = &decl_info->decl_state;
+  a_boolean           suppress_redecl_error = dps->ineligible;
 
   db_enter(4, "symbol_for_member_function");
   *overload_sym = NULL;
   if (is_error_locator(*locator)) {
     sym = NULL;
-  } else if (dps->ineligible || dps->is_inh_ctor_def_init) {
+  } else if (dps->is_inh_ctor_def_init) {
     /* Create a symbol that will not go into the symbol table. */
     new_sym = make_symbol((a_symbol_kind)sk_member_function, locator);
     new_sym->decl_scope = class_type_supp(class_type)->assoc_scope->number;
@@ -11763,6 +11763,12 @@ was used).
         /* The previously declared function with the same name (or, if it is
            already overloaded, any instance of it) does not have a matching
            type, so sym remains a candidate for overloading. */
+      } else if (fundamental_symbol_of(new_sym)
+                                        ->variant.routine.ptr->is_ineligible) {
+        /* The previous declaration was not "eligible" (meaning that a trailing
+           requires-clause failed when the enclosing class was instantiated.
+           Do not issue an error even though the types otherwise match. */
+        suppress_redecl_error = TRUE;
       } else if (is_class_member_using_decl_symbol(new_sym)) {
         /* A using-declaration previously declared a matching function or
            template in this scope.  The new declaration hides the one brought
@@ -11810,7 +11816,7 @@ was used).
            although member functions of class templates have template types
            in their parameters, they are not called using the template
            overload resolution mechanism. */
-        if (
+        if (!suppress_redecl_error &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
             !multiple_selective_overriders &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -14291,7 +14297,10 @@ set; otherwise, it is NULL.
     case sfk_destructor:
       /* Set the pointer to the destructor symbol in the class symbol
          supplement. */
-      cssp->destructor = sym;
+      if (cssp->destructor == NULL ||
+          cssp->destructor->variant.routine.ptr->is_ineligible) {
+        cssp->destructor = sym;
+      }
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case sfk_static_constructor:
@@ -29073,6 +29082,12 @@ that is provided if this is a member template declaration.
                     rout_sym->variant.routine.ptr->source_corresp.attributes);
                 }  /* if */
               }  /* if */
+              if (dps->ineligible) {
+                /* A constraint on a non-template member function makes this
+                   member "ineligible". */
+                rout_sym->variant.routine.ptr->is_ineligible = TRUE;
+                tip->suppress_instantiation = TRUE;
+              }  /* if */
             }  /* if */
           }  /* if */
         }  /* if */
@@ -29128,12 +29143,6 @@ that is provided if this is a member template declaration.
            checked earlier). */
         make_virtual_function_pure(rout_sym->variant.routine.ptr, class_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      }  /* if */
-      if (dps->ineligible) {
-        /* A constraint on a non-template member function makes this
-           member "ineligible". */
-        dps->sym->is_invisible = TRUE;
-        dps->sym->variant.routine.ptr->is_ineligible = TRUE;
       }  /* if */
       if (function_def_present) {
         remove_stop_token(tok_comma);

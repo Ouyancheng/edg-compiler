@@ -11656,7 +11656,8 @@ that can be called with zero arguments.
       pos_ty_error(ec_ambiguous_default_constructor, err_pos, class_type);
     }  /* if */
     local_err = TRUE;
-  } else if (ctor_sym == NULL) {
+  } else if (ctor_sym == NULL ||
+             ctor_sym->variant.routine.ptr->is_ineligible) {
     if (trivial) {
       /* The class has an implicit (not user-declared) trivial default
          constructor.  Note that we get here for the combination of
@@ -11909,7 +11910,8 @@ and do not issue any diagnostics (including warnings).
     } else {
       pos_ty_error(ec_ambiguous_copy_constructor, err_pos, class_type);
     }  /* if */
-  } else if (cctor_sym == NULL) {
+  } else if (cctor_sym == NULL ||
+             cctor_sym->variant.routine.ptr->is_ineligible) {
     /* No applicable copy constructor. */
     if (class_type->variant.class_struct_union.copy_ctor_decl_suppressed &&
         allow_suppressed_ctor) {

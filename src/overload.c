@@ -5544,6 +5544,9 @@ in a new-expression).
            operator should be handled using rewrite rules. */
         goto reject_function;
       }  /* if */
+      if (routine->is_ineligible) {
+        goto reject_function;
+      }  /* if */
       routine_type = routine->type;
     }  /* if */
     if (is_ambiguous_by_inheritance(proj_function_symbol) &&
@@ -27261,7 +27264,9 @@ traversal_start:
                                      this_param_type,
                                      routine_type,
                                      selector_match);
-      if (selector_match->match_level == aml_none) {
+      if (selector_match->match_level == aml_none ||
+          (!symbol_is(sym, sk_function_template) &&
+           sym->variant.routine.ptr->is_ineligible)) {
         /* This assignment operator cannot be used. */
         goto reject_function;
       }  /* if */
