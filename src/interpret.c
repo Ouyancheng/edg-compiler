@@ -3843,6 +3843,11 @@ Output the contents of the interpreted object of type tp stored at addr.
             db_type_name(bcp->type);
             get_mapped_byte_count(&persistent_map, bcp, offset);
             (void)fprintf(f_debug, " (offset %u)= \n", offset);
+            if (*(a_type_ptr*)(addr+offset) != bcp->type) {
+              db_indent(indent);
+              (void)fprintf(f_debug, " (BAD DERIVED PTR %p)\n",
+                            (void*)*(a_type_ptr*)(addr+offset));
+            }  /* if */
             db_object(addr+offset, bcp->type, complete_object);
           }  /* if */
         }  /* for */
@@ -16853,6 +16858,7 @@ the value representation of the integer value.
                  considered "constant". */
               mark_whole_subobject_initialized(ips, result_storage, tp,
                                                complete_object);
+              init_subobject_to_zero(ips, result_storage, tp, complete_object);
               if (complete_object == result_storage) {
                 /* Mark the destination storage as fully initialized. */
                 mark_complete_object_initialized(complete_object);
@@ -18032,6 +18038,8 @@ indicates the value produced by std::is_constant_evaluated().
               check_assertion(result);
               alloc_complete_object(&ips, n_bytes, val_type,
                                     result_storage);
+              init_subobject_to_zero(&ips, result_storage, val_type,
+                                     result_storage);
             } else {
               info_with_pos(ec_constexpr_access_to_runtime_storage,
                             &expr->position, &ips);

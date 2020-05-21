@@ -1,5 +1,30 @@
 Version 6.1
 
+5/21/20  [EDGcpfe/22789]
+Abort on uninitialized interpreter representation of empty derived object
+
+Consider:
+
+  struct D;
+  struct B {
+    constexpr D b2d();
+  };
+  struct D: B {};
+  constexpr D B::b2d() { return static_cast<D&>(*this); }
+  constexpr void f(D d) {
+    d.b2d();
+  }
+  constexpr void g(D d) {
+     f(d);  // Previously triggered an abort.  Now okay.
+  }
+
+Although the parameter d of g(D) is not a constexpr variable, the interpreter
+can operate on it because it is an empty object of a "trivial class".  However,
+previously, the interpreter did not full initialize the representation of such
+objects if they have base classes, which in turn could result in aborts later
+on (e.g., in do_constexpr_expression).  That is now fixed.
+
+
 5/20/20  [EDGcpfe/18333]
 Internal error on use of variable template within a prototype instantiation
 
