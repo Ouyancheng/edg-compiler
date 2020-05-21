@@ -267,6 +267,7 @@ be restored).
     dps->extra_positions = NULL;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     dps->next = NULL;
+    dps->type_constraint = NULL;
   } else {
     /* Set field values specifically for a secondary declarator. */
     dps->secondary_declarator = TRUE;
@@ -20126,6 +20127,40 @@ required updates in the source sequence entry for this declaration.
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
+a_boolean check_placeholder_type_constraint(a_type_ptr  placeholder_type,
+                                            a_type_ptr  deduced_type)
+/*
+A type deduced_type was deduced for a placeholder type (placeholder_type).  If
+the placeholder type has an associated constraint, check that constraint.  If
+the constraint is satisfied, return TRUE.  Otherwise return FALSE and issue an
+error.
+*/
+{
+  a_boolean         success = TRUE;
+  an_expr_node_ptr  type_constraint;
+
+  type_constraint = placeholder_type->variant.template_param.extra_info
+                                    ->constraint.type_constraint;
+  if (type_constraint != NULL &&
+      !is_template_dependent_type(deduced_type)) {
+    a_subst_pairs_array  subst_pairs(0);
+    a_diag_list          diag_list;
+    clear_diag_list(&diag_list);
+    if (!check_type_constraint(deduced_type, type_constraint,
+                               subst_pairs, &diag_list)) {
+      a_diagnostic_ptr  dp;
+      dp = pos_ty_start_error(ec_placeholder_type_failed_constraint,
+                              &type_constraint->position,
+                              deduced_type);
+      add_more_info_list(dp, &diag_list);
+      end_diagnostic(dp);
+      success = FALSE;
+    }  /* if */
+  }  /* if */
+  return success;
+}  /* check_placeholder_type_constraint */
+
+
 void check_deduced_auto_type(a_decl_parse_state  *dps)
 /*
 *dps describes a declaration involving a placeholder type and the type of the
@@ -20134,17 +20169,27 @@ any previous declarations of the entity, and emit a diagnostic if that isn't
 the case.
 */
 {
-  if (dps->prev_type != NULL) {
+  a_boolean  err = FALSE;
+
+  if (!dps->has_deducible_class_templ_args &&
+      !check_placeholder_type_constraint(dps->auto_type,
+                                         dps->deduced_auto_type)) {
+    err = TRUE;
+  }  /* if */
+  if (!err && dps->prev_type != NULL) {
     if (symbol_is(dps->sym, sk_static_data_member) ?
           reconcile_static_data_member_types(dps->sym, dps->type,
                                              &dps->declarator_pos) :
           !check_variable_redecl_compatible(dps)) {
-      dps->auto_type_specifier_seen = FALSE;
-      dps->decltype_auto_specifier_seen = FALSE; 
-      dps->has_deducible_class_templ_args = FALSE;
-      dps->has_deduced_type = FALSE;
-      dps->specifiers_type = dps->deduced_auto_type = dps->type = error_type();
+      err = TRUE;
     }  /* if */
+  }  /* if */
+  if (err) {
+    dps->auto_type_specifier_seen = FALSE;
+    dps->decltype_auto_specifier_seen = FALSE; 
+    dps->has_deducible_class_templ_args = FALSE;
+    dps->has_deduced_type = FALSE;
+    dps->specifiers_type = dps->deduced_auto_type = dps->type = error_type();
   }  /* if */
 }  /* check_deduced_auto_type */
 

@@ -1295,6 +1295,10 @@ typedef struct a_decl_parse_state {
   a_requires_clause_ptr
 		trailing_requires_clause;
 			/* The trailing requires-clause, if any. */
+  an_expr_node_ptr
+		type_constraint;
+			/* The type-constraint in something like
+			      C<8> int x = 42;  */
   an_il_entity_list_entry_ptr
 		*p_postfix_entities;
 			/* While parsing a declaration statement (stmk_decl),
@@ -1462,6 +1466,10 @@ extern a_type_ptr decltype_for_struct_binding(a_variable_ptr  vp);
 extern void define_struct_bindings(a_decl_parse_state  *dps);
 
 extern void start_secondary_declarator(a_decl_parse_state  *ps);
+
+extern
+a_boolean check_placeholder_type_constraint(a_type_ptr  placeholder_type,
+                                            a_type_ptr  deduced_type);
 
 extern void check_deduced_auto_type(a_decl_parse_state  *dps);
 

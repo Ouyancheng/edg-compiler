@@ -44424,6 +44424,7 @@ are left unaffected).
     tp = skip_typerefs(declared_return_type);
     if (is_auto_type(tp)) {
       deduced_return_type = void_type();
+      (void)check_placeholder_type_constraint(tp, deduced_return_type);
       if (tp->variant.template_param.extra_info->coordinates.position
                                                 == DECLTYPE_AUTO_POS_NUMBER) {
         is_decltype_auto_case = TRUE;
@@ -44520,6 +44521,7 @@ type with the type of return_op.
                                      /*initializer_alep=*/NULL,
                                      &return_op->position, &deduced_type,
                                      &deduced_auto_type, &still_dependent)) {
+    (void)check_placeholder_type_constraint(auto_type, deduced_auto_type);
     set_deduced_return_type(deduced_type, &return_op->position,
                             current_routine_entry());
     *return_type = rout_type->variant.routine.return_type;

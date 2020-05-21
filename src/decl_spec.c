@@ -9295,6 +9295,8 @@ if an error is issued.
       *basic_type = bt_auto;
       state->auto_type = make_auto_type(&state->auto_pos,
                                         state->decltype_auto_specifier_seen);
+      state->auto_type->variant.template_param.extra_info
+                      ->constraint.type_constraint = state->type_constraint;
       *type_ptr = state->auto_type;
     }  /* if */
     *decl_specifiers_seen |= DS_TYPE;
@@ -11790,19 +11792,32 @@ process_enum_specifier:
                                      state->is_implicit_type_context &&
                                          relaxed_typename_enabled,
                                      /*is_sizeof_context=*/FALSE,
-                                     /*concept_okay=*/is_parameter &&
+                                     /*concept_okay=*/ (is_parameter ||
+                                                        auto_type_allowed) &&
                                                       concepts_enabled);
         if (curr_token_type_symbol != NULL &&
             symbol_is(curr_token_type_symbol, sk_concept_template)) {
-          if (process_auto_parameter(state, curr_token_type_symbol)) {
-            state->auto_pos = pos_curr_token;
-            state->has_deduced_type = TRUE;
-            state->auto_type_specifier_seen = TRUE;
+          if (is_parameter) {
+            /* An abbreviated function template parameter. */
+            if (process_auto_parameter(state, curr_token_type_symbol)) {
+              state->auto_pos = pos_curr_token;
+              state->has_deduced_type = TRUE;
+              state->auto_type_specifier_seen = TRUE;
+            } else {
+              expect_error();
+            }  /* if */
+            basic_type = bt_typedef;
+            decl_specifiers_seen |= DS_TYPE;
           } else {
-            expect_error();
+            /* Presumably something like "C<8> auto x = 42;". */
+            state->type_constraint =
+                                 scan_type_constraint(curr_token_type_symbol);
+            if (curr_token != tok_auto && !decltype_auto_tokens_next()) {
+              pos_error(ec_exp_auto, &pos_curr_token);
+              state->type_constraint = NULL;
+            }  /* if */
+            goto no_get_token;
           }  /* if */
-          basic_type = bt_typedef;
-          decl_specifiers_seen |= DS_TYPE;
           break;
         }  /* if */
         if (!C_mode() && is_member_decl &&
