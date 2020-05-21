@@ -32397,7 +32397,7 @@ caller has already moved past the '[', and this routine leaves the trailing
                       &pos_curr_token);
           } else {
             /* Issue a warning if the feature is enabled in GNU mode for
-               an pre-C++20 language dialect. */
+               a pre-C++20 language dialect. */
             report_gnu_cpp20_extension_if_needed(
                                &pos_curr_token, ec_pack_init_capture_is_cpp20);
           }  /* if */
