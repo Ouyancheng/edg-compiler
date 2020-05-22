@@ -16143,12 +16143,12 @@ The nesting depth of the parameters is ignored for this compatibility checking.
 
 
 static void decl_member_function_template(
-                                a_symbol_locator          *locator,
-                                a_template_param_ptr      templ_param_list,
-                                ARG_UNUSED a_template_ptr il_template_entry,
-                                a_func_info_block         *func_info,
-                                a_class_def_state_ptr     class_state,
-                                a_member_decl_info_ptr    decl_info)
+                                    a_symbol_locator        *locator,
+                                    a_template_param_ptr    templ_param_list,
+                                    a_template_ptr          il_template_entry,
+                                    a_func_info_block       *func_info,
+                                    a_class_def_state_ptr   class_state,
+                                    a_member_decl_info_ptr  decl_info)
 /*
 Process the declaration of a member function template.  *locator is the symbol
 locator of the template.  templ_param_list is the template parameter list of
@@ -16173,6 +16173,8 @@ decl_member_function, which handles in-class member function declarations.)
   a_class_symbol_supplement_ptr     cssp;
   a_scope_depth                     effective_decl_level;
   a_boolean                         is_static_member;
+  a_requires_clause_ptr             rcp = NULL;
+                                                          
 
   db_enter(3, "decl_member_function_template");
   check_assertion(scope_is(&scope_stack_top(), sck_template_declaration));
@@ -16200,9 +16202,11 @@ decl_member_function, which handles in-class member function declarations.)
       /* Be sure the declaration does not conflict with a previous member
          function template declaration in the current class.  Inheriting
          constructors are allowed to conflict. */
-      a_boolean  is_list =
-                      (sym->kind == (a_symbol_kind)sk_overloaded_function);
+      a_boolean  is_list = symbol_is(sym, sk_overloaded_function);
       other_sym = is_list ? sym->variant.overloaded_function.symbols : sym;
+      if (!il_template_entry->template_decl->is_generic) {
+        rcp = il_template_entry->template_decl->constraint.requires_clause;
+      }  /* if */
       for (; other_sym != NULL; other_sym = is_list ? other_sym->next : NULL) {
         a_symbol_ptr  fund_sym = other_sym;
         /* Ignore projections not resulting from a using-declaration. */
@@ -16217,17 +16221,25 @@ decl_member_function, which handles in-class member function declarations.)
           /* Issue an error if the other member function template declaration
              has a type compatible with this one -- compare the routine
              types. */
-          a_template_param_ptr			other_templ_param_list;
-          a_template_symbol_supplement_ptr	other_tssp;
-          a_type_ptr				tp;
-          a_routine_ptr                         other_rp;
+          a_template_param_ptr              other_templ_param_list;
+          a_template_symbol_supplement_ptr  other_tssp;
+          a_type_ptr                        tp;
+          a_routine_ptr                     other_rp;
+          a_requires_clause_ptr             other_rcp = NULL;
           other_tssp = template_supplement_for_symbol(fund_sym);
+          if (!other_tssp->il_template_entry->template_decl->is_generic) {
+            rcp = other_tssp->il_template_entry->template_decl
+                                               ->constraint.requires_clause;
+          }  /* if */
           other_rp = other_tssp->variant.function.routine;
           tp = other_rp->type;
           other_templ_param_list =
                  other_tssp->variant.function.decl_cache.decl_info->parameters;
           if (compatible_member_function_template_param_types(
-                  other_templ_param_list, tp, templ_param_list, member_type)) {
+                  other_templ_param_list, tp, templ_param_list, member_type) &&
+              equiv_requires_clauses(other_rcp, rcp) &&
+              equiv_requires_clauses(other_rp->trailing_requires_clause,
+                                     dps->trailing_requires_clause)) {
             an_error_code  error_code = ec_no_error;
             if (other_sym != fund_sym) {
               /* We found a matching using-declaration: Remove it from the
@@ -16264,10 +16276,7 @@ decl_member_function, which handles in-class member function declarations.)
               error_code = ec_static_nonstatic_with_same_param_types;
               pos_error(error_code, &locator->source_position);
             } else if (routine_types_are_redecl_compatible(tp, member_type,
-                                                           TCF_NO_FLAGS) &&
-                       equiv_requires_clauses(
-                                           other_rp->trailing_requires_clause,
-                                           dps->trailing_requires_clause)) {
+                                                           TCF_NO_FLAGS)) {
               error_code = ec_member_function_redeclaration;
               pos_sy_error(error_code, &locator->source_position, other_sym);
             }  /* if */
