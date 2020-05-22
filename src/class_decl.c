@@ -16225,11 +16225,17 @@ decl_member_function, which handles in-class member function declarations.)
           a_template_symbol_supplement_ptr  other_tssp;
           a_type_ptr                        tp;
           a_routine_ptr                     other_rp;
-          a_requires_clause_ptr             other_rcp = NULL;
+          a_requires_clause_ptr             other_rcp;
           other_tssp = template_supplement_for_symbol(fund_sym);
-          if (!other_tssp->il_template_entry->template_decl->is_generic) {
-            rcp = other_tssp->il_template_entry->template_decl
-                                               ->constraint.requires_clause;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (other_tssp->il_template_entry->template_decl->is_generic) {
+            other_rcp = NULL;
+          } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          /* Do not insert code here. */
+          {
+            other_rcp = other_tssp->il_template_entry
+                                  ->template_decl->constraint.requires_clause;
           }  /* if */
           other_rp = other_tssp->variant.function.routine;
           tp = other_rp->type;
