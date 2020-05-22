@@ -1,5 +1,18 @@
 Version 6.1
 
+5/22/20  [EDGcpfe/22376]
+Conversion from bool incorrectly treated as narrowing
+
+The front end previously treated many conversions from bool to another integer
+type as "narrowing", which is incorrect.  For example:
+
+  unsigned g(bool b) {
+    return unsigned{b};  // Previously warned about narrowing.  Now
+  }                      // silently accepted.
+
+That is now fixed.
+
+
 5/21/20  [EDGcpfe/22789]
 Abort on uninitialized interpreter representation of empty derived object
 

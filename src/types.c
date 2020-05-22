@@ -657,8 +657,7 @@ underlying type is a signed integral type.
 */
 {
   tp = skip_typerefs(tp);
-  return (is_integral_or_enum(tp) &&
-          int_kind_is_signed[(int)tp->variant.integer.int_kind]);
+  return (is_integral_or_enum(tp) && int_type_is_signed(tp));
 }  /* is_signed_integral_type */
 
 
@@ -5262,14 +5261,17 @@ and a vector are compatible.
                  dest_type->variant.integer.is_scoped_enum))) {
       check_assertion(source_type->kind == (a_type_kind)tk_integer &&
                       dest_type->kind   == (a_type_kind)tk_integer);
-      if (source_type->size > dest_type->size ||
-          (!source_type->variant.integer.bool_type &&
-           dest_type->variant.integer.bool_type) ||
-          (source_type->size == dest_type->size &&
-           !int_kind_is_signed[(int)source_type->variant.integer.int_kind] &&
-           int_kind_is_signed[(int)  dest_type->variant.integer.int_kind]) ||
-          (int_kind_is_signed[(int)source_type->variant.integer.int_kind] &&
-           !int_kind_is_signed[(int)  dest_type->variant.integer.int_kind])) {
+      if (source_type->variant.integer.bool_type) {
+        /* Converting from bool to an integer or enumeration type is never
+           narrowing. */
+        is_narrowing = FALSE;
+      } else if (source_type->size > dest_type->size ||
+                 dest_type->variant.integer.bool_type ||
+                (source_type->size == dest_type->size &&
+                 !int_type_is_signed(source_type) &&
+                 int_type_is_signed(dest_type)) ||
+                (int_type_is_signed(source_type) &&
+                 !int_type_is_signed(dest_type))) {
         /* Integer or unscoped enum to integer to integer that cannot represent
            all the values of the source type.  Okay if the value is constant
            and is preserved. */
@@ -5798,10 +5800,9 @@ Return TRUE if the two given integer types have the same representation
   type_2 = skip_typerefs(type_2);
   same_repr = (type_1->size == type_2->size &&
                type_1->alignment == type_2->alignment &&
-               int_kind_is_signed[(int)type_1->variant.integer.int_kind] ==
-                   int_kind_is_signed[(int)type_2->variant.integer.int_kind] &&
+               int_type_is_signed(type_1) == int_type_is_signed(type_2) &&
                type_1->variant.integer.bool_type ==
-                                            type_2->variant.integer.bool_type);
+                                           type_2->variant.integer.bool_type);
   return same_repr;
 }  /* same_repr_int_types */
 

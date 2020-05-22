@@ -1244,11 +1244,10 @@ bytes of type tp, which must be a tk_integer type.  The result is left in
 val.  ovfl is set to TRUE if the value is too large or small for a host
 large integer.
 */
-#define get_int_val_from(bytes, tp, val, ovfl)                                \
-  conv_integer_value_to_host_large_integer(                                   \
-                          (an_integer_value *)(bytes),                        \
-                          int_kind_is_signed[(tp)->variant.integer.int_kind], \
-                          &(val), &(ovfl))
+#define get_int_val_from(bytes, tp, val, ovfl)                               \
+  conv_integer_value_to_host_large_integer((an_integer_value *)(bytes),      \
+                                           int_type_is_signed(tp),           \
+                                           &(val), &(ovfl))
 
 
 /*
@@ -6457,7 +6456,7 @@ successfully interpreted, FALSE otherwise.
   if (!result) {
     goto done_with_switch;
   }  /* if */
-  is_signed = int_kind_is_signed[tp->variant.integer.int_kind];
+  is_signed = int_type_is_signed(tp);
   /* Search through the ordered list of case labels for the one selected
      by the switch expression. */
   alloc_complete_object(ips, n_bytes, tp, case_value);
@@ -10643,7 +10642,7 @@ cannot be performed.  Used in the implementation of __builtin_bit_cast.
             }  /* if */
             or_integer_values(&int_val, &byte_val);
           }  /* for */
-          if (int_kind_is_signed[tp->variant.integer.int_kind]) {
+          if (int_type_is_signed(tp)) {
             sign_extend_integer_value(&int_val,
                                       (int)(tp->size * targ_char_bit));
           }  /* if */
@@ -12807,8 +12806,7 @@ the value representation of the integer value.
                 *r_int = *(an_integer_value *)opnd1_value;
                 int_kind = tp->variant.integer.int_kind;
                 if (int_kind_is_signed[int_kind]) {
-                  if (int_kind_is_signed[
-                                      opnd1_type->variant.integer.int_kind]) {
+                  if (int_type_is_signed(opnd1_type)) {
                     /* When converting a signed value to another signed value,
                        be sure to sign-extend the result (otherwise, widening
                        conversions would produce positive values from negative
