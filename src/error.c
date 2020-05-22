@@ -3004,11 +3004,7 @@ severities).  Return TRUE if the diagnostic would be issued as an error.
   if (!diag_override_does_not_affect_sfinae) {
     check_for_overridden_severity(error_code, &severity);
   }  /* if */
-  if ((int)severity >= (int)es_error) {
-    result = TRUE;
-  } else if (severity == es_discretionary_error &&
-             (diag_override_does_not_affect_sfinae ||
-              !seq_is_in_system_header(pos->seq /*lint !e413*/))) {
+  if ((int)severity >= (int)es_discretionary_error) {
     result = TRUE;
   } else {
     result = FALSE;

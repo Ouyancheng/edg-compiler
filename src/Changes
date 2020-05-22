@@ -1,5 +1,16 @@
 Version 6.1
 
+5/22/20  [EDGcpfe/22364,EDGcpfe/22777]
+Access error not correctly handled in system headers
+
+A change in the handling of SFINAE diagnostics in version 6.0 introduced a
+regression causing access errors to not trigger deduction failures in system
+headers even when cpp11_sfinae_ignore_access is FALSE.  That regression is now
+fixed.  Furthermore, DEFAULT_DIAG_OVERRIDE_DOES_NOT_AFFECT_SFINAE now no longer
+affects whether an error in a system header is treated as a substitution
+failure (SFINAE) or not.
+
+
 5/22/20  [EDGcpfe/21603,EDGcpfe/22071,EDGcpfe/22228,EDGcpfe/22661]
 Spurious GNU C++-mode error on explicit specialization with noexcept specifier
 
@@ -2533,15 +2544,6 @@ This example resulted in a spurious ambiguity on the call of f.  Now fixed.
       }
     }
   }
-
-
-2/20/20  [EDGcpfe/22364]
-Access error not correctly handled in system headers
-
-A change in the handling of SFINAE diagnostics in version 6.0 introduced a
-regression causing access errors to not trigger deduction failures in system
-headers even when cpp11_sfinae_ignore_access is FALSE.  That regression is now
-fixed.
 
 
 2/20/20  [EDGcpfe/19901]
