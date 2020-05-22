@@ -16173,7 +16173,6 @@ decl_member_function, which handles in-class member function declarations.)
   a_class_symbol_supplement_ptr     cssp;
   a_scope_depth                     effective_decl_level;
   a_boolean                         is_static_member;
-  a_requires_clause_ptr             rcp = NULL;
                                                           
 
   db_enter(3, "decl_member_function_template");
@@ -16202,9 +16201,16 @@ decl_member_function, which handles in-class member function declarations.)
       /* Be sure the declaration does not conflict with a previous member
          function template declaration in the current class.  Inheriting
          constructors are allowed to conflict. */
-      a_boolean  is_list = symbol_is(sym, sk_overloaded_function);
+      a_requires_clause_ptr  rcp;
+      a_boolean              is_list = symbol_is(sym, sk_overloaded_function);
       other_sym = is_list ? sym->variant.overloaded_function.symbols : sym;
-      if (!il_template_entry->template_decl->is_generic) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (il_template_entry->template_decl->is_generic) {
+        rcp = NULL;
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      /* Do not insert code here. */
+      {
         rcp = il_template_entry->template_decl->constraint.requires_clause;
       }  /* if */
       for (; other_sym != NULL; other_sym = is_list ? other_sym->next : NULL) {
