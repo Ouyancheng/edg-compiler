@@ -30296,8 +30296,7 @@ FALSE.
                                        fund_sym, type, loc->template_arg_list,
                                        /*is_decl_context=*/TRUE,
                                        (dps->is_explicit_instantiation ||
-                                        (microsoft_mode &&
-                                         dps->is_explicit_specialization)))) {
+                                        dps->is_explicit_specialization))) {
         /* This template can generate an instance of the appropriate type.
            Add the matching template to a list of matching candidates. */
         add_to_partial_order_candidates_list(&candidates_list, fund_sym,
@@ -30325,8 +30324,7 @@ FALSE.
                                           (a_boolean)loc->is_template_id,
                                           /*is_decl_context=*/TRUE,
                                           (dps->is_explicit_instantiation ||
-                                           (microsoft_mode &&
-                                            dps->is_explicit_specialization)),
+                                           dps->is_explicit_specialization),
                                           in_class_specialization,
                                           is_new_template_instance);
       }  /* if */
