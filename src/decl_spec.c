@@ -11793,8 +11793,10 @@ process_enum_specifier:
                                          relaxed_typename_enabled,
                                      /*is_sizeof_context=*/FALSE,
                                      /*concept_okay=*/
-                                     (is_parameter || auto_type_allowed) &&
-                                     !state->is_type_name && concepts_enabled);
+                                     (is_parameter || 
+                                      state->auto_type_allowed ||
+                                      state->is_trailing_return_type) &&
+                                       concepts_enabled);
         if (curr_token_type_symbol != NULL &&
             symbol_is(curr_token_type_symbol, sk_concept_template)) {
           if (is_parameter) {
