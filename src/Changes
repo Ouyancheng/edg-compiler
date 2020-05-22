@@ -33,7 +33,7 @@ Consider:
 
 Although the parameter d of g(D) is not a constexpr variable, the interpreter
 can operate on it because it is an empty object of a "trivial class".  However,
-previously, the interpreter did not full initialize the representation of such
+previously, the interpreter did not fully initialize the representation of such
 objects if they have base classes, which in turn could result in aborts later
 on (e.g., in do_constexpr_expression).  That is now fixed.
 
