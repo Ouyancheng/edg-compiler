@@ -25403,11 +25403,9 @@ depends on a another template parameter.
     add_to_templates_list(templ_ptr, depth_scope_stack);
   }  /* if */
   templ_ptr->kind = (a_template_kind)templk_template_template_param;
-  if (all_template_info_in_il) {
-    /* Keep a record of the parameterization structure.  (Needed, e.g., in the
-       C++-generating back end.) */
-    templ_ptr->template_decl = local_decl_state.template_decl;
-  }  /* if */
+  /* Keep a record of the parameterization structure.  (Needed, e.g., in the
+     C++-generating back end.) */
+  templ_ptr->template_decl = local_decl_state.template_decl;
   if (!is_named) {
     /* Reset the name in the source correspondence entry.  An unnamed
        parameter is represented by NULL, not "<unnamed>" as indicated
