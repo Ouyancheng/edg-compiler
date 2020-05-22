@@ -11658,7 +11658,7 @@ that can be called with zero arguments.
     local_err = TRUE;
   } else if (ctor_sym == NULL ||
              ctor_sym->variant.routine.ptr->is_ineligible) {
-    if (trivial) {
+    if (trivial && ctor_sym == NULL) {
       /* The class has an implicit (not user-declared) trivial default
          constructor.  Note that we get here for the combination of
          ctor_sym == NULL and trivial TRUE.  ctor_sym != NULL and
@@ -11671,8 +11671,11 @@ that can be called with zero arguments.
         *error_detected = TRUE;
       } else {
         a_diagnostic_ptr dp;
-        dp = pos_ty_start_error(ec_no_default_constructor, err_pos,
-                                class_type);
+        an_error_code    err_code = ec_no_default_constructor;
+        if (ctor_sym != NULL && ctor_sym->variant.routine.ptr->is_ineligible) {
+          err_code = ec_ineligible_default_constructor;
+        }  /* if */
+        dp = pos_ty_start_error(err_code, err_pos, class_type);
         add_on_diag_for_skipped_inaccessible_function(inaccessible_match, dp);
         end_diagnostic(dp);
       }  /* if */

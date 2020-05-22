@@ -3205,6 +3205,7 @@ ec_comparison_defaulted_in_class_must_be_first_decl;;"a comparison operator defa
 ec_pack_init_capture_in_non_variadic_context;;"a pack expansion in an init-capture can be used only in a variadic template"
 ec_type_constraint_requires_type_concept;;"type constraint must use a type concept (i.e., a concept template whose first parameter is a type parameter)"
 ec_placeholder_type_failed_constraint;;"the deduced placeholder type %t failed the type constraint"
+ec_ineligible_default_constructor;;"default constructor for %t is not eligible"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
