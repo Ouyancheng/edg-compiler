@@ -16173,7 +16173,6 @@ decl_member_function, which handles in-class member function declarations.)
   a_class_symbol_supplement_ptr     cssp;
   a_scope_depth                     effective_decl_level;
   a_boolean                         is_static_member;
-                                                          
 
   db_enter(3, "decl_member_function_template");
   check_assertion(scope_is(&scope_stack_top(), sck_template_declaration));
