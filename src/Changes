@@ -1,5 +1,23 @@
 Version 6.1
 
+5/26/20  [EDGcpfe/22829]
+Constant GNU statement expressions
+
+Since version 5.1, the front end is able to constant-fold GNU statement
+expressions.  In turn, this can reveal that a statement expression has no
+effect at all.  For example:
+
+  void g() {
+    ({ 1; }); // Folded to value 1.  No effect.
+  }
+
+In versions 5.1 and 6.0, the front end issued a warning that the statement
+expression has no effect.  However, GCC does not issue such warnings and such
+situations are somewhat common in actual use.  The front end therefore no
+longer warns about such statement expressions (i.e., no warning is issued
+anymore for the example above).
+
+
 5/26/20  [EDGcpfe/22834]
 Alias template with non-dependent definition can cause incorrect behavior
 

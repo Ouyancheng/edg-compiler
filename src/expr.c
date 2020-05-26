@@ -25726,6 +25726,10 @@ already been consumed.
         /* Folding succeeded.  Unconditionally record the backing
            expression. */
         con->expr = expr;
+        /* Treat the evaluation of the statement expression as a kind of
+           "call result".  That avoids warnings about a statement expression
+           having no effect (GCC does not issue such warnings either). */
+        con->is_result_of_constexpr_call = TRUE;
         make_constant_operand(con, result);
       } else {
         make_expression_operand(expr, result);
