@@ -6633,32 +6633,37 @@ FALSE is returned) for non-class objects.
               dp = pos_start_error(ec_initializer_not_constant, err_pos);
               add_more_info_list(dp, &diag_list);
               end_diagnostic(dp);
+              cp = alloc_error_constant();
+            } else {
+              cp = NULL;
             }  /* if */
             release_local_constant(&folded_con);
-            cp = alloc_error_constant();
           }  /* if */
           discard_more_info_list(&diag_list);
           /* Clear the variable field again.  It may get recorded later if
              needed. */
           init_dip->variable = NULL;
-          if (!same_entities(var_type, tp)) {
-            /* The object has an array type.  We need to build an aggregate
-               initialization on top of the constant. */
-            cp = repeat_constant_for_array_init(cp, var_type);
-          }  /* if */
-          if (static_lifetime &&
-              depth_innermost_function_scope == NO_SCOPE_DEPTH) {
-            /* A nonlocal static-lifetime variable initialized with a constant
-               value. */
-            var->init_kind = (an_init_kind)initk_static;
-            var->initializer.constant = cp;
-            init_dip = NULL;
-          } else {
-            /* A local variable with automatic storage duration; use a
-               dynamic init entry. */
-            init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
-            init_dip->variant.constant.ptr = cp;
-            init_dip->is_partially_initialized = cp->is_partially_initialized;
+          if (cp != NULL) {
+            if (!same_entities(var_type, tp)) {
+              /* The object has an array type.  We need to build an aggregate
+                 initialization on top of the constant. */
+              cp = repeat_constant_for_array_init(cp, var_type);
+            }  /* if */
+            if (static_lifetime &&
+                depth_innermost_function_scope == NO_SCOPE_DEPTH) {
+              /* A nonlocal static-lifetime variable initialized with a
+                 constant value. */
+              var->init_kind = (an_init_kind)initk_static;
+              var->initializer.constant = cp;
+              init_dip = NULL;
+            } else {
+              /* A local variable with automatic storage duration; use a
+                 dynamic init entry. */
+              init_dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+              init_dip->variant.constant.ptr = cp;
+              init_dip->is_partially_initialized =
+                                                  cp->is_partially_initialized;
+            }  /* if */
           }  /* if */
         }  /* if */
       } else {
