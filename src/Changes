@@ -1,5 +1,30 @@
 Version 6.1
 
+5/26/20  [EDGcpfe/22834]
+Alias template with non-dependent definition can cause incorrect behavior
+
+In the unusual case of an alias template with a definition that does not
+depend on its template parameters (e.g., D in the example below), incorrect
+behavior could result when an instance of the alias template was used as
+a template argument to a class template.  In the example below, a nonreal
+type was referenced in the IL (as the type of C<int>::v.  In addition,
+this example should have produced an "incomplete type" error on the
+declaration of C<T>::c.  Now fixed.
+
+  auto lambda = []{};
+  template<class T> using D = decltype(lambda);
+  template<class T> struct A {
+    template< class U > struct B {
+      B(){}
+    };
+  };
+  template <class T, class V = typename A<D<T>[]>::template B<T*>> struct C {
+    decltype(C<short>()) c;  // Should get "incomplete type" error
+    V v;
+  };
+  C<int> ca;
+
+
 5/26/20  [EDGcpfe/21483]
 Spurious error on constexpr static data member in template
 

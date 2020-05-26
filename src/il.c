@@ -13766,6 +13766,7 @@ field in the new parameter types will be NULL.
   next_ptr = to->next;
   /* Copy the type entry. */
   *to = *from;
+  clear_type_cached_flags(to);
 #if MAINTAIN_NEEDED_FLAGS
   reset_needed_flag(&to->source_corresp);
 #endif /* MAINTAIN_NEEDED_FLAGS */

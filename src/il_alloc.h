@@ -133,6 +133,8 @@ extern void clear_class_type_supplement(a_class_type_supplement_ptr  ctsp);
 extern void set_type_kind(a_type_ptr  pte,
                           a_type_kind kind);
 
+extern void clear_type_cached_flags(a_type_ptr  pte);
+
 extern void clear_type(a_type_ptr  pte,
                        a_type_kind kind);
 

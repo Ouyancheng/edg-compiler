@@ -2215,6 +2215,17 @@ to default values.
 }  /* set_type_kind */
 
 
+void clear_type_cached_flags(a_type_ptr  pte)
+/*
+Clear any state flags in the type entry that might be invalidated if the
+the type is copied and modified.
+*/
+{
+  pte->is_instantiation_dependent = FALSE;
+  pte->is_instantiation_dependent_cached = FALSE;
+}  /* clear_type_cached_flags */
+
+
 void clear_type(a_type_ptr  pte,
                 a_type_kind kind)
 /*
@@ -2240,8 +2251,7 @@ variant fields to default values.
   }  /* if */
   pte->used_in_exception_or_rtti = FALSE;
   pte->declared_in_function_prototype = FALSE;
-  pte->is_instantiation_dependent = FALSE;
-  pte->is_instantiation_dependent_cached = FALSE;
+  clear_type_cached_flags(pte);
 #if CFRONT_2_1_OBJECT_CODE_COMPATIBILITY
   pte->use_cfront_transitional_nested_type_name_mangling = FALSE;
 #endif /* CFRONT_2_1_OBJECT_CODE_COMPATIBILITY */
