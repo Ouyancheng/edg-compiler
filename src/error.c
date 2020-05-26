@@ -2988,15 +2988,16 @@ and pos would be issued.  Return TRUE if it would be issued as an error.
 }  /* is_effective_error */
 
 
-a_boolean is_effective_sfinae_error(an_error_code	error_code,
-                                    an_error_severity	severity,
-                                    a_source_position	*pos)
+a_boolean is_effective_sfinae_error(an_error_code                 error_code,
+                                    an_error_severity             severity,
+                                    ARG_UNUSED a_source_position  *pos)
 /*
-This routine is similar to is_effective_error but is called when a SFINAE
-error is detected.  If diag_override_does_not_affect_sfinae is FALSE, it is
-equivalent to a call to is_effective_error.  But if it is TRUE then the
-determination is based on the severity passed in (ignoring any overridden
-severities).  Return TRUE if the diagnostic would be issued as an error.
+This routine is similar to is_effective_error but is called when a SFINAE error
+is detected.  If diag_override_does_not_affect_sfinae is FALSE, it is almost
+equivalent to a call to is_effective_error, except that system headers do not
+affect the effective severity.  But if it is TRUE then the determination is
+based on the severity passed in (ignoring any overridden severities).  Return
+TRUE if the diagnostic would be treated as an error.
 */
 {
   a_boolean	result;
