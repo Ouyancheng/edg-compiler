@@ -33268,6 +33268,10 @@ is the parse state associated with the lambda declarator.
   templ_state->decl_info->declaration_scope =
                                          scope_stack[decl_scope_level].number;
   create_template_decl(templ_state, &pos);
+  if (curr_token == tok_requires) {
+    templ_state->template_decl->constraint.requires_clause =
+                                      scan_requires_clause(/*discard=*/FALSE);
+  }  /* if */
   templ_state->last_token_sequence_number_of_params =
                                                    curr_token_sequence_number;
   extract_template_parameter_cache(templ_state);

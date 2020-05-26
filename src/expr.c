@@ -38906,11 +38906,15 @@ bad_start_of_primary:
     if ((local_options & EOPT_CONSTRAINT_EXPR) != 0 &&
         curr_token != tok_and_and && curr_token != tok_or_or) {
       if ((local_options & EOPT_REQUIRES_CLAUSE) != 0) {
-        /* Only && and || are permitted at the top level of a requires
-           clause.  Beware of a left bracket, which could introduce an
-           attribute for the declaration that follows. */
-        if (curr_token == tok_lbracket && std_attributes_enabled &&
-            next_token() == tok_lbracket) {
+        /* Only && and || are permitted at the top level of a requires clause.
+           Beware of a left bracket, which could introduce an attribute for
+           the declaration that follows.  Similarly, for requires clauses on
+           lambdas consider the cases where the lambda declarator or lambda
+           body follows. */
+        if ((curr_token == tok_lbracket && std_attributes_enabled &&
+             next_token() == tok_lbracket) ||
+            ((curr_token == tok_lparen || curr_token == tok_lbrace) &&
+             in_lambda_header())) {
           break;
         } else {
           pos_error(ec_invalid_operator_in_requires_clause, &pos_curr_token);
