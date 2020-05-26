@@ -2747,9 +2747,9 @@ e.g., (with --microsoft_version 1300 --c++11):
     T f();      // Spurious error because N1::T had not been found.
   }
 
-This is now fixed.  Additionally, the use of a nested namespace as a
-namespace alias has been limited to microsoft_version < 1400 to mimic the
-behavior of Visual Studio.
+This is now fixed.  Additionally, the use of a nested namespace alias to extend
+a namespace has been limited to microsoft_version < 1400 to mimic the behavior
+of Visual Studio.
 
 
 2/6/20   [EDGcpfe/22018,EDGcpfe/22131,EDGcpfe/22299]
