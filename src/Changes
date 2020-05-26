@@ -2718,7 +2718,7 @@ Microsoft compatibility: nested namespace alias in a namespace extension
 The C++ standard prohibits using a namespace-alias in a namespace extension,
 but the front end allows it in Microsoft emulation mode.  In the case where
 a nested namespace is used as a namespace-alias, spurious errors could occur,
-e.g., (with --microsoft):
+e.g., (with --microsoft_version 1300 --c++11):
 
   namespace N1 {
     using T = int;
@@ -2729,7 +2729,9 @@ e.g., (with --microsoft):
     T f();      // Spurious error because N1::T had not been found.
   }
 
-This is now fixed.
+This is now fixed.  Additionally, the use of a nested namespace as a
+namespace alias has been limited to microsoft_version < 1400 to mimic the
+behavior of Visual Studio.
 
 
 2/6/20   [EDGcpfe/22018,EDGcpfe/22131,EDGcpfe/22299]

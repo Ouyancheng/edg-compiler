@@ -15290,9 +15290,9 @@ it's a definition and NULL otherwise).
                        ns_sym->kind == (a_symbol_kind)sk_namespace &&
                        ns_sym->variant.namespace_info.ptr->is_namespace_alias; 
 
-        if (microsoft_mode && !is_namespace_alias && ns_sym_was_alias) {
-          /* In Microsoft mode, a namespace alias name can be used to define
-             a namespace extension for the aliased namespace. */
+        if (ms_version_is(<1400) && !is_namespace_alias && ns_sym_was_alias) {
+          /* In older Microsoft modes, a namespace alias name can be used to
+             define a namespace extension for the aliased namespace. */
           ns_sym = (a_symbol_ptr)
              skip_namespace_aliases(ns_sym->variant.namespace_info.ptr)->
                                                     source_corresp.assoc_info;
