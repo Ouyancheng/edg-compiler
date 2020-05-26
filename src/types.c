@@ -2379,18 +2379,22 @@ error recovery, this function returns FALSE for incomplete class types.
     result = TRUE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   } else if (is_immediate_class_type(tp)) {
-    a_class_symbol_supplement_ptr
-                 cssp = symbol_for(tp)->variant.class_struct_union.extra_info;
-    if (tp->incomplete) {
-      result = FALSE;
-      expect_error();
-    } else if (cssp->known_to_be_a_literal_type) {
+    if (tp->variant.class_struct_union.is_nonreal_class) {
       result = TRUE;
-    } else if (cssp->known_not_to_be_a_literal_type) {
-      result = FALSE;
     } else {
-      set_literal_type_flag(tp);
-      result = cssp->known_to_be_a_literal_type;
+      a_class_symbol_supplement_ptr
+                   cssp = class_symbol_supp(symbol_for(tp));
+      if (tp->incomplete) {
+        result = FALSE;
+        expect_error();
+      } else if (cssp->known_to_be_a_literal_type) {
+        result = TRUE;
+      } else if (cssp->known_not_to_be_a_literal_type) {
+        result = FALSE;
+      } else {
+        set_literal_type_flag(tp);
+        result = cssp->known_to_be_a_literal_type;
+      }  /* if */
     }  /* if */
   } else if (is_error(tp)) {
     result = TRUE;

@@ -17811,7 +17811,8 @@ template declaration and is NULL otherwise.
       srk_flags |= SRK_DEFINITION;
       if (!decl_info->is_member_template && !initializer_delayed) {
         complete_type_is_needed(var->type);
-        if (is_incomplete_type(var->type)) {
+        if (is_incomplete_type(var->type) &&
+            !is_template_dependent_type(var->type)) {
           /* As a definition, an inline static data member must have a
              complete type. */
           pos_error(incomplete_type_err_code(var->type), start_pos);

@@ -5224,7 +5224,7 @@ returned set to TRUE.
            extension). */
       } else if (is_any_reference_type(vp_type)) {
         /* Reference type -- okay. */
-      } else {
+      } else if (!is_template_dependent_type(vp_type)) {
         if (is_incomplete_type(vp_type)) {
           /* Incomplete type is an error. */
           pos_error(incomplete_type_err_code(vp_type), source_pos);

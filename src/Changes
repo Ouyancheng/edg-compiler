@@ -1,5 +1,19 @@
 Version 6.1
 
+5/26/20  [EDGcpfe/21483]
+Spurious error on constexpr static data member in template
+
+In some template cases, the front end issued spurious error on a constexpr
+static data member whose type is still being defined.  For example:
+
+  template<typename> struct S {
+    constexpr S(int i) {}
+    static constexpr S sdm = 0;  // Previously an error.  Now okay.
+  };
+
+That is now fixed.
+
+
 5/24/20  [EDGcpfe/18615,EDGcpfe/22094,EDGcpfe/22399,EDGcpfe/22641]
 Error on braced initializer in base-specifier of class template definition
 
