@@ -2164,18 +2164,15 @@ typedef struct a_reusable_cache_entry {
 Bit vector used to pass flags into the cache token stream routines.
 */
 typedef unsigned int a_cts_flag_set;
-#define CTS_NO_OPTIONS	           0x0
-#define CTS_COALESCE_IDS           0x1
+#define CTS_NO_OPTIONS		  0x0
+#define CTS_COALESCE_IDS	  0x1
 			/* TRUE if identifiers should be coalesced during
 			   the caching process. */
-#define CTS_STOP_ON_STATEMENT_END  0x2
+#define CTS_STOP_ON_STATEMENT_END 0x2
 			/* TRUE if the caching should stop if a semicolon
 			   or mismatched right brace is encountered.  This
 			   is used to avoid excessive caching in programs
 			   with certain kinds of syntax errors. */
-#define CTS_IS_TEMPLATE_BASE_CLASS  0x4
-			/* TRUE if we are caching the base specifier of
-			   a class template declaration. */
 
 
 inline void assign_curr_token_sequence_number()

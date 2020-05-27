@@ -23113,117 +23113,6 @@ redeclaration) and any redeclaration error should be suppressed.
 }  /* check_tmpl_class_sym_redecl */
 
 
-static void cache_class_template_body(
-                                   a_tmpl_decl_state_ptr   decl_state,
-                                   a_token_cache_ptr       cache,
-                                   a_token_sequence_number *first_token_number,
-                                   a_token_sequence_number *last_token_number)
-/*
-Cache the tokens of a class template body.  This begins with the ": of
-an optional base-specifier list and ends with the closing "}" of the class
-definition.  The tokens are put in the token cache specified by cache.  The
-first and last token sequence numbers of the definition are returned in
-*first_token_number and *last_token_number;
-*/
-{
-  a_token_set_array         stop_tokens;
-
-  /* Initialize a local stop token set. */
-  clear_token_set_array(stop_tokens);
-  /* This is a class template definition, so scan all the tokens that
-     comprise it and cache them away. */
-  incr_token_set_array_element(stop_tokens, tok_semicolon);
-  if (curr_token == tok_colon) {
-    /* Scan the tokens in the base class declarations, stopping when
-	 the "{" is reached. */
-    a_cts_flag_set                   cts_options = CTS_NO_OPTIONS;
-    a_pack_expansion_stack_entry_ptr pesep;
-    incr_token_set_array_element(stop_tokens, tok_lbrace);
-    begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
-    if (list_init_enabled && !cppcli_enabled) {
-      /* When brace initializers are allowed we need to coalesce identifiers
-         in the base-specifiers so that a brace in a template argument does
-         not terminate the caching.  Coalescing causes problems with
-         self-referential generics in C++/CLI, so it is suppressed. */
-      cts_options |= CTS_COALESCE_IDS | CTS_IS_TEMPLATE_BASE_CLASS;
-    }  /* if */
-    /* Begin a pack expansion context in case a base-specifier contains a
-       top-level pack.  Any references are then discarded. */
-    (void)begin_potential_pack_expansion_context(&pesep);
-    /* Ignore any access errors that may occur during the caching.  The
-       access context will be established as part of the instantiation. */
-    begin_deferral_of_access_checks();
-    cache_token_stream_full((a_token_cache_ptr)NULL, stop_tokens, cts_options);
-    discard_current_pack_context(pesep);
-    discard_deferred_access_checks();
-    end_deferral_of_access_checks();
-    end_caching_fetched_tokens();
-    /* Copy the tokens that have been cached to the definition cache. */
-    if (*first_token_number != curr_token_sequence_number) {
-      copy_tokens_from_cache(curr_lexical_state_cache(), *first_token_number,
-                             curr_token_sequence_number,
-                             /*include_last_token=*/FALSE,
-                             cache);
-      adjust_token_handles(cache);
-    }  /* if */
-    decr_token_set_array_element(stop_tokens, tok_lbrace);
-  }  /* if */
-  decr_token_set_array_element(stop_tokens, tok_semicolon);
-  /* Scan the class body.  If the body is missing the error will be
-     found during prototype instantiation. */
-  if (curr_token == tok_lbrace) {
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    decl_state->definition_range.start = pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    /* Swallow the "{" and then cache everything through to the "}". */
-    cache_curr_token(cache);
-    (void)get_token_to_be_cached();
-    incr_token_set_array_element(stop_tokens, tok_rbrace);
-    cache_token_stream(cache, stop_tokens);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-    decl_state->definition_range.end = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    /* Now cache the "}" (unless we didn't find one). */
-    if (curr_token == tok_rbrace) {
-      cache_curr_token(cache);
-      /* Save the token number of the last token of the definition. */
-      *last_token_number = curr_token_sequence_number;
-      /* Advance past the '}'. */
-      (void)get_token();
-    }  /* if */
-#if GNU_EXTENSIONS_ALLOWED
-    if (gnu_attributes_enabled && curr_token == tok_attribute) {
-      decr_token_set_array_element(stop_tokens, tok_rbrace);
-      /* Cache the __attribute__ token and the next token (which should be
-         a left parenthesis).  Then scan (and cache) through the matching
-         right parenthesis. */
-      cache_curr_token(cache);
-      (void)get_token_to_be_cached();
-      cache_curr_token(cache);
-      (void)get_token_to_be_cached();
-      incr_token_set_array_element(stop_tokens, tok_rparen);
-      cache_token_stream(cache, stop_tokens);
-#if EXTRA_SOURCE_POSITIONS_IN_IL
-      decl_state->definition_range.end = end_pos_curr_token;
-#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      /* Now cache the ")" (unless we didn't find one). */
-      if (curr_token == tok_rparen) {
-        cache_curr_token(cache);
-        /* Save the token number of the last token of the definition. */
-        *last_token_number = curr_token_sequence_number;
-        /* Advance past the ')'. */
-        (void)get_token();
-      }  /* if */
-    }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED */
-  }  /* if */
-  /* Add an end-of-source token to the end of the token cache to assure
-     that we don't scan past the end of the cache in the actual scan. */
-  terminate_token_cache(cache);
-  /* Note that the semicolon is not cached. */
-}  /* cache_class_template_body */
-
-
 static void class_template_declaration(
                          a_tmpl_decl_state_ptr decl_state,
                          a_symbol_ptr          *p_sym_ptr,
@@ -23256,6 +23145,7 @@ declaration of a partial specialization declared outside of its class.
   a_template_symbol_supplement_ptr  tssp = NULL;
   a_token_cache                     local_token_cache;
   a_type_kind                       type_kind = (a_type_kind)tk_unknown;
+  a_token_set_array                 stop_tokens;
   a_source_position                 friend_pos;
   a_boolean			    friend_token_seen = FALSE;
   a_boolean			    is_nested_class_definition = FALSE;
@@ -23957,8 +23847,100 @@ friend_template_checks_done:
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (is_definition) {
+    a_token_sequence_number   first_token_number = curr_token_sequence_number;
+    a_token_sequence_number   last_token_number = NO_TOKEN_SEQUENCE_NUMBER;
+    /* Create a token cache in which to store the tokens that make up the
+       definition of the template.  This cache will be copied to the
+       template supplement later. */
+    clear_token_cache(&local_token_cache, /*reusable=*/TRUE);
+    definition_token_cache = &local_token_cache;
     if (sym != NULL) {
       mark_defined(sym, &locator.source_position);
+    }  /* if */
+    /* Initialize a local stop token set. */
+    clear_token_set_array(stop_tokens);
+    /* This is a class template definition, so scan all the tokens that
+       comprise it and cache them away. */
+    incr_token_set_array_element(stop_tokens, tok_semicolon);
+    if (curr_token == tok_colon) {
+      /* Scan the tokens in the base class declarations, stopping when
+	 the "{" is reached. */
+      incr_token_set_array_element(stop_tokens, tok_lbrace);
+      cache_token_stream(definition_token_cache, stop_tokens);
+      decr_token_set_array_element(stop_tokens, tok_lbrace);
+    }  /* if */
+    decr_token_set_array_element(stop_tokens, tok_semicolon);
+    /* Scan the class body.  If the body is missing the error will be
+       found during prototype instantiation. */
+    if (curr_token == tok_lbrace) {
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      decl_state->definition_range.start = pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      /* Swallow the "{" and then cache everything through to the "}". */
+      cache_curr_token(definition_token_cache);
+      (void)get_token_to_be_cached();
+      incr_token_set_array_element(stop_tokens, tok_rbrace);
+      cache_token_stream(definition_token_cache, stop_tokens);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      decl_state->definition_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      /* Now cache the "}" (unless we didn't find one). */
+      if (curr_token == tok_rbrace) {
+        cache_curr_token(definition_token_cache);
+        /* Save the token number of the last token of the definition. */
+        last_token_number = curr_token_sequence_number;
+        /* Advance past the '}'. */
+        (void)get_token();
+      }  /* if */
+#if GNU_EXTENSIONS_ALLOWED
+      if (gnu_attributes_enabled && curr_token == tok_attribute) {
+        decr_token_set_array_element(stop_tokens, tok_rbrace);
+        /* Cache the __attribute__ token and the next token (which should be
+           a left parenthesis).  Then scan (and cache) through the matching
+           right parenthesis. */
+        cache_curr_token(definition_token_cache);
+        (void)get_token_to_be_cached();
+        cache_curr_token(definition_token_cache);
+        (void)get_token_to_be_cached();
+        incr_token_set_array_element(stop_tokens, tok_rparen);
+        cache_token_stream(definition_token_cache, stop_tokens);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        decl_state->definition_range.end = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+        /* Now cache the ")" (unless we didn't find one). */
+        if (curr_token == tok_rparen) {
+          cache_curr_token(definition_token_cache);
+          /* Save the token number of the last token of the definition. */
+          last_token_number = curr_token_sequence_number;
+          /* Advance past the ')'. */
+          (void)get_token();
+        }  /* if */
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    }  /* if */
+    /* Add an end-of-source token to the end of the token cache to assure
+       that we don't scan past the end of the cache in the actual scan. */
+    terminate_token_cache(definition_token_cache);
+    /* Note that the semicolon is not cached. */
+    if (sym == NULL) {
+      /* An error occurred earlier.  Discard the cached body. */
+      discard_token_cache(definition_token_cache);
+      definition_token_cache = NULL;
+    } else {
+      if (in_prototype_instantiation_or_cli_generic(decl_state) &&
+          decl_state->class_declared_in != NULL &&
+          !decl_state->class_declared_in->
+                       variant.class_struct_union.is_in_class_specialization &&
+          sym->kind == (a_symbol_kind)sk_class_template) {
+        /* This is a member template class definition.  Create a template
+           cache segment entry so that the body of this template can
+           be removed from the enclosing template cache.  Don't remove the
+           body if the template is declared inside a Microsoft in-class
+           specialization. */
+        tssp->cache_segment = alloc_template_cache_segment(sym, tssp);
+        tssp->cache_segment->first_token_number = first_token_number;
+        tssp->cache_segment->last_token_number = last_token_number;
+      }  /* if */
 #if GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED
       if (gpp_mode) {
         a_type_ptr  class_type = 
@@ -23990,6 +23972,13 @@ friend_template_checks_done:
                                      decl_state->decl_info->parameters);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (prototype_instantiations_in_il) {
+    /* Restore the previous state wrt. the generation of source sequence
+       entries. */
+    source_sequence_entries_disallowed = saved_sses_disallowed;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (sym != NULL) {
     if (sym->kind == (a_symbol_kind)sk_class_template &&
         is_definition && tssp->cache.decl_info != NULL) {
@@ -24003,17 +23992,14 @@ friend_template_checks_done:
         This is saved separately, because tssp->cache is modified if the
         class is defined later. */
      set_template_cache_info(&tssp->variant.class_template.initial_decl_cache,
-                             (a_token_cache_ptr)NULL,
+                             definition_token_cache,
                              decl_state->decl_info);
     }  /* if */
     if (is_definition || tssp->cache.decl_info == NULL) {
       /* Save the information needed to create an instantiation based
          on the definition of the template.  This information is saved
-         for the definition and also for the initial declaration.  The
-         template decl. info is saved here.  The cache information is updated
-         below.  This is done here because the template could be referenced
-         when the base-specifiers are cached below. */
-      set_template_cache_info(&tssp->cache, (a_token_cache_ptr)NULL,
+         for the definition and also for the initial declaration. */
+     set_template_cache_info(&tssp->cache, definition_token_cache,
                              decl_state->decl_info);
     }  /* if */
     if (decl_state->is_partial_specialization && !is_redecl &&
@@ -24023,52 +24009,6 @@ friend_template_checks_done:
       check_for_prior_use_of_partial_spec(sym, (a_symbol_ptr)NULL);
     }  /* if */
   }  /* if */
-  if (is_definition) {
-    a_token_sequence_number   first_token_number = curr_token_sequence_number;
-    a_token_sequence_number   last_token_number = NO_TOKEN_SEQUENCE_NUMBER;
-    /* Create a token cache in which to store the tokens that make up the
-       definition of the template.  This cache will be copied to the
-       template supplement later. */
-    clear_token_cache(&local_token_cache, /*reusable=*/TRUE);
-    definition_token_cache = &local_token_cache;
-    /* Cache the tokens that make up the class definition. */
-    cache_class_template_body(decl_state, definition_token_cache,
-                              &first_token_number, &last_token_number);
-    if (sym == NULL) {
-      /* An error occurred earlier.  Discard the cached body. */
-      discard_token_cache(definition_token_cache);
-      definition_token_cache = NULL;
-    } else {
-      if (in_prototype_instantiation_or_cli_generic(decl_state) &&
-          decl_state->class_declared_in != NULL &&
-          !decl_state->class_declared_in->
-                       variant.class_struct_union.is_in_class_specialization &&
-          sym->kind == (a_symbol_kind)sk_class_template) {
-        /* This is a member template class definition.  Create a template
-           cache segment entry so that the body of this template can
-           be removed from the enclosing template cache.  Don't remove the
-           body if the template is declared inside a Microsoft in-class
-           specialization. */
-        tssp->cache_segment = alloc_template_cache_segment(sym, tssp);
-        tssp->cache_segment->first_token_number = first_token_number;
-        tssp->cache_segment->last_token_number = last_token_number;
-      }  /* if */
-    }  /* if */
-    /* Update the template cache information with the definition cache
-       information. */
-    set_template_cache_info(&tssp->variant.class_template.initial_decl_cache,
-			    (a_token_cache_ptr)definition_token_cache,
-                            (a_template_decl_info_ptr)NULL);
-    set_template_cache_info(&tssp->cache, definition_token_cache,
-                            (a_template_decl_info_ptr)NULL);
-  }  /* if */
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (prototype_instantiations_in_il) {
-    /* Restore the previous state wrt. the generation of source sequence
-       entries. */
-    source_sequence_entries_disallowed = saved_sses_disallowed;
-  }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_class_template) {
     if (!friend_class_injection_enabled) {
       /* If this is not a friend declaration, mark the symbol as visible.
