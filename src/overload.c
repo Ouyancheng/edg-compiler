@@ -8962,7 +8962,8 @@ is set to TRUE.
        call is illegal.  The function thus selected must be a strictly better
        match for at least one argument than every other possible function
        (but not necessarily the same argument for each function).  Otherwise,
-       the call is illegal." */
+       the call is illegal."  (Except that we also will apply tie-breaking
+       rules if needed later on.) */
     /* We form the intersection of best-match sets by putting all functions
        in the best-match set and then doing an intersection after each argument
        best-match set is determined. */

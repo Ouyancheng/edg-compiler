@@ -24398,8 +24398,8 @@ constrained than sym1, and 0 otherwise.
   a_constraint_chart  *chart1, *chart2;
   int                 result = 0;
 
-  sym1 = fundamental_symbol_of(sym1);
-  sym2 = fundamental_symbol_of(sym2);
+  sym1 = originator_symbol_of(sym1);
+  sym2 = originator_symbol_of(sym2);
   chart1 = constraint_chart_of(sym1);
   chart2 = constraint_chart_of(sym2);
   if (chart1 == UNCONSTRAINED_CHART || chart2 == UNCONSTRAINED_CHART) {

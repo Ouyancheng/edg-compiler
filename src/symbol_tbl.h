@@ -5813,7 +5813,6 @@ Return the fundamental symbol for a given symbol.
   /* } */								   \
   )
 
-
 /*
 Given a namespace projection symbol, return the fundamental symbol.
 */
@@ -6662,6 +6661,27 @@ extern a_routine_ptr get_inh_ctor_originator(
                                          a_routine_ptr ctor,
                                          a_boolean     ignore_virtual = FALSE);
 
+inline a_symbol_ptr originator_symbol_of(a_symbol_ptr  sym)
+/*
+Similar to "fundamental_symbol_of", but also "look through" inheriting
+constructor symbols.
+*/
+{
+  sym = fundamental_symbol_of(sym);
+  if (is_simple_function_symbol(sym)) {
+    a_routine_ptr  rp = sym->variant.routine.ptr;
+    if (rp->is_inheriting_ctor) {
+      sym = symbol_for(get_inh_ctor_originator(rp, /*ignore_virtual=*/TRUE));
+    }  /* if */
+  }  /* if */
+  return sym;
+}  /* originator_symbol_of */
+
+
+/*
+If ctor is an inheriting constructor, return the inherited routine entry.
+Otherwise, return NULL.
+*/
 #define inh_ctor_inherited_ctor(ctor)                                         \
   ((ctor)->is_inheriting_ctor ?                                               \
    (ctor)->friends_or_originator.inherited_routine : NULL)
