@@ -46,7 +46,7 @@ declaration of C<T>::c.  Now fixed.
 5/26/20  [EDGcpfe/21483]
 Spurious error on constexpr static data member in template
 
-In some template cases, the front end issued spurious error on a constexpr
+In some template cases, the front end issued a spurious error on a constexpr
 static data member whose type is still being defined.  For example:
 
   template<typename> struct S {
