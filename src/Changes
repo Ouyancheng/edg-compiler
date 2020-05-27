@@ -1,5 +1,27 @@
 Version 6.1
 
+5/27/20  [EDGcpfe/22538]
+IA-64 ABI: discriminators for enumerators of scoped enumerations in functions
+
+As a result of the changes for EDGcpfe/11127,EDGcpfe/21364 (in version 6.0),
+enumerators of enumerations had, in some cases, been given multiple
+"discriminators" resulting in mangled names that could not be demangled.  One
+of those "discriminators" is now suppressed.  Note that the IA-64 ABI does not
+require enumerators to be mangled and an EDG-specific mangling is provided to
+ensure unique names for the C-generating back end.  In the IA-64 ABI,
+discriminators are sequential small integers tied to lexical position in the
+scope, but in the EDG-specific mangling of enumerators, a unique (to the
+compilation) number (the declaration sequence number) is used in the place of a
+discriminator.  Note that even though this changes the mangled names, this
+change is not conditional on ABI_COMPATIBILITY_VERSION because it only affects
+enumerators in local functions.  For example, with --c++11:
+
+  void f() {
+    { enum class E { e }; }
+    { enum class E { e }; }
+  }
+
+
 5/26/20  [EDGcpfe/22829]
 Constant GNU statement expressions
 
@@ -1594,24 +1616,6 @@ with operands that point to non-byte-array objects.  For example:
 That is now fixed.  The interpreter can only fold __builtin_memcmp calls for
 operands pointing to constant objects of integral or array-of-integral types
 (that is approximately the same constraint as GCC and Clang impose).
-
-
-3/27/20  [EDGcpfe/22538]
-IA-64 ABI: discriminators for enumerators of scoped enumerations in functions
-
-As a result of the changes for EDGcpfe/11127,EDGcpfe/21364 (in version 6.0),
-enumerators of scoped enumerations had, in some cases, been given multiple
-discriminators resulting in mangled names that could not be demangled.  Those
-discriminators are now suppressed (the mangled names are unique because the
-mangled name of the enumeration is part of the name).  Note that even though
-this changes the mangled names, this change is not conditional on
-ABI_COMPATIBILITY_VERSION because it only affects scoped enumerators in local
-functions.  For example, with --c++11:
-
-  void f() {
-    { enum class E { e }; }
-    { enum class E { e }; }
-  }
 
 
 3/25/20  [EDGcpfe/22520]
