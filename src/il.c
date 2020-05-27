@@ -18709,7 +18709,8 @@ for the copy/substitution.
       a_symbol_ptr     new_sym;
       make_locator_for_symbol(sym, &locator);
       locator.specific_symbol = NULL;
-      if (con->source_corresp.parent_scope != NULL &&
+      if (!symbol_is(sym, sk_namespace_projection) &&
+          con->source_corresp.parent_scope != NULL &&
           scope_is(con->source_corresp.parent_scope, sck_namespace)) {
         a_namespace_ptr ns_ptr;
         ns_ptr = con->source_corresp.parent_scope->variant.assoc_namespace;

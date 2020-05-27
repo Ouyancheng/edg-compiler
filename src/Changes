@@ -1,5 +1,46 @@
 Version 6.1
 
+5/27/20  [EDGcpfe/22651]
+Microsoft compatibility: incorrect substitution of namespace member call
+
+A change made in version 4.14 (see EDGcpfe/17925) could cause a spurious
+"unexpected function type" error if a function name used in a decltype
+in a function template function type was specified with an unqualified
+name and the name found was made visible by a using-declaration.  Now
+fixed.
+
+  namespace N {
+    template <typename T> struct A {};
+    namespace O {
+      template <class T> struct A : N::A<T> {};
+      struct B : A<B> {};
+    }
+    template <typename T> N::O::B D(N::O::A<T> const&) noexcept;
+    namespace NU {
+      inline int D(...) noexcept;
+    }
+    namespace E {
+      using NU::D;
+      template <typename T> using F = decltype(D(T{}));
+    }
+    template <typename T> using G = E::F<T>;
+    namespace NF {
+      template <typename T> N::G<T> f(T val) { return {}; }
+    }
+    namespace NS {
+      using NF::f;
+      struct H {
+        template <typename T> static auto g(T t) -> decltype(f(t)) {
+          return f(t);
+        }
+      };
+    }
+  }
+  int main() {
+    N::NS::H::g(N::O::B());
+  }
+
+
 5/27/20  [EDGcpfe/22538]
 IA-64 ABI: discriminators for enumerators of scoped enumerations in functions
 
