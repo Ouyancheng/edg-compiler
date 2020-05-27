@@ -17851,11 +17851,6 @@ a routine to lookup the appropriate instance (or generate one if needed).
                                   instantiate_nonreal,
                                   (options & GID_IN_IF_EXISTS) != 0,
                                   /*in_substitution=*/FALSE);
-    if (new_sym->is_error) {
-      /* If a constraint failed, an error symbol is returned.  Make sure the
-         error is propagated up. */
-      any_errors = TRUE;
-    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (new_sym == NULL) {
       /* A NULL symbol should only be returned in a Microsoft __if_exists
@@ -17879,6 +17874,11 @@ a routine to lookup the appropriate instance (or generate one if needed).
                       &arg_start_pos);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (new_sym->is_error) {
+      /* If a constraint failed, an error symbol is returned.  Make sure the
+         error is propagated up. */
+      any_errors = TRUE;
+    }  /* if */
     if ((options & GID_IS_CLASS_TEMPLATE_DECL) == 0 &&
         tssp->variant.class_template.is_alias_template) {
       /* A class template member can be defined using an alias template as
