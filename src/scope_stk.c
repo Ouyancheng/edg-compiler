@@ -12568,6 +12568,26 @@ pack expansion stack must be popped.
 }  /* abandon_potential_pack_expansion_context */
 
 
+void discard_current_pack_context(a_pack_expansion_stack_entry_ptr pesep)
+/*
+Pop the current pack expansion stack entry and discard any pack references
+on the scope stack.
+*/
+{
+  a_scope_stack_entry_ptr	ssep;
+
+  if (pesep != NULL) {
+    /* The pack expansion descriptor passed in should be on top of the
+       stack. */
+    check_assertion(pesep == pack_expansion_stack);
+    pop_pack_expansion_stack();
+    ssep = &scope_stack_top();
+    free_list_of_pack_references(ssep->packs_referenced);
+    ssep->packs_referenced = NULL;
+  }  /* if */
+}  /* discard_any_packs_referenced */
+
+
 a_boolean any_packs_referenced(void)
 /*
 Return TRUE if the current pack expansion context contains any pack
@@ -12643,8 +12663,9 @@ form.
   if (is_prototype_instantiation_context() &&
       !(pack_expansion_stack != NULL &&
        pack_expansion_stack->instantiation_descr != NULL) &&
-      (pack_expansion_stack == NULL || !pack_expansion_stack->is_rescan ||
-       pack_expansion_stack->is_suppression)) {
+      (pack_expansion_stack == NULL ||
+       (!pack_expansion_stack->is_rescan &&
+        !pack_expansion_stack->is_suppression))) {
     if (bases_type != NULL || symbol_is_pack(pack_symbol)) {
       /* Add this pack symbol to the list of packs in the scope stack
          entry. */
