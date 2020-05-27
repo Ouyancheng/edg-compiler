@@ -1083,6 +1083,34 @@ return the symbol representing that template.
               concept_okay) {
             /* This is a special case where a concept template may be
                returned. */
+            if (in_prescan) {
+              /* If disambiguating, verify that the "auto" token follows. */
+              a_token_cache  cache;
+              clear_token_cache(&cache, /*reusable=*/FALSE);
+              /* Skip the concept name. */
+              cache_curr_token(&cache);
+              (void)get_token();
+              if (curr_token == tok_lt) {
+                a_boolean      saved_in_disambiguation;
+                saved_in_disambiguation = scope_stack_top().in_disambiguation;
+                scope_stack_top().in_disambiguation = TRUE;
+                cache_token_stream_until_matching_token(
+                        &cache, CTS_COALESCE_IDS | CTS_STOP_ON_STATEMENT_END);
+                scope_stack_top().in_disambiguation = saved_in_disambiguation;
+                if (curr_token == tok_gt) {
+                  cache_curr_token(&cache);
+                  (void)get_token();
+                }  /* if */
+              }  /* if */
+              if (curr_token != tok_auto) {
+                /* The constraint was not followed by "auto": Do not treat it
+                   as a type. */
+                assoc_symbol = NULL;
+                clear_specific_symbol(locator_for_curr_id);
+                locator_for_curr_id.symbol_header = saved_header;
+              }  /* if */
+              rescan_cached_tokens(&cache);
+            }  /* if */
           } else {
             assoc_symbol = NULL;
             clear_specific_symbol(locator_for_curr_id);
@@ -1157,15 +1185,13 @@ and associated routines.
     /* Check if the current token is a type name, and, if so, set type_sym to
        the corresponding type symbol. */
     if (is_generalized_identifier_start(gid_options)) {
-      a_boolean  concept_okay =
-                              (ids_options & IDS_CONCEPT_ID_IS_FOR_TYPE) != 0;
       type_sym = curr_type_symbol(/*is_new_type_name=*/FALSE, is_prescan,
                                   /*in_type_check=*/TRUE,
                                   (ids_options &
                                         IDS_IMPLICIT_TYPENAME_CONTEXT) != 0 &&
                                     relaxed_typename_enabled,
                                   (ids_options & IDS_IS_SIZEOF) != 0,
-                                  concept_okay);
+                                  concepts_enabled);
       if (class_template_arg_deduction_enabled && is_expr_context &&
           type_sym != NULL && !symbol_is(type_sym, sk_concept_template)) {
         /* Check for the case of a class template name used as a placeholder

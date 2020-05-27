@@ -1803,13 +1803,6 @@ routine to do lookahead, etc.
                                         ? IDS_IS_SIZEOF : IDS_NO_OPTIONS);
   if ((flags & DFS_REAL_DECLARATOR_ALLOWED) != 0) {
     is_decl_start_options |= IDS_REAL_DECLARATOR_ALLOWED;
-    if ((flags & DFS_ABSTRACT_DECLARATOR_ALLOWED) != 0) {
-      /* Allowing both abstract and real declarators means this is a parameter
-         declaration context, which is also when a concept-id can be assumed to
-         be followed by "auto" to denote a constrained type (and not produce a
-         bool value). */
-      is_decl_start_options |= IDS_CONCEPT_ID_IS_FOR_TYPE;
-    }  /* if */
   }  /* if */
   if (!C_mode()) {
     if (is_decl_start(is_decl_start_options)) {

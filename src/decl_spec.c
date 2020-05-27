@@ -7211,8 +7211,7 @@ constructor).
                                          /*ignore_suppression=*/FALSE);
           if (!any_args ||
               is_decl_start(IDS_REAL_DECLARATOR_ALLOWED |
-                            IDS_IMPLICIT_TYPENAME_CONTEXT |
-                            IDS_CONCEPT_ID_IS_FOR_TYPE)) {
+                            IDS_IMPLICIT_TYPENAME_CONTEXT)) {
             /* An empty pack expansion, or a pack expansion of a parameter. */
             is_constructor = TRUE;
           } else {

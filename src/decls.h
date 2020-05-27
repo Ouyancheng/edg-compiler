@@ -108,9 +108,6 @@ typedef int an_is_decl_start_options_set;
 			/* TRUE if this is a context where a dependent
 			   qualified name is known to be a type (a C++20
 			   feature). */
-#define IDS_CONCEPT_ID_IS_FOR_TYPE     0x20
-			/* TRUE if this is a context where a concept-id should
-			   be assumed to introduce a type-constraint. */
 
 /* Test whether or not the current token is the start of a type. */
 extern
