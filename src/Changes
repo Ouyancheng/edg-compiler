@@ -1,5 +1,22 @@
 Version 6.1
 
+5/28/20  [EDGcpfe/22861]
+GCC 10.x compatibility: Lookup in noexcept-specifiers
+
+One of the GCC bugs emulated by the front end relates to the lookup of names in
+noexcept specifiers (see also the changes for EDGcpfe/16810).  For example:
+
+  template<typename T> struct S {
+    void f() noexcept(g());  // Previously always an error in GNU C++ mode.
+    constexpr bool g() { return true; }  
+  };
+
+In this example, GCC 9.x (and earlier) and the front end in GNU C++ mode do not
+consider later members when looking up "g" in "noexcept(g())".  GCC 10.1 has
+fixed this and the front end now follows suit when gnu_version >= 100000.  Note
+that GCC 10.1 system headers rely on this fix.
+
+
 5/28/20  [EDGcpfe/22798]
 Clang compatibility: use of --microsoft_version with --clang
 

@@ -16291,11 +16291,12 @@ accordingly.
         /* Recreate a function prototype scope equivalent to the original. */
         (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
                          rp->type, (a_routine_ptr)NULL);
-        /* exception_spec_decl_seq is used in g++ mode to limit visibility
-           of names used in exception specification to those previously
-           declared in a class template.  The exception_specification flag
-           is normally set by the scopes pushed above, but in prototype
-           instantiations of class members this is sometimes not the case. */
+        /* exception_spec_decl_seq is used in some g++ modes to limit
+           visibility of names used in exception specification to those
+           previously declared in a class template.  Usually, the flag
+           exception_specification is set by the scopes pushed above, but
+           in prototype instantiations of class members this is sometimes
+           not the case. */
         if (is_member_of_class_template || rp->is_prototype_instantiation) {
           scope_stack_top().exception_specification = TRUE;
           scope_stack_top().exception_spec_decl_seq = decl_seq_sym->decl_seq-1;

@@ -3898,7 +3898,7 @@ C and C++.
     if (C_mode() && lookup_state.must_be_tag) {
       lookup_state.required_name_space_kind = nsk_tag;
     }  /* if */
-    if (gpp_mode && lookup_state.inclass_exception_spec) {
+    if (gpp_version_is(<100000) && lookup_state.inclass_exception_spec) {
       /* exception_spec_decl_seq is used in g++ mode to limit visibility
          of names used in exception specification to those previously
          declared in a class. */
