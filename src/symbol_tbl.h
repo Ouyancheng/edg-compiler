@@ -6473,6 +6473,7 @@ list for the given symbol.
 #define is_template_symbol(sym)                                           \
   ((sym)->kind == (a_symbol_kind)sk_class_template ||                     \
    (sym)->kind == (a_symbol_kind)sk_variable_template ||                  \
+   (sym)->kind == (a_symbol_kind)sk_concept_template ||                  \
    (sym)->kind == (a_symbol_kind)sk_function_template)
 
 /*
@@ -6810,6 +6811,7 @@ supplement.
 #define template_supplement_for_symbol(sym)				\
   (/* if */ ((sym)->kind == (a_symbol_kind)sk_class_template ||		\
              (sym)->kind == (a_symbol_kind)sk_variable_template ||	\
+             (sym)->kind == (a_symbol_kind)sk_concept_template ||	\
              (sym)->kind == (a_symbol_kind)sk_function_template) ? /* { */ \
     (sym)->variant.template_info :					\
   /* } else if */ (sym)->kind == (a_symbol_kind)sk_member_function ? /* { */ \
