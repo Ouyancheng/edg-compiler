@@ -1097,7 +1097,6 @@ return the symbol representing that template.
                                 CTS_COALESCE_IDS | CTS_STOP_ON_STATEMENT_END);
               scope_stack_top().in_disambiguation = saved_in_disambiguation;
               if (curr_token == tok_gt) {
-                cache_curr_token(&cache);
                 (void)get_token();
               }  /* if */
             }  /* if */
