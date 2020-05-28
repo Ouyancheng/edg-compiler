@@ -3937,7 +3937,7 @@ otherwise implicitly enabled Microsoft mode.
      line. */
   if (microsoft_mode) {
     if (option_kind_used[(int)optk_microsoft_mode] ||
-        option_kind_used[(int)optk_microsoft_version] ||
+        (option_kind_used[(int)optk_microsoft_version] && !clang_mode) ||
         option_kind_used[(int)optk_microsoft_build_number] ||
 #if NEAR_AND_FAR_ALLOWED
         option_kind_used[(int)optk_microsoft_16_mode] ||
@@ -3949,14 +3949,18 @@ otherwise implicitly enabled Microsoft mode.
         option_kind_used[(int)optk_ms_strict_ternary] ||
         option_kind_used[(int)optk_ms_cplusplus_std_value] ||
         option_kind_used[(int)optk_ms_std_preproc]) {
-      /* Microsoft mode was enabled by a command line option. */
+      /* Microsoft mode was explicitly or implicitly enabled by a command-line
+         option.  Allow setting microsoft_version in clang mode when
+         DEFAULT_MICROSOFT_MODE is TRUE. */
       command_line_error(error_code);
     } else {
       /* Microsoft mode enabled by default.  Silently disable it since the
          explicit mode setting on the command line overrides it (unless
          explicit options were specified). */
       microsoft_mode = FALSE;
-      microsoft_bugs = FALSE;
+      if (!option_kind_used[(int)optk_microsoft_bugs]) {
+        microsoft_bugs = FALSE;
+      }  /* if */
       if (!option_kind_used[(int)optk_microsoft_extensions]) {
         ms_extensions = FALSE;
       }  /* if */

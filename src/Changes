@@ -1,5 +1,16 @@
 Version 6.1
 
+5/28/20  [EDGcpfe/22798]
+Clang compatibility: use of --microsoft_version with --clang
+
+The front end attempts to emulate Clang's emulation of Microsoft Visual
+Studio in certain modes (see the Changes entry for EDGcpfe/16502).  Such
+a command-line invocation might look like: "--clang --clang_version 60000
+--ms_extensions --ms_compatibility", but adding --microsoft_version to
+the command-line had resulted in a command-line incompatibility error message
+in configurations where DEFAULT_MICROSOFT_MODE is TRUE.  That is now fixed.
+
+
 5/28/20  [EDGcpfe/20661,EDGcpfe/22799]
 GNU compatibility: "fallthrough" attribute
 
