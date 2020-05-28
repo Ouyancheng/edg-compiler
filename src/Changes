@@ -1,5 +1,15 @@
 Version 6.1
 
+5/28/20  [EDGcpfe/19134]
+Incorrect storage class for explicit specialization of static variable template
+
+An explicit specialization of a variable template whose storage class is
+static was not also given static storage class.  Now fixed.
+
+  template <typename T> static T v;
+  template <> int v<int> = 2;
+
+
 5/27/20  [EDGcpfe/22651]
 Microsoft compatibility: incorrect substitution of namespace member call
 

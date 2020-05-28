@@ -31310,7 +31310,7 @@ that follows.
             vp->storage_class = (a_storage_class)sc_static;
             vp->source_corresp.name_linkage =
                                              (a_name_linkage_kind)nlk_internal;
-          } else {
+          } else if (vp->storage_class != (a_storage_class)sc_static) {
             vp->storage_class = (a_storage_class)sc_unspecified;
           }  /* if */
           /* Make sure that the type of the variable is complete.
