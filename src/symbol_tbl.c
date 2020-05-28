@@ -5541,6 +5541,9 @@ checked for and ignored. Finally, injected class names are also allowed.
     } else if (symbol_is(member_sym, sk_projection) &&
                !member_sym->variant.projection.is_using_decl) {
       /* A generated projection symbol -- okay. */
+    } else if (member_sym->is_invisible) {
+      /* This is a synthetic class declaration (created for friend
+         declarations in class templates). */
     } else {
       /* Error: an identifier that is not a constructor and that has the
          same name as a class is being declared within the class. */

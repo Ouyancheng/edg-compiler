@@ -22690,33 +22690,12 @@ thereof.
        the name in the same scope as the friend declaration.  The latter test
        is to handle something like:
          template<typename> class C {
-           struct N;
-           friend struct N;
+           struct N;          // (1)
+           friend struct N;   // Resolves to (1).
            // ...
          };
-       We want to keep that lookup result since otherwise we would issue an
-       error claiming that N was already declared in this class.
-
-       Next, we want to make sure the friend does not refer to the enclosing
-       class template or to a related template (a primary template or a
-       partial specialization).  Such lookup results also need to be preserved
-       to avoid redeclaration errors.
-    */
-    a_type_ptr      enclosing_class = enclosing_class_type();
-    a_template_ptr  enclosing_template =
-                             class_type_supp(enclosing_class)->assoc_template;
-    if (enclosing_template != NULL) {
-      a_symbol_ptr  enclosing_sym = symbol_for(enclosing_template);
-      if (symbol_is(enclosing_sym, sk_class_template)) {
-        enclosing_sym = prototype_template_of(enclosing_sym);
-        enclosing_sym = primary_template_of(enclosing_sym);
-        sym = prototype_template_of(sym);
-        sym = primary_template_of(sym);
-        if (sym != enclosing_sym) {
-          result = TRUE;
-        }  /* if */
-      }  /* if */
-    }  /* if */
+       We want to keep that lookup result. */
+    result = TRUE;
   }  /* if */
   return result;
 }  /* should_cancel_friend_class_template_lookup */
@@ -23154,7 +23133,7 @@ declaration of a partial specialization declared outside of its class.
   a_token_cache_ptr		    definition_token_cache = NULL;
   a_token_kind			    next_tok;
   a_boolean			    partial_spec_outside_of_class = FALSE;
-  a_symbol_ptr			    partial_spec_nonreal_sym = sym;
+  a_symbol_ptr			    partial_spec_nonreal_sym = NULL;
   a_token_sequence_number	    tsn_for_class_template =
                                                     curr_token_sequence_number;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -23377,6 +23356,24 @@ declaration of a partial specialization declared outside of its class.
       decl_scope_level = decl_state->orig_decl_level;
       sym = curr_scope_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
       decl_scope_level = saved_decl_scope_level;
+      if (sym != NULL && sym->is_invisible && 
+          scope_stack_top().in_prototype_instantiation &&
+          symbol_is(sym, sk_class_template)) {
+        /* This could happen with something like:
+             template<typename> class C {
+               template<typename> friend struct S;  // Invisible symbol in
+                                                    // current scope.
+               template<typename T> requires (sizeof(T)<100)
+               struct S {};
+             };
+           The friend declaration causes a hidden template symbol to be
+           created in C.  It shouldn't be found by the subsequent member
+           template declaration (and adding that member template to the
+           symbol table should not trigger an error downstream).
+        */
+        sym = NULL;
+        suppress_redecl_error = TRUE;
+      }  /* if */
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     decl_state->decl_pos_block.identifier_range.end = end_pos_curr_token;
