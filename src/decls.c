@@ -1081,36 +1081,40 @@ return the symbol representing that template.
              symbol table). */
           if (symbol_is(assoc_symbol, sk_concept_template) &&
               concept_okay) {
-            /* This is a special case where a concept template may be
-               returned. */
-            if (in_prescan) {
-              /* If disambiguating, verify that the "auto" token follows. */
-              a_token_cache  cache;
-              clear_token_cache(&cache, /*reusable=*/FALSE);
-              /* Skip the concept name. */
-              cache_curr_token(&cache);
-              (void)get_token();
-              if (curr_token == tok_lt) {
-                a_boolean      saved_in_disambiguation;
-                saved_in_disambiguation = scope_stack_top().in_disambiguation;
-                scope_stack_top().in_disambiguation = TRUE;
-                cache_token_stream_until_matching_token(
-                        &cache, CTS_COALESCE_IDS | CTS_STOP_ON_STATEMENT_END);
-                scope_stack_top().in_disambiguation = saved_in_disambiguation;
-                if (curr_token == tok_gt) {
-                  cache_curr_token(&cache);
-                  (void)get_token();
-                }  /* if */
+            /* This is a special case where a concept template may be returned,
+               but only if the concept or concept-id is followed by "auto". */
+            a_token_cache            cache;
+            a_token_sequence_number  start_tsn = curr_token_sequence_number;
+            begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
+            /* Skip the concept name. */
+            (void)get_token();
+            if (curr_token == tok_lt) {
+              a_boolean      saved_in_disambiguation;
+              saved_in_disambiguation = scope_stack_top().in_disambiguation;
+              scope_stack_top().in_disambiguation = TRUE;
+              cache_token_stream_until_matching_token(
+                                (a_token_cache*)NULL,
+                                CTS_COALESCE_IDS | CTS_STOP_ON_STATEMENT_END);
+              scope_stack_top().in_disambiguation = saved_in_disambiguation;
+              if (curr_token == tok_gt) {
+                cache_curr_token(&cache);
+                (void)get_token();
               }  /* if */
-              if (curr_token != tok_auto) {
-                /* The constraint was not followed by "auto": Do not treat it
-                   as a type. */
-                assoc_symbol = NULL;
-                clear_specific_symbol(locator_for_curr_id);
-                locator_for_curr_id.symbol_header = saved_header;
-              }  /* if */
-              rescan_cached_tokens(&cache);
             }  /* if */
+            if (curr_token != tok_auto) {
+              /* The constraint was not followed by "auto": Do not treat it as
+                 a type. */
+              assoc_symbol = NULL;
+              clear_specific_symbol(locator_for_curr_id);
+              locator_for_curr_id.symbol_header = saved_header;
+            }  /* if */
+            end_caching_fetched_tokens();
+            clear_token_cache(&cache, /*reusable=*/FALSE);
+            copy_tokens_from_cache(curr_lexical_state_cache(), start_tsn,
+                                   last_token_sequence_number_of_token,
+                                   /*include_last_token=*/TRUE, &cache);
+            f_rescan_cached_tokens(
+              &cache, /*discard_curr_token=*/curr_token != tok_end_of_source);
           } else {
             assoc_symbol = NULL;
             clear_specific_symbol(locator_for_curr_id);
