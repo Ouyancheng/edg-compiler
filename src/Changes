@@ -1,5 +1,28 @@
 Version 6.1
 
+5/28/20  [EDGcpfe/20661,EDGcpfe/22799]
+GNU compatibility: "fallthrough" attribute
+
+The "fallthrough" attribute has now been enabled in GNU (when gnu_version >=
+70000) and Clang (when clang_version >= 100000) emulation modes (both C and
+C++).  Additionally, some tweaks have been made to the [[fallthrough]]
+processing in GNU emulation mode for better emulation.  For example:
+
+  void f(int i) {
+    switch (i) {
+      case 0:
+        f(i);
+        __attribute__((fallthrough));
+      case 1:
+        break;
+    }
+  }
+
+As is currently the case with [[fallthrough]], application of the attribute
+does not suppress any diagnostics (the front end does not diagnose
+"fallthrough" errors).
+
+
 5/28/20  [EDGcpfe/19109]
 Abort on invalid class member variable template partial specialization
 

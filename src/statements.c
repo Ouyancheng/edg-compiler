@@ -1690,9 +1690,11 @@ should be set to TRUE.
       sssep->last_dep_statement = temp_stmt;
     }  /* if */
     if (sssep->last_dep_statement->is_fallthrough_statement &&
-        sp->kind != (a_statement_kind)stmk_switch_case) {
+        !(sp->kind == (a_statement_kind)stmk_switch_case ||
+          (gnu_mode && !clang_mode &&
+           sp->kind == (a_statement_kind)stmk_label))) {
       /* Only a case label or default label may follow a fallthrough
-         statement. */
+         statement (GCC also allows a user-defined label). */
       pos_diagnostic(clang_mode ? es_error :
                                   strict_ansi_discretionary_severity,
                      ec_fallthrough_must_precede_switch_case,
@@ -1714,7 +1716,7 @@ should be set to TRUE.
     /* Attach any attributes.  Label definitions are handled elsewhere (and
        implicit label definitions should not pick up the attributes of the
        statements that generate them). */
-    check_assertion(!C_mode() && sp->kind != (a_statement_kind)stmk_label &&
+    check_assertion(sp->kind != (a_statement_kind)stmk_label &&
                     sp->kind != (a_statement_kind)stmk_decl);
     attach_attributes(sssep->prefix_attributes, (char*)sp, iek_statement);
     sssep->prefix_attributes = NULL;
@@ -7455,8 +7457,9 @@ rescan_statement:
     start_pos = pos_curr_token;
     struct_stmt_stack_top().p_start_pos = &start_pos;
   }  /* if */
-  if (std_attribute_tokens_next() || curr_token == tok_alignas) {
-    /* Scan leading standard attributes. */
+  if (std_attribute_tokens_next() || curr_token == tok_alignas ||
+      curr_token == tok_attribute) {
+    /* Scan leading attributes. */
     struct_stmt_stack_top().prefix_attributes = scan_attributes(al_prefix);
   }  /* if */
   get_another_statement = FALSE;
@@ -7985,6 +7988,13 @@ is being parsed within the context of the __extension__ keyword.
         struct_stmt_stack_top().p_start_pos = &gnu_extension_pos;
         (void)get_token();
       }  /* if */
+      if (curr_token == tok_attribute) {
+        /* Scan leading GNU attributes.  Generally these are associated with
+           a declaration, but the "fallthrough" attribute is associated with
+           a statement and its presence would cause is_decl_start to
+           disambiguate incorrectly.  These may be "unscanned" below. */
+        struct_stmt_stack_top().prefix_attributes = scan_attributes(al_prefix);
+      }  /* if */
       if ((curr_token != tok_identifier || next_token() != tok_colon) &&
           is_decl_start(IDS_EXPR_CONTEXT |
                         IDS_REAL_DECLARATOR_ALLOWED)) {
@@ -8003,6 +8013,12 @@ is being parsed within the context of the __extension__ keyword.
           if (at_function_level && pos_curr_token.column == 1) break;
         }  /* if */
         (void)select_curr_construct_pragmas(/*add_to_list=*/FALSE);
+        if (struct_stmt_stack_top().prefix_attributes != NULL) {
+          /* Make previously scanned attributes available to declaration
+             processing. */
+          unscan_attributes(struct_stmt_stack_top().prefix_attributes);
+          struct_stmt_stack_top().prefix_attributes = NULL;
+        }  /* if */
         decl_statement(marked_as_gnu_extension,
                        /*p_okay_in_constexpr_body=*/NULL);
       } else {

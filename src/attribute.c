@@ -266,6 +266,7 @@ static an_attr_descr known_attr_table[] = {
   { "ext_vector_type", "(ci)", "lx", ak_ext_vector_type },
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   { "externally_visible", "", "gx(40000-)", ak_externally_visible },
+  { "fallthrough", "", "1gx(70000-|C(100000-))", ak_fallthrough },
 #if GNU_X86_ATTRIBUTES_ALLOWED
   { "fastcall", "", "gx(30400-)", ak_fastcall },
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
@@ -5177,9 +5178,7 @@ diagnostic to suppress).
     make_attr_unrecognized(ap);
   } else if (!in_switch_statement()) {
     /* The attribute must appear within an enclosing switch statement. */
-    pos_diagnostic(clang_mode ? es_error :
-                                strict_ansi_discretionary_severity,
-                   ec_fallthrough_not_in_switch, &ap->position);
+    pos_error(ec_fallthrough_not_in_switch, &ap->position);
     make_attr_unrecognized(ap);
   } else {
     /* Apply the attribute to the statement.  Note that the check to verify

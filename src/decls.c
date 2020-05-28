@@ -1298,7 +1298,9 @@ of declarations that are permitted.
     is_start = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
   } else if (curr_token == tok_attribute) {
-    /* An attribute can start a declaration. */
+    /* An attribute can start a declaration (or, in the case of "fallthrough"
+       a statement, but such attributes have been pre-scanned and should
+       not appear here). */
     is_start = TRUE;
   } else if (curr_token == tok_auto_type) {
     /* GNU C's __auto_type always starts a declaration. */
