@@ -26959,12 +26959,12 @@ partial specialization.  If so, create a new variable template symbol
 for the partial specialization, link it to the primary template, and
 return the new symbol.
 
-If this is not a partial specialization, issue an appropriate error and
-return NULL.
+If this is not a valid partial specialization, issue an appropriate error and
+return an error variable template symbol.
 */
 {
   a_variable_ptr	orig_var;
-  a_symbol_ptr		ps_sym = NULL;
+  a_symbol_ptr		ps_sym;
 
   orig_var = variable_for_symbol(orig_sym);
   check_assertion(symbol_is(orig_sym, sk_variable));
@@ -26973,6 +26973,7 @@ return NULL.
                  orig_sym);
     decl_state->decl_scope_err = TRUE;
     set_to_named_error_locator(*locator);
+    ps_sym = create_variable_template_symbol(decl_state, locator);
   } else {
     a_symbol_ptr			primary_sym;
     a_template_symbol_supplement_ptr	primary_tssp;

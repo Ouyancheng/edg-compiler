@@ -1,5 +1,19 @@
 Version 6.1
 
+5/28/20  [EDGcpfe/19109]
+Abort on invalid class member variable template partial specialization
+
+An abort could occur (in decl_static_data_member) after a diagnostic
+is issued for an invalid partial specialization of a member variable
+template.  Now fixed.
+
+  template<typename T> struct X {
+    template <typename U> static int y;
+    template <typename U> static int y<T>;
+  };
+  X<int> xi;
+
+
 5/28/20  [EDGcpfe/19134]
 Incorrect storage class for explicit specialization of static variable template
 
