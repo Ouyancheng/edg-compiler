@@ -2837,7 +2837,7 @@ extern a_template_ptr scan_template_template_argument(
                                 a_boolean		dependent_default);
 
 extern a_template_arg_ptr scan_concept_arg_list(a_symbol_ptr template_sym,
-                                                a_boolean    skip_first_param,
+                                                a_boolean    type_constraint,
                                                 a_boolean    *any_errors);
 
 extern void insert_string_into_token_stream(

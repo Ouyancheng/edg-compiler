@@ -16512,7 +16512,7 @@ Otherwise, return FALSE.
 static
 a_template_arg_ptr scan_template_argument_list(
                                 a_symbol_ptr              template_sym,
-                                a_boolean                 skip_first_param,
+                                a_boolean                 type_constraint,
                                 a_boolean                 *any_errors,
                                 an_identifier_options_set options,
                                 long                      *first_defaulted_arg)
@@ -16531,10 +16531,11 @@ argument that was taken from the parameter's default argument, or to -1 if
 all arguments were explicit.  options is the set of options flags passed
 into the identifier scanning routines.  
 
-If skip_first_param is TRUE, the first parameter of the template is ignored,
-and thus the first scanned argument is matched to the second parameter.  That
-is used to scan the arguments for a type-constraint (following a concept
-template name).
+If type_constraint is TRUE, the first parameter of the template is ignored
+and default arguments are not "filled in".  For example, in:
+  template<typename T, typename U, typename V = T> concept C = true;
+  template<C<int> T> struct S {};
+the <int> is matched with U and no argument is generated for V.
 */
 {
   a_template_param_ptr             param_ptr = NULL;
@@ -16569,14 +16570,16 @@ template name).
   tssp = template_sym->variant.template_info;
   decl_info = tssp->cache.decl_info;
   param_ptr = decl_info->parameters;
-  orig_param_ptr = param_ptr;
   /* Indicate that this is an error case if the template has any empty
      parameter list. */
   if (param_ptr == NULL) {
     *any_errors = TRUE;
-  } else if (skip_first_param && !param_ptr->is_pack) {
+  } else if (type_constraint && !param_ptr->is_pack) {
+    /* For a type constraint, ignore the first parameter (unless it is a
+       pack). */
     param_ptr = param_ptr->next;
   }  /* if */
+  orig_param_ptr = param_ptr;
   /* Determine whether this is a template declared within a prototype
      instantiation.  Such cases must be handled specially for rescanning
      purposes. */
@@ -16999,6 +17002,12 @@ next_integer_pack_element:
         *first_defaulted_arg = arg_number;
         any_default_args = TRUE;
       }  /* if */
+      if (type_constraint) {
+        /* For type constraints do not attempt to instantiate a default
+           argument at this time since it might refer to template arguments
+           that have not yet been determined. */
+        break;
+      }  /* if */
       if (param_for_default->def_arg_has_not_been_scanned) {
         /* In some cases the default will not have been scanned when the
            template was first declared.  In such cases, scan it on its first
@@ -17370,11 +17379,11 @@ modes.
 
 
 a_template_arg_ptr scan_concept_arg_list(a_symbol_ptr template_sym,
-                                         a_boolean    skip_first_param,
+                                         a_boolean    type_constraint,
                                          a_boolean    *any_errors)
 /*
 Scan a template argument list for the given concept template.  If
-skip_first_param is TRUE, the first argument is for the second parameter (this
+type_constraint is TRUE, the first argument is for the second parameter (this
 occurs when scanning type-constraints).
 */
 {
@@ -17382,7 +17391,7 @@ occurs when scanning type-constraints).
   long                first_defaulted_arg = -1;
 
   ++scope_stack_top().pending_templ_arg_lists;
-  templ_arg_list = scan_template_argument_list(template_sym, skip_first_param,
+  templ_arg_list = scan_template_argument_list(template_sym, type_constraint,
                                                any_errors, GID_NO_OPTIONS,
                                                &first_defaulted_arg);
   check_closing_angle_bracket(any_errors);
@@ -17787,7 +17796,7 @@ a routine to lookup the appropriate instance (or generate one if needed).
     {
       /* Scan the template argument list. */
       arg_list = scan_template_argument_list(
-                                     template_sym, /*skip_first_param=*/FALSE,
+                                     template_sym, /*type_constraint=*/FALSE,
                                      &any_errors, options,
                                      &first_defaulted_arg);
     }  /* if */
@@ -18221,7 +18230,7 @@ indicated by the template argument list.
       long	first_defaulted_arg = -1L;
       /* Scan the template argument list. */
       arg_list = scan_template_argument_list(
-                                     template_sym, /*skip_first_param=*/FALSE,
+                                     template_sym, /*type_constraint=*/FALSE,
                                      &any_errors, options,
                                      &first_defaulted_arg);
     } else {
