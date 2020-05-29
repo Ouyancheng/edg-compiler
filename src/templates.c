@@ -22736,7 +22736,8 @@ thereof.
           } else {
             a_template_decl_ptr  enclosing_tdp = enclosing_tdip->template_decl,
                                  new_tdp = new_tdip->template_decl;
-            if (!enclosing_tdp->is_generic && !enclosing_tdp->is_generic &&
+            if (if_microsoft_extensions(
+                  !enclosing_tdp->is_generic && !enclosing_tdp->is_generic &&)
                 !equiv_requires_clauses(
                                     enclosing_tdp->constraint.requires_clause,
                                     new_tdp->constraint.requires_clause)) {
