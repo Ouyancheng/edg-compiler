@@ -22646,7 +22646,9 @@ specialization.
 }  /* check_for_out_of_class_partial_spec */
 
 
-static a_boolean should_cancel_friend_class_template_lookup(a_symbol_ptr  sym)
+static a_boolean should_cancel_friend_class_template_lookup(
+                                             a_symbol_ptr          sym,
+                                             a_tmpl_decl_state_ptr tmpl_state)
 /*
 The current token is the coalesced name of a friend class template declaration
 and sym is the symbol found for it.  During prototype instantiations, we often
@@ -22691,12 +22693,59 @@ thereof.
        the name in the same scope as the friend declaration.  The latter test
        is to handle something like:
          template<typename> class C {
-           struct N;          // (1)
-           friend struct N;   // Resolves to (1).
+           struct N;
+           friend struct N;
            // ...
          };
-       We want to keep that lookup result. */
-    result = TRUE;
+       We want to keep that lookup result since otherwise we would issue an
+       error claiming that N was already declared in this class.
+
+       Next, we want to make sure the friend does not refer to the enclosing
+       class template or to a related template (a primary template or a
+       partial specialization).  Such lookup results also need to be preserved
+       to avoid redeclaration errors.
+    */
+    a_type_ptr      enclosing_class = enclosing_class_type();
+    a_template_ptr  enclosing_template =
+                             class_type_supp(enclosing_class)->assoc_template;
+    if (enclosing_template != NULL) {
+      a_symbol_ptr  enclosing_sym = symbol_for(enclosing_template);
+      if (symbol_is(enclosing_sym, sk_class_template)) {
+        enclosing_sym = prototype_template_of(enclosing_sym);
+        enclosing_sym = primary_template_of(enclosing_sym);
+        sym = prototype_template_of(sym);
+        sym = primary_template_of(sym);
+        if (sym != enclosing_sym) {
+          result = TRUE;
+        } else {
+          /* Check that the constraints match.  First check the type
+             constraints on template parameters and then any requires
+             clauses. */
+          a_template_decl_info_ptr  enclosing_tdip, new_tdip;
+          a_template_param_ptr      enclosing_tpp, new_tpp;
+          enclosing_tdip = enclosing_sym->variant.template_info
+                                        ->cache.decl_info;
+          new_tdip = tmpl_state->decl_info;
+          enclosing_tpp = enclosing_tdip->parameters;
+          new_tpp = new_tdip->parameters;
+          if (!equiv_template_param_lists(enclosing_tpp, new_tpp,
+                                          /*issue_errors=*/FALSE,
+                                          ETP_NESTING_DEPTH_MISMATCH_OKAY,
+                                          &error_position, es_none)) {
+            result = TRUE;
+          } else {
+            a_template_decl_ptr  enclosing_tdp = enclosing_tdip->template_decl,
+                                 new_tdp = new_tdip->template_decl;
+            if (!enclosing_tdp->is_generic && !enclosing_tdp->is_generic &&
+                !equiv_requires_clauses(
+                                    enclosing_tdp->constraint.requires_clause,
+                                    new_tdp->constraint.requires_clause)) {
+             result = TRUE;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
   }  /* if */
   return result;
 }  /* should_cancel_friend_class_template_lookup */
@@ -23341,7 +23390,7 @@ declaration of a partial specialization declared outside of its class.
                                                  : ilm_template_linkage,
                               &err);
       if (decl_state->is_template_friend && sym != NULL &&
-          should_cancel_friend_class_template_lookup(sym)) {
+          should_cancel_friend_class_template_lookup(sym, decl_state)) {
         sym = NULL;
         suppress_redecl_error = TRUE;
         make_new_symbol_invisible = TRUE;
@@ -23357,24 +23406,6 @@ declaration of a partial specialization declared outside of its class.
       decl_scope_level = decl_state->orig_decl_level;
       sym = curr_scope_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
       decl_scope_level = saved_decl_scope_level;
-      if (sym != NULL && sym->is_invisible && 
-          scope_stack_top().in_prototype_instantiation &&
-          symbol_is(sym, sk_class_template)) {
-        /* This could happen with something like:
-             template<typename> class C {
-               template<typename> friend struct S;  // Invisible symbol in
-                                                    // current scope.
-               template<typename T> requires (sizeof(T)<100)
-               struct S {};
-             };
-           The friend declaration causes a hidden template symbol to be
-           created in C.  It shouldn't be found by the subsequent member
-           template declaration (and adding that member template to the
-           symbol table should not trigger an error downstream).
-        */
-        sym = NULL;
-        suppress_redecl_error = TRUE;
-      }  /* if */
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     decl_state->decl_pos_block.identifier_range.end = end_pos_curr_token;
@@ -23648,7 +23679,7 @@ friend_template_checks_done:
            has been filled in.  The extra information is needed to check
            for redeclaration errors. */
         sym = make_symbol((a_symbol_kind)sk_class_template, &locator);
-        add_sym_to_symbol_table = TRUE;
+        add_sym_to_symbol_table = !make_new_symbol_invisible;
       }  /* if */
       if (make_new_symbol_invisible) {
         /* should_cancel_friend_class_template_lookup decided that the class
@@ -24128,7 +24159,8 @@ nesting depth to be used.
                                                 GID_TEMPLATE_ARGS_OPTIONAL |
                                                 GID_USE_PROTOTYPE_NOT_NONREAL,
                                                 ilm_template_friend, &err);
-          if (sym != NULL && should_cancel_friend_class_template_lookup(sym)) {
+          if (sym != NULL &&
+              should_cancel_friend_class_template_lookup(sym, decl_state)) {
             sym = NULL;
           }  /* if */
           if (sym != NULL) {
