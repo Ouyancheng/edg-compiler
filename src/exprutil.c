@@ -24658,12 +24658,15 @@ is not satisfied, set dps->ineligible to TRUE.
 static a_type_ptr check_requirement_expr(
                                     an_expr_node_ptr           req_expr,
                                     a_subst_pairs_array const  &subst_pairs,
+                                    a_boolean                  constrained,
                                     a_boolean                  *p_is_noexcept)
 /*
 Perform the substitutions indicated by subst_pairs on req_expr.  If that
 substitution is invalid, return NULL.  Otherwise, return the type of the
-substituted expression.  Set *p_is_noexcept to TRUE, unless the substitution
-was successful and the resulting expression is potentially throwing.
+substituted expression or, if constrained is TRUE, the type produced by
+decltype((E)) where E is the substituted expression.  Set *p_is_noexcept to
+TRUE, unless the substitution was successful and the resulting expression is
+potentially throwing.
 */
 {
   a_type_ptr        result = NULL;
@@ -24699,9 +24702,6 @@ was successful and the resulting expression is potentially throwing.
       release_local_constant(&src_cp);
     }  /* if */
   }  /* for */
-  if (expr != NULL) {
-    reclaim_fs_nodes_of_expr_tree(expr);
-  }  /* if */
   if (err) {
     result = NULL;
   } else if (expr != NULL) {
@@ -24709,11 +24709,21 @@ was successful and the resulting expression is potentially throwing.
     if (expr_might_throw(expr)) {
       is_noexcept = FALSE;
     }  /* if */
+    if (constrained) {
+      if (expr->is_lvalue) {
+        result = make_reference_type(result);
+      } else if (expr->is_xvalue) {
+        result = make_rvalue_reference_type(result);
+      }  /* if */
+    }  /* if */
   } else {
     if (allocated_cp == NULL) {
       allocated_cp = cp;
     }  /* if */
     result = allocated_cp->type;
+  }  /* if */
+  if (expr != NULL) {
+    reclaim_fs_nodes_of_expr_tree(expr);
   }  /* if */
   release_local_constant(&cp);
   *p_is_noexcept = is_noexcept;
@@ -24794,20 +24804,20 @@ subst_pairs is successful.
         }
         break;
       case enk_compound_req:
-        { a_boolean         is_noexcept;
-          an_expr_node_ptr  req_expr =
-                                req->variant.compound_req.expr_and_constraint;
+        { an_expr_node_ptr  req_expr =
+                                req->variant.compound_req.expr_and_constraint,
+                            req_constr = req_expr->next;
+          a_boolean         is_noexcept, constrained = req_constr != NULL;
           a_type_ptr        expr_type;
           expr_type = check_requirement_expr(req_expr, subst_pairs,
-                                             &is_noexcept);
+                                             constrained, &is_noexcept);
           if (expr_type == NULL) {
             result = FALSE;
           } else if (req->variant.compound_req.is_noexcept && !is_noexcept) {
             result = FALSE;
           } else {
             /* Check the type constraint. */
-            an_expr_node_ptr      req_constr = req_expr->next;
-            if (req_constr != NULL &&
+            if (constrained &&
                 !check_type_constraint(expr_type, req_constr, subst_pairs)) {
               result = FALSE;
             }  /* if */
@@ -24834,7 +24844,8 @@ subst_pairs is successful.
         break;
       default:
         { a_boolean  is_noexcept;
-          if (check_requirement_expr(req, subst_pairs, &is_noexcept) == NULL) {
+          if (check_requirement_expr(req, subst_pairs, /*constrained=*/FALSE,
+                                     &is_noexcept) == NULL) {
             result = FALSE;
           }  /* if */
         }
