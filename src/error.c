@@ -1638,6 +1638,7 @@ symbol_name:
     check_assertion(depth != NO_SCOPE_DEPTH);
     check_assertion(sym->kind == (a_symbol_kind)sk_function_template ||
                     sym->kind == (a_symbol_kind)sk_class_template ||
+                    sym->kind == (a_symbol_kind)sk_concept_template ||
                     sym->kind == (a_symbol_kind)sk_variable_template);
     ssep = &scope_stack[depth];
     begin_template_arg_list_traversal_simple(ssep->template_arg_list, &tap);
@@ -3119,6 +3120,7 @@ message appears by itself on a separate line.
                           ec_det_during_template_function_declaration_context :
                           ec_template_function_declaration_context;
       } else if (sym->kind == (a_symbol_kind)sk_class_template ||
+                 sym->kind == (a_symbol_kind)sk_concept_template ||
                  sym->kind == (a_symbol_kind)sk_variable_template) {
         error_code = add_detected_prefix ?
                            ec_det_during_template_class_argument_list_context :
