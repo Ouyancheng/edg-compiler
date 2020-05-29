@@ -693,6 +693,9 @@ static void me_create_doc_fillin(a_const_char **ptr_to_ptr)
       case 't':
         output_doc_string("\"type\"", 0, fk_em);
         break;
+      case 'T':
+        output_doc_string("\"<templ-args>\"", 0, fk_em);
+        break;
       case 'p':
         fill_in = "at line {\\em xxxx\\/}";
         output_doc_string("at line ", 0, fk_normal);

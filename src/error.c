@@ -102,6 +102,8 @@ typedef enum a_diag_fill_in_kind {
 			/* A symbol name (and possibly type). */
   dfk_type,
 			/* A type name. */
+  dfk_template_args,
+			/* A template argument list. */
 			/*lint -esym(749,*a_diag_fill_in_kind::dfk_last)*/
   dfk_last		/* Must be last. */
 } a_diag_fill_in_kind;
@@ -188,6 +190,11 @@ typedef struct a_diag_fill_in {
 		type;
 			/* A pointer to the type entry to be included
 			   in the diagnostic. */
+    /* When kind == dfk_template_args. */
+    a_template_arg_ptr
+		template_args;
+			/* A pointer to the template argument list to be
+			   included in the diagnostic. */
   } variant;
 } a_diag_fill_in;
 
@@ -793,6 +800,9 @@ is specified by "kind".
     case dfk_type:
       dfip->variant.type = NULL;
       break;
+    case dfk_template_args:
+      dfip->variant.template_args = NULL;
+      break;
     default:
       unexpected_condition();
   }  /* switch */
@@ -834,6 +844,31 @@ buffer.
   form_type(dfip->variant.type, &octl);
   add_string_to_text_buffer(msg_buffer, "\"");
 }  /* form_type_summary */
+
+
+static void form_template_arg_list(a_diag_fill_in_ptr	dfip)
+/*
+Format a string that represents the template argument list  pointed to by
+dfip into the message buffer.
+*/
+{
+  a_template_arg_ptr  tap;
+  a_boolean           first = TRUE;
+
+  add_string_to_text_buffer(msg_buffer, "\"<");
+  for (tap = dfip->variant.template_args; tap != NULL; tap = tap->next) {
+    /* Don't emit anything for a start-of-pack entry. */
+    if (is_start_of_pack_expansion_templ_arg(tap)) continue;
+    /* Add a "," separator after the first argument. */
+    if (first) {
+      first = FALSE;
+    } else {
+      add_string_to_text_buffer(msg_buffer, ", ");
+    }  /* if */
+    form_a_template_arg(tap, &octl);
+  }  /* for */
+  add_string_to_text_buffer(msg_buffer, ">\"");
+}  /* form_template_arg_list */
 
 
 char *format_type_string(a_type_ptr tp,
@@ -2770,6 +2805,8 @@ static void general_diagnostic(
 			a_symbol_ptr		symbol2,
 			a_type_ptr		type1,
 			a_type_ptr		type2,
+			a_template_arg_ptr	templ_args1,
+			a_template_arg_ptr	templ_args2,
 			a_source_position	*other_pos,
 			a_diag_list_ptr		diag_list);
 
@@ -2798,6 +2835,7 @@ An internal error has occurred.  Write the given message and abort.
                      error_message, (a_const_char*)NULL,
                      (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                      (a_type_ptr)NULL, (a_type_ptr)NULL,
+                     (a_template_arg_ptr)NULL, (a_template_arg_ptr)NULL,
                      (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 #ifdef __GNUC__
   /* Avoid gcc warning.  The function above does not return in this case. */
@@ -3358,6 +3396,7 @@ null-terminated.
     case 'p': kind = dfk_position; break;
     case 's': kind = dfk_string; break;
     case 't': kind = dfk_type; break;
+    case 'T': kind = dfk_template_args; break;
     default:
       unexpected_condition_str2("process_fill_in:", "bad fill-in kind");
   }  /* switch */
@@ -3456,6 +3495,10 @@ null-terminated.
     case dfk_type:
       /* A type fill-in. */
       form_type_summary(dfip);
+      break;
+    case dfk_template_args:
+      /* A type fill-in. */
+      form_template_arg_list(dfip);
       break;
     default:
       break;
@@ -4015,6 +4058,21 @@ by diag_ptr.
 {
   add_symbol_fill_in_with_depth(diag_ptr, symbol, NO_SCOPE_DEPTH);
 }  /* add_string_fill_in */
+
+
+static void add_template_arg_list_fill_in(a_diagnostic_ptr	diag_ptr,
+					  a_template_arg_ptr	templ_args)
+/*
+Add a declaration fill-in entry for "templ_args" to the diagnostic specified
+by diag_ptr.
+*/
+{
+  a_diag_fill_in_ptr	dfip;
+
+  dfip = alloc_diag_fill_in(dfk_template_args);
+  dfip->variant.template_args = templ_args;
+  add_fill_in_to_diagnostic(diag_ptr, dfip);
+}  /* add_template_arg_list_fill_in */
 
 
 static void add_type_fill_in(a_diagnostic_ptr	diag_ptr,
@@ -4879,6 +4937,8 @@ static void general_diagnostic(
 			a_symbol_ptr		symbol2,
 			a_type_ptr		type1,
 			a_type_ptr		type2,
+			a_template_arg_ptr	templ_args1,
+			a_template_arg_ptr	templ_args2,
 			a_source_position	*other_pos,
 			a_diag_list_ptr		dlp)
 /*
@@ -4898,6 +4958,8 @@ to the specified list.
   if (symbol2 != NULL) add_symbol_fill_in(dp, symbol2);
   if (type1 != NULL) add_type_fill_in(dp, type1);
   if (type2 != NULL) add_type_fill_in(dp, type2);
+  if (templ_args1 != NULL) add_template_arg_list_fill_in(dp, templ_args1);
+  if (templ_args2 != NULL) add_template_arg_list_fill_in(dp, templ_args2);
   if (other_pos != NULL) add_position_fill_in(dp, other_pos);
   if (dlp == NULL) {
     wrap_up_diagnostic(dp);
@@ -4927,6 +4989,7 @@ terminate the compilation.
                      concat_string, (a_const_char*)NULL,
                      (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                      (a_type_ptr)NULL, (a_type_ptr)NULL,
+                     (a_template_arg_ptr)NULL, (a_template_arg_ptr)NULL,
                      (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 }  /* str_command_line_warning */
 
@@ -4944,6 +5007,7 @@ terminate the compilation.
                      concat_string, (a_const_char*)NULL,
                      (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                      (a_type_ptr)NULL, (a_type_ptr)NULL,
+                     (a_template_arg_ptr)NULL, (a_template_arg_ptr)NULL,
                      (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 #ifdef __GNUC__
   /* Avoid gcc warning.  The function above does not return in this case. */
@@ -4974,6 +5038,7 @@ at the indicated position.
                      error_string, (a_const_char*)NULL,
                      (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                      (a_type_ptr)NULL, (a_type_ptr)NULL,
+                     (a_template_arg_ptr)NULL, (a_template_arg_ptr)NULL,
                      (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 }  /* pos_st_diagnostic */
 
@@ -5012,8 +5077,29 @@ indicated position.
                      (a_const_char*)NULL, (a_const_char*)NULL,
                      (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                      type, (a_type_ptr)NULL,
+                     (a_template_arg_ptr)NULL, (a_template_arg_ptr)NULL,
                      (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 }  /* pos_ty_diagnostic */
+
+
+/* FIXME: delete this routine if not used. */
+void pos_tap_diagnostic(an_error_severity  error_severity,
+                        an_error_code      error_code,
+                        a_source_position  *error_pos,
+                        a_template_arg_ptr templ_arg_list)
+/*
+Report the indicated diagnostic (with the indicated template argument list)
+at the indicated position.
+*/
+{
+  general_diagnostic(error_severity, error_code, error_pos,
+                     (a_const_char*)NULL, (a_const_char*)NULL,
+                     (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                     NULL, (a_type_ptr)NULL,
+                     (a_template_arg_ptr)templ_arg_list,
+                     (a_template_arg_ptr)NULL,
+                     (a_source_position*)NULL, (a_diag_list_ptr)NULL);
+}  /* pos_tap_diagnostic */
 
 
 void pos_ty2_diagnostic(an_error_severity  error_severity,
@@ -5030,6 +5116,7 @@ indicated position.
                      (a_const_char*)NULL, (a_const_char*)NULL,
                      (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                      type1, type2,
+                     (a_template_arg_ptr)NULL, (a_template_arg_ptr)NULL,
                      (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 }  /* pos_ty2_diagnostic */
 
@@ -5048,6 +5135,7 @@ indicated position.
                      (a_const_char*)NULL, (a_const_char*)NULL,
                      symbol, (a_symbol_ptr)NULL,
                      (a_type_ptr)NULL, (a_type_ptr)NULL,
+                     (a_template_arg_ptr)NULL, (a_template_arg_ptr)NULL,
                      (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 }  /* pos_sy_diagnostic */
 
@@ -5065,6 +5153,7 @@ is also provided.
                      (a_const_char*)NULL, (a_const_char*)NULL,
                      (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                      (a_type_ptr)NULL, (a_type_ptr)NULL,
+                     (a_template_arg_ptr)NULL, (a_template_arg_ptr)NULL,
                      other_pos, (a_diag_list_ptr)NULL);
 }  /* pos2_diagnostic */
 
@@ -5083,6 +5172,7 @@ indicated position, a second position is also provided.
                      (a_const_char*)NULL, (a_const_char*)NULL,
                      symbol, (a_symbol_ptr)NULL,
                      (a_type_ptr)NULL, (a_type_ptr)NULL,
+                     (a_template_arg_ptr)NULL, (a_template_arg_ptr)NULL,
                      other_pos, (a_diag_list_ptr)NULL);
 }  /* pos2_sy_diagnostic */
 
@@ -5105,6 +5195,7 @@ indicated position, a second position is also provided.
                      (a_symbol_ptr)NULL,
                      type,
                      (a_type_ptr)NULL,
+                     (a_template_arg_ptr)NULL, (a_template_arg_ptr)NULL,
                      other_pos, (a_diag_list_ptr)NULL);
 }  /* pos2_ty_diagnostic */
 
@@ -5128,6 +5219,7 @@ indicated position.
                      (a_symbol_ptr)NULL,
                      type1,
                      type2,
+                     (a_template_arg_ptr)NULL, (a_template_arg_ptr)NULL,
                      (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 }  /* pos_sy_ty2_diagnostic */
 
@@ -5149,6 +5241,7 @@ indicated position.
                      symbol2,
                      (a_type_ptr)NULL,
                      (a_type_ptr)NULL,
+                     (a_template_arg_ptr)NULL, (a_template_arg_ptr)NULL,
                      (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 }  /* pos_sy2_diagnostic */
 
@@ -5182,6 +5275,7 @@ indicated position.
                      (a_symbol_ptr)NULL,
                      type,
                      (a_type_ptr)NULL,
+                     (a_template_arg_ptr)NULL, (a_template_arg_ptr)NULL,
                      (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 }  /* pos_syty_diagnostic */
 
@@ -5203,6 +5297,7 @@ at the indicated position.
                      (a_symbol_ptr)NULL,
                      (a_type_ptr)NULL,
                      (a_type_ptr)NULL,
+                     (a_template_arg_ptr)NULL, (a_template_arg_ptr)NULL,
                      (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 }  /* pos_stsy_diagnostic */
 
@@ -5226,6 +5321,7 @@ at the indicated position.
                      (a_symbol_ptr)NULL,
                      type,
                      (a_type_ptr)NULL,
+                     (a_template_arg_ptr)NULL, (a_template_arg_ptr)NULL,
                      (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 }  /* pos_stty_diagnostic */
 
@@ -5247,6 +5343,7 @@ position indicated by error_position.
                      (a_symbol_ptr)NULL,
                      (a_type_ptr)NULL,
                      (a_type_ptr)NULL,
+                     (a_template_arg_ptr)NULL, (a_template_arg_ptr)NULL,
                      (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 }  /* pos_st2_diagnostic */
 
@@ -6273,6 +6370,7 @@ diagnostics pointed to by diag_list.
                      (a_const_char*)NULL, (a_const_char*)NULL,
                      (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                      (a_type_ptr)NULL, (a_type_ptr)NULL,
+                     (a_template_arg_ptr)NULL, (a_template_arg_ptr)NULL,
                      (a_source_position*)NULL, diag_list);
 }  /* more_info_diagnostic */
 
@@ -6291,6 +6389,7 @@ a %t placeholder in the diagnostic string.
                      (a_const_char*)NULL, (a_const_char*)NULL,
                      (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                      tp, (a_type_ptr)NULL,
+                     (a_template_arg_ptr)NULL, (a_template_arg_ptr)NULL,
                      (a_source_position*)NULL, diag_list);
 }  /* more_info_type_diagnostic */
 
@@ -6310,6 +6409,7 @@ diagnostics pointed to by diag_list.  The given types are used to replace
                      (a_const_char*)NULL, (a_const_char*)NULL,
                      (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
                      tp1, tp2,
+                     (a_template_arg_ptr)NULL, (a_template_arg_ptr)NULL,
                      (a_source_position*)NULL, diag_list);
 }  /* more_info_type2_diagnostic */
 
@@ -6328,6 +6428,7 @@ a %n placeholder in the diagnostic string.
                      (a_const_char*)NULL, (a_const_char*)NULL,
                      sym, (a_symbol_ptr)NULL,
                      (a_type_ptr)NULL, (a_type_ptr)NULL,
+                     (a_template_arg_ptr)NULL, (a_template_arg_ptr)NULL,
                      (a_source_position*)NULL, diag_list);
 }  /* more_info_sym_diagnostic */
 
@@ -6347,6 +6448,7 @@ replace %n and %t placeholders in the diagnostic string.
                      (a_const_char*)NULL, (a_const_char*)NULL,
                      sym, (a_symbol_ptr)NULL,
                      type, (a_type_ptr)NULL,
+                     (a_template_arg_ptr)NULL, (a_template_arg_ptr)NULL,
                      (a_source_position*)NULL, diag_list);
 }  /* more_info_sym_type_diagnostic */
 
@@ -6366,6 +6468,7 @@ diagnostics pointed to by diag_list.  The given symbols are used to replace
                      (a_const_char*)NULL, (a_const_char*)NULL,
                      sym1, sym2,
                      (a_type_ptr)NULL, (a_type_ptr)NULL,
+                     (a_template_arg_ptr)NULL, (a_template_arg_ptr)NULL,
                      (a_source_position*)NULL, diag_list);
 }  /* more_info_sym_diagnostic */
 

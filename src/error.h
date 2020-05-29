@@ -286,6 +286,7 @@ typedef struct a_symbol a_symbol_dummy_typedef;
 typedef struct a_type a_type_dummy_typedef;
 typedef struct a_source_file a_source_file_dummy_typedef;
 typedef struct a_pending_pragma a_pending_pragma_dummy_typedef;
+typedef struct a_template_arg a_tempalte_arg_dummy_typedef;
 
 
 extern char *format_type_string(struct a_type *type,
@@ -372,6 +373,10 @@ extern void pos_ty_diagnostic(an_error_severity  error_severity,
                               an_error_code      error_code,
                               a_source_position  *error_pos,
                               struct a_type      *type);
+void pos_tap_diagnostic(an_error_severity  error_severity,
+                        an_error_code      error_code,
+                        a_source_position  *error_pos,
+                        struct a_template_arg *tap);
 extern void pos_ty2_diagnostic(an_error_severity  error_severity,
                                an_error_code      error_code,
                                a_source_position  *error_pos,
