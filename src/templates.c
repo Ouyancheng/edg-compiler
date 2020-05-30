@@ -11299,6 +11299,14 @@ doing C++17-style template template parameter matching.
     free_template_arg_list(new_list);
     new_list = NULL;
   }  /* if */
+#if DEBUG
+  if (db_flag_is_set("cital")) {
+    fprintf(f_debug, "create_initial_template_arg_list:\n");
+    db_template_param_list(templ_param_list);
+    db_template_arg_list(new_list);
+    fprintf(f_debug, "\n\n");
+  }  /* if */
+#endif /* DEBUG */
   return new_list;
 }  /* create_initial_template_arg_list */
 
