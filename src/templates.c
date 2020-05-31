@@ -23246,40 +23246,30 @@ redeclaration) and any redeclaration error should be suppressed.
 
 static void cache_base_specifier_list(
                                    a_tmpl_decl_state_ptr   decl_state,
+                                   a_symbol_ptr            template_sym,
                                    a_token_cache_ptr       cache,
                                    a_token_set_array       *stop_tokens,
                                    a_token_sequence_number first_token_number)
 /*
 Cache the tokens of a base-specifier-list of a class template.  This begins
 with the ": of the base-specifier-list and ends with the token before
-the opening "{" of the class body.  The tokens are put in the token cache
-specified by cache.  stop_tokens is the set of stop_tokens provided by
-the caller.  first_token_number is the token sequence number of the
-first token of base-specifier-list.
+the opening "{" of the class body.  template_sym is the symbol of the class
+template being scanned.  The tokens are put in the token cache specified
+by cache.  stop_tokens is the set of stop_tokens provided by the caller.
+first_token_number is the token sequence number of the first token of
+base-specifier-list.
 */
 {
-  a_cts_flag_set                   cts_options = CTS_NO_OPTIONS;
-  a_pack_expansion_stack_entry_ptr pesep;
-
-  incr_token_set_array_element(*stop_tokens, tok_lbrace);
   begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
-  if (list_init_enabled && !cppcli_enabled) {
-    /* When brace initializers are allowed we need to coalesce identifiers
-       in the base-specifiers so that a brace in a template argument does
-       not terminate the caching.  Coalescing causes problems with
-       self-referential generics in C++/CLI, so it is suppressed. */
-    cts_options |= CTS_COALESCE_IDS | CTS_IS_TEMPLATE_BASE_CLASS;
+  if (list_init_enabled && !cli_or_cx_enabled) {
+    add_stop_token(tok_lbrace);
+    prescan_base_specifier_list(decl_state, template_sym);
+    remove_stop_token(tok_lbrace);
+  } else {
+    incr_token_set_array_element(*stop_tokens, tok_lbrace);
+    cache_token_stream((a_token_cache_ptr)NULL, *stop_tokens);
+    decr_token_set_array_element(*stop_tokens, tok_lbrace);
   }  /* if */
-  /* Begin a pack expansion context in case a base-specifier contains a
-     top-level pack.  Any references are then discarded. */
-  (void)begin_potential_pack_expansion_context(&pesep);
-  /* Ignore any access errors that may occur during the caching.  The
-     access context will be established as part of the instantiation. */
-  begin_deferral_of_access_checks();
-  cache_token_stream_full((a_token_cache_ptr)NULL, *stop_tokens, cts_options);
-  discard_current_pack_context(pesep);
-  discard_deferred_access_checks();
-  end_deferral_of_access_checks();
   end_caching_fetched_tokens();
   /* Copy the tokens that have been cached to the definition cache. */
   if (first_token_number != curr_token_sequence_number) {
@@ -23289,19 +23279,20 @@ first token of base-specifier-list.
                            cache);
     adjust_token_handles(cache);
   }  /* if */
-  decr_token_set_array_element(*stop_tokens, tok_lbrace);
 }  /* cache_base_specifier_list */
 
 
 static void cache_class_template_body(
                                    a_tmpl_decl_state_ptr   decl_state,
+                                   a_symbol_ptr            template_sym,
                                    a_token_cache_ptr       cache,
                                    a_token_sequence_number first_token_number,
                                    a_token_sequence_number *last_token_number)
 /*
 Cache the tokens of a class template body.  This begins with the ": of
 an optional base-specifier list and ends with the closing "}" of the class
-definition.  The tokens are put in the token cache specified by cache.
+definition.  template_sym is the symbol of the class template being
+scanned.  The tokens are put in the token cache specified by cache.
 first_token_number is the token sequence number of the first token of the
 body.  The last token sequence numbers of the definition is returned in
 *last_token_number;
@@ -23317,7 +23308,7 @@ body.  The last token sequence numbers of the definition is returned in
   if (curr_token == tok_colon) {
     /* Scan the tokens in the base class declarations, stopping when
        the "{" is reached. */
-    cache_base_specifier_list(decl_state, cache, &stop_tokens,
+    cache_base_specifier_list(decl_state, template_sym, cache, &stop_tokens,
                               first_token_number);
   }  /* if */
   decr_token_set_array_element(stop_tokens, tok_semicolon);
@@ -24184,7 +24175,7 @@ friend_template_checks_done:
     clear_token_cache(&local_token_cache, /*reusable=*/TRUE);
     definition_token_cache = &local_token_cache;
     /* Cache the tokens that make up the class definition. */
-    cache_class_template_body(decl_state, definition_token_cache,
+    cache_class_template_body(decl_state, sym, definition_token_cache,
                               first_token_number, &last_token_number);
     if (sym == NULL) {
       /* An error occurred earlier.  Discard the cached body. */

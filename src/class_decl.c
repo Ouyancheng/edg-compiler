@@ -1344,7 +1344,9 @@ class being defined.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* initialize_class_def_state */
 
-/* Forward declaration. */
+/* Forward declarations. */
+static void wrapup_base_classes(a_class_def_state_ptr  class_state);
+
 static void complete_class_definition(a_type_ptr         class_type,
                                       a_scope_depth      effective_decl_level,
                                       a_class_def_state  *class_state);
@@ -10115,6 +10117,41 @@ skip_base_class:
   } while (loop_token(tok_comma));
   db_exit();
 }  /* scan_base_specifier_list */
+
+
+void prescan_base_specifier_list(a_tmpl_decl_state_ptr   decl_state,
+                                 a_symbol_ptr            template_sym)
+/*
+This is an interface to scan_base_specifier_list that establishes the
+class state for the purpose of scanning the base-specifier-list as part
+of the class template caching process.  template_sym is the symbol of the
+class  template being scanned.  
+*/
+{
+  a_class_def_state                class_state;
+  a_type_ptr                       class_type;
+  a_type_ptr                       proto_type;
+  a_symbol_ptr	                   proto_sym;
+  a_template_symbol_supplement_ptr tssp;
+  a_class_type_supplement_ptr      ctsp;
+
+  tssp = template_supplement_for_symbol(template_sym);
+  class_type = alloc_type(tssp->variant.class_template.type_kind);
+  proto_sym = tssp->variant.class_template.prototype_instantiation;
+  proto_type = proto_sym->variant.class_struct_union.type;
+  ctsp = class_type_supp(class_type);
+  copy_type(proto_type, class_type);
+  /* Restore the original class type supplement pointer. */
+  class_type_supp(class_type) = ctsp;
+  initialize_class_def_state(class_type, &class_state);
+  class_state.is_nonreal_instantiation = TRUE;
+  class_state.is_template_instantiation = TRUE;
+  begin_deferral_of_access_checks();
+  scan_base_specifier_list(&class_state);
+  discard_deferred_access_checks();
+  end_deferral_of_access_checks();
+}  /* prescan_base_specifier_list */
+
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
