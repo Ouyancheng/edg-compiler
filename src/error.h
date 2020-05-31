@@ -372,10 +372,13 @@ extern void pos_ty_diagnostic(an_error_severity  error_severity,
                               an_error_code      error_code,
                               a_source_position  *error_pos,
                               struct a_type      *type);
+#if 0
+/* FIXME: remove if unused. */
 void pos_tap_diagnostic(an_error_severity  error_severity,
                         an_error_code      error_code,
                         a_source_position  *error_pos,
                         struct a_template_arg *tap);
+#endif /* 0 */
 extern void pos_ty2_diagnostic(an_error_severity  error_severity,
                                an_error_code      error_code,
                                a_source_position  *error_pos,

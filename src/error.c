@@ -5081,6 +5081,7 @@ indicated position.
                      (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 }  /* pos_ty_diagnostic */
 
+#if 0
 
 /* FIXME: delete this routine if not used. */
 void pos_tap_diagnostic(an_error_severity  error_severity,
@@ -5101,6 +5102,7 @@ at the indicated position.
                      (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 }  /* pos_tap_diagnostic */
 
+#endif /* 0 */
 
 void pos_ty2_diagnostic(an_error_severity  error_severity,
                         an_error_code      error_code,
