@@ -24495,7 +24495,9 @@ subject to SFINAE.
            void g() { f(0); }
          fails at this stage when forming the invalid type T = "int &[1]" in
          the parameter mapping for concept X. */
-      if (map_failure_is_fatal) *p_fatal = TRUE;
+      if (map_failure_is_fatal && !scope_stack_top().is_rescan) {
+        *p_fatal = TRUE;
+      }  /* if */
       more_info_tap_diagnostic(ec_concept_arg_list_substitution_failed,
                                &constraint->position, template_arg_list,
                                diag_list);
@@ -24616,7 +24618,7 @@ subject to SFINAE.
     release_local_constant(&cp);
     if (expr != NULL) reclaim_fs_nodes_of_expr_tree(expr);
   }  /* if */
-  if (!result && *p_fatal && diagnose_here && !scope_stack_top().is_rescan) {
+  if (!result && *p_fatal && diagnose_here) {
     /* A non-SFINAE error occurred, and the caller will not emit the associated
        diagnostic.  So diagnose the issue here. */
     a_diagnostic_ptr  dp;
