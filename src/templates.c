@@ -22659,10 +22659,11 @@ static a_boolean should_cancel_friend_class_template_lookup(
                                              a_tmpl_decl_state_ptr tmpl_state)
 /*
 The current token is the coalesced name of a friend class template declaration
-and sym is the symbol found for it.  During prototype instantiations, we often
-do not want to actually consider that symbol because it may be unreliable.  In
-particular, when compiling multiple translation units simultaneously, different
-outcomes may be found in different translation units.  For example:
+(described by tmpl_state) and sym is the symbol found for it.  During prototype
+instantiations, we often do not want to actually consider that symbol because
+it may be unreliable.  In particular, when compiling multiple translation units
+simultaneously, different outcomes may be found in different translation units.
+For example:
 
   // File 1:
   template<typename> struct H;
