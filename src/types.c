@@ -15293,12 +15293,15 @@ used in expression contexts.
 
 a_boolean is_or_contains_specific_template_param(a_type_ptr  type_ptr,
 						 a_type_ptr  tparam_type,
-                                                 a_boolean   deduced_only)
+                                                 a_boolean   deduced_only,
+                                                 a_boolean   exclude_parents)
 /*
 Return TRUE if the type pointed to by type_ptr is itself the specific
 template parameter specified by tparam_type or is a type tree
 containing such a reference to the type.  If deduced_only is TRUE, nondeduced
-contexts are excluded from the check.
+contexts are excluded from the check.  exclude_parents is TRUE if, when
+deduced_only is FALSE, parent types should be excluded from the check
+(parents are never checked when deduced_only is TRUE).
 */
 {
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
@@ -15310,7 +15313,7 @@ contexts are excluded from the check.
   if (deduced_only) {
     ttt_flags |= TTT_DEDUCED_CONTEXTS_ONLY;
     ttt_flags |= TTT_SKIP_TYPEREFS;
-  } else {
+  } else if (!exclude_parents) {
     ttt_flags |= TTT_PARENT_CLASSES;
   }  /* if */
   /* This indicates that only a specific template parameter may be found. */
@@ -15333,12 +15336,15 @@ contexts are excluded from the check.
 a_boolean type_contains_specific_template_template_param(
 					a_type_ptr	type_ptr,
 					a_template_ptr	tparam_template,
-					a_boolean	deduced_only)
+					a_boolean	deduced_only,
+					a_boolean	exclude_parents)
 /*
 Return TRUE if the type tree pointed to by type_ptr contains a type
 that is an instance of the template template parameter specified
 by tparam_template.  If deduced_only is TRUE, nondeduced contexts are
-excluded from the check.
+excluded from the check.  exclude_parents is TRUE if, when deduced_only
+is FALSE, parent types should be excluded from the check (parents are
+never checked when deduced_only is TRUE).
 */
 {
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
@@ -15348,7 +15354,7 @@ excluded from the check.
   /* When including non-deduced contexts, also include parent classes. */
   if (deduced_only) {
     ttt_flags |= TTT_DEDUCED_CONTEXTS_ONLY;
-  } else {
+  } else if (!exclude_parents) {
     ttt_flags |= TTT_PARENT_CLASSES;
   }  /* if */
   specific_template_template_param = tparam_template;
@@ -15365,13 +15371,16 @@ excluded from the check.
 
 
 a_boolean type_contains_specific_template_param_constant(
-						a_type_ptr	tp,
-						a_constant_ptr	cp,
-						a_boolean	deduced_only)
+					a_type_ptr	tp,
+					a_constant_ptr	cp,
+					a_boolean	deduced_only,
+					a_boolean	exclude_parents)
 /*
 Return TRUE if the template parameter constant pointed to by cp is involved
 in the type tree represented by tp.  If deduced_only is TRUE, nondeduced
-contexts are excluded from the check.
+contexts are excluded from the check.  exclude_parents is TRUE if, when
+deduced_only is FALSE, parent types should be excluded from the check
+(parents are never checked when deduced_only is TRUE).
 */
 {
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
@@ -15381,7 +15390,7 @@ contexts are excluded from the check.
   /* When including non-deduced contexts, also include parent classes. */
   if (deduced_only) {
     ttt_flags |= TTT_DEDUCED_CONTEXTS_ONLY;
-  } else {
+  } else if (!exclude_parents) {
     ttt_flags |= TTT_PARENT_CLASSES;
   }  /* if */
   /* This indicates that only a specific template param constant may be

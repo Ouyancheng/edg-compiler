@@ -1855,11 +1855,15 @@ Return TRUE if the template argument specified by "tap" has been given a value.
 
 static a_boolean template_param_used_in_type(a_symbol_ptr param_sym,
                                              a_type_ptr   tp,
-					     a_boolean	  deduced_only)
+					     a_boolean	  deduced_only,
+					     a_boolean	  exclude_parents)
+
 /*
 Returns TRUE if the template parameter specified by param_sym is used in
 the type specified by tp.  If deduced_only is TRUE, nondeduced contexts
-are excluded from the check.
+are excluded from the check.  exclude_parents is TRUE if, when deduced_only
+is FALSE, parent types should be excluded from the check (parents are never
+checked when deduced_only is TRUE).
 */
 {
   a_boolean	result;
@@ -1867,16 +1871,16 @@ are excluded from the check.
   if (param_sym->kind == (a_symbol_kind)sk_type) {
     result =
        is_or_contains_specific_template_param(tp, param_sym->variant.type.ptr,
-                                              deduced_only);
+                                              deduced_only, exclude_parents);
   } else if (param_sym->kind == (a_symbol_kind)sk_constant) {
     result = type_contains_specific_template_param_constant(
                                               tp, param_sym->variant.constant,
-                                              deduced_only);
+                                              deduced_only, exclude_parents);
   } else {
     /* A template template argument. */
     result = type_contains_specific_template_template_param(
                       tp, param_sym->variant.template_info->il_template_entry,
-                      deduced_only);
+                      deduced_only, exclude_parents);
   }  /* if */
   return result;
 }  /* template_param_used_in_type */
@@ -1904,7 +1908,8 @@ is non-zero, only parameters 1 through param_count are checked.
     /* Inspect all template parameters, not just those that involve
        deduced template parameters.  A template parameter can affect the
        type even in a nondeduced location. */
-    if (template_param_used_in_type(param_sym, ptp->type, deduced_only)) {
+    if (template_param_used_in_type(param_sym, ptp->type, deduced_only,
+                                    /*exclude_parents=*/FALSE)) {
       found = TRUE;
       break;
     }  /* if */
@@ -2125,7 +2130,7 @@ template argument matching.
             check_assertion(rout_type != NULL);
             if (!template_param_used_in_type(
                     tpp->param_symbol, rout_type->variant.routine.return_type,
-                    /*deduced_only=*/FALSE)) {
+                    /*deduced_only=*/FALSE, /*exclude_parents=*/FALSE)) {
               okay_if_no_value = TRUE;
             }  /* if */
           } else {
@@ -21422,7 +21427,8 @@ list and template argument list of a partial specialization are valid.
   for (tpp = templ_param_list; tpp != NULL; tpp = tpp->next) {
     a_symbol_ptr	param_sym = tpp->param_symbol;
     if (!template_param_used_in_type(param_sym, prototype_type,
-                                     /*deduced_only=*/TRUE)) {
+                                     /*deduced_only=*/TRUE,
+                                     /*exclude_parents=*/FALSE)) {
       /* g++ accepts unusable partial specializations.  They are accepted
          but otherwise ignored. */
       an_error_severity severity = gpp_mode ? es_warning : es_error;
@@ -27636,7 +27642,8 @@ first declaration of the template.
          where the template parameter can be used.) */
       param_used = template_param_used_in_type(
                           param_sym, rout_type->variant.routine.return_type,
-                          /*deduced_only=*/TRUE);
+                          /*deduced_only=*/TRUE,
+                          /*exclude_parents=*/FALSE);
     }  /* if */
     if (!param_used && routine_type_is_nonstatic_member_function(rout_type)) {
       /* In friend template declarations appearing in prototype instantiations
@@ -27645,7 +27652,8 @@ first declaration of the template.
       param_used = template_param_used_in_type(
                            param_sym,
                            rout_type->variant.routine.extra_info->this_class,
-                           /*deduced_only=*/TRUE);
+                           /*deduced_only=*/TRUE,
+                           /*exclude_parents=*/FALSE);
     }  /* if */
     if (pack_seen && !param_used) {
       /* This is a non-initial pack that is not used in the function
@@ -29176,7 +29184,8 @@ obtained from decl_state.
        parameter types. */
     param_used = template_param_used_in_type(param_sym,
                                              alias_type,
-                                             /*deduced_only=*/FALSE);
+                                             /*deduced_only=*/FALSE,
+                                             /*exclude_parents=*/TRUE);
     tpp->used_in_alias = param_used;
     if (param_used) {
       any_used = TRUE;
