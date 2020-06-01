@@ -1092,7 +1092,7 @@ return the symbol representing that template.
               a_boolean      saved_in_disambiguation;
               saved_in_disambiguation = scope_stack_top().in_disambiguation;
               scope_stack_top().in_disambiguation = TRUE;
-              cache_token_stream_until_matching_token(
+              (void)cache_token_stream_until_matching_token(
                                 (a_token_cache*)NULL,
                                 CTS_COALESCE_IDS | CTS_STOP_ON_STATEMENT_END);
               scope_stack_top().in_disambiguation = saved_in_disambiguation;
