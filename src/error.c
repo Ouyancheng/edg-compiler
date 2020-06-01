@@ -848,7 +848,7 @@ buffer.
 
 static void form_template_arg_list(a_diag_fill_in_ptr	dfip)
 /*
-Format a string that represents the template argument list  pointed to by
+Format a string that represents the template argument list pointed to by
 dfip into the message buffer.
 */
 {
@@ -3497,7 +3497,7 @@ null-terminated.
       form_type_summary(dfip);
       break;
     case dfk_template_args:
-      /* A type fill-in. */
+      /* A template argument list fill-in. */
       form_template_arg_list(dfip);
       break;
     default:
@@ -4060,8 +4060,8 @@ by diag_ptr.
 }  /* add_string_fill_in */
 
 
-static void add_template_arg_list_fill_in(a_diagnostic_ptr	diag_ptr,
-					  a_template_arg_ptr	templ_args)
+static void add_template_arg_list_fill_in(a_diagnostic_ptr      diag_ptr,
+                                          a_template_arg_ptr    templ_args)
 /*
 Add a declaration fill-in entry for "templ_args" to the diagnostic specified
 by diag_ptr.
