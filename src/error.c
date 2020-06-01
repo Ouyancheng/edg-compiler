@@ -6527,6 +6527,25 @@ diagnostics pointed to by diag_list.  The given numbers are used for fill-ins
 }  /* more_info_num2_diagnostic */
 
 
+void more_info_tap_diagnostic(an_error_code     error_code,
+                              a_source_position *error_pos,
+                              a_template_arg    *tap,
+                              a_diag_list_ptr   diag_list)
+/*
+Add the indicated diagnostic with the associated position to the list of
+diagnostics pointed to by diag_list.  The given template argument list is used
+to replace a %T placeholder in the diagnostic string.
+*/
+{
+  general_diagnostic(es_more_info, error_code, error_pos,
+                     (a_const_char*)NULL, (a_const_char*)NULL,
+                     (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                     (a_type_ptr)NULL, (a_type_ptr)NULL,
+                     tap, (a_template_arg_ptr)NULL,
+                     (a_source_position*)NULL, diag_list);
+}  /* more_info_tap_diagnostic */
+
+
 void pch_message(an_error_code error_code,
 		 a_const_char  *fill_in_str)
 /*
