@@ -1,5 +1,20 @@
 Version 6.1
 
+6/2/20   [EDGcpfe/22393]
+C++-generating back end: name of template template parameter
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end put out a use of a
+template template parameter in a template definition using its name from
+the original declaration of the template instead of its name in the
+definition, which can be different.  This is now fixed.  For example:
+
+  template<template<class> class  > void f();
+  template<template<class> class T> void f() {
+    T<int> t;  // Previously generated as <unnamed><int>
+  };
+
+
 6/1/20   [EDGcpfe/22867]
 Loop in alias template declaration processing
 

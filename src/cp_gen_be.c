@@ -3498,6 +3498,21 @@ a name.  Never generate a qualified name.
                                       (a_special_function_kind)sfk_destructor);
     write_tok_ch('~');
     name = unmangled_name_of(&scp_parent_class(scp)->source_corresp);
+  } else if (entry_kind == iek_type) {
+    a_type_ptr tp = (a_type_ptr)scp;
+    if (is_immediate_class_type(tp) &&
+        tp->variant.class_struct_union.is_template_class &&
+        tp->variant.class_struct_union.is_nonreal_class &&
+        class_type_supp(tp)->assoc_template->coordinates.depth != 0) {
+      /* The template name in this type is that of a template parameter,
+         and such a name reflects how it appeared in the first declaration
+         of the containing template.  That parameter can be named
+         differently in the definition of the template, so get the
+         parameter's name in the current context. */
+      scp = source_corresp_for_template_param(
+                            &class_type_supp(tp)->assoc_template->coordinates);
+      name = unmangled_name_of(scp);
+    }  /* if */
   }  /* if */
   if (name == NULL) {
     /* For entities without names, create a name. */
