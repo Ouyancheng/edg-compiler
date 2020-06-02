@@ -1855,9 +1855,8 @@ Return TRUE if the template argument specified by "tap" has been given a value.
 
 static a_boolean template_param_used_in_type(a_symbol_ptr param_sym,
                                              a_type_ptr   tp,
-					     a_boolean	  deduced_only,
-					     a_boolean	  exclude_parents)
-
+                                             a_boolean    deduced_only,
+                                             a_boolean    exclude_parents)
 /*
 Returns TRUE if the template parameter specified by param_sym is used in
 the type specified by tp.  If deduced_only is TRUE, nondeduced contexts

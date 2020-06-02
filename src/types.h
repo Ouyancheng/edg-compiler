@@ -1421,7 +1421,7 @@ extern a_boolean is_or_contains_template_param(a_type_ptr  type_ptr);
 extern void set_parameter_list_template_param_flags(a_type_ptr  rout_type);
 extern
 a_boolean is_or_contains_specific_template_param(a_type_ptr  type_ptr,
-						 a_type_ptr  tparam_type,
+                                                 a_type_ptr  tparam_type,
                                                  a_boolean   deduced_only,
                                                  a_boolean   exclude_parents);
 extern a_boolean type_contains_specific_template_template_param(

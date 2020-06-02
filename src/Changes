@@ -9,7 +9,7 @@ that uses a type nested within that type as a template argument of the
 parent class template.  This could result in a checking that does not
 terminate in check_alias_template_param_usage.  We believe the circumstances
 that give rise to this situation to be very rare as we have only had one
-report of this issue.  The checking that is done their has been revised to
+report of this issue.  The checking that is done there has been revised to
 eliminate the problematic recursion.
 
 
