@@ -24645,7 +24645,7 @@ Otherwise, *result will be NULL.
   for (; bcp != NULL; bcp = bcp->next) {
     if (bcp->direct && identical_types(bcp->type, parent_class)) break;
   }  /* for */
-  if (bcp == NULL) {
+  if (bcp == NULL && !is_nonreal_instantiation_context()) {
     /* Inheriting constructors can only be constructed from direct base class
        constructors.  GCC appears to allow naming indirect base classes, but
        not much can be done with the resulting classes; we approximate the GCC
@@ -24671,8 +24671,13 @@ Otherwise, *result will be NULL.
       udp->is_inheriting_ctor = TRUE;
       udp->is_class_member = TRUE;
       udp->qualifier.class_type = parent_class;
-      udp->entity.kind = (a_byte_il_entry_kind)iek_base_class;
-      udp->entity.ptr = (char*)bcp;
+      if (bcp != NULL) {
+        udp->entity.kind = (a_byte_il_entry_kind)iek_base_class;
+        udp->entity.ptr = (char*)bcp;
+      } else {
+        udp->entity.kind = (a_byte_il_entry_kind)iek_type;
+        udp->entity.ptr = (char*)parent_class;
+      }  /* if */
       udp->position = *pos;
       add_to_using_declarations_list(udp, depth_scope_stack);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
