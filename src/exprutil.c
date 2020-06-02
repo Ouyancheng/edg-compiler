@@ -2181,8 +2181,14 @@ major expression.
     /* If entities were defined in the subexpression associated with the entry
        to be popped, make sure that is reflected in the entry for the
        enclosing expression. */
-    new_top->p_end_of_entities_defined_in_expression =
-                          expr_stack->p_end_of_entities_defined_in_expression;
+    if (new_top->p_end_of_entities_defined_in_expression != NULL) {
+      /* Append the list of entities recorded in the entry being popped to the
+         list of entries in the new top-of-stack. */
+      while (*new_top->p_end_of_entities_defined_in_expression != NULL) {
+        new_top->p_end_of_entities_defined_in_expression =
+                   &(*new_top->p_end_of_entities_defined_in_expression)->next;
+      }  /* while */
+    }  /* if */
     /* If we detected an error during template deduction, propagate that
        up if the parent stack entry is tracking such things. */
     if (expr_stack->any_suppressed_error &&

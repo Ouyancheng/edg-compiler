@@ -1,5 +1,18 @@
 Version 6.1
 
+6/2/20   [EDGcpfe/15662,EDGcpfe/22819]
+Assertion failure in type_is_lambda_in_default_argument
+
+In IA-64 ABI configurations that do mangling, certain lambda expressions
+that appear in default arguments had caused an assertion failure in
+type_is_lambda_in_default_argument.  That is now fixed.  For example:
+
+  int f(int x = [y=37]{ return 1; }() +
+                    []{ return 0; }()) {
+    return 0;
+  }
+
+
 6/2/20   [EDGcpfe/22393]
 C++-generating back end: name of template template parameter
 
