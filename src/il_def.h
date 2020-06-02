@@ -13257,8 +13257,8 @@ typedef enum a_builtin_operation_kind_tag {
 			   Two type operands (treated the same as
 			   __is_assignable). */
   bok_is_trivially_copy_assignable,
-			/* Microsoft's __is_trivially_copy_assignable.  Two
-			   type operands. */
+			/* Microsoft's __is_trivially_copy_assignable.  One
+			   type operand. */
   bok_builtin_addressof,/* __builtin_addressof.  One lvalue operand. */
   bok_has_unique_object_representations,
 			/* __has_unique_object_representations.  One type

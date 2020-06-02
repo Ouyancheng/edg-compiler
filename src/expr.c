@@ -38495,7 +38495,7 @@ handle_identifier:
                          (a_rescan_control_block *)NULL, &local_result);
       break;
     case tok_is_assignable:
-      /* __is_assignable/__is_trivially_copy_assignable construct: */
+      /* __is_assignable construct: */
       scan_is_assignable(bok_is_assignable,
                          (a_rescan_control_block *)NULL, &local_result);
       break;
@@ -46421,9 +46421,6 @@ TRUE if the operator is a unary operator, FALSE otherwise.
     case bok_is_assignable_no_precondition_check:
       operator_token = tok_is_assignable_no_precondition_check;
       break;
-    case bok_is_trivially_copy_assignable:
-      operator_token = tok_is_trivially_copy_assignable;
-      break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case bok_intaddr:
       operator_token = tok_intaddr;
@@ -47361,10 +47358,9 @@ alternative callable from outside, see rescan_expr_with_substitution.
         scan_is_assignable(bok_is_assignable_no_precondition_check, rcblock,
                            result);
         break;
-      case tok_is_trivially_copy_assignable:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case tok_is_assignable:
-        /* __is_assignable/__is_trivially_copy_assignable construct: */
+        /* __is_assignable construct: */
         scan_is_assignable(bok_is_assignable, rcblock, result);
         break;
       case tok_builtin_bit_cast:
