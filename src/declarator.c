@@ -8359,7 +8359,7 @@ reparse_declarator:
     dps->has_deducible_return_type = TRUE;
   }  /* if */
   dps->type = func_type;
-  if (curr_token == tok_requires) {
+  if (curr_token == tok_requires && !dps->is_trailing_return_type) {
     scan_trailing_requires_clause(dps, func_info, &loc);
   }  /* if */
 }  /* scan_lambda_declarator */
@@ -8505,7 +8505,7 @@ the parameters.
     expect_error();
     state->type = error_type();
   }  /* if */
-  if (curr_token == tok_requires) {
+  if (curr_token == tok_requires && !state->is_trailing_return_type) {
     scan_trailing_requires_clause(state, func_info, locator);
   }  /* if */
 }  /* declarator */
