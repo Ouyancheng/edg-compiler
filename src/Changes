@@ -1,22 +1,24 @@
 Version 6.1
 
 6/2/20   [EDGcpfe/22475]
-Spurious error with inheriting constructor using-declaration in template class
+Spurious error with inheriting constructor using-declaration in class template
 
 The front end would attempt to diagnose invalid inheriting constructor
-using-declarations in template classes, even when those classes are not
+using-declarations in class templates, even when those templates are not
 instantiated.  This could lead to spurious errors when the targeted base class
-was not yet determinable.  For example:
+is dependent.  For example:
 
   template<typename T> struct A { A(T) {} };
   template<typename T> struct B : public A<T> {
     using B::A::A; // Spurious "must be inherited from a direct base" message
+    using B::X::X; // Valid "must be inherited from a direct base" message
   };
-  B<int> x(1);
+  B<int> x(1); // Valid message now issued here
 
-The front end now defers such diagnostics until the template class is
-instantiated.  This also improves compatibility with MSVC, GCC, and Clang, as
-all of these also defer diagnostics until instantiation.
+The front end now defers all such diagnostics (even when the base class is
+not dependent) until the class template is instantiated.  This also improves
+compatibility with MSVC, GCC, and Clang, as all of these also defer these
+diagnostics until instantiation.
 
 
 6/2/20   [EDGcpfe/15662,EDGcpfe/22819]
