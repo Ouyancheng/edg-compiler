@@ -19166,11 +19166,11 @@ and create a function instantiation entry to bind the two symbols together.
      will result in a duplicate declaration of f(int) when T is int.  An
      error will be diagnosed when this is encountered in the class body.
      If the instance pointer already exists, simply skip this processing. */
-  cssp = corresp_prototype_tag_sym->variant.class_struct_union.extra_info;
   if (rout_sym->variant.routine.instance_ptr != NULL) goto error_exit;
   /* Find a function symbol on the inactive list that is in the scope of the
      prototype instantiation.  It should either be a function template or
      overloaded function symbol. */
+  cssp = corresp_prototype_tag_sym->variant.class_struct_union.extra_info;
   if (is_constructor_symbol(rout_sym)) {
     sym = cssp->constructor;
 #if MICROSOFT_EXTENSIONS_ALLOWED

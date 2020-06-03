@@ -14297,10 +14297,41 @@ set; otherwise, it is NULL.
     case sfk_destructor:
       /* Set the pointer to the destructor symbol in the class symbol
          supplement. */
-      if (cssp->destructor == NULL ||
-          cssp->destructor->variant.routine.ptr->is_ineligible) {
-        cssp->destructor = sym;
-      }
+      if (!decl_info->decl_state.ineligible) {
+        a_symbol_ptr  dtor_sym = cssp->destructor;
+        if (dtor_sym == NULL || dtor_sym->variant.routine.ptr->is_ineligible) {
+          cssp->destructor = sym;
+        } else if (sym->variant.routine.ptr->assoc_template != NULL) {
+          a_symbol_ptr  old_sym, new_sym;
+          int           order;
+          old_sym = symbol_for(dtor_sym->variant.routine.ptr->assoc_template);
+          new_sym = symbol_for(sym->variant.routine.ptr->assoc_template);
+          order = compare_constraints(old_sym, new_sym);
+          if (order == -1) {
+            /* The new declaration is more constrained.  Record it as the
+               selected destructor and mark the prior destructor as
+               ineligible. */
+            cssp->destructor = sym;
+            dtor_sym->variant.routine.ptr->is_ineligible = TRUE;
+            dtor_sym->variant.routine.instance_ptr
+                    ->suppress_instantiation = TRUE;
+          } else if (order == 0) {
+            /* Neither constructor is preferred.  Mark them both as
+               ineligible and ambiguous. */
+            dtor_sym->variant.routine.ptr->is_ineligible = TRUE;
+            dtor_sym->variant.routine.instance_ptr
+                    ->suppress_instantiation = TRUE;
+            dtor_sym->ambiguous = TRUE;
+            decl_info->decl_state.ineligible = TRUE;
+            sym->ambiguous = TRUE;
+          } else {
+            /* The new constructor is less constrained.  Retain the prior
+               constructor as the selected one, and mark the new one as
+               ineligible. */
+            decl_info->decl_state.ineligible = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case sfk_static_constructor:
@@ -15677,7 +15708,7 @@ implicitly declared member functions.
         }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      if (rtn->compiler_generated && rtn->is_prototype_instantiation) {
+      if (compiler_generated && rtn->is_prototype_instantiation) {
         /* Compiler-generated members of prototype instantiation cannot
            always be matched to potentially overridden member functions
            because of insufficient type information.  To avoid spurious
@@ -15686,6 +15717,39 @@ implicitly declared member functions.
       } else {
         check_for_virtual_override(is_virtual, decl_info, class_state,
                                    func_info);
+      }  /* if */
+    }  /* if */
+#if BACK_END_IS_CP_GEN_BE
+    /* Set the "name linkage environment" for this routine. */
+    rtn->surrounding_name_linkage_state =
+                          scope_stack[depth_scope_stack].default_name_linkage;
+#endif /* BACK_END_IS_CP_GEN_BE */
+    attach_decl_attributes(decl_state,
+                           /*is_primary_decl=*/func_info->is_definition);
+    if (!compiler_generated) {
+      a_symbol_ptr  proto_tag_sym = class_state->corresp_prototype_tag_sym;
+      if (proto_tag_sym != NULL) {
+        /* If this is the instantiation of a class template (or nested class
+           thereof), match the instantiated member function with its templated
+           entity. */
+        a_type_ptr  proto_tp = proto_tag_sym->variant.class_struct_union.type;
+        if (type_is(proto_tp, tk_union) &&
+            class_type_supp(proto_tp)->anonymous_union_kind !=
+                                          (an_anonymous_union_kind)auk_none) {
+          /* A member function of an anonymous union is an error (to be issued
+             later, in check_anonymous_union_symbols).
+             find_member_function_template should not be called, since it
+             can't handle this sort of thing. */
+          expect_error();
+        } else {
+          find_member_function_template(
+                                 sym, class_state->corresp_prototype_tag_sym);
+        }  /* if */
+      }  /* if */
+      if (!rtn->source_corresp.is_deprecated) {
+        /* Check if a deprecated type was involved in this declaration. */
+        warn_about_use_of_deprecated_type(member_type,
+                                          &locator->source_position);
       }  /* if */
     }  /* if */
     if (!special_kind_is(rtn, sfk_none)) {
@@ -15714,13 +15778,6 @@ implicitly declared member functions.
                                       overload_sym);
       mark_special_move_parameters(rtn);
     }  /* if */
-#if BACK_END_IS_CP_GEN_BE
-    /* Set the "name linkage environment" for this routine. */
-    rtn->surrounding_name_linkage_state =
-                          scope_stack[depth_scope_stack].default_name_linkage;
-#endif /* BACK_END_IS_CP_GEN_BE */
-    attach_decl_attributes(decl_state,
-                           /*is_primary_decl=*/func_info->is_definition);
 #if GNU_FUNCTION_MULTIVERSIONING
     if (requires_gnu_target_attr &&
         (!has_gnu_routine_supp(rtn) ||
@@ -15757,13 +15814,6 @@ implicitly declared member functions.
                                   /*is_redecl=*/FALSE,
                                   (a_boolean)func_info->is_definition,
                                   (a_boolean)func_info->is_inline);
-    if (!compiler_generated) {
-      if (!rtn->source_corresp.is_deprecated) {
-        /* Check if a deprecated type was involved in this declaration. */
-        warn_about_use_of_deprecated_type(member_type,
-                                          &locator->source_position);
-      }  /* if */
-    }  /* if */
     if (!is_static_member) {
       /* Non-static member declarations implicitly reference the parent class
          through the implicit this parameter. */
@@ -17109,19 +17159,15 @@ general information about the class.
 }  /* in_class_template_definition */
 
 
-static a_boolean in_class_instantiation(
-					a_class_def_state_ptr	class_state)
+static a_boolean in_class_instantiation(a_class_def_state_ptr  class_state)
 /*
-Return TRUE if we are in the instantiation of a class template or
-nested class of a class template.  Also TRUE for instantiations of C++/CLI
-generics.  class_state points to a block of information tracking
-general information about the class.
+Return TRUE if we are in the instantiation of a class template or nested class
+of a class template.  Also TRUE for instantiations of C++/CLI generics.
+class_state points to a block of information tracking general information
+about the class.
 */
 {
-  a_boolean	result;
-
-  result = class_state->corresp_prototype_tag_sym != NULL;
-  return result;
+  return class_state->corresp_prototype_tag_sym != NULL;
 }  /* in_class_instantiation */
 
 
@@ -23310,6 +23356,22 @@ The routine body is not generated until it is known to be needed.
   } else if (cssp->destructor != NULL) {
     a_routine_ptr  rp = cssp->destructor->variant.routine.ptr;
     update_routine_type_exception_specification_if_needed(rp, &rp->type);
+    if (cssp->destructor->ambiguous) {
+      a_diagnostic_ptr  dp;
+      a_diag_list       diag_list;
+      clear_diag_list(&diag_list);
+      dp = pos_ty_start_error(ec_ambiguous_destructor_constraints,
+                              &error_position, class_type);
+      rp = class_type_supp(class_type)->assoc_scope->routines;
+      for (; rp != NULL; rp = rp->next) {
+        if (special_kind_is(rp, sfk_destructor) && symbol_for(rp)->ambiguous) {
+          more_info_diagnostic(ec_destructor_position,
+                               &rp->source_corresp.decl_position, &diag_list);
+        }  /* if */
+      }  /* for */
+      add_more_info_list(dp, &diag_list);
+      end_diagnostic(dp);
+    }  /* if */
   }  /* if */
   /* Record whether the destructor is "trivial".  Usually, this means that
      cssp->destructor is NULL, but it could also be a defaulted destructor
@@ -29051,69 +29113,54 @@ that is provided if this is a member template declaration.
                cases). */
             tssp->token_sequence_number = curr_token_sequence_number;
           }  /* if */
-        } else if (in_class_instantiation(class_state)) {
-          /* The class must be the instantiation of a class template (or a
-             class nested within such an instantiation). Bind the current
-             member function symbol to the function template symbol
-             established during prototype instantiation. */
-          a_symbol_ptr  prototype_sym = class_state->corresp_prototype_tag_sym;
-          a_type_ptr    tp = prototype_sym->variant.class_struct_union.type;
-          if (tp->kind == (a_type_kind)tk_union &&
-              class_type_supp(tp)->anonymous_union_kind !=
-                                          (an_anonymous_union_kind)auk_none) {
-            /* A member function of an anonymous union is an error (to be
-               issued later, in check_anonymous_union_symbols).
-               find_member_function_template should not be called, since it
-               can't handle this sort of thing. */
-          } else if (!is_error_locator(locator)) {
-            a_template_instance_ptr  tip;
-            find_member_function_template(rout_sym, prototype_sym);
-            tip = rout_sym->variant.routine.instance_ptr;
-            if (tip != NULL) {
+        } else {
+          a_template_instance  *tip = rout_sym->variant.routine.instance_ptr;
+          if (tip != NULL) {
+            /* The class must be the instantiation of a class template (or a
+               class nested within such an instantiation). */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-              /* Set the declared_type in the instance entry.  Try to use
-                 the declared_type already entered in the func_info block.
-                 This is not just to save bytes -- the pointer in the func_info
-                 block is the same as the pointer in a secondary-decl source
-                 sequence entry; keep the same correspondence in the instance
-                 entry, since default arg fixup depends on it. */
-              a_type_ptr  declared_type = func_info.declared_type;
-              tip->declared_type_for_default_arg_fixup = declared_type;
-              if (declared_type == NULL) {
-                declared_type = form_declared_type(dps->type,
-                                                   &func_info);
-              }  /* if */
-              tip->declared_type = declared_type;
+            /* Set the declared_type in the instance entry.  Try to use
+               the declared_type already entered in the func_info block.
+               This is not just to save bytes -- the pointer in the func_info
+               block is the same as the pointer in a secondary-decl source
+               sequence entry; keep the same correspondence in the instance
+               entry, since default arg fixup depends on it. */
+            a_type_ptr  declared_type = func_info.declared_type;
+            tip->declared_type_for_default_arg_fixup = declared_type;
+            if (declared_type == NULL) {
+              declared_type = form_declared_type(dps->type,
+                                                 &func_info);
+            }  /* if */
+            tip->declared_type = declared_type;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-              /* Save the prototype scope symbols and parameter ID list in the
-                 instance pointer.  The param_id_list is needed during
-                 instantiation if a noexcept or similar construct references a
-                 parameter name.  It is also used to reconstruct the declared
-                 types of the parameters in some configurations. */
-              tip->prototype_scope_symbols = func_info.prototype_scope_symbols;
-              tip->param_id_list = func_info.param_id_list;
-              func_info.keep_param_id_list = TRUE;
-              if (tip->template_sym != NULL &&
-                  symbol_is(tip->template_sym, sk_member_function) &&
-                  symbol_is(rout_sym, sk_member_function)) {
-                /* Check whether there were attributes on an in-class
-                   definition during the prototype instantiations.  If so, any
-                   attributes recorded here should also be considered to have
-                   appeared on the definition. */
-                an_attribute_ptr  proto_ap=
-                                       tip->template_sym->variant.routine.ptr
-                                          ->source_corresp.attributes;
-                if (proto_ap != NULL && proto_ap->on_primary_declaration) {
-                  mark_primary_decl_attributes(
-                    rout_sym->variant.routine.ptr->source_corresp.attributes);
-                }  /* if */
+            /* Save the prototype scope symbols and parameter ID list in the
+               instance pointer.  The param_id_list is needed during
+               instantiation if a noexcept or similar construct references a
+               parameter name.  It is also used to reconstruct the declared
+               types of the parameters in some configurations. */
+            tip->prototype_scope_symbols = func_info.prototype_scope_symbols;
+            tip->param_id_list = func_info.param_id_list;
+            func_info.keep_param_id_list = TRUE;
+            if (tip->template_sym != NULL &&
+                symbol_is(tip->template_sym, sk_member_function) &&
+                symbol_is(rout_sym, sk_member_function)) {
+              /* Check whether there were attributes on an in-class
+                 definition during the prototype instantiations.  If so, any
+                 attributes recorded here should also be considered to have
+                 appeared on the definition. */
+              an_attribute_ptr  proto_ap=
+                                     tip->template_sym->variant.routine.ptr
+                                        ->source_corresp.attributes;
+              if (proto_ap != NULL && proto_ap->on_primary_declaration) {
+                mark_primary_decl_attributes(
+                  rout_sym->variant.routine.ptr->source_corresp.attributes);
               }  /* if */
-              if (dps->ineligible) {
-                /* A constraint on a non-template member function makes this
-                   member "ineligible". */
-                rout_sym->variant.routine.ptr->is_ineligible = TRUE;
-                tip->suppress_instantiation = TRUE;
-              }  /* if */
+            }  /* if */
+            if (dps->ineligible) {
+              /* A constraint on a non-template member function makes this
+                 member "ineligible". */
+              rout_sym->variant.routine.ptr->is_ineligible = TRUE;
+              tip->suppress_instantiation = TRUE;
             }  /* if */
           }  /* if */
         }  /* if */

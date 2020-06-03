@@ -11762,16 +11762,17 @@ and do not issue any diagnostics (including warnings).
   a_symbol_ptr  dtor_sym;
   a_routine_ptr dtor_routine = NULL;
   a_class_symbol_supplement_ptr
-                cssp = symbol_supplement_for_class(class_type);
+                cssp;
 
   if (error_detected != NULL) *error_detected = FALSE;
   class_type = skip_typerefs(class_type);
-  if (object_class_type != NULL) {
-    object_class_type = skip_typerefs(object_class_type);
-  }  /* if */
+  cssp = class_symbol_supp(symbol_for(class_type));
   if (cssp != NULL) {
     dtor_sym = cssp->destructor;
     if (dtor_sym != NULL) {
+      if (object_class_type != NULL) {
+        object_class_type = skip_typerefs(object_class_type);
+      }  /* if */
       if (microsoft_mode && microsoft_version < 1400 &&
           object_class_type != NULL &&
           object_class_type->variant.class_struct_union.dtor_decl_suppressed &&
