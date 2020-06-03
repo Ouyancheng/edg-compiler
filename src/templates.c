@@ -23262,8 +23262,33 @@ base-specifier-list.
 {
   begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
   if (list_init_enabled && !cli_or_cx_enabled) {
+    a_template_symbol_supplement_ptr  tssp;
+    a_type_ptr                        proto_type;
+    a_symbol_ptr                      proto_sym;
+    a_template_arg_ptr                template_arg_list;
+    a_push_scope_options_set	      ps_options = PS_PROTOTYPE_INSTANTIATION;
+    tssp = template_supplement_for_symbol(template_sym);
+    proto_sym = tssp->variant.class_template.prototype_instantiation;
+    proto_type = proto_sym->variant.class_struct_union.type;
+    template_arg_list = templ_arg_list_for_class(proto_type);
     add_stop_token(tok_lbrace);
+    /* An instantiation scope is needed to establish the proper context
+       if this is a definition outside of the original namespace or class. */
+    (void)push_template_instantiation_scope(
+                                    tssp->cache.decl_info,
+				    proto_type,
+				    (a_routine_ptr)NULL, proto_sym,
+				    template_sym, template_arg_list,
+                                    /*push_lex_state=*/FALSE,
+                                    ps_options);
     prescan_base_specifier_list(decl_state, template_sym);
+    (void)pop_template_instantiation_scope();
+    if (curr_token != tok_lbrace) {
+      /* An error will be reported during the prototype instantiation.  Just
+         flush tokens here. */
+      expect_error();
+      flush_tokens();
+    }  /* if */
     remove_stop_token(tok_lbrace);
   } else {
     incr_token_set_array_element(*stop_tokens, tok_lbrace);
