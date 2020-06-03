@@ -24472,7 +24472,8 @@ the associated concept; otherwise, set it to NULL.
       concept_templ = coalesce_and_lookup_generalized_identifier(
                                                gid_options, ilm_normal, &err);
       if (concept_templ == NULL ||
-          !symbol_is(concept_templ, sk_concept_template)) {
+          (!symbol_is(concept_templ, sk_concept_template) ||
+           type_constraint_followed_by_auto())) {
         /* An identifier other than a concept template: This is a nontype
            template parameter. */
         result = (a_symbol_kind)sk_constant;

@@ -987,6 +987,43 @@ assembler code.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+a_boolean type_constraint_followed_by_auto(void)
+/*
+The current token is a concept template name.  Return TRUE if it represents a
+type-constraint followed by "auto".
+*/
+{
+  a_boolean                result;
+  a_token_cache            cache;
+  a_token_sequence_number  start_tsn = curr_token_sequence_number;
+
+  begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
+  /* Skip the concept name. */
+  (void)get_token();
+  if (curr_token == tok_lt) {
+    a_boolean      saved_in_disambiguation;
+    saved_in_disambiguation = scope_stack_top().in_disambiguation;
+    scope_stack_top().in_disambiguation = TRUE;
+    (void)cache_token_stream_until_matching_token(
+                      (a_token_cache*)NULL,
+                      CTS_COALESCE_IDS | CTS_STOP_ON_STATEMENT_END);
+    scope_stack_top().in_disambiguation = saved_in_disambiguation;
+    if (curr_token == tok_gt) {
+      (void)get_token();
+    }  /* if */
+  }  /* if */
+  result = (curr_token == tok_auto);
+  end_caching_fetched_tokens();
+  clear_token_cache(&cache, /*reusable=*/FALSE);
+  copy_tokens_from_cache(curr_lexical_state_cache(), start_tsn,
+                         last_token_sequence_number_of_token,
+                         /*include_last_token=*/TRUE, &cache);
+  f_rescan_cached_tokens(
+              &cache, /*discard_curr_token=*/curr_token != tok_end_of_source);
+  return  result;
+}  /* type_constraint_followed_by_auto */
+
+
 a_symbol_ptr curr_type_symbol(a_boolean is_new_type_name,
                               a_boolean in_prescan,
                               a_boolean in_type_check,
@@ -1083,37 +1120,13 @@ return the symbol representing that template.
               concept_okay) {
             /* This is a special case where a concept template may be returned,
                but only if the concept or concept-id is followed by "auto". */
-            a_token_cache            cache;
-            a_token_sequence_number  start_tsn = curr_token_sequence_number;
-            begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
-            /* Skip the concept name. */
-            (void)get_token();
-            if (curr_token == tok_lt) {
-              a_boolean      saved_in_disambiguation;
-              saved_in_disambiguation = scope_stack_top().in_disambiguation;
-              scope_stack_top().in_disambiguation = TRUE;
-              (void)cache_token_stream_until_matching_token(
-                                (a_token_cache*)NULL,
-                                CTS_COALESCE_IDS | CTS_STOP_ON_STATEMENT_END);
-              scope_stack_top().in_disambiguation = saved_in_disambiguation;
-              if (curr_token == tok_gt) {
-                (void)get_token();
-              }  /* if */
-            }  /* if */
-            if (curr_token != tok_auto) {
+            if (!type_constraint_followed_by_auto()) {
               /* The constraint was not followed by "auto": Do not treat it as
                  a type. */
               assoc_symbol = NULL;
               clear_specific_symbol(locator_for_curr_id);
               locator_for_curr_id.symbol_header = saved_header;
             }  /* if */
-            end_caching_fetched_tokens();
-            clear_token_cache(&cache, /*reusable=*/FALSE);
-            copy_tokens_from_cache(curr_lexical_state_cache(), start_tsn,
-                                   last_token_sequence_number_of_token,
-                                   /*include_last_token=*/TRUE, &cache);
-            f_rescan_cached_tokens(
-              &cache, /*discard_curr_token=*/curr_token != tok_end_of_source);
           } else {
             assoc_symbol = NULL;
             clear_specific_symbol(locator_for_curr_id);

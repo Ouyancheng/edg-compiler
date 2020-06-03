@@ -62,13 +62,15 @@ typedef enum /*an_id_linkage_kind*/ {
 } an_id_linkage_kind;
 
 
+extern a_boolean type_constraint_followed_by_auto(void);
+
 /* Return the symbol if the current token is a type name identifier. */
-a_symbol_ptr curr_type_symbol(a_boolean is_new_type_name,
-                              a_boolean in_prescan,
-                              a_boolean in_type_check,
-                              a_boolean is_implicit_type_context,
-                              a_boolean is_sizeof_context,
-                              a_boolean concept_okay = FALSE);
+extern a_symbol_ptr curr_type_symbol(a_boolean is_new_type_name,
+                                     a_boolean in_prescan,
+                                     a_boolean in_type_check,
+                                     a_boolean is_implicit_type_context,
+                                     a_boolean is_sizeof_context,
+                                     a_boolean concept_okay = FALSE);
 
 /*
 Macro that is TRUE if the current token (which must be an identifier or
