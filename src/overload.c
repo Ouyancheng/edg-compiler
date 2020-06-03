@@ -5985,7 +5985,8 @@ next_argument:
         goto reject_function;
       }  /* if */
       ++(tssp->variant.function.pending_deductions);
-      if (!check_template_constraints(function_symbol, local_template_arg_list,
+      if (!check_template_constraints(originator_symbol_of(function_symbol),
+                                      local_template_arg_list,
                                       /*diagnose=*/FALSE)) {
         --(tssp->variant.function.pending_deductions);
         goto reject_function;

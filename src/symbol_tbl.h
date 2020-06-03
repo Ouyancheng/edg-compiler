@@ -6674,6 +6674,12 @@ constructor symbols.
     if (rp->is_inheriting_ctor) {
       sym = symbol_for(get_inh_ctor_originator(rp, /*ignore_virtual=*/TRUE));
     }  /* if */
+  } else if (symbol_is(sym, sk_function_template)) {
+    a_routine_ptr  rp = sym->variant.template_info->variant.function.routine;
+    if (rp->is_inheriting_ctor) {
+      sym = symbol_for(get_inh_ctor_originator(rp, /*ignore_virtual=*/TRUE)
+                       ->assoc_template);
+    }  /* if */
   }  /* if */
   return sym;
 }  /* originator_symbol_of */
