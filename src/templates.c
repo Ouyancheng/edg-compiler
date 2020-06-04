@@ -25036,7 +25036,7 @@ a type constraint.  Return that constraint.  In error cases, return NULL.
     }  /* if */
   }  /* if */
   if (!err && (tpp == NULL || !symbol_is(tpp->param_symbol, sk_type))) {
-    /* The concept should be a "type concept": A template whose first parameter
+    /* The concept should be a "type concept": a template whose first parameter
        is a type parameter. */
     pos_error(ec_type_constraint_requires_type_concept,&
               tpp->param_symbol->decl_position);

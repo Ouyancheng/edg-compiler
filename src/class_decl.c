@@ -11823,7 +11823,7 @@ was used).
       } else if (fundamental_symbol_of(new_sym)
                                         ->variant.routine.ptr->is_ineligible) {
         /* The previous declaration was not "eligible" (meaning that a trailing
-           requires-clause failed when the enclosing class was instantiated.
+           requires-clause failed when the enclosing class was instantiated).
            Do not issue an error even though the types otherwise match. */
         suppress_redecl_error = TRUE;
       } else if (is_class_member_using_decl_symbol(new_sym)) {
