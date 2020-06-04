@@ -34058,7 +34058,7 @@ an instantiation is not actually required for the entity.
   a_boolean			result = FALSE;
 
   tip = template_instance_for_symbol(sym);
-  if (tip != NULL) {
+  if (tip != NULL && !tip->suppress_instantiation) {
     a_master_instance_ptr		mip;
     mip = master_instance_of(tip);
     if (mip->instance_required_count == 0) {

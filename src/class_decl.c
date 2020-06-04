@@ -14297,11 +14297,11 @@ set; otherwise, it is NULL.
     case sfk_destructor:
       /* Set the pointer to the destructor symbol in the class symbol
          supplement. */
-      if (!decl_info->decl_state.ineligible) {
-        a_symbol_ptr  dtor_sym = cssp->destructor;
+      { a_symbol_ptr  dtor_sym = cssp->destructor;
         if (dtor_sym == NULL || dtor_sym->variant.routine.ptr->is_ineligible) {
           cssp->destructor = sym;
-        } else if (sym->variant.routine.ptr->assoc_template != NULL) {
+        } else if (sym->variant.routine.ptr->assoc_template != NULL &&
+                   !decl_info->decl_state.ineligible) {
           a_symbol_ptr  old_sym, new_sym;
           int           order;
           old_sym = symbol_for(dtor_sym->variant.routine.ptr->assoc_template);
@@ -23356,11 +23356,13 @@ The routine body is not generated until it is known to be needed.
   } else if (cssp->destructor != NULL) {
     a_routine_ptr  rp = cssp->destructor->variant.routine.ptr;
     update_routine_type_exception_specification_if_needed(rp, &rp->type);
-    if (cssp->destructor->ambiguous) {
+    if (rp->is_ineligible) {
       a_diagnostic_ptr  dp;
       a_diag_list       diag_list;
       clear_diag_list(&diag_list);
-      dp = pos_ty_start_error(ec_ambiguous_destructor_constraints,
+      dp = pos_ty_start_error(cssp->destructor->ambiguous ?
+                                ec_ambiguous_destructor_constraints :
+                                ec_failed_destructor_constraints,
                               &error_position, class_type);
       rp = class_type_supp(class_type)->assoc_scope->routines;
       for (; rp != NULL; rp = rp->next) {

@@ -3207,6 +3207,7 @@ ec_type_constraint_requires_type_concept;;"type constraint must use a type conce
 ec_placeholder_type_failed_constraint;;"the deduced placeholder type %t failed the type constraint"
 ec_ineligible_default_constructor;;"default constructor for %t is not eligible"
 ec_ambiguous_destructor_constraints;;"destructor for %t is ambiguous because of unordered constraints"
+ec_failed_destructor_constraints;;"destructor for %t is ineligible because of failed constraints"
 ec_destructor_position;;"ambiguous destructor candidate"
 ###############################################################################
 #                                                             \  ___  /       #

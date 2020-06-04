@@ -2421,7 +2421,9 @@ typedef struct a_template_instance {
   a_bit_field	suppress_instantiation:1;
 			/* TRUE if the instantiation of this entity should be
 			   suppressed because of previous errors that occurred
-			   during the partial instantiation of the entity. */
+			   during the partial instantiation of the entity or
+			   because the instance is ineligible (e.g., because
+			   C++20 constraints were not satisfied). */
   a_bit_field	is_guiding_decl:1;
 			/* For instances of nonmember function templates,
 			   TRUE if this instance is a guiding declaration
