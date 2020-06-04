@@ -10523,11 +10523,19 @@ instantiations are only permitted in namespace scope).
                                   tp->source_corresp.attributes);
                 write_tok_str("; ");
               } else {
-                while (tp->kind == (a_type_kind)tk_pointer) {
-                  /* A pointer or reference; check the type to which it
-                     points or refers. */
-                  tp = skip_typerefs(tp->variant.pointer.type);
-                }  /* while */
+                for (;;) {
+                  if (tp->kind == (a_type_kind)tk_pointer) {
+                    /* A pointer or reference; check the type to which it
+                       points or refers. */
+                    tp = skip_typerefs(tp->variant.pointer.type);
+                  } else if (tp->kind == (a_type_kind)tk_array) {
+                    /* An array type; check the element type. */
+                    tp = underlying_array_element_type(tp);
+                    tp = skip_typerefs(tp);
+                  } else {
+                    break;
+                  }  /* if */
+                }  /* for */
                 arg_scp = &tp->source_corresp;
               }  /* if */
             }
