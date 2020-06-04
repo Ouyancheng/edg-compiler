@@ -1867,17 +1867,13 @@ references.
 /*
 Get a token and, if it is a tok_identifier and coalesce_ids is TRUE, call
 is_generalized_identifier_start to coalesce it in case it is the beginning
-of something like a qualified name.  options is the set of CTS flags passed
-to the caller.
+of something like a qualified name.
 */
-#define get_token_and_coalesce_if_needed(coalesce_ids, options)		\
+#define get_token_and_coalesce_if_needed(coalesce_ids)			\
   if (coalesce_ids) {							\
     (void)get_token();							\
-    (void)is_generalized_identifier_start(				\
-            GID_TEMPLATE_ARGS_OPTIONAL |				\
-            GID_IS_EXPR_CONTEXT |					\
-            (((options) & CTS_IS_TEMPLATE_BASE_CLASS) != 0		\
-                        ? GID_IS_BASE_CLASS : GID_NO_OPTIONS));		\
+    (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |	\
+					  GID_IS_EXPR_CONTEXT);		\
   } else {								\
     (void)get_token();							\
   }
@@ -2218,7 +2214,7 @@ not NULL, any fetched tokens will be added to cache.
   }  /* switch */
   /* Cache the current token, and advance to its successor. */
   if (add_tokens_to_cache) cache_curr_token(cache);
-  get_token_and_coalesce_if_needed(coalesce_ids, options);
+  get_token_and_coalesce_if_needed(coalesce_ids);
   /* Keep looping through successive tokens until the corresponding closing
      token is found at level zero (i.e., not within a nesting of parens,
      brackets, or braces). */
@@ -2273,7 +2269,7 @@ not NULL, any fetched tokens will be added to cache.
     if (curr_token == tok_end_of_source) break;
     /* None of the conditions was satisfied, so keep going. */
     if (add_tokens_to_cache) cache_curr_token(cache);
-    get_token_and_coalesce_if_needed(coalesce_ids, options);
+    get_token_and_coalesce_if_needed(coalesce_ids);
     if (curr_token == tok_shift_right && closing_token == tok_gt &&
         right_shift_can_be_angle_brackets) {
       /* A right shift token may need to be treated as two closing angle
@@ -2376,7 +2372,7 @@ a template argument list or is just a less-than sign.
     if (curr_token == tok_end_of_source) break;
     /* Add the current token to the cache and advance to its successor. */
     if (add_tokens_to_cache) cache_curr_token(cache);
-    get_token_and_coalesce_if_needed(coalesce_ids, options);
+    get_token_and_coalesce_if_needed(coalesce_ids);
   }  /* while */
   /* Leave error_position associated with what is now curr_token. */
   set_err_pos_to_curr_token();
