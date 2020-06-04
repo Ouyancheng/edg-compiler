@@ -7253,6 +7253,10 @@ are done.
 {
   a_boolean        eq = FALSE;
   an_itf_flag_set  itf_options;
+#if DEBUG
+  static int       db_level = 0;
+  db_level++;
+#endif /* DEBUG */
 
   itf_options = itf_flags_for_cc_options(options);
   if (node1 != NULL) node1 = skip_parens(node1);
@@ -7559,6 +7563,17 @@ are done.
       }  /* if */
     }  /* if */
   }  /* if */
+#if DEBUG
+  db_level--;
+  if (!eq && db_flag_is_set("compare_expressions")) {
+    fprintf(f_debug, "compare_expressions:\n");
+    fprintf(f_debug, "%*s\n", db_level, "expr1: ");
+    db_expr_node(node1, db_level);
+    fprintf(f_debug, "%*s\n", db_level, "expr2: ");
+    db_expr_node(node2, db_level);
+    fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
   return eq;
 }  /* compare_expressions */
 
