@@ -1,5 +1,16 @@
 Version 6.1
 
+6/4/20   [EDGcpfe/18615,EDGcpfe/22094,EDGcpfe/22399,EDGcpfe/22641]
+Error on braced initializer in base-specifier of class template definition
+
+The caching of class template definitions did not properly handle a
+braced initializer in a template argument list of a base-specifier
+resulting in spurious errors.  Now fixed.
+
+  template <int> struct B {};
+  template <class T> struct A : B<T{}> {};
+
+
 6/4/20   [EDGcpfe/22885]
 GNU C++ compatibility: undetected recursive instantiation of static data member
 
@@ -298,17 +309,6 @@ static data member whose type is still being defined.  For example:
   };
 
 That is now fixed.
-
-
-5/24/20  [EDGcpfe/18615,EDGcpfe/22094,EDGcpfe/22399,EDGcpfe/22641]
-Error on braced initializer in base-specifier of class template definition
-
-The caching of class template definitions did not properly handle a
-braced initializer in a template argument list of a base-specifier
-resulting in spurious errors.  Now fixed.
-
-  template <int> struct B {};
-  template <class T> struct A : B<T{}> {};
 
 
 5/22/20  [EDGcpfe/22364,EDGcpfe/22777]
