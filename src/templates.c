@@ -23638,8 +23638,12 @@ declaration of a partial specialization declared outside of its class.
                                                  ? ilm_template_friend
                                                  : ilm_template_linkage,
                               &err);
-      if (decl_state->is_template_friend && sym != NULL &&
-          should_cancel_friend_class_template_lookup(sym, decl_state)) {
+      if (err) {
+        set_to_error_locator(locator_for_curr_id);
+        sym = NULL;
+        expect_error();
+      } else if (decl_state->is_template_friend && sym != NULL &&
+                 should_cancel_friend_class_template_lookup(sym, decl_state)) {
         sym = NULL;
         suppress_redecl_error = TRUE;
         make_new_symbol_invisible = TRUE;
