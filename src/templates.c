@@ -4252,6 +4252,57 @@ by "decl_info".
 }  /* reactivate_template_declaration_scope */
 
 
+a_boolean too_many_pending_instantiations(a_symbol_ptr      template_sym,
+                                          a_symbol_ptr      instance_sym,
+                                          a_source_position *pos)
+/*
+Check whether there are too many pending instantiations of the template
+specified by template_sym.  instance_sym is the symbol of the instance
+to be instantiated.  pos is the position to use if a diagnostic is issued.
+Return TRUE if there are too many.
+*/
+{
+  a_template_symbol_supplement_ptr    tssp;
+  a_boolean                           result = FALSE;
+
+  tssp = template_supplement_for_symbol(template_sym);
+  check_assertion(tssp != NULL);
+  if (tssp->pending_instantiations >= max_pending_instantiations) {
+    sym_error(ec_runaway_recursive_instantiation, instance_sym);
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* too_many_pending_instantiations */
+
+
+void increment_pending_instantiations(a_symbol_ptr  template_sym)
+/*
+Increment the count of pending instantiations of the template specified by
+template_sym.
+*/ 
+{
+  a_template_symbol_supplement_ptr    tssp;
+
+  tssp = template_supplement_for_symbol(template_sym);
+  check_assertion(template_sym != NULL);
+  tssp->pending_instantiations++;
+}  /* increment_pending_instantiations */
+
+
+void decrement_pending_instantiations(a_symbol_ptr  template_sym)
+/*
+Decrement the count of pending instantiations of the template specified by
+template_sym.
+*/ 
+{
+  a_template_symbol_supplement_ptr    tssp;
+
+  tssp = template_supplement_for_symbol(template_sym);
+  check_assertion(template_sym != NULL);
+  tssp->pending_instantiations--;
+}  /* decrement_pending_instantiations */
+
+
 static void create_decl_state_for_partial_spec_rescan(
 			a_tmpl_decl_state_ptr			tdsp,
 			a_decl_parse_state			*dps,

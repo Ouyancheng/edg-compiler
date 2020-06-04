@@ -1354,6 +1354,14 @@ extern a_hash_value hash_substitution(a_symbol_ptr        template_sym,
 extern a_boolean compare_substituted_type_list_entry(a_void_ptr	entry,
 						     a_void_ptr	key);
 
+extern
+a_boolean too_many_pending_instantiations(a_symbol_ptr      template_sym,
+                                          a_symbol_ptr      instance_sym,
+                                          a_source_position *pos);
+
+extern void increment_pending_instantiations(a_symbol_ptr  template_sym);
+
+extern void decrement_pending_instantiations(a_symbol_ptr  template_sym);
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

@@ -1,5 +1,19 @@
 Version 6.1
 
+6/4/20   [EDGcpfe/22885]
+GNU C++ compatibility: undetected recursive instantiation of static data member
+
+In g++ mode, the in-class initializer of a static data member of a class
+template is only evaluated when it is first used.  That processing did
+not check for runaway recursive evaluations of the static data member,
+which could result in a stack overflow.  Now fixed.
+
+  template <int I> struct A {
+    static const int v = A<I+1>::v;
+  };
+  const int x = A<1>::v;
+
+
 6/3/20   [EDGcpfe/22793]
 C++-generating back end: template arguments involving local types
 

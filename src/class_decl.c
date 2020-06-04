@@ -3922,6 +3922,7 @@ constant-expression.
   a_symbol_ptr   var_sym = symbol_for(var);
   a_type_ptr     class_type = sym_parent_class(var_sym);
   a_token_cache  *token_cache = NULL;
+  a_symbol_ptr   template_sym = NULL;
 
   check_assertion(symbol_is(var_sym, sk_static_data_member) ||
                   symbol_is(var_sym, sk_variable));
@@ -3932,13 +3933,26 @@ constant-expression.
     a_static_data_member_supplement_ptr
                sdmsp = sdm_supp(var_sym);
     if (sdmsp != NULL) {
+      a_template_instance_ptr              tip;
       token_cache = sdmsp->token_cache;
       /* Clear the cache pointer to avoid runaway recursion. */
       sdmsp->token_cache = NULL;
+      tip = var_sym->variant.static_data_member.instance_ptr;
       if (var->is_specialized) {
         /* If the static data member was explicitly specialized, its
            initializer can no longer be instantiated. */
         token_cache = NULL;
+      } else if (tip != NULL) {
+        template_sym = tip->template_sym;
+        if (too_many_pending_instantiations(template_sym, var_sym,
+                                            &pos_curr_token)) {
+          /* There are too many pending instantiations of this template.
+             Clear the token_cache pointer to suppress another
+             instantiation. */
+          token_cache = NULL;
+          var->init_kind = (an_init_kind)initk_static;
+          var->initializer.constant = alloc_error_constant();
+        }  /* if */
       }  /* if */
     }  /* if */
   } else if (cli_or_cx_enabled) {
@@ -3984,6 +3998,9 @@ constant-expression.
     }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    if (template_sym != NULL) {
+      increment_pending_instantiations(template_sym);
+    }  /* if */
     /* Reactivate the class scope and parse the initializer. */
     push_class_and_template_reactivation_scope(
           class_type, /*is_template_based=*/gpp_mode,
@@ -4052,6 +4069,9 @@ constant-expression.
     flush_past_token_cache_terminator();
     pop_lexical_state_stack();
     pop_class_reactivation_scope();
+    if (template_sym != NULL) {
+      decrement_pending_instantiations(template_sym);
+    }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     scope_stack_top().ss_list_instantiation_insert_point = inst_insert_point;
