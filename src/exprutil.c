@@ -24499,7 +24499,7 @@ subject to SFINAE.
            void f(...);
            void g() { f(0); }
          fails at this stage when forming the invalid type T = "int &[1]" in
-         the parameter mapping for concept X.  (Ordinary SFINAE still applies
+         the parameter mapping for concept X.  (Ordinary SFINAE still applies,
          however.) */
       if (map_failure_is_fatal &&
           !(scope_stack_top().is_rescan && diagnose_here)) {
