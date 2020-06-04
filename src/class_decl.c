@@ -14336,8 +14336,8 @@ set; otherwise, it is NULL.
             dtor_sym->variant.routine.instance_ptr
                     ->suppress_instantiation = TRUE;
           } else if (order == 0) {
-            /* Neither constructor is preferred.  Mark them both as
-               ineligible and ambiguous. */
+            /* Neither destructor is preferred.  Mark them both as ineligible
+               and ambiguous. */
             dtor_sym->variant.routine.ptr->is_ineligible = TRUE;
             dtor_sym->variant.routine.instance_ptr
                     ->suppress_instantiation = TRUE;
@@ -14345,8 +14345,8 @@ set; otherwise, it is NULL.
             decl_info->decl_state.ineligible = TRUE;
             sym->ambiguous = TRUE;
           } else {
-            /* The new constructor is less constrained.  Retain the prior
-               constructor as the selected one, and mark the new one as
+            /* The new destructor is less constrained.  Retain the prior
+               destructor as the selected one, and mark the new one as
                ineligible. */
             decl_info->decl_state.ineligible = TRUE;
           }  /* if */
