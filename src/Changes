@@ -1,15 +1,16 @@
 Version 6.1
 
 6/3/20   [EDGcpfe/22793]
-C++-generating back end: pointer/reference to local type as template argument
+C++-generating back end: template arguments involving local types
 
 In C++-generating back end configurations in which
 CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, a use of a
-template with a template type argment that is a pointer or reference to a
-local type resulted in a generated explicit specialization for that
-template instance in which the template argument referred to the local type
-from a point at which it is not in scope.  This is now fixed; such explicit
-specializations no longer appear in the generated code.  For example:
+template with a template type argment that is an array, pointer, or
+reference involving a local type resulted in a generated explicit
+specialization for that template instance in which the template argument
+referred to the local type from a point at which it is not in scope.  This
+is now fixed; such explicit specializations no longer appear in the
+generated code.  For example:
 
   template<typename T> struct A { };
   template<typename T> struct X { };
