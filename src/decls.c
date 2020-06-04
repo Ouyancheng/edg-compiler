@@ -993,14 +993,19 @@ The current token is a concept template name.  Return TRUE if it represents a
 type-constraint followed by "auto".
 */
 {
-  a_boolean                result;
-  a_token_cache            cache;
-  a_token_sequence_number  start_tsn = curr_token_sequence_number;
+  a_boolean      result, discard_curr_token = FALSE;
+  a_token_cache  cache;
 
-  begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
-  /* Skip the concept name. */
+  clear_token_cache(&cache, /*reusable=*/FALSE);
+  /* Cache and skip the concept name.  Note that it may be a qualified name
+     that has been coalesced already.  So that part should not be handled by
+     the background caching approach used to cache the optional argument list
+     that follows. */
+  cache_curr_token(&cache);
   (void)get_token();
   if (curr_token == tok_lt) {
+    a_token_sequence_number  start_tsn = curr_token_sequence_number;
+    begin_caching_fetched_tokens(/*include_curr_token=*/TRUE);
     a_boolean      saved_in_disambiguation;
     saved_in_disambiguation = scope_stack_top().in_disambiguation;
     scope_stack_top().in_disambiguation = TRUE;
@@ -1011,15 +1016,14 @@ type-constraint followed by "auto".
     if (curr_token == tok_gt) {
       (void)get_token();
     }  /* if */
+    end_caching_fetched_tokens();
+    copy_tokens_from_cache(curr_lexical_state_cache(), start_tsn,
+                           last_token_sequence_number_of_token,
+                           /*include_last_token=*/TRUE, &cache);
+    discard_curr_token = (curr_token != tok_end_of_source);
   }  /* if */
   result = (curr_token == tok_auto);
-  end_caching_fetched_tokens();
-  clear_token_cache(&cache, /*reusable=*/FALSE);
-  copy_tokens_from_cache(curr_lexical_state_cache(), start_tsn,
-                         last_token_sequence_number_of_token,
-                         /*include_last_token=*/TRUE, &cache);
-  f_rescan_cached_tokens(
-              &cache, /*discard_curr_token=*/curr_token != tok_end_of_source);
+  f_rescan_cached_tokens(&cache, discard_curr_token);
   return  result;
 }  /* type_constraint_followed_by_auto */
 
