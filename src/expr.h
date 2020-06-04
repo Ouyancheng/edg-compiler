@@ -502,11 +502,13 @@ extern void deduce_return_type_from_void_operand(
                                           a_source_position  *diag_pos);
 
 extern a_boolean arg_matches_auto_template_param(
-				a_type_ptr		param_type,
-				a_constant_ptr		constant,
-				an_arg_operand_ptr	arg_operand,
-				a_type_ptr		*p_deduced_type,
-				a_source_position_ptr	position);
+                                     a_type_ptr             param_type,
+                                     a_constant_ptr         constant,
+                                     an_arg_operand_ptr     arg_operand,
+                                     a_type_ptr             *p_deduced_type,
+                                     a_source_position_ptr  position,
+                                     a_template_arg_ptr     arg_list = NULL,
+                                     a_template_param_ptr   param_list = NULL);
 
 extern
 void transfer_arg_operand_for_template_arg(a_template_arg_ptr tap,
@@ -707,8 +709,11 @@ extern a_dynamic_init_ptr forwarding_initializer_for_inheriting_constructor(
                                                        a_routine_ptr inh_ctor);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-extern void scan_template_argument_constant_expression(a_type_ptr param_type,
-                                                       a_constant *constant);
+extern void scan_template_argument_constant_expression(
+                                     a_type_ptr             param_type,
+                                     a_constant             *constant,
+                                     a_template_arg_ptr     arg_list = NULL,
+                                     a_template_param_ptr   param_list = NULL);
 
 extern an_arg_operand_ptr scan_nontype_template_argument(
                                   a_decl_sequence_number initial_inst_seq_num);

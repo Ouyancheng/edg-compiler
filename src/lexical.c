@@ -16829,7 +16829,8 @@ next_integer_pack_element:
           }  /* if */
         } else {
           constant = fs_constant((a_constant_repr_kind)ck_error);
-          scan_template_argument_constant_expression(constant_type, constant);
+          scan_template_argument_constant_expression(constant_type, constant,
+                                                     arg_list, param_list);
           /* Make sure the constant does not use a local or nonexternal
              variable, etc. */
           if (nontype_templ_arg_constant_involves_invalid_linkage(constant)) {

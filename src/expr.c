@@ -526,19 +526,23 @@ TRUE and FALSE is returned.
 
 
 a_boolean arg_matches_auto_template_param(
-				a_type_ptr		param_type,
-				a_constant_ptr		constant,
-				an_arg_operand_ptr	arg_operand,
-				a_type_ptr		*p_deduced_type,
-				a_source_position_ptr	position)
+                                       a_type_ptr             param_type,
+                                       a_constant_ptr         constant,
+                                       an_arg_operand_ptr     arg_operand,
+                                       a_type_ptr             *p_deduced_type,
+                                       a_source_position_ptr  position,
+                                       a_template_arg_ptr     arg_list,
+                                       a_template_param_ptr   param_list)
 /*
 Return TRUE if the auto template parameter type specified by param_type
-matches the type of the argument specified by constant or arg_operand.
-Only one of constant or arg_operand must be non-NULL.  If position is
-non-NULL, a diagnostic is issued if either the resulting type is invalid
-as a nontype parameter, or if an auto type cannot be deduced.  If
-*p_deduced_type is not NULL, it is set to either the deduced type or an
-error type.
+matches the type of the argument specified by constant or arg_operand.  Only
+one of constant or arg_operand must be non-NULL.  If position is non-NULL, a
+diagnostic is issued if either the resulting type is invalid as a nontype
+parameter, or if an auto type cannot be deduced.  If *p_deduced_type is not
+NULL, it is set to either the deduced type or an error type.  param_list is
+the template parameter list that the auto template parameter is part of, and
+arg_list are the corresponding template arguments that have been processed so
+far.
 */
 {
   a_boolean              result = FALSE;
@@ -579,11 +583,21 @@ error type.
                          position,
                          &deduced_type, &deduced_auto_type,
                          &still_dependent)) {
-      /* The deduction succeeded.  Make sure the resulting type is valid as
-         a nontype template parameter. */
-      if (check_nontype_template_param_type(&deduced_type, /*from_auto=*/TRUE,
-                                            position)) {
-        result = TRUE;
+                       
+      if (param_list != NULL &&
+          bottom_type->variant.template_param.extra_info->coordinates.depth !=
+                                    CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH &&
+          !template_param_constraint_satisfied(bottom_type, deduced_auto_type,
+                                               arg_list, param_list,
+                                               position)) {
+        /* The constraint was not satisfied. */
+      } else {
+        /* The deduction succeeded.  Make sure the resulting type is valid as
+           a nontype template parameter. */
+        if (check_nontype_template_param_type(&deduced_type,
+                                              /*from_auto=*/TRUE, position)) {
+          result = TRUE;
+        }  /* if */
       }  /* if */
     } else {
       if (still_dependent) {
@@ -45705,13 +45719,18 @@ escape at the end of the expression.)
 }  /* check_nontype_template_argument_type */
 
 
-void scan_template_argument_constant_expression(a_type_ptr param_type,
-                                                a_constant *constant)
+void scan_template_argument_constant_expression(
+                                           a_type_ptr             param_type,
+                                           a_constant             *constant,
+                                           a_template_arg_ptr     arg_list,
+                                           a_template_param_ptr   param_list)
 /*
-Scan a constant argument in a template reference.  Issue an error if it
-is incompatible with the corresponding parameter type, param_type.
-Return the constant in *constant (which must be in the file scope
-memory region).  If param_type is NULL, the parameter type is not known.
+Scan a constant argument in a template reference.  Issue an error if it is
+incompatible with the corresponding parameter type, param_type.  Return the
+constant in *constant (which must be in the file scope memory region).  If
+param_type is NULL, the parameter type is not known.  If the associated
+template parameter list is known, it is given by param_list and arg_list are
+the corresponding arguments processed so far.
 */
 {
   an_operand             result;
@@ -45758,7 +45777,7 @@ memory region).  If param_type is NULL, the parameter type is not known.
       arg_operand->operand = result;
       (void)arg_matches_auto_template_param(param_type, (a_constant_ptr)NULL,
                                             arg_operand, &deduced_type,
-                                            &start_pos);
+                                            &start_pos, arg_list, param_list);
       param_type = deduced_type;
       free_arg_operand_list(arg_operand);
     }  /* if */

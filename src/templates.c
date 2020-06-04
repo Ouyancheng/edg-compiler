@@ -2679,7 +2679,8 @@ Otherwise it is zero.
                                     tpp->variant.constant.ptr->type, constant,
                                     (an_arg_operand_ptr)NULL,
                                     (a_type_ptr*)NULL,
-                                    (a_source_position_ptr)NULL);
+                                    (a_source_position_ptr)NULL,
+                                    templ_arg_list, templ_param_list);
           } else if (tpp->variant.constant.type_involves_template_param) {
             match = identical_types(constant_type, constant->type);
           }  /* if */
@@ -10267,6 +10268,66 @@ issue a diagnostic if diagnose is TRUE.
 }  /* requires_constraint_satisfied */
 
 
+a_boolean template_param_constraint_satisfied(a_type_ptr            param_type,
+                                              a_type_ptr            arg_type,
+                                              a_template_arg_ptr    arg_list,
+                                              a_template_param_ptr  param_list,
+                                              a_source_position     *diag_pos)
+/*
+param_type is a template parameter type (possible "auto" in a non-type template
+parameter) and arg_type the corresponding argument type.  If param_type has an
+associated type constraint, check that constraint for arg_type.  Return TRUE if
+the constraint is satisfied.  Otherwise, return FALSE and, if diag_pos is not
+NULL, issue a diagnostic at the given position.  param_list is the list of
+template parameters for which this is being checked, and arg_list the
+corresponding template arguments that have been determined so far.
+*/
+{
+  a_boolean         result;
+  an_expr_node_ptr  constraint = NULL;
+
+  if (param_type->variant.template_param.extra_info->coordinates.depth !=
+                                   CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH) {
+    constraint = param_type->variant.template_param.extra_info
+                           ->constraint.type_constraint;
+  }  /* if */
+  if (constraint == NULL) {
+    /* No constraint. */
+    result = TRUE;
+  } else {
+    a_diag_list  diag_list, *p_diag_list = NULL;
+    if (diag_pos != NULL) {
+      clear_diag_list(&diag_list);
+      p_diag_list = &diag_list;
+    }  /* if */
+    // FIXME: Record all substitution levels
+    a_subst_pairs_array  subst_pairs(1);
+    subst_pairs.push_back(a_subst_pairs_descr{ param_list, arg_list,
+                                               FALSE, FALSE });
+    if (check_type_constraint(arg_type, constraint,
+                              subst_pairs, p_diag_list)) {
+      result = TRUE;
+    } else {
+      result = FALSE;
+      if (diag_pos != NULL) {
+        a_diagnostic_ptr  dp;
+        a_diag_list       lead_note;
+        clear_diag_list(&lead_note);
+        more_info_type_diagnostic(ec_type_constraint_failed,
+                                  &constraint->position, arg_type,
+                                  &lead_note);
+        splice_diag_list(&lead_note, p_diag_list,
+                         /*insert_after=*/(a_diagnostic_ptr)NULL);
+        dp = pos_start_error(ec_template_constraint_not_satisfied, diag_pos);
+        add_more_info_list(dp, p_diag_list);
+        end_diagnostic(dp);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* template_param_constraint_satisfied */
+
+
 a_boolean check_template_constraints(a_symbol_ptr        template_sym,
                                      a_template_arg_ptr  args,
                                      a_boolean           diagnose)
@@ -10290,19 +10351,13 @@ TRUE, issue a diagnostic explaining the failure.
   if (tssp->has_template_param_constraint) {
     /* Check type constraints of template arguments. */
     a_boolean             auto_param_seen = FALSE;
-    a_diag_list           diag_list, *p_diag_list = NULL;
     a_template_arg_ptr    tap = args;
     a_template_param_ptr  tpp, params = tssp->cache.decl_info->parameters;
-    if (diagnose) {
-      clear_diag_list(&diag_list);
-      p_diag_list = &diag_list;
-    }  /* if */
     begin_template_arg_list_traversal(params, tap, &tpp, &tap);
     while (tpp != NULL && tap != NULL) {
       a_symbol_ptr      param_sym = tpp->param_symbol;
       if (symbol_is(param_sym, sk_type)) {
         a_type_ptr        tp = tpp->variant.type;
-        an_expr_node_ptr  type_constraint;
         if (!auto_param_seen && tp->variant.template_param.is_auto_param) {
           /* The template requires clause comes between ordinary template
              parameter type constraints and type constraints resulting from
@@ -10318,32 +10373,11 @@ TRUE, issue a diagnostic explaining the failure.
           }  /* if */
           auto_param_seen = TRUE;
         }  /* if */
-        type_constraint = tp->variant.template_param.extra_info
-                            ->constraint.type_constraint;
-        if (type_constraint != NULL) {
-          // FIXME: Record all substitution levels
-          a_subst_pairs_array  subst_pairs(1);
-          subst_pairs.push_back(a_subst_pairs_descr{ params, args,
-                                                     FALSE, FALSE });
-          if (!check_type_constraint(tap->variant.type, type_constraint,
-                                     subst_pairs, p_diag_list)) {
-            if (diagnose) {
-              a_diagnostic_ptr  dp;
-              a_diag_list       lead_note;
-              clear_diag_list(&lead_note);
-              more_info_type_diagnostic(ec_type_constraint_failed,
-                                        &param_sym->decl_position,
-                                        tap->variant.type, &lead_note);
-              splice_diag_list(&lead_note, p_diag_list,
-                               /*insert_after=*/(a_diagnostic_ptr)NULL);
-              dp = pos_start_error(ec_template_constraint_not_satisfied,
-                                   &diag_pos);
-              add_more_info_list(dp, p_diag_list);
-              end_diagnostic(dp);
-            }  /* if */
-            result = FALSE;
-            break;
-          }  /* if */
+        if (!template_param_constraint_satisfied(
+                                          tp, tap->variant.type, args, params,
+                                          diagnose ? &diag_pos : NULL)) {
+          result = FALSE;
+          break;
         }  /* if */
       }  /* if */
       advance_to_next_template_arg(&tpp, &tap);
@@ -11307,7 +11341,8 @@ doing C++17-style template template parameter matching.
                            tpp->variant.constant.ptr->type,
                            (a_constant_ptr)NULL, specified_tap->arg_operand,
                            &constant_type,
-                           (a_source_position_ptr)NULL)) {
+                           (a_source_position_ptr)NULL,
+                           partial_arg_list, templ_param_list)) {
                 arg_kind_mismatch = TRUE;
                 break;
               }  /* if */
@@ -13550,7 +13585,8 @@ parameters.
                                            tap->variant.constant,
                                            (an_arg_operand_ptr)NULL,
                                            (a_type_ptr*)NULL,
-                                           (a_source_position_ptr)NULL)) {
+                                           (a_source_position_ptr)NULL,
+                                           templ_arg_list, templ_param_list)) {
         /* It is not compatible. */
         subst_fail(*copy_error);
       }  /* if */

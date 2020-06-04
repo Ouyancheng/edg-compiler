@@ -509,6 +509,13 @@ extern a_boolean template_arg_list_involves_error_entity(
 
 extern an_expr_node_ptr scan_type_constraint(a_symbol_ptr  concept_templ);
 
+extern
+a_boolean template_param_constraint_satisfied(a_type_ptr            param_type,
+                                              a_type_ptr            arg_type,
+                                              a_template_arg_ptr    arg_list,
+                                              a_template_param_ptr  param_list,
+                                              a_source_position     *diag_pos);
+
 extern a_boolean check_template_constraints(a_symbol_ptr        template_sym,
                                             a_template_arg_ptr  args,
                                             a_boolean           diagnose);
