@@ -10523,6 +10523,11 @@ instantiations are only permitted in namespace scope).
                                   tp->source_corresp.attributes);
                 write_tok_str("; ");
               } else {
+                while (tp->kind == (a_type_kind)tk_pointer) {
+                  /* A pointer or reference; check the type to which it
+                     points or refers. */
+                  tp = skip_typerefs(tp->variant.pointer.type);
+                }  /* while */
                 arg_scp = &tp->source_corresp;
               }  /* if */
             }
