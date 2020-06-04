@@ -1005,8 +1005,8 @@ type-constraint followed by "auto".
     saved_in_disambiguation = scope_stack_top().in_disambiguation;
     scope_stack_top().in_disambiguation = TRUE;
     (void)cache_token_stream_until_matching_token(
-                      (a_token_cache*)NULL,
-                      CTS_COALESCE_IDS | CTS_STOP_ON_STATEMENT_END);
+                                (a_token_cache*)NULL,
+                                CTS_COALESCE_IDS | CTS_STOP_ON_STATEMENT_END);
     scope_stack_top().in_disambiguation = saved_in_disambiguation;
     if (curr_token == tok_gt) {
       (void)get_token();
