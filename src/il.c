@@ -7567,9 +7567,9 @@ are done.
   db_level--;
   if (!eq && db_flag_is_set("compare_expressions")) {
     fprintf(f_debug, "compare_expressions:\n");
-    fprintf(f_debug, "%*s\n", db_level, "expr1: ");
+    fprintf(f_debug, "%*s%s\n", db_level, "", "expr1: ");
     db_expr_node(node1, db_level);
-    fprintf(f_debug, "%*s\n", db_level, "expr2: ");
+    fprintf(f_debug, "%*s%s\n", db_level, "", "expr2: ");
     db_expr_node(node2, db_level);
     fprintf(f_debug, "\n");
   }  /* if */
