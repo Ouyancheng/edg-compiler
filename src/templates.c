@@ -4269,7 +4269,7 @@ Return TRUE if there are too many.
   tssp = template_supplement_for_symbol(template_sym);
   check_assertion(tssp != NULL);
   if (tssp->pending_instantiations >= max_pending_instantiations) {
-    sym_error(ec_runaway_recursive_instantiation, instance_sym);
+    pos_sy_error(ec_runaway_recursive_instantiation, pos, instance_sym);
     result = TRUE;
   }  /* if */
   return result;
