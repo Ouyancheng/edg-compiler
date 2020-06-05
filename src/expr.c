@@ -27031,7 +27031,8 @@ non_ctor_case_after_expr_scan:
           err = TRUE;
         }  /* if */
       } else if (is_template_dependent_context() &&
-                 is_template_dependent_type(type_cast_to)) {
+                 (is_template_dependent_type(type_cast_to) ||
+                  operand_is_instantiation_dependent(result))) {
         if (result->bound_function) {
           /* Make sure the bound function is handled now and not returned to
              the caller. */
