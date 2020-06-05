@@ -28628,43 +28628,73 @@ NULL, return in *p_none_viable whether no viable spaceship operator was found.
                          &op_type)) {
         change_binary_operand_types(op_type, opnd1, opnd2,
                                     (an_expr_operator_kind)eok_spaceship);
+        normal_case = TRUE;
         if (is_pointer_to_function_type(op_type)) {
-          result_type = strong_equality_type();
+          /* During the C++20 standardization cycle pointer-to-function types
+             could be compared, but that ability was later removed.  Some
+             Microsoft compilers shipped with the feature enabled. */
+          if (microsoft_mode) {
+            result_type = strong_equality_type();
+          } else {
+            expr_pos_ty2_error(ec_invalid_spaceship_types, operator_pos,
+                               opnd1->type, opnd2->type);
+            err_case = TRUE;
+            goto done_with_builtin_spaceship;
+          }  /* if */
         } else {
           result_type = strong_ordering_type();
         }  /* if */
-        normal_case = TRUE;
       } else {
         err_case = TRUE;
         goto done_with_builtin_spaceship;
       }  /* if */
     } else if (is_ptr_to_member_type(opnd1->type) ||
                is_ptr_to_member_type(opnd2->type)) {
-      /* At least one operand is a pointer to member.  See if the operands
-         are compatible. */
-      if (check_ptr_to_member_operands_for_compatibility(
-                              opnd1, opnd2, operator_pos, &op_type)) {
-        change_binary_operand_types(op_type, opnd1, opnd2,
-                                    (an_expr_operator_kind)eok_spaceship);
+      /* During the C++20 standardization cycle pointer-to-member types could
+         be compared, but that ability was later removed.  Some Microsoft
+         compilers shipped with the feature enabled. */
+      if (microsoft_mode) {
+        /* At least one operand is a pointer to member.  See if the operands
+           are compatible. */
+        if (check_ptr_to_member_operands_for_compatibility(
+                                opnd1, opnd2, operator_pos, &op_type)) {
+          change_binary_operand_types(op_type, opnd1, opnd2,
+                                      (an_expr_operator_kind)eok_spaceship);
+        } else {
+          err_case = TRUE;
+          goto done_with_builtin_spaceship;
+        }  /* if */
+        result_type = strong_equality_type();
+        normal_case = TRUE;
       } else {
+        expr_pos_ty2_error(ec_invalid_spaceship_types, operator_pos,
+                           opnd1->type, opnd2->type);
         err_case = TRUE;
         goto done_with_builtin_spaceship;
       }  /* if */
-      result_type = strong_equality_type();
-      normal_case = TRUE;
     } else if (is_nullptr_type(opnd1->type) ||
                is_nullptr_type(opnd2->type)) {
-      /* At least one of the operands has a nullptr type. */
-      if (check_compatibility_of_nullptr_operands(opnd1, opnd2, operator_pos,
-                                                  &op_type)) {
-        change_binary_operand_types(op_type, opnd1, opnd2,
-                                    (an_expr_operator_kind)eok_spaceship);
+      /* During the C++20 standardization cycle nullptr values could be
+         compared, but that ability was later removed.  Some Microsoft
+         compilers shipped with the feature enabled. */
+      if (microsoft_mode) {
+        /* At least one of the operands has a nullptr type. */
+        if (check_compatibility_of_nullptr_operands(opnd1, opnd2, operator_pos,
+                                                    &op_type)) {
+          change_binary_operand_types(op_type, opnd1, opnd2,
+                                      (an_expr_operator_kind)eok_spaceship);
+        } else {
+          err_case = TRUE;
+          goto done_with_builtin_spaceship;
+        }  /* if */
+        result_type = strong_equality_type();
+        normal_case = TRUE;
       } else {
+        expr_pos_ty2_error(ec_invalid_spaceship_types, operator_pos,
+                           opnd1->type, opnd2->type);
         err_case = TRUE;
         goto done_with_builtin_spaceship;
       }  /* if */
-      result_type = strong_equality_type();
-      normal_case = TRUE;
     } else {
       expr_pos_ty2_error(ec_invalid_spaceship_types, operator_pos,
                          opnd1->type, opnd2->type);
@@ -29196,14 +29226,25 @@ but it would call a non-constexpr subobject comparison function.
           break;
         case tk_pointer:
           if (is_pointer_to_function_type(ftp)) {
-            ccs |= (a_comparison_category_set)ccs_strong_equality;
+            /* During the C++20 standardization cycle pointer-to-function
+               types could be compared, but that ability was later removed.
+               Some Microsoft compilers shipped with the feature enabled. */
+            if (microsoft_mode) {
+              ccs |= (a_comparison_category_set)ccs_strong_equality;
+            } else {
+              ccs |= (a_comparison_category_set)ccs_other;
+            }  /* if */
           } else {
             ccs |= (a_comparison_category_set)ccs_strong_ordering;
           }  /* if */
           break;
         case tk_ptr_to_member:
         case tk_nullptr:
-          ccs |= (a_comparison_category_set)ccs_strong_equality;
+          if (microsoft_mode) {
+            ccs |= (a_comparison_category_set)ccs_strong_equality;
+          } else {
+            ccs |= (a_comparison_category_set)ccs_other;
+          }  /* if */
           break;
         default:
           ccs |= (a_comparison_category_set)ccs_other;

@@ -1,5 +1,17 @@
 Version 6.1
 
+6/5/20   [EDGcpfe/22897]
+std::strong_equality and std::weak_equality
+
+When operator <=> was first specified in the C++20 draft, it had provisions for
+result types std::strong_equality and std::weak_equality.  In particular,
+comparison pointer-to-function types, pointer-to-member types, and nullptr
+values all produces a std::strong_equality result.  However, the standards
+committee's paper P1959R0 changed that to make such comparisons ill-formed and
+it removed std::strong_equality and std::weak_equality.  The front end now
+implements those changes in C++20 modes, except in Microsoft C++20 mode.
+
+
 6/5/20   [EDGcpfe/22825]
 Partial specialization ordering failure with cast in nontype argument
 
