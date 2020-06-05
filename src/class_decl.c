@@ -10119,8 +10119,7 @@ skip_base_class:
 }  /* scan_base_specifier_list */
 
 
-void prescan_base_specifier_list(a_tmpl_decl_state_ptr   decl_state,
-                                 a_symbol_ptr            template_sym)
+void prescan_base_specifier_list(a_symbol_ptr            template_sym)
 /*
 This is an interface to scan_base_specifier_list that establishes the
 class state for the purpose of scanning the base-specifier-list as part

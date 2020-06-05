@@ -180,8 +180,7 @@ extern a_boolean scan_class_definition(
                                 a_template_ptr      il_template_entry,
                                 a_decl_pos_block    *decl_pos_block);
 
-extern void prescan_base_specifier_list(a_tmpl_decl_state_ptr   decl_state,
-                                        a_symbol_ptr            template_sym);
+extern void prescan_base_specifier_list(a_symbol_ptr            template_sym);
 
 extern void set_literal_type_flag(a_type_ptr  type);
 
