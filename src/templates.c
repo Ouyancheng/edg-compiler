@@ -4285,7 +4285,7 @@ template_sym.
   a_template_symbol_supplement_ptr    tssp;
 
   tssp = template_supplement_for_symbol(template_sym);
-  check_assertion(template_sym != NULL);
+  check_assertion(tssp != NULL);
   tssp->pending_instantiations++;
 }  /* increment_pending_instantiations */
 
@@ -4299,7 +4299,7 @@ template_sym.
   a_template_symbol_supplement_ptr    tssp;
 
   tssp = template_supplement_for_symbol(template_sym);
-  check_assertion(template_sym != NULL);
+  check_assertion(tssp != NULL);
   tssp->pending_instantiations--;
 }  /* decrement_pending_instantiations */
 
