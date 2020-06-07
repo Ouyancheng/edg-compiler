@@ -23245,7 +23245,6 @@ redeclaration) and any redeclaration error should be suppressed.
 
 
 static void cache_base_specifier_list(
-                                   a_tmpl_decl_state_ptr   decl_state,
                                    a_symbol_ptr            template_sym,
                                    a_token_cache_ptr       cache,
                                    a_token_set_array       stop_tokens,
@@ -23333,7 +23332,7 @@ body.  The last token sequence numbers of the definition is returned in
   if (curr_token == tok_colon) {
     /* Scan the tokens in the base class declarations, stopping when
        the "{" is reached. */
-    cache_base_specifier_list(decl_state, template_sym, cache, stop_tokens,
+    cache_base_specifier_list(template_sym, cache, stop_tokens,
                               first_token_number);
   }  /* if */
   decr_token_set_array_element(stop_tokens, tok_semicolon);
