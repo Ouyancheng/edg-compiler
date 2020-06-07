@@ -1,5 +1,34 @@
 Version 6.1
 
+6/7/20   [EDGcpfe/22774]
+C++-generating back end: public typedefs for private classes as qualifiers
+
+In configurations in which TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+is TRUE, the C++-generating back end replaced the name of a private class
+of a generated explicit specialization with a public typedef for that
+private class as the qualifier in the definition of the private class's
+members.  The generated code is correct, but it triggered a bug in older
+versions of MSVC, resulting in spurious errors when compiling the generated
+code.  This is now fixed, and the private class name is used as the
+qualifier in such definitions.  For example, given:
+
+  template<typename T> class S {
+    struct priv {       // Private class
+      priv() { }
+    };
+  public:
+    typedef priv pub;   // Public typedef
+  };
+  S<int>::pub sp;
+
+the generated code previously contained a definition like
+
+  inline S<int>::pub::priv() { }
+
+which triggered a bug in MSVC.  The definition is now put out using "priv"
+as the qualifier instead of "pub".
+
+
 6/5/20   [EDGcpfe/22897]
 std::strong_equality and std::weak_equality
 
