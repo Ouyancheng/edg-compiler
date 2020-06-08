@@ -28633,7 +28633,7 @@ NULL, return in *p_none_viable whether no viable spaceship operator was found.
           /* During the C++20 standardization cycle pointer-to-function types
              could be compared, but that ability was later removed.  Some
              Microsoft compilers shipped with the feature enabled. */
-          if (microsoft_mode) {
+          if (ms_version_is(<1925)) {
             result_type = strong_equality_type();
           } else {
             expr_pos_ty2_error(ec_invalid_spaceship_types, operator_pos,
@@ -28653,7 +28653,7 @@ NULL, return in *p_none_viable whether no viable spaceship operator was found.
       /* During the C++20 standardization cycle pointer-to-member types could
          be compared, but that ability was later removed.  Some Microsoft
          compilers shipped with the feature enabled. */
-      if (microsoft_mode) {
+      if (ms_version_is(<1925)) {
         /* At least one operand is a pointer to member.  See if the operands
            are compatible. */
         if (check_ptr_to_member_operands_for_compatibility(
@@ -28677,7 +28677,7 @@ NULL, return in *p_none_viable whether no viable spaceship operator was found.
       /* During the C++20 standardization cycle nullptr values could be
          compared, but that ability was later removed.  Some Microsoft
          compilers shipped with the feature enabled. */
-      if (microsoft_mode) {
+      if (ms_version_is(<1925)) {
         /* At least one of the operands has a nullptr type. */
         if (check_compatibility_of_nullptr_operands(opnd1, opnd2, operator_pos,
                                                     &op_type)) {

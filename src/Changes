@@ -61,7 +61,8 @@ comparison of pointer-to-function types, pointer-to-member types, and nullptr
 values all produce a std::strong_equality result.  However, the standards
 committee's paper P1959R0 changed that to make such comparisons ill-formed and
 it removed std::strong_equality and std::weak_equality.  The front end now
-implements those changes in C++20 modes, except in Microsoft C++20 mode.
+implements those changes in C++20 modes, except in Microsoft C++20 mode with
+microsoft_version < 1925.
 
 
 6/5/20   [EDGcpfe/22825]
