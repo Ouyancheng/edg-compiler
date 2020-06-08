@@ -24900,7 +24900,9 @@ will be an lvalue instead of the usual prvalue.
     /* The tests that follow are based on the bullet list in [dcl.init.list]
        of the C++11 standard. */
     if (is_incomplete_type(dest_type) &&
-        !is_incomplete_array_type(dest_type)) {
+        !is_incomplete_array_type(dest_type) &&
+        !(expr_stack->in_static_initializer &&
+          could_be_dependent_class_type(dest_type))) {
       /* It's invalid to initialize an incomplete type, though incomplete
          arrays are okay. */
       if (arg_match != NULL) {

@@ -22651,6 +22651,8 @@ C++ functional-notation type conversions, and C++ new-style casts.
              !is_void_type(type_cast_to) &&
              !is_managed_nullptr_type(type_cast_to) &&
              !is_array_type(type_cast_to) &&
+             !(expr_stack->in_static_initializer &&
+               could_be_dependent_class_type(type_cast_to)) &&
              !(gpp_mode && !clang_mode &&
                ((!expr_stack->potentially_evaluated &&
                  scope_is(&scope_stack_top(), sck_template_declaration)) ||

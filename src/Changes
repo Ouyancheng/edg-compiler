@@ -1,5 +1,18 @@
 Version 6.1
 
+6/9/20   [EDGcpfe/22886]
+Spurious error on use of class template being defined in static data member
+
+Consider:
+
+  template<typename> struct S {
+    static constexpr S sm = S{};
+  };
+
+Previously, the front end issued an error about S being incomplete in the
+initializer for S::sm.  Now such examples are accepted.
+
+
 6/8/20   [EDGcpfe/22910]
 C++-generating back end: non-public types in definitions of templated members
 
