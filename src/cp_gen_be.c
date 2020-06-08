@@ -21116,6 +21116,9 @@ handle_as_definition:
       a_type_ptr       ret_type;
       a_param_type_ptr ptp;
       a_boolean        for_all_scopes;
+      /* Establish the name context of the function being defined, as that
+         influences accessibility. */
+      push_name_context_if_member(&rout->source_corresp);
       ret_type = unqual_rout_type->variant.routine.return_type;
       if (ret_type->kind == (a_type_kind)tk_typeref &&
           typeref_is_type_operator(ret_type)) {
@@ -21139,6 +21142,7 @@ handle_as_definition:
                                             &for_all_scopes);
       }  /* for */
     }  /* if */
+    pop_name_context_if_member(&rout->source_corresp);
     if (!discard_declaration && msvc_is_generated_code_target &&
         is_decltype_with_member_access_expr(
                                     rout->type->variant.routine.return_type)) {

@@ -1,5 +1,28 @@
 Version 6.1
 
+6/8/20   [EDGcpfe/22910]
+C++-generating back end: non-public types in definitions of templated members
+
+In configurations in which TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+is TRUE, the C++-generating back end failed to generate an explicit
+specialization for a templated member function if the return type or
+parameter types are non-public members of the containing class or class
+template.  For example:
+
+  class C {
+    typedef int I;  // Private
+  public:
+    template<typename> void f(I) { }
+  };
+  void g() {
+   C().f<int>(0);
+  }
+
+The C++-generating back end previously suppressed the generated explicit
+specialization for C::f<int>(I) because I is not public.  This is now
+fixed.
+
+
 6/7/20   [EDGcpfe/22774]
 C++-generating back end: public typedefs for private classes as qualifiers
 
