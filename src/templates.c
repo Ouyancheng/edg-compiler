@@ -23307,11 +23307,11 @@ base-specifier-list.
 
 
 static void cache_class_template_body(
-                                   a_tmpl_decl_state_ptr   decl_state,
-                                   a_symbol_ptr            template_sym,
-                                   a_token_cache_ptr       cache,
-                                   a_token_sequence_number first_token_number,
-                                   a_token_sequence_number *last_token_number)
+                           ARG_UNUSED a_tmpl_decl_state_ptr decl_state,
+                           a_symbol_ptr                     template_sym,
+                           a_token_cache_ptr                cache,
+                           a_token_sequence_number          first_token_number,
+                           a_token_sequence_number          *last_token_number)
 /*
 Cache the tokens of a class template body.  This begins with the ": of
 an optional base-specifier list and ends with the closing "}" of the class
