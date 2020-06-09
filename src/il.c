@@ -28523,8 +28523,11 @@ have the is_lvalue/is_xvalue flags set incorrectly; return TRUE otherwise.
       if (is_glvalue_node(operand_1)) {
         if (!il_header.il_has_C_semantics &&
             node_operator_is(node, eok_cast) &&
-            is_void_type(node->type)) {
-          /* In C++, a cast to void can have a glvalue operand. */
+            (is_void_type(node->type) ||
+             expr_is_instantiation_dependent(operand_1))) {
+          /* In C++, a cast to void can have a glvalue operand.  Furthermore,
+             the value category of an instantiation-dependent expression is
+             unreliable. */
         } else {
           operand_error = TRUE;
         }  /* if */
