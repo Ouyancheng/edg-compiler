@@ -21141,8 +21141,8 @@ handle_as_definition:
                                             iek_type, /*ignore_context=*/FALSE,
                                             &for_all_scopes);
       }  /* for */
+      pop_name_context_if_member(&rout->source_corresp);
     }  /* if */
-    pop_name_context_if_member(&rout->source_corresp);
     if (!discard_declaration && msvc_is_generated_code_target &&
         is_decltype_with_member_access_expr(
                                     rout->type->variant.routine.return_type)) {
