@@ -11480,14 +11480,16 @@ std::strong_ordering::equal, etc.
                                        partial_ordering_type(), "greater");
     partial_ordering_unordered = get_constexpr_member_value(
                                        partial_ordering_type(), "unordered");
-    strong_equality_equal = get_constexpr_member_value(
+    if (ms_version_is(<1925)) {
+      strong_equality_equal = get_constexpr_member_value(
                                           strong_equality_type(), "equal");
-    strong_equality_nonequal = get_constexpr_member_value(
+      strong_equality_nonequal = get_constexpr_member_value(
                                           strong_equality_type(), "nonequal");
-    weak_equality_equivalent = get_constexpr_member_value(
+      weak_equality_equivalent = get_constexpr_member_value(
                                        weak_equality_type(), "equivalent");
-    weak_equality_nonequivalent = get_constexpr_member_value(
+      weak_equality_nonequivalent = get_constexpr_member_value(
                                        weak_equality_type(), "nonequivalent");
+    }  /* if */
   }  /* if */
 }  /* initialize_ordering_constants */
 
