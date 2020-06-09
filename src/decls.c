@@ -9915,12 +9915,29 @@ skip_overloading:;
                                             is_guiding_decl;
     if (routine_ptr->compiler_generated) {
       /* This is an entry for an intrinsic function or operator (e.g., the
-         compiler generated ::operator new or ::operator delete).  It was
-         created during initialization, but is overridden by the present
-         declaration. */
-      check_assertion_str2(routine_ptr->source_corresp.decl_position.seq == 0,
+         compiler generated ::operator new or ::operator delete, or, in C++20,
+         a generated equality operator).  Some properties of the current
+         declaration (like position information) should override that of the
+         implicit declaration. */
+#if CHECKING
+      if (special_kind_is(routine_ptr, sfk_operator) &&
+          !opname_is_eq_op(routine_ptr->variant.opname_kind)) {
+        /* In C++/CLI, there are several compiler generated "+" operators
+           (e.g. String concatenation) that can be hidden by user defined 
+           versions. */
+        check_assertion_str(
+             is_new_operator(routine_ptr->variant.opname_kind) ||
+             is_delete_operator(routine_ptr->variant.opname_kind) ||
+             (cli_or_cx_enabled &&
+              routine_ptr->variant.opname_kind == (an_opname_kind)onk_plus),
+             "decl_routine: bad opname kind");
+        check_assertion_str2(
+                           routine_ptr->source_corresp.decl_position.seq == 0,
                            "decl_routine: compiler-generated function was",
                            "already assigned a position");
+
+      }  /* if */
+#endif /* CHECKING */
       /* Since the flag is cleared below, we're guaranteed that this is the
          first time we see the declaration in this translation unit. */
       dps->first_decl = TRUE;
@@ -9945,19 +9962,6 @@ skip_overloading:;
                                                   decl_pos_block);
       }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-#if CHECKING
-      if (routine_ptr->special_kind == (a_special_function_kind)sfk_operator) {
-        /* In C++/CLI, there are several compiler generated "+" operators
-           (e.g. String concatenation) that can be hidden by user defined 
-           versions. */
-        check_assertion_str(
-             is_new_operator(routine_ptr->variant.opname_kind) ||
-             is_delete_operator(routine_ptr->variant.opname_kind) ||
-             (cli_or_cx_enabled &&
-              routine_ptr->variant.opname_kind == (an_opname_kind)onk_plus),
-             "decl_routine: bad opname kind");
-      }  /* if */
-#endif /* CHECKING */
     }  /* if */
 #if ASM_FUNCTION_ALLOWED
     if (storage_class == (a_storage_class)sc_asm ||
