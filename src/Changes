@@ -1,5 +1,27 @@
 Version 6.1
 
+6/9/20   [EDGcpfe/22675]
+C++-generating back end: attributes on explicit instantiation directives
+
+In configurations in which TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+is TRUE, the C++-generating back end replaces explicit instantiation
+directives in the original source with explicit specializations in the
+generated code; however, attributes that were present in the explicit
+instantiation directive were omitted from the explicit specialization.
+This is now fixed.  For example, with --microsoft:
+
+  template<typename> struct S { };
+  template struct __declspec(dllimport) S<int>;
+
+Previously, the generated code contained the explicit specialization
+
+  template<> struct S<int> { };
+
+Now the explicit specialization is
+
+  template<> struct __declspec(dllimport) S<int> { };
+
+
 6/9/20   [EDGcpfe/22886]
 Spurious error on use of class template being defined in static data member
 

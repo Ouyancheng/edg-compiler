@@ -3054,7 +3054,14 @@ missing).
        "primary" declaration (i.e., a definition).  Also issue diagnostics for
        invalid combinations. */
     for (ap = attributes; ap != NULL; ap = ap->next) {
-      ap->on_primary_declaration = is_definition;
+      /* If this is a definition, mark the associated attributes as appearing
+         on a definition.  If this is the explicit instantiation of a class
+         template, also do this since the directive will trigger the
+         instantiation of the definition and the tag attributes apply to that
+         definition in such cases. */
+      ap->on_primary_declaration = is_definition ||
+                                   (dps->is_explicit_instantiation &&
+                                    is_forward_decl);
       if (is_std_attribute(ap)) {
         /* Standard attributes cannot appear in this syntactic location if no
            class/enum definition follows. */
