@@ -17700,6 +17700,8 @@ find_more_operator_candidates:
         arg_list = reverse_simple_list(arg_list);
         arg_list2 = arg_list->next;
         find_reversed_candidates = TRUE;
+        eff_operand_1_type = operand_2->type;
+        operand_1_is_class = is_class_struct_union_type(eff_operand_1_type);
         goto find_more_operator_candidates;
       } else if (opname_is_comparison(kind)) {
         /* Handle case (1) above.  (Note that == and <=> don't get here
