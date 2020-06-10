@@ -30,7 +30,7 @@ C++-generating back end: attributes on explicit instantiation directives
 In configurations in which TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 is TRUE, the C++-generating back end replaces explicit instantiation
 directives in the original source with explicit specializations in the
-generated code; however, attributes that were present in the explicit
+generated code; however, attributes that are present in the explicit
 instantiation directive were omitted from the explicit specialization.
 This is now fixed.  For example, with --microsoft:
 
