@@ -29128,13 +29128,15 @@ by tp.
 {
   if (f_identical_types(tp, strong_ordering_type(), ITF_NO_FLAGS)) {
     *p_ccs |= (a_comparison_category_set)ccs_strong_ordering;
-  } else if (f_identical_types(tp, strong_equality_type(), ITF_NO_FLAGS)) {
+  } else if (ms_version_is(<1925) &&
+             f_identical_types(tp, strong_equality_type(), ITF_NO_FLAGS)) {
     *p_ccs |= (a_comparison_category_set)ccs_strong_equality;
   } else if (f_identical_types(tp, partial_ordering_type(), ITF_NO_FLAGS)) {
     *p_ccs |= (a_comparison_category_set)ccs_partial_ordering;
   } else if (f_identical_types(tp, weak_ordering_type(), ITF_NO_FLAGS)) {
     *p_ccs |= (a_comparison_category_set)ccs_weak_ordering;
-  } else if (f_identical_types(tp, weak_equality_type(), ITF_NO_FLAGS)) {
+  } else if (ms_version_is(<1925) &&
+             f_identical_types(tp, weak_equality_type(), ITF_NO_FLAGS)) {
     *p_ccs |= (a_comparison_category_set)ccs_weak_equality;
   } else {
     *p_ccs |= (a_comparison_category_set)ccs_other;
@@ -29281,8 +29283,10 @@ set_return_type:
              ((ccs & (a_comparison_category_set)ccs_strong_equality) &&
               (ccs & ((a_comparison_category_set)ccs_partial_ordering |
                        (a_comparison_category_set)ccs_weak_ordering)))) {
+    check_assertion(ms_version_is(<1925));
     return_tp = weak_equality_type();
   } else if (ccs & (a_comparison_category_set)ccs_strong_equality) {
+    check_assertion(ms_version_is(<1925));
     return_tp = strong_equality_type();
   } else if (ccs & (a_comparison_category_set)ccs_partial_ordering) {
     return_tp = partial_ordering_type();
