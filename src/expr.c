@@ -29081,7 +29081,8 @@ P2002R1 specifies a defaulted secondary operator@ to be deleted if:
     /* Check constexpr-ness. */
     if (nonconstexpr_rout != NULL) {
       if (crp->is_constexpr && !crp->compiler_generated) {
-        if (!rout_is_template_instance(crp)) {
+        if (!rout_is_template_instance(crp) &&
+            !(crp->is_defaulted && !crp->is_declared_constexpr)) {
           pos_sy_error(ec_constexpr_comparison_calls_nonconstexpr_function,
                        &crp->source_corresp.decl_position,
                        symbol_for(nonconstexpr_rout));
