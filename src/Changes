@@ -1,5 +1,29 @@
 Version 6.1
 
+6/9/20   [EDGcpfe/22924]
+C++20 comparison rewrites
+
+A number of problems involve C++20 comparison rewrites are now fixed.  That
+includes cases like the following:
+
+  #include <compare>
+  struct X {
+    auto operator<=>(int x) const { return 42 <=> x; }
+  } x;
+  auto r = 1 <=> x;  // Previously a spurious error.  Now okay.
+
+A different problem occurred when a nondependent rewritten comparison occurred
+in a template instantiation.  For example:
+
+  #include <compare> 
+  struct X {
+    auto operator<=>(int x) const { return 42 <=> x; }
+  } x;
+  template<typename> auto cmp = 1 <=> x;
+  auto r = cmp<void>;  // Previously triggered a spurious error.  Now okay.
+    
+
+
 6/9/20   [EDGcpfe/22675]
 C++-generating back end: attributes on explicit instantiation directives
 

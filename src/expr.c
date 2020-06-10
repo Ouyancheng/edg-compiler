@@ -28820,6 +28820,11 @@ as "0 <=> operator<=>(y, x)".
       call_node->variant.operation.eval_right_to_left = TRUE;
     }  /* if */
   }  /* if */
+  /* Use a unique token sequence number for any additional operator involved
+     in the rewrite.  If we just use tsn, overload resolution will find the
+     underlying operator when calling get_nondependent_call_info.  Using tsn+1
+     avoids that issue. */
+  tsn += 1;
   if (expr_stack->template_deduction_context) {
     /* The additional operator will be rescanned.  Nothing to do at this
        time. */

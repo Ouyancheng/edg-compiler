@@ -10474,7 +10474,8 @@ have_function:
        resolved in the real instantiation. */
     check_assertion(paren_tok_seq_number != 0);
     record_nondependent_call(function_symbol, paren_tok_seq_number,
-                             (a_nondependent_call_depth)0);
+                             (a_nondependent_call_depth)0,
+                             /*reversed_opnds=*/FALSE);
   }  /* if */
   if (dependent_call && overloaded_function_symbol != NULL &&
       !overloaded_function_symbol->is_class_member) {
@@ -17332,18 +17333,28 @@ except that it was inaccessible because of hide-by-sig lookup.
          symbol chosen by overload resolution. */
       a_nondependent_call_info_ptr  ndcall_info = NULL;
       a_symbol_ptr                  function_symbol, proj_function_symbol;
+      
       if (operator_tok_seq_number != 0) {
         ndcall_info = get_nondependent_call_info(operator_tok_seq_number,
                                                  call_depth);
       }  /* if */
       dependent_call = (ndcall_info == NULL);
       proj_function_symbol = function_symbol = NULL;
-      if (!dependent_call) proj_function_symbol = ndcall_info->symbol;
+      if (!dependent_call) {
+        proj_function_symbol = ndcall_info->symbol;
+      }  /* if */
       if (proj_function_symbol != NULL) {
         /* We know the function selected for this nondependent call
            during the prototype instantiation.  Use that without going
            through overload resolution. */
-        a_boolean  have_selector;
+        a_boolean            have_selector;
+        an_overload_context  ovl_context = oc_default;
+        if (ndcall_info->reversed_opnds) {
+          ovl_context = oc_reversed_cmp_candidate ;
+          arg_list = reverse_simple_list(arg_list);
+          arg_list2 = arg_list->next;
+          swap_at(&operand_1, &operand_2);
+        }  /* if */
         function_symbol = fundamental_symbol_of(proj_function_symbol);
         if (function_symbol->is_class_member) {
           member_functions_symbol = proj_function_symbol;
@@ -17356,31 +17367,44 @@ except that it was inaccessible because of hide-by-sig lookup.
           nonmember_functions_symbol = proj_function_symbol;
           have_selector = FALSE;
         }  /* if */
-        try_overloaded_function_match(
-                                     proj_function_symbol,
-                                     /*is_template_id=*/FALSE,
-                                     (a_template_arg_ptr)NULL,
-                                     have_selector ? arg_list2 : arg_list,
-                                     (an_arg_list_elem *)NULL,
-                                     have_selector,
-                                     have_selector ? operand_1 :
-                                                     (an_operand *)NULL,
-                                     /*ctor_conversion_case=*/FALSE,
-                                     /*effects_copy_initialization=*/FALSE,
-                                     /*allow_udc_on_arguments=*/TRUE,
-                                     /*arg_dep_lookup_done=*/FALSE,
-                                     /*from_arg_dep_lookup=*/FALSE,
-                                     /*dependent_call=*/FALSE,
-                                     /*ignore_templates=*/FALSE,
-                                     /*known_to_be_visible=*/TRUE,
-                                     /*is_overloaded_operator=*/TRUE,
-                                     CCO_DEFAULT, oc_default,
-                                     &candidate_functions,
-                                     p_inaccessible_match,
-                                     &matched_except_for_missing_selector,
-                                     &matched_except_for_selector);
+        try_overloaded_function_match(proj_function_symbol,
+                                      /*is_template_id=*/FALSE,
+                                      (a_template_arg_ptr)NULL,
+                                      have_selector ? arg_list2 : arg_list,
+                                      (an_arg_list_elem *)NULL,
+                                      have_selector,
+                                      have_selector ? operand_1 :
+                                                      (an_operand *)NULL,
+                                      /*ctor_conversion_case=*/FALSE,
+                                      /*effects_copy_initialization=*/FALSE,
+                                      /*allow_udc_on_arguments=*/TRUE,
+                                      /*arg_dep_lookup_done=*/FALSE,
+                                      /*from_arg_dep_lookup=*/FALSE,
+                                      /*dependent_call=*/FALSE,
+                                      /*ignore_templates=*/FALSE,
+                                      /*known_to_be_visible=*/TRUE,
+                                      /*is_overloaded_operator=*/TRUE,
+                                      CCO_DEFAULT, ovl_context,
+                                      &candidate_functions,
+                                      p_inaccessible_match,
+                                      &matched_except_for_missing_selector,
+                                      &matched_except_for_selector);
         operand_1->selector_is_object_pointer =
                                           saved_selector_is_object_pointer;
+        
+        if (ndcall_info->supplemental) {
+          if (ndcall_info->reversed_opnds) {
+            arg_list = reverse_simple_list(arg_list);
+            swap_at(&operand_1, &operand_2);
+            if (candidate_functions != NULL) {
+              candidate_functions->supplemental_comparison_candidate = TRUE;
+              candidate_functions->supplemental_reversed_candidate = TRUE;
+              reverse_binary_match_descriptions(candidate_functions);
+            }  /* if */
+          } else if (candidate_functions != NULL) {
+            candidate_functions->supplemental_comparison_candidate = TRUE;
+          }  /* if */
+        }  /* if */
         goto select_best_function;
       }  /* if */
     }  /* if */
@@ -17941,8 +17965,7 @@ selected, it is stored in *rewritten_candidate.
             /* Make sure this call is treated as a nondependent call in
                a real instantiation. */
             record_nondependent_call((a_symbol_ptr)NULL,
-                                     operator_tok_seq_number,
-                                     call_depth);
+                                     operator_tok_seq_number, call_depth);
           }  /* if */
           *processed = TRUE;
         } else if (undecidable_because_of_error) {
@@ -18217,9 +18240,10 @@ no_applicable_operator_function:
                  a context don't get here. */
               check_assertion(!dependent_call &&
                               operator_tok_seq_number != 0);
-              record_nondependent_call(proj_function_symbol,
-                                       operator_tok_seq_number,
-                                       call_depth);
+              record_nondependent_call(
+                    proj_function_symbol, operator_tok_seq_number, call_depth,
+                    candidate_functions->supplemental_comparison_candidate,
+                    candidate_functions->supplemental_reversed_candidate);
             }  /* if */
             /* Check for the builtin operator=. */
             if (kind == (an_opname_kind)onk_assign &&

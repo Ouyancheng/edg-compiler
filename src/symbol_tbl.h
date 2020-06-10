@@ -2021,6 +2021,14 @@ typedef struct a_nondependent_call_info {
 			   called.  NULL for nondependent calls for which
 			   overload resolution must be deferred to the
 			   real instantiation. */
+  a_bit_field	supplemental:1;
+			/* TRUE if the call was to a "supplemental" C++20
+			   comparison candidate (which requires a rewrite of
+			   the comparison). */
+  a_bit_field	reversed_opnds:1;
+			/* TRUE if the operands of the call should be reversed
+			   (because this is a C++20 implicitly-reversed
+			   comparison). */
 } a_nondependent_call_info;
 
 
@@ -4668,9 +4676,12 @@ extern a_nondependent_call_info_ptr get_nondependent_call_info(
 
 extern void check_for_nested_type_of_prototype_instantiation(a_symbol_ptr sym);
 
-extern void record_nondependent_call(a_symbol_ptr              symbol,
-                                     a_token_sequence_number   tsn,
-                                     a_nondependent_call_depth depth);
+extern void record_nondependent_call(
+                             a_symbol_ptr              symbol,
+                             a_token_sequence_number   tsn,
+                             a_nondependent_call_depth depth,
+                             a_boolean                 supplemental = FALSE,
+                             a_boolean                 reversed_opnds = FALSE);
 
 extern a_templ_friend_info_ptr alloc_templ_friend_info(void);
 

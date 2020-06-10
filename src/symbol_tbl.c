@@ -3268,6 +3268,7 @@ fields, and return a pointer to it.
   ndcip->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   ndcip->depth = 0;
   ndcip->symbol = NULL;
+  ndcip->reversed_opnds = FALSE;
 #if DEBUG
   num_nondependent_call_info_allocated++;
 #endif /* DEBUG */
@@ -3367,16 +3368,21 @@ position disambiguator on tsn if non-zero.
 
 void record_nondependent_call(a_symbol_ptr              symbol,
                               a_token_sequence_number   tsn,
-                              a_nondependent_call_depth depth)
+                              a_nondependent_call_depth depth,
+                              a_boolean                 supplemental,
+                              a_boolean                 reversed_opnds)
 /*
-This routine is called within the scope of a template (either a
-template declaration scope or a prototype instantiation) to record
-the result of overload resolution for a nondependent call.  "symbol"
-is the function symbol for the function to be called; it can be NULL
-for an error case.  "tsn" is a token sequence number used to represent
-this call so that the entry can be found during a real instantiation.
-depth is usually zero, but serves as an additional position disambiguator
-on tsn if non-zero.
+This routine is called within the scope of a template (either a template
+declaration scope or a prototype instantiation) to record the result of
+overload resolution for a nondependent call.  "symbol" is the function symbol
+for the function to be called; it can be NULL for an error case.  "tsn" is a
+token sequence number used to represent this call so that the entry can be
+found during a real instantiation.  depth is usually zero, but serves as an
+additional position disambiguator on tsn if non-zero.  supplemental is TRUE
+if the call was for a C++20 comparison that that required a rewrite in terms
+of a supplemental candidate (e.g., "<" rewritten via a "<=>" candidate).
+reversed_opnds is TRUE if the call is to a C++20 comparison that requires an
+implicit reversal of operands.
 */
 {
   a_template_decl_info_ptr	tdip;
@@ -3401,6 +3407,8 @@ on tsn if non-zero.
   ndcip->symbol = symbol;
   ndcip->token_sequence_number = tsn;
   ndcip->depth = depth;
+  ndcip->supplemental = supplemental;
+  ndcip->reversed_opnds = reversed_opnds;
   /* Add the entry to the appropriate point in the list.  This is usually
      immediately after the last entry added, but in certain cases we need
      to locate the appropriate insertion point. */
