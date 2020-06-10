@@ -1574,13 +1574,9 @@ given routine may be instantiated.
 */
 {
   if (curr_expr_is_potentially_evaluated() &&
-      (!expr_stack->template_deduction_context || routine->is_constexpr)) {
+      !expr_stack->template_deduction_context) {
     /* A reference during deduction is "tentative" and therefore the routine
-       should not be marked as referenced.  However, even during deduction we
-       may have to evaluate a call to a constexpr routine, and thus we must
-       ensure the function is instantiated.  Passing the "elided_reference"
-       flag to mark_routine_referenced_full has the desired effect for such
-       cases. */
+       should not be marked as referenced. */
     /* Routines referenced in default argument expressions are not
        instantiated until there is a use of the default argument expression. */
     mark_routine_referenced_full(routine,
@@ -6559,9 +6555,16 @@ the call target).
   } else {
     is_consteval = FALSE;
   }  /* if */
-  if ((constexpr_call_folding_should_be_done() || is_consteval) &&
+  if (((constexpr_call_folding_should_be_done() &&
+        !expr_stack->template_deduction_context) ||
+       is_consteval) &&
       (!expr_stack->in_noexcept_operand_expression ||
        core_constant_expr_is_noexcept)) {
+    /* Do not force folding a call during SFINAE processing unless this is a
+       consteval function, because doing so could trigger the instantiation
+       of the callee with potential errors outside the immediate context.  If
+       a constant value is really needed, interpretation will be forced at a
+       higher level. */
     a_constant_ptr  result_con = local_constant();
     a_boolean       release_constant = TRUE;
     folded = interpret_constexpr_call(call_expr, is_consteval, result_con,

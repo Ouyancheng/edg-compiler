@@ -9610,7 +9610,14 @@ otherwise, return FALSE and update *ips accordingly.
       goto done;
     }  /* if */
     if (!callee->defined) {
-      set_instance_required(symbol_for(callee), TRUE, SIR_CONSTANT_CONTEXT);
+      /* Attempt to instantiate the callee if possible. */
+      if (callee->routine_fixup != NULL) {
+        /* Nontemplate friends defined in class templates require special
+           handling. */
+        add_to_deferred_friend_function_fixup_list(callee->routine_fixup);
+      } else {
+        set_instance_required(symbol_for(callee), TRUE, SIR_CONSTANT_CONTEXT);
+      }  /* if */
     }  /* if */
     if (callee->function_def_number == NULL_function_def_number) {
       info_with_pos_sym(ec_constexpr_function_undefined,

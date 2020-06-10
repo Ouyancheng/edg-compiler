@@ -20817,7 +20817,8 @@ is_transparent.  conv_context describes the context of the conversion.
       an_operand  src_copy, *src_to_test;
       a_boolean   constant_src;
       if (!is_prototype_instantiation_context()) {
-        force_operand_to_constant_if_possible(source_operand);
+        force_operand_to_constant_if_possible_full(
+                              source_operand, /*is_constant_evaluated=*/TRUE);
       }  /* if */
       src_to_test = source_operand;
       if (conversion->routine != NULL) {
