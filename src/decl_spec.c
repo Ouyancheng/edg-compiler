@@ -3060,7 +3060,8 @@ missing).
          instantiation of the definition and the tag attributes apply to that
          definition in such cases. */
       ap->on_primary_declaration = is_definition ||
-                                   (dps->is_explicit_instantiation &&
+                                   (dps != NULL &&
+                                    dps->is_explicit_instantiation &&
                                     is_forward_decl);
       if (is_std_attribute(ap)) {
         /* Standard attributes cannot appear in this syntactic location if no
