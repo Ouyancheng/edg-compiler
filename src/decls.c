@@ -9917,7 +9917,7 @@ skip_overloading:;
       /* This is an entry for an intrinsic function or operator (e.g., the
          compiler generated ::operator new or ::operator delete, or, in C++20,
          a generated equality operator).  Some properties of the current
-         declaration (like position information) should override that of the
+         declaration (like position information) should override those of the
          implicit declaration. */
 #if CHECKING
       if (special_kind_is(routine_ptr, sfk_operator) &&
