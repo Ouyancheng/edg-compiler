@@ -28995,7 +28995,8 @@ done:
     /* Check constexpr-ness. */
     if (nonconstexpr_rout != NULL) {
       if (erp->is_constexpr && !erp->compiler_generated) {
-        if (!rout_is_template_instance(erp)) {
+        if (!rout_is_template_instance(erp) &&
+            !(erp->is_defaulted && !erp->is_declared_constexpr)) {
           pos_sy_error(ec_constexpr_comparison_calls_nonconstexpr_function,
                        &erp->source_corresp.decl_position,
                        symbol_for(nonconstexpr_rout));
@@ -29772,7 +29773,8 @@ done:;
     /* Check constexpr-ness. */
     if (nonconstexpr_rout != NULL) {
       if (srp->is_constexpr && !srp->compiler_generated) {
-        if (!rout_is_template_instance(srp)) {
+        if (!rout_is_template_instance(srp) &&
+            !(srp->is_defaulted && !srp->is_declared_constexpr)) {
           pos_sy_error(ec_constexpr_comparison_calls_nonconstexpr_function,
                        &srp->source_corresp.decl_position,
                        symbol_for(nonconstexpr_rout));

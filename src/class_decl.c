@@ -13647,6 +13647,8 @@ the position of the "= default" construct.
       scope_stack_top().class_def_state->any_defaulted_special_members = TRUE;
     }  /* if */
     rp->is_defaulted = TRUE;
+    rp->is_inline = TRUE;
+    rp->is_constexpr = TRUE;
   }  /* if */
 }  /* check_defaulted_comparison */
 
