@@ -26069,6 +26069,9 @@ the resulting constant is stored in the pointer pointed to by "constant".
       *constant = param_ptr->default_arg.constant;
       check_assertion(*constant != NULL);
     }  /* if */
+    if (is_auto_template_param_type(skip_typerefs(constant_type))) {
+      check_placeholder_type_constraint(constant_type, (*constant)->type);
+    }  /* if */
   }  /* if */
   error_position = saved_error_position;
   pos_curr_token = saved_pos_curr_token;
