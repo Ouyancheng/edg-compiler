@@ -385,7 +385,7 @@ If so, call alloc_intercept.
 
 #else /* !TRACE_ALLOC */
 
-define trace_alloc_check(ptr)  /* Nothing */
+#define trace_alloc_check(ptr)  /* Nothing */
 
 #endif /* TRACE_ALLOC */
 
