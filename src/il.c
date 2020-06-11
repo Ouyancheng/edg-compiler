@@ -1978,6 +1978,10 @@ Dump the contents of the indicated expression node for debug purposes.
       break;
     case enk_constant:
       const_ptr = node_constant(node);
+      if (const_ptr == NULL) {
+        fprintf(f_debug, "constant: <NULL>\n");
+        break;
+      }  /* if */
       if (!has_name(const_ptr)) {
         fputs("constant: value = ", f_debug);
       } else {
@@ -19202,6 +19206,31 @@ done:
 }  /* copy_template_param_cast_constant */
 
 
+static void copy_constant_for_rescan_if_needed(a_constant_ptr      *orig_con,
+                                               a_constant_ptr      caller_con,
+                                               a_ctws_options_set  options)
+/*
+This is a helper function for copy_template_param_con.  *orig_con is a constant
+entry that is intended to be returned from copy_template_param_con.  However,
+if options indicates that this is for a substitution result (rescan) that will
+not itself be substituted, then copy **orig_con to *caller_con except for its
+backing expression.  This is needed because in such cases the backing
+expression nodes may be reclaimed later on
+*/
+{
+  if ((*orig_con)->expr != NULL &&
+      (options & CTWS_INSIDE_EXPR_RESCAN) != 0 &&
+      (options & (CTWS_PRESERVE_DEDUCED_PACKS |
+                  CTWS_PARTIAL_ARG_LIST_OKAY |
+                  CTWS_MAY_BE_RESCANNED |
+                  CTWS_DEDUCTION_GUIDE)) == 0) {
+    copy_constant(*orig_con, caller_con);
+    caller_con->expr = NULL;
+    *orig_con = NULL;
+  }  /* if */
+}  /* copy_constant_for_rescan_if_needed */
+
+                                          
 a_constant_ptr copy_template_param_con(
                                   a_constant_ptr           con,
                                   a_template_arg_ptr       template_arg_list,
@@ -19252,6 +19281,7 @@ options.
             if (tap != NULL && tap->variant.constant != NULL) {
               /* Only use the template argument value if one was specified. */
               con_copy = tap->variant.constant;
+              copy_constant_for_rescan_if_needed(&con_copy, constant, options);
             }  /* if */
           } else {
             *copy_error = TRUE;
@@ -19648,20 +19678,7 @@ options.
     }  /* if */
   } else {
     /* The original constant is returned. */
-    if (con_copy->expr != NULL &&
-        (options & CTWS_INSIDE_EXPR_RESCAN) != 0 &&
-        (options & (CTWS_PRESERVE_DEDUCED_PACKS |
-                    CTWS_PARTIAL_ARG_LIST_OKAY |
-                    CTWS_MAY_BE_RESCANNED |
-                    CTWS_DEDUCTION_GUIDE)) == 0) {
-      /* This is an expression rescan and its result will not itself be
-         rescanned.  In that case, we must copy the constant and clear the
-         backing expression because the backing expression nodes may be
-         reclaimed later on. */ 
-      copy_constant(con_copy, constant);
-      constant->expr = NULL;
-      con_copy = NULL;
-    }  /* if */
+    copy_constant_for_rescan_if_needed(&con_copy, constant, options);
   }  /* if */
   if (*copy_error) {
     /* Return an error constant on a copy error. */

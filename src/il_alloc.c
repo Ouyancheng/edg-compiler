@@ -383,6 +383,10 @@ If so, call alloc_intercept.
   }  /* if */
 }  /* trace_alloc_check */
 
+#else /* !TRACE_ALLOC */
+
+define trace_alloc_check(ptr)  /* Nothing */
+
 #endif /* TRACE_ALLOC */
 
 char *alloc_il(sizeof_t size)
@@ -392,9 +396,7 @@ Allocate and return "size" bytes of storage in the file scope memory region.
 {
   char *ptr;
   do_fs_alloc(ptr, size, file_scope_region_number);
-#ifdef TRACE_ALLOC
   trace_alloc_check(ptr);
-#endif /* TRACE_ALLOC */
   return ptr;
 }  /* alloc_il */
 
@@ -412,9 +414,7 @@ of the primary translation unit.
   do_fs_alloc(ptr, size, FILE_SCOPE_REGION_NUMBER);
   is_primary_translation_unit = saved_is_primary_translation_unit;
   if (!saved_is_primary_translation_unit) compute_il_prefix_size();
-#ifdef TRACE_ALLOC
   trace_alloc_check(ptr);
-#endif /* TRACE_ALLOC */
   return ptr;
 }  /* alloc_primary_file_scope_il */
 
@@ -433,9 +433,7 @@ of the secondary translation unit identified by tup.
   do_fs_alloc(ptr, size, tup->file_scope_region_number);
   is_primary_translation_unit = saved_is_primary_translation_unit;
   if (saved_is_primary_translation_unit) compute_il_prefix_size();
-#ifdef TRACE_ALLOC
   trace_alloc_check(ptr);
-#endif /* TRACE_ALLOC */
   return ptr;
 }  /* alloc_secondary_file_scope_il */
 
@@ -448,9 +446,7 @@ Allocate and return "size" bytes of storage in the current IL memory region.
 {
   char *ptr;
   do_any_alloc(ptr, curr_il_region_number, size);
-#ifdef TRACE_ALLOC
   trace_alloc_check(ptr);
-#endif /* TRACE_ALLOC */
   return ptr;
 }  /* alloc_cil */
 
@@ -3703,6 +3699,7 @@ Allocate and initialize an expression node.
     if (avail_fs_nodes != NULL) {
       ptr = avail_fs_nodes;
       avail_fs_nodes = ptr->extra.next_avail;
+      trace_alloc_check(ptr);
     } else {
       ptr = (an_expr_node_ptr)alloc_il(sizeof(an_expr_node));
 #if DEBUG
@@ -4748,9 +4745,7 @@ to it.
   avail_list_ptr = &scope_stack[scope_depth].source_sequence_avail_list;
   if (*avail_list_ptr != NULL) {
     ssep = *avail_list_ptr;
-#ifdef TRACE_ALLOC
     trace_alloc_check(ssep);
-#endif /* TRACE_ALLOC */
     *avail_list_ptr = ssep->next;
   } else {
     ssep = (a_source_sequence_entry_ptr)

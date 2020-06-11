@@ -24626,7 +24626,9 @@ subject to SFINAE.
       }  /* if */
     }  /* if */
     release_local_constant(&cp);
-    if (expr != NULL) reclaim_fs_nodes_of_expr_tree(expr);
+    if (expr != NULL && expr != constraint) {
+      reclaim_fs_nodes_of_expr_tree(expr);
+    }  /* if */
   }  /* if */
   if (!result && *p_fatal && diagnose_here) {
     /* A non-SFINAE error occurred, and the caller will not emit the associated
