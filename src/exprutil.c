@@ -24735,7 +24735,7 @@ potentially throwing.
     }  /* if */
     result = allocated_cp->type;
   }  /* if */
-  if (expr != NULL) {
+  if (expr != NULL && expr != req_expr) {
     reclaim_fs_nodes_of_expr_tree(expr);
   }  /* if */
   release_local_constant(&cp);
