@@ -1670,8 +1670,8 @@ static a_const_char
 static int	opt_ind;
 			/* Index of the current option in argv. */
 
-static void invalid_argument_error(int	argc,
-                                   char	**argv)
+NORETURN static void invalid_argument_error(int  argc,
+                                            char **argv)
 /*
 Issue a invalid command line argument diagnostic.
 */
@@ -11368,7 +11368,6 @@ enable_microsoft_mode:
     } else {
       command_line_error(ec_cl_missing_source_file_name);
     }  /* if */
-    /*NOTREACHED*/
   }  /* if */
   opt_arg = argv[opt_ind++];
   /* If the name is "-", use stdin for input. */

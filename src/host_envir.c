@@ -128,9 +128,7 @@ extern "C" int errno;
 /*
 Included to define ctime, etc.
 */
-/*lint -e451*/ /* Some versions of time.h have a bad guard test. */
 #include <time.h>
-/*lint +e451*/
 
 /*
 Header files needed to use the system routines to get the elapsed clock
@@ -1660,7 +1658,7 @@ file should be a binary file if binary_file is TRUE.
   char        buffer[TEMP_NAME_BUFFER_SIZE];
   a_boolean   need_slash;
   sizeof_t    dir_len;
-  FILE        *temp_file;
+  FILE        *temp_file = NULL;
   int         retry_count = 20;
   struct stat buf;
 
@@ -1827,7 +1825,6 @@ This routine does not return.
 */
 {
   exit(RC_NORMAL);
-  /*NOTREACHED*/
 }  /* normal_termination */
 #endif /* STANDALONE_UTILITY_PROGRAM */
 
@@ -1888,7 +1885,6 @@ routine of the front end, so that it can return to the caller.
 {
 #if !MAKE_FRONT_END_CALLABLE
   exit(status);
-  /*NOTREACHED*/
 #else /* MAKE_FRONT_END_CALLABLE */
   /* If a signal was caught, actually exit the compilation. */
   if (signal_caught) {
@@ -1897,7 +1893,6 @@ routine of the front end, so that it can return to the caller.
     exit_status = status;
     longjmp(edg_main_setjmp_buffer, 1);
   }  /* if */
-  /*NOTREACHED*/
 #endif /* !MAKE_FRONT_END_CALLABLE */
 }  /* cfe_exit */
 
@@ -1944,7 +1939,6 @@ severe diagnostic issued in this compilation.  This routine does not return.
       abort();
 #endif /* EXIT_ON_INTERNAL_ERROR */
   }  /* switch */
-  /*NOTREACHED*/
 }  /* exit_compilation */
 
 
@@ -1959,7 +1953,6 @@ not return.
   write_signoff();
   /* Exit from the compilation. */
   exit_compilation(severity);
-  /*NOTREACHED*/
 }  /* term_compilation */
 
 
@@ -1969,7 +1962,8 @@ In C++, signal handlers must be extern "C".
 extern "C" {
 /*lint -e2761 -e2765*/
 
-static a_signal_handler_return_value term_on_signal(ARG_UNUSED int sig)
+NORETURN static a_signal_handler_return_value term_on_signal(
+                                                            ARG_UNUSED int sig)
 /*
 Routine set up as a signal handler, called to terminate compilation on
 receipt of a signal.
@@ -1983,12 +1977,12 @@ receipt of a signal.
   signal_caught = TRUE;
 #endif /* MAKE_FRONT_END_CALLABLE */
   term_compilation(es_catastrophe);
-  /*NOTREACHED*/
 }  /* term_on_signal */
 
 #if DEBUG && !EDG_WIN32
 
-static a_signal_handler_return_value abort_on_cpu_limit(ARG_UNUSED int sig)
+NORETURN static a_signal_handler_return_value abort_on_cpu_limit(
+                                                            ARG_UNUSED int sig)
 /*
 Routine set up as a signal handler, called to terminate compilation 
 with an internal error on receipt of a signal.
@@ -2000,7 +1994,6 @@ with an internal error on receipt of a signal.
 #endif /* !USING_DRIVER */
   fprintf(f_error, "Internal error: CPU time limit exceeded.\n");
   term_compilation(es_internal_error);
-  /*NOTREACHED*/
 }  /* abort_on_cpu_limit */
 
 #endif /* DEBUG && !EDG_WIN32 */
@@ -2101,7 +2094,7 @@ execution of the front end (for example, SIGINT).
 #ifdef NEED_SIZE_T_ARG_ERROR
 
 /* The extern declaration for this routine is in basics.h. */
-true_size_t size_t_arg_error(void)
+NORETURN true_size_t size_t_arg_error(void)
 /*
 Called from the macro size_t_arg to abort the front end if a size is being
 truncated.  This is used on machines that have a small size_t (say, 16 bits)
@@ -2111,7 +2104,6 @@ when we choose to make sizeof_t something longer.
   catastrophe(ec_program_too_large);
   /* The return statement suppresses warnings from compilers that don't
      process lint comments. */
-  /*NOTREACHED*/
   return 0;
 }  /* size_t_arg_error */
 

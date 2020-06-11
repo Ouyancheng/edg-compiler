@@ -2204,7 +2204,7 @@ column for the caret in the second pass.
     goto end_of_loop;                                                 \
   } else {                                                            \
     if ((out_char != '\r') &&                                         \
-        (/*lint --e(506,845)*/ !pass_for_caret || (out_char) == '\t')) {  \
+        (/*lint -e(506,845)*/ !pass_for_caret || (out_char) == '\t')) {  \
       putcwdb(out_char);                                              \
     } else {                                                          \
       putcwdb(' ');                                                   \
@@ -2608,7 +2608,7 @@ number is added into the output.
       column_needed = FALSE;
 #else /* !STANDALONE_UTILITY_PROGRAM */
       column_needed = brief_diagnostics &&
-		      /*lint --e(506)*/COLUMN_NUMBER_IN_BRIEF_DIAGNOSTICS;
+		      /*lint -e(506)*/COLUMN_NUMBER_IN_BRIEF_DIAGNOSTICS;
       /* If the line is the current one, print it and a caret indicating
          the position. */
       if (pos->seq >= curr_seq_number) {

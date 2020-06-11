@@ -35322,8 +35322,9 @@ Attempt to open the export information in the directory specified by
 } /* open_export_info_file */
 
 
-static void bad_export_info_file(an_export_info_file_ptr	eifp,
-				 int				line_number)
+static DOES_NOT_RETURN bad_export_info_file(
+                                           an_export_info_file_ptr eifp,
+                                           int                     line_number)
 /*
 Call an error routine to issue a diagnostic about an invalid export
 information file.

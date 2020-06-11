@@ -19117,7 +19117,6 @@ output_functional_notation_cast_arguments:
           /* The Hail-Mary case: ((T)(a, b, c)). */
           goto output_functional_notation_cast_arguments;
         }  /* if */
-        /*NOTREACHED*/
       }  /* if */
       /* Put parentheses around the argument of the old-style cast. */
       write_tok_ch('(');

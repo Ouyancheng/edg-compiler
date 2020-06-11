@@ -182,7 +182,6 @@ MAKE_FRONT_END_CALLABLE is TRUE.
   /* Exit with the return code appropriate to the highest severity error
      detected. */
   exit_compilation(most_severe_diagnostic);
-  /*NOTREACHED*/
 }  /* cfe_main */
 
 
@@ -198,7 +197,6 @@ status is returned to the caller.
 {
 #if !MAKE_FRONT_END_CALLABLE
   cfe_main(argc, argv);
-  /*NOTREACHED*/
 #else /* MAKE_FRONT_END_CALLABLE */
   if (setjmp(edg_main_setjmp_buffer) == 0) {
     cfe_main(argc, argv);

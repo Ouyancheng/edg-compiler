@@ -99,9 +99,7 @@ END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 #else  /* !__BSD__ */
 END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
-/*lint -e451*/ /* Some versions of time.h have a bad guard test. */
 #include <time.h>
-/*lint +e451*/
 BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 #endif  /* __BSD__ */
 #if __SYSV__ || __BSD__

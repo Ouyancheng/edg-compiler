@@ -155,7 +155,7 @@ error.
 }  /* bad_pch_file */
 
 
-static void pch_write_error(void)
+static DOES_NOT_RETURN pch_write_error(void)
 /*
 Called when a write operation on a PCH file fails.  Issue a catastrophic
 error.

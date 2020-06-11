@@ -2257,7 +2257,7 @@ return_point:
 }  /* proc_line */
 
 
-static void proc_error(void)
+static DOES_NOT_RETURN proc_error(void)
 /*
 Scan and process a #error directive.  Terminates the compilation,
 does not return.

@@ -725,6 +725,8 @@ does not return.
 
 Microsoft compilers accept the "__declspec(noreturn)" specifier for this
 purpose.
+
+See also NORETURN.
 */
 #if defined(__GNUC__) && !defined(DOES_NOT_RETURN)
 #if __GNUC__ >= 3 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 70)
@@ -1089,26 +1091,38 @@ configurations.
 
 FALLTHROUGH: specifies that flow-of-control purposely flows from one case to
 another without an intervening "break" statement.
+
+NORETURN: specifies that the function does not return to the caller.
 */
 #ifdef _lint
 /* Use PC-lint annotations. */
 #define FALLTHROUGH /*lint -fallthrough*/
 #define ARG_UNUSED /*lint -e{715}*/
+#define NORETURN [[noreturn]]
 #else /* !defined(_lint) */
 /* Use standard attributes if those are supported. */
 #ifndef __has_cpp_attribute
 #define __has_cpp_attribute(x) 0
 #endif /* !defined(__has_cpp_attribute) */
+
 #if __has_cpp_attribute(fallthrough)
+/*lint -estring(823,FALLTHROUGH)*/
 #define FALLTHROUGH [[fallthrough]];
 #else /* !(__has_cpp_attribute(fallthrough)) */
 #define FALLTHROUGH /*nothing*/
 #endif /* __has_cpp_attribute(fallthrough) */
+
 #if __has_cpp_attribute(maybe_unused)
 #define ARG_UNUSED [[maybe_unused]]
 #else /* !(__has_cpp_attribute(maybe_unused)) */
 #define ARG_UNUSED /*nothing*/
 #endif /* __has_cpp_attribute(maybe_unused) */
+
+#if __has_cpp_attribute(noreturn)
+#define NORETURN [[noreturn]]
+#else /* !(__has_cpp_attribute(noreturn)) */
+#define NORETURN /*nothing*/
+#endif /* __has_cpp_attribute(noreturn) */
 #endif /* defined(_lint) */
 
 /*
