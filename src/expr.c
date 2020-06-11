@@ -45863,8 +45863,11 @@ the corresponding arguments processed so far.
        cast on the operand. */
     a_boolean   err = FALSE;
     a_type_ptr  tp;
-    if (expr_stack->possible_rescan_context &&
-        is_template_param_type(param_type)) {
+    if (is_auto_type(param_type)) {
+      /* No conversion needed at this time.  Deduction will happen later. */
+      extract_constant_from_operand_with_fs_fixup(&result, constant);
+    } else if (expr_stack->possible_rescan_context &&
+               is_template_param_type(param_type)) {
       prep_generic_nontype_template_argument(&result);
       generic_cast_operand(&result, param_type, csf_none,
                            /*is_implicit_cast=*/TRUE);

@@ -1,5 +1,22 @@
 Version 6.1
 
+6/11/20  [EDGcpfe/19682,EDGcpfe/20186]
+Deduction failure with parameter of class type with auto template argument
+
+Consider:
+
+  template<auto> struct X {};
+  template<typename T, T N> void g(X<N>) {}
+  int main() {
+    X<10> t;
+    g(t);  // Previously an error.  Now okay.
+  }
+
+The front end previously failed to deduce the template parameters for g in the
+call to g(t) because of an error in matching a template argument to its
+corresponding "auto" template parameter.  That is now fixed.
+
+
 6/11/20  [EDGcpfe/22935]
 C++-generating back end: missing static data member templates
 
