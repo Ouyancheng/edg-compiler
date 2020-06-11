@@ -719,23 +719,15 @@ of the function.  Usually expands to "void", but can be changed to
 something else if the host C compiler has some way of indicating a
 function that does not return.
 
-If using C++11, prefer the [[noreturn]] attribute.  Most versions of gcc accept
-the "noreturn" attribute.  Some older versions of gcc, recognized a return type
-of "volatile void" as meaning that a function does not return.
+Most versions of gcc accept the "noreturn" attribute.  Some older versions
+of gcc, recognized a return type of "volatile void" as meaning that a function
+does not return.
 
 Microsoft compilers accept the "__declspec(noreturn)" specifier for this
 purpose.
 
 See also NORETURN.
 */
-#ifndef __has_cpp_attribute
-#define __has_cpp_attribute(x) 0
-#endif /* !defined(__has_cpp_attribute) */
-
-#if __has_cpp_attribute(noreturn)
-#define DOES_NOT_RETURN [[noreturn]] void
-#else /* !(__has_cpp_attribute(noreturn)) */
-
 #if defined(__GNUC__) && !defined(DOES_NOT_RETURN)
 #if __GNUC__ >= 3 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 70)
 #define DOES_NOT_RETURN void __attribute__ ((noreturn))
@@ -750,7 +742,6 @@ See also NORETURN.
 #ifndef DOES_NOT_RETURN
 #define DOES_NOT_RETURN void
 #endif /* ifndef DOES_NOT_RETURN */
-#endif /* __has_cpp_attribute(noreturn) */
 
 /*
 Flag that is TRUE if the IL should contain information detailing the tree
@@ -1110,7 +1101,12 @@ NORETURN: specifies that the function does not return to the caller.
 #define NORETURN [[noreturn]]
 #else /* !defined(_lint) */
 /* Use standard attributes if those are supported. */
+#ifndef __has_cpp_attribute
+#define __has_cpp_attribute(x) 0
+#endif /* !defined(__has_cpp_attribute) */
+
 #if __has_cpp_attribute(fallthrough)
+/*lint -estring(823,FALLTHROUGH)*/
 #define FALLTHROUGH [[fallthrough]];
 #else /* !(__has_cpp_attribute(fallthrough)) */
 #define FALLTHROUGH /*nothing*/
