@@ -9449,7 +9449,33 @@ means type-dependent rather than value-dependent.
 }  /* operand_is_dependent */
 
 
-a_boolean arg_list_is_type_dependent(an_arg_list_elem_ptr arg_list)
+static a_boolean arg_list_elem_is_type_dependent(an_arg_list_elem_ptr  alep)
+/*
+Return TRUE if the given component is type dependent.
+*/
+{
+  a_boolean  is_dependent = FALSE;
+
+  if (alep->pack_expansion_descr != NULL) {
+    is_dependent = TRUE;
+  } else if (is_expression_component(alep)) {
+    if (operand_is_dependent(operand_of_arg_list_elem(alep))) {
+      is_dependent = TRUE;
+    }  /* if */
+  } else if (is_braced_init_component(alep)) {
+    if (arg_list_is_type_dependent(alep->variant.braced.list)) {
+      is_dependent = TRUE;
+    }  /* if */
+  } else if (is_designator_component(alep)) {
+    /* Treat as nondependent. */
+  } else {
+    unexpected_condition();
+  } /* if */
+  return is_dependent;
+}  /* arg_list_elem_is_type_dependent */
+
+
+a_boolean arg_list_is_type_dependent(an_arg_list_elem_ptr  arg_list)
 /*
 Return TRUE if any of the operands on the given list is dependent.
 Specifically, this means type-dependent rather than value-dependent.  The
@@ -9460,27 +9486,42 @@ presence of a pack expansion in the list also makes it "type dependent".
   an_arg_list_elem_ptr alep;
 
   for (alep = arg_list; alep != NULL; alep = next_elem(alep)) {
-    if (alep->pack_expansion_descr != NULL) {
+    if (arg_list_elem_is_type_dependent(alep)) {
       is_dependent = TRUE;
       break;
-    } else if (is_expression_component(alep)) {
-      if (operand_is_dependent(operand_of_arg_list_elem(alep))) {
-        is_dependent = TRUE;
-        break;
-      }  /* if */
-    } else if (is_braced_init_component(alep)) {
-      if (arg_list_is_type_dependent(alep->variant.braced.list)) {
-        is_dependent = TRUE;
-        break;
-      }  /* if */
-    } else if (is_designator_component(alep)) {
-      continue;
-    } else {
-      unexpected_condition();
     } /* if */
   }  /* for */
   return is_dependent;
 }  /* arg_list_is_type_dependent */
+
+
+static a_boolean arg_list_elem_is_dependent(an_arg_list_elem_ptr  alep)
+/*
+Return TRUE if the given component is instantiation-dependent.
+*/
+{
+  a_boolean             is_dependent = FALSE;
+
+  if (is_expression_component(alep)) {
+    an_operand  *opnd = operand_of_arg_list_elem(alep);
+    if (operand_is_instantiation_dependent(opnd)) {
+      is_dependent = TRUE;
+    } else if (is_constant_operand(opnd)) {
+      if (constant_is(&opnd->variant.constant, ck_template_param)) {
+        is_dependent = TRUE;
+      }  /* if */
+    }  /* if */
+  } else if (is_braced_init_component(alep)) {
+    if (arg_list_is_dependent(alep->variant.braced.list)) {
+      is_dependent = TRUE;
+    }  /* if */
+  } else if (is_designator_component(alep)) {
+    /* Treat as nondependent. */
+  } else {
+    unexpected_condition();
+  } /* if */
+  return is_dependent;
+}  /* arg_list_elem_is_dependent */
 
 
 a_boolean arg_list_is_dependent(an_arg_list_elem_ptr arg_list)
@@ -9493,30 +9534,13 @@ Specifically, this means instantiation-dependent, not just type-dependent.
   an_arg_list_elem_ptr  alep;
 
   for (alep = arg_list; alep != NULL; alep = next_elem(alep)) {
-    if (is_expression_component(alep)) {
-      an_operand  *opnd = operand_of_arg_list_elem(alep);
-      if (operand_is_dependent(opnd)) {
-        is_dependent = TRUE;
-        break;
-      } else if (is_constant_operand(opnd)) {
-        if (constant_is(&opnd->variant.constant, ck_template_param)) {
-          is_dependent = TRUE;
-          break;
-        }  /* if */
-      }  /* if */
-    } else if (is_braced_init_component(alep)) {
-      if (arg_list_is_type_dependent(alep->variant.braced.list)) {
-        is_dependent = TRUE;
-        break;
-      }  /* if */
-    } else if (is_designator_component(alep)) {
-      continue;
-    } else {
-      unexpected_condition();
-    } /* if */
+    if (arg_list_elem_is_dependent(alep)) {
+      is_dependent = TRUE;
+      break;
+    }  /* if */
   }  /* for */
   return is_dependent;
-}  /* arg_list_is_type_dependent */
+}  /* arg_list_is_dependent */
 
 
 a_boolean is_skipped_decltype_context(void)
@@ -9938,7 +9962,7 @@ This routine is called only in C++ mode.
         arg = operand_of_arg_list_elem(arg_list_elem);
       }  /* if */
       if (arg != NULL ? operand_is_dependent(arg) :
-                        arg_list_is_type_dependent(arg_list_elem)) {
+                        arg_list_elem_is_type_dependent(arg_list_elem)) {
         dependent_call = TRUE;
         break;
       } else if (gpp_mode && arg != NULL && is_constant_operand(arg) &&

@@ -15359,7 +15359,7 @@ name.  We do not advance to the token after the decltype in this case.
   } else {
     a_type_ptr  tp = alloc_type((a_type_kind)tk_typeref);
     a_boolean   dependent_arg = is_template_dependent_context() &&
-                                is_template_dependent_type(result);
+                                operand_is_instantiation_dependent(&operand);
     a_boolean   no_parens_matters;
     a_memory_region_number
                 prev_region;
@@ -15376,14 +15376,6 @@ name.  We do not advance to the token after the decltype in this case.
     switch_to_file_scope_region(&prev_region);
     expr = make_node_from_operand(&operand);
     switch_back_to_original_region(prev_region);
-    if (!dependent_arg) {
-      /* Check for cases where the result type is not dependent but the
-         expression is instantiation-dependent. */
-      if (is_template_dependent_context() &&
-          expr_is_instantiation_dependent(expr)) {
-        tp->variant.typeref.is_dependent_type_operator = TRUE;
-      }  /* if */
-    }  /* if */
     /* The type entry is stored in the file scope memory region.  If the
        expression is a local expression,  the type entry cannot point
        directly to it, and instead we use the "a_local_expr_node_ref"

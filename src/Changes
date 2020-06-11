@@ -1,5 +1,26 @@
 Version 6.1
 
+6/11/20  [EDGcpfe/20143]
+Spurious abort due to failure to detect dependence
+
+The function arg_list_is_dependent (in overload.c) is expected to detect
+"instantiation dependence", but it sometimes only checked for a more
+restricted version of template-dependence known as "type dependence".  That
+could result in internal errors, such as with the following example in some
+Microsoft modes:
+
+  template<typename T> struct L { L(T&); };
+  struct K {};
+  template<typename T> struct X {
+    K k;
+    void f() {
+      L x(k);  // Previously the instantiation-dependence of k was not
+    }          // detected and an internal error could ensue.
+  };
+
+That problem is now fixed.
+
+
 6/9/20   [EDGcpfe/22924]
 C++20 comparison rewrites
 
