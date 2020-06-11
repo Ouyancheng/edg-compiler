@@ -7083,6 +7083,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
 }  /* str_ifc_declaration */
 
 
+NORETURN
 void an_ifc_module::str_ifc_statement(
                                      ifc_StmtIndex                  stmt_index,
                                      ARG_UNUSED a_str_control_block *scbp)
@@ -7237,6 +7238,7 @@ Generate a string for the specified string literal.
 }  /* str_ifc_string_literal */
 
 
+NORETURN
 void an_ifc_module::str_ifc_chart(ifc_ChartIndex                 chart_index,
                                   ARG_UNUSED a_str_control_block *scbp) const
 /*
@@ -7307,6 +7309,7 @@ Generate a string for the specified associated template specialization trait.
 
 
 template<>
+NORETURN
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Friend>
                                     (ifc_DeclIndex                  decl_index,
                                      ARG_UNUSED a_str_control_block *scbp)
@@ -7324,6 +7327,7 @@ Generate a string for the specified associated class friend trait.
 
 
 template<>
+NORETURN
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_ConstexprFunction>
                                     (ifc_DeclIndex                  decl_index,
                                      ARG_UNUSED a_str_control_block *scbp)
@@ -7342,6 +7346,7 @@ Generate a string for the specified associated constexpr function trait.
 
 
 template<>
+NORETURN
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_FunctionTemplate>
                                     (ifc_DeclIndex                  decl_index,
                                      ARG_UNUSED a_str_control_block *scbp)
@@ -7360,6 +7365,7 @@ Generate a string for the specified associated function template trait.
 
 
 template<>
+NORETURN
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_ClassTemplate>
                                     (ifc_DeclIndex                  decl_index,
                                      ARG_UNUSED a_str_control_block *scbp)
@@ -7377,6 +7383,7 @@ Generate a string for the specified associated class template trait.
 
 
 template<>
+NORETURN
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_AliasTemplate>
                                     (ifc_DeclIndex                  decl_index,
                                      ARG_UNUSED a_str_control_block *scbp)
@@ -7394,6 +7401,7 @@ Generate a string for the specified associated template alias trait.
 
 
 template<>
+NORETURN
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_VariableTemplate>
                                     (ifc_DeclIndex                  decl_index,
                                      ARG_UNUSED a_str_control_block *scbp)
@@ -7445,6 +7453,7 @@ Generate a string for the specified associated MSVC UUID trait.
 }  /* str_ifc_associated_trait<an_ifc_Trait_MsvcUuid> */
 
 
+NORETURN
 void an_ifc_module::str_ifc_syntax_node(
                                    ifc_SyntaxIndex                syntax_index,
                                    ARG_UNUSED a_str_control_block *scbp) const
@@ -8232,6 +8241,7 @@ Generate a string for the specified syntax tree node.
 }  /* str_ifc_syntax_node */
 
 
+NORETURN
 void an_ifc_module::str_ifc_sentence(
                                 ifc_SentenceIndex               sentence_index,
                                 ARG_UNUSED a_str_control_block *scbp) const
@@ -8247,6 +8257,7 @@ Generate a string for the specified sentence.
 }  /* str_ifc_sentence*/
 
 
+NORETURN
 void an_ifc_module::str_ifc_word(ifc_WordIndex                  word_index,
                                  ARG_UNUSED a_str_control_block *scbp) const
 /*
