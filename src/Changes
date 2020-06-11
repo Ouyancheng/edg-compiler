@@ -1,5 +1,18 @@
 Version 6.1
 
+6/11/20  [EDGcpfe/22935]
+C++-generating back end: missing static data member templates
+
+The C++-generating back end could omit the declaration of a static data
+member template from the generated code.  This is now fixed.  For example,
+with --c++11:
+
+  struct S {
+    template<typename T> static const T m;  // Previously omitted
+  };
+  template<typename T> const T S::m = { };
+
+
 6/11/20  [EDGcpfe/20143]
 Spurious abort due to failure to detect dependence
 

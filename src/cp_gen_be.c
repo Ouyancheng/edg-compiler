@@ -19840,7 +19840,7 @@ this one is such a continuation.
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   if (var->template_info != NULL &&
       var->template_info->template_arg_list != NULL &&
-      !var->is_specialized) {
+      !var->is_specialized && !var->is_prototype_instantiation) {
     is_generated_explicit_specialization = TRUE;
     if (suppress_invalid_explicit_specialization(
                                       &var->source_corresp, iek_variable,
