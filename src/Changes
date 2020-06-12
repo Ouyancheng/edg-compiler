@@ -1,6 +1,7 @@
 Version 6.1
 
-6/11/20  [EDGcpfe/19682,EDGcpfe/20186]
+6/11/20  [EDGcpfe/19682,EDGcpfe/20186,EDGcpfe/20189,EDGcpfe/20956,
+          EDGcpfe/20957,EDGcpfe/21231,EDGcpfe/21699]
 Deduction failure with parameter of class type with auto template argument
 
 Consider:

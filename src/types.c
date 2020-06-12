@@ -11317,8 +11317,8 @@ user-defined conversions.
   a_boolean     allowed = TRUE;
   an_error_code local_err_code = ec_no_error;
 
-  if (conversion->pointer_normalization_needed && (!cpp11_mode ||
-      microsoft_mode)) {
+  if (conversion->pointer_normalization_needed &&
+      (!cpp11_mode || microsoft_mode)) {
     /* Conversion of 0 to a pointer type, or of a pointer to object type
        to void *, is not allowed on a nontype template argument before
        C++11 (except in Microsoft mode). */
@@ -11376,6 +11376,12 @@ user-defined conversions.
         }  /* if */
       } /* if */
     }  /* if */
+  }  /* if */
+  if (!allowed && is_template_dependent_type(dest_type)) {
+    /* If the destination type is template-dependent, the conversion
+       characteristics are unreliable.  Assume a conversion will be possible
+       for some substitution eventually. */
+    allowed = TRUE;
   }  /* if */
   if (err_code != NULL) {
     /* Return an appropriate error code. */

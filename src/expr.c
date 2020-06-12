@@ -571,7 +571,7 @@ far.
     result = TRUE;
     deduced_type = bottom_type;
   } else {
-    check_assertion(is_auto_template_param_type(bottom_type));
+    check_assertion(is_auto_type(bottom_type));
     if (deduce_placeholder_type(
                          bottom_type->variant.template_param.is_decltype_auto,
                          /*is_class_template=*/FALSE,
@@ -45816,7 +45816,7 @@ the corresponding arguments processed so far.
     /* Check for an "auto" or "decltype(auto)" parameter. */
     a_type_ptr    bottom_type;
     bottom_type = find_bottom_of_type(param_type);
-    if (is_auto_template_param_type(bottom_type)) {
+    if (is_auto_type(bottom_type)) {
       /* Attempt to deduce the auto type from the argument.  An error will
          be issued if this cannot be done.  deduced_type will either be
          the deduced type or an error type. */

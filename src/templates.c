@@ -7655,7 +7655,8 @@ Return TRUE if the constants should be considered to match.
       /* The second constant is a cast of something.  Remove the cast. */
       con2 = base_con2;
     }  /* if */
-    if (constant_is(con2, ck_template_param) && tpck_is(con2, tpck_param)) {
+    if (constant_is(con2, ck_template_param) && tpck_is(con2, tpck_param) &&
+        !is_auto_type(find_bottom_of_type(con1->type))) {
       /* The thing being cast is the name of a template parameter.
          Make a copy of the constant under the cast, but use the type of
          the first constant.  Compare the resulting constants. */
@@ -11830,7 +11831,10 @@ list of a template function.  Returns TRUE if a match is found.
            parameter list.  If the constant types are not dependent, we
            can check them now. */
         if (tpp->uses_auto) {
-          /* Consider an auto parameter a match for now. */
+          /* For auto parameters, also ensure the underlying type matches. */
+          match = matches_template_type(constant->type, templ_constant->type,
+                                        templ_arg_list, templ_param_list,
+                                        MTT_NO_FLAGS);
         } else if (!tpp->variant.constant.type_involves_template_param) {
           if (!identical_types(constant->type,
                                templ_constant->type) &&
@@ -24597,8 +24601,7 @@ the components of the declaration.
     /* Check whether the type depends on a template parameter.  This is
        done before the parameter type is adjusted below because certain
        dependencies could be eliminated. */
-    *template_dependent = !*uses_auto &&
-                          is_instantiation_dependent_type(state.type);
+    *template_dependent = is_instantiation_dependent_type(state.type);
   }  /* if */
   /* Check for invalid nontype parameter types and adjust those types if
      needed (array and function type decay). */
@@ -25227,6 +25230,7 @@ is used in an auto template parameter.
 */
 {
   a_type_ptr	type;
+
   type = find_bottom_of_type(param_type);
   if (type_is(type, tk_template_param)) {
     a_template_param_type_supplement_ptr	tptsp;
@@ -25982,7 +25986,7 @@ the resulting constant is stored in the pointer pointed to by "constant".
        instantiation. */
     ps_options |= PS_NONREAL_INSTANTIATION | PS_DEDUCTION_CONTEXT;
   }  /* if */
-  if (type_involves_template_param && !param_ptr->uses_auto) {
+  if (type_involves_template_param) {
     if (pending_nontype_param_instantiations == max_pending_instantiations) {
       pos_error(ec_recursive_inst_of_templ_default_arg, &error_position);
       constant_type = error_type();
