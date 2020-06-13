@@ -189,21 +189,22 @@ struct an_edg_module : public a_module_interface {
 
   a_boolean import(ARG_UNUSED a_module_import_decl_ptr midp) OVERRIDE
     { unexpected_condition_str("Unimplemented"); /*lint -e527*/ return FALSE; }
-  NORETURN void close() OVERRIDE
+  [[noreturn]] void close() OVERRIDE
     { unexpected_condition_str("Unimplemented"); }
-  NORETURN void pch_reset(ARG_UNUSED a_module_import_decl_ptr midp) OVERRIDE
+  [[noreturn]] void pch_reset(ARG_UNUSED a_module_import_decl_ptr midp)
+                                                                       OVERRIDE
     { unexpected_condition_str("Unimplemented"); }
 
-  NORETURN void get_definition_of_module_class(
+  [[noreturn]] void get_definition_of_module_class(
                                       ARG_UNUSED a_module_entity_ptr mep,
                                       ARG_UNUSED a_text_buffer       *buffer)
                                                                  const OVERRIDE
     { unexpected_condition_str("Unimplemented"); }
 
 #if DEBUG
-  NORETURN void debug() const OVERRIDE
+  [[noreturn]] void debug() const OVERRIDE
     { unexpected_condition_str("Unimplemented"); }
-  NORETURN void db_module_entity(ARG_UNUSED a_module_entity_ptr mep)
+  [[noreturn]] void db_module_entity(ARG_UNUSED a_module_entity_ptr mep)
                                                                  const OVERRIDE
     { unexpected_condition_str("Unimplemented"); }
 #endif /* DEBUG */

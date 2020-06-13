@@ -2818,7 +2818,7 @@ static a_boolean internal_error_loop;
 			   detected.  Used to detect a loop in internal
 			   error processing. */
 
-DOES_NOT_RETURN internal_error(a_const_char *error_message)
+[[noreturn]] void internal_error(a_const_char *error_message)
 /*
 An internal error has occurred.  Write the given message and abort.
 */
@@ -2845,11 +2845,11 @@ An internal error has occurred.  Write the given message and abort.
 }  /* internal_error */
 
 
-DOES_NOT_RETURN assertion_failed(a_const_char *filename,
-		                 int          line_number,
-		                 a_const_char *function,
-				 a_const_char *string1,
-				 a_const_char *string2)
+[[noreturn]] void assertion_failed(a_const_char *filename,
+                                   int          line_number,
+                                   a_const_char *function,
+                                   a_const_char *string1,
+                                   a_const_char *string2)
 /*
 An assertion has failed.  Abort the compilation.
 */
@@ -4511,7 +4511,7 @@ The message is formatted into text strings and is output.
 
 
 /* Forward declaration. */
-static DOES_NOT_RETURN error_code_errno_catastrophe(
+[[noreturn]] static void error_code_errno_catastrophe(
                                       an_error_code error_code,
                                       an_error_code error_code2,
                                       int           errno_value);
@@ -4582,10 +4582,10 @@ the kind of failure.
 }  /* file_open_error */
 
 
-DOES_NOT_RETURN output_file_open_error(a_boolean         bad_name,
-                                       an_error_code     file_kind,
-                                       a_const_char      *file_name,
-                                       an_error_severity severity)
+[[noreturn]] void output_file_open_error(a_boolean         bad_name,
+                                         an_error_code     file_kind,
+                                         a_const_char      *file_name,
+                                         an_error_severity severity)
 /*
 Write an error message about opening the output file named file_name,
 and terminate the compilation.  This routine is used in contexts in which
@@ -4612,8 +4612,8 @@ error is issued instead.
 }  /* output_file_open_error */
 
 
-DOES_NOT_RETURN file_write_error(an_error_code	file_kind,
-				 int		errno_value)
+[[noreturn]] void file_write_error(an_error_code	file_kind,
+                                   int		errno_value)
 /*
 Issue an error that a write to the file specified by file_kind failed.
 errno_value provides information about the cause of the failure.
@@ -4996,8 +4996,8 @@ terminate the compilation.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-DOES_NOT_RETURN str_command_line_error(an_error_code error_code,
-                                       a_const_char  *concat_string)
+[[noreturn]] void str_command_line_error(an_error_code error_code,
+                                         a_const_char  *concat_string)
 /*
 Write a command-line error message concatenated with concat_string, and
 terminate the compilation.
@@ -5017,7 +5017,7 @@ terminate the compilation.
 }  /* str_command_line_error */
 
 
-DOES_NOT_RETURN command_line_error(an_error_code error_code)
+[[noreturn]] void command_line_error(an_error_code error_code)
 /*
 Write a command-line error message, and terminate the compilation.
 */
@@ -5862,9 +5862,9 @@ errors.
 
 /*lint -esym(759,pos_ty_catastrophe)*/
 /*lint -esym(765,pos_ty_catastrophe)*/
-DOES_NOT_RETURN pos_ty_catastrophe(an_error_code     error_code,
-                                   a_source_position *error_pos,
-                                   a_type            *type)
+[[noreturn]] void pos_ty_catastrophe(an_error_code     error_code,
+                                     a_source_position *error_pos,
+                                     a_type            *type)
 /*
 Report the indicated catastrophic error (with the indicated fill-in type)
 at the indicated position, and then terminate the compilation.
@@ -5881,9 +5881,9 @@ at the indicated position, and then terminate the compilation.
 
 /*lint -esym(759,pos_st_catastrophe)*/
 /*lint -esym(765,pos_st_catastrophe)*/
-DOES_NOT_RETURN pos_st_catastrophe(an_error_code     error_code,
-                                   a_source_position *error_pos,
-                                   a_const_char      *error_string)
+[[noreturn]] void pos_st_catastrophe(an_error_code     error_code,
+                                     a_source_position *error_pos,
+                                     a_const_char      *error_string)
 /*
 Report the indicated catastrophic error (with the indicated fill-in string)
 at the indicated position, and then terminate the compilation.
@@ -5897,8 +5897,8 @@ at the indicated position, and then terminate the compilation.
 }  /* pos_st_catastrophe */
 
 
-DOES_NOT_RETURN str_catastrophe(an_error_code error_code,
-                                a_const_char  *error_string)
+[[noreturn]] void str_catastrophe(an_error_code error_code,
+                                  a_const_char  *error_string)
 /*
 Report the indicated catastrophe (with the indicated fill-in string) at the
 position indicated by error_position, and then terminate the compilation.
@@ -5908,10 +5908,10 @@ position indicated by error_position, and then terminate the compilation.
 }  /* str_catastrophe */
 
 
-DOES_NOT_RETURN pos_str2_catastrophe(an_error_code     error_code,
-                                     a_const_char      *error_string1,
-                                     a_const_char      *error_string2,
-				     a_source_position *error_pos)
+[[noreturn]] void pos_str2_catastrophe(an_error_code     error_code,
+                                       a_const_char      *error_string1,
+                                       a_const_char      *error_string2,
+                                       a_source_position *error_pos)
 /*
 Report the indicated catastrophe (with the indicated fill-in strings) at the
 indicated error_position, and then terminate the compilation.
@@ -5929,8 +5929,8 @@ indicated error_position, and then terminate the compilation.
 #if CPPCLI_ENABLING_POSSIBLE
 #if !STANDALONE_UTILITY_PROGRAM
 
-DOES_NOT_RETURN win32_catastrophe(an_ms_dword   error_code,
-                                  a_const_char  *error_string)
+[[noreturn]] void win32_catastrophe(an_ms_dword   error_code,
+                                    a_const_char  *error_string)
 /*
 When a WIN32 API fails, issue a diagnostic that describes the failure.
 */
@@ -5949,7 +5949,7 @@ When a WIN32 API fails, issue a diagnostic that describes the failure.
 }  /* win32_catastrophe */
 
 
-DOES_NOT_RETURN hresult_catastrophe(a_const_char *error_string)
+[[noreturn]] void hresult_catastrophe(a_const_char *error_string)
 /*
 When a random COM API (or other API that hopefully uses ISetErrorInfo) fails,
 this produces a diagnostic that describes the failure.
@@ -5972,9 +5972,9 @@ this produces a diagnostic that describes the failure.
 #endif /* CPPCLI_ENABLING_POSSIBLE */
 #endif /* EDG_WIN32 */
 
-DOES_NOT_RETURN str_errno_catastrophe(an_error_code error_code,
-                                      a_const_char  *error_string,
-                                      int           errno_value)
+[[noreturn]] void str_errno_catastrophe(an_error_code error_code,
+                                        a_const_char  *error_string,
+                                        int           errno_value)
 /*
 Report the indicated catastrophe with the fill-in string error_string and
 with errno converted to a string fill-in at the position indicated by
@@ -5992,7 +5992,7 @@ error_position, and then terminate the compilation.
 }  /* str_errno_catastrophe */
 
 
-static DOES_NOT_RETURN error_code_errno_catastrophe(
+[[noreturn]] static void error_code_errno_catastrophe(
                                       an_error_code error_code,
                                       an_error_code error_code2,
                                       int           errno_value)
@@ -6013,7 +6013,7 @@ error_position, and then terminate the compilation.
 }  /* error_code_errno_catastrophe */
 
 
-DOES_NOT_RETURN catastrophe(an_error_code error_code)
+[[noreturn]] void catastrophe(an_error_code error_code)
 /*
 Report the indicated catastrophe at the position indicated by error_position,
 and then terminate the compilation.
@@ -6690,7 +6690,7 @@ messages.
 }  /* start_command_line_error */
 
 
-DOES_NOT_RETURN end_command_line_error(a_diagnostic_ptr dp)
+[[noreturn]] void end_command_line_error(a_diagnostic_ptr dp)
 /*
 Complete the multiple message (dp) command line error currently being
 processed.
