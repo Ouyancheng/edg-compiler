@@ -2955,7 +2955,7 @@ therefore will not be copied.
 #if CHECKING
   /* This code doesn't handle source sequence lists, so the result won't
      work with the C++-generating back end. */
-  { a_boolean okay = !BACK_END_IS_CP_GEN_BE;
+  { a_boolean okay = /*lint -e(506)*/!BACK_END_IS_CP_GEN_BE;
     check_assertion(okay);
   }
 #endif /* CHECKING */

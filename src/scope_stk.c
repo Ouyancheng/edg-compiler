@@ -5924,7 +5924,7 @@ the outermost class was defined in an unnamed namespace.
       rout_sym->referenced &&
       (rp->storage_class == (a_storage_class)sc_extern &&
        !rp->is_prototype_instantiation &&
-       !rout_is_generic_instance(rp) &&
+       /*lint -e(506)*/!rout_is_generic_instance(rp) &&
        (!rp->is_template_function ||
         !not_needed_or_will_be_instantiated(rout_sym)))) {
     check_constituent_types_have_linkage(rout_sym,

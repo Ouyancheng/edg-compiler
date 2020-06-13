@@ -846,7 +846,7 @@ may be a friend template.
   a_template_ptr  tp;
 
   db_enter(3, "make_il_template_entry");
-  if (!in_generated_code()) {
+  if (/*lint -e(506)*/!in_generated_code()) {
     /* Don't set this flag for templates that are defined internally. */
     il_header.any_templates_seen = TRUE;
   }  /* if */
@@ -2397,7 +2397,7 @@ Return TRUE if there is a match, FALSE otherwise.
   /* When EXPENSIVE_CHECKING is TRUE we do the comparison in the old and
      new way and make sure the new results are a superset of the old. */
   do_old_style_check = !generalized_template_template_matching ||
-                       EXPENSIVE_CHECKING;
+                       /*lint -e(506)*/EXPENSIVE_CHECKING;
   param_template = tpp->variant.templ->il_template_entry;
   involves_template_param =
             tpp->variant.templ->variant.class_template.involves_template_param;
@@ -4717,7 +4717,7 @@ be completed here.
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if (class_type->variant.class_struct_union.is_nonreal_class &&
-             !is_cli_generic_instance_type(class_type) &&
+             /*lint -e(506)*/!is_cli_generic_instance_type(class_type) &&
              !class_type->variant.class_struct_union.
                                             is_ms_instantiated_nonreal_class) {
     /* Don't try to instantiate a template class without real template
@@ -8113,7 +8113,7 @@ that is not used in the result type of an alias) is dependent.
 
   if (in_front_end &&
       !is_template_dependent_context() &&
-      !is_cli_generic_definition_context()) {
+      /*lint -e(506)*/!is_cli_generic_definition_context()) {
     /* Since we are not inside a template or C++/CLI generic construct, the
        argument list cannot be dependent. */
   } else {
@@ -15039,7 +15039,7 @@ a pointer over a reference type or creating an array of references.
         tp = copy_type_with_substitution(tp, templ_arg_list, templ_param_list,
                                          source_pos, options, copy_error,
                                          ctws_state);
-        if (!check_cli_or_cx_type_pointed_to(
+        if (/*lint -e(506)*/!check_cli_or_cx_type_pointed_to(
                                            tp,
                                            type->variant.pointer.is_reference,
                                            type->variant.pointer.is_handle,
@@ -15668,7 +15668,7 @@ done_with_routine:
       case tk_union:
         cssp = symbol_supplement_for_class(type);
         if (!type->variant.class_struct_union.is_nonreal_class &&
-            !is_cli_open_constructed_instance(type)) {
+            /*lint -e(506)*/!is_cli_open_constructed_instance(type)) {
           /* Reuse the current type. */
           new_type = type;
         } else if (class_type_supp(type)->proxy_of_type != NULL) {
@@ -34259,7 +34259,8 @@ an instantiation is not actually required for the entity.
       result = TRUE;
     } else {
       if (!sym->is_class_member || 
-          !is_immediate_managed_class_type(sym_parent_class(sym))) {
+          /*lint -e(506)*/!is_immediate_managed_class_type(
+                                                      sym_parent_class(sym))) {
         /* Managed class member functions and static data members are never
            instantiated. */
         check_assertion(in_instantiation_wrapup);
@@ -36155,6 +36156,7 @@ Does nothing if called in C mode.
     }  /* if */
 #endif /* DEBUG */
     if (symbol_is(sym, sk_static_data_member)) {
+      /*lint -e{506}*/
       if (is_immediate_managed_class_type(sym_parent_class(sym)) &&
           sym->variant.static_data_member.variable->initializer_in_class) {
         /* C++/CLI classes can be defined in-class.  Such members do not need

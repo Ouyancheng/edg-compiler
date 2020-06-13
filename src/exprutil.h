@@ -1339,7 +1339,8 @@ attribute argument expression.
   (cli_or_cx_enabled && expr_stack != NULL &&                         \
    (a_boolean)expr_stack->is_cli_attr_arg_expression)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define curr_expr_is_cli_attribute_argument() (/*lint --e(506)*/FALSE)
+/*lint -emacro(506,curr_expr_is_cli_attribute_argument)*/
+#define curr_expr_is_cli_attribute_argument() (FALSE)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
@@ -2328,10 +2329,11 @@ extern void add_dtor_to_dynamic_init(a_dynamic_init_ptr dip,
                                      a_type_ptr         object_class_type,
                                      a_source_position  *position);
 
+/*lint -emacro(506,record_dtor_in_dynamic_init)*/
 #define record_dtor_in_dynamic_init(dtor, dip, evaluated)                    \
   if ((dtor)!= NULL) {                                                       \
     (dip)->destructor = (dtor);                                              \
-    if (/*lint --e(506)*/(evaluated)) (dtor)->called = TRUE;                 \
+    if ((evaluated)) (dtor)->called = TRUE;                                  \
   }  /* if */
 
 extern a_dynamic_init_ptr alloc_dtor_dynamic_init(

@@ -407,8 +407,8 @@ extern a_boolean check_param_array_type(a_param_type_ptr   ptp,
    f_check_cli_or_cx_type_pointed_to((tp), (is_ref), (is_handle), (pos)))
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 /*lint -esym(2666,check_cli_or_cx_type_pointed_to)*/
-#define check_cli_or_cx_type_pointed_to(tp, is_ref, is_handle, pos)  \
-  /*lint --e(506)*/TRUE
+/*lint -emacro(506,check_cli_or_cx_type_pointed_to)*/
+#define check_cli_or_cx_type_pointed_to(tp, is_ref, is_handle, pos) TRUE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern

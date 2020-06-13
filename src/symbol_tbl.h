@@ -5538,7 +5538,8 @@ a_boolean use_hide_by_sig_lookup(
 			a_hide_by_sig_list_entry_ptr	*p_hide_by_sig_list);
 
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define treat_as_cli_class_for_lookup(tp) /*lint --e(506)*/FALSE
+/*lint -emacro(506,treat_as_cli_class_for_lookup)*/
+#define treat_as_cli_class_for_lookup(tp) FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void add_on_diag_for_skipped_inaccessible_function(
@@ -5851,8 +5852,8 @@ extern a_boolean f_is_gnu_accessible_protected_base(
                                                  a_base_class_ptr target_base);
 #else /* !GNU_EXTENSIONS_ALLOWED */
 /* Just return FALSE. */
-#define is_gnu_accessible_protected_base(this_step, target_base) \
-  /*lint --e(506)*/FALSE
+/*lint -emacro(506,is_gnu_accessible_protected_base)*/
+#define is_gnu_accessible_protected_base(this_step, target_base) FALSE
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 /*
@@ -6120,7 +6121,8 @@ an overloaded set of properties.
                                 property_or_event_descr->kind !=        \
                         (a_property_or_event_kind)pek_declspec_property)))
 #else  /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define is_cppcli_property_or_event(sym) /*lint --e(506)*/FALSE
+/*lint -emacro(506,is_cppcli_property_or_event)*/
+#define is_cppcli_property_or_event(sym) FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -6134,7 +6136,8 @@ refers to a fundamental type with a corresponding C++/CLI System value type
    (system_type_from_fundamental_type(                                  \
                     skip_typerefs((sym)->variant.type.ptr)) != NULL))
 #else  /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define is_cppcli_fundamental_system_type(sym) /*lint --e(506)*/FALSE
+/*lint -emacro(506,is_cppcli_fundamental_system_type)*/
+#define is_cppcli_fundamental_system_type(sym) FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 
@@ -6261,7 +6264,8 @@ of a C++/CLI generic class.
                    variant.class_struct_union.is_generic_definition)
 
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define is_cli_generic_class_definition_symbol(sym) /*lint --e(506)*/(FALSE)
+/*lint -emacro(506,is_cli_generic_class_definition_symbol)*/
+#define is_cli_generic_class_definition_symbol(sym) (FALSE)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -6649,8 +6653,10 @@ extern a_type_ptr underlying_function_type(a_symbol_ptr  sym);
 extern a_boolean is_cli_param_array_routine_symbol(a_symbol_ptr sp);
 
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define is_static_constructor_symbol(sym) /*lint --e(506)*/FALSE
-#define is_finalizer_symbol(sym) /*lint --e(506)*/FALSE
+/*lint -emacro(506,is_static_constructor_symbol)*/
+#define is_static_constructor_symbol(sym) FALSE
+/*lint -emacro(506,is_finalizer_symbol)*/
+#define is_finalizer_symbol(sym) FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean f_has_nontrivial_ctor(a_class_symbol_supplement_ptr  cssp);

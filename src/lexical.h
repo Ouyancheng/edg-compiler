@@ -3082,6 +3082,7 @@ Return TRUE if tok is one of the Microsoft __xPREFIX string operators.
   ((tok) == tok_microsoft_Lprefix || (tok) == tok_microsoft_lprefix || \
    (tok) == tok_microsoft_Uprefix || (tok) == tok_microsoft_uprefix)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
+/*lint -emacro(506,is_microsoft_string_prefix_operator)*/
 #define is_microsoft_string_prefix_operator(tok) FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 

@@ -31,12 +31,11 @@ variables to a particular set of target-specific values.
   concat(set_target_config ## _, config)(void)
 /* Assign the target-specific macro value to the associated global variable. */
 /*lint -estring(823,TARGET_MAP_MACRO)*/
+/*lint -emacro(506,TARGET_MAP_MACRO)*/
 #define TARGET_MAP_MACRO(config_macro, global_var, config) \
   (global_var) = concat(config_macro ## _, config);
 END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
-/*lint -e451*/
 #include "target_map.h"
-/*lint +e451*/
 BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 
 #if DUMP_CONFIG_ENABLED
@@ -56,9 +55,7 @@ configuration macros.
           #config_macro "_" stringize(config), \
           STRINGIZE_HELPER(concat(config_macro ## _, config)));
 END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
-/*lint -e451*/
 #include "target_map.h"
-/*lint +e451*/
 BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 #undef STRINGIZE_HELPER
 

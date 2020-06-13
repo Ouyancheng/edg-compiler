@@ -206,8 +206,9 @@ extern void check_expected_errors(void);
 /* Macro to test an assertion and generate an internal error if
    the condition is not TRUE.  The macro expands to nothing when checking
    code is not being used. */
+/*lint -emacro(774 506, check_assertion)*/
 #define check_assertion(test)						\
-  ((/*lint --e(774,506)*/(test)) ? (void)0 :				\
+  (((test)) ? (void)0 :				                        \
     assertion_failed(__FILE__, __LINE__, __EDG_func__,			\
                      (char *)NULL, (char *)NULL))
 
@@ -234,8 +235,9 @@ extern void check_expected_errors(void);
                    (char *)NULL)
 /* Macros that are the same as above except that a string describing the
    assertion is provided. */
+/*lint -emacro(774 506, check_assertion_str)*/
 #define check_assertion_str(test, string)                        \
-  if (/*lint --e(774,506)*/!(test))                              \
+  if (!(test))                                                   \
     assertion_failed(__FILE__, __LINE__, __EDG_func__, string, (char *)NULL)
 #define check_assertion_or_expect_error_str(test, string)                    \
   if (/*lint --e(774)*/!(test) && total_errors == 0) {                       \
@@ -251,8 +253,9 @@ extern void check_expected_errors(void);
   assertion_failed(__FILE__, __LINE__, __EDG_func__, string, (char *)NULL)
 /* Macros that are the same as above except that two strings are provided.
    this is simply done to make it easier to use long strings as arguments. */
+/*lint -emacro(774 506, check_assertion_str2)*/
 #define check_assertion_str2(test, string1, string2)          \
-  if (/*lint --e(774,506)*/!(test))                           \
+  if (!(test))                                                \
     assertion_failed(__FILE__, __LINE__, __EDG_func__, string1, string2)
 #define check_assertion_or_expect_error_str2(test, string1, string2)         \
   if (/*lint --e(774)*/!(test) && total_errors == 0) {                       \

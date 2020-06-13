@@ -4984,7 +4984,8 @@ issue a diagnostic if such a reduction is invalid or ignored.
         alignment = lob->alignment;
       } else if (gnu_mode || sun_mode ||
                  (ms_extensions && ap != NULL &&
-                  !is_immediate_managed_class_type(class_type))) {
+                  /*lint -e(506)*/!is_immediate_managed_class_type(
+                                                                class_type))) {
         a_boolean  is_packed = FALSE;
 #if GNU_EXTENSIONS_ALLOWED
         is_packed = class_type->variant.class_struct_union.is_packed;

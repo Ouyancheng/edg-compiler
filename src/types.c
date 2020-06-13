@@ -5932,8 +5932,8 @@ and ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if ((type_1->variant.class_struct_union.is_nonreal_class &&
               type_2->variant.class_struct_union.is_nonreal_class) ||
-             (is_cli_open_constructed_instance(type_1) &&
-              is_cli_open_constructed_instance(type_2)) ||
+             /*lint -e(506)*/(is_cli_open_constructed_instance(type_1) &&
+                              is_cli_open_constructed_instance(type_2)) ||
              error_matches_anything) {
     /* The pointers aren't the same, so the classes probably aren't
        equivalent, but do some special checking to see if they are equivalent
@@ -8403,7 +8403,8 @@ types, template parameters, etc.
    type_ptr->variant.class_struct_union.is_generic_instance ||		\
    type_ptr->variant.class_struct_union.is_open_constructed_type)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define is_cli_type_to_treat_as_nonreal(type_ptr) /*lint --e(506)*/FALSE
+/*lint -emacro(506,is_cli_type_to_treat_as_nonreal)*/
+#define is_cli_type_to_treat_as_nonreal(type_ptr) FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if !STANDALONE_UTILITY_PROGRAM
@@ -13717,7 +13718,7 @@ based on the specified template parameter constant.
     }  /* if */
   } else if (is_immediate_class_type(type_ptr)) {
     if (!type_ptr->variant.class_struct_union.is_nonreal_class &&
-        !is_cli_type_to_treat_as_nonreal(type_ptr)) {
+        /*lint -e(506)*/!is_cli_type_to_treat_as_nonreal(type_ptr)) {
       found = FALSE;
     } else {
       /* Examine each template argument, if any. */
@@ -13768,7 +13769,7 @@ with a template argument that is a template template parameter.
 
   if (is_immediate_class_type(type_ptr)) {
     if (!type_ptr->variant.class_struct_union.is_nonreal_class &&
-        !is_cli_type_to_treat_as_nonreal(type_ptr)) {
+        /*lint -e(506)*/!is_cli_type_to_treat_as_nonreal(type_ptr)) {
       found = FALSE;
     } else {
       /* Check for template template arguments of a template class. */
@@ -13837,7 +13838,7 @@ types, i.e., also for nonreal classes.
   } else {
     if (is_immediate_class_type(type_ptr) &&
         !type_ptr->variant.class_struct_union.is_nonreal_class &&
-        !is_cli_type_to_treat_as_nonreal(type_ptr)) {
+        /*lint -e(506)*/!is_cli_type_to_treat_as_nonreal(type_ptr)) {
       found = FALSE;
     } else if (is_template_param(type_ptr)) {
       if (specific_template_param_type == NULL ||
@@ -13921,7 +13922,7 @@ by specific_template_template_param.
   if (!found) {
     if (is_immediate_class_type(type_ptr)) {
       if (!type_ptr->variant.class_struct_union.is_nonreal_class &&
-          !is_cli_type_to_treat_as_nonreal(type_ptr)) {
+          /*lint -e(506)*/!is_cli_type_to_treat_as_nonreal(type_ptr)) {
         found = FALSE;
       } else {
         /* Check for template template arguments of a template class. */
@@ -14681,6 +14682,7 @@ its parameters?).
                IL tree. */
             break;
           }  /* if */
+          /*lint -e{506}*/
           if (!is_cli_generic_constraint(type_ptr) ||
               (flags & TTT_CLI_GENERIC_PARAMETERS) != 0) {
             tp = class_type_supp(type_ptr)->proxy_of_type;

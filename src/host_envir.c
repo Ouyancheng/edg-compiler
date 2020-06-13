@@ -3586,6 +3586,7 @@ memory for IL memory blocks.
 {
   db_enter(3, "open_mapped_il_temp_file");
   f_mmap_file = open_temp_file(/*binary_file=*/TRUE);
+  /*lint -e{530}*/ /* Lint bug PCLP-804 */
   check_assertion(f_mmap_file != NULL);
   mmap_file_number = fileno(f_mmap_file);
   db_exit();

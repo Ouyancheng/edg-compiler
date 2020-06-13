@@ -1142,8 +1142,10 @@ the specifiers and declarator that formed the new type.
           new_type_ptr = mft_rout_type;
           tkind = (a_type_kind)tk_ptr_to_member;
         } else {
-          if (!check_cli_or_cx_type_pointed_to(new_type_ptr, /*is_ref=*/FALSE,
-                                               is_handle, &error_position)) {
+          if (/*lint -e(506)*/!check_cli_or_cx_type_pointed_to(new_type_ptr,
+                                                            /*is_ref=*/FALSE,
+                                                            is_handle,
+                                                            &error_position)) {
             new_type_ptr = error_type();
           } else if (is_any_reference_type(new_type_ptr)) {
             /* A pointer-to-reference type is invalid (a handle-to-reference
@@ -1168,7 +1170,7 @@ the specifiers and declarator that formed the new type.
              forming a pointer-to-member type. */
           sym_error(ec_bad_use_of_member_function_typedef, mft_sym);
           err = TRUE;
-        } else if (!check_cli_or_cx_type_pointed_to(
+        } else if (/*lint -e(506)*/!check_cli_or_cx_type_pointed_to(
                              temp_type, /*is_ref=*/TRUE,
                              is_tracking_reference_type(*bottom_derived_type),
                              &error_position)) {
@@ -5511,7 +5513,8 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
               /* Type "pointer to reference to anything" is illegal. */
               pos_error(ec_pointer_to_reference, &error_position);
               err = TRUE;
-            } else if (!check_cli_or_cx_type_pointed_to(temp_type,
+            } else if (/*lint -e(506)*/!check_cli_or_cx_type_pointed_to(
+                                                        temp_type,
                                                         /*is_ref=*/FALSE,
                                                         /*is_handle=*/FALSE,
                                                         &error_position)) {
@@ -5554,7 +5557,8 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
                forming a pointer-to-member type. */
             sym_error(ec_bad_use_of_member_function_typedef, sym);
             err = TRUE;
-          } else if (!check_cli_or_cx_type_pointed_to(temp_type,
+          } else if (/*lint -e(506)*/!check_cli_or_cx_type_pointed_to(
+                                                      temp_type,
                                                       /*is_ref=*/TRUE,
                                                       /*is_handle=*/FALSE,
                                                       &error_position)) {

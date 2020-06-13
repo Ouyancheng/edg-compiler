@@ -3613,7 +3613,7 @@ Process a "#pragma GCC ..." construct.
   a_pragma_ptr  il_pragma_entry;
 
   /* By default, don't ignore these pragmas in C++-generating configurations.*/
-  ignore_in_back_end = !BACK_END_IS_CP_GEN_BE;
+  ignore_in_back_end = /*lint -e(506)*/!BACK_END_IS_CP_GEN_BE;
   begin_rescan_of_pragma_tokens(ppp);
   if (curr_token == tok_identifier) {
     a_const_char *str = locator_for_curr_id.symbol_header->identifier;

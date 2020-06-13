@@ -58,7 +58,8 @@ Macro that returns TRUE if tok is tok_uuid.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define is_microsoft_tok_uuid(tok) ((tok) == tok_uuid)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define is_microsoft_tok_uuid(tok) (FALSE) /*lint --e(506)*/
+/*lint -emacro(506,is_microsoft_tok_uuid)*/
+#define is_microsoft_tok_uuid(tok) (FALSE)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -6941,7 +6942,8 @@ done:
   (position_var).orig_column = (position_var).column;
 /* Test for whether the current macro position should be used for the
    current position (always FALSE for FULLY_RESOLVED_MACRO_POSITIONS). */
-#define should_use_pos_of_macro_invocation() /*lint --e(506)*/FALSE
+/*lint -emacro(506,should_use_pos_of_macro_invocation)*/
+#define should_use_pos_of_macro_invocation() FALSE
 /* Macro to copy pos_of_macro_invocation to the specified position
    variable (not done for FULLY_RESOLVED_MACRO_POSITIONS). */
 #define copy_pos_of_macro_invocation_to(position_var) /* nothing */
@@ -7114,7 +7116,8 @@ in which a cr or cr/lf terminator should be accepted.
 #define is_carriage_return_line_terminator(ch)			\
   ((ch) == '\r' && carriage_return_is_line_terminator)
 #else /* !ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
-#define is_carriage_return_line_terminator(ch) FALSE /*lint --e(506,845)*/
+/*lint -emacro(506,is_carriage_return_line_terminator)*/
+#define is_carriage_return_line_terminator(ch) FALSE
 #endif /* ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR */
 
 /*
@@ -16132,7 +16135,7 @@ it is used.
       a_boolean	old_style_match = FALSE;
       a_boolean	match = FALSE;
       do_old_style_check = !generalized_template_template_matching ||
-                           EXPENSIVE_CHECKING;
+                           /*lint -e(506)*/EXPENSIVE_CHECKING;
       /* The checking of template template argument compatibility was changed
          in C++17 (core issue 150/P0522R0).  When EXPENSIVE_CHECKING is used
          and the new checking is being done, we also do the old checking to

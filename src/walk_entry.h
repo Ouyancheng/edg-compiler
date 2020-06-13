@@ -292,12 +292,12 @@ simple walk_list.
 #define walk_needed_on_list(ptr, ptr_type, entry_kind, scope_kind)/* Nothing */
 #else /* !NEEDED_FLAG_WALK */
 #if KEEP_IN_IL_WALK
+/*lint -emacro(506,walk_needed_on_list)*/
 #define walk_needed_on_list(ptr, ptr_type, entry_kind, scope_kind) \
 { if ((scope_kind) == (a_scope_kind)sck_file || \
       (scope_kind) == (a_scope_kind)sck_namespace || \
       (scope_kind) == (a_scope_kind)sck_class_struct_union) { \
     ptr_type   local_ptr = (ptr); \
-    /*lint --e(506) */ \
     a_boolean  class_member_to_be_kept = \
                  local_ptr != NULL && \
                  ((scope_kind) == (a_scope_kind)sck_class_struct_union && \
@@ -472,8 +472,9 @@ parent scope pointer is remapped. */
   }  /* if */  \
 }  /* remap_parent */
 #else /* !(NEEDED_FLAG_WALK || KEEP_IN_IL_WALK) */
+/*lint -emacro(506,walk_or_remap_parent)*/
 #define walk_or_remap_parent(ptr, walk) \
-{ if ((walk /*lint --e(506) */)) { \
+{ if ((walk)) { \
     walk_ptr((ptr).parent_scope, a_scope_ptr, iek_scope); \
   } else { \
     remap_ptr((ptr).parent_scope, a_scope_ptr, iek_scope); \
@@ -614,6 +615,7 @@ over the list of nonstatic variables in the scope.
 #endif /* CHECKING */
 
 #undef walk_initializer
+/*lint -emacro(506,walk_initializer)*/
 #define walk_initializer(init_kind, initializer, is_member_constant)  \
 { switch (init_kind) {                                                \
     case initk_zero:                                                  \

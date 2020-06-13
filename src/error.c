@@ -2199,6 +2199,7 @@ Macro to write source line characters in the first pass, and spaces over
 and the caret on the second pass.  Exits to "end_of_loop" upon finding the
 column for the caret in the second pass.
 */
+/*lint -emacro(506,put_char)*/
 #define put_char(out_char)                                            \
 { if (pass_for_caret && curr_column >= source_pos->column) {          \
     goto end_of_loop;                                                 \

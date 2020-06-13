@@ -273,8 +273,10 @@ extern a_boolean class_is_instance_of_generic_from_metadata(
 extern a_boolean is_cli_open_constructed_type(a_type_ptr  tp);
 extern a_boolean is_class_or_handle_to_class_type(a_type_ptr  tp);
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define is_immediate_managed_class_type(tp) /*lint --e(506)*/FALSE
-#define is_value_class_type(tp) /*lint --e(506)*/FALSE
+/*lint -emacro(506,is_immediate_managed_class_type)*/
+#define is_immediate_managed_class_type(tp) FALSE
+/*lint -emacro(506,is_value_class_type)*/
+#define is_value_class_type(tp) FALSE
 #define is_class_or_handle_to_class_type(tp)  is_class_struct_union_type(tp)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 extern a_boolean is_scalar_type(a_type_ptr tp);
@@ -1682,7 +1684,8 @@ a class type.
 #define is_cli_generic_definition_type(type)				\
   ((type)->variant.class_struct_union.is_generic_definition)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define is_cli_generic_definition_type(type) /*lint --e(506)*/FALSE
+/*lint -emacro(506,is_cli_generic_definition_type)*/
+#define is_cli_generic_definition_type(type) FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -1693,7 +1696,8 @@ open constructed type.  type is required to be a class type.
 #define is_cli_open_constructed_instance(type)				\
   ((type)->variant.class_struct_union.is_open_constructed_type)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define is_cli_open_constructed_instance(type) /*lint --e(506)*/FALSE
+/*lint -emacro(506,is_cli_open_constructed_instance)*/
+#define is_cli_open_constructed_instance(type) FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -1704,7 +1708,8 @@ required to be a class type.
 #define is_cli_generic_instance_type(type)				\
   ((type)->variant.class_struct_union.is_generic_instance)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define is_cli_generic_instance_type(type) /*lint --e(506)*/FALSE
+/*lint -emacro(506,is_cli_generic_instance_type)*/
+#define is_cli_generic_instance_type(type) FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -1716,7 +1721,8 @@ constraint.
   (is_immediate_class_type(type) &&				\
    (type)->variant.class_struct_union.is_generic_constraint)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define is_cli_generic_constraint(type) /*lint --e(506)*/FALSE
+/*lint -emacro(506,is_cli_generic_constraint)*/
+#define is_cli_generic_constraint(type) FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*

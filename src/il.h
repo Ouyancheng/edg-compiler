@@ -997,6 +997,7 @@ Macro to determine whether the argument constant is a label address.
 Macro to determine whether the argument variable was mapped on a specific
 register using the GNU "asm(...)" extension.
 */
+/*lint -emacro(506,var_is_gnu_named_register)*/
 #define var_is_gnu_named_register(var)                                     \
   (!var_has_named_register_storage_class((var)) &&                         \
    !(var)->asm_name_is_valid)
@@ -1061,7 +1062,8 @@ the macro expands to FALSE).
 #define var_has_named_register_storage_class(var)                            \
   ((var)->has_named_register_storage_class)
 #else /* !NAMED_REGISTERS_ALLOWED */
-#define var_has_named_register_storage_class(var)  /*lint --e(506)*/FALSE
+/*lint -emacro(506,var_has_named_register_storage_class)*/
+#define var_has_named_register_storage_class(var)  FALSE
 #endif /* NAMED_REGISTERS_ALLOWED */
 
 extern a_boolean may_be_added_to_types_list(a_type_ptr     type_ptr,
@@ -1939,11 +1941,16 @@ Macros to examine property and event members (and their accessor functions).
 #define rout_is_generic_definition(rp) ((rp)->is_generic_definition)
 #define rout_is_generic_instance(rp) ((rp)->is_generic_instance)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define field_is_property_or_event(fp)  /*lint --e(506)*/FALSE
-#define field_is_nontrivial_property_or_event(fp)  /*lint --e(506)*/FALSE
-#define rout_is_cli_accessor(rp)  /*lint --e(506)*/FALSE
-#define rout_is_generic_definition(rp)  /*lint --e(506)*/FALSE
-#define rout_is_generic_instance(rp)  /*lint --e(506)*/FALSE
+/*lint -emacro(506,field_is_property_or_event)*/
+#define field_is_property_or_event(fp)  FALSE
+/*lint -emacro(506,field_is_nontrivial_property_or_event)*/
+#define field_is_nontrivial_property_or_event(fp)  FALSE
+/*lint -emacro(506,rout_is_cli_accessor)*/
+#define rout_is_cli_accessor(rp)  FALSE
+/*lint -emacro(506,rout_is_generic_definition)*/
+#define rout_is_generic_definition(rp)  FALSE
+/*lint -emacro(506,rout_is_generic_instance)*/
+#define rout_is_generic_instance(rp)  FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern a_boolean is_compound_assignment_operator(an_expr_operator_kind op);

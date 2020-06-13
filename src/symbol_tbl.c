@@ -2970,7 +2970,7 @@ Otherwise, return NULL.
   cssp = sym->variant.class_struct_union.extra_info;
   class_type = sym->variant.class_struct_union.type;
   if (class_type->variant.class_struct_union.is_template_class &&
-      !is_cli_generic_definition_type(class_type) &&
+      /*lint -e(506)*/!is_cli_generic_definition_type(class_type) &&
       !class_type->variant.class_struct_union.is_nonreal_class) {
     if (!class_type->variant.class_struct_union.is_specialized) {
       result_sym = cssp->corresp_prototype_sym;
@@ -7670,7 +7670,7 @@ and attach them to rout_sym, and return the function template symbol.
 #if CHECKING
   { a_type_ptr	parent_type = sym_parent_class(rout_sym);
     if (!parent_type->variant.class_struct_union.is_nonreal_class &&
-        !is_cli_generic_definition_type(parent_type)) {
+        /*lint -e(506)*/!is_cli_generic_definition_type(parent_type)) {
       internal_error("make_member_function_template_symbol: bad class member");
     }  /* if */
   }
@@ -15131,7 +15131,7 @@ entry that points to the class in which the nonreal member is created.
   for (; bcp != NULL; bcp = bcp->next) {
     a_type_ptr		base_type = bcp->type;
     if (base_type->variant.class_struct_union.is_nonreal_class &&
-        !is_cli_generic_instance_type(base_type)) {
+        /*lint -e(506)*/!is_cli_generic_instance_type(base_type)) {
       if (bcp->direct) {
         nonreal_bcp = bcp;
         break;

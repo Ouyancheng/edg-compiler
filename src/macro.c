@@ -10036,8 +10036,8 @@ from the front end to the runtime.
   enter_predef_num_macro_noredef(null_eh_region_number,
 			         "__EDG_NULL_EH_REGION_NUMBER");
 #endif /* GENERATE_EH_TABLES */
+  /*lint -e{506}*/
   enter_predef_num_macro_noredef((VLA_ALLOWED && LOWER_VARIABLE_LENGTH_ARRAYS),
-                                   /*lint !e506*/
 			         "__EDG_LOWER_VARIABLE_LENGTH_ARRAYS");
 #if IA64_ABI && DO_IL_LOWERING
   /* Are we using the variant form of array cookies for the IA-64 ABI? */
@@ -11118,7 +11118,7 @@ command line -D options.
     }  /* if */
   }  /* if */
 #if DEFINE_MACRO_WHEN_LONG_LONG_IS_DISABLED
-  { a_boolean	long_long_is_disabled = !LONG_LONG_ALLOWED;
+  { a_boolean	long_long_is_disabled = /*lint -e(506)*/!LONG_LONG_ALLOWED;
     if (strict_ansi_mode && !long_long_is_standard) {
       long_long_is_disabled = TRUE;
     }  /* if */

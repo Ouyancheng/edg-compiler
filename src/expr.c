@@ -17215,7 +17215,9 @@ indication in *rcblock).
     /* Microsoft allows typeid in template arguments. */
     microsoft_template_arg_case = TRUE;
     make_constant = TRUE;
-  } else if (curr_expr_is_cli_attribute_argument() && is_cli_typeid) {
+    /*lint -e{506}*/
+  } else if (curr_expr_is_cli_attribute_argument() &&
+             is_cli_typeid) {
     /* C++/CLI T::typeid expressions in attribute arguments are treated as
        constants. */
     make_constant = TRUE;
@@ -35326,7 +35328,8 @@ normal_function:
               /* Normal case: "x" is interpreted as "this->x". */
               an_expr_node_ptr node;
               if (curr_expr_is_potentially_unevaluated() &&
-                  !field_is_property_or_event(sym_ptr->variant.field.ptr) &&
+                  /*lint -e(506)*/!field_is_property_or_event(
+                                                 sym_ptr->variant.field.ptr) &&
                   !this_exists_for_member_access(
                                       sym_ptr, /*allow_lambda_this=*/FALSE)) {
                 /* Some modes allow a use of a nonstatic data member

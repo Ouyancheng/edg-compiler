@@ -4451,7 +4451,7 @@ after a class instantiation.
         for (cfp = fixup_list; cfp != NULL; cfp = cfp->next) {
           a_type_ptr  class_type = cfp->class_type;
           if (always_delay_field_initializer_processing &&
-              !is_immediate_managed_class_type(class_type)) {
+              /*lint -e(506)*/!is_immediate_managed_class_type(class_type)) {
             /* The Microsoft compiler doesn't fully process field initializers
                at the end of the enclosing class definition.  (Static data
                member initializers of managed classes are processed, however.)
@@ -9485,7 +9485,7 @@ to FALSE before returning).
   }
   if (bcp_cssp->any_nonreal_base_classes ||
       (bcp_type->variant.class_struct_union.is_nonreal_class &&
-       !is_cli_generic_instance_type(bcp_type) &&
+       /*lint -e(506)*/!is_cli_generic_instance_type(bcp_type) &&
        !(bcp_type->variant.class_struct_union.is_prototype_instantiation ||
          !bcp_type->variant.class_struct_union.is_template_class))) {
     /* Do not set the any_nonreal_base_classes field for a base that is a
@@ -9779,7 +9779,7 @@ can only contain CLI interfaces.
       if (attributes != NULL) mark_primary_decl_attributes(attributes);
       /* Set the defaults. */
       if (type_ptr->kind == (a_type_kind)tk_class &&
-          !is_immediate_managed_class_type(type_ptr)) {
+          /*lint -e(506)*/!is_immediate_managed_class_type(type_ptr)) {
         access = (an_access_specifier)as_private;
         default_access_str = "private";
       } else {
@@ -10011,7 +10011,7 @@ can only contain CLI interfaces.
            can be enabled by raising their severity with certain #pragma and
            command-line options). */
         if (!explicit_access_specifier &&
-            !is_immediate_managed_class_type(type_ptr)) {
+            /*lint -e(506)*/!is_immediate_managed_class_type(type_ptr)) {
           pos_st_diagnostic(es_none, ec_missing_access_specifier,
                             &error_position, default_access_str);
         }  /* if */
@@ -10414,7 +10414,7 @@ implicitly as part of the dispose pattern implementation.
   }  /* if */
 #endif /* !IA64_ABI */
   if (type_ptr->variant.class_struct_union.any_virtual_base_classes &&
-      !is_immediate_managed_class_type(type_ptr)) {
+      /*lint -e(506)*/!is_immediate_managed_class_type(type_ptr)) {
     /* Make a pass over the base class list to resolve duplicate virtual base
        classes (if any).  (In managed classes, the preferred base was already
        established earlier.) */
@@ -14814,7 +14814,7 @@ a member "delete" or "delete[]" operator, assign is a "noexcept" specification.
 Otherwise, the member is left unchanged.
 */
 {
-  if (!is_immediate_managed_class_type(class_type) &&
+  if (/*lint -e(506)*/!is_immediate_managed_class_type(class_type) &&
       !class_type->variant.class_struct_union.is_nonreal_class) {
     a_routine_type_supplement_ptr rtsp;
     rtsp = skip_typerefs(rtn->type)->variant.routine.extra_info;
@@ -20679,7 +20679,7 @@ operator should be created.  No routine body is generated at this time.
   check_assertion(decl_info->decl_state.sym != NULL);
   routine = decl_info->decl_state.sym->variant.routine.ptr;
   if (instantiate_extern_inline && !routine->is_prototype_instantiation &&
-      !rout_is_generic_definition(routine)) {
+      /*lint -e(506)*/!rout_is_generic_definition(routine)) {
     /* When inline functions are instantiated like templates, add the function
        to the list of inline functions if it is inline.  (Members of prototype
        instantiations don't need to be treated that way, of course.) */
@@ -21250,7 +21250,7 @@ warnings or remarks may be issued.
     if (symbol_is(sym, sk_field) &&
         /* Property fields and events do not affect the special member
            functions. */
-        !field_is_property_or_event(sym->variant.field.ptr)) {
+        /*lint -e(506)*/!field_is_property_or_event(sym->variant.field.ptr)) {
       a_field_ptr  fp = sym->variant.field.ptr;
       a_type_ptr   utp;
       a_boolean    tp_is_const, variant_field;

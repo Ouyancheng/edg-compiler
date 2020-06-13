@@ -1786,7 +1786,8 @@ of generated code.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define in_generated_code() (scanning_generated_code)
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define in_generated_code() /*lint --e(506)*/FALSE 
+/*lint -emacro(506,in_generated_code)*/
+#define in_generated_code() FALSE 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -1797,7 +1798,8 @@ TRUE if we are in a C++/CLI generic definition context.
   (depth_scope_stack != NO_SCOPE_DEPTH &&		\
    scope_stack[depth_scope_stack].in_generic_definition)
 #else  /* !MICROSOFT_EXTENSIONS_ALLOWED */
-#define is_cli_generic_definition_context() /*lint --e(506)*/FALSE
+/*lint -emacro(506,is_cli_generic_definition_context)*/
+#define is_cli_generic_definition_context() FALSE
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*
@@ -1960,8 +1962,9 @@ an instantiation.  A different scope for non-local fixups is used when
 get_definition_of_class is used.  See the description of
 non_local_class_fixup_depth for more information.
 */
+/*lint -emacro(506,curr_class_fixup_header)*/
 #define curr_class_fixup_header(for_instantiation)			\
-  (&scope_stack[((for_instantiation) /*lint --e(506)*/ ||		\
+  (&scope_stack[((for_instantiation) ||		                        \
                  depth_innermost_function_scope == NO_SCOPE_DEPTH)	\
                          ? non_local_class_fixup_depth			\
                          : depth_innermost_function_scope].class_fixup_header)

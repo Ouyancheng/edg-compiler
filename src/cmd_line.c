@@ -4360,8 +4360,8 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
     if (!(option_kind_used[(int)optk_export_template])) {
       /* If export template processing was not explicitly set by a command line
          option, set it now. */
-      export_template_allowed = EXPORT_ENABLING_POSSIBLE &&
-                                !cpp11_mode; /*lint !e506*/
+      export_template_allowed = /*lint -e(506)*/EXPORT_ENABLING_POSSIBLE &&
+                                !cpp11_mode;
     }  /* if */
     if (!(option_kind_used[(int)optk_nonstandard_using_decl])) {
       /* If nonstandard using-decl was not explicitly set by a command line
@@ -4625,8 +4625,8 @@ This function is also called in clang mode.
      to __STDC__ in system header files. */
   if (!(option_kind_used[(int)optk_stdc_zero_in_system_headers])) {
     stdc_zero_in_system_headers =
-                            DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS ||
-                            DEFAULT_STDC_ZERO_IN_SYSTEM_HEADERS; /*lint !e506*/
+                     /*lint -e(506)*/DEFAULT_GNU_STDC_ZERO_IN_SYSTEM_HEADERS ||
+                     /*lint -e(506)*/DEFAULT_STDC_ZERO_IN_SYSTEM_HEADERS;
   }  /* if */
   mixed_string_concat_enabled = TRUE;
   if (!option_kind_used[(int)optk_check_concatenations]) {
@@ -5330,7 +5330,7 @@ development of this front end, and is inconsistent and strange.
   if (!option_kind_used[(int)optk_gcc_mode] &&
       !option_kind_used[(int)optk_gpp_mode]) {
     a_boolean  enable_gnu_mode;
-    enable_gnu_mode = (DEFAULT_GNU_COMPATIBILITY) /*lint !e506*/ ||
+    enable_gnu_mode = /*lint -e(506)*/(DEFAULT_GNU_COMPATIBILITY) ||
                       option_kind_used[(int)optk_gnu_version] ||
                       option_kind_used[(int)optk_gnu_c89_inlining] ||
                       option_kind_used[(int)optk_clang_mode] ||
@@ -5526,11 +5526,13 @@ file.
 #define comment_string_valued_macro(X) \
   fprintf(f_error, "/*      %s %s */\n", #X, stringize(X))
 /* Write a #define directive for the option, which has a numeric value: */
-#define define_numeric_valued_macro(X) /*lint --e(506)*/                     \
+/*lint -emacro(506,define_numeric_valued_macro)*/
+#define define_numeric_valued_macro(X)                                       \
   fprintf(f_error, "#define %s " PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER "\n",  \
           #X, (a_host_large_integer)(X))
 /* Write a comment giving the option name and its (numeric) value: */
-#define comment_numeric_valued_macro(X) /*lint --e(506)*/                     \
+/*lint -emacro(506,comment_numeric_valued_macro)*/
+#define comment_numeric_valued_macro(X)                                       \
   fprintf(f_error, "/*      %s " PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER " */\n",\
           #X, (a_host_large_integer)(X))
 /* Write a comment giving the option name and noting that it is undefined: */
@@ -9956,11 +9958,11 @@ enable_microsoft_mode:
                specified. */
             !option_kind_used[(int)optk_cppcx]) {
           cppcli_enabled =
-                     DEFAULT_CPPCLI_ENABLED && microsoft_mode;  /*lint !e506*/
+                      /*lint -e(506)*/DEFAULT_CPPCLI_ENABLED && microsoft_mode;
         }  /* if */
         if (!option_kind_used[(int)optk_microsoft_bugs]) {
           microsoft_bugs =
-                     DEFAULT_MICROSOFT_BUGS && microsoft_mode;  /*lint !e506*/
+                     /*lint -e(506)*/DEFAULT_MICROSOFT_BUGS && microsoft_mode;
         }  /* if */
         break;
 #if NEAR_AND_FAR_ALLOWED
@@ -11762,8 +11764,9 @@ variables declared in cmd_line.h.
   implicit_typename_enabled = DEFAULT_IMPLICIT_TYPENAME_ENABLED;
   extern_inline_allowed = DEFAULT_EXTERN_INLINE_ALLOWED;
   inline_variables_allowed = FALSE;
-  inline_variables_in_comdat = LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS ||
-                               IA64_ABI; /*lint !e506*/
+  inline_variables_in_comdat = 
+                    /*lint -e(506)*/LINKER_CAN_DISCARD_DUPLICATE_DEFINITIONS ||
+                    /*lint -e(506)*/IA64_ABI;
   overaligned_allocation_enabled = FALSE;
   destroying_operator_delete_enabled = FALSE;
   floating_point_template_parameters_allowed =
@@ -12047,8 +12050,8 @@ variables declared in cmd_line.h.
   hex_floating_point_constants_allowed = FALSE;
   binary_literals_allowed = FALSE;
 #if EXPORT_ENABLING_POSSIBLE
-  export_template_allowed = DEFAULT_EXPORT_TEMPLATE_ALLOWED &&
-                            (DEFAULT_CPP_MODE < 201103); /*lint !e506*/
+  export_template_allowed = /*lint -e(506)*/DEFAULT_EXPORT_TEMPLATE_ALLOWED &&
+                            /*lint -e(506)*/(DEFAULT_CPP_MODE < 201103);
 #else /* !EXPORT_ENABLING_POSSIBLE */
   /* Export is not supported by this configuration -- force it to be
      disabled. */

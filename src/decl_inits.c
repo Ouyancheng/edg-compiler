@@ -3515,7 +3515,7 @@ issued if no more specific position is available.
        are not considered for initialization. */ 
     fp = next_proper_initializable_field(fp);
     if (aggregate_classes_can_have_bases &&
-        !is_value_class_type(class_type)) {
+        /*lint -e(506)*/!is_value_class_type(class_type)) {
       /* C++17 permits aggregate classes with base classes.  However, C++/CLI's
          value classes are aggregate classes that should ignore their base
          class (System::ValueType). */

@@ -180,10 +180,11 @@ be the case for "long double" in some configurations (but that must be
 determined at run time because the sizes of these types can be part of
 a target configuration).
 */
+/*lint -emacro(506,kind_is_binary64)*/
 #define kind_is_binary64(kind)                                                \
   ((kind) == (a_float_kind)fk_double ||                                       \
    ((kind) == (a_float_kind)fk_long_double &&                                 \
-    (long_double_is_double || !FP_HAS_LONG_DOUBLE/*lint -e506*/)))
+    (long_double_is_double || !FP_HAS_LONG_DOUBLE)))
 
 static a_boolean
                 long_double_is_double;

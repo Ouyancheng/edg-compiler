@@ -908,8 +908,8 @@ and free the correspondence entry if appropriate.
   f_set_unvisited_trans_unit_corresp((an_il_entry_kind)(kind), (char*)ptr)
 
 
+/*lint -emacro(506,clear_trans_unit_corresp)*/
 #define clear_trans_unit_corresp(kind, ptr, visited)                        \
-  /*lint --e(506)*/                                                         \
   ((visited) ? set_no_trans_unit_corresp(kind, ptr)                         \
              : set_unvisited_trans_unit_corresp(kind, ptr))
 

@@ -5431,6 +5431,7 @@ should be so treated.
 /* By default, do not fold automatic initializers if the C++-generating
    back end is in use; this will increase the probability that the
    generated code for these initializers is similar to the input source. */
+/*lint -emacro(506,FAVOR_CONSTANT_RESULT_FOR_NONSTATIC_INIT)*/
 #define FAVOR_CONSTANT_RESULT_FOR_NONSTATIC_INIT (!BACK_END_IS_CP_GEN_BE)
 #endif /* ifndef FAVOR_CONSTANT_RESULT_FOR_NONSTATIC_INIT */
 

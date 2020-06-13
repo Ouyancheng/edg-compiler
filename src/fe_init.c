@@ -1521,17 +1521,17 @@ Make sure the specific size integer typedefs are defined correctly.
 */
 {
   check_assertion_str2(sizeof(int8_t) == 1, "check_int_type_config:",
-                       "int8_t not defined correctly");  /*lint !e506*/
+                       "int8_t not defined correctly");
   check_assertion_str2(sizeof(uint8_t) == 1, "check_int_type_config:",
-                       "uint8_t not defined correctly");  /*lint !e506*/
+                       "uint8_t not defined correctly");
   check_assertion_str2(sizeof(int16_t) == 2, "check_int_type_config:",
-                       "int16_t not defined correctly");  /*lint !e506*/
+                       "int16_t not defined correctly");
   check_assertion_str2(sizeof(uint16_t) == 2, "check_int_type_config:",
-                       "uint16_t not defined correctly");  /*lint !e506*/
+                       "uint16_t not defined correctly");
   check_assertion_str2(sizeof(int32_t) == 4, "check_int_type_config:",
-                       "int32_t not defined correctly");  /*lint !e506*/
+                       "int32_t not defined correctly");
   check_assertion_str2(sizeof(uint32_t) == 4, "check_int_type_config:",
-                       "uint32_t not defined correctly");  /*lint !e506*/
+                       "uint32_t not defined correctly");
 }  /* check_int_type_config */
 #endif /* CHECKING */
 

@@ -648,6 +648,7 @@ are diagnosed.
   }  /* if */
 #endif /* !HOST_TARGET_ENDIAN_MISMATCH_OKAY */
 #if !USE_SOFTFLOAT
+  /*lint -e{506}*/
   if (sizeof(long double) == sizeof(double) &&
       targ_ldbl_mant_dig == 64) {
     /* Trying to emulate 80-bit long double on a host system that doesn't

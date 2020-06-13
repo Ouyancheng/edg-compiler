@@ -4187,7 +4187,7 @@ is considered already defined), force the definition now.
         if (special_kind_is(rp, sfk_constructor) &&
             !rp->is_inh_ctor_def_init &&
             cssp->has_initializer_fixups &&
-            !is_immediate_managed_class_type(parent_type) &&
+            /*lint -e(506)*/!is_immediate_managed_class_type(parent_type) &&
             is_default_constructor(rp, /*is_declarative_context=*/TRUE)) {
           /* Don't generate the default constructor body at this time because
              required field initializers haven't been parsed yet.  Instead set

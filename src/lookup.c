@@ -2125,12 +2125,12 @@ Macro that initializes a lookup state variable.
    whether or not a symbol is acceptable. */
 /* symbol_may_precede_qualifier checks for a symbol that is a class,
    class template, namespace, or template type parameter. */
+/*lint -emacro(506,is_acceptable_symbol)*/
 #define is_acceptable_symbol(sym, fund_sym, lookup_state, invisible_okay)    \
   ((name_space_for_symbol_kind[(int)sym->kind] ==			     \
                                   (lookup_state).required_name_space_kind) && \
    ((!(fund_sym->is_invisible) && (!sym->is_invisible)) ||		\
-    /*lint --e(506)*/							\
-    invisible_okay ||\
+    invisible_okay ||                                                   \
     /* g++ versions >= 50000 make the function template symbol visible	\
        for parsing purposes, but it is ignored by overload		\
        resolution. */							\
