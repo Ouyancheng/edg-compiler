@@ -1670,7 +1670,7 @@ static a_const_char
 static int	opt_ind;
 			/* Index of the current option in argv. */
 
-[[noreturn]] static void invalid_argument_error(int  argc,
+NORETURN static void invalid_argument_error(int  argc,
                                             char **argv)
 /*
 Issue a invalid command line argument diagnostic.

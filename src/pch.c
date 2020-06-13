@@ -140,7 +140,7 @@ Macro to write a value to the PCH output file.
   (void)fwrite((a_stdio_arg)&(value), sizeof(value), 1, f_pch_output)
 
 
-[[noreturn]] static void bad_pch_file(void)
+static DOES_NOT_RETURN bad_pch_file(void)
 /*
 Called when a read operation on a PCH file fails.  Issue a catastrophic
 error.
@@ -155,7 +155,7 @@ error.
 }  /* bad_pch_file */
 
 
-[[noreturn]] static void pch_write_error(void)
+static DOES_NOT_RETURN pch_write_error(void)
 /*
 Called when a write operation on a PCH file fails.  Issue a catastrophic
 error.

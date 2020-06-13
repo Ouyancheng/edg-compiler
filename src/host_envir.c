@@ -1817,7 +1817,7 @@ appears on the command line.
 
 
 #if STANDALONE_UTILITY_PROGRAM
-[[noreturn]] void normal_termination(void)
+DOES_NOT_RETURN normal_termination(void)
 /*
 Terminate a utility program normally.  This is used by the C-generating back 
 end and il_display when they are compiled as standalone programs.
@@ -1875,7 +1875,7 @@ static a_boolean
 
 #endif /* MAKE_FRONT_END_CALLABLE */
 
-[[noreturn]] static void cfe_exit(int status)
+static DOES_NOT_RETURN cfe_exit(int status)
 /*
 This is a wrapper around the exit function.  Normally, it just calls
 the exit routine, but when the front end is callable this routine
@@ -1897,7 +1897,7 @@ routine of the front end, so that it can return to the caller.
 }  /* cfe_exit */
 
 
-[[noreturn]] void exit_compilation(an_error_severity severity)
+DOES_NOT_RETURN exit_compilation(an_error_severity severity)
 /*
 Exit the compilation.  severity indicates the severity of the most
 severe diagnostic issued in this compilation.  This routine does not return.
@@ -1942,7 +1942,7 @@ severe diagnostic issued in this compilation.  This routine does not return.
 }  /* exit_compilation */
 
 
-[[noreturn]] void term_compilation(an_error_severity severity)
+DOES_NOT_RETURN term_compilation(an_error_severity severity)
 /*
 Terminate the compilation.  This is always called as the last thing in the
 compilation.  severity indicates the error severity.  This routine does
@@ -1962,7 +1962,7 @@ In C++, signal handlers must be extern "C".
 extern "C" {
 /*lint -e2761 -e2765*/
 
-[[noreturn]] static a_signal_handler_return_value term_on_signal(
+NORETURN static a_signal_handler_return_value term_on_signal(
                                                             ARG_UNUSED int sig)
 /*
 Routine set up as a signal handler, called to terminate compilation on
@@ -1981,7 +1981,7 @@ receipt of a signal.
 
 #if DEBUG && !EDG_WIN32
 
-[[noreturn]] static a_signal_handler_return_value abort_on_cpu_limit(
+NORETURN static a_signal_handler_return_value abort_on_cpu_limit(
                                                             ARG_UNUSED int sig)
 /*
 Routine set up as a signal handler, called to terminate compilation 
@@ -2094,7 +2094,7 @@ execution of the front end (for example, SIGINT).
 #ifdef NEED_SIZE_T_ARG_ERROR
 
 /* The extern declaration for this routine is in basics.h. */
-[[noreturn]] true_size_t size_t_arg_error(void)
+NORETURN true_size_t size_t_arg_error(void)
 /*
 Called from the macro size_t_arg to abort the front end if a size is being
 truncated.  This is used on machines that have a small size_t (say, 16 bits)
@@ -3124,8 +3124,8 @@ Produce a hash value for the unique file identifier "id".
 static HANDLE	f_mmap_file;
 			/* The file handle for the mapped IL file. */
 
-[[noreturn]] static void str_GetLastError_catastrophe(an_error_code error_code,
-                                                      a_const_char  *file_name)
+static DOES_NOT_RETURN str_GetLastError_catastrophe(an_error_code error_code,
+                                                    a_const_char  *file_name)
 /*
 Use the WIN32 routines to get and format the last error that occurred.
 Issue a catastrophic error using the specified error_code, file_name, and
