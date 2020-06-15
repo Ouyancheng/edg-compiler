@@ -24198,6 +24198,27 @@ friend_template_checks_done:
       check_for_prior_use_of_partial_spec(sym, (a_symbol_ptr)NULL);
     }  /* if */
   }  /* if */
+  if (sym != NULL && sym->kind == (a_symbol_kind)sk_class_template) {
+    if (!friend_class_injection_enabled) {
+      /* If this is not a friend declaration, mark the symbol as visible.
+         A class template declared only in template friend declarations is
+         not otherwise visible. */
+      if (!decl_state->is_template_friend) sym->is_invisible = FALSE;
+    }  /* if */
+#if BACK_END_IS_CP_GEN_BE
+    /* Copy the information about the number of required arguments from the
+       primary template to a partial or normal specialization. */
+    if (decl_state->is_partial_specialization) {
+      decl_state->il_template_entry->min_template_arguments =
+              tssp->primary_template_sym->
+              variant.template_info->il_template_entry->min_template_arguments;
+    } else if (tssp->prototype_template != NULL) {
+      decl_state->il_template_entry->min_template_arguments =
+                              tssp->prototype_template->variant.template_info->
+                                     il_template_entry->min_template_arguments;
+    }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
+  }  /* if */
   if (is_definition) {
     a_token_sequence_number   first_token_number = curr_token_sequence_number;
     a_token_sequence_number   last_token_number = NO_TOKEN_SEQUENCE_NUMBER;
@@ -24244,27 +24265,6 @@ friend_template_checks_done:
     source_sequence_entries_disallowed = saved_sses_disallowed;
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  if (sym != NULL && sym->kind == (a_symbol_kind)sk_class_template) {
-    if (!friend_class_injection_enabled) {
-      /* If this is not a friend declaration, mark the symbol as visible.
-         A class template declared only in template friend declarations is
-         not otherwise visible. */
-      if (!decl_state->is_template_friend) sym->is_invisible = FALSE;
-    }  /* if */
-#if BACK_END_IS_CP_GEN_BE
-    /* Copy the information about the number of required arguments from the
-       primary template to a partial or normal specialization. */
-    if (decl_state->is_partial_specialization) {
-      decl_state->il_template_entry->min_template_arguments =
-              tssp->primary_template_sym->
-              variant.template_info->il_template_entry->min_template_arguments;
-    } else if (tssp->prototype_template != NULL) {
-      decl_state->il_template_entry->min_template_arguments =
-                              tssp->prototype_template->variant.template_info->
-                                     il_template_entry->min_template_arguments;
-    }  /* if */
-#endif /* BACK_END_IS_CP_GEN_BE */
-  }  /* if */
   *p_sym_ptr = sym;
   db_exit();
 }  /* class_template_declaration */
