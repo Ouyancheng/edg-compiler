@@ -277,9 +277,10 @@ extern void check_expected_errors(void);
 #define check_assertion_or_expect_error_str2(test, string1, string2) /* */
 #define expect_error() /* Nothing */
 #define expect_error_str(string) /* Nothing */
-#define unexpected_condition()    /* Nothing */
-#define unexpected_condition_str(string)    /* Nothing */
-#define unexpected_condition_str2(string1, string2)    /* Nothing */
+#define unexpected_condition() exit_compilation(es_internal_error)
+#define unexpected_condition_str(string) exit_compilation(es_internal_error)
+#define unexpected_condition_str2(string1, string2) \
+  exit_compilation(es_internal_error)
 #endif /* CHECKING */
 /* Make sure that struct tags are referenced before their uses below.
    Otherwise, the declarations would be in the prototype scopes.  The
