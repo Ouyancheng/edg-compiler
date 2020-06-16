@@ -80,7 +80,7 @@ BEGIN_EDG_NAMESPACE
 			   possibly be a C++17 fold expression. */
 #define EOPT_CALL_RESCAN 0x800
 			/* Flag set when calling make_rescan_operand_full from
-			   make_call_rescan_oprands. */
+			   make_call_rescan_operands. */
 #define EOPT_CONSTRAINT_EXPR 0x1000
 			/* Flag set when parsing a constraint expression (in a
 			   "requires" clause or in a concept definition).  This

@@ -1,5 +1,15 @@
 Version 6.1
 
+6/15/20  [EDGcpfe/22949]
+GCC compatibility: Pseudo-destructors
+
+The changes for EDGcpfe/21397 (see entry of 7/31/19) ensured that the front end
+correctly enforces that pseudo-destructors are only used as the target of a
+call expression.  However, it appears that GCC did not enforce that prior to
+version 7.4, and the front end now matches that behavior in corresponding GCC
+modes.
+
+
 6/15/20  [EDGcpfe/22948]
 Interpreter error with generated copy/move of variant fields
 

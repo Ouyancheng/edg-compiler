@@ -8943,7 +8943,8 @@ make_proxy_type_if_needed:
     set_operand_id_details_from_locator(result, &locator);
     if (!(rcblock == NULL ? member_name_followed_by_left_paren
                           : (call_rescan_case ||
-                             is_vacuous_dtor_call_node(rcblock->expr)))) {
+                             is_vacuous_dtor_call_node(rcblock->expr))) &&
+        !gpp_version_is(<70400)) {
       /* A pseudo-destructor must be called.  In the rescan case, there are
          two cases: (1) the form p->~T() and (2) the form p->T::~T().  (Either
          case could use the "dot" notation, too.)  The first form will be an
