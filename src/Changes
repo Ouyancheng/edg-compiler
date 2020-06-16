@@ -1,5 +1,13 @@
 Version 6.1
 
+6/15/20  [EDGcpfe/22948]
+Interpreter error with generated copy/move of variant fields
+
+In some fairly complex situations, the interpreter did not correctly handle
+generated copy/move construction from a source object containing variant
+fields.  That is now fixed.
+
+
 6/11/20  [EDGcpfe/19682,EDGcpfe/20186,EDGcpfe/20189,EDGcpfe/20956,
           EDGcpfe/20957,EDGcpfe/21231,EDGcpfe/21699]
 Deduction failure with parameter of class type with auto template argument

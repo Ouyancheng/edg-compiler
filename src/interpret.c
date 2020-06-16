@@ -3842,7 +3842,7 @@ Output the contents of the interpreted object of type tp stored at addr.
             db_type_name(bcp->type);
             get_mapped_byte_count(&persistent_map, bcp, offset);
             (void)fprintf(f_debug, " (offset %u)= \n", offset);
-            if (*(a_type_ptr*)(addr+offset) != bcp->type) {
+            if ((*(a_base_class_ptr*)(addr+offset))->type != bcp->type) {
               db_indent(indent);
               (void)fprintf(f_debug, " (BAD DERIVED PTR %p)\n",
                             (void*)*(a_type_ptr*)(addr+offset));
@@ -9804,6 +9804,50 @@ of the original *p_fp field in the representation of the returned *p_fp field.
 }  /* record_anon_union_active_field */
 
 
+static a_boolean anon_union_field_is_active_field(a_field_ptr          fp,
+                                                  a_constexpr_address  *cap)
+/*
+fp is a variant field of a type X and cap points to an object x of type X.
+Return TRUE if fp is active in x.  Currently, this function only handles up
+to 10 nested anonymous unions.
+*/
+{
+  a_boolean    result = TRUE;
+#define MAX_AU_DEPTH 10
+  a_field_ptr  au_parent[MAX_AU_DEPTH+1] = { fp };
+  int          n = 1;
+
+  /* First record the sequence of anonymous union parent fields starting from
+     the innermost one. */
+  for (; n<MAX_AU_DEPTH; ++n) {
+    a_symbol_ptr  aufp_sym;
+    aufp_sym = symbol_for(fp)->variant.field.anonymous_parent_object;
+    if (aufp_sym != NULL && symbol_is(aufp_sym, sk_field)) {
+      fp = aufp_sym->variant.field.ptr;
+      au_parent[n] = fp;
+    } else {
+      break;
+    }  /* if */
+  }  /* for */
+  if (n == MAX_AU_DEPTH) {
+    result = FALSE;
+  } else {
+    a_byte        *address = cap->address;
+    a_byte_count  offset;
+    while (--n > 0) {
+      get_mapped_byte_count(&persistent_map, au_parent[n], offset);
+      address += offset;
+      if (*(a_field_ptr*)address != au_parent[n-1]) {
+        result = FALSE;
+        break;
+      }  /* if */
+    }  /* while */
+  }  /* if */
+#undef MAX_AU_DEPTH
+  return result;
+}  /* anon_union_field_is_active_field */
+
+
 static a_boolean do_constexpr_ctor(an_interpreter_state  *ips,
                                    a_dynamic_init_ptr    dip,
                                    a_source_position     *pos,
@@ -10081,6 +10125,20 @@ the body of the (constructor) function proper.
              the top-level anonymous union parent field, so that it can be
              recorded as the active field in case class_type itself is a union
              (see below). */
+          if ((dyn_init_is(sub_dip, dik_bitwise_copy) &&
+               sub_dip->variant.bitwise_copy.source == NULL) ||
+              (dyn_init_is(sub_dip, dik_constructor) &&
+               sub_dip->variant.constructor
+                               .is_copy_constructor_with_implied_source)) {
+            /* An implied-source copy.  All the variant members will be listed,
+               but only the one corresponding to the active member of the
+               implied source should be copied. */
+            a_constexpr_address  *src_addr;
+            src_addr = (a_constexpr_address*)((a_byte**)arg_ptrs)[1];
+            if (!anon_union_field_is_active_field(fp, src_addr)) {
+              continue;
+            }  /* if */
+          }  /* if */
           offset += record_anon_union_active_field(&fp, result_storage,
                                                    complete_object);
         }  /* if */
