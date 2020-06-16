@@ -6,7 +6,7 @@ Raw string literals in macro arguments
 When a raw string literal appears in a macro argument, some characters in
 the value were replaced with canonical values rather than being preserved
 in their original form.  These sequences included embedded newlines, line
-splices, trigraphs (in modes that support them) and null characters.  This
+splices, trigraphs (in modes that support them), and null characters.  This
 is now fixed and the original values are preserved.  For example, with
 --c++11:
 
