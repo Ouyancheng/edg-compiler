@@ -193,7 +193,8 @@ header_bytes is TRUE, the bytes being retrieved correspond to the IFC file
 header or table of contents (and are therefore known to be little-endian).
 */
 {
-  a_boolean reading_little_endian = ASSUME_LITTLE_ENDIAN_IFC_MODULES ||
+  a_boolean reading_little_endian =
+                              /*lint -e506*/ASSUME_LITTLE_ENDIAN_IFC_MODULES ||
                                             targ_little_endian || header_bytes;
   if (reading_little_endian == host_little_endian) {
     get_bytes_from_buffer(entity, length);
@@ -231,10 +232,11 @@ Utility to print some debug information for every access to an IFC module file.
       (void)fprintf(f_debug, "[%s:0x%08lx:%d] = ",
                     debug_partition->name,
 #if USE_MMAP_FOR_MEMORY_REGIONS
-                    (long)((char *)byte_buffer -
+                    (unsigned long)((char *)byte_buffer -
                        ((char *)mmap_addr + debug_partition->offset) - length),
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
-                    (long)(ftell(f_module) - debug_partition->offset - length),
+                    (unsigned long)
+                          (ftell(f_module) - debug_partition->offset - length),
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
                     (int)length);
     }  /* if */
@@ -458,7 +460,8 @@ For example, when "name" is "foo", this routine effectively boils down to:
                                   concat(an_ifc_, name) *ptr, \
                                   a_boolean             fill_storage) const \
   { \
-    if ((a_boolean)(ASSUME_LITTLE_ENDIAN_IFC_MODULES || targ_little_endian) \
+    if ((a_boolean)(/*lint -e506*/ASSUME_LITTLE_ENDIAN_IFC_MODULES || \
+                                    targ_little_endian) \
                                                      == host_little_endian) { \
       check_assertion(byte_buffer + sizeof(concat(an_ifc_, name)) <= \
                                                              (buffer_end+1)); \
@@ -7083,6 +7086,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
 }  /* str_ifc_declaration */
 
 
+/*lint -e2707*/ /* Remove when the routine returns to its caller. */
 void an_ifc_module::str_ifc_statement(
                                      ifc_StmtIndex                  stmt_index,
                                      ARG_UNUSED a_str_control_block *scbp)
@@ -7237,6 +7241,7 @@ Generate a string for the specified string literal.
 }  /* str_ifc_string_literal */
 
 
+/*lint -e2707*/ /* Remove when the routine returns to its caller. */
 void an_ifc_module::str_ifc_chart(ifc_ChartIndex                 chart_index,
                                   ARG_UNUSED a_str_control_block *scbp) const
 /*
@@ -7271,6 +7276,7 @@ Generate a string for the specified chart.
 }  /* str_ifc_chart */
 
 
+/*lint -e2707*/ /* Remove when the routine returns to its caller. */
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Deprecated>
                                     (ifc_DeclIndex                  decl_index,
@@ -7445,6 +7451,7 @@ Generate a string for the specified associated MSVC UUID trait.
 }  /* str_ifc_associated_trait<an_ifc_Trait_MsvcUuid> */
 
 
+/*lint -e2707*/ /* Remove when the routine returns to its caller. */
 void an_ifc_module::str_ifc_syntax_node(
                                    ifc_SyntaxIndex                syntax_index,
                                    ARG_UNUSED a_str_control_block *scbp) const
@@ -8232,6 +8239,7 @@ Generate a string for the specified syntax tree node.
 }  /* str_ifc_syntax_node */
 
 
+/*lint -e2707*/ /* Remove when the routine returns to its caller. */
 void an_ifc_module::str_ifc_sentence(
                                 ifc_SentenceIndex               sentence_index,
                                 ARG_UNUSED a_str_control_block *scbp) const
@@ -8247,6 +8255,7 @@ Generate a string for the specified sentence.
 }  /* str_ifc_sentence*/
 
 
+/*lint -e2707*/ /* Remove when the routine returns to its caller. */
 void an_ifc_module::str_ifc_word(ifc_WordIndex                  word_index,
                                  ARG_UNUSED a_str_control_block *scbp) const
 /*

@@ -189,8 +189,8 @@ typedef struct an_il_entry_prefix {
 #if ENTRY_NUMBER_SHARES_BITS_IN_PREFIX
   /* The size of the entry_number field is decreased by the bit fields
      defined above (to keep the structure compact). */
+/*lint -emacro(506,NUM_OF_BIT_FIELDS_IN_PREFIX)*/
 #define NUM_OF_BIT_FIELDS_IN_PREFIX                                    \
-         /*lint --e(506)*/                                             \
          (5 + ((MAINTAIN_NEEDED_FLAGS != 0)?1:0))
 #define BITS_IN_ENTRY_NUMBER                                           \
   (sizeof(an_il_entry_number)*CHAR_BIT - NUM_OF_BIT_FIELDS_IN_PREFIX)
