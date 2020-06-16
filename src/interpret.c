@@ -9814,11 +9814,12 @@ to 10 nested anonymous unions.
 {
   a_boolean    result = TRUE;
 #define MAX_AU_DEPTH 10
-  a_field_ptr  au_parent[MAX_AU_DEPTH+1] = { fp };
+  a_field_ptr  au_parent[MAX_AU_DEPTH+1];
   int          n = 1;
 
-  /* First record the sequence of anonymous union parent fields starting from
-     the innermost one. */
+  au_parent[0] = fp;
+  /* Record the sequence of anonymous union parent fields starting from the
+     innermost one. */
   for (; n<MAX_AU_DEPTH; ++n) {
     a_symbol_ptr  aufp_sym;
     aufp_sym = symbol_for(fp)->variant.field.anonymous_parent_object;
@@ -9832,6 +9833,8 @@ to 10 nested anonymous unions.
   if (n == MAX_AU_DEPTH) {
     result = FALSE;
   } else {
+    /* Now check in reverse order that each field up to the original is
+       active. */
     a_byte        *address = cap->address;
     a_byte_count  offset;
     while (--n > 0) {
