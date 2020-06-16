@@ -2778,7 +2778,7 @@ option values if they were not already set by a command line option.
              std_version to the value for C++20. */
           std_version = 202002;
           if (ms_cpplatest_mode) {
-            msvc_lang = "201704L";
+            msvc_lang = "201705L";
           } else {
             msvc_lang = "202002L";
           }  /* if */

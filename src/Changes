@@ -1,5 +1,12 @@
 Version 6.1
 
+6/16/20  [EDGcpfe/22913]
+Microsoft compatibility: value of _MSVC_LANG with --ms_c++latest
+
+The value of _MSVC_LANG has been changed from 201704L to 201705L when
+microsoft_version >= 1920 to match the behavior of Microsoft Visual Studio.
+
+
 6/15/20  [EDGcpfe/21089]
 Raw string literals in macro arguments
 
