@@ -3074,9 +3074,9 @@ when the text is copied out of the current line buffer.
   sizeof_t               result = len_of_curr_token;
   an_orig_line_modif_ptr olmp;
 
-  check_assertion(raw_string_literals_enabled &&
+  check_assertion(orig_line_modif_list != NULL &&
                   curr_token == tok_string_literal &&
-                  orig_line_modif_list != NULL &&
+                  raw_string_literals_enabled &&
                   within_curr_source_line(start_of_curr_token));
   for (olmp = orig_line_modif_list;
        olmp != NULL && olmp->line_loc <= end_of_curr_token;
@@ -3156,9 +3156,9 @@ there was any white space preceding the token.
 {
   sizeof_t len;
 
-  if (raw_string_literals_enabled && curr_token == tok_string_literal &&
+  if (orig_line_modif_list != NULL &&
+      curr_token == tok_string_literal && raw_string_literals_enabled &&
       within_curr_source_line(start_of_curr_token) &&
-      orig_line_modif_list != NULL &&
       (scan_encoding_prefix(start_of_curr_token) & SCLK_RAW_STRING_LITERAL)) {
     len = revert_raw_string_adjustments(NULL);
   } else {
@@ -3208,9 +3208,9 @@ The current token must have been scanned as a pp-token.
     *buffer++ = LE_ESCAPE;
     *buffer++ = LE_INERT_MACRO;
   }  /* if */
-  if (raw_string_literals_enabled && curr_token == tok_string_literal &&
+  if (orig_line_modif_list != NULL &&
+      curr_token == tok_string_literal && raw_string_literals_enabled &&
       within_curr_source_line(start_of_curr_token) &&
-      orig_line_modif_list != NULL &&
       (scan_encoding_prefix(start_of_curr_token) & SCLK_RAW_STRING_LITERAL)) {
     (void)revert_raw_string_adjustments((char *)buffer);
   } else {
