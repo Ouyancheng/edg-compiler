@@ -587,6 +587,7 @@ function of the given kind.
    is_specific_builtin(rp,(a_builtin_function_kind)(bfk))
 #else /* !BUILTIN_FUNCTIONS_ENABLED */
 #define is_gnu_builtin_function(rp) FALSE
+/*lint -emacro(506,rout_is_specific_builtin)*/
 #define rout_is_specific_builtin(rp, bfk) FALSE
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 

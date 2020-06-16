@@ -3269,7 +3269,7 @@ nested class.
       }  /* if */
       if (!class_type->source_corresp.is_local_to_function &&
           !is_nonreal_template_instantiation &&
-          !is_cli_generic_instance_type(class_type)) {
+          /*lint -e(506)*/!is_cli_generic_instance_type(class_type)) {
         /* Temporarily remove source sequence entries, if any that have been
            entered after the end-of-construct entry for the class that was just
            defined.  Here's an example why:  Sometimes the definition of a
@@ -3616,7 +3616,7 @@ nested class.
               /* An out-of-class member definition should not specify an
                  explicit storage class.   (One exception: C++/CLI static
                  constructors.) */
-              if (!is_static_constructor_symbol(sym)) {
+              if (/*lint -e(506)*/!is_static_constructor_symbol(sym)) {
                 rp->declared_storage_class = (a_storage_class)sc_unspecified;
               }  /* if */
             }  /* if */

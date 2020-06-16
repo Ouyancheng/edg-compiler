@@ -12177,7 +12177,8 @@ Return whether the current expression contains a GNU statement expression.
 }  /* curr_expr_has_gnu_statement_expression */
 
 #else /* !GNU_EXTENSIONS_ALLOWED */
-#define curr_expr_has_gnu_statement_expression()  /*lint --e(506)*/FALSE
+/*lint -emacro(506,curr_expr_has_gnu_statement_expression)*/
+#define curr_expr_has_gnu_statement_expression() FALSE
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 

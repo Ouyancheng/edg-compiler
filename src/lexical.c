@@ -7763,7 +7763,8 @@ entry_for_expand_buffer:
         ch = getc_curr_input_stream();
       }  /* if */
       if (is_eof_char(ch)) goto partial_final_line;
-    } while (ch != '\n' && !is_carriage_return_line_terminator(ch));
+    } while (ch != '\n' &&
+             /*lint -e506*/!is_carriage_return_line_terminator(ch));
 #if ACCEPT_GNU_CARRIAGE_RETURN_LINE_TERMINATOR
     if (ch == '\r') {
       curr_ise->prev_line_terminator_was_carriage_return = TRUE;
