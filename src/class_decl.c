@@ -15776,10 +15776,6 @@ implicitly declared member functions.
         check_for_virtual_override(is_virtual, decl_info, class_state,
                                    func_info);
       }  /* if */
-      if (rtn->is_virtual && rtn->trailing_requires_clause != NULL) {
-        pos_error(ec_trailing_requires_on_virtual_func,
-                  &rtn->trailing_requires_clause->requires_pos);
-      }  /* if */
     }  /* if */
 #if BACK_END_IS_CP_GEN_BE
     /* Set the "name linkage environment" for this routine. */
