@@ -3057,16 +3057,17 @@ included; in all other cases, it is skipped.
 
 static sizeof_t revert_raw_string_adjustments(char *reverted_string)
 /*
-When the current token is a raw string literal and the original modification
-list is not empty, indicating that there may have been adjustments to the
-contents of the string, return the length of the token after reverting any
-adjustments.  If reverted_string is non-NULL, copy the reverted text of the
-current token into the buffer to which it points.  The buffer is assumed to
-be large enough to hold the reverted token text, which was presumably
-determined by an earlier call to this function with a NULL argument.  This
-must be done at the point of copying text from the current source line into
-macro buffers because the reversion depends on the orig_line_modifs list,
-which applies only to the current source line.
+When the current token is a raw string literal and the original line
+modification list is not empty, indicating that there may have been
+adjustments to the contents of the string, return the length of the token
+after reverting any adjustments.  If reverted_string is non-NULL, copy the
+reverted text of the current token into the buffer to which it points.  The
+buffer is assumed to be large enough to hold the reverted token text (its
+size was presumably determined by an earlier call to this function with a
+NULL argument).  This must be done at the point of copying text from the
+current source line into macro buffers because the reversion depends on the
+original line modification list, and the connection with that list is lost
+when the text is copied out of the current line buffer.
 */
 {
   a_const_char           *copy_start = start_of_curr_token;
