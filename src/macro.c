@@ -3055,6 +3055,91 @@ included; in all other cases, it is skipped.
 }  /* arg_get_token */
 
 
+static sizeof_t revert_raw_string_adjustments(char *reverted_string)
+/*
+When the current token is a raw string literal and the original modification
+list is not empty, indicating that there may have been adjustments to the
+contents of the string, return the length of the token after reverting the
+adjustments.  If reverted_string is non-NULL, copy the reverted text of the
+current token into the buffer to which it points.  The buffer is assumed to
+be large enough to hold the reverted token text, which was presumably
+determined by an earlier call to this function with a NULL argument.
+*/
+{
+  a_const_char           *copy_start = start_of_curr_token;
+  sizeof_t               result = len_of_curr_token;
+  an_orig_line_modif_ptr olmp;
+
+  check_assertion(raw_string_literals_enabled &&
+                  curr_token == tok_string_literal &&
+                  orig_line_modif_list != NULL);
+  for (olmp = orig_line_modif_list;
+       olmp != NULL && olmp->line_loc <= end_of_curr_token;
+       olmp = olmp->next) {
+    if (olmp->line_loc < copy_start) {
+      /* This modification is not part of the token. */
+    } else {
+      if (reverted_string != NULL) {
+        /* Copy the portion of the token from the previous reversion up to
+           this point into the buffer. */
+        sizeof_t num_chars = olmp->line_loc - copy_start;
+        memcpy(reverted_string, copy_start, size_t_arg(num_chars));
+        reverted_string += num_chars;
+        copy_start += num_chars;
+      }  /* if */
+      switch (olmp->kind) {
+        case olm_trigraph:
+          /* The three original characters were replaced by one character
+             in the adjusted token. */
+          result += 2;
+          if (reverted_string != NULL) {
+            memcpy(reverted_string, "?" "?", 2);
+            reverted_string[2] = olmp->variant.trigraph_orig_char;
+            reverted_string += 3;
+            copy_start += 1;
+          }  /* if */
+          break;
+        case olm_line_splice:
+          /* The two original characters, backslash and newline, were
+             omitted in the adjusted token. */
+          result += 2;
+          if (reverted_string != NULL) {
+            reverted_string[0] = '\\';
+            reverted_string[1] = '\n';
+            reverted_string += 2;
+          }  /* if */
+          break;
+        case olm_multiline_string_splice:
+          /* The original newline character was replaced by a backslash and
+             an 'n' in the adjusted token. */
+          result -= 1;
+          if (reverted_string != NULL) {
+            reverted_string[0] = '\n';
+            reverted_string += 1;
+            copy_start += 2;
+          }  /* if */
+          break;
+        case olm_null:
+          /* The original null (0) character was replaced by an LE_NULL
+             lexical escape in the adjusted token.  We simply preserve that
+             representation, which will be correctly converted back to a
+             null character when creating the runtime value of the
+             string. */
+          break;
+        default:
+          unexpected_condition();
+      }  /* switch */
+    }  /* if */
+  }  /* for */
+  if (reverted_string != NULL && copy_start <= end_of_curr_token) {
+    /* Copy the remaining characters from the original token to the
+       reverted string. */
+    memcpy(reverted_string, copy_start, end_of_curr_token - copy_start + 1);
+  }  /* if */
+  return result;
+}  /* revert_raw_string_adjustments */
+
+
 static sizeof_t length_for_curr_token_save(a_boolean need_end_of_token_marker,
                                            a_boolean any_white_space_skipped)
 /*
@@ -3064,8 +3149,15 @@ token marker escape is needed.  any_white_space_skipped is TRUE if
 there was any white space preceding the token.
 */
 {
-  sizeof_t len = len_of_curr_token;
+  sizeof_t len;
 
+  if (raw_string_literals_enabled && curr_token == tok_string_literal &&
+      orig_line_modif_list != NULL &&
+      (scan_encoding_prefix(start_of_curr_token) & SCLK_RAW_STRING_LITERAL)) {
+    len = revert_raw_string_adjustments(NULL);
+  } else {
+    len = len_of_curr_token;
+  }  /* if */
   if (any_white_space_skipped) len++;
   if (need_end_of_token_marker) len += LE_ESCAPE_LEN;
   if (curr_token_is_inert_macro) len += LE_ESCAPE_LEN;
@@ -3110,8 +3202,14 @@ The current token must have been scanned as a pp-token.
     *buffer++ = LE_ESCAPE;
     *buffer++ = LE_INERT_MACRO;
   }  /* if */
-  (void)memcpy((char *)buffer, (char *)start_of_curr_token,
-               size_t_arg(len_of_curr_token));
+  if (raw_string_literals_enabled && curr_token == tok_string_literal &&
+      orig_line_modif_list != NULL &&
+      (scan_encoding_prefix(start_of_curr_token) & SCLK_RAW_STRING_LITERAL)) {
+    (void)revert_raw_string_adjustments((char *)buffer);
+  } else {
+    (void)memcpy((char *)buffer, (char *)start_of_curr_token,
+                 size_t_arg(len_of_curr_token));
+  }  /* if */
 }  /* add_curr_token_text_to_buffer */
 
 

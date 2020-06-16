@@ -10414,7 +10414,14 @@ caller is responsible for issuing error messages.
     } else if (ch == LE_ESCAPE) {
       if (curr_char_loc[1] == LE_NULL) {
         /* Null (zero) character. */
-        if (!null_chars_allowed_in_source) {
+        if (raw_string_delimiter_len >= 0) {
+          /* This must be a raw string inside a macro expansion, and a
+             null character is permitted there. */
+          check_assertion(!within_curr_source_line(curr_char_loc));
+          if (!microsoft_mode) {
+            ++nchars;
+          }  /* if */
+        } else if (!null_chars_allowed_in_source) {
           diagnostic_at_line_pos(es_discretionary_error, ec_invalid_char,
                                  curr_char_loc);
           if (!microsoft_mode) {
