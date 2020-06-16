@@ -10353,16 +10353,17 @@ normal_no_function_matches:
            This is likely due to a cv-qualifier difference. */
         err_none_applies = ec_no_matching_function_due_to_selector;
         if (object_type == NULL) object_type = make_implicit_selector_type();
-      } else if (overloaded_function_symbol->kind ==
-                                           (a_symbol_kind)sk_routine ||
-                 overloaded_function_symbol->kind ==
-                                           (a_symbol_kind)sk_member_function) {
+      } else if (is_simple_function_symbol(overloaded_function_symbol)) {
         /* Use a simpler message for a non-overloaded function.  This
            is particularly useful when the called function is the operator()
            of a lambda. */
         if (err_none_applies == ec_no_matching_function ||
             err_none_applies == ec_no_matching_new_function) {
-          err_none_applies = ec_function_does_not_match_arguments;
+          if (func_sym_routine(overloaded_function_symbol)->is_ineligible) {
+            err_none_applies = ec_function_ineligible;
+          } else {
+            err_none_applies = ec_function_does_not_match_arguments;
+          }  /* if */
         }  /* if */
       }  /* if */
       if (expr_error_should_be_issued()) {

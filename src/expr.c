@@ -6718,12 +6718,14 @@ are expected to be NULL in that case.
         unknown_dependent_function = TRUE;
       }  /* if */
     }  /* if */
-    if (!C_mode() && routine != NULL && routine_type != NULL &&
-        skip_typerefs(routine_type)->variant.routine.extra_info
-                                   ->has_enable_if_attribute) {
-      /* Force the use of overload resolution if an enable_if attribute is
-         present on the function declaration (to ensure that the enable_if
-         condition is checked). */
+    if (!C_mode() && routine != NULL &&
+        (routine->trailing_requires_clause != NULL ||
+         (routine_type != NULL &&
+          skip_typerefs(routine_type)->variant.routine.extra_info
+                                     ->has_enable_if_attribute))) {
+      /* Force the use of overload resolution if constraints have to be
+         checked.  This is true both for C++20 trailing requires clauses and
+         for enable_if attributes. */
       overloaded_function_case = TRUE;
       overloaded_function_symbol = symbol_for(routine);
     }  /* if */
