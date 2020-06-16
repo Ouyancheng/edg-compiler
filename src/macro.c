@@ -3059,11 +3059,14 @@ static sizeof_t revert_raw_string_adjustments(char *reverted_string)
 /*
 When the current token is a raw string literal and the original modification
 list is not empty, indicating that there may have been adjustments to the
-contents of the string, return the length of the token after reverting the
+contents of the string, return the length of the token after reverting any
 adjustments.  If reverted_string is non-NULL, copy the reverted text of the
 current token into the buffer to which it points.  The buffer is assumed to
 be large enough to hold the reverted token text, which was presumably
-determined by an earlier call to this function with a NULL argument.
+determined by an earlier call to this function with a NULL argument.  This
+must be done at the point of copying text from the current source line into
+macro buffers because the reversion depends on the orig_line_modifs list,
+which applies only to the current source line.
 */
 {
   a_const_char           *copy_start = start_of_curr_token;
@@ -3072,7 +3075,8 @@ determined by an earlier call to this function with a NULL argument.
 
   check_assertion(raw_string_literals_enabled &&
                   curr_token == tok_string_literal &&
-                  orig_line_modif_list != NULL);
+                  orig_line_modif_list != NULL &&
+                  within_curr_source_line(start_of_curr_token));
   for (olmp = orig_line_modif_list;
        olmp != NULL && olmp->line_loc <= end_of_curr_token;
        olmp = olmp->next) {
@@ -3152,6 +3156,7 @@ there was any white space preceding the token.
   sizeof_t len;
 
   if (raw_string_literals_enabled && curr_token == tok_string_literal &&
+      within_curr_source_line(start_of_curr_token) &&
       orig_line_modif_list != NULL &&
       (scan_encoding_prefix(start_of_curr_token) & SCLK_RAW_STRING_LITERAL)) {
     len = revert_raw_string_adjustments(NULL);
@@ -3203,6 +3208,7 @@ The current token must have been scanned as a pp-token.
     *buffer++ = LE_INERT_MACRO;
   }  /* if */
   if (raw_string_literals_enabled && curr_token == tok_string_literal &&
+      within_curr_source_line(start_of_curr_token) &&
       orig_line_modif_list != NULL &&
       (scan_encoding_prefix(start_of_curr_token) & SCLK_RAW_STRING_LITERAL)) {
     (void)revert_raw_string_adjustments((char *)buffer);
