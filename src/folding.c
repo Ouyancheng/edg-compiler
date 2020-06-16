@@ -2496,6 +2496,7 @@ for any diagnostics issued.
                       "type_change_constant_full: nullptr to bad type");
       }  /* if */
       break;
+
     case tk_class:
     case tk_struct:
     case tk_union:
@@ -2505,6 +2506,12 @@ for any diagnostics issued.
                       is_or_contains_error_type(new_type));
       new_constant->type = new_type_with_typedefs;
       break;
+
+    case tk_template_param:
+      /* Don't attempt to fold a template-dependent constant. */
+      *did_not_fold = TRUE;
+      break;
+
     default:
       unexpected_condition_str("type_change_constant_full: from bad type");
   }  /* switch */
