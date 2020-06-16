@@ -203,9 +203,7 @@ appropriately and including ifc_map.h.  The net result is something like:
 #define IFC_DECL_END(name) \
   };  /* #name */
 
-/*lint -e451 included more than once. */
 #include "ifc_map.h"
-/*lint +e451*/
 
 /*lint -save -e835*/ /* Allow 1 << 0 in the code below. */
 /* Enumeration for Architectures. */
@@ -2360,9 +2358,7 @@ private:
                                                                          const;
   #define IFC_DECL_FIELD(field, type) /**/
   #define IFC_DECL_END(name) /**/
-  /*lint -e451 included more than once. */
   #include "ifc_map.h"
-  /*lint +e451*/
 };  /* an_ifc_module */
 /*lint -restore*/
 

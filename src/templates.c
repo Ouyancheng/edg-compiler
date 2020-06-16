@@ -35331,7 +35331,7 @@ Attempt to open the export information in the directory specified by
 } /* open_export_info_file */
 
 
-static DOES_NOT_RETURN bad_export_info_file(
+[[noreturn]] static void bad_export_info_file(
                                            an_export_info_file_ptr eifp,
                                            int                     line_number)
 /*

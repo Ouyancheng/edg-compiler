@@ -433,7 +433,6 @@ typedef unsigned int a_bit_field;
 #if __ANSIC__
 END_EDG_NAMESPACE  /* Conditionally close the "edg" namespace. */
 #include <limits.h>
-/*lint -e(451) */
 #include <stddef.h>
 BEGIN_EDG_NAMESPACE  /* Conditionally open the "edg" namespace. */
 /* sizeof_t is used instead of size_t within the front end.  It is the same
@@ -712,36 +711,6 @@ by default when EXPENSIVE_CHECKING is requested.
 #define OVERWRITE_FREED_MEM_BLOCKS FALSE
 #endif /* EXPENSIVE_CHECKING */
 #endif /* ifndef OVERWRITE_FREED_MEM_BLOCKS */
-
-/*
-Indication that a function does not return.  Used as the return type
-of the function.  Usually expands to "void", but can be changed to
-something else if the host C compiler has some way of indicating a
-function that does not return.
-
-Most versions of gcc accept the "noreturn" attribute.  Some older versions
-of gcc, recognized a return type of "volatile void" as meaning that a function
-does not return.
-
-Microsoft compilers accept the "__declspec(noreturn)" specifier for this
-purpose.
-
-See also NORETURN.
-*/
-#if defined(__GNUC__) && !defined(DOES_NOT_RETURN)
-#if __GNUC__ >= 3 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 70)
-#define DOES_NOT_RETURN void __attribute__ ((noreturn))
-#endif /* __GNUC__ >= 3 || (__GNUC__ == 2 && __GNUC_MINOR__ >= 70) */
-#endif /* defined(__GNUC__) && !defined(DOES_NOT_RETURN) */
-
-#if defined(_MSC_VER) && !defined(DOES_NOT_RETURN)
-#define DOES_NOT_RETURN void __declspec(noreturn)
-#endif /* defined(_MSC_VER) && !defined(DOES_NOT_RETURN) */
-
-/* If not set above, use "void" for DOES_NOT_RETURN. */
-#ifndef DOES_NOT_RETURN
-#define DOES_NOT_RETURN void
-#endif /* ifndef DOES_NOT_RETURN */
 
 /*
 Flag that is TRUE if the IL should contain information detailing the tree
@@ -1091,14 +1060,11 @@ configurations.
 
 FALLTHROUGH: specifies that flow-of-control purposely flows from one case to
 another without an intervening "break" statement.
-
-NORETURN: specifies that the function does not return to the caller.
 */
 #ifdef _lint
 /* Use PC-lint annotations. */
 #define FALLTHROUGH /*lint -fallthrough*/
 #define ARG_UNUSED /*lint -e{715}*/
-#define NORETURN [[noreturn]]
 #else /* !defined(_lint) */
 /* Use standard attributes if those are supported. */
 #ifndef __has_cpp_attribute
@@ -1118,11 +1084,6 @@ NORETURN: specifies that the function does not return to the caller.
 #define ARG_UNUSED /*nothing*/
 #endif /* __has_cpp_attribute(maybe_unused) */
 
-#if __has_cpp_attribute(noreturn)
-#define NORETURN [[noreturn]]
-#else /* !(__has_cpp_attribute(noreturn)) */
-#define NORETURN /*nothing*/
-#endif /* __has_cpp_attribute(noreturn) */
 #endif /* defined(_lint) */
 
 /*

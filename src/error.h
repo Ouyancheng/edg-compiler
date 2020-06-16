@@ -187,13 +187,13 @@ EXTERN a_boolean
 
 
 /*lint -sem(internal_error, r_no)*/
-extern DOES_NOT_RETURN internal_error(a_const_char *error_message);
+[[noreturn]] extern void internal_error(a_const_char *error_message);
 /*lint -sem(assertion_failed, r_no)*/
-extern DOES_NOT_RETURN assertion_failed(a_const_char *filename,
-			                int          line_number,
-			                a_const_char *function,
-					a_const_char *string1,
-					a_const_char *string2);
+[[noreturn]] extern void assertion_failed(a_const_char *filename,
+                                          int          line_number,
+                                          a_const_char *function,
+                                          a_const_char *string1,
+                                          a_const_char *string2);
 
 extern void record_expected_error(a_const_char *filename,
                                   int          line_number,
@@ -338,10 +338,10 @@ extern a_boolean is_effective_diagnostic(an_error_code     error_code,
                                          a_source_position *pos);
 
 /*lint -sem(command_line_error, r_no)*/
-extern DOES_NOT_RETURN command_line_error(an_error_code error_code);
+[[noreturn]] extern void command_line_error(an_error_code error_code);
 /*lint -sem(str_command_line_error, r_no)*/
-extern DOES_NOT_RETURN str_command_line_error(an_error_code error_code,
-                                              a_const_char  *fill_in_string);
+[[noreturn]] extern void str_command_line_error(an_error_code error_code,
+                                                a_const_char  *fill_in_string);
 
 #if !STANDALONE_UTILITY_PROGRAM
 extern void str_command_line_warning(an_error_code error_code,
@@ -354,13 +354,12 @@ void file_open_error(an_error_severity		severity,
 		     an_open_file_result	*open_result);
 
 /*lint -sem(output_file_open_error, r_no)*/
-extern
-DOES_NOT_RETURN output_file_open_error(a_boolean         bad_name,
-                                       an_error_code     file_kind,
-                                       a_const_char      *file_name,
-                                       an_error_severity severity);
+[[noreturn]] extern void output_file_open_error(a_boolean         bad_name,
+                                                an_error_code     file_kind,
+                                                a_const_char      *file_name,
+                                                an_error_severity severity);
 /*lint -sem(file_write_error, r_no)*/
-extern DOES_NOT_RETURN file_write_error(an_error_code file_kind,
+[[noreturn]] extern void file_write_error(an_error_code file_kind,
                                         int           errno_value);
 extern void pos_st_diagnostic(an_error_severity error_severity,
                               an_error_code     error_code,
@@ -569,40 +568,40 @@ extern void sym_error(an_error_code   error_code,
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #if DO_IL_LOWERING
 /*lint -sem(pos_st_catastrophe, r_no)*/
-extern DOES_NOT_RETURN pos_ty_catastrophe(an_error_code     error_code,
-                                          a_source_position *error_pos,
-                                          struct a_type     *type);
+[[noreturn]] extern void pos_ty_catastrophe(an_error_code     error_code,
+                                            a_source_position *error_pos,
+                                            struct a_type     *type);
 #endif /* DO_IL_LOWERING */
 /*lint -sem(pos_st_catastrophe, r_no)*/
-extern DOES_NOT_RETURN pos_st_catastrophe(an_error_code     error_code,
-                                          a_source_position *error_pos,
-                                          a_const_char      *error_string);
+[[noreturn]] extern void pos_st_catastrophe(an_error_code     error_code,
+                                            a_source_position *error_pos,
+                                            a_const_char      *error_string);
 /*lint -sem(str_catastrophe, r_no)*/
-extern DOES_NOT_RETURN str_catastrophe(an_error_code error_code,
-                                       a_const_char  *error_string);
+[[noreturn]] extern void str_catastrophe(an_error_code error_code,
+                                         a_const_char  *error_string);
 /*lint -sem(catastrophe, r_no)*/
-extern DOES_NOT_RETURN catastrophe(an_error_code error_code);
+[[noreturn]] extern void catastrophe(an_error_code error_code);
 
 /*lint -sem(pos_str2_catastrophe, r_no)*/
-extern DOES_NOT_RETURN pos_str2_catastrophe(an_error_code     error_code,
-                                            a_const_char      *error_string1,
-                                            a_const_char      *error_string2,
-    				            a_source_position *error_pos);
+[[noreturn]] extern void pos_str2_catastrophe(an_error_code     error_code,
+                                              a_const_char      *error_string1,
+                                              a_const_char      *error_string2,
+                                              a_source_position *error_pos);
 #if EDG_WIN32
 #if !STANDALONE_UTILITY_PROGRAM
 /*lint -sem(win32_catastrophe, r_no)*/
-extern DOES_NOT_RETURN win32_catastrophe(an_ms_dword   error_code,
-                                         a_const_char  *error_string);
+[[noreturn]] extern void win32_catastrophe(an_ms_dword   error_code,
+                                           a_const_char  *error_string);
 
 /*lint -sem(hresult_catastrophe, r_no)*/
-extern DOES_NOT_RETURN hresult_catastrophe(a_const_char *error_string);
+[[noreturn]] extern void hresult_catastrophe(a_const_char *error_string);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* EDG_WIN32 */
 
 /*lint -sem(str_errno_catastrophe, r_no)*/
-extern DOES_NOT_RETURN str_errno_catastrophe(an_error_code error_code,
-                                             a_const_char  *error_string,
-                                             int           errno_value);
+[[noreturn]] extern void str_errno_catastrophe(an_error_code error_code,
+                                               a_const_char  *error_string,
+                                               int           errno_value);
 /* Interfaces for producing multiple message diagnostics. */
 extern a_diagnostic_ptr pos_start_diagnostic(an_error_severity  error_severity,
                                              an_error_code      error_code,
@@ -844,7 +843,7 @@ extern a_diagnostic_ptr start_command_line_error(an_error_code error_code,
 			                         a_const_char  *error_string);
 
 /*lint -sem(end_command_line_error, r_no)*/
-extern DOES_NOT_RETURN end_command_line_error(a_diagnostic_ptr dp);
+[[noreturn]] extern void end_command_line_error(a_diagnostic_ptr dp);
 
 /* Report a syntax error, flush to a token in the stop set. */
 extern void syntax_error(an_error_code error_code);
