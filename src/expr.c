@@ -8943,8 +8943,7 @@ make_proxy_type_if_needed:
     set_operand_id_details_from_locator(result, &locator);
     if (!(rcblock == NULL ? member_name_followed_by_left_paren
                           : (call_rescan_case ||
-                             is_vacuous_dtor_call_node(rcblock->expr))) &&
-        !gpp_version_is(<70400)) {
+                             is_vacuous_dtor_call_node(rcblock->expr)))) {
       /* A pseudo-destructor must be called.  In the rescan case, there are
          two cases: (1) the form p->~T() and (2) the form p->T::~T().  (Either
          case could use the "dot" notation, too.)  The first form will be an
@@ -8953,8 +8952,22 @@ make_proxy_type_if_needed:
          The second case is already a vacuous call node, but we will have
          checked that it is being called when it was first parsed (i.e.,
          before substitution). */
-      expr_pos_error(ec_vacuous_destructor_not_called,
-                     &locator.source_position);
+      an_error_severity  sev = es_error;
+      if (gpp_version_is(<70400) && rcblock != NULL) {
+        /* Older versions of GCC apparently accept this in nested SFINAE
+           contexts.  We approximate this by accepting it if there is more
+           than one sck_function_access rescan entry on the scope stack. */
+        a_scope_depth  sd, cnt = 0;
+        for (sd = 0; sd<=depth_scope_stack; ++sd) {
+          if (scope_is(&scope_stack[sd], sck_function_access) &&
+              scope_stack[sd].is_rescan) {
+            ++cnt;
+          }  /* if */
+        }  /* for */
+        if (cnt > 1) sev = es_warning;
+      }  /* if */
+      expr_pos_diagnostic(sev, ec_vacuous_destructor_not_called,
+                          &locator.source_position);
     }  /* if */
   } else {
     /* Normal selection, not a vacuous destructor reference. */
