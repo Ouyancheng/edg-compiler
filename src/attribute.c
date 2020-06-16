@@ -1078,7 +1078,7 @@ if no function should be called).
 
 #if CHECKING
 
-[[noreturn]] static void abort_for_misconfigured_attribute(
+NORETURN static void abort_for_misconfigured_attribute(
                                                 an_attribute_ptr  ap,
                                                 a_const_char      *filename,
                                                 int               line_number,

@@ -54,7 +54,7 @@ using-directive if the EDG code is in the edg namespace.
 USING_NAMESPACE_EDG
 
 
-[[noreturn]] static void cfe_main(int argc, char *argv[])
+NORETURN static void cfe_main(int argc, char *argv[])
 /*
 This routine does the actual work to perform a compilation.  This is
 called by the EDG_MAIN wrapper that performs error handling when

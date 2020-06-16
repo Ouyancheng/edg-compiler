@@ -1060,11 +1060,14 @@ configurations.
 
 FALLTHROUGH: specifies that flow-of-control purposely flows from one case to
 another without an intervening "break" statement.
+
+NORETURN: specifies that a function will not return to its caller.
 */
 #ifdef _lint
 /* Use PC-lint annotations. */
 #define FALLTHROUGH /*lint -fallthrough*/
 #define ARG_UNUSED /*lint -e{715}*/
+#define NORETURN [[noreturn]]
 #else /* !defined(_lint) */
 /* Use standard attributes if those are supported. */
 #ifndef __has_cpp_attribute
@@ -1084,6 +1087,18 @@ another without an intervening "break" statement.
 #define ARG_UNUSED /*nothing*/
 #endif /* __has_cpp_attribute(maybe_unused) */
 
+/*
+Most supported C++ compilers support [[noreturn]], but not all GCC versions.
+*/
+#ifdef __GNUC__
+#if __has_cpp_attribute(fallthrough)
+#define NORETURN [[noreturn]]
+#else  /* !__has_cpp_attribute(fallthrough) */
+#define NORETURN __attribute__((noreturn))
+#endif /* __has_cpp_attribute(fallthrough) */
+#else /* !defined(__GNUC__) */
+#define NORETURN [[noreturn]]
+#endif /* defined(__GNUC__) */
 #endif /* defined(_lint) */
 
 /*
