@@ -21786,8 +21786,7 @@ handle_as_definition:
          try block). */
       gen_ctor_initializers(scope->variant.routine.constructor_inits);
     }  /* if */
-    if (!(rout->inline_in_class_definition &&
-          !curr_name_context_is_a_class())) {
+    if (!rout->defined_outside_of_parent) {
       /* In some configurations, inline member function definitions are
          moved outside the class definition.  A postfix attribute is
          acceptable on a member function definition inside a class

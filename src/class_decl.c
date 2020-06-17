@@ -31260,7 +31260,9 @@ classes.
   a_scope_depth                   class_scope_depth;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+#if IA64_ABI
   a_routine_ptr                   rout;
+#endif /* IA64_ABI */
   a_source_position               end_pos;
   a_boolean                       access_checks_deferred = FALSE;
   a_scope_depth                   access_check_depth = NO_SCOPE_DEPTH;
@@ -32271,15 +32273,16 @@ next_declaration:
         update_friend_info_for_specialization(class_type);
       }  /* if */
     }  /* if */
+#if IA64_ABI
     /* Keep track of which routines are marked inline at this point.  The IA64
        ABI requires this information when deciding whether or not to emit a
-       virtual function table, and it also controls some aspects of code
-       generation in the C++-generating back end. */
+       virtual function table. */
     if (C_dialect == C_dialect_cplusplus) {
       for (rout = scope_ptr->routines; rout != NULL; rout = rout->next) {
         if (rout->is_inline) rout->inline_in_class_definition = TRUE;
       }  /* for */
     }  /* if */
+#endif /* IA64_ABI */
   }  /* if */
   /* Decrement the counter of class definitions currently in progress. */
   curr_class_fixup_header(/*for_instantiation=*/FALSE)->

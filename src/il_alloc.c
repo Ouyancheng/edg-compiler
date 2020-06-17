@@ -3071,7 +3071,9 @@ to it.  The entry is allocated in the file scope memory region.
 #if GNU_EXTENSIONS_ALLOWED
   rp->contains_statement_expression = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if IA64_ABI
   rp->inline_in_class_definition  = FALSE;
+#endif /* IA64_ABI */
 #if DO_IL_LOWERING && IA64_ABI
   rp->use_comdat                  = FALSE;
   rp->ctor_dtor_kind              = (a_ctor_or_dtor_kind)cdk_none;

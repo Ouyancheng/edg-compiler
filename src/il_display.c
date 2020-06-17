@@ -3738,9 +3738,11 @@ Display the indicated routine.
     disp_boolean("contains_statement_expression", TRUE);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
+#if IA64_ABI
   if (ptr->inline_in_class_definition) {
     disp_boolean("inline_in_class_definition", TRUE);
   }  /* if */
+#endif /* IA64_ABI */
 #if DO_IL_LOWERING && IA64_ABI
   if (ptr->use_comdat) {
     disp_boolean("use_comdat", TRUE);
