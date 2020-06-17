@@ -63,10 +63,10 @@ typedef a_boolean a_typedef_visibility_test_function(
                                                     a_type_ptr *resolved_type);
 typedef a_typedef_visibility_test_function
                                        *a_typedef_visibility_test_function_ptr;
-typedef void an_output_attributes_function(
-                           an_attribute_ptr       attributes,
-                           an_attribute_location  syntactic_location,
-                           a_boolean              primary_only);
+typedef a_boolean an_output_attributes_function(
+                                     an_attribute_ptr       attributes,
+                                     an_attribute_location  syntactic_location,
+                                     a_boolean              primary_only);
 typedef an_output_attributes_function *an_output_attributes_function_ptr;
 typedef a_boolean a_constant_test_function(a_constant_ptr con);
 typedef a_constant_test_function *a_constant_test_function_ptr;

@@ -5872,20 +5872,22 @@ al_id_equivalent attributes.
 }  /* gen_attribute_group_end */
 
 
-static void gen_attributes_full(an_attribute_ptr       attributes,
-                                an_attribute_location  syntactic_location,
-                                a_boolean              primary_only,
-                                a_boolean              exclude_primary)
+static a_boolean gen_attributes_full(an_attribute_ptr       attributes,
+                                     an_attribute_location  syntactic_location,
+                                     a_boolean              primary_only,
+                                     a_boolean              exclude_primary)
 /*
 Generate the non-internal attributes with the given syntactic location recorded
 in the given list.  If primary_only is TRUE, only generate attributes that are
 marked as being associated with the primary declaration.  If exclude_primary
 is TRUE, do not generate attributes associated with the primary declaration.
+Return TRUE if an attribute was emitted, FALSE otherwise.
 */
 {
   an_attribute_ptr        ap;
   an_attribute_group_ptr  agp = NULL;
   a_boolean               postfix_position = FALSE, suppress_comma = FALSE;
+  a_boolean               wrote_something = FALSE;
 
   if (syntactic_location ==
                           (an_attribute_location)al_id_equivalent_as_postfix) {
@@ -5925,26 +5927,28 @@ is TRUE, do not generate attributes associated with the primary declaration.
       write_tok_str(", ");
     }  /* if */
     gen_attribute(ap);
+    wrote_something = TRUE;
     /* Suppress a comma following a "using" prefix "attribute". */
     suppress_comma = (ap->kind == (a_byte_attribute_kind)ak_attr_using_prefix);
     if (ap->next == NULL || ap->group != ap->next->group) {
       gen_attribute_group_end(ap, postfix_position);
     }  /* if */
   }  /* if */
+  return wrote_something;
 }  /* gen_attributes_full */
 
 
-static void gen_attributes(an_attribute_ptr       attributes,
-                           an_attribute_location  syntactic_location,
-                           a_boolean              primary_only)
+static a_boolean gen_attributes(an_attribute_ptr       attributes,
+                                an_attribute_location  syntactic_location,
+                                a_boolean              primary_only)
 /*
 Wrapper for gen_attributes_full that passes exclude_primary as FALSE.
-Parameter descriptions are given in the header comment for
+Parameter and return value descriptions are given in the header comment for
 gen_attributes_full.
 */
 {
-  gen_attributes_full(attributes, syntactic_location, primary_only,
-                      /*exclude_primary=*/FALSE);
+  return gen_attributes_full(attributes, syntactic_location, primary_only,
+                             /*exclude_primary=*/FALSE);
 }  /* gen_attributes */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -7119,7 +7123,7 @@ al_tag_name attributes (if any).
     }  /* if */
     write_tok_str(tag_kind_str);
     if ((options & GN_DECLARATION) != 0) {
-      gen_attributes(attributes, al_tag_name, /*primary_only=*/FALSE);
+      (void)gen_attributes(attributes, al_tag_name, /*primary_only=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else {
       /* Attributes usually have no effect on non-autonomous tag declarations
@@ -8195,7 +8199,7 @@ for_ctor is TRUE, this is the parameter list of a constructor.
     id_equiv_attribs_as_prefix = TRUE;
   }  /* if */
   for (;;) {
-    gen_attributes(param->attributes, al_prefix, /*primary_only=*/FALSE);
+    (void)gen_attributes(param->attributes, al_prefix, /*primary_only=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (param->is_cli_param_array) write_tok_str("... ");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -8248,8 +8252,8 @@ for_ctor is TRUE, this is the parameter list of a constructor.
                                   /*need_trailing_space=*/TRUE,
                                   &octl);
       if (id_equiv_attribs_as_prefix) {
-        gen_attributes(param->attributes, al_id_equivalent,
-                       /*primary_only=*/FALSE);
+        (void)gen_attributes(param->attributes, al_id_equivalent,
+                             /*primary_only=*/FALSE);
       }  /* if */
       if (param->is_parameter_pack) write_tok_str("...");
       if (param->name != NULL) {
@@ -8257,8 +8261,8 @@ for_ctor is TRUE, this is the parameter list of a constructor.
       } else {
         gen_temp_name((char *)param);
       }  /* if */
-      gen_attributes(param->attributes, al_declarator_id,
-                     /*primary_only=*/FALSE);
+      (void)gen_attributes(param->attributes, al_declarator_id,
+                           /*primary_only=*/FALSE);
       form_type_second_part_simple(param->type,
                                    /*under_lhs_declarator=*/FALSE,
                                    &octl);
@@ -8298,15 +8302,15 @@ for_ctor is TRUE, this is the parameter list of a constructor.
            the spacing as if the attribute were in a postfix position
            (with a preceding space and not a trailing space), so we use
            the "...as_postfix" location specifier. */
-        gen_attributes(param->attributes, al_id_equivalent_as_postfix,
-                       /*primary_only=*/FALSE);
+        (void)gen_attributes(param->attributes, al_id_equivalent_as_postfix,
+                             /*primary_only=*/FALSE);
       }  /* if */
       if (param->name != NULL) {
         write_space();
         if (param->is_parameter_pack) write_tok_str("...");
         gen_param_name_from_param_type(param);
-        gen_attributes(param->attributes, al_declarator_id,
-                       /*primary_only=*/FALSE);
+        (void)gen_attributes(param->attributes, al_declarator_id,
+                             /*primary_only=*/FALSE);
       } else {
         if (param->is_parameter_pack) write_tok_str(" ...");
       }  /* if */
@@ -8314,10 +8318,11 @@ for_ctor is TRUE, this is the parameter list of a constructor.
                                    /*under_lhs_declarator=*/FALSE, &octl);
       in_parameter_pack_declaration = saved_in_parameter_pack_declaration;
     }  /* if */
-    gen_attributes(param->attributes, al_postfix, /*primary_only=*/FALSE);
+    (void)gen_attributes(param->attributes, al_postfix,
+                         /*primary_only=*/FALSE);
     if (!id_equiv_attribs_as_prefix) {
-      gen_attributes(param->attributes, al_id_equivalent_as_postfix,
-                     /*primary_only=*/FALSE);
+      (void)gen_attributes(param->attributes, al_id_equivalent_as_postfix,
+                           /*primary_only=*/FALSE);
     }  /* if */
     if (!suppress_def_args) {
       /* Put out a default argument expression if there is one. */
@@ -8474,7 +8479,7 @@ default arguments should be suppressed (needed for template specializations).
     }  /* if */
     if (attributes != NULL) {
       write_space();
-      gen_attributes(attributes, al_explicit, /*primary_only=*/FALSE);
+      (void)gen_attributes(attributes, al_explicit, /*primary_only=*/FALSE);
     }  /* if */
   }  /* if */
   if (rtsp->trailing_return_type) {
@@ -8720,8 +8725,8 @@ recorded).
       gnu_routine_supp(rout)->asm_name = NULL;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-    gen_attributes_full(attributes, al_declarator_id, primary_attrs_only,
-                        exclude_primary_attrs);
+    (void)gen_attributes_full(attributes, al_declarator_id, primary_attrs_only,
+                              exclude_primary_attrs);
     if (!force_unqualified_name) {
       /* Push the name context for a class/namespace member. */
       push_name_context_if_member(scp);
@@ -8847,8 +8852,8 @@ is the one associated with the definition of the enum.
   } else {
     write_tok_str("enum");
   }  /* if */
-  gen_attributes(type->source_corresp.attributes, al_tag_name,
-                 /*primary_only=*/TRUE);
+  (void)gen_attributes(type->source_corresp.attributes, al_tag_name,
+                       /*primary_only=*/TRUE);
   /* Put out the name if the enum is named. */
   if (has_name_before_mangling(type) &&
       !type->variant.integer.originally_unnamed) {
@@ -8903,8 +8908,8 @@ is the one associated with the definition of the enum.
       /* Output the constant's name. */
       gen_unqualified_name(&enum_con->source_corresp, iek_constant);
       /* Output any standard attributes. */
-      gen_attributes(enum_con->source_corresp.attributes,
-                     al_enumerator, /*primary_only=*/FALSE);
+      (void)gen_attributes(enum_con->source_corresp.attributes,
+                           al_enumerator, /*primary_only=*/FALSE);
       /* Output the value if it's not the next value in sequence. */
       if (enum_con->kind == (a_constant_repr_kind)ck_integer) {
         /* This is an integral constant. */
@@ -9006,8 +9011,8 @@ is the one associated with the definition of the enum.
     adv_curr_source_sequence_entry();
   }
   write_tok_ch('}');
-  gen_attributes(type->source_corresp.attributes, al_post_tag_definition,
-                 /*primary_only=*/TRUE);
+  (void)gen_attributes(type->source_corresp.attributes, al_post_tag_definition,
+                       /*primary_only=*/TRUE);
   type->has_been_defined = TRUE;
   release_local_constant(&next_enum_value);
 }  /* gen_enum_definition */
@@ -9299,7 +9304,7 @@ declaration following this one is such a continuation.
     /* This is the first (or only) field in the list: put out the
        per-declaration specifiers and attributes. */
     gen_member_access_specifier_for_decl_of(&field->source_corresp);
-    gen_attributes(attributes, al_prefix, /*primary_only=*/FALSE);
+    (void)gen_attributes(attributes, al_prefix, /*primary_only=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (field_is_property_or_event(field) &&
         !property_or_event_kind_is(field, pek_declspec_property)) {
@@ -9371,9 +9376,9 @@ declaration following this one is such a continuation.
       write_unsigned_num((unsigned long)field->bit_size);
     }  /* if */
   }  /* if */
-  gen_attributes(attributes, al_postfix, /*primary_only=*/FALSE);
-  gen_attributes(attributes, al_id_equivalent_as_postfix,
-                 /*primary_only=*/FALSE);
+  (void)gen_attributes(attributes, al_postfix, /*primary_only=*/FALSE);
+  (void)gen_attributes(attributes, al_id_equivalent_as_postfix,
+                       /*primary_only=*/FALSE);
   if (field->has_initializer && field->initializer != NULL) {
     /* The field was defined with an initializer (a C++11 feature). */
     gen_field_initializer(field);
@@ -9460,8 +9465,8 @@ Put out the list of direct base classes of the class associated with ctsp
         } else {
           write_tok_str(", ");
         }  /* if */
-        gen_attributes(bcp->attributes, al_base_specifier,
-                       /*primary_only=*/TRUE);
+        (void)gen_attributes(bcp->attributes, al_base_specifier,
+                             /*primary_only=*/TRUE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (bcp->ms_attributes != NULL) {
           gen_ms_attribute_block(bcp->ms_attributes);
@@ -9615,8 +9620,8 @@ struct.
   gen_assembly_visibility_for_type(type);
   /* Put out the tag kind, e.g., "class". */
   write_tok_str(tag_keyword(type));
-  gen_attributes(type->source_corresp.attributes, al_tag_name,
-                 /*primary_only=*/TRUE);
+  (void)gen_attributes(type->source_corresp.attributes, al_tag_name,
+                       /*primary_only=*/TRUE);
   write_space();
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_dialect_is_generated_code_target) {
@@ -9767,8 +9772,8 @@ struct.
   if (il_header.source_language == sl_Cplusplus) pop_name_context();
   write_tok_ch('}');
   pop_name_context_if_member(&type->source_corresp);
-  gen_attributes(type->source_corresp.attributes, al_post_tag_definition,
-                 /*primary_only=*/TRUE);
+  (void)gen_attributes(type->source_corresp.attributes, al_post_tag_definition,
+                       /*primary_only=*/TRUE);
   type->has_been_defined = TRUE;
 }  /* gen_class_definition */
 
@@ -9832,7 +9837,7 @@ declaration following this one is such a continuation.
     f_skip_embedded_declarations(/*end_of_construct_marked=*/TRUE);
   }  /* if */
   /* The caller has called set_decl_position already. */
-  gen_attributes(attributes, al_prefix, sec_decl == NULL);
+  (void)gen_attributes(attributes, al_prefix, sec_decl == NULL);
   if (anon_union_case) {
     /* The strange nonstandard anonymous union case described above. */
     gen_type_name(under_type);
@@ -9878,7 +9883,7 @@ declaration following this one is such a continuation.
         /* An alias of the form "using name = type" (the "using" was output
            above). */
         gen_bare_name(&type->source_corresp, iek_type);
-        gen_attributes(attributes, al_declarator_id, sec_decl == NULL);
+        (void)gen_attributes(attributes, al_declarator_id, sec_decl == NULL);
         include_name = FALSE;
         write_tok_str(" = ");
       }  /* if */
@@ -9894,8 +9899,9 @@ declaration following this one is such a continuation.
     *another_decl_in_comma_list = another_declaration_in_comma_list_follows(
                         type->variant.typeref.surrounding_name_linkage_state);
   }  /* if */
-  gen_attributes(attributes, al_postfix, sec_decl != NULL);
-  gen_attributes(attributes, al_id_equivalent_as_postfix, sec_decl != NULL);
+  (void)gen_attributes(attributes, al_postfix, sec_decl != NULL);
+  (void)gen_attributes(attributes, al_id_equivalent_as_postfix,
+                       sec_decl != NULL);
   type->typedef_definition_has_been_put_out = TRUE;
   if (embedded_constructs) {
     skip_end_of_embedded_constructs((char*)type);
@@ -10980,8 +10986,9 @@ this one is such a continuation.
           sec_decl->declared_type->variant.typeref.for_type_attributes) {
         /* Some attributes on this declaration were recorded as type attributes
            (e.g., "friend class X __attribute((XX));"). */
-        gen_attributes(sec_decl->declared_type->source_corresp.attributes,
-                       al_specifier, /*primary_only=*/FALSE);
+        (void)gen_attributes(
+                            sec_decl->declared_type->source_corresp.attributes,
+                            al_specifier, /*primary_only=*/FALSE);
       }  /* if */
     } else if (kind == (a_type_kind)tk_enum) {
       /* An enum type definition. */
@@ -16451,8 +16458,8 @@ exception-handling "try" block.
     } else {
       /* Put out the parameter.  It may be unnamed. */
       a_source_correspondence *scp = NULL;
-      gen_attributes(handler_var->source_corresp.attributes,
-                     al_prefix, /*primary_only=*/FALSE);
+      (void)gen_attributes(handler_var->source_corresp.attributes,
+                           al_prefix, /*primary_only=*/FALSE);
       if (has_name(handler_var)) {
         scp = &handler_var->source_corresp;
         /* Advance past the source sequence entry. */
@@ -17154,14 +17161,14 @@ Generate code for a namespace definition or namespace alias declaration.
   }  /* if */
   write_tok_str("namespace");
   /* Any standard attributes are emitted here. */
-  gen_attributes(attributes, al_namespace, sec_decl == NULL);
+  (void)gen_attributes(attributes, al_namespace, sec_decl == NULL);
   if (has_name_before_mangling(nsp)) {
     write_space();
     /* Put out the name of the namespace. */
     gen_unqualified_name(&nsp->source_corresp, iek_namespace);
   }  /* if */
   /* Any GNU attributes are emitted here. */
-  gen_attributes(attributes, al_gnu_namespace, sec_decl == NULL);
+  (void)gen_attributes(attributes, al_gnu_namespace, sec_decl == NULL);
   if (nsp->is_namespace_alias) {
     /* A namespace alias declaration, e.g.,
          namespace alias_name = existing_name;
@@ -17226,7 +17233,7 @@ Generate code for a namespace "using" directive.
   write_tok_str("using namespace ");
   gen_name(&nsp->source_corresp, iek_namespace, GN_USING_DIRECTIVE,
            (a_boolean *)NULL);
-  gen_attributes(udp->attributes, al_postfix, /*primary_only=*/FALSE);
+  (void)gen_attributes(udp->attributes, al_postfix, /*primary_only=*/FALSE);
   write_tok_ch(';');
 }  /* gen_using_directive */
 
@@ -17327,7 +17334,7 @@ Generate code for a class member or nonmember using-declaration.
     } else {
       gen_unqualified_name(scp, entry_kind);
     }  /* if */
-    gen_attributes(udp->attributes, al_postfix, /*primary_only=*/FALSE);
+    (void)gen_attributes(udp->attributes, al_postfix, /*primary_only=*/FALSE);
     if (udp->is_pack_expansion) {
       write_tok_str("...");
     }  /* if */
@@ -17479,7 +17486,7 @@ Generate code for an instantiation directive.
       write_tok_str("extern ");
     }  /* if */
     write_tok_str("template ");
-    gen_attributes(idp->attributes, al_prefix, /*primary_only=*/FALSE);
+    (void)gen_attributes(idp->attributes, al_prefix, /*primary_only=*/FALSE);
     switch (kind) {
       case iek_routine:
         { a_routine_ptr rout = (a_routine_ptr)idp->entity.ptr;
@@ -17783,7 +17790,7 @@ Generate a module import directive.
   /* Write out the import declaration. */
   write_tok_str("import ");
   write_tok_str(midp->module_info->name);
-  gen_attributes(midp->attributes, al_module, /*primary_only=*/FALSE);
+  (void)gen_attributes(midp->attributes, al_module, /*primary_only=*/FALSE);
   if (midp->module_info->kind != (a_module_kind)mk_header) {
     write_tok_ch(';');
   }  /* if */
@@ -18246,7 +18253,8 @@ one that yields the value) of a statement expression.
     /* Adjust the output position to match the statement position. */
     set_output_position(&statement->position);
   }  /* if */
-  gen_attributes(statement->attributes, al_prefix, /*primary_only=*/FALSE);
+  (void)gen_attributes(statement->attributes, al_prefix,
+                       /*primary_only=*/FALSE);
   switch (kind) {
     case stmk_empty:
       write_tok_ch(';');
@@ -18388,13 +18396,15 @@ one that yields the value) of a statement expression.
     case stmk_label:
       /* Label statement: generate "name:;".  Note that labels generated for
          "break" and "continue" were thrown away above and do not get here. */
-      gen_attributes(statement->variant.label.ptr->source_corresp.attributes,
-                     al_prefix, /*primary_only=*/FALSE);
+      (void)gen_attributes(
+                       statement->variant.label.ptr->source_corresp.attributes,
+                       al_prefix, /*primary_only=*/FALSE);
       gen_unqualified_name(&statement->variant.label.ptr->source_corresp,
                            iek_label);
       write_tok_ch(':');
-      gen_attributes(statement->variant.label.ptr->source_corresp.attributes,
-                     al_label, /*primary_only=*/FALSE);
+      (void)gen_attributes(
+                       statement->variant.label.ptr->source_corresp.attributes,
+                       al_label, /*primary_only=*/FALSE);
       write_tok_ch(';');
       break;
     case stmk_return:
@@ -19666,8 +19676,8 @@ handle_dynamic_init:
       default:
         unexpected_condition_str("gen_variable_initializer: bad init kind");
     }  /* switch */
-    gen_attributes(var->source_corresp.attributes, al_post_initializer,
-                   /*primary_only=*/TRUE);
+    (void)gen_attributes(var->source_corresp.attributes, al_post_initializer,
+                         /*primary_only=*/TRUE);
     if (context_pop_required) {
       /* Pop the name context for a class/namespace member. */
       pop_name_context_if_member(&var->source_corresp);
@@ -19973,7 +19983,7 @@ this one is such a continuation.
     }  /* if */
     /* Attributes should appear after extern "..." but before storage class
        specifiers. */
-    gen_attributes(attributes, al_prefix, is_definition);
+    (void)gen_attributes(attributes, al_prefix, is_definition);
     if (explicit_nlk != (a_name_linkage_kind)nlk_none) {
       if (render_braced_extern_c) {
         /* We still need the storage class, for cases like
@@ -20139,8 +20149,8 @@ this one is such a continuation.
     form_var_reg_name(var->asm_name_or_reg.reg, &octl);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  gen_attributes(attributes, al_postfix, is_definition);
-  gen_attributes(attributes, al_id_equivalent_as_postfix, is_definition);
+  (void)gen_attributes(attributes, al_postfix, is_definition);
+  (void)gen_attributes(attributes, al_id_equivalent_as_postfix, is_definition);
   /* Output the initializer, if any. */
   if (consider_initialization) {
     gen_variable_initializer(var);
@@ -20601,8 +20611,10 @@ declarator (or NULL if it wasn't recorded).
     } else {
       gen_decl_name(scp, iek_routine, force_unqualified_name);
     }  /* if */
-    gen_attributes(sec_decl == NULL ? scp->attributes : sec_decl->attributes,
-                   al_declarator_id, /*primary_only=*/(sec_decl == NULL));
+    (void)gen_attributes(sec_decl == NULL ? scp->attributes
+                                          : sec_decl->attributes,
+                         al_declarator_id,
+                         /*primary_only=*/(sec_decl == NULL));
     if (!force_unqualified_name || friend_decl) {
       if (friend_decl) {
         /* Every compiler seems to have different lookup rules for names
@@ -21458,9 +21470,9 @@ handle_as_definition:
     }  /* if */
     /* Attributes should appear after extern "..." but before storage class
        specifiers. */
-    gen_attributes(attributes, al_prefix, is_definition);
+    (void)gen_attributes(attributes, al_prefix, is_definition);
     if (is_definition) {
-      gen_attributes(attributes, al_id_equivalent, is_definition);
+      (void)gen_attributes(attributes, al_id_equivalent, is_definition);
     }  /* if */
     /* Put out the storage class determined above. */
     gen_storage_class(storage_class);
@@ -21715,11 +21727,12 @@ handle_as_definition:
       gnu_routine_supp(rout)->asm_name = saved_asm_name;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-    gen_attributes(attributes, al_postfix, is_definition);
+    (void)gen_attributes(attributes, al_postfix, is_definition);
     /* "Id-equivalent attributes" are best rendered at the end of a
        declarator, except for function definitions (where such attributes
        are not allowed). */
-    gen_attributes(attributes, al_id_equivalent_as_postfix, is_definition);
+    (void)gen_attributes(attributes, al_id_equivalent_as_postfix,
+                         is_definition);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (rout->overridden_functions != NULL &&
         is_immediate_managed_class_type(parent_class)) {
@@ -21773,8 +21786,17 @@ handle_as_definition:
          try block). */
       gen_ctor_initializers(scope->variant.routine.constructor_inits);
     }  /* if */
-    gen_attributes(attributes, al_postfix, is_definition);
-    write_space();
+    if (!(rout->inline_in_class_definition &&
+          !curr_name_context_is_a_class())) {
+      /* In some configurations, inline member function definitions are
+         moved outside the class definition.  A postfix attribute is
+         acceptable on a member function definition inside a class
+         definition but not on an out-of-class definition, so we suppress
+         the latter case. */
+      if (gen_attributes(attributes, al_postfix, is_definition)) {
+        write_space();
+      }  /* if */
+    }  /* if */
     /* Generate the body of the function. */
     gen_statement(scope->assoc_block);
     /* Pop the name context for the function. */
