@@ -32273,16 +32273,15 @@ next_declaration:
         update_friend_info_for_specialization(class_type);
       }  /* if */
     }  /* if */
-#if IA64_ABI
     /* Keep track of which routines are marked inline at this point.  The IA64
        ABI requires this information when deciding whether or not to emit a
-       virtual function table. */
+       virtual function table, and it also controls some aspects of code
+       generation in the C++-generating back end. */
     if (C_dialect == C_dialect_cplusplus) {
       for (rout = scope_ptr->routines; rout != NULL; rout = rout->next) {
         if (rout->is_inline) rout->inline_in_class_definition = TRUE;
       }  /* for */
     }  /* if */
-#endif /* IA64_ABI */
   }  /* if */
   /* Decrement the counter of class definitions currently in progress. */
   curr_class_fixup_header(/*for_instantiation=*/FALSE)->

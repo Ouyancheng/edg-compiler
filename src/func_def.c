@@ -2107,9 +2107,7 @@ member declaration (allowed in some Microsoft modes only).
       sym->defined = FALSE;
       rp->defined = FALSE;
       rp->is_defaulted = FALSE;
-#if IA64_ABI
       rp->inline_in_class_definition = FALSE;
-#endif /* IA64_ABI */
       skip_typerefs(rp->type)
          ->variant.routine.extra_info->exception_specification =
                                                 rtsp->exception_specification;
