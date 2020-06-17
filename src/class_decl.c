@@ -31260,9 +31260,7 @@ classes.
   a_scope_depth                   class_scope_depth;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-#if IA64_ABI
   a_routine_ptr                   rout;
-#endif /* IA64_ABI */
   a_source_position               end_pos;
   a_boolean                       access_checks_deferred = FALSE;
   a_scope_depth                   access_check_depth = NO_SCOPE_DEPTH;
