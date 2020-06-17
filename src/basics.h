@@ -1091,11 +1091,11 @@ NORETURN: specifies that a function will not return to its caller.
 Most supported C++ compilers support [[noreturn]], but not all GCC versions.
 */
 #ifdef __GNUC__
-#if __has_cpp_attribute(fallthrough)
+#if __has_cpp_attribute(noreturn)
 #define NORETURN [[noreturn]]
-#else  /* !__has_cpp_attribute(fallthrough) */
+#else  /* !__has_cpp_attribute(noreturn) */
 #define NORETURN __attribute__((noreturn))
-#endif /* __has_cpp_attribute(fallthrough) */
+#endif /* __has_cpp_attribute(noreturn) */
 #else /* !defined(__GNUC__) */
 #define NORETURN [[noreturn]]
 #endif /* defined(__GNUC__) */
