@@ -21717,7 +21717,7 @@ handle_as_definition:
 #endif /* GNU_EXTENSIONS_ALLOWED */
     gen_attributes(attributes, al_postfix, is_definition);
     /* "Id-equivalent attributes" are best rendered at the end of a
-       declarator, except for function definitions (where postfix attributes
+       declarator, except for function definitions (where such attributes
        are not allowed). */
     gen_attributes(attributes, al_id_equivalent_as_postfix, is_definition);
 #if MICROSOFT_EXTENSIONS_ALLOWED
