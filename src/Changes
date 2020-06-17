@@ -1,5 +1,15 @@
 Version 6.1
 
+6/16/20  [EDGcpfe/22942]
+C++-generating back end: postfix attributes in function definitions
+
+The C++-generating back end failed to put out attributes appearing between
+the parameter list and the function body in a function definition.  This
+is now fixed.  For example, with --clang --c:
+
+  void f(int) __attribute((overloadable)) { } // attribute previously omitted
+
+
 6/16/20  [EDGcpfe/22913]
 Microsoft compatibility: value of _MSVC_LANG with --ms_c++latest
 

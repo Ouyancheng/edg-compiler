@@ -21773,6 +21773,8 @@ handle_as_definition:
          try block). */
       gen_ctor_initializers(scope->variant.routine.constructor_inits);
     }  /* if */
+    gen_attributes(attributes, al_postfix, is_definition);
+    write_space();
     /* Generate the body of the function. */
     gen_statement(scope->assoc_block);
     /* Pop the name context for the function. */
