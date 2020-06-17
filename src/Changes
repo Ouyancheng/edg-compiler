@@ -1,5 +1,21 @@
 Version 6.1
 
+6/16/20  [EDGcpfe/22943]
+C++-generating back end: "overloadable" attribute on function declaration
+
+The C++-generating back end put out an extern "C++" specifier for a
+non-defining declaration of a function with the "overloadable" clang C
+attribute.  This is now fixed.  For example, with --clang --c:
+
+  void f(int) __attribute__((overloadable));
+
+was previously put out as
+
+  extern "C++" void f(int) __attribute((overloadable));
+
+even though the generated code was supposed to be C and not C++.
+
+
 6/16/20  [EDGcpfe/22942]
 C++-generating back end: postfix attributes in function definitions
 

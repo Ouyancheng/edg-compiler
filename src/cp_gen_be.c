@@ -21359,8 +21359,8 @@ handle_as_definition:
   }  /* if */
   /* Check for linkage specifiers.  This applies even on a definition. */
 #if GENERATE_LINKAGE_SPEC_BLOCKS
-  if (!decl_within_class && !decl_within_function && !friend_decl &&
-      template_decl == NULL &&
+  if (!C_mode() && !decl_within_class && !decl_within_function &&
+      !friend_decl && template_decl == NULL &&
       !(rout->source_corresp.is_class_member &&
         rout->source_corresp.name_linkage ==
                                (a_name_linkage_kind)nlk_cplusplus_external) &&
