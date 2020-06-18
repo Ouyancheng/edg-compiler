@@ -35723,7 +35723,9 @@ type_identifier_case:
                    constant entry. */
                 a_constant_ptr        con = local_constant();
                 if (is_prototype_instantiation_context() ||
-                    is_alias_in_template_decl_context()) {
+                    is_alias_in_template_decl_context() ||
+                    (scope_stack_top().in_nonreal_instantiation &&
+                     !scope_stack_top().is_rescan)) {
                   make_template_param_expr_constant(node, con);
                 } else {
                   a_boolean             val;
