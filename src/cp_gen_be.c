@@ -9899,8 +9899,7 @@ declaration following this one is such a continuation.
                         type->variant.typeref.surrounding_name_linkage_state);
   }  /* if */
   gen_attributes(attributes, al_postfix, sec_decl != NULL);
-  gen_attributes(attributes, al_id_equivalent_as_postfix,
-                 sec_decl != NULL);
+  gen_attributes(attributes, al_id_equivalent_as_postfix, sec_decl != NULL);
   type->typedef_definition_has_been_put_out = TRUE;
   if (embedded_constructs) {
     skip_end_of_embedded_constructs((char*)type);
