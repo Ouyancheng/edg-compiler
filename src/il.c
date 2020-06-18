@@ -7246,6 +7246,25 @@ done:
 }  /* equiv_requires_expr_params */
 
 
+an_expr_node_ptr unwrap_if_tpck_expression(an_expr_node_ptr  expr)
+/*
+If the given expression is for a constant of ck_template_param/tpck_expression
+kind, return the underlying expression.  Otherwise return expr.
+*/
+{
+  while (is_constant_node(expr)) {
+    a_constant_ptr  cp = node_constant(expr);
+    if (constant_is(cp, ck_template_param) && tpck_is(cp, tpck_expression)) {
+      expr = expr_node_from_tpck_expression(cp);
+      expr = skip_parens(expr);
+    } else {
+      break;
+    }  /* if */
+  }  /* while */
+  return expr;
+}  /* unwrap_if_tpck_expression */
+
+
 a_boolean compare_expressions(an_expr_node_ptr                node1,
                               an_expr_node_ptr                node2,
                               a_compare_constants_options_set options)
@@ -7263,13 +7282,19 @@ are done.
 #endif /* DEBUG */
 
   itf_options = itf_flags_for_cc_options(options);
-  if (node1 != NULL) node1 = skip_parens(node1);
-  if (node2 != NULL) node2 = skip_parens(node2);
   if (node1 == NULL && node2 == NULL) {
     eq = TRUE;
+    goto done;
   } else if (node1 == NULL || node2 == NULL) {
     /* Not equal. */
-  } else if (node1->kind == node2->kind &&
+    goto done;
+  }  /* if */
+  /* An expression being wrapped in a ck_template_param/tpck_expression
+     constant does not affect equivalence: Unwrap such cases for the
+     comparison that follows. */
+  node1 = unwrap_if_tpck_expression(skip_parens(node1));
+  node2 = unwrap_if_tpck_expression(skip_parens(node2));
+  if (node1->kind == node2->kind &&
              node1->is_lvalue == node2->is_lvalue &&
              node1->is_xvalue == node2->is_xvalue &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -7567,13 +7592,18 @@ are done.
       }  /* if */
     }  /* if */
   }  /* if */
+done:
 #if DEBUG
   db_level--;
   if (!eq && db_flag_is_set("compare_expressions")) {
     fprintf(f_debug, "compare_expressions:\n");
-    fprintf(f_debug, "%*s%s\n", db_level, "", "expr1: ");
+    fprintf(f_debug, "\n%*s%s (%lu/%lu)\n", db_level, "", "expr1: ",
+            (unsigned long)node1->position.seq,
+            (unsigned long)node1->position.column);
     db_expr_node(node1, db_level);
-    fprintf(f_debug, "%*s%s\n", db_level, "", "expr2: ");
+    fprintf(f_debug, "\n%*s%s (%lu/%lu)\n", db_level, "", "expr2: ",
+            (unsigned long)node2->position.seq,
+            (unsigned long)node2->position.column);
     db_expr_node(node2, db_level);
     fprintf(f_debug, "\n");
   }  /* if */

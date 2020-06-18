@@ -204,9 +204,25 @@ TRUE if the cast actually appeared in the source.
   } else {
     op = (an_expr_operator_kind)eok_cast;
   }  /* if */
+  /* If the existing constant is already a tpck_expression, get the underlying
+     expression.  This is needed to ensure that equivalent expressions compare
+     equal independently of whether they were obtained through instantiation
+     or substitution. */
+  node = unwrap_if_tpck_expression(node);
+  if (node->compiler_generated &&
+      is_operation_node(node) && node_operator_is(node, op)) {
+    /* Drop a pre-existing implicit cast.  This is needed for deduction to
+       work in some cases. */
+    node = node->variant.operation.operands;
+  }  /* if */
   node = make_operator_node(op, new_type, node);
   if (!is_explicit) {
     node->compiler_generated = TRUE;
+  } else if (expr_stack != NULL && expr_stack->possible_rescan_context) {
+    /* Ensure rescan information is recorded. */
+    an_operand  opnd;
+    make_expression_operand(node, &opnd);
+    node = make_node_from_operand(&opnd);
   }  /* if */
   make_template_param_expr_constant(node, new_constant);
   new_constant->variant.template_param.do_not_rescan = TRUE;

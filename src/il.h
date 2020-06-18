@@ -3234,6 +3234,8 @@ extern a_hash_value hash_constant(a_constant *cp);
 
 extern a_hash_value hash_template_arg_list(a_template_arg_ptr	tap);
 
+extern an_expr_node_ptr unwrap_if_tpck_expression(an_expr_node_ptr  expr);
+
 extern a_boolean compare_expressions(an_expr_node_ptr                node1,
                                      an_expr_node_ptr                node2,
                                      a_compare_constants_options_set options);
