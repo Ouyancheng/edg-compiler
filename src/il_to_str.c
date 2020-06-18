@@ -322,8 +322,8 @@ is a tk_routine entry, attributes on that routine type entry are rendered.
     check_assertion(type->kind == (a_type_kind)tk_typeref);
     if (type->variant.typeref.for_type_attributes) {
       if (octl->output_attributes != NULL) {
-        (void)octl->output_attributes(type->source_corresp.attributes,
-                                      al_explicit, /*primary_only=*/FALSE);
+        octl->output_attributes(type->source_corresp.attributes,
+                                al_explicit, /*primary_only=*/FALSE);
       } else {
         form_attributes_for_type(type, octl);
       }  /* if */
@@ -333,8 +333,8 @@ is a tk_routine entry, attributes on that routine type entry are rendered.
   if (type->kind == (a_type_kind)tk_routine &&
       type->source_corresp.attributes != NULL) {
     if (octl->output_attributes != NULL) {
-      (void)octl->output_attributes(type->source_corresp.attributes,
-                                    al_explicit, /*primary_only=*/FALSE);
+      octl->output_attributes(type->source_corresp.attributes,
+                              al_explicit, /*primary_only=*/FALSE);
     } else {
       form_attributes_for_type(type, octl);
     }  /* if */
@@ -351,8 +351,8 @@ Do the output in the way described by octl.
 */
 {
   if (octl->output_attributes != NULL) {
-    (void)octl->output_attributes(type->source_corresp.attributes,
-                                  al_predeclarator, /*primary_only=*/FALSE);
+    octl->output_attributes(type->source_corresp.attributes, al_predeclarator,
+                            /*primary_only=*/FALSE);
   }  /* if */
 }  /* output_predeclarator_attributes */
 
