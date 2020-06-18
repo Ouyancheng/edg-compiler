@@ -1,5 +1,43 @@
 Version 6.1
 
+6/17/20  [EDGcpfe/22721]
+C++-generating back end: decltype specifiers with reference object expressions
+in member function calls
+
+Versions of MSVC prior to 1914 had a bug that resulted in spurious errors
+if the expression in a decltype specifier consists of a member function
+call in which the object expression has a reference type.  In configurations
+in which TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LIST is TRUE, the
+C++-generating back end could put out such decltype specifiers in generated
+explicit specializations, triggering the MSVC bug when compiling the
+generated code.  This has been addressed by putting out the type designated
+by the decltype specifier rather than the decltype specifier itself when
+msvc_is_generated_code_target is TRUE and msvc_target_version_number is
+less than 1914.  For example, with --microsoft_version=1900:
+
+  struct S {
+    int f();
+  } s;
+  template<typename T> struct X {
+    X(T& tr) : t(tr) { }
+    T &t;
+    auto g() -> decltype(t.f()) { return 0; }
+  };
+  int i = X<S>(s).g();
+
+Previously the generated code for this example contained the explicit
+specialization
+
+  inline auto X<S>::g()->decltype(((t).f())) { return 0; }
+
+Because X<S>::t has type S&, MSVC issued errors for this code.  Now the
+explicit specialization is generated as
+
+  inline auto X<S>::g()->int { return 0; }
+
+which is accepted without error.
+
+
 6/16/20  [EDGcpfe/22943]
 C++-generating back end: "overloadable" attribute on function declaration
 

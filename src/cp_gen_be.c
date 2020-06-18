@@ -10201,11 +10201,14 @@ static void check_for_member_of_undefined_or_local_class(
 This routine is called by traverse_expr in a top-down traversal of an
 expression tree.  It stops the traversal and sets the result to TRUE when
 it finds a node referring to a member of a class that has not yet been
-defined or a local class.  It is used by
-suppress_invalid_explicit_specialization to detect references in exception
-specifications that would make the class containing such an exception
-specification invalid and by form_type to avoid putting out invalid type
-operator expressions.
+defined or a local class.  In addition, as a special case, it checks for an
+attempt to use a reference as the object expression in a member function
+call if the generated code target is an older version of MSVC, since such
+expressions result in spurious errors when the generated code is compiled
+by those compilers.  It is used by suppress_invalid_explicit_specialization
+to detect references in exception specifications that would make the class
+containing such an exception specification invalid and by form_type to
+avoid putting out invalid type operator expressions.
 */
 {
   a_source_correspondence_ptr scp = NULL;
@@ -10233,13 +10236,28 @@ operator expressions.
     tblock->result = TRUE;
     tblock->terminate = TRUE;
   }  /* if */
+  if (msvc_is_generated_code_target && msvc_target_version_number < 1914 &&
+      is_operation_node(expr) && node_operator_is(expr, eok_dot_member_call) &&
+      is_operation_node(expr->variant.operation.operands->next) &&
+      node_operator_is(expr->variant.operation.operands->next,
+                       eok_ref_indirect)) {
+    /* This node is a member function call in which the object expression
+       is a reference, and the target compiler is a version of MSVC that
+       issues spurious errors for such expressions.  Mark the expression as
+       unusable. */
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  }  /* if */
 }  /* check_for_member_of_undefined_or_local_class */
 
 
 static a_boolean expr_uses_undefined_or_local_type(an_expr_node_ptr expr)
 /*
 Walk the tree rooted in expr looking for references to members of classes
-that haven't been defined yet and local classes.
+that haven't been defined yet and local classes.  In addition, older
+versions of MSVC issue a spurious error if the expression in a decltype is
+a member function call in which the object expression is a reference, so
+check for that also as a special case.
 */
 {
   an_expr_or_stmt_traversal_block tblock;
