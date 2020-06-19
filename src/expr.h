@@ -91,6 +91,9 @@ BEGIN_EDG_NAMESPACE
 			   expressions and logical and/or operators at the top
 			   level).  This flag is cleared while scanning primary
 			   sub-expressions. */
+#define EOPT_SUBSCRIPT_OP 0x4000
+			/* Flag set when parsing the expression for a subscript
+			   operator (e.g., x[2] or x[2,3]). */
 #define EOPT_NO_OPTIONS 0
 
 typedef int a_local_expr_options_set;

@@ -1948,17 +1948,7 @@ constructs, in which case offsetof_case is TRUE.
       /* The subscript is the usual single expression.  Top-level commas
          are operators, e.g., x[1, 2] has a single subscript expression that
          is the comma expression "1, 2". */
-      scan_expr(&operand_2, PREC_LOWEST, EOPT_NO_OPTIONS);
-      if (!C_mode() && is_expression_operand(&operand_2) &&
-          is_operation_node(operand_2.variant.expression) &&
-          node_operator_is(operand_2.variant.expression, eok_comma) &&
-          !operand_2.variant.expression->is_parenthesized) {
-        an_error_severity sev = (cpp20_mode || ms_version_is(>=1925)) ?
-                                                        es_warning : es_remark;
-        expr_pos_diagnostic(sev,
-                            ec_comma_operator_in_array_subscript_deprecated,
-                            &operand_2.position);
-      }  /* if */
+      scan_expr(&operand_2, PREC_LOWEST, EOPT_SUBSCRIPT_OP);
     }  /* if */
     closing_bracket_position = pos_curr_token;
   }  /* if */
@@ -38019,6 +38009,7 @@ see expr.h).
   a_boolean         has_discarded_typename = FALSE;
   a_source_position typename_position;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_boolean         in_subscript_op = FALSE;
   a_boolean         saved_allow_call_with_incomplete_return_type =
                            expr_stack->allow_call_with_incomplete_return_type;
 
@@ -38028,6 +38019,12 @@ see expr.h).
     fprintf(f_debug, "precedence level = %d\n", prec_level);
   }  /* if */
 #endif /* DEBUG */
+  if (local_options & EOPT_SUBSCRIPT_OP) {
+    /* Clear the subscript operator flag as this is irrelevant for any
+       sub-expressions. */
+    local_options &= ~EOPT_SUBSCRIPT_OP;
+    in_subscript_op = TRUE;
+  }  /* if */
   if (cached_initializer_present() &&
       fetch_operand_from_initializer_cache(result,
                                            expr_stack->initializer_cache)) {
@@ -39240,6 +39237,13 @@ bad_start_of_primary:
         break;
       case tok_comma:
         keep_allow_call_with_incomplete_return_type = TRUE;
+        if (!C_mode() && in_subscript_op) {
+          an_error_severity sev = (cpp20_mode || ms_version_is(>=1925)) ?
+                                                        es_warning : es_remark;
+          expr_pos_diagnostic(sev,
+                              ec_comma_operator_in_array_subscript_deprecated,
+                              &pos_curr_token);
+        }  /* if */
         scan_comma_operator(&operand, (a_rescan_control_block *)NULL,
                             &local_result);
         break;
