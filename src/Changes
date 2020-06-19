@@ -1,5 +1,12 @@
 Version 6.1
 
+6/19/20  [EDGcpfe/22504]
+IL display for lambda closure initializers
+
+The IL display utility now outputs the lambda associated with a dik_lambda
+dynamic initialization entry (i.e., the initializer for a lambda closure).
+
+
 6/18/20  [EDGcpfe/22931]
 C++-generating back end: friend functions referencing local types
 

@@ -6728,10 +6728,14 @@ Display the indicated dynamic_init structure.
       break;
     case dik_lambda:
       (void)printf("dik_lambda\n");
+      disp_ptr("lambda", (char *)ptr->variant.constant.lambda, iek_lambda);
       goto do_constant;
     case dik_nonconstant_aggregate:
       (void)printf("dik_nonconstant_aggregate\n");
 do_constant:
+      if (ptr->variant.constant.non_constant) {
+        disp_boolean("non_constant", TRUE);
+      }  /* if */
       disp_ptr("constant", (char *)ptr->variant.constant.ptr, iek_constant);
       break;
     case dik_bitwise_copy:
