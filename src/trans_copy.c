@@ -1447,7 +1447,8 @@ to the secondary translation unit.
     if (keep_on_list) {
       prev_type = type;
       any_members_to_process = TRUE;
-      if (!C_mode() && is_immediate_class_type(type)) {
+      if (!C_mode() && is_immediate_class_type(type) &&
+          type->variant.class_struct_union.extra_info != NULL) {
         /* Clear befriending lists so they are not copied.  They will be
            rebuilt later. */
         type->variant.class_struct_union.extra_info->befriending_classes= NULL;
