@@ -1,5 +1,23 @@
 Version 6.1
 
+6/19/20  [EDGcpfe/22827]
+C++-generating back end: missing empty template argument list in dependent call
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end failed to emit an
+empty template argument list in a dependent function call.  This is now
+fixed.  For example, with --c++11 --g++:
+
+  template<class T> struct X {
+    void f(int) { }
+    template<class TT> void f(TT) { }
+  };
+  template<class T> void f(T t) {
+    X<T> x;
+    x.template f<>(t);  // Previously generated without "<>"
+  }
+
+
 6/19/20  [EDGcpfe/22504]
 IL display for lambda closure initializers
 

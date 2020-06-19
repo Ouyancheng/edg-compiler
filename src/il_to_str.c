@@ -4858,9 +4858,18 @@ without a leading "&".  Do the output in the way described by octl.
   }  /* if */
   if (is_template) {
     /* Add the template arguments. */
-    form_template_args(constant->variant.template_param.variant.
+    if (constant->variant.template_param.variant.template_ref.arg_list ==
+                                                                        NULL) {
+      /* A ck_template_param/tpck_template_ref constant is only created if
+         there is an explicit template argument list, so put out an empty
+         list if there were no arguments (form_template_args will put out
+         nothing for an empty list). */
+      octl->output_str("<>", octl);
+    } else {
+      form_template_args(constant->variant.template_param.variant.
                                                          template_ref.arg_list,
-                       octl);
+                         octl);
+    }  /* if */
   }  /* if */
 }  /* form_unknown_function_constant */
 
