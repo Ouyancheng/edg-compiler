@@ -20876,6 +20876,42 @@ member access expression.
   return result;
 }  /* is_decltype_with_member_access_expr */
 
+
+static a_boolean check_for_local_type(a_type_ptr type,
+                                      a_boolean  *end_traversal)
+/*
+This routine is called via traverse_type_tree from type_uses_local_type.
+It returns TRUE and sets *end_traversal to TRUE if type is a local type.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (type->source_corresp.enclosing_routine != NULL) {
+    result = TRUE;
+    *end_traversal = TRUE;
+  }  /* if */
+  return result;
+}  /* check_for_local_type */
+
+
+static a_boolean type_uses_local_type(a_type_ptr type)
+/*
+Return TRUE if type (a function type) has any sub-types that are local to
+a function and thus would be invalid in a namespace-scope declaration of a
+function with this type.
+*/
+{
+  a_type_tree_traversal_flag_set ttt_flags;
+
+  ttt_flags = TTT_RETURN_TYPE |
+              TTT_PARAM_TYPES |
+              TTT_TEMPLATE_ARGS |
+              TTT_SKIP_TYPEREFS |
+              TTT_SKIP_TYPEDEFS |
+              TTT_EXCEPTION_SPECS;
+  return traverse_type_tree(type, check_for_local_type, ttt_flags);
+}  /* type_uses_local_type */
+
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 static void gen_routine_decl(a_boolean suppress_specifiers,
@@ -21121,6 +21157,16 @@ handle_as_definition:
            template<> void f(const char (&)[4]);
        Older Microsoft compilers issue a spurious error on such explicit
        specializations.  Discard the declaration. */
+    discard_declaration = TRUE;
+  }  /* if */
+  if (!discard_declaration && is_definition &&
+      rout->friend_defined_in_instantiation &&
+      type_uses_local_type(rout->type)) {
+    /* This is the definition of a friend function of a class template
+       instance in which the function was defined in the class template
+       body.  If that class template was instantiated with a local type and
+       the friend function refers to that local type, it cannot be validly
+       defined and the definition must be suppressed. */
     discard_declaration = TRUE;
   }  /* if */
   if (!discard_declaration && rout->template_arg_list != NULL &&

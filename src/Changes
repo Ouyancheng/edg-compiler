@@ -1,5 +1,38 @@
 Version 6.1
 
+6/18/20  [EDGcpfe/22931]
+C++-generating back end: friend functions referencing local types
+
+In configurations in which
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, when the
+source contains a class template in which a friend function is defined, the
+C++-generating back end puts out a namespace-scope definition of that
+friend function for each instance of the class template, substituting
+template arguments for template parameters as needed.  If the class
+template is instantiated with a local type as a template argument, a friend
+function that refers to the corresponding template parameter cannot be
+validly defined at namespace scope.  The C++-generating back end has now
+been changed to suppress such definitions.  For example, with --microsoft:
+
+  template <class T> struct A {
+    friend void f(A) { }
+  };
+
+  void g() {
+    struct S { };
+    A<S> as;
+    f(as);
+  }
+
+This example instantiates A with the local class type S.  Previously the
+generated code for this example contained the definition
+
+  inline void f(A<S>) { }
+
+which cannot be compiled because of the use of S.  That definition is now
+omitted from the output.
+
+
 6/17/20  [EDGcpfe/22721]
 C++-generating back end: decltype specifiers with reference object expressions
 in member function calls
