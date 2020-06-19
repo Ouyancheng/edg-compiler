@@ -3849,15 +3849,17 @@ file scope if it refers to the namespace being popped.
 }  /* microsoft_using_directive_bug_processing */
 
 
-a_scope_ptr push_namespace_scope(a_scope_kind    kind,
-                                 a_namespace_ptr assoc_namespace)
+static a_scope_ptr push_namespace_scope_full(a_scope_kind    kind,
+                                             a_namespace_ptr assoc_namespace,
+                                             a_scope_depth   prev_scope)
 /*
 Interface to push_scope_full that is used for sck_namespace scopes
 ("original" namespace definitions).  It is also used to reopen an
 sck_namespace IL scope by pushing an sck_namespace_extension scope stack
 entry (for "extension-namespace-definitions").  This is used both when
 a namespace is defined and when an instantiation scope is pushed for a
-template defined in a namespace.
+template defined in a namespace.  If prev_scope is not NO_SCOPE_DEPTH, the
+previous scope for the namespace is set to prev_scope.
 */
 {
   a_scope_ptr     scope;
@@ -3867,7 +3869,7 @@ template defined in a namespace.
                       !assoc_namespace->is_namespace_alias &&
                       ((assoc_namespace->variant.assoc_scope == NULL) ==
                                        (kind == (a_scope_kind)sck_namespace)),
-                      "push_namespace_scope: bad assoc_namespace ptr");
+                      "push_namespace_scope_full: bad assoc_namespace ptr");
   if (microsoft_bugs && microsoft_version <= 1200 &&
       kind == (a_scope_kind)sck_namespace_extension) {
     /* Make any using-directives in this namespace visible in the file
@@ -3887,12 +3889,26 @@ template defined in a namespace.
                           (an_object_lifetime_ptr)NULL,
                           (a_scope_ptr)NULL, (a_scope_pointers_block_ptr)NULL,
                           PS_NO_OPTIONS);
+  if (prev_scope != NO_SCOPE_DEPTH) {
+    scope_stack_top().previous_scope = prev_scope;
+  }  /* if */
   /* Add active using directives for the namespaces that should be
      visible because of the transitivity of using directives. */
   add_active_using_directives_for_scope(assoc_namespace->variant.assoc_scope,
                                         &scope_stack[depth_scope_stack],
 					NO_DECL_SEQUENCE_NUMBER);
   return scope;
+}  /* push_namespace_scope_full */
+
+
+a_scope_ptr push_namespace_scope(a_scope_kind    kind,
+                                 a_namespace_ptr assoc_namespace)
+/*
+Interface to push_namespace_scope_full that supplies a default value for
+prev_scope.
+*/
+{
+  return push_namespace_scope_full(kind, assoc_namespace, NO_SCOPE_DEPTH);
 }  /* push_namespace_scope */
 
 
@@ -3986,15 +4002,12 @@ the previous scope of the first scope pushed by this routine.
                                                prev_scope);
     prev_scope = NO_SCOPE_DEPTH;
   }  /* if */
-  /* Push an entry for the scope. */
-  (void)push_namespace_scope((a_scope_kind)sck_namespace_extension, nsp);
-  if (prev_scope != NO_SCOPE_DEPTH) {
-    /* For the first scope pushed by this routine (the one whose parent is
-       common_nsp), set the previous scope to the one passed from the
-       caller.  For subsequent scopes, prev_scope will have been changed to
-       NO_SCOPE_DEPTH above, so this assignment won't be done. */
-    scope_stack[depth_scope_stack].previous_scope = prev_scope;
-  }  /* if */
+  /* For the first scope pushed by this routine (the one whose parent is
+     common_nsp), set the previous scope to the one passed from the
+     caller.  For subsequent scopes, prev_scope will have been changed to
+     NO_SCOPE_DEPTH above, so this assignment won't be done. */
+  (void)push_namespace_scope_full((a_scope_kind)sck_namespace_extension, nsp,
+                                  prev_scope);
 }  /* push_namespace_extension_for_instantiation */
 
 

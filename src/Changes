@@ -1,5 +1,27 @@
 Version 6.1
 
+6/19/20  [EDGcpfe/18036,EDGcpfe/21779]
+Instantiation of namespace member may fail to use using-directive
+
+In some cases the instantiation of a template defined in one namespace and
+instantiated from a reference in another namespace could fail to make use
+of certain using-directives in the namespace containing the template
+definition.  Now fixed.
+
+  namespace N {
+    namespace O {
+      enum E { e1 };
+    }
+  }
+  namespace M {
+    using namespace N::O;
+    template <typename T> E f(T) { return E::e1; }
+  }
+  namespace N {
+    int f() { return M::f(0); }
+  }
+
+
 6/19/20  [EDGcpfe/22827]
 C++-generating back end: missing empty template argument list in dependent call
 
