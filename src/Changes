@@ -1,6 +1,6 @@
 Version 6.1
 
-6/20/20  [EDGcpfe/222653]
+6/20/20  [EDGcpfe/22653]
 C++-generating back end: parenthesized conditional expression operand
 
 Previously, the C++-generating back end enclosed the third operand of a
