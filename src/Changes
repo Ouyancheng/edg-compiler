@@ -1,5 +1,27 @@
 Version 6.1
 
+6/20/20  [EDGcpfe/222653]
+C++-generating back end: parenthesized conditional expression operand
+
+Previously, the C++-generating back end enclosed the third operand of a
+?: operator in parentheses when the operand was the name of a variable and
+thus needed no parentheses.  In configurations in which the definitions of
+templates are generated from the prototype instantiation IL, this unneeded
+parenthesization produced code that elicited spurious errors from early
+versions of g++.  This is now fixed, and such parentheses are no longer
+added.  For example, with --c++14 --gnu_version=50400:
+
+  template <typename = void> struct S {
+    static const char a[];
+  };
+  template <typename T> const char S<T>::a[] = "";
+  template <typename> const char *f() {
+    return 0 ? "" : S<>::a;  // Previously generated as "(S<>::a)", which
+                             // caused spurious errors in older g++ versions
+  }
+  auto p = &f<char>;
+
+
 6/19/20  [EDGcpfe/18036,EDGcpfe/21779]
 Instantiation of namespace member may fail to use using-directive
 

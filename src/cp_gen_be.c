@@ -15570,7 +15570,7 @@ gen_expr that might end up generating this expr as a temporary.
           }  /* if */
           write_tok_str(" : ");
           gen_expr(operand_2->next,
-                   !is_expl_ctor_or_value_init(operand_2->next),
+                   parens_may_be_needed(PREC_PRIMARY, operand_2->next),
                    /*obj_expr_of_mfunc_operator=*/FALSE);
           goto done_with_operation;
         case eok_call:
