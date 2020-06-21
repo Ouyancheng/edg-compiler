@@ -21379,6 +21379,10 @@ initially used when processing the declaration of a partial specialization.
            variant.class_struct_union.is_prototype_instantiation = !is_generic;
     prototype_type->variant.class_struct_union.is_nonreal_class = !is_generic;
     prototype_cssp->template_info = tssp;
+    /* For the prototype instantiation the referencing namespace is the
+       same as the namespace in which the template was defined. */
+    prototype_cssp->referencing_namespace = 
+                 scope_stack[depth_innermost_namespace_scope].assoc_namespace;
     if (sym->kind == (a_symbol_kind)sk_class_template) {
       /* Call a routine that manages the correspondence of entities between
          translation units to notify it of the new instance.  Note that this
