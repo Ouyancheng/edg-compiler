@@ -46396,13 +46396,16 @@ is TRUE if the expression is the immediate operand of an "&" operator.
           if (copy_error) {
             /* Don't attempts to find a matching instance. */
           } else {
-            sym = find_template_variable(t_sym, &t_args,
-                                         /*prototype_allowed=*/FALSE,
-                                         /*is_use=*/TRUE, /*diagnose=*/FALSE);
-            if (sym == NULL) {
+            var = copy_template_variable_with_substitution(
+                          var, &t_args, t_params,
+                          &rcblock->expr->position, rcblock->options,
+                          &copy_error, rcblock->ctws_state);
+            if (var == NULL) {
               /* Substitution failed (presumably because the constraints were
                  not satisfied). */
               copy_error = TRUE;
+            } else {
+              sym = symbol_for(var);
             }  /* if */
           }  /* if */
           if (copy_error) {
