@@ -23259,7 +23259,7 @@ static void cache_base_specifier_list(
                                    a_token_sequence_number first_token_number)
 /*
 Cache the tokens of a base-specifier-list of a class template.  This begins
-with the ": of the base-specifier-list and ends with the token before
+with the ":" of the base-specifier-list and ends with the token before
 the opening "{" of the class body.  template_sym is the symbol of the class
 template being scanned.  The tokens are put in the token cache specified
 by cache.  stop_tokens is the set of stop_tokens provided by the caller.
@@ -23273,7 +23273,7 @@ base-specifier-list.
     a_type_ptr                        proto_type;
     a_symbol_ptr                      proto_sym;
     a_template_arg_ptr                template_arg_list;
-    a_push_scope_options_set	      ps_options = PS_PROTOTYPE_INSTANTIATION;
+    a_push_scope_options_set          ps_options = PS_PROTOTYPE_INSTANTIATION;
     tssp = template_supplement_for_symbol(template_sym);
     proto_sym = tssp->variant.class_template.prototype_instantiation;
     proto_type = proto_sym->variant.class_struct_union.type;
@@ -23281,13 +23281,12 @@ base-specifier-list.
     add_stop_token(tok_lbrace);
     /* An instantiation scope is needed to establish the proper context
        if this is a definition outside of the original namespace or class. */
-    (void)push_template_instantiation_scope(
-                                    tssp->cache.decl_info,
-				    proto_type,
-				    (a_routine_ptr)NULL, proto_sym,
-				    template_sym, template_arg_list,
-                                    /*push_lex_state=*/FALSE,
-                                    ps_options);
+    (void)push_template_instantiation_scope(tssp->cache.decl_info,
+                                            proto_type,
+                                            (a_routine_ptr)NULL, proto_sym,
+                                            template_sym, template_arg_list,
+                                            /*push_lex_state=*/FALSE,
+                                            ps_options);
     prescan_base_specifier_list(template_sym);
     pop_template_instantiation_scope();
     if (curr_token != tok_lbrace) {
@@ -23321,13 +23320,13 @@ static void cache_class_template_body(
                            a_token_sequence_number          first_token_number,
                            a_token_sequence_number          *last_token_number)
 /*
-Cache the tokens of a class template body.  This begins with the ": of
+Cache the tokens of a class template body.  This begins with the ":" of
 an optional base-specifier list and ends with the closing "}" of the class
 definition.  template_sym is the symbol of the class template being
 scanned.  The tokens are put in the token cache specified by cache.
 first_token_number is the token sequence number of the first token of the
-body.  The last token sequence numbers of the definition is returned in
-*last_token_number;
+body.  The last token sequence number of the definition is returned in
+*last_token_number.
 */
 {
   a_token_set_array         stop_tokens;

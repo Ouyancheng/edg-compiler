@@ -10124,7 +10124,7 @@ void prescan_base_specifier_list(a_symbol_ptr            template_sym)
 This is an interface to scan_base_specifier_list that establishes the
 class state for the purpose of scanning the base-specifier-list as part
 of the class template caching process.  template_sym is the symbol of the
-class  template being scanned.  
+class template being scanned.  
 */
 {
   a_class_def_state                class_state;
