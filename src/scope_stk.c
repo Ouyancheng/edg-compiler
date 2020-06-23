@@ -5837,7 +5837,11 @@ Issue a warning for an unreferenced entity.  However, demote the warning to
 a remark if the entity is a file-scope entity declared in an include file.
 */
 {
-  if (normal_severity == es_remark ||
+  if (normal_severity == es_none) {
+    /* Call the diagnostic routine anyway to allow the user to choose to
+       see the warning. */
+    pos_sy_diagnostic(es_none, error_code, &sym->decl_position, sym);
+  } else if (normal_severity == es_remark ||
       (depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
        seq_is_in_include_file(sym->decl_position.seq))) {
     pos_sy_remark(error_code, &sym->decl_position, sym);
@@ -6269,17 +6273,15 @@ curr_routine points to the routine entry; otherwise, it is NULL.
                or remark in such cases since it would be unreliable. */
             severity = es_none;
           }  /* if */
-          if (severity != es_none) {
-            /* Issue different diagnostics depending on whether the variable
-               was completely unreferenced or was set but not used. */
-            if (!sym->referenced) {
-              error_code = ec_declared_but_not_referenced;
-            } else {
-              check_assertion(sym->value_has_been_set);
-              error_code = ec_set_but_not_used;
-            }  /* if */
-            report_unreferenced(sym, error_code, severity);
+          /* Issue different diagnostics depending on whether the variable
+             was completely unreferenced or was set but not used. */
+          if (!sym->referenced) {
+            error_code = ec_declared_but_not_referenced;
+          } else {
+            check_assertion(sym->value_has_been_set);
+            error_code = ec_set_but_not_used;
           }  /* if */
+          report_unreferenced(sym, error_code, severity);
         }  /* if */
       }  /* if */
       /* Check if this variable was declared using a type with no

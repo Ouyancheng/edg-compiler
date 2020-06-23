@@ -1,5 +1,28 @@
 Version 6.1
 
+6/22/20  [EDGcpfe/22971]
+Warning for variable that is initialized but unused
+
+The front end previously issued a warning for a variable that is declared
+but not used, but not if its initialization involved a constructor call.
+The latter exception reflected the common usage in which the initialization
+of the variable performs some useful action but the variable is otherwise
+not needed.  Recognizing, however, that there may be circumstances in which
+not using an initialized variable actually does reflect a programming
+mistake, the front end has now been changed to report the appropriate
+diagnostic with a severity of es_none, which can be optionally increased by
+command-line options, pragmas, etc.  For example, with
+--diag_warning=declared_but_not_referenced:
+
+  struct S {
+    S();
+    S(const S &);
+  };
+  void f(S s) {
+    S s2 = s;  // Normally evokes no warning because of constructor call
+  }
+
+
 6/20/20  [EDGcpfe/22653]
 C++-generating back end: parenthesized conditional expression operand
 
