@@ -17958,14 +17958,16 @@ template declaration and is NULL otherwise.
       check_assertion(var_templ_tssp != NULL);
       il_template_entry = var_templ_tssp->il_template_entry;
       check_assertion(il_template_entry != NULL);
-      /* The template entry has its own source sequence entry.  Discard the
-         one created for the variable declarator. */
-      remove_declarator_sse(decl_state, depth_scope_stack);
       if (!(srk_flags & SRK_DEFINITION)) {
         /* Turn the source sequence entry for the a_template entry into a
            secondary source sequence entry. */
         sssdp = secondary_src_seq_for_template(il_template_entry);
         sssdp->declared_type = declared_type;
+        /* The template entry has its own source sequence entry.  Discard the
+           one created for the variable declarator.  (If the declaration is a
+           definition, the call to record_symbol_declaration above has already
+           unified the two source sequence entries.) */
+        remove_declarator_sse(decl_state, depth_scope_stack);
       }  /* if */
       decl_state->source_sequence_entry =
                       il_template_entry->source_corresp.source_sequence_entry;

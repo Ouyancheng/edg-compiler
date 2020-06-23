@@ -1,5 +1,24 @@
 Version 6.1
 
+6/23/20  [EDGcpfe/22987]
+Internal source sequence entry error on static data member template
+
+In some configurations, the front end could abort with an internal error in
+add_src_seq_end_of_variable_if_needed because of an invalid assumption in the
+treatment of static data member templates.  For example:
+
+  #pragma pack(1)
+  #pragma pack(1)
+  #pragma pack(1)
+  #pragma pack(1)
+  struct S {
+    template<typename T> static constexpr bool val = T::val;
+  };  // Previously triggered an internal error.
+
+That is now fixed.  (The problem only manifested in some configurations that
+have GENERATE_SOURCE_SEQUENCE_LISTS set to TRUE.)
+
+
 6/23/20  [EDGcpfe/22985]
 Missing error (and possible abort) on invalid decltype name qualifier
 
