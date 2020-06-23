@@ -24879,7 +24879,7 @@ subst_pairs is successful.
     init_ctws_state(&ctws_state);
     for (; ptp != NULL; ptp = ptp->next) {
       a_type_ptr  tp = param_type_restoring_orig_templ_array(ptp);
-      tp = type_after_substitutions(tp, subst_pairs, &req->position,
+      tp = type_after_substitutions(tp, subst_pairs, &requires_expr->position,
                                     CTWS_NO_OPTIONS, &copy_error, &ctws_state);
       if (copy_error) break;
       adjust_parameter_type(&tp);
