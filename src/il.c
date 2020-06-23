@@ -5413,7 +5413,8 @@ to TRUE or FALSE depending on whether the cast was explicit or not.
         (node_operator_is(expr, eok_cast) ||
          node_operator_is(expr, eok_ref_cast)) &&
         !expr->variant.operation.is_reinterpret_cast &&
-        !expr->variant.operation.is_const_cast) {
+        !expr->variant.operation.is_const_cast &&
+        expr->type != type_of_unknown_templ_param_nontype) {
       an_expr_node_ptr  opnd = expr->variant.operation.operands;
       if (is_constant_node(opnd)) {
         *is_explicit = !expr->compiler_generated;
@@ -19540,18 +19541,19 @@ options.
                                      source_pos, options, copy_error,
                                      ctws_state, constant);
           } else {
-            an_expr_node_ptr expr = expr_node_from_tpck_expression(con);
-            an_expr_node_ptr expr_copy = copy_template_param_expr(
-                                                         expr,
-                                                         template_arg_list,
-                                                         template_param_list,
-                                                         guide_type,
-                                                         source_pos,
-                                                         options,
-                                                         copy_error,
-                                                         ctws_state,
-                                                         constant,
-                                                         &con_copy);
+            an_expr_node_ptr expr = expr_node_from_tpck_expression(con),
+                             expr_copy;
+            if (expr->type == type_of_unknown_templ_param_nontype &&
+                expr->compiler_generated &&
+                is_operation_node(expr) && node_operator_is(expr, eok_cast)) {
+              /* Ignore compiler-generated casts that are there only to force
+                 an unknown type in the generic expression tree. */
+              expr = expr->variant.operation.operands;
+            }  /* if */
+            expr_copy = copy_template_param_expr(
+                                 expr, template_arg_list, template_param_list,
+                                 guide_type, source_pos, options, copy_error,
+                                 ctws_state, constant, &con_copy);
             if (expr_copy != NULL && !*copy_error) {
               /* The expression isn't a constant.  See if it can be
                  interpreted. */
