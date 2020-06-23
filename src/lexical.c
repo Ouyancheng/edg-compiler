@@ -20182,14 +20182,13 @@ selection operator, in which case it points to the type of the left operand.
           qualifier_is_type = TRUE;
           qualifier_type_is_class = is_class_struct_union_type(qualifier_type);
           qualifier_is_enum = is_enum_type(qualifier_type);
-          if ((!can_be_vacuous_dtor_or_finalizer ||
-               (field_sel_type == NULL ||
-                is_class_struct_union_type(field_sel_type)))  &&
-              (qualifier_sym == NULL ||
-               !is_valid_qualifier_symbol(qualifier_sym))) {
+          if ((qualifier_sym == NULL ||
+               !is_valid_qualifier_symbol(qualifier_sym)) &&
+              !(is_template_dependent_context() &&
+                is_template_dependent_type(qualifier_type))) {
             invalid_qualifier_sym = TRUE;
             if (!is_or_contains_error_type(decltype_type)) {
-              pos_ty_error(ec_not_class_or_enum, &type_position,
+              pos_ty_error(ec_bad_decltype_qualifier, &type_position,
                            decltype_type);
             }  /* if */
             err = TRUE;
@@ -21225,6 +21224,21 @@ See also coalesce_and_lookup_generalized_identifier.
 		   				         &pos_curr_token)) {
         *err = TRUE;
         okay = FALSE;
+      } else if (locator_for_curr_id.is_decltype_qualified &&
+                 !is_vacuous_dtor_or_finalizer &&
+                 qualifier_type != NULL &&
+                 !is_class_struct_union_type(qualifier_type) &&
+                 !is_enum_type(qualifier_type) &&
+                 !(is_template_dependent_context() &&
+                   is_template_dependent_type(qualifier_type))) {
+        /* The qualified name was "decltype(something)::name", but the type
+           from the decltype is not a class or enumeration type.  For cases
+           like "decltype(something)::x::name", this will have been diagnosed
+           when the identifier was coalesced. */
+        pos_ty_error(ec_bad_decltype_qualifier, &pos_curr_token,
+                     qualifier_type);
+        set_to_error_locator(locator_for_curr_id);
+        *err = TRUE;
       } else {
         a_boolean is_nonclass_dtor_or_finalizer =
                                    locator_for_curr_id.is_nonclass_destructor;

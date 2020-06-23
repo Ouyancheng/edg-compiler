@@ -1,5 +1,21 @@
 Version 6.1
 
+6/23/20  [EDGcpfe/22985]
+Missing error (and possible abort) on invalid decltype name qualifier
+
+The front end failed to issue a diagnostic when a decltype-specifier was used
+in a qualified name and the type that resulted from the decltype did not refer
+to a class or enumeration type.  In some cases this could result in an abort
+(in class_qualified_id_lookup).  Now fixed.
+
+  typedef int A;
+  int main() {
+    A a = 0;
+    a.decltype(a)::~A(); // incorrectly accepted
+    a.decltype(1)::x;    // aborted
+  }
+
+
 6/22/20  [EDGcpfe/22971]
 Warning for variable that is initialized but unused
 

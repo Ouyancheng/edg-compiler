@@ -3211,6 +3211,7 @@ ec_failed_destructor_constraints;;"destructor for %t is ineligible because of fa
 ec_destructor_position;;"ambiguous destructor candidate"
 ec_trailing_requires_on_virtual_func;;"a virtual function cannot have a trailing requires clause"
 ec_function_ineligible;;"%nd does not satisfy its constraints"
+ec_bad_decltype_qualifier;;"result of decltype qualifier %t is not a class or enumeration"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
