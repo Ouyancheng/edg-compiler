@@ -16811,10 +16811,11 @@ typedef struct a_local_scope_ref {
 enum a_scope_kind_tag {
   /* Kinds of scopes. */
   sck_file,		/* File scope. */
-  sck_func_prototype,   /* Function prototype scope, used also during
-			   function declarators that are part of a
-			   function definition (since we don't know at
-			   that point whether or not a body will follow). */
+  sck_func_prototype,   /* Function prototype scope, used also during function
+			   declarators that are part of a function definition
+			   (since we don't know at that point whether or not a
+			   body will follow).  A function prototype scope is
+			   also pushed for C++20 requires-expressions. */
   sck_block,		/* Block scope, for blocks other than the topmost
 			   in a function. */
   sck_namespace,	/* In C++, a scope representing a namespace.  (An

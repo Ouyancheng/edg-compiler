@@ -9080,11 +9080,17 @@ caller is responsible for sorting that out.)
       }  /* if */
       /* Link the routine type and the prototype scope entry to each other. */
       routine_type = ssep->assoc_type;
-      check_assertion_str(routine_type != NULL,
-                          "ensure_il_scope_exists: routine_type is NULL");
-      routine_type = skip_typerefs(routine_type);
-      routine_type->variant.routine.extra_info->prototype_scope = sp;
-      sp->variant.assoc_type = routine_type;
+      if (routine_type != NULL) {
+        routine_type = skip_typerefs(routine_type);
+        routine_type->variant.routine.extra_info->prototype_scope = sp;
+        sp->variant.assoc_type = routine_type;
+      } else {
+        /* This can happen if this is the function prototype scope created
+           for a requires-expression. */
+        check_assertion_str(ssep->decl_parse_state != NULL &&
+                            ssep->decl_parse_state->for_requires_expr_params,
+                            "ensure_il_scope_exists: routine_type is NULL");
+      }  /* if */
     }  /* if */
     if (sp != NULL) {
       /* Set the scope-stack-entry depth if not already set. */
