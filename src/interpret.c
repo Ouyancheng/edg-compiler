@@ -5744,7 +5744,7 @@ state is released.
     info_with_pos(ec_constexpr_ctor_with_dtor, pos, ips);
     do_constexpr_fail(result);
   } else {
-    /* Register the destruction in the current storage stack state. */
+    /* Register the destruction in the extension storage stack state. */
     a_byte                   *d_bytes;
     a_constexpr_destruction  *destruction;
     alloc_bytes(ips->extension_state, sizeof(a_constexpr_destruction),
@@ -17081,7 +17081,8 @@ the value representation of the integer value.
               alloc_seq_number = ips->extension_state->alloc_seq_number;
               if (dip->destructor != NULL &&
                   !register_extended_destruction(ips, dip,
-                                                 tmp_bytes, tmp_bytes,
+                                                 tmp_bytes+prefix_size,
+                                                 tmp_bytes+prefix_size,
                                                  &expr->position)) {
                 break;
               }  /* if */
