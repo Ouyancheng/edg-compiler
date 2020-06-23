@@ -37609,18 +37609,29 @@ done_with_requirements:
     /* This is a previously parsed requires-expression that we are encountering
        during an instantiation.  Rather than instantiating it (i.e., parsing it
        with template parameters mapped to real arguments), we substitute it. */
-    a_boolean  val;
     check_assertion(rrd.next_tsn != a_token_sequence_number() &&
                     is_nonspecialized_instantiation_context());
     while (curr_token_sequence_number < rrd.next_tsn &&
            curr_token != tok_end_of_source) {
       (void)get_token();
     }  /* while */
-    a_subst_pairs_array  subst_pairs = get_current_subst_pairs();
-    val = requires_expr_satisfied(rrd.requires_expr, subst_pairs);
-    make_integer_constant_operand(result, (a_host_large_integer)val);
-    result->type = bool_type();
-    result->variant.constant.type = result->type;
+    if (is_prototype_instantiation_context() ||
+        is_alias_in_template_decl_context() ||
+        (scope_stack_top().in_nonreal_instantiation &&
+         !scope_stack_top().is_rescan)) {
+      /* Not all template arguments are necessarily known yet.  Just copy the
+         original expression. */
+      an_expr_node_ptr  node = copy_expr_tree(rrd.requires_expr,
+                                              CE_NO_OPTIONS);
+      make_expression_operand(node, result);
+    } else {
+      a_subst_pairs_array  subst_pairs = get_current_subst_pairs();
+      a_boolean            val;
+      val = requires_expr_satisfied(rrd.requires_expr, subst_pairs);
+      make_integer_constant_operand(result, (a_host_large_integer)val);
+      result->type = bool_type();
+      result->variant.constant.type = result->type;
+    }  /* if */
   }  /* if */
 }  /* scan_requires_expr */
 

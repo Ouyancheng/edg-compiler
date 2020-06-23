@@ -24567,13 +24567,15 @@ subject to SFINAE.
     a_boolean         err = FALSE;
     
     if (template_param_list != NULL) {
-      a_ctws_state      ctws_state;
+      a_ctws_state       ctws_state;
+      a_source_position  saved_err_pos = error_position;
       init_ctws_state(&ctws_state);
       expr = copy_template_param_expr(
                             constraint, template_arg_list, template_param_list,
                             (a_type_ptr)NULL, &constraint->position,
                             CTWS_NO_OPTIONS, &err, &ctws_state,
                             cp, &allocated_cp);
+      error_position = saved_err_pos;
     } else {
       /* No parameters: This occurs when called from check_eligibility. */
       expr = constraint;
@@ -24852,7 +24854,7 @@ subst_pairs is successful.
           result = requires_clause_satisfied(
                                   req->variant.nested_req.constraint,
                                   templ_args, templ_params,
-                                  /*map_failure_is_fatal=*/TRUE, &diag_list);
+                                  /*map_failure_is_fatal=*/FALSE, &diag_list);
           discard_more_info_list(&diag_list);
           error_position = saved_error_pos;
         }

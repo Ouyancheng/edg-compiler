@@ -2297,9 +2297,9 @@ i.e., esp->arg_cached cannot be TRUE).
 
 
 a_boolean check_exception_specification(a_type_ptr         new_rout_type,
-                                   a_symbol_ptr       prev_decl,
-                                   a_source_position  *throw_pos,
-                                   a_boolean          is_redecl)
+                                        a_symbol_ptr       prev_decl,
+                                        a_source_position  *throw_pos,
+                                        a_boolean          is_redecl)
 /*
 Check that the throw specification on the current declaration, if any, is
 consistent with that of the previous declaration.  Return TRUE if there are
