@@ -13444,7 +13444,12 @@ if an error occurred.
     sym = find_template_variable(var_templ_sym, templ_arg_list,
                                  /*prototype_allowed=*/FALSE,
                                  /*is_use=*/TRUE, /*diagnose=*/FALSE);
-    result_var = variable_for_symbol(sym);
+    if (sym != NULL) {
+      result_var = variable_for_symbol(sym);
+    } else {
+      /* Constraints were not satisfied. */
+      subst_fail(*copy_error);
+    }  /* if */
   }  /* if */
   return result_var;
 }  /* copy_template_variable_with_substitution */
