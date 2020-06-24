@@ -1428,7 +1428,7 @@ Allocate a reusable cache entry.  Reuse a freed entry if possible.
 }  /* alloc_reusable_cache_entry */
 
 
-static a_constant_ptr alloc_cached_constant(void)
+a_constant_ptr alloc_cached_constant()
 /*
 Allocate a cached constant entry.  Reuse a freed entry if possible.
 */

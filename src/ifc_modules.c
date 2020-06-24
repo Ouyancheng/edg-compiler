@@ -2126,7 +2126,9 @@ class_struct_union_case:
         { an_ifc_DeclSort_Reference idsr, *idsrp;
           a_module_entity_ptr       dmep;
           idsrp = get_DeclSort_Reference(&idsr);
-          dmep = get_ifc_module_entity_ptr(idsrp->local_index);
+          /* FIXME: Import from the other module? */
+          unexpected_condition_str("DeclSort::Reference is not yet handled.");
+          /* dmep = get_ifc_module_entity_ptr(idsrp->local_index); */
           process_ifc_declaration(dmep, /*defer=*/FALSE,
                                   /*enumeration_type=*/NULL);
           il_entity = dmep->entity.ptr;
@@ -3625,7 +3627,9 @@ FIXME: what other expressions can we get here?
             }
             break;
           case ifc_LiteralSort_FloatingPoint:
-            /* FIXME: not yet implemented. */
+            unexpected_condition_str("LiteralSort::FloatingPoint "
+                                     "is not yet handled");
+            break;
           default:
             unexpected_condition();
         }  /* switch */
@@ -3673,8 +3677,8 @@ Add tok to cache.  pos is the position of the token.
 }  /* cache_token */
 
 
-static void cache_identifier(a_token_cache_ptr cache,
-                             a_const_char      *name,
+static void cache_identifier(a_token_cache_ptr     cache,
+                             a_const_char          *name,
                              a_source_position_ptr pos)
 /*
 Add a tok_identifier for name to cache.  pos is the position of the identifier.
@@ -3689,6 +3693,94 @@ Add a tok_identifier for name to cache.  pos is the position of the identifier.
   cache->last_token->extra_info_kind =(a_token_extra_info_kind)teik_identifier;
   cache->last_token->variant.locator = loc;
 }  /* cache_identifier */
+
+
+static void cache_literal(a_token_cache_ptr     cache,
+                          a_constant_ptr        lit_const,
+                          a_source_position_ptr pos)
+/*
+Add a tok_literal for lit_const to cache.  pos is the position of the literal.
+*/
+{
+  a_token_kind lit_kind;
+
+  if (is_fixed_point_type(lit_const->type)) {
+    lit_kind = tok_fixed_point_constant;
+  } else if (is_floating_type(lit_const->type)) {
+    lit_kind = tok_float_constant;
+  } else if (is_character_type(lit_const->type)) {
+    lit_kind = tok_char_constant;
+  } else {
+    check_assertion(is_integral_type(lit_const->type));
+    lit_kind = tok_int_constant;
+  }  /* if */
+  cache_token(cache, lit_kind, pos);
+  cache->last_token->extra_info_kind = (a_token_extra_info_kind)teik_constant;
+  cache->last_token->variant.constant = alloc_cached_constant();
+  copy_constant(lit_const, cache->last_token->variant.constant);
+}  /* cache_literal */
+
+
+static void cache_string_literal(a_token_cache_ptr     cache,
+                                 a_const_char          *str,
+                                 a_targ_size_t         length,
+                                 a_source_position_ptr pos)
+/*
+Add a tok_string_literal for str with the given length to cache.  pos is the
+position of the literal.
+*/
+{
+  a_constant_ptr cp;
+  char           *val;
+
+  cache_token(cache, tok_string_literal, pos);
+  cache->last_token->extra_info_kind = (a_token_extra_info_kind)teik_constant;
+  cache->last_token->variant.constant = cp = alloc_cached_constant();
+  val = alloc_text_of_string_literal((sizeof_t)length);
+  (void)strncpy(val, str, length);
+  clear_constant(cp, (a_constant_repr_kind)ck_string);
+  cp->type = string_type(length);
+  cp->variant.string.length = length;
+  cp->variant.string.value  = val;
+}  /* cache_string_literal */
+
+
+static void cache_ud_literal(a_token_cache_ptr     cache,
+                             a_const_char          *str,
+                             a_targ_size_t         length,
+                             a_const_char          *suffix,
+                             a_source_position_ptr pos)
+/*
+Add a tok_ud_literal for str with the given length and suffix to cache.  pos is
+the position of the literal.
+*/
+{
+  a_constant_ptr     cp;
+  char*              val;
+  a_targ_size_t      suffix_len = strlen(suffix) + 1;
+  a_cached_token_ptr ctp;
+
+  cache_token(cache, tok_ud_literal, pos);
+  ctp = cache->last_token;
+  ctp->extra_info_kind = (a_token_extra_info_kind)teik_ud_lit;
+  ctp->variant.ud_lit.value_con = cp = alloc_cached_constant();
+  val = alloc_text_of_string_literal((sizeof_t)length);
+  (void)strncpy(val, str, length);
+  clear_constant(cp, (a_constant_repr_kind)ck_string);
+  cp->type = string_type(length);
+  cp->variant.string.length = length;
+  cp->variant.string.value  = val;
+  ctp->variant.ud_lit.spelling_con = alloc_cached_constant();
+  copy_constant(cp, ctp->variant.ud_lit.spelling_con);
+  ctp->variant.ud_lit.type = cp->type;
+  val = alloc_text_of_string_literal(suffix_len);
+  strcpy(val, suffix);
+  ctp->variant.ud_lit.suffix = val;
+  ctp->variant.ud_lit.op_sym = find_literal_operator(val, suffix_len-1, pos,
+                                                     cp->type,
+                                                     /*from_cache=*/FALSE,
+                                                     (a_diagnostic_ptr)NULL);
+}  /* cache_ud_literal */
 
 
 static void cache_pragma(a_token_cache_ptr     cache,
@@ -3887,8 +3979,6 @@ Sentence containing punctuator.
                                "not yet handled");
       break;
     case ifc_SourcePunctuator_MsvcAlignasEdictStart:
-      unexpected_condition_str("SourcePunctuator::MsvcAlignasEdictStart "
-                               "not yet handled");
       break;
     case ifc_SourcePunctuator_MsvcDefaultInitStart:
       unexpected_condition_str("SourcePunctuator::MsvcDefaultInitStart "
@@ -3918,19 +4008,32 @@ pos is the position of the Sentence containing literal.
       unexpected_condition();
       break;
     case ifc_SourceLiteral_Scalar:
-      { /* ifc_ExprIndex expr = (ifc_ExprIndex)index; */
-        unexpected_condition_str("SourceLiteral::Scalar is not yet handled");
+      { a_constant_ptr cp = constant_for_expr_index((ifc_ExprIndex)index,
+                                                    /*default_type=*/NULL);
+        cache_literal(cache, cp, &pos);
       }
       break;
     case ifc_SourceLiteral_String:
-      { /* ifc_StringIndex str = (ifc_StringIndex)index; */
-        unexpected_condition_str("SourceLiteral::String is not yet handled");
-      }
-      break;
     case ifc_SourceLiteral_DefinedString:
-      { /* ifc_StringIndex str = (ifc_StringIndex)index; */
-        unexpected_condition_str("SourceLiteral::DefinedString "
-                                 "is not yet handled");
+      { ifc_StringIndex       str = (ifc_StringIndex)index;
+        ifc_StringSort        sort = str_tag(str);
+        an_ifc_String_Literal str_lit, *p_lit;
+        read_partition_at_index(ifc_const_str, str_value(str));
+        p_lit = get_String_Literal(&str_lit);
+        if (sort != ifc_StringSort_Ordinary) {
+          unexpected_condition_str("Non-ordinary strings "
+                                   "are not yet handled.");
+        }  /* if */
+        if (p_lit->suffix == 0) {
+          check_assertion(literal == ifc_SourceLiteral_String);
+          cache_string_literal(cache, get_string_at_offset(p_lit->start),
+                               p_lit->length, &pos);
+        } else {
+          check_assertion(literal == ifc_SourceLiteral_DefinedString);
+          cache_ud_literal(cache, get_string_at_offset(p_lit->start),
+                           p_lit->length, get_string_at_offset(p_lit->suffix),
+                           &pos);
+        }  /* if */
       }
       break;
     case ifc_SourceLiteral_Msvc:
@@ -3972,8 +4075,15 @@ pos is the position of the Sentence containing literal.
       }
       break;
     case ifc_SourceLiteral_MsvcBinding:
-      unexpected_condition_str("SourceLiteral::MsvcBinding "
-                               "is not yet handled");
+      {
+        ifc_ExprSort              sort = expr_tag(index);
+        an_ifc_ExprSort_NamedDecl iesnd, *iesndp;
+        check_assertion(sort == ifc_ExprSort_NamedDecl);
+        source_position_from_locus(&pos, locus);
+        read_partition_at_index(sort, expr_value(index));
+        iesndp = get_ExprSort_NamedDecl(&iesnd);
+        cache_identifier(cache, name_from_decl(iesndp->resolution), &pos);
+      }
       break;
     default:
       unexpected_condition_str("Unknown SourceLiteral");

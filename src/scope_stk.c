@@ -3764,6 +3764,7 @@ If scope_pushed is TRUE, pop the scope(s) that have been pushed by
 push_module_declaration_context.
 */
 {
+  process_deferred_class_fixups_and_instantiations(/*for_instantiation=*/TRUE);
   if (scope_pushed) {
     if (scope_stack_top().kind == (a_scope_kind)sck_namespace_extension) {
       pop_namespace_extension_scope();

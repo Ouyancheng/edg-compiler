@@ -2599,6 +2599,8 @@ extern a_boolean check_context_sensitive_keyword(a_token_kind  tok_kind,
 
 extern a_string_or_char_literal_kind scan_encoding_prefix(a_const_char *loc);
 
+extern a_constant_ptr alloc_cached_constant();
+
 extern a_boolean accum_quoted_string(
                   unsigned long                 *num_chars,
                   a_boolean                     is_header_name,
