@@ -5414,7 +5414,9 @@ to TRUE or FALSE depending on whether the cast was explicit or not.
          node_operator_is(expr, eok_ref_cast)) &&
         !expr->variant.operation.is_reinterpret_cast &&
         !expr->variant.operation.is_const_cast &&
-        expr->type != type_of_unknown_templ_param_nontype) {
+        !(type_is(expr->type, tk_template_param) &&
+          expr->type->variant.template_param.kind ==
+                                  (a_template_param_type_kind)tptk_unknown)) {
       an_expr_node_ptr  opnd = expr->variant.operation.operands;
       if (is_constant_node(opnd)) {
         *is_explicit = !expr->compiler_generated;
