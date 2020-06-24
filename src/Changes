@@ -1,5 +1,15 @@
 Version 6.1
 
+6/24/20  [EDGcpfe/17930]
+Microsoft compatibility: __declspec(guard(id))
+
+The front end now accepts annotations of the form "__declspec(guard(id))" on
+some declarations (where id is an identifier).  The front end does not check
+the validity of any such constructs (e.g., it does not check that id is an
+identifier that the Microsoft compiler would recognize).  Currently, this
+construct is accepted on declarations of functions, variables, and parameters.
+
+
 6/23/20  [EDGcpfe/22987]
 Internal source sequence entry error on static data member template
 

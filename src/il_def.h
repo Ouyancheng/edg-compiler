@@ -2719,6 +2719,7 @@ typedef enum an_attribute_kind_tag {
 			/* "__edg_interior_ptr_alias" (ms). */
   ak_edg_pin_ptr_alias,	/* "__edg_pin_ptr_alias" (ms). */
   ak_empty_bases,	/* "empty_bases" (ms). */
+  ak_guard,		/* "guard" (ms). */
   ak_hybrid_patchable,	/* "hybrid_patchable" (ms). */
   ak_implementation_key,
 			/* "implementation_key" (ms). */
