@@ -2224,7 +2224,7 @@ option values if they were not already set by a command line option.
   null_chars_allowed_in_source = TRUE;
   /* This will be enabled below in some cases.  Note: Microsoft does not
      support this in C++14 mode. */
-  generalized_template_template_matching = FALSE;
+  generalized_template_template_matching = cpp17_mode;
   if (!(option_kind_used[(int)optk_trigraphs])) {
     /* Early versions of Microsoft have trigraphs enabled by default. */
     trigraphs_allowed = microsoft_version < 1600;
