@@ -37376,6 +37376,7 @@ and return a corresponding enk_compound_requirement node.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/TRUE);
   scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  eliminate_unusual_operand_kinds(&operand);
   expr = make_node_from_operand(&operand);
   expr = wrap_up_full_expression(expr);
   pop_expr_stack();
@@ -37466,6 +37467,7 @@ where <expr> is unevaluated, and return a pointer to the node representing
                   /*suppress_object_lifetime=*/TRUE);
   /* Scan the expression. */
   scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
+  eliminate_unusual_operand_kinds(&operand);
   result = make_node_from_operand(&operand);
   result = wrap_up_full_expression(result);
   pop_expr_stack();
@@ -47601,37 +47603,42 @@ function or template.
                                          EOPT_NO_OPTIONS,
                                          &result,
                                          (an_operand *)NULL);
-  if (!rcblock->error_detected && guide_type != NULL &&
-      (is_indefinite_function_operand(&result) || constexpr_enabled ||
-       nontype_template_arg)) {
-    /* Resolve the instance of an overloaded function or template based
-       on the destination guide type.  If constexpr is enabled, also consider
-       user-defined conversion functions. */
-    if (nontype_template_arg || !is_indefinite_function_operand(&result)) {
-      /* For template arguments, certain conversions are not permitted.
-         (For example, certain pointer-to-member function conversions.)
-         Use prep_initializer_operand to catch such cases. */
-      a_conv_context_set  conv_context = CCO_DEFAULT;
-      if (nontype_template_arg) {
-        conv_context |= CCO_NONTYPE_TEMPLATE_ARG;
-      }  /* if */
-      if (rcblock->options & CTWS_CAST_OPERAND) {
-        conv_context |= CCO_CAST;
-        if (rcblock->options & CTWS_EXPLICIT_CAST_OPERAND) {
-          conv_context |= CCO_EXPLICIT_CAST;
+  if (!rcblock->error_detected) {
+    if (guide_type != NULL &&
+        (is_indefinite_function_operand(&result) || constexpr_enabled ||
+         nontype_template_arg)) {
+      /* Resolve the instance of an overloaded function or template based
+         on the destination guide type.  If constexpr is enabled, also
+         consider user-defined conversion functions. */
+      if (nontype_template_arg || !is_indefinite_function_operand(&result)) {
+        /* For template arguments, certain conversions are not permitted.
+           (For example, certain pointer-to-member function conversions.)
+           Use prep_initializer_operand to catch such cases. */
+        a_conv_context_set  conv_context = CCO_DEFAULT;
+        if (nontype_template_arg) {
+          conv_context |= CCO_NONTYPE_TEMPLATE_ARG;
         }  /* if */
-      }  /* if */
-      prep_initializer_operand(&result, guide_type, (a_boolean *)NULL,
-                               (a_conv_descr_ptr)NULL,
-                               /*is_copy_initialization=*/TRUE,
-                               conv_context,
-                               ec_bad_nontype_template_arg);
-    } else {
-      a_boolean  is_cast =
+        if (rcblock->options & CTWS_CAST_OPERAND) {
+          conv_context |= CCO_CAST;
+          if (rcblock->options & CTWS_EXPLICIT_CAST_OPERAND) {
+            conv_context |= CCO_EXPLICIT_CAST;
+          }  /* if */
+        }  /* if */
+        prep_initializer_operand(&result, guide_type, (a_boolean *)NULL,
+                                 (a_conv_descr_ptr)NULL,
+                                 /*is_copy_initialization=*/TRUE,
+                                 conv_context,
+                                 ec_bad_nontype_template_arg);
+      } else {
+        a_boolean  is_cast =
                          (rcblock->options & CTWS_EXPLICIT_CAST_OPERAND) != 0;
-      cast_overloaded_function(guide_type, &result, is_cast,
-                               /*is_static_cast=*/FALSE,
-                               /*skip_final_adjustment=*/FALSE);
+        cast_overloaded_function(guide_type, &result, is_cast,
+                                 /*is_static_cast=*/FALSE,
+                                 /*skip_final_adjustment=*/FALSE);
+      }  /* if */
+    } else if (is_a_function_designator(&result)) {
+      convert_function_template_to_single_function_if_possible(
+                                                &result, /*will_call=*/FALSE);
     }  /* if */
   }  /* if */
   if (rcblock->error_detected) {
