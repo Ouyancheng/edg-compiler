@@ -2342,17 +2342,17 @@ This routine does the C++17 "at least as specialized" checking (see N4849,
       a_symbol_ptr	ft1;
       a_symbol_ptr	ft2;
       int		compare_result;
-      /* Create the two function templates and perform the ordering. */
-      // FIXME: Copy constraints
+      /* Create the two function templates and perform the ordering.  Note
+         that constraints are ignored for the invented templates.  The draft
+         C++20 standard is not entirely clear on this subject, but committee
+         discussions on this point suggest that this might be the preferred
+         direction, with actual constraints checked when the template
+         template argument is instantiated. */
       ft1 = make_invented_function_template(param_list_for_arg,
                                             type_symbol_type(arg_sym));
-      ft1->variant.template_info->has_template_param_constraint =
-                                      arg_tssp->has_template_param_constraint;
       ft1->variant.template_info->il_template_entry = arg_template;
       ft2 = make_invented_function_template(param_list_for_param,
                                             type_symbol_type(param_sym));
-      ft2->variant.template_info->has_template_param_constraint =
-                                    param_tssp->has_template_param_constraint;
       ft2->variant.template_info->il_template_entry = param_template;
       compare_result = compare_function_templates(
                                            ft1, ft2, /*entire_type=*/FALSE,
