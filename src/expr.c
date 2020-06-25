@@ -46218,6 +46218,13 @@ Otherwise, return a pointer to that representation.
     an_expr_stack_entry_ptr  saved_expr_stack;
     an_expr_stack_entry      expr_stack_entry;
     an_operand               opnd;
+    a_boolean                saved_implicit_typename =
+                                          scope_stack_top().implicit_typename;
+    /* In some modes (e.g., Microsoft) "typename" is implied at this point.
+       Since we're about to scan a general expression, this could lead
+       disambiguation to go the wrong way: Temporarily disable the "implicit
+       typename" guidance. */
+    scope_stack_top().implicit_typename = FALSE;
     rcp = alloc_requires_clause();
     rcp->requires_pos = pos_curr_token;
     save_expr_stack(&saved_expr_stack);
@@ -46238,6 +46245,7 @@ Otherwise, return a pointer to that representation.
     }  /* if */
     pop_expr_stack();
     restore_expr_stack(saved_expr_stack);
+    scope_stack_top().implicit_typename = saved_implicit_typename;
     /* Associate with the token sequence number of the "requires" token the
        sequence number of the token following the requires clause.  This is
        used to skip the clause in instantiations (see below). */
