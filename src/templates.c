@@ -10200,6 +10200,7 @@ the constraints.
         *p_diag_pos = &tdp->constraint.requires_clause->requires_pos;
       }  /* if */
     } else {
+      // FIXME: Use tssp->has_template_param_constraint instead
       a_template_parameter_ptr  tpp = tdp->param_list;
       for (; tpp != NULL; tpp = tpp->next) {
         if (tpp->kind == (a_template_parameter_kind)tpk_type) {

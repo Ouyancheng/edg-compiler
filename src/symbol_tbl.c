@@ -2716,6 +2716,26 @@ be NULL, in which case nothing is done.
   }  /* if */
 }  /* free_list_of_type_list_entries */
 
+#if DEBUG
+
+void db_type_entries(a_type_list_entry_ptr  tlep,
+                     int                    indent = 0)
+/*
+Display the contents of the given list.  (This function is not called
+db_type_list because that name was in use already.)
+*/
+{
+  int  k = 0;
+
+  for (; tlep != NULL; tlep = tlep->next, ++k) {
+    for (int n = 0; n < indent; n++) fputc(' ', f_debug);
+    fprintf(f_debug, "[%3d] ", k);
+    db_abbreviated_type(tlep->type);
+    (void)fprintf(f_debug, "\n");
+  }  /* for */
+}  /* db_type_entries */
+
+#endif /* DEBUG */
 
 a_symbol_ptr find_symbol(a_const_char     *identifier,
 			 sizeof_t         length,

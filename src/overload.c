@@ -8211,11 +8211,21 @@ template is more specialized than the other.
   uint32_t maxn = (max1 > max2) ? max1 : max2;
   int      result;
 
-  result = compare_function_templates(cfp1->function_symbol,
-                                      cfp2->function_symbol,
-                                      /*entire_type=*/FALSE,
-                                      /*is_templ_templ_param_check=*/FALSE,
-                                      maxn);
+  if (cfp1->supplemental_comparison_candidate !=
+                                   cfp2->supplemental_comparison_candidate ||
+      cfp1->supplemental_reversed_candidate !=
+                                   cfp2->supplemental_reversed_candidate) {
+    /* Don't try to compare candidates that include synthesized comparison
+       candidates for now (there is a committee DR that addresses this case,
+       but it is not yet implemented). */
+    result = 0;
+  } else {
+    result = compare_function_templates(cfp1->function_symbol,
+                                        cfp2->function_symbol,
+                                        /*entire_type=*/FALSE,
+                                        /*is_templ_templ_param_check=*/FALSE,
+                                        maxn);
+  }  /* if */
   return result;
 }  /* compare_function_templates_for_ovl_res */
 
@@ -9819,6 +9829,45 @@ static an_error_code default_undefined_code[(int)oc_last] = {
   ec_undefined_identifier,                   /* oc_reversed_cmp_candidate */
 };
 
+
+static a_boolean candidates_include_constraints(a_candidate_function_ptr  cfp)
+/*
+Return TRUE if any of the given candidates include a constrained function or
+function template.
+*/
+{
+  a_boolean  result = FALSE;
+
+  for (; cfp != NULL; cfp = cfp->next) {
+    a_symbol_ptr  sym = cfp->function_symbol;
+    if (sym != NULL) {
+      if (symbol_is(sym, sk_function_template)) {
+        a_template_symbol_supplement_ptr  tssp = sym->variant.template_info;
+        if (tssp->has_template_param_constraint ||
+            tssp->variant.function.routine->trailing_requires_clause != NULL) {
+          result = TRUE;
+          break;
+        } else {
+          a_template_decl_ptr  tdp = tssp->il_template_entry->template_decl;
+          if (tdp != NULL &&
+              if_microsoft_extensions(!tdp->is_generic &&)
+              tdp->constraint.requires_clause != NULL) {
+            result = TRUE;
+            break;
+          }  /* if */
+        }  /* if */
+      } else if (symbol_is(sym, sk_member_function)) {
+        if (sym->variant.routine.ptr->trailing_requires_clause != NULL) {
+          result = TRUE;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* candidates_include_constraints */
+
+
 a_symbol_ptr select_overloaded_function(
                         a_symbol_ptr             overloaded_function_symbol,
                         a_boolean                is_template_id,
@@ -10282,6 +10331,24 @@ in_instantiation:
   }  /* if */
   /* The candidate_functions list now contains all the viable functions.
      Find the best one(s). */
+  if (is_template_dependent_context() && !scope_stack_top().is_rescan &&
+      candidates_include_constraints(candidate_functions)) {
+    /* Consider:
+         template<typename T> struct S {
+           int f();
+           int f() requires(sizeof(T)<128);
+           int g() { return f(); }
+         };
+       Here, the call to f() is dependent and overload resolution should be
+       deferred, even though none of the arguments are dependent.
+    */
+    check_assertion(unknown_dependent_function != NULL);
+    dependent_call = TRUE;
+    *unknown_dependent_function = TRUE;
+    function_symbol = NULL;
+    *arg_match_list = NULL;
+    goto have_function;
+  }  /* if */
   select_best_candidate_functions(&candidate_functions, call_position,
                                   &undecidable_because_of_error, &ambiguous);
   function_symbol = NULL;
