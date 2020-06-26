@@ -3,9 +3,9 @@ Version 6.1
 6/25/20  [EDGcpfe/22999]
 __builtin_is_constant_evaluated availability
 
-The __builtin_is_constant_evaluated builtin was incorrectly enabled in the
-wrong emulation modes.  For example, its use was enabled when microsoft_version
-is 1925, but not in subsequent versions.  Now fixed.
+The version checking for support of the __builtin_constant_evaluated builtin
+was incorrect.  For example, its use was enabled when microsoft_version is
+1925, but not in subsequent versions.  Now fixed.
 
 
 6/24/20  [EDGcpfe/17930]
