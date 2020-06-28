@@ -1,5 +1,19 @@
 Version 6.1
 
+6/28/20  [EDGcpfe/23014]
+Position information for ambiguous overload resolution candidates
+
+Consider:
+
+  int f(long);
+  int f(long long);
+  int r = f(42);  // Ambiguous call.
+
+The call f(42) is ambiguous, and the front end lists the ambiguous candidates.
+Now that list includes position information about where the candidates were
+declared.
+
+
 6/25/20  [EDGcpfe/22999]
 __builtin_is_constant_evaluated availability
 
