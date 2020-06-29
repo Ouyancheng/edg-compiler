@@ -24520,6 +24520,7 @@ subject to SFINAE.
          not when checking a nested requirement. */
       result = requires_clause_satisfied(expr, new_args, params,
                                          /*map_failure_is_fatal=*/
+                                         map_failure_is_fatal &&
                                                            expr_stack == NULL,
                                          diag_list, p_fatal);
       if (!result) {
