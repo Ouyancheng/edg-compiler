@@ -1606,6 +1606,15 @@ Remove "ctp" from the token cache "cache".  Update "prev_ptr" to point
 to the correct next token.
 */
 {
+  /* Update the first and last entries of the cache, if appropriate. */
+  if (cache->last_token == ctp) {
+    check_assertion(ctp->next == NULL);
+    cache->last_token = *prev_ptr;
+  }  /* if */
+  if (*prev_ptr == NULL) {
+    check_assertion(cache->first_token == ctp);
+    cache->first_token = ctp->next;
+  }  /* if */
   /* Unlink the entry. */
   *prev_ptr = ctp->next;
   /* Free the token cache entry. */

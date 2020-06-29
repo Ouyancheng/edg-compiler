@@ -2221,11 +2221,23 @@ private:
                   ifc_SourceLocation *locus) const;
   void cache_decl(a_token_cache_ptr  cache,
                   ifc_DeclIndex      decl) const;
+  void cache_expr(a_token_cache_ptr cache,
+                  ifc_ExprIndex     expr) const;
+  void cache_syntax(a_token_cache_ptr cache,
+                    ifc_SyntaxIndex   syntax) const;
   void cache_chart(a_token_cache_ptr  cache,
                    ifc_ChartIndex     chart,
                    ifc_SourceLocation *locus) const;
-  void cache_sentence(a_token_cache_ptr cache,
-                      ifc_SentenceIndex sentence) const;
+  void cache_operator(a_token_cache_ptr    cache,
+                      ifc_OperatorCategory category,
+                      ifc_SourceLocation   *locus) const;
+  void cache_exception_spec(a_token_cache_ptr         cache,
+                            ifc_NoexceptSpecification *eh_spec,
+                            a_source_position_ptr     pos) const;
+  uint32_t cache_sentence(a_token_cache_ptr cache,
+                          ifc_SentenceIndex sentence,
+                          uint32_t          offset = 0,
+                          a_token_kind      stop_token = tok_last) const;
   void cache_word(a_token_cache_ptr     cache,
                   an_ifc_Word           *word) const;
   void cache_source_directive(a_token_cache_ptr     cache,
@@ -2259,18 +2271,25 @@ private:
                                       ifc_Index_type        index) const;
   inline void read_partition_at_index(ifc_TypeSort   type_kind,
                                       ifc_Index_type index) const;
+  inline void read_partition_at_index(ifc_TypeIndex type) const;
   inline void read_partition_at_index(ifc_ExprSort   expr_kind,
                                       ifc_Index_type index) const;
+  inline void read_partition_at_index(ifc_ExprIndex expr) const;
   inline void read_partition_at_index(ifc_StmtSort   stmt_kind,
                                       ifc_Index_type index) const;
+  inline void read_partition_at_index(ifc_StmtIndex stmt) const;
   inline void read_partition_at_index(ifc_DeclSort   decl_kind,
                                       ifc_Index_type index) const;
+  inline void read_partition_at_index(ifc_DeclIndex decl) const;
   inline void read_partition_at_index(ifc_NameSort   name_kind,
                                       ifc_Index_type index) const;
+  inline void read_partition_at_index(ifc_NameIndex name) const;
   inline void read_partition_at_index(ifc_ChartSort  chart_kind,
                                       ifc_Index_type index) const;
+  inline void read_partition_at_index(ifc_ChartIndex chart) const;
   inline void read_partition_at_index(ifc_SyntaxSort syntax_kind,
                                       ifc_Index_type index) const;
+  inline void read_partition_at_index(ifc_SyntaxIndex syntax) const;
   inline ifc_Index read_index_from_heap(an_ifc_partition_kind heap_partition,
                                         ifc_Index_type        index) const;
   /* Stringizers. */

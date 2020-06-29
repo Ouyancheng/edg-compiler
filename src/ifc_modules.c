@@ -19,6 +19,7 @@ ifc_modules.c -- Microsoft-specific IFC module code
 #include "decl_spec.h"
 #include "symbol_ref.h"
 #include "class_decl.h"
+#include "exprutil.h"
 #include "pch.h"
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -2128,7 +2129,7 @@ class_struct_union_case:
           idsrp = get_DeclSort_Reference(&idsr);
           /* FIXME: Import from the other module? */
           unexpected_condition_str("DeclSort::Reference is not yet handled.");
-          /* dmep = get_ifc_module_entity_ptr(idsrp->local_index); */
+          dmep = get_ifc_module_entity_ptr(idsrp->local_index);
           process_ifc_declaration(dmep, /*defer=*/FALSE,
                                   /*enumeration_type=*/NULL);
           il_entity = dmep->entity.ptr;
@@ -2445,6 +2446,32 @@ Given a scope index find and return the associated scope.
 }  /* get_ifc_scope */
 
 
+static a_calling_convention conv_calling_convention(
+                                              ifc_CallingConvention convention)
+/*
+Convert the given IFC calling convention to the corresponding EDG one.
+*/
+{
+  a_calling_convention conv = cc_default;
+
+  switch (convention) {
+    case ifc_CallingConvention_Cdecl:   conv = cc_cdecl; break;
+    case ifc_CallingConvention_Fast:    conv = cc_fastcall; break;
+    case ifc_CallingConvention_Std:     conv = cc_stdcall; break;
+    case ifc_CallingConvention_This:    conv = cc_thiscall; break;
+    case ifc_CallingConvention_Clr:     conv = cc_clrcall; break;
+    case ifc_CallingConvention_Vector:  conv = cc_vectorcall; break;
+    case ifc_CallingConvention_Eabi:    /* conv = cc_eabicall; break; */
+      unexpected_condition_str("__eabi calling convention "
+                               "is yet not supported");
+      break;
+    default:
+      unexpected_condition_str("Unexpected CallingConvention");
+  }  /* switch */
+  return conv;
+}  /* conv_calling_convention */
+
+
 a_type_ptr an_ifc_module::type_for_type_index(ifc_TypeIndex   type_index,
                                               a_non_type_kind *kind) const
 /*
@@ -2715,6 +2742,8 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                                                          /*kind=*/NULL),
                                      (a_type_ptr)NULL, (a_type_ptr)NULL,
                                      (a_type_ptr)NULL, (a_type_ptr)NULL);
+          result->variant.routine.extra_info->calling_convention =
+                                    conv_calling_convention(itsfp->convention);
           /* FIXME: need a thorough review of this. */
           if (itsfp->source != 0) {
             /* The function has parameters. */
@@ -2836,10 +2865,10 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
         break;
       case ifc_TypeSort_Syntactic:
         { an_ifc_TypeSort_Syntactic itss, *itssp;
+          ifc_ExprSort etag;
           itssp = get_TypeSort_Syntactic(&itss);
-          ifc_ExprSort etag = expr_tag(itssp->expr);
-          ifc_Index    value = expr_value(itssp->expr);
-          read_partition_at_index(etag, value);
+          etag = expr_tag(itssp->expr);
+          read_partition_at_index(itssp->expr);
           switch (etag) {
             case ifc_ExprSort_TemplateId:
               { an_ifc_ExprSort_TemplateId iestid, *iestidp;
@@ -2927,9 +2956,10 @@ argument.
   a_template_arg_ptr result;
   a_templ_arg_kind   kind;
   a_type_ptr         type;
+  a_constant_ptr     cp;
   ifc_ExprSort       tag = expr_tag(expr_index);
 
-  read_partition_at_index(tag, expr_value(expr_index));
+  read_partition_at_index(expr_index);
   switch (tag) {
     case ifc_ExprSort_Type:
       { an_ifc_ExprSort_Type iest, *iestp;
@@ -2942,8 +2972,25 @@ argument.
       unexpected_condition_str("ExprSort::UnaryFold is not yet handled");
       goto default_error;
     case ifc_ExprSort_Monad:
-      unexpected_condition_str("ExprtSort::Monad is not yet handled");
-      goto default_error;
+      { an_ifc_ExprSort_Monad iesm, *iesmp;
+        a_token_cache         cache;
+        a_source_position     pos;
+
+        iesmp = get_ExprSort_Monad(&iesm);
+        kind = tak_nontype;
+        type = type_for_type_index(iesmp->type, /*kind=*/NULL);
+        source_position_from_locus(&pos, &iesmp->locus);
+        clear_token_cache(&cache, /*reuseable=*/FALSE);
+        cache_operator(&cache, iesmp->opcat, &iesmp->locus);
+        cache_expr(&cache, iesmp->argument);
+        terminate_token_cache(&cache);
+        rescan_cached_tokens(&cache);
+        cp = fs_constant((a_constant_repr_kind)ck_error);
+        scan_template_argument_constant_expression(type, cp);
+        check_assertion(curr_token == tok_end_of_source);
+        (void)get_token();
+      }
+      break;
     default:
       unexpected_condition_str("Unexpected expr kind for template arg");
 default_error:
@@ -2953,6 +3000,8 @@ default_error:
   result = alloc_template_arg(kind);
   if (kind == (a_templ_arg_kind)tak_type) {
     result->variant.type = type;
+  } else if (kind == (a_templ_arg_kind)tak_nontype) {
+    result->variant.constant = cp;
   }  /* if */
   return result;
 }  /* template_arg_for_expr */
@@ -2977,7 +3026,7 @@ module file.
                      iesnd, *iesndp;
 
   source_position_from_locus(&pos, &templ_id->locus);
-  read_partition_at_index(pri_tag, expr_value(templ_id->primary));
+  read_partition_at_index(templ_id->primary);
   check_assertion(pri_tag == ifc_ExprSort_NamedDecl);
   iesndp = get_ExprSort_NamedDecl(&iesnd);
   if (iesndp->type != 0) {
@@ -2991,7 +3040,7 @@ module file.
     tmpl = (a_template_ptr)mep->entity.ptr;
   }  /* if */
   if (templ_id->arguments != 0) {
-    read_partition_at_index(arg_tag, expr_value(templ_id->arguments));
+    read_partition_at_index(templ_id->arguments);
     if (arg_tag == ifc_ExprSort_Tuple) {
       an_ifc_ExprSort_Tuple iest, *iestp;
       iestp = get_ExprSort_Tuple(&iest);
@@ -3114,7 +3163,7 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
     /* NameSort::Identifiers just refer to the string table. */
     result = get_string_at_offset((ifc_TextOffset)name_value(name_index));
   } else {
-    read_partition_at_index(tag, name_value(name_index));
+    read_partition_at_index(name_index);
     switch (tag) {
       case ifc_NameSort_SourceFile:
         { an_ifc_NameSort_SourceFile inssf, *inssfp;
@@ -3216,7 +3265,7 @@ Given a declaration, return the name associated with that declaration.
   a_const_char *result = NULL;
   ifc_DeclSort tag = decl_tag(decl);
 
-  read_partition_at_index(tag, decl_value(decl));
+  read_partition_at_index(decl);
   switch (tag) {
     case ifc_DeclSort_VendorExtension:
       unexpected_condition();
@@ -3380,10 +3429,14 @@ Given a declaration, return the name associated with that declaration.
       }
       break;
     case ifc_DeclSort_Tuple:
-      { /* an_ifc_DeclSort_Tuple idst, *idstp;
-        idstp = get_DeclSort_Tuple(&idst); */
-        /* FIXME: Is this reachable? */
-        unexpected_condition_str("DeclSort::Tuple is not yet handled");
+      { an_ifc_DeclSort_Tuple idst, *idstp;
+        ifc_DeclIndex declidx;
+        /* All references here should have the same name, so we just need to
+           use the first. */
+        idstp = get_DeclSort_Tuple(&idst);
+        declidx = (ifc_DeclIndex)read_index_from_heap(ifc_heap_decl,
+                                                      idstp->start);
+        result = name_from_decl(declidx);
       }
       break;
     case ifc_DeclSort_SyntaxTree:
@@ -3501,12 +3554,10 @@ after the declaration has been processed.
                                  (a_byte_attribute_family)af_ms_declspec, ap);
     }  /* if */
     if (specifiers & ifc_BasicSpecifiers_InitializedInClass) {
-      unexpected_condition_str("BasicSpecifiers::InitializedInClass"
-                               " not yet handled"); /* FIXME */
+      /* FIXME: Anything to do here? */
     }  /* if */
     if (specifiers & ifc_BasicSpecifiers_NonExported) {
-      unexpected_condition_str("BasicSpecifiers::NonExported"
-                               " not yet handled"); /* FIXME */
+      /* FIXME: Anything to do here? */
     }  /* if */
   }  /* if */
   if (ap != NULL) {
@@ -3574,7 +3625,7 @@ FIXME: what other expressions can we get here?
   a_constant_ptr            cp = NULL;
 
   /* Prepare to read from the proper partition for this expression. */
-  read_partition_at_index(tag, expr_value(expr_index));
+  read_partition_at_index(expr_index);
   switch (tag) {
     case ifc_ExprSort_Literal:
       { an_ifc_ExprSort_Literal iesl, *ieslp;
@@ -3627,8 +3678,21 @@ FIXME: what other expressions can we get here?
             }
             break;
           case ifc_LiteralSort_FloatingPoint:
-            unexpected_condition_str("LiteralSort::FloatingPoint "
-                                     "is not yet handled");
+            { double    value;
+              a_boolean err = FALSE;
+              char      buf[32];
+
+              cp = alloc_constant(ck_float);
+              cp->type = float_type(fk_double);
+              read_partition_at_index(ifc_const_f64,
+                                      literal_index(ieslp->value));
+              GET_64bit_int(value, /*from_header=*/FALSE);
+              /* FIXME: Find a better way to convert the fp value. */
+              sprintf(buf, "%f", value);
+              fp_string_to_float(fk_double, buf, &cp->variant.float_value,
+                                 &err);
+              check_assertion(!err);
+            }
             break;
           default:
             unexpected_condition();
@@ -4008,10 +4072,7 @@ pos is the position of the Sentence containing literal.
       unexpected_condition();
       break;
     case ifc_SourceLiteral_Scalar:
-      { a_constant_ptr cp = constant_for_expr_index((ifc_ExprIndex)index,
-                                                    /*default_type=*/NULL);
-        cache_literal(cache, cp, &pos);
-      }
+      cache_expr(cache, (ifc_ExprIndex)index);
       break;
     case ifc_SourceLiteral_String:
     case ifc_SourceLiteral_DefinedString:
@@ -4080,7 +4141,7 @@ pos is the position of the Sentence containing literal.
         an_ifc_ExprSort_NamedDecl iesnd, *iesndp;
         check_assertion(sort == ifc_ExprSort_NamedDecl);
         source_position_from_locus(&pos, locus);
-        read_partition_at_index(sort, expr_value(index));
+        read_partition_at_index((ifc_ExprIndex)index);
         iesndp = get_ExprSort_NamedDecl(&iesnd);
         cache_identifier(cache, name_from_decl(iesndp->resolution), &pos);
       }
@@ -4920,26 +4981,39 @@ Sentence containing word.
 }  /* add_word_to_cache */
 
 
-void an_ifc_module::cache_sentence(a_token_cache_ptr cache,
-                                   ifc_SentenceIndex sentence) const
+uint32_t an_ifc_module::cache_sentence(a_token_cache_ptr cache,
+                                       ifc_SentenceIndex sentence,
+                                       uint32_t          offset,
+                                       a_token_kind      stop_token) const
 /*
-Given a SentenceIndex, populate cache with the corresponding tokens.
+Given a SentenceIndex, populate cache with the corresponding tokens.  offset is
+the offset into the words to start cacheing.  If a cached token matches
+stop_token, remove that token from the cache and return the index of that
+token.  Otherwise the return value is meaningless.
 */
 {
-  an_ifc_Sentence   is, *isp;
+  an_ifc_Sentence    is, *isp;
+  uint32_t           idx = offset;
+  a_cached_token_ptr ctp;
 
   if (sentence == 0) {
     goto done;
   }  /* if */
   read_partition_at_index(ifc_sentence, sentence-1);
   isp = get_Sentence(&is);
-  for (uint32_t idx = 0; idx < isp->cardinality; ++idx) {
+  for (; idx < isp->cardinality; ++idx) {
     an_ifc_Word iw, *iwp;
     read_partition_at_index(ifc_word, isp->start + idx);
     iwp = get_Word(&iw);
+    ctp = cache->last_token;
     cache_word(cache, iwp);
+    if (ctp != cache->last_token && cache->last_token->token == stop_token) {
+      remove_token_from_cache(cache->last_token, &ctp, cache);
+      break;
+    }  /* if */
   }  /* if */
 done:;
+  return idx;
 }  /* cache_sentence */
 
 
@@ -4978,11 +5052,10 @@ of the entity referring to the type.
 */
 {
   ifc_TypeSort      tag = type_tag(type);
-  ifc_Index_type    index = type_value(type);
   a_source_position pos;
 
   source_position_from_locus(&pos, locus);
-  read_partition_at_index(tag, index);
+  read_partition_at_index(type);
   switch (tag) {
     case ifc_TypeSort_VendorExtension:
       unexpected_condition();
@@ -5116,8 +5189,8 @@ of the entity referring to the type.
           case ifc_TypeBasis_Empty:
             break;
           case ifc_TypeBasis_VariableTemplate:
-            unexpected_condition_str("TypeBasis::VariableTemplate "
-                                     "is not yet handled");
+            unexpected_condition_str("Cannot cache a "
+                                     "TypeBasis::VariableTemplate");
             break;
           case ifc_TypeBasis_Auto:
             check_assertion(itsfp->precision == ifc_TypePrecision_Default);
@@ -5158,12 +5231,18 @@ of the entity referring to the type.
                                "is not yet supported");
       break;
     case ifc_TypeSort_LvalueReference:
-      unexpected_condition_str("TypeSort::LvalueReference "
-                               "is not yet supported");
+      { an_ifc_TypeSort_LvalueReference itslr, *itslrp;
+        itslrp = get_TypeSort_LvalueReference(&itslr);
+        cache_type(cache, itslrp->referee, locus);
+        cache_token(cache, tok_and_and, &pos);
+      }
       break;
     case ifc_TypeSort_RvalueReference:
-      unexpected_condition_str("TypeSort::RvalueReference "
-                               "is not yet supported");
+      { an_ifc_TypeSort_RvalueReference itsrr, *itsrrp;
+        itsrrp = get_TypeSort_RvalueReference(&itsrr);
+        cache_type(cache, itsrrp->referee, locus);
+        cache_token(cache, tok_and_and, &pos);
+      }
       break;
     case ifc_TypeSort_Function:
       unexpected_condition_str("TypeSort::Function is not yet supported");
@@ -5178,7 +5257,19 @@ of the entity referring to the type.
       unexpected_condition_str("TypeSort::Typename is not yet supported");
       break;
     case ifc_TypeSort_Qualified:
-      unexpected_condition_str("TypeSort::Qualified is not yet supported");
+      { an_ifc_TypeSort_Qualified itsq, *itsqp;
+        itsqp = get_TypeSort_Qualified(&itsq);
+        if (itsqp->qualifiers & ifc_Qualifier_Const) {
+          cache_token(cache, tok_const, &pos);
+        }  /* if */
+        if (itsqp->qualifiers & ifc_Qualifier_Volatile) {
+          cache_token(cache, tok_volatile, &pos);
+        }  /* if */
+        if (itsqp->qualifiers & ifc_Qualifier_Restrict) {
+          cache_token(cache, tok_restrict, &pos);
+        }  /* if */
+        cache_type(cache, itsqp->unqualified, locus);
+      }
       break;
     case ifc_TypeSort_Base:
       unexpected_condition_str("TypeSort::Base is not yet supported");
@@ -5187,7 +5278,18 @@ of the entity referring to the type.
       unexpected_condition_str("TypeSort::Decltype is not yet supported");
       break;
     case ifc_TypeSort_Placeholder:
-      unexpected_condition_str("TypeSort::Placeholder is not yet supported");
+      { an_ifc_TypeSort_Placeholder itsp, *itspp;
+        itspp = get_TypeSort_Placeholder(&itsp);
+        if (itspp->basis == ifc_TypeBasis_Auto) {
+          cache_token(cache, tok_auto, &pos);
+        } else {
+          check_assertion(itspp->basis == ifc_TypeBasis_DecltypeAuto);
+          cache_token(cache, tok_decltype, &pos);
+          cache_token(cache, tok_lparen, &pos);
+          cache_token(cache, tok_auto, &pos);
+          cache_token(cache, tok_rparen, &pos);
+        }  /* if */
+      }
       break;
     case ifc_TypeSort_Tuple:
       unexpected_condition_str("TypeSort::Tuple is not yet supported");
@@ -5220,7 +5322,7 @@ have already cached the "template" keyword if it's required.
 
   source_position_from_locus(&pos, locus);
   cache_token(cache, tok_lt, &pos);
-  read_partition_at_index(tag, chart_value(chart));
+  read_partition_at_index(chart);
   switch (tag) {
     case ifc_ChartSort_None:
       /* No arguments to the template (i.e., specialization). */
@@ -5256,6 +5358,202 @@ have already cached the "template" keyword if it's required.
 }  /* cache_chart */
 
 
+void an_ifc_module::cache_operator(a_token_cache_ptr    cache,
+                                   ifc_OperatorCategory category,
+                                   ifc_SourceLocation   *locus) const
+/*
+Cache the tokens corresponding to the given operator category.
+*/
+{
+  a_source_position pos;
+
+  source_position_from_locus(&pos, locus);
+  switch (category) {
+    case ifc_OperatorCategory_Bitand:
+      cache_token(cache, tok_ampersand, &pos);
+      break;
+    case ifc_OperatorCategory_LogicAnd:
+      cache_token(cache, tok_and_and, &pos);
+      break;
+    case ifc_OperatorCategory_Assign:
+      cache_token(cache, tok_assign, &pos);
+      break;
+    case ifc_OperatorCategory_Comma:
+      cache_token(cache, tok_comma, &pos);
+      break;
+    case ifc_OperatorCategory_Not:
+      cache_token(cache, tok_not, &pos);
+      break;
+    case ifc_OperatorCategory_Minus:
+      cache_token(cache, tok_minus, &pos);
+      break;
+    case ifc_OperatorCategory_Star:
+      cache_token(cache, tok_star, &pos);
+      break;
+    case ifc_OperatorCategory_Bitor:
+      cache_token(cache, tok_or, &pos);
+      break;
+    case ifc_OperatorCategory_LogicOr:
+      cache_token(cache, tok_or_or, &pos);
+      break;
+    case ifc_OperatorCategory_Plus:
+      cache_token(cache, tok_plus, &pos);
+      break;
+    case ifc_OperatorCategory_Quest:
+      cache_token(cache, tok_quest_mark, &pos);
+      break;
+    case ifc_OperatorCategory_Complement:
+      cache_token(cache, tok_compl, &pos);
+      break;
+    case ifc_OperatorCategory_Caret:
+      cache_token(cache, tok_excl_or, &pos);
+      break;
+    case ifc_OperatorCategory_Slash:
+      cache_token(cache, tok_divide, &pos);
+      break;
+    case ifc_OperatorCategory_Modulo:
+      cache_token(cache, tok_remainder, &pos);
+      break;
+    case ifc_OperatorCategory_New:
+      cache_token(cache, tok_new, &pos);
+      break;
+    case ifc_OperatorCategory_Delete:
+      cache_token(cache, tok_delete, &pos);
+      break;
+    case ifc_OperatorCategory_IndirectMemberAccess:
+      cache_token(cache, tok_arrow_star, &pos);
+      break;
+    case ifc_OperatorCategory_PostIncrement:
+      cache_token(cache, tok_plus_plus, &pos);
+      break;
+    case ifc_OperatorCategory_PostDecrement:
+      cache_token(cache, tok_minus_minus, &pos);
+      break;
+    case ifc_OperatorCategory_SlashEq:
+      cache_token(cache, tok_divide_assign, &pos);
+      break;
+    case ifc_OperatorCategory_EqEq:
+      cache_token(cache, tok_eq, &pos);
+      break;
+    case ifc_OperatorCategory_NotEq:
+      cache_token(cache, tok_ne, &pos);
+      break;
+    case ifc_OperatorCategory_Greater:
+      cache_token(cache, tok_gt, &pos);
+      break;
+    case ifc_OperatorCategory_GreaterEq:
+      cache_token(cache, tok_ge, &pos);
+      break;
+    case ifc_OperatorCategory_Less:
+      cache_token(cache, tok_lt, &pos);
+      break;
+    case ifc_OperatorCategory_LessEq:
+      cache_token(cache, tok_le, &pos);
+      break;
+    case ifc_OperatorCategory_Spaceship:
+      cache_token(cache, tok_spaceship, &pos);
+      break;
+    case ifc_OperatorCategory_LshiftEq:
+      cache_token(cache, tok_shift_left_assign, &pos);
+      break;
+    case ifc_OperatorCategory_RshiftEq:
+      cache_token(cache, tok_shift_right_assign, &pos);
+      break;
+    case ifc_OperatorCategory_MinusEq:
+      cache_token(cache, tok_minus_assign, &pos);
+      break;
+    case ifc_OperatorCategory_ModuloEq:
+      cache_token(cache, tok_remainder_assign, &pos);
+      break;
+    case ifc_OperatorCategory_StarEq:
+      cache_token(cache, tok_times_assign, &pos);
+      break;
+    case ifc_OperatorCategory_BitorEq:
+      cache_token(cache, tok_or_assign, &pos);
+      break;
+    case ifc_OperatorCategory_PlusEq:
+      cache_token(cache, tok_plus_assign, &pos);
+      break;
+    case ifc_OperatorCategory_BitandEq:
+      cache_token(cache, tok_and_assign, &pos);
+      break;
+    case ifc_OperatorCategory_BitxorEq:
+      cache_token(cache, tok_excl_or_assign, &pos);
+      break;
+    case ifc_OperatorCategory_Lshift:
+      cache_token(cache, tok_shift_left, &pos);
+      break;
+    case ifc_OperatorCategory_Rshift:
+      cache_token(cache, tok_shift_right, &pos);
+      break;
+    case ifc_OperatorCategory_Arrow:
+      cache_token(cache, tok_arrow, &pos);
+      break;
+    case ifc_OperatorCategory_PreDecrement:
+      cache_token(cache, tok_minus_minus, &pos);
+      break;
+    case ifc_OperatorCategory_PreIncrement:
+      cache_token(cache, tok_plus_plus, &pos);
+      break;
+    case ifc_OperatorCategory_UnaryMinus:
+      cache_token(cache, tok_minus, &pos);
+      break;
+    case ifc_OperatorCategory_Address:
+      cache_token(cache, tok_ampersand, &pos);
+      break;
+    case ifc_OperatorCategory_UnaryPlus:
+      cache_token(cache, tok_plus, &pos);
+      break;
+    case ifc_OperatorCategory_Dereference:
+      cache_token(cache, tok_star, &pos);
+      break;
+    case ifc_OperatorCategory_Percent:
+      cache_token(cache, tok_remainder, &pos);
+      break;
+    case ifc_OperatorCategory_Sizeof:
+      cache_token(cache, tok_sizeof, &pos);
+      break;
+    case ifc_OperatorCategory_ExpandingSizeof:
+      cache_token(cache, tok_sizeof, &pos);
+      cache_token(cache, tok_ellipsis, &pos);
+      break;
+    case ifc_OperatorCategory_Throw:
+      cache_token(cache, tok_throw, &pos);
+      break;
+    case ifc_OperatorCategory_Alignof:
+      cache_token(cache, tok_alignof, &pos);
+      break;
+    case ifc_OperatorCategory_Noexcept:
+      cache_token(cache, tok_noexcept, &pos);
+      break;
+    case ifc_OperatorCategory_Requires:
+      cache_token(cache, tok_requires, &pos);
+      break;
+    case ifc_OperatorCategory_Coreturn:
+      cache_token(cache, tok_coroutine_return, &pos);
+      break;
+    case ifc_OperatorCategory_Await:
+      cache_token(cache, tok_coroutine_await, &pos);
+      break;
+    case ifc_OperatorCategory_Yield:
+      cache_token(cache, tok_coroutine_yield, &pos);
+      break;
+    case ifc_OperatorCategory_StaticAssert:
+      cache_token(cache, tok_static_assert, &pos);
+      break;
+    case ifc_OperatorCategory_Dot:
+      cache_token(cache, tok_period, &pos);
+      break;
+    case ifc_OperatorCategory_DerefMemberAccess:
+      cache_token(cache, tok_period_star, &pos);
+      break;
+    default:
+      unexpected_condition_str("Unexpected OperatorCategory");
+      break;
+  }  /* switch */
+}  /* cache_operator */
+
+
 void an_ifc_module::cache_decl_template(a_token_cache_ptr        cache,
                                         an_ifc_DeclSort_Template *decl) const
 /*
@@ -5280,18 +5578,176 @@ Cache the tokens corresponding to the given template declaration.
     cache_token(cache, tok_assign, &pos);
     cache_type(cache, (ifc_TypeIndex)decl->entity.index, &decl->locus);
     cache_token(cache, tok_semicolon, &pos);
-  } else {
+  } else if (is_class_struct_union_type(type)) {
+    a_const_char *name = string_from_name_index(decl->name, /*loc=*/NULL);
     cache_type(cache, decl->type, &decl->locus);
-    cache_identifier(cache,
-                     string_from_name_index(decl->name, /*loc=*/NULL), &pos);
-    /* FIXME: What about function templates? */
     if (decl->entity.body != 0) {
-      cache_sentence(cache, decl->entity.body);
+      /* MSVC puts attributes as part of the body, but they need to precede
+         the identifier. */
+      uint32_t offset = cache_sentence(cache, decl->entity.body, /*offset=*/0,
+                                       tok_lbrace);
+      cache_identifier(cache, name, &pos);
+      (void)cache_sentence(cache, decl->entity.body, offset);
     } else {
+      cache_identifier(cache, name, &pos);
       cache_token(cache, tok_semicolon, &pos);
     }  /* if */
+  } else if (is_function_type(type)) {
+    cache_decl(cache, (ifc_DeclIndex)decl->entity.index);
+    cache_sentence(cache, decl->entity.body);
+  } else {
+    /* Variable template. */
+    cache_decl(cache, (ifc_DeclIndex)decl->entity.index);
+    (void)cache_sentence(cache, decl->entity.body);
   }  /* if */
 }  /* cache_decl_template */
+
+
+static void cache_func_traits(a_token_cache_ptr     cache,
+                              ifc_FunctionTraits    traits,
+                              a_boolean             trailing,
+                              a_source_position_ptr pos)
+/*
+Cache the tokens corresponding to the given function traits.  If trailing is
+TRUE then cache the traits that follow a function declaration.  Otherwise,
+cache the traits that precede a function declaration.
+*/
+{
+  if (trailing) {
+    if (traits & ifc_FunctionTraits_PureVirtual) {
+      a_constant_ptr cp = alloc_cached_constant();
+      cache_token(cache, tok_assign, pos);
+      make_zero_of_proper_type(integer_type((an_integer_kind)ik_int), cp);
+      cache_literal(cache, cp, pos);
+    }  /* if */
+    if (traits & ifc_FunctionTraits_Defaulted) {
+      cache_token(cache, tok_assign, pos);
+      cache_token(cache, tok_default, pos);
+    }  /* if */
+    if (traits & ifc_FunctionTraits_Deleted) {
+      cache_token(cache, tok_assign, pos);
+      cache_token(cache, tok_delete, pos);
+    }  /* if */
+  } else {
+    if (traits & ifc_FunctionTraits_Virtual) {
+      cache_token(cache, tok_virtual, pos);
+    }  /* if */
+    if (traits & ifc_FunctionTraits_Explicit) {
+      cache_token(cache, tok_explicit, pos);
+    }  /* if */
+    if (traits & ifc_FunctionTraits_NoReturn) {
+      cache_token(cache, tok_noreturn, pos);
+    }  /* if */
+    if (traits & ifc_FunctionTraits_Inline) {
+      cache_token(cache, tok_inline, pos);
+    }  /* if */
+    if (traits & ifc_FunctionTraits_Constexpr) {
+      cache_token(cache, tok_constexpr, pos);
+    }  /* if */
+  }  /* if */
+  if (traits & ifc_FunctionTraits_HiddenFriend) {
+    unexpected_condition_str("Hidden friends are not yet supported");
+  }  /* if */
+  if (traits & ifc_FunctionTraits_Constrained) {
+    unexpected_condition_str("Contrained functions are not yet supported");
+  }  /* if */
+  if (traits & ifc_FunctionTraits_Vendor) {
+    unexpected_condition();
+  }  /* if */
+}  /* cache_func_traits */
+
+
+static void cache_func_type_traits(a_token_cache_ptr      cache,
+                                   ifc_FunctionTypeTraits traits,
+                                   a_source_position_ptr  pos)
+/*
+Cache the tokens corresponding to the given function type traits.
+*/
+{
+  if (traits & ifc_FunctionTypeTraits_Const) {
+    cache_token(cache, tok_const, pos);
+  }  /* if */
+  if (traits & ifc_FunctionTypeTraits_Volatile) {
+    cache_token(cache, tok_volatile, pos);
+  }  /* if */
+  if (traits & ifc_FunctionTypeTraits_Lvalue) {
+    cache_token(cache, tok_ampersand, pos);
+  } else if (traits & ifc_FunctionTypeTraits_Rvalue) {
+    cache_token(cache, tok_and_and, pos);
+  }  /* if */
+}  /* cache_func_type_traits */
+
+
+static void cache_calling_convention(a_token_cache_ptr     cache,
+                                     ifc_CallingConvention convention,
+                                     a_source_position_ptr pos)
+/*
+Cache the tokens corresponding to the given calling convention.
+*/
+{
+  switch (convention) {
+    case ifc_CallingConvention_Cdecl:
+      cache_token(cache, tok_cdecl, pos);
+      break;
+    case ifc_CallingConvention_Fast:
+      cache_token(cache, tok_fastcall, pos);
+      break;
+    case ifc_CallingConvention_Std:
+      cache_token(cache, tok_stdcall, pos);
+      break;
+    case ifc_CallingConvention_This:
+      cache_token(cache, tok_thiscall, pos);
+      break;
+    case ifc_CallingConvention_Clr:
+      cache_token(cache, tok_clrcall, pos);
+      break;
+    case ifc_CallingConvention_Vector:
+      cache_token(cache, tok_vectorcall, pos);
+      break;
+    case ifc_CallingConvention_Eabi:
+      unexpected_condition_str("Eabi calling convention is not yet supported");
+      break;
+    default:
+      unexpected_condition_str("Unexpected CallingConvention");
+  }  /* switch */
+}  /* cache_calling_convention */
+
+
+void an_ifc_module::cache_exception_spec(a_token_cache_ptr         cache,
+                                         ifc_NoexceptSpecification *eh_spec,
+                                         a_source_position_ptr     pos) const
+/*
+Cache the tokens corresponding to the given exception specification.
+*/
+{
+  if (eh_spec->sort == ifc_NoexceptSort_None) goto done;
+  cache_token(cache, tok_noexcept, pos);
+  cache_token(cache, tok_lparen, pos);
+  switch (eh_spec->sort) {
+    case ifc_NoexceptSort_False:
+      cache_token(cache, tok_false, pos);
+      break;
+    case ifc_NoexceptSort_True:
+      cache_token(cache, tok_true, pos);
+      break;
+    case ifc_NoexceptSort_Expression:
+      cache_sentence(cache, eh_spec->words);
+      break;
+    case ifc_NoexceptSort_Weak:
+      unexpected_condition_str("NoexceptSort::Weak is not yet supported");
+      break;
+    case ifc_NoexceptSort_Unenforced:
+      unexpected_condition_str("NoexceptSort::Unenforced "
+                               "is not yet supported");
+      break;
+    case ifc_NoexceptSort_None:
+      /* Unreachable, but place here to have all enums covered. */
+    default:
+      unexpected_condition_str("Unexpected NoexceptSpecification");
+  }  /* switch */
+  cache_token(cache, tok_rparen, pos);
+done:;
+}  /* cache_exception_spec */
 
 
 void an_ifc_module::cache_decl(a_token_cache_ptr cache,
@@ -5303,7 +5759,7 @@ Cache the tokens corresponding to the given declaration.
   ifc_DeclSort      tag = decl_tag(decl);
   a_source_position pos;
 
-  read_partition_at_index(tag, decl_value(decl));
+  read_partition_at_index(decl);
   switch (tag) {
     case ifc_DeclSort_VendorExtension:
       unexpected_condition();
@@ -5312,7 +5768,14 @@ Cache the tokens corresponding to the given declaration.
       unexpected_condition_str("DeclSort::Enumerator is not yet supported");
       break;
     case ifc_DeclSort_Variable:
-      unexpected_condition_str("DeclSort::Variable is not yet supported");
+      { an_ifc_DeclSort_Variable idsv, *idsvp;
+        idsvp = get_DeclSort_Variable(&idsv);
+        source_position_from_locus(&pos, &idsvp->locus);
+        cache_type(cache, idsvp->type, &idsvp->locus);
+        cache_identifier(cache,
+                         string_from_name_index(idsvp->name, /*loc=*/NULL),
+                         &pos);
+      }
       break;
     case ifc_DeclSort_Parameter:
       { an_ifc_DeclSort_Parameter idsp, *idspp;
@@ -5330,8 +5793,7 @@ Cache the tokens corresponding to the given declaration.
             cache_type(cache, idspp->type, &idspp->locus);
             break;
           case ifc_ParameterSort_Template:
-            unexpected_condition_str("ParameterSort::Template "
-                                     "is not yet handled");
+            cache_type(cache, idspp->type, &idspp->locus);
             break;
           default:
             unexpected_condition_str("Unexpected ParameterSort");
@@ -5343,13 +5805,13 @@ Cache the tokens corresponding to the given declaration.
           cache_token(cache, tok_ellipsis, &pos);
         }  /* if */
         if (idspp->initializer != 0) {
-          unexpected_condition_str("Parameters with initializers "
-                                   "are not yet supported");
-          /* FIXME: Something like:
+          cache_token(cache, tok_assign, &pos);
           cache_expr(cache, idspp->initializer);
-          */
         }  /* if */
-        /* FIXME: Handle idspp->constraint. */
+        if (idspp->constraint != 0) {
+          unexpected_condition_str("Parameters with constraints "
+                                   "are not yet supported");
+        }  /* if */
       }
       break;
     case ifc_DeclSort_Field:
@@ -5405,7 +5867,49 @@ Cache the tokens corresponding to the given declaration.
       unexpected_condition_str("DeclSort::Concept is not yet supported");
       break;
     case ifc_DeclSort_Function:
-      unexpected_condition_str("DeclSort::Function is not yet supported");
+      { an_ifc_DeclSort_Function idsf, *idsfp;
+        an_ifc_TypeSort_Function itsf, *itsfp;
+        idsfp = get_DeclSort_Function(&idsf);
+        source_position_from_locus(&pos, &idsfp->locus);
+        check_assertion(type_tag(idsfp->type) == ifc_TypeSort_Function);
+        read_partition_at_index(idsfp->type);
+        itsfp = get_TypeSort_Function(&itsf);
+        cache_type(cache, itsfp->target, &idsfp->locus);
+        cache_func_traits(cache, idsfp->traits, /*trailing=*/FALSE, &pos);
+        cache_calling_convention(cache, itsfp->convention, &pos);
+        cache_identifier(cache,
+                         string_from_name_index(idsfp->name, /*loc=*/NULL),
+                         &pos);
+        cache_token(cache, tok_lparen, &pos);
+        if (itsfp->source != 0) {
+          /* FIXME: Handle default arguments correctly. */
+          if (idsfp->default_arguments != 0) {
+            unexpected_condition_str("Functions with default arguments "
+                                     "are not yet supported");
+          }  /* if */
+          if (type_tag(itsfp->source) == ifc_TypeSort_Tuple) {
+            an_ifc_TypeSort_Tuple itst, *itstp;
+            read_partition_at_index(itsfp->source);
+            itstp = get_TypeSort_Tuple(&itst);
+            for (uint32_t idx = 0; idx < itstp->cardinality; ++idx) {
+              if (idx > 0) {
+                cache_token(cache, tok_comma, &pos);
+              }  /* if */
+              cache_type(cache, (ifc_TypeIndex)read_index_from_heap(
+                                                           ifc_heap_type,
+                                                           itstp->start + idx),
+                         &idsfp->locus);
+            }  /* for */
+          } else {
+            /* Single parameter. */
+            cache_type(cache, itsfp->source, &idsfp->locus);
+          }  /* if */
+        }  /* if */
+        cache_token(cache, tok_rparen, &pos);
+        cache_exception_spec(cache, &itsfp->eh_spec, &pos);
+        cache_func_type_traits(cache, itsfp->traits, &pos);
+        cache_func_traits(cache, idsfp->traits, /*trailing=*/TRUE, &pos);
+      }
       break;
     case ifc_DeclSort_Method:
       unexpected_condition_str("DeclSort::Method is not yet supported");
@@ -5463,6 +5967,698 @@ Cache the tokens corresponding to the given declaration.
       unexpected_condition_str("Unexpected DeclSort");
   }  /* switch */
 }  /* cache_decl */
+
+
+void an_ifc_module::cache_expr(a_token_cache_ptr cache,
+                               ifc_ExprIndex     expr) const
+/*
+Cache the tokens corresponding to the given expression.
+*/
+{
+  ifc_ExprSort      tag = expr_tag(expr);
+  a_source_position pos;
+
+  read_partition_at_index(expr);
+  switch (tag) {
+    case ifc_ExprSort_VendorExtension:
+      unexpected_condition();
+      break;
+    case ifc_ExprSort_Empty:
+      unexpected_condition_str("ExprSort::Empty is not yet supported");
+      break;
+    case ifc_ExprSort_Literal:
+      { an_ifc_ExprSort_Literal iesl, *ieslp;
+        a_constant_ptr          cp;
+        ieslp = get_ExprSort_Literal(&iesl);
+        cp = constant_for_expr_index(expr, /*default_type=*/NULL);
+        source_position_from_locus(&pos, &ieslp->locus);
+        cache_literal(cache, cp, &pos);
+      }
+      break;
+    case ifc_ExprSort_Lambda:
+      unexpected_condition_str("ExprSort::Lambda is not yet supported");
+      break;
+    case ifc_ExprSort_Type:
+      { an_ifc_ExprSort_Type iest, *iestp;
+        iestp = get_ExprSort_Type(&iest);
+        cache_type(cache, iestp->type, &iestp->locus);
+      }
+      break;
+    case ifc_ExprSort_NamedDecl:
+      { an_ifc_ExprSort_NamedDecl iesnd, *iesndp;
+        a_source_position         pos;
+        iesndp = get_ExprSort_NamedDecl(&iesnd);
+        source_position_from_locus(&pos, &iesndp->locus);
+        cache_identifier(cache, name_from_decl(iesndp->resolution), &pos);
+      }
+      break;
+    case ifc_ExprSort_UnresolvedId:
+      unexpected_condition_str("ExprSort::UnresolvedId is not yet supported");
+      break;
+    case ifc_ExprSort_TemplateId:
+      unexpected_condition_str("ExprSort::TemplateId is not yet supported");
+      break;
+    case ifc_ExprSort_UnqualifiedId:
+      unexpected_condition_str("ExprSort::UnqualifiedId is not yet supported");
+      break;
+    case ifc_ExprSort_SimpleIdentifier:
+      unexpected_condition_str("ExprSort::SimpleIdentifier "
+                               "is not yet supported");
+      break;
+    case ifc_ExprSort_Pointer:
+      unexpected_condition_str("ExprSort::Pointer is not yet supported");
+      break;
+    case ifc_ExprSort_QualifiedName:
+      unexpected_condition_str("ExprSort::QualifiedName is not yet supported");
+      break;
+    case ifc_ExprSort_Path:
+      unexpected_condition_str("ExprSort::Path is not yet supported");
+      break;
+    case ifc_ExprSort_Read:
+      unexpected_condition_str("ExprSort::Read is not yet supported");
+      break;
+    case ifc_ExprSort_Monad:
+      unexpected_condition_str("ExprSort::Monad is not yet supported");
+      break;
+    case ifc_ExprSort_Dyad:
+      unexpected_condition_str("ExprSort::Dyad is not yet supported");
+      break;
+    case ifc_ExprSort_Triad:
+      unexpected_condition_str("ExprSort::Triad is not yet supported");
+      break;
+    case ifc_ExprSort_String:
+      unexpected_condition_str("ExprSort::String is not yet supported");
+      break;
+    case ifc_ExprSort_Temporary:
+      unexpected_condition_str("ExprSort::Temporary is not yet supported");
+      break;
+    case ifc_ExprSort_Call:
+      unexpected_condition_str("ExprSort::Call is not yet supported");
+      break;
+    case ifc_ExprSort_MemberInitializer:
+      unexpected_condition_str("ExprSort::MemberInitializer "
+                               "is not yet supported");
+      break;
+    case ifc_ExprSort_MemberAccess:
+      unexpected_condition_str("ExprSort::MemberAccess is not yet supported");
+      break;
+    case ifc_ExprSort_InheritancePath:
+      unexpected_condition_str("ExprSort::InheritancePath "
+                               "is not yet supported");
+      break;
+    case ifc_ExprSort_InitializerList:
+      unexpected_condition_str("ExprSort::InitializerList "
+                               "is not yet supported");
+      break;
+    case ifc_ExprSort_Cast:
+      unexpected_condition_str("ExprSort::Cast is not yet supported");
+      break;
+    case ifc_ExprSort_Condition:
+      unexpected_condition_str("ExprSort::Condition is not yet supported");
+      break;
+    case ifc_ExprSort_ExpressionList:
+      unexpected_condition_str("ExprSort::ExpressionList "
+                               "is not yet supported");
+      break;
+    case ifc_ExprSort_SizeofType:
+      unexpected_condition_str("ExprSort::SizeofType is not yet supported");
+      break;
+    case ifc_ExprSort_Alignof:
+      unexpected_condition_str("ExprSort::Alignof is not yet supported");
+      break;
+    case ifc_ExprSort_New:
+      unexpected_condition_str("ExprSort::New is not yet supported");
+      break;
+    case ifc_ExprSort_Delete:
+      unexpected_condition_str("ExprSort::Delete is not yet supported");
+      break;
+    case ifc_ExprSort_Typeid:
+      unexpected_condition_str("ExprSort::Typeid is not yet supported");
+      break;
+    case ifc_ExprSort_DestructorCall:
+      unexpected_condition_str("ExprSort::DestructorCall "
+                               "is not yet supported");
+      break;
+    case ifc_ExprSort_SyntaxTree:
+      { an_ifc_ExprSort_SyntaxTree iesst, *iesstp;
+        iesstp = get_ExprSort_SyntaxTree(&iesst);
+        cache_syntax(cache, iesstp->syntax);
+      }
+      break;
+    case ifc_ExprSort_FunctionString:
+      unexpected_condition_str("ExprSort::FunctionString "
+                               "is not yet supported");
+      break;
+    case ifc_ExprSort_CompoundString:
+      unexpected_condition_str("ExprSort::CompoundString "
+                               "is not yet supported");
+      break;
+    case ifc_ExprSort_StringSequence:
+      unexpected_condition_str("ExprSort::StringSequence "
+                               "is not yet supported");
+      break;
+    case ifc_ExprSort_Initializer:
+      unexpected_condition_str("ExprSort::Initializer is not yet supported");
+      break;
+    case ifc_ExprSort_Requires:
+      unexpected_condition_str("ExprSort::Requires is not yet supported");
+      break;
+    case ifc_ExprSort_UnaryFold:
+      unexpected_condition_str("ExprSort::UnaryFold is not yet supported");
+      break;
+    case ifc_ExprSort_BinaryFold:
+      unexpected_condition_str("ExprSort::BinaryFold is not yet supported");
+      break;
+    case ifc_ExprSort_HierarchyConversion:
+      unexpected_condition_str("ExprSort::HierarchyConversion "
+                               "is not yet supported");
+      break;
+    case ifc_ExprSort_ProductTypeValue:
+      unexpected_condition_str("ExprSort::ProductTypeValue "
+                               "is not yet supported");
+      break;
+    case ifc_ExprSort_SumTypeValue:
+      unexpected_condition_str("ExprSort::SumTypeValue is not yet supported");
+      break;
+    case ifc_ExprSort_SubobjectValue:
+      unexpected_condition_str("ExprSort::SubobjectValue "
+                               "is not yet supported");
+      break;
+    case ifc_ExprSort_ArrayValue:
+      unexpected_condition_str("ExprSort::ArrayValue is not yet supported");
+      break;
+    case ifc_ExprSort_DynamicDispatch:
+      unexpected_condition_str("ExprSort::DynamicDispatch "
+                               "is not yet supported");
+      break;
+    case ifc_ExprSort_VirtualFunctionConversion:
+      unexpected_condition_str("ExprSort::VirtualFunctionConversion "
+                               "is not yet supported");
+      break;
+    case ifc_ExprSort_Placeholder:
+      unexpected_condition_str("ExprSort::Placeholder is not yet supported");
+      break;
+    case ifc_ExprSort_Expansion:
+      unexpected_condition_str("ExprSort::Expansion is not yet supported");
+      break;
+    case ifc_ExprSort_Generic:
+      unexpected_condition_str("ExprSort::Generic is not yet supported");
+      break;
+    case ifc_ExprSort_Tuple:
+      unexpected_condition_str("ExprSort::Tuple is not yet supported");
+      break;
+    case ifc_ExprSort_Nullptr:
+      unexpected_condition_str("ExprSort::Nulptr is not yet supported");
+      break;
+    case ifc_ExprSort_This:
+      unexpected_condition_str("ExprSort::This is not yet supported");
+      break;
+    case ifc_ExprSort_TemplateReference:
+      unexpected_condition_str("ExprSort::TemplateReference "
+                               "is not yet supported");
+      break;
+    case ifc_ExprSort_PushState:
+      unexpected_condition_str("ExprSort::PushState is not yet supported");
+      break;
+    case ifc_ExprSort_TypeTraitIntrinsic:
+      unexpected_condition_str("ExprSort::TypeTraitIntrinsic "
+                               "is not yet supported");
+      break;
+    case ifc_ExprSort_DesignatedInitializer:
+      unexpected_condition_str("ExprSort::DesignatedInitializer "
+                               "is not yet supported");
+      break;
+    case ifc_ExprSort_PackedTemplateArguments:
+      unexpected_condition_str("ExprSort::PackedTemplateArguments "
+                               "is not yet supported");
+      break;
+    case ifc_ExprSort_Tokens:
+      unexpected_condition_str("ExprSort::Tokens is not yet supported");
+      break;
+    case ifc_ExprSort_AssignInitializer:
+      unexpected_condition_str("ExprSort::AssignInitializer "
+                               "is not yet supported");
+      break;
+    default:
+      unexpected_condition_str("Unknown ExprSort");
+      break;
+  }  /* switch */
+}  /* cache_expr */
+
+
+void an_ifc_module::cache_syntax(a_token_cache_ptr cache,
+                                 ifc_SyntaxIndex   syntax) const
+/*
+Cache the tokens corresponding to the given syntax tree.
+*/
+{
+  ifc_SyntaxSort tag = syntax_tag(syntax);
+
+  switch (tag) {
+    case ifc_SyntaxSort_VendorExtension:
+      unexpected_condition();
+      break;
+    case ifc_SyntaxSort_SimpleTypeSpecifier:
+      unexpected_condition_str("SyntaxSort::SimpleTypeSpecifier "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_DecltypeSpecifier:
+      unexpected_condition_str("SyntaxSort::DecltypeSpecifier "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_PlaceholderTypeSpecifier:
+      unexpected_condition_str("SyntaxSort::PlaceholderTypeSpecifier "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_TypeSpecifierSeq:
+      unexpected_condition_str("SyntaxSort::TypeSpecifierSeq "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_DeclSpecifierSeq:
+      unexpected_condition_str("SyntaxSort::DeclSpecifierSeq "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_VirtualSpecifierSeq:
+      unexpected_condition_str("SyntaxSort::VirtualSpecifierSeq "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_NoexceptSpecification:
+      unexpected_condition_str("SyntaxSort::NoexceptSpecification "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_ExplicitSpecifier:
+      unexpected_condition_str("SyntaxSort::ExplicitSpecifier "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_EnumSpecifier:
+      unexpected_condition_str("SyntaxSort::EnumSpecifier "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_EnumeratorDefinition:
+      unexpected_condition_str("SyntaxSort::EnumeratorDefinition "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_ClassSpecifier:
+      unexpected_condition_str("SyntaxSort::ClassSpecifier "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_MemberSpecification:
+      unexpected_condition_str("SyntaxSort::MemberSpecification "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_MemberDeclaration:
+      unexpected_condition_str("SyntaxSort::MemberDeclaration "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_MemberDeclarator:
+      unexpected_condition_str("SyntaxSort::MemberDeclarator "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_AccessSpecifier:
+      unexpected_condition_str("SyntaxSort::AccessSpecifier "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_BaseSpecifierList:
+      unexpected_condition_str("SyntaxSort::BaseSpecifierList "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_BaseSpecifier:
+      unexpected_condition_str("SyntaxSort::BaseSpecifier "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_TypeId:
+      unexpected_condition_str("SyntaxSort::TypeId "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_TrailingReturnType:
+      unexpected_condition_str("SyntaxSort::TrailingReturnType "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_Declarator:
+      unexpected_condition_str("SyntaxSort::Declarator "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_PointerDeclarator:
+      unexpected_condition_str("SyntaxSort::PointerDeclarator "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_ArrayDeclarator:
+      unexpected_condition_str("SyntaxSort::ArrayDeclarator "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_FunctionDeclarator:
+      unexpected_condition_str("SyntaxSort::FunctionDeclarator "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_ArrayOrFunctionDeclarator:
+      unexpected_condition_str("SyntaxSort::ArrayOrFunctionDeclarator "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_ParameterDeclarator:
+      unexpected_condition_str("SyntaxSort::ParameterDeclarator "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_InitDeclarator:
+      unexpected_condition_str("SyntaxSort::InitDeclarator "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_NewDeclarator:
+      unexpected_condition_str("SyntaxSort::NewDeclarator "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_SimpleDeclaration:
+      unexpected_condition_str("SyntaxSort::SimpleDeclaration "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_ExceptionDeclaration:
+      unexpected_condition_str("SyntaxSort::ExceptionDeclaration "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_ConditionDeclaration:
+      unexpected_condition_str("SyntaxSort::ConditionDeclaration "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_StaticAssertDeclaration:
+      unexpected_condition_str("SyntaxSort::StaticAssertDeclaration "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_AliasDeclaration:
+      unexpected_condition_str("SyntaxSort::AliasDeclaration "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_ConceptDefinition:
+      unexpected_condition_str("SyntaxSort::ConceptDefinition "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_CompoundStatement:
+      unexpected_condition_str("SyntaxSort::CompoundStatement "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_ReturnStatement:
+      unexpected_condition_str("SyntaxSort::ReturnStatement "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_IfStatement:
+      unexpected_condition_str("SyntaxSort::IfStatement "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_WhileStatement:
+      unexpected_condition_str("SyntaxSort::WhileStatement "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_DoWhileStatement:
+      unexpected_condition_str("SyntaxSort::DoWhileStatement "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_ForStatement:
+      unexpected_condition_str("SyntaxSort::ForStatement "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_InitStatement:
+      unexpected_condition_str("SyntaxSort::InitStatement "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_RangeBasedForStatement:
+      unexpected_condition_str("SyntaxSort::RangeBasedForStatement "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_ForRangeDeclaration:
+      unexpected_condition_str("SyntaxSort::ForRangeDeclaration "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_LabeledStatement:
+      unexpected_condition_str("SyntaxSort::LabeledStatement "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_BreakStatement:
+      unexpected_condition_str("SyntaxSort::BreakStatement "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_ContinueStatement:
+      unexpected_condition_str("SyntaxSort::ContinueStatement "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_SwitchStatement:
+      unexpected_condition_str("SyntaxSort::SwitchStatement "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_GotoStatement:
+      unexpected_condition_str("SyntaxSort::GotoStatement "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_DeclarationStatement:
+      unexpected_condition_str("SyntaxSort::DeclarationStatement "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_ExpressionStatement:
+      unexpected_condition_str("SyntaxSort::ExpressionStatement "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_TryBlock:
+      unexpected_condition_str("SyntaxSort::TryBlock "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_Handler:
+      unexpected_condition_str("SyntaxSort::Handler "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_HandlerSeq:
+      unexpected_condition_str("SyntaxSort::HandlerSeq "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_FunctionTryBlock:
+      unexpected_condition_str("SyntaxSort::FunctionTryBlock "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_TypeIdListElement:
+      unexpected_condition_str("SyntaxSort::TypeIdListElement "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_DynamicExceptionSpec:
+      unexpected_condition_str("SyntaxSort::DynamicExceptionSpec "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_StatementSeq:
+      unexpected_condition_str("SyntaxSort::StatementSeq "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_FunctionBody:
+      unexpected_condition_str("SyntaxSort::FunctionBody "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_Expression:
+      unexpected_condition_str("SyntaxSort::Expression "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_FunctionDefinition:
+      unexpected_condition_str("SyntaxSort::FunctionDefinition "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_MemberFunctionDeclaration:
+      unexpected_condition_str("SyntaxSort::MemberFunctionDeclaration "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_TemplateDeclaration:
+      unexpected_condition_str("SyntaxSort::TemplateDeclaration "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_RequiresClause:
+      unexpected_condition_str("SyntaxSort::RequiresClause "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_SimpleRequirement:
+      unexpected_condition_str("SyntaxSort::SimpleRequirement "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_TypeRequirement:
+      unexpected_condition_str("SyntaxSort::TypeRequirement "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_CompoundRequirement:
+      unexpected_condition_str("SyntaxSort::CompoundRequirement "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_NestedRequirement:
+      unexpected_condition_str("SyntaxSort::NestedRequirement "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_RequirementBody:
+      unexpected_condition_str("SyntaxSort::RequirementBody "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_TypeTemplateParameter:
+      unexpected_condition_str("SyntaxSort::TypeTemplateParameter "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_TemplateTemplateParameter:
+      unexpected_condition_str("SyntaxSort::TemplateTemplateParameter "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_TypeTemplateArgument:
+      unexpected_condition_str("SyntaxSort::TypeTemplateArgument "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_NonTypeTemplateArgument:
+      unexpected_condition_str("SyntaxSort::NonTypeTemplateArgument "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_TemplateParameterList:
+      unexpected_condition_str("SyntaxSort::TemplateParameterList "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_TemplateArgumentList:
+      unexpected_condition_str("SyntaxSort::TemplateArgumentList "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_TemplateId:
+      unexpected_condition_str("SyntaxSort::TemplateId "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_MemInitializer:
+      unexpected_condition_str("SyntaxSort::MemInitializer "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_CtorInitializer:
+      unexpected_condition_str("SyntaxSort::CtorInitializer "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_LambdaIntroducer:
+      unexpected_condition_str("SyntaxSort::LambdaIntroducer "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_LambdaDeclarator:
+      unexpected_condition_str("SyntaxSort::LambdaDeclarator "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_CaptureDefault:
+      unexpected_condition_str("SyntaxSort::CaptureDefault "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_SimpleCapture:
+      unexpected_condition_str("SyntaxSort::SimpleCapture "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_InitCapture:
+      unexpected_condition_str("SyntaxSort::InitCapture "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_ThisCapture:
+      unexpected_condition_str("SyntaxSort::ThisCapture "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_AttributedStatement:
+      unexpected_condition_str("SyntaxSort::AttributedStatement "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_AttributedDeclaration:
+      unexpected_condition_str("SyntaxSort::AttributedDeclaration "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_AttributeSpecifierSeq:
+      unexpected_condition_str("SyntaxSort::AttributeSpecifierSeq "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_AttributeSpecifier:
+      unexpected_condition_str("SyntaxSort::AttributeSpecifier "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_AttributeUsingPrefix:
+      unexpected_condition_str("SyntaxSort::AttributeUsingPrefix "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_Attribute:
+      unexpected_condition_str("SyntaxSort::Attribute "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_AttributeArgumentClause:
+      unexpected_condition_str("SyntaxSort::AttributeArgumentClause "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_Alignas:
+      unexpected_condition_str("SyntaxSort::Alignas "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_UsingDeclaration:
+      unexpected_condition_str("SyntaxSort::UsingDeclaration "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_UsingDeclarator:
+      unexpected_condition_str("SyntaxSort::UsingDeclarator "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_UsingDirective:
+      unexpected_condition_str("SyntaxSort::UsingDirective "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_ArrayIndex:
+      unexpected_condition_str("SyntaxSort::ArrayIndex "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_SEHTry:
+      unexpected_condition_str("SyntaxSort::SEHTry "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_SEHExcept:
+      unexpected_condition_str("SyntaxSort::SEHExcept "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_SEHFinally:
+      unexpected_condition_str("SyntaxSort::SEHFinally "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_SEHLeave:
+      unexpected_condition_str("SyntaxSort::SEHLeave "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_TypeTraitIntrinsic:
+      unexpected_condition_str("SyntaxSort::TypeTraitIntrinsic "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_Tuple:
+      unexpected_condition_str("SyntaxSort::Tuple "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_AsmStatement:
+      unexpected_condition_str("SyntaxSort::AsmStatement "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_NamespaceAliasDefinition:
+      unexpected_condition_str("SyntaxSort::NamespaceAliasDefinition "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_Super:
+      unexpected_condition_str("SyntaxSort::Super "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_UnaryFoldExpression:
+      unexpected_condition_str("SyntaxSort::UnaryFoldExpression "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_BinaryFoldExpression:
+      unexpected_condition_str("SyntaxSort::BinaryFoldExpression "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_EmptyStatement:
+      unexpected_condition_str("SyntaxSort::EmptyStatement "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_StructuredBindingDeclaration:
+      unexpected_condition_str("SyntaxSort::StructuredBindingDeclaration "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_StructuredBindingIdentifier:
+      unexpected_condition_str("SyntaxSort::StructuredBindingIdentifier "
+                               "is not yet handled");
+      break;
+    case ifc_SyntaxSort_UsingEnumDeclaration:
+      unexpected_condition_str("SyntaxSort::UsingEnumDeclaration "
+                               "is not yet handled");
+      break;
+    default:
+      unexpected_condition_str("Unexpected SyntaxSort");
+      break;
+  }  /* switch */
+}  /* cache_syntax */
 
 
 inline size_t an_ifc_module::file_offset_of(an_ifc_partition_kind partition,
@@ -5527,6 +6723,16 @@ kind into an "an_ifc_partition_kind" kind for convenience.
 }  /* read_partition_at_index */
 
 
+inline void an_ifc_module::read_partition_at_index(ifc_TypeIndex type) const
+/*
+Overload wrapper for "read_partition_at_index" that converts an "ifc_TypeIndex"
+into its tag and index components for convenience.
+*/
+{
+  read_partition_at_index(type_tag(type), type_value(type));
+}  /* read_partition_at_index */
+
+
 inline void an_ifc_module::read_partition_at_index(ifc_ExprSort   expr_kind,
                                                    ifc_Index_type index) const
 /*
@@ -5536,6 +6742,16 @@ kind into an "an_ifc_partition_kind" kind for convenience.
 {
   read_partition_at_index((an_ifc_partition_kind)(ifc_expr_start + expr_kind),
                           index);
+}  /* read_partition_at_index */
+
+
+inline void an_ifc_module::read_partition_at_index(ifc_ExprIndex expr) const
+/*
+Overload wrapper for "read_partition_at_index" that converts an "ifc_ExprIndex"
+into its tag and index components for convenience.
+*/
+{
+  read_partition_at_index(expr_tag(expr), expr_value(expr));
 }  /* read_partition_at_index */
 
 
@@ -5551,6 +6767,16 @@ kind into an "an_ifc_partition_kind" kind for convenience.
 }  /* read_partition_at_index */
 
 
+inline void an_ifc_module::read_partition_at_index(ifc_StmtIndex stmt) const
+/*
+Overload wrapper for "read_partition_at_index" that converts an "ifc_StmtIndex"
+into its tag and index components for convenience.
+*/
+{
+  read_partition_at_index(stmt_tag(stmt), stmt_value(stmt));
+}  /* read_partition_at_index */
+
+
 inline void an_ifc_module::read_partition_at_index(ifc_DeclSort   decl_kind,
                                                    ifc_Index_type index) const
 /*
@@ -5560,6 +6786,16 @@ kind into an "an_ifc_partition_kind" kind for convenience.
 {
   read_partition_at_index((an_ifc_partition_kind)(ifc_decl_start + decl_kind),
                           index);
+}  /* read_partition_at_index */
+
+
+inline void an_ifc_module::read_partition_at_index(ifc_DeclIndex decl) const
+/*
+Overload wrapper for "read_partition_at_index" that converts an "ifc_DeclIndex"
+into its tag and index components for convenience.
+*/
+{
+  read_partition_at_index(decl_tag(decl), decl_value(decl));
 }  /* read_partition_at_index */
 
 
@@ -5575,6 +6811,16 @@ kind into an "an_ifc_partition_kind" kind for convenience.
 }  /* read_partition_at_index */
 
 
+inline void an_ifc_module::read_partition_at_index(ifc_NameIndex name) const
+/*
+Overload wrapper for "read_partition_at_index" that converts an "ifc_NameIndex"
+into its tag and index components for convenience.
+*/
+{
+  read_partition_at_index(name_tag(name), name_value(name));
+}  /* read_partition_at_index */
+
+
 inline void an_ifc_module::read_partition_at_index(ifc_ChartSort  chart_kind,
                                                    ifc_Index_type index) const
 /*
@@ -5584,6 +6830,16 @@ kind into an "an_ifc_partition_kind" kind for convenience.
 {
   read_partition_at_index((an_ifc_partition_kind)(ifc_chart_start +chart_kind),
                           index);
+}  /* read_partition_at_index */
+
+
+inline void an_ifc_module::read_partition_at_index(ifc_ChartIndex chart) const
+/*
+Overload wrapper for "read_partition_at_index" that converts an
+"ifc_ChartIndex" into its tag and index components for convenience.
+*/
+{
+  read_partition_at_index(chart_tag(chart), chart_value(chart));
 }  /* read_partition_at_index */
 
 
@@ -5597,6 +6853,16 @@ Overload wrapper for "read_partition_at_index" that converts an
   read_partition_at_index((an_ifc_partition_kind)(ifc_syntax_start +
                                                                   syntax_kind),
                           index);
+}  /* read_partition_at_index */
+
+
+inline void an_ifc_module::read_partition_at_index(ifc_SyntaxIndex syntax)const
+/*
+Overload wrapper for "read_partition_at_index" that converts an
+"ifc_SyntaxIndex" into its tag and index components for convenience.
+*/
+{
+  read_partition_at_index(syntax_tag(syntax), syntax_value(syntax));
 }  /* read_partition_at_index */
 
 
@@ -5985,9 +7251,14 @@ the output buffer.
             break;
           case ifc_LiteralSort_Integer:
             { an_integer_value value;
+              char             raw_val[64/CHAR_BIT];
               read_partition_at_index(ifc_const_i64,
                                       literal_index(ieslp->value));
-              GET_64bit_int(value, /*from_header=*/FALSE);
+              GET_64bit_int(raw_val, /*from_header=*/FALSE);
+              if (!conv_bytes_to_integer_value(&value, raw_val,
+                                               sizeof(raw_val))) {
+                unexpected_condition_str("Failed to get 64-bit integer");
+              }  /* if */
               str_ifc_add_number(value, scbp);
             }
             break;
