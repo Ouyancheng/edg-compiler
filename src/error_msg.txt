@@ -3212,6 +3212,7 @@ ec_destructor_position;;"ambiguous destructor candidate"
 ec_trailing_requires_on_virtual_func;;"a virtual function cannot have a trailing requires clause"
 ec_function_ineligible;;"%nd does not satisfy its constraints"
 ec_bad_decltype_qualifier;;"result of decltype qualifier %t is not a class or enumeration"
+ec_cpp20_reversed_comparison_ambiguity;;"comparison is ambiguous in standard C++20 because the implied comparison operator with reversed parameters is an equally good match -- this is usually caused by a missing \"const\" qualifier on the comparison operator; see %nod"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
