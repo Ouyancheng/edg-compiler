@@ -1790,9 +1790,9 @@ substitution (and is unset otherwise).
       { a_template_ptr  templ = (a_template_ptr)entity;
         if (!is_source_corresp_in_namespace_std(&templ->source_corresp)) {
           /* For speed. */
-        } else if (is_Sa_substitution((a_template_ptr)entity)) {
+        } else if (is_Sa_substitution(templ)) {
           str = "Sa";
-        } else if (is_Sb_substitution((a_template_ptr)entity)) {
+        } else if (is_Sb_substitution(templ)) {
           str = "Sb";
         }  /* if */
       }
@@ -6309,38 +6309,75 @@ in the Cfront ABI a "bi" flag is used instead).
 
 
 static void mangled_encoding_for_concept_id(an_expr_node_ptr         expr,
-                       /*FIXME*/ ARG_UNUSED a_mangling_control_block *mctl)
+                                            a_mangling_control_block *mctl)
 /*
 Add mangling for the concept-id expression to the current mangled name.
-FIXME: This currently mangles using the "X" expression and clang/gcc don't.
-FIXME: abi_tags?
-FIXME: clang/gcc differences?
 */
 {
+  a_source_correspondence *scp =
+                    &expr->variant.concept_id.concept_template->source_corresp;
+
   check_assertion(expr->kind == (an_expr_node_kind)enk_concept_id);
 #if IA64_ABI
+  /* There are no IA-64-specific rules for mangling concept-ids; presumably
+     they should be mangled as template-ids.  That said, there are differences
+     in how gcc and clang do the mangling; clang allocates a substitution and
+     gcc appears not to.  Also, clang mangles them as an "external name".
+     gcc doesn't appear to mangle the parent information (which can't be
+     demangled because <expression> doesn't allow a <nested-name>, only an
+     <unresolved-name>).  Since the omission of a parent in the mangled name
+     seems like a bug, use the clang mangling scheme by default. */
   a_boolean need_nested_name_close = FALSE;
-  a_source_correspondence *discriminator_scp = NULL, *scp;
-  add_str_to_mangled_name("L_Z", mctl);
-  /* Clang does not appear to register a substitution for the entire concept.*/
-  if (!add_substitution_if_available(
-                             (char *)expr->variant.concept_id.concept_template,
-                             iek_template, /*is_pack_expansion=*/FALSE, mctl)){
-    scp = &expr->variant.concept_id.concept_template->source_corresp;
-    mangled_ia64_parent_qualifier(scp, iek_template, &need_nested_name_close,
-                                  &discriminator_scp,
-                                  /*force_individuation=*/FALSE, mctl);
+  a_boolean use_substitution = TRUE;
+  a_boolean use_external_encoding = TRUE;
+  a_boolean use_parent_mangling = TRUE;
+  if (gnu_mode && !clang_mode) {
+    use_parent_mangling = FALSE;
+    use_substitution = FALSE;
+    use_external_encoding = FALSE;
+  }  /* if */
+  a_source_correspondence *discriminator_scp = NULL;
+  if (use_external_encoding) {
+    add_str_to_mangled_name("L_Z", mctl);
+  }  /* if */
+  if (!use_substitution ||
+      !add_substitution_if_available(
+                            (char *)expr->variant.concept_id.concept_template,
+                            iek_template, /*is_pack_expansion=*/FALSE, mctl)) {
+    if (use_parent_mangling) {
+      mangled_ia64_parent_qualifier(scp, iek_template, &need_nested_name_close,
+                                    &discriminator_scp,
+                                    /*force_individuation=*/FALSE, mctl);
+    }  /* if */
     mangled_name_with_length(scp->name, mctl);
-    alloc_substitution((char *)expr->variant.concept_id.concept_template,
-                       iek_template, /*is_pack_expansion=*/FALSE, mctl);
+    if (use_substitution) {
+      alloc_substitution((char *)expr->variant.concept_id.concept_template,
+                         iek_template, /*is_pack_expansion=*/FALSE, mctl);
+    }  /* if */
   }  /* if */
   mangled_template_arguments(expr->variant.concept_id.args,
                              /*partial_spec=*/FALSE, /*old_form=*/FALSE,
                              (a_name_reference_ptr)NULL, mctl);
   close_ia64_nested_name(need_nested_name_close, discriminator_scp, mctl);
-  add_to_mangled_name('E', mctl);
+  if (use_external_encoding) {
+    add_to_mangled_name('E', mctl);
+  }  /* if */
 #else /* !IA64_ABI */
-  // FIXME: Need to implement Cfront mangling for this.
+  a_length_reservation length_reservation;
+  a_const_char *str = unmangled_or_fabricated_name_of(scp);
+  check_assertion(str != NULL);
+  if (scp_is_namespace_member(scp)) {
+    /* Add parent qualification. */
+    r_mangled_parent_qualifier(scp, iek_template, (unsigned long)2,
+                               /*needs_to_be_individuated=*/FALSE,
+                               (a_source_correspondence **)NULL, mctl);
+  }  /* if */
+  reserve_space_for_length(&length_reservation, mctl);
+  add_str_to_mangled_name(scp->name, mctl);
+  mangled_template_arguments(expr->variant.concept_id.args,
+                             /*partial_spec=*/FALSE, /*old_form=*/FALSE,
+                             (a_name_reference_ptr)NULL, mctl);
+  fill_in_length(&length_reservation, mctl);
 #endif /* IA64_ABI */
 }  /* mangled_encoding_for_concept_id */
 
@@ -7694,7 +7731,16 @@ last argument in the list).
 #if !IA64_ABI
       /* Constant argument.  The encoding for the constant begins with
          an "X". */
-      add_to_mangled_name('X', mctl);
+      if (constant_is(con, ck_template_param) &&
+          con->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_expression &&
+          expr_node_from_tpck_expression(con)->kind ==
+                                           (an_expr_node_kind)enk_concept_id) {
+        /* Suppress the 'X' when mangling a concept-id (otherwise the demangled
+           name will contain a spurious & prior to the concept-id). */
+      } else {
+        add_to_mangled_name('X', mctl);
+      }  /* if */
 #else /* IA64_ABI */
 #if ABI_COMPATIBILITY_VERSION >= 402
       if (constant_is(con, ck_template_param)) {
@@ -7748,6 +7794,13 @@ last argument in the list).
             (emulate_gnu_abi_bugs && gnu_abi_version < 30400)) {
           /* In some cases, when emulating older GNU bugs, the extra X ... E
              is required for compatibility. */
+          /* Mark the end of the expression. */
+          add_to_mangled_name('E', mctl);
+        } else if (mangling_text_buffer->buffer[save_location+1] == 'L' &&
+                   mangling_text_buffer->buffer[save_location+2] == '_' &&
+                   mangling_text_buffer->buffer[save_location+3] == 'Z' &&
+                   clang_mode) {
+          /* Clang appears to allow "XL_Z...E" mangling for concept-ids. */
           /* Mark the end of the expression. */
           add_to_mangled_name('E', mctl);
         } else {
