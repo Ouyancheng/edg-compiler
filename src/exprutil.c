@@ -24517,11 +24517,13 @@ subject to SFINAE.
       an_expr_node_ptr  expr = templ->prototype_instantiation.constraint;
       /* A mapping failure is fatal if we're called as part of checking a
          template constraint (expr_stack is NULL when that is the case), but
-         not when checking a nested requirement. */
+         not when checking a nested requirement.  Clang 10.0 and MSVC 19.27
+         appear to use a more relaxed criterion for this. */
       result = requires_clause_satisfied(expr, new_args, params,
                                          /*map_failure_is_fatal=*/
-                                         map_failure_is_fatal &&
-                                                           expr_stack == NULL,
+                                         expr_stack &&
+                                           (map_failure_is_fatal ||
+                                            !(clang_mode || microsoft_mode)),
                                          diag_list, p_fatal);
       if (!result) {
         /* Insert a diagnostic before the ones detailing the constraint
