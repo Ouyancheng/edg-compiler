@@ -1968,6 +1968,8 @@ If the first few characters are not an operator encoding, return NULL.
     s = "*";
   } else if (start_of_id_is("ao", ptr, dctl)) {
     s = "&";
+  } else if (start_of_id_is("ss", ptr, dctl)) {
+    s = "<=>";
   } else if (start_of_id_is("rl", ptr, dctl)) {
     s = "__real(";
   } else if (start_of_id_is("im", ptr, dctl)) {
@@ -6031,6 +6033,8 @@ be copied quickly.
         if (ch2 == 'c') {
           str = "static_cast";
           *num_operands = 1;
+        } else if (ch2 == 's') {
+          str = "<=>";
         } else if (ch2 == 't') {
           /* sizeof(type) */
           str = "sizeof(";
