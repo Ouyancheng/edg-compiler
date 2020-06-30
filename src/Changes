@@ -1,5 +1,22 @@
 Version 6.1
 
+6/30/20  [EDGcpfe/23009]
+C++20: Ambiguity with reversed-parameters candidate
+
+Consider the example of EDGcpfe/21912:
+
+  struct X { bool operator==(const X &b); };
+  bool b = X() == X();  // Previously an error.  Now a warning.
+
+As explained in the entry for EDGcpfe/21912, C++20 makes this example ambiguous
+because the declared operator== is a better match for the second argument, but
+the candidate synthesized by reversing parameters is a better match for the
+first argument.  Although such code is likely unintentional (i.e., the
+programmer forgot to "const-qualify" the operator== declaration), it is not
+entirely uncommon.  The front end therefore now prefers the declared candidate
+(without reversal of parameters) in such cases, but a warning is issued.
+
+
 6/28/20  [EDGcpfe/23014]
 Position information for ambiguous overload resolution candidates
 

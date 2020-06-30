@@ -17840,6 +17840,36 @@ select_best_function:
     }  /* if */
     select_best_candidate_functions(&candidate_functions, operator_position,
                                     p_undecidable, p_ambiguous);
+    if (!strict_ansi_mode && find_reversed_candidates && *p_ambiguous &&
+        candidate_functions != NULL && candidate_functions->next != NULL &&
+        candidate_functions->next->next == NULL &&
+        candidate_functions->supplemental_reversed_candidate &&
+        candidate_functions->function_symbol->is_class_member &&
+        candidate_functions->function_symbol ==
+                                 candidate_functions->next->function_symbol &&
+        operand_1->state == operand_2->state &&
+        identical_types(operand_1->type, operand_2->type)) {
+      /* This is an ambiguity between two candidates in a context where we
+         considered reversed comparison operator candidates, and the operands
+         have identical types and value categories.  For example:
+             struct X { bool operator==(const X &b); };  // non-const(!)
+             bool b = X() == X();
+         C++20 made this an ambiguity error between the declared operator==
+         and the synthesized "reversed-parameter" candidate.  Common practice
+         is to accept such code, however.  (Note that the reversed candidate
+         is always the first candidate in such cases.) */
+      a_candidate_function_ptr  cfp_to_delete = candidate_functions;
+      if (expr_diagnostic_should_be_issued(
+                           es_warning, ec_cpp20_reversed_comparison_ambiguity,
+                           operator_position)) {
+        pos_sy_warning(ec_cpp20_reversed_comparison_ambiguity,
+                       operator_position, cfp_to_delete->function_symbol);
+      }  /* if */
+      *p_ambiguous = FALSE;
+      candidate_functions = candidate_functions->next;
+      cfp_to_delete->next = NULL;
+      free_candidate_function_list(cfp_to_delete);
+    }  /* if */
   }  /* if */
   *p_arg_list = arg_list;
   *p_dependent_call = dependent_call;
