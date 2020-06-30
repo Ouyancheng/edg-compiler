@@ -1,5 +1,15 @@
 Version 6.1
 
+6/30/20  [EDGcpfe/23025]
+Partial ordering of function template and exception specifications
+
+When exception specifications are part of function types (i.e., C++17 mode),
+the front end previously erroneously substituted exception specifications
+during the process of determining the partial order of function template
+candidates.  Those substitutions could trigger instantiations that in turn
+triggered spurious errors.  That problem is now fixed.
+
+
 6/30/20  [EDGcpfe/23009]
 C++20: Ambiguity with reversed-parameters candidate
 
