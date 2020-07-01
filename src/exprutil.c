@@ -24521,7 +24521,7 @@ subject to SFINAE.
          appear to use a more relaxed criterion for this. */
       result = requires_clause_satisfied(expr, new_args, params,
                                          /*map_failure_is_fatal=*/
-                                         expr_stack &&
+                                         expr_stack == NULL &&
                                            (map_failure_is_fatal ||
                                             !(clang_mode || microsoft_mode)),
                                          diag_list, p_fatal);
