@@ -17929,6 +17929,19 @@ template declaration and is NULL otherwise.
     }  /* if */
   }  /* if */
   attach_decl_attributes(decl_state, var->is_inline);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (templ_state != NULL) {
+    a_template_ptr  templ = templ_state->il_template_entry;
+    a_source_sequence_entry_ptr
+                    ssep = templ->source_corresp.source_sequence_entry;
+    if (ssep != NULL) {
+      /* The template entry already has a source sequence entry.  Discard it
+         because record_symbol_declaration will record a new one. */
+      f_remove_from_src_seq_list(ssep, depth_scope_stack-1);
+      templ->source_corresp.source_sequence_entry = NULL;
+    }  /* if */
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Record the symbol declaration.  Usually it is a pure declaration (and the
      definition must appear outside the class definition), but in C++/CLI an
      in-class initializer makes the declaration a definition too.  Also,
@@ -17963,14 +17976,7 @@ template declaration and is NULL otherwise.
            secondary source sequence entry. */
         sssdp = secondary_src_seq_for_template(il_template_entry);
         sssdp->declared_type = declared_type;
-        /* The template entry has its own source sequence entry.  Discard the
-           one created for the variable declarator.  (If the declaration is a
-           definition, the call to record_symbol_declaration above has already
-           unified the two source sequence entries.) */
-        remove_declarator_sse(decl_state, depth_scope_stack);
       }  /* if */
-      decl_state->source_sequence_entry =
-                      il_template_entry->source_corresp.source_sequence_entry;
       if (srk_flags & SRK_DEFINITION) {
         var->declared_type = declared_type;
         var->declared_storage_class = decl_state->declared_storage_class;
