@@ -6373,7 +6373,7 @@ Add mangling for the concept-id expression to the current mangled name.
                                (a_source_correspondence **)NULL, mctl);
   }  /* if */
   reserve_space_for_length(&length_reservation, mctl);
-  add_str_to_mangled_name(scp->name, mctl);
+  add_str_to_mangled_name(str, mctl);
   mangled_template_arguments(expr->variant.concept_id.args,
                              /*partial_spec=*/FALSE, /*old_form=*/FALSE,
                              (a_name_reference_ptr)NULL, mctl);
