@@ -706,10 +706,12 @@ template.  Now fixed.
 
 
 5/28/20  [EDGcpfe/19134]
-Incorrect storage class for explicit specialization of static variable template
+Incorrect storage class for static variable template and its explicit
+specializations
 
-An explicit specialization of a variable template whose storage class is
-static was not also given static storage class.  Now fixed.
+The prototype instantiation of a static variable template was not given
+static storage class.  In addition, an explicit specialization of a static
+variable template also not given static storage class.  Now fixed.
 
   template <typename T> static T v;
   template <> int v<int> = 2;

@@ -6171,7 +6171,8 @@ user later during real instantiations.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Set the storage class for the prototype instantiation to indicate that
      it has been defined. */
-  if (dps->storage_class != (a_storage_class)sc_extern) {
+  if (dps->storage_class != (a_storage_class)sc_extern &&
+      dps->storage_class != (a_storage_class)sc_static) {
     if (cpp11_mode && !microsoft_mode &&
         scope_stack[depth_innermost_namespace_scope].within_unnamed_namespace){
       var_ptr->storage_class = (a_storage_class)sc_static;

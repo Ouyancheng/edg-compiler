@@ -1279,6 +1279,15 @@ do_variable:
             tip = tip->next;
           }  /* while */
         } else if (sym->kind == (a_symbol_kind)sk_variable_template) {
+          /* Display the prototype instantiation. */
+          a_variable_ptr  var;
+          var = tssp->variant.variable.prototype_variable;
+          inst_sym = symbol_for(var);
+          if (inst_sym != NULL) {
+            fprintf(f_debug, "%*sprototype instantiation:\n", indentation, "");
+            fprintf(f_debug, "%*s", indentation + 2, "");
+            db_symbol(inst_sym, "", indentation + 4);
+          }  /* if */
         } else if (sym->kind == (a_symbol_kind)sk_concept_template) {
         }  /* if */
         col = 0;
