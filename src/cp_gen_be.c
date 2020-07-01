@@ -9488,6 +9488,17 @@ Put out the list of direct base classes of the class associated with ctsp
           gen_access_specifier(bcdp->access);
         }  /* if */
         write_space();
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+        if (bcp->orig_type != NULL && !bcp->orig_type->has_been_defined) {
+          /* We cannot use the original specifier for the base class type
+             because it has not yet been defined.  However, the class type
+             is usable, otherwise the explicit specialization would have
+             been suppressed. */
+          gen_name(&bcp->type->source_corresp, iek_type,
+                   GN_BASE_SPECIFIER, (a_boolean *)NULL);
+        } else
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+        /* Do not insert code here. */
         gen_name(&bcp->orig_type->source_corresp, iek_type,
                  GN_BASE_SPECIFIER, (a_boolean *)NULL);
         if (bcp->is_pack_expansion) write_tok_str("...");
@@ -10596,6 +10607,10 @@ instantiations are only permitted in namespace scope).
     }  /* while */
   }  /* if */
   if (!result && kind == iek_type) {
+    a_routine_ptr rp;
+    a_type_ptr    ntp;
+    a_scope_ptr   sp;
+    sp = ((a_type_ptr)scp)->variant.class_struct_union.extra_info->assoc_scope;
     /* Because (prior to C++17) exception specifications are instantiated
        on demand, it is possible for the exception specification of a base
        class member function to refer to a member function of a derived
@@ -10607,9 +10622,6 @@ instantiations are only permitted in namespace scope).
        class member function.  We thus check the exception specifications
        of all the member functions to ensure that any parent classes of
        members they reference have been defined. */
-    a_routine_ptr rp;
-    a_scope_ptr   sp;
-    sp = ((a_type_ptr)scp)->variant.class_struct_union.extra_info->assoc_scope;
     for (rp = (sp != NULL) ? sp->routines : NULL; !result && rp != NULL;
          rp = rp->next) {
       an_exception_specification_ptr esp =
@@ -10623,6 +10635,20 @@ instantiations are only permitted in namespace scope).
         }  /* if */
       }  /* if */
     }  /* for */
+    /* Similar considerations apply to any base classes of nested classes
+       of this explicit specialization: if such a base class, which must be
+       complete, has not yet been defined, this explicit specialization
+       would be invalid. */
+    for (ntp = (sp != NULL) ? sp->types : NULL; !result && ntp != NULL;
+         ntp = ntp->next) {
+      if (is_immediate_class_type(ntp)) {
+        a_base_class_ptr bcp;
+        for (bcp = ntp->variant.class_struct_union.extra_info->base_classes;
+             !result && bcp != NULL; bcp = bcp->next) {
+          result = !bcp->type->has_been_defined;
+        }  /* for */
+      }  /* if */
+    }  /* if */
   }  /* if */
   if (!result && kind == iek_routine) {
     /* We need to make sure that none of the parameters or return type

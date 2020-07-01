@@ -1,4 +1,44 @@
-Version 6.1
+\Version 6.1
+
+7/1/20   [EDGcpfe/22997]
+C++-generating back end: ordering issues with base of nested class
+
+In general, the C++-generating back end preserves the way base class
+specifiers are designated in the generated code, using a typedef name for
+the base class if the source code does.  In configurations in which
+CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, however,
+that can lead to ordering dependencies that result in generated code that
+cannot be compiled.  For example:
+
+  template<typename T> struct Outer {
+    struct Inner : T {
+      virtual void f() { };
+    };
+    enum { v = sizeof(T) == sizeof(Inner) };
+  };
+  template<typename T> struct A {
+    typedef T type;
+    static_assert(!Outer<type>::v, "bug");
+  };
+  struct B { };
+  struct C {
+    A<B> ab;
+  };
+
+In the generated code, the explicit specialization for A<B> must
+necessarily follow that of Outer<B> because of the use of Outer<B>::v in
+the static_assert declaration. However, Outer<B>::Inner has a base class
+that is originally specified as A<B>::type, which is a typedef for B.  If
+the explicit specialization for Outer<B> specified Inner's base class using
+that typedef, that use would result in the implicit instantiation of A<B>
+before its explicit specialization, which is an error.
+
+The C++-generating back end has now been changed to detect such forward
+references to typedefs in base class specifiers and use the underlying type
+instead.  In this example, the explicit specialization for Outer<B> now
+specifies "Inner : B" instead of "Inner : A<B>::type" and the generated
+code can be compiled without error.
+
 
 6/30/20  [EDGcpfe/23025]
 Partial ordering of function template and exception specifications
