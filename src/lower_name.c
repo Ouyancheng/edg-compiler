@@ -7734,6 +7734,7 @@ last argument in the list).
       if (constant_is(con, ck_template_param) &&
           con->variant.template_param.kind ==
                              (a_template_param_constant_kind)tpck_expression &&
+          expr_node_from_tpck_expression(con) != NULL &&
           expr_node_from_tpck_expression(con)->kind ==
                                            (an_expr_node_kind)enk_concept_id) {
         /* Suppress the 'X' when mangling a concept-id (otherwise the demangled
