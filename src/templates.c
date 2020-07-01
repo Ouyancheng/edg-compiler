@@ -15673,7 +15673,7 @@ make_new_type:
                                         ctws_state);
         }  /* if */
         new_type->variant.routine.return_type = new_return_type;
-        /* Substitute the exception specification is applicable. */
+        /* Substitute the exception specification if appropriate. */
         if (!is_partial_order_check && rtsp->exception_specification != NULL &&
             exc_spec_in_func_type) {
           new_rtsp->exception_specification =
