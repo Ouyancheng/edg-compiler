@@ -16836,13 +16836,13 @@ parameter lists). */
   if (!is_cppcli_generic) {
     a_requires_clause_ptr  rcp = tdp->constraint.requires_clause;
     if (rcp != NULL) {
-      /* Render a requires-clause. */
+      /* Render a requires-clause.  Force parentheses for the constraint
+         expression because the grammar in this context is otherwise
+         limited. */
       set_output_position(&rcp->requires_pos);
-      write_tok_str("requires");
-      /* Force parentheses for the constraint expression because the grammar
-         in this context is otherwise limited. */
-      gen_expr_with_parens(rcp->constraint);
-      write_space();
+      write_tok_str("requires(");
+      gen_expression(skip_parens(assoc_expr_if_constant(rcp->constraint)));
+      write_tok_str(") ");
     }  /* if */
  #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (tdp->constraint.where_clauses != NULL) {
