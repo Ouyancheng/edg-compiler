@@ -30483,50 +30483,32 @@ and whether the operator appears at the top level of a requires clause.
     }  /* if */
   }  /* if */
 
-  if (!C_mode()) {
-    /* C++: Check for the special case of a constraint expression (for which
-       logical operations have special semantics) or an overloaded operator. */
-    if ((local_options & EOPT_CONSTRAINT_EXPR) != 0) {
-      /* Create a plain logical operator node without checking types.  The
-         constraint satisfaction checking will check that the type is "bool"
-         if appropriate. */
-      an_expr_node_ptr  opnds, result_node;
-      eliminate_unusual_operand_kinds(operand_1);
-      eliminate_unusual_operand_kinds(&operand_2);
-      opnds = make_node_from_operand(operand_1);
-      opnds->next = make_node_from_operand(&operand_2);
-      result_node = make_operator_node(operator_token == tok_or_or ?
-                                         (an_expr_operator_kind)eok_lor :
-                                         (an_expr_operator_kind)eok_land,
-                                       bool_type(), opnds);
-      make_expression_operand(result_node, result);
-      processed = TRUE;
-    } else if (is_overloadable_type_first_operand(operand_1) ||
-               is_overloadable_type_operand(&operand_2)) {
-      /* Look for C++ operator overloading cases. */
-      a_boolean has_predef_meaning = FALSE;
+  if (C_dialect == C_dialect_cplusplus &&
+      (is_overloadable_type_first_operand(operand_1) ||
+       is_overloadable_type_operand(&operand_2))) {
+    /* Look for C++ operator overloading cases. */
+    a_boolean has_predef_meaning = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      if (cli_or_cx_enabled &&
-          (is_handle_type_not_value_generic(operand_1->type) ||
-           is_handle_type_not_value_generic(operand_2.type))) {
-        has_predef_meaning = TRUE;
-      }  /* if */
+    if (cli_or_cx_enabled &&
+        (is_handle_type_not_value_generic(operand_1->type) ||
+         is_handle_type_not_value_generic(operand_2.type))) {
+      has_predef_meaning = TRUE;
+    }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      /* Note that we do not test might_be_overloaded here, because we want
-         to go to the subroutine to look for conversions from class types
-         to built-in types. */
-      check_for_operator_overloading(
-                                   opname_kind_for_token[(int)operator_token],
+    /* Note that we do not test might_be_overloaded here, because we want
+       to go to the subroutine to look for conversions from class types
+       to built-in types. */
+    check_for_operator_overloading(opname_kind_for_token[(int)operator_token],
                                    /*unary_operator=*/FALSE,
                                    /*must_be_member_function=*/FALSE,
                                    /*try_conversions=*/TRUE,
                                    has_predef_meaning,
-                                   operand_1, &operand_2, &operator_position,
+                                   operand_1, &operand_2,
+                                   &operator_position,
                                    operator_tok_seq_number,
                                    (a_nondependent_call_depth)0,
                                    (a_source_position *)NULL,
                                    result, &processed);
-    }  /* if */
   }  /* if */
   if (!processed && curr_expr_kind_is(ek_template_arg)) {
     /* Check for non-integral operations in a template argument expression. */
