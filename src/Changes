@@ -1,4 +1,4 @@
-\Version 6.1
+Version 6.1
 
 7/1/20   [EDGcpfe/22997]
 C++-generating back end: ordering issues with base of nested class
