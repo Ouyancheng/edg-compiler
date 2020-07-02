@@ -9491,9 +9491,8 @@ Put out the list of direct base classes of the class associated with ctsp
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
         if (bcp->orig_type != NULL && !bcp->orig_type->has_been_defined) {
           /* We cannot use the original specifier for the base class type
-             because it has not yet been defined.  However, the class type
-             is usable, otherwise the explicit specialization would have
-             been suppressed. */
+             because it has not yet been defined.  Use the class type
+             instead. */
           gen_name(&bcp->type->source_corresp, iek_type,
                    GN_BASE_SPECIFIER, (a_boolean *)NULL);
         } else
@@ -10635,20 +10634,6 @@ instantiations are only permitted in namespace scope).
         }  /* if */
       }  /* if */
     }  /* for */
-    /* Similar considerations apply to any base classes of nested classes
-       of this explicit specialization: if such a base class, which must be
-       complete, has not yet been defined, this explicit specialization
-       would be invalid. */
-    for (ntp = (sp != NULL) ? sp->types : NULL; !result && ntp != NULL;
-         ntp = ntp->next) {
-      if (is_immediate_class_type(ntp)) {
-        a_base_class_ptr bcp;
-        for (bcp = ntp->variant.class_struct_union.extra_info->base_classes;
-             !result && bcp != NULL; bcp = bcp->next) {
-          result = !bcp->type->has_been_defined;
-        }  /* for */
-      }  /* if */
-    }  /* if */
   }  /* if */
   if (!result && kind == iek_routine) {
     /* We need to make sure that none of the parameters or return type
