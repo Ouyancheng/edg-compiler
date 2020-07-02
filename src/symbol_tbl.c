@@ -1280,7 +1280,6 @@ do_variable:
           }  /* while */
         } else if (sym->kind == (a_symbol_kind)sk_variable_template) {
           /* Display the prototype instantiation. */
-          a_variable_ptr  var;
           var = tssp->variant.variable.prototype_variable;
           inst_sym = symbol_for(var);
           if (inst_sym != NULL) {
