@@ -2262,6 +2262,12 @@ private:
                                ifc_SourceLocation    *locus) const;
   void cache_decl_template(a_token_cache_ptr        cache,
                            an_ifc_DeclSort_Template *decl) const;
+  void cache_name(a_token_cache_ptr  cache,
+                  ifc_NameIndex      name,
+                  ifc_SourceLocation *locus) const;
+  void cache_name_from_decl(a_token_cache_ptr  cache,
+                            ifc_DeclIndex      decl,
+                            ifc_SourceLocation *locus) const;
   /* Readers and reading helpers. */
   inline size_t file_offset_of(an_ifc_partition_kind partition,
                                ifc_Index_type        index) const;
@@ -2292,6 +2298,11 @@ private:
   inline void read_partition_at_index(ifc_SyntaxIndex syntax) const;
   inline ifc_Index read_index_from_heap(an_ifc_partition_kind heap_partition,
                                         ifc_Index_type        index) const;
+  template<typename T, typename an_ifc_get_func>
+  T* find_trait(ifc_DeclIndex         decl_index,
+                an_ifc_partition_kind partition,
+                an_ifc_get_func       get_func,
+                T*                    storage) const;
   /* Stringizers. */
   void str_ifc_text_offset(ifc_TextOffset     offset,
                            a_str_control_block *scbp) const;
@@ -2381,6 +2392,50 @@ private:
 };  /* an_ifc_module */
 /*lint -restore*/
 
+
+template<typename T, typename an_ifc_get_func>
+T* an_ifc_module::find_trait(ifc_DeclIndex         decl_index,
+                             an_ifc_partition_kind partition,
+                             an_ifc_get_func       get_func,
+                             T*                    storage) const
+/*
+Given a declaration index as a key to the associated trait table identified by
+partition, find and return a pointer to the associated trait, or NULL if none
+is found.  get_func is the getter function to get the trait from the table.
+storage is the structure that will be filled with the associated table gets, if
+needed, but cannot be relied upon to contain the result.
+*/
+{
+  T        *result = NULL;
+  uint32_t idx, min_idx, max_idx, num_entries;
+
+  if (partitions[partition].size == 0) goto done;
+  num_entries = partitions[partition].size / partitions[partition].entry_size;
+  idx = num_entries / 2;
+  min_idx = 0;
+  max_idx = num_entries-1;
+  while (min_idx <= max_idx && max_idx < num_entries) {
+    T             *tmp;
+    ifc_DeclIndex decl;
+    read_partition_at_index(partition, idx);
+    tmp = (this->*get_func)(storage, /*from_header=*/FALSE);
+    decl = tmp->decl;
+    if (decl == decl_index) {
+      result = tmp;
+      break;
+    } else if (decl < decl_index) {
+      min_idx = idx + 1;
+    } else /* decl > decl_index */ {
+      /* This may underflow, but that will be caught by the above
+         max_idx < num_entries check. */
+      max_idx = idx - 1;
+    }  /* if */
+  }  /* while */
+done:
+  return result;
+}  /* find_trait */
+
+
 /* Expected instantiations of an_ifc_module::str_ifc_associated_trait<T>: */
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Deprecated>
@@ -2420,6 +2475,10 @@ void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcVendorTrait>
                                              a_str_control_block *scbp) const;
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcUuid>
+                                            (ifc_DeclIndex       decl_index,
+                                             a_str_control_block *scbp) const;
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcFuncParams>
                                             (ifc_DeclIndex       decl_index,
                                              a_str_control_block *scbp) const;
 

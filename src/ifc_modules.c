@@ -79,6 +79,11 @@ static const an_ifc_partition
 #endif /* DEBUG && EXPENSIVE_CHECKING */
 
 
+static void cache_token(a_token_cache_ptr     cache,
+                        a_token_kind          tok,
+                        a_source_position_ptr pos);
+
+
 static unsigned char buffer_overrun(void)
 /*
 This routine is called if a memory buffer (which represents a portion of
@@ -2799,33 +2804,43 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
         { an_ifc_TypeSort_Designated itsd, *itsdp;
           a_type_ptr                 class_or_enum_type;
           a_module_entity_ptr        dmep;
+          ifc_DeclSort               dsort;
 
           itsdp = get_TypeSort_Designated(&itsd);
-          if (decl_tag(itsdp->decl) == ifc_DeclSort_Reference) {
+          dsort = decl_tag(itsdp->decl);
+          if (dsort == ifc_DeclSort_Reference) {
             unexpected_condition_str("DeclSort::Reference not yet handled "
                                      "for TypeSort::Designated");
-          }  /* if */
-          if (decl_tag(itsdp->decl) == ifc_DeclSort_Parameter) {
+          } else if (dsort == ifc_DeclSort_Parameter) {
             unexpected_condition_str("DeclSort::Parameter not yet handled "
                                      "for TypeSort::Designated");
+          } else if (dsort == ifc_DeclSort_Scope ||
+                     dsort == ifc_DeclSort_Enumeration) {
+            /* Find the type of the scope declaration by processing it (in
+               case it has been deferred). */
+            dmep = get_ifc_module_entity_ptr(itsdp->decl);
+            process_ifc_declaration(dmep, /*defer=*/FALSE, (a_type_ptr)NULL);
+            class_or_enum_type = (a_type_ptr)dmep->entity.ptr;
+            check_assertion(class_or_enum_type != NULL &&
+                            dmep->entity.kind == iek_type);
+            result = class_or_enum_type;
+          } else {
+            unexpected_condition_str("Unexpected DeclSort for "
+                                     "TypeSort::Designated");
           }  /* if */
-          check_assertion(decl_tag(itsdp->decl) == ifc_DeclSort_Scope ||
-                          decl_tag(itsdp->decl) == ifc_DeclSort_Enumeration);
-          /* Find the type of the scope declaration by processing it (in
-             case it has been deferred). */
-          dmep = get_ifc_module_entity_ptr(itsdp->decl);
-          process_ifc_declaration(dmep, /*defer=*/FALSE, (a_type_ptr)NULL);
-          class_or_enum_type = (a_type_ptr)dmep->entity.ptr;
-          check_assertion(class_or_enum_type != NULL &&
-                          dmep->entity.kind == iek_type);
-          result = class_or_enum_type;
         }
         break;
       case ifc_TypeSort_Deduced:
-        { an_ifc_TypeSort_Deduced itsd;
-          get_TypeSort_Deduced(&itsd);
-          unexpected_condition_str("TypeSort::Deduced "
-                                   "is not yet implemented.");
+        { an_ifc_TypeSort_Deduced itsd, *itsdp;
+          itsdp = get_TypeSort_Deduced(&itsd);
+          if (itsdp->return_type == 0) {
+            result = make_auto_type(&null_source_position,
+                                    /*is_decltype_auto=*/FALSE);
+          } else {
+            result = type_for_type_index(itsdp->return_type, kind);
+            result = add_placeholder_typeref(result,
+                                             /*is_decltype_auto=*/FALSE);
+          }  /* if */
         }
         break;
       case ifc_TypeSort_Placeholder:
@@ -2982,7 +2997,9 @@ argument.
         source_position_from_locus(&pos, &iesmp->locus);
         clear_token_cache(&cache, /*reuseable=*/FALSE);
         cache_operator(&cache, iesmp->opcat, &iesmp->locus);
+        cache_token(&cache, tok_lparen, &pos);
         cache_expr(&cache, iesmp->argument);
+        cache_token(&cache, tok_rparen, &pos);
         terminate_token_cache(&cache);
         rescan_cached_tokens(&cache);
         cp = fs_constant((a_constant_repr_kind)ck_error);
@@ -4143,7 +4160,7 @@ pos is the position of the Sentence containing literal.
         source_position_from_locus(&pos, locus);
         read_partition_at_index((ifc_ExprIndex)index);
         iesndp = get_ExprSort_NamedDecl(&iesnd);
-        cache_identifier(cache, name_from_decl(iesndp->resolution), &pos);
+        cache_name_from_decl(cache, iesndp->resolution, &iesndp->locus);
       }
       break;
     default:
@@ -5017,6 +5034,153 @@ done:;
 }  /* cache_sentence */
 
 
+static void cache_func_traits(a_token_cache_ptr     cache,
+                              ifc_FunctionTraits    traits,
+                              a_boolean             trailing,
+                              a_source_position_ptr pos)
+/*
+Cache the tokens corresponding to the given function traits.  If trailing is
+TRUE then cache the traits that follow a function declaration.  Otherwise,
+cache the traits that precede a function declaration.
+*/
+{
+  if (trailing) {
+    if (traits & ifc_FunctionTraits_PureVirtual) {
+      a_constant_ptr cp = alloc_cached_constant();
+      cache_token(cache, tok_assign, pos);
+      make_zero_of_proper_type(integer_type((an_integer_kind)ik_int), cp);
+      cache_literal(cache, cp, pos);
+    }  /* if */
+    if (traits & ifc_FunctionTraits_Defaulted) {
+      cache_token(cache, tok_assign, pos);
+      cache_token(cache, tok_default, pos);
+    }  /* if */
+    if (traits & ifc_FunctionTraits_Deleted) {
+      cache_token(cache, tok_assign, pos);
+      cache_token(cache, tok_delete, pos);
+    }  /* if */
+  } else {
+    if (traits & ifc_FunctionTraits_Virtual) {
+      cache_token(cache, tok_virtual, pos);
+    }  /* if */
+    if (traits & ifc_FunctionTraits_Explicit) {
+      cache_token(cache, tok_explicit, pos);
+    }  /* if */
+    if (traits & ifc_FunctionTraits_NoReturn) {
+      cache_token(cache, tok_noreturn, pos);
+    }  /* if */
+    if (traits & ifc_FunctionTraits_Inline) {
+      cache_token(cache, tok_inline, pos);
+    }  /* if */
+    if (traits & ifc_FunctionTraits_Constexpr) {
+      cache_token(cache, tok_constexpr, pos);
+    }  /* if */
+  }  /* if */
+  if (traits & ifc_FunctionTraits_HiddenFriend) {
+    unexpected_condition_str("Hidden friends are not yet supported");
+  }  /* if */
+  if (traits & ifc_FunctionTraits_Constrained) {
+    unexpected_condition_str("Contrained functions are not yet supported");
+  }  /* if */
+  if (traits & ifc_FunctionTraits_Vendor) {
+    unexpected_condition();
+  }  /* if */
+}  /* cache_func_traits */
+
+
+static void cache_func_type_traits(a_token_cache_ptr      cache,
+                                   ifc_FunctionTypeTraits traits,
+                                   a_source_position_ptr  pos)
+/*
+Cache the tokens corresponding to the given function type traits.
+*/
+{
+  if (traits & ifc_FunctionTypeTraits_Const) {
+    cache_token(cache, tok_const, pos);
+  }  /* if */
+  if (traits & ifc_FunctionTypeTraits_Volatile) {
+    cache_token(cache, tok_volatile, pos);
+  }  /* if */
+  if (traits & ifc_FunctionTypeTraits_Lvalue) {
+    cache_token(cache, tok_ampersand, pos);
+  } else if (traits & ifc_FunctionTypeTraits_Rvalue) {
+    cache_token(cache, tok_and_and, pos);
+  }  /* if */
+}  /* cache_func_type_traits */
+
+
+static void cache_calling_convention(a_token_cache_ptr     cache,
+                                     ifc_CallingConvention convention,
+                                     a_source_position_ptr pos)
+/*
+Cache the tokens corresponding to the given calling convention.
+*/
+{
+  switch (convention) {
+    case ifc_CallingConvention_Cdecl:
+      cache_token(cache, tok_cdecl, pos);
+      break;
+    case ifc_CallingConvention_Fast:
+      cache_token(cache, tok_fastcall, pos);
+      break;
+    case ifc_CallingConvention_Std:
+      cache_token(cache, tok_stdcall, pos);
+      break;
+    case ifc_CallingConvention_This:
+      cache_token(cache, tok_thiscall, pos);
+      break;
+    case ifc_CallingConvention_Clr:
+      cache_token(cache, tok_clrcall, pos);
+      break;
+    case ifc_CallingConvention_Vector:
+      cache_token(cache, tok_vectorcall, pos);
+      break;
+    case ifc_CallingConvention_Eabi:
+      unexpected_condition_str("Eabi calling convention is not yet supported");
+      break;
+    default:
+      unexpected_condition_str("Unexpected CallingConvention");
+  }  /* switch */
+}  /* cache_calling_convention */
+
+
+void an_ifc_module::cache_exception_spec(a_token_cache_ptr         cache,
+                                         ifc_NoexceptSpecification *eh_spec,
+                                         a_source_position_ptr     pos) const
+/*
+Cache the tokens corresponding to the given exception specification.
+*/
+{
+  if (eh_spec->sort == ifc_NoexceptSort_None) goto done;
+  cache_token(cache, tok_noexcept, pos);
+  cache_token(cache, tok_lparen, pos);
+  switch (eh_spec->sort) {
+    case ifc_NoexceptSort_False:
+      cache_token(cache, tok_false, pos);
+      break;
+    case ifc_NoexceptSort_True:
+      cache_token(cache, tok_true, pos);
+      break;
+    case ifc_NoexceptSort_Expression:
+      cache_sentence(cache, eh_spec->words);
+      break;
+    case ifc_NoexceptSort_Weak:
+      unexpected_condition_str("NoexceptSort::Weak is not yet supported");
+      break;
+    case ifc_NoexceptSort_Unenforced:
+      unexpected_condition_str("NoexceptSort::Unenforced "
+                               "is not yet supported");
+      break;
+    case ifc_NoexceptSort_None:
+      /* Unreachable, but place here to have all enums covered. */
+    default:
+      unexpected_condition_str("Unexpected NoexceptSpecification");
+  }  /* switch */
+  cache_token(cache, tok_rparen, pos);
+done:;
+}  /* cache_exception_spec */
+
+
 void an_ifc_module::cache_scope(a_token_cache_ptr  cache,
                                 ifc_ScopeIndex     scope,
                                 ifc_SourceLocation *locus) const
@@ -5211,30 +5375,66 @@ of the entity referring to the type.
     case ifc_TypeSort_Designated:
       { an_ifc_TypeSort_Designated itsd, *itsdp;
         itsdp = get_TypeSort_Designated(&itsd);
-        cache_identifier(cache, name_from_decl(itsdp->decl), &pos);
+        cache_name_from_decl(cache, itsdp->decl, locus);
       }
       break;
     case ifc_TypeSort_Deduced:
       unexpected_condition_str("TypeSort::Deduced is not yet supported");
       break;
     case ifc_TypeSort_Syntactic:
-      unexpected_condition_str("TypeSort::Syntactic is not yet supported");
+      { an_ifc_TypeSort_Syntactic itss, *itssp;
+        itssp = get_TypeSort_Syntactic(&itss);
+        cache_expr(cache, itssp->expr);
+      }
       break;
     case ifc_TypeSort_Expansion:
       unexpected_condition_str("TypeSort::Expansion is not yet supported");
       break;
     case ifc_TypeSort_Pointer:
-      unexpected_condition_str("TypeSort::Pointer is not yet supported");
+      { an_ifc_TypeSort_Pointer itsp, *itspp;
+        itspp = get_TypeSort_Pointer(&itsp);
+        cache_type(cache, itspp->pointee, locus);
+        if (type_tag(itspp->pointee) != ifc_TypeSort_PointerToMember) {
+          /* The tok_star will already have been cached if the pointee is a
+             pointer-to-member. */
+          cache_token(cache, tok_star, &pos);
+        }  /* if */
+      }
       break;
     case ifc_TypeSort_PointerToMember:
-      unexpected_condition_str("TypeSort::PointerToMember "
-                               "is not yet supported");
+      { an_ifc_TypeSort_PointerToMember itsptm, *itsptmp;
+        itsptmp = get_TypeSort_PointerToMember(&itsptm);
+        if (type_tag(itsptmp->member) == ifc_TypeSort_Method) {
+          an_ifc_TypeSort_Method itsm, *itsmp;
+          read_partition_at_index(itsptmp->member);
+          itsmp = get_TypeSort_Method(&itsm);
+          cache_type(cache, itsmp->target, locus);
+          cache_token(cache, tok_lparen, &pos);
+          cache_calling_convention(cache, itsmp->convention, &pos);
+          cache_type(cache, itsmp->scope, locus);
+          cache_token(cache, tok_colon_colon, &pos);
+          cache_token(cache, tok_star, &pos);
+          cache_token(cache, tok_rparen, &pos);
+          cache_token(cache, tok_lparen, &pos);
+          if (itsmp->source != 0) {
+            cache_type(cache, itsmp->source, locus);
+          }  /* if */
+          cache_token(cache, tok_rparen, &pos);
+          cache_exception_spec(cache, &itsmp->eh_spec, &pos);
+          cache_func_type_traits(cache, itsmp->traits, &pos);
+        } else {
+          cache_type(cache, itsptmp->scope, locus);
+          cache_token(cache, tok_colon_colon, &pos);
+          cache_type(cache, itsptmp->member, locus);
+          cache_token(cache, tok_star, &pos);
+        }  /* if */
+      }
       break;
     case ifc_TypeSort_LvalueReference:
       { an_ifc_TypeSort_LvalueReference itslr, *itslrp;
         itslrp = get_TypeSort_LvalueReference(&itslr);
         cache_type(cache, itslrp->referee, locus);
-        cache_token(cache, tok_and_and, &pos);
+        cache_token(cache, tok_ampersand, &pos);
       }
       break;
     case ifc_TypeSort_RvalueReference:
@@ -5254,7 +5454,11 @@ of the entity referring to the type.
       unexpected_condition_str("TypeSort::Array is not yet supported");
       break;
     case ifc_TypeSort_Typename:
-      unexpected_condition_str("TypeSort::Typename is not yet supported");
+      { an_ifc_TypeSort_Typename itst, *itstp;
+        itstp = get_TypeSort_Typename(&itst);
+        cache_token(cache, tok_typename, &pos);
+        cache_expr(cache, itstp->path);
+      }
       break;
     case ifc_TypeSort_Qualified:
       { an_ifc_TypeSort_Qualified itsq, *itsqp;
@@ -5573,27 +5777,28 @@ Cache the tokens corresponding to the given template declaration.
     /* This is an alias template declaration. */
     check_assertion(name_tag(decl->name) == ifc_NameSort_Identifier);
     cache_token(cache, tok_using, &pos);
-    cache_identifier(cache,
-                     string_from_name_index(decl->name, /*loc=*/NULL), &pos);
+    cache_name(cache, decl->name, &decl->locus);
     cache_token(cache, tok_assign, &pos);
     cache_type(cache, (ifc_TypeIndex)decl->entity.index, &decl->locus);
     cache_token(cache, tok_semicolon, &pos);
   } else if (is_class_struct_union_type(type)) {
-    a_const_char *name = string_from_name_index(decl->name, /*loc=*/NULL);
     cache_type(cache, decl->type, &decl->locus);
     if (decl->entity.body != 0) {
       /* MSVC puts attributes as part of the body, but they need to precede
          the identifier. */
       uint32_t offset = cache_sentence(cache, decl->entity.body, /*offset=*/0,
                                        tok_lbrace);
-      cache_identifier(cache, name, &pos);
+      cache_name(cache, decl->name, &decl->locus);
       (void)cache_sentence(cache, decl->entity.body, offset);
     } else {
-      cache_identifier(cache, name, &pos);
+      cache_name(cache, decl->name, &decl->locus);
       cache_token(cache, tok_semicolon, &pos);
     }  /* if */
   } else if (is_function_type(type)) {
-    cache_decl(cache, (ifc_DeclIndex)decl->entity.index);
+    /* FIXME: Cache the entity corresponding to decl->entity.index instead.
+       Currently this may be missing information, so use the soon-to-be-removed
+       entity.head instead. */
+    cache_sentence(cache, decl->entity.head);
     cache_sentence(cache, decl->entity.body);
   } else {
     /* Variable template. */
@@ -5601,153 +5806,6 @@ Cache the tokens corresponding to the given template declaration.
     (void)cache_sentence(cache, decl->entity.body);
   }  /* if */
 }  /* cache_decl_template */
-
-
-static void cache_func_traits(a_token_cache_ptr     cache,
-                              ifc_FunctionTraits    traits,
-                              a_boolean             trailing,
-                              a_source_position_ptr pos)
-/*
-Cache the tokens corresponding to the given function traits.  If trailing is
-TRUE then cache the traits that follow a function declaration.  Otherwise,
-cache the traits that precede a function declaration.
-*/
-{
-  if (trailing) {
-    if (traits & ifc_FunctionTraits_PureVirtual) {
-      a_constant_ptr cp = alloc_cached_constant();
-      cache_token(cache, tok_assign, pos);
-      make_zero_of_proper_type(integer_type((an_integer_kind)ik_int), cp);
-      cache_literal(cache, cp, pos);
-    }  /* if */
-    if (traits & ifc_FunctionTraits_Defaulted) {
-      cache_token(cache, tok_assign, pos);
-      cache_token(cache, tok_default, pos);
-    }  /* if */
-    if (traits & ifc_FunctionTraits_Deleted) {
-      cache_token(cache, tok_assign, pos);
-      cache_token(cache, tok_delete, pos);
-    }  /* if */
-  } else {
-    if (traits & ifc_FunctionTraits_Virtual) {
-      cache_token(cache, tok_virtual, pos);
-    }  /* if */
-    if (traits & ifc_FunctionTraits_Explicit) {
-      cache_token(cache, tok_explicit, pos);
-    }  /* if */
-    if (traits & ifc_FunctionTraits_NoReturn) {
-      cache_token(cache, tok_noreturn, pos);
-    }  /* if */
-    if (traits & ifc_FunctionTraits_Inline) {
-      cache_token(cache, tok_inline, pos);
-    }  /* if */
-    if (traits & ifc_FunctionTraits_Constexpr) {
-      cache_token(cache, tok_constexpr, pos);
-    }  /* if */
-  }  /* if */
-  if (traits & ifc_FunctionTraits_HiddenFriend) {
-    unexpected_condition_str("Hidden friends are not yet supported");
-  }  /* if */
-  if (traits & ifc_FunctionTraits_Constrained) {
-    unexpected_condition_str("Contrained functions are not yet supported");
-  }  /* if */
-  if (traits & ifc_FunctionTraits_Vendor) {
-    unexpected_condition();
-  }  /* if */
-}  /* cache_func_traits */
-
-
-static void cache_func_type_traits(a_token_cache_ptr      cache,
-                                   ifc_FunctionTypeTraits traits,
-                                   a_source_position_ptr  pos)
-/*
-Cache the tokens corresponding to the given function type traits.
-*/
-{
-  if (traits & ifc_FunctionTypeTraits_Const) {
-    cache_token(cache, tok_const, pos);
-  }  /* if */
-  if (traits & ifc_FunctionTypeTraits_Volatile) {
-    cache_token(cache, tok_volatile, pos);
-  }  /* if */
-  if (traits & ifc_FunctionTypeTraits_Lvalue) {
-    cache_token(cache, tok_ampersand, pos);
-  } else if (traits & ifc_FunctionTypeTraits_Rvalue) {
-    cache_token(cache, tok_and_and, pos);
-  }  /* if */
-}  /* cache_func_type_traits */
-
-
-static void cache_calling_convention(a_token_cache_ptr     cache,
-                                     ifc_CallingConvention convention,
-                                     a_source_position_ptr pos)
-/*
-Cache the tokens corresponding to the given calling convention.
-*/
-{
-  switch (convention) {
-    case ifc_CallingConvention_Cdecl:
-      cache_token(cache, tok_cdecl, pos);
-      break;
-    case ifc_CallingConvention_Fast:
-      cache_token(cache, tok_fastcall, pos);
-      break;
-    case ifc_CallingConvention_Std:
-      cache_token(cache, tok_stdcall, pos);
-      break;
-    case ifc_CallingConvention_This:
-      cache_token(cache, tok_thiscall, pos);
-      break;
-    case ifc_CallingConvention_Clr:
-      cache_token(cache, tok_clrcall, pos);
-      break;
-    case ifc_CallingConvention_Vector:
-      cache_token(cache, tok_vectorcall, pos);
-      break;
-    case ifc_CallingConvention_Eabi:
-      unexpected_condition_str("Eabi calling convention is not yet supported");
-      break;
-    default:
-      unexpected_condition_str("Unexpected CallingConvention");
-  }  /* switch */
-}  /* cache_calling_convention */
-
-
-void an_ifc_module::cache_exception_spec(a_token_cache_ptr         cache,
-                                         ifc_NoexceptSpecification *eh_spec,
-                                         a_source_position_ptr     pos) const
-/*
-Cache the tokens corresponding to the given exception specification.
-*/
-{
-  if (eh_spec->sort == ifc_NoexceptSort_None) goto done;
-  cache_token(cache, tok_noexcept, pos);
-  cache_token(cache, tok_lparen, pos);
-  switch (eh_spec->sort) {
-    case ifc_NoexceptSort_False:
-      cache_token(cache, tok_false, pos);
-      break;
-    case ifc_NoexceptSort_True:
-      cache_token(cache, tok_true, pos);
-      break;
-    case ifc_NoexceptSort_Expression:
-      cache_sentence(cache, eh_spec->words);
-      break;
-    case ifc_NoexceptSort_Weak:
-      unexpected_condition_str("NoexceptSort::Weak is not yet supported");
-      break;
-    case ifc_NoexceptSort_Unenforced:
-      unexpected_condition_str("NoexceptSort::Unenforced "
-                               "is not yet supported");
-      break;
-    case ifc_NoexceptSort_None:
-      /* Unreachable, but place here to have all enums covered. */
-    default:
-      unexpected_condition_str("Unexpected NoexceptSpecification");
-  }  /* switch */
-  cache_token(cache, tok_rparen, pos);
-done:;
-}  /* cache_exception_spec */
 
 
 void an_ifc_module::cache_decl(a_token_cache_ptr cache,
@@ -5772,9 +5830,7 @@ Cache the tokens corresponding to the given declaration.
         idsvp = get_DeclSort_Variable(&idsv);
         source_position_from_locus(&pos, &idsvp->locus);
         cache_type(cache, idsvp->type, &idsvp->locus);
-        cache_identifier(cache,
-                         string_from_name_index(idsvp->name, /*loc=*/NULL),
-                         &pos);
+        cache_name(cache, idsvp->name, &idsvp->locus);
       }
       break;
     case ifc_DeclSort_Parameter:
@@ -5825,9 +5881,7 @@ Cache the tokens corresponding to the given declaration.
         idssp = get_DeclSort_Scope(&idss);
         source_position_from_locus(&pos, &idssp->locus);
         cache_type(cache, idssp->type, &idssp->locus);
-        cache_identifier(cache,
-                         string_from_name_index(idssp->name, /*loc=*/NULL),
-                         &pos);
+        cache_name(cache, idssp->name, &idssp->locus);
         if (idssp->base != 0) {
           cache_token(cache, tok_colon, &pos);
           cache_type(cache, idssp->base, &idssp->locus);
@@ -5877,33 +5931,15 @@ Cache the tokens corresponding to the given declaration.
         cache_type(cache, itsfp->target, &idsfp->locus);
         cache_func_traits(cache, idsfp->traits, /*trailing=*/FALSE, &pos);
         cache_calling_convention(cache, itsfp->convention, &pos);
-        cache_identifier(cache,
-                         string_from_name_index(idsfp->name, /*loc=*/NULL),
-                         &pos);
+        cache_name(cache, idsfp->name, &idsfp->locus);
         cache_token(cache, tok_lparen, &pos);
         if (itsfp->source != 0) {
-          /* FIXME: Handle default arguments correctly. */
-          if (idsfp->default_arguments != 0) {
-            unexpected_condition_str("Functions with default arguments "
-                                     "are not yet supported");
-          }  /* if */
-          if (type_tag(itsfp->source) == ifc_TypeSort_Tuple) {
-            an_ifc_TypeSort_Tuple itst, *itstp;
-            read_partition_at_index(itsfp->source);
-            itstp = get_TypeSort_Tuple(&itst);
-            for (uint32_t idx = 0; idx < itstp->cardinality; ++idx) {
-              if (idx > 0) {
-                cache_token(cache, tok_comma, &pos);
-              }  /* if */
-              cache_type(cache, (ifc_TypeIndex)read_index_from_heap(
-                                                           ifc_heap_type,
-                                                           itstp->start + idx),
-                         &idsfp->locus);
-            }  /* for */
-          } else {
-            /* Single parameter. */
-            cache_type(cache, itsfp->source, &idsfp->locus);
-          }  /* if */
+          an_ifc_Trait_MsvcFuncParams itmfp, *itmfpp;
+          itmfpp = find_trait(decl, ifc_msvc_trait_named_func_params,
+                              &an_ifc_module::get_Trait_MsvcFuncParams,
+                              &itmfp);
+          check_assertion(itmfpp != NULL);
+          cache_chart(cache, itmfpp->params, &idsfp->locus);
         }  /* if */
         cache_token(cache, tok_rparen, &pos);
         cache_exception_spec(cache, &itsfp->eh_spec, &pos);
@@ -5990,9 +6026,15 @@ Cache the tokens corresponding to the given expression.
       { an_ifc_ExprSort_Literal iesl, *ieslp;
         a_constant_ptr          cp;
         ieslp = get_ExprSort_Literal(&iesl);
-        cp = constant_for_expr_index(expr, /*default_type=*/NULL);
-        source_position_from_locus(&pos, &ieslp->locus);
-        cache_literal(cache, cp, &pos);
+        if (type_tag(ieslp->type) == ifc_TypeSort_Designated) {
+          /* This can show up as a literal type in some cases, but isn't
+             really a literal in the sense that there's a constant to cache. */
+          cache_type(cache, ieslp->type, &ieslp->locus);
+        } else {
+          cp = constant_for_expr_index(expr, /*default_type=*/NULL);
+          source_position_from_locus(&pos, &ieslp->locus);
+          cache_literal(cache, cp, &pos);
+        }  /* if */
       }
       break;
     case ifc_ExprSort_Lambda:
@@ -6009,14 +6051,27 @@ Cache the tokens corresponding to the given expression.
         a_source_position         pos;
         iesndp = get_ExprSort_NamedDecl(&iesnd);
         source_position_from_locus(&pos, &iesndp->locus);
-        cache_identifier(cache, name_from_decl(iesndp->resolution), &pos);
+        cache_name_from_decl(cache, iesndp->resolution, &iesndp->locus);
       }
       break;
     case ifc_ExprSort_UnresolvedId:
-      unexpected_condition_str("ExprSort::UnresolvedId is not yet supported");
+      { an_ifc_ExprSort_UnresolvedId iesuid, *iesuidp;
+        iesuidp = get_ExprSort_UnresolvedId(&iesuid);
+        source_position_from_locus(&pos, &iesuidp->locus);
+        cache_name(cache, iesuidp->name, &iesuidp->locus);
+      }
       break;
     case ifc_ExprSort_TemplateId:
-      unexpected_condition_str("ExprSort::TemplateId is not yet supported");
+      { an_ifc_ExprSort_TemplateId iestid, *iestidp;
+        iestidp = get_ExprSort_TemplateId(&iestid);
+        source_position_from_locus(&pos, &iestidp->locus);
+        cache_expr(cache, iestidp->primary);
+        cache_token(cache, tok_lt, &pos);
+        if (iestidp->arguments != 0) {
+          cache_expr(cache, iestidp->arguments);
+        }  /* if */
+        cache_token(cache, tok_gt, &pos);
+      }
       break;
     case ifc_ExprSort_UnqualifiedId:
       unexpected_condition_str("ExprSort::UnqualifiedId is not yet supported");
@@ -6032,19 +6087,76 @@ Cache the tokens corresponding to the given expression.
       unexpected_condition_str("ExprSort::QualifiedName is not yet supported");
       break;
     case ifc_ExprSort_Path:
-      unexpected_condition_str("ExprSort::Path is not yet supported");
+      { an_ifc_ExprSort_Path iesp, *iespp;
+        iespp = get_ExprSort_Path(&iesp);
+        cache_expr(cache, iespp->scope);
+        cache_token(cache, tok_colon_colon, &null_source_position);
+        cache_expr(cache, iespp->member);
+      }
       break;
     case ifc_ExprSort_Read:
-      unexpected_condition_str("ExprSort::Read is not yet supported");
+      { an_ifc_ExprSort_Read iesr, *iesrp;
+        iesrp = get_ExprSort_Read(&iesr);
+        cache_expr(cache, iesrp->address);
+        switch (iesrp->sort) {
+          case ifc_ReadConversionSort_Identity:
+            unexpected_condition_str("ReadConversionSort::Identity "
+                                     "is not yet handled.");
+            break;
+          case ifc_ReadConversionSort_Indirection:
+            unexpected_condition_str("ReadConversionSort::Indirection "
+                                     "is not yet handled.");
+            break;
+          case ifc_ReadConversionSort_Dereference:
+            unexpected_condition_str("ReadConversionSort::Dereference "
+                                     "is not yet handled.");
+            break;
+          case ifc_ReadConversionSort_LvalueToRvalue:
+            /* This should be handled by the parsing of the tokens - nothing
+               extra needed here. */
+            break;
+          case ifc_ReadConversionSort_IntegralConversion:
+            unexpected_condition_str("ReadConversionSort::IntegralConversion "
+                                     "is not yet handled.");
+            break;
+        }  /* switch */
+      }
       break;
     case ifc_ExprSort_Monad:
-      unexpected_condition_str("ExprSort::Monad is not yet supported");
+      { an_ifc_ExprSort_Monad iesm, *iesmp;
+        iesmp = get_ExprSort_Monad(&iesm);
+        source_position_from_locus(&pos, &iesmp->locus);
+        cache_operator(cache, iesmp->opcat, &iesmp->locus);
+        cache_token(cache, tok_lparen, &pos);
+        cache_expr(cache, iesmp->argument);
+        cache_token(cache, tok_rparen, &pos);
+      }
       break;
     case ifc_ExprSort_Dyad:
-      unexpected_condition_str("ExprSort::Dyad is not yet supported");
+      { an_ifc_ExprSort_Dyad iesd, *iesdp;
+        iesdp = get_ExprSort_Dyad(&iesd);
+        source_position_from_locus(&pos, &iesdp->locus);
+        cache_operator(cache, iesdp->opcat, &iesdp->locus);
+        cache_token(cache, tok_lparen, &pos);
+        cache_expr(cache, iesdp->arguments_0);
+        cache_token(cache, tok_comma, &pos);
+        cache_expr(cache, iesdp->arguments_1);
+        cache_token(cache, tok_rparen, &pos);
+      }
       break;
     case ifc_ExprSort_Triad:
-      unexpected_condition_str("ExprSort::Triad is not yet supported");
+      { an_ifc_ExprSort_Triad iest, *iestp;
+        iestp = get_ExprSort_Triad(&iest);
+        source_position_from_locus(&pos, &iestp->locus);
+        cache_operator(cache, iestp->opcat, &iestp->locus);
+        cache_token(cache, tok_lparen, &pos);
+        cache_expr(cache, iestp->arguments_0);
+        cache_token(cache, tok_comma, &pos);
+        cache_expr(cache, iestp->arguments_1);
+        cache_token(cache, tok_comma, &pos);
+        cache_expr(cache, iestp->arguments_2);
+        cache_token(cache, tok_rparen, &pos);
+      }
       break;
     case ifc_ExprSort_String:
       unexpected_condition_str("ExprSort::String is not yet supported");
@@ -6165,7 +6277,19 @@ Cache the tokens corresponding to the given expression.
       unexpected_condition_str("ExprSort::Generic is not yet supported");
       break;
     case ifc_ExprSort_Tuple:
-      unexpected_condition_str("ExprSort::Tuple is not yet supported");
+      { an_ifc_ExprSort_Tuple iest, *iestp;
+        iestp = get_ExprSort_Tuple(&iest);
+        source_position_from_locus(&pos, &iestp->locus);
+        for (uint32_t idx = 0; idx < iestp->cardinality; ++idx) {
+          ifc_ExprIndex eidx =
+                       (ifc_ExprIndex)read_index_from_heap(ifc_heap_expr,
+                                                           iestp->start + idx);
+          if (idx > 0) {
+            cache_token(cache, tok_comma, &pos);
+          }  /* if */
+          cache_expr(cache, eidx);
+        }  /* for */
+      }
       break;
     case ifc_ExprSort_Nullptr:
       unexpected_condition_str("ExprSort::Nulptr is not yet supported");
@@ -6661,6 +6785,93 @@ Cache the tokens corresponding to the given syntax tree.
 }  /* cache_syntax */
 
 
+void an_ifc_module::cache_name(a_token_cache_ptr  cache,
+                               ifc_NameIndex      name,
+                               ifc_SourceLocation *locus) const
+/*
+Cache the tokens corresponding to the given name.
+*/
+{
+  ifc_NameSort      tag = name_tag(name);
+  ifc_TextOffset    ident;
+  a_source_position pos;
+
+  source_position_from_locus(&pos, locus);
+  read_partition_at_index(name);
+  switch (tag) {
+    case ifc_NameSort_Identifier:
+      /* NameSort::Identifiers just refer to the string table. */
+      ident = (ifc_TextOffset)name_value(name);
+      goto cache_ident;
+    case ifc_NameSort_SourceFile:
+      { an_ifc_NameSort_SourceFile inssf, *inssfp;
+        inssfp = get_NameSort_SourceFile(&inssf);
+        ident = inssfp->path;
+        goto cache_ident;
+      }
+      break;
+    case ifc_NameSort_Template:
+      { an_ifc_NameSort_Template inst;
+        get_NameSort_Template(&inst);
+        unexpected_condition_str("NameSort::Template is not yet handled.");
+      }
+      break;
+    case ifc_NameSort_Specialization:
+      { an_ifc_NameSort_Specialization inss, *inssp;
+        inssp = get_NameSort_Specialization(&inss);
+        cache_token(cache, tok_template, &pos);
+        cache_name(cache, inssp->primary, locus);
+        cache_token(cache, tok_lt, &pos);
+        if (inssp->arguments != 0) {
+          cache_expr(cache, inssp->arguments);
+        }  /* if */
+        cache_token(cache, tok_gt, &pos);
+      }
+      break;
+    case ifc_NameSort_Operator:
+      { an_ifc_NameSort_Operator inso, *insop;
+        insop = get_NameSort_Operator(&inso);
+        ident = insop->encoded;
+        goto cache_op;
+      }
+      break;
+    case ifc_NameSort_Conversion:
+      { an_ifc_NameSort_Conversion insc, *inscp;
+        inscp = get_NameSort_Conversion(&insc);
+        ident = inscp->encoded;
+        goto cache_op;
+      }
+      break;
+    case ifc_NameSort_Literal:
+      { an_ifc_NameSort_Literal insl, *inslp;
+        inslp = get_NameSort_Literal(&insl);
+        ident = inslp->encoded;
+cache_op:
+        cache_token(cache, tok_operator, &pos);
+cache_ident:
+        cache_identifier(cache, get_string_at_offset(ident), &pos);
+      }
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+}  /* cache_name */
+
+
+void an_ifc_module::cache_name_from_decl(a_token_cache_ptr  cache,
+                                         ifc_DeclIndex      decl,
+                                         ifc_SourceLocation *locus) const
+/*
+Cache the tokens corresponding to the given declaration name.
+*/
+{
+  a_source_position pos;
+
+  source_position_from_locus(&pos, locus);
+  cache_identifier(cache, name_from_decl(decl), &pos);
+}  /* cache_name_from_decl */
+
+
 inline size_t an_ifc_module::file_offset_of(an_ifc_partition_kind partition,
                                             ifc_Index_type        index) const
 /*
@@ -6806,8 +7017,10 @@ Overload wrapper for "read_partition_at_index" that converts an "ifc_NameSort"
 kind into an "an_ifc_partition_kind" kind for convenience.
 */
 {
-  read_partition_at_index((an_ifc_partition_kind)(ifc_name_start + name_kind),
-                          index);
+  if (name_kind != ifc_NameSort_Identifier) {
+    read_partition_at_index((an_ifc_partition_kind)(ifc_name_start+name_kind),
+                            index);
+  }  /* if */
 }  /* read_partition_at_index */
 
 
@@ -8829,6 +9042,23 @@ Generate a string for the specified associated MSVC UUID trait.
   get_Trait_MsvcUuid(&itmsvcuuid);
   snprintf(str, sizeof(str), "%04hx", itmsvcuuid.uuid);
   add_string_to_text_buffer(scbp->text_buffer, str);
+}  /* str_ifc_associated_trait<an_ifc_Trait_MsvcUuid> */
+
+
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcFuncParams>
+                                            (ifc_DeclIndex       decl_index,
+                                             a_str_control_block *scbp) const
+/*
+Generate a string for the specified associated MSVC UUID trait.
+*/
+{
+  an_ifc_Trait_MsvcFuncParams itmsvcfuncparams;
+
+  read_partition_at_index(ifc_msvc_trait_uuid, decl_index);
+  get_Trait_MsvcFuncParams(&itmsvcfuncparams);
+  unexpected_condition_str("AssociatedTrait<MsvcFuncParams>"
+                           " is not yet handled.");
 }  /* str_ifc_associated_trait<an_ifc_Trait_MsvcUuid> */
 
 

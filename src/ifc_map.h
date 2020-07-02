@@ -1644,6 +1644,12 @@ IFC_DECL_START(Trait_MsvcUuid)
   IFC_DECL_FIELD(uuid, u16)
 IFC_DECL_END(Trait_MsvcUuid)
 
+/* Trait::MsvcFuncParams */
+IFC_DECL_START(Trait_MsvcFuncParams)
+  IFC_DECL_FIELD(decl, DeclIndex)
+  IFC_DECL_FIELD(params, ChartIndex)
+IFC_DECL_END(Trait_MsvcFuncParams)
+
 /* Sentences: Internal token stream from MSVC. */
 IFC_DECL_START(Sentence)
   IFC_DECL_FIELD(start, WordIndex)

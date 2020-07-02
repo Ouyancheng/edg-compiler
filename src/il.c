@@ -3836,10 +3836,12 @@ the file.
   curr_seq_number = ++seq_number_last_read;
   set_position_to(*inserted_position, curr_seq_number, SP_COL_UNKNOWN);
   record_end_of_source_file(new_file, seq_number_last_read);
-  /* Resume the previous file where we left off. */
-  record_resumption_of_source_file(parent_file,
-                                   seq_number_last_read + 1,
-                                   curr_ise->line_number + 1);
+  if (curr_ise != NULL) {
+    /* Resume the previous file where we left off. */
+    record_resumption_of_source_file(parent_file,
+                                     seq_number_last_read + 1,
+                                     curr_ise->line_number + 1);
+  }  /* if */
 }  /* record_inclusion_of_module_source_file */
 
 
