@@ -751,7 +751,7 @@ specializations
 
 The prototype instantiation of a static variable template was not given
 static storage class.  In addition, an explicit specialization of a static
-variable template also not given static storage class.  Now fixed.
+variable template was also not given static storage class.  Now fixed.
 
   template <typename T> static T v;
   template <> int v<int> = 2;
