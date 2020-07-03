@@ -10607,7 +10607,6 @@ instantiations are only permitted in namespace scope).
   }  /* if */
   if (!result && kind == iek_type) {
     a_routine_ptr rp;
-    a_type_ptr    ntp;
     a_scope_ptr   sp;
     sp = ((a_type_ptr)scp)->variant.class_struct_union.extra_info->assoc_scope;
     /* Because (prior to C++17) exception specifications are instantiated
