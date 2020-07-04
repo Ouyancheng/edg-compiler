@@ -1,5 +1,48 @@
 Version 6.1
 
+7/4/20   [EDGcpfe/23048]
+C++-generating back end: use of local types in template arguments
+
+In configurations in which
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, the
+C++-generating back end suppressed generated explicit specializations in
+which a type template argument is a type that is local to a function
+(because such types cannot be named outside the block scope in which they
+appear).  However, it failed to apply that test recursively; i.e., it did
+not suppress specializations in which the template argument is an instance
+of a class template that has a local type as an argument.  For example,
+with --c++11:
+
+  namespace N {
+    template<typename T> struct A { };
+  }
+  template<typename T> struct B { };
+  void f() {
+    N::A<B<struct S>> abs; // declares struct S local to f
+  }
+
+Here, the C++-generating back end correctly suppressed the generated
+explicit specialization for B<S>; however, it failed to do so for
+N::A<B<S>>, so that the generated code was something like:
+
+  namespace N {
+    template<> struct A<B<struct S>> ;  // #1
+  }
+  namespace N {
+    template<> struct A<B<S>> { };
+  }
+  void f() {
+    N::A<B<S>> abs;  // #2
+  }
+
+Note that the explicit specialization at #1 incorrectly introduced struct S
+as a member of namespace N; also, because the type had already been
+declared, the 'struct' keyword was omitted in the template argument at #2.
+This is now fixed; the explicit specialization of A<B<S>> is now
+suppressed, and the 'struct' keyword is restored in the template argument
+inside f.
+
+
 7/1/20   [EDGcpfe/22997]
 C++-generating back end: ordering issues with base of nested class
 

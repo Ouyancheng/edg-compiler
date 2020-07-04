@@ -10317,6 +10317,9 @@ is_or_uses_unnameable_class_type.
     if (is_immediate_class_type(type) &&
         unmangled_name_of(&type->source_corresp) == NULL) {
       result = (entity_for_decltype(type) == NULL);
+    } else {
+      /* Local types are also unnameable. */
+      result = (type->source_corresp.enclosing_routine != NULL);
     }  /* if */
     if (!result &&
         name_has_template_arguments(&type->source_corresp, iek_type, &argp,
@@ -10343,10 +10346,10 @@ is_or_uses_unnameable_class_type.
 
 static a_boolean is_or_uses_unnameable_class_type(a_type_ptr type)
 /*
-Return TRUE if type is an unnamed class type for which no variable is
-available to be used in a decltype-specifier or if it or one of its parents
-is a template instance with a type template argument for which
-i_is_or_uses_unnameable_class_type returns TRUE; FALSE otherwise.
+Return TRUE if type cannot be named - i.e., if it is a local type or is an
+unnamed class type for which no variable is available to be used in a
+decltype-specifier - or if one of its containing classes or type template
+arguments is or uses such a type, and FALSE otherwise.
 */
 {
   a_type_scan_record_ptr tsrp;
