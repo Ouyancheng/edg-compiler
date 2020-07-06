@@ -3125,7 +3125,11 @@ description of the parameters.
   opnd_elem = constant->variant.aggregate.first_constant;
   for (elem_no = 0; elem_no < num_result_elements && !local_not_folded;
        ++elem_no) {
-    a_constant_ptr result_elem = alloc_constant(result_elem_type->kind);
+    /* Allocate the constant for this element of the result.  The constant
+       will be overwritten by unary_operation below, so just call it an
+       error constant for now to minimize the cost of initialization. */
+    a_constant_ptr result_elem =
+                                alloc_constant((a_constant_repr_kind)ck_error);
     if (opnd_elem == NULL) {
       /* A vector aggregate may be partially- or value-initialized.  If so,
          the operand element will be NULL at this point if we've stepped
@@ -5663,7 +5667,11 @@ description of the parameters.
      compute the result vector elements. */
   for (elem_no = 0; elem_no < num_result_elements && !local_not_folded;
        ++elem_no) {
-    a_constant_ptr result_elem = alloc_constant(result_elem_type->kind);
+    /* Allocate the constant for this element of the result.  The constant
+       will be overwritten by binary_operation below, so just call it an
+       error constant for now to minimize the cost of initialization. */
+    a_constant_ptr result_elem =
+                                alloc_constant((a_constant_repr_kind)ck_error);
     /* A vector aggregate may be partially- or value-initialized.  If so,
        the operand element will be NULL at this point if we've stepped past
        the end of the list, and we need to create a zero of the element
