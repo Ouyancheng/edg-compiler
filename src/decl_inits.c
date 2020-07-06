@@ -10389,10 +10389,7 @@ declaration that has internal linkage because of the explicit presence of a
         }  /* if */
       }  /* if */
     } else {
-      /* Uninitialized const new-object. 
-         The case of a const temporary, as in:
-           typedef X const CX; CX().f();
-         also comes here (when X has no explicit default constructor). */
+      /* Uninitialized const new-object. */
       if (is_const_default_constructible(type) ||
           any_cfront_mode() || microsoft_mode) {
           /* The resolution of Core issue 253 (via paper P0490R0) defined
