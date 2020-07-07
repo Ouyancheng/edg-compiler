@@ -884,19 +884,24 @@ may be a friend template.
 a_src_seq_secondary_decl_ptr
                             secondary_src_seq_for_template(a_template_ptr  tp)
 /*
-Turn the source sequence entry pointing to the given template into a
-secondary source sequence entry and return a pointer to that secondary
-source sequence entry.
+If the source sequence entry recorded in *tp is a secondary source sequence
+entry, return that.  Otherwise, turn the source sequence entry pointing to the
+given template into a secondary source sequence entry and return a pointer to
+that secondary source sequence entry.
 */
 {
   a_source_sequence_entry_ptr  ssep = tp->source_corresp.source_sequence_entry;
   a_src_seq_secondary_decl_ptr sssdp;
 
-  sssdp = alloc_src_seq_secondary_decl();
-  sssdp->entity = ssep->entity;
-  sssdp->decl_position = tp->source_corresp.decl_position;
-  ssep->entity.ptr = (char *)sssdp;
-  ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
+  if (ss_entry_kind(ssep) != iek_src_seq_secondary_decl) {
+    sssdp = alloc_src_seq_secondary_decl();
+    sssdp->entity = ssep->entity;
+    sssdp->decl_position = tp->source_corresp.decl_position;
+    ssep->entity.ptr = (char *)sssdp;
+    ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
+  } else {
+    sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
+  }  /* if */
   return sssdp;
 }  /* secondary_src_seq_for_template */
 
