@@ -17858,6 +17858,11 @@ produced.  See copy_template_param_expr for the parameter descriptions.
                                                           source_pos,
                                                           options);
       }  /* if */
+    } else if (expr_copy != NULL) {
+      if (is_template_dependent_type(expr_copy->type) ||
+          !fold_expr(expr_copy, constant)) {
+        make_template_param_expr_constant(expr_copy, constant);
+      }  /* if */
     } else if (constant != NULL && constant_is(constant, ck_template_param) &&
                constant->variant.template_param.kind == 
                             (a_template_param_constant_kind)tpck_expression) {
