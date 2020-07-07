@@ -47106,21 +47106,24 @@ void rescan_expr_with_substitution_internal(
                              a_rescan_control_block   *rcblock,
                              a_local_expr_options_set local_options,
                              an_operand               *result,
-                             an_operand               *bound_function_selector)
+                             an_operand               *bound_function_selector,
+                             a_boolean                top_level_expr)
 /*
-Redo the semantic analysis on the expression expr as part of doing
-template deduction.  rcblock provides the deduction context, e.g., the
-template argument list being tried.  It also has an error_detected
-flag, which is set to TRUE if any error is detected during
-the rescan.  If there is no error, *result is set to an operand for the
-result after substitution.  If bound_function_selector is non-NULL,
-and if the expression results in a bound function, *bound_function_selector
-is set to the selector; if bound_function_selector is NULL and the
-expression results in a bound function, an error is (conceptually)
-issued.  local_options provides some options, in particular
-information about the immediate parent operator.  This routine is
-intended for use within the expression-processing routines; for an
-alternative callable from outside, see rescan_expr_with_substitution.
+Redo the semantic analysis on the expression expr as part of doing template
+deduction.  rcblock provides the deduction context, e.g., the template argument
+list being tried.  It also has an error_detected flag, which is set to TRUE if
+any error is detected during the rescan.  If there is no error, *result is set
+to an operand for the result after substitution.  If bound_function_selector is
+non-NULL, and if the expression results in a bound function,
+*bound_function_selector is set to the selector; if bound_function_selector is
+NULL and the expression results in a bound function, an error is (conceptually)
+issued.  local_options provides some options, in particular information about
+the immediate parent operator.  This routine is intended for use within the
+expression-processing routines; for an alternative callable from outside, see
+rescan_expr_with_substitution.  top_level_expr is TRUE when this is called from
+rescan_expr_with_substitution and FALSE when it is called from
+make_rescan_operand_full (which means it is for the rescanning of an operand of
+a enclosing expression).
 */
 {
   an_expr_stack_entry           expr_stack_entry;
@@ -47547,6 +47550,7 @@ alternative callable from outside, see rescan_expr_with_substitution.
   } else if (expr_stack->any_suppressed_error) {
     subst_fail(rcblock->error_detected);
   } else if (constexpr_enabled && !is_constant_operand(result) &&
+             top_level_expr &&
              !is_a_function_designator(result) &&
              !is_indefinite_function_operand(result) &&
              curr_expr_kind_is(ek_integral_constant)) {
@@ -47639,8 +47643,8 @@ function or template.
                                   &expr_stack_entry);
   rescan_expr_with_substitution_internal(expr, rcblock,
                                          EOPT_NO_OPTIONS,
-                                         &result,
-                                         (an_operand *)NULL);
+                                         &result, (an_operand *)NULL,
+                                         /*top_level_expr=*/TRUE);
   if (!rcblock->error_detected) {
     if (guide_type != NULL &&
         (is_indefinite_function_operand(&result) || constexpr_enabled ||

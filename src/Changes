@@ -1,5 +1,21 @@
 Version 6.1
 
+7/7/20   [EDGcpfe/23058]
+Spurious SFINAE failure when rescanning a subexpression
+
+Consider:
+
+  template<typename T> T &&declval() noexcept;
+  struct W { bool value; };
+  template<typename T> constexpr W wrap = { noexcept(*declval<T>()) };
+  template<typename T> void f(T &&v) noexcept(wrap<T>.value) {}
+  void g(int *x) { f(x); }
+
+Previously, the substitution of "wrap<T>.value" failed because the front end
+erroneously attempted to force a conversion to bool-like type on wrap<T>
+(instead of wrap<T>.value).  That is now fixed.
+
+
 7/7/20   [EDGcpfe/22402]
 C++-generating back end: deduced return types and generated specializations
 

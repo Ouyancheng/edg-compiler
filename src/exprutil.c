@@ -4793,7 +4793,8 @@ in *bound_function_selector.
        implicit operations stripped above. */
     rescan_expr_with_substitution_internal(orig_expr, rcblock,
                                            local_options,
-                                           operand, bound_function_selector);
+                                           operand, bound_function_selector,
+                                           /*top_level_expr=*/FALSE);
     rescanned_case = TRUE;
   } else {
     /* Copy the expression with substitution. */

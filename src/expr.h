@@ -773,7 +773,8 @@ extern void rescan_expr_with_substitution_internal(
                             a_rescan_control_block   *rcblock,
                             a_local_expr_options_set local_options,
                             an_operand_ptr           result,
-                            an_operand_ptr           bound_function_selector);
+                            an_operand_ptr           bound_function_selector,
+                            a_boolean                top_level_expr);
 
 extern an_expr_node_ptr rescan_expr_with_substitution(
                                              an_expr_node_ptr       expr,
