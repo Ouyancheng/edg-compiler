@@ -11319,7 +11319,6 @@ condition and return TRUE.  Otherwise, return FALSE and record a diagnostic.
     default:
       *p_cond = TRUE;
       do_constexpr_fail(result);
-      unexpected_condition();
   }  /* switch */
   return result;
 }  /* check_boolean_condition */

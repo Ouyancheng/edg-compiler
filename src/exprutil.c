@@ -14155,7 +14155,7 @@ of a subscript operation).
       /* Don't fold if we prefer a ck_template_param/tpck_expression
          constant. */
       try_folding = FALSE;
-    } else if (curr_expr_kind_is(ek_sizeof) &&
+    } else if (!expr_stack->potentially_evaluated &&
                !expr_stack->favor_constant_result) {
       /* No need to fold in an unevaluated expression.  The exception is
          the operand of __builtin_constant_p (which also sets the
@@ -14176,8 +14176,10 @@ of a subscript operation).
       force_operand_to_constant_if_possible(operand_1);
       force_operand_to_constant_if_possible(operand_2);
     }  /* if */
-    if (try_folding &&
-        is_constant_operand(operand_1) && is_constant_operand(operand_2)) {
+    if (!try_folding) {
+      /* Do not try to fold the operator. */
+    } else if (is_constant_operand(operand_1) &&
+               is_constant_operand(operand_2)) {
       /* If the operator could not be determined (because the operand types
          are incompatible), fold the operation to an error operand. */
       if (op == (an_expr_operator_kind)eok_error) {
@@ -20983,11 +20985,12 @@ lvalue_adjust:
                                         /*is_reinterpret_cast=*/FALSE,
                                         /*maintain_expression=*/TRUE,
                                         &did_not_fold, err_pos);
-              check_assertion(!did_not_fold);
-              con_expr_value = alloc_shareable_constant(result_con);
-              node->is_lvalue = node->is_xvalue = FALSE;
-              node->type = prvalue_node_type;
-              processed = TRUE;
+              if (!did_not_fold) {
+                con_expr_value = alloc_shareable_constant(result_con);
+                node->is_lvalue = node->is_xvalue = FALSE;
+                node->type = prvalue_node_type;
+                processed = TRUE;
+              }  /* if */
             }  /* if */
           }  /* if */
           break;
@@ -24525,7 +24528,7 @@ subject to SFINAE.
                                            (map_failure_is_fatal ||
                                             !(clang_mode || microsoft_mode)),
                                          diag_list, p_fatal);
-      if (!result) {
+      if (!result && !*p_fatal) {
         /* Insert a diagnostic before the ones detailing the constraint
            failure. */
         a_diag_list  new_diags;
@@ -24558,10 +24561,11 @@ subject to SFINAE.
                                        template_param_list,
                                        map_failure_is_fatal, diag_list,
                                        p_fatal) ||
-             requires_clause_satisfied(opnds->next, template_arg_list,
-                                       template_param_list,
-                                       map_failure_is_fatal, diag_list,
-                                       p_fatal);
+             (!*p_fatal &&
+              requires_clause_satisfied(opnds->next, template_arg_list,
+                                        template_param_list,
+                                        map_failure_is_fatal, diag_list,
+                                        p_fatal));
   } else {
     /* An atomic constraint.  First perform substitution; then evaluate the
        expression. */
@@ -24589,7 +24593,7 @@ subject to SFINAE.
                            &constraint->position, diag_list);
       result = FALSE;
     } else if (expr != NULL) {
-      if (!is_bool_type(expr->type)) {
+      if (!is_bool_type(strip_implicit_operations(expr)->type)) {
         /* If the type is not a boolean after substitution, the failure is
            not SFINAE-like. */
         *p_fatal = TRUE;

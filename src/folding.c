@@ -2122,7 +2122,7 @@ for any diagnostics issued.
 */
 {
   a_type_ptr        constant_type, new_type_with_typedefs;
-  a_constant_ptr    new_constant = local_constant();
+  a_constant_ptr    new_constant;
   an_error_code     err_code;
   an_error_severity err_severity;
   a_boolean         depends_on_fp_mode = FALSE;
@@ -2130,10 +2130,11 @@ for any diagnostics issued.
   a_boolean         suppress_diags = (error_detected != NULL);
 
   db_enter(5, "type_change_constant_full");
-  *did_not_fold = FALSE;
   if (error_detected != NULL) *error_detected = ec_no_error;
+  *did_not_fold = FALSE;
   err_code = ec_no_error;
   err_severity = es_warning;
+  new_constant = local_constant();
   clear_constant(new_constant, (a_constant_repr_kind)ck_error);
   /* Preserve the null_pointer_constant_ruled_out flag. */
   new_constant->null_pointer_constant_ruled_out =
@@ -2151,7 +2152,7 @@ for any diagnostics issued.
     /* Changing to an error type, or the old constant is an error constant,
        so produce an error constant as result. */
     set_error_constant(new_constant);
-    goto exit;
+    goto done_with_folding;
   }  /* if */
   /* Not using context_may_have_dependent_types here because we can get
      "auto" from type deductions in initializations. */
@@ -2164,14 +2165,26 @@ for any diagnostics issued.
     copy_constant(constant, new_constant);
     /* Put in the actual type wanted, as it may have typedefs. */
     new_constant->type = new_type_with_typedefs;
-    goto exit;
+    goto done_with_folding;
+  }  /* if */
+  if (expr_stack != NULL && !expr_stack->potentially_evaluated &&
+      !evaluated_context && !expr_stack->favor_constant_result &&
+      !((type_is(new_type, tk_pointer) || type_is(new_type, tk_nullptr)) &&
+        constant_is(constant, ck_integer))) {
+    /* No need to fold the result if this is an unevaluated context, except
+       possibly when creating pointer constants (like the null pointer).
+       In constraint-expressions (which are unevaluated) we want to avoid
+       folding because that makes recovering the original type more difficult,
+       and later processing has to ensure that the original type was bool. */
+    *did_not_fold = TRUE;
+    goto done_with_folding;
   }  /* if */
   if (template_case) {
     /* Casting a template parameter constant, or casting to a template
        parameter type.  Use a tpck_expression constant. */
     make_template_param_cast_constant(constant, new_constant, new_type,
                                       !is_implicit_cast);
-    goto exit;
+    goto done_with_folding;
   }  /* if */
   if (is_bool_type(new_type)) {
     /* Conversion of any type to bool.  Set the boolean value to FALSE (zero)
@@ -2181,12 +2194,12 @@ for any diagnostics issued.
       /* The constant's value is not known until link time, so the conversion
          cannot be folded at this time. */
       *did_not_fold = TRUE;
-      goto exit;
+      goto done_with_folding;
     }  /* if */
     set_constant_kind(new_constant, (a_constant_repr_kind)ck_integer);
     set_integer_value(&new_constant->variant.integer_value,
                       (a_host_large_integer)!is_false_constant(constant));
-    goto exit;
+    goto done_with_folding;
   }  /* if */
   if (is_nullptr_type(new_type)) {
     /* Conversion to a nullptr type.  There is only one "value" of a
@@ -2196,7 +2209,7 @@ for any diagnostics issued.
     set_integer_value(&new_constant->variant.integer_value,
                       (a_host_large_integer)0);
     new_constant->implicit_cast = TRUE;
-    goto exit;
+    goto done_with_folding;
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cli_or_cx_enabled && is_handle_type(new_type)) {
@@ -2211,7 +2224,7 @@ for any diagnostics issued.
       err_code = ec_cli_attribute_invalid_argument;
       err_severity = es_error;
       *did_not_fold = TRUE;
-      goto exit;
+      goto done_with_folding;
     } else if (boxing_conversion_possible(constant_type, new_type,
                                           (a_std_conv_descr *)NULL)) {
       if (is_cli_attr_arg_expression &&
@@ -2225,17 +2238,17 @@ for any diagnostics issued.
         /* A C++/CLI boxing conversion cannot be folded to a constant. */
         *did_not_fold = TRUE;
       }  /* if */
-      goto exit;
+      goto done_with_folding;
     } else if (is_cli_attr_arg_expression) {
       if (impl_handle_conversion(constant_type, new_type,
                                  /*allow_qualifier_or_eh_mismatch=*/FALSE,
                                  (a_std_conv_descr *)NULL)) {
         copy_constant(constant, new_constant);
         implicit_or_explicit_cast(new_constant, new_type, is_implicit_cast);
-        goto exit;
+        goto done_with_folding;
       } else if (is_handle_type(constant_type)) {
         *did_not_fold = TRUE;
-        goto exit;
+        goto done_with_folding;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -2246,7 +2259,7 @@ for any diagnostics issued.
        in the cast (an opposed to inside a typedef declared elsewhere) is
        a non-constant operation and cannot be folded. */
     *did_not_fold = TRUE;
-    goto exit;
+    goto done_with_folding;
   }  /* if */
 #if GNU_VECTOR_TYPES_ALLOWED
   if (new_type->kind == (a_type_kind)tk_vector ||
@@ -2265,7 +2278,7 @@ for any diagnostics issued.
       /* Put in the actual type wanted, as it may have typedefs. */
       new_constant->type = new_type_with_typedefs;
     }  /* if */
-    goto exit;
+    goto done_with_folding;
   }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
@@ -2275,7 +2288,7 @@ for any diagnostics issued.
     /* THREADS and MYTHREAD are not compile-time constants and should
        therefore not be folded. */
     *did_not_fold = TRUE;
-    goto exit;
+    goto done_with_folding;
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
   if (constant->kind == (a_constant_repr_kind)ck_address) {
@@ -2289,7 +2302,7 @@ for any diagnostics issued.
                              fold_constant_addr_exprs, is_reinterpret_cast,
                              /*is_object_pointer=*/FALSE,
                              did_not_fold, err_pos, &err_code, &err_severity);
-    goto exit;
+    goto done_with_folding;
   }  /* if */
 
   /* Determine the type we are converting from. */
@@ -2532,7 +2545,7 @@ for any diagnostics issued.
       unexpected_condition_str("type_change_constant_full: from bad type");
   }  /* switch */
 
-exit:
+done_with_folding:
   if (!new_constant->null_pointer_constant_ruled_out) {
     /* Look for casts that rule out use of a constant as part of a null
        pointer constant.  In a null pointer constant, only casts from

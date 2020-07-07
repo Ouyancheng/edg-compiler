@@ -30316,25 +30316,44 @@ of:
 }  /* token_starts_primary_expression */
 
 
-inline static void check_bool_constraint(
-                                      an_operand                *opnd,
-                                      a_local_expr_options_set  local_options)
+static void check_and_adjust_constraint_expression(an_expr_node_ptr  expr)
 /*
-opnd is the operand of a logical operator.  If local_options has the flag
-EOPT_CONSTRAINT_EXPR set but the operand does not have type bool, issue an
-error.  Note that this function is called for both atomic and non-atomic
-constraints, but if the atomic constraints produce a bool result, the non-
-atomic constraints satisfy the constraint automatically (since logical
-operators applied to bool operands produce bool results).  
+The given expression is a constraint expression (i.e., the expression from a
+requires clause or from a concept definition).  Remove tpck_expression wrappers
+not embedded in atomic constraints and check that atomic constraints have a
+type that is bool, a template-dependent type, or an error type (issuing errors
+as appropriate).
 */
 {
-  if ((local_options & EOPT_CONSTRAINT_EXPR) != 0) {
-    if (!is_bool_type(opnd->type) && !is_template_param_type(opnd->type) &&
-        !is_error_type(opnd->type)) {
-      error_in_operand(ec_nonbool_atomic_constraint, opnd);
+  expr = skip_parens(expr);
+  while (is_constant_node(expr)) {
+    a_constant_ptr  cp = node_constant(expr);
+    if (constant_is(cp, ck_template_param) && tpck_is(cp, tpck_expression)) {
+      an_expr_node_ptr  saved_next = expr->next;
+      *expr = *expr_node_from_tpck_expression(cp);
+      expr->next = saved_next;
+    } else {
+      break;
+    }  /* if */
+  }  /* while */
+  if (is_operation_node(expr) &&
+      (node_operator_is(expr, eok_land) || node_operator_is(expr, eok_lor))) {
+    /* A conjunction or disjunction: Check each operand recursively. */
+    check_and_adjust_constraint_expression(expr->variant.operation.operands);
+    check_and_adjust_constraint_expression(expr->variant.operation.operands
+                                               ->next);
+  } else {
+    /* Ensure the type could be bool (ignoring implicit conversions to
+       bool). */
+    expr = strip_implicit_operations(expr);
+    if (!is_bool_type(expr->type) && !is_template_param_type(expr->type) &&
+        !is_error_type(expr->type)) {
+      pos_error(ec_nonbool_atomic_constraint, &expr->position);
+      set_expr_node_kind(expr, (an_expr_node_kind)enk_error);
+      expr->type = error_type();
     }  /* if */
   }  /* if */
-}  /* check_bool_constraint */
+}  /* check_and_adjust_constraint_expression */
 
 
 static void scan_logical_operator(an_operand               *operand_1,
@@ -30390,9 +30409,6 @@ and whether the operator appears at the top level of a requires clause.
     operator_position = pos_curr_token;
     operator_tok_seq_number = curr_token_sequence_number;
     local_options &= EOPT_CONSTRAINT_EXPR | EOPT_REQUIRES_CLAUSE;
-    if ((local_options & EOPT_CONSTRAINT_EXPR) != 0) {
-      check_bool_constraint(operand_1, local_options);
-    }  /* if */
   }  /* if */
 
   /* There is a potential sequence point after the first operand. */
@@ -30471,7 +30487,6 @@ and whether the operator appears at the top level of a requires clause.
       }  /* if */
     }  /* if */
     scan_expr(&operand_2, prec_level, local_options);
-    check_bool_constraint(&operand_2, local_options);
     expr_stack->inside_conditional_expression =
                                            saved_inside_conditional_expression;
     /* Restore the evaluated flag as it was on entry. */
@@ -30517,7 +30532,7 @@ and whether the operator appears at the top level of a requires clause.
                                          &processed);
   }  /* if */
   if (!processed) {
-    a_boolean  reduce;
+    a_boolean  reduce, op2_dependent = FALSE;
 #if GNU_VECTOR_TYPES_ALLOWED
     a_type_ptr operation_type;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -30587,9 +30602,15 @@ and whether the operator appears at the top level of a requires clause.
          // Microsoft mode.
     */
     reduce = FALSE;
+    if (is_template_dependent_context()) {
+      op2_dependent = operand_is_dependent(&operand_2);
+      if (op2_dependent) {
+        // XXX make_template_param_expr_constant_operand(&operand_2);
+      }  /* if */
+    }  /* if */
     if (known_result && 
         (!is_constant_operand(&operand_2) ||
-         (microsoft_mode && operand_is_dependent(&operand_2)))) {
+         (microsoft_mode && op2_dependent))) {
       if (curr_expr_kind_is_const()) {
         /* In constant expressions we must always reduce, so that
            1 || 2/0, for example, comes out as a constant. */
@@ -35675,6 +35696,7 @@ type_identifier_case:
           }  /* if */
           break;
         case sk_concept_template:
+          /* Presumably a concept-id. */
           {
             a_template_arg_ptr  tap;
             (void)get_token();
@@ -35718,7 +35740,7 @@ type_identifier_case:
                      !scope_stack_top().is_rescan)) {
                   make_template_param_expr_constant(node, con);
                 } else {
-                  a_boolean             val;
+                  a_boolean             val, fatal = FALSE;
                   a_diag_list           diag_list;
                   a_template_param_ptr  param_list = tssp->cache.decl_info
                                                          ->parameters;
@@ -35726,7 +35748,16 @@ type_identifier_case:
                   val = requires_clause_satisfied(
                                                node, tap, param_list,
                                                /*map_failure_is_fatal=*/FALSE,
-                                               &diag_list);
+                                               &diag_list, &fatal);
+                  if (fatal) {
+                    a_diagnostic  *dp = pos_start_error(ec_invalid_concept_id,
+                                                        &start_position);
+                    add_more_info_list(dp, &diag_list);
+                    end_diagnostic(dp);
+                    make_error_operand(result);
+                    release_local_constant(&con);
+                    break;
+                  }  /* if */
                   make_bool_constant_value(val, con);
                   con->expr = node;
                   discard_more_info_list(&diag_list);
@@ -37851,6 +37882,8 @@ passed).
     a_type_ptr        rtp = skip_typerefs(rp->type);
     an_arg_list_elem  *op_list, *op2;
     an_operand        *operand;
+    a_boolean         saved_favor_constant_result =
+                                            expr_stack->favor_constant_result;
     /* Create a one- or two-element operand list. */
     op_list = alloc_init_component((an_init_component_kind)ick_expression);
     operand = operand_of_arg_list_elem(op_list);
@@ -37874,7 +37907,10 @@ passed).
       make_integer_constant_operand(operand, (a_host_large_integer)length);
     }  /* if */
     /* Process the argument list through the usual process to ensure that any
-       needed conversions are performed. */
+       needed conversions are performed.  Make sure that constants are produced
+       so the original literal is easily recognized as a constant (as opposed
+       to be hidden under a cast node, in particular). */
+    expr_stack->favor_constant_result = TRUE;
     scan_call_arguments(rtp, rp, /*already_after_left_paren=*/FALSE,
                         &arg_list, /*return_raw_arguments=*/FALSE,
                         /*unknown_dependent_function=*/FALSE,
@@ -37886,6 +37922,7 @@ passed).
                         /*single_operand=*/(an_operand*)NULL,
                         /*single_operand_return=*/(a_boolean*)NULL,
                         (a_source_position*)NULL);
+    expr_stack->favor_constant_result = saved_favor_constant_result;
     /* Clear backing expressions in the argument constants since they're
        meaningless and confuse mangling. */
     if (is_constant_node(arg_list)) {
@@ -46239,9 +46276,9 @@ Otherwise, return a pointer to that representation.
     }  /* if */
     scan_expr(&opnd, PREC_QUEST_MARK,
               EOPT_CONSTRAINT_EXPR | EOPT_REQUIRES_CLAUSE);
-    check_bool_constraint(&opnd, EOPT_CONSTRAINT_EXPR | EOPT_REQUIRES_CLAUSE);
     if (!discard) {
       rcp->constraint = make_node_from_operand(&opnd);
+      check_and_adjust_constraint_expression(rcp->constraint);
     } else {
       reclaim_fs_nodes_of_operand(&opnd);
     }  /* if */
@@ -46290,6 +46327,7 @@ expression.
   expr_stack_entry.possible_rescan_context = TRUE;
   scan_expr(&opnd, PREC_QUEST_MARK, EOPT_CONSTRAINT_EXPR);
   result_node = make_node_from_operand(&opnd);
+  check_and_adjust_constraint_expression(result_node);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
   return result_node;

@@ -18815,7 +18815,7 @@ are ignored even in modes where such specifiers are part of that type.
       goto done;
     }  /* if */
     if (!other_ptp->is_parameter_pack) other_ptp = other_ptp->next;
-  }  /* if */
+  }  /* for */
   if (other_ptp != NULL && !other_ptp->is_parameter_pack) {
     /* Too many args in function template (and therefore in each of its
        instantiations) to justify looking any further. */

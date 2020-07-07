@@ -2576,6 +2576,16 @@ extern an_expr_node_ptr strip_implicit_operations_for_rescan(
                                         an_expr_node_ptr        expr,
                                         an_expr_rescan_info_entry_ptr *periep);
 
+inline an_expr_node_ptr strip_implicit_operations(an_expr_node_ptr  expr)
+/*
+Return the top-most node in the given expression tree that corresponds to an
+explicit source construct (as opposed, for example, to an implied conversion).
+*/
+{
+  return strip_implicit_operations_for_rescan(
+                                   expr, (an_expr_rescan_info_entry_ptr*)NULL);
+}  /* strip_implicit_operations */
+
 extern an_expr_rescan_info_entry_ptr get_expr_rescan_info(
                                        an_expr_node_ptr          expr,
                                        an_expr_rescan_info_entry *rescan_info);

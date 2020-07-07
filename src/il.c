@@ -19843,7 +19843,8 @@ lookup options.
                                             /*address_escapes=*/TRUE)) {
           /* The expression has constant pointer value (possibly
              template-dependent), so return that constant. */
-        } else {
+        } else if (is_template_dependent_type(expr_copy->type) ||
+                   !fold_expr(expr_copy, constant)) {
           make_template_param_expr_constant(expr_copy, constant);
         }  /* if */
       }  /* if */
