@@ -17967,6 +17967,9 @@ error cases.
     return_type = type_of_unknown_templ_param_nontype;
   } else {
     return_type = il_return_type_of(function_type);
+    if (rout != NULL && rout->has_deduced_return_type) {
+      return_type = type_without_deduced_auto_placeholder(return_type);
+    }  /* if */
     if (is_ptr_to_member_type(function_node->type)) {
       /* Call using a pointer-to-member-function. */
       if (selector_is_object_pointer) {

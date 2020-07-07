@@ -1427,6 +1427,8 @@ extern a_boolean routine_has_default_args(a_routine_ptr  rp);
 extern void copy_type(a_type_ptr from,
                       a_type_ptr to);
 
+extern a_type_ptr type_without_deduced_auto_placeholder(a_type_ptr  type);
+
 extern a_type_ptr copy_array_type_replacing_element_type(
                                                      a_type_ptr  old_array,
                                                      a_type_ptr  element_type);

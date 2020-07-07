@@ -1,5 +1,39 @@
 Version 6.1
 
+7/7/20   [EDGcpfe/22402]
+C++-generating back end: deduced return types and generated specializations
+
+In C++-generating back end configurations in which
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE,
+function and template parameters appearing in generated explicit
+specializations could sometimes be incorrectly put out using "auto" as a
+type, resulting in uncompilable generated code.  This is now fixed.  For
+example, with --c++17:
+
+  template<typename T> void f(T);
+  template<typename T> struct S {
+    static auto x() { return T(); }
+  };
+  void g() {
+    f(S<int>::x());
+  }
+
+The explicit specialization of f<int> was previously put out incorrectly as:
+
+  template<> void f(auto);
+
+and now correctly as:
+
+  template<> void f(int);
+
+The underlying issue for this problem was that the placeholder type indicating
+that a return type was deduced (i.e., the return type of S<int>::x() in the
+example above) was used for the type of the expression representing a call to
+the associated function.  That placeholder type then propagated through
+deduction to other function types.  Now, the expression no longer carries the
+placeholder type.
+
+
 7/4/20   [EDGcpfe/23048]
 C++-generating back end: use of local types in template arguments
 
@@ -3272,33 +3306,6 @@ end to represent the C++20 version of the language (see EDGcpfe/20000) has
 now been updated accordingly.  For example, with --c++20:
 
   long l = __cplusplus;  // Now sets l to 202002L
-
-
-2/25/20  [EDGcpfe/22402]
-C++-generating back end: deduced return types and generated specializations
-
-In C++-generating back end configurations in which
-NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE,
-function and template parameters appearing in generated explicit
-specializations could sometimes be incorrectly put out using "auto" as a
-type, resulting in uncompilable generated code.  This is now fixed.  For
-example, with --c++17:
-
-  template<typename T> void f(T);
-  template<typename T> struct S {
-    static auto x() { return T(); }
-  };
-  void g() {
-    f(S<int>::x());
-  }
-
-The explicit specialization of f<int> was previously put out incorrectly as:
-
-  template<> void f(auto);
-
-and now correctly as:
-
-  template<> void f(int);
 
 
 2/25/20  [EDGcpfe/22406]

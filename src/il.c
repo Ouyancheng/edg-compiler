@@ -13899,6 +13899,88 @@ Copy the type entry "from" to "to".
   copy_type_full(from, to, /*copy_default_args=*/TRUE);
 }  /* copy_type */
 
+
+a_type_ptr type_without_deduced_auto_placeholder(a_type_ptr  type)
+/*
+If the given type includes a typeref representing a deduced "auto" or
+"decltype(auto)" type, return an equivalent type entry without that
+placeholder.  Otherwise, return the given type.
+*/
+{
+  a_type_ptr  result;
+
+  if (type_is(type, tk_typeref) &&
+      (type->variant.typeref.is_deduced_auto ||
+       type->variant.typeref.is_deduced_decltype_auto)) {
+    result = type->variant.typeref.type;
+  } else {
+    /* Look for an embedded "auto" placeholder ("decltype(auto)" can only
+       appear at the top level and that case was handled above). */
+    a_boolean   has_auto = FALSE, done = FALSE;
+    a_type_ptr  tp = type;
+    while (!done) {
+      switch (tp->kind) {
+        case tk_pointer:
+          tp = tp->variant.pointer.type;
+          break;
+        case tk_array:
+          tp = tp->variant.array.element_type;
+          break;
+        case tk_typeref:
+          if (tp->variant.typeref.is_deduced_auto) {
+            has_auto = TRUE;
+            done = TRUE;
+            break;
+          }  /* if */
+          tp = tp->variant.typeref.type;
+          break;
+        case tk_ptr_to_member:
+          tp = tp->variant.ptr_to_member.type;
+          break;
+        default:
+          done = TRUE;
+      }  /* switch */
+    }  /* while */
+    if (!has_auto) {
+      result = type;
+    } else {
+      /* Copy the type tree above the placeholder entry first. */
+      a_type_ptr  *p_new_tp = &result;
+      tp = type;
+      done = FALSE;
+      while (!(type_is(tp, tk_typeref) && 
+               tp->variant.typeref.is_deduced_auto)) {
+        *p_new_tp = alloc_type(tp->kind);
+        copy_type_full(tp, *p_new_tp, /*copy_default_args=*/FALSE);
+        switch (tp->kind) {
+          case tk_pointer:
+            tp = tp->variant.pointer.type;
+            p_new_tp = &(*p_new_tp)->variant.pointer.type;
+            break;
+          case tk_array:
+            tp = tp->variant.array.element_type;
+            p_new_tp = &(*p_new_tp)->variant.array.element_type;
+            break;
+          case tk_typeref:
+            tp = tp->variant.typeref.type;
+            p_new_tp = &(*p_new_tp)->variant.typeref.type;
+            break;
+          case tk_ptr_to_member:
+            tp = tp->variant.ptr_to_member.type;
+            p_new_tp = &(*p_new_tp)->variant.ptr_to_member.type;
+            break;
+          default:
+            unexpected_condition();
+        }  /* switch */
+      }  /* while */
+      /* Make the new type point directly to the type underlying the
+         placeholder. */
+      *p_new_tp = tp->variant.typeref.type;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* type_without_deduced_auto_placeholder */
+
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
 void copy_routine_type_default_args(a_type_ptr  from_type,
