@@ -13328,21 +13328,46 @@ the value representation of the integer value.
           case eok_dot_vacuous_destructor_call:
           case eok_points_to_vacuous_destructor_call:
             if (constexpr_dynamic_alloc_enabled) {
-              a_constexpr_address  *cap = (a_constexpr_address*)opnd1_value;
-              if (!is_runtime_data_address(cap)) {
-                if (is_array_element(cap) ||
-                    cap->address != cap->complete_object) {
-                  a_type_ptr  obj_type;
-                  if (type_is(opnd1_type, tk_pointer)) {
-                    obj_type = skip_typerefs(opnd1_type->variant.pointer.type);
-                  } else {
+              /* Pseudo destructors are permitted in constant expressions. */
+              a_byte      *obj = NULL, *complete_obj;
+              a_type_ptr  obj_type = NULL;
+              if (type_is(opnd1_type, tk_pointer) || opnd1->is_lvalue ||
+                  opnd1->is_xvalue) {
+                /* The operand is an address. */
+                a_constexpr_address  *cap = (a_constexpr_address*)opnd1_value;
+                if (!is_runtime_data_address(cap)) {
+                  complete_obj = cap->complete_object;
+                  if (is_array_element(cap) || obj != complete_obj ||
+                      is_immediate_class_type(opnd1_type) ||
+                      type_is(opnd1_type, tk_array)) {
+                    /* Not a complete object of scalar type.  Prepare to mark
+                       as uninitialized the subobject (and any of its
+                       substructure). */
+                    obj = cap->address;
+                    if (type_is(opnd1_type, tk_pointer)) {
+                      obj_type = skip_typerefs(
+                                            opnd1_type->variant.pointer.type);
+                    } else {
+                      obj_type = opnd1_type;
+                    }  /* if */
+                  }  /* if */
+                } else {
+                  /* An rvalue pseudo-destruction. */
+                  if (is_immediate_class_type(opnd1_type) ||
+                      type_is(opnd1_type, tk_array)) {
+                    /* Not a scalar rvalue: Prepare to mark its substructure
+                       as uninitialized. */
+                    obj = opnd1_value;
                     obj_type = opnd1_type;
                   }  /* if */
-                  mark_whole_subobject_uninitialized(
-                                                  ips, cap->address, obj_type,
-                                                  cap->complete_object);
+                  complete_obj = opnd1_value;
                 }  /* if */
-                unmark_complete_object_initialized(cap->complete_object);
+                if (obj != NULL) {
+                  /* Mark the substructure as uninitialized. */
+                  mark_whole_subobject_uninitialized(ips, obj, obj_type,
+                                                     complete_obj);
+                }  /* if */
+                unmark_complete_object_initialized(complete_obj);
               }  /* if */
             } else {
               a_type_ptr  otp;
