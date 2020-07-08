@@ -5872,22 +5872,20 @@ al_id_equivalent attributes.
 }  /* gen_attribute_group_end */
 
 
-static a_boolean gen_attributes_full(an_attribute_ptr       attributes,
-                                     an_attribute_location  syntactic_location,
-                                     a_boolean              primary_only,
-                                     a_boolean              exclude_primary)
+static void gen_attributes_full(an_attribute_ptr       attributes,
+                                an_attribute_location  syntactic_location,
+                                a_boolean              primary_only,
+                                a_boolean              exclude_primary)
 /*
 Generate the non-internal attributes with the given syntactic location recorded
 in the given list.  If primary_only is TRUE, only generate attributes that are
 marked as being associated with the primary declaration.  If exclude_primary
 is TRUE, do not generate attributes associated with the primary declaration.
-Return TRUE if an attribute was emitted, FALSE otherwise.
 */
 {
   an_attribute_ptr        ap;
   an_attribute_group_ptr  agp = NULL;
   a_boolean               postfix_position = FALSE, suppress_comma = FALSE;
-  a_boolean               wrote_something = FALSE;
 
   if (syntactic_location ==
                           (an_attribute_location)al_id_equivalent_as_postfix) {
@@ -5927,14 +5925,12 @@ Return TRUE if an attribute was emitted, FALSE otherwise.
       write_tok_str(", ");
     }  /* if */
     gen_attribute(ap);
-    wrote_something = TRUE;
     /* Suppress a comma following a "using" prefix "attribute". */
     suppress_comma = (ap->kind == (a_byte_attribute_kind)ak_attr_using_prefix);
     if (ap->next == NULL || ap->group != ap->next->group) {
       gen_attribute_group_end(ap, postfix_position);
     }  /* if */
   }  /* if */
-  return wrote_something;
 }  /* gen_attributes_full */
 
 
@@ -5947,8 +5943,8 @@ Parameter descriptions are given in the header comment for
 gen_attributes_full.
 */
 {
-  (void)gen_attributes_full(attributes, syntactic_location, primary_only,
-                            /*exclude_primary=*/FALSE);
+  gen_attributes_full(attributes, syntactic_location, primary_only,
+                      /*exclude_primary=*/FALSE);
 }  /* gen_attributes */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -8724,8 +8720,8 @@ recorded).
       gnu_routine_supp(rout)->asm_name = NULL;
     }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
-    (void)gen_attributes_full(attributes, al_declarator_id, primary_attrs_only,
-                              exclude_primary_attrs);
+    gen_attributes_full(attributes, al_declarator_id, primary_attrs_only,
+                        exclude_primary_attrs);
     if (!force_unqualified_name) {
       /* Push the name context for a class/namespace member. */
       push_name_context_if_member(scp);
@@ -16486,8 +16482,8 @@ exception-handling "try" block.
     } else {
       /* Put out the parameter.  It may be unnamed. */
       a_source_correspondence *scp = NULL;
-      gen_attributes(handler_var->source_corresp.attributes, al_prefix,
-                     /*primary_only=*/FALSE);
+      gen_attributes(handler_var->source_corresp.attributes,
+                     al_prefix, /*primary_only=*/FALSE);
       if (has_name(handler_var)) {
         scp = &handler_var->source_corresp;
         /* Advance past the source sequence entry. */
@@ -20635,10 +20631,8 @@ declarator (or NULL if it wasn't recorded).
     } else {
       gen_decl_name(scp, iek_routine, force_unqualified_name);
     }  /* if */
-    gen_attributes(sec_decl == NULL ? scp->attributes
-                                    : sec_decl->attributes,
-                   al_declarator_id,
-                   /*primary_only=*/(sec_decl == NULL));
+    gen_attributes(sec_decl == NULL ? scp->attributes : sec_decl->attributes,
+                   al_declarator_id, /*primary_only=*/(sec_decl == NULL));
     if (!force_unqualified_name || friend_decl) {
       if (friend_decl) {
         /* Every compiler seems to have different lookup rules for names
@@ -21846,6 +21840,14 @@ handle_as_definition:
                                                     old_style_params_scanned) {
       gen_old_style_parameter_decls();
     }  /* if */
+    if (!rout->defined_outside_of_parent) {
+      /* In some configurations, inline member function definitions are
+         moved outside the class definition.  A postfix attribute is
+         acceptable on a member function definition inside a class
+         definition but not on an out-of-class definition, so we suppress
+         the latter case. */
+      gen_attributes(attributes, al_postfix, is_definition);
+    }  /* if */
     write_space();
     if (rout->special_kind == (a_special_function_kind)sfk_constructor &&
         scope->assoc_block->kind != (a_statement_kind)stmk_try_block) {
@@ -21854,17 +21856,6 @@ handle_as_definition:
          the ctor-initializers will be processed when putting out the
          try block). */
       gen_ctor_initializers(scope->variant.routine.constructor_inits);
-    }  /* if */
-    if (!rout->defined_outside_of_parent) {
-      /* In some configurations, inline member function definitions are
-         moved outside the class definition.  A postfix attribute is
-         acceptable on a member function definition inside a class
-         definition but not on an out-of-class definition, so we suppress
-         the latter case. */
-      if (gen_attributes_full(attributes, al_postfix, is_definition,
-                              /*exclude_primary=*/FALSE)) {
-        write_space();
-      }  /* if */
     }  /* if */
     /* Generate the body of the function. */
     gen_statement(scope->assoc_block);

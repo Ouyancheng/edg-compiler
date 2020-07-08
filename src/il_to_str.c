@@ -351,8 +351,8 @@ Do the output in the way described by octl.
 */
 {
   if (octl->output_attributes != NULL) {
-    octl->output_attributes(type->source_corresp.attributes, al_predeclarator,
-                            /*primary_only=*/FALSE);
+    octl->output_attributes(type->source_corresp.attributes,
+                            al_predeclarator, /*primary_only=*/FALSE);
   }  /* if */
 }  /* output_predeclarator_attributes */
 
