@@ -30325,6 +30325,8 @@ type that is bool, a template-dependent type, or an error type (issuing errors
 as appropriate).
 */
 {
+  a_boolean  is_atomic = TRUE;
+
   expr = skip_parens(expr);
   while (is_constant_node(expr)) {
     a_constant_ptr  cp = node_constant(expr);
@@ -30336,16 +30338,28 @@ as appropriate).
       break;
     }  /* if */
   }  /* while */
+  expr = strip_implicit_operations(expr);
   if (is_operation_node(expr) &&
       (node_operator_is(expr, eok_land) || node_operator_is(expr, eok_lor))) {
     /* A conjunction or disjunction: Check each operand recursively. */
-    check_and_adjust_constraint_expression(expr->variant.operation.operands);
-    check_and_adjust_constraint_expression(expr->variant.operation.operands
-                                               ->next);
-  } else {
+    an_expr_node_ptr  opnd = expr->variant.operation.operands;
+    check_and_adjust_constraint_expression(opnd);
+    check_and_adjust_constraint_expression(opnd->next);
+    is_atomic = FALSE;
+  } else if (is_call_node(expr) &&
+             expr->variant.operation.call_uses_operator_syntax) {
+    an_expr_node_ptr  opnd = expr->variant.operation.operands;
+    a_routine_ptr     rp = routine_from_function_expr(opnd);
+    if (special_kind_is(rp, sfk_operator) &&
+        (opname_kind_is(rp, onk_and_and) || opname_kind_is(rp, onk_or_or))) {
+      check_and_adjust_constraint_expression(opnd->next);
+      check_and_adjust_constraint_expression(opnd->next->next);
+      is_atomic = FALSE;
+    }  /* if */
+  }  /* if */
+  if (is_atomic) {
     /* Ensure the type could be bool (ignoring implicit conversions to
        bool). */
-    expr = strip_implicit_operations(expr);
     if (!is_bool_type(expr->type) && !is_template_param_type(expr->type) &&
         !is_error_type(expr->type)) {
       pos_error(ec_nonbool_atomic_constraint, &expr->position);
@@ -30532,7 +30546,7 @@ and whether the operator appears at the top level of a requires clause.
                                          &processed);
   }  /* if */
   if (!processed) {
-    a_boolean  reduce, op2_dependent = FALSE;
+    a_boolean  reduce;
 #if GNU_VECTOR_TYPES_ALLOWED
     a_type_ptr operation_type;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -30602,15 +30616,10 @@ and whether the operator appears at the top level of a requires clause.
          // Microsoft mode.
     */
     reduce = FALSE;
-    if (is_template_dependent_context()) {
-      op2_dependent = operand_is_dependent(&operand_2);
-      if (op2_dependent) {
-        // XXX make_template_param_expr_constant_operand(&operand_2);
-      }  /* if */
-    }  /* if */
     if (known_result && 
         (!is_constant_operand(&operand_2) ||
-         (microsoft_mode && op2_dependent))) {
+         (microsoft_mode && is_template_dependent_context() &&
+          operand_is_dependent(&operand_2)))) {
       if (curr_expr_kind_is_const()) {
         /* In constant expressions we must always reduce, so that
            1 || 2/0, for example, comes out as a constant. */
@@ -37909,7 +37918,7 @@ passed).
     /* Process the argument list through the usual process to ensure that any
        needed conversions are performed.  Make sure that constants are produced
        so the original literal is easily recognized as a constant (as opposed
-       to be hidden under a cast node, in particular). */
+       to being hidden under a cast node, in particular). */
     expr_stack->favor_constant_result = TRUE;
     scan_call_arguments(rtp, rp, /*already_after_left_paren=*/FALSE,
                         &arg_list, /*return_raw_arguments=*/FALSE,
