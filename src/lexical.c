@@ -3614,6 +3614,34 @@ and return a pointer to it.
 }  /* nested_source_line_modif */
 
 
+a_boolean has_nested_source_line_modif(a_const_char *loc_in_line)
+/*
+*loc_in_line contains an ATTENTION_MARKER, possibly indicating that the
+text at that point is altered by a source line modification entry.  (Some
+ATTENTION_MARKERs can appear in raw string literals in macro expansions,
+and those do not indicate the start of a source line modification.)  Return
+TRUE if there is a source line modification associated with the indicated
+location, FALSE otherwise.
+*/
+{
+  unsigned long           hash = hash_value_for_source_line_modif(loc_in_line);
+  a_source_line_modif_ptr slmp;
+
+#if DEBUG
+  num_lookups_in_source_line_modif_hash_table++;
+#endif /* DEBUG */
+  /* Search the hash table for the specified location. */
+  for (slmp = source_line_modif_hash_table[hash];
+       slmp != NULL && slmp->line_loc != loc_in_line;
+       slmp = slmp->next_in_hash_table) {
+#if DEBUG
+    num_compares_in_source_line_modif_hash_table++;
+#endif /* DEBUG */
+  }  /* for */
+  return slmp != NULL;
+}  /* has_nested_source_line_modif */
+
+
 void gen_pp_line_info(ARG_UNUSED char kind,
                       a_boolean       next_line)
 /*
@@ -3920,7 +3948,8 @@ is TRUE.
                next_raw_string_modif = next_raw_string_modif->next) {}
           /* Suppress inter-token spaces within raw string literals. */
           prev_ch = '\n';
-        } else if (ch == ATTENTION_MARKER) {
+        } else if (ch == ATTENTION_MARKER &&
+                   has_nested_source_line_modif(loc_in_line)) {
           /* Attention marker.  Find the associated source line modification
              and process it. */
           walk_into_insertion(slmp, ins_slmp, loc_in_line);
@@ -3995,6 +4024,18 @@ is TRUE.
             unexpected_condition_str(
                             "gen_pp_output_for_curr_line: bad lexical escape");
           }  /* if */
+        } else if (ch == '\n') {
+          /* Ordinarily a newline character is interpreted as an
+             ATTENTION_MARKER, but if a raw string literal appears in
+             expanded macro text, it can have embedded newlines that are
+             not ATTENTION_MARKERs.  The ATTENTION_MARKER case was handled
+             above, so treat this newline as if it were an LE_NEWLINE
+             lexical escape; see above for details. */
+          putc('\n', f_pp_output);
+          prev_ch = '\n';
+          prev_pp_output_line_was_complete = TRUE;
+          ++next_seq_in_pp_output;
+          ++loc_in_line;
         } else {
           /* Normal character. */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
@@ -4347,7 +4388,8 @@ the calls to this routine.
       /* Fetch the next character, stepping into and out of macro
          expansions. */
       ch = *loc_in_line;
-      if (ch == ATTENTION_MARKER) {
+      if (ch == ATTENTION_MARKER &&
+          has_nested_source_line_modif(loc_in_line)) {
         /* Attention marker.  Find the associated source line modification
            and process it. */
         walk_into_insertion(slmp, ins_slmp, loc_in_line);
@@ -4414,6 +4456,26 @@ the calls to this routine.
           unexpected_condition_str(
                            "gen_expanded_raw_listing_...: bad lexical escape");
         }  /* if */
+      } else if (ch == '\n') {
+        /* Ordinarily a newline character is interpreted as an
+           ATTENTION_MARKER, but if a raw string literal appears in
+           expanded macro text, it can have embedded newlines that are not
+           ATTENTION_MARKERs.  The ATTENTION_MARKER case was handled above,
+           so treat this newline as if it were an LE_NEWLINE lexical
+           escape; see above for details. */
+        a_boolean save_must_display = must_display_raw_listing_buffer;
+        add_char_to_raw_listing_buffer('\n');
+        prev_ch = '\n';
+        /* We have a complete line and we should output it or throw it away
+           now. */
+        if (must_display_raw_listing_buffer) {
+          *loc_in_raw_listing_buffer = '\0';
+          putc('X', f_raw_listing);
+          fputs(raw_listing_buffer, f_raw_listing);
+        }  /* if */
+        clear_raw_listing_buffer();
+        must_display_raw_listing_buffer = save_must_display;
+        ++loc_in_line;
       } else {
         /* Normal character. */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
