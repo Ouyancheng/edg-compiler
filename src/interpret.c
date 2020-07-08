@@ -13328,7 +13328,7 @@ the value representation of the integer value.
           case eok_dot_vacuous_destructor_call:
           case eok_points_to_vacuous_destructor_call:
             if (constexpr_dynamic_alloc_enabled) {
-              /* Pseudo destructors are permitted in constant expressions. */
+              /* Pseudo-destructors are permitted in constant expressions. */
               a_byte      *obj = NULL, *complete_obj;
               a_type_ptr  obj_type = NULL;
               if (type_is(opnd1_type, tk_pointer) || opnd1->is_lvalue ||
