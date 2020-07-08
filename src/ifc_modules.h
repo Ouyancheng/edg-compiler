@@ -18,6 +18,8 @@ ifc_modules.h -- Declarations relating to ifc_modules.c (having to do with
 #ifndef IFC_MODULES_H
 #define IFC_MODULES_H 1
 
+#include "util.h"
+
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
@@ -149,11 +151,23 @@ struct ifc_Sequence {
 		cardinality;
 };  /* ifc_Sequence */
 
+typedef uint64_t a_module_ref_key;
+
 struct ifc_ModuleReference {
   ifc_TextOffset
 		owner;
   ifc_TextOffset
 		partition;
+  inline a_module_ref_key as_key() const
+  /*
+  Convert to a key for hashing purposes.
+  */
+  {
+    static_assert(sizeof(a_module_ref_key) >= sizeof(*this),
+                  "Key is not large enough");
+    return (((a_module_ref_key)partition) << (sizeof(owner) * CHAR_BIT)) |
+                                                                         owner;
+  }  /* as_key */
 };  /* ifc_ModuleReference */
 
 struct ifc_SourceLocation {
@@ -2108,6 +2122,10 @@ struct an_ifc_module : public a_module_interface {
                 partitions[(int)ifc_last+1] = {};
                         /* Information about each of the IFC partitions that
                            could exist in a module file. */
+  Ptr_map<a_module_ref_key, a_module_import_decl_ptr>
+                referenced_modules;
+                        /* A map from a module reference to the corresponding
+                           import decl. */
   a_seq_number  *sequence_numbers = NULL;
                         /* An array of sequence numbers, indexed by a
                            NameSort::SourceFile index, yields the sequence
@@ -2137,7 +2155,9 @@ private:
 			   there is no template declaration being processed. */
 
 public:
-  an_ifc_module() : a_module_interface((a_module_kind)mk_ifc) {}
+  an_ifc_module() : a_module_interface((a_module_kind)mk_ifc),
+                    referenced_modules(/*mask_width=*/4)
+  {}
   VIRTUAL ~an_ifc_module() EDG_NOEXCEPT = default;
 
   inline a_boolean is_open() const OVERRIDE {
@@ -2148,6 +2168,10 @@ public:
   void close() OVERRIDE;
   void pch_reset(a_module_import_decl_ptr midp) OVERRIDE;
 
+  inline a_module_entity_ptr get_ifc_module_entity_ptr(ifc_TypeIndex index)
+                                                                         const;
+  inline a_module_entity_ptr get_ifc_module_entity_ptr(ifc_DeclIndex index)
+                                                                         const;
   void process_ifc_declaration(a_module_entity_ptr mep,
                                a_boolean           defer,
                                a_type_ptr          enumeration_type) const;
@@ -2177,15 +2201,19 @@ private:
                         a_boolean header_bytes) const;
   a_boolean open_and_map_ifc_module_file(a_module_import_decl_ptr midp);
   static an_ifc_partition_map *find_ifc_partition(a_const_char *name);
+  void transitive_import_module(const ifc_ModuleReference *ref);
+  void import_referenced_modules();
   void process_ifc_scope(ifc_ScopeIndex scope_index,
                          a_scope_ptr    scope) const;
   /* Module entity getters. */
   a_module_entity_ptr get_ifc_module_entity_ptr(
                                        an_ifc_partition_kind partition,
                                        ifc_Index_type        index) const;
-  inline a_module_entity_ptr get_ifc_module_entity_ptr(ifc_TypeIndex index)
+  a_module_entity_ptr get_and_process_ifc_decl_from_other_module(
+                                          const an_ifc_DeclSort_Reference *ref)
                                                                          const;
-  inline a_module_entity_ptr get_ifc_module_entity_ptr(ifc_DeclIndex index)
+  a_module_entity_ptr get_and_process_ifc_decl_from_other_module(
+                                                           ifc_DeclIndex index)
                                                                          const;
   a_scope_ptr get_ifc_scope(ifc_DeclIndex scope_index) const;
   a_type_ptr type_for_type_index(ifc_TypeIndex   type_index,

@@ -4879,6 +4879,11 @@ extern a_symbol_ptr make_module_symbol(a_symbol_ptr      primary_name,
                                        a_boolean         is_interface,
                                        a_source_position *pos);
 
+extern a_symbol_ptr make_module_symbol(a_const_char      *primary_name,
+                                       a_const_char      *partition_name,
+                                       a_boolean         is_interface,
+                                       a_source_position *pos);
+
 extern a_symbol_ptr unnamed_field_symbol(void);
 
 extern a_symbol_ptr make_anonymous_parent_object_symbol(

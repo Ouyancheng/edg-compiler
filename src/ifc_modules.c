@@ -1482,6 +1482,7 @@ been confirmed to exist and the path stored in midp.
       sequence_numbers = (a_seq_number *)alloc_il(size);
       memzero((char *)sequence_numbers, size);
     }  /* if */
+    import_referenced_modules();
 #if DEBUG
     if (db_flag_is_set("ms_modsrc")) {
       /* Generate a textual representation of the module file and print it. */
@@ -1500,6 +1501,64 @@ been confirmed to exist and the path stored in midp.
   }  /* if */
   return result;
 }  /* import */
+
+
+void an_ifc_module::transitive_import_module(const ifc_ModuleReference *ref)
+/*
+Given a module reference, import the referenced module.
+*/
+{
+  a_module_import_decl_ptr midp;
+  a_const_char             *primary_name, *partition_name;
+  a_symbol_ptr             module_sym;
+
+  midp = alloc_module_import_decl();
+  primary_name = ref->owner != 0 ? get_string_at_offset(ref->owner) : NULL;
+  partition_name = ref->partition != 0 ? get_string_at_offset(ref->partition)
+                                       : NULL;
+  if (primary_name == NULL) {
+    primary_name = this->primary_name;
+  }  /* if */
+  module_sym = make_module_symbol(primary_name, partition_name,
+                                  /*is_interface=*/TRUE,
+                                  &null_source_position);
+  midp->module_name_position = null_source_position;
+  midp->module_info = alloc_module((a_module_kind)mk_ifc);
+  midp->module_info->name = module_sym->header->identifier;
+  referenced_modules.map(ref->as_key(), midp);
+  import_module(midp, module_sym);
+}  /* transitive_import_module */
+
+
+void an_ifc_module::import_referenced_modules()
+/*
+Import all appropriate modules that have been referenced by this module.
+
+FIXME: Handle non-exported imports in a way that follows reachability
+semantics.
+*/
+{
+  if (partitions[ifc_module_exported].name != NULL) {
+    auto num_modules = partitions[ifc_module_exported].size /
+                       partitions[ifc_module_exported].entry_size;
+    read_partition_at_index(ifc_module_exported, 0);
+    for (decltype(num_modules) idx = 0; idx < num_modules; ++idx) {
+      ifc_ModuleReference imr;
+      GET_ModuleReference(imr, /*from_header=*/FALSE);
+      transitive_import_module(&imr);
+    }  /* for */
+  }  /* if */
+  if (partitions[ifc_module_imported].name != NULL) {
+    auto num_modules = partitions[ifc_module_imported].size /
+                       partitions[ifc_module_imported].entry_size;
+    read_partition_at_index(ifc_module_imported, 0);
+    for (decltype(num_modules) idx = 0; idx < num_modules; ++idx) {
+      ifc_ModuleReference imr;
+      GET_ModuleReference(imr, /*from_header=*/FALSE);
+      transitive_import_module(&imr);
+    }  /* for */
+  }  /* if */
+}  /* import_referenced_modules */
 
 
 void an_ifc_module::close()
@@ -2132,13 +2191,10 @@ class_struct_union_case:
         { an_ifc_DeclSort_Reference idsr, *idsrp;
           a_module_entity_ptr       dmep;
           idsrp = get_DeclSort_Reference(&idsr);
-          /* FIXME: Import from the other module? */
-          unexpected_condition_str("DeclSort::Reference is not yet handled.");
-          dmep = get_ifc_module_entity_ptr(idsrp->local_index);
-          process_ifc_declaration(dmep, /*defer=*/FALSE,
-                                  /*enumeration_type=*/NULL);
+          dmep = get_and_process_ifc_decl_from_other_module(idsrp);
           il_entity = dmep->entity.ptr;
           kind = dmep->entity.kind;
+          mep->scope = dmep->scope;
         }
         break;
       case ifc_DeclSort_Method:
@@ -2430,6 +2486,45 @@ and index from the provided index.
 
   return get_ifc_module_entity_ptr(partition, decl_value(index));
 }  /* get_ifc_module_entity_ptr */
+
+
+a_module_entity_ptr an_ifc_module::get_and_process_ifc_decl_from_other_module(
+                                          const an_ifc_DeclSort_Reference *ref)
+                                                                          const
+/*
+Given a DeclSort::Reference to another module, get and return the
+fully-processed entity from the referenced module.
+*/
+{
+  a_module_entity_ptr       dmep;
+  a_module_import_decl_ptr  midp;
+  an_ifc_module             *iface;
+
+  midp = referenced_modules.get(ref->unit.as_key());
+  check_assertion(midp != NULL);
+  iface = (an_ifc_module*)midp->module_info->module_interface;
+  check_assertion(iface != NULL);
+  dmep = iface->get_ifc_module_entity_ptr(ref->local_index);
+  iface->process_ifc_declaration(dmep, /*defer=*/FALSE,
+                                 /*enumeration_type=*/NULL);
+  return dmep;
+}  /* get_and_process_ifc_decl_from_other_module */
+
+
+a_module_entity_ptr an_ifc_module::get_and_process_ifc_decl_from_other_module(
+                                                           ifc_DeclIndex index)
+                                                                          const
+/*
+Given an index for a DeclSort::Reference, get and return the fully-processed
+entity from the referenced module.
+*/
+{
+  an_ifc_DeclSort_Reference idsr, *idsrp;
+
+  read_partition_at_index(index);
+  idsrp = get_DeclSort_Reference(&idsr);
+  return get_and_process_ifc_decl_from_other_module(idsrp);
+}  /* get_and_process_ifc_decl_from_other_module */
 
 
 a_scope_ptr an_ifc_module::get_ifc_scope(ifc_DeclIndex scope_index) const
@@ -2802,28 +2897,23 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
       case ifc_TypeSort_Designated:
         /* A type's name (e.g., "A"). */
         { an_ifc_TypeSort_Designated itsd, *itsdp;
-          a_type_ptr                 class_or_enum_type;
           a_module_entity_ptr        dmep;
           ifc_DeclSort               dsort;
 
           itsdp = get_TypeSort_Designated(&itsd);
           dsort = decl_tag(itsdp->decl);
           if (dsort == ifc_DeclSort_Reference) {
-            unexpected_condition_str("DeclSort::Reference not yet handled "
-                                     "for TypeSort::Designated");
-          } else if (dsort == ifc_DeclSort_Parameter) {
-            unexpected_condition_str("DeclSort::Parameter not yet handled "
-                                     "for TypeSort::Designated");
+            dmep = get_and_process_ifc_decl_from_other_module(itsdp->decl);
+            result = (a_type_ptr)dmep->entity.ptr;
+            check_assertion(result != NULL && dmep->entity.kind == iek_type);
           } else if (dsort == ifc_DeclSort_Scope ||
                      dsort == ifc_DeclSort_Enumeration) {
             /* Find the type of the scope declaration by processing it (in
                case it has been deferred). */
             dmep = get_ifc_module_entity_ptr(itsdp->decl);
             process_ifc_declaration(dmep, /*defer=*/FALSE, (a_type_ptr)NULL);
-            class_or_enum_type = (a_type_ptr)dmep->entity.ptr;
-            check_assertion(class_or_enum_type != NULL &&
-                            dmep->entity.kind == iek_type);
-            result = class_or_enum_type;
+            result = (a_type_ptr)dmep->entity.ptr;
+            check_assertion(result != NULL && dmep->entity.kind == iek_type);
           } else {
             unexpected_condition_str("Unexpected DeclSort for "
                                      "TypeSort::Designated");

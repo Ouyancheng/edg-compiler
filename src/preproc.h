@@ -289,6 +289,8 @@ EXTERN a_gcc_pragma_options_entry_ptr
 
 extern void proc_modules_import(a_pp_directive_kind   ppd,
                                 a_source_position_ptr start_pos);
+extern void import_module(a_module_import_decl_ptr midp,
+                          a_symbol_ptr             assoc_sym);
 /* Scan a preprocessing directive. */
 extern void pp_directive(void);
 /* Verify that all #ifs are closed at end of source. */

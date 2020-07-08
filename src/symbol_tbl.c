@@ -7937,6 +7937,35 @@ position where the module name started.
   return sym;
 }  /* make_module_symbol */
 
+
+a_symbol_ptr make_module_symbol(a_const_char      *primary_name,
+                                a_const_char      *partition_name,
+                                a_boolean         is_interface,
+                                a_source_position *pos)
+/*
+Convenience wrapper for "make_module_symbol" that takes the primary and
+partition names as strings, creates the appropriate symbols for these names,
+and calls "make_module_symbol" with those symbols.  Return the result of that
+call.
+*/
+{
+  a_symbol_ptr primary_sym = NULL, partition_sym = NULL;
+
+  if (primary_name != NULL) {
+    a_symbol_locator loc;
+    (void)find_symbol(primary_name, (sizeof_t)strlen(primary_name), &loc);
+    primary_sym = alloc_symbol(sk_undefined, loc.symbol_header,
+                               &null_source_position);
+  }  /* if */
+  if (partition_name != NULL) {
+    a_symbol_locator loc;
+    (void)find_symbol(partition_name, (sizeof_t)strlen(partition_name), &loc);
+    partition_sym = alloc_symbol(sk_undefined, loc.symbol_header,
+                                 &null_source_position);
+  }  /* if */
+  return make_module_symbol(primary_sym, partition_sym, is_interface, pos);
+}  /* make_module_symbol */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 void make_unnamed_virtual_function_locator(a_symbol_locator *loc)

@@ -1405,8 +1405,8 @@ Import the given header module.
 }  /* import_header_module */
 
 
-static void import_module(a_module_import_decl_ptr midp,
-                          a_symbol_ptr             assoc_sym)
+void import_module(a_module_import_decl_ptr midp,
+                   a_symbol_ptr             assoc_sym)
 /*
 Import the given module.  assoc_sym is the associated symbol for the module.
 */
@@ -1419,6 +1419,7 @@ Import the given module.  assoc_sym is the associated symbol for the module.
     if (strcmp(ptr->module_info->name, midp->module_info->name) == 0) {
       pos_st_remark(ec_module_already_imported, &midp->module_name_position,
                     midp->module_info->name);
+      *midp = *ptr;
       already_included = TRUE;
       break;
     }  /* if */
