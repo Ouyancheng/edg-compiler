@@ -553,6 +553,9 @@ typedef int a_gen_name_options_set;
 #define GN_ELAB_TYPE_SPEC_AS_DECL 0x4000
 			/* The name is part of an elaborated-type-specifier
 			   that is used as a declaration. */
+#define GN_TEMPLATE_PARAM_TYPE_QUAL 0x8000
+			/* The name is a qualifier for a template parameter
+			   type. */
 
 /*
 The alignment specified by the most recent #pragma pack directive (0
@@ -1577,7 +1580,7 @@ infinite recursion.
   if (type->variant.typeref.is_template_alias) {
     /* Check that the target type does not appear in the template arguments
        of the alias template instance. */
-    ttt_flags = TTT_TEMPLATE_ARGS;
+    ttt_flags = TTT_TEMPLATE_ARGS | TTT_STOP_AT_TYPEDEFS;
     has_circularity = traverse_type_tree(type, ttt_check_type_match,
                                          ttt_flags);
   }  /* if */
@@ -1982,7 +1985,8 @@ Restore the current source sequence list scan state from *state.
 
 
 static void replace_inaccessible_type_with_accessible_typedef(
-                                             a_source_correspondence_ptr *scp);
+                                a_source_correspondence_ptr *scp,
+                                a_boolean                   force_replacement);
 
 
 static a_boolean template_arg_is_accessible(a_template_arg_ptr argp,
@@ -2021,7 +2025,9 @@ Pass for_all_scopes through to entity_name_is_accessible.
          used instead of the actual argument when putting out the
          template-id, so the argument should be considered accessible for
          that purpose. */
-      replace_inaccessible_type_with_accessible_typedef(&scp);
+      replace_inaccessible_type_with_accessible_typedef(
+                                                  &scp,
+                                                  /*force_replacement=*/FALSE);
       is_accessible = (scp != &argp->variant.type->source_corresp);
     }  /* if */
     break;
@@ -2437,7 +2443,9 @@ names is not public, set *for_all_scopes to FALSE.
       if (!is_accessible) {
         /* Check to see if there is an accessible typedef for the parent;
            if so, treat the type as accessible. */
-        replace_inaccessible_type_with_accessible_typedef(&parent_scp);
+        replace_inaccessible_type_with_accessible_typedef(
+                                                  &parent_scp,
+                                                  /*force_replacement=*/FALSE);
         if (parent_scp != &parent_class->source_corresp) {
           is_accessible = TRUE;
         }  /* if */
@@ -4637,16 +4645,19 @@ are done in the il_to_str routines before this routine is called.
 
 
 static void replace_inaccessible_type_with_accessible_typedef(
-                                              a_source_correspondence_ptr *scp)
+                                 a_source_correspondence_ptr *scp,
+                                 a_boolean                   force_replacement)
 /*
 *scp points to the source_correspondence field of a type.  If that type is
-inaccessible in the current context and there is an accessible typedef that
-designates the same type, set *scp to point to that typedef instead.
+inaccessible in the current context, or if force_replacement is TRUE, and
+there is an accessible typedef that designates the same type, set *scp to
+point to that typedef instead.
 */
 {
   a_boolean for_all_scopes = TRUE;
 
-  if (!entity_name_is_accessible(*scp, iek_type, /*ignore_context=*/FALSE,
+  if (force_replacement ||
+      !entity_name_is_accessible(*scp, iek_type, /*ignore_context=*/FALSE,
                                  &for_all_scopes)) {
     a_type_ptr typedef_type =
               find_typedef_in(accessible_typedef_hash_table, (a_type_ptr)*scp);
@@ -4751,7 +4762,9 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       entry_kind == iek_type && !(options & GN_DECLARATION)) {
     /* See if a reference to (but not a declaration of) an inaccessible
        type can be replaced by a known accessible typedef. */
-    replace_inaccessible_type_with_accessible_typedef(&scp);
+    replace_inaccessible_type_with_accessible_typedef(
+                                 &scp,
+                                 (options & GN_TEMPLATE_PARAM_TYPE_QUAL) != 0);
   }  /* if */
   if (entry_kind == (an_il_entry_kind)iek_constant) {
     a_constant_ptr con = (a_constant_ptr)scp;
@@ -5101,6 +5114,21 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           /* Do not insert code here. */
           {
             /* A normal class qualifier. */
+            if (entry_kind == iek_type &&
+                ((a_type_ptr)scp)->kind == (a_type_kind)tk_template_param) {
+              /* Always replace underlying types with their typedefs in
+                 qualifiers of template parameter types to avoid issues in
+                 which the qualifier cannot be expressed directly as the
+                 type referred to by an alias template specialization.  For
+                 example:
+                   template<typename ...Ts> using d = b<sizeof...(Ts)>;
+                   template<typename ...Ts> using e = typename<d<a<Ts>...>::c;
+                 Using the underlying type of d<a<Ts>...> in the second
+                 declaration would give typename b<sizeof...(a<Ts>)>, which
+                 is invalid, so the alias template specialization must be
+                 preserved. */
+              qualifier_options |= GN_TEMPLATE_PARAM_TYPE_QUAL;
+            }  /* if */
             (void)gen_class_qualifier(qualifier, qualifier_options,
                                       need_closing_paren);
           }  /* if */
