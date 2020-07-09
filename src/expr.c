@@ -15392,7 +15392,8 @@ name.  We do not advance to the token after the decltype in this case.
          instead. */
       a_constant_ptr    cp = local_constant();
       an_expr_node_ptr  node = operand.variant.expression;
-      if (fold_constexpr_expr(node, cp, /*is_constant_evaluated=*/FALSE,
+      if (is_operation_node(node) && node_operator_is(node, eok_call) &&
+          fold_constexpr_expr(node, cp, /*is_constant_evaluated=*/FALSE,
                               /*force_prvalue=*/FALSE)) {
         an_operand  orig_operand = operand;
         make_constant_operand(cp, &operand);
