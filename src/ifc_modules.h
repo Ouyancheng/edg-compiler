@@ -542,8 +542,9 @@ enum ifc_InitializerSort : ifc_Sort_type {
 };
 
 /* Macros used to access StringIndex::tag and StringIndex::value. */
-#define str_tag(str) ((ifc_StringSort)((str) & 0x0000000F))
-#define str_value(str) ((ifc_Index)((str) >> 4))
+/* Spec says StringSort has width 4 bits, IFC files suggest it's 3 bits. */
+#define str_tag(str) ((ifc_StringSort)((str) & 0x00000007))
+#define str_value(str) ((ifc_Index)((str) >> 3))
 
 /* Enumeration for StringSort (i.e., kinds of strings). */
 enum ifc_StringSort : ifc_Sort_type {

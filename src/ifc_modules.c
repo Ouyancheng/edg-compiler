@@ -3893,6 +3893,7 @@ Add a tok_literal for lit_const to cache.  pos is the position of the literal.
 
 
 static void cache_string_literal(a_token_cache_ptr     cache,
+                                 a_character_kind      kind,
                                  a_const_char          *str,
                                  a_targ_size_t         length,
                                  a_source_position_ptr pos)
@@ -3908,15 +3909,16 @@ position of the literal.
   cache->last_token->extra_info_kind = (a_token_extra_info_kind)teik_constant;
   cache->last_token->variant.constant = cp = alloc_cached_constant();
   val = alloc_text_of_string_literal((sizeof_t)length);
-  (void)strncpy(val, str, length);
+  (void)memcpy(val, str, length);
   clear_constant(cp, (a_constant_repr_kind)ck_string);
-  cp->type = string_type(length);
+  cp->type = string_literal_type(kind, length);
   cp->variant.string.length = length;
   cp->variant.string.value  = val;
 }  /* cache_string_literal */
 
 
 static void cache_ud_literal(a_token_cache_ptr     cache,
+                             a_character_kind      kind,
                              a_const_char          *str,
                              a_targ_size_t         length,
                              a_const_char          *suffix,
@@ -3936,9 +3938,9 @@ the position of the literal.
   ctp->extra_info_kind = (a_token_extra_info_kind)teik_ud_lit;
   ctp->variant.ud_lit.value_con = cp = alloc_cached_constant();
   val = alloc_text_of_string_literal((sizeof_t)length);
-  (void)strncpy(val, str, length);
+  (void)memcpy(val, str, length);
   clear_constant(cp, (a_constant_repr_kind)ck_string);
-  cp->type = string_type(length);
+  cp->type = string_literal_type(kind, length);
   cp->variant.string.length = length;
   cp->variant.string.value  = val;
   ctp->variant.ud_lit.spelling_con = alloc_cached_constant();
@@ -4186,19 +4188,36 @@ pos is the position of the Sentence containing literal.
       { ifc_StringIndex       str = (ifc_StringIndex)index;
         ifc_StringSort        sort = str_tag(str);
         an_ifc_String_Literal str_lit, *p_lit;
+        a_character_kind      kind;
+
         read_partition_at_index(ifc_const_str, str_value(str));
         p_lit = get_String_Literal(&str_lit);
-        if (sort != ifc_StringSort_Ordinary) {
-          unexpected_condition_str("Non-ordinary strings "
-                                   "are not yet handled.");
-        }  /* if */
+        switch (sort) {
+          case ifc_StringSort_Ordinary:
+            kind = (a_character_kind)chk_char;
+            break;
+          case ifc_StringSort_UTF8:
+            kind = (a_character_kind)chk_char8_t;
+            break;
+          case ifc_StringSort_Char16:
+            kind = (a_character_kind)chk_char16_t;
+            break;
+          case ifc_StringSort_Char32:
+            kind = (a_character_kind)chk_char32_t;
+            break;
+          case ifc_StringSort_Wide:
+            kind = (a_character_kind)chk_wchar_t;
+            break;
+          default:
+            unexpected_condition_str("Unexpected StringSort");
+        }  /* switch */
         if (p_lit->suffix == 0) {
           check_assertion(literal == ifc_SourceLiteral_String);
-          cache_string_literal(cache, get_string_at_offset(p_lit->start),
+          cache_string_literal(cache, kind, get_string_at_offset(p_lit->start),
                                p_lit->length, &pos);
         } else {
           check_assertion(literal == ifc_SourceLiteral_DefinedString);
-          cache_ud_literal(cache, get_string_at_offset(p_lit->start),
+          cache_ud_literal(cache, kind, get_string_at_offset(p_lit->start),
                            p_lit->length, get_string_at_offset(p_lit->suffix),
                            &pos);
         }  /* if */
