@@ -15377,6 +15377,29 @@ name.  We do not advance to the token after the decltype in this case.
     tp->variant.typeref.is_dependent_type_operator = dependent_arg;
     if (dependent_arg) {
       prep_generic_operand(&operand);
+#if IA64_ABI
+    } else if (emulate_gnu_abi_bugs && is_expression_operand(&operand) &&
+               scope_is(&scope_stack_top(), sck_func_prototype) &&
+               is_template_dependent_context() &&
+               !scope_stack_top().is_rescan) {
+      /* The GNU implementation of the IA-64 mangling ABI treats certain
+         decltype operands as dependent even when they aren't (see the function
+         gnu_requires_decltype_mangling in lower_name.c).  However, that also
+         depends on whether the operand can be folded.  We therefore attempt
+         to fold the operand here.  force_operand_to_constant_if_possible does
+         not work in this context because this does not look like a context
+         where folding is meaningful.  So we call fold_constexpr_expr directly
+         instead. */
+      a_constant_ptr    cp = local_constant();
+      an_expr_node_ptr  node = operand.variant.expression;
+      if (fold_constexpr_expr(node, cp, /*is_constant_evaluated=*/FALSE,
+                              /*force_prvalue=*/FALSE)) {
+        an_operand  orig_operand = operand;
+        make_constant_operand(cp, &operand);
+        restore_operand_details(&operand, &orig_operand);
+      }  /* if */
+      release_local_constant(&cp);
+#endif /* IA64_ABI */
     }  /* if */
     /* Represent the operand as an expression.  If the operand is a constant,
        a constant entry will be allocated: Allocate it in file scope memory. */
