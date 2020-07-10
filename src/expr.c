@@ -50367,7 +50367,6 @@ This is used to implement the expansion of fold expressions
       break;
     case tok_and_and:
     case tok_or_or:
-      /* FIXME: Pass EOPT_CONSTRAINT_EXPR in some cases? */
       scan_logical_operator(opnd1, (a_rescan_control_block *)NULL, 
                             EOPT_NO_OPTIONS, result);
       break;

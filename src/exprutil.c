@@ -24120,8 +24120,8 @@ parameter mapping.
        expressions. */
     do {
       args1 = get_remapped_args(chart1, array1[idx1].link);
-      // FIXME: Only check the arguments used by the atomic constraint
-      //        expression (presumably using a bit map).
+      /* We really only should check the arguments used by the atomic
+         constraints, but for now we check them all. */
       if (equiv_template_arg_lists(args1, args2,
                                    ETA_ALLOW_EQUIV_NESTING_DEPTHS)) {
         incompatible = FALSE;
@@ -24354,7 +24354,6 @@ generate that chart.
         constraints.push_back(tdp->constraint.requires_clause->constraint);
       }  /* if */
       if (symbol_is(sym, sk_function_template)) {
-        // FIXME: Move parameter constraints to after the requires clause
         a_routine_ptr  rp = tssp->variant.function.routine;
         if (rp->trailing_requires_clause != NULL) {
           constraints.push_back(rp->trailing_requires_clause->constraint);
@@ -24484,9 +24483,11 @@ subject to SFINAE.
       /* Substitute the dependent arguments of the concept-id. */
       a_ctws_state          ctws_state;
       init_ctws_state(&ctws_state);
-      // FIXME: We should only substitute the parameters that are actually
-      // referenced in the concept.  Presumably, those are those for which
-      // param->param_symbol->referenced is TRUE.
+      /* Substitute the concept-id's original arguments.  We should really
+         only substitute the parameters that are actually referenced by the
+         atomic constraint (presumably, those are those for which
+         param->param_symbol->referenced is TRUE), but for now we substitute
+         them all. */
       new_args = copy_template_arg_list_with_substitution(
                                                   sym, old_args, params,
                                                   (a_template_param_ptr)NULL,
@@ -24858,7 +24859,6 @@ subst_pairs is successful.
           a_template_arg_ptr    templ_args;
           a_source_position     saved_error_pos = error_position;
           error_position = req->position;
-          // FIXME: Should consider all levels...
           templ_params = subst_pairs.back_elem().params;
           templ_args = subst_pairs.back_elem().args;
           clear_diag_list(&diag_list);

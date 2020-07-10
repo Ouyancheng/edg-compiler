@@ -1437,7 +1437,6 @@ a_subst_pairs_array get_current_subst_pairs(void)
 /*
 Return an array describing the substitution pairs for the entity currently
 being instantiated.  
-FIXME: What should this do with lambdas appearing in templates?
 */
 {
   a_subst_pairs_array      result(1);
@@ -2310,7 +2309,6 @@ This routine does the C++17 "at least as specialized" checking (see N4849,
     /* Create an invented class template based on the template parameters
        of the argument template. */
     param_list_for_arg = arg_tssp->cache.decl_info->parameters;
-    // FIXME: Copy constraints
     invented_templ_sym = make_invented_class_template(param_list_for_arg);
     invented_templ_sym->variant.template_info
                       ->has_template_param_constraint =
@@ -3466,8 +3464,10 @@ parameter matching.
   if (dummy_arg_list2 != NULL) free_template_arg_list(dummy_arg_list2);
   if (concepts_enabled) {
     /* If deduction succeeded both ways, select the more constrained
-       template (N4849 [temp.func.order]/2). */
-    // FIXME: This isn't quite right, but the standard rules are baffling too.
+       template (N4849 [temp.func.order]/2).  The comparison of constraints
+       used here is not exactly what the standard prescribes, but the
+       standard specification is not entirely clear either.  This approach
+       appears to match what other implementations (GCC and Clang) do. */
     int  constraint_order = compare_constraints(templ_sym1, templ_sym2);
     if (constraint_order != 0) {
       if (result == 0) {
@@ -3860,7 +3860,9 @@ should be preferred over templ_sym2.
     }  /* if */
   }  /* if */
   if (concepts_enabled) {
-    // FIXME: This isn't quite right, but the standard rules are baffling too.
+    /* Compare the constraints. The comparison of constraints used here is not
+       exactly what the standard prescribes, but the standard specification is
+       not entirely clear either. */
     int  constraint_order = compare_constraints(template_sym1, template_sym2);
     if (constraint_order != 0) {
       if (result == 0) {
@@ -10205,24 +10207,26 @@ the constraints.
       if (p_diag_pos != NULL) {
         *p_diag_pos = &tdp->constraint.requires_clause->requires_pos;
       }  /* if */
-    } else {
-      // FIXME: Use tssp->has_template_param_constraint instead
-      a_template_parameter_ptr  tpp = tdp->param_list;
-      for (; tpp != NULL; tpp = tpp->next) {
-        if (tpp->kind == (a_template_parameter_kind)tpk_type) {
-          a_type_ptr        tp = tpp->variant.type.ptr;
-          an_expr_node_ptr  constraint;
-          constraint = tp->variant.template_param.extra_info
-                         ->constraint.type_constraint;
-          if (constraint != NULL) {
-            result = TRUE;
-            if (p_diag_pos != NULL) {
-              *p_diag_pos = &constraint->position;
+    } else if (symbol_for(il_entry)->variant.template_info
+                                   ->has_template_param_constraint) {
+      result = TRUE;
+      if (p_diag_pos != NULL) {
+        a_template_parameter_ptr  tpp = tdp->param_list;
+        for (; tpp != NULL; tpp = tpp->next) {
+          if (tpp->kind == (a_template_parameter_kind)tpk_type) {
+            a_type_ptr        tp = tpp->variant.type.ptr;
+            an_expr_node_ptr  constraint;
+            constraint = tp->variant.template_param.extra_info
+                           ->constraint.type_constraint;
+            if (constraint != NULL) {
+              if (p_diag_pos != NULL) {
+                *p_diag_pos = &constraint->position;
+              }  /* if */
+              break;
             }  /* if */
-            break;
           }  /* if */
-        }  /* if */
-      }  /* for */
+        }  /* for */
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
@@ -10240,7 +10244,7 @@ satisfied by the given template argument list.  Otherwise, return FALSE and
 issue a diagnostic if diagnose is TRUE.
 */
 {
-  a_boolean             result = TRUE;
+  a_boolean             result = TRUE, fatal = FALSE;
   a_template_symbol_supplement_ptr
                         tssp = template_sym->variant.template_info;
   an_expr_node_ptr      constraint = rcp->constraint;
@@ -10258,10 +10262,18 @@ issue a diagnostic if diagnose is TRUE.
   push_instantiation_scope_for_rescan(template_sym);
   clear_diag_list(&diag_list);
   if (!requires_clause_satisfied(constraint, args, params,
-                                 /*map_failure_is_fatal=*/FALSE, &diag_list)) {
+                                 /*map_failure_is_fatal=*/FALSE, &diag_list,
+                                 &fatal)) {
     if (!is_empty_diag_list(&diag_list)) {
-      if (diagnose) {
+      if (diagnose || (fatal && !clang_mode)) {
         a_diagnostic_ptr  dp;
+        a_diag_list       lead_note;
+        clear_diag_list(&lead_note);
+        more_info_tap_diagnostic(
+                              ec_requires_clause_arg_list_substitution_failed,
+                              &constraint->position, args, &lead_note);
+        splice_diag_list(&lead_note, &diag_list,
+                         /*insert_after=*/(a_diagnostic_ptr)NULL);
         dp = pos_start_error(ec_template_constraint_not_satisfied, &diag_pos);
         add_more_info_list(dp, &diag_list);
         end_diagnostic(dp);
@@ -10308,7 +10320,6 @@ corresponding template arguments that have been determined so far.
       clear_diag_list(&diag_list);
       p_diag_list = &diag_list;
     }  /* if */
-    // FIXME: Record all substitution levels
     a_subst_pairs_array  subst_pairs(1);
     subst_pairs.push_back(a_subst_pairs_descr{ param_list, arg_list,
                                                FALSE, FALSE });
@@ -29406,9 +29417,7 @@ information).  See the definition of a_tmpl_decl_state for details.
     /* A C++20-style abbreviated function template declaration.  Simulate a
        template<...> clause using the information in orig_dps->auto_params. */
     check_assertion(orig_dps->variant.auto_params != NULL);
-    if (decl_state->is_specialization) {
-      /* FIXME: Issue error and set up for "auto" to produce error types? */
-    } else {
+    if (!decl_state->is_specialization) {
       if (!is_template_param) decl_state->nesting_depth++;
       decl_state->number_of_template_param_clauses++;
       /* Create an implicit parameterization level and add parameters to it
@@ -33078,10 +33087,6 @@ following a template parameter clause.  Parse and record the concept.
   an_expr_node_ptr   expr;
 
   add_stop_token(tok_semicolon);
-  /* Concept templates cannot themselves be constrained. */
-  if (template_has_constraints(decl_state->il_template_entry, &diag_pos)) {
-    pos_error(ec_constraint_concept_template, diag_pos);
-  }  /* if */
   check_assertion(curr_token == tok_concept);
   (void)get_token();
   add_stop_token(tok_assign);
@@ -33155,6 +33160,10 @@ following a template parameter clause.  Parse and record the concept.
     set_il_template_entry(decl_state, sym, tssp);
     tssp->il_template_entry->canonical_template = tssp->il_template_entry;
     complete_il_template_entry(decl_state, sym);
+    /* Concept templates cannot themselves be constrained. */
+    if (template_has_constraints(il_template, &diag_pos)) {
+      pos_error(ec_constraint_concept_template, diag_pos);
+    }  /* if */
   }  /* if */
   /* Pop the template declaration scopes. */
   for (; decl_state->number_of_template_decl_scopes != 0;
