@@ -19380,11 +19380,16 @@ we are scanning a C++/CLI typeid of the form X::typeid.
      be non-NULL in error cases.  If a tentative template lookup was
      specified, convert this to a regular lookup (but one that does not
      create projection symbols) when we are in C++20 mode and treat certain
-     names as potential templates. */
-  if (adl_for_non_visible_templates &&
-      (normal_lookup_kind & IDL_TENTATIVE_TEMPLATE_LOOKUP)) {
-    normal_lookup_kind &= ~IDL_TENTATIVE_TEMPLATE_LOOKUP;
-    normal_lookup_kind |= IDL_DO_NOT_CREATE_PROJ_SYM;
+     names as potential templates.  In addition, when we are caching tokens
+     for disambiguation, don't create a projection symbol for tentative
+     template lookups as this can impact lookup results. */
+  if ((normal_lookup_kind & IDL_TENTATIVE_TEMPLATE_LOOKUP) != 0) {
+    if (adl_for_non_visible_templates) {
+      normal_lookup_kind &= ~IDL_TENTATIVE_TEMPLATE_LOOKUP;
+      normal_lookup_kind |= IDL_DO_NOT_CREATE_PROJ_SYM;
+    } else if (caching_tokens && scope_stack_top().in_disambiguation) {
+      normal_lookup_kind |= IDL_DO_NOT_CREATE_PROJ_SYM;
+    }  /* if */
   }  /* if */
   normal_fund_sym = normal_id_lookup(&locator_for_curr_id, normal_lookup_kind);
   normal_sym = normal_fund_sym == NULL ? NULL

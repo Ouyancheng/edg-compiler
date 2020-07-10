@@ -1,5 +1,26 @@
 Version 6.1
 
+7/10/20  [EDGcpfe/23054]
+Spurious error during disambiguation of range-based for (regression)
+
+In version 6.0, changes made to support range-based for statements with an
+initializer (see entry for EDGcpfe/20007) could cause spurious errors during
+disambiguation.  In particular, a base class member followed by a "<" was
+incorrectly considered to start a template argument list.  Now fixed.
+
+  template <class T> struct A {
+    int f();
+   int i = 0;
+  };
+  struct B : A<int> {
+    void g() {
+     // Formerly "error: is not a template"
+     for (; i < f();) {}
+    }
+  };
+
+
+
 7/10/20  [EDGcpfe/23080]
 Issue with compilation terminated by --time_limit option
 
