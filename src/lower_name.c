@@ -156,7 +156,7 @@ BEGIN_EDG_NAMESPACE
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #define MANGLING_STRING_FOR_CONSTRUCTOR "C1"
-#define MANGLING_STRING_FOR_INHERITING_CONSTRUCTOR "CI1"
+#define MANGLING_STRING_FOR_INHERITING_CONSTRUCTOR "CI"
 #define MANGLING_STRING_FOR_DESTRUCTOR "D1"
 #define MANGLING_STRING_FOR_CONVERSION_FUNC "cv"
 #define MANGLING_STRING_FOR_LITERAL_OPERATORS "li"
@@ -11665,6 +11665,7 @@ literal operator.
 */
 {
   a_const_char *name = NULL;
+  a_type_ptr   inherited_ctor_base_class_type = NULL;
 
   if (special_kind == (a_special_function_kind)sfk_none
       || special_kind == (a_special_function_kind)sfk_lambda_entry_point
@@ -11705,9 +11706,21 @@ literal operator.
         name = MANGLING_STRING_FOR_CONSTRUCTOR;
         { a_routine_ptr routine = (a_routine_ptr)scp;
 #if IA64_ABI
-          if (routine->is_inheriting_ctor || routine->is_inh_ctor_def_init) {
-            /* Inheriting constructors use "CI" rather than "C". */
-            name = MANGLING_STRING_FOR_INHERITING_CONSTRUCTOR;
+          if (routine->is_inheriting_ctor) {
+            if (ctor_dtor_kind == cdk_complete) {
+              /* Use "CI1" for "complete object inheriting constructor". */
+              name = MANGLING_STRING_FOR_INHERITING_CONSTRUCTOR "1";
+            } else if (ctor_dtor_kind == cdk_subobject) {
+              /* Use "CI2" for "base object inheriting constructor". */
+              name = MANGLING_STRING_FOR_INHERITING_CONSTRUCTOR "2";
+            } else {
+              unexpected_condition();
+            }  /* if */
+            inherited_ctor_base_class_type = parent_class_of(
+                    get_inh_ctor_originator(routine, /*ignore_virtual=*/TRUE));
+          } else if (routine->is_inh_ctor_def_init) {
+            /* Use "CI9" as a non-standard mangling for this routine. */
+            name = MANGLING_STRING_FOR_INHERITING_CONSTRUCTOR "9";
           } else {
             switch (ctor_dtor_kind) {
               case cdk_none:                   break;
@@ -11770,6 +11783,9 @@ literal operator.
   } else if (ud_suffix != NULL) {
     /* For a literal operator, add the ud-suffix to the mangled name. */
     mangled_name_with_length(ud_suffix, mctl);
+  } else if (inherited_ctor_base_class_type != NULL) {
+    /* For an inherited constructor, add the base class type. */
+    mangled_type_name(inherited_ctor_base_class_type, mctl);
   }  /* if */
 }  /* mangled_function_base_name */
 
@@ -14410,9 +14426,8 @@ past the end of the mangled name.
     check_assertion(routine->variant.ctor_dtor.base_name_offset< strlen(name));
 #endif /* EXPENSIVE_CHECKING */
     sizeof_t idx = routine->variant.ctor_dtor.base_name_offset + 1;
-    if (routine->is_inheriting_ctor || routine->is_inh_ctor_def_init) {
+    if (name[idx] == 'I') {
       /* Inheriting constructors have "CI" before the unique character. */
-      check_assertion(name[idx] == 'I');
       idx++;
     }  /* if */
     name[idx] = ch;
@@ -14430,12 +14445,10 @@ when ctor_dtor_kind is cdk_complete.
 {
   char ch;
 
-  if (routine->is_inheriting_ctor) {
-    /* A "complete object inheriting constructor" (appears after "CI"). */
-    ch = '1';
-  } else if (routine->is_inh_ctor_def_init) {
-    /* A "base object inheriting constructor" (appears after "CI"). */
-    ch = '2';
+  if (routine->is_inh_ctor_def_init) {
+    /* This isn't an IA-64 ABI-specified routine; give it "CI9" as a
+       placeholder. */
+    ch = '9';
   } else {
     switch (routine->ctor_dtor_kind) {
       case cdk_complete:  ch = '1';               break;
