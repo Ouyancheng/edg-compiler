@@ -1,5 +1,15 @@
 Version 6.1
 
+7/10/20  [EDGcpfe/23080]
+Issue with compilation terminated by --time_limit option
+
+When the --time_limit option is used and the time limit is exceeded, the code
+that terminates the compilation could hang if, for example, the compilation
+was within malloc when the signal was sent and then term_compilation attempted
+to allocate more memory.  To avoid issues like this, the sign-off message
+is no longer issued when the CPU time limit is exceeded.
+
+
 7/8/20   [EDGcpfe/22311]
 C++-generating back end: dependent alias template specializations as qualifiers
 

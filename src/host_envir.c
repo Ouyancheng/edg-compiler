@@ -1993,7 +1993,9 @@ with an internal error on receipt of a signal.
   fprintf(f_error, "\n");
 #endif /* !USING_DRIVER */
   fprintf(f_error, "Internal error: CPU time limit exceeded.\n");
-  term_compilation(es_internal_error);
+  /* Exit from the compilation.  Don't use term_compiilation because it may
+     do some problematic operations (such as allocating memory). */
+  exit_compilation(es_internal_error);
 }  /* abort_on_cpu_limit */
 
 #endif /* DEBUG && !EDG_WIN32 */
