@@ -11707,17 +11707,18 @@ literal operator.
         { a_routine_ptr routine = (a_routine_ptr)scp;
 #if IA64_ABI
           if (routine->is_inheriting_ctor) {
-            if (ctor_dtor_kind == cdk_complete) {
+            if (ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_complete) {
               /* Use "CI1" for "complete object inheriting constructor". */
               name = MANGLING_STRING_FOR_INHERITING_CONSTRUCTOR "1";
-            } else if (ctor_dtor_kind == cdk_subobject) {
+            } else if (ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_subobject) {
               /* Use "CI2" for "base object inheriting constructor". */
               name = MANGLING_STRING_FOR_INHERITING_CONSTRUCTOR "2";
             } else {
               unexpected_condition();
             }  /* if */
-            inherited_ctor_base_class_type = parent_class_of(
-                    get_inh_ctor_originator(routine, /*ignore_virtual=*/TRUE));
+            a_routine_ptr rout = get_inh_ctor_originator(routine,
+                                                      /*ignore_virtual=*/TRUE);
+            inherited_ctor_base_class_type = parent_class_of(rout);
           } else if (routine->is_inh_ctor_def_init) {
             /* Use "CI9" as a non-standard mangling for this routine. */
             name = MANGLING_STRING_FOR_INHERITING_CONSTRUCTOR "9";
