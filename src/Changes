@@ -10,15 +10,14 @@ incorrectly considered to start a template argument list.  Now fixed.
 
   template <class T> struct A {
     int f();
-   int i = 0;
+    int i = 0;
   };
   struct B : A<int> {
     void g() {
-     // Formerly "error: is not a template"
-     for (; i < f();) {}
+      // Formerly "error: is not a template"
+      for (; i < f();) {}
     }
   };
-
 
 
 7/10/20  [EDGcpfe/23080]
