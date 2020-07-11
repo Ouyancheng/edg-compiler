@@ -11720,8 +11720,17 @@ literal operator.
                                                       /*ignore_virtual=*/TRUE);
             inherited_ctor_base_class_type = parent_class_of(rout);
           } else if (routine->is_inh_ctor_def_init) {
-            /* Use "CI9" as a non-standard mangling for this routine. */
-            name = MANGLING_STRING_FOR_INHERITING_CONSTRUCTOR "9";
+            /* A "helper" routine for the inheriting constructor; give it
+               a non-standard mangled name. */
+            if (ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_complete) {
+              /* Use "CI8". */
+              name = MANGLING_STRING_FOR_INHERITING_CONSTRUCTOR "8";
+            } else if (ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_subobject) {
+              /* Use "CI9". */
+              name = MANGLING_STRING_FOR_INHERITING_CONSTRUCTOR "9";
+            } else {
+              unexpected_condition();
+            }  /* if */
           } else {
             switch (ctor_dtor_kind) {
               case cdk_none:                   break;
@@ -14447,9 +14456,13 @@ when ctor_dtor_kind is cdk_complete.
   char ch;
 
   if (routine->is_inh_ctor_def_init) {
-    /* This isn't an IA-64 ABI-specified routine; give it "CI9" as a
-       placeholder. */
-    ch = '9';
+    /* This is a "helper" routine for inheriting constructors; give it a
+       non-standard mangled name. */
+    switch (routine->ctor_dtor_kind) {
+      case cdk_complete:  ch = '8';               break;
+      case cdk_subobject: ch = '9';               break;
+      default:            unexpected_condition();
+    }  /* switch */
   } else {
     switch (routine->ctor_dtor_kind) {
       case cdk_complete:  ch = '1';               break;

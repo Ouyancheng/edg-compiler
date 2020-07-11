@@ -8224,9 +8224,13 @@ non-template functions).
           case '2':
             write_id_str(" [base inheriting]", dctl);
             break;
+          case '8':
+            /* Non-standard. */
+            write_id_str(" [complete helper inheriting]", dctl);
+            break;
           case '9':
             /* Non-standard. */
-            write_id_str(" [helper inheriting]", dctl);
+            write_id_str(" [subobject helper inheriting]", dctl);
             break;
           default:
             bad_mangled_name(dctl);

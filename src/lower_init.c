@@ -5736,33 +5736,29 @@ primary routine has a definition.
                                     (a_special_function_kind)sfk_constructor ||
                   routine->special_kind ==
                                     (a_special_function_kind)sfk_destructor);
-  if (routine->is_inh_ctor_def_init) {
-    /* No need for alternate entry points. */
-  } else {
-    (void)alternate_entry_point(routine, (a_ctor_or_dtor_kind)cdk_complete,
+  (void)alternate_entry_point(routine, (a_ctor_or_dtor_kind)cdk_complete,
+                              define_now);
+  (void)alternate_entry_point(routine, (a_ctor_or_dtor_kind)cdk_subobject,
+                              define_now);
+  if (routine->special_kind == (a_special_function_kind)sfk_destructor &&
+      /* The deleting destructor is used only when the destructor is
+         virtual. */
+      routine->is_virtual) {
+    (void)alternate_entry_point(routine,
+                                (a_ctor_or_dtor_kind)cdk_deleting,
                                 define_now);
-    (void)alternate_entry_point(routine, (a_ctor_or_dtor_kind)cdk_subobject,
+  }  /* if */
+  if (exceptions_enabled &&
+      routine->special_kind == (a_special_function_kind)sfk_destructor &&
+      routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_subobject &&
+      define_now) {
+    /* cdk_delegation destructors are only needed when the class contains
+       a delegating constructor and the class has virtual bases (i.e.,
+       the primary routine is a cdk_subobject).  This isn't always
+       known at the point where the destructor is lowered. */
+    (void)alternate_entry_point(routine,
+                                (a_ctor_or_dtor_kind)cdk_delegation,
                                 define_now);
-    if (routine->special_kind == (a_special_function_kind)sfk_destructor &&
-        /* The deleting destructor is used only when the destructor is
-           virtual. */
-        routine->is_virtual) {
-      (void)alternate_entry_point(routine,
-                                  (a_ctor_or_dtor_kind)cdk_deleting,
-                                  define_now);
-    }  /* if */
-    if (exceptions_enabled &&
-        routine->special_kind == (a_special_function_kind)sfk_destructor &&
-        routine->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_subobject &&
-        define_now) {
-      /* cdk_delegation destructors are only needed when the class contains
-         a delegating constructor and the class has virtual bases (i.e.,
-         the primary routine is a cdk_subobject).  This isn't always
-         known at the point where the destructor is lowered. */
-      (void)alternate_entry_point(routine,
-                                  (a_ctor_or_dtor_kind)cdk_delegation,
-                                  define_now);
-    }  /* if */
   }  /* if */
 }  /* create_alternate_entry_points */
 
