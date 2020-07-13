@@ -5616,12 +5616,12 @@ routine will be the same as the one passed in.
                                      (a_special_function_kind)sfk_destructor);
         new_routine->is_virtual = TRUE;
         if (kind == (a_ctor_or_dtor_kind)cdk_complete) {
-          new_routine->virtual_function_number = 
-                                             routine->virtual_function_number;
+          new_routine->number.virtual_function = 
+                                             routine->number.virtual_function;
         } else {
           check_assertion(kind == (a_ctor_or_dtor_kind)cdk_deleting);
-          new_routine->virtual_function_number = 
-                                          routine->virtual_function_number + 1;
+          new_routine->number.virtual_function = 
+                                          routine->number.virtual_function + 1;
         }  /* if */
       }  /* if */
       /* The new routine has an ellipsis if the old one does. */

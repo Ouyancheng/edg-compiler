@@ -4589,7 +4589,7 @@ Dump a sequence of virtual function numbers, for debug purposes.
 {
   an_overriding_virtual_function_ptr ovfp = bcp->overriding_virtual_functions;
   for (; ovfp != NULL; ovfp = ovfp->next) {
-    fprintf(f_debug, " %d", ovfp->primary_function->virtual_function_number);
+    fprintf(f_debug, " %d", ovfp->primary_function->number.virtual_function);
   }  /* for */
 }  /* db_virtual_function_number_sequence */
 #endif /* DEBUG */
@@ -4728,8 +4728,8 @@ If the given member is not overridden, *p_bcp and *p_rp are left unchanged.
         *p_rp = ovfp->overriding_function;
         *p_bcp = ovfp->base_class;
         break;
-      } else if (ovfp->primary_function->virtual_function_number >
-                                                rp->virtual_function_number) {
+      } else if (ovfp->primary_function->number.virtual_function >
+                                                rp->number.virtual_function) {
         /* The "overriding_virtual_functions" list is ordered by the
            virtual function numbers of the primary functions.  So the
            remainder of the list cannot contain rp. */
@@ -4758,8 +4758,8 @@ for the class to which they belong.
      virtual function numbers in the primary functions. */
   ovfp = base_class->overriding_virtual_functions;
   if (ovfp == NULL ||
-      new_ovfp->primary_function->virtual_function_number <
-                        ovfp->primary_function->virtual_function_number) {
+      new_ovfp->primary_function->number.virtual_function <
+                        ovfp->primary_function->number.virtual_function) {
     /* Add the new entry to the start of the list. */
     base_class->overriding_virtual_functions = new_ovfp;
     new_ovfp->next = ovfp;
@@ -4769,8 +4769,8 @@ for the class to which they belong.
        number in the current function exceeds the number in the next item
        on the list. */
     while (ovfp->next != NULL) {
-      if (new_ovfp->primary_function->virtual_function_number <
-                  ovfp->next->primary_function->virtual_function_number) {
+      if (new_ovfp->primary_function->number.virtual_function <
+                  ovfp->next->primary_function->number.virtual_function) {
         /* Found the insert location. */
         break;
       }  /* if */
@@ -4900,10 +4900,11 @@ new_direct_bcp->derived_class.
                  override of the very same primary function, but the
                  overriding function is distinct.  Keep looping. */
             }  /* if */
-          } else if (ovfp_from_new_list->primary_function->
-                                                   virtual_function_number >
-                     ovfp_to_copy->primary_function->virtual_function_number) {
-            /* Since the lists are ordered by virtual_function_number,
+          } else if (ovfp_from_new_list->primary_function
+                                       ->number.virtual_function >
+                                      ovfp_to_copy->primary_function
+                                                  ->number.virtual_function) {
+            /* Since the lists are ordered by number.virtual_function,
                no further checking is required. */
             break;
           }  /* if */
@@ -6253,7 +6254,7 @@ thus far.
 */
 {
   if (!rp->is_virtual || rp->is_consteval ||
-      rp->virtual_function_number != VIRTUAL_FUNCTION_NUMBER_NONE) {
+      rp->number.virtual_function != VIRTUAL_FUNCTION_NUMBER_NONE) {
     /* The given routine is nonvirtual, consteval, or it already has a virtual
        function number assigned: Nothing to do. */
   } else {
@@ -6278,7 +6279,7 @@ thus far.
          used by the back end for indexing into a virtual function table. */
       ++(*number_ptr);
     }  /* if */
-    rp->virtual_function_number = *number_ptr;
+    rp->number.virtual_function = *number_ptr;
 #if IA64_ABI
     if (rp->special_kind == (a_special_function_kind)sfk_destructor) {
       /* There are two entries for destructors: one for the complete object
@@ -6570,7 +6571,7 @@ return_types_are_override_compatible.
       /* The virtual function table is being shared and there
          is no base-class adjustment on the return type, so we
          can use the same virtual function number. */
-      rout->virtual_function_number = rp->virtual_function_number;
+      rout->number.virtual_function = rp->number.virtual_function;
     }  /* if */
   }  /* if */
   if (rout->is_consteval) {
@@ -7457,8 +7458,8 @@ class associated with cdsp.
         if (shares_virtual_function_info(class_type, cop->bcp) &&
             cop->adjustment_bcp->offset == 0 &&
             !any_virtual_steps_in_derivation(cop->adjustment_bcp)) {
-          cop->overriding->virtual_function_number =
-                                     cop->overridden->virtual_function_number;
+          cop->overriding->number.virtual_function =
+                                     cop->overridden->number.virtual_function;
         }  /* if */
       }  /* for */
       free_covariant_overrides(cdsp);
@@ -12989,8 +12990,8 @@ to (with its overridden_functions field).
         rp->overridden_functions->entity.ptr == (char*)base_rp) {
       check_assertion(symbol_for(rp)->header == loc->symbol_header &&
                       rp->pure_virtual);
-      check_assertion(rp->virtual_function_number ==
-                                            base_rp->virtual_function_number);
+      check_assertion(rp->number.virtual_function ==
+                                            base_rp->number.virtual_function);
       result = symbol_for(rp);
       break;
     }  /* if */
@@ -13021,7 +13022,7 @@ to (with its overridden_functions field).
        not cause the parent class' any_pure_virtual_functions flag to become
        TRUE. */
     rp->pure_virtual = TRUE;
-    rp->virtual_function_number = base_rp->virtual_function_number;
+    rp->number.virtual_function = base_rp->number.virtual_function;
     check_assertion(curr_il_region_number == file_scope_region_number);
     rp->overridden_functions = alloc_il_entity_list_entry();
     rp->overridden_functions->entity.kind = (a_byte_il_entry_kind)iek_routine;

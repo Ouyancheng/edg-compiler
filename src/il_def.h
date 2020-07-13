@@ -12009,15 +12009,21 @@ typedef struct a_routine {
 		trailing_requires_clause;
 			/* If this is a constrained templated function, the
 			   associated trailing requires clause if any.
-			   Otherwise, NULL.  FIXME: unionize with
-			   virtual_function_number. */
-  a_virtual_function_number
-		virtual_function_number;
+			   Otherwise, NULL. */
+  union {
+    /* When is_constexpr_intrinsic is FALSE: */
+    a_virtual_function_number
+		virtual_function;
 			/* When is_virtual is TRUE and is_consteval is FALSE,
 			   the number assigned to this function; it is unique
  			   among the non-consteval virtual functions of a given
 			   class.  When is_virtual is FALSE or is_consteval is
 			   TRUE, this field is undefined. */
+    /* When is_constexpr_intrinsic is TRUE: */
+    int32_t	constexpr_intrinsic;
+			/* A small integer identifying an intrinsic known to
+			   the constexpr interpreter. */
+  } number;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   an_il_entity_list_entry_ptr
 		overridden_functions;

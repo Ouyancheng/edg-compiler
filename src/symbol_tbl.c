@@ -986,7 +986,7 @@ do_variable:
         if (sym->kind == (a_symbol_kind)sk_member_function) {
           put_access(rp->source_corresp.access);
           if (rp->is_virtual) {
-            (void)sprintf(buffer, "virtual (%d)", rp->virtual_function_number);
+            (void)sprintf(buffer, "virtual (%d)", rp->number.virtual_function);
             put_string(buffer);
           }  /* if */
           if (rp->special_kind != (a_special_function_kind)sfk_none) {

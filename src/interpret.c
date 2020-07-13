@@ -34,6 +34,8 @@ interpret.c -- IL interpreter for constexpr functions
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
 
+#include "pch.h"
+
 #include "templates.h"
 
 /* Conditionally open the "edg" namespace. */
@@ -9021,17 +9023,6 @@ typedef a_boolean (*an_intrinsic_evaluator)(
                                         a_byte                *complete_obj);
 
 
-static an_intrinsic_evaluator intrinsics_table[(int)cit_last] = {
-  (an_intrinsic_evaluator)NULL,
-  do_constexpr_std_is_constant_evaluated,
-  do_constexpr_std_allocator_allocate,
-  do_constexpr_std_allocator_deallocate,
-  do_constexpr_std_construct_at,
-  do_constexpr_std_destroy_at,
-  do_constexpr_std_report_constexpr_value
-};
-
-
 static a_boolean do_constexpr_intrinsic_call(
                                         an_interpreter_state  *ips,
                                         a_routine_ptr         callee,
@@ -9052,15 +9043,34 @@ The caller has already pushed a call frame and is responsible for popping that
 frame when the call has completed.
 */
 {
-  a_boolean     result = TRUE;
-  a_byte_count  impl_idx = (a_byte_count)cit_error;
+  a_boolean               result = TRUE;
+  an_intrinsic_evaluator  evaluator;
 
-  /* Look up the index of this intrinsic in the intrinsics table. */
-  get_mapped_byte_count(&persistent_map, callee, impl_idx);
-  check_assertion(impl_idx < (a_byte_count)cit_last);
   /* Dispatch the call to the appropriate implementation. */
-  result = intrinsics_table[impl_idx](ips, callee, call_node, p_arg_bytes,
-                                      result_storage, complete_obj);
+  switch (callee->number.constexpr_intrinsic) {
+    case cit_std_is_constant_evaluated:
+      evaluator = do_constexpr_std_is_constant_evaluated;
+      break;
+    case cit_std_allocator_allocate:
+      evaluator = do_constexpr_std_allocator_allocate;
+      break;
+    case cit_std_allocator_deallocate:
+      evaluator = do_constexpr_std_allocator_deallocate;
+      break;
+    case cit_std_construct_at:
+      evaluator = do_constexpr_std_construct_at;
+      break;
+    case cit_std_destroy_at:
+      evaluator = do_constexpr_std_destroy_at;
+      break;
+    case cit_std_report_constexpr_value:
+      evaluator = do_constexpr_std_report_constexpr_value;
+      break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  result = evaluator(ips, callee, call_node, p_arg_bytes,
+                     result_storage, complete_obj);
   return result;
 }  /* do_constexpr_intrinsic_call */
 
@@ -18714,7 +18724,7 @@ std::is_constant_evaluated.)
     trans_unit_initialization_needed = FALSE;
   }  /* if */
   rp->is_constexpr_intrinsic = TRUE;
-  map_byte_count(&persistent_map, rp, (a_byte_count)tag);
+  rp->number.constexpr_intrinsic = (int32_t)tag;
 }  /* register_constexpr_intrinsic */
 
 

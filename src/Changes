@@ -1,5 +1,17 @@
 Version 6.1
 
+7/13/20  [EDGcpfe/23087]
+Constexpr intrinsics and precompiled headers
+
+The data structure used by the interpreter to implement certain intrinsics
+(like std::is_constant_evaluated()) turns out to be incompatible with the
+front end's mechanism for precompiled headers.  As a result, precompiled
+headers making use of such intrinsics were likely to trigger an abort.
+That problem is now resolved.  As part of this change, the a_routine field
+"virtual_function_number" has been renamed to "number.virtual_function"
+(where number is a new member union).
+
+
 7/10/20  [EDGcpfe/23054]
 Spurious error during disambiguation of range-based for (regression)
 

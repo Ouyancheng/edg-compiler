@@ -3116,7 +3116,7 @@ to it.  The entry is allocated in the file scope memory region.
   rp->decl_modifiers              = DM_NONE;
 #endif /* DECL_MODIFIERS_IN_USE */
   rp->trailing_requires_clause    = NULL;
-  rp->virtual_function_number     = VIRTUAL_FUNCTION_NUMBER_NONE;
+  rp->number.virtual_function     = VIRTUAL_FUNCTION_NUMBER_NONE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   rp->overridden_functions        = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

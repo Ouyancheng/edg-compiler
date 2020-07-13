@@ -252,7 +252,7 @@ For the IA-64 ABI:
     /* For a virtual function, index is the index in the virtual function
        table.  No "+1" to reserve the value zero for NULL pointers is
        needed, because the indices start with 1. */
-    *idx = routine->virtual_function_number;
+    *idx = routine->number.virtual_function;
   }  /* if */
 #else /* IA64_ABI */
   /* This field is unused in the IA64 ABI. */
@@ -284,7 +284,7 @@ For the IA-64 ABI:
 #else /* IA64_ABI */
     /* In the IA-64 ABI, the offset is the virtual function table offset
        in bytes of the function. */
-    *offset = routine->virtual_function_number * vtbl_entry_size();
+    *offset = routine->number.virtual_function * vtbl_entry_size();
 #if DO_IL_LOWERING
     if (!targ_ia64_abi_use_variant_ptr_to_member_function_repr) {
       /* The low-order bit is 1 to indicate a virtual function. */
@@ -6873,7 +6873,7 @@ primary_function is NULL.
     }  /* if */
     /* Exit the loop when we find the routine we want. */
     if (primary_function->is_virtual &&
-        primary_function->virtual_function_number == entry_number) break;
+        primary_function->number.virtual_function == entry_number) break;
   }  /* for */
   return primary_function;
 }  /* find_virtual_function */
@@ -7473,7 +7473,7 @@ table.
        of the table. */
     while (override_list != NULL &&
            override_list->primary_function->
-                                      virtual_function_number < entry_number) {
+                                      number.virtual_function < entry_number) {
       override_list = override_list->next;
     }  /* while */
   }  /* if */
@@ -12058,7 +12058,7 @@ created.
   vptr_node = make_vptr_field_rvalue(object_node);
   /* Add the index for the function to the base address of the virtual
      function to get the address of the applicable entry of the table. */
-  idx = routine_ptr->virtual_function_number;
+  idx = routine_ptr->number.virtual_function;
   index_con = alloc_constant((a_constant_repr_kind)ck_integer);
   set_integer_constant(index_con, (a_host_large_integer)idx,
                        (an_integer_kind)ik_int);

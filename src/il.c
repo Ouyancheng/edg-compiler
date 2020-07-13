@@ -749,7 +749,7 @@ Dump a member function (a routine entry), for debug purposes.
   }  /* if */
   if (rp->is_virtual) {
     if (rp->pure_virtual) fputs(" pure", f_debug);
-    fprintf(f_debug, " virtual (%d)", rp->virtual_function_number);
+    fprintf(f_debug, " virtual (%d)", rp->number.virtual_function);
   }  /* if */
   fputs(" member function \"", f_debug);
   db_name_full(&rp->source_corresp, iek_routine);

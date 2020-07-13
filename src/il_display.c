@@ -3825,8 +3825,11 @@ Display the indicated routine.
   disp_decl_modifiers(ptr->decl_modifiers);
 #endif /* DECL_MODIFIERS_IN_USE */
   if (ptr->is_virtual) {
-    disp_unsigned_long("virtual_function_number",
-                       (unsigned long)ptr->virtual_function_number);
+    disp_unsigned_long("number.virtual_function",
+                       (unsigned long)ptr->number.virtual_function);
+  } else if (ptr->is_constexpr_intrinsic) {
+    disp_unsigned_long("number.constexpr_intrinsic",
+                       (unsigned long)ptr->number.constexpr_intrinsic);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->overridden_functions != NULL) {
