@@ -2709,7 +2709,7 @@ redo:
 #endif /* DEBUG */
           info_with_pos(err_code, type_pos(tp, ips), ips);
           do_constexpr_fail(*p_result);
-          result = 0;
+          result = MAX_CONSTEXPR_TYPE_SIZE+1;
         }  /* if */
       }  /* if */
       break;
@@ -16985,14 +16985,16 @@ the value representation of the integer value.
             a_constexpr_address  *cap = (a_constexpr_address*)result_storage;
             a_byte_count         obj_size;
             obj_size = value_bytes_for_type(ips, tp, &result);
-            do_host_alignment(obj_size);
-            clear_address(result_storage, var_bytes);
-            /* Record the allocation sequence number for this variable in the
-               address record. */
-            cap->alloc_seq_number =
+            if (result) {
+              do_host_alignment(obj_size);
+              clear_address(result_storage, var_bytes);
+              /* Record the allocation sequence number for this variable in
+                 the address record. */
+              cap->alloc_seq_number =
                      ((a_var_postfix*)(var_bytes+obj_size))->alloc_seq_number;
-            if (is_const_qualified_type(var->type)) {
-              cap->flags |= CA_CONST_STORAGE;
+              if (is_const_qualified_type(var->type)) {
+                cap->flags |= CA_CONST_STORAGE;
+              }  /* if */
             }  /* if */
           } else {
             /* A reference to a run-time variable.  This may not be valid,
