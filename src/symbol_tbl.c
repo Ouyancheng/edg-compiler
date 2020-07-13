@@ -7954,14 +7954,14 @@ call.
   if (primary_name != NULL) {
     a_symbol_locator loc;
     (void)find_symbol(primary_name, (sizeof_t)strlen(primary_name), &loc);
-    primary_sym = alloc_symbol(sk_undefined, loc.symbol_header,
+    primary_sym = alloc_symbol((a_symbol_kind)sk_undefined, loc.symbol_header,
                                &null_source_position);
   }  /* if */
   if (partition_name != NULL) {
     a_symbol_locator loc;
     (void)find_symbol(partition_name, (sizeof_t)strlen(partition_name), &loc);
-    partition_sym = alloc_symbol(sk_undefined, loc.symbol_header,
-                                 &null_source_position);
+    partition_sym = alloc_symbol((a_symbol_kind)sk_undefined,
+                                 loc.symbol_header, &null_source_position);
   }  /* if */
   return make_module_symbol(primary_sym, partition_sym, is_interface, pos);
 }  /* make_module_symbol */

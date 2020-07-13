@@ -166,7 +166,7 @@ struct ifc_ModuleReference {
     static_assert(sizeof(a_module_ref_key) >= sizeof(*this),
                   "Key is not large enough");
     return (((a_module_ref_key)partition) << (sizeof(owner) * CHAR_BIT)) |
-                                                                         owner;
+                                                       (a_module_ref_key)owner;
   }  /* as_key */
 };  /* ifc_ModuleReference */
 

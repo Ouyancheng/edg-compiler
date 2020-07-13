@@ -3881,10 +3881,12 @@ Add a tok_literal for lit_const to cache.  pos is the position of the literal.
 {
   a_token_kind lit_kind;
 
-  if (is_fixed_point_type(lit_const->type)) {
-    lit_kind = tok_fixed_point_constant;
-  } else if (is_floating_type(lit_const->type)) {
+  if (is_floating_type(lit_const->type)) {
     lit_kind = tok_float_constant;
+#if FIXED_POINT_ALLOWED
+  } else if (is_fixed_point_type(lit_const->type)) {
+    lit_kind = tok_fixed_point_constant;
+#endif /* FIXED_POINT_ALLOWED */
   } else if (is_character_type(lit_const->type)) {
     lit_kind = tok_char_constant;
   } else {
@@ -6424,8 +6426,10 @@ Cache the tokens corresponding to the given expression.
 }  /* cache_expr */
 
 
-void an_ifc_module::cache_syntax(a_token_cache_ptr cache,
-                                 ifc_SyntaxIndex   syntax) const
+/*lint -e2707*/ /* Remove when the routine returns to its caller. */
+/* Remove ARG_UNUSED as well. */
+void an_ifc_module::cache_syntax(ARG_UNUSED a_token_cache_ptr cache,
+                                 ifc_SyntaxIndex              syntax) const
 /*
 Cache the tokens corresponding to the given syntax tree.
 */
@@ -6903,7 +6907,6 @@ Cache the tokens corresponding to the given name.
         ident = inssfp->path;
         goto cache_ident;
       }
-      break;
     case ifc_NameSort_Template:
       { an_ifc_NameSort_Template inst;
         get_NameSort_Template(&inst);
@@ -6928,14 +6931,12 @@ Cache the tokens corresponding to the given name.
         ident = insop->encoded;
         goto cache_op;
       }
-      break;
     case ifc_NameSort_Conversion:
       { an_ifc_NameSort_Conversion insc, *inscp;
         inscp = get_NameSort_Conversion(&insc);
         ident = inscp->encoded;
         goto cache_op;
       }
-      break;
     case ifc_NameSort_Literal:
       { an_ifc_NameSort_Literal insl, *inslp;
         inslp = get_NameSort_Literal(&insl);
@@ -9139,6 +9140,7 @@ Generate a string for the specified associated MSVC UUID trait.
 }  /* str_ifc_associated_trait<an_ifc_Trait_MsvcUuid> */
 
 
+/*lint -e2707*/ /* Remove when the routine returns to its caller. */
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcFuncParams>
                                             (ifc_DeclIndex       decl_index,
