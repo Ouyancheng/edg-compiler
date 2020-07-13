@@ -9143,8 +9143,8 @@ Generate a string for the specified associated MSVC UUID trait.
 /*lint -e2707*/ /* Remove when the routine returns to its caller. */
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcFuncParams>
-                                            (ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp) const
+                                   (ifc_DeclIndex                  decl_index,
+                                    ARG_UNUSED a_str_control_block *scbp) const
 /*
 Generate a string for the specified associated MSVC UUID trait.
 */

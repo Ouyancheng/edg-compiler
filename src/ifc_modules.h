@@ -2298,35 +2298,35 @@ private:
                             ifc_DeclIndex      decl,
                             ifc_SourceLocation *locus) const;
   /* Readers and reading helpers. */
-  inline size_t file_offset_of(an_ifc_partition_kind partition,
+  size_t file_offset_of(an_ifc_partition_kind partition,
+                        ifc_Index_type        index) const;
+  void read_partition_at_offset(an_ifc_partition_kind partition,
+                                size_t                offset) const;
+  void read_partition_at_index(an_ifc_partition_kind partition,
                                ifc_Index_type        index) const;
-  inline void read_partition_at_offset(an_ifc_partition_kind partition,
-                                       size_t                offset) const;
-  inline void read_partition_at_index(an_ifc_partition_kind partition,
-                                      ifc_Index_type        index) const;
-  inline void read_partition_at_index(ifc_TypeSort   type_kind,
-                                      ifc_Index_type index) const;
-  inline void read_partition_at_index(ifc_TypeIndex type) const;
-  inline void read_partition_at_index(ifc_ExprSort   expr_kind,
-                                      ifc_Index_type index) const;
-  inline void read_partition_at_index(ifc_ExprIndex expr) const;
-  inline void read_partition_at_index(ifc_StmtSort   stmt_kind,
-                                      ifc_Index_type index) const;
-  inline void read_partition_at_index(ifc_StmtIndex stmt) const;
-  inline void read_partition_at_index(ifc_DeclSort   decl_kind,
-                                      ifc_Index_type index) const;
-  inline void read_partition_at_index(ifc_DeclIndex decl) const;
-  inline void read_partition_at_index(ifc_NameSort   name_kind,
-                                      ifc_Index_type index) const;
-  inline void read_partition_at_index(ifc_NameIndex name) const;
-  inline void read_partition_at_index(ifc_ChartSort  chart_kind,
-                                      ifc_Index_type index) const;
-  inline void read_partition_at_index(ifc_ChartIndex chart) const;
-  inline void read_partition_at_index(ifc_SyntaxSort syntax_kind,
-                                      ifc_Index_type index) const;
-  inline void read_partition_at_index(ifc_SyntaxIndex syntax) const;
-  inline ifc_Index read_index_from_heap(an_ifc_partition_kind heap_partition,
-                                        ifc_Index_type        index) const;
+  void read_partition_at_index(ifc_TypeSort   type_kind,
+                               ifc_Index_type index) const;
+  void read_partition_at_index(ifc_TypeIndex type) const;
+  void read_partition_at_index(ifc_ExprSort   expr_kind,
+                               ifc_Index_type index) const;
+  void read_partition_at_index(ifc_ExprIndex expr) const;
+  void read_partition_at_index(ifc_StmtSort   stmt_kind,
+                               ifc_Index_type index) const;
+  void read_partition_at_index(ifc_StmtIndex stmt) const;
+  void read_partition_at_index(ifc_DeclSort   decl_kind,
+                               ifc_Index_type index) const;
+  void read_partition_at_index(ifc_DeclIndex decl) const;
+  void read_partition_at_index(ifc_NameSort   name_kind,
+                               ifc_Index_type index) const;
+  void read_partition_at_index(ifc_NameIndex name) const;
+  void read_partition_at_index(ifc_ChartSort  chart_kind,
+                               ifc_Index_type index) const;
+  void read_partition_at_index(ifc_ChartIndex chart) const;
+  void read_partition_at_index(ifc_SyntaxSort syntax_kind,
+                               ifc_Index_type index) const;
+  void read_partition_at_index(ifc_SyntaxIndex syntax) const;
+  ifc_Index read_index_from_heap(an_ifc_partition_kind heap_partition,
+                                 ifc_Index_type        index) const;
   template<typename T, typename an_ifc_get_func>
   T* find_trait(ifc_DeclIndex         decl_index,
                 an_ifc_partition_kind partition,
