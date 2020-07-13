@@ -1509,17 +1509,16 @@ Given a module reference, import the referenced module.
 */
 {
   a_module_import_decl_ptr midp;
-  a_const_char             *primary_name, *partition_name;
+  a_const_char             *prim_name, *part_name;
   a_symbol_ptr             module_sym;
 
   midp = alloc_module_import_decl();
-  primary_name = ref->owner != 0 ? get_string_at_offset(ref->owner) : NULL;
-  partition_name = ref->partition != 0 ? get_string_at_offset(ref->partition)
-                                       : NULL;
-  if (primary_name == NULL) {
-    primary_name = this->primary_name;
+  prim_name = ref->owner != 0 ? get_string_at_offset(ref->owner) : NULL;
+  part_name = ref->partition != 0 ? get_string_at_offset(ref->partition) :NULL;
+  if (prim_name == NULL) {
+    prim_name = primary_name;
   }  /* if */
-  module_sym = make_module_symbol(primary_name, partition_name,
+  module_sym = make_module_symbol(prim_name, part_name,
                                   /*is_interface=*/TRUE,
                                   &null_source_position);
   midp->module_name_position = null_source_position;
@@ -3139,13 +3138,12 @@ module file.
   a_template_arg_ptr arg_list = NULL, *next_arg = &arg_list;
   a_source_position  pos;
   ifc_ExprSort       arg_tag = expr_tag(templ_id->arguments);
-  ifc_ExprSort       pri_tag = expr_tag(templ_id->primary);
   an_ifc_ExprSort_NamedDecl
                      iesnd, *iesndp;
 
   source_position_from_locus(&pos, &templ_id->locus);
   read_partition_at_index(templ_id->primary);
-  check_assertion(pri_tag == ifc_ExprSort_NamedDecl);
+  check_assertion(expr_tag(templ_id->primary) == ifc_ExprSort_NamedDecl);
   iesndp = get_ExprSort_NamedDecl(&iesnd);
   if (iesndp->type != 0) {
     result = type_for_type_index(iesndp->type, /*kind=*/NULL);
@@ -4271,9 +4269,8 @@ pos is the position of the Sentence containing literal.
       break;
     case ifc_SourceLiteral_MsvcBinding:
       {
-        ifc_ExprSort              sort = expr_tag(index);
         an_ifc_ExprSort_NamedDecl iesnd, *iesndp;
-        check_assertion(sort == ifc_ExprSort_NamedDecl);
+        check_assertion(expr_tag(index) == ifc_ExprSort_NamedDecl);
         source_position_from_locus(&pos, locus);
         read_partition_at_index((ifc_ExprIndex)index);
         iesndp = get_ExprSort_NamedDecl(&iesnd);
@@ -6165,7 +6162,6 @@ Cache the tokens corresponding to the given expression.
       break;
     case ifc_ExprSort_NamedDecl:
       { an_ifc_ExprSort_NamedDecl iesnd, *iesndp;
-        a_source_position         pos;
         iesndp = get_ExprSort_NamedDecl(&iesnd);
         source_position_from_locus(&pos, &iesndp->locus);
         cache_name_from_decl(cache, iesndp->resolution, &iesndp->locus);
@@ -7188,6 +7184,49 @@ into that partition.
   GET_Index(result, /*from_header=*/FALSE);
   return result;
 }  /* read_index_from_heap */
+
+
+template<typename T, typename an_ifc_get_func>
+T* an_ifc_module::find_trait(ifc_DeclIndex         decl_index,
+                             an_ifc_partition_kind partition,
+                             an_ifc_get_func       get_func,
+                             T*                    storage) const
+/*
+Given a declaration index as a key to the associated trait table identified by
+partition, find and return a pointer to the associated trait, or NULL if none
+is found.  get_func is the getter function to get the trait from the table.
+storage is the structure that will be filled with the associated table gets, if
+needed, but cannot be relied upon to contain the result.
+*/
+{
+  T        *result = NULL;
+  uint32_t idx, min_idx, max_idx, num_entries;
+
+  if (partitions[partition].size == 0) goto done;
+  num_entries = partitions[partition].size / partitions[partition].entry_size;
+  idx = num_entries / 2;
+  min_idx = 0;
+  max_idx = num_entries-1;
+  while (min_idx <= max_idx && max_idx < num_entries) {
+    T             *tmp;
+    ifc_DeclIndex decl;
+    read_partition_at_index(partition, idx);
+    tmp = (this->*get_func)(storage, /*from_header=*/FALSE);
+    decl = tmp->decl;
+    if (decl == decl_index) {
+      result = tmp;
+      break;
+    } else if (decl < decl_index) {
+      min_idx = idx + 1;
+    } else /* decl > decl_index */ {
+      /* This may underflow, but that will be caught by the above
+         max_idx < num_entries check. */
+      max_idx = idx - 1;
+    }  /* if */
+  }  /* while */
+done:
+  return result;
+}  /* find_trait */
 
 
 void an_ifc_module::str_ifc_text_offset(ifc_TextOffset      offset,
