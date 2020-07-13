@@ -33081,7 +33081,7 @@ The current token is the leading "concept" token in a concept-definition
 following a template parameter clause.  Parse and record the concept.
 */
 {
-  a_source_position  concept_pos = pos_curr_token, *diag_pos;
+  a_source_position  concept_pos = pos_curr_token, *diag_pos = &concept_pos;
   a_symbol_locator   loc;
   a_symbol_ptr       sym;
   an_expr_node_ptr   expr;
