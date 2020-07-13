@@ -3076,6 +3076,13 @@ argument.
     case ifc_ExprSort_UnaryFold:
       unexpected_condition_str("ExprSort::UnaryFold is not yet handled");
       goto default_error;
+    case ifc_ExprSort_PackedTemplateArguments:
+      unexpected_condition_str("ExprSort::PackedTemplateArguments "
+                               "is not yet handled");
+      goto default_error;
+    case ifc_ExprSort_Read:
+      unexpected_condition_str("ExprSort::Read is not yet handled");
+      goto default_error;
     case ifc_ExprSort_Monad:
       { an_ifc_ExprSort_Monad iesm, *iesmp;
         a_token_cache         cache;
@@ -3097,6 +3104,10 @@ argument.
         check_assertion(curr_token == tok_end_of_source);
         (void)get_token();
       }
+      break;
+    case ifc_ExprSort_Literal:
+      kind = tak_nontype;
+      cp = constant_for_expr_index(expr_index, /*default_type=*/NULL);
       break;
     default:
       unexpected_condition_str("Unexpected expr kind for template arg");
@@ -3166,9 +3177,7 @@ module file.
   switch (tmpl->kind) {
     case templk_function:
     case templk_member_function:
-      inst_sym = symbol_for(tmpl->prototype_instantiation.routine);
-      inst_sym = inst_sym->variant.routine.instance_ptr->template_sym;
-      inst_sym = find_template_function(inst_sym, &arg_list,
+      inst_sym = find_template_function(symbol_for(tmpl), &arg_list,
                                         /*explicit_arg_list_present=*/FALSE,
                                         &pos);
       result = inst_sym->variant.routine.ptr->type;
@@ -3176,9 +3185,7 @@ module file.
     case templk_class:
     case templk_member_class:
     case templk_member_enum:
-      inst_sym = symbol_for(tmpl->prototype_instantiation.type);
-      inst_sym = class_symbol_supp(inst_sym)->class_template;
-      inst_sym = find_template_class(inst_sym, &arg_list,
+      inst_sym = find_template_class(symbol_for(tmpl), &arg_list,
                                      /*any_prototype_allowed=*/FALSE,
                                      /*specific_prototype_allowed=*/NULL,
                                      /*instantiation_nonreal=*/FALSE,
@@ -3188,8 +3195,7 @@ module file.
       break;
     case templk_variable:
     case templk_static_data_member:
-      inst_sym = symbol_for(tmpl->prototype_instantiation.variable);
-      inst_sym = find_template_variable(inst_sym, &arg_list,
+      inst_sym = find_template_variable(symbol_for(tmpl), &arg_list,
                                         /*prototype_allowed=*/TRUE,
                                         /*is_use=*/FALSE, /*diagnose=*/TRUE);
       result = inst_sym->variant.variable.ptr->type;
@@ -6207,28 +6213,7 @@ Cache the tokens corresponding to the given expression.
       { an_ifc_ExprSort_Read iesr, *iesrp;
         iesrp = get_ExprSort_Read(&iesr);
         cache_expr(cache, iesrp->address);
-        switch (iesrp->sort) {
-          case ifc_ReadConversionSort_Identity:
-            unexpected_condition_str("ReadConversionSort::Identity "
-                                     "is not yet handled.");
-            break;
-          case ifc_ReadConversionSort_Indirection:
-            unexpected_condition_str("ReadConversionSort::Indirection "
-                                     "is not yet handled.");
-            break;
-          case ifc_ReadConversionSort_Dereference:
-            unexpected_condition_str("ReadConversionSort::Dereference "
-                                     "is not yet handled.");
-            break;
-          case ifc_ReadConversionSort_LvalueToRvalue:
-            /* This should be handled by the parsing of the tokens - nothing
-               extra needed here. */
-            break;
-          case ifc_ReadConversionSort_IntegralConversion:
-            unexpected_condition_str("ReadConversionSort::IntegralConversion "
-                                     "is not yet handled.");
-            break;
-        }  /* switch */
+        /* FIXME: Do we need to handle iesrp->sort here? */
       }
       break;
     case ifc_ExprSort_Monad:
