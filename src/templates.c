@@ -3462,12 +3462,15 @@ parameter matching.
   if (dummy_arg_list1 != NULL) free_template_arg_list(dummy_arg_list1);
   /* Free the template argument list produced by the deduction process. */
   if (dummy_arg_list2 != NULL) free_template_arg_list(dummy_arg_list2);
-  if (concepts_enabled) {
+  if (concepts_enabled && !is_templ_templ_param_check) {
     /* If deduction succeeded both ways, select the more constrained
        template (N4849 [temp.func.order]/2).  The comparison of constraints
        used here is not exactly what the standard prescribes, but the
        standard specification is not entirely clear either.  This approach
-       appears to match what other implementations (GCC and Clang) do. */
+       appears to match what other implementations (GCC and Clang) do.
+       Don't check constraints when checking for a template template
+       parameter match (again, this is not quite what the C++20 standard
+       specification says, but it matches early implementations). */
     int  constraint_order = compare_constraints(templ_sym1, templ_sym2);
     if (constraint_order != 0) {
       if (result == 0) {
