@@ -7542,7 +7542,7 @@ error type.
   } else {
     /* The attribute argument gives the number of elements in the vector;
        convert that to the overall size of the vector type. */
-    size = elem_type->size * size;
+    size = skip_typerefs(elem_type)->size * size;
     /* Allocate the vector type. */
     vector_type = alloc_type((a_type_kind)tk_vector);
     vector_type->source_corresp.decl_position = ap->position;
