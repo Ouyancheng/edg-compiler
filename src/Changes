@@ -1,5 +1,20 @@
 Version 6.1
 
+7/14/20  [EDGcpfe/23037]
+Assertion failure in initialize_vptr
+
+In Cfront ABI configurations that do lowering, an assertion failure in
+initialize_vptr could occur when attempting to initialize a _vptr field
+in a class that has a member with the [[no_unique_address]] attribute as well
+as an unnamed bit-field.  For example (with --c++20):
+
+  struct A {
+    virtual void f();
+    [[no_unique_address]] struct B {} b;
+    int : 2;
+  } a;
+
+
 7/14/20  [EDGcpfe/20826]
 Internal error: add_field: two fields have the same offset
 

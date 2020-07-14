@@ -16072,12 +16072,13 @@ given by vptr_node.
         }  /* if */
         break;
       } else {
-        /* Advance to the next constant in the aggregate. */
-        check_assertion(cp != NULL);
-        prev_con = cp;
-        cp = skip_optimized_empty_constants(cp->next,
-                                            /*skip_empty_bases=*/TRUE,
-                                            /*skip_empty_fields=*/TRUE);
+        if (cp != NULL) {
+          /* Advance to the next constant in the aggregate. */
+          prev_con = cp;
+          cp = skip_optimized_empty_constants(cp->next,
+                                              /*skip_empty_bases=*/TRUE,
+                                              /*skip_empty_fields=*/TRUE);
+        }  /* if */
       }  /* if */
     }  /* for */
     check_assertion(field != NULL);
