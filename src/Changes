@@ -1,5 +1,18 @@
 Version 6.1
 
+7/14/20  [EDGcpfe/20826]
+Internal error: add_field: two fields have the same offset
+
+In configurations that do lowering and have CHECKING enabled, an internal
+error had occurred when adding the _vptr field into a class that has a member
+with the [[no_unique_address]] attribute.  For example (with --c++20):
+
+  struct A {
+    virtual void f();
+    [[no_unique_address]] struct B {} b;
+  };
+
+
 7/14/20  [EDGcpfe/23034]
 Internal error: ptr_remap_function: address not in any mem block
 

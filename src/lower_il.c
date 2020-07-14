@@ -1077,19 +1077,25 @@ assumes base classes occur before fields).
       break;
     }  /* if */
 #if CHECKING
-    /* Check for fields with the same offset, but watch out for zero-length
-       fields. */
+    /* Check for fields with the same offset. */
     if (next_field->offset == field_offset &&
-        next_field->offset_bit_remainder == 0 &&
-        !field_has_zero_length(next_field)) {
+        next_field->offset_bit_remainder == 0) {
+      if (field_has_zero_length(next_field)) {
+        /* Okay if field has zero length. */
+      } else if (next_field->is_optimized_empty_class &&
+                 !il_identical_types(next_field->type, field_ptr->type)) {
+        /* Okay if field has same offset as an optimized empty class (as long
+           as the types are different). */
+      } else {
 #if DEBUG
-      db_abbreviated_type(struct_type);
-      fprintf(f_debug, ", offset = %lu, new field = %s, old field = ",
-                       (unsigned long)field_offset, field_name);
-      db_name(&next_field->source_corresp);
-      fputc('\n', f_debug);
+        db_abbreviated_type(struct_type);
+        fprintf(f_debug, ", offset = %lu, new field = %s, old field = ",
+                         (unsigned long)field_offset, field_name);
+        db_name(&next_field->source_corresp);
+        fputc('\n', f_debug);
 #endif /* DEBUG */
-      internal_error("add_field: two fields have the same offset");
+        internal_error("add_field: two fields have the same offset");
+      }  /* if */
     }  /* if */
 #endif /* CHECKING */
   }  /* for */
