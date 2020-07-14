@@ -7953,31 +7953,50 @@ constrained (N4849 [over.match.best] bullet (2.6)):
 static int compare_gpp_const_this_tiebreaker(a_candidate_function_ptr cfp1,
                                              a_candidate_function_ptr cfp2)
 /*
-Compare two candidate functions.  If they can be distinguished on the
-basis of the g++ quirk that considers a match-with-added-cv-qualifiers
-on a "this" parameter to be worse than one on a non-this parameter,
-return cmp set accordingly:
+Compare two candidate functions.  If they can be distinguished on the basis of
+the g++ quirk that considers a match-with-added-cv-qualifiers on a "this"
+parameter to be worse than one on a non-this parameter, return cmp set
+accordingly:
 
   +1 if cfp1 is better than cfp2,
    0 if cfp1 and cfp2 are equally good, or
   -1 if cfp1 is worse than cfp2.
 
-This is done as a candidate function tiebreaker because it has lower
-weight than the template/non-template difference.  This quirk is still there
-in g++ 4.6 (it goes away under -pedantic, so g++ must know it's
-nonstandard).
+This is done as a candidate function tiebreaker because it has lower weight
+than the template/non-template difference.  This quirk is still there in GCC
+10.1 (although GCC now emits a warning acknowledging it is nonstandard).
+For example:
+
+  struct S {
+    template<typename T> int f(S&, T*) const = delete;
+    template<typename T> int f(S const&, T);
+  } s;
+  int r = s.f(s, (void*)0);  // Normally ambiguous, but okay in GNU modes.
 */
 {
   int                      cmp = 0;
   an_arg_match_summary_ptr arg_match1 = cfp1->arg_matches;
   an_arg_match_summary_ptr arg_match2 = cfp2->arg_matches;
 
+  /* This tiebreaker should not be considered when a "reversed comparison
+     candidate" is involved.  For example:
+
+       struct S {
+         int n;
+         auto operator<=>(S const&) const { return 0; }
+       } s{1};
+       auto r = s <=> s;
+
+     This tiebreaker would cause the "reversed" candidate to be preferred
+     because the arg_matchN->is_match_for_this_param would also be inverted. */
   if (arg_match1 != NULL &&
       arg_match2 != NULL &&
       arg_match1->conversion.std.type_qualifiers_added &&
       arg_match2->conversion.std.type_qualifiers_added &&
       arg_match1->is_match_for_this_param !=
-      arg_match2->is_match_for_this_param) {
+                                       arg_match2->is_match_for_this_param &&
+      !cfp1->supplemental_reversed_candidate &&
+      !cfp2->supplemental_reversed_candidate) {
     /* Both functions add cv-qualifiers, but only one is a "this" match. */
     a_type_qualifier_set qualifiers1 = TQ_NONE,
                          qualifiers2 = TQ_NONE;

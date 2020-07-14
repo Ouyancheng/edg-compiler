@@ -1,5 +1,22 @@
 Version 6.1
 
+7/14/20  [EDGcpfe/23075]
+Spurious C++20 comparison error in GNU C++ mode
+
+Consider:
+
+  struct S {
+    int n;
+    auto operator<=>(S const&) const { return 0; }
+  } s{1};
+  auto r = s <=> s;  // Previously an error.  Now okay.
+
+In GNU C++ mode, the front end produced a spurious error about the <compare>
+header not being included.  That was a consequence of an unintended interaction
+between the overload resolution rules for C++20 comparison operators and a late
+overload resolution tiebreaker that is specific to GCC.  That is now fixed.
+
+
 7/14/20  [EDGcpfe/22022]
 ext_vector_type attribute and typedefs
 
