@@ -24544,8 +24544,8 @@ subject to SFINAE.
            failure. */
         a_diag_list  new_diags;
         clear_diag_list(&new_diags);
-        more_info_diagnostic(ec_concept_failed, &constraint->position,
-                             &new_diags);
+        more_info_tap_diagnostic(ec_concept_failed, &constraint->position,
+                                 new_args, &new_diags);
         splice_diag_list(&new_diags, diag_list, prev_diags);
       }  /* if */
     }  /* if */
