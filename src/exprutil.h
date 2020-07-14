@@ -3136,7 +3136,8 @@ extern a_boolean type_has_nodiscard_attribute(a_type_ptr   type,
                                               a_const_char **reason);
 
 extern int compare_constraints(a_symbol_ptr  sym1,
-                               a_symbol_ptr  sym2);
+                               a_symbol_ptr  sym2,
+                               a_boolean     *p_equiv = NULL);
 
 extern 
 a_boolean requires_clause_satisfied(an_expr_node_ptr      constraint,

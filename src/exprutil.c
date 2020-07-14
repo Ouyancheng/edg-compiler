@@ -24349,10 +24349,6 @@ generate that chart.
       if (rcp != NULL) {
         constraints.push_back(rcp->constraint);
       }  /* if */
-      if (tdp != NULL && if_microsoft_extensions(!tdp->is_generic &&)
-          tdp->constraint.requires_clause != NULL) {
-        constraints.push_back(tdp->constraint.requires_clause->constraint);
-      }  /* if */
       if (symbol_is(sym, sk_function_template)) {
         a_routine_ptr  rp = tssp->variant.function.routine;
         if (rp->trailing_requires_clause != NULL) {
@@ -24404,14 +24400,18 @@ generate that chart.
 
 
 int compare_constraints(a_symbol_ptr  sym1,
-                        a_symbol_ptr  sym2)
+                        a_symbol_ptr  sym2,
+                        a_boolean     *p_equiv)
 /*
 Return +1 if sym1 is more constrained than sym2, -1 if sym2 is more
-constrained than sym1, and 0 otherwise.
+constrained than sym1, and 0 otherwise.  If p_equiv (defaulted to NULL) is
+non-NULL, set *p_equiv to TRUE if the constraints of sym1 subsumes those of
+sym2 and vice versa; otherwise, set it to FALSE.
 */
 {
   a_constraint_chart  *chart1, *chart2;
   int                 result = 0;
+  a_boolean           equiv = FALSE;
 
   sym1 = originator_symbol_of(sym1);
   sym2 = originator_symbol_of(sym2);
@@ -24423,7 +24423,10 @@ constrained than sym1, and 0 otherwise.
     } else if (chart2 != UNCONSTRAINED_CHART) {
       result = -1;
     } else {
+      /* Two unconstrained templates.  The "constraints" are unordered, but
+         equivalent. */
       result = 0;
+      equiv = TRUE;
     }  /* if */
   } else {
     /* Both declarations are constrained: Check subsumption. */
@@ -24435,8 +24438,10 @@ constrained than sym1, and 0 otherwise.
       result = -1;
     } else {
       result = 0;
+      equiv = sym1_subsumes_sym2;
     }  /* if */
   }  /* if */
+  if (p_equiv != NULL) *p_equiv = equiv;
   return result;
 }  /* compare_constraints */
 

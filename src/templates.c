@@ -2369,6 +2369,52 @@ This routine does the C++17 "at least as specialized" checking (see N4849,
 }  /* template_template_arg_is_compatible_with_param */
 
 
+static a_boolean template_has_constraints(
+                                       a_template_ptr     il_entry,
+                                       a_source_position  **p_diag_pos = NULL)
+/*
+Return TRUE if the template associated with il_entry has type parameters with
+type-constraints or a requires clause on the template parameters list (note
+that this does not include checking for a trailing requires clause).  If
+p_diag_pos is non-NULL, set *p_diag_pos to point to the position of one of
+the constraints.
+*/
+{
+  a_boolean            result = FALSE;
+  a_template_decl_ptr  tdp = il_entry->template_decl;
+
+  if (tdp != NULL if_microsoft_extensions(&& !tdp->is_generic)) {
+    if (tdp->constraint.requires_clause != NULL) {
+      result = TRUE;
+      if (p_diag_pos != NULL) {
+        *p_diag_pos = &tdp->constraint.requires_clause->requires_pos;
+      }  /* if */
+    } else if (symbol_for(il_entry)->variant.template_info
+                                   ->has_template_param_constraint) {
+      result = TRUE;
+      if (p_diag_pos != NULL) {
+        a_template_parameter_ptr  tpp = tdp->param_list;
+        for (; tpp != NULL; tpp = tpp->next) {
+          if (tpp->kind == (a_template_parameter_kind)tpk_type) {
+            a_type_ptr        tp = tpp->variant.type.ptr;
+            an_expr_node_ptr  constraint;
+            constraint = tp->variant.template_param.extra_info
+                           ->constraint.type_constraint;
+            if (constraint != NULL) {
+              if (p_diag_pos != NULL) {
+                *p_diag_pos = &constraint->position;
+              }  /* if */
+              break;
+            }  /* if */
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* template_has_constraints */
+
+
 static a_boolean template_template_arg_matches_param(
 				a_template_arg_ptr	tap,
 				a_template_param_ptr	tpp,
@@ -2471,7 +2517,9 @@ Return TRUE if there is a match, FALSE otherwise.
     /* In EXPENSIVE_CHECKING configurations we make sure the new checking
        is a superset of the old. */
     check_assertion(!do_old_style_check ||
-                    (old_style_match ? match : TRUE));
+                    (old_style_match ? match : TRUE) ||
+                    template_has_constraints(tap->variant.templ.ptr) ||
+                    template_has_constraints(param_template));
   } else {
     match = old_style_match;
   }  /* if */
@@ -3462,7 +3510,7 @@ parameter matching.
   if (dummy_arg_list1 != NULL) free_template_arg_list(dummy_arg_list1);
   /* Free the template argument list produced by the deduction process. */
   if (dummy_arg_list2 != NULL) free_template_arg_list(dummy_arg_list2);
-  if (concepts_enabled && !is_templ_templ_param_check) {
+  if (concepts_enabled && (!is_templ_templ_param_check || result == -1)) {
     /* If deduction succeeded both ways, select the more constrained
        template (N4849 [temp.func.order]/2).  The comparison of constraints
        used here is not exactly what the standard prescribes, but the
@@ -3471,13 +3519,24 @@ parameter matching.
        Don't check constraints when checking for a template template
        parameter match (again, this is not quite what the C++20 standard
        specification says, but it matches early implementations). */
-    int  constraint_order = compare_constraints(templ_sym1, templ_sym2);
-    if (constraint_order != 0) {
+    a_boolean  equiv;
+    int        constraint_order = compare_constraints(templ_sym1, templ_sym2,
+                                                      &equiv);
+    if (is_templ_templ_param_check && constraint_order == 1 &&
+        !template_has_constraints(tssp2->il_template_entry)) {
+      /* A template template parameter match where the argument is more
+         constrained but the parameter is itself not constrained.  Ignore
+         the constraints in that case (see N4861 [temp.arg.template]/3). */
+    } else if (constraint_order != 0 || !equiv) {
       if (result == 0) {
         if (match1 && match2) {
+          /* Without the constraints, the two template match, but the
+             constraints establish an order. */
           result = constraint_order;
         }  /* if */
-      } else if (result != constraint_order) {
+      } else if (result != constraint_order && !equiv) {
+        /* The constraints have an order that is different from the
+           unconstrained template.  The whole is thus unordered. */
         result = 0;
       }  /* if */
     }  /* if */
@@ -10189,52 +10248,6 @@ is the template of which sym is an instance.
 }  /* make_into_ms_instantiated_nonreal_class */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-
-static a_boolean template_has_constraints(
-                                       a_template_ptr     il_entry,
-                                       a_source_position  **p_diag_pos = NULL)
-/*
-Return TRUE if the template associated with il_entry has type parameters with
-type-constraints or a requires clause on the template parameters list (note
-that this does not include checking for a trailing requires clause).  If
-p_diag_pos is non-NULL, set *p_diag_pos to point to the position of one of
-the constraints.
-*/
-{
-  a_boolean            result = FALSE;
-  a_template_decl_ptr  tdp = il_entry->template_decl;
-
-  if (tdp != NULL if_microsoft_extensions(&& !tdp->is_generic)) {
-    if (tdp->constraint.requires_clause != NULL) {
-      result = TRUE;
-      if (p_diag_pos != NULL) {
-        *p_diag_pos = &tdp->constraint.requires_clause->requires_pos;
-      }  /* if */
-    } else if (symbol_for(il_entry)->variant.template_info
-                                   ->has_template_param_constraint) {
-      result = TRUE;
-      if (p_diag_pos != NULL) {
-        a_template_parameter_ptr  tpp = tdp->param_list;
-        for (; tpp != NULL; tpp = tpp->next) {
-          if (tpp->kind == (a_template_parameter_kind)tpk_type) {
-            a_type_ptr        tp = tpp->variant.type.ptr;
-            an_expr_node_ptr  constraint;
-            constraint = tp->variant.template_param.extra_info
-                           ->constraint.type_constraint;
-            if (constraint != NULL) {
-              if (p_diag_pos != NULL) {
-                *p_diag_pos = &constraint->position;
-              }  /* if */
-              break;
-            }  /* if */
-          }  /* if */
-        }  /* for */
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* template_has_constraints */
-
 
 static a_boolean requires_constraint_satisfied(
                                           a_symbol_ptr           template_sym,

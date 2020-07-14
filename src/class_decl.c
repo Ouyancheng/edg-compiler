@@ -11454,7 +11454,8 @@ possibility.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if FRIEND_AND_MEMBER_DEFINITIONS_MAY_BE_MOVED_OUT_OF_CLASS
-        } else if (class_type_can_be_named_in_namespace_scope(class_type)
+        } else if (class_type_can_be_named_in_namespace_scope(class_type) &&
+                   !is_unspecialized_templated_class(classe_type)
 #if MICROSOFT_EXTENSIONS_ALLOWED
                    && !(microsoft_mode &&
                         microsoft_routine_def_is_unmovable(
