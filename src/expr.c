@@ -35487,6 +35487,14 @@ normal_function:
           if (force_indefinite_function) goto overloaded_function;
           /* Static member functions are handled like normal functions. */
           routine_ptr = sym_ptr->variant.routine.ptr;
+          if (routine_ptr->is_ineligible) {
+            if (expr_error_should_be_issued()) {
+              pos_sy_error(ec_ineligible_member_function,
+                           &locator.source_position, symbol_for(routine_ptr));
+            }  /* if */
+            make_error_operand(result);
+            break;
+          }  /* if */
           if (!routine_type_is_nonstatic_member_function(routine_ptr->type)) {
             goto normal_function;
           }  /* if */

@@ -3215,6 +3215,7 @@ ec_bad_decltype_qualifier;;"result of decltype qualifier %t is not a class or en
 ec_cpp20_reversed_comparison_ambiguity;;"comparison is ambiguous in standard C++20 because the implied comparison operator with reversed parameters is an equally good match -- this is usually caused by a missing \"const\" qualifier on the comparison operator; see %nod"
 ec_invalid_concept_id;;"invalid concept-id"
 ec_requires_clause_arg_list_substitution_failed;;"substitution of arguments %T for requires-clause failed"
+ec_ineligible_member_function;;"constraints for %nd are not satisfied"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
