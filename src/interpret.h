@@ -77,8 +77,6 @@ typedef enum a_constexpr_intrinsic_tag {
 void register_constexpr_intrinsic(a_constexpr_intrinsic_tag  tag,
                                   a_routine_ptr              rp);
 
-a_boolean is_std_is_constant_evaluated(a_routine_ptr  rp);
-
 #if DEBUG
 uintptr_t db_hash_ptr(void  *ptr);
 

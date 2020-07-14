@@ -34,8 +34,6 @@ interpret.c -- IL interpreter for constexpr functions
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
 
-#include "pch.h"
-
 #include "templates.h"
 
 /* Conditionally open the "edg" namespace. */
@@ -18728,18 +18726,6 @@ std::is_constant_evaluated.)
   rp->is_constexpr_intrinsic = TRUE;
   rp->number.constexpr_intrinsic = (int32_t)tag;
 }  /* register_constexpr_intrinsic */
-
-
-a_boolean is_std_is_constant_evaluated(a_routine_ptr  rp)
-/*
-Return TRUE if (and only if) the given routine is std::is_constant_evaluated().
-*/
-{
-  a_byte_count  impl_idx = (a_byte_count)cit_error;
-
-  get_mapped_byte_count(&persistent_map, rp, impl_idx);
-  return impl_idx == (a_byte_count)cit_std_is_constant_evaluated;
-}  /* is_std_is_constant_evaluated */
 
 #if DEBUG
 

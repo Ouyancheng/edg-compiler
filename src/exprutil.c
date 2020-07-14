@@ -6609,7 +6609,8 @@ the call target).
        __builtin_is_constant_evaluated(), and warn if they appear in a
        function that is not plain "constexpr". */
     if ((rout->is_constexpr_intrinsic &&
-         is_std_is_constant_evaluated(rout)) ||
+         rout->number.constexpr_intrinsic ==
+                                    (int32_t)cit_std_is_constant_evaluated) ||
         rout_is_specific_builtin(rout, bufk_is_constant_evaluated)) {
       an_error_code  err_code = ec_no_error;
       if (!scope_stack_top().is_rescan && innermost_function_scope != NULL) {
