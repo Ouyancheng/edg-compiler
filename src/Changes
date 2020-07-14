@@ -1,5 +1,18 @@
 Version 6.1
 
+7/14/20  [EDGcpfe/23034]
+Internal error: ptr_remap_function: address not in any mem block
+
+In configurations with ALTERNATE_IL_FILE_FORMAT set to FALSE, lowering of
+certain classes whose members have attributes could lead to an internal error
+in ptr_remap_function.  For example (with --c++20):
+
+  struct B {};
+  struct A : B {
+    [[no_unique_address]] struct {} m [[align(4)]];
+  };
+
+
 7/13/20  [EDGcpfe/23087]
 Constexpr intrinsics and precompiled headers
 

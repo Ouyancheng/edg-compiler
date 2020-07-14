@@ -1212,6 +1212,8 @@ on return.
   field_ptr->source_corresp.parent_scope = 
                                     class_type_supp(struct_type)->assoc_scope;
   field_ptr->source_corresp.has_associated_pragma = FALSE;
+  field_ptr->source_corresp.attributes =
+             copy_of_attributes_list(old_field_ptr->source_corresp.attributes);
   field_ptr->next = NULL;
   /* Add the field to the end of the struct field list. */
   if (*last_field == NULL) {

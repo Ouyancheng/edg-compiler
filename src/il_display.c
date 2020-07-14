@@ -5707,6 +5707,7 @@ Display the indicated attribute entry.
     case ak_align:               kind_name = "align";               break;
     case ak_base_check:          kind_name = "base_check";          break;
     case ak_carries_dependency:  kind_name = "carries_dependency";  break;
+    case ak_deprecated:          kind_name = "deprecated";          break;
     case ak_final:               kind_name = "final";               break;
     case ak_hiding:              kind_name = "hiding";              break;
     case ak_noreturn:            kind_name = "noreturn";            break;
@@ -5716,10 +5717,10 @@ Display the indicated attribute entry.
     case ak_fallthrough:         kind_name = "fallthrough";         break;
     case ak_likely:              kind_name = "likely";              break;
     case ak_unlikely:            kind_name = "unlikely";            break;
+    case ak_no_unique_address:   kind_name = "no_unique_address";   break;
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
     /* Nonstandard attributes available in both GNU and Microsoft
        configurations. */
-    case ak_deprecated:          kind_name = "deprecated";          break;
 #if GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
     case ak_naked:               kind_name = "naked";               break;
 #endif /* GNU_NAKED_ATTRIBUTE_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
