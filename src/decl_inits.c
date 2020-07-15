@@ -8813,7 +8813,7 @@ initialized.  These are addressed in the course of the processing.
   a_boolean                     in_variant = FALSE, variant_complete = FALSE;
   a_boolean                     variant_init = FALSE;
   a_boolean                     variant_explicit_init = FALSE;
-  a_boolean                     bad_call_for_constexpr_ctor_reported = FALSE;
+  an_error_severity             bad_call_for_constexpr_ctor_reported = es_none;
   a_boolean                     clear_constexpr_flag = FALSE;
   a_token_sequence_number       args_tsn = NO_TOKEN_SEQUENCE_NUMBER;
 
@@ -9328,7 +9328,7 @@ initialized.  These are addressed in the course of the processing.
                 pos_sy_error(
                           ec_nonconstant_field_initializer_in_mem_initializer,
                           &err_pos, field_sym);
-                bad_call_for_constexpr_ctor_reported = TRUE;
+                bad_call_for_constexpr_ctor_reported = es_error;
               } else if (!ctor_rout->is_prototype_instantiation) {
                 /* The is_constexpr flag must be cleared, but not until all
                    fields have been examined. */
@@ -9521,10 +9521,18 @@ initialized.  These are addressed in the course of the processing.
                  ctor_rout->is_consteval) &&
                 !is_unspecialized_template_member_function(ctor_rout) &&
                 !ctor_rout->is_defaulted) {
-              if (!bad_call_for_constexpr_ctor_reported) {
-                pos_sy_error(ec_nonconstexpr_call_in_mem_initializer, &err_pos,
-                             symbol_for(rp));
-                bad_call_for_constexpr_ctor_reported = TRUE;
+              an_error_severity  sev = es_discretionary_error;
+              if ((clang_mode || gpp_mode || microsoft_mode) &&
+                  rout_is_template_instance(rp)) {
+                /* Other compilers do not diagnose this if the called
+                   constructor (as opposed to the calling constructor) is a
+                   template instance. */
+                sev = es_warning;
+              }  /* if */
+              if ((int)bad_call_for_constexpr_ctor_reported < (int)sev) {
+                pos_sy_diagnostic(sev, ec_nonconstexpr_call_in_mem_initializer,
+                                  &err_pos, symbol_for(rp));
+                bad_call_for_constexpr_ctor_reported = sev;
               }  /* if */
             } else if (!ctor_rout->is_prototype_instantiation) {
               ctor_rout->is_constexpr = FALSE;
