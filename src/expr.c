@@ -32568,8 +32568,24 @@ assignment was a braced-init-list (allowed in C++11 mode),
           break;
         case tok_shift_left_assign:
         case tok_shift_right_assign:
-          (void)check_integral_or_enum_or_fixed_point_operand(operand_1);
-          (void)check_integral_or_enum_operand(&operand_2);
+#if GNU_VECTOR_TYPES_ALLOWED
+          if ((gnu_version_is(>=40800) || clang_version_is(>=40000)) &&
+              determine_vector_operation_type(
+                      save_token, operand_1, &operand_2, &operator_position,
+                      &result_type, &op)) {
+            /* Vector types are arithmetic types in some ways, but the rules
+               determining the operation type do not parallel those of the
+               standard arithmetic types. */
+            orig_result_type = operand_1->type;
+            operation_type = prvalue_type(result_type);
+            goto operation_type_determined;
+          } else
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+          /* Do not insert code here. */
+          {
+            (void)check_integral_or_enum_or_fixed_point_operand(operand_1);
+            (void)check_integral_or_enum_operand(&operand_2);
+          }  /* if */
           break;
         case tok_and_assign:
         case tok_excl_or_assign:

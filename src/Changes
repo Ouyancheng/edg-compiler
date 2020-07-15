@@ -1,5 +1,18 @@
 Version 6.1
 
+7/15/20  [EDGcpfe/23082]
+GCC compatibility: Vector shift-assign operations
+
+In GNU modes with gnu_version >= 40800 and Clang modes with clang_version >=
+40000, the front end now accepts shift-assign (>>= and <<=) operations on
+vector types.  For example:
+
+  typedef int __attribute((vector_size(16))) V4;
+  void g(V4 *p) {
+    *p <<= 2;  // Now accepted in some GNU and Clang modes.
+  }
+
+
 7/15/20  [EDGcpfe/23055]
 Clang/GCC/Microsoft compatibility: Weaken diagnostic on constexpr constructor
 
