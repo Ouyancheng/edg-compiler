@@ -3203,7 +3203,7 @@ ec_pack_init_capture_not_enabled;;"pack expansion in init-capture not enabled in
 ec_pack_init_capture_is_cpp20;;"pack expansion in init-capture is a C++20 feature"
 ec_comparison_defaulted_in_class_must_be_first_decl;;"a comparison operator defaulted in a class definition must be the first declaration of that comparison operator (%nd)"
 ec_pack_init_capture_in_non_variadic_context;;"a pack expansion in an init-capture can be used only in a variadic template"
-ec_type_constraint_requires_type_concept;;"type constraint must use a type concept (i.e., a concept template whose first parameter is a type parameter)"
+ec_type_constraint_requires_type_concept;;"type constraint uses %nd that is not a type concept (i.e., a concept template whose first parameter is a type parameter)"
 ec_placeholder_type_failed_constraint;;"the deduced placeholder type %t failed the type constraint"
 ec_ineligible_default_constructor;;"default constructor for %t is not eligible"
 ec_ambiguous_destructor_constraints;;"destructor for %t is ambiguous because of unordered constraints"
