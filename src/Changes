@@ -1,5 +1,15 @@
 Version 6.1
 
+7/15/20  [EDGcpfe/23051]
+Local static variables and MAKE_FRONT_END_CALLABLE
+
+The function constant_conv_function_result previously relied on local static
+variables.  However, such variables do not get re-initialized when the front
+end is re-invoked in a configuration when MAKE_FRONT_END_CALLABLE is TRUE, and
+thus invoking that function could lead to memory corruption.  That problem is
+now fixed (the local static variables have been eliminated).
+
+
 7/15/20  [EDGcpfe/20412]
 Abort in constexpr interpreter when C++11-style SFINAE is disabled
 

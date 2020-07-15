@@ -6092,6 +6092,72 @@ given expression.
 }  /* expr_interpret_expression_operand */
 
 
+static void reclaim_node_if_possible(an_expr_node_ptr  node)
+/*
+If the given expression node is allocated in file-scope memory, place it on
+the avail_fs_nodes list.
+*/
+{
+  if (in_file_scope(node)) {
+    node->extra.next_avail = avail_fs_nodes;
+    avail_fs_nodes = node;
+  }  /* if */
+}  /* reclaim_node_if_possible */
+
+
+static void reclaim_fs_node(
+                         an_expr_node_ptr                               node,
+                         ARG_UNUSED an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+If the given expression node is allocated in file-scope memory, place it on
+the avail_fs_nodes list.
+*/
+{
+  if (in_file_scope(node)) {
+    node->extra.next_avail = avail_fs_nodes;
+    avail_fs_nodes = node;
+  }  /* if */
+}  /* reclaim_fs_node */
+
+
+static void reclaim_fs_nodes_of_expr_tree(an_expr_node  *expr_tree)
+/*
+Traverse the given expression tree and reclaim every file-scope-memory node it
+contains for potential reuse later on.
+*/
+{
+  an_expr_or_stmt_traversal_block  tblock;
+
+  clear_expr_or_stmt_traversal_block(&tblock);
+  tblock.process_expr = reclaim_fs_node;
+  traverse_expr(expr_tree, &tblock);
+}  /* reclaim_fs_nodes_of_expr_tree */
+
+
+void reclaim_fs_nodes_of_operand(an_operand  *opnd)
+/*
+Reclaim file-scope-memory nodes referred to by the given operand.
+*/
+{
+  switch (opnd->kind) {
+    case ok_expression:
+      if (opnd->variant.expression != NULL) {
+        reclaim_fs_nodes_of_expr_tree(opnd->variant.expression);
+        opnd->variant.expression = NULL;
+      }  /* if */
+      break;
+    case ok_constant:
+      if (opnd->variant.constant.expr != NULL) {
+        reclaim_fs_nodes_of_expr_tree(opnd->variant.constant.expr);
+        opnd->variant.constant.expr = NULL;
+      }  /* if */
+      break;
+    default:
+      break;
+  }  /* switch */
+}  /* reclaim_fs_nodes_of_operand */
+
+
 a_boolean constant_conv_function_result(a_routine_ptr   conv_func,
                                         an_operand      *source_operand,
                                         a_type_ptr      result_type,
@@ -6102,27 +6168,23 @@ a constant result, return TRUE and set *result_con to that result.  Otherwise,
 return FALSE.
 */
 {
-  a_boolean    is_constant = FALSE;
-  a_type_ptr   return_type;
-  static an_expr_node_ptr
-               call_node = NULL, rout_node, src_node, value_node;
-  a_diag_list  diag_list;
+  a_boolean               is_constant = FALSE;
+  a_type_ptr              return_type;
+  an_expr_node_ptr        call_node, rout_node, src_node, value_node;
+  a_diag_list             diag_list;
+  a_memory_region_number  region_to_switch_back_to;
 
   /* Create an expression tree representing the conversion call and
      interpret it. */
-  if (call_node == NULL) {
-    /* Allocate expression nodes the first time this routine is called.  Use
-       the file-scope memory region to ensure there are no function-scope
-       conflicts. */
-    a_memory_region_number region_to_switch_back_to;
-    switch_to_file_scope_region(&region_to_switch_back_to);
-    call_node = alloc_expr_node((an_expr_node_kind)enk_operation);
-    rout_node = alloc_expr_node((an_expr_node_kind)enk_routine);
-    src_node = alloc_expr_node((an_expr_node_kind)enk_constant);
-    rout_node->next = src_node;
-    value_node = alloc_expr_node((an_expr_node_kind)enk_operation);
-    switch_back_to_original_region(region_to_switch_back_to);
-  }  /* if */
+  /* Allocate expression nodes in the file-scope memory region so they can
+     be reclaimed at the end. */
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  call_node = alloc_expr_node((an_expr_node_kind)enk_operation);
+  rout_node = alloc_expr_node((an_expr_node_kind)enk_routine);
+  src_node = alloc_expr_node((an_expr_node_kind)enk_constant);
+  rout_node->next = src_node;
+  value_node = alloc_expr_node((an_expr_node_kind)enk_operation);
+  switch_back_to_original_region(region_to_switch_back_to);
   if (is_constant_operand(source_operand)) {
     src_node->kind = (an_expr_node_kind)enk_constant;
     src_node->is_lvalue = FALSE;
@@ -6155,6 +6217,10 @@ return FALSE.
                                /*force_rvalue=*/FALSE, result_con, &diag_list);
   discard_more_info_list(&diag_list);
 done:
+  reclaim_node_if_possible(call_node);
+  reclaim_node_if_possible(rout_node);
+  reclaim_node_if_possible(src_node);
+  reclaim_node_if_possible(value_node);
   return is_constant;
 }  /* constant_conv_function_result */
 
@@ -7128,72 +7194,6 @@ though it does not do access checking in general in those contexts.
   }  /* if */
   return check_access;
 }  /* base_class_cast_access_checking_should_be_done */
-
-
-static void reclaim_node_if_possible(an_expr_node_ptr  node)
-/*
-If the given expression node is allocated in file-scope memory, place it on
-the avail_fs_nodes list.
-*/
-{
-  if (in_file_scope(node)) {
-    node->extra.next_avail = avail_fs_nodes;
-    avail_fs_nodes = node;
-  }  /* if */
-}  /* reclaim_node_if_possible */
-
-
-static void reclaim_fs_node(
-                         an_expr_node_ptr                               node,
-                         ARG_UNUSED an_expr_or_stmt_traversal_block_ptr tblock)
-/*
-If the given expression node is allocated in file-scope memory, place it on
-the avail_fs_nodes list.
-*/
-{
-  if (in_file_scope(node)) {
-    node->extra.next_avail = avail_fs_nodes;
-    avail_fs_nodes = node;
-  }  /* if */
-}  /* reclaim_fs_node */
-
-
-static void reclaim_fs_nodes_of_expr_tree(an_expr_node  *expr_tree)
-/*
-Traverse the given expression tree and reclaim every file-scope-memory node it
-contains for potential reuse later on.
-*/
-{
-  an_expr_or_stmt_traversal_block  tblock;
-
-  clear_expr_or_stmt_traversal_block(&tblock);
-  tblock.process_expr = reclaim_fs_node;
-  traverse_expr(expr_tree, &tblock);
-}  /* reclaim_fs_nodes_of_expr_tree */
-
-
-void reclaim_fs_nodes_of_operand(an_operand  *opnd)
-/*
-Reclaim file-scope-memory nodes referred to by the given operand.
-*/
-{
-  switch (opnd->kind) {
-    case ok_expression:
-      if (opnd->variant.expression != NULL) {
-        reclaim_fs_nodes_of_expr_tree(opnd->variant.expression);
-        opnd->variant.expression = NULL;
-      }  /* if */
-      break;
-    case ok_constant:
-      if (opnd->variant.constant.expr != NULL) {
-        reclaim_fs_nodes_of_expr_tree(opnd->variant.constant.expr);
-        opnd->variant.constant.expr = NULL;
-      }  /* if */
-      break;
-    default:
-      break;
-  }  /* switch */
-}  /* reclaim_fs_nodes_of_operand */
 
 
 void make_error_operand(an_operand *operand)
