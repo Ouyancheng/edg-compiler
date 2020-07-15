@@ -24406,7 +24406,7 @@ int compare_constraints(a_symbol_ptr  sym1,
 /*
 Return +1 if sym1 is more constrained than sym2, -1 if sym2 is more
 constrained than sym1, and 0 otherwise.  If p_equiv (defaulted to NULL) is
-non-NULL, set *p_equiv to TRUE if the constraints of sym1 subsumes those of
+non-NULL, set *p_equiv to TRUE if the constraints of sym1 subsume those of
 sym2 and vice versa; otherwise, set it to FALSE.
 */
 {

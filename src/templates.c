@@ -2374,7 +2374,7 @@ static a_boolean template_has_constraints(
                                        a_source_position  **p_diag_pos = NULL)
 /*
 Return TRUE if the template associated with il_entry has type parameters with
-type-constraints or a requires clause on the template parameters list (note
+type-constraints or a requires-clause on the template parameter list (note
 that this does not include checking for a trailing requires clause).  If
 p_diag_pos is non-NULL, set *p_diag_pos to point to the position of one of
 the constraints.
