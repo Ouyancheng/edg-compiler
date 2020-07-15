@@ -3530,7 +3530,7 @@ parameter matching.
     } else if (constraint_order != 0 || !equiv) {
       if (result == 0) {
         if (match1 && match2) {
-          /* Without the constraints, the two template match, but the
+          /* Without the constraints, the two templates match, but the
              constraints establish an order. */
           result = constraint_order;
         }  /* if */
