@@ -18,7 +18,9 @@ Consider:
 
 Previously, this could abort in the constexpr interpreter (in the function
 check_boolean_condition) in C++11 mode with C++11 SFINAE rules disabled (i.e.,
-with the --no_c++11_sfinae option).  That is now fixed.
+with the --no_c++11_sfinae option).  That problem was a regression introduced
+in version 5.0 by the changes for EDGcpfe/17707,EDGcpfe/18676.  This is now
+fixed.
 
 
 7/14/20  [EDGcpfe/23075]
