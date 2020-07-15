@@ -2424,48 +2424,48 @@ private:
 
 /* Expected instantiations of an_ifc_module::str_ifc_associated_trait<T>: */
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Deprecated>
-                                            (ifc_DeclIndex       decl_index,
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Deprecated>(
+                                             ifc_DeclIndex       decl_index,
                                              a_str_control_block *scbp) const;
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Specialization>
-                                            (ifc_DeclIndex       decl_index,
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Specialization>(
+                                             ifc_DeclIndex       decl_index,
                                              a_str_control_block *scbp) const;
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Friend>
-                                            (ifc_DeclIndex       decl_index,
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Friend>(
+                                             ifc_DeclIndex       decl_index,
                                              a_str_control_block *scbp) const;
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_ConstexprFunction>
-                                            (ifc_DeclIndex       decl_index,
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_ConstexprFunction>(
+                                             ifc_DeclIndex       decl_index,
                                              a_str_control_block *scbp) const;
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_FunctionTemplate>
-                                            (ifc_DeclIndex       decl_index,
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_FunctionTemplate>(
+                                             ifc_DeclIndex       decl_index,
                                              a_str_control_block *scbp) const;
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_ClassTemplate>
-                                            (ifc_DeclIndex       decl_index,
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_ClassTemplate>(
+                                             ifc_DeclIndex       decl_index,
                                              a_str_control_block *scbp) const;
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_AliasTemplate>
-                                            (ifc_DeclIndex       decl_index,
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_AliasTemplate>(
+                                             ifc_DeclIndex       decl_index,
                                              a_str_control_block *scbp) const;
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_VariableTemplate>
-                                            (ifc_DeclIndex       decl_index,
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_VariableTemplate>(
+                                             ifc_DeclIndex       decl_index,
                                              a_str_control_block *scbp) const;
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcVendorTrait>
-                                            (ifc_DeclIndex       decl_index,
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcVendorTrait>(
+                                             ifc_DeclIndex       decl_index,
                                              a_str_control_block *scbp) const;
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcUuid>
-                                            (ifc_DeclIndex       decl_index,
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcUuid>(
+                                             ifc_DeclIndex       decl_index,
                                              a_str_control_block *scbp) const;
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcFuncParams>
-                                            (ifc_DeclIndex       decl_index,
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcFuncParams>(
+                                             ifc_DeclIndex       decl_index,
                                              a_str_control_block *scbp) const;
 
 extern void ifc_modules_one_time_init();

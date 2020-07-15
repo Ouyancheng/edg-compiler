@@ -3904,8 +3904,9 @@ static void cache_string_literal(a_token_cache_ptr     cache,
                                  a_targ_size_t         length,
                                  a_source_position_ptr pos)
 /*
-Add a tok_string_literal for str with the given length to cache.  pos is the
-position of the literal.
+Add a tok_string_literal for str with the given length to cache.  kind is the
+type of string literal (e.g., UTF-8, wchar, etc).  pos is the position of the
+literal.
 */
 {
   a_constant_ptr cp;
@@ -3930,8 +3931,9 @@ static void cache_ud_literal(a_token_cache_ptr     cache,
                              a_const_char          *suffix,
                              a_source_position_ptr pos)
 /*
-Add a tok_ud_literal for str with the given length and suffix to cache.  pos is
-the position of the literal.
+Add a tok_ud_literal for str with the given length and suffix to cache.  kind
+is the type of string literal (e.g., UTF-8, wchar, etc).  pos is the position
+of the literal.
 */
 {
   a_constant_ptr     cp;
@@ -3997,7 +3999,7 @@ void an_ifc_module::cache_source_directive(a_token_cache_ptr   cache,
                                            ifc_SourceDirective directive,
                                            ifc_SourceLocation  *locus) const
 /*
-Add tokens corresponding to directive to cache.  pos is the position of the
+Add tokens corresponding to directive to cache.  locus is the location of the
 Sentence containing directive.
 */
 {
@@ -4100,7 +4102,7 @@ void an_ifc_module::cache_source_punctuator(a_token_cache_ptr    cache,
                                             ifc_SourcePunctuator punctuator,
                                             ifc_SourceLocation   *locus) const
 /*
-Add tokens corresponding to punctuator to cache.  pos is the position of the
+Add tokens corresponding to punctuator to cache.  locus is the location of the
 Sentence containing punctuator.
 */
 {
@@ -4176,7 +4178,7 @@ void an_ifc_module::cache_source_literal(a_token_cache_ptr  cache,
 /*
 Add tokens corresponding to literal to cache.  index is the index into the IFC
 file for the additional information needed, depending on the kind of literal.
-pos is the position of the Sentence containing literal.
+locus is the location of the Sentence containing literal.
 */
 {
   a_source_position pos;
@@ -4287,7 +4289,7 @@ void an_ifc_module::cache_source_operator(a_token_cache_ptr  cache,
                                           ifc_SourceOperator op,
                                           ifc_SourceLocation *locus) const
 /*
-Add tokens corresponding to op to cache.  pos is the position of the Sentence
+Add tokens corresponding to op to cache.  locus is the location of the Sentence
 containing op.
 */
 {
@@ -4428,7 +4430,7 @@ void an_ifc_module::cache_source_keyword(a_token_cache_ptr  cache,
                                          ifc_SourceKeyword  keyword,
                                          ifc_SourceLocation *locus) const
 /*
-Add tokens corresponding to keyword to cache.  pos is the position of the
+Add tokens corresponding to keyword to cache.  locus is the location of the
 Sentence containing keyword.
 */
 {
@@ -5033,8 +5035,8 @@ void an_ifc_module::cache_source_identifier(a_token_cache_ptr    cache,
                                             ifc_SourceLocation   *locus) const
 /*
 Add tokens corresponding to id to cache.  index is the index into the IFC file
-for the additional information needed, depending on the kind of id.  pos is the
-position of the Sentence containing id.
+for the additional information needed, depending on the kind of id.  locus is
+the location of the Sentence containing id.
 */
 {
   a_const_char      *name = NULL;
@@ -5077,8 +5079,7 @@ position of the Sentence containing id.
 void an_ifc_module::cache_word(a_token_cache_ptr cache,
                                an_ifc_Word       *word) const
 /*
-Add token(s) corresponding to word to cache.  pos is the position of the
-Sentence containing word.
+Add token(s) corresponding to word to cache.
 */
 {
   ifc_SourceLocation *pos = &word->locus;
@@ -5118,7 +5119,7 @@ uint32_t an_ifc_module::cache_sentence(a_token_cache_ptr cache,
                                        a_token_kind      stop_token) const
 /*
 Given a SentenceIndex, populate cache with the corresponding tokens.  offset is
-the offset into the words to start cacheing.  If a cached token matches
+the offset into the words to start caching.  If a cached token matches
 stop_token, remove that token from the cache and return the index of that
 token.  Otherwise the return value is meaningless.
 */
@@ -5153,9 +5154,10 @@ static void cache_func_traits(a_token_cache_ptr     cache,
                               a_boolean             trailing,
                               a_source_position_ptr pos)
 /*
-Cache the tokens corresponding to the given function traits.  If trailing is
-TRUE then cache the traits that follow a function declaration.  Otherwise,
-cache the traits that precede a function declaration.
+Add the tokens corresponding to the given function traits to cache.  If
+trailing is TRUE then cache the traits that follow a function declaration.
+Otherwise, cache the traits that precede a function declaration.  pos is the
+position to use for the traits.
 */
 {
   if (trailing) {
@@ -5206,7 +5208,8 @@ static void cache_func_type_traits(a_token_cache_ptr      cache,
                                    ifc_FunctionTypeTraits traits,
                                    a_source_position_ptr  pos)
 /*
-Cache the tokens corresponding to the given function type traits.
+Add the tokens corresponding to the given function type traits to cache.  pos
+is the position of the traits.
 */
 {
   if (traits & ifc_FunctionTypeTraits_Const) {
@@ -5227,7 +5230,8 @@ static void cache_calling_convention(a_token_cache_ptr     cache,
                                      ifc_CallingConvention convention,
                                      a_source_position_ptr pos)
 /*
-Cache the tokens corresponding to the given calling convention.
+Add the tokens corresponding to the given calling convention to cache.  pos is
+the position of the calling convention.
 */
 {
   switch (convention) {
@@ -5262,7 +5266,8 @@ void an_ifc_module::cache_exception_spec(a_token_cache_ptr         cache,
                                          ifc_NoexceptSpecification *eh_spec,
                                          a_source_position_ptr     pos) const
 /*
-Cache the tokens corresponding to the given exception specification.
+Add the tokens corresponding to the given exception specification (eh_spec) to
+cache.  pos is the position of the exception specification.
 */
 {
   if (eh_spec->sort == ifc_NoexceptSort_None) goto done;
@@ -5300,6 +5305,7 @@ void an_ifc_module::cache_scope(a_token_cache_ptr  cache,
                                 ifc_SourceLocation *locus) const
 /*
 For the given scope, cache tokens corresponding to the definition of the scope.
+locus is the location of the scope.
 */
 {
   an_ifc_Scope_Descriptor isd, *isdp;
@@ -5325,8 +5331,8 @@ void an_ifc_module::cache_type(a_token_cache_ptr  cache,
                                ifc_TypeIndex      type,
                                ifc_SourceLocation *locus) const
 /*
-Cache the tokens corresponding to the given type.  locus is the source location
-of the entity referring to the type.
+Add the tokens corresponding to the given type to cache.  locus is the source
+location of the entity referring to the type.
 */
 {
   ifc_TypeSort      tag = type_tag(type);
@@ -5631,8 +5637,9 @@ void an_ifc_module::cache_chart(a_token_cache_ptr  cache,
                                 ifc_ChartIndex     chart,
                                 ifc_SourceLocation *locus) const
 /*
-Cache the tokens corresponding to the given chart.  The caller is expected to
-have already cached the "template" keyword if it's required.
+Add the tokens corresponding to the given chart to cache.  The caller is
+expected to have already cached the "template" keyword if it's required. locus
+is the location of the chart.
 */
 {
   ifc_ChartSort     tag = chart_tag(chart);
@@ -5680,7 +5687,8 @@ void an_ifc_module::cache_operator(a_token_cache_ptr    cache,
                                    ifc_OperatorCategory category,
                                    ifc_SourceLocation   *locus) const
 /*
-Cache the tokens corresponding to the given operator category.
+Add the tokens corresponding to the given operator category to cache.  locus is
+the location of the operator.
 */
 {
   a_source_position pos;
@@ -5875,7 +5883,7 @@ Cache the tokens corresponding to the given operator category.
 void an_ifc_module::cache_decl_template(a_token_cache_ptr        cache,
                                         an_ifc_DeclSort_Template *decl) const
 /*
-Cache the tokens corresponding to the given template declaration.
+Add the tokens corresponding to the given template declaration (decl) to cache.
 */
 {
   a_source_position pos;
@@ -5925,7 +5933,7 @@ Cache the tokens corresponding to the given template declaration.
 void an_ifc_module::cache_decl(a_token_cache_ptr cache,
                                ifc_DeclIndex     decl) const
 /*
-Cache the tokens corresponding to the given declaration.
+Add the tokens corresponding to the given declaration (decl) to cache.
 */
 {
   ifc_DeclSort      tag = decl_tag(decl);
@@ -6122,7 +6130,7 @@ Cache the tokens corresponding to the given declaration.
 void an_ifc_module::cache_expr(a_token_cache_ptr cache,
                                ifc_ExprIndex     expr) const
 /*
-Cache the tokens corresponding to the given expression.
+Add the tokens corresponding to the given expression (expr) to cache.
 */
 {
   ifc_ExprSort      tag = expr_tag(expr);
@@ -6384,7 +6392,7 @@ Cache the tokens corresponding to the given expression.
       }
       break;
     case ifc_ExprSort_Nullptr:
-      unexpected_condition_str("ExprSort::Nulptr is not yet supported");
+      unexpected_condition_str("ExprSort::Nullptr is not yet supported");
       break;
     case ifc_ExprSort_This:
       unexpected_condition_str("ExprSort::This is not yet supported");
@@ -6427,7 +6435,7 @@ Cache the tokens corresponding to the given expression.
 void an_ifc_module::cache_syntax(ARG_UNUSED a_token_cache_ptr cache,
                                  ifc_SyntaxIndex              syntax) const
 /*
-Cache the tokens corresponding to the given syntax tree.
+Add the tokens corresponding to the given syntax tree to cache.
 */
 {
   ifc_SyntaxSort tag = syntax_tag(syntax);
@@ -6883,7 +6891,8 @@ void an_ifc_module::cache_name(a_token_cache_ptr  cache,
                                ifc_NameIndex      name,
                                ifc_SourceLocation *locus) const
 /*
-Cache the tokens corresponding to the given name.
+Add the tokens corresponding to the given name to cache.  locus is the location
+of the name.
 */
 {
   ifc_NameSort      tag = name_tag(name);
@@ -6953,7 +6962,8 @@ void an_ifc_module::cache_name_from_decl(a_token_cache_ptr  cache,
                                          ifc_DeclIndex      decl,
                                          ifc_SourceLocation *locus) const
 /*
-Cache the tokens corresponding to the given declaration name.
+Add the tokens corresponding to the given declaration (decl) name to cache.
+locus is the location of the declaration.
 */
 {
   a_source_position pos;
@@ -7195,8 +7205,8 @@ T* an_ifc_module::find_trait(ifc_DeclIndex         decl_index,
 Given a declaration index as a key to the associated trait table identified by
 partition, find and return a pointer to the associated trait, or NULL if none
 is found.  get_func is the getter function to get the trait from the table.
-storage is the structure that will be filled with the associated table gets, if
-needed, but cannot be relied upon to contain the result.
+storage is the data structure that will be provided to get_func, but cannot be
+relied upon to contain the result.
 */
 {
   T        *result = NULL;
@@ -9006,8 +9016,8 @@ Generate a string for the specified chart.
 
 /*lint -e2707*/ /* Remove when the routine returns to its caller. */
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Deprecated>
-                                    (ifc_DeclIndex                  decl_index,
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Deprecated>(
+                                     ifc_DeclIndex                  decl_index,
                                      ARG_UNUSED a_str_control_block *scbp)
                                                                           const
 /*
@@ -9023,8 +9033,8 @@ Generate a string for the specified associated deprecation trait.
 
 
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Specialization>
-                                    (ifc_DeclIndex                  decl_index,
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Specialization>(
+                                     ifc_DeclIndex                  decl_index,
                                      ARG_UNUSED a_str_control_block *scbp)
                                                                           const
 /*
@@ -9041,8 +9051,8 @@ Generate a string for the specified associated template specialization trait.
 
 
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Friend>
-                                    (ifc_DeclIndex                  decl_index,
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Friend>(
+                                     ifc_DeclIndex                  decl_index,
                                      ARG_UNUSED a_str_control_block *scbp)
                                                                           const
 /*
@@ -9058,8 +9068,8 @@ Generate a string for the specified associated class friend trait.
 
 
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_ConstexprFunction>
-                                    (ifc_DeclIndex                  decl_index,
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_ConstexprFunction>(
+                                     ifc_DeclIndex                  decl_index,
                                      ARG_UNUSED a_str_control_block *scbp)
                                                                           const
 /*
@@ -9076,8 +9086,8 @@ Generate a string for the specified associated constexpr function trait.
 
 
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_FunctionTemplate>
-                                    (ifc_DeclIndex                  decl_index,
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_FunctionTemplate>(
+                                     ifc_DeclIndex                  decl_index,
                                      ARG_UNUSED a_str_control_block *scbp)
                                                                           const
 /*
@@ -9094,8 +9104,8 @@ Generate a string for the specified associated function template trait.
 
 
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_ClassTemplate>
-                                    (ifc_DeclIndex                  decl_index,
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_ClassTemplate>(
+                                     ifc_DeclIndex                  decl_index,
                                      ARG_UNUSED a_str_control_block *scbp)
                                                                           const
 /*
@@ -9111,8 +9121,8 @@ Generate a string for the specified associated class template trait.
 
 
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_AliasTemplate>
-                                    (ifc_DeclIndex                  decl_index,
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_AliasTemplate>(
+                                     ifc_DeclIndex                  decl_index,
                                      ARG_UNUSED a_str_control_block *scbp)
                                                                           const
 /*
@@ -9128,8 +9138,8 @@ Generate a string for the specified associated template alias trait.
 
 
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_VariableTemplate>
-                                    (ifc_DeclIndex                  decl_index,
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_VariableTemplate>(
+                                     ifc_DeclIndex                  decl_index,
                                      ARG_UNUSED a_str_control_block *scbp)
                                                                           const
 /*
@@ -9146,8 +9156,8 @@ Generate a string for the specified associated variable template trait.
 
 
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcVendorTrait>
-                                            (ifc_DeclIndex       decl_index,
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcVendorTrait>(
+                                             ifc_DeclIndex       decl_index,
                                              a_str_control_block *scbp) const
 /*
 Generate a string for the specified associated MSVC Vendor trait.
@@ -9162,8 +9172,8 @@ Generate a string for the specified associated MSVC Vendor trait.
 
 
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcUuid>
-                                            (ifc_DeclIndex       decl_index,
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcUuid>(
+                                             ifc_DeclIndex       decl_index,
                                              a_str_control_block *scbp) const
 /*
 Generate a string for the specified associated MSVC UUID trait.
@@ -9181,8 +9191,8 @@ Generate a string for the specified associated MSVC UUID trait.
 
 /*lint -e2707*/ /* Remove when the routine returns to its caller. */
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcFuncParams>
-                                   (ifc_DeclIndex                  decl_index,
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcFuncParams>(
+                                    ifc_DeclIndex                  decl_index,
                                     ARG_UNUSED a_str_control_block *scbp) const
 /*
 Generate a string for the specified associated MSVC UUID trait.

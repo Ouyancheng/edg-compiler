@@ -7946,11 +7946,14 @@ a_symbol_ptr make_module_symbol(a_const_char      *primary_name,
 Convenience wrapper for "make_module_symbol" that takes the primary and
 partition names as strings, creates the appropriate symbols for these names,
 and calls "make_module_symbol" with those symbols.  Return the result of that
-call.
+call.  One of primary_name and partition_name can be NULL, but not both.
+is_interface is TRUE if the module is an interface unit.  pos is the position
+where the module name started.
 */
 {
   a_symbol_ptr primary_sym = NULL, partition_sym = NULL;
 
+  check_assertion(primary_name != NULL || partition_name != NULL);
   if (primary_name != NULL) {
     a_symbol_locator loc;
     (void)find_symbol(primary_name, (sizeof_t)strlen(primary_name), &loc);
