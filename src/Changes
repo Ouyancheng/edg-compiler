@@ -1,5 +1,26 @@
 Version 6.1
 
+7/15/20  [EDGcpfe/20412]
+Abort in constexpr interpreter when C++11-style SFINAE is disabled
+
+Consider:
+
+  struct A { enum { value }; };
+  template<bool> struct B { };
+  template<typename T, typename U>
+    typename B<U(A::value || U::value)>::type operator==(T, U);
+  template<typename> class C;
+  template<typename T> bool operator==(C<T> const&, C<T> const&);
+  template<typename T> class C {
+    friend bool operator==<T>(C const&, C const&);
+  };
+  C<int> a;
+
+Previously, this could abort in the constexpr interpreter (in the function
+check_boolean_condition) in C++11 mode with C++11 SFINAE rules disabled (i.e.,
+with the --no_c++11_sfinae option).  That is now fixed.
+
+
 7/14/20  [EDGcpfe/23075]
 Spurious C++20 comparison error in GNU C++ mode
 
