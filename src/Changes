@@ -1,5 +1,22 @@
 Version 6.1
 
+7/15/20  [EDGcpfe/23099]
+C++-generating back end: friend function definitions in class templates
+
+Given a class template in which a friend function is defined in the class
+definition, the body of the friend function was replaced by a ";" in the
+string form of the class template definition, and this substitution was
+reflected in the output of the C++-generating back end in modes and
+configurations in which the definitions of class templates are taken from
+the string form rather than from the prototype instantiation IL.  This is
+now fixed.  For example, with --microsoft (which suppresses prototype
+instantiation):
+
+  template<typename T> class A {
+    friend void f(A<T>) { } // Previously generated as "friend void f(A<T>);"
+  }
+
+
 7/15/20  [EDGcpfe/23082]
 GCC compatibility: Vector shift-assign operations
 

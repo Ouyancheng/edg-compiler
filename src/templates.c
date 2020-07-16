@@ -5404,36 +5404,6 @@ list passed in.  The pointer to the start of the list is returned.
 }  /* map_token_numbers_to_cache_pointers */
 
 
-static void create_extracted_body_entry_for_friend(
-					a_template_cache_segment_ptr	tcsp)
-/*
-Create a special "extracted body" token entry for the first token of the
-friend function definition.  This is used by the token string creation
-routine to skip the friend function body when creating the template string.
-Unlike normal "extracted body" entries, the body is not actually removed
-from the cache.  The entry that is created is used to simply skip those
-tokens during the token string creation process.
-*/
-{
-  a_cached_token_ptr	first_token = tcsp->before_first_token->next;
-
-  /* Skip over any pragmas that precede the first token of the body. */
-  while (first_token->extra_info_kind ==
-                                        (a_token_extra_info_kind)teik_pragma) {
-    first_token = first_token->next;
-  }  /* while */
-  /* Update the first token of the body with information about the tokens that
-     have been skipped when the token string is created. */
-  check_assertion(first_token->extra_info_kind ==
-                                           (a_token_extra_info_kind)teik_none);
-  first_token->extra_info_kind = (a_token_extra_info_kind)teik_extracted_body;
-  first_token->variant.extracted_template.symbol = tcsp->symbol;
-  first_token->variant.extracted_template.semicolon_inserted = FALSE;
-  first_token->variant.extracted_template.next_in_token_string =
-                                                              tcsp->last_token;
-}  /* create_extracted_body_entry_for_friend */
-
-
 static void remove_body_from_cache(
 			a_template_cache_segment_ptr	tcsp,
 			a_token_kind			repl_token_kind)
@@ -5581,8 +5551,8 @@ and a list of the unprocessed entries is returned to the caller.
        Don't attempt to remove the body from the template. */ 
     if (tcsp->last_token_number == NO_TOKEN_SEQUENCE_NUMBER) continue;
     if (tcsp->is_friend) {
-      /* Friend function bodies are not actually removed from the cache. */
-      create_extracted_body_entry_for_friend(tcsp);
+      /* Do nothing: friend function bodies are not removed from the
+         cache. */
     } else if (tcsp->is_default_arg) {
       if (keep_default_args) {
         /* Add this entry to a new list of entries that still need to
