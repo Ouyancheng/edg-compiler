@@ -17,7 +17,7 @@ instantiation):
   }
 
 
-7/15/20  [EDGcpfe/23082]
+7/15/20  [EDGcpfe/22503,EDGcpfe/23082]
 GCC compatibility: Vector shift-assign operations
 
 In GNU modes with gnu_version >= 40800 and Clang modes with clang_version >=
