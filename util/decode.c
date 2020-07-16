@@ -7430,34 +7430,23 @@ substitution, the name of the last component in the substitution is used.
           /* "D9" is the code used by the EDG C++ Front End for the
              delegation destructor alternate entry point.  It's not part
              of the ABI spec. */
-          /* Inherited constructors use "CI" followed by a "1" or "2"
-             (or "9" as a local mangling). */
+          /* Inherited constructors use "CI" followed by a "1" or "2". */
           if (ptr[1] == '1' || ptr[1] == '2' || ptr[1] == '9' ||
               (ptr[0] == 'C' ? (ptr[1] == '3' || ptr[1] == '8' ||
                                 (ptr[1] == 'I' &&
-                                 (ptr[2] == '1' || ptr[2] == '2' ||
-                                  ptr[2] == '9'))) :
+                                 (ptr[2] == '1' || ptr[2] == '2'))) :
                                (ptr[1] == '0' || ptr[1] == '7'))) {
             /* Okay. */
             *ctor_dtor_kind = &ptr[1];
             if (ptr[1] == 'I') {
-              if (ptr[2] == '9') {
-                /* A helper routine for inheriting constructors; rescan and
-                   output the class name (no template argument list) so we get
-                   something like X::X.  */
-                (void)demangle_unqualified_name(prev_component_name, &dummy,
-                                                dctl);
-                ptr += 3;
-              } else {
-                /* An inheriting constructor; scan the base class type from
-                   which the constructor is inherited.  If templated, the
-                   template arguments will appear twice, so suppress the output
-                   of this set. */
-                dctl->suppress_template_parameters++;
-                ptr = full_demangle_type(ptr+3, /*parse_template_args=*/FALSE,
-                                         /*is_pack_expansion=*/FALSE, dctl);
-                dctl->suppress_template_parameters--;
-              }  /* if */
+              /* An inheriting constructor; scan the base class type from
+                 which the constructor is inherited.  If templated, the
+                 template arguments will appear twice, so suppress the output
+                 of this set. */
+              dctl->suppress_template_parameters++;
+              ptr = full_demangle_type(ptr+3, /*parse_template_args=*/FALSE,
+                                       /*is_pack_expansion=*/FALSE, dctl);
+              dctl->suppress_template_parameters--;
             } else {
               /* A non-inheriting constructor; rescan and output the class name
                  (no template argument list) so we get something like X::X. */
@@ -8223,14 +8212,6 @@ non-template functions).
             break;
           case '2':
             write_id_str(" [base inheriting]", dctl);
-            break;
-          case '8':
-            /* Non-standard. */
-            write_id_str(" [complete helper inheriting]", dctl);
-            break;
-          case '9':
-            /* Non-standard. */
-            write_id_str(" [subobject helper inheriting]", dctl);
             break;
           default:
             bad_mangled_name(dctl);
