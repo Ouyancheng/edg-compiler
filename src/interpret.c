@@ -13476,6 +13476,19 @@ the value representation of the integer value.
               }  /* if */
             }
             break;
+#if GNU_VECTOR_TYPES_ALLOWED
+          case eok_vector_fill:
+            /* Copy the operand to every slot of the result. */
+            { int     k, len = tp->size/opnd1_type->size;
+              a_byte  *dst = result_storage;
+              for (k = 0; k<len; ++k) {
+                (void)memcpy(dst, opnd1_value, opnd_n_bytes);
+                mark_subobject_initialized(dst, complete_object);
+                dst += opnd_n_bytes;
+              }  /* for */
+            }
+            break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
           case eok_xconj:
             { err = FALSE;

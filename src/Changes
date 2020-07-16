@@ -1,5 +1,17 @@
 Version 6.1
 
+7/16/20  [EDGcpfe/23081]
+GNU compatibility: Value-initialized vectors in constant expressions
+
+The front end previously did not fold the value-initialization of GNU vector
+types.  For example (in GNU C++14 mode):
+
+  using V4 = int __attribute((vector_size(16)));
+  constexpr V4 x = V4();  // Previously an error.  Now okay.
+
+That is now fixed.
+
+
 7/15/20  [EDGcpfe/23099]
 C++-generating back end: friend function definitions in class templates
 
