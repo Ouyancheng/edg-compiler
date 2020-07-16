@@ -17,11 +17,10 @@ types (e.g., size_t) and is now (when HAVE_LONG_LONG is TRUE).
 
 
 3/16/20  [EDGcpfe/17687]
-Demangling for inheriting constructors
+IA-64 ABI: Demangling for inheriting constructors
 
 Demangling for inheriting constructors (see the Changes entry in the src
-directory) has now been added.  It conforms to the IA-64 ABI spec in that
-configuration and "ci" has been added to the Cfront mangling.
+directory) has now been added.  Changes were only required for the IA-64 ABI.
 
 
 1/8/20   [EDGcpfe/22182]

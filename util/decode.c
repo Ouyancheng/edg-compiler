@@ -2262,9 +2262,8 @@ template parameters.
     /* Name beginning with two underscores. */
     p = ptr + 2;
     if (start_of_id_is("ct__", p, dctl) ||
-        start_of_id_is("ci__", p, dctl) ||
         start_of_id_is("st__", p, dctl)) {
-      /* Constructor, inheriting constructor, or C++/CLI static constructor. */
+      /* Constructor or C++/CLI static constructor. */
       end_ptr = p + 2;
       if (mclass == NULL) {
         /* The mangled name for the class is not provided, so handle this as
@@ -2280,9 +2279,6 @@ template parameters.
         if (start_of_id_is("st__", p, dctl)) {
           /* Add an indication that this is a C++/CLI static constructor. */
           write_id_str("[static]", dctl);
-        } else if (start_of_id_is("ci__", p, dctl)) {
-          /* Add an indication that this is an inherited constructor. */
-          write_id_str("[inherited]", dctl);
         }  /* if */
       }  /* if */
     } else if (start_of_id_is("dt__", p, dctl) ||
