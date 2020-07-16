@@ -31,7 +31,7 @@ vector types.  For example:
 
 
 7/15/20  [EDGcpfe/23055]
-Clang/GCC/Microsoft compatibility: Weaken diagnostic on constexpr constructor
+Constexpr constructors and uninitialized subobjects
 
 Consider:
 
@@ -46,11 +46,14 @@ Consider:
 
 The front end previously always issued an error on the default constructor of
 S because it is declared "constexpr" but no invocation of it could possibly
-produce a constant.  The standard does consider this an error, but doesn't
-require a diagnostic and other implementations do not diagnose this case
-(where the constructor called for the initialization of S::x is a template
-instance).  In Clang, GCC, and Microsoft modes the front end therefore now
-only issues a warning for this case and a discretionary error in other modes.
+produce a constant.  Prior to C++20, the standard did consider this an error,
+but implementations did not diagnose this case (where the constructor called
+for the initialization of S::x is a template instance).  In Clang, GCC, and
+Microsoft modes the front end therefore now only issues a warning for this
+case and a discretionary error in other pre-C++20 modes.  C++20 relaxed the
+rules (even for the nontemplate case) through paper P1331R2 and the resolution
+of core issue 2424.  In C++20 modes, the example above is therefore accepted
+without diagnostics.
 
 
 7/15/20  [EDGcpfe/23051]

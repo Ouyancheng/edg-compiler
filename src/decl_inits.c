@@ -9362,10 +9362,13 @@ initialized.  These are addressed in the course of the processing.
           rp = NULL;
         }  /* if */
         if (cip->kind == (a_constructor_init_kind)cik_field &&
-            (is_ref || is_const_qualified || ctor_rout->is_constexpr)) {
+            (is_ref || is_const_qualified ||
+             (ctor_rout->is_constexpr && !cpp20_mode))) {
           /* An uninitialized field that probably requires initialization.
              That includes ref-type fields and const-qualified fields, as well
-             as any non-variant field for a constexpr constructor. */
+             as any non-variant field for a pre-C++20 constexpr constructor.
+             (C++20 lifted the requirement that all subobjects be initialized
+             through P1331R2 and the resolution of Core issue 2424.) */
           if (is_union) {
             /* We don't issue diagnostics on initializing union members,
                partly because it's not well defined what should happen when
@@ -9455,11 +9458,12 @@ initialized.  These are addressed in the course of the processing.
           }  /* if */
         }  /* if */
         /* Consider dropping the ctor-initializer entry if it isn't needed. */
-        if (ctor_rout->is_constexpr && !is_union) {
+        if ((ctor_rout->is_constexpr && !cpp20_mode) && !is_union) {
           /* For classes and structs, every subobject must be initialized by a
-             constexpr constructor, and we want that to be represented
-             explicitly.  (For unions, exactly one field should be initialized;
-             that is checked elsewhere.) */
+             pre-C++20 constexpr constructor, and we want that to be
+             represented explicitly.  (For unions, exactly one field should be
+             initialized; that is checked elsewhere.)  P1331R2 and Core issue
+             2424 changed the rules for C++20. */
         } else if (cssp == NULL ||
                    is_template_param_or_nonreal_class_type(tp) ||
                    (has_trivial_default_constructor(cssp) &&
@@ -9648,9 +9652,10 @@ initialized.  These are addressed in the course of the processing.
       end_diagnostic(dp);
     }  /* if */
   } else if (is_union && ctor_rout->is_constexpr && has_field &&
-             !has_field_init) {
-    /* A constexpr constructor for a union must initialize a field
-       explicitly. */
+             !has_field_init && !cpp20_mode) {
+    /* A pre-C++20 constexpr constructor for a union must initialize a field
+       explicitly (P1331R2 and Core issue 2424 dropped that requirement for
+       C++20). */
     if ((ctor_rout->is_declared_constexpr || ctor_rout->is_consteval) &&
         !is_unspecialized_template_member_function(ctor_rout) &&
         !ctor_rout->is_defaulted) {
