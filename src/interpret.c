@@ -13483,7 +13483,6 @@ the value representation of the integer value.
               a_byte  *dst = result_storage;
               for (k = 0; k<len; ++k) {
                 (void)memcpy(dst, opnd1_value, opnd_n_bytes);
-                mark_subobject_initialized(dst, complete_object);
                 dst += opnd_n_bytes;
               }  /* for */
             }
