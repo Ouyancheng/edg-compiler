@@ -1302,7 +1302,7 @@ init position modifier.
 {
   switch (ctor_init->kind) {
     case cik_virtual_base_class:
-    case cik_nonvirtual_base_class:
+    case cik_direct_base_class:
       /* Add a modifier that selects the base class relative to the "this"
          parameter. */
       add_init_pos_modifier(ipmp, ipdp);
@@ -2422,7 +2422,7 @@ dip->variant.constructor.args has already been lowered.
   }  /* if */
   if (ctor_init != NULL &&
       (ctor_init->kind == (a_constructor_init_kind)cik_virtual_base_class ||
-       ctor_init->kind == (a_constructor_init_kind)cik_nonvirtual_base_class)){
+       ctor_init->kind == (a_constructor_init_kind)cik_direct_base_class)) {
     /* Initializing a base class. */
     a_base_class_ptr base_class = ctor_init->variant.base_class;
     if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
@@ -4529,7 +4529,7 @@ options for the copy.
   switch (ctor_init->kind) {
     case cik_field:
     case cik_virtual_base_class:
-    case cik_nonvirtual_base_class:
+    case cik_direct_base_class:
     case cik_delegation:
       /* These are allocated in the file scope. */
       break;
@@ -5599,7 +5599,6 @@ routine will be the same as the one passed in.
                                         routine->class_explicitly_instantiated;
       new_routine->explicit_do_not_instantiate =
                                           routine->explicit_do_not_instantiate;
-      new_routine->is_inh_ctor_def_init = routine->is_inh_ctor_def_init;
       new_routine->is_inheriting_ctor = routine->is_inheriting_ctor;
       new_rtsp = new_routine->type->variant.routine.extra_info;
       new_rtsp->this_class = rtsp->this_class;
@@ -10013,8 +10012,7 @@ C99 mode for the same reason.
     simple_constant_init_opt_ruled_out = TRUE;
     if (ctor_init != NULL &&
         (ctor_init->kind == (a_constructor_init_kind)cik_virtual_base_class ||
-         ctor_init->kind ==
-                        (a_constructor_init_kind)cik_nonvirtual_base_class)) {
+         ctor_init->kind == (a_constructor_init_kind)cik_direct_base_class)) {
       /* Initializing a base class, so not a complete object. */
       have_complete_object = FALSE;
     }  /* if */
@@ -10369,8 +10367,7 @@ do_assignment:;
           dip->destructor != NULL &&
           dtor_needs_vtt_argument(dip->destructor) &&
           (ctor_init->kind == (a_constructor_init_kind)cik_virtual_base_class||
-           ctor_init->kind ==
-                         (a_constructor_init_kind)cik_nonvirtual_base_class)) {
+           ctor_init->kind == (a_constructor_init_kind)cik_direct_base_class)){
         /* This object is being used to initialize a base class and the
            (subobject) destructor for the base class needs a VTT pointer
            for the region table entry; create one here (though it's unused
@@ -16462,7 +16459,7 @@ constructors are handled separately.
   /* Generate initialization for each non-virtual base class that appears on
      the ctor_init list. */
   for (; ctor_init != NULL &&
-         ctor_init->kind == (a_constructor_init_kind)cik_nonvirtual_base_class;
+         ctor_init->kind == (a_constructor_init_kind)cik_direct_base_class;
        ctor_init = ctor_init->next) {
     lower_ctor_init(ctor_init, this_param_var,
                     /*base_of_complete_object=*/FALSE,
@@ -16870,7 +16867,7 @@ array if necessary.  The statements created are inserted at
   } else {
 #if ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
     if (ctor_init->kind == (a_constructor_init_kind)cik_virtual_base_class ||
-        ctor_init->kind == (a_constructor_init_kind)cik_nonvirtual_base_class){
+        ctor_init->kind == (a_constructor_init_kind)cik_direct_base_class) {
       a_base_class_ptr base_class = ctor_init->variant.base_class;
       /* Set up for passing an array of virtual function table pointers
          to use during the subobject destruction, if one is necessary. */
@@ -16942,8 +16939,7 @@ for the destructor.
         }  /* for */
         if (ctor_init->kind ==
                              (a_constructor_init_kind)cik_virtual_base_class ||
-            ctor_init->kind ==
-                          (a_constructor_init_kind)cik_nonvirtual_base_class) {
+            ctor_init->kind == (a_constructor_init_kind)cik_direct_base_class){
           a_boolean        needs_vtbl;
           a_base_class_ptr base_class = ctor_init->variant.base_class;
           /* This call just tests whether a vtable is needed; it doesn't
@@ -17176,7 +17172,7 @@ insert_dtor_member_and_base_destructions.
   /* Generate a destructor call for each non-virtual base class that appears on
      the ctor_init list. */
   for (; ctor_init != NULL && ctor_init->kind ==
-                            (a_constructor_init_kind)cik_nonvirtual_base_class;
+                                (a_constructor_init_kind)cik_direct_base_class;
        ctor_init = ctor_init->next) {
     lower_dtor_init(ctor_init, this_param_var,
                     /*have_complete_object=*/FALSE,

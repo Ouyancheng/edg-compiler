@@ -20352,7 +20352,7 @@ a constructor.
                                              saved_visible_as_unqualified_name;
           }
           break;
-        case cik_nonvirtual_base_class:
+        case cik_direct_base_class:
           /* Initializing a direct base class.  We shouldn't get here with
              indirect base classes as these only occur with generated
              inheriting constructors. */

@@ -5071,7 +5071,7 @@ class to be defined.
     rout = tssp->variant.function.routine;
     is_lambda_body = rout->is_lambda_body;
     if (rout->is_inheriting_ctor) {
-      inh_ctor_orig = get_inh_ctor_originator(rout, /*ignore_virtual=*/TRUE);
+      inh_ctor_orig = get_inh_ctor_originator(rout);
     }  /* if */
   }  /* if */
   if (is_lambda_body) {

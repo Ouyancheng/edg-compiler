@@ -755,13 +755,12 @@ Dump a member function (a routine entry), for debug purposes.
   db_name_full(&rp->source_corresp, iek_routine);
   fputs("\" (", f_debug);
   db_name_linkage((a_name_linkage_kind)rp->source_corresp.name_linkage);
-  fprintf(f_debug, " linkage)%s%s%s%s%s, sc_%s,\n    type = ",
+  fprintf(f_debug, " linkage)%s%s%s%s, sc_%s,\n    type = ",
                    (rp->is_consteval) ? ", consteval" :
                                        (rp->is_constexpr) ? ", constexpr" : "",
                    (rp->is_inline) ? ", inline" : "",
                    (rp->is_deleted) ? ", =delete" : "",
                    (rp->is_inheriting_ctor) ? ", inheriting" : "",
-                   (rp->is_inh_ctor_def_init) ? ", inh ctor def init" : "",
                    db_storage_class_names[(int)rp->storage_class]);
   db_abbreviated_type(rp->type);
 }  /* db_member_function */
@@ -1126,10 +1125,9 @@ the amount of indentation.
   db_indent(level);
   switch (cip->kind) {
     case cik_virtual_base_class:
-    case cik_nonvirtual_base_class:
+    case cik_direct_base_class:
       { a_base_class_ptr bcp = cip->variant.base_class;
-        fprintf(f_debug, "%s base ", bcp->is_virtual ? "virtual"
-                                     : bcp->direct ? "direct" : "indirect");
+        fprintf(f_debug, "%s base ", bcp->is_virtual ? "virtual" : "direct");
         db_name(&cip->variant.base_class->type->source_corresp);
         fputc('\n', f_debug);
         break;

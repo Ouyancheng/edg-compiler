@@ -1058,10 +1058,6 @@ typedef struct a_decl_parse_state {
 			/* TRUE if is_inheriting_ctor is TRUE and the inherited
 			   constructor comes from a virtual base class of the
 			   class that owns the constructor being declared. */
-  a_bit_field	is_inh_ctor_def_init:1;
-			/* TRUE if this is the declaration of a default-
-			   initialization constructor for inheriting
-			   constructors. */
   a_bit_field	is_explicit_override:1;
 			/* TRUE if this is the declaration of an explicit
 			   overrider (Microsoft mode only). */

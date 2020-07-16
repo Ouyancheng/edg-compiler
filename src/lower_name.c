@@ -11704,8 +11704,8 @@ literal operator.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       case sfk_constructor:
         name = MANGLING_STRING_FOR_CONSTRUCTOR;
-        { a_routine_ptr routine = (a_routine_ptr)scp;
 #if IA64_ABI
+        { a_routine_ptr routine = (a_routine_ptr)scp;
           if (routine->is_inheriting_ctor) {
             if (ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_complete) {
               /* Use "CI1" for "complete object inheriting constructor". */
@@ -11716,21 +11716,8 @@ literal operator.
             } else {
               unexpected_condition();
             }  /* if */
-            a_routine_ptr rout = get_inh_ctor_originator(routine,
-                                                      /*ignore_virtual=*/TRUE);
+            a_routine_ptr rout = get_inh_ctor_originator(routine);
             inherited_ctor_base_class_type = parent_class_of(rout);
-          } else if (routine->is_inh_ctor_def_init) {
-            /* A "helper" routine for the inheriting constructor; give it
-               a non-standard mangled name. */
-            if (ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_complete) {
-              /* Use "CI8". */
-              name = MANGLING_STRING_FOR_INHERITING_CONSTRUCTOR "8";
-            } else if (ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_subobject) {
-              /* Use "CI9". */
-              name = MANGLING_STRING_FOR_INHERITING_CONSTRUCTOR "9";
-            } else {
-              unexpected_condition();
-            }  /* if */
           } else {
             switch (ctor_dtor_kind) {
               case cdk_none:                   break;
@@ -11740,13 +11727,8 @@ literal operator.
               default:            unexpected_condition();
             }  /* switch */
           }  /* if */
-#else /* !IA64_ABI */
-          if (routine->is_inh_ctor_def_init) {
-            /* Use "ci" for an inheriting constructor to distinguish it. */
-            name = MANGLING_STRING_FOR_INHERITING_CONSTRUCTOR;
-          }  /* if */
-#endif /* IA64_ABI */
         }
+#endif /* IA64_ABI */
         break;
       case sfk_destructor:
         name = MANGLING_STRING_FOR_DESTRUCTOR;
@@ -14455,23 +14437,13 @@ when ctor_dtor_kind is cdk_complete.
 {
   char ch;
 
-  if (routine->is_inh_ctor_def_init) {
-    /* This is a "helper" routine for inheriting constructors; give it a
-       non-standard mangled name. */
-    switch (routine->ctor_dtor_kind) {
-      case cdk_complete:  ch = '8';               break;
-      case cdk_subobject: ch = '9';               break;
-      default:            unexpected_condition();
-    }  /* switch */
-  } else {
-    switch (routine->ctor_dtor_kind) {
-      case cdk_complete:  ch = '1';               break;
-      case cdk_subobject: ch = '2';               break;
-      case cdk_deleting:  ch = '0';               break;
-      case cdk_delegation:ch = '9';               break;
-      default:            unexpected_condition();
-    }  /* switch */
-  }  /* if */
+  switch (routine->ctor_dtor_kind) {
+    case cdk_complete:  ch = '1';               break;
+    case cdk_subobject: ch = '2';               break;
+    case cdk_deleting:  ch = '0';               break;
+    case cdk_delegation:ch = '9';               break;
+    default:            unexpected_condition();
+  }  /* switch */
   return ch;
 }  /* ctor_dtor_kind_char */
 

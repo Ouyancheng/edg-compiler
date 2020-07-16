@@ -11802,10 +11802,6 @@ was used).
   *overload_sym = NULL;
   if (is_error_locator(*locator)) {
     sym = NULL;
-  } else if (dps->is_inh_ctor_def_init) {
-    /* Create a symbol that will not go into the symbol table. */
-    new_sym = make_symbol((a_symbol_kind)sk_member_function, locator);
-    new_sym->decl_scope = class_type_supp(class_type)->assoc_scope->number;
   } else {
     /* See if there's already a member function with this name. */
     sym = find_direct_member_function(locator, class_type);
@@ -14301,10 +14297,6 @@ set; otherwise, it is NULL.
 
   switch (rtn->special_kind) {
     case sfk_constructor:
-      if (decl_info->decl_state.is_inh_ctor_def_init) {
-        /* This symbol should not affect class state.  Do nothing. */
-        break;
-      }  /* if */
       /* Set the pointer to the constructor symbol in the class symbol
          supplement. */
       if (decl_info->is_trivial_default_constructor) {
@@ -20685,10 +20677,8 @@ operator should be created.  No routine body is generated at this time.
      modified (it may have been changed to an sk_overloaded_function, or
      it may have been empty), so update the class symbol supplement, just to
      be safe. */
-  if (!decl_info->decl_state.is_inh_ctor_def_init) {
-    (symbol_supplement_for_class(class_type))->symbols =
+  (symbol_supplement_for_class(class_type))->symbols =
             assoc_pointers_block_of(&scope_stack[depth_scope_stack])->symbols;
-  }  /* if */
   check_assertion(decl_info->decl_state.sym != NULL);
   routine = decl_info->decl_state.sym->variant.routine.ptr;
   if (instantiate_extern_inline && !routine->is_prototype_instantiation &&
@@ -23664,7 +23654,8 @@ templates from that base template.
     if (drp->is_inheriting_ctor &&
         (bcp->is_virtual || inh_ctor_inherits_virtually(brp)) &&
         inh_ctor_inherits_virtually(drp)) {
-      if (get_inh_ctor_originator(brp) == get_inh_ctor_originator(drp)) {
+      if (get_inh_ctor_originator(brp, /*ignore_virtual=*/FALSE) ==
+          get_inh_ctor_originator(drp, /*ignore_virtual=*/FALSE)) {
         /* Don't inherit inheriting constructors that both inherit the same
            original routine from a virtual base class. */
         break;
@@ -23836,7 +23827,8 @@ constructor.
       if (drp->is_inheriting_ctor &&
           (bcp->is_virtual || inh_ctor_inherits_virtually(brp)) &&
           inh_ctor_inherits_virtually(drp)) {
-        if (get_inh_ctor_originator(brp) == get_inh_ctor_originator(drp)) {
+        if (get_inh_ctor_originator(brp, /*ignore_virtual=*/FALSE) ==
+            get_inh_ctor_originator(drp, /*ignore_virtual=*/FALSE)) {
           /* Don't inherit inheriting constructors that both inherit the same
              original routine from a virtual base class. */
           break;
@@ -23977,53 +23969,6 @@ any needed inherited constructors.
     }  /*if */
   }  /* for */
 }  /* generate_inheriting_constructors */
-
-
-a_symbol_ptr generate_inh_ctor_default_ctor(a_type_ptr class_type)
-/*
-Generate a constructor routine for the given class to handle the inheriting
-constructor default initialization requirement.
-*/
-{
-  a_member_decl_info  decl_info;
-  a_func_info_block   func_info;
-  a_symbol_ptr        rout_sym;
-  a_routine_ptr       new_rp;
-  a_class_def_state   class_state;
-  a_scope_ptr         class_scope = class_type_supp(class_type)->assoc_scope;
-
-  rout_sym = symbol_supplement_for_class(class_type)->inh_ctor_def_ctor;
-  if (rout_sym != NULL) {
-    goto done;
-  }  /* if */
-  push_class_reactivation_scope(class_type, /*extend_namespace=*/FALSE);
-  initialize_member_decl_info(&decl_info,
-                              &class_type->source_corresp.decl_position);
-  initialize_class_def_state(class_type, &class_state);
-  decl_info.is_constructor = TRUE;
-  decl_info.decl_state.is_inh_ctor_def_init = TRUE;
-  clear_func_info(&func_info);
-  generate_special_function(&class_state, &decl_info, &func_info,
-                            (a_param_type*)NULL);
-  rout_sym = decl_info.decl_state.sym;
-  new_rp = rout_sym->variant.routine.ptr;
-  new_rp->is_inh_ctor_def_init = TRUE;
-  new_rp->is_defaulted = TRUE;
-  if (default_ctor_can_be_constexpr(new_rp, class_type,
-                                    /*check_bases=*/FALSE)) {
-    new_rp->is_constexpr = TRUE;
-  }  /* if */
-  if (suppress_inh_ctor_default_ctor(class_type)) {
-    new_rp->is_deleted = TRUE;
-    new_rp->defined = TRUE;
-  }  /* if */
-  new_rp->next = class_scope->routines;
-  class_scope->routines = new_rp;
-  symbol_supplement_for_class(class_type)->inh_ctor_def_ctor = rout_sym;
-  pop_class_reactivation_scope();
-done:
-  return rout_sym;
-}  /* generate_inh_ctor_default_ctor */
 
 
 static void check_implicit_comparison_operators(a_class_def_state_ptr  cdsp)

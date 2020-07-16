@@ -953,11 +953,6 @@ typedef struct a_class_symbol_supplement {
 			   when an implicitly declared default constructor is
 			   nontrivial, it appears on the constructor list for
 			   the class. */
-  a_symbol_ptr	inh_ctor_def_ctor;
-			/* A "default constructor" for participation in the
-			   initialization of an object via an inherited
-			   constructor.  NULL if inheriting constructors are
-			   not enabled. */
   a_symbol_ptr	destructor;
 			/* Pointer to an sk_member_function symbol that
 			   identifies the destructor for this class; NULL if
@@ -6682,33 +6677,6 @@ extern a_boolean f_has_nontrivial_ctor(a_class_symbol_supplement_ptr  cssp);
    (!(cssp)->destructor->variant.routine.ptr->is_trivial_destructor ||  \
     (cssp)->destructor->variant.routine.ptr->is_deleted))
 
-extern a_routine_ptr get_inh_ctor_originator(
-                                         a_routine_ptr ctor,
-                                         a_boolean     ignore_virtual = FALSE);
-
-inline a_symbol_ptr originator_symbol_of(a_symbol_ptr  sym)
-/*
-Similar to "fundamental_symbol_of", but also "look through" inheriting
-constructor symbols.
-*/
-{
-  sym = fundamental_symbol_of(sym);
-  if (is_simple_function_symbol(sym)) {
-    a_routine_ptr  rp = sym->variant.routine.ptr;
-    if (rp->is_inheriting_ctor) {
-      sym = symbol_for(get_inh_ctor_originator(rp, /*ignore_virtual=*/TRUE));
-    }  /* if */
-  } else if (symbol_is(sym, sk_function_template)) {
-    a_routine_ptr  rp = sym->variant.template_info->variant.function.routine;
-    if (rp->is_inheriting_ctor) {
-      sym = symbol_for(get_inh_ctor_originator(rp, /*ignore_virtual=*/TRUE)
-                       ->assoc_template);
-    }  /* if */
-  }  /* if */
-  return sym;
-}  /* originator_symbol_of */
-
-
 /*
 If ctor is an inheriting constructor, return the inherited routine entry.
 Otherwise, return NULL.
@@ -6723,6 +6691,60 @@ Otherwise, return NULL.
 #define rout_befriending_classes(rout)                                        \
   (!(rout)->is_inheriting_ctor ?                                              \
    (rout)->friends_or_originator.befriending_classes : NULL)
+
+
+inline a_routine_ptr get_inh_ctor_originator(
+					   a_routine_ptr ctor,
+					   a_boolean     ignore_virtual = TRUE)
+/*
+ctor is a generated inheriting constructor.  Find and return the original class
+type from where the constructor came.  If ignore_virtual is FALSE and ctor
+inherits virtually, return the virtual base constructor it inherited, whether
+or not that constructor is also inheriting (this is typically what's desired
+due to the way virtual bases are initialized).  Otherwise return the true
+originator of the inheriting constructor.
+*/
+{
+  a_boolean inheriting_virtually = !ignore_virtual &&
+                                   inh_ctor_inherits_virtually(ctor);
+
+  while (ctor->is_inheriting_ctor) {
+    /* If the inheriting constructor is inheriting the constructor from a
+       virtual base, and the virtual base's inheriting constructor does *not*
+       inherit from a virtual base, consider the virtual base's constructor to
+       be the originator.  This may not be wholly true; however, initialization
+       of the virtual base behaves as if the constructor originated from the
+       virtual base. */
+    ctor = inh_ctor_inherited_ctor(ctor);
+    if (inheriting_virtually && !inh_ctor_inherits_virtually(ctor)) {
+      break;
+    }  /* if */
+  }  /* while */
+  return ctor;
+}  /* get_inh_ctor_originator */
+
+
+inline a_symbol_ptr originator_symbol_of(a_symbol_ptr  sym)
+/*
+Similar to "fundamental_symbol_of", but also "look through" inheriting
+constructor symbols.
+*/
+{
+  sym = fundamental_symbol_of(sym);
+  if (is_simple_function_symbol(sym)) {
+    a_routine_ptr  rp = sym->variant.routine.ptr;
+    if (rp->is_inheriting_ctor) {
+      sym = symbol_for(get_inh_ctor_originator(rp));
+    }  /* if */
+  } else if (symbol_is(sym, sk_function_template)) {
+    a_routine_ptr  rp = sym->variant.template_info->variant.function.routine;
+    if (rp->is_inheriting_ctor) {
+      sym = symbol_for(get_inh_ctor_originator(rp)->assoc_template);
+    }  /* if */
+  }  /* if */
+  return sym;
+}  /* originator_symbol_of */
+
 
 /* Return TRUE if a symbol is a conversion operator symbol. */
 #define is_conversion_function_symbol(sym)                            \

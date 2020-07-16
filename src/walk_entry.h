@@ -3443,7 +3443,7 @@ after_entry_from_class:
                        iek_constructor_init);
         switch (eptr->kind) {
           case cik_virtual_base_class:
-          case cik_nonvirtual_base_class:
+          case cik_direct_base_class:
             /* With prototype instantiations, there can be generated base
                class entries. */
             walk_ptr(eptr->variant.base_class, a_base_class_ptr,

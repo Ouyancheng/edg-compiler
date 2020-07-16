@@ -3028,9 +3028,7 @@ construction (if any is needed).
     vp->variant.assoc_param_type = ptp;
   }  /* if */    
   /* Create entries describing constructions to be done in the wrapper code. */
-  if (rp->is_inh_ctor_def_init) {
-    cip = ctor_initializer(rp, /*user_defined=*/FALSE, /*fields_only=*/TRUE);
-  } else if (rp->is_inheriting_ctor) {
+  if (rp->is_inheriting_ctor) {
     cip = ctor_inits_for_inheriting_ctor(rp);
   } else {
     cip = ctor_initializer(rp, /*user_defined=*/FALSE, /*fields_only=*/FALSE);
@@ -4185,7 +4183,6 @@ is considered already defined), force the definition now.
         a_class_symbol_supplement_ptr
                     cssp = symbol_supplement_for_class(parent_type);
         if (special_kind_is(rp, sfk_constructor) &&
-            !rp->is_inh_ctor_def_init &&
             cssp->has_initializer_fixups &&
             /*lint -e(506)*/!is_immediate_managed_class_type(parent_type) &&
             is_default_constructor(rp, /*is_declarative_context=*/TRUE)) {

@@ -2278,7 +2278,7 @@ call.
            symbol. */
         a_routine_ptr rp = func_sym_routine(fund_sym);
         udp = rp->generating_using_decl;
-        rp = get_inh_ctor_originator(rp);
+        rp = inh_ctor_inherited_ctor(rp);
         function_sym = symbol_for(rp);
         err_code = ec_ambiguous_inh_constructor_add_on;
         inh_ctor_case = TRUE;

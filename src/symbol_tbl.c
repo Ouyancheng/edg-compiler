@@ -1001,7 +1001,6 @@ do_variable:
         if (rp->is_inline) put_string("inline");
         if (rp->is_deleted) put_string("=delete");
         if (rp->is_inheriting_ctor) put_string("inheriting");
-        if (rp->is_inh_ctor_def_init) put_string("inh ctor def init");
         if (rp->definition_for_inlining_only) {
           put_string("def. for inlining only");
         } else if (rp->suppress_inline_body) {
@@ -3852,7 +3851,6 @@ state.
         cssp->symbols = NULL;
         cssp->constructor = NULL;
         cssp->trivial_default_constructor = NULL;
-        cssp->inh_ctor_def_ctor = NULL;
         cssp->destructor = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         cssp->static_constructor = NULL;
@@ -7210,36 +7208,6 @@ Return TRUE if any of the constructors associated with cssp is nontrivial.
   }  /* if */
   return result;
 }  /* f_has_nontrivial_ctor */
-
-
-a_routine_ptr get_inh_ctor_originator(a_routine_ptr ctor,
-                                      a_boolean     ignore_virtual)
-/*
-ctor is a generated inheriting constructor.  Find and return the original class
-type from where the constructor came.  If ignore_virtual is FALSE and ctor
-inherits virtually, return the virtual base constructor it inherited, whether
-or not that constructor is also inheriting (this is typically what's desired
-due to the way virtual bases are initialized).  Otherwise return the true
-originator of the inheriting constructor.
-*/
-{
-  a_boolean inheriting_virtually = !ignore_virtual &&
-                                   inh_ctor_inherits_virtually(ctor);
-
-  while (ctor->is_inheriting_ctor) {
-    /* If the inheriting constructor is inheriting the constructor from a
-       virtual base, and the virtual base's inheriting constructor does *not*
-       inherit from a virtual base, consider the virtual base's constructor to
-       be the originator.  This may not be wholly true; however, initialization
-       of the virtual base behaves as if the constructor originated from the
-       virtual base. */
-    ctor = inh_ctor_inherited_ctor(ctor);
-    if (inheriting_virtually && !inh_ctor_inherits_virtually(ctor)) {
-      break;
-    }  /* if */
-  }  /* while */
-  return ctor;
-}  /* get_inh_ctor_originator */
 
 
 a_base_class_ptr find_base_with_type(a_type_ptr        base_type,
@@ -12416,9 +12384,7 @@ functions befriending_list_test and class_scope_test.
       if (scope_routine != NULL && scope_routine->is_inheriting_ctor) {
         /* See if the inherited constructor has a befriending class that passes
            the test. */
-        a_routine_ptr inh_ctor =
-                             get_inh_ctor_originator(scope_routine,
-                                                     /*ignore_virtual=*/TRUE);
+        a_routine_ptr inh_ctor = get_inh_ctor_originator(scope_routine);
         a_class_list_entry_ptr inh_ctor_friends = NULL;
         if (inh_ctor->is_template_function) {
           a_template_symbol_supplement_ptr tssp;
@@ -12481,9 +12447,7 @@ functions befriending_list_test and class_scope_test.
           break;
         }  /* if */
         if (scope_routine != NULL && scope_routine->is_inheriting_ctor) {
-          a_routine_ptr inh_ctor =
-                              get_inh_ctor_originator(scope_routine,
-                                                      /*ignore_virtual=*/TRUE);
+          a_routine_ptr inh_ctor = get_inh_ctor_originator(scope_routine);
           a_type_ptr    saved_scope_class = ssep->assoc_type;
           /* See if the inherited constructor passes the class scope test.
              Note that this test assumes that the scope stack is encoding the
@@ -13290,15 +13254,13 @@ inheriting constructor where there is access to the inherited constructor.
   }  /* if */
   if (sym_ctor != NULL && scope_rout != NULL &&
       scope_rout->is_inheriting_ctor) {
-    a_routine_ptr ctor_orig = get_inh_ctor_originator(ssep->assoc_routine,
-                                                      /*ignore_virtual=*/TRUE);
-    a_routine_ptr sym_orig = get_inh_ctor_originator(sym_ctor,
-                                                     /*ignore_virtual=*/TRUE);
+    a_routine_ptr ctor_orig = get_inh_ctor_originator(ssep->assoc_routine);
+    a_routine_ptr sym_orig = get_inh_ctor_originator(sym_ctor);
     if (ctor_orig == sym_orig) {
       have_access = TRUE;
     }  /* if */
   } else if (sym_ctor != NULL && sym_ctor->is_inheriting_ctor) {
-    sym_ctor = get_inh_ctor_originator(sym_ctor, /*ignore_virtual=*/TRUE);
+    sym_ctor = get_inh_ctor_originator(sym_ctor);
     symbol = symbol_for(sym_ctor);
     if (have_access_across_derivations(symbol, symbol)) {
       have_access = TRUE;

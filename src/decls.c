@@ -223,7 +223,6 @@ be restored).
     dps->decl_okay_in_constexpr_body = FALSE;
     dps->is_inheriting_ctor = FALSE;
     dps->inherits_virtually = FALSE;
-    dps->is_inh_ctor_def_init = FALSE;
     dps->is_explicit_override = FALSE;
     dps->is_init_capture = FALSE;
     dps->is_lambda = FALSE;

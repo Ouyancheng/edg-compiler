@@ -18437,7 +18437,6 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
       rp->friends_or_originator.inherited_routine =
                                            inh_ctor_inherited_ctor(templ_rout);
     }  /* if */
-    rp->is_inh_ctor_def_init = templ_rout->is_inh_ctor_def_init;
     rp->generating_using_decl = templ_rout->generating_using_decl;
     set_inline_flag(rp, (a_boolean)templ_rout->is_inline);
 #if IA64_ABI

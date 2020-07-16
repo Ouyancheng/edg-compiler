@@ -3167,7 +3167,7 @@ versions to which the special processing applies.
 
 
 3/13/20  [EDGcpfe/17687]
-C++17 inheriting constructors (IL Change)
+C++17 inheriting constructors
 
 C++ Committee document P0136R1 (adopted in C++17) significantly changes how
 inheriting constructors are handled.  This significantly changes both the code
@@ -3186,11 +3186,7 @@ an inheriting constructor is called.  For example:
             // A base class, then initializes the V1 and V2 base classes as if
             // by a defaulted default constructor
 
-This is now implemented.  Note that this change renames "cik_direct_base_class"
-to "cik_nonvirtual_base_class" as this kind of constructor initializer can now
-also be used to initialize indirect base class subobjects (whether the base is
-direct or not can be queried via the "base_class" variant).  As such this is a
-minor IL CHANGE.
+This is now implemented.
 
 
 3/13/20  [EDGcpfe/22460]

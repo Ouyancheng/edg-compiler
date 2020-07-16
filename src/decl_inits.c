@@ -7168,7 +7168,7 @@ complete.  The function returns the newly created a_constructor_init.
 */
 {
   a_constructor_init_ptr new_cip = alloc_ctor_init(
-                           (a_constructor_init_kind)cik_nonvirtual_base_class);
+                               (a_constructor_init_kind)cik_direct_base_class);
   complete_class_type_is_needed(init_type);
   new_cip->variant.base_class = alloc_base_class();
   new_cip->variant.base_class->type = init_type;
@@ -8903,8 +8903,8 @@ initialized.  These are addressed in the course of the processing.
          Create the constructor init entry now; the dynamic init will be added
          later. */
       cip = alloc_ctor_init((a_constructor_init_kind)(bcp->is_virtual ?
-                                                   cik_virtual_base_class :
-                                                   cik_nonvirtual_base_class));
+                                                       cik_virtual_base_class :
+                                                       cik_direct_base_class));
       cip->variant.base_class = bcp;
       /* Mark the constructor initializer as compiler-generated (i.e., not
          representing an explicit entry in the ctor-initializer list); clear
@@ -9821,56 +9821,13 @@ done:
 }  /* in_derivation_path */
 
 
-static void inh_ctor_init_default_initialize_base(
-                                             a_constructor_init_ptr init,
-                                             a_routine_ptr          ctor,
-                                             a_routine_ptr          inh_ctor,
-                                             a_type_ptr             class_type)
-/*
-Initialize the provided base class given by init as if by a defaulted default
-constructor.  inh_ctor is the inherited constructor that is responsible for the
-defaulted default initialization.  ctor is the inheriting constructor that
-inherited from inh_ctor.  class_type is the type of the class being
-default-initialized.
-*/
-{
-  a_symbol_ptr        ctor_sym = generate_inh_ctor_default_ctor(class_type);
-  a_routine_ptr       def_ctor = ctor_sym->variant.routine.ptr;
-  a_dynamic_init_ptr  dip;
-
-  check_assertion(
-            init->kind == (a_constructor_init_kind)cik_nonvirtual_base_class ||
-            init->kind == (a_constructor_init_kind)cik_virtual_base_class);
-  dip = alloc_ctor_dynamic_init(def_ctor, /*implied_source=*/FALSE,
-                                /*evaluated=*/FALSE, inh_ctor->is_consteval);
-  dip->is_constructor_init = TRUE;
-  reference_to_implicitly_invoked_function(symbol_for(def_ctor),
-                                           &pos_curr_token,
-                                           /*class_of_object=*/NULL,
-                                           /*honor_virtual=*/FALSE,
-                                           /*evaluated=*/TRUE,
-                                           /*instantiate=*/TRUE,
-                                           /*check_access=*/FALSE,
-                                           /*elided_reference=*/FALSE,
-                                           /*error_detected=*/NULL);
-  if (exceptions_enabled) {
-    a_routine_ptr dtor = select_destructor(class_type, parent_class_of(ctor),
-                                           &pos_curr_token);
-    record_dtor_in_dynamic_init(dtor, dip, /*evaluated=*/TRUE);
-    record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
-                                       /*block_lifetime=*/TRUE);
-  }  /* if */
-  init->initializer = dip;
-}  /* inh_ctor_init_default_initialize_base */
-
-
 static void inh_ctor_init_call_default_ctor(a_constructor_init_ptr init,
                                             a_routine_ptr          ctor,
                                             a_type_ptr             class_type)
 /*
 Generate the call to the default constructor for the provided base class
-initializer and update init accordingly.  ctor is the inherited constructor
-(not inherited from this base class).  class_type is the type of the object
+initializer and update init accordingly.  ctor is the inheriting constructor
+(not inheriting from this base class).  class_type is the type of the object
 being created.
 */
 {
@@ -9889,7 +9846,7 @@ being created.
   }  /* if */
   if (exceptions_enabled) {
     a_routine_ptr  dtor;
-    dtor = select_destructor(tp, parent_class_of(ctor), &pos_curr_token);
+    dtor = select_destructor(tp, class_type, &pos_curr_token);
     record_dtor_in_dynamic_init(dtor, dip, /*evaluated=*/TRUE);
     record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
                                        /*block_lifetime=*/TRUE);
@@ -9910,8 +9867,36 @@ inh_ctor.
 */
 {
   a_dynamic_init_ptr dip;
+  a_routine_ptr      direct_ctor = NULL;
+  a_symbol_ptr       ctor_sym;
 
-  dip = forwarding_initializer_for_inheriting_constructor(ctor, inh_ctor);
+  ctor_sym = symbol_supplement_for_class(init->variant.base_class->type)
+                                                                 ->constructor;
+  if (symbol_is(ctor_sym, sk_overloaded_function)) {
+    ctor_sym = ctor_sym->variant.overloaded_function.symbols;
+  }  /* if */
+  for (; ctor_sym != NULL; ctor_sym = ctor_sym->next) {
+    if (symbol_is(ctor_sym, sk_function_template)) {
+      a_template_instance_ptr inst = ctor_sym->variant.template_info->
+                                               variant.function.instantiations;
+      for (; inst != NULL; inst = inst->next) {
+        check_assertion(symbol_is(inst->instance_sym, sk_member_function));
+        if (get_inh_ctor_originator(inst->instance_sym->variant.routine.ptr) ==
+                                                                    inh_ctor) {
+          direct_ctor = inst->instance_sym->variant.routine.ptr;
+          goto done;
+        }  /* if */
+      }  /* for */
+    } else {
+      check_assertion(symbol_is(ctor_sym, sk_member_function));
+      if (get_inh_ctor_originator(ctor_sym->variant.routine.ptr) == inh_ctor) {
+        direct_ctor = ctor_sym->variant.routine.ptr;
+        goto done;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+done:
+  dip = forwarding_initializer_for_inheriting_constructor(ctor, direct_ctor);
   init->initializer = dip;
   init->initializer->is_constructor_init = TRUE;
   if (exceptions_enabled) {
@@ -9939,7 +9924,7 @@ constructor are initialized in the normal way.
   a_constructor_init_ptr ctor_inits = NULL;
   a_constructor_init_ptr *next_init = &ctor_inits;
   a_routine_ptr          ctor_routine;
-  a_type_ptr             ctor_owner, class_type;
+  a_type_ptr             class_type;
   a_class_type_supplement_ptr
                          ctsp;
   Dyn_array<a_base_class_ptr>
@@ -9955,7 +9940,6 @@ constructor are initialized in the normal way.
   class_type = parent_class_of(ctor);
   ctsp = class_type_supp(class_type);
   ctor_routine = get_inh_ctor_originator(ctor);
-  ctor_owner = parent_class_of(ctor_routine);
   /* Determine which base classes provided the constructor.  Note that there
      could be more than one in the case of virtual inheritance. */
   for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
@@ -9968,7 +9952,8 @@ constructor are initialized in the normal way.
     a_boolean introduced_ctor = FALSE;
     for (const auto& originator : ctor_originators) {
       if (bcp == originator ||
-          (in_derivation_path(originator, bcp->derivation) &&
+          (bcp->is_virtual &&
+           in_derivation_path(originator, bcp->derivation) &&
            ctor_inherited_from_base(bcp->type, ctor_routine))) {
         introduced_ctor = TRUE;
         break;
@@ -9981,7 +9966,7 @@ constructor are initialized in the normal way.
        are a direct base. */
     if (bcp->is_virtual) {
       virtual_bases.push_back({bcp, introduced_ctor});
-    } else if (introduced_ctor || bcp->direct) {
+    } else if (bcp->direct) {
       direct_bases.push_back({bcp, introduced_ctor});
     }  /* if */
   }  /* for */
@@ -9996,7 +9981,7 @@ constructor are initialized in the normal way.
   }  /* for */
   for (auto& base : direct_bases) {
     a_constructor_init_ptr cip;
-    cip = alloc_ctor_init((a_constructor_init_kind)cik_nonvirtual_base_class);
+    cip = alloc_ctor_init((a_constructor_init_kind)cik_direct_base_class);
     cip->variant.base_class = base.ptr();
     cip->compiler_generated = TRUE;
     *next_init = cip;
@@ -10006,14 +9991,9 @@ constructor are initialized in the normal way.
   for (auto& init : inits) {
     /* If flag is TRUE, this participated in the constructor inheritance. */
     if (init.flagged()) {
-      if (init->variant.base_class->type == ctor_owner) {
-        inh_ctor_init_call_inh_ctor(init.ptr(), ctor, ctor_routine);
-      } else {
-        inh_ctor_init_default_initialize_base(init.ptr(), ctor, ctor_routine,
-                                              init->variant.base_class->type);
-      }  /* if */
+      inh_ctor_init_call_inh_ctor(init.ptr(), ctor, ctor_routine);
     } else {
-      inh_ctor_init_call_default_ctor(init.ptr(), ctor_routine, class_type);
+      inh_ctor_init_call_default_ctor(init.ptr(), ctor, class_type);
     }  /* if */
   }  /* for */
   /* Generate initializers for the fields of the class. */
@@ -10077,8 +10057,8 @@ though neither constructors nor initialization is involved here.)
         rp = select_destructor(bcp->type, class_type, &source_pos);
         if (rp != NULL) {
           cip = alloc_ctor_init((a_constructor_init_kind)(bcp->is_virtual ?
-                                                   cik_virtual_base_class :
-                                                   cik_nonvirtual_base_class));
+                                                       cik_virtual_base_class :
+                                                       cik_direct_base_class));
           cip->variant.base_class = bcp;
           cip->compiler_generated = TRUE;
           /* Create a dynamic init entry. */

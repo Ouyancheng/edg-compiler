@@ -2966,7 +2966,6 @@ to it.  The entry is allocated in the file scope memory region.
   rp->is_delegating_ctor          = FALSE;
   rp->is_inheriting_ctor          = FALSE;
   rp->inherits_virtually          = FALSE;
-  rp->is_inh_ctor_def_init        = FALSE;
 #if ASSIGNMENT_TO_THIS_ALLOWED
   rp->assignment_to_this_done     = FALSE;
 #endif /* ASSIGNMENT_TO_THIS_ALLOWED */
@@ -4248,7 +4247,7 @@ pointer to it.
   cip->use_field_initializer = FALSE;
   switch (kind) {
     case cik_virtual_base_class:
-    case cik_nonvirtual_base_class:
+    case cik_direct_base_class:
       cip->variant.base_class = NULL;
       break;
     case cik_field:
