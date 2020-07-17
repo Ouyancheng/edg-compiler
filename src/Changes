@@ -1,5 +1,16 @@
 Version 6.1
 
+7/17/20  [EDGcpfe/21422,EDGcpfe/22544,EDGcpfe/23066,EDGcpfe/23089]
+Memory corruption in constexpr interpreter
+
+The constexpr interpreter normally immediately stops interpretation when
+encountering an error situation, to avoid corrupting its data structures.
+A few situations were found where interpretation continued despite an error
+situation, resulting in memory corruption and, most likely, an abort.  In
+particular, certain cases involving unknown array sizes previously proceeded
+as if the array have length zero.  That is now fixed.
+
+
 7/16/20  [EDGcpfe/20005,EDGcpfe/20118]
 C++20: Concepts
 
