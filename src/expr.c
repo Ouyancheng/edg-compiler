@@ -35847,6 +35847,9 @@ type_identifier_case:
                   a_boolean             val, fatal = FALSE;
                   val = concept_id_value(node, &fatal);
                   if (fatal) {
+                    make_error_operand(result);
+                    result->position = node->position;
+                    release_local_constant(&con);
                     break;
                   }  /* if */
                   make_bool_constant_value(val, con);
