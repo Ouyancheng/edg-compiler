@@ -24828,7 +24828,8 @@ subst_pairs is successful.
   for (; req != NULL && result; req = req->next) {
     switch (req->kind) {
       case enk_type_operand:
-        { a_type_ptr          tp = req->variant.type_operand.type;
+        if (subst_pairs.length() != 0) {
+          a_type_ptr          tp = req->variant.type_operand.type;
           a_boolean           copy_error = FALSE;
           a_ctws_state        ctws_state;
           init_ctws_state(&ctws_state);
@@ -24836,10 +24837,11 @@ subst_pairs is successful.
                                         CTWS_NO_OPTIONS, &copy_error,
                                         &ctws_state);
           if (copy_error) result = FALSE;
-        }
+        }  /* if */
         break;
       case enk_compound_req:
-        { an_expr_node_ptr  req_expr =
+        if (subst_pairs.length() != 0) {
+          an_expr_node_ptr  req_expr =
                                 req->variant.compound_req.expr_and_constraint,
                             req_constr = req_expr->next;
           a_boolean         is_noexcept, constrained = req_constr != NULL;
@@ -24857,27 +24859,42 @@ subst_pairs is successful.
               result = FALSE;
             }  /* if */
           }  /* if */
-        }
+        }  /* if */
         break;
       case enk_nested_req:
-        { a_diag_list  diag_list;
-          a_template_param_ptr  templ_params;
-          a_template_arg_ptr    templ_args;
-          a_source_position     saved_error_pos = error_position;
-          error_position = req->position;
-          templ_params = subst_pairs.back_elem().params;
-          templ_args = subst_pairs.back_elem().args;
+        { an_expr_node_ptr  expr = req->variant.nested_req.constraint;
+          a_diag_list       diag_list;
           clear_diag_list(&diag_list);
-          result = requires_clause_satisfied(
-                                  req->variant.nested_req.constraint,
-                                  templ_args, templ_params,
+          if (subst_pairs.length() != 0) {
+            a_template_param_ptr  templ_params;
+            a_template_arg_ptr    templ_args;
+            a_source_position     saved_error_pos = error_position;
+            error_position = req->position;
+            templ_params = subst_pairs.back_elem().params;
+            templ_args = subst_pairs.back_elem().args;
+            result = requires_clause_satisfied(
+                                  expr, templ_args, templ_params,
                                   /*map_failure_is_fatal=*/FALSE, &diag_list);
-          discard_more_info_list(&diag_list);
-          error_position = saved_error_pos;
+            discard_more_info_list(&diag_list);
+            error_position = saved_error_pos;
+          } else {
+            a_constant_ptr  cp = local_constant();
+            if (interpret_expr(expr, /*is_constant_evaluated=*/TRUE,
+                               /*force_prvalue=*/TRUE, cp, &diag_list)) {
+              result = !is_false_constant(cp);
+            } else {
+              a_diagnostic_ptr  dp = pos_start_error(ec_expr_not_constant,
+                                                     &expr->position);
+              add_more_info_list(dp, &diag_list);
+              end_diagnostic(dp);
+            }  /* if */
+            release_local_constant(&cp);
+          }  /* if */
         }
         break;
       default:
-        { a_boolean  is_noexcept;
+        if (subst_pairs.length() != 0) {
+          a_boolean  is_noexcept;
           if (check_requirement_expr(req, subst_pairs, /*constrained=*/FALSE,
                                      &is_noexcept) == NULL) {
             result = FALSE;

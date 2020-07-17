@@ -17263,6 +17263,15 @@ the value representation of the integer value.
         result = FALSE;
       }  /* if */
       break;
+    case enk_requires:
+      { a_subst_pairs_array  no_subst_pairs;
+        if (requires_expr_satisfied(expr, no_subst_pairs)) {
+          *(an_integer_value *)result_storage = one_int;
+        } else {
+          *(an_integer_value *)result_storage = zero_int;
+        }  /* if */
+      }
+      break;         
     case enk_error:
       ips->input_error = TRUE;
       FALLTHROUGH

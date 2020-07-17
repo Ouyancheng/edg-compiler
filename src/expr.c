@@ -37680,6 +37680,7 @@ done_with_requirements:
         result->type = bool_type();
         result->variant.constant.type = result->type;
         result->variant.constant.expr = node;
+        result->position = node->position;
       } else {
         make_expression_operand(node, result);
       }  /*if */
