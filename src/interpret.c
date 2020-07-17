@@ -17892,7 +17892,8 @@ diagnostic in *ips.
           ftp = skip_typerefs(fp->type);
           if (!subobject_is_initialized(object+offset, complete_object) &&
               !(is_immediate_class_type(ftp) &&
-                ftp->variant.class_struct_union.is_empty_class)) {
+                ftp->variant.class_struct_union.is_empty_class) &&
+              !(type_is(ftp, tk_array) && has_any_zero_bound(ftp))) {
             info_with_pos_sym(ec_field_subobject_not_initialized,
                               &ips->position, symbol_for(fp), ips);
             do_constexpr_fail(result);

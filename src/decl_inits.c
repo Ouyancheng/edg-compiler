@@ -9134,9 +9134,9 @@ initialized.  These are addressed in the course of the processing.
           check_variant_has_initializer(cip, &variant_init,
                                         &variant_explicit_init);
           in_variant = TRUE;
-          if (ctor_rout->is_constexpr && !variant_init) {
+          if (ctor_rout->is_constexpr && !variant_init && !cpp20_mode) {
             /* If this is a constexpr constructor, each variant must have
-               an initializer. */
+               an initializer in pre-C++20 modes. */
             if ((ctor_rout->is_declared_constexpr ||
                  ctor_rout->is_consteval) &&
                 !is_unspecialized_template_member_function(ctor_rout) &&

@@ -82,20 +82,20 @@ Consider:
     int i;
   };
   struct S {
-    constexpr S() {}  // Ill-formed (but no diagnostic required) because
-    X<42> x;          // initializing this->x is never a constant expression.
+    constexpr S() {}
+    X<42> x;
   };
 
 The front end previously always issued an error on the default constructor of
 S because it is declared "constexpr" but no invocation of it could possibly
-produce a constant.  Prior to C++20, the standard did consider this an error,
-but implementations did not diagnose this case (where the constructor called
-for the initialization of S::x is a template instance).  In Clang, GCC, and
-Microsoft modes the front end therefore now only issues a warning for this
-case and a discretionary error in other pre-C++20 modes.  C++20 relaxed the
-rules (even for the nontemplate case) through paper P1331R2 and the resolution
-of core issue 2424.  In C++20 modes, the example above is therefore accepted
-without diagnostics.
+produce a constant prior to C++20.  C++20 relaxed the rules through paper
+P1331R2 and the resolution of core issue 2424.  In C++20 modes, such examples
+are therefore now accepted without diagnostics.  Furthermore, other 
+implementations do not diagnose this specific case (where the constructor
+called for the initialization of S::x is a template instance) in their
+pre-C++20 modes either.  In Clang, GCC, and Microsoft pre-C++20 modes
+the front end therefore now only issues a warning for this case and a
+discretionary error in other pre-C++20 modes.
 
 
 7/15/20  [EDGcpfe/23051]
