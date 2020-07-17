@@ -2294,6 +2294,18 @@ not NULL, any fetched tokens will be added to cache.
 }  /* cache_token_stream_until_matching_token */
 
 
+static a_boolean curr_id_is_concept_name(void)
+/*
+The current token is an identifier.  Return TRUE if it is a concept name.
+*/
+{
+  a_symbol_ptr  sym = locator_for_curr_id.specific_symbol;
+
+  return sym != NULL &&
+         symbol_is(locator_for_curr_id.specific_symbol, sk_concept_template);
+}  /* curr_id_is_concept_name */
+
+
 void cache_token_stream_full(a_token_cache_ptr  cache,
                              a_token_set_array  stop_tokens,
                              a_cts_flag_set	options)
@@ -2347,14 +2359,11 @@ a template argument list or is just a less-than sign.
      ')', ']', or '}' is reached. */
   while (stop_tokens[(int)curr_token] == 0) {
     if (coalesce_ids &&
-        (stop_tokens[(int)tok_gt] > 0 || prev_token_was_template) &&
-        (curr_token == tok_dynamic_cast || curr_token == tok_static_cast ||
-         curr_token == tok_reinterpret_cast || curr_token == tok_const_cast ||
-         (curr_token == tok_identifier &&
-          locator_for_curr_id.specific_symbol != NULL &&
-          symbol_is(locator_for_curr_id.specific_symbol,
-                    sk_concept_template)) ||
-         prev_token_was_template)) {
+        (((stop_tokens[(int)tok_gt] > 0 || prev_token_was_template) &&
+          (curr_token == tok_dynamic_cast || curr_token == tok_static_cast ||
+           curr_token == tok_reinterpret_cast ||
+           curr_token == tok_const_cast || prev_token_was_template)) || 
+          (curr_token == tok_identifier && curr_id_is_concept_name()))) {
       /* We're looking for the end of a template argument list and are about
          to scan over a new-style cast, a concept-id, or we have a "template"
          keyword that indicates the thing following the identifier is a
@@ -20704,7 +20713,8 @@ selection operator, in which case it points to the type of the left operand.
               (is_class_template_or_injected_template_symbol(qualifier_sym) ||
                (is_template ||
                 (next_tok == tok_lt &&
-                 (!caching_tokens ||
+                 ((!caching_tokens &&
+                   !symbol_is(qualifier_sym, sk_concept_template)) ||
                   symbol_is_or_contains_template(qualifier_sym)))))) {
             /* Save the original qualifier_sym.  This may be needed later to
                know the name used in the qualifier if the symbol is a template
@@ -20712,7 +20722,7 @@ selection operator, in which case it points to the type of the left operand.
                beginning a template argument list at this point because it
                improves error recovery.  When we are caching tokens, don't
                treat it that way unless it follows something known to be
-               a template. */
+               a template.  Also, do not auto-coalesce concept-ids.*/
             qualifier_template_sym = qualifier_sym;
             /* Process a template reference.  This is considered a potential
                template reference if the symbol points to a class template
