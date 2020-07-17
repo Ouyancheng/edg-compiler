@@ -8,7 +8,7 @@ encountering an error situation, to avoid corrupting its data structures.
 A few situations were found where interpretation continued despite an error
 situation, resulting in memory corruption and, most likely, an abort.  In
 particular, certain cases involving unknown array sizes previously proceeded
-as if the array have length zero.  That is now fixed.
+as if the array had length zero.  That is now fixed.
 
 
 7/16/20  [EDGcpfe/20005,EDGcpfe/20118]
