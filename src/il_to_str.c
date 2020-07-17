@@ -719,6 +719,14 @@ The output includes template arguments on template classes.
     /* For conversion functions, generate the routine name from the type
        name, to get original typedefs. */
     form_conversion_function_name((a_routine_ptr)scp, octl);
+  } else if (entry_kind == iek_routine &&
+             ((a_routine_ptr)scp)->is_inheriting_ctor) {
+    /* For inheriting constructors, output the base name of the inherited
+       constructor. */
+    a_routine_ptr rp = (a_routine_ptr)scp;
+    rp = get_inh_ctor_originator(rp);
+    name = unmangled_name_of(&rp->source_corresp);
+    octl->output_str(name, octl);
   } else {
     /* Output the base name. */
     octl->output_str(name, octl);
