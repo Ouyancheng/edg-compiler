@@ -1127,6 +1127,9 @@ extern a_type_ptr underlying_uuidof_type(a_type_ptr uuidof_type,
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+extern a_boolean concept_id_value(an_expr_node_ptr  node,
+                                  a_boolean         *fatal);
+
 extern an_expr_node_ptr scan_expr_for_attribute(void);
 
 extern an_expr_node_ptr process_boolean_attribute_expression(

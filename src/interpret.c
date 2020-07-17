@@ -17263,6 +17263,16 @@ the value representation of the integer value.
         result = FALSE;
       }  /* if */
       break;
+    case enk_concept_id:
+      { a_boolean  fatal = FALSE;
+        if (concept_id_value(expr, &fatal)) {
+          *(an_integer_value *)result_storage = one_int;
+        } else {
+          *(an_integer_value *)result_storage = zero_int;
+        }  /* if */
+        if (fatal) do_constexpr_fail(result);
+      }
+      break;
     case enk_requires:
       { a_subst_pairs_array  no_subst_pairs;
         if (requires_expr_satisfied(expr, no_subst_pairs)) {
@@ -17271,7 +17281,7 @@ the value representation of the integer value.
           *(an_integer_value *)result_storage = zero_int;
         }  /* if */
       }
-      break;         
+      break;
     case enk_error:
       ips->input_error = TRUE;
       FALLTHROUGH

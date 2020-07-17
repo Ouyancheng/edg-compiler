@@ -33799,13 +33799,15 @@ icp.
       record_dtor_in_dynamic_init(dtor, dip, /*evaluated=*/TRUE);
       record_partial_aggregate_cleanup_destruction(dip, /*evaluated=*/TRUE);
     }  /* if */
-    /* To repeat the initialization for each element of an array, add
-       ck_init_repeat/ck_dynamic_init. */
-    n_elems = num_array_elements(atype);
-    array_dip =
+    if (!is_template_dependent_type(atype)) {
+      /* To repeat the initialization for each element of an array, add
+         ck_init_repeat/ck_dynamic_init. */
+      n_elems = num_array_elements(atype);
+      array_dip =
            alloc_dynamic_init((a_dynamic_init_kind)dik_nonconstant_aggregate);
-    repeat_nonconstant_init(dip, orig_atype, etype, array_dip, n_elems);
-    dip = array_dip;
+      repeat_nonconstant_init(dip, orig_atype, etype, array_dip, n_elems);
+      dip = array_dip;
+    }  /* if */
   }  /* if */
   wrap_up_dynamic_init_full_expression(dip);
   pop_expr_stack_for_initializer(saved_expr_stack, /*is_full_expr=*/TRUE,
@@ -34748,6 +34750,42 @@ by param_sym (sk_parameter).
     result->is_id_expression = TRUE;
   }  /* if */
 }  /* make_param_ref_operand */
+
+
+a_boolean concept_id_value(an_expr_node_ptr  node,
+                           a_boolean         *fatal)
+/*
+Evaluate the given concept-id node an return its outcome.  If some fatal error
+is encountered (e.g., the template argument list is still dependent or the
+result is not constant) set *fatal to TRUE.
+*/
+{
+  a_boolean           val;
+  a_template_arg_ptr  tap = node->variant.concept_id.args;
+
+  if (template_arg_list_is_dependent(tap)) {
+    *fatal = TRUE;
+    val = false;
+  } else {
+    a_diag_list           diag_list;
+    a_template_param_ptr  param_list;
+    param_list = symbol_for(node->variant.concept_id.concept_template)
+                         ->variant.template_info->cache.decl_info->parameters;
+    clear_diag_list(&diag_list);
+    val = requires_clause_satisfied(node, tap, param_list,
+                                    /*map_failure_is_fatal=*/FALSE,
+                                    &diag_list, fatal);
+    if (*fatal) {
+      a_diagnostic  *dp = pos_start_error(ec_invalid_concept_id,
+                                          &node->position);
+      add_more_info_list(dp, &diag_list);
+      end_diagnostic(dp);
+    } else {
+      discard_more_info_list(&diag_list);
+    }  /* if */
+  }  /* if */
+  return val;
+}  /* concept_id_value */
 
 
 static void scan_identifier(an_operand               *result,
@@ -35807,28 +35845,15 @@ type_identifier_case:
                   make_template_param_expr_constant(node, con);
                 } else {
                   a_boolean             val, fatal = FALSE;
-                  a_diag_list           diag_list;
-                  a_template_param_ptr  param_list = tssp->cache.decl_info
-                                                         ->parameters;
-                  clear_diag_list(&diag_list);
-                  val = requires_clause_satisfied(
-                                               node, tap, param_list,
-                                               /*map_failure_is_fatal=*/FALSE,
-                                               &diag_list, &fatal);
+                  val = concept_id_value(node, &fatal);
                   if (fatal) {
-                    a_diagnostic  *dp = pos_start_error(ec_invalid_concept_id,
-                                                        &start_position);
-                    add_more_info_list(dp, &diag_list);
-                    end_diagnostic(dp);
-                    make_error_operand(result);
-                    release_local_constant(&con);
                     break;
                   }  /* if */
                   make_bool_constant_value(val, con);
                   con->expr = node;
-                  discard_more_info_list(&diag_list);
                 }  /* if */
                 make_constant_operand(con, result);
+                result->position = node->position;
                 release_local_constant(&con);
               }  /* if */
             }  /* if */

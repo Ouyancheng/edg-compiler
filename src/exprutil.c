@@ -24840,8 +24840,7 @@ subst_pairs is successful.
         }  /* if */
         break;
       case enk_compound_req:
-        if (subst_pairs.length() != 0) {
-          an_expr_node_ptr  req_expr =
+        { an_expr_node_ptr  req_expr =
                                 req->variant.compound_req.expr_and_constraint,
                             req_constr = req_expr->next;
           a_boolean         is_noexcept, constrained = req_constr != NULL;
@@ -24859,7 +24858,7 @@ subst_pairs is successful.
               result = FALSE;
             }  /* if */
           }  /* if */
-        }  /* if */
+        }
         break;
       case enk_nested_req:
         { an_expr_node_ptr  expr = req->variant.nested_req.constraint;
