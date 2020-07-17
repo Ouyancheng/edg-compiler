@@ -446,6 +446,11 @@ typedef struct a_name_context {
 			   on the name context stack, causing us to pretend
 			   that the stack is empty and thus triggering the
 			   necessary qualification. */
+  a_byte_boolean
+		is_generated_explicit_class_specialization;
+			/* TRUE if this scope is for a class that is a
+			   generated explicit specialization, FALSE
+			   otherwise. */
 } a_name_context;
 
 static a_name_context_ptr
@@ -1104,6 +1109,8 @@ hidden name entries that apply to the base class list should be processed.
   ncp->ignore_lexical_context_for_friend_decl = FALSE;
   ncp->saved_in_class_scope_with_dependent_base =
                                             in_class_scope_with_dependent_base;
+  ncp->is_generated_explicit_class_specialization =
+                  (class_type != NULL && is_generated_explicit_specialization);
   /* Put the entry on the stack. */
   ncp->next = curr_name_context;
   curr_name_context = ncp;
@@ -3641,14 +3648,16 @@ argument list and to FALSE otherwise.
   } else if (entry_kind == iek_routine) {
     /* Check for template arguments on a routine, but put them out only if
        explicit template arguments (e.g., f<int>) were used with the name
-       at some point in the program or on an generated explicit
+       at some point in the program or on a generated explicit
        specialization in clang code; the latter case works around a clang
        bug that can result in spurious errors if the template arguments are
        omitted in an explicit specialization declaration. */
     a_routine_ptr rout = (a_routine_ptr)scp;
     if (rout->expl_template_arg_list_used ||
         (clang_is_generated_code_target &&
-         is_generated_explicit_specialization &&
+         (is_generated_explicit_specialization ||
+          (in_friend_declaration &&
+           curr_name_context->is_generated_explicit_class_specialization)) &&
          rout->special_kind != (a_special_function_kind)sfk_conversion &&
          !in_template_argument_list)) {
       tap = rout->template_arg_list;
@@ -3931,7 +3940,10 @@ defaulted.
       }  /* if */
     } else if (entry_kind == iek_routine &&
                !(clang_is_generated_code_target &&
-                 is_generated_explicit_specialization)) {
+                 (is_generated_explicit_specialization ||
+                  (in_friend_declaration &&
+                   curr_name_context->
+                               is_generated_explicit_class_specialization)))) {
       /* Only put out function template arguments if they were explicitly
          specified anywhere in the translation unit.  Clang has a bug that
          sometimes requires putting out explicit template arguments for an
@@ -3956,7 +3968,9 @@ defaulted.
       }  /* if */
     }  /* if */
     if (entry_kind == iek_routine && clang_is_generated_code_target &&
-        is_generated_explicit_specialization &&
+        (is_generated_explicit_specialization ||
+         (in_friend_declaration &&
+          curr_name_context->is_generated_explicit_class_specialization)) &&
         ((a_routine_ptr)scp)->special_kind ==
                                     (a_special_function_kind)sfk_constructor) {
       /* Clang does not permit template arguments on out-of-class
@@ -9730,7 +9744,6 @@ struct.
   /* Put out the class definition.  If the class is a generated explicit
      specialization, make sure the members are treated as normal
      declarations. */
-  is_generated_explicit_specialization = FALSE;
   push_name_context_if_member(&type->source_corresp);
   if (il_header.source_language == sl_Cplusplus) {
     /* Push the class scope onto the name context stack in order to get
@@ -9741,6 +9754,7 @@ struct.
     a_type_ptr  saved_class_type = curr_name_context->class_type;
     push_name_context_full(ctsp->assoc_scope, type,
                            /*restrict_to_class_base_list=*/TRUE);
+    is_generated_explicit_specialization = FALSE;
     if (ctsp->base_classes != NULL) {
       /* Put out the base class list. */
       curr_name_context->assoc_scope = saved_scope;
@@ -21203,8 +21217,9 @@ handle_as_definition:
        defined and the definition must be suppressed. */
     discard_declaration = TRUE;
   }  /* if */
-  if (!discard_declaration && rout->template_arg_list != NULL &&
-      !rout->is_specialized && !rout->is_prototype_instantiation) {
+  if (!discard_declaration && !friend_decl &&
+      rout->template_arg_list != NULL && !rout->is_specialized &&
+      !rout->is_prototype_instantiation) {
     /* This is a generated instance of a function template.  Determine
        whether to put out an explicit specialization for it. */
     is_generated_explicit_specialization = TRUE;
