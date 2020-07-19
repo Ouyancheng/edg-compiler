@@ -23054,7 +23054,20 @@ block.
         }  /* for */
         if (sym == NULL) {
           /* Create a new nonreal instance. */
-          a_template_arg_ptr  new_args = copy_template_arg_list(args);
+          a_template_arg_ptr  new_args;
+          if (is_primary_proto) {
+            /* The template argument list of a prototype instantiation is
+               unusual in that it does not have expansion descriptors.
+               The template argument list for the partial specialization needs
+               them, so create a new prototype argument list with them. */
+            a_template_param_ptr templ_param_list;
+            templ_param_list = decl_state->decl_info->parameters;
+            new_args = create_prototype_arg_list(primary_templ,
+                                                 templ_param_list,
+                                                 /*add_pack_descr=*/TRUE);
+          } else {
+            new_args = copy_template_arg_list(args);
+          }  /* if */
           sym = create_partial_instantiation_of_class(
                                                 primary_templ, new_args,
                                                 /*instantiate_nonreal=*/FALSE,
