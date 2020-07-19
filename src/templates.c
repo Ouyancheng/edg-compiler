@@ -35850,27 +35850,14 @@ body.  If possible, instantiate the routine.
       f_entity_can_be_instantiated(tip,
                                    /*implicit_inclusion_okay=*/FALSE,
                                    /*for_return_type_deduction=*/TRUE)) {
-    a_symbol_list_entry_ptr  list, saved_deferred_instantiations_tail =
-                                                 deferred_instantiations_tail;
     /* Defer any instantiations that might be kicked off by this instantiation
        to make sure we don't get back to something that requires this deduction
        to be complete. */
     defer_instantiations++;
     instantiate_entity(tip);
     defer_instantiations--;
-    if (saved_deferred_instantiations_tail != deferred_instantiations_tail) {
-      /* Any instantiation requests that occurred during this instantiation
-         should be deferred until this instance is really required (which may
-         never happen). */
-      deferred_instantiations_tail = saved_deferred_instantiations_tail;
-      if (deferred_instantiations_tail == NULL) {
-        list = deferred_instantiations;
-        deferred_instantiations = NULL;
-      } else {
-        list = deferred_instantiations_tail->next;
-        deferred_instantiations_tail->next = NULL;
-      }  /* if */
-      sym->variant.routine.pending_deferred_instantiations = list;
+    if (defer_instantiations == 0) {
+      process_deferred_instantiation_requests();
     }  /* if */
   }  /* if */
 }  /* force_instantiation_to_deduce_return_type */
@@ -35961,31 +35948,6 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
            g++ mode virtual functions are instantiated when the enclosing class
            is defined. */
         defer_inline = TRUE;
-      }  /* if */
-    }  /* if */
-    if (value) {
-      a_symbol_list_entry_ptr
-                   slep = sym->variant.routine.pending_deferred_instantiations;
-      if (slep != NULL) {
-        /* The function was previously instantiated even though its instance 
-           isn't "required" (in the sense that the IL should be retained; e.g.,
-           it might have been instantiated to deduce its return type).  Any
-           transitive instantiations requests were then moved to the
-           "pending_deferred_instantiations" list.  Now that the instantiation
-           turns out to be really required, move the pending list back to the
-           main "deferred instantiations" list and process that list if we are
-           not currently deferring instantiations. */
-        if (deferred_instantiations == NULL) {
-          deferred_instantiations = slep;
-        } else {
-          deferred_instantiations_tail->next = slep;
-        }  /* if */
-        while (slep->next != NULL) slep = slep->next;
-        deferred_instantiations_tail = slep;
-        sym->variant.routine.pending_deferred_instantiations = NULL;
-        if (defer_instantiations == 0) {
-          process_deferred_instantiation_requests();
-        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */

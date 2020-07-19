@@ -1,5 +1,14 @@
 Version 6.1
 
+7/19/20  [EDGcpfe/23126]
+Missing instantiations in IL
+
+The changes for EDGcpfe/20503 in version 5.1 could cause function
+instantiations referenced from functions with deduced return types to be
+omitted from the IL in certain conditions.  The changes for EDGcpfe/20503
+have been removed for now.
+
+
 7/17/20  [EDGcpfe/21422,EDGcpfe/22544,EDGcpfe/23066,EDGcpfe/23089]
 Memory corruption in constexpr interpreter
 

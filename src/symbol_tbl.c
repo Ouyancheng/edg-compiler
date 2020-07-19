@@ -4006,7 +4006,6 @@ state.
     case sk_member_function:
       sym_ptr->variant.routine.ptr = NULL;
       sym_ptr->variant.routine.instance_ptr = NULL;
-      sym_ptr->variant.routine.pending_deferred_instantiations = NULL;
       break;
     case sk_label:
       sym_ptr->variant.label.ptr = NULL;
