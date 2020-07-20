@@ -629,9 +629,9 @@ finalizer definition.  The locator must refer to a qualified name.
     } else {
       /* To see if this is a constructor, look up the identifier using
          a tentative type lookup (so that no error will be issued if the
-         name is not found).  The look at the resulting symbol. */
+         name is not found).  Then look at the resulting symbol. */
       a_symbol_ptr	sym;
-      (void)coalesce_and_lookup_qualified_name(GID_NO_OPTIONS,
+      (void)coalesce_and_lookup_qualified_name(GID_TEMPLATE_ARGS_OPTIONAL,
                                                ilm_tentative_type,
                                                &err);
       sym = locator_for_curr_id.specific_symbol;

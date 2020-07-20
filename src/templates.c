@@ -17600,7 +17600,8 @@ to an entry used to record detailed source position information.
     }  /* if */
     if (is_member_decl && (state->dso_flags & DSO_CONSTRUCTOR) != 0) {
       di_flags |= DI_IS_CONSTRUCTOR;
-    } else if (state->has_deducible_class_templ_args) {
+    } else if (state->has_deducible_class_templ_args &&
+               curr_token == tok_lparen) {
       /* A C++17 deduction guide used for class template argument deduction. */
       di_flags |= DI_IS_DEDUCTION_GUIDE;
       is_deduction_guide = TRUE;
@@ -17612,11 +17613,7 @@ to an entry used to record detailed source position information.
     }  /* if */
     if (is_deduction_guide) {
       a_type_ptr	new_type_ptr;
-      if (curr_token != tok_lparen) {
-        pos_error(ec_exp_lparen, &pos_curr_token);
-      } else {
-        (void)get_token();
-      }  /* if */
+      (void)get_token();
       function_declarator(state, di_flags, &new_type_ptr, func_info,
                           (a_symbol_locator*)NULL, parent_class,
                           /*is_nonstatic_member=*/FALSE,
