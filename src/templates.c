@@ -40203,7 +40203,9 @@ the function template, and decl_state tracks its declaration.
   }  /* if */
   complete_function_template_decl(decl_state, sym, func_info, &tssp,
                                   &sym->decl_position);
-  create_template_decl(decl_state, &null_source_position);
+  if (decl_state->template_decl == NULL) {
+    create_template_decl(decl_state, &null_source_position);
+  }  /* if */
   tdip = decl_state->decl_info;
   complete_template_decl(tdip->template_decl, tdip->parameters);
   decl_state->il_template_entry->template_decl = decl_state->template_decl;
