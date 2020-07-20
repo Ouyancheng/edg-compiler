@@ -15484,10 +15484,8 @@ enum a_constructor_init_kind_tag {
   cik_virtual_base_class,
 			/* Object to be initialized is a virtual base class. */
   cik_direct_base_class,
-			/* Object to be initialized is a nonvirtual base class.
-			   Typically the object is a direct base class, except
-			   with inheriting constructors where the object may be
-			   an indirect base class as well. */
+			/* Object to be initialized is a nonvirtual direct
+			   base class. */
   cik_field,		/* Object to be initialized is a field. */
   cik_delegation	/* Initialization is delegated to another
 			   constructor. */
