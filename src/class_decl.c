@@ -23941,6 +23941,7 @@ Generate those constructors.
       }  /* if */
       for (bctor = base_ctors; bctor != NULL; bctor = bctor->next) {
         if (symbol_is(bctor, sk_member_function)) {
+          if (bctor->variant.routine.ptr->is_ineligible) continue;
           generate_inheriting_constructors_for_base_ctor(bctor, udp, cdsp);
         } else if (symbol_is(bctor, sk_function_template)) {
           generate_inheriting_constructors_for_base_template(bctor, udp, cdsp);
