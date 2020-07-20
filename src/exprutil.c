@@ -18380,15 +18380,8 @@ dependent_case:;
           /* Using types_are_compatible so that an error type is considered
              compatible with anything. */
           if (!types_are_compatible(arg_class_type, this_class_type)) {
-            if (is_template_dependent_context()) {
-              goto dependent_case;
-            } else if (is_template_dependent_type(this_class_type)) {
-              /* This can happen in error cases. */
-              expect_error();
-              goto dependent_case;
-            } else {
-              unexpected_condition();
-            }  /* if */
+            if (is_template_dependent_context()) goto dependent_case;
+            unexpected_condition();
           }  /* if */
         }  /* if */
         /* Cast if necessary to handle any const etc. adjustment. */
