@@ -7403,6 +7403,7 @@ expression context) rather than a declaration.
     if (dps.has_deduced_type) {
       prescan_initializer_for_auto_type_deduction(
                                          &dps, has_parenthesized_initializer);
+      complete_type_is_needed(dps.type);
       /* Temporarily clear the has_deduced_type flag to avoid having the call
          to "initializer" attempt to prescan the expression again. */
       dps.has_deduced_type = FALSE;
