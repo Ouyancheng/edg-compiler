@@ -541,8 +541,8 @@ diagnostic is issued if either the resulting type is invalid as a nontype
 parameter, or if an auto type cannot be deduced.  If *p_deduced_type is not
 NULL, it is set to either the deduced type or an error type.  param_list is
 the template parameter list that the auto template parameter is part of, and
-arg_list are the corresponding template arguments that have been processed so
-far.
+arg_list is` the corresponding list of template arguments that have been
+processed so far.
 */
 {
   a_boolean              result = FALSE;
@@ -34755,9 +34755,9 @@ by param_sym (sk_parameter).
 a_boolean concept_id_value(an_expr_node_ptr  node,
                            a_boolean         *fatal)
 /*
-Evaluate the given concept-id node an return its outcome.  If some fatal error
-is encountered (e.g., the template argument list is still dependent or the
-result is not constant) set *fatal to TRUE.
+Evaluate the given concept-id node and return its outcome.  If some fatal
+error is encountered (e.g., the template argument list is still dependent or
+the result is not constant) set *fatal to TRUE.
 */
 {
   a_boolean           val;
@@ -45948,8 +45948,8 @@ Scan a constant argument in a template reference.  Issue an error if it is
 incompatible with the corresponding parameter type, param_type.  Return the
 constant in *constant (which must be in the file scope memory region).  If
 param_type is NULL, the parameter type is not known.  If the associated
-template parameter list is known, it is given by param_list and arg_list are
-the corresponding arguments processed so far.
+template parameter list is known, it is given by param_list and arg_list is
+the corresponding list of arguments processed so far.
 */
 {
   an_operand             result;
@@ -47748,8 +47748,8 @@ function or template.
          on the destination guide type.  If constexpr is enabled, also
          consider user-defined conversion functions. */
       if (nontype_template_arg || !is_indefinite_function_operand(&result)) {
-        /* For template arguments, certain conversions are not permitted.
-           (For example, certain pointer-to-member function conversions.)
+        /* For template arguments, certain conversions are not permitted
+           (for example, certain pointer-to-member function conversions).
            Use prep_initializer_operand to catch such cases. */
         a_conv_context_set  conv_context = CCO_DEFAULT;
         if (nontype_template_arg) {
