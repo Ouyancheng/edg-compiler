@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2002-2019 Edison Design Group Inc.                   [_]          *
+* Copyright 2002-2020 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -153,6 +153,6 @@ FALSE in this header file.
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 2002-2019 Edison Design Group Inc.                   [_]          *
+* Copyright 2002-2020 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

@@ -4,7 +4,7 @@
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2019 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2020 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -56,6 +56,6 @@ EXTERN_C void __abort_execution(an_error_code err_code);
 * Edison Design Group C++ Runtime                            - | \^/ | -      *
 *                                                               \   /         *
 *                                                             /  | |  \       *
-* Copyright 1992-2019 Edison Design Group Inc.                   [_]          *
+* Copyright 1992-2020 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
