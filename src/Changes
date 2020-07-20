@@ -1,5 +1,31 @@
 Version 6.1
 
+7/20/20  [EDGcpfe/23007]
+C++-generating back end: friend declarations in generated explicit
+specializations
+
+In configurations with CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+set to TRUE, the C++-generating back end sometimes omitted friend function
+declarations from the generated explicit specializations for instances of
+class templates.  This is now fixed.  For example:
+
+  namespace N {
+    template<typename T> class C;
+    template<typename T> int f(C<T> c) { return c.i;}
+    template<typename T> class C {
+      friend int N::f<T>(C<T>);
+      int i;
+    };
+  }
+  int g() {
+    N::C<int> ci;
+    return N::f(ci);
+  }
+
+In the generated specialization for N::C<int>, the friend declaration was
+previously omitted but is now present.
+
+
 7/19/20  [EDGcpfe/23126]
 Missing instantiations in IL
 
