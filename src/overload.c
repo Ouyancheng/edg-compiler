@@ -20183,7 +20183,7 @@ conversion.
                   src_etp = skip_typerefs(src_tp->variant.vector.element_type),
                   dst_etp = skip_typerefs(dst_tp->variant.vector.element_type);
       if (src_tp->size != dst_tp->size ||
-          (!clang_mode src_etp->kind != dst_etp->kind)) {
+          (!clang_mode && src_etp->kind != dst_etp->kind)) {
         if (expr_error_should_be_issued()) {
           /* The "opt_ty2" routine puts in the types if the specific error
              message has fill-ins for them, and otherwise ignores the types. */
