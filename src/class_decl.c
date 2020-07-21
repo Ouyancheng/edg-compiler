@@ -9874,18 +9874,23 @@ can only contain CLI interfaces.
                                     sym, &locator_for_curr_id.source_position);
           }  /* if */
           /* Be sure a type symbol was found and that it identifies a class. */
-          if (sym == NULL || !is_class_symbol(sym)) {
+          if (sym == NULL || !is_class_symbol(sym) || sym->is_error) {
             /* Not a class symbol.  In most cases, issue an error and skip it.
                When a template param is involved, just skip it. */
-            if (sym != NULL && sym->kind == (a_symbol_kind)sk_type) {
-              a_type_ptr  tp = skip_typedefs(type_symbol_type(sym));
-              if (tp->kind == (a_type_kind)tk_template_param) {
-                if (is_template_dependent_context()) {
-                  is_dependent_type = TRUE;
-                } else {
-                  /* Error case.  Ignore the specifier. */
-                  pos_error(ec_bad_base_class, &error_position);
-                  goto skip_base_class;
+            if (sym != NULL) {
+              if (sym->is_error) {
+                expect_error();
+                goto skip_base_class;
+              } else if (sym->kind == (a_symbol_kind)sk_type) {
+                a_type_ptr  tp = skip_typedefs(type_symbol_type(sym));
+                if (tp->kind == (a_type_kind)tk_template_param) {
+                  if (is_template_dependent_context()) {
+                    is_dependent_type = TRUE;
+                  } else {
+                    /* Error case.  Ignore the specifier. */
+                    pos_error(ec_bad_base_class, &error_position);
+                    goto skip_base_class;
+                  }  /* if */
                 }  /* if */
               }  /* if */
             }  /* if */
