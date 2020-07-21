@@ -20175,6 +20175,26 @@ conversion.
          conversion. */
       conversion->class_identity_or_bitwise_copy = TRUE;
       okay = TRUE;
+#if GNU_VECTOR_TYPES_ALLOWED
+    } else if ((conv_context & CCO_BITWISE_ASSIGNMENT_PARAM) != 0 &&
+               is_vector_type(source_type) && is_vector_type(dest_type)) {
+      a_type_ptr  src_tp = skip_typerefs(source_type),
+                  dst_tp = skip_typerefs(dest_type),
+                  src_etp = skip_typerefs(src_tp->variant.vector.element_type),
+                  dst_etp = skip_typerefs(dst_tp->variant.vector.element_type);
+      if (src_tp->size != dst_tp->size ||
+          (!clang_mode src_etp->kind != dst_etp->kind)) {
+        if (expr_error_should_be_issued()) {
+          /* The "opt_ty2" routine puts in the types if the specific error
+             message has fill-ins for them, and otherwise ignores the types. */
+          pos_opt_ty2_error(ec_incompatible_assignment_operands, err_pos,
+                            source_type, orig_dest_type);
+        }  /* if */
+        conv_to_error_operand(source_operand);
+      } else {
+        okay = TRUE;
+      }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
     } else if (impl_conversion_possible(source_type,
                                         source_is_constant,
                                         (a_boolean)source_operand->
@@ -26265,7 +26285,7 @@ cases where bitwise copying applies.
                             (a_boolean *)NULL, (a_conv_descr_ptr)NULL,
                             /*is_copy_initialization=*/TRUE,
                             /*orig_is_copy_initialization=*/TRUE,
-                            CCO_DEFAULT,
+                            CCO_BITWISE_ASSIGNMENT_PARAM,
                             incompatible_err, err_pos);
   }  /* if */
   if (favor_constant_result_for_nonstatic_init) {

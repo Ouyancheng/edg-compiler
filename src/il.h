@@ -2082,7 +2082,7 @@ typedef int a_conv_context_set;
 #define CCO_BITWISE_ASSIGNMENT_PARAM ((a_conv_context_set)0x20)
 			/* The result of the conversion initializes the
 			   notional parameter of a bitwise copy assignment
-			   operator. */
+			   operator.  Also used for non-class assignments. */
 #define CCO_MOVE_CTOR_OR_ASSIGN_PARAMETER ((a_conv_context_set)0x40)
 			/* The result of the conversion initializes the
 			   parameter of a move constructor or move assignment

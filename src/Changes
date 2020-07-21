@@ -1,5 +1,18 @@
 Version 6.1
 
+7/21/20  [EDGcpfe/23123]
+GNU/Clang compatibility: Vector assignment
+
+In GNU and Clang modes, the front end now accepts more assignments involving
+"vector" types.  For example:
+
+  typedef long long VLL1 __attribute((vector_size(8)));
+  typedef int VI2 __attribute((vector_size(8)));
+  void g(VLL1 x, VI2 y) {
+    x = y;  // Previously an error.  Now okay.
+  }
+
+
 7/20/20  [EDGcpfe/20988,EDGcpfe/23131]
 Class template argument deduction for variable templates
 
