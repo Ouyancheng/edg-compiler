@@ -298,7 +298,7 @@ which the default argument is associated.
 */
 {
   a_param_type_ptr  ptp;
-  a_boolean         err = FALSE;
+  a_boolean         err = FALSE, for_consteval_func = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean         discard_default_arg = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -336,9 +336,12 @@ which the default argument is associated.
     }  /* for */
   }  /* if */
   /* We scan the expression whether an error was detected or not. */
-  scan_default_arg_expr(param_type_entry,
-                        /*is_member_or_friend=*/TRUE,
-                        func_sym_routine(rout_sym)->is_consteval);
+  if (is_simple_function_symbol(rout_sym) &&
+      func_sym_routine(rout_sym)->is_consteval) {
+    for_consteval_func = TRUE;
+  }  /* if */
+  scan_default_arg_expr(param_type_entry, /*is_member_or_friend=*/TRUE,
+                        for_consteval_func);
 #if NEED_NAME_MANGLING
   set_parent_entity_for_closure_types(
           param_type_entry->entities_defined_in_default_arg,
