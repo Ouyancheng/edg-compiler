@@ -5,7 +5,7 @@ Constant evaluation of pseudo-destructors for rvalues
 
 The constexpr interpreter previously did not correctly handle certain rvalue
 destructions (permitted in C++20, see the entry for EDGcpfe/21597), including
-temporaries which are life-time extended because of a reference binding.  In
+temporaries which are lifetime-extended because of a reference binding.  In
 some cases, this could lead to memory corruption and aborts later on.  For
 example:
 
