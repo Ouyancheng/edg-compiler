@@ -1,5 +1,15 @@
 Version 6.1
 
+7/22/20  [EDGcpfe/23151]
+Feature-test macro for coroutine support
+
+The C++ Standards Committee, by means of Library Working Group issue 3393,
+changed the name of the feature test macro for language-level coroutine
+support from __cpp_coroutines to __cpp_impl_coroutines.  The front end now
+supports the new macro name, while continuing to define the previous macro
+name as before for backward compatibility.
+
+
 7/22/20  [EDGcpfe/23132]
 C++-generating back end, Microsoft compatibility: trailing return types in
 template arguments
