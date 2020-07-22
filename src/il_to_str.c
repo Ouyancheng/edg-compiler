@@ -411,6 +411,46 @@ by octl.
 }  /* form_template */
 
 
+#if BACK_END_IS_CP_GEN_BE
+static a_routine_type_supplement_ptr suppress_trailing_return_type_for_msvc(
+                                    a_type_ptr                            tp,
+                                    an_il_to_str_output_control_block_ptr octl)
+/*
+If the type designated by tp is or points/refers to a function type that
+uses the trailing return type syntax and we are generating compilable code
+for MSVC, clear the trailing_return_type flag for that function type and
+return a pointer to its a_routine_type_supplement entry.  Otherwise, return
+NULL.
+*/
+{
+  a_routine_type_supplement_ptr result = NULL;
+
+  if (octl->gen_compilable_code && msvc_is_generated_code_target) {
+    /* Skip over cv-qualifiers and pointer/reference types to see if this
+       is a type that will result in putting out a function declarator. */
+    for (tp = skip_typerefs_not_typedefs_or_type_operators(tp);
+         tp->kind == (a_type_kind)tk_pointer;
+         tp = skip_typerefs_not_typedefs_or_type_operators(
+                                                     tp->variant.pointer.type))
+      {}
+    if (tp->kind == (a_type_kind)tk_routine) {
+      /* This is a function type.  Suppress the trailing return type
+         syntax if necessary and return a pointer to the routine type
+         supplement so the syntax can be reenabled. */
+      a_routine_type_supplement_ptr rtsp = tp->variant.routine.extra_info;
+      if (rtsp->trailing_return_type) {
+        rtsp->trailing_return_type = FALSE;
+        result = rtsp;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* suppress_trailing_return_type_for_msvc */
+#else /* !BACK_END_IS_CP_GEN_BE */
+#define suppress_trailing_return_type_for_msvc(tp, octl) NULL
+#endif /* BACK_END_IS_CP_GEN_BE */
+
+
 void form_a_template_arg(a_template_arg_ptr                    tap,
                          an_il_to_str_output_control_block_ptr octl)
 /*
@@ -420,7 +460,20 @@ Output the indicated template argument in the way described by octl.
   switch (tap->kind) {
     case tak_type:
       /* Type argument. */
-      form_type(tap->variant.type, octl);
+      { a_type_ptr                    tp = tap->variant.type;
+        a_routine_type_supplement_ptr rtsp;
+        /* MSVC has a bug that causes spurious errors in some cases when
+           a function declarator in a template argument uses a trailing
+           return type.  If this type would result in such a declarator,
+           temporarily turn off the trailing_return_type flag for the type
+           so the declarator will be put out in the traditional form and
+           restore it afterward. */
+        rtsp = suppress_trailing_return_type_for_msvc(tp, octl);
+        form_type(tp, octl);
+        if (rtsp != NULL) {
+          rtsp->trailing_return_type = TRUE;
+        }  /* if */
+      }
       break;
     case tak_nontype:
       /* Nontype argument. */

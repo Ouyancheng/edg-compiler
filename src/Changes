@@ -1,5 +1,23 @@
 Version 6.1
 
+7/22/20  [EDGcpfe/23132]
+C++-generating back end, Microsoft compatibility: trailing return types in
+template arguments
+
+The Microsoft C++ compiler has a bug that results in issuing spurious
+errors if a function declarator appearing in a template argument uses the
+trailing-return-type syntax.  The C++-generating back end has now been
+changed to work around this bug by putting out all function declarators in
+template arguments using the traditional syntax when
+msvc_is_generated_code_target is TRUE.  For example, with --c++11:
+
+  template<typename T> struct A { };
+  template<typename T> struct B { };
+  // The following declaration is now put out for MSVC as
+  // template<> struct A<B<int> (*)(void)> { };
+  template<> struct A<auto (*)()->B<int>> { };
+
+
 7/21/20  [EDGcpfe/23123]
 GNU/Clang compatibility: Vector assignment
 
