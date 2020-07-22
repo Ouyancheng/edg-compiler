@@ -13094,7 +13094,7 @@ builtin (which will be replaced by an appropriate constant).
                                                       /*include_quote=*/FALSE);
         }  /* if */
         /* Allocate the shareable string constant in the file scope. */
-        length = strlen(result_string)+1;
+        length = (a_targ_size_t)(strlen(result_string)+1);
         clear_constant(string_con, (a_constant_repr_kind)ck_string);
         string_con->type = string_type(length);
         string_con->variant.string.length = length;

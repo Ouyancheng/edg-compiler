@@ -3938,7 +3938,7 @@ of the literal.
 {
   a_constant_ptr     cp;
   char*              val;
-  a_targ_size_t      suffix_len = strlen(suffix) + 1;
+  a_targ_size_t      suffix_len = (a_targ_size_t)(strlen(suffix) + 1);
   a_cached_token_ptr ctp;
 
   cache_token(cache, tok_ud_literal, pos);

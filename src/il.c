@@ -8822,8 +8822,8 @@ result of a string literal, but, e.g., of a call to a built-in function).
   sizeof_t        length = strlen(str)+1;
 
   clear_constant(cp, (a_constant_repr_kind)ck_string);
-  cp->type = string_type(length);
-  cp->variant.string.length = length;
+  cp->type = string_type((a_targ_size_t)length);
+  cp->variant.string.length = (a_targ_size_t)length;
   cp->variant.string.value = str;
   hash_value = hash_constant(cp) % SIZE_SHAREABLE_CONSTANTS_TABLE;
   list_ptr = &shareable_constants_table[hash_value];
