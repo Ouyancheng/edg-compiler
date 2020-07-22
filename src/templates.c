@@ -15096,6 +15096,9 @@ a pointer over a reference type or creating an array of references.
               new_type = type;
             } else {
               new_type = tap->variant.type;
+              if (type_is(new_type, tk_error)) {
+                subst_fail(*copy_error);
+              }  /* if */
             }  /* if */
           }  /* if */
         }
