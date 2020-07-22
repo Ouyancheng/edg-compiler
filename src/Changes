@@ -1,5 +1,30 @@
 Version 6.1
 
+7/22/20  [EDGcpfe/22973]
+Constant evaluation of pseudo-destructors for rvalues
+
+The constexpr interpreter previously did not correctly handle certain rvalue
+destructions (permitted in C++20, see the entry for EDGcpfe/21597), including
+temporaries which are life-time extended because of a reference binding.  In
+some cases, this could lead to memory corruption and aborts later on.  For
+example:
+
+  #include <initializer_list>
+  template<typename T> constexpr T g(T const &p) {
+    std::initializer_list<T> list = { p };
+    return list.begin()[0];
+  }
+  struct S {
+    constexpr S(): buf() {}
+    constexpr ~S() {}
+    char buf[42];
+  };
+  constexpr S x;
+  constexpr S const &r = g(x);  // Previously caused memory corruption.
+
+This problem is now fixed.
+
+
 7/22/20  [EDGcpfe/23151]
 Feature-test macro for coroutine support
 
