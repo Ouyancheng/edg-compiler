@@ -15094,18 +15094,13 @@ a pointer over a reference type or creating an array of references.
                  Don't do the substitution, but don't consider this to be
                  a copy error either. */
               new_type = type;
+            } else if (tap->is_error) {
+              /* The process of getting an argument for the coordinates went
+                 wrong (see, e.g., get_curr_variadic_arg_for_param, which can
+                 call set_template_arg_to_error). */
+              subst_fail(*copy_error);
             } else {
               new_type = tap->variant.type;
-              if (type_is(new_type, tk_error) &&
-                  coordinates->depth != AUTO_TYPE_NESTING_DEPTH) {
-                /* Avoid propagating an error type since it might not be
-                   checked for upstream (and may not have triggered a failure
-                   earlier if variadic arguments are involved; see
-                   get_curr_variadic_arg_for_param).  In the case of deducing
-                   an auto type, no variadic parameters are involved and not
-                   failing makes for better error recovery. */
-                subst_fail(*copy_error);
-              }  /* if */
             }  /* if */
           }  /* if */
         }
@@ -17167,6 +17162,7 @@ Set the template argument specified by tap to refer to an error entity.
       unexpected_condition();
       break;
   }  /* switch */
+  tap->is_error = TRUE;
 }  /* set_template_arg_to_error */
 
 
