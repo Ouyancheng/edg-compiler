@@ -3377,9 +3377,6 @@ Display the indicated name and template arg list.
       if (ptr->is_pack) {
         disp_boolean("  is_pack", TRUE);
       }  /* if */
-      if (ptr->is_error) {
-        disp_boolean("  is_error", TRUE);
-      }  /* if */
     }  /* for */
   }  /* if */
 }  /* disp_template_arg_list */

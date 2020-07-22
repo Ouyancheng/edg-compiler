@@ -1315,7 +1315,6 @@ allocated.
   tap->is_integer_pack = FALSE;
   tap->type_is_injected_class_name = FALSE;
   tap->is_provisional_value = FALSE;
-  tap->is_error = FALSE;
   switch (kind) {
     case tak_type:
       tap->variant.type = NULL;

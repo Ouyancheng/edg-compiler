@@ -15094,11 +15094,6 @@ a pointer over a reference type or creating an array of references.
                  Don't do the substitution, but don't consider this to be
                  a copy error either. */
               new_type = type;
-            } else if (tap->is_error) {
-              /* The process of getting an argument for the coordinates went
-                 wrong (see, e.g., get_curr_variadic_arg_for_param, which can
-                 call set_template_arg_to_error). */
-              subst_fail(*copy_error);
             } else {
               new_type = tap->variant.type;
             }  /* if */
@@ -17162,7 +17157,6 @@ Set the template argument specified by tap to refer to an error entity.
       unexpected_condition();
       break;
   }  /* switch */
-  tap->is_error = TRUE;
 }  /* set_template_arg_to_error */
 
 
@@ -17414,31 +17408,34 @@ declared and before the partial instantiation of the function was done.
 {
   a_type_ptr	substituted_type;
   a_type_ptr	type = rout->type;
+  an_exception_specification_ptr
+                esp, substituted_esp;
 
   substituted_type = substitute_template_arguments(
                                   templ_sym, templ_arg_list,
                                   (a_template_arg_ptr*)NULL,
                                   (a_template_param_ptr)NULL,
                                   CTWS_NO_OPTIONS);
-  if (exc_spec_in_func_type && substituted_type != NULL &&
-      substituted_type->kind == (a_type_kind)tk_routine &&
-      rout->type->kind == (a_type_kind)tk_routine) {
+  if (type_is(type, tk_routine)) {
+    esp = type->variant.routine.extra_info->exception_specification;
+  } else {
+    esp = NULL;
+  }  /* if */
+  if (exc_spec_in_func_type && esp != NULL && substituted_type != NULL &&
+      type_is(substituted_type, tk_routine)) {
     /* In some cases, the exception specification in the substituted type is
        fully determined, but the one in the parsed type is still in cached
        state.  When that happens, just proceed with the substituted exception
        specification. */
-    an_exception_specification_ptr  esp, substituted_esp;
     substituted_esp = substituted_type->variant.routine.extra_info
                                       ->exception_specification;
-    esp = rout->type->variant.routine.extra_info->exception_specification;
     if (substituted_esp != NULL && !substituted_esp->arg_cached) {
       check_assertion_or_expect_error(esp != NULL);
-      if (esp != NULL && esp->arg_cached) {
-        rout->type->variant.routine.extra_info->exception_specification =
+      if (esp->arg_cached) {
+        type->variant.routine.extra_info->exception_specification =
                                                               substituted_esp;
       }  /* if */
-    } else if (esp != NULL && substituted_esp == NULL &&
-               esp->compiler_generated) {
+    } else if (substituted_esp == NULL && esp->compiler_generated) {
       /* The type obtained by parsing the template declaration may include
          a generated exception specification based on the specific function
          being declared (e.g., an "operator delete").  The substituted type
@@ -17455,8 +17452,10 @@ declared and before the partial instantiation of the function was done.
         !is_or_contains_error_type(templ_rout->type)) {
       if (substituted_type == NULL) {
         /* Substitution has failed for some reason.  The instantiation should
-           have run into a similar error. */
-        check_assertion(total_errors != 0);
+           have run into a similar error, unless the error is in an exception
+           specification that was not yet parsed. */
+        check_assertion(total_errors != 0 ||
+                        (esp != NULL && esp->arg_cached));
       } else if (!f_types_are_compatible(
                                     substituted_type, type,
                                     TCF_CHECKING_DEDUCTION_RESULT |
