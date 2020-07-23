@@ -1882,9 +1882,8 @@ typedef struct a_template_decl_info {
 			   the list. */
   a_template_decl_ptr
 		template_decl;
-			/* When prototype_instantiations_in_il is TRUE,
-			   this points to the IL template declaration
-			   information.  FIXME? */
+			/* Points to the IL template declaration entry for
+			   this template declaration. */
   a_name_linkage_kind
 		name_linkage;
 			/* The default name linkage at the point of the
@@ -2213,9 +2212,8 @@ typedef struct a_template_param {
   } default_arg;
   a_template_parameter_ptr
 		il_template_parameter;
-			/* When all_template_info_in_il is TRUE this points to
-			   the IL template parameter entry if one has been
-			   created.  NULL otherwise. */
+			/* Points to the IL template parameter entry if one
+			   has been created.  NULL otherwise. */
   /* When def_arg_involves_template_param is TRUE. */
   a_template_cache
 		default_arg_cache;

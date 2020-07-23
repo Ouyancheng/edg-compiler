@@ -612,9 +612,7 @@ slower.
 
 /*
 When this flag is TRUE, any prototype instantiations of function definitions
-that are done are included in the IL.  In addition, IL data structures
-that mirror certain front end template data structures (e.g., a_template_decl
-and a_template_parameter) are created.  When the flag is FALSE, prototype
+that are done are included in the IL.  When the flag is FALSE, prototype
 instantiations of function definitions may or may not be done, depending
 on other modes, but the definition generated (if any) will not be included
 in the IL.  If PROTOTYPE_INSTANTIATIONS_IN_IL is already defined, use that

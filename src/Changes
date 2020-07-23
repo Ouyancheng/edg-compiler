@@ -144,6 +144,11 @@ P1452R2, P1616R1, P1972, P1980, and P2092).  For example:
   void f(auto) {}                     // (2)
   int r = f(42);  // Okay: Prefers (1).
 
+The IL data structures that mirror some of the front end data structures
+(a_template_parameter and a_template_decl) are now created unconditionally.
+Formerly, the were only created when all_template_info_in_il was TRUE.  This
+is a small IL CHANGE.
+
 
 7/16/20  [EDGcpfe/23081]
 GNU compatibility: Value-initialized vectors in constant expressions
