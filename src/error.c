@@ -5076,28 +5076,6 @@ indicated position.
                      (a_source_position*)NULL, (a_diag_list_ptr)NULL);
 }  /* pos_ty_diagnostic */
 
-#if 0
-
-/* FIXME: delete this routine if not used. */
-void pos_tap_diagnostic(an_error_severity  error_severity,
-                        an_error_code      error_code,
-                        a_source_position  *error_pos,
-                        a_template_arg_ptr templ_arg_list)
-/*
-Report the indicated diagnostic (with the indicated template argument list)
-at the indicated position.
-*/
-{
-  general_diagnostic(error_severity, error_code, error_pos,
-                     (a_const_char*)NULL, (a_const_char*)NULL,
-                     (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
-                     NULL, (a_type_ptr)NULL,
-                     (a_template_arg_ptr)templ_arg_list,
-                     (a_template_arg_ptr)NULL,
-                     (a_source_position*)NULL, (a_diag_list_ptr)NULL);
-}  /* pos_tap_diagnostic */
-
-#endif /* 0 */
 
 void pos_ty2_diagnostic(an_error_severity  error_severity,
                         an_error_code      error_code,
