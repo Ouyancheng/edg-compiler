@@ -1,5 +1,19 @@
 Version 6.2
 
+7/24/20  [EDGcpfe/22672]
+Abort with template parameters defaulted to functions
+
+In C++11 modes and beyond, the front end would abort in
+"conv_function_designator_to_ptr_to_function" when a template parameter is
+defaulted to a function.  For example:
+
+  void foo();
+  template <typename Compare, Compare = foo> // Would previously abort here
+  class A;
+
+This is now fixed.
+
+
 7/24/20  [EDGcpfe/22430]
 C++-generating back end: accessible member typedefs of class templates
 

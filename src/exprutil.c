@@ -22021,6 +22021,7 @@ used in generating the function-identifying operand in a call.
   } else if (is_expression_operand(operand)) {
     /* Convert an lvalue expression for a function to a pointer to the
        function. */
+handle_expr:
 #if CHECKING
     /* No nonstatic member functions should come here because this form of
        operand is not used for them except in bound function cases, which were
@@ -22038,6 +22039,13 @@ used in generating the function-identifying operand in a call.
 #endif /* CHECKING */
     conv_expr_function_designator_to_ptr_to_function(operand, will_call,
                                                      ampersand_position);
+  } else if (is_template_param_constant_operand(operand) &&
+             tpck_is(&operand->variant.constant, tpck_expression)) {
+    an_expr_node_ptr expr =
+                    expr_node_from_tpck_expression(&operand->variant.constant);
+    make_expression_operand(expr, operand);
+    operand->state = (an_operand_state)os_function_designator;
+    goto handle_expr;
   } else if (is_sym_for_member_operand(operand)) {
     /* Convert a member name to a pointer-to-member. */
     conv_sym_for_member_operand_to_ptr_to_member(operand, ampersand_position);
