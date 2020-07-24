@@ -1,5 +1,21 @@
 Version 6.2
 
+7/24/20  [EDGcpfe/22947]
+C++-generating back end: dependent deduced decltype(auto) return types
+
+In contexts in which a decltype(auto) deduced return type appears in a
+templated context, the C++-generating back end could drop parentheses in
+the return expression, thus changing the deduced type.  This is now fixed,
+and the parentheses are preserved in the generated output.  For example,
+with --g++ --c++14:
+
+  void f() {
+    auto f3 = [](auto && in) -> decltype(auto) {
+      return (in.val);  // Previously generated as "return in.val;"
+    };
+  }
+
+
 7/24/20  [EDGcpfe/22672]
 Abort with template parameters defaulted to functions
 
