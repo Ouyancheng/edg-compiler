@@ -1,5 +1,27 @@
 Version 6.2
 
+7/24/20  [EDGcpfe/22430]
+C++-generating back end: accessible member typedefs of class templates
+
+When an accessible member typedef of an instance of a class template is used
+to refer to an inaccessible type, the C++-generating back end sometimes put
+out the reference using the inaccessible type instead of the accessible
+typedef, resulting in uncompilable generated code.  This is now fixed.  For
+example, with --c++11 --g++:
+
+  namespace std {
+  class type_info { };
+  template <typename> class A {
+    struct B { };  // private
+  public:
+    typedef B C;
+  };
+  }
+  void f() {
+    typeid(std::A<char>::C);  // Previously generated using B instead of C
+  }
+
+
 -------------------------------------------------------------------------------
 Version 6.1, July 24, 2020
 

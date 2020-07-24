@@ -1780,12 +1780,19 @@ template, add its instances as well in case they may be needed.
 
   check_assertion(type->kind == (a_type_kind)tk_typeref);
   targ_type = type->variant.typeref.type;
+  if (targ_type->kind == (a_type_kind)tk_template_param &&
+      targ_type->variant.template_param.extra_info->orig_nested_type != NULL) {
+    targ_type = targ_type->variant.template_param.extra_info->orig_nested_type;
+  }  /* if */
   if (entity_name_is_accessible(&type->source_corresp, iek_type,
                                 /*ignore_context=*/TRUE,
                                 &type_for_all_scopes) &&
       has_name_before_mangling(targ_type)) {
-    a_boolean typedef_added = FALSE;
-    a_boolean circular = target_type_has_circularity(type);;
+    a_type_ptr     tp;
+    a_type_ptr     under_type;
+    a_template_ptr templ;
+    a_boolean      typedef_added = FALSE;
+    a_boolean      circular = target_type_has_circularity(type);
     if (!circular && !entity_name_is_accessible(
                               &targ_type->source_corresp, iek_type,
                               /*ignore_context=*/TRUE, &targ_for_all_scopes)) {
@@ -1807,20 +1814,19 @@ template, add its instances as well in case they may be needed.
         typedef_added = TRUE;
       }  /* if */
     }  /* while */
-    if (type->variant.typeref.is_template_alias &&
+    if (typedef_added && type->variant.typeref.is_template_alias &&
         type->variant.typeref.is_prototype_instantiation) {
       /* This is the prototype instantiation of an alias template.  Go
          through all the instances of that alias template in the parent
          scope and add them to the hash table. */
-      a_type_ptr     tp;
-      a_template_ptr templ = type->variant.typeref.extra_info->assoc_template;
+      templ = type->variant.typeref.extra_info->assoc_template;
       for (tp = type->source_corresp.parent_scope->types; tp != NULL;
            tp = tp->next) {
         if (tp->kind == (a_type_kind)tk_typeref &&
             tp->variant.typeref.is_template_alias &&
             !tp->variant.typeref.is_prototype_instantiation &&
             tp->variant.typeref.extra_info->assoc_template == templ) {
-          a_type_ptr under_type = skip_typerefs(tp->variant.typeref.type);
+          under_type = skip_typerefs(tp->variant.typeref.type);
           if (!target_type_has_circularity(tp)) {
             add_typedef_to(accessible_typedef_hash_table, tp);
           }  /* if */
@@ -1846,6 +1852,53 @@ template, add its instances as well in case they may be needed.
             /* Restore the original underlying type. */
             tp->variant.typeref.type = saved_under_type;
           }  /* if */
+        }  /* if */
+      }  /* for */
+    } else if (typedef_added && type->source_corresp.is_class_member &&
+               parent_class_of(type)->
+                       variant.class_struct_union.is_prototype_instantiation) {
+      /* Add all the corresponding members of instances of the class
+         template as well. */
+      a_const_char *typedef_name = unmangled_name_of(&type->source_corresp);
+      templ = parent_class_of(type)->
+                         variant.class_struct_union.extra_info->assoc_template;
+      /* Scan through all the types in the scope in which the parent class
+         template is defined, looking for instances of that template. */
+      for (tp = parent_class_of(type)->source_corresp.parent_scope->types;
+           tp != NULL; tp = tp->next) {
+        if (is_immediate_class_type(tp) &&
+            tp->variant.class_struct_union.is_template_class &&
+            !tp->variant.class_struct_union.is_prototype_instantiation &&
+            !tp->variant.class_struct_union.is_specialized &&
+            tp->variant.class_struct_union.extra_info->assoc_template ==
+                                                                       templ) {
+          /* This is an implicitly-instantiated instance of the parent
+             class template of the typedef.  Find the typedef member of the
+             instance corresponding to the typedef member of the prototype
+             instantiation and add it to the hash table. */
+          a_type_ptr nested_type;
+          a_boolean  typedef_found = FALSE;
+          for (nested_type = tp->variant.class_struct_union.extra_info->
+                                                            assoc_scope->types;
+               nested_type != NULL && !typedef_found;
+               nested_type = nested_type->next) {
+            if (unmangled_name_of(&nested_type->source_corresp) ==
+                                                                typedef_name) {
+              /* There can be only one type in the class with the same name
+                 as the typedef (the name strings are shared, so we can
+                 just compare the pointers instead of doing a string
+                 comparison), so this must be the nested type that
+                 corresponds to the typedef in the prototype
+                 instantiation. */
+              check_assertion(nested_type->kind == (a_type_kind)tk_typeref &&
+                              typeref_is_typedef(nested_type));
+              typedef_found = TRUE;
+              under_type = skip_typerefs(nested_type->variant.typeref.type);
+              if (!target_type_has_circularity(nested_type)) {
+                add_typedef_to(accessible_typedef_hash_table, nested_type);
+              }  /* if */
+            }  /* if */
+          }  /* for */
         }  /* if */
       }  /* for */
     }  /* if */
