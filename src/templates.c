@@ -17406,10 +17406,10 @@ has been affected by declarations that appeared after the template was
 declared and before the partial instantiation of the function was done.
 */
 {
-  a_type_ptr	substituted_type;
-  a_type_ptr	type = rout->type;
+  a_type_ptr  substituted_type;
+  a_type_ptr  type = rout->type;
   an_exception_specification_ptr
-                esp, substituted_esp;
+              esp, substituted_esp;
 
   substituted_type = substitute_template_arguments(
                                   templ_sym, templ_arg_list,
