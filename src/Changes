@@ -1,5 +1,21 @@
 Version 6.2
 
+7/27/20  [EDGcpfe/23158]
+Spurious ambiguity in partial specialization of variadic template
+
+In some cases, the front end could incorrectly consider partial specializations
+to be ambiguous.  This could occur when the argument list of the primary
+template was a template parameter pack but the first parameter of each of the
+partial specializations was not a template parameter pack.  Now fixed.
+
+  template <typename... T> struct A;
+  template <typename T, typename... U> struct A<T, U...> {};
+  template <typename T, typename... U> struct A<T&, U&...> {};
+  int main() {
+    A<int&> t;
+  }
+
+
 7/27/20  [EDGcpfe/22727]
 Spurious redeclaration error with decltype nontype parameter type
 

@@ -364,6 +364,10 @@ typedef int an_equiv_templ_arg_options_set;
 			   their nesting depth must match exactly.  When this
 			   flag is specified, equiv_nesting_depths is used to
 			   compare nesting depths instead. */
+#define ETA_IS_PARTIAL_SPECIALIZATION_CHECK 0x400
+			/* TRUE when comparing a template argument list with a
+			   substituted list as part of the partial
+			   specialization matching process. */
 
 /*
 Flags used to specify options to equiv_template_param_lists.

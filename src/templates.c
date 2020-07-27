@@ -3800,7 +3800,8 @@ determine the partial order among matching partial specializations.
       a_template_arg_ptr		test_arg_list;
       a_boolean				copy_error = FALSE;
       a_ctws_state			ctws_state;
-      an_equiv_templ_arg_options_set	eta_options;
+      an_equiv_templ_arg_options_set	eta_options = 
+                                           ETA_IS_PARTIAL_SPECIALIZATION_CHECK;
       init_ctws_state(&ctws_state);
       /* Substitute the template parameters of the template with the deduced
          arguments.  We should end up with the original argument list.
@@ -3816,7 +3817,7 @@ determine the partial order among matching partial specializations.
                                           &template_sym->decl_position,
                                           CTWS_IS_PARTIAL_SPECIALIZATION_CHECK,
                                           &copy_error, &ctws_state);
-      eta_options = eta_options_for_template(template_sym, tssp);
+      eta_options |= eta_options_for_template(template_sym, tssp);
       if (!copy_error &&
           equiv_template_arg_lists(instance_tap, test_arg_list, eta_options)) {
         result = TRUE;
@@ -7803,9 +7804,12 @@ the same constant.
       check_assertion_str(is_nonreal_member || pack_seen,
                           "equiv_template_arg_lists: arg inconsistency");
       break;
-    } else if (arg1->is_pack != arg2->is_pack) {
+    } else if (arg1->is_pack != arg2->is_pack &&
+               (options & ETA_IS_PARTIAL_SPECIALIZATION_CHECK) == 0) {
       /* Two instantiations one with and one without an expansion.
-         Don't share the types. */
+         Don't share the types.  This is okay for a partial specialization
+         check because we're not actually doing any sharing of the argument
+         lists. */
       equiv = FALSE;
     } else if (is_nontype_templ_arg(arg1)) {
       /* Both are constant arguments.  If they are not identical, this is a
