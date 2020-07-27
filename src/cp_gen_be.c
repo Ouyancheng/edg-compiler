@@ -11589,13 +11589,16 @@ the expression reflects an implicit member access ("this->y"), so the
         curr_name_context->field_selection_context = TRUE;
         new_name_context = curr_name_context;
       }  /* if */
-      if (node_field(field_expr)->source_corresp.qualification_needed ||
-          !class_is_in_name_context_stack(
-                                  naming_class,
-                                  /*include_base_classes=*/TRUE,
-                                  /*ignore_field_selection_contexts=*/FALSE)) {
-        /* Only use a qualifier for a base class member if it is hidden by a
-           name in an intermediate base class. */
+      if (naming_class != selection_class &&
+          (node_field(field_expr)->source_corresp.qualification_needed ||
+           !class_is_in_name_context_stack(
+                                 naming_class,
+                                 /*include_base_classes=*/TRUE,
+                                 /*ignore_field_selection_contexts=*/FALSE))) {
+        /* A qualifier is never needed if the naming and selection classes
+           are the same.  Otherwise, only use a qualifier for a base class
+           member if it is hidden by a name in an intermediate base
+           class. */
         (void)gen_class_qualifier(naming_class, GN_BOUND_MEMBER,
                                   (a_boolean *)NULL);
       }  /* if */

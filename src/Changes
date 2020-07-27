@@ -1,5 +1,24 @@
 Version 6.2
 
+7/27/20  [EDGcpfe/22849]
+C++-generating back end: unneeded qualification in member access
+
+The C++-generating back end sometimes added an unnecessary name qualifier
+when putting out a member access expression.  Ordinarily such redundant
+qualification is harmless, but in some cases it could result in incorrect
+generated code.  This is now fixed.  For example:
+
+  template <class T> struct A {
+    void mf2();
+    int T1;
+    A() : T1(0) {}
+  };
+  template <class T1> void A<T1>::mf2() {
+    T1++;  // Previously generated as A<T1>::T1++.  Since the member T1
+           // hides the template parameter T1, "A<T1>" was an error.
+  }
+
+
 7/24/20  [EDGcpfe/22947]
 C++-generating back end: dependent deduced decltype(auto) return types
 
