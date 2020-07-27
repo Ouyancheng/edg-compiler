@@ -9790,6 +9790,7 @@ entry.  pos is used to establish the type entry's position information.
   tptsp->constraint.class_template_symbol = class_template;
   set_type_size(type);
   set_source_corresp(&type->source_corresp, sym);
+  set_membership_in_source_corresp(&type->source_corresp, class_template);
   return type;
 }  /* make_class_template_placeholder */
 

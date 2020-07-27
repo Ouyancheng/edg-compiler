@@ -1,5 +1,22 @@
 Version 6.2
 
+7/27/20  [EDGcpfe/22747]
+C++-generating back end: missing namespace qualifier with CTAD
+
+When using class template argument deduction, a class template name could
+be emitted without the appropriate namespace qualifier when using the
+C++-generating back end.  Now fixed.
+
+  namespace N {
+    template <class T> struct A { A(T, int){} };
+  }
+  // N::A incorrectly emitted as just A.
+  template <class T> void f(T t) { N::A s{t, 0}; }
+  int main() {
+    f(0);
+  }
+
+
 7/27/20  [EDGcpfe/22849]
 C++-generating back end: unneeded qualification in member access
 

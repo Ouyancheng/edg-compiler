@@ -14635,11 +14635,10 @@ its parameters?).
         }  /* if */
 	break;
       case tk_template_param:
-        /* "Member" template params (e.g., T::X) should have a pointer to a
-           parent class. */
-        check_assertion((a_boolean)type_ptr->source_corresp.is_class_member ==
-                        (type_ptr->variant.template_param.kind ==
-                                     (a_template_param_type_kind)tptk_member));
+        /* "Member" template params (e.g., T::X) must be class members. */
+        check_assertion(type_ptr->variant.template_param.kind !=
+                                     (a_template_param_type_kind)tptk_member ||
+                        type_ptr->source_corresp.is_class_member);
         if (type_ptr->source_corresp.is_class_member &&
             (flags & TTT_PARENT_CLASSES) != 0) {
           /* Check the template parameter associated with the proxy class that
