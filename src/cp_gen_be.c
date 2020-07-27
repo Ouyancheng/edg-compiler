@@ -1880,9 +1880,6 @@ template, add its instances as well in case they may be needed.
                                 /*ignore_context=*/TRUE,
                                 &type_for_all_scopes) &&
       has_name_before_mangling(targ_type)) {
-    a_type_ptr     tp;
-    a_type_ptr     under_type;
-    a_template_ptr templ;
     a_boolean      typedef_added = FALSE;
     a_boolean      circular = target_type_has_circularity(type);
     if (!circular && !entity_name_is_accessible(
