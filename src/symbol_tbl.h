@@ -5432,10 +5432,14 @@ extern void remove_anonymous_union_member_from_inactive_symbols_list
 
 extern void add_symbol_to_inactive_list(a_symbol_ptr sym_ptr);
 
-extern a_symbol_ptr find_external_symbol(a_symbol_locator     *location,
-                                         a_name_linkage_kind  linkage,
-                                         a_type_ptr           type,
-                                         a_symbol_locator     *ext_location);
+extern a_symbol_ptr f_find_external_symbol(a_symbol_locator     *location,
+                                           a_name_linkage_kind  linkage,
+                                           a_type_ptr           type,
+                                           a_boolean            c_overload,
+                                           a_symbol_locator     *ext_location);
+
+#define find_external_symbol(loc, linkage, type, ext_loc)                    \
+  (f_find_external_symbol(loc, linkage, type, /*c_overload=*/FALSE, ext_loc))
 
 extern void change_to_destructor_or_finalizer_locator(
                                                  a_symbol_locator  *locator,

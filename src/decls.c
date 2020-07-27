@@ -3213,12 +3213,14 @@ internal linkage).
       } else {
         idlbp->name_linkage = (a_name_linkage_kind)nlk_external;
       }  /* if */
-    } else if (idlbp->func_info != NULL &&
-               idlbp->func_info->is_main_function) {
-      /* In C++ "main" gets C++ linkage. */
-      idlbp->name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
-    } else if (idlbp->is_function_template) {
-      /* Function templates with external linkage get C++ linkage. */
+    } else if (idlbp->is_function_template ||
+               idlbp->c_overload ||
+               (idlbp->func_info != NULL &&
+                idlbp->func_info->is_main_function)) {
+      /* Function templates with external linkage get C++ linkage.  So do
+         functions with the Clang "overloadable" attribute (even when declared
+         extern "C").  The "main" function is also always treated as having
+         C++ linkage. */
       idlbp->name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
     } else if (ssep->name_linkage_is_explicit &&
                !((microsoft_mode || gpp_mode) && idlbp->is_block_extern_decl &&
@@ -3302,7 +3304,7 @@ represent an overload set).
 {
   a_boolean  result = FALSE;
 
-  check_assertion(clang_mode && C_mode());
+  check_assertion(clang_mode);
   if (symbol_is(sym, sk_overloaded_function)) {
     /* We already overloaded this function name. */
     result = TRUE;
@@ -4582,9 +4584,9 @@ created; the caller must set it.
   } else {
     /* Look up the external name of the identifier (i.e., the name after
        any truncation, etc.). */
-    ext_sym = find_external_symbol(locator, name_linkage,
-                                   is_function ? type_ptr : NULL,
-                                   &ext_locator);
+    ext_sym = f_find_external_symbol(locator, name_linkage,
+                                     is_function ? type_ptr : NULL,
+                                     idlbp->c_overload, &ext_locator);
     if (ext_sym != NULL) {
       /* There is an existing external symbol for the name. */
       esdp = ext_sym->variant.extern_symbol_descr;
@@ -4766,7 +4768,8 @@ created; the caller must set it.
           if (rp->source_corresp.name_linkage ==
                                      (a_name_linkage_kind)nlk_external &&
               !routine_types_are_redecl_compatible(
-                                          type_ptr, rp->type, TCF_NO_FLAGS)) {
+                                          type_ptr, rp->type, TCF_NO_FLAGS) &&
+              !(clang_mode && is_overloadable_c_sym(sym, idlbp))) {
             /* Illegal overloading involving two extern "C" functions with
                the same name.  Microsoft and GNU C++ compilers let this
                through if the two declarations are in different namespaces. */
@@ -8683,8 +8686,6 @@ adjust *dps and *idlbp as needed.
         pos_error(ec_overloadable_attribute_requires_prototype, &ap->position);
       } else {
         idlbp->c_overload = TRUE;
-        rtsp->routine_name_linkage =
-                                  (a_name_linkage_kind)nlk_cplusplus_external;
 #if DO_IL_LOWERING
         add_end_of_parse_action(mangle_clang_c_overload, dps,
                                 /*secondary_decls=*/FALSE);
@@ -8927,7 +8928,7 @@ for use in generating cross-reference output describing this declaration.
   idlb.type = type_ptr;
   idlb.func_info = func_info;
   idlb.is_definition = is_function_def;
-  if (clang_mode && C_mode() &&
+  if (clang_mode &&
       (dps->prefix_attributes != NULL || dps->id_attributes != NULL)) {
     check_clang_c_overload(dps, &idlb);
   }  /* if */

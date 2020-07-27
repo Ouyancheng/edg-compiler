@@ -9973,10 +9973,11 @@ If not, expand ident_buffer by reallocating it.
 }  /* ensure_ident_buffer_space */
 
 
-a_symbol_ptr find_external_symbol(a_symbol_locator     *location,
-                                  a_name_linkage_kind  linkage,
-                                  a_type_ptr           rout_type,
-                                  a_symbol_locator     *ext_location)
+a_symbol_ptr f_find_external_symbol(a_symbol_locator     *location,
+                                    a_name_linkage_kind  linkage,
+                                    a_type_ptr           rout_type,
+                                    a_boolean            c_overload,
+                                    a_symbol_locator     *ext_location)
 /*
 Determine the external name that should be associated with the identifier
 specified by *location, and return a locator for it in *ext_location.  Also
@@ -9988,8 +9989,10 @@ linker can handle whatever names the compiler will generate on the basis of
 user name and type, and that those names will be generated in such a way as
 to be unique (with some exceptions for global variable and entities with C
 name linkage), whereas in C we allow for differences in external names
-due to truncation.  Input arguments are the name linkage and rout_type;
-the latter will be NULL for variables.
+due to truncation.  If c_overload is TRUE, this is a case where the Clang
+"overloadable" attribute was specified: Even in C-mode this requires a type
+check.  For function cases, rout_type is the type of the function.  linkage
+is the name-linkage of the entity being declared by the identifier.
 */
 {
   a_symbol_header_ptr hdr_ptr;
@@ -10161,11 +10164,9 @@ the latter will be NULL for variables.
         if (rout_type != NULL) rout_type = skip_typerefs(rout_type);
         /* A type compatibility check may also be required for routines. */
         if (rout_type == NULL ||
-            (C_mode() &&
-             rout_type->variant.routine.extra_info->routine_name_linkage
-                            != (a_name_linkage_kind)nlk_cplusplus_external &&
-             other_type->variant.routine.extra_info->routine_name_linkage
-                            != (a_name_linkage_kind)nlk_cplusplus_external) ||
+            (C_mode() && !c_overload &&
+             esdp->variant.routine.ptr->source_corresp.name_linkage !=
+                               (a_name_linkage_kind)nlk_cplusplus_external) ||
             esdp->variant.routine.ptr == il_header.main_routine) {
           /* A name match is enough in C (and for C++, if the routine is
              "::main"). */
@@ -10210,7 +10211,7 @@ the latter will be NULL for variables.
   ext_location->source_position = location->source_position;
   db_exit();
   return sym;
-}  /* find_external_symbol */
+}  /* f_find_external_symbol */
 
 
 a_symbol_header_ptr find_symbol_header(a_const_char     *identifier,
