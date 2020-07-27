@@ -1,5 +1,23 @@
 Version 6.2
 
+7/27/20  [EDGcpfe/22727]
+Spurious redeclaration error with decltype nontype parameter type
+
+A spurious error could result if two function templates had the same
+function types and had template parameter lists that were the same except that
+they a nontype template parameter had different dependent expressions used
+in the decltype-specifier that specified the nontype parameter type.  Now
+fixed.
+
+  template<typename P, decltype(P::X) val = 1> int f() {return val;}
+  template<typename P, decltype(P::Y) val = 2> int f() {return val;}
+  struct A { constexpr static int X = 1; };
+  struct B { constexpr static int Y = 1; };
+  int main() {
+    if (f<A>() != 1 || f<B>() != 2) return 1;
+  }
+
+
 7/27/20  [EDGcpfe/22747]
 C++-generating back end: missing namespace qualifier with CTAD
 

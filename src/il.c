@@ -7723,8 +7723,8 @@ definition of the CC flags in il.h for more information.
        to be considered compatible with everything, but we do need
        a[] and a[3] to be considered compatible, because in two
        translation units the types might be different in that way). */
-    a_type_ptr eff_cp1_type = skip_typerefs(cp1_type);
-    a_type_ptr eff_cp2_type = skip_typerefs(cp2_type);
+    a_type_ptr eff_cp1_type = skip_typerefs_not_dependent_decltypes(cp1_type);
+    a_type_ptr eff_cp2_type = skip_typerefs_not_dependent_decltypes(cp2_type);
     /* For address constants, compare the types underneath the pointer
        types so that address of a[] and address of a[3] are considered
        compatible. */
