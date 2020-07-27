@@ -20244,15 +20244,6 @@ this one is such a continuation.
   if (force_unqualified_name) {
     gd_options |= GDO_FORCE_UNQUALIFIED_NAME;
   }  /* if */
-  if (is_class_template_placeholder_type(var_type)) {
-    /* The declared type of the variable is a placeholder for class
-       template argument deduction.  Such a placeholder does not indicate
-       class or namespace parents.  Instead of the declared type, use the
-       actual type of the variable, but suppress the deduced template
-       arguments to reproduce the original source form. */
-    var_type = var->type;
-    gd_options |= GDO_SUPPRESS_TYPE_TEMPLATE_ARGUMENTS;
-  }  /* if */
   /* Output the variable name and its type.  Do not put out a name for
      anonymous union variables. */
   gen_general_declaration_using_type(var_type,
