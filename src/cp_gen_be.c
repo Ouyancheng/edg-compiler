@@ -1760,6 +1760,98 @@ otherwise, return NULL.
 }  /* find_typedef_in */
 
 
+static void add_instances_of_typedef(a_template_ptr templ,
+                                     a_const_char   *mbr_typedef_name,
+                                     a_scope_ptr    template_scope)
+/*
+A templated typedef (either an alias template or a member typedef of a
+class template) has just been added to the accessible typedef hash table.
+templ is the alias template in the former case (indicated by a NULL value
+for mbr_typedef_name) and the parent class template in the latter (in which
+case mbr_typedef_name is the unmangled name of the member typedef).
+template_scope is the scope in which templ is defined.  Go through all the
+types in that scope and, for each type that is implicitly instantiated from
+templ, add the corresponding instance typedef to the table as well.
+*/
+{
+  a_type_ptr tp;
+
+  for (tp = template_scope->types; tp != NULL; tp = tp->next) {
+    a_type_ptr typedef_to_add = NULL;
+    a_type_ptr under_type;
+    if (mbr_typedef_name == NULL) {
+      /* We are looking for instances of the alias template templ. */
+      if (tp->kind == (a_type_kind)tk_typeref &&
+          tp->variant.typeref.is_template_alias &&
+          !tp->variant.typeref.is_prototype_instantiation &&
+          tp->variant.typeref.extra_info->assoc_template == templ &&
+          !target_type_has_circularity(tp)) {
+        typedef_to_add = tp;
+      }  /* if */
+    } else {
+      /* We are looking for the corresponding member typedef of instances
+         of the containing class template.  Start by scanning for those
+         instances. */
+      if (is_immediate_class_type(tp) &&
+          tp->variant.class_struct_union.is_template_class &&
+          !tp->variant.class_struct_union.is_prototype_instantiation &&
+          !tp->variant.class_struct_union.is_specialized &&
+          tp->variant.class_struct_union.extra_info->assoc_scope != NULL &&
+          tp->variant.class_struct_union.extra_info->assoc_template == templ) {
+        /* This is an implicitly-instantiated instance of the parent class
+           template of the typedef.  Find the typedef member of the
+           instance corresponding to the typedef member of the prototype
+           instantiation of the class template.  Note that we can determine
+           the correspondence just by comparing the name pointers, since
+           there can be only one member of the class with that name and the
+           name pointers are shared. */
+        a_type_ptr nested_type;
+        for (nested_type = tp->variant.class_struct_union.extra_info->
+                                                            assoc_scope->types;
+             nested_type != NULL; nested_type = nested_type->next) {
+          if (unmangled_name_of(&nested_type->source_corresp) ==
+                                                            mbr_typedef_name) {
+            check_assertion(nested_type->kind == (a_type_kind)tk_typeref &&
+                            typeref_is_typedef(nested_type));
+            if (!target_type_has_circularity(nested_type)) {
+              typedef_to_add = nested_type;
+            }  /* if */
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    }  /* if */
+    if (typedef_to_add != NULL) {
+      add_typedef_to(accessible_typedef_hash_table, typedef_to_add);
+      under_type = skip_typerefs(typedef_to_add->variant.typeref.type);
+      if (is_immediate_class_type(under_type)) {
+        /* Also add public bases classes of the underlying class type,
+           since the typedef may have been used as a qualifier for a member
+           of a base class.  If so, we need to find this typedef in order
+           to substitute it for the (inaccessible) base class qualifier. */
+        a_base_class_ptr bcp;
+        a_type_ptr       saved_under_type =
+                                          typedef_to_add->variant.typeref.type;
+        for (bcp = under_type->variant.class_struct_union.extra_info->
+                                                                  base_classes;
+             bcp != NULL; bcp = bcp->next) {
+          if (bcp->derivation->access == (an_access_specifier)as_public) {
+            /* Temporarily make the typeref type the base class pointer and
+               add it to the hash table. */
+            typedef_to_add->variant.typeref.type = bcp->type;
+            if (!target_type_has_circularity(typedef_to_add)) {
+              add_typedef_to(accessible_typedef_hash_table, typedef_to_add);
+            }  /* if */
+          }  /* if */
+        }  /* for */
+        /* Restore the original underlying type. */
+        typedef_to_add->variant.typeref.type = saved_under_type;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+}  /* add_instances_of_typedef */
+
+
 static void register_substitutable_typedef(a_type_ptr type)
 /*
 type is a typedef that has just been defined.  If it is publicly accessible
@@ -1816,91 +1908,24 @@ template, add its instances as well in case they may be needed.
     }  /* while */
     if (typedef_added && type->variant.typeref.is_template_alias &&
         type->variant.typeref.is_prototype_instantiation) {
-      /* This is the prototype instantiation of an alias template.  Go
-         through all the instances of that alias template in the parent
-         scope and add them to the hash table. */
-      templ = type->variant.typeref.extra_info->assoc_template;
-      for (tp = type->source_corresp.parent_scope->types; tp != NULL;
-           tp = tp->next) {
-        if (tp->kind == (a_type_kind)tk_typeref &&
-            tp->variant.typeref.is_template_alias &&
-            !tp->variant.typeref.is_prototype_instantiation &&
-            tp->variant.typeref.extra_info->assoc_template == templ) {
-          under_type = skip_typerefs(tp->variant.typeref.type);
-          if (!target_type_has_circularity(tp)) {
-            add_typedef_to(accessible_typedef_hash_table, tp);
-          }  /* if */
-          if (is_immediate_class_type(under_type)) {
-            /* Also add public base classes of the underlying class type,
-               since the alias type instance may have been used as a
-               qualifier for a member of a base class and we need to find
-               this instance in that case. */
-            a_base_class_ptr bcp;
-            a_type_ptr       saved_under_type = tp->variant.typeref.type;
-            for (bcp = under_type->variant.class_struct_union.extra_info->
-                                                                  base_classes;
-                 bcp != NULL; bcp = bcp->next) {
-              if (bcp->derivation->access == (an_access_specifier)as_public) {
-                /* Temporarily make the typeref type the base class pointer
-                   and add it to the hash table. */
-                tp->variant.typeref.type = bcp->type;
-                if (!target_type_has_circularity(tp)) {
-                  add_typedef_to(accessible_typedef_hash_table, tp);
-                }  /* if */
-              }  /* if */
-            }  /* for */
-            /* Restore the original underlying type. */
-            tp->variant.typeref.type = saved_under_type;
-          }  /* if */
-        }  /* if */
-      }  /* for */
+      /* This is the prototype instantiation of an alias template.  Add all
+         the instances of that alias template to the hash table as well. */
+      add_instances_of_typedef(
+                              type->variant.typeref.extra_info->assoc_template,
+                              /*mbr_typedef_name=*/NULL,
+                              type->source_corresp.parent_scope);
     } else if (typedef_added && type->source_corresp.is_class_member &&
                parent_class_of(type)->
                        variant.class_struct_union.is_prototype_instantiation) {
-      /* Add all the corresponding members of instances of the class
-         template as well. */
-      a_const_char *typedef_name = unmangled_name_of(&type->source_corresp);
-      templ = parent_class_of(type)->
-                         variant.class_struct_union.extra_info->assoc_template;
-      /* Scan through all the types in the scope in which the parent class
-         template is defined, looking for instances of that template. */
-      for (tp = parent_class_of(type)->source_corresp.parent_scope->types;
-           tp != NULL; tp = tp->next) {
-        if (is_immediate_class_type(tp) &&
-            tp->variant.class_struct_union.is_template_class &&
-            !tp->variant.class_struct_union.is_prototype_instantiation &&
-            !tp->variant.class_struct_union.is_specialized &&
-            tp->variant.class_struct_union.extra_info->assoc_template ==
-                                                                       templ) {
-          /* This is an implicitly-instantiated instance of the parent
-             class template of the typedef.  Find the typedef member of the
-             instance corresponding to the typedef member of the prototype
-             instantiation and add it to the hash table. */
-          a_type_ptr nested_type;
-          a_boolean  typedef_found = FALSE;
-          for (nested_type = tp->variant.class_struct_union.extra_info->
-                                                            assoc_scope->types;
-               nested_type != NULL && !typedef_found;
-               nested_type = nested_type->next) {
-            if (unmangled_name_of(&nested_type->source_corresp) ==
-                                                                typedef_name) {
-              /* There can be only one type in the class with the same name
-                 as the typedef (the name strings are shared, so we can
-                 just compare the pointers instead of doing a string
-                 comparison), so this must be the nested type that
-                 corresponds to the typedef in the prototype
-                 instantiation. */
-              check_assertion(nested_type->kind == (a_type_kind)tk_typeref &&
-                              typeref_is_typedef(nested_type));
-              typedef_found = TRUE;
-              under_type = skip_typerefs(nested_type->variant.typeref.type);
-              if (!target_type_has_circularity(nested_type)) {
-                add_typedef_to(accessible_typedef_hash_table, nested_type);
-              }  /* if */
-            }  /* if */
-          }  /* for */
-        }  /* if */
-      }  /* for */
+      /* This is a member typedef of the prototype instantiation of a class
+         template.  Add all the corresponding member typedefs of instances
+         of that class template as well. */
+      add_instances_of_typedef(parent_class_of(type)->
+                                        variant.class_struct_union.extra_info->
+                                                                assoc_template,
+                               unmangled_name_of(&type->source_corresp),
+                               parent_class_of(type)->
+                                                  source_corresp.parent_scope);
     }  /* if */
   }  /* if */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
