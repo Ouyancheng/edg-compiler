@@ -1790,8 +1790,8 @@ templ, add the corresponding instance typedef to the table as well.
       }  /* if */
     } else {
       /* We are looking for the corresponding member typedef of instances
-         of the containing class template.  Start by scanning for those
-         instances. */
+         of the containing class template.  Start by checking if this is
+         one of those instances. */
       if (is_immediate_class_type(tp) &&
           tp->variant.class_struct_union.is_template_class &&
           !tp->variant.class_struct_union.is_prototype_instantiation &&
@@ -1880,8 +1880,8 @@ template, add its instances as well in case they may be needed.
                                 /*ignore_context=*/TRUE,
                                 &type_for_all_scopes) &&
       has_name_before_mangling(targ_type)) {
-    a_boolean      typedef_added = FALSE;
-    a_boolean      circular = target_type_has_circularity(type);
+    a_boolean typedef_added = FALSE;
+    a_boolean circular = target_type_has_circularity(type);
     if (!circular && !entity_name_is_accessible(
                               &targ_type->source_corresp, iek_type,
                               /*ignore_context=*/TRUE, &targ_for_all_scopes)) {
