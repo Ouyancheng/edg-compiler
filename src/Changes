@@ -74,7 +74,7 @@ with --g++ --c++14:
 Abort with template parameters defaulted to functions
 
 In C++11 modes and beyond, the front end would abort in
-"conv_function_designator_to_ptr_to_function" when a template parameter is
+conv_function_designator_to_ptr_to_function when a template parameter is
 defaulted to a function.  For example:
 
   void foo();
