@@ -10,13 +10,12 @@ selection of a different function than in the original source.  This is
 now fixed.  For example, with --g++:
 
   extern "C" int printf(const char*, ...);
-
-  int gx=0;
+  int gx = 0;
   struct A {
-    void f(int){gx=3;}
+    void f(int) { gx = 3; }
   };
   template<class T> struct B {
-    void f(double){gx=5;}
+    void f(double) { gx=5; }
   };
   template<class T> struct C : B<T>, A {
     using A::f;
