@@ -21279,10 +21279,13 @@ handle_as_definition:
     /* This is a generated instance of a function template.  Determine
        whether to put out an explicit specialization for it. */
     is_generated_explicit_specialization = TRUE;
-    if (!special_kind_is(rout, sfk_deduction_guide) &&
-        suppress_invalid_explicit_specialization(&rout->source_corresp,
-                                                 iek_routine,
-                                                 rout->template_arg_list)) {
+    if (rout->suppress_explicit_specialization) {
+      discard_declaration = TRUE;
+    } else if (!special_kind_is(rout, sfk_deduction_guide) &&
+               suppress_invalid_explicit_specialization(&rout->source_corresp,
+                                                        iek_routine,
+                                                        rout->
+                                                          template_arg_list)) {
       discard_declaration = TRUE;
     } else {
       /* Check whether the various types used in the declaration are
@@ -21329,6 +21332,9 @@ handle_as_definition:
   }  /* if */
   if (!discard_declaration && has_suppressed_parent(&rout->source_corresp)) {
     discard_declaration = TRUE;
+  }  /* if */
+  if (discard_declaration) {
+    rout->suppress_explicit_specialization = TRUE;
   }  /* if */
   if (!discard_declaration && msvc_is_generated_code_target) {
     a_type_ptr ret_type = unqual_rout_type->variant.routine.return_type;

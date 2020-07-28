@@ -30545,6 +30545,7 @@ a_symbol_ptr find_matching_template_instance(
 		a_symbol_locator		*loc,
 		a_boolean			in_class_specialization,
 		a_boolean			prefer_template,
+		a_boolean			check_only,
 		a_template_nesting_depth	nesting_depth,
 		an_error_severity		severity_if_not_found,
 		a_boolean                       *is_new_template_instance)
@@ -30648,7 +30649,9 @@ FALSE.
 					  &ambiguous);
       /* Look for a match on the list of instantiations. */
       if (ambiguous) {
-        sym_error(ec_ambiguous_overloaded_function, orig_sym);
+        if (!check_only) {
+          sym_error(ec_ambiguous_overloaded_function, orig_sym);
+        }  /* if */
         new_sym = NULL;
       } else {
         new_sym = matching_template_function(
@@ -30676,13 +30679,17 @@ FALSE.
     } else {
       err_code = ec_not_compatible_with_previous_decl;
     }  /* if */
-    pos_sy_diagnostic(severity_if_not_found, err_code,
-                      &loc->source_position, orig_sym);
+    if (!check_only) {
+      pos_sy_diagnostic(severity_if_not_found, err_code,
+                        &loc->source_position, orig_sym);
+    }  /* if */
   } else if (other_match != NULL) {
     /* Multiple matches were found.  This can happen if Microsoft mode
        selective overriders are involved. */
-    pos_sy_diagnostic(severity_if_not_found, ec_ambiguous_name,
-                      &loc->source_position, orig_sym);
+    if (!check_only) {
+      pos_sy_diagnostic(severity_if_not_found, ec_ambiguous_name,
+                        &loc->source_position, orig_sym);
+    }  /* if */
     check_assertion(microsoft_mode);
   }  /* if */
   return new_sym;
@@ -31252,6 +31259,7 @@ that follows.
                         sym, dps, &locator,
                         /*in_class_specialization=*/decl_state->is_member_decl,
                         /*prefer_template=*/TRUE,
+                        /*check_only=*/FALSE,
                         decl_state->nesting_depth + decl_state->friend_depth,
                         es_error, &is_new_template_instance);
           sym = check_specialization_projection_symbol(sym, &locator);
@@ -38956,6 +38964,7 @@ instantiation.
                                    sym, &state, &locator,
                                    /*in_class_specialization=*/FALSE,
                                    /*prefer_template=*/TRUE,
+                                   /*check_only=*/FALSE,
                                    NO_NESTING_DEPTH,
                                    severity_if_not_found,
                                    &is_new_template_instance);

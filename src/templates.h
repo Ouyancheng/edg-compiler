@@ -779,6 +779,7 @@ extern a_symbol_ptr find_matching_template_instance(
 		a_symbol_locator		*loc,
 		a_boolean			in_class_specialization,
 		a_boolean			prefer_template,
+		a_boolean			check_only,
 		a_template_nesting_depth	nesting_depth,
 		an_error_severity		severity_if_not_found,
 		a_boolean        		*is_new_template_instance);

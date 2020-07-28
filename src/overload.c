@@ -8942,6 +8942,24 @@ type deduction.
   }  /* for */
 }  /* instantiate_template_default_arguments */
 
+#if BACK_END_IS_CP_GEN_BE && \
+    NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+static void check_for_function_that_cannot_be_specialized(
+                        ARG_UNUSED a_candidate_function_ptr candidate_function)
+/*
+This function has no effect.  It is provided as a customization point for
+specific customer needs in C++-generating back end configurations in which
+explicit specializations are generated for implicit instantiations of
+function templates.
+*/
+{
+  /* Customer-supplied code goes here.  If a given generated explicit
+     specialization would be problematic, the
+     suppress_explicit_specialization flag in the associated a_routine
+     entry (candidate_function->function_symbol->variant.routine.ptr) can
+     be set to TRUE to exclude it from the generated code. */
+}  /* check_for_function_that_cannot_be_specialized */
+#endif /* BACK_END_IS_CP_GEN_BE && ... */
 
 static void select_best_candidate_functions(
                         a_candidate_function_ptr *candidate_functions,
@@ -9307,6 +9325,10 @@ create_final_list:
         candidates->conversion.routine = sym->variant.routine.ptr;
         candidates->conversion.routine_symbol = sym;
       }  /* if */
+#if BACK_END_IS_CP_GEN_BE && \
+    NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+      check_for_function_that_cannot_be_specialized(candidates);
+#endif /* BACK_END_IS_CP_GEN_BE && ... */
     }  /* if */
   }  /* if */
 #if DEBUG

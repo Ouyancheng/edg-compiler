@@ -3699,6 +3699,9 @@ Display the indicated routine.
   if (ptr->evaluated_in_interpreter) {
     disp_boolean("evaluated_in_interpreter", TRUE);
   }  /* if */
+  if (ptr->suppress_explicit_specialization) {
+    disp_boolean("suppress_explicit_specialization", TRUE);
+  }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* BACK_END_IS_CP_GEN_BE */
   if (ptr->definition_for_inlining_only) {

@@ -11539,6 +11539,7 @@ possibility.
                                /*in_class_specialization=*/FALSE,
                                /*prefer_template=*/
                                             (a_boolean)locator->is_template_id,
+                               /*check_only=*/FALSE,
                                NO_NESTING_DEPTH,
                                es_error, &is_new_template_instance);
       if (sym == NULL) {

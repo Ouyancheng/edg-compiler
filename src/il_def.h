@@ -11754,6 +11754,12 @@ typedef struct a_routine {
 			   interpreter.  This is useful to decide whether it
 			   is safe to declare as "constexpr" an implicit
 			   instance rendered as an explicit specialization. */
+  a_bit_field	suppress_explicit_specialization:1;
+			/* TRUE if this is an instance of a function
+			   template and a generated explicit specialization
+			   would be invalid for some reason.  Set by both
+			   the front end and the C++-generating back end,
+			   as required. */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* BACK_END_IS_CP_GEN_BE */
   a_bit_field	definition_for_inlining_only:1;

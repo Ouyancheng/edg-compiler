@@ -1,5 +1,21 @@
 Version 6.2
 
+7/28/20  [EDGcpfe/23076]
+C++-generating back end: front-end customization point for excluding
+generated explicit specializations
+
+In C++-generating back end configurations in which
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, a
+customization point has been added to the front end to allow identifying
+instances of function templates that should not be represented as explicit
+specializations in the generated code. The function
+check_for_function_that_cannot_be specialized (overload.c) is called at the
+point at which a function template instance is selected by overload
+resolution.  It currently does nothing, but customers can add code to set
+the suppress_explicit_specialization flag in the a_routine entry for any
+function template instance that is deemed to be problematic.
+
+
 7/28/20  [EDGcpfe/22129]
 GNU C++ compatibility: Literal types and virtual base classes
 
