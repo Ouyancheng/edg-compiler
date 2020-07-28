@@ -15,7 +15,7 @@ now fixed.  For example, with --g++:
     void f(int) { gx = 3; }
   };
   template<class T> struct B {
-    void f(double) { gx=5; }
+    void f(double) { gx = 5; }
   };
   template<class T> struct C : B<T>, A {
     using A::f;
