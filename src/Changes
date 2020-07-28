@@ -1,5 +1,23 @@
 Version 6.2
 
+7/28/20  [EDGcpfe/22129]
+GNU C++ compatibility: Literal types and virtual base classes
+
+In GNU C++ modes, virtual base classes no longer disqualify a class type from
+being a literal type.  However, an object of such a type can still not be
+constructed as part of a constant expression.  For example:
+
+  struct B {};
+  struct D: virtual B {};
+  constexpr int f(D) { return 1; }  // Now okay in GNU C++ mode.
+  constexpr D d{};  // Error in all modes.
+
+Function f in this example is nonstandard because it is declared constexpr but
+has a parameter of nonliteral type D.  However, GCC does consider D to have a
+literal type and thus accepts the definition of f.  Defining a constexpr object
+of type D is still an error, however, even in GNU C++ modes.
+
+
 7/27/20  [EDGcpfe/22850]
 C++-generating back end: overloading via using-declaration with dependent base
 

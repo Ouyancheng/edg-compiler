@@ -2564,10 +2564,15 @@ the function non-constexpr in that case).
     rp->is_constexpr = FALSE;
   } else if (!is_template_dependent_context()) {
     a_type_ptr     vtp = skip_typerefs(vp->type);
-    if (!is_literal_type(vtp)) {
+    if (!is_literal_type(vtp) ||
+        (gpp_version_is(any_version) && is_immediate_class_type(vtp) &&
+         vtp->variant.class_struct_union.any_virtual_base_classes)) {
       if ((!rp->is_template_function || rp->is_specialized) &&
           (rp->is_declared_constexpr || rp->is_consteval)) {
-        pos_ty_error(ec_nonliteral_var_in_constexpr_function, pos, vp->type);
+        pos_ty_error(is_literal_type(vtp) ?
+                       ec_var_with_virtual_bases_in_constexpr_function :
+                       ec_nonliteral_var_in_constexpr_function,
+                     pos, vp->type);
         vp->type = error_type();
       }  /* if */
       rp->is_constexpr = FALSE;

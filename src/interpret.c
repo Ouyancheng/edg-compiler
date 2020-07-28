@@ -9940,6 +9940,12 @@ the body of the (constructor) function proper.
                         symbol_for(callee), ips);
       goto done;
     }  /* if */
+    if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+      do_constexpr_fail(result);
+      info_with_pos_type(ec_constexpr_object_with_virtual_base, pos,
+                         class_type, ips);
+      goto done;
+    }  /* if */
     /* Account a relatively high cost for the call up-front, to limit the
        overall call depth.  When the call returns, that cost will be
        reduced. */

@@ -21765,7 +21765,8 @@ skip the base class portion of the check.
        a nonconstant outcome. */
     limited_check = TRUE;
   }  /* if */
-  if (!class_type->variant.class_struct_union.any_virtual_base_classes) {
+  if (!class_type->variant.class_struct_union.any_virtual_base_classes ||
+      gpp_version_is(any_version)) {
     /* A generated default constructor is implicitly "constexpr" if (a) the
        parent class has no virtual bases, (b) every field has either a constant
        field initializer or the type has a constexpr default constructor, and
@@ -30721,8 +30722,10 @@ flag is set in the class symbol supplement of the given type.
                !type_is(type, tk_union)) {
       /* Literal class types cannot have volatile subobjects. */
       cssp->known_not_to_be_a_literal_type = TRUE;
-    } else if (type->variant.class_struct_union.any_virtual_base_classes) {
-      /* Literal class types cannot have virtual base classes. */
+    } else if (type->variant.class_struct_union.any_virtual_base_classes &&
+               !gpp_version_is(any_version)) {
+      /* Literal class types cannot have virtual base classes (except in GCC
+         modes). */
       cssp->known_not_to_be_a_literal_type = TRUE;
     } else if (has_nonliteral_type_subobject(type)) {
       /* Literal class types cannot have a subobject of nonliteral type. */

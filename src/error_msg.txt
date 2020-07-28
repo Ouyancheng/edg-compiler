@@ -3216,6 +3216,8 @@ ec_cpp20_reversed_comparison_ambiguity;;"comparison is ambiguous in standard C++
 ec_invalid_concept_id;;"invalid concept-id"
 ec_requires_clause_arg_list_substitution_failed;;"substitution of arguments %T for requires-clause failed"
 ec_ineligible_member_function;;"constraints for %nd are not satisfied"
+ec_var_with_virtual_bases_in_constexpr_function;;"variable type %t in constexpr function has virtual base classes"
+ec_constexpr_object_with_virtual_base;;"a constant expression cannot allocate a virtual base subobject (for type %t)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
