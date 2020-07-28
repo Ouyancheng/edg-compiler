@@ -76,9 +76,8 @@ Spurious redeclaration error with decltype nontype parameter type
 
 A spurious error could result if two function templates had the same
 function types and had template parameter lists that were the same except that
-they a nontype template parameter had different dependent expressions used
-in the decltype-specifier that specified the nontype parameter type.  Now
-fixed.
+a nontype template parameter had different dependent expressions used in the
+decltype-specifier that specified the nontype parameter type.  Now fixed.
 
   template<typename P, decltype(P::X) val = 1> int f() {return val;}
   template<typename P, decltype(P::Y) val = 2> int f() {return val;}
