@@ -1,5 +1,39 @@
 Version 6.2
 
+7/27/20  [EDGcpfe/22850]
+C++-generating back end: overloading via using-declaration with dependent base
+
+When putting out a call to a member function inherited by using-declaration
+in a class with a dependent base, the C++-generating back end sometimes
+inappropriately used a qualified name for the member function, forcing the
+selection of a different function than in the original source.  This is
+now fixed.  For example, with --g++:
+
+  extern "C" int printf(const char*, ...);
+
+  int gx=0;
+  struct A {
+    void f(int){gx=3;}
+  };
+  template<class T> struct B {
+    void f(double){gx=5;}
+  };
+  template<class T> struct C : B<T>, A {
+    using A::f;
+    using B<T>::f;
+    void g() {
+      f(2);        // Previously put out as A::f(2)
+      printf("gx:%d\n",gx);
+      f(2.2223);   // Previously put out as A::f(2.2223)
+      printf("gx:%d\n",gx);
+  }
+  };
+  int main() {
+    C<int> c;
+    c.g();
+  }
+
+
 7/27/20  [EDGcpfe/22600]
 Clang compatibility: attribute "overloadable" (IL CHANGE)
 

@@ -25091,8 +25091,11 @@ declaration from a using-declaration.)
       other_sym = NULL;
       sym = declared_sym;
       fund_sym = fundamental_symbol_of(sym);
-      /* See if the using declaration refers to a function or overload set. */
-      if (is_function_or_template_symbol(fund_sym)) {
+      /* See if the using declaration refers to a function or overload set
+         (we include nonreal members in this since they might end up
+         instantiating to a member function). */
+      if (is_function_or_template_symbol(fund_sym) ||
+          fund_sym->is_nonreal_member) {
         /* Member function or member function template. */
         /* If other_sym is non-NULL, there is already a function declaration by
            this name in the current class: we will add the declared symbol or
