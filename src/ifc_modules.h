@@ -428,8 +428,8 @@ enum ifc_TypeSort : ifc_Sort_type {
 };
 
 /* Macros used to access StmtIndex::tag and StmtIndex::value. */
-#define stmt_tag(stmt) ((ifc_StmtSort)((stmt) & 0x0000000F))
-#define stmt_value(stmt) ((ifc_Index)((stmt) >> 4))
+#define stmt_tag(stmt) ((ifc_StmtSort)((stmt) & 0x0000001F))
+#define stmt_value(stmt) ((ifc_Index)((stmt) >> 5))
 
 /* Enumeration for StmtSort (i.e., types of statements). */
 enum ifc_StmtSort : ifc_Sort_type {

@@ -185,7 +185,9 @@ Given an already open file pointer, determine what kind of module file is open
   a_byte        magic[4];
 
   /* Ensure we're at the start of the file. */
-  fseek(file, 0, SEEK_SET);
+  if (fseek(file, 0, SEEK_SET) != 0) {
+    unexpected_condition();
+  }  /* if */
   if (fread(magic, (size_t)1, sizeof(magic), file) == sizeof(magic)) {
     if (magic_numbers_match(magic, edg_magic_numbers)) {
       kind = (a_module_kind)mk_edg;
@@ -282,15 +284,13 @@ expected kind and such a mismatch cannot be ignored.
                            &open_result);
   if (file == NULL) {
     /* Open failed.  Most reasons are likely valid, but check for specific
-        problem cases. */
+       problem cases. */
     if (open_result.flags & OFR_CANNOT_OPEN) {
-      /* Note that file_open_error does not return when called from
-          here. */
+      /* Note that file_open_error does not return when called from here. */
       file_open_error(es_catastrophe, ec_module_file, module_file,
                       &open_result);
-    } else {
-      goto done;
-    }  /* if */
+    } /* if */
+    goto done;
   }  /* if */
   /* We've found a file - determine what kind it is. */
   file_kind = determine_module_file_kind(file);
