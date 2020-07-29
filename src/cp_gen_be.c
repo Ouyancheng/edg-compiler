@@ -20250,10 +20250,11 @@ this one is such a continuation.
        placeholder type.  (var->type designates the template instance that
        is the deduced type of the variable, so we can use it to find the
        potentially-hidden template entry.) */
-    check_assertion(is_immediate_class_type(var->type) &&
-                    var->type->variant.class_struct_union.is_template_class);
+    a_type_ptr actual_type = skip_typerefs(var->type);
+    check_assertion(is_immediate_class_type(actual_type) &&
+                    actual_type->variant.class_struct_union.is_template_class);
     var_type->source_corresp.qualification_needed =
-             var->type->variant.class_struct_union.extra_info->assoc_template->
+           actual_type->variant.class_struct_union.extra_info->assoc_template->
                                            source_corresp.qualification_needed;
   }  /* if */
   /* Output the variable name and its type.  Do not put out a name for
