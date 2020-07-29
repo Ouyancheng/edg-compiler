@@ -9797,6 +9797,8 @@ entry.  pos is used to establish the type entry's position information.
     /* Copy the parent scope from the class template. */
     set_parent_scope(&type->source_corresp, iek_type,
                      tssp->il_template_entry->source_corresp.parent_scope);
+    type->source_corresp.is_class_member =
+                       tssp->il_template_entry->source_corresp.is_class_member;
   }  /* if */
   return type;
 }  /* make_class_template_placeholder */
