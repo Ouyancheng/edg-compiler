@@ -17272,6 +17272,7 @@ operator (e.g., the "]" of a subscript operation).
   an_expr_operator_kind generic_op =
                                operator_for_opname_kind(kind, unary_operator);
 
+  opname_symbol_table[kind]->any_function_referenced_in_dependent_call = TRUE;
   if (kind == (an_opname_kind)onk_plus_plus ||
       kind == (an_opname_kind)onk_minus_minus) {
     /* Turn postfix "++" or "--" back into a true unary operation (it has a

@@ -1,5 +1,25 @@
 Version 6.2
 
+7/29/20  [EDGcpfe/23185]
+Spurious warning on operator function only used in template instances
+
+Consider:
+
+  struct S {};
+  static inline bool operator!=(S,S) { return true; }
+  template<typename T> void g(T t) { t != t; }
+  int main() {
+    g(S());
+  }
+
+Previously, in modes that perform a prototype instantiation of g(T) but do not
+eagerly instantiate all used instance (i.e., not -tused or -tall modes), the
+front end spuriously warned about operator!= (which has internal linkage) being
+defined but not used (this problem was specific to operator functions; ordinary
+functions with internal linkage did not elicit such warnings).  That is now
+fixed.
+
+
 7/29/20  [EDGcpfe/20033,EDGcpfe/20276,EDGcpfe/22245]
 C++20: Nontype template parameters of class type or floating-point type
 
