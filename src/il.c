@@ -9792,7 +9792,8 @@ entry.  pos is used to establish the type entry's position information.
   tptsp->constraint.class_template_symbol = class_template;
   set_type_size(type);
   set_source_corresp(&type->source_corresp, sym);
-  if (!class_template->is_error) {
+  if (!class_template->is_error &&
+      tssp->il_template_entry->source_corresp.parent_scope != NULL) {
     /* Copy the parent scope from the class template. */
     set_parent_scope(&type->source_corresp, iek_type,
                      tssp->il_template_entry->source_corresp.parent_scope);
