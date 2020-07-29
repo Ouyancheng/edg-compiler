@@ -7805,7 +7805,7 @@ using a_template_param_object_map = Ptr_map<a_constant_handle, a_variable_ptr>;
 			   objects (represented as constexpr variable entries)
 			   with a constant value of class type. */
 
-a_template_param_object_map
+static a_template_param_object_map
 		*template_param_objects;
 			/* A map from constant values of class types (or rather
 			   handles to such constant entries) to constexpr
