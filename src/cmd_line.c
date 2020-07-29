@@ -5819,6 +5819,11 @@ file.
 #else /* !defined(CHECKING) */
   comment_undefined_macro_name(CHECKING);
 #endif /* defined(CHECKING) */
+#if defined(CHECK_SWITCH_DEFAULT_UNEXPECTED)
+  define_numeric_valued_macro(CHECK_SWITCH_DEFAULT_UNEXPECTED);
+#else /* !defined(CHECK_SWITCH_DEFAULT_UNEXPECTED) */
+  comment_undefined_macro_name(CHECK_SWITCH_DEFAULT_UNEXPECTED);
+#endif /* defined(CHECK_SWITCH_DEFAULT_UNEXPECTED) */
 #if defined(CLANG_VERSION_STRING)
 #if !defined(_lint) && !(defined(_MSC_VER) && _MSC_VER < 1300)
   /* Microsoft version 6.0 and some lint versions have a preprocessor bug

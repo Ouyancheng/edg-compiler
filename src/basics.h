@@ -1102,6 +1102,16 @@ Most supported C++ compilers support [[noreturn]], but not all GCC versions.
 #endif /* defined(_lint) */
 
 /*
+Some coding standards require a default statement in switches even if it's
+unreachable, while others prefer to leave this off to allow the compiler to
+catch when it's not exhaustive.  Unless otherwise specified, the redundant
+default statement will be enabled when CHECKING == TRUE and disabled otherwise.
+*/
+#ifndef CHECK_SWITCH_DEFAULT_UNEXPECTED
+#define CHECK_SWITCH_DEFAULT_UNEXPECTED CHECKING
+#endif /* ifndef EXHAUSTIVE_DEFAULT */
+
+/*
 In some cases, lint mistakenly determines that a value may be uninitialized
 and warns on every use of that variable.  This macro is used to convince lint
 that the value is indeed initialized.

@@ -282,6 +282,14 @@ extern void check_expected_errors(void);
 #define unexpected_condition_str2(string1, string2) \
   exit_compilation(es_internal_error)
 #endif /* CHECKING */
+#if CHECK_SWITCH_DEFAULT_UNEXPECTED
+#define default_is_unexpected() default: unexpected_condition()
+#define default_is_unexpected_str(x) default: unexpected_condition_str(x)
+#else /* !CHECK_SWITCH_DEFAULT_UNEXPECTED */
+#define default_is_unexpected() /* Nothing */
+#define default_is_unexpected_str(x) /* Nothing */
+#endif /* CHECK_SWITCH_DEFAULT_UNEXPECTED */
+
 /* Make sure that struct tags are referenced before their uses below.
    Otherwise, the declarations would be in the prototype scopes.  The
    "struct" form is used instead of the typedef name to avoid having to
