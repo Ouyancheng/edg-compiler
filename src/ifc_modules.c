@@ -265,8 +265,7 @@ Utility to print some debug information for every access to an IFC module file.
                       *(((uint32_t*)addr)+1), *(((uint32_t*)addr)+2),
                       *(((uint32_t*)addr)+3));
         break;
-      default:
-        unexpected_condition();
+      default_is_unexpected();
     }  /* switch */
     (void)fprintf(f_debug, " (%s)\n", value_str);
   }  /* if */
@@ -1387,8 +1386,9 @@ corresponding data structure for that partition.
       break;
     case ifc_none:
     case ifc_last:
-    default:
       unexpected_condition();
+      break;
+    default_is_unexpected();
   }  /* switch */
 #undef CHECK_SIZE
 }
@@ -2169,8 +2169,7 @@ class_struct_union_case:
               unexpected_condition_str("ParameterSort::Template "
                                        "not yet handled");
               break;
-            default:
-              unexpected_condition_str("Unexpected ParameterSort");
+            default_is_unexpected_str("Unexpected ParameterSort");
           }  /* switch */
           if (param != NULL) {
             next_param = &curr_templ_decl_state->decl_info->parameters;
@@ -2564,8 +2563,7 @@ Convert the given IFC calling convention to the corresponding EDG one.
       unexpected_condition_str("__eabi calling convention "
                                "is yet not supported");
       break;
-    default:
-      unexpected_condition_str("Unexpected CallingConvention");
+    default_is_unexpected_str("Unexpected CallingConvention");
   }  /* switch */
   return conv;
 }  /* conv_calling_convention */
@@ -2637,8 +2635,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                                                     ifc_TypePrecision_Default);
                   result = integer_type((an_integer_kind)ik_unsigned_char);
                   break;
-                default:
-                  unexpected_condition();
+                default_is_unexpected();
               }  /* if */
               break;
             case ifc_TypeBasis_Wchar_t:
@@ -2657,8 +2654,9 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                 case ifc_TypePrecision_Long:
                 case ifc_TypePrecision_Bit64:
                 case ifc_TypePrecision_Bit128:
-                default:
                   unexpected_condition();
+                  break;
+                default_is_unexpected();
               }  /* switch */
               break;
             case ifc_TypeBasis_Int:
@@ -2774,8 +2772,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
               check_assertion(itsfp->precision == ifc_TypePrecision_Default);
               result = type_of_unknown_templ_param_nontype;
               break;
-            default:
-              unexpected_condition_str("Unexpected TypeBasis kind");
+            default_is_unexpected_str("Unexpected TypeBasis kind");
           }  /* switch */
         }
         break;
@@ -3204,8 +3201,9 @@ module file.
       break;
     case templk_template_template_param:
     case templk_none:
-    default:
       unexpected_condition();
+      break;
+    default_is_unexpected();
   }  /* switch */
   return result;
 }  /* type_for_template_id */
@@ -3349,8 +3347,10 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
         }
         break;
       case ifc_NameSort_Identifier:
-      default:
+      case ifc_NameSort_Last:
         unexpected_condition();
+        break;
+      default_is_unexpected();
     }  /* switch */
   }  /* if */
   if (operator_text_buffer == NULL) {
@@ -3574,8 +3574,10 @@ Given a declaration, return the name associated with that declaration.
         result = get_string_at_offset(idsosp->name);
       }
       break;
-    default:
-      unexpected_condition_str("Unexpected DeclSort");
+    case ifc_DeclSort_Last:
+      unexpected_condition();
+      break;
+    default_is_unexpected_str("Unexpected DeclSort");
   }  /* switch */
   check_assertion(result != NULL);
   return result;
@@ -3805,8 +3807,7 @@ FIXME: what other expressions can we get here?
               check_assertion(!err);
             }
             break;
-          default:
-            unexpected_condition();
+          default_is_unexpected();
         }  /* switch */
       }
       break;
@@ -4092,8 +4093,7 @@ Sentence containing directive.
     case ifc_SourceDirective_MsvcPragmaP0line:
       /* These pragmas have no corresponding EDG pragma. */
       break;
-    default:
-      unexpected_condition_str("Unknown SourceDirective");
+    default_is_unexpected_str("Unknown SourceDirective");
   }  /* switch */
 }  /* cache_source_directive */
 
@@ -4165,8 +4165,7 @@ Sentence containing punctuator.
       unexpected_condition_str("SourcePunctuator::MsvcDefaultInitStart "
                                "not yet handled");
       break;
-    default:
-      unexpected_condition_str("Unknown SourcePunctuator");
+    default_is_unexpected_str("Unknown SourcePunctuator");
   }  /* switch */
 }  /* cache_source_punctuator */
 
@@ -4216,8 +4215,7 @@ locus is the location of the Sentence containing literal.
           case ifc_StringSort_Wide:
             kind = (a_character_kind)chk_wchar_t;
             break;
-          default:
-            unexpected_condition_str("Unexpected StringSort");
+          default_is_unexpected_str("Unexpected StringSort");
         }  /* switch */
         if (p_lit->suffix == 0) {
           check_assertion(literal == ifc_SourceLiteral_String);
@@ -4279,8 +4277,7 @@ locus is the location of the Sentence containing literal.
         cache_name_from_decl(cache, iesndp->resolution, &iesndp->locus);
       }
       break;
-    default:
-      unexpected_condition_str("Unknown SourceLiteral");
+    default_is_unexpected_str("Unknown SourceLiteral");
   }  /* switch */
 }  /* cache_source_literal */
 
@@ -4420,8 +4417,7 @@ containing op.
     case ifc_SourceOperator_ArrowStar:
       cache_token(cache, tok_arrow_star, &pos);
       break;
-    default:
-      unexpected_condition_str("Unknown SourceOperator");
+    default_is_unexpected_str("Unknown SourceOperator");
   }  /* switch */
 }  /* cache_source_operator */
 
@@ -5023,8 +5019,7 @@ Sentence containing keyword.
     case ifc_SourceKeyword_MsvcConfusedalignas:
       cache_token(cache, tok_alignas, &pos);
       break;
-    default:
-      unexpected_condition_str("Unknown SourceKeyword");
+    default_is_unexpected_str("Unknown SourceKeyword");
   }  /* switch */
 }  /* cache_source_keyword */
 
@@ -5068,8 +5063,7 @@ the location of the Sentence containing id.
     case ifc_SourceIdentifier_MsvcBuiltinNansf:
       name = "__builtin_nansf";
       break;
-    default:
-      unexpected_condition_str("Unknown SourceIdentifier");
+    default_is_unexpected_str("Unknown SourceIdentifier");
   }  /* switch */
   check_assertion(name != NULL);
   cache_identifier(cache, name, &pos);
@@ -5107,8 +5101,7 @@ Add token(s) corresponding to word to cache.
       cache_source_identifier(cache, (ifc_SourceIdentifier)word->value,
                               word->index, pos);
       break;
-    default:
-      unexpected_condition_str("Unknown WordSort");
+    default_is_unexpected_str("Unknown WordSort");
   }  /* switch */
 }  /* add_word_to_cache */
 
@@ -5256,8 +5249,7 @@ the position of the calling convention.
     case ifc_CallingConvention_Eabi:
       unexpected_condition_str("Eabi calling convention is not yet supported");
       break;
-    default:
-      unexpected_condition_str("Unexpected CallingConvention");
+    default_is_unexpected_str("Unexpected CallingConvention");
   }  /* switch */
 }  /* cache_calling_convention */
 
@@ -5292,8 +5284,9 @@ cache.  pos is the position of the exception specification.
       break;
     case ifc_NoexceptSort_None:
       /* Unreachable, but place here to have all enums covered. */
-    default:
-      unexpected_condition_str("Unexpected NoexceptSpecification");
+      unexpected_condition_str("NoexceptSort::None is not expected here");
+      break;
+    default_is_unexpected_str("Unexpected NoexceptSpecification");
   }  /* switch */
   cache_token(cache, tok_rparen, pos);
 done:;
@@ -5356,8 +5349,7 @@ location of the entity referring to the type.
           case ifc_TypeSign_Unsigned:
             cache_token(cache, tok_unsigned, &pos);
             break;
-          default:
-            unexpected_condition_str("Unexpected TypeSign");
+          default_is_unexpected_str("Unexpected TypeSign");
         }  /* if */
         switch (itsfp->basis) {
           case ifc_TypeBasis_Void:
@@ -5411,8 +5403,7 @@ location of the entity referring to the type.
                 cache_token(cache, tok_int128, &pos);
 #endif /* INT128_EXTENSIONS_ALLOWED */
                 break;
-              default:
-                unexpected_condition();
+              default_is_unexpected();
             }  /* switch */
             break;
           case ifc_TypeBasis_Float:
@@ -5487,8 +5478,7 @@ location of the entity referring to the type.
             cache_token(cache, tok_auto_type, &pos);
             cache_token(cache, tok_rparen, &pos);
             break;
-          default:
-            unexpected_condition_str("Unexpected TypeBasis");
+          default_is_unexpected_str("Unexpected TypeBasis");
         }  /* switch */
       }
       break;
@@ -5627,8 +5617,10 @@ location of the entity referring to the type.
     case ifc_TypeSort_SyntaxTree:
       unexpected_condition_str("TypeSort::SyntaxTree is not yet supported");
       break;
-    default:
-      unexpected_condition_str("Unexpected TypeSort");
+    case ifc_TypeSort_Last:
+      unexpected_condition();
+      break;
+    default_is_unexpected_str("Unexpected TypeSort");
   }  /* switch */
 }  /* cache_type */
 
@@ -5676,8 +5668,10 @@ is the location of the chart.
         }  /* for */
       }
       break;
-    default:
-      unexpected_condition_str("Unexpected ChartSort");
+    case ifc_ChartSort_Last:
+      unexpected_condition();
+      break;
+    default_is_unexpected_str("Unexpected ChartSort");
   }  /* switch */
   cache_token(cache, tok_gt, &pos);
 }  /* cache_chart */
@@ -5873,9 +5867,7 @@ the location of the operator.
     case ifc_OperatorCategory_DerefMemberAccess:
       cache_token(cache, tok_period_star, &pos);
       break;
-    default:
-      unexpected_condition_str("Unexpected OperatorCategory");
-      break;
+    default_is_unexpected_str("Unexpected OperatorCategory");
   }  /* switch */
 }  /* cache_operator */
 
@@ -5973,8 +5965,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
           case ifc_ParameterSort_Template:
             cache_type(cache, idspp->type, &idspp->locus);
             break;
-          default:
-            unexpected_condition_str("Unexpected ParameterSort");
+          default_is_unexpected_str("Unexpected ParameterSort");
         }  /* switch */
         if (idspp->name != 0) {
           cache_identifier(cache, get_string_at_offset(idspp->name), &pos);
@@ -6121,8 +6112,10 @@ Add the tokens corresponding to the given declaration (decl) to cache.
     case ifc_DeclSort_OutputSegment:
       unexpected_condition_str("DeclSort::OutputSegment is not yet supported");
       break;
-    default:
-      unexpected_condition_str("Unexpected DeclSort");
+    case ifc_DeclSort_Last:
+      unexpected_condition();
+      break;
+    default_is_unexpected_str("Unexpected DeclSort");
   }  /* switch */
 }  /* cache_decl */
 
@@ -6423,9 +6416,10 @@ Add the tokens corresponding to the given expression (expr) to cache.
       unexpected_condition_str("ExprSort::AssignInitializer "
                                "is not yet supported");
       break;
-    default:
-      unexpected_condition_str("Unknown ExprSort");
+    case ifc_ExprSort_Last:
+      unexpected_condition();
       break;
+    default_is_unexpected_str("Unknown ExprSort");
   }  /* switch */
 }  /* cache_expr */
 
@@ -6880,9 +6874,10 @@ Add the tokens corresponding to the given syntax tree to cache.
       unexpected_condition_str("SyntaxSort::UsingEnumDeclaration "
                                "is not yet handled");
       break;
-    default:
-      unexpected_condition_str("Unexpected SyntaxSort");
+    case ifc_SyntaxSort_Last:
+      unexpected_condition();
       break;
+    default_is_unexpected_str("Unexpected SyntaxSort");
   }  /* switch */
 }  /* cache_syntax */
 
@@ -6952,8 +6947,10 @@ cache_ident:
         cache_identifier(cache, get_string_at_offset(ident), &pos);
       }
       break;
-    default:
+    case ifc_NameSort_Last:
       unexpected_condition();
+      break;
+    default_is_unexpected();
   }  /* switch */
 }  /* cache_name */
 
@@ -7533,8 +7530,9 @@ Add strings representing a noexcept specification, if any.
     case ifc_NoexceptSort_Weak:
     case ifc_NoexceptSort_Unenforced:
       /* FIXME: not sure what these should be */
-    default:
       unexpected_condition();
+      break;
+    default_is_unexpected();
   }  /* switch */
 }  /* str_ifc_noexcept_specification */
 
@@ -7621,8 +7619,9 @@ the output buffer.
             break;
           case ifc_LiteralSort_FloatingPoint:
             /* FIXME: not yet implemented. */
-          default:
             unexpected_condition();
+            break;
+          default_is_unexpected();
         }  /* switch */
       }
       break;
@@ -8022,8 +8021,7 @@ FIXME: more specific
           case ifc_TypeSign_Unsigned:
             add_string_to_text_buffer(scbp->text_buffer, "unsigned ");
             break;
-          default:
-            unexpected_condition();
+          default_is_unexpected();
         }  /* if */
         switch (itsfp->basis) {
           case ifc_TypeBasis_Void:
@@ -8059,8 +8057,9 @@ FIXME: more specific
               case ifc_TypePrecision_Long:
               case ifc_TypePrecision_Bit64:
               case ifc_TypePrecision_Bit128:
-              default:
                 unexpected_condition();
+                break;
+              default_is_unexpected();
             }  /* switch */
             break;
           case ifc_TypeBasis_Int:
@@ -8073,8 +8072,9 @@ FIXME: more specific
               case ifc_TypePrecision_Bit16:
               case ifc_TypePrecision_Bit32:
               case ifc_TypePrecision_Bit128:
-              default:
                 unexpected_condition();
+                break;
+              default_is_unexpected();
             }  /* switch */
             break;
           case ifc_TypeBasis_Float:
@@ -8138,9 +8138,9 @@ FIXME: more specific
           case ifc_TypeBasis_Function:
           case ifc_TypeBasis_Empty:
           case ifc_TypeBasis_VariableTemplate:
-          default:
             /* FIXME: not implemented yet */
             unexpected_condition();
+          default_is_unexpected();
         }  /* switch */
         if (basis_str != NULL) {
           add_string_to_text_buffer(scbp->text_buffer, basis_str);
@@ -8942,6 +8942,13 @@ Generate a string for the specified statement.
                                  " is not yet handled");
       }
       break;
+    case ifc_StmtSort_Expansion:
+      { an_ifc_StmtSort_Expansion isse;
+        get_StmtSort_Expansion(&isse);
+        unexpected_condition_str("StmtSort::Expansion"
+                                 " is not yet handled");
+      }
+      break;
     case ifc_StmtSort_SyntaxTree:
       { an_ifc_StmtSort_SyntaxTree issst;
         get_StmtSort_SyntaxTree(&issst);
@@ -8949,8 +8956,10 @@ Generate a string for the specified statement.
                                  " is not yet handled");
       }
       break;
-    default:
-      unexpected_condition_str("Unknown StmtSort kind");
+    case ifc_StmtSort_Last:
+      unexpected_condition();
+      break;
+    default_is_unexpected_str("Unknown StmtSort kind");
   }  /* switch */
 }  /* str_ifc_statement */
 
@@ -9008,8 +9017,10 @@ Generate a string for the specified chart.
         unexpected_condition_str("ChartSort::Multilevel is unspecified.");
       }
       break;
-    default:
-      unexpected_condition_str("Unknown ChartSort kind");
+    case ifc_ChartSort_Last:
+      unexpected_condition();
+      break;
+    default_is_unexpected_str("Unknown ChartSort kind");
   }  /* switch */
 }  /* str_ifc_chart */
 
@@ -9988,9 +9999,10 @@ Generate a string for the specified syntax tree node.
                                  " is currently unspecified.");
       }
       break;
-    default:
-      unexpected_condition_str("Unexpected syntax sort");
+    case ifc_SyntaxSort_Last:
+      unexpected_condition();
       break;
+    default_is_unexpected_str("Unexpected syntax sort");
   }  /* switch */
 }  /* str_ifc_syntax_node */
 
