@@ -46055,9 +46055,11 @@ the corresponding list of arguments processed so far.
                                                  constant);
     }  /* if */
     tp = skip_typerefs(param_type);
-    if ((type_is(tp, tk_pointer) || type_is(tp, tk_ptr_to_member)) &&
-        !is_template_dependent_type(tp) &&
-        !is_error_constant(constant)) {
+    if (is_template_dependent_type(tp) || is_error_constant(constant)) {
+      /* Do not check the validity of the constant value. */
+    } else if (type_is(tp, tk_pointer) || type_is(tp, tk_ptr_to_member)) {
+      /* A pointer or pointer-to-member constant: Check that it is valid (e.g.,
+         it cannot point to a proper subobject). */
       a_boolean  microsoft_oddity = FALSE;
       if (!generalized_nontype_arguments) {
         if (is_any_reference_type(tp)) {
@@ -46129,6 +46131,12 @@ the corresponding list of arguments processed so far.
                        &result.position, result.type);
         }  /* if */
         set_error_constant(constant);
+      }  /* if */
+    } else if (is_immediate_class_type(tp)) {
+      /* A (C++20) nontype template argument of a class type. */
+      if (!is_valid_class_templ_arg_constant(constant)) {
+        pos_ty_error(ec_invalid_nontype_template_argument,
+                     &result.position, result.type);
       }  /* if */
     }  /* if */
   } else {

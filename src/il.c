@@ -18146,6 +18146,65 @@ member template argument.
 }  /* is_valid_ptr_or_ptr_to_member_templ_arg_constant */
 
 
+a_boolean is_valid_class_templ_arg_constant(a_constant_ptr  con)
+/*
+con is the value for a nontype template argument of class type (permitted in
+C++20).  Return FALSE if any pointer, reference, or pointer-to-member constants
+it contains are invalid.  Otherwise, return TRUE.
+*/
+{
+  a_boolean       result = TRUE;
+  a_constant_ptr  cp;
+
+  check_assertion(constant_is(con, ck_aggregate));
+  cp = con->variant.aggregate.first_constant;
+  for (; cp != NULL; cp = cp->next) {
+    switch (cp->kind) {
+      case ck_address:
+      case ck_ptr_to_member:
+        if (!is_valid_ptr_or_ptr_to_member_templ_arg_constant(cp)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        break;
+      case ck_aggregate:
+        if (!is_valid_class_templ_arg_constant(cp)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        break;
+      default:
+        break;
+    }  /* switch */
+  }  /* for */
+done:
+  return result;
+}  /* is_valid_class_templ_arg_constant */
+
+
+static a_boolean is_valid_templ_arg_constant(a_constant_ptr  con)
+/*
+Return FALSE if this is a pointer, reference, or pointer-to-member constant
+that is not valid as a template argument, or if it is an aggregate constant
+that (directly or indirectly) contains such an invalid constant.  Otherwise,
+return TRUE.
+*/
+{
+  a_boolean  result;
+
+  if (constant_is(con, ck_aggregate)) {
+    result = is_valid_class_templ_arg_constant(con);
+  } else if (constant_is(con, ck_address) ||
+             constant_is(con, ck_ptr_to_member) ||
+             is_ptr_or_ref_type(con->type)) {
+    result = is_valid_ptr_or_ptr_to_member_templ_arg_constant(con);
+  } else {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_valid_templ_arg_constant */
+
+
 static a_boolean substituted_cast_is_valid(a_constant *src_con,
                                            a_type_ptr new_type,
                                            a_boolean  is_explicit_cast,
@@ -19301,7 +19360,7 @@ copy_template_param_con for the meaning of the remaining parameters.
   if (!(options & CTWS_NON_CONSTANT_EXPR) &&
       (is_bad_type_for_template_arg_operand(new_type) ||
        is_bad_type_for_template_arg_operand(copied_con_type)) &&
-      !is_valid_ptr_or_ptr_to_member_templ_arg_constant(src_con) &&
+      !is_valid_templ_arg_constant(src_con) &&
       !types_are_compatible(new_type, copied_con_type)) {
     /* One of the types is invalid for a template argument constant
        expression.  However, exempt the idiom where a constant is

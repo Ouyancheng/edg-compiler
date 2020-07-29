@@ -7515,6 +7515,333 @@ current token will be used as the operand position.
 }  /* make_constant_operand */
 
 
+struct a_constant_handle {
+  /* A structure that wraps a pointer to a constant, but forwards equality and
+     hashing to the pointed-to constant.  This is useful for using Ptr_map to
+     track constant values.  Equality corresponds to "template argument
+     equivalence" (see N4861, [temp.type]/2). */
+  a_constant_ptr
+		ptr;
+			/* Pointer to the represented constant. */
+};
+
+
+static a_boolean equiv_subobject_paths(a_subobject_path  *p1,
+                                       a_subobject_path  *p2)
+/*
+Return TRUE if the given subobject paths are equivalent.
+*/
+{
+  a_boolean  result = TRUE;
+
+  for (; p1 != NULL && p2 != NULL; p1 = p1->next, p2 = p2->next) {
+    if (p1->is_offset != p2->is_offset ||
+        p1->is_base_class != p2->is_base_class) {
+      break;
+    }  /* if */
+    if (p1->is_offset) {
+      if (p1->variant.ptr_offset != p2->variant.ptr_offset) {
+        break;
+      }  /* if */
+    } else if (p1->is_base_class) {
+      if (!same_base_classes(p1->variant.base_class, p2->variant.base_class)) {
+        break;
+      }  /* if */
+    } else {
+      if (!same_entities(p1->variant.field, p2->variant.field)) {
+        break;
+      }  /* if */
+    }  /* if */ 
+  }  /* for */
+  if (p1 != p2) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* equiv_subobject_paths */
+
+
+static a_boolean equiv_template_arg_values(a_constant_ptr  x,
+                                           a_constant_ptr  y,
+                                           a_type_ptr      tp)
+/*
+Return TRUE if the given values are "template-argument-equivalent", assuming
+the types and kinds have been found to be equivalent already.  tp is the type
+of one of the constants after skip_typerefs.  This is very similar to
+compare_constants.
+*/
+{
+  a_boolean  result = FALSE;
+
+  switch (x->kind) {
+    case ck_error:
+      result = FALSE;
+      break;
+    case ck_void:
+      result = TRUE;
+      break;
+    case ck_integer:
+      result = (cmp_integer_constants(x, y) == 0);
+      break;
+#if FIXED_POINT_ALLOWED
+    case ck_fixed_point:
+      result = (cmp_fixed_point_constants(x, y) == 0);
+      break;
+#endif /* FIXED_POINT_ALLOWED */
+    case ck_string:
+      if (x->variant.string.length == y->variant.string.length) {
+        result = (memcmp(x->variant.string.value, y->variant.string.value,
+                         size_t_arg(x->variant.string.length)) == 0);
+      }  /* if */
+      break;
+    case ck_float:
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case ck_imaginary:
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+      result = fp_same_representation(tp->variant.float_kind,
+                                      &x->variant.float_value,
+                                      &y->variant.float_value);
+      break;
+#if C99_IL_EXTENSIONS_SUPPORTED
+    case ck_complex:
+      result = (fp_same_representation(tp->variant.float_kind,
+                                       &x->variant.complex_value->real,
+                                       &y->variant.complex_value->real) &&
+                fp_same_representation(tp->variant.float_kind,
+                                       &x->variant.complex_value->imag,
+                                       &y->variant.complex_value->imag));
+      break;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    case ck_address:
+      if (x->variant.address.kind == y->variant.address.kind &&
+          x->variant.address.offset == y->variant.address.offset &&
+          equiv_subobject_paths(x->variant.address.subobject_path,
+                                y->variant.address.subobject_path)) {
+        switch (x->variant.address.kind) {
+          case abk_routine:
+            result = corresponding_routines(
+                                          x->variant.address.variant.routine,
+                                          y->variant.address.variant.routine);
+            break;
+          case abk_variable:
+            result = corresponding_variables(
+                                         x->variant.address.variant.variable,
+                                         y->variant.address.variant.variable);
+            break;
+          case abk_constant:
+            result = (x->variant.address.variant.constant ==
+                                         y->variant.address.variant.constant);
+            break;
+          case abk_temporary:
+            result = (x->variant.address.variant.constant ==
+                                         y->variant.address.variant.constant);
+            break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          case abk_uuidof:
+            /* Microsoft __uuidof. */
+            { a_type_ptr uuid_type1 = x->variant.address.variant.type;
+              a_type_ptr uuid_type2 = y->variant.address.variant.type;
+              if (uuid_type1 == NULL && uuid_type2 == NULL) {
+                result = TRUE;
+              } else if (uuid_type1 == NULL || uuid_type2 == NULL) {
+                result = FALSE;
+              } else {
+                /* Compare the uuid strings. */
+                a_const_char *string1 = uuid_string_of_type(uuid_type1);
+                a_const_char *string2 = uuid_string_of_type(uuid_type2);
+                result = (string1 == string2) ||
+                         (string1 != NULL && string2 != NULL &&
+                          strcmp(string1, string2) == 0);
+              }  /* if */
+            }
+            break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          case abk_typeid:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          case abk_cli_typeid:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+            result = identical_types(x->variant.address.variant.type,
+                                     y->variant.address.variant.type);
+            break;
+          case abk_label:
+            result = (x->variant.address.variant.label == 
+                                            y->variant.address.variant.label);
+              break;
+          default:
+            unexpected_condition();
+        }  /* switch */
+      }  /* if */
+      break;
+    case ck_ptr_to_member:
+      if (x->variant.ptr_to_member.is_function_ptr ==
+                                   y->variant.ptr_to_member.is_function_ptr) {
+        if (x->variant.ptr_to_member.is_function_ptr) {
+          result = corresponding_routines(
+                                    x->variant.ptr_to_member.variant.routine,
+                                    y->variant.ptr_to_member.variant.routine);
+        } else {
+          result = corresponding_fields(
+                                      x->variant.ptr_to_member.variant.field,
+                                      y->variant.ptr_to_member.variant.field);
+        }  /* if */
+      }  /* if */
+      break;
+    case ck_aggregate:
+      // FIXME: Need to normalize for designators?
+      // Check type for unions?
+      { a_constant_ptr cx = x->variant.aggregate.first_constant,
+                       cy = y->variant.aggregate.first_constant;
+        result = TRUE;
+        for (; cx != NULL && cy != NULL; cx = cx->next, cy = cy->next) {
+          if (!equiv_template_arg_values(cx, cy, skip_typerefs(cx->type))) {
+            result = FALSE;
+            break;
+          }  /* if */
+        }  /* for */
+        if (cx != NULL || cy != NULL) result = FALSE;
+      }
+      break;
+    case ck_init_repeat:
+      // FIXME: Flatten instead?
+      { a_constant_ptr cx = x->variant.init_repeat.constant,
+                       cy = y->variant.init_repeat.constant;
+        result = equiv_template_arg_values(cx, cy, skip_typerefs(cx->type)) &&
+                 (x->variant.init_repeat.count ==
+                                              y->variant.init_repeat.count) &&
+                 (x->variant.init_repeat
+                            .multidimensional_aggr_tail_not_repeated ==
+                  y->variant.init_repeat
+                            .multidimensional_aggr_tail_not_repeated);
+      }
+      break;
+#if GNU_EXTENSIONS_ALLOWED
+    case ck_label_difference:
+      { a_constant_ptr fx = x->variant.label_difference.from_address,
+                       fy = y->variant.label_difference.from_address;
+        a_constant_ptr tx = x->variant.label_difference.to_address,
+                       ty = y->variant.label_difference.to_address;
+        result = equiv_template_arg_values(fx, fy, skip_typerefs(fx->type)) &&
+                 equiv_template_arg_values(tx, ty, skip_typerefs(fx->type));
+      }
+      break;
+#endif /* GNU_EXTENSIONS_ALLOWED */
+    case ck_designator:
+      // FIXME: Flatten?
+      if (x->variant.designator.is_generic ||
+          y->variant.designator.is_generic) {
+        unexpected_condition();
+      } else if (x->variant.designator.is_field_designator !=
+                                  y->variant.designator.is_field_designator) {
+        result = FALSE;
+      } else {
+        if (x->variant.designator.is_field_designator) {
+          result = same_entities(x->variant.designator.variant.field,
+                                 y->variant.designator.variant.field);
+        } else {
+          result = x->variant.designator.variant.array_element ==
+                                  y->variant.designator.variant.array_element;
+        }  /* if */
+      }  /* if */
+      break;
+    case ck_dynamic_init:
+#if DO_IL_LOWERING && GENERATE_EH_TABLES && !DO_FULL_PORTABLE_EH_LOWERING
+    case ck_stack_offset:
+#endif /* DO_IL_LOWERING && ... */
+    case ck_template_param:
+    default:
+      unexpected_condition();
+  }  /* switch */
+  return result;
+}  /* equiv_template_arg_values */
+
+
+static inline a_boolean operator==(a_constant_handle  hx,
+                                   a_constant_handle  hy)
+/*
+Return TRUE if the constants referred to by hx and hy are
+"template-argument-equivalent".
+*/
+{
+  a_constant_ptr  x = hx.ptr, y = hy.ptr;
+  a_boolean       result;
+
+  if (x == y) {
+    result = TRUE;
+  } else if (x == NULL || y == NULL) {
+    result = FALSE;
+  } else if (x->kind == y->kind) {
+    a_type_ptr  xtp = skip_typerefs(x->type), ytp = skip_typerefs(y->type);
+    result = identical_types(xtp, ytp) &&
+             equiv_template_arg_values(x, y, xtp);
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+static inline a_boolean operator!=(a_constant_handle  hx,
+                                   a_constant_handle  hy)
+/*
+Return TRUE if the constants referred to by hx and hy are
+"template-argument-equivalent".
+*/
+{
+  return !(hx == hy);
+}  /* operator!= */
+
+
+static inline a_uintptr hash_ptr(a_constant_handle  h)
+/*
+Compute a hash for the given constant handle.  The hash must be appropriate
+for Ptr_map.
+*/
+{
+  return (a_uintptr)hash_constant(h.ptr);
+}  /* hash_ptr */
+
+
+using a_template_param_object_map = Ptr_map<a_constant_handle, a_variable_ptr>;
+			/* The type of a map that associates template parameter
+			   objects (represented as constexpr variable entries)
+			   with a constant value of class type. */
+
+a_template_param_object_map
+		*template_param_objects;
+			/* A map from constant values of class types (or rather
+			   handles to such constant entries) to constexpr
+			   variable entries representing template parameter
+			   object. */
+
+static void make_template_param_object_operand(a_constant_ptr  cp,
+                                               an_operand      *operand)
+/*
+Make operand an lvalue expression operand for the template parameter object
+associated with the constant cp.  If needed, create that object (as a variable
+entry).
+*/
+{
+  a_constant_handle  ch = { cp };
+  a_variable_ptr     vp = template_param_objects->get(ch);
+
+  if (vp == NULL) {
+    a_symbol_ptr  sym = make_template_param_object_sym(&error_position);
+    a_type_ptr    vtp = make_qualified_type(skip_typerefs(cp->type), TQ_CONST);
+    vp = make_variable(vtp, (a_storage_class)sc_unspecified,
+                       DEPTH_OF_FILE_SCOPE);
+    vp->is_template_param_object = TRUE;
+    vp->is_constexpr = TRUE;
+    vp->init_kind = (an_init_kind)initk_static;
+    vp->initializer.constant = cp;
+    mark_inline_variable(vp, /*is_definition=*/TRUE);
+    set_source_corresp(&vp->source_corresp, sym);
+    template_param_objects->map(ch, vp);
+  }  /* if */
+  make_lvalue_variable_operand(vp, &pos_curr_token,
+                               end_position_or_null(&end_pos_curr_token),
+                               operand, (a_ref_entry_ptr)NULL);
+}  /* make_template_param_object_operand */
+
+
 void make_sym_constant_operand(a_symbol_ptr sym,
 			       an_operand   *operand)
 /*
@@ -7543,6 +7870,12 @@ The position of the current token will be used as the operand position.
     an_expr_node_ptr expr = alloc_node_for_constant(&constant);
     expr = add_ref_indirection_to_node(expr);
     make_glvalue_expression_operand(expr, operand);
+  } else if (constant_is(con_ptr, ck_aggregate) &&
+             sym->is_template_param) {
+    /* A C++20 nontype template parameter instantiated with a class type
+       constant.  Create a variable operand referring to the underlying
+       template parameter object. */
+    make_template_param_object_operand(con_ptr, operand);
   } else {
     /* Normal (non-reference) case. */
     make_constant_operand(&constant, operand);
@@ -25126,6 +25459,8 @@ for each compilation.
 #endif /* DEBUG */
   constraint_charts = alloc_fe_of_type(a_constraint_charts_map);
   construct(constraint_charts, /*mask_width=*/10);
+  template_param_objects = alloc_fe_of_type(a_template_param_object_map);
+  construct(template_param_objects, /*mask_width=*/10);
   /* Do initialization for overload.c: */
   overload_init();
 }  /* expr_init */

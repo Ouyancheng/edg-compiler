@@ -2427,6 +2427,64 @@ an error type (or an array thereof).
   return result;
 }  /* could_be_literal_type */
 
+
+a_boolean is_structural_type(a_type_ptr  tp)
+/*
+Return TRUE if the given type is a structural type (a C++20 property).  A type
+is a structural type if it is (N4861 [temp.param]/7):
+  - a scalar type,
+  - an lvalue reference type, or
+  - a literal class type with public, non-mutable structural-type members
+    (and no non-public base classes).
+*/
+{
+  a_boolean  result;
+
+  tp = skip_typerefs(tp);
+  if (is_scalar(tp) ||
+      ( is_reference_ptr(tp) && !tp->variant.pointer.is_rvalue_reference)) {
+    result = TRUE;
+  } else if (is_immediate_class_type(tp)) {
+    if (is_literal_type(tp)) {
+      a_field_ptr  fp = tp->variant.class_struct_union.field_list;
+      /* Assume this will be a structural type and revise the answer if any
+         subobject does not meet the required constraints. */
+      result = TRUE;
+      fp = next_proper_initializable_field(fp);
+      for (; fp != NULL; fp = next_proper_initializable_field(fp->next)) {
+        if (fp->is_mutable ||
+            fp->source_corresp.access != (an_access_specifier)as_public) {
+          result = FALSE;
+          break;
+        } else {
+          a_type_ptr ftp = skip_array_types(fp->type);
+          if (!is_structural_type(ftp)) {
+            result = FALSE;
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+      if (result) {
+        /* Check base classes. */
+        a_base_class_ptr  bcp = base_classes_of(tp);
+        for (; bcp != NULL; bcp = bcp->next) {
+          if (!bcp->direct) continue;
+          if (bcp->derivation->access != (an_access_specifier)as_public ||
+              !is_structural_type(bcp->type)) {
+            result = FALSE;
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+    } else {
+      result = FALSE;
+    }  /* if */
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_structural_type */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 a_boolean is_array_type(a_type_ptr tp)

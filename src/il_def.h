@@ -10702,6 +10702,11 @@ typedef struct a_variable {
 			/* TRUE if this is a reference variable bound to a
 			   temporary causing that temporary to have its
 			   lifetime extended. */
+  a_bit_field
+		is_template_param_object:1;
+			/* TRUE if this is a C++20 "template parameter object";
+			   i.e., a constexpr variable backing a template
+			   argument of class type. */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any.
 			   When init_kind == initk_function_local (local

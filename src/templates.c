@@ -2585,10 +2585,17 @@ from_auto is TRUE if the type was originally specified using an auto type.
     case tk_struct:
     case tk_class:
     case tk_union:
-      /* A template parameter cannot have class type.  Allow nonreal classes
-         because in a real instantiation the actual type could have a
-         valid type. */
-      if (!type->variant.class_struct_union.is_nonreal_class) {
+      /* Prior to C++20, a template parameter cannot have class type (but
+         allow nonreal classes because in a real instantiation the actual type
+         could have a valid type).  In C++20, structural class types are
+         permitted. */
+      if (type->variant.class_struct_union.is_nonreal_class) {
+        /* Always okay. */
+      } else if (cpp20_mode) {
+        if (!is_structural_type(type)) {
+          err_code = ec_template_parameter_has_nonstructural_class_type;
+        }  /* if */
+      } else {
         err_code = ec_template_parameter_has_class_type;
       }  /* if */
       break;

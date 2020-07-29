@@ -54,6 +54,7 @@ unnamed class symbols.
 */
 static a_symbol_header_ptr
 		error_symbol_header,
+		template_param_object_symbol_header,
 		unnamed_tag_symbol_header,
 		anonymous_parent_object_symbol_header,
 		unnamed_field_symbol_header,
@@ -7694,6 +7695,28 @@ and attach them to rout_sym, and return the function template symbol.
   }  /* if */
   return template_sym;
 }  /* get_member_function_template_symbol */
+
+
+a_symbol_ptr make_template_param_object_sym(a_source_position  *pos)
+/*
+Create a symbol for a template parameter object symbol.  Do not enter it into
+the symbol table.
+*/
+{
+  a_symbol_ptr  sym;
+
+  /* Use the unnamed tag symbol header.  Allocate it if necessary. */
+  if (template_param_object_symbol_header == NULL) {
+    template_param_object_symbol_header = alloc_symbol_header();
+    set_identifier_for_symbol_header(template_param_object_symbol_header,
+                                     "<templ-param-object>", 20,
+                                     /*is_unnamed=*/TRUE);
+  }  /* if */
+  sym = alloc_symbol((a_symbol_kind)sk_variable,
+                     template_param_object_symbol_header, pos);
+  sym->decl_scope = scope_stack[DEPTH_OF_FILE_SCOPE].number;
+  return sym;
+}  /* make_template_param_object_sym */
 
 
 a_symbol_ptr make_unnamed_tag_symbol(a_symbol_kind      sym_kind,
@@ -18076,6 +18099,7 @@ are handled in symbol_tbl_init.)
       pch_saved_var_array_elem(prop_or_event_accessor_header_hash_table),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(error_symbol_header),
+      pch_saved_var_array_elem(template_param_object_symbol_header),
       pch_saved_var_array_elem(unnamed_tag_symbol_header),
       pch_saved_var_array_elem(unnamed_virtual_function_symbol_header),
       pch_saved_var_array_elem(unnamed_namespace_symbol_header),
@@ -18303,6 +18327,7 @@ of the front end.
   prop_or_event_accessor_header_hash_table = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   error_symbol_header = NULL;
+  template_param_object_symbol_header = NULL;
   unnamed_tag_symbol_header = NULL;
   unnamed_virtual_function_symbol_header = NULL;
   unnamed_namespace_symbol_header = NULL;

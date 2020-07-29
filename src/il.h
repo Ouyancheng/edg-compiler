@@ -2058,6 +2058,8 @@ extern a_boolean is_error_dynamic_init(a_dynamic_init_ptr dip);
 extern a_boolean is_valid_ptr_or_ptr_to_member_templ_arg_constant(
                                                          a_constant_ptr  con);
 
+extern a_boolean is_valid_class_templ_arg_constant(a_constant_ptr  con);
+
 /*
 Bit flags used to indicate information about the context of a conversion
 that may allow or suppress certain conversions or diagnostics.

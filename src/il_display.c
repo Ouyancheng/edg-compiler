@@ -2896,6 +2896,9 @@ Display the indicated variable.
   if (ptr->extends_lifetime) {
     disp_boolean("extends_lifetime", TRUE);
   }  /* if */
+  if (ptr->is_template_param_object) {
+    disp_boolean("is_template_param_object", TRUE);
+  }  /* if */
   disp_initializer(ptr->init_kind, &ptr->initializer,
                    ptr->is_member_constant);
   if (ptr->entities_defined_in_initializer != NULL) {

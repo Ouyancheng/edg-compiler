@@ -3691,6 +3691,7 @@ default mode (e.g., exception handling).
           modules_enabled = TRUE;
         }  /* if */
         export_keyword_enabled = FALSE;
+        floating_point_template_parameters_allowed = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -4222,7 +4223,7 @@ conflicts with the ANSI mode and set various unmentioned settings as needed.
   } else {
     /* Set optional features to standard settings for strict C++ mode. */
     single_ref_qual_ovl_res_tiebreaker = FALSE;
-    floating_point_template_parameters_allowed = FALSE;
+    floating_point_template_parameters_allowed = cpp20_mode;
     no_access_check_on_friend_declarator_ids = FALSE;
     if (!(option_kind_used[(int)optk_alternative_tokens])) {
       /* If alternative_tokens was not explicitly set by a command line
