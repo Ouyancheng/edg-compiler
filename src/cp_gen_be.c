@@ -20244,6 +20244,18 @@ this one is such a continuation.
   if (force_unqualified_name) {
     gd_options |= GDO_FORCE_UNQUALIFIED_NAME;
   }  /* if */
+  if (is_class_template_placeholder_type(var_type)) {
+    /* The name of the template may have been hidden by an intervening
+       declaration.  Reflect that fact from the template entry to the
+       placeholder type.  (var->type designates the template instance that
+       is the deduced type of the variable, so we can use it to find the
+       potentially-hidden template entry.) */
+    check_assertion(is_immediate_class_type(var->type) &&
+                    var->type->variant.class_struct_union.is_template_class);
+    var_type->source_corresp.qualification_needed =
+             var->type->variant.class_struct_union.extra_info->assoc_template->
+                                           source_corresp.qualification_needed;
+  }  /* if */
   /* Output the variable name and its type.  Do not put out a name for
      anonymous union variables. */
   gen_general_declaration_using_type(var_type,

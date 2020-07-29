@@ -9782,6 +9782,8 @@ entry.  pos is used to establish the type entry's position information.
 		tptsp = type->variant.template_param.extra_info;
   a_template_param_coordinate_ptr
 		tpcp = &tptsp->coordinates;
+  a_template_symbol_supplement_ptr
+                tssp = template_supplement_for_symbol(class_template);
 
   /* Use the class template name as the placeholder name. */
   sym = alloc_symbol((a_symbol_kind)sk_type, class_template->header, pos);
@@ -9790,7 +9792,8 @@ entry.  pos is used to establish the type entry's position information.
   tptsp->constraint.class_template_symbol = class_template;
   set_type_size(type);
   set_source_corresp(&type->source_corresp, sym);
-  set_membership_in_source_corresp(&type->source_corresp, class_template);
+  set_parent_scope(&type->source_corresp, iek_type,
+                   tssp->il_template_entry->source_corresp.parent_scope);
   return type;
 }  /* make_class_template_placeholder */
 
