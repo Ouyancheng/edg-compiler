@@ -1108,7 +1108,7 @@ catch when the case labels are not exhaustive.  A TRUE value for
 CHECK_SWITCH_DEFAULT_UNEXPECTED causes the default_is_unexpected and
 default_is_unexpected_str macros (defined in error.h) to expand to default
 cases that abort the compilation if reached in a CHECKING configuration; a
-FALSE value results in omission of the default cases."
+FALSE value results in omission of the default cases.
 */
 #ifndef CHECK_SWITCH_DEFAULT_UNEXPECTED
 #define CHECK_SWITCH_DEFAULT_UNEXPECTED CHECKING
