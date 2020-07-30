@@ -1102,10 +1102,13 @@ Most supported C++ compilers support [[noreturn]], but not all GCC versions.
 #endif /* defined(_lint) */
 
 /*
-Some coding standards require a default statement in switches even if it's
+Some coding standards require a default label in switches even if it's
 unreachable, while others prefer to leave this off to allow the compiler to
-catch when it's not exhaustive.  Unless otherwise specified, the redundant
-default statement will be enabled when CHECKING == TRUE and disabled otherwise.
+catch when the case labels are not exhaustive.  A TRUE value for
+CHECK_SWITCH_DEFAULT_UNEXPECTED causes the default_is_unexpected and
+default_is_unexpected_str macros (defined in error.h) to expand to default
+cases that abort the compilation if reached in a CHECKING configuration; a
+FALSE value results in omission of the default cases."
 */
 #ifndef CHECK_SWITCH_DEFAULT_UNEXPECTED
 #define CHECK_SWITCH_DEFAULT_UNEXPECTED CHECKING

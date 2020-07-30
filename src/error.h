@@ -282,6 +282,9 @@ extern void check_expected_errors(void);
 #define unexpected_condition_str2(string1, string2) \
   exit_compilation(es_internal_error)
 #endif /* CHECKING */
+/* Macros to control whether default labels are produced for switch statements
+   when it should not be possible to reach the default case (e.g., exhaustive
+   coverage via case labels or code structure/assumptions). */
 #if CHECK_SWITCH_DEFAULT_UNEXPECTED
 #define default_is_unexpected() default: unexpected_condition()
 #define default_is_unexpected_str(x) default: unexpected_condition_str(x)
