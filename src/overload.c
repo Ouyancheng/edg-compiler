@@ -17271,7 +17271,12 @@ operator (e.g., the "]" of a subscript operation).
 {
   an_expr_operator_kind generic_op =
                                operator_for_opname_kind(kind, unary_operator);
+  a_symbol_locator      loc;
 
+  /* Record the fact that the operator was used in a dependent context.  This
+     avoids spurious warnings for non-template operator functions with internal
+     linkage that are only used by templates. */
+  make_opname_locator(kind, &loc, operator_position);
   opname_symbol_table[kind]->any_function_referenced_in_dependent_call = TRUE;
   if (kind == (an_opname_kind)onk_plus_plus ||
       kind == (an_opname_kind)onk_minus_minus) {
