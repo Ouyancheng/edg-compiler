@@ -23,7 +23,7 @@ Consider:
   }
 
 Previously, in modes that perform a prototype instantiation of g(T) but do not
-eagerly instantiate all used instance (i.e., not -tused or -tall modes), the
+eagerly instantiate all used instances (i.e., not -tused or -tall modes), the
 front end spuriously warned about operator!= (which has internal linkage) being
 defined but not used (this problem was specific to operator functions; ordinary
 functions with internal linkage did not elicit such warnings).  That is now
