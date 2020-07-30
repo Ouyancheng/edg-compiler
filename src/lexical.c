@@ -6038,6 +6038,7 @@ used to find this file.
         (dir_entry != NULL && dir_entry->system_include_dir)) {
       from_system_include_dir = TRUE;
     }  /* if */
+    ++include_file_depth;
   }  /* if */
   /* Push the new input stack entry. */
   curr_ise = &input_stack[++depth_input_stack];
@@ -6400,6 +6401,9 @@ at the next level down.
     }  /* if */
   }  /* if */
   /* Pop the input stack. */
+  if (curr_ise->is_include_file) {
+    --include_file_depth;
+  }  /* if */
   /* If the stack is empty, there is no current input file any more.
      This happens at the end of the primary source file. */
   if (--depth_input_stack < 0) {
@@ -24003,6 +24007,7 @@ done to determine whether a precompiled header may be used.
   curr_token = tok_error;
   curr_ise = NULL;
   base_ise = NULL;
+  include_file_depth = 0;
 #if UNICODE_SOURCE_SUPPORTED
   curr_file_unicode_source_kind = usk_none;
   clear_getc_source_state(&curr_file_getc_source_state, usk_none);

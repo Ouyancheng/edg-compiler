@@ -906,6 +906,13 @@ EXTERN an_input_stack_entry_ptr
 			/* Pointer to input_stack[depth_input_stack].  NULL
 			   if depth_input_stack == -1. */
 
+EXTERN unsigned int
+		include_file_depth;
+			/* Number of include files (input_stack entries for
+			   which is_include_file is TRUE) currently on the
+			   input stack.  Used to support the GNU
+			   __INCLUDE_LEVEL__ built-in macro. */
+
 #if UNICODE_SOURCE_SUPPORTED
 EXTERN a_unicode_source_kind
 		curr_file_unicode_source_kind;

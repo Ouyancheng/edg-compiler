@@ -210,6 +210,10 @@ static unsigned long
 			   __COUNTER__ macro. */
 
 static a_symbol_ptr
+		include_level_symbol;
+			/* Pointer to the symbol entry for the GNU
+			   __INCLUDE_LEVEL__ macro. */
+static a_symbol_ptr
 		stdc_macro_symbol;
 			/* Pointer to the symbol entry for the __STDC__
 			   macro.  Only non-NULL when
@@ -5906,6 +5910,12 @@ make_inert_macro:
         /* "+3" in the following is for the two quotes and the null. */
         ensure_arg_raw_text_space(length+3, special_macro_arg);
         sprintf(repl_text, "\"%s\"", time_str);
+      } else if (macro_symbol == include_level_symbol) {
+        /* The GNU __INCLUDE_LEVEL__ macro.  This returns the current
+           include nesting depth. */
+        /* We assume we don't need to call ensure_arg_raw_text_space. */
+        (void)unsigned_to_string_buf(
+                         (a_host_large_unsigned)include_file_depth, repl_text);
       } else if (macro_symbol == has_include_symbol ||
                  macro_symbol == has_include_next_symbol) {
         /* The clang, C++17, and WG21 SG10 __has_include macro or the
@@ -11485,6 +11495,9 @@ command line -D options.
                                             /*cannot_be_redefined=*/TRUE,
                                             /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
+  include_level_symbol = enter_predef_macro((char *)NULL, "__INCLUDE_LEVEL__",
+                                            /*cannot_be_redefined=*/TRUE,
+                                            /*ref_suppresses_pch_file=*/FALSE);
   /* The argument to __has_include and __has_include_next is special -- a
      header file name -- and must be scanned differently from ordinary
      macro arguments.  In order to suppress the normal macro argument

@@ -1,5 +1,15 @@
 Version 6.2
 
+7/30/20  [EDGcpfe/7898,EDGcpfe/7979,EDGcpfe/15641,EDGcpfe/18706]
+GNU compatibility: __INCLUDE_LEVEL__ built-in macro
+
+The front end now supports (in all modes) the GNU __INCLUDE_LEVEL__ builtin
+macro, which expands to the number of #include directives currently active
+at the point at which the macro appears.  For example, if source file a.c
+includes file b.h, which in turn includes file c.h, a use of
+__INCLUDE_LEVEL__ in c.h will expand to the integer value 2.
+
+
 7/29/20  [EDGcpfe/23185]
 Spurious warning on operator function only used in template instances
 
