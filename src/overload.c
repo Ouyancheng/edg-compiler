@@ -21010,7 +21010,11 @@ is_transparent.  conv_context describes the context of the conversion.
                               source_operand, /*is_constant_evaluated=*/TRUE);
       }  /* if */
       src_to_test = source_operand;
-      if (conversion->routine != NULL) {
+      if (conversion->routine != NULL &&
+          !special_kind_is(conversion->routine, sfk_constructor)) {
+        /* The conversion involves a conversion function.  Create an operand
+           representing the result of invoking that conversion function and
+           check any conversions that would follow that. */
         eff_src_type = return_type_of(conversion->routine->type);
         if (is_constant_operand(source_operand)) {
           copy_operand(source_operand, &src_copy);

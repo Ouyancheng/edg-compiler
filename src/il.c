@@ -18154,29 +18154,31 @@ it contains are invalid.  Otherwise, return TRUE.
 */
 {
   a_boolean       result = TRUE;
-  a_constant_ptr  cp;
 
-  check_assertion(constant_is(con, ck_aggregate));
-  cp = con->variant.aggregate.first_constant;
-  for (; cp != NULL; cp = cp->next) {
-    switch (cp->kind) {
-      case ck_address:
-      case ck_ptr_to_member:
-        if (!is_valid_ptr_or_ptr_to_member_templ_arg_constant(cp)) {
-          result = FALSE;
-          goto done;
-        }  /* if */
-        break;
-      case ck_aggregate:
-        if (!is_valid_class_templ_arg_constant(cp)) {
-          result = FALSE;
-          goto done;
-        }  /* if */
-        break;
-      default:
-        break;
-    }  /* switch */
-  }  /* for */
+  if (!constant_is(con, ck_template_param)) {
+    a_constant_ptr  cp;
+    check_assertion(constant_is(con, ck_aggregate));
+    cp = con->variant.aggregate.first_constant;
+    for (; cp != NULL; cp = cp->next) {
+      switch (cp->kind) {
+        case ck_address:
+        case ck_ptr_to_member:
+          if (!is_valid_ptr_or_ptr_to_member_templ_arg_constant(cp)) {
+            result = FALSE;
+            goto done;
+          }  /* if */
+          break;
+        case ck_aggregate:
+          if (!is_valid_class_templ_arg_constant(cp)) {
+            result = FALSE;
+            goto done;
+          }  /* if */
+          break;
+        default:
+          break;
+      }  /* switch */
+    }  /* for */
+  }  /* if */
 done:
   return result;
 }  /* is_valid_class_templ_arg_constant */
