@@ -2442,7 +2442,7 @@ is a structural type if it is (N4861 [temp.param]/7):
 
   tp = skip_typerefs(tp);
   if (is_scalar(tp) ||
-      ( is_reference_ptr(tp) && !tp->variant.pointer.is_rvalue_reference)) {
+      (is_reference_ptr(tp) && !tp->variant.pointer.is_rvalue_reference)) {
     result = TRUE;
   } else if (is_immediate_class_type(tp)) {
     if (is_literal_type(tp)) {

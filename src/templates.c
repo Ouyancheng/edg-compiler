@@ -2592,6 +2592,7 @@ from_auto is TRUE if the type was originally specified using an auto type.
       if (type->variant.class_struct_union.is_nonreal_class) {
         /* Always okay. */
       } else if (cpp20_mode) {
+        complete_type_is_needed(type);
         if (!is_structural_type(type)) {
           err_code = ec_template_parameter_has_nonstructural_class_type;
         }  /* if */
