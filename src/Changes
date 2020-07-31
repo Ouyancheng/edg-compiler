@@ -1,5 +1,25 @@
 Version 6.2
 
+7/30/20  [EDGcpfe/22795]
+C++-generating back end: partial suppressions of generated explicit
+specializations
+
+In C++-generating back end configurations in which
+TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, under some
+circumstances a generated explicit specialization of a class template could
+be put out missing some members that are present in the class template
+definition.  This situation occurred in cases where the declaration and
+the definition of the explicit specialization are separated in the
+generated code and some member of the class refers to a type that is not
+yet defined at the point of the explicit specialization declaration but is
+defined at the point of the explicit specialization definition.  The result
+of this was that the declaration of the explicit specialization and its
+members were suppressed but the definition of the definition of the
+explicit specialization was not.  This is now fixed, with suppression of
+the declaration unconditionally resulting in the suppression of the
+definition as well.
+
+
 7/30/20  [EDGcpfe/22965]
 Abort in interpreter on template-dependent use of certain built-in functions
 

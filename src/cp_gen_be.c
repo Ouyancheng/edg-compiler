@@ -10928,9 +10928,10 @@ this one is such a continuation.
     }  /* if */
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   } else if ((is_generated_explicit_specialization &&
-              suppress_invalid_explicit_specialization(
-                                  &type->source_corresp, iek_type,
-                                  class_type_supp(type)->template_arg_list)) ||
+              (type->explicit_specialization_suppressed ||
+               suppress_invalid_explicit_specialization(
+                                 &type->source_corresp, iek_type,
+                                 class_type_supp(type)->template_arg_list))) ||
              has_suppressed_parent(&type->source_corresp)) {
     /* This is an explicit specialization corresponding to an implicit
        instantiation for which an explicit specialization cannot be validly
