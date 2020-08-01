@@ -13407,6 +13407,14 @@ return FALSE and let the caller generate the code normally.
             };  /* if */
             write_ch('"');
             close_quote_needed = TRUE;
+          } else if (tap->kind == (a_templ_arg_kind)tak_nontype &&
+                     is_class_struct_union_type(tap->variant.constant->type)) {
+            a_constant_ptr  con = tap->variant.constant;
+            con = con->expr->variant.constant.ptr;
+            write_ch('"');
+            write_str(con->variant.string.value);
+            write_ch('"');
+            check_assertion(tap->next == NULL);
           } else {
             a_host_large_integer val;
             a_boolean            overflow;

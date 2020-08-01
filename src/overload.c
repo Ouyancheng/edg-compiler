@@ -26451,6 +26451,49 @@ aggregate constant.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
+a_boolean nontype_templ_arg_of_class_type_matches(an_operand  *operand,
+                                                  a_type_ptr  param_type,
+                                                  a_constant  *class_con)
+/*
+Operand is an argument for nontype template parameter of class type param_type.
+Return TRUE if it matches that type and store in class_con the converted
+constant value.
+*/
+{
+  a_boolean  result = FALSE;
+  an_expr_stack_entry      expr_stack_entry;
+  an_expr_stack_entry_ptr  saved_expr_stack;
+  an_operand               opnd;
+  a_dynamic_init_ptr       dip;
+
+  /* Set up the expression stack for an unevaluated expression and suppress
+     diagnostics.  If there is already something on the stack, save it, clear
+     the stack, and restore it later. */
+  save_expr_stack(&saved_expr_stack);
+  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                  /*force_object_lifetime=*/FALSE,
+                  /*suppress_object_lifetime=*/TRUE);
+  expr_stack->suppress_diagnostics = TRUE;
+  copy_operand(operand, &opnd);
+  prep_elision_initializer_operand(&opnd, param_type, /*fill_in_dtor=*/TRUE,
+                                   CCO_NONTYPE_TEMPLATE_ARG, ec_no_error,
+                                   (a_boolean *)NULL, &dip);
+  if (!expr_stack->any_suppressed_error) {
+    a_diag_list     diag_list;
+    clear_diag_list(&diag_list);
+    if (interpret_dynamic_init(dip, &operand->position, param_type,
+                               /*is_constant_evaluated=*/TRUE, class_con,
+                               &diag_list)) {
+      result = TRUE;
+    }  /* if */
+    discard_more_info_list(&diag_list);
+  }  /* if */
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
+  return result;
+}  /* nontype_templ_arg_of_class_type_matches */
+
+
 a_boolean nontype_template_arg_conversion_possible(an_operand *operand,
                                                    a_type_ptr param_type)
 /*
@@ -26460,56 +26503,64 @@ if so.
 */
 {
   a_boolean            compatible = FALSE;
-  an_arg_match_summary arg_summary;
 
-  determine_arg_match_level(operand, (a_type_ptr)NULL, param_type,
-                            (a_param_type_ptr)NULL,
-                            /*param_type_is_deduced=*/FALSE,
-                            /*try_user_conversions=*/constexpr_enabled,
-                            /*allow_expl_conv_funcs=*/FALSE,
-                            &arg_summary);
-  compatible = (arg_summary.match_level != aml_none);
-  if (compatible) {
-    /* Some conversions are not allowed on a nontype template argument. */
-    a_boolean       source_is_constant = is_constant_operand(operand);
-    a_type_ptr      opnd_type = operand->type;
-    a_constant_ptr  con = NULL;
-    a_variable_ptr  var;
-    a_routine_ptr   conv_func = arg_summary.conversion.routine;
-    if (constexpr_enabled && conv_func != NULL) {
-      /* Conversion functions may be allowed if they are constexpr and their
-         invocation produces an actual constant result. */
-      con = local_constant();
-      if (constant_conv_function_result(conv_func, operand, param_type, con)) {
-        source_is_constant = TRUE;
-        opnd_type = con->type;
-      } else {
+  if (is_class_struct_union_type(param_type)) {
+    a_constant_ptr  con = local_constant();
+    compatible = nontype_templ_arg_of_class_type_matches(operand, param_type,
+                                                         con);
+    release_local_constant(&con);
+  } else {
+    an_arg_match_summary arg_summary;
+    determine_arg_match_level(operand, (a_type_ptr)NULL, param_type,
+                              (a_param_type_ptr)NULL,
+                              /*param_type_is_deduced=*/FALSE,
+                              /*try_user_conversions=*/constexpr_enabled,
+                              /*allow_expl_conv_funcs=*/FALSE,
+                              &arg_summary);
+    compatible = (arg_summary.match_level != aml_none);
+    if (compatible) {
+      /* Some conversions are not allowed on a nontype template argument. */
+      a_boolean       source_is_constant = is_constant_operand(operand);
+      a_type_ptr      opnd_type = operand->type;
+      a_constant_ptr  con = NULL;
+      a_variable_ptr  var;
+      a_routine_ptr   conv_func = arg_summary.conversion.routine;
+      if (constexpr_enabled && conv_func != NULL) {
+        /* Conversion functions may be allowed if they are constexpr and their
+           invocation produces an actual constant result. */
+        con = local_constant();
+        if (constant_conv_function_result(conv_func, operand, param_type,
+                                          con)) {
+          source_is_constant = TRUE;
+          opnd_type = con->type;
+        } else {
+          compatible = FALSE;
+        }  /* if */
+      } else if (source_is_constant) {
+        con = &operand->variant.constant;
+      } else if (is_integral_or_enum_type(param_type) &&
+                 operand_is_lvalue_for_variable(operand, &var) &&
+                 is_potentially_constant_valued_variable(var)) {
+        /* An lvalue variable won't have been folded since it could bind to a
+           reference parameter.  However, if the parameter has integer or enum
+           type, we should identify the constant case to deal with narrowing
+           conversions. */
+        con = var_constant_value(var);
+        if (con != NULL) source_is_constant = TRUE;
+      }  /* if */
+      if (compatible &&
+          !conversion_allowed_for_nontype_template_argument(
+                                                  &arg_summary.conversion.std,
+                                                  opnd_type,
+                                                  source_is_constant,
+                                                  con,
+                                                  param_type,
+                                                  (an_error_code *)NULL)) {
         compatible = FALSE;
       }  /* if */
-    } else if (source_is_constant) {
-      con = &operand->variant.constant;
-    } else if (is_integral_or_enum_type(param_type) &&
-               operand_is_lvalue_for_variable(operand, &var) &&
-               is_potentially_constant_valued_variable(var)) {
-      /* An lvalue variable won't have been folded since it could bind to a
-         reference parameter.  However, if the parameter has integer or enum
-         type, we should identify the constant case to deal with narrowing
-         conversions. */
-      con = var_constant_value(var);
-      if (con != NULL) source_is_constant = TRUE;
-    }  /* if */
-    if (compatible &&
-        !conversion_allowed_for_nontype_template_argument(
-                                                &arg_summary.conversion.std,
-                                                opnd_type,
-                                                source_is_constant,
-                                                con,
-                                                param_type,
-                                                (an_error_code *)NULL)) {
-      compatible = FALSE;
-    }  /* if */
-    if (constexpr_enabled && conv_func != NULL) {
-      release_local_constant(&con);
+      if (constexpr_enabled && conv_func != NULL) {
+        release_local_constant(&con);
+      }  /* if */
     }  /* if */
   }  /* if */
   return compatible;

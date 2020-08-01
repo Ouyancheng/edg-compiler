@@ -16852,7 +16852,8 @@ const_for_curr_token.
   }  /* if */
   make_literal_opname_locator(name, name_len, &locator_for_curr_id, pos);
   if (caching_tokens &&
-      (allow_raw_and_template || string_literal_operator_template_allowed) &&
+      (allow_raw_and_template || string_literal_operator_template_allowed ||
+       (cpp20_mode && is_string)) &&
       !from_cache) {
     /* We may need the token spelling when we do the lookup of the cached
        token; if this token isn't already in a cache, save the token
@@ -16886,7 +16887,8 @@ const_for_curr_token.
       sym = fundamental_symbol_of(list_sym);
       if (symbol_is(sym, sk_function_template)) {
         if (!allow_raw_and_template &&
-            !string_literal_operator_template_allowed) {
+            !string_literal_operator_template_allowed &&
+            !(cpp20_mode && is_string)) {
           /* Ignore the symbol. */
         } else {
           /* This is a literal operator template, and the current literal
@@ -16894,14 +16896,27 @@ const_for_curr_token.
              possible match.  Make a note of it and continue the scan. */
           a_template_symbol_supplement_ptr tssp = sym->variant.template_info;
           a_template_param_ptr             tpp;
-          a_boolean                        is_string_literal_operator_template;
+          a_boolean                        is_string_lit_op_template = FALSE;
           tpp = tssp->variant.function.decl_cache.decl_info->parameters;
           check_assertion(tpp != NULL);
-          is_string_literal_operator_template =
-                                    (symbol_is(tpp->param_symbol, sk_type) &&
-                                     tpp->next != NULL &&
-                                     string_literal_operator_template_allowed);
-          if (is_string != is_string_literal_operator_template) {
+          if (cpp20_mode && tpp->next == NULL && !tpp->is_pack &&
+              symbol_is(tpp->param_symbol, sk_constant) &&
+              is_class_struct_union_type(tpp->variant.constant.ptr->type)) {
+            /* C++20 permits string literal operator templates of the form:
+                    template<String strval> operator""str();
+               where String is a class type.
+            */
+            is_string_lit_op_template = TRUE;
+          } else if (symbol_is(tpp->param_symbol, sk_type) &&
+                     tpp->next != NULL &&
+                     string_literal_operator_template_allowed) {
+            /* Clang and GCC allow string literal operator templates of the
+               form:
+                    template<typename charT, charT ...chars> operator""str();
+            */
+            is_string_lit_op_template = TRUE;
+          }  /* if */
+          if (is_string != is_string_lit_op_template) {
             /* The template does not match the literal; ignore the symbol. */
           } else {
             if (operator_template != NULL) {

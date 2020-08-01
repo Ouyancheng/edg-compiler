@@ -37791,6 +37791,74 @@ to the safe_cast keyword and return TRUE.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static a_boolean matches_std_string_literal_operator_template(
+                                                         a_symbol_ptr  *p_sym)
+/*
+The current token is a user-defined literal.  Return TRUE if it matches a
+standard C++20 string literal operator template (i.e., one with a single
+nontype template parameter of class type).  If it matches unambiguously, set
+*p_sym to the corresponding instance of the template.  Otherwise, set *p_sym
+to NULL.
+*/
+{
+  a_boolean               result = FALSE;
+  a_symbol_ptr            op_sym = ud_lit_op_sym_for_curr_token, sym = NULL;
+  a_boolean               is_list = symbol_is(op_sym, sk_overloaded_function);
+  a_memory_region_number  region_to_switch_back_to;
+  
+  switch_to_file_scope_region(&region_to_switch_back_to);
+  if (is_list) {
+    op_sym = op_sym->variant.overloaded_function.symbols;
+  }  /* if */
+  for (; op_sym != NULL; op_sym = is_list ? op_sym->next : NULL) {
+    a_symbol_ptr fund_sym = fundamental_symbol_of(op_sym);
+    if (symbol_is(fund_sym, sk_function_template)) {
+      a_template_symbol_supplement_ptr
+                            tssp = fund_sym->variant.template_info;
+      a_template_param_ptr  tpp = tssp->variant.function.decl_cache.decl_info
+                                      ->parameters;
+      if (cpp20_mode && tpp != NULL && tpp->next == NULL && !tpp->is_pack &&
+          symbol_is(tpp->param_symbol, sk_constant) &&
+          is_class_struct_union_type(tpp->variant.constant.ptr->type)) {
+        an_operand      arg_op;
+        a_constant_ptr  class_con = local_constant();
+        make_constant_operand(&const_with_curr_tok_spelling, &arg_op);
+        if (nontype_templ_arg_of_class_type_matches(
+                       &arg_op, tpp->variant.constant.ptr->type, class_con)) {
+          a_symbol_ptr  instance_sym;
+          a_template_arg_ptr  tap;
+          tap = alloc_template_arg((a_templ_arg_kind)tak_nontype);
+          tap->is_pack_element = FALSE;
+          tap->variant.constant = move_local_constant_to_il(&class_con);
+          make_constant_operand(&const_with_curr_tok_spelling, &arg_op);
+          tap->variant.constant->expr = make_node_from_operand(&arg_op);
+          instance_sym = find_template_function(op_sym, &tap,
+                                      /*explicit_arg_list_present=*/TRUE,
+                                      &pos_curr_token);
+          result = TRUE;
+          
+          if (sym == NULL) {
+            sym = instance_sym;
+          } else {
+            /* At least two matching templates. */
+            a_diagnostic_ptr  dp;
+            dp = pos_start_error(ec_ambig_literal_operator, &pos_curr_token);
+            sym_add_diag_info(dp, ec_ambiguous_function_add_on, sym);
+            sym_add_diag_info(dp, ec_ambiguous_function_add_on, instance_sym);
+            end_diagnostic(dp);
+            sym = NULL;
+            break;
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  *p_sym = sym;
+  switch_back_to_original_region(region_to_switch_back_to);
+  return result;
+}  /* matches_std_string_literal_operator_template */
+
+
 static a_boolean make_func_operand_for_literal_operator_call(
                                        an_operand  *result,
                                        a_boolean   *p_use_literal_op_template)
@@ -37830,7 +37898,7 @@ issue an error; otherwise, return TRUE.
     a_template_arg_ptr      templ_arg_list = NULL, tap;
     a_constant_ptr          char_con, next_char_con;
     a_memory_region_number  region_to_switch_back_to;
-    a_boolean               is_string_literal_operator_template;
+    a_boolean               is_string_literal_operator_template = FALSE;
     /* The template argument list corresponds to a pack expansion. */
     if (symbol_is(ud_lit_op_sym_for_curr_token, sk_overloaded_function)) {
       /* The initial lookup was ambiguous, so const_for_curr_token was left
@@ -37845,13 +37913,24 @@ issue an error; otherwise, return TRUE.
          we can look at its parameter list to tell which version of the
          operator template has been selected. */
       a_template_symbol_supplement_ptr tssp;
+      a_template_param_ptr             tpp;
       check_assertion(symbol_is(ud_lit_op_sym_for_curr_token,
                                 sk_function_template));
       tssp = ud_lit_op_sym_for_curr_token->variant.template_info;
-      is_string_literal_operator_template =
-                        symbol_is(tssp->variant.function.decl_cache.decl_info->
-                                                      parameters->param_symbol,
-                                  sk_type);
+      tpp = tssp->variant.function.decl_cache.decl_info->parameters;
+      if (symbol_is(tpp->param_symbol, sk_type) ||
+          (symbol_is(tpp->param_symbol, sk_constant) &&
+           is_class_struct_union_type(tpp->variant.constant.ptr->type))) {
+        is_string_literal_operator_template = TRUE;
+      }  /* if */
+    }  /* if */
+    if (is_string_literal_operator_template &&
+        matches_std_string_literal_operator_template(&op_sym)) {
+      /* The current token matches a C++20 string literal operator template
+         (as opposed to the pre-C++20 extension provided by GCC and Clang).
+         op_sym is NULL in error (ambiguity) cases and otherwise represents
+         the matching specialization. */
+      goto make_func_operand;
     }  /* if */
     switch_to_file_scope_region(&region_to_switch_back_to);
     if (is_string_literal_operator_template) {
@@ -37927,6 +38006,7 @@ issue an error; otherwise, return TRUE.
     expect_error();
     op_sym = NULL;
   }  /* if */
+make_func_operand:
   if (op_sym != NULL) {
     a_source_position  end_pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL

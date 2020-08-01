@@ -1155,6 +1155,11 @@ extern void prep_transparent_union_conversion_operand(
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
 
+extern
+a_boolean nontype_templ_arg_of_class_type_matches(an_operand  *operand,
+                                                  a_type_ptr  param_type,
+                                                  a_constant  *class_con);
+
 extern a_boolean nontype_template_arg_conversion_possible(
                                                         an_operand *operand,
                                                         a_type_ptr param_type);
