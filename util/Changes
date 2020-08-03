@@ -1,5 +1,15 @@
 Version 6.2
 
+8/3/20   [EDGcpfe/20033,EDGcpfe/20276,EDGcpfe/22245]
+Demangling for template parameter objects
+
+As a result of the changes for nontype template parameters of class type or
+floating-point type (a C++20 feature), demangling has been added for template
+parameter objects.  The IA-64 ABI has not been officially updated to reflect
+these changes but GCC uses "TA" for these objects and these are now properly
+decoded.  The Cfront ABI uses "__TPO__".
+
+
 -------------------------------------------------------------------------------
 Version 6.1, July 24, 2020
 

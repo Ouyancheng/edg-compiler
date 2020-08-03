@@ -2499,6 +2499,12 @@ template parameters.
       write_id_ch(']', dctl);
       end_ptr = p;
       goto end_of_routine;
+    } else if (start_of_id_is("TPO__", p, dctl)) {
+      /* Mangled template parameter object; a constant follows. */
+      write_id_str("template parameter object for ", dctl);
+      end_ptr = demangle_constant(p+5, /*suppress_address_of=*/TRUE,
+                                  /*need_parens=*/FALSE, dctl);
+      goto end_of_routine;
     } else {
       /* Something unrecognized. */
     }  /* if */
@@ -7261,6 +7267,39 @@ Also, these non-standard expressions (EDG-specific) are demangled:
 }  /* demangle_expression */
 
 
+static a_const_char *demangle_template_arg(a_const_char               *ptr,
+                                           a_decode_control_block_ptr dctl)
+/*
+Demangle an IA-64 <template-arg> and output the demangled form.
+Return a pointer to the character position following what was demangled.
+A <template-arg> encodes a template argument.  The syntax is:
+
+  <template-arg> ::= <type>                     # type or template
+                 ::= X <expression> E           # expression
+                 ::= <expr-primary>             # simple expressions
+                 ::= J <template-arg>* E        # argument pack
+
+*/
+{
+  if (*ptr == 'X') {
+    /* An expression, X <expression> E. */
+    ptr = demangle_expression(ptr+1, dctl);
+    ptr = advance_past('E', ptr, dctl);
+  } else if (*ptr == 'L') {
+    /* Literal or external name. */
+    ptr = demangle_expr_primary(ptr, dctl);
+  } else if (*ptr == 'J' ||
+            (*ptr == 'I' && emulate_gnu_abi_bugs)) {
+    /* Template argument pack. */
+    ptr = demangle_template_args(ptr, dctl);
+  } else {
+    /* Type template argument. */
+    ptr = demangle_type(ptr, dctl);
+  }  /* if */
+  return ptr;
+}  /* demangle_template_arg */
+
+
 static a_const_char *demangle_template_args(a_const_char               *ptr,
                                             a_decode_control_block_ptr dctl)
 /*
@@ -7269,10 +7308,6 @@ Return a pointer to the character position following what was demangled.
 A <template-args> encodes a template argument list.  The syntax is:
 
   <template-args> ::= I <template-arg>+ E
-  <template-arg> ::= <type>                     # type or template
-                 ::= X <expression> E           # expression
-                 ::= <expr-primary>             # simple expressions
-                 ::= J <template-arg>* E        # argument pack
 
 */
 {
@@ -7286,24 +7321,7 @@ A <template-args> encodes a template argument list.  The syntax is:
   ptr++;
   if (!suppress) write_id_ch('<', dctl);
   for (;;) {
-    if (*ptr == 'X') {
-      /* An expression, X <expression> E. */
-      ptr = demangle_expression(ptr+1, dctl);
-      ptr = advance_past('E', ptr, dctl);
-    } else if (*ptr == 'L') {
-      /* Literal or external name. */
-      ptr = demangle_expr_primary(ptr, dctl);
-    } else if (*ptr == 'J' ||
-              (*ptr == 'I' && emulate_gnu_abi_bugs)) {
-      /* Template argument pack. */
-      ptr = demangle_template_args(ptr, dctl);
-    } else if (*ptr == 'E') {
-      /* No template arguments. */
-      break;
-    } else {
-      /* Type template argument. */
-      ptr = demangle_type(ptr, dctl);
-    }  /* if */
+    ptr = demangle_template_arg(ptr, dctl);
     /* "E" ends the template argument list. */
     if (*ptr == 'E') break;
     /* Stop on an error. */
@@ -8027,6 +8045,7 @@ The syntax is:
                       # base is the nominal target function of thunk
                       # first call-offset is 'this' adjustment
                       # second call-offset is result adjustment
+                 ::= TA <template-arg> # Template parameter object
 
 */
 {
@@ -8076,6 +8095,10 @@ The syntax is:
       /* Thread-local wrapper for <object name>. */
       write_id_str("Thread-local wrapper routine for ", dctl);
       ptr = demangle_name(ptr+2, &func_block, /*options=*/DNO_ALL, dctl);
+    } else if (ptr[1] == 'A') {
+      /* Template parameter object. */
+      write_id_str("template parameter object for ", dctl);
+      ptr = demangle_template_arg(ptr+2, dctl);
     } else {
       bad_mangled_name(dctl);
     }  /* if */

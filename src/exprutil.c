@@ -7837,6 +7837,7 @@ entry).
     mark_inline_variable(vp, /*is_definition=*/TRUE);
     set_source_corresp(&vp->source_corresp, sym);
     template_param_objects->map(ch, vp);
+    sym->variant.variable.ptr = vp;
   }  /* if */
   make_lvalue_variable_operand(vp, &pos_curr_token,
                                end_position_or_null(&end_pos_curr_token),

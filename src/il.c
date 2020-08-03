@@ -1892,6 +1892,12 @@ Dump the contents of the indicated constant, for debug purposes.
       }  /* if */
     }  /* if */
 
+    if (constant_is(cp, ck_aggregate) &&
+        !(cp->explicit_cast_applied || cp->is_compound_literal)) {
+      /* Emit the type name before elements of the aggregate (e.g., A{1, 2})
+         if an explicit cast won't be added by form_constant.*/
+      db_type_name(cp->type);
+    }  /* if */
     /* Output the constant. */
     form_constant(cp, /*need_parens=*/FALSE, &octl);
     if (is_enum_constant(cp) && has_name(cp)) {

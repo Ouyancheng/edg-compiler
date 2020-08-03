@@ -4495,8 +4495,7 @@ do_unknown_function:
       /* Do not insert code here. */
       {
         /* Mangle an aggregate constant using an initializer-list mangling. */
-        mangled_braced_init_list((an_expr_node_ptr)NULL, con, (a_type_ptr)NULL,
-                                 mctl);
+        mangled_braced_init_list((an_expr_node_ptr)NULL, con, con->type, mctl);
       }  /* if */
       break;
     case ck_dynamic_init:
@@ -6078,7 +6077,7 @@ static void mangled_braced_init_list(an_expr_node_ptr         expr_list,
                                      a_type_ptr               type,
                                      a_mangling_control_block *mctl)
 /*
-Provide mangling for a brace-enclosed initializer list for the given list of
+Provide mangling for an brace-enclosed initializer list for the given list of
 expressions or constant (which may be an aggregate).  When con is non-NULL,
 the constant is emitted as a mangled initializer list (to emulate GNU's
 mangling of compound literals), otherwise, the list of expressions (which may
@@ -6087,7 +6086,8 @@ non-NULL) when the brace-enclosed list is a cast variant.  Note that this is
 also used in the IA-64 ABI (but not the Cfront ABI) to mangle a brace-enclosed
 <initializer> production (it can't be used in the Cfront ABI because the 'O'
 characters that open this "operation" are seen as closing the new/gcnew
-operation by the demangler).
+operation by the demangler).  Also used (though not yet standardized) to
+mangle nontype template parameters of class type.
 */
 {
   check_assertion(expr_list == NULL || con == NULL);
@@ -6103,8 +6103,15 @@ operation by the demangler).
   */
   add_to_mangled_name('O', mctl);
 #endif /* !IA64_ABI */
-  add_str_to_mangled_name((char *)(type == NULL ? "il" : "tl"), mctl);
-  if (type != NULL) {
+  if (type == NULL ||
+      (type->kind == (a_type_kind)tk_template_param &&
+       type->variant.template_param.kind ==
+                               (a_template_param_constant_kind)tptk_unknown)) {
+    /* Mangle as an initializer list. */
+    add_str_to_mangled_name("il", mctl);
+  } else {
+    /* Mangle as an initializer list with a conversion. */
+    add_str_to_mangled_name("tl", mctl);
     mangled_encoding_for_type(type, mctl);
   }  /* if */
   /* Provide a mangling for a list of expressions or constants. */
@@ -7760,6 +7767,7 @@ last argument in the list).
          trying to be compatible with GNU 3.3 or earlier). */
       if (constant_is(con, ck_template_param) ||
           constant_is(con, ck_ptr_to_member) ||
+          constant_is(con, ck_aggregate) ||
           (constant_is(con, ck_address)
 #if ABI_COMPATIBILITY_VERSION >= 402
            && (!is_reference_type(con->type) ||
@@ -12696,6 +12704,17 @@ to the mangled name.
       add_str_to_mangled_name("__", mctl);
     }  /* for */
     add_str_to_mangled_name("__", mctl);
+  } else if (kind == iek_variable &&
+             ((a_variable_ptr)scp)->is_template_param_object) {
+    /* Special mangling for a template parameter object. */
+    add_str_to_mangled_name("__TPO__", mctl);
+    check_assertion(((a_variable_ptr)scp)->init_kind ==
+                                                   (an_init_kind)initk_static);
+    mangled_encoding_for_constant(((a_variable_ptr)scp)->initializer.constant,
+                                  /*old_form=*/FALSE,
+                                  /*in_dependent_expr=*/FALSE,
+                                  /*suppress_address_of=*/FALSE,
+                                  mctl);
   } else {
     /* Copy the name. */
     check_assertion(name != NULL);
@@ -12786,6 +12805,19 @@ to the mangled name.
                       unmangled_name_of(sb_scp) != NULL);
       mangled_name_with_length(unmangled_name_of(sb_scp), mctl);
     }  /* for */
+    add_to_mangled_name('E', mctl);
+  } else if (kind == iek_variable &&
+             ((a_variable_ptr)scp)->is_template_param_object) {
+    /* Special "TA" mangling for a template parameter object.  We know the
+       <template-arg> is a constant, so add the 'X'...'E' mangling here. */
+    add_str_to_mangled_name("TAX", mctl);
+    check_assertion(((a_variable_ptr)scp)->init_kind ==
+                                                   (an_init_kind)initk_static);
+    mangled_encoding_for_constant(((a_variable_ptr)scp)->initializer.constant,
+                                  /*old_form=*/FALSE,
+                                  /*in_dependent_expr=*/FALSE,
+                                  /*suppress_address_of=*/FALSE,
+                                  mctl);
     add_to_mangled_name('E', mctl);
   } else {
     /* Output the name of the member/variable. */
@@ -13294,6 +13326,9 @@ Also determines any implicit abi_tags for the variable when mangling is needed.
     if (struct_binding_container_needs_mangling(variable)) {
       mangling_needed = TRUE;
     }  /* if */
+  } else if (variable->is_template_param_object) {
+    /* Template parameter objects get their own mangling. */
+    mangling_needed = TRUE;
   } else if (!is_name_linkage_kind_subject_to_name_mangling(
                                       variable->source_corresp.name_linkage)) {
     /* Do not mangle namespace members with extern "C" linkage. */
