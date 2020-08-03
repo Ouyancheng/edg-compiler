@@ -26460,36 +26460,58 @@ Return TRUE if it matches that type and store in class_con the converted
 constant value.
 */
 {
-  a_boolean  result = FALSE;
-  an_expr_stack_entry      expr_stack_entry;
-  an_expr_stack_entry_ptr  saved_expr_stack;
-  an_operand               opnd;
-  a_dynamic_init_ptr       dip;
+  a_boolean             result = FALSE;
+  an_arg_match_summary  arg_summary;
 
-  /* Set up the expression stack for an unevaluated expression and suppress
-     diagnostics.  If there is already something on the stack, save it, clear
-     the stack, and restore it later. */
-  save_expr_stack(&saved_expr_stack);
-  push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
-                  /*force_object_lifetime=*/FALSE,
-                  /*suppress_object_lifetime=*/TRUE);
-  expr_stack->suppress_diagnostics = TRUE;
-  copy_operand(operand, &opnd);
-  prep_elision_initializer_operand(&opnd, param_type, /*fill_in_dtor=*/TRUE,
-                                   CCO_NONTYPE_TEMPLATE_ARG, ec_no_error,
-                                   (a_boolean *)NULL, &dip);
-  if (!expr_stack->any_suppressed_error) {
-    a_diag_list     diag_list;
-    clear_diag_list(&diag_list);
-    if (interpret_dynamic_init(dip, &operand->position, param_type,
-                               /*is_constant_evaluated=*/TRUE, class_con,
-                               &diag_list)) {
-      result = TRUE;
+  determine_arg_match_level(operand, (a_type_ptr)NULL, param_type,
+                            (a_param_type_ptr)NULL,
+                            /*param_type_is_deduced=*/FALSE,
+                            /*try_user_conversions=*/constexpr_enabled,
+                            /*allow_expl_conv_funcs=*/FALSE,
+                            &arg_summary);
+  if (arg_summary.match_level != aml_none) {
+    /* A conversion is possible, but now we have to determine whether that
+       conversion can be computed as a constant.  This requires applying the
+       conversion and interpreting the resulting structure.  Unfortunately,
+       applying the conversion may cause the representation of the source
+       operand to be modified.  So we must create a "deep" copy of that
+       operand. */
+    an_expr_stack_entry      expr_stack_entry;
+    an_expr_stack_entry_ptr  saved_expr_stack;
+    an_operand               opnd;
+    a_dynamic_init_ptr       dip;
+    /* Set up the expression stack for an unevaluated expression and suppress
+       diagnostics.  If there is already something on the stack, save it, clear
+       the stack, and restore it later. */
+    copy_operand(operand, &opnd);
+    if (is_expression_operand(&opnd)) {
+      opnd.variant.expression = copy_expr_tree(opnd.variant.expression,
+                                               CE_COPY_NOT_EVALUATED);
     }  /* if */
-    discard_more_info_list(&diag_list);
+    save_expr_stack(&saved_expr_stack);
+    push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/TRUE);
+    expr_stack->suppress_diagnostics = TRUE;
+    prep_elision_initializer_operand(&opnd, param_type, /*fill_in_dtor=*/TRUE,
+                                     CCO_NONTYPE_TEMPLATE_ARG, ec_no_error,
+                                     (a_boolean *)NULL, &dip);
+    if (!expr_stack->any_suppressed_error) {
+      a_diag_list     diag_list;
+      clear_diag_list(&diag_list);
+      if (interpret_dynamic_init(dip, &operand->position, param_type,
+                                 /*is_constant_evaluated=*/TRUE, class_con,
+                                 &diag_list)) {
+        result = TRUE;
+      }  /* if */
+      discard_more_info_list(&diag_list);
+    }  /* if */
+    if (is_expression_operand(&opnd)) {
+      reclaim_fs_nodes_of_operand(&opnd);
+    }  /* if */
+    pop_expr_stack();
+    restore_expr_stack(saved_expr_stack);
   }  /* if */
-  pop_expr_stack();
-  restore_expr_stack(saved_expr_stack);
   return result;
 }  /* nontype_templ_arg_of_class_type_matches */
 

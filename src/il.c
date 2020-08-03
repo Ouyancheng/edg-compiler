@@ -14988,8 +14988,8 @@ options for the copy.  cblock is a control block for the copy.
                && !il_lowering_underway
 #endif /* DO_IL_LOWERING */
                                        ) {
-      /* Destructors cannot be called as a result of constant expression
-         evaluation (which is a compile-time evaluation). */
+      /* Object lifetime representations aren't considered during constant
+         expression evaluation (which is a compile-time evaluation). */
       expect_error();
     } else {
       a_boolean  static_lifetime = FALSE;
