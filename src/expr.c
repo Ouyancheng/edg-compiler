@@ -470,10 +470,17 @@ TRUE and FALSE is returned.
     /* This is a class template argument deduction case. */
     *type_after_deduction = void_type();
     *still_dependent = FALSE;
+    if (initializer_operand != NULL) {
+      check_assertion(initializer_alep == NULL);
+      initializer_alep = alloc_arg_list_elem_for_operand(initializer_operand);
+    }  /* if */
     result = deduce_class_template_args(orig_type, is_direct_init,
                                         parenthesized_init, keep_placeholder,
                                         initializer_alep, source_pos,
                                         deduced_auto_type, still_dependent);
+    if (initializer_operand != NULL) {
+      free_arg_list(initializer_alep);
+    }  /* if */
     if (result) {
       *type_after_deduction = *deduced_auto_type;
     }  /* if */
@@ -571,10 +578,12 @@ processed so far.
     result = TRUE;
     deduced_type = bottom_type;
   } else {
-    check_assertion(is_auto_type(bottom_type));
+    a_boolean  is_class_template =
+                              is_class_template_placeholder_type(bottom_type);
+    check_assertion(is_class_template || is_auto_type(bottom_type));
     if (deduce_placeholder_type(
                          bottom_type->variant.template_param.is_decltype_auto,
-                         /*is_class_template=*/FALSE,
+                         is_class_template,
                          /*is_direct_init=*/TRUE,
                          /*parenthesized_init=*/FALSE,
                          param_type, bottom_type,
@@ -46067,9 +46076,10 @@ the corresponding list of arguments processed so far.
     /* Check for an "auto" or "decltype(auto)" parameter. */
     a_type_ptr    bottom_type;
     bottom_type = find_bottom_of_type(param_type);
-    if (is_auto_type(bottom_type)) {
-      /* Attempt to deduce the auto type from the argument.  An error will
-         be issued if this cannot be done.  deduced_type will either be
+    if (is_auto_type(bottom_type) ||
+        is_class_template_placeholder_type(bottom_type)) {
+      /* Attempt to deduce the placeholder type from the argument.  An error
+         will be issued if this cannot be done.  deduced_type will either be
          the deduced type or an error type. */
       a_type_ptr          deduced_type = NULL;
       an_arg_operand_ptr  arg_operand = alloc_arg_operand();

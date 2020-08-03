@@ -2162,11 +2162,11 @@ Issue an error suggesting explicit template arguments.
 void check_type_with_placeholder_specifier(a_decl_parse_state  *state)
 /*
 *state describes a declaration parsing state involving a complete declarator
-that builds a type on top of an "auto" or "decltype(auto)" type specifier.
-Check that the resulting type is not an array type, and, if C++14-style
-deduced return types are not enabled, that it is not a function type without a
-trailing return type.  Also, if this is a secondary declarator, diagnose cases
-such as
+that builds a type on top of an "auto" or "decltype(auto)" type specifier, or
+a class template name used as a placeholder type.  Check that the resulting
+type is not an array type, and, if C++14-style deduced return types are not
+enabled, that it is not a function type without a trailing return type.  Also,
+if this is a secondary declarator, diagnose cases such as
     auto f()->int, x = 0;
 where "auto" is used both to deduce a type from an initializer and to announce
 a trailing return type.
@@ -2239,7 +2239,7 @@ a trailing return type.
     /* Check that a class template name placeholder didn't appear in an
        invalid context. */
     if (ctad_case && (state->is_conversion_type_id ||
-                      state->is_nontype_template_param)) {
+                      (state->is_nontype_template_param && !cpp20_mode))) {
       err = TRUE;
     }  /* if */
   }  /* if */
