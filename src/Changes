@@ -1,5 +1,16 @@
 Version 6.2
 
+8/4/20   [EDGcpfe/23177]
+GNU compatibility: GNU-style attributes on an alias declaration
+
+Previously the presence of GNU-style attributes on an alias declaration
+had caused spurious errors; now fixed.  For example (with --gnu_version 90000):
+
+  struct A {
+    using T __attribute__((deprecated)) = char;
+  };
+
+
 8/4/20   [EDGcpfe/23115]
 Microsoft compatibility: Add --ms_c17 command-line option
 

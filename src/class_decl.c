@@ -24842,9 +24842,10 @@ declaration from a using-declaration.)
     if (alias_declarations_enabled &&
         is_generalized_identifier_start(GID_NO_OPTIONS) &&
         ((next_tok = next_token()) == tok_assign ||
-         (std_attributes_enabled && next_tok == tok_lbracket))) {
-      /* An identifier followed by a "=" or a bracket (presumably the start of
-         C++11-style attributes): This looks like an alias declaration. */
+         ((std_attributes_enabled && next_tok == tok_lbracket) ||
+          (gnu_attributes_enabled && next_tok == tok_attribute)))) {
+      /* An identifier followed by a "=" or some attributes: This looks like an
+         alias declaration. */
       a_decl_parse_state  dps;
       if (check_for_packs) {
         abandon_potential_pack_expansion_context(pesep);
