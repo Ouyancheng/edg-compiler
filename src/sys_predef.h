@@ -395,11 +395,13 @@ EXTERN a_builtin_user_descr builtin_user_table[]
   { "__atomic_xor_fetch_8", "Lx8", "unsigned long (volatile void*,unsigned long,int)", bfk_atomic_xor_fetch_8 },
 
 #if USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING
-  /* Clang doesn't define these until version 6.0.0.  When performing function
+  /* Early versions of clang don't define these.  When performing function
      multiversioning lowering, they are required (and must therefore be
      implemented by a back end in clang mode). */
   { "__builtin_cpu_init", "Lx(-59999)", "int (void)", bfk_cpu_init },
   { "__builtin_cpu_is", "Lx(-59999)", "int (const char*)", bfk_cpu_is },
+  { "__builtin_cpu_supports", "Lx(-30699)", "__edg_bool_type__ (const char*)",
+    bfk_cpu_supports },
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING */
 
   /* Builtins used by Microsoft for char_traits<char8_t> intrinsics. */
