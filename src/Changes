@@ -1,30 +1,5 @@
 Version 6.2
 
-8/4/20   [EDGcpfe/23122]
-Incorrect code generated for optimizable class prvalue "?" operation
-
-In configurations that use lowering, incorrect code had been generated in
-some cases where the front end has identified an optimizable class prvalue
-"?" operation (see do_class_rvalue_question_optimization).  In the example
-below, the incorrect code had caused a.x to be uninitialized, resulting in
-undefined behavior (with --c++11):
-
-  struct A {
-    int x;
-  };
-  A g(int x) {
-    return {x};
-  }
-  int f(bool b) {
-    constexpr const A z{0};
-    A a = b ? g(-1) : z;
-    return a.x;
-  }
-  int main() {
-    return f(false);
-  }
-
-
 7/30/20  [EDGcpfe/22795]
 C++-generating back end: partial suppressions of generated explicit
 specializations
