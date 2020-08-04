@@ -2244,7 +2244,7 @@ option values if they were not already set by a command line option.
   }  /* if */
   if (C_mode()) {
     /* Microsoft C mode. */
-    a_boolean ms_c11 = FALSE;
+    a_boolean ms_c11 = FALSE, ms_c17 = FALSE;
     /* Allow nonconstant expressions in aggregate initializers for automatic
        variables. */
     allow_nonconstant_auto_aggr_init_in_c_mode = TRUE;
@@ -2256,8 +2256,7 @@ option values if they were not already set by a command line option.
       ms_c11 = TRUE;
     }  /* if */
     if (option_kind_used[(int)optk_microsoft_c17]) {
-      /* Currently this mode is equivalent to --ms_c11. */
-      ms_c11 = TRUE;
+      ms_c17 = ms_c11 = TRUE;
     }  /* if */
     /* Recent Microsoft C compilers enable the C++ spelling of static_assert
        (i.e., not _Static_assert). */
@@ -2289,6 +2288,10 @@ option values if they were not already set by a command line option.
       noreturn_keyword_enabled = TRUE;
       alignas_enabled = TRUE;
       alignof_enabled = TRUE;
+    }  /* if */
+    if (ms_c17 && microsoft_version >= 1928) {
+      /* Visual Studio version 16.8. */
+      /* Currently equivalent to --ms_c11. */
     }  /* if */
   } else {
     /* Microsoft C++ mode. */
