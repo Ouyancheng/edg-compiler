@@ -16397,8 +16397,18 @@ cast.  See lower_expr for typical invocation.
                                             (an_expr_node_kind)enk_temp_init &&
                         temp_init_node->is_lvalue);
         /* Convert enk_temp_init node to an rvalue. */
-        temp_init_node = rvalue_expr_for_lvalue(temp_init_node);
-        overwrite_node(expr, temp_init_node);
+        an_expr_node_ptr new_expr = rvalue_expr_for_lvalue(temp_init_node);
+        if (temp_init_node->variant.init.dynamic_init->master_entry != NULL) {
+          /* Watch out for the case where we have an optimizable class prvalue
+             "?" operation -- in that case the master_entry contains the
+             variable that is being initialized so add that assignment here. */
+          a_variable_ptr master_vp =
+            temp_init_node->variant.init.dynamic_init->master_entry->variable;
+          if (master_vp != NULL) {
+            new_expr = make_var_assignment_expr(master_vp, new_expr);
+          }  /* if */
+        }  /* if */
+        overwrite_node(expr, new_expr);
         expr->type = type;
         /* rvalue_expr_for_lvalue is not guaranteed to return an enk_temp_init
            node when given an enk_temp_init node, so call lower_expr again. */
