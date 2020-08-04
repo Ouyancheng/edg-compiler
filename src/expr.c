@@ -45999,9 +45999,11 @@ sure that some cases allowed within template argument expressions don't
 escape at the end of the expression.)
 */
 {
-  if (gpp_mode && is_floating_type(operand->type) && !is_an_lvalue(operand)) {
+  if (gpp_mode && !cpp20_mode && is_floating_type(operand->type) &&
+      !is_an_lvalue(operand)) {
     /* g++ allows floating-point constants and operations in template
-       arguments.  Make sure the final result is not floating. */
+       arguments even in earlier C++ modes.  Make sure the final result is not
+       of floating-point type. */
     error_in_operand(expr_not_integral_or_any_enum_code(), operand);
   }  /* if */
   if (is_indefinite_function_operand(operand) && operand->is_template_id) {
@@ -46023,6 +46025,23 @@ escape at the end of the expression.)
                                                 operand, /*will_call=*/FALSE,
                                                 &single_func_sym,
                                                 &dependent);
+  } else if (is_expression_operand(operand)) {
+    /* Check for the case where this is an operand that refers to a template
+       parameter, but an eok_lvalue was placed on top of the corresponding
+       constant in case an lvalue operation would be applied on a C++20 nontype
+       template parameter of class type (which is an lvalue). */
+    an_expr_node_ptr  expr = operand->variant.expression;
+    if (is_operation_node(expr) && node_operator_is(expr, eok_lvalue)) {
+      expr = expr->variant.operation.operands;
+      if (is_constant_node(expr)) {
+        a_constant_ptr  cp = node_constant(expr);
+        if (constant_is(cp, ck_template_param)) {
+          operand->kind = ok_constant;
+          operand->state = os_prvalue;
+          operand->variant.constant = *cp;
+        }  /* if */
+      }  /* if */
+    }  /* if */
   }  /* if */
 }  /* check_nontype_template_argument_type */
 

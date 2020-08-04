@@ -19027,7 +19027,9 @@ constant.
   if (constant_is(constant, ck_template_param) &&
       tpck_is(constant, tpck_expression)) {
     an_expr_node_ptr	expr = expr_node_from_tpck_expression(constant);
-    if (is_operation_node(expr) && node_operator_is(expr, eok_cast) &&
+    if (is_operation_node(expr) &&
+        (node_operator_is(expr, eok_cast) ||
+         node_operator_is(expr, eok_lvalue)) &&
         expr->compiler_generated) {
       an_expr_node_ptr	operand = expr->variant.operation.operands;
       if (is_constant_node(operand)) {

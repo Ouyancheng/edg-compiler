@@ -7882,6 +7882,13 @@ The position of the current token will be used as the operand position.
   } else {
     /* Normal (non-reference) case. */
     make_constant_operand(&constant, operand);
+    if (sym->is_template_param && cpp20_mode &&
+        constant_is(con_ptr, ck_template_param) &&
+        (is_class_struct_union_type(con_ptr->type) ||
+         could_be_dependent_class_type(con_ptr->type))) {
+      /* Template parameters of class type are lvalues. */
+      change_template_param_constant_operand_to_lvalue(operand);
+    }  /* if */
   }  /* if */
 }  /* make_sym_constant_operand */
 
@@ -12733,23 +12740,22 @@ as an lvalue.
   if (is_error_operand(operand)) {
     normalize_error_operand(operand);
   } else {
-    a_constant_ptr   con;
     an_expr_node_ptr expr;
     a_boolean        is_function;
-    an_operand       orig_operand;
-    orig_operand = *operand;
+    an_operand       orig_operand = *operand;
     check_assertion(is_a_prvalue(operand) && is_constant_operand(operand));
-    con = &operand->variant.constant;
-    if (!is_nonreal_member_constant(con, &is_function)) {
-      unexpected_condition();
-    }  /* if */
     /* Use make_node_from_operand to get operand rescan information saved. */
     expr = make_node_from_operand(operand);
     check_assertion(!expr->is_lvalue);
     expr = make_lvalue_operator_node((an_expr_operator_kind)eok_lvalue,
                                      expr->type, expr);
+    expr->compiler_generated = TRUE;
     make_glvalue_expression_operand(expr, operand);
-    if (is_function) operand->state = (an_operand_state)os_function_designator;
+    if (is_nonreal_member_constant(&orig_operand.variant.constant,
+                                   &is_function) &&
+        is_function) {
+      operand->state = (an_operand_state)os_function_designator;
+    }  /* if */
     restore_operand_details(operand, &orig_operand);
     operand->is_id_expression = orig_operand.is_id_expression;
     operand->id_expression_was_parenthesized =
