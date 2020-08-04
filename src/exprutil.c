@@ -24629,7 +24629,7 @@ where both alternatives recursively set not_subsuming to FALSE.
     if (!left_not_subsuming && !right_not_subsuming) {
       *not_subsuming = FALSE;
     }  /* if */
-  } else if (is_operation_node(expr) && node_operator_is(expr, eok_or)) {
+  } else if (is_operation_node(expr) && node_operator_is(expr, eok_lor)) {
     int32_t   idx = (int32_t)array.length();
     a_boolean  left_not_subsumable = FALSE, right_not_subsumable = FALSE;
     array.push_back(a_charted_constraint{ CK_OR, (uint32_t)parent_idx,
@@ -24733,6 +24733,7 @@ generate that chart.
       for (auto k = 0; k<n_constraints; ++k) {
         int32_t  pos = -1;
         if (k != n_constraints-1) {
+          /* If this is not the last constraint, "and" it with the next one. */
           pos = (int32_t)array.length();
           array.push_back(
                  a_charted_constraint{CK_AND, (uint32_t)0, { FALSE }, NULL });

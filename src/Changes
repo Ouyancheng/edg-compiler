@@ -1,5 +1,21 @@
 Version 6.2
 
+8/4/20   [EDGcpfe/23192]
+Erroneous handling of disjunction in constraints
+
+The front end previously did not correctly handle disjunctions in constraints
+(treating them as atomic constraints for the purposes of subsumption checking).
+For example:
+
+  template<typename T> concept C = (sizeof(T) >= 0);
+  template<typename T> concept D = (sizeof(T) <= 64);
+  template<typename T> requires C<T> || D<T> constexpr int f(T) {return 1;}
+  template<typename T> requires C<T> constexpr int f(T) {return 2;}
+  static_assert(f(42)==2);  // Previously ambiguous.  Now okay.
+
+That is now fixed.
+
+
 8/4/20   [EDGcpfe/23177]
 GNU compatibility: GNU-style attributes on an alias declaration
 
