@@ -7320,7 +7320,7 @@ A <template-args> encodes a template argument list.  The syntax is:
   /* Advance past the "I" or "J". */
   ptr++;
   if (!suppress) write_id_ch('<', dctl);
-  for (;;) {
+  for (;*ptr != 'E';) {
     ptr = demangle_template_arg(ptr, dctl);
     /* "E" ends the template argument list. */
     if (*ptr == 'E') break;
