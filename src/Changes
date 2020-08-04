@@ -1,5 +1,19 @@
 Version 6.2
 
+8/4/20   [EDGcpfe/23188]
+Assertion failure: mangled_operator_name: bad kind
+
+In configurations that use function multiversioning, the use of a "target"
+attribute on an operator member function elicits a discretionary error, but 
+had also elicited an assertion failure during mangling (in configurations
+that do mangling).  For example, with --clang_version 60000 --diag_suppress
+target_on_special_function:
+
+  struct S {
+    __attribute__ ((target("avx2"))) void operator+=(const S&) { }
+  };
+
+
 8/4/20   [EDGcpfe/23198]
 Clang compatibility: function multiversioning with clang_version < 30700
 

@@ -7013,6 +7013,9 @@ attributes in C mode).
   target_routine->source_corresp.name_linkage =
                                    representative->source_corresp.name_linkage;
   target_routine->special_kind = representative->special_kind;
+  if (special_kind_is(target_routine, sfk_operator)) {
+    target_routine->variant.opname_kind = representative->variant.opname_kind;
+  }  /* if */
   /* Set parent pointer appropriately. */
   if (representative->source_corresp.is_class_member) {
     set_class_membership(new_sym, &target_routine->source_corresp,
