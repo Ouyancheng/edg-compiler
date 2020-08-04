@@ -774,6 +774,7 @@ check_abbreviation()
 --ms_c++20
 --ms_c++latest
 --ms_c11
+--ms_c17
 --ms_compatibility
 --ms_std_preprocessor
 --ms_cplusplus_std_value
@@ -1411,6 +1412,7 @@ process_option()
          --ms_c++20 | \
          --ms_c++latest | \
          --ms_c11 | \
+         --ms_c17 | \
          --ms_compatibility | \
          --ms_std_preprocessor | \
          --no_ms_compatibility | \

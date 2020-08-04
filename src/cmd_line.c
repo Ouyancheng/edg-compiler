@@ -533,6 +533,9 @@ Initialize the option information table.
   add_option_description(optk_microsoft_c11, "ms_c11",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_microsoft_c17, "ms_c17",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #if NEAR_AND_FAR_ALLOWED
   add_option_description(optk_microsoft_16_mode, "microsoft_16",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -2250,6 +2253,10 @@ option values if they were not already set by a command line option.
       func_prototype_tags_enabled = FALSE;
     }  /* if */
     if (option_kind_used[(int)optk_microsoft_c11]) {
+      ms_c11 = TRUE;
+    }  /* if */
+    if (option_kind_used[(int)optk_microsoft_c17]) {
+      /* Currently this mode is equivalent to --ms_c11. */
       ms_c11 = TRUE;
     }  /* if */
     /* Recent Microsoft C compilers enable the C++ spelling of static_assert
@@ -10031,7 +10038,9 @@ enable_microsoft_mode:
         opt_value = TRUE;
         goto enable_microsoft_mode;
       case optk_microsoft_c11:
+      case optk_microsoft_c17:
         /* Emulate the Microsoft /std:c11 option. */
+        /* No difference currently between c11 and c17. */
         set_C_dialect(C_dialect_ANSI);
         opt_value = TRUE;
         goto enable_microsoft_mode;

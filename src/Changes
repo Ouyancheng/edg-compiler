@@ -1,5 +1,13 @@
 Version 6.2
 
+8/4/20   [EDGcpfe/23115]
+Microsoft compatibility: Add --ms_c17 command-line option
+
+In preparation for emulating Visual Studio's /std:c17 command-line option,
+the --ms_c17 command-line option has been added to the front end.  It functions
+the same as the --ms_c11 command-line option currently.
+
+
 8/4/20   [EDGcpfe/23188]
 Assertion failure: mangled_operator_name: bad kind
 
