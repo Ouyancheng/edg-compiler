@@ -14598,6 +14598,8 @@ over an eok_address_of over an enk_temp_init whose result is a temporary, and
 the cast only adjusts cv-qualifiers that will be dropped by the indirection
 (because the result of that is an rvalue), set *temp_init_node to point
 to the enk_temp_init node and return TRUE.  Otherwise, return FALSE.
+The optimization does not apply if the enk_temp_init is part of an optimizable
+class prvalue "?" operation (i.e., when dip->master_entry is non NULL).
 */
 {
   a_boolean result = FALSE;
@@ -14615,6 +14617,7 @@ to the enk_temp_init node and return TRUE.  Otherwise, return FALSE.
         node_operator_is(addr_node, eok_address_of)) {
       an_expr_node_ptr init_node = addr_node->variant.operation.operands;
       if (init_node->kind == (an_expr_node_kind)enk_temp_init &&
+          init_node->variant.init.dynamic_init->master_entry == NULL &&
           init_node->is_lvalue) {
         if (f_skip_typerefs(type_pointed_to(addr_node->type)) ==
             f_skip_typerefs(type_pointed_to(operand_node->type))) {
