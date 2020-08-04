@@ -12740,17 +12740,18 @@ as an lvalue.
   if (is_error_operand(operand)) {
     normalize_error_operand(operand);
   } else {
-    an_expr_node_ptr expr;
+    an_expr_node_ptr expr, new_expr;
     a_boolean        is_function;
     an_operand       orig_operand = *operand;
     check_assertion(is_a_prvalue(operand) && is_constant_operand(operand));
     /* Use make_node_from_operand to get operand rescan information saved. */
     expr = make_node_from_operand(operand);
     check_assertion(!expr->is_lvalue);
-    expr = make_lvalue_operator_node((an_expr_operator_kind)eok_lvalue,
-                                     expr->type, expr);
-    expr->compiler_generated = TRUE;
-    make_glvalue_expression_operand(expr, operand);
+    new_expr = make_lvalue_operator_node((an_expr_operator_kind)eok_lvalue,
+                                         expr->type, expr);
+    new_expr->compiler_generated = TRUE;
+    new_expr->position = expr->position;
+    make_glvalue_expression_operand(new_expr, operand);
     if (is_nonreal_member_constant(&orig_operand.variant.constant,
                                    &is_function) &&
         is_function) {
