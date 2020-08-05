@@ -1,5 +1,24 @@
 Version 6.2
 
+8/5/20   [EDGcpfe/23200]
+Type constraints allocated in wrong memory region
+
+In some cases, type constraints were allocated in function memory when they
+should have been allocated in file scope memory (since they are pointed to by
+a type, allocated in file scope memory).  This could lead to aborts.  For
+example:
+
+  template<typename> concept C = true;
+  constexpr C auto x = [](C auto x) {
+                         C auto y = x;  // Type constraint allocated in wrong
+                         return y;      // memory region.
+                       };
+  int y[x(42)];
+
+In this example, the enk_concept_id node representing the type constraint C on
+the type of y was allocated in function scope memory.  That is now fixed.
+
+
 8/4/20   [EDGcpfe/23192]
 Erroneous handling of disjunction in constraints
 

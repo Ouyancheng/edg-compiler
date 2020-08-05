@@ -25100,12 +25100,16 @@ Scan that token and an optional template argument list that follows to form
 a type constraint.  Return that constraint.  In error cases, return NULL.
 */
 {
-  an_expr_node_ptr      constraint;
-  a_boolean             err = FALSE;
+  an_expr_node_ptr        constraint;
+  a_boolean               err = FALSE;
   a_template_symbol_supplement_ptr
-                        tssp = concept_templ->variant.template_info;
-  a_template_param_ptr  tpp = tssp->cache.decl_info->parameters;
+                          tssp = concept_templ->variant.template_info;
+  a_template_param_ptr    tpp = tssp->cache.decl_info->parameters;
+  a_memory_region_number  region_to_switch_back_to;
 
+  /* The type-constraint must be allocated in file scope since it is pointed
+     to by a type. */
+  switch_to_file_scope_region(&region_to_switch_back_to);
   constraint = alloc_expr_node((an_expr_node_kind)enk_concept_id);
   constraint->type = bool_type();
   constraint->is_type_constraint = TRUE;
@@ -25148,6 +25152,7 @@ a type constraint.  Return that constraint.  In error cases, return NULL.
     constraint = NULL;
     concept_templ = NULL;
   }  /* if */
+  switch_back_to_original_region(region_to_switch_back_to);
   return constraint;
 }  /* scan_type_constraint */
 
