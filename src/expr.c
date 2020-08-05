@@ -37543,7 +37543,8 @@ and return a corresponding enk_compound_requirement node.
        !symbol_is(concept_templ, sk_concept_template)) {
       syntax_error(ec_exp_concept_name);
     } else {
-      expr->next = scan_type_constraint(concept_templ);
+      expr->next = scan_type_constraint(concept_templ,
+                                        /*for_requirement=*/TRUE);
     }  /* if */
   }  /* if */
 

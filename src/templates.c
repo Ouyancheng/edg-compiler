@@ -25093,11 +25093,14 @@ position information.
 }  /* decl_type_template_param */
 
 
-an_expr_node_ptr scan_type_constraint(a_symbol_ptr  concept_templ)
+an_expr_node_ptr scan_type_constraint(a_symbol_ptr  concept_templ,
+                                      a_boolean     for_requirement)
 /*
 The current token names a concept template represented by concept_templ.
 Scan that token and an optional template argument list that follows to form
 a type constraint.  Return that constraint.  In error cases, return NULL.
+If for_requirement is TRUE (default = FALSE), the call is for a constraint of
+a compound-requirement.
 */
 {
   an_expr_node_ptr        constraint;
@@ -25107,9 +25110,11 @@ a type constraint.  Return that constraint.  In error cases, return NULL.
   a_template_param_ptr    tpp = tssp->cache.decl_info->parameters;
   a_memory_region_number  region_to_switch_back_to;
 
-  /* The type-constraint must be allocated in file scope since it is pointed
-     to by a type. */
-  switch_to_file_scope_region(&region_to_switch_back_to);
+  if (!for_requirement) {
+    /* The type-constraint must be allocated in file scope since it is pointed
+       to by a type. */
+    switch_to_file_scope_region(&region_to_switch_back_to);
+  }  /* if */
   constraint = alloc_expr_node((an_expr_node_kind)enk_concept_id);
   constraint->type = bool_type();
   constraint->is_type_constraint = TRUE;
@@ -25152,7 +25157,9 @@ a type constraint.  Return that constraint.  In error cases, return NULL.
     constraint = NULL;
     concept_templ = NULL;
   }  /* if */
-  switch_back_to_original_region(region_to_switch_back_to);
+  if (!for_requirement) {
+    switch_back_to_original_region(region_to_switch_back_to);
+  }  /* if */
   return constraint;
 }  /* scan_type_constraint */
 

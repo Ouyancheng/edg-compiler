@@ -511,7 +511,9 @@ extern a_boolean template_arg_list_is_dependent(
 extern a_boolean template_arg_list_involves_error_entity(
                                         a_template_arg_ptr	tap);
 
-extern an_expr_node_ptr scan_type_constraint(a_symbol_ptr  concept_templ);
+extern an_expr_node_ptr scan_type_constraint(
+                                        a_symbol_ptr  concept_templ,
+                                        a_boolean     for_requirement = FALSE);
 
 extern
 a_boolean template_param_constraint_satisfied(a_type_ptr            param_type,
