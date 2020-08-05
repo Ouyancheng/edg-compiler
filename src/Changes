@@ -1,5 +1,23 @@
 Version 6.2
 
+8/5/20   [EDGcpfe/23201]
+Matching requires-clauses for out-of-class member template definitions
+
+The front end previously failed to match requires-clauses for out-of-class
+member template definitions.  For example:
+
+  template<typename> concept C = true;
+  template<typename> concept D = true;
+  struct S {
+    template<typename T> requires C<T> && D<T> int f(T);
+  };
+  template<typename T> requires C<T> int S::f(T) {  // Previously accepted.
+    return 42;                                      // Now an error.
+  }
+
+That is now fixed.
+
+
 8/5/20   [EDGcpfe/23200]
 Type constraints allocated in wrong memory region
 
