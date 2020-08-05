@@ -9639,9 +9639,15 @@ Put out the list of direct base classes of the class associated with ctsp
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
         if (bcp->orig_type != NULL && !bcp->orig_type->has_been_defined) {
           /* We cannot use the original specifier for the base class type
-             because it has not yet been defined.  Use the class type
-             instead. */
-          gen_name(&bcp->type->source_corresp, iek_type,
+             because it has not yet been defined.  Use the class type, or
+             the type for which it is a proxy, in the case of a dependent
+             type, instead. */
+          a_type_ptr base_type = class_type_supp(bcp->type)->proxy_of_type;
+          if (base_type == NULL) {
+            /* Not a proxy. */
+            base_type = bcp->type;
+          }  /* if */
+          gen_name(&base_type->source_corresp, iek_type,
                    GN_BASE_SPECIFIER, (a_boolean *)NULL);
         } else
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
