@@ -24844,7 +24844,7 @@ declaration from a using-declaration.)
         ((next_tok = next_token()) == tok_assign ||
          ((std_attributes_enabled && next_tok == tok_lbracket) ||
           (gnu_attributes_enabled && next_tok == tok_attribute)))) {
-      /* An identifier followed by a "=" or some attributes: This looks like an
+      /* An identifier followed by "=" or some attributes: This looks like an
          alias declaration. */
       a_decl_parse_state  dps;
       if (check_for_packs) {
