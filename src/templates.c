@@ -18876,11 +18876,19 @@ are ignored even in modes where such specifiers are part of that type.
   }  /* if */
   if (matches_template_type(curr_type, templ_rout_type, 
                             templ_arg_list, templ_param_list, mtt_flags)) {
+    /* This looks like a match, but check for template constraints that might
+       not be satisfied. */
     if (tssp->il_template_entry == NULL ||
-        !template_has_constraints(tssp->il_template_entry) ||
-        template_arg_list_is_dependent(*templ_arg_list) ||
-        check_template_constraints(templ_sym, *templ_arg_list,
-                                   /*diagnose=*/FALSE)) {
+        !template_has_constraints(tssp->il_template_entry)) {
+      /* No constraints to check. */
+      match = TRUE;
+    } else if (all_templ_params_have_values(
+                           *templ_arg_list, templ_param_list, CTWS_NO_OPTIONS,
+                           /*is_templ_templ_param_check=*/FALSE, templ_sym,
+                           tssp, /*param_count=*/0) &&
+               (template_arg_list_is_dependent(*templ_arg_list) ||
+                check_template_constraints(templ_sym, *templ_arg_list,
+                                           /*diagnose=*/FALSE))) {
       match = TRUE;
     }  /* if */
   }  /* if */
