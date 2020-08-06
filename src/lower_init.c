@@ -18473,9 +18473,10 @@ enough to cause the back end to invoke the routine at initialization.
        Generate a routine containing them. */
     scope = file_scope_init_insert_location(eff_needed_bit_number,
                                             init_priority,
-                                            do_single_init ?
-                                              unique_id_for_il_pointer(dip) :
-                                              (unsigned long)0,
+                                            (unsigned long)
+                                             (do_single_init ?
+                                                unique_id_for_il_pointer(dip) :
+                                                0),
                                             do_thread_local,
                                             &insert_location, &region_number,
                                             &grcontext);

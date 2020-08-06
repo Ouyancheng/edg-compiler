@@ -1,5 +1,14 @@
 Version 6.2
 
+8/6/20   [EDGcpfe/23220]
+Remove a_uintptr and new return type for unique_id_for_il_pointer
+
+A change has been made to replace uses of a_uintptr with its underlying
+type, uintptr_t.  Additionally, this type is now used as type of the
+returned value from the unique_id_for_il_pointer macro (to better accommodate
+configurations where a pointer is larger than an unsigned long type).
+
+
 8/5/20   [EDGcpfe/23201]
 Matching requires-clauses for out-of-class member template definitions
 

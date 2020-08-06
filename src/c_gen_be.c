@@ -1427,7 +1427,8 @@ longer string (i.e., not as a separate token).
 {
   char buffer[50];
 
-  (void)sprintf(buffer, "__T%lu", unique_id_for_il_pointer(ptr));
+  (void)snprintf(buffer, sizeof(buffer), "__T%llu",
+                 (unsigned long long)unique_id_for_il_pointer(ptr));
   m_write_str(buffer);
 }  /* add_temp_name */
 

@@ -23,8 +23,6 @@ util.h -- General utility components (mostly templates).
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
-typedef uintptr_t a_uintptr;
-
 typedef decltype(nullptr) a_nullptr;
 
 
@@ -1384,7 +1382,7 @@ Return p minimally advanced to be aligned to a cache line.
 */
 {
   return (an_Object*)
-             (((a_uintptr)p+CACHE_LINE_SIZE-1) & (a_uintptr)-CACHE_LINE_SIZE);
+             (((uintptr_t)p+CACHE_LINE_SIZE-1) & (uintptr_t)-CACHE_LINE_SIZE);
 }  /* align_to_cache_line */
 
 
@@ -1837,7 +1835,7 @@ Sort the elements of the given sequence.
 }  /* sort */
 
 
-inline a_uintptr hash_ptr(void  *ptr)
+inline uintptr_t hash_ptr(void  *ptr)
 /*
 Return a hash value for the given pointer value.
 */
@@ -1867,21 +1865,21 @@ Return a hash value for the given pointer value.
 #endif /* == 4 */
 #endif /* == 2 */
 #endif /* == 1 */
-  return (a_uintptr)ptr >> HASH_PTR_SHIFT;
+  return (uintptr_t)ptr >> HASH_PTR_SHIFT;
 #undef HASH_PTR_SHIFT
 }  /* hash_ptr */
 
 
-template<typename T> a_uintptr hash_ptr(T p)
+template<typename T> uintptr_t hash_ptr(T p)
 /*
 Generic version of hash_ptr for types that aren't native pointers.
 */
 {
-  return (a_uintptr)p;
+  return (uintptr_t)p;
 }  /* hash_ptr */
 
 
-template<typename T> a_uintptr hash_ptr(T *p)
+template<typename T> uintptr_t hash_ptr(T *p)
 /*
 Version of hash_ptr for native pointers.  This assumes IL-aligned pointers.
 */
@@ -1996,7 +1994,7 @@ Look up key in the map and return the associated value if found, or a_value()
 if not found.
 */
 {
-  a_uintptr  hash = hash_ptr(key);
+  uintptr_t  hash = hash_ptr(key);
   an_index   mask = this->hash_mask;
   an_index   idx = hash & mask;
   an_entry   *tbl = this->table;
@@ -2047,7 +2045,7 @@ inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::map(a_key          key,
 Associate a copy of value with the given key.
 */
 {
-  a_uintptr  hash = hash_ptr(key);
+  uintptr_t  hash = hash_ptr(key);
   an_index   mask = this->hash_mask;
   an_index   idx = hash & mask;
   an_entry   *tbl = this->table;
@@ -2075,7 +2073,7 @@ inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::replace(
 Replace the value associated with the given key by the given value.
 */
 {
-  a_uintptr  hash = hash_ptr(key);
+  uintptr_t  hash = hash_ptr(key);
   an_index   mask = this->hash_mask;
   an_index   idx = hash & mask;
   an_entry   *tbl = this->table;
@@ -2106,7 +2104,7 @@ value and return the previously associated value.  Otherwise, record a new key,
 associate it with the given value, and return a_value().
 */
 {
-  a_uintptr  hash = hash_ptr(key);
+  uintptr_t  hash = hash_ptr(key);
   an_index   mask = this->hash_mask;
   an_index   idx = hash & mask, idx0 = idx;
   an_entry   *tbl = this->table;
@@ -2154,7 +2152,7 @@ inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::unmap(a_key  key)
 Remove the given key from the table (it must exist).
 */
 {
-  a_uintptr  hash = hash_ptr(key);
+  uintptr_t  hash = hash_ptr(key);
   an_index   mask = this->hash_mask;
   an_index   idx = hash & mask;
   an_entry   *tbl = this->table;

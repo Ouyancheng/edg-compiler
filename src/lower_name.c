@@ -12389,7 +12389,8 @@ is TRUE, a routine otherwise.
     }  /* if */
     if (name == NULL) {
       /* Generate a name. */
-      (void)sprintf(buffer, "%lu", unique_id_for_il_pointer(scp));
+      (void)snprintf(buffer, sizeof(buffer), "%llu",
+                    (unsigned long long)unique_id_for_il_pointer(scp));
       name = buffer;
     }  /* if */
   }  /* if */

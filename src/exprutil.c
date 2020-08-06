@@ -7792,13 +7792,13 @@ Return TRUE if the constants referred to by hx and hy are
 }  /* operator!= */
 
 
-static inline a_uintptr hash_ptr(a_constant_handle  h)
+static inline uintptr_t hash_ptr(a_constant_handle  h)
 /*
 Compute a hash for the given constant handle.  The hash must be appropriate
 for Ptr_map.
 */
 {
-  return (a_uintptr)hash_constant(h.ptr);
+  return (uintptr_t)hash_constant(h.ptr);
 }  /* hash_ptr */
 
 
@@ -24184,7 +24184,7 @@ struct a_constraint_chart {
 			   contains no CK_CONCEPT entry. */
 };
 
-#define UNCONSTRAINED_CHART ((a_constraint_chart*)(a_uintptr)0x1)
+#define UNCONSTRAINED_CHART ((a_constraint_chart*)(uintptr_t)0x1)
 
 
 #if DEBUG
