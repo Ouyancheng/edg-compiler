@@ -1,5 +1,21 @@
 Version 6.2
 
+8/7/20   [EDGcpfe/23223]
+Clang compatibility: __builtin_launder
+
+The built-in pseudo-function "__builtin_launder" is now enabled in C++ Clang
+mode for clang_version >= 80000.  It was previously enabled in that mode but
+its signature was incorrect, causing a spurious error in this example
+(with --clang_version 80000 --c++17):
+
+  template<class T> constexpr T* __launder(T* t) {
+    return __builtin_launder(t);
+  }
+  void f(int* a) {
+    __launder(a);
+  }
+
+
 8/7/20   [EDGcpfe/23225]
 Support for UTF-8 character literals
 
