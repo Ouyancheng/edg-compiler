@@ -8131,6 +8131,7 @@ arguments (argument-dependent lookup may still find a different template).
   if (copy_error) {
     locator->is_error = TRUE;
     record_suppressed_error();
+    subst_fail(rcblock->error_detected);
   }  /* if */
 }  /* rescan_locator_template_arg_list */
 
@@ -35114,6 +35115,10 @@ if rescan_is_template_id is TRUE, and return the result in *operand
            parameters. */
         rescan_locator_template_arg_list(&locator, rcblock,
                                          force_indefinite_function);
+        if (rcblock->error_detected) {
+          make_error_operand(result);
+          goto after_advance_past_id;
+        }  /* if */
       }  /* if */
       projection_sym_ptr = locator.specific_symbol;
       /* If the symbol is a reference to a parameter pack, record it.

@@ -1,5 +1,13 @@
 Version 6.2
 
+8/7/20   [EDGcpfe/22824]
+Spurious errors due to invalid handling of variable template substitutions
+
+The front end previously did not correctly handle default template arguments
+of variable templates when substituting such templates for SFINAE-checking
+purposes.  This could result in spurious errors.  That problem is now fixed.
+
+
 8/7/20   [EDGcpfe/19915,EDGcpfe/22388]
 Template template parameter that is a pack expansion
 

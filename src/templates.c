@@ -13946,7 +13946,9 @@ If there is an error in the copying, set *copy_error to TRUE.
     }  /* if */
     if ((!any_more || tap == NULL) &&
         have_params && tpp != NULL && tpp->has_default_arg &&
-        template_sym != NULL && is_class_template_symbol(template_sym) &&
+        template_sym != NULL &&
+        (is_class_template_symbol(template_sym) ||
+         symbol_is(template_sym, sk_variable_template)) &&
         !(options & CTWS_PARTIAL_ARG_LIST_OKAY)) {
       /* This is an empty pack expansion for a template parameter with a
          default argument, or a missing template argument (which can occur
@@ -13972,6 +13974,7 @@ If there is an error in the copying, set *copy_error to TRUE.
                                      options,
                                      is_generic,
                                      copy_error, ctws_state);
+        if (*copy_error) goto done;
       }  /* if */
       if (new_list == NULL) {
         new_list = tap;
@@ -14087,7 +14090,7 @@ do_substitution:
         }  /* if */
       }  /* if */
       /* Exit the loop if the substitution failed. */
-      if (*copy_error) break;
+      if (*copy_error) goto done;
       if (tap->pack_expansion_descr != NULL &&
           (options & CTWS_DEDUCTION_GUIDE) != 0) {
         /* For deduction guide substitution, transfer the pack expansion
@@ -14132,7 +14135,7 @@ end_of_loop:
     }  /* while */
     if (tap == NULL) break;
     /* Exit the loop if the substitution failed. */
-    if (*copy_error) break;
+    if (*copy_error) goto done;
   }  /* for */
   if (!*copy_error && pack_tap != NULL && preserve_packs) {
     /* When we are preserving deduced packs, append a template argument
@@ -14154,6 +14157,7 @@ end_of_loop:
     /* If there are too many parameters, the copy should fail. */
     subst_fail(*copy_error);
   }  /* if */
+done:
   return new_list;
 }  /* copy_template_arg_list_with_substitution */
 
