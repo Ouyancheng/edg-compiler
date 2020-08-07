@@ -914,6 +914,7 @@ check_abbreviation()
 --no_user_defined_literals
 --no_using_framework_directory
 --no_using_std
+--no_utf8_char_literals
 --no_variadic_macros
 --no_variadic_templates
 --no_vla
@@ -1015,6 +1016,7 @@ check_abbreviation()
 --using_directory
 --using_framework_directory
 --using_std
+--utf8_char_literals
 --variadic_macros
 --variadic_templates
 --vcmeta_directory
@@ -1648,7 +1650,9 @@ process_option()
          --no_relaxed_abstract_checking | \
          --concepts | \
          --no_concepts | \
-         --force_vtbl)
+         --force_vtbl | \
+         --utf8_char_literals | \
+         --no_utf8_char_literals)
 #     Options that require additional processing
       case $arg in
         -m | --c | --c89 | --c99 | --no_c99 | --c11 | --c18 | --c17 | \

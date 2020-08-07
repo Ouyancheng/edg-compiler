@@ -1,5 +1,17 @@
 Version 6.2
 
+8/7/20   [EDGcpfe/23225]
+Support for UTF-8 character literals
+
+Support for UTF-8 character literals (see EDGcpfe/16385) requires support
+for other u-literals.  However, it was possible, through configuration
+and/or command-line options, to attempt to enable UTF-8 character literals
+while other u-literals were disabled, resulting in a failure to recognize
+occurrences of the "u8" encoding prefix.  This is now fixed: conflicting
+command-line options are diagnosed, and specifying --utf8_char_literals
+implicitly enables support for other u-literals.
+
+
 8/7/20   [EDGcpfe/22824]
 Spurious errors due to invalid handling of variable template substitutions
 

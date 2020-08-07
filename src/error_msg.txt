@@ -3219,6 +3219,7 @@ ec_ineligible_member_function;;"constraints for %nd are not satisfied"
 ec_var_with_virtual_bases_in_constexpr_function;;"variable type %t in constexpr function has virtual base classes"
 ec_constexpr_object_with_virtual_base;;"a constant expression cannot allocate a virtual base subobject (for type %t)"
 ec_template_parameter_has_nonstructural_class_type;;"a template parameter of class type must be of structural class type"
+ec_utf8_lit_no_ulit;;"support for UTF-8 literals requires u-literal support."
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

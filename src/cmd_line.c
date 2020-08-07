@@ -11015,6 +11015,22 @@ enable_microsoft_mode:
       auto_type_specifier_enabled = TRUE;
     }  /* if */
   }  /* if */
+  if (utf8_char_literals_enabled && !uliterals_enabled) {
+    /* UTF-8 literals require u-literal support. */
+    if (option_kind_used[(int)optk_uliterals]) {
+      /* U-literals were explicitly disabled. */
+      if (option_kind_used[(int)optk_utf8_char_literals]) {
+        /* Report conflicting command-line options. */
+        command_line_error(ec_utf8_lit_no_ulit);
+      } else {
+        /* UTF-8 literals were implicitly enabled but u-literals were
+           explicitly disabled. */
+        utf8_char_literals_enabled = FALSE;
+      }  /* if */
+    } else {
+      uliterals_enabled = TRUE;
+    }  /* if */
+  }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (cppcli_enabled || cppcx_enabled) {
     if (!option_kind_used[(int)optk_microsoft_version]) {
