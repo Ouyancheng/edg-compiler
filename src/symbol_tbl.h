@@ -2117,7 +2117,9 @@ typedef struct a_template_param {
 			   the parameter list of a different declaration of
 			   the template. */
   a_bit_field	is_pack:1;
-			/* TRUE if this is a template parameter pack. */
+			/* TRUE if this is a template parameter pack.
+			   For a pack that is a pack expansion, this is
+			   TRUE for the first element of the expansion. */
   a_bit_field	is_pack_expansion:1;
 			/* TRUE if this is a pack expansion of an enclosing
 			   template parameter pack.  This differs from
@@ -2125,9 +2127,8 @@ typedef struct a_template_param {
 			   instantiations of packs, while this is also
 			   TRUE for declarations. */
   a_bit_field	is_pack_element:1;
-			/* TRUE if this is a nontype template parameter
-			   expanded from an enclosing template parameter
-			   pack. */
+			/* TRUE if this is a template parameter expanded
+			   from an enclosing template parameter pack. */
   a_bit_field	is_empty_pack:1;
 			/* TRUE if this is placeholder for an enclosing
 			   template parameter pack with an empty expansion. */

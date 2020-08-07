@@ -1,5 +1,19 @@
 Version 6.2
 
+8/7/20   [EDGcpfe/19915,EDGcpfe/22388]
+Template template parameter that is a pack expansion
+
+The front end failed to properly handle a template parameter that is
+itself a pack expansion.  Now fixed.
+
+  template <class...T> struct A {
+    template <template <T> class... TTP, class U> struct B { };
+  };
+  template <int I> struct C { };
+  template <char C> struct D { };
+  A<int,char>::B<C, D, int> a;
+
+
 8/6/20   [EDGcpfe/23217]
 C++-generating back end: Incorrectly-suppressed explicit specializations
 

@@ -118,6 +118,10 @@ typedef int a_push_scope_options_set;
 			/* TRUE if any class scopes that are pushed should be
 			   treated as specializations for name lookup
 			   purposes. */
+#define PS_IS_TEMPLATE_TEMPLATE_PARAM	0x800000
+			/* TRUE for a template declaration scope pushed for the
+			   template parameters of a template template
+			   parameter. */
 #define SIZE_FUNCTION_SHAREABLE_CONSTANTS_TABLE 31
 			/* Size of the shareable constants hash table for
 			   a function. */
@@ -2154,6 +2158,7 @@ extern void push_block_scope(a_scope_pointers_block_ptr	pointers_block);
 extern void push_template_declaration_scope_full(
 		a_template_decl_info_ptr	decl_info,
 		a_scope_number			scope_number,
+		a_boolean			is_template_param,
 		a_boolean			is_template_param_rescan);
 
 extern void push_template_declaration_scope(
@@ -2224,6 +2229,7 @@ extern void finish_function_processing_for_function_def(
 
 /* End a name scope. */
 extern void pop_scope(void);
+extern void pop_scope_full(a_push_scope_options_set	options);
 extern void f_push_namespace_extension_scope(a_namespace_ptr nsp,
 					     a_boolean	     force_new_entry);
 extern void pop_namespace_extension_scope(void);

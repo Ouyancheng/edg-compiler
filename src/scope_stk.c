@@ -1528,8 +1528,6 @@ with ssep, looking for namespace scopes.
 
 
 /* Forward declarations. */
-static void pop_scope_full(a_push_scope_options_set	options);
-
 static void free_list_of_pack_references(a_pack_reference_ptr prp);
 
 static void issue_pack_not_expanded_diagnostics(a_pack_reference_ptr	prp);
@@ -3301,10 +3299,13 @@ the scope being pushed.
           depth_template_declaration_scope = NO_SCOPE_DEPTH;
       }  /* if */
     }  /* if */
-    if (kind == (a_scope_kind)sck_template_declaration ||
+    if ((kind == (a_scope_kind)sck_template_declaration &&
+         (options & PS_IS_TEMPLATE_TEMPLATE_PARAM) == 0) ||
         kind == (a_scope_kind)sck_template_instantiation) {
       /* Start a new pack expansion stack for a template declaration or
-         instantiation scope. */
+         instantiation scope.  Don't start a new stack if the template
+         declaration scope is for the template parameters of a template
+         template parameter. */
       ssep->pack_expansion_stack = pack_expansion_stack;
       pack_expansion_stack = NULL;
     }  /* if */
@@ -5549,15 +5550,19 @@ Use pop_scope to pop the scope.
 void push_template_declaration_scope_full(
 		a_template_decl_info_ptr	decl_info,
 		a_scope_number			scope_number,
+		a_boolean			is_template_param,
 		a_boolean			is_template_param_rescan)
 /*
 Push a template declaration scope.  scope_number is the scope number to
-reuse or NO_SCOPE_NUMBER.  is_template_param_rescan is TRUE if this
-scope is for the rescan of a dependent template template parameter.
+reuse or NO_SCOPE_NUMBER.  is_template_param is TRUE if this is the
+template declaration scope for the template parameter list of a template
+template parameter.  is_template_param_rescan is TRUE if this scope is
+for the rescan of a dependent template template parameter.
 */
 {
   a_push_scope_options_set	ps_options = PS_NO_OPTIONS;
 
+  if (is_template_param) ps_options |= PS_IS_TEMPLATE_TEMPLATE_PARAM;
   if (is_template_param_rescan) ps_options |= PS_IS_TEMPLATE_PARAM_RESCAN;
   (void)push_scope_full((a_scope_kind)sck_template_declaration,
                         scope_number,
@@ -5580,6 +5585,7 @@ default value for scope_number.
 */
 {
   push_template_declaration_scope_full(decl_info, NO_SCOPE_NUMBER,
+                                       /*is_template_template_param=*/FALSE,
                                        is_template_param_rescan);
 }  /* push_template_declaration_scope */
 
@@ -8878,7 +8884,7 @@ memory regions.
 }  /* clear_pack_expansion_variables */
 
 
-static void pop_scope_full(a_push_scope_options_set	options)
+void pop_scope_full(a_push_scope_options_set	options)
 /*
 End a name scope by popping an entry off the scope stack.  options is a
 set of option flags that specify additional information about the scope
@@ -9384,7 +9390,8 @@ being popped.
     free_list_of_pack_references(ssep->packs_referenced);
     ssep->packs_referenced = NULL;
   }  /* if */
-  if (kind == (a_scope_kind)sck_template_declaration ||
+  if ((kind == (a_scope_kind)sck_template_declaration &&
+       (options & PS_IS_TEMPLATE_TEMPLATE_PARAM) == 0) ||
       kind == (a_scope_kind)sck_template_instantiation) {
     /* Restore the pack expansion stack for a template declaration or
        instantiation scope. */

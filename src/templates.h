@@ -49,6 +49,12 @@ typedef int a_template_decl_options_set;
 
 #if !STANDALONE_UTILITY_PROGRAM
 /*
+Declaration of the template parameter state entry, which is defined in
+templates.c.
+*/
+typedef struct a_tmpl_param_state *a_tmpl_param_state_ptr;
+
+/*
 Structure used to pass information about the current template declaration
 between the routines used to implement the processing of template
 declarations.
@@ -156,6 +162,12 @@ typedef struct a_tmpl_decl_state {
   a_boolean	has_template_param_constraint;
 			/* TRUE if one of the template parameters has a type
 			   constraint. */
+  a_boolean	is_pack_element;
+			/* TRUE if a nontype template parameter	is an element
+			   of a pack expansion. */
+  a_boolean	is_pack_expansion;
+			/* TRUE if a nontype template parameter was declared
+			   using an enclosing pack expansion. */
   a_source_position
 		export_position;
 			/* If export_present is TRUE, the position of the
@@ -285,6 +297,11 @@ typedef struct a_tmpl_decl_state {
 		template_decl;
 			/* IL representation of the template parameterization
 			   of the entity being declared. */
+  a_tmpl_param_state_ptr
+		enclosing_param;
+			/* If this is the state for a template template
+			   parameter, this points to the parameter state of
+			   the template template parameter. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   uint32_t	num_parameters;
 			/* The number of parameters for the generic being

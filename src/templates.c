@@ -548,6 +548,8 @@ Initialize a template declaration state block.
   tdsp->is_enum = FALSE;
   tdsp->caching_tokens = FALSE;
   tdsp->has_template_param_constraint = FALSE;
+  tdsp->is_pack_element = FALSE;
+  tdsp->is_pack_expansion = FALSE;
   tdsp->export_position = null_source_position;
   tdsp->other_decl_pos = null_source_position;
   tdsp->starting_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
@@ -579,6 +581,7 @@ Initialize a template declaration state block.
   tdsp->definition_range = null_source_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   tdsp->template_decl = NULL;
+  tdsp->enclosing_param = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   tdsp->num_parameters = 0;
   tdsp->enclosing_generic_params = 0;
@@ -4298,10 +4301,12 @@ static void update_export_flag_for_class(
 
 
 static void reactivate_template_declaration_scope(
-				a_template_decl_info_ptr	decl_info)
+		a_template_decl_info_ptr	decl_info,
+		a_boolean			is_template_template_param)
 /*
 Push a template declaration scope for the template declaration described
-by "decl_info".
+by "decl_info".  is_template_template_param is TRUE if this is the scope
+for a template template parameter's parameters.
 */
 {
   a_template_param_ptr	tpp;
@@ -4318,7 +4323,8 @@ by "decl_info".
     expect_error();
   }  /* if */
   push_template_declaration_scope_full(decl_info, scope_number,
-                                      /*is_template_param_rescan=*/FALSE);
+                                       is_template_template_param,
+                                       /*is_template_param_rescan=*/FALSE);
   /* See if any of the parameters is variadic. */
   for (; tpp != NULL; tpp = tpp->next) {
     if (tpp->is_pack) is_variadic = TRUE;
@@ -4454,7 +4460,8 @@ with "instance_sym".
 					  template_arg_list,
 	                                  /*push_lex_state=*/TRUE,
 		                          PS_NO_OPTIONS);
-  reactivate_template_declaration_scope(decl_info);
+  reactivate_template_declaration_scope(decl_info,
+                                        /*is_template_temlate_param=*/FALSE);
   /* Defer access checks so that access errors on the class being
      declared can be suppressed. */
   begin_deferral_of_access_checks();
@@ -24955,7 +24962,6 @@ of the expansion.
 Structure used to pass information about the current template parameter
 declaration between the routines used to scan such declarations.
 */
-typedef struct a_tmpl_param_state *a_tmpl_param_state_ptr;
 typedef struct a_tmpl_param_state {
   a_template_param_list_pos
 		list_pos;
@@ -25499,6 +25505,8 @@ depends on a template parameter.
                                         &uses_auto,
                                         decl_state->nesting_depth,
                                         &decl_pos_block);
+  decl_state->is_pack_element = is_pack_element;
+  decl_state->is_pack_expansion = is_pack_expansion;
   template_param = make_nontype_template_param(decl_state->nesting_depth,
                                                param_state->list_pos,
                                                is_unnamed, is_pack,
@@ -25599,6 +25607,7 @@ depends on a template parameter.
 
 static void set_decl_state_for_template_param(
 				a_tmpl_decl_state_ptr	curr_state,
+				a_tmpl_param_state_ptr	param_state,
 				a_tmpl_decl_state_ptr	new_state,
 				a_decl_parse_state	*new_dps)
 /*
@@ -25618,6 +25627,7 @@ parameter based on the current state.
   new_state->is_template_template_param = TRUE;
   new_state->is_template_template_param_rescan =
                                  curr_state->is_template_template_param_rescan;
+  new_state->enclosing_param = param_state;
 }  /* set_decl_state_for_template_param */
 
 
@@ -25682,7 +25692,7 @@ depends on a another template parameter.
   /* Create a new set of declaration state information to be used while
      scanning the template template parameter. */
   init_decl_parse_state(&local_dps);
-  set_decl_state_for_template_param(parent_decl_state,
+  set_decl_state_for_template_param(parent_decl_state, param_state,
                                     &local_decl_state, &local_dps);
   scan_template_param_clauses(&local_decl_state,
                               (a_decl_parse_state*)NULL,
@@ -25690,7 +25700,7 @@ depends on a another template parameter.
   /* Pop all of the template declaration scopes that were pushed earlier. */
   for (; local_decl_state.number_of_template_decl_scopes != 0;
          local_decl_state.number_of_template_decl_scopes--) {
-    pop_scope();
+    pop_scope_full(PS_IS_TEMPLATE_TEMPLATE_PARAM);
   }  /* for */
   if (local_decl_state.decl_info == NULL) {
     /* An error must have occurred while scanning the template parameter list.
@@ -25726,7 +25736,11 @@ depends on a another template parameter.
   }  /* if */
   if (curr_token == tok_ellipsis && variadic_templates_enabled) {
     is_pack = TRUE;
-    (void)get_token();
+    if (local_decl_state.is_pack_expansion) {
+      record_pack_expansion_ellipsis();
+    } else {
+      (void)get_token();
+    }  /* if */
   }  /* if */
   is_named = curr_token == tok_identifier;
   /* Create a class template symbol for this template template parameter.
@@ -25801,9 +25815,13 @@ depends on a another template parameter.
                                     /*is_class_template=*/FALSE,
                                     /*is_partial_specialization=*/FALSE);
   if (is_pack) {
-    template_param_is_variadic(sym, /*is_pack_element=*/FALSE,
-                               /*is_non_initial=*/FALSE,
+    a_boolean	is_non_initial_pack_element;
+    is_non_initial_pack_element = is_non_initial_variadic_element();
+    template_param_is_variadic(sym, local_decl_state.is_pack_element,
+                               is_non_initial_pack_element,
                                template_param, parent_decl_state);
+    template_param->is_pack_expansion = local_decl_state.is_pack_expansion;
+    sym->is_pack_expansion = local_decl_state.is_pack_expansion;
   }  /* if */
   if (curr_token == tok_assign) {
     a_token_cache			def_arg_cache;
@@ -25936,7 +25954,14 @@ to represent the template parameters.
                                                  /*is_lookahead=*/FALSE,
                                                  /*allow_empty_list=*/TRUE,
                                                  /*ignore_suppression=*/FALSE);
-    param_state.pack_expansion_stack_entry = pesep;
+    /* If this is the parameter list of a template template parameter, use
+       the pack expansion stack entry of the template template parameter. */
+    if (decl_state->enclosing_param != NULL) {
+      param_state.pack_expansion_stack_entry =
+                       decl_state->enclosing_param->pack_expansion_stack_entry;
+    } else {
+      param_state.pack_expansion_stack_entry = pesep;
+    }  /* if */
     if (!any_params && pedp->param_symbol_header != NULL) {
       ++param_state.list_pos;
       /* A pack expands to an empty expansion.  Add a placeholder
@@ -29341,8 +29366,9 @@ routine sets it to the newly created entry.
   /* Record the default name linkage at the point of declaration. */
   info->name_linkage = scope_stack[depth_scope_stack].default_name_linkage;
   /* Push a new scope for the template parameters. */
-  push_template_declaration_scope(info,
-                                  state->is_template_template_param_rescan);
+  push_template_declaration_scope_full(
+                      info, NO_SCOPE_NUMBER, state->is_template_template_param,
+                      state->is_template_template_param_rescan);
   check_assertion(!state->is_full_specialization);
   state->number_of_template_decl_scopes += 1;
   create_template_decl(state, template_pos);
@@ -32966,7 +32992,8 @@ is set to TRUE.
   tssp = tpp->variant.templ;
   tdip = tssp->cache.decl_info;
   /* Reenter the parameters of this template template parameter. */
-  reactivate_template_declaration_scope(tdip);
+  reactivate_template_declaration_scope(tdip,
+                                        /*is_template_template_param=*/TRUE);
   /* Later template parameters should not be visible to earlier ones.
      Mark all of the symbols as invisible.  They will individually
      be set to be visible as they are processed later. */
