@@ -25,7 +25,7 @@ for B<char>; now it does.
 
 
 8/6/20   [EDGcpfe/23220]
-Remove a_uintptr and new return type for unique_id_for_il_pointer
+Remove a_uintptr and change return type of unique_id_for_il_pointer
 
 A change has been made to replace uses of a_uintptr with its underlying
 type, uintptr_t.  Additionally, this type is now used as type of the
