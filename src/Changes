@@ -1,5 +1,29 @@
 Version 6.2
 
+8/6/20   [EDGcpfe/23217]
+C++-generating back end: Incorrectly-suppressed explicit specializations
+
+In C++-generating back end configurations in which
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, a
+generated explicit specialization of a class template could be incorrectly
+suppressed if the declaration of a member of that specialization resulted
+in the instantiation of a class template that is not a member of the class
+template being specialized.  This omission occurred only in non-Microsoft
+modes and was the result of the changes for EDGcpfe/22273 (in version 6.1),
+which inadvertently considered non-member templates as well as member
+templates.  This is now fixed.  For example, with --g++:
+
+  template<typename T> struct A { };
+  template<typename T> struct B {
+    struct C { };
+    A<C> at;
+  };
+  B<char> bc;
+
+Previously the generated code did not contain an explicit specialization
+for B<char>; now it does.
+
+
 8/6/20   [EDGcpfe/23220]
 Remove a_uintptr and new return type for unique_id_for_il_pointer
 

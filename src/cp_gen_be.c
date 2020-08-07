@@ -10602,10 +10602,24 @@ instantiations are only permitted in namespace scope).
     a_type_ptr tp = (a_type_ptr)scp;
     if (is_immediate_class_type(tp) &&
         class_type_supp(tp)->assoc_scope != NULL) {
-      /* Check to see if there are any generated explicit specializations
-         inside the class scope.  If so, suppress the containing explicit
-         specialization, since explicit specializations must appear in
-         namespace scope in non-Microsoft dialects. */
+      /* Look for generated explicit specializations in this class scope.
+         Any implicit instantiation of a template by a member declaration
+         of this class will result in such an explicit specialization.  If
+         the template is not a member of this class, the explicit
+         specialization of that template will simply be suppressed when it
+         is encountered in the source sequence list and the generated code
+         will rely on implicit instantiation for that instance.  An
+         explicit specialization of a member template of this class inside
+         the class is acceptable in Microsoft dialects and the nested
+         explicit specialization will be put out.  However, in
+         non-Microsoft dialects, an explicit specialization inside this
+         class of a member template of this class is not permitted and
+         would be suppressed, which is problematic: member templates of
+         class template instances are not prototype-instantiated, so the
+         template will only be declared and not defined, and the use in a
+         member declaration would rely on the suppressed nested explicit
+         specialization for the definition.  Consequently the containing
+         explicit specialization must be suppressed. */
       a_source_sequence_entry_ptr ssep = scp->source_sequence_entry->next;
       a_boolean                   done = FALSE;
       do {
@@ -10622,8 +10636,10 @@ instantiations are only permitted in namespace scope).
               class_type_supp(nested_type)->template_arg_list != NULL &&
               !nested_type->variant.class_struct_union.is_specialized &&
               !nested_type->
-                       variant.class_struct_union.is_prototype_instantiation) {
-            /* This nested type is a generated explicit specialization.
+                       variant.class_struct_union.is_prototype_instantiation &&
+              parent_class_or_null(nested_type) == tp) {
+            /* This nested type is a generated explicit specialization of a
+               member template of the containing explicit specialization.
                Suppress the containing explicit specialization.  We also
                mark the nested type as suppressed so that its members will
                also be suppressed. */
