@@ -25740,7 +25740,7 @@ depends on a another template parameter.
   }  /* if */
   if (curr_token == tok_ellipsis && variadic_templates_enabled) {
     is_pack = TRUE;
-    if (local_decl_state.is_pack_expansion) {
+    if (local_decl_state.is_pack_expansion && any_packs_referenced()) {
       record_pack_expansion_ellipsis();
     } else {
       (void)get_token();
