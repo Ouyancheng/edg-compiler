@@ -1,5 +1,42 @@
 Version 6.2
 
+8/10/20  [EDGcpfe/23215]
+More efficient mangling in IA-64 ABI configurations
+
+The IA-64 ABI specifies how to mangle names of functions and variables, and
+the manglings for types within those names, but generally does not require
+type names themselves to be mangled.  The front end, when lowering is enabled
+or when MANGLE_ALL_NAMES is TRUE, opts to generate mangled names for these
+types largely because it creates unique names that might otherwise conflict
+when using the C-generating back end to generate compilable C code.
+For example the two classes below have the same name in C++, but are unique
+types and cannot both be named "A" in generated C (as they would conflict):
+
+  namespace N1 { class A { int x;  }; }
+  namespace N2 { class A { char c; }; }
+
+Such mangling is also useful for customers who require a unique string
+representation for an object that can be demangled to return the original
+declaration of the object.  Mangled names are also useful in that they
+remain constant across different compilations.
+
+A change has been made to offer a more efficient mapping from a_type
+address to a unique identifier (basically by creating a string that consists
+of the hexadecimal address of the type preceded by "__t").  That creates
+a unique string that can be used in generated C code, but that string may
+change from one compilation to another and cannot be demangled.
+
+This change saves about 5% of the total time of running a recent version of
+the Boost tests in a C-generating configuration.
+
+This new behavior is controlled by the new
+ONLY_MANGLE_TYPES_NEEDED_FOR_EXTERNAL_NAMES configuration macro.  By default,
+it is TRUE in configurations where DO_IL_LOWERING and IA64_ABI are TRUE and
+is FALSE if MANGLE_ALL_NAMES is explicitly set to TRUE.  Explicitly setting
+ONLY_MANGLE_TYPES_NEEDED_FOR_EXTERNAL_NAMES to FALSE restores the old
+behavior.  This option is not available in the Cfront ABI.
+
+
 8/9/20   [EDGcpfe/23189]
 C++-generating back end, GNU C++ compatibility: deleted member functions and
 the constexpr keyword

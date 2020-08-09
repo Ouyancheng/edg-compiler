@@ -1571,10 +1571,35 @@ other cases if that's desired.
 #else /* !DO_IL_LOWERING */
 #define MANGLE_ALL_NAMES FALSE
 #endif /* DO_IL_LOWERING */
+#else /* defined(MANGLE_ALL_NAMES) */
+#ifndef ONLY_MANGLE_TYPES_NEEDED_FOR_EXTERNAL_NAMES
+#define ONLY_MANGLE_TYPES_NEEDED_FOR_EXTERNAL_NAMES FALSE
+#endif /* ifndef ONLY_MANGLE_TYPES_NEEDED_FOR_EXTERNAL_NAMES */
 #endif /* ifndef MANGLE_ALL_NAMES */
 #if !MANGLE_ALL_NAMES && DO_IL_LOWERING
  #error -- Mangling of all names is needed with IL lowering.
 #endif /* !MANGLE_ALL_NAMES && DO_IL_LOWERING */
+
+/*
+The ONLY_MANGLE_TYPES_NEEDED_FOR_EXTERNAL_NAMES configuration macro controls
+whether type names themselves are mangled (and must always be FALSE for the
+Cfront ABI).  When ONLY_MANGLE_TYPES_NEEDED_FOR_EXTERNAL_NAMES is TRUE,
+unique identifiers are created for each type (though such identifiers
+cannot be demangled and may change from one compilation to another).  The
+advantage of setting this to TRUE is that it may speed up compilations for
+cases that have many types.
+*/
+#ifndef ONLY_MANGLE_TYPES_NEEDED_FOR_EXTERNAL_NAMES
+#if IA64_ABI && DO_IL_LOWERING
+#define ONLY_MANGLE_TYPES_NEEDED_FOR_EXTERNAL_NAMES TRUE
+#else /* !(IA64_ABI && DO_IL_LOWERING) */
+#define ONLY_MANGLE_TYPES_NEEDED_FOR_EXTERNAL_NAMES FALSE
+#endif /* IA64_ABI && DO_IL_LOWERING */
+#endif /* ifndef ONLY_MANGLE_TYPES_NEEDED_FOR_EXTERNAL_NAMES */
+#if ONLY_MANGLE_TYPES_NEEDED_FOR_EXTERNAL_NAMES && !IA64_ABI
+ #error -- ONLY_MANGLE_TYPES_NEEDED_FOR_EXTERNAL_NAMES must be FALSE for \
+           Cfront ABI
+#endif /* !ONLY_MANGLE_TYPES_NEEDED_FOR_EXTERNAL_NAMES && !IA64_ABI */
 
 /*
 Flag that is TRUE if name mangling is needed.  Automatically TRUE if

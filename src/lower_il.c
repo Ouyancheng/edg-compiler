@@ -8418,9 +8418,11 @@ this routine to do a relatively simple copy of all the fields.
     subobject_type = make_lowered_class_type((a_type_kind)tk_struct);
     subobject_ctsp = subobject_type->variant.class_struct_union.extra_info;
     subobject_ctsp->compiler_generated = TRUE;
+#if !ONLY_MANGLE_TYPES_NEEDED_FOR_EXTERNAL_NAMES
     /* Give the struct a name that is a prefix followed by the original name.
        Also give it the same declaration position as the original type. */
     mangle_subobject_class_name(class_type, subobject_type);
+#endif /* !ONLY_MANGLE_TYPES_NEEDED_FOR_EXTERNAL_NAMES */
     subobject_type->source_corresp.decl_position = 
                                       class_type->source_corresp.decl_position;
     subobject_type->source_corresp.is_class_member =
