@@ -21738,19 +21738,20 @@ handle_as_definition:
     if (rout->is_consteval) {
       write_tok_str("consteval ");
       suppress_inline_kwd = TRUE;
-    } else if (rout->is_defaulted ? rout->is_declared_constexpr
-                                  : rout->is_constexpr) {
+    } else if ((rout->is_defaulted || rout->is_deleted)
+                                                  ? rout->is_declared_constexpr
+                                                  : rout->is_constexpr) {
       /* Put out the "constexpr" keyword.  Since a constexpr function is
          implicitly inline, we suppress the "inline" keyword in this case.
          (Note that we often test is_constexpr rather than
-         is_declared_constexpr.  This is significant for configurations that
-         put out implicit instantiations as explicit specializations since
-         constexpr can be put on function templates even when some
+         is_declared_constexpr.  This is significant for configurations
+         that put out implicit instantiations as explicit specializations
+         since constexpr can be put on function templates even when some
          instantiations are not valid constexpr functions and therefore no
          "constexpr" should be specified on the corresponding explicit
-         specialization.  However, for defaulted members, is_constexpr may
-         be set implicitly but specifying it could change the type of the
-         member.) */
+         specialization.  However, for defaulted and deleted members,
+         is_constexpr may be set implicitly but specifying it could change
+         the type of the member.) */
       a_boolean write_constexpr = TRUE;
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       if (gcc_is_generated_code_target && gnu_target_version_number < 70200 &&

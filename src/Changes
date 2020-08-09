@@ -1,5 +1,22 @@
 Version 6.2
 
+8/9/20   [EDGcpfe/23189]
+C++-generating back end, GNU C++ compatibility: deleted member functions and
+the constexpr keyword
+
+The C++-generating back end previously could put out the definition of a
+deleted member function using the constexpr keyword.  This construct could
+cause problems when the generated code was compiled by older versions of
+g++ if the class of which the function is a member is not a literal type.
+This is now fixed, and deleted member functions are no longer declared
+constexpr.  For example, with --c++11:
+
+  class A {
+    A();
+    void operator=(const A &) = delete;  // Previously declared constexpr
+  };
+
+
 8/7/20   [EDGcpfe/23223]
 Clang compatibility: __builtin_launder
 
