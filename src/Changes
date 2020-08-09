@@ -56,7 +56,7 @@ purposes.  This could result in spurious errors.  That problem is now fixed.
 8/7/20   [EDGcpfe/19915,EDGcpfe/22388]
 Template template parameter that is a pack expansion
 
-The front end failed to properly handle a template parameter that is
+The front end failed to properly handle a template template parameter that is
 itself a pack expansion.  Now fixed.
 
   template <class...T> struct A {
