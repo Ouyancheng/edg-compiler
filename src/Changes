@@ -1,5 +1,21 @@
 Version 6.2
 
+8/10/20  [EDGcpfe/22541]
+noexcept-specifier incorrectly treated as SFINAE context in C++17 mode
+
+An exception specification (i.e., a noexcept-specifier) was incorrectly
+treated as a SFINAE context in C++17 mode.  This most commonly would result
+in an overload resolution failure instead of an error on the instantiation
+of the exception specification, but could also result in incorrect overload
+resolution in some cases.  Now fixed.
+
+  template <typename T> int f() noexcept(T(0));
+  template <typename T> struct A {
+    using type = decltype(f<T>());
+  };
+  A<A<int>>::type at;
+
+
 8/10/20  [EDGcpfe/23215]
 More efficient mangling in IA-64 ABI configurations
 

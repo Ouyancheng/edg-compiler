@@ -1573,17 +1573,24 @@ mark_routine_referenced.  One effect of calling this function is that the
 given routine may be instantiated.
 */
 {
-  if (curr_expr_is_potentially_evaluated() &&
-      !expr_stack->template_deduction_context) {
-    /* A reference during deduction is "tentative" and therefore the routine
-       should not be marked as referenced. */
-    /* Routines referenced in default argument expressions are not
-       instantiated until there is a use of the default argument expression. */
-    mark_routine_referenced_full(routine,
+  if (!expr_stack->template_deduction_context) {
+    if (curr_expr_is_potentially_evaluated()) {
+      /* A reference during deduction is "tentative" and therefore the routine
+         should not be marked as referenced. */
+      /* Routines referenced in default argument expressions are not
+         instantiated until there is a use of the default argument
+         expression. */
+      mark_routine_referenced_full(routine,
                                  /*instantiate=*/
                                        !expr_stack->is_default_arg_expression,
                                  /*elided_reference=*/
                                       expr_stack->template_deduction_context);
+    } else if (!is_template_dependent_context()) {
+      a_symbol_ptr  assoc_sym = symbol_for(routine);
+     if (assoc_sym != NULL) {
+       instantiate_exception_spec_if_needed(assoc_sym);
+     }  /* if */
+    }  /* if */
   }  /* if */
 }  /* if_evaluating_mark_routine_referenced */
 

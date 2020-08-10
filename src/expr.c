@@ -37984,10 +37984,11 @@ issue an error; otherwise, return TRUE.
       sym = ud_lit_op_sym_for_curr_token->variant.overloaded_function.symbols;
       for (; sym != NULL; sym = sym->next) {
         if (!symbol_is(sym, sk_function_template)) continue;
-        if (substitute_template_arguments(sym, templ_arg_list,
-                                          (a_template_arg_ptr*)NULL,
-                                          (a_template_param_ptr)NULL,
-                                          CTWS_NO_OPTIONS) != NULL) {
+        if (substitute_template_arguments(
+                                         sym, templ_arg_list,
+                                         (a_template_arg_ptr*)NULL,
+                                         (a_template_param_ptr)NULL,
+                                         CTWS_IS_OVERLOAD_CANDIDATE) != NULL) {
           if (op_sym != NULL) {
             pos_error(ec_ambig_literal_operator, &pos_curr_token);
           } else {

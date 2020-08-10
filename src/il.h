@@ -2243,6 +2243,12 @@ typedef int a_ctws_options_set;
 			   performed on parent template parameters and
 			   arguments (for example, as is done in
 			   substitute_constant). */
+#define CTWS_IS_OVERLOAD_CANDIDATE	0x20000
+			/* TRUE when substitution is being used to produce a
+			   function type as an overload resolution candidate.
+			   In this case, certain substitutions are not done
+			   (e.g., of the exception specification when it is
+			   part of the type. */
 
 
 /*

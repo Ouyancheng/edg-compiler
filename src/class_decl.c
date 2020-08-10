@@ -15589,6 +15589,7 @@ implicitly declared member functions.
                          .is_ms_instantiated_nonreal_class) {
     /* Don't perform some of the following processing for members of Microsoft
        "nonreal" instantiations. */
+    rtn->is_prototype_instantiation = TRUE;
   } else if (class_type->variant.class_struct_union.is_nonreal_class ||
              class_state->is_generic_definition) {
     /* This symbol represents a member function of a prototype instantiation

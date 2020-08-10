@@ -2031,6 +2031,7 @@ Allocate a new type list entry and return a pointer to it.
 #endif /* DEBUG */
   ptr->next = NULL;
   ptr->templ_arg_list = NULL;
+  ptr->options = CTWS_NO_OPTIONS;
   ptr->type = NULL;
   return ptr;
 }  /* alloc_substituted_type_list_entry */

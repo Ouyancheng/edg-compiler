@@ -738,6 +738,7 @@ extern a_type_ptr find_substituted_type(
 			a_symbol_ptr				template_sym,
 			a_template_symbol_supplement_ptr	tssp,
 			a_template_arg_ptr			templ_arg_list,
+			a_ctws_options_set			options,
 			a_type_ptr				type);
 
 extern a_type_ptr wrapup_function_template_argument_deduction(

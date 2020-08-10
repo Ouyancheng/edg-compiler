@@ -4647,6 +4647,7 @@ deduction failed.
   a_boolean            processing_param_array_expanded_case = FALSE;
   a_type_ptr           cli_param_array_element_type = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_ctws_options_set   ctws_options = CTWS_IS_OVERLOAD_CANDIDATE;
 
   db_enter(4, "function_template_call_argument_deduction");
   check_assertion(template_sym->kind == (a_symbol_kind)sk_function_template);
@@ -4804,6 +4805,7 @@ deduction failed.
        template argument list. */
     updated_routine_type = find_substituted_type(template_sym, tssp,
                                                  *template_arg_list,
+                                                 ctws_options,
                                                  (a_type_ptr)NULL);
 #if DEBUG
     n_deduced_substitition_lookups += 1;
@@ -4813,7 +4815,6 @@ deduction failed.
 #endif /* DEBUG */
   }  /* if */
   if (updated_routine_type == NULL) {
-    a_ctws_options_set  ctws_options = CTWS_NO_OPTIONS;
     /* Push an instantiation scope that can be used by the substitution and
        deduction process to find information about the template. */
     if (!*p_rescan_pushed) {
@@ -5568,7 +5569,7 @@ in a new-expression).
       routine = tssp->variant.function.routine;
       routine_type = routine->type;
       if (template_arg_list != NULL) {
-        a_ctws_options_set  ctws_options = CTWS_NO_OPTIONS;
+        a_ctws_options_set  ctws_options = CTWS_IS_OVERLOAD_CANDIDATE;
         /* Substitute the explicitly-specified template arguments into the
            template and get the updated routine type.  This also creates
            an updated template argument list (template arguments are cast to
@@ -14729,7 +14730,8 @@ not_direct_binding_case:
                                           &template_arg_list, 
                                           base_conversion_symbol,
                                           (a_template_param_ptr)NULL,
-                                          CTWS_NO_OPTIONS, /*param_count=*/0);
+                                          CTWS_IS_OVERLOAD_CANDIDATE,
+                                          /*param_count=*/0);
       if (conv_routine_type == NULL) {
         goto reject_function;
       } else { 
@@ -27066,7 +27068,8 @@ source_is_rvalue.
     routine_type = wrapup_function_template_argument_deduction(
                                           template_arg_list, sym,
                                           (a_template_param_ptr)NULL,
-                                          CTWS_NO_OPTIONS, /*param_count=*/0);
+                                          CTWS_IS_OVERLOAD_CANDIDATE,
+                                          /*param_count=*/0);
     if (routine_type == NULL) {
       /* Deduction failed. */
       goto reject_function;

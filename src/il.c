@@ -24286,13 +24286,12 @@ routine as actually referenced.
      instantiation mechanism. */
   assoc_sym = symbol_for(routine);
   if (instantiate && assoc_sym != NULL) {
-    if (assoc_sym->is_class_member) {
-      /* Members of class templates may have their exception specification left
-         in an "unparsed state".  At the point of use, however, we ensure the
-         actual exception specification is known. */
-      instantiate_exception_spec_if_needed(assoc_sym);
-    }  /* if */
     set_instance_required(assoc_sym, TRUE, SIR_NONE);
+  }  /* if */
+  if (assoc_sym != NULL) {
+    /* Make sure the exception specification of the routine, if any, has been
+       instantiated. */
+    instantiate_exception_spec_if_needed(assoc_sym);
   }  /* if */
 }  /* mark_routine_referenced_full */
 

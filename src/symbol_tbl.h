@@ -895,6 +895,9 @@ typedef struct a_substituted_type_list_entry {
 			   to create type.  This argument list may contain
 			   unspecified template arguments (i.e., template
 			   arguments with NULL type or constant pointers). */
+  a_ctws_options_set
+		options;
+			/* The CTWS options used to create the type. */
   a_type_ptr	type;
 			/* Pointer to a type entry. */
 } a_substituted_type_list_entry;

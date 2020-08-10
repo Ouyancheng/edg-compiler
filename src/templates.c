@@ -2888,7 +2888,7 @@ Otherwise it is zero.
     if (!(ctws_options & CTWS_IS_PARTIAL_ORDER_CHECK) && new_type != NULL) {
       /* Add the new type to the list of substituted types. */
       (void)find_substituted_type(rout_templ_sym, tssp, *templ_arg_list,
-                                  new_type);
+                                  ctws_options, new_type);
     }  /* if */
   }  /* if */
   return new_type;
@@ -8949,8 +8949,28 @@ typedef struct an_instantiation_key {
 		template_arg_list;
 			/* The template argument list of the instance to
 			   be found. */
+  a_ctws_options_set
+		options;
+			/* The CTWS options used to create the type. */
 } an_instantiation_key;
 
+
+
+inline void set_instantiation_key(
+                               an_instantiation_key *key,
+                               a_symbol_ptr          template_sym,
+                               a_template_arg_ptr    template_arg_list,
+                               a_ctws_options_set    options = CTWS_NO_OPTIONS)
+/*
+Initialize an instantiation key used for hash table lookups.  *key is the
+entry to be initialized.  template_sym, template_arg_list, and options are
+the values to be used for the key.
+*/
+{
+  key->template_sym = template_sym;
+  key->template_arg_list = template_arg_list;
+  key->options = options;
+}  /* set_instantiation_key */
 
 
 a_hash_value hash_instantiation(a_void_ptr	key)
@@ -9032,7 +9052,8 @@ an_instantiation_key entry pointer.  Return TRUE if the key matches the entry.
   stlep = (a_substituted_type_list_entry_ptr)entry;
   entry_tap = stlep->templ_arg_list;
   key_tap = key_ikp->template_arg_list;
-  result = equiv_template_arg_lists(entry_tap, key_tap,
+  result = stlep->options == key_ikp->options &&
+           equiv_template_arg_lists(entry_tap, key_tap,
                                     eta_options | ETA_EXACT_MATCH_REQUIRED);
   return result;
 }  /* compare_substituted_type_list_entry */
@@ -9071,8 +9092,7 @@ of the hash table is returned, or NULL is no entry is found.
   an_instantiation_key	key;
 
   /* Construct the key value to be passed to the comparison routine. */
-  key.template_sym = template_sym;
-  key.template_arg_list = template_arg_list;
+  set_instantiation_key(&key, template_sym, template_arg_list);
   /* If no hash table exists for this template, create one now. */
   if (tssp->instantiation_hash_table == NULL) {
     tssp->instantiation_hash_table =
@@ -15033,6 +15053,7 @@ a pointer over a reference type or creating an array of references.
   a_type_ptr			orig_type = type;
   a_type_ptr			adjusted_orig_type = NULL;
   a_routine_type_supplement_ptr	rtsp, new_rtsp;
+  a_boolean			is_overload_candidate;
 
   db_enter(5, "copy_type_with_substitution");
 #if DEBUG
@@ -15052,6 +15073,10 @@ a pointer over a reference type or creating an array of references.
       type->kind == (a_type_kind)tk_typeref) {
     type = skip_typerefs_not_dependent_decltypes(type);
   }  /* if */
+  /* The CTWS_IS_OVERLOAD_CANDIDATE only applies to a top-level function
+     type. */
+  is_overload_candidate = (options & CTWS_IS_OVERLOAD_CANDIDATE) != 0;
+  options &= ~CTWS_IS_OVERLOAD_CANDIDATE;
   if (type->source_corresp.is_class_member) {
     a_symbol_ptr	sym;
     a_type_ptr		parent_type;
@@ -15702,12 +15727,14 @@ make_new_type:
         /* Substitute the exception specification if appropriate. */
         if (!is_partial_order_check && rtsp->exception_specification != NULL &&
             exc_spec_in_func_type) {
-          new_rtsp->exception_specification =
+          if (!is_overload_candidate) {
+            new_rtsp->exception_specification =
                                copy_exception_specification_with_substitution(
                                              rtsp->exception_specification,
                                              templ_arg_list, templ_param_list,
                                              source_pos, options, copy_error,
                                              ctws_state);
+          }  /* if */
         }  /* if */
         set_routine_calling_method_flag(new_type, &null_source_position);
         set_clrcall_convention_if_needed(new_type);
@@ -16030,6 +16057,7 @@ a_type_ptr find_substituted_type(
 			a_symbol_ptr				template_sym,
 			a_template_symbol_supplement_ptr	tssp,
 			a_template_arg_ptr			templ_arg_list,
+			a_ctws_options_set			options,
 			a_type_ptr				type)
 /*
 Determine whether a type has already been created for a given set of template
@@ -16042,8 +16070,7 @@ if none exists.
   an_instantiation_key			key;
 
   /* Construct the key value to be passed to the comparison routine. */
-  key.template_sym = template_sym;
-  key.template_arg_list = templ_arg_list;
+  set_instantiation_key(&key, template_sym, templ_arg_list);
   /* If no hash table exists for this template, create one now. */
   if (tssp->variant.function.substituted_types_table == NULL) {
     tssp->variant.function.substituted_types_table =
@@ -16258,7 +16285,7 @@ are flags passed down to the substitution routines.
        that flag causes a different type to be returned below. */
     if (!preserve_deduced_packs) {
       templ_rout_type = find_substituted_type(templ_sym, tssp, templ_arg_list,
-                                              (a_type_ptr)NULL);
+                                              ctws_options, (a_type_ptr)NULL);
     }  /* if */
     if (templ_rout_type == NULL) {
       /* This is the first time this routine has been called for this
@@ -16450,7 +16477,8 @@ accordingly.
       /* A non-template case.  This can happen with member functions (whose
          exception specifications are usually scanned at the end of the class
          definition) when referred to by later member declarations. */
-      if (rp->source_corresp.is_class_member) {
+      if (rp->source_corresp.is_class_member &&
+          !rp->is_prototype_instantiation) {
         early_eh_spec_fixup(rp, esp);
       }  /* if */
     } else {
@@ -17354,7 +17382,8 @@ adjustment).
 {
   a_boolean                result = FALSE;
   a_type_difference_descr  diffs, *p_diffs = NULL;
-  a_type_compat_flags_set  tc_flags = TCF_CHECKING_DEDUCTION_RESULT;
+  a_type_compat_flags_set  tc_flags = TCF_CHECKING_DEDUCTION_RESULT |
+                                      TCF_IGNORE_TOP_LEVEL_NOEXCEPT;
 
   diffs.incompatible_calling_conventions = NULL;
   if (cli_or_cx_enabled) {
@@ -17431,43 +17460,12 @@ declared and before the partial instantiation of the function was done.
 {
   a_type_ptr  substituted_type;
   a_type_ptr  type = rout->type;
-  an_exception_specification_ptr
-              esp, substituted_esp;
 
   substituted_type = substitute_template_arguments(
                                   templ_sym, templ_arg_list,
                                   (a_template_arg_ptr*)NULL,
                                   (a_template_param_ptr)NULL,
-                                  CTWS_NO_OPTIONS);
-  if (type_is(type, tk_routine)) {
-    esp = type->variant.routine.extra_info->exception_specification;
-  } else {
-    esp = NULL;
-  }  /* if */
-  if (exc_spec_in_func_type && esp != NULL && substituted_type != NULL &&
-      type_is(substituted_type, tk_routine)) {
-    /* In some cases, the exception specification in the substituted type is
-       fully determined, but the one in the parsed type is still in cached
-       state.  When that happens, just proceed with the substituted exception
-       specification. */
-    substituted_esp = substituted_type->variant.routine.extra_info
-                                      ->exception_specification;
-    if (substituted_esp != NULL && !substituted_esp->arg_cached) {
-      check_assertion_or_expect_error(esp != NULL);
-      if (esp->arg_cached) {
-        type->variant.routine.extra_info->exception_specification =
-                                                              substituted_esp;
-      }  /* if */
-    } else if (substituted_esp == NULL && esp->compiler_generated) {
-      /* The type obtained by parsing the template declaration may include
-         a generated exception specification based on the specific function
-         being declared (e.g., an "operator delete").  The substituted type
-         may not include that specification since it performs the substitution
-         of the type independently of the associated specific function. */
-      substituted_type->variant.routine.extra_info
-                       ->exception_specification = esp;
-    }  /* if */
-  }  /* if */
+                                  CTWS_IS_OVERLOAD_CANDIDATE);
   if (substituted_type == NULL ||
       incompatible_substituted_and_rescanned_types_after_fixup(
                                                     substituted_type, type)) {
@@ -17475,10 +17473,8 @@ declared and before the partial instantiation of the function was done.
         !is_or_contains_error_type(templ_rout->type)) {
       if (substituted_type == NULL) {
         /* Substitution has failed for some reason.  The instantiation should
-           have run into a similar error, unless the error is in an exception
-           specification that was not yet parsed. */
-        check_assertion(total_errors != 0 ||
-                        (esp != NULL && esp->arg_cached));
+           have run into a similar error. */
+        check_assertion(total_errors != 0);
       } else if (!f_types_are_compatible(
                                     substituted_type, type,
                                     TCF_CHECKING_DEDUCTION_RESULT |
@@ -18309,7 +18305,7 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
            is also done for deduction guides (both user-declared and implicit
            ones). */
         rout_type = find_substituted_type(templ_sym, tssp, templ_arg_list,
-                                          (a_type_ptr)NULL);
+                                          CTWS_NO_OPTIONS, (a_type_ptr)NULL);
         if (rout_type == NULL) {
           a_template_param_ptr  tpl;
           a_boolean             copy_error = FALSE;
@@ -18708,8 +18704,9 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
       deferred_instantiations_tail = saved_deferred_instantiations_tail;
     }  /* if */
   }  /* if */
-  if ((microsoft_mode || !rp->source_corresp.is_class_member) &&
-      !exc_spec_in_func_type && !special_kind_is(rp, sfk_deduction_guide)) {
+  if (special_kind_is(rp, sfk_deduction_guide)) {
+    /* Don't do exception specification processing for deduction guides. */
+  } else if (microsoft_mode || !rp->source_corresp.is_class_member) {
     /* Consider:
           template<typename T> struct A { static constexpr bool v = true; };
           template<typename T> int f(T&) noexcept(A<T>::v);
@@ -18864,7 +18861,8 @@ are ignored even in modes where such specifiers are part of that type.
     a_template_arg_ptr	new_arg_list;
     templ_rout_type = substitute_template_arguments(
                                  templ_sym, explicit_arg_list, &new_arg_list,
-                                 (a_template_param_ptr)NULL, CTWS_NO_OPTIONS);
+                                 (a_template_param_ptr)NULL,
+                                 CTWS_NO_OPTIONS);
     *templ_arg_list = new_arg_list;
     /* A NULL type will be returned if the copy could not be done because
        the substitution of the template arguments would result in an invalid
@@ -19168,7 +19166,7 @@ matches, a new argument list is returned in *new_arg_list.
   } else {
     /* Add the new type to the list of substituted types. */
     (void)find_substituted_type(template_sym, tssp, *new_arg_list,
-                                result_type);
+                                CTWS_NO_OPTIONS, result_type);
   }  /* if */
   return result_type;
 }  /* explicit_arg_list_identifies_specialization */
@@ -35945,7 +35943,7 @@ indeed been deduced (which may require instantiation).  If no definition is
 available, issue an error at the given position.
 */
 {
-  check_assertion(rp->has_deducible_return_type);
+  check_assertion_or_expect_error(rp->has_deducible_return_type);
   if (!rp->has_deduced_return_type && !rp->is_prototype_instantiation) {
     if (rp->routine_fixup != NULL) {
       add_to_deferred_friend_function_fixup_list(rp->routine_fixup);
