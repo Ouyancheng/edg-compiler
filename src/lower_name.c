@@ -13037,7 +13037,7 @@ identifier is required and the identifier does not need to be decoded.
                        (unsigned long long)unique_id_for_il_pointer(scp));
 
   scp->unmangled_name_or_mangled_encoding = scp->name;
-  scp->name = alloc_lowered_name_string((sizeof_t)size);
+  scp->name = alloc_lowered_name_string((sizeof_t)(unsigned)size);
   (void)strcpy((char *)scp->name, buffer);
   scp->name_has_been_mangled = TRUE;
   scp->final_name_mangling_pending = FALSE;

@@ -93,8 +93,12 @@ extern char *mangled_vtbl_name(a_type_ptr       class_type,
 
 extern char *mangled_class_name(a_type_ptr type);
 
+#if !ONLY_MANGLE_TYPES_NEEDED_FOR_EXTERNAL_NAMES
+
 extern void mangle_subobject_class_name(a_type_ptr class_type,
                                         a_type_ptr subobject_type);
+
+#endif /* !ONLY_MANGLE_TYPES_NEEDED_FOR_EXTERNAL_NAMES */
 
 extern char *mangled_typeinfo_name(a_type_ptr type);
 
