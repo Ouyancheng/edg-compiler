@@ -13057,8 +13057,8 @@ is what mangled_type_name generates, plus a prefix.
 {
   a_source_correspondence_ptr scp = &type->source_corresp;
 
-  if (!scp->name_has_been_mangled) {
 #if ONLY_MANGLE_TYPES_NEEDED_FOR_EXTERNAL_NAMES
+  if (!scp->name_has_been_mangled) {
     if (type->kind == (a_type_kind)tk_typeref &&
         type->variant.typeref.predeclared) {
       /* Predeclared typerefs (e.g., for __int128_t) are kept as is. */
@@ -13066,66 +13066,68 @@ is what mangled_type_name generates, plus a prefix.
       /* Use an address-based identifier for this type. */
       make_address_based_identifier(scp);
     }  /* if */
-#else /* !ONLY_MANGLE_TYPES_NEEDED_FOR_EXTERNAL_NAMES */
-    a_mangling_control_block mctl;
-
-    clear_mangling_control_block(&mctl);
-    if (!has_name(type)) {
-      /* Give an unnamed class or enum a name if necessary.  This must be done
-         early because in some cases it suppresses the need for a parent
-         qualifier (name_has_been_mangled is set to TRUE).  If a module id
-         is required (and not available), mctl.lacking_module_id will be set
-         to TRUE (and mangling of this type will be postponed). */
-      if ((is_immediate_class_type(type) || is_immediate_enum_type(type)) &&
-          unnamed_type_has_no_discriminator(type)) {
-        (void)give_unnamed_class_or_enum_a_name(type, &mctl);
-      } else if (type->kind == (a_type_kind)tk_template_param &&
-                 type->variant.template_param.kind == 
-                                 (a_template_param_constant_kind)tptk_member) {
-        give_unnamed_template_param_member_a_name(type, &mctl);
-      }  /* if */
-    }  /* if */
-    /* Generally speaking, types don't need to be given mangled names (they
-       have specified encodings that are used when creating mangled names for
-       other entities).  In certain cases though, mangled names are necessary
-       to avoid collisions in generated C code.  For example, a class in
-       a namespace can have the same name as a class at file scope and they
-       need to be differentiated in lowered code. */
-    /* do_type_name_mangling gets called twice, once from template processing
-       and once from lowering itself.  Do nothing for names that have already
-       been mangled on the previous call.  Type names can also have been
-       previously mangled (in the Cfront ABI) when they are used as a component
-       of another mangled name. */
-    if (/* Skip types needing a module id for now. */
-        !mctl.lacking_module_id &&
-        /* Mangle nested types. */
-        (entity_needs_parent_qualifier(scp, iek_type) ||
-         /* Mangle types that need to be individuated. */
-         entity_needs_to_be_individuated(scp, iek_type) ||
-         /* Mangle unnamed types. */
-         !has_name(type) ||
-         /* Mangle template aliases. */
-         (type->kind == (a_type_kind)tk_typeref &&
-          type->variant.typeref.is_template_alias) ||
-         /* Mangle class types with template arguments. */
-         (is_immediate_class_type(type) &&
-          type->variant.class_struct_union.extra_info->
-                                                template_arg_list != NULL))) {
-      start_mangling(&mctl);
-#if IA64_ABI
-      add_str_to_mangled_name("_Z", &mctl);
-#else /*!IA64_ABI */
-      add_str_to_mangled_name(PREFIX_ON_NESTED_TYPE_NAME, &mctl);
-#endif /* IA64_ABI */
-      mangled_type_name_full(type, /*check_for_subst=*/TRUE,
-                             /*ok_to_mangle_type=*/FALSE, &mctl);
-      /* Note final=FALSE to prevent compression and truncation at this
-         time, so that the name can be reused.  final_entity_name_mangling
-         will do the compression or truncation if necessary. */
-      (void)end_mangling_full(scp, /*final=*/FALSE, &mctl);
-    }  /* if */
-#endif /* ONLY_MANGLE_TYPES_NEEDED_FOR_EXTERNAL_NAMES */
   }  /* if */
+#else /* !ONLY_MANGLE_TYPES_NEEDED_FOR_EXTERNAL_NAMES */
+  a_mangling_control_block mctl;
+
+  clear_mangling_control_block(&mctl);
+  if (!has_name(type) &&
+      !type->source_corresp.name_has_been_mangled) {
+    /* Give an unnamed class or enum a name if necessary.  This must be done
+       early because in some cases it suppresses the need for a parent
+       qualifier (name_has_been_mangled is set to TRUE).  If a module id
+       is required (and not available), mctl.lacking_module_id will be set
+       to TRUE (and mangling of this type will be postponed). */
+    if ((is_immediate_class_type(type) || is_immediate_enum_type(type)) &&
+        unnamed_type_has_no_discriminator(type)) {
+      (void)give_unnamed_class_or_enum_a_name(type, &mctl);
+    } else if (type->kind == (a_type_kind)tk_template_param &&
+               type->variant.template_param.kind == 
+                                 (a_template_param_constant_kind)tptk_member) {
+      give_unnamed_template_param_member_a_name(type, &mctl);
+    }  /* if */
+  }  /* if */
+  /* Generally speaking, types don't need to be given mangled names (they
+     have specified encodings that are used when creating mangled names for
+     other entities).  In certain cases though, mangled names are necessary
+     to avoid collisions in generated C code.  For example, a class in
+     a namespace can have the same name as a class at file scope and they
+     need to be differentiated in lowered code. */
+  /* do_type_name_mangling gets called twice, once from template processing
+     and once from lowering itself.  Do nothing for names that have already
+     been mangled on the previous call.  Type names can also have been
+     previously mangled (in the Cfront ABI) when they are used as a component
+     of another mangled name. */
+  if (!type->source_corresp.name_has_been_mangled &&
+      /* Skip types needing a module id for now. */
+      !mctl.lacking_module_id &&
+      /* Mangle nested types. */
+      (entity_needs_parent_qualifier(scp, iek_type) ||
+       /* Mangle types that need to be individuated. */
+       entity_needs_to_be_individuated(scp, iek_type) ||
+       /* Mangle unnamed types. */
+       !has_name(type) ||
+       /* Mangle template aliases. */
+       (type->kind == (a_type_kind)tk_typeref &&
+        type->variant.typeref.is_template_alias) ||
+       /* Mangle class types with template arguments. */
+       (is_immediate_class_type(type) &&
+        type->variant.class_struct_union.extra_info->
+                                                template_arg_list != NULL))) {
+    start_mangling(&mctl);
+#if IA64_ABI
+    add_str_to_mangled_name("_Z", &mctl);
+#else /*!IA64_ABI */
+    add_str_to_mangled_name(PREFIX_ON_NESTED_TYPE_NAME, &mctl);
+#endif /* IA64_ABI */
+    mangled_type_name_full(type, /*check_for_subst=*/TRUE,
+                           /*ok_to_mangle_type=*/FALSE, &mctl);
+    /* Note final=FALSE to prevent compression and truncation at this
+       time, so that the name can be reused.  final_entity_name_mangling
+       will do the compression or truncation if necessary. */
+    (void)end_mangling_full(scp, /*final=*/FALSE, &mctl);
+  }  /* if */
+#endif /* ONLY_MANGLE_TYPES_NEEDED_FOR_EXTERNAL_NAMES */
 }  /* mangle_type_name */
 
 
