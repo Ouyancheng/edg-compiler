@@ -8960,7 +8960,7 @@ inline void set_instantiation_key(
                                an_instantiation_key *key,
                                a_symbol_ptr          template_sym,
                                a_template_arg_ptr    template_arg_list,
-                               a_ctws_options_set    options = CTWS_NO_OPTIONS)
+                               a_ctws_options_set    options)
 /*
 Initialize an instantiation key used for hash table lookups.  *key is the
 entry to be initialized.  template_sym, template_arg_list, and options are
@@ -9092,7 +9092,8 @@ of the hash table is returned, or NULL is no entry is found.
   an_instantiation_key	key;
 
   /* Construct the key value to be passed to the comparison routine. */
-  set_instantiation_key(&key, template_sym, template_arg_list);
+  set_instantiation_key(&key, template_sym, template_arg_list,
+                        CTWS_NO_OPTIONS);
   /* If no hash table exists for this template, create one now. */
   if (tssp->instantiation_hash_table == NULL) {
     tssp->instantiation_hash_table =
@@ -16070,7 +16071,8 @@ if none exists.
   an_instantiation_key			key;
 
   /* Construct the key value to be passed to the comparison routine. */
-  set_instantiation_key(&key, template_sym, templ_arg_list);
+  set_instantiation_key(&key, template_sym, templ_arg_list,
+                        CTWS_NO_OPTIONS);
   /* If no hash table exists for this template, create one now. */
   if (tssp->variant.function.substituted_types_table == NULL) {
     tssp->variant.function.substituted_types_table =
