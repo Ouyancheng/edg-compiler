@@ -13161,13 +13161,15 @@ next parameter.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         /* Do not insert code here. */
         {
-          if (innermost_function_scope != NULL) {
-            /* The IL generated for this call will be incorrect.  If it appears
-               in a constexpr function, disable the interpretation of that
-               function since it would be highly unreliable. */
-            current_routine_entry()->is_constexpr = FALSE;
+          if (expr_error_should_be_issued()) {
+            if (innermost_function_scope != NULL) {
+              /* The IL generated for this call will be incorrect.  If it
+                 appears in a constexpr function, disable the interpretation
+                 of that function since it would be highly unreliable. */
+              current_routine_entry()->is_constexpr = FALSE;
+            }  /* if */
+            pos_error(ec_too_many_arguments, pos);
           }  /* if */
-          expr_pos_error(ec_too_many_arguments, pos);
           arg_block->discard_further_arguments = TRUE;
           goto done;
         }  /* if */

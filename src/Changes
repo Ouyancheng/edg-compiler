@@ -1,5 +1,27 @@
 Version 6.2
 
+8/10/20  [EDGcpfe/23237]
+Constexpr specifier on function template lost after substitution failure
+
+Consider:
+
+  void e();
+  template<typename T> concept E = requires(T &&p) { e(p); };
+  template<typename T> constexpr T f() {
+    (void)E<T>;
+    return T{};
+  }
+  static_assert(f<int>() == 0);  // Previously an error because f<int>()
+                                 // was not considered a call to a constexpr
+                                 // function.
+
+The evaluation of E<T> for T = int requires the substitution of the call e(p)
+during the instantiation of f<int>().  This substitution fails because there
+are too many arguments for the call to e().  Previously, this caused the front
+end to make the enclosing function (f<int>()) non-constexpr, and that in turn
+caused the static_assert declaration to be rejected.  That is now fixed.
+
+
 8/10/20  [EDGcpfe/22541]
 noexcept-specifier incorrectly treated as SFINAE context in C++17 mode
 
