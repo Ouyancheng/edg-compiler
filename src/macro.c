@@ -4205,11 +4205,11 @@ treatment of rt_optional_text.
 void adjust_deletion_counts(a_const_char *line_loc,
                             sizeof_t     deletion_len)
 /*
-The text beginning at line_loc is being replaced.  If the text being
-replaced is in the part of the macro buffer that is subject to compaction,
-adjust the running count of deleted text in the buffer and in the source
-line modification whose inserted text contains line_loc to account for the
-removal of deletion_len characters (less one for the ATTENTION_MARKER
+The text beginning at line_loc (if not NULL) is being replaced.  If the text
+being replaced is in the part of the macro buffer that is subject to
+compaction, adjust the running count of deleted text in the buffer and in the
+source line modification whose inserted text contains line_loc to account for
+the removal of deletion_len characters (less one for the ATTENTION_MARKER
 character, which will remain after compaction).
 */
 {

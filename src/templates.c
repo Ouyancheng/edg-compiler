@@ -27527,6 +27527,7 @@ supplement for this template should be returned to the caller.
     sym_error(ec_bad_scope_for_definition, sym);
     err = TRUE;
   } else if (!is_initial_decl &&
+             var != NULL &&
              !types_are_redecl_compatible(dps->type, var->type)) {
     /* The type of the static data member definition does not match
        the declaration in the class. */
