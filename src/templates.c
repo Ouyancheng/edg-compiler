@@ -25155,9 +25155,10 @@ a compound-requirement.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     remove_stop_token(tok_gt);
   } else {
-    if (tpp == NULL || tpp->next != NULL) {
-      /* If no concept arguments are specified, the concept should have
-         exactly one parameter. */
+    if (tpp == NULL || (tpp->next != NULL &&
+                        !(tpp->next->has_default_arg || tpp->next->is_pack))) {
+      /* If no concept arguments are specified, the concept should be
+         substitutable with exactly one argument. */
       pos_error(ec_exp_lt, &pos_curr_token);
       err = TRUE;
     }  /* if */
