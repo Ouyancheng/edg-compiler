@@ -11676,7 +11676,7 @@ the expression reflects an implicit member access ("this->y"), so the
            function parameter or template parameter, and those cases are
            addressed above by putting out an explicit "this->".
            Consequently, we only use a qualifier for a base class member
-           that is hidden by a name in an intermediate base class. */
+           that is hidden. */
         (void)gen_class_qualifier(naming_class, GN_BOUND_MEMBER,
                                   (a_boolean *)NULL);
       }  /* if */
