@@ -1,5 +1,24 @@
 Version 6.2
 
+8/10/20  [EDGcpfe/23236]
+C++-generating back end: braced-form casts to fundamental types
+
+Given a braced-form explicit cast to a fundamental type in the original
+source, the C++-generating back end put out a C-style cast instead.  This
+transformation is usually harmless, but some examples could result in
+uncompilable generated code.  This is now fixed, and the original source
+form of such casts is preserved.  For example, with --c++14 in a
+configuration in which template definitions are generated from the
+prototype instantiation IL:
+
+  struct c {
+    int i;
+    template<typename... Args> void f(Args&&... args) {
+      i = int{args...};  // Previously generated as (int)(args...)
+    }
+  };
+
+
 8/10/20  [EDGcpfe/23237]
 Constexpr specifier on function template lost after substitution failure
 

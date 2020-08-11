@@ -7491,8 +7491,8 @@ such cases.
 
 static void gen_type_reference(a_type_ptr type)
 /*
-Generate a reference to the indicated type, which is a tag or a typedef.
-A reference is not the definition.
+Generate a reference to the indicated type, which is a fundamental type, a
+tag, or a typedef.  A reference is not the definition.
 */
 {
   a_type_ptr             orig_type = type;
@@ -7539,7 +7539,7 @@ A reference is not the definition.
         ((char *)nm)[sizeof("__make_integer_seq") - 1] = '_';
       }  /* if */
     }  /* if */
-  } else {
+  } else if (is_tag_type(type)) {
     /* A class, struct, union, or enum. */
     a_boolean use_elab_type_spec;
     /* In C++, don't use "class X" instead of "X" unless that is required,
@@ -7636,6 +7636,9 @@ A reference is not the definition.
       }  /* if */
       gen_tag_reference(type, elab_spec_options, (an_attribute_ptr)NULL);
     }  /* if */
+  } else {
+    /* A fundamental type. */
+    form_type(type, &octl);
   }  /* if */
 }  /* gen_type_reference */
 
@@ -19161,14 +19164,19 @@ when possible.
     }  /* if */
     if (use_func_notation_cast &&
         !has_name_before_mangling(init_entity_type) &&
+        !(dip->is_explicit_cast && braced_init) &&
         !(init_entity_type->kind == (a_type_kind)tk_typeref &&
           typeref_is_type_operator(init_entity_type))) {
       /* We decided we wanted to use a functional-notation cast, but the
-         type is unnamed, so there's no way to write that.  This comes up
-         with generated types in SSI versions.  Use an old-style cast and
-         some tricks; see below.  Note that for some cases (e.g.,
-         braced-init casts) we dropped cv-qualifiers above.  We might still
-         get here, but not just for cv-qualifiers. */
+         type is unnamed, so there's no way to write that.  (An exception
+         is the case of an explicit braced-form cast, which must have used
+         the functional notation; it would still be well-formed if the type
+         were a fundamental single-token type, even though those are not
+         named in the IL.)  This comes up with generated types in SSI
+         versions.  Use an old-style cast and some tricks; see below.  Note
+         that for some cases (e.g., braced-init casts) we dropped
+         cv-qualifiers above.  We might still get here, but not just for
+         cv-qualifiers. */
       use_func_notation_cast = FALSE;
       unnamed_type_case = TRUE;
     }  /* if */
