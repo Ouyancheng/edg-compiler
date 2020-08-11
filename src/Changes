@@ -1,6 +1,6 @@
 Version 6.2
 
-8/10/20  [EDGcpfe/23235]
+8/11/20  [EDGcpfe/23235]
 Substitution failure in concept-id
 
 Consider the following C++20 example:
