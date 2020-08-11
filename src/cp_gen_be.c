@@ -7539,8 +7539,9 @@ tag, or a typedef.  A reference is not the definition.
         ((char *)nm)[sizeof("__make_integer_seq") - 1] = '_';
       }  /* if */
     }  /* if */
-  } else if (is_tag_type(type)) {
-    /* A class, struct, union, or enum. */
+  } else if (is_tag_type(type) ||
+             type->kind == (a_type_kind)tk_template_param) {
+    /* A class, struct, union, enum, or template parameter type. */
     a_boolean use_elab_type_spec;
     /* In C++, don't use "class X" instead of "X" unless that is required,
        e.g., because there's something else called "X" in the same scope. */
