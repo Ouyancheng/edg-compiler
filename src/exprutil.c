@@ -24816,24 +24816,25 @@ sym2 and vice versa; otherwise, set it to FALSE.
 a_boolean requires_clause_satisfied(an_expr_node_ptr      constraint,
                                     a_template_arg_ptr    template_arg_list,
                                     a_template_param_ptr  template_param_list,
-                                    a_boolean             map_failure_is_fatal,
                                     a_diag_list_ptr       diag_list,
-                                    a_boolean             *p_fatal)
+                                    a_boolean             *p_fatal,
+                                    a_boolean             *p_copy_error)
 /*
 Return TRUE if the given constraint expression, built on the given template
 parameter list, is satisfied by the given template argument list.  Otherwise,
 return FALSE and:
+  - if p_copy_error is non-NULL, set *p_copy_error to TRUE if the FALSE result
+    is due to a substitution failure, or to FALSE otherwise;
   - update diag_list with notes describing the reason for the failure if
-    that failure is a "SFINAE" failure,
+    that failure is a "SFINAE" failure;
   - if p_fatal is non-NULL and the failure is not subject to SFINAE, set
     *p_fatal to TRUE and update diag_list with a corresponding note, or
   - if p_fatal is NULL and the failure is not subject to SFINAE, issue an
     error with any notes recorded in diag_list and clear diag_list.
-If map_failure_is_fatal is TRUE, substitution of mappings in concepts is not
-subject to SFINAE.
 */
 {
-  a_boolean  result = TRUE, fatal = FALSE, diagnose_here = (p_fatal == NULL);
+  a_boolean  result = TRUE, fatal = FALSE, diagnose_here = (p_fatal == NULL),
+             copy_error = FALSE;
 
   if (diagnose_here) {
     p_fatal = &fatal;
@@ -24846,7 +24847,6 @@ subject to SFINAE.
     a_symbol_ptr          sym;
     a_template_arg_ptr    old_args, new_args;
     a_template_param_ptr  params;
-    a_boolean             copy_error = FALSE;
     templ = constraint->variant.concept_id.concept_template;
     sym = symbol_for(templ);
     old_args = constraint->variant.concept_id.args;
@@ -24884,10 +24884,6 @@ subject to SFINAE.
          fails at this stage when forming the invalid type T = "int &[1]" in
          the parameter mapping for concept X.  (Ordinary SFINAE still applies,
          however.) */
-      if (map_failure_is_fatal &&
-          !(scope_stack_top().is_rescan && diagnose_here)) {
-        *p_fatal = TRUE;
-      }  /* if */
       more_info_tap_diagnostic(ec_concept_arg_list_substitution_failed,
                                &constraint->position, template_arg_list,
                                diag_list);
@@ -24895,16 +24891,9 @@ subject to SFINAE.
     } else {
       a_diagnostic_ptr  prev_diags = diag_list->tail;
       an_expr_node_ptr  expr = templ->prototype_instantiation.constraint;
-      /* A mapping failure is fatal if we're called as part of checking a
-         template constraint (expr_stack is NULL when that is the case), but
-         not when checking a nested requirement.  Clang 10.0 and MSVC 19.27
-         appear to use a more relaxed criterion for this. */
-      result = requires_clause_satisfied(expr, new_args, params,
-                                         /*map_failure_is_fatal=*/
-                                         expr_stack == NULL &&
-                                           (map_failure_is_fatal ||
-                                            !(clang_mode || microsoft_mode)),
-                                         diag_list, p_fatal);
+      /* Evaluate the resulting constraint. */
+      result = requires_clause_satisfied(expr, new_args, params, diag_list,
+                                         p_fatal);
       if (!result && !*p_fatal) {
         /* Insert a diagnostic before the ones detailing the constraint
            failure. */
@@ -24922,33 +24911,28 @@ subject to SFINAE.
        evaluated. */
     an_expr_node_ptr  opnds = constraint->variant.operation.operands;
     result = requires_clause_satisfied(opnds, template_arg_list,
-                                       template_param_list,
-                                       map_failure_is_fatal, diag_list,
-                                       p_fatal) &&
+                                       template_param_list, diag_list,
+                                       p_fatal, &copy_error) &&
              requires_clause_satisfied(opnds->next, template_arg_list,
-                                       template_param_list,
-                                       map_failure_is_fatal, diag_list,
-                                       p_fatal);
+                                       template_param_list, diag_list,
+                                       p_fatal, &copy_error);
   } else if (node_is_operator(constraint, eok_lor)) {
     /* Check the two underlying constraints separately.  If the first
        determines the outcome, the second is neither substituted nor
        evaluated. */
     an_expr_node_ptr  opnds = constraint->variant.operation.operands;
     result = requires_clause_satisfied(opnds, template_arg_list,
-                                       template_param_list,
-                                       map_failure_is_fatal, diag_list,
-                                       p_fatal) ||
-             (!*p_fatal &&
+                                       template_param_list, diag_list,
+                                       p_fatal, &copy_error) ||
+             (!*p_fatal && !copy_error &&
               requires_clause_satisfied(opnds->next, template_arg_list,
-                                        template_param_list,
-                                        map_failure_is_fatal, diag_list,
-                                        p_fatal));
+                                        template_param_list, diag_list,
+                                        p_fatal, &copy_error));
   } else {
     /* An atomic constraint.  First perform substitution; then evaluate the
        expression. */
     an_expr_node_ptr  expr;
     a_constant_ptr    cp = local_constant(), allocated_cp = NULL;
-    a_boolean         err = FALSE;
     
     if (template_param_list != NULL) {
       a_ctws_state       ctws_state;
@@ -24957,14 +24941,14 @@ subject to SFINAE.
       expr = copy_template_param_expr(
                             constraint, template_arg_list, template_param_list,
                             (a_type_ptr)NULL, &constraint->position,
-                            CTWS_NO_OPTIONS, &err, &ctws_state,
+                            CTWS_NO_OPTIONS, &copy_error, &ctws_state,
                             cp, &allocated_cp);
       error_position = saved_err_pos;
     } else {
       /* No parameters: This occurs when called from check_eligibility. */
       expr = constraint;
     }  /* if */
-    if (err) {
+    if (copy_error) {
       /* Substitution failed. */
       more_info_diagnostic(ec_atomic_constraint_substitution_failed,
                            &constraint->position, diag_list);
@@ -25025,6 +25009,7 @@ subject to SFINAE.
     add_more_info_list(dp, diag_list);
     end_diagnostic(dp);
   }  /* if */
+  if (p_copy_error != NULL) *p_copy_error = copy_error;
   return result;
 }  /* requires_clause_satisfied */
 
@@ -25043,9 +25028,8 @@ is not satisfied, set dps->ineligible to TRUE.
     a_diag_list  diag_list;
     clear_diag_list(&diag_list);
     if (!requires_clause_satisfied(rcp->constraint, (a_template_arg_ptr)NULL,
-                                 (a_template_param_ptr)NULL,
-                                 /*map_failure_is_fatal=*/FALSE,
-                                 &diag_list, &err)) {
+                                   (a_template_param_ptr)NULL, &diag_list,
+                                   &err)) {
       dps->ineligible = TRUE;
     }  /* if */
   } else {
@@ -25154,6 +25138,7 @@ non-NULL, update diag_list accordingly.
                                                          ->parameters;
   a_ctws_state        ctws_state;
 
+  /* Substitute the concept-id arguments. */
   init_ctws_state(&ctws_state);
   first_arg = alloc_template_arg((a_templ_arg_kind)tak_type);
   first_arg->variant.type = type;
@@ -25172,9 +25157,8 @@ non-NULL, update diag_list accordingly.
       clear_diag_list(&local_diag_list);
       diag_list = &local_diag_list;
     }  /* if */
-    result = requires_clause_satisfied(expr, new_args, params, 
-                                       /*map_failure_is_fatal=*/TRUE,
-                                       diag_list);
+    /* Evaluate the constraint. */
+    result = requires_clause_satisfied(expr, new_args, params, diag_list);
   }  /* if */
   return result;
 }  /* check_type_constraint */
@@ -25238,8 +25222,7 @@ subst_pairs is successful.
             templ_params = subst_pairs.back_elem().params;
             templ_args = subst_pairs.back_elem().args;
             result = requires_clause_satisfied(
-                                  expr, templ_args, templ_params,
-                                  /*map_failure_is_fatal=*/FALSE, &diag_list);
+                                  expr, templ_args, templ_params, &diag_list);
             discard_more_info_list(&diag_list);
             error_position = saved_error_pos;
           } else {

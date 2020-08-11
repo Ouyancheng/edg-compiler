@@ -34783,7 +34783,6 @@ the result is not constant) set *fatal to TRUE.
                          ->variant.template_info->cache.decl_info->parameters;
     clear_diag_list(&diag_list);
     val = requires_clause_satisfied(node, tap, param_list,
-                                    /*map_failure_is_fatal=*/FALSE,
                                     &diag_list, fatal);
     if (*fatal) {
       a_diagnostic  *dp = pos_start_error(ec_invalid_concept_id,

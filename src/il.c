@@ -18805,8 +18805,7 @@ options is a set of substitution options.
         clear_diag_list(&diag_list);
         val = requires_clause_satisfied(expr, template_arg_list,
                                         template_param_list,
-                                        /*map_failure_is_fatal=*/TRUE,
-                                        &diag_list, copy_error);
+                                        &diag_list, copy_error, copy_error);
         make_bool_constant_value(val, constant);
         discard_more_info_list(&diag_list);
       }  /* if */

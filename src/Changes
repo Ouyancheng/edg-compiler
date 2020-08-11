@@ -1,5 +1,22 @@
 Version 6.2
 
+8/10/20  [EDGcpfe/23235]
+Substitution failure in concept-id
+
+Consider the following C++20 example:
+
+  template<bool B> struct L { using type = long; };
+  template<typename> concept A = true;
+  template<typename T> concept hasX = A<typename T::X>;
+  template<typename T> typename L<hasX<T>>::type f(T) { return {}; }
+  auto r = f((int*)0);  // Previously an error.  Now okay.
+
+Previously, this resulted in an error because the substitution failure of
+typename T::X did not just cause hasX<T> (for T = int*) to be evaluated to
+false, but instead it was considered a SFINAE failure for the substitution
+of hasX<T>.  That is now fixed. 
+
+
 8/10/20  [EDGcpfe/23236]
 C++-generating back end: braced-form casts to fundamental types
 
