@@ -11343,10 +11343,8 @@ Does not handle user-defined conversions.
              is_integral_type(dest_type)) {
     /* Integral or enum to integral is allowed as long as it's not a
        narrowing conversion. */
-    if (gpp_mode || microsoft_mode) {
-      /* g++ doesn't seem to do the narrowing check (as of 4.7).  Assume
-         Microsoft mode shouldn't either (even though there is no MSVC that
-         supports constexpr yet as of 2012). */
+    if (gpp_version_is(<60000)) {
+      /* Early versions of GCC do not issue narrowing errors. */
       okay = TRUE;
     } else if (!is_narrowing_conversion(source_type,
                                         source_is_constant ? source_constant :
