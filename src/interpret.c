@@ -3345,7 +3345,7 @@ Mark the complete object at the given address as not fully initialized.
 }
 
 
-static void mark_whole_subobject_uninitialized(
+static a_boolean mark_whole_subobject_uninitialized(
                                           an_interpreter_state  *ips,
                                           a_byte                *subobj,
                                           a_type_ptr            tp,
@@ -3356,31 +3356,35 @@ mark_subobject_uninitialized.  If tp is a class or array type, it marks the
 indicated subobject and all its subobject as uninitialized.
 */
 {
+  a_boolean  result = TRUE;
+
   if (is_immediate_class_type(tp) || tp->kind == (a_type_kind)tk_array) {
-    a_boolean     result = TRUE;
     a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
-    a_byte_count  off = (a_byte_count)(subobj - complete_obj);
-    a_byte_count  byte_pos = off/CHAR_BIT+sizeof(a_type_ptr)+2;
-    a_byte_count  bit_pos = off%CHAR_BIT;
-    while (n_bytes != 0) {
-      if (bit_pos == 0 && n_bytes >= CHAR_BIT) {
-        /* Mark a whole byte at a time. */
-        complete_obj[-(int)byte_pos] = (a_byte)0;
-        byte_pos += 1;
-        n_bytes -= CHAR_BIT;
-      } else {
-        complete_obj[-(int)byte_pos] &= ~(a_byte)(1<<bit_pos);
-        bit_pos += 1;
-        if (bit_pos == CHAR_BIT) {
-          bit_pos = 0;
+    if (result) {
+      a_byte_count  off = (a_byte_count)(subobj - complete_obj);
+      a_byte_count  byte_pos = off/CHAR_BIT+sizeof(a_type_ptr)+2;
+      a_byte_count  bit_pos = off%CHAR_BIT;
+      while (n_bytes != 0) {
+        if (bit_pos == 0 && n_bytes >= CHAR_BIT) {
+          /* Mark a whole byte at a time. */
+          complete_obj[-(int)byte_pos] = (a_byte)0;
           byte_pos += 1;
+          n_bytes -= CHAR_BIT;
+        } else {
+          complete_obj[-(int)byte_pos] &= ~(a_byte)(1<<bit_pos);
+          bit_pos += 1;
+          if (bit_pos == CHAR_BIT) {
+            bit_pos = 0;
+            byte_pos += 1;
+          }  /* if */
+          n_bytes -= 1;
         }  /* if */
-        n_bytes -= 1;
-      }  /* if */
-    }  /* while */
+      }  /* while */
+    }  /* if */
   } else {
     mark_subobject_uninitialized(subobj, complete_obj);
   }  /* if */
+  return result;
 }  /* mark_whole_subobject_uninitialized */
 
 
@@ -4228,8 +4232,11 @@ Release the variant path structures when the check is completed.
           activation_mode = TRUE;
           if (active_field != NULL) {
             a_type_ptr  tp = parent_class_of(active_field);
-            mark_whole_subobject_uninitialized(ips, vpep->base_address, tp,
-                                               addr->complete_object);
+            if (!mark_whole_subobject_uninitialized(
+                        ips, vpep->base_address, tp, addr->complete_object)) {
+              result = FALSE;
+              goto done;
+            }  /* if */
             unmark_complete_object_initialized(addr->complete_object);
           }  /* if */
         }  /* if */
@@ -10455,8 +10462,11 @@ This is similar to do_constexpr_ctor.
     /* Run the "constructor initializers" that describe subobject
        destructions. */
     unmark_complete_object_initialized(complete_object);
-    mark_whole_subobject_uninitialized(ips, result_storage, class_type,
-                                       complete_object);
+    if (!mark_whole_subobject_uninitialized(ips, result_storage, class_type,
+                                            complete_object)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
     dtor_init = callee_scope->variant.routine.constructor_inits;
     for (; dtor_init != NULL; dtor_init = dtor_init->next) {
       a_byte_count        offset;
@@ -12673,8 +12683,10 @@ Evaluate the given delete-expression.
           goto done;
         }  /* if */
         mark_subobject_uninitialized(elem, arr);
-      } else {
-        mark_whole_subobject_uninitialized(ips, elem, elem_type, arr);
+      } else if (!mark_whole_subobject_uninitialized(
+                                                 ips, elem, elem_type, arr)) {
+        result = FALSE;
+        break;
       }  /* if */
     }  /* for */
   }  /* if */
@@ -13384,8 +13396,11 @@ the value representation of the integer value.
                 }  /* if */
                 if (obj != NULL) {
                   /* Mark the substructure as uninitialized. */
-                  mark_whole_subobject_uninitialized(ips, obj, obj_type,
-                                                     complete_obj);
+                  if (!mark_whole_subobject_uninitialized(ips, obj, obj_type,
+                                                          complete_obj)) {
+                    result = FALSE;
+                    break;
+                  }  /* if */
                 }  /* if */
                 unmark_complete_object_initialized(complete_obj);
               }  /* if */
