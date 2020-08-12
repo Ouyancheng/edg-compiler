@@ -1,5 +1,19 @@
 Version 6.2
 
+8/12/20  [EDGcpfe/23214]
+GNU C compatibility: Folding of arithmetic on void* pointers
+
+The front end previously treated folding arithmetic on void* pointers (which
+is accepted in GNU C modes) as if such pointers point to zero-length objects.
+Now it treats it them as pointing to byte arrays (i.e., objects of length
+one).  For example (in GNU C mode):
+
+  unsigned char buf[100];
+  int g() {
+    return buf == (void*)buf+1;  // Previously returned 1.
+  }                              // Now returns 0.
+
+
 8/12/20  [EDGcpfe/23238]
 GNU C++17 compatibility: strlen and abs folding and noexcept
 

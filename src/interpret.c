@@ -2060,12 +2060,15 @@ the element position in the array, and the size of an element in the array.
 This macro applies to both interpreter addresses and run-time addresses, but
 in the case of run-time addresses the array length is set to MAX_ARRAY_LENGTH
 if the actual length cannot be determined.  Set *p_result to FALSE if an error
-occurs.
+occurs.  (Note that in GNU modes, elem_type can be tk_void because GCC
+sometimes permits pointer arithmetic on void* pointers and treats then as
+pointing to byte arrays.)
 */
 #define get_array_pos(ips, cap, elem_type, a_len, pos, e_size, p_result)     \
 {                                                                            \
   if (is_runtime_data_address(cap)) {                                        \
-    *(e_size) = (a_byte_count)elem_type->size;                               \
+    *(e_size) = type_is(elem_type, tk_void) ? 1 :                            \
+                                              (a_byte_count)elem_type->size; \
     get_runtime_array_pos(ips, cap, *(e_size), a_len, pos);                  \
   } else {                                                                   \
     *(e_size) = value_bytes_for_type(ips, elem_type, p_result);              \
