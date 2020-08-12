@@ -11343,8 +11343,8 @@ Does not handle user-defined conversions.
              is_integral_type(dest_type)) {
     /* Integral or enum to integral is allowed as long as it's not a
        narrowing conversion. */
-    if (gpp_version_is(<60000)) {
-      /* Early versions of GCC do not issue narrowing errors. */
+    if (gpp_version_is(<60000) || ms_version_is(<1925)) {
+      /* Early versions of GCC and MSVC do not issue narrowing errors. */
       okay = TRUE;
     } else if (!is_narrowing_conversion(source_type,
                                         source_is_constant ? source_constant :
