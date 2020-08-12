@@ -2248,7 +2248,7 @@ typedef int a_ctws_options_set;
 			   function type as an overload resolution candidate.
 			   In this case, certain substitutions are not done
 			   (e.g., of the exception specification when it is
-			   part of the type. */
+			   part of the type). */
 
 
 /*

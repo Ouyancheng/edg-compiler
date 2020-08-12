@@ -74,10 +74,12 @@ caused the static_assert declaration to be rejected.  That is now fixed.
 noexcept-specifier incorrectly treated as SFINAE context in C++17 mode
 
 An exception specification (i.e., a noexcept-specifier) was incorrectly
-treated as a SFINAE context in C++17 mode.  This most commonly would result
-in an overload resolution failure instead of an error on the instantiation
-of the exception specification, but could also result in incorrect overload
-resolution in some cases.  Now fixed.
+treated as a SFINAE context in C++17 mode.  Formerly this would typically
+result in an overload resolution failure (i.e., there would be no matching
+function) when it should have resulted in  an error on the instantiation
+of the exception specification.  However, it could also have resulted in
+incorrect overload resolution (i.e., the wrong function being selected)
+in some cases.  Now fixed.
 
   template <typename T> int f() noexcept(T(0));
   template <typename T> struct A {
