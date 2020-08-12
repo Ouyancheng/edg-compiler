@@ -1,5 +1,22 @@
 Version 6.2
 
+8/12/20  [EDGcpfe/22822]
+Narrowing conversions
+
+Since C++11, certain implicit conversions are considered "narrowing" and such
+conversions are invalid in certain contexts, including when considering
+implicit conversions for nontype template arguments.  The front end had two
+bugs in this area:
+  1) A conversion from an integer constant to bool is non-narrowing only
+     if the constant value is 0 or 1, but the front end previously allowed
+     any constant value representable in the underlying type (e.g., unsigned
+     char).
+  2) Narrowing was not checked for certain template argument substitutions
+     during SFINAE checking.
+
+Both of these problems are now fixed.
+
+
 8/11/20  [EDGcpfe/23232]
 Spurious error on use of type constraint using concept with default argument
 

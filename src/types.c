@@ -5341,8 +5341,18 @@ and a vector are compatible.
         if (source_constant != NULL &&
             constant_is(source_constant, ck_integer)) {
           con_check_done = TRUE;
-          if (in_range_for_integer_kind(source_constant, source_constant,
-                                        dest_type->variant.integer.int_kind)) {
+          if (dest_type->variant.integer.bool_type) {
+            /* For conversions to bool, only conversions of constant values 0
+               or 1 are non-narrowing.  However, GCC generally doesn't consider
+               conversions to bool to be narrowing. */
+            if (gpp_mode ||
+                cmplit_integer_constant(source_constant, 0) == 0 ||
+                cmplit_integer_constant(source_constant, 1) == 0) {
+              is_narrowing = FALSE;
+            }  /* if */
+          } else if (in_range_for_integer_kind(
+                                       source_constant, source_constant,
+                                       dest_type->variant.integer.int_kind)) {
             is_narrowing = FALSE;
           }  /* if */
         } else if (dependent_constant) {

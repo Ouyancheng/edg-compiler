@@ -18216,11 +18216,13 @@ return TRUE.
 static a_boolean substituted_cast_is_valid(a_constant *src_con,
                                            a_type_ptr new_type,
                                            a_boolean  is_explicit_cast,
+                                           a_boolean  for_templ_arg,
                                            a_boolean  *reinterpret_cast_needed)
 /*
 A cast has been subjected to substitution of template arguments.  It comes
 down to a cast of the constant src_con to the type new_type.  The cast is
-explicit if is_explicit_cast is TRUE.  Return TRUE if the cast is valid.
+explicit if is_explicit_cast is TRUE.  The conversion is for a nontype
+template argument is for_templ_arg is TRUE.  Return TRUE if the cast is valid.
 If a reinterpret_cast is needed to do the cast, return *reinterpret_cast_needed
 TRUE.
 */
@@ -18272,7 +18274,13 @@ TRUE.
                                                 /*suppress_extensions=*/FALSE,
                                                 ec_bad_cast,
                                                 &std_conv)) {
-    valid = TRUE;
+    if (for_templ_arg && !is_explicit_cast) {
+      valid = conversion_allowed_for_nontype_template_argument(
+                        &std_conv, src_con->type, /*source_is_constant=*/TRUE,
+                        src_con, new_type, (an_error_code*)NULL);
+    } else {
+      valid = TRUE;
+    }  /* if */
   }  /* if */
   return valid;
 }  /* substituted_cast_is_valid */
@@ -18549,9 +18557,12 @@ options is a set of substitution options.
               }  /* if */
             } else if (op == (an_expr_operator_kind)eok_cast) {
               a_boolean is_implicit_cast = expr->compiler_generated;
-              a_boolean is_reinterpret_cast;
+              a_boolean  is_template_arg, is_reinterpret_cast;
+              is_template_arg = (options & CTWS_NONTYPE_TEMPLATE_ARG) != 0;
+              if (is_template_arg) options &= ~CTWS_NONTYPE_TEMPLATE_ARG;
               if (!substituted_cast_is_valid(constant_1, operation_type,
                                              !is_implicit_cast,
+                                             is_template_arg,
                                              &is_reinterpret_cast)) {
                 subst_fail(*copy_error);
               } else {
@@ -19339,7 +19350,7 @@ copy_template_param_con for the meaning of the remaining parameters.
 {
   a_type_ptr          new_type, copied_con_type;
   a_constant_ptr      src_con, other_con, con_copy = con;
-  a_boolean           reinterpret_cast_needed = FALSE;
+  a_boolean           reinterpret_cast_needed = FALSE, is_template_arg;
   a_ctws_options_set  cast_options = CTWS_CAST_OPERAND;
 
   new_type = copy_type_with_substitution(con->type,
@@ -19350,6 +19361,8 @@ copy_template_param_con for the meaning of the remaining parameters.
                                          copy_error,
                                          ctws_state);
   if (*copy_error) goto done;
+  is_template_arg = (options & CTWS_NONTYPE_TEMPLATE_ARG) != 0;
+  if (is_template_arg) options &= ~CTWS_NONTYPE_TEMPLATE_ARG;
   if (explicit_cast) cast_options |= CTWS_EXPLICIT_CAST_OPERAND;
   other_con = copy_template_param_con(
                                base_con,
@@ -19376,6 +19389,7 @@ copy_template_param_con for the meaning of the remaining parameters.
        converted to its own type as a way of marking it as dependent. */
     subst_fail(*copy_error);
   } else if (!substituted_cast_is_valid(src_con, new_type, explicit_cast,
+                                        is_template_arg,
                                         &reinterpret_cast_needed)) {
     /* The cast is not valid. */
     subst_fail(*copy_error);
@@ -19822,6 +19836,8 @@ options.
        constant (e.g., X<T>::Y{3} is represented as a ck_aggregate constant of
        instantiation-dependent type, but if the substituted type ends up not
        being an aggregate, it should be treated as a cast). */
+    a_boolean  is_template_arg = (options & CTWS_NONTYPE_TEMPLATE_ARG) != 0;
+    if (is_template_arg) options &= ~CTWS_NONTYPE_TEMPLATE_ARG;
     new_type = copy_type_with_substitution(con->type,
                                            template_arg_list,
                                            template_param_list,
@@ -19844,6 +19860,7 @@ options.
           subst_fail(*copy_error);
         } else if (!substituted_cast_is_valid(src_con, new_type,
                                               con->explicit_cast_applied,
+                                              is_template_arg,
                                               &reinterpret_cast_needed)) {
           /* The cast is not valid. */
           subst_fail(*copy_error);
