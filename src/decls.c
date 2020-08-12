@@ -8210,7 +8210,9 @@ use of).
               a_routine_type_supplement_ptr brtsp;
               brtsp = skip_typerefs(brp->type)->variant.routine.extra_info;
               if (brtsp->prototyped &&
-                  types_are_redecl_compatible(rp->type, brp->type)) {
+                  f_types_are_compatible(rp->type, brp->type,
+                                         (TCF_REDECLARATION |
+                                          TCF_IGNORE_TOP_LEVEL_NOEXCEPT))) {
                 ensure_gnu_routine_supp(rp)->aliased_routine = brp;
                 rp->implicit_alias = TRUE;
                 break;

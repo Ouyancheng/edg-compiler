@@ -1,5 +1,23 @@
 Version 6.2
 
+8/12/20  [EDGcpfe/23238]
+GNU C++17 compatibility: strlen and abs folding and noexcept
+
+In GNU C and C++ modes, the front end treats certain declarations of strlen
+and abs as equivalent to __builtin_strlen and __builtin_abs, respectively
+(see, e.g., the entry for EDGcpfe/10179).  One consequence of that is that
+calls to such functions can be evaluated at compile time.  Consider:
+
+  extern "C" unsigned long strlen(char const*) noexcept;
+  constexpr auto r = strlen("");
+
+Previously, this was accepted in GNU C++11 and C++14 modes, but not in GNU
+C++17 mode because in the latter mode the "noexcept" specifier made the
+declaration incompatible with the implicit declaration of __builtin_strlen.
+That is now fixed: Top-level noexcept specifiers are now ignored for the
+purposes of linking strlen and abs to the corresponding built-in entities.
+
+
 8/12/20  [EDGcpfe/22822]
 Narrowing conversions
 
