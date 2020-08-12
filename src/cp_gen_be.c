@@ -7492,7 +7492,7 @@ such cases.
 static void gen_type_reference(a_type_ptr type)
 /*
 Generate a reference to the indicated type, which is a fundamental type, a
-tag, or a typedef.  A reference is not the definition.
+tag, a typedef, or a dependent type.  A reference is not the definition.
 */
 {
   a_type_ptr             orig_type = type;
@@ -7541,7 +7541,7 @@ tag, or a typedef.  A reference is not the definition.
     }  /* if */
   } else if (is_tag_type(type) ||
              type->kind == (a_type_kind)tk_template_param) {
-    /* A class, struct, union, enum, or template parameter type. */
+    /* A class, struct, union, enum, or dependent type. */
     a_boolean use_elab_type_spec;
     /* In C++, don't use "class X" instead of "X" unless that is required,
        e.g., because there's something else called "X" in the same scope. */
