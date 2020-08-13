@@ -1,5 +1,25 @@
 Version 6.2
 
+8/13/20  [EDGcpfe/23248]
+Segfault in scan_function_call
+
+As a result of the changes for EDGcpfe/22516 in 6.1, the following code
+had resulted in dereferencing a NULL pointer and is now fixed.  With
+--c++17 --clang:
+
+  namespace std {
+    enum class align_val_t : decltype(sizeof(0));
+  }
+  struct A {
+    template <class T> void f(void *p, T t) {
+      __builtin_operator_delete(p, t);
+    }
+    void c() {
+      f(0, std::align_val_t());
+    }
+  };
+
+
 8/12/20  [EDGcpfe/23214]
 GNU C compatibility: Folding of arithmetic on void* pointers
 

@@ -7004,7 +7004,7 @@ are expected to be NULL in that case.
          calls. */
       cast_operand(bcap->result_type, result, /*is_implicit_cast=*/TRUE);
     }  /* if */
-    if (bcap->name_reference != NULL) {
+    if (bcap->name_reference != NULL && operand_node != NULL) {
       /* The builtin call has been replaced by a call to the appropriate
          operator new/delete; use a name reference to communicate this to the
          back end so the original source can be recreated. */
