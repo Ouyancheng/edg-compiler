@@ -422,7 +422,7 @@ Abort in interpreter on template-dependent use of certain built-in functions
 
 Consider:
 
-  template<typename T> constexpr void f(T p) {
+  template<typename T> constexpr int f(T p) {
     int const r = __builtin_signbit(p);  // Previously aborted.  Now okay.
     return r;
   }
