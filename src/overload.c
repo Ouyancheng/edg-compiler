@@ -21014,20 +21014,18 @@ is_transparent.  conv_context describes the context of the conversion.
                               source_operand, /*is_constant_evaluated=*/TRUE);
       }  /* if */
       src_to_test = source_operand;
-      if (conversion->routine != NULL &&
+      if (conversion->routine != NULL && conversion->routine->is_constexpr &&
           !special_kind_is(conversion->routine, sfk_constructor)) {
         /* The conversion involves a conversion function.  Create an operand
            representing the result of invoking that conversion function and
            check any conversions that would follow that. */
         eff_src_type = return_type_of(conversion->routine->type);
-        if (is_constant_operand(source_operand)) {
-          copy_operand(source_operand, &src_copy);
-          user_convert_operand(&src_copy, eff_src_type,
-                               conversion, (a_conv_descr *)NULL,
-                               /*force_copy_to_temp=*/FALSE);
-          force_operand_to_constant_if_possible(&src_copy);
-          src_to_test = &src_copy;
-        }  /* if */
+        copy_operand(source_operand, &src_copy);
+        user_convert_operand(&src_copy, eff_src_type,
+                             conversion, (a_conv_descr *)NULL,
+                             /*force_copy_to_temp=*/FALSE);
+        force_operand_to_constant_if_possible(&src_copy);
+        src_to_test = &src_copy;
       }  /* if */
       constant_src = is_constant_operand(src_to_test);
       if (!conversion->is_explicit_cast &&
