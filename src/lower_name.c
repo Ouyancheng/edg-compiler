@@ -11714,8 +11714,13 @@ literal operator.
 #if IA64_ABI
         { a_routine_ptr routine = (a_routine_ptr)scp;
           if (routine->is_inheriting_ctor) {
-            if (ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_complete) {
-              /* Use "CI1" for "complete object inheriting constructor". */
+            if (ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_complete
+#if !DO_IL_LOWERING
+                || ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_none
+#endif /* !DO_IL_LOWERING */
+                                                                  ) {
+              /* Use "CI1" for "complete object inheriting constructor"
+                 (or in configurations where lowering isn't done). */
               name = MANGLING_STRING_FOR_INHERITING_CONSTRUCTOR "1";
             } else if (ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_subobject) {
               /* Use "CI2" for "base object inheriting constructor". */

@@ -1,5 +1,21 @@
 Version 6.2
 
+8/13/20  [EDGcpfe/23247]
+unexpected_condition in mangled_function_base_name
+
+As a result of the changes for EDGcpfe/17687 in 6.1, configurations that do
+name mangling but not lowering and use the IA-64 ABI would encounter an
+unexpected_condition in mangled_function_base_name on any use of a C++17
+inheriting constructor, e.g. (with --c++17):
+
+  struct A {
+      A(int);
+  };
+  struct B : A {
+    using A::A;
+  };
+
+
 8/13/20  [EDGcpfe/23244]
 Assertion failure in remap_secondary_pointer_for_rewrite
 
