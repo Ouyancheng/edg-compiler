@@ -14,7 +14,7 @@ one).  For example (in GNU C mode):
   }                              // Now returns 0.
 
 
-8/12/20  [EDGcpfe/23238]
+8/12/20  [EDGcpfe/21277,EDGcpfe/23238]
 GNU C++17 compatibility: strlen and abs folding and noexcept
 
 In GNU C and C++ modes, the front end treats certain declarations of strlen
