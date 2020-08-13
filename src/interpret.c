@@ -3353,7 +3353,9 @@ static a_boolean mark_whole_subobject_uninitialized(
 /*
 If tp is a scalar type, this routine does the same work as
 mark_subobject_uninitialized.  If tp is a class or array type, it marks the
-indicated subobject and all its subobject as uninitialized.
+indicated subobject and all its subobject as uninitialized.  Return TRUE if
+successful, FALSE if not (e.g., if the subobject type included a member with
+an error type).
 */
 {
   a_boolean  result = TRUE;
