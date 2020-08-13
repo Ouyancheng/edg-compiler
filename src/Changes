@@ -1,5 +1,23 @@
 Version 6.2
 
+8/13/20  [EDGcpfe/23244]
+Assertion failure in remap_secondary_pointer_for_rewrite
+
+As a result of the changes for EDGcpfe/22516 in 6.1, the aliasing of "strlen"
+and "abs" to their __builtin counterparts was broken in certain cases.  That
+led to an assertion failure in remap_secondary_pointer_for_rewrite in
+multi-translation unit mode with a case like this (with --c++11 --clang):
+
+  // File 1:
+  typedef decltype(sizeof(0)) size_t;
+  size_t length(const char* __s) { return __builtin_strlen(__s); }
+  extern "C" size_t strlen (const char *__s);
+
+  // File 2:
+  typedef decltype(sizeof(0)) size_t;
+  extern "C" size_t strlen (const char *__s);
+
+
 8/13/20  [EDGcpfe/23248]
 Segfault in scan_function_call
 

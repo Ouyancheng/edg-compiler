@@ -8203,6 +8203,8 @@ use of).
              lookup. */
           load_matching_builtin_function(loc.symbol_header);
           bsym = find_symbol(name, (sizeof_t)strlen(name), &loc);
+        }  /* if */
+        if (bsym != NULL) {
           for (; bsym != NULL; bsym = bsym->next) {
             if (is_simple_function_symbol(bsym) &&
                 !sym_is_class_or_namespace_member(bsym)) {
