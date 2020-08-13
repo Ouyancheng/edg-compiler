@@ -7791,7 +7791,7 @@ Return TRUE if the constants referred to by hx and hy are
 static inline a_boolean operator!=(a_constant_handle  hx,
                                    a_constant_handle  hy)
 /*
-Return TRUE if the constants referred to by hx and hy are
+Return TRUE if the constants referred to by hx and hy are not
 "template-argument-equivalent".
 */
 {

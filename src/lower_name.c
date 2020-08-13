@@ -6077,7 +6077,7 @@ static void mangled_braced_init_list(an_expr_node_ptr         expr_list,
                                      a_type_ptr               type,
                                      a_mangling_control_block *mctl)
 /*
-Provide mangling for an brace-enclosed initializer list for the given list of
+Provide mangling for a brace-enclosed initializer list for the given list of
 expressions or constant (which may be an aggregate).  When con is non-NULL,
 the constant is emitted as a mangled initializer list (to emulate GNU's
 mangling of compound literals), otherwise, the list of expressions (which may

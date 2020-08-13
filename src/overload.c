@@ -26459,9 +26459,9 @@ a_boolean nontype_templ_arg_of_class_type_matches(an_operand  *operand,
                                                   a_type_ptr  param_type,
                                                   a_constant  *class_con)
 /*
-Operand is an argument for nontype template parameter of class type param_type.
-Return TRUE if it matches that type and store in class_con the converted
-constant value.
+The given operand is an argument for a nontype template parameter of class
+type param_type.  Return TRUE if it matches that type and store in class_con
+the converted constant value.
 */
 {
   a_boolean             result = FALSE;
