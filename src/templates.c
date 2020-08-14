@@ -16070,8 +16070,7 @@ if none exists.
   an_instantiation_key			key;
 
   /* Construct the key value to be passed to the comparison routine. */
-  set_instantiation_key(&key, template_sym, templ_arg_list,
-                        CTWS_NO_OPTIONS);
+  set_instantiation_key(&key, template_sym, templ_arg_list, options);
   /* If no hash table exists for this template, create one now. */
   if (tssp->variant.function.substituted_types_table == NULL) {
     tssp->variant.function.substituted_types_table =
@@ -16088,6 +16087,7 @@ if none exists.
     *p_stlep = alloc_substituted_type_list_entry();
     (*p_stlep)->templ_arg_list = copy_template_arg_list(templ_arg_list);
     (*p_stlep)->type = type;
+    (*p_stlep)->options = options;
   }  /* if */
   return p_stlep == NULL ? NULL : (*p_stlep)->type;
 }  /* find_substituted_type */
@@ -17450,14 +17450,16 @@ static void verify_routine_type_matches_template(
 					a_routine_ptr		templ_rout,
 					a_type_ptr		parent_class,
 					a_template_arg_ptr	templ_arg_list,
-					a_template_instance_ptr	tip)
+					a_template_instance_ptr	tip,
+					a_ctws_options_set	ctws_options)
 /*
 Verify that the routine type associated with rout is one that can be
 generated from the template represented by templ_sym.  The purpose of
 this test is to determine whether the partial instantiation of a function
 has been affected by declarations that appeared after the template was
 declared and before the partial instantiation of the function was done.
-*/
+ctws_options specifies the CTWS options to be used when verifying the routine
+type that is created.  */
 {
   a_type_ptr  substituted_type;
   a_type_ptr  type = rout->type;
@@ -17466,7 +17468,7 @@ declared and before the partial instantiation of the function was done.
                                   templ_sym, templ_arg_list,
                                   (a_template_arg_ptr*)NULL,
                                   (a_template_param_ptr)NULL,
-                                  CTWS_IS_OVERLOAD_CANDIDATE);
+                                  ctws_options);
   if (substituted_type == NULL ||
       incompatible_substituted_and_rescanned_types_after_fixup(
                                                     substituted_type, type)) {
@@ -18146,6 +18148,7 @@ class template.  For example, if the function were in a nested class of
 static a_symbol_ptr make_template_function(
 			a_symbol_ptr		templ_sym,
 			a_template_arg_ptr	templ_arg_list,
+			a_ctws_options_set	ctws_options,
 			a_boolean		in_class_specialization)
 /*
 Allocate the symbol and routine entry for a template function, based on
@@ -18155,7 +18158,9 @@ for the instantiation (templ_arg_list) is also recorded.  Create a routine
 type based on the template argument list and the template parameter list
 (reached through templ_sym).
 
-in_class_specialization is TRUE for a Microsoft mode in-class specialization.
+ctws_options specifies the CTWS options to be used when verifying the routine
+type that is created.  in_class_specialization is TRUE for a Microsoft
+mode in-class specialization.
 */
 {
   a_symbol_ptr                      sym = NULL;
@@ -18306,7 +18311,8 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
            is also done for deduction guides (both user-declared and implicit
            ones). */
         rout_type = find_substituted_type(templ_sym, tssp, templ_arg_list,
-                                          CTWS_NO_OPTIONS, (a_type_ptr)NULL);
+                                          CTWS_IS_OVERLOAD_CANDIDATE,
+                                          (a_type_ptr)NULL);
         if (rout_type == NULL) {
           a_template_param_ptr  tpl;
           a_boolean             copy_error = FALSE;
@@ -18316,7 +18322,8 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
           rout_type = copy_type_with_substitution(templ_rout->type,
                                                   templ_arg_list, tpl,
                                                   &templ_sym->decl_position,
-                                                  CTWS_NO_OPTIONS, &copy_error,
+                                                  CTWS_IS_OVERLOAD_CANDIDATE,
+                                                  &copy_error,
                                                   &ctws_state);
           if (special_kind_is(templ_rout, sfk_conversion)) {
             if (class_type_supp(parent_class)->is_lambda_closure_class) {
@@ -18558,7 +18565,8 @@ in_class_specialization is TRUE for a Microsoft mode in-class specialization.
      template.  This is used to make sure the binding of names used in
      the declarations hasn't changed. */
   verify_routine_type_matches_template(templ_sym, rp, templ_rout,
-                                       parent_class, templ_arg_list, tip);
+                                       parent_class, templ_arg_list, tip,
+                                       ctws_options);
   /* Make the function instantiation entry and its associated symbol
      point at each other. */
   tip->instance_sym = sym;
@@ -19036,6 +19044,7 @@ created with this call.
     } else {
       /* Use the template arg list to create a new symbol. */
       sym = make_template_function(templ_sym, templ_arg_list,
+                                   CTWS_NO_OPTIONS,
 				   in_class_specialization);
       *is_new_template_instance = TRUE;
     }  /* if */
@@ -20011,6 +20020,7 @@ structure.
                                              : NULL);
     } else {
       sym = make_template_function(templ_sym, *new_list,
+                                   CTWS_IS_OVERLOAD_CANDIDATE,
                                    /*in_class_specialization=*/FALSE);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (cli_or_cx_enabled && tssp->is_generic) {
