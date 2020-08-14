@@ -15518,7 +15518,7 @@ the value representation of the integer value.
                     dst_val = &tmp;
                   }  /* if */
                   if (!err) {
-                    fp_subtract(tp->variant.float_kind, dst_val,
+                    fp_subtract(opnd2_type->variant.float_kind, dst_val,
                                 fp_value(opnd2_value), dst_val, &err,
                                 &depends_on_fp_mode);
                   }  /* if */
@@ -15678,7 +15678,7 @@ the value representation of the integer value.
                     dst_val = &tmp;
                   }  /* if */
                   if (!err) {
-                    fp_multiply(tp->variant.float_kind, dst_val,
+                    fp_multiply(opnd2_type->variant.float_kind, dst_val,
                                 fp_value(opnd2_value), dst_val, &err,
                                 &depends_on_fp_mode);
                   }  /* if */
@@ -15838,7 +15838,7 @@ the value representation of the integer value.
                     dst_val = &tmp;
                   }  /* if */
                   if (!err) {
-                    fp_divide(tp->variant.float_kind, dst_val,
+                    fp_divide(opnd2_type->variant.float_kind, dst_val,
                               fp_value(opnd2_value), dst_val, &err,
                               &depends_on_fp_mode);
                   }  /* if */

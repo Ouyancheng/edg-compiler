@@ -1,5 +1,19 @@
 Version 6.2
 
+8/14/20  [EDGcpfe/23252]
+Regression in interpretation of certain compound assignments
+
+The changes for EDGcpfe/22546 (see the entry of 4/30/20) introduced a new bug
+that caused the erroneous constant-evaluation of certain mixed-type expressions
+involving a -=, *=, or /= operator.  For example:
+
+  constexpr float f(float x) { return x -= 0.0; }
+  static_assert(f(2.0f) == 2.0f, "Unexpected");  // Previously failed.
+                                                 // Now okay.
+
+That is now fixed.
+
+
 8/13/20  [EDGcpfe/23247]
 unexpected_condition in mangled_function_base_name
 
