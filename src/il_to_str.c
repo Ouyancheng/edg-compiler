@@ -5988,8 +5988,18 @@ precedence confusion.  Do the output in the way described by octl.
       }  /* if */
       break;
     case ck_aggregate:
-      octl->output_str("{", octl);
       { a_constant_ptr sub_con = constant->variant.aggregate.first_constant;
+        a_boolean saved_in_nontype_arg =
+                                    octl->processing_nontype_template_argument;
+        if (octl->processing_nontype_template_argument &&
+            is_immediate_class_type(constant->type)) {
+          /* This is a class-typed nontype template argument.  Put out the
+             class name before the braced list (but not for any
+             subaggregates). */
+          form_name(&constant->type->source_corresp, iek_type, octl);
+          octl->processing_nontype_template_argument = FALSE;
+        }  /* if */
+        octl->output_str("{", octl);
         for (; sub_con != NULL; sub_con = sub_con->next) {
           if (sub_con->implicit_aggr_element &&
               !octl->c_generating_back_end) {
@@ -6012,8 +6022,9 @@ precedence confusion.  Do the output in the way described by octl.
             octl->output_str(", ", octl);
           }  /* if */
         }  /* for */
+        octl->output_str("}", octl);
+        octl->processing_nontype_template_argument = saved_in_nontype_arg;
       }
-      octl->output_str("}", octl);
       break;
     case ck_init_repeat:
       check_assertion(!octl->gen_compilable_code);
