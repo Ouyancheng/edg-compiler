@@ -27,6 +27,9 @@ cmd_line.h -- Declarations relating to cmd_line.c (relating
 #ifndef LANG_FEAT_H
 #include "lang_feat.h"
 #endif /* ifndef LANG_FEAT_H */
+#ifndef EDG_UTIL_H
+#include "util.h"
+#endif /* ifndef EDG_UTIL_H */
 
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
@@ -337,6 +340,8 @@ typedef enum /*an_option_kind*/ {
   optk_char8_t,
   optk_relaxed_abstract_checking,
   optk_module_dir,
+  optk_ms_module_file_map,
+  optk_ms_header_unit,
   optk_modules,
   optk_concepts,
   optk_last		/* Must be last. */
@@ -472,6 +477,20 @@ EXTERN a_boolean
 			/* TRUE if the writing of the IL file should be
 			   suppressed. */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+using a_module_file_map =
+		     Ptr_map<a_C_str_handle, a_const_char*, General_allocator>;
+EXTERN a_module_file_map
+                *mod_map;
+                        /* A map for modules to find the corresponding module
+                           file.  Keys are module names, values are paths. */
+using a_header_unit_map =
+		     Ptr_map<a_path_handle, a_const_char*, General_allocator>;
+EXTERN a_header_unit_map
+                *header_unit_map;
+                        /* A map for header units to find the corresponding
+                           module file.  Keys are header paths, values are
+                           module file paths. */
+
 
 /*
 If the heuristic used to determine whether a virtual function table

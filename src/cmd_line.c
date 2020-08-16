@@ -1015,6 +1015,12 @@ Initialize the option information table.
   add_option_description(optk_module_dir, "modules_directory", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
+  add_option_description(optk_ms_module_file_map, "ms_mod_file_map", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
+  add_option_description(optk_ms_header_unit, "ms_header_unit", '\0',
+                         /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
   add_option_description(optk_modules, "modules", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
@@ -1958,6 +1964,63 @@ compilation.
   a_const_char *file_name = file_name_in_internal_encoding(optstr);
   return file_name;
 }  /* file_name_from_opt_arg */
+
+
+static void split_opt_arg_on_char(a_const_char *optstr,
+                                  a_const_char **str1,
+                                  a_const_char **str2,
+                                  char         split_char,
+                                  a_boolean    respect_quotes)
+/*
+The command-line argument given by optstr is really a pair of arguments
+separated by split_char.  Find the first instance of split_char in optstr and
+divide the argument in two, with the first part returned in *str1 and the
+second part returned in *str2.  If respect_quotes is TRUE, all characters
+inside a quote pair are considered part of the string and cannot match
+split_char.  If there is no match to split_char, set *str2 to NULL and return
+the entirety of optstr in *str1.
+*/
+{
+  sizeof_t optlen = strlen(optstr);
+  char     cur_quote = 0, cur_char;
+
+  *str2 = NULL;
+  *str1 = optstr;
+  for (sizeof_t idx = 0; idx < optlen; ++idx) {
+    cur_char = optstr[idx];
+    if (respect_quotes) {
+      if (cur_char == '\\') {
+        /* Some character is escaped.  Skip the next character. */
+        ++idx;
+        continue;
+      }  /* if */
+      if (cur_char == cur_quote) {
+        /* End of this quote pairing. */
+        cur_quote = 0;
+        continue;
+      }  /* if */
+      if (cur_char == '"' || cur_char == '\'') {
+        /* Start of a quote pairing. */
+        cur_quote = cur_char;
+        continue;
+      }  /* if */
+    }  /* if */
+    if (cur_char == split_char) {
+      /* We've found our split point. */
+      char* new_str = alloc_general(idx + 1);
+      strncpy(new_str, optstr, idx);
+      new_str[idx] = '\0';
+      *str1 = new_str;
+      *str2 = &optstr[idx + 1];
+      break;
+    }  /* if */
+  }  /* for */
+  /* At this point either split_char was encountered in which case *str1 and
+     *str2 are set appropriately, or it wasn't encountered and they retain
+     their original settings.  It's entirely possible that an unmatched quote
+     was encountered - allow the consumer of the resulting strings to issue any
+     errors on that, as appropriate. */
+}  /* split_opt_arg_on_char */
 
 
 static void process_diag_override_option(an_option_kind kind,
@@ -9721,9 +9784,54 @@ Process the arguments on the command line that invoked the compiler.
       case optk_module_dir:
         /* Add the directory to the search path when searching for module
            files. */
-        add_to_specified_include_search_path(opt_arg, /*system_dir=*/FALSE,
+        add_to_specified_include_search_path(file_name_from_opt_arg(opt_arg),
+                                             /*system_dir=*/FALSE,
                                              &module_search_path,
                                              &end_module_search_path);
+        break;
+      case optk_ms_module_file_map:
+        { a_C_str_handle module_name;
+          a_const_char   *path;
+          split_opt_arg_on_char(opt_arg, &module_name.ptr, &path, '=',
+                                /*respect_quotes=*/TRUE);
+          if (path == NULL) {
+            /* No module name provided - add the path to a separate search
+               list. */
+            add_to_specified_include_search_path(
+                                       file_name_from_opt_arg(module_name.ptr),
+                                       /*system_dir=*/FALSE,
+                                       &mod_map_search_path,
+                                       &end_mod_map_search_path);
+          } else {
+            /* Add this module name to the map. */
+            if (mod_map->get(module_name) != NULL) {
+              str_command_line_error(ec_duplicate_module_map, module_name.ptr);
+            } else {
+              mod_map->map(module_name, file_name_from_opt_arg(path));
+            }  /* if */
+          }  /* if */
+        }
+        break;
+      case optk_ms_header_unit:
+        { a_path_handle header_path;
+          a_const_char  *module_path;
+          split_opt_arg_on_char(opt_arg, &header_path.ptr, &module_path, '=',
+                                /*respect_quotes=*/TRUE);
+          header_path.ptr = file_name_from_opt_arg(header_path.ptr);
+          if (module_path == NULL) {
+            str_command_line_error(ec_missing_header_unit_map,
+                                   header_path.ptr);
+          } else {
+            /* Add this header->module mapping. */
+            if (header_unit_map->get(header_path) != NULL) {
+              str_command_line_error(ec_duplicate_header_unit_map,
+                                     header_path.ptr);
+            } else {
+              header_unit_map->map(header_path,
+                                   file_name_from_opt_arg(module_path));
+            }  /* if */
+          }  /* if */
+        }
         break;
       case optk_modules:
         /* Enable/disable support for modules. */
@@ -11753,6 +11861,8 @@ variables declared in cmd_line.h.
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   suppress_il_file_write = FALSE;
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+  mod_map = new_general<a_module_file_map>(/*mask_width=*/4);
+  header_unit_map = new_general<a_header_unit_map>(/*mask_width=*/4);
   virtual_function_table_definition = vfd_normal;
   suppress_used_before_set_warnings = FALSE;
   addr_of_bit_field_allowed = ADDR_OF_BIT_FIELD_ALLOWED;

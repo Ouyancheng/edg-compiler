@@ -219,6 +219,9 @@ Given a module kind, return a string for that kind for use in error messages.
     case mk_ifc:
       str = error_text(ec_module_kind_ifc);
       break;
+    case mk_any:
+      str = error_text(ec_module_kind_any);
+      break;
     default:
       str = error_text(ec_module_kind_unexpected);
       unexpected_condition_str("Unexpected module kind");
@@ -244,6 +247,7 @@ file_kind (which may range from remarks to catastrophic errors).
   }  /* if */
   switch (expected_kind) {
     case mk_none:
+    case mk_any:
     case mk_edg:
       severity = es_catastrophe;
       break;
@@ -266,13 +270,15 @@ done:;
 }  /* diagnose_mismatched_module_file_kind */
 
 
-static a_boolean check_module_file(a_module_kind kind,
+static a_boolean check_module_file(a_module_kind *kind,
                                    a_const_char  *module_file)
 /*
 Return TRUE if the provided module file exists and is the given kind, FALSE
-otherwise.  This function may not return and instead issue a catastrophic error
-if the module file exists but cannot be opened, or if it does not match the
-expected kind and such a mismatch cannot be ignored.
+otherwise.  If *kind == mk_any, update *kind with the determined kind of the
+module file (any supported kind is a match).  This function may not return and
+instead issue a catastrophic error if the module file exists but cannot be
+opened, or if it does not match the expected kind and such a mismatch cannot be
+ignored.
 */
 {
   a_boolean           result = FALSE;
@@ -295,43 +301,194 @@ expected kind and such a mismatch cannot be ignored.
   /* We've found a file - determine what kind it is. */
   file_kind = determine_module_file_kind(file);
   (void)fclose(file);
-  if (kind == file_kind) {
+  if (file_kind != (a_module_kind)mk_none && *kind == (a_module_kind)mk_any) {
+    *kind = file_kind;
+  }  /* if */
+  if (*kind == file_kind) {
     result = TRUE;
   } else {
     /* Module file matched the expected extension for this type, but did
        not match the expected content indicators.  This may or may not
        issue a catastrophic error - if this returns, that means we ignore
        the file and continue on searching. */
-    diagnose_mismatched_module_file_kind(file_kind, kind, module_file);
+    diagnose_mismatched_module_file_kind(file_kind, *kind, module_file);
   }  /* if */
 done:
   return result;
 }  /* check_module_file */
 
 
-a_boolean find_module_file(a_module_ptr  mod,
-                           a_module_kind kind)
+static a_boolean module_file_matches(a_const_char  *module_name,
+                                     a_const_char  *module_file,
+                                     a_module_kind kind)
 /*
-Find the module file associated with mod and update mod with the path to the
-file.  If kind == mk_none, select the first (supported) module file
-encountered and update the kind of mod.  Otherwise, only consider module files
-of the kind indicated by kind.  Return TRUE if a module file was found, FALSE
-otherwise.
+Return TRUE if module_file is a module file for module_name (i.e., the name of
+the module in the module file matches module_name), FALSE otherwise.  kind is
+the kind of module_file.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (kind) {
+    case mk_none:
+    case mk_any:
+    case mk_header:
+      unexpected_condition_str("Unexpected module kind");
+      break;
+    case mk_edg:
+      { an_edg_module mod;
+        result = mod.matches_module(module_name, module_file);
+      }
+      break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case mk_ifc:
+      { an_ifc_module mod;
+        result = mod.matches_module(module_name, module_file);
+      }
+      break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    default_is_unexpected();
+  }  /* switch */
+  return result;
+}  /* module_file_matches */
+
+
+static a_boolean find_module_file_in_map(a_module_ptr  mod,
+                                         a_module_kind kind)
+/*
+Find the module file associated with mod in the module map and update mod with
+the path to the file.  If kind == mk_any and a mapping exists, determine the
+kind of (supported) module file encountered and update the kind of mod.
+Otherwise, only consider module files of the kind indicated by kind.  Return
+TRUE if a module file was found, FALSE otherwise.
+
+This routine is a helper for find_module_file and assumes the module file has
+not already been found - deferring diagnostics related to failing to find the
+module file to the caller.
+*/
+{
+  a_boolean      found = FALSE;
+  a_C_str_handle module_name{mod->name};
+  a_const_char   *module_path;
+
+  module_path = mod_map->get(module_name);
+  if (module_path != NULL) {
+    if (check_module_file(&kind, module_path)) {
+      mod->kind = kind;
+      mod->full_name = copy_string_to_region(file_scope_region_number,
+                                             module_path);
+      found = TRUE;
+    } else {
+      /* A mapping for this file exists but either the file cannot be read
+         (doesn't exist, insufficient permissions, etc.) or it's not the right
+         kind. */
+      pos_st_catastrophe(ec_invalid_module_file_map, &error_position,
+                         mod->name);
+    }  /* if */
+  }  /* if */
+  return found;
+}  /* find_module_file_in_map */
+
+
+static a_boolean find_header_unit_in_map(a_module_ptr  mod,
+                                         a_module_kind kind)
+/*
+Find the module file associated with mod in the header unit map and update mod
+with the path to the file.  If kind == mk_any and a mapping exists, determine
+the kind of (supported) module file encountered and update the kind of mod.
+Otherwise, only consider module files of the kind indicated by kind.  Return
+TRUE if a module file was found, FALSE otherwise.
+
+This routine is a helper for find_module_file and assumes the module file has
+not already been found - deferring diagnostics related to failing to find the
+module file to the caller.
+*/
+{
+  a_boolean     found = FALSE;
+  a_path_handle header_file{mod->name};
+  a_const_char  *module_path;
+
+  module_path = header_unit_map->get(header_file);
+  if (module_path != NULL) {
+    if (check_module_file(&kind, module_path)) {
+      mod->kind = kind;
+      mod->full_name = copy_string_to_region(file_scope_region_number,
+                                             module_path);
+      found = TRUE;
+    } else {
+      /* A mapping for this file exists but either the file cannot be read
+         (doesn't exist, insufficient permissions, etc.) or it's not the right
+         kind. */
+      pos_st_catastrophe(ec_invalid_module_file_map, &error_position,
+                         mod->name);
+    }  /* if */
+  }  /* if */
+  return found;
+}  /* find_header_unit_in_map */
+
+
+static a_boolean find_module_file_in_list(a_module_ptr  mod,
+                                          a_module_kind kind)
+/*
+Find the module file associated with mod in the list of module files and
+update mod with the path to the file.  If kind == mk_any, select the first
+(supported) module file encountered and update the kind of mod.  Otherwise,
+only consider module files of the kind indicated by kind.  Return TRUE if a
+module file was found, FALSE otherwise.
+
+This routine is a helper for find_module_file and assumes the module file has
+not already been found - deferring diagnostics related to failing to find the
+module file to the caller.
+*/
+{
+  a_boolean                  found = FALSE;
+  a_directory_name_entry_ptr mod_list = mod_map_search_path;
+
+  for (; mod_list != NULL; mod_list = mod_list->next) {
+    a_module_kind this_kind = kind;
+    if (check_module_file(&this_kind, mod_list->dir_name) &&
+        module_file_matches(mod->name, mod_list->dir_name, this_kind)) {
+      /* The file exists, is a valid kind, and matches the module. */
+      if (found) {
+        /* More than one match was found. */
+        pos_st_catastrophe(ec_multiple_module_matches, &error_position,
+                           mod->name);
+        break;
+      } else {
+        found = TRUE;
+        mod->kind = this_kind;
+        mod->full_name = copy_string_to_region(file_scope_region_number,
+                                               mod_list->dir_name);
+        /* MSVC issues an error if more than one file in the list matches, so
+           we must search the entire list even if we've found one. */
+        if (!microsoft_mode) {
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return found;
+}  /* find_module_file_in_list */
+
+
+static a_boolean find_module_file_in_dirs(a_module_ptr  mod,
+                                          a_module_kind kind)
+/*
+Find the module file associated with mod in the module search paths and
+update mod with the path to the file.  If kind == mk_any, select the first
+(supported) module file encountered and update the kind of mod.  Otherwise,
+only consider module files of the kind indicated by kind.  Return TRUE if a
+module file was found, FALSE otherwise.
+
+This routine is a helper for find_module_file and assumes the module file has
+not already been found - deferring diagnostics related to failing to find the
+module file to the caller.
 */
 {
   a_boolean                  found = FALSE;
   a_directory_name_entry_ptr dir = module_search_path;
   a_const_char               *module_name;
 
-  if (skip_module_imports) {
-    found = FALSE;
-    goto done;
-  }  /* if */
-  if (mod->full_name != NULL) {
-    /* Module file has already been found. */
-    found = TRUE;
-    goto done;
-  }  /* if */
   module_name = get_module_file_base_name(mod->name);
   for (; !found && dir != NULL; dir = dir->next) {
     /* combine_dir_and_file_name clears the buffer for us. */
@@ -342,9 +499,10 @@ otherwise.
     remove_null_terminator_from_text_buffer(module_search_buffer);
     add_to_text_buffer(module_search_buffer, ".ext", 5);
     for (const auto& suffix : module_file_suffixes) {
-      if (kind != (a_module_kind)mk_none && suffix.kind != kind) continue;
+      a_module_kind skind = suffix.kind;
+      if (kind != (a_module_kind)mk_any && suffix.kind != kind) continue;
       replace_file_name_suffix(suffix.suffix, module_search_buffer);
-      if (check_module_file(suffix.kind, module_search_buffer->buffer)) {
+      if (check_module_file(&skind, module_search_buffer->buffer)) {
         found = TRUE;
         mod->kind = suffix.kind;
         mod->full_name = copy_string_to_region(file_scope_region_number,
@@ -353,8 +511,57 @@ otherwise.
       }  /* if */
     }  /* for */
   }  /* for */
-  if (!found) {
-    pos_st_catastrophe(ec_module_file_not_found, &error_position, mod->name);
+  return found;
+}  /* find_module_file_in_dirs */
+
+
+a_boolean find_module_file(a_module_ptr  mod,
+                           a_module_kind kind)
+/*
+Find the module file associated with mod and update mod with the path to the
+file.  If kind == mk_any, select the first (supported) module file encountered
+and update the kind of mod.  Otherwise, only consider module files of the kind
+indicated by kind.  Return TRUE if a module file was found, FALSE otherwise.
+*/
+{
+  a_boolean found = FALSE;
+
+  if (mod->full_name != NULL) {
+    /* Module file has already been found. */
+    found = TRUE;
+  }  /* if */
+  if (found || skip_module_imports) {
+    goto done;
+  }  /* if */
+  if (mod->kind == (a_module_kind)mk_header) {
+    a_boolean    is_system_include;
+    a_const_char *header_path;
+
+    check_assertion(curr_token == tok_header_name);
+    is_system_include = *start_of_curr_token == '<';
+    header_path = resolve_header(mod->name, is_system_include,
+                                  /*is_include_next=*/FALSE,
+                                  /*suppress_diagnostics=*/FALSE);
+    if (header_path == NULL) {
+      pos_st_catastrophe(ec_cannot_find_header_for_import, &error_position,
+                          mod->name);
+    } else {
+      mod->name = header_path;
+      found = find_header_unit_in_map(mod, kind);
+    }  /* if */
+  } else {
+    found = find_module_file_in_map(mod, kind);
+    if (!found) {
+      found = find_module_file_in_list(mod, kind);
+    }  /* if */
+    if (!found) {
+      found = find_module_file_in_dirs(mod, kind);
+    }  /* if */
+    if (!found) {
+      pos_st_catastrophe(ec_module_file_not_found, &error_position, mod->name);
+    } else if (!module_file_matches(mod->name, mod->full_name, mod->kind)) {
+      pos_st_catastrophe(ec_module_file_mismatch, &error_position, mod->name);
+    }  /* if */
   }  /* if */
 done:
   return found;
@@ -379,6 +586,7 @@ Import the module file specified in the module-import-declaration.
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case mk_none:
+    case mk_any:
     case mk_header:
     default:
       unexpected_condition_str("Unexpected module kind for import.");
@@ -528,33 +736,7 @@ the specified module.
   return *p;
 }  /* get_module_entity_ptr */
 
-#if USE_VIRTUAL_FUNCTIONS
-
-a_module_interface::~a_module_interface() EDG_NOEXCEPT = default;
-
-#else /* !USE_VIRTUAL_FUNCTIONS */
-
-/*lint -save -e1540*/
-a_module_interface::~a_module_interface() EDG_NOEXCEPT
-{
-  switch (mod_kind) {
-    case mk_none:
-      /* This is the actual object. */
-      break;
-    case mk_edg:
-      ((an_edg_module*)this)->~an_edg_module();
-      break;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    case mk_ifc:
-      ((an_ifc_module*)this)->~an_ifc_module();
-      break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    default:
-      unexpected_condition();
-  }  /* switch */
-}  /* ~a_module_interface */
-/*lint -restore*/
-
+#if !USE_VIRTUAL_FUNCTIONS
 
 /*lint -esym(1714,*a_module_interface::is_open)*/ /* FIXME: temporary*/
 a_boolean a_module_interface::is_open() const
@@ -657,7 +839,7 @@ Dispatch the pch_reset() call to the variant for the actual object.
   }  /* switch */
 }  /* pch_reset */
 
-#endif /* USE_VIRTUAL_FUNCTIONS */
+#endif /* !USE_VIRTUAL_FUNCTIONS */
 
 void a_module_interface::set_name(a_const_char *module_name)
 /*

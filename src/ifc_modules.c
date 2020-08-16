@@ -803,6 +803,54 @@ field is encountered, an IL entity and symbol are created at that time.
 #endif /* DEBUG */
 }  /* defer_symbol_creation */
 
+
+a_boolean an_ifc_module::matches_module(a_const_char *module_name,
+                                        a_const_char *module_file)
+/*
+Return TRUE if module_file is an IFC module file for module_name, FALSE
+otherwise.
+*/
+{
+  a_boolean            result = FALSE;
+  a_module_import_decl mid;
+  a_module             mod;
+
+  mid.module_info = &mod;
+  mod.full_name = module_file;
+  if (open_and_map_ifc_module_file(&mid, /*issue_diag=*/FALSE)) {
+    a_C_str_handle this_name;
+    /* Read the IFC file header (which starts after the magic number). */
+    init_byte_buffer(4, f_size - 4);
+    get_File_Header(&header, /*fill_storage=*/TRUE);
+#if USE_MMAP_FOR_MEMORY_REGIONS
+    string_table = (a_const_char*)mmap_addr + header.string_table_bytes;
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+    string_table = alloc_il(header.string_table_size);
+    fseek(f_module, header.string_table_bytes, SEEK_SET);
+    if (fread((void*)string_table, 1, header.string_table_size, f_module) !=
+                                                    header.string_table_size) {
+      unexpected_condition_str("Failed to load the IFC module string table");
+    }  /* if */
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+    switch (unit_tag(header.unit)) {
+      case ifc_UnitSort_Source:
+      case ifc_UnitSort_Header:
+        this_name.ptr = NULL;
+        break;
+      case ifc_UnitSort_Primary:
+      case ifc_UnitSort_Partition:
+      case ifc_UnitSort_ExportedTU:
+        this_name.ptr =
+                 get_string_at_offset((ifc_TextOffset)unit_value(header.unit));
+        break;
+      default_is_unexpected();
+    }  /* switch */
+    result = (this_name == module_name);
+    close();
+  }  /* if */
+  return result;
+}  /* matches_module */
+
 #if CHECKING
 
 static void validate_partition_size(an_ifc_partition      *pp,
@@ -1412,7 +1460,7 @@ been confirmed to exist and the path stored in midp.
   check_assertion(midp->module_info->kind == (a_module_kind)mk_ifc);
   check_assertion(mod->name != NULL && mod->full_name != NULL);
   check_assertion(mod->module_interface == this);
-  if (open_and_map_ifc_module_file(midp)) {
+  if (open_and_map_ifc_module_file(midp, /*issue_diag=*/TRUE)) {
     result = TRUE;
     assoc_module_info = mod;
     set_name(mod->name);
@@ -1586,7 +1634,7 @@ module.  Note that the mmap-ed address does not need to be at the same
 location as the original.
 */
 {
-  if (!open_and_map_ifc_module_file(midp)) {
+  if (!open_and_map_ifc_module_file(midp, /*issue_diag=*/TRUE)) {
     /* This shouldn't happen (the PCH processing checks the existence and
        modification time of module files). */
     unexpected_condition();
@@ -2300,12 +2348,13 @@ Print debug information related to a module entity that refers to this module.
 #endif /* DEBUG */
 
 a_boolean an_ifc_module::open_and_map_ifc_module_file(
-                                                 a_module_import_decl_ptr midp)
+                                           a_module_import_decl_ptr midp,
+                                           a_boolean                issue_diag)
 /*
 Open the module file and map it into the process' address space.  Note that
 this is also used after restoring from a PCH file.  Returns TRUE if the
-module file was successfully opened and FALSE (with an error message)
-otherwise.
+module file was successfully opened and FALSE (with an error message if
+issue_diag == TRUE) otherwise.
 */
 {
   a_module_ptr  mod = midp->module_info;
@@ -2368,7 +2417,7 @@ otherwise.
       (void)fclose(file);
     }  /* if */
   }  /* if */
-  if (err) {
+  if (err && issue_diag) {
     /* FIXME: perhaps better error messages here. */
     pos_st_error(ec_cannot_import_module, &midp->module_name_position,
                  mod->full_name);

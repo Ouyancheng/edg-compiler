@@ -114,7 +114,7 @@ struct a_module_interface {
     : mod_kind(iface_kind)
 #endif /* !USE_VIRTUAL_FUNCTIONS */
     {}
-  VIRTUAL ~a_module_interface() EDG_NOEXCEPT;
+  VIRTUAL ~a_module_interface() EDG_NOEXCEPT = default;
 
 /* State query functions. */
   VIRTUAL a_boolean is_open() const ABSTRACT;
@@ -156,7 +156,7 @@ extern a_boolean check_module_has_interface_dependency(
                                            a_symbol_ptr          interface_sym,
                                            a_source_position_ptr module_pos);
 
-extern a_boolean find_module_file(a_module_ptr  midp,
+extern a_boolean find_module_file(a_module_ptr  mod,
                                   a_module_kind kind);
 
 extern void import_module_file(a_module_import_decl_ptr midp);
@@ -183,6 +183,10 @@ EDG implementation of modules.
 struct an_edg_module : public a_module_interface {
   an_edg_module() : a_module_interface((a_module_kind)mk_edg) {}
   ~an_edg_module() EDG_NOEXCEPT = default;
+
+  a_boolean matches_module(a_const_char *module_name,
+                           a_const_char *module_file)
+    { unexpected_condition_str("Unimplemented"); /*lint -e527*/ return FALSE; }
 
   a_boolean is_open() const OVERRIDE
     { unexpected_condition_str("Unimplemented"); /*lint -e527*/ return FALSE; }

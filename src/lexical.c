@@ -5725,18 +5725,21 @@ is TRUE, and search_path is empty.
 }  /* search_for_input_file */
 
 
-a_boolean header_can_be_found(a_const_char *filename,
-                              a_boolean    is_system_include,
-                              a_boolean    is_include_next)
+a_const_char *resolve_header(a_const_char *filename,
+                             a_boolean    is_system_include,
+                             a_boolean    is_include_next,
+                             a_boolean    suppress_diagnostics)
 /*
-Return TRUE if filename can be opened as a header file.  If is_include_next
+Determine if filename can be opened as a header file.  Return the resolved
+path to the header file, or NULL if it could not be opened.  If is_include_next
 is TRUE, the search path is the remainder of the list by which the current
 file was found; otherwise, the search path is the one appropriate to the
-value of is_system_include.
+value of is_system_include.  If suppress_diagnostics is TRUE, suppress
+diagnostics related to the failure to find the header file.
 */
 {
-  a_boolean                  result;
-  a_const_char               *temp_file_name;
+  a_boolean                  found;
+  a_const_char               *result;
   FILE                       *fp;
   a_boolean                  suppress_include;
   an_open_file_result        open_result;
@@ -5756,19 +5759,39 @@ value of is_system_include.
     search_path = is_system_include ? sys_incl_search_path
                                     : incl_search_path;
   }  /* if */
-  result = search_for_input_file(filename, /*use_search_path=*/TRUE,
-                                 search_path, include_file_suffix_list,
-                                 /*is_implicit_include=*/FALSE,
-                                 is_system_include,
-                                 /*is_preinclude=*/FALSE,
-                                 &temp_file_name, &fp, &suppress_include,
-                                 &open_result, &unicode_source_kind,
-                                 &dir_entry, /*suppress_diagnostics=*/TRUE);
+  found = search_for_input_file(filename, /*use_search_path=*/TRUE,
+                                search_path, include_file_suffix_list,
+                                /*is_implicit_include=*/FALSE,
+                                is_system_include, /*is_preinclude=*/FALSE,
+                                &result, &fp, &suppress_include,
+                                &open_result, &unicode_source_kind,
+                                &dir_entry, suppress_diagnostics);
   if (fp != NULL) {
     /* If the file was opened, close it. */
     fclose(fp);
   }  /* if */
+  if (!found) {
+    result = NULL;
+  }  /* if */
   return result;
+}  /* resolve_header */
+
+
+a_boolean header_can_be_found(a_const_char *filename,
+                              a_boolean    is_system_include,
+                              a_boolean    is_include_next)
+/*
+Return TRUE if filename can be opened as a header file.  If is_include_next
+is TRUE, the search path is the remainder of the list by which the current
+file was found; otherwise, the search path is the one appropriate to the
+value of is_system_include.
+*/
+{
+  a_const_char *header_path;
+
+  header_path = resolve_header(filename, is_system_include, is_include_next,
+                               /*suppress_diagnostics=*/TRUE);
+  return (header_path != NULL);
 }  /* header_can_be_found */
 
 

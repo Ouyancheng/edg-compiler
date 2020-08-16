@@ -3066,11 +3066,22 @@ EXTERN a_directory_name_entry_ptr
 			   The name strings are in general storage. */
 
 /*
-Search path for module files.
+Search path for module files.  Each path is a directory to be searched for
+files.
 */
 EXTERN a_directory_name_entry_ptr
                 module_search_path,
                 end_module_search_path;
+                        /* Beginning and end pointers for the list.
+                           The name strings are in general storage. */
+
+/*
+Search path for module files.  Each path is a specific module file to be
+checked (the name is expected to be encoded within the module file).
+*/
+EXTERN a_directory_name_entry_ptr
+                mod_map_search_path,
+                end_mod_map_search_path;
                         /* Beginning and end pointers for the list.
                            The name strings are in general storage. */
 

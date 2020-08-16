@@ -2324,6 +2324,169 @@ Output some information about the map's key contents to f_debug.
 
 #endif /* DEBUG */
 
+
+struct a_C_str_handle {
+  /* A structure that wraps a C-string to enable operations such as equality
+     and hashing to operate with string semantics as opposed to raw pointer
+     semantics. */
+  a_const_char
+		*ptr;
+			/* Pointer to the C-string. */
+
+
+  bool operator==(a_const_char* other) const
+  /* Return TRUE if the string referred to by ptr is the same as the string
+     pointed to by other.  If both pointers are NULL then the "strings" are
+     considered the same. */
+  {
+    a_boolean result;
+    if (ptr == NULL || other == NULL) {
+      result = (ptr == other);
+    } else {
+      result = (strcmp(ptr, other) == 0);
+    }  /* if */
+    return result;
+  }  /* operator== */
+
+
+  bool operator==(const a_C_str_handle other) const
+  /* Return TRUE if the string referred to by ptr is the same as the string
+     contained by other. */
+  {
+    return other == ptr;
+  }  /* operator== */
+
+
+  bool operator!=(a_const_char* other) const
+  /* Return TRUE if the string referred to by ptr is not the same as the string
+     pointed to by other.  If both pointers are NULL then the "strings" are
+     considered the same. */
+  {
+    return !(*this == other);
+  }  /* operator!= */
+
+
+  bool operator!=(const a_C_str_handle other) const
+  /* Return TRUE if the string referred to by ptr is not the same as the string
+     contained by other. */
+  {
+    return other != ptr;
+  }  /* operator!= */
+};
+
+
+inline a_boolean operator==(a_const_char* str1, a_C_str_handle str2)
+/*
+Return TRUE if the string contained by str2 is the same as str1.
+*/
+{
+  return str2 == str1;
+}  /* operator== */
+
+
+inline a_boolean operator!=(a_const_char* str1, a_C_str_handle str2)
+/*
+Return TRUE if the string contained by str2 is not the same as str1.
+*/
+{
+  return str2 != str1;
+}  /* operator != */
+
+
+struct a_path_handle {
+  /* A structure that wraps a path stored in a C-string to enable operations
+     such as equality and hashing to operate with path semantics as opposed to
+     raw pointer (or string) semantics. */
+  a_const_char
+		*ptr;
+			/* Pointer to the path. */
+
+
+  bool operator==(a_const_char* other) const
+  /* Return TRUE if the path referred to by ptr is the same as the path
+     pointed to by other.  If both pointers are NULL then the "paths" are
+     considered the same. */
+  {
+    a_boolean result;
+    if (ptr == NULL || other == NULL) {
+      result = (ptr == other);
+    } else {
+      result = (f_compare_file_names(ptr, other, /*ignore_delimiters=*/FALSE,
+                                     /*is_partial_file_name=*/TRUE) == 0);
+    }  /* if */
+    return result;
+  }  /* operator== */
+
+
+  bool operator==(const a_path_handle other) const
+  /* Return TRUE if the path referred to by ptr is the same as the path
+     contained by other. */
+  {
+    return other == ptr;
+  }  /* operator== */
+
+
+  bool operator!=(a_const_char* other) const
+  /* Return TRUE if the path referred to by ptr is not the same as the path
+     pointed to by other.  If both pointers are NULL then the "paths" are
+     considered the same. */
+  {
+    return !(*this == other);
+  }  /* operator!= */
+
+
+  bool operator!=(const a_path_handle other) const
+  /* Return TRUE if the path referred to by ptr is not the same as the path
+     contained by other. */
+  {
+    return other != ptr;
+  }  /* operator!= */
+};
+
+
+inline a_boolean operator==(a_const_char* path1, a_path_handle path2)
+/*
+Return TRUE if the path contained by path2 is the same as path1.
+*/
+{
+  return path2 == path1;
+}  /* operator== */
+
+
+inline a_boolean operator!=(a_const_char* path1, a_path_handle path2)
+/*
+Return TRUE if the path contained by path2 is not the same as path1.
+*/
+{
+  return path2 != path1;
+}  /* operator != */
+
+
+/*
+This is declared in symbol_tbl.h.  To avoid potential circular references,
+declare it here as well.
+*/
+extern a_hash_value hash_source_string(a_void_ptr  key);
+
+
+inline uintptr_t hash_ptr(a_C_str_handle str)
+/* Compute a hash for the given C-string.  The hash must be appropriate for
+   Ptr_map. */
+{
+  return (uintptr_t)hash_source_string((a_void_ptr)str.ptr);
+}  /* hash_ptr */
+
+
+inline uintptr_t hash_ptr(a_path_handle path)
+/* Compute a hash for the given path.  The hash must be appropriate for
+   Ptr_map. */
+{
+  a_const_char *norm_path = normalize_file_name(path.ptr);
+
+  return (uintptr_t)hash_source_string((a_void_ptr)norm_path);
+}  /* hash_ptr */
+
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 

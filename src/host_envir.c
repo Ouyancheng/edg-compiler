@@ -4648,8 +4648,10 @@ file names are not known to be relative to the current directory.
     char	*dir2;
     /* Normalize the directory names so that "./x.h" and "x.h" will
        compare equal. */
-    dir1 = directory_of(start1);
-    dir2 = directory_of(start2);
+    dir1 = f_directory_of(start1,
+                          /*in_general_memory=*/mem_region_table == NULL);
+    dir2 = f_directory_of(start2,
+                          /*in_general_memory=*/mem_region_table == NULL);
     if (compare_dir_names(dir1, dir2, is_partial_file_name) == 0) {
       match = TRUE;
     }  /* if */
@@ -5860,6 +5862,8 @@ This is done before command line processing.
   stack_referenced_include_directories = STACK_REFERENCED_INCLUDE_DIRECTORIES;
   module_search_path = NULL;
   end_module_search_path = NULL;
+  mod_map_search_path = NULL;
+  end_mod_map_search_path = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   assembly_search_path = NULL;
   end_assembly_search_path = NULL;

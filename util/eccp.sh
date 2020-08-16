@@ -769,6 +769,8 @@ check_abbreviation()
 --module_init
 --modules
 --modules_directory
+--ms_mod_file_map
+--ms_header_unit
 --ms_c++14
 --ms_c++17
 --ms_c++20
@@ -1739,6 +1741,8 @@ process_option()
          --microsoft_version | \
          --mmap_address | \
          --modules_directory | \
+         --ms_mod_file_map | \
+         --ms_header_unit | \
          --gnu_version | \
          --clang_version | \
 	 --definition_list_file | \
@@ -1788,6 +1792,20 @@ process_option()
           fi
           curr_param=`native_path "$curr_param"`
           ;;
+        --ms_mod_file_map | --ms_header_unit)
+          # Need to split on the '=' and convert the appropriate paths.
+          arg1=`expr "$curr_param" : '\(.*\)=.*'`
+          arg2=`expr "$curr_param" : '.*=\(.*\)'`
+          if [ -z "$arg1" -o -z "$arg2" ] ; then
+            curr_param=`native_path "$curr_param"`
+          else
+            if [ $arg != "--ms_mod_file_map" ] ; then
+              arg1=`native_path "$arg1"`
+            fi
+            arg2=`native_path "$arg2"`
+            curr_param="$arg1=$arg2"
+          fi
+          ;;
         --target)
           # Capture the specified target configuration.
           target="$curr_param"
@@ -1832,7 +1850,9 @@ process_option()
           --mmap_address=* | \
           --microsoft_build_number=* | \
           --microsoft_version=* | \
-          --ms_modules_directory=* | \
+          --modules_directory=* | \
+          --ms_mod_file_map=* | \
+          --ms_header_unit=* | \
           --gnu_version=* | \
           --clang_version=* | \
           --pending_instantiations=* | \
@@ -1889,7 +1909,7 @@ process_option()
           # Convert relative --include_directory  paths to absolute ones,
           # if necessary.
           dir_name=`expr $arg : '.*=\(.*\)'`    # Get the string after the =
-          opt_name=`expr $arg : '\(.*\)=.*'`    # Get the before the =
+          opt_name=`expr $arg : '\(.*\)=.*'`    # Get the string before the =
           if [ $EDG_USE_ABSOLUTE_INCL_DIR_PATHS -eq 1 ] ; then
             if [ "$dir_name" != "-" ] ; then
               absolute_path=`expr $dir_name : '/.*'`
@@ -1901,6 +1921,24 @@ process_option()
             fi
           fi
           curr_arg=$opt_name=`native_path "$dir_name"`
+          ;;
+        --ms_mod_file_map=* | \
+        --ms_header_unit=*)
+          # Need to split on the '=' and convert the appropriate paths.
+          opt_arg=`expr $arg : '[^=]*=\(.*\)'`  # Get the string after the =
+          opt_name=`expr $arg : '\([^=]*\)=.*'` # Get the string before the =
+          arg1=`expr $opt_arg : '\(.*\)=.*'`
+          arg2=`expr $opt_arg : '.*=\(.*\)'`
+          if [ -z "$arg1" -o -z "$arg2" ] ; then
+            opt_arg=`native_path "$opt_arg"`
+            curr_arg="$opt_name=$opt_arg"
+          else
+            if [ $opt_name != "--ms_mod_file_map" ] ; then
+              arg1=`native_path "$arg1"`
+            fi
+            arg2=`native_path "$arg2"`
+            curr_arg="$opt_name=$arg1=$arg2"
+          fi
           ;;
         --target=*)
           # Capture the specified target configuration.

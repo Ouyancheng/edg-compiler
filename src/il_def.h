@@ -17238,7 +17238,8 @@ enum a_module_kind_tag {
   mk_none,		/* An unknown module. */
   mk_header,		/* An importable header. */
   mk_edg,		/* An EDG module. */
-  mk_ifc		/* A Microsoft IFC module. */
+  mk_ifc,		/* A Microsoft IFC module. */
+  mk_any		/* Any kind of module. */
 };
 
 typedef a_byte a_module_kind;

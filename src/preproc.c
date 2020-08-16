@@ -1393,15 +1393,60 @@ pass_stdarg_references_to_generated_code.
 }  /* proc_include */
 
 
+static a_boolean check_module_already_imported(a_module_import_decl_ptr midp)
+/*
+Check if the module import declaration imports a module that has already been
+imported.  If so, return TRUE and update *midp to refer to the original import
+declaration.  Otherwise, return FALSE and leave *midp unmodified.
+*/
+{
+  a_boolean    already_included = FALSE;
+  a_module_ptr mod = midp->module_info;
+
+  for (a_module_import_decl_ptr ptr = il_header.imported_modules;
+       ptr != NULL; ptr = ptr->next) {
+    a_boolean    same_name, same_file;
+
+    /* Check both the name of the module and the resolved module file (a header
+       unit could possibly reference the same module file from multiple
+       paths). */
+    same_name = (strcmp(ptr->module_info->name, mod->name) == 0);
+    same_file = (mod->full_name != NULL &&
+                 strcmp(ptr->module_info->full_name, mod->full_name) == 0);
+    if (same_name || same_file) {
+      pos_st_remark(ec_module_already_imported, &midp->module_name_position,
+                    mod->name);
+      *midp = *ptr;
+      already_included = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return already_included;
+}  /* check_module_already_imported */
+
+
 static void import_header_module(a_module_import_decl_ptr midp)
 /*
 Import the given header module.
 */
 {
-  /* The set of importable headers is implementation defined.  Currently no
-     headers are importable. */
-  pos_st_error(ec_header_not_importable, &midp->module_name_position,
-               midp->module_info->name);
+  /* See if there's a known module file for the imported header and import
+     that file if so. */
+  if (find_module_file(midp->module_info, (a_module_kind)mk_any)) {
+    if (!check_module_already_imported(midp)) {
+      import_module_file(midp);
+      /* Add this to the list of imported modules regardless of whether the
+         import was successful - future attempts to import the same module
+         aren't likely to succeed if this one failed. */
+      midp->next = il_header.imported_modules;
+      il_header.imported_modules = midp;
+    }  /* if */
+  } else {
+    /* The set of importable headers is implementation defined.  Currently no
+       headers are importable. */
+    pos_st_catastrophe(ec_header_not_importable, &midp->module_name_position,
+                       midp->module_info->name);
+  }  /* if */
 }  /* import_header_module */
 
 
@@ -1414,20 +1459,11 @@ Import the given module.  assoc_sym is the associated symbol for the module.
   a_boolean already_included = FALSE;
 
   /* See if this module has already been imported.  If so, ignore it. */
-  for (a_module_import_decl_ptr ptr = il_header.imported_modules;
-       ptr != NULL; ptr = ptr->next) {
-    if (strcmp(ptr->module_info->name, midp->module_info->name) == 0) {
-      pos_st_remark(ec_module_already_imported, &midp->module_name_position,
-                    midp->module_info->name);
-      *midp = *ptr;
-      already_included = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
+  already_included = check_module_already_imported(midp);
   if (!already_included &&
       !check_module_has_interface_dependency(assoc_sym, curr_module_sym,
                                              &midp->module_name_position)) {
-    if (find_module_file(midp->module_info, (a_module_kind)mk_none)) {
+    if (find_module_file(midp->module_info, (a_module_kind)mk_any)) {
       import_module_file(midp);
     }  /* if */
     /* Add this to the list of imported modules regardless of whether the
@@ -1503,7 +1539,7 @@ can only occur inside a global module fragment.
     /* FIXME: attach symbol to the appropriate place */
     /* We don't currently know what kind of module this is. */
     midp->module_name_position = pos;
-    midp->module_info = alloc_module((a_module_kind)mk_none);
+    midp->module_info = alloc_module((a_module_kind)mk_any);
     midp->module_info->name = module_sym->header->identifier;
   }  /* if */
   if (!err) {

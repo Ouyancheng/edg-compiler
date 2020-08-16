@@ -2161,6 +2161,9 @@ public:
   {}
   VIRTUAL ~an_ifc_module() EDG_NOEXCEPT = default;
 
+  a_boolean matches_module(a_const_char *module_name,
+                           a_const_char *module_file);
+
   inline a_boolean is_open() const OVERRIDE {
     return f_module != NULL;
   }
@@ -2200,7 +2203,8 @@ private:
   inline void get_bytes(void      *entity,
                         size_t    length,
                         a_boolean header_bytes) const;
-  a_boolean open_and_map_ifc_module_file(a_module_import_decl_ptr midp);
+  a_boolean open_and_map_ifc_module_file(a_module_import_decl_ptr midp,
+                                         a_boolean                issue_diag);
   static an_ifc_partition_map *find_ifc_partition(a_const_char *name);
   void transitive_import_module(const ifc_ModuleReference *ref);
   void import_referenced_modules();
