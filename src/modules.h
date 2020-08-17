@@ -184,8 +184,8 @@ struct an_edg_module : public a_module_interface {
   an_edg_module() : a_module_interface((a_module_kind)mk_edg) {}
   ~an_edg_module() EDG_NOEXCEPT = default;
 
-  a_boolean matches_module(a_const_char *module_name,
-                           a_const_char *module_file)
+  a_boolean matches_module(ARG_UNUSED a_const_char *module_name,
+                           ARG_UNUSED a_const_char *module_file)
     { unexpected_condition_str("Unimplemented"); /*lint -e527*/ return FALSE; }
 
   a_boolean is_open() const OVERRIDE

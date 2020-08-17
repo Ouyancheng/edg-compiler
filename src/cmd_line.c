@@ -1991,7 +1991,7 @@ the entirety of optstr in *str1.
     if (respect_quotes) {
       if (cur_char == '\\') {
         /* Some character is escaped.  Skip the next character. */
-        ++idx;
+        ++idx;/*lint !e850*/
         continue;
       }  /* if */
       if (cur_char == cur_quote) {
@@ -1999,7 +1999,7 @@ the entirety of optstr in *str1.
         cur_quote = 0;
         continue;
       }  /* if */
-      if (cur_char == '"' || cur_char == '\'') {
+      if (cur_quote == 0 && (cur_char == '"' || cur_char == '\'')) {
         /* Start of a quote pairing. */
         cur_quote = cur_char;
         continue;

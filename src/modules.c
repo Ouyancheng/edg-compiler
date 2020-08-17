@@ -453,7 +453,7 @@ module file to the caller.
         /* More than one match was found. */
         pos_st_catastrophe(ec_multiple_module_matches, &error_position,
                            mod->name);
-        break;
+        /* break; */  /* Unreachable as pos_st_catastrophe exits. */
       } else {
         found = TRUE;
         mod->kind = this_kind;

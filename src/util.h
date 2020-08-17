@@ -2332,50 +2332,27 @@ struct a_C_str_handle {
   a_const_char
 		*ptr;
 			/* Pointer to the C-string. */
-
-
-  bool operator==(a_const_char* other) const
-  /* Return TRUE if the string referred to by ptr is the same as the string
-     pointed to by other.  If both pointers are NULL then the "strings" are
-     considered the same. */
-  {
-    a_boolean result;
-    if (ptr == NULL || other == NULL) {
-      result = (ptr == other);
-    } else {
-      result = (strcmp(ptr, other) == 0);
-    }  /* if */
-    return result;
-  }  /* operator== */
-
-
-  bool operator==(const a_C_str_handle other) const
-  /* Return TRUE if the string referred to by ptr is the same as the string
-     contained by other. */
-  {
-    return other == ptr;
-  }  /* operator== */
-
-
-  bool operator!=(a_const_char* other) const
-  /* Return TRUE if the string referred to by ptr is not the same as the string
-     pointed to by other.  If both pointers are NULL then the "strings" are
-     considered the same. */
-  {
-    return !(*this == other);
-  }  /* operator!= */
-
-
-  bool operator!=(const a_C_str_handle other) const
-  /* Return TRUE if the string referred to by ptr is not the same as the string
-     contained by other. */
-  {
-    return other != ptr;
-  }  /* operator!= */
 };
 
 
-inline a_boolean operator==(a_const_char* str1, a_C_str_handle str2)
+inline a_boolean operator==(const a_C_str_handle str1,
+                            a_const_char         *str2)
+/* Return TRUE if the string contained by str1 is the same as the string
+   pointed to by str2.  If both pointers are NULL then the "strings" are
+   considered the same. */
+{
+  a_boolean result;
+  if (str1.ptr == NULL || str2 == NULL) {
+      result = (str1.ptr == str2);
+  } else {
+    result = (strcmp(str1.ptr, str2) == 0);
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+inline a_boolean operator==(a_const_char         *str1,
+                            const a_C_str_handle str2)
 /*
 Return TRUE if the string contained by str2 is the same as str1.
 */
@@ -2384,13 +2361,42 @@ Return TRUE if the string contained by str2 is the same as str1.
 }  /* operator== */
 
 
-inline a_boolean operator!=(a_const_char* str1, a_C_str_handle str2)
+inline a_boolean operator==(const a_C_str_handle str1,
+                            const a_C_str_handle str2)
+/* Return TRUE if the string contained by str1 is the same as the string
+   contained by str2. */
+{
+  return str1 == str2.ptr;
+}  /* operator== */
+
+
+inline a_boolean operator!=(const a_C_str_handle str1,
+                            a_const_char         *str2)
+/* Return TRUE if the string contained by str1 is not the same as the string
+   pointed to by str2.  If both pointers are NULL then the "strings" are
+   considered the same. */
+{
+  return !(str1 == str2);
+}  /* operator!= */
+
+
+inline a_boolean operator!=(a_const_char         *str1,
+                            const a_C_str_handle str2)
 /*
 Return TRUE if the string contained by str2 is not the same as str1.
 */
 {
   return str2 != str1;
 }  /* operator != */
+
+
+inline a_boolean operator!=(const a_C_str_handle str1,
+                            const a_C_str_handle str2)
+/* Return TRUE if the string contained by str1 is not the same as the string
+   contained by str2. */
+{
+  return !(str1 == str2);
+}  /* operator!= */
 
 
 struct a_path_handle {
@@ -2400,51 +2406,29 @@ struct a_path_handle {
   a_const_char
 		*ptr;
 			/* Pointer to the path. */
-
-
-  bool operator==(a_const_char* other) const
-  /* Return TRUE if the path referred to by ptr is the same as the path
-     pointed to by other.  If both pointers are NULL then the "paths" are
-     considered the same. */
-  {
-    a_boolean result;
-    if (ptr == NULL || other == NULL) {
-      result = (ptr == other);
-    } else {
-      result = (f_compare_file_names(ptr, other, /*ignore_delimiters=*/FALSE,
-                                     /*is_partial_file_name=*/TRUE) == 0);
-    }  /* if */
-    return result;
-  }  /* operator== */
-
-
-  bool operator==(const a_path_handle other) const
-  /* Return TRUE if the path referred to by ptr is the same as the path
-     contained by other. */
-  {
-    return other == ptr;
-  }  /* operator== */
-
-
-  bool operator!=(a_const_char* other) const
-  /* Return TRUE if the path referred to by ptr is not the same as the path
-     pointed to by other.  If both pointers are NULL then the "paths" are
-     considered the same. */
-  {
-    return !(*this == other);
-  }  /* operator!= */
-
-
-  bool operator!=(const a_path_handle other) const
-  /* Return TRUE if the path referred to by ptr is not the same as the path
-     contained by other. */
-  {
-    return other != ptr;
-  }  /* operator!= */
 };
 
 
-inline a_boolean operator==(a_const_char* path1, a_path_handle path2)
+inline a_boolean operator==(const a_path_handle path1,
+                            a_const_char        *path2)
+/* Return TRUE if the path contained by path1 is the same as the path
+   pointed to by path2.  If both pointers are NULL then the "paths" are
+   considered the same. */
+{
+  a_boolean result;
+  if (path1.ptr == NULL || path2 == NULL) {
+    result = (path1.ptr == path2);
+  } else {
+    result = (f_compare_file_names(path1.ptr, path2,
+                                   /*ignore_delimiters=*/FALSE,
+                                   /*is_partial_file_name=*/TRUE) == 0);
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+inline a_boolean operator==(a_const_char        *path1,
+                            const a_path_handle path2)
 /*
 Return TRUE if the path contained by path2 is the same as path1.
 */
@@ -2453,13 +2437,42 @@ Return TRUE if the path contained by path2 is the same as path1.
 }  /* operator== */
 
 
-inline a_boolean operator!=(a_const_char* path1, a_path_handle path2)
+inline a_boolean operator==(const a_path_handle path1,
+                            const a_path_handle path2)
+/* Return TRUE if the path contained by path1 is the same as the path
+   contained by path2. */
+{
+  return path1 == path2.ptr;
+}  /* operator== */
+
+
+inline a_boolean operator!=(const a_path_handle path1,
+                            a_const_char        *path2)
+/* Return TRUE if the path contained by path1 is not the same as the path
+   pointed to by path2.  If both pointers are NULL then the "paths" are
+   considered the same. */
+{
+  return !(path1 == path2);
+}  /* operator!= */
+
+
+inline a_boolean operator!=(a_const_char        *path1,
+                            const a_path_handle path2)
 /*
 Return TRUE if the path contained by path2 is not the same as path1.
 */
 {
   return path2 != path1;
 }  /* operator != */
+
+
+inline a_boolean operator!=(const a_path_handle path1,
+                            const a_path_handle path2)
+/* Return TRUE if the path contained by path1 is not the same as the path
+   contained by path2. */
+{
+  return !(path1 == path2);
+}  /* operator!= */
 
 
 /*
@@ -2469,7 +2482,7 @@ declare it here as well.
 extern a_hash_value hash_source_string(a_void_ptr  key);
 
 
-inline uintptr_t hash_ptr(a_C_str_handle str)
+inline uintptr_t hash_ptr(const a_C_str_handle str)
 /* Compute a hash for the given C-string.  The hash must be appropriate for
    Ptr_map. */
 {
@@ -2477,7 +2490,7 @@ inline uintptr_t hash_ptr(a_C_str_handle str)
 }  /* hash_ptr */
 
 
-inline uintptr_t hash_ptr(a_path_handle path)
+inline uintptr_t hash_ptr(const a_path_handle path)
 /* Compute a hash for the given path.  The hash must be appropriate for
    Ptr_map. */
 {
