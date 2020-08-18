@@ -2330,7 +2330,7 @@ struct a_C_str_handle {
      and hashing to operate with string semantics as opposed to raw pointer
      semantics. */
   a_const_char
-		*ptr;
+		*ptr = NULL;
 			/* Pointer to the C-string. */
   a_C_str_handle() = default;
   a_C_str_handle(a_const_char *str) : ptr(str) {}
@@ -2368,7 +2368,7 @@ struct a_path_handle {
      such as equality and hashing to operate with path semantics as opposed to
      raw pointer (or string) semantics. */
   a_const_char
-		*ptr;
+		*ptr = NULL;
 			/* Pointer to the path. */
   a_path_handle() = default;
   a_path_handle(a_const_char *path) : ptr(path) {}
