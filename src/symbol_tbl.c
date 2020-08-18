@@ -3936,6 +3936,8 @@ state.
            in C++ mode. */
         cssp->is_class_aggregate = (C_dialect != C_dialect_cplusplus);
         cssp->is_cpp03_POD = FALSE;
+        cssp->is_pod_class = FALSE;
+        cssp->pod_checked = FALSE;
         cssp->any_template_dependent_fields = FALSE;
         cssp->has_operator_new = FALSE;
         cssp->has_operator_array_new = FALSE;

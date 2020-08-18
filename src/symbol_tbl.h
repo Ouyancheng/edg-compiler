@@ -1240,6 +1240,18 @@ typedef struct a_class_symbol_supplement {
 			   C mode.  Use the function is_pod_class to test
 			   whether a given class type is a POD in the current
 			   language mode. */
+  a_bit_field	is_pod_class:1;
+			/* TRUE if the class satisfies the POD requirements for
+			   the current language mode (the is_pod_class function
+			   has been called).  FALSE if the class does not
+			   satisfy the POD requirements *or* these requirements
+			   have not yet been checked.  See pod_checked
+			   below. */
+  a_bit_field	pod_checked:1;
+			/* TRUE if the class has been checked to see if it
+			   satisfies the POD requirements for the current
+			   language mode (the is_pod_class function has been
+			   called).  See is_pod_class above. */
   a_bit_field	has_operator_new:1;
 			/* TRUE if a member operator new() has been declared
 			   for this class or a class from which it derived. */

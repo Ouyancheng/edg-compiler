@@ -2317,15 +2317,18 @@ Return TRUE if the given class type is a POD class type.  The definition of
 POD changed between C++03 and C++11.
 */
 {
-  a_boolean  result;
+  a_boolean                     result;
+  a_class_symbol_supplement_ptr cssp;
 
   check_assertion(is_immediate_class_type(tp));
-  if (cpp11_mode) {
+  cssp = class_symbol_supp(symbol_for(tp));
+  if (cssp->pod_checked) {
+    result = cssp->is_pod_class;
+  } else if (cpp11_mode) {
     /* In C++11, a POD class is a standard-layout, trivial class type whose
        members do not have non-POD class types (or arrays thereof).  A trivial
        class type is a trivially copyable type that has an eligible (e.g., not
        deleted) default constructor and no nontrivial default constructor. */
-    a_class_symbol_supplement_ptr  cssp = class_symbol_supp(symbol_for(tp));
     result = cssp->standard_layout && is_trivial_class(tp);
     if (result) {
       /* Check that every field of class type (or array thereof) is of a POD
@@ -2344,6 +2347,7 @@ POD changed between C++03 and C++11.
         /* Check base classes. */
         a_base_class_ptr  bcp = base_classes_of(tp);
         for (; bcp != NULL; bcp = bcp->next) {
+          if (!bcp->direct) continue;
           if (is_immediate_class_type(bcp->type) && !is_pod_class(bcp->type)) {
             result = FALSE;
             break;
@@ -2351,8 +2355,12 @@ POD changed between C++03 and C++11.
         }  /* for */
       }  /* if */
     }  /* if */
+    cssp->pod_checked = TRUE;
+    cssp->is_pod_class = result;
   } else {
-    result = class_symbol_supp(symbol_for(tp))->is_cpp03_POD;
+    result = cssp->is_cpp03_POD;
+    cssp->pod_checked = TRUE;
+    cssp->is_pod_class = result;
   }  /* if */
   return result;
 }  /* is_pod_class */

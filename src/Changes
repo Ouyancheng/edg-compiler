@@ -1,5 +1,14 @@
 Version 6.2
 
+8/18/20  [EDGcpfe/22807,EDGcpfe/22956,EDGcpfe/23262]
+Performance issue with is_pod_class
+
+In some cases the computation in is_pod_class was fairly expensive, and the
+result was re-computed multiple times for the same class.  This caused
+significant increases in compilation time, including at times the appearance
+of hanging.  This is now fixed (by caching the result).
+
+
 8/14/20  [EDGcpfe/23252]
 Regression in interpretation of certain compound assignments
 
