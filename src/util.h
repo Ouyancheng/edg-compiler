@@ -2340,8 +2340,8 @@ struct a_C_str_handle {
 inline a_boolean operator==(const a_C_str_handle str1,
                             const a_C_str_handle str2)
 /* Return TRUE if the string contained by str1 is the same as the string
-   contained by str2.  If both pointers are NULL then the "strings" are
-   considered the same. */
+   contained by str2.  If both handles contain NULL pointers then the "strings"
+   are considered the same. */
 {
   a_boolean result;
   if (str1.ptr == NULL || str2.ptr == NULL) {
@@ -2356,8 +2356,8 @@ inline a_boolean operator==(const a_C_str_handle str1,
 inline a_boolean operator!=(const a_C_str_handle str1,
                             const a_C_str_handle str2)
 /* Return TRUE if the string contained by str1 is not the same as the string
-   contained by str2.  If both pointers are NULL then the "strings" are
-   considered the same. */
+   contained by str2.  If both handles contain NULL pointers then the "strings"
+   are considered the same. */
 {
   return !(str1 == str2);
 }  /* operator!= */
@@ -2378,8 +2378,8 @@ struct a_path_handle {
 inline a_boolean operator==(const a_path_handle path1,
                             const a_path_handle path2)
 /* Return TRUE if the path contained by path1 is the same as the path
-   contained by path2.  If both pointers are NULL then the "paths" are
-   considered the same. */
+   contained by path2.  If both handles contain NULL pointers then the "paths"
+   are considered the same. */
 {
   a_boolean result;
   if (path1.ptr == NULL || path2.ptr == NULL) {
@@ -2396,8 +2396,8 @@ inline a_boolean operator==(const a_path_handle path1,
 inline a_boolean operator!=(const a_path_handle path1,
                             const a_path_handle path2)
 /* Return TRUE if the path contained by path1 is not the same as the path
-   contained by path2.  If both pointers are NULL then the "paths" are
-   considered the same. */
+   contained by path2.  If both handles contain NULL pointers then the "paths"
+   are considered the same. */
 {
   return !(path1 == path2);
 }  /* operator!= */
