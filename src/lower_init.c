@@ -438,9 +438,10 @@ to data members are lowered into a small integer type.
 {
   a_type_ptr ptr_to_data_member_type =
                                 integer_type(targ_ptr_to_data_member_int_kind);
+  check_assertion(ptr_to_data_member_type != NULL);
   a_type_ptr promoted_type =
                            default_argument_promotion(ptr_to_data_member_type);
-
+  check_assertion(promoted_type != NULL);
   if (!same_entities(ptr_to_data_member_type, promoted_type)) {
     /* Some widening is needed. */
     if (is_constant_node(expr)) {
@@ -5878,6 +5879,7 @@ dynamic init pointer because of the make_destruction_routine case.
                                          /*define_now=*/FALSE);
   }  /* if */
 #endif /* IA64_ABI */
+  check_assertion(dtor_routine != NULL);
   /* Generate code for the destructor call. */
   if (num_elem_node != NULL) {
 #if !IA64_ABI
@@ -17664,6 +17666,7 @@ destructor scope, and also lower the user code.
     }
 #endif /* IA64_ABI */
     /* Put out code that tests whether we are destroying a complete object. */
+    check_assertion(dtor_info.complete_obj_var != NULL);
     compare_node = expr_for_dtor_complete_object_test(&dtor_info);
     /* Make an "if" statement with a block statement under it:
          if (complete-obj-test) {} else {}
@@ -19020,6 +19023,7 @@ need to be modified if changes are made here.
       /* Add the "delta". */
       /* Cast the "this" parameter to "char *" to suppress scaling on the 
          pointer addition. */
+      check_assertion(this_param != NULL);
       this_adjustment = add_cast_to_char_star(var_rvalue_expr(this_param));
       delta_expr = node_for_integer_constant((long)routine->delta, 
                                              targ_ptrdiff_t_int_kind);
@@ -19079,8 +19083,9 @@ need to be modified if changes are made here.
     /* Insert the statement. */
     (void)insert_expr_statement(this_adjustment, &insert_location);
   }  /* if */
+  if (temp_var != NULL)
 #endif /* IA64_ABI */
-  if (temp_var != NULL) {
+  {
     /* Insert the assignment to the temporary variable. */
     (void)insert_var_assignment_statement(temp_var, roof_expr,
                                           &insert_location);

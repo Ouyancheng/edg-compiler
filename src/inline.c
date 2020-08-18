@@ -1333,6 +1333,7 @@ This is useful in cases where iterative inlining can create huge routines.
         /* See if the tested expression is known.  If so, the "if" can be
            reduced to the "then" or "else" statement. */
         result_is_then = result_is_else = FALSE;
+        check_assertion(stmt_expr != NULL);
         if (is_constant_node(stmt_expr) &&
             constant_bool_value_known_at_compile_time(
                                                   node_constant(stmt_expr))) {

@@ -1436,7 +1436,7 @@ Compute *tgt += *val.
     tgt->words[i] = (a_bigint_word)(tmp & BIGINT_WORD_MASK);
     tmp >>= BIGINT_WORD_BITS;
   }  /* for */
-  for ( ; val != 0 && i < tgt->num_words; ++i) {
+  for ( ; i < tgt->num_words; ++i) {
     tmp += tgt->words[i];
     tgt->words[i] = (a_bigint_word)(tmp & BIGINT_WORD_MASK);
     tmp >>= BIGINT_WORD_BITS;

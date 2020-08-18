@@ -829,6 +829,7 @@ be restored by a later call to restore_saved_context.
   /* Save the latest_initialization information from the saved context
      (it's needed to generate proper destructions in some cases, for example,
      if there's a branch out of a GNU statement expression). */
+  check_assertion(curr_context != NULL);
   curr_context->latest_initialization =
                                   (*saved_curr_context)->latest_initialization;
 }  /* save_and_push_context */
@@ -6782,10 +6783,12 @@ class_type is the class type whose vtbl is being constructed
         }  /* if */
 #endif /* GENERATE_EH_TABLES && !IA64_ABI */
       }  /* if */
+#if !IA64_ABI
     } else {
       /* Put a NULL pointer in the table.  This is used for the
          last entry in cfront mode. */
       make_zero_of_proper_type(pointer_type, func_con);
+#endif /* !IA64_ABI */
     }  /* if */
   } else {
     if (func_to_call->pure_virtual) {
@@ -7261,7 +7264,7 @@ save the caller from searching for this routine.
   }  /* while */
   if (derived_bcp != overriding_bcp) {
     a_boolean can_optimize_to_fixed_offset = FALSE;
-    check_assertion(derived_bcp->is_virtual);
+    check_assertion(derived_bcp != NULL && derived_bcp->is_virtual);
     /* There is a virtual step in the derivation.  Check to see if we need to
        use the two-stage thunk (adjust "this" to the beginning of the virtual
        base sub-object, then adjust it from the virtual base sub-object to the
@@ -7413,8 +7416,8 @@ table.
   a_routine_ptr                      thunk_to_call;
   a_base_class_ptr                   sharing_bcp, imm_bcp;
   a_virtual_table_index              vcall_index;
-  a_boolean                          use_null_function;
 #if IA64_ABI
+  a_boolean                          use_null_function;
   a_routine_ptr                      second_func_to_call;
   a_base_class_ptr                   vcall_bcp;
 #endif /* IA64_ABI */
@@ -7549,7 +7552,9 @@ table.
   primary_function = NULL;
   /*lint --e{850} entry_number modified in loop */
   for (; entry_number <= highest_entry_number; entry_number++) {
+#if IA64_ABI
     use_null_function = FALSE;
+#endif /* IA64_ABI */
     /* Find the virtual function with the number "entry_number". */
     primary_function = find_virtual_function(entry_number,
                                              ctsp, primary_function);
@@ -7709,7 +7714,11 @@ table.
     }  /* if */
 #endif /* DEBUG */
     add_vtbl_entry_init(delta,
+#if IA64_ABI
                         use_null_function ? (a_routine_ptr)NULL : func_to_call,
+#else /* !IA64_ABI */
+                        func_to_call,
+#endif /* IA64_ABI */
                         /*typeinfo_entry=*/FALSE,
                         first_con, last_con, /*prepend=*/FALSE,
                         class_whose_vtbl_is_being_made);
@@ -7721,8 +7730,12 @@ table.
       }  /* if */
 #endif /* DEBUG */
       add_vtbl_entry_init(delta,
+#if IA64_ABI
                           use_null_function ? (a_routine_ptr)NULL :
                                               second_func_to_call,
+#else /* !IA64_ABI */
+                          second_func_to_call,
+#endif /* IA64_ABI */
                           /*typeinfo_entry=*/FALSE,
                           first_con, last_con, /*prepend=*/FALSE,
                           class_whose_vtbl_is_being_made);
@@ -13681,6 +13694,7 @@ first operand (but not the second) has been lowered already.
                         ((an_expr_operator_kind) (ne_case ? eok_ne : eok_eq),
                          int_type, select1_node);
       }  /* if */
+#if IA64_ABI
       if (ia64_abi_variant_pmf) {
         /* Add code for "&& (((op1.d | op2.d) & 1) == 0)".  This checks
            that the low-order bit (indicating virtual function or not) is
@@ -13717,6 +13731,7 @@ first operand (but not the second) has been lowered already.
                         ((an_expr_operator_kind)(ne_case ? eok_lor : eok_land),
                          int_type, compare_i0_node);
       }  /* if */
+#endif /* IA64_ABI */
       /* Make "op1.d == op2.d" (or "!=" for the ne_case). */
       select1_node = expr_for_pmf_component(op1_node, mptr_d_field,
                                             /*need_copy=*/TRUE,
@@ -20472,12 +20487,9 @@ and all subscopes.
          were encountered in the process.  We want them to follow all other
          types. */
       if (next_type == NULL && local_types != NULL) {
-        if (insert_pointer == NULL) {
-          scope->types = local_types;
-        } else {
-          check_assertion(insert_pointer->next == NULL);
-          insert_pointer->next = local_types;
-        }  /* if */
+        check_assertion(insert_pointer != NULL);
+        check_assertion(insert_pointer->next == NULL);
+        insert_pointer->next = local_types;
         next_type = local_types;
         local_types = end_local_types = NULL;
       }  /* if */

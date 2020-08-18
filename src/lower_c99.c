@@ -567,6 +567,7 @@ associated with the same type is turned into a no-op.
     /* There is no associated variable yet: Compute all the necessary
        dimension quantities for the associated VLA type. */
     stmt->expr = lower_vla_dimensions(vla_dim->type);
+    check_assertion(stmt->expr != NULL);
     /* The result of the expression is not used. */
     set_expr_result_not_used(stmt->expr);
   } else {

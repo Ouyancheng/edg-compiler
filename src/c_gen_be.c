@@ -7889,6 +7889,7 @@ block with state information for the processing.
         elem_type = type->variant.array.element_type;
         element_count = type->variant.array.variant.number_of_elements;
         if (ipdp->repetition_count != NULL &&
+            constant != NULL &&
             !is_array_type(constant->type)) {
           /* The repeated constant is for each element of this
              array -- use the entire constant for the initialization. */

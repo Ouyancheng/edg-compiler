@@ -6160,6 +6160,7 @@ Lower an enk_throw expression node.
         implicit_cast(access_con, char_star_type());
       }  /* if */
       access_node = alloc_node_for_constant(access_con);
+      check_assertion(flags_node != NULL);
       flags_node->next = access_node;
       release_local_constant(&access_con);
     }
@@ -6185,7 +6186,7 @@ Lower an enk_throw expression node.
                                          (a_ctor_or_dtor_kind)cdk_complete,
                                          /*define_now=*/FALSE);
 #endif /* IA64_ABI */
-      /* coverity[uninit_use] */
+      check_assertion(flags_node != NULL);
       flags_node->next = add_cast(function_addr_expr(destructor),
                                   make_dtor_type());
       call_node = make_prototyped_runtime_call_full("__throw_setup_dtor",

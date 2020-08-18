@@ -8076,6 +8076,7 @@ is being parsed within the context of the __extension__ keyword.
       if (vla_enabled && vla_deallocations_in_il) {
         /* Put out a vla-dealloc statement for each declaration of a VLA
            variable in the currently active blocks of the function. */
+        check_assertion(end_of_control_flow_descr_list != NULL);
         a_statement_ptr  vla_dealloc_stmts =
                             collect_vla_dealloc_stmts_for_function(
                                               end_of_control_flow_descr_list);

@@ -6043,6 +6043,7 @@ it and return the entity.
       report_bad_attribute_arg(aap, ap);
     } else {
       a_type_ptr  func_type = get_func_type_for_attr(ap, &entity, entity_kind);
+      check_assertion(func_type != NULL);
       a_routine_type_supplement_ptr
                   rtsp = func_type->variant.routine.extra_info;
       if (!rtsp->prototyped) {
@@ -6406,6 +6407,7 @@ pos.
 #endif /* !FLOAT128_ENABLING_POSSIBLE */
       }  /* if */
       if (!is_error_type(type)) {
+        check_assertion(fkind < (a_float_kind)fk_last);
         if (type->kind == (a_type_kind)tk_float) {
           type = float_type(fkind);
 #if C99_IL_EXTENSIONS_SUPPORTED

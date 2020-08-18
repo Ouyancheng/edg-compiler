@@ -361,9 +361,18 @@ Macros for bit twiddling.
   /*lint --e(506)*/(width % BYTE_SIZE ? (width % BYTE_SIZE) : BYTE_SIZE)
 #define BYTE_COUNT(width) ((width + BYTE_SIZE - 1) / BYTE_SIZE)
 
+#if CHECKING
+#define HIGH_BYTE_BITS(width) (unsigned char) \
+  (check_assertion(HIGH_BYTE_BIT_COUNT(width) >= 0), \
+   /*lint --e(648)*/(~((unsigned)(-1) << HIGH_BYTE_BIT_COUNT(width))))
+#define HIGH_BIT(width) \
+  (check_assertion(HIGH_BYTE_BIT_COUNT(width) >= 0), \
+   (1u << (HIGH_BYTE_BIT_COUNT(width) - 1)))
+#else /* !CHECKING */
 #define HIGH_BYTE_BITS(width) (unsigned char) \
   /*lint --e(648)*/(~((unsigned)(-1) << HIGH_BYTE_BIT_COUNT(width)))
 #define HIGH_BIT(width) (1u << (HIGH_BYTE_BIT_COUNT(width) - 1))
+#endif /* CHECKING */
 
 #define BIT_MASK(n) (1u << ((n) % BYTE_SIZE))
 #define BIT_AT(base, size, offset) \

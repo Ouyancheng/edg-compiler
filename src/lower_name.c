@@ -3680,6 +3680,7 @@ qualifiers seen so far (and is typically set to one by the initial caller).
         add_to_mangled_name('N', mctl);
         *need_close = TRUE;
       }  /* if */
+      check_assertion(scp != NULL);
       mangled_encoding_for_type((a_type_ptr)scp, mctl);
       scp = NULL;
     } else {
@@ -5767,6 +5768,7 @@ expression.
     /* A vacuous destructor.  Vacuous destructors of the type int::~int()
        don't get a name_reference structure, so they appear in demangled
        names as ~int(). */
+    check_assertion(selector != NULL);
     mangled_destructor_name(selector->type, nrp, mctl);
   }  /* if */
 #if !IA64_ABI
@@ -5827,10 +5829,11 @@ this expression is part of a template-dependent expression.
        TRUE (for example, those operators represented by enk_new_delete
        won't get here). */
     unsigned long    num_arguments = number_of_operands_in_list(arguments);
-    a_const_char     *name = NULL;
     a_boolean        remove_last_arg = FALSE;
 #if IA64_ABI
     a_boolean        is_prefix = FALSE;
+#else /* !IA64_ABI */
+    a_const_char     *name = NULL;
 #endif /* IA64_ABI */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     check_assertion(!is_delegate_invocation_function(rp));
@@ -5866,8 +5869,12 @@ this expression is part of a template-dependent expression.
     }  /* if */
 #if !IA64_ABI
     add_to_mangled_name('O', mctl);
+    if (name != NULL) {
+      add_str_to_mangled_name(name, mctl);
+    } else
 #endif /* !IA64_ABI */
-    if (name == NULL) {
+    /* Do not insert code here. */
+    {
       mangled_operator_or_special_function(rp->variant.opname_kind,
                                          (unsigned int)num_arguments,
                                          (a_type_ptr)NULL,
@@ -5877,8 +5884,6 @@ this expression is part of a template-dependent expression.
                                          /*suppress_operation_indicator=*/TRUE,
                                          /*suppress_underscores=*/TRUE,
                                          mctl);
-    } else {
-      add_str_to_mangled_name(name, mctl);
     }  /* if */
 #if IA64_ABI
     if (is_prefix && !emulate_gnu_abi_bugs) add_to_mangled_name('_', mctl);
@@ -10285,6 +10290,7 @@ top_of_loop:
         unexpected_condition_str("mangled_encoding_for_type: bad type kind");
     }  /* switch */
     /* s is now set to a type description string to be output. */
+    check_assertion(s != NULL);
     add_str_to_mangled_name(s, mctl);
     /* Do any processing needed after the description letter. */
     switch (type->kind) {
@@ -11645,8 +11651,8 @@ enclose routine (as necessary).
        rlep = rlep->next) {
     calculate_implicit_abi_tags_for_routine(rlep->routine);
   }  /* for */
-  if (rlep != NULL) {
-    free_rlep_list(rlep);
+  if ((a_routine_list_entry_ptr)wpcb.ptr != NULL) {
+    free_rlep_list((a_routine_list_entry_ptr)wpcb.ptr);
   }  /* if */
 }  /* calculate_implicit_abi_tags_for_enclosing_routines */
 
@@ -14177,7 +14183,9 @@ be embedded in other mangled names.
 {
   a_mangling_control_block mctl;
   a_boolean                is_string = FALSE;
+#if IA64_ABI
   unsigned long            sequence_number = 0;
+#endif /* IA64_ABI */
   a_variable_ptr           var = (a_variable_ptr)scp;
 
   check_assertion(kind == iek_variable ||
@@ -14287,12 +14295,14 @@ be embedded in other mangled names.
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         add_str_to_mangled_name(scp->name, &mctl);
+#if IA64_ABI
       } else {
         /* String literal -- add "__string", and the sequence number is
            used for the scope number (strings are numbered across the entire
            function). */
         add_str_to_mangled_name("__string", &mctl);
         unique_number = sequence_number;
+#endif /* IA64_ABI */
       }  /* if */
       if (scp_is_enum_member(scp)) {
         /* Add the scoped enumeration type name.  Scoped enumerators aren't
