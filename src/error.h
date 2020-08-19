@@ -38,6 +38,7 @@ Diagnostic entries can be returned to routines in other files, but they
 can only use those as opaque types.
 */
 typedef struct a_diagnostic *a_diagnostic_ptr;
+typedef struct a_template_arg *a_template_arg_ptr;
 
 /*
 Structure used to represent a list of diagnostic entries.
@@ -753,10 +754,10 @@ extern void more_info_num2_diagnostic(an_error_code     error_code,
                                       int32_t           num2,
                                       a_diag_list_ptr   diag_list);
 
-extern void more_info_tap_diagnostic(an_error_code          error_code,
-                                     a_source_position      *error_pos,
-                                     struct a_template_arg  *tap,
-                                     a_diag_list_ptr        diag_list);
+extern void more_info_tap_diagnostic(an_error_code      error_code,
+                                     a_source_position  *error_pos,
+                                     a_template_arg_ptr tap,
+                                     a_diag_list_ptr    diag_list);
 
 extern void add_more_info_list(a_diagnostic_ptr		dp,
 			       a_diag_list_ptr		dlp);

@@ -1,5 +1,14 @@
 Version 6.2
 
+8/19/20  [EDGcpfe/23279]
+Spurious parse error building with VS2015
+
+When building the front end using Visual Studio 2015 with USE_EDG_NAMESPACE set
+to TRUE, a spurious parse error (C2888) was emitted, stating that
+a_template_arg member symbols not be defined within namespace 'edg'.  This is
+now fixed.
+
+
 8/18/20  [EDGcpfe/22807,EDGcpfe/22956,EDGcpfe/23262]
 Performance issue with is_pod_class
 
