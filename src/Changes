@@ -1,5 +1,21 @@
 Version 6.2
 
+8/19/20  [EDGcpfe/23274]
+GNU C++ compatibility: non-dependent functional notation casts in templates
+
+A g++ bug emulation (see EDGcpfe/17306 from 6/15/16) could cause partial
+specialization to fail when a template argument used an expression with
+a non-dependent functional notation cast as part of a template argument
+in a template declaration context.  Now fixed.
+
+  template <class T> struct X {
+    typedef int Y;
+  };
+  template <class T, class U> struct A;
+  template <class T> struct A<T, X<decltype(bool())>::Y> {};
+  A<int, int> a;
+
+
 8/19/20  [EDGcpfe/23279]
 Spurious parse error building with VS2015
 

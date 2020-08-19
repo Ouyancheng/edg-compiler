@@ -26716,8 +26716,6 @@ freed by this routine.
         (is_local_scope_kind(scope_stack_top().kind) ||
          (scope_is(&scope_stack_top(), sck_func_prototype) &&
           expr_stack->is_default_arg_expression))) ||
-       (!expr_stack->potentially_evaluated &&
-        scope_is(&scope_stack_top(), sck_template_declaration)) ||
        (gnu_version < 30400 && !cpp11_sfinae_enabled &&
         scope_is(&scope_stack_top(), sck_func_prototype) &&
         curr_expr_kind_is(ek_template_arg))) &&
