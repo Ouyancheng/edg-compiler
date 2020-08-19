@@ -11651,8 +11651,9 @@ enclose routine (as necessary).
        rlep = rlep->next) {
     calculate_implicit_abi_tags_for_routine(rlep->routine);
   }  /* for */
-  if ((a_routine_list_entry_ptr)wpcb.ptr != NULL) {
-    free_rlep_list((a_routine_list_entry_ptr)wpcb.ptr);
+  rlep = (a_routine_list_entry_ptr)wpcb.ptr;
+  if (rlep != NULL) {
+    free_rlep_list(rlep);
   }  /* if */
 }  /* calculate_implicit_abi_tags_for_enclosing_routines */
 
