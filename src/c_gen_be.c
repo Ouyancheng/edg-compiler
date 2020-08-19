@@ -7777,7 +7777,8 @@ block with state information for the processing.
     /* An un-lowered complex constant in the form of an aggregate; copy
        the real and imaginary parts of the aggregate constant to a complex
        constant and use that in place of the aggregate. */
-    check_assertion(constant->variant.aggregate.first_constant != NULL &&
+    check_assertion(constant != NULL &&
+                    constant->variant.aggregate.first_constant != NULL &&
                     (constant->variant.aggregate.first_constant->next ==
                      constant->variant.aggregate.last_constant));
     clear_constant(complex_constant, (a_constant_repr_kind)ck_complex);

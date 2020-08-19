@@ -19042,6 +19042,7 @@ need to be modified if changes are made here.
          depends on the fact that the vptr is always at offset zero in the
          object; we do not even know what the static type of the virtual base
          is at this point. */
+      check_assertion(this_param != NULL);
       vcall_expr = var_rvalue_expr(this_param);
       /* Treat the object as a pointer to a pointer to a virtual function
          table. */

@@ -648,7 +648,7 @@ type.
     fprintf(f_debug, "0\n");
   } else {
     fprintf(f_debug, "%4d: ", bin.exponent);
-    for (i = 0; i < BYTE_COUNT(bin.precision) - 2; ++i) {
+    for (i = 0; i < BYTE_COUNT(bin.precision) - 1; ++i) {
       fprintf(f_debug, "%02x ", bin.frac[BYTE_INDEX(i)]);
     }  /* for */
     fprintf(f_debug, "%02x\n", bin.frac[BYTE_INDEX(i)] &
