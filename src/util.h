@@ -2325,10 +2325,11 @@ Output some information about the map's key contents to f_debug.
 #endif /* DEBUG */
 
 
+/*
+A structure that wraps a C-string to enable operations such as equality and
+hashing to operate with string semantics as opposed to raw pointer semantics.
+*/
 struct a_C_str_handle {
-  /* A structure that wraps a C-string to enable operations such as equality
-     and hashing to operate with string semantics as opposed to raw pointer
-     semantics. */
   a_const_char
 		*ptr = NULL;
 			/* Pointer to the C-string. */
@@ -2339,9 +2340,11 @@ struct a_C_str_handle {
 
 inline a_boolean operator==(const a_C_str_handle str1,
                             const a_C_str_handle str2)
-/* Return TRUE if the string contained by str1 is the same as the string
-   contained by str2.  If both handles contain NULL pointers then the "strings"
-   are considered the same. */
+/*
+Return TRUE if the string contained by str1 is the same as the string contained
+by str2.  If both handles contain NULL pointers then the "strings" are
+considered the same.
+*/
 {
   a_boolean result;
   if (str1.ptr == NULL || str2.ptr == NULL) {
@@ -2355,18 +2358,22 @@ inline a_boolean operator==(const a_C_str_handle str1,
 
 inline a_boolean operator!=(const a_C_str_handle str1,
                             const a_C_str_handle str2)
-/* Return TRUE if the string contained by str1 is not the same as the string
-   contained by str2.  If both handles contain NULL pointers then the "strings"
-   are considered the same. */
+/*
+Return TRUE if the string contained by str1 is not the same as the string
+contained by str2.  If both handles contain NULL pointers then the "strings"
+are considered the same.
+*/
 {
   return !(str1 == str2);
 }  /* operator!= */
 
 
+/*
+A structure that wraps a path stored in a C-string to enable operations such
+as equality and hashing to operate with path semantics as opposed to raw
+pointer (or string) semantics.
+*/
 struct a_path_handle {
-  /* A structure that wraps a path stored in a C-string to enable operations
-     such as equality and hashing to operate with path semantics as opposed to
-     raw pointer (or string) semantics. */
   a_const_char
 		*ptr = NULL;
 			/* Pointer to the path. */
@@ -2377,9 +2384,11 @@ struct a_path_handle {
 
 inline a_boolean operator==(const a_path_handle path1,
                             const a_path_handle path2)
-/* Return TRUE if the path contained by path1 is the same as the path
-   contained by path2.  If both handles contain NULL pointers then the "paths"
-   are considered the same. */
+/*
+Return TRUE if the path contained by path1 is the same as the path contained by
+path2.  If both handles contain NULL pointers then the "paths" are considered
+the same.
+*/
 {
   a_boolean result;
   if (path1.ptr == NULL || path2.ptr == NULL) {
@@ -2395,9 +2404,11 @@ inline a_boolean operator==(const a_path_handle path1,
 
 inline a_boolean operator!=(const a_path_handle path1,
                             const a_path_handle path2)
-/* Return TRUE if the path contained by path1 is not the same as the path
-   contained by path2.  If both handles contain NULL pointers then the "paths"
-   are considered the same. */
+/*
+Return TRUE if the path contained by path1 is not the same as the path
+contained by path2.  If both handles contain NULL pointers then the "paths" are
+considered the same.
+*/
 {
   return !(path1 == path2);
 }  /* operator!= */
@@ -2411,16 +2422,19 @@ extern a_hash_value hash_source_string(a_void_ptr  key);
 
 
 inline uintptr_t hash_ptr(const a_C_str_handle str)
-/* Compute a hash for the given C-string.  The hash must be appropriate for
-   Ptr_map. */
+/*
+Compute a hash for the given C-string.  The hash must be appropriate for
+Ptr_map.
+*/
 {
   return (uintptr_t)hash_source_string((a_void_ptr)str.ptr);
 }  /* hash_ptr */
 
 
 inline uintptr_t hash_ptr(const a_path_handle path)
-/* Compute a hash for the given path.  The hash must be appropriate for
-   Ptr_map. */
+/*
+Compute a hash for the given path.  The hash must be appropriate for Ptr_map.
+*/
 {
   a_const_char *norm_path = normalize_file_name(path.ptr);
 
