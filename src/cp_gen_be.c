@@ -11558,23 +11558,9 @@ the expression reflects an implicit member access ("this->y"), so the
     if (expr->compiler_generated) {
       if (is_variable_node(object_expr) &&
           node_variable(object_expr)->is_this_parameter) {
-        /* This is an implicit member access ("this->y"), so in general
-           nothing should be generated for the object expression and
-           operator.  The exception is when the naming and selection
-           classes are the same and the field name is hidden.  That could
-           be handled either by adding a qualifier to the field name or by
-           using "this->".  The qualifier approach cannot be used in a
-           case like
-             template<typename T> void A<T>::f() {
-               T++;  // a field named T, so A<T>::T++ would be an error
-             }
-           so we use the "this->" approach for those situations. */
-        if (naming_class == selection_class &&
-            node_field(field_expr)->source_corresp.qualification_needed) {
-          write_tok_str("this->");
-        } else {
-          suppressed_this = TRUE;
-        }  /* if */
+        /* This is an implicit member access ("this->y"), so nothing should
+           be generated for the object expression and operator. */
+        suppressed_this = TRUE;
       } else {
         /* This situation occurs for access to non-static data members
            in unevaluated contexts, such as "sizeof(X::y)", which appears
@@ -11665,18 +11651,13 @@ the expression reflects an implicit member access ("this->y"), so the
         curr_name_context->field_selection_context = TRUE;
         new_name_context = curr_name_context;
       }  /* if */
-      if (naming_class != selection_class &&
-          (node_field(field_expr)->source_corresp.qualification_needed ||
-           !class_is_in_name_context_stack(
-                                 naming_class,
-                                 /*include_base_classes=*/TRUE,
-                                 /*ignore_field_selection_contexts=*/FALSE))) {
-        /* A qualifier would only be needed when the naming and selection
-           classes are the same if the field name were hidden by a member
-           function parameter or template parameter, and those cases are
-           addressed above by putting out an explicit "this->".
-           Consequently, we only use a qualifier for a base class member
-           that is hidden. */
+      if (node_field(field_expr)->source_corresp.qualification_needed ||
+          !class_is_in_name_context_stack(
+                                  naming_class,
+                                  /*include_base_classes=*/TRUE,
+                                  /*ignore_field_selection_contexts=*/FALSE)) {
+        /* Only use a qualifier for a base class member if it is hidden by a
+           name in an intermediate base class. */
         (void)gen_class_qualifier(naming_class, GN_BOUND_MEMBER,
                                   (a_boolean *)NULL);
       }  /* if */

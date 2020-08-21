@@ -1284,6 +1284,13 @@ C++-generating back end.
          Qualification will not help.  Synthesized namespace projection
          symbols are excluded from this test because their decl_scope is not
          meaningful in this context. */
+    } else if (old_sym_ptr->is_class_member && sym_ptr->is_template_param) {
+      /* A class member is not hidden by a template parameter of the same
+         name, e.g.,
+           template<typename T> void S<T>::f() {
+             ++T;
+           }
+         is well-formed if T is a data member of S. */
     } else if (old_sym_ptr->decl_scope == file_scope_number ||
                sym_is_class_or_namespace_member(old_sym_ptr) ||
                old_sym_ptr->synthesized_namespace_projection) {
