@@ -3703,11 +3703,15 @@ qualifiers seen so far (and is typically set to one by the initial caller).
 #endif /* IA64_ABI */
   }  /* if */
   if (scp != NULL) {
+#if !IA64_ABI
     if (is_top_level_unresolved_type) {
       /* Emit template parameter encoding rather than the parameter's name if
          this is a top-level unresolved type. */
       mangled_encoding_for_type((a_type_ptr)scp, mctl);
-    } else {
+    } else
+#endif /* !IA64_ABI */
+    /* Do not insert code here. */
+    {
       a_const_char *name_ref_name = NULL;
       /* Emit the source name for this qualifier (with any template args). */
       if (kind == iek_type) {
