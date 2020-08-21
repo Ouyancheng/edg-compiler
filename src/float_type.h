@@ -648,6 +648,7 @@ type.
     fprintf(f_debug, "0\n");
   } else {
     fprintf(f_debug, "%4d: ", bin.exponent);
+    check_assertion(BYTE_COUNT(bin.precision) > 1);
     for (i = 0; i < BYTE_COUNT(bin.precision) - 1; ++i) {
       fprintf(f_debug, "%02x ", bin.frac[BYTE_INDEX(i)]);
     }  /* for */
@@ -971,12 +972,9 @@ for the type.  The value of scale is stored in *pscale.
 }  /* FAST_DEC2BIN */
 
 
-#if FP_USE_EMULATION
-/*ARGSUSED*/ /* val is not used in this case. */
-#endif /* FP_USE_EMULATION */
 static a_boolean FAST_BIN2DEC(an_fp_decimal             *dec,
                               an_fp_binary              *bin,
-                              FPT_TYPE                  *val,
+                              ARG_UNUSED FPT_TYPE       *val,
                               int                       ndigits)
 /*
 Try to convert binary floating-point value to decimal value

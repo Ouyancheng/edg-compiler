@@ -363,10 +363,10 @@ Macros for bit twiddling.
 
 #if CHECKING
 #define HIGH_BYTE_BITS(width) (unsigned char) \
-  (check_assertion(HIGH_BYTE_BIT_COUNT(width) >= 0), \
+  (check_assertion(HIGH_BYTE_BIT_COUNT(width) >= 1), \
    /*lint --e(648)*/(~((unsigned)(-1) << HIGH_BYTE_BIT_COUNT(width))))
 #define HIGH_BIT(width) \
-  (check_assertion(HIGH_BYTE_BIT_COUNT(width) >= 0), \
+  (check_assertion(HIGH_BYTE_BIT_COUNT(width) >= 1), \
    (1u << (HIGH_BYTE_BIT_COUNT(width) - 1)))
 #else /* !CHECKING */
 #define HIGH_BYTE_BITS(width) (unsigned char) \
