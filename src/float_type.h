@@ -647,9 +647,10 @@ type.
   if (bin.type == fpt_zero) {
     fprintf(f_debug, "0\n");
   } else {
+    int count = BYTE_COUNT(bin.precision) - 1;
+    check_assertion(count > 1 && count < (int)sizeof(bin.frac));
     fprintf(f_debug, "%4d: ", bin.exponent);
-    check_assertion(BYTE_COUNT(bin.precision) > 1);
-    for (i = 0; i < BYTE_COUNT(bin.precision) - 1; ++i) {
+    for (i = 0; i < count; ++i) {
       fprintf(f_debug, "%02x ", bin.frac[BYTE_INDEX(i)]);
     }  /* for */
     fprintf(f_debug, "%02x\n", bin.frac[BYTE_INDEX(i)] &
