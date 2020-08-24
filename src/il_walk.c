@@ -2742,9 +2742,11 @@ in cases where the orphan lists have not been generated yet.
     }  /* if */
   }  /* for */
   if (scope->kind == (a_scope_kind)sck_function ||
-      scope->kind == (a_scope_kind)sck_block) {
+      scope->kind == (a_scope_kind)sck_block ||
+      scope->kind == (a_scope_kind)sck_condition) {
     /* Function and block scopes we encounter at this level should
-       not have orphan lists generated. */
+       not have orphan lists generated.  Starting with C++17 sck_condition
+       scopes can also contain types (defined in initializers). */
     check_assertion(!scope->scope_orphaned_list_header_generated);
     /* Process all local types. */
     list_processing_routine(scope->types);
