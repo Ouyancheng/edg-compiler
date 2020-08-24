@@ -22438,6 +22438,11 @@ in *rcblock).
         base_delete_type = array_element_type(base_delete_type);
         base_delete_type = skip_typerefs(base_delete_type);
       }  /* if */
+      if (is_class_struct_union_type(base_delete_type)) {
+        /* Instantiate the class if it is a template class (before looking
+           for the appropriate delete_routine). */
+        complete_type_is_needed(base_delete_type);
+      }  /* if */
       /* Select the proper "delete" routine.  If the type is a class type and
          the class has a "delete" operator, use it.  However, if "::" preceded
          the keyword "delete", always use the global ::delete. */
@@ -22449,8 +22454,6 @@ in *rcblock).
       }  /* if */
       /* See if the object needs destruction. */
       if (is_class_struct_union_type(base_delete_type)) {
-        /* Instantiate the class if it is a template class. */
-        complete_type_is_needed(base_delete_type);
         if (is_incomplete_type(base_delete_type)) {
           /* Deleting a pointer to an incomplete class.  Give a warning,
              because we may not know how to do the right thing (like call

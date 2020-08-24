@@ -1,5 +1,22 @@
 Version 6.2
 
+8/24/20  [EDGcpfe/23291]
+Wrong delete routine selected when using template class
+
+In cases where a pointer to a template class is being deleted and that
+class has not been previously instantiated, as a result of the changes for
+EDGcpfe/20036 (in 6.1), the global delete routine had been erroneously
+selected.  This example now elicits an error (with --c++11):
+
+  template<typename T> struct A {
+    void operator delete(void*) = delete;
+  };
+  void f(A<int> *p) {
+    delete p;     // Should get an error because selected operator delete
+                  // is deleted.
+  }
+
+
 8/24/20  [EDGcpfe/23268]
 Assertion failed in mangled_encoding_for_function_type
 
