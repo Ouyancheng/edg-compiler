@@ -3872,8 +3872,8 @@ should be preferred over templ_sym2.
 */
 {
   int					result;
-  a_boolean				match1;
-  a_boolean				match2;
+  a_boolean				match1, match2;
+  a_boolean				ordered_by_deduction = FALSE;
   a_symbol_ptr				prototype_sym1;
   a_template_symbol_supplement_ptr	tssp1;
   a_symbol_ptr				prototype_sym2;
@@ -3915,8 +3915,10 @@ should be preferred over templ_sym2.
                                           &tap_for_match2);
   if (match1 && !match2) {
     result = 1;
+    ordered_by_deduction = TRUE;
   } else if (match2 && !match1) {
     result = -1;
+    ordered_by_deduction = TRUE;
   } else {
     /* They are unordered by deduction.  Compare the template argument
        lists to see if one should be preferred based on the use of
@@ -3943,7 +3945,7 @@ should be preferred over templ_sym2.
         if (match1 && match2) {
           result = constraint_order;
         }  /* if */
-      } else if (result != constraint_order) {
+      } else if (result != constraint_order && !ordered_by_deduction) {
         result = 0;
       }  /* if */
     }  /* if */
