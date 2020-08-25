@@ -4509,9 +4509,11 @@ to the current directory.
 */
 {
   reset_text_buffer(buf);
-  if (!is_absolute_file_name(dir_name) && !is_partial_file_name) {
-    /* A relative file name.  Start with the current directory name. */
-    append_dir_name(buf, current_directory_name);
+  if (!is_absolute_file_name(dir_name)) {
+    if (!is_partial_file_name) {
+      /* A relative file name.  Start with the current directory name. */
+      append_dir_name(buf, current_directory_name);
+    }  /* if */
   } else {
 #if __MICROSOFT_OS__
     /* If the path is absolute, but lacks a drive specification, use the

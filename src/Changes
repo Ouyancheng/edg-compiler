@@ -1,5 +1,14 @@
 Version 6.2
 
+8/25/20  [EDGcpfe/23301]
+Incorrect addition of Windows drive letter to relative paths
+
+The normalize_dir_name function adds the windows drive letter to absolute paths
+if it's missing.  However, when is_partial_file_name is set to TRUE, it was
+also incorrectly adding the windows drive letter to relative paths.  This is
+now fixed.
+
+
 8/25/20  [EDGcpfe/23292]
 Incorrect is_local_to_function flag for variable template instance
 
