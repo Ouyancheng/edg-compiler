@@ -2396,7 +2396,7 @@ the same.
   } else {
     result = (f_compare_file_names(path1.ptr, path2.ptr,
                                    /*ignore_delimiters=*/FALSE,
-                                   /*is_partial_file_name=*/TRUE) == 0);
+                                   /*is_partial_file_name=*/FALSE) == 0);
   }  /* if */
   return result;
 }  /* operator== */

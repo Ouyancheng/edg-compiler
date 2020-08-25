@@ -246,15 +246,20 @@ file_kind (which may range from remarks to catastrophic errors).
     goto done;
   }  /* if */
   switch (expected_kind) {
-    case mk_none:
-    case mk_any:
     case mk_edg:
       severity = es_catastrophe;
       break;
+    case mk_any:
+      /* Match anything except for unknown module files and header units. */
+      if (file_kind != mk_none && file_kind != mk_header) {
+        goto done;
+      }  /* if */
+      /* FALLTHROUGH */
     case mk_ifc:
       /* Visual Studio skips files that don't appear to be IFCs. */
       severity = es_remark;
       break;
+    case mk_none:
     case mk_header:
     default:
       severity = es_catastrophe;

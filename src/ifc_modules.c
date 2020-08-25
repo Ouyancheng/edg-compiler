@@ -332,21 +332,23 @@ Handle nested structures differently (and check for padding).
 #define GET_ByteOffset(x, from_header)         GET_int(x, from_header)
 #define GET_Cardinality(x, from_header)        GET_int(x, from_header)
 #define GET_ChartIndex(x, from_header)         GET_int(x, from_header)
-#define GET_CoercionSort(x, from_header)       GET_int(x, from_header)
 #define GET_Column(x, from_header)             GET_int(x, from_header)
 #define GET_DeclIndex(x, from_header)          GET_int(x, from_header)
 #define GET_DelimiterSort(x, from_header)      GET_int(x, from_header)
 #define GET_EntitySize(x, from_header)         GET_int(x, from_header)
 #define GET_ExprIndex(x, from_header)          GET_int(x, from_header)
+#define GET_FormIndex(x, from_header)          GET_int(x, from_header)
 #define GET_Index(x, from_header)              GET_int(x, from_header)
 #define GET_LanguageVersion(x, from_header)    GET_int(x, from_header)
 #define GET_LineIndex(x, from_header)          GET_int(x, from_header)
 #define GET_LineNumber(x, from_header)         GET_int(x, from_header)
 #define GET_LitIndex(x, from_header)           GET_int(x, from_header)
+#define GET_MacroIndex(x, from_header)         GET_int(x, from_header)
 #define GET_MsvcTraits(x, from_header)         GET_int(x, from_header)
 #define GET_NameIndex(x, from_header)          GET_int(x, from_header)
 #define GET_ParameterLevel(x, from_header)     GET_int(x, from_header)
 #define GET_ParameterPosition(x, from_header)  GET_int(x, from_header)
+#define GET_PragmaIndex(x, from_header)        GET_int(x, from_header)
 #define GET_ScopeIndex(x, from_header)         GET_int(x, from_header)
 #define GET_SegmentTraits(x, from_header)      GET_int(x, from_header)
 #define GET_SegmentType(x, from_header)        GET_int(x, from_header)
@@ -360,10 +362,17 @@ Handle nested structures differently (and check for padding).
 #define GET_UnitIndex(x, from_header)          GET_int(x, from_header)
 #define GET_WordIndex(x, from_header)          GET_int(x, from_header)
 
+#define GET_DyadicOperator(x, from_header)     GET_short(x, from_header)
 #define GET_EHFlags(x, from_header)            GET_short(x, from_header)
+#define GET_FormOperator(x, from_header)       GET_short(x, from_header)
 #define GET_FunctionTraits(x, from_header)     GET_short(x, from_header)
-#define GET_OperatorCategory(x, from_header)   GET_short(x, from_header)
+#define GET_MonadicOperator(x, from_header)    GET_short(x, from_header)
+#define GET_NiladicOperator(x, from_header)    GET_short(x, from_header)
+#define GET_Operator(x, from_header)           GET_short(x, from_header)
 #define GET_PackSize(x, from_header)           GET_short(x, from_header)
+#define GET_StorageOperator(x, from_header)    GET_short(x, from_header)
+#define GET_TriadicOperator(x, from_header)    GET_short(x, from_header)
+#define GET_VariadicOperator(x, from_header)   GET_short(x, from_header)
 
 #define GET_Abi(x, from_header)                GET_byte(x, from_header)
 #define GET_Access(x, from_header)             GET_byte(x, from_header)
@@ -417,6 +426,8 @@ Handle nested structures differently (and check for padding).
                                 GET_SentenceIndex((x).head, from_header), \
                                 GET_SentenceIndex((x).body, from_header), \
                                 GET_SentenceIndex((x).attributes, from_header))
+
+#define GET_mf_arity_variadic(x, from_header)  GET_int((x).raw, from_header)
 
 /*
 Create get_* functions (which "read" each entity into a structure) for each of
@@ -646,89 +657,378 @@ is used to capture the string, otherwise a static buffer is used.
 }  /* clear_str_control_block */
 
 
-static an_opname_kind opname_from_category(ifc_OperatorCategory category)
+static an_opname_kind opname_from_niladic_op(ifc_NiladicOperator niladic_op)
 /*
-Map an IFC OperatorCategory to an_opname_kind.
+Map an IFC NiladicOperator to an_opname_kind.
 */
 {
   an_opname_kind op;
 
-  /* FIXME: Note that some of these get mapped to the same entry. */
-  /*lint -e{641}*/
-  switch (category) {
-    case ifc_OperatorCategory_Bitand:       op = onk_ampersand; break;
-    case ifc_OperatorCategory_LogicAnd:     op = onk_and_and; break;
-    case ifc_OperatorCategory_Assign:       op = onk_assign; break;
-    case ifc_OperatorCategory_Comma:        op = onk_comma; break;
-    case ifc_OperatorCategory_Not:          op = onk_not; break;
-    case ifc_OperatorCategory_Minus:        op = onk_minus; break;
-    case ifc_OperatorCategory_Star:         op = onk_star; break;
-    case ifc_OperatorCategory_Bitor:        op = onk_or; break;
-    case ifc_OperatorCategory_LogicOr:      op = onk_or_or; break;
-    case ifc_OperatorCategory_Plus:         op = onk_plus; break;
-    case ifc_OperatorCategory_Quest:        op = onk_question; break;
-    case ifc_OperatorCategory_Complement:   op = onk_compl; break;
-    case ifc_OperatorCategory_Caret:        op = onk_excl_or; break;
-    case ifc_OperatorCategory_Slash:        op = onk_divide; break;
-    case ifc_OperatorCategory_Modulo:       op = onk_remainder; break;
-    case ifc_OperatorCategory_New:          op = onk_new; break;
-    case ifc_OperatorCategory_Delete:       op = onk_delete; break;
-    case ifc_OperatorCategory_IndirectMemberAccess:
-                                            op = onk_arrow_star; break;
-    case ifc_OperatorCategory_PostIncrement:op = onk_plus_plus; break;
-    case ifc_OperatorCategory_PostDecrement:op = onk_minus_minus; break;
-    case ifc_OperatorCategory_SlashEq:      op = onk_divide_assign; break;
-    case ifc_OperatorCategory_EqEq:         op = onk_eq; break;
-    case ifc_OperatorCategory_NotEq:        op = onk_ne; break;
-    case ifc_OperatorCategory_Greater:      op = onk_gt; break;
-    case ifc_OperatorCategory_GreaterEq:    op = onk_ge; break;
-    case ifc_OperatorCategory_Less:         op = onk_lt; break;
-    case ifc_OperatorCategory_LessEq:       op = onk_le; break;
-    case ifc_OperatorCategory_Spaceship:    op = onk_spaceship; break;
-    case ifc_OperatorCategory_LshiftEq:     op = onk_shift_left_assign; break;
-    case ifc_OperatorCategory_RshiftEq:     op = onk_shift_right_assign; break;
-    case ifc_OperatorCategory_MinusEq:      op = onk_minus_assign; break;
-    case ifc_OperatorCategory_ModuloEq:     op = onk_remainder_assign; break;
-    case ifc_OperatorCategory_StarEq:       op = onk_times_assign; break;
-    case ifc_OperatorCategory_BitorEq:      op = onk_or_assign; break;
-    case ifc_OperatorCategory_PlusEq:       op = onk_plus_assign; break;
-    case ifc_OperatorCategory_BitandEq:     op = onk_and_assign; break;
-    case ifc_OperatorCategory_BitxorEq:     op = onk_excl_or_assign; break;
-    case ifc_OperatorCategory_Lshift:       op = onk_shift_left; break;
-    case ifc_OperatorCategory_Rshift:       op = onk_shift_right; break;
-    case ifc_OperatorCategory_Arrow:        op = onk_arrow; break;
-    case ifc_OperatorCategory_PreDecrement: op = onk_minus_minus; break;
-    case ifc_OperatorCategory_PreIncrement: op = onk_plus_plus; break;
-    case ifc_OperatorCategory_UnaryMinus:   op = onk_minus; break;
-    case ifc_OperatorCategory_Address:      op = onk_ampersand; break;
-    case ifc_OperatorCategory_UnaryPlus:    op = onk_plus; break;
-    case ifc_OperatorCategory_Dereference:  op = onk_star; break;
-
-    /* These don't have direct mappings:*/
-    case ifc_OperatorCategory_Percent:           /*    operator% */
-    case ifc_OperatorCategory_Sizeof:            /*    operator sizeof */
-    case ifc_OperatorCategory_ExpandingSizeof:   /*    operator sizeof... */
-    case ifc_OperatorCategory_Throw:             /*    operator throw */
-    case ifc_OperatorCategory_Alignof:           /*    operator alignof */
-    case ifc_OperatorCategory_Noexcept:          /*    operator noexcept */
-    case ifc_OperatorCategory_Requires:          /*    operator requires */
-    case ifc_OperatorCategory_Coreturn:          /*    operator co_return */
-    case ifc_OperatorCategory_Await:             /*    operator co_yield */
-    case ifc_OperatorCategory_Yield:             /*    operator co_yield */
-    case ifc_OperatorCategory_StaticAssert:      /*    operator static_assert*/
-    case ifc_OperatorCategory_Dot:               /*    operator. */
-    case ifc_OperatorCategory_DerefMemberAccess: /*    operator.* */
-    default:
+  switch (niladic_op) {
+    case ifc_NiladicOperator_Unknown:
+    case ifc_NiladicOperator_Msvc:
+      op = onk_none;
+      unexpected_condition();
+      break;
+    case ifc_NiladicOperator_Phantom:
+    case ifc_NiladicOperator_Constant:
+    case ifc_NiladicOperator_Nil:
+    case ifc_NiladicOperator_MsvcConstantObject:
+    case ifc_NiladicOperator_MsvcLambda:
 #if DEBUG
       if (db_flag_is_set("ms_ignore")) {
-        (void)fprintf(f_debug, "Unsupported operation: %d\n", category);
+        (void)fprintf(f_debug, "Unsupported operation: %d\n", niladic_op);
       }  /* if */
 #endif /* DEBUG */
       op = onk_none;
       unexpected_condition();
+      break;
+    default_is_unexpected_str("Unexpected NiladicOperator");
   }  /* switch */
   return op;
-}  /* opname_from_category */
+}  /* opname_from_niladic_op */
+
+
+static an_opname_kind opname_from_monadic_op(ifc_MonadicOperator monadic_op)
+/*
+Map an IFC MonadicOperator to an_opname_kind.
+*/
+{
+  an_opname_kind op;
+
+  switch (monadic_op) {
+    case ifc_MonadicOperator_Unknown:
+    case ifc_MonadicOperator_Msvc:
+      op = onk_none;
+      unexpected_condition();
+      break;
+    case ifc_MonadicOperator_Plus:               op = onk_plus;          break;
+    case ifc_MonadicOperator_Negate:             op = onk_minus;         break;
+    case ifc_MonadicOperator_Deref:              op = onk_star;          break;
+    case ifc_MonadicOperator_Address:            op = onk_ampersand;     break;
+    case ifc_MonadicOperator_Complement:         op = onk_compl;         break;
+    case ifc_MonadicOperator_Not:                op = onk_not;           break;
+    case ifc_MonadicOperator_PreIncrement:       op = onk_plus_plus;     break;
+    case ifc_MonadicOperator_PreDecrement:       op = onk_minus_minus;   break;
+    case ifc_MonadicOperator_PostIncrement:      op = onk_plus_plus;     break;
+    case ifc_MonadicOperator_PostDecrement:      op = onk_minus_minus;   break;
+    case ifc_MonadicOperator_Await:              op = onk_await;         break;
+    case ifc_MonadicOperator_New:                op = onk_new;           break;
+    case ifc_MonadicOperator_Delete:             op = onk_delete;        break;
+    case ifc_MonadicOperator_DeleteArray:        op = onk_array_delete;  break;
+    case ifc_MonadicOperator_Truncate:
+    case ifc_MonadicOperator_Ceil:
+    case ifc_MonadicOperator_Floor:
+    case ifc_MonadicOperator_Paren:
+    case ifc_MonadicOperator_Brace:
+    case ifc_MonadicOperator_Alignas:
+    case ifc_MonadicOperator_Alignof:
+    case ifc_MonadicOperator_Sizeof:
+    case ifc_MonadicOperator_Cardinality:
+    case ifc_MonadicOperator_Typeid:
+    case ifc_MonadicOperator_Noexcept:
+    case ifc_MonadicOperator_Requires:
+    case ifc_MonadicOperator_CoReturn:
+    case ifc_MonadicOperator_Yield:
+    case ifc_MonadicOperator_Throw:
+    case ifc_MonadicOperator_Expand:
+    case ifc_MonadicOperator_Read:
+    case ifc_MonadicOperator_Materialize:
+    case ifc_MonadicOperator_PseudoDtorCall:
+    case ifc_MonadicOperator_MsvcAssume:
+    case ifc_MonadicOperator_MsvcAlignof:
+    case ifc_MonadicOperator_MsvcUuidof:
+    case ifc_MonadicOperator_MsvcIsClass:
+    case ifc_MonadicOperator_MsvcIsUnion:
+    case ifc_MonadicOperator_MsvcIsEnum:
+    case ifc_MonadicOperator_MsvcIsPolymorphic:
+    case ifc_MonadicOperator_MsvcIsEmpty:
+    case ifc_MonadicOperator_MsvcIsTriviallyCopyConstructible:
+    case ifc_MonadicOperator_MsvcIsTriviallyCopyAssignable:
+    case ifc_MonadicOperator_MsvcIsTriviallyDestructible:
+    case ifc_MonadicOperator_MsvcHasVirtualDestructor:
+    case ifc_MonadicOperator_MsvcIsNothrowCopyConstructible:
+    case ifc_MonadicOperator_MsvcIsNothrowCopyAssignable:
+    case ifc_MonadicOperator_MsvcIsPod:
+    case ifc_MonadicOperator_MsvcIsAbstract:
+    case ifc_MonadicOperator_MsvcIsTrivial:
+    case ifc_MonadicOperator_MsvcIsTriviallyCopyable:
+    case ifc_MonadicOperator_MsvcIsStandardLayout:
+    case ifc_MonadicOperator_MsvcIsLiteralType:
+    case ifc_MonadicOperator_MsvcIsTriviallyMoveConstructible:
+    case ifc_MonadicOperator_MsvcHasTrivialMoveAssign:
+    case ifc_MonadicOperator_MsvcIsTriviallyMoveAssignable:
+    case ifc_MonadicOperator_MsvcIsNothrowMoveAssignable:
+    case ifc_MonadicOperator_MsvcUnderlyingType:
+    case ifc_MonadicOperator_MsvcIsDestructible:
+    case ifc_MonadicOperator_MsvcIsNothrowDestructible:
+    case ifc_MonadicOperator_MsvcHasUniqueObjectRepresentations:
+    case ifc_MonadicOperator_MsvcIsAggregate:
+    case ifc_MonadicOperator_MsvcBuiltinAddressOf:
+    case ifc_MonadicOperator_MsvcIsRefClass:
+    case ifc_MonadicOperator_MsvcIsValueClass:
+    case ifc_MonadicOperator_MsvcIsSimpleValueClass:
+    case ifc_MonadicOperator_MsvcIsInterfaceClass:
+    case ifc_MonadicOperator_MsvcIsDelegate:
+    case ifc_MonadicOperator_MsvcIsFinal:
+    case ifc_MonadicOperator_MsvcIsSealed:
+    case ifc_MonadicOperator_MsvcHasFinalizer:
+    case ifc_MonadicOperator_MsvcHasCopy:
+    case ifc_MonadicOperator_MsvcHasAssign:
+    case ifc_MonadicOperator_MsvcHasUserDestructor:
+    case ifc_MonadicOperator_MsvcConfusion:
+    case ifc_MonadicOperator_MsvcConfusedExpand:
+#if DEBUG
+      if (db_flag_is_set("ms_ignore")) {
+        (void)fprintf(f_debug, "Unsupported operation: %d\n", monadic_op);
+      }  /* if */
+#endif /* DEBUG */
+      op = onk_none;
+      unexpected_condition();
+      break;
+    default_is_unexpected_str("Unexpected MonadicOperator");
+  }  /* switch */
+  return op;
+}  /* opname_from_monadic_op */
+
+
+static an_opname_kind opname_from_dyadic_op(ifc_DyadicOperator dyadic_op)
+/*
+Map an IFC DyadicOperator to an_opname_kind.
+*/
+{
+  an_opname_kind op;
+
+  switch (dyadic_op) {
+    case ifc_DyadicOperator_Unknown:
+    case ifc_DyadicOperator_Msvc:
+      op = onk_none;
+      unexpected_condition();
+      break;
+    case ifc_DyadicOperator_Plus:            op = onk_plus;              break;
+    case ifc_DyadicOperator_Minus:           op = onk_minus;             break;
+    case ifc_DyadicOperator_Mult:            op = onk_star;              break;
+    case ifc_DyadicOperator_Slash:           op = onk_divide;            break;
+    case ifc_DyadicOperator_Modulo:          op = onk_remainder;         break;
+    case ifc_DyadicOperator_Remainder:       op = onk_remainder;         break;
+    case ifc_DyadicOperator_Bitand:          op = onk_ampersand;         break;
+    case ifc_DyadicOperator_Bitor:           op = onk_or;                break;
+    case ifc_DyadicOperator_Bitxor:          op = onk_excl_or;           break;
+    case ifc_DyadicOperator_Lshift:          op = onk_shift_left;        break;
+    case ifc_DyadicOperator_Rshift:          op = onk_shift_right;       break;
+    case ifc_DyadicOperator_Equal:           op = onk_eq;                break;
+    case ifc_DyadicOperator_NotEqual:        op = onk_ne;                break;
+    case ifc_DyadicOperator_Less:            op = onk_lt;                break;
+    case ifc_DyadicOperator_LessEqual:       op = onk_le;                break;
+    case ifc_DyadicOperator_Greater:         op = onk_gt;                break;
+    case ifc_DyadicOperator_GreaterEqual:    op = onk_ge;                break;
+    case ifc_DyadicOperator_LogicAnd:        op = onk_and_and;           break;
+    case ifc_DyadicOperator_LogicOr:         op = onk_or_or;             break;
+    case ifc_DyadicOperator_Assign:          op = onk_assign;            break;
+    case ifc_DyadicOperator_PlusAssign:      op = onk_plus_assign;       break;
+    case ifc_DyadicOperator_MinusAssign:     op = onk_minus_assign;      break;
+    case ifc_DyadicOperator_MultAssign:      op = onk_times_assign;      break;
+    case ifc_DyadicOperator_SlashAssign:     op = onk_divide_assign;     break;
+    case ifc_DyadicOperator_ModuloAssign:    op = onk_remainder_assign;  break;
+    case ifc_DyadicOperator_BitandAssign:    op = onk_and_assign;        break;
+    case ifc_DyadicOperator_BitorAssign:     op = onk_or_assign;         break;
+    case ifc_DyadicOperator_BitxorAssign:    op = onk_excl_or_assign;    break;
+    case ifc_DyadicOperator_LshiftAssign:    op = onk_shift_left_assign; break;
+    case ifc_DyadicOperator_RshiftAssign:    op = onk_shift_right_assign;break;
+    case ifc_DyadicOperator_Comma:           op = onk_comma;             break;
+    case ifc_DyadicOperator_Arrow:           op = onk_arrow;             break;
+    case ifc_DyadicOperator_ArrowStar:       op = onk_arrow_star;        break;
+    case ifc_DyadicOperator_New:             op = onk_new;               break;
+    case ifc_DyadicOperator_NewArray:        op = onk_array_new;         break;
+    case ifc_DyadicOperator_Compare:         op = onk_spaceship;         break;
+    case ifc_DyadicOperator_Dot:
+    case ifc_DyadicOperator_DotStar:
+    case ifc_DyadicOperator_Curry:
+    case ifc_DyadicOperator_Apply:
+    case ifc_DyadicOperator_Index:
+    case ifc_DyadicOperator_DefaultAt:
+    case ifc_DyadicOperator_Destruct:
+    case ifc_DyadicOperator_DestructAt:
+    case ifc_DyadicOperator_Cleanup:
+    case ifc_DyadicOperator_Qualification:
+    case ifc_DyadicOperator_Promote:
+    case ifc_DyadicOperator_Demote:
+    case ifc_DyadicOperator_Coerce:
+    case ifc_DyadicOperator_Rewrite:
+    case ifc_DyadicOperator_Bless:
+    case ifc_DyadicOperator_Cast:
+    case ifc_DyadicOperator_ExplicitConversion:
+    case ifc_DyadicOperator_ReinterpretCast:
+    case ifc_DyadicOperator_StaticCast:
+    case ifc_DyadicOperator_ConstCast:
+    case ifc_DyadicOperator_DynamicCast:
+    case ifc_DyadicOperator_Narrow:
+    case ifc_DyadicOperator_Widen:
+    case ifc_DyadicOperator_Pretend:
+    case ifc_DyadicOperator_Closure:
+    case ifc_DyadicOperator_ZeroInitialize:
+    case ifc_DyadicOperator_ClearStorage:
+    case ifc_DyadicOperator_MsvcTryCast:
+    case ifc_DyadicOperator_MsvcCurry:
+    case ifc_DyadicOperator_MsvcVirtualCurry:
+    case ifc_DyadicOperator_MsvcAlign:
+    case ifc_DyadicOperator_MsvcBitSpan:
+    case ifc_DyadicOperator_MsvcBitfieldAccess:
+    case ifc_DyadicOperator_MsvcObscureBitfieldAccess:
+    case ifc_DyadicOperator_MsvcInitialize:
+    case ifc_DyadicOperator_MsvcBuiltinOffsetOf:
+    case ifc_DyadicOperator_MsvcIsBaseOf:
+    case ifc_DyadicOperator_MsvcIsConvertibleTo:
+    case ifc_DyadicOperator_MsvcIsTriviallyAssignable:
+    case ifc_DyadicOperator_MsvcIsNothrowAssignable:
+    case ifc_DyadicOperator_MsvcIsAssignable:
+    case ifc_DyadicOperator_MsvcIsAssignableNocheck:
+    case ifc_DyadicOperator_MsvcBuiltinBitCast:
+    case ifc_DyadicOperator_MsvcBuiltinIsLayoutCompatible:
+    case ifc_DyadicOperator_MsvcBuiltinIsPointerInterconvertibleBaseOf:
+    case ifc_DyadicOperator_MsvcBuiltinIsPointerInterconvertibleWithClass:
+    case ifc_DyadicOperator_MsvcBuiltinIsCorrespondingMember:
+    case ifc_DyadicOperator_MsvcIntrinsic:
+#if DEBUG
+      if (db_flag_is_set("ms_ignore")) {
+        (void)fprintf(f_debug, "Unsupported operation: %d\n", dyadic_op);
+      }  /* if */
+#endif /* DEBUG */
+      op = onk_none;
+      unexpected_condition();
+      break;
+    default_is_unexpected_str("Unexpected DyadicOperator");
+  }  /* switch */
+  return op;
+}  /* opname_from_dyadic_op */
+
+
+static an_opname_kind opname_from_triadic_op(ifc_TriadicOperator triadic_op)
+/*
+Map an IFC TriadicOperator to an_opname_kind.
+*/
+{
+  an_opname_kind op;
+
+  switch (triadic_op) {
+    case ifc_TriadicOperator_Unknown:
+    case ifc_TriadicOperator_Msvc:
+      op = onk_none;
+      unexpected_condition();
+      break;
+    case ifc_TriadicOperator_Choice:
+    case ifc_TriadicOperator_ConstructAt:
+    case ifc_TriadicOperator_Initialize:
+#if DEBUG
+      if (db_flag_is_set("ms_ignore")) {
+        (void)fprintf(f_debug, "Unsupported operation: %d\n", triadic_op);
+      }  /* if */
+#endif /* DEBUG */
+      op = onk_none;
+      unexpected_condition();
+      break;
+    default_is_unexpected_str("Unexpected TriadicOperator");
+  }  /* switch */
+  return op;
+}  /* opname_from_triadic_op */
+
+
+static an_opname_kind opname_from_storage_op(ifc_StorageOperator storage_op)
+/*
+Map an IFC StorageOperator to an_opname_kind.
+*/
+{
+  an_opname_kind op;
+
+  switch (storage_op) {
+    case ifc_StorageOperator_Unknown:
+    case ifc_StorageOperator_Msvc:
+      op = onk_none;
+      unexpected_condition();
+      break;
+    case ifc_StorageOperator_AllocateSingle:    op = onk_new;            break;
+    case ifc_StorageOperator_AllocateArray:     op = onk_array_new;      break;
+    case ifc_StorageOperator_DeallocateSingle:  op = onk_delete;         break;
+    case ifc_StorageOperator_DeallocateArray:   op = onk_array_delete;   break;
+#if DEBUG
+      if (db_flag_is_set("ms_ignore")) {
+        (void)fprintf(f_debug, "Unsupported operation: %d\n", storage_op);
+      }  /* if */
+#endif /* DEBUG */
+      op = onk_none;
+      unexpected_condition();
+      break;
+    default_is_unexpected_str("Unexpected StorageOperator");
+  }  /* switch */
+  return op;
+}  /* opname_from_storage_op */
+
+
+static an_opname_kind opname_from_variadic_op(ifc_VariadicOperator variadic_op)
+/*
+Map an IFC VariadicOperator to an_opname_kind.
+*/
+{
+  an_opname_kind op;
+
+  switch (variadic_op) {
+    case ifc_VariadicOperator_Unknown:
+    case ifc_VariadicOperator_Msvc:
+      op = onk_none;
+      unexpected_condition();
+      break;
+    case ifc_VariadicOperator_Collection:
+    case ifc_VariadicOperator_Sequence:
+    case ifc_VariadicOperator_MsvcHasTrivialConstructor:
+    case ifc_VariadicOperator_MsvcIsConstructible:
+    case ifc_VariadicOperator_MsvcIsNothrowConstructible:
+    case ifc_VariadicOperator_MsvcIsTriviallyConstructible:
+#if DEBUG
+      if (db_flag_is_set("ms_ignore")) {
+        (void)fprintf(f_debug, "Unsupported operation: %d\n", variadic_op);
+      }  /* if */
+#endif /* DEBUG */
+      op = onk_none;
+      unexpected_condition();
+      break;
+    default_is_unexpected_str("Unexpected VariadicOperator");
+  }  /* switch */
+  return op;
+}  /* opname_from_variadic_op */
+
+
+static an_opname_kind opname_from_operator(ifc_Operator ifc_op)
+/*
+Map an IFC Operator to an_opname_kind.
+*/
+{
+  an_opname_kind   op;
+  ifc_OperatorSort ifc_op_sort = operator_tag(ifc_op);
+  uint16_t         ifc_op_value = operator_index(ifc_op);
+
+  switch (ifc_op_sort) {
+    case ifc_OperatorSort_Niladic:
+      op = opname_from_niladic_op((ifc_NiladicOperator)ifc_op_value);
+      break;
+    case ifc_OperatorSort_Monadic:
+      op = opname_from_monadic_op((ifc_MonadicOperator)ifc_op_value);
+      break;
+    case ifc_OperatorSort_Dyadic:
+      op = opname_from_dyadic_op((ifc_DyadicOperator)ifc_op_value);
+      break;
+    case ifc_OperatorSort_Triadic:
+      op = opname_from_triadic_op((ifc_TriadicOperator)ifc_op_value);
+      break;
+    case ifc_OperatorSort_Storage:
+      op = opname_from_storage_op((ifc_StorageOperator)ifc_op_value);
+      break;
+    case ifc_OperatorSort_Variadic:
+      op = opname_from_variadic_op((ifc_VariadicOperator)ifc_op_value);
+      break;
+    default_is_unexpected_str("Unexpected OperatorSort");
+  }  /* switch */
+  return op;
+}  /* opname_from_operator */
 
 
 /*
@@ -862,17 +1162,18 @@ corresponding data structure for that partition.
 {
 /* Some data structures are still unspecified (sizeof == 1).  That allowance
    should be removed once the spec is complete. */
-#if DEBUG
+#if CHECKING
 #  define CHECK_SIZE(data) \
   if (sizeof(an_ifc_##data) != 1 && sizeof(an_ifc_##data) != pp->entry_size) {\
     (void)fprintf(f_debug, "Partition for %s expects entity to have size %u, "\
                            "but has size %lu\n", #data, pp->entry_size,       \
                            (unsigned long)sizeof(an_ifc_##data));             \
+    unexpected_condition();                                                   \
   }  /* if */                                                                 \
   break /* user ; */
-#else /* !DEBUG */
+#else /* !CHECKING */
 #  define CHECK_SIZE(data) break /* user ; */
-#endif /* DEBUG */
+#endif /* CHECKING */
   switch (kind) {
     case ifc_decl_vendor_extension:
       CHECK_SIZE(DeclSort_VendorExtension);
@@ -996,6 +1297,8 @@ corresponding data structure for that partition.
       CHECK_SIZE(NameSort_Specialization);
     case ifc_name_source_file:
       CHECK_SIZE(NameSort_SourceFile);
+    case ifc_name_guide:
+      CHECK_SIZE(NameSort_Guide);
     case ifc_expr_vendor_extension:
       CHECK_SIZE(ExprSort_VendorExtension);
     case ifc_expr_empty:
@@ -1378,6 +1681,36 @@ corresponding data structure for that partition.
       CHECK_SIZE(SyntaxSort_StructuredBindingIdentifier);
     case ifc_syntax_using_enum_decl:
       CHECK_SIZE(SyntaxSort_UsingEnumDeclaration);
+    case ifc_form_ident:
+      CHECK_SIZE(FormSort_Identifier);
+    case ifc_form_number:
+      CHECK_SIZE(FormSort_Number);
+    case ifc_form_char:
+      CHECK_SIZE(FormSort_Character);
+    case ifc_form_string:
+      CHECK_SIZE(FormSort_String);
+    case ifc_form_operator:
+      CHECK_SIZE(FormSort_Operator);
+    case ifc_form_keyword:
+      CHECK_SIZE(FormSort_Keyword);
+    case ifc_form_whitespace:
+      CHECK_SIZE(FormSort_Whitespace);
+    case ifc_form_param:
+      CHECK_SIZE(FormSort_Parameter);
+    case ifc_form_stringize:
+      CHECK_SIZE(FormSort_Stringize);
+    case ifc_form_catenate:
+      CHECK_SIZE(FormSort_Catenate);
+    case ifc_form_pragma:
+      CHECK_SIZE(FormSort_Pragma);
+    case ifc_form_header:
+      CHECK_SIZE(FormSort_Header);
+    case ifc_form_parenthesized:
+      CHECK_SIZE(FormSort_Parenthesized);
+    case ifc_form_tuple:
+      CHECK_SIZE(FormSort_Tuple);
+    case ifc_form_junk:
+      CHECK_SIZE(FormSort_Junk);
     case ifc_scope_desc:
       CHECK_SIZE(Scope_Descriptor);
     case ifc_scope_member:
@@ -1390,8 +1723,8 @@ corresponding data structure for that partition.
       CHECK_SIZE(Trait_AliasTemplate);
     case ifc_trait_class_template:
       CHECK_SIZE(Trait_ClassTemplate);
-    case ifc_trait_constexpr_function:
-      CHECK_SIZE(Trait_ConstexprFunction);
+    case ifc_trait_function_definition:
+      CHECK_SIZE(Trait_FunctionDefinition);
     case ifc_trait_deprecated:
       CHECK_SIZE(Trait_Deprecated);
     case ifc_trait_friend:
@@ -1413,6 +1746,8 @@ corresponding data structure for that partition.
     case ifc_heap_chart:
     case ifc_heap_decl:
     case ifc_heap_expr:
+    case ifc_heap_form:
+    case ifc_heap_pp:
     case ifc_heap_stmt:
     case ifc_heap_syn:
     case ifc_heap_type:
@@ -1421,6 +1756,7 @@ corresponding data structure for that partition.
     case ifc_msvc_trait_code_segment:
     case ifc_msvc_trait_codegen_expr_trees:
     case ifc_msvc_trait_entity_init_locus:
+    case ifc_msvc_trait_impl_pragmas:
     case ifc_msvc_trait_named_func_params:
     case ifc_msvc_trait_spec_encodings:
     case ifc_msvc_trait_suppressed_warnings:
@@ -1430,6 +1766,7 @@ corresponding data structure for that partition.
     case ifc_module_exported:
     case ifc_module_imported:
     case ifc_pragma_state:
+    case ifc_pragma_vendorext:
       /* No data structure associated with these. */
       break;
     case ifc_none:
@@ -3115,7 +3452,7 @@ argument.
       { an_ifc_ExprSort_Type iest, *iestp;
         iestp = get_ExprSort_Type(&iest);
         kind = (a_templ_arg_kind)tak_type;
-        type = type_for_type_index(iestp->type, /*kind=*/NULL);
+        type = type_for_type_index(iestp->denotation, /*kind=*/NULL);
       }
       break;
     case ifc_ExprSort_UnaryFold:
@@ -3138,7 +3475,7 @@ argument.
         type = type_for_type_index(iesmp->type, /*kind=*/NULL);
         source_position_from_locus(&pos, &iesmp->locus);
         clear_token_cache(&cache, /*reuseable=*/FALSE);
-        cache_operator(&cache, iesmp->opcat, &iesmp->locus);
+        cache_operator(&cache, iesmp->op, &iesmp->locus);
         cache_token(&cache, tok_lparen, &pos);
         cache_expr(&cache, iesmp->argument);
         cache_token(&cache, tok_rparen, &pos);
@@ -3334,7 +3671,7 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
           insop = get_NameSort_Operator(&inso);
           if (loc != NULL) {
             /* Initialize the locator with the proper operator name. */
-            make_opname_locator(opname_from_category(insop->category), loc,
+            make_opname_locator(opname_from_operator(insop->op), loc,
                                 &null_source_position);
             result = loc->symbol_header->identifier;
           } else {
@@ -3392,6 +3729,13 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
         { an_ifc_NameSort_Specialization inss;
           get_NameSort_Specialization(&inss);
           unexpected_condition_str("NameSort::Specialization"
+                                   " is not yet handled.");
+        }
+        break;
+      case ifc_NameSort_Guide:
+        { an_ifc_NameSort_Guide insg;
+          get_NameSort_Guide(&insg);
+          unexpected_condition_str("NameSort::Guide"
                                    " is not yet handled.");
         }
         break;
@@ -3546,7 +3890,7 @@ Given a declaration, return the name associated with that declaration.
     case ifc_DeclSort_Reference:
       { an_ifc_DeclSort_Reference idsr, *idsrp;
         idsrp = get_DeclSort_Reference(&idsr);
-        result = name_from_decl(idsrp->local_index);
+        result = name_from_other_module_decl(idsrp);
       }
       break;
     case ifc_DeclSort_UsingDeclaration:
@@ -3631,6 +3975,25 @@ Given a declaration, return the name associated with that declaration.
   check_assertion(result != NULL);
   return result;
 }  /* name_from_decl */
+
+
+a_const_char *an_ifc_module::name_from_other_module_decl(
+                                          const an_ifc_DeclSort_Reference *ref)
+                                                                          const
+/*
+Given a DeclSort::Reference to another module, get and return the name of the
+referenced entity.
+*/
+{
+  a_module_import_decl_ptr  midp;
+  an_ifc_module             *iface;
+
+  midp = referenced_modules.get(ref->unit.as_key());
+  check_assertion(midp != NULL);
+  iface = (an_ifc_module*)midp->module_info->module_interface;
+  check_assertion(iface != NULL);
+  return iface->name_from_decl(ref->local_index);
+}  /* name_from_other_module_decl */
 
 
 void an_ifc_module::init_dps(a_decl_parse_state          *dps,
@@ -5324,8 +5687,8 @@ cache.  pos is the position of the exception specification.
     case ifc_NoexceptSort_Expression:
       cache_sentence(cache, eh_spec->words);
       break;
-    case ifc_NoexceptSort_Weak:
-      unexpected_condition_str("NoexceptSort::Weak is not yet supported");
+    case ifc_NoexceptSort_Inferred:
+      unexpected_condition_str("NoexceptSort::Inferred is not yet supported");
       break;
     case ifc_NoexceptSort_Unenforced:
       unexpected_condition_str("NoexceptSort::Unenforced "
@@ -5726,197 +6089,783 @@ is the location of the chart.
 }  /* cache_chart */
 
 
-void an_ifc_module::cache_operator(a_token_cache_ptr    cache,
-                                   ifc_OperatorCategory category,
-                                   ifc_SourceLocation   *locus) const
+void an_ifc_module::cache_operator(a_token_cache_ptr  cache,
+                                   ifc_Operator       op,
+                                   ifc_SourceLocation *locus) const
 /*
-Add the tokens corresponding to the given operator category to cache.  locus is
+Add the tokens corresponding to the given Operator to cache.  locus is the
+location of the operator.
+*/
+{
+  uint16_t op_val = operator_index(op);
+
+  switch (operator_tag(op)) {
+    case ifc_OperatorSort_Niladic:
+      cache_operator(cache, (ifc_NiladicOperator)op_val, locus);
+      break;
+    case ifc_OperatorSort_Monadic:
+      cache_operator(cache, (ifc_MonadicOperator)op_val, locus);
+      break;
+    case ifc_OperatorSort_Dyadic:
+      cache_operator(cache, (ifc_DyadicOperator)op_val, locus);
+      break;
+    case ifc_OperatorSort_Triadic:
+      cache_operator(cache, (ifc_TriadicOperator)op_val, locus);
+      break;
+    case ifc_OperatorSort_Storage:
+      cache_operator(cache, (ifc_StorageOperator)op_val, locus);
+      break;
+    case ifc_OperatorSort_Variadic:
+      cache_operator(cache, (ifc_VariadicOperator)op_val, locus);
+      break;
+    default_is_unexpected_str("Unexpected OperatorSort");
+  }  /* switch */
+}  /* cache_operator */
+
+
+void an_ifc_module::cache_operator(a_token_cache_ptr   cache,
+                                   ifc_NiladicOperator op,
+                                   ifc_SourceLocation  *locus) const
+/*
+Add the tokens corresponding to the given Niladic Operator to cache.  locus is
 the location of the operator.
 */
 {
   a_source_position pos;
 
   source_position_from_locus(&pos, locus);
-  switch (category) {
-    case ifc_OperatorCategory_Bitand:
-      cache_token(cache, tok_ampersand, &pos);
+  switch (op) {
+    case ifc_NiladicOperator_Unknown:
+      unexpected_condition();
       break;
-    case ifc_OperatorCategory_LogicAnd:
-      cache_token(cache, tok_and_and, &pos);
+    case ifc_NiladicOperator_Phantom:
+      unexpected_condition_str("NiladicOperator::Phantom"
+                               " is not yet supported");
       break;
-    case ifc_OperatorCategory_Assign:
-      cache_token(cache, tok_assign, &pos);
+    case ifc_NiladicOperator_Constant:
+      unexpected_condition_str("NiladicOperator::Constant"
+                               " is not yet supported");
       break;
-    case ifc_OperatorCategory_Comma:
-      cache_token(cache, tok_comma, &pos);
+    case ifc_NiladicOperator_Nil:
+      unexpected_condition_str("NiladicOperator::Nil"
+                               " is not yet supported");
       break;
-    case ifc_OperatorCategory_Not:
-      cache_token(cache, tok_not, &pos);
+    case ifc_NiladicOperator_Msvc:
+      unexpected_condition();
       break;
-    case ifc_OperatorCategory_Minus:
-      cache_token(cache, tok_minus, &pos);
+    case ifc_NiladicOperator_MsvcConstantObject:
+      unexpected_condition_str("NiladicOperator::MsvcConstantObject"
+                               " is not yet supported");
       break;
-    case ifc_OperatorCategory_Star:
-      cache_token(cache, tok_star, &pos);
+    case ifc_NiladicOperator_MsvcLambda:
+      unexpected_condition_str("NiladicOperator::MsvcLambda"
+                               " is not yet supported");
       break;
-    case ifc_OperatorCategory_Bitor:
-      cache_token(cache, tok_or, &pos);
+    default_is_unexpected_str("Unexpected NiladicOperator");
+  }  /* switch */
+}  /* cache_operator */
+
+
+void an_ifc_module::cache_operator(a_token_cache_ptr   cache,
+                                   ifc_MonadicOperator op,
+                                   ifc_SourceLocation  *locus) const
+/*
+Add the tokens corresponding to the given Monadic Operator to cache.  locus is
+the location of the operator.
+*/
+{
+  a_source_position pos;
+
+  source_position_from_locus(&pos, locus);
+  switch (op) {
+    case ifc_MonadicOperator_Unknown:
+      unexpected_condition();
       break;
-    case ifc_OperatorCategory_LogicOr:
-      cache_token(cache, tok_or_or, &pos);
-      break;
-    case ifc_OperatorCategory_Plus:
+    case ifc_MonadicOperator_Plus:
       cache_token(cache, tok_plus, &pos);
       break;
-    case ifc_OperatorCategory_Quest:
-      cache_token(cache, tok_quest_mark, &pos);
+    case ifc_MonadicOperator_Negate:
+      cache_token(cache, tok_minus, &pos);
       break;
-    case ifc_OperatorCategory_Complement:
+    case ifc_MonadicOperator_Deref:
+      cache_token(cache, tok_star, &pos);
+      break;
+    case ifc_MonadicOperator_Address:
+      cache_token(cache, tok_ampersand, &pos);
+      break;
+    case ifc_MonadicOperator_Complement:
       cache_token(cache, tok_compl, &pos);
       break;
-    case ifc_OperatorCategory_Caret:
-      cache_token(cache, tok_excl_or, &pos);
+    case ifc_MonadicOperator_Not:
+      cache_token(cache, tok_not, &pos);
       break;
-    case ifc_OperatorCategory_Slash:
-      cache_token(cache, tok_divide, &pos);
-      break;
-    case ifc_OperatorCategory_Modulo:
-      cache_token(cache, tok_remainder, &pos);
-      break;
-    case ifc_OperatorCategory_New:
-      cache_token(cache, tok_new, &pos);
-      break;
-    case ifc_OperatorCategory_Delete:
-      cache_token(cache, tok_delete, &pos);
-      break;
-    case ifc_OperatorCategory_IndirectMemberAccess:
-      cache_token(cache, tok_arrow_star, &pos);
-      break;
-    case ifc_OperatorCategory_PostIncrement:
+    case ifc_MonadicOperator_PreIncrement:
       cache_token(cache, tok_plus_plus, &pos);
       break;
-    case ifc_OperatorCategory_PostDecrement:
+    case ifc_MonadicOperator_PreDecrement:
       cache_token(cache, tok_minus_minus, &pos);
       break;
-    case ifc_OperatorCategory_SlashEq:
-      cache_token(cache, tok_divide_assign, &pos);
-      break;
-    case ifc_OperatorCategory_EqEq:
-      cache_token(cache, tok_eq, &pos);
-      break;
-    case ifc_OperatorCategory_NotEq:
-      cache_token(cache, tok_ne, &pos);
-      break;
-    case ifc_OperatorCategory_Greater:
-      cache_token(cache, tok_gt, &pos);
-      break;
-    case ifc_OperatorCategory_GreaterEq:
-      cache_token(cache, tok_ge, &pos);
-      break;
-    case ifc_OperatorCategory_Less:
-      cache_token(cache, tok_lt, &pos);
-      break;
-    case ifc_OperatorCategory_LessEq:
-      cache_token(cache, tok_le, &pos);
-      break;
-    case ifc_OperatorCategory_Spaceship:
-      cache_token(cache, tok_spaceship, &pos);
-      break;
-    case ifc_OperatorCategory_LshiftEq:
-      cache_token(cache, tok_shift_left_assign, &pos);
-      break;
-    case ifc_OperatorCategory_RshiftEq:
-      cache_token(cache, tok_shift_right_assign, &pos);
-      break;
-    case ifc_OperatorCategory_MinusEq:
-      cache_token(cache, tok_minus_assign, &pos);
-      break;
-    case ifc_OperatorCategory_ModuloEq:
-      cache_token(cache, tok_remainder_assign, &pos);
-      break;
-    case ifc_OperatorCategory_StarEq:
-      cache_token(cache, tok_times_assign, &pos);
-      break;
-    case ifc_OperatorCategory_BitorEq:
-      cache_token(cache, tok_or_assign, &pos);
-      break;
-    case ifc_OperatorCategory_PlusEq:
-      cache_token(cache, tok_plus_assign, &pos);
-      break;
-    case ifc_OperatorCategory_BitandEq:
-      cache_token(cache, tok_and_assign, &pos);
-      break;
-    case ifc_OperatorCategory_BitxorEq:
-      cache_token(cache, tok_excl_or_assign, &pos);
-      break;
-    case ifc_OperatorCategory_Lshift:
-      cache_token(cache, tok_shift_left, &pos);
-      break;
-    case ifc_OperatorCategory_Rshift:
-      cache_token(cache, tok_shift_right, &pos);
-      break;
-    case ifc_OperatorCategory_Arrow:
-      cache_token(cache, tok_arrow, &pos);
-      break;
-    case ifc_OperatorCategory_PreDecrement:
-      cache_token(cache, tok_minus_minus, &pos);
-      break;
-    case ifc_OperatorCategory_PreIncrement:
+    case ifc_MonadicOperator_PostIncrement:
       cache_token(cache, tok_plus_plus, &pos);
       break;
-    case ifc_OperatorCategory_UnaryMinus:
-      cache_token(cache, tok_minus, &pos);
+    case ifc_MonadicOperator_PostDecrement:
+      cache_token(cache, tok_minus_minus, &pos);
       break;
-    case ifc_OperatorCategory_Address:
-      cache_token(cache, tok_ampersand, &pos);
+    case ifc_MonadicOperator_Truncate:
+      unexpected_condition_str("MonadicOperator::Truncate"
+                               " is not yet supported");
       break;
-    case ifc_OperatorCategory_UnaryPlus:
-      cache_token(cache, tok_plus, &pos);
+    case ifc_MonadicOperator_Ceil:
+      unexpected_condition_str("MonadicOperator::Ceil"
+                               " is not yet supported");
       break;
-    case ifc_OperatorCategory_Dereference:
-      cache_token(cache, tok_star, &pos);
+    case ifc_MonadicOperator_Floor:
+      unexpected_condition_str("MonadicOperator::Floor"
+                               " is not yet supported");
       break;
-    case ifc_OperatorCategory_Percent:
-      cache_token(cache, tok_remainder, &pos);
+    case ifc_MonadicOperator_Paren:
+      unexpected_condition_str("MonadicOperator::Paren"
+                               " is not yet supported");
       break;
-    case ifc_OperatorCategory_Sizeof:
-      cache_token(cache, tok_sizeof, &pos);
+    case ifc_MonadicOperator_Brace:
+      unexpected_condition_str("MonadicOperator::Brace"
+                               " is not yet supported");
       break;
-    case ifc_OperatorCategory_ExpandingSizeof:
-      cache_token(cache, tok_sizeof, &pos);
-      cache_token(cache, tok_ellipsis, &pos);
+    case ifc_MonadicOperator_Alignas:
+      cache_token(cache, tok_alignas, &pos);
       break;
-    case ifc_OperatorCategory_Throw:
-      cache_token(cache, tok_throw, &pos);
-      break;
-    case ifc_OperatorCategory_Alignof:
+    case ifc_MonadicOperator_Alignof:
       cache_token(cache, tok_alignof, &pos);
       break;
-    case ifc_OperatorCategory_Noexcept:
+    case ifc_MonadicOperator_Sizeof:
+      cache_token(cache, tok_sizeof, &pos);
+      break;
+    case ifc_MonadicOperator_Cardinality:
+      unexpected_condition_str("MonadicOperator::Cardinality"
+                               " is not yet supported");
+      break;
+    case ifc_MonadicOperator_Typeid:
+      cache_token(cache, tok_typeid, &pos);
+      break;
+    case ifc_MonadicOperator_Noexcept:
       cache_token(cache, tok_noexcept, &pos);
       break;
-    case ifc_OperatorCategory_Requires:
+    case ifc_MonadicOperator_Requires:
       cache_token(cache, tok_requires, &pos);
       break;
-    case ifc_OperatorCategory_Coreturn:
+    case ifc_MonadicOperator_CoReturn:
       cache_token(cache, tok_coroutine_return, &pos);
       break;
-    case ifc_OperatorCategory_Await:
+    case ifc_MonadicOperator_Await:
       cache_token(cache, tok_coroutine_await, &pos);
       break;
-    case ifc_OperatorCategory_Yield:
+    case ifc_MonadicOperator_Yield:
       cache_token(cache, tok_coroutine_yield, &pos);
       break;
-    case ifc_OperatorCategory_StaticAssert:
-      cache_token(cache, tok_static_assert, &pos);
+    case ifc_MonadicOperator_Throw:
+      cache_token(cache, tok_throw, &pos);
       break;
-    case ifc_OperatorCategory_Dot:
+    case ifc_MonadicOperator_New:
+      cache_token(cache, tok_new, &pos);
+      break;
+    case ifc_MonadicOperator_Delete:
+      cache_token(cache, tok_delete, &pos);
+      break;
+    case ifc_MonadicOperator_DeleteArray:
+      unexpected_condition_str("MonadicOperator::DeleteArray"
+                               " is not yet supported");
+      break;
+    case ifc_MonadicOperator_Expand:
+      unexpected_condition_str("MonadicOperator::Expand"
+                               " is not yet supported");
+      break;
+    case ifc_MonadicOperator_Read:
+      unexpected_condition_str("MonadicOperator::Read"
+                               " is not yet supported");
+      break;
+    case ifc_MonadicOperator_Materialize:
+      unexpected_condition_str("MonadicOperator::Materialize"
+                               " is not yet supported");
+      break;
+    case ifc_MonadicOperator_PseudoDtorCall:
+      unexpected_condition_str("MonadicOperator::PseudoDtorCall"
+                               " is not yet supported");
+      break;
+    case ifc_MonadicOperator_Msvc:
+      unexpected_condition();
+      break;
+    case ifc_MonadicOperator_MsvcAssume:
+      cache_token(cache, tok_assume, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcAlignof:
+      cache_token(cache, tok_alignof, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcUuidof:
+      cache_token(cache, tok_uuidof, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcIsClass:
+      cache_token(cache, tok_is_class, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcIsUnion:
+      cache_token(cache, tok_is_union, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcIsEnum:
+      cache_token(cache, tok_is_enum, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcIsPolymorphic:
+      cache_token(cache, tok_is_polymorphic, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcIsEmpty:
+      cache_token(cache, tok_is_empty, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcIsTriviallyCopyConstructible:
+      unexpected_condition_str(
+                            "MonadicOperator::MsvcIsTriviallyCopyConstructible"
+                            " is not yet supported");
+      break;
+    case ifc_MonadicOperator_MsvcIsTriviallyCopyAssignable:
+      cache_token(cache, tok_is_trivially_copy_assignable, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcIsTriviallyDestructible:
+      cache_token(cache, tok_is_trivially_destructible, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcHasVirtualDestructor:
+      cache_token(cache, tok_has_virtual_destructor, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcIsNothrowCopyConstructible:
+      unexpected_condition_str(
+                              "MonadicOperator::MsvcIsNothrowCopyConstructible"
+                              " is not yet supported");
+      break;
+    case ifc_MonadicOperator_MsvcIsNothrowCopyAssignable:
+      unexpected_condition_str("MonadicOperator::MsvcIsNothrowCopyAssignable"
+                               " is not yet supported");
+      break;
+    case ifc_MonadicOperator_MsvcIsPod:
+      cache_token(cache, tok_is_pod, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcIsAbstract:
+      cache_token(cache, tok_is_abstract, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcIsTrivial:
+      cache_token(cache, tok_is_trivial, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcIsTriviallyCopyable:
+      cache_token(cache, tok_is_trivially_copyable, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcIsStandardLayout:
+      cache_token(cache, tok_is_standard_layout, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcIsLiteralType:
+      cache_token(cache, tok_is_literal_type, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcIsTriviallyMoveConstructible:
+      unexpected_condition_str(
+                            "MonadicOperator::MsvcIsTriviallyMoveConstructible"
+                            " is not yet supported");
+      break;
+    case ifc_MonadicOperator_MsvcHasTrivialMoveAssign:
+      cache_token(cache, tok_has_trivial_move_assign, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcIsTriviallyMoveAssignable:
+      unexpected_condition_str("MonadicOperator::MsvcIsTriviallyMoveAssignable"
+                               " is not yet supported");
+      break;
+    case ifc_MonadicOperator_MsvcIsNothrowMoveAssignable:
+      unexpected_condition_str("MonadicOperator::MsvcIsNothrowMoveAssignable"
+                               " is not yet supported");
+      break;
+    case ifc_MonadicOperator_MsvcUnderlyingType:
+      cache_token(cache, tok_underlying_type, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcIsDestructible:
+      cache_token(cache, tok_is_destructible, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcIsNothrowDestructible:
+      cache_token(cache, tok_is_nothrow_destructible, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcHasUniqueObjectRepresentations:
+      cache_token(cache, tok_has_unique_object_representations, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcIsAggregate:
+      cache_token(cache, tok_is_aggregate, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcBuiltinAddressOf:
+      cache_token(cache, tok_builtin_addressof, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcIsRefClass:
+      cache_token(cache, tok_is_ref_class, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcIsValueClass:
+      cache_token(cache, tok_is_value_class, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcIsSimpleValueClass:
+      cache_token(cache, tok_is_simple_value_class, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcIsInterfaceClass:
+      cache_token(cache, tok_is_interface_class, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcIsDelegate:
+      cache_token(cache, tok_is_delegate, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcIsFinal:
+      cache_token(cache, tok_is_final, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcIsSealed:
+      cache_token(cache, tok_is_sealed, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcHasFinalizer:
+      cache_token(cache, tok_has_finalizer, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcHasCopy:
+      cache_token(cache, tok_has_copy, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcHasAssign:
+      cache_token(cache, tok_has_assign, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcHasUserDestructor:
+      cache_token(cache, tok_has_user_destructor, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcConfusion:
+      unexpected_condition_str("MonadicOperator::MsvcConfusion"
+                               " is not yet supported");
+      break;
+    case ifc_MonadicOperator_MsvcConfusedExpand:
+      unexpected_condition_str("MonadicOperator::MsvcConfusedExpand"
+                               " is not yet supported");
+      break;
+    default_is_unexpected_str("Unexpected MonadicOperator");
+  }  /* switch */
+}  /* cache_operator */
+
+
+void an_ifc_module::cache_operator(a_token_cache_ptr  cache,
+                                   ifc_DyadicOperator op,
+                                   ifc_SourceLocation *locus) const
+/*
+Add the tokens corresponding to the given Dyadic Operator to cache.  locus is
+the location of the operator.
+*/
+{
+  a_source_position pos;
+
+  source_position_from_locus(&pos, locus);
+  switch (op) {
+    case ifc_DyadicOperator_Unknown:
+      unexpected_condition();
+      break;
+    case ifc_DyadicOperator_Plus:
+      cache_token(cache, tok_plus, &pos);
+      break;
+    case ifc_DyadicOperator_Minus:
+      cache_token(cache, tok_minus, &pos);
+      break;
+    case ifc_DyadicOperator_Mult:
+      cache_token(cache, tok_star, &pos);
+      break;
+    case ifc_DyadicOperator_Slash:
+      cache_token(cache, tok_divide, &pos);
+      break;
+    case ifc_DyadicOperator_Modulo:
+      cache_token(cache, tok_remainder, &pos);
+      break;
+    case ifc_DyadicOperator_Remainder:
+      cache_token(cache, tok_remainder, &pos);
+      break;
+    case ifc_DyadicOperator_Bitand:
+      cache_token(cache, tok_ampersand, &pos);
+      break;
+    case ifc_DyadicOperator_Bitor:
+      cache_token(cache, tok_or, &pos);
+      break;
+    case ifc_DyadicOperator_Bitxor:
+      cache_token(cache, tok_excl_or, &pos);
+      break;
+    case ifc_DyadicOperator_Lshift:
+      cache_token(cache, tok_shift_left, &pos);
+      break;
+    case ifc_DyadicOperator_Rshift:
+      cache_token(cache, tok_shift_right, &pos);
+      break;
+    case ifc_DyadicOperator_Equal:
+      cache_token(cache, tok_eq, &pos);
+      break;
+    case ifc_DyadicOperator_NotEqual:
+      cache_token(cache, tok_ne, &pos);
+      break;
+    case ifc_DyadicOperator_Less:
+      cache_token(cache, tok_lt, &pos);
+      break;
+    case ifc_DyadicOperator_LessEqual:
+      cache_token(cache, tok_le, &pos);
+      break;
+    case ifc_DyadicOperator_Greater:
+      cache_token(cache, tok_gt, &pos);
+      break;
+    case ifc_DyadicOperator_GreaterEqual:
+      cache_token(cache, tok_ge, &pos);
+      break;
+    case ifc_DyadicOperator_Compare:
+      cache_token(cache, tok_spaceship, &pos);
+      break;
+    case ifc_DyadicOperator_LogicAnd:
+      cache_token(cache, tok_and_and, &pos);
+      break;
+    case ifc_DyadicOperator_LogicOr:
+      cache_token(cache, tok_or_or, &pos);
+      break;
+    case ifc_DyadicOperator_Assign:
+      cache_token(cache, tok_assign, &pos);
+      break;
+    case ifc_DyadicOperator_PlusAssign:
+      cache_token(cache, tok_plus_assign, &pos);
+      break;
+    case ifc_DyadicOperator_MinusAssign:
+      cache_token(cache, tok_minus_assign, &pos);
+      break;
+    case ifc_DyadicOperator_MultAssign:
+      cache_token(cache, tok_times_assign, &pos);
+      break;
+    case ifc_DyadicOperator_SlashAssign:
+      cache_token(cache, tok_divide_assign, &pos);
+      break;
+    case ifc_DyadicOperator_ModuloAssign:
+      cache_token(cache, tok_remainder_assign, &pos);
+      break;
+    case ifc_DyadicOperator_BitandAssign:
+      cache_token(cache, tok_and_assign, &pos);
+      break;
+    case ifc_DyadicOperator_BitorAssign:
+      cache_token(cache, tok_or_assign, &pos);
+      break;
+    case ifc_DyadicOperator_BitxorAssign:
+      cache_token(cache, tok_excl_or_assign, &pos);
+      break;
+    case ifc_DyadicOperator_LshiftAssign:
+      cache_token(cache, tok_shift_left_assign, &pos);
+      break;
+    case ifc_DyadicOperator_RshiftAssign:
+      cache_token(cache, tok_shift_right_assign, &pos);
+      break;
+    case ifc_DyadicOperator_Comma:
+      cache_token(cache, tok_comma, &pos);
+      break;
+    case ifc_DyadicOperator_Dot:
       cache_token(cache, tok_period, &pos);
       break;
-    case ifc_OperatorCategory_DerefMemberAccess:
+    case ifc_DyadicOperator_Arrow:
+      cache_token(cache, tok_arrow, &pos);
+      break;
+    case ifc_DyadicOperator_DotStar:
       cache_token(cache, tok_period_star, &pos);
       break;
-    default_is_unexpected_str("Unexpected OperatorCategory");
+    case ifc_DyadicOperator_ArrowStar:
+      cache_token(cache, tok_arrow_star, &pos);
+      break;
+    case ifc_DyadicOperator_Curry:
+      unexpected_condition_str("DyadicOperator::Curry"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_Apply:
+      unexpected_condition_str("DyadicOperator::Apply"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_Index:
+      unexpected_condition_str("DyadicOperator::Index"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_DefaultAt:
+      unexpected_condition_str("DyadicOperator::DefaultAt"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_New:
+      unexpected_condition_str("DyadicOperator::New"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_NewArray:
+      unexpected_condition_str("DyadicOperator::NewArray"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_Destruct:
+      unexpected_condition_str("DyadicOperator::Destruct"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_DestructAt:
+      unexpected_condition_str("DyadicOperator::DestructAt"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_Cleanup:
+      unexpected_condition_str("DyadicOperator::Cleanup"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_Qualification:
+      unexpected_condition_str("DyadicOperator::Qualification"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_Promote:
+      unexpected_condition_str("DyadicOperator::Promote"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_Demote:
+      unexpected_condition_str("DyadicOperator::Demote"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_Coerce:
+      unexpected_condition_str("DyadicOperator::Coerce"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_Rewrite:
+      unexpected_condition_str("DyadicOperator::Rewrite"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_Bless:
+      unexpected_condition_str("DyadicOperator::Bless"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_Cast:
+      unexpected_condition_str("DyadicOperator::Cast"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_ExplicitConversion:
+      unexpected_condition_str("DyadicOperator::ExplicitConversion"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_ReinterpretCast:
+      cache_token(cache, tok_reinterpret_cast, &pos);
+      break;
+    case ifc_DyadicOperator_StaticCast:
+      cache_token(cache, tok_static_cast, &pos);
+      break;
+    case ifc_DyadicOperator_ConstCast:
+      cache_token(cache, tok_const_cast, &pos);
+      break;
+    case ifc_DyadicOperator_DynamicCast:
+      cache_token(cache, tok_dynamic_cast, &pos);
+      break;
+    case ifc_DyadicOperator_Narrow:
+      unexpected_condition_str("DyadicOperator::Narrow"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_Widen:
+      unexpected_condition_str("DyadicOperator::Widen"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_Pretend:
+      unexpected_condition_str("DyadicOperator::Pretend"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_Closure:
+      unexpected_condition_str("DyadicOperator::Closure"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_ZeroInitialize:
+      unexpected_condition_str("DyadicOperator::ZeroInitialize"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_ClearStorage:
+      unexpected_condition_str("DyadicOperator::ClearStorage"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_Msvc:
+      unexpected_condition();
+      break;
+    case ifc_DyadicOperator_MsvcTryCast:
+      unexpected_condition_str("DyadicOperator::MsvcTryCast"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_MsvcCurry:
+      unexpected_condition_str("DyadicOperator::MsvcCurry"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_MsvcVirtualCurry:
+      unexpected_condition_str("DyadicOperator::MsvcVirtualCurry"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_MsvcAlign:
+      unexpected_condition_str("DyadicOperator::MsvcAlign"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_MsvcBitSpan:
+      unexpected_condition_str("DyadicOperator::MsvcBitSpan"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_MsvcBitfieldAccess:
+      unexpected_condition_str("DyadicOperator::MsvcBitfieldAccess"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_MsvcObscureBitfieldAccess:
+      unexpected_condition_str("DyadicOperator::MsvcObscureBitfieldAccess"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_MsvcInitialize:
+      unexpected_condition_str("DyadicOperator::MsvcInitialize"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_MsvcBuiltinOffsetOf:
+      cache_token(cache, tok_builtin_offsetof, &pos);
+      break;
+    case ifc_DyadicOperator_MsvcIsBaseOf:
+      cache_token(cache, tok_is_base_of, &pos);
+      break;
+    case ifc_DyadicOperator_MsvcIsConvertibleTo:
+      cache_token(cache, tok_is_convertible_to, &pos);
+      break;
+    case ifc_DyadicOperator_MsvcIsTriviallyAssignable:
+      cache_token(cache, tok_is_trivially_assignable, &pos);
+      break;
+    case ifc_DyadicOperator_MsvcIsNothrowAssignable:
+      cache_token(cache, tok_is_nothrow_assignable, &pos);
+      break;
+    case ifc_DyadicOperator_MsvcIsAssignable:
+      cache_token(cache, tok_is_assignable, &pos);
+      break;
+    case ifc_DyadicOperator_MsvcIsAssignableNocheck:
+      cache_token(cache, tok_is_assignable_no_precondition_check, &pos);
+      break;
+    case ifc_DyadicOperator_MsvcBuiltinBitCast:
+      cache_token(cache, tok_builtin_bit_cast, &pos);
+      break;
+    case ifc_DyadicOperator_MsvcBuiltinIsLayoutCompatible:
+      unexpected_condition_str("DyadicOperator::MsvcBuiltinIsLayoutCompatible"
+                               " is not yet supported");
+      break;
+    case ifc_DyadicOperator_MsvcBuiltinIsPointerInterconvertibleBaseOf:
+      unexpected_condition_str(
+                   "DyadicOperator::MsvcBuiltinIsPointerInterconvertibleBaseOf"
+                   " is not yet supported");
+      break;
+    case ifc_DyadicOperator_MsvcBuiltinIsPointerInterconvertibleWithClass:
+      unexpected_condition_str(
+                "DyadicOperator::MsvcBuiltinIsPointerInterconvertibleWithClass"
+                " is not yet supported");
+      break;
+    case ifc_DyadicOperator_MsvcBuiltinIsCorrespondingMember:
+      unexpected_condition_str(
+                             "DyadicOperator::MsvcBuiltinIsCorrespondingMember"
+                             " is not yet supported");
+      break;
+    case ifc_DyadicOperator_MsvcIntrinsic:
+      unexpected_condition_str("DyadicOperator::MsvcIntrinsic"
+                               " is not yet supported");
+      break;
+    default_is_unexpected_str("Unexpected DyadicOperator");
+  }  /* switch */
+}  /* cache_operator */
+
+
+void an_ifc_module::cache_operator(a_token_cache_ptr   cache,
+                                   ifc_TriadicOperator op,
+                                   ifc_SourceLocation  *locus) const
+/*
+Add the tokens corresponding to the given Triadic Operator to cache.  locus is
+the location of the operator.
+*/
+{
+  a_source_position pos;
+
+  source_position_from_locus(&pos, locus);
+  switch (op) {
+    case ifc_TriadicOperator_Unknown:
+      unexpected_condition();
+      break;
+    case ifc_TriadicOperator_Choice:
+      unexpected_condition_str("TriadicOperator::Choice"
+                               " is not yet supported");
+      break;
+    case ifc_TriadicOperator_ConstructAt:
+      unexpected_condition_str("TriadicOperator::ConstructAt"
+                               " is not yet supported");
+      break;
+    case ifc_TriadicOperator_Initialize:
+      unexpected_condition_str("TriadicOperator::Initialize"
+                               " is not yet supported");
+      break;
+    case ifc_TriadicOperator_Msvc:
+      unexpected_condition();
+      break;
+    default_is_unexpected_str("Unexpected TriadicOperator");
+  }  /* switch */
+}  /* cache_operator */
+
+
+void an_ifc_module::cache_operator(a_token_cache_ptr   cache,
+                                   ifc_StorageOperator op,
+                                   ifc_SourceLocation  *locus) const
+/*
+Add the tokens corresponding to the given Storage Operator to cache.  locus is
+the location of the operator.
+*/
+{
+  a_source_position pos;
+
+  source_position_from_locus(&pos, locus);
+  switch (op) {
+    case ifc_StorageOperator_Unknown:
+      unexpected_condition();
+      break;
+    case ifc_StorageOperator_AllocateSingle:
+      unexpected_condition_str("StorageOperator::AllocateSingle"
+                               " is not yet supported");
+      break;
+    case ifc_StorageOperator_AllocateArray:
+      unexpected_condition_str("StorageOperator::AllocateArray"
+                               " is not yet supported");
+      break;
+    case ifc_StorageOperator_DeallocateSingle:
+      unexpected_condition_str("StorageOperator::DeallocateSingle"
+                               " is not yet supported");
+      break;
+    case ifc_StorageOperator_DeallocateArray:
+      unexpected_condition_str("StorageOperator::DeallocateArray"
+                               " is not yet supported");
+      break;
+    case ifc_StorageOperator_Msvc:
+      unexpected_condition();
+      break;
+    default_is_unexpected_str("Unexpected StorageOperator");
+  }  /* switch */
+}  /* cache_operator */
+
+
+void an_ifc_module::cache_operator(a_token_cache_ptr    cache,
+                                   ifc_VariadicOperator op,
+                                   ifc_SourceLocation   *locus) const
+/*
+Add the tokens corresponding to the given Variadic Operator to cache.  locus is
+the location of the operator.
+*/
+{
+  a_source_position pos;
+
+  source_position_from_locus(&pos, locus);
+  switch (op) {
+    case ifc_VariadicOperator_Unknown:
+      unexpected_condition();
+      break;
+    case ifc_VariadicOperator_Collection:
+      unexpected_condition_str("VariadicOperator::Collection"
+                               " is not yet supported");
+      break;
+    case ifc_VariadicOperator_Sequence:
+      unexpected_condition_str("VariadicOperator::Sequence"
+                               " is not yet supported");
+      break;
+    case ifc_VariadicOperator_Msvc:
+      unexpected_condition();
+      break;
+    case ifc_VariadicOperator_MsvcHasTrivialConstructor:
+      cache_token(cache, tok_has_trivial_constructor, &pos);
+      break;
+    case ifc_VariadicOperator_MsvcIsConstructible:
+      cache_token(cache, tok_is_constructible, &pos);
+      break;
+    case ifc_VariadicOperator_MsvcIsNothrowConstructible:
+      cache_token(cache, tok_is_nothrow_constructible, &pos);
+      break;
+    case ifc_VariadicOperator_MsvcIsTriviallyConstructible:
+      cache_token(cache, tok_is_trivially_constructible, &pos);
+      break;
+    default_is_unexpected_str("Unexpected VariadicOperator");
   }  /* switch */
 }  /* cache_operator */
 
@@ -6191,7 +7140,7 @@ Add the tokens corresponding to the given expression (expr) to cache.
         a_constant_ptr          cp;
         ieslp = get_ExprSort_Literal(&iesl);
         if (type_tag(ieslp->type) == ifc_TypeSort_Designated) {
-          /* This can show up as a literal type in some cases, but isn't
+          /* FIXME: This can show up as a literal type in some cases, but isn't
              really a literal in the sense that there's a constant to cache. */
           cache_type(cache, ieslp->type, &ieslp->locus);
         } else {
@@ -6207,7 +7156,7 @@ Add the tokens corresponding to the given expression (expr) to cache.
     case ifc_ExprSort_Type:
       { an_ifc_ExprSort_Type iest, *iestp;
         iestp = get_ExprSort_Type(&iest);
-        cache_type(cache, iestp->type, &iestp->locus);
+        cache_type(cache, iestp->denotation, &iestp->locus);
       }
       break;
     case ifc_ExprSort_NamedDecl:
@@ -6268,7 +7217,7 @@ Add the tokens corresponding to the given expression (expr) to cache.
       { an_ifc_ExprSort_Monad iesm, *iesmp;
         iesmp = get_ExprSort_Monad(&iesm);
         source_position_from_locus(&pos, &iesmp->locus);
-        cache_operator(cache, iesmp->opcat, &iesmp->locus);
+        cache_operator(cache, iesmp->op, &iesmp->locus);
         cache_token(cache, tok_lparen, &pos);
         cache_expr(cache, iesmp->argument);
         cache_token(cache, tok_rparen, &pos);
@@ -6278,7 +7227,7 @@ Add the tokens corresponding to the given expression (expr) to cache.
       { an_ifc_ExprSort_Dyad iesd, *iesdp;
         iesdp = get_ExprSort_Dyad(&iesd);
         source_position_from_locus(&pos, &iesdp->locus);
-        cache_operator(cache, iesdp->opcat, &iesdp->locus);
+        cache_operator(cache, iesdp->op, &iesdp->locus);
         cache_token(cache, tok_lparen, &pos);
         cache_expr(cache, iesdp->arguments_0);
         cache_token(cache, tok_comma, &pos);
@@ -6290,7 +7239,7 @@ Add the tokens corresponding to the given expression (expr) to cache.
       { an_ifc_ExprSort_Triad iest, *iestp;
         iestp = get_ExprSort_Triad(&iest);
         source_position_from_locus(&pos, &iestp->locus);
-        cache_operator(cache, iestp->opcat, &iestp->locus);
+        cache_operator(cache, iestp->op, &iestp->locus);
         cache_token(cache, tok_lparen, &pos);
         cache_expr(cache, iestp->arguments_0);
         cache_token(cache, tok_comma, &pos);
@@ -6996,6 +7945,12 @@ cache_ident:
         cache_identifier(cache, get_string_at_offset(ident), &pos);
       }
       break;
+    case ifc_NameSort_Guide:
+      { an_ifc_NameSort_Guide insg;
+        get_NameSort_Guide(&insg);
+        unexpected_condition_str("NameSort::Guide is not yet handled");
+      }
+      break;
     case ifc_NameSort_Last:
       unexpected_condition();
       break;
@@ -7452,7 +8407,7 @@ Add strings representing basic specifiers, if any.
     }  /* if */
     if (specifiers & ifc_BasicSpecifiers_NonExported) {
       /* FIXME: */
-      add_string_to_text_buffer(scbp->text_buffer, "NonExported? ");
+      add_string_to_text_buffer(scbp->text_buffer, "/*NonExported?*/");
     }  /* if */
   }  /* if */
 }  /* str_ifc_basic_specifiers */
@@ -7576,7 +8531,7 @@ Add strings representing a noexcept specification, if any.
       add_string_to_text_buffer(scbp->text_buffer, "noexcept(true) ");
       break;
     case ifc_NoexceptSort_Expression:
-    case ifc_NoexceptSort_Weak:
+    case ifc_NoexceptSort_Inferred:
     case ifc_NoexceptSort_Unenforced:
       /* FIXME: not sure what these should be */
       unexpected_condition();
@@ -9128,7 +10083,7 @@ Generate a string for the specified associated class friend trait.
 
 
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_ConstexprFunction>(
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_FunctionDefinition>(
                                      ifc_DeclIndex                  decl_index,
                                      ARG_UNUSED a_str_control_block *scbp)
                                                                           const
@@ -9136,13 +10091,13 @@ void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_ConstexprFunction>(
 Generate a string for the specified associated constexpr function trait.
 */
 {
-  an_ifc_Trait_ConstexprFunction itcf;
+  an_ifc_Trait_FunctionDefinition itfd;
 
-  read_partition_at_index(ifc_trait_constexpr_function, decl_index);
-  get_Trait_ConstexprFunction(&itcf);
-  unexpected_condition_str("AssociatedTrait<ConstexprFunction>"
+  read_partition_at_index(ifc_trait_function_definition, decl_index);
+  get_Trait_FunctionDefinition(&itfd);
+  unexpected_condition_str("AssociatedTrait<FunctionDefinition>"
                            " is not specified.");
-}  /* str_ifc_associated_trait<an_ifc_Trait_ConstexprFunction> */
+}  /* str_ifc_associated_trait<an_ifc_Trait_FunctionDefinition> */
 
 
 template<>

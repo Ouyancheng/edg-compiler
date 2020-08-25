@@ -32,6 +32,17 @@ question is known to be stored in a little-endian formet, IFC_LE_DECL_XXX
 variants must also be defined.  If these variants are not defined, the regular
 version is used.
 */
+#ifndef IFC_DECL_START
+#error IFC_DECL_START not defined
+#endif /* ifndef IFC_DECL_START */
+
+#ifndef IFC_DECL_FIELD
+#error IFC_DECL_FIELD not defined
+#endif /* ifndef IFC_DECL_FIELD */
+
+#ifndef IFC_DECL_END
+#error IFC_DECL_END not defined
+#endif /* ifndef IFC_DECL_END */
 
 #ifndef IFC_LE_DECL_START
 #define IFC_LE_DECL_START(name) IFC_DECL_START(name)
@@ -259,7 +270,7 @@ IFC_DECL_START(DeclSort_Function)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(home_scope, DeclIndex)
-  IFC_DECL_FIELD(default_arguments, ExprIndex)
+  IFC_DECL_FIELD(chart, ChartIndex)
   IFC_DECL_FIELD(traits, FunctionTraits)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
   IFC_DECL_FIELD(access, Access)
@@ -272,7 +283,7 @@ IFC_DECL_START(DeclSort_Method)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(home_scope, DeclIndex)
-  IFC_DECL_FIELD(default_arguments, ExprIndex)
+  IFC_DECL_FIELD(chart, ChartIndex)
   IFC_DECL_FIELD(traits, FunctionTraits)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
   IFC_DECL_FIELD(access, Access)
@@ -286,7 +297,7 @@ IFC_DECL_START(DeclSort_Constructor)
   IFC_DECL_FIELD(source, TypeIndex)
   IFC_DECL_FIELD(home_scope, DeclIndex)
   IFC_DECL_FIELD(eh_spec, NoexceptSpecification)
-  IFC_DECL_FIELD(default_arguments, ExprIndex)
+  IFC_DECL_FIELD(chart, ChartIndex) // ?
   IFC_DECL_FIELD(traits, FunctionTraits)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
   IFC_DECL_FIELD(access, Access)
@@ -301,7 +312,7 @@ IFC_DECL_START(DeclSort_InheritedConstructor)
   IFC_DECL_FIELD(source, TypeIndex)
   IFC_DECL_FIELD(home_scope, DeclIndex)
   IFC_DECL_FIELD(eh_spec, NoexceptSpecification)
-  IFC_DECL_FIELD(default_arguments, ExprIndex)
+  IFC_DECL_FIELD(chart, ChartIndex)
   IFC_DECL_FIELD(traits, FunctionTraits)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
   IFC_DECL_FIELD(access, Access)
@@ -358,6 +369,13 @@ IFC_DECL_END(DeclSort_Expansion)
 
 /* DeclSort::DeductionGuide */
 IFC_DECL_START(DeclSort_DeductionGuide)
+  IFC_DECL_FIELD(name, NameIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(parameters, ChartIndex)
+  IFC_DECL_FIELD(specialization, TypeIndex)
+  IFC_DECL_FIELD(traits, FunctionTraits)
+  IFC_DECL_FIELD(specifiers, BasicSpecifiers)
+  IFC_DECL_FIELD(access, Access)
 IFC_DECL_END(DeclSort_DeductionGuide)
 
 /* DeclSort::Barren */
@@ -527,6 +545,7 @@ IFC_DECL_END(TypeSort_Unaligned)
 
 /* TypeSort::SyntaxTree */
 IFC_DECL_START(TypeSort_SyntaxTree)
+  IFC_DECL_FIELD(syntax, SyntaxIndex)
 IFC_DECL_END(TypeSort_SyntaxTree)
 
 /* StmtSort::VendorExtension */
@@ -641,15 +660,15 @@ IFC_DECL_END(ExprSort_VendorExtension)
 
 /* ExprSort::Empty */
 IFC_DECL_START(ExprSort_Empty)
-  IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
 IFC_DECL_END(ExprSort_Empty)
 
 /* ExprSort::Literal */
 IFC_DECL_START(ExprSort_Literal)
+  IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(value, LitIndex)
-  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_Literal)
 
 /* ExprSort::Lambda */
@@ -663,40 +682,46 @@ IFC_DECL_END(ExprSort_Lambda)
 
 /* ExprSort::Type */
 IFC_DECL_START(ExprSort_Type)
-  IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(denotation, TypeIndex)
 IFC_DECL_END(ExprSort_Type)
 
 /* ExprSort::NamedDecl */
 IFC_DECL_START(ExprSort_NamedDecl)
+  IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(resolution, DeclIndex)
-  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_NamedDecl)
 
 /* ExprSort::UnresolvedId */
 IFC_DECL_START(ExprSort_UnresolvedId)
-  IFC_DECL_FIELD(name, NameIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(name, NameIndex)
 IFC_DECL_END(ExprSort_UnresolvedId)
 
 /* ExprSort::TemplateId */
 IFC_DECL_START(ExprSort_TemplateId)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(primary, ExprIndex)
   IFC_DECL_FIELD(arguments, ExprIndex)
-  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_TemplateId)
 
 /* ExprSort::UnqualifiedId */
 IFC_DECL_START(ExprSort_UnqualifiedId)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(name, NameIndex)
   IFC_DECL_FIELD(resolution, ExprIndex)
   IFC_DECL_FIELD(template_keyword, SourceLocation)
-  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_UnqualifiedId)
 
 /* ExprSort::SimpleIdentifier */
 IFC_DECL_START(ExprSort_SimpleIdentifier)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(name, NameIndex)
 IFC_DECL_END(ExprSort_SimpleIdentifier)
 
@@ -707,85 +732,92 @@ IFC_DECL_END(ExprSort_Pointer)
 
 /* ExprSort::QualifiedName */
 IFC_DECL_START(ExprSort_QualifiedName)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(elements, ExprIndex)
   IFC_DECL_FIELD(typename_keyword, SourceLocation)
 IFC_DECL_END(ExprSort_QualifiedName)
 
 /* ExprSort::Path */
 IFC_DECL_START(ExprSort_Path)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(scope, ExprIndex)
   IFC_DECL_FIELD(member, ExprIndex)
 IFC_DECL_END(ExprSort_Path)
 
 /* ExprSort::Read */
 IFC_DECL_START(ExprSort_Read)
+  IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(address, ExprIndex)
-  IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(sort, ReadConversionSort)
 IFC_DECL_END(ExprSort_Read)
 
 /* ExprSort::Monad */
 IFC_DECL_START(ExprSort_Monad)
+  IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(argument, ExprIndex)
-  IFC_DECL_FIELD(locus, SourceLocation)
-  IFC_DECL_FIELD(opcat, OperatorCategory)
+  IFC_DECL_FIELD(op, MonadicOperator)
 IFC_DECL_END(ExprSort_Monad)
 
 /* ExprSort::Dyad */
 IFC_DECL_START(ExprSort_Dyad)
+  IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
   /* IFC_DECL_FIELD(arguments[2], ExprIndex)  needs to be rewritten: */
   IFC_DECL_FIELD(arguments_0, ExprIndex)
   IFC_DECL_FIELD(arguments_1, ExprIndex)
-  IFC_DECL_FIELD(locus, SourceLocation)
-  IFC_DECL_FIELD(opcat, OperatorCategory)
+  IFC_DECL_FIELD(op, DyadicOperator)
 IFC_DECL_END(ExprSort_Dyad)
 
 /* ExprSort::Triad */
 IFC_DECL_START(ExprSort_Triad)
+  IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
   /* IFC_DECL_FIELD(arguments[3], ExprIndex)  needs to be rewritten: */
   IFC_DECL_FIELD(arguments_0, ExprIndex)
   IFC_DECL_FIELD(arguments_1, ExprIndex)
   IFC_DECL_FIELD(arguments_2, ExprIndex)
-  IFC_DECL_FIELD(locus, SourceLocation)
-  IFC_DECL_FIELD(opcat, OperatorCategory)
+  IFC_DECL_FIELD(op, TriadicOperator)
 IFC_DECL_END(ExprSort_Triad)
 
 /* ExprSort::String */
 IFC_DECL_START(ExprSort_String)
-  IFC_DECL_FIELD(string_index, StringIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(string_index, StringIndex)
 IFC_DECL_END(ExprSort_String)
 
 /* ExprSort::Temporary */
 IFC_DECL_START(ExprSort_Temporary)
+  IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(id, UniqueID)
-  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_Temporary)
 
 /* ExprSort::Call */
 IFC_DECL_START(ExprSort_Call)
+  IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(operation, ExprIndex)
   IFC_DECL_FIELD(arguments, ExprIndex)
-  IFC_DECL_FIELD(locus, SourceLocation)
-  IFC_DECL_FIELD(opcat, OperatorCategory)
 IFC_DECL_END(ExprSort_Call)
 
 /* ExprSort::MemberInitializer */
 IFC_DECL_START(ExprSort_MemberInitializer)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(member, DeclIndex)
   IFC_DECL_FIELD(base, TypeIndex)
   IFC_DECL_FIELD(initializer, ExprIndex)
-  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_MemberInitializer)
 
 /* ExprSort::MemberAccess */
 IFC_DECL_START(ExprSort_MemberAccess)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(member, DeclIndex)
   IFC_DECL_FIELD(offset, ExprIndex)
   IFC_DECL_FIELD(name, TextOffset)
@@ -793,78 +825,85 @@ IFC_DECL_END(ExprSort_MemberAccess)
 
 /* ExprSort::InheritancePath */
 IFC_DECL_START(ExprSort_InheritancePath)
-  IFC_DECL_FIELD(path, ExprIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(path, ExprIndex)
 IFC_DECL_END(ExprSort_InheritancePath)
 
 /* ExprSort::InitializerList */
 IFC_DECL_START(ExprSort_InitializerList)
-  IFC_DECL_FIELD(elements, ExprIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(elements, ExprIndex)
 IFC_DECL_END(ExprSort_InitializerList)
 
 /* ExprSort::Cast */
 IFC_DECL_START(ExprSort_Cast)
-  IFC_DECL_FIELD(kind, CoercionSort)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(source, ExprIndex)
   IFC_DECL_FIELD(target, Index)
-  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(op, DyadicOperator)
 IFC_DECL_END(ExprSort_Cast)
 
 /* ExprSort::Condition */
 IFC_DECL_START(ExprSort_Condition)
-  IFC_DECL_FIELD(expr, ExprIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(expr, ExprIndex)
 IFC_DECL_END(ExprSort_Condition)
 
 /* ExprSort::ExpressionList */
 IFC_DECL_START(ExprSort_ExpressionList)
-  IFC_DECL_FIELD(contents, ExprIndex)
-  IFC_DECL_FIELD(delimiter, DelimiterSort)
   IFC_DECL_FIELD(left, SourceLocation)
   IFC_DECL_FIELD(right, SourceLocation)
+  IFC_DECL_FIELD(contents, ExprIndex)
+  IFC_DECL_FIELD(delimiter, DelimiterSort)
 IFC_DECL_END(ExprSort_ExpressionList)
 
 /* ExprSort::SizeofType */
 IFC_DECL_START(ExprSort_SizeofType)
-  IFC_DECL_FIELD(operand, SyntaxIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(operand, SyntaxIndex)
 IFC_DECL_END(ExprSort_SizeofType)
 
 /* ExprSort::Alignof */
 IFC_DECL_START(ExprSort_Alignof)
-  IFC_DECL_FIELD(operand, SyntaxIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(operand, SyntaxIndex)
 IFC_DECL_END(ExprSort_Alignof)
 
 /* ExprSort::New */
 IFC_DECL_START(ExprSort_New)
-  IFC_DECL_FIELD(type, SyntaxIndex)
-  IFC_DECL_FIELD(where, SyntaxIndex)
-  IFC_DECL_FIELD(initializer, SyntaxIndex)
-  IFC_DECL_FIELD(new_locus, SourceLocation)
-  IFC_DECL_FIELD(global_locus, SourceLocation)
+  IFC_DECL_FIELD(double_colon, SourceLocation)
+  IFC_DECL_FIELD(new_keyword, SourceLocation)
+  IFC_DECL_FIELD(allocated_type, SyntaxIndex)
+  IFC_DECL_FIELD(placement, ExprIndex)
+  IFC_DECL_FIELD(initializer, ExprIndex)
 IFC_DECL_END(ExprSort_New)
 
 /* ExprSort::Delete */
 IFC_DECL_START(ExprSort_Delete)
+  IFC_DECL_FIELD(double_colon, SourceLocation)
+  IFC_DECL_FIELD(delete_keyword, SourceLocation)
   IFC_DECL_FIELD(address, ExprIndex)
-  IFC_DECL_FIELD(delete_locus, SourceLocation)
-  IFC_DECL_FIELD(global_locus, SourceLocation)
 IFC_DECL_END(ExprSort_Delete)
 
 /* ExprSort::Typeid */
 IFC_DECL_START(ExprSort_Typeid)
-  IFC_DECL_FIELD(operand, SyntaxIndex)
-  IFC_DECL_FIELD(locus, SyntaxIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(operand, TypeIndex)
 IFC_DECL_END(ExprSort_Typeid)
 
 /* ExprSort::DestructorCall */
 IFC_DECL_START(ExprSort_DestructorCall)
-  IFC_DECL_FIELD(name, ExprIndex)
-  /* IFC Spec missing the type for this. */
-  IFC_DECL_FIELD(decltype_specifier, SyntaxIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(name, ExprIndex)
+  IFC_DECL_FIELD(decltype_specifier, SyntaxIndex)
   IFC_DECL_FIELD(cleanup, DestructorSort)
 IFC_DECL_END(ExprSort_DestructorCall)
 
@@ -875,83 +914,88 @@ IFC_DECL_END(ExprSort_SyntaxTree)
 
 /* ExprSort::FunctionString */
 IFC_DECL_START(ExprSort_FunctionString)
-  IFC_DECL_FIELD(macro, TextOffset)
   IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(macro, TextOffset)
 IFC_DECL_END(ExprSort_FunctionString)
 
 /* ExprSort::CompoundString */
 IFC_DECL_START(ExprSort_CompoundString)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(prefix, TextOffset)
   IFC_DECL_FIELD(string, ExprIndex)
-  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_CompoundString)
 
 /* ExprSort::StringSequence */
 IFC_DECL_START(ExprSort_StringSequence)
-  IFC_DECL_FIELD(strings, ExprIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(strings, ExprIndex)
 IFC_DECL_END(ExprSort_StringSequence)
 
 /* ExprSort::Initializer */
 IFC_DECL_START(ExprSort_Initializer)
-  IFC_DECL_FIELD(expr, ExprIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(expr, ExprIndex)
   IFC_DECL_FIELD(sort, InitializerSort)
 IFC_DECL_END(ExprSort_Initializer)
 
 /* ExprSort::Requires */
 IFC_DECL_START(ExprSort_Requires)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(parameters, SyntaxIndex)
   IFC_DECL_FIELD(body, SyntaxIndex)
-  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_Requires)
 
 /* ExprSort::UnaryFold */
 IFC_DECL_START(ExprSort_UnaryFold)
+  IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(expr, ExprIndex)
-  IFC_DECL_FIELD(locus, SourceLocation)
-  IFC_DECL_FIELD(operation, OperatorCategory)
+  IFC_DECL_FIELD(operation, DyadicOperator)
   IFC_DECL_FIELD(associativity, Associativity)
 IFC_DECL_END(ExprSort_UnaryFold)
 
 /* ExprSort::BinaryFold */
 IFC_DECL_START(ExprSort_BinaryFold)
+  IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(left, ExprIndex)
   IFC_DECL_FIELD(right, ExprIndex)
-  IFC_DECL_FIELD(locus, SourceLocation)
-  IFC_DECL_FIELD(operation, OperatorCategory)
+  IFC_DECL_FIELD(operation, DyadicOperator)
   IFC_DECL_FIELD(associativity, Associativity)
 IFC_DECL_END(ExprSort_BinaryFold)
 
 /* ExprSort::HierarchyConversion */
 IFC_DECL_START(ExprSort_HierarchyConversion)
-  IFC_DECL_FIELD(type, TypeIndex)
-  IFC_DECL_FIELD(arg, ExprIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(source, ExprIndex)
   IFC_DECL_FIELD(target, TypeIndex)
   IFC_DECL_FIELD(inheritance, ExprIndex)
   IFC_DECL_FIELD(override, ExprIndex)
-  IFC_DECL_FIELD(op_category, OperatorCategory)
+  IFC_DECL_FIELD(op, DyadicOperator)
 IFC_DECL_END(ExprSort_HierarchyConversion)
 
 /* ExprSort::ProductTypeValue */
 IFC_DECL_START(ExprSort_ProductTypeValue)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(class_decl, DeclIndex)
   IFC_DECL_FIELD(members, ExprIndex)
   IFC_DECL_FIELD(base_subobjects, ExprIndex)
-  IFC_DECL_FIELD(type, TypeIndex)
-  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_ProductTypeValue)
 
 /* ExprSort::SumTypeValue */
 IFC_DECL_START(ExprSort_SumTypeValue)
-  IFC_DECL_FIELD(union_decl, DeclIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(variant, DeclIndex)
   IFC_DECL_FIELD(discriminant, ActiveMember)
   IFC_DECL_FIELD(value, ExprIndex)
-  IFC_DECL_FIELD(type, TypeIndex)
-  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_SumTypeValue)
 
 /* ExprSort::SubobjectValue */
@@ -960,36 +1004,37 @@ IFC_DECL_END(ExprSort_SubobjectValue)
 
 /* ExprSort::ArrayValue */
 IFC_DECL_START(ExprSort_ArrayValue)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(elements, ExprIndex)
   IFC_DECL_FIELD(element_type, TypeIndex)
-  IFC_DECL_FIELD(type, TypeIndex)
-  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_ArrayValue)
 
 /* ExprSort::DynamicDispatch */
 IFC_DECL_START(ExprSort_DynamicDispatch)
-  IFC_DECL_FIELD(pivot, ExprIndex)
-  IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(pivot, ExprIndex)
 IFC_DECL_END(ExprSort_DynamicDispatch)
 
 /* ExprSort::VirtualFunctionConversion */
 IFC_DECL_START(ExprSort_VirtualFunctionConversion)
-  IFC_DECL_FIELD(function, DeclIndex)
-  IFC_DECL_FIELD(target, TypeIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(function, DeclIndex)
 IFC_DECL_END(ExprSort_VirtualFunctionConversion)
 
 /* ExprSort::Placeholder */
 IFC_DECL_START(ExprSort_Placeholder)
-  IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
 IFC_DECL_END(ExprSort_Placeholder)
 
 /* ExprSort::Expansion */
 IFC_DECL_START(ExprSort_Expansion)
-  IFC_DECL_FIELD(operand, ExprIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(operand, ExprIndex)
 IFC_DECL_END(ExprSort_Expansion)
 
 /* ExprSort::Generic */
@@ -998,68 +1043,77 @@ IFC_DECL_END(ExprSort_Generic)
 
 /* ExprSort::Tuple */
 IFC_DECL_START(ExprSort_Tuple)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(start, Index)
   IFC_DECL_FIELD(cardinality, Cardinality)
-  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_Tuple)
 
 /* ExprSort::Nullptr */
 IFC_DECL_START(ExprSort_Nullptr)
   IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
 IFC_DECL_END(ExprSort_Nullptr)
 
 /* ExprSort::This */
 IFC_DECL_START(ExprSort_This)
   IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
 IFC_DECL_END(ExprSort_This)
 
 /* ExprSort::TemplateReference */
 IFC_DECL_START(ExprSort_TemplateReference)
-  IFC_DECL_FIELD(name, NameIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(member_name, NameIndex)
+  IFC_DECL_FIELD(member_locus, SourceLocation)
   IFC_DECL_FIELD(scope, TypeIndex)
   IFC_DECL_FIELD(arguments, ExprIndex)
-  IFC_DECL_FIELD(locus2, SourceLocation)
 IFC_DECL_END(ExprSort_TemplateReference)
 
 /* ExprSort::PushState */
 IFC_DECL_START(ExprSort_PushState)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(ctor_call, ExprIndex)
   IFC_DECL_FIELD(dtor_call, ExprIndex)
-  IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(flags, EHFlags)
 IFC_DECL_END(ExprSort_PushState)
 
 /* ExprSort::TypeTraitIntrinsic */
 IFC_DECL_START(ExprSort_TypeTraitIntrinsic)
-  IFC_DECL_FIELD(shape, OperatorCategory)
-  IFC_DECL_FIELD(kind, OperatorCategory)
-  IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(arguments, TypeIndex)
+  IFC_DECL_FIELD(intrinsic, Operator)
 IFC_DECL_END(ExprSort_TypeTraitIntrinsic)
 
 /* ExprSort::DesignatedInitializer */
 IFC_DECL_START(ExprSort_DesignatedInitializer)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(member, TextOffset)
   IFC_DECL_FIELD(initializer, ExprIndex)
-  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(ExprSort_DesignatedInitializer)
 
 /* ExprSort::PackedTemplateArguments */
 IFC_DECL_START(ExprSort_PackedTemplateArguments)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(arguments, ExprIndex)
 IFC_DECL_END(ExprSort_PackedTemplateArguments)
 
 /* ExprSort::Tokens */
 IFC_DECL_START(ExprSort_Tokens)
-  IFC_DECL_FIELD(words, SentenceIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(words, SentenceIndex)
 IFC_DECL_END(ExprSort_Tokens)
 
 /* ExprSort::AssignInitializer */
 IFC_DECL_START(ExprSort_AssignInitializer)
-  IFC_DECL_FIELD(initializer, ExprIndex)
   IFC_DECL_FIELD(equal, SourceLocation)
+  IFC_DECL_FIELD(initializer, ExprIndex)
 IFC_DECL_END(ExprSort_AssignInitializer)
 
 /* String::Literal */
@@ -1070,18 +1124,17 @@ IFC_DECL_START(String_Literal)
 IFC_DECL_END(String_Literal)
 
 /* NameSort::Identifier */
-/* No partition - value is index into string table. */
+/* No partition - value is an index into the string table. */
 
 /* NameSort::Operator */
 IFC_DECL_START(NameSort_Operator)
   IFC_DECL_FIELD(encoded, TextOffset)
-  IFC_DECL_FIELD(category, OperatorCategory)
+  IFC_DECL_FIELD(op, Operator)
 IFC_DECL_END(NameSort_Operator)
 
 /* NameSort::Conversion */
 IFC_DECL_START(NameSort_Conversion)
   IFC_DECL_FIELD(target, TypeIndex)
-  IFC_DECL_FIELD(syntax, SyntaxIndex)
   IFC_DECL_FIELD(encoded, TextOffset)
 IFC_DECL_END(NameSort_Conversion)
 
@@ -1106,6 +1159,11 @@ IFC_DECL_START(NameSort_SourceFile)
   IFC_DECL_FIELD(path, TextOffset)
   IFC_DECL_FIELD(guard, TextOffset)
 IFC_DECL_END(NameSort_SourceFile)
+
+/* NameSort::Guide */
+IFC_DECL_START(NameSort_Guide)
+  IFC_DECL_FIELD(primary_template, DeclIndex)
+IFC_DECL_END(NameSort_Guide)
 
 /* ChartSort::None */
 IFC_DECL_START(ChartSort_None)
@@ -1571,6 +1629,113 @@ IFC_DECL_END(SyntaxSort_StructuredBindingIdentifier)
 IFC_DECL_START(SyntaxSort_UsingEnumDeclaration)
 IFC_DECL_END(SyntaxSort_UsingEnumDeclaration)
 
+/* MacroSort::ObjectLike */
+IFC_DECL_START(MacroSort_ObjectLike)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(name, TextOffset)
+  IFC_DECL_FIELD(body, FormIndex)
+IFC_DECL_END(MacroSort_ObjectLike)
+
+/* MacroSort::FunctionLike */
+IFC_DECL_START(MacroSort_FunctionLike)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(name, TextOffset)
+  IFC_DECL_FIELD(parameters, FormIndex)
+  IFC_DECL_FIELD(body, FormIndex)
+  IFC_DECL_FIELD(arity_variadic, mf_arity_variadic)
+IFC_DECL_END(MacroSort_FunctionLike)
+
+/* FormSort::Identifier */
+IFC_DECL_START(FormSort_Identifier)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(spelling, TextOffset)
+IFC_DECL_END(FormSort_Identifier)
+
+/* FormSort::Number */
+IFC_DECL_START(FormSort_Number)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(spelling, TextOffset)
+IFC_DECL_END(FormSort_Number)
+
+/* FormSort::Character */
+IFC_DECL_START(FormSort_Character)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(spelling, TextOffset)
+IFC_DECL_END(FormSort_Character)
+
+/* FormSort::String */
+IFC_DECL_START(FormSort_String)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(spelling, TextOffset)
+IFC_DECL_END(FormSort_String)
+
+/* FormSort::Operator */
+IFC_DECL_START(FormSort_Operator)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(spelling, TextOffset)
+  IFC_DECL_FIELD(op, FormOperator)
+IFC_DECL_END(FormSort_Operator)
+
+/* FormSort::Keyword */
+IFC_DECL_START(FormSort_Keyword)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(spelling, TextOffset)
+IFC_DECL_END(FormSort_Keyword)
+
+/* FormSort::Whitespace */
+IFC_DECL_START(FormSort_Whitespace)
+  IFC_DECL_FIELD(locus, SourceLocation)
+IFC_DECL_END(FormSort_Whitespace)
+
+/* FormSort::Parameter */
+IFC_DECL_START(FormSort_Parameter)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(spelling, TextOffset)
+IFC_DECL_END(FormSort_Parameter)
+
+/* FormSort::Stringize */
+IFC_DECL_START(FormSort_Stringize)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(operand, FormIndex)
+IFC_DECL_END(FormSort_Stringize)
+
+/* FormSort::Catenate */
+IFC_DECL_START(FormSort_Catenate)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(first, FormIndex)
+  IFC_DECL_FIELD(second, FormIndex)
+IFC_DECL_END(FormSort_Catenate)
+
+/* FormSort::Pragma */
+IFC_DECL_START(FormSort_Pragma)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(operand, FormIndex)
+IFC_DECL_END(FormSort_Pragma)
+
+/* FormSort::Header */
+IFC_DECL_START(FormSort_Header)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(spelling, TextOffset)
+IFC_DECL_END(FormSort_Header)
+
+/* FormSort::Parenthesized */
+IFC_DECL_START(FormSort_Parenthesized)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(operand, FormIndex)
+IFC_DECL_END(FormSort_Parenthesized)
+
+/* FormSort::Tuple */
+IFC_DECL_START(FormSort_Tuple)
+  IFC_DECL_FIELD(start, Index)
+  IFC_DECL_FIELD(cardinality, Cardinality)
+IFC_DECL_END(FormSort_Tuple)
+
+/* FormSort::Junk */
+IFC_DECL_START(FormSort_Junk)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(spelling, TextOffset)
+IFC_DECL_END(FormSort_Junk)
+
 /* Source::Line */
 IFC_DECL_START(Source_Line)
   IFC_DECL_FIELD(file, NameIndex)
@@ -1597,16 +1762,13 @@ IFC_DECL_START(Trait_Friend)
   IFC_DECL_FIELD(__padding__, u32)
 IFC_DECL_END(Trait_Friend)
 
-/* Trait::ConstexprFunction */
-IFC_DECL_START(Trait_ConstexprFunction)
-  IFC_DECL_FIELD(locus, SourceLocation)
-  IFC_DECL_FIELD(function, DeclIndex)
+/* Trait::FunctionDefinition */
+IFC_DECL_START(Trait_FunctionDefinition)
+  IFC_DECL_FIELD(decl, DeclIndex)
   IFC_DECL_FIELD(parameters, ChartIndex)
   IFC_DECL_FIELD(initializers, ExprIndex)
   IFC_DECL_FIELD(body, StmtIndex)
-/* Size of entry in IFC files indicates a field is missing in the spec. */
-  IFC_DECL_FIELD(__padding__, u32)
-IFC_DECL_END(Trait_ConstexprFunction)
+IFC_DECL_END(Trait_FunctionDefinition)
 
 /* Trait::FunctionTemplate */
 IFC_DECL_START(Trait_FunctionTemplate)

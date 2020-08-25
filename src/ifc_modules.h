@@ -48,21 +48,23 @@ enum ifc_ActiveMember : uint32_t;
 enum ifc_ByteOffset : uint32_t;
 enum ifc_Cardinality : uint32_t;
 enum ifc_ChartIndex : ifc_Index_type;
-enum ifc_CoercionSort : uint32_t;
 enum ifc_Column : uint32_t;
 enum ifc_DeclIndex : ifc_Index_type;
 enum ifc_DelimiterSort : uint32_t;
 enum ifc_EntitySize : uint32_t;
 enum ifc_ExprIndex : ifc_Index_type;
+enum ifc_FormIndex : ifc_Index_type;
 enum ifc_Index : ifc_Index_type;
 enum ifc_LanguageVersion : uint32_t;
 enum ifc_LineIndex : ifc_Index_type;
 enum ifc_LineNumber : uint32_t;
 enum ifc_LitIndex : ifc_Index_type;
+enum ifc_MacroIndex : ifc_Index_type;
 enum ifc_MsvcTraits : uint32_t;
 enum ifc_NameIndex : ifc_Index_type;
 enum ifc_ParameterLevel : uint32_t;
 enum ifc_ParameterPosition : uint32_t;
+enum ifc_PragmaIndex : ifc_Index_type;
 enum ifc_ScopeIndex : ifc_Index_type;
 enum ifc_SegmentTraits : uint32_t;
 enum ifc_SegmentType : uint32_t;
@@ -77,11 +79,15 @@ enum ifc_UnitIndex : ifc_Index_type;
 enum ifc_WordIndex : ifc_Index_type;
 
 /* 16-bit types: */
-typedef uint16_t ifc_Category_type;
+typedef uint16_t ifc_Operator_type;
 
+enum ifc_DyadicOperator : ifc_Operator_type;
 enum ifc_EHFlags : uint16_t;
+enum ifc_FormOperator : ifc_Operator_type;
 enum ifc_FunctionTraits : uint16_t;
-enum ifc_OperatorCategory : ifc_Category_type;
+enum ifc_MonadicOperator : ifc_Operator_type;
+enum ifc_NiladicOperator : ifc_Operator_type;
+enum ifc_Operator : uint16_t;
 enum ifc_PackSize : uint16_t;
 enum ifc_SourceDirective : uint16_t;
 enum ifc_SourceIdentifier : uint16_t;
@@ -89,6 +95,9 @@ enum ifc_SourceKeyword : uint16_t;
 enum ifc_SourceLiteral : uint16_t;
 enum ifc_SourceOperator : uint16_t;
 enum ifc_SourcePunctuator : uint16_t;
+enum ifc_StorageOperator : ifc_Operator_type;
+enum ifc_TriadicOperator : ifc_Operator_type;
+enum ifc_VariadicOperator : ifc_Operator_type;
 
 /* 8-bit types: */
 typedef uint8_t ifc_Sort_type;
@@ -122,8 +131,12 @@ enum ifc_ChartSort : ifc_Sort_type;
 enum ifc_ChartSort : ifc_Sort_type;
 enum ifc_DeclSort : ifc_Sort_type;
 enum ifc_ExprSort : ifc_Sort_type;
+enum ifc_FormSort : ifc_Sort_type;
 enum ifc_LiteralSort : ifc_Sort_type;
+enum ifc_MacroSort : ifc_Sort_type;
 enum ifc_NameSort : ifc_Sort_type;
+enum ifc_OperatorSort : ifc_Sort_type;
+enum ifc_PragmaSort : ifc_Sort_type;
 enum ifc_StmtSort : ifc_Sort_type;
 enum ifc_StringSort : ifc_Sort_type;
 enum ifc_TypeSort : ifc_Sort_type;
@@ -158,17 +171,21 @@ struct ifc_ModuleReference {
 		owner;
   ifc_TextOffset
 		partition;
-  inline a_module_ref_key as_key() const
-  /*
-  Convert to a key for hashing purposes.
-  */
-  {
-    static_assert(sizeof(a_module_ref_key) >= sizeof(*this),
-                  "Key is not large enough");
-    return (((a_module_ref_key)partition) << (sizeof(owner) * CHAR_BIT)) |
-                                                       (a_module_ref_key)owner;
-  }  /* as_key */
+  inline a_module_ref_key as_key() const;
 };  /* ifc_ModuleReference */
+
+
+inline a_module_ref_key ifc_ModuleReference::as_key() const
+/*
+Convert to a key for hashing purposes.
+*/
+{
+  static_assert(sizeof(a_module_ref_key) >= sizeof(*this),
+                "Key is not large enough");
+  return (((a_module_ref_key)partition) << (sizeof(owner) * CHAR_BIT)) |
+                                                      (a_module_ref_key)owner;
+}  /* as_key */
+
 
 struct ifc_SourceLocation {
   ifc_LineIndex	line;
@@ -192,6 +209,16 @@ struct ifc_ParameterizedEntity {
   ifc_SentenceIndex
 		attributes;
 };
+
+union ifc_mf_arity_variadic {
+  uint32_t raw;
+  struct {
+    uint32_t arity : 31;
+    uint32_t variadic : 1;
+  };
+};
+static_assert(sizeof(ifc_mf_arity_variadic) == sizeof(uint32_t),
+              "ifc_mf_arity_variadic has the wrong size");
 
 /*
 Create structures for each of the IFC entities by setting the IFC_DECL macros
@@ -222,11 +249,12 @@ appropriately and including ifc_map.h.  The net result is something like:
 /*lint -save -e835*/ /* Allow 1 << 0 in the code below. */
 /* Enumeration for Architectures. */
 enum ifc_Architecture : uint8_t {
-  ifc_Architecture_Unknown = 0,
-  ifc_Architecture_X86     = 0x01,
-  ifc_Architecture_X64     = 0x02,
-  ifc_Architecture_ARM32   = 0x03,
-  ifc_Architecture_ARM64   = 0x04,
+  ifc_Architecture_Unknown        = 0,
+  ifc_Architecture_X86            = 0x01,
+  ifc_Architecture_X64            = 0x02,
+  ifc_Architecture_ARM32          = 0x03,
+  ifc_Architecture_ARM64          = 0x04,
+  ifc_Architecture_HybridX86ARM64 = 0x05,
 };
 
 /* Enumeration for Qualifiers. */
@@ -323,6 +351,7 @@ enum ifc_FunctionTraits : uint16_t {
   ifc_FunctionTraits_Defaulted    = 1 << 7,
   ifc_FunctionTraits_Deleted      = 1 << 8,
   ifc_FunctionTraits_Constrained  = 1 << 9,
+  ifc_FunctionTraits_Immediate    = 1 << 10,
   ifc_FunctionTraits_Vendor       = 1 << 15,
 };
 
@@ -358,7 +387,7 @@ enum ifc_NoexceptSort : ifc_Sort_type {
   ifc_NoexceptSort_False,
   ifc_NoexceptSort_True,
   ifc_NoexceptSort_Expression,
-  ifc_NoexceptSort_Weak,
+  ifc_NoexceptSort_Inferred,
   ifc_NoexceptSort_Unenforced,
 };
 
@@ -657,6 +686,7 @@ enum ifc_NameSort : ifc_Sort_type {
   ifc_NameSort_Template,
   ifc_NameSort_Specialization,
   ifc_NameSort_SourceFile,
+  ifc_NameSort_Guide,
   /* Must be last. */
   ifc_NameSort_Last
 };
@@ -672,70 +702,239 @@ enum ifc_LiteralSort : ifc_Sort_type {
   ifc_LiteralSort_FloatingPoint,
 };
 
-/* Enumeration for OperatorCategory (i.e., types of operations). */
-enum ifc_OperatorCategory : ifc_Category_type {
-  ifc_OperatorCategory_Bitand = 14,                /* operator& */
-  ifc_OperatorCategory_LogicAnd,                   /* operator&& */
-  ifc_OperatorCategory_Assign,                     /* operator= */
-  ifc_OperatorCategory_Comma = 19,                 /* operator, */
-  ifc_OperatorCategory_Not,                        /* operator! */
-  ifc_OperatorCategory_Minus = 27,                 /* operator- */
-  ifc_OperatorCategory_Star,                       /* operator* */
-  ifc_OperatorCategory_Bitor,                      /* operator| */
-  ifc_OperatorCategory_LogicOr,                    /* operator|| */
-  ifc_OperatorCategory_Plus,                       /* operator+ */
-  ifc_OperatorCategory_Quest,                      /* operator? */
-  ifc_OperatorCategory_Complement,                 /* operator~ */
-  ifc_OperatorCategory_Caret,                      /* operator^ */
-  ifc_OperatorCategory_Slash = 40,                 /* operator/ */
-  ifc_OperatorCategory_Modulo,                     /* operator% */
-  ifc_OperatorCategory_Percent,                    /* operator% */
-  ifc_OperatorCategory_Sizeof = 64,                /* operator sizeof */
-  ifc_OperatorCategory_ExpandingSizeof,            /* operator sizeof... */
-  ifc_OperatorCategory_New = 71,                   /* operator new */
-  ifc_OperatorCategory_Delete,                     /* operator delete */
-  ifc_OperatorCategory_Throw = 99,                 /* operator throw */
-  ifc_OperatorCategory_Alignof = 102,              /* operator alignof */
-  ifc_OperatorCategory_Noexcept = 178,             /* operator noexcept */
-  ifc_OperatorCategory_Requires = 187,             /* operator requires */
-  ifc_OperatorCategory_Coreturn = 204,             /* operator co_return */
-  ifc_OperatorCategory_Await,                      /* operator co_await */
-  ifc_OperatorCategory_Yield,                      /* operator co_yield */
-  ifc_OperatorCategory_StaticAssert = 282,         /* operator static_assert */
-  /* Not mentioned in the spec, found in IFC files. */
-  ifc_OperatorCategory_Dereference = 332,
-  ifc_OperatorCategory_PostIncrement = 363,        /* operator++ */
-  ifc_OperatorCategory_PostDecrement,              /* operator-- */
-  ifc_OperatorCategory_SlashEq,                    /* operator/= */
-  ifc_OperatorCategory_EqEq,                       /* operator== */
-  ifc_OperatorCategory_NotEq,                      /* operator!= */
-  ifc_OperatorCategory_Greater,                    /* operator> */
-  ifc_OperatorCategory_GreaterEq,                  /* operator>= */
-  ifc_OperatorCategory_Less,                       /* operator< */
-  ifc_OperatorCategory_LessEq,                     /* operator<= */
-  ifc_OperatorCategory_Spaceship,                  /* operator<=> */
-  ifc_OperatorCategory_LshiftEq,                   /* operator<<= */
-  ifc_OperatorCategory_RshiftEq,                   /* operator>>= */
-  ifc_OperatorCategory_MinusEq,                    /* operator-= */
-  ifc_OperatorCategory_ModuloEq,                   /* operator%= */
-  ifc_OperatorCategory_StarEq,                     /* operator*= */
-  ifc_OperatorCategory_BitorEq,                    /* operator|= */
-  ifc_OperatorCategory_PlusEq,                     /* operator+= */
-  ifc_OperatorCategory_BitandEq,                   /* operator&= */
-  ifc_OperatorCategory_BitxorEq,                   /* operator^= */
-  /* Spec gives these in opposite order, but IFC files have this order for
-     << and >> */
-  ifc_OperatorCategory_Rshift,                     /* operator>> */
-  ifc_OperatorCategory_Lshift,                     /* operator<< */
-  ifc_OperatorCategory_Dot,                        /* operator. */
-  ifc_OperatorCategory_Arrow,                      /* operator =  */
-  ifc_OperatorCategory_PreDecrement = 387,         /* operator-- */
-  ifc_OperatorCategory_PreIncrement,               /* operator++ */
-  ifc_OperatorCategory_UnaryMinus,                 /* operator- */
-  ifc_OperatorCategory_Address,                    /* operator& */
-  ifc_OperatorCategory_UnaryPlus = 411,            /* operator+ */
-  ifc_OperatorCategory_DerefMemberAccess = 416,    /* operator.* */
-  ifc_OperatorCategory_IndirectMemberAccess,       /* operator->* */
+/* Macros used to access Operator::tag and Operator::index. */
+#define operator_tag(op) ((ifc_OperatorSort)((op) & 0x0000000F))
+#define operator_index(op) ((uint16_t)((op) >> 4))
+
+/* Enumeration for OperatorSort (i.e., types of operators). */
+enum ifc_OperatorSort : ifc_Sort_type {
+  ifc_OperatorSort_Niladic,
+  ifc_OperatorSort_Monadic,
+  ifc_OperatorSort_Dyadic,
+  ifc_OperatorSort_Triadic,
+  ifc_OperatorSort_Storage = 0x0E,
+  ifc_OperatorSort_Variadic,
+};
+
+/* Enumeration of niladic operators (operators accepting no arguments). */
+enum ifc_NiladicOperator : ifc_Operator_type {
+  ifc_NiladicOperator_Unknown,
+  ifc_NiladicOperator_Phantom,
+  ifc_NiladicOperator_Constant,
+  ifc_NiladicOperator_Nil,
+  /* MSVC-specific. */
+  ifc_NiladicOperator_Msvc = 0x400,
+  ifc_NiladicOperator_MsvcConstantObject,
+  ifc_NiladicOperator_MsvcLambda,
+};
+
+/* Enumeration of monadic operators (operators accepting one argument). */
+enum ifc_MonadicOperator : ifc_Operator_type {
+  ifc_MonadicOperator_Unknown,
+  ifc_MonadicOperator_Plus,
+  ifc_MonadicOperator_Negate,
+  ifc_MonadicOperator_Deref,
+  ifc_MonadicOperator_Address,
+  ifc_MonadicOperator_Complement,
+  ifc_MonadicOperator_Not,
+  ifc_MonadicOperator_PreIncrement,
+  ifc_MonadicOperator_PreDecrement,
+  ifc_MonadicOperator_PostIncrement,
+  ifc_MonadicOperator_PostDecrement,
+  ifc_MonadicOperator_Truncate,
+  ifc_MonadicOperator_Ceil,
+  ifc_MonadicOperator_Floor,
+  ifc_MonadicOperator_Paren,
+  ifc_MonadicOperator_Brace,
+  ifc_MonadicOperator_Alignas,
+  ifc_MonadicOperator_Alignof,
+  ifc_MonadicOperator_Sizeof,
+  ifc_MonadicOperator_Cardinality,
+  ifc_MonadicOperator_Typeid,
+  ifc_MonadicOperator_Noexcept,
+  ifc_MonadicOperator_Requires,
+  ifc_MonadicOperator_CoReturn,
+  ifc_MonadicOperator_Await,
+  ifc_MonadicOperator_Yield,
+  ifc_MonadicOperator_Throw,
+  ifc_MonadicOperator_New,
+  ifc_MonadicOperator_Delete,
+  ifc_MonadicOperator_DeleteArray,
+  ifc_MonadicOperator_Expand,
+  ifc_MonadicOperator_Read,
+  ifc_MonadicOperator_Materialize,
+  ifc_MonadicOperator_PseudoDtorCall,
+  /* MSVC-specific. */
+  ifc_MonadicOperator_Msvc = 0x400,
+  ifc_MonadicOperator_MsvcAssume,
+  ifc_MonadicOperator_MsvcAlignof,
+  ifc_MonadicOperator_MsvcUuidof,
+  ifc_MonadicOperator_MsvcIsClass,
+  ifc_MonadicOperator_MsvcIsUnion,
+  ifc_MonadicOperator_MsvcIsEnum,
+  ifc_MonadicOperator_MsvcIsPolymorphic,
+  ifc_MonadicOperator_MsvcIsEmpty,
+  ifc_MonadicOperator_MsvcIsTriviallyCopyConstructible,
+  ifc_MonadicOperator_MsvcIsTriviallyCopyAssignable,
+  ifc_MonadicOperator_MsvcIsTriviallyDestructible,
+  ifc_MonadicOperator_MsvcHasVirtualDestructor,
+  ifc_MonadicOperator_MsvcIsNothrowCopyConstructible,
+  ifc_MonadicOperator_MsvcIsNothrowCopyAssignable,
+  ifc_MonadicOperator_MsvcIsPod,
+  ifc_MonadicOperator_MsvcIsAbstract,
+  ifc_MonadicOperator_MsvcIsTrivial,
+  ifc_MonadicOperator_MsvcIsTriviallyCopyable,
+  ifc_MonadicOperator_MsvcIsStandardLayout,
+  ifc_MonadicOperator_MsvcIsLiteralType,
+  ifc_MonadicOperator_MsvcIsTriviallyMoveConstructible,
+  ifc_MonadicOperator_MsvcHasTrivialMoveAssign,
+  ifc_MonadicOperator_MsvcIsTriviallyMoveAssignable,
+  ifc_MonadicOperator_MsvcIsNothrowMoveAssignable,
+  ifc_MonadicOperator_MsvcUnderlyingType,
+  ifc_MonadicOperator_MsvcIsDestructible,
+  ifc_MonadicOperator_MsvcIsNothrowDestructible,
+  ifc_MonadicOperator_MsvcHasUniqueObjectRepresentations,
+  ifc_MonadicOperator_MsvcIsAggregate,
+  ifc_MonadicOperator_MsvcBuiltinAddressOf,
+  ifc_MonadicOperator_MsvcIsRefClass,
+  ifc_MonadicOperator_MsvcIsValueClass,
+  ifc_MonadicOperator_MsvcIsSimpleValueClass,
+  ifc_MonadicOperator_MsvcIsInterfaceClass,
+  ifc_MonadicOperator_MsvcIsDelegate,
+  ifc_MonadicOperator_MsvcIsFinal,
+  ifc_MonadicOperator_MsvcIsSealed,
+  ifc_MonadicOperator_MsvcHasFinalizer,
+  ifc_MonadicOperator_MsvcHasCopy,
+  ifc_MonadicOperator_MsvcHasAssign,
+  ifc_MonadicOperator_MsvcHasUserDestructor,
+  ifc_MonadicOperator_MsvcConfusion = 0xFE0,
+  ifc_MonadicOperator_MsvcConfusedExpand,
+};
+
+/* Enumeration of dyadic operators (operators accepting two arguments). */
+enum ifc_DyadicOperator : ifc_Operator_type {
+  ifc_DyadicOperator_Unknown,
+  ifc_DyadicOperator_Plus,
+  ifc_DyadicOperator_Minus,
+  ifc_DyadicOperator_Mult,
+  ifc_DyadicOperator_Slash,
+  ifc_DyadicOperator_Modulo,
+  ifc_DyadicOperator_Remainder,
+  ifc_DyadicOperator_Bitand,
+  ifc_DyadicOperator_Bitor,
+  ifc_DyadicOperator_Bitxor,
+  ifc_DyadicOperator_Lshift,
+  ifc_DyadicOperator_Rshift,
+  ifc_DyadicOperator_Equal,
+  ifc_DyadicOperator_NotEqual,
+  ifc_DyadicOperator_Less,
+  ifc_DyadicOperator_LessEqual,
+  ifc_DyadicOperator_Greater,
+  ifc_DyadicOperator_GreaterEqual,
+  ifc_DyadicOperator_Compare,
+  ifc_DyadicOperator_LogicAnd,
+  ifc_DyadicOperator_LogicOr,
+  ifc_DyadicOperator_Assign,
+  ifc_DyadicOperator_PlusAssign,
+  ifc_DyadicOperator_MinusAssign,
+  ifc_DyadicOperator_MultAssign,
+  ifc_DyadicOperator_SlashAssign,
+  ifc_DyadicOperator_ModuloAssign,
+  ifc_DyadicOperator_BitandAssign,
+  ifc_DyadicOperator_BitorAssign,
+  ifc_DyadicOperator_BitxorAssign,
+  ifc_DyadicOperator_LshiftAssign,
+  ifc_DyadicOperator_RshiftAssign,
+  ifc_DyadicOperator_Comma,
+  ifc_DyadicOperator_Dot,
+  ifc_DyadicOperator_Arrow,
+  ifc_DyadicOperator_DotStar,
+  ifc_DyadicOperator_ArrowStar,
+  ifc_DyadicOperator_Curry,
+  ifc_DyadicOperator_Apply,
+  ifc_DyadicOperator_Index,
+  ifc_DyadicOperator_DefaultAt,
+  ifc_DyadicOperator_New,
+  ifc_DyadicOperator_NewArray,
+  ifc_DyadicOperator_Destruct,
+  ifc_DyadicOperator_DestructAt,
+  ifc_DyadicOperator_Cleanup,
+  ifc_DyadicOperator_Qualification,
+  ifc_DyadicOperator_Promote,
+  ifc_DyadicOperator_Demote,
+  ifc_DyadicOperator_Coerce,
+  ifc_DyadicOperator_Rewrite,
+  ifc_DyadicOperator_Bless,
+  ifc_DyadicOperator_Cast,
+  ifc_DyadicOperator_ExplicitConversion,
+  ifc_DyadicOperator_ReinterpretCast,
+  ifc_DyadicOperator_StaticCast,
+  ifc_DyadicOperator_ConstCast,
+  ifc_DyadicOperator_DynamicCast,
+  ifc_DyadicOperator_Narrow,
+  ifc_DyadicOperator_Widen,
+  ifc_DyadicOperator_Pretend,
+  ifc_DyadicOperator_Closure,
+  ifc_DyadicOperator_ZeroInitialize,
+  ifc_DyadicOperator_ClearStorage,
+  /* MSVC-specific. */
+  ifc_DyadicOperator_Msvc = 0x400,
+  ifc_DyadicOperator_MsvcTryCast,
+  ifc_DyadicOperator_MsvcCurry,
+  ifc_DyadicOperator_MsvcVirtualCurry,
+  ifc_DyadicOperator_MsvcAlign,
+  ifc_DyadicOperator_MsvcBitSpan,
+  ifc_DyadicOperator_MsvcBitfieldAccess,
+  ifc_DyadicOperator_MsvcObscureBitfieldAccess,
+  ifc_DyadicOperator_MsvcInitialize,
+  ifc_DyadicOperator_MsvcBuiltinOffsetOf,
+  ifc_DyadicOperator_MsvcIsBaseOf,
+  ifc_DyadicOperator_MsvcIsConvertibleTo,
+  ifc_DyadicOperator_MsvcIsTriviallyAssignable,
+  ifc_DyadicOperator_MsvcIsNothrowAssignable,
+  ifc_DyadicOperator_MsvcIsAssignable,
+  ifc_DyadicOperator_MsvcIsAssignableNocheck,
+  ifc_DyadicOperator_MsvcBuiltinBitCast,
+  ifc_DyadicOperator_MsvcBuiltinIsLayoutCompatible,
+  ifc_DyadicOperator_MsvcBuiltinIsPointerInterconvertibleBaseOf,
+  ifc_DyadicOperator_MsvcBuiltinIsPointerInterconvertibleWithClass,
+  ifc_DyadicOperator_MsvcBuiltinIsCorrespondingMember,
+  ifc_DyadicOperator_MsvcIntrinsic,
+};
+
+/* Enumeration of triadic operators (operators accepting three arguments). */
+enum ifc_TriadicOperator : ifc_Operator_type {
+  ifc_TriadicOperator_Unknown,
+  ifc_TriadicOperator_Choice,
+  ifc_TriadicOperator_ConstructAt,
+  ifc_TriadicOperator_Initialize,
+  /* MSVC-specific. */
+  ifc_TriadicOperator_Msvc = 0x400,
+};
+
+/* Enumeration of storage operators (operators for storage [de]allocation). */
+enum ifc_StorageOperator : ifc_Operator_type {
+  ifc_StorageOperator_Unknown,
+  ifc_StorageOperator_AllocateSingle,
+  ifc_StorageOperator_AllocateArray,
+  ifc_StorageOperator_DeallocateSingle,
+  ifc_StorageOperator_DeallocateArray,
+  /* MSVC-specific. */
+  ifc_StorageOperator_Msvc = 0x7DE,
+};
+
+/* Enumeration of variadic operators (operators accepting any number of
+   arguments). */
+enum ifc_VariadicOperator : ifc_Operator_type {
+  ifc_VariadicOperator_Unknown,
+  ifc_VariadicOperator_Collection,
+  ifc_VariadicOperator_Sequence,
+  /* MSVC-specific. */
+  ifc_VariadicOperator_Msvc = 0x400,
+  ifc_VariadicOperator_MsvcHasTrivialConstructor,
+  ifc_VariadicOperator_MsvcIsConstructible,
+  ifc_VariadicOperator_MsvcIsNothrowConstructible,
+  ifc_VariadicOperator_MsvcIsTriviallyConstructible,
 };
 
 /* Macros used to access ChartIndex::tag and ChartIndex::value. */
@@ -1341,6 +1540,57 @@ enum ifc_SyntaxSort : ifc_Sort_type {
   ifc_SyntaxSort_Last
 };
 
+/* Macros used to access PragmaIndex::tag and PragmaIndex::index. */
+#define pragma_tag(pragma) ((ifc_PragmaSort)((pragma) & 0x00000001))
+#define pragma_index(pragma) ((ifc_Index)((pragma) >> 1))
+
+/* Enumeration for PragmaSort (i.e., kinds of pragmas). */
+enum ifc_PragmaSort : ifc_Sort_type {
+  ifc_PragmaSort_VendorExtension
+};
+
+/* Macros used to access MacroIndex::tag and MacroIndex::index. */
+#define macro_tag(macro) ((ifc_MacroSort)((macro) & 0x00000001))
+#define macro_index(macro) ((ifc_Index)((macro) >> 1))
+
+/* Enumeration for MacroSort (i.e., kinds of macros). */
+enum ifc_MacroSort : ifc_Sort_type {
+  ifc_MacroSort_ObjectLike,
+  ifc_MacroSort_FunctionLike,
+};
+
+/* Macros used to access FormIndex::tag and FormIndex::index. */
+#define form_tag(form) ((ifc_FormSort)((form) & 0x0000000F))
+#define form_index(form) ((ifc_Index)((form) >> 4))
+
+/* Enumeration for FormSort (i.e., kinds of forms). */
+enum ifc_FormSort : ifc_Sort_type {
+  ifc_FormSort_Identifier,
+  ifc_FormSort_Number,
+  ifc_FormSort_Character,
+  ifc_FormSort_String,
+  ifc_FormSort_Operator,
+  ifc_FormSort_Keyword,
+  ifc_FormSort_Whitespace,
+  ifc_FormSort_Parameter,
+  ifc_FormSort_Stringize,
+  ifc_FormSort_Catenate,
+  ifc_FormSort_Pragma,
+  ifc_FormSort_Header,
+  ifc_FormSort_Parenthesized,
+  ifc_FormSort_Tuple,
+  ifc_FormSort_Junk,
+  /* Must be last. */
+  ifc_FormSort_Last
+};
+
+/* Macros used to access FormOperator::tag and FormOperator::value. */
+#define form_op_tag(form_op) ((ifc_WordSort)((form_op) & 0x00000007))
+#define form_op_value(form_op) ((ifc_Index)((form_op) >> 3))
+/* Note: No enumeration here as these index into WordSorts.
+   Valid WordSorts here are WordSort::Operator and WordSort::Punctuator.
+*/
+
 /*
 An enumeration of IFC partitions.  Note that generally the order of
 partitions doesn't matter, but in cases where a "tag" is used to identify
@@ -1414,7 +1664,7 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_type_unaligned = ifc_type_start + ifc_TypeSort_Unaligned,
   ifc_type_syntax_tree = ifc_type_start + ifc_TypeSort_SyntaxTree,
   ifc_type_end = ifc_type_start + (ifc_TypeSort_Last-1),
-  /* Group all ifc_NameSort_ifc_NameSort_Identifier. */
+  /* Group all NameIndex::tag partitions together. */
   ifc_name_start,
   ifc_name_identifier = ifc_name_start + ifc_NameSort_Identifier,
   ifc_name_operator = ifc_name_start + ifc_NameSort_Operator,
@@ -1423,8 +1673,9 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_name_template = ifc_name_start + ifc_NameSort_Template,
   ifc_name_specialization = ifc_name_start + ifc_NameSort_Specialization,
   ifc_name_source_file = ifc_name_start + ifc_NameSort_SourceFile,
+  ifc_name_guide = ifc_name_start + ifc_NameSort_Guide,
   ifc_name_end = ifc_name_start + (ifc_NameSort_Last-1),
-  /* Group all ExprSort::tag partitions together. */
+  /* Group all ExprIndex::tag partitions together. */
   ifc_expr_start,
   ifc_expr_vendor_extension = ifc_expr_start + ifc_ExprSort_VendorExtension,
   ifc_expr_empty = ifc_expr_start + ifc_ExprSort_Empty,
@@ -1494,7 +1745,7 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_expr_assign_initializer = ifc_expr_start +
                                                 ifc_ExprSort_AssignInitializer,
   ifc_expr_end = ifc_expr_start + (ifc_ExprSort_Last-1),
-  /* Group all StmtSort::Tag partitions together. */
+  /* Group all StmtIndex::Tag partitions together. */
   ifc_stmt_start,
   ifc_stmt_vendor_extension = ifc_stmt_start + ifc_StmtSort_VendorExtension,
   ifc_stmt_empty = ifc_stmt_start + ifc_StmtSort_Empty,
@@ -1514,13 +1765,13 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_stmt_expansion = ifc_stmt_start + ifc_StmtSort_Expansion,
   ifc_stmt_syntax_tree = ifc_stmt_start + ifc_StmtSort_SyntaxTree,
   ifc_stmt_end = ifc_stmt_start + (ifc_StmtSort_Last-1),
-  /* Group all ChartSort::Tag partitions together. */
+  /* Group all ChartIndex::Tag partitions together. */
   ifc_chart_start,
   ifc_chart_none = ifc_chart_start + ifc_ChartSort_None,
   ifc_chart_unilevel = ifc_chart_start + ifc_ChartSort_Unilevel,
   ifc_chart_multilevel = ifc_chart_start + ifc_ChartSort_Multilevel,
   ifc_chart_end = ifc_chart_start + (ifc_ChartSort_Last-1),
-  /* Group all SyntaxSort::Tag partitions together. */
+  /* Group all SyntaxIndex::Tag partitions together. */
   ifc_syntax_start,
   ifc_syntax_vendor_extension = ifc_syntax_start +
                                                 ifc_SyntaxSort_VendorExtension,
@@ -1714,6 +1965,27 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_syntax_using_enum_decl = ifc_syntax_start +
                                            ifc_SyntaxSort_UsingEnumDeclaration,
   ifc_syntax_end = ifc_syntax_start + (ifc_SyntaxSort_Last-1),
+  /* Group all MacroIndex::Tag partitions together. */
+  ifc_macro_obj_like,
+  ifc_macro_func_like,
+  /* Group all FormIndex::Tag partitions together. */
+  ifc_form_start,
+  ifc_form_ident = ifc_form_start + ifc_FormSort_Identifier,
+  ifc_form_number = ifc_form_start + ifc_FormSort_Number,
+  ifc_form_char = ifc_form_start + ifc_FormSort_Character,
+  ifc_form_string = ifc_form_start + ifc_FormSort_String,
+  ifc_form_operator = ifc_form_start + ifc_FormSort_Operator,
+  ifc_form_keyword = ifc_form_start + ifc_FormSort_Keyword,
+  ifc_form_whitespace = ifc_form_start + ifc_FormSort_Whitespace,
+  ifc_form_param = ifc_form_start + ifc_FormSort_Parameter,
+  ifc_form_stringize = ifc_form_start + ifc_FormSort_Stringize,
+  ifc_form_catenate = ifc_form_start + ifc_FormSort_Catenate,
+  ifc_form_pragma = ifc_form_start + ifc_FormSort_Pragma,
+  ifc_form_header = ifc_form_start + ifc_FormSort_Header,
+  ifc_form_parenthesized = ifc_form_start + ifc_FormSort_Parenthesized,
+  ifc_form_tuple = ifc_form_start + ifc_FormSort_Tuple,
+  ifc_form_junk = ifc_form_start + ifc_FormSort_Junk,
+  ifc_form_end = ifc_form_start + (ifc_FormSort_Last-1),
   /* No particular grouping. */
   ifc_cmd_line,
   ifc_const_f64,
@@ -1723,14 +1995,15 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_heap_chart,
   ifc_heap_decl,
   ifc_heap_expr,
+  ifc_heap_form,
+  ifc_heap_pp,
   ifc_heap_stmt,
   ifc_heap_syn,
   ifc_heap_type,
-  ifc_macro_func_like,
-  ifc_macro_obj_like,
   ifc_msvc_trait_code_segment,
   ifc_msvc_trait_codegen_expr_trees,
   ifc_msvc_trait_entity_init_locus,
+  ifc_msvc_trait_impl_pragmas,
   ifc_msvc_trait_named_func_params,
   ifc_msvc_trait_spec_encodings,
   ifc_msvc_trait_suppressed_warnings,
@@ -1740,15 +2013,16 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_module_exported,
   ifc_module_imported,
   ifc_pragma_state,
+  ifc_pragma_vendorext,
   ifc_scope_desc,
   ifc_scope_member,
   ifc_sentence,
   ifc_src_line,
   ifc_trait_alias_template,
   ifc_trait_class_template,
-  ifc_trait_constexpr_function,
   ifc_trait_deprecated,
   ifc_trait_friend,
+  ifc_trait_function_definition,
   ifc_trait_function_template,
   ifc_trait_requires,
   ifc_trait_specialization,
@@ -1781,6 +2055,8 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
                                        ifc_msvc_trait_codegen_expr_trees },
   /* Not mentioned in spec.  Found in IFC files. */
   { ".msvc.trait.entity-initializer-locus", ifc_msvc_trait_entity_init_locus },
+  /* Not mentioned in spec.  Found in IFC files. */
+  { ".msvc.trait.impl-pragmas",        ifc_msvc_trait_impl_pragmas },
   /* Not mentioned in spec.  Found in IFC files. */
   { ".msvc.trait.named-function-parameters",
                                        ifc_msvc_trait_named_func_params },
@@ -1899,6 +2175,9 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "heap.chart",                      ifc_heap_chart },
   { "heap.decl",                       ifc_heap_decl },
   { "heap.expr",                       ifc_heap_expr },
+  { "heap.form",                       ifc_heap_form },
+  /* Not mentioned in spec.  Found in IFC files. */
+  { "heap.pp",                         ifc_heap_pp },
   { "heap.stmt",                       ifc_heap_stmt },
   { "heap.syn",                        ifc_heap_syn },
   { "heap.type",                       ifc_heap_type },
@@ -1907,11 +2186,29 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "module.exported",                 ifc_module_exported },
   { "module.imported",                 ifc_module_imported },
   { "name.conversion",                 ifc_name_conversion },
+  { "name.guide",                      ifc_name_guide },
   { "name.literal",                    ifc_name_literal },
   { "name.operator",                   ifc_name_operator },
   { "name.source-file",                ifc_name_source_file },
   { "name.specialization",             ifc_name_specialization },
   { "name.template",                   ifc_name_template },
+  { "pp.catenate",                     ifc_form_catenate },
+  { "pp.char",                         ifc_form_char },
+  { "pp.header",                       ifc_form_header },
+  { "pp.ident",                        ifc_form_ident },
+  { "pp.junk",                         ifc_form_junk },
+  { "pp.key",                          ifc_form_keyword },
+  { "pp.num",                          ifc_form_number },
+  { "pp.op",                           ifc_form_operator },
+  { "pp.param",                        ifc_form_param },
+  { "pp.paren",                        ifc_form_parenthesized },
+  { "pp.pragma",                       ifc_form_pragma },
+  { "pp.space",                        ifc_form_whitespace },
+  { "pp.string",                       ifc_form_string },
+  { "pp.to-string",                    ifc_form_stringize },
+  { "pp.tuple",                        ifc_form_tuple },
+  /* Not mentioned in spec.  Found in IFC files. */
+  { "pragma-directive.vendor-extension", ifc_pragma_vendorext },
   /* Not mentioned in spec.  Found in IFC files. */
   { "pragma.state",                    ifc_pragma_state },
   { "scope.desc",                      ifc_scope_desc },
@@ -2056,10 +2353,10 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "syntax.while-statement",          ifc_syntax_while_statement },
   { "trait.alias-template",            ifc_trait_alias_template },
   { "trait.class-template",            ifc_trait_class_template },
-  { "trait.constexpr-function",        ifc_trait_constexpr_function },
   { "trait.deprecated",                ifc_trait_deprecated },
   { "trait.friend",                    ifc_trait_friend },
   { "trait.function-template",         ifc_trait_function_template },
+  { "trait.mapping-expr",              ifc_trait_function_definition },
   /* Not mentioned in spec.  Found in IFC files. */
   { "trait.requires",                  ifc_trait_requires },
   { "trait.specialization",            ifc_trait_specialization },
@@ -2231,6 +2528,9 @@ private:
   a_const_char *string_from_name_index(ifc_NameIndex    name_index,
                                        a_symbol_locator *loc) const;
   a_const_char *name_from_decl(ifc_DeclIndex decl) const;
+  a_const_char *name_from_other_module_decl(
+                                          const an_ifc_DeclSort_Reference *ref)
+                                                                         const;
   void init_dps(a_decl_parse_state          *dps,
                 ifc_SourceLocation          *locus,
                 ifc_TypeIndex               type_index,
@@ -2261,8 +2561,26 @@ private:
   void cache_chart(a_token_cache_ptr  cache,
                    ifc_ChartIndex     chart,
                    ifc_SourceLocation *locus) const;
+  void cache_operator(a_token_cache_ptr  cache,
+                      ifc_Operator       op,
+                      ifc_SourceLocation *locus) const;
+  void cache_operator(a_token_cache_ptr   cache,
+                      ifc_NiladicOperator op,
+                      ifc_SourceLocation  *locus) const;
+  void cache_operator(a_token_cache_ptr   cache,
+                      ifc_MonadicOperator op,
+                      ifc_SourceLocation  *locus) const;
+  void cache_operator(a_token_cache_ptr  cache,
+                      ifc_DyadicOperator op,
+                      ifc_SourceLocation *locus) const;
+  void cache_operator(a_token_cache_ptr   cache,
+                      ifc_TriadicOperator op,
+                      ifc_SourceLocation  *locus) const;
+  void cache_operator(a_token_cache_ptr   cache,
+                      ifc_StorageOperator op,
+                      ifc_SourceLocation  *locus) const;
   void cache_operator(a_token_cache_ptr    cache,
-                      ifc_OperatorCategory category,
+                      ifc_VariadicOperator op,
                       ifc_SourceLocation   *locus) const;
   void cache_exception_spec(a_token_cache_ptr         cache,
                             ifc_NoexceptSpecification *eh_spec,
@@ -2440,7 +2758,7 @@ void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Friend>(
                                              ifc_DeclIndex       decl_index,
                                              a_str_control_block *scbp) const;
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_ConstexprFunction>(
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_FunctionDefinition>(
                                              ifc_DeclIndex       decl_index,
                                              a_str_control_block *scbp) const;
 template<>
