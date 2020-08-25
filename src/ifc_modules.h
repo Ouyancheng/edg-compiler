@@ -215,7 +215,7 @@ union ifc_mf_arity_variadic {
   struct {
     uint32_t arity : 31;
     uint32_t variadic : 1;
-  };
+  } fields;
 };
 static_assert(sizeof(ifc_mf_arity_variadic) == sizeof(uint32_t),
               "ifc_mf_arity_variadic has the wrong size");

@@ -950,14 +950,6 @@ Map an IFC StorageOperator to an_opname_kind.
     case ifc_StorageOperator_AllocateArray:     op = onk_array_new;      break;
     case ifc_StorageOperator_DeallocateSingle:  op = onk_delete;         break;
     case ifc_StorageOperator_DeallocateArray:   op = onk_array_delete;   break;
-#if DEBUG
-      if (db_flag_is_set("ms_ignore")) {
-        (void)fprintf(f_debug, "Unsupported operation: %d\n", storage_op);
-      }  /* if */
-#endif /* DEBUG */
-      op = onk_none;
-      unexpected_condition();
-      break;
     default_is_unexpected_str("Unexpected StorageOperator");
   }  /* switch */
   return op;
