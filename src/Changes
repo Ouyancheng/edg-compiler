@@ -1,5 +1,32 @@
 Version 6.2
 
+8/25/20  [EDGcpfe/23292]
+Incorrect is_local_to_function flag for variable template instance
+
+The inheriting constructor changes in version 6.1 could result in the
+creation of a variable template instance with its is_local_to_function flag
+incorrectly set to TRUE.  Now fixed.  It was theoretically possible for this
+to occur in other cases not involving inheriting constructors both in 6.1
+and in prior versions, but this has not been observed.  This issue could
+result in several different kinds of internal errors, depending on the
+configuration, including ones in enclosing_routine_for_local_type,
+get_scope_for_list, and add_discriminator.
+
+  namespace N {
+    template <bool B, class T = void> struct A { using type = T; };
+    template <class T> inline constexpr bool V = false;
+    struct D {
+      template <class T, typename A<V<T>, int>::type = 0> D(T&&) {}
+    };
+  }
+  int main() {
+    struct my_D : N::D {
+      using N::D::D;
+    };
+    my_D{1};
+  }
+
+
 8/24/20  [EDGcpfe/23291]
 Wrong delete routine selected when using template class
 

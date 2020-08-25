@@ -6317,6 +6317,7 @@ class definition.
 #define is_real_class_symbol(sym)				      \
   (((sym)->kind == (a_symbol_kind)sk_class_or_struct_tag ||           \
     (sym)->kind == (a_symbol_kind)sk_union_tag) &&		      \
+    (sym)->variant.class_struct_union.type != NULL &&		      \
     !((sym)->variant.class_struct_union.type->			      \
                    variant.class_struct_union.is_nonreal_class))
 
@@ -6331,6 +6332,7 @@ class definition.
    template. */
 #define is_template_alias_instance_symbol(sym)				\
   (symbol_is((sym), sk_type) &&						\
+   (sym)->variant.type.ptr != NULL &&					\
    (sym)->variant.type.ptr->kind == (a_type_kind)tk_typeref &&		\
    (sym)->variant.type.ptr->variant.typeref.is_template_alias)
 
@@ -6576,6 +6578,7 @@ results in better error recovery.
 #define is_template_variable_symbol(sym)				\
   ((symbol_is((sym), sk_variable) ||					\
     symbol_is((sym), sk_static_data_member)) &&				\
+    variable_for_symbol((sym)) != NULL &&				\
     variable_for_symbol((sym))->is_template_variable &&			\
     variable_for_symbol((sym))->template_info->template_arg_list != NULL)
 
