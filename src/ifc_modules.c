@@ -8332,7 +8332,7 @@ Add an access specifier to the current string, if needed.
     case ifc_Access_Private:    string = "private";    break;
     case ifc_Access_Protected:  string = "protected";  break;
     case ifc_Access_Public:     string = "public";     break;
-    default_is_unexpected()
+    default_is_unexpected();
   }  /* switch */
   if (string != NULL) {
     add_string_to_text_buffer(scbp->text_buffer, string);
