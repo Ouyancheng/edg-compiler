@@ -20431,7 +20431,7 @@ selection operator, in which case it points to the type of the left operand.
         /* Clear the decltype_type so it won't be used in subsequent
            iterations. */
         decltype_type = NULL;
-        /* Skip over the class-name, and the "::".  After the two get_token
+        /* Skip over the qualifier and the "::".  After the two get_token
            calls, the current token will be whatever follows the
            qualifier. */
         (void)get_token();
@@ -20764,13 +20764,19 @@ selection operator, in which case it points to the type of the left operand.
                loop. */
             if (next_token() != tok_colon_colon) break;
           } else if (next_tok == tok_lt) {
-            /* The qualified name is followed by a "<" but this is not a
-               template reference.  Reset qualifier_sym to the value it had
-               before the lookup was done.  Clear the specific_symbol
-               field in the symbol locator.  Break out of the qualifier
-               scanning loop as this must be the final identifier. */
-            qualifier_sym = prev_qualifier_sym;
-            clear_specific_symbol(locator_for_curr_id);
+            if (qualifier_sym != NULL && 
+                symbol_is(qualifier_sym, sk_concept_template)) {
+              /* A concept-id: Don't scan the template arguments, but retain
+                 the specific symbol. */
+            } else {
+              /* The qualified name is followed by a "<" but this is not a
+                 template reference.  Reset qualifier_sym to the value it had
+                 before the lookup was done.  Clear the specific_symbol
+                 field in the symbol locator.  Break out of the qualifier
+                 scanning loop as this must be the final identifier. */
+              qualifier_sym = prev_qualifier_sym;
+              clear_specific_symbol(locator_for_curr_id);
+            }  /* if */
             break;
           }  /* if */
         }  /* if */

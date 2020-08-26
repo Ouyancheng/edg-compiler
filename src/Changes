@@ -1,5 +1,23 @@
 Version 6.2
 
+
+8/26/20  [EDGcpfe/23286]
+Abort on static data member template involving concept-id
+
+Consider (in C++20 mode):
+
+  namespace N {
+    template<typename, typename> concept C = true;
+  }
+  struct S {
+    template<typename T, typename U>
+      static constexpr bool B = N::C<T, U>;  // Previously triggered an
+  };                                         // internal error.  Now okay.
+
+Previously, this aborted with an internal error in copy_tokens_from_cache
+(lexical.c).  That is now fixed.
+
+
 8/26/20  [EDGcpfe/23288]
 Spurious ambiguity among partial specializations involving constraints
 
