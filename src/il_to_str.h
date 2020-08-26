@@ -278,9 +278,9 @@ typedef struct an_il_to_str_output_control_block {
 			   constants. */
   a_byte_boolean
 	suppress_name_in_template_cast_enum_const;
-			/* Suppress the name of a tpck_cast constant that
-			   represents an enumerator and put out its value
-			   instead. */
+			/* Suppress the name of a tpck_expression constant that
+			   represents an enumerator cast to a specific type and
+			   put out its value instead. */
   a_byte_boolean
 	render_auto_deduction_typerefs;
 			/* TRUE if typerefs representing deduced "auto" and
