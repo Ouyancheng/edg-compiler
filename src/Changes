@@ -1,5 +1,22 @@
 Version 6.2
 
+8/26/20  [EDGcpfe/23288]
+Spurious ambiguity among partial specializations involving constraints
+
+Consider (in C++20 mode):
+
+  template<typename T> concept Has_minus =
+                         requires(T const &a, T const &b) { { a-b }; };
+  template<typename> struct X {};
+  template<typename T> struct X<T const> : X<T> {};
+  template<typename T> requires Has_minus<T> struct X<T> {};
+  X<int *const> x;  // Previously an error.  Now okay.
+
+Previously, the front end erroneously reported an ambiguity between the two
+partial specializations of X when considering which one to instantiate for
+X<int *const>.  Now, the one for X<T const> is preferred.
+
+
 8/25/20  [EDGcpfe/23301]
 Incorrect addition of Windows drive letter to relative paths
 
