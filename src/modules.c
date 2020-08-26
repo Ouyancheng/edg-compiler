@@ -251,10 +251,11 @@ file_kind (which may range from remarks to catastrophic errors).
       break;
     case mk_any:
       /* Match anything except for unknown module files and header units. */
-      if (file_kind != mk_none && file_kind != mk_header) {
+      if (file_kind != (a_module_kind)mk_none &&
+          file_kind != (a_module_kind)mk_header) {
         goto done;
       }  /* if */
-      /* FALLTHROUGH */
+      FALLTHROUGH;
     case mk_ifc:
       /* Visual Studio skips files that don't appear to be IFCs. */
       severity = es_remark;

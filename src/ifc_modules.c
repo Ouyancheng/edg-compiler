@@ -84,7 +84,7 @@ static void cache_token(a_token_cache_ptr     cache,
                         a_source_position_ptr pos);
 
 
-static unsigned char buffer_overrun(void)
+NORETURN static unsigned char buffer_overrun(void)
 /*
 This routine is called if a memory buffer (which represents a portion of
 a module file) terminates prematurely.  Issue a catastrophic error.
@@ -93,8 +93,6 @@ that returns an unsigned char.
 */
 {
   unexpected_condition();
-  /*lint -e527*/
-  return 0;
 }  /* buffer_overrun */
 
 #if USE_MMAP_FOR_MEMORY_REGIONS
@@ -343,12 +341,10 @@ Handle nested structures differently (and check for padding).
 #define GET_LineIndex(x, from_header)          GET_int(x, from_header)
 #define GET_LineNumber(x, from_header)         GET_int(x, from_header)
 #define GET_LitIndex(x, from_header)           GET_int(x, from_header)
-#define GET_MacroIndex(x, from_header)         GET_int(x, from_header)
 #define GET_MsvcTraits(x, from_header)         GET_int(x, from_header)
 #define GET_NameIndex(x, from_header)          GET_int(x, from_header)
 #define GET_ParameterLevel(x, from_header)     GET_int(x, from_header)
 #define GET_ParameterPosition(x, from_header)  GET_int(x, from_header)
-#define GET_PragmaIndex(x, from_header)        GET_int(x, from_header)
 #define GET_ScopeIndex(x, from_header)         GET_int(x, from_header)
 #define GET_SegmentTraits(x, from_header)      GET_int(x, from_header)
 #define GET_SegmentType(x, from_header)        GET_int(x, from_header)
@@ -367,12 +363,9 @@ Handle nested structures differently (and check for padding).
 #define GET_FormOperator(x, from_header)       GET_short(x, from_header)
 #define GET_FunctionTraits(x, from_header)     GET_short(x, from_header)
 #define GET_MonadicOperator(x, from_header)    GET_short(x, from_header)
-#define GET_NiladicOperator(x, from_header)    GET_short(x, from_header)
 #define GET_Operator(x, from_header)           GET_short(x, from_header)
 #define GET_PackSize(x, from_header)           GET_short(x, from_header)
-#define GET_StorageOperator(x, from_header)    GET_short(x, from_header)
 #define GET_TriadicOperator(x, from_header)    GET_short(x, from_header)
-#define GET_VariadicOperator(x, from_header)   GET_short(x, from_header)
 
 #define GET_Abi(x, from_header)                GET_byte(x, from_header)
 #define GET_Access(x, from_header)             GET_byte(x, from_header)
@@ -611,7 +604,6 @@ Return a string with the name that corresponds to the DeclSort tag.
     case ifc_DeclSort_ExplicitInstantiation:
                                        result = "ExplicitInstantiation"; break;
     case ifc_DeclSort_Concept:          result = "Concept"; break;
-    case ifc_DeclSort_Intrinsic:        result = "Intrinsic"; break;
     case ifc_DeclSort_Function:         result = "Function"; break;
     case ifc_DeclSort_Method:           result = "Method"; break;
     case ifc_DeclSort_Constructor:      result = "Constructor"; break;
@@ -619,16 +611,19 @@ Return a string with the name that corresponds to the DeclSort tag.
                                         result = "InheritedConstructor"; break;
     case ifc_DeclSort_Destructor:       result = "Destructor"; break;
     case ifc_DeclSort_Reference:        result = "Reference"; break;
-    case ifc_DeclSort_Property:         result = "Property"; break;
-    case ifc_DeclSort_OutputSegment:    result = "OutputSegment"; break;
     case ifc_DeclSort_UsingDeclaration: result = "UsingDeclaration"; break;
     case ifc_DeclSort_UsingDirective:   result = "UsingDirective"; break;
     case ifc_DeclSort_Friend:           result = "Friend"; break;
-    case ifc_DeclSort_SyntaxTree:       result = "SyntaxTree"; break;
+    case ifc_DeclSort_Expansion:        result = "Expansion"; break;
+    case ifc_DeclSort_DeductionGuide:   result = "DeductionGuide"; break;
+    case ifc_DeclSort_Barren:           result = "Barren"; break;
     case ifc_DeclSort_Tuple:            result = "Tuple"; break;
-    default:
-      result = "Unexpected";
-      unexpected_condition();
+    case ifc_DeclSort_SyntaxTree:       result = "SyntaxTree"; break;
+    case ifc_DeclSort_Intrinsic:        result = "Intrinsic"; break;
+    case ifc_DeclSort_Property:         result = "Property"; break;
+    case ifc_DeclSort_OutputSegment:    result = "OutputSegment"; break;
+    case ifc_DeclSort_Last:             unexpected_condition(); break;
+    default_is_unexpected();
   }  /* switch */
   return result;
 }  /* db_decl_tag */
@@ -662,12 +657,12 @@ static an_opname_kind opname_from_niladic_op(ifc_NiladicOperator niladic_op)
 Map an IFC NiladicOperator to an_opname_kind.
 */
 {
-  an_opname_kind op;
+  /* FIXME: Remove initializer when op is assigned in one of the cases. */
+  an_opname_kind op = onk_none;
 
   switch (niladic_op) {
     case ifc_NiladicOperator_Unknown:
     case ifc_NiladicOperator_Msvc:
-      op = onk_none;
       unexpected_condition();
       break;
     case ifc_NiladicOperator_Phantom:
@@ -680,7 +675,6 @@ Map an IFC NiladicOperator to an_opname_kind.
         (void)fprintf(f_debug, "Unsupported operation: %d\n", niladic_op);
       }  /* if */
 #endif /* DEBUG */
-      op = onk_none;
       unexpected_condition();
       break;
     default_is_unexpected_str("Unexpected NiladicOperator");
@@ -699,7 +693,7 @@ Map an IFC MonadicOperator to an_opname_kind.
   switch (monadic_op) {
     case ifc_MonadicOperator_Unknown:
     case ifc_MonadicOperator_Msvc:
-      op = onk_none;
+    case ifc_MonadicOperator_MsvcConfusion:
       unexpected_condition();
       break;
     case ifc_MonadicOperator_Plus:               op = onk_plus;          break;
@@ -776,14 +770,12 @@ Map an IFC MonadicOperator to an_opname_kind.
     case ifc_MonadicOperator_MsvcHasCopy:
     case ifc_MonadicOperator_MsvcHasAssign:
     case ifc_MonadicOperator_MsvcHasUserDestructor:
-    case ifc_MonadicOperator_MsvcConfusion:
     case ifc_MonadicOperator_MsvcConfusedExpand:
 #if DEBUG
       if (db_flag_is_set("ms_ignore")) {
         (void)fprintf(f_debug, "Unsupported operation: %d\n", monadic_op);
       }  /* if */
 #endif /* DEBUG */
-      op = onk_none;
       unexpected_condition();
       break;
     default_is_unexpected_str("Unexpected MonadicOperator");
@@ -802,7 +794,6 @@ Map an IFC DyadicOperator to an_opname_kind.
   switch (dyadic_op) {
     case ifc_DyadicOperator_Unknown:
     case ifc_DyadicOperator_Msvc:
-      op = onk_none;
       unexpected_condition();
       break;
     case ifc_DyadicOperator_Plus:            op = onk_plus;              break;
@@ -894,7 +885,6 @@ Map an IFC DyadicOperator to an_opname_kind.
         (void)fprintf(f_debug, "Unsupported operation: %d\n", dyadic_op);
       }  /* if */
 #endif /* DEBUG */
-      op = onk_none;
       unexpected_condition();
       break;
     default_is_unexpected_str("Unexpected DyadicOperator");
@@ -908,12 +898,12 @@ static an_opname_kind opname_from_triadic_op(ifc_TriadicOperator triadic_op)
 Map an IFC TriadicOperator to an_opname_kind.
 */
 {
-  an_opname_kind op;
+  /* FIXME: Remove initializer when op is assigned in one of the cases. */
+  an_opname_kind op = onk_none;
 
   switch (triadic_op) {
     case ifc_TriadicOperator_Unknown:
     case ifc_TriadicOperator_Msvc:
-      op = onk_none;
       unexpected_condition();
       break;
     case ifc_TriadicOperator_Choice:
@@ -924,7 +914,6 @@ Map an IFC TriadicOperator to an_opname_kind.
         (void)fprintf(f_debug, "Unsupported operation: %d\n", triadic_op);
       }  /* if */
 #endif /* DEBUG */
-      op = onk_none;
       unexpected_condition();
       break;
     default_is_unexpected_str("Unexpected TriadicOperator");
@@ -943,7 +932,6 @@ Map an IFC StorageOperator to an_opname_kind.
   switch (storage_op) {
     case ifc_StorageOperator_Unknown:
     case ifc_StorageOperator_Msvc:
-      op = onk_none;
       unexpected_condition();
       break;
     case ifc_StorageOperator_AllocateSingle:    op = onk_new;            break;
@@ -961,12 +949,12 @@ static an_opname_kind opname_from_variadic_op(ifc_VariadicOperator variadic_op)
 Map an IFC VariadicOperator to an_opname_kind.
 */
 {
-  an_opname_kind op;
+  /* FIXME: Remove initializer when op is assigned in one of the cases. */
+  an_opname_kind op = onk_none;
 
   switch (variadic_op) {
     case ifc_VariadicOperator_Unknown:
     case ifc_VariadicOperator_Msvc:
-      op = onk_none;
       unexpected_condition();
       break;
     case ifc_VariadicOperator_Collection:
@@ -980,7 +968,6 @@ Map an IFC VariadicOperator to an_opname_kind.
         (void)fprintf(f_debug, "Unsupported operation: %d\n", variadic_op);
       }  /* if */
 #endif /* DEBUG */
-      op = onk_none;
       unexpected_condition();
       break;
     default_is_unexpected_str("Unexpected VariadicOperator");
@@ -3063,9 +3050,9 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                 case ifc_TypePrecision_Bit16:
                 case ifc_TypePrecision_Bit32:
                 case ifc_TypePrecision_Bit128:
-                default:
-                  ik = ik_none;
                   unexpected_condition();
+                  break;
+                default_is_unexpected();
               }  /* switch */
               result = integer_type(ik);
               break;
@@ -4086,9 +4073,8 @@ after the declaration has been processed.
       case ifc_Access_Private:   il_access = as_private;   break;
       case ifc_Access_Protected: il_access = as_protected; break;
       case ifc_Access_Public:    il_access = as_public;    break;
-      default:
-        il_access = as_inaccessible;
-        unexpected_condition();
+      case ifc_Access_None:      unexpected_condition();   break;
+      default_is_unexpected();
     }  /* switch */
     save_partial_scope_stack(psssp);
     scope_stack[decl_scope_level].current_access = il_access;
@@ -6115,9 +6101,11 @@ location of the operator.
 }  /* cache_operator */
 
 
-void an_ifc_module::cache_operator(a_token_cache_ptr   cache,
-                                   ifc_NiladicOperator op,
-                                   ifc_SourceLocation  *locus) const
+/*lint -e2707*/ /* Remove when the routine returns to its caller. */
+/* Remove ARG_UNUSED as well. */
+void an_ifc_module::cache_operator(ARG_UNUSED a_token_cache_ptr cache,
+                                   ifc_NiladicOperator          op,
+                                   ifc_SourceLocation           *locus) const
 /*
 Add the tokens corresponding to the given Niladic Operator to cache.  locus is
 the location of the operator.
@@ -6745,9 +6733,11 @@ the location of the operator.
 }  /* cache_operator */
 
 
-void an_ifc_module::cache_operator(a_token_cache_ptr   cache,
-                                   ifc_TriadicOperator op,
-                                   ifc_SourceLocation  *locus) const
+/*lint -e2707*/ /* Remove when the routine returns to its caller. */
+/* Remove ARG_UNUSED as well. */
+void an_ifc_module::cache_operator(ARG_UNUSED a_token_cache_ptr cache,
+                                   ifc_TriadicOperator          op,
+                                   ifc_SourceLocation           *locus) const
 /*
 Add the tokens corresponding to the given Triadic Operator to cache.  locus is
 the location of the operator.
@@ -6780,9 +6770,11 @@ the location of the operator.
 }  /* cache_operator */
 
 
-void an_ifc_module::cache_operator(a_token_cache_ptr   cache,
-                                   ifc_StorageOperator op,
-                                   ifc_SourceLocation  *locus) const
+/*lint -e2707*/ /* Remove when the routine returns to its caller. */
+/* Remove ARG_UNUSED as well. */
+void an_ifc_module::cache_operator(ARG_UNUSED a_token_cache_ptr cache,
+                                   ifc_StorageOperator          op,
+                                   ifc_SourceLocation           *locus) const
 /*
 Add the tokens corresponding to the given Storage Operator to cache.  locus is
 the location of the operator.
@@ -8340,9 +8332,7 @@ Add an access specifier to the current string, if needed.
     case ifc_Access_Private:    string = "private";    break;
     case ifc_Access_Protected:  string = "protected";  break;
     case ifc_Access_Public:     string = "public";     break;
-    default:
-      string = "Unexpected";
-      unexpected_condition();
+    default_is_unexpected()
   }  /* switch */
   if (string != NULL) {
     add_string_to_text_buffer(scbp->text_buffer, string);
@@ -9136,6 +9126,7 @@ FIXME: more specific
           case ifc_TypeBasis_VariableTemplate:
             /* FIXME: not implemented yet */
             unexpected_condition();
+            break;
           default_is_unexpected();
         }  /* switch */
         if (basis_str != NULL) {
