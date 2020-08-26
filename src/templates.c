@@ -18546,6 +18546,7 @@ mode in-class specialization.
           rp->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
         /* If no visibility attribute was specified on the function, propagate
            any visibility that was specified on the enclosing class */
+        check_assertion(parent_class != NULL);
         rp->ELF_visibility = class_type_supp(parent_class)->ELF_visibility;
       }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
