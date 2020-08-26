@@ -14508,10 +14508,16 @@ of a subscript operation).
          constant. */
       try_folding = FALSE;
     } else if (!expr_stack->potentially_evaluated &&
-               !expr_stack->favor_constant_result) {
-      /* No need to fold in an unevaluated expression.  The exception is
-         the operand of __builtin_constant_p (which also sets the
-         expr_stack->favor_constant_result flag). */
+               !expr_stack->favor_constant_result &&
+               !(C_mode() && expr_stack->inside_conditional_expression)) {
+      /* No need to fold in an unevaluated expression.  There are some
+         exceptions:
+           - the operand of __builtin_constant_p (which also sets the
+             expr_stack->favor_constant_result flag), and
+           - C-mode conditional expressions because null pointer constants
+             have to be recognized (e.g., "1 ? (void*)(2-2) : (int*)0" has
+             type "int*" because (void*)(2-2) is treated as a null pointer
+             constant). */
       try_folding = FALSE;
     } else if (op == (an_expr_operator_kind)eok_psubtract ||
                op == (an_expr_operator_kind)eok_padd) {

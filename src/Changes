@@ -1,6 +1,24 @@
 Version 6.2
 
 
+8/26/20  [EDGcpfe/23276]
+C-mode type of conditional operator with null pointer constant
+
+Version 6.1 of the front end introduced a regression in C mode (due to the
+extensive changes for handling C++20 concepts) causing some null pointer
+constants not to be recognized as such.  For example, in C11 mode:
+
+  int main() {
+    return _Generic(1 ? (void*)(2-2) : (int*)0, int*: 1, void*: 0);
+  }
+
+Normally, the type of the unevaluated conditional operator should be int*
+because "(void*)(2-2)" is a null pointer constant and thus that program
+returns 1.  However, version 6.1 returned 0 because it failed to recognize
+that "(void*)(2-2)" is a null pointer constant in unevaluated contexts.  That
+is now fixed.
+
+
 8/26/20  [EDGcpfe/23286]
 Abort on static data member template involving concept-id
 
