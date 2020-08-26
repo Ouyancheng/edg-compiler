@@ -10149,7 +10149,8 @@ the body of the (constructor) function proper.
         } else {
           sub_dip = ctor_init->initializer;
         }  /* if */
-        if (symbol_for(fp)->variant.field.anonymous_parent_object != NULL) {
+        if (symbol_for(fp) != NULL &&
+            symbol_for(fp)->variant.field.anonymous_parent_object != NULL) {
           /* ctor-init may point directly to an anonymous union field.  In
              that case, the active fields of all intervening anonymous unions
              must be recorded, offset must be adjusted, and fp must be set to
