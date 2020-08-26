@@ -4457,7 +4457,7 @@ with --gnu_version=90100 --c++14:
   };
 
 
-3/7/10   [EDGcpfe/22441]
+3/7/20   [EDGcpfe/22441]
 C++-generating back end, g++ compatibility: friend declarations of members of
 sibling nested classes
 
