@@ -518,6 +518,11 @@ extern void pos_st2_diagnostic(an_error_severity error_severity,
                           a_source_position *error_pos,
                           a_const_char      *error_string1,
                           a_const_char      *error_string2);
+extern void pos_opt_ty2_diagnostic(an_error_severity sev,
+                                   an_error_code     error_code,
+                                   a_source_position *error_pos,
+                                   struct a_type     *type1,
+                                   struct a_type     *type2);
 extern void pos_stty_error(an_error_code     error_code,
                            a_source_position *error_pos,
                            a_const_char      *error_string,

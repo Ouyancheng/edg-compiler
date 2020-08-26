@@ -40066,8 +40066,15 @@ an enumerator.
           !is_error_operand(operand) &&
           !(dest_type != NULL && is_error_type(dest_type))) {
         if (dest_type != NULL) {
-          pos_opt_ty2_error(err_code, &operand->position, operand->type,
-                            dest_type);
+          an_error_severity  sev = es_error;
+          if (gpp_version_is(<100000) &&
+              err_code == ec_constant_narrowing_conversion) {
+            /* Earlier versions of GCC only warn about narrowing
+               conversions. */
+            sev = es_warning;
+          }  /* if */
+          pos_opt_ty2_diagnostic(sev, err_code, &operand->position,
+                                 operand->type, dest_type);
         } else {
           pos_ty_str_error(ec_bad_conv_constant_expr_type, &operand->position,
                            operand->type,

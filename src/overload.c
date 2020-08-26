@@ -21046,9 +21046,12 @@ is_transparent.  conv_context describes the context of the conversion.
                                            &err_code)) {
         if (expr_diagnostic_should_be_issued(es_discretionary_error,
                                              err_code, err_pos)) {
-          pos_ty2_diagnostic(es_discretionary_error, err_code, err_pos,
-                             src_type, dest_type);
-          if (is_effective_error(err_code, es_discretionary_error, err_pos)) {
+          an_error_severity  sev = es_discretionary_error;
+          if (gpp_version_is(<90000)) {
+            sev = es_warning;
+          }  /* if */
+          pos_ty2_diagnostic(sev, err_code, err_pos, src_type, dest_type);
+          if (is_effective_error(err_code, sev, err_pos)) {
             /* Avoid duplicate errors. */
             make_error_operand(source_operand);
           }  /* if */

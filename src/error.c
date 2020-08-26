@@ -5323,6 +5323,30 @@ position indicated by error_position.
 }  /* pos_st2_diagnostic */
 
 
+void pos_opt_ty2_diagnostic(an_error_severity sev,
+                            an_error_code     error_code,
+                            a_source_position *error_pos,
+                            a_type_ptr        type1,
+                            a_type_ptr        type2)
+/*
+Report the indicated diagnostic (with the two indicated types) at the
+indicated position with the given severity.  If the error message has no
+fill-ins, do not put the types in the message.
+*/
+{
+  a_diagnostic_ptr	dp;
+
+  dp = create_primary_diagnostic(error_code, error_pos, sev);
+  /* See if the error message contains a fill-in for a type.  If so,
+     put out the types. */
+  if (message_has_fill_in(error_code)) {
+    add_type_fill_in(dp, type1);
+    add_type_fill_in(dp, type2);
+  }  /* if */
+  wrap_up_diagnostic(dp);
+}  /* pos_opt_ty2_diagnostic */
+
+
 void pos_st_remark(an_error_code     error_code,
                    a_source_position *error_pos,
                    a_const_char      *error_string)
@@ -5507,16 +5531,7 @@ indicated position.  If the error message has no fill-ins, do not
 put the types in the message.
 */
 {
-  a_diagnostic_ptr	dp;
-
-  dp = create_primary_diagnostic(error_code, error_pos, es_warning);
-  /* See if the error message contains a fill-in for a type.  If so,
-     put out the types. */
-  if (message_has_fill_in(error_code)) {
-    add_type_fill_in(dp, type1);
-    add_type_fill_in(dp, type2);
-  }  /* if */
-  wrap_up_diagnostic(dp);
+  pos_opt_ty2_diagnostic(es_warning, error_code, error_pos, type1, type2);
 }  /* pos_opt_ty2_warning */
 
 
@@ -5725,16 +5740,7 @@ indicated position.  If the error message has no fill-ins, do not
 put the types in the message.
 */
 {
-  a_diagnostic_ptr	dp;
-
-  dp = create_primary_diagnostic(error_code, error_pos, es_error);
-  /* See if the error message contains a fill-in for a type.  If so,
-     put out the types. */
-  if (message_has_fill_in(error_code)) {
-    add_type_fill_in(dp, type1);
-    add_type_fill_in(dp, type2);
-  }  /* if */
-  wrap_up_diagnostic(dp);
+  pos_opt_ty2_diagnostic(es_error, error_code, error_pos, type1, type2);
 }  /* pos_opt_ty2_error */
 
 
