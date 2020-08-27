@@ -8726,6 +8726,11 @@ case).
       /* Drop any qualifiers or typedefs on the class/struct/union type. */
       class_struct_union_type = skip_typerefs(orig_class_struct_union_type);
 make_proxy_type_if_needed:
+      if (type_is(class_struct_union_type, tk_pointer) &&
+          class_struct_union_type->variant.pointer.is_reference) {
+        class_struct_union_type =
+                 skip_typerefs(class_struct_union_type->variant.pointer.type);
+      }  /* if */
       if (class_struct_union_type->kind == (a_type_kind)tk_template_param) {
         /* For a template parameter type, switch to the corresponding proxy
            class.  Preserve cv-qualifiers on the type. */
