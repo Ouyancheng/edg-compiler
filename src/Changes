@@ -72,7 +72,7 @@ lambda that captures a "this" pointer.  For example:
 That problem is now fixed.
 
 
-8/26/20  [EDGcpfe/23276]
+8/26/20  [EDGcpfe/23261,EDGcpfe/23276]
 C-mode type of conditional operator with null pointer constant
 
 Version 6.1 of the front end introduced a regression in C mode (due to the
