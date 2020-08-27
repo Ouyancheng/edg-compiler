@@ -4474,7 +4474,7 @@ static a_feature_support feature_support_list[] = {
   { "",
     0,
     &coroutines_enabled,
-    "__cpp_impl_coroutines",
+    "__cpp_impl_coroutine",
     "201902L" },
   { "",
     0,

@@ -1,5 +1,12 @@
 Version 6.2
 
+8/27/20  [EDGcpfe/23320]
+Incorrect feature test macro name for concepts
+
+The feature test macro for concepts is "__cpp_impl_coroutine" and was
+mistakenly named "__cpp_impl_coroutines".  Now fixed.
+
+
 8/26/20  [EDGcpfe/22161,EDGcpfe/22456]
 Coroutines: Abort when awaiting rvalue references
 
