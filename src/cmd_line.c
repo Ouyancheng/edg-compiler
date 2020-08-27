@@ -2904,6 +2904,16 @@ option values if they were not already set by a command line option.
           destroying_operator_delete_enabled = TRUE;
         }  /* if */
       }  /* if */
+      if (microsoft_version >= 1928) {
+        /* Visual Studio version 16.8. */
+        if (ms_cpp20_mode) {
+          if (!coroutines_enabled) {
+            /* This may have been enabled already via --set_flag; we don't want
+               to override that. */
+            coroutines_enabled = COROUTINE_ENABLING_POSSIBLE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
     } else {
       /* Disable unrestricted unions because they involve making some special
          member functions "deleted", whereas Microsoft compilers prior to 1900
