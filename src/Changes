@@ -1,5 +1,33 @@
 Version 6.2
 
+8/26/20  [EDGcpfe/22161,EDGcpfe/22456]
+Coroutines: Abort when awaiting rvalue references
+
+The front end would abort in make_expr_reusable_copy when awaiting on an rvalue
+reference (whether directly or via await transformations).  For example:
+
+  #include <coroutine>
+  struct A {
+    struct promise_type
+    {
+      A get_return_object() { return{}; }
+      auto initial_suspend() { return std::suspend_always{}; }
+      auto final_suspend() noexcept { return std::suspend_always{}; }
+      void unhandled_exception() noexcept {}
+      void return_void();
+      A&& await_transform(A&& expression) { return (A&&)expression; }
+    };
+    ~A();
+    bool await_ready() const { return false; }
+    void await_suspend(std::coroutine_handle<> handle) const {}
+    A await_resume() const { return {}; }
+  };
+  A f() {
+    co_await A{};  // Previously aborted due to the "await_transform" call
+  }
+
+This is now fixed.
+
 
 8/26/20  [EDGcpfe/23263]
 Constexpr interpreter aborts when copying capture of "this"

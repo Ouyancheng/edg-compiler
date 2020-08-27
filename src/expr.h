@@ -599,8 +599,7 @@ void add_await_to_operand(an_operand_ptr          operand,
                           a_token_sequence_number tok_seq_number,
                           a_boolean               for_yield,
                           a_boolean               generated_suspend_point,
-                          a_boolean               initial_suspend_point,
-                          an_operand_ptr          result);
+                          a_boolean               initial_suspend_point);
 
 extern an_expr_node_ptr make_coroutine_result_expression(
                                               an_arg_list_elem_ptr  alep,

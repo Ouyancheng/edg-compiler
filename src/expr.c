@@ -41746,10 +41746,9 @@ void add_await_to_operand(an_operand_ptr          operand,
                           a_token_sequence_number tok_seq_number,
                           a_boolean               for_yield,
                           a_boolean               generated_suspend_point,
-                          a_boolean               initial_suspend_point,
-                          an_operand_ptr          result)
+                          a_boolean               initial_suspend_point)
 /*
-If *operand represents an expression "X", produce an operand in *result
+Update *operand representing an expression "X", to contain an operand
 representing "co_await X".  Use pos as the position for diagnostics, and
 tok_seq_number to decide which token position to look up associated
 functions (like await_resume) from.  for_yield is TRUE if this is called
@@ -41759,7 +41758,7 @@ initial_suspend_point is true if the generated suspend point is the initial
 suspend point.
 */
 {
-  an_operand        ready_operand, ready_call;
+  an_operand        ready_call;
   an_operand        suspend_operand, suspend_call;
   an_operand        resume_operand, resume_call;
   an_operand        var_operand;
@@ -41775,19 +41774,19 @@ suspend point.
 
   if (innermost_function_scope == NULL) {
     pos_error(ec_await_not_allowed_outside_function_scope, pos);
-    make_error_operand(result);
+    make_error_operand(operand);
     goto done;
   } else if (!expr_stack->potentially_evaluated) {
     pos_error(ec_await_in_unevaluated_operand, pos);
-    make_error_operand(result);
+    make_error_operand(operand);
     goto done;
   } else if (in_catch_clause()) {
     pos_error(ec_await_not_allowed_in_catch_clause, pos);
-    make_error_operand(result);
+    make_error_operand(operand);
     goto done;
   } else if (expr_stack->in_static_initializer) {
     pos_error(ec_await_not_allowed_in_static_initializer, pos);
-    make_error_operand(result);
+    make_error_operand(operand);
     goto done;
   }  /* if */
   curr_routine = current_routine_entry();
@@ -41798,13 +41797,13 @@ suspend point.
     prep_generic_operand(operand);
     template_unary_operation((an_expr_operator_kind)(for_yield ? eok_yield
                                                                : eok_await),
-                             operand, result, pos, tok_seq_number);
+                             operand, operand, pos, tok_seq_number);
     goto done;
   }  /* if */
   cdp = get_coroutine_descr(curr_routine);
   if (cdp->error_descr) {
     expect_error();
-    make_error_operand(result);
+    make_error_operand(operand);
     goto done;
   }  /* if */
   node = alloc_expr_node(for_yield ? (an_expr_node_kind)enk_yield
@@ -41822,24 +41821,23 @@ suspend point.
      a glvalue, that glvalue is used as an argument in those calls.  If it
      produces a prvalue, a temporary lvalue is initialized from that prvalue
      and the temporary is used in the calls. */
-  /* Clone the operand and use the clone, so that the original operand isn't
-     affected by any subsequent transformations. */
-  clone_operand(operand, &ready_operand, /*vars_can_change=*/TRUE,
-                &temp_init_used, /*treat_as_potential_prvalue=*/TRUE);
+  /* Save off the original operand expression before applying
+     transformations. */
+  node->variant.await_info.operand =
+                copy_expr_tree(make_node_from_operand(operand), CE_NO_OPTIONS);
   /* Call p.await_transform, if it exists. */
   if (!for_yield && !generated_suspend_point &&
       look_up_named_member_function(cdp->promise->type, "await_transform",
                                     &loc) != NULL) {
     make_lvalue_variable_operand(cdp->promise, pos, pos, &var_operand,
                                  (a_ref_entry *)NULL);
-    alep = alloc_arg_list_elem_for_operand(&ready_operand);
+    alep = alloc_arg_list_elem_for_operand(operand);
     call_named_member_function(&var_operand, "await_transform",
                                (a_template_arg_ptr)NULL, alep,
-                               &var_operand, &ready_operand);
+                               &var_operand, operand);
     free_arg_list(alep);
-    if (is_error_operand(&ready_operand)) {
+    if (is_error_operand(operand)) {
       expect_error();
-      make_error_operand(result);
       goto done;
     }  /* if */
   }  /* if */
@@ -41849,29 +41847,31 @@ suspend point.
                                  /*must_be_member_function=*/FALSE,
                                  /*try_conversions=*/FALSE,
                                  /*has_predef_meaning=*/TRUE,
-                                 &ready_operand, (an_operand*)NULL,
+                                 operand, (an_operand*)NULL,
                                  pos, tok_seq_number,
                                  (a_nondependent_call_depth)0,
                                  (a_source_position *)NULL,
-                                 &ready_operand, &processed);
+                                 operand, &processed);
   /* Prepare the calls to await_ready and friends. */
-  if (is_a_prvalue(&ready_operand) && !is_void_type(operand->type)) {
-    temp_init_from_operand(&ready_operand, /*result_is_lvalue*/TRUE);
+  if (is_a_prvalue(operand) && !is_void_type(operand->type)) {
+    temp_init_from_operand(operand, /*result_is_lvalue*/TRUE);
+  } else if (is_an_xvalue(operand)) {
+    conv_xvalue_to_lvalue(operand);
   }  /* if */
-  utp = skip_typerefs(ready_operand.type);
+  utp = skip_typerefs(operand->type);
   if (is_immediate_class_type(utp)) {
     /* Create clones of this operand for the calls to await_ready and
        await_suspend. */
-    clone_operand(&ready_operand, &resume_operand, /*vars_can_change=*/TRUE,
+    clone_operand(operand, &resume_operand, /*vars_can_change=*/TRUE,
                   &temp_init_used, /*treat_as_potential_prvalue=*/TRUE);
-    clone_operand(&ready_operand, &suspend_operand, /*vars_can_change=*/TRUE,
+    clone_operand(operand, &suspend_operand, /*vars_can_change=*/TRUE,
                   &temp_init_used, /*treat_as_potential_prvalue=*/TRUE);
     /* Call the await_ready, await_suspend, and await_resume member
        functions. */
-    call_named_member_function(&ready_operand, "await_ready",
+    call_named_member_function(operand, "await_ready",
                                (a_template_arg_ptr)NULL,
                                (an_arg_list_elem_ptr)NULL,
-                               &ready_operand, &ready_call);
+                               operand, &ready_call);
     call_named_member_function(&resume_operand, "await_resume",
                                (a_template_arg_ptr)NULL,
                                (an_arg_list_elem_ptr)NULL,
@@ -41887,11 +41887,10 @@ suspend point.
   } else {
     pos_stty_error(ec_await_operand_not_a_class, pos,
                    for_yield ? "co_yield" : "co_await", utp);
-    make_error_operand(result);
+    make_error_operand(operand);
     goto done;
   }  /* if */
   node->type = resume_call.type;
-  node->variant.await_info.operand = make_node_from_operand(operand);
   node->variant.await_info.ready_resume_suspend =
                                           make_node_from_operand(&ready_call);
   if (initial_suspend_point) {
@@ -41912,7 +41911,7 @@ suspend point.
   }  /* if */
   node->variant.await_info.ready_resume_suspend->next->next =
                                         make_node_from_operand(&suspend_call);
-  make_expression_operand(node, result);
+  make_expression_operand(node, operand);
 done:;
 }  /* add_await_to_operand */
 
@@ -42090,7 +42089,7 @@ otherwise a diagnostic is emitted and one or both of *ne_call_expr/
     add_await_to_operand(&operand, expr_position, tok_seq_number,
                          /*for_yield=*/FALSE,
                          /*generated_suspend_point=*/FALSE,
-                         /*initial_suspend_point=*/FALSE, &operand);
+                         /*initial_suspend_point=*/FALSE);
   }  /* if */
   if (passed) {
     if (is_error_operand(&operand)) {
@@ -42409,8 +42408,7 @@ initializer of *loop_var.
       add_await_to_operand(&member_call_operand, &member_call_operand.position,
                            tok_seq_number, /*for_yield=*/FALSE,
                            /*generated_suspend_point=*/FALSE,
-                           /*initial_suspend_point=*/FALSE,
-                           &member_call_operand);
+                           /*initial_suspend_point=*/FALSE);
     }  /* if */
     /* Make the variable and initialize it from the expression just made. */
     *loop_var = alloc_temporary_variable(
@@ -44062,7 +44060,7 @@ initializer of *variable.
       add_await_to_operand(&result, &result.position, tok_seq_number,
                            /*for_yield=*/FALSE,
                            /*generated_suspend_point=*/FALSE,
-                           /*initial_suspend_point=*/FALSE, &result);
+                           /*initial_suspend_point=*/FALSE);
     }  /* if */
     if (func_call_node != NULL) {
       /* Make the variable and initialize it with the result of the call
@@ -45433,7 +45431,7 @@ rcblock parameter for this function).
   } else {
     add_await_to_operand(result, &operator_position, operator_tok_seq_number,
                          /*for_yield=*/TRUE, /*generated_suspend_point=*/FALSE,
-                         /*initial_suspend_point=*/FALSE, result);
+                         /*initial_suspend_point=*/FALSE);
   }  /* if */
   check_assertion(current_routine_entry()->is_coroutine);
 done:
@@ -45466,9 +45464,10 @@ rcblock parameter for this function).
   /* Scan the operand. */
   (void)get_token();
   scan_expr(&operand, PREC_PREFIX, EOPT_NO_OPTIONS);
-  add_await_to_operand(&operand, &operator_position, operator_tok_seq_number,
+  copy_operand(&operand, result);
+  add_await_to_operand(result, &operator_position, operator_tok_seq_number,
                        /*for_yield=*/FALSE, /*generated_suspend_point=*/FALSE,
-                       /*initial_suspend_point=*/FALSE, result);
+                       /*initial_suspend_point=*/FALSE);
   set_operand_position(result, &operator_position, &operand.end_position,
                        &operator_position);
   rule_out_expr_kinds(ROEK_INTEGRAL_CONSTANT, result);

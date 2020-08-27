@@ -20597,7 +20597,7 @@ to the updated tree.
 }  /* conv_xvalue_expr_to_lvalue */
 
 
-static void conv_xvalue_to_lvalue(an_operand *operand)
+void conv_xvalue_to_lvalue(an_operand *operand)
 /*
 operand is an xvalue.  Convert it to an lvalue.
 */

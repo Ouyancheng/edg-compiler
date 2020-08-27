@@ -9316,7 +9316,7 @@ by "co_await".  If init_suspend is TRUE, this is the call to "initial_suspend".
   if (add_await && !is_error_operand(result)) {
     add_await_to_operand(result, pos, NO_TOKEN_SEQUENCE_NUMBER,
                          /*for_yield=*/FALSE, /*generated_suspend_point=*/TRUE,
-                         /*initial_suspend_point=*/init_suspend, result);
+                         /*initial_suspend_point=*/init_suspend);
   }
   pop_expr_stack();
   expr_stack = saved_expr_stack;

@@ -1831,6 +1831,8 @@ an_expr_node_ptr strip_rvalue_base_class_casts(an_expr_node_ptr expr,
                                                an_expr_node_ptr *top_cast,
                                                an_expr_node_ptr *bottom_cast);
 
+extern void conv_xvalue_to_lvalue(an_operand *operand);
+
 extern void conv_class_prvalue_operand_to_glvalue(an_operand  *operand,
                                                   a_boolean   xvalue);
 

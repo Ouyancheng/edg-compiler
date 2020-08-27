@@ -17959,19 +17959,20 @@ implied statements added - skip over these and just generate the original
 function body before the implicit statements were added.
 */
 {
+  a_statement_ptr body = NULL;
+
   /* Look for the try/catch block that was generated - there should be exactly
      one of these in the generated code. */
   for (; statement != NULL; statement = statement->next) {
     if (statement->kind == (a_statement_kind)stmk_try_block) {
-      statement = statement->variant.try_block->statement
-                                                    ->variant.block.statements;
+      body = statement->variant.try_block->statement->variant.block.statements;
       break;
     } else if (statement->kind == (a_statement_kind)stmk_block) {
-      statement = statement->variant.block.statements;
+      body = statement->variant.block.statements;
       break;
     }  /* if */
   }  /* for */
-  check_assertion(statement != NULL);
+  check_assertion(statement != NULL && body != NULL);
 #if EXPENSIVE_CHECKING
   for (a_statement_ptr checker = statement->next; checker != NULL;
        checker = checker->next) {
@@ -17982,8 +17983,8 @@ function body before the implicit statements were added.
   }  /* for */
 #endif /* EXPENSIVE_CHECKING */
   /* The first statement is the evaluation of the initial suspend point. */
-  statement = statement->next;
-  gen_statement_list(statement, /*is_stmt_expression=*/FALSE);
+  body = body->next;
+  gen_statement_list(body, /*is_stmt_expression=*/FALSE);
 }  /* gen_coroutine_statement */
 
 
@@ -18029,10 +18030,14 @@ is TRUE, the list is the body of a GNU statement expression.
     if (statement == NULL) break;
     /* Generate the statement. */
     if (statement->kind == (a_statement_kind)stmk_coroutine) {
-      check_assertion(is_stmt_expression == FALSE &&
-                      statement->variant.coroutine.descr->body_generated);
-      gen_coroutine_statement(statement);
-      break;
+      check_assertion(is_stmt_expression == FALSE);
+      /* If the body of the coroutine has been generated, we need to get back
+         the original body.  Otherwise the body has been unchanged and we can
+         just ignore this statement. */
+      if (statement->variant.coroutine.descr->body_generated) {
+        gen_coroutine_statement(statement);
+        break;
+      }  /* if */
     } else {
       gen_statement_full(statement, /*is_stmt_expression=*/FALSE,
                          is_stmt_expression && statement->next == NULL);
