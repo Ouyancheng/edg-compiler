@@ -5987,7 +5987,7 @@ file scope.
           } else {
             /* A tag lookup. */
             if (sym->kind == (a_symbol_kind)sk_type) {
-              check_assertion_or_expect_error(tag_symbol == NULL);
+              check_assertion_or_expect_error(type_tag_symbol == NULL);
               type_tag_symbol = sym;
             } else {
               /* Take the symbol. */

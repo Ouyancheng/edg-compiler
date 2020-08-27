@@ -1724,12 +1724,13 @@ written.
   /* We don't use fread_with_check here because we want to handle
      read errors more gracefully.  After all, we don't yet know
      that is actually a PCH written by this compiler. */
+  ensure_pch_buffer_space(pch_id_string_length);
   if (!fread_with_status(pch_buffer, size_t_arg(pch_id_string_length),
                          f_pch_input)) {
     /* The read failed -- the file must contain something unexpected. */
   } else {
     /* The read succeeded, see if the ID string matches. */
-    if (strcmp(pch_buffer, pch_id_string) == 0) {
+    if (strncmp(pch_buffer, pch_id_string, pch_id_string_length) == 0) {
       match = TRUE;
     }  /* if */
   }  /* if */
