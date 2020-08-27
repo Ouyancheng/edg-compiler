@@ -45,7 +45,7 @@ reference (whether directly or via await transformations).  For example:
 This is now fixed.
 
 
-8/26/20  [EDGcpfe/23263]
+8/26/20  [EDGcpfe/21677,EDGcpfe/23263]
 Constexpr interpreter aborts when copying capture of "this"
 
 In some relatively complex situations, the constexpr interpreter could abort
