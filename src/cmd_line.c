@@ -2918,7 +2918,7 @@ option values if they were not already set by a command line option.
       }  /* if */
       if (microsoft_version >= 1928) {
         /* Visual Studio version 16.8. */
-        if (ms_cpplatest_mode) {
+        if (ms_cpp20_mode || ms_cpplatest_mode) {
           if (!coroutines_enabled) {
             /* This may have been enabled already via --set_flag; we don't want
                to override that. */

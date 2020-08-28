@@ -3,8 +3,8 @@ Version 6.2
 8/27/20  [EDGcpfe/23319]
 Microsoft compatibility: coroutines
 
-With --microsoft_version=1928 and --ms_c++latest, coroutines are now
-enabled (providing that COROUTINE_ENABLING_POSSIBLE is TRUE).  Also, the
+With --microsoft_version=1928 and --ms_cpp20 or --ms_c++latest, coroutines are
+now enabled (providing that COROUTINE_ENABLING_POSSIBLE is TRUE).  Also, the
 macro _RESUMABLE_FUNCTIONS_SUPPORTED is no longer defined when
 microsoft_version >= 1928.  This matches the Microsoft Visual Studio behavior.
 
