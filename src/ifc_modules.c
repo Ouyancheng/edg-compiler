@@ -3436,14 +3436,11 @@ argument.
       break;
     case ifc_ExprSort_UnaryFold:
       unexpected_condition_str("ExprSort::UnaryFold is not yet handled");
-      goto default_error;
     case ifc_ExprSort_PackedTemplateArguments:
       unexpected_condition_str("ExprSort::PackedTemplateArguments "
                                "is not yet handled");
-      goto default_error;
     case ifc_ExprSort_Read:
       unexpected_condition_str("ExprSort::Read is not yet handled");
-      goto default_error;
     case ifc_ExprSort_Monad:
       { an_ifc_ExprSort_Monad iesm, *iesmp;
         a_token_cache         cache;
@@ -3472,9 +3469,6 @@ argument.
       break;
     default:
       unexpected_condition_str("Unexpected expr kind for template arg");
-default_error:
-      kind = tak_type;
-      type = error_type();
   } /* switch */
   result = alloc_template_arg(kind);
   if (kind == (a_templ_arg_kind)tak_type) {
@@ -6046,7 +6040,6 @@ is the location of the chart.
       }
       break;
     case ifc_ChartSort_Multilevel:
-      unexpected_condition_str("ChartSort::Multilevel is not yet handled");
       { an_ifc_ChartSort_Multilevel icsm, *icsmp;
         icsmp = get_ChartSort_Multilevel(&icsm);
         for (ifc_Index_type idx = 0; idx < icsmp->cardinality; ++idx) {
@@ -6057,6 +6050,7 @@ is the location of the chart.
                                      icsmp->start + idx));
         }  /* for */
       }
+      unexpected_condition_str("ChartSort::Multilevel is not yet handled");
       break;
     case ifc_ChartSort_Last:
       unexpected_condition();
