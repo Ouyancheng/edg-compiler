@@ -5657,11 +5657,9 @@ indicated type.
             break;
           case bfk___c11_atomic_compare_exchange_strong:
           case bfk___c11_atomic_compare_exchange_weak:
-            rout_type = make_routine_type_full(bool_type(), pA_type,
-                                               make_pointer_type(C_type),
-                                               C_type, MO_type, MO_type,
-                                               (a_type_ptr)NULL,
-                                               (a_type_ptr)NULL);
+            rout_type = make_routine_type(bool_type(), pA_type,
+                                          make_pointer_type(C_type),
+                                          C_type, MO_type, MO_type);
             break;
           case bfk___c11_atomic_fetch_add:
           case bfk___c11_atomic_fetch_and:

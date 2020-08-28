@@ -25049,12 +25049,13 @@ is not satisfied, set dps->ineligible to TRUE.
 static a_type_ptr check_requirement_expr(
                                     an_expr_node_ptr           req_expr,
                                     a_subst_pairs_array const  &subst_pairs,
+                                    a_ctws_state               *ctws_state,
                                     a_boolean                  constrained,
                                     a_boolean                  *p_is_noexcept)
 /*
-Perform the substitutions indicated by subst_pairs on req_expr.  If that
-substitution is invalid, return NULL.  Otherwise, return the type of the
-substituted expression or, if constrained is TRUE, the type produced by
+Perform the substitutions indicated by subst_pairs and ctws_state on req_expr. 
+If that substitution is invalid, return NULL.  Otherwise, return the type of
+the substituted expression or, if constrained is TRUE, the type produced by
 decltype((E)) where E is the substituted expression.  Set *p_is_noexcept to
 TRUE, unless the substitution was successful and the resulting expression is
 potentially throwing.
@@ -25064,10 +25065,8 @@ potentially throwing.
   a_boolean         err = FALSE, is_noexcept = TRUE;
   a_constant_ptr    cp = local_constant(), allocated_cp = NULL;
   an_expr_node_ptr  expr = req_expr;
-  a_ctws_state      ctws_state;
   int               levels = (int)subst_pairs.length();
 
-  init_ctws_state(&ctws_state);
   for (int k = 0; k < levels && !err; ++k) {
     a_subst_pairs_descr const  *spd = &subst_pairs[k];
     a_ctws_options_set         options = CTWS_NON_CONSTANT_EXPR;
@@ -25077,19 +25076,19 @@ potentially throwing.
     if (expr != NULL) {
       expr = copy_template_param_expr(
                          expr, spd->args, spd->params, (a_type_ptr)NULL,
-                         &req_expr->position, options, &err, &ctws_state, cp,
+                         &req_expr->position, options, &err, ctws_state, cp,
                          &allocated_cp);
     } else if (allocated_cp != NULL) {
       allocated_cp = copy_template_param_con(
                          allocated_cp, spd->args, spd->params,
                          (a_type_ptr)NULL, &req_expr->position, options, &err,
-                         &ctws_state, cp);
+                         ctws_state, cp);
     } else {
       a_constant_ptr  src_cp = local_constant();
       *src_cp = *cp;
       allocated_cp = copy_template_param_con(
                          src_cp, spd->args, spd->params, (a_type_ptr)NULL,
-                         &req_expr->position, options, &err, &ctws_state, cp);
+                         &req_expr->position, options, &err, ctws_state, cp);
       release_local_constant(&src_cp);
     }  /* if */
   }  /* for */
@@ -25125,14 +25124,15 @@ potentially throwing.
 a_boolean check_type_constraint(a_type_ptr                 type,
                                 an_expr_node_ptr           constraint,
                                 a_subst_pairs_array const  &subst_pairs,
+                                a_ctws_state               *ctws_state,
                                 a_diag_list                *diag_list)
 /*
 constraint is an enk_concept_id node with a possibly-empty argument list
-<A1, ..., An>.  Let C be the associated concept and T the type represented
-by the given type.  Return TRUE if, after successful substitution of
-<A1, ..., An> (using the substitutions described by subst_pairs),
+<A1, ..., An>.  Let C be the associated concept and T the type represented by
+the given type.  Return TRUE if, after successful substitution of <A1, ..., An>
+(using the substitutions described by subst_pairs and ctws_state),
 C<T, A1, ..., An> is satisfied.  Return FALSE otherwise and, if diag_list is
-non-NULL, update diag_list accordingly.
+non-NULL (it's NULL by default), update *diag_list accordingly.
 */
 {
   a_boolean           result = TRUE, copy_error = FALSE;
@@ -25142,10 +25142,8 @@ non-NULL, update diag_list accordingly.
   a_template_param_ptr
                       params = sym->variant.template_info->cache.decl_info
                                                          ->parameters;
-  a_ctws_state        ctws_state;
 
   /* Substitute the concept-id arguments. */
-  init_ctws_state(&ctws_state);
   first_arg = alloc_template_arg((a_templ_arg_kind)tak_type);
   first_arg->variant.type = type;
   first_arg->next = constraint->variant.concept_id.args;
@@ -25153,7 +25151,7 @@ non-NULL, update diag_list accordingly.
                                             (a_template_param_ptr)NULL,
                                             subst_pairs, &constraint->position,
                                             CTWS_NO_OPTIONS, &copy_error,
-                                            &ctws_state);
+                                            ctws_state);
   if (copy_error) {
     result = FALSE;
   } else {
@@ -25178,93 +25176,16 @@ template arguments of subst_pairs for the corresponding parameters of
 subst_pairs is successful.
 */
 {
-  a_boolean         result = TRUE;
+  a_boolean         result = TRUE, copy_error = FALSE;
   an_expr_node_ptr  req = requires_expr->variant.requires_expr.requirements;
+  a_param_type_ptr  ptp = requires_expr->variant.requires_expr.parameters;
+  a_ctws_state      ctws_state;
 
-  for (; req != NULL && result; req = req->next) {
-    switch (req->kind) {
-      case enk_type_operand:
-        if (subst_pairs.length() != 0) {
-          a_type_ptr          tp = req->variant.type_operand.type;
-          a_boolean           copy_error = FALSE;
-          a_ctws_state        ctws_state;
-          init_ctws_state(&ctws_state);
-          tp = type_after_substitutions(tp, subst_pairs, &req->position,
-                                        CTWS_NO_OPTIONS, &copy_error,
-                                        &ctws_state);
-          if (copy_error) result = FALSE;
-        }  /* if */
-        break;
-      case enk_compound_req:
-        { an_expr_node_ptr  req_expr =
-                                req->variant.compound_req.expr_and_constraint,
-                            req_constr = req_expr->next;
-          a_boolean         is_noexcept, constrained = req_constr != NULL;
-          a_type_ptr        expr_type;
-          expr_type = check_requirement_expr(req_expr, subst_pairs,
-                                             constrained, &is_noexcept);
-          if (expr_type == NULL) {
-            result = FALSE;
-          } else if (req->variant.compound_req.is_noexcept && !is_noexcept) {
-            result = FALSE;
-          } else {
-            /* Check the type constraint. */
-            if (constrained &&
-                !check_type_constraint(expr_type, req_constr, subst_pairs)) {
-              result = FALSE;
-            }  /* if */
-          }  /* if */
-        }
-        break;
-      case enk_nested_req:
-        { an_expr_node_ptr  expr = req->variant.nested_req.constraint;
-          a_diag_list       diag_list;
-          clear_diag_list(&diag_list);
-          if (subst_pairs.length() != 0) {
-            a_template_param_ptr  templ_params;
-            a_template_arg_ptr    templ_args;
-            a_source_position     saved_error_pos = error_position;
-            error_position = req->position;
-            templ_params = subst_pairs.back_elem().params;
-            templ_args = subst_pairs.back_elem().args;
-            result = requires_clause_satisfied(
-                                  expr, templ_args, templ_params, &diag_list);
-            discard_more_info_list(&diag_list);
-            error_position = saved_error_pos;
-          } else {
-            a_constant_ptr  cp = local_constant();
-            if (interpret_expr(expr, /*is_constant_evaluated=*/TRUE,
-                               /*force_prvalue=*/TRUE, cp, &diag_list)) {
-              result = !is_false_constant(cp);
-            } else {
-              a_diagnostic_ptr  dp = pos_start_error(ec_expr_not_constant,
-                                                     &expr->position);
-              add_more_info_list(dp, &diag_list);
-              end_diagnostic(dp);
-            }  /* if */
-            release_local_constant(&cp);
-          }  /* if */
-        }
-        break;
-      default:
-        if (subst_pairs.length() != 0) {
-          a_boolean  is_noexcept;
-          if (check_requirement_expr(req, subst_pairs, /*constrained=*/FALSE,
-                                     &is_noexcept) == NULL) {
-            result = FALSE;
-          }  /* if */
-        }
-        break;
-    }  /* switch */
-  }  /* for */
-  if (result) {
-    /* Check that the parameter list can successfully be substituted.  (The
-       C++20 standard is not perfectly clear that this is required, but it
-       appears to be common practice.) */
-    a_param_type_ptr    ptp = requires_expr->variant.requires_expr.parameters;
-    a_boolean           copy_error = FALSE;
-    a_ctws_state        ctws_state;
-    init_ctws_state(&ctws_state);
+  init_ctws_state(&ctws_state);
+  if (ptp != NULL && subst_pairs.length() != 0) {
+    /* Check that the parameter list can successfully be substituted, and
+       record parameter pack information in *ctws_state if needed. */
+    create_variadic_param_info_for_routine_params(&ctws_state, ptp);
     for (; ptp != NULL; ptp = ptp->next) {
       a_type_ptr  tp = param_type_restoring_orig_templ_array(ptp);
       tp = type_after_substitutions(tp, subst_pairs, &requires_expr->position,
@@ -25277,6 +25198,84 @@ subst_pairs is successful.
       }  /* if */
     }  /* for */
     if (copy_error) result = FALSE;
+  }  /* if */
+  if (result) {
+    for (; req != NULL && result; req = req->next) {
+      switch (req->kind) {
+        case enk_type_operand:
+          if (subst_pairs.length() != 0) {
+            a_type_ptr          tp = req->variant.type_operand.type;
+            a_boolean           copy_error = FALSE;
+            tp = type_after_substitutions(tp, subst_pairs, &req->position,
+                                          CTWS_NO_OPTIONS, &copy_error,
+                                          &ctws_state);
+            if (copy_error) result = FALSE;
+          }  /* if */
+          break;
+        case enk_compound_req:
+          { an_expr_node_ptr  req_expr =
+                                req->variant.compound_req.expr_and_constraint,
+                              req_constr = req_expr->next;
+            a_boolean         is_noexcept, constrained = req_constr != NULL;
+            a_type_ptr        expr_type;
+            expr_type = check_requirement_expr(req_expr, subst_pairs,
+                                               &ctws_state, constrained,
+                                               &is_noexcept);
+            if (expr_type == NULL) {
+              result = FALSE;
+            } else if (req->variant.compound_req.is_noexcept && !is_noexcept) {
+              result = FALSE;
+            } else {
+              /* Check the type constraint. */
+              if (constrained &&
+                  !check_type_constraint(expr_type, req_constr, subst_pairs,
+                                         &ctws_state)) {
+                result = FALSE;
+              }  /* if */
+            }  /* if */
+          }
+          break;
+        case enk_nested_req:
+          { an_expr_node_ptr  expr = req->variant.nested_req.constraint;
+            a_diag_list       diag_list;
+            clear_diag_list(&diag_list);
+            if (subst_pairs.length() != 0) {
+              a_template_param_ptr  templ_params;
+              a_template_arg_ptr    templ_args;
+              a_source_position     saved_error_pos = error_position;
+              error_position = req->position;
+              templ_params = subst_pairs.back_elem().params;
+              templ_args = subst_pairs.back_elem().args;
+              result = requires_clause_satisfied(
+                                  expr, templ_args, templ_params, &diag_list);
+              discard_more_info_list(&diag_list);
+              error_position = saved_error_pos;
+            } else {
+              a_constant_ptr  cp = local_constant();
+              if (interpret_expr(expr, /*is_constant_evaluated=*/TRUE,
+                                 /*force_prvalue=*/TRUE, cp, &diag_list)) {
+                result = !is_false_constant(cp);
+              } else {
+                a_diagnostic_ptr  dp = pos_start_error(ec_expr_not_constant,
+                                                       &expr->position);
+                add_more_info_list(dp, &diag_list);
+                end_diagnostic(dp);
+              }  /* if */
+              release_local_constant(&cp);
+            }  /* if */
+          }
+          break;
+        default:
+          if (subst_pairs.length() != 0) {
+            a_boolean  is_noexcept;
+            if (check_requirement_expr(req, subst_pairs, &ctws_state,
+                                /*constrained=*/FALSE, &is_noexcept) == NULL) {
+              result = FALSE;
+            }  /* if */
+          }
+          break;
+      }  /* switch */
+    }  /* for */
   }  /* if */
   return result;
 }  /* requires_expr_satisfied */

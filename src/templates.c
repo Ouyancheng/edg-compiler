@@ -6454,22 +6454,16 @@ Determine whether any of the arguments in arg_list have internal linkage.
 }  /* template_arg_list_has_internal_linkage */
 
 
-static void create_variadic_param_info_for_routine(
-				a_ctws_state_ptr		ctws_state,
-				a_routine_ptr			rp)
+void create_variadic_param_info_for_routine_params(
+                                                 a_ctws_state_ptr  ctws_state,
+                                                 a_param_type_ptr  ptp)
 /*
-Go through the parameter list of the routine specified by rp and create
-variadic param info entries for any variadic parameters so that they can
-be found by the substitution process.
+Go through the given parameter list and create variadic param info entries for
+any variadic parameters so that they can be found by the substitution process
+described by ctws_state.
 */
 {
-  a_routine_type_supplement_ptr	rtsp;
-  a_type_ptr			rout_type;
-  a_param_type_ptr		ptp;
-
-  rout_type = skip_typerefs(rp->type);
-  rtsp = rout_type->variant.routine.extra_info;
-  for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
+  for (; ptp != NULL; ptp = ptp->next) {
     if (ptp->is_parameter_pack) {
       a_variadic_param_info_ptr	vpip;
       vpip = alloc_variadic_param_info();
@@ -6487,7 +6481,7 @@ be found by the substitution process.
       ctws_state->variadic_param_info_tail = vpip;
     }  /* if */
   }  /* for */
-}  /* create_variadic_param_info_for_routine */
+}  /* create_variadic_param_info_for_routine_params*/
 
 
 void copy_exc_spec_from_prototype_template(
@@ -6535,7 +6529,8 @@ template with any needed substitutions.  In case of substitution errors set
       init_ctws_state(&ctws_state);
       ctws_state.preserve_deduced_packs = TRUE;
       push_instantiation_scope_for_rescan(templ_sym);
-      create_variadic_param_info_for_routine(&ctws_state, rp);
+      create_variadic_param_info_for_routine_params(&ctws_state,
+                                                    function_type_params(rtp));
       substitute_constant(&esp->variant.noexcept_arg, parent_class_of(rp),
                           (a_template_param_ptr)NULL,
                           (a_template_arg_ptr)NULL,
@@ -10343,16 +10338,18 @@ corresponding template arguments that have been determined so far.
     /* No constraint. */
     result = TRUE;
   } else {
-    a_diag_list  diag_list, *p_diag_list = NULL;
+    a_subst_pairs_array  subst_pairs(1);
+    a_diag_list          diag_list, *p_diag_list = NULL;
+    a_ctws_state         ctws_state;
     if (diag_pos != NULL) {
       clear_diag_list(&diag_list);
       p_diag_list = &diag_list;
     }  /* if */
-    a_subst_pairs_array  subst_pairs(1);
     subst_pairs.push_back(a_subst_pairs_descr{ param_list, arg_list,
                                                FALSE, FALSE });
-    if (check_type_constraint(arg_type, constraint,
-                              subst_pairs, p_diag_list)) {
+    init_ctws_state(&ctws_state);
+    if (check_type_constraint(arg_type, constraint, subst_pairs,
+                              &ctws_state, p_diag_list)) {
       result = TRUE;
     } else {
       result = FALSE;

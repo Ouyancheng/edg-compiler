@@ -3156,6 +3156,7 @@ extern
 a_boolean check_type_constraint(a_type_ptr                 type,
                                 an_expr_node_ptr           constraint,
                                 a_subst_pairs_array const  &subst_pairs,
+                                a_ctws_state               *ctws_state,
                                 a_diag_list                *diag_list = NULL);
 
 extern
