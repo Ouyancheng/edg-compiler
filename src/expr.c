@@ -41751,7 +41751,7 @@ void add_await_to_operand(an_operand_ptr          operand,
                           a_boolean               generated_suspend_point,
                           a_boolean               initial_suspend_point)
 /*
-Update *operand representing an expression "X", to contain an operand
+Update *operand - representing an expression "X" - to contain an operand
 representing "co_await X".  Use pos as the position for diagnostics, and
 tok_seq_number to decide which token position to look up associated
 functions (like await_resume) from.  for_yield is TRUE if this is called
