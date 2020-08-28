@@ -186,7 +186,7 @@ Given an already open file pointer, determine what kind of module file is open
 
   /* Ensure we're at the start of the file. */
   if (fseek(file, 0, SEEK_SET) != 0) {
-    unexpected_condition();
+    catastrophe(ec_module_read_error);
   }  /* if */
   if (fread(magic, (size_t)1, sizeof(magic), file) == sizeof(magic)) {
     if (magic_numbers_match(magic, edg_magic_numbers)) {

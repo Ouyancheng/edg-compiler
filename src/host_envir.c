@@ -4610,12 +4610,15 @@ this routine or compare_dir_names.
 int f_compare_file_names(a_const_char	*file1,
 	 		 a_const_char	*file2,
 		         a_boolean	ignore_delimiters,
-			 a_boolean	is_partial_file_name)
+			 a_boolean	is_partial_file_name,
+			 a_boolean      in_general_memory)
 /*
 Return zero if file1 and file2 name the same file.  ignore_delimiters
 is TRUE if the file names are from #include directives and still have
 the '"' or '<' delimiters.  is_partial_file_name is TRUE if the
-file names are not known to be relative to the current directory.
+file names are not known to be relative to the current directory.  If
+in_general_memory is TRUE, any needed allocations will occur in general memory.
+Otherwise, allocations will occur in the intermediate language memory region.
 */
 {
   a_const_char	*start1 = file1;
@@ -4628,6 +4631,7 @@ file names are not known to be relative to the current directory.
   char		saved_delim1 = '\0';
   char		saved_delim2 = '\0';
 
+  check_assertion(in_general_memory || mem_region_table != NULL);
   /* If we are ignoring delimiters, temporarily replace the trailing
      delimiter with a null. */
   if (ignore_delimiters) {
@@ -4650,10 +4654,8 @@ file names are not known to be relative to the current directory.
     char	*dir2;
     /* Normalize the directory names so that "./x.h" and "x.h" will
        compare equal. */
-    dir1 = f_directory_of(start1,
-                          /*in_general_memory=*/mem_region_table == NULL);
-    dir2 = f_directory_of(start2,
-                          /*in_general_memory=*/mem_region_table == NULL);
+    dir1 = f_directory_of(start1, in_general_memory);
+    dir2 = f_directory_of(start2, in_general_memory);
     if (compare_dir_names(dir1, dir2, is_partial_file_name) == 0) {
       match = TRUE;
     }  /* if */

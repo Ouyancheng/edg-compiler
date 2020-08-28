@@ -2394,9 +2394,7 @@ the same.
   if (path1.ptr == NULL || path2.ptr == NULL) {
     result = (path1.ptr == path2.ptr);
   } else {
-    result = (f_compare_file_names(path1.ptr, path2.ptr,
-                                   /*ignore_delimiters=*/FALSE,
-                                   /*is_partial_file_name=*/FALSE) == 0);
+    result = (compare_file_names_general(path1.ptr, path2.ptr) == 0);
   }  /* if */
   return result;
 }  /* operator== */

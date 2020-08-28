@@ -3724,11 +3724,22 @@ extern a_hash_value hash_unique_file_id(a_unique_file_id_ptr	id);
 
 /*
 Wrapper macro that calls f_compare_file_names with a default value for
-the ignore_delimiters and is_partial_file_name parameters.
+the ignore_delimiters, is_partial_file_name, and in_general_memory parameters.
 */
 #define compare_file_names(s1, s2)					\
   (f_compare_file_names(s1, s2, /*ignore_delimiters=*/FALSE,		\
-                        /*is_partial_file_name=*/FALSE))
+                        /*is_partial_file_name=*/FALSE,			\
+                        /*in_general_memory=*/FALSE))
+
+/*
+Wrapper macro that calls f_compare_file_names with a default value for
+the ignore_delimiters and is_partial_file_name parameters, with allocations
+occurring in general memory.
+*/
+#define compare_file_names_general(s1, s2)				\
+  (f_compare_file_names(s1, s2, /*ignore_delimiters=*/FALSE,		\
+                        /*is_partial_file_name=*/FALSE,			\
+                        /*in_general_memory=*/TRUE))
 
 extern a_const_char *start_of_file_name(a_const_char *file_name);
 
@@ -3737,7 +3748,8 @@ extern char *normalize_file_name(a_const_char *file_name);
 extern int f_compare_file_names(a_const_char	*file1,
 	 		        a_const_char	*file2,
 		                a_boolean	ignore_delimiters,
-			        a_boolean	is_partial_file_name);
+			        a_boolean	is_partial_file_name,
+			        a_boolean       in_general_memory);
 
 extern int compare_dir_names(a_const_char *dir1,
 			     a_const_char *dir2,

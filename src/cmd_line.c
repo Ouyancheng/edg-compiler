@@ -1607,6 +1607,18 @@ Initialize the option information table.
 }  /* initialize_option_descriptions */
 
 
+static void initialize_command_line_variables()
+/*
+Initialize any variables used by the command line that are needed for
+processing the command line (and therefore must be initialized before most
+initialization occurs).
+*/
+{
+  mod_map = new_general<a_module_file_map>(/*mask_width=*/4);
+  header_unit_map=new_general<a_header_unit_map>(/*mask_width=*/4);
+}  /* initialize_command_line_variables */
+
+
 static an_option_description_ptr look_up_option_description
 					(char		*optchar,
 					 a_boolean	is_keyword_option,
@@ -9467,7 +9479,7 @@ Process the arguments on the command line that invoked the compiler.
   /* Initialize the table of option descriptions used by the options
      processing routine. */
   initialize_option_descriptions();
-
+  initialize_command_line_variables();
 #ifdef HOSTID
   /* Check that this code is running on an acceptable CPU. */
   /* Use an exclusive-or to make it harder to find and patch the host id
@@ -11871,8 +11883,8 @@ variables declared in cmd_line.h.
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   suppress_il_file_write = FALSE;
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-  mod_map = new_general<a_module_file_map>(/*mask_width=*/4);
-  header_unit_map = new_general<a_header_unit_map>(/*mask_width=*/4);
+  mod_map = NULL;
+  header_unit_map = NULL;
   virtual_function_table_definition = vfd_normal;
   suppress_used_before_set_warnings = FALSE;
   addr_of_bit_field_allowed = ADDR_OF_BIT_FIELD_ALLOWED;
