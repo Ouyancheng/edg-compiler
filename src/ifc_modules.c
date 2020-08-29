@@ -8338,7 +8338,10 @@ of the name.
       break;
     case ifc_NameSort_Operator:
       { an_ifc_NameSort_Operator inso, *insop;
+        an_operator_kind         opkind;
         insop = get_NameSort_Operator(&inso);
+        opkind = get_operator_kind(insop->op);
+        check_assertion(opkind == opkind_basic || opkind == opkind_post);
         ident = insop->encoded;
         goto cache_op;
       }
