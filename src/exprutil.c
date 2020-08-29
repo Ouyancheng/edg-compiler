@@ -25362,7 +25362,6 @@ subst_pairs is successful.
         case enk_type_operand:
           if (subst_pairs.length() != 0) {
             a_type_ptr          tp = req->variant.type_operand.type;
-            a_boolean           copy_error = FALSE;
             tp = type_after_substitutions(tp, subst_pairs, &req->position,
                                           CTWS_NO_OPTIONS, &copy_error,
                                           &ctws_state);
