@@ -24819,6 +24819,94 @@ sym2 and vice versa; otherwise, set it to FALSE.
 }  /* compare_constraints */
 
 
+struct a_constraint_test {
+  /* A structure that encode a constraint test: I.e., a constraint expression
+     and template arguments to substitute in that expression. */
+  an_expr_node_ptr
+		constraint;
+			/* The expression being substituted. */
+  a_template_arg_ptr
+		template_arg_list;
+			/* The template arguments for the substitution. */
+};
+
+
+static inline a_boolean operator==(a_constraint_test  ct1,
+                                   a_constraint_test  ct2)
+/*
+Return TRUE if the given constraint tests are equivalent.
+*/
+{
+  a_boolean  result;
+
+  if (ct1.constraint != ct2.constraint) {
+    result = FALSE;
+  } else if (ct1.template_arg_list == ct2.template_arg_list) {
+    result = TRUE;
+  } else if (ct1.template_arg_list == NULL || ct2.template_arg_list == NULL) {
+    result = FALSE;
+  } else {
+    result = equiv_template_arg_lists(
+                                 ct1.template_arg_list, ct2.template_arg_list,
+                                 (ETA_EXACT_MATCH_REQUIRED |
+                                  ETA_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED));
+  }  /* if */
+  return result;
+}  /* operator== */
+
+
+static inline a_boolean operator!=(a_constraint_test  ct1,
+                                   a_constraint_test  ct2)
+/*
+Return TRUE if the given constraint tests are not equivalent.
+*/
+{
+  return !(ct1 == ct2);
+}  /* operator!= */
+
+
+static inline uintptr_t hash_ptr(a_constraint_test  ct)
+/*
+Return a hash value for a constraint test description.
+*/
+{
+  uintptr_t  result = 17*31 + hash_ptr((void*)ct.constraint);
+  result = result*31 + (uintptr_t)hash_template_arg_list(ct.template_arg_list);
+  return result;
+}  /* hash_ptr */
+
+
+struct a_test_subst_result {
+  /* A structure describing a previously substituted constraint expression. */
+  enum {
+    tsrk_none,		/* This represents the null (default) value. */
+    tsrk_expr,		/* Substitution yielded an expression. */
+    tsrk_constant	/* Substitution yielded a constant. */
+  } kind;
+			/* The kind of result encapsulated by this object. */
+  union {
+    /* When kind == tsrk_expr: */
+    an_expr_node_ptr
+		expr;
+			/* Substituted expression. */
+    /* When kind == tsrk_constant: */
+    a_constant_ptr
+		constant;
+			/* Substituted constant. */
+  }; 
+};
+
+using a_constraint_subst_cache = Ptr_map<a_constraint_test,
+                                         a_test_subst_result>;
+			/* The type of a map that caches the substitutions of
+			   constraint tests. */
+
+static a_constraint_subst_cache
+		*constraint_subst_cache;
+			/* A map from constraint test descriptions to
+			   substitution results. */
+
+
 a_boolean requires_clause_satisfied(an_expr_node_ptr      constraint,
                                     a_template_arg_ptr    template_arg_list,
                                     a_template_param_ptr  template_param_list,
@@ -24935,21 +25023,65 @@ return FALSE and:
                                         template_param_list, diag_list,
                                         p_fatal, &copy_error));
   } else {
-    /* An atomic constraint.  First perform substitution; then evaluate the
-       expression. */
+    /* An atomic constraint.  First perform substitution (or reuse a cached
+       substitution; then evaluate the expression. */
     an_expr_node_ptr  expr;
-    a_constant_ptr    cp = local_constant(), allocated_cp = NULL;
-    
+    a_constant_ptr    allocated_cp = NULL;
     if (template_param_list != NULL) {
-      a_ctws_state       ctws_state;
-      a_source_position  saved_err_pos = error_position;
-      init_ctws_state(&ctws_state);
-      expr = copy_template_param_expr(
+      /* Check the cache if it already contains this substitution. */
+      a_constraint_test    test = { constraint, template_arg_list };
+      uintptr_t            hash = hash_ptr(test);
+      a_test_subst_result  cached_subst;
+      /* Check the cache for a substitution. */
+      cached_subst = constraint_subst_cache->get_with_hash(test, hash);
+      if (cached_subst.kind == a_test_subst_result::tsrk_none) {
+        /* This is a new substitution. */
+        a_ctws_state            ctws_state;
+        a_source_position       saved_err_pos = error_position;
+        a_constant_ptr          cp = local_constant();
+        a_memory_region_number  region_to_switch_back_to;
+        switch_to_file_scope_region(&region_to_switch_back_to);
+        init_ctws_state(&ctws_state);
+        expr = copy_template_param_expr(
                             constraint, template_arg_list, template_param_list,
                             (a_type_ptr)NULL, &constraint->position,
                             CTWS_NO_OPTIONS, &copy_error, &ctws_state,
                             cp, &allocated_cp);
-      error_position = saved_err_pos;
+        /* Store the substitution in the cache. */
+        if (expr != NULL || copy_error) {
+          /* An expression or a substitution failure (which is cached as a
+             NULL expression. */
+          cached_subst.kind = a_test_subst_result::tsrk_expr;
+          cached_subst.expr = expr;
+          release_local_constant(&cp);
+        } else {
+          if (allocated_cp == NULL) {
+            /* The constant result was constructed in *cp: Move it to file
+               scope memory. */
+            allocated_cp = move_local_constant_to_il(&cp);
+          } else {
+            release_local_constant(&cp);
+          }  /* if */
+          cached_subst.kind = a_test_subst_result::tsrk_constant;
+          cached_subst.constant = allocated_cp;
+        }  /* if */
+        test.template_arg_list = copy_template_arg_list(template_arg_list);
+        constraint_subst_cache->map_with_hash(test, cached_subst, hash);
+        switch_back_to_original_region(region_to_switch_back_to);
+        error_position = saved_err_pos;
+      } else if (cached_subst.kind == a_test_subst_result::tsrk_expr) {
+        /* The substitution was already in the cache, and it produces an
+           expression.  (A NULL expression corresponds to a substitution
+           failure.) */
+        expr = cached_subst.expr;
+        if (expr == NULL) copy_error = TRUE;
+        allocated_cp = NULL;
+      } else {
+        /* The substitution was already in the cache, and it produces a
+           constant. */
+        expr = NULL;
+        allocated_cp = cached_subst.constant;
+      }  /* if */
     } else {
       /* No parameters: This occurs when called from check_eligibility. */
       expr = constraint;
@@ -24960,6 +25092,7 @@ return FALSE and:
                            &constraint->position, diag_list);
       result = FALSE;
     } else if (expr != NULL) {
+      a_constant_ptr  cp = local_constant();
       if (!is_bool_type(strip_implicit_operations(expr)->type)) {
         /* If the type is not a boolean after substitution, the failure is
            not SFINAE-like. */
@@ -24982,10 +25115,8 @@ return FALSE and:
                              &expr->position, diag_list);
         result = FALSE;
       }  /* if */
+      release_local_constant(&cp);
     } else {
-      if (allocated_cp == NULL) {
-        allocated_cp = cp;
-      }  /* if */
       if (!is_bool_type(allocated_cp->type)) {
         /* If the type is not a boolean after substitution, the failure is
            not SFINAE-like. */
@@ -25000,10 +25131,6 @@ return FALSE and:
                                &constraint->position, diag_list);
         }  /* if */
       }  /* if */
-    }  /* if */
-    release_local_constant(&cp);
-    if (expr != NULL && expr != constraint) {
-      reclaim_fs_nodes_of_expr_tree(expr);
     }  /* if */
   }  /* if */
   if (!result && *p_fatal && diagnose_here) {
@@ -25467,6 +25594,8 @@ for each compilation.
   construct(constraint_charts, /*mask_width=*/10);
   template_param_objects = alloc_fe_of_type(a_template_param_object_map);
   construct(template_param_objects, /*mask_width=*/10);
+  constraint_subst_cache = alloc_fe_of_type(a_constraint_subst_cache);
+  construct(constraint_subst_cache, /*mask_width=*/10);
   /* Do initialization for overload.c: */
   overload_init();
 }  /* expr_init */

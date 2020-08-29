@@ -1916,8 +1916,12 @@ struct Ptr_map: private Allocator<Ptr_map_entry<a_Ptr_key, a_Value>> {
   typedef unsigned int an_index;
   inline Ptr_map(unsigned int mask_width, an_allocator a = an_allocator());
   inline ~Ptr_map();
-  inline auto get(a_key  key) const -> a_value;
-  inline void map(a_key  key, const a_value &value);
+  inline auto get_with_hash(a_key  key, uintptr_t  hash) const -> a_value;
+  inline auto get(a_key  key) const -> a_value
+    { return this->get_with_hash(key, hash_ptr(key)); }
+  inline void map_with_hash(a_key  key, const a_value &value, uintptr_t  hash);
+  inline void map(a_key  key, const a_value &value)
+    { this->map_with_hash(key, value, hash_ptr(key)); }
   inline void replace(a_key  key, const a_value  &value);
   inline auto map_or_replace(a_key  key, const a_value  &value) -> a_value;
   inline void unmap(a_key  key);
@@ -1987,14 +1991,15 @@ Release the storage for the map.
 
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
-inline auto Ptr_map<a_Ptr_key, a_Value, Allocator>::get(a_key  key) const
+inline auto Ptr_map<a_Ptr_key, a_Value, Allocator>::get_with_hash(
+                                                         a_key      key,
+                                                         uintptr_t  hash) const
                                                     -> a_value
 /*
 Look up key in the map and return the associated value if found, or a_value()
-if not found.
+if not found.  hash is the precomputed hash value for the key.
 */
 {
-  uintptr_t  hash = hash_ptr(key);
   an_index   mask = this->hash_mask;
   an_index   idx = hash & mask;
   an_entry   *tbl = this->table;
@@ -2012,7 +2017,8 @@ if not found.
     idx = (idx+1) & mask;
   }  /* for */       
   return result;
-}  /* Ptr_map::get */
+}  /* Ptr_map::get_with_hash */
+
 
 #ifdef TRACE_PTR_MAP
 static void	*traced_key_ptr = NULL;
@@ -2039,13 +2045,15 @@ removed from a Ptr_map instance.
 
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
-inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::map(a_key          key,
-                                                        const a_value  &value)
+inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::map_with_hash(
+                                                        a_key          key,
+                                                        const a_value  &value,
+                                                        uintptr_t      hash)
 /*
-Associate a copy of value with the given key.
+Associate a copy of value with the given key.  hash is the precomputed hash
+value of that key.
 */
 {
-  uintptr_t  hash = hash_ptr(key);
   an_index   mask = this->hash_mask;
   an_index   idx = hash & mask;
   an_entry   *tbl = this->table;
@@ -2061,7 +2069,7 @@ Associate a copy of value with the given key.
   if (this->n_elements*2 > mask) {
     this->expand_table();
   }  /* if */ 
-}  /* Ptr_map::map */
+}  /* Ptr_map::map_with_hash */
 
 
 template<typename a_Ptr_key, typename a_Value,
