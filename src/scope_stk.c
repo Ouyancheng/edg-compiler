@@ -3752,6 +3752,7 @@ by the argument.  If needed, push the new scope(s) and return TRUE.
     if (scope_is(scope, sck_namespace)) {
       push_namespace_extension_scope(scope->variant.assoc_namespace);
     }  /* if */
+    push_lexical_state_stack();
     decl_scope_level = depth_innermost_namespace_scope;
     result = TRUE;
   }  /* if */
@@ -3767,6 +3768,7 @@ push_module_declaration_context.
 {
   process_deferred_class_fixups_and_instantiations(/*for_instantiation=*/TRUE);
   if (scope_pushed) {
+    pop_lexical_state_stack();
     if (scope_stack_top().kind == (a_scope_kind)sck_namespace_extension) {
       pop_namespace_extension_scope();
     }  /* if */

@@ -1010,6 +1010,365 @@ Map an IFC Operator to an_opname_kind.
 }  /* opname_from_operator */
 
 
+enum an_operator_kind : uint8_t {
+  opkind_basic,     /* A basic operator (e.g., +, &&). */
+  opkind_post,      /* An operator that follows the argument(s) (e.g., x++). */
+  opkind_func_like, /* A function-like operator (e.g., is_assignable). */
+  opkind_c_cast,    /* A C-style cast (e.g., (X*)Y). */
+  opkind_cpp_cast,  /* A C++-style cast (e.g., reinterpret_cast<X*>Y). */
+  opkind_other,     /* Something else. */
+};
+
+
+static an_operator_kind get_operator_kind(ifc_NiladicOperator op)
+/*
+Return the kind of operator described by op.
+*/
+{
+  an_operator_kind kind;
+
+  switch (op) {
+    case ifc_NiladicOperator_Unknown:
+    case ifc_NiladicOperator_Msvc:
+      unexpected_condition();
+      break;
+    case ifc_NiladicOperator_Phantom:
+    case ifc_NiladicOperator_Constant:
+    case ifc_NiladicOperator_Nil:
+    case ifc_NiladicOperator_MsvcConstantObject:
+    case ifc_NiladicOperator_MsvcLambda:
+      kind = opkind_other;
+      break;
+    default_is_unexpected_str("Unexpected NiladicOperator");
+  }  /* switch */
+  return kind;
+}  /* get_operator_kind */
+
+
+static an_operator_kind get_operator_kind(ifc_MonadicOperator op)
+/*
+Return the kind of operator described by op.
+*/
+{
+  an_operator_kind kind;
+
+  switch (op) {
+    case ifc_MonadicOperator_Unknown:
+    case ifc_MonadicOperator_Msvc:
+    case ifc_MonadicOperator_MsvcConfusion:
+      unexpected_condition();
+      break;
+    case ifc_MonadicOperator_Plus:
+    case ifc_MonadicOperator_Negate:
+    case ifc_MonadicOperator_Deref:
+    case ifc_MonadicOperator_Address:
+    case ifc_MonadicOperator_Complement:
+    case ifc_MonadicOperator_Not:
+    case ifc_MonadicOperator_PreIncrement:
+    case ifc_MonadicOperator_PreDecrement:
+    case ifc_MonadicOperator_Await:
+    case ifc_MonadicOperator_CoReturn:
+    case ifc_MonadicOperator_Yield:
+    case ifc_MonadicOperator_Throw:
+      kind = opkind_basic;
+      break;
+    case ifc_MonadicOperator_PostIncrement:
+    case ifc_MonadicOperator_PostDecrement:
+      kind = opkind_post;
+      break;
+    case ifc_MonadicOperator_New:
+    case ifc_MonadicOperator_Delete:
+    case ifc_MonadicOperator_DeleteArray:
+    case ifc_MonadicOperator_Paren:
+    case ifc_MonadicOperator_Brace:
+      kind = opkind_other;
+    case ifc_MonadicOperator_Truncate:
+    case ifc_MonadicOperator_Ceil:
+    case ifc_MonadicOperator_Floor:
+    case ifc_MonadicOperator_Alignas:
+    case ifc_MonadicOperator_Alignof:
+    case ifc_MonadicOperator_Sizeof:
+    case ifc_MonadicOperator_Cardinality:
+    case ifc_MonadicOperator_Typeid:
+    case ifc_MonadicOperator_Noexcept:
+    case ifc_MonadicOperator_Requires:
+    case ifc_MonadicOperator_Expand:
+    case ifc_MonadicOperator_Read:
+    case ifc_MonadicOperator_Materialize:
+    case ifc_MonadicOperator_PseudoDtorCall:
+    case ifc_MonadicOperator_MsvcAssume:
+    case ifc_MonadicOperator_MsvcAlignof:
+    case ifc_MonadicOperator_MsvcUuidof:
+    case ifc_MonadicOperator_MsvcIsClass:
+    case ifc_MonadicOperator_MsvcIsUnion:
+    case ifc_MonadicOperator_MsvcIsEnum:
+    case ifc_MonadicOperator_MsvcIsPolymorphic:
+    case ifc_MonadicOperator_MsvcIsEmpty:
+    case ifc_MonadicOperator_MsvcIsTriviallyCopyConstructible:
+    case ifc_MonadicOperator_MsvcIsTriviallyCopyAssignable:
+    case ifc_MonadicOperator_MsvcIsTriviallyDestructible:
+    case ifc_MonadicOperator_MsvcHasVirtualDestructor:
+    case ifc_MonadicOperator_MsvcIsNothrowCopyConstructible:
+    case ifc_MonadicOperator_MsvcIsNothrowCopyAssignable:
+    case ifc_MonadicOperator_MsvcIsPod:
+    case ifc_MonadicOperator_MsvcIsAbstract:
+    case ifc_MonadicOperator_MsvcIsTrivial:
+    case ifc_MonadicOperator_MsvcIsTriviallyCopyable:
+    case ifc_MonadicOperator_MsvcIsStandardLayout:
+    case ifc_MonadicOperator_MsvcIsLiteralType:
+    case ifc_MonadicOperator_MsvcIsTriviallyMoveConstructible:
+    case ifc_MonadicOperator_MsvcHasTrivialMoveAssign:
+    case ifc_MonadicOperator_MsvcIsTriviallyMoveAssignable:
+    case ifc_MonadicOperator_MsvcIsNothrowMoveAssignable:
+    case ifc_MonadicOperator_MsvcUnderlyingType:
+    case ifc_MonadicOperator_MsvcIsDestructible:
+    case ifc_MonadicOperator_MsvcIsNothrowDestructible:
+    case ifc_MonadicOperator_MsvcHasUniqueObjectRepresentations:
+    case ifc_MonadicOperator_MsvcIsAggregate:
+    case ifc_MonadicOperator_MsvcBuiltinAddressOf:
+    case ifc_MonadicOperator_MsvcIsRefClass:
+    case ifc_MonadicOperator_MsvcIsValueClass:
+    case ifc_MonadicOperator_MsvcIsSimpleValueClass:
+    case ifc_MonadicOperator_MsvcIsInterfaceClass:
+    case ifc_MonadicOperator_MsvcIsDelegate:
+    case ifc_MonadicOperator_MsvcIsFinal:
+    case ifc_MonadicOperator_MsvcIsSealed:
+    case ifc_MonadicOperator_MsvcHasFinalizer:
+    case ifc_MonadicOperator_MsvcHasCopy:
+    case ifc_MonadicOperator_MsvcHasAssign:
+    case ifc_MonadicOperator_MsvcHasUserDestructor:
+      kind = opkind_func_like;
+      break;
+    case ifc_MonadicOperator_MsvcConfusedExpand:
+      kind = opkind_other;
+      break;
+    default_is_unexpected_str("Unexpected MonadicOperator");
+  }  /* switch */
+  return kind;
+}  /* get_operator_kind */
+
+
+static an_operator_kind get_operator_kind(ifc_DyadicOperator op)
+/*
+Return the kind of operator described by op.
+*/
+{
+  an_operator_kind kind;
+
+  switch (op) {
+    case ifc_DyadicOperator_Unknown:
+    case ifc_DyadicOperator_Msvc:
+      unexpected_condition();
+      break;
+    case ifc_DyadicOperator_Plus:
+    case ifc_DyadicOperator_Minus:
+    case ifc_DyadicOperator_Mult:
+    case ifc_DyadicOperator_Slash:
+    case ifc_DyadicOperator_Modulo:
+    case ifc_DyadicOperator_Remainder:
+    case ifc_DyadicOperator_Bitand:
+    case ifc_DyadicOperator_Bitor:
+    case ifc_DyadicOperator_Bitxor:
+    case ifc_DyadicOperator_Lshift:
+    case ifc_DyadicOperator_Rshift:
+    case ifc_DyadicOperator_Equal:
+    case ifc_DyadicOperator_NotEqual:
+    case ifc_DyadicOperator_Less:
+    case ifc_DyadicOperator_LessEqual:
+    case ifc_DyadicOperator_Greater:
+    case ifc_DyadicOperator_GreaterEqual:
+    case ifc_DyadicOperator_LogicAnd:
+    case ifc_DyadicOperator_LogicOr:
+    case ifc_DyadicOperator_Assign:
+    case ifc_DyadicOperator_PlusAssign:
+    case ifc_DyadicOperator_MinusAssign:
+    case ifc_DyadicOperator_MultAssign:
+    case ifc_DyadicOperator_SlashAssign:
+    case ifc_DyadicOperator_ModuloAssign:
+    case ifc_DyadicOperator_BitandAssign:
+    case ifc_DyadicOperator_BitorAssign:
+    case ifc_DyadicOperator_BitxorAssign:
+    case ifc_DyadicOperator_LshiftAssign:
+    case ifc_DyadicOperator_RshiftAssign:
+    case ifc_DyadicOperator_Comma:
+    case ifc_DyadicOperator_Arrow:
+    case ifc_DyadicOperator_ArrowStar:
+    case ifc_DyadicOperator_Compare:
+    case ifc_DyadicOperator_Dot:
+    case ifc_DyadicOperator_DotStar:
+      kind = opkind_basic;
+      break;
+    case ifc_DyadicOperator_New:
+    case ifc_DyadicOperator_NewArray:
+      kind = opkind_other;
+      break;
+    case ifc_DyadicOperator_Cast:
+    case ifc_DyadicOperator_ExplicitConversion:
+      kind = opkind_c_cast;
+      break;
+    case ifc_DyadicOperator_ReinterpretCast:
+    case ifc_DyadicOperator_StaticCast:
+    case ifc_DyadicOperator_ConstCast:
+    case ifc_DyadicOperator_DynamicCast:
+      kind = opkind_cpp_cast;
+      break;
+    case ifc_DyadicOperator_Curry:
+    case ifc_DyadicOperator_Apply:
+    case ifc_DyadicOperator_Index:
+    case ifc_DyadicOperator_DefaultAt:
+    case ifc_DyadicOperator_Destruct:
+    case ifc_DyadicOperator_DestructAt:
+    case ifc_DyadicOperator_Cleanup:
+    case ifc_DyadicOperator_Qualification:
+    case ifc_DyadicOperator_Promote:
+    case ifc_DyadicOperator_Demote:
+    case ifc_DyadicOperator_Coerce:
+    case ifc_DyadicOperator_Rewrite:
+    case ifc_DyadicOperator_Bless:
+    case ifc_DyadicOperator_Narrow:
+    case ifc_DyadicOperator_Widen:
+    case ifc_DyadicOperator_Pretend:
+    case ifc_DyadicOperator_Closure:
+    case ifc_DyadicOperator_ZeroInitialize:
+    case ifc_DyadicOperator_ClearStorage:
+    case ifc_DyadicOperator_MsvcTryCast:
+    case ifc_DyadicOperator_MsvcCurry:
+    case ifc_DyadicOperator_MsvcVirtualCurry:
+    case ifc_DyadicOperator_MsvcAlign:
+    case ifc_DyadicOperator_MsvcBitSpan:
+    case ifc_DyadicOperator_MsvcBitfieldAccess:
+    case ifc_DyadicOperator_MsvcObscureBitfieldAccess:
+    case ifc_DyadicOperator_MsvcInitialize:
+    case ifc_DyadicOperator_MsvcBuiltinOffsetOf:
+    case ifc_DyadicOperator_MsvcIsBaseOf:
+    case ifc_DyadicOperator_MsvcIsConvertibleTo:
+    case ifc_DyadicOperator_MsvcIsTriviallyAssignable:
+    case ifc_DyadicOperator_MsvcIsNothrowAssignable:
+    case ifc_DyadicOperator_MsvcIsAssignable:
+    case ifc_DyadicOperator_MsvcIsAssignableNocheck:
+    case ifc_DyadicOperator_MsvcBuiltinBitCast:
+    case ifc_DyadicOperator_MsvcBuiltinIsLayoutCompatible:
+    case ifc_DyadicOperator_MsvcBuiltinIsPointerInterconvertibleBaseOf:
+    case ifc_DyadicOperator_MsvcBuiltinIsPointerInterconvertibleWithClass:
+    case ifc_DyadicOperator_MsvcBuiltinIsCorrespondingMember:
+    case ifc_DyadicOperator_MsvcIntrinsic:
+      kind = opkind_func_like;
+      break;
+    default_is_unexpected_str("Unexpected DyadicOperator");
+  }  /* switch */
+  return kind;
+}  /* get_operator_kind */
+
+
+static an_operator_kind get_operator_kind(ifc_TriadicOperator op)
+/*
+Return the kind of operator described by op.
+*/
+{
+  an_operator_kind kind;
+
+  switch (op) {
+    case ifc_TriadicOperator_Unknown:
+    case ifc_TriadicOperator_Msvc:
+      unexpected_condition();
+      break;
+    case ifc_TriadicOperator_Choice:
+    case ifc_TriadicOperator_ConstructAt:
+    case ifc_TriadicOperator_Initialize:
+      kind = opkind_other;
+      break;
+    default_is_unexpected_str("Unexpected TriadicOperator");
+  }  /* switch */
+  return kind;
+}  /* get_operator_kind */
+
+
+static an_operator_kind get_operator_kind(ifc_StorageOperator op)
+/*
+Return the kind of operator described by op.
+*/
+{
+  an_operator_kind kind;
+
+  switch (op) {
+    case ifc_StorageOperator_Unknown:
+    case ifc_StorageOperator_Msvc:
+      unexpected_condition();
+      break;
+    case ifc_StorageOperator_AllocateSingle:
+    case ifc_StorageOperator_AllocateArray:
+    case ifc_StorageOperator_DeallocateSingle:
+    case ifc_StorageOperator_DeallocateArray:
+      kind = opkind_other;
+      break;
+    default_is_unexpected_str("Unexpected StorageOperator");
+  }  /* switch */
+  return kind;
+}  /* get_operator_kind */
+
+
+static an_operator_kind get_operator_kind(ifc_VariadicOperator op)
+/*
+Return the kind of operator described by op.
+*/
+{
+  an_operator_kind kind;
+
+  switch (op) {
+    case ifc_VariadicOperator_Unknown:
+    case ifc_VariadicOperator_Msvc:
+      unexpected_condition();
+      break;
+    case ifc_VariadicOperator_Collection:
+    case ifc_VariadicOperator_Sequence:
+      kind = opkind_other;
+      break;
+    case ifc_VariadicOperator_MsvcHasTrivialConstructor:
+    case ifc_VariadicOperator_MsvcIsConstructible:
+    case ifc_VariadicOperator_MsvcIsNothrowConstructible:
+    case ifc_VariadicOperator_MsvcIsTriviallyConstructible:
+      kind = opkind_func_like;
+      break;
+    default_is_unexpected_str("Unexpected VariadicOperator");
+  }  /* switch */
+  return kind;
+}  /* get_operator_kind */
+
+
+static an_operator_kind get_operator_kind(ifc_Operator op)
+/*
+Return the kind of operator described by op.
+*/
+{
+  an_operator_kind kind;
+  ifc_OperatorSort op_sort = operator_tag(op);
+  uint16_t         op_value = operator_index(op);
+
+  switch (op_sort) {
+    case ifc_OperatorSort_Niladic:
+      kind = get_operator_kind((ifc_NiladicOperator)op_value);
+      break;
+    case ifc_OperatorSort_Monadic:
+      kind = get_operator_kind((ifc_MonadicOperator)op_value);
+      break;
+    case ifc_OperatorSort_Dyadic:
+      kind = get_operator_kind((ifc_DyadicOperator)op_value);
+      break;
+    case ifc_OperatorSort_Triadic:
+      kind = get_operator_kind((ifc_TriadicOperator)op_value);
+      break;
+    case ifc_OperatorSort_Storage:
+      kind = get_operator_kind((ifc_StorageOperator)op_value);
+      break;
+    case ifc_OperatorSort_Variadic:
+      kind = get_operator_kind((ifc_VariadicOperator)op_value);
+      break;
+    default_is_unexpected_str("Unexpected OperatorSort");
+  }  /* switch */
+  return kind;
+}  /* is_function_like_operator */
+
+
 /*
 Structure used to hold the existing name linkage state if the name linkage
 state needs to be modified.
@@ -5450,7 +5809,17 @@ the location of the Sentence containing id.
     default_is_unexpected_str("Unknown SourceIdentifier");
   }  /* switch */
   check_assertion(name != NULL);
-  cache_identifier(cache, name, &pos);
+  /* FIXME: MSVC has a bug where the "default" (and maybe "delete"?) in
+      "pair(const pair&) = delete" is encoded as an identifier rather than a
+      keyword.  Work around that bug here and remove this in future editions
+      where this is fixed. */
+  if (strncmp(name, "default", 7) == 0) {
+    cache_token(cache, tok_default, &pos);
+  } else if (strncmp(name, "delete", 6) == 0) {
+    cache_token(cache, tok_delete, &pos);
+  } else {
+    cache_identifier(cache, name, &pos);
+  }  /* if */
 }  /* cache_source_identifier */
 
 
@@ -5493,12 +5862,13 @@ Add token(s) corresponding to word to cache.
 uint32_t an_ifc_module::cache_sentence(a_token_cache_ptr cache,
                                        ifc_SentenceIndex sentence,
                                        uint32_t          offset,
-                                       a_token_kind      stop_token) const
+                                       a_boolean         look_for_stop_token)
+                                                                          const
 /*
 Given a SentenceIndex, populate cache with the corresponding tokens.  offset is
-the offset into the words to start caching.  If a cached token matches
-stop_token, remove that token from the cache and return the index of that
-token.  Otherwise the return value is meaningless.
+the offset into the words to start caching.  If a look_for_stop_token is TRUE
+and cached token matches a stop token, remove that token from the cache and
+return the index of that token.  Otherwise the return value is meaningless.
 */
 {
   an_ifc_Sentence    is, *isp;
@@ -5516,7 +5886,9 @@ token.  Otherwise the return value is meaningless.
     iwp = get_Word(&iw);
     ctp = cache->last_token;
     cache_word(cache, iwp);
-    if (ctp != cache->last_token && cache->last_token->token == stop_token) {
+    if (look_for_stop_token && ctp != cache->last_token &&
+        curr_stop_token_stack_entry->
+                             stop_tokens[(int)cache->last_token->token] != 0) {
       remove_token_from_cache(cache->last_token, &ctp, cache);
       break;
     }  /* if */
@@ -6876,8 +7248,13 @@ Add the tokens corresponding to the given template declaration (decl) to cache.
     if (decl->entity.body != 0) {
       /* MSVC puts attributes as part of the body, but they need to precede
          the identifier. */
+      push_stop_token_stack();
+      add_stop_token(tok_lbrace);
+      add_stop_token(tok_colon);
       uint32_t offset = cache_sentence(cache, decl->entity.body, /*offset=*/0,
-                                       tok_lbrace);
+                                       /*look_for_stop_token=*/TRUE);
+      clear_stop_tokens();
+      pop_stop_token_stack();
       cache_name(cache, decl->name, &decl->locus);
       (void)cache_sentence(cache, decl->entity.body, offset);
     } else {
@@ -6943,11 +7320,11 @@ Add the tokens corresponding to the given declaration (decl) to cache.
             break;
           default_is_unexpected_str("Unexpected ParameterSort");
         }  /* switch */
-        if (idspp->name != 0) {
-          cache_identifier(cache, get_string_at_offset(idspp->name), &pos);
-        }  /* if */
         if (idspp->pack) {
           cache_token(cache, tok_ellipsis, &pos);
+        }  /* if */
+        if (idspp->name != 0) {
+          cache_identifier(cache, get_string_at_offset(idspp->name), &pos);
         }  /* if */
         if (idspp->initializer != 0) {
           cache_token(cache, tok_assign, &pos);
@@ -7193,30 +7570,88 @@ Add the tokens corresponding to the given expression (expr) to cache.
       break;
     case ifc_ExprSort_Monad:
       { an_ifc_ExprSort_Monad iesm, *iesmp;
+        an_operator_kind      opkind;
+        auto                  cache_arg = [&] {
+          cache_token(cache, tok_lparen, &pos);
+          cache_expr(cache, iesmp->argument);
+          cache_token(cache, tok_rparen, &pos);
+        };  /* cache_arg */
+
         iesmp = get_ExprSort_Monad(&iesm);
         source_position_from_locus(&pos, &iesmp->locus);
-        cache_operator(cache, iesmp->op, &iesmp->locus);
-        cache_token(cache, tok_lparen, &pos);
-        cache_expr(cache, iesmp->argument);
-        cache_token(cache, tok_rparen, &pos);
+        opkind = get_operator_kind(iesmp->op);
+        switch (opkind) {
+          case opkind_basic:
+          case opkind_func_like:
+            cache_operator(cache, iesmp->op, &iesmp->locus);
+            cache_arg();
+            break;
+          case opkind_post:
+            cache_arg();
+            cache_operator(cache, iesmp->op, &iesmp->locus);
+            break;
+          case opkind_c_cast:
+          case opkind_cpp_cast:
+          case opkind_other:
+            unexpected_condition();
+            break;
+          default_is_unexpected();
+        }  /* switch */
       }
       break;
     case ifc_ExprSort_Dyad:
       { an_ifc_ExprSort_Dyad iesd, *iesdp;
+        an_operator_kind     opkind;
+
         iesdp = get_ExprSort_Dyad(&iesd);
         source_position_from_locus(&pos, &iesdp->locus);
-        cache_operator(cache, iesdp->op, &iesdp->locus);
-        cache_token(cache, tok_lparen, &pos);
-        cache_expr(cache, iesdp->arguments_0);
-        cache_token(cache, tok_comma, &pos);
-        cache_expr(cache, iesdp->arguments_1);
-        cache_token(cache, tok_rparen, &pos);
+        opkind = get_operator_kind(iesdp->op);
+        switch (opkind) {
+          case opkind_basic:
+            cache_expr(cache, iesdp->arguments_0);
+            cache_operator(cache, iesdp->op, &iesdp->locus);
+            cache_expr(cache, iesdp->arguments_1);
+            break;
+          case opkind_func_like:
+            cache_operator(cache, iesdp->op, &iesdp->locus);
+            cache_token(cache, tok_lparen, &pos);
+            cache_expr(cache, iesdp->arguments_0);
+            cache_token(cache, tok_comma, &pos);
+            cache_expr(cache, iesdp->arguments_1);
+            cache_token(cache, tok_rparen, &pos);
+            break;
+          case opkind_cpp_cast:
+            cache_operator(cache, iesdp->op, &iesdp->locus);
+            FALLTHROUGH
+          case opkind_c_cast:
+            if (opkind == opkind_c_cast) {
+              cache_token(cache, tok_lparen, &pos);
+            } else {
+              cache_token(cache, tok_lt, &pos);
+            }  /* if */
+            cache_expr(cache, iesdp->arguments_0);
+            if (opkind == opkind_c_cast) {
+              cache_token(cache, tok_rparen, &pos);
+            } else {
+              cache_token(cache, tok_gt, &pos);
+            }  /* if */
+            cache_token(cache, tok_lparen, &pos);
+            cache_expr(cache, iesdp->arguments_1);
+            cache_token(cache, tok_rparen, &pos);
+            break;
+          case opkind_post:
+          case opkind_other:
+            unexpected_condition();
+            break;
+          default_is_unexpected();
+        }  /* switch */
       }
       break;
     case ifc_ExprSort_Triad:
       { an_ifc_ExprSort_Triad iest, *iestp;
         iestp = get_ExprSort_Triad(&iest);
         source_position_from_locus(&pos, &iestp->locus);
+        check_assertion(get_operator_kind(iestp->op) == opkind_func_like);
         cache_operator(cache, iestp->op, &iestp->locus);
         cache_token(cache, tok_lparen, &pos);
         cache_expr(cache, iestp->arguments_0);
@@ -8193,12 +8628,12 @@ relied upon to contain the result.
 
   if (partitions[partition].size == 0) goto done;
   num_entries = partitions[partition].size / partitions[partition].entry_size;
-  idx = num_entries / 2;
   min_idx = 0;
   max_idx = num_entries-1;
   while (min_idx <= max_idx && max_idx < num_entries) {
     T             *tmp;
     ifc_DeclIndex decl;
+    idx = (min_idx + max_idx) / 2;
     read_partition_at_index(partition, idx);
     tmp = (this->*get_func)(storage, /*from_header=*/FALSE);
     decl = tmp->decl;
