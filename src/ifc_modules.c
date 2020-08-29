@@ -1500,7 +1500,7 @@ corresponding data structure for that partition.
 {
 /* Some data structures are still unspecified (sizeof == 1).  That allowance
    should be removed once the spec is complete. */
-#if CHECKING
+#if DEBUG
 #  define CHECK_SIZE(data) \
   if (sizeof(an_ifc_##data) != 1 && sizeof(an_ifc_##data) != pp->entry_size) {\
     (void)fprintf(f_debug, "Partition for %s expects entity to have size %u, "\
@@ -1509,9 +1509,12 @@ corresponding data structure for that partition.
     unexpected_condition();                                                   \
   }  /* if */                                                                 \
   break /* user ; */
-#else /* !CHECKING */
-#  define CHECK_SIZE(data) break /* user ; */
-#endif /* CHECKING */
+#else /* !DEBUG */
+#  define CHECK_SIZE(data) \
+  check_assertion(sizeof(an_ifc_##data) == 1 ||                               \
+                  sizeof(an_ifc_##data) == pp->entry_size);                   \
+  break /* user ; */
+#endif /* DEBUG */
   switch (kind) {
     case ifc_decl_vendor_extension:
       CHECK_SIZE(DeclSort_VendorExtension);
