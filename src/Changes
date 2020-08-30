@@ -1554,6 +1554,16 @@ Now that list includes position information about where the candidates were
 declared.
 
 
+6/26/20  [EDGcpfe/22934]
+Change for unexpected_condition* routines
+
+A number of cleanup changes were made to the source code as we moved to using
+PC-Lint version 1.3.5.  One change that may be noticed is that the
+unexpected_condition, unexpected_condition_str, and unexpected_condition_str2
+routines now call exit_compilation in all configurations (previously the
+compilation was terminated only when CHECKING was TRUE).
+
+
 6/25/20  [EDGcpfe/22999]
 __builtin_is_constant_evaluated availability
 
