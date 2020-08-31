@@ -1609,9 +1609,8 @@ Initialize the option information table.
 
 static void initialize_command_line_variables()
 /*
-Initialize any variables used by the command line that are needed for
-processing the command line (and therefore must be initialized before most
-initialization occurs).
+Initialize any variables that are needed for processing the command line (and
+therefore must be initialized before most initialization occurs).
 */
 {
   mod_map = new_general<a_module_file_map>(/*mask_width=*/4);
