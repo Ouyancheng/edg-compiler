@@ -17670,9 +17670,7 @@ Generate code for an instantiation directive.
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   a_boolean                      put_out = TRUE;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
-  a_name_reference_ptr           name_ref = NULL;
 
-  name_ref = get_current_name_ref();
   /* Advance past the source sequence entry for the instantiation directive. */
   adv_curr_source_sequence_entry();
   kind = (an_il_entry_kind)idp->entity.kind;
@@ -17716,7 +17714,7 @@ Generate code for an instantiation directive.
                                          /*suppress_specifiers=*/FALSE,
                                          &context_pop_needed,
                                          (a_source_sequence_scan_state *)NULL,
-                                         name_ref);
+                                         (a_name_reference_ptr)NULL);
           /* Pop the name context for a class/namespace member. */
           if (context_pop_needed) {
             pop_name_context_if_member(&rout->source_corresp);
@@ -17734,7 +17732,7 @@ Generate code for an instantiation directive.
                                              TQ_NONE,
                                              /*suppress_specifiers=*/FALSE,
                                              GDO_SUPPRESS_POSITION,
-                                             name_ref);
+                                             (a_name_reference_ptr)NULL);
           write_tok_ch(';');
         }
         break;

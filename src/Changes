@@ -1,5 +1,19 @@
 Version 6.2
 
+8/30/20  [EDGcpfe/22970,EDGcpfe/23074]
+C++-generating back end: qualified names in explicit instantiation directives
+
+In configurations in which RECORD_FORM_OF_NAME_REFERENCE is TRUE, the
+C++-generating back end could omit necessary name qualifiers for a template
+instance in an explicit instantiation directive.  This is now fixed.  For
+example, with --g++:
+
+  template<typename T> struct S {
+    static const int i = -1;
+  };
+  template const int S<int>::i;  // Previously omitted "S<int>::"
+
+
 8/27/20  [EDGcpfe/23319]
 Microsoft compatibility: coroutines
 
