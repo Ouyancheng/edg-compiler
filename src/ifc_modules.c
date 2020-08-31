@@ -1082,6 +1082,7 @@ Return the kind of operator described by op.
     case ifc_MonadicOperator_Paren:
     case ifc_MonadicOperator_Brace:
       kind = opkind_other;
+      break;
     case ifc_MonadicOperator_Truncate:
     case ifc_MonadicOperator_Ceil:
     case ifc_MonadicOperator_Floor:
@@ -5869,8 +5870,8 @@ uint32_t an_ifc_module::cache_sentence(a_token_cache_ptr cache,
                                                                           const
 /*
 Given a SentenceIndex, populate cache with the corresponding tokens.  offset is
-the offset into the words to start caching.  If a look_for_stop_token is TRUE
-and cached token matches a stop token, remove that token from the cache and
+the offset into the words to start caching.  If look_for_stop_token is TRUE
+and a cached token matches a stop token, remove that token from the cache and
 return the index of that token.  Otherwise the return value is meaningless.
 */
 {
@@ -7574,7 +7575,7 @@ Add the tokens corresponding to the given expression (expr) to cache.
     case ifc_ExprSort_Monad:
       { an_ifc_ExprSort_Monad iesm, *iesmp;
         an_operator_kind      opkind;
-        auto                  cache_arg = [&] {
+        auto                  cache_arg = [&, this] {
           cache_token(cache, tok_lparen, &pos);
           cache_expr(cache, iesmp->argument);
           cache_token(cache, tok_rparen, &pos);
@@ -8341,10 +8342,14 @@ of the name.
       break;
     case ifc_NameSort_Operator:
       { an_ifc_NameSort_Operator inso, *insop;
+#if CHECKING
         an_operator_kind         opkind;
+#endif /* CHECKING */
         insop = get_NameSort_Operator(&inso);
+#if CHECKING
         opkind = get_operator_kind(insop->op);
         check_assertion(opkind == opkind_basic || opkind == opkind_post);
+#endif /* CHECKING */
         ident = insop->encoded;
         goto cache_op;
       }
