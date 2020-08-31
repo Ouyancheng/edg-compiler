@@ -3142,13 +3142,12 @@ extern int compare_constraints(a_symbol_ptr  sym1,
                                a_boolean     *p_equiv = NULL);
 
 extern 
-a_boolean requires_clause_satisfied(
-                             an_expr_node_ptr      constraint,
-                             a_template_arg_ptr    template_arg_list,
-                             a_template_param_ptr  template_param_list,
-                             a_diag_list_ptr       diag_list,
-                             a_boolean             *p_fatal = NULL,
-                             a_boolean             *p_copy_error = NULL);
+a_boolean constraint_satisfied(an_expr_node_ptr      constraint,
+                               a_template_arg_ptr    template_arg_list,
+                               a_template_param_ptr  template_param_list,
+                               a_diag_list_ptr       diag_list,
+                               a_boolean             *p_fatal = NULL,
+                               a_boolean             *p_copy_error = NULL);
 
 extern void check_eligibility(a_decl_parse_state  *dps);
 

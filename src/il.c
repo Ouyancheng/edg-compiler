@@ -18814,9 +18814,9 @@ options is a set of substitution options.
         a_boolean    val;
         a_diag_list  diag_list;
         clear_diag_list(&diag_list);
-        val = requires_clause_satisfied(expr, template_arg_list,
-                                        template_param_list,
-                                        &diag_list, copy_error, copy_error);
+        val = constraint_satisfied(expr, template_arg_list,
+                                   template_param_list, &diag_list,
+                                   copy_error, copy_error);
         make_bool_constant_value(val, constant);
         discard_more_info_list(&diag_list);
       }  /* if */

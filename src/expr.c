@@ -34783,8 +34783,7 @@ the result is not constant) set *fatal to TRUE.
     param_list = symbol_for(node->variant.concept_id.concept_template)
                          ->variant.template_info->cache.decl_info->parameters;
     clear_diag_list(&diag_list);
-    val = requires_clause_satisfied(node, tap, param_list,
-                                    &diag_list, fatal);
+    val = constraint_satisfied(node, tap, param_list, &diag_list, fatal);
     if (*fatal) {
       a_diagnostic  *dp = pos_start_error(ec_invalid_concept_id,
                                           &node->position);

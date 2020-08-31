@@ -24819,12 +24819,12 @@ sym2 and vice versa; otherwise, set it to FALSE.
 }  /* compare_constraints */
 
 
-a_boolean requires_clause_satisfied(an_expr_node_ptr      constraint,
-                                    a_template_arg_ptr    template_arg_list,
-                                    a_template_param_ptr  template_param_list,
-                                    a_diag_list_ptr       diag_list,
-                                    a_boolean             *p_fatal,
-                                    a_boolean             *p_copy_error)
+a_boolean constraint_satisfied(an_expr_node_ptr      constraint,
+                               a_template_arg_ptr    template_arg_list,
+                               a_template_param_ptr  template_param_list,
+                               a_diag_list_ptr       diag_list,
+                               a_boolean             *p_fatal,
+                               a_boolean             *p_copy_error)
 /*
 Return TRUE if the given constraint expression, built on the given template
 parameter list, is satisfied by the given template argument list.  Otherwise,
@@ -24898,8 +24898,8 @@ return FALSE and:
       a_diagnostic_ptr  prev_diags = diag_list->tail;
       an_expr_node_ptr  expr = templ->prototype_instantiation.constraint;
       /* Evaluate the resulting constraint. */
-      result = requires_clause_satisfied(expr, new_args, params, diag_list,
-                                         p_fatal);
+      result = constraint_satisfied(expr, new_args, params, diag_list,
+                                    p_fatal);
       if (!result && !*p_fatal) {
         /* Insert a diagnostic before the ones detailing the constraint
            failure. */
@@ -24916,24 +24916,24 @@ return FALSE and:
        determines the outcome, the second is neither substituted nor
        evaluated. */
     an_expr_node_ptr  opnds = constraint->variant.operation.operands;
-    result = requires_clause_satisfied(opnds, template_arg_list,
-                                       template_param_list, diag_list,
-                                       p_fatal, &copy_error) &&
-             requires_clause_satisfied(opnds->next, template_arg_list,
-                                       template_param_list, diag_list,
-                                       p_fatal, &copy_error);
+    result = constraint_satisfied(opnds, template_arg_list,
+                                  template_param_list, diag_list,
+                                  p_fatal, &copy_error) &&
+             constraint_satisfied(opnds->next, template_arg_list,
+                                  template_param_list, diag_list,
+                                  p_fatal, &copy_error);
   } else if (node_is_operator(constraint, eok_lor)) {
     /* Check the two underlying constraints separately.  If the first
        determines the outcome, the second is neither substituted nor
        evaluated. */
     an_expr_node_ptr  opnds = constraint->variant.operation.operands;
-    result = requires_clause_satisfied(opnds, template_arg_list,
-                                       template_param_list, diag_list,
-                                       p_fatal, &copy_error) ||
+    result = constraint_satisfied(opnds, template_arg_list,
+                                  template_param_list, diag_list,
+                                  p_fatal, &copy_error) ||
              (!*p_fatal && !copy_error &&
-              requires_clause_satisfied(opnds->next, template_arg_list,
-                                        template_param_list, diag_list,
-                                        p_fatal, &copy_error));
+              constraint_satisfied(opnds->next, template_arg_list,
+                                   template_param_list, diag_list,
+                                   p_fatal, &copy_error));
   } else {
     /* An atomic constraint.  First perform substitution; then evaluate the
        expression. */
@@ -25017,7 +25017,7 @@ return FALSE and:
   }  /* if */
   if (p_copy_error != NULL) *p_copy_error = copy_error;
   return result;
-}  /* requires_clause_satisfied */
+}  /* constraint_satisfied */
 
 
 void check_eligibility(a_decl_parse_state  *dps)
@@ -25033,9 +25033,8 @@ is not satisfied, set dps->ineligible to TRUE.
     a_boolean    err = FALSE;
     a_diag_list  diag_list;
     clear_diag_list(&diag_list);
-    if (!requires_clause_satisfied(rcp->constraint, (a_template_arg_ptr)NULL,
-                                   (a_template_param_ptr)NULL, &diag_list,
-                                   &err)) {
+    if (!constraint_satisfied(rcp->constraint, (a_template_arg_ptr)NULL,
+                              (a_template_param_ptr)NULL, &diag_list, &err)) {
       dps->ineligible = TRUE;
     }  /* if */
   } else {
@@ -25164,7 +25163,7 @@ non-NULL, update diag_list accordingly.
       diag_list = &local_diag_list;
     }  /* if */
     /* Evaluate the constraint. */
-    result = requires_clause_satisfied(expr, new_args, params, diag_list);
+    result = constraint_satisfied(expr, new_args, params, diag_list);
   }  /* if */
   return result;
 }  /* check_type_constraint */
@@ -25227,7 +25226,7 @@ subst_pairs is successful.
             error_position = req->position;
             templ_params = subst_pairs.back_elem().params;
             templ_args = subst_pairs.back_elem().args;
-            result = requires_clause_satisfied(
+            result = constraint_satisfied(
                                   expr, templ_args, templ_params, &diag_list);
             discard_more_info_list(&diag_list);
             error_position = saved_error_pos;

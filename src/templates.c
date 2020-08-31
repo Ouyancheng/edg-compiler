@@ -10290,8 +10290,7 @@ issue a diagnostic if diagnose is TRUE.
   }  /* if */
   push_instantiation_scope_for_rescan(template_sym);
   clear_diag_list(&diag_list);
-  if (!requires_clause_satisfied(constraint, args, params, &diag_list,
-                                 &fatal)) {
+  if (!constraint_satisfied(constraint, args, params, &diag_list, &fatal)) {
     if (!is_empty_diag_list(&diag_list)) {
       if (diagnose || (fatal && !clang_mode)) {
         a_diagnostic_ptr  dp;
