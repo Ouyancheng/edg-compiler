@@ -9602,17 +9602,17 @@ to it.  *decl_position is used for issuing diagnostics.
 }  /* make_param_type */
 
 
-a_type_ptr make_routine_type(a_type_ptr        return_type,
-                             a_type_ptr        param1_type,
-                             a_type_ptr        param2_type,
-                             a_type_ptr        param3_type,
-                             a_type_ptr        param4_type,
-                             a_type_ptr        param5_type,
-                             a_type_ptr        param6_type,
-                             a_type_ptr        param7_type)
+a_type_ptr make_routine_type_full(a_type_ptr        return_type,
+                                  a_type_ptr        param1_type,
+                                  a_type_ptr        param2_type,
+                                  a_type_ptr        param3_type,
+                                  a_type_ptr        param4_type,
+                                  a_type_ptr        param5_type,
+                                  a_type_ptr        param6_type,
+                                  a_type_ptr        param7_type)
 /*
 Create a routine type with the given return type (which cannot be NULL) and
-the given parameter types (which are NULL by default).
+the given parameter types (which may be NULL).
 */
 {
   a_type_ptr         rout_type = alloc_type((a_type_kind)tk_routine);
@@ -9666,6 +9666,21 @@ the given parameter types (which are NULL by default).
   extra_info->prototyped = TRUE;
   set_routine_calling_method_flag(rout_type, np);
   return rout_type;
+}  /* make_routine_type_full */
+
+
+a_type_ptr make_routine_type(a_type_ptr        return_type,
+                             a_type_ptr        param1_type,
+                             a_type_ptr        param2_type,
+                             a_type_ptr        param3_type,
+                             a_type_ptr        param4_type)
+/*
+Wrapper for make_routine_type_full above.
+*/
+{
+  return make_routine_type_full(return_type, param1_type, param2_type,
+                                param3_type, param4_type, NULL,
+                                NULL, NULL);
 }  /* make_routine_type */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */

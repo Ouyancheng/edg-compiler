@@ -855,12 +855,6 @@ extern void instantiate_template_enum(a_type_ptr		enum_type);
 
 extern void init_ctws_state(a_ctws_state_ptr	csp);
 
-extern void create_variadic_param_info_for_routine_params(
-                                                 a_ctws_state_ptr  ctws_state,
-                                                 a_param_type_ptr  ptp);
-
-extern void free_list_of_variadic_param_info(a_variadic_param_info_ptr vpip);
-
 extern a_template_arg_ptr copy_template_arg_list_with_substitution(
 			a_symbol_ptr		template_sym,
 			a_template_arg_ptr	arg_list_to_copy,
@@ -904,15 +898,6 @@ extern a_type_ptr copy_type_with_substitution(
 
 extern
 a_type_ptr type_after_substitutions(a_type_ptr                 type,
-                                    a_subst_pairs_array const  &subst_pairs,
-                                    a_source_position          *source_pos,
-                                    a_ctws_options_set         options,
-                                    a_boolean                  *copy_error,
-                                    a_ctws_state_ptr           ctws_state);
-
-extern
-a_param_type_ptr param_types_after_substitutions(
-                                    a_param_type_ptr           ptp_list,
                                     a_subst_pairs_array const  &subst_pairs,
                                     a_source_position          *source_pos,
                                     a_ctws_options_set         options,

@@ -1916,23 +1916,10 @@ struct Ptr_map: private Allocator<Ptr_map_entry<a_Ptr_key, a_Value>> {
   typedef unsigned int an_index;
   inline Ptr_map(unsigned int mask_width, an_allocator a = an_allocator());
   inline ~Ptr_map();
-  inline auto get_with_hash(a_key  key, uintptr_t  hash) const -> a_value;
-  inline auto get(a_key  key) const -> a_value
-    { return this->get_with_hash(key, hash_ptr(key)); }
-  inline void map_with_hash(a_key  key, const a_value &value, uintptr_t  hash);
-  inline void map(a_key  key, const a_value &value)
-    { this->map_with_hash(key, value, hash_ptr(key)); }
-  inline void replace_with_hash(a_key          key,
-                                const a_value  &value,
-                                uintptr_t      hash);
-  inline void replace(a_key  key, const a_value  &value)
-    { this->replace_with_hash(key, value, hash_ptr(key)); }
-  inline auto map_or_replace_with_hash(a_key          key,
-                                       const a_value  &value,
-                                       uintptr_t      hash)
-              -> a_value;
-  inline auto map_or_replace(a_key  key, const a_value  &value) -> a_value
-    { return this->map_or_replace_with_hash(key, value, hash_ptr(key)); }
+  inline auto get(a_key  key) const -> a_value;
+  inline void map(a_key  key, const a_value &value);
+  inline void replace(a_key  key, const a_value  &value);
+  inline auto map_or_replace(a_key  key, const a_value  &value) -> a_value;
   inline void unmap(a_key  key);
   inline auto number_of_elements() const -> an_index
     { return this->n_elements; }
@@ -2000,15 +1987,14 @@ Release the storage for the map.
 
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
-inline auto Ptr_map<a_Ptr_key, a_Value, Allocator>::get_with_hash(
-                                                         a_key      key,
-                                                         uintptr_t  hash) const
+inline auto Ptr_map<a_Ptr_key, a_Value, Allocator>::get(a_key  key) const
                                                     -> a_value
 /*
 Look up key in the map and return the associated value if found, or a_value()
-if not found.  hash is the precomputed hash value for the key.
+if not found.
 */
 {
+  uintptr_t  hash = hash_ptr(key);
   an_index   mask = this->hash_mask;
   an_index   idx = hash & mask;
   an_entry   *tbl = this->table;
@@ -2026,8 +2012,7 @@ if not found.  hash is the precomputed hash value for the key.
     idx = (idx+1) & mask;
   }  /* for */       
   return result;
-}  /* Ptr_map::get_with_hash */
-
+}  /* Ptr_map::get */
 
 #ifdef TRACE_PTR_MAP
 static void	*traced_key_ptr = NULL;
@@ -2054,15 +2039,13 @@ removed from a Ptr_map instance.
 
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
-inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::map_with_hash(
-                                                        a_key          key,
-                                                        const a_value  &value,
-                                                        uintptr_t      hash)
+inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::map(a_key          key,
+                                                        const a_value  &value)
 /*
-Associate a copy of value with the given key.  hash is the precomputed hash
-value of that key.
+Associate a copy of value with the given key.
 */
 {
+  uintptr_t  hash = hash_ptr(key);
   an_index   mask = this->hash_mask;
   an_index   idx = hash & mask;
   an_entry   *tbl = this->table;
@@ -2078,20 +2061,19 @@ value of that key.
   if (this->n_elements*2 > mask) {
     this->expand_table();
   }  /* if */ 
-}  /* Ptr_map::map_with_hash */
+}  /* Ptr_map::map */
 
 
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
-inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::replace_with_hash(
+inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::replace(
                                                         a_key          key,
-                                                        const a_value  &value,
-                                                        uintptr_t      hash)
+                                                        const a_value  &value)
 /*
-Replace the value associated with the given key by the given value.  hash is
-the precomputed hash of that key.
+Replace the value associated with the given key by the given value.
 */
 {
+  uintptr_t  hash = hash_ptr(key);
   an_index   mask = this->hash_mask;
   an_index   idx = hash & mask;
   an_entry   *tbl = this->table;
@@ -2107,23 +2089,22 @@ the precomputed hash of that key.
       ptr = tbl[idx].ptr;
     }  /* if */
   }  /* for */                                                               
-}  /* Ptr_map::replace_with_hash */
+}  /* Ptr_map::replace */
 
 
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
-inline auto Ptr_map<a_Ptr_key, a_Value, Allocator>::map_or_replace_with_hash(
+inline auto Ptr_map<a_Ptr_key, a_Value, Allocator>::map_or_replace(
                                                         a_key          key,
-                                                        const a_value  &value,
-                                                        uintptr_t      hash)
+                                                        const a_value  &value)
                                                     -> a_value
 /*
 If the given key is already mapped, replace its associated value by the given
 value and return the previously associated value.  Otherwise, record a new key,
-associate it with the given value, and return a_value().  hash is the
-precomputed hash of that key.
+associate it with the given value, and return a_value().
 */
 {
+  uintptr_t  hash = hash_ptr(key);
   an_index   mask = this->hash_mask;
   an_index   idx = hash & mask, idx0 = idx;
   an_entry   *tbl = this->table;
@@ -2161,7 +2142,7 @@ precomputed hash of that key.
     }  /* for */
   }  /* if */ 
   return old_value;
-}  /* Ptr_map::map_or_replace_with_hash */
+}  /* Ptr_map::map_or_replace */
 
 
 template<typename a_Ptr_key, typename a_Value,

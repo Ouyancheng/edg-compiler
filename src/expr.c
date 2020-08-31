@@ -5657,9 +5657,11 @@ indicated type.
             break;
           case bfk___c11_atomic_compare_exchange_strong:
           case bfk___c11_atomic_compare_exchange_weak:
-            rout_type = make_routine_type(bool_type(), pA_type,
-                                          make_pointer_type(C_type),
-                                          C_type, MO_type, MO_type);
+            rout_type = make_routine_type_full(bool_type(), pA_type,
+                                               make_pointer_type(C_type),
+                                               C_type, MO_type, MO_type,
+                                               (a_type_ptr)NULL,
+                                               (a_type_ptr)NULL);
             break;
           case bfk___c11_atomic_fetch_add:
           case bfk___c11_atomic_fetch_and:
@@ -8724,11 +8726,6 @@ case).
       /* Drop any qualifiers or typedefs on the class/struct/union type. */
       class_struct_union_type = skip_typerefs(orig_class_struct_union_type);
 make_proxy_type_if_needed:
-      if (type_is(class_struct_union_type, tk_pointer) &&
-          class_struct_union_type->variant.pointer.is_reference) {
-        class_struct_union_type =
-                 skip_typerefs(class_struct_union_type->variant.pointer.type);
-      }  /* if */
       if (class_struct_union_type->kind == (a_type_kind)tk_template_param) {
         /* For a template parameter type, switch to the corresponding proxy
            class.  Preserve cv-qualifiers on the type. */
