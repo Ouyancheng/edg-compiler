@@ -1,5 +1,22 @@
 Version 6.2
 
+
+8/31/20  [EDGcpfe/23322]
+Substitution of variadic requires-expressions
+
+The front end did not always correctly substitute requires-expressions with
+a parameter list containing a parameter pack.  In some complex cases, this
+resulted in spurious errors.  That problem is now fixed.
+
+
+8/31/20  [EDGcpfe/23322]
+Template constraint checking performance improvement
+
+The front end now caches certain aspects of template constraint checking for
+improved performance (in some complex but realistic cases, front processing
+time is now reduced by two orders of magnitude).
+
+
 8/31/20  [EDGcpfe/23222]
 Memory corruption in interpreter for error-type IL
 
