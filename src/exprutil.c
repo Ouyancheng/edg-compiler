@@ -25081,9 +25081,9 @@ return FALSE and:
         /* Store the substitution in the cache. */
         if (expr != NULL || copy_error) {
           /* An expression or a substitution failure (which is cached as a
-             NULL expression. */
+             NULL expression). */
           cached_subst.kind = a_test_subst_result::tsrk_expr;
-          cached_subst.expr = expr;
+          cached_subst.expr = copy_error ? (an_expr_node*)NULL : expr;
           release_local_constant(&cp);
         } else {
           if (allocated_cp == NULL) {
