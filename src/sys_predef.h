@@ -65,7 +65,7 @@ typedef struct a_builtin_user_descr {
                              - mode ('c', '+', or 'x')
                              - arch ('4' or '8') [optional]
                              - version (version range in parens) [optional]
-                             - restrictions ['v', 'i', 'f', 'h'] [optional]
+                             - restrictions ['v', 'i', 'f', 'h', 'c'][optional]
 
                            A prefix of 'S' indicates that the name in the
                            entry (which must start with "__builtin_") also
@@ -97,6 +97,8 @@ typedef struct a_builtin_user_descr {
 
                            If restrictions exist, they are a non-empty
                            sequence of the following characters:
+                             'c' - indicates that the signature depends on
+                                   the char8_t type
                              'f' - indicates that the signature depends on
                                    128-bit floating-point types
                              'h' - indicates that the signature depends on
@@ -407,11 +409,11 @@ EXTERN a_builtin_user_descr builtin_user_table[]
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING */
 
   /* Builtins used by Microsoft for char_traits<char8_t> intrinsics. */
-  { "__builtin_u8memchr", "m+(1922-)",
+  { "__builtin_u8memchr", "m+(1922-)[c]",
     "char8_t* (const char8_t*,int,__edg_size_type__)", bufk_u8memchr },
-  { "__builtin_u8memcmp", "m+(1922-)",
+  { "__builtin_u8memcmp", "m+(1922-)[c]",
     "int (const char8_t*,const char8_t*,__edg_size_type__)", bufk_u8memcmp },
-  { "__builtin_u8strlen", "m+(1922-)",
+  { "__builtin_u8strlen", "m+(1922-)[c]",
     "__edg_size_type__ (const char8_t*)", bufk_u8strlen },
 
   /* Clang defines these generic builtins as having void return type but

@@ -1,5 +1,12 @@
 Version 6.2
 
+8/31/20  [EDGcpfe/23330]
+Spurious errors when preloading builtins in some modes
+
+Using the --set_flag preload_builtin_functions command-line option had caused
+spurious errors when the char8_t type was not enabled (for example with
+--microsoft_version=1922).  Now fixed.
+
 
 8/31/20  [EDGcpfe/23259,EDGcpfe/23336]
 Template constraints on conversion function templates

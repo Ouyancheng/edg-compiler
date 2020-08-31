@@ -3229,6 +3229,7 @@ ec_multiple_module_matches;;"more than one file in the module file list matches 
 ec_module_file_mismatch;;"module file found for \"%s\" is for a different module"
 ec_module_kind_any;INTERNAL;"any kind of module file"
 ec_module_read_error;;"unable to read module file"
+ec_builtin_needs_char8_t;;"builtin function is not available because the char8_t type is not supported with the current options"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

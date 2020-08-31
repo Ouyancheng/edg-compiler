@@ -434,6 +434,17 @@ returned an error is issued (only if issue_error is TRUE).
   if (restrictions != NULL) {
     while (*restrictions != ']' && *restrictions != '\0') {
       switch (*restrictions) {
+        case 'c':
+          /* char8_t enabled? */
+          if (char8_t_enabled) {
+            /* Okay. */
+          } else {
+            if (issue_error) {
+              pos_error(ec_builtin_needs_char8_t, &pos_curr_token);
+            }  /* if */
+            result = FALSE;
+          }  /* if */
+          break;
         case 'f':
           /* Ensure that 128-bit floating-point types are configured and
              enabled. */
