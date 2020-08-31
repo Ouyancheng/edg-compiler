@@ -1,6 +1,26 @@
 Version 6.2
 
 
+8/31/20  [EDGcpfe/23259,EDGcpfe/23336]
+Template constraints on conversion function templates
+
+Consider:
+
+  struct X {
+    template<typename T> requires (sizeof(T) == 1)
+      operator T();
+    template<typename T>
+      operator T();
+  } x;
+  int r = x;  // Previously an constraint-failure error.  Now okay.
+
+Previously, overload resolution did not treat the constraint failure of the
+deduced X::operator int() as a deduction failure (SFINAE), and thus an error
+was issued on the first conversion function template candidate.  Now, the first
+candidate is discarded and overload resolution successfully selects the second
+candidate.
+
+
 8/31/20  [EDGcpfe/23322]
 Substitution of variadic requires-expressions
 

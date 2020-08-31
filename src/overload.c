@@ -14582,8 +14582,8 @@ not_direct_binding_case:
     this_match_ptr = NULL;
     clear_std_conv_descr(&std_conversion);
     base_conversion_symbol = fundamental_symbol_of(conversion_symbol);
-    function_template_case = (base_conversion_symbol->kind ==
-                                          (a_symbol_kind)sk_function_template);
+    function_template_case = symbol_is(base_conversion_symbol,
+                                       sk_function_template);
     if (!function_template_case) {
       /* The symbol is not a template. */
       conversion_routine = base_conversion_symbol->variant.routine.ptr;
@@ -14634,9 +14634,11 @@ not_direct_binding_case:
     }  /* if */
     conv_routine_type = conversion_routine->type;
     if (function_template_case) {
+      /* The symbol is a function template. */
       a_type_ptr eff_dest_type = requested_type;
       a_boolean  weird_gpp_case = FALSE;
-      /* The symbol is a function template. */
+      a_routine_type_supplement_ptr
+                 rtsp;
       check_assertion(eff_dest_type != NULL);  /* For Coverity. */
       /* Do type deduction on the return type. */
       return_type = return_type_of(conv_routine_type);
@@ -14736,26 +14738,41 @@ not_direct_binding_case:
                                           /*param_count=*/0);
       if (conv_routine_type == NULL) {
         goto reject_function;
-      } else { 
-        a_routine_type_supplement_ptr  rtsp;
-        rtsp = conv_routine_type->variant.routine.extra_info;
-        if ((orig_is_copy_initialization ||
-             (conv_context & CCO_IGNORE_EXPLICIT_MEMBERS)) &&
-            !boolean_converted_case &&
-            !(conv_context & CCO_IGNORE_EXPLICIT_MEMBERS) &&
-            rtsp->is_conditionally_explicit &&
-            conditionally_explicit_confirmed(conv_routine_type)) {
-          /* After substitution, this function turns out to be "explicit(true)"
-             and we are in a context that doesn't permit explicit conversion
-             functions. */
-            goto reject_function;
-        }  /* if */
-        if (!is_implicitly_callable_conversion_function(conv_routine_type)) {
-          /* The deduced conversion function performs a conversion for which
-             a conversion function is never implicitly called, e.g.,
-             T to T&, so discard it. */
+      }  /* if */
+      if (concepts_enabled) {
+        /* Check that the constraints are satisfied. */
+        /* First check for runaway substitution. */
+        if (tssp->variant.function.pending_deductions >
+                                                 max_pending_instantiations) {
+          report_excessive_rescan_depth();
           goto reject_function;
         }  /* if */
+        ++(tssp->variant.function.pending_deductions);
+        if (!check_template_constraints(
+                                 originator_symbol_of(base_conversion_symbol),
+                                 template_arg_list, /*diagnose=*/FALSE)) {
+          --(tssp->variant.function.pending_deductions);
+          goto reject_function;
+        }  /* if */
+        --(tssp->variant.function.pending_deductions);
+      }  /* if */
+      rtsp = conv_routine_type->variant.routine.extra_info;
+      if ((orig_is_copy_initialization ||
+           (conv_context & CCO_IGNORE_EXPLICIT_MEMBERS)) &&
+          !boolean_converted_case &&
+          !(conv_context & CCO_IGNORE_EXPLICIT_MEMBERS) &&
+          rtsp->is_conditionally_explicit &&
+          conditionally_explicit_confirmed(conv_routine_type)) {
+        /* After substitution, this function turns out to be "explicit(true)"
+           and we are in a context that doesn't permit explicit conversion
+           functions. */
+          goto reject_function;
+      }  /* if */
+      if (!is_implicitly_callable_conversion_function(conv_routine_type)) {
+        /* The deduced conversion function performs a conversion for which
+           a conversion function is never implicitly called, e.g.,
+           T to T&, so discard it. */
+        goto reject_function;
       }  /* if */
     } else {
       /* Not a template case.  Check for cases like "operator auto()". */
