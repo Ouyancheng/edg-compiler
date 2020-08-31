@@ -1,5 +1,20 @@
 Version 6.2
 
+8/31/20  [EDGcpfe/23222]
+Memory corruption in interpreter for error-type IL
+
+The interpreter (particularly, function mark_whole_subobject_uninitialized)
+could corrupt memory when given IL with error type nodes.  For example:
+
+  template<typename T> concept C = (sizeof(T) == sizeof(int));
+  struct S {
+    C T;  // Causes S to contain a member with error type.
+  } s = { .x = s.~S() };  // Previously caused memory corruption.
+  int r = s.x;
+
+That is now fixed.
+
+
 8/30/20  [EDGcpfe/22970,EDGcpfe/23074]
 C++-generating back end: qualified names in explicit instantiation directives
 
