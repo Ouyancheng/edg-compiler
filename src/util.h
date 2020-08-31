@@ -1922,8 +1922,17 @@ struct Ptr_map: private Allocator<Ptr_map_entry<a_Ptr_key, a_Value>> {
   inline void map_with_hash(a_key  key, const a_value &value, uintptr_t  hash);
   inline void map(a_key  key, const a_value &value)
     { this->map_with_hash(key, value, hash_ptr(key)); }
-  inline void replace(a_key  key, const a_value  &value);
-  inline auto map_or_replace(a_key  key, const a_value  &value) -> a_value;
+  inline void replace_with_hash(a_key          key,
+                                const a_value  &value,
+                                uintptr_t      hash);
+  inline void replace(a_key  key, const a_value  &value)
+    { this->replace_with_hash(key, value, hash_ptr(key)); }
+  inline auto map_or_replace_with_hash(a_key          key,
+                                       const a_value  &value,
+                                       uintptr_t      hash)
+              -> a_value;
+  inline auto map_or_replace(a_key  key, const a_value  &value) -> a_value
+    { return this->map_or_replace_with_hash(key, value, hash_ptr(key)); }
   inline void unmap(a_key  key);
   inline auto number_of_elements() const -> an_index
     { return this->n_elements; }
@@ -2074,14 +2083,15 @@ value of that key.
 
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
-inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::replace(
+inline void Ptr_map<a_Ptr_key, a_Value, Allocator>::replace_with_hash(
                                                         a_key          key,
-                                                        const a_value  &value)
+                                                        const a_value  &value,
+                                                        uintptr_t      hash)
 /*
-Replace the value associated with the given key by the given value.
+Replace the value associated with the given key by the given value.  hash is
+the precomputed hash of that key.
 */
 {
-  uintptr_t  hash = hash_ptr(key);
   an_index   mask = this->hash_mask;
   an_index   idx = hash & mask;
   an_entry   *tbl = this->table;
@@ -2097,22 +2107,23 @@ Replace the value associated with the given key by the given value.
       ptr = tbl[idx].ptr;
     }  /* if */
   }  /* for */                                                               
-}  /* Ptr_map::replace */
+}  /* Ptr_map::replace_with_hash */
 
 
 template<typename a_Ptr_key, typename a_Value,
          template<typename> class Allocator>
-inline auto Ptr_map<a_Ptr_key, a_Value, Allocator>::map_or_replace(
+inline auto Ptr_map<a_Ptr_key, a_Value, Allocator>::map_or_replace_with_hash(
                                                         a_key          key,
-                                                        const a_value  &value)
+                                                        const a_value  &value,
+                                                        uintptr_t      hash)
                                                     -> a_value
 /*
 If the given key is already mapped, replace its associated value by the given
 value and return the previously associated value.  Otherwise, record a new key,
-associate it with the given value, and return a_value().
+associate it with the given value, and return a_value().  hash is the
+precomputed hash of that key.
 */
 {
-  uintptr_t  hash = hash_ptr(key);
   an_index   mask = this->hash_mask;
   an_index   idx = hash & mask, idx0 = idx;
   an_entry   *tbl = this->table;
@@ -2150,7 +2161,7 @@ associate it with the given value, and return a_value().
     }  /* for */
   }  /* if */ 
   return old_value;
-}  /* Ptr_map::map_or_replace */
+}  /* Ptr_map::map_or_replace_with_hash */
 
 
 template<typename a_Ptr_key, typename a_Value,

@@ -25097,7 +25097,11 @@ return FALSE and:
           cached_subst.constant = allocated_cp;
         }  /* if */
         test.template_arg_list = copy_template_arg_list(template_arg_list);
-        constraint_subst_cache->map_with_hash(test, cached_subst, hash);
+        /* In some (error) situation, the call to copy_template_param_expr
+           may have caused the constraint test to be cached already.  We
+           therefore use "map_or_replace" instead of just "map" here. */
+        constraint_subst_cache->map_or_replace_with_hash(
+                                                    test, cached_subst, hash);
         switch_back_to_original_region(region_to_switch_back_to);
         error_position = saved_err_pos;
       } else if (cached_subst.kind == a_test_subst_result::tsrk_expr) {
