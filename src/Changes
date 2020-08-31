@@ -4,7 +4,9 @@ Version 6.2
 Memory corruption in interpreter for error-type IL
 
 The interpreter (particularly, function mark_whole_subobject_uninitialized)
-could corrupt memory when given IL with error type nodes.  For example:
+could corrupt memory when given IL with error type nodes.  For example,
+the following code containing multiple errors resulted in an abort due to
+such memory corruption:
 
   template<typename T> concept C = (sizeof(T) == sizeof(int));
   struct S {
