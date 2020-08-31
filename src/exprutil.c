@@ -25344,18 +25344,10 @@ subst_pairs is successful.
   if (ptp != NULL && subst_pairs.length() != 0) {
     /* Check that the parameter list can successfully be substituted, and
        record parameter pack information in *ctws_state if needed. */
-    create_variadic_param_info_for_routine_params(&ctws_state, ptp);
-    for (; ptp != NULL; ptp = ptp->next) {
-      a_type_ptr  tp = param_type_restoring_orig_templ_array(ptp);
-      tp = type_after_substitutions(tp, subst_pairs, &requires_expr->position,
-                                    CTWS_NO_OPTIONS, &copy_error, &ctws_state);
-      if (copy_error) break;
-      adjust_parameter_type(&tp);
-      if (is_invalid_parameter_type(tp)) {
-        copy_error = TRUE;
-        break;
-      }  /* if */
-    }  /* for */
+    (void)param_types_after_substitutions(ptp, subst_pairs,
+                                          &requires_expr->position,
+                                          CTWS_NO_OPTIONS, &copy_error,
+                                          &ctws_state);
     if (copy_error) result = FALSE;
   }  /* if */
   if (result) {
@@ -25434,6 +25426,9 @@ subst_pairs is successful.
           break;
       }  /* switch */
     }  /* for */
+  }  /* if */
+  if (ctws_state.variadic_param_info != NULL) {
+    free_list_of_variadic_param_info(ctws_state.variadic_param_info);
   }  /* if */
   return result;
 }  /* requires_expr_satisfied */
