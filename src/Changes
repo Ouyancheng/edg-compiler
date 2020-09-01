@@ -40,7 +40,7 @@ resulted in spurious errors.  That problem is now fixed.
 Template constraint checking performance improvement
 
 The front end now caches certain aspects of template constraint checking for
-improved performance (in some complex but realistic cases, front processing
+improved performance (in some complex but realistic cases, front end processing
 time is now reduced by two orders of magnitude).
 
 
