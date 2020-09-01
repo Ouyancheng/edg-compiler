@@ -1,5 +1,26 @@
 Version 6.2
 
+
+9/1/20   [EDGcpfe/23259,EDGcpfe/23343]
+Function template ordering and C++20 constraints
+
+Consider (in C++20 mode):
+
+  struct S {
+    template<typename ... Ts>
+      constexpr int operator()(Ts &&...) requires true { return 1; }
+    template<typename T1, typename T2, typename T3>
+      constexpr int operator()(T1&&, T2&&, T3&&) requires true { return 2; }
+  };
+  static_assert(S{}(1, 2, 3) == 2);  // Previously ambiguous.  Now okay.
+
+Previously, this elicited an ambiguity because the constraints on the two
+candidates are not equivalent (they're both "true", but distinct "true" tokens
+are not equivalent constraints).  Now, the second candidate is selected because
+it is more specialized based on traditional deduction rules and that takes
+precedence over constraint ordering.
+
+
 8/31/20  [EDGcpfe/23330]
 Spurious errors when preloading builtins in some modes
 
