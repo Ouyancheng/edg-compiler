@@ -8342,14 +8342,12 @@ of the name.
       break;
     case ifc_NameSort_Operator:
       { an_ifc_NameSort_Operator inso, *insop;
-#if CHECKING
         an_operator_kind         opkind;
-#endif /* CHECKING */
         insop = get_NameSort_Operator(&inso);
-#if CHECKING
         opkind = get_operator_kind(insop->op);
-        check_assertion(opkind == opkind_basic || opkind == opkind_post);
-#endif /* CHECKING */
+        if (!(opkind == opkind_basic || opkind == opkind_post)) {
+          unexpected_condition_str("Unexpected operator kind");
+        }  /* if */
         ident = insop->encoded;
         goto cache_op;
       }
