@@ -19,7 +19,7 @@ Consider:
     template<typename T>
       operator T();
   } x;
-  int r = x;  // Previously an constraint-failure error.  Now okay.
+  int r = x;  // Previously a constraint-failure error.  Now okay.
 
 Previously, overload resolution did not treat the constraint failure of the
 deduced X::operator int() as a deduction failure (SFINAE), and thus an error
