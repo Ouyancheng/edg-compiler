@@ -24820,7 +24820,7 @@ sym2 and vice versa; otherwise, set it to FALSE.
 
 
 struct a_constraint_test {
-  /* A structure that encode a constraint test: I.e., a constraint expression
+  /* A structure that encodes a constraint test: i.e., a constraint expression
      and template arguments to substitute in that expression. */
   an_expr_node_ptr
 		constraint;
@@ -25055,7 +25055,7 @@ return FALSE and:
                                    p_fatal, &copy_error));
   } else {
     /* An atomic constraint.  First perform substitution (or reuse a cached
-       substitution; then evaluate the expression. */
+       substitution); then evaluate the expression. */
     an_expr_node_ptr  expr;
     a_constant_ptr    allocated_cp = NULL;
     if (template_param_list != NULL) {
@@ -25097,7 +25097,7 @@ return FALSE and:
           cached_subst.constant = allocated_cp;
         }  /* if */
         test.template_arg_list = copy_template_arg_list(template_arg_list);
-        /* In some (error) situation, the call to copy_template_param_expr
+        /* In some (error) situations, the call to copy_template_param_expr
            may have caused the constraint test to be cached already.  We
            therefore use "map_or_replace" instead of just "map" here. */
         constraint_subst_cache->map_or_replace_with_hash(

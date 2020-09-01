@@ -15037,7 +15037,7 @@ parameters.
   a_param_type_ptr		prev_ptp = NULL;
   a_param_type_ptr		result_list = NULL;
 
-  /* Make copies of the entries on type's param types list, making the
+  /* Make copies of the entries on the given list (ptp_list), making the
      appropriate substitutions for template parameter type entries. */
   for (ptp = ptp_list; ptp != NULL; ptp = ptp->next) {
     a_pack_expansion_stack_entry_ptr	pesep;
@@ -15091,11 +15091,11 @@ parameters.
            the parameter type, if needed. */
         adjust_parameter_type(&tp);
         if (remove_qualifiers_from_param_types) {
-          /* Strip off top-level type qualifiers.  They are not
-             part of the type signature of a C++ function -- see
-             8.3.5 para 3.  However, because they do belong to
-             the type of the parameter variable, they were not
-             removed before add_to_param_id_list was called. */
+          /* Strip off top-level type qualifiers.  They are not part of the
+             type signature of a C++ function -- see N4861 [dcl.fct]/5.
+             However, because they do belong to the type of the parameter
+             variable, they were not removed before add_to_param_id_list was
+             called. */
           param_qualifiers = get_top_level_type_qualifiers(tp);
           if (param_qualifiers != TQ_NONE) { 
             tp = make_unqualified_type(tp);
