@@ -652,7 +652,7 @@ a pointer to it.
 }  /* alloc_variadic_param_info */
 
 
-static void free_list_of_variadic_param_info(a_variadic_param_info_ptr vpip)
+void free_list_of_variadic_param_info(a_variadic_param_info_ptr vpip)
 /*
 Return a list of variadic parameter information entries to the available list.
 vpip may be NULL, in which case nothing is done.
@@ -6454,22 +6454,16 @@ Determine whether any of the arguments in arg_list have internal linkage.
 }  /* template_arg_list_has_internal_linkage */
 
 
-static void create_variadic_param_info_for_routine(
-				a_ctws_state_ptr		ctws_state,
-				a_routine_ptr			rp)
+void create_variadic_param_info_for_routine_params(
+                                                 a_ctws_state_ptr  ctws_state,
+                                                 a_param_type_ptr  ptp)
 /*
-Go through the parameter list of the routine specified by rp and create
-variadic param info entries for any variadic parameters so that they can
-be found by the substitution process.
+Go through the given parameter list and create variadic param info entries for
+any variadic parameters so that they can be found by the substitution process
+described by ctws_state.
 */
 {
-  a_routine_type_supplement_ptr	rtsp;
-  a_type_ptr			rout_type;
-  a_param_type_ptr		ptp;
-
-  rout_type = skip_typerefs(rp->type);
-  rtsp = rout_type->variant.routine.extra_info;
-  for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
+  for (; ptp != NULL; ptp = ptp->next) {
     if (ptp->is_parameter_pack) {
       a_variadic_param_info_ptr	vpip;
       vpip = alloc_variadic_param_info();
@@ -6487,7 +6481,7 @@ be found by the substitution process.
       ctws_state->variadic_param_info_tail = vpip;
     }  /* if */
   }  /* for */
-}  /* create_variadic_param_info_for_routine */
+}  /* create_variadic_param_info_for_routine_params*/
 
 
 void copy_exc_spec_from_prototype_template(
@@ -6535,7 +6529,8 @@ template with any needed substitutions.  In case of substitution errors set
       init_ctws_state(&ctws_state);
       ctws_state.preserve_deduced_packs = TRUE;
       push_instantiation_scope_for_rescan(templ_sym);
-      create_variadic_param_info_for_routine(&ctws_state, rp);
+      create_variadic_param_info_for_routine_params(&ctws_state,
+                                                    function_type_params(rtp));
       substitute_constant(&esp->variant.noexcept_arg, parent_class_of(rp),
                           (a_template_param_ptr)NULL,
                           (a_template_arg_ptr)NULL,
@@ -10342,16 +10337,18 @@ corresponding template arguments that have been determined so far.
     /* No constraint. */
     result = TRUE;
   } else {
-    a_diag_list  diag_list, *p_diag_list = NULL;
+    a_subst_pairs_array  subst_pairs(1);
+    a_diag_list          diag_list, *p_diag_list = NULL;
+    a_ctws_state         ctws_state;
     if (diag_pos != NULL) {
       clear_diag_list(&diag_list);
       p_diag_list = &diag_list;
     }  /* if */
-    a_subst_pairs_array  subst_pairs(1);
     subst_pairs.push_back(a_subst_pairs_descr{ param_list, arg_list,
                                                FALSE, FALSE });
-    if (check_type_constraint(arg_type, constraint,
-                              subst_pairs, p_diag_list)) {
+    init_ctws_state(&ctws_state);
+    if (check_type_constraint(arg_type, constraint, subst_pairs,
+                              &ctws_state, p_diag_list)) {
       result = TRUE;
     } else {
       result = FALSE;
@@ -15010,6 +15007,216 @@ copy_type_with_substitution for the meaning of the parameters.
 }  /* copy_class_template_placeholder_with_substitution */
 
 
+static a_param_type_ptr copy_param_type_list_with_substitution(
+                            a_param_type_ptr     ptp_list,
+                            a_template_arg_ptr   templ_arg_list,
+                            a_template_param_ptr templ_param_list,
+                            a_source_position    *source_pos,
+                            a_ctws_options_set   options,
+                            a_boolean            *copy_error,
+                            a_ctws_state_ptr     ctws_state,
+                            int                  reusable_param_types = 0,
+                            a_type_ptr           first_substituted_type = NULL)
+/*
+Copy the parameter type list specified by ptp_list performing substitution
+on the template arguments used in the parameter types.  Return the updated
+parameter type list.  If part of the list has already been checked to see if
+substitution is needed, reusable_param_types is the number of parameters
+that don't require substitution, and first_substituted_type is the type
+that should be used for the first parameter that does require substitution.
+Otherwise, reusable_param_types should be zero and first_substituted_type
+should be NULL.  See copy_type_with_substitution for the meaning of the
+parameters.
+*/
+{
+  a_param_type_ptr		ptp;
+  a_param_type_ptr		new_ptp;
+  a_param_type_ptr		prev_ptp = NULL;
+  a_param_type_ptr		result_list = NULL;
+
+  /* Make copies of the entries on type's param types list, making the
+     appropriate substitutions for template parameter type entries. */
+  for (ptp = ptp_list; ptp != NULL; ptp = ptp->next) {
+    a_pack_expansion_stack_entry_ptr	pesep;
+    a_boolean				any_more;
+    uint32_t				elements = 0;
+    a_param_type_ptr			first_element = NULL;
+    a_boolean				err = FALSE;
+    
+    if ((options & CTWS_DEDUCTION_GUIDE) != 0) {
+      any_more = TRUE;
+    } else {
+      any_more = begin_rescan_pack_expansion_context(
+                                               ptp->pack_expansion_descr,
+                                               templ_param_list,
+                                               templ_arg_list,
+                                               &pesep, options,
+                                               ctws_state, &err);
+    }  /* if */
+    /* Check if an error occurred (such as mismatched parameter pack
+       lengths). */
+    if (err) subst_fail(*copy_error);
+    /* Loop through the pack elements. */
+    while (any_more) {
+      a_type_ptr ptype = param_type_restoring_orig_templ_array(ptp);
+      a_type_ptr declared_type;
+      a_type_ptr tp;
+      a_type_qualifier_set
+                 param_qualifiers = TQ_NONE;
+      elements++;
+      if (reusable_param_types > 0) {
+        /* We have already called copy_type_with_substitution for this
+           parameter and we know we can reuse the existing type. */
+        tp = ptype;
+        --reusable_param_types;
+      } else if (first_substituted_type != NULL) {
+        /* We have already called copy_type_with_substitution for this
+           parameter and the type returned contained a substitution;
+           we can use that type. */
+        tp = first_substituted_type;
+        first_substituted_type = NULL;
+      } else {
+        /* copy_type_with_substitution has not been called yet. */
+        tp = copy_type_with_substitution(ptype, templ_arg_list,
+                                         templ_param_list, source_pos,
+                                         options, copy_error,
+                                         ctws_state);
+      }  /* if */
+      declared_type = tp;
+      if (tp != ptype) {
+        /* The type is not the one originally pointed to.  Adjust
+           the parameter type, if needed. */
+        adjust_parameter_type(&tp);
+        if (remove_qualifiers_from_param_types) {
+          /* Strip off top-level type qualifiers.  They are not
+             part of the type signature of a C++ function -- see
+             8.3.5 para 3.  However, because they do belong to
+             the type of the parameter variable, they were not
+             removed before add_to_param_id_list was called. */
+          param_qualifiers = get_top_level_type_qualifiers(tp);
+          if (param_qualifiers != TQ_NONE) { 
+            tp = make_unqualified_type(tp);
+            if (param_qualifiers & TQ_C11_ATOMIC) {
+              /* The C11 _Atomic qualifier should not be discarded. */
+              tp = make_qualified_type(tp, TQ_C11_ATOMIC);
+            }  /* if */
+          }  /* if */
+        }  /* if */
+        if (is_invalid_parameter_type(tp)) {
+          /* The result of the substitution is a void type or abstract
+             class type.  This is not allowed. */
+          subst_fail(*copy_error);
+        }  /* if */
+      }  /* if */
+      /* Allocate the param type entry and copy default arg info. */
+      new_ptp = make_param_type(tp, &null_source_position);
+      new_ptp->declared_type = declared_type;
+      new_ptp->qualifiers = param_qualifiers;
+      new_ptp->param_num = ptp->param_num;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      /* Copy the C++/CLI param array state to the deduced parameter. */
+      new_ptp->is_cli_param_array = ptp->is_cli_param_array;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      if (ptp->is_parameter_pack) {
+        /* If the type is a pack, make the new parameter a pack
+           as well, otherwise make the new parameter a pack
+           element. */
+        a_type_ptr	bottom_tp;
+        bottom_tp = find_bottom_of_type(tp);
+        if (!type_is_pack(bottom_tp)) {
+          new_ptp->is_pack_element = TRUE;
+        } else {
+          new_ptp->is_parameter_pack = TRUE;
+          if (ctws_state->new_templ_params == NULL) {
+            new_ptp->pack_expansion_descr = ptp->pack_expansion_descr;
+          } else {
+            /* This is used when creating deduction guide templates
+               to create a new pack expansion descriptor that refers
+               to the template parameters of the new template. */
+            new_ptp->pack_expansion_descr =
+                       copy_pack_expansion_descr_with_substitution(
+                                              ptp->pack_expansion_descr,
+                                              ctws_state);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (new_ptp->is_cli_param_array &&
+          !check_param_array_type(new_ptp, (a_source_position *)NULL)) {
+        /* A C++/CLI parameter array, and the deduced type doesn't match
+           the requirements for a parameter array. */
+        subst_fail(*copy_error);
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      if (ptp->has_default_arg) {
+        new_ptp->has_default_arg = TRUE;
+        new_ptp->default_arg_appeared_in_class_definition =
+                           ptp->default_arg_appeared_in_class_definition;
+      }  /* if */
+      if (ptp->has_unevaluated_template_default) {
+        new_ptp->has_unevaluated_template_default = TRUE;
+        new_ptp->orig_param_type_for_unevaluated_default_arg_expr =
+                   ptp->orig_param_type_for_unevaluated_default_arg_expr;
+      }  /* if */
+      if ((options & CTWS_DEDUCTION_GUIDE) != 0) {
+        /* When doing substitution to create a deduction guide,
+           copy the deduction flags in the parameter type entry. */
+        new_ptp->type_involves_template_param =
+                                       ptp->type_involves_template_param;
+        new_ptp->type_involves_deduced_template_param =
+                               ptp->type_involves_deduced_template_param;
+      }  /* if */
+      /* Add the new param type entry to the param types list. */
+      if (prev_ptp == NULL) {
+        result_list = new_ptp;
+      } else {
+        prev_ptp->next = new_ptp;
+      }  /* if */
+      if (first_element == NULL) first_element = new_ptp;
+      prev_ptp = new_ptp;
+      if ((options & CTWS_DEDUCTION_GUIDE) != 0) {
+        any_more = FALSE;
+      } else { 
+        (void)end_potential_pack_expansion_context(
+                                         pesep, /*is_declarator=*/FALSE);
+        any_more = advance_to_next_pack_element(pesep);
+      }  /* if */
+    }  /* while */
+    if (ptp->is_parameter_pack &&
+        (options & CTWS_PRESERVE_DEDUCED_PACKS) != 0) {
+      new_ptp = make_param_type(ptp->type, &null_source_position);
+      *new_ptp = *ptp;
+      /* Add the new param type entry to the param types list. */
+      if (prev_ptp == NULL) {
+        result_list = new_ptp;
+      } else {
+        prev_ptp->next = new_ptp;
+      }  /* if */
+      if (first_element == NULL) first_element = new_ptp;
+    }  /* if */
+    if (ptp->is_parameter_pack) {
+      /* Add this entry to the variadic param info list.  The
+         new entries are added to the end of the list pointed
+         to by ctws_state. */
+      a_variadic_param_info_ptr	vpip;
+      vpip = alloc_variadic_param_info();
+      vpip->param_type = first_element;
+      vpip->orig_param_type = ptp;
+      vpip->level = ctws_state->routine_type_levels;
+      if (ctws_state->variadic_param_info == NULL) {
+        vpip->next = ctws_state->variadic_param_info;
+        ctws_state->variadic_param_info = vpip;
+      } else {
+        vpip->next = ctws_state->variadic_param_info_tail->next;
+        ctws_state->variadic_param_info_tail->next = vpip;
+       }  /* if */
+      ctws_state->variadic_param_info_tail = vpip;
+    }  /* if */
+  }  /* for */
+  return result_list;
+}  /* copy_param_type_list_with_substitution */
+
+
 a_type_ptr copy_type_with_substitution(
 			a_type_ptr			type,
 			a_template_arg_ptr		templ_arg_list,
@@ -15044,8 +15251,6 @@ a pointer over a reference type or creating an array of references.
   a_type_ptr			new_this_class;
   a_type_ptr			first_new_type_for_param_types_list;
   a_param_type_ptr		ptp;
-  a_param_type_ptr		new_ptp;
-  a_param_type_ptr		prev_ptp;
   a_class_symbol_supplement_ptr	cssp;
   a_boolean			is_partial_order_check;
   an_expr_node_ptr		expr;
@@ -15533,186 +15738,13 @@ make_new_type:
         new_rtsp->assoc_routine = NULL;
         new_rtsp->this_class = new_this_class;
         new_rtsp->prototype_scope = NULL;
-        new_rtsp->param_type_list = NULL;
-        /* Make copies of the entries on type's param types list, making the
-           appropriate substitutions for template parameter type entries. */
-        prev_ptp = NULL;
-        for (ptp = rtsp->param_type_list; ptp != NULL; ptp = ptp->next) {
-          a_pack_expansion_stack_entry_ptr	pesep;
-          a_boolean				any_more;
-          uint32_t				elements = 0;
-          a_param_type_ptr			first_element = NULL;
-          a_boolean				err = FALSE;
-          
-          if ((options & CTWS_DEDUCTION_GUIDE) != 0) {
-            any_more = TRUE;
-          } else {
-            any_more = begin_rescan_pack_expansion_context(
-                                                     ptp->pack_expansion_descr,
-                                                     templ_param_list,
-                                                     templ_arg_list,
-                                                     &pesep, options,
-                                                     ctws_state, &err);
-          }  /* if */
-          /* Check if an error occurred (such as mismatched parameter pack
-             lengths). */
-          if (err) subst_fail(*copy_error);
-          /* Loop through the pack elements. */
-          while (any_more) {
-            a_type_ptr ptype = param_type_restoring_orig_templ_array(ptp);
-            a_type_ptr declared_type;
-            a_type_qualifier_set
-                       param_qualifiers = TQ_NONE;
-            elements++;
-            if (reusable_param_types > 0) {
-              /* We have already called copy_type_with_substitution for this
-                 parameter and we know we can reuse the existing type. */
-              tp = ptype;
-              --reusable_param_types;
-            } else if (first_new_type_for_param_types_list != NULL) {
-              /* We have already called copy_type_with_substitution for this
-                 parameter and the type returned contained a substitution;
-                 we can use that type. */
-              tp = first_new_type_for_param_types_list;
-              first_new_type_for_param_types_list = NULL;
-            } else {
-              /* copy_type_with_substitution has not been called yet. */
-              tp = copy_type_with_substitution(ptype, templ_arg_list,
-                                               templ_param_list, source_pos,
-                                               options, copy_error,
-                                               ctws_state);
-            }  /* if */
-            declared_type = tp;
-            if (tp != ptype) {
-              /* The type is not the one originally pointed to.  Adjust
-                 the parameter type, if needed. */
-              adjust_parameter_type(&tp);
-              if (remove_qualifiers_from_param_types) {
-                /* Strip off top-level type qualifiers.  They are not
-                   part of the type signature of a C++ function -- see
-                   8.3.5 para 3.  However, because they do belong to
-                   the type of the parameter variable, they were not
-                   removed before add_to_param_id_list was called. */
-                param_qualifiers = get_top_level_type_qualifiers(tp);
-                if (param_qualifiers != TQ_NONE) { 
-                  tp = make_unqualified_type(tp);
-                  if (param_qualifiers & TQ_C11_ATOMIC) {
-                    /* The C11 _Atomic qualifier should not be discarded. */
-                    tp = make_qualified_type(tp, TQ_C11_ATOMIC);
-                  }  /* if */
-                }  /* if */
-              }  /* if */
-              if (is_invalid_parameter_type(tp)) {
-                /* The result of the substitution is a void type or abstract
-                   class type.  This is not allowed. */
-                subst_fail(*copy_error);
-              }  /* if */
-            }  /* if */
-            /* Allocate the param type entry and copy default arg info. */
-            new_ptp = make_param_type(tp, &null_source_position);
-            new_ptp->declared_type = declared_type;
-            new_ptp->qualifiers = param_qualifiers;
-            new_ptp->param_num = ptp->param_num;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-            /* Copy the C++/CLI param array state to the deduced parameter. */
-            new_ptp->is_cli_param_array = ptp->is_cli_param_array;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-            if (ptp->is_parameter_pack) {
-              /* If the type is a pack, make the new parameter a pack
-                 as well, otherwise make the new parameter a pack
-                 element. */
-              a_type_ptr	bottom_tp;
-              bottom_tp = find_bottom_of_type(tp);
-              if (!type_is_pack(bottom_tp)) {
-                new_ptp->is_pack_element = TRUE;
-              } else {
-                new_ptp->is_parameter_pack = TRUE;
-                if (ctws_state->new_templ_params == NULL) {
-                  new_ptp->pack_expansion_descr = ptp->pack_expansion_descr;
-                } else {
-                  /* This is used when creating deduction guide templates
-                     to create a new pack expansion descriptor that refers
-                     to the template parameters of the new template. */
-                  new_ptp->pack_expansion_descr =
-                             copy_pack_expansion_descr_with_substitution(
-                                                    ptp->pack_expansion_descr,
-                                                    ctws_state);
-                }  /* if */
-              }  /* if */
-            }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-            if (new_ptp->is_cli_param_array &&
-                !check_param_array_type(new_ptp, (a_source_position *)NULL)) {
-              /* A C++/CLI parameter array, and the deduced type doesn't match
-                 the requirements for a parameter array. */
-              subst_fail(*copy_error);
-            }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-            if (ptp->has_default_arg) {
-              new_ptp->has_default_arg = TRUE;
-              new_ptp->default_arg_appeared_in_class_definition =
-                                 ptp->default_arg_appeared_in_class_definition;
-            }  /* if */
-            if (ptp->has_unevaluated_template_default) {
-              new_ptp->has_unevaluated_template_default = TRUE;
-              new_ptp->orig_param_type_for_unevaluated_default_arg_expr =
-                         ptp->orig_param_type_for_unevaluated_default_arg_expr;
-            }  /* if */
-            if ((options & CTWS_DEDUCTION_GUIDE) != 0) {
-              /* When doing substitution to create a deduction guide,
-                 copy the deduction flags in the parameter type entry. */
-              new_ptp->type_involves_template_param =
-                                             ptp->type_involves_template_param;
-              new_ptp->type_involves_deduced_template_param =
-                                     ptp->type_involves_deduced_template_param;
-            }  /* if */
-            /* Add the new param type entry to the param types list. */
-            if (prev_ptp == NULL) {
-              new_rtsp->param_type_list = new_ptp;
-            } else {
-              prev_ptp->next = new_ptp;
-            }  /* if */
-            if (first_element == NULL) first_element = new_ptp;
-            prev_ptp = new_ptp;
-            if ((options & CTWS_DEDUCTION_GUIDE) != 0) {
-              any_more = FALSE;
-            } else { 
-              (void)end_potential_pack_expansion_context(
-                                               pesep, /*is_declarator=*/FALSE);
-              any_more = advance_to_next_pack_element(pesep);
-            }  /* if */
-          }  /* while */
-          if (ptp->is_parameter_pack &&
-              (options & CTWS_PRESERVE_DEDUCED_PACKS) != 0) {
-            new_ptp = make_param_type(ptp->type, &null_source_position);
-            *new_ptp = *ptp;
-            /* Add the new param type entry to the param types list. */
-            if (prev_ptp == NULL) {
-              new_rtsp->param_type_list = new_ptp;
-            } else {
-              prev_ptp->next = new_ptp;
-            }  /* if */
-            if (first_element == NULL) first_element = new_ptp;
-          }  /* if */
-          if (ptp->is_parameter_pack) {
-            /* Add this entry to the variadic param info list.  The
-               new entries are added to the end of the list pointed
-               to by ctws_state. */
-            a_variadic_param_info_ptr	vpip;
-            vpip = alloc_variadic_param_info();
-            vpip->param_type = first_element;
-            vpip->orig_param_type = ptp;
-            vpip->level = ctws_state->routine_type_levels;
-            if (ctws_state->variadic_param_info == NULL) {
-              vpip->next = ctws_state->variadic_param_info;
-              ctws_state->variadic_param_info = vpip;
-            } else {
-              vpip->next = ctws_state->variadic_param_info_tail->next;
-              ctws_state->variadic_param_info_tail->next = vpip;
-             }  /* if */
-            ctws_state->variadic_param_info_tail = vpip;
-          }  /* if */
-        }  /* for */
+        new_rtsp->param_type_list = copy_param_type_list_with_substitution(
+                                        rtsp->param_type_list,
+                                        templ_arg_list, templ_param_list,
+                                        source_pos, options, copy_error,
+                                        ctws_state, 
+                                        reusable_param_types,
+                                        first_new_type_for_param_types_list);
         /* Don't substitute the return type when doing partial ordering.
            The types in the function type are substituted in the order in
            which they appear in the source.  So a non-trailing return type
@@ -15895,6 +15927,34 @@ ctws_state, see copy_type_with_substitution.
   }  /* for */
   return type;
 }  /* type_after_substitutions */
+
+
+a_param_type_ptr param_types_after_substitutions(
+                                    a_param_type_ptr           ptp_list,
+                                    a_subst_pairs_array const  &subst_pairs,
+                                    a_source_position          *source_pos,
+                                    a_ctws_options_set         options,
+                                    a_boolean                  *copy_error,
+                                    a_ctws_state_ptr           ctws_state)
+/*
+Return the given parameter type list after all its template parameters
+have been substituted as described by subst_pairs.  For source_pos, options,
+copy_error, and ctws_state, see copy_type_with_substitution.
+*/
+{
+  int  levels = (int)subst_pairs.length();
+
+  for (int k = 0; k < levels && !*copy_error; ++k) {
+    a_subst_pairs_descr const  *spd = &subst_pairs[k];
+    a_ctws_options_set         all_options = options;
+    if (k < levels-1) all_options |= CTWS_MAY_BE_RESCANNED;
+    ptp_list = copy_param_type_list_with_substitution(
+                                       ptp_list, spd->args, spd->params,
+                                       source_pos, all_options, copy_error,
+                                       ctws_state);
+  }  /* for */
+  return ptp_list;
+}  /* param_types_after_substitutions */
 
 
 a_template_arg_ptr templ_args_after_substitutions(

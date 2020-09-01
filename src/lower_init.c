@@ -320,9 +320,9 @@ calling sequence.
     /* See if a routine entry already exists before we create one.  This
        happens only when compiling the run time library and prevents
        multiple routine entries for the same routine. */
-    rout_type = make_routine_type_full(return_type, param1_type, param2_type,
-                                       param3_type, param4_type, param5_type,
-                                       param6_type, param7_type);
+    rout_type = make_routine_type(return_type, param1_type, param2_type,
+                                  param3_type, param4_type, param5_type,
+                                  param6_type, param7_type);
     *routine = find_existing_runtime_routine(name, rout_type);
   }  /* if */
   if (*routine == NULL) {

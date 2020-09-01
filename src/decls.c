@@ -20209,10 +20209,12 @@ error.
   if (type_constraint != NULL &&
       !is_template_dependent_type(deduced_type)) {
     a_subst_pairs_array  subst_pairs(0);
+    a_ctws_state         ctws_state;
     a_diag_list          diag_list;
     clear_diag_list(&diag_list);
-    if (!check_type_constraint(deduced_type, type_constraint,
-                               subst_pairs, &diag_list)) {
+    init_ctws_state(&ctws_state);
+    if (!check_type_constraint(deduced_type, type_constraint, subst_pairs,
+                               &ctws_state, &diag_list)) {
       a_diagnostic_ptr  dp;
       dp = pos_ty_start_error(ec_placeholder_type_failed_constraint,
                               &type_constraint->position,
