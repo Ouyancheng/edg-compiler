@@ -35858,7 +35858,15 @@ type_identifier_case:
                     is_alias_in_template_decl_context() ||
                     (scope_stack_top().in_nonreal_instantiation &&
                      !scope_stack_top().is_rescan)) {
-                  make_template_param_expr_constant(node, con);
+                  if (total_errors != 0 &&
+                      template_arg_list_involves_error_entity(tap)) {
+                    make_error_operand(result);
+                    result->position = node->position;
+                    release_local_constant(&con);
+                    break;
+                  } else {
+                    make_template_param_expr_constant(node, con);
+                  }  /* if */
                 } else {
                   a_boolean             val, fatal = FALSE;
                   val = concept_id_value(node, &fatal);
