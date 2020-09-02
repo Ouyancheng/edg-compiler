@@ -25100,7 +25100,7 @@ return FALSE and:
         /* In some (error) situations, the call to copy_template_param_expr
            may have caused the constraint test to be cached already.  We
            therefore use "map_or_replace" instead of just "map" here. */
-        constraint_subst_cache->map_or_replace_with_hash(
+        (void)constraint_subst_cache->map_or_replace_with_hash(
                                                     test, cached_subst, hash);
         switch_back_to_original_region(region_to_switch_back_to);
         error_position = saved_err_pos;
