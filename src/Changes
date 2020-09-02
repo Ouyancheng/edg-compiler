@@ -550,11 +550,11 @@ representation for an object that can be demangled to return the original
 declaration of the object.  Mangled names are also useful in that they
 remain constant across different compilations.
 
-A change has been made to offer a more efficient mapping from a_type
-address to a unique identifier (basically by creating a string that consists
-of the hexadecimal address of the type preceded by "__t").  That creates
-a unique string that can be used in generated C code, but that string may
-change from one compilation to another and cannot be demangled.
+A change has been made to offer a more efficient mapping from a type to a
+unique identifier (basically by creating a string that consists of the
+hexadecimal address of the type's IL entry preceded by "__t").  That creates a
+unique string that can be used in generated C code, but that string may change
+from one compilation to another and cannot be demangled.
 
 This change saves about 5% of the total time of running a recent version of
 the Boost tests in a C-generating configuration.
