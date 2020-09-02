@@ -855,10 +855,6 @@ extern void instantiate_template_enum(a_type_ptr		enum_type);
 
 extern void init_ctws_state(a_ctws_state_ptr	csp);
 
-extern void create_variadic_param_info_for_routine_params(
-                                                 a_ctws_state_ptr  ctws_state,
-                                                 a_param_type_ptr  ptp);
-
 extern void free_list_of_variadic_param_info(a_variadic_param_info_ptr vpip);
 
 extern a_template_arg_ptr copy_template_arg_list_with_substitution(

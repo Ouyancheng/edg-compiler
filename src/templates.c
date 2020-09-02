@@ -6457,7 +6457,7 @@ Determine whether any of the arguments in arg_list have internal linkage.
 }  /* template_arg_list_has_internal_linkage */
 
 
-void create_variadic_param_info_for_routine_params(
+static void create_variadic_param_info_for_routine_params(
                                                  a_ctws_state_ptr  ctws_state,
                                                  a_param_type_ptr  ptp)
 /*
