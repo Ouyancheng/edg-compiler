@@ -25152,7 +25152,7 @@ return FALSE and:
       }  /* if */
       release_local_constant(&cp);
     } else {
-      check_assertion(allocated_cp->type != NULL);
+      check_assertion(allocated_cp != NULL);
       if (!is_bool_type(allocated_cp->type)) {
         /* If the type is not a boolean after substitution, the failure is
            not SFINAE-like. */
