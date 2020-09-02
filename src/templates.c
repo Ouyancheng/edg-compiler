@@ -3534,7 +3534,7 @@ parameter matching.
       a_boolean  equiv;
       int        constraint_order = compare_constraints(templ_sym1, templ_sym2,
                                                         &equiv);
-      if (!equiv || constraint_order == 1) {
+      if (!equiv && constraint_order != -1) {
         /* The constraints are not comparable or the argument template is more
            constrained. */
         result = 0;
