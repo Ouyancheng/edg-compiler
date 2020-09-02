@@ -1,6 +1,22 @@
 Version 6.2
 
 
+9/2/20   [EDGcpfe/23347]
+Microsoft compatibility: Aggregate initializers and explicit constructors
+
+Consider:
+
+  struct S { explicit S(int = 0) {} };
+  struct X { S s; };
+  X x = {};  // Normally an error, but now okay in Microsoft mode.
+
+In standard C++ this is an error, because the default aggregate initializer
+for x.s is copy-initialized but the default constructor of S is explicit (and
+explicit constructors are normally not eligible for copy-initialization).
+It appears, however, that the Microsoft compiler accepts such cases and the
+front end now emulates that behavior in Microsoft C++ modes.
+
+
 9/1/20   [EDGcpfe/23259,EDGcpfe/23343]
 Function template ordering and C++20 constraints
 

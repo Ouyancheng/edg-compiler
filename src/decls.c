@@ -140,6 +140,8 @@ Clear the fields of *is.
   is->repeated_element = TRUE;
   is->ctor_initializer = FALSE;
   is->is_base_init = FALSE;
+  is->paren_as_aggregate_init = FALSE;
+  is->implicit_aggr_initializer = FALSE;
 }  /* clear_init_state_fields */
 
 #endif /* !NULL_POINTER_IS_ZERO */

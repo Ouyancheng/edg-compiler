@@ -569,6 +569,9 @@ typedef struct an_init_state {
 			/* TRUE if has_initializer is TRUE, and the initializer
 			   is a parenthesized expression-list being treated as
 			   aggregate initialization. */
+  a_bit_field	implicit_aggr_initializer:1;
+			/* TRUE while processing an implicit aggregate
+			   initializer. */
 } an_init_state;
 
 

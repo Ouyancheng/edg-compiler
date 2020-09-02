@@ -887,17 +887,23 @@ remove_any_extraneous_braces:
   {
     /* Copy the initialization state for the top-level initialization, except
        that it should always indicate copy initialization (even if the top
-       level initialization is direct).  The call to convert_initializer will
-       update elem_is.init_con and elem_is.init_dip (possibly to NULL). */
+       level initialization is direct).  An exception is made for Microsoft-
+       mode implicit aggregate elements:
+           struct S { explicit S(int = 0) {} };
+           struct X { S s; };
+           X x = {};  // Normally an error, but okay in Microsoft mode.
+    */
     an_init_state  elem_is;
     elem_is = *is;
-    elem_is.direct_init = FALSE;
+    elem_is.direct_init = (microsoft_mode && is->implicit_aggr_initializer);
     if (constexpr_enabled && elem_is.initializer_must_be_constant) {
       /* Do not force each element to be a valid constant.  The complete
          initializer will be evaluated higher up and only then is a valid
          constant required. */
       elem_is.initializer_must_be_constant = FALSE;
     }  /* if */
+    /* The call to convert_initializer will update elem_is.init_con and
+       elem_is.init_dip (possibly to NULL). */
     convert_initializer(icp, dest_type, /*is_var_init=*/FALSE,
                         /*fill_in_dtor=*/exceptions_enabled, &elem_is);
     if (elem_is.init_error || is_error_component(icp)) {
@@ -2682,7 +2688,11 @@ members up to end_field, but not including end_field, should be initialized.
   a_base_class_ptr      bcp;
   an_aggr_init_con_elem aggr_init_con;
   a_boolean             union_case = type_is(aggr_type, tk_union);
+  a_boolean             saved_implicit_aggr_initializer =
+                                                is->implicit_aggr_initializer;
 
+  /* Record that the following initializers are "implicit". */
+  is->implicit_aggr_initializer = TRUE;
   /* Register aggr_con as currently being initialized, in case a member
      initializer refers to a previously-initialized member.  That is
      represented by a member access expression using an enk_param_ref node
@@ -2880,6 +2890,7 @@ members up to end_field, but not including end_field, should be initialized.
     }  /* if */
   }  /* if */
   pop_aggr_init_constant(&aggr_init_con);
+  is->implicit_aggr_initializer = saved_implicit_aggr_initializer;
 }  /* aggr_init_class_remainder_if_needed */
 
 
