@@ -3782,7 +3782,7 @@ default mode (e.g., exception handling).
         }  /* if */
         abbr_func_templates_enabled = TRUE;
         if (!option_kind_used[(int)optk_modules]) {
-          modules_enabled = TRUE;
+          modules_enabled = DEFAULT_MODULES_ENABLED;
         }  /* if */
         export_keyword_enabled = FALSE;
         floating_point_template_parameters_allowed = TRUE;
@@ -6542,6 +6542,11 @@ file.
 #else /* !defined(DEFAULT_MICROSOFT_VERSION) */
   comment_undefined_macro_name(DEFAULT_MICROSOFT_VERSION);
 #endif /* defined(DEFAULT_MICROSOFT_VERSION) */
+#if defined(DEFAULT_MODULES_ENABLED)
+  define_numeric_valued_macro(DEFAULT_MODULES_ENABLED);
+#else /* !defined(DEFAULT_MODULES_ENABLED) */
+  comment_undefined_macro_name(DEFAULT_MODULES_ENABLED);
+#endif /* defined(DEFAULT_MODULES_ENABLED) */
 #if defined(DEFAULT_MS_PERMISSIVE)
   define_numeric_valued_macro(DEFAULT_MS_PERMISSIVE);
 #else /* !defined(DEFAULT_MS_PERMISSIVE) */

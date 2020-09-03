@@ -246,6 +246,10 @@ Set the test version flags to FALSE for demo versions.
 #endif /* IA64_ABI */
 #endif /* ifdef IA64_ABI */
 
+#ifndef DEFAULT_MODULES_ENABLED
+#define DEFAULT_MODULES_ENABLED TRUE
+#endif /* ifndef DEFAULT_MODULES_ENABLED */
+
 #ifdef CP_GEN_BE_VERSION
 /*
 Flags to be set for any version that uses the C++ generating back end.

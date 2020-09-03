@@ -281,6 +281,16 @@ command-line options.
 #endif /* ifndef DEFAULT_IMPLICIT_TYPENAME_ENABLED */
 
 /*
+Flag that is TRUE if C++20 modules should be enabled by default in C++20 mode.
+This will not affect whether modules are enabled in modes earlier than C++20.
+This is the default value of the variable modules_enabled, which can be
+modified by the "--modules" or "--no_modules" command-line options.
+*/
+#ifndef DEFAULT_MODULES_ENABLED
+#define DEFAULT_MODULES_ENABLED FALSE
+#endif /* ifndef DEFAULT_MODULES_ENABLED */
+
+/*
 Flag that is TRUE if, in C++, an "inline" function is allowed to have
 external linkage.  It is the default value for global variable
 extern_inline_allowed, which can be modified by the "--extern_inline" and

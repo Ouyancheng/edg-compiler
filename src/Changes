@@ -1,5 +1,15 @@
 Version 6.2
 
+9/3/20   [EDGcpfe/23352,EDGcpfe/20915]
+Modules: Disable modules by default in C++20 mode
+
+C++20 modules as a feature are not yet complete.  However, due to an oversight,
+these were enabled by default (in C++20-mode) in version 6.1.  A configuration
+macro "DEFAULT_MODULES_ENABLED" has been added to control this, and (currently)
+defaults to FALSE.  Once the feature is complete, modules will be enabled by
+default in C++20-mode.
+
+
 9/2/20   [EDGcpfe/23346,EDGcpfe/20915,EDGcpfe/23278]
 Modules: Spurious error when "module" used as an identifier
 
