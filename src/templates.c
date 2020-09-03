@@ -13969,6 +13969,7 @@ If there is an error in the copying, set *copy_error to TRUE.
         have_params && tpp != NULL && tpp->has_default_arg &&
         template_sym != NULL &&
         (is_class_template_symbol(template_sym) ||
+         symbol_is(template_sym, sk_concept_template) ||
          symbol_is(template_sym, sk_variable_template)) &&
         !(options & CTWS_PARTIAL_ARG_LIST_OKAY)) {
       /* This is an empty pack expansion for a template parameter with a
