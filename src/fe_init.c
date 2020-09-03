@@ -1326,7 +1326,6 @@ Install the keywords in the symbol table.
     check_assertion(!(export_keyword_enabled && modules_enabled));
     if (modules_enabled) {
       enter_keyword((a_token_kind)tok_export, "export");
-      enter_keyword((a_token_kind)tok_module, "module");
     } else if (export_keyword_enabled) {
       enter_keyword((a_token_kind)tok_cpp98_export, "export");
     }  /* if */

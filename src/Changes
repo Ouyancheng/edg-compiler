@@ -1,5 +1,17 @@
 Version 6.2
 
+9/2/20   [EDGcpfe/23346,EDGcpfe/20915,EDGcpfe/23278]
+Modules: Spurious error when "module" used as an identifier
+
+When modules are enabled, the front end was previously treating "module" as a
+non-context-sensitive keyword.  This caused spurious errors when "module" is
+used as an identifier.  For example:
+
+  int module;
+
+This is now fixed.
+
+
 9/2/20   [EDGcpfe/23345]
 C++-generating back end: braced default member initializers and casts
 
