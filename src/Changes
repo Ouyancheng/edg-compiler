@@ -1,5 +1,18 @@
 Version 6.2
 
+9/2/20   [EDGcpfe/23345]
+C++-generating back end: braced default member initializers and casts
+
+In cases where a default member initializer is specified using the braced
+form and the initializer expression is an explicit cast invoking a
+constructor, the C++-generating back end failed to put out the enclosing
+braces, resulting in incorrect code.  For example:
+
+  struct A { A(); };
+  struct B {
+    A a{ A() };  // Previously generated as "A aA{};"
+  };
+
 
 9/2/20   [EDGcpfe/23347]
 Microsoft compatibility: Aggregate initializers and explicit constructors

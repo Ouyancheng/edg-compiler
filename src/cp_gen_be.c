@@ -9392,9 +9392,13 @@ static void gen_field_initializer(a_field_ptr  field)
     /* The initializer was brace-enclosed in the source.  We need to
        figure out whether gen_dynamic_init will provide those braces or
        if they need to be put out here. */
-    if (dip->kind == (a_dynamic_init_kind)dik_constructor ||
-        dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
-      /* gen_dynamic_init will provide braces for these kinds. */
+    if (dip->kind == (a_dynamic_init_kind)dik_constructor) {
+      /* The braces supplied by gen_dynamic_init for an explicit cast will
+         enclose the constructor argument list following the type name, so
+         we must supply the outer braces here. */
+      need_braces = dip->is_explicit_cast;
+    } else if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+      /* gen_dynamic_init will provide braces for the aggregate. */
     } else if (dip->kind == (a_dynamic_init_kind)dik_constant) {
       a_constant_ptr cp = dip->variant.constant.ptr;
       if (cp->kind != (a_constant_repr_kind)ck_aggregate) {
