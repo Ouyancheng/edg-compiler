@@ -24897,38 +24897,6 @@ struct a_test_subst_result {
 };
 
 
-static inline a_boolean operator==(a_test_subst_result  tsr1,
-                                   a_test_subst_result  tsr2)
-/*
-Return TRUE if tsr1->kind and tsr2->kind are both tsrk_none.  Return FALSE if
-only one is tsrk_none.  Other cases are not currently permitted.
-*/
-{
-  a_boolean  result;
-
-  if (tsr1.kind == tsr2.kind) {
-    check_assertion(tsr1.kind == a_test_subst_result::tsrk_none);
-    result = TRUE;
-  } else {
-    result = FALSE;
-  }  /* if */
-  return result;
-}  /* operator== */
-
-#if EXPENSIVE_CHECKING
-
-/*lint --esym{528}*/
-static inline a_boolean operator!=(a_test_subst_result  tsr1,
-                                   a_test_subst_result  tsr2)
-/*
-Return !(tsr1 == tsr2).
-*/
-{
-  return !(tsr1 == tsr2);
-}  /* operator!= */
-
-#endif /* EXPENSIVE_CHECKING */
-
 using a_constraint_subst_cache = Ptr_map<a_constraint_test,
                                          a_test_subst_result>;
 			/* The type of a map that caches the substitutions of
