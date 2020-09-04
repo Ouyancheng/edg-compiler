@@ -1,5 +1,13 @@
 Version 6.2
 
+9/4/20   [EDGcpfe/22940]
+Microsoft compatibility: builtins for coroutines
+
+When microsoft_version >= 1928, builtin signatures are now available for
+__builtin_coro_destroy, __builtin_coro_done, __builtin_coro_noop,
+__builtin_coro_promise, and __builtin_coro_resume.
+
+
 9/3/20   [EDGcpfe/23352,EDGcpfe/20915]
 Modules: Disable modules by default in C++20 mode
 
