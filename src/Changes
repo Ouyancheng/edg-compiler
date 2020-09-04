@@ -1,5 +1,26 @@
 Version 6.2
 
+9/4/20   [EDGcpfe/23312]
+Member selections in member templates of nested classes
+
+Consider (in a C++ mode that parses function templates in their generic form;
+e.g., default C++11 mode):
+
+  template<typename T> struct S {
+    struct N {
+      template<typename U> static void h() {
+        S<T>::n.f<U>();  // Previously a spurious error.  Now okay.
+      }
+      template<typename> void f();
+    };
+    static N n;
+  };
+
+Previously, the front end treated the "<" following "S<T>::n.f" as a "less
+than" operator, which in turn resulted in spurious errors.  That is now fixed:
+the "<" is now treated as the beginning of a template argument list.
+
+
 9/4/20   [EDGcpfe/22940]
 Microsoft compatibility: builtins for coroutines
 

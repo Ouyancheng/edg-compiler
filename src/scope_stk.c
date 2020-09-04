@@ -1893,6 +1893,24 @@ template with no current instantiation or definition, we return FALSE.
 }  /* current_class_symbol_if_class_template */
 
 
+a_boolean scope_of_class_is_active(a_type_ptr  tp)
+/*
+Return TRUE if the class scope for the given class type is active on the scope
+stack.
+*/
+{
+  a_scope_stack_entry_ptr  ssep = &scope_stack_top();
+
+  for (; ssep != NULL; ssep = previous_scope_of(ssep)) {
+    if (scope_is(ssep, sck_class_struct_union) ||
+        scope_is(ssep, sck_class_reactivation)) {
+      if (ssep->assoc_type == tp) break;
+    }  /* if */
+  }  /* for */
+  return ssep != NULL;
+}  /* scope_of_class_is_active */
+
+
 static void update_template_param_symbol(a_symbol_ptr		param_symbol,
                                          a_template_arg_ptr	tap)
 /*

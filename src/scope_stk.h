@@ -2281,6 +2281,8 @@ Call namespace_is_enclosed_by_scope for the current scope.
 
 extern a_boolean current_class_symbol_if_class_template(a_symbol_ptr *sym);
 
+extern a_boolean scope_of_class_is_active(a_type_ptr  tp);
+
 extern a_function_shareable_constants_table_ptr
 alloc_function_shareable_constants_table(void);
 

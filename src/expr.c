@@ -8665,7 +8665,6 @@ case).
             is_integral_or_enum_type(operand_1->type)) {
           /* In pcc mode, something like 0->x is valid. */
           pcc_mode_integral_pointer_case = TRUE;
-          orig_class_struct_union_type = NULL;  /* Defensive programming. */
         } else if (is_template_param_or_nonreal_class_type(operand_1->type)) {
           /* In a prototype instantiation, allow a template parameter type,
              which might be a pointer type.  Also allow a nonreal class type,
@@ -8729,16 +8728,31 @@ make_proxy_type_if_needed:
         class_struct_union_type =
                  skip_typerefs(class_struct_union_type->variant.pointer.type);
       }  /* if */
-      if (class_struct_union_type->kind == (a_type_kind)tk_template_param) {
+      if (type_is(class_struct_union_type, tk_template_param)) {
         /* For a template parameter type, switch to the corresponding proxy
-           class.  Preserve cv-qualifiers on the type. */
-        a_type_qualifier_set qualifiers =
+           class, except that if the type is a nonreal type corresponding to
+           a prototype instantiation the prototype instantiation should be
+           used.  Preserve cv-qualifiers on the type. */
+        a_boolean     done = FALSE;
+        a_symbol_ptr  csym = symbol_for(class_struct_union_type);
+        if (csym != NULL && csym->is_nonreal_nested_type) {
+          a_type_ptr  nested_type =
+                       type_symbol_type(csym->corresp_nonreal_or_nested_type);
+          if (!nested_type->incomplete &&
+              scope_of_class_is_active(nested_type)) {
+             class_struct_union_type = nested_type;
+             done = TRUE;
+          }  /* if */
+        }  /* if */
+        if (!done) {
+          a_type_qualifier_set qualifiers =
                            get_type_qualifiers(orig_class_struct_union_type);
-        class_struct_union_type =
+          class_struct_union_type =
                      proxy_class_for_template_param(class_struct_union_type);
-        orig_class_struct_union_type =
+          orig_class_struct_union_type =
                                  make_qualified_type(class_struct_union_type,
                                                      qualifiers);
+        }  /* if */
       }  /* if */
       if (is_immediate_class_type(class_struct_union_type)) {
         /* Instantiate the class if it is a template class. */

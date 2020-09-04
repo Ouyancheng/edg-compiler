@@ -3731,18 +3731,10 @@ is already known to be a symbol with an associated nonreal type.
 
   a_symbol_ptr	result_sym = sym->corresp_nonreal_or_nested_type;
 
-  if (is_class_struct_union_symbol(sym)) {
-    a_type_ptr			tp = sym->variant.class_struct_union.type;
-    a_scope_stack_entry_ptr	ssep;
-    for (ssep = scope_stack_entry_for(depth_scope_stack);
-         ssep != NULL; ssep = previous_scope_of(ssep)) {
-      if (ssep->kind == (a_scope_kind)sck_class_struct_union ||
-          ssep->kind == (a_scope_kind)sck_class_reactivation) {
-        if (ssep->assoc_type == tp) break;
-      }  /* if */
-    }  /* for */
-    /* If the type was found on the scope stack, return the original symbol. */
-    if (ssep != NULL) result_sym = sym;
+  if (is_class_struct_union_symbol(sym) &&
+      scope_of_class_is_active(sym->variant.class_struct_union.type)) {
+    /* If the type is found on the scope stack, return the original symbol. */
+    result_sym = sym;
   }  /* if */
   return result_sym;
 }  /* f_nonreal_type_if_nested_prototype_type */
