@@ -11024,13 +11024,13 @@ See conversion_possible.
       std_conv->ptr_or_pm_to_bool = TRUE;
     }  /* if */
 #if GNU_VECTOR_TYPES_ALLOWED
-  } else if ((gnu_mode || clang_mode) && is_vector_type(source_type)) {
+  } else if ((gnu_mode || clang_mode) && type_is(source_type, tk_vector)) {
     /* Different versions of GCC behave differently wrt. conversions between
        vector types.  Some versions by default allow conversions between
        vectors of the same size and "kind" (integer vs. float), regardless of
        the specific element type.  We emulate that behavior when
        permissive_gnu_vector_conversions_enabled is TRUE. */
-    if (!is_vector_type(dest_type)) {
+    if (!type_is(dest_type, tk_vector)) {
       /* okay = FALSE; -- already set. */
     } else if (identical_types(source_type, dest_type)) {
       okay = TRUE;
@@ -11068,6 +11068,12 @@ See conversion_possible.
         }  /* if */
       }  /* if */
     }  /* if */
+  } else if (clang_mode && type_is(dest_type, tk_vector) &&
+             dest_type->variant.vector.is_ext_vector_type &&
+             is_arithmetic_or_enum(source_type)) {
+    /* Clang appears to allow converting any arithmetic or enum type to an
+       "ext_vector_type". */
+    okay = TRUE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   } else if (is_arithmetic_or_enum(dest_type)) {
     /* Destination type is arithmetic or enum. */
