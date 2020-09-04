@@ -769,8 +769,7 @@ check_abbreviation()
 --module_init
 --modules
 --modules_directory
---ms_mod_file_map
---ms_header_unit
+--ms_await
 --ms_c++14
 --ms_c++17
 --ms_c++20
@@ -778,11 +777,13 @@ check_abbreviation()
 --ms_c11
 --ms_c17
 --ms_compatibility
---ms_std_preprocessor
 --ms_cplusplus_std_value
 --ms_extensions
+--ms_header_unit
+--ms_mod_file_map
 --ms_permissive
 --ms_rvalue_cast
+--ms_std_preprocessor
 --ms_strict_ternary
 --mscorlib_file_name
 --multibyte_chars
@@ -1411,6 +1412,7 @@ process_option()
 	 --microsoft_16 | \
          --modules | \
          --no_modules | \
+         --ms_await | \
          --ms_c++14 | \
          --ms_c++17 | \
          --ms_c++20 | \

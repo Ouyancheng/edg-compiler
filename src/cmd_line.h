@@ -130,6 +130,7 @@ typedef enum /*an_option_kind*/ {
   optk_microsoft_cpplatest_mode,
   optk_microsoft_c11,
   optk_microsoft_c17,
+  optk_microsoft_await,
 #if NEAR_AND_FAR_ALLOWED
   optk_microsoft_16_mode,
 #endif /* NEAR_AND_FAR_ALLOWED */
@@ -2566,6 +2567,11 @@ EXTERN a_boolean
 			   to the C++ Standard in Microsoft mode rather
 			   than emulating the traditional Microsoft
 			   preprocessor. */
+
+EXTERN a_boolean
+		ms_await;
+			/* TRUE if the --ms_await command-line option was
+			   specified. */
 
 EXTERN a_boolean
 		lambda_allowed_in_uneval_context;

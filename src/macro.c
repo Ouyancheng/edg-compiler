@@ -4430,11 +4430,6 @@ static a_feature_support feature_support_list[] = {
     "201907L" },
   { "",
     0,
-    &coroutines_enabled,
-    "__cpp_coroutines",
-    "201902L" },
-  { "",
-    0,
     &class_template_arg_deduction_enabled,
     "__cpp_deduction_guides",
     "201703L" },
@@ -11235,6 +11230,19 @@ command line -D options.
                                  /*cannot_be_redefined=*/TRUE,
                                  /*ref_suppresses_pch_file=*/FALSE);
       }  /* if */
+      if ((microsoft_mode &&
+           (ms_await ||
+            (ms_version_is(>=1900) &&
+             ms_version_is(<1928) &&
+             coroutines_enabled))) ||
+          (clang_mode && coroutines_enabled)) {
+        /* Before C++20 coroutines were available, Microsoft and Clang used
+           the __cpp_coroutines feature test macro (now effectively
+           deprecated). */
+        (void)enter_predef_macro("201902L", "__cpp_coroutines",
+                                 /*cannot_be_redefined=*/TRUE,
+                                 /*ref_suppresses_pch_file=*/FALSE);
+      }  /* if */
     }  /* if */
   }  /* if */
 #if DEFINE_MACRO_WHEN_LONG_LONG_IS_DISABLED
@@ -11307,9 +11315,12 @@ command line -D options.
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
-    if (coroutines_enabled &&
-        ms_version_is(>=1900) &&
-        ms_version_is(<1928)) {
+    if (ms_await ||
+        (coroutines_enabled &&
+         ms_version_is(>=1900) &&
+         ms_version_is(<1928))) {
+      /* This macro is defined only when using the pre-C++20 coroutine
+         implementation. */
       (void)enter_predef_macro("1", "_RESUMABLE_FUNCTIONS_SUPPORTED",
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);

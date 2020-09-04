@@ -536,6 +536,9 @@ Initialize the option information table.
   add_option_description(optk_microsoft_c17, "ms_c17",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_microsoft_await, "ms_await",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #if NEAR_AND_FAR_ALLOWED
   add_option_description(optk_microsoft_16_mode, "microsoft_16",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -2722,11 +2725,6 @@ option values if they were not already set by a command line option.
       mixed_string_concat_enabled = TRUE;
       std_override_modifiers_enabled = TRUE;
       selection_from_prvalue_is_xvalue = TRUE;
-      if (!coroutines_enabled) {
-        /* This may have been enabled already via --set_flag; we don't want to
-           override that. */
-        coroutines_enabled = COROUTINE_ENABLING_POSSIBLE;
-      }  /* if */
       if (!option_kind_used[(int)optk_utf8_char_literals]) {
         utf8_char_literals_enabled = TRUE;
       }  /* if */
@@ -2922,6 +2920,10 @@ option values if they were not already set by a command line option.
             /* This may have been enabled already via --set_flag; we don't want
                to override that. */
             coroutines_enabled = COROUTINE_ENABLING_POSSIBLE;
+            if (coroutines_enabled &&
+                option_kind_used[(int)optk_microsoft_await]) {
+              command_line_error(ec_cl_await_incompatible_with_couroutines);
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
@@ -10214,6 +10216,12 @@ enable_microsoft_mode:
         ms_std_preproc = opt_value;
         opt_value = TRUE;
         goto enable_microsoft_mode;
+      case optk_microsoft_await:
+        /* Emulate Microsoft's /await command-line option to enable
+           experimental pre-C++20 coroutine behavior. */
+        check_assertion(opt_value == TRUE);
+        ms_await = TRUE;
+        break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
       case optk_far_data_pointers:
@@ -12409,6 +12417,7 @@ variables declared in cmd_line.h.
   lambda_template_param_list_enabled = FALSE;
   lambda_allowed_in_uneval_context = FALSE;
   ms_std_preproc = FALSE;
+  ms_await = FALSE;
   fold_expressions_enabled = FALSE;
   variadic_using_decls_enabled = FALSE;
   class_template_arg_deduction_enabled = FALSE;

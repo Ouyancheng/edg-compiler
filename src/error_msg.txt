@@ -3230,6 +3230,7 @@ ec_module_file_mismatch;;"module file found for \"%s\" is for a different module
 ec_module_kind_any;INTERNAL;"any kind of module file"
 ec_module_read_error;;"unable to read module file"
 ec_builtin_needs_char8_t;;"builtin function is not available because the char8_t type is not supported with the current options"
+ec_cl_await_incompatible_with_couroutines;;"the --ms_await command-line option cannot be specified if C++20 coroutines are enabled"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
