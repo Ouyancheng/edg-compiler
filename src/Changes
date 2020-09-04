@@ -1,5 +1,21 @@
 Version 6.2
 
+9/4/20   [EDGcpfe/23358]
+Overloading static and nonstatic member function templates
+
+The standard does not permit overloading static and nonstatic member functions
+with identical parameter types.  However, in the case of member function
+templates, most implementations appear to enforce a similar rule for member
+function templates only if the return types are identical.  The front end now
+behaves similarly in nonstrict C++ modes.  For example:
+
+  struct S {
+    template<typename T> void f(int);
+    template<typename T> static int f(int);
+      // Previously always an error.  Now only an error in strict C++ modes.
+  };
+
+
 9/4/20   [EDGcpfe/23348]
 Clang compatibility: Conversion to "ext_vector_type" types
 

@@ -16408,7 +16408,18 @@ decl_member_function, which handles in-class member function declarations.)
               }  /* if */
               fund_sym = NULL;
             } else if (routine_type_is_nonstatic_member_function(tp) !=
-                  routine_type_is_nonstatic_member_function(member_type)) {
+                     routine_type_is_nonstatic_member_function(member_type) &&
+                     (strict_ansi_mode ||
+                      (type_is(member_type, tk_routine) &&
+                       type_is(tp, tk_routine) &&
+                       identical_types(
+                                tp->variant.routine.return_type,
+                                member_type->variant.routine.return_type)))) {
+              /* The standard doesn't permit overloading static and non-static
+                 member functions with the same parameter type (see N4861
+                 [class.static.mfct]/2).  However, other implementation do not
+                 enforce that for member function templates unless the return
+                 type is also equivalent. */
               error_code = ec_static_nonstatic_with_same_param_types;
               pos_error(error_code, &locator->source_position);
             } else if (routine_types_are_redecl_compatible(tp, member_type,
