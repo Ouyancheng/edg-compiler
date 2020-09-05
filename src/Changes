@@ -218,9 +218,9 @@ Visual Studio behavior.
 
 
 8/27/20  [EDGcpfe/23320]
-Incorrect feature test macro name for concepts
+Incorrect feature test macro name for coroutines
 
-The feature test macro for concepts is "__cpp_impl_coroutine" and was
+The feature test macro for coroutines is "__cpp_impl_coroutine" and was
 mistakenly named "__cpp_impl_coroutines".  Now fixed.
 
 
