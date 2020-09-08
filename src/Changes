@@ -1,5 +1,18 @@
 Version 6.2
 
+9/8/20   [EDGcpfe/23360]
+C++-generating back end: forward references to opaque enumerators
+
+In cases where an opaque enumeration is declared and then later defined,
+the C++-generating back end could put out values of the enumeration as
+enumerators before those enumerators are defined.  This is now fixed.  For
+example, with --c++11:
+
+  enum E : int;
+  E x{};  // Previously generated as "x{ zero }", now as "x{ (E)0 }"
+  enum E : int { zero };
+
+
 9/4/20   [EDGcpfe/23358]
 Overloading static and nonstatic member function templates
 

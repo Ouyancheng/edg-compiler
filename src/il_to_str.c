@@ -5491,6 +5491,7 @@ precedence confusion.  Do the output in the way described by octl.
   a_boolean            need_reinterpret_cast = FALSE;
   a_constant_ptr       equiv_constant;
   a_boolean            cast_already_put_out = FALSE;
+  a_boolean            is_undefined_opaque_enum = FALSE;
 
   orig_type = constant->type;
   /* Watch out for constants (like ck_init_repeat) that have no type. */
@@ -5527,7 +5528,16 @@ precedence confusion.  Do the output in the way described by octl.
       /* If the constant is implicitly cast to another type, prefix the
          constant with an explicit cast. */
       a_boolean need_cast = FALSE;
-      if (constant->is_reinterpret_cast && !octl->c_generating_back_end) {
+      if (octl->gen_compilable_code && !octl->c_generating_back_end &&
+          is_enum_type(con_type) && !con_type->has_been_defined) {
+        /* The type is an opaque enumeration whose enumerators have not
+           yet been defined, so even if the value is the same as an
+           enumerator of the type, we must put it out as a cast of a
+           numeric constant rather than as the name of that enumerator. */
+        need_cast = TRUE;
+        is_undefined_opaque_enum = TRUE;
+      } else if (constant->is_reinterpret_cast
+                 && !octl->c_generating_back_end) {
         /* The source form used reinterpret_cast, so a cast is needed. */
         need_cast = TRUE;
         need_reinterpret_cast = TRUE;
@@ -5641,7 +5651,7 @@ precedence confusion.  Do the output in the way described by octl.
       /* See if the constant is an enum constant, but don't emit enum
          constants when generating K&R C from the C-generating back end. */
       is_enum = !(octl->c_generating_back_end && octl->gen_pcc_code) &&
-                is_enum_constant(constant);
+                is_enum_constant(constant) && !is_undefined_opaque_enum;
       if (is_enum && has_name(constant) &&
           !(octl->c_generating_back_end &&
             !constant->is_named_constant_definition)) {
