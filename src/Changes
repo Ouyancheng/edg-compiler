@@ -13,7 +13,7 @@ example, with --c++11:
   enum E : int { zero };
 
 
-9/4/20   [EDGcpfe/23358]
+9/4/20   [EDGcpfe/19987,EDGcpfe/23358]
 Overloading static and nonstatic member function templates
 
 The standard does not permit overloading static and nonstatic member function
