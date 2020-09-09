@@ -1,5 +1,18 @@
 Version 6.2
 
+9/9/20   [EDGcpfe/23355]
+Missing diagnostic on invalid value-initializing cast
+
+Consider:
+
+  struct S { union { int const ic; } u; };
+  S x = S();  // Previously accepted.  Now an error.
+
+Previously, the front end failed to determine that S cannot be
+value-initialized (because of the const member in the nested union) and
+therefore it erroneously accepted the example above.  Now an error is issued.
+
+
 9/8/20   [EDGcpfe/23360]
 C++-generating back end: forward references to opaque enumerators
 

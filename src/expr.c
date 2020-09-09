@@ -26976,6 +26976,21 @@ empty_parentheses:
             /* MSVC++ up to version 7.0 did not initialize the entity
                in this case. */
             init_kind = (a_dynamic_init_kind)dik_none;
+          } else if (cpp11_mode && !gpp_version_is(<40900)) {
+            /* No constructor is explicitly represented.  Still, in C++11 mode
+               cases like:
+                 struct S { int const i; };
+                 S x = S();
+               are invalid. */
+            a_boolean  invalid_default_init = FALSE;
+            check_for_missing_initializer_full(
+                               (a_symbol_ptr)NULL, type_cast_to,
+                               /*explicitly_internal=*/FALSE,
+                               expr_stack->suppress_diagnostics ?
+                                    &invalid_default_init : (a_boolean*)NULL);
+            if (invalid_default_init && expr_stack->suppress_diagnostics) {
+              record_suppressed_error();
+            }  /* if */
           }  /* if */
           temp_init_node = alloc_empty_parens_func_cast(type_cast_to,
                                                         init_kind,
@@ -49878,7 +49893,8 @@ the corresponding __builtin_is_constructible operation.
       }  /* if */
     } else {
       /* Model the remaining initialization cases as a functional-notation
-         cast, with error suppressed. */
+         cast, with error suppressed.  In the case of default initialization
+         (arg_list == NULL), some errors have to be checked separately. */
       scan_functional_notation_type_conversion((a_rescan_control_block *)NULL,
                                                (a_dynamic_init_ptr)NULL,
                                                /*arg_list_supplied=*/TRUE,
