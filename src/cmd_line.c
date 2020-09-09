@@ -2922,7 +2922,7 @@ option values if they were not already set by a command line option.
             coroutines_enabled = COROUTINE_ENABLING_POSSIBLE;
             if (coroutines_enabled &&
                 option_kind_used[(int)optk_microsoft_await]) {
-              command_line_error(ec_cl_await_incompatible_with_couroutines);
+              command_line_error(ec_cl_await_incompatible_with_coroutines);
             }  /* if */
           }  /* if */
         }  /* if */
