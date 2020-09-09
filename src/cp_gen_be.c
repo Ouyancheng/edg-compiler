@@ -2154,12 +2154,21 @@ Pass for_all_scopes through to entity_name_is_accessible.
         expr = expr_node_from_tpck_expression(constant);
       }  /* if */
       if (expr != NULL) {
-        expr = skip_implicit_steps(expr);
+        a_type_ptr tp;
+        if (is_constant_node(expr) && node_constant(expr)->expr != NULL) {
+          expr = skip_implicit_steps(node_constant(expr)->expr);
+        }  /* if */
+        tp = skip_typerefs(expr->type);
         if (is_variable_node(expr)) {
           is_accessible =
                 entity_name_is_accessible(&node_variable(expr)->source_corresp,
                                           iek_variable, ignore_context,
                                           for_all_scopes);
+        } else if (is_constant_node(expr) &&
+                   unmangled_name_of(&node_constant(expr)->source_corresp) ==
+                                                                        NULL &&
+                   !is_tag_type(tp)) {
+          /* An unnamed, non-class, non-enum constant is accessible. */
         } else {
           /* Other kinds of expressions are too complex to analyze reliably
              and efficiently.  For safety, we assume they involve
@@ -4735,27 +4744,6 @@ are done in the il_to_str routines before this routine is called.
 }  /* is_typedef_invisible_in_cp_gen_be */
 
 
-static a_boolean ttt_check_for_local_or_undeclared_type(
-                                                     a_type_ptr type,
-                                                     a_boolean  *end_traversal)
-/*
-This function is called via traverse_type_tree from
-replace_inaccessible_type_with_accessible_typedef.  If type is a local type
-or has not yet been declared, set *end_traversal to TRUE and return TRUE;
-otherwise, return FALSE.
-*/
-{
-  a_boolean result = FALSE;
-
-  if (type->source_corresp.is_local_to_function ||
-      !type->has_been_declared) {
-    result = TRUE;
-    *end_traversal = TRUE;
-  }  /* if */
-  return result;
-}  /* ttt_check_for_local_or_undeclared_type */
-
-
 static void replace_inaccessible_type_with_accessible_typedef(
                                  a_source_correspondence_ptr *scp,
                                  a_boolean                   force_replacement)
@@ -4774,19 +4762,7 @@ point to that typedef instead.
     a_type_ptr typedef_type =
               find_typedef_in(accessible_typedef_hash_table, (a_type_ptr)*scp);
     if (typedef_type != NULL) {
-      a_type_tree_traversal_flag_set ttt_flags;
-      /* Check to ensure that the typedef is usable at the current
-         location. */
-      ttt_flags = TTT_PARENT_CLASSES |
-                  TTT_TEMPLATE_ARGS |
-                  TTT_NONREAL_TEMPLATE_ARGS;
-      if (!traverse_type_tree(typedef_type,
-                              ttt_check_for_local_or_undeclared_type,
-                              ttt_flags)) {
-        /* No problems found - substitute the typedef for the inaccessible
-           type. */
-        *scp = &typedef_type->source_corresp;
-      }  /* if */
+      *scp = &typedef_type->source_corresp;
     }  /* if */
   }  /* if */
 }  /* replace_inaccessible_type_with_accessible_typedef */
