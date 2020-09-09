@@ -12135,9 +12135,12 @@ in the standard is perhaps accidental.
       if (esp != NULL && esp->variant.noexcept_arg != NULL) {
         cp = esp->variant.noexcept_arg;
       } else {
+        /* Either "just noexcept" (which is equivalent to "noexcept(true)" or
+           no specifier at all (which is equivalent to "noexcept(false)":
+           Create a constant that corresponds to those semantics. */
         cp = local_constant();
         cp_is_local = TRUE;
-        make_zero_of_proper_type(bool_type(), cp);
+        make_bool_constant_value(esp != NULL, cp);
       }  /* if */
       match = matches_template_constant(cp, t_cp, templ_arg_list,
                                         templ_param_list, flags);
