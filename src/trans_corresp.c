@@ -3479,18 +3479,28 @@ Return TRUE if the given using declarations refer to corresponding entities.
                          ud2->qualifier.class_type)) {
       /* If the qualifiers are not equivalent, there is no match. */
       result = FALSE;
-    } else if (ud1->entity.kind == (a_byte_il_entry_kind)iek_base_class &&
-               ((a_base_class_ptr)ud1->entity.ptr)->type ==
+    } else if (ud1->entity.kind == (a_byte_il_entry_kind)iek_base_class) {
+      /* Using-declarations that represent inherited constructors. */
+      check_assertion(ud1->is_inheriting_ctor && ud2->is_inheriting_ctor);
+      result = ((a_base_class_ptr)ud1->entity.ptr)->type ==
                                                    ud1->qualifier.class_type &&
                ((a_base_class_ptr)ud2->entity.ptr)->type ==
-                                                   ud2->qualifier.class_type) {
-      /* Using-declarations that represent inherited constructors. */
-      result = TRUE;
-    } else if (ud1->entity.kind == (a_byte_il_entry_kind)iek_type) {
+                                                   ud2->qualifier.class_type;
+    } else if (ud1->entity.kind == (a_byte_il_entry_kind)iek_type ||
+               ud1->entity.kind == (a_byte_il_entry_kind)iek_routine) {
       /* This can happen when the qualifier type is a Microsoft nonreal
          instantiation. */
-      result = identical_types((a_type_ptr)ud1->entity.ptr,
-                               (a_type_ptr)ud2->entity.ptr);
+      check_assertion(ud1->qualifier.class_type->variant.class_struct_union
+                                            .is_ms_instantiated_nonreal_class);
+      a_type_ptr tp1, tp2;
+      if (ud1->entity.kind == (a_byte_il_entry_kind)iek_type) {
+        tp1 = (a_type_ptr)ud1->entity.ptr;
+        tp2 = (a_type_ptr)ud2->entity.ptr;
+      } else {
+        tp1 = ((a_routine_ptr)ud1->entity.ptr)->type;
+        tp2 = ((a_routine_ptr)ud2->entity.ptr)->type;
+      }  /* if */
+      result = identical_types(tp1, tp2);
     } else {
       /* In all other dependent base class cases, the entity is represented
          as a (nonreal) "constant". */
