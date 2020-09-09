@@ -29,7 +29,7 @@ behavior in GNU and Clang modes.  For example:
   };
 
 
-9/4/20   [EDGcpfe/23348]
+9/4/20   [EDGcpfe/22952,EDGcpfe/23348]
 Clang compatibility: Conversion to "ext_vector_type" types
 
 In Clang mode, any arithmetic or enumeration type can now be converted to a
