@@ -586,6 +586,20 @@ static a_name_linkage_kind
 #endif /* GENERATE_LINKAGE_SPEC_BLOCKS */
 
 /*
+If constant c has an associated expression (backing expression or template
+parameter expression) that will be put out, return that expression;
+otherwise, return NULL.
+*/
+#define assoc_expr_for_constant(c)                                            \
+  (constant_should_be_put_out_as_expr(c)                                      \
+     ? c->expr                                                                \
+     : constant_is(c, ck_template_param) && tpck_is(c, tpck_expression) &&    \
+                                                 !has_name_before_mangling(c) \
+       ? expr_node_from_tpck_expression(c)                                    \
+       : NULL)
+
+
+/*
 If e is an enk_constant node and the constant has an associated expression
 (backing expression or template parameter expression) that will be put out,
 return that expression; otherwise return e.
@@ -2146,18 +2160,10 @@ Pass for_all_scopes through to entity_name_is_accessible.
         }  /* if */
       }  /* if */
     } else {
-      an_expr_node_ptr expr = constant->expr;
-      if (expr == NULL &&
-          constant->kind == (a_constant_repr_kind)ck_template_param &&
-          constant->variant.template_param.kind ==
-                             (a_template_param_constant_kind)tpck_expression) {
-        expr = expr_node_from_tpck_expression(constant);
-      }  /* if */
+      an_expr_node_ptr expr = assoc_expr_for_constant(constant);
       if (expr != NULL) {
         a_type_ptr tp;
-        if (is_constant_node(expr) && node_constant(expr)->expr != NULL) {
-          expr = skip_implicit_steps(node_constant(expr)->expr);
-        }  /* if */
+        expr = skip_implicit_steps(expr);
         tp = skip_typerefs(expr->type);
         if (is_variable_node(expr)) {
           is_accessible =
