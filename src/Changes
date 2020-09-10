@@ -20,14 +20,15 @@ This is now fixed.
 
 
 9/9/20   [EDGcpfe/23367]
-Deduction boolean template parameter from noexcept property
+Deducing a boolean template parameter from a noexcept property
 
 In Clang and GNU C++ modes, the front end supports the deduction of a boolean
 template parameter based on whether a function type is "noexcept" or not: See
 the entry for EDGcpfe/18317.  However, the emulation of that extension had a
-bug that cause "noexcept" (with no explicitly-specified value) to be treated as
-"noexcept(false)" for deduction purposes, when it really should be treated as
-"noexcept(true)".  For example (in GNU C++17 mode):
+bug that caused "noexcept" (with no explicitly-specified value) to be treated
+as "noexcept(false)" for deduction purposes, when it really should be treated
+as "noexcept(true)".  For example (in GNU C++17 mode):
+9/9/20   [EDGcpfe/23367]
 
   template<typename R, typename ...Ps, bool N>
     constexpr bool is_noexcept(R(&)(Ps...) noexcept(N)) { return N; }
