@@ -20162,13 +20162,19 @@ Scan the new initializer expression (if present).
        still see it as the current token. */
   }  /* if */
   if (nps->deducible_new_type) {
-    if (dps->auto_type_specifier_seen && !nps->has_new_initializer) {
+    if (!dps->has_deducible_class_templ_args &&
+         !nps->has_new_initializer) {
       /* An auto type specifier not followed by a new-initializer or a
          trailing return type is an error. */
-      expr_pos_error(ec_auto_type_requires_initializer, &nps->type_position);
+      expr_pos_error(dps->auto_type_specifier_seen ?
+                                   ec_auto_type_requires_initializer :
+                                   ec_decltype_auto_type_requires_initializer,
+                     &nps->type_position);
       nps->new_type = error_type();
       nps->deducible_new_type = FALSE;
-    } else if (dps->auto_type_specifier_seen && nps->has_braced_initializer &&
+    
+    } else if (!dps->has_deducible_class_templ_args &&
+               nps->has_braced_initializer &&
                (microsoft_mode ||
                 gpp_version_is(<40600) || clang_version_is(<60000))) {
       /* A braced initializer cannot be used with "auto". */
