@@ -8996,6 +8996,9 @@ is the one associated with the definition of the enum.
     gen_type(base_type);
   }  /* if */
   write_tok_str(" { ");
+  /* Mark the type as having been defined so that previously-defined
+     enumerators can be used in the values of later ones. */
+  type->has_been_defined = TRUE;
   enum_con = enum_constants(type);
   if (enum_con != NULL) {
     /* Output the enumeration constants. */
@@ -9140,7 +9143,6 @@ is the one associated with the definition of the enum.
   write_tok_ch('}');
   gen_attributes(type->source_corresp.attributes, al_post_tag_definition,
                  /*primary_only=*/TRUE);
-  type->has_been_defined = TRUE;
   release_local_constant(&next_enum_value);
 }  /* gen_enum_definition */
 
