@@ -26976,7 +26976,8 @@ empty_parentheses:
             /* MSVC++ up to version 7.0 did not initialize the entity
                in this case. */
             init_kind = (a_dynamic_init_kind)dik_none;
-          } else if (cpp11_mode && !gpp_version_is(<40900)) {
+          } else if (cpp11_mode && !gpp_version_is(<40900) &&
+                     !is_template_dependent_context()) {
             /* No constructor is explicitly represented.  Still, in C++11 mode
                cases like:
                  struct S { int const i; };
