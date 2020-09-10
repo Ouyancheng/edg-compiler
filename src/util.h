@@ -1972,7 +1972,7 @@ Initialize the given pointer map with a capacity for 1<<mask_width slots.
   an_index       size = (an_index)(n_slots*sizeof(an_entry));
   an_allocation  allocation = this->alloc(n_slots);
 
-  check_assertion(allocation.n_allocated == n_slots);
+  check_assertion(allocation.n_allocated == (a_ptrdiff)n_slots);
   this->table = allocation.start;
   memzero((char*)this->table, size_t_arg(size));
   this->hash_mask = n_slots-1;
