@@ -2725,6 +2725,11 @@ option values if they were not already set by a command line option.
       mixed_string_concat_enabled = TRUE;
       std_override_modifiers_enabled = TRUE;
       selection_from_prvalue_is_xvalue = TRUE;
+      if (!coroutines_enabled) {
+        /* This may have been enabled already via --set_flag; we don't want to
+           override that. */
+        coroutines_enabled = COROUTINE_ENABLING_POSSIBLE;
+      }  /* if */
       if (!option_kind_used[(int)optk_utf8_char_literals]) {
         utf8_char_literals_enabled = TRUE;
       }  /* if */
@@ -2916,14 +2921,9 @@ option values if they were not already set by a command line option.
       if (microsoft_version >= 1928) {
         /* Visual Studio version 16.8. */
         if (ms_cpp20_mode) {
-          if (!coroutines_enabled) {
-            /* This may have been enabled already via --set_flag; we don't want
-               to override that. */
-            coroutines_enabled = COROUTINE_ENABLING_POSSIBLE;
-            if (coroutines_enabled &&
-                option_kind_used[(int)optk_microsoft_await]) {
-              command_line_error(ec_cl_await_incompatible_with_coroutines);
-            }  /* if */
+          if (coroutines_enabled &&
+              option_kind_used[(int)optk_microsoft_await]) {
+            command_line_error(ec_cl_await_incompatible_with_coroutines);
           }  /* if */
         }  /* if */
       }  /* if */
