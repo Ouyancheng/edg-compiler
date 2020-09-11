@@ -1,5 +1,14 @@
 Version 6.2
 
+9/11/20  [EDGcpfe/23351]
+Incorrect parsing of __is_constructible with variadic pack expansion
+
+In some complex template-based code where __is_constructible was invoked with
+a trailing pack expansion (something like "__is_constructible(T, As...)"), the
+front end could erroneously complain about a missing right parentheses.  That
+problem is now fixed.
+
+
 9/11/20  [EDGcpfe/23376]
 Multi-level substitution of concept-ids
 

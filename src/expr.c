@@ -26773,8 +26773,9 @@ freed by this routine.
     if (aggr_init) {
       scan_braced_init_list_cast(type_cast_to, csf_functional,
                                  supplied_arg_list, result);
-      if (rcblock == NULL) check_closing_paren_after_expr_list();
-      if (arg_list_supplied) {
+      if (scanning_source) {
+        check_closing_paren_after_expr_list();
+      } else if (arg_list_supplied) {
         /* The arg list was provided - don't free it here. */
         supplied_arg_list->variant.braced.list = NULL;
       }  /* if */
