@@ -18635,12 +18635,13 @@ one that yields the value) of a statement expression.
             /* Nothing more needed for a simple return. */
           } else if (statement->expr != NULL) {
             /* Return with an expression. */
+            a_boolean need_parens = statement->expr->is_parenthesized ||
+                        skip_implicit_steps(statement->expr)->is_parenthesized;
             write_space();
             /* Process any tags declared within the expression
                (e.g., in casts). */
             skip_embedded_declarations();
-            gen_initializer_expr(statement->expr, return_type,
-                                 statement->expr->is_parenthesized,
+            gen_initializer_expr(statement->expr, return_type, need_parens,
                                  /*mbr_fcn_default_arg_expr=*/FALSE);
           } else {
             /* The return value is passed via a copy constructor call.  We
