@@ -10590,7 +10590,7 @@ instantiations are only permitted in namespace scope).
     }  /* if */
   } else if (kind == iek_routine && scp->is_class_member &&
              !scp_parent_class(scp)->has_been_defined) {
-    /* Attempting to define a member function explicit specialization of
+    /* Attempting to declare a member function explicit specialization of
        a class that hasn't been defined yet. */
     result = TRUE;
   }  /* if */
