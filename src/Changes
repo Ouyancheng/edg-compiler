@@ -1,5 +1,33 @@
 Version 6.2
 
+9/10/20  [EDGcpfe/22431]
+C++-generating back end: explicit specializations of member function templates
+used in their class
+
+In configurations in which TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+is TRUE, the C++-generating back end could put out an explicit
+specialization for a member function template before the explicit
+specialization of the class template of which it is a member.  This is now
+fixed.  For example, with --g++ --c++14:
+
+  template<typename T> struct A {
+    static T x();
+    template<typename U> static decltype(x()) y(int);
+    static const bool z = sizeof(y<T>(0));
+  };
+  template<typename T> struct B {
+    bool v = A<int>::z;
+  };
+
+In the generated code for this example, the explicit specialization for
+A<int>::y<int>(int) previously preceded the explicit specialization for
+A<int>, resulting in errors when compiling the generated code.  There is no
+point at which an explicit specialization of the member function template
+could validly appear, since it would either precede the explicit
+specialization of its parent class or follow its use inside the class, so
+such explicit specializations are now suppressed.
+
+
 9/9/20   [EDGcpfe/23243]
 Multiple translation units: Abort with a function using declaration
 

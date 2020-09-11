@@ -10588,6 +10588,11 @@ instantiations are only permitted in namespace scope).
          scope. */
       result = TRUE;
     }  /* if */
+  } else if (kind == iek_routine && scp->is_class_member &&
+             !scp_parent_class(scp)->has_been_defined) {
+    /* Attempting to define a member function explicit specialization of
+       a class that hasn't been defined yet. */
+    result = TRUE;
   }  /* if */
   if (!result && kind == iek_type &&
       !microsoft_dialect_is_generated_code_target) {
@@ -11492,6 +11497,7 @@ the expression reflects an implicit member access ("this->y"), so the
   a_type_ptr            naming_class, selection_class = NULL;
   a_name_context_ptr    new_name_context = NULL;
   a_boolean             suppressed_this = FALSE;
+  a_boolean             already_qualified = FALSE;
 
   check_assertion(is_operation_node(expr) &&
                   (node_operator_is(expr, eok_dot_field) ||
@@ -11576,6 +11582,7 @@ the expression reflects an implicit member access ("this->y"), so the
              field->source_corresp.qualification_needed)) {
           (void)gen_class_qualifier(parent_class, GN_BOUND_MEMBER,
                                     (a_boolean *)NULL);
+          already_qualified = TRUE;
         }  /* if */
       }  /* if */
     } else if (msvc_is_generated_code_target &&
@@ -11639,11 +11646,12 @@ the expression reflects an implicit member access ("this->y"), so the
         curr_name_context->field_selection_context = TRUE;
         new_name_context = curr_name_context;
       }  /* if */
-      if (node_field(field_expr)->source_corresp.qualification_needed ||
-          !class_is_in_name_context_stack(
-                                  naming_class,
-                                  /*include_base_classes=*/TRUE,
-                                  /*ignore_field_selection_contexts=*/FALSE)) {
+      if (!already_qualified &&
+          (node_field(field_expr)->source_corresp.qualification_needed ||
+           !class_is_in_name_context_stack(
+                                 naming_class,
+                                 /*include_base_classes=*/TRUE,
+                                 /*ignore_field_selection_contexts=*/FALSE))) {
         /* Only use a qualifier for a base class member if it is hidden by a
            name in an intermediate base class. */
         (void)gen_class_qualifier(naming_class, GN_BOUND_MEMBER,
