@@ -247,7 +247,9 @@ Miscellaneous macros for dealing with bits/bytes of a floating-point type.
 Routines assume a little-endian format for floating-point types, this macro
 does the requisite byte swapping for big-endian hosts.  This macro could be
 made faster by using a configuration macro to chose between the two choices at
-compilation time.
+compilation time.  Can only be used when indexing the entire floating-point
+entity (i.e., whose size is VALUE_BYTES), and not, e.g., just the precision
+of the floating-point number.
 */
 #define BYTE_INDEX(i) (host_little_endian ? (i) : VALUE_BYTES - 1 - (i))
 
@@ -651,10 +653,10 @@ type.
     check_assertion(count > 1 && count < (int)sizeof(bin.frac));
     fprintf(f_debug, "%4d: ", bin.exponent);
     for (i = 0; i < count; ++i) {
-      fprintf(f_debug, "%02x ", bin.frac[BYTE_INDEX(i)]);
+      fprintf(f_debug, "%02x ", bin.frac[i]);
     }  /* for */
-    fprintf(f_debug, "%02x\n", bin.frac[BYTE_INDEX(i)] &
-                                MASK_BITS(LAST_BITS(bin.precision)));
+    fprintf(f_debug, "%02x\n", bin.frac[i] &
+                               MASK_BITS(LAST_BITS(bin.precision)));
   }  /* if */
 }  /* DB_DUMP */
 
