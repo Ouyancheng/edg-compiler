@@ -203,7 +203,7 @@ braces, resulting in incorrect code.  This is now fixed.  For example:
   };
 
 
-9/2/20   [EDGcpfe/23347]
+9/2/20   [EDGcpfe/20414,EDGcpfe/23347]
 Microsoft/GNU compatibility: Aggregate initializers and explicit constructors
 
 Consider:
