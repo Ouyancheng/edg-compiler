@@ -3264,7 +3264,19 @@ indication in *rcblock).
   /* Note that if there is a cached expression we take it in preference to
      rescanning from rcblock. */
   if (rcblock != NULL && !cached_initializer_present()) {
-    make_rescan_operand(rcblock->argument_list, rcblock, &result);
+    an_expr_node_ptr  arg_list = rcblock->argument_list;
+    if (arg_list->is_pack_expansion) {
+      /* For a pack expansion, rescan it as an expression list, but make sure
+         the result is a singleton. */
+      icp = rescan_expr_list(arg_list, rcblock);
+      if (icp == NULL || icp->next != NULL) {
+        subst_fail(rcblock->error_detected);
+        free_init_component_list(icp);
+        have_result = FALSE;
+      }  /* if */
+    } else {
+      make_rescan_operand(arg_list, rcblock, &result);
+    }  /* if */
   } else {
     dps->initializer_is_expr_list = TRUE;
     dps->initializer_is_single_expr = TRUE;
