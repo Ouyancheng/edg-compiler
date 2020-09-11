@@ -5528,8 +5528,10 @@ precedence confusion.  Do the output in the way described by octl.
       /* If the constant is implicitly cast to another type, prefix the
          constant with an explicit cast. */
       a_boolean need_cast = FALSE;
+#if BACK_END_IS_CP_GEN_BE
       if (octl->gen_compilable_code && !octl->c_generating_back_end &&
-          is_enum_type(con_type) && !con_type->has_been_defined &&
+          is_enum_type(con_type) && con_type->has_been_declared &&
+          !con_type->has_been_defined &&
           !con_type->variant.integer.originally_unnamed) {
         /* The type is an opaque enumeration whose enumerators have not
            yet been defined, so even if the value is the same as an
@@ -5537,7 +5539,10 @@ precedence confusion.  Do the output in the way described by octl.
            numeric constant rather than as the name of that enumerator. */
         need_cast = TRUE;
         is_undefined_opaque_enum = TRUE;
-      } else if (constant->is_reinterpret_cast
+      } else
+#endif /* BACK_END_IS_CP_GEN_BE */
+      /* Do not insert code here. */
+      if (constant->is_reinterpret_cast
                  && !octl->c_generating_back_end) {
         /* The source form used reinterpret_cast, so a cast is needed. */
         need_cast = TRUE;
