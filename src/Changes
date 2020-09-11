@@ -1,5 +1,16 @@
 Version 6.2
 
+9/11/20  [EDGcpfe/23376]
+Multi-level substitution of concept-ids
+
+Previously, when performing substitution of dependent concept-ids, the front
+end only permitted substitutions with non-dependent arguments.  That prevented
+some cases where multi-level substitutions are required (i.e., first the
+concept-id is substituted with a set of template arguments that are still
+dependent, and then the result of that substitution is substituted again).
+That is now fixed.
+
+
 9/10/20  [EDGcpfe/22431]
 C++-generating back end: explicit specializations of member function templates
 used in their class

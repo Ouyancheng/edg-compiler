@@ -18794,7 +18794,17 @@ options is a set of substitution options.
       if (template_arg_list_is_dependent(template_arg_list)) {
         /* Don't attempt to substitute concept-ids with dependent parameter
            lists. */
-        subst_fail(*copy_error);
+        a_template_arg_ptr  new_args =
+             copy_template_arg_list_with_substitution_rebuilding_arg_operands(
+                                 (a_symbol_ptr)NULL,
+                                 expr->variant.concept_id.args,
+                                 (a_template_param_ptr)NULL,
+                                 template_arg_list, template_param_list,
+                                 source_pos, options, copy_error, ctws_state);
+        if (!*copy_error) {
+          expr_copy = copy_node(expr);
+          expr_copy->variant.concept_id.args = new_args;
+        }  /* if */
       } else {
         a_boolean    val;
         a_diag_list  diag_list;
