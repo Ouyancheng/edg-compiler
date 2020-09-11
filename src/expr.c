@@ -20172,7 +20172,6 @@ Scan the new initializer expression (if present).
                      &nps->type_position);
       nps->new_type = error_type();
       nps->deducible_new_type = FALSE;
-    
     } else if (!dps->has_deducible_class_templ_args &&
                nps->has_braced_initializer &&
                (microsoft_mode ||
