@@ -204,7 +204,7 @@ braces, resulting in incorrect code.  This is now fixed.  For example:
 
 
 9/2/20   [EDGcpfe/23347]
-Microsoft compatibility: Aggregate initializers and explicit constructors
+Microsoft/GNU compatibility: Aggregate initializers and explicit constructors
 
 Consider:
 
@@ -215,8 +215,8 @@ Consider:
 In standard C++ this is an error, because the default aggregate initializer
 for x.s is copy-initialized but the default constructor of S is explicit (and
 explicit constructors are normally not eligible for copy-initialization).
-It appears, however, that the Microsoft compiler accepts such cases and the
-front end now emulates that behavior in Microsoft C++ modes.
+It appears, however, that the Microsoft and GCC compilers accepts such cases
+and the front end now emulates that behavior in Microsoft and GNU C++ modes.
 
 
 9/1/20   [EDGcpfe/23259,EDGcpfe/23343]

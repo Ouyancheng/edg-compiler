@@ -895,7 +895,8 @@ remove_any_extraneous_braces:
     */
     an_init_state  elem_is;
     elem_is = *is;
-    elem_is.direct_init = (microsoft_mode && is->implicit_aggr_initializer);
+    elem_is.direct_init = ((microsoft_mode || (gpp_mode && !clang_mode)) &&
+                           is->implicit_aggr_initializer);
     if (constexpr_enabled && elem_is.initializer_must_be_constant) {
       /* Do not force each element to be a valid constant.  The complete
          initializer will be evaluated higher up and only then is a valid
@@ -908,6 +909,15 @@ remove_any_extraneous_braces:
                         /*fill_in_dtor=*/exceptions_enabled, &elem_is);
     if (elem_is.init_error || is_error_component(icp)) {
       is->init_error = TRUE;
+    } else if (is->implicit_aggr_initializer && !is->no_diagnostics &&
+               elem_is.init_dip != NULL &&
+               dyn_init_is(elem_is.init_dip, dik_constructor) &&
+               elem_is.init_dip->variant.constructor.ptr != NULL &&
+               elem_is.init_dip->variant.constructor.ptr
+                               ->is_explicit_constructor) {
+      pos_sy_warning(ec_nonstandard_use_of_explicit_default_constructor,
+                     init_component_pos(icp),
+                     symbol_for(elem_is.init_dip->variant.constructor.ptr));
     }  /* if */
     if (elem_is.constant_expr_ruled_out) {
       is->constant_expr_ruled_out = TRUE;
