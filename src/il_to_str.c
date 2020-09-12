@@ -5529,9 +5529,8 @@ precedence confusion.  Do the output in the way described by octl.
          constant with an explicit cast. */
       a_boolean need_cast = FALSE;
 #if BACK_END_IS_CP_GEN_BE
-      if (octl->gen_compilable_code && !octl->c_generating_back_end &&
-          is_enum_type(con_type) && con_type->has_been_declared &&
-          !con_type->has_been_defined &&
+      if (octl->gen_compilable_code && is_enum_type(con_type) &&
+          con_type->has_been_declared && !con_type->has_been_defined &&
           !con_type->variant.integer.originally_unnamed) {
         /* The type is an opaque enumeration whose enumerators have not
            yet been defined, so even if the value is the same as an
