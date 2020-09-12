@@ -36615,7 +36615,7 @@ subsequent string literals.
   }  /* if */
   /* Create a string literal constant for name_str in const_for_curr_token. */
   curr_char_loc = name_str;
-  curr_token = scan_string_literal(lit_kind);
+  curr_token = scan_string_literal(lit_kind | SCLK_FUNCTION_NAME);
   curr_char_loc = saved_curr_char_loc;
   if (do_concat) {
     /* Make sure that adjacent strings are concatenated. */

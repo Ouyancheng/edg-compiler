@@ -1734,9 +1734,11 @@ the string.
      file to native multibyte characters.) */
   str_start = pstr = alloc_text_of_string_literal(constant_size);
   /* UTF-8 characters should be translated to multibyte characters only
-     for narrow-character literals in Microsoft mode. */
+     for narrow-character literals in Microsoft mode and only when the
+     literal does not represent a function-name string like __FUNCTION__. */
   clear_char_conversion_state(&conv_state, &temp_ptr,
                               (prefix_kind == SCLK_ORDINARY_LITERAL &&
+                               (lit_kind & SCLK_FUNCTION_NAME) == 0 &&
                                microsoft_mode));
   conv_state.create_surrogate_pairs = (prefix_kind == SCLK_WIDE_LITERAL ||
                                        prefix_kind == SCLK_CHAR16_T_LITERAL);

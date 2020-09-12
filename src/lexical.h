@@ -2586,6 +2586,9 @@ extern a_boolean check_context_sensitive_keyword(a_token_kind  tok_kind,
 			/* R"...", u8R"...", uR"xxx", or UR"..." */
 #define SCLK_STRING_LITERAL     0x10
 			/* TRUE for string literal, FALSE for char literal */
+#define SCLK_FUNCTION_NAME      0x20
+			/* TRUE if the literal is the result of __FUNCTION__
+			   or similar constructs. */
 
 /* A convenient name for a narrow non-raw string literal: */
 #define SCLK_ORDINARY_STRING_LITERAL \
