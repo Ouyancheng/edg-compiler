@@ -15293,6 +15293,7 @@ a pointer over a reference type or creating an array of references.
   if (type->source_corresp.is_class_member) {
     a_symbol_ptr	sym;
     a_type_ptr		parent_type;
+    a_type_ptr		orig_type = type;
     sym = symbol_for(type);
     check_assertion(sym != NULL);
     parent_type = parent_class_of(type);
@@ -15314,6 +15315,12 @@ a pointer over a reference type or creating an array of references.
         type = error_type();
       } else {
         type = type_symbol_type(sym);
+      }  /* if */
+      if (type != orig_type) {
+        /* When the parent type is substituted, the member type is also
+           processed so no additional work is needed for this type. */
+        new_type = type;
+        goto done;
       }  /* if */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -15891,6 +15898,7 @@ done_with_routine:
         new_type = type;
     }  /* switch */
   }
+done:
   /* Return an error type pointer if a copy error occurred. */
   if (*copy_error) new_type = error_type();
   if (new_type == adjusted_orig_type) new_type = orig_type;

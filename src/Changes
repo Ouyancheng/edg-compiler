@@ -1,5 +1,16 @@
 Version 6.2
 
+9/13/20  [EDGcpfe/23379]
+Possible double substitution of type with copy_type_with_substitution
+
+In some cases, a type such as A<T>::B<T> could result int the substitution
+of the B<T> part happening more than once.  We are not aware of any il
+effects of this in the standard EDG source, but we have had reports of
+issues caused in customer modifications of the front end.  In addition,
+the extra substitution is wasted time and so is best eliminated.  This
+change has now been made.
+
+
 9/12/20  [EDGcpfe/23024]
 Internal error with characters in function name not in current code page
 
