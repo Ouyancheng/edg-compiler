@@ -15293,7 +15293,7 @@ a pointer over a reference type or creating an array of references.
   if (type->source_corresp.is_class_member) {
     a_symbol_ptr	sym;
     a_type_ptr		parent_type;
-    a_type_ptr		orig_type = type;
+    a_type_ptr		type_before_parent_subst = type;
     sym = symbol_for(type);
     check_assertion(sym != NULL);
     parent_type = parent_class_of(type);
@@ -15316,7 +15316,7 @@ a pointer over a reference type or creating an array of references.
       } else {
         type = type_symbol_type(sym);
       }  /* if */
-      if (type != orig_type) {
+      if (type != type_before_parent_subst) {
         /* When the parent type is substituted, the member type is also
            processed so no additional work is needed for this type. */
         new_type = type;
