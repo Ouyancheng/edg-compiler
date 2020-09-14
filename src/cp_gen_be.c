@@ -11880,10 +11880,10 @@ static a_boolean dot_static_uses_comma(an_expr_node_ptr expr,
 expr is the second operand of an eok_points_to_static or eok_dot_static
 operation.  Return TRUE if the operand is an unnamed constant, requiring
 that the operation be generated as a comma operation instead of a member
-access operation.  If expr is a non-glvalue constant and p_con is non-NULL,
-set *p_con to point to that constant and, if p_unknown_function is non_NULL
-set *p_unknown_function according to whether the constant designates an
-unknown (i.e., dependent) function.
+access operation.  If expr is a non-glvalue constant and p_con is not NULL,
+set *p_con to point to that constant and, if p_unknown_function is not
+NULL, set *p_unknown_function according to whether the constant designates
+an unknown (i.e., dependent) function.
 */
 {
   a_boolean      unknown_function_case = FALSE;
