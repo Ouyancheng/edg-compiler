@@ -107,7 +107,8 @@ typedef struct a_char_conversion_state {
 			   default locale.  This should be set
 			   appropriately by the caller, e.g., TRUE for
 			   Microsoft-mode character and string literals,
-			   FALSE for header names. */
+			   FALSE for header names and for constructs like
+			   __FUNCTION__. */
   a_byte_boolean
 		create_surrogate_pairs;
 			/* If TRUE, the target data type is such that a

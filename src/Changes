@@ -54,9 +54,9 @@ change has now been made.
 Internal error with characters in function name not in current code page
 
 In configurations in which NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE is
-TRUE, the front end could abort with an internal error
+TRUE, the front end could abort in Microsoft mode with an internal error
 ("assoc_source_line_modif: bad address") when a source file with a Unicode
-encoding contains a function whose name contains a character that is not
+encoding defines a function whose name contains a character that is not
 representable in the current code page and that function contains
 __FUNCTION__ or similar constructs.  This is now fixed.
 
