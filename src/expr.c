@@ -3270,7 +3270,11 @@ indication in *rcblock).
          the result is a singleton. */
       icp = rescan_expr_list(arg_list, rcblock);
       if (icp == NULL || icp->next != NULL) {
-        subst_fail(rcblock->error_detected);
+        if (icp == NULL) {
+          if (expr_not_present != NULL) *expr_not_present = TRUE;
+        } else {
+          subst_fail(rcblock->error_detected);
+        }  /* if */
         free_init_component_list(icp);
         have_result = FALSE;
       }  /* if */
