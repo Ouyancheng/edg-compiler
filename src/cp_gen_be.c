@@ -15303,8 +15303,12 @@ gen_expr that might end up generating this expr as a temporary.
       switch (op) {
         /* One-operand operators. */
         case eok_address_of:
-          check_assertion(!expr->compiler_generated);
-          write_tok_ch('&');
+          if (!expr->compiler_generated) {
+            /* A compiler-generated eok_address_of can occur in a lambda
+               that captures and uses "*this", e.g.,
+                 [*this]() { S x = *this; } */
+            write_tok_ch('&');
+          }  /* if */
           gen_expr_with_parens(operand_1);
           goto done_with_operation;
         case eok_reference_to:

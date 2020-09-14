@@ -1,5 +1,19 @@
 Version 6.2
 
+9/13/20  [EDGcpfe/23342]
+C++-generating back end: lambda that captures and uses *this
+
+The front end previously aborted with a failed assertion (in gen_expr) when
+generating code for a lambda that captures and then uses *this.  This is
+now fixed.  For example, with --c++17:
+
+  struct S {
+    void foo(){
+      [*this]() { S x = *this; };   // Previously aborted
+    }
+  };
+
+
 9/13/20  [EDGcpfe/23264]
 C++-generating back end, Microsoft compatibility: parenthesized decltype
 operands
