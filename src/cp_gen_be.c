@@ -7448,14 +7448,27 @@ such cases.
       gen_type(tp->variant.typeref.type);
       operator_suppressed = TRUE;
     } else {
+      a_boolean need_parens = is_decltype &&
+                          !tp->variant.typeref.decltype_expr_not_parenthesized;
+      if (need_parens && msvc_is_generated_code_target) {
+        /* MSVC gets confused by overparenthesizing a dependent decltype
+           operand.  Make sure we only add parentheses if the source had
+           them.  (The decltype_expr_not_parenthesized flag is only set for
+           an unparenthesized operand when the lack of parenthesization
+           makes a difference in the standard interpretation of the
+           designated type.  We need to avoid extra parentheses for MSVC
+           even for cases where they make no difference in the meaning.) */
+        if (!expr->is_parenthesized &&
+            !skip_implicit_steps(expr)->is_parenthesized) {
+          need_parens = FALSE;
+        }  /* if */
+      }  /* if */
       write_tok_str(kwd);
-      if (is_decltype &&
-                        !tp->variant.typeref.decltype_expr_not_parenthesized) {
+      if (need_parens) {
         write_tok_str("(");
       }  /* if */
       gen_expression(expr);
-      if (is_decltype &&
-                        !tp->variant.typeref.decltype_expr_not_parenthesized) {
+      if (need_parens) {
         write_tok_str(")");
       }  /* if */
     }  /* if */
@@ -11859,6 +11872,49 @@ such a node.  Otherwise, return the given node.
   return expr;
 }  /* skip_lvalue_nodes */
 
+
+static a_boolean dot_static_uses_comma(an_expr_node_ptr expr,
+                                       a_constant_ptr   *p_con,
+                                       a_boolean        *p_unknown_function)
+/*
+expr is the second operand of an eok_points_to_static or eok_dot_static
+operation.  Return TRUE if the operand is an unnamed constant, requiring
+that the operation be generated as a comma operation instead of a member
+access operation.  If expr is a non-glvalue constant and p_con is non-NULL,
+set *p_con to point to that constant and, if p_unknown_function is non_NULL
+set *p_unknown_function according to whether the constant designates an
+unknown (i.e., dependent) function.
+*/
+{
+  a_boolean      unknown_function_case = FALSE;
+  a_constant_ptr con = NULL;
+  a_boolean      result = FALSE;
+
+  if (!is_glvalue_node(expr) && is_constant_node(expr)) {
+    con = node_constant(expr);
+    if (con->kind == (a_constant_repr_kind)ck_template_param) {
+      if (con->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_unknown_function ||
+          con->variant.template_param.kind ==
+                       (a_template_param_constant_kind)tpck_template_ref) {
+        unknown_function_case = TRUE;
+      }  /* if */
+    }  /* if */
+    /* Named constants are okay. */
+    if (!constant_has_effective_name(con) && !unknown_function_case) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  if (p_con != NULL) {
+    *p_con = con;
+  }  /* if */
+  if (p_unknown_function != NULL) {
+    *p_unknown_function = unknown_function_case;
+  }  /* if */
+  return result;
+}  /* dot_static_uses_comma */
+
+
 static void gen_dot_static(an_expr_node_ptr operand_1,
                            a_const_char     *opstr,
                            an_expr_node_ptr operand_2)
@@ -11891,26 +11947,12 @@ indicated by opstr.
      was a const-valued variable), use a comma operator in the output
      to avoid generating something like "x.2". */
   operand_2 = skip_lvalue_nodes(operand_2);
-  if (!is_glvalue_node(operand_2) && is_constant_node(operand_2)) {
-    con = node_constant(operand_2);
-    /* For unknown functions, we need to use the field-selection form,
-       and we need to suppress the "&" below. */
-    if (con->kind == (a_constant_repr_kind)ck_template_param) {
-      if (con->variant.template_param.kind ==
-                       (a_template_param_constant_kind)tpck_unknown_function ||
-          con->variant.template_param.kind ==
-                       (a_template_param_constant_kind)tpck_template_ref) {
-        unknown_function_case = TRUE;
-      }  /* if */
-    }  /* if */
-    /* Named constants are okay. */
-    if (!constant_has_effective_name(con) && !unknown_function_case) {
-      opstr = ",";
-      use_comma = TRUE;
-      if (is_operator_syntax_arrow(operand_1)) {
-        /* Prevent generating "operator->()" as just "->" */
-        operand_1->variant.operation.call_uses_operator_syntax = FALSE;
-      }  /* if */
+  if (dot_static_uses_comma(operand_2, &con, &unknown_function_case)) {
+    opstr = ",";
+    use_comma = TRUE;
+    if (is_operator_syntax_arrow(operand_1)) {
+      /* Prevent generating "operator->()" as just "->" */
+      operand_1->variant.operation.call_uses_operator_syntax = FALSE;
     }  /* if */
   }  /* if */
   if (operand_1_type != NULL) {
@@ -14264,10 +14306,13 @@ call.
     } else {
       rout = routine_and_node_from_function_expr(func_expr, &routine_node);
     }  /* if */
-    if (is_dot_static) {
-      /* Put parentheses around a call using a dot-static operator
-         to avoid problems if the subroutine replaces the field selection
-         by a ",". */
+    if (is_dot_static &&
+        dot_static_uses_comma(skip_lvalue_nodes(skip_parens(func_expr))->
+                                              variant.operation.operands->next,
+                              (a_constant_ptr *)NULL, (a_boolean *)NULL)) {
+      /* If the dot-static expression will be generated using a comma
+         expression, put parentheses around the call to avoid precedence
+         problems. */
       write_tok_ch('(');
       need_close_paren = TRUE;
     }  /* if */
