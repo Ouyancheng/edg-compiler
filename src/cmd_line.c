@@ -2335,6 +2335,13 @@ option values if they were not already set by a command line option.
     if (option_kind_used[(int)optk_microsoft_c17]) {
       ms_c17 = ms_c11 = TRUE;
     }  /* if */
+#if VLA_ALLOWED
+    if (!(option_kind_used[(int)optk_vla])) {
+      /* Support for VLAs is not yet enabled. */
+      vla_enabled = FALSE;
+    }  /* if */
+#endif /* VLA_ALLOWED */
+    c11_atomic_enabled = FALSE;
     /* Recent Microsoft C compilers enable the C++ spelling of static_assert
        (i.e., not _Static_assert). */
     static_assert_enabled = microsoft_version >= 1600;
@@ -10182,9 +10189,14 @@ enable_microsoft_mode:
         opt_value = TRUE;
         goto enable_microsoft_mode;
       case optk_microsoft_c11:
-      case optk_microsoft_c17:
         /* Emulate the Microsoft /std:c11 option. */
-        /* No difference currently between c11 and c17. */
+        std_version = 201112;
+        set_C_dialect(C_dialect_ANSI);
+        opt_value = TRUE;
+        goto enable_microsoft_mode;
+      case optk_microsoft_c17:
+        /* Emulate the Microsoft /std:c17 option. */
+        std_version = 201710;
         set_C_dialect(C_dialect_ANSI);
         opt_value = TRUE;
         goto enable_microsoft_mode;

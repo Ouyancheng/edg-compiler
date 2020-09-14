@@ -10337,6 +10337,13 @@ Enter symbols for the predefined macros in C99 and later revisions.
   (void)enter_predef_macro("1", "__STDC_IEC_559_COMPLEX__",
                            /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
+#else /* !STDC_IEC_559_COMPLEX */
+  if (msc_version_is(>=1928)) {
+    /* At this point, Visual Studio doesn't support complex arithmetic. */
+    (void)enter_predef_macro("1", "__STDC_NO_COMPLEX__",
+                             /*cannot_be_redefined=*/TRUE,
+                             /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
 #endif /* STDC_IEC_559_COMPLEX */
 #if STDC_ISO_10646
   enter_predef_num_macro_noredef(STDC_ISO_10646_VALUE, "__STDC_ISO_10646__");
@@ -10876,7 +10883,7 @@ command line -D options.
     }  /* if */
   }  /* if */
   if (C_dialect == C_dialect_ANSI) {
-    if (!microsoft_mode && (!gcc_mode || c99_mode)) {
+    if (!ms_version_is(<1928) && (!gcc_mode || c99_mode)) {
       /* __STDC_VERSION__ is defined based on the version of C being used.
          The Microsoft compiler does not define this macro; the GNU and clang
          compilers do so only for C99 ("std=c99") and C11 ("std=c11"). */
@@ -11408,13 +11415,14 @@ command line -D options.
                              /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
-#else /* !IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS */
-  if (C_mode()) {
+#endif /* IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS */
+  if (C_mode() &&
+      (!IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS/*lint -e(506)*/ ||
+       ms_version_is(>=1928))) {
     (void)enter_predef_macro("1", "__STDC_NO_THREADS__",
                              /*cannot_be_redefined=*/TRUE,
                              /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
-#endif /* IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS */
   if (overaligned_allocation_enabled || (ms_extensions && !C_mode())) {
     char         val[64];
     a_const_char *suffix;
