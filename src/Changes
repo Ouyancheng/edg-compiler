@@ -42,8 +42,8 @@ which triggered the MSVC bug.
 9/13/20  [EDGcpfe/23379]
 Possible double substitution of type with copy_type_with_substitution
 
-In some cases, a type such as A<T>::B<T> could result int the substitution
-of the B<T> part happening more than once.  We are not aware of any il
+In some cases, a type such as A<T>::B<T> could result in the substitution
+of the B<T> part happening more than once.  We are not aware of any ill
 effects of this in the standard EDG source, but we have had reports of
 issues caused in customer modifications of the front end.  In addition,
 the extra substitution is wasted time and so is best eliminated.  This
