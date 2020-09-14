@@ -475,7 +475,8 @@ Flag that is TRUE to include code for UPC (Unified Parallel C) support.
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
 /*
-Flag that is TRUE to include code for GNU C compatibility features.
+Flag that is TRUE to include code for GNU compatibility features.  Must also
+be TRUE to enable Clang compatibility features.
 */
 #ifndef GNU_EXTENSIONS_ALLOWED
 #define GNU_EXTENSIONS_ALLOWED FALSE

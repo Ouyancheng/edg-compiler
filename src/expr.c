@@ -18833,9 +18833,12 @@ have been issued).
          one whose second argument is size_t).  Clang (in C++11 mode) and
          Microsoft implement this; early versions of GCC only seem to check
          when the class destructor is virtual. */
+#if GNU_EXTENSIONS_ALLOWED
       a_routine_ptr dtor_routine;
+#endif /* GNU_EXTENSIONS_ALLOWED */
       if (microsoft_mode && microsoft_version < 1900) {
         /* Suppress the error in early versions of Microsoft. */
+#if GNU_EXTENSIONS_ALLOWED
       } else if (clang_mode && !cpp11_mode) {
         /* Clang only gives an error in C++11 mode. */
       } else if (gpp_version_is(< 60000) &&
@@ -18848,6 +18851,7 @@ have been issued).
                   !dtor_routine->is_virtual)) {
         /* Early versions of GCC perform this check only when the class'
            destructor is virtual. */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       } else {
         pos_sy_error(ec_placement_new_refers_to_non_placement_delete,
                      &nps->new_position, delete_sym);
