@@ -91,7 +91,7 @@ Incorrect parsing of __is_constructible with variadic pack expansion
 
 In some complex template-based code where __is_constructible was invoked with
 a trailing pack expansion (something like "__is_constructible(T, As...)"), the
-front end could erroneously complain about a missing right parentheses.  That
+front end could erroneously complain about a missing right parenthesis.  That
 problem is now fixed.
 
 
