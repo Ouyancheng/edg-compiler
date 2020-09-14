@@ -301,7 +301,7 @@ Consider:
 In standard C++ this is an error, because the default aggregate initializer
 for x.s is copy-initialized but the default constructor of S is explicit (and
 explicit constructors are normally not eligible for copy-initialization).
-It appears, however, that the Microsoft and GCC compilers accepts such cases
+It appears, however, that the Microsoft and GCC compilers accept such cases
 and the front end now emulates that behavior in Microsoft and GNU C++ modes.
 
 
