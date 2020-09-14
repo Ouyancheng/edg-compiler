@@ -7526,6 +7526,7 @@ If the indicated member variable is unnamed, give it a name.
     name = alloc_lowered_name_string(name_len);
     (void)strcpy(name, buffer);
     var->source_corresp.name = name;
+    var->source_corresp.unmangled_name_or_mangled_encoding = name;
     var->source_corresp.name_has_been_mangled = TRUE;
   }  /* if */
 }  /* give_unnamed_member_variable_a_name */
@@ -12911,7 +12912,8 @@ variable).
   }  /* if */
 #if IA64_ABI
   sym = (a_symbol_ptr)(variable->source_corresp.assoc_info);
-  if (sym->variant.variable.instance_ptr != NULL &&
+  if (sym != NULL &&
+      sym->variant.variable.instance_ptr != NULL &&
       variable->is_template_variable &&
       variable->template_info->template_arg_list != NULL) {
     /* This is a variable template which (in the IA-64 ABI) requires a
