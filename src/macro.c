@@ -10883,10 +10883,10 @@ command line -D options.
     }  /* if */
   }  /* if */
   if (C_dialect == C_dialect_ANSI) {
-    if (!ms_version_is(<1928) && (!gcc_version_is(<50000) || c99_mode)) {
+    if (c99_mode && !ms_version_is(<1928)) {
       /* __STDC_VERSION__ is defined based on the version of C being used.
-         Early Microsoft versions do not define this macro.  Early versions
-         of gcc only define it if the standard is C99 or later. */
+         Early Microsoft versions do not define this macro.  The macro was not
+         part of the C standard until C99. */
       a_const_char *stdc_version = c18_mode ? "201710L"
                                  : c11_mode ? "201112L"
                                  : c99_mode ? "199901L"
