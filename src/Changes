@@ -9,9 +9,6 @@ command-line options in Microsoft emulation mode (when microsoft_version >=
 __STDC_NO_COMPLEX__, __STDC_NO_THREADS__, and __STDC_NO_VLA__ macros are now
 set properly.
 
-A change was also made to define the __STDC_VERSION__ macro only when the
-C dialect is C99 or later (__STDC_VERSION__ was introduced in C99).
-
 
 9/14/20  [EDGcpfe/23310]
 Issues with promotion of constants during lowering

@@ -10883,10 +10883,14 @@ command line -D options.
     }  /* if */
   }  /* if */
   if (C_dialect == C_dialect_ANSI) {
-    if (c99_mode && !ms_version_is(<1928)) {
+    if (!ms_version_is(<1928) && (!gcc_mode || c99_mode)) {
       /* __STDC_VERSION__ is defined based on the version of C being used.
-         Early Microsoft versions do not define this macro.  The macro was not
-         part of the C standard until C99. */
+         Early Microsoft versions do not define this macro.  The macro was
+         introduced by ISO Normative Addendum 1 and is defined by gcc/clang
+         only if using -std=iso9899:199409 or later (and not -std=c89 or
+         -std=c90).  The front end doesn't distinguish between these so in
+         gcc/clang emulation mode the definition is suppressed unless the
+         dialect is c99 or later. */
       a_const_char *stdc_version = c18_mode ? "201710L"
                                  : c11_mode ? "201112L"
                                  : c99_mode ? "199901L"
