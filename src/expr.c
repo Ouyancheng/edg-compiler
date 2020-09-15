@@ -4950,8 +4950,14 @@ call, and rcblock->argument_list to the previously-scanned argument list.
        whether we are in a constant-expression prior to updating the stack. */
     a_boolean  saved_favor_constant_result;
     a_boolean  in_constant_expression = curr_expr_kind_is_const();
-    push_expr_stack_with_rcblock((an_expression_kind)ek_sizeof,
-                                 &expr_stack_entry,
+    an_expression_kind
+               ek = (an_expression_kind)ek_sizeof;
+    if (bfk == (a_builtin_function_kind)bfk_constant_p &&
+        !always_fold_calls_to_builtin_constant_p &&
+        innermost_function_scope != NULL) {
+      ek = (an_expression_kind)ek_normal;
+    }  /* if */
+    push_expr_stack_with_rcblock(ek, &expr_stack_entry,
                                  /*force_object_lifetime=*/FALSE,
                                  /*suppress_object_lifetime=*/FALSE,
                                  rcblock);
