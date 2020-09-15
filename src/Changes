@@ -4,9 +4,13 @@ Version 6.2
 Microsoft compatibility: C mode
 
 A change has been made to more closely emulate the /std:c11 and /std:c17
-Microsoft emulation mode (when microsoft_version >= 1928).  In particular, the
-__STDC_VERSION__, __STDC_NO_ATOMICS__, __STDC_NO_COMPLEX__,
-__STDC_NO_THREADS__, and __STDC_NO_VLA__ macros are now set properly.
+command-line options in Microsoft emulation mode (when microsoft_version >=
+1928).  In particular, the __STDC_VERSION__, __STDC_NO_ATOMICS__,
+__STDC_NO_COMPLEX__, __STDC_NO_THREADS__, and __STDC_NO_VLA__ macros are now
+set properly.
+
+A change was also made to better emulate the behavior of GCC and Clang when
+defining the __STDC_VERSION__ macro in C mode.
 
 
 9/14/20  [EDGcpfe/23310]

@@ -10883,10 +10883,10 @@ command line -D options.
     }  /* if */
   }  /* if */
   if (C_dialect == C_dialect_ANSI) {
-    if (!ms_version_is(<1928) && (!gcc_mode || c99_mode)) {
+    if (!ms_version_is(<1928) && (!gcc_version_is(<50000) || c99_mode)) {
       /* __STDC_VERSION__ is defined based on the version of C being used.
-         The Microsoft compiler does not define this macro; the GNU and clang
-         compilers do so only for C99 ("std=c99") and C11 ("std=c11"). */
+         Early Microsoft versions do not define this macro.  Early versions
+         of gcc only define it if the standard is C99 or later. */
       a_const_char *stdc_version = c18_mode ? "201710L"
                                  : c11_mode ? "201112L"
                                  : c99_mode ? "199901L"
@@ -11416,8 +11416,9 @@ command line -D options.
                              /*ref_suppresses_pch_file=*/FALSE);
   }  /* if */
 #endif /* IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS */
+  /*lint -e{506}*/
   if (C_mode() &&
-      (!IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS/*lint -e(506)*/ ||
+      (!IMPLEMENTATION_SUPPORTS_MULTIPLE_THREADS ||
        ms_version_is(>=1928))) {
     (void)enter_predef_macro("1", "__STDC_NO_THREADS__",
                              /*cannot_be_redefined=*/TRUE,
