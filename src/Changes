@@ -164,12 +164,12 @@ such explicit specializations are now suppressed.
 
 
 9/9/20   [EDGcpfe/23243]
-Multiple translation units: Abort with a function using declaration
+Multiple translation units: Abort with a function using-declaration
 
 When compiling multiple translation units where two TUs contain the same
 class template which inherits from another class template, the front end could
 have an assertion failure (in equiv_base_using_decls) when in Microsoft
-compatibility mode if a using declaration named a function in the base class.
+compatibility mode if a using-declaration named a function in the base class.
 For example, if both TUs contain:
 
   template <typename T> class B {
