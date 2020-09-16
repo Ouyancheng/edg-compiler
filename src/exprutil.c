@@ -18526,7 +18526,8 @@ whether the call was folded or not.
       a_boolean    call_folded_to_constant = FALSE;
       a_diag_list  diag_list;
       clear_diag_list(&diag_list);
-      if ((
+      if (curr_expr_is_potentially_evaluated() &&
+          (
 #if BUILTIN_FUNCTIONS_ENABLED
            (rout != NULL && is_gnu_builtin_function(rout) &&
             !rout_type_supp(skip_typerefs(rout->type))->has_ellipsis &&
