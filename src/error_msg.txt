@@ -3230,7 +3230,7 @@ ec_module_file_mismatch;;"module file found for \"%s\" is for a different module
 ec_module_kind_any;INTERNAL;"any kind of module file"
 ec_module_read_error;;"unable to read module file"
 ec_builtin_needs_char8_t;;"builtin function is not available because the char8_t type is not supported with the current options"
-ec_cl_await_incompatible_with_coroutines;;"the --ms_await command-line option cannot be specified if C++20 coroutines are enabled"
+REMOVED;ec_cl_await_incompatible_with_coroutines;;"the --ms_await command-line option cannot be specified if C++20 coroutines are enabled"
 ec_nonstandard_use_of_explicit_default_constructor;;"nonstandard use of explicit constructor %nod for default aggregate element initialization"
 ###############################################################################
 #                                                             \  ___  /       #
