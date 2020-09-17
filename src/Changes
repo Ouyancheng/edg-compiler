@@ -1,5 +1,28 @@
 Version 6.2
 
+9/17/20  [EDGcpfe/23383]
+GNU C++ compatibility: missing "template" keyword bug fixed in g++
+
+A change made in version 5.0 (see EDGcpfe/19506) restricted a g++ bug
+emulation to versions < 60000.  However, only part of that bug was
+fixed in g++ 6.x.  The remaining part was fixed in g++ 7.x.  g++ did
+not require the "template" keyword if the name used following a field
+selection operator when looked up by normal lookup found a template
+that is a member of the current prototype instantiation.  We now
+emulate this behavior when gnu_version is < 70000.
+
+  template <class T> struct A {
+    template <int I> void g();
+    template <class U, int I> void f(A<U> at) {
+      at.g<I>();  // Was "expected an expression" with gnu_version 60000
+    }
+  };
+  int main() {
+    A<int> a;
+    a.f<int,1>(a);
+  }
+
+
 9/16/20  [EDGcpfe/22901]
 consteval calls in unevaluated contexts
 

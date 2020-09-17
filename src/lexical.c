@@ -19111,6 +19111,27 @@ can be avoided.
 }  /* qualifier_delimiter_does_not_follow_token */
 
 
+static a_boolean is_template_from_prototype_instantiation(a_symbol_ptr sym)
+/*
+If sym is a member of a prototype instantiation that is a template symbol or
+an overload set containing a template symbol, return TRUE.  Otherwise
+return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (sym->is_class_member) {
+    a_type_ptr parent_tp = sym->parent.class_type;
+    if (is_prototype_instantiation_type(parent_tp)) {
+      if (symbol_is_or_contains_template(sym)) {
+        result = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_template_from_prototype_instantiation */
+
+
 static a_symbol_ptr select_dual_lookup_symbol(
 					a_type_ptr	field_sel_type,	
 					a_symbol_ptr	normal_fund_sym,
@@ -19164,40 +19185,51 @@ a field selection.
          in this context. */
       class_sym = NULL;
     } else if (class_fund_sym->is_nonreal_member &&
-               !is_template_symbol(class_fund_sym) &&
-               (is_class_or_injected_template_symbol(normal_fund_sym) ||
-                (gpp_microsoft_mode_case =
-                 (symbol_is_or_contains_template(normal_fund_sym) &&
-                  (gpp_version_is(< 60000) || clang_mode ||
-                   microsoft_mode))))) { /*lint !e820*/
-      /* The class symbol is a nonreal nontemplate and the normal symbol
-         is a class template.  Use the normal symbol.  In g++, clang and
-         Microsoft mode, a function template or overload set containing a
-         function template causes the template symbol to be returned (except
-         in dependent cases (see below)). */
-      if (gpp_microsoft_mode_case && is_template_dependent_context() &&
-          is_nontype_template_param_symbol(class_fund_sym)) {
-        /* In g++ and Microsoft mode, a reference like "t->f<1>()" is
-           accepted, but in order to be represented properly in the IL we
-           need to return a template symbol instead of a constant.  Redo
-           the lookup in such a way as to create a nonreal template symbol.
-           Clear the normal_sym so that the newly created template will be
-           used.  Note that this only occurs in Microsoft mode if parsing
-           of nonclass templates has been enabled. */
-        clear_specific_symbol(locator_for_curr_id);
-        check_assertion(field_sel_type != NULL);
-        class_sym = class_qualified_id_lookup(&locator_for_curr_id,
-                                              field_sel_type,
-                                              IDL_TREAT_AS_TEMPLATE_ID);
-        class_fund_sym = class_sym == NULL ? NULL
+               !is_template_symbol(class_fund_sym)) {
+      /* The class symbol is a nonreal member that is not a template. */
+      if (is_class_or_injected_template_symbol(normal_fund_sym) ||
+          (gpp_microsoft_mode_case =
+           (symbol_is_or_contains_template(normal_fund_sym) &&
+            (gpp_version_is(< 60000) || clang_mode ||
+             microsoft_mode)))) { /*lint !e820*/
+        /* The class symbol is a nonreal nontemplate and the normal symbol
+           is a class template.  Use the normal symbol.  In g++, clang and
+           Microsoft mode, a function template or overload set containing a
+           function template causes the template symbol to be returned (except
+           in dependent cases (see below)). */
+        if (gpp_microsoft_mode_case && is_template_dependent_context() &&
+            is_nontype_template_param_symbol(class_fund_sym)) {
+          /* In g++ and Microsoft mode, a reference like "t->f<1>()" is
+             accepted, but in order to be represented properly in the IL we
+             need to return a template symbol instead of a constant.  Redo
+             the lookup in such a way as to create a nonreal template symbol.
+             Clear the normal_sym so that the newly created template will be
+             used.  Note that this only occurs in Microsoft mode if parsing
+             of nonclass templates has been enabled. */
+          clear_specific_symbol(locator_for_curr_id);
+          check_assertion(field_sel_type != NULL);
+          class_sym = class_qualified_id_lookup(&locator_for_curr_id,
+                                                field_sel_type,
+                                                IDL_TREAT_AS_TEMPLATE_ID);
+          class_fund_sym = class_sym == NULL ? NULL
                                            : fundamental_symbol_of(class_sym);
-        normal_sym = normal_fund_sym = NULL;
-      } else {
+          normal_sym = normal_fund_sym = NULL;
+        } else {
+          class_sym = NULL;
+        }  /* if */
+      } else if (gpp_version_is(< 70000) &&
+                 is_template_from_prototype_instantiation(normal_sym)) {
+        /* Most of the special g++ behavior is handled above, but version
+           6.x still finds templates from the prototype instantiation
+           via normal lookup. */
         class_sym = NULL;
+      } else {
+        /* In other cases, use the class symbol. */
+        normal_sym = NULL;
       }  /* if */
     } else {
-      /* The name is a member of the class that is not a template.  Use that
-         name and ignore the normal lookup name. */
+      /* The name is a member of the class that is not a nonreal template.
+         Use that name and ignore the normal lookup name. */
       normal_sym = NULL;
     }  /* if */
   }  /* if */
