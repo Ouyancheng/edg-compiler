@@ -142,7 +142,9 @@ and return a pointer to it.
   }  /* if */
   tucp->canonical = NULL;
   tucp->primary = NULL;
+#if CHECKING
   tucp->count = 0;
+#endif /* CHECKING */
   tucp->kind = iek_none;
   return tucp;
 }  /* alloc_trans_unit_corresp */

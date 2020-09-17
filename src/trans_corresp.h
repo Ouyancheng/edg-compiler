@@ -35,9 +35,10 @@ EXTERN a_boolean
 /* Return TRUE if the indicated entry has a correspondence set (it
    has a correspondence pointer, the pointer is set, and it doesn't
    point to itself). */
-#define has_correspondence(ptr)                                        \
-  (trans_unit_corresp_of_unknown_entry(ptr) != NULL &&                 \
-   canonical_il_entry_of(ptr) != (char*)(ptr))
+#define has_correspondence(ptr)                                               \
+  (trans_unit_corresp_of_unknown_entry(ptr) != NULL &&                        \
+   (trans_unit_corresp_of_unknown_entry(ptr)->canonical != (char*)(ptr)  ||   \
+    trans_unit_corresp_of_unknown_entry(ptr)->primary == (char*)ptr))
 
 
 /*

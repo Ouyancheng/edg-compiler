@@ -718,11 +718,6 @@ this routine will create such a correspondence entry.
 {
   a_trans_unit_corresp_ptr  *tcp1, *tcp2;
 
-  if (is_primary_translation_unit && !in_secondary_trans_unit(entity2)) {
-    char  *tmp = entity2;
-    entity2 = entity1;
-    entity1 = tmp;
-  }  /* if */
   check_assertion_str(entity1 != NULL && entity2 != NULL && entity1 != entity2,
                       "f_set_trans_unit_corresp: bad input");
   trace_corresp_check(entity1);
@@ -754,26 +749,22 @@ this routine will create such a correspondence entry.
          a correspondence set already (this happens only when entity2 is a
          new canonical entity). */
       *tcp2 = *tcp1;
+#if CHECKING
       ++(*tcp2)->count;
+#endif /* CHECKING */
       update_canonical_entry(kind, entity2);
     } else {
       /* Neither of the two entries had a correspondence node: create one. */
       *tcp2 = alloc_trans_unit_corresp();
       (*tcp2)->kind = kind;
+#if CHECKING
       ++(*tcp2)->count;
+#endif /* CHECKING */
       change_canonical_entry(*tcp2, entity2);
     }  /* if */
   } else if (*tcp1 != NULL && *tcp1 != *tcp2) {
     /* Both entity1 and entity2 have correspondence sets already.  One of
        them must be a singleton and can therefore be freed. */
-    if ((*tcp1)->count > 1) {
-      char*                    etmp = entity2;
-      a_trans_unit_corresp_ptr *ttmp = tcp2;
-      entity2 = entity1;
-      entity1 = etmp;
-      tcp2 = tcp1;
-      tcp1 = ttmp;
-    }  /* if */
     check_assertion_str((*tcp1)->count == 1,
                         "set_trans_unit_corresp: correspondence busy");
     free_trans_unit_corresp(*tcp1);
@@ -781,7 +772,9 @@ this routine will create such a correspondence entry.
   /* Add entity1 to the correspondence set of entity2. */
   if (*tcp1 != *tcp2) {
     *tcp1 = *tcp2;
+#if CHECKING
     ++(*tcp2)->count;
+#endif /* CHECKING */
   }  /* if */
   update_canonical_entry(kind, entity1);
   /* Is either entity coming from a primary translation unit? */
@@ -831,7 +824,9 @@ entity to NULL.  Return the address of that pointer.
       check_assertion(total_errors != 0);
       change_canonical_entry(*tcp, (*tcp)->primary);
     }  /* if */
+#if CHECKING
     --(*tcp)->count;
+#endif /* CHECKING */
     *tcp = NULL;
   }  /* if */
   return tcp;
@@ -862,7 +857,9 @@ has not yet been examined for a matching entry in another translation unit.
     /* Allocate a correspondence node. */
     *tcp = alloc_trans_unit_corresp();
     (*tcp)->kind = kind;
+#if CHECKING
     ++(*tcp)->count;
+#endif /* CHECKING */
   } else {
     /* Reuse the correspondence entry.  (Normally, the entry shouldn't be
        shared.  An exception is the sharing by two template entries that are
@@ -887,7 +884,7 @@ static void f_set_unvisited_trans_unit_corresp(
                                            char                        *entity)
 /*
 Detach the given IL entity from a translation unit correspondence entry
-and free the correspondence entry if appropriate.
+and free the correspondence entry.
 */
 {
   a_trans_unit_corresp_ptr  tcp = trans_unit_corresp_of_unknown_entry(entity);
@@ -895,11 +892,10 @@ and free the correspondence entry if appropriate.
   if (tcp != NULL) {
     trace_corresp_check(entity);
     (void)detach_trans_unit_corresp(kind, entity);
-    check_assertion(tcp->count >= 1 && tcp->kind == kind);
-    --tcp->count;
-    if (tcp->count == 0) {
-      free_trans_unit_corresp(tcp);
-    }  /* if */
+#if CHECKING
+    check_assertion(tcp->count == 1 && tcp->kind == kind);
+#endif /* CHECKING */
+    free_trans_unit_corresp(tcp);
     trans_unit_corresp_of_unknown_entry(entity) = NULL;
   }  /* if */
 }  /* f_set_unvisited_trans_unit_corresp */
@@ -2364,13 +2360,6 @@ Make type (and its inner structure) correspond to corresp_type.  This routine
 also deals with the consequences of type becoming the new canonical entry.
 */
 {
-  if (trans_unit_corresp_of(corresp_type) == NULL &&
-      trans_unit_corresp_of(type) != NULL) {
-    /* corresp_type is the newer type: swap the arguments. */
-    a_type_ptr  tmp = type;
-    type = corresp_type;
-    corresp_type = tmp;
-  }  /* if */
   set_trans_unit_corresp(iek_type, type, corresp_type);
   if (type->kind != corresp_type->kind &&
       (!is_class_or_struct(type) || !is_class_or_struct(corresp_type))) {
@@ -3959,8 +3948,7 @@ is in fact valid.
          the primary translation unit against this one.  Otherwise, nothing
          needs to be done. */
       a_type_ptr  prim = (a_type_ptr)tcp->primary;
-      if (prim != NULL && type != prim) {
-        corresp_type = type;
+      if (prim != NULL) {
         type = prim;
       }  /* if */
     }  /* if */
@@ -5027,7 +5015,7 @@ initializing *canonical_changed.
   /* First set the correspondence of the type entry itself. */
   set_trans_unit_corresp(iek_type, type_1, type_2);
   /* Then set the correspondence of the type's substructure. */
-  if (!has_correspondence(type_1)) {
+  if (canonical_il_entry_of(type_1) == (char*)type_1) {
     /* type_1 may have become the canonical entry, in which case we must
        use type_2 to establish the correspondence of type_1's substructure.
        This cannot be undone. */

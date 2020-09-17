@@ -1,5 +1,18 @@
 Version 6.2
 
+9/17/20  [EDGcpfe/22717,EDGcpfe/23086]
+Multiple translation units: Aborts with mistaken canonical correspondences
+
+When compiling multiple translation units where an entity exists in more than
+one translation unit, the front end could sometimes fail to distinguish
+properly canonical representations of that entity from cases where no other
+corresponding entities had yet been assigned.  This caused aborts in
+f_set_unvisited_trans_unit_corresp and
+set_master_instance_for_new_canonical_routine.  EDGcpfe/22581 partially fixed
+this issue, but not correctly nor completely.  This has now been fixed (by
+backing out EDGcpfe/22581 and replacing it with a different fix).
+
+
 9/17/20  [EDGcpfe/23383]
 GNU C++ compatibility: missing "template" keyword bug fixed in g++
 
