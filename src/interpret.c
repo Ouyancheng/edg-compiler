@@ -2995,7 +2995,7 @@ for base class subobjects *p_field is set to NULL).  If cap points "one past
 the end" of a field subobject, that field is returned.
 */
 {
-  if (parent_type->kind != (a_type_kind)tk_union) {
+  if (!type_is(parent_type, tk_union)) {
     /* Search among base classes and fields for the one that covers the offset
        of the given address.  We search through direct subobjects in allocation
        order. */
@@ -3752,9 +3752,7 @@ Output the contents of the interpreted object of type tp stored at addr.
   db_indent(indent);
   tp = skip_typerefs(tp);
   if (complete_object != NULL) {
-    if (complete_object == addr ?
-          !complete_object_is_initialized(addr) :
-          !subobject_is_initialized(addr, complete_object)) {
+    if (!subobject_is_initialized(addr, complete_object)) {
       not_initialized = TRUE;
     }  /* if */
   }  /* if */
@@ -7549,6 +7547,156 @@ return_result:
 }  /* do_constexpr_builtin_strchr */
 
 
+static inline a_byte* base_address_of(a_constexpr_address   *cap)
+/*
+If the given address is that of an array element return the corresponding array
+base address.  Otherwise, just return cap->address.
+*/
+{
+  return is_array_element(cap) ? get_base_address(cap) : cap->address;
+}  /* base_address_of */
+
+
+static a_type_ptr obj_type_at_address(an_interpreter_state  *ips,
+                                      a_constexpr_address   *cap)
+/*
+If the cap points to an object or subobject, return the type of that object.
+Otherwise, return NULL.
+*/
+{
+  a_type_ptr  tp = NULL;
+
+  if (cap->address != NULL && !cannot_dereference(cap)) {
+    a_byte  *addr = base_address_of(cap),
+            *paddr = cap->complete_object;
+    tp = complete_object_type(paddr);
+    while (paddr != addr) {
+      if (type_is(tp, tk_array)) {
+        a_byte_count  esize, idx;
+        a_boolean     result = TRUE;
+        do {
+          tp = skip_typerefs(tp->variant.array.element_type);
+        } while (type_is(tp, tk_array));
+        esize = value_bytes_for_type(ips, tp, &result);
+        check_assertion(result);
+        idx = ((a_byte_count)(addr-paddr))/esize;
+        paddr += idx*esize;
+      } else if (is_immediate_class_type(tp)) {
+        a_field_ptr       fp;
+        a_base_class_ptr  bcp;
+        a_byte_count      offset;
+        a_byte            *subobj_entry;
+        find_subobject_for_interpreter_address(ips, cap, paddr, tp, &fp, &bcp);
+        if (fp != NULL) {
+          tp = skip_typerefs(fp->type);
+          subobj_entry = (a_byte*)fp;
+        } else {
+          tp = bcp->type;
+          subobj_entry = (a_byte*)bcp;
+        }  /* if */
+        get_mapped_byte_count(&persistent_map, subobj_entry, offset);
+        paddr += offset;
+      } else {
+        /* A scalar type.  We shouldn't get here because interpreter addresses
+           can only point to the start of a scalar object or one past the end
+           of one. */
+        unexpected_condition();
+      }  /* if */
+    }  /* while */
+  }  /* if */
+  return tp;
+}  /* obj_type_at_address */
+
+
+static a_boolean do_constexpr_memcpy(an_interpreter_state  *ips,
+                                     a_boolean             is_move,
+                                     a_constexpr_address   *src_cap,
+                                     a_constexpr_address   *dst_cap,
+                                     a_byte_count          n_target_bytes,
+                                     an_expr_node_ptr      call_node)
+/*
+Interpret a memcpy-like intrinsic (__builtin_memcpy, __builtin_memmove,
+__builtin_wmemcpy, or __builtin_wmemmove).  is_move is TRUE if this is a
+memmove/wmemmove operation.  src_cap and dst_cap are the source and destination
+addresses, respectively.  n_target_bytes is the number of bytes that must be
+copied in the target architecture model.  call_node is the node representing
+the invocation of the intrinsic.  Note that this routine does not create a
+return value (unlike the actual intrinsic, which returns the destination
+address).
+*/
+{
+  a_boolean   result = TRUE;
+  a_type_ptr  src_tp = obj_type_at_address(ips, src_cap),
+              dst_tp = obj_type_at_address(ips, dst_cap);
+
+  if (n_target_bytes == 0) {
+    /* This call is essentially a no-op. */
+  } else if (src_tp != NULL && dst_tp != NULL) {
+    /* The source and destination point to objects. */
+    a_type_ptr  src_etp = skip_typerefs(skip_array_types(src_tp)),
+                dst_etp = skip_typerefs(skip_array_types(dst_tp));
+    /* First check that the actual objects being copied are IL-identical and
+       trivially copyable, and that only whole objects of nonzero length are
+       copied. */
+    if (!il_identical_types(src_etp, dst_etp)) {
+      info_with_pos_type2(ec_constexpr_memcpy_distinct_types,
+                         &call_node->position, src_etp, dst_etp, ips);
+      do_constexpr_fail(result);
+      goto done;
+    } else if (is_immediate_class_type(src_etp) &&
+               !is_trivially_copyable_type(src_etp)) {
+      info_with_pos_type(ec_constexpr_memcpy_nontrivial_type,
+                         &call_node->position, src_etp, ips);
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
+    a_byte_count  n_elems = src_etp->size == 0 ? MAX_ARRAY_LENGTH+1
+                                               : n_target_bytes/src_etp->size;
+    if (n_target_bytes-n_elems*src_etp->size != 0) {
+      info_with_pos(ec_constexpr_memcpy_partial_object, &call_node->position,
+                    ips);
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
+    /* Now check that the source and destination are large enough for the
+       copy. */
+    a_byte       *src_base = base_address_of(src_cap), *src = src_cap->address,
+                 *dst_base = base_address_of(dst_cap), *dst = dst_cap->address;
+    a_byte_count esize = value_bytes_for_type(ips, src_etp, &result),
+                 src_base_length = num_array_elements(src_tp),
+                 dst_base_length = num_array_elements(dst_tp),
+                 k;
+    if (n_elems > src_base_length || n_elems > dst_base_length ||
+        n_elems > MAX_ARRAY_LENGTH ||
+        (src_base_length-n_elems)*esize < src-src_base ||
+        (dst_base_length-n_elems)*esize < dst-dst_base) {
+      info_with_pos(ec_constexpr_memcpy_overflow, &call_node->position, ips);
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
+    a_byte_count  n_bytes = n_elems*esize;
+    if (!is_move && src_base == dst_base &&
+        ((src < dst && src+n_bytes > dst) ||
+         (dst < src && dst+n_bytes < src))) {
+      info_with_pos(ec_constexpr_memcpy_overlap, &call_node->position, ips);
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
+    (void)memmove(dst, src, n_bytes);
+    a_byte  *complete_dst = dst_cap->complete_object;
+    for (k = 0; k < n_elems; ++k, dst += esize) {
+      mark_whole_subobject_initialized(ips, dst, dst_etp, complete_dst);
+    }  /* for */
+  } else {
+    info_with_pos(ec_constexpr_memcpy_operand_not_object,
+                  &call_node->position, ips);
+    do_constexpr_fail(result);
+  }  /* if */
+done:
+  return result;
+}  /* do_constexpr_memcpy */
+
+
 static a_boolean do_constexpr_builtin_strcmp(
                                       an_interpreter_state    *ips,
                                       a_boolean               is_memcmp,
@@ -8214,6 +8362,65 @@ to FALSE and the reason for the failure is recorded in *ips.
                                            arg3_bytes, arg3_tp,
                                            call_node, result_storage)) {
             do_constexpr_fail(*p_result);
+          }  /* if */
+        }  /* if */
+      }
+      break;
+    case bfk_memcpy:
+    case bfk_memmove:
+    case bfk_wmemcpy:
+    case bfk_wmemmove:
+      {
+        interpreted = TRUE;
+        if (args == NULL || args->next == NULL || 
+            args->next->next == NULL || args->next->next->next != NULL) {
+          unexpected_condition();
+        } else {
+          a_type_ptr  arg1_tp = skip_typerefs(args->type);
+          alloc_complete_object(ips, sizeof(a_constexpr_address), arg1_tp,
+                                arg1_bytes);
+          args2 = args->next;
+          a_type_ptr  arg2_tp = skip_typerefs(args2->type);
+          alloc_complete_object(ips, sizeof(a_constexpr_address), arg2_tp,
+                                arg2_bytes);
+          args3 = args2->next;
+          a_type_ptr  arg3_tp = skip_typerefs(args3->type);
+          alloc_complete_object(ips, sizeof(an_integer_value), arg3_tp,
+                                arg3_bytes);
+          if (!do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes) ||
+              !do_constexpr_expression(ips, args2, arg2_bytes, arg2_bytes) ||
+              !do_constexpr_expression(ips, args3, arg3_bytes, arg3_bytes)) {
+            do_constexpr_fail(*p_result);
+            break;
+          } else {
+            a_boolean             ovflo, is_move = FALSE, is_wide = FALSE;
+            a_host_large_integer  length_val = MAX_CONSTEXPR_TYPE_SIZE;
+            conv_integer_value_to_host_large_integer(
+                              (an_integer_value *)arg3_bytes,
+                              is_signed_integral_type(arg3_tp)/*lint !e2666*/,
+                              &length_val, &ovflo);
+            switch (callee->variant.builtin_function_kind) {
+              case bfk_memcpy:                                   break;
+              case bfk_memmove:  is_move = TRUE;                 break;
+              case bfk_wmemcpy:                  is_wide = TRUE; break;
+              case bfk_wmemmove: is_move = TRUE; is_wide = TRUE; break;
+              default: unexpected_condition();
+            }  /* switch */
+            if (ovflo || length_val > MAX_CONSTEXPR_TYPE_SIZE) {
+              length_val = MAX_CONSTEXPR_TYPE_SIZE+1;
+            }  /* if */
+            if (is_wide) {
+              length_val *= wchar_t_type()->size;
+            }  /* if */
+            if (!do_constexpr_memcpy(ips, is_move,
+                                     (a_constexpr_address*)arg2_bytes,
+                                     (a_constexpr_address*)arg1_bytes,
+                                     length_val, call_node)) {
+              do_constexpr_fail(*p_result);
+            } else {
+              *(a_constexpr_address*)result_storage =
+                                            *(a_constexpr_address*)arg1_bytes;
+            }  /* if */
           }  /* if */
         }  /* if */
       }
