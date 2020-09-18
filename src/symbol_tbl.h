@@ -2585,6 +2585,10 @@ typedef struct a_template_cache_segment {
 		is_exception_specification_arg;
 			/* TRUE if this entry represents the argument (or
 			   arguments) of an exception specification. */
+  a_byte_boolean
+		exception_spec_on_templ_friend;
+			/* TRUE when is_exception_specification_arg is TRUE
+			   and the declaration is a template friend. */
 } a_template_cache_segment;
 
 

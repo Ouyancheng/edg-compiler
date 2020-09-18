@@ -2544,7 +2544,9 @@ Return TRUE if the given routine fixup is for a friend declaration.
   a_symbol_ptr  sym = rfp->symbol;
   a_boolean     is_friend = FALSE;
 
-  if (!sym->is_class_member) {
+  if (sym == NULL) {
+    expect_error();
+  } else if (!sym->is_class_member) {
     is_friend = TRUE;
   } else {
     a_type_ptr  parent_class = sym_parent_class(sym);
@@ -2641,7 +2643,6 @@ and for member functions of template classes.
   a_template_symbol_supplement_ptr  tssp;
   a_boolean                         is_real_template_instantiation = FALSE;
   a_boolean                         is_nonreal_template_instantiation = FALSE;
-  a_boolean                         is_friend;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   a_scope_depth                     scope_depth = NO_SCOPE_DEPTH;
@@ -2760,6 +2761,9 @@ and for member functions of template classes.
                                                 is_real_template_instantiation;
       a_boolean	fixup_class_is_nonreal_template_instantiation =
 					     is_nonreal_template_instantiation;
+      a_boolean is_friend;
+      sym = rfp->symbol;
+      is_friend = fixup_is_for_friend(rfp);
       if (is_nonreal_template_instantiation &&
           (rfp->class_type->variant.class_struct_union.is_specialized ||
            rfp->class_type
@@ -2778,7 +2782,6 @@ and for member functions of template classes.
            default information from the information saved during the
            prototype instantiation. */
         a_boolean  is_member_function_template = FALSE;
-        sym = rfp->symbol;
         if (symbol_is(sym, sk_function_template)) {
           is_member_function_template = TRUE;
         }  /* if */
@@ -2794,7 +2797,7 @@ and for member functions of template classes.
                                      sym, daefp, rfp->prototype_scope_symbols,
                                      /*update_declared_type=*/TRUE);
           }  /* if */
-          if (rfp->process_exception_spec &&
+          if (rfp->process_exception_spec && !is_friend &&
               (is_real_template_instantiation || do_proto_inst_for_sym)) {
             a_routine_ptr  proto_rp = sym->variant.template_info
                                          ->variant.function.routine;
@@ -2813,7 +2816,6 @@ and for member functions of template classes.
           db_symbol(sym, "scanning default args for ", 2);
         }  /* if */
 #endif /* DEBUG */
-        is_friend = is_function_symbol(sym) && fixup_is_for_friend(rfp);
         if (fixup_class_is_nonreal_template_instantiation) {
           /* Prototype instantiation. */
           if (sym->kind == (a_symbol_kind)sk_member_function && !is_friend) {

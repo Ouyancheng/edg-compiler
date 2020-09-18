@@ -1446,7 +1446,6 @@ template-dependent context or a member of a class).
               is_template_dependent_context() ||
               is_nonspecialized_instantiation_context()) &&
               !is_microsoft_in_class_specialization_context() &&
-              !is_template_friend_decl() &&
               !is_local_decl) {
     /* For top-level declarators in template-dependent contexts, just cache
        the specifier argument for now.  Also create a corresponding template
@@ -1483,6 +1482,7 @@ template-dependent context or a member of a class).
         /* Check for the case where the cache is empty. */
         tcsp->expression_missing = 
                               (esp->variant.token_cache->first_token == NULL);
+        tcsp->exception_spec_on_templ_friend = is_template_friend_decl();
       }  /* if */
       terminate_token_cache(esp->variant.token_cache);
     } else {

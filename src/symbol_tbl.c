@@ -3114,6 +3114,7 @@ to the symbol supplement associated with sym.
   tcsp->is_default_arg = FALSE;
   tcsp->expression_missing = FALSE;
   tcsp->is_exception_specification_arg = FALSE;
+  tcsp->exception_spec_on_templ_friend = FALSE;
   /* Add the new entry to the list of template cache segments associated
      with the current instantiation.  If there is no current instantiation,
      use the current template declaration scope. */

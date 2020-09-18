@@ -1,5 +1,20 @@
 Version 6.2
 
+9/18/20  [EDGcpfe/23374]
+Spurious errors on noexcept-specifier on friend template declaration
+
+A noexcept specifier of a template should only be instantiated if needed.
+The front end could issue spurious errors as a result of evaluating a
+noexcept-specifier of a friend template declaration too early.  Now fixed
+
+  template <typename T> struct B {
+    template <typename>
+      friend void f(B &&p) noexcept(noexcept(static_cast<T const &>(p))) {}
+  };
+  struct D;
+  struct E: B<D> {};
+
+
 9/17/20  [EDGcpfe/22717,EDGcpfe/23086]
 Multiple translation units: Aborts with mistaken canonical correspondences
 

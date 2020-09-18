@@ -2383,6 +2383,11 @@ previous declaration.
          the original specification is retained. */
       severity = es_warning;
     }  /* if */
+    if (rp != NULL) {
+      /* Make sure the old exception specification has been instantiated. */
+      check_assertion(symbol_for(rp) != NULL);
+      instantiate_exception_spec_if_needed(symbol_for(rp));
+    }  /* if */
     old_esp = skip_typerefs(prev_type)->
                          variant.routine.extra_info->exception_specification;
     if (old_esp != NULL && old_esp->copy_from_prototype) {
