@@ -10572,6 +10572,70 @@ specializations appear in namespace scope.)
 }  /* ttt_is_type_operator_for_local_type */
 
 
+static a_boolean is_problematic_gnu_function(a_routine_ptr rout)
+/*
+Return TRUE if rout is an instance of a member function template of a class
+template and the characteristics of that function template are such that
+g++ would be unable to establish the correspondence between it and an
+explicit specialization.  Otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (gcc_is_generated_code_target && rout->template_arg_list != NULL &&
+      rout->source_corresp.is_class_member &&
+      parent_class_of(rout)->variant.class_struct_union.is_template_class) {
+    a_template_ptr tpl = rout->assoc_template;
+    check_assertion(tpl != NULL);
+    a_routine_ptr proto = tpl->prototype_instantiation.routine;
+    if (proto != NULL) {
+      /* Current versions of g++ cannot match an explicit specialization to
+         its template (say, "f") if f's return type is given by a dependent
+         type operator whose operand is a call to a member function
+         template of the same class template as "f" with a function
+         argument whose type depends on f's template parameters (as opposed
+         to those of the containing class template).  Check for that case
+         here. */
+      a_type_ptr fcn_type = skip_typerefs(proto->type);
+      a_type_ptr ret_type;
+      check_assertion(type_is(fcn_type, tk_routine));
+      ret_type = skip_typerefs_not_typedefs_or_type_operators(
+                                        fcn_type->variant.routine.return_type);
+      if (type_is(ret_type, tk_typeref) &&
+          ret_type->variant.typeref.is_dependent_type_operator) {
+        an_expr_node_ptr expr = ret_type->variant.typeref.extra_info->expr;
+        if (expr != NULL && is_operation_node(expr) &&
+            node_operator_is(expr, eok_call) &&
+            is_constant_node(expr->variant.operation.operands)) {
+          /* The function's return type is a dependent type operator
+             consisting of a call to a constant (as opposed to a routine
+             or pointer to a routine). */
+          a_constant_ptr cp = node_constant(expr->variant.operation.operands);
+          if (constant_is(cp, ck_template_param) &&
+              tpck_is(cp, tpck_unknown_function) &&
+              cp->source_corresp.is_class_member &&
+              parent_class_of(cp) == parent_class_of(tpl)) {
+            /* The constant being called represents a member function
+               template of the same class.  Check the types of the
+               arguments; a tptk_unknown argument represents a use of one
+               of this function template's parameters. */
+            an_expr_node_ptr arg;
+            for (arg = expr->variant.operation.operands->next;
+                 arg != NULL && !result; arg = arg->next) {
+              if (type_is(arg->type, tk_template_param) &&
+                  tptk_is(arg->type, tptk_unknown)) {
+                result = TRUE;
+              }  /* if */
+            }  /* for */
+          }  /* if */
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_problematic_gnu_function */
+
+
 static a_boolean suppress_invalid_explicit_specialization(
                                               a_source_correspondence_ptr scp,
                                               an_il_entry_kind            kind,
@@ -10601,10 +10665,17 @@ instantiations are only permitted in namespace scope).
          scope. */
       result = TRUE;
     }  /* if */
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   } else if (kind == iek_routine && scp->is_class_member &&
              !scp_parent_class(scp)->has_been_defined) {
     /* Attempting to declare a member function explicit specialization of
        a class that hasn't been defined yet. */
+    result = TRUE;
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+  } else if (gcc_is_generated_code_target && kind == iek_routine &&
+             is_problematic_gnu_function((a_routine_ptr)scp)) {
+    /* There would be an error matching the explicit specialization with
+       its template. */
     result = TRUE;
   }  /* if */
   if (!result && kind == iek_type &&

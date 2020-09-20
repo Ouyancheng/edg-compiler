@@ -490,6 +490,12 @@ Return TRUE if tp is a template type parameter pack.
   ((tp)->kind == (a_type_kind)tk_template_param &&			\
    (tp)->variant.template_param.is_pack)
 
+/*
+Return TRUE if tp (which is a tk_template_param type) has the specified
+template parameter type kind.
+*/
+#define tptk_is(tp, k)                                                  \
+  ((tp)->variant.template_param.kind == (a_template_param_type_kind)k)
 
 /*
 Return TRUE if cp is a template nontype parameter pack.

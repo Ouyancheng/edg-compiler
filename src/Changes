@@ -223,11 +223,13 @@ That is now fixed.
 C++-generating back end: explicit specializations of member function templates
 used in their class
 
-In configurations in which TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-is TRUE, the C++-generating back end could put out an explicit
-specialization for a member function template before the explicit
-specialization of the class template of which it is a member.  This is now
-fixed.  For example, with --g++ --c++14:
+In configurations in which both
+CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS and
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS are TRUE, the
+C++-generating back end could put out an explicit specialization for a
+member function template before the explicit specialization of the class
+template of which it is a member.  This is now fixed.  For example, with
+--g++ --c++14:
 
   template<typename T> struct A {
     static T x();
@@ -245,6 +247,31 @@ point at which an explicit specialization of the member function template
 could validly appear, since it would either precede the explicit
 specialization of its parent class or follow its use inside the class, so
 such explicit specializations are now suppressed.
+
+In addition, in C++-generating back end configurations in which
+CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is FALSE but
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, similar
+examples could result in code that triggers a g++ bug that prevents
+matching an explicit specialization with its template.  The C++-generating
+back end has now been changed to suppress such explicit specializations
+when gcc_is_generated_code_target is TRUE.  For example, with --g++:
+
+  template <typename T> T v;
+  template <typename T> class C {
+    template <typename U> static int f(U);
+    template <typename V> static decltype(f(v<V>)) g(int);
+    static const bool b = sizeof(g<T>(0));
+  };
+  template <typename> struct S {
+    bool v = C<int>::b;
+  };
+
+The generated code for this example previously contained the explicit
+specialization
+
+  template<> template<> int C<int>::g<int>(int);
+
+which triggered the g++ bug.
 
 
 9/9/20   [EDGcpfe/23243]
