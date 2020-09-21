@@ -7579,8 +7579,10 @@ Otherwise, return NULL.
         } while (type_is(tp, tk_array));
         esize = value_bytes_for_type(ips, tp, &result);
         check_assertion(result);
-        idx = ((a_byte_count)(addr-paddr))/esize;
-        paddr += (a_byte_count)(idx*esize);
+        if (esize != 0) {
+          idx = ((a_byte_count)(addr-paddr))/esize;
+          paddr += (a_byte_count)(idx*esize);
+        }  /* if */
       } else if (is_immediate_class_type(tp)) {
         a_field_ptr       fp;
         a_base_class_ptr  bcp;
