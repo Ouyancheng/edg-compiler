@@ -628,16 +628,22 @@ processed so far.
 }  /* arg_matches_auto_template_param */
 
 
-static a_boolean can_ignore_single_element_braces(
+static a_boolean ignore_braces_for_placeholder_deduction(
                                      a_decl_parse_state    *dps,
                                      an_init_component_ptr icp,
                                      a_boolean             parenthesized_init)
 /*
-Direct-list-initialization with a placeholder type only permits a single
-braced element, and in that case the braces are ignored (rule introduced by
-the C++ standardization committee's paper N3922).  For class template auto
-deduction, we ignore single-element braces iff the list contains a
-specialization or a class derived from a specialization of the class template.
+Return TRUE if a declaration involving a placeholder type and using a braced
+initializer should ignore the braces for the purpose of deducing the
+placeholder type.  The declaration is described by *dps and *icp is the
+initializer (it is parenthesized if parenthesized_init is TRUE).
+
+Direct-list-initialization with an "auto" or "decltype(auto)" placeholder type
+only permits a single braced element, and in that case the braces are ignored
+(rule introduced by the C++ standardization committee's paper N3922).  For
+class template argument deduction, outer braces are ignored if they contain a
+a single element whose type is a specialization or a class derived from a
+specialization of the class template denoted by the placeholder.
 parenthesized_init is TRUE if the initializer is parenthesized, FALSE
 otherwise.  Return TRUE if this is a case where single-element braced
 initializer lists can have their braces ignored.
@@ -645,33 +651,32 @@ initializer lists can have their braces ignored.
 {
   a_boolean result = FALSE;
 
-  if (dps->has_direct_initializer &&
-      icp != NULL && is_braced_init_component(icp) &&
-      ((!(clang_mode ? clang_version < 30800 :
-                        gpp_mode ? gnu_version < 50000 : FALSE)) ||
-        (microsoft_mode && microsoft_version >= 1900))) {
-    icp = icp->variant.braced.list;
-    if (!dps->has_deducible_class_templ_args) {
-      result = TRUE;
-    } else {
+  if (icp != NULL && is_braced_init_component(icp)) {
+    if (dps->has_deducible_class_templ_args) {
       a_type_ptr dtp = skip_typerefs_not_typedefs_or_type_operators(dps->type);
+      icp = icp->variant.braced.list;
       if (!parenthesized_init && icp != NULL && icp->next == NULL &&
           is_expression_component(icp) &&
           is_class_template_placeholder_type(dtp)) {
         a_template_arg_ptr args;
         a_type_ptr         operand_type = operand_of_arg_list_elem(icp)->type;
         a_symbol_ptr       class_tmpl_sym =
-                                         dtp->variant.template_param.extra_info
-                                            ->constraint.class_template_symbol;
-
+                                        dtp->variant.template_param.extra_info
+                                           ->constraint.class_template_symbol;
         result = is_or_derived_from_instance_of_class_template(operand_type,
                                                                class_tmpl_sym,
                                                                &args);
       }  /* if */
+    } else if (dps->has_direct_initializer &&
+               (!(clang_mode ? clang_version < 30800 :
+                  gpp_mode ? gnu_version < 50000
+                           : FALSE) ||
+                (microsoft_mode && microsoft_version >= 1900))) {
+      result = TRUE;
     }  /* if */
   }  /* if */
   return result;
-}  /* can_ignore_single_element_braces */
+}  /* ignore_braces_for_placeholder_deduction */
 
 
 void prescan_initializer_for_auto_type_deduction(
@@ -840,7 +845,8 @@ swallowed); otherwise, it's "="-form or "{...}" form.
       undeduced_type = make_qualified_type(undeduced_type,
                                            (a_type_qualifier_set)TQ_CONST);
     }  /* if */
-    if (can_ignore_single_element_braces(dps, icp, parenthesized_init)) {
+    if (ignore_braces_for_placeholder_deduction(dps, icp,
+                                                parenthesized_init)) {
       an_init_component_ptr  elem_icp = icp->variant.braced.list;
       if (parenthesized_init && !gpp_mode) {
         /* Something like "auto x( { 3 } );".  This is malformed per
