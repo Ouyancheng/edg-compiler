@@ -12,7 +12,7 @@ so for copy-list-initialization.  For example:
   template<typename T> struct X {
     X(std::initializer_list<T>);
   };
-  X<int> x;
+  X<int> x{};
   X y = { x };  // Previously, y had type X<X<int>>.  Now y has type X<int>.
 
 That is now fixed.
