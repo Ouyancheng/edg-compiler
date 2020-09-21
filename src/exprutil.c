@@ -6595,7 +6595,9 @@ function).  In such cases, record a pending diagnostic if appropriate.
     result = FALSE;
     /* Although the call need not be evaluated at this time, we are still going
        to record it in the IL.  Ensure that it is marked as needed. */
+#if MAINTAIN_NEEDED_FLAGS
     mark_as_needed((char*)rp, (an_il_entry_kind)iek_routine);
+#endif /* MAINTAIN_NEEDED_FLAGS */
   }  /* if */
   return result;
 }  /* consteval_failure */
