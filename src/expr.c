@@ -27017,7 +27017,7 @@ empty_parentheses:
                are invalid. */
             a_boolean  invalid_default_init = FALSE;
             check_for_missing_initializer_full(
-                               (a_symbol_ptr)NULL, type_cast_to,
+                               (a_symbol_ptr)NULL, skip_typerefs(type_cast_to),
                                /*explicitly_internal=*/FALSE,
                                expr_stack->suppress_diagnostics ?
                                     &invalid_default_init : (a_boolean*)NULL);
