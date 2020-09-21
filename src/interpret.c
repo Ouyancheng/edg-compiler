@@ -7580,7 +7580,7 @@ Otherwise, return NULL.
         esize = value_bytes_for_type(ips, tp, &result);
         check_assertion(result);
         idx = ((a_byte_count)(addr-paddr))/esize;
-        paddr += idx*esize;
+        paddr += (a_byte_count)(idx*esize);
       } else if (is_immediate_class_type(tp)) {
         a_field_ptr       fp;
         a_base_class_ptr  bcp;
@@ -7663,8 +7663,8 @@ address).
     a_byte       *src_base = base_address_of(src_cap), *src = src_cap->address,
                  *dst_base = base_address_of(dst_cap), *dst = dst_cap->address;
     a_byte_count esize = value_bytes_for_type(ips, src_etp, &result),
-                 src_base_length = num_array_elements(src_tp),
-                 dst_base_length = num_array_elements(dst_tp),
+                 src_base_length = (a_byte_count)num_array_elements(src_tp),
+                 dst_base_length = (a_byte_count)num_array_elements(dst_tp),
                  k;
     if (n_elems > src_base_length || n_elems > dst_base_length ||
         n_elems > MAX_ARRAY_LENGTH ||
@@ -8415,7 +8415,7 @@ to FALSE and the reason for the failure is recorded in *ips.
             if (!do_constexpr_memcpy(ips, is_move,
                                      (a_constexpr_address*)arg2_bytes,
                                      (a_constexpr_address*)arg1_bytes,
-                                     length_val, call_node)) {
+                                     (a_byte_count)length_val, call_node)) {
               do_constexpr_fail(*p_result);
             } else {
               *(a_constexpr_address*)result_storage =
