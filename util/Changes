@@ -1,5 +1,14 @@
 Version 6.2
 
+9/21/20  [EDGcpfe/23362]
+Demangling for designated initializers
+
+Following the implementation of designated initializer mangling in the
+front end, support has been added for demangling names with designated
+initializer mangling.  The Cfront ABI uses the same mangling structure as
+the IA-64 ABI.
+
+
 8/7/20   [EDGcpfe/23225]
 Options for --[no_]utf8_char_literals
 

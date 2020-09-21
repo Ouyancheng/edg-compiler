@@ -1,5 +1,22 @@
 Version 6.2
 
+9/21/20  [EDGcpfe/23362]
+Mangling for designated initializers
+
+Mangling for designated initializers has been added to both the IA-64 and
+Cfront ABIs.  The mangling for the Cfront ABI uses the same codes and overall
+structure as that of the IA-64 ABI.  For example, with --c++20:
+
+  struct A { int a, b; };
+  struct B { int c, d; };
+  template<typename T> void f(decltype(T{.a = 1, .b = 2}));
+  template<typename T> void f(decltype(T{.c = 1, .d = 2}));
+  int main() {
+    f<A>(A());
+    f<B>(B());
+  }
+
+
 9/21/20  [EDGcpfe/22879]
 Constant-evaluation of __builtin_memcpy
 

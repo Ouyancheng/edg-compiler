@@ -4514,8 +4514,10 @@ do_unknown_function:
       mangled_encoding_for_complex_constant(con, old_form, mctl);
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-    case ck_init_repeat:
     case ck_designator:
+      /* Shouldn't get designated initializers here. */
+      unexpected_condition();
+    case ck_init_repeat:
       /* These may show up when mangling constants in compound literals;
          just ignore them. */
       break;
@@ -6000,6 +6002,128 @@ one non-default argument (FALSE otherwise).
 
 #endif /* !IA64_ABI */
 
+static void add_mangling_for_array_element(unsigned long            number,
+                                           a_mangling_control_block *mctl)
+/*
+Emit the proper mangling for an unsigned constant with "integer" type.  Note
+that in the IA-64 no substitution is registered for this case.
+*/
+{
+#if IA64_ABI
+  add_to_mangled_name('L', mctl);
+  add_str_to_mangled_name(MANGLING_STRING_FOR_INT, mctl);
+  add_number_to_mangled_name(number, mctl);
+  add_to_mangled_name('E', mctl);
+#else /* !IA64_ABI */
+  char     buffer[50];
+  sizeof_t len = unsigned_to_string_buf((a_host_large_unsigned)number, buffer);
+  add_to_mangled_name('C', mctl);
+  add_str_to_mangled_name(MANGLING_STRING_FOR_INT, mctl);
+  add_to_mangled_name('L', mctl);
+  store_digits_and_underscore((unsigned long)len, /*old_form=*/FALSE, mctl);
+  add_str_to_mangled_name(buffer, mctl);
+#endif /* IA64_ABI */
+}  /* add_mangling_for_array_element */
+
+
+static a_constant_ptr mangled_braced_expression(a_constant_ptr           con,
+                                                a_mangling_control_block *mctl)
+/*
+Designated initializers can appear in the list of constants pointer to by con
+and those are mangled as <braced-expression>s in the IA-64 (and as an
+extension, similarly in the Cfront ABI):
+
+  <braced-expression>
+    ::= <expression>
+    ::= di <field source-name> <braced-expression>    # .name = expr
+    ::= dx <index expression> <braced-expression>     # [expr] = expr
+    ::= dX <range begin expression> <range end expression> <braced-expression>
+                                                      # [expr ... expr] = expr
+
+This routine returns the next constant to be mangled (the "next" pointer cannot
+reliably be used by the caller since ck_designator entries just modify
+constants that follow, i.e., multiple a_constant_ptr entities may be mangled
+together here).
+*/
+{
+  a_constant_ptr result = con->next;
+  a_const_char   *name;
+  a_constant_ptr repeated_con = NULL;
+
+  switch (con->kind) {
+    case ck_designator:
+      if (con->variant.designator.is_field_designator) {
+        /* A field designator (e.g., ".x ="). */
+        add_str_to_mangled_name("di", mctl);
+        if (con->variant.designator.is_generic) {
+          name = con->variant.designator.variant.field_name;
+        } else {
+          name = con->variant.designator.variant.field->source_corresp.name;
+        }  /* if */
+        mangled_name_with_length(name, mctl);
+      } else {
+        /* An array element (or elements) designator. */
+        check_assertion(con->next != NULL);
+        if (con->next->kind == (a_constant_repr_kind)ck_init_repeat) {
+          /* A range of array elements, e.g., "[5 ... 10]". */
+          add_str_to_mangled_name("dX", mctl);
+          repeated_con = con->next;
+        } else {
+          add_str_to_mangled_name("dx", mctl);
+        }  /* if */
+        if (con->variant.designator.is_generic) {
+          check_assertion(repeated_con == NULL);
+          mangled_encoding_for_constant(
+                                     con->variant.designator.variant.subscript,
+                                     /*old_form=*/FALSE,
+                                     /*in_dependent_expr=*/TRUE,
+                                     /*suppress_address_of=*/FALSE,
+                                     mctl);
+        } else {
+          /* Determine the beginning element. */
+          unsigned long element =
+                  (unsigned long)con->variant.designator.variant.array_element;
+          add_mangling_for_array_element(element, mctl);
+          if (repeated_con != NULL) {
+            /* Emit the range for the "dX" mangling. */
+            check_assertion(repeated_con->variant.init_repeat.constant->kind ==
+                                             (a_constant_repr_kind)ck_integer);
+            a_boolean ovflo = FALSE;
+            unsigned long count =
+                      unsigned_value_of_integer_constant(repeated_con, &ovflo);
+            add_mangling_for_array_element(element + count, mctl);
+            check_assertion(!ovflo);
+          }  /* if */
+        }  /* if */
+      }  /* if */
+      if (repeated_con != NULL) {
+        /* Produce a mangled representation of the repeated constant, but
+           follow the "next" link for subsequent constants in the aggregate. */
+        (void)mangled_braced_expression(
+                                    repeated_con->variant.init_repeat.constant,
+                                    mctl);
+        result = repeated_con->next;
+      } else {
+        result = mangled_braced_expression(con->next, mctl);
+      }  /* if */
+      break;
+    case ck_init_repeat:
+      /* Ignore a ck_init_repeat that's not preceded by a designated
+         initializer. */
+      break;
+    default:
+      /* Perform normal mangling on the constant. */
+      mangled_encoding_for_constant(con,
+                                    /*old_form=*/FALSE,
+                                    /*in_dependent_expr=*/TRUE,
+                                    /*suppress_address_of=*/FALSE,
+                                    mctl);
+      break;
+  }  /* switch */
+  return result;
+}  /* mangled_braced_expression */
+
+
 static void mangled_list(an_expr_node_ptr         expr_list,
                          a_constant_ptr           con,
                          a_mangling_control_block *mctl)
@@ -6027,8 +6151,9 @@ mangling for the constant, is provided; otherwise, the list of expressions
       for (cp = con->variant.aggregate.first_constant;
            cp != NULL;
            cp = cp->next) {
-        /* Repeated constants and designators are ignored during mangling, as
-           are implicit aggregate element initializers. */
+        /* Repeated constants and designators are ignored for the purposes of
+           counting the number of elements in the list, as are implicit
+           aggregate element initializers. */
         if (cp->kind != (a_constant_repr_kind)ck_init_repeat &&
             cp->kind != (a_constant_repr_kind)ck_designator &&
             !cp->implicit_aggr_element) {
@@ -6058,15 +6183,12 @@ mangling for the constant, is provided; otherwise, the list of expressions
   } else {
     if (con->kind == (a_constant_repr_kind)ck_aggregate) {
       /* Mangle a list of constants in the aggregate. */
-      for (cp = con->variant.aggregate.first_constant;
-           cp != NULL;
-           cp = cp->next) {
-        if (!cp->implicit_aggr_element) {
-          mangled_encoding_for_constant(cp,
-                                        /*old_form=*/FALSE,
-                                        /*in_dependent_expr=*/TRUE,
-                                        /*suppress_address_of=*/FALSE,
-                                        mctl);
+      for (cp = con->variant.aggregate.first_constant; cp != NULL; ) {
+        if (cp->implicit_aggr_element) {
+          /* Skip implicit elements. */
+          cp = cp->next;
+        } else {
+          cp = mangled_braced_expression(cp, mctl);
         }  /* if */
       }  /* for */
     } else {
@@ -10374,12 +10496,9 @@ top_of_loop:
           /* Put out a constant bound as an expression to emulate an early
              g++ bug. */
           check_assertion(emulate_gnu_abi_bugs);
-          add_to_mangled_name('L', mctl);
-          add_str_to_mangled_name(MANGLING_STRING_FOR_INT, mctl);
-          add_number_to_mangled_name((unsigned long)type->variant.array.
-                                                    variant.number_of_elements,
-                                     mctl);
-          add_to_mangled_name('E', mctl);
+          add_mangling_for_array_element(
+                 (unsigned long)type->variant.array.variant.number_of_elements,
+                 mctl);
 #endif /* IA64_ABI */
         } else if (type->variant.array.is_variable_size_array) {
           /* Put out the mangled expression for the number of elements. */

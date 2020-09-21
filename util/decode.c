@@ -1277,6 +1277,38 @@ even when need_parens is TRUE).
     } else {
       bad_mangled_name(dctl);
     }  /* if */
+  } else if (get_char(p, dctl) == 'd') {
+    /* See if the expression is a designated initializer.  The mangled encoding
+       is the same as the IA-64 ABI designated initializer "prefix" mangling,
+       i.e.:
+         ::= di <field source-name> <braced-expression>    # .name = expr
+         ::= dx <index expression> <braced-expression>     # [expr] = expr
+         ::= dX <range begin expression> <range end expression>
+                                                            <braced-expression>
+                                                       # [expr ... expr] = expr
+       */
+    if (get_char(p+1, dctl) == 'i') {
+      write_id_ch('.', dctl);
+      p = demangle_name_with_preceding_length(p+2, dctl);
+      if (get_char(p, dctl) == 'd' && get_char(p+1, dctl) == 'i') {
+        /* Nested initializer, skip the '='.*/
+      } else {
+        write_id_ch('=', dctl);
+      }  /* if */
+    } else if (get_char(p+1, dctl) == 'x') {
+      write_id_ch('[', dctl);
+      p = demangle_expression(p+2, /*need_parens=*/FALSE, dctl);
+      write_id_str("]=", dctl);
+    } else if (get_char(p+1, dctl) == 'X') {
+      write_id_ch('[', dctl);
+      p = demangle_expression(p+2, /*need_parens=*/FALSE, dctl);
+      write_id_str(" ... ", dctl);
+      p = demangle_expression(p+2, /*need_parens=*/FALSE, dctl);
+      write_id_str("]=", dctl);
+    } else {
+      bad_mangled_name(dctl);
+    }  /* if */
+    p = demangle_expression(p, /*need_parens=*/FALSE, dctl);
   } else {
     /* Used to demangle literals as well as template parameters, operations.
        Within an expression, suppress implicit "&"s during the demangling. */
@@ -6760,16 +6792,69 @@ The syntax is:
 }  /* demangle_expr_primary */
 
 
+static a_const_char *demangle_braced_expression(
+                                               a_const_char               *ptr,
+                                               a_decode_control_block_ptr dctl)
+/*
+Demangle a <braced-expression> (used for designated initializers in an
+aggregate or to specify the active union member).
+
+<braced-expression>
+               :: <expression>
+               ::= di <field source-name> <braced-expression>
+                              # .name = expr
+               ::= dx <index expression> <braced-expression>
+                              # [expr] = expr
+               ::= dX <range begin expression> <range end expression>
+                                                            <braced-expression>
+                              # [expr ... expr] = expr
+
+*/
+{
+  if (*ptr == 'd' && ptr[1] == 'i') {
+    /* Designated initializer. */
+    write_id_ch('.', dctl);
+    ptr = demangle_source_name(ptr+2, /*is_module_id=*/FALSE, dctl);
+    if (*ptr == 'd' && ptr[1] == 'i') {
+      /* Nested initializer, skip the '='.*/
+    } else {
+      write_id_ch('=', dctl);
+    }  /* if */
+    ptr = demangle_braced_expression(ptr, dctl);
+  } else if (*ptr == 'd' && ptr[1] == 'x') {
+    /* Designated initializer expression. */
+    write_id_ch('[', dctl);
+    ptr = demangle_expression(ptr+2, dctl);
+    write_id_str("]=", dctl);
+    ptr = demangle_braced_expression(ptr, dctl);
+  } else if (*ptr == 'd' && ptr[1] == 'X') {
+    /* Designated initializer range. */
+    write_id_ch('[', dctl);
+    ptr = demangle_expression(ptr+2, dctl);
+    write_id_str(" ... ", dctl);
+    ptr = demangle_expression(ptr, dctl);
+    write_id_str("]=", dctl);
+    ptr = demangle_braced_expression(ptr, dctl);
+  } else {
+    ptr = demangle_expression(ptr, dctl);
+  }  /* if */
+  return ptr;
+}  /* demangle_braced_expression */
+
+
 static a_const_char *demangle_expression_list_full(
                                  a_const_char               *ptr,
                                  char                       stop_char,
                                  char                       open_paren,
                                  char                       close_paren,
+                                 a_boolean                  is_braced_expr,
                                  a_decode_control_block_ptr dctl)
 /*
 Demangle zero or more expressions, terminated by stop_char.  The expression
 list output is enclosed by open_paren/close_paren and separated by commas.
-Returns a pointer to the terminating character (unless an error occurs).
+is_braced_expr is TRUE if the expression list consists of <braced-expression>s
+(otherwise <expression>s).  Returns a pointer to the terminating character
+(unless an error occurs).
 */
 {
   a_boolean first_time = TRUE;
@@ -6785,7 +6870,11 @@ Returns a pointer to the terminating character (unless an error occurs).
     } else {
       first_time = FALSE;
     }  /* if */
-    ptr = demangle_expression(ptr, dctl);
+    if (is_braced_expr) {
+      ptr = demangle_braced_expression(ptr, dctl);
+    } else {
+      ptr = demangle_expression(ptr, dctl);
+    }  /* if */
   }  /* while */
   write_id_ch(close_paren, dctl);
   return ptr;
@@ -6802,7 +6891,8 @@ list output is enclosed in parentheses and separated by commas.  Returns a
 pointer to the terminating character (unless an error occurs).
 */
 {
-  return demangle_expression_list_full(ptr, stop_char, '(', ')', dctl);
+  return demangle_expression_list_full(ptr, stop_char, '(', ')',
+                                       /*is_braced_expr=*/FALSE, dctl);
 }  /* demangle_expression_list */
 
 
@@ -6824,7 +6914,8 @@ Demangle an <initializer> (or an 'E') starting at ptr.
       ptr = demangle_expression_list(ptr+2, 'E', dctl);
       ptr = advance_past('E', ptr, dctl);
     } else if (*ptr == 'i' && ptr[1] == 'l') {
-      ptr = demangle_expression_list_full(ptr+2, 'E', '{', '}', dctl);
+      ptr = demangle_expression_list_full(ptr+2, 'E', '{', '}',
+                                          /*is_braced_expr=*/TRUE, dctl);
       ptr = advance_past('E', ptr, dctl);
     } else {
       bad_mangled_name(dctl);
@@ -7140,7 +7231,8 @@ Also, these non-standard expressions (EDG-specific) are demangled:
       ptr += 2;
     }  /* if */
     if (!dctl->err_in_id) {
-      ptr = demangle_expression_list_full(ptr, 'E', '{', '}', dctl);
+      ptr = demangle_expression_list_full(ptr, 'E', '{', '}',
+                                          /*is_braced_expr=*/TRUE, dctl);
       ptr = advance_past('E', ptr, dctl);
     }  /* if */
   } else if ((op_str = get_operator_name(ptr, &num_operands, &length,
