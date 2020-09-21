@@ -1,5 +1,22 @@
 Version 6.2
 
+9/21/20  [EDGcpfe/21600]
+Member function qualifiers erroneously ignored in conditional operator
+
+Consider:
+
+  struct S {
+    int f();
+    int g() const;
+  };
+  auto pmf = 0 ? &S::f : &S::g;  // Previously accepted.  Now an error.
+
+The changes for EDGcpfe/20971 introduced a regression in version 5.1 causing
+the difference in qualifiers between &S::f and &S::g to be ignored when forming
+the composite pointer-to-member type for the conditional operator.  That
+regression is now fixed.
+
+
 9/21/20  [EDGcpfe/23362]
 Mangling for designated initializers
 

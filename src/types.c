@@ -12368,7 +12368,8 @@ type exists, return NULL.
   a_type_ptr  ustp1 = skip_typerefs(stp1), ustp2 = skip_typerefs(stp2);
 
   if (f_types_are_compatible(ustp1, ustp2, (TCF_IGNORE_THIS_CLASS_TYPE |
-                                            TCF_IGNORE_TOP_LEVEL_NOEXCEPT))) {
+                                            TCF_IGNORE_TOP_LEVEL_NOEXCEPT)) &&
+      rout_type_supp(ustp1)->qualifiers == rout_type_supp(ustp2)->qualifiers) {
     a_type_ptr  ftp = is_nothrow_type(ustp1) ? stp2 : stp1;
     if (identical_types(ctp1, ctp2)) {
       /* If the class types are identical, we can pick either one and combine
