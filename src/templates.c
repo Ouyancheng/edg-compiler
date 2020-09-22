@@ -17609,6 +17609,14 @@ during the re-parsing).
      This is most easily done by pretending we are about to scan a
      secondary declarator. */
   discard_end_of_parse_actions(dps, /*until_action=*/reparse_actions);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (dps->source_sequence_entry != NULL) {
+    /* Discard any previously-recorded source sequence entries.  A new one will
+       be recorded when the declarator is re-parsed. */
+    remove_from_src_seq_list(dps->source_sequence_entry);
+    dps->source_sequence_entry = NULL;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   start_secondary_declarator(dps);
   dps->secondary_declarator = FALSE;
   dps->is_abbr_func_template = TRUE;
@@ -29266,6 +29274,9 @@ argument information in the front end template parameter entry is updated.
       il_tpp->variant.type.default_arg_type = tpp->default_arg.type;
       il_tpp->source_corresp = *source_corresp_for_il_entry(
                                       (char*)tpp->variant.type, iek_type);
+      if (tpp->variant.type->variant.template_param.is_auto_param) {
+        il_tpp->is_abbreviated = TRUE;
+      }  /* if */
       break;
     case sk_constant:
       il_tpp->kind = (a_template_parameter_kind)tpk_nontype;
@@ -33609,6 +33620,14 @@ updated to tok_rbrace.
 {
   a_token_cache  reparse_cache;
 
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (orig_dps->source_sequence_entry != NULL) {
+    /* Discard any previously-recorded source sequence entries.  A new one will
+       be recorded when the declaration is parsed as a template. */
+    remove_from_src_seq_list(orig_dps->source_sequence_entry);
+    orig_dps->source_sequence_entry = NULL;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   clear_token_cache(&reparse_cache, /*reusable=*/FALSE);
   copy_tokens_from_cache(curr_lexical_state_cache(),
                          orig_dps->start_tsn, curr_token_sequence_number,

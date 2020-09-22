@@ -1,5 +1,18 @@
 Version 6.2
 
+9/22/20  [EDGcpfe/23400]
+Abbreviated function templates and source sequence entries
+
+Configurations with GENERATE_SOURCE_SEQUENCE_LISTS set to TRUE usually aborted
+on abbreviated function templates because extraneous source sequence entries
+not pointing to any entities were recorded.  For example:
+
+  auto f(auto i) { return 2*i; }  // Previously aborted in some configurations.
+
+That is now fixed.  In addition, the C++-generating back end has been updated
+to correctly render such abbreviated function templates.
+
+
 9/22/20  [EDGcpfe/23399]
 Microsoft compatibility: --no_ms_permissive is now implied by --ms_c++latest
 

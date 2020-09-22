@@ -4970,6 +4970,7 @@ initialize its fields, and return a pointer to it.
   tpp->next = NULL;
   tpp->kind = (a_template_parameter_kind)tpk_error;
   tpp->is_pack = FALSE;
+  tpp->is_abbreviated = FALSE;
   return tpp; 
 }  /* alloc_template_parameter */
 

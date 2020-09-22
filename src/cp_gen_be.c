@@ -17058,6 +17058,12 @@ parameter lists). */
     gen_template_header(tdp->parent, grandparent_class, is_cppcli_generic,
                         /*for_generic_lambda=*/FALSE);
   }  /* if */
+  if (param != NULL && param->is_abbreviated) {
+    /* If all the parameters resulted from "auto" function parameters in the
+       abbreviated function template syntax, no template<...> header should be
+       rendered. */
+    goto done;
+  }  /* if */
   set_output_position(&tdp->template_pos);
   /* Put a space after the "<" to avoid forming the digraph "<:" if the
      first parameter is a nontype parameter whose type name begins with
@@ -17066,6 +17072,11 @@ parameter lists). */
                 for_generic_lambda ? (char *)"< "
                                    : (char *)"template< ");
   for (; param != NULL; param = param->next) {
+    if (param->is_abbreviated) {
+      /* The remaining parameters resulted from "auto" function parameters in
+         the abbreviated function template syntax. */
+      break;
+    }  /* if */
     if (param->kind == (a_template_parameter_kind)tpk_nontype) {
       a_constant_ptr  cp = param->variant.nontype.constant;
 
@@ -17201,6 +17212,7 @@ parameter lists). */
     }  /* for */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
+done:;
 }  /* gen_template_header */
 
 

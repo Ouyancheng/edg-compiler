@@ -5463,6 +5463,9 @@ Display the indicated template parameter.
   if (ptr->is_pack) {
     disp_boolean("is_pack", TRUE);
   }  /* if */
+  if (ptr->is_abbreviated) {
+    disp_boolean("is_abbreviated", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case tpk_error:

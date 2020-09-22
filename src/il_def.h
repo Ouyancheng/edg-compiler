@@ -15827,9 +15827,11 @@ typedef struct a_template_parameter {
   a_template_parameter_kind
 		kind;
 			/* The kind of parameter: type, nontype or template. */
-  a_byte_boolean
-		is_pack;
+  a_bit_field	is_pack:1;
 			/* TRUE if this is a template parameter pack. */
+  a_bit_field	is_abbreviated:1;
+			/* TRUE if this parameter was created for an "auto"
+			   function parameter. */
   union {
     /* When kind == tpk_type: */
     struct {
