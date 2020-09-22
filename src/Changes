@@ -73,7 +73,7 @@ structure as that of the IA-64 ABI.  For example, with --c++20:
 Constant-evaluation of __builtin_memcpy
 
 In GNU and Clang modes, the front end (interpreter) can now evaluate certain
-invocations of __builtin_memcpy at compile time.  For evaluation to succueed
+invocations of __builtin_memcpy at compile time.  For evaluation to succeed
 the address operands must point to compile-time objects, the number of bytes
 being copied must correspond to copying underlying objects (e.g., not a partial
 integer), and the objects being copied must be trivially copyable.  For
