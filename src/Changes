@@ -1,5 +1,13 @@
 Version 6.2
 
+9/22/20  [EDGcpfe/23404]
+Microsoft compatibility: spaceship operator
+
+The C++20 spaceship operator was previously enabled with --ms_c++latest
+only when microsoft_version was 1922 or greater; that has been changed to 1921
+to match Visual Studio's behavior.
+
+
 9/22/20  [EDGcpfe/23391]
 Clang ms-extensions compatibility: static/extern mismatch
 

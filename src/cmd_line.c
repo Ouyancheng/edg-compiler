@@ -2888,6 +2888,7 @@ option values if they were not already set by a command line option.
           adl_for_non_visible_templates = TRUE;
           designators_allowed = TRUE;
           cpp20_designators_restriction = TRUE;
+          spaceship_enabled = TRUE;
         }  /* if */
       }  /* if */
       if (microsoft_version >= 1922) {
@@ -2898,7 +2899,6 @@ option values if they were not already set by a command line option.
         if (ms_cpp20_mode) {
           explicit_copy_this_capture_enabled = TRUE;
           lambda_template_param_list_enabled = TRUE;
-          spaceship_enabled = TRUE;
           char8_t_enabled = TRUE;
         }  /* if */
       }  /* if */
