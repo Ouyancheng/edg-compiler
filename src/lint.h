@@ -1387,6 +1387,7 @@ a smaller subset).
 /*lint -esym(769,a_type_class_kind::tck_string)*/
 /*lint -esym(755,__STDC_LIMIT_MACROS)*/
 /*lint -esym(769,a_constexpr_intrinsic_tag::cit_error)*/
+/*lint -esym(755,tptk_is)*/
 
 #endif /* ifndef LINT_H */
 
