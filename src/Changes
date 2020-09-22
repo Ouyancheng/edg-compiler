@@ -1,5 +1,18 @@
 Version 6.2
 
+9/22/20  [EDGcpfe/23401]
+Deleted virtual overrider and exception specification mismatch
+
+In C++17 mode, the front end now permits a deleted virtual function overrider
+to have a less-strict exception specification than the (deleted) virtual
+function it overrides.  For example:
+
+  struct B { virtual void h() noexcept = delete; };
+  struct D : B {
+    void h() = delete;  // Now accepted in C++17 mode.
+  };
+
+
 9/21/20  [EDGcpfe/23396]
 Regression with __LPREFIX appearing in template definition
 

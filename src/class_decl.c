@@ -6529,6 +6529,10 @@ return_types_are_override_compatible.
   if (class_state->is_nonreal_instantiation ||
       rout->is_prototype_instantiation) {
     /* This check cannot be done reliably for dependent instantiations. */
+  } else if (cpp17_mode &&
+             overrider_sym->variant.routine.ptr->is_deleted) {
+    /* Deleted virtual functions do not have relationship constraints on their
+       exception specifications in C++17 (N4861 [except.spec]/4). */
   } else {
     record_pending_exception_check(overrider_sym, overridden_sym,
                                    (a_type_ptr)NULL, source_pos);
