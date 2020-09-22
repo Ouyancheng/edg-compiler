@@ -5440,7 +5440,7 @@ is the position of a previous declaration.
       an_error_severity  sev = es_discretionary_error;
       if (any_cfront_mode() || C_dialect == C_dialect_pcc) {
         sev = es_remark;
-      } else if (gcc_version_is(<40000) || microsoft_mode || sun_mode) {
+      } else if (gcc_version_is(<40000) || ms_extensions || sun_mode) {
         sev = es_warning;
       }  /* if */
       pos2_diagnostic(sev, ec_linkage_conflict, position, prev_position);

@@ -1,5 +1,18 @@
 Version 6.2
 
+9/22/20  [EDGcpfe/23391]
+Clang ms-extensions compatibility: static/extern mismatch
+
+The changes for EDGcpfe/21168 cause the front end to accept
+
+  extern void g(void); 
+  static void g(void) {}
+
+in Microsoft mode.  It turns out that Clang also accepts this with its
+-fms-extensions switch, and the front end now follows suit with the
+--ms_extensions option.
+
+
 9/22/20  [EDGcpfe/23400]
 Abbreviated function templates and source sequence entries
 
