@@ -36807,6 +36807,7 @@ token following the operator, and should not be discarded.
 {
   a_boolean                     err = FALSE;
   a_source_position             start_position;
+  a_token_kind                  start_token;
   a_string_or_char_literal_kind lit_kind = SCLK_STRING_LITERAL;
   a_string_or_char_literal_kind orig_lit_kind;
   a_boolean                     processed = FALSE;
@@ -36821,7 +36822,8 @@ token following the operator, and should not be discarded.
     default:                    unexpected_condition();            break;
   }  /* switch */
   start_position = pos_curr_token;
-  /* Get past the opening __LPREFIX token. */
+  start_token = curr_token;
+  /* Get past the opening __xPREFIX token. */
   (void)get_token();
   /* Check for the opening "(". */
   (void)required_token_no_advance(tok_lparen, ec_exp_lparen);
@@ -36863,6 +36865,15 @@ token following the operator, and should not be discarded.
       conv_line_loc_to_source_pos(end_of_curr_token, &end_pos_curr_token);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       processed = TRUE;
+    } else if (caching_tokens) {
+      /* Leave __FUNCTION__ and such for processing when the cache is
+         rescanned.  Put back the "(" token and restore the __xPREFIX token
+         to be cached. */
+      unget_token();
+      remove_stop_token(tok_rparen);
+      pos_curr_token = start_position;
+      curr_token = start_token;
+      goto done;
     }  /* if */
   }  /* if */
   if (!processed) {
@@ -36918,6 +36929,7 @@ token following the operator, and should not be discarded.
     (void)required_token(tok_rparen, ec_exp_rparen);
   }  /* if */
   remove_stop_token(tok_rparen);
+done:
   return !err;
 }  /* set_curr_token_to_microsoft_xprefix_operator_string */
 

@@ -1,5 +1,22 @@
 Version 6.2
 
+9/21/20  [EDGcpfe/23396]
+Regression with __LPREFIX appearing in template definition
+
+The changes of EDGcpfe/16268 (in version 6.1) introduced a regression in
+the front end's handling of __LPREFIX inside template definitions: the type
+of such an expression became "array of const char" instead of "array of
+const wchar_t".  This is now fixed.  For example, with --microsoft:
+
+  void f(const wchar_t *);
+  template <typename T> void g(T t) {
+    f(__LPREFIX(""));   // Previously an error, now okay
+  }
+  void x() {
+    f(1);
+  }
+
+
 9/21/20  [EDGcpfe/21410]
 Class template argument deduction and single-element initializer lists
 

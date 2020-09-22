@@ -2247,6 +2247,14 @@ not NULL, any fetched tokens will be added to cache.
     if (std_attribute_tokens_next()) {
       /* The start of a standard attribute. */
       cache_std_attribute(cache, add_tokens_to_cache);
+    } else if (curr_token == tok_microsoft_Lprefix ||
+               curr_token == tok_microsoft_lprefix ||
+               curr_token == tok_microsoft_Uprefix ||
+               curr_token == tok_microsoft_uprefix) {
+      /* Replace __xPREFIX("...") with the correctly-prefixed string
+         literal (__xPREFIX(__FUNCTION__) and the like will be added to the
+         cache for processing during instantiation). */
+      (void)set_curr_token_to_microsoft_xprefix_operator_string();
     } else if (closing_token == tok_rbrace) { /*lint !e539*/
       /* When looking for a right brace, don't consider any other
          delimiters.  Braces can't be nested inside parens, brackets,
