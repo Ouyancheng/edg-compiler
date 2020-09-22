@@ -36865,7 +36865,11 @@ token following the operator, and should not be discarded.
       conv_line_loc_to_source_pos(end_of_curr_token, &end_pos_curr_token);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       processed = TRUE;
-    } else if (caching_tokens) {
+    }  /* if */
+  }  /* if */
+  if (!processed) {
+    /* The operand was not a string. */
+    if (caching_tokens) {
       /* Leave __FUNCTION__ and such for processing when the cache is
          rescanned.  Put back the "(" token and restore the __xPREFIX token
          to be cached. */
@@ -36875,9 +36879,6 @@ token following the operator, and should not be discarded.
       curr_token = start_token;
       goto done;
     }  /* if */
-  }  /* if */
-  if (!processed) {
-    /* The operand was not a string; see what it is. */
     (void)get_token();
     if (token_is_function_name_string_literal(curr_token)) {
       set_curr_token_to_function_name_string(/*do_concat=*/FALSE, lit_kind);
