@@ -2929,6 +2929,16 @@ option values if they were not already set by a command line option.
           destroying_operator_delete_enabled = TRUE;
         }  /* if */
       }  /* if */
+      if (microsoft_version >= 1928) {
+        /* Visual Studio version 16.8. */
+        if (ms_cpp20_mode) {
+          /* /std:c++latest or /std:c++20 imply /permissive-, but that can
+             be overridden using the /permissive flag. */
+          if (!option_kind_used[(int)optk_ms_permissive]) {
+            ms_permissive = FALSE;
+          }  /* if */
+        }  /* if */
+      }  /* if */
     } else {
       /* Disable unrestricted unions because they involve making some special
          member functions "deleted", whereas Microsoft compilers prior to 1900

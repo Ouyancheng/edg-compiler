@@ -1,5 +1,13 @@
 Version 6.2
 
+9/22/20  [EDGcpfe/23399]
+Microsoft compatibility: --no_ms_permissive is now implied by --ms_c++latest
+
+Beginning with microsoft_version == 1928, --no_ms_permissive is implied
+when --ms_c++latest is specified.  This can be overridden by adding
+--ms_permissive.
+
+
 9/22/20  [EDGcpfe/23401]
 Deleted virtual overrider and exception specification mismatch
 
