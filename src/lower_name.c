@@ -6029,7 +6029,7 @@ that in the IA-64 no substitution is registered for this case.
 static a_constant_ptr mangled_braced_expression(a_constant_ptr           con,
                                                 a_mangling_control_block *mctl)
 /*
-Designated initializers can appear in the list of constants pointer to by con
+Designated initializers can appear in the list of constants pointed to by con
 and those are mangled as <braced-expression>s in the IA-64 (and as an
 extension, similarly in the Cfront ABI):
 
