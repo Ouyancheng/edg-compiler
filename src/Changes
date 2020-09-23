@@ -1,5 +1,20 @@
 Version 6.2
 
+9/22/20  [EDGcpfe/23299]
+C++-generating back end: attributes in friend function declarations
+
+The C++-generating back end incorrectly inverted the order of attributes
+and the "friend" keyword in generated code.  This is now fixed.  For
+example, with --c++17:
+
+  class C {
+    [[nodiscard]] friend int f() {  // Previously put out as
+                                    // "friend [[nodiscard]] int f()"
+      return 0;
+    }
+  };
+
+
 9/22/20  [EDGcpfe/23404]
 Microsoft compatibility: spaceship operator
 

@@ -21725,7 +21725,6 @@ handle_as_definition:
           storage_class = (a_storage_class)sc_unspecified;
         }  /* if */
 #endif /* SUN_TARGET_VERSION_NUMBER */
-        write_tok_str("friend ");
       }  /* if */
     } else {
       /* This is a declaration or definition of a member function inside
@@ -21861,6 +21860,11 @@ handle_as_definition:
     gen_attributes(attributes, al_prefix, is_definition);
     if (is_definition) {
       gen_attributes(attributes, al_id_equivalent, is_definition);
+    }  /* if */
+    /* The "friend" keyword, if needed, must appear after any attributes
+       that may be present. */
+    if (friend_decl && curr_name_context_is_a_class()) {
+      write_tok_str("friend ");
     }  /* if */
     /* Put out the storage class determined above. */
     gen_storage_class(storage_class);
