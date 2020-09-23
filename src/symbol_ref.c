@@ -2472,10 +2472,11 @@ IL entry in place of whatever is pointed to by the symbol.
                                                  (a_storage_class)sc_static ||
                                 (scptr != NULL &&
                                  !scptr->is_local_to_function) ||
-                                ssep->lambda != NULL);
+                                ssep->assoc_routine->is_lambda_body);
                 /* We are at the outermost scope of the function.  Check for
                    a label. */
-                if (!ssep->lambda || ssep->number == sym_ptr->decl_scope) {
+                if (!ssep->assoc_routine->is_lambda_body ||
+                    ssep->number == sym_ptr->decl_scope) {
                   goto check_label_decl_seq;
                 }  /* if */
               } else if (ssep->number == sym_ptr->decl_scope) {

@@ -1467,7 +1467,10 @@ of lambda expressions.
                          (a_type_ptr)NULL, rout_ptr);
   if (func_info->lambda != NULL) {
     a_symbol_ptr  call_op_sym;
-    scope_stack_top().lambda = func_info->lambda;
+    if (func_info->lambda != NULL) {
+      /* Associate the lambda entry with the call operator entry. */
+      call_op_to_lambda_map->map(rout_ptr, func_info->lambda);
+    }  /* if */
     /* Make the lambda call operator invisible to unqualified lookup inside
        its own definition. */
     if (rout_ptr->is_template_function) {

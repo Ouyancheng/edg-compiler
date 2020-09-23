@@ -4753,7 +4753,7 @@ members), and does not enter those.
     }  /* if */
   }  /* if */
 }  /* f_possibly_add_orphaned_file_scope_il_entry */
-  
+
 #endif /* ORPHAN_PROCESSING_NEEDED */
 #if SCOPE_ORPHANED_LIST_PROCESSING_NEEDED
 #if !STANDALONE_UTILITY_PROGRAM
@@ -13534,7 +13534,7 @@ a lambda body, return the associated lambda entry.  Otherwise, return NULL.
   a_lambda_ptr  lambda = NULL;
 
   if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
-    lambda = scope_stack[depth_innermost_function_scope].lambda;
+    lambda = get_lambda_for_scope_depth(depth_innermost_function_scope);
 #if CHECKING
     { a_routine_ptr  rp = innermost_function_scope->variant.routine.ptr;
       check_assertion(rp->is_lambda_body == (lambda != NULL));

@@ -4418,12 +4418,6 @@ for information about the parameters.
                         (an_object_lifetime_ptr)NULL,
                         scope, (a_scope_pointers_block_ptr)NULL,
                         PS_IS_REACTIVATION);
-  if (is_template) {
-    a_func_info_block  *func_info;
-    func_info = &rout_template_sym->variant.template_info
-                                  ->variant.function.func_info;
-    scope_stack_top().lambda = func_info->lambda;
-  }  /* if */
 }  /* reactivate_local_context */
 
 
@@ -13133,6 +13127,7 @@ are handled in scope_stk_init.)
                          depth_of_innermost_scope_that_affects_access_control);
   register_trans_unit_variable(num_classes_on_scope_stack);
   register_trans_unit_variable(pack_expansion_stack);
+  register_trans_unit_variable(call_op_to_lambda_map);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   register_trans_unit_variable(source_sequence_entries_disallowed);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -13174,6 +13169,8 @@ given translation unit.
 #endif /* !PRESERVE_SOURCE_SEQUENCE_LISTS_WITH_IL_LOWERING */
 #endif /* DO_IL_LOWERING */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  call_op_to_lambda_map = alloc_fe_of_type(a_call_op_to_lambda_map);
+  construct(call_op_to_lambda_map, /*mask_width=*/10);
 }  /* scope_stk_trans_unit_init */
 
 

@@ -34123,9 +34123,9 @@ currently in the header of a lambda.
           ++body_depth;
         }  /* if */
         check_assertion(body_depth <= depth_scope_stack &&
-                        scope_is(&scope_stack[body_depth], sck_function) &&
-                        scope_stack[body_depth].lambda != NULL);
-        *lambda = scope_stack[body_depth].lambda;
+                        scope_is(&scope_stack[body_depth], sck_function));
+        *lambda = get_lambda_for_scope_depth(body_depth);
+        check_assertion(*lambda != NULL);
         /* The next call should pick up at the scope immediately enclosing the
            lambda. */
         --sd;
@@ -34175,7 +34175,7 @@ look_for_var:
         }  /* if */
         check_assertion(body_depth <= depth_scope_stack &&
                         scope_is(&scope_stack[body_depth], sck_function));
-        assoc_lambda = scope_stack[body_depth].lambda;
+        assoc_lambda = get_lambda_for_scope_depth(body_depth);
         if (assoc_lambda == NULL) {
           /* This is possible if we're in a scope stack entry that is a
              reactivation of a lambda that is being defined. */
@@ -34183,7 +34183,7 @@ look_for_var:
                           scope_stack[body_depth].il_scope != NULL);
           body_depth = scope_stack[body_depth].il_scope->depth_in_scope_stack;
           check_assertion(body_depth != NO_SCOPE_DEPTH);
-          assoc_lambda = scope_stack[body_depth].lambda;
+          assoc_lambda = get_lambda_for_scope_depth(body_depth);
           check_assertion(assoc_lambda != NULL);
         }  /* if */
         *lambda = assoc_lambda;
@@ -34461,7 +34461,7 @@ a capture).
          capturing lambda may need adjustment. */
       if (in_lambda_body() && symbol_is(sym_ptr, sk_variable)) {
         a_lambda_ptr  lambda;
-        lambda = scope_stack[depth_innermost_function_scope].lambda;
+        lambda = get_lambda_for_scope_depth(depth_innermost_function_scope);
         if (add_const != NULL && !lambda->is_mutable &&
             var_is_copy_captured(lambda, var)) {
             /* Consider:
@@ -34522,7 +34522,7 @@ a capture).
            "variably modified") if this is not a potentially-evaluated
            context. */
         a_lambda_ptr  lambda;
-        lambda = scope_stack[depth_innermost_function_scope].lambda;
+        lambda = get_lambda_for_scope_depth(depth_innermost_function_scope);
         if (add_const != NULL && !lambda->is_mutable &&
             var_is_copy_captured(lambda, var)) {
           /* Consider:

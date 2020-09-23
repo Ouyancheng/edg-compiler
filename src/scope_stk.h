@@ -1624,10 +1624,6 @@ typedef struct a_scope_stack_entry {
 			   sck_namespace_extension, and sck_class_struct_union
 			   scopes). */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
-  a_lambda_ptr	lambda;
-			/* If this entry is for a function scope associated
-			   with a lambda body, this points to the corresponding
-			   a_lambda entry.  Otherwise, NULL. */
   a_class_fixup_header
 		class_fixup_header;
 			/* Class fixup information for the scope.  Only used
@@ -2535,6 +2531,26 @@ Microsoft compilers fixed this.)
    microsoft_version < 1900 &&                                               \
    (scope_stack_top().is_rescan ||                                           \
     scope_stack_top().function_partial_instantiation))
+
+
+typedef Ptr_map<a_routine_ptr, a_lambda_ptr>
+		a_call_op_to_lambda_map;
+
+EXTERN a_call_op_to_lambda_map
+		*call_op_to_lambda_map;
+			/* A map from lambda call operator (a_routine) entries
+			   to corresponding a_lambda entries. */
+
+inline a_lambda_ptr get_lambda_for_scope_depth(a_scope_depth  sd)
+/*
+The given scope depth is for an sck_function scope.  If the associated function
+is a lambda call operator, return the corresponding a_lambda entry.  Otherwise,
+return NULL.
+*/
+{
+  return call_op_to_lambda_map->get(scope_stack[sd].assoc_routine);
+}  /* get_lambda_for_scope_depth */
+
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

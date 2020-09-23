@@ -3356,7 +3356,7 @@ In strict C mode, the variant using "__asm" is accepted.
   /* Later versions of MSVC don't allow asm declarations in lambda
      expressions. */
   asm_decl_allowed = !microsoft_mode || ms_version_is(<1916) ||
-                     scope_stack_top().lambda == NULL;
+                     !scope_stack_top().assoc_routine->is_lambda_body;
   asm_pos = pos_curr_token;
   /* Note: process_curr_construct_pragmas is intentionally not called.  Also,
      asm_declaration is called before adding a statement entry, to avoid

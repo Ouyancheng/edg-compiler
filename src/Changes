@@ -1,5 +1,21 @@
 Version 6.2
 
+9/23/20  [EDGcpfe/19404,EDGcpfe/23405]
+Abort on generic lambda nested in local non-generic lambda
+
+The front end previously could abort in scope_depth_for_capture (expr.c) with
+an internal error when checking capturing by a generic lambda nested in a local
+non-generic lambda.  For example:
+
+  int main() {
+    const int N = 42;
+    auto nl = [](){ return [](auto){ return N; }; };
+    nl()(8);
+  }
+
+This is now fixed.
+
+
 9/22/20  [EDGcpfe/23299]
 C++-generating back end: attributes in friend function declarations
 
