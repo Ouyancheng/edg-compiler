@@ -1,5 +1,30 @@
 Version 6.2
 
+9/24/20  [EDGcpfe/21829,EDGcpfe/23284]
+Microsoft compatibility: Microsoft nonreal base classes, --parse_templates,
+and --no_ms_permissive
+
+In Microsoft mode, the front end emulates a Microsoft feature that finds
+certain names in dependent base classes (see EDGcpfe/12786).  This emulation
+was previously disabled if --dep_name was used.  In addition, the emulation
+was supposed to be disabled with --no_ms_permissive, but it was still
+incorrectly being done.  The emulation is now correctly disabled with
+--no_ms_permissive and is now also disabled when parsing nonclass templates
+(i.e., when nonclass_prototype_instantiations is TRUE).  This prevents a
+spurious error from being issued for examples like the one below when
+compiled with --microsoft --parse_templates.
+
+  struct A {
+    void *v = nullptr;
+  };
+  template <typename T> struct B : public A {
+    B();
+  };
+  template <typename T, typename U> struct C : public B<T> {
+    explicit operator T&() { return *(this->v); }
+  };
+
+
 9/24/20  [EDGcpfe/23245]
 Internal error following syntax error in decltype in default template argument
 
