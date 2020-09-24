@@ -19582,14 +19582,15 @@ options.
                 new_con = sizeof_expr_con;
                 expr = alloc_node_for_constant(new_con);
               }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
               if (microsoft_bugs && new_con->ptr_to_mem_constant_construct &&
-                  con->variant.template_param.kind ==
-                               (a_template_param_constant_kind)tpck_sizeof) {
+                  tpck_is(con, tpck_sizeof)) {
                 /* Microsoft has a bug where rescanning an expression of the
                    form sizeof(&X::m), where &X::m is a pointer-to-member,
                    always fails. */
                 subst_fail(*copy_error);
               }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             }  /* if */
             new_type = expr->type;
             release_local_constant(&sizeof_expr_con);
