@@ -1,5 +1,27 @@
 Version 6.2
 
+9/24/20  [EDGcpfe/23245]
+Internal error following syntax error in decltype in default template argument
+
+An internal error could occur (in copy_tokens_from_cache) if a default
+template argument resulted in certain syntax errors during the instantiation
+of a dependent default template argument.  Now fixed.
+
+  struct A {};
+  template <bool> using B = A;
+  template <typename> void f();
+  template <typename> class E;
+  template <typename... Ts> struct F : B<__is_constructible(E<int>, Ts...)> {};
+  template <typename h> class E {
+    // h(...) is a functional-notation cast when h is int, and so the second
+    // argument is not allowed.
+    template <typename = decltype(h(0, f<>))> class G;
+  };
+  int main () {
+    F ff;
+  }
+
+
 9/23/20  [EDGcpfe/19404,EDGcpfe/23405]
 Abort on generic lambda nested in local non-generic lambda
 

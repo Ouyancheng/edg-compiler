@@ -15316,6 +15316,10 @@ name.  We do not advance to the token after the decltype in this case.
                           ssep = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   an_expr_node_ptr        saved_decltype_rescan_operand = NULL;
+  a_token_set_array_element
+                          save_gt_stop_token_count;
+  a_token_set_array_element
+                          *gt_entry_ptr = NULL;
 
   check_assertion(!C_mode());
   if (rcblock != NULL) {
@@ -15335,6 +15339,13 @@ name.  We do not advance to the token after the decltype in this case.
     (void)get_token();
     /* Check for and pass over the left parenthesis. */
     (void)required_token(tok_lparen, ec_exp_lparen);
+    /* If the decltype occurs in a default template argument, we want to make
+       sure the error recovery doesn't stop on the closing ">" of a template
+       argument list inside the decltype. */
+    gt_entry_ptr = &(curr_stop_token_stack_entry->
+                                                stop_tokens[(int)tok_gt]);
+    save_gt_stop_token_count = *gt_entry_ptr;
+    *gt_entry_ptr = 0;
   }  /* if */
   /* If we're in the file-scope memory region instead of a function-scope
      memory region because we're scanning something like a template argument,
@@ -15498,6 +15509,9 @@ name.  We do not advance to the token after the decltype in this case.
     if (required_token_no_advance(tok_rparen, ec_exp_rparen) &&
         !might_be_id_start) {
       (void)get_token();
+    }  /* if */
+    if (gt_entry_ptr != NULL) {
+      *gt_entry_ptr = save_gt_stop_token_count;
     }  /* if */
   } else {
     decltype_rescan_operand = saved_decltype_rescan_operand;
