@@ -11105,16 +11105,18 @@ error indication in *rcblock).
           }  /* if */
           make_error_operand(result);
         }  /* if */
-        if (rcblock == NULL &&
-            record_name_references_in_context() &&
-            is_constant_operand(result) &&
-            result->variant.constant.kind ==
-                                      (a_constant_repr_kind)ck_ptr_to_member) {
-          a_constant_ptr  constant = &result->variant.constant;
-          if (result->name_reference_set) {
-            constant->variant.ptr_to_member.name_reference =
+        if (is_constant_operand(result) &&
+            constant_is(&result->variant.constant, ck_ptr_to_member)) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          result->variant.constant.ptr_to_mem_constant_construct = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          if (rcblock == NULL && record_name_references_in_context()) {
+            a_constant_ptr  constant = &result->variant.constant;
+            if (result->name_reference_set) {
+              constant->variant.ptr_to_member.name_reference =
                        find_allocated_name_reference(&constant->source_corresp,
                                                      &result->name_reference);
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* if */
@@ -12316,6 +12318,11 @@ previously-scanned sizeof expression, and return the result in *result
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = rcblock->expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    if (microsoft_bugs && operand.is_address_of_id_expression &&
+        is_constant_operand(&operand) &&
+        constant_is(&operand.variant.constant, ck_ptr_to_member)) {
+      record_suppressed_error();
+    }  /* if */
   } else {
     /* Normal, non-rescan, processing. */
 #if UPC_EXTENSIONS_ALLOWED || CHECKING

@@ -4354,10 +4354,14 @@ typedef struct a_constant {
 			   with a nullptr type. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_bit_field	native_nullptr_keyword:1;
-			/* if TRUE, this constant was expressed with the
+			/* If TRUE, this constant was expressed with the
 			   __nullptr keyword.  This is used to distinguish
 			   between nullptr and __nullptr in C++/CLI mode,
 			   where the keywords have different types. */
+  a_bit_field	ptr_to_mem_constant_construct:1;
+			/* If TRUE, this constant is the result of a construct
+			   of the for &C::m that produces a pointer-to-member
+			   constant. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	explicit_braces_on_aggregate:1;
 			/* For a ck_aggregate constant in an initializer,

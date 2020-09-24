@@ -1169,6 +1169,9 @@ Display the indicated constant entry.
   if (ptr->native_nullptr_keyword) {
     disp_boolean("native_nullptr_keyword", TRUE);
   }  /* if */
+  if (ptr->ptr_to_mem_constant_construct) {
+    disp_boolean("ptr_to_mem_constant_construct", TRUE);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (ptr->explicit_braces_on_aggregate) {
     disp_boolean("explicit_braces_on_aggregate", TRUE);

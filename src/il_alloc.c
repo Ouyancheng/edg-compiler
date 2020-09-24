@@ -956,6 +956,7 @@ associated variant fields to default values.
   cp->nullptr_keyword = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cp->native_nullptr_keyword = FALSE;
+  cp->ptr_to_mem_constant_construct = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   cp->explicit_braces_on_aggregate = FALSE;
   cp->from_undefined_preproc_id = FALSE;

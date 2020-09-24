@@ -1,5 +1,19 @@
 Version 6.2
 
+9/24/20  [EDGcpfe/23407]
+Microsoft compatibility: Failure to substitute sizeof(&T::m)
+
+In Microsoft bugs mode, the front end now fails substitution (SFINAE) for an
+expression of the form sizeof(&T::m) where &T::m is a pointer-to-member
+constant.  For example:
+
+  template<typename T> int f(int (*)[sizeof(&T::init)+1]);
+  template<typename T> int f(...) = delete;
+  struct X { void init(); };
+  int r = f<X>(0);  // Normally accepted, but now selects the deleted f(...)
+                    // in Microsoft bugs mode.
+
+
 9/24/20  [EDGcpfe/21829,EDGcpfe/23284]
 Microsoft compatibility: Microsoft nonreal base classes, --parse_templates,
 and --no_ms_permissive

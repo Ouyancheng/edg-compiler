@@ -19574,11 +19574,21 @@ options.
                                             &alloc_sizeof_expr_con);
             if (expr == NULL) {
               /* The expression folds to a constant. */
+              a_constant_ptr  new_con;
               if (alloc_sizeof_expr_con != NULL) {
-                expr = alloc_node_for_allocated_constant(
-                                                        alloc_sizeof_expr_con);
+                new_con = alloc_sizeof_expr_con;
+                expr = alloc_node_for_allocated_constant(new_con);
               } else {
-                expr = alloc_node_for_constant(sizeof_expr_con);
+                new_con = sizeof_expr_con;
+                expr = alloc_node_for_constant(new_con);
+              }  /* if */
+              if (microsoft_bugs && new_con->ptr_to_mem_constant_construct &&
+                  con->variant.template_param.kind ==
+                               (a_template_param_constant_kind)tpck_sizeof) {
+                /* Microsoft has a bug where rescanning an expression of the
+                   form sizeof(&X::m), where &X::m is a pointer-to-member,
+                   always fails. */
+                subst_fail(*copy_error);
               }  /* if */
             }  /* if */
             new_type = expr->type;
