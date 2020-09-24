@@ -749,32 +749,30 @@ this routine will create such a correspondence entry.
          a correspondence set already (this happens only when entity2 is a
          new canonical entity). */
       *tcp2 = *tcp1;
-#if CHECKING
       ++(*tcp2)->count;
-#endif /* CHECKING */
       update_canonical_entry(kind, entity2);
     } else {
       /* Neither of the two entries had a correspondence node: create one. */
       *tcp2 = alloc_trans_unit_corresp();
       (*tcp2)->kind = kind;
-#if CHECKING
       ++(*tcp2)->count;
-#endif /* CHECKING */
       change_canonical_entry(*tcp2, entity2);
     }  /* if */
   } else if (*tcp1 != NULL && *tcp1 != *tcp2) {
     /* Both entity1 and entity2 have correspondence sets already.  One of
-       them must be a singleton and can therefore be freed. */
-    check_assertion_str((*tcp1)->count == 1,
-                        "set_trans_unit_corresp: correspondence busy");
+       them should be a singleton and can therefore be freed.  An exception is
+       the sharing by two template entries that are in the same translation
+       unit.  Correspondence errors can also lead to unexpected sharing, which
+       will be diagnosed later during the verification step. */
+    if (kind != iek_template && (*tcp1)->count > 1) {
+      expect_error_str("set_trans_unit_corresp: correspondence busy");
+    }  /* if */
     free_trans_unit_corresp(*tcp1);
   }  /* if */
   /* Add entity1 to the correspondence set of entity2. */
   if (*tcp1 != *tcp2) {
     *tcp1 = *tcp2;
-#if CHECKING
     ++(*tcp2)->count;
-#endif /* CHECKING */
   }  /* if */
   update_canonical_entry(kind, entity1);
   /* Is either entity coming from a primary translation unit? */
@@ -824,9 +822,7 @@ entity to NULL.  Return the address of that pointer.
       check_assertion(total_errors != 0);
       change_canonical_entry(*tcp, (*tcp)->primary);
     }  /* if */
-#if CHECKING
-    --(*tcp)->count;
-#endif /* CHECKING */
+    free_trans_unit_corresp(*tcp);
     *tcp = NULL;
   }  /* if */
   return tcp;
@@ -857,17 +853,16 @@ has not yet been examined for a matching entry in another translation unit.
     /* Allocate a correspondence node. */
     *tcp = alloc_trans_unit_corresp();
     (*tcp)->kind = kind;
-#if CHECKING
     ++(*tcp)->count;
-#endif /* CHECKING */
   } else {
     /* Reuse the correspondence entry.  (Normally, the entry shouldn't be
        shared.  An exception is the sharing by two template entries that are
        in the same translation unit.  Correspondence errors can also lead
-       to unexpected sharing.) */
-    check_assertion_str((*tcp)->count == 1 || kind == iek_template ||
-                        total_corresp_errors != 0,
-                        "f_set_no_trans_unit_corresp: correspondence busy");
+       to unexpected sharing, but may not be diagnosed until the verification
+       stage.) */
+    if (kind != iek_template && (*tcp)->count > 1) {
+      expect_error_str("f_set_no_trans_unit_corresp: correspondence busy");
+    }  /* if */
   }  /* if */
   change_canonical_entry(*tcp, entity);
   if (!in_secondary_trans_unit(entity)) {
@@ -892,9 +887,7 @@ and free the correspondence entry.
   if (tcp != NULL) {
     trace_corresp_check(entity);
     (void)detach_trans_unit_corresp(kind, entity);
-#if CHECKING
     check_assertion(tcp->count == 1 && tcp->kind == kind);
-#endif /* CHECKING */
     free_trans_unit_corresp(tcp);
     trans_unit_corresp_of_unknown_entry(entity) = NULL;
   }  /* if */
@@ -2360,6 +2353,11 @@ Make type (and its inner structure) correspond to corresp_type.  This routine
 also deals with the consequences of type becoming the new canonical entry.
 */
 {
+  a_boolean first_corresp_of_corresp_type = FALSE;
+
+  if (trans_unit_corresp_of(corresp_type) == NULL) {
+    first_corresp_of_corresp_type = TRUE;
+  }  /* if */
   set_trans_unit_corresp(iek_type, type, corresp_type);
   if (type->kind != corresp_type->kind &&
       (!is_class_or_struct(type) || !is_class_or_struct(corresp_type))) {
@@ -2380,9 +2378,7 @@ also deals with the consequences of type becoming the new canonical entry.
       /* This is the first definition.  The members of type should therefore
          be marked as having no correspondence. */
       if (is_immediate_class_type(type)) {
-        if (class_type_has_body(type)) {
-          clear_class_type_correspondence(type, /*visited=*/TRUE);
-        }  /* if */
+        clear_class_type_correspondence(type, /*visited=*/TRUE);
       } else if (is_immediate_enum_type(type)) {
         clear_enum_type_correspondence(type, /*visited=*/TRUE);
       }  /* if */
@@ -2390,6 +2386,10 @@ also deals with the consequences of type becoming the new canonical entry.
       /* Make the members of corresp_type correspond to those of type. */
       if (is_immediate_class_type(corresp_type)) {
         establish_trans_unit_correspondences_for_class(corresp_type);
+        if (first_corresp_of_corresp_type &&
+            corresp_type->variant.class_struct_union.is_template_class) {
+          add_verification_entry(iek_type, (char*)corresp_type);
+        }  /* if */
       } else if (is_immediate_enum_type(corresp_type)) {
         establish_trans_unit_correspondences_for_enum(corresp_type);
       }  /* if */
@@ -2397,6 +2397,15 @@ also deals with the consequences of type becoming the new canonical entry.
   } else {
     /* The canonical IL entry didn't change.  Set the correspondences for
        the members. */
+    if (first_corresp_of_corresp_type && !type_has_definition(type)) {
+      /* corresp_type is the only definition.  The members of corresp_type
+         should therefore be marked as having no correspondence. */
+      if (is_immediate_class_type(corresp_type)) {
+        clear_class_type_correspondence(corresp_type, /*visited=*/TRUE);
+      } else if (is_immediate_enum_type(corresp_type)) {
+        clear_enum_type_correspondence(corresp_type, /*visited=*/TRUE);
+      }  /* if */
+    }  /* if */
     if (is_immediate_class_type(type)) {
       establish_trans_unit_correspondences_for_class(type);
       if (type->variant.class_struct_union.is_template_class) {

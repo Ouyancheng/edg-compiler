@@ -142,9 +142,7 @@ and return a pointer to it.
   }  /* if */
   tucp->canonical = NULL;
   tucp->primary = NULL;
-#if CHECKING
   tucp->count = 0;
-#endif /* CHECKING */
   tucp->kind = iek_none;
   return tucp;
 }  /* alloc_trans_unit_corresp */
@@ -152,12 +150,19 @@ and return a pointer to it.
 
 void free_trans_unit_corresp(a_trans_unit_corresp_ptr	tucp)
 /*
-Return a translation unit correspondence entry to the available list.
+If the correspondence entry is only referred to by one entity, "free" the entry
+by returning it to the list of available translation unit correspondences.
+Otherwise, decrement the count of entities referring to the entry.
 */
 {
-  /* The canonical pointer is used as the next pointer. */
-  tucp->canonical = (char *)avail_trans_unit_corresps;
-  avail_trans_unit_corresps = tucp;
+  if (tucp->count == 1) {
+    /* The canonical pointer is used as the next pointer. */
+    tucp->canonical = (char *)avail_trans_unit_corresps;
+    avail_trans_unit_corresps = tucp;
+  } else {
+    check_assertion(tucp->count > 1);
+    --tucp->count;
+  }  /* if */
 }  /* free_trans_unit_corresp */
 
 
