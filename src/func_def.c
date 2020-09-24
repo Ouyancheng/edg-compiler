@@ -938,9 +938,9 @@ and issue a diagnostic if that was not the case.
   if (!rp->has_deduced_return_type) {
     /* No return type was specified, and no return type was deduced from a
        return statement.  Determine the return type as if "return (void)0;"
-       had appeared, except in the case of prototype instantiations, where
-       we want to keep the original form of the return type. */
-    if (rp->is_prototype_instantiation) {
+       had appeared, except in dependent contexts, where we want to keep
+       the original form of the return type. */
+    if (is_template_dependent_context()) {
       rp->has_deduced_return_type = TRUE;
     } else {
       deduce_return_type_from_void_operand(rp, !rp->is_lambda_body, diag_pos);
