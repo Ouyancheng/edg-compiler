@@ -5353,7 +5353,7 @@ and a vector are compatible.
             /* For conversions to bool, only conversions of constant values 0
                or 1 are non-narrowing.  However, GCC generally doesn't consider
                conversions to bool to be narrowing. */
-            if (gpp_mode ||
+            if (gpp_mode || microsoft_mode ||
                 cmplit_integer_constant(source_constant, 0) == 0 ||
                 cmplit_integer_constant(source_constant, 1) == 0) {
               is_narrowing = FALSE;
