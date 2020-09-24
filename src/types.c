@@ -5351,8 +5351,8 @@ and a vector are compatible.
           con_check_done = TRUE;
           if (dest_type->variant.integer.bool_type) {
             /* For conversions to bool, only conversions of constant values 0
-               or 1 are non-narrowing.  However, GCC generally doesn't consider
-               conversions to bool to be narrowing. */
+               or 1 are non-narrowing.  However, GCC and MSVC generally don't
+               consider conversions to bool to be narrowing. */
             if (gpp_mode || microsoft_mode ||
                 cmplit_integer_constant(source_constant, 0) == 0 ||
                 cmplit_integer_constant(source_constant, 1) == 0) {
