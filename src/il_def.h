@@ -4360,7 +4360,7 @@ typedef struct a_constant {
 			   where the keywords have different types. */
   a_bit_field	ptr_to_mem_constant_construct:1;
 			/* If TRUE, this constant is the result of a construct
-			   of the for &C::m that produces a pointer-to-member
+			   of the form &C::m that produces a pointer-to-member
 			   constant. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_bit_field	explicit_braces_on_aggregate:1;
