@@ -1249,10 +1249,8 @@ the Boost tests in a C-generating configuration.
 
 This new behavior is controlled by the new
 ONLY_MANGLE_TYPES_NEEDED_FOR_EXTERNAL_NAMES configuration macro.  By default,
-it is TRUE in configurations where DO_IL_LOWERING and IA64_ABI are TRUE and
-is FALSE if MANGLE_ALL_NAMES is explicitly set to TRUE.  Explicitly setting
-ONLY_MANGLE_TYPES_NEEDED_FOR_EXTERNAL_NAMES to FALSE restores the old
-behavior.  This option is not available in the Cfront ABI.
+it is FALSE (to preserve the old behavior).  This option is not available in
+the Cfront ABI.
 
 
 8/9/20   [EDGcpfe/23189]
