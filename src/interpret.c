@@ -7670,8 +7670,8 @@ address).
                  k;
     if (n_elems > src_base_length || n_elems > dst_base_length ||
         n_elems > MAX_ARRAY_LENGTH ||
-        (src_base_length-n_elems)*esize < src-src_base ||
-        (dst_base_length-n_elems)*esize < dst-dst_base) {
+        (src_base_length-n_elems)*esize < (a_byte_count)(src-src_base) ||
+        (dst_base_length-n_elems)*esize < (a_byte_count)(dst-dst_base)) {
       info_with_pos(ec_constexpr_memcpy_overflow, &call_node->position, ips);
       do_constexpr_fail(result);
       goto done;
