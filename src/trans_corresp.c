@@ -2354,11 +2354,14 @@ also deals with the consequences of type becoming the new canonical entry.
 */
 {
   a_boolean first_corresp_of_corresp_type = FALSE;
+  a_trans_unit_corresp_ptr tcp = NULL;
 
   if (trans_unit_corresp_of(corresp_type) == NULL) {
     first_corresp_of_corresp_type = TRUE;
   }  /* if */
   set_trans_unit_corresp(iek_type, type, corresp_type);
+  tcp = trans_unit_corresp_of(type);
+  check_assertion(tcp == trans_unit_corresp_of(corresp_type));
   if (type->kind != corresp_type->kind &&
       (!is_class_or_struct(type) || !is_class_or_struct(corresp_type))) {
     /* This is an error and will be caught later (in the verification process).
@@ -2374,7 +2377,7 @@ also deals with the consequences of type becoming the new canonical entry.
     expect_error();
   } else if (type == (a_type_ptr)canonical_il_entry_of(corresp_type)) {
     /* The canonical IL entry changed to type. */
-    if (!type_has_definition(corresp_type)) {
+    if (!type_has_definition(corresp_type) && tcp->count == 2) {
       /* This is the first definition.  The members of type should therefore
          be marked as having no correspondence. */
       if (is_immediate_class_type(type)) {
