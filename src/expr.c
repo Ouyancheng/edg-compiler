@@ -40179,10 +40179,11 @@ an enumerator.
           !(dest_type != NULL && is_error_type(dest_type))) {
         if (dest_type != NULL) {
           an_error_severity  sev = es_error;
-          if (gpp_version_is(<100000) &&
+          if ((gpp_version_is(<100000) || microsoft_mode) &&
               err_code == ec_constant_narrowing_conversion) {
-            /* Earlier versions of GCC only warn about narrowing
-               conversions. */
+            /* Earlier versions of GCC only warn about narrowing conversions
+               Similarly, the Microsoft compiler either warns or accepts
+               various invalid narrowing cases. */
             sev = es_warning;
           }  /* if */
           pos_opt_ty2_diagnostic(sev, err_code, &operand->position,
