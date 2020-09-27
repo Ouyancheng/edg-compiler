@@ -5590,8 +5590,8 @@ and a list of the unprocessed entries is returned to the caller.
     } else if (tcsp->is_exception_specification_arg) {
       if (!tcsp->exception_spec_on_templ_friend) {
         /* Remove exception specification argument(s), and replace it (or
-           them) by a placeholder token.  For an friend template declaration
-           the exception specification is kept and re-cached for for each
+           them) by a placeholder token.  For a friend template declaration
+           the exception specification is kept and re-cached for each
            instantiation of the class. */
         remove_expression_from_cache(tcsp);
       }  /* if */

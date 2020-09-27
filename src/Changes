@@ -254,7 +254,7 @@ Spurious errors on noexcept-specifier on friend template declaration
 
 A noexcept specifier of a template should only be instantiated if needed.
 The front end could issue spurious errors as a result of evaluating a
-noexcept-specifier of a friend template declaration too early.  Now fixed
+noexcept-specifier of a friend template declaration too early.  Now fixed.
 
   template <typename T> struct B {
     template <typename>
