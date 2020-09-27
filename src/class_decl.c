@@ -80,8 +80,13 @@ typedef struct a_routine_fixup {
 			   routine that is fixed up. */
   a_symbol_ptr	prototype_scope_symbols;
 			/* Pointer to a list of prototype symbols to be
-			   reactivated for scanning default arguments.
-			   Currently only used when is_template is TRUE. */
+			   reactivated for scanning default arguments and
+			   exception specifications.  Currently only used
+			   when is_template is TRUE. */
+  a_param_id_ptr
+		param_id_list;
+			/* Pointer to a list of parameter ID entries associated
+			   with prototype_scope_symbols. */
   a_token_cache function_body_token_cache;
 			/* A pointer to the token cache that describes the
 			   function body. */
@@ -227,6 +232,7 @@ initialize it.
   rfp->class_type = class_type;
   rfp->def_arg_expr_fixup_list = NULL;
   rfp->prototype_scope_symbols = NULL;
+  rfp->param_id_list = NULL;
   rfp->is_specialization = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
@@ -631,6 +637,7 @@ in class contexts.
 void add_routine_fixup_for_template_decl(
 		a_symbol_ptr			symbol,
 		a_symbol_ptr			prototype_scope_symbols,
+		a_param_id_ptr			param_id_list,
 		a_type_ptr			class_type,
 		a_boolean			is_definition,
 		a_boolean			process_exception_spec,
@@ -651,6 +658,7 @@ is a list of default arguments to be fixed up.
   rfp->is_definition = is_definition;
   rfp->process_exception_spec = process_exception_spec;
   rfp->prototype_scope_symbols = prototype_scope_symbols;
+  rfp->param_id_list = param_id_list;
   rfp->def_arg_expr_fixup_list = default_args;
   add_to_routine_fixup_list(rfp);
 }  /* add_routine_fixup_for_template_decl */

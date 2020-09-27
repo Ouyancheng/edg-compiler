@@ -1,5 +1,16 @@
 Version 6.2
 
+9/27/20  [EDGcpfe/21489]
+Redeclaration of template with different parameter names and noexcept
+
+A spurious error could result if a function template was redeclared with
+different parameter names that were used in a noexcept-specifier.  Now
+fixed.
+
+  template <class T> void f(T &t) noexcept(noexcept(t));
+  template <class U> void f(U &u) noexcept(noexcept(u));
+
+
 9/24/20  [EDGcpfe/23407]
 Microsoft compatibility: Failure to substitute sizeof(&T::m)
 

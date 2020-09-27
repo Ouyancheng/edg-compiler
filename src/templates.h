@@ -276,6 +276,11 @@ typedef struct a_tmpl_decl_state {
 			/* For a function template declaration, points to the
 			   list of prototype scope symbols from the
 			   func_info_block. */
+  a_param_id_ptr
+		param_id_list;
+			/* For a function template declaration, points to the
+			   list of parameter ID entries from the
+			   func_info_block. */
   a_symbol_ptr	bad_partial_spec_parent_class_sym;
 			/* If the declaration is for an out-of-class
 			   partial specialization, and the specialization
@@ -992,6 +997,10 @@ extern a_boolean equiv_templates(a_template_ptr			templ1,
 extern void copy_exc_spec_from_prototype_template(
                                   an_exception_specification_ptr  esp,
                                   a_boolean                       *copy_error);
+
+extern void instantiate_exception_spec_if_needed_full(
+                                          a_tmpl_decl_state_ptr  decl_state,
+                                          a_symbol_ptr           sym);
 
 extern void instantiate_exception_spec_if_needed(a_symbol_ptr  sym);
 

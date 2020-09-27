@@ -216,6 +216,7 @@ void add_routine_fixup_for_specialization(a_type_ptr		class_type,
 extern void add_routine_fixup_for_template_decl(
 		a_symbol_ptr			symbol,
 		a_symbol_ptr			prototype_scope_symbols,
+		a_param_id_ptr			param_id_list,
 		a_type_ptr			class_type,
 		a_boolean			is_definition,
 		a_boolean			process_exception_spec,

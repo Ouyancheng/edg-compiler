@@ -575,6 +575,7 @@ Initialize a template declaration state block.
   clear_decl_pos_block(&tdsp->decl_pos_block);
   tdsp->new_alias_symbol = NULL;
   tdsp->prototype_scope_symbols = NULL;
+  tdsp->param_id_list = NULL;
   tdsp->bad_partial_spec_parent_class_sym = NULL;
   tdsp->out_of_class_prototype_sym = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
@@ -16482,12 +16483,17 @@ Do some simple consistency checking on a function template argument list.
 #endif /* CHECKING */
 
 
-void instantiate_exception_spec_if_needed(a_symbol_ptr  sym)
+void instantiate_exception_spec_if_needed_full(
+                                          a_tmpl_decl_state_ptr  decl_state,
+                                          a_symbol_ptr           sym)
 /*
 If the given symbol (a function template instance or a member of a template
 class) has an associated exception specification that is still in "cached"
 state, rescan the cached exception specification and update its representation
 accordingly.
+
+*decl_state is the template declaration state if this routine is called
+from template declaration processing, and is NULL otherwise.
 */
 {
   a_routine_ptr                     rp;
@@ -16578,6 +16584,8 @@ accordingly.
         expect_error();
       } else {
         /* Push a new context to instantiate the exception specification. */
+        a_symbol_ptr   prototype_scope_symbols;
+        a_param_id_ptr param_id_list;
         if (rp->is_prototype_instantiation) {
           ps_options |= PS_PROTOTYPE_INSTANTIATION;
         }  /* if */
@@ -16608,10 +16616,20 @@ accordingly.
           scope_stack_top().exception_spec_decl_seq = decl_seq_sym->decl_seq-1;
         }  /* if */
         scope_stack_top().outside_parameter_list = TRUE;
-        if (tip->prototype_scope_symbols != NULL) {
-          reactivate_prototype_scope_symbols(tip->prototype_scope_symbols);
+        /* If we have a decl_state entry, get the prototype scope symbols and
+           parameter ID list from there.   Otherwise, get it from the
+           template instance information for the routine. */
+        if (decl_state != NULL) {
+          prototype_scope_symbols = decl_state->prototype_scope_symbols;
+          param_id_list = decl_state->param_id_list;
+        } else {
+          prototype_scope_symbols = tip->prototype_scope_symbols;
+          param_id_list = tip->param_id_list;
         }  /* if */
-        scope_stack_top().param_id_list = tip->param_id_list;
+        if (prototype_scope_symbols != NULL) {
+          reactivate_prototype_scope_symbols(prototype_scope_symbols);
+        }  /* if */
+        scope_stack_top().param_id_list = param_id_list;
         /* Rescan the exception specification argument from the cache. */
         delayed_scan_of_exception_spec(rp, &es_cache->tokens);
         /* Pop the reactivated function prototype scope off the stack. */
@@ -16629,6 +16647,17 @@ accordingly.
       }  /* if */
     }  /* if */
   }  /* if */
+}  /* instantiate_exception_spec_if_needed_full */
+
+
+void instantiate_exception_spec_if_needed(a_symbol_ptr  sym)
+/*
+Interface to instantiate_exception_spec_if_needed that supplies a default
+value for the decl_state.
+*/
+{
+  instantiate_exception_spec_if_needed_full((a_tmpl_decl_state_ptr)NULL, sym);
+
 }  /* instantiate_exception_spec_if_needed */
 
 
@@ -16681,7 +16710,8 @@ declaration.
     tssp->variant.function.exception_spec_prototype_instantiation_done = FALSE;
     proto_rp->type = dps->type;
     /* Perform the instantiation. */
-    instantiate_exception_spec_if_needed(symbol_for(proto_rp));
+    instantiate_exception_spec_if_needed_full(decl_state,
+                                              symbol_for(proto_rp));
     /* Restore the original information. */
     proto_rp->type = saved_type;
     tssp->variant.function.exception_spec_prototype_instantiation_done =
@@ -28720,6 +28750,7 @@ generic lambda call operators since they have no declarator-ids).
          mode and the kind of function being processed. */
       add_routine_fixup_for_template_decl(sym,
                                           decl_state->prototype_scope_symbols,
+                                          decl_state->param_id_list,
                                           decl_state->class_declared_in,
 					  decl_state->defines_something,
 					  fixup_for_exception_spec,
@@ -28865,6 +28896,7 @@ optionally prefixed with the keyword "explicit".
      contains a template parameter. */
   set_parameter_list_template_param_flags(dps->type);
   decl_state->prototype_scope_symbols = func_info->prototype_scope_symbols;
+  decl_state->param_id_list = func_info->param_id_list;
   sym = make_deduction_guide_template_symbol(decl_state, locator);
   templ->canonical_template = templ;
   templ->definition_template = templ;
@@ -29029,6 +29061,7 @@ function declaration.
     }  /* if */
   }  /* if */
   decl_state->prototype_scope_symbols = func_info->prototype_scope_symbols;
+  decl_state->param_id_list = func_info->param_id_list;
   /* Process a function template declaration. */
   decl_function_template(locator, func_info, &sym, decl_state);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
