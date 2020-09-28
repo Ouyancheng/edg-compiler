@@ -74,14 +74,14 @@ platform.
 Earlier versions of this file did not define some flags needed for
 compatibility with newer versions of the g++ header files.  This
 macro can be set to 0 if these additional flags should not be set by
-default.  CONFIG_FOR_GPP_HEADER_COMPAIBILITY is only used in this
+default.  CONFIG_FOR_GPP_HEADER_COMPATIBILITY is only used in this
 file.
 */
-#ifndef CONFIG_FOR_GPP_HEADER_COMPAIBILITY
-#define CONFIG_FOR_GPP_HEADER_COMPAIBILITY 1
-#endif /* ifndef CONFIG_FOR_GPP_HEADER_COMPAIBILITY */
+#ifndef CONFIG_FOR_GPP_HEADER_COMPATIBILITY
+#define CONFIG_FOR_GPP_HEADER_COMPATIBILITY 1
+#endif /* ifndef CONFIG_FOR_GPP_HEADER_COMPATIBILITY */
 
-#if CONFIG_FOR_GPP_HEADER_COMPAIBILITY
+#if CONFIG_FOR_GPP_HEADER_COMPATIBILITY
 #define THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED 1
 #define FLOAT80_ENABLING_POSSIBLE 1
 #define FLOAT128_ENABLING_POSSIBLE 1
@@ -101,7 +101,7 @@ USE_QUADMATH_LIBRARY is recommended if it is available.
 #define TYPE_FOR_TARG_ALIGNMENT unsigned short
 #define TARG_MAXIMUM_PACK_ALIGNMENT 32768
 #define TYPE_FOR_A_FIXED_POINT_VALUE an_integer_value
-#endif /* CONFIG_FOR_GPP_HEADER_COMPAIBILITY */
+#endif /* CONFIG_FOR_GPP_HEADER_COMPATIBILITY */
 
 /*
 Configure the legacy configuration as 32-bit or 64-bit (depending on the
