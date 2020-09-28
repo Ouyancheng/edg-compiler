@@ -998,10 +998,6 @@ extern void copy_exc_spec_from_prototype_template(
                                   an_exception_specification_ptr  esp,
                                   a_boolean                       *copy_error);
 
-extern void instantiate_exception_spec_if_needed_full(
-                                          a_tmpl_decl_state_ptr  decl_state,
-                                          a_symbol_ptr           sym);
-
 extern void instantiate_exception_spec_if_needed(a_symbol_ptr  sym);
 
 extern

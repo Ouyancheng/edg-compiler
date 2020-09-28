@@ -16483,7 +16483,7 @@ Do some simple consistency checking on a function template argument list.
 #endif /* CHECKING */
 
 
-void instantiate_exception_spec_if_needed_full(
+static void instantiate_exception_spec_if_needed_full(
                                           a_tmpl_decl_state_ptr  decl_state,
                                           a_symbol_ptr           sym)
 /*
