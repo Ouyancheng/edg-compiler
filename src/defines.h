@@ -480,9 +480,9 @@ Flags to be set for any version that uses the C++ generating back end.
 defines_linux.h has been updated to provide better compatibility with
 the g++ headers.  Setting this macro to 0 retains the previous behavior.
 */
-#ifndef CONFIG_FOR_GPP_HEADER_COMPAIBILITY
-#define CONFIG_FOR_GPP_HEADER_COMPAIBILITY 0
-#endif /* ifndef CONFIG_FOR_GPP_HEADER_COMPAIBILITY */
+#ifndef CONFIG_FOR_GPP_HEADER_COMPATIBILITY
+#define CONFIG_FOR_GPP_HEADER_COMPATIBILITY 0
+#endif /* ifndef CONFIG_FOR_GPP_HEADER_COMPATIBILITY */
 
 #endif /* LINUX_TEST_VERSION */
 
