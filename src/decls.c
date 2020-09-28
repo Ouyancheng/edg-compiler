@@ -19873,7 +19873,7 @@ type of the guide.
   } else {
     a_type_ptr  rtp = dps->type->variant.routine.return_type;
     a_boolean   issue_error = FALSE;
-    if (gpp_mode || microsoft_mode) {
+    if ((gpp_mode && !clang_mode) || microsoft_mode) {
       /* GCC and MSVC accept the following example:
            template<typename...> struct S;
            template<typename> using A = S<>;
