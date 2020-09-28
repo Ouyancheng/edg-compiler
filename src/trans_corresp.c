@@ -100,14 +100,6 @@ static unsigned long corresp_errors;
 
 #define any_noncorresp_errors() ((total_errors - corresp_errors) != 0)
 
-#if CHECKING
-/*
-For consistency checking we also keep track of the total number of
-correspondence errors across all translation units.
-*/
-static unsigned long total_corresp_errors;
-#endif /* CHECKING */
-
 /*
 Whenever the canonical entry of a correspondence set changes from an entry
 in a translation unit that is already processed to an entry in the current
@@ -965,9 +957,6 @@ with same_src_error; otherwise, use distinct_src_error.
     }  /* if */
   }  /* if */
   corresp_errors += (total_errors - saved_total_errors);
-#if CHECKING
-  total_corresp_errors += (total_errors - saved_total_errors);
-#endif /* CHECKING */
 }  /* report_corresp_error */
 
 
@@ -7849,9 +7838,6 @@ for each compilation.
   verification_list = NULL;
   avail_verification_entries = NULL;
   instantiations_to_process = NULL;
-#if CHECKING
-  total_corresp_errors = 0;
-#endif /* CHECKING */
 }  /* corresp_init */
 
 /* Conditionally close the "edg" namespace. */
