@@ -1,5 +1,23 @@
 Version 6.2
 
+9/28/20  [EDGcpfe/23414]
+C++-generating back end, Microsoft compatibility: injected-class-name as
+template template argument
+
+Older versions of MSVC issue a spurious error when the injected-class-name
+of a class template is passed as an argument to a template template
+parameter.  The C++-generating back end previously generated code of this
+form, but now when msvc_is_generated_code_target and
+msvc_target_version_number is less than 1914, such references in template
+arguments are put out using the qualified name of the template instead of
+its injected-class-name.  For example, with --microsoft_version=1900:
+
+  template<template<typename> class> struct A { };
+  template<typename> struct B {
+    A<::B> ab;   // Previously generated as "A<B>"
+  };
+
+
 9/27/20  [EDGcpfe/21489]
 Redeclaration of template with different parameter names and noexcept
 

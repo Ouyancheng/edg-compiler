@@ -7706,13 +7706,18 @@ template.
     if (octl.force_qualified_name) {
       options |= GN_FORCE_QUALIFIED_NAME;
       octl.force_qualified_name = FALSE;
-    } else if (clang_is_generated_code_target &&
-               clang_target_version_number < 50000) {
+    } else if ((clang_is_generated_code_target &&
+                clang_target_version_number < 50000) ||
+               (msvc_is_generated_code_target &&
+                msvc_target_version_number < 1914 &&
+                in_template_argument_list)) {
       /* Versions of clang before 5.0 had a bug that prevented use of the
          injected-class-name of a class template as a template name;
          instead, the template name needed to be referred to using a
-         qualified-id.  Check to see if this template reference is in the
-         context of the corresponding class type. */
+         qualified-id.  Versions of MSVC prior to 1914 had a similar
+         restriction but only when passing the injected-class-name as a
+         template template argument.  Check to see if this template
+         reference is in the context of the corresponding class type. */
       a_template_ptr     tplp = (a_template_ptr)scp;
       a_name_context_ptr ncp;
       for (ncp = curr_name_context; ncp != NULL; ncp = ncp->next) {
