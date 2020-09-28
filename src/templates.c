@@ -16652,7 +16652,7 @@ from template declaration processing, and is NULL otherwise.
 
 void instantiate_exception_spec_if_needed(a_symbol_ptr  sym)
 /*
-Interface to instantiate_exception_spec_if_needed that supplies a default
+Interface to instantiate_exception_spec_if_needed_full that supplies a default
 value for the decl_state.
 */
 {
