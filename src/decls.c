@@ -19873,6 +19873,16 @@ type of the guide.
   } else {
     a_type_ptr  rtp = dps->type->variant.routine.return_type;
     a_boolean   issue_error = FALSE;
+    if (gpp_mode || microsoft_mode) {
+      /* GCC and MSVC accept the following example:
+           template<typename...> struct S;
+           template<typename> using A = S<>;
+           template<typename T> S()-> const A<T>;
+         even though N4861 [temp.deduct.guide]/3 is fairly clear that the
+         template name used in the deduced type ("A" here) must be the same
+         as the deduction guide itself and no cv-qualifiers are permitted. */
+      rtp = skip_typerefs(rtp);
+    }  /* if */
     if (is_error_type(rtp)) {
       expect_error();
     } else if (!is_immediate_class_type(rtp) ||

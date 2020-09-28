@@ -1,5 +1,22 @@
 Version 6.2
 
+9/28/20  [EDGcpfe/22851,EDGcpfe/23408]
+GCC and Microsoft compatibility: Aliases and deduction guides
+
+Consider:
+
+  template<typename...> struct S;
+  template<typename> using A = S<>;
+  template<typename T> S() -> const A<T>;  // (1)
+
+The deduction guide (1) is invalid both because it includes a const qualifier
+for the deduced type and because that deduced type isn't written in terms of
+the template name ("S") of the deduction guide.  However, GCC and MSVC both
+accept this form (i.e., they ignore the type qualifiers and look through the
+alias).  The front end now emulated that behavior in the corresponding C++
+modes.
+
+
 9/28/20  [EDGcpfe/23414]
 C++-generating back end, Microsoft compatibility: injected-class-name as
 template template argument
