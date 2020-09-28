@@ -2353,21 +2353,14 @@ Make type (and its inner structure) correspond to corresp_type.  This routine
 also deals with the consequences of type becoming the new canonical entry.
 */
 {
-  a_boolean first_corresp_of_corresp_type = FALSE;
-  a_trans_unit_corresp_ptr tcp = NULL;
-
-  if (trans_unit_corresp_of(corresp_type) == NULL) {
-    first_corresp_of_corresp_type = TRUE;
-    if (trans_unit_corresp_of(type) != NULL) {
-      /* corresp_type is the newer type: swap the arguments. */
-      a_type_ptr  tmp = type;
-      type = corresp_type;
-      corresp_type = tmp;
-    }  /* if */
+  if (trans_unit_corresp_of(corresp_type) == NULL &&
+      trans_unit_corresp_of(type) != NULL) {
+    /* corresp_type is the newer type: swap the arguments. */
+    a_type_ptr  tmp = type;
+    type = corresp_type;
+    corresp_type = tmp;
   }  /* if */
   set_trans_unit_corresp(iek_type, type, corresp_type);
-  tcp = trans_unit_corresp_of(type);
-  check_assertion(tcp == trans_unit_corresp_of(corresp_type));
   if (type->kind != corresp_type->kind &&
       (!is_class_or_struct(type) || !is_class_or_struct(corresp_type))) {
     /* This is an error and will be caught later (in the verification process).
@@ -2395,8 +2388,7 @@ also deals with the consequences of type becoming the new canonical entry.
       /* Make the members of corresp_type correspond to those of type. */
       if (is_immediate_class_type(corresp_type)) {
         establish_trans_unit_correspondences_for_class(corresp_type);
-        if (first_corresp_of_corresp_type &&
-            corresp_type->variant.class_struct_union.is_template_class) {
+        if (corresp_type->variant.class_struct_union.is_template_class) {
           /* Make sure this instance will be compared against the canonical
              entry. */
           add_verification_entry(iek_type, (char*)corresp_type);
@@ -2408,15 +2400,6 @@ also deals with the consequences of type becoming the new canonical entry.
   } else {
     /* The canonical IL entry didn't change.  Set the correspondences for
        the members. */
-    if (first_corresp_of_corresp_type && !type_has_definition(type)) {
-      /* corresp_type is the only definition.  The members of corresp_type
-         should therefore be marked as having no correspondence. */
-      if (is_immediate_class_type(corresp_type)) {
-        clear_class_type_correspondence(corresp_type, /*visited=*/TRUE);
-      } else if (is_immediate_enum_type(corresp_type)) {
-        clear_enum_type_correspondence(corresp_type, /*visited=*/TRUE);
-      }  /* if */
-    }  /* if */
     if (is_immediate_class_type(type)) {
       establish_trans_unit_correspondences_for_class(type);
       if (type->variant.class_struct_union.is_template_class) {
