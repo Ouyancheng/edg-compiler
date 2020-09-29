@@ -1,5 +1,23 @@
 Version 6.2
 
+9/29/20  [EDGcpfe/23417]
+C++-generating back end, GNU C++ compatibility: ill-formed initializers in
+function template default arguments
+
+G++ accepts certain ill-formed initializers in the default arguments of
+function templates, and the front end correctly emulates this behavior.
+However, the resulting IL could cause the C++-generating back end to abort
+with an assertion failure in gen_initializer_constant.  This is now fixed.
+for example, with --parse_templates --c++14 --gnu_version=80300:
+
+  template <typename, int> struct S { };
+  template <int N = 1> void f(const S<int, 2>& s = {0, 1});
+
+This example previously aborted with the message "ran out of fields"
+because S<int, 2> does not have any members for the given initializers to
+initialize.
+
+
 9/28/20  [EDGcpfe/22851,EDGcpfe/23408]
 GCC and Microsoft compatibility: Aliases and deduction guides
 

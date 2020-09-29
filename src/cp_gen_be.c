@@ -1463,9 +1463,22 @@ Return TRUE if the current context is within the prototype instantiation of
 a class template or function template.
 */
 {
-  a_boolean          found_prototype_instantiation = FALSE;
+  a_boolean          found_prototype_instantiation;
   a_name_context_ptr ncp;
 
+  if (octl.func_prototype_stack != NULL) {
+    /* While processing the parameter list of a function definition, the
+       scope for the function will not have been pushed yet.  However, g++
+       has special treatment for aggregate initializers in prototype
+       instantiations (see gen_initializer_constant where this function is
+       called), even in the parameter list, so the fact that a prototype
+       instantiation is being processed is recorded in the
+       func_prototype_stack_entry before processing the parameter list. */
+    found_prototype_instantiation =
+                         octl.func_prototype_stack->is_prototype_instantiation;
+  } else {
+    found_prototype_instantiation = FALSE;
+  }  /* if */
   for (ncp = curr_name_context; ncp != NULL && !found_prototype_instantiation;
        ncp = ncp->next) {
     if ((ncp->class_type != NULL &&
@@ -8490,10 +8503,12 @@ for_ctor is TRUE, this is the parameter list of a constructor.
 }  /* gen_param_list */
 
 
-static void gen_function_declarator_with_scope(a_type_ptr   type,
-                                               a_scope_ptr  scope,
-                                               a_boolean    top_level_decl,
-                                               a_boolean    suppress_def_args)
+static void gen_function_declarator_with_scope(
+                                       a_type_ptr   type,
+                                       a_scope_ptr  scope,
+                                       a_boolean    top_level_decl,
+                                       a_boolean    suppress_def_args,
+                                       a_boolean    is_prototype_instantiation)
 /*
 Output a function declarator for the indicated routine type.
 This is the top-level type of a function definition only if scope is non-NULL,
@@ -8501,6 +8516,8 @@ in which case that is the function scope.  top_level_decl is TRUE when we are
 emitting a declarator for an actual function declaration (as opposed, e.g.,
 to a parameter or variable with function type).  suppress_def_args is TRUE if
 default arguments should be suppressed (needed for template specializations).
+is_prototype_instantiation is TRUE if the function associated with this
+declarator is the prototype instantiation of a function template.
 */
 {
   a_routine_type_supplement_ptr rtsp = type->variant.routine.extra_info;
@@ -8510,6 +8527,7 @@ default arguments should be suppressed (needed for template specializations).
   /* Push an entry onto the function prototype stack. */
   fpse.params = type->variant.routine.extra_info->param_type_list;
   fpse.outside_parameter_list = FALSE;
+  fpse.is_prototype_instantiation = is_prototype_instantiation;
   push_function_prototype(&fpse, &octl);
   /* The code here is similar to code in form_function_declarator. */
   write_tok_ch('(');
@@ -8651,7 +8669,8 @@ used as an interface to the il_to_str routines.
 {
   gen_function_declarator_with_scope(type, (a_scope_ptr)NULL,
                                      /*top_level_decl=*/FALSE,
-                                     /*suppress_def_args=*/FALSE);
+                                     /*suppress_def_args=*/FALSE,
+                                     /*is_prototype_instantiation=*/FALSE);
 }  /* gen_function_declarator */
 
 
@@ -14895,7 +14914,8 @@ Render code for the given lambda.
       }  /* if */
       gen_function_declarator_with_scope(rp->type, scope,
                                          /*top_level_decl=*/TRUE,
-                                         /*suppress_def_args=*/FALSE);
+                                         /*suppress_def_args=*/FALSE,
+                                         rp->is_prototype_instantiation);
       write_space();
     }  /* if */
     save_function_state(&state);
@@ -15197,6 +15217,7 @@ Render the given requires-expression.
      resolved. */
   fpse.params = expr->variant.requires_expr.parameters;
   fpse.outside_parameter_list = TRUE;
+  fpse.is_prototype_instantiation = FALSE;
   push_function_prototype(&fpse, &octl);
   if (fpse.params != NULL) {
     write_tok_ch('(');
@@ -18788,6 +18809,7 @@ one that yields the value) of a statement expression.
             fpse.params = curr_routine_type->variant.routine.extra_info
                                            ->param_type_list;
             fpse.outside_parameter_list = TRUE;
+            fpse.is_prototype_instantiation = FALSE;
             push_function_prototype(&fpse, &octl);
             check_assertion(statement->variant.return_dynamic_init != NULL);
             write_space();
@@ -20986,7 +21008,8 @@ declarator (or NULL if it wasn't recorded).
                                           (rout->is_template_function &&
                                            !rout->is_prototype_instantiation &&
                                            !rout->is_specialized &&
-                                           !decl_within_class));
+                                           !decl_within_class),
+                                       rout->is_prototype_instantiation);
     if (return_type_needed && !rtsp->trailing_return_type) {
       /* Put out the remainder of the return type.  If the routine type is
          expressed with a trailing return type, the return type was already
@@ -21034,6 +21057,7 @@ declarator (or NULL if it wasn't recorded).
       a_func_prototype_stack_entry  fpse;
       fpse.params = function_type_params(skip_typerefs(rout->type));
       fpse.outside_parameter_list = TRUE;
+      fpse.is_prototype_instantiation = FALSE;
       push_function_prototype(&fpse, &octl);
       gen_expr_with_parens(rcp->constraint);
       pop_function_prototype(&octl);

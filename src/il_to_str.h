@@ -77,7 +77,8 @@ typedef an_expression_test_function *an_expression_test_function_ptr;
 
 /*
 Entry used in a stack to track function prototypes being rendered.  This stack
-is used to identify which parameter an enk_param_ref node refers to.
+is used to identify which parameter an enk_param_ref node refers to and
+whether the associated function is a prototype instantiation.
 */
 typedef struct a_func_prototype_stack_entry *a_func_prototype_stack_entry_ptr;
 typedef struct a_func_prototype_stack_entry {
@@ -92,6 +93,9 @@ typedef struct a_func_prototype_stack_entry {
   a_boolean	outside_parameter_list;
 			/* TRUE if we have already rendered the list of
 			   parameters for this function prototype scope. */
+  a_boolean	is_prototype_instantiation;
+			/* TRUE if this parameter list is from the
+			   prototype instantiation of a function template. */
 } a_func_prototype_stack_entry;
   
 extern void push_function_prototype(
