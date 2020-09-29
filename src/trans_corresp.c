@@ -751,6 +751,7 @@ this routine will create such a correspondence entry.
       change_canonical_entry(*tcp2, entity2);
     }  /* if */
   } else if (*tcp1 != NULL && *tcp1 != *tcp2) {
+    a_boolean is_template = FALSE;
     /* Both entity1 and entity2 have correspondence sets already.  One of
        them should be a singleton and can therefore be freed.  An exception is
        the sharing by two template entries that are in the same translation
@@ -761,7 +762,12 @@ this routine will create such a correspondence entry.
       tcp2 = tcp1;
       tcp1 = tmp;
     }  /* if */
-    if (kind != iek_template && (*tcp1)->count > 1) {
+    if (kind == iek_template ||
+        (kind == iek_variable &&
+         ((a_variable_ptr)entity1)->is_template_variable)) {
+      is_template = TRUE;
+    }  /* if */
+    if (!is_template && (*tcp1)->count > 1) {
       expect_error_str("set_trans_unit_corresp: correspondence busy");
     }  /* if */
     free_trans_unit_corresp(*tcp1);
@@ -852,12 +858,18 @@ has not yet been examined for a matching entry in another translation unit.
     (*tcp)->kind = kind;
     ++(*tcp)->count;
   } else {
+    a_boolean is_template = FALSE;
     /* Reuse the correspondence entry.  (Normally, the entry shouldn't be
        shared.  An exception is the sharing by two template entries that are
        in the same translation unit.  Correspondence errors can also lead
        to unexpected sharing, but may not be diagnosed until the verification
        stage.) */
-    if (kind != iek_template && (*tcp)->count > 1) {
+    if (kind == iek_template ||
+        (kind == iek_variable &&
+         ((a_variable_ptr)entity)->is_template_variable)) {
+      is_template = TRUE;
+    }  /* if */
+    if (!is_template && (*tcp)->count > 1) {
       expect_error_str("f_set_no_trans_unit_corresp: correspondence busy");
     }  /* if */
   }  /* if */
@@ -1919,9 +1931,7 @@ all_instantiations list of the associated template symbol supplement.
 {
   a_symbol_ptr  templ_sym = symbol_for(templ);
   a_template_symbol_supplement_ptr
-                tssp = is_template_symbol(templ_sym) ?
-                                      templ_sym->variant.template_info : NULL;
-
+                tssp = template_supplement_for_symbol(templ_sym);
   if (!is_template_symbol(templ_sym) || templ_sym->is_template_param) {
     /* Nontemplate member of class template or template template parameter:
        no instantiations to mark. */
