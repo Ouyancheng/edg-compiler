@@ -11046,6 +11046,7 @@ definition of a member function of a class template.
     set_source_corresp(&rout_ptr->source_corresp, prototype_sym);
     set_membership_in_source_corresp(&(rout_ptr->source_corresp),
 				     prototype_sym);
+    set_il_template_entry(decl_state, sym, tssp);
     rout_ptr->source_corresp.name_linkage =
                           (storage_class == (a_storage_class)sc_extern) ?
                                 (a_name_linkage_kind)nlk_cplusplus_external :

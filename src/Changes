@@ -1,5 +1,28 @@
 Version 6.2
 
+9/29/20  [EDGcpfe/23251]
+Multiple translation units: Abort with friend template specializations
+
+When compiling multiple translation units, where a secondary TU contains a
+class template with a friend template, where the class is later instantiated,
+the front end could abort in check_correspondences with a message saying
+"entity with external linkage does not have corresp info".  For example, with
+an empty primary TU and a secondary TU containing:
+
+  template<typename> struct X
+  {
+    template<typename T> friend void foo(T, X);
+  };
+  template<typename> struct Y {
+    virtual void func() {
+      X<int>(); // Abort due to foo(T, X<int>) not having corresp info
+    }
+  };
+  Y<int> var;
+
+This is now fixed.
+
+
 9/29/20  [EDGcpfe/23104]
 Multiple translation units: Abort with template variables
 
