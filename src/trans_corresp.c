@@ -756,6 +756,11 @@ this routine will create such a correspondence entry.
        the sharing by two template entries that are in the same translation
        unit.  Correspondence errors can also lead to unexpected sharing, which
        will be diagnosed later during the verification step. */
+    if ((*tcp1)->count > 1 && (*tcp2)->count == 1) {
+      a_trans_unit_corresp_ptr *tmp = tcp2;
+      tcp2 = tcp1;
+      tcp1 = tmp;
+    }  /* if */
     if (kind != iek_template && (*tcp1)->count > 1) {
       expect_error_str("set_trans_unit_corresp: correspondence busy");
     }  /* if */
@@ -2063,9 +2068,7 @@ substructure.
   clear_trans_unit_corresp(iek_type, type, visited);
   /* Also mark inner structure if applicable. */
   if (is_immediate_class_type(type)) {
-    if (class_type_has_body(type)) {
-      clear_class_type_correspondence(type, visited);
-    }  /* if */
+    clear_class_type_correspondence(type, visited);
   } else if (is_immediate_enum_type(type)) {
     clear_enum_type_correspondence(type, visited);
   }  /* if */
@@ -2356,9 +2359,7 @@ also deals with the consequences of type becoming the new canonical entry.
        Don't attempt to handle the substructure of the type.  (However, don't
        worry about struct vs. class differences.) */
     if (is_immediate_class_type(type)) {
-      if (class_type_has_body(type)) {
-        clear_class_type_correspondence(type, /*visited=*/TRUE);
-      }  /* if */
+      clear_class_type_correspondence(type, /*visited=*/TRUE);
     } else if (is_immediate_enum_type(type)) {
       clear_enum_type_correspondence(type, /*visited=*/TRUE);
     }  /* if */
