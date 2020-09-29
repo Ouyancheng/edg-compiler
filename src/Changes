@@ -24,7 +24,7 @@ template template argument
 Older versions of MSVC issue a spurious error when the injected-class-name
 of a class template is passed as an argument to a template template
 parameter.  The C++-generating back end previously generated code of this
-form, but now when msvc_is_generated_code_target and
+form, but now when msvc_is_generated_code_target is TRUE and
 msvc_target_version_number is less than 1913, such references in template
 arguments are put out using the qualified name of the template instead of
 its injected-class-name.  For example, with --microsoft_version=1900
