@@ -31679,11 +31679,31 @@ that case.
           !is_a_function_designator(&operand_2) &&
           !is_a_function_designator(&operand_3)) {
         /* The changes for Core issue 587 allow for cv-qualifier differences
-           in glvalue operands.  See also same_types_for_question_operator. */
-        result_type = type_plus_qualifiers_from_second_type(operand_2.type,
-                                                            operand_3.type);
-        adjust_glvalue_type(&operand_2, result_type);
-        adjust_glvalue_type(&operand_3, result_type);
+           in glvalue operands, but only if one type is a qualified version
+           of the other.  See also same_types_for_question_operator. */
+        a_type_qualifier_set  tqs2, tqs3;
+        tqs2 = get_type_qualifiers(operand_2.type);
+        tqs3 = get_type_qualifiers(operand_3.type);
+        if (tqs2 == tqs3) {
+          result_type = operand_2.type;
+        } else if ((tqs2 & ~tqs3) != 0) {
+          /* tqs2 includes some qualifiers that tqs3 doesn't.  See if the
+             reverse is also true: In that case the result type is a prvalue.
+             Otherwise, use operand_2.type. */
+          if ((tqs3 & ~tqs2) != 0) {
+            result_type = skip_typerefs(operand_2.type);
+            result_is_a_glvalue = FALSE;
+          } else {
+            result_type = operand_2.type;
+          }  /* if */
+        } else {
+          /* tqs3 has some qualifiers that tqs2 doesn't: Use operand_3.type */
+          result_type = operand_3.type;
+        }  /* if */
+        if (result_is_a_glvalue) {
+          adjust_glvalue_type(&operand_2, result_type);
+          adjust_glvalue_type(&operand_3, result_type);
+        }  /* if */
       }  /* if */
       /* If either operand has an error type, make sure the result type is
          an error type. */
