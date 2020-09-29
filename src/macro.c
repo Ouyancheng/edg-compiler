@@ -4513,11 +4513,6 @@ static a_feature_support feature_support_list[] = {
     "201510L" },
   { "",
     0,
-    &generalized_nontype_arguments,
-    "__cpp_nontype_template_args",
-    "201411L" },
-  { "",
-    0,
     &auto_template_params_enabled,
     "__cpp_nontype_template_parameter_auto",
     "201606L" },
@@ -11198,6 +11193,14 @@ command line -D options.
         (void)enter_predef_macro(relaxed_range_based_for_enabled ? "201603L" :
                                                                    "200907L",
                                  "__cpp_range_based_for",
+                                 /*cannot_be_redefined=*/TRUE,
+                                 /*ref_suppresses_pch_file=*/FALSE);
+      }  /* if */
+      /* __cpp_nontype_template_args must be handled specially since its value
+         depends on the mode. */
+      if (generalized_nontype_arguments) {
+        (void)enter_predef_macro(cpp20_mode ? "201911L" : "201411L",
+                                 "__cpp_nontype_template_args",
                                  /*cannot_be_redefined=*/TRUE,
                                  /*ref_suppresses_pch_file=*/FALSE);
       }  /* if */
