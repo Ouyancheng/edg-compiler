@@ -7709,12 +7709,12 @@ template.
     } else if ((clang_is_generated_code_target &&
                 clang_target_version_number < 50000) ||
                (msvc_is_generated_code_target &&
-                msvc_target_version_number < 1914 &&
+                msvc_target_version_number < 1913 &&
                 in_template_argument_list)) {
       /* Versions of clang before 5.0 had a bug that prevented use of the
          injected-class-name of a class template as a template name;
          instead, the template name needed to be referred to using a
-         qualified-id.  Versions of MSVC prior to 1914 had a similar
+         qualified-id.  Versions of MSVC prior to 1913 had a similar
          restriction but only when passing the injected-class-name as a
          template template argument.  Check to see if this template
          reference is in the context of the corresponding class type. */
