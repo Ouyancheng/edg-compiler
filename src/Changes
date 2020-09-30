@@ -10,7 +10,7 @@ Consider:
   auto r = &(0 ? ic : iv);  // Previously okay.  Now an error.
 
 Previously, the front accepted such code because it treated the conditional
-operator as being an lvalue if the combined type qualifiers of both operands
+operator as being an lvalue with the combined type qualifiers of both operands
 (i.e., int const volatile).  Now, the conditional operator is only a glvalue
 if one operand is a qualified version of the other; otherwise, it is a prvalue
 (which makes the address-of operator in the example invalid).
