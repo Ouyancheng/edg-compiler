@@ -39,12 +39,12 @@ This is now fixed.
 
 
 9/29/20  [EDGcpfe/23104]
-Multiple translation units: Abort with template variables
+Multiple translation units: Abort with variable templates
 
 When compiling multiple translation units that both referred to the same
-template variable, the front end could abort in set_trans_unit_corresp with a
-"correspondence busy" message.  For example, the front end would abort if two
-TUs both #include a header containing:
+variable template instance, the front end could abort in set_trans_unit_corresp
+with a "correspondence busy" message.  For example, the front end would abort
+if two TUs both #include a header containing:
 
   struct X {
     template<typename> static constexpr int k = 0;
