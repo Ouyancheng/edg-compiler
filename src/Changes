@@ -1,4 +1,4 @@
-Version 6.2
+\Version 6.2
 
 9/29/20  [EDGcpfe/20535,EDGcpfe/23410]
 Conditional operator value category with incompatible type qualifiers
@@ -71,7 +71,10 @@ for example, with --parse_templates --c++14 --gnu_version=80300:
 
 This example previously aborted with the message "ran out of fields"
 because S<int, 2> does not have any members for the given initializers to
-initialize.
+initialize.  (Note that a similar abort could occur with some well-formed
+initializers, because accepting the ill-formed initializers requires not
+doing the processing required to produce initializers in the prototype
+instantiation IL that fully match the target of the initialization.)
 
 
 9/28/20  [EDGcpfe/22851,EDGcpfe/23408]
