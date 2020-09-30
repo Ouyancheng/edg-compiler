@@ -3842,9 +3842,6 @@ an error if a default argument expression is encountered.
              a C++/CLI parameter array. */
           ellipsis_pos = pos_curr_token;
           (void)get_token();
-          if (state->for_requires_expr_params) {
-            pos_error(ec_requires_expr_ellipsis_param, &ellipsis_pos);
-          }  /* if */
 #if ASM_FUNCTION_ALLOWED
           if (func_info->is_asm_function) {
             pos_error(ec_bad_asm_func_ellipsis, &ellipsis_pos);
@@ -4135,6 +4132,8 @@ an error if a default argument expression is encountered.
          Here the pack expansion in the trailing return type cannot be
          performed until the template declaration context is set up. */
       goto done;
+    } else if (state->for_requires_expr_params && extra_info->has_ellipsis) {
+      pos_error(ec_requires_expr_ellipsis_param, &ellipsis_pos);
     }  /* if */
     cplusplus_function_declarator_trailer(state, *new_type_ptr, func_info,
                                           locator, parent_type,
