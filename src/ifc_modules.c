@@ -2230,54 +2230,57 @@ been confirmed to exist and the path stored in midp.
 }  /* import */
 
 
-void an_ifc_module::transitive_import_module(const ifc_ModuleReference *ref)
+a_module_import_decl_ptr an_ifc_module::transitive_import_module(
+                                                const ifc_ModuleReference *ref)
+                                                                          const
 /*
 Given a module reference, import the referenced module.
 */
 {
   a_module_import_decl_ptr midp;
   a_const_char             *prim_name, *part_name;
-  a_symbol_ptr             module_sym;
 
-  midp = alloc_module_import_decl();
-  prim_name = ref->owner != 0 ? get_string_at_offset(ref->owner) : NULL;
-  part_name = ref->partition != 0 ? get_string_at_offset(ref->partition) :NULL;
-  if (prim_name == NULL) {
-    prim_name = primary_name;
+  midp = referenced_modules.get(ref->as_key());
+  if (midp != NULL) {
+    /* Already imported this reference. */
+  } else {
+    midp = alloc_module_import_decl();
+    referenced_modules.map(ref->as_key(), midp);
+    midp->module_name_position = null_source_position;
+    prim_name = ref->owner != 0 ? get_string_at_offset(ref->owner) : NULL;
+    part_name = ref->partition != 0 ? get_string_at_offset(ref->partition)
+                                    : NULL;
+    if (prim_name == NULL) {
+      /* This is a header unit. */
+      midp->module_info = alloc_module((a_module_kind)mk_header);
+      midp->module_info->name = copy_string_to_region(FILE_SCOPE_REGION_NUMBER,
+                                                      part_name);
+      import_header_module(midp);
+    } else {
+      a_symbol_ptr module_sym = make_module_symbol(prim_name, part_name,
+                                                   /*is_interface=*/TRUE,
+                                                   &null_source_position);
+      midp->module_info = alloc_module((a_module_kind)mk_ifc);
+      midp->module_info->name = module_sym->header->identifier;
+      import_module(midp, module_sym);
+    }  /* if */
   }  /* if */
-  module_sym = make_module_symbol(prim_name, part_name,
-                                  /*is_interface=*/TRUE,
-                                  &null_source_position);
-  midp->module_name_position = null_source_position;
-  midp->module_info = alloc_module((a_module_kind)mk_ifc);
-  midp->module_info->name = module_sym->header->identifier;
-  referenced_modules.map(ref->as_key(), midp);
-  import_module(midp, module_sym);
+  return midp;
 }  /* transitive_import_module */
 
 
-void an_ifc_module::import_referenced_modules()
+void an_ifc_module::import_referenced_modules() const
 /*
 Import all appropriate modules that have been referenced by this module.
-
-FIXME: Handle non-exported imports in a way that follows reachability
-semantics.
+Modules that have been imported but not re-exported are not imported at this
+time, as their symbols are not visible except when referenced by symbols within
+this module.
 */
 {
   if (partitions[ifc_module_exported].name != NULL) {
     auto num_modules = partitions[ifc_module_exported].size /
                        partitions[ifc_module_exported].entry_size;
     read_partition_at_index(ifc_module_exported, 0);
-    for (decltype(num_modules) idx = 0; idx < num_modules; ++idx) {
-      ifc_ModuleReference imr;
-      GET_ModuleReference(imr, /*from_header=*/FALSE);
-      transitive_import_module(&imr);
-    }  /* for */
-  }  /* if */
-  if (partitions[ifc_module_imported].name != NULL) {
-    auto num_modules = partitions[ifc_module_imported].size /
-                       partitions[ifc_module_imported].entry_size;
-    read_partition_at_index(ifc_module_imported, 0);
     for (decltype(num_modules) idx = 0; idx < num_modules; ++idx) {
       ifc_ModuleReference imr;
       GET_ModuleReference(imr, /*from_header=*/FALSE);
@@ -3226,7 +3229,7 @@ fully-processed entity from the referenced module.
   a_module_import_decl_ptr  midp;
   an_ifc_module             *iface;
 
-  midp = referenced_modules.get(ref->unit.as_key());
+  midp = transitive_import_module(&ref->unit);
   check_assertion(midp != NULL);
   iface = (an_ifc_module*)midp->module_info->module_interface;
   check_assertion(iface != NULL);
@@ -4324,7 +4327,7 @@ referenced entity.
   a_module_import_decl_ptr  midp;
   an_ifc_module             *iface;
 
-  midp = referenced_modules.get(ref->unit.as_key());
+  midp = transitive_import_module(&ref->unit);
   check_assertion(midp != NULL);
   iface = (an_ifc_module*)midp->module_info->module_interface;
   check_assertion(iface != NULL);

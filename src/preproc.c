@@ -1425,7 +1425,7 @@ declaration.  Otherwise, return FALSE and leave *midp unmodified.
 }  /* check_module_already_imported */
 
 
-static void import_header_module(a_module_import_decl_ptr midp)
+void import_header_module(a_module_import_decl_ptr midp)
 /*
 Import the given header module.
 */
@@ -1515,6 +1515,7 @@ can only occur inside a global module fragment.
     midp->module_name_position = pos_curr_token;
     midp->module_info = alloc_module((a_module_kind)mk_header);
     midp->module_info->name = copy_header_name(/*process_escapes=*/FALSE);
+    midp->module_info->is_sys_include = (*start_of_curr_token == '<');
   } else {
     a_symbol_ptr      primary_name, partition_name;
     a_source_position pos = pos_curr_token;

@@ -2420,10 +2420,6 @@ struct an_ifc_module : public a_module_interface {
                 partitions[(int)ifc_last+1] = {};
                         /* Information about each of the IFC partitions that
                            could exist in a module file. */
-  Ptr_map<a_module_ref_key, a_module_import_decl_ptr>
-                referenced_modules;
-                        /* A map from a module reference to the corresponding
-                           import decl. */
   a_seq_number  *sequence_numbers = NULL;
                         /* An array of sequence numbers, indexed by a
                            NameSort::SourceFile index, yields the sequence
@@ -2451,6 +2447,10 @@ private:
 		curr_templ_decl_state = NULL;
 			/* The current template declaration state, NULL if
 			   there is no template declaration being processed. */
+  mutable Ptr_map<a_module_ref_key, a_module_import_decl_ptr>
+                referenced_modules;
+                        /* A map from a module reference to the corresponding
+                           import decl. */
 
 public:
   an_ifc_module() : a_module_interface((a_module_kind)mk_ifc),
@@ -2503,8 +2503,10 @@ private:
   a_boolean open_and_map_ifc_module_file(a_module_import_decl_ptr midp,
                                          a_boolean                issue_diag);
   static an_ifc_partition_map *find_ifc_partition(a_const_char *name);
-  void transitive_import_module(const ifc_ModuleReference *ref);
-  void import_referenced_modules();
+  a_module_import_decl_ptr transitive_import_module(
+                                                const ifc_ModuleReference *ref)
+                                                                         const;
+  void import_referenced_modules() const;
   void process_ifc_scope(ifc_ScopeIndex scope_index,
                          a_scope_ptr    scope) const;
   /* Module entity getters. */

@@ -5720,6 +5720,7 @@ Allocate and return an IL entry for a module.
   mep->name = NULL;
   mep->full_name = NULL;
   mep->module_interface = NULL;
+  mep->is_sys_include = FALSE;
   return mep;
 }  /* alloc_module */
 

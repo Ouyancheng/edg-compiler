@@ -540,14 +540,11 @@ indicated by kind.  Return TRUE if a module file was found, FALSE otherwise.
     goto done;
   }  /* if */
   if (mod->kind == (a_module_kind)mk_header) {
-    a_boolean    is_system_include;
     a_const_char *header_path;
 
-    check_assertion(curr_token == tok_header_name);
-    is_system_include = *start_of_curr_token == '<';
-    header_path = resolve_header(mod->name, is_system_include,
-                                  /*is_include_next=*/FALSE,
-                                  /*suppress_diagnostics=*/FALSE);
+    header_path = resolve_header(mod->name, mod->is_sys_include,
+                                 /*is_include_next=*/FALSE,
+                                 /*suppress_diagnostics=*/FALSE);
     if (header_path == NULL) {
       pos_st_catastrophe(ec_cannot_find_header_for_import, &error_position,
                           mod->name);
