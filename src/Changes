@@ -90,7 +90,7 @@ The deduction guide (1) is invalid both because it includes a const qualifier
 for the deduced type and because that deduced type isn't written in terms of
 the template name ("S") of the deduction guide.  However, GCC and MSVC both
 accept this form (i.e., they ignore the type qualifiers and look through the
-alias).  The front end now emulated that behavior in the corresponding C++
+alias).  The front end now emulates that behavior in the corresponding C++
 modes.
 
 
