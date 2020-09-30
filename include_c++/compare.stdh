@@ -36,6 +36,9 @@ Note: The following values have to match what is produced by the constant-
     static const weak_equality nonequivalent;
 
     friend constexpr
+      bool operator==(weak_equality, weak_equality) noexcept = default;
+
+    friend constexpr
       bool operator==(weak_equality __v, __EDG_null) noexcept {
         return __v.__value == __EDG_EQ;
       }
@@ -84,6 +87,9 @@ Note: The following values have to match what is produced by the constant-
       return __value == 0 ? weak_equality::equivalent
                           : weak_equality::nonequivalent;
     }
+
+    friend constexpr
+      bool operator==(partial_ordering, partial_ordering) noexcept = default;
 
     friend constexpr
       bool operator==(partial_ordering __v, __EDG_null) noexcept {
@@ -180,6 +186,9 @@ Note: The following values have to match what is produced by the constant-
     }
 
     friend constexpr
+      bool operator==(weak_ordering, weak_ordering) noexcept = default;
+
+    friend constexpr
       bool operator==(weak_ordering __v, __EDG_null) noexcept {
         return __v.__value == __EDG_EQ;
       }
@@ -263,6 +272,9 @@ Note: The following values have to match what is produced by the constant-
     }
 
     friend constexpr
+      bool operator==(strong_equality, strong_equality) noexcept = default;
+
+    friend constexpr
       bool operator==(strong_equality __v, __EDG_null) noexcept {
         return __v.__value == __EDG_EQ;
       }
@@ -330,6 +342,9 @@ Note: The following values have to match what is produced by the constant-
                           : weak_ordering::less;
     }
     
+    friend constexpr
+      bool operator==(strong_ordering, strong_ordering) noexcept = default;
+
     friend constexpr
       bool operator==(strong_ordering __v, __EDG_null) noexcept {
         return __v.__value == __EDG_EQ;
