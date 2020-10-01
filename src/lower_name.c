@@ -4301,9 +4301,6 @@ operator on some template constants when suppress_address_of is TRUE
         break;
       }  /* if */
 #endif /* IA64_ABI */
-      str = decimal_str_for_integer_constant(con);
-      /* Use "n" to represent a minus sign. */
-      if (str[0] == '-') str[0] = 'n';
 #if !IA64_ABI
       /* Integer: the encoding is like
            L3n12  <-- encoding for "-12"
@@ -4312,6 +4309,9 @@ operator on some template constants when suppress_address_of is TRUE
             ^-------- Length of the literal.
            ^--------- "L" indicates a number.
          This is compatible with cfront 3.0.1. */
+      str = decimal_str_for_integer_constant(con);
+      /* Use "n" to represent a minus sign. */
+      if (str[0] == '-') str[0] = 'n';
       str_length = strlen(str);  /* Includes "-" sign if any. */
       add_to_mangled_name('L', mctl);
       store_digits_and_underscore((unsigned long)str_length, old_form, mctl);
@@ -4323,6 +4323,13 @@ operator on some template constants when suppress_address_of is TRUE
       */
       add_to_mangled_name('L', mctl);
       mangled_encoding_for_type(con->type, mctl);
+      /* Note that this string is determined after the encoding for the type
+         because the type may contain a nontype template argument that
+         recursively this routine and could cause the buffer that "str" points
+         to to be overwritten. */
+      str = decimal_str_for_integer_constant(con);
+      /* Use "n" to represent a minus sign. */
+      if (str[0] == '-') str[0] = 'n';
       if (!is_or_was_nullptr_type(con->type)) {
         /* As a special case, nullptr is mangled without the value 
            (i.e., "L Dn E"). */

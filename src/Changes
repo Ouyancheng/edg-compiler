@@ -1,5 +1,25 @@
 \Version 6.2
 
+10/1/20  [EDGcpfe/23434]
+Incorrect mangled names in IA-64 ABI config
+
+A recursive call during the mangling of a constant had resulted in the
+inadvertent overwriting of a static buffer resulting in an incorrect value for
+some integer constants in an IA-64 ABI mangled name.  That resulted in
+duplicate (but both incorrect) mangled names for this example (with --c++17):
+
+  template <int N> struct A {
+    enum { e1, e2 };
+  };
+  template <auto T> void f();
+  void g() {
+    f<A<99>::e1>();
+              // Was _Z1fILN1AILi99EEUt_E99EEvv, now _Z1fILN1AILi99EEUt_E0EEvv
+    f<A<99>::e2>();
+              // Was _Z1fILN1AILi99EEUt_E99EEvv, now _Z1fILN1AILi99EEUt_E1EEvv
+  }
+
+
 9/29/20  [EDGcpfe/20535,EDGcpfe/23410]
 Conditional operator value category with incompatible type qualifiers
 
