@@ -9076,7 +9076,6 @@ pair.
   strip_types_from_template_arg_list(templ_args, /*local_only=*/TRUE);
   key.template_sym = template_sym;
   key.template_arg_list = templ_args;
-  key.options = CTWS_NO_OPTIONS;
   return hash_instantiation((void*)&key);
 }  /* hash_substitution */
 
