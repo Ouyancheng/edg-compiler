@@ -11367,7 +11367,13 @@ the case where the left operand is a C++/CLI handle.
            related to one another. */
         bcp = find_base_class_of(class_struct_union_type, desired_class);
         if (bcp == NULL) {
-          check_assertion(total_errors != 0);
+          /* In a rescan context we could end up with unrelated types and
+             this should be treated as a SFINAE case. */
+          if (expr_stack->suppress_diagnostics) {
+            record_suppressed_error();
+          } else {
+            check_assertion(total_errors != 0);
+          }  /* if */
         } else {
           /* Cast the left operand to the proper type.  In Microsoft bugs
              mode, an ambiguity is ignored (with a warning).  See
