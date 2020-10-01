@@ -11463,7 +11463,6 @@ possibility.
             depth_innermost_namespace_scope == DEPTH_OF_FILE_SCOPE)) {
         /* Friendship is being given to the global main() function. */
         a_boolean  is_inline = func_info->is_inline;
-
         func_info->is_main_function = TRUE;
         check_main_function(func_info, function_type, state, &is_inline,
                             &locator->source_position);
@@ -11528,10 +11527,9 @@ possibility.
       decl_routine(locator, state, func_info, srk_flags, &linkage,
                    &old_type, &ext_sym, &decl_info->decl_pos_block);
       sym = state->sym;
-      /* WP 11.4 para 5 prohibits defining a nonmember function in a local
-         class friend declaration. */
-      if (func_info->is_definition &&
-          !locator->is_error &&
+      /* N4861 [class.friend]/6 prohibits defining a nonmember function in a
+         local class friend declaration. */
+      if (func_info->is_definition && !locator->is_error &&
           class_type->source_corresp.is_local_to_function) {
         pos_sy_error(ec_bad_scope_for_definition, &pos_curr_token, sym);
       }  /* if */
@@ -15629,7 +15627,7 @@ implicitly declared member functions.
            template cache information, as well as an entry to perform a
            prototype instantiation when the complete definition of the
            enclosing class has been seen. */
-        a_template_decl_info_ptr	tdip;
+        a_template_decl_info_ptr  tdip;
         tdip = get_specified_template_decl_info(/*innermost=*/TRUE);
         set_template_cache_info(
                         &tssp->variant.function.exception_spec_arg_cache,
