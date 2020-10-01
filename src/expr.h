@@ -398,9 +398,6 @@ extern void check_defaulted_eq_properties(a_type_ptr     class_tp,
 extern void check_defaulted_secondary_comp(a_type_ptr     class_tp,
                                            a_routine_ptr  nrp);
 
-extern void determine_defaulted_spaceship_return_type(a_routine_ptr  srp,
-                                                      a_type_ptr     class_tp);
-
 extern an_expr_node_ptr make_eq_comparison(an_expr_node_ptr  arg1,
                                            an_expr_node_ptr  arg2);
 
@@ -410,9 +407,8 @@ a_variable_ptr make_spaceship_cmp_variable(an_expr_node_ptr  arg1,
                                            a_type_ptr        tp,
                                            an_expr_node_ptr  *p_ne_expr);
 
-extern void check_nondeduced_defaulted_spaceship_properties(
-                                                      a_routine_ptr  srp,
-                                                      a_type_ptr     class_tp);
+extern void check_defaulted_spaceship_return_type(a_routine_ptr  srp,
+                                                  a_type_ptr     class_type);
 
 extern
 void make_defaulted_final_spaceship_return(a_type_ptr       func_tp,

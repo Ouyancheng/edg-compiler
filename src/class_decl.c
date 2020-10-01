@@ -24062,20 +24062,7 @@ declared, declare one that matches the spaceship operator.
   /* This function shouldn't be called if a defaulted spaceship operator was
      not declared in the class definition. */
   check_assertion(srp != NULL);
-  if (srp->has_deducible_return_type) {
-    if (!srp->has_deduced_return_type) {
-      a_type_ptr  tp = skip_typerefs(srp->type),
-                  auto_tp = skip_typerefs(tp->variant.routine.return_type);
-      if (!is_auto_type(auto_tp) ||
-          auto_tp->variant.template_param.extra_info->coordinates.position
-                                              != PLAIN_AUTO_TYPE_POS_NUMBER) {
-      } else {
-        determine_defaulted_spaceship_return_type(srp, class_type);
-      }  /* if */
-    }  /* if */
-  } else {
-    check_nondeduced_defaulted_spaceship_properties(srp, class_type);
-  }  /* if */
+  check_defaulted_spaceship_return_type(srp, class_type);
   if (erp == NULL) {
     /* No equality operator was found: Implicitly declare a defaulted one. */
     initialize_member_decl_info(&decl_info, pos);

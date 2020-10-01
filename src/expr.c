@@ -29281,8 +29281,8 @@ by tp.
 }  /* update_common_comparison_tag */
 
 
-void determine_defaulted_spaceship_return_type(a_routine_ptr  srp,
-                                               a_type_ptr     class_tp)
+static void determine_defaulted_spaceship_return_type(a_routine_ptr  srp,
+                                                      a_type_ptr     class_tp)
 /*
 srp represents a defaulted operator<=> with a deducible return type for the
 given class type (whose declared data members are all known).  Determine the
@@ -29833,6 +29833,7 @@ synthesized operator<=> returning the type of the given comparison category.
 }  /* spaceship_synthesis_impossible */
 
 
+static
 void check_nondeduced_defaulted_spaceship_properties(a_routine_ptr  srp,
                                                      a_type_ptr     class_tp)
 /*
@@ -29929,6 +29930,33 @@ done:;
   }  /* if */
   p_called_nonconstexpr_routine = saved_p_called_nonconstexpr_routine;
 }  /* check_nondeduced_defaulted_spaceship_properties */
+
+
+void check_defaulted_spaceship_return_type(a_routine_ptr  srp,
+                                           a_type_ptr     class_type)
+/*
+srp is a defaulted operator<=>.  If it has an deducible ("auto") return type,
+determine its actual type.  Otherwise, check whether is should be deleted or
+constexpr.
+*/
+{
+  if (srp->has_deducible_return_type) {
+    if (!srp->has_deduced_return_type) {
+      a_type_ptr  tp = skip_typerefs(srp->type),
+                  auto_tp = skip_typerefs(tp->variant.routine.return_type);
+      if (!is_auto_type(auto_tp) ||
+          auto_tp->variant.template_param.extra_info->coordinates.position
+                                              != PLAIN_AUTO_TYPE_POS_NUMBER) {
+        /* Nothing to do. */
+        expect_error();
+      } else {
+        determine_defaulted_spaceship_return_type(srp, class_type);
+      }  /* if */
+    }  /* if */
+  } else {
+    check_nondeduced_defaulted_spaceship_properties(srp, class_type);
+  }  /* if */
+}  /* check_defaulted_spaceship_return_type */
 
 
 void make_defaulted_final_spaceship_return(a_type_ptr       func_tp,
