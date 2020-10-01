@@ -2252,6 +2252,7 @@ Given a module reference, import the referenced module.
                                     : NULL;
     if (prim_name == NULL) {
       /* This is a header unit. */
+      check_assertion(part_name != NULL);
       midp->module_info = alloc_module((a_module_kind)mk_header);
       midp->module_info->name = copy_string_to_region(FILE_SCOPE_REGION_NUMBER,
                                                       part_name);

@@ -17262,7 +17262,7 @@ typedef struct a_module {
 		module_interface;
 			/* The module interface object used to interact with
 			   the module. */
-  a_boolean	is_sys_include : 1;
+  a_bit_field	is_sys_include : 1;
 			/* When kind == mk_header, this is TRUE if the header
 			   import used system header import syntax (e.g.,
 			   import <foo.h>), and FALSE if it used user header
