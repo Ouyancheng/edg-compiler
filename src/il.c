@@ -7258,12 +7258,16 @@ done:
 an_expr_node_ptr unwrap_if_tpck_expression(an_expr_node_ptr  expr)
 /*
 If the given expression is for a constant of ck_template_param/tpck_expression
-kind, return the underlying expression.  Otherwise return expr.
+kind, return the underlying expression.  Otherwise return expr.  Make an
+exception for enumerator constants that are represented as tpck_expression
+entries for the underlying (dependent) expression: A use of the enumerator
+constant should not be treated as equivalent to the underlying expression.
 */
 {
   while (is_constant_node(expr)) {
     a_constant_ptr  cp = node_constant(expr);
-    if (constant_is(cp, ck_template_param) && tpck_is(cp, tpck_expression)) {
+    if (constant_is(cp, ck_template_param) && tpck_is(cp, tpck_expression) &&
+        !cp->is_named_constant_definition) {
       expr = expr_node_from_tpck_expression(cp);
       expr = skip_parens(expr);
     } else {
