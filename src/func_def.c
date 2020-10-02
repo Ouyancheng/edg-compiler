@@ -4144,9 +4144,6 @@ definition for it.
     a_scope_ptr  scope;
     a_generated_func_def_context
                  context;
-    if (opname_kind_is(rp, onk_spaceship)) {
-      check_defaulted_spaceship_return_type(rp, class_type);
-    }  /* if */
     scope = begin_definition_of_generated_function(rp, rtp, class_type,
                                                    &context);
     for (; ptp != NULL; ptp = ptp->next) {
@@ -4157,6 +4154,7 @@ definition for it.
     } else if (opname_kind_is(rp, onk_ne)) {
       make_default_ne_body(scope);
     } else if (opname_kind_is(rp, onk_spaceship)) {
+      check_defaulted_spaceship_return_type(rp, class_type);
       make_default_spaceship_body(scope, rtp, class_type);
     } else if (opname_kind_is_rel_op(rp)) {
       make_default_rel_op_body(rp->variant.opname_kind, scope);

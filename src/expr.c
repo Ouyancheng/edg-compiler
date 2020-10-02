@@ -29303,13 +29303,17 @@ but it would call a non-constexpr subobject comparison function.
   a_routine_ptr        nonconstexpr_rout = NULL,
                        *saved_p_called_nonconstexpr_routine =
                                                 p_called_nonconstexpr_routine;
+  a_memory_region_number
+                       region_to_switch_back_to;
 
   if (class_symbol_supp(class_sym)->any_ref_member ||
       class_type_supp(class_tp)->has_anonymous_union_member) {
     ccs |= (a_comparison_category_set)ccs_other;
     goto set_return_type;
   }  /* if */
-  check_assertion(curr_il_region_number == file_scope_region_number);
+  /* Switch to the file scope memory region so that expression nodes allocated
+     while checking the evaluation of underlying operators can be reclaimed. */
+  switch_to_file_scope_region(&region_to_switch_back_to);
   save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
@@ -29408,6 +29412,7 @@ but it would call a non-constexpr subobject comparison function.
 done_with_subobjects:
   release_local_constant(&zero_ptr);
   pop_expr_stack();
+  switch_back_to_original_region(region_to_switch_back_to);
   restore_expr_stack(saved_expr_stack);
 set_return_type:
   /* See N4810 [class.spaceship]/3 for the following logic tree. */
@@ -29855,6 +29860,8 @@ operator function for the comparison of subobjects.
   a_routine_ptr        nonconstexpr_rout = NULL,
                        *saved_p_called_nonconstexpr_routine =
                                                 p_called_nonconstexpr_routine;
+  a_memory_region_number
+                       region_to_switch_back_to;
 
   if (class_type_has_variant_member(class_tp) ||
       class_symbol_supp(symbol_for(class_tp))->any_ref_member) {
@@ -29863,7 +29870,6 @@ operator function for the comparison of subobjects.
     is_deleted = TRUE;
     goto done;
   }  /* if */
-  check_assertion(curr_il_region_number == file_scope_region_number);
   rtp = skip_typerefs(srp->type);
   return_tp = skip_typerefs(rtp->variant.routine.return_type);
   update_common_comparison_tag(return_tp, &ccs);
@@ -29872,6 +29878,10 @@ operator function for the comparison of subobjects.
     is_deleted = TRUE;
     goto done;
   }  /* if */
+  /* Switch to the file scope memory region so that expression nodes allocated
+     while checking the possibility of synthesizing underlying operators can
+     be reclaimed. */
+  switch_to_file_scope_region(&region_to_switch_back_to);
   save_expr_stack(&saved_expr_stack);
   push_expr_stack((an_expression_kind)ek_sizeof, &expr_stack_entry,
                   /*force_object_lifetime=*/FALSE,
@@ -29907,6 +29917,7 @@ operator function for the comparison of subobjects.
 done_with_subobjects:
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
+  switch_back_to_original_region(region_to_switch_back_to);
 done:;
   if (is_deleted) {
     srp->is_deleted = TRUE;
