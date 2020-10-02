@@ -40232,12 +40232,12 @@ an enumerator.
          type in the required set, so it's okay without a conversion. */
     } else {
       /* The conversion is not allowed. */
+      an_error_severity  sev = es_error;
       if (err_code == ec_no_error) err_code = ec_unconvertible_con_expr;
       if (expr_error_should_be_issued() &&
           !is_error_operand(operand) &&
           !(dest_type != NULL && is_error_type(dest_type))) {
         if (dest_type != NULL) {
-          an_error_severity  sev = es_error;
           if ((gpp_version_is(<100000) || microsoft_mode) &&
               err_code == ec_constant_narrowing_conversion) {
             /* Earlier versions of GCC only warn about narrowing conversions.
@@ -40253,7 +40253,7 @@ an enumerator.
                            name_for_builtin_type_kind(builtin_types));
         }  /* if */
       }  /* if */
-      conv_to_error_operand(operand);
+      if (sev == es_error) conv_to_error_operand(operand);
     }  /* if */
   }  /* if */
   if (is_expression_operand(operand)) {
