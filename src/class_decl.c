@@ -13673,6 +13673,16 @@ the position of the "= default" construct.
   } else {
     if (in_class) {
       scope_stack_top().class_def_state->any_defaulted_special_members = TRUE;
+    } else {
+      /* For out-of-class defaulted comparisons, check if the comparison
+         should be deleted. */
+      if (opname_kind_is(rp, onk_spaceship)) {
+        check_defaulted_spaceship_return_type(rp, class_type);
+      } else if (opname_kind_is(rp, onk_eq)) {
+        check_defaulted_eq_properties(class_type, rp);
+      } else if (opname_kind_is(rp, onk_ne) || opname_kind_is_rel_op(rp)) {
+        check_defaulted_secondary_comp(class_type, rp);
+      }  /* if */
     }  /* if */
     rp->is_defaulted = TRUE;
     rp->is_inline = TRUE;

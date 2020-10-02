@@ -1,5 +1,40 @@
 Version 6.2
 
+10/2/20  [EDGcpfe/23423,EDGcpfe/23429]
+Comparison operators defaulted outside of their associated class definition
+
+Two bugs related to comparison operators defaulted outside of their associated
+class definition have been fixed.  First, the front end previously aborted with
+an internal error when deducing an "auto" return type for an operator<=>
+defaulted outside its associate class definition.  For example:
+
+  #include <compare>
+  struct S {
+    class N {
+        int i;
+        friend auto operator<=>(N, N);
+    };
+  };
+  auto operator<=>(S::N, S::N) = default;  // Previously triggered an
+                                           // internal error.
+
+That is now fixed (as is the spurious error that was also triggered by that
+example).  Second, some comparison comparison operators defaulted outside of
+their associated class definition caused the front end to issue an error when
+it instead should have marked the operator as implicitly deleted.  For example:
+
+  #include <compare>
+  union U {
+    int i;
+    friend bool operator!=(U, U);
+  };
+  bool operator!=(U, U) = default;  // Previously an error.  Now the operator
+                                    // is "deleted" (because there is no
+                                    // corresponding operator==).
+
+That is now also fixed.
+
+
 10/2/20  [EDGcpfe/23426]
 Dependent enumerator constants used in template arguments
 
