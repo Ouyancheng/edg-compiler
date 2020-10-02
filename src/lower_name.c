@@ -4325,8 +4325,8 @@ operator on some template constants when suppress_address_of is TRUE
       mangled_encoding_for_type(con->type, mctl);
       /* Note that this string is determined after the encoding for the type
          because the type may contain a nontype template argument that
-         recursively this routine and could cause the buffer that "str" points
-         to to be overwritten. */
+         recursively invokes this routine and could cause the buffer that "str"
+         points to to be overwritten. */
       str = decimal_str_for_integer_constant(con);
       /* Use "n" to represent a minus sign. */
       if (str[0] == '-') str[0] = 'n';

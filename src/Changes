@@ -1,6 +1,6 @@
 Version 6.2
 
-10/1/20  [EDGcpfe/23434]
+10/1/20  [EDGcpfe/23424]
 Incorrect mangled names in IA-64 ABI config
 
 A recursive call during the mangling of a constant had resulted in the
