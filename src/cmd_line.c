@@ -2408,6 +2408,12 @@ option values if they were not already set by a command line option.
         command_line_error(ec_microsoft_version_doesnt_support_cpplatest_mode);
       }  /* if */
     }  /* if */
+    if (microsoft_version >= 1928 && ms_cpp20_mode &&
+        !option_kind_used[(int)optk_ms_permissive]) {
+      /* Beginning with 16.8, /std:c++latest or /std:c++20 imply /permissive-
+         but that can be overridden using the /permissive flag. */
+        ms_permissive = FALSE;
+    }  /* if */
     if (force_ms_type_info_not_in_namespace_std) {
       type_info_in_namespace_std = FALSE;
     } else {
@@ -2930,16 +2936,6 @@ option values if they were not already set by a command line option.
         /* Visual Studio version 16.7. */
         if (ms_cpp20_mode) {
           destroying_operator_delete_enabled = TRUE;
-        }  /* if */
-      }  /* if */
-      if (microsoft_version >= 1928) {
-        /* Visual Studio version 16.8. */
-        if (ms_cpp20_mode) {
-          /* /std:c++latest or /std:c++20 imply /permissive-, but that can
-             be overridden using the /permissive flag. */
-          if (!option_kind_used[(int)optk_ms_permissive]) {
-            ms_permissive = FALSE;
-          }  /* if */
         }  /* if */
       }  /* if */
     } else {
