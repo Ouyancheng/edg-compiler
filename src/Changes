@@ -80,8 +80,8 @@ defaulted outside its associate class definition.  For example:
   #include <compare>
   struct S {
     class N {
-        int i;
-        friend auto operator<=>(N, N);
+      int i;
+      friend auto operator<=>(N, N);
     };
   };
   auto operator<=>(S::N, S::N) = default;  // Previously triggered an

@@ -29946,7 +29946,7 @@ done:;
 void check_defaulted_spaceship_return_type(a_routine_ptr  srp,
                                            a_type_ptr     class_type)
 /*
-srp is a defaulted operator<=>.  If it has an deducible ("auto") return type,
+srp is a defaulted operator<=>.  If it has a deducible ("auto") return type,
 determine its actual type.  Otherwise, check whether is should be deleted or
 constexpr.
 */
