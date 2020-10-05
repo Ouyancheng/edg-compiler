@@ -21578,7 +21578,9 @@ scanned.  (It has already been established that the field has an initializer.)
 */
 {
   check_assertion(field->has_initializer);
-  if (symbol_supplement_for_class(class_type)
+  if (field->initializer != NULL) {
+    /* The initializer has already been scanned. */
+  } else if (symbol_supplement_for_class(class_type)
                                     ->has_instantiatable_field_initializers) {
     /* A class whose fields are instantiated on demand (normally a class
        template instance). */
