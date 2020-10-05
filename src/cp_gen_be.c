@@ -18251,7 +18251,10 @@ TRUE, the block is the body of a GNU statement expression.
   a_scope_ptr scope;
   a_boolean   need_context_pop = FALSE;
 
-  write_tok_str("{ ");
+  if (statement->source_sequence_entry != NULL) {
+    /* Do not put out braces for compiler-generated blocks. */
+    write_tok_str("{ ");
+  }  /* if */
   scope = block->assoc_scope;
   /* The block defines a scope if scope != NULL. */
   if (scope != NULL) {
@@ -18280,7 +18283,9 @@ TRUE, the block is the body of a GNU statement expression.
     }  /* if */
   }  /* if */
   set_output_position(&block->final_position);
-  write_tok_ch('}');
+  if (statement->source_sequence_entry != NULL) {
+    write_tok_ch('}');
+  }  /* if */
 }  /* gen_block_statement */
 
 

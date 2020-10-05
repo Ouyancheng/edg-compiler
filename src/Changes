@@ -1,5 +1,40 @@
 Version 6.2
 
+10/5/20  [EDGcpfe/23378]
+C++-generating back end: unrecognized pragmas and implicit IL blocks
+
+The IL for certain source constructs includes compiler-generated stmk_block
+entries to manage the scoping and lifetime of variables, and the
+C++-generating back end put those out in the generated code, even though
+they were not present in the source and are implied by the associated
+constructs.  In configurations with INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL set
+to TRUE, however, the location of pragmas could be incorrect with respect
+to the block structure of the generated code.  For example, with --c++14:
+
+  void f() {
+    #pragma omp parallel
+    {
+      const int I = 32;
+      while (true) {
+        const int J = I;
+        if (J == 0) {
+          continue;
+        }
+      }
+      #pragma omp critical
+      {
+        ;
+      }
+    }
+  }
+
+The generated code previously contained an extra block around the body of
+the "while", i.e., "while (true) { { ... } }", and the "omp critical"
+#pragma was placed between the two closing braces.  This is now fixed; the
+C++-generating back end no longer puts out braces for compiler-generated
+blocks in the generated code.
+
+
 10/5/20  [EDGcpfe/23436]
 Abort in name mangling following error in template static data member
 
