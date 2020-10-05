@@ -1,5 +1,18 @@
 Version 6.2
 
+10/5/20  [EDGcpfe/23436]
+Abort in name mangling following error in template static data member
+
+An abort could occur (in add_variable_template_indication) in certain
+configurations with MANGLE_ALL_NAMES set to TRUE because in some error
+cases a variable with is_template_variable set to TRUE had a NULL
+template_info pointer.  Now fixed.
+ 
+  template <typename> struct S {
+    static constexpr bool = true;   // Missing member name
+  };
+
+
 10/5/20  [EDGcpfe/22801]
 C++-generating back end: type operators in template arguments
 

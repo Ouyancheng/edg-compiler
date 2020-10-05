@@ -17736,6 +17736,11 @@ template declaration and is NULL otherwise.
     var->is_template_variable = TRUE;
     var->is_prototype_instantiation = TRUE;
     var->is_nonreal = TRUE;
+    if (var->template_info == NULL) {
+      /* For variable templates, the template_info will have already been
+         allocated. */
+      var->template_info = alloc_variable_template_info();
+    }  /* if */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
   if (class_type->variant.class_struct_union.has_internal_linkage_attribute) {
@@ -18081,11 +18086,6 @@ template declaration and is NULL otherwise.
         tip->template_info->is_generic =
                   class_type->variant.class_struct_union.is_generic_instance;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        if (var->template_info == NULL) {
-          /* For variable templates, the template_info will have already been
-             allocated. */
-          var->template_info = alloc_variable_template_info();
-        }  /* if */
         if (decl_info->is_member_template) {
           /* For variable templates, the IL template will have been created
              by the template declaration processing. */
