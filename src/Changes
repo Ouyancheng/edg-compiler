@@ -1,5 +1,32 @@
 Version 6.2
 
+20/5/20  [EDGcpfe/23298]
+Abort with default arguments to inheriting constructors
+
+In configurations where IL lowering is performed, the front end could abort in
+lower_dynamic_init when lowering code where a default argument is provided to
+a constructor that has been inherited, and that inheriting constructor is being
+used.  For example:
+
+  struct A {
+    ~A() { }
+  };
+  template <class T> struct B {
+    B(int, A = A()) { }
+  };
+  struct C : B<int> {
+    using B<int>::B;
+  };
+  template <class T> void f() {
+    C c(1); // Abort triggered here
+  }
+  void g() {
+    f<int>();
+  }
+
+This is now fixed.
+
+
 10/5/20  [EDGcpfe/23191]
 Spurious GNU-mode ambiguity on member overloaded with using-declaration
 

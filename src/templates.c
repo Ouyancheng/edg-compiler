@@ -16977,6 +16977,13 @@ instantiated.
     if (inh_ptp->has_unevaluated_template_default) {
       instantiate_default_argument(symbol_for(inh_ctor), inh_ptp);
     }  /* if */
+    push_class_and_template_reactivation_scope_full(
+                                             parent_class_of(rout_ptr),
+                                             /*reactive_template_params=*/TRUE,
+                                             /*is_specialization=*/FALSE,
+                                             /*extend_namespace=*/TRUE,
+                                             /*force_new_context=*/TRUE,
+                                             PS_NO_OPTIONS);
     param->default_arg_expr =
                          duplicate_default_arg_expr(inh_ptp->default_arg_expr);
     param->has_default_arg = inh_ptp->has_default_arg;
@@ -16984,6 +16991,7 @@ instantiated.
                                       inh_ptp->entities_defined_in_default_arg;
     param->default_arg_appeared_in_class_definition =
                              inh_ptp->default_arg_appeared_in_class_definition;
+    pop_class_reactivation_scope();
     goto done;
   }  /* if */
   if (param->default_being_instantiated) {

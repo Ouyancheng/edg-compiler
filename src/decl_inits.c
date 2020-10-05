@@ -9925,7 +9925,7 @@ done:
   dip = forwarding_initializer_for_inheriting_constructor(ctor, direct_ctor);
   init->initializer = dip;
   init->initializer->is_constructor_init = TRUE;
-  if (exceptions_enabled) {
+  if (exceptions_enabled && dip->destructor != NULL) {
     record_end_of_lifetime_destruction(dip, /*static_lifetime=*/FALSE,
                                        /*block_lifetime=*/TRUE);
   }  /* if */
