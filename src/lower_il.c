@@ -9260,7 +9260,7 @@ Do IL lowering of the indicated type and everything under it.
       case tk_pointer:
        /* Note that references aren't turned into pointers, because back ends
           shouldn't care. */
-        lower_type(type->variant.pointer.type);
+        lower_os_type(type->variant.pointer.type);
         break;
       case tk_ptr_to_member:
         lower_type(type->variant.ptr_to_member.class_of_which_a_member);
@@ -9467,10 +9467,13 @@ A "possibly other scope" version of lower_type; does nothing for
 types in other scopes.  Note that because all types are in the file
 scope, any reference to a type while lowering a function is a
 reference to another scope, and is recorded as a potential orphan
-to be processed later.
+to be processed later.  Also defers (by adding to the orphan list)
+function types so they'll be lowered at a later time.  That's important
+because mangling needs to operate on non-lowered function types.
 */
 {
-  if (!lowering_file_scope) {
+  if (!lowering_file_scope ||
+      (!secondary_translation_unit_seen() && is_function_type(type))) {
     possibly_add_orphaned_file_scope_il_entry((char *)(type),
                                               (an_il_entry_kind)iek_type);
   } else {
@@ -22366,13 +22369,6 @@ terms into C ones, so that a C back end can handle it without change.
     }  /* if */
     /* Lower the scope and its subscopes in the same memory region. */
     lower_scope(scope);
-    if (lowering_file_scope) {
-      /* Lower any orphaned types and other entries from the function and
-         block scopes.  They are allocated in the file scope memory region but
-         are not linked into the file scope memory region IL tree, so they have
-         to be found through a separate list. */
-      lower_orphaned_entries();
-    }  /* if */
     /* Promote class members out of the classes. */
     do_scope_class_member_promotion(scope);
     if (lowering_file_scope) {
@@ -22381,6 +22377,11 @@ terms into C ones, so that a C back end can handle it without change.
          the corresponding destructions.  This is done after scope class
          member promotions so that the initialization routine is last. */
       lower_file_scope_dynamic_inits();
+      /* Lower any orphaned types and other entries from the function and
+         block scopes.  They are allocated in the file scope memory region but
+         are not linked into the file scope memory region IL tree, so they have
+         to be found through a separate list. */
+      lower_orphaned_entries();
 #if MINIMAL_INLINING
       if (inlining_enabled) {
         /* For any inline routines for which all calls were expanded inline,
