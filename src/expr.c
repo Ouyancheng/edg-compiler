@@ -29231,6 +29231,8 @@ P2002R1 specifies a defaulted secondary operator@ to be deleted if:
     }  /* if */
   }  /* if */
   p_called_nonconstexpr_routine = saved_p_called_nonconstexpr_routine;
+  pop_expr_stack();
+  restore_expr_stack(saved_expr_stack);
 }  /* check_defaulted_secondary_comp */
 
 
@@ -29412,8 +29414,8 @@ but it would call a non-constexpr subobject comparison function.
 done_with_subobjects:
   release_local_constant(&zero_ptr);
   pop_expr_stack();
-  switch_back_to_original_region(region_to_switch_back_to);
   restore_expr_stack(saved_expr_stack);
+  switch_back_to_original_region(region_to_switch_back_to);
 set_return_type:
   /* See N4810 [class.spaceship]/3 for the following logic tree. */
   if (ccs & (a_comparison_category_set)ccs_other) {
