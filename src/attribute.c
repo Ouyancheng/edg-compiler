@@ -5339,7 +5339,10 @@ and return the entity.
   if (entity_kind == iek_routine) {
     a_routine_ptr  rp = (a_routine_ptr)entity;
     rp->never_inline = TRUE;
-    if (rp->is_inline && is_gcc_attribute(ap)) {
+    if (rp->is_inline && is_gcc_attribute(ap) &&
+        (!rp->source_corresp.is_class_member ||
+         find_attribute(ak_always_inline, rp->source_corresp.attributes)
+                                                                    != NULL)) {
       pos_warning(ec_inline_gnu_noinline_conflict, &ap->position);
     }  /* if */
   } else {

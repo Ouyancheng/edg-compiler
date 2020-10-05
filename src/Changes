@@ -1,5 +1,17 @@
 Version 6.2
 
+10/5/20  [EDGcpfe/13299,EDGcpfe/18121,EDGcpfe/20733,EDGcpfe/23411]
+GNU compatibility: Spurious warnings with "noinline" attribute
+
+The front end had given spurious warnings when the "noinline" attribute was
+applied to a member function (implicitly defined as "inline").  For example
+(with --g++):
+
+  struct A {
+    __attribute__((noinline)) void f() {};  // No warning now.
+  };
+
+
 10/5/20  [EDGcpfe/23394]
 Assertion failure in mangled_encoding_for_function_type
 

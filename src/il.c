@@ -3104,7 +3104,12 @@ set).
     rp->suppress_inline_body = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-  } else if (rp->never_inline && gnu_mode) {
+  } else if (rp->never_inline && gnu_mode &&
+             (!rp->source_corresp.is_class_member ||
+              find_attribute(ak_always_inline, rp->source_corresp.attributes)
+                                                                    != NULL)) {
+    /* Was explicitly marked "noinline" previously and is now explicitly
+       marked inline. */
     pos_warning(ec_inline_gnu_noinline_conflict, &error_position);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
