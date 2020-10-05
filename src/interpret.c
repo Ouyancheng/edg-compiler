@@ -17761,7 +17761,10 @@ diagnostic in *ips.
     case tk_integer:
       set_constant_kind(con, (a_constant_repr_kind)ck_integer);
       con->variant.integer_value = *(an_integer_value *)object;
-      con->null_pointer_constant_ruled_out = TRUE;
+      /* In C, any constant expression with value zero can produce a "null
+         pointer constant".  In C++, only integer literals of value zero can
+         do so. */
+      con->null_pointer_constant_ruled_out = ips->call_seen || !C_mode();
       break;
     case tk_float:
       set_constant_kind(con, (a_constant_repr_kind)ck_float);
@@ -17858,7 +17861,10 @@ diagnostic in *ips.
              pointer constant). */
           set_constant_kind(con, (a_constant_repr_kind)ck_integer);
           con->implicit_cast = TRUE;
-          con->null_pointer_constant_ruled_out = TRUE;
+          /* In C, any constant expression with value zero can produce a "null
+             pointer constant".  In C++, only integer literals of value zero
+             can do so. */
+          con->null_pointer_constant_ruled_out = ips->call_seen || !C_mode();
         } else if (cap->alloc_seq_number > 1) {
           /* The address designates an interpreter value that is already
              deallocated, and thus cannot be constant. */

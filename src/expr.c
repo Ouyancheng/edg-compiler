@@ -31931,6 +31931,8 @@ that case.
            unqualified versions of compatible types (i.e., object, incomplete,
            or function types), and null pointer constants and "void *" pointers
            are specially handled (ANSI C 3.3.15).  Ditto in C++ (ARM 5.16). */
+        force_operand_to_constant_if_possible(&operand_2);
+        force_operand_to_constant_if_possible(&operand_3);
         if (check_compatibility_of_pointer_operands(
                            &operand_2, &operand_3, &colon_position,
                            (an_opname_kind)onk_question,
