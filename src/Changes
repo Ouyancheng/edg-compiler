@@ -104,7 +104,7 @@ it instead should have marked the operator as implicitly deleted.  For example:
 That is now also fixed.
 
 
-10/2/20  [EDGcpfe/23426]
+10/2/20  [EDGcpfe/23426,EDGcpfe/23430]
 Dependent enumerator constants used in template arguments
 
 Consider:
@@ -116,12 +116,12 @@ Consider:
   };
   S<3> s;
 
-The changes for EDGcpfe/22825 caused the representation of X<f> to be
-recorded as if it were X<e+1>.  However, that replacement was not needed for
-the issue resolved by EDGcpfe/22825 and it loses some information that is
-useful for certain source analysis applications.  The use of the enumerator
-constant f is now restored in the representation of the nonreal type X<f> of
-that example.
+The changes for EDGcpfe/22825 caused the representation of X<f> to be recorded
+as if it were X<e+1>.  However, that replacement was not needed for the issue
+resolved by EDGcpfe/22825 and it loses some information that is useful for
+accurately rendering the template argument in some applications.  The use of
+the enumerator constant f is now restored in the representation of the nonreal
+type X<f> of that example.
 
 
 10/1/20  [EDGcpfe/23424]
