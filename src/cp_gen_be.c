@@ -4728,9 +4728,10 @@ are done in the il_to_str routines before this routine is called.
          possible access problems. */
       a_type_ptr orig_underlying_type = underlying_type;
       while (resolved_type != NULL &&
-             underlying_type->kind == (a_type_kind)tk_typeref) {
-        underlying_type =
-             skip_typerefs_not_typedefs(underlying_type->variant.typeref.type);
+             underlying_type->kind == (a_type_kind)tk_typeref &&
+             !typeref_is_type_operator(underlying_type)) {
+        underlying_type = skip_typerefs_not_typedefs_or_type_operators(
+                                        underlying_type->variant.typeref.type);
       }  /* while */
       if (underlying_type != orig_underlying_type &&
           entity_name_is_accessible(&underlying_type->source_corresp,

@@ -1,5 +1,26 @@
 Version 6.2
 
+10/5/20  [EDGcpfe/22801]
+C++-generating back end: type operators in template arguments
+
+In certain complex cases, a type operator appearing in a template argument
+could be put out by the C++-generating back end as a type involving a
+temporary name (of the form  __T12345678).  This is now fixed.  For
+example, with --c++14:
+
+  template<typename> struct A {
+    static constexpr bool v = true;
+  };
+  template<typename T> struct B { B(T) { } };
+  template<typename T> using id = T;
+  template<typename T> B<T> f(T t) { return {t}; }
+  void g() {
+    auto x = f([]{});
+    static_assert(A<id<decltype(x)>>::v);  // Previously generated as
+                                           // "A<B<class __T12345678>>::v"
+  }
+
+
 10/2/20  [EDGcpfe/23423,EDGcpfe/23429]
 Comparison operators defaulted outside of their associated class definition
 
