@@ -3189,15 +3189,16 @@ associated constants can be considered equivalent.
 */
 {
   a_compare_constants_options_set  options;
+  a_constant_ptr                   cp1 = initializer_constant(var);
+  a_constant_ptr                   cp2 = initializer_constant(corresp_var);
 
+  check_assertion(cp1 != NULL && cp2 != NULL);
   if (!strict_ansi_mode) {
     options = CC_RELAXED_ADDRESS_OF_CONSTANT_COMPARISON;
   } else {
     options = CC_NO_OPTIONS;
   }  /* if */
-  return compare_constants(var->initializer.constant,
-                           corresp_var->initializer.constant,
-                           options);
+  return compare_constants(cp1, cp2, options);
 }  /* equiv_member_constants */
 
 

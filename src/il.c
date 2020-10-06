@@ -15377,7 +15377,7 @@ constant; otherwise, return NULL.
       /* The variable is dynamically initialized to a constant. */
       con_val = init->dynamic->variant.constant.ptr;
 #if !STANDALONE_UTILITY_PROGRAM
-    } else if (is_template_dependent_context()) {
+    } else if (var->is_template_variable || is_template_dependent_context()) {
       /* Check for a dependent initialization that might be constant in an
          instantiation. */
       an_expr_node_ptr expr = NULL;
@@ -15408,6 +15408,8 @@ constant; otherwise, return NULL.
         make_template_param_expr_constant(expr, con);
         con_val = copy_unshared_constant(con);
         release_local_constant(&con);
+        set_dynamic_init_kind(init->dynamic, dik_constant);
+        init->dynamic->variant.constant.ptr = con_val;
       }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
     }  /* if */
