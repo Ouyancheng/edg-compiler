@@ -5340,7 +5340,8 @@ and return the entity.
     a_routine_ptr  rp = (a_routine_ptr)entity;
     rp->never_inline = TRUE;
     if (rp->is_inline && is_gcc_attribute(ap) &&
-        (!rp->source_corresp.is_class_member
+        (!rp->source_corresp.is_class_member ||
+         rp->defined_outside_of_parent
 #if GNU_EXTENSIONS_ALLOWED
          || find_attribute(ak_always_inline, rp->source_corresp.attributes)
                                                                     != NULL
