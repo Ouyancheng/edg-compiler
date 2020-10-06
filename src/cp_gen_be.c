@@ -18250,9 +18250,16 @@ TRUE, the block is the body of a GNU statement expression.
   a_block_ptr block = statement->variant.block.extra_info;
   a_scope_ptr scope;
   a_boolean   need_context_pop = FALSE;
+  a_boolean   need_closing_brace = TRUE;
 
-  if (statement->source_sequence_entry != NULL) {
-    /* Do not put out braces for compiler-generated blocks. */
+  if (statement->source_sequence_entry == NULL &&
+      statement->variant.block.statements != NULL &&
+      statement->variant.block.statements->kind ==
+                                                (a_statement_kind)stmk_block) {
+    /* Do not put out redundant braces for a compiler-generated block
+       enclosing a block statement. */
+    need_closing_brace = FALSE;
+  } else {
     write_tok_str("{ ");
   }  /* if */
   scope = block->assoc_scope;
@@ -18283,7 +18290,7 @@ TRUE, the block is the body of a GNU statement expression.
     }  /* if */
   }  /* if */
   set_output_position(&block->final_position);
-  if (statement->source_sequence_entry != NULL) {
+  if (need_closing_brace) {
     write_tok_ch('}');
   }  /* if */
 }  /* gen_block_statement */
