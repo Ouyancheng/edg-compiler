@@ -1,5 +1,28 @@
 Version 6.2
 
+10/6/20  [EDGcpfe/23433]
+Multiple translation units: Missing correspondence for variable templates
+
+When compiling multiple translation units, the front end could abort in
+check_correspondences with a message stating that an "entity with external
+linkage does not have corresp info".  This was caused by the presence of a
+non-real instantiation of a variable template.  For example, in Microsoft mode
+where the primary TU is empty and a secondary TU contains:
+
+  template<bool> struct X;
+  template<typename> bool var; // Abort due to missing corresp info
+  template<typename> class Y {
+    template <typename T, X<var<T>>>
+    friend bool i(Y);
+  };
+  template<typename> class Z {
+    virtual Y<int> func() {}
+  };
+  Z<int> foo;
+
+This is now fixed.
+
+
 10/6/20  [EDGcpfe/22253]
 Microsoft compatibility: Template template parameter deduction bug
 

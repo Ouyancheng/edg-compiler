@@ -11198,6 +11198,7 @@ If template constraints are not satisfied, return NULL.
       /* Create a nonreal variable. */
       make_nonreal_variable_instance(var);
     }  /* if */
+    record_instantiation(sym, tssp);
     /* If the new list without local types was not used above, free it now. */
     if (list_for_instantiation != new_list_without_local_types) {
       free_template_arg_list(new_list_without_local_types);
