@@ -3106,6 +3106,7 @@ set).
 #if GNU_EXTENSIONS_ALLOWED
   } else if (rp->never_inline && gnu_mode &&
              (!rp->source_corresp.is_class_member ||
+              rp->defined_outside_of_parent ||
               find_attribute(ak_always_inline, rp->source_corresp.attributes)
                                                                     != NULL)) {
     /* Was explicitly marked "noinline" previously and is now explicitly
