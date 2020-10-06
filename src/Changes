@@ -1,6 +1,6 @@
 Version 6.2
 
-20/5/20  [EDGcpfe/23298]
+10/5/20  [EDGcpfe/23298]
 Abort with default arguments to inheriting constructors
 
 In configurations where IL lowering is performed, the front end could abort in
