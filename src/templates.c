@@ -2046,9 +2046,10 @@ template argument matching.
   a_template_arg_ptr	tap;
   a_type_ptr		rout_type = NULL;
   a_boolean		is_conversion_operator = FALSE;
-  a_boolean		default_allowed;
   a_template_arg_ptr	prev_tap = NULL;
-  a_boolean		implicit_guide;
+  a_boolean		default_allowed, implicit_guide,
+                        msvc_templ_templ_bug_possible,
+                        msvc_templ_templ_bug_active;
   a_boolean             is_partial_order_check =
                           (ctws_options & CTWS_IS_PARTIAL_ORDER_CHECK) != 0;
 
@@ -2061,6 +2062,37 @@ template argument matching.
     rout_type = skip_typerefs(tssp->variant.function.routine->type);
     is_conversion_operator = is_conversion_function_symbol(template_sym);
   }  /* if */
+  /* The Microsoft compiler (MSVC) had an odd bug that was fixed in MSVC 19.22.
+     It causes deduction to fail on a template template parameter if that
+     parameter was preceded by at least on parameter with a default argument,
+     and all the default arguments preceding the template template parameter
+     are used (as opposed to getting the corresponding arguments from the
+     deduction process itself).  For example:
+         template<typename> class X;
+         template<template<typename> class> struct S {};
+         template <typename, typename = int, int = 42,
+                   template<typename> class TT>
+           void f(S<TT>) {}
+         int main() {
+           int r = f<char>(S<X>{});      // Error in older MSVCs.
+           return f<char, int>(S<X>{});  // Accepted by older MSVCs.
+         }
+     Normally the two calls ought to be accepted, but the first one relies on
+     all the default arguments, and as a result the template template parameter
+     TT is not deduced.
+     Two state variables -- msvc_templ_templ_bug_possible and
+     msvc_templ_templ_bug_active -- are used for this.  The first is initially
+     set to TRUE in the appropriate Microsoft bug mode, but turned back to
+     FALSE if a parameter with a default value does not use that default.
+     The second starts out as FALSE, but is set to TRUE if the first state
+     variable is still TRUE and a template argument is obtained from a default
+     argument value.  If a deduced template template argument is encountered
+     while msvc_templ_templ_bug_active is TRUE, a FALSE result is forced for
+     this function. */
+  msvc_templ_templ_bug_possible =
+                               (microsoft_bugs && microsoft_version < 1922) &&
+                               !is_templ_templ_param_check;
+  msvc_templ_templ_bug_active = FALSE;
   begin_special_variadic_template_arg_list_traversal(
                                  templ_param_list, templ_arg_list, &tpp, &tap);
   for (; tap != NULL;
@@ -2090,7 +2122,9 @@ template argument matching.
         }  /* if */
         break;
       }  /* if */
-      if (default_allowed && !has_value) {
+      if (!default_allowed) {
+        /* Don't try to use a default argument. */
+      } else if (!has_value) {
         /* See if the template parameter has a default value that can be
            used. */
         get_template_arg_value_from_default(template_sym, tap, tpp,
@@ -2119,6 +2153,20 @@ template argument matching.
             result = FALSE;
             break;
           }  /* if */
+        }  /* if */
+        if (msvc_templ_templ_bug_possible && has_value) {
+          msvc_templ_templ_bug_active = TRUE;
+        }  /* if */
+      } else if (msvc_templ_templ_bug_possible) {
+        if (tpp->has_default_arg) {
+          /* If a default argument was specified, but not needed, the MSVC
+             template template parameter bug is not manifested. */
+          msvc_templ_templ_bug_possible = FALSE;
+        } else if (msvc_templ_templ_bug_active &&
+                   tap->kind == (a_templ_arg_kind)tak_template &&
+                   !tap->explicitly_specified) {
+          result = FALSE;
+          break;
         }  /* if */
       }  /* if */
       if (!has_value) {

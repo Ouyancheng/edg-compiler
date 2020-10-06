@@ -1,5 +1,27 @@
 Version 6.2
 
+10/6/20  [EDGcpfe/22253]
+Microsoft compatibility: Template template parameter deduction bug
+
+Older versions of the Microsoft compiler (MSVC 19.21 and earlier) exhibit a
+subtle bug when deducing template template parameters.  Specifically, if a
+template template parameter is preceded by one or more template parameters
+with default arguments and the deduction process would use all the default
+arguments, then deduction fails.  For example:
+
+  template<typename> class X;
+  template<template<typename> class> struct S {};
+  template<typename, typename = int, int = 42, template<typename> class TT>
+    void f(S<TT>) {}
+  int main() {
+    int r = f<char>(S<X>{});      // Error in older MSVCs.
+    return f<char, int>(S<X>{});  // Accepted by older MSVCs.
+  }
+
+The front end now emulates this behavior in Microsoft bugs mode with
+microsoft_version < 1922.
+
+
 10/5/20  [EDGcpfe/23298]
 Abort with default arguments to inheriting constructors
 
