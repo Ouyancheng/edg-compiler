@@ -80,25 +80,6 @@ applied to a member function (implicitly defined as "inline").  For example
   };
 
 
-10/5/20  [EDGcpfe/23394]
-Assertion failure in mangled_encoding_for_function_type
-
-In configurations that do lowering, an assertion failure (in
-mangled_encoding_for_function_type) had occurred with this example and is
-now fixed:
-
-  #include <typeinfo>
-  struct A {
-    const std::type_info* const info;
-    template <typename T> static void f() {
-      static A a = { &typeid(T) };
-    }
-  };
-  void g() {
-    A::f< int(*)() >();
-  }
-
-
 10/5/20  [EDGcpfe/23378]
 C++-generating back end: unrecognized pragmas and implicit IL blocks
 
