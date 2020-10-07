@@ -10379,25 +10379,6 @@ non-NULL has been, or is currently being, processed and should not be
 examined again.
 */
 
-typedef struct a_type_scan_record *a_type_scan_record_ptr;
-typedef struct a_type_scan_record {
-  a_type_scan_record_ptr
-		next;	/* The next scan record in the used or free list. */
-  a_type_ptr	type;	/* The type associated with this record. */
-} a_type_scan_record;
-
-/*
-The head of a singly-linked list of type scan records for types that have
-already been seen during the current scan.
-*/
-static a_type_scan_record_ptr scanned_types;
-
-/*
-The head of a singly-linked list of type scan records that are available
-for reuse.
-*/
-static a_type_scan_record_ptr available_type_scan_records;
-
 static void check_for_member_of_undefined_or_local_class(
                                     an_expr_node_ptr                    expr,
                                     an_expr_or_stmt_traversal_block_ptr tblock)
@@ -10476,6 +10457,25 @@ check for that also as a special case.
 }  /* expr_uses_undefined_or_local_type */
 
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+
+typedef struct a_type_scan_record *a_type_scan_record_ptr;
+typedef struct a_type_scan_record {
+  a_type_scan_record_ptr
+		next;	/* The next scan record in the used or free list. */
+  a_type_ptr	type;	/* The type associated with this record. */
+} a_type_scan_record;
+
+/*
+The head of a singly-linked list of type scan records for types that have
+already been seen during the current scan.
+*/
+static a_type_scan_record_ptr scanned_types;
+
+/*
+The head of a singly-linked list of type scan records that are available
+for reuse.
+*/
+static a_type_scan_record_ptr available_type_scan_records;
 
 static a_boolean i_is_or_uses_unnameable_class_type(a_type_ptr type)
 /*
