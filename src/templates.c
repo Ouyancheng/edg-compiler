@@ -10315,6 +10315,26 @@ is the template of which sym is an instance.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static inline a_template_param_ptr templ_params_of(a_symbol_ptr  template_sym)
+/*
+Return the list of template parameters for the given template.
+*/
+{
+  a_template_param_ptr  params;
+  a_template_symbol_supplement_ptr
+                        tssp = template_sym->variant.template_info;
+
+  if (symbol_is(template_sym, sk_function_template)) {
+    params = decl_cache_for_function_template(tssp)->decl_info->parameters;
+  } else if (symbol_is(template_sym, sk_variable_template)) {
+    params = decl_cache_for_variable_template(tssp)->decl_info->parameters;
+  } else {
+    params = tssp->cache.decl_info->parameters;
+  }  /* if */
+  return params;
+}  /* templ_params_of */
+
+
 static a_boolean requires_constraint_satisfied(
                                           a_symbol_ptr           template_sym,
                                           a_requires_clause_ptr  rcp,
@@ -10327,20 +10347,11 @@ issue a diagnostic if diagnose is TRUE.
 */
 {
   a_boolean             result = TRUE, fatal = FALSE;
-  a_template_symbol_supplement_ptr
-                        tssp = template_sym->variant.template_info;
   an_expr_node_ptr      constraint = rcp->constraint;
-  a_template_param_ptr  params;
+  a_template_param_ptr  params = templ_params_of(template_sym);
   a_diag_list           diag_list;
   a_source_position     diag_pos = error_position;
 
-  if (symbol_is(template_sym, sk_function_template)) {
-    params = decl_cache_for_function_template(tssp)->decl_info->parameters;
-  } else if (symbol_is(template_sym, sk_variable_template)) {
-    params = decl_cache_for_variable_template(tssp)->decl_info->parameters;
-  } else {
-    params = tssp->cache.decl_info->parameters;
-  }  /* if */
   push_instantiation_scope_for_rescan(template_sym);
   clear_diag_list(&diag_list);
   if (!constraint_satisfied(constraint, args, params, &diag_list, &fatal)) {
@@ -10453,7 +10464,7 @@ TRUE, issue a diagnostic explaining the failure.
     /* Check type constraints of template arguments. */
     a_boolean             auto_param_seen = FALSE;
     a_template_arg_ptr    tap = args;
-    a_template_param_ptr  tpp, params = tssp->cache.decl_info->parameters;
+    a_template_param_ptr  tpp, params = templ_params_of(template_sym);
     begin_template_arg_list_traversal(params, tap, &tpp, &tap);
     while (tpp != NULL && tap != NULL) {
       a_symbol_ptr      param_sym = tpp->param_symbol;
