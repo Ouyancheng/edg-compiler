@@ -23,7 +23,7 @@ where the primary TU is empty and a secondary TU contains:
 This is now fixed.
 
 
-10/6/20  [EDGcpfe/22253]
+10/6/20  [EDGcpfe/22253,EDGcpfe/23053]
 Microsoft compatibility: Template template parameter deduction bug
 
 Older versions of the Microsoft compiler (MSVC 19.21 and earlier) exhibit a
@@ -34,11 +34,11 @@ arguments, then deduction fails.  For example:
 
   template<typename> class X;
   template<template<typename> class> struct S {};
-  template<typename, typename = int, int = 42, template<typename> class TT>
-    void f(S<TT>) {}
+  template<typename, int = 42, int = 42, template<typename> class TT>
+    int f(S<TT>) { return 0; }
   int main() {
-    int r = f<char>(S<X>{});      // Error in older MSVCs.
-    return f<char, int>(S<X>{});  // Accepted by older MSVCs.
+    int r = f<char>(S<X>{});    // Error in older MSVCs.
+    return f<char, 8>(S<X>{});  // Accepted by older MSVCs.
   }
 
 The front end now emulates this behavior in Microsoft bugs mode with

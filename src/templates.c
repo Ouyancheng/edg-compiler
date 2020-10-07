@@ -2041,17 +2041,17 @@ template parameter compatibility checking when doing C++17-style template
 template argument matching.
 */
 {
-  a_boolean		result = TRUE;
-  a_template_param_ptr	tpp;
-  a_template_arg_ptr	tap;
-  a_type_ptr		rout_type = NULL;
-  a_boolean		is_conversion_operator = FALSE;
-  a_template_arg_ptr	prev_tap = NULL;
-  a_boolean		default_allowed, implicit_guide,
+  a_boolean             result = TRUE;
+  a_template_param_ptr  tpp;
+  a_template_arg_ptr    tap;
+  a_type_ptr            rout_type = NULL;
+  a_boolean             is_conversion_operator = FALSE;
+  a_template_arg_ptr    prev_tap = NULL;
+  a_boolean             default_allowed, implicit_guide,
                         msvc_templ_templ_bug_possible,
                         msvc_templ_templ_bug_active;
   a_boolean             is_partial_order_check =
-                          (ctws_options & CTWS_IS_PARTIAL_ORDER_CHECK) != 0;
+                            (ctws_options & CTWS_IS_PARTIAL_ORDER_CHECK) != 0;
 
   default_allowed = (function_template_default_args_allowed &&
                      !is_partial_order_check) || is_templ_templ_param_check;
@@ -2064,15 +2064,15 @@ template argument matching.
   }  /* if */
   /* The Microsoft compiler (MSVC) had an odd bug that was fixed in MSVC 19.22.
      It causes deduction to fail on a template template parameter if that
-     parameter was preceded by at least on parameter with a default argument,
+     parameter was preceded by at least one parameter with a default argument,
      and all the default arguments preceding the template template parameter
      are used (as opposed to getting the corresponding arguments from the
      deduction process itself).  For example:
          template<typename> class X;
          template<template<typename> class> struct S {};
-         template <typename, typename = int, int = 42,
+         template <typename, int = 42, int = 42,
                    template<typename> class TT>
-           void f(S<TT>) {}
+           int f(S<TT>);
          int main() {
            int r = f<char>(S<X>{});      // Error in older MSVCs.
            return f<char, int>(S<X>{});  // Accepted by older MSVCs.
@@ -2080,9 +2080,10 @@ template argument matching.
      Normally the two calls ought to be accepted, but the first one relies on
      all the default arguments, and as a result the template template parameter
      TT is not deduced.
+
      Two state variables -- msvc_templ_templ_bug_possible and
      msvc_templ_templ_bug_active -- are used for this.  The first is initially
-     set to TRUE in the appropriate Microsoft bug mode, but turned back to
+     set to TRUE in the appropriate Microsoft bugs mode, but turned back to
      FALSE if a parameter with a default value does not use that default.
      The second starts out as FALSE, but is set to TRUE if the first state
      variable is still TRUE and a template argument is obtained from a default
@@ -2159,7 +2160,7 @@ template argument matching.
         }  /* if */
       } else if (msvc_templ_templ_bug_possible) {
         if (tpp->has_default_arg) {
-          /* If a default argument was specified, but not needed, the MSVC
+          /* If a default argument was specified but not needed, the MSVC
              template template parameter bug is not manifested. */
           msvc_templ_templ_bug_possible = FALSE;
         } else if (msvc_templ_templ_bug_active &&
