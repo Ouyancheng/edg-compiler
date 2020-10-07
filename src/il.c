@@ -15408,7 +15408,8 @@ constant; otherwise, return NULL.
         make_template_param_expr_constant(expr, con);
         con_val = copy_unshared_constant(con);
         release_local_constant(&con);
-        set_dynamic_init_kind(init->dynamic, dik_constant);
+        set_dynamic_init_kind(init->dynamic,
+                              (a_dynamic_init_kind)dik_constant);
         init->dynamic->variant.constant.ptr = con_val;
       }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
