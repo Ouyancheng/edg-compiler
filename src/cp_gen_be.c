@@ -683,6 +683,7 @@ static void gen_prop_event_or_op_synth_call(
                           a_boolean                           is_virtual_call);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 static an_expr_node_ptr skip_implicit_steps(an_expr_node_ptr node);
+static a_boolean expr_uses_undefined_or_local_type(an_expr_node_ptr expr);
 /*
 Options for gen_general_declaration_using_type.
 */
@@ -4722,16 +4723,27 @@ are done in the il_to_str routines before this routine is called.
                                           /*ignore_context=*/FALSE,
                                           &for_all_scopes)) {
       /* The underlying type is inaccessible.  That's okay if it's a
-         typedef and its underlying type, skipping over other "invisible"
-         typedefs, is accessible, as we'll eventually end up with an
-         accessible name.  Otherwise, we need to use this typedef to avoid
-         possible access problems. */
+         typedef and its underlying type, skipping over other possibly
+         "invisible" typedefs, is accessible, as we'll eventually end up
+         with an accessible name.  Otherwise, we need to use this typedef
+         to avoid possible access problems. */
       a_type_ptr orig_underlying_type = underlying_type;
       while (resolved_type != NULL &&
-             underlying_type->kind == (a_type_kind)tk_typeref &&
-             !typeref_is_type_operator(underlying_type)) {
-        underlying_type = skip_typerefs_not_typedefs_or_type_operators(
-                                        underlying_type->variant.typeref.type);
+             underlying_type->kind == (a_type_kind)tk_typeref) {
+        if (underlying_type->variant.typeref.is_decltype
+#if GNU_EXTENSIONS_ALLOWED
+            || underlying_type->variant.typeref.is_typeof
+#endif /* GNU_EXTENSIONS_ALLOWED */
+                                                         ) {
+          an_expr_node_ptr expr = decltype_arg(underlying_type);
+          if (expr != NULL &&
+              !expr_uses_undefined_or_local_type(expr)) {
+            /* This type operator is usable to refer to the type. */
+            break;
+          }  /* if */
+        }  /* if */
+        underlying_type =
+             skip_typerefs_not_typedefs(underlying_type->variant.typeref.type);
       }  /* while */
       if (underlying_type != orig_underlying_type &&
           entity_name_is_accessible(&underlying_type->source_corresp,
@@ -10356,7 +10368,6 @@ flags on the classes found on an earlier call.
   return any_found;
 }  /* gen_typedefs_for_template_classes_in_specialization_arg_list */
 
-#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 
 /*
 Definitions related to prevention of unbounded loops and recursion while
@@ -10368,6 +10379,7 @@ non-NULL has been, or is currently being, processed and should not be
 examined again.
 */
 
+typedef struct a_type_scan_record *a_type_scan_record_ptr;
 typedef struct a_type_scan_record {
   a_type_scan_record_ptr
 		next;	/* The next scan record in the used or free list. */
@@ -10463,6 +10475,7 @@ check for that also as a special case.
   return tblock.result;
 }  /* expr_uses_undefined_or_local_type */
 
+#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 
 static a_boolean i_is_or_uses_unnameable_class_type(a_type_ptr type)
 /*
