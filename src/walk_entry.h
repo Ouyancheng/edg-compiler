@@ -1212,6 +1212,10 @@ debug builds) don't recognize that these variables are mutually-exclusive.
             walk_ptr(eptr->variant.routine.extra_info,
                      a_routine_type_supplement_ptr,
                      iek_routine_type_supplement);
+#if DO_IL_LOWERING
+            /* eptr->variant.routine.unlowered_type is not walked (as this
+               is not part of the IL per se). */
+#endif /* DO_IL_LOWERING */
             break;
           case tk_template_param:
             walk_ptr(eptr->variant.template_param.extra_info,

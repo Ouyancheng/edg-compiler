@@ -9238,6 +9238,18 @@ typedef struct a_type {
                 extra_info;
                         /* Supplementary information, in a separate block
                            to keep down the size of a_type. */
+#if DO_IL_LOWERING
+      a_type_ptr
+                unlowered_type;
+                        /* In certain cases (namely when a pointer to this
+                           function type has the used_in_exception_or_rtti bit
+                           set), a copy of the un-lowered type is saved here
+                           so that it can be properly mangled (a lowered
+                           function type may not give the proper mangling).
+                           This is used to get around a race condition with
+                           typeid constants.  This type does not appear on
+                           a type list and should not be used by a back end. */
+#endif /* DO_IL_LOWERING */
     } routine;
     /* When kind == tk_array: */
     struct {

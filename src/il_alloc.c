@@ -2079,6 +2079,9 @@ to default values.
 #if DEBUG
       num_routine_type_supplements_allocated++;
 #endif /* DEBUG */
+#if DO_IL_LOWERING
+      pte->variant.routine.unlowered_type = NULL;
+#endif /* DO_IL_LOWERING */
       rtsp->param_type_list          = NULL;
       rtsp->assoc_routine            = NULL;
       rtsp->has_ellipsis             = FALSE;

@@ -2362,7 +2362,12 @@ compatibility with previous versions).  The type must not have been lowered
 
   check_assertion(type->kind == (a_type_kind)tk_routine);
 #if DO_IL_LOWERING
-  check_assertion(il_lowering_flag_of(type) == FALSE);
+  if (il_lowering_flag_of(type)) {
+    /* If the type has already been lowered, see if an un-lowered version of
+       the type has been saved. */
+    type = type->variant.routine.unlowered_type;
+    check_assertion(type != NULL && !il_lowering_flag_of(type));
+  }  /* if */
 #endif /* DO_IL_LOWERING */
 #if IA64_ABI
   /* In the IA-64 ABI, "markers" are only emitted for true function types, not

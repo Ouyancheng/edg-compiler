@@ -9260,6 +9260,18 @@ Do IL lowering of the indicated type and everything under it.
       case tk_pointer:
        /* Note that references aren't turned into pointers, because back ends
           shouldn't care. */
+        if (type->used_in_exception_or_rtti &&
+            is_function_type(type->variant.pointer.type)) {
+          /* A pointer to a function type that may have been used for
+             typeid.  Keep a copy of the un-lowered function type so that it
+             can be properly mangled later (lowered function types cannot
+             be mangled properly).  The un-lowered type is not added to
+             any type lists. */
+          a_type_ptr fn_type = skip_typerefs(type->variant.pointer.type);
+          fn_type->variant.routine.unlowered_type = alloc_type(tk_routine);
+          copy_type(fn_type, fn_type->variant.routine.unlowered_type);
+          mark_as_not_visited(fn_type->variant.routine.unlowered_type);
+        }  /* if */
         lower_type(type->variant.pointer.type);
         break;
       case tk_ptr_to_member:
