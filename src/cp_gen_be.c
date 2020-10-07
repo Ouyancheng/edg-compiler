@@ -4742,8 +4742,8 @@ are done in the il_to_str routines before this routine is called.
             break;
           }  /* if */
         }  /* if */
-        underlying_type =
-             skip_typerefs_not_typedefs(underlying_type->variant.typeref.type);
+        underlying_type = skip_typerefs_not_typedefs_or_type_operators(
+                                        underlying_type->variant.typeref.type);
       }  /* while */
       if (underlying_type != orig_underlying_type &&
           entity_name_is_accessible(&underlying_type->source_corresp,
