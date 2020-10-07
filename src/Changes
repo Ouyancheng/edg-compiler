@@ -1,5 +1,25 @@
 Version 6.2
 
+10/7/20  [EDGcpfe/23434]
+Multiple translation units: Abort with a template using declaration
+
+When compiling multiple translation units where two TUs contain the same
+class template which inherits from another class template, the front end could
+have an assertion failure (in equiv_base_using_decls) when in Microsoft
+compatibility mode if a using-declaration named a template in the base class.
+For example, if both TUs contain:
+
+  template<typename> struct X {
+    template<typename> void func();
+  };
+  template<typename T>
+  struct Y : public X<T> {
+    using X<T>::func; // Assertion triggered here
+  };
+
+This is now fixed.
+
+
 10/7/20  [EDGcpfe/23394]
 Assertion failure in mangled_encoding_for_function_type
 

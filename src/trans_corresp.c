@@ -3480,7 +3480,8 @@ Return TRUE if the given using declarations refer to corresponding entities.
                ((a_base_class_ptr)ud2->entity.ptr)->type ==
                                                    ud2->qualifier.class_type;
     } else if (ud1->entity.kind == (a_byte_il_entry_kind)iek_type ||
-               ud1->entity.kind == (a_byte_il_entry_kind)iek_routine) {
+               ud1->entity.kind == (a_byte_il_entry_kind)iek_routine ||
+               ud1->entity.kind == (a_byte_il_entry_kind)iek_template) {
       /* This can happen when the qualifier type is a Microsoft nonreal
          instantiation. */
       check_assertion(ud1->qualifier.class_type->variant.class_struct_union
@@ -3489,11 +3490,33 @@ Return TRUE if the given using declarations refer to corresponding entities.
       if (ud1->entity.kind == (a_byte_il_entry_kind)iek_type) {
         tp1 = (a_type_ptr)ud1->entity.ptr;
         tp2 = (a_type_ptr)ud2->entity.ptr;
-      } else {
+      } else if (ud1->entity.kind == (a_byte_il_entry_kind)iek_routine) {
         tp1 = ((a_routine_ptr)ud1->entity.ptr)->type;
         tp2 = ((a_routine_ptr)ud2->entity.ptr)->type;
+      } else /*ud1->entity.kind == (a_byte_il_entry_kind)iek_template*/ {
+        a_template_ptr templ1, templ2;
+        templ1 = (a_template_ptr)ud1->entity.ptr;
+        templ2 = (a_template_ptr)ud2->entity.ptr;
+        if (templ1->kind != templ2->kind) {
+          result = FALSE;
+        } else if (templ1->kind == (a_template_kind)templk_class ||
+                   templ1->kind == (a_template_kind)templk_member_class ||
+                   templ1->kind == (a_template_kind)templk_member_enum) {
+          tp1 = templ1->prototype_instantiation.type;
+          tp2 = templ2->prototype_instantiation.type;
+        } else if (templ1->kind == (a_template_kind)templk_function ||
+                   templ1->kind == (a_template_kind)templk_member_function) {
+          tp1 = templ1->prototype_instantiation.routine->type;
+          tp2 = templ2->prototype_instantiation.routine->type;
+        } else {
+          /* A using declaration for a template should be using either a type
+             or a function. */
+          unexpected_condition();
+        }
       }  /* if */
-      result = identical_types(tp1, tp2);
+      if (result) {
+        result = identical_types(tp1, tp2);
+      }  /* if */
     } else {
       /* In all other dependent base class cases, the entity is represented
          as a (nonreal) "constant". */
