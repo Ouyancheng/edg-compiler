@@ -3488,6 +3488,7 @@ Return TRUE if the given using declarations refer to corresponding entities.
                                                    ud2->qualifier.class_type;
     } else if (ud1->entity.kind == (a_byte_il_entry_kind)iek_type ||
                ud1->entity.kind == (a_byte_il_entry_kind)iek_routine ||
+               ud1->entity.kind == (a_byte_il_entry_kind)iek_variable ||
                ud1->entity.kind == (a_byte_il_entry_kind)iek_template) {
       /* This can happen when the qualifier type is a Microsoft nonreal
          instantiation. */
@@ -3500,6 +3501,9 @@ Return TRUE if the given using declarations refer to corresponding entities.
       } else if (ud1->entity.kind == (a_byte_il_entry_kind)iek_routine) {
         tp1 = ((a_routine_ptr)ud1->entity.ptr)->type;
         tp2 = ((a_routine_ptr)ud2->entity.ptr)->type;
+      } else if (ud1->entity.kind == (a_byte_il_entry_kind)iek_variable) {
+        tp1 = ((a_variable_ptr)ud1->entity.ptr)->type;
+        tp2 = ((a_variable_ptr)ud2->entity.ptr)->type;
       } else /*ud1->entity.kind == (a_byte_il_entry_kind)iek_template*/ {
         a_template_ptr templ1, templ2;
         templ1 = (a_template_ptr)ud1->entity.ptr;
@@ -3515,9 +3519,13 @@ Return TRUE if the given using declarations refer to corresponding entities.
                    templ1->kind == (a_template_kind)templk_member_function) {
           tp1 = templ1->prototype_instantiation.routine->type;
           tp2 = templ2->prototype_instantiation.routine->type;
+        } else if (templ1->kind == (a_template_kind)templk_variable ||
+                   templ1->kind == (a_template_kind)templk_static_data_member){
+          tp1 = templ1->prototype_instantiation.variable->type;
+          tp2 = templ2->prototype_instantiation.variable->type;
         } else {
-          /* A using-declaration for a template should be using either a type
-             or a function. */
+          /* A using-declaration for a template should be using a type,
+             function, or a variable. */
           unexpected_condition();
         }
       }  /* if */
