@@ -9351,6 +9351,7 @@ or NULL if no appropriate symbol could be found.
   if (new_sym != NULL) {
     an_arg_list_elem_ptr     alep;
     an_arg_match_summary_ptr arg_match_list;
+    new_sym = fundamental_symbol_of(new_sym);
     get_coroutine_parameter_variables(coroutine, &alep);
     size_t_arg_alep->next = alep;
     if (!overloaded_function_match_possible(new_sym,
@@ -9387,6 +9388,7 @@ or NULL if no appropriate symbol could be found.
   } else {
     /* Using global operator new. */
     new_sym = opname_function_symbol((an_opname_kind)onk_new);
+    new_sym = fundamental_symbol_of(new_sym);
     if (new_sym->kind == (a_symbol_kind)sk_overloaded_function) {
       new_sym = new_sym->variant.overloaded_function.symbols;
     }  /* if */
@@ -9435,6 +9437,7 @@ selected operator "delete" or NULL if no appropriate symbol could be found.
   if (del_sym == NULL) {
     del_sym = opname_function_symbol((an_opname_kind)onk_delete);
   }  /* if */
+  del_sym = fundamental_symbol_of(del_sym);
   if (del_sym->kind == (a_symbol_kind)sk_overloaded_function) {
     a_symbol_ptr single_arg_delete = NULL;
     for (del_sym = del_sym->variant.overloaded_function.symbols;

@@ -1,5 +1,13 @@
 Version 6.2
 
+10/8/20  [EDGcpfe/22255]
+Coroutines: Abort on projection symbol for operator new/delete
+
+In configurations where coroutines are enabled, the front end could abort in
+record_symbol_reference_full due to attempting to record a symbol reference on
+a projection symbol for operator new/delete.  This is now fixed.
+
+
 10/8/20  [EDGcpfe/23432]
 Multiple translation units: Incorrect correspondence for enums in routines
 
