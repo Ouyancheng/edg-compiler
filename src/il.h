@@ -1428,6 +1428,10 @@ extern void set_routine_calling_method_flag(a_type_ptr         routine_type,
 
 extern a_boolean routine_has_default_args(a_routine_ptr  rp);
 
+extern void copy_type_full(a_type_ptr from,
+                           a_type_ptr to,
+                           a_boolean  copy_default_args);
+
 extern void copy_type(a_type_ptr from,
                       a_type_ptr to);
 

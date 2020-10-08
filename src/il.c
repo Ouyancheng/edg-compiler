@@ -13799,9 +13799,9 @@ more than the given number of parameter entries.
 }  /* copy_param_type_list */
 
 
-static void copy_type_full(a_type_ptr from,
-                           a_type_ptr to,
-                           a_boolean  copy_default_args)
+void copy_type_full(a_type_ptr from,
+                    a_type_ptr to,
+                    a_boolean  copy_default_args)
 /*
 Copy the type entry "from" to "to".  When the type being copied is
 a routine type, its routine type supplement and parameter type list

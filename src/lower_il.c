@@ -9270,7 +9270,9 @@ Do IL lowering of the indicated type and everything under it.
           a_type_ptr fn_type = skip_typerefs(type->variant.pointer.type);
           fn_type->variant.routine.unlowered_type =
                                            alloc_type((a_type_kind)tk_routine);
-          copy_type(fn_type, fn_type->variant.routine.unlowered_type);
+          /* No need to copy default args (as they are not mangled). */
+          copy_type_full(fn_type, fn_type->variant.routine.unlowered_type,
+                         /*copy_default_args=*/FALSE);
           mark_as_not_visited(fn_type->variant.routine.unlowered_type);
         }  /* if */
         lower_type(type->variant.pointer.type);
