@@ -13117,11 +13117,15 @@ the value representation of the integer value.
                 *r_int = *(an_integer_value *)opnd1_value;
                 int_kind = tp->variant.integer.int_kind;
                 if (int_kind_is_signed[int_kind]) {
-                  if (int_type_is_signed(opnd1_type)) {
+                  if (tp->size == opnd1_type->size ||
+                      int_type_is_signed(opnd1_type)) {
                     /* When converting a signed value to another signed value,
                        be sure to sign-extend the result (otherwise, widening
                        conversions would produce positive values from negative
-                       operands. */
+                       operands.  This is also needed when converting an
+                       unsigned value to a signed value of the same size,
+                       in case the host representation includes additional bits
+                       (e.g., (int)(unsigned)-1 must be negative). */
                     int  n_bits = (int)(opnd1_type->size*CHAR_BIT);
                     sign_extend_integer_value(r_int, n_bits);
                   }  /* if */
