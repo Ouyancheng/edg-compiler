@@ -3516,7 +3516,7 @@ Return TRUE if the given using declarations refer to corresponding entities.
           tp1 = templ1->prototype_instantiation.routine->type;
           tp2 = templ2->prototype_instantiation.routine->type;
         } else {
-          /* A using declaration for a template should be using either a type
+          /* A using-declaration for a template should be using either a type
              or a function. */
           unexpected_condition();
         }

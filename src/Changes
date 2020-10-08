@@ -73,7 +73,7 @@ issued for the r_ case.
 
 
 10/7/20  [EDGcpfe/23434]
-Multiple translation units: Abort with a template using declaration
+Multiple translation units: Abort with a template using-declaration
 
 When compiling multiple translation units where two TUs contain the same
 class template which inherits from another class template, the front end could
