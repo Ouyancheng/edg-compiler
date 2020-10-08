@@ -20860,7 +20860,8 @@ of type_1 is a base class of the unqualified version of type_2.
   if (identical_types(type_1, type_2) ||
       (is_immediate_class_type(type_1) &&
        is_immediate_class_type(type_2) &&
-       find_base_class_of(type_2, type_1) != NULL)) {
+       find_base_class_of(type_2, type_1) != NULL) ||
+      types_are_similar(type_1, type_2)) {
     ref_related = TRUE;
   }  /* if */
   return ref_related;

@@ -1,5 +1,27 @@
 Version 6.2
 
+10/8/20  [EDGcpfe/23397]
+Binding rvalue references to character arrays to braced string literals
+
+The front end previously aborted (in prep_list_initializer, overload.c) on the
+following case:
+
+  int f(const char (&&)[4]);
+  int f(const char (&&)[5]);
+  int r = f({"abc"});
+
+That is now fixed.  In addition, the handling of the following related example:
+
+ const char (&&r4)[4] = {"abc"};  // Error: Attempt to bind to an lvalue.
+ const char (&&r5)[5] = {"abc"};  // Okay: Binds to a temporary.
+ const char (&&r_)[] = {"abc"};   // Previously okay.  Now same as r4 case.
+
+has been fixed.  Previously, the unspecified bound was handled as a distinct
+"length" causing the front end to treat the r_ case like the r5 case.  That is
+now corrected: It is treated like the r4 case, and thus a similar error is
+issued for the r_ case.
+
+
 10/7/20  [EDGcpfe/23434]
 Multiple translation units: Abort with a template using declaration
 

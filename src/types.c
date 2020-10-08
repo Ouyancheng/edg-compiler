@@ -432,6 +432,18 @@ Return TRUE if the given type is an incomplete type (3.1.2.5).
 }  /* is_incomplete_type */
 
 
+static inline a_boolean array_type_has_no_bound(a_type_ptr  tp)
+/*
+Return TRUE if the given tk_array type represents an array type formed with an
+empty array declarator (i.e., no specified bound; e.g., "int[]").
+*/
+{
+  return !tp->variant.array.bound_is_zero &&
+         !has_unknown_specified_bound(tp) &&
+         tp->variant.array.variant.number_of_elements == 0;
+}  /* array_type_has_no_bound */
+
+
 a_boolean is_incomplete_array_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an incomplete array type (i.e., one
@@ -440,12 +452,8 @@ which returns TRUE if an array with a specified bound has an incomplete
 element type.  If the type is not an array type, FALSE is returned.
 */
 {
-  a_boolean	result;
   tp = skip_typerefs(tp);
-  result = is_array(tp) && !tp->variant.array.bound_is_zero &&
-           !has_unknown_specified_bound(tp) &&
-           tp->variant.array.variant.number_of_elements == 0;
-  return result;
+  return is_array(tp) && array_type_has_no_bound(tp);
 }  /* is_incomplete_array_type */
 
 
@@ -9307,7 +9315,8 @@ is returned, also return the underlying types U for tp1 and tp2 in *p_utp1 and
       tp1 = pm_member_type(tp1);
       tp2 = pm_member_type(tp2);
     } else if (tp1->kind == (a_type_kind)tk_array) {
-      if (!identical_array_type_level(tp1, tp2)) {
+      if (!identical_array_type_level(tp1, tp2) &&
+          !array_type_has_no_bound(tp1) && !array_type_has_no_bound(tp2)) {
         result = FALSE;
         break;
       }  /* if */

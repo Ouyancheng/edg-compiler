@@ -25239,16 +25239,27 @@ will be an lvalue instead of the usual prvalue.
           if (eff_is->init_error) {
             arg_match_err = TRUE;
           } else {
-            /* [over.ics.list]p4 says initializing an aggregate from a
-               braced-init-list is a user-defined conversion sequence.
-               However, the cost for an array is the worst conversion
-               cost for an element (that's p2). */
+            /* The match quality for list initialization of aggregates is
+               described in N4861 [over.ics.list] paragraphs 2, 3, 4, 6, and 8.
+               The special case of a braced string-literal initializing a
+               character array (paragraph 4) should result in an "exact" match.
+               For non-empty arrays, arg_match will already reflect the worst
+               match among the elements (paragraph 6), but for an empty array
+               no match-level is set yet and an exact match should be recorded.
+               Similarly, for aggregate class types.  For aggregate class
+               cases, the match should be aml_user_conversion (paragraph 8). */
             if (aggr_arg_match == NULL) {
+              /* Not an array. */
               arg_match->match_level = aml_user_conversion;
             } else if (arg_match->match_level == aml_none) {
-              /* If the array has no elements, call it an exact match. */
-              check_assertion(icp->variant.braced.list == NULL);
-              arg_match->match_level = aml_exact;
+              if (list == NULL) {
+                /* If the array has no elements, call it an exact match. */
+                arg_match->match_level = aml_exact;
+              } else {
+                /* Presumably a brace-enclosed string literal. */
+                check_assertion(next_elem(list) == NULL);
+                arg_match->match_level = aml_exact;
+              }  /* if */
             }  /* if */
           }  /* if */
         } else {
