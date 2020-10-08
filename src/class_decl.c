@@ -17733,13 +17733,25 @@ template declaration and is NULL otherwise.
   if (decl_info->is_member_template ||
       in_class_template_definition(class_state) ||
       in_ms_nonreal_class_instantiation()) {
+    a_template_symbol_supplement_ptr tssp;
     var->is_template_variable = TRUE;
     var->is_prototype_instantiation = TRUE;
     var->is_nonreal = TRUE;
-    if (var->template_info == NULL) {
+    if (symbol_is(sym, sk_static_data_member)) {
+      a_template_instance_ptr   tip = alloc_template_instance();
+      tip->instance_sym = sym;
+      tip->template_sym = sym;
+      /* For static data member templates, allocate a template symbol
+         supplement now. */
+      tssp = alloc_template_symbol_supplement(sym->kind);
       /* For variable templates, the template_info will have already been
          allocated. */
       var->template_info = alloc_variable_template_info();
+      check_assertion(sym->variant.static_data_member.instance_ptr == NULL);
+      sym->variant.static_data_member.instance_ptr = tip;
+      tip->template_info = tssp;
+    } else {
+      check_assertion(symbol_is(sym, sk_variable_template));
     }  /* if */
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
@@ -18068,22 +18080,17 @@ template declaration and is NULL otherwise.
         /* A member of a prototype instantiation or a declaration of a
            variable template (potentially in a non-template class). */
         a_template_ptr		 templ;
-        a_template_instance_ptr  tip = alloc_template_instance();
         a_template_symbol_supplement_ptr tssp;
-        sym->variant.static_data_member.instance_ptr = tip;
-        tip->instance_sym = sym;
-        tip->template_sym = sym;
         if (symbol_is(sym, sk_static_data_member)) {
-          /* For static data member templates, allocate a template symbol
-             supplement now. */
-          tssp = alloc_template_symbol_supplement(sym->kind);
+          a_template_instance_ptr  tip;
+          tip = sym->variant.static_data_member.instance_ptr;
+          tssp = tip->template_info;
         } else {
           check_assertion(symbol_is(sym, sk_variable_template));
           tssp = sym->variant.template_info;
         }  /* if */
-        tip->template_info = tssp;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        tip->template_info->is_generic =
+        tssp->is_generic =
                   class_type->variant.class_struct_union.is_generic_instance;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         if (decl_info->is_member_template) {
@@ -18107,7 +18114,7 @@ template declaration and is NULL otherwise.
         tssp->variant.variable.prototype_variable = var;
         templ->source_corresp.access = var->source_corresp.access;
         /* Update the IL template pointer in the template symbol supplement. */
-        tip->template_info->il_template_entry = templ;
+        tssp->il_template_entry = templ;
         /* It is exported if the enclosing class template is exported. */
         templ->is_exported = class_is_exported(class_type);
         if (prototype_instantiations_in_il) {
