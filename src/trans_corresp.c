@@ -1143,6 +1143,13 @@ establish correspondences if needed.
   } else if (scp1->is_class_member) {
     result = same_entities(scp_parent_class(scp1),
                            scp_parent_class(scp2));
+  } else if (scp1->enclosing_routine != NULL) {
+    if (scp2->enclosing_routine == NULL) {
+      result = FALSE;
+    } else {
+      result = corresponding_routines(scp1->enclosing_routine,
+                                      scp2->enclosing_routine);
+    }  /* if */
   } else {
     a_namespace_ptr ns1 = scp_parent_namespace_or_null(scp1),
                     ns2 = scp_parent_namespace_or_null(scp2);

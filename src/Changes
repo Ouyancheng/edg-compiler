@@ -1,5 +1,31 @@
 Version 6.2
 
+10/8/20  [EDGcpfe/23432]
+Multiple translation units: Incorrect correspondence for enums in routines
+
+When compiling multiple translation units, in cases where the front end is
+required to compare template argument lists and the arguments contain
+enumerator constants, the front end could incorrectly deem two different
+enumerators as corresponding to each other.  This would in turn lead to
+spurious "had a different meaning" errors.  For example, with an empty primary
+TU and a secondary TU containing:
+
+  class X {
+    template<typename T> X(T);
+  };
+  bool operator==(X, X);
+  template<int N> struct D {
+    D() {
+      enum { e1 = N, e2 };
+      if (e1 == e2) {} // Instantiates X::X and compares template arg lists
+    }
+  };
+  D<0> q;
+  D<1> r; // Creates the different enumerator constant list in D::D
+
+This is now fixed.
+
+
 10/8/20  [EDGcpfe/18784,EDGcpfe/18847,EDGcpfe/20144,EDGcpfe/21386,
           EDGcpfe/23447]
 Constant-evaluation of unsigned integer to same-sized signed integer
