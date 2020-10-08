@@ -9268,7 +9268,8 @@ Do IL lowering of the indicated type and everything under it.
              be mangled properly).  The un-lowered type is not added to
              any type lists. */
           a_type_ptr fn_type = skip_typerefs(type->variant.pointer.type);
-          fn_type->variant.routine.unlowered_type = alloc_type(tk_routine);
+          fn_type->variant.routine.unlowered_type =
+                                           alloc_type((a_type_kind)tk_routine);
           copy_type(fn_type, fn_type->variant.routine.unlowered_type);
           mark_as_not_visited(fn_type->variant.routine.unlowered_type);
         }  /* if */
