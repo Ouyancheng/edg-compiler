@@ -10325,9 +10325,9 @@ Return the list of template parameters for the given template.
                         tssp = template_sym->variant.template_info;
 
   if (symbol_is(template_sym, sk_function_template)) {
-    params = decl_cache_for_function_template(tssp)->decl_info->parameters;
+    params = tssp->variant.function.decl_cache.decl_info->parameters;
   } else if (symbol_is(template_sym, sk_variable_template)) {
-    params = decl_cache_for_variable_template(tssp)->decl_info->parameters;
+    params = tssp->variant.variable.decl_cache.decl_info->parameters;
   } else {
     params = tssp->cache.decl_info->parameters;
   }  /* if */
