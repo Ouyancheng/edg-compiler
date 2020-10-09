@@ -25173,7 +25173,8 @@ will be an lvalue instead of the usual prvalue.
                are_reference_related(dest_type, singleton_expr_type)) {
       /* Core issue 1467.  "If T is a class type and the initializer list
          has a single element of type cv T or a class type derived from T,
-         the object is initialized from that element." */
+         the object is initialized from that element."  This is also N4861
+         [over.ics.list] paragraph 3. */
       init_handled_at_this_level = FALSE;
       prep_list_initializer(list, dest_type, is_direct_init,
                             check_narrowing,
@@ -25246,8 +25247,9 @@ will be an lvalue instead of the usual prvalue.
                For non-empty arrays, arg_match will already reflect the worst
                match among the elements (paragraph 6), but for an empty array
                no match-level is set yet and an exact match should be recorded.
-               Similarly, for aggregate class types.  For aggregate class
-               cases, the match should be aml_user_conversion (paragraph 8). */
+               For most aggregate-class cases (an exception is described in
+               paragraph 3 and that is handled earlier), the match should be
+               aml_user_conversion (paragraph 8). */
             if (aggr_arg_match == NULL) {
               /* Not an array. */
               arg_match->match_level = aml_user_conversion;
