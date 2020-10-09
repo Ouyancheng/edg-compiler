@@ -1539,12 +1539,23 @@ Parse the operand now.
   an_exception_specification_ptr  esp;
   a_scope_stack_entry_ptr         ssep = &scope_stack_top();
   a_decl_parse_state              dps;
+  a_symbol_ptr                    lookup_sym;
+  a_boolean                       saved_is_invisible;
 
   check_assertion(rp->type->kind == (a_type_kind)tk_routine &&
                   scope_is(ssep, sck_func_prototype));
   /* Recreate a declaration parse state for the routine. */
   init_decl_parse_state(&dps);
   dps.sym = symbol_for(rp);
+  if (rp->is_prototype_instantiation && !rp->source_corresp.is_class_member) {
+    /* For non-member function template prototype instantiations, the template
+       itself should not be visible in its own noexcept-specifier because the
+       function declarator is not complete at that point yet.  (For class
+       members, the noexcept-specifier is a complete-class context.) */
+    lookup_sym = symbol_for(rp->assoc_template);
+    saved_is_invisible = lookup_sym->is_invisible;
+    lookup_sym->is_invisible = TRUE;
+  }  /* if */
   dps.type = rp->type;
   if (rp->source_corresp.is_class_member) {
     a_type_ptr  parent_class = parent_class_of(rp);
@@ -1576,6 +1587,9 @@ Parse the operand now.
   }  /* if */
   perform_deferred_access_checks_for_function(rp);
   end_deferral_of_access_checks();
+  if (rp->is_prototype_instantiation && !rp->source_corresp.is_class_member) {
+    lookup_sym->is_invisible = saved_is_invisible;
+  }  /* if */
   if (curr_token != tok_end_of_source) {
     /* Tokens remain in the cache: Issue an error. */
     pos_error(ec_exp_rparen, &pos_curr_token);

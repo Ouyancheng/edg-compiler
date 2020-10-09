@@ -1,5 +1,18 @@
 Version 6.2
 
+10/9/20  [EDGcpfe/23450]
+Visibility of function template in its own noexcept specifier
+
+The front end previously failed to diagnose cases like the following:
+
+  template<typename T> void f (T) noexcept (f(42)) {}
+    // Previously erroneously accepted.  Now an error.
+
+because the front end delays the parsing of the noexcept operand and that
+accidentally made the template visible in its own noexcept specifier.  That is
+now fixed.
+
+
 10/8/20  [EDGcpfe/22255]
 Coroutines: Abort on projection symbol for operator new/delete
 
