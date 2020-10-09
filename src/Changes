@@ -1,5 +1,17 @@
 Version 6.2
 
+10/9/20  [EDGcpfe/23257]
+Type-constraints applied to decltype(auto)
+
+The front end previously issued spurious errors on a variable declaration using
+a type-constraint followed by decltype(auto).  For example:
+
+  template<typename> concept C = true;
+  C decltype(auto) x = 42;  // Previously an error.  Now okay.
+
+That is now fixed.
+
+
 10/9/20  [EDGcpfe/23450]
 Visibility of function template in its own noexcept specifier
 
