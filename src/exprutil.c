@@ -20848,9 +20848,10 @@ a_boolean are_reference_related(a_type_ptr type_1,
                                 a_type_ptr type_2)
 /*
 Return TRUE if type_1 and type_2 are "reference-related" according to the
-definition in [dcl.init.ref] of the C++ standard.  That means the unqualified
-versions of type_1 and type_2 are the same type, or the unqualified version
-of type_1 is a base class of the unqualified version of type_2.
+definition in [dcl.init.ref] of the C++ standard (with a tweak in some GCC
+modes).  That means the unqualified versions of type_1 and type_2 are "similar"
+or the unqualified version of type_1 is a base class of the unqualified version
+of type_2.
 */
 {
   a_boolean ref_related = FALSE;
@@ -20861,7 +20862,8 @@ of type_1 is a base class of the unqualified version of type_2.
       (is_immediate_class_type(type_1) &&
        is_immediate_class_type(type_2) &&
        find_base_class_of(type_2, type_1) != NULL) ||
-      types_are_similar(type_1, type_2)) {
+      (gpp_version_is(<100000) ? types_are_redecl_compatible(type_1, type_2)
+                               : types_are_similar(type_1, type_2))) {
     ref_related = TRUE;
   }  /* if */
   return ref_related;
