@@ -3525,7 +3525,7 @@ Return TRUE if the given using declarations refer to corresponding entities.
           tp2 = templ2->prototype_instantiation.variable->type;
         } else {
           /* A using-declaration for a template should be using a type,
-             function, or a variable. */
+             function, or variable. */
           unexpected_condition();
         }
       }  /* if */
