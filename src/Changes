@@ -1,5 +1,20 @@
 Version 6.2
 
+10/12/20 [EDGcpfe/22823]
+C++17: Allow converted lambda as nontype template pointer-to-function argument
+
+The front end now accepts the following example:
+
+  template<void(*)()> struct A {};
+  int main() {
+    constexpr auto fp = +[]{};
+    (void)A<fp>{};  // Previously always an error because fp points to a
+  }                 // function with no linkage.  Now okay in C++17 modes.
+
+in C++17 modes.  This is a consequence of the standardization committee's
+paper N4268 (see also the entry for EDGcpfe/18747).
+
+
 10/12/20 [EDGcpfe/20943,EDGcpfe/23454]
 Default template arguments for template-dependent nontype template parameters
 

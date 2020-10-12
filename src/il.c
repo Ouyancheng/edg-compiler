@@ -8306,16 +8306,20 @@ argument because it references a non-external entity, e.g., a local variable.
 */
 {
   a_boolean               invalid = FALSE;
-  a_source_correspondence *scp = NULL;
 
-  scp = nontype_templ_arg_constant_corresp(constant);
-  if (constant->kind == (a_constant_repr_kind)ck_address) {
+  if (constant_is(constant, ck_address)) {
     /* An address constant.  See if the object referenced is external. */
     /* Get a pointer to the source correspondence for the entity. */
-    an_address_base_kind  abk = constant->variant.address.kind;
+    an_address_base_kind     abk = constant->variant.address.kind;
+    a_source_correspondence  *scp = NULL;
+    scp = nontype_templ_arg_constant_corresp(constant);
     switch (abk) {
       case abk_routine:
-        if (microsoft_mode) {
+        if (generalized_nontype_arguments) {
+          /* From C++17 on (see N4268) the limitations for linkage on routines
+             have been lifted. */
+          scp = NULL;
+        } else if (microsoft_mode) {
           /* Microsoft compilers do not appear to check the linkage of a
              routine whose address is used as a template argument (e.g., the
              address of a static member function of a local class is
