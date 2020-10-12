@@ -8093,14 +8093,18 @@ IA-64 ABI to distinguish function-local entities with the same name.
            sym->variant.variable.ptr->promoted_local_static)
 #endif /* DO_IL_LOWERING */
                                                             )) {
-    if (sym->kind == (a_symbol_kind)sk_constant &&
-        is_enum_constant(sym->variant.constant)) {
-      /* This is an enumerator constant.  The constant itself never appears
-         to ABI consumers (only its value as a template argument), but for
-         the purpose of generating C code, we do need to ensure uniqueness.
-         To that end, use the declaration sequence number of the
-         enumerator. */
-      discriminator = sym->decl_seq;
+    if (sym->kind == (a_symbol_kind)sk_constant) {
+      if (is_enum_constant(sym->variant.constant)) {
+        /* This is an enumerator constant.  The constant itself never appears
+           to ABI consumers (only its value as a template argument), but for
+           the purpose of generating C code, we do need to ensure uniqueness.
+           To that end, use the declaration sequence number of the
+           enumerator. */
+        discriminator = sym->decl_seq;
+      } else {
+        /* No discriminators are computed for local constants. */
+        goto done;
+      }  /* if */
     } else if (sym->kind == (a_symbol_kind)sk_variable) {
       discriminator = sym->variant.variable.discriminator;
     } else if (is_class_struct_union_symbol(sym) &&
@@ -8114,6 +8118,7 @@ IA-64 ABI to distinguish function-local entities with the same name.
     }  /* if */
     add_discriminator(discriminator, /*emit_underscore=*/TRUE, mctl);
   }  /* if */
+done:;
 }  /* add_discriminator_if_necessary */
 
 #endif /* IA64_ABI */
@@ -12989,8 +12994,8 @@ to the mangled name.
 #if ABI_COMPATIBILITY_VERSION >= 520
     { a_symbol_ptr  sym = (a_symbol_ptr)scp->assoc_info;
       if (!(sym != NULL &&
-           sym->kind == (a_symbol_kind)sk_constant &&
-           is_enum_constant(sym->variant.constant))) {
+            sym->kind == (a_symbol_kind)sk_constant &&
+            is_enum_constant(sym->variant.constant))) {
         /* In most cases, add a discriminator if appropriate, but suppress
            that for enumerator constants here (if necessary, the discrimination
            will be provided at a higher level). */
