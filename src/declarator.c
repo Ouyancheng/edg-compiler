@@ -1539,8 +1539,8 @@ Parse the operand now.
   an_exception_specification_ptr  esp;
   a_scope_stack_entry_ptr         ssep = &scope_stack_top();
   a_decl_parse_state              dps;
-  a_symbol_ptr                    lookup_sym;
-  a_boolean                       saved_is_invisible;
+  a_symbol_ptr                    lookup_sym = NULL;
+  a_boolean                       saved_is_invisible = FALSE;
 
   check_assertion(rp->type->kind == (a_type_kind)tk_routine &&
                   scope_is(ssep, sck_func_prototype));
