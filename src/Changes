@@ -1,5 +1,27 @@
 Version 6.2
 
+10/12/20 [EDGcpfe/20943,EDGcpfe/23454]
+Default template arguments for template-dependent nontype template parameters
+
+Consider:
+
+  template<typename T, T const& = T()> struct S {};
+
+Previously this elicited an error in C++03 mode because the default template
+argument can never be a match for the parameter type.  Now, in nonstrict modes,
+that error is delayed until the template S is instantiated using that default
+argument (because that appears to be what other implementations do).  Also,
+some cases involving C++17 "auto" template parameters are now correctly
+handled.  For example (C++17 mode):
+
+  int n;
+  template<auto X, decltype(X) = &n> struct S {};  // Previously an error.
+  S<&n> sn;  // Okay.
+
+Previously, this example elicited an error because the front end attempted to
+bind &n to the parameter of type decltype(X) too early.
+
+
 10/12/20 [EDGcpfe/23165]
 IA-64 ABI: Assertion failure in add_discriminator
 

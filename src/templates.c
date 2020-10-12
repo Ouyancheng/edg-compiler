@@ -25521,6 +25521,19 @@ Scan the default argument of the nontype template parameter specified by tpp.
 
   /* Get the type of the template argument. */
   param_type_ptr = tpp->param_symbol->variant.constant->type;
+  if (is_template_dependent_type(param_type_ptr) &&
+      (!strict_ansi_mode ||
+       is_auto_template_param_type(skip_typerefs(param_type_ptr)))) {
+    /* Don't check default template arguments against dependent parameter types
+       in nonstrict mode (because other implementations appear to be similarly
+       lax).  For auto/decltype(auto) parameter types do not check types even
+       in strict mode since they could be resolved later.  E.g.:
+            int n;
+            template<auto X, decltype(X) = &n> struct S {};
+            S<&n> sn;  // Okay.
+    */
+    param_type_ptr = NULL;
+  }  /* if */
   default_arg_constant = fs_constant((a_constant_repr_kind)ck_error);
   scan_template_argument_constant_expression(param_type_ptr,
                                              default_arg_constant);
@@ -25531,7 +25544,7 @@ Scan the default argument of the nontype template parameter specified by tpp.
      template parameter.  Note that it could already have been set
      for other cases that force the re-evaluation of the default
      argument. */
-  if (default_arg_constant->kind == (a_constant_repr_kind)ck_template_param) {
+  if (constant_is(default_arg_constant, ck_template_param)) {
     tpp->def_arg_involves_template_param = TRUE;
     tpp->is_dependent = TRUE;
   } else {
