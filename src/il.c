@@ -20130,11 +20130,14 @@ The given constant has kind ck_template_param.  We need to make it represent
 a constant that is the previous value incremented by one.
 */
 {
-  a_constant_ptr   prev_val = alloc_unshared_constant(con);
-  a_constant_ptr   one_val = local_constant();
-  an_integer_kind  one_kind = (an_integer_kind)ik_int;
-  an_expr_node_ptr operands;
+  a_constant_ptr    prev_val = alloc_unshared_constant(con);
+  a_constant_ptr    one_val = local_constant();
+  an_integer_kind   one_kind = (an_integer_kind)ik_int;
+  an_expr_node_ptr  operands;
+  a_memory_region_number
+                    region_to_switch_back_to;
 
+  switch_to_file_scope_region(&region_to_switch_back_to);
   clear_constant(con, (a_constant_repr_kind)ck_template_param);
   con->type = prev_val->type;
   if (!is_template_dependent_type(prev_val->type)) {
@@ -20159,6 +20162,7 @@ a constant that is the previous value incremented by one.
                                               operands);
   con->variant.template_param.variant.expr->compiler_generated = TRUE;
   release_local_constant(&one_val);
+  switch_back_to_original_region(region_to_switch_back_to);
 }  /* increment_template_dependent_enum_constant */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
