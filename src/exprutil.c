@@ -20862,8 +20862,8 @@ of type_2.
       (is_immediate_class_type(type_1) &&
        is_immediate_class_type(type_2) &&
        find_base_class_of(type_2, type_1) != NULL) ||
-      (gpp_version_is(<100000) ? types_are_redecl_compatible(type_1, type_2)
-                               : types_are_similar(type_1, type_2))) {
+      (gpp_mode ? types_are_redecl_compatible(type_1, type_2)
+                : types_are_similar(type_1, type_2))) {
     ref_related = TRUE;
   }  /* if */
   return ref_related;
