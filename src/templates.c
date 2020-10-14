@@ -8225,7 +8225,7 @@ that is not used in the result type of an alias) is dependent.
   a_boolean	have_params = templ_param_list != NULL;
   a_boolean	any_dependent_args = FALSE;
 
-  if (in_front_end &&
+  if (in_front_end && depth_scope_stack != NO_SCOPE_DEPTH &&
       !is_template_dependent_context() &&
       /*lint -e(506)*/!is_cli_generic_definition_context()) {
     /* Since we are not inside a template or C++/CLI generic construct, the

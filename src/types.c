@@ -9350,6 +9350,31 @@ differ in the const/volatile qualifiers cvk, and n >= 1.
 }  /* types_are_similar */
 
 
+a_boolean types_are_similar_with_gpp_caveat(a_type_ptr  tp1,
+                                            a_type_ptr  tp2)
+/*
+This is a special version of types_are_similar to emulate GCC's behavior for
+the function "are_reference_related".  When gnu_version < 100000 (i.e., GCC 9.x
+and earlier), it returns types are_redecl_compatible(tp1, tp2).  Otherwise, it
+returns types_are_similar(tp1, tp2), unless the type underlying qualifiers,
+pointers, etc. is a class type: In that case, it returns FALSE.
+*/
+{
+  a_boolean  result;
+
+  if (gnu_version < 100000) {
+    result = types_are_redecl_compatible(tp1, tp2);
+  } else {
+    result = types_have_same_shape(tp1, tp2, &tp1, &tp2) &&
+             tp1->kind == tp2->kind &&
+             !is_immediate_class_type(tp1) &&
+             identical_types(tp1, tp2);
+  }  /* if */
+  return result;
+}  /* types_are_similar_with_gpp_caveat */
+
+
+
 a_boolean types_are_interpreter_compatible(a_type_ptr  tp1,
                                            a_type_ptr  tp2)
 /*
