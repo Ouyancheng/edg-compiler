@@ -1,5 +1,11 @@
 Version 6.2
 
+10/14/20 [EDGcpfe/23456]
+Clang compatibility: builtin support for Clang 11.0.0
+
+New builtin signatures for Clang 11.0.0 have been added.
+
+
 10/12/20 [EDGcpfe/22823]
 C++17: Allow converted lambda as nontype template pointer-to-function argument
 
