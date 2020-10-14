@@ -12046,7 +12046,7 @@ the first two need be checked.)
         /* In a prototype instantiation, the overload set can contain
            symbols for nonreal base class members brought in by
            using-declarations. */
-        check_assertion(is_prototype_instantiation_context());
+        check_assertion(is_template_dependent_context());
         tp1 = NULL;
       }  /* if */
       sym2 = fundamental_symbol_of(sym2);
@@ -12058,7 +12058,7 @@ the first two need be checked.)
         /* In a prototype instantiation, the overload set can contain
            symbols for nonreal base class members brought in by
            using-declarations. */
-        check_assertion(is_prototype_instantiation_context());
+        check_assertion(is_template_dependent_context());
         tp2 = NULL;
       }  /* if */
       if (tp1 != NULL && tp2 != NULL &&
