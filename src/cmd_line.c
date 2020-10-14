@@ -4839,6 +4839,7 @@ This function is also called in clang mode.
     alignas_enabled = TRUE;
   }  /* if */
   if (clang_mode) {
+    enumerator_attributes_enabled = TRUE;
     if (clang_version >= 30100) {
       /* Clang enables _Atomic support in all C modes.  We currently disable
          _Atomic class types in Clang modes, because Clang treats _Atomic
@@ -4861,6 +4862,9 @@ This function is also called in clang mode.
     if (gnu_version >= 40900) {
       std_thread_local_storage_specifier_enabled = TRUE;
       c11_atomic_enabled = TRUE;
+    }  /* if */
+    if (gnu_version >= 60000) {
+      enumerator_attributes_enabled = TRUE;
     }  /* if */
   }  /* if */
 }  /* check_and_set_gcc_mode_options */

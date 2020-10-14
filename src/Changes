@@ -1,5 +1,16 @@
 Version 6.2
 
+10/14/20 [EDGcpfe/21969,EDGcpfe/23039,EDGcpfe/23365,EDGcpfe/23455]
+GNU/Clang compatibility: attributes on enumerators in C mode
+
+Attributes are now enabled on enumerators in C mode when emulating clang
+or when emulating GCC (when gnu_mode >= 60000).  For example:
+
+  enum {
+    old __attribute__((deprecated("do not use")))
+  };
+
+
 10/14/20 [EDGcpfe/23456]
 Clang compatibility: builtin support for Clang 11.0.0
 
