@@ -9365,10 +9365,18 @@ pointers, etc. is a class type: In that case, it returns FALSE.
   if (gnu_version < 100000) {
     result = types_are_redecl_compatible(tp1, tp2);
   } else {
-    result = types_have_same_shape(tp1, tp2, &tp1, &tp2) &&
-             tp1->kind == tp2->kind &&
-             !is_immediate_class_type(tp1) &&
-             identical_types(tp1, tp2);
+    result = types_are_similar(tp1, tp2);
+    if (result) {
+      /* GCC 10.x appears to not ever consider X* and X const* "reference
+         related" if X is a class type.  Since we already established that
+         the types are similar, we only need to examine one type to identify
+         that case. */
+      tp1 = skip_typerefs(tp1);
+      if (type_is(tp1, tk_pointer) &&
+          is_class_struct_union_type(tp1->variant.pointer.type)) {
+        result = FALSE;
+      }  /* if */
+    }  /* if */
   }  /* if */
   return result;
 }  /* types_are_similar_with_gpp_caveat */
