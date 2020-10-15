@@ -22082,9 +22082,12 @@ classes in the suppression determination.
                      (gpp_mode && !clang_mode)) {
             const_member_okay = TRUE;
           }  /* if */
-          if (!const_member_okay && is_const_qualified_type(tp)) {
-            /* Default initialization of const members is only allowed if a
-               user-provided default constructor is available. */
+          if (!const_member_okay && is_const_qualified_type(tp) &&
+              (clang_mode || !is_const_default_constructible(utp))) {
+            /* Default initialization of a const member is only allowed if its
+               type is const-default-constructible (N4861 [class.default.ctor]
+               bullet (2.4)), but Clang still requires a user-provided default
+               constructor (verified for Clang 10.0). */
             gsfd->suppress_default_ctor = TRUE;
             break;
           }  /* if */

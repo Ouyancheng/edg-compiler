@@ -1,5 +1,25 @@
 Version 6.2
 
+10/15/20 [EDGcpfe/23439]
+Default constructible const members
+
+Consider:
+
+  struct I { int i = 42; };
+  struct S {
+    const I ci;
+  };
+  S s;  // Previously an error.  Now okay (except in Clang modes).
+
+Previously, the generated default constructor of S was marked as deleted
+because it contains a const member of type I const where I has no user-provided
+default constructor).  Now, the front end instead checks whether class type I
+is "const-default-constructible" (a standard property), which I satisfies by
+providing default initializers for its members, and that prevents the default
+constructor of S from being deleted.  In Clang mode the previous behavior is
+maintained because current versions of Clang still appear to match that.
+
+
 10/14/20 [EDGcpfe/21969,EDGcpfe/23039,EDGcpfe/23365,EDGcpfe/23455]
 GNU/Clang compatibility: attributes on enumerators in C mode
 
