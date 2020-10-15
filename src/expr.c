@@ -1978,7 +1978,7 @@ constructs, in which case offsetof_case is TRUE.
       /* The list is freed at the end below. */
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode &&
+  } else if (ms_extensions &&
              is_property_ref_operand(operand_1)) {
     /* The operand is a field selection for a field declared with the
        Microsoft property extension (either via __declspec(property(...)
