@@ -1,5 +1,18 @@
 Version 6.2
 
+10/16/20 [EDGcpfe/23260]
+Abort in is_skipped_decltype_context in GNU C++17 mode
+
+The front end previously aborted (due to a null pointer indirection) in
+is_skipped_decltype_context when processing certain ill-formed cases in
+GNU C++17 mode.  For example:
+
+  template<typename T> struct S {};
+  template<typename T> void f() { S s; }
+
+That is now fixed.
+
+
 10/15/20 [EDGcpfe/23458]
 Abort on Microsoft array property subscript with Clang ms-extensions mode
 

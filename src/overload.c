@@ -9608,7 +9608,7 @@ dependent even though they shouldn't be.
   a_boolean result = FALSE;
 
   if ((microsoft_bugs || gpp_mode) && cpp11_sfinae_enabled &&
-      expr_stack->is_type_operator_arg_expression &&
+      expr_stack != NULL && expr_stack->is_type_operator_arg_expression &&
       scope_stack_top().kind == (a_scope_kind)sck_template_declaration &&
       is_prototype_instantiation_context() &&
       is_real_instantiation_context()) {
