@@ -988,10 +988,11 @@ assembler code.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-a_boolean type_constraint_followed_by_auto(void)
+a_boolean type_constraint_followed_by_auto(a_boolean  decltype_auto_okay)
 /*
 The current token is a concept template name.  Return TRUE if it represents a
-type-constraint followed by "auto".
+type-constraint followed by "auto" or, if decltype_auto_okay is TRUE, by
+"decltype(auto)".  (decltype_auto_okay defaults to FALSE.)
 */
 {
   a_boolean      result, discard_curr_token = FALSE;
@@ -1023,7 +1024,9 @@ type-constraint followed by "auto".
                            /*include_last_token=*/TRUE, &cache);
     discard_curr_token = (curr_token != tok_end_of_source);
   }  /* if */
-  result = (curr_token == tok_auto);
+  result = (curr_token == tok_auto ||
+            (decltype_auto_okay && curr_token == tok_decltype &&
+             decltype_auto_tokens_next()));
   f_rescan_cached_tokens(&cache, discard_curr_token);
   return  result;
 }  /* type_constraint_followed_by_auto */
@@ -1124,8 +1127,10 @@ return the symbol representing that template.
           if (symbol_is(assoc_symbol, sk_concept_template) &&
               concept_okay) {
             /* This is a special case where a concept template may be returned,
-               but only if the concept or concept-id is followed by "auto". */
-            if (!type_constraint_followed_by_auto()) {
+               but only if the concept or concept-id is followed by "auto" or
+               "decltype(auto)". */
+            if (!type_constraint_followed_by_auto(
+                                               /*decltype_auto_okay=*/TRUE)) {
               /* The constraint was not followed by "auto": Do not treat it as
                  a type. */
               assoc_symbol = NULL;
