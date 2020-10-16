@@ -3050,6 +3050,16 @@ copy-initialization).
          references to functions bind to lvalues.) */
       source_can_be_rvalue =
                          is_reference_that_can_bind_to_rvalue(orig_param_type);
+      if (source_can_be_rvalue && arg_operand != NULL &&
+          is_an_lvalue(arg_operand) &&
+          are_reference_related(param_type, arg_type) &&
+          !binding_rvalue_ref_to_lvalue_allowed(
+                                    conv_context, (a_source_position*)NULL) &&
+          !is_bit_field_operand(arg_operand)) {
+        /* An rvalue reference cannot (directly) bind to an lvalue. */
+        arg_summary->match_level = aml_none;
+        goto have_level;
+      }  /* if */
     } else if (any_cfront_mode() || allow_anachronisms) {
       /* A reference to non-const can bind to an rvalue in cfront mode
          or anachronisms mode. */
