@@ -6159,6 +6159,17 @@ associated sk_external_variable or sk_external_routine symbol, if any.
           sym->explicit_linkage_specifier = TRUE;
           if (ext_sym != NULL) ext_sym->explicit_linkage_specifier = TRUE;
         }  /* if */
+      } else if (is_function && clang_mode && 
+                 scp->name_linkage ==
+                                (a_name_linkage_kind)nlk_cplusplus_external &&
+                 idlbp->name_linkage == (a_name_linkage_kind)nlk_external &&
+                 find_attribute(ak_overloadable, scp->attributes) != NULL) {
+        /* An earlier function declaration used the Clang attribute
+           "overloadable", but the newer declaration doesn't explicitly specify
+           that attribute.  E.g.:
+             extern "C" void __attribute((overloadable)) g();
+             extern "C" void                             g() {}  // Okay.
+           That is okay.  Just retain the C++ name linkage. */
       } else {
         /* Linkage is not the same, but it's no error as long as the current
            specification is implicit.   In non-strict modes, we only warn in
@@ -6168,7 +6179,7 @@ associated sk_external_variable or sk_external_routine symbol, if any.
              check_for_linkage_conflict).  No need for another one. */
           sev = es_none;
         } else if (ssep->name_linkage_is_explicit &&
-            !(gpp_mode && idlbp->is_friend_decl)) {
+                   !(gpp_mode && idlbp->is_friend_decl)) {
           if (is_function) {
             sev = es_error;
           } else if (strict_ansi_mode) {
