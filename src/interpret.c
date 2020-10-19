@@ -3750,11 +3750,14 @@ Output the contents of the interpreted object of type tp stored at addr.
   static int indent = 0;
 
   db_indent(indent);
+  if (complete_object == NULL) {
+    (void)fprintf(f_debug,
+                  "Cannot output value when complete_object is NULL.\n");
+    goto done;
+  }  /* if */
   tp = skip_typerefs(tp);
-  if (complete_object != NULL) {
-    if (!subobject_is_initialized(addr, complete_object)) {
-      not_initialized = TRUE;
-    }  /* if */
+  if (!subobject_is_initialized(addr, complete_object)) {
+    not_initialized = TRUE;
   }  /* if */
   switch (tp->kind) {
     case tk_integer:
@@ -3899,6 +3902,7 @@ Output the contents of the interpreted object of type tp stored at addr.
     db_indent(indent);
     (void)fprintf(f_debug, "[NOINIT]\n");
   }  /* if */
+done:;
 }  /* db_object */
 
 
