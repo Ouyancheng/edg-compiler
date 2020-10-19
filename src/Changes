@@ -1,5 +1,18 @@
 Version 6.2
 
+10/19/20 [EDGcpfe/23461]
+Abort during processing of Clang enable_if attribute
+
+The use of Clang's enable_if attribute could result in an internal error in
+release_local_constant.  For example:
+
+  constexpr int g() __attribute((enable_if(0, ""))) { return 0; }
+  constexpr int g() { return 1; }
+  static_assert(g() == 1, "");  // Previously an internal error.  Now okay.
+
+This is now fixed.
+
+
 10/16/20 [EDGcpfe/23260]
 Abort in is_skipped_decltype_context in GNU C++17 mode
 
