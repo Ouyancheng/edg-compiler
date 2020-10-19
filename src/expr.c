@@ -21417,7 +21417,8 @@ parenthesized initializer was provided.
         nps->empty_initializer = TRUE;
         goto handle_empty_parens_new_initializer;
       }  /* if */
-      if (node_has_side_effects(nps->init_val_node, (a_boolean*)NULL)) {
+      if (nps->init_val_node != NULL &&
+          node_has_side_effects(nps->init_val_node, (a_boolean*)NULL)) {
         warn_about_missing_delete(nps);
       }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
