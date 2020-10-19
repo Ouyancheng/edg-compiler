@@ -13425,7 +13425,7 @@ If the parameters describe such a rewrite, render an expression matching the
       rp = routine_from_function_expr(func_expr);
       if (special_kind_is(rp, sfk_operator) && opname_kind_is(rp, onk_eq)) {
         generated_call = expr;
-        op = (an_opname_kind)eok_ne;
+        op = (an_opname_kind)onk_ne;
       }  /* if */
     }  /* if */
   } else if (opname_is_rel_op(op) || op == (an_opname_kind)onk_spaceship) {
