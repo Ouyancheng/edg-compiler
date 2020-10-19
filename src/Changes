@@ -1,5 +1,16 @@
 Version 6.2
 
+10/19/20 [EDGcpfe/23463]
+C++-generating back end: Out-of-bounds array access
+
+The function handle_rewritten_comparison in the C++-generating back end is
+responsible for rendering comparison expressions that the front end "rewrote"
+in terms of more fundamental operators. When a x != y expressions was rewritten
+in terms of "!" and "==" operators, however, a typo caused the C++-generating
+back end to access a array beyond its bounds.  That could potentially lead to
+an abort or to incorrectly rendered code.  That issue is now fixed.
+
+
 10/19/20 [EDGcpfe/23461]
 Abort during processing of Clang enable_if attribute
 
