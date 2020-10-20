@@ -7606,7 +7606,7 @@ expression context) rather than a declaration.
   /* Note that Microsoft decl_modifiers are not processed on static
      data member definitions.  Microsoft does not allow this either. */
   var_ptr->template_info->assoc_template = tssp->il_template_entry;
-  /* Notify the correspondence routines that a definition of this function
+  /* Notify the correspondence routines that a definition of this variable
      is now present. */
   establish_variable_instantiation_corresp(var_ptr);
 done:
@@ -11049,8 +11049,7 @@ instance symbol.
   vtip->template_arg_list = templ_arg_list;
   var->template_info->assoc_template = tssp->il_template_entry;
   set_source_corresp(&(var->source_corresp), new_sym);
-  set_membership_in_source_corresp(&(var->source_corresp),
-                                   new_sym);
+  set_membership_in_source_corresp(&(var->source_corresp), new_sym);
   switch_back_to_original_region(region_to_switch_back_to);
   return new_sym;
 }  /* make_template_variable */

@@ -1,5 +1,15 @@
 Version 6.2
 
+10/20/20 [EDGcpfe/23427]
+Abort in find_instantiation_insert_scope with variable template instance
+
+When NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is TRUE, the
+front end sometimes aborted with a null pointer access while processing a
+variable template reference that does not correspond to a formal instantiation
+(this could happen in particular in complex error cases).  That issue is now
+fixed.
+
+
 10/19/20 [EDGcpfe/23463]
 C++-generating back end: Out-of-bounds array access
 

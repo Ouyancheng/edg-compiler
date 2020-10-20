@@ -1955,6 +1955,11 @@ insert it at the appropriate place in another scope.
   /* Find the list to insert into. */
   scp = source_corresp_entry_for_symbol(scope_stack_ptr->instance_sym);
   ssep = scp->source_sequence_entry;
+  if (ssep == NULL) {
+    /* In some variable template cases, no source sequence entry is recorded in
+       the instance. */
+    goto done;
+  }  /* if */
   depth = find_instantiation_insert_scope(scope_stack_ptr, ssep,
                                           &insert_before);
   if (insert_before != NULL) {
@@ -1989,6 +1994,7 @@ insert it at the appropriate place in another scope.
   }  /* if */
   insert_src_seq_list(head, tail, depth, insert_before);
   update_classes_in_ss_list(scope_stack_ptr, &scope_stack[depth]);
+done:;
 }  /* insert_instantiation_src_seq_list */
 
 
