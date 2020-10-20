@@ -5,7 +5,7 @@ C++-generating back end: Out-of-bounds array access
 
 The function handle_rewritten_comparison in the C++-generating back end is
 responsible for rendering comparison expressions that the front end "rewrote"
-in terms of more fundamental operators.  When an x != y expressions was
+in terms of more fundamental operators.  When an x != y expression was
 rewritten in terms of "!" and "==" operators, however, a typo caused the C++-
 generating back end to access an array beyond its bounds.  That could
 potentially lead to an abort or to incorrectly rendered code.  That issue is
