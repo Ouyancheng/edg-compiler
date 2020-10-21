@@ -1,5 +1,21 @@
 Version 6.2
 
+10/20/20 [EDGcpfe/22387]
+GNU C++ compatibility: Flexible array members
+
+Previously, in GNU and Clang C++ modes, the front end always treated a
+nonstatic data member whose type is an array of unspecified length as if it
+were an array of length zero (see the Changes entry of 10/17/02).  Now, in
+Clang C++ modes and in GNU C++ modes with gnu_version >= 60000 such members are
+treated like C99 flexible array members.  For example:
+
+  struct S {
+    char a;
+    int b[];  // Now an error in Clang C++ modes and GNU C++ mode with
+    char c;   // gnu_version >= 60000 because the flexible array member is
+  };          // not the last member.
+
+
 10/20/20 [EDGcpfe/23427]
 Abort in find_instantiation_insert_scope with variable template instance
 
