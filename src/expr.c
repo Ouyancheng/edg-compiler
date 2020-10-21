@@ -50031,8 +50031,11 @@ the corresponding __builtin_is_constructible operation.
       }  /* if */
     } else {
       /* Model the remaining initialization cases as a functional-notation
-         cast, with error suppressed.  In the case of default initialization
+         cast, with errors suppressed.  In the case of default initialization
          (arg_list == NULL), some errors have to be checked separately. */
+      a_boolean  saved_allow_nonconst_ref_anachronism
+                                             = allow_nonconst_ref_anachronism;
+      allow_nonconst_ref_anachronism = FALSE;
       scan_functional_notation_type_conversion((a_rescan_control_block *)NULL,
                                                (a_dynamic_init_ptr)NULL,
                                                /*arg_list_supplied=*/TRUE,
@@ -50041,6 +50044,7 @@ the corresponding __builtin_is_constructible operation.
                                                &null_source_position,
                                                &operand,
                                                EOPT_NO_OPTIONS);
+      allow_nonconst_ref_anachronism = saved_allow_nonconst_ref_anachronism;
     }  /* if */
     result = !expr_stack->any_suppressed_error;
     if (result && is_expression_operand(&operand)) {
