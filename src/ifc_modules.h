@@ -2523,7 +2523,9 @@ private:
   a_type_ptr type_for_type_index(ifc_TypeIndex   type_index,
                                  a_non_type_kind *kind) const;
   a_type_ptr type_for_template_id(an_ifc_ExprSort_TemplateId *templ_id) const;
-  a_template_arg_ptr template_arg_for_expr(ifc_ExprIndex expr_index) const;
+  a_template_arg_ptr template_arg_for_expr(a_template_parameter_ptr tmpl_param,
+                                           ifc_ExprIndex            expr_index)
+                                                                         const;
   void source_position_from_locus(a_source_position  *pos,
                                   ifc_SourceLocation *locus) const;
   inline a_const_char *get_string_at_offset(ifc_TextOffset offset) const;

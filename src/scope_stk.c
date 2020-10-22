@@ -3765,8 +3765,9 @@ by the argument.  If needed, push the new scope(s) and return TRUE.
 {
   a_boolean result = FALSE;
 
-  if (scope_stack_top().il_scope != scope) {
+  if (scope != NULL && scope_stack_top().il_scope != scope) {
     push_new_top_level_declaration();
+    scope_stack_top().inside_local_class = inside_local_class = FALSE;
     if (scope_is(scope, sck_namespace)) {
       push_namespace_extension_scope(scope->variant.assoc_namespace);
     }  /* if */

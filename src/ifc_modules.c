@@ -2351,6 +2351,7 @@ constants for that type).
   a_partial_scope_stack_state     psss;
   char                     *il_entity = NULL;
   a_byte_il_entry_kind     kind = iek_none;
+  a_boolean                scope_pushed = FALSE;
 
   if (!mep->imminent && mep->entity.ptr == NULL) {
     /* Prepare to read from the proper partition for this declaration. */
@@ -2359,6 +2360,7 @@ constants for that type).
                                                ifc_decl_start);
     if (!defer) {
       mep->imminent = TRUE;
+      scope_pushed = push_module_declaration_context(mep->scope);
     }  /* if */
     switch (tag) {
       case ifc_DeclSort_Variable:
@@ -2377,6 +2379,7 @@ constants for that type).
                      &psss);
             if (mep->scope == NULL) {
               mep->scope = get_ifc_scope(idsvp->home_scope);
+              scope_pushed = push_module_declaration_context(mep->scope);
             }  /* if */
             clear_decl_pos_block(&decl_pos_block);
             decl_variable(&loc, &dps, SRK_DEFINITION, &linkage_ptr, &ext_sym,
@@ -2414,6 +2417,7 @@ constants for that type).
                      &psss);
             if (mep->scope == NULL) {
               mep->scope = get_ifc_scope(idsfp->home_scope);
+              scope_pushed = push_module_declaration_context(mep->scope);
             }  /* if */
             clear_func_info(&func_info);
             clear_decl_pos_block(&decl_pos_block);
@@ -2470,6 +2474,7 @@ constants for that type).
                                  &loc);
           if (mep->scope == NULL) {
             mep->scope = get_ifc_scope(idssp->home_scope);
+            scope_pushed = push_module_declaration_context(mep->scope);
           }  /* if */
           check_assertion(mep->scope != NULL);
           /* Look at the "type" to determine whether we have a namespace or
@@ -2558,7 +2563,7 @@ class_struct_union_case:
                     class_type->variant.class_struct_union.is_interface = TRUE;
                     class_type->variant.class_struct_union.abstract = TRUE;
                   }  /* if */
-                  tag_sym = enter_local_symbol(tag_kind, &loc,
+                  tag_sym= enter_local_symbol(tag_kind, &loc,
                                               mep->scope->depth_in_scope_stack,
                                               /*suppress_redecl_error=*/FALSE);
                   tag_sym->variant.class_struct_union.type = class_type;
@@ -2821,12 +2826,11 @@ class_struct_union_case:
             a_template_ptr     tmpl;
             a_token_cache      cache;
             a_token_kind       final_token = tok_semicolon;
-            a_boolean          scope_pushed;
 
             if (mep->scope == NULL) {
               mep->scope = get_ifc_scope(idstp->home_scope);
+              scope_pushed = push_module_declaration_context(mep->scope);
             }  /* if */
-            scope_pushed = push_module_declaration_context(mep->scope);
             clear_token_cache(&cache, /*reuseable=*/FALSE);
             cache_decl_template(&cache, idstp);
             terminate_token_cache(&cache);
@@ -2842,12 +2846,20 @@ class_struct_union_case:
             template_or_specialization_declaration_full(&decl_state,
                                                         /*is_generic=*/FALSE,
                                                         /*orig_dps=*/NULL);
-            check_assertion(curr_token == final_token);
-            (void)get_token();
+            if (curr_token != final_token) {
+              expect_error();
+              flush_tokens_without_warning();
+            } else {
+              (void)get_token();
+              if (curr_token == tok_semicolon) {
+                /* Microsoft sometimes adds a semicolon after the final closing
+                   brace. */
+                (void)get_token();
+              }  /* if */
+            }  /* if */
             check_assertion(curr_token == tok_end_of_source);
             (void)get_token();
             tmpl = decl_state.il_template_entry;
-            pop_module_declaration_context(scope_pushed);
             il_entity = (char*)tmpl;
             kind = iek_template;
           }  /* if */
@@ -2923,6 +2935,7 @@ class_struct_union_case:
           dmep = get_and_process_ifc_decl_from_other_module(idsrp);
           il_entity = dmep->entity.ptr;
           kind = dmep->entity.kind;
+          check_assertion(mep->scope == NULL);
           mep->scope = dmep->scope;
         }
         break;
@@ -2970,6 +2983,7 @@ class_struct_union_case:
         db_module_entity(mep);
       }  /* if */
 #endif /* DEBUG */
+      pop_module_declaration_context(scope_pushed);
     }  /* if */
   }  /* if */
   /* In some cases we may enter this routine without having a scope, but we
@@ -3267,7 +3281,7 @@ Given a scope index find and return the associated scope.
   if (scope_index == 0) {
     result = il_header.primary_scope;
   } else {
-    a_module_entity_ptr         mep = get_ifc_module_entity_ptr(scope_index);
+    a_module_entity_ptr mep = get_ifc_module_entity_ptr(scope_index);
     process_ifc_declaration(mep, /*defer=*/FALSE, /*enumeration_type=*/NULL);
     result = get_assoc_scope_of_il_entry(mep->entity.ptr,
                                          (an_il_entry_kind)mep->entity.kind);
@@ -3779,7 +3793,8 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
 
 
 a_template_arg_ptr an_ifc_module::template_arg_for_expr(
-                                                      ifc_ExprIndex expr_index)
+                                           a_template_parameter_ptr param,
+                                           ifc_ExprIndex            expr_index)
                                                                           const
 /*
 Given an IFC expression index, construct and return a corresponding template
@@ -3807,7 +3822,29 @@ argument.
       unexpected_condition_str("ExprSort::PackedTemplateArguments "
                                "is not yet handled");
     case ifc_ExprSort_Read:
-      unexpected_condition_str("ExprSort::Read is not yet handled");
+      { an_ifc_ExprSort_Read iesr, *iesrp;
+        a_token_cache        cache;
+        a_source_position    pos;
+
+        iesrp = get_ExprSort_Read(&iesr);
+        kind = tak_nontype;
+        /* Use the parameter type instead of the ExprSort::Read type, as the
+           latter may not match (e.g., int& parameter type, int ExprSort::Read
+           type. */
+        check_assertion(param->kind == (a_template_parameter_kind)tpk_nontype);
+        type = param->variant.nontype.constant->type;
+        source_position_from_locus(&pos, &iesrp->locus);
+        clear_token_cache(&cache, /*reuseable=*/FALSE);
+        cache_expr(&cache, iesrp->address);
+        /* FIXME: Do we need to handle iesrp->sort here? */
+        terminate_token_cache(&cache);
+        rescan_cached_tokens(&cache);
+        cp = fs_constant((a_constant_repr_kind)ck_error);
+        scan_template_argument_constant_expression(type, cp);
+        check_assertion(curr_token == tok_end_of_source);
+        (void)get_token();
+      }
+      break;
     case ifc_ExprSort_Monad:
       { an_ifc_ExprSort_Monad iesm, *iesmp;
         a_token_cache         cache;
@@ -3859,6 +3896,8 @@ module file.
   a_symbol_ptr       inst_sym;
   a_template_ptr     tmpl;
   a_template_arg_ptr arg_list = NULL, *next_arg = &arg_list;
+  a_template_parameter_ptr
+                     param_list = NULL;
   a_source_position  pos;
   ifc_ExprSort       arg_tag = expr_tag(templ_id->arguments);
   an_ifc_ExprSort_NamedDecl
@@ -3880,6 +3919,8 @@ module file.
   }  /* if */
   if (templ_id->arguments != 0) {
     read_partition_at_index(templ_id->arguments);
+    check_assertion(tmpl != NULL);
+    param_list = tmpl->template_decl->param_list;
     if (arg_tag == ifc_ExprSort_Tuple) {
       an_ifc_ExprSort_Tuple iest, *iestp;
       iestp = get_ExprSort_Tuple(&iest);
@@ -3887,11 +3928,14 @@ module file.
         ifc_ExprIndex expr_index =
                        (ifc_ExprIndex)read_index_from_heap(ifc_heap_expr,
                                                            iestp->start + idx);
-        *next_arg = template_arg_for_expr(expr_index);
+        check_assertion(param_list != NULL);
+        *next_arg = template_arg_for_expr(param_list, expr_index);
         next_arg = &(*next_arg)->next;
+        param_list = param_list->next;
       }  /* for */
     } else {
-      *next_arg = template_arg_for_expr(templ_id->arguments);
+      check_assertion(param_list != NULL);
+      *next_arg = template_arg_for_expr(param_list, templ_id->arguments);
       next_arg = &(*next_arg)->next;
     }  /* if */
   }  /* if */
@@ -7274,7 +7318,12 @@ Add the tokens corresponding to the given template declaration (decl) to cache.
        Currently this may be missing information, so use the soon-to-be-removed
        entity.head instead. */
     cache_sentence(cache, decl->entity.head);
-    cache_sentence(cache, decl->entity.body);
+    if (decl->entity.body == 0) {
+      /* This is a forward declaration - add the expected closing ';'. */
+      cache_token(cache, tok_semicolon, &pos);
+    } else {
+      cache_sentence(cache, decl->entity.body);
+    }  /* if */
   } else {
     /* Variable template. */
     cache_decl(cache, (ifc_DeclIndex)decl->entity.index);
@@ -7402,8 +7451,12 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         check_assertion(type_tag(idsfp->type) == ifc_TypeSort_Function);
         read_partition_at_index(idsfp->type);
         itsfp = get_TypeSort_Function(&itsf);
-        cache_type(cache, itsfp->target, &idsfp->locus);
+        if (idsfp->access != ifc_Access_None) {
+          /* This is a static member function. */
+          cache_token(cache, tok_static, &pos);
+        }  /* if */
         cache_func_traits(cache, idsfp->traits, /*trailing=*/FALSE, &pos);
+        cache_type(cache, itsfp->target, &idsfp->locus);
         cache_calling_convention(cache, itsfp->convention, &pos);
         cache_name(cache, idsfp->name, &idsfp->locus);
         cache_token(cache, tok_lparen, &pos);
@@ -9976,6 +10029,10 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         str_ifc_common_decl(&idsfp->locus, idsfp->access,
                             (ifc_BasicSpecifiers)ifc_BasicSpecifiers_Cxx,
                             ifc_ObjectTraits_None, scbp);
+        if (idsfp->access != ifc_Access_None) {
+          /* This is a static member function. */
+          add_string_to_text_buffer(scbp->text_buffer, "static ");
+        }  /* if */
         str_ifc_function_traits(idsfp->traits, /*prefix=*/TRUE, scbp);
         str_ifc_type_index_first_part(idsfp->type, scbp);
         add_char_to_text_buffer(scbp->text_buffer, ' ');
