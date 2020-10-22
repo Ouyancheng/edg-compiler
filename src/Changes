@@ -1,5 +1,24 @@
 Version 6.2
 
+10/22/20 [EDGcpfe/23372,EDGcpfe/23373]
+Incorrect lookup in class with same-named friend class
+
+If a class template or an explicit specialization of a class template
+contained an unqualified friend class template declaration of the same class
+template, the lookup in an out-of-class constructor declaration could produce
+an incorrect result or an internal error (in inactive_scope_lookup).  Now
+fixed.
+
+  template <class T> struct A {
+    A(int i);
+  };
+  template <> struct A<int> : A<char> {
+    A(int i);
+    template <class T> friend class A;
+  };
+  A<int>::A(int i) : A<char>(i) {}
+
+
 10/22/20 [EDGcpfe/23313]
 C++-generating back end: omitted class prvalue cast in C++17 mode
 

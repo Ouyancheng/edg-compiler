@@ -2562,6 +2562,7 @@ lookup processing.
                                                      lookup_state);
   }  /* if */
   if (sym == NULL &&
+      !lookup_state->is_linkage_lookup && !lookup_state->is_friend_lookup &&
       (kind == (a_scope_kind)sck_class_struct_union ||
        kind == (a_scope_kind)sck_class_reactivation) && !C_mode()) {
     /* For class scopes, look for a symbol projected (inherited)
