@@ -3454,6 +3454,8 @@ extern void eval_order_for_binary_node_kind(
                                     a_boolean             *eval_left_to_right,
                                     a_boolean             *eval_right_to_left);
 
+extern an_expr_node_ptr *find_expression_in_initializer(a_constant_ptr con);
+
 /*
 Utility to reverse a list only if flag is TRUE.  Note that "list" is modified.
 When called a second time it restores the list to its original state.

@@ -6110,7 +6110,8 @@ expression).
 #if LOWER_DESIGNATED_INITIALIZERS
     /* Explicitly lower designators here (where the type of the aggregate
        is known). */
-    lower_dynamic_init_designated_initializers(dip, con_ptr->type);
+    lower_dynamic_init_designated_initializers(dip, con_ptr->type,
+                                               insert_location);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
     lower_dynamic_init(dip, ipdp, source_desc, (a_variable_ptr)NULL,
                        options, others_follow_in_aggr,
@@ -9917,7 +9918,8 @@ C99 mode for the same reason.
   /* If the initialization still contains designated initializers, lower
      those now (note that this may end up lowering nested ck_dynamic_init
      initializations). */
-  lower_dynamic_init_designated_initializers(dip, (a_type_ptr)NULL);
+  lower_dynamic_init_designated_initializers(dip, (a_type_ptr)NULL,
+                                             insert_location);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
   variable = dip->variable;
   if (dip->master_entry != NULL) {
@@ -12993,7 +12995,8 @@ Do IL lowering of an enk_temp_init expression node.
 #if LOWER_DESIGNATED_INITIALIZERS
     /* Explicitly lower designators here (where the type of the aggregate
        is known). */
-    lower_dynamic_init_designated_initializers(dip, expr->type);
+    lower_dynamic_init_designated_initializers(dip, expr->type,
+                                               &insert_location);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
     lower_dynamic_init(dip, &ipd,
                        (an_implied_copy_source *)NULL,
@@ -13252,7 +13255,8 @@ eff_insert_location specifies the insert location for any added statements
   an_insert_location insert_location;
 
 #if LOWER_DESIGNATED_INITIALIZERS
-  lower_dynamic_init_designated_initializers(dip, (a_type_ptr)NULL);
+  lower_dynamic_init_designated_initializers(dip, (a_type_ptr)NULL,
+                                             (an_insert_location*)NULL);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
   /* Only lower the cases that do not come up in C: */
   if (dip->destructor != NULL) {
@@ -13731,6 +13735,9 @@ lowered.
      they have been lowered.  Reset that flag so the constant will be
      lowered later. */
   mark_as_not_visited(con);
+  /* This constant did not exist in the original source so it must be
+     implicit initialization. */
+  con->is_implicit_initialization = TRUE;
   return con;
 }  /* make_init_zero_constant */
 
@@ -14038,6 +14045,8 @@ is not called for union initializations.
       /* Inserting after the end of the aggregate constant list.
          Add a zero constant for a skipped member. */
       a_constant_ptr zero_con = make_init_zero_constant(aggr_pos.member_type);
+      /* This aggregate contains a field with implicit initialization. */
+      aggr_con->is_implicit_initialization = TRUE;
       if (prev_con == NULL) {
         aggr_con->variant.aggregate.first_constant = zero_con;
       } else {
@@ -14249,15 +14258,117 @@ different than the old member), the old value is added to
 }  /* process_union_designators */
   
 
+static void combine_initializers_with_implicit_initialization(
+                                           a_constant_ptr     first,
+                                           a_constant_ptr     second,
+                                           an_insert_location *insert_location)
+/*
+As a result of designated initializers, the two constants are initializing
+the same location (i.e., the second constant is superseding the first
+constant).  If there are any fields in the second constant that don't have
+explicit initialization, then the values in the first constant should be
+used.  This can happen in cases like this:
+
+  struct A { int i,j; };
+  struct S { struct A a; };
+  struct A a = { 1, 2 };
+  int main() {
+    struct S s = { a, .a.j = 102 };
+    return s.a.i != 1;
+  }
+
+The approach taken here is to create a temporary to capture the value of the
+first constant, then modify the initialization of each field of the second
+constant to either explicitly initialize the field, or, in cases where the
+field is implicitly initialized by the second constant, use the appropriate
+value from the temporary.
+
+This is DR 413 in the C standard.
+*/
+{
+  a_constant_ptr    cp;
+  an_init_pos_descr ipd;
+  a_variable_ptr    temp;
+  an_expr_node_ptr  expr;
+
+  check_assertion(insert_location != NULL &&
+                  constant_is(first, ck_dynamic_init) &&
+                  constant_is(second, ck_aggregate) &&
+                  il_identical_types(first->type, second->type));
+  a_dynamic_init_ptr dip = first->variant.dynamic_init.ptr;
+#if DEBUG
+  if (db_flag_is_set("designators")) {
+    (void)fprintf(f_debug, "constant with explicit initialization = ");
+    db_constant(first);
+    (void)fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
+  temp = make_lowered_temporary(first->type);
+  set_var_init_pos_descr(temp, &ipd);
+  lower_dynamic_init(dip, &ipd, (an_implied_copy_source *)NULL,
+                     temp, LDIO_NONE, /*others_follow_in_aggr=*/FALSE,
+                     insert_location, (a_boolean *)NULL, (a_constant **)NULL);
+  a_field_ptr field = next_initializable_field(
+                          second->type->variant.class_struct_union.field_list);
+  for (cp = second->variant.aggregate.first_constant;
+       cp != NULL;
+       cp = cp->next) {
+    check_assertion(field != NULL);
+    if (cp->is_implicit_initialization) {
+      /* Implicit initialization doesn't override explicit initialization,
+         so create an expression to refer to the value from the temporary. */
+      expr = field_rvalue_selection_expr(var_rvalue_expr(temp), field);
+    } else {
+      /* This field was explicitly initialized so use an expression for this
+         field to dynamically initialize the value. */
+      expr = *find_expression_in_initializer(cp);
+    }  /* if */
+    dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
+    dip->variant.expression = expr;
+    set_constant_kind(cp, ck_dynamic_init);
+    cp->variant.dynamic_init.ptr = dip;
+    field = next_initializable_field(field->next);
+  }  /* for */
+  if (field != NULL) {
+    /* If the second constant was only partially initialized, make sure
+       that any fields that were not specified get the proper value from the
+       first constant. */
+    check_assertion(second->is_partially_initialized);
+    for (; field != NULL; field = next_initializable_field(field->next)) {
+      expr = field_rvalue_selection_expr(var_rvalue_expr(temp), field);
+      dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
+      dip->variant.expression = expr;
+      cp = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+      cp->variant.dynamic_init.ptr = dip;
+      if (second->variant.aggregate.last_constant != NULL) {
+        second->variant.aggregate.last_constant->next = cp;
+      }  /* if */
+      second->variant.aggregate.last_constant = cp;
+    }  /* if */
+    second->is_partially_initialized = FALSE;
+  }  /* if */
+  second->is_implicit_initialization = FALSE;
+#if DEBUG
+  if (db_flag_is_set("designators")) {
+    (void)fprintf(f_debug, "remaining constant = ");
+    db_constant(second);
+    (void)fprintf(f_debug, "\n");
+  }  /* if */
+#endif /* DEBUG */
+}  /* combine_initializers_with_implicit_initialization */
+
+
 static void lower_aggregate_designated_initializers(
-                                               a_constant_ptr aggr_con,
-                                               a_constant_ptr earlier_aggr_con)
+                                           a_constant_ptr     aggr_con,
+                                           a_constant_ptr     earlier_aggr_con,
+                                           an_insert_location *insert_location)
 /*
 Lower designated initializers in the indicated aggregate constant to
 standard C.  If earlier_aggr_con is non-NULL, aggr_con is a replacement
 for earlier_aggr_con (it initializes the same aggregate, overwriting
 the earlier initialization).  The constants under earlier_aggr_con
-have already had their designated initializers lowered.
+have already had their designated initializers lowered.  insert_location
+specifies where to insert code if needed (rarely used and can be NULL).
 
 Note that aggr_con has not yet been lowered so it may contain constants
 that pertain to empty aggregates (i.e., optimized empty bases and/or fields).
@@ -14409,11 +14520,27 @@ designated initializers for base classes), but must process empty fields.
             superseded_con = NULL;
           }  /* if */
         }  /* if */
-        lower_aggregate_designated_initializers(con.ptr, superseded_con);
+        lower_aggregate_designated_initializers(con.ptr, superseded_con,
+                                                insert_location);
         if (superseded_con != earlier_con.ptr) {
-          /* See comments above.  Discard the old initializer for the
-             aggregate except for preserving its side effects. */
-          combine_initializer_constants(earlier_con.ptr, con.ptr);
+          /* There's a superseded constant that is being "overwritten"; see
+             how to handle it. */
+          if (!(gnu_mode && !clang_mode) &&
+              (con.ptr->is_implicit_initialization ||
+               con.ptr->is_partially_initialized) &&
+              constant_is(earlier_con.ptr, ck_dynamic_init)) {
+            /* The superseded constant has explicitly initialized all values
+               of the aggregate and the replacement constant does not have
+               explicit values for all fields, so some special handling is
+               required (this is DR 413).  GCC does not yet implement this. */
+            combine_initializers_with_implicit_initialization(earlier_con.ptr,
+                                                              con.ptr,
+                                                              insert_location);
+          } else {
+            /* See comments above.  Discard the old initializer for the
+               aggregate except for preserving its side effects. */
+            combine_initializer_constants(earlier_con.ptr, con.ptr);
+          }  /* if */
         }  /* if */
       } else {
         /* Non-aggregate constant. */
@@ -14421,7 +14548,7 @@ designated initializers for base classes), but must process empty fields.
           /* Lower designators in a dynamic initialization subtree. */
           lower_dynamic_init_designated_initializers(
                                              con.ptr->variant.dynamic_init.ptr,
-                                             con.ptr->type);
+                                             con.ptr->type, insert_location);
         }  /* if */
         if (earlier_con.ptr != NULL) {
           /* con overwrites an earlier initialization at the same location,
@@ -14782,9 +14909,10 @@ done:
 }  /* recompute_partially_initialized_flag */
 
 
-void lower_designated_initializers(a_constant_ptr init_con,
-                                   a_dynamic_init *dip,
-                                   a_type_ptr     aggr_type)
+void lower_designated_initializers(a_constant_ptr     init_con,
+                                   a_dynamic_init     *dip,
+                                   a_type_ptr         aggr_type,
+                                   an_insert_location *insert_location)
 /*
 If the initial value constant indicated by init_con contains any
 designated initializers, rewrite them as standard C.  dip points to the
@@ -14792,7 +14920,8 @@ dynamic initialization (and is NULL if this is a static initialization).
 If non-NULL, aggr_type specifies the type of the aggregate being initialized
 (it can be NULL in cases where dip->variable is non-NULL, in which case
 the type of dip->variable is used).  Note that this is called in C mode as well
-as C++ mode.
+as C++ mode.  insert_location specifies where to insert code if needed (rarely
+used and can be NULL).
 */
 {
   if (init_con->kind == (a_constant_repr_kind)ck_aggregate &&
@@ -14801,8 +14930,8 @@ as C++ mode.
     if (in_file_scope(init_con)) {
       switch_to_file_scope_region(&region_to_switch_back_to);
     }  /* if */
-    lower_aggregate_designated_initializers(init_con,
-                                            (a_constant_ptr)NULL);
+    lower_aggregate_designated_initializers(init_con, (a_constant_ptr)NULL,
+                                            insert_location);
     /* Lowering may have changed the initializer from partially
        initialized to fully initialized, so re-compute it. */
     if (dip != NULL && dip->is_partially_initialized) {
@@ -14825,15 +14954,18 @@ as C++ mode.
 }  /* lower_designated_initializers */
 
 
-void lower_dynamic_init_designated_initializers(a_dynamic_init_ptr dip,
-                                                a_type_ptr         aggr_type)
+void lower_dynamic_init_designated_initializers(
+                                           a_dynamic_init_ptr dip,
+                                           a_type_ptr         aggr_type,
+                                           an_insert_location *insert_location)
 /*
 If the dynamic initialization pointed to by dip contains any designated
 initializers, rewrite them as standard C.  If non-NULL, aggr_type specifies the
 type of the aggregate being initialized (it can be NULL in cases where
 dip->variable is non-NULL, in which case the type of dip->variable is used).
 If the initialization is an aggregate initialization, the aggregate constant
-is prelowered here.
+is prelowered here.  insert_location specifies where to insert code if needed
+(rarely used and can be NULL).
 
 Note that this is called in C mode as well as C++ mode.
 */
@@ -14846,7 +14978,7 @@ Note that this is called in C mode as well as C++ mode.
       /* If the constant is an aggregate, prelower it now. */
       prelower_aggregate_constant(cp);
     }  /* if */
-    lower_designated_initializers(cp, dip, aggr_type);
+    lower_designated_initializers(cp, dip, aggr_type, insert_location);
   }  /* if */
 }  /* lower_dynamic_init_designated_initializers */
 

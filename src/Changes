@@ -1,5 +1,24 @@
 Version 6.2
 
+10/22/20 [EDGcpfe/18776]
+Designated initialization
+
+DR 413 of the C standard makes it clear that implicit initialization of a field
+does not override explicit initialization.  That is now implemented (in all
+modes except GCC).  For example, with --c99:
+
+  struct A { int i,j; };
+  struct S { struct A a; };
+  struct A a = { 1, 2 };
+  int main() {
+    struct S s = { a, .a.j = 102 };
+    return s.a.i != 1;
+  }
+
+Previously, the value of s.a.i in the example above was 0 because s was
+effectively initialized to {{0,102}}.
+
+
 10/22/20 [EDGcpfe/23372,EDGcpfe/23373]
 Incorrect lookup in class with same-named friend class
 

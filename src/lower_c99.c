@@ -4043,9 +4043,12 @@ Do C99 lowering on the indicated stmk_init statement.
 */
 {
   a_dynamic_init_ptr dip = statement->variant.dynamic_init;
+  an_insert_location insert_location;
 
+  set_insert_location(statement, &insert_location);
 #if LOWER_DESIGNATED_INITIALIZERS
-  lower_dynamic_init_designated_initializers(dip, (a_type_ptr)NULL);
+  lower_dynamic_init_designated_initializers(dip, (a_type_ptr)NULL,
+                                             &insert_location);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
   /* This routine is similar to lower_stmk_init. */
   switch (dip->kind) {
@@ -4063,13 +4066,11 @@ Do C99 lowering on the indicated stmk_init statement.
       /* An aggregate containing some non-constant parts. */
       /* This is not valid in C89, so convert the nonconstant parts to
          executable code. */
-      { an_insert_location insert_location;
-        a_boolean          keep_dynamic_init;
+      { a_boolean          keep_dynamic_init;
         an_init_pos_descr  ipd;
         a_variable_ptr     var = dip->variable;
 
         check_assertion(var != NULL);
-        set_insert_location(statement, &insert_location);
         set_var_init_pos_descr(var, &ipd);
         lower_dynamic_init(dip, &ipd,
                            (an_implied_copy_source *)NULL,
@@ -4360,7 +4361,8 @@ indicates the kind of initialization, and *initializer provides the details.
 #if LOWER_DESIGNATED_INITIALIZERS
       lower_designated_initializers(initializer->constant,
                                     (a_dynamic_init *)NULL,
-                                    (a_type_ptr)NULL);
+                                    (a_type_ptr)NULL,
+                                    (an_insert_location*)NULL);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
       lower_c99_constant(initializer->constant);
       break;

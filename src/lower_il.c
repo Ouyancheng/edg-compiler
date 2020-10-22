@@ -5117,7 +5117,8 @@ IL prefix is accessed).
         /* Rewrite any designated initializers in the aggregate constant. */
         lower_designated_initializers(constant,
                                       (a_dynamic_init *)NULL,
-                                      (a_type_ptr)NULL);
+                                      (a_type_ptr)NULL,
+                                      (an_insert_location_ptr)NULL);
 #endif /* LOWER_DESIGNATED_INITIALIZERS */
 #if LOWER_COMPLEX
         if (is_complex_type(constant->type)) {

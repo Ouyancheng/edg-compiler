@@ -981,6 +981,7 @@ associated variant fields to default values.
   cp->has_been_prelowered = FALSE;
   cp->vptr_has_been_lowered = FALSE;
   cp->initializes_empty_object = FALSE;
+  cp->is_implicit_initialization = FALSE;
 #endif /* DO_IL_LOWERING */
   cp->constant_for_base_class = FALSE;
   cp->constant_for_base_class_from_constexpr_folding = FALSE;

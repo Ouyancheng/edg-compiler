@@ -6055,7 +6055,7 @@ expressions aren't copied; they're just linked together into one tree.
 }  /* gather_initializer_expressions */
 
 
-static an_expr_node_ptr *find_expression_in_initializer(a_constant_ptr con)
+an_expr_node_ptr *find_expression_in_initializer(a_constant_ptr con)
 /*
 Find an expression in the initializer constant con, and return a pointer
 to the pointer to it.  If no expression is found, change the constant to a

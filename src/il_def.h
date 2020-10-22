@@ -4449,6 +4449,12 @@ typedef struct a_constant {
 			   empty class.  These constants are lowered (because
 			   they may contain dynamic initialization) and then
 			   removed from the final aggregate constant. */
+  a_bit_field
+		is_implicit_initialization:1;
+			/* TRUE if this constant represents "implicit
+			   initialization" for a field in an aggregate, or
+			   for a ck_aggregate, if any field of the aggregate
+			   initialization is implicitly initialized. */
 #endif /* DO_IL_LOWERING */
   a_bit_field	constant_for_base_class:1;
 			/* TRUE if this constant (under a ck_aggregate) is
