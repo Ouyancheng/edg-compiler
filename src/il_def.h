@@ -12753,8 +12753,10 @@ enum an_expr_operator_kind_tag {
 			   The operand is a prvalue with class type.  The
 			   result is the same class prvalue with its type
 			   changed to the type of the rvalue-adjust expression.
-			   Used only in C++.  Always compiler-generated.
-			   Eliminated by IL lowering if
+			   Used only in C++.  Usually compiler-generated, but
+			   can be the result of an actual cast in C++17 when
+			   the temporary materialization conversion is not
+			   applied.  Eliminated by IL lowering if
 			   LOWER_CLASS_RVALUE_ADJUST is TRUE. */
   eok_box,		/* C++/CLI boxing operation.  The operand is an rvalue
 			   of a value type (other than a pointer) and the
@@ -13700,9 +13702,10 @@ typedef struct an_expr_node {
 			   keyword __extension__. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   a_bit_field	is_static_cast:1;
-			/* TRUE if this node represents a static_cast in the
-			   source.  Set only on enk_temp_init nodes and on
-			   eok_cast and eok_XXX_cast enk_operation nodes;
+			/* TRUE if this node represents a static_cast in
+			   the source.  Set only on enk_temp_init nodes and
+			   on eok_cast, eok_XXX_cast, eok_lvalue_adjust,
+			   and eok_class_rvalue_adjust enk_operation nodes;
 			   will be FALSE everywhere else. */
   a_bit_field
 		is_functional_notation_cast:1;

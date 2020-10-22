@@ -15590,17 +15590,51 @@ gen_expr that might end up generating this expr as a temporary.
                      /*need_parens=*/FALSE,
                      /*obj_expr_of_mfunc_operator=*/FALSE);
           } else {
-            /* Compiler-generated, so there is no source representation. */
-            check_assertion(expr->compiler_generated);
+            if (expr->compiler_generated) {
+              /* There was no cast in the original source, so we just put
+                 out the operand by itself. */
+            } else if (expr->is_static_cast) {
+              write_tok_str("static_cast<");
+              gen_type(expr->type);
+              write_tok_str(">(");
+            } else if (expr->is_functional_notation_cast) {
+              gen_type(expr->type);
+              write_tok_ch('(');
+            } else {
+              /* A C-style cast. */
+              write_tok_ch('(');
+              gen_type(expr->type);
+              write_tok_str(")(");
+            }  /* if */
             gen_expr(operand_1, /*need_parens=*/FALSE,
                      /*obj_expr_of_mfunc_operator=*/FALSE);
+            if (!expr->compiler_generated) {
+              write_tok_ch(')');
+            }  /* if */
           }  /* if */
           goto done_with_operation;
         case eok_class_rvalue_adjust:
-          /* Always compiler-generated, so it has no source representation. */
-          check_assertion(expr->compiler_generated);
+          if (expr->compiler_generated) {
+            /* There was no cast in the original source, so we just put
+               out the operand by itself. */
+          } else if (expr->is_static_cast) {
+            write_tok_str("static_cast<");
+            gen_type(expr->type);
+            write_tok_str(">(");
+          } else if (expr->is_functional_notation_cast) {
+            gen_type(expr->type);
+            write_tok_ch('(');
+          } else {
+            /* A C-style cast. */
+            write_tok_ch('(');
+            gen_type(expr->type);
+            write_tok_str(")(");
+          }  /* if */
           gen_expr(operand_1, /*need_parens=*/FALSE,
                    /*obj_expr_of_mfunc_operator=*/FALSE);
+          if (!expr->compiler_generated) {
+            write_tok_ch(')');
+          }  /* if */
           goto done_with_operation;
         case eok_lvalue:
           /* Handled above. */
