@@ -7398,17 +7398,19 @@ underlying element type and the array type itself is returned through
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     init_type = field->type;
-    if (is_array_type(init_type)) {
-      *p_array_type = init_type;
-      if (!is_string_type(init_type)) {
-        /* Arrays can be default-initialized if the expression-list is
-           omitted. */
-        init_type = f_skip_typerefs(underlying_array_element_type(init_type));
+    { a_type_ptr  utp = skip_typerefs(init_type);
+      if (type_is(utp, tk_array)) {
+        *p_array_type = init_type;
+        if (!is_string_type(utp)) {
+          /* Arrays can be default-initialized if the expression-list is
+             omitted. */
+          init_type = f_skip_typerefs(underlying_array_element_type(utp));
+        }  /* if */
       }  /* if */
-    }  /* if */
+    }
     /* Only one member of a union or an anonymous union subobject is allowed
        to appear in the ctor-initializer list. */
-    if (is_union_type(class_type) ||
+    if (type_is(class_type, tk_union) ||
         member_or_base_sym->variant.field.anonymous_parent_object != NULL) {
       /* Check through fields for which initializers have already been
          specified. */
@@ -7937,6 +7939,10 @@ cases, array_type is NULL).
       }  /* if */
     } else {
       /* Not default-initialization. */
+      if (flex_array_init) {
+        /* A flexible array member cannot have a mem-initializer. */
+        pos_error(ec_cannot_initialize_flexible_array_member, &pos_curr_token);
+      }  /* if */
       if (list_init_enabled && gpp_mode && array_type != NULL &&
           is_braced_init_component(icp)) {
         /* Something like "S(): array({ 1, 2 }) {}".  A list initializer in a

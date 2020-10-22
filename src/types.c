@@ -432,18 +432,6 @@ Return TRUE if the given type is an incomplete type (3.1.2.5).
 }  /* is_incomplete_type */
 
 
-static inline a_boolean array_type_has_no_bound(a_type_ptr  tp)
-/*
-Return TRUE if the given tk_array type represents an array type formed with an
-empty array declarator (i.e., no specified bound; e.g., "int[]").
-*/
-{
-  return !tp->variant.array.bound_is_zero &&
-         !has_unknown_specified_bound(tp) &&
-         tp->variant.array.variant.number_of_elements == 0;
-}  /* array_type_has_no_bound */
-
-
 a_boolean is_incomplete_array_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an incomplete array type (i.e., one

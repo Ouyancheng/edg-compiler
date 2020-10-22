@@ -2873,6 +2873,12 @@ interpreter's limits; in that case, *p_result is set to FALSE.
     }  /* if */
     do_host_alignment(total_size);
     map_byte_count(&persistent_map, fp, total_size);
+    if (tp->variant.class_struct_union.contains_flexible_array_member &&
+        type_is(fp->type, tk_array) && (gnu_mode && !clang_mode)) {
+      /* A flexible array member.  GCC allows those in constant expressions,
+         but Clang does not.  Treat this as a zero-length field. */
+      continue;
+    }  /* if */
     total_size += value_bytes_for_type(ips, fp->type, p_result);
     if (total_size > MAX_CONSTEXPR_TYPE_SIZE) {
       if (*p_result) {

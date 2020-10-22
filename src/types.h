@@ -456,6 +456,18 @@ a_boolean has_any_unknown_specified_bound(a_type_ptr  array_type);
 
 a_boolean has_any_zero_bound(a_type_ptr  array_type);
 
+inline a_boolean array_type_has_no_bound(a_type_ptr  tp)
+/*
+Return TRUE if the given tk_array type represents an array type formed with an
+empty array declarator (i.e., no specified bound; e.g., "int[]").
+*/
+{
+  return !tp->variant.array.bound_is_zero &&
+         !has_unknown_specified_bound(tp) &&
+         tp->variant.array.variant.number_of_elements == 0;
+}  /* array_type_has_no_bound */
+
+
 
 /*
 Macro that returns TRUE if a type is a template class type that has
