@@ -19673,6 +19673,7 @@ declarations.
          an error should be issued. */
       if (decl_state->has_initializer) {
         pos_error(ec_cannot_initialize_flexible_array_member, &pos_curr_token);
+        field_type = error_type();
       }  /* if */
     } else if (is_template_param_type(field_type)) {
       check_assertion(skip_typerefs(field_type)->variant.template_param.kind ==
