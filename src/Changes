@@ -1,5 +1,13 @@
 Version 6.2
 
+10/22/20 [EDGcpfe/23483]
+Microsoft compatibility: enable pack expansion in lambda init-capture
+
+When lambda init-captures were added (in version 6.1, see EDGcpfe/20024) the
+feature was not enabled in Microsoft C++20 mode, but should have been.  It
+is now enabled in Microsoft C++20 mode when microsoft_version is >= 1922.
+
+
 10/22/20 [EDGcpfe/18776]
 Designated initialization
 

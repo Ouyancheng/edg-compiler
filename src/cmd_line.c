@@ -2909,6 +2909,7 @@ option values if they were not already set by a command line option.
           explicit_copy_this_capture_enabled = TRUE;
           lambda_template_param_list_enabled = TRUE;
           char8_t_enabled = TRUE;
+          pack_init_capture_enabled = TRUE;
         }  /* if */
       }  /* if */
       if (microsoft_version >= 1923) {
