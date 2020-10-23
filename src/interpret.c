@@ -2003,17 +2003,10 @@ addressed (with non-array objects treated as arrays of one element).
     length = MAX_ARRAY_LENGTH;
     pos = 0;
   } else {
+    a_boolean  use_subobject_path = FALSE;
     switch(con_addr->variant.address.kind) {
       case abk_variable:
-        tp = skip_typerefs(con_addr->variant.address.variant.variable->type);
-        /* Ignore incomplete arrays, flexible arrays. */
-        if (!tp->incomplete &&
-            !(is_immediate_class_type(tp) &&
-              tp->variant.class_struct_union.contains_flexible_array_member)) {
-          length = (a_byte_count)tp->size/elem_size;
-        } else {
-          length = MAX_ARRAY_LENGTH;
-        }  /* if */
+        use_subobject_path = TRUE;
         break;
       case abk_constant:
       case abk_temporary:
@@ -2021,7 +2014,7 @@ addressed (with non-array objects treated as arrays of one element).
         if (constant_is(cp, ck_string)) {
           length = (a_byte_count)cp->variant.string.length/elem_size;
         } else {
-          length = (a_byte_count)skip_typerefs(cp->type)->size/elem_size;
+          use_subobject_path = TRUE;
         }  /* if */
         break;
       case abk_uuidof:
@@ -2044,7 +2037,52 @@ addressed (with non-array objects treated as arrays of one element).
         length = 0;
         unexpected_condition();
     }  /* switch */
-    pos = (a_byte_count)con_addr->variant.address.offset / elem_size;
+    if (use_subobject_path) {
+      a_subobject_path_ptr  spp = con_addr->variant.address.subobject_path;
+      a_type_ptr            atype = NULL;
+      a_boolean             field_seen = FALSE;
+      pos = 0;
+      /* Look through the subobject path to find the type of the addressed
+         sub-object (except for array elements) or the position of array
+         elements. */
+      for (; spp != NULL; spp = spp->next) {
+        if (spp->is_offset) {
+          pos = spp->variant.ptr_offset;
+        } else if (spp->is_base_class) {
+          atype = spp->variant.base_class->type;
+          pos = 0;
+        } else {
+          atype = spp->variant.field->type;
+          pos = 0;
+          field_seen = TRUE;
+        }  /* if */
+      }  /* for */
+      if (atype == NULL) {
+        /* The subobject path doesn't designate a field or class subobject.
+           So we are dealing with a top-level array or the address of an
+           object treated as an array of one element. */
+        if (address_base_is(con_addr, abk_variable)) {
+          atype = con_addr->variant.address.variant.variable->type;
+        } else {
+          atype = con_addr->variant.address.variant.constant->type;
+        }  /* if */
+      }  /* if */
+      if (type_is(atype, tk_array)) {
+        if (has_unknown_specified_bound(atype) ||
+            (!field_seen && array_type_has_no_bound(atype))) {
+          /* The bound is not known (e.g., "extern int x[];" or a VLA. */
+          length = MAX_ARRAY_LENGTH;
+        } else {
+          /* A known bound or a flexible array.  The latter is treated as a
+             zero-length array in this context. */
+          length = atype->variant.array.variant.number_of_elements;
+        }  /* if */
+      } else {
+        length = 1;
+      }  /* if */
+    } else {
+      pos = (a_byte_count)con_addr->variant.address.offset / elem_size;
+    }  /* if */
   }  /* if */
   *a_len = length;
   *p_pos = pos;
