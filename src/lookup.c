@@ -2562,13 +2562,16 @@ lookup processing.
                                                      lookup_state);
   }  /* if */
   if (sym == NULL &&
-      !lookup_state->is_linkage_lookup && !lookup_state->is_friend_lookup &&
+      !(lookup_state->options & IDL_TREAT_AS_TEMPLATE_ID &&
+       (lookup_state->is_linkage_lookup || lookup_state->is_friend_lookup)) &&
       (kind == (a_scope_kind)sck_class_struct_union ||
        kind == (a_scope_kind)sck_class_reactivation) && !C_mode()) {
     /* For class scopes, look for a symbol projected (inherited)
        into the class scope if a symbol was not found in the class
        itself.  Don't look in dependent base classes for classes that
-       are generated from templates. */
+       are generated from templates.  In a friend class template declaration
+       (covered by the test that includes is_linkage_lookup and
+        is_friend_lookup tests), don't look for a projection symbol */
     lookup_state->look_for_projected_symbol = TRUE;
     lookup_state->look_in_dependent_bases =
                       (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
