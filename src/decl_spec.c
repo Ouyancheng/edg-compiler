@@ -7213,6 +7213,11 @@ constructor).
           a_pack_expansion_descr_ptr		pedp;
           a_boolean				any_args;
           /* A constructor could include a pack expansion. */
+          if (class_template_arg_deduction_enabled) {
+            /* Any expressions scanned as part of a type may need to be
+               rescannable. */
+            scope_stack_top().in_template_deduction_context = TRUE;
+          }  /* if */
           any_args = begin_potential_pack_expansion_context_full(
                                          &pesep, &pedp, /*is_lookahead=*/TRUE,
                                          /*allow_empty_list=*/FALSE,
@@ -7224,6 +7229,9 @@ constructor).
             is_constructor = TRUE;
           } else {
             abandon_potential_pack_expansion_context(pesep);
+          }  /* if */
+          if (class_template_arg_deduction_enabled) {
+            scope_stack_top().in_template_deduction_context = FALSE;
           }  /* if */
         }  /* if */
       }  /* if */
