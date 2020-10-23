@@ -14325,7 +14325,7 @@ This is DR 413 in the C standard.
     }  /* if */
     dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
     dip->variant.expression = expr;
-    set_constant_kind(cp, ck_dynamic_init);
+    set_constant_kind(cp, (a_constant_repr_kind)ck_dynamic_init);
     cp->variant.dynamic_init.ptr = dip;
     field = next_initializable_field(field->next);
   }  /* for */
