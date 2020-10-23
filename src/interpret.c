@@ -2047,7 +2047,7 @@ addressed (with non-array objects treated as arrays of one element).
          elements. */
       for (; spp != NULL; spp = spp->next) {
         if (spp->is_offset) {
-          pos = spp->variant.ptr_offset;
+          pos = (a_byte_count)spp->variant.ptr_offset;
         } else if (spp->is_base_class) {
           atype = spp->variant.base_class->type;
           pos = 0;
@@ -2075,7 +2075,8 @@ addressed (with non-array objects treated as arrays of one element).
         } else {
           /* A known bound or a flexible array.  The latter is treated as a
              zero-length array in this context. */
-          length = atype->variant.array.variant.number_of_elements;
+          length = (a_byte_count)atype->variant.array
+                                       .variant.number_of_elements;
         }  /* if */
       } else {
         length = 1;
