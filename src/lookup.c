@@ -2571,7 +2571,7 @@ lookup processing.
        itself.  Don't look in dependent base classes for classes that
        are generated from templates.  In a friend class template declaration
        (covered by the test that includes is_linkage_lookup and
-        is_friend_lookup tests), don't look for a projection symbol */
+       is_friend_lookup tests), don't look for a projection symbol. */
     lookup_state->look_for_projected_symbol = TRUE;
     lookup_state->look_in_dependent_bases =
                       (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH &&
