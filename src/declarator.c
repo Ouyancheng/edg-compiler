@@ -8165,7 +8165,13 @@ as needed.
     pos_error(ec_trailing_requires_clause_not_on_template, &pos_curr_token);
   }  /* if */
   /* Reactivate any parent scope and the function parameter scope. */
-  if (loc->is_class_member) {
+  if (loc == NULL) {
+    /* Presumably an abstract declarator, which should not permit a requires-
+       clause in the first place.  Push a dummy instantiation scope to ensure
+       memory regions are set up correctly during error recovery. */
+    expect_error();
+    push_instantiation_scope_for_constraint_type();
+  } else if (loc->is_class_member) {
     if (is_immediate_class_type(loc->parent.class_type)) {
       push_class_reactivation_scope(loc->parent.class_type,
                                     /*extend_namespace=*/FALSE);
@@ -8185,7 +8191,11 @@ as needed.
   if (pop_func_prototype_scope) {
     pop_scope();
   }  /* if */
-  if (loc->is_class_member) {
+  if (loc == NULL) {
+    /* This can happen in error cases (see above for the expect_error
+       check). */
+    pop_instantiation_scope_for_constraint_type();
+  } else if (loc->is_class_member) {
     if (is_immediate_class_type(loc->parent.class_type)) {
       pop_class_reactivation_scope();
     }  /* if */

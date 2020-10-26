@@ -5472,12 +5472,12 @@ flags that is passed down to the other scope pushing routines.
                                         PS_NEW_INSTANTIATION_CONTEXT);
 }  /* push_definition_context_for_class */
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 
 void push_instantiation_scope_for_constraint_type(void)
 /*
 Push an instantiation scope surrounding the definition of a C++/CLI constraint
-type.
+type.  Also used to set up other "dummy" instantiation scopes for error
+recovery purposes.
 */
 {
   a_template_decl_info_ptr  tdip;
@@ -5507,6 +5507,7 @@ push_instantiation_scope_for_constraint_type.
   free_template_decl_info(tdip);
 }  /* pop_instantiation_scope_for_constraint_type */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 void push_instantiation_scope_for_boxed_enum_type(void)
 /*

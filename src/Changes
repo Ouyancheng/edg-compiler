@@ -1,5 +1,18 @@
 Version 6.2
 
+10/26/20 [EDGcpfe/22976]
+Abort after invalid requires clause
+
+The front end previously aborted due to a null pointer indirection in
+scan_trailing_requires_clause (declarator.c) when an invalid requires clause
+appeared on an unnamed ("abstract") declarator.  For example:
+
+  template<typename ...T> struct X {};
+  X<int* requires (0) > x;  // Previously aborted.  Now a normal error.
+
+That is now fixed.
+
+
 10/26/20 [EDGcpfe/11102,EDGcpfe/23484]
 Microsoft compatibility: suppress __thiscall in generated C
 

@@ -2195,11 +2195,11 @@ extern void push_instantiation_scope_for_rescan(a_symbol_ptr	template_sym);
 
 extern void pop_instantiation_scope_for_rescan(void);
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
 extern void push_instantiation_scope_for_constraint_type(void);
 
 extern void pop_instantiation_scope_for_constraint_type(void);
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 extern void push_instantiation_scope_for_boxed_enum_type(void);
 
 extern void pop_instantiation_scope_for_boxed_enum_type(void);
