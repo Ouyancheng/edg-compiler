@@ -11396,6 +11396,12 @@ possibility.
            of calling decl_routine. */
         if (func_info->is_definition) {
           state->is_definition = TRUE;
+        } else if (state->trailing_requires_clause != NULL) {
+          /* A friend declaration (not a template itself) in a class template
+             can have a trailing-requires-clause only if it is a definition
+             (see N4868 [temp.friend]/9). */
+          pos_error(ec_nondefining_friend_requires_clause,
+                    &state->trailing_requires_clause->requires_pos);
         }  /* if */
         sym = decl_dependent_class_scope_function(
                                     /*friend_decl=*/TRUE, /*expl_spec=*/FALSE,
@@ -11415,7 +11421,9 @@ possibility.
       check_ambiguity_and_verify_access(locator);
     }  /* if */
     srk_flags = SRK_DECLARATION | SRK_FRIEND;
-    if (func_info->is_definition) srk_flags |= SRK_DEFINITION;
+    if (func_info->is_definition) {
+      srk_flags |= SRK_DEFINITION;
+    }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     declarator_ssep = func_info->declarator_ssep;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

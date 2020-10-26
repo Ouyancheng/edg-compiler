@@ -3238,6 +3238,7 @@ ec_constexpr_memcpy_nontrivial_type;;"memcpy-like intrinsic attempts to copy non
 ec_constexpr_memcpy_partial_object;;"memcpy-like intrinsic attempts to copy partial object"
 ec_constexpr_memcpy_overflow;;"memcpy-like intrinsic attempts to copy past array boundary"
 ec_constexpr_memcpy_overlap;;"memcpy-like intrinsic attempts to copy overlapping byte ranges (using corresponding memmove operation instead)"
+ec_nondefining_friend_requires_clause;;"a friend declaration with a trailing-requires-clause must be a definition"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
