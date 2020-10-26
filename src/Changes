@@ -5,7 +5,7 @@ Internal error in get_rescan_info with class template argument deduction
 
 In some situations with constructors involving parameter types that include
 expressions, the front end aborted with an internal error in get_rescan_info
-(exprutil.c, "missing default rescan info" while performing class template
+(exprutil.c, "missing default rescan info") while performing class template
 argument deduction.  For example:
 
   template<int> struct E {};
