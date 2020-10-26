@@ -1,5 +1,22 @@
 Version 6.2
 
+10/26/20 [EDGcpfe/11102,EDGcpfe/23484]
+Microsoft compatibility: suppress __thiscall in generated C
+
+A change has been made to suppress an explicit mention of the __thiscall
+calling convention when generating C code for the corresponding declaration.
+For example (with --microsoft):
+
+  struct A {
+    int __thiscall f(); // __thiscall is the default for member functions
+                        // but now does not appear in the generated C for A::f.
+  };
+  int main() {
+    A a;
+    a.f();
+  }
+
+
 10/23/20 [EDGcpfe/22589,EDGcpfe/23473]
 Internal error in get_rescan_info with class template argument deduction
 

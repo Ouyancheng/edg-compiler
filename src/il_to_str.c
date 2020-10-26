@@ -1554,9 +1554,17 @@ be FALSE).
   /* Do not insert code here. */
   if (calling_convention != (a_calling_convention)cc_default) {
     /* Put out nothing for the default calling convention. */
-    octl->output_str(calling_convention_names[(int)calling_convention], octl);
-    /* Put out a trailing space. */
-    octl->output_str(" ", octl);
+    if (calling_convention == (a_calling_convention)cc_thiscall &&
+        octl->gen_compilable_code &&
+        octl->c_generating_back_end) {
+      /* Suppress __thiscall in generated C code (it's not valid in C because
+         there's no "this" pointer. */
+    } else {
+      octl->output_str(calling_convention_names[(int)calling_convention],
+                       octl);
+      /* Put out a trailing space. */
+      octl->output_str(" ", octl);
+    }  /* if */
   }  /* if */
 }  /* form_calling_convention */
 
