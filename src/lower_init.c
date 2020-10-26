@@ -14286,10 +14286,12 @@ value from the temporary.
 This is DR 413 in the C standard.
 */
 {
-  a_constant_ptr    cp;
-  an_init_pos_descr ipd;
-  a_variable_ptr    temp;
-  an_expr_node_ptr  expr;
+  a_constant_ptr        cp;
+  an_init_pos_descr     ipd;
+  a_variable_ptr        temp;
+  an_expr_node_ptr      expr;
+  an_aggregate_position aggr_pos;
+  a_boolean             more_members;
 
   check_assertion(insert_location != NULL &&
                   constant_is(first, ck_dynamic_init) &&
@@ -14308,43 +14310,85 @@ This is DR 413 in the C standard.
   lower_dynamic_init(dip, &ipd, (an_implied_copy_source *)NULL,
                      temp, LDIO_NONE, /*others_follow_in_aggr=*/FALSE,
                      insert_location, (a_boolean *)NULL, (a_constant **)NULL);
-  a_field_ptr field = next_initializable_field(
-                          second->type->variant.class_struct_union.field_list);
+  /* Use aggr_pos to keep track of where we are in the (struct or array)
+     aggregate. */
+  init_aggregate_position(second->type,
+                          (NF_INITIALIZABLE |
+                           NF_SKIP_OPTIMIZED_EMPTY_CLASS |
+                           NF_SKIP_PROPERTY_OR_EVENT),
+                          &aggr_pos);
   for (cp = second->variant.aggregate.first_constant;
        cp != NULL;
        cp = cp->next) {
-    check_assertion(field != NULL);
+    expr = NULL;
     if (cp->is_implicit_initialization) {
       /* Implicit initialization doesn't override explicit initialization,
          so create an expression to refer to the value from the temporary. */
-      expr = field_rvalue_selection_expr(var_rvalue_expr(temp), field);
+      if (aggr_pos.array_init) {
+        expr = array_first_element_addr_expr(temp);
+        expr->next = node_for_integer_constant((long)aggr_pos.curr_elem,
+                                               targ_size_t_int_kind);
+        expr = make_operator_node((an_expr_operator_kind)eok_subscript,
+                                   aggr_pos.member_type,
+                                   expr);
+      } else {
+        expr = field_rvalue_selection_expr(var_rvalue_expr(temp),
+                                           aggr_pos.curr_field);
+      }  /* if */
     } else {
       /* This field was explicitly initialized so use an expression for this
          field to dynamically initialize the value. */
-      expr = *find_expression_in_initializer(cp);
+      if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
+        // FIXME
+        dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
+        dip->variant.constant.ptr = copy_unshared_constant(cp);
+      } else {
+        expr = *find_expression_in_initializer(cp);
+      }  /* if */
     }  /* if */
-    dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
-    dip->variant.expression = expr;
+    if (expr != NULL) {
+      dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
+      dip->variant.expression = expr;
+      check_assertion(il_identical_types(cp->type, expr->type));
+    }  /* if */
     set_constant_kind(cp, (a_constant_repr_kind)ck_dynamic_init);
     cp->variant.dynamic_init.ptr = dip;
-    field = next_initializable_field(field->next);
+    more_members = any_more_members_in_aggregate(&aggr_pos);
+    if (more_members) {
+      advance_aggregate_position_to_next_member(&aggr_pos);
+    }  /* if */
   }  /* for */
-  if (field != NULL) {
+  if (more_members) {
     /* If the second constant was only partially initialized, make sure
        that any fields that were not specified get the proper value from the
        first constant. */
     check_assertion(second->is_partially_initialized);
-    for (; field != NULL; field = next_initializable_field(field->next)) {
-      expr = field_rvalue_selection_expr(var_rvalue_expr(temp), field);
+    for (;;) {
+      if (aggr_pos.array_init) {
+        expr = array_first_element_addr_expr(temp);
+        expr->next = node_for_integer_constant((long)aggr_pos.curr_elem,
+                                               targ_size_t_int_kind);
+        expr = make_operator_node((an_expr_operator_kind)eok_subscript,
+                                   aggr_pos.member_type,
+                                   expr);
+      } else {
+        expr = field_rvalue_selection_expr(var_rvalue_expr(temp),
+                                           aggr_pos.curr_field);
+      }  /* if */
       dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
       dip->variant.expression = expr;
       cp = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
       cp->variant.dynamic_init.ptr = dip;
+      cp->type = expr->type;
       if (second->variant.aggregate.last_constant != NULL) {
         second->variant.aggregate.last_constant->next = cp;
       }  /* if */
       second->variant.aggregate.last_constant = cp;
-    }  /* if */
+      if (!any_more_members_in_aggregate(&aggr_pos)) {
+        break;
+      }  /* if */
+      advance_aggregate_position_to_next_member(&aggr_pos);
+    }  /* for */
     second->is_partially_initialized = FALSE;
   }  /* if */
   second->is_implicit_initialization = FALSE;

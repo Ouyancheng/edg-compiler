@@ -2521,7 +2521,6 @@ by lowering (as opposed to that resulting from direct lowering of source code).
   return result;
 }  /* boolean_controlling_expr */
 
-#if DO_FULL_PORTABLE_EH_LOWERING || ABI_CHANGES_FOR_CONSTRUCTION_VTBLS
 
 an_expr_node_ptr array_first_element_addr_expr(a_variable_ptr var)
 /*
@@ -2536,7 +2535,6 @@ array associated with the variable var, and return it.
   return node;
 }  /* array_first_element_addr_expr */
 
-#endif /* DO_FULL_PORTABLE_EH_LOWERING || ABI_CHANGES_FOR_CONSTRUCTION_VTBLS */
 
 static a_field_ptr field_at_offset_if_any(a_type_ptr    class_type,
                                           a_targ_size_t byte_offset)

@@ -111,7 +111,7 @@ feature was not enabled in Microsoft C++20 mode, but should have been.  It
 is now enabled in Microsoft C++20 mode when microsoft_version is >= 1922.
 
 
-10/22/20 [EDGcpfe/18776]
+10/22/20 [EDGcpfe/18776,EDGcpfe/21126]
 Designated initialization
 
 DR 413 of the C standard makes it clear that implicit initialization of a field
