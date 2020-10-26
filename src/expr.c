@@ -5837,7 +5837,8 @@ indicated type.
         do_operand_transformations(operand, TOPT_NO_OPTIONS);
         if (!template_case) {
           check_assertion(ptp != NULL);
-          if (is_pointer_type(operand->type) &&
+          if ((is_pointer_type(operand->type) ||
+                is_nullptr_type(operand->type)) &&
               is_integral_type(ptp->type) &&
               skip_typerefs(operand->type)->size == 
                                               skip_typerefs(ptp->type)->size) {
