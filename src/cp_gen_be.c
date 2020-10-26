@@ -17340,16 +17340,26 @@ instantiation is available.
       }  /* if */
       break;
     case templk_concept:
-      gen_template_header(tp->template_decl, (a_type_ptr)NULL,
-                          /*is_cppcli_generic=*/FALSE,
-                          /*for_generic_lambda=*/FALSE);
-      write_tok_str("concept ");
-      gen_bare_name(&tp->source_corresp, iek_template);
-      write_tok_str(" = ");
-      adv_curr_source_sequence_entry();
-      gen_expression(tp->prototype_instantiation.constraint);
-      write_tok_str("; ");
-      result = TRUE;
+      { an_expr_node_ptr  expr = tp->prototype_instantiation.constraint;
+        gen_template_header(tp->template_decl, (a_type_ptr)NULL,
+                            /*is_cppcli_generic=*/FALSE,
+                            /*for_generic_lambda=*/FALSE);
+        write_tok_str("concept ");
+        gen_bare_name(&tp->source_corresp, iek_template);
+        write_tok_str(" = ");
+        adv_curr_source_sequence_entry();
+        /* The concept definition syntax does not permit a comma expression at
+           the top level of the constraint-expression.  So force parentheses
+           if needed.  E.g.:
+               template<typename T> concept (T() == T(), true);
+           cannot be rendered as:
+               template<typename T> concept (T() == T()), true;
+        */
+        gen_expr(expr, /*need_parens=*/node_is_operator(expr, eok_comma),
+                 /*obj_expr_of_mfunc_operator=*/FALSE);
+        write_tok_str("; ");
+        result = TRUE;
+      }
       break;
     default:
       unexpected_condition_str2("gen_template_from_prototype_instantiation",

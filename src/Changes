@@ -1,5 +1,26 @@
 Version 6.2
 
+10/26/20 [EDGcpfe/22978]
+C++-generating back end: Concept definitions with comma expressions
+
+Consider:
+
+  template<typename T> concept C = (T() == T(), true);
+
+The C++-generating back end previously rendered the resulting IL as
+
+  template<typename T> concept C = (T() == T()), true;
+
+in configurations with PARENS_IN_IL set to FALSE.  The syntax for a concept
+definition, however, does not permit a top-level comma expression for the
+expression on the right of the "=" token.  This is now fixed, and the front
+end now renders that example as:
+
+  template<typename T> concept C = ((T() == T()), true);
+
+(The extra parentheses are benign.)
+
+
 10/26/20 [EDGcpfe/22976]
 Abort after invalid requires clause
 
