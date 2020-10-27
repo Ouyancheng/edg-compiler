@@ -11429,10 +11429,10 @@ user-defined conversions.
   an_error_code local_err_code = ec_no_error;
 
   if (conversion->pointer_normalization_needed &&
-      (!cpp11_mode || microsoft_mode)) {
-    /* Conversion of 0 to a pointer type, or of a pointer to object type
-       to void *, is not allowed on a nontype template argument before
-       C++11 (except in Microsoft mode). */
+      (!cpp11_mode || ms_version_is(<1928))) {
+    /* Conversion of 0 to a pointer type, or of a pointer to object type to
+       void*, is not allowed on a nontype template argument before C++11 nor
+       in certain Microsoft modes. */
     allowed = FALSE;
     if (microsoft_mode) {
       /* But MSVC does allow it, except for the case of converting a pointer

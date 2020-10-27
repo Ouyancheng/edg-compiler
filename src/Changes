@@ -1,5 +1,19 @@
 Version 6.2
 
+10/27/20 [EDGcpfe/23496]
+Microsoft C++ compatibility: Converting 0 to a nontype pointer parameter
+
+C++11 (and later) does not allow a null pointer constant (like 0) to be used
+as a nontype template argument of pointer type.  However, an exception was
+previously made in Microsoft mode.  For example:
+
+  template<int*> struct S {};
+  S<0> s;  // Previously accepted in all Microsoft C++ modes.
+
+Now, such cases are also permitted only in Microsoft mode with
+microsoft_version < 1928.
+
+
 10/27/20 [EDGcpfe/22831]
 Trailing requires-clause on a member function and its explicit instantiation
 or explicit specialization
