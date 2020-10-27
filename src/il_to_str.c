@@ -1558,7 +1558,7 @@ be FALSE).
         octl->gen_compilable_code &&
         octl->c_generating_back_end) {
       /* Suppress __thiscall in generated C code (it's not valid in C because
-         there's no "this" pointer. */
+         there's no "this" pointer). */
     } else {
       octl->output_str(calling_convention_names[(int)calling_convention],
                        octl);
