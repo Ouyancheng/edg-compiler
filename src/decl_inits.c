@@ -1094,6 +1094,7 @@ of the whole initialization (*is) as appropriate.
   }  /* if */
   if (!is->check_validity_only && *init_con != NULL) {
     (*init_con)->is_pack_expansion = pack_expansion;
+    (*init_con)->is_generic_initializer = TRUE;
   }  /* if */
 }  /* aggr_init_generic_element */
 

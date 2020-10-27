@@ -4743,6 +4743,11 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       }  /* if */
       goto done;
     }  /* if */
+  } else if (con->is_generic_initializer) {
+    /* A constant from a template-dependent context.  Don't attempt to extract
+       it because it might not match the type of the destination object. */
+    do_constexpr_fail(result);
+    goto done;
   }  /* if */
   switch (con->kind) {
     case ck_error:

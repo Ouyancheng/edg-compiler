@@ -1213,6 +1213,9 @@ Display the indicated constant entry.
   if (ptr->is_result_of_constexpr_call) {
     disp_boolean("is_result_of_constexpr_call", TRUE);
   }  /* if */
+  if (ptr->is_generic_initializer) {
+    disp_boolean("is_generic_initializer", TRUE);
+  }  /* if */
   if (ptr->constant_for_base_class_from_constexpr_folding) {
     disp_boolean("constant_for_base_class_from_constexpr_folding", TRUE);
   }  /* if */

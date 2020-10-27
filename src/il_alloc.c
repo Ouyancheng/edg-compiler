@@ -977,6 +977,7 @@ associated variant fields to default values.
   cp->implicit_aggr_element = FALSE;
   cp->is_compound_literal = FALSE;
   cp->is_result_of_constexpr_call = FALSE;
+  cp->is_generic_initializer = FALSE;
 #if DO_IL_LOWERING
   cp->has_been_prelowered = FALSE;
   cp->vptr_has_been_lowered = FALSE;

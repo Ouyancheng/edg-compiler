@@ -4432,6 +4432,12 @@ typedef struct a_constant {
 			   any kind of constant.  Also set for something
 			   like "A()" when expanded to a constant for a
 			   trivial default constructor. */
+  a_bit_field	is_generic_initializer:1;
+			/* TRUE if this is a constant representing an
+			   initializer for an entity in a template-dependent
+			   context.  In such context, type checking is limited
+			   and thus the type of the constant may not match up
+			   with the type of the entity being initialized. */
 #if DO_IL_LOWERING
   a_bit_field	has_been_prelowered:1;
 			/* Flag that is used during lowering to ensure that
