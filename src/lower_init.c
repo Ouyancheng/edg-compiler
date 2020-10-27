@@ -14291,7 +14291,7 @@ This is DR 413 in the C standard.
   a_variable_ptr        temp;
   an_expr_node_ptr      expr;
   an_aggregate_position aggr_pos;
-  a_boolean             more_members;
+  a_boolean             more_members = FALSE;
 
   check_assertion(insert_location != NULL &&
                   constant_is(first, ck_dynamic_init) &&
@@ -14339,14 +14339,17 @@ This is DR 413 in the C standard.
       /* This field was explicitly initialized so use an expression for this
          field to dynamically initialize the value. */
       if (cp->kind == (a_constant_repr_kind)ck_aggregate) {
-        // FIXME
+        /* For a constant aggregate, turn the initialization into a dynamic
+           initialization. */
         dip = alloc_dynamic_init((a_dynamic_init_kind)dik_constant);
         dip->variant.constant.ptr = copy_unshared_constant(cp);
       } else {
+        /* Use an appropriate expression for the dynamic initialization. */
         expr = *find_expression_in_initializer(cp);
       }  /* if */
     }  /* if */
     if (expr != NULL) {
+      /* Create a dynamic expression from the expression above. */
       dip = alloc_dynamic_init((a_dynamic_init_kind)dik_expression);
       dip->variant.expression = expr;
       check_assertion(il_identical_types(cp->type, expr->type));
