@@ -10881,9 +10881,17 @@ When templates_only is TRUE, only function templates members are considered.
     new_esp = new_rts->exception_specification;
     new_rts->exception_specification = NULL;
     match = routine_types_are_redecl_compatible(orig_type, new_type,
-                                                tcf_flags) &&
-            equiv_requires_clauses(routine->trailing_requires_clause,
-                                   dps->trailing_requires_clause);
+                                                tcf_flags);
+    if (match &&
+        (routine->trailing_requires_clause != NULL ||
+         dps->trailing_requires_clause)) {
+      if (dps->is_explicit_specialization || dps->is_explicit_instantiation) {
+        if (routine->is_ineligible) match = FALSE;
+      } else {
+        match = equiv_requires_clauses(routine->trailing_requires_clause,
+                                       dps->trailing_requires_clause);
+      }  /* if */
+    }  /* if */
     orig_rts->exception_specification = orig_esp;
     new_rts->exception_specification = new_esp;
     if (restore_this_param) {
