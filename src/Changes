@@ -13,7 +13,7 @@ For example:
   };
 
 
-10/26/20 [EDGcpfe/23470,EDGcpfe/19494,EDGcpfe/20574,EDGcpfe/22687]
+10/26/20 [EDGcpfe/19494,EDGcpfe/20574,EDGcpfe/22687,EDGcpfe/23470]
 GCC compatibility: accept nullptr in call to sync/atomic builtins
 
 For some sync/atomic builtins, GCC/clang will accept an argument with pointer
