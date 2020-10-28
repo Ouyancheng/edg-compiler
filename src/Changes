@@ -47,7 +47,7 @@ Consider:
 Previously, the front end issued an error on the explicit instantiation
 directive because it attempted to find a member declaration with no trailing
 requires-clause.  Now, it evaluates the requires clause of each candidate
-declaration and discards the candidate that fail the requirements.  In this
+declaration and discards the candidates that fail the requirements.  In this
 example (assuming sizeof(int)<128) that means the second member function is
 discarded and the first one is instantiated for S<int>.
 
