@@ -63,13 +63,13 @@ Consider:
     constexpr S s = { f, f };  // Previously could abort.  Now okay.
   }
 
-In some configurations, the could abort in the constexpr interpreter during the
-prototype instantiation of g(T).  The root cause of that abort is that in
-template-dependent contexts a braced initializer is not always matched up with
-its destination type, even if the latter type is nondependent.  As a result,
-the interpreter expanded the initializer into an object (variable s) that does
-not match the layout of the initializer constant, leading to invalid memory
-accesses later on.  This problem is now fixed.
+In some configurations, the front end could abort in the constexpr interpreter
+during the prototype instantiation of g(T).  The root cause of that abort is
+that in template-dependent contexts a braced initializer is not always matched
+up with its destination type, even if the latter type is nondependent.  As a
+result, the interpreter expanded the initializer into an object (variable s)
+that does not match the layout of the initializer constant, leading to invalid
+memory accesses later on.  This problem is now fixed.
 
 
 
