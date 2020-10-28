@@ -1437,22 +1437,24 @@ static void report_override_exception_spec_mismatch(
                                                a_source_position  *source_pos)
 /*
 The member function represented by overrider overrides the virtual member
-represented by overridden, but its exception specification is less
-restrictive.  Issue an appropriate diagnostic at the given position.
+represented by overridden, but its exception specification is less restrictive.
+Issue an appropriate diagnostic at the given position.
 */
 {
   if (overrider->variant.routine.ptr->compiler_generated) {
     /* In non-strict modes, issue a warning on a compiler-generated
-       constructor, destructor, or assignment operator.  In strict
-       modes, an error should be issued by default (discretionary). */
-    pos_sy2_diagnostic(strict_ansi_mode ?
-                              strict_ansi_discretionary_severity : es_warning,
+       constructor, destructor, or assignment operator.  Issue a discretionary
+       error in C++11 and later modes, a warning in nonstrict C++03 mode. */
+    pos_sy2_diagnostic(cpp11_mode       ? es_discretionary_error :
+                       strict_ansi_mode ? strict_ansi_discretionary_severity
+                                        : es_warning,
                        ec_generated_exception_spec_override_incompat,
                        source_pos, overrider, overridden);
   } else {
-    /* Microsoft compilers don't diagnose this (and in fact, they don't do
-       much with exception specifications at all). */
-    pos_sy2_diagnostic(ms_extensions ? es_warning : es_discretionary_error,
+    /* Early Microsoft compilers didn't diagnose this (and in fact, they didn't
+       do much with exception specifications at all). */
+    pos_sy2_diagnostic((ms_extensions && microsoft_version < 1929) ?
+                                          es_warning : es_discretionary_error,
                        ec_exception_spec_override_incompat,
                        source_pos, overrider, overridden);
   }  /* if */
@@ -12520,7 +12522,7 @@ unions, this function may call itself recursively.
     a_type_ptr            tp, utp;
     if (fp->is_anonymous_parent_object &&
         (sfkind == sfk_destructor || sfkind == sfk_constructor) &&
-        !ms_version_is(<1928)) {
+        !(ms_version_is(<1929) && !rp->compiler_generated)) {
       a_field_ptr  variants = fp->type->variant.class_struct_union.field_list;
       update_generated_exception_spec_for_fields(rp, variants, p_throw_any);
     }  /* if */
