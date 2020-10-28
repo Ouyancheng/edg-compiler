@@ -6311,18 +6311,31 @@ static void add_namespace_of_type_to_lookup_list(
 Add the namespace in which "type" is defined to the namespace_list.
 */
 {
-  a_namespace_ptr		nsp;
+  a_namespace_ptr		nsp = NULL;
 
-  if (!type->source_corresp.is_local_to_function) {
-    /* Local types have no associated namespace. */
-    /* Determine the parent namespace. */
+  /* Determine the parent namespace. */
+  if (type->source_corresp.is_local_to_function) {
+    /* For a local type, use the namespace of the enclosing routine. */
+    a_routine_ptr  rout;
+    rout = enclosing_routine_for_local_type(type);
+    if (rout->source_corresp.is_class_member) {
+      /* If the routine is a class member, get the namespace of its class. */
+      type = parent_class_of(rout);
+    } else {
+      /* Use the enclosing namespace of the routine. */
+      nsp = parent_namespace_or_null(rout);
+      type = NULL;
+    }  /* if */
+  }  /* if */
+  /* type will be NULL if the namespace was determined above. */
+  if (type != NULL) {
     while (type->source_corresp.is_class_member) {
       type = parent_class_of(type);
     }  /* while */
     /* Note that "nsp" will be NULL for global scope types. */
     nsp = parent_namespace_or_null(type);
-    add_namespace_to_namespace_list(nsp, namespace_list);
   }  /* if */
+  add_namespace_to_namespace_list(nsp, namespace_list);
 }  /* add_namespace_of_type_to_lookup_list */
 
 

@@ -1,5 +1,23 @@
 Version 6.2
 
+10/27/20 [EDGcpfe/23377]
+Argument-dependent lookup and local classes
+
+When an argument of local class type (including local lambdas) was used
+as a function argument, argument-dependent lookup should have included
+the associated namespaces of the enclosing routine, but did not.  This
+could produce an incorrect result from overload resolution.  Now fixed.
+
+  template <class T> inline void f(T t) {
+    auto l = []{};
+    g(t, l);  // Was 'identifier "g" is undefined'
+  }
+  template <class T, class L> inline void g(T, L) {}
+  int main() {
+    f(1);
+  }
+
+
 10/27/20 [EDGcpfe/23496]
 Microsoft C++ compatibility: Converting 0 to a nontype pointer parameter
 
@@ -52,6 +70,7 @@ its destination type, even if the latter type is nondependent.  As a result,
 the interpreter expanded the initializer into an object (variable s) that does
 not match the layout of the initializer constant, leading to invalid memory
 accesses later on.  This problem is now fixed.
+
 
 
 10/26/20 [EDGcpfe/22840]
