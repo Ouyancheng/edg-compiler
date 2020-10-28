@@ -12120,7 +12120,8 @@ indication in *rcblock).
   } else if (rcblock == NULL &&
              ((is_alias_in_template_decl_context() &&
                enclosing_scope_is_prototype_instantiation_context()) ||
-              (pedep != NULL && is_template_dependent_context()))) {
+              (is_template_dependent_context() &&
+               (pedep != NULL || in_ms_nonreal_class_instantiation())))) {
     /* For the prototype instantiation, return an enk_sizeof_pack
        expression as a template constant.  When pedep is NULL, this is
        a nondependent expansion in a prototype instantiation context.

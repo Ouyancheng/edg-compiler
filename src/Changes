@@ -1,5 +1,28 @@
 Version 6.2
 
+10/28/20 [EDGcpfe/23241]
+Microsoft compatibility: pack expansions and Microsoft nonreal base classes
+
+In Microsoft mode, the front end emulates a Microsoft feature that finds
+certain names in dependent base classes (see EDGcpfe/12786).  That
+emulation could cause incorrect behavior when a sizeof...() operator was
+used in a variadic template in a class that was instantiated as a nonreal
+base class.  Now fixed.
+
+  template <int> struct A;
+  template <> struct A<1> {
+    template <typename A0> struct B {
+      typedef int X;
+    };
+  };
+  template <typename T, typename... Ts> struct C {
+    // Was 'too many arguments for class template "A<1>::B"'
+    typedef typename A<sizeof...(Ts) + 1>::template B<int, Ts...>::X& X;
+  };
+  template <typename T> struct D : C<T> {};
+
+
+
 10/27/20 [EDGcpfe/23377]
 Argument-dependent lookup and local classes
 

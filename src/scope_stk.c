@@ -10279,7 +10279,8 @@ scope or template instantiation scope for a prototype instantiation.
   /* A template instantiation scope must be for a prototype instantiation. */
   check_assertion(depth_to_use != NO_SCOPE_DEPTH);
   check_assertion(ssep->kind == (a_scope_kind)sck_template_declaration ||
-                  ssep->in_prototype_instantiation);
+                  ssep->in_prototype_instantiation ||
+                  in_ms_nonreal_class_instantiation());
   return ssep;
 }  /* get_outermost_template_dependent_context */
 
@@ -11822,7 +11823,8 @@ that *p_pedp is set even when FALSE is returned.
   pedp = get_pack_expansion_for_curr_context();
   *p_pedp = pedp;
   if (pedp != NULL) {
-    if (!is_prototype_instantiation_context()) {
+    if (!is_prototype_instantiation_context() &&
+        !in_ms_nonreal_class_instantiation()) {
       result = TRUE;
     } else if (pedp->uses_only_enclosing_packs &&
                is_real_instantiation_context()) {
@@ -11965,7 +11967,8 @@ suppression is on the stack.
       if (!is_lookahead) skip_pack_expansion_tokens(pedp);
       any_args = FALSE;
     }  /* if */
-  } else if (is_prototype_instantiation_context()) {
+  } else if (is_prototype_instantiation_context() ||
+             in_ms_nonreal_class_instantiation()) {
     any_args = TRUE;
     pesep = push_pack_expansion_stack();
     if (pedp != NULL) {
