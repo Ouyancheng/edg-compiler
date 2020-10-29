@@ -1445,15 +1445,17 @@ Issue an appropriate diagnostic at the given position.
     /* In non-strict modes, issue a warning on a compiler-generated
        constructor, destructor, or assignment operator.  Issue a discretionary
        error in C++11 and later modes, a warning in nonstrict C++03 mode. */
-    pos_sy2_diagnostic(cpp11_mode       ? es_discretionary_error :
-                       strict_ansi_mode ? strict_ansi_discretionary_severity
-                                        : es_warning,
+    pos_sy2_diagnostic(!exceptions_enabled ? es_warning :
+                       cpp11_mode          ? es_discretionary_error :
+                       strict_ansi_mode    ? strict_ansi_discretionary_severity
+                                           : es_warning,
                        ec_generated_exception_spec_override_incompat,
                        source_pos, overrider, overridden);
   } else {
     /* Early Microsoft compilers didn't diagnose this (and in fact, they didn't
        do much with exception specifications at all). */
-    pos_sy2_diagnostic((ms_extensions && microsoft_version < 1929) ?
+    pos_sy2_diagnostic(((ms_extensions && microsoft_version < 1929) ||
+                        !exceptions_enabled) ?
                                           es_warning : es_discretionary_error,
                        ec_exception_spec_override_incompat,
                        source_pos, overrider, overridden);
@@ -30852,9 +30854,6 @@ flag is set in the class symbol supplement of the given type.
       /* Aggregate class types are literal types if they meet the previous
          constraints. */
       cssp->known_to_be_a_literal_type = TRUE;
-      if (class_type_supp(type)->has_field_initializer) {
-        (void)check_if_constexpr_generated_default_constructor(type);
-      }  /* if */
     } else if ((cssp->trivial_default_constructor != NULL &&
                 cssp->trivial_default_constructor
                     ->variant.routine.ptr->is_constexpr) ||

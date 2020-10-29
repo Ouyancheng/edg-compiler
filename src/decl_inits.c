@@ -6137,8 +6137,7 @@ expressions.  For the latter, see init_capture_initializer below.)
   last_discriminator_for_curr_field_initializer =
                                 last_discriminator_for_prev_field_initializer;
 #endif /* NEED_NAME_MANGLING */
-  if (--parent_cssp->num_unparsed_field_initializers == 0 &&
-      !class_type->incomplete) {
+  if (--parent_cssp->num_unparsed_field_initializers == 0) {
     /* This was the last unparsed field initializer.  Some actions and
        properties may have been delayed until now. */
     update_class_for_last_parsed_field_initializer(class_type);
