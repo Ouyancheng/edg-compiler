@@ -2476,8 +2476,7 @@ public:
   void process_ifc_declaration(a_module_entity_ptr mep,
                                a_boolean           defer,
                                a_type_ptr          enumeration_type) const;
-  void get_definition_of_module_class(a_module_entity_ptr mep,
-                                      a_text_buffer       *buffer)
+  void complete_definition_of_module_class(a_module_entity_ptr mep)
                                                                 const OVERRIDE;
 
 #if DEBUG
@@ -2549,6 +2548,8 @@ private:
                               a_symbol_locator   *loc) const;
   a_constant_ptr constant_for_expr_index(ifc_ExprIndex expr_index,
                                          a_type_ptr    default_type) const;
+  /* Queries. */
+  a_boolean is_class_scope(ifc_DeclIndex scope) const;
   /* Token caching. */
   void cache_scope(a_token_cache_ptr  cache,
                    ifc_ScopeIndex     scope,
@@ -2615,8 +2616,35 @@ private:
                                ifc_SourceIdentifier  id,
                                ifc_Index             index,
                                ifc_SourceLocation    *locus) const;
+  void cache_decl_class(a_token_cache_ptr     cache,
+                        an_ifc_DeclSort_Scope *decl) const;
   void cache_decl_template(a_token_cache_ptr        cache,
                            an_ifc_DeclSort_Template *decl) const;
+  void cache_variable_decl(a_token_cache_ptr   cache,
+                           a_boolean           is_class_member,
+                           ifc_Access          access,
+                           ifc_BasicSpecifiers specifiers,
+                           ifc_ObjectTraits    traits,
+                           ifc_ExprIndex       alignment,
+                           ifc_TypeIndex       type,
+                           ifc_NameIndex       name,
+                           ifc_TextOffset      raw_name,
+                           ifc_ExprIndex       width,
+                           ifc_ExprIndex       initializer,
+                           ifc_SourceLocation  *locus) const;
+  void cache_function_decl(a_token_cache_ptr         cache,
+                           a_boolean                 is_class_member,
+                           a_boolean                 is_dtor,
+                           ifc_Access                access,
+                           ifc_CallingConvention     calling_conv,
+                           ifc_FunctionTraits        func_traits,
+                           ifc_FunctionTypeTraits    func_type_traits,
+                           ifc_TypeIndex             return_type,
+                           ifc_NameIndex             name,
+                           ifc_ChartIndex            params,
+                           ifc_TypeIndex             param_types,
+                           ifc_NoexceptSpecification *eh_spec,
+                           ifc_SourceLocation        *locus) const;
   void cache_name(a_token_cache_ptr  cache,
                   ifc_NameIndex      name,
                   ifc_SourceLocation *locus) const;
@@ -2658,6 +2686,7 @@ private:
                 an_ifc_partition_kind partition,
                 an_ifc_get_func       get_func,
                 T*                    storage) const;
+  ifc_ChartIndex get_func_params_from_trait(ifc_DeclIndex decl) const;
   /* Stringizers. */
   void str_ifc_text_offset(ifc_TextOffset     offset,
                            a_str_control_block *scbp) const;

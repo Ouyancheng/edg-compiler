@@ -647,25 +647,27 @@ scope.
 }  /* define_names_from_scope */
 
 
-/*lint -esym(714,*get_definition_of_module_class)*/  /* FIXME: Temporary */
-void get_definition_of_module_class(a_type_ptr    class_type,
-                                    a_text_buffer *buffer)
+void complete_definition_of_module_class(a_type_ptr class_type)
 /*
-This routine is called (from get_definition_of_class) when the front end has
-determined that the class is defined in a module and now needs a definition.
-Create a textual representation of that class (starting with the base class
-list, if any) from information in the module file and return it in buffer.
+This routine is called (via complete_class_type_is_needed) when the front end
+has determined that the class is defined in a module and now needs a
+definition.  Complete the given class's definition from the information
+contained in the module that provided the class.
 */
 {
   a_class_type_supplement_ptr   ctsp = class_type_supp(class_type);
   a_module_entity_ptr           mep = ctsp->module_entity;
 
   check_assertion(mep != NULL);
-  mep->module_info->module_interface->
-                                   get_definition_of_module_class(mep, buffer);
-  /* Once the class is defined, there is no need for this information. */
-  ctsp->module_entity = NULL;
-}  /* get_definition_of_module_class */
+  if (!class_type->definition_pending) {
+    class_type->definition_pending = TRUE;
+    mep->module_info->module_interface->
+                                      complete_definition_of_module_class(mep);
+    /* Once the class is defined, there is no need for this information. */
+    ctsp->module_entity = NULL;
+    class_type->definition_pending = FALSE;
+  }  /* if */
+}  /* complete_definition_of_module_class */
 
 
 static a_hash_table_ptr
@@ -863,12 +865,11 @@ Set the name of this module to the provided module_name.
 
 #if !USE_VIRTUAL_FUNCTIONS
 
-void a_module_interface::get_definition_of_module_class(
-                                                   a_module_entity_ptr mep,
-                                                   a_text_buffer       *buffer)
+void a_module_interface::complete_definition_of_module_class(
+                                                       a_module_entity_ptr mep)
                                                                           const
 /*
-Dispatch the get_definition_of_module_class() call to the variant for the
+Dispatch the complete_definition_of_module_class() call to the variant for the
 actual object.
 */
 {
@@ -877,17 +878,17 @@ actual object.
       /* This is the actual object. */
       break;
     case mk_edg:
-      ((an_edg_module*)this)->get_definition_of_module_class(mep, buffer);
+      ((an_edg_module*)this)->complete_definition_of_module_class(mep);
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case mk_ifc:
-      ((an_ifc_module*)this)->get_definition_of_module_class(mep, buffer);
+      ((an_ifc_module*)this)->complete_definition_of_module_class(mep);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     default:
       unexpected_condition();
   }  /* switch */
-}  /* get_definition_of_module_class */
+}  /* complete_definition_of_module_class */
 
 #if DEBUG
 

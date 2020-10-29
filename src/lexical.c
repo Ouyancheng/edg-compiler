@@ -23170,8 +23170,8 @@ C++/CLI delegate class types.)
 #endif /* CPPCLI_ENABLING_POSSIBLE */
 
   class_sym = symbol_for(class_type);
-  if (class_type->incomplete && !class_type->definition_pending) {
 #if CPPCLI_ENABLING_POSSIBLE
+  if (class_type->incomplete && !class_type->definition_pending) {
     if (ctsp->assembly_scope_index != 0 &&
         ctsp->metadata_type_def_token != 0) {
       /* The class is from an assembly.  Load the definition of the class
@@ -23189,13 +23189,9 @@ C++/CLI delegate class types.)
       } else {
         define_class = TRUE;
       }  /* if */
-    } else
-#endif /* CPPCLI_ENABLING_POSSIBLE */
-    /* Do not insert code here. */
-    if (ctsp->module_entity != NULL) {
-      define_class = TRUE;
-    }  /* if */
+    } /* if */
   }  /* if */
+#endif /* CPPCLI_ENABLING_POSSIBLE */
   /* This routine cannot handle local classes. */
   if (class_type->source_corresp.is_local_to_function) {
     define_class = FALSE;
@@ -23261,55 +23257,46 @@ C++/CLI delegate class types.)
                                       class_type->source_corresp.name_linkage;
   if (class_def_buffer == NULL) class_def_buffer = alloc_text_buffer(1024);
   reset_text_buffer(class_def_buffer);
-  if (ctsp->module_entity != NULL) {
-    /* This class was declared in a module.  Load its definition now. */
-    get_definition_of_module_class(class_type, class_def_buffer);
-  }  /* if */
+  check_assertion(ctsp->module_entity == NULL);
 #if CPPCLI_ENABLING_POSSIBLE
-  /* Do not insert code here. */
-  else {
-    /* Get the definition from metadata.  */
-    size = class_def_buffer->allocated_size;
-    import_class_definition(assembly_scope_index, 
+  /* Get the definition from metadata.  */
+  size = class_def_buffer->allocated_size;
+  import_class_definition(assembly_scope_index,
+                          metadata_type_def_token,
+                          class_def_buffer->buffer, &size, &is_delegate);
+  if (size <= class_def_buffer->allocated_size) {
+    /* The buffer fits.  Mark the size that has been written. */
+    class_def_buffer->size = size;
+  } else {
+    /* Expand the buffer */
+    reset_text_buffer(class_def_buffer);
+    expand_text_buffer(class_def_buffer, size);
+    import_class_definition(assembly_scope_index,
                             metadata_type_def_token,
                             class_def_buffer->buffer, &size, &is_delegate);
-    if (size <= class_def_buffer->allocated_size) {
-      /* The buffer fits.  Mark the size that has been written. */
-      class_def_buffer->size = size;
-    } else {
-      /* Expand the buffer */
-      reset_text_buffer(class_def_buffer);
-      expand_text_buffer(class_def_buffer, size);
-      import_class_definition(assembly_scope_index,
-                              metadata_type_def_token,
-                              class_def_buffer->buffer, &size, &is_delegate);
-      check_assertion(size <= class_def_buffer->allocated_size);
-      class_def_buffer->size = size;
-    }  /* if */
+    check_assertion(size <= class_def_buffer->allocated_size);
+    class_def_buffer->size = size;
+  }  /* if */
 #if DEBUG
-    if (db_flag_is_set("dump_metadata") ||
-        db_flag_is_set("dump_full_metadata")) {
-      fprintf(f_debug, "Class definition for 0x%x/0x%08x: ",
-              assembly_scope_index, metadata_type_def_token);
-      db_dump_metadata(class_def_buffer, db_flag_is_set("dump_metadata") ? 256
-                                                                         : 0);
-    }  /* if */
+  if (db_flag_is_set("dump_metadata") ||
+      db_flag_is_set("dump_full_metadata")) {
+    fprintf(f_debug, "Class definition for 0x%x/0x%08x: ",
+            assembly_scope_index, metadata_type_def_token);
+    db_dump_metadata(class_def_buffer, db_flag_is_set("dump_metadata") ? 256
+                                                                        : 0);
+  }  /* if */
 #endif /* DEBUG */
-  }  /* if */
 #else /* !CPPCLI_ENABLING_POSSIBLE */
-  /* Do not insert code here. */
-  else {
-    /* Add code here to construct in the text buffer the string to be used to
-       define the class.  It may also be desirable to disable macro expansion
-       while the tokens are being scanned.  This shows a simple class
-       definition:
-         add_string_to_text_buffer(class_def_buffer,
-                                   "{int i; void f(int j=1){} };");
-       Note that the definition starts with what would appear after the
-       class name in a normal class definition (i.e., the base classes or
-       the opening brace of the class) and ends with the closing brace and
-       semicolon. */
-  }  /* if */
+  /* Add code here to construct in the text buffer the string to be used to
+     define the class.  It may also be desirable to disable macro expansion
+     while the tokens are being scanned.  This shows a simple class
+     definition:
+       add_string_to_text_buffer(class_def_buffer,
+                                 "{int i; void f(int j=1){} };");
+     Note that the definition starts with what would appear after the
+     class name in a normal class definition (i.e., the base classes or
+     the opening brace of the class) and ends with the closing brace and
+     semicolon. */
 #endif /* CPPCLI_ENABLING_POSSIBLE */
 #if CPPCLI_ENABLING_POSSIBLE
   if (assembly_index != 0) {
@@ -23325,6 +23312,7 @@ C++/CLI delegate class types.)
     /* Insert the definition as though it's at the current token. */
     position_for_tokens = pos_curr_token;
   }  /* if */
+  check_assertion(class_def_buffer->size != 0);
   /* Terminate the buffer. */
   add_char_to_text_buffer(class_def_buffer, '\0');
   insert_string_into_token_stream(class_def_buffer->buffer,

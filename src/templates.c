@@ -4846,8 +4846,12 @@ be completed here.
       is_cli_generic_class_definition_symbol(instance_sym)) {
     /* Not a class based on a class template or the class that is generated
        to represent the definition of a C++/CLI generic class. */
+    if (class_type_supp(class_type)->module_entity != NULL) {
+      complete_definition_of_module_class(class_type);
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (class_type->variant.class_struct_union.is_generic_constraint) {
+    /* Do not insert code here. */
+    else if (class_type->variant.class_struct_union.is_generic_constraint) {
       complete_generic_constraint_type(class_type);
 #if GET_DEFINITION_OF_CLASS_NEEDED
     } else if (class_type_supp(class_type)->assoc_scope == NULL) {

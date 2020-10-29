@@ -341,7 +341,9 @@ IFC_DECL_END(DeclSort_Reference)
 
 /* DeclSort::UsingDeclaration */
 IFC_DECL_START(DeclSort_UsingDeclaration)
-  IFC_DECL_FIELD(name, NameIndex)
+  /* The IFC spec says this is a NameIndex, however, the contents of the IFC
+     files indicate it's a TextOffset. */
+  IFC_DECL_FIELD(name, TextOffset)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(home_scope, DeclIndex)
   IFC_DECL_FIELD(resolution, DeclIndex)

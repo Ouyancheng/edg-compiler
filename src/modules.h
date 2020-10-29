@@ -126,8 +126,7 @@ struct a_module_interface {
 
 /* Module interface functions. */
   void set_name(a_const_char *module_name);
-  VIRTUAL void get_definition_of_module_class(a_module_entity_ptr mep,
-                                              a_text_buffer       *buffer)
+  VIRTUAL void complete_definition_of_module_class(a_module_entity_ptr mep)
                                                                 const ABSTRACT;
 
 #if DEBUG
@@ -164,8 +163,7 @@ extern void import_module_file(a_module_import_decl_ptr midp);
 extern void define_names_from_scope(a_scope_ptr     scope,
                                     a_symbol_header *sym_hdr);
 
-extern void get_definition_of_module_class(a_type_ptr    class_type,
-                                           a_text_buffer *buffer);
+extern void complete_definition_of_module_class(a_type_ptr class_type);
 
 extern a_hash_value hash_module_entity(a_void_ptr  key);
 
@@ -198,9 +196,8 @@ struct an_edg_module : public a_module_interface {
   NORETURN void pch_reset(ARG_UNUSED a_module_import_decl_ptr midp) OVERRIDE
     { unexpected_condition_str("Unimplemented"); }
 
-  NORETURN void get_definition_of_module_class(
-                                      ARG_UNUSED a_module_entity_ptr mep,
-                                      ARG_UNUSED a_text_buffer       *buffer)
+  NORETURN void complete_definition_of_module_class(
+                                            ARG_UNUSED a_module_entity_ptr mep)
                                                                  const OVERRIDE
     { unexpected_condition_str("Unimplemented"); }
 

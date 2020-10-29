@@ -2992,28 +2992,104 @@ class_struct_union_case:
 }  /* process_ifc_declaration */
 
 
-void an_ifc_module::get_definition_of_module_class(a_module_entity_ptr mep,
-                                                   a_text_buffer       *buffer)
+void an_ifc_module::complete_definition_of_module_class(
+                                                       a_module_entity_ptr mep)
                                                                           const
 /*
-This routine is called (from get_definition_of_class) when the front end has
-determined that the class that corresponds to module entity mep needs a
-definition.  Create a textual representation of that class (starting with the
-base class list, if any) from information in the module file and return it in
-buffer.
+Complete the definition of the class referred to by mep (if needed).
 */
 {
-  a_str_control_block   scb;
+  a_type_ptr            class_type = (a_type_ptr)mep->entity.ptr;
   an_ifc_DeclSort_Scope idss, *idssp;
-  a_module_ptr          mod = mep->module_info;
+  a_token_cache         cache;
 
-  clear_str_control_block(&scb, mod, buffer);
-  scb.is_generated_code = TRUE;
+  check_assertion(mep->entity.kind == (an_il_entry_kind)iek_type &&
+                  class_type != NULL);
   read_partition_at_offset(mep->variant.ifc_partition, mep->file_offset);
   idssp = get_DeclSort_Scope(&idss);
-  str_ifc_class_definition(idssp, &scb);
-  add_char_to_text_buffer(buffer, ';');
-}  /* get_definition_of_module_class */
+#if DEBUG
+  /* FIXME: This section becomes irrelevant once str_ifc_class_definition is
+     switched to use the token caching methods internally, and should be
+     removed once that switch is done.  Until then, this serves as a useful
+     tool to compare behavior changes with older versions where class
+     definition used the str_ifc_class_definition function. */
+  if (db_flag_is_set("ms_ifc_token_def")) {
+    a_str_control_block scb;
+    a_module_ptr        mod = mep->module_info;
+    a_text_buffer_ptr   buffer = alloc_text_buffer(1024);
+
+    reset_text_buffer(buffer);
+    clear_str_control_block(&scb, mod, buffer);
+    scb.is_generated_code = TRUE;
+    str_ifc_class_definition(idssp, &scb);
+    add_char_to_text_buffer(buffer, ';');
+    add_char_to_text_buffer(buffer, '\0');
+    fprintf(f_debug, "Class def using str_ifc_class_definition:\n%s\n"
+                     "-----------------------------------------\n",
+            buffer->buffer);
+  }  /* if */
+#endif /* DEBUG */
+  if (class_type->incomplete && idssp->initializer != 0) {
+    a_template_decl_info_ptr tdip;
+    a_symbol_ptr             class_sym = symbol_for(class_type);
+    a_scope_depth            saved_non_local_class_fixup_depth =
+                                                   non_local_class_fixup_depth;
+    clear_token_cache(&cache, /*reuseable=*/FALSE);
+    cache_decl_class(&cache, idssp);
+    terminate_token_cache(&cache);
+#if DEBUG
+    if (db_flag_is_set("ms_ifc_token_def")) {
+      pos_in_temp_text_buffer = 0;
+      add_token_cache_to_string(&cache);
+      fprintf(stderr, "Class def using cache_decl_class:\n%s\n"
+                      "---------------------------------\n", temp_text_buffer);
+    }  /* if */
+#endif /* DEBUG */
+    rescan_cached_tokens(&cache);
+    tdip = alloc_template_decl_info();
+    set_template_decl_info_for_class_definition(tdip, class_type);
+    (void)push_template_instantiation_scope(
+                              tdip, class_type,
+                              (a_routine_ptr)NULL, class_sym,
+                              class_sym, (a_template_arg_ptr)NULL,
+                              /*push_lex_state=*/TRUE,
+                              PS_CLASS_DEFINITION_CONTEXT);
+    /* Set the fixup depth for non-local classes to the context scope pushed
+       above so that classes created by this routine will be fixed up by
+       process_deferred_class_fixups_and_instantiations. */
+    non_local_class_fixup_depth = depth_scope_stack;
+    /* By default, the instantiation scope context pushed by the call to
+       push_template_instantiation_scope just copies the name linkage from the
+       previous entry on the scope stack, which may not be related to that of
+       the class. */
+    scope_stack_top().default_name_linkage =
+                                       class_type->source_corresp.name_linkage;
+    (void)scan_class_definition(class_type, (a_decl_parse_state*)NULL,
+                                depth_innermost_namespace_scope,
+                                /*is_partial=*/FALSE,
+                                /*is_local_class=*/FALSE,
+                                /*delayed_nested_class_def=*/
+                                    class_type->source_corresp.is_class_member,
+                                /*is_template_instantiation=*/FALSE,
+                                /*is_template_specialization=*/FALSE,
+                                (a_template_ptr)NULL,
+                                (a_decl_pos_block_ptr)NULL);
+    process_deferred_class_fixups_and_instantiations(
+                                                   /*for_instantiation=*/TRUE);
+    if (curr_token != tok_semicolon) {
+      expect_error();
+      flush_tokens_without_warning();
+    } else {
+      (void)get_token();
+    }  /* if */
+    check_assertion(curr_token == tok_end_of_source);
+    (void)get_token();
+    check_assertion(!class_type->incomplete);
+    non_local_class_fixup_depth = saved_non_local_class_fixup_depth;
+    pop_template_instantiation_scope();
+    free_template_decl_info(tdip);
+  }  /* if */
+}  /* complete_definition_of_module_class */
 
 #if DEBUG
 
@@ -4256,19 +4332,19 @@ Given a declaration, return the name associated with that declaration.
     case ifc_DeclSort_Constructor:
       { an_ifc_DeclSort_Constructor idsc, *idscp;
         idscp = get_DeclSort_Constructor(&idsc);
-        result = get_string_at_offset(idscp->name);
+        result = name_from_decl(idscp->home_scope);
       }
       break;
     case ifc_DeclSort_InheritedConstructor:
       { an_ifc_DeclSort_InheritedConstructor idscic, *idscicp;
         idscicp = get_DeclSort_InheritedConstructor(&idscic);
-        result = get_string_at_offset(idscicp->name);
+        result = name_from_decl(idscicp->home_scope);
       }
       break;
     case ifc_DeclSort_Destructor:
       { an_ifc_DeclSort_Destructor idsd, *idsdp;
         idsdp = get_DeclSort_Destructor(&idsd);
-        result = get_string_at_offset(idsdp->name);
+        result = name_from_decl(idsdp->home_scope);
       }
       break;
     case ifc_DeclSort_Reference:
@@ -4280,7 +4356,7 @@ Given a declaration, return the name associated with that declaration.
     case ifc_DeclSort_UsingDeclaration:
       { an_ifc_DeclSort_UsingDeclaration idsud, *idsudp;
         idsudp = get_DeclSort_UsingDeclaration(&idsud);
-        result = string_from_name_index(idsudp->name, /*loc=*/NULL);
+        result = get_string_at_offset(idsudp->name);
       }
       break;
     case ifc_DeclSort_UsingDirective:
@@ -4542,7 +4618,6 @@ FIXME: what other expressions can we get here?
         if (ieslp->type == 0) {
           /* If the expression doesn't have its own type, use the default
              type provided by the caller. */
-          check_assertion(default_type != NULL);
           constant_type = default_type;
         } else {
           constant_type = type_for_type_index(ieslp->type, /*kind=*/NULL);
@@ -4557,6 +4632,7 @@ FIXME: what other expressions can we get here?
                             (a_host_large_unsigned)literal_index(ieslp->value),
                             (an_integer_kind)ik_unsigned_int);
             } else {
+              check_assertion(constant_type != NULL);
               stripped_type = skip_typerefs(constant_type);
               check_assertion(stripped_type->kind == (a_type_kind)tk_integer);
               set_unsigned_integer_constant(cp,
@@ -4570,6 +4646,7 @@ FIXME: what other expressions can we get here?
             { an_integer_value value;
               char             raw_val[64/CHAR_BIT];
 
+              check_assertion(constant_type != NULL);
               cp = alloc_constant(ck_integer);
               read_partition_at_index(ifc_const_i64,
                                       literal_index(ieslp->value));
@@ -4619,6 +4696,38 @@ FIXME: what other expressions can we get here?
   }  /* switch */
   return cp;
 }  /* constant_for_expr_index */
+
+
+a_boolean an_ifc_module::is_class_scope(ifc_DeclIndex scope) const
+/*
+Return TRUE if the provided scope is a class/struct/union scope, FALSE
+otherwise.
+*/
+{
+  a_boolean                   result = FALSE;
+
+  if (decl_tag(scope) == ifc_DeclSort_Scope) {
+    an_ifc_DeclSort_Scope       idss, *idssp;
+    an_ifc_TypeSort_Fundamental itsf, *itsfp;
+    read_partition_at_index(scope);
+    idssp = get_DeclSort_Scope(&idss);
+    check_assertion(type_tag(idssp->type) == ifc_TypeSort_Fundamental);
+    read_partition_at_index(idssp->type);
+    itsfp = get_TypeSort_Fundamental(&itsf);
+    switch (itsfp->basis) {
+      case ifc_TypeBasis_Class:
+      case ifc_TypeBasis_Struct:
+      case ifc_TypeBasis_Union:
+      case ifc_TypeBasis_Interface:
+        result = TRUE;
+        break;
+      default:
+        result = FALSE;
+        break;
+    }  /* switch */
+  }  /* if */
+  return result;
+}  /* is_class_scope */
 
 
 static void cache_token(a_token_cache_ptr     cache,
@@ -4789,6 +4898,38 @@ Add the pragma given by kind to cache.  pos is the position of the pragma.
   cache->pragma_count++;
 #endif /* DEBUG */
 }  /* cache_pragma */
+
+
+static void cache_access(a_token_cache_ptr     cache,
+                         ifc_Access            access,
+                         a_boolean             cache_colon,
+                         a_source_position_ptr pos)
+/*
+Add tokens corresponding to access (if any) to cache.  If cache_colon is TRUE,
+cache a tok_colon after the access specifier.  pos is the position of the
+access specifier.
+*/
+{
+  switch (access) {
+    case ifc_Access_None:
+      cache_colon = FALSE;
+      /* Nothing to cache. */
+      break;
+    case ifc_Access_Private:
+      cache_token(cache, tok_private, pos);
+      break;
+    case ifc_Access_Protected:
+      cache_token(cache, tok_protected, pos);
+      break;
+    case ifc_Access_Public:
+      cache_token(cache, tok_public, pos);
+      break;
+    default_is_unexpected();
+  }  /* switch */
+  if (cache_colon) {
+    cache_token(cache, tok_colon, pos);
+  }  /* if */
+}  /* cache_access */
 
 
 void an_ifc_module::cache_source_directive(a_token_cache_ptr   cache,
@@ -5950,6 +6091,29 @@ done:;
 }  /* cache_sentence */
 
 
+static void cache_object_traits(a_token_cache_ptr     cache,
+                                ifc_ObjectTraits      traits,
+                                a_source_position_ptr pos)
+/*
+Add the tokens corresponding to the given object traits to cache.  pos is the
+position to use for the traits.
+*/
+{
+  if (traits & ifc_ObjectTraits_Mutable) {
+    cache_token(cache, tok_mutable, pos);
+  }  /* if */
+  if (traits & ifc_ObjectTraits_Inline) {
+    cache_token(cache, tok_inline, pos);
+  }  /* if */
+  if (traits & ifc_ObjectTraits_Constexpr) {
+    cache_token(cache, tok_constexpr, pos);
+  }  /* if */
+  if (traits & ifc_ObjectTraits_ThreadLocal) {
+    cache_token(cache, tok_thread_local, pos);
+  }  /* if */
+}  /* cache_object_traits */
+
+
 static void cache_func_traits(a_token_cache_ptr     cache,
                               ifc_FunctionTraits    traits,
                               a_boolean             trailing,
@@ -6000,7 +6164,7 @@ position to use for the traits.
     unexpected_condition_str("Contrained functions are not yet supported");
   }  /* if */
   if (traits & ifc_FunctionTraits_Vendor) {
-    unexpected_condition();
+    /* FIXME: Handle MSVC-specific traits. */
   }  /* if */
 }  /* cache_func_traits */
 
@@ -6070,7 +6234,8 @@ Add the tokens corresponding to the given exception specification (eh_spec) to
 cache.  pos is the position of the exception specification.
 */
 {
-  if (eh_spec->sort == ifc_NoexceptSort_None) goto done;
+  if (eh_spec->sort == ifc_NoexceptSort_None ||
+      eh_spec->sort == ifc_NoexceptSort_Inferred) goto done;
   cache_token(cache, tok_noexcept, pos);
   cache_token(cache, tok_lparen, pos);
   switch (eh_spec->sort) {
@@ -6083,12 +6248,13 @@ cache.  pos is the position of the exception specification.
     case ifc_NoexceptSort_Expression:
       cache_sentence(cache, eh_spec->words);
       break;
-    case ifc_NoexceptSort_Inferred:
-      unexpected_condition_str("NoexceptSort::Inferred is not yet supported");
-      break;
     case ifc_NoexceptSort_Unenforced:
       unexpected_condition_str("NoexceptSort::Unenforced "
                                "is not yet supported");
+      break;
+    case ifc_NoexceptSort_Inferred:
+      /* Unreachable, but place here to have all enums covered. */
+      unexpected_condition_str("NoexceptSort::Inferred is not expected here");
       break;
     case ifc_NoexceptSort_None:
       /* Unreachable, but place here to have all enums covered. */
@@ -6099,6 +6265,28 @@ cache.  pos is the position of the exception specification.
   cache_token(cache, tok_rparen, pos);
 done:;
 }  /* cache_exception_spec */
+
+
+static void cache_basic_specifiers(a_token_cache_ptr     cache,
+                                   ifc_BasicSpecifiers   specifiers,
+                                   a_source_position_ptr pos)
+/*
+Add tokens corresponding to specifiers to cache.  pos is the position of the
+specifier(s).
+*/
+{
+  if (specifiers & ifc_BasicSpecifiers_C) {
+    cache_token(cache, tok_extern, pos);
+    cache_string_literal(cache, chk_char, "C", 2, pos);
+  }  /* if */
+  if (specifiers & ifc_BasicSpecifiers_Deprecated) {
+    cache_token(cache, tok_lbracket, pos);
+    cache_token(cache, tok_lbracket, pos);
+    cache_identifier(cache, "deprecated", pos);
+    cache_token(cache, tok_rbracket, pos);
+    cache_token(cache, tok_rbracket, pos);
+  }  /* if */
+}  /* cache_basic_specifiers */
 
 
 void an_ifc_module::cache_scope(a_token_cache_ptr  cache,
@@ -6297,7 +6485,11 @@ location of the entity referring to the type.
       }
       break;
     case ifc_TypeSort_Deduced:
-      unexpected_condition_str("TypeSort::Deduced is not yet supported");
+      { an_ifc_TypeSort_Deduced itsd, *itsdp;
+        itsdp = get_TypeSort_Deduced(&itsd);
+        /* FIXME: How to distinguish between "auto" and "decltype(auto)"? */
+        cache_token(cache, tok_auto, &pos);
+      }
       break;
     case ifc_TypeSort_Syntactic:
       { an_ifc_TypeSort_Syntactic itss, *itssp;
@@ -6363,13 +6555,33 @@ location of the entity referring to the type.
       }
       break;
     case ifc_TypeSort_Function:
-      unexpected_condition_str("TypeSort::Function is not yet supported");
+      { an_ifc_TypeSort_Function itsf, *itsfp;
+        itsfp = get_TypeSort_Function(&itsf);
+        cache_type(cache, itsfp->target, locus);
+        cache_calling_convention(cache, itsfp->convention, &pos);
+        cache_token(cache, tok_lparen, &pos);
+        if (itsfp->source != 0) {
+          cache_type(cache, itsfp->source, locus);
+        }  /* if */
+        cache_token(cache, tok_rparen, &pos);
+        cache_func_type_traits(cache, itsfp->traits, &pos);
+        cache_exception_spec(cache, &itsfp->eh_spec, &pos);
+      }
       break;
     case ifc_TypeSort_Method:
       unexpected_condition_str("TypeSort::Method is not yet supported");
       break;
     case ifc_TypeSort_Array:
-      unexpected_condition_str("TypeSort::Array is not yet supported");
+      { an_ifc_TypeSort_Array itsa, *itsap;
+        itsap = get_TypeSort_Array(&itsa);
+        /* FIXME: Currently this puts the size before the name, e.g., int[3]
+           arr.  Multi-dimensional arrays need special handling for the element
+           as well. */
+        cache_type(cache, itsap->element, locus);
+        cache_token(cache, tok_lbracket, &pos);
+        cache_expr(cache, itsap->extent);
+        cache_token(cache, tok_rbracket, &pos);
+      }
       break;
     case ifc_TypeSort_Typename:
       { an_ifc_TypeSort_Typename itst, *itstp;
@@ -6394,10 +6606,26 @@ location of the entity referring to the type.
       }
       break;
     case ifc_TypeSort_Base:
-      unexpected_condition_str("TypeSort::Base is not yet supported");
+      { an_ifc_TypeSort_Base itsb, *itsbp;
+        itsbp = get_TypeSort_Base(&itsb);
+        cache_access(cache, itsbp->access, /*cache_colon=*/FALSE, &pos);
+        if (itsbp->shared) {
+          cache_token(cache, tok_virtual, &pos);
+        }  /* if */
+        cache_type(cache, itsbp->type, locus);
+        if (itsbp->pack_expanded) {
+          cache_token(cache, tok_ellipsis, &pos);
+        }  /* if */
+      }
       break;
     case ifc_TypeSort_Decltype:
-      unexpected_condition_str("TypeSort::Decltype is not yet supported");
+      { an_ifc_TypeSort_Decltype itsd, *itsdp;
+        itsdp = get_TypeSort_Decltype(&itsd);
+        cache_token(cache, tok_decltype, &pos);
+        cache_token(cache, tok_lparen, &pos);
+        cache_syntax(cache, itsdp->expr);
+        cache_token(cache, tok_rparen, &pos);
+      }
       break;
     case ifc_TypeSort_Placeholder:
       { an_ifc_TypeSort_Placeholder itsp, *itspp;
@@ -6414,7 +6642,20 @@ location of the entity referring to the type.
       }
       break;
     case ifc_TypeSort_Tuple:
-      unexpected_condition_str("TypeSort::Tuple is not yet supported");
+      { an_ifc_TypeSort_Tuple itst, *itstp;
+        unsigned int i;
+        itstp = get_TypeSort_Tuple(&itst);
+        for (i = 0; i < itstp->cardinality; ++i) {
+          ifc_TypeIndex ti;
+          read_partition_at_index(ifc_heap_type,
+                                  itstp->start + i);
+          GET_TypeIndex(ti, /*from_header=*/FALSE);
+          cache_type(cache, ti, locus);
+          if (i+1 < itstp->cardinality) {
+            cache_token(cache, tok_comma, &pos);
+          }  /* if */
+        }  /* for */
+      }
       break;
     case ifc_TypeSort_Forall:
       unexpected_condition_str("TypeSort::Forall is not yet supported");
@@ -7272,6 +7513,154 @@ the location of the operator.
 }  /* cache_operator */
 
 
+void an_ifc_module::cache_variable_decl(a_token_cache_ptr   cache,
+                                        a_boolean           is_class_member,
+                                        ifc_Access          access,
+                                        ifc_BasicSpecifiers specifiers,
+                                        ifc_ObjectTraits    traits,
+                                        ifc_ExprIndex       alignment,
+                                        ifc_TypeIndex       type,
+                                        ifc_NameIndex       name,
+                                        ifc_TextOffset      raw_name,
+                                        ifc_ExprIndex       width,
+                                        ifc_ExprIndex       initializer,
+                                        ifc_SourceLocation  *locus) const
+/*
+Add the tokens corresponding to the given variable declaration to cache.
+is_class_member is TRUE if this is a non-static data member of a class.
+access, specifiers, traits, alignment, and type are values from the IFC file
+that describe the variable declaration.  Both name and raw_name provide the
+name of the variable - if name is zero, raw_name must non-zero.  If width is
+not zero, this is a bitfield and width is its size.  If the variable has an
+initializer then initializer is non-zero and refers to the initializer
+expression.  locus is the source location for the declaration.
+*/
+{
+  a_source_position pos;
+  a_boolean         decl_in_class;
+
+  decl_in_class = is_class_member || access != ifc_Access_None;
+  source_position_from_locus(&pos, locus);
+  if (decl_in_class) {
+    cache_access(cache, access, /*cache_colon=*/TRUE, &pos);
+  }  /* if */
+  cache_basic_specifiers(cache, specifiers, &pos);
+  if (!is_class_member && decl_in_class) {
+    /* This is a static data member. */
+    cache_token(cache, tok_static, &pos);
+  }  /* if */
+  cache_object_traits(cache, traits, &pos);
+  if (alignment != 0) {
+    cache_token(cache, tok_alignas, &pos);
+    cache_token(cache, tok_lparen, &pos);
+    cache_expr(cache, alignment);
+    cache_token(cache, tok_rparen, &pos);
+  }  /* if */
+  cache_type(cache, type, locus);
+  if (name != 0) {
+    cache_name(cache, name, locus);
+  } else {
+    check_assertion(raw_name != 0);
+    cache_identifier(cache, get_string_at_offset(raw_name), &pos);
+  }  /* if */
+  if (width != 0) {
+    cache_token(cache, tok_colon, &pos);
+    cache_expr(cache, width);
+  }  /* if */
+  /* FIXME: The initializer index sometimes has invalid values.  Treat all
+     variables as uninitialized for now.  This will be a problem for constexpr,
+     but is preferable to the alternative (aborting). */
+  initializer = (ifc_ExprIndex)0;
+  if (initializer != 0) {
+    cache_token(cache, tok_assign, &pos);
+    cache_expr(cache, initializer);
+  }  /* if */
+  cache_token(cache, tok_semicolon, &pos);
+}  /* cache_variable_decl */
+
+
+void an_ifc_module::cache_function_decl(
+                                    a_token_cache_ptr         cache,
+                                    a_boolean                 is_class_member,
+                                    a_boolean                 is_dtor,
+                                    ifc_Access                access,
+                                    ifc_CallingConvention     calling_conv,
+                                    ifc_FunctionTraits        func_traits,
+                                    ifc_FunctionTypeTraits    func_type_traits,
+                                    ifc_TypeIndex             return_type,
+                                    ifc_NameIndex             name,
+                                    ifc_ChartIndex            params,
+                                    ifc_TypeIndex             param_types,
+                                    ifc_NoexceptSpecification *eh_spec,
+                                    ifc_SourceLocation        *locus) const
+/*
+Add the tokens corresponding to the given function declaration to cache.
+is_class_member is TRUE if this is a non-static member of a class.  is_dtor is
+TRUE if this is a destructor declaration.  access, calling_conv, func_traits,
+func_type_traits, eh_spec, and name are values from the IFC file that describe
+the function.  return_type is the return type of the function (0 if there is no
+return type, i.e., the function is a constructor).  params is the parameter
+list (0 if there are no parameters) and param_types are the parameter types.
+locus is the position of the function declaration.
+*/
+{
+  a_source_position pos;
+  a_boolean         decl_in_class;
+
+  decl_in_class = is_class_member || access != ifc_Access_None;
+  source_position_from_locus(&pos, locus);
+  if (decl_in_class) {
+    cache_access(cache, access, /*cache_colon=*/TRUE, &pos);
+  }  /* if */
+  if (!is_class_member && decl_in_class) {
+    /* This is a static member function. */
+    cache_token(cache, tok_static, &pos);
+  }  /* if */
+  cache_func_traits(cache, func_traits, /*trailing=*/FALSE, &pos);
+  if (return_type != 0) {
+    cache_type(cache, return_type, locus);
+  }  /* if */
+  cache_calling_convention(cache, calling_conv, &pos);
+  if (is_dtor) {
+    cache_token(cache, tok_compl, &pos);
+  }  /* if */
+  cache_name(cache, name, locus);
+  cache_token(cache, tok_lparen, &pos);
+  if (params != 0) {
+    /* The parameters have detailed information associated with them, use
+       that. */
+    cache_chart(cache, params, locus);
+  } else if (param_types != 0) {
+    /* The only information we have on the parameters are their types. */
+    cache_type(cache, param_types, locus);
+  }  /* if */
+  cache_token(cache, tok_rparen, &pos);
+  cache_func_type_traits(cache, func_type_traits, &pos);
+  cache_exception_spec(cache, eh_spec, &pos);
+  cache_func_traits(cache, func_traits, /*trailing=*/TRUE, &pos);
+  cache_token(cache, tok_semicolon, &pos);
+}  /* cache_function_decl */
+
+
+void an_ifc_module::cache_decl_class(a_token_cache_ptr     cache,
+                                     an_ifc_DeclSort_Scope *decl) const
+/*
+Add the tokens corresponding to the given class declaration (decl) to cache.
+This will not cache the class name and type (class/struct/union).
+*/
+{
+  a_source_position pos;
+
+  source_position_from_locus(&pos, &decl->locus);
+  if (decl->base != 0) {
+    cache_token(cache, tok_colon, &pos);
+    cache_type(cache, decl->base, &decl->locus);
+  }  /* if */
+  cache_scope(cache, decl->initializer, &decl->locus);
+  cache_token(cache, tok_semicolon, &pos);
+}  /* cache_decl_class */
+
+
 void an_ifc_module::cache_decl_template(a_token_cache_ptr        cache,
                                         an_ifc_DeclSort_Template *decl) const
 /*
@@ -7326,8 +7715,15 @@ Add the tokens corresponding to the given template declaration (decl) to cache.
     }  /* if */
   } else {
     /* Variable template. */
-    cache_decl(cache, (ifc_DeclIndex)decl->entity.index);
-    (void)cache_sentence(cache, decl->entity.body);
+    /* FIXME: Cache the entity corresponding to decl->entity.index instead.
+       Currently this may be missing information, so use the soon-to-be-removed
+       entity.head instead. */
+    cache_sentence(cache, decl->entity.head);
+    if (decl->entity.body != 0) {
+      (void)cache_sentence(cache, decl->entity.body);
+    } else {
+      cache_token(cache, tok_semicolon, &pos);
+    }  /* if */
   }  /* if */
 }  /* cache_decl_template */
 
@@ -7347,14 +7743,33 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       unexpected_condition();
       break;
     case ifc_DeclSort_Enumerator:
-      unexpected_condition_str("DeclSort::Enumerator is not yet supported");
+      { an_ifc_DeclSort_Enumerator idse, *idsep;
+        /* An enumerator declaration is part of an enumeration declaration.
+           The type, access, and specifiers should all be handled by the parent
+           declaration. */
+        idsep = get_DeclSort_Enumerator(&idse);
+        source_position_from_locus(&pos, &idsep->locus);
+        cache_identifier(cache, get_string_at_offset(idsep->name), &pos);
+        if (idsep->initializer != 0) {
+          cache_token(cache, tok_assign, &pos);
+          cache_expr(cache, idsep->initializer);
+        }  /* if */
+      }
       break;
     case ifc_DeclSort_Variable:
       { an_ifc_DeclSort_Variable idsv, *idsvp;
+        ifc_Access               access = ifc_Access_None;
+
         idsvp = get_DeclSort_Variable(&idsv);
         source_position_from_locus(&pos, &idsvp->locus);
-        cache_type(cache, idsvp->type, &idsvp->locus);
-        cache_name(cache, idsvp->name, &idsvp->locus);
+        if (is_class_scope(idsvp->home_scope)) {
+          access = idsvp->access;
+        }  /* if */
+        cache_variable_decl(cache, /*is_class_member=*/FALSE, access,
+                            idsvp->specifier, idsvp->traits, idsvp->alignment,
+                            idsvp->type, idsvp->name, (ifc_TextOffset)0,
+                            (ifc_ExprIndex)0, idsvp->initializer,
+                            &idsvp->locus);
       }
       break;
     case ifc_DeclSort_Parameter:
@@ -7394,14 +7809,35 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       }
       break;
     case ifc_DeclSort_Field:
-      unexpected_condition_str("DeclSort::Field is not yet supported");
+      { an_ifc_DeclSort_Field idsf, *idsfp;
+        idsfp = get_DeclSort_Field(&idsf);
+        check_assertion((idsfp->specifier & ifc_BasicSpecifiers_C) == 0);
+        cache_variable_decl(cache, /*is_class_member=*/TRUE, idsfp->access,
+                            idsfp->specifier, idsfp->traits, idsfp->alignment,
+                            idsfp->type, (ifc_NameIndex)0, idsfp->name,
+                            (ifc_ExprIndex)0, idsfp->initializer,
+                            &idsfp->locus);
+      }
       break;
     case ifc_DeclSort_Bitfield:
-      unexpected_condition_str("DeclSort::Bitfield is not yet supported");
+      { an_ifc_DeclSort_Bitfield idsbf, *idsbfp;
+        idsbfp = get_DeclSort_Bitfield(&idsbf);
+        check_assertion((idsbfp->specifier & ifc_BasicSpecifiers_C) == 0);
+        check_assertion(idsbfp->width != 0);
+        cache_variable_decl(cache, /*is_class_member=*/TRUE, idsbfp->access,
+                            idsbfp->specifier, idsbfp->traits,
+                            (ifc_ExprIndex)0, idsbfp->type, (ifc_NameIndex)0,
+                            idsbfp->name, idsbfp->width, idsbfp->initializer,
+                            &idsbfp->locus);
+      }
       break;
     case ifc_DeclSort_Scope:
       { an_ifc_DeclSort_Scope idss, *idssp;
+        an_ifc_TypeSort_Fundamental itsf, *itsfp;
         idssp = get_DeclSort_Scope(&idss);
+        check_assertion(type_tag(idssp->type) == ifc_TypeSort_Fundamental);
+        read_partition_at_index(idssp->type);
+        itsfp = get_TypeSort_Fundamental(&itsf);
         source_position_from_locus(&pos, &idssp->locus);
         cache_type(cache, idssp->type, &idssp->locus);
         cache_name(cache, idssp->name, &idssp->locus);
@@ -7410,14 +7846,80 @@ Add the tokens corresponding to the given declaration (decl) to cache.
           cache_type(cache, idssp->base, &idssp->locus);
         }  /* if */
         cache_scope(cache, idssp->initializer, &idssp->locus);
-        cache_token(cache, tok_semicolon, &pos);
+        if (itsfp->basis != ifc_TypeBasis_Namespace) {
+          cache_token(cache, tok_semicolon, &pos);
+        }  /* if */
       }
       break;
     case ifc_DeclSort_Enumeration:
-      unexpected_condition_str("DeclSort::Enumeration is not yet supported");
+      { an_ifc_DeclSort_Enumeration idse, *idsep;
+        an_ifc_TypeSort_Fundamental itsf, *itsfp;
+        idsep = get_DeclSort_Enumeration(&idse);
+        check_assertion(type_tag(idsep->type) == ifc_TypeSort_Fundamental);
+        read_partition_at_index(idsep->type);
+        itsfp = get_TypeSort_Fundamental(&itsf);
+        source_position_from_locus(&pos, &idsep->locus);
+        if (is_class_scope(idsep->home_scope)) {
+          cache_access(cache, idsep->access, /*cache_colon=*/TRUE, &pos);
+        }  /* if */
+        cache_basic_specifiers(cache, idsep->specifiers, &pos);
+        switch (itsfp->basis) {
+          case ifc_TypeBasis_Enum:
+            cache_token(cache, tok_enum, &pos);
+            break;
+          case ifc_TypeBasis_Struct:
+            cache_token(cache, tok_enum_struct, &pos);
+            break;
+          case ifc_TypeBasis_Class:
+            cache_token(cache, tok_enum_class, &pos);
+            break;
+          default:
+            unexpected_condition();
+        }  /* switch */
+        if (idsep->alignment != 0) {
+          cache_token(cache, tok_alignas, &pos);
+          cache_token(cache, tok_lparen, &pos);
+          cache_expr(cache, idsep->alignment);
+          cache_token(cache, tok_rparen, &pos);
+        }  /* if */
+        cache_identifier(cache, get_string_at_offset(idsep->name), &pos);
+        if (idsep->base != 0) {
+          cache_token(cache, tok_colon, &pos);
+          cache_type(cache, idsep->base, &idsep->locus);
+        }  /* if */
+        if (idsep->initializer.cardinality != 0) {
+          cache_token(cache, tok_lbrace, &pos);
+          for (uint32_t idx = 0; idx < idsep->initializer.cardinality; ++idx) {
+            if (idx > 0) {
+              cache_token(cache, tok_comma, &pos);
+            }  /* if */
+            cache_decl(cache, make_decl_index(ifc_DeclSort_Enumerator,
+                                              idsep->initializer.start + idx));
+          }  /* for */
+          cache_token(cache, tok_rbrace, &pos);
+        }  /* if */
+        cache_token(cache, tok_semicolon, &pos);
+      }
       break;
     case ifc_DeclSort_Alias:
-      unexpected_condition_str("DeclSort::Alias is not yet supported");
+      { an_ifc_DeclSort_Alias       idsa, *idsap;
+        an_ifc_TypeSort_Fundamental itsf, *itsfp;
+        idsap = get_DeclSort_Alias(&idsa);
+        check_assertion(type_tag(idsap->type) == ifc_TypeSort_Fundamental);
+        read_partition_at_index(idsap->type);
+        itsfp = get_TypeSort_Fundamental(&itsf);
+        cache_access(cache, idsap->access, /*cache_colon=*/TRUE, &pos);
+        if (itsfp->basis == ifc_TypeBasis_Typename) {
+          cache_token(cache, tok_using, &pos);
+        } else {
+          check_assertion(itsfp->basis == ifc_TypeBasis_Namespace);
+          cache_token(cache, tok_namespace, &pos);
+        }  /* if */
+        cache_identifier(cache, get_string_at_offset(idsap->name), &pos);
+        cache_token(cache, tok_assign, &pos);
+        cache_type(cache, idsap->aliasee, &idsap->locus);
+        cache_token(cache, tok_semicolon, &pos);
+      }
       break;
     case ifc_DeclSort_Temploid:
       unexpected_condition_str("DeclSort::Temploid is not yet supported");
@@ -7446,53 +7948,113 @@ Add the tokens corresponding to the given declaration (decl) to cache.
     case ifc_DeclSort_Function:
       { an_ifc_DeclSort_Function idsf, *idsfp;
         an_ifc_TypeSort_Function itsf, *itsfp;
+        ifc_ChartIndex           params = (ifc_ChartIndex)0;
+        ifc_Access               access = ifc_Access_None;
+
         idsfp = get_DeclSort_Function(&idsf);
-        source_position_from_locus(&pos, &idsfp->locus);
         check_assertion(type_tag(idsfp->type) == ifc_TypeSort_Function);
         read_partition_at_index(idsfp->type);
         itsfp = get_TypeSort_Function(&itsf);
-        if (idsfp->access != ifc_Access_None) {
-          /* This is a static member function. */
-          cache_token(cache, tok_static, &pos);
-        }  /* if */
-        cache_func_traits(cache, idsfp->traits, /*trailing=*/FALSE, &pos);
-        cache_type(cache, itsfp->target, &idsfp->locus);
-        cache_calling_convention(cache, itsfp->convention, &pos);
-        cache_name(cache, idsfp->name, &idsfp->locus);
-        cache_token(cache, tok_lparen, &pos);
         if (itsfp->source != 0) {
-          an_ifc_Trait_MsvcFuncParams itmfp, *itmfpp;
-          itmfpp = find_trait(decl, ifc_msvc_trait_named_func_params,
-                              &an_ifc_module::get_Trait_MsvcFuncParams,
-                              &itmfp);
-          check_assertion(itmfpp != NULL);
-          cache_chart(cache, itmfpp->params, &idsfp->locus);
+          params = get_func_params_from_trait(decl);
         }  /* if */
-        cache_token(cache, tok_rparen, &pos);
-        cache_exception_spec(cache, &itsfp->eh_spec, &pos);
-        cache_func_type_traits(cache, itsfp->traits, &pos);
-        cache_func_traits(cache, idsfp->traits, /*trailing=*/TRUE, &pos);
+        if (is_class_scope(idsfp->home_scope)) {
+          access = idsfp->access;
+        }  /* if */
+        cache_function_decl(cache, /*class_member=*/FALSE, /*is_dtor=*/FALSE,
+                            access, itsfp->convention, idsfp->traits,
+                            itsfp->traits, itsfp->target, idsfp->name, params,
+                            itsfp->source, &itsfp->eh_spec, &idsfp->locus);
       }
       break;
     case ifc_DeclSort_Method:
-      unexpected_condition_str("DeclSort::Method is not yet supported");
+      { an_ifc_DeclSort_Method idsm, *idsmp;
+        an_ifc_TypeSort_Method itsm, *itsmp;
+        ifc_ChartIndex         params = (ifc_ChartIndex)0;
+        ifc_TypeIndex          target = (ifc_TypeIndex)0;
+
+        idsmp = get_DeclSort_Method(&idsm);
+        check_assertion(type_tag(idsmp->type) == ifc_TypeSort_Method);
+        read_partition_at_index(idsmp->type);
+        itsmp = get_TypeSort_Method(&itsm);
+        check_assertion(idsmp->access != ifc_Access_None);
+        if (name_tag(idsmp->name) == ifc_NameSort_Conversion) {
+          /* This is a conversion function, so the return type should not be
+             cached. */
+        } else {
+          target = itsmp->target;
+        }  /* if */
+        if (itsmp->source != 0) {
+          params = get_func_params_from_trait(decl);
+        }  /* if */
+        cache_function_decl(cache, /*class_member=*/TRUE, /*is_dtor=*/FALSE,
+                            idsmp->access, itsmp->convention, idsmp->traits,
+                            itsmp->traits, target, idsmp->name, params,
+                            itsmp->source, &itsmp->eh_spec, &idsmp->locus);
+      }
       break;
     case ifc_DeclSort_Constructor:
-      unexpected_condition_str("DeclSort::Constructor is not yet supported");
+      { an_ifc_DeclSort_Constructor idsc, *idscp;
+        an_ifc_DeclSort_Scope       idss, *idssp;
+        ifc_ChartIndex              params = (ifc_ChartIndex)0;
+
+        idscp = get_DeclSort_Constructor(&idsc);
+        check_assertion(decl_tag(idscp->home_scope) == ifc_DeclSort_Scope);
+        read_partition_at_index(idscp->home_scope);
+        idssp = get_DeclSort_Scope(&idss);
+        if (idscp->source != 0) {
+          params = get_func_params_from_trait(decl);
+        }  /* if */
+        cache_function_decl(cache, /*class_member=*/TRUE, /*is_dtor=*/FALSE,
+                            idscp->access, idscp->convention, idscp->traits,
+                            (ifc_FunctionTypeTraits)0, (ifc_TypeIndex)0,
+                            idssp->name, params, idscp->source,
+                            &idscp->eh_spec, &idscp->locus);
+      }
       break;
     case ifc_DeclSort_InheritedConstructor:
-      unexpected_condition_str("DeclSort::InheritedConstructor "
-                               "is not yet supported");
+      { an_ifc_DeclSort_InheritedConstructor idsic, *idsicp;
+        idsicp = get_DeclSort_InheritedConstructor(&idsic);
+        source_position_from_locus(&pos, &idsicp->locus);
+        cache_token(cache, tok_using, &pos);
+        cache_name_from_decl(cache, idsicp->base_ctor, &idsicp->locus);
+        cache_token(cache, tok_colon_colon, &pos);
+        cache_name_from_decl(cache, idsicp->base_ctor, &idsicp->locus);
+        cache_token(cache, tok_semicolon, &pos);
+      }
       break;
     case ifc_DeclSort_Destructor:
-      unexpected_condition_str("DeclSort::Destructor is not yet supported");
+      { an_ifc_DeclSort_Destructor idsd, *idsdp;
+        an_ifc_DeclSort_Scope      idss, *idssp;
+
+        idsdp = get_DeclSort_Destructor(&idsd);
+        check_assertion(decl_tag(idsdp->home_scope) == ifc_DeclSort_Scope);
+        read_partition_at_index(idsdp->home_scope);
+        idssp = get_DeclSort_Scope(&idss);
+        cache_function_decl(cache, /*class_member=*/TRUE, /*is_dtor=*/TRUE,
+                            idsdp->access, idsdp->convention, idsdp->traits,
+                            (ifc_FunctionTypeTraits)0, (ifc_TypeIndex)0,
+                            idssp->name, (ifc_ChartIndex)0, (ifc_TypeIndex)0,
+                            &idsdp->eh_spec, &idsdp->locus);
+      }
       break;
     case ifc_DeclSort_Reference:
       unexpected_condition_str("DeclSort::Reference is not yet supported");
       break;
     case ifc_DeclSort_UsingDeclaration:
-      unexpected_condition_str("DeclSort::UsingDeclaration "
-                               "is not yet supported");
+      { an_ifc_DeclSort_UsingDeclaration idsud, *idsudp;
+        idsudp = get_DeclSort_UsingDeclaration(&idsud);
+        source_position_from_locus(&pos, &idsudp->locus);
+        cache_access(cache, idsudp->access, /*cache_colon=*/TRUE, &pos);
+        cache_basic_specifiers(cache, idsudp->specifiers, &pos);
+        cache_token(cache, tok_using, &pos);
+        if (idsudp->parent != 0) {
+          cache_expr(cache, idsudp->parent);
+          cache_token(cache, tok_colon_colon, &pos);
+        }  /* if */
+        cache_identifier(cache, get_string_at_offset(idsudp->name), &pos);
+        cache_token(cache, tok_semicolon, &pos);
+      }
       break;
     case ifc_DeclSort_UsingDirective:
       unexpected_condition_str("DeclSort::UsingDirective "
@@ -7521,7 +8083,28 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       unexpected_condition_str("DeclSort::Intrinsic is not yet supported");
       break;
     case ifc_DeclSort_Property:
-      unexpected_condition_str("DeclSort::Property is not yet supported");
+      { an_ifc_DeclSort_Property idsp, *idspp;
+        idspp = get_DeclSort_Property(&idsp);
+        /* FIXME: The declaration for idspp->member contains the preamble that
+           must appear before the property declspec, but also the remainder
+           that must appear after.  For now, just ignore the property. */
+#if 0
+        cache_token(cache, tok_declspec, &pos);
+        cache_token(cache, tok_lparen, &pos);
+        cache_identifier(cache, "property", &pos);
+        cache_token(cache, tok_lparen, &pos);
+        cache_identifier(cache, "get", &pos);
+        cache_token(cache, tok_assign, &pos);
+        cache_identifier(cache, get_string_at_offset(idspp->getter), &pos);
+        cache_token(cache, tok_comma, &pos);
+        cache_identifier(cache, "put", &pos);
+        cache_token(cache, tok_assign, &pos);
+        cache_identifier(cache, get_string_at_offset(idspp->setter), &pos);
+        cache_token(cache, tok_rparen, &pos);
+        cache_token(cache, tok_rparen, &pos);
+#endif /* 0 */
+        cache_decl(cache, idspp->member);
+      }
       break;
     case ifc_DeclSort_OutputSegment:
       unexpected_condition_str("DeclSort::OutputSegment is not yet supported");
@@ -7730,7 +8313,14 @@ Add the tokens corresponding to the given expression (expr) to cache.
       unexpected_condition_str("ExprSort::Temporary is not yet supported");
       break;
     case ifc_ExprSort_Call:
-      unexpected_condition_str("ExprSort::Call is not yet supported");
+      { an_ifc_ExprSort_Call iesc, *iescp;
+        iescp = get_ExprSort_Call(&iesc);
+        source_position_from_locus(&pos, &iescp->locus);
+        cache_expr(cache, iescp->operation);
+        cache_token(cache, tok_lparen, &pos);
+        cache_expr(cache, iescp->arguments);
+        cache_token(cache, tok_rparen, &pos);
+      }
       break;
     case ifc_ExprSort_MemberInitializer:
       unexpected_condition_str("ExprSort::MemberInitializer "
@@ -7906,6 +8496,7 @@ Add the tokens corresponding to the given syntax tree to cache.
 {
   ifc_SyntaxSort tag = syntax_tag(syntax);
 
+  read_partition_at_index(syntax);
   switch (tag) {
     case ifc_SyntaxSort_VendorExtension:
       unexpected_condition();
@@ -7915,8 +8506,10 @@ Add the tokens corresponding to the given syntax tree to cache.
                                "is not yet handled");
       break;
     case ifc_SyntaxSort_DecltypeSpecifier:
-      unexpected_condition_str("SyntaxSort::DecltypeSpecifier "
-                               "is not yet handled");
+      { an_ifc_SyntaxSort_DecltypeSpecifier issds, *issdsp;
+        issdsp = get_SyntaxSort_DecltypeSpecifier(&issds);
+        cache_expr(cache, issdsp->expr);
+      }
       break;
     case ifc_SyntaxSort_PlaceholderTypeSpecifier:
       unexpected_condition_str("SyntaxSort::PlaceholderTypeSpecifier "
@@ -8365,6 +8958,7 @@ of the name.
   ifc_NameSort      tag = name_tag(name);
   ifc_TextOffset    ident;
   a_source_position pos;
+  a_boolean         interpret_name_as_tokens = FALSE;
 
   source_position_from_locus(&pos, locus);
   read_partition_at_index(name);
@@ -8402,18 +8996,23 @@ of the name.
         an_operator_kind         opkind;
         insop = get_NameSort_Operator(&inso);
         opkind = get_operator_kind(insop->op);
-        if (!(opkind == opkind_basic || opkind == opkind_post)) {
-          unexpected_condition_str("Unexpected operator kind");
-        }  /* if */
         ident = insop->encoded;
+        interpret_name_as_tokens = TRUE;
         goto cache_op;
       }
     case ifc_NameSort_Conversion:
       { an_ifc_NameSort_Conversion insc, *inscp;
+        a_type_ptr                 target_type;
+        a_const_char               *name;
         inscp = get_NameSort_Conversion(&insc);
-        ident = inscp->encoded;
-        goto cache_op;
+        target_type = type_for_type_index(inscp->target, /*kind=*/NULL);
+        /* Note that inscp->encoded contains the mangled name of the
+           conversion function, so use the name from the type instead. */
+        name = get_type_name(target_type);
+        cache_token(cache, tok_operator, &pos);
+        cache_tokens_from_string(name, cache, &pos);
       }
+      break;
     case ifc_NameSort_Literal:
       { an_ifc_NameSort_Literal insl, *inslp;
         inslp = get_NameSort_Literal(&insl);
@@ -8421,7 +9020,11 @@ of the name.
 cache_op:
         cache_token(cache, tok_operator, &pos);
 cache_ident:
-        cache_identifier(cache, get_string_at_offset(ident), &pos);
+        if (interpret_name_as_tokens) {
+          cache_tokens_from_string(get_string_at_offset(ident), cache, &pos);
+        } else {
+          cache_identifier(cache, get_string_at_offset(ident), &pos);
+        }  /* if */
       }
       break;
     case ifc_NameSort_Guide:
@@ -8442,8 +9045,8 @@ void an_ifc_module::cache_name_from_decl(a_token_cache_ptr  cache,
                                          ifc_DeclIndex      decl,
                                          ifc_SourceLocation *locus) const
 /*
-Add the tokens corresponding to the given declaration (decl) name to cache.
-locus is the location of the declaration.
+Add the tokens corresponding to the given declaration's (decl) name to cache.
+locus is the location of the name use.
 */
 {
   a_source_position pos;
@@ -8719,6 +9322,30 @@ done:
 }  /* find_trait */
 
 
+ifc_ChartIndex an_ifc_module::get_func_params_from_trait(ifc_DeclIndex decl)
+                                                                          const
+/*
+Find and return the index to the named function parameters corresponding to
+decl, or 0 if not found.
+*/
+{
+  an_ifc_Trait_MsvcFuncParams itmfp, *itmfpp;
+  ifc_ChartIndex              params = (ifc_ChartIndex)0;
+
+  itmfpp = find_trait(decl, ifc_msvc_trait_named_func_params,
+                      &an_ifc_module::get_Trait_MsvcFuncParams,
+                      &itmfp);
+  if (itmfpp != NULL) {
+    params = itmfpp->params;
+  }  /* if */
+  return params;
+}  /* get_func_params_from_trait */
+
+/*
+FIXME: Eliminate all str_ifc_* functions, or replace with a version that
+caches tokens and stringizes that cache, in order to avoid having to duplicate
+logic everywhere.
+*/
 void an_ifc_module::str_ifc_text_offset(ifc_TextOffset      offset,
                                         a_str_control_block *scbp) const
 /*
