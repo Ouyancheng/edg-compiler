@@ -41,7 +41,7 @@ modes.
 Implicit noexcept and anonymous unions
 
 The front end previously ignored anonymous union members when determining the
-implicit exception specification of special members.  For example:
+implicit exception specification of destructors.  For example:
 
   struct ND { ~ND() noexcept(false); };
   struct VED { virtual ~VED() noexcept(true); };
