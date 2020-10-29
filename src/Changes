@@ -1,5 +1,42 @@
 Version 6.2
 
+10/29/20 [EDGcpfe/23504]
+Overload resolution tie breaks based on inheritance
+
+Consider:
+
+  struct B {
+    B(int, int = 0);
+    void f(int = 0);
+  };
+  struct C: B {
+    using B::B;  // Inheriting constructor.
+    C(int);
+    using B::f;
+    void f();
+  };
+  struct D: C {
+    using C::C;
+    using C::f;
+  };
+  int main() {
+    D d(1);  // Previously ambiguous.  Now okay.
+    d.f();   // Previously always ambiguous.  Now okay in some GNU modes.
+  }
+
+The initialization "D d(1);" has to perform overload resolution between the
+inherited C::C(int) constructor and the inherited B::B(int, int = 0);
+constructor.  They match equally well as far as the constructor arguments go,
+and the front end therefor previously reported an ambiguity.  However, the
+standard includes a tie-breaking rule that prefers the constructor in the more
+derived class in such cases (i.e., the C::C(int) constructor in this example).
+That tie-breaking rule is now implemented.  The standard rule only applies to
+constructors, and the call d.f() therefore remains ambiguous in most cases.
+However, GCC 7.x and later appear to apply to constructor rule also to other
+member functions: The front end now emulates that behavior in corresponding GNU
+modes.
+
+
 10/28/20 [EDGcpfe/23485]
 Implicit noexcept and anonymous unions
 

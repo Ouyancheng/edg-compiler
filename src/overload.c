@@ -8399,6 +8399,85 @@ done:
 }  /* compare_deduction_guides_if_applicable */
 
 
+static int check_inheritance_for_ovl_res(a_candidate_function_ptr cfp1,
+                                         a_candidate_function_ptr cfp2)
+/*
+N4868 [over.match.best.general] bullet (2.7) has a special tie-breaking rule
+for constructors (at least one of which must be an inheriting constructor):
+If one constructor originates from a base class of the other one, the second
+one ("more derived") is preferred, provided that the parameter types of both
+constructors are identical for every provided argument.  GCC 7.x and later
+apparently extend that rule to ordinary member functions as well.
+*/
+{
+  int            result = 0;
+  a_routine_ptr  rp1, rp2;
+  a_symbol_ptr   sym1 = cfp1->function_symbol, sym2 = cfp2->function_symbol;
+
+  if (sym1 == NULL || sym2 == NULL) {
+    goto done;
+  }  /* if */
+  /* First obtain the inheriting constructor or projected member function. */
+  sym1 = fundamental_symbol_of(sym1);
+  if (is_simple_function_symbol(sym1)) {
+    rp1 = sym1->variant.routine.ptr;
+  } else if (symbol_is(sym1, sk_function_template)) {
+    rp1 = sym1->variant.template_info->variant.function.routine;
+  } else {
+    goto done;
+  }  /* if */
+  sym2 = fundamental_symbol_of(sym2);
+  if (is_simple_function_symbol(sym2)) {
+    rp2 = sym2->variant.routine.ptr;
+  } else if (symbol_is(sym2, sk_function_template)) {
+    rp2 = sym2->variant.template_info->variant.function.routine;
+  } else {
+    goto done;
+  }  /* if */
+  /* Check if an inheriting constructor or, in GCC mode, a class-member
+     using-declaration is involved. */
+  if (rp1->special_kind == rp2->special_kind &&
+      (rp1->is_inheriting_ctor || rp2->is_inheriting_ctor ||
+       (gpp_version_is(>=70000) && rp1->source_corresp.is_class_member &&
+        (is_class_member_using_decl_symbol(cfp1->function_symbol) ||
+         is_class_member_using_decl_symbol(cfp2->function_symbol))))) {
+    a_param_type_ptr         ptp1, ptp2;
+    an_arg_match_summary_ptr amsp = cfp1->arg_matches;
+    a_type_ptr               ctp1, ctp2;
+    if (rp1->is_inheriting_ctor || rp2->is_inheriting_ctor) {
+      rp1 = get_inh_ctor_originator(rp1);
+      rp2 = get_inh_ctor_originator(rp2);
+    }  /* if */
+    /* For every argument, compare the corresponding parameter types.  If they
+       are not identical, the candidates are not ordered. */
+    if (amsp != NULL && amsp->is_match_for_this_param) {
+      /* Ignore the "*this" argument. */
+      amsp = amsp->next;
+    }  /* if */
+    ptp1 = function_type_params(rp1->type);
+    ptp2 = function_type_params(rp2->type);
+    for (; amsp != NULL; amsp = amsp->next) {
+      if (!identical_types(ptp1->type, ptp2->type)) {
+        goto done;
+      }  /* if */
+    }  /* if */
+    /* Finally, compare the candidates' parent classes and set the result
+       accordingly. */
+    ctp1 = parent_class_of(rp1);
+    ctp2 = parent_class_of(rp2);
+    if (find_base_class_of(ctp1, ctp2) != NULL) {
+      /* ctp2 is a base class of ctp1: Prefer candidate 1. */
+      result = +1;
+    } else if (find_base_class_of(ctp2, ctp1) != NULL) {
+      /* ctp1 is a base class of ctp2: Prefer candidate 2. */
+      result = -1;
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* check_inheritance_for_ovl_res */
+
+
 static int compare_candidate_functions(a_candidate_function_ptr cfp1,
                                        a_candidate_function_ptr cfp2)
 /*
@@ -8479,6 +8558,7 @@ other.  Return
   } else if (gpp_mode &&
              (cmp = compare_gpp_const_this_tiebreaker(cfp1, cfp2)) != 0) {
     /* g++ has a tiebreaker related to const "this" parameters. */
+  } else if ((cmp = check_inheritance_for_ovl_res(cfp1, cfp2)) != 0) {
   } else if (cfp1->is_function_template && cfp2->is_function_template &&
              (cmp = compare_function_templates_for_ovl_res(cfp1, cfp2)) != 0) {
     /* cfp1 and cfp2 are function templates and one is more specialized than
