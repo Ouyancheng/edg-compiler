@@ -12521,10 +12521,19 @@ unions, this function may call itself recursively.
     a_symbol_ptr          field_sym = symbol_for(fp);
     a_type_ptr            tp, utp;
     if (fp->is_anonymous_parent_object &&
-        (sfkind == sfk_destructor || sfkind == sfk_constructor) &&
+        (sfkind == (a_special_function_kind)sfk_destructor ||
+         sfkind == (a_special_function_kind)sfk_constructor) &&
         !(ms_version_is(<1929) && !rp->compiler_generated)) {
       a_field_ptr  variants = fp->type->variant.class_struct_union.field_list;
-      update_generated_exception_spec_for_fields(rp, variants, p_throw_any);
+      if (variants != NULL) {
+        /* Recursively process anonymous union members, but ensure that any
+           default member initializers have been parsed first. */
+        inclass_initializer_fixup_for_class(
+                   parent_class_of(variants),
+                   class_type->variant.class_struct_union.is_template_class &&
+                     !class_type->variant.class_struct_union.is_specialized);
+        update_generated_exception_spec_for_fields(rp, variants, p_throw_any);
+      }  /* if */
     }  /* if */
     if (field_sym != NULL && field_sym->is_error) {
       /* Don't attempt to process error fields since that may very well just
