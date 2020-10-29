@@ -6485,9 +6485,7 @@ location of the entity referring to the type.
       }
       break;
     case ifc_TypeSort_Deduced:
-      { an_ifc_TypeSort_Deduced itsd, *itsdp;
-        itsdp = get_TypeSort_Deduced(&itsd);
-        /* FIXME: How to distinguish between "auto" and "decltype(auto)"? */
+      { /* FIXME: How to distinguish between "auto" and "decltype(auto)"? */
         cache_token(cache, tok_auto, &pos);
       }
       break;
@@ -8995,7 +8993,6 @@ of the name.
       { an_ifc_NameSort_Operator inso, *insop;
         an_operator_kind         opkind;
         insop = get_NameSort_Operator(&inso);
-        opkind = get_operator_kind(insop->op);
         ident = insop->encoded;
         interpret_name_as_tokens = TRUE;
         goto cache_op;
