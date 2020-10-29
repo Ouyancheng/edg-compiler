@@ -8993,6 +8993,11 @@ of the name.
       { an_ifc_NameSort_Operator inso, *insop;
         an_operator_kind         opkind;
         insop = get_NameSort_Operator(&inso);
+        opkind = get_operator_kind(insop->op);
+        if (!(opkind == opkind_basic || opkind == opkind_post ||
+              opkind == opkind_func_like)) {
+          unexpected_condition_str("Unexpected operator kind");
+        }  /* if */
         ident = insop->encoded;
         interpret_name_as_tokens = TRUE;
         goto cache_op;
