@@ -30859,6 +30859,9 @@ flag is set in the class symbol supplement of the given type.
       /* Aggregate class types are literal types if they meet the previous
          constraints. */
       cssp->known_to_be_a_literal_type = TRUE;
+      if (class_type_supp(type)->has_field_initializer) {
+        (void)check_if_constexpr_generated_default_constructor(type);
+      }  /* if */
     } else if ((cssp->trivial_default_constructor != NULL &&
                 cssp->trivial_default_constructor
                     ->variant.routine.ptr->is_constexpr) ||
