@@ -5719,7 +5719,7 @@ a_module_ptr alloc_module(a_module_kind kind)
 Allocate and return an IL entry for a module.
 */
 {
-  a_module_ptr mep = alloc_cil_of_type(a_module);
+  a_module_ptr mep = alloc_il_of_type(a_module);
 
   mep->kind = kind;
   mep->name = NULL;
@@ -5738,7 +5738,7 @@ pointer to it.  The entry is allocated in the current memory region.
 {
   a_module_import_decl_ptr  entry;
 
-  entry = alloc_cil_of_type(a_module_import_decl);
+  entry = alloc_il_of_type(a_module_import_decl);
   entry->next = NULL;
   entry->position = null_source_position;
   entry->module_name_position = null_source_position;
