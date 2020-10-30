@@ -9154,7 +9154,8 @@ is the one associated with the definition of the enum.
       if (explicit_enum_expr) {
         write_tok_str(" = ");
         if (enum_con->kind == (a_constant_repr_kind)ck_integer) {
-          if (enum_con->expr != NULL) {
+          if (enum_con->expr != NULL &&
+              !expr_uses_undefined_or_local_type(enum_con->expr)) {
             /* Use the expression that appeared in the original source as
                the constant value. */
             gen_expr(enum_con->expr, /*need_parens=*/TRUE,
@@ -10415,11 +10416,18 @@ avoid putting out invalid type operator expressions.
     case enk_field:
       scp = &node_field(expr)->source_corresp;
       break;
+    case enk_constant:
+      scp = &node_constant(expr)->source_corresp;
+      break;
     default:
       break;
   }  /* switch */
   if (scp != NULL && scp->is_class_member &&
-      (!scp_parent_class(scp)->has_been_defined ||
+      ((!scp_parent_class(scp)->has_been_defined &&
+        !class_is_in_name_context_stack(
+                                  scp_parent_class(scp),
+                                  /*include_base_classes=*/FALSE,
+                                  /*ignore_field_selection_contexts=*/TRUE)) ||
        scp->is_local_to_function)) {
     /* This node refers to a member of a not-yet-defined or local class, so
        an explicit specialization for the class in which this expression
