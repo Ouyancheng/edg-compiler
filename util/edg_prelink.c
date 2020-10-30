@@ -2467,7 +2467,7 @@ that line type.
            variable accounts for the space needed for the "/", the "/" added
            when add_compilation_dir is TRUE, the and the trailing null
            terminator. */
-        a_pl_object_file_ptr	pofp;
+        a_pl_object_file_ptr	i_pofp;
         a_boolean		add_compilation_dir = FALSE;
         extra_space = 3;
         if (!instantiation_dir_set) {
@@ -2484,22 +2484,22 @@ that line type.
              instantiation file name. */
           add_compilation_dir = TRUE;
         }  /* if */
-        pofp = alloc_pl_object_file();
-        pofp->file_name = (char *)pl_malloc_with_check(
+        i_pofp = alloc_pl_object_file();
+        i_pofp->file_name = (char *)pl_malloc_with_check(
  		         strlen(info) +
 	                 instantiation_dir_length +
 			 instantiation_suffix_length +
                          (add_compilation_dir ?  compilation_dir_length : 0) +
 			 extra_space);
         /* Construct the name of the instantiation object file. */
-        sprintf(pofp->file_name, "%s%s%s/%s%s",
+        sprintf(i_pofp->file_name, "%s%s%s/%s%s",
                 add_compilation_dir ? pifp->compilation_directory : "",
                 add_compilation_dir ? "/" : "",
                 pifp->instantiation_directory,
                 info, INSTANTIATION_OBJECT_SUFFIX);
-        pofp->next = pifp->objects;
-        pofp->is_related_file = TRUE;
-        pifp->objects = pofp;
+        i_pofp->next = pifp->objects;
+        i_pofp->is_related_file = TRUE;
+        pifp->objects = i_pofp;
       } else if (strncmp(line_type, "dep:", 4) == 0) {
         /* A dependency entry.  Add this to the list of dependencies for this
            input file. */
@@ -2569,15 +2569,19 @@ Read the command line, etc. from the instantiation request file.
   if (!use_template_info_file) {
     /* If not using a template information file, extract the driver-supplied
        information from the request file. */
+#if INSTANTIATION_REQUEST_LINES_RESERVED >= 2
     if (reserved_request_file_lines >= 2) {
       pifp->compilation_directory = pl_copy_string(pifp->reserved_lines[1]);
       /* See if the .ii file was built in the current directory. */
       pifp->is_local_file = strcmp(pifp->compilation_directory,
                                    curr_dir_name) == 0;
     }  /* if */
+#endif /* INSTANTIATION_REQUEST_LINES_RESERVED >= 2 */
+#if INSTANTIATION_REQUEST_LINES_RESERVED >= 3
     if (reserved_request_file_lines >= 3) {
       pifp->compilation_file_name = pl_copy_string(pifp->reserved_lines[2]);
     }  /* if */
+#endif /* INSTANTIATION_REQUEST_LINES_RESERVED >= 3 */
   }  /* if */
   /* If the number of effective reserved lines is less than the
      number in the configuration file, set the remaining lines
