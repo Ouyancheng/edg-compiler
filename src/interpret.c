@@ -5124,6 +5124,10 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                                            char_ptr, (unsigned int)char_size);
             set_integer_value((an_integer_value*)value,
                               (a_host_large_integer)char_val);
+            if (int_type_is_signed(etp)) {
+              sign_extend_integer_value((an_integer_value*)value,
+                                        (int)(etp->size * targ_char_bit));
+            }  /* if */
             char_ptr += char_size;
           }  /* if */
           mark_subobject_initialized(value, complete_object);

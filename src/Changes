@@ -1,5 +1,23 @@
 Version 6.2
 
+10/30/20 [EDGcpfe/20512]
+Incorrect evaluation of string literals when char is signed
+
+In configurations with TARG_HAS_SIGNED_CHARS set to TRUE, the constexpr
+interpreter failed to sign-extend its internal representation of string
+elements, which could result in spurious errors.  For example:
+
+  constexpr char const *s = "\200";
+  int main() {
+    static_assert(*s == '\200');  // Previously failed in some configurations.
+  }                               // Now okay.
+
+The subexpression *s (after integer promotion) was incorrectly folded to the
+value 128 whereas the promotion of the character literal '\200' was correctly
+evaluated to -128.  Consequently, the static_assert declaration failed
+spuriously.  That is now fixed.
+
+
 10/29/20 [EDGcpfe/23500]
 C++-generating back end: form of enumeration constants
 
