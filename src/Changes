@@ -1,5 +1,20 @@
 Version 6.2
 
+10/29/20 [EDGcpfe/23500]
+C++-generating back end: form of enumeration constants
+
+For enumeration values near the maximum and minimum of an enumeration's
+signed underlying type, the C++-generating back end sometimes put out the
+value in a form that could cause problems for some compilers when compiling
+the generated code.  Enumeration values are now set to the expression that
+appeared in the original source code rather than to a corresponding integer
+constant.  For example, assuming 32-bit integers:
+
+  enum E {
+    mn = ~0x7fffffff   // Previously put out as 0x80000001-1
+  };
+
+
 10/29/20 [EDGcpfe/23504]
 Overload resolution tie breaks based on inheritance
 

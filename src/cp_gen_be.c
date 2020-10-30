@@ -9154,11 +9154,18 @@ is the one associated with the definition of the enum.
       if (explicit_enum_expr) {
         write_tok_str(" = ");
         if (enum_con->kind == (a_constant_repr_kind)ck_integer) {
-          /* We use form_integer_constant because we want to handle the
-             -INT_MAX-1 case, and we don't use gen_constant/form_constant
-             because we want to suppress the cast to the enum type. */
-          form_integer_constant(enum_con, /*suppress_cast=*/TRUE,
-                                /*need_parens=*/TRUE, &octl);
+          if (enum_con->expr != NULL) {
+            /* Use the expression that appeared in the original source as
+               the constant value. */
+            gen_expr(enum_con->expr, /*need_parens=*/TRUE,
+                     /*obj_expr_of_mfunc_operator=*/FALSE);
+          } else {
+            /* We use form_integer_constant because we want to handle the
+               -INT_MAX-1 case, and we don't use gen_constant/form_constant
+               because we want to suppress the cast to the enum type. */
+            form_integer_constant(enum_con, /*suppress_cast=*/TRUE,
+                                  /*need_parens=*/TRUE, &octl);
+          }  /* if */
         } else {
           /* Handle ck_template_param constants in prototype instantiations. */
           a_boolean saved_suppress_name_flag =
