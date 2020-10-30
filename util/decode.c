@@ -387,9 +387,8 @@ A bad name mangling has been encountered.  Record an error.
 
 #if IA64_ABI
 
-/*ARGSUSED*/
-static a_const_char get_char(a_const_char               *ptr,
-                             a_decode_control_block_ptr dctl)
+static a_const_char get_char(a_const_char                          *ptr,
+                             ARG_UNUSED a_decode_control_block_ptr dctl)
 /*
 Get and return the character pointed to by ptr.  Stub version; this
 does nothing in the IA-64 ABI, but it's called from some low-level routines.
@@ -7045,8 +7044,6 @@ Also, these non-standard expressions (EDG-specific) are demangled:
     } else {
       /* A "fold expression". */
       a_boolean    unary, left;
-      a_const_char *op_str, *close_str;
-      int          num_operands, length;
       switch (ptr[1]) {
         case 'l': unary = TRUE;  left = TRUE;  break;
         case 'L': unary = FALSE; left = TRUE;  break;

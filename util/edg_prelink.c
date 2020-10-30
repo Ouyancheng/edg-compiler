@@ -700,7 +700,7 @@ For a given error code, return a pointer to the associated error
 string.
 */
 {
-  a_const_char* m;
+  a_const_char* m = NULL;
   switch (error_code) {
   case pl_ec_no_longer_needed:
     m = "%s: %s no longer needed in %s\n";
@@ -1756,7 +1756,7 @@ or defined in that object file.
 */
 {
   char			*input_file_name = NULL;
-  char			*object_file_name = NULL;
+  char			*obj_file_name = NULL;
   a_boolean		is_archive = FALSE;
   a_pl_object_file_ptr	objects_tail;
   a_pl_object_file_ptr	pofp = NULL;
@@ -1838,7 +1838,7 @@ or defined in that object file.
       pifp->is_archive = is_archive;
       objects_tail = NULL;
       if (is_archive) {
-        object_file_name = NULL;
+        obj_file_name = NULL;
       } else {
         if (pofp == NULL) {
           /* If an instantiation object file with a matching name was not
@@ -1853,12 +1853,12 @@ or defined in that object file.
     }  /* if */
     /* See if this is the start of a new object file within an archive. */
     if (is_archive) {
-      if (object_file_name == NULL ||
-          strcmp(object_file_name, name2) != 0) {
+      if (obj_file_name == NULL ||
+          strcmp(obj_file_name, name2) != 0) {
         /* This is a new object file within the archive. */
-        object_file_name = pl_copy_string(name2);
+        obj_file_name = pl_copy_string(name2);
         pofp = alloc_pl_object_file();
-        pofp->file_name = object_file_name;
+        pofp->file_name = obj_file_name;
         /* Add this object file to the list of objects pointed to by the
            input file entry. */
         if (pifp->objects == NULL) pifp->objects = pofp;
@@ -3218,8 +3218,12 @@ information.
     /* Copy the driver information from the input file structure to the
        reserved line information that will be written to the file. */
     pifp->reserved_lines[0] = pl_copy_string(pifp->command_line);
+#if INSTANTIATION_REQUEST_LINES_RESERVED > 1
     pifp->reserved_lines[1] = pl_copy_string(pifp->compilation_directory);
+#if INSTANTIATION_REQUEST_LINES_RESERVED > 2
     pifp->reserved_lines[2] = pl_copy_string(pifp->compilation_file_name);
+#endif /* INSTANTIATION_REQUEST_LINES_RESERVED > 2 */
+#endif /* INSTANTIATION_REQUEST_LINES_RESERVED > 1 */
   }  /* if */
   /* Indicate that this is now a local file. */
   pifp->is_local_file = TRUE;
