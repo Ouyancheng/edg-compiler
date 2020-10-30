@@ -8562,11 +8562,13 @@ other.  Return
   } else if (gpp_mode &&
              (cmp = compare_gpp_const_this_tiebreaker(cfp1, cfp2)) != 0) {
     /* g++ has a tiebreaker related to const "this" parameters. */
-  } else if ((cmp = check_inheritance_for_ovl_res(cfp1, cfp2)) != 0) {
   } else if (cfp1->is_function_template && cfp2->is_function_template &&
              (cmp = compare_function_templates_for_ovl_res(cfp1, cfp2)) != 0) {
     /* cfp1 and cfp2 are function templates and one is more specialized than
        the other. */
+  } else if ((cmp = check_inheritance_for_ovl_res(cfp1, cfp2)) != 0) {
+    /* For constructors, a more derived is preferred all prior considerations
+       being equal.  GCC extends that to all member functions. */
   } else if (cfp1->is_inheriting_ctor != cfp2->is_inheriting_ctor &&
              (cmp = compare_inheriting_ctors_for_ovl_res(cfp1, cfp2)) != 0) {
     /* One of the two functions is an inheriting constructor.  The one that
