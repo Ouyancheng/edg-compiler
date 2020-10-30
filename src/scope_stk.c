@@ -8380,10 +8380,10 @@ hasn't been fully processed yet.
 }  /* ctor_needs_unprocessed_field_initializer */
 
 
-static a_boolean in_unparented_lambda_appearing_in_def_arg(void)
+static a_boolean in_closure_with_pending_parent(void)
 /*
-Return TRUE if we're inside a lambda that appears in the default argument of a
-function that has not yet been recorded as that lambda's parent.
+Return TRUE if we're inside a lambda closure class whose parent isn't fully
+known yet and therefore may not yet have a mangled name.
 */
 {
   a_boolean      result = FALSE;
@@ -8393,9 +8393,31 @@ function that has not yet been recorded as that lambda's parent.
     switch (scope_stack[d].kind) {
       case sck_class_struct_union:
         { a_type_ptr  class_type = scope_stack[d].assoc_type;
-          if (class_symbol_supp(symbol_for(class_type))
+          if (class_type->incomplete) {
+            /* A lambda call operator definition is sometimes processed before
+               the closure itself is completed (because we must collect the
+               implicit captures).  However, that in turn may cause the symbol
+               list of the class to be pending, which could cause mangling to
+               fail.  Instead, we delay lowering on such operators: The closure
+               will be complete when it is handled later on. */
+            result = TRUE;
+          } else if (class_symbol_supp(symbol_for(class_type))
                          ->lambda_immediately_inside_default_arg_expression &&
               class_type_supp(class_type)->lambda_parent.routine == NULL) {
+            /* A routine defined inside a lambda appearing in a default
+               argument of a function has a mangled name that depends on that
+               function.  However, for namespace-scope functions, the function
+               with the default argument is declared after the default argument
+               is parsed (i.e., when the lambda is parsed).  So we must delay
+               lowering of the lambda routine until the namespace-scope
+               function has been declared.  For example:
+                   void g(int x = [] {
+                                       struct A { A() {} void f() {} };
+                                       return 1;
+                                     }()) {}
+               Here the member function A::f will have its definition popped
+               from the scope stack before function g(int) is declared.  A::f
+               should therefore not be lowered right away. */
             result = TRUE;
             goto done;
           } else if (!class_type->source_corresp.is_local_to_function) {
@@ -8414,7 +8436,7 @@ function that has not yet been recorded as that lambda's parent.
   }  /* for */
 done:
   return result;
-}  /* in_unparented_lambda_appearing_in_def_arg */
+}  /* in_closure_with_pending_parent */
 
 
 a_boolean should_delay_lowering_on_function(a_routine_ptr routine,
@@ -8472,17 +8494,10 @@ be lowered as soon as a module id becomes available (and TRUE is returned).
        be recorded yet (such as the parent entity for mangling purposes). */
     delay_lowering = TRUE;
   } else if (routine->source_corresp.is_local_to_function &&
-             in_unparented_lambda_appearing_in_def_arg()) {
-    /* A routine defined inside a lambda appearing in a default argument of a
-       function has a mangled name that depends on that function.  However, for
-       namespace-scope functions, the function with the default argument is
-       declared after the default argument is parsed (i.e., when the lambda is
-       parsed).  So we must delay lowering of the lambda routine until the
-       namespace-scope function has been declared.  For example:
-         void g(int x = [] { struct A { A() {} void f() {} }; return 1; }()) {}
-       Here the member function A::f will have its definition popped from the
-       scope stack before function g(int) is declared.  A::f should therefore
-       not be lowered right away. */
+             in_closure_with_pending_parent()) {
+    /* Delay lowering of lambda operators (or other closure members) whose
+       mangling may depend on a context that isn't yet sufficiently known to
+       fully mangle. */
     delay_lowering = TRUE;
   } else if (routine->is_constexpr) {
     /* constexpr functions are interpreted from the unlowered IL.  So lowering
