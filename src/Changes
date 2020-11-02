@@ -1,5 +1,29 @@
 Version 6.2
 
+11/2/20  [EDGcpfe/18571,EDGcpfe/23517]
+Internal error with nonstandard default argument deduction
+
+An internal error could occur (in i_copy_dynamic_init or copy_param_type_list)
+when nonstandard default argument deduction is done (see 8/9/05 entry).  This
+is done in old Microsoft (microsoft_version <= 1300) and g++ (gnu_version <=
+40300) modes, or if the --nonstd_default_arg_deduction option is used.  Now
+fixed.
+
+  template <typename T> struct A;
+  template <typename T, typename U> struct A<U T:: *> {
+    static const bool value = true;
+  };
+  template <bool b> struct B { static const bool value = true; };
+  template <class F> void func(F f) { const bool x = B<A<F>::value>::value; }
+  struct S { ~S(); };
+  struct S2 {
+    void set(const S &n=S()) { }
+  };
+  int main() {
+    func(&S2::set);
+  }
+
+
 10/30/20 [EDGcpfe/20512]
 Incorrect evaluation of string literals when char is signed
 

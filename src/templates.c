@@ -13145,7 +13145,7 @@ points to the template parameter list.
                  type is not a function type, the this_class information
                  should be ignored for deduction purposes. */
               tp = routine_type_without_this_class(
-                                              tp, /*copy_default_args=*/TRUE);
+                                              tp, /*copy_default_args=*/FALSE);
             }  /* if */
             new_flags |= MTT_REVERSE_BASE_DERIVED_THIS_TEST;
             if (exc_spec_in_func_type && tp->kind == (a_type_kind)tk_routine) {
