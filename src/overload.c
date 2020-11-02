@@ -8458,7 +8458,7 @@ apparently extend that rule to ordinary member functions as well.
     ptp2 = function_type_params(rp2->type);
     for (; amsp != NULL; amsp = amsp->next) {
       if (ptp1 == NULL || ptp2 == NULL) {
-        /* An argument with not associated parameter type: Presumably an
+        /* An argument with no associated parameter type: Presumably an
            ellipsis (variadic) parameter. */
         if (ptp1 != ptp2) goto done;
       } else if (!identical_types(ptp1->type, ptp2->type)) {

@@ -103,7 +103,7 @@ standard includes a tie-breaking rule that prefers the constructor in the more
 derived class in such cases (i.e., the C::C(int) constructor in this example).
 That tie-breaking rule is now implemented.  The standard rule only applies to
 constructors, and the call d.f() therefore remains ambiguous in most cases.
-However, GCC 7.x and later appear to apply to constructor rule also to other
+However, GCC 7.x and later appear to apply the constructor rule also to other
 member functions: The front end now emulates that behavior in corresponding GNU
 modes.
 
