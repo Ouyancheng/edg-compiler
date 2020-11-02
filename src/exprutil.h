@@ -2119,6 +2119,8 @@ extern an_error_code expr_not_arithmetic_code(void);
 
 extern an_error_code expr_not_arithmetic_or_pointer_code(void);
 
+extern an_error_code type_not_arithmetic_or_pointer_code(void);
+
 extern a_boolean check_arithmetic_or_enum_operand(an_operand *operand);
 
 extern void make_integer_constant_operand(an_operand		*operand,
@@ -2246,6 +2248,10 @@ extern void clone_operand(an_operand *operand,
 
 extern void error_in_operand(an_error_code error_code,
 		             an_operand    *operand);
+
+extern void type_error_in_operand(an_error_code error_code,
+                                  an_operand    *operand,
+                                  a_type_ptr    type);
 
 extern void type2_error_in_operand(an_error_code error_code,
                                    an_operand    *operand,
@@ -2810,6 +2816,10 @@ extern void expr_pos_st_diagnostic(an_error_severity sev,
 extern void expr_pos_st_error(an_error_code     error_code,
                               a_source_position *error_pos,
                               a_const_char      *str);
+
+extern void expr_pos_ty_error(an_error_code     error_code,
+                              a_source_position *error_pos,
+                              a_type_ptr        tp);
 
 extern void expr_pos_ty2_error(an_error_code     error_code,
                                a_source_position *error_pos,

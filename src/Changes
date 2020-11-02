@@ -1,5 +1,19 @@
 Version 6.2
 
+11/2/20  [EDGcpfe/23512]
+Expression type diagnostics
+
+A number of diagnostics that indicate problems with expression types have been
+improved to explicitly mention the problematic type.  For example:
+
+  struct S { int operator->(); } s;
+  int r = s->f();  // Error text now mentions the "int" type.
+
+Previously, the diagnostic on the "s->f" expression only noted that a pointer
+type is expected.  Now, it also mentions that the "->" operator is applied to
+type "int" specifically. 
+
+
 11/2/20  [EDGcpfe/18571,EDGcpfe/23517]
 Internal error with nonstandard default argument deduction
 

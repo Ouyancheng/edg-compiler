@@ -7110,6 +7110,21 @@ should be suppressed, e.g., a template deduction context.
 }  /* expr_pos_st_error */
 
 
+void expr_pos_ty_error(an_error_code     error_code,
+                       a_source_position *error_pos,
+                       a_type_ptr        tp)
+/*
+Report the indicated error at the indicated position with the given type
+substitution.  Suppress the error if we're in a context where diagnostics
+should be suppressed, e.g., a template deduction context.
+*/
+{
+  if (expr_error_should_be_issued()) {
+    pos_ty_error(error_code, error_pos, tp);
+  }  /* if */
+}  /* expr_pos_ty_error */
+
+
 void expr_pos_ty2_error(an_error_code     error_code,
                         a_source_position *error_pos,
                         a_type_ptr        tp1,
@@ -7423,6 +7438,19 @@ error operand.  The symbol sym is cited in the error message.
   }  /* if */
   conv_to_error_operand(operand);
 }  /* sym_error_in_operand */
+
+
+void type_error_in_operand(an_error_code error_code,
+                           an_operand    *operand,
+                           a_type_ptr    type)
+/*
+Announce an error at the position in the operand and convert the operand to an
+error operand.  The given type is cited in the error message.
+*/
+{
+  expr_pos_ty_error(error_code, &operand->position, type);
+  conv_to_error_operand(operand);
+}  /* type_error_in_operand */
 
 
 void type2_error_in_operand(an_error_code error_code,
@@ -13459,6 +13487,27 @@ distinction.
 }  /* expr_not_arithmetic_or_pointer_code */
 
 
+an_error_code type_not_arithmetic_or_pointer_code(void)
+/*
+This function is nearly-identical to expr_not_arithmetic_or_pointer_code,
+except that the error code takes a type fill-in to report the type that
+doesn't meet expectations.
+*/
+{
+  an_error_code  result;
+
+  if (enum_type_is_integral) {
+    result = ec_type_not_scalar;
+  } else if (cpp11_mode || cli_or_cx_enabled) {
+    /* Modes that make a distinction between scoped and unscoped enum types. */
+    result = ec_type_not_arithmetic_or_unscoped_enum_or_pointer;
+  } else {
+    result = ec_type_not_arithmetic_or_enum_or_pointer;
+  }  /* if */
+  return result;
+}  /* type_not_arithmetic_or_pointer_code */
+
+
 a_boolean check_arithmetic_or_enum_operand(an_operand *operand)
 /*
 Return FALSE if the operand is not of arithmetic type (including unscoped
@@ -13495,7 +13544,7 @@ If there is an error, make "operand" into an error operand.
     /* If it is an error operand, an error message has already been issued. */
     okay = FALSE;
   } else if (!is_pointer_type(operand->type)) {
-    error_in_operand(err_code, operand);
+    type_error_in_operand(err_code, operand, operand->type);
     okay = FALSE;
   }  /* if */
 
@@ -23067,7 +23116,8 @@ orig_operand to the function operand created before assembling the final call.
     }  /* if */
   } else {
     if (expr_error_should_be_issued()) {
-      pos_error(ec_expr_not_class, &selector_operand->position);
+      pos_ty_error(ec_expr_not_class, &selector_operand->position,
+                   selector_operand->type);
     }  /* if */
     member_sym = NULL;
   }  /* if */

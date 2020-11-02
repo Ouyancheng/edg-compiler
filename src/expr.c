@@ -4744,7 +4744,7 @@ rcblock provides the associated rescan information.
     err = TRUE;
   } else if (!is_plain_pointer_type(arg.type) &&
              !is_template_param_type(arg.type)) {
-    error_in_operand(ec_expr_not_pointer, &arg);
+    type_error_in_operand(ec_type_not_pointer, &arg, arg.type);
     err = TRUE;
   }  /* if */
   if (err) {
@@ -8702,7 +8702,8 @@ case).
         } else {
           a_boolean  ptr_okay = TRUE;
           if (!cli_or_cx_enabled) {
-            ptr_okay = check_pointer_operand(operand_1, ec_expr_not_pointer);
+            ptr_okay = check_pointer_operand(
+                                operand_1, ec_member_access_requires_pointer);
 #if MICROSOFT_EXTENSIONS_ALLOWED
           } else {
             ptr_okay = check_pointer_or_handle_operand(
@@ -8870,11 +8871,13 @@ make_proxy_type_if_needed:
           an_error_code err_code;
           /* If the problem is that the class is incomplete, use a different
              error message. */
+          a_type_ptr  err_type = operand_1->type;
           if (is_incomplete_type(class_struct_union_type) &&
               is_class_struct_union_type(class_struct_union_type)) {
+            err_type = class_struct_union_type;
             err_code = is_arrow_operator ?
                                   ec_ptr_to_incomplete_class_type_not_allowed :
-  				  ec_incomplete_type_not_allowed;
+  				  ec_incomplete_type_expr_not_allowed;
           } else {
             if (C_dialect == C_dialect_cplusplus) {
               err_code = is_arrow_operator ? ec_expr_not_ptr_to_class :
@@ -8884,7 +8887,7 @@ make_proxy_type_if_needed:
                                            : ec_expr_not_struct_or_union;
             }  /* if */
           }  /* if */
-          error_in_operand(err_code, operand_1);
+          type_error_in_operand(err_code, operand_1, err_type);
         }  /* if */
         err = TRUE;
       }  /* if */
@@ -9522,7 +9525,7 @@ the selection, not an operator token for the call.
     if (!(is_class_struct_union_type(operand_1->type) ||
           could_be_dependent_class_type(operand_1->type))) {
       if (!is_error_type(operand_1->type)) {
-        error_in_operand(ec_expr_not_class, operand_1);
+        type_error_in_operand(ec_expr_not_class, operand_1, operand_1->type);
       }  /* if */
       make_error_operand(result);
     } else if (!(is_template_param_type(operand_2.type) ||
@@ -9594,7 +9597,8 @@ the selection, not an operator token for the call.
           /* Do no insert code here. */
           {
             operand1_type_okay = check_pointer_operand(
-                                              operand_1, ec_expr_not_pointer);
+                                           operand_1,
+                                           ec_member_access_requires_pointer);
           }  /* if */
           if (operand1_type_okay) {
             qual_operand_1_type = type_pointed_to(operand_1->type);
@@ -9617,7 +9621,7 @@ the selection, not an operator token for the call.
             an_error_code err_code;
             err_code = is_arrow_operator ? ec_expr_not_ptr_to_class :
                                            ec_expr_not_class;
-            error_in_operand(err_code, operand_1);
+            type_error_in_operand(err_code, operand_1, operand_1->type);
             err = TRUE;
           }  /* if */
         }  /* if */
@@ -27566,7 +27570,7 @@ that case.
       /* Vector types are arithmetic types in some sense. */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     } else if (check_pointer_operand(operand_1,
-                                     expr_not_arithmetic_or_pointer_code())) {
+                                     type_not_arithmetic_or_pointer_code())) {
       operand_1_is_pointer = TRUE;
     }  /* if */
     do_operand_transformations(&operand_2, TOPT_NO_OPTIONS);
@@ -28152,7 +28156,7 @@ describe the location of the operator.
     } else if (is_nullptr_type(opnd1->type)) {
       opnd1_is_nullptr = TRUE;
     } else if (check_pointer_operand(opnd1,
-                                     expr_not_arithmetic_or_pointer_code())) {
+                                     type_not_arithmetic_or_pointer_code())) {
       opnd1_is_pointer = TRUE;
     }  /* if */
     do_operand_transformations(opnd2, TOPT_NO_OPTIONS);
@@ -28210,8 +28214,8 @@ describe the location of the operator.
           /* Pointer to member types cannot be compared using relational
              operators.  (The case where opnd1 has a pointer to member
              type was already caught above.) */
-          expr_pos_error(expr_not_arithmetic_or_pointer_code(),
-                         &opnd2->position);
+          expr_pos_ty_error(type_not_arithmetic_or_pointer_code(),
+                            &opnd2->position, opnd2->type);
           operation_type = error_type();
         } else {
           (void)check_compatibility_of_nullptr_operands(opnd1, opnd2,
@@ -28601,7 +28605,7 @@ operator_tsn describe the location of the operator.
     } else if (is_nullptr_type(opnd1->type)) {
     } else if (is_ptr_to_member_type(opnd1->type)) {
     } else if (check_pointer_operand(opnd1,
-                                     expr_not_arithmetic_or_pointer_code())) {
+                                     type_not_arithmetic_or_pointer_code())) {
     }  /* if */
     do_operand_transformations(opnd2, TOPT_NO_OPTIONS);
     process_eq_opnds(opnd1, opnd2, op_token, operator_tsn, operator_pos,
@@ -30196,7 +30200,7 @@ is expected to be NULL in that case.
       /* If the operand does not have arithmetic type, it must have pointer
          type. */
       if (check_pointer_operand(operand_1,
-                                expr_not_arithmetic_or_pointer_code())) {
+                                type_not_arithmetic_or_pointer_code())) {
         operand_1_is_pointer = TRUE;
       }  /* if */
     }  /* if */
@@ -32699,7 +32703,7 @@ assignment was a braced-init-list (allowed in C++11 mode),
              /* C++ allows bool += pointer.  In C99 this is disallowed
                 by a type constraint in 6.5.16.2p1. */
             (void)check_object_pointer_operand(&operand_2,
-                                       expr_not_arithmetic_or_pointer_code());
+                                       type_not_arithmetic_or_pointer_code());
             pointer_add_sub = TRUE;
             break;
           }  /* if */
@@ -32743,7 +32747,7 @@ assignment was a braced-init-list (allowed in C++11 mode),
                       is_function_type(type_pointed_to(operand_1->type))));
             if (nonobject_pointer ||
                 check_object_pointer_operand(
-                           operand_1, expr_not_arithmetic_or_pointer_code())) {
+                           operand_1, type_not_arithmetic_or_pointer_code())) {
               /* The first operand is a pointer, so the second one must be
                  integral or enum. */
               if (check_integral_or_enum_operand(&operand_2)) {
