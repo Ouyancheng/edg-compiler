@@ -12359,7 +12359,7 @@ represented by an entry of type a_constant (ck_address or ck_integer).
         a_subobject_path_ptr  spp;
         a_base_class_ptr      prev_bcp, baseward_bcp;
         if (!type_is(tp, tk_void) &&
-            (baseward_bcp = find_base_in_type(opnd_type, tp))!= NULL) {
+            (baseward_bcp = find_base_in_type(opnd_type, tp)) != NULL) {
           /* The dynamic cast is actually a (static) derived-to-base cast. */
           if (baseward_bcp->ambiguous) {
             do_constexpr_fail(result);
@@ -12470,7 +12470,7 @@ represented by an entry of type a_constant (ck_address or ck_integer).
                                        &expr->position, new_bcp->type, ips);
                   }  /* if */
                   goto done;
-                } else if (!is_accessible_base_class(baseward_bcp)) {
+                } else if (!is_accessible_base_class(new_bcp)) {
                   if (pointer_case) {
                     clear_address(result_storage, NULL);
                   } else {

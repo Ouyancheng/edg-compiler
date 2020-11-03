@@ -1,5 +1,23 @@
 Version 6.2
 
+11/3/20  [EDGcpfe/23518]
+Abort on interpretation of dynamic_cast
+
+In some cases involving address constants, the interpreter could abort (in
+do_constexpr_dynamic_cast) on an attempt to perform a "sideways" dynamic_cast.
+For example:
+
+  struct B1 { constexpr virtual int f() { return 1; } };
+  struct B2 { constexpr virtual int f() { return 2; } };
+  struct D: B1, B2 { constexpr virtual int f() { return 3; } };
+  D d;
+  constexpr B1 *pb1 = &d;
+  constexpr B2 *pb2 = dynamic_cast<B2*>(pb1);  // Previously triggered an
+                                               // abort.  Now okay.
+
+This is now fixed.
+
+
 11/2/20  [EDGcpfe/23512]
 Expression type diagnostics
 
