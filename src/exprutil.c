@@ -13570,7 +13570,7 @@ error operand.
     okay = FALSE;
   } else if (!is_pointer_type(operand->type) &&
              !is_handle_type(operand->type)) {
-    error_in_operand(err_code, operand);
+    type_error_in_operand(err_code, operand, operand->type);
     okay = FALSE;
   }  /* if */
   return okay;
