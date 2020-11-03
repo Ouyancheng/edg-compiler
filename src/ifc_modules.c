@@ -8994,8 +8994,7 @@ of the name.
         an_operator_kind         opkind;
         insop = get_NameSort_Operator(&inso);
         opkind = get_operator_kind(insop->op);
-        if (!(opkind == opkind_basic || opkind == opkind_post ||
-              opkind == opkind_func_like)) {
+        if (opkind == opkind_c_cast || opkind == opkind_cpp_cast) {
           unexpected_condition_str("Unexpected operator kind");
         }  /* if */
         ident = insop->encoded;

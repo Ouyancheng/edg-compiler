@@ -197,7 +197,7 @@ struct ifc_NoexceptSpecification {
 		words;
   ifc_NoexceptSort
 		sort;
-  /* Note that there are three bytes of padding here. */
+  uint8_t       __padding__[3];
 };  /* ifc_NoexceptSpecification */
 
 struct ifc_ParameterizedEntity {

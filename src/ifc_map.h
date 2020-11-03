@@ -317,6 +317,8 @@ IFC_DECL_START(DeclSort_InheritedConstructor)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
   IFC_DECL_FIELD(access, Access)
   IFC_DECL_FIELD(convention, CallingConvention)
+  IFC_DECL_FIELD(__padding1__, u8)
+  IFC_DECL_FIELD(__padding2__, u16)
   IFC_DECL_FIELD(base_ctor, DeclIndex)
 IFC_DECL_END(DeclSort_InheritedConstructor)
 
