@@ -8600,7 +8600,7 @@ case).
                current_mode_allows_field_selection_folding() &&
                (is_an_lvalue(operand_1) ||
                 (is_a_prvalue(operand_1) &&
-		 !is_constant_operand(operand_1)))) {
+                 !is_constant_operand(operand_1)))) {
       /* In certain C++ modes, a->e1 can be used as a constant if e1 is a
          constant member (like an enumerator).  The "a" expression requires
          a dereference (test just done), so this selection will get an
@@ -8876,8 +8876,8 @@ make_proxy_type_if_needed:
               is_class_struct_union_type(class_struct_union_type)) {
             err_type = class_struct_union_type;
             err_code = is_arrow_operator ?
-                                  ec_ptr_to_incomplete_class_type_not_allowed :
-  				  ec_incomplete_type_expr_not_allowed;
+                                 ec_ptr_to_incomplete_class_type_not_allowed :
+                                 ec_incomplete_type_expr_not_allowed;
           } else {
             if (C_dialect == C_dialect_cplusplus) {
               err_code = is_arrow_operator ? ec_expr_not_ptr_to_class :

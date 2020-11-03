@@ -13489,7 +13489,7 @@ distinction.
 
 an_error_code type_not_arithmetic_or_pointer_code(void)
 /*
-This function is nearly-identical to expr_not_arithmetic_or_pointer_code,
+This function is nearly identical to expr_not_arithmetic_or_pointer_code,
 except that the error code takes a type fill-in to report the type that
 doesn't meet expectations.
 */
