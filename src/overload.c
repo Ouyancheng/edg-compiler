@@ -9042,6 +9042,7 @@ type deduction.
 
 #if BACK_END_IS_CP_GEN_BE && \
     NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+
 static void check_for_function_that_cannot_be_specialized(
                         ARG_UNUSED a_candidate_function_ptr candidate_function)
 /*
@@ -9057,7 +9058,48 @@ function templates.
      entry (candidate_function->function_symbol->variant.routine.ptr) can
      be set to TRUE to exclude it from the generated code. */
 }  /* check_for_function_that_cannot_be_specialized */
+
 #endif /* BACK_END_IS_CP_GEN_BE && ... */
+
+static void select_best_candidate_instance(
+                                        a_candidate_function_ptr  candidates,
+                                        a_source_position         *source_pos)
+/*
+candidate represents a "best candidate" selected by overload resolution, but
+that candidate is a template.  Apply the recorded template arguments to produce
+the selected specific instance instead.
+*/
+{
+  a_symbol_ptr sym = candidates->function_symbol;
+
+  check_assertion(sym != NULL);
+  reduce_projection_symbol_to_fundamental_symbol(sym);
+  if (nonstandard_default_arg_deduction) {
+    /* If the template arguments include function types with uninstantiated
+       default arguments, instantiate them now because the template and
+       its function type are getting separated. */
+    instantiate_template_default_arguments(candidates);
+  }  /* if */
+  /* Push an entry on the substitution stack because find_template_function
+     may cause a rescan of the template, and we must discard attempts at
+     recursive calls as nonviable. */
+  push_substitution(sym, candidates->template_arg_list);
+  sym = find_template_function(sym, &candidates->template_arg_list,
+                       (a_boolean)candidates->expl_template_arg_list_used,
+                                            source_pos);
+  pop_substitution();
+  candidates->function_symbol = sym;
+  candidates->is_function_template = FALSE;
+  if (candidates->is_user_conversion) {
+    candidates->conversion.routine = sym->variant.routine.ptr;
+    candidates->conversion.routine_symbol = sym;
+  }  /* if */
+#if BACK_END_IS_CP_GEN_BE && \
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  check_for_function_that_cannot_be_specialized(candidates);
+#endif /* BACK_END_IS_CP_GEN_BE && ... */
+}  /* select_best_candidate_instance */
+
 
 static void select_best_candidate_functions(
                         a_candidate_function_ptr *candidate_functions,
@@ -9400,33 +9442,7 @@ create_final_list:
     } else if (candidates->is_function_template) {
       /* A single candidate function template was unambiguously selected.
          Create the template function instance. */
-      a_symbol_ptr sym = candidates->function_symbol;
-      check_assertion(sym != NULL);
-      reduce_projection_symbol_to_fundamental_symbol(sym);
-      if (nonstandard_default_arg_deduction) {
-        /* If the template arguments include function types with uninstantiated
-           default arguments, instantiate them now because the template and
-           its function type are getting separated. */
-        instantiate_template_default_arguments(candidates);
-      }  /* if */
-      /* Push an entry on the substitution stack because find_template_function
-         may cause a rescan of the template, and we must discard attempts at
-         recursive calls as nonviable. */
-      push_substitution(sym, candidates->template_arg_list);
-      sym = find_template_function(sym, &candidates->template_arg_list,
-                           (a_boolean)candidates->expl_template_arg_list_used,
-                                                source_pos);
-      pop_substitution();
-      candidates->function_symbol = sym;
-      candidates->is_function_template = FALSE;
-      if (candidates->is_user_conversion) {
-        candidates->conversion.routine = sym->variant.routine.ptr;
-        candidates->conversion.routine_symbol = sym;
-      }  /* if */
-#if BACK_END_IS_CP_GEN_BE && \
-    NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-      check_for_function_that_cannot_be_specialized(candidates);
-#endif /* BACK_END_IS_CP_GEN_BE && ... */
+      select_best_candidate_instance(candidates, source_pos);
     }  /* if */
   }  /* if */
 #if DEBUG
@@ -18040,6 +18056,9 @@ select_best_function:
       candidate_functions = candidate_functions->next;
       cfp_to_delete->next = NULL;
       free_candidate_function_list(cfp_to_delete);
+      if (candidate_functions->is_function_template) {
+        select_best_candidate_instance(candidate_functions, operator_position);
+      }  /* if */
     }  /* if */
   }  /* if */
   *p_arg_list = arg_list;
@@ -18540,7 +18559,7 @@ no_applicable_operator_function:
             }  /* if */
             /* Check for the builtin operator=. */
             if (kind == (an_opname_kind)onk_assign &&
-                function_symbol->kind == (a_symbol_kind)sk_member_function &&
+                symbol_is(function_symbol, sk_member_function) &&
                 !function_symbol->variant.routine.ptr->is_deleted &&
                 !function_symbol->variant.routine.ptr->is_consteval &&
                 function_symbol->variant.routine.ptr->
