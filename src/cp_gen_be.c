@@ -22571,6 +22571,9 @@ Process all the file scope entities, and everything under those.
     /* Stop at the end of the list. */
     if (curr_source_sequence_entry == NULL) break;
     /* Generate the declaration of a file-scope entity. */
+    check_assertion_str(ss_entry_kind(curr_source_sequence_entry) !=
+                                (an_il_entry_kind)iek_src_seq_end_of_construct,
+                        "Top-level end-of-construct entry");
     gen_declaration(/*for_init=*/FALSE);
     any_decl = TRUE;
   }  /* for */
