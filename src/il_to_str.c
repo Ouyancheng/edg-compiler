@@ -2020,18 +2020,7 @@ by octl.
 #endif /* FIXED_POINT_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
     case tk_complex:
-      if (octl->gen_compilable_code &&
-          (type->variant.float_kind == float_kind_for_float128 ||
-           type->variant.float_kind == float_kind_for_float80)) {
-        /* GNU doesn't allow "__float128 _Complex" so substitute "float" for
-           "__float128/80".  This happens in the typedef for __complex128.
-           (It appears that when mode attributes are specified, gcc essentially
-           ignores the user-specified type and instead uses the type implied
-           by the mode attribute). */
-        octl->output_str(" float", octl);
-      } else {
-        form_float_kind_name(type->variant.float_kind, octl);
-      }  /* if */
+      form_float_kind_name(type->variant.float_kind, octl);
       if (use_gnu_form()) {
         octl->output_str(" __complex__", octl);
       } else {

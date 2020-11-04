@@ -8798,12 +8798,13 @@ recorded).
     name_context_for_access_reset = curr_name_context;
   }  /* if */
 #if GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED
-  if (type->kind == (a_type_kind)tk_complex &&
-      (type->variant.float_kind == (a_float_kind)fk_float80 ||
-       type->variant.float_kind == (a_float_kind)fk_float128) &&
-      scp != NULL && scp->attributes != NULL) {
+  a_type_ptr ctype = skip_typerefs(type);
+  if (ctype->kind == (a_type_kind)tk_complex &&
+      (ctype->variant.float_kind == (a_float_kind)fk_float80 ||
+       ctype->variant.float_kind == (a_float_kind)fk_float128) &&
+      type->source_corresp.attributes != NULL) {
     an_attribute_ptr ap;
-    for (ap = scp->attributes;
+    for (ap = type->source_corresp.attributes;
          ap != NULL && saved_float_kind == (a_float_kind)fk_last;
          ap = ap->next) {
       if (ap->kind == (a_byte_attribute_kind)ak_mode) {
@@ -8814,8 +8815,8 @@ recorded).
            because of the combination of "complex" and extended-precision
            floating type specifiers.  Change the floating point kind
            temporarily to fk_float to work around this problem. */
-        saved_float_kind = type->variant.float_kind;
-        type->variant.float_kind = (a_float_kind)fk_float;
+        saved_float_kind = ctype->variant.float_kind;
+        ctype->variant.float_kind = (a_float_kind)fk_float;
       }  /* if */
     }  /* for */
   }  /* if */
@@ -8931,7 +8932,7 @@ recorded).
   if (saved_float_kind != (a_float_kind)fk_last) {
     /* The float kind was changed above to fk_float to accommodate a
        mode attribute.  Restore it to the original value for the type. */
-    type->variant.float_kind = saved_float_kind;
+    ctype->variant.float_kind = saved_float_kind;
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* gen_general_declaration_using_type */
