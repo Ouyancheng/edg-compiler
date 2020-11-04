@@ -1,5 +1,24 @@
 Version 6.2
 
+11/4/20  [EDGcpfe/22814]
+C++-generating back end: template keyword in dependent friend declarations
+
+In a friend declaration appearing in a class template in which the
+qualifier contains a dependent template-id, the C++-generating back end
+omitted the required "template" keyword, resulting in generated code that
+could not be compiled.  This is now fixed.  For example:
+
+  template<typename T> struct S1 {};
+  template<int> struct S2 {
+    template<typename T> struct S3 {
+      using type = S1<int>;
+    };
+  };
+  template<template<int> class X> struct S {
+    friend typename X<0>::template S3<int>::type;  // "template" was omitted
+  };
+
+
 11/4/20  [EDGcpfe/21707,EDGcpfe/22796,EDGcpfe/23311,EDGcpfe/23528]
 Spurious SFINAE failure on lookup for member selection (regression)
 

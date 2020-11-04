@@ -5191,17 +5191,19 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
         a_type_ptr             qualifier;
         a_gen_name_options_set qualifier_options =
                                      options & (GN_PARENS_IF_GLOBAL_QUALIFIER |
-                                                GN_SUPPRESS_TEMPLATE_KEYWORD);
-        if (options & GN_DECLARATION) {
-          /* The "template" keyword is not needed in the qualifier for an
-             entity being declared: the names in the qualifier are all part
-             of the current instantiation.  g++ issues an error if the
-             "template" keyword is present in such qualifiers.  Pass along
-             the GN_DECLARATION flag as well, to suppress the check for an
+                                                GN_SUPPRESS_TEMPLATE_KEYWORD |
+                                                GN_DECLARATION);
+        if ((options & GN_DECLARATION) && !(options & GN_QUALIFIER) &&
+            !(options & GN_FRIEND_DECL)) {
+          /* Except in friend declarations, the "template" keyword is not
+             needed in the qualifier for an entity being declared: the
+             names in the qualifier are all part of the current
+             instantiation.  g++ issues an error if the "template" keyword
+             is present in such qualifiers.  (We pass along the
+             GN_DECLARATION flag as well, to suppress the check for an
              inaccessible class name as a qualifier, which is not needed
-             for a declaration. */
-          qualifier_options |= (GN_SUPPRESS_TEMPLATE_KEYWORD |
-                                GN_DECLARATION);
+             for a declaration.) */
+          qualifier_options |= GN_SUPPRESS_TEMPLATE_KEYWORD;
         }  /* if */
         if (entry_kind == iek_type && !(options & GN_DECLARATION) &&
             !(options & GN_QUALIFIER) && (options & GN_DEPENDENT)) {
@@ -5275,7 +5277,9 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
               in_prototype_instantiation_context())) &&
             !is_partial_spec_prototype_inst &&
             !(options & GN_SUPPRESS_TEMPLATE_KEYWORD) &&
-            !((options & GN_DECLARATION) && !(options & GN_FRIEND_DECL)) &&
+            (!((options & GN_DECLARATION) &&!(options & GN_FRIEND_DECL)) ||
+             ((options & GN_QUALIFIER) &&
+              !(options & GN_SUPPRESS_TEMPLATE_KEYWORD))) &&
             (((!(options & GN_NO_TEMPLATE_ARGS) &&
                name_has_template_arguments(
                                         scp, entry_kind,
