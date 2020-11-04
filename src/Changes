@@ -170,7 +170,9 @@ That tie-breaking rule is now implemented.  The standard rule only applies to
 constructors, and the call d.f() therefore remains ambiguous in most cases.
 However, GCC 7.x and later appear to apply the constructor rule also to other
 member functions: The front end now emulates that behavior in corresponding GNU
-modes.
+modes.  Prior to the rework of inheriting constructors in version 6.1 (see the
+entry for EDGcpfe/17687) the example above was accepted (i.e., this change also
+fixes a regression).
 
 
 10/28/20 [EDGcpfe/23485]
