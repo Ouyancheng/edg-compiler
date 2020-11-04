@@ -9062,7 +9062,7 @@ function templates.
 #endif /* BACK_END_IS_CP_GEN_BE && ... */
 
 static void select_best_candidate_instance(
-                                        a_candidate_function_ptr  candidates,
+                                        a_candidate_function_ptr  candidate,
                                         a_source_position         *source_pos)
 /*
 candidate represents a "best candidate" selected by overload resolution, but
@@ -9070,7 +9070,7 @@ that candidate is a template.  Apply the recorded template arguments to produce
 the selected specific instance instead.
 */
 {
-  a_symbol_ptr sym = candidates->function_symbol;
+  a_symbol_ptr sym = candidate->function_symbol;
 
   check_assertion(sym != NULL);
   reduce_projection_symbol_to_fundamental_symbol(sym);
@@ -9078,25 +9078,26 @@ the selected specific instance instead.
     /* If the template arguments include function types with uninstantiated
        default arguments, instantiate them now because the template and
        its function type are getting separated. */
-    instantiate_template_default_arguments(candidates);
+    instantiate_template_default_arguments(candidate);
   }  /* if */
   /* Push an entry on the substitution stack because find_template_function
      may cause a rescan of the template, and we must discard attempts at
      recursive calls as nonviable. */
-  push_substitution(sym, candidates->template_arg_list);
-  sym = find_template_function(sym, &candidates->template_arg_list,
-                       (a_boolean)candidates->expl_template_arg_list_used,
-                                            source_pos);
+  push_substitution(sym, candidate->template_arg_list);
+  sym = find_template_function(
+                            sym, &candidate->template_arg_list,
+                            (a_boolean)candidate->expl_template_arg_list_used,
+                            source_pos);
   pop_substitution();
-  candidates->function_symbol = sym;
-  candidates->is_function_template = FALSE;
-  if (candidates->is_user_conversion) {
-    candidates->conversion.routine = sym->variant.routine.ptr;
-    candidates->conversion.routine_symbol = sym;
+  candidate->function_symbol = sym;
+  candidate->is_function_template = FALSE;
+  if (candidate->is_user_conversion) {
+    candidate->conversion.routine = sym->variant.routine.ptr;
+    candidate->conversion.routine_symbol = sym;
   }  /* if */
 #if BACK_END_IS_CP_GEN_BE && \
-NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-  check_for_function_that_cannot_be_specialized(candidates);
+    NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  check_for_function_that_cannot_be_specialized(candidate);
 #endif /* BACK_END_IS_CP_GEN_BE && ... */
 }  /* select_best_candidate_instance */
 
