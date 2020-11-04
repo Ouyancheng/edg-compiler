@@ -1,5 +1,24 @@
 Version 6.2
 
+11/4/20  [EDGcpfe/23528]
+Spurious SFINAE failure on lookup for member selection (regression)
+
+The changes for EDGcpfe/20899 (introduced in version 5.1) fixed some spurious
+SFINAE failures, but they accidentally introduced new ones in other complex
+situations.  For example:
+
+  template<bool> struct S;
+  template<typename T, typename U = double> struct X;
+  template<bool B, typename U> struct X<S<B>, U> {
+    auto f() const { return 0.0; }
+  };
+  template<typename T, typename U = double>
+    decltype(X<T, U>().f()) g(int const&);
+  auto r = g<S<false>>(42);  // Previously a spurious error.  Now okay.
+
+That regression is now fixed.
+
+
 11/3/20  [EDGcpfe/23515]
 C++20: Ambiguity with rewritten reversed-parameters comparison candidate
 

@@ -8335,8 +8335,14 @@ a left parenthesis in the source.
                  parent_type == type_of_unknown_templ_param_nontype) &&
                 !is_conversion_func) {
               a_type_ptr  lookup_type = skip_typerefs(class_struct_union_type);
+              /* Lookup is possible if lookup_type is not incomplete or if it
+                 is in the process of being defined (i.e., it has an associated
+                 scope).  (It is not sufficient to check for there to be an
+                 associated scope, because nonreal proxy types may not have an
+                 associated scope, but they are considered complete.) */
               if (is_immediate_class_type(lookup_type) &&
-                  class_type_supp(lookup_type)->assoc_scope != NULL &&
+                  (!lookup_type->incomplete ||
+                   class_type_supp(lookup_type)->assoc_scope != NULL) &&
                   symbol_for(member_con) != NULL) {
                 check_assertion(qualified_member_position != NULL);
                 clear_locator(locator, qualified_member_position);
