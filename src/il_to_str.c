@@ -2755,7 +2755,39 @@ handle_specifiers_type:
           octl->output_str("_Atomic(", octl);
         }  /* if */
       }  /* if */
+#if GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED
+      a_float_kind saved_float_kind = (a_float_kind)fk_last;
+      if (type->kind == (a_type_kind)tk_complex &&
+          (type->variant.float_kind == (a_float_kind)fk_float80 ||
+           type->variant.float_kind == (a_float_kind)fk_float128) &&
+          orig_type->source_corresp.attributes != NULL) {
+        an_attribute_ptr ap;
+        for (ap = orig_type->source_corresp.attributes;
+             ap != NULL && saved_float_kind == (a_float_kind)fk_last;
+             ap = ap->next) {
+          if (ap->kind == (a_byte_attribute_kind)ak_mode) {
+            /* The type is a complex float80 or complex float128 type (or
+               typedef for the same), but the existence of the "mode" attribute
+               indicates that the source specified that type using the
+               "mode(XC)" or "mode(TC)" attribute.  GNU rejects the resulting
+               declaration because of the combination of "complex" and
+               extended-precision floating type specifiers.  Change the
+               floating point kind temporarily to fk_float to work around this
+               problem. */
+            saved_float_kind = type->variant.float_kind;
+            type->variant.float_kind = (a_float_kind)fk_float;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED */
       form_type_specifier(type, octl);
+#if GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED
+      if (saved_float_kind != (a_float_kind)fk_last) {
+        /* The float kind was changed above to fk_float to accommodate a
+           mode attribute.  Restore it to the original value for the type. */
+        type->variant.float_kind = saved_float_kind;
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED */
       if (c11_atomic) {
         octl->output_str(")", octl);
       }  /* if */
