@@ -16418,7 +16418,8 @@ are flags passed down to the substitution routines.
                                           &templ_sym->decl_position);
     *new_arg_list = templ_arg_list;
     ctws_options |= CTWS_MAY_BE_RESCANNED;
-    if (tssp->has_variadic_template_params) {
+    if (tssp->has_variadic_template_params &&
+        (ctws_options & CTWS_IS_OVERLOAD_CANDIDATE) != 0) {
       /* This is a preliminary substitution.   Keep any deduced packs for which
          we may not yet have arguments. */
       ctws_options |= CTWS_PRESERVE_DEDUCED_PACKS | CTWS_PARTIAL_ARG_LIST_OKAY;
@@ -19063,7 +19064,7 @@ are ignored even in modes where such specifiers are part of that type.
     templ_rout_type = substitute_template_arguments(
                                  templ_sym, explicit_arg_list, &new_arg_list,
                                  (a_template_param_ptr)NULL,
-                                 CTWS_NO_OPTIONS);
+                                 CTWS_IS_OVERLOAD_CANDIDATE);
     *templ_arg_list = new_arg_list;
     /* A NULL type will be returned if the copy could not be done because
        the substitution of the template arguments would result in an invalid
@@ -19093,7 +19094,8 @@ are ignored even in modes where such specifiers are part of that type.
       /* No constraints to check. */
       match = TRUE;
     } else if (all_templ_params_have_values(
-                           *templ_arg_list, templ_param_list, CTWS_NO_OPTIONS,
+                           *templ_arg_list, templ_param_list,
+                           CTWS_IS_OVERLOAD_CANDIDATE,
                            /*is_templ_templ_param_check=*/FALSE, templ_sym,
                            tssp, /*param_count=*/0) &&
                (template_arg_list_is_dependent(*templ_arg_list) ||
@@ -19111,7 +19113,7 @@ are ignored even in modes where such specifiers are part of that type.
        is correct. */
     new_type = wrapup_function_template_argument_deduction(
                                 templ_arg_list, templ_sym, templ_param_list,
-                                CTWS_NO_OPTIONS, /*param_count=*/0);
+                                CTWS_IS_OVERLOAD_CANDIDATE, /*param_count=*/0);
     match = FALSE;
     if (new_type != NULL) {
       a_routine_ptr  proto_rp = tssp->variant.function.routine;
@@ -19236,8 +19238,9 @@ created with this call.
     } else {
       /* Use the template arg list to create a new symbol. */
       sym = make_template_function(templ_sym, templ_arg_list,
-                                   CTWS_NO_OPTIONS,
+                                   CTWS_IS_OVERLOAD_CANDIDATE,
 				   in_class_specialization);
+      instantiate_exception_spec_if_needed(sym);
       *is_new_template_instance = TRUE;
     }  /* if */
     /* Update the flags that indicate whether any explicitly specified

@@ -1,5 +1,23 @@
 Version 6.2
 
+11/4/20  [EDGcpfe/23535]
+Instantiation vs. substitution of exception specification
+
+An earlier change (see EDGcpfe/22541) made exception specifications not
+a SFINAE context in normal overload resolution.  This additional change
+also removes the SFINAE processing in address of function and declaration
+contexts.  For the example below, this the diagnostic that was formerly
+issued was 'no instance of function template "f" matches'.  With this
+change an error is now issued on the instantiation of the exception
+specification (in this case, 'no suitable constructor exists to convert
+from "A<int> *" to "A<int>"').
+
+  template <typename...> struct A { void f(A); };
+  template <typename... Ts>
+    void f(A<Ts...> &l, A<Ts...> &r) noexcept(noexcept(l.f(&r))){}
+  void (*p)(A<int> &, A<int> &) = f<int>;
+
+
 11/4/20  [EDGcpfe/22814]
 C++-generating back end: template keyword in dependent friend declarations
 
