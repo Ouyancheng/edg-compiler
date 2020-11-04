@@ -17478,6 +17478,28 @@ operators.
 }  /* reverse_binary_match_descriptions */
 
 
+static inline
+a_boolean same_candidate_types(a_candidate_function_ptr  cfp1,
+                               a_candidate_function_ptr  cfp2)
+/*
+Return TRUE if the given candidates have the same type and the same value
+for the is_function_template flag.
+*/
+{
+  a_boolean  result = cfp1->is_function_template == cfp2->is_function_template;
+
+  if (result &&
+      cfp1->function_symbol != NULL && cfp2->function_symbol != NULL) {
+    a_symbol_ptr  sym1 = fundamental_symbol_of(cfp1->function_symbol),
+                  sym2 = fundamental_symbol_of(cfp2->function_symbol);
+    a_type_ptr    rtp1 = func_sym_routine(sym1)->type,
+                  rtp2 = func_sym_routine(sym2)->type;
+    result = identical_types(rtp1, rtp2);
+  }  /* if */
+  return result;
+}  /* same_candidate_types */
+
+
 static a_candidate_function_ptr select_overloaded_operator(
                            an_opname_kind             kind,
                            a_boolean                  unary_operator,
@@ -17993,11 +18015,33 @@ find_more_operator_candidates:
            dealing with a <=> or == operator.  Now handle (2). */
         if (find_supplemental_candidates) {
           /* Mark any candidates found for case (1) as such. */
-          a_candidate_function_ptr  *p_cfp = &candidate_functions;
+          a_candidate_function_ptr  
+                     *p_cfp = &candidate_functions;
           while (*p_cfp != saved_candidate_functions) {
-            a_candidate_function_ptr  cfp = *p_cfp;
-            cfp->supplemental_comparison_candidate = TRUE;
-            p_cfp = &cfp->next;
+            a_candidate_function_ptr  cfp = *p_cfp, cfp2, cfp_to_delete = NULL;
+            /* If a rewritten supplemental candidate has the exact same type
+               as a non-rewritten candidate, discard the rewritten candidate
+               since there is a tie-breaking rule that prefers the non-
+               rewritten candidate.  This is not just an optimization because
+               it allows code below to recognize a certain ambiguity. */
+            for (cfp2 = saved_candidate_functions;
+                 cfp2 != NULL;
+                 cfp2 = cfp2->next) {
+              if (same_candidate_types(cfp, cfp2)) {
+                /* The rewritten candidate has the same type as a non-
+                   rewritten candidate.  Discard the rewritten candidate. */
+                cfp_to_delete = cfp;
+                break;
+              }  /* if */
+            }  /* for */
+            if (cfp_to_delete == NULL) {
+              cfp->supplemental_comparison_candidate = TRUE;
+              p_cfp = &cfp->next;
+            } else {
+              *p_cfp = cfp->next;
+              cfp_to_delete->next = NULL;
+              free_candidate_function_list(cfp_to_delete);
+            }  /* if */
           }  /* while */
         }  /* if */
         arg_list = reverse_simple_list(arg_list);
@@ -18032,8 +18076,7 @@ select_best_function:
         candidate_functions->next->next == NULL &&
         candidate_functions->supplemental_reversed_candidate &&
         candidate_functions->function_symbol->is_class_member &&
-        candidate_functions->function_symbol ==
-                                 candidate_functions->next->function_symbol &&
+        same_candidate_types(candidate_functions, candidate_functions->next) &&
         operand_1->state == operand_2->state &&
         identical_types(operand_1->type, operand_2->type)) {
       /* This is an ambiguity between two candidates in a context where we
@@ -18044,7 +18087,18 @@ select_best_function:
          C++20 made this an ambiguity error between the declared operator==
          and the synthesized "reversed-parameter" candidate.  Common practice
          is to accept such code, however.  (Note that the reversed candidate
-         is always the first candidate in such cases.) */
+         is always the first candidate in such cases.)  A similar ambiguity
+         also occurs in the following case:
+             struct X {
+               bool operator!=(const X&);
+               bool operator==(const X&);
+             };
+             bool b = X() != X();
+         This time however, there are notionally three candidates involved in
+         the ambiguity: The matching operator!=, the operator== used for the
+         normal rewrite, and the reversed operator==.  This code also handles
+         that case, but it relies on the fact that the normal rewrite candidate
+         was already eliminated earlier on. */
       a_candidate_function_ptr  cfp_to_delete = candidate_functions;
       if (expr_diagnostic_should_be_issued(
                            es_warning, ec_cpp20_reversed_comparison_ambiguity,
