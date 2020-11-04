@@ -1,20 +1,17 @@
 Version 6.2
 
-11/4/20  [EDGcpfe/23528]
+11/4/20  [EDGcpfe/21707,EDGcpfe/22796,EDGcpfe/23311,EDGcpfe/23528]
 Spurious SFINAE failure on lookup for member selection (regression)
 
 The changes for EDGcpfe/20899 (introduced in version 5.1) fixed some spurious
 SFINAE failures, but they accidentally introduced new ones in other complex
-situations.  For example:
+situations.  For example, in C++17 mode:
 
-  template<bool> struct S;
-  template<typename T, typename U = double> struct X;
-  template<bool B, typename U> struct X<S<B>, U> {
-    auto f() const { return 0.0; }
-  };
-  template<typename T, typename U = double>
-    decltype(X<T, U>().f()) g(int const&);
-  auto r = g<S<false>>(42);  // Previously a spurious error.  Now okay.
+  template<typename...> struct S { void f(S); };
+  template<typename... Ts>
+    void g(S<Ts...> &l, S<Ts...> &r) noexcept(noexcept(l.f(r)));
+  void (*p)(S<int>&, S<int>&) = g<int>;  // Previously a spurious error.
+                                         // Now okay.
 
 That regression is now fixed.
 
