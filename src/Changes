@@ -20,7 +20,7 @@ Instantiation vs. substitution of exception specification
 An earlier change (see EDGcpfe/22541) made exception specifications not
 a SFINAE context in normal overload resolution.  This additional change
 also removes the SFINAE processing in address of function and declaration
-contexts.  For the example below, this the diagnostic that was formerly
+contexts.  For the example below, the diagnostic that was formerly
 issued was 'no instance of function template "f" matches'.  With this
 change an error is now issued on the instantiation of the exception
 specification (in this case, 'no suitable constructor exists to convert
