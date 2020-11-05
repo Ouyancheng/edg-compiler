@@ -13460,7 +13460,7 @@ distinction.
 }  /* expr_not_arithmetic_code */
 
 
-an_error_code expr_not_arithmetic_or_pointer_code(void)
+static an_error_code expr_not_arithmetic_or_pointer_code(void)
 /*
 Return the appropriate diagnostic code to indicate that an expression is
 neither "arithmetic" nor a pointer.  In C mode, it is sufficient to say that

@@ -2117,8 +2117,6 @@ extern an_error_code expr_not_integral_code(void);
 
 extern an_error_code expr_not_arithmetic_code(void);
 
-extern an_error_code expr_not_arithmetic_or_pointer_code(void);
-
 extern an_error_code type_not_arithmetic_or_pointer_code(void);
 
 extern a_boolean check_arithmetic_or_enum_operand(an_operand *operand);
