@@ -22607,6 +22607,23 @@ routines).
 }  /* find_top_temporary */
 
 
+static inline
+void mark_variable_being_initialized_as_extending_lifetime(void)
+/*
+If the innermost scope stack entry has an associated declaration parse state
+for a variable, mark that variable as extending the lifetime of a temporary it
+binds to.
+*/
+{
+  a_decl_parse_state  *dps = scope_stack_top().decl_parse_state;
+
+  if (dps != NULL && dps->sym != NULL) {
+    a_variable_ptr  vp = variable_for_symbol(dps->sym);
+    if (vp != NULL) vp->extends_lifetime = TRUE;
+  }  /* if */
+}  /* mark_variable_being_initialized_as_extending_lifetime */
+
+
 static void extend_temporary_lifetime(a_dynamic_init_ptr dip,
                                       a_boolean          static_lifetime)
 /*
@@ -22617,14 +22634,8 @@ the lifetime of the temporary is extended to match that of the reference.
 */
 {
   an_object_lifetime_ptr lifetime = dip->lifetime;
-  a_decl_parse_state     *dps = scope_stack_top().decl_parse_state;
 
-  /* Mark the reference variable (if any) extending the temporary object's
-     lifetime. */
-  if (dps != NULL && dps->sym != NULL) {
-    a_variable_ptr  vp = variable_for_symbol(dps->sym);
-    if (vp != NULL) vp->extends_lifetime = TRUE;
-  }  /* if */
+  mark_variable_being_initialized_as_extending_lifetime();
   if (dip->is_creation_of_initializer_list_object) {
     /* If the lifetime of an initializer_list temporary is extended, the
        lifetime of the array used to create it is extended also (see core
@@ -22686,6 +22697,8 @@ like
                                           operand, /*must_be_constant=*/FALSE,
                                           /*is_constant_evaluated=*/FALSE);
       }  /* if */
+    } else {
+      mark_variable_being_initialized_as_extending_lifetime();
     }  /* if */
   }  /* if */
 }  /* adjust_top_temporary_for_binding_to_reference */

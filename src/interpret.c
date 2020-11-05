@@ -17978,10 +17978,13 @@ diagnostic in *ips.
             /* Create an abk_constant or abk_temporary entry. */
             a_byte  *base_address;
             cp = alloc_constant((a_constant_repr_kind)ck_error);
+            if (is_const_qualified_type(utp)) {
+              cap->flags |= CA_CONST_STORAGE;
+            }  /* if */
             if (cap->length != 0 && !is_bit_field_lvalue(cap)) {
               /* If we're pointing at or into an array, a constant for the
-                 whole array must be allocated. */
-              a_type_ptr    atp = alloc_type((a_type_kind)tk_array);
+                 whole array will be produced, but we may have to compute
+                 the offset into that array. */
               a_type_ptr    butp = skip_typerefs(utp);
               a_byte_count  offset;
               if (is_array_element(cap)) {
@@ -17990,25 +17993,21 @@ diagnostic in *ips.
                 base_address = cap->address;
               }  /* if */
               offset = (a_byte_count)(cap->address - base_address);
-              if (!is_array_element(cap) ||
-                  (butp->incomplete && butp->kind == (a_type_kind)tk_array)) {
-                /* This can happen when binding a reference to an array with
-                   no specified bound.  E.g.:
-                     struct S { const int (&x)[]; };
-                     constexpr S x = { { 37 } };
-                   We'll produce a known bound below. */
-                utp = butp->variant.array.element_type;
-                butp = skip_typerefs(utp);
-              }  /* if */
               if (offset != 0) {
+                if (!is_array_element(cap) ||
+                    (butp->incomplete && type_is(butp, tk_array))) {
+                  /* This can happen when binding a reference to an array with
+                     no specified bound.  E.g.:
+                       struct S { const int (&x)[]; };
+                       constexpr S x = { { 37 } };
+                     We'll produce a known bound below. */
+                  utp = butp->variant.array.element_type;
+                  butp = skip_typerefs(utp);
+                }  /* if */
                 con->variant.address.offset =
                       butp->size *
                             (offset/value_bytes_for_type(ips, butp, &result));
               }  /* if */
-              atp->variant.array.element_type = utp;
-              atp->variant.array.variant.number_of_elements = cap->length;
-              set_type_size(atp);
-              utp = atp;
             } else {
               base_address = cap->address;
             }  /* if */
