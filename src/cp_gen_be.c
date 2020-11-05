@@ -19581,7 +19581,10 @@ output_functional_notation_cast_arguments:
     case dik_constant:
       /* Constant (simple or aggregate). */
       con = dip->variant.constant.ptr;
-      if (!con->explicit_cast_applied && is_reference_type(init_entity_type)) {
+      if (is_reference_type(init_entity_type) &&
+          !((assoc_expr != NULL && is_glvalue_node(assoc_expr)) ||
+            is_reference_type(con->type))) {
+        /* A reference initialized by a prvalue. */
         a_type_ptr referred_to_type = type_pointed_to(init_entity_type);
         if (is_array_type(referred_to_type) ||
             (is_class_struct_union_type(referred_to_type) &&
