@@ -2806,7 +2806,7 @@ Print a typedef declaration.
          it is emitted.  The original float_kind will be restored later. */
       a_float_kind orig_float_kind;
       a_type_ptr complex_type = NULL;
-      if (gcc_mode) {
+      if (gnu_mode) {
         complex_type_needs_modification(type, &orig_float_kind);
       }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED */

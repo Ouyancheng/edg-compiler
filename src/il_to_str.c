@@ -2439,14 +2439,12 @@ is returned.
 Internally, 80- and 128-bit complex numbers are represented by
 __float80/__float128 types, and the il_to_str routines would normally generate
 "__float128 _Complex" for such types, but gcc only accepts "float _Complex".
-
-Note that this transformation only affects gcc mode.
 */
 {
   a_type_ptr type = orig_type;
   a_boolean  has_mode_attribute = FALSE;
 
-  check_assertion(gcc_mode);
+  check_assertion(gnu_mode);
   while (type->kind == (a_type_kind)tk_typeref) {
     if (type->source_corresp.attributes != NULL &&
         find_attribute(ak_mode, type->source_corresp.attributes) != NULL) {
@@ -2537,7 +2535,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
   /* An 80-/128-bit complex type needs to be modified before
      it is emitted.  The original float_kind will be restored later. */
   a_float_kind orig_float_kind;
-  if (gcc_mode) {
+  if (gnu_mode) {
     complex_type = complex_type_needs_modification(type, &orig_float_kind);
   }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED */
