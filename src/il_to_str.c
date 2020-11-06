@@ -2424,6 +2424,62 @@ available or not portable).
   return render;
 }  /* is_type_operator_to_be_rendered */
 
+#if GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED
+
+a_type_ptr complex_type_needs_modification(a_type_ptr   orig_type,
+                                           a_float_kind *orig_float_kind)
+/*
+Determine if the specified type refers to an 80- or 128-bit complex type
+(either directly or through a series of typerefs, some of which may be
+for_type_attributes).  If such a type is found, the underlying complex type
+is changed by this routine to have it's float_kind be "fk_float" and a pointer
+to this type is returned as well as the original float_kind.  Otherwise NULL
+is returned.
+
+Internally, 80- and 128-bit complex numbers are represented by
+__float80/__float128 types, and the il_to_str routines would normally generate
+"__float128 _Complex" for such types, but gcc only accepts "float _Complex".
+
+Note that this transformation only affects gcc mode.
+*/
+{
+  a_type_ptr type = orig_type;
+  a_boolean  has_mode_attribute = FALSE;
+
+  check_assertion(gcc_mode);
+  while (type->kind == (a_type_kind)tk_typeref) {
+    if (type->source_corresp.attributes != NULL &&
+        find_attribute(ak_mode, type->source_corresp.attributes) != NULL) {
+      has_mode_attribute = TRUE;
+    }  /* if */
+    type = type->variant.typeref.type;
+  }  /* while */
+  if (type->kind == (a_type_kind)tk_complex &&
+      (type->variant.float_kind == (a_float_kind)fk_float80 ||
+       type->variant.float_kind == (a_float_kind)fk_float128)) {
+    if (has_mode_attribute ||
+        (type->source_corresp.attributes != NULL &&
+         find_attribute(ak_mode, type->source_corresp.attributes) != NULL)) {
+      /* The type is a complex float80 or complex float128 type (or
+         typedef for the same), but the existence of the "mode" attribute
+         indicates that the source specified that type using the
+         "mode(XC)" or "mode(TC)" attribute.  gcc rejects the resulting
+         declaration because of the combination of "complex" and
+         extended-precision floating type specifiers.  Change the
+         floating point kind temporarily to fk_float to work around this
+         problem. */
+      *orig_float_kind = type->variant.float_kind;
+      type->variant.float_kind = (a_float_kind)fk_float;
+    } else {
+      type = NULL;
+    }  /* if */
+  } else {
+    type = NULL;
+  }  /* if */
+  return type;
+}  /* complex_type_needs_modification */
+
+#endif /* GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED */
 
 void form_type_first_part(
                     a_type_ptr                            type,
@@ -2460,6 +2516,9 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
   a_type_ptr  orig_type = type;
   a_type_ptr  attrib_stop_type = type;
   a_type_ptr  resolved_type = NULL;
+#if GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED
+  a_type_ptr complex_type = NULL;
+#endif /* GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED */
 
   if (type == NULL) {
     /* NULL type pointer. */
@@ -2474,6 +2533,14 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
     octl->output_str("<something>", octl);
     goto end_of_routine;
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED
+  /* An 80-/128-bit complex type needs to be modified before
+     it is emitted.  The original float_kind will be restored later. */
+  a_float_kind orig_float_kind;
+  if (gcc_mode) {
+    complex_type = complex_type_needs_modification(type, &orig_float_kind);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (is_cli_generic_definition_argument_type(type) &&
       is_handle_type(type)) {
@@ -2755,39 +2822,7 @@ handle_specifiers_type:
           octl->output_str("_Atomic(", octl);
         }  /* if */
       }  /* if */
-#if GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED
-      a_float_kind saved_float_kind = (a_float_kind)fk_last;
-      if (type->kind == (a_type_kind)tk_complex &&
-          (type->variant.float_kind == (a_float_kind)fk_float80 ||
-           type->variant.float_kind == (a_float_kind)fk_float128) &&
-          orig_type->source_corresp.attributes != NULL) {
-        an_attribute_ptr ap;
-        for (ap = orig_type->source_corresp.attributes;
-             ap != NULL && saved_float_kind == (a_float_kind)fk_last;
-             ap = ap->next) {
-          if (ap->kind == (a_byte_attribute_kind)ak_mode) {
-            /* The type is a complex float80 or complex float128 type (or
-               typedef for the same), but the existence of the "mode" attribute
-               indicates that the source specified that type using the
-               "mode(XC)" or "mode(TC)" attribute.  GNU rejects the resulting
-               declaration because of the combination of "complex" and
-               extended-precision floating type specifiers.  Change the
-               floating point kind temporarily to fk_float to work around this
-               problem. */
-            saved_float_kind = type->variant.float_kind;
-            type->variant.float_kind = (a_float_kind)fk_float;
-          }  /* if */
-        }  /* for */
-      }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED */
       form_type_specifier(type, octl);
-#if GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED
-      if (saved_float_kind != (a_float_kind)fk_last) {
-        /* The float kind was changed above to fk_float to accommodate a
-           mode attribute.  Restore it to the original value for the type. */
-        type->variant.float_kind = saved_float_kind;
-      }  /* if */
-#endif /* GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED */
       if (c11_atomic) {
         octl->output_str(")", octl);
       }  /* if */
@@ -2820,6 +2855,11 @@ handle_specifiers_type:
                         near_and_far_need_trailing_space, octl);
   }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED
+  if (complex_type != NULL) {
+    complex_type->variant.float_kind = orig_float_kind;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED */
 end_of_routine:;
 }  /* form_type_first_part */
 

@@ -423,6 +423,12 @@ extern void form_calling_convention(
                      an_il_to_str_output_control_block_ptr octl);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+#if GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED
+extern a_type_ptr complex_type_needs_modification(
+                                                a_type_ptr   orig_type,
+                                                a_float_kind *orig_float_kind);
+#endif /* GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED */
+
 extern void form_type_first_part(
                     a_type_ptr                            type,
                     a_boolean                             under_lhs_declarator,

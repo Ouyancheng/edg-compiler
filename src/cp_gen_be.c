@@ -8824,6 +8824,15 @@ recorded).
     /* Do not put out template arguments for the type specifier. */
     octl.suppress_template_args = TRUE;
   }  /* if */
+#if GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED
+  /* An 80-/128-bit complex type needs to be modified before it is emitted.
+     The original float_kind will be restored later. */
+  a_float_kind orig_float_kind;
+  a_type_ptr complex_type = NULL;
+  if (gcc_mode) {
+    complex_type_needs_modification(type, &orig_float_kind);
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED */
   /* Write the specifiers and the first part of the declarator. */
   form_type_first_part(type, /*under_lhs_declarator=*/FALSE,
                        /*need_trailing_space=*/(scp != NULL),
@@ -8831,6 +8840,11 @@ recorded).
                        suppress_specifiers ? FTO_SUPPRESS_SPECIFIERS :
                                              FTO_NO_OPTIONS,
                        &octl);
+#if GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED
+  if (complex_type != NULL) {
+    complex_type->variant.float_kind = orig_float_kind;
+  }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED */
   octl.suppress_template_args = saved_suppress_template_args;
   /* Write the name if there is one. */
   if (options & GDO_PARAMETER_PACK) {
@@ -10097,6 +10111,15 @@ declaration following this one is such a continuation.
         include_name = FALSE;
         write_tok_str(" = ");
       }  /* if */
+#if GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED
+      /* A typedef for an 80-/128-bit complex type needs to be modified before
+         it is emitted.  The original float_kind will be restored later. */
+      a_float_kind orig_float_kind;
+      a_type_ptr complex_type = NULL;
+      if (gcc_mode) {
+        complex_type_needs_modification(type, &orig_float_kind);
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED */
       gen_general_declaration_using_type(under_type,
                                          include_name ? &type->source_corresp
                                                       : NULL,
@@ -10104,6 +10127,11 @@ declaration following this one is such a continuation.
                                          suppress_specifiers,
                                          GDO_NO_OPTIONS,
                                          (a_name_reference_ptr)NULL);
+#if GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED
+      if (complex_type != NULL) {
+        complex_type->variant.float_kind = orig_float_kind;
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED */
     }  /* if */
     /* See if there are comma-separated declarations attached to this one. */
     *another_decl_in_comma_list = another_declaration_in_comma_list_follows(

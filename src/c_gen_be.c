@@ -2801,8 +2801,22 @@ Print a typedef declaration.
          after the typedef name. */
       octl.defer_vector_attribute = TRUE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
+#if GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED
+      /* A typedef for an 80-/128-bit complex type needs to be modified before
+         it is emitted.  The original float_kind will be restored later. */
+      a_float_kind orig_float_kind;
+      a_type_ptr complex_type = NULL;
+      if (gcc_mode) {
+        complex_type_needs_modification(type, &orig_float_kind);
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED */
       dump_declaration_using_type(type->variant.typeref.type,
                                   &type->source_corresp);
+#if GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED
+      if (complex_type != NULL) {
+        complex_type->variant.float_kind = orig_float_kind;
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED */
 #if GNU_EXTENSIONS_ALLOWED
       /* Emit any attributes associated with the typedef. */
 #if GNU_VECTOR_TYPES_ALLOWED
