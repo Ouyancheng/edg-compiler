@@ -3372,6 +3372,7 @@ values.
   operand->has_required_ptr_to_member_form = FALSE;
   operand->is_template_id = FALSE;
   operand->is_simple_string_literal = FALSE;
+  operand->conditional_simple_string_literal = FALSE;
   operand->is_cfront_null_pointer_constant = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   operand->is_microsoft_noop = FALSE;

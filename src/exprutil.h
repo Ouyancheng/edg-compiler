@@ -437,6 +437,11 @@ typedef struct an_operand {
 			   decay of such a literal to a pointer.  FALSE
 			   for a string literal that has been subjected to
 			   a cast or other operation. */
+  a_bit_field	conditional_simple_string_literal:1;
+			/* TRUE if this operand represents a conditional
+			   operand of the form "x ? y : z" where either y or z
+			   is a simple string literal.  This is used to emulate
+			   a Microsoft bug. */
   a_bit_field	is_cfront_null_pointer_constant:1;
 			/* TRUE if this operand is a simple 0 which is
 			   suitable as a null pointer constant in

@@ -2882,6 +2882,15 @@ null pointer constant but not a known null pointer constant.
    is_or_might_be_null_pointer_constant(con))
 
 
+/*
+Return TRUE if the deprecated conversion from a string literal to char* should
+be permitted on this operand.  In Microsoft mode, this also extends to some
+conditional operators with a string literal operand.
+*/
+#define is_string_literal_like(opnd)                                         \
+  ((a_boolean)(opnd->is_simple_string_literal ||                             \
+               (opnd->conditional_simple_string_literal && microsoft_mode)))
+
 static
 void determine_arg_match_level(an_operand           *arg_operand,
                                a_type_ptr           arg_type,
@@ -2979,8 +2988,7 @@ copy-initialization).
     /* Remember whether the argument is a simple string literal.  This is
        done early so that it is set before the lvalue-->rvalue conversion
        is done on the string literal. */
-    arg_operand_is_simple_string_literal =
-                                         arg_operand->is_simple_string_literal;
+    arg_operand_is_simple_string_literal = is_string_literal_like(arg_operand);
     arg_operand_is_function = operand_is_function(arg_operand);
     arg_originally_an_lvalue = (is_an_lvalue(arg_operand) ||
                                 is_a_function_designator(arg_operand));
@@ -16498,10 +16506,8 @@ the target type to be used).
              This one isn't.   cfront 3.0 doesn't allow null pointer
              conversions on relational operators. */
           arg_match->match_level = aml_none;
-        } else if (impl_conversion_possible(operand_type,
-                                            source_is_constant,
-                                            (a_boolean)operand
-                                                    ->is_simple_string_literal,
+        } else if (impl_conversion_possible(operand_type, source_is_constant,
+                                            is_string_literal_like(operand),
                                             operand_is_function(operand),
                                             /*is_copy_initialization=*/FALSE,
                                             source_constant,
@@ -19682,7 +19688,7 @@ describes the context of the conversion.
           static_cast_conversion_possible(
                                    source_type,
                                    source_is_constant,
-                                   source_operand->is_simple_string_literal,
+                                   is_string_literal_like(source_operand),
                                    operand_is_function(source_operand),
                                    source_constant,
                                    dest_type,
@@ -20427,20 +20433,16 @@ conversion.
         okay = TRUE;
       }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
-    } else if (impl_conversion_possible(source_type,
-                                        source_is_constant,
-                                        (a_boolean)source_operand->
-                                                      is_simple_string_literal,
-                                        operand_is_function(source_operand),
-                                        is_copy_initialization,
-                                        source_constant,
-                                        dest_type,
-                                        (conv_context &
-                                               CCO_SINGLETON_BRACED_INIT) != 0,
-                                      /*allow_qualifier_or_eh_mismatch=*/FALSE,
-                                        /*suppress_extensions=*/FALSE,
-                                        incompatible_err,
-                                        &std_conv)) {
+    } else if (impl_conversion_possible(
+                              source_type, source_is_constant,
+                              is_string_literal_like(source_operand),
+                              operand_is_function(source_operand),
+                              is_copy_initialization, source_constant,
+                              dest_type,
+                              (conv_context & CCO_SINGLETON_BRACED_INIT) != 0,
+                              /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                              /*suppress_extensions=*/FALSE,
+                              incompatible_err, &std_conv)) {
       /* An implicit conversion is legal. */
       okay = TRUE;
       conversion->std = std_conv;
@@ -26586,8 +26588,7 @@ the requirement is returned.  Otherwise, NULL is returned.
         (is_pointer_type(dest_type) &&
          impl_pointer_conversion(source_type,
                                  is_constant_operand(source_operand),
-                                 (a_boolean)source_operand->
-                                                      is_simple_string_literal,
+                                 is_string_literal_like(source_operand),
                                  operand_is_function(source_operand),
                                  &source_operand->variant.constant,
                                  dest_type,

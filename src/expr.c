@@ -31208,6 +31208,7 @@ that case.
   a_boolean             operand_2_is_handle = FALSE;
   a_boolean             operand_3_is_handle = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_boolean             conditional_simple_string_literal = FALSE;
   a_type_ptr            type_pointed_to_2, type_pointed_to_3;
   a_type_ptr            unqual_type_pointed_to_2, unqual_type_pointed_to_3;
   a_boolean             operand_2_is_ptr_to_member = FALSE;
@@ -31389,6 +31390,11 @@ that case.
 
   /* Check the second and third operand types. */
   if (!C_mode()) {
+    conditional_simple_string_literal =
+                                operand_2.is_simple_string_literal ||
+                                operand_2.conditional_simple_string_literal ||
+                                operand_3.is_simple_string_literal ||
+                                operand_3.conditional_simple_string_literal;
     /* Checks specific to C++ mode: */
     types_are_the_same = same_types_for_question_operator(&operand_2,
                                                           &operand_3);
@@ -32151,6 +32157,12 @@ that case.
     */
     result->is_simple_string_literal = (operand_2.is_simple_string_literal ||
                                         operand_3.is_simple_string_literal);
+  }  /* if */
+  if (conditional_simple_string_literal) {
+    /* Record whether either of the second or third operand was a string
+       literal before any conversions.  This is used to emulate Microsoft's
+       behavior wrt. permitting conversions from char const* to char*. */
+    result->conditional_simple_string_literal = TRUE;
   }  /* if */
 error_exit:
 
