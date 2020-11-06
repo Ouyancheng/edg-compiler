@@ -2100,6 +2100,41 @@ static void replace_inaccessible_type_with_accessible_typedef(
                                 a_boolean                   force_replacement);
 
 
+static void check_for_inaccessible_member(
+                                    an_expr_node_ptr                    expr,
+                                    an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+This routine is called by traverse_expr in a top-down traversal of an
+expression tree.  It stops the traversal and sets the result to TRUE when
+it finds a node referring to a non-public class member.
+*/
+{
+  a_source_correspondence_ptr scp = NULL;
+
+  switch (expr->kind) {
+    case enk_variable:
+      scp = &node_variable(expr)->source_corresp;
+      break;
+    case enk_routine:
+      scp = &node_routine(expr)->source_corresp;
+      break;
+    case enk_field:
+      scp = &node_field(expr)->source_corresp;
+      break;
+    case enk_constant:
+      scp = &node_constant(expr)->source_corresp;
+      break;
+    default:
+      break;
+  }  /* switch */
+  if (scp != NULL && scp->is_class_member &&
+      scp->access != (an_access_specifier)as_public) {
+    tblock->result = TRUE;
+    tblock->terminate = TRUE;
+  }  /* if */
+}  /* check_for_inaccessible_member */
+
+
 static a_boolean template_arg_is_accessible(a_template_arg_ptr argp,
                                             a_boolean          ignore_context,
                                             a_boolean          *for_all_scopes)
@@ -2176,25 +2211,16 @@ Pass for_all_scopes through to entity_name_is_accessible.
     } else {
       an_expr_node_ptr expr = assoc_expr_for_constant(constant);
       if (expr != NULL) {
-        a_type_ptr tp;
-        expr = skip_implicit_steps(expr);
-        tp = skip_typerefs(expr->type);
-        if (is_variable_node(expr)) {
-          is_accessible =
-                entity_name_is_accessible(&node_variable(expr)->source_corresp,
-                                          iek_variable, ignore_context,
-                                          for_all_scopes);
-        } else if (is_constant_node(expr) &&
-                   unmangled_name_of(&node_constant(expr)->source_corresp) ==
-                                                                        NULL &&
-                   !is_tag_type(tp)) {
-          /* An unnamed, non-class, non-enum constant is accessible. */
-        } else {
-          /* Other kinds of expressions are too complex to analyze reliably
-             and efficiently.  For safety, we assume they involve
-             inaccessible names. */
-          is_accessible = FALSE;
-        }  /* if */
+        /* Scan the expression for occurrences of inaccessible names. */
+        an_expr_or_stmt_traversal_block tblock;
+        clear_expr_or_stmt_traversal_block(&tblock);
+        tblock.process_expr = check_for_inaccessible_member;
+        tblock.process_non_dynamic_constants = TRUE;
+        tblock.process_expressions_for_constants = TRUE;
+        tblock.process_template_parameter_constants_and_expressions = TRUE;
+        traverse_expr(expr, &tblock);
+        /* tblock.result is TRUE if an inaccessible name was found. */
+        is_accessible = !tblock.result;
       }  /* if */
     }  /* if */
     break;
