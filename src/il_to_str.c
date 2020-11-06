@@ -6723,6 +6723,8 @@ described by octl.
     }  /* if */
     form_recorded_gnu_attribute(ak_alloc_size, type->source_corresp.attributes,
                                 &need_leading_space, octl);
+    form_recorded_gnu_attribute(ak_mode, type->source_corresp.attributes,
+                                &need_leading_space, octl);
     /* The following attributes would be recorded on the underlying type
        if the attribute appeared on a typedef. */
     type = skip_typerefs(type);

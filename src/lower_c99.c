@@ -4461,6 +4461,24 @@ on the scope types list.
     prepare_to_lower_variably_modified_typedef(type);
   }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
+#if LOWER_COMPLEX
+  if (type_is_typedef(type) &&
+      (type->variant.typeref.is_lowered_complex_type ||
+       is_complex_type(type)) &&
+      type->source_corresp.attributes != NULL) {
+    /* When lowering complex types, remove any "mode" attributes on typedefs
+       that refer to complex types that are (or will be) lowered by setting
+       the attribute type to ak_unrecognized.  This occurs with typedefs like:
+         typedef _Complex float __cfloat128 __attribute__((mode(TC)));
+       */
+    an_attribute_ptr ap;
+    for (ap = type->source_corresp.attributes; ap != NULL; ap = ap->next) {
+      if (ap->kind == (a_byte_attribute_kind)ak_mode) {
+        make_attr_unrecognized(ap);
+      }  /* if */
+    }  /* for */
+  }  /* if */
+#endif /* LOWER_COMPLEX */
 }  /* lower_c99_type */
 
 

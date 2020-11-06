@@ -1,5 +1,18 @@
 Version 6.2
 
+11/6/20  [EDGcpfe/19958,EDGcpfe/23536]
+GNU compatibility: "mode" attribute in C-generating back end configs
+
+Previously the "mode" attribute had been suppressed in the C-generating back
+end and is now emitted.  That enables typedefs like the one below to be
+properly generated (in GNU modes):
+
+  typedef _Complex float __attribute__((mode(TC))) __complex128;
+
+Note also that in configurations where LOWER_COMPLEX is TRUE, the "mode"
+attribute is effectively removed during the lowering of complex types.
+
+
 11/4/20  [EDGcpfe/22904]
 Lifetime-extended temporaries in constant expressions
 
