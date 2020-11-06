@@ -17969,6 +17969,7 @@ that the type of the initializer is consistent with the type of the variable.
                                     TCF_REDECLARATION |
                                     TCF_IMPLICIT_CONVERSION |
                                     TCF_IGNORE_TYPE_QUALIFIERS |
+                                    TCF_IGNORE_TOP_LEVEL_NOEXCEPT |
                                     TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING) ||
                       is_or_contains_error_type(var_type) ||
                       is_or_contains_error_type(init_type));

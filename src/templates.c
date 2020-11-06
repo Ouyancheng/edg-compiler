@@ -19155,7 +19155,7 @@ are ignored even in modes where such specifiers are part of that type.
                     TCF_ALLOW_BASE_DERIVED_THIS_MATCH |
                     TCF_CHECKING_DEDUCTION_RESULT;
         if (ignore_noexcept) {
-          tcf_flags |= ITF_IGNORE_TOP_LEVEL_NOEXCEPT;
+          tcf_flags |= TCF_IGNORE_TOP_LEVEL_NOEXCEPT;
         }  /* if */
         match = f_types_are_compatible(new_type, curr_type, tcf_flags);
       }  /* if */

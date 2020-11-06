@@ -23608,16 +23608,6 @@ the conversion.
                                    &access_error_reported);
     } else {
       /* Normal case (not an indefinite function). */
-      /* Check compatibility of exception specifications.  The source type
-         cannot be less restrictive than the destination type.  (GCC doesn't
-         diagnose this.) */
-      if (!exception_spec_conversion_possible(source_operand->type,
-                                              base_dest_type)) {
-        expr_pos_diagnostic((gpp_mode && !clang_mode) ?
-                                          es_warning : es_discretionary_error,
-                            ec_incompatible_exception_specs,
-                            &source_operand->position);
-      }  /* if */
       if ((conv_context & CCO_NONTYPE_TEMPLATE_ARG) != 0 &&
           is_invalid_nontype_arg_object(source_operand)) {
         /* An expression that doesn't simply designate a function is
@@ -23630,6 +23620,16 @@ the conversion.
                          &source_operand->position);
         }  /* if */
       }  /* if */
+    }  /* if */
+    /* Check compatibility of exception specifications.  The source type
+       cannot be less restrictive than the destination type.  (GCC doesn't
+       diagnose this.) */
+    if (!exception_spec_conversion_possible(source_operand->type,
+                                            base_dest_type)) {
+      expr_pos_diagnostic((gpp_mode && !clang_mode) ?
+                                        es_warning : es_discretionary_error,
+                          ec_incompatible_exception_specs,
+                          &source_operand->position);
     }  /* if */
   } else if ((direct_binding_possible ||
               (dropping_qualifiers && !is_rvalue_ref)) &&
