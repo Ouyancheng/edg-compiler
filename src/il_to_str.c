@@ -2432,7 +2432,7 @@ a_type_ptr complex_type_needs_modification(a_type_ptr   orig_type,
 Determine if the specified type refers to an 80- or 128-bit complex type
 (either directly or through a series of typerefs, some of which may be
 for_type_attributes).  If such a type is found, the underlying complex type
-is changed by this routine to have it's float_kind be "fk_float" and a pointer
+is changed by this routine to have its float_kind be "fk_float" and a pointer
 to this type is returned as well as the original float_kind.  Otherwise NULL
 is returned.
 
@@ -2515,7 +2515,7 @@ if FTO_SUPPRESS_SPECIFIERS is TRUE, suppress generation of the type specifiers
   a_type_ptr  attrib_stop_type = type;
   a_type_ptr  resolved_type = NULL;
 #if GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED
-  a_type_ptr complex_type = NULL;
+  a_type_ptr  complex_type = NULL;
 #endif /* GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED */
 
   if (type == NULL) {
