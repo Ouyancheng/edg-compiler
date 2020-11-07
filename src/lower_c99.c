@@ -4461,7 +4461,7 @@ on the scope types list.
     prepare_to_lower_variably_modified_typedef(type);
   }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-#if LOWER_COMPLEX
+#if LOWER_COMPLEX && GNU_EXTENSIONS_ALLOWED
   if (type_is_typedef(type) &&
       (type->variant.typeref.is_lowered_complex_type ||
        is_complex_type(type)) &&
@@ -4478,7 +4478,7 @@ on the scope types list.
       }  /* if */
     }  /* for */
   }  /* if */
-#endif /* LOWER_COMPLEX */
+#endif /* LOWER_COMPLEX && GNU_EXTENSIONS_ALLOWED */
 }  /* lower_c99_type */
 
 

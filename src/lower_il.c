@@ -9440,7 +9440,7 @@ Do IL lowering of the indicated type and everything under it.
           prepare_to_lower_variably_modified_typedef(type);
         }  /* if */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
-#if LOWER_COMPLEX
+#if LOWER_COMPLEX && GNU_EXTENSIONS_ALLOWED
         if ((type->variant.typeref.is_lowered_complex_type ||
              is_complex_type(type)) &&
             type->source_corresp.attributes != NULL) {
@@ -9459,7 +9459,7 @@ Do IL lowering of the indicated type and everything under it.
             }  /* if */
           }  /* for */
         }  /* if */
-#endif /* LOWER_COMPLEX */
+#endif /* LOWER_COMPLEX && GNU_EXTENSIONS_ALLOWED */
         lower_type(type->variant.typeref.type);
         break;
       case tk_template_param:
