@@ -1,5 +1,29 @@
 Version 6.2
 
+11/9/20  [EDGcpfe/23542]
+Clang and Microsoft C++20 compatibility: Comparison rewrites
+
+Consider:
+
+  template<template T> int operator!=(T const&, T const&);
+  struct S {} s;
+  int operator==(const S&, const S&);
+  auto r = (s != s);
+
+In C++20, this code is invalid: The overload resolution rules prefer rewriting
+s != s in terms of operator== because (unlike the operator!=) it is not a
+template, but C++20 also requires that the underlying operator produce a bool
+result.  Clang does diagnose the case, but it only issues a warning if the
+return type of operator== is a non-bool integer or enumeration type (as is the
+case here).  We now emulate that behavior in Clang mode, and in other modes the
+diagnostic is now a discretionary error.  The Microsoft compiler, on the other
+hand, prefers the operator!= template: We now emulate that (nonstandard) choice
+in Microsoft modes.  Note that the example above was valid C++17, and thus from
+that perspective this could be seen as a regression in Clang and Microsoft
+modes: Our implementation of the standard behavior in this particular case was
+introduced through the changes for EDGcpfe/21587 in version 6.0.
+
+
 11/6/20  [EDGcpfe/19958,EDGcpfe/23536]
 GNU compatibility: "mode" attribute in C-generating back end configs
 

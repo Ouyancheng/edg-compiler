@@ -8563,6 +8563,15 @@ other.  Return
       /* cfp2 uses the anachronism and cfp1 doesn't, so cfp1 is better. */
       cmp = 1;
     }  /* if */
+  } else if (microsoft_mode &&
+             cfp1->supplemental_comparison_candidate !=
+                                    cfp2->supplemental_comparison_candidate) {
+    /* For comparison operators, rewrites in terms of a different operator are
+       a worse match than directly matching the named operator.  Normally, this
+       is a very late tie breaker, but Microsoft's compiler (at least as late
+       as version 19.27) applies this rule before the template vs. nontemplate
+       tie-breaking rule. */
+    cmp = cfp1->supplemental_comparison_candidate ? -1 : 1;
   } else if (late_template_ovl_res_tiebreaker &&
              (cmp = compare_template_candidate_functions(cfp1, cfp2)) != 0) {
     /* The fact that one function is a function template and the other
@@ -18841,11 +18850,20 @@ no_applicable_operator_function:
                   a_type_ptr     rtp = skip_typerefs(rp->type);
                   if (!is_bool_type(rtp->variant.routine.return_type) &&
                       (opname_is_eq_op(kind) || opname_is_rel_op(kind))) {
-                    if (expr_error_should_be_issued()) {
-                      pos_sy_error(ec_cmp_operator_does_not_return_bool,
-                                   operator_position, sym);
+                    /* C++20 requires that the function used for the rewrite
+                       have a bool return type.  However, Clang accepts
+                       integral or enum return types with a warning. */
+                    an_error_severity  sev;
+                    if (is_integral_or_enum_type(
+                                          rtp->variant.routine.return_type)) {
+                      sev = clang_mode ? es_warning : es_discretionary_error;
+                    } else {
+                      sev = es_error;
+                      conv_to_error_operand(result);
                     }  /* if */
-                    conv_to_error_operand(result);
+                    expr_pos_sy_diagnostic(
+                                    sev, ec_cmp_operator_does_not_return_bool,
+                                    operator_position, sym);
                   } else {
                     a_boolean  reversed = candidate_functions
                                             ->supplemental_reversed_candidate;

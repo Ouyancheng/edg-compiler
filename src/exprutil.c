@@ -7046,6 +7046,23 @@ should be suppressed, e.g., a template deduction context.
 }  /* expr_pos_diagnostic */
 
 
+void expr_pos_sy_diagnostic(an_error_severity  sev,
+                            an_error_code      error_code,
+                            a_source_position  *error_pos,
+                            a_symbol_ptr       sym)
+/*
+Report the indicated diagnostic with the indicated severity at the indicated
+position.  sym is used for a fill-in.  Suppress the diagnostic if we're in a
+context where diagnostics should be suppressed, e.g., a template deduction
+context.
+*/
+{
+  if (expr_diagnostic_should_be_issued(sev, error_code, error_pos)) {
+    pos_sy_diagnostic(sev, error_code, error_pos, sym);
+  }  /* if */
+}  /* expr_pos_diagnostic */
+
+
 void expr_pos_ty_diagnostic(an_error_severity sev,
                             an_error_code     error_code,
                             a_source_position *error_pos,

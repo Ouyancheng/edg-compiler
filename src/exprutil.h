@@ -2800,6 +2800,11 @@ extern void expr_pos_diagnostic(an_error_severity sev,
                                 an_error_code     error_code,
                                 a_source_position *error_pos);
 
+extern void expr_pos_sy_diagnostic(an_error_severity sev,
+                                   an_error_code     error_code,
+                                   a_source_position *error_pos,
+                                   a_symbol_ptr      sym);
+
 extern void expr_pos_ty_diagnostic(an_error_severity sev,
                                    an_error_code     error_code,
                                    a_source_position *error_pos,
