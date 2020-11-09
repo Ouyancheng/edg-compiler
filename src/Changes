@@ -47,7 +47,7 @@ reference-to-const variables.  For example:
   constexpr CI &ci = CI{11, 22, 33};
   static_assert(ci[1] == 22, "");  // Previously an error.  Now okay.
 
-This implements the resolution the the C++ standardization committee's Core
+This implements the resolution of the C++ standardization committee's Core
 issue 2126.
 
 
