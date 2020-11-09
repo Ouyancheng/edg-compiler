@@ -5,7 +5,7 @@ Clang and Microsoft C++20 compatibility: Comparison rewrites
 
 Consider:
 
-  template<template T> int operator!=(T const&, T const&);
+  template<typename T> int operator!=(T const&, T const&);
   struct S {} s;
   int operator==(const S&, const S&);
   auto r = (s != s);
