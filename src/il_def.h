@@ -15581,7 +15581,7 @@ typedef struct a_constructor_init {
 			   initialization entry.  NULL for a field with
 			   its own initializer. */
   an_expr_node_ptr
-		expr;
+		source_expr;
 			/* When copying an explicitly specified array (which
 			   is currently only possible in GNU C++ mode), this
 			   points to the expression that produces that array.

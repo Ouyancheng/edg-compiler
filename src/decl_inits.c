@@ -9224,7 +9224,7 @@ initialized.  These are addressed in the course of the processing.
           /* This constructor initializer entry is likely not really needed.
              It may be the result of an empty initializer on a field or it may
              be associated with a base class without a constructor. */
-          if (cip->expr != NULL) {
+          if (cip->source_expr != NULL) {
             /* A special case: An explicit array initializer in a template (if
                it weren't in a template, we wouldn't be here since a nontrivial
                dynamic initialization entry would have been generated).  This
@@ -9234,7 +9234,7 @@ initialized.  These are addressed in the course of the processing.
             check_assertion(
                       gpp_mode && prototype_instantiations_in_il &&
                       cip->kind == (a_constructor_init_kind)cik_field &&
-                      (is_template_dependent_type(cip->expr->type) ||
+                      (is_template_dependent_type(cip->source_expr->type) ||
                        is_template_dependent_type(cip->variant.field->type)));
           } else {
             /* Unlink the constructor initializer entry from the list. */
