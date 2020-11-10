@@ -1,5 +1,31 @@
 Version 6.2
 
+11/9/20  [EDGcpfe/23341]
+Pack expansions in member-initializers
+
+When a pack expansion occurs in the member-initializer portion of a constructor
+definition, the front end would previously issue spurious errors if the pack
+expansion would initialize members in an order different from what is required.
+For example:
+
+  struct A {};
+  template<class... Ts> struct X : public virtual Ts... {
+    X(const Ts &... ts) : Ts(ts)... {}
+  };
+  X<X<A>, A> y{{{}}, {}};
+
+In the above example, the pack expansion for 'X' amounts to:
+
+  template<>
+  struct X<X<A>, A> : public virtual X<A>, public virtual A {
+    X(const X<A>& ts_1, const A& ts_2) : X<A>(ts_1), A(ts_2) {}
+  };
+
+Due to the common virtual base 'A', 'A' must be initialized first, despite
+appearing second in the pack expansion.  The front end now correctly
+handles such initialization/pack-expansion order differences.
+
+
 11/9/20  [EDGcpfe/23542]
 Clang and Microsoft C++20 compatibility: Comparison rewrites
 

@@ -2632,6 +2632,11 @@ Dump a dynamic initializer entry for debug purposes.
 
   /* Avoid problems on call with missing second argument from debugger: */
   if (level > 80 || level < 0) level = 0;
+  if (dip == NULL) {
+    db_indent(level);
+    fputs("<null initializer>\n", f_debug);
+    goto done;
+  }  /* if */
   if (dip->variable != NULL) {
     fputs("variable: \"", f_debug);
     db_name_full(&dip->variable->source_corresp, iek_variable);
@@ -2698,6 +2703,7 @@ destructor_on_this_line:
       fputs("***BAD DYNAMIC INIT KIND***\n", f_debug);
       break;
   }  /* switch */
+done:;
 }  /* db_dynamic_initializer */
 
 

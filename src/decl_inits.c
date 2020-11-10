@@ -8185,26 +8185,20 @@ entries are replaced as needed for each mem-initializer that is encountered.
     }  /* if */
     /* The initialization described by mem-initializers must occur in the order
        that the corresponding members are declared in.  That can be different
-       from the order that the mem-initializers appear in.  So we ordinarily
-       cache the mem-initializer arguments, and process them after we have
-       seen and ordered all the corresponding mem-initializer-ids.  However,
-       that doesn't always work during the prototype instantiation of variadic
-       templates.  For example:
+       from the order that the mem-initializers appear in.  We could cache the
+       mem-initializer arguments and process them after we have seen and
+       ordered all the corresponding mem-initializer-ids.  However, that
+       doesn't work during the instantiation of variadic templates.  For
+       example:
          template<typename ... Ts> struct S: Ts ... {
            S(Ts ... ts): Ts(ts) ... {}
          }
        Here the reference to ts in "Ts(ts)" must be recorded before the
-       subsequent ellipsis is seen.  For that case we therefore parse the
-       mem-initializer arguments immediately.  That is not a problem in
-       prototype instantiations, since no actual code is generated from
-       them. */
-    if (ctor->is_prototype_instantiation) {
-      scan_mem_init_args(ctor, new_cip, init_type, array_type,
-                         &init_start_pos);
-    } else {
-      prescan_mem_init_args(cibp, new_cip, init_type, array_type,
-                            &init_start_pos);
-    }  /* if */
+       subsequent ellipsis is seen.  We therefore parse the mem-initializer
+       arguments immediately. */
+    scan_mem_init_args(ctor, new_cip, init_type, array_type, &init_start_pos);
+    check_assertion(new_cip->initializer != NULL &&
+                    new_cip->initializer->lifetime == NULL);
   }  /* if */
   return new_cip;
 }  /* scan_mem_initializer */
@@ -9078,63 +9072,6 @@ initialized.  These are addressed in the course of the processing.
     a_type_ptr         object_class_type;
     a_symbol_ptr       field_sym = NULL;
     next_cip = cip->next;
-    if (!cip->compiler_generated && !ctor_rout->is_prototype_instantiation) {
-      /* Now that we know the order in which the explicit initializers should
-         be handled, we can complete their processing.  See also the call to
-         prescan_mem_init_args in scan_mem_initializer. */
-      a_mem_init_args_cache  *cache = cip->source.arg_cache;
-      if (cache == NULL) {
-        expect_error();
-      } else {
-        /* Clear the IL pointer to avoid confusing subsequent IL walks. */
-        cip->source.arg_cache = NULL;
-        if (cache->start_tsn != NO_TOKEN_SEQUENCE_NUMBER) {
-          /* The current entry has its own mem-initializer token cache (pack
-             expansion entries that are not the first of a pack expansion do
-             not have their own token cache). */
-          args_tsn = cache->args_tsn;
-          rescan_reusable_cache(&cache->tokens);
-          (void)begin_potential_pack_expansion_context(&cib.pesep);
-        } else {
-          /* Continue with the previous token sequence number.  If there isn't
-             such a number, an error must have occurred. */
-          if (args_tsn == NO_TOKEN_SEQUENCE_NUMBER) {
-            expect_error();
-            continue;
-          }  /* if */
-        }  /* if */
-        /* Skip to the arguments and process them.  (With Cfront-style base
-           class initializers, there may not be any tokens to skip.) */
-        while (curr_token_sequence_number != args_tsn) {
-          (void)get_token();
-        }  /* if */
-        scan_mem_init_args(ctor_rout, cip, cache->init_type,
-                           cache->array_type, &cache->start_pos);
-        /* Skip over the final delimiter. */
-        if (curr_token == tok_rparen ||
-            (list_init_enabled && curr_token == tok_rbrace)) {
-          (void)get_token();
-        }  /* if */
-        (void)end_potential_pack_expansion_context(
-                                          cib.pesep, /*is_declarator=*/FALSE);
-        if (!advance_to_next_pack_element(cib.pesep)) {
-          /* No additional pack elements follow.  Ensure we have reached the
-             end of the token cache. */
-          if (curr_token != tok_end_of_source) {
-            if (curr_token == tok_ellipsis) {
-              pos_error(ec_exp_lbrace, &pos_curr_token);
-            }  /* if */
-            expect_error();
-            /* If necessary, keep flushing until end-of-source is found. */
-            while (curr_token != tok_end_of_source) (void)get_token();
-          }  /* if */
-          /* Advance past the end-of-source token, which was added in
-             the prescan routine. */
-          (void)get_token();
-        }  /* if */
-        free_mem_init_args_cache(cache);
-      }  /* if */
-    }  /* if */
     if (cip->kind == (a_constructor_init_kind)cik_field) {
       field_sym = symbol_for(cip->variant.field);
       if (field_sym != NULL) {
