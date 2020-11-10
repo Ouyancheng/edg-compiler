@@ -21230,7 +21230,6 @@ entities.
                      avail_auto_param_descriptions,
                      num_auto_param_descriptions_allocated,
                      an_auto_param_descr);
-  grand_total = db_mem_init_args_caches_used(grand_total);
   return grand_total;
 }  /* show_decl_space_used */
 
