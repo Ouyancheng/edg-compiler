@@ -1170,13 +1170,21 @@ is_ambiguous:
        The flag might also have been set by the call of
        impl_conversion_possible. */
     if (dest_type_has_type_qualifiers) std_conv->type_qualifiers_added = TRUE;
-    if (!exception_spec_checked) {
+    if (!exception_spec_checked && exceptions_enabled) {
       sym = fundamental_symbol_of(match_sym);
       routine_type = routine_symbol_type(sym);
       if (!exception_spec_conversion_possible(routine_type,
                                               dest_underlying_type)) {
         /* The exception specifications can't be converted. */
         std_conv->exception_spec_incompatibility = TRUE;
+        *match_level = aml_none;
+      } else if (type_has_less_restrictive_exception_spec(dest_underlying_type,
+                                                          routine_type)) {
+        /* Binding to a less-restrictive exception specification is permitted
+           (N4868 [conv.fctptr]), but it is considered a "qualification
+           adjustment" for the purposes of ranking conversions during overload
+           resolution (N4868 [over.ics.scs]/3). */
+        std_conv->type_qualifiers_added = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */

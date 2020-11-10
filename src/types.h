@@ -1188,7 +1188,10 @@ typedef struct a_std_conv_descr {
   a_bit_field	type_qualifiers_added:1;
 			/* TRUE if type qualifiers were added under a pointer,
 			   pointer-to-member, reference, or C++/CLI handle.
-			   Serves as a tie-breaker in overload resolution. */
+			   Also TRUE when converting from a pointer to a
+			   noexcept function to a pointer to a matching type
+			   without "noexcept".  Serves as a tie-breaker in
+			   overload resolution. */
   a_bit_field	secondary_type_qualifiers_added:1;
 			/* TRUE if type qualifiers were added on a conversion
 			   under a reference, e.g., when a reference to a
