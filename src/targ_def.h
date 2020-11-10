@@ -736,6 +736,7 @@ std_version.
 #endif /* (DEFAULT_CPP_MODE >= 201103) && !CPP11_IL_EXTENSIONS_SUPPORTED */
 #if (DEFAULT_CPP_MODE != 199711) && \
     (DEFAULT_CPP_MODE != 201103) && \
+    (DEFAULT_CPP_MODE != 201402) && \
     (DEFAULT_CPP_MODE != 201703) && \
     (DEFAULT_CPP_MODE != 202002)
  #error -- Invalid value for DEFAULT_CPP_MODE
