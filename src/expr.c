@@ -48508,7 +48508,7 @@ The caller will add the destructor (if needed) and the array repetition.
                                            /*fold_constexpr=*/TRUE,
                                            /*check_constexpr=*/FALSE,
                                            &operand.position);
-        cip->source.expr = make_node_from_operand(&operand);
+        cip->expr = make_node_from_operand(&operand);
       }  /* if */
     } else if (could_be_dependent_class_type(el_type) ||
                is_template_dependent_type(src_type)) {
@@ -48518,7 +48518,7 @@ The caller will add the destructor (if needed) and the array repetition.
       if (prototype_instantiations_in_il) {
         an_expr_node_ptr expr = make_node_from_operand(&operand);
         expr = wrap_up_full_expression(expr);
-        cip->source.expr = expr;
+        cip->expr = expr;
         full_expr_wrapup_done = TRUE;
       }  /* if */
       dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);

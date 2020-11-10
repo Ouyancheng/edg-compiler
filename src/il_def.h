@@ -15580,22 +15580,12 @@ typedef struct a_constructor_init {
 			   being initialized, represented by a dynamic
 			   initialization entry.  NULL for a field with
 			   its own initializer. */
-  union {
-    an_expr_node_ptr
+  an_expr_node_ptr
 		expr;
 			/* When copying an explicitly specified array (which
 			   is currently only possible in GNU C++ mode), this
 			   points to the expression that produces that array.
 			   Otherwise, NULL. */
-    struct a_mem_init_args_cache
-		*arg_cache;
-			/* During front end processing this temporarily points
-			   to a cache for the braced or parenthesized
-			   initializer (including the delimiters).  After the
-			   order of the entries has been determined, actual
-			   parsing is done and this field is cleared (and
-			   perhaps replaced by the expr field above). */
-  } source;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_range
 		ctor_init_range;

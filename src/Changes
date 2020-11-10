@@ -1,7 +1,7 @@
 Version 6.2
 
 11/9/20  [EDGcpfe/23341]
-Pack expansions in member-initializers
+Pack expansions in member-initializers (IL Change)
 
 When a pack expansion occurs in the member-initializer portion of a constructor
 definition, the front end would previously issue spurious errors if the pack
@@ -21,9 +21,11 @@ In the above example, the pack expansion for 'X' amounts to:
     X(const X<A>& ts_1, const A& ts_2) : X<A>(ts_1), A(ts_2) {}
   };
 
-Due to the common virtual base 'A', 'A' must be initialized first, despite
-appearing second in the pack expansion.  The front end now correctly
-handles such initialization/pack-expansion order differences.
+Note that 'A' is also a virtual base class of 'X<A>'.  Because 'A' is a common
+virtual base, it must be initialized first, despite appearing second in the
+pack expansion.  The front end now correctly handles such initialization/
+pack-expansion order differences.  As part of this change, the front end no
+longer caches member-initializers, which affects the IL.
 
 
 11/9/20  [EDGcpfe/23542]

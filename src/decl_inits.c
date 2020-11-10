@@ -7262,7 +7262,7 @@ underlying element type and the array type itself is returned through
       /* Check through fields for which initializers have already been
          specified. */
       for (cip = cibp->cip_list; cip != NULL; cip = cip->next) {
-        if (cip->source.arg_cache != NULL) {
+        if (cip->initializer != NULL) {
           /* Note: at this point cip_list includes only fields, so we can
              assume cip->kind is cik_field. */
           if (cip->variant.field == field) {
@@ -7282,7 +7282,7 @@ underlying element type and the array type itself is returned through
       /* Note: at this point cip_list includes only fields, so we can assume
          new_cip->kind is cik_field. */
       if (new_cip->variant.field == member_or_base_sym->variant.field.ptr) {
-        if (new_cip->source.arg_cache != NULL) {
+        if (new_cip->initializer != NULL) {
           sym_error(ec_member_already_initialized, member_or_base_sym);
           goto scan_paren;
         }  /* if */
@@ -7463,7 +7463,7 @@ underlying element type and the array type itself is returned through
          list. */
       new_cip->compiler_generated = FALSE;
       new_cip->orig_type = orig_type;
-      if (new_cip->source.arg_cache != NULL) {
+      if (new_cip->initializer != NULL) {
         type_error(ec_base_class_already_initialized, bcp->type);
       } else {
         check_out_of_order_init(new_cip, cibp);
@@ -7989,10 +7989,15 @@ entries are replaced as needed for each mem-initializer that is encountered.
          }
        Here the reference to ts in "Ts(ts)" must be recorded before the
        subsequent ellipsis is seen.  We therefore parse the mem-initializer
-       arguments immediately. */
+       arguments immediately, but must detach any created lifetimes as they may
+       be linked in the incorrect order.  These lifetimes must be re-linked
+       later in the appropriate place. */
     scan_mem_init_args(ctor, new_cip, init_type, array_type, &init_start_pos);
-    check_assertion(new_cip->initializer != NULL &&
-                    new_cip->initializer->lifetime == NULL);
+    if (new_cip != NULL) {
+      check_assertion(new_cip->initializer != NULL);
+      detach_from_object_lifetime_tree(new_cip->initializer->
+                                                           init_expr_lifetime);
+    }  /* if */
   }  /* if */
   return new_cip;
 }  /* scan_mem_initializer */
@@ -8018,7 +8023,7 @@ field initializer), set *variant_explicit_init to TRUE.
     check_assertion(cip->kind == (a_constructor_init_kind)cik_field);
     fp = cip->variant.field;
     if ((dip != NULL && dip->kind != (a_dynamic_init_kind)dik_none) ||
-        (!first_entry && cip->source.arg_cache != NULL)) {
+        (!first_entry && cip->initializer != NULL)) {
       /* An explicit initializer. */
       *variant_explicit_init = TRUE;
       *variant_init = TRUE;
@@ -8841,6 +8846,20 @@ initialized.  These are addressed in the course of the processing.
     a_type_ptr         object_class_type;
     a_symbol_ptr       field_sym = NULL;
     next_cip = cip->next;
+    if (!cip->compiler_generated) {
+      an_object_lifetime_ptr olp;
+      check_assertion(cip->initializer != NULL);
+      olp = cip->initializer->init_expr_lifetime;
+      if (olp != NULL) {
+        /* This was detached from the lifetime earlier because it may have been
+           in the incorrect order.  Re-attach it now that we're at the correct
+           spot. */
+        olp->parent_lifetime = curr_object_lifetime;
+        olp->parent_destruction_sublist = curr_object_lifetime->destructions;
+        olp->next = curr_object_lifetime->child_lifetime;
+        curr_object_lifetime->child_lifetime = olp;
+      }  /* if */
+    }  /* if */
     if (cip->kind == (a_constructor_init_kind)cik_field) {
       field_sym = symbol_for(cip->variant.field);
       if (field_sym != NULL) {
@@ -9205,7 +9224,7 @@ initialized.  These are addressed in the course of the processing.
           /* This constructor initializer entry is likely not really needed.
              It may be the result of an empty initializer on a field or it may
              be associated with a base class without a constructor. */
-          if (cip->source.expr != NULL) {
+          if (cip->expr != NULL) {
             /* A special case: An explicit array initializer in a template (if
                it weren't in a template, we wouldn't be here since a nontrivial
                dynamic initialization entry would have been generated).  This
@@ -9215,7 +9234,7 @@ initialized.  These are addressed in the course of the processing.
             check_assertion(
                       gpp_mode && prototype_instantiations_in_il &&
                       cip->kind == (a_constructor_init_kind)cik_field &&
-                      (is_template_dependent_type(cip->source.expr->type) ||
+                      (is_template_dependent_type(cip->expr->type) ||
                        is_template_dependent_type(cip->variant.field->type)));
           } else {
             /* Unlink the constructor initializer entry from the list. */
