@@ -7020,6 +7020,10 @@ variable.
       } else {
         vp->constant_valued = TRUE;
       }  /* if */
+      if (cpp11_mode) {
+        /* A variable is never a null pointer constant in C++11. */
+        con_val->null_pointer_constant_ruled_out = TRUE;
+      }  /* if */
     }  /* if */
     if (vp->initializer_in_class) vp->is_member_constant = TRUE;
     release_local_constant(&ref_val);
