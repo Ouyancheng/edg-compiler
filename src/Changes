@@ -7,7 +7,7 @@ In C++11 mode, the front end no longer treats as a "null pointer constant" an
 expression that names a constant-valued variable of integer type with value
 zero.  For example:
 
-  char const zero = 0;
+  int const zero = 0;
   int f(char);
   int f(const char*);
   int r = f(zero);  // Previously always ambiguous because "zero" was
