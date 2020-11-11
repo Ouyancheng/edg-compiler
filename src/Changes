@@ -1,5 +1,19 @@
 Version 6.2
 
+11/11/20 [EDGcpfe/23531,EDGcpfe/23564]
+Constant-evaluation of __builtin_memcmp
+
+Previously, evaluating __builtin_memcmp in a constant-expression required that
+the operands to the intrinsic function be the addresses of top-level integer or
+array of integer objects.  Now, the "top-level" requirement has been dropped:
+The integer or integer array objects being compared can be subobjects.  For
+example, in Clang C++17 mode:
+
+  constexpr char const *alpha = "abcdefg";
+  static_assert(__builtin_memcmp(alpha+1, alpha, 3) != 0);
+                      // Now okay.  Previously a constant-evaluation failure.
+
+
 11/11/20 [EDGcpfe/23533,EDGcpfe/23541]
 Null pointer constants
 

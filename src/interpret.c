@@ -7896,61 +7896,78 @@ expression node and interpreter state.
        because the byte count on the target machine layout usually differs
        from that of the interpreter layout.  However, Clang and GCC appear
        to handle this for the very specific case of comparing the bytes of
-       two top-level integral objects (or arrays thereof). */
-    a_byte        *obj1, *obj2, *targ_repr1, *targ_repr2, *targ_map;
-    a_type_ptr    obj_tp1, obj_tp2, utp1, utp2;
-    a_boolean     equal_not_okay = FALSE;
-    a_byte_count  size1, size2;
+       two objects (or arrays thereof). */
+    a_storage_stack_state  tmp_storage;
+    a_byte                 *targ_repr1, *targ_repr2, *targ_map;
+    a_type_ptr             obj_tp1, obj_tp2, utp1, utp2;
+    a_boolean              equal_not_okay = FALSE;
+    a_byte_count           size1, size2;
+    save_storage_stack(ips, tmp_storage);
     check_assertion(is_memcmp);
-    obj1 = addr1->complete_object;
-    obj2 = addr2->complete_object;
-    obj_tp1 = complete_object_type(obj1);
+    obj_tp1 = obj_type_at_address(ips, addr1);
     size1 = (a_byte_count)size_of_type(obj_tp1);
     utp1 = skip_typerefs(skip_array_types(obj_tp1));
-    obj_tp2 = complete_object_type(obj2);
+    obj_tp2 = obj_type_at_address(ips, addr2);
     size2 = (a_byte_count)size_of_type(obj_tp2);
     utp2 = skip_typerefs(skip_array_types(obj_tp2));
-    if (addr1->address != obj1 || addr2->address != obj2 ||
-        !type_is(utp1, tk_integer) || !type_is(utp2, tk_integer)) {
+    if (!type_is(utp1, tk_integer) || !type_is(utp2, tk_integer)) {
       info_with_pos(ec_invalid_constexpr_memcmp, &call_node->position, ips);
       do_constexpr_fail(result);
     }  /* if */
     alloc_stack_bytes(ips, size1, targ_repr1);
     alloc_stack_bytes(ips, size1, targ_map);
-    if (!translate_interpreter_object_to_target_bytes(ips, obj_tp1, obj1, obj1,
-                                                      targ_repr1, targ_map)) {
+    if (!translate_interpreter_object_to_target_bytes(
+                 ips, obj_tp1, base_address_of(addr1), addr1->complete_object,
+                 targ_repr1, targ_map)) {
       unexpected_condition();
     }  /* if */
     alloc_stack_bytes(ips, size2, targ_repr2);
     alloc_stack_bytes(ips, size2, targ_map);
-    if (!translate_interpreter_object_to_target_bytes(ips, obj_tp2, obj2, obj2,
-                                                      targ_repr2, targ_map)) {
+    if (!translate_interpreter_object_to_target_bytes(
+                 ips, obj_tp2, base_address_of(addr2), addr2->complete_object,
+                 targ_repr2, targ_map)) {
       unexpected_condition();
     }  /* if */
-    /* Trim the length being compared if needed, to avoid reading uninitialized
-       bytes.  However, if we needed to trim, an "equal" result (i.e., zero)
-       implies that the untrimmed comparison would have read uninitialized
-       memory, which isn't valid in a constant evaluation. */
-    if ((a_byte_count)length_val > size1) {
-      length_val = size1;
-      equal_not_okay = TRUE;
+    /* Adjust for the offset into either array. */
+    if (is_array_element(addr1)) {
+      a_byte_count  max1, pos1, elem_size1;
+      get_array_pos(ips, addr1, utp1, &max1, &pos1, &elem_size1, &result);
+      size1 -= pos1*utp1->size;
+      targ_repr1 += pos1*utp1->size;
     }  /* if */
-    if ((a_byte_count)length_val > size2) {
-      length_val = size2;
-      equal_not_okay = TRUE;
+    if (is_array_element(addr2)) {
+      a_byte_count  max2, pos2, elem_size2;
+      get_array_pos(ips, addr2, utp2, &max2, &pos2, &elem_size2, &result);
+      size2 -= pos2*utp2->size;
+      targ_repr2 += pos2*utp2->size;
     }  /* if */
-    ret_val = memcmp(targ_repr1, targ_repr2, size_t_arg(length_val));
-    if (equal_not_okay && ret_val == 0) {
-      /* An attempt to read uninitialized memory. */
-      an_expr_node_ptr  arg = call_node->variant.operation.operands;
-      arg = arg->next;
-      if (size2 < size1) {
-        arg = arg->next;
+    if (result) {
+      /* Trim the length being compared if needed, to avoid reading
+         uninitialized bytes.  However, if we needed to trim, an "equal" result
+         (i.e., zero) implies that the untrimmed comparison would have read
+         uninitialized memory, which isn't valid in a constant evaluation. */
+      if ((a_byte_count)length_val > size1) {
+        length_val = size1;
+        equal_not_okay = TRUE;
       }  /* if */
-      do_constexpr_fail(result);
-      info_with_pos(ec_attempt_to_read_past_end_of_object, &arg->position,
-                    ips);
+      if ((a_byte_count)length_val > size2) {
+        length_val = size2;
+        equal_not_okay = TRUE;
+      }  /* if */
+      ret_val = memcmp(targ_repr1, targ_repr2, size_t_arg(length_val));
+      if (equal_not_okay && ret_val == 0) {
+        /* An attempt to read uninitialized memory. */
+        an_expr_node_ptr  arg = call_node->variant.operation.operands;
+        arg = arg->next;
+        if (size2 < size1) {
+          arg = arg->next;
+        }  /* if */
+        do_constexpr_fail(result);
+        info_with_pos(ec_attempt_to_read_past_end_of_object, &arg->position,
+                      ips);
+      }  /* if */
     }  /* if */
+    restore_storage_stack(ips, tmp_storage, result);
   }  /* if */
 return_result:
   if (result) {
