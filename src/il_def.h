@@ -11434,7 +11434,7 @@ typedef struct a_routine {
 			   for some functions (e.g., trivial default
 			   constructors), the body is removed immediately after
 			   it has been processed, so defined is TRUE when
-			   assoc_scope == NULL_region_number. */
+			   memory_region == NULL_region_number. */
   a_bit_field	called:1;
 			/* TRUE if this routine is directly called.
 			   For virtual functions in C++, this indicates that
