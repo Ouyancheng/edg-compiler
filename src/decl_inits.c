@@ -7099,10 +7099,13 @@ underlying element type and the array type itself is returned through
   a_symbol_ptr               member_or_base_sym = NULL;
   a_type_ptr                 init_type, orig_type = NULL;
   a_boolean                  template_param_init = FALSE, is_decltype = FALSE;
+  a_boolean                  prototype_instantiation;
   a_base_class_ptr           bcp;
   a_constructor_init_ptr     cip, new_cip = NULL;
   a_source_position          pos = pos_curr_token;
 
+  prototype_instantiation =
+             class_type->variant.class_struct_union.is_prototype_instantiation;
   if (is_decltype_mem_initializer(cibp)) {
     /* In C++11 mode, decltype may be used to denote a base class. */
     is_decltype = TRUE;
@@ -7262,7 +7265,7 @@ underlying element type and the array type itself is returned through
       /* Check through fields for which initializers have already been
          specified. */
       for (cip = cibp->cip_list; cip != NULL; cip = cip->next) {
-        if (cip->initializer != NULL) {
+        if (cip->initializer != NULL && !prototype_instantiation) {
           /* Note: at this point cip_list includes only fields, so we can
              assume cip->kind is cik_field. */
           if (cip->variant.field == field) {
@@ -7282,7 +7285,7 @@ underlying element type and the array type itself is returned through
       /* Note: at this point cip_list includes only fields, so we can assume
          new_cip->kind is cik_field. */
       if (new_cip->variant.field == member_or_base_sym->variant.field.ptr) {
-        if (new_cip->initializer != NULL) {
+        if (new_cip->initializer != NULL && !prototype_instantiation) {
           sym_error(ec_member_already_initialized, member_or_base_sym);
           goto scan_paren;
         }  /* if */
@@ -7412,7 +7415,7 @@ underlying element type and the array type itself is returned through
     }  /* if */
     if (bcp == NULL) {
       if (template_param_init ||
-          (class_type->variant.class_struct_union.is_prototype_instantiation &&
+          (prototype_instantiation &&
            class_symbol_supp(symbol_for(class_type))->
                                                   any_nonreal_base_classes)) {
         /* There are some cases where we cannot match up a base:
@@ -7453,8 +7456,7 @@ underlying element type and the array type itself is returned through
       for (; new_cip != NULL; new_cip = new_cip->next) {
         if (new_cip->variant.base_class == bcp) break;
       }  /* for */
-      if (new_cip == NULL &&
-          class_type->variant.class_struct_union.is_prototype_instantiation) {
+      if (new_cip == NULL && prototype_instantiation) {
         new_cip = add_new_unresolved_base_ctor_init(cibp,init_type);
       }
       check_assertion(new_cip != NULL);
@@ -7463,7 +7465,7 @@ underlying element type and the array type itself is returned through
          list. */
       new_cip->compiler_generated = FALSE;
       new_cip->orig_type = orig_type;
-      if (new_cip->initializer != NULL) {
+      if (new_cip->initializer != NULL && !prototype_instantiation) {
         type_error(ec_base_class_already_initialized, bcp->type);
       } else {
         check_out_of_order_init(new_cip, cibp);
@@ -7884,7 +7886,14 @@ initialized and array_type is the array type.  pos is the start position of
 the mem-initializer.
 */
 {
+  if (cip == NULL) {
+    flush_until_matching_token();
+    /* Skip the final delimiter. */
+    (void)get_token();
+    goto done;
+  }  /* if */
   scope_stack_top().in_ctor_initializer = TRUE;
+  push_stop_token_stack();
   if (curr_token == tok_lparen) {
     /* A classic (i.e., parenthesized) mem-initializer argument. */
     scan_parenthesized_mem_init_args(ctor, cip, init_type, array_type);
@@ -7902,7 +7911,9 @@ the mem-initializer.
     cip->ctor_init_range.end = curr_construct_end_position;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+  pop_stop_token_stack();
   scope_stack_top().in_ctor_initializer = FALSE;
+done:;
 }  /* scan_mem_init_args */
 
 
@@ -7990,13 +8001,12 @@ entries are replaced as needed for each mem-initializer that is encountered.
        Here the reference to ts in "Ts(ts)" must be recorded before the
        subsequent ellipsis is seen.  We therefore parse the mem-initializer
        arguments immediately, but must detach any created lifetimes as they may
-       be linked in the incorrect order.  These lifetimes must be re-linked
+       be linked in the incorrect order.  These lifetimes must be relinked
        later in the appropriate place. */
     scan_mem_init_args(ctor, new_cip, init_type, array_type, &init_start_pos);
     if (new_cip != NULL) {
       check_assertion(new_cip->initializer != NULL);
-      detach_from_object_lifetime_tree(new_cip->initializer->
-                                                           init_expr_lifetime);
+      detach_dynamic_init_lifetimes(new_cip->initializer);
     }  /* if */
   }  /* if */
   return new_cip;
@@ -8022,8 +8032,7 @@ field initializer), set *variant_explicit_init to TRUE.
     a_field_ptr         fp;
     check_assertion(cip->kind == (a_constructor_init_kind)cik_field);
     fp = cip->variant.field;
-    if ((dip != NULL && dip->kind != (a_dynamic_init_kind)dik_none) ||
-        (!first_entry && cip->initializer != NULL)) {
+    if (dip != NULL && (!first_entry || dyn_init_is(dip, dik_none))) {
       /* An explicit initializer. */
       *variant_explicit_init = TRUE;
       *variant_init = TRUE;
@@ -8847,18 +8856,12 @@ initialized.  These are addressed in the course of the processing.
     a_symbol_ptr       field_sym = NULL;
     next_cip = cip->next;
     if (!cip->compiler_generated) {
-      an_object_lifetime_ptr olp;
+      /* This was detached from the lifetime earlier because it may have been
+         in the incorrect order.  Reattach it now that we're at the correct
+         spot. */
       check_assertion(cip->initializer != NULL);
-      olp = cip->initializer->init_expr_lifetime;
-      if (olp != NULL) {
-        /* This was detached from the lifetime earlier because it may have been
-           in the incorrect order.  Re-attach it now that we're at the correct
-           spot. */
-        olp->parent_lifetime = curr_object_lifetime;
-        olp->parent_destruction_sublist = curr_object_lifetime->destructions;
-        olp->next = curr_object_lifetime->child_lifetime;
-        curr_object_lifetime->child_lifetime = olp;
-      }  /* if */
+      attach_dynamic_init_lifetimes(curr_object_lifetime, cip->initializer,
+                                    /*only_sub_inits=*/TRUE);
     }  /* if */
     if (cip->kind == (a_constructor_init_kind)cik_field) {
       field_sym = symbol_for(cip->variant.field);

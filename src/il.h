@@ -3190,6 +3190,13 @@ extern void eliminate_variable_default_arg_object_lifetimes(
 extern void eliminate_unneeded_il_entries(a_scope_ptr scope);
 #endif /* MAINTAIN_NEEDED_FLAGS */
 
+extern void detach_dynamic_init_lifetimes(a_dynamic_init_ptr dip);
+
+extern void attach_dynamic_init_lifetimes(
+                                        an_object_lifetime_ptr parent,
+                                        a_dynamic_init_ptr     dip,
+                                        a_boolean              only_sub_inits);
+
 extern void clear_variable_definition(a_variable_ptr variable);
 
 extern a_routine_ptr vtbl_decider_function_for_class(a_type_ptr class_type,

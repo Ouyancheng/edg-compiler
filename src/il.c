@@ -27750,6 +27750,196 @@ and destruction lists.  Also remove any nested object lifetimes.
 }  /* remove_dynamic_initialization */
 
 
+static void detach_constant_initializer_dyn_init_lifetimes(a_constant_ptr cp)
+/*
+Detach any lifetimes associated with the given constant from their lifetime
+trees.
+*/
+{
+  if (constant_is(cp, ck_aggregate)) {
+    a_constant_ptr sub_con;
+    for (sub_con = cp->variant.aggregate.first_constant;
+         sub_con != NULL;
+         sub_con = sub_con->next) {
+      detach_constant_initializer_dyn_init_lifetimes(sub_con);
+    }  /* for */
+  } else if (constant_is(cp, ck_dynamic_init)) {
+    detach_dynamic_init_lifetimes(cp->variant.dynamic_init.ptr);
+  } else if (constant_is(cp, ck_init_repeat)) {
+    detach_constant_initializer_dyn_init_lifetimes(
+                                             cp->variant.init_repeat.constant);
+  }  /* if */
+}  /* detach_constant_initializer_dyn_init_lifetimes */
+
+
+static void detach_expression_dyn_init_lifetimes(an_expr_node_ptr expr)
+/*
+Detach any lifetimes associated with the given expression from their lifetime
+trees.
+*/
+{
+  switch (expr->kind) {
+    case enk_object_lifetime:
+      detach_expression_dyn_init_lifetimes(expr->variant.object_lifetime.expr);
+      break;
+    case enk_lambda:
+    case enk_temp_init:
+      detach_dynamic_init_lifetimes(expr->variant.init.dynamic_init);
+      break;
+    case enk_operation:
+      /* This covers casts, and possibly "?" and "," operators if those are
+         ever made to pass through a temporary. */
+      { an_expr_node_ptr operand;
+        for (operand = expr->variant.operation.operands;
+             operand != NULL;
+             operand = operand->next) {
+          detach_expression_dyn_init_lifetimes(operand);
+        }  /* for */
+      }
+      break;
+    default:
+      /* No action. */
+      break;
+  }  /* switch */
+}  /* detach_expression_dyn_init_lifetimes */
+
+
+void detach_dynamic_init_lifetimes(a_dynamic_init_ptr dip)
+/*
+Detach any lifetimes associated with the given dynamic initialization from
+their lifetime trees.
+*/
+{
+  an_object_lifetime_ptr olp;
+
+  olp = init_expr_lifetime_of(dip);
+  if (olp != NULL) {
+    /* There exists a child lifetime for the contained expression - detach just
+       that. */
+    detach_from_object_lifetime_tree(olp);
+  } else {
+    if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate ||
+        (dip->kind == (a_dynamic_init_kind)dik_lambda &&
+         dip->variant.constant.non_constant)) {
+      /* Detach any lifetimes on aggregate member initializers. */
+      detach_constant_initializer_dyn_init_lifetimes(
+                                                    dip->variant.constant.ptr);
+    } else if (dip->kind == (a_dynamic_init_kind)dik_expression ||
+               dip->kind == (a_dynamic_init_kind)dik_class_result_via_ctor) {
+      /* Scan the sub-expression in case there's an initialization of a
+         temporary whose lifetime was extended to the lifetime of the
+         surrounding context. */
+      detach_expression_dyn_init_lifetimes(dip->variant.expression);
+    }  /* if */
+  }  /* if */
+  remove_from_destruction_list(dip);
+}  /* detach_dynamic_init_lifetimes */
+
+
+static void attach_constant_initializer_dyn_init_lifetimes(
+                                                 an_object_lifetime_ptr parent,
+                                                 a_constant_ptr         cp)
+/*
+Attach any lifetimes associated with the given constant to the given parent
+lifetime.
+*/
+{
+  if (constant_is(cp, ck_aggregate)) {
+    a_constant_ptr sub_con;
+    for (sub_con = cp->variant.aggregate.first_constant;
+         sub_con != NULL;
+         sub_con = sub_con->next) {
+      attach_constant_initializer_dyn_init_lifetimes(parent, sub_con);
+    }  /* for */
+  } else if (constant_is(cp, ck_dynamic_init)) {
+    attach_dynamic_init_lifetimes(parent, cp->variant.dynamic_init.ptr,
+                                  /*only_sub_inits=*/FALSE);
+  } else if (constant_is(cp, ck_init_repeat)) {
+    attach_constant_initializer_dyn_init_lifetimes(
+                                             parent,
+                                             cp->variant.init_repeat.constant);
+  }  /* if */
+}  /* attach_constant_initializer_dyn_init_lifetimes */
+
+
+static void attach_expression_dyn_init_lifetimes(an_object_lifetime_ptr parent,
+                                                 an_expr_node_ptr       expr)
+/*
+Attach any lifetimes associated with the given expression to the given parent
+lifetime.
+*/
+{
+  switch (expr->kind) {
+    case enk_object_lifetime:
+      attach_expression_dyn_init_lifetimes(parent,
+                                           expr->variant.object_lifetime.expr);
+      break;
+    case enk_lambda:
+    case enk_temp_init:
+      attach_dynamic_init_lifetimes(parent, expr->variant.init.dynamic_init,
+                                    /*only_sub_inits=*/FALSE);
+      break;
+    case enk_operation:
+      /* This covers casts, and possibly "?" and "," operators if those are
+         ever made to pass through a temporary. */
+      { an_expr_node_ptr operand;
+        for (operand = expr->variant.operation.operands;
+             operand != NULL;
+             operand = operand->next) {
+          attach_expression_dyn_init_lifetimes(parent, operand);
+        }  /* for */
+      }
+      break;
+    default:
+      /* No action. */
+      break;
+  }  /* switch */
+}  /* attach_expression_dyn_init_lifetimes */
+
+
+void attach_dynamic_init_lifetimes(an_object_lifetime_ptr parent,
+                                   a_dynamic_init_ptr     dip,
+                                   a_boolean              only_sub_inits)
+/*
+Attach any lifetimes associated with the given dynamic initializations to
+parent.  If only_sub_inits is TRUE then the dynamic initialization itself is
+not attached to parent.
+*/
+{
+  an_object_lifetime_ptr olp;
+
+  olp = init_expr_lifetime_of(dip);
+  if (olp != NULL) {
+    /* There exists a child lifetime for the contained expression - attach just
+       that. */
+    olp->parent_lifetime = parent;
+    olp->parent_destruction_sublist = parent->destructions;
+    olp->next = parent->child_lifetime;
+    parent->child_lifetime = olp;
+  } else {
+    if (dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate ||
+        (dip->kind == (a_dynamic_init_kind)dik_lambda &&
+         dip->variant.constant.non_constant)) {
+      /* Attach any lifetimes on aggregate member initializers. */
+      attach_constant_initializer_dyn_init_lifetimes(
+                                                    parent,
+                                                    dip->variant.constant.ptr);
+    } else if (dip->kind == (a_dynamic_init_kind)dik_expression ||
+               dip->kind == (a_dynamic_init_kind)dik_class_result_via_ctor) {
+      /* Scan the sub-expression in case there's an initialization of a
+         temporary whose lifetime was extended to the lifetime of the
+         surrounding context. */
+      attach_expression_dyn_init_lifetimes(parent, dip->variant.expression);
+    }  /* if */
+  }  /* if */
+  if (!only_sub_inits && dip->destructor != NULL) {
+    dip->next_in_destruction_list = parent->destructions;
+    parent->destructions = dip;
+    dip->lifetime = parent;
+  }  /* if */
+}  /* attach_dynamic_init_lifetimes */
+
+
 void clear_variable_definition(a_variable_ptr variable)
 /*
 Eliminate the definition of the indicated variable, if any, to turn it

@@ -16,7 +16,7 @@ zero.  For example:
 
 
 11/9/20  [EDGcpfe/23341]
-Pack expansions in member-initializers (IL Change)
+Pack expansions in member-initializers (IL CHANGE)
 
 When a pack expansion occurs in the member-initializer portion of a constructor
 definition, the front end would previously issue spurious errors if the pack
@@ -40,7 +40,9 @@ Note that 'A' is also a virtual base class of 'X<A>'.  Because 'A' is a common
 virtual base, it must be initialized first, despite appearing second in the
 pack expansion.  The front end now correctly handles such initialization/
 pack-expansion order differences.  As part of this change, the front end no
-longer caches member-initializers, which affects the IL.
+longer caches member-initializers, resulting in a small IL CHANGE: the
+a_constructor_init field source.expr, a union member, is now a direct non-union
+member named source_expr.
 
 
 11/9/20  [EDGcpfe/23542]
