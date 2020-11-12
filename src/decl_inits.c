@@ -7892,7 +7892,6 @@ the mem-initializer.
     push_stop_token_stack();
     if (cip == NULL) {
       flush_until_matching_token();
-      //cache_token_stream_until_matching_token();
       /* Skip the final delimiter. */
       (void)get_token();
     } else if (curr_token == tok_lparen) {
