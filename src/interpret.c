@@ -5759,6 +5759,12 @@ Evaluate the given dynamic initialization for the given storage.
     default:
       unexpected_condition();
   }  /* switch */
+  if (dip->is_reused_value && result) {
+    /* Record the location of a value to reuse. */
+    a_byte  *discard;
+    map_or_replace_ptr(&ips->map, dip, result_storage, discard);
+    (void)discard;
+  }  /* if */
   return result;
 }  /* do_constexpr_dynamic_init */
 
@@ -6241,7 +6247,7 @@ initialization and execute the increment before the main iteration.
       n_bytes = expr_result_size(ips, expr, tp, &result);
       alloc_complete_object(ips, n_bytes, tp, expr_value);
       /* Check if we have to allocate a condition variable. */
-      has_cond_var = (expr->kind == (an_expr_node_kind)enk_condition);
+      has_cond_var = node_is(expr, enk_condition);
       if (has_cond_var &&
           !do_constexpr_condition_alloc(ips, expr, &cond_saved_stack)) {
         do_constexpr_fail(result);
@@ -6510,7 +6516,7 @@ successfully interpreted, FALSE otherwise.
                                       ->sorted_cases;
   a_boolean                is_signed, has_cond_var;
 
-  has_cond_var = (expr->kind == (an_expr_node_kind)enk_condition);
+  has_cond_var = node_is(expr, enk_condition);
   if (has_cond_var &&
       !do_constexpr_condition_alloc(ips, expr, &saved_stack)) {
     has_cond_var = FALSE;
@@ -6757,7 +6763,7 @@ successfully interpreted, FALSE otherwise.
         }  /* if */
         expr = stmt->expr;
         /* Check if we have to allocate a condition variable. */
-        has_cond_var = (expr->kind == (an_expr_node_kind)enk_condition);
+        has_cond_var = node_is(expr, enk_condition);
         if (has_cond_var &&
             !do_constexpr_condition_alloc(ips, expr, &saved_stack)) {
           do_constexpr_fail(result);
@@ -6792,7 +6798,7 @@ successfully interpreted, FALSE otherwise.
         a_host_large_integer  bool_val = FALSE;
         expr = stmt->expr;
         /* Check if we have to allocate a condition variable. */
-        has_cond_var = (expr->kind == (an_expr_node_kind)enk_condition);
+        has_cond_var = node_is(expr, enk_condition);
         if (has_cond_var &&
             !do_constexpr_condition_alloc(ips, expr, &saved_stack)) {
           do_constexpr_fail(result);
@@ -10322,12 +10328,12 @@ the body of the (constructor) function proper.
         if (arg == args->next &&
             class_type_supp(class_type)->is_initializer_list &&
             is_operation_node(arg) && node_operator_is(arg, eok_padd) &&
-            arg->variant.operation.operands->kind ==
-                                         (an_expr_node_kind)enk_reuse_value) {
-          /* The interpreter does not generally handle enk_reuse_value nodes.
-             There is only one standard use for them and that is in some
-             invocations of the std::initializer_list constructor: That use is
-             handled as a special case here. */
+            node_is(arg->variant.operation.operands, enk_reuse_value)) {
+          /* There is only one standard use for enk_reuse_value nodes and that
+             is in some invocations of the std::initializer_list constructor:
+             That use is handled as a special case here.  (Other uses occur in
+             nonstandard extensions, and we approximate their behavior in
+             general expression interpretation.) */
           /* The first argument is the address of an array (and has been
              evaluated already).  The second argument represents the address
              one position past the end of that array. */
@@ -11211,7 +11217,7 @@ complete_object).  Otherwise, return FALSE and record a diagnostic in *ips.
   a_byte            *target_result_bitmap;
 
   check_assertion(arg1 != NULL && arg1->next != NULL &&
-                  arg1->kind == (an_expr_node_kind)enk_type_operand);
+                  node_is(arg1, enk_type_operand));
   object = arg1->next;
   dst_type = skip_typerefs(arg1->variant.type_operand.type);
   src_type = skip_typerefs(object->type);
@@ -13119,7 +13125,7 @@ the value representation of the integer value.
                    !node_operator_is(expr, eok_dot_vacuous_destructor_call) &&
                    !node_operator_is(expr,
                                      eok_points_to_vacuous_destructor_call) &&
-                   opnd2->kind != (an_expr_node_kind)enk_field) {
+                   !node_is(opnd2, enk_field)) {
           /* Evaluate the second operand.  For short-circuiting operators,
              whether to evaluate the second operand will be decided below in
              the specific code for each such operator.  The comma operator can
@@ -17600,6 +17606,30 @@ the value representation of the integer value.
         }  /* if */
       }
       break;
+    case enk_reuse_value:
+      /* A reuse of a value that was evaluated earlier in this same expression
+         tree via a dynamic-init entry.  At the time, the location of the
+         result was stored in ips->map.  This case is currently only
+         encountered in some GNU extensions (the occurrences in standard code
+         are handled elsewhere). */
+      { a_byte  *bytes;
+        get_mapped_ptr(&ips->map, expr->variant.reused_value_init, bytes);
+        if (bytes != NULL) {
+          /* Retrieve the location of the original evaluation and copy the
+             representation of that original evaluation.  This is fine, except
+             that any self-referential addresses will keep referring to the
+             original value.  That is often okay, except if the address is
+             explicitly compared.  For now, we leave that approximation since
+             it only affects rare, nonstandard cases. */
+          n_bytes = value_bytes_for_type(ips, tp, &result);
+          (void)memcpy(result_storage, bytes, size_t_arg(n_bytes));
+        } else {
+          do_constexpr_fail(result);
+          info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                        &expr->position, ips);
+        }  /* if */
+      }
+      break;
     case enk_error:
       ips->input_error = TRUE;
       FALLTHROUGH
@@ -18526,7 +18556,7 @@ indicates the value produced by std::is_constant_evaluated().
       if (!result) {
         /* Nothing more to do. */
       } else if (ips.storage_stack.destructions != NULL &&
-                 ((expr->kind != (an_expr_node_kind)enk_object_lifetime &&
+                 ((!node_is(expr, enk_object_lifetime) &&
                    !is_constant_evaluated) ||
                   !perform_destructions(&ips))) {
         /* If there are pending destructions, but this node is not an

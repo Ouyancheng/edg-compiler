@@ -1,5 +1,17 @@
 Version 6.2
 
+11/12/20 [EDGcpfe/23562]
+GNU compatibility: Constant-evaluation of two-operand conditional operator
+
+The constexpr interpreter can now evaluate the first branch of a GNU
+two-operand conditional operators in more cases.  For example:
+
+  constexpr int f(int p) { return p; }
+  constexpr int g(int p) { return p ?: -1; }
+  static_assert(g(1) == 1, "Unexpected");  // Previously an error.  Now
+                                           // accepted.
+
+
 11/12/20 [EDGcpfe/21841]
 Spurious error with braced-initialization of a base class with a protected dtor
 

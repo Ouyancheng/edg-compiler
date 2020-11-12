@@ -12545,11 +12545,10 @@ enum an_expr_node_kind_tag {
 			   expression tree.  Used for cases where a single
 			   expression is used twice but evaluated only once.
 			   In standard C++, this is only used for certain
-			   calls to a std::initializer_list constructor (and
-			   that is the only case handled by the constexpr
-			   interpreter).  All other uses are for extensions
-			   such as GCC's two-operand "?:" operator.
-			   Eliminated by IL lowering. */
+			   calls to a std::initializer_list constructor.
+			   All other uses are for extensions such as GCC's
+			   two-operand "?:" operator.  Eliminated by IL
+			   lowering. */
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
   enk_lowered_eh_construct,
 			/* Used to represent a partially-lowered exception
