@@ -7896,7 +7896,7 @@ expression node and interpreter state.
        because the byte count on the target machine layout usually differs
        from that of the interpreter layout.  However, Clang and GCC appear
        to handle this for the very specific case of comparing the bytes of
-       two objects (or arrays thereof). */
+       two integer objects (or arrays thereof). */
     a_storage_stack_state  tmp_storage;
     a_byte                 *targ_repr1, *targ_repr2, *targ_map;
     a_type_ptr             obj_tp1, obj_tp2, utp1, utp2;
