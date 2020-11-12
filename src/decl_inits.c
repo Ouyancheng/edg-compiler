@@ -7886,21 +7886,24 @@ initialized and array_type is the array type.  pos is the start position of
 the mem-initializer.
 */
 {
-  if (cip == NULL) {
-    flush_until_matching_token();
-    /* Skip the final delimiter. */
-    (void)get_token();
-    goto done;
-  }  /* if */
   scope_stack_top().in_ctor_initializer = TRUE;
-  push_stop_token_stack();
-  if (curr_token == tok_lparen) {
-    /* A classic (i.e., parenthesized) mem-initializer argument. */
-    scan_parenthesized_mem_init_args(ctor, cip, init_type, array_type);
-  } else if (list_init_enabled && curr_token == tok_lbrace) {
-    /* A braced (i.e., C++11-style) mem-initializer argument. */
-    a_type_ptr  dtype = (array_type != NULL) ? array_type : init_type;
-    braced_mem_initializer(ctor, dtype, cip, (an_init_component*)NULL);
+  if (curr_token == tok_lparen ||
+      (list_init_enabled && curr_token == tok_lbrace)) {
+    push_stop_token_stack();
+    if (cip == NULL) {
+      flush_until_matching_token();
+      //cache_token_stream_until_matching_token();
+      /* Skip the final delimiter. */
+      (void)get_token();
+    } else if (curr_token == tok_lparen) {
+      /* A classic (i.e., parenthesized) mem-initializer argument. */
+      scan_parenthesized_mem_init_args(ctor, cip, init_type, array_type);
+    } else {
+      /* A braced (i.e., C++11-style) mem-initializer argument. */
+      a_type_ptr  dtype = (array_type != NULL) ? array_type : init_type;
+      braced_mem_initializer(ctor, dtype, cip, (an_init_component*)NULL);
+    }  /* if */
+    pop_stop_token_stack();
   } else {
     /* Neither brace nor parenthesis: A syntax error. */
     handle_missing_mem_init_args(cip);
@@ -7911,9 +7914,7 @@ the mem-initializer.
     cip->ctor_init_range.end = curr_construct_end_position;
   }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  pop_stop_token_stack();
   scope_stack_top().in_ctor_initializer = FALSE;
-done:;
 }  /* scan_mem_init_args */
 
 
@@ -8032,7 +8033,7 @@ field initializer), set *variant_explicit_init to TRUE.
     a_field_ptr         fp;
     check_assertion(cip->kind == (a_constructor_init_kind)cik_field);
     fp = cip->variant.field;
-    if (dip != NULL && (!first_entry || dyn_init_is(dip, dik_none))) {
+    if (dip != NULL && !(first_entry && dyn_init_is(dip, dik_none))) {
       /* An explicit initializer. */
       *variant_explicit_init = TRUE;
       *variant_init = TRUE;
