@@ -7932,13 +7932,13 @@ expression node and interpreter state.
     if (is_array_element(addr1)) {
       a_byte_count  max1, pos1, elem_size1;
       get_array_pos(ips, addr1, utp1, &max1, &pos1, &elem_size1, &result);
-      size1 -= pos1*utp1->size;
+      size1 -= pos1*(a_byte_count)utp1->size;
       targ_repr1 += pos1*utp1->size;
     }  /* if */
     if (is_array_element(addr2)) {
       a_byte_count  max2, pos2, elem_size2;
       get_array_pos(ips, addr2, utp2, &max2, &pos2, &elem_size2, &result);
-      size2 -= pos2*utp2->size;
+      size2 -= pos2*(a_byte_count)utp2->size;
       targ_repr2 += pos2*utp2->size;
     }  /* if */
     if (result) {
