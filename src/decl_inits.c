@@ -643,12 +643,17 @@ diagnostics are not issued, errors are reflected in is->init_error.
 {
   a_routine_ptr  dtor_rp;
   a_boolean      err = FALSE, *p_err = NULL;
+  a_type_ptr     object_type = tp;
 
   if (is->no_diagnostics) p_err = &err;
+  if (is->ctor_initializer) {
+    object_type = parent_class_of(scope_stack_top().assoc_routine);
+  }  /* if */
   /* No access checking is done during tentative matching for overload
      resolution (indicated by is->check_validity_only). */
-  dtor_rp = select_destructor_full(tp, tp, diag_pos, /*honor_virtual=*/FALSE,
-                                   /*evaluated=*/TRUE, /*instantiate=*/TRUE,
+  dtor_rp = select_destructor_full(tp, object_type, diag_pos,
+                                   /*honor_virtual=*/FALSE, /*evaluated=*/TRUE,
+                                   /*instantiate=*/TRUE,
                                    /*check_access=*/!is->check_validity_only,
                                    p_err);
   if (err) is->init_error = TRUE;

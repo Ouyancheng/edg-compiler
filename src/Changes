@@ -1,5 +1,23 @@
 Version 6.2
 
+11/12/20 [EDGcpfe/21841]
+Spurious error with braced-initialization of a base class with a protected dtor
+
+When a class constructor has an explicit braced-initializer of its base class,
+and that base class has a protected-access destructor, the front end would
+issue a spurious accessibility error.  For example:
+
+  class Base {
+  protected:
+    ~Base();
+  };
+  struct Derived : public Base {
+    Derived() : Base{} {} // Spurious "Base::~Base" is inaccessible error
+  };
+
+This is now fixed.
+
+
 11/12/20 [EDGcpfe/23566]
 GNU C++11 compatibility: Missing return statement in constexpr function
 
