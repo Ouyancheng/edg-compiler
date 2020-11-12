@@ -1,5 +1,20 @@
 Version 6.2
 
+11/12/20 [EDGcpfe/23566]
+GNU C++11 compatibility: Missing return statement in constexpr function
+
+In GNU C++11 mode, the severity of a missing return statement for a constexpr
+function template has been lowered to a warning if the template is never
+instantiated.  For example, in GNU C++11 mode with no deferral of prototype
+instantiations:
+
+  template<typename T> struct S {
+    constexpr bool f() {}  // Previously an error, now a warning.
+  };
+
+Furthermore, the error that is issued in other modes is now discretionary.
+
+
 11/11/20 [EDGcpfe/23531,EDGcpfe/23564]
 Constant-evaluation of __builtin_memcmp
 

@@ -6464,18 +6464,17 @@ reaches the end of the main routine.  That behavior is also used in C89,
 in which such a return is undefined.
 */
 {
-  a_routine_ptr     rout = current_routine_entry();
-  a_type_ptr        rout_type, tp;
-  a_boolean         issue_no_value_returned_diag = FALSE;
-  an_error_severity no_returned_value_severity = es_none;
+  a_routine_ptr        rout = current_routine_entry();
+  a_type_ptr           rout_type, tp;
+  a_boolean            issue_no_value_returned_diag = FALSE;
+  an_error_severity    no_returned_value_severity = es_none;
+  a_scope_stack_entry  *ssep= &scope_stack[depth_innermost_function_scope];
 
   *return_expr = NULL;
   /* Disable return value optimization in a function that contains a void
      return statement. */
-  { a_scope_stack_entry_ptr ssep= &scope_stack[depth_innermost_function_scope];
-    ssep->return_value_optimization_possible = FALSE;
-    ssep->il_scope->variant.routine.return_value_variable = NULL;
-  }
+  ssep->return_value_optimization_possible = FALSE;
+  ssep->il_scope->variant.routine.return_value_variable = NULL;
   rout_type = skip_typerefs(rout->type);
   check_assertion(rout_type->kind == (a_type_kind)tk_routine);
   if (rout->special_kind == (a_special_function_kind)sfk_constructor ||
@@ -6545,12 +6544,32 @@ in which such a return is undefined.
         release_local_constant(&zero);
       } else if (rout->is_constexpr && !relaxed_constexpr_enabled) {
         /* A C++11 constexpr function must return a value (strictly speaking,
-           this is undefined behavior, but an error seems warranted).  With
-           C++14-style "relaxed" constexpr functions, we might return
-           conditionally (because the function doesn't consist solely of a
-           return statement) with the caller making sure the condition for
-           returning is always satisfied. */
-        no_returned_value_severity = es_error;
+           this is undefined behavior, but an error seems warranted) and must
+           contain exactly one return statement.  With C++14-style "relaxed"
+           constexpr functions, we might return conditionally (because the
+           function doesn't consist solely of a return statement) with the
+           caller making sure the condition for returning is always satisfied.
+           GCC doesn't issue an error for the C++11 template case until it is
+           actually instantiated. */
+        no_returned_value_severity = es_discretionary_error;
+        if (gpp_mode && !clang_mode && rout->is_prototype_instantiation) {
+          no_returned_value_severity = es_warning;
+        }  /* if */
+        if (!ssep->constexpr_ruled_out && is_implicit_return &&
+            !special_kind_is(rout, sfk_constructor) &&
+            !ssep->has_at_least_one_return) {
+          /* For a C++11 function, put out a specialized diagnostic for a
+             missing return statement. */
+          pos_diagnostic(no_returned_value_severity,
+                         ec_invalid_constexpr_body, &pos_curr_token);
+          if (is_effective_error(ec_invalid_constexpr_body,
+                                 no_returned_value_severity,
+                                 &error_position)) {
+            ssep->constexpr_ruled_out = TRUE;
+          }  /* if */
+          /* Do not issue an additional diagnostic. */
+          no_returned_value_severity = es_none;
+        }  /* if */
       } else if (strict_ansi_mode && !C_mode() && !is_implicit_return) {
           /* In strict C++ mode, the severity may be an error. */
         no_returned_value_severity = strict_ansi_discretionary_severity;
@@ -6558,7 +6577,7 @@ in which such a return is undefined.
         /* In C99 mode a non-void (non-main) function must return a value.
            Just give a warning if we're also in Microsoft or GNU mode. */
         no_returned_value_severity = (gcc_mode || microsoft_mode) ?
-                                                        es_warning : es_error;
+                                           es_warning : es_discretionary_error;
       } else {
         /* Not "main". */
         /* See if the diagnostic level should be adjusted for other reasons. */
@@ -6582,27 +6601,25 @@ in which such a return is undefined.
              the user told us this code is not reachable. */
         } else {
           /* Get pointer to the symbol for the function name. */
-          a_symbol_ptr     function_name_symbol = symbol_for(rout);
+          a_symbol_ptr     rout_sym = symbol_for(rout);
           a_symbol_locator locator;
           check_assertion_str(
-                        function_name_symbol != NULL,
+                        rout_sym != NULL,
                         "check_void_return_okay: unexpected NULL assoc_info");
-          if (function_name_symbol->is_error) {
-            make_locator_for_symbol(function_name_symbol, &locator);
+          if (rout_sym->is_error) {
+            make_locator_for_symbol(rout_sym, &locator);
           }  /* if */
-          if (!(function_name_symbol->is_error &&
-                looks_like_ctor_or_dtor(&locator))) {
-            sym_diagnostic(no_returned_value_severity,
-                           is_implicit_return ?
-                             ec_implicit_return_from_non_void_function :
-                             ec_no_value_returned_in_non_void_function,
-                           function_name_symbol);
-            if (current_routine_entry()->is_constexpr &&
-                no_returned_value_severity == es_error &&
-                !special_kind_is(current_routine_entry(), sfk_constructor)) {
+          if (!(rout_sym->is_error && looks_like_ctor_or_dtor(&locator))) {
+            an_error_code  err_code =
+               is_implicit_return ? ec_implicit_return_from_non_void_function :
+                                    ec_no_value_returned_in_non_void_function;
+            sym_diagnostic(no_returned_value_severity, err_code, rout_sym);
+            if (rout->is_constexpr &&
+                !special_kind_is(current_routine_entry(), sfk_constructor) &&
+                is_effective_error(err_code, no_returned_value_severity,
+                                   &error_position)) {
               /* Can't be a constexpr function. */
-              scope_stack[depth_innermost_function_scope]
-                                                  .constexpr_ruled_out = TRUE;
+              ssep->constexpr_ruled_out = TRUE;
             }  /* if */
           }  /* if */
         }  /* if */
@@ -7893,11 +7910,10 @@ is being parsed within the context of the __extension__ keyword.
          try block (rather than a block), this must be a function try block.
          In most ways this has to be treated just like an ordinary top-level
          block of a function. */
+      a_routine_ptr  rp = current_routine_entry();
       is_function_try_block = TRUE;
-      if (current_routine_entry()->special_kind ==
-                                    (a_special_function_kind)sfk_constructor ||
-          current_routine_entry()->special_kind ==
-                                    (a_special_function_kind)sfk_destructor) {
+      if (special_kind_is(rp, sfk_constructor) ||
+          special_kind_is(rp, sfk_destructor)) {
         /* A function-try-block in a constructor or destructor.  An object
            lifetime was previously pushed to capture any destructions in
            the members or base classes.  Remove it from the object lifetime
@@ -8059,8 +8075,8 @@ is being parsed within the context of the __extension__ keyword.
          not this aspect of it.  The 7.1 compiler does this correctly. */
       a_routine_ptr  rp = current_routine_entry();
       if (!(microsoft_bugs && microsoft_version <= 1300) &&
-          (rp->special_kind == (a_special_function_kind)sfk_constructor ||
-           rp->special_kind == (a_special_function_kind)sfk_destructor)) {
+          (special_kind_is(rp, sfk_constructor) ||
+           special_kind_is(rp, sfk_destructor))) {
         implicit_rethrow = TRUE;
       } else {
         implicit_return = TRUE;
@@ -8174,18 +8190,6 @@ is being parsed within the context of the __extension__ keyword.
     (void)required_token(tok_rbrace, ec_exp_rbrace);
   }  /* if */
   remove_stop_token(tok_rbrace);
-  if (at_function_level &&
-      current_routine_entry()->is_constexpr && !relaxed_constexpr_enabled &&
-      !scope_stack[depth_innermost_function_scope].constexpr_ruled_out &&
-      !special_kind_is(current_routine_entry(), sfk_constructor) &&
-      !scope_stack[depth_innermost_function_scope].has_at_least_one_return) {
-    /* Check that there is exactly one return statement in a C++11 constexpr
-       function (an error has already been given if more than one return was
-       encountered).  This restriction does not apply to C++14 constexpr
-       functions. */
-    pos_error(ec_invalid_constexpr_body, &pos_curr_token);
-    scope_stack[depth_innermost_function_scope].constexpr_ruled_out = TRUE;
-  }  /* if */
 #if DEBUG
   if (debug_level >= 3 ||
       (at_function_level && db_flag_is_set("dump_stmts"))) {
