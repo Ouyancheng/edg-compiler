@@ -7020,8 +7020,11 @@ variable.
       } else {
         vp->constant_valued = TRUE;
       }  /* if */
-      if (cpp11_mode) {
-        /* A variable is never a null pointer constant in C++11. */
+      if (cpp11_mode && constant_is(con_val, ck_integer) &&
+          !(microsoft_mode && ms_permissive)) {
+        /* An integer variable is never a null pointer constant in C++11, due
+           to the resolution of Core issue 903, treated as a DR (defect
+           report).  MSVC only implements the DR in its non-permissive mode. */
         con_val->null_pointer_constant_ruled_out = TRUE;
       }  /* if */
     }  /* if */

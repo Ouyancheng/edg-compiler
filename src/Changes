@@ -28,6 +28,10 @@ zero.  For example:
                     // considered a valid null pointer constant.  Now okay
                     // in C++11 (and later) modes.
 
+This is a consequence of the resolution of Core issue 903 (treated as a defect
+report against C++11).  In permissive Microsoft modes, the prior behavior is
+retained, however.
+
 
 11/9/20  [EDGcpfe/23341]
 Pack expansions in member-initializers (IL CHANGE)
