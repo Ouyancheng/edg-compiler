@@ -6215,7 +6215,7 @@ Display the indicated macro entry.
 
 #endif /* RECORD_MACROS_IN_IL */
 
-#if RECORD_MACRO_INVOCATIONS
+#if MACRO_INVOCATION_TREE_IN_IL
 
 static void disp_simple_source_position(a_const_char              *str,
                                         a_simple_source_position  *pos)
@@ -6236,9 +6236,6 @@ simple-source-position portion of) null_source_position.
   }  /* if */
 }  /* disp_simple_source_position */
 
-#endif /* RECORD_MACRO_INVOCATIONS */
-
-#if MACRO_INVOCATION_TREE_IN_IL
 
 static void disp_macro_invocation_record(a_macro_invocation_record_ptr   mirp,
                                          a_macro_invocation_record_index idx)
