@@ -24,7 +24,7 @@ issue a spurious accessibility error.  For example:
     ~Base();
   };
   struct Derived : public Base {
-    Derived() : Base{} {} // Spurious "Base::~Base" is inaccessible error
+    Derived() : Base{} {} // Spurious "Base::~Base is inaccessible" error
   };
 
 This is now fixed.
