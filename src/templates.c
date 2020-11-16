@@ -17886,8 +17886,7 @@ reparse_declarator:
            typeref_is_type_operator(state->type))) {
         func_info->function_type_from_typedef = TRUE;
       }  /* if */
-      if (parent_class == NULL && locator != NULL &&
-          locator->is_class_member) {
+      if (parent_class == NULL && locator->is_class_member) {
         /* This is a member template declaration outside the class definition,
            so a storage class may not be specified (as in the nontemplate
            case).  Microsoft compilers simply ignore the "static" keyword
