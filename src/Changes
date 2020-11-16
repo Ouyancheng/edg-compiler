@@ -1,5 +1,20 @@
 Version 6.2
 
+11/16/20 [EDGcpfe/23592]
+Microsoft compatibility: __builtin_offsetof assertion failure during lowering
+
+As a result of the changes for EDGcpfe/21283 (in version 5.0), the
+__builtin_offsetof builtin function was enabled in some Microsoft emulation
+modes, but certain uses of it could cause an assertion failure (in
+lower_builtin_operation).  That is now fixed.  For example (with
+--microsoft_mode=1928):
+
+  struct A { int x[100]; };
+  int f(int i) {
+    return __builtin_offsetof(A, x[i]);
+  }
+
+
 11/16/20 [EDGcpfe/22383,EDGcpfe/22903]
 Core issue 2352: Reference binding and similar types
 

@@ -14803,7 +14803,6 @@ underlying array).
   overwrite_node(expr, var_rvalue_expr(dip->variable));
 }  /* lower_reuse_value_expr */
 
-#if GNU_EXTENSIONS_ALLOWED
 
 static void lower_builtin_offsetof(an_expr_node_ptr  expr)
 /*
@@ -14812,7 +14811,7 @@ Lower the given __builtin_offsetof node.
 {
   an_expr_node_ptr  offset = expr->variant.builtin_operation.operands->next;
 
-  check_assertion(gnu_mode && offset->is_lvalue);
+  check_assertion(offset->is_lvalue);
   /* Replace the node with an expression that represents the offset. */
   lower_any_expr(offset);
   offset = add_address_of_to_node(offset);
@@ -14820,7 +14819,6 @@ Lower the given __builtin_offsetof node.
   overwrite_node(expr, offset);
 }  /* lower_builtin_offsetof */
 
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
 
 static void lower_builtin_complex(an_expr_node_ptr  expr)
@@ -14941,11 +14939,9 @@ bok_offsetof, which can include nonconstant subscripts.
 */
 {
   switch (expr->variant.builtin_operation.kind) {
-#if GNU_EXTENSIONS_ALLOWED
     case bok_offsetof:
       lower_builtin_offsetof(expr);
       break;
-#endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_VECTOR_TYPES_ALLOWED
     case bok_builtin_shuffle:
     case bok_builtin_shufflevector:
