@@ -23909,9 +23909,21 @@ the conversion.
          there were rvalue references.  If this is changed, note that the
          code above for the list-initialization code must change as
          well. */
+      a_conv_context_set  conv_context_for_temp = conv_context;
+      if (!clang_mode && !gpp_mode && !ms_version_is(<1929)) {
+        /* Core issue 2267 was resolved by requiring copy-list-initialization
+           for the temporary even if the main initialization is direct
+           initialization.  For example:
+              struct X {};
+              struct Y { explicit operator X(); } y;
+              X const &rcx(y);  // Error: Explicit operator is not an option
+                                // for copy initialization of temporary.
+        */
+        conv_context_for_temp &= ~CCO_DIRECT_INITIALIZATION;
+      }  /* if */
       convert_operand_into_temp(source_operand, base_dest_type, dest_type,
-                                conversion, conv_context, incompatible_err,
-                                &err);
+                                conversion, conv_context_for_temp,
+                                incompatible_err, &err);
       if (err) {
         /* The conversion could not be done.  An error has already been
            issued. */

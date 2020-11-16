@@ -1,5 +1,24 @@
 Version 6.2
 
+11/16/20 [EDGcpfe/23402]
+Core issue 2267: Initialization of temporary for reference binding
+
+The resolution of Core issue 2267 concludes that the initialization of a
+temporary created for a reference binding should be treated as a "copy
+initialization" even when the reference initialization uses direct-
+initialization syntax.  That means that the temporary cannot be initialized
+with an explicit conversion operator.  For example:
+
+  struct X {};
+  struct Y { explicit operator X(); } y;
+  X const &rcx(y);  // Error: Explicit operator is not an option
+                    // for copy initialization of temporary.
+
+This change is currently not enabled in Clang and GNU modes since the
+corresponding compilers do not implement that behavior yet.  In Microsoft
+C++ mode, it is enabled when microsoft_version >= 1929.
+
+
 11/16/20 [EDGcpfe/23592]
 Microsoft compatibility: __builtin_offsetof assertion failure during lowering
 
