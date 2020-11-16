@@ -22448,7 +22448,12 @@ must be considered.  Only used in C++.  This is copy-initialization.
                                     &local_conversion)) {
     a_type_ptr temp_type = dest_type;
     /* Yes, the conversion is possible.  Do it. */
-    if (conversion->class_object_adjustment_required) {
+    if (conversion->routine != NULL && is_or_contains_error_type(temp_type)) {
+      /* Conversion functions with error types can lead to unbounded recursion
+         if we attempt the conversion. */
+      *err = TRUE;
+      make_error_operand(source_operand);
+    } else if (conversion->class_object_adjustment_required) {
       /* The result of the conversion function is a class prvalue that can
          be bound to but has a slightly different type than dest_type
          (because of derived --> base issues or cv-qualifier differences).
@@ -22845,12 +22850,20 @@ direct binding is "possible" and not whether it is "valid".
   unqual_source_type = skip_typerefs(source_type);
   unqual_dest_type = skip_typerefs(base_dest_type);
   /* See if the types are correct without conversion. */
-  if (!gpp_mode && !clang_mode) {
+  if (!cpp11_mode || ms_version_is(<1928)) {
     type_is_correct_or_derived =
        qualification_conversion_possible(unqual_source_type, unqual_dest_type,
                                          /*p_qualifiers_added=*/NULL,
                                          /*warning_suggested=*/NULL,
                                          /*ignore_undelying_type=*/FALSE);
+  } else if (!gpp_mode && !clang_mode) {
+    a_type_ptr  eff_source_type = source_type;
+    if (is_rvalue_ref && source_operand != NULL &&
+        is_an_lvalue(source_operand)) {
+      eff_source_type = unqual_source_type;
+    }  /* if */
+    type_is_correct_or_derived = are_reference_compatible(base_dest_type,
+                                                          eff_source_type);
   } else {
     type_is_correct_or_derived =
               f_types_are_compatible(unqual_source_type, unqual_dest_type,
@@ -23016,7 +23029,9 @@ direct binding is "possible" and not whether it is "valid".
   /* The destination type must have no fewer type qualifiers than the source
      type to be usable without conversion (ARM 8.4.3). */
   *dropping_qualifiers = FALSE;
-  if (type_is_correct_or_derived && !template_case) {
+  if (!template_case &&
+      (type_is_correct_or_derived ||
+       are_reference_related(base_dest_type, source_type))) {
     a_type_qualifier_set source_quals = get_type_qualifiers(source_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_mode) {

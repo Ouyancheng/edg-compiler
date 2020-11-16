@@ -9370,6 +9370,61 @@ pointers, etc. is a class type: In that case, it returns FALSE.
 }  /* types_are_similar_with_gpp_caveat */
 
 
+a_boolean are_reference_related(a_type_ptr type_1,
+                                a_type_ptr type_2)
+/*
+Return TRUE if type_1 is "reference-related" to type_2 according to the
+definition in [dcl.init.ref] (paragraph 4 in N4868; with a tweak in some GCC
+modes).  That means the unqualified versions of type_1 and type_2 are "similar"
+or the unqualified version of type_1 is a base class of the unqualified version
+of type_2.
+*/
+{
+  a_boolean ref_related = FALSE;
+
+  type_1 = skip_typerefs(type_1);
+  type_2 = skip_typerefs(type_2);
+  if (identical_types(type_1, type_2) ||
+      (is_immediate_class_type(type_1) &&
+       is_immediate_class_type(type_2) &&
+       find_base_class_of(type_2, type_1) != NULL) ||
+      (gpp_mode ? types_are_similar_with_gpp_caveat(type_1, type_2)
+                : types_are_similar(type_1, type_2))) {
+    ref_related = TRUE;
+  }  /* if */
+  return ref_related;
+}  /* are_reference_related */
+
+
+a_boolean are_reference_compatible(a_type_ptr  type_1,
+                                   a_type_ptr  type_2)
+/*
+Return TRUE if type_1 is "reference-compatible" with type_2 according to the
+definition in [dcl.init.ref] (paragraph 4 in N4868). That means that an
+expression of type "pointer to type_2" can be converted to "pointer to type_1"
+using a standard conversion.
+*/
+{
+  a_boolean  result;
+
+  if (type_1 == type_2) {
+    result = TRUE;
+  } else {
+    a_std_conv_descr  std_conv;
+    a_type_ptr        tp1 = make_pointer_type(type_1),
+                      tp2 = make_pointer_type(type_2);
+    result = impl_pointer_conversion(tp2, /*source_is_constant=*/FALSE,
+                                     /*source_is_string_literal=*/FALSE,
+                                     /*source_is_function=*/FALSE,
+                                     (a_constant*)NULL,
+                                     tp1,
+                                     /*allow_qualifier_or_eh_mismatch=*/FALSE,
+                                     /*suppress_extensions=*/FALSE,
+                                     ec_no_error, &std_conv);
+  }  /* if */
+  return result;
+}  /* are_reference_compatible */
+
 
 a_boolean types_are_interpreter_compatible(a_type_ptr  tp1,
                                            a_type_ptr  tp2)
