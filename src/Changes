@@ -8,8 +8,8 @@ certain reference bindings.  For example:
 
   int *ptr;
   const int *const &f() {
-    return ptr;  // Previously an error.  Now okay.
-  }
+    return ptr;  // Previously a warning about binding a reference to a
+  }              // local temporary.  Now returns a direct reference to ptr.
 
 
 11/12/20 [EDGcpfe/23562]
