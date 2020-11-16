@@ -5763,7 +5763,8 @@ Evaluate the given dynamic initialization for the given storage.
     /* Record the location of a value to reuse. */
     a_byte  *discard;
     map_or_replace_ptr(&ips->map, dip, result_storage, discard);
-    discard = discard;  /* To avoid spurious warnings from certain
+    *(a_byte**)&discard = discard;
+                        /* To avoid spurious warnings from certain
                            compilers and tools. */
   }  /* if */
   return result;
