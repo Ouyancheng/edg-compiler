@@ -23483,7 +23483,7 @@ redeclaration) and any redeclaration error should be suppressed.
       if (!member_template_param_list_matches_class(
                     decl_state, sym,
                     /*allow_missing_member_constraint=*/
-                                   is_redecl && !decl_state->defines_something,
+                                  *is_redecl && !decl_state->defines_something,
                     &error_position)) {
         err = TRUE;
       } /* if */
