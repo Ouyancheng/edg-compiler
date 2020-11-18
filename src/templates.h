@@ -810,11 +810,28 @@ extern a_symbol_ptr find_matching_template_instance(
 		a_boolean        		*is_new_template_instance);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+/*
+Flags passed to control the behavior of compare_function_templates (which
+computes the partial ordering of two function templates).
+*/
+#define CFT_NO_FLAGS  ((uint32_t)0x0)
+#define CFT_ENTIRE_TYPE  ((uint32_t)0x1)
+			/* TRUE if the partial ordering requires comparing the
+			   entire type (including the return type). */
+#define CFT_TEMPL_TEMPL_PARAM  ((uint32_t)0x2)
+			/* TRUE if the ordering is for functions synthesized to
+			   implement the C++17 template template parameter
+			   matching rules (N4868 [temp.arg.template]/4). */
+#define CFT_REVERSE_PARAMS_1  ((uint32_t)0x4)
+#define CFT_REVERSE_PARAMS_2  ((uint32_t)0x8)
+			/* TRUE if, respectively, the first or second function
+			   template is a C++20 comparison candidate that is
+			   being matched with reversed arguments. */
+
 extern int compare_function_templates(
 			a_symbol_ptr 		templ_sym1,
 			a_symbol_ptr		templ_sym2,
-			a_boolean		entire_type,
-			a_boolean		is_templ_templ_param_check,
+			uint32_t		cft_flags,
 			uint32_t		param_count);
 
 extern void record_predeclared_template_function(

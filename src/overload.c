@@ -8253,26 +8253,21 @@ Helper function for compare_candidate_functions to check if one candidate
 template is more specialized than the other.
 */
 {
-  uint32_t max1 = max_param_num_for_candidate_function(cfp1);
-  uint32_t max2 = max_param_num_for_candidate_function(cfp2);
-  uint32_t maxn = (max1 > max2) ? max1 : max2;
-  int      result;
+  uint32_t  max1 = max_param_num_for_candidate_function(cfp1);
+  uint32_t  max2 = max_param_num_for_candidate_function(cfp2);
+  uint32_t  maxn = (max1 > max2) ? max1 : max2;
+  uint32_t  cft_flags = CFT_NO_FLAGS;
+  int       result;
 
-  if (cfp1->supplemental_comparison_candidate !=
-                                   cfp2->supplemental_comparison_candidate ||
-      cfp1->supplemental_reversed_candidate !=
-                                   cfp2->supplemental_reversed_candidate) {
-    /* Don't try to compare candidates that include synthesized comparison
-       candidates for now (there is a committee DR that addresses this case,
-       but it is not yet implemented). */
-    result = 0;
-  } else {
-    result = compare_function_templates(cfp1->function_symbol,
-                                        cfp2->function_symbol,
-                                        /*entire_type=*/FALSE,
-                                        /*is_templ_templ_param_check=*/FALSE,
-                                        maxn);
+  if (cfp1->supplemental_reversed_candidate) {
+    cft_flags |= CFT_REVERSE_PARAMS_1;
   }  /* if */
+  if (cfp2->supplemental_reversed_candidate) {
+    cft_flags |= CFT_REVERSE_PARAMS_2;
+  }  /* if */
+  result = compare_function_templates(cfp1->function_symbol,
+                                      cfp2->function_symbol,
+                                      cft_flags, maxn);
   return result;
 }  /* compare_function_templates_for_ovl_res */
 

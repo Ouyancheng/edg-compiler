@@ -2410,10 +2410,9 @@ This routine does the C++17 "at least as specialized" checking (see N4849,
       ft2 = make_invented_function_template(param_list_for_param,
                                             type_symbol_type(param_sym));
       ft2->variant.template_info->il_template_entry = param_template;
-      compare_result = compare_function_templates(
-                                           ft1, ft2, /*entire_type=*/FALSE,
-                                           /*is_templ_templ_param_check=*/TRUE,
-                                           /*param_count=*/1);
+      compare_result = compare_function_templates(ft1, ft2,
+                                                  CFT_TEMPL_TEMPL_PARAM,
+                                                  /*param_count=*/1);
       /* A result less than zero indicates success for our purposes. */
       match = compare_result < 0;
     }  /* if */
@@ -3373,14 +3372,17 @@ static void get_effective_param_type_list_for_templates(
 			a_template_symbol_supplement_ptr	tssp1,
 			a_template_symbol_supplement_ptr	tssp2,
 			a_param_type_ptr			*ptp1,
-			a_param_type_ptr			*ptp2)
+			a_param_type_ptr			*ptp2,
+			uint32_t				cft_flags)
 /*
 In partial ordering, if one of the function templates is a non-static
 member and the other is a non-static or non-member, the non-static member
 has an invented parameter type entry for partial ordering purposes.  rtsp1
 and rtsp2 specify the type supplements for the routine types involved.
 templ_sym1 and templ_sym2 are the template symbols of the templates involved.
-tssp1 and tssp2 are the corresponding template symbol supplements.
+tssp1 and tssp2 are the corresponding template symbol supplements.  cft_flags
+are the flags passed to compare_function_templates (which is where this
+function is called from).
 
 This routine creates such an entry if needed and returns ptp1 and ptp2 as
 the parameter type lists to be used.  If an invented entry is needed, it
@@ -3389,6 +3391,7 @@ is put at the start of either ptp1 or ptp2.
 {
   a_boolean	rout_1_is_nonstatic = rtsp1->this_class != NULL;
   a_boolean	rout_2_is_nonstatic = rtsp2->this_class != NULL;
+  a_boolean	ptp1_done = FALSE, ptp2_done = FALSE;
 
   if (!cpp11_mode) {
     /* The ability to order nonstatic vs. nonmember functions was added
@@ -3405,8 +3408,21 @@ is put at the start of either ptp1 or ptp2.
        This is only done when comparing a non-static member with a
        non-member. */
     get_invented_partial_ordering_param(rtsp1, tssp1, ptp1);
+    ptp1_done = TRUE;
   } else if (rout_2_is_nonstatic && !templ_sym1->is_class_member) { 
     get_invented_partial_ordering_param(rtsp2, tssp2, ptp2);
+    ptp2_done = TRUE;
+  }  /* if */
+  if ((cft_flags & (CFT_REVERSE_PARAMS_1 | CFT_REVERSE_PARAMS_2)) != 0) {
+    /* For C++20 comparison functions that are being considered with reversed
+       parameters, generate the parameter representing *this so that it can be
+       compared appropriately.  (See N4868 [temp.func.order]/3.) */
+    if (!ptp1_done && rout_1_is_nonstatic) {
+      get_invented_partial_ordering_param(rtsp1, tssp1, ptp1);
+    }  /* if */
+    if (!ptp2_done && rout_2_is_nonstatic) {
+      get_invented_partial_ordering_param(rtsp2, tssp2, ptp2);
+    }  /* if */
   }  /* if */
 }  /* get_effective_param_type_list_for_templates */
 
@@ -3414,19 +3430,24 @@ is put at the start of either ptp1 or ptp2.
 int compare_function_templates(
 			a_symbol_ptr 		templ_sym1,
 			a_symbol_ptr		templ_sym2,
-			a_boolean		entire_type,
-			a_boolean		is_templ_templ_param_check,
+			uint32_t		cft_flags,
 			uint32_t		param_count)
 /*
 templ_sym1 and templ_sym2 are function template symbols.  Return 1 if
 templ_sym1 is more specialized than templ_sym2, return -1 if templ_sym2 is
 more specialized than templ_sym1, and return 0 if they are unordered.
-entire_type is TRUE if the partial ordering is being done in a context in
-which the entire function type should be considered.  param_count provides
-the count of parameters to be compared when entire_type is FALSE.
+cft_flags is a flag set that can combine:
+  - CFT_ENTIRE_TYPE when the partial ordering is being done in a context in
+    which the entire function type should be considered,
+  - CFT_TEMPL_TEMPL_PARAM when doing C++17-style template template
+    parameter matching,
+  - CFT_REVERSE_PARAMS_1 when templ_sym1 is a candidate with reversed
+    arguments for a C++20 comparison operator, and/or
+  - CFT_REVERSE_PARAMS_2 when templ_sym2 is a candidate with reversed
+    arguments for a C++20 comparison operator.
 
-is_templ_templ_param_check is TRUE when doing C++17-style template template
-parameter matching.
+param_count provides the count of parameters to be compared when the
+CFT_ENTIRE_TYPE flag is FALSE.
 */
 {
   int					result;
@@ -3447,13 +3468,15 @@ parameter matching.
   a_template_arg_ptr			dummy_arg_list1 = NULL;
   a_template_arg_ptr			dummy_arg_list2 = NULL;
   a_boolean				is_conversion_operator;
+  a_boolean				entire_type;
+  a_boolean				is_templ_templ_param_check;
 
   templ_sym1 = fundamental_symbol_of(templ_sym1);
   templ_sym2 = fundamental_symbol_of(templ_sym2);
-  check_assertion_str2(
-                  templ_sym1->kind == (a_symbol_kind)sk_function_template &&
-                  templ_sym2->kind == (a_symbol_kind)sk_function_template,
-                  "function_template_is_more_specialized:", "bad symbol kind");
+  check_assertion_str2(symbol_is(templ_sym1, sk_function_template) &&
+                       symbol_is(templ_sym2, sk_function_template),
+                      "function_template_is_more_specialized:",
+                       "bad symbol kind");
   tssp1 = template_supplement_for_symbol(templ_sym1);
   tssp2 = template_supplement_for_symbol(templ_sym2);
   rout1 = tssp1->variant.function.routine;
@@ -3468,11 +3491,15 @@ parameter matching.
   templ_param_list2 = tssp1->variant.function.decl_cache.decl_info->parameters;
   is_conversion_operator = is_conversion_function_symbol(templ_sym1);
   push_instantiation_scope_for_rescan(templ_sym1);
+  entire_type = (cft_flags & CFT_ENTIRE_TYPE) != 0;
+  is_templ_templ_param_check = (cft_flags & CFT_TEMPL_TEMPL_PARAM) != 0;
   if (is_conversion_operator ||
       (entire_type && !microsoft_mode && !gpp_mode)) {
     /* For conversion templates, the processing is only done on the return
        type.  Microsoft and GNU do not consider the return type in contexts
        in which the entire type should be used according to the standard. */
+    check_assertion(
+            (cft_flags & (CFT_REVERSE_PARAMS_1 | CFT_REVERSE_PARAMS_2)) == 0);
     parameter_is_more_specialized(rout_type1->variant.routine.return_type,
                                   rout_type2->variant.routine.return_type,
                                   &dummy_arg_list1, &dummy_arg_list2,
@@ -3485,6 +3512,7 @@ parameter matching.
   if (!is_conversion_operator) {
     /* For normal functions, the processing is done for each parameter, but
        not for the return type. */
+    a_param_type_ptr  reversed_ptp1 = NULL, reversed_ptp2 = NULL;
     ptp1 = rtsp1->param_type_list;
     ptp2 = rtsp2->param_type_list;
     if (!entire_type) {
@@ -3493,7 +3521,21 @@ parameter matching.
          static or nonmember function. */
       get_effective_param_type_list_for_templates(templ_sym1, templ_sym2,
                                                   rtsp1, rtsp2, tssp1,
-                                                  tssp2, &ptp1, &ptp2);
+                                                  tssp2, &ptp1, &ptp2,
+                                                  cft_flags);
+    }  /* if */
+    if ((cft_flags & CFT_REVERSE_PARAMS_1) != 0) {
+      /* templ_sym1 is a C++20 comparison that is considered with reversed
+         parameters for overload resolution purposes, and thus partial
+         ordering should also consider the parameters in reversed order.
+         Temporarily reverse the parameter list.  (See N4868
+         [temp.func.order]/3.)*/
+      reversed_ptp1 = reverse_simple_list(ptp1);
+      ptp1 = reversed_ptp1;
+    }  /* if */
+    if ((cft_flags & CFT_REVERSE_PARAMS_2) != 0) {
+      reversed_ptp2 = reverse_simple_list(ptp2);
+      ptp2 = reversed_ptp2;
     }  /* if */
     /* Do the argument deduction on each function parameter.  The loop will
        terminate when one of the parameter lists has been exhausted.  When
@@ -3517,6 +3559,13 @@ parameter matching.
         break;
       }  /* if */
     }  /* for */
+    /* Undo any temporary parameter-list reversals applied earlier. */
+    if ((cft_flags & CFT_REVERSE_PARAMS_1) != 0) {
+      (void)reverse_simple_list(reversed_ptp1);
+    }  /* if */
+    if ((cft_flags & CFT_REVERSE_PARAMS_2) != 0) {
+      (void)reverse_simple_list(reversed_ptp2);
+    }  /* if */
   }  /* if */
   /* Each of the arguments match.  Now make sure that all arguments were
      deduced, and that nontype arguments have the correct types. */
@@ -4039,11 +4088,9 @@ templates being ordered are class or variable template partial specializations.
         symbol_is(fund_new_sym, sk_variable_template)) {
       result = compare_partial_specializations(fund_new_sym, fund_curr_sym);
     } else {
-      check_assertion(fund_new_sym->kind ==
-                                         (a_symbol_kind)sk_function_template);
-      result = compare_function_templates(
-                           fund_new_sym, fund_curr_sym, /*entire_type=*/TRUE,
-                           /*is_templ_templ_param_check=*/FALSE, (uint32_t)0);
+      check_assertion(symbol_is(fund_new_sym, sk_function_template));
+      result = compare_function_templates(fund_new_sym, fund_curr_sym,
+                                          CFT_ENTIRE_TYPE, (uint32_t)0);
     }  /* if */
     new_is_more_specialized = result == 1;
     curr_is_more_specialized = result == -1;
