@@ -37984,7 +37984,7 @@ done_with_requirements:
       /* Not all template arguments are necessarily known yet.  Just copy the
          original expression. */
       an_expr_node_ptr  node = copy_expr_tree(rrd.requires_expr,
-                                              CE_NO_OPTIONS);
+                                              CE_PRESERVE_RESCAN_INFO);
       make_expression_operand(node, result);
     } else {
       a_subst_pairs_array  subst_pairs = get_current_subst_pairs();
