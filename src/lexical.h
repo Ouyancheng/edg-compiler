@@ -2477,6 +2477,7 @@ extern a_source_line_modif_ptr f_parent_source_line_modif(
    at a given source location. */
 extern a_source_line_modif_ptr nested_source_line_modif(
                                                     a_const_char *loc_in_line);
+extern a_boolean has_nested_source_line_modif(a_const_char *loc_in_line);
 /* Convert a character location in the source line to a source sequence
    number and column. */
 extern void conv_line_loc_to_source_pos(a_const_char      *loc_in_line,

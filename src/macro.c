@@ -1590,7 +1590,8 @@ ensure_macro_buffer_space.
           crp->line_loc =
              crp->line_loc - old_start_for_remapping + new_start_for_remapping;
         }  /* for */
-        if (ch == ATTENTION_MARKER && !is_lexical_escape) {
+        if (ch == ATTENTION_MARKER && !is_lexical_escape &&
+            has_nested_source_line_modif(src - 1)) {
           /* This is the location of a macro replacement or deleted text.
              If it is a macro replacement, copy only the ATTENTION_MARKERs
              to the new buffer and adjust the source pointer appropriately.

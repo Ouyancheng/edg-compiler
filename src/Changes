@@ -1,5 +1,15 @@
 Version 6.2
 
+11/19/20 [EDGcpfe/23595]
+Raw string literals in macro arguments with large macro replacements
+
+The changes for EDGcpfe/21089 (in version 6.1) introduced a bug causing a
+failed assertion (in nested_source_line_modif) when a raw string literal
+containing a newline is used as a macro argument and the top-level macro
+expansion in which this occurs is large enough to require extending the
+buffer used for macro expansion.  This is now fixed.
+
+
 11/19/20 [EDGcpfe/22202,EDGcpfe/23567]
 Various fixes for attribute namespaces and __has_cpp_attribute
 

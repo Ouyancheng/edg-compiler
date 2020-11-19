@@ -3642,7 +3642,7 @@ and return a pointer to it.
 }  /* nested_source_line_modif */
 
 
-static a_boolean has_nested_source_line_modif(a_const_char *loc_in_line)
+a_boolean has_nested_source_line_modif(a_const_char *loc_in_line)
 /*
 *loc_in_line contains an ATTENTION_MARKER, possibly indicating that the
 text at that point is altered by a source line modification entry.  (Some
