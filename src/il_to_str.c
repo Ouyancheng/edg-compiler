@@ -5632,10 +5632,12 @@ precedence confusion.  Do the output in the way described by octl.
              C code should just have the string form. */
           need_cast = (!octl->gen_compilable_code ||
                        !octl->c_generating_back_end);
+#if GNU_VECTOR_TYPES_ALLOWED
         } else if (kind == (a_constant_repr_kind)ck_aggregate &&
                    octl->suppress_cast_on_vector_const &&
                    is_vector_type(con_type)) {
           need_cast = FALSE;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
         } else {
           need_cast = TRUE;
         }  /* if */
