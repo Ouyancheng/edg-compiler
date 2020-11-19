@@ -17149,7 +17149,9 @@ the value representation of the integer value.
             }
             break;
           case eok_question:
-            { a_boolean  bool_val, restore_lvalue, restore_xvalue;
+            { a_boolean  bool_val, restore_lvalue, restore_xvalue,
+                         expr_is_prvalue = !(expr->is_lvalue ||
+                                             expr->is_xvalue);
               if (!check_boolean_condition(ips, opnd1_value, opnd1, opnd1_type,
                                            &bool_val)) {
                 do_constexpr_fail(result);
@@ -17164,11 +17166,11 @@ the value representation of the integer value.
                  propagation. */
               restore_lvalue = FALSE;
               restore_xvalue = FALSE;
-              if (opnd2->is_lvalue && !expr->is_lvalue) {
+              if (opnd2->is_lvalue && expr_is_prvalue) {
                 opnd2->is_lvalue = FALSE;
                 restore_lvalue = TRUE;
               }  /* if */
-              if (opnd2->is_xvalue && !expr->is_xvalue) {
+              if (opnd2->is_xvalue && expr_is_prvalue) {
                 opnd2->is_xvalue = FALSE;
                 restore_xvalue = TRUE;
               }  /* if */
