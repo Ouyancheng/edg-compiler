@@ -9338,8 +9338,8 @@ differ in the const/volatile qualifiers cvk, and n >= 1.
 }  /* types_are_similar */
 
 
-a_boolean types_are_similar_with_gpp_caveat(a_type_ptr  tp1,
-                                            a_type_ptr  tp2)
+static a_boolean types_are_similar_with_gpp_caveat(a_type_ptr  tp1,
+                                                   a_type_ptr  tp2)
 /*
 This is a special version of types_are_similar to emulate GCC's behavior for
 the function "are_reference_related".  When gnu_version < 100000 (i.e., GCC 9.x

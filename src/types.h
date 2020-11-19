@@ -1160,9 +1160,6 @@ a_boolean cast_removes_qualifiers(a_type_ptr    source_type,
 extern a_boolean types_are_similar(a_type_ptr  tp1,
                                    a_type_ptr  tp2);
 
-extern a_boolean types_are_similar_with_gpp_caveat(a_type_ptr  tp1,
-                                                   a_type_ptr  tp2);
-
 extern a_boolean are_reference_related(a_type_ptr type_1,
                                        a_type_ptr type_2);
 
