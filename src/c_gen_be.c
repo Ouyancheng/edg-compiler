@@ -8298,7 +8298,16 @@ rendered as executable code.
   an_init_control_block
              icb;
 #if GNU_VECTOR_TYPES_ALLOWED
-  a_type_ptr saved_type = NULL;
+  a_boolean  saved_suppress_cast_on_vector_const =
+                                           octl.suppress_cast_on_vector_const;
+
+  if (constant != NULL && is_vector_type(constant->type)) {
+    /* Vector constants are usually rendered as compound literals (e.g.,
+       (V2I){ 1, 2 }), but GCC often does not accept that syntax in initializer
+       contexts (particular for static-lifetime variables).  So in this context
+       we render it as just an aggregate initializer (e.g., { 1, 2 }). */
+    octl.suppress_cast_on_vector_const = TRUE;
+  }  /* if */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 #if !C_GEN_BE_GENERATES_ANSI_C
@@ -8320,29 +8329,11 @@ rendered as executable code.
   /* Set flags to indicate that nothing (either constant or executable) has
      been put out yet for this initializer. */
   clear_initialization_flags(&icb);
-#if GNU_VECTOR_TYPES_ALLOWED
-  if (constant != NULL &&
-      variable->type != constant->type &&
-      gcc_is_generated_code_target &&
-      is_vector_type(constant->type)) {
-    /* GCC doesn't allow an initialization of a variable with vector type
-       to a vector constant with a cast where the cast is not identical to the
-       variable's type (not even a typedef).  form_constant always emits
-       an explicit cast on any constant with vector type, so temporarily set
-       the constant's type to that of the variable to ensure the cast will
-       be accepted by the GCC back end (clang back ends accept this). */
-    check_assertion(is_vector_type(variable->type));
-    saved_type = constant->type;
-    constant->type = variable->type;
-  }  /* if */
-#endif /* GNU_VECTOR_TYPES_ALLOWED */
   /* Generate the initialization (constants and/or assignments). */
   dump_initializer_part(variable, type, constant, &gen_assignments,
                         (a_gen_init_pos_descr_ptr)NULL, &icb);
 #if GNU_VECTOR_TYPES_ALLOWED
-  if (saved_type != NULL) {
-    constant->type = saved_type;
-  }  /* if */
+  octl.suppress_cast_on_vector_const = saved_suppress_cast_on_vector_const;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   /* If any assignments were generated, do any wrapup required. */
   end_initializer_assignments(variable, &icb);

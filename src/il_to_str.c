@@ -116,6 +116,7 @@ Clear an output control block to default values.
   octl->suppress_name_in_template_cast_enum_const = FALSE;
   octl->render_auto_deduction_typerefs = FALSE;
 #if GNU_VECTOR_TYPES_ALLOWED
+  octl->suppress_cast_on_vector_const = FALSE;
   octl->defer_vector_attribute    = FALSE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   octl->suppress_template_args    = FALSE;
@@ -5619,8 +5620,7 @@ precedence confusion.  Do the output in the way described by octl.
       } else
 #endif /* BACK_END_IS_CP_GEN_BE */
       /* Do not insert code here. */
-      if (constant->is_reinterpret_cast
-                 && !octl->c_generating_back_end) {
+      if (constant->is_reinterpret_cast && !octl->c_generating_back_end) {
         /* The source form used reinterpret_cast, so a cast is needed. */
         need_cast = TRUE;
         need_reinterpret_cast = TRUE;
@@ -5632,6 +5632,10 @@ precedence confusion.  Do the output in the way described by octl.
              C code should just have the string form. */
           need_cast = (!octl->gen_compilable_code ||
                        !octl->c_generating_back_end);
+        } else if (kind == (a_constant_repr_kind)ck_aggregate &&
+                   octl->suppress_cast_on_vector_const &&
+                   is_vector_type(con_type)) {
+          need_cast = FALSE;
         } else {
           need_cast = TRUE;
         }  /* if */
@@ -5696,9 +5700,10 @@ precedence confusion.  Do the output in the way described by octl.
         }  /* if */
 #if GNU_VECTOR_TYPES_ALLOWED
       } else if (is_vector_type(con_type)) {
-        /* Vector constants must be generated as an aggregate constant,
-           e.g., (VF2){ 1.0, 2.0 }. */
-        need_cast = TRUE;
+        /* Vector constants must be generated as a compound literal (e.g.,
+           (VF2){ 1.0, 2.0 }), except in some cases where they should just
+           be rendered as a braced initializer (e.g., { 1, 2 }). */
+        need_cast = !octl->suppress_cast_on_vector_const;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
       }  /* if */
       if (need_cast) {

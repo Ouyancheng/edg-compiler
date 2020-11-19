@@ -292,6 +292,10 @@ typedef struct an_il_to_str_output_control_block {
 			   appeared in the source. */
 #if GNU_VECTOR_TYPES_ALLOWED
   a_byte_boolean
+	suppress_cast_on_vector_const;
+			/* Suppress the "cast" on a vector constant (which is
+			   really a compound literal). */
+  a_byte_boolean
 	defer_vector_attribute;
 			/* When forming a vector type, do not put out the
 			   "vector_size" attribute but just the element

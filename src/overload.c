@@ -24209,8 +24209,7 @@ TRUE, the result *p_dip and *p_constant are not constructed.
     err = TRUE;
   } else {
     /* Scalar type. */
-    check_assertion(is_scalar_type(dest_type) ||
-                    is_ptr_to_member_type(dest_type));
+    check_assertion(is_scalar_type(dest_type) || is_vector_type(dest_type));
     if (generate_il) {
       if (!make_value_initialized_constant(unqual_dest_type, con)) {
         unexpected_condition();
