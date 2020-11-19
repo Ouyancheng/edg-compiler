@@ -1,5 +1,35 @@
 Version 6.2
 
+11/18/20 [EDGcpfe/23187]
+C++-generating back end: naming members of inaccessible base classes
+
+In some cases, the C++-generating back end put out a reference to a member
+of a base class using the base class name as a qualifier, even though the
+base class is inaccessible and the original source refers to the member
+using the name of an accessible derived class as the qualifier.  For
+example:
+
+  template<typename T> class B {
+  protected:
+    template<int I> struct BN {
+      static const T v = 0;
+    };
+  };
+  template<typename T> struct D: B<T> {
+    template<int I> struct DN: B<T>::template BN<I> { };
+  };
+  int x = D<int>::DN<10>::v;  // Previously "B<int>::BN<10>::v"
+
+Previously the reference to the static member "v" was put out using the
+class of which it is a member, even though B::BN is not accessible at the
+point of the reference.  Now the C++-generating back end replaces the
+inaccessible name qualifier for "v" with the name of the accessible derived
+class.  (This change depends on use of the prototype instantiation IL for
+the class templates and thus is not effective in configurations and modes
+in which the class template definitions are generated from the string form
+of the templates.)
+
+
 11/18/20 [EDGcpfe/22900]
 Partial ordering of rewritten comparison candidates
 
