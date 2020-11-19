@@ -1,5 +1,23 @@
 Version 6.2
 
+11/19/20 [EDGcpfe/23561]
+Clang compatibility: __is_pod
+
+Consider (in Clang C++17 mode):
+
+  struct E {};
+  struct S { E const e; };
+  static_assert(!__is_trivially_copyable(S));  // (1)
+  struct SA { E const e[2]; };
+  static_assert(!__is_trivially_copyable(SA));  // (2)
+
+According to the C++ standard, both the static assertions (1) and (2) should
+both fail.  However, Clang accepts them both.  The changes for EDGcpfe/17387
+et al. caused us to accept (1) in Clang modes, but not (2).  Now (2) is also
+accepted in Clang modes.  This affect not only the __is_trivially_copyable
+type trait helper, but also related helpers like __is_pod and __is_trivial.
+
+
 11/19/20 [EDGcpfe/23595]
 Raw string literals in macro arguments with large macro replacements
 

@@ -2115,7 +2115,7 @@ Return TRUE if the given type is trivially copyable.
           a_field_ptr  fp = tp->variant.class_struct_union.field_list;
           for (; fp != NULL; fp = fp->next) {
             if (is_const_qualified_type(fp->type) &&
-                is_class_struct_union_type(fp->type)) {
+                is_class_struct_union_type(skip_array_types(fp->type))) {
               result = FALSE;
               break;
             }  /* if */
