@@ -4887,6 +4887,188 @@ return NULL.
 
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
 
+/*
+Definitions for a simple hash table of base/derived class pairs, keyed by
+the base class.  Entries are added for each base class when a derived class
+is defined.  If a base class is used in the IL as a qualifier in a context
+in which it is inaccessible, the hash table can allow finding a derived
+class that can be substituted for the inaccessible base class.
+
+This hash table is very similar to the typedef hash table defined earlier
+in this file.  See comments there for additional details of its
+organization and use.
+*/
+typedef struct a_derived_hash_entry *a_derived_hash_entry_ptr;
+typedef struct a_derived_hash_entry {
+  a_derived_hash_entry_ptr
+		next;	/* The next entry in the bucket, or NULL if none. */
+  a_type_ptr	base;	/* The base class for this entry. */
+  a_type_ptr	derived;
+			/* The derived class for this entry. */
+  a_scope_ptr	fcn_scope;
+			/* The value of innermost_function_scope at the
+			   time this entry was created.  The entry cannot
+			   be used if the derived class is local to a
+			   function and we are now outside the function. */
+} a_derived_hash_entry;
+
+/*
+The base/derived hash table.  See the comments for
+accessible_typedef_hash_table above for details on the organization.
+*/
+#define BUCKETS_FOR_DERIVED_HASH_TABLE 16383
+static a_derived_hash_entry
+		derived_hash_table[BUCKETS_FOR_DERIVED_HASH_TABLE];
+
+static void add_bases_to_hash_table(a_type_ptr derived_class);
+
+static void add_bases_of_instances(a_template_ptr templ,
+                                   a_scope_ptr    template_scope,
+                                   int            level)
+/*
+The prototype instantiation of a class template templ has just been added
+to the derived class hash table.  For each type that is implicitly
+instantiated from templ, add the base classes of the instance to the hash
+table as well.  If templ is defined in a prototype instantiation, we must
+ascend through the parents until we find a scope that is not a prototype
+instantiation and find all the instances of the associated template
+in order to find all the instances of templ; level indicates
+the depth of the recursion (0 for the initial non-recursive call).
+template_scope designates the scope to be searched for template instances.
+*/
+{
+  a_type_ptr tp;
+
+  if (template_scope->kind == (a_scope_kind)sck_class_struct_union &&
+      template_scope->variant.assoc_type->
+                       variant.class_struct_union.is_prototype_instantiation) {
+    /* This scope corresponds to the prototype instantiation of a class
+       template.  Instances of templ can be found nested in multiple
+       instances of this class template, so recursively scan this
+       template's parent scope for its instances. */
+    add_bases_of_instances(templ, template_scope->parent, level + 1);
+  } else {
+    for (tp = template_scope->types; tp != NULL; tp = tp->next) {
+      if (is_immediate_class_type(tp) &&
+          tp->variant.class_struct_union.is_template_class &&
+          !tp->variant.class_struct_union.is_prototype_instantiation &&
+          !tp->variant.class_struct_union.is_specialized &&
+          !tp->variant.class_struct_union.is_nonreal_class) {
+        if (level > 0) {
+          /* This is a recursive invocation.  Look for class template
+             instances that might contain (instances that contain...)
+             instances of templ. */
+          add_bases_of_instances(templ,
+                                 tp->variant.class_struct_union.extra_info->
+                                                                   assoc_scope,
+                                 level - 1);
+        } else if (tp->variant.class_struct_union.extra_info->
+                                                     assoc_template == templ) {
+          /* tp was implicitly instantiated from templ.  Add its bases to
+             the hash table. */
+          add_bases_to_hash_table(tp);
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+}  /* add_bases_of_instances */
+
+
+static void add_bases_to_hash_table(a_type_ptr derived_class)
+/*
+Add base/derived pairs to derived_has_table for the base classes of
+derived_class.  Only bases that are non-public class members are added,
+since only those classes can cause access issues when the base class is
+used as a qualifier.
+*/
+{
+  a_base_class_ptr bcp;
+  a_boolean        base_added = FALSE;
+
+  check_assertion(is_immediate_class_type(derived_class));
+  for (bcp =
+            derived_class->variant.class_struct_union.extra_info->base_classes;
+       bcp != NULL; bcp = bcp->next) {
+    a_type_ptr base = bcp->type;
+    if (base->source_corresp.is_class_member &&
+        (base->source_corresp.access != (an_access_specifier)as_public ||
+         base->variant.class_struct_union.is_nonreal_class)) {
+      /* A base class that is a non-public member of its containing
+         class or is a nonreal class, which could be such a member class in
+         an actual instantiation.  Add an entry to the hash table. */
+      a_hash_value bucket = hash_IL_ptr(base) % BUCKETS_FOR_DERIVED_HASH_TABLE;
+      if (derived_hash_table[bucket].base != NULL) {
+        /* There's already a class derived from base in this bucket.  Move
+           the current bucket contents to a new entry and link it to the
+           bucket. */
+        a_derived_hash_entry_ptr entry =
+                                   alloc_general_of_type(a_derived_hash_entry);
+        *entry = derived_hash_table[bucket];
+        derived_hash_table[bucket].next = entry;
+      }  /* if */
+      derived_hash_table[bucket].base = base;
+      derived_hash_table[bucket].derived = derived_class;
+      derived_hash_table[bucket].fcn_scope = innermost_function_scope;
+      base_added = TRUE;
+    }  /* if */
+  }  /* for */
+  if (base_added &&
+      derived_class->variant.class_struct_union.is_prototype_instantiation) {
+    /* This derived class is the prototype instantiation of a class
+       template.  Add the bases of all implicitly-instantiated instances
+       of the template to the hash table as well. */
+    add_bases_of_instances(
+          derived_class->variant.class_struct_union.extra_info->assoc_template,
+          derived_class->source_corresp.parent_scope, 0);
+  }  /* if */
+}  /* add_bases_to_hash_table */
+
+
+static a_type_ptr accessible_qualifier(a_type_ptr qualifier)
+/*
+qualifier is a class type that is to be used as a qualifier but whose name
+is inaccessible in the current context.  Return an alternative type
+(typedef or derived class) that can be validly used as a qualifier or, if
+no such type can be found, the original qualifier.
+*/
+{
+  a_type_ptr                  result = qualifier;
+  a_source_correspondence_ptr scp = &qualifier->source_corresp;
+
+  replace_inaccessible_type_with_accessible_typedef(
+                                             &scp, /*force_replacement=*/TRUE);
+  if (scp != &qualifier->source_corresp) {
+    /* Use the typedef as the qualifier. */
+    result = (a_type_ptr)scp;
+  } else {
+    /* There is no usable accessible typedef.  Look for a derived class
+       that can be used as a qualifier instead. */
+    a_derived_hash_entry_ptr entry;
+    a_hash_value             bucket;
+    a_boolean                found = FALSE;
+    bucket = hash_IL_ptr(qualifier) % BUCKETS_FOR_DERIVED_HASH_TABLE;
+    for (entry = &derived_hash_table[bucket]; !found && entry != NULL;
+         entry = entry->next) {
+      a_boolean for_all_scopes;
+      if (entry->base == qualifier &&
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+          entry->derived->has_been_defined &&
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+          (entry->fcn_scope == NULL ||
+           entry->fcn_scope == innermost_function_scope) &&
+          entity_name_is_accessible(&entry->derived->source_corresp,
+                                    iek_type, /*ignore_context=*/FALSE,
+                                    &for_all_scopes)) {
+        /* The derived class name can be used as the qualifier. */
+        result = entry->derived;
+        found = TRUE;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* accessible_qualifier */
+
+
 static void gen_name(a_source_correspondence *scp,
                      an_il_entry_kind        entry_kind,
                      a_gen_name_options_set  options,
@@ -5274,6 +5456,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
           /* Do not insert code here. */
           {
             /* A normal class qualifier. */
+            a_boolean for_all_scopes;
             if (entry_kind == iek_type &&
                 ((a_type_ptr)scp)->kind == (a_type_kind)tk_template_param) {
               /* Always replace underlying types with their typedefs in
@@ -5288,6 +5471,15 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
                  is invalid, so the alias template specialization must be
                  preserved. */
               qualifier_options |= GN_TEMPLATE_PARAM_TYPE_QUAL;
+            } else if (!(options & GN_DECLARATION) &&
+                       !entity_name_is_accessible(&qualifier->source_corresp,
+                                                  iek_type,
+                                                  /*ignore_context=*/FALSE,
+                                                  &for_all_scopes)) {
+              /* See if we can find a qualifier (a typedef or derived
+                 class) that is accessible and can be used to name the
+                 member. */
+              qualifier = accessible_qualifier(qualifier);
             }  /* if */
             (void)gen_class_qualifier(qualifier, qualifier_options,
                                       need_closing_paren);
@@ -9940,6 +10132,7 @@ struct.
       curr_name_context->assoc_scope = ctsp->assoc_scope;
       curr_name_context->class_type = type;
       write_space();
+      add_bases_to_hash_table(type);
     }  /* if */
   }  /* if */
   write_tok_str("{ ");
@@ -22722,26 +22915,27 @@ Initialize for the C++/C-generating back end.
 #if NULL_POINTER_IS_ZERO
   memzero((char *)accessible_typedef_hash_table,
           sizeof(accessible_typedef_hash_table));
+#if PROTOTYPE_INSTANTIATIONS_IN_IL
+  memzero((char *)proto_inst_member_typedef_hash_table,
+          sizeof(proto_inst_member_typedef_hash_table));
+#endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
+  memzero((char *)derived_hash_table, sizeof(derived_hash_table));
+  memzero((char *)access_cache, sizeof(access_cache));
 #else /* !NULL_POINTER_IS_ZERO */
   for (bucket = 0; bucket < BUCKETS_FOR_TYPEDEF_HASH_TABLE; ++bucket) {
     accessible_typedef_hash_table[bucket].next = NULL;
     accessible_typedef_hash_table[bucket].type = NULL;
   }  /* for */
-#endif /* NULL_POINTER_IS_ZERO */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-#if NULL_POINTER_IS_ZERO
-  memzero((char *)proto_inst_member_typedef_hash_table,
-          sizeof(proto_inst_member_typedef_hash_table));
-#else /* !NULL_POINTER_IS_ZERO */
   for (bucket = 0; bucket < BUCKETS_FOR_TYPEDEF_HASH_TABLE; ++bucket) {
     proto_inst_member_typedef_hash_table[bucket].next = NULL;
     proto_inst_member_typedef_hash_table[bucket].type = NULL;
   }  /* for */
-#endif /* NULL_POINTER_IS_ZERO */
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
-#if NULL_POINTER_IS_ZERO
-  memzero((char *)access_cache, sizeof(access_cache));
-#else /* !NULL_POINTER_IS_ZERO */
+  for (bucket = 0; bucket < BUCKETS_FOR_DERIVED_HASH_TABLE; ++bucket) {
+    derived_hash_table[bucket].next = NULL;
+    derived_hash_table[bucket].base = NULL;
+  }  /* for */
   for (bucket = 0; bucket < BUCKETS_FOR_ACCESS_CACHE; ++bucket) {
     access_cache[bucket].next = NULL;
     access_cache[bucket].scp = NULL;
