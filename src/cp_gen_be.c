@@ -4949,7 +4949,7 @@ template_scope designates the scope to be searched for template instances.
     add_bases_of_instances(templ, template_scope->parent, level + 1);
   } else {
     for (tp = template_scope->types; tp != NULL; tp = tp->next) {
-      if (is_immediate_class_type(tp) &&
+      if (is_immediate_class_type(tp) && !tp->incomplete &&
           tp->variant.class_struct_union.is_template_class &&
           !tp->variant.class_struct_union.is_prototype_instantiation &&
           !tp->variant.class_struct_union.is_specialized &&
