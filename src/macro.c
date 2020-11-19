@@ -7004,7 +7004,7 @@ end_arg_expansion:;
                                              &arg_position);;
       if (attribute_name != NULL &&
           attribute_is_supported(attribute_name, namespace_name,
-                                 af_internal)) {
+                                 af_has_cpp_attribute)) {
         a_void_ptr attr_supp_entry;
         attr_supp_entry = bsearch((a_bsearch_arg_type)attribute_name,
                                   (a_bsearch_arg_type)attribute_support_list,

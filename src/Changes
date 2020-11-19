@@ -1,5 +1,18 @@
 Version 6.2
 
+11/19/20 [EDGcpfe/22202,EDGcpfe/23567]
+Various fixes for attribute namespaces and __has_cpp_attribute
+
+A number of small changes have been made to the way the __has_cpp_attribute
+macro treats attribute namespaces, making the front end more compatible with
+GNU and Clang.  For example:
+
+  static_assert(__has_cpp_attribute(clang::fallthrough));
+    // No longer fails the assertion in appropriate clang modes.
+  static_assert(__has_cpp_attribute(gnu::__noinline__));
+    // No longer fails the assertion in appropriate GNU modes.
+
+
 11/19/20 [EDGcpfe/21953,EDGcpfe/23506,EDGcpfe/23604]
 Abort on value-initialization of GNU vector type
 

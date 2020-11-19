@@ -168,22 +168,23 @@ typedef struct an_attr_descr {
 			   'c' if it only applies in C mode, and 'x' if it
 			   applies in both C and C++ modes (some combinations
 			   are impossible; e.g. "sc" is meaningless since there
-			   is no "Sun C" mode).  For standard attributes, the
-			   first two characters can be followed by a bracketed
-			   namespace name.  E.g., if name is "test" and cstr
-			   is "c+[xyz]", then this is a description entry for
-			   [[xyz::test ... ]].  If cstr[0] is 'g', 'l' or 'm',
-			   the first two characters can be followed by a
-			   parenthesized range of applicable versions.  E.g.,
-			   "gx(30100-39999)" means the attribute is valid in 
-			   GNU C/C++ modes with gnu_version >= 30100 and
-			   gnu_version < 40000.  Either end of the range can
-			   be dropped; e.g., "mc(1400-)" means the attribute
-			   is valid in Microsoft C mode with microsoft_version
-			   >= 1400.  For standard-notation attributes, a range
-			   of values for std_version can also be provided (it
-			   should appear after the bracketed namespace name, if
-			   any).
+			   is no "Sun C" mode).  The first two characters can
+			   be followed by a namespace name enclosed by "[]"
+			   (meaning the namespace name is required) or "{}"
+			   (the namespace name is optional).  E.g., if name is
+			   "test" and cstr is "c+[xyz]", then this is a
+			   description entry for [[xyz::test ... ]].  If
+			   cstr[0] is 'g', 'l' or 'm', the first two characters
+			   can be followed by a parenthesized range of
+			   applicable versions.  E.g., "gx(30100-39999)" means
+			   the attribute is valid in GNU C/C++ modes with
+			   gnu_version >= 30100 and gnu_version < 40000.
+			   Either end of the range can be dropped; e.g.,
+			   "mc(1400-)" means the attribute is valid in
+			   Microsoft C mode with microsoft_version >= 1400.
+			   For standard-notation attributes, a range of values
+			   for std_version can also be provided (it should
+			   appear after the bracketed namespace name, if any).
 
 			   Auxiliary version specification(s) can also be
 			   specified by appending "|", one of "C", "G", "M", or
@@ -256,6 +257,7 @@ static an_attr_descr known_attr_table[] = {
   { "constructor", "", "gx", ak_constructor },
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   { "deprecated", "?(sx)", "gx(30100-)", ak_deprecated },
+  { "deprecated", "?(sx)", "lx[gnu](60000-)", ak_deprecated },
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   { "destructor", "?(ci)", "gx", ak_destructor },
 #else /* !GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
@@ -266,7 +268,9 @@ static an_attr_descr known_attr_table[] = {
   { "ext_vector_type", "(ci)", "lx", ak_ext_vector_type },
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   { "externally_visible", "", "gx(40000-)", ak_externally_visible },
-  { "fallthrough", "", "1gx(70000-|C(100000-))", ak_fallthrough },
+  { "fallthrough", "", "1gx(70000-)", ak_fallthrough },
+  { "fallthrough", "", "1lx{clang}(30900-)", ak_fallthrough },
+  { "fallthrough", "", "1lx{gnu}(30900-)", ak_fallthrough },
 #if GNU_X86_ATTRIBUTES_ALLOWED
   { "fastcall", "", "gx(30400-)", ak_fastcall },
 #endif /* GNU_X86_ATTRIBUTES_ALLOWED */
@@ -279,7 +283,7 @@ static an_attr_descr known_attr_table[] = {
 #if GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED
   { "init_priority", "(ci)", "g+", ak_init_priority },
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
-  { "internal_linkage", "", "lx(40000-)", ak_internal_linkage },
+  { "internal_linkage", "", "lx{clang}(40000-)", ak_internal_linkage },
   { "malloc", "", "gx", ak_malloc },
   { "may_alias", "", "gx(30300-)", ak_may_alias },
   { "mode", "(n)", "gx", ak_mode },
@@ -293,6 +297,7 @@ static an_attr_descr known_attr_table[] = {
   { "nonnull", "?(?ci+)", "gx", ak_nonnull },
   { "noplt", "", "gx", ak_noplt },
   { "noreturn", "", "gx", ak_noreturn },
+  { "noreturn", "", "lx{gnu}", ak_noreturn },
   { "nothrow", "", "gx", ak_nothrow },
   { "packed", "", "gx", ak_packed },
   { "pure", "", "gx", ak_pure },
@@ -394,7 +399,7 @@ static an_attr_descr known_attr_table[] = {
   { "n1", "(*)", "c+[edg]", ak_edg_n1 },
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
 
-  { "availability", "(*)", "lx", ak_availability },
+  { "availability", "(*)", "lx{clang}", ak_availability },
 
   { NULL, NULL, NULL, ak_last }
 };
@@ -1180,10 +1185,15 @@ Initialize the attribute name map.
     {  /* Verify that any namespace referred to by a "cond" string is also
           in the valid_attribute_namespaces array. */
       a_const_char *p1, *p2;
+      char         closing = ']';
       p1 = strchr(known_attr_table[k].cond, '[');
+      if (p1 == NULL) {
+        p1 = strchr(known_attr_table[k].cond, '{');
+        closing = '}';
+      }  /* if */
       if (p1 != NULL) {
         p1++;
-        p2 = strchr(p1, ']');
+        p2 = strchr(p1, closing);
         check_assertion(p2 != NULL);
         if (!attribute_namespace_is_recognized(p1, p2-p1)) {
           unexpected_condition_str("attribute namespace is missing");
@@ -1281,6 +1291,55 @@ comparison or any auxiliary comparisons).
 }  /* attribute_condition_satisfied */
 
 
+static a_boolean attribute_namespace_satisfied(a_const_char      **cond,
+                                               an_attribute_ptr  ap)
+/*
+**cond points to the location in the attribute condition string where the
+attribute namespace (if any) is specified.  This routine returns TRUE if there
+is a match vis-a-vis the specified attribute namespace and the condition
+string.  When TRUE is returned, *cond is updated to point to the position in
+the attribute string past the closing "]" or "}".
+*/
+{
+  a_const_char  *ptr = *cond;
+  a_boolean     match = FALSE;
+  a_boolean     required = (*ptr == '[');
+  a_boolean     optional = (*ptr == '{');
+
+  if (ap->namespace_name == NULL && !required) {
+    /* No attribute namespace specified and none required. */
+    match = TRUE;
+    /* *cond doesn't need to be updated. */
+  } else if (ap->namespace_name != NULL) {
+    if (required || optional) {
+      /* A namespace has been specified and the condition string indicates that
+         a namespace is either required or optional.  See if it is a match. */
+      sizeof_t  len = strlen(ap->namespace_name);
+      ptr++;
+      if (strncmp(ap->namespace_name, ptr, len) == 0 &&
+          ptr[len] == (required ? ']' : '}')) {
+        match = TRUE;
+        *cond = ptr+len+1;
+      }  /* if */
+    } else {
+      /* A namespace has been specified but none is required by the condition
+         string.  GNU appears to accept, e.g., [[gnu::packed]], so if the
+         attribute namespace matches the emulation mode, allow it.  Clang
+         seems inconsistent here, accepting many but not all instances of
+         "gnu" namespace attributes when they appear in attributes, but
+         sometimes not when querying for them with __has_cpp_attribute.
+         Err on the side of accepting them. */
+      if (!(clang_mode && ap->family == af_has_cpp_attribute) &&
+          gnu_mode && strcmp(ap->namespace_name, "gnu") == 0) {
+        match = TRUE;
+        /* *cond doesn't need to be updated. */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return match;
+}  /* attribute_namespace_satisfied */
+
+
 static a_boolean cond_matches_std_attr_mode(a_const_char      *cond,
                                             an_attribute_ptr  ap)
 /*
@@ -1292,35 +1351,14 @@ namespace (if any) matches the modes and namespace encoded in that string.
   a_boolean  match = FALSE;
 
   if (cond[0] == 'c' && cond[1] == '+') {
-    sizeof_t  pos_version = 2;
-    match = TRUE;
-    /* First check for a [<namespace>] that matches ap->namespace_name, if
-       any */
-    if (ap->namespace_name != NULL) {
-      sizeof_t  len = strlen(ap->namespace_name);
-      if (cond[2] == '[' &&
-          strncmp(ap->namespace_name, cond+3, len) == 0 &&
-          cond[len+3] == ']') {
-        pos_version = len+4;
-      } else {
-        /* Not a match. */
-        match = FALSE;
-        goto done;
-      }  /* if */
-    } else {
-      /* No namespace. */
-      if (cond[2] == '[') {
-        /* Not a match. */
-        match = FALSE;
-        goto done;
-      }  /* if */
-    }  /* if */
+    cond += 2;
+    /* See if the attribute namespace is a match. */
+    match = attribute_namespace_satisfied(&cond, ap);
     /* Next check for a version constraint, if any. */
-    if (cond[pos_version] == '(') {
-      match = attribute_condition_satisfied(std_version, cond+pos_version, ap);
+    if (match && *cond == '(') {
+      match = attribute_condition_satisfied(std_version, cond, ap);
     }  /* if */
   }  /* if */
-done:
   return match;
 }  /* cond_matches_std_attr_mode */
 
@@ -1345,17 +1383,27 @@ string.
     match = (cond[1] == 'x' && gnu_mode) ||
             (cond[1] == 'c' && gcc_mode) ||
             (cond[1] == '+' && gpp_mode);
-    if (match && cond[2] == '(') {
+    cond += 2;
+    if (match) {
+      /* See if the attribute namespace is a match. */
+      match = attribute_namespace_satisfied(&cond, ap);
+    }  /* if */
+    if (match && *cond == '(') {
       /* A range specification follows. */
-      match = attribute_condition_satisfied(gnu_version, cond+2, ap);
+      match = attribute_condition_satisfied(gnu_version, cond, ap);
     }  /* if */
   } else if (cond[0] == 'l' && clang_mode) {
     match = (cond[1] == 'x') ||
             (cond[1] == 'c' && C_mode()) ||
             (cond[1] == '+' && !C_mode());
-    if (match && cond[2] == '(') {
+    cond += 2;
+    if (match) {
+      /* See if the attribute namespace is a match. */
+      match = attribute_namespace_satisfied(&cond, ap);
+    }  /* if */
+    if (match && *cond == '(') {
       /* A range specification follows. */
-      match = attribute_condition_satisfied(clang_version, cond+2, ap);
+      match = attribute_condition_satisfied(clang_version, cond, ap);
     }  /* if */
   }  /* if */
   return match;
@@ -1404,14 +1452,15 @@ static an_attr_name_map_entry_ptr *lookup_attribute_name(
                                                     an_attribute_family family)
 /*
 Look up name in the attr_name_map hash table (which is initialized if this
-is its first use).  If family is af_gnu, the optional leading and trailing
-"__" is stripped before looking up the name.  Return the result of the
-lookup.
+is its first use).  If family is af_gnu (or af_has_cpp_attribute), the optional
+leading and trailing "__" is stripped before looking up the name.  Return the
+result of the lookup.
 */
 {
   char buf[MAX_ATTRIBUTE_NAME_LENGTH + 1];
 
-  if (family == af_gnu && name[0] == '_' && name[1] == '_') {
+  if ((family == af_gnu || family == af_has_cpp_attribute) &&
+       name[0] == '_' && name[1] == '_') {
     /* Strip leading and trailing "__" if the result would be neither empty
        nor too long. */
     sizeof_t len = strlen(name);
@@ -9518,9 +9567,9 @@ a_boolean attribute_is_supported(a_const_char        *name,
 /*
 Return TRUE if name (and namespace_name, if non-NULL) designate an
 attribute of the specified family that is enabled in the current execution
-of the front end, FALSE otherwise.  Passing af_internal as the value of
-family indicates that an attribute in any family is permitted, with
-standard attributes given preference.
+of the front end, FALSE otherwise.  Passing af_internal or af_has_cpp_attribute
+as the value of family indicates that an attribute in any family is permitted,
+with standard attributes given preference.
 */
 {
   an_attr_name_map_entry_ptr ep;
@@ -9547,17 +9596,24 @@ standard attributes given preference.
            appear at most once in a group). */
         ++cond;
       }  /* if */
-      if (family == af_internal) {
-        supported = (cond_matches_std_attr_mode(cond, dummy_attr) ||
-                     cond_matches_gnu_attr_mode(cond, dummy_attr) ||
-                     cond_matches_ms_declspec_mode(cond, dummy_attr));
-      } else if (family == af_gnu) {
-        supported = cond_matches_gnu_attr_mode(cond, dummy_attr);
-      } else if (family == af_std) {
-        supported = cond_matches_std_attr_mode(cond, dummy_attr);
-      } else {
-        check_assertion(family == af_ms_declspec);
-        supported = cond_matches_ms_declspec_mode(cond, dummy_attr);
+      switch (family) {
+        case af_internal:
+        case af_has_cpp_attribute:
+          supported = (cond_matches_std_attr_mode(cond, dummy_attr) ||
+                       cond_matches_gnu_attr_mode(cond, dummy_attr) ||
+                       cond_matches_ms_declspec_mode(cond, dummy_attr));
+          break;
+        case af_gnu:
+          supported = cond_matches_gnu_attr_mode(cond, dummy_attr);
+          break;
+        case af_std:
+          supported = cond_matches_std_attr_mode(cond, dummy_attr);
+          break;
+        case af_ms_declspec:
+          supported = cond_matches_ms_declspec_mode(cond, dummy_attr);
+          break;
+        default:
+          unexpected_condition();
       }  /* if */
     }  /* for */
   }  /* if */
