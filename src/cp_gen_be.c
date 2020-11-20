@@ -15715,7 +15715,7 @@ gen_expr that might end up generating this expr as a temporary.
           opstr = "+";
           break;
         case eok_not:
-          if (handle_rewritten_comparison(expr, op)) {
+          if (handle_rewritten_comparison(expr, onk_not)) {
             goto done_with_operation;
           }  /* if */
           FALLTHROUGH
@@ -15984,7 +15984,7 @@ gen_expr that might end up generating this expr as a temporary.
           opstr = "!=";
           break;
         case eok_gt:
-          if (handle_rewritten_comparison(expr, op)) {
+          if (handle_rewritten_comparison(expr, onk_gt)) {
             goto done_with_operation;
           }  /* if */
           FALLTHROUGH
@@ -15992,7 +15992,7 @@ gen_expr that might end up generating this expr as a temporary.
           opstr = ">";
           break;
         case eok_lt:
-          if (handle_rewritten_comparison(expr, op)) {
+          if (handle_rewritten_comparison(expr, onk_lt)) {
             goto done_with_operation;
           }  /* if */
           FALLTHROUGH
@@ -16007,7 +16007,7 @@ gen_expr that might end up generating this expr as a temporary.
           }  /* if */
           break;
         case eok_ge:
-          if (handle_rewritten_comparison(expr, op)) {
+          if (handle_rewritten_comparison(expr, onk_ge)) {
             goto done_with_operation;
           }  /* if */
           FALLTHROUGH
@@ -16015,7 +16015,7 @@ gen_expr that might end up generating this expr as a temporary.
           opstr = ">=";
           break;
         case eok_le:
-          if (handle_rewritten_comparison(expr, op)) {
+          if (handle_rewritten_comparison(expr, onk_le)) {
             goto done_with_operation;
           }  /* if */
           FALLTHROUGH

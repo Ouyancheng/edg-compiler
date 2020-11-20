@@ -1,5 +1,25 @@
 Version 6.2
 
+11/20/20 [EDGcpfe/22804]
+C++-generating back end: C++20 rewritten comparison operators
+
+In C++20, certain expressions involving comparison operators are rewritten
+in terms of other operators, and the IL reflects the rewritten form of the
+expression.  The C++-generating back end sometimes failed to restore the
+original form of the expression, and in some cases the generated code was
+incorrect.  This is now fixed.  For example, with --c++20:
+
+  struct A {
+    int i;
+    friend bool operator==(const A&, const A&);
+    friend bool operator!=(const A&, const A&) = default;
+    void f() {
+      A a, b;
+      bool x = a != b;  // Previously generated as "!a == b"
+    }
+  };
+
+
 11/20/20 [EDGcpfe/23133]
 Missing initialization of nested aggregate
 
