@@ -1,5 +1,23 @@
 Version 6.2
 
+11/20/20 [EDGcpfe/23133]
+Missing initialization of nested aggregate
+
+In configurations that use lowering, the lowered IL had, in some cases,
+omitted zero initialization of nested aggregates, leading to objects having
+uninitialized contents.  For example, with --c++14:
+
+  struct C {
+    C() {}
+  };
+  struct A { int a; };
+  struct B { A a; C c; };
+  int main() {
+    B b{};
+    return b.a.a;   // Result had been uninitialized and is now zero.
+  }
+
+
 11/19/20 [EDGcpfe/23608]
 String literal operator templates in clang mode
 

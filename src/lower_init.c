@@ -6851,10 +6851,31 @@ dealt with).
       }  /* if */
     } else if (con_ptr->kind == (a_constant_repr_kind)ck_aggregate) {
       /* Aggregate constant initializing a member of an aggregate. */
-      lower_dynamic_init_aggregate_constant(con_ptr, &ipd,
-                                            dtor_case, source_desc,
-                                            others_follow, insert_location,
-                                            keep_constant, options);
+      if (con_ptr->variant.aggregate.first_constant == NULL) {
+        /* If there's a nested empty aggregate, no lowering is needed (since
+           there's nothing in the aggregate to lower), but the effect of
+           the aggregate must be maintained.  If possible, keep the constant
+           in the initialization, but if that's not possible, re-write the
+           initialization with executable statements. */
+        mark_as_visited(con_ptr);
+        if (ipd.indirect_through_variable) {
+          // FIXME
+          insert_call_to_zero_entity(con_ptr->type,
+                                     /*have_complete_object=*/TRUE,
+                                     make_address_of_init_entity_node(&ipd,
+                                                       /*using_as_dest=*/TRUE),
+                                     (an_expr_node*)NULL,
+                                     (a_targ_size_t)0,
+                                     insert_location);
+        } else {
+          *keep_constant = TRUE;
+        }  /* if */
+      } else {
+        lower_dynamic_init_aggregate_constant(con_ptr, &ipd,
+                                              dtor_case, source_desc,
+                                              others_follow, insert_location,
+                                              keep_constant, options);
+      }  /* if */
     } else {
       /* Normal constant. */
       if (C_mode()) {
