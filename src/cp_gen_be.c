@@ -4976,7 +4976,7 @@ template_scope designates the scope to be searched for template instances.
 
 static void add_bases_to_hash_table(a_type_ptr derived_class)
 /*
-Add base/derived pairs to derived_has_table for the base classes of
+Add base/derived pairs to derived_hash_table for the base classes of
 derived_class.  Only bases that are non-public class members are added,
 since only those classes can cause access issues when the base class is
 used as a qualifier.
@@ -4998,9 +4998,8 @@ used as a qualifier.
          an actual instantiation.  Add an entry to the hash table. */
       a_hash_value bucket = hash_IL_ptr(base) % BUCKETS_FOR_DERIVED_HASH_TABLE;
       if (derived_hash_table[bucket].base != NULL) {
-        /* There's already a class derived from base in this bucket.  Move
-           the current bucket contents to a new entry and link it to the
-           bucket. */
+        /* There's already an entry in this bucket.  Move the current
+           bucket contents to a new entry and link it to the bucket. */
         a_derived_hash_entry_ptr entry =
                                    alloc_general_of_type(a_derived_hash_entry);
         *entry = derived_hash_table[bucket];
