@@ -3013,6 +3013,7 @@ option values if they were not already set by a command line option.
   }  /* if */
   if (ms_std_preproc) {
     pragma_operator_allowed = TRUE;
+    va_opt_enabled = TRUE;
   }  /* if */
   if (!option_kind_used[(int)optk_relaxed_abstract_checking]) {
     /* Support for P0929R2 began in version 19.25. */

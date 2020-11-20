@@ -1,5 +1,13 @@
 Version 6.2
 
+11/20/20 [EDGcpfe/23569]
+Microsoft compatibility: __VA_OPT__ with --ms_std_preprocessor
+
+The front end has now been changed to enable support for the __VA_OPT__
+preprocessor operator (see EDGcpfe/20002) when the --ms_std_preprocessor
+command-line option is specified, to better emulate the behavior of MSVC.
+
+
 11/20/20 [EDGcpfe/22804]
 C++-generating back end: C++20 rewritten comparison operators
 
