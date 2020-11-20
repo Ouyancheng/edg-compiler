@@ -89,7 +89,7 @@ Consider (in Clang C++17 mode):
 According to the C++ standard, both the static assertions (1) and (2) should
 fail.  However, Clang accepts them both.  The changes for EDGcpfe/17387 et al.
 caused us to accept (1) in Clang modes, but not (2).  Now (2) is also accepted
-in Clang modes.  This affect not only the __is_trivially_copyable type trait
+in Clang modes.  This affects not only the __is_trivially_copyable type trait
 helper, but also related helpers like __is_pod and __is_trivial.
 
 
