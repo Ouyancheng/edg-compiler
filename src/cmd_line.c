@@ -4969,8 +4969,10 @@ before this routine is called.
     user_defined_literals_enabled = (cpp11_mode && gnu_version >= 40700);
   }  /* if */
   string_literal_operator_template_allowed = (user_defined_literals_enabled &&
-                                              cpp14_mode &&
-                                              gnu_version >= 40900);
+                                              ((cpp14_mode &&
+                                                gnu_version_is(>= 40900)) ||
+                                               (cpp11_mode &&
+                                                clang_version_is(>= 30400))));
   macro_preempts_udl_suffix = (gnu_version >= 40800 && !clang_mode);
   if (!option_kind_used[(int)optk_type_traits_helpers]) {
     /* g++ supports type traits in versions 4.3 and later.  Earlier versions
