@@ -1329,7 +1329,8 @@ the attribute string past the closing "]" or "}".
          "gnu" namespace attributes when they appear in attributes, but
          sometimes not when querying for them with __has_cpp_attribute.
          Err on the side of accepting them. */
-      if (!(clang_mode && ap->family == af_has_cpp_attribute) &&
+      if (!(clang_mode && ap->family ==
+                              (a_byte_attribute_family)af_has_cpp_attribute) &&
           gnu_mode && strcmp(ap->namespace_name, "gnu") == 0) {
         match = TRUE;
         /* *cond doesn't need to be updated. */
