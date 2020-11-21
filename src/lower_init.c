@@ -6855,11 +6855,10 @@ dealt with).
         /* If there's a nested empty aggregate, no lowering is needed (since
            there's nothing in the aggregate to lower), but the effect of
            the aggregate must be maintained.  If possible, keep the constant
-           in the initialization, but if that's not possible, re-write the
+           in the initialization, but if that's not possible, rewrite the
            initialization with executable statements. */
         mark_as_visited(con_ptr);
         if (ipd.indirect_through_variable) {
-          // FIXME
           insert_call_to_zero_entity(con_ptr->type,
                                      /*have_complete_object=*/TRUE,
                                      make_address_of_init_entity_node(&ipd,
