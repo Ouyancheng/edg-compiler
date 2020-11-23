@@ -1,5 +1,15 @@
 Version 6.2
 
+11/23/20 [EDGcpfe/23584,EDGcpfe/23596]
+Improved support for non-8-bit-byte targets and hosts in constant evaluation
+
+Various aspects of the constexpr interpreter have been improved to better deal
+with target and/or host platforms where bytes are not eight bits wide.  For
+example, an attempt to constant-evaluate a call to __builtin_bswap16 or similar
+function previously resulted in an internal error if the target byte size is
+not equal to 8.  Now, the evaluation just fails gracefully.
+
+
 11/23/20 [EDGcpfe/23600]
 Clang compatibility: __is_array
 

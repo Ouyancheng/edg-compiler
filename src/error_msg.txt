@@ -3245,6 +3245,7 @@ ec_type_not_arithmetic_or_unscoped_enum_or_pointer;;"expression must have arithm
 ec_type_not_pointer;;"expression must have pointer type but it has type %t"
 ec_member_access_requires_pointer;;"operator -> or ->* applied to %t instead of to a pointer type"
 ec_incomplete_type_expr_not_allowed;;"incomplete class type %t is not allowed"
+ec_cannot_interpret_target_bits;;"cannot interpret bit layout for this compilation target"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

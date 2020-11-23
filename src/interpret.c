@@ -3320,6 +3320,15 @@ area.  The static storage is zeroed.
 }
 
 /*
+Get the position of the bit representing whether a given byte position is
+initialized.
+*/
+#define get_init_bit_pos(offset, byte_pos, bit_pos)                          \
+  byte_pos = (offset)/CHAR_BIT + sizeof(a_type_ptr)+2;                       \
+  bit_pos = (offset)%CHAR_BIT;
+
+  
+/*
 Mark the complete object at the given address as fully initialized.
 */
 #define mark_complete_object_initialized(obj)                                \
@@ -3328,9 +3337,8 @@ Mark the complete object at the given address as fully initialized.
 #define mark_subobject_initialized(subobj, complete_obj)                     \
 {                                                                            \
   a_byte        *start_byte = (complete_obj);                                \
-  a_byte_count  off = (a_byte_count)((subobj)-start_byte);                   \
-  a_byte_count  byte_pos = off/CHAR_BIT+sizeof(a_type_ptr)+2;                \
-  a_byte_count  bit_pos = off%CHAR_BIT;                                      \
+  a_byte_count  byte_pos, bit_pos, off = (a_byte_count)((subobj)-start_byte);\
+  get_init_bit_pos(off, byte_pos, bit_pos);                                  \
   start_byte[-(int)byte_pos] |= (a_byte)(1<<bit_pos);                        \
 }
 
@@ -3350,8 +3358,8 @@ indicated subobject and all its subobject as initialized.
     a_boolean     result = TRUE;
     a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
     a_byte_count  off = (a_byte_count)(subobj - complete_obj);
-    a_byte_count  byte_pos = off/CHAR_BIT+sizeof(a_type_ptr)+2;
-    a_byte_count  bit_pos = off%CHAR_BIT;
+    a_byte_count  byte_pos, bit_pos;
+    get_init_bit_pos(off, byte_pos, bit_pos);
     while (n_bytes != 0) {
       if (bit_pos == 0 && n_bytes >= CHAR_BIT) {
         /* Mark a whole byte at a time. */
@@ -3383,9 +3391,8 @@ Mark the complete object at the given address as not fully initialized.
 #define mark_subobject_uninitialized(subobj, complete_obj)                   \
 {                                                                            \
   a_byte        *start_byte = (complete_obj);                                \
-  a_byte_count  off = (a_byte_count)((subobj)-start_byte);                   \
-  a_byte_count  byte_pos = off/CHAR_BIT+sizeof(a_type_ptr)+2;                \
-  a_byte_count  bit_pos = off%CHAR_BIT;                                      \
+  a_byte_count  byte_pos, bit_pos, off = (a_byte_count)((subobj)-start_byte);\
+  get_init_bit_pos(off, byte_pos, bit_pos);                                  \
   start_byte[-(int)byte_pos] &= ~(a_byte)(1<<bit_pos);                       \
 }
 
@@ -3409,8 +3416,8 @@ an error type).
     a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
     if (result) {
       a_byte_count  off = (a_byte_count)(subobj - complete_obj);
-      a_byte_count  byte_pos = off/CHAR_BIT+sizeof(a_type_ptr)+2;
-      a_byte_count  bit_pos = off%CHAR_BIT;
+      a_byte_count  byte_pos, bit_pos;
+      get_init_bit_pos(off, byte_pos, bit_pos);
       while (n_bytes != 0) {
         if (bit_pos == 0 && n_bytes >= CHAR_BIT) {
           /* Mark a whole byte at a time. */
@@ -3581,9 +3588,9 @@ object) is initialized.
 */
 {
   a_byte_count  off = (a_byte_count)(address-complete_object);
-  a_byte_count  byte_pos = off/CHAR_BIT+sizeof(a_type_ptr)+2;
-  a_byte_count  bit_pos = off%CHAR_BIT;
+  a_byte_count  byte_pos, bit_pos;
 
+  get_init_bit_pos(off, byte_pos, bit_pos);
   return (complete_object[-(int)byte_pos] & (a_byte)(1<<bit_pos)) != 0;
 }  /* subobject_is_initialized */
 
@@ -7089,24 +7096,32 @@ static a_boolean translate_interpreter_object_to_target_bytes(
                                     a_byte                *src_storage,
                                     a_byte                *src_complete_object,
                                     a_byte                *dest_storage,
-                                    a_byte                *dest_bitmap)
+                                    a_byte                *dest_bitmap,
+                                    an_expr_node_ptr      expr)
 /*
 Translate the interpreter object at src_storage, whose type is "type", into
 the target layout, starting at dest_storage.  Set the appropriate bits in
 dest_bitmap to indicate which bits in dest_storage have been written to
 (and are therefore considered to be initialized).  src_storage is encompassed
 by src_complete_object.  Returns TRUE if there are no errors; otherwise emits a
-diagnostic.  Used in the implementation of __builtin_bit_cast.
+diagnostic associated with expr->position.  Used in the implementation of
+__builtin_bit_cast.
 */
 {
   a_boolean result = TRUE;
 
   if (is_volatile_qualified_type(type)) {
-    info_with_pos_type(ec_volatile_type_not_allowed, &ips->position, type,
+    info_with_pos_type(ec_volatile_type_not_allowed, &expr->position, type,
                        ips);
     do_constexpr_fail(result);
+  } else if (targ_char_bit != CHAR_BIT &&
+             (targ_char_bit > CHAR_BIT) ? (targ_char_bit % CHAR_BIT) != 0
+                                        : (CHAR_BIT % targ_char_bit) != 0) {
+    info_with_pos(ec_cannot_interpret_target_bits, &expr->position, ips);
+    do_constexpr_fail(result);
   } else {
-    a_type_ptr tp = skip_typerefs(type);
+    a_type_ptr  tp = skip_typerefs(type);
+    a_byte      all_bits_on = ~(a_byte)0;
     switch (tp->kind) {
       case tk_error:
         ips->input_error = TRUE;
@@ -7117,7 +7132,7 @@ diagnostic.  Used in the implementation of __builtin_bit_cast.
       case tk_ptr_to_member:
       case tk_routine:
         /* These are explicitly forbidden for a constexpr bit_cast. */
-        info_with_pos_type(ec_invalid_bit_cast_type, &ips->position, tp, ips);
+        info_with_pos_type(ec_invalid_bit_cast_type, &expr->position, tp, ips);
         do_constexpr_fail(result);
         break;
       case tk_integer:
@@ -7132,9 +7147,10 @@ diagnostic.  Used in the implementation of __builtin_bit_cast.
             bit_shift = (int)(host_little_endian ? i : ((tp->size - 1) - i));
             bit_shift *= CHAR_BIT;
             /* The following code effectively does:
-                byte = (int_val & (0xff << bit_shift)) >> bit_shift;
-            */
-            set_unsigned_integer_value(&byte_val, (a_host_large_integer)0xff);
+                   byte = (int_val & (0xff << bit_shift)) >> bit_shift;
+               (assuming all_bits_on == 0xff). */
+            set_unsigned_integer_value(&byte_val,
+                                       (a_host_large_integer)all_bits_on);
             shift_left_integer_value(&byte_val, bit_shift, &ovfl);
             check_assertion(!ovfl);
             and_integer_values(&byte_val, &int_val);
@@ -7146,7 +7162,7 @@ diagnostic.  Used in the implementation of __builtin_bit_cast.
                                                      &byte, &ovfl);
             check_assertion(!ovfl);
             *dest_storage++ = (a_byte)byte;
-            *dest_bitmap++ = 0xff;
+            *dest_bitmap++ = all_bits_on;
           }  /* for */
         }
         break;
@@ -7158,7 +7174,7 @@ diagnostic.  Used in the implementation of __builtin_bit_cast.
            in target layout). */
         for (unsigned int i = 0; i < tp->size; i++) {
           *dest_storage++ = *src_storage++;
-          *dest_bitmap++ = 0xff;
+          *dest_bitmap++ = all_bits_on;
         }  /* for */
         break;
       case tk_array:
@@ -7172,11 +7188,10 @@ diagnostic.  Used in the implementation of __builtin_bit_cast.
             if (result) {
               check_assertion(n_elems < MAX_ARRAY_LENGTH);
               for (; n_elems > 0; n_elems--) {
-                if (!translate_interpreter_object_to_target_bytes(ips, etp,
-                                                           src_storage,
-                                                           src_complete_object,
-                                                           dest_storage,
-                                                           dest_bitmap)) {
+                if (!translate_interpreter_object_to_target_bytes(
+                                           ips, etp,
+                                           src_storage, src_complete_object,
+                                           dest_storage, dest_bitmap, expr)) {
                   do_constexpr_fail(result);
                   break;
                 }  /* if */
@@ -7187,7 +7202,7 @@ diagnostic.  Used in the implementation of __builtin_bit_cast.
               }  /* for */
             }  /* if */
           } else {
-            info_with_pos(err_code, &ips->position, ips);
+            info_with_pos(err_code, &expr->position, ips);
             do_constexpr_fail(result);
           }  /* if */
         }
@@ -7225,12 +7240,11 @@ diagnostic.  Used in the implementation of __builtin_bit_cast.
                 break;
               }  /* if */
               get_mapped_byte_count(&persistent_map, fp, offset);
-              if (!translate_interpreter_object_to_target_bytes(ips,
-                                                   skip_typerefs(fp->type),
-                                                   src_storage + offset,
-                                                   src_complete_object,
-                                                   dest_storage + fp->offset,
-                                                   dest_bitmap + fp->offset)) {
+              if (!translate_interpreter_object_to_target_bytes(
+                          ips, skip_typerefs(fp->type),
+                          src_storage + offset, src_complete_object,
+                          dest_storage + fp->offset, dest_bitmap + fp->offset,
+                          expr)) {
                 do_constexpr_fail(result);
                 break;
               }  /* if */
@@ -7241,12 +7255,11 @@ diagnostic.  Used in the implementation of __builtin_bit_cast.
             /* Visit base classes (direct and virtual). */
             for (bcp = base_classes_of(tp); bcp != NULL; bcp = bcp->next) {
               get_mapped_byte_count(&persistent_map, bcp, offset);
-              if (!translate_interpreter_object_to_target_bytes(ips,
-                                                  skip_typerefs(bcp->type),
-                                                  src_storage + offset,
-                                                  src_complete_object,
-                                                  dest_storage + bcp->offset,
-                                                  dest_bitmap + bcp->offset)) {
+              if (!translate_interpreter_object_to_target_bytes(
+                     ips, skip_typerefs(bcp->type),
+                     src_storage + offset, src_complete_object,
+                     dest_storage + bcp->offset, dest_bitmap + bcp->offset,
+                     expr)) {
                 do_constexpr_fail(result);
                 break;
               }  /* if */
@@ -7264,7 +7277,7 @@ diagnostic.  Used in the implementation of __builtin_bit_cast.
       case tk_complex:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         /* These should eventually be supported but aren't yet. */
-        info_with_pos_type(ec_unsupported_type_for_bit_cast, &ips->position,
+        info_with_pos_type(ec_unsupported_type_for_bit_cast, &expr->position,
                            tp, ips);
         do_constexpr_fail(result);
         break;
@@ -7362,7 +7375,7 @@ This function currently always returns TRUE.
   bfk = (a_builtin_function_kind)callee->variant.builtin_function_kind;
   arg = *(an_integer_value*)arg_bytes;
   check_assertion(arg_tp->kind == (a_type_kind)tk_integer);
-  n_bits = arg_tp->size*CHAR_BIT;
+  n_bits = arg_tp->size*targ_char_bit;
   for (k = 0; k < n_bits; ++k) {
     a_boolean         bit, ovflo;
     an_integer_value  mask = one_int;
@@ -7926,14 +7939,14 @@ expression node and interpreter state.
     alloc_stack_bytes(ips, size1, targ_map);
     if (!translate_interpreter_object_to_target_bytes(
                  ips, obj_tp1, base_address_of(addr1), addr1->complete_object,
-                 targ_repr1, targ_map)) {
+                 targ_repr1, targ_map, call_node)) {
       unexpected_condition();
     }  /* if */
     alloc_stack_bytes(ips, size2, targ_repr2);
     alloc_stack_bytes(ips, size2, targ_map);
     if (!translate_interpreter_object_to_target_bytes(
                  ips, obj_tp2, base_address_of(addr2), addr2->complete_object,
-                 targ_repr2, targ_map)) {
+                 targ_repr2, targ_map, call_node)) {
       unexpected_condition();
     }  /* if */
     /* Adjust for the offset into either array. */
@@ -8515,8 +8528,12 @@ to FALSE and the reason for the failure is recorded in *ips.
     case bfk_bswap64:
       {
         interpreted = TRUE;
-        if (args == NULL || args->next != NULL || targ_char_bit != 8) {
+        if (args == NULL || args->next != NULL) {
           unexpected_condition();
+        } else if (targ_char_bit != 8) {
+          info_with_pos(ec_cannot_interpret_target_bits,
+                        &call_node->position, ips);
+          do_constexpr_fail(*p_result);
         } else {
           unsigned int  bytes = 0;
           a_type_ptr    tp = skip_typerefs(args->type);
@@ -8535,7 +8552,7 @@ to FALSE and the reason for the failure is recorded in *ips.
             default:
               unexpected_condition();
           }  /* switch */
-          check_assertion(tp->kind == (a_type_kind)tk_integer);
+          check_assertion(type_is(tp, tk_integer));
           alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
           if (!do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes) ||
               !swap_bytes_in_unsigned_integer(bytes,
@@ -10991,6 +11008,7 @@ cannot be performed.  Used in the implementation of __builtin_bit_cast.
                        ips);
     do_constexpr_fail(result);
   } else {
+    a_byte  all_bits_on = ~(a_byte)0;
     tp = skip_typerefs(type);
     switch (tp->kind) {
       case tk_error:
@@ -11015,7 +11033,7 @@ cannot be performed.  Used in the implementation of __builtin_bit_cast.
              value. */
           set_unsigned_integer_value(&int_val, 0);
           for (unsigned int i = 0; i < tp->size; i++) {
-            if (*src_bitmap++ != 0xff) {
+            if (*src_bitmap++ != all_bits_on) {
               initialized = FALSE;
             }  /* if */
             byte = *src_storage++;
@@ -11043,7 +11061,7 @@ cannot be performed.  Used in the implementation of __builtin_bit_cast.
         break;
       case tk_float:
         for (unsigned int i = 0; i < tp->size; i++) {
-          if (*src_bitmap++ != 0xff) {
+          if (*src_bitmap++ != all_bits_on) {
             initialized = FALSE;
           }  /* if */
           *dest_storage++ = *src_storage++;
@@ -11247,7 +11265,8 @@ complete_object).  Otherwise, return FALSE and record a diagnostic in *ips.
                                                       src_result_storage,
                                                       src_result_storage,
                                                       target_result_storage,
-                                                      target_result_bitmap)) {
+                                                      target_result_bitmap,
+                                                      expr)) {
       result = FALSE;
     }  /* if */
     /* Translate the target layout back to an interpreter object. */
@@ -13209,7 +13228,7 @@ the value representation of the integer value.
                        unsigned value to a signed value of the same size,
                        in case the host representation includes additional bits
                        (e.g., (int)(unsigned)-1 must be negative). */
-                    int  n_bits = (int)(opnd1_type->size*CHAR_BIT);
+                    int  n_bits = (int)(opnd1_type->size*targ_char_bit);
                     sign_extend_integer_value(r_int, n_bits);
                   }  /* if */
                 } else {
@@ -14800,7 +14819,7 @@ the value representation of the integer value.
               do_constexpr_fail(result);
             } else if (host_int_val < 0 ||
                        host_int_val >=
-                           (a_host_large_integer)(tp->size * CHAR_BIT)) {
+                          (a_host_large_integer)(tp->size * targ_char_bit)) {
               do_constexpr_fail(result);
             }  /* if */
             if (result) {
@@ -14834,7 +14853,7 @@ the value representation of the integer value.
                 }  /* if */
                 /* Sign-extend the result. */
                 sign_extend_integer_value((an_integer_value*)opnd1_value,
-                                          (int)(tp->size * CHAR_BIT));
+                                          (int)(tp->size * targ_char_bit));
                                           
               } else {
                 /* Discard overflowing bit. */
@@ -14857,7 +14876,7 @@ the value representation of the integer value.
               do_constexpr_fail(result);
             } else if (host_int_val < 0 ||
                        host_int_val >=
-                           (a_host_large_integer)(tp->size * CHAR_BIT)) {
+                           (a_host_large_integer)(tp->size * targ_char_bit)) {
               do_constexpr_fail(result);
             }  /* if */
             if (result) {
@@ -16329,7 +16348,7 @@ the value representation of the integer value.
                   do_constexpr_fail(result);
                 } else if (host_int_val < 0 ||
                            host_int_val >=
-                          (a_host_large_integer)(tp->size * CHAR_BIT)) {
+                          (a_host_large_integer)(tp->size * targ_char_bit)) {
                   do_constexpr_fail(result);
                   if (host_int_val < 0) {
                     info_with_pos(ec_constexpr_negative_shift,
@@ -16402,7 +16421,7 @@ the value representation of the integer value.
                   do_constexpr_fail(result);
                 } else if (host_int_val < 0 ||
                            host_int_val >=
-                          (a_host_large_integer)(tp->size * CHAR_BIT)) {
+                          (a_host_large_integer)(tp->size * targ_char_bit)) {
                   do_constexpr_fail(result);
                   if (host_int_val < 0) {
                     info_with_pos(ec_constexpr_negative_shift,
