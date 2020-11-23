@@ -50027,7 +50027,8 @@ the corresponding __builtin_is_constructible operation.
     an_arg_list_elem_ptr alep;
     an_operand           operand;
     an_expr_node_ptr     argn;
-    a_boolean            saved_defer_access_checks;
+    a_boolean            saved_defer_access_checks =
+                                        scope_stack_top().defer_access_checks;
     for (argn = args; argn != NULL; argn = argn->next) {
       a_type_ptr typen;
       check_assertion(argn->kind == (an_expr_node_kind)enk_type_operand);
@@ -50053,7 +50054,6 @@ the corresponding __builtin_is_constructible operation.
     }  /* for */
     expr_stack->suppress_diagnostics = TRUE;
     expr_stack->suppress_constexpr_call_folding = TRUE;
-    saved_defer_access_checks = scope_stack_top().defer_access_checks;
     scope_stack_top().defer_access_checks = FALSE;
     if (!is_aggregate_or_union_type(dst_type)) {
       if (arg_list == NULL) {
@@ -50102,9 +50102,9 @@ the corresponding __builtin_is_constructible operation.
         result = !expr_calls_nontrivial_ctor(node);
       }  /* if */
     }  /* if */
+have_result:
     scope_stack_top().defer_access_checks = saved_defer_access_checks;
   }  /* if */
-have_result:
   free_init_component_list(arg_list);
   pop_expr_stack();
   restore_expr_stack(saved_expr_stack);
