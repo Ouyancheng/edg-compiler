@@ -13923,6 +13923,7 @@ indication in *rcblock).
       case tok_is_empty:                bok = bok_is_empty; break;
       case tok_is_enum:                 bok = bok_is_enum; break;
       case tok_is_function:             bok = bok_is_function; break;
+      case tok_is_array:                bok = bok_is_array; break;
       case tok_is_pod:                  bok = bok_is_pod; break;
       case tok_is_polymorphic:          bok = bok_is_polymorphic; break;
       case tok_is_union:                bok = bok_is_union; break;
@@ -33129,6 +33130,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_is_empty:
     case tok_is_enum:
     case tok_is_function:
+    case tok_is_array:
     case tok_is_pod:
     case tok_is_polymorphic:
     case tok_is_union:
@@ -38959,6 +38961,7 @@ handle_identifier:
     case tok_is_empty:
     case tok_is_enum:
     case tok_is_function:
+    case tok_is_array:
     case tok_is_pod:
     case tok_is_polymorphic:
     case tok_is_union:

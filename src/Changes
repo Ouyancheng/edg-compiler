@@ -1,5 +1,12 @@
 Version 6.2
 
+11/23/20 [EDGcpfe/23600]
+Clang compatibility: __is_array
+
+In Clang C++ modes, the front end now accepts the __is_array type traits
+helper.
+
+
 11/23/20 [EDGcpfe/23602]
 Clang compatibility: Type differences when matching partial specializations
 

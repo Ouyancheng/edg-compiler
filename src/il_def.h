@@ -1332,6 +1332,7 @@ typedef enum /*a_token_kind*/ {
   tok_builtin_bit_cast,
   tok_builtin_is_layout_compatible,
   tok_builtin_is_pointer_interconvertible_base_of,
+  tok_is_array,
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1534,6 +1535,7 @@ EXTERN a_const_char
    "__builtin_bit_cast",
    "__builtin_is_layout_compatible",
    "__builtin_is_pointer_interconvertible_base_of",
+   "__is_array",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -13328,6 +13330,7 @@ typedef enum a_builtin_operation_kind_tag {
 			/* Two type operands. */
   bok_builtin_is_pointer_interconvertible_base_of,
 			/* Two type operands. */
+  bok_is_array,		/* __is_array. One type operand. */
   bok_last              /* Marks the end of the list. */
 } a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */
@@ -17787,6 +17790,7 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__builtin_bit_cast",
   "__builtin_is_layout_compatible",
   "__builtin_is_pointer_interconvertible_base_of",
+  "__is_array",
   "last"
 }
 #endif /* VAR_INITIALIZERS */

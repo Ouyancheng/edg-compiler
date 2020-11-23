@@ -747,6 +747,7 @@ modes.
   enter_keyword((a_token_kind)tok_is_literal_type, "__is_literal_type");
   if (clang_mode) {
     enter_keyword((a_token_kind)tok_is_literal_type, "__is_literal");
+    enter_keyword((a_token_kind)tok_is_array, "__is_array");
   }  /* if */
   enter_keyword((a_token_kind)tok_has_trivial_move_constructor,
                 "__has_trivial_move_constructor");

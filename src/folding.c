@@ -8748,6 +8748,9 @@ and, if pos is not NULL, an error will be reported.
         case bok_is_function:
           result = is_function_type(type);
           break;
+        case bok_is_array:
+          result = is_array_type(type);
+          break;
         case bok_is_trivial:
           result = is_object_type(type);
           break;
@@ -8935,6 +8938,9 @@ and, if pos is not NULL, an error will be reported.
         result = FALSE;
         break;
       case bok_is_function:
+        result = FALSE;
+        break;
+      case bok_is_array:
         result = FALSE;
         break;
       case bok_is_pod:
@@ -9439,6 +9445,7 @@ constant is set as well.
       case bok_is_class:
       case bok_is_enum:
       case bok_is_function:
+      case bok_is_array:
       case bok_is_union:
 #if MICROSOFT_EXTENSIONS_ALLOWED
       case bok_is_delegate:
