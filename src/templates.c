@@ -3897,7 +3897,7 @@ determine the partial order among matching partial specializations.
   instance_tap = template_arg_list_for_symbol(instance_sym);
   prototype_tap = template_arg_list_for_symbol(prototype_sym);
   if (matches_template_arg_list(instance_tap, prototype_tap, ps_arg_list,
-                                templ_param_list, MTT_NO_FLAGS) &&
+                                templ_param_list, MTT_PARTIAL_SPEC) &&
       (total_errors == 0 ||
        !template_arg_list_involves_error_entity(*ps_arg_list)) &&
       (for_ordering ||
@@ -11998,9 +11998,9 @@ list of a template function.  Returns TRUE if a match is found.
                                         templ_arg_list, templ_param_list,
                                         MTT_NO_FLAGS);
         } else if (!tpp->variant.constant.type_involves_template_param) {
-          if (!identical_types(constant->type,
-                               templ_constant->type) &&
-              !is_template_dependent_type(constant->type)) {
+          if (!identical_types(constant->type, templ_constant->type) &&
+              !is_template_dependent_type(constant->type) &&
+              !(clang_mode && (flags & MTT_PARTIAL_SPEC) != 0)) {
              match = FALSE;
           }  /* if */
         } else if (auto_template_params_enabled &&
@@ -12366,7 +12366,7 @@ partial specialization.
                                     templ_tap->variant.type,
                                     templ_arg_list,
                                     templ_param_list,
-                                    MTT_NO_FLAGS);
+                                    (flags & MTT_PARTIAL_SPEC));
     } else if (is_nontype_templ_arg(tap)) {
       /* A nontype template parameter. */
       match = matches_template_constant(tap->variant.constant,

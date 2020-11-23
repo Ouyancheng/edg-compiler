@@ -1,5 +1,24 @@
 Version 6.2
 
+11/23/20 [EDGcpfe/23602]
+Clang compatibility: Type differences when matching partial specializations
+
+Consider:
+
+  template<int M> struct I {};
+  template<typename> struct S;
+  template<short N> struct S<I<N>> {};
+  S<I<100>> s;  // Now accepted in Clang mode.
+
+This example is invalid because the partial specialization S<I<N>> is never
+deduced as a match since the type of N (short) is not identical to the type of
+the nontype template parameter M (int).  Clang, however, accepts this example
+and the front end now also accepts it in Clang mode.  (Note that the example
+was already accepted in Microsoft mode, but the Microsoft behavior that enables
+the example is not limited to partial specializations.  See also the entry for
+EDGcpfe/9367.)
+
+
 11/23/20 [EDGcpfe/23435]
 C++-generating back end, Microsoft compatibility: parenthesized pack
 expansion template arguments

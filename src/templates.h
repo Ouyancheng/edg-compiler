@@ -702,6 +702,9 @@ typedef unsigned int an_mtt_flag_set;
 			/* TRUE when doing deduction based on the type of an
 			   array bound.  The value is only deduced from the
 			   bound if not otherwise deduced. */
+#define MTT_PARTIAL_SPEC 0x200
+			/* TRUE when doing deduction for the purpose of
+			   matching a partial specialization. */
 
 
 extern a_boolean matches_template_type_with_qualification_conversion(
