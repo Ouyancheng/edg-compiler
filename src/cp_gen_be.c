@@ -682,7 +682,6 @@ static void gen_prop_event_or_op_synth_call(
                           a_rewritten_property_reference_kind rpr_kind,
                           a_boolean                           is_virtual_call);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-static an_expr_node_ptr skip_implicit_steps(an_expr_node_ptr node);
 static a_boolean expr_uses_undefined_or_local_type(an_expr_node_ptr expr);
 /*
 Options for gen_general_declaration_using_type.
@@ -12693,7 +12692,7 @@ obscure Microsoft bug).
 }  /* gen_initializer_expr */
 
 
-static an_expr_node_ptr skip_implicit_steps(an_expr_node_ptr node)
+an_expr_node_ptr skip_implicit_steps(an_expr_node_ptr node)
 /*
 Scan down through nodes that will not appear in the generated code to
 get to the expression that will appear, and return that.

@@ -1,5 +1,15 @@
 Version 6.2
 
+11/23/20 [EDGcpfe/23435]
+C++-generating back end, Microsoft compatibility: parenthesized pack
+expansion template arguments
+
+In some complex cases, MSVC reports a spurious error if a pack expansion
+used as a non-type template argument is enclosed in unnecessary
+parentheses.  The C++-generating back end has now been changed to avoid
+putting out extra parentheses for expressions in such cases.
+
+
 11/20/20 [EDGcpfe/23569]
 Microsoft compatibility: __VA_OPT__ with --ms_std_preprocessor
 

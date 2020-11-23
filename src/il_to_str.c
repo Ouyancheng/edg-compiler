@@ -511,6 +511,9 @@ Output the indicated template argument in the way described by octl.
                              (a_template_param_constant_kind)tpck_expression) {
             expr = expr_node_from_tpck_expression(con);
           }  /* if */
+          if (expr != NULL) {
+            expr = skip_implicit_steps(expr);
+          }  /* if */
           /* See whether we need parentheses around the argument to prevent
              a ">" operator from being interpreted as the end of the
              argument list or to ensure that an ellipsis applies to the
@@ -523,7 +526,9 @@ Output the indicated template argument in the way described by octl.
                          octl->has_unprotected_gt_or_comma_operation(con) ||
                          (tap->is_pack &&
                           (expr == NULL ||
-                           expr->kind != (an_expr_node_kind)enk_temp_init)));
+                           (!node_is(expr, enk_temp_init) &&
+                            !(is_constant_node(expr) &&
+                              node_constant_is(expr, ck_aggregate))))));
           if (is_any_reference_type(con->type)) {
             /* A reference parameter.  Display specially -- one level of
                indirection must be removed. */
