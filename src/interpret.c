@@ -3324,8 +3324,8 @@ Get the position of the bit representing whether a given byte position is
 initialized.
 */
 #define get_init_bit_pos(offset, byte_pos, bit_pos)                          \
-  byte_pos = (offset)/CHAR_BIT + sizeof(a_type_ptr)+2;                       \
-  bit_pos = (offset)%CHAR_BIT;
+  { byte_pos = (offset)/CHAR_BIT + sizeof(a_type_ptr)+2;                     \
+    bit_pos = (offset)%CHAR_BIT; }
 
   
 /*
