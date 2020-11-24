@@ -3294,7 +3294,7 @@ ck_string constant is considered to fully initialize a character array.
   type = skip_typerefs(type);
   if (con_type == type) {
     /* Types are the same, so they must have the same "dimension". */
-    return TRUE;
+    result = TRUE;
   } else if (!is_array(type) && !is_array(con_type)) {
     /* Neither type is an array, so they have the same "dimension". */
     result = TRUE;

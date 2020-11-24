@@ -163,6 +163,10 @@ static an_expr_node_ptr make_delete_call_node(a_routine_ptr    delete_routine,
                                               a_type_ptr       delete_type,
                                               an_expr_node_ptr arg_node);
 
+static a_boolean recompute_partially_initialized_flag(
+                                                     a_constant_ptr aggr_con,
+                                                     a_type_ptr     aggr_type);
+
 static a_type_ptr make_function_type(a_type_ptr return_type,
                                      a_type_ptr param_1_type,
                                      a_type_ptr param_2_type)
@@ -6953,6 +6957,11 @@ dealt with).
     }  /* if */
     /* Loop while there are more constants. */
   }  /* for */
+  /* Now that the dynamic initialization has been rewritten as executable
+     code, the aggregate may have become partially initialized. */
+  if (!aggr_const->is_partially_initialized) {
+    (void)recompute_partially_initialized_flag(aggr_const, aggr_type);
+  }  /* if */
   if (!array_or_vector) pop_aggregate_this();
 }  /* lower_dynamic_init_aggregate_constant */
 
@@ -10646,6 +10655,10 @@ do_keep_constant:
               variable->init_kind = (an_init_kind)initk_none;
               variable->initializer.constant = NULL;
               simple_constant_init = FALSE;
+            } else if (simple_constant->is_partially_initialized) {
+              /* If the constant we're keeping is partially initialized, the
+                 initialization itself is partially initialized. */
+              dip->is_partially_initialized = TRUE;
             }  /* if */
           }  /* if */
         }  /* if */
@@ -13696,6 +13709,23 @@ the aggregate.
 }  /* advance_aggregate_position_to_next_member */
 
 
+static a_boolean current_position_is_valid(an_aggregate_position *aggr_pos)
+/*
+Return TRUE if the current position in the specified aggregate (as indicated
+by curr_elem or curr_field as appropriate) has an associated field/element.
+*/
+{
+  a_boolean result;
+
+  if (aggr_pos->array_init) {
+    result = (aggr_pos->curr_elem <= aggr_pos->number_of_elements - 1);
+  } else {
+    result = (aggr_pos->curr_field != NULL);
+  }  /* if */
+  return result;
+}  /* current_position_is_valid */
+
+
 static a_boolean any_more_members_in_aggregate(an_aggregate_position *aggr_pos)
 /*
 Return TRUE if there are additional initializable fields after the
@@ -14895,7 +14925,7 @@ aggr_con->is_partially_initialized to reflect the new value.
     check_assertion(is_array_type(aggr_type));
     is_partially_initialized = (aggr_con->variant.string.length < 
            skip_typerefs(aggr_type)->variant.array.variant.number_of_elements);
-  } else if (is_vla_type(aggr_type)) {
+  } else if (is_vla_type(aggr_type) || is_incomplete_array_type(aggr_type)) {
     /* We can't know at compilation time whether an aggregate fully initializes
        the array (since the array bound isn't specified until run time). */
     is_partially_initialized = TRUE;
@@ -14911,6 +14941,12 @@ aggr_con->is_partially_initialized to reflect the new value.
     set_init_con_pos(temp_con, /*skip_empty_bases=*/TRUE,
                      /*skip_empty_fields=*/TRUE, &con_pos);
     /* Iterate for each constant in the aggregate constant. */
+    if (con_pos.ptr == NULL && current_position_is_valid(&aggr_pos)) {
+      /* Constant is empty but there's at least one field/element in the
+         aggregate. */
+      is_partially_initialized = TRUE;
+      goto done;
+    }  /* if */
     while (con_pos.ptr != NULL) {
       temp_con = con_pos.ptr;
       if (temp_con->kind == (a_constant_repr_kind)ck_designator) {
@@ -14939,7 +14975,7 @@ aggr_con->is_partially_initialized to reflect the new value.
         if (temp_con->kind != (a_constant_repr_kind)ck_dynamic_init &&
             !is_or_was_ptr_to_member_function_type(aggr_pos.member_type)) {
           if (recompute_partially_initialized_flag(temp_con,
-                                                   aggr_pos.member_type)) {
+                                                   temp_con->type)) {
             /* Any partially initialized sub-aggregate results in a partially
                initialized aggregate. */
             is_partially_initialized = TRUE;

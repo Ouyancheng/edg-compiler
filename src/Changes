@@ -1,5 +1,25 @@
 Version 6.2
 
+11/24/20 [EDGcpfe/16972,EDGcpfe/20434]
+Lowered code doesn't initialize aggregate properly
+
+In cases where lowering of an aggregate constant with dynamic initialization
+leaves a partially-initialized constant as part of the initialization, the
+constant portion of the initialization had been omitted if that initialization
+followed an executable statement.  For example (with --c++11):
+
+  struct C {
+    C() {}
+  };
+  struct A { int a; };
+  struct B { A a; C c; };
+  int main() {
+    0;
+    B b{};        // initialization follows an executable statement
+    return b.a.a; // b.a.a is not initialized
+  }
+
+
 11/24/20 [EDGcpfe/23615]
 Spurious error on dependent destructor invocation in constant-expression
 
