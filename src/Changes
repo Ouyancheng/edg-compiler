@@ -1,5 +1,18 @@
 Version 6.2
 
+11/24/20 [EDGcpfe/23615]
+Spurious error on dependent destructor invocation in constant-expression
+
+Consider:
+
+  template<bool> struct X {};
+  template<typename T> X<(T().~T())> g();  // Previously an error.  Now okay.
+
+Previously, this triggered a spurious error about the destructor invocation not
+being permitted in a constant-expression context.  That is now fixed: The case
+is not accepted.
+
+
 11/24/20 [EDGcpfe/23614]
 Clang compatibility: Clang 8.0.1 builtins
 
