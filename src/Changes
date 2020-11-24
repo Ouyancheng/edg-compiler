@@ -1,5 +1,12 @@
 Version 6.2
 
+11/24/20 [EDGcpfe/23614]
+Clang compatibility: Clang 8.0.1 builtins
+
+Builtin signatures have been updated to reflect builtins from clang version
+8.0.1.
+
+
 11/23/20 [EDGcpfe/23584,EDGcpfe/23596]
 Improved support for non-8-bit-byte targets and hosts in constant evaluation
 
