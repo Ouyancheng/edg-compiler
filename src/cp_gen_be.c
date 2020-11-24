@@ -682,6 +682,7 @@ static void gen_prop_event_or_op_synth_call(
                           a_rewritten_property_reference_kind rpr_kind,
                           a_boolean                           is_virtual_call);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+static an_expr_node_ptr skip_implicit_steps(an_expr_node_ptr node);
 static a_boolean expr_uses_undefined_or_local_type(an_expr_node_ptr expr);
 /*
 Options for gen_general_declaration_using_type.
@@ -22964,6 +22965,7 @@ Initialize for the C++/C-generating back end.
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   octl.type_operator_expr_is_unusable = expr_uses_undefined_or_local_type;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+  octl.skip_implicit_steps = skip_implicit_steps;
   octl.gen_compilable_code = TRUE;
   octl.gen_pcc_code = il_header.pcc_compatibility_mode;
   /* In C99 mode we want to see "_Bool" rather than "bool" or the type

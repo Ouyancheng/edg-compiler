@@ -36,8 +36,6 @@ extern void cp_gen_be_cleanup(void);
 
 extern a_boolean expr_has_comma_operation(an_expr_node_ptr expr);
 
-extern an_expr_node_ptr skip_implicit_steps(an_expr_node_ptr node);
-
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 

@@ -95,6 +95,7 @@ Clear an output control block to default values.
   octl->is_typedef_invisible      = NULL;
   octl->has_unprotected_gt_or_comma_operation = NULL;
   octl->type_operator_expr_is_unusable = NULL;
+  octl->skip_implicit_steps       = NULL;
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   octl->func_prototype_stack      = NULL;
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
@@ -511,11 +512,9 @@ Output the indicated template argument in the way described by octl.
                              (a_template_param_constant_kind)tpck_expression) {
             expr = expr_node_from_tpck_expression(con);
           }  /* if */
-#if BACK_END_IS_CP_GEN_BE
-          if (expr != NULL) {
-            expr = skip_implicit_steps(expr);
+          if (expr != NULL && octl->skip_implicit_steps != NULL) {
+            expr = octl->skip_implicit_steps(expr);
           }  /* if */
-#endif /* BACK_END_IS_CP_GEN_BE */
           /* See whether we need parentheses around the argument to prevent
              a ">" operator from being interpreted as the end of the
              argument list or to ensure that an ellipsis applies to the

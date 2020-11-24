@@ -72,6 +72,8 @@ typedef a_boolean a_constant_test_function(a_constant_ptr con);
 typedef a_constant_test_function *a_constant_test_function_ptr;
 typedef a_boolean an_expression_test_function(an_expr_node_ptr expr);
 typedef an_expression_test_function *an_expression_test_function_ptr;
+typedef an_expr_node_ptr an_expression_modifier(an_expr_node_ptr expr);
+typedef an_expression_modifier *an_expression_modifier_ptr;
 
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
 
@@ -206,6 +208,11 @@ typedef struct an_il_to_str_output_control_block {
 			   a generated explicit specialization might
 			   otherwise refer to an as-yet-undefined type via
 			   the expression of a type operator. */
+  an_expression_modifier_ptr
+	skip_implicit_steps;
+			/* Function that steps over any expression nodes
+			   that will not affect the output code, such as
+			   compiler-generated cast nodes. */
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   a_func_prototype_stack_entry_ptr
 	func_prototype_stack;
