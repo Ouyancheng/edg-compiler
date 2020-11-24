@@ -1,5 +1,12 @@
 Version 6.2
 
+11/24/20 [EDGcpfe/23474]
+Build errors with TARG_HAS_IEEE_FLOATING_POINT is FALSE
+
+The front end had failed to build in configurations where
+TARG_HAS_IEEE_FLOATING_POINT is FALSE.  Now fixed.
+
+
 11/24/20 [EDGcpfe/16972,EDGcpfe/20434]
 Lowered code doesn't initialize aggregate properly
 

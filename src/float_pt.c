@@ -847,10 +847,10 @@ If the conversion can be done, return the result in "result".
 #if TARG_HAS_IEEE_FLOATING_POINT
       } else if (!is_finite(temp)) {
         /* Don't test NaNs and infinities. */
-#endif /* TARG_HAS_IEEE_FLOATING_POINT */
       } else if (gnu_mode && is_finite(temp)) {
         /* GNU C and C++ silently uses infinity for values that are too
            large. */
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
       } else {
         /* One last shot -- on machines with NaNs and infinities, printing
            such a thing often prints "infinity" or the like.  Print the
@@ -1046,10 +1046,10 @@ underflow.  If the conversion can be done, return the result in "result".
 #if TARG_HAS_IEEE_FLOATING_POINT
       } else if (!is_finite(temp)) {
         /* Don't test NaNs and infinities. */
-#endif /* TARG_HAS_IEEE_FLOATING_POINT */
       } else if (gnu_mode && is_finite(temp)) {
         /* GNU C and C++ silently uses infinity for values that are too
            large. */
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
       } else {
         /* One last shot -- on machines with NaNs and infinities, printing
            such a thing often prints "infinity" or the like.  Print the
@@ -1129,10 +1129,12 @@ overflow or underflow.  If the conversion can be done, return the result in
      host is using 64-bit long double), the SoftFloat routines need to be used
      to do that conversion (a check is made in check_target_configuration). */
   long double     ldbl_val = (long double)val;
+#if TARG_HAS_IEEE_FLOATING_POINT
   a_host_fp_value round_trip_val = ldbl_val;
   if (is_finite(val) && !is_finite(round_trip_val) && !gnu_mode) {
     *err = TRUE;
   }  /* if */
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
   /* In cases where 80-bit extended long double is used, the unused bits
      are indeterminate after the assignment above (especially in configurations
      that do optimization).  Zero those bits so that a reliable hash can be

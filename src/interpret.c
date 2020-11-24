@@ -7298,7 +7298,7 @@ __builtin_bit_cast.
 }  /* translate_interpreter_object_to_target_bytes */
 
 #if BUILTIN_FUNCTIONS_ENABLED
-#if C99_IL_EXTENSIONS_SUPPORTED
+#if C99_IL_EXTENSIONS_SUPPORTED && TARG_HAS_IEEE_FLOATING_POINT
 
 static a_boolean do_constexpr_builtin_fptest(
                                       a_routine_ptr            callee,
@@ -7356,7 +7356,7 @@ cannot be evaluated, return FALSE.
   return result;
 }  /* do_constexpr_builtin_fptest */
 
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED && TARG_HAS_IEEE_FLOATING_POINT */
 
 static a_boolean do_constexpr_builtin_bitcount(a_routine_ptr  callee,
                                                a_byte         *arg_bytes,
@@ -8278,6 +8278,7 @@ to FALSE and the reason for the failure is recorded in *ips.
     case bfk_signbitf:
     case bfk_signbitl:
       {
+#if TARG_HAS_IEEE_FLOATING_POINT
         interpreted = TRUE;
         if (args == NULL || args->next != NULL) {
           unexpected_condition();
@@ -8298,6 +8299,10 @@ to FALSE and the reason for the failure is recorded in *ips.
             do_constexpr_fail(*p_result);
           }  /* if */
         }  /* if */
+#else /* !TARG_HAS_IEEE_FLOATING_POINT */
+        interpreted = FALSE;
+        do_constexpr_fail(*p_result);
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
       }
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
