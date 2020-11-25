@@ -26122,8 +26122,12 @@ will be an lvalue instead of the usual prvalue.
       is->init_dip = dip;
       if (fill_in_dtor && dest_type_is_class) {
         /* Fill in the destructor if one is needed. */
+        a_type_ptr object_type = dest_type;
+        if (is->ctor_initializer) {
+          object_type = parent_class_of(scope_stack_top().assoc_routine);
+        }  /* if */
         a_routine_ptr  dtor = expr_select_destructor(dest_type,
-                                                     dest_type,
+                                                     object_type,
                                                      start_position,
                                                      /*honor_virtual=*/FALSE);
         record_dtor_in_dynamic_init(dtor, dip,
