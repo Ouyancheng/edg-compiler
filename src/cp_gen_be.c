@@ -12693,7 +12693,7 @@ obscure Microsoft bug).
 }  /* gen_initializer_expr */
 
 
-an_expr_node_ptr skip_implicit_steps(an_expr_node_ptr node)
+static an_expr_node_ptr skip_implicit_steps(an_expr_node_ptr node)
 /*
 Scan down through nodes that will not appear in the generated code to
 get to the expression that will appear, and return that.
