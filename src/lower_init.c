@@ -14929,6 +14929,15 @@ aggr_con->is_partially_initialized to reflect the new value.
     /* We can't know at compilation time whether an aggregate fully initializes
        the array (since the array bound isn't specified until run time). */
     is_partially_initialized = TRUE;
+#if C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX
+  } else if (is_complex_type(aggr_type)) {
+    /* A complex constant that is not lowered.  If the aggregate constant
+       does not have two elements, it is partially initialized. */
+    check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
+    is_partially_initialized =
+                    (aggr_con->variant.aggregate.first_constant != NULL &&
+                     aggr_con->variant.aggregate.first_constant->next != NULL);
+#endif /* C99_IL_EXTENSIONS_SUPPORTED && !LOWER_COMPLEX */
   } else {
     check_assertion(aggr_con->kind == (a_constant_repr_kind)ck_aggregate);
     temp_con = aggr_con->variant.aggregate.first_constant;
