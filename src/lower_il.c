@@ -19314,8 +19314,16 @@ statements don't contain an enk_condition).
           a_statement_ptr incr_stmt =
                                     insert_expr_statement(loop_info->increment,
                                                           &insert_location);
+          check_assertion(pending_stmk_init_statements == NULL);
           lower_full_expr(loop_info->increment, incr_stmt);
           loop_info->increment = NULL;
+          if (pending_stmk_init_statements != NULL) {
+            /* Lowering may have created some statements to initialize
+               temporaries.  These statements need to be inserted
+               within block_stmt (where the temporary is defined), but before
+               they are used. */
+            insert_pending_stmk_init_statements(block_stmt);
+          }  /* if */
         }  /* if */
       } else {
         check_assertion(statement->kind == (a_statement_kind)stmk_while);
