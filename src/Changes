@@ -37,7 +37,7 @@ Consider:
 
 Previously, this triggered a spurious error about the destructor invocation not
 being permitted in a constant-expression context.  That is now fixed: The case
-is not accepted.
+is now accepted.
 
 
 11/24/20 [EDGcpfe/23614]
