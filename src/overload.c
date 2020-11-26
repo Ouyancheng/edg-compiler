@@ -28283,19 +28283,6 @@ TRUE and FALSE is returned.
           complete_class_type_is_needed(templ_arg->variant.type);
         }  /* if */
       }  /* if */
-      if (is_dimensioned_vla_type(templ_arg->variant.type) &&
-          type_is(skip_typerefs(orig_type), tk_pointer)) {
-        /* We cannot generally produce a top-level deduced VLA type because it
-           would require us to duplicate the dimension expression without
-           actually evaluating it twice, and the IL currently cannot represent
-           that.  However, if the VLA type is under a pointer or reference
-           type, we can replace something like "T (*)[num()]" by "T (*)[*]".
-           That enables some cases that GCC and Clang accept. */
-        a_type_ptr  new_tp = alloc_type((a_type_kind)tk_array);
-        *new_tp = *templ_arg->variant.type;
-        new_tp->variant.array.has_assoc_vla_dimension = FALSE;
-        templ_arg->variant.type = new_tp;
-      }  /* if */
       *deduced_auto_type = templ_arg->variant.type;
       if (keep_placeholder) {
         /* Add a tk_typeref on top of the deduced type so we can tell where
