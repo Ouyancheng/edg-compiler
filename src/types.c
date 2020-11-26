@@ -2524,6 +2524,31 @@ is nonconstant.
 }  /* is_vla_type */
 
 
+a_boolean is_dimensioned_vla_type(a_type_ptr  tp)
+/*
+Return TRUE if the type pointed to by tp is a variable length array type with
+an explicit dimension (as opposed to "[*]").  If tp is a multidimensional
+array, return TRUE if any of its dimensions satisfies that criterion.
+*/
+{
+  a_boolean  result = FALSE;
+
+  for (;;) {
+    tp = skip_typerefs(tp);
+    if (type_is(tp, tk_array)) {
+      if (tp->variant.array.has_assoc_vla_dimension) {
+        result = TRUE;
+        break;
+      }  /* if */
+      tp = tp->variant.array.element_type;
+    } else {
+      break;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_dimensioned_vla_type */
+
+
 a_boolean is_char_array_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an array of (any type of) character.
