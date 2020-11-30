@@ -10638,6 +10638,33 @@ is dependent.
 }  /* determine_templ_arg_lists_to_use */
 
 
+static a_boolean matches_partial_spec_requires_clause(a_symbol_ptr ps_sym)
+/*
+Determine whether the current template declaration (if any) has a requires
+clause that matches that of the partial specialization specified by ps_sym.
+The current template declaration information is obtained from the template
+declaration state information from the scope stack entry for the innermost
+template declaration scope (if any).
+*/
+{
+  a_boolean  result = TRUE;
+  if (is_template_declaration_context()) {
+    a_tmpl_decl_state_ptr decl_state =
+                 scope_stack[depth_template_declaration_scope].tmpl_decl_state;
+    check_assertion(decl_state != NULL);
+    a_requires_clause     *rcp = decl_state->template_decl->
+                                                    constraint.requires_clause;
+    a_template_symbol_supplement_ptr
+                          tssp = template_supplement_for_symbol(ps_sym);
+    a_template_ptr        prev_tmpl = tssp->il_template_entry;
+    a_requires_clause     *prev_rcp = prev_tmpl->template_decl
+                                                  ->constraint.requires_clause;
+    result = equiv_requires_clauses(prev_rcp, rcp);
+  }  /* if */
+  return result;
+}  /* matches_partial_spec_requires_clause */
+
+
 a_symbol_ptr find_template_class(
 			     a_symbol_ptr        template_sym,
                              a_template_arg_ptr  *new_list,
@@ -10847,13 +10874,20 @@ use the current global value of the template template parameter.
             specific_prototype_allowed == ps_prototype_sym) {
           /* Old list is the template argument list associated with the
              prototype instantiation of the partial specialization.  See if
-             the list passed in matches it. */
+             the list passed in matches it.  If the template argument lists
+             match, also check the requires clauses (if any).  We need to
+             make sure we don't return an incorrect partial specialization
+             (and instead create a new nonreal type below) because if we
+             don't do that, we could loose any pack expansion information
+             for this declaration. */
           old_list = ps_prototype_sym->variant.class_struct_union.type->
                       variant.class_struct_union.extra_info->template_arg_list;
           if (equiv_template_arg_lists(old_list, list_for_instantiation,
                                        eta_options | ETA_IS_PROTOTYPE)) {
-            sym = ps_prototype_sym;
-            break;
+            if (matches_partial_spec_requires_clause(ps_prototype_sym)) {
+              sym = ps_prototype_sym;
+              break;
+            }  /* if */
           }  /* if */
         }  /* if */
       }  /* for */
