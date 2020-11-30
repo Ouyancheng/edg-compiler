@@ -14257,8 +14257,16 @@ function type is replaced).
           break;
         case tk_typeref:
           if (!attrib_only || tp->source_corresp.attributes != NULL) {
-            /* A new entry was created to match the origin tk_typeref entry. */
-            p_entry = &(*p_entry)->variant.typeref.type;
+            if (*p_entry == tp->variant.typeref.type) {
+              /* If a for_type_attributes typeref follows an initial typedef
+                 (that also has attributes), make_typeref_with_attributes above
+                 will simply return the for_type_attributes typeref, in which
+                 case p_entry already has the correct value. */
+            } else {
+              /* A new entry was created to match the original tk_typeref
+                 entry. */
+              p_entry = &(*p_entry)->variant.typeref.type;
+            }  /* if */
           }  /* if */
           tp = tp->variant.typeref.type;
           break;
