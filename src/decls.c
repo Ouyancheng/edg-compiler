@@ -10782,7 +10782,7 @@ definition of a member function of a class template.
       /* Don't try to find a matching qualified name for a friend declaration
          in a prototype instantiation. */
     } else {
-      if (gpp_mode && clang_version_is(>=90000)) {
+      if (gpp_mode && !clang_version_is(>=90000)) {
         /* Neither GCC nor early versions of clang give an error if this lookup
            fails.  In the example below, the qualified foo ends up being a
            declaration, not an error:
