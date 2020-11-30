@@ -12107,7 +12107,7 @@ stripped and a typeinfo flag is added).
         }  /* if */
         /* Remember the existence of this type by putting a pointer to it in
            the based_types list. */
-        add_based_type_list_member(type,
+        add_based_type_list_member(base_type,
                              (a_based_type_kind)btk_no_noexcept_exception_spec,
                              ptr);
       }  /* if */
