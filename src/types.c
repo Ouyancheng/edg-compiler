@@ -1156,6 +1156,7 @@ template-dependent type.  Otherwise, return FALSE;
         utp = utp->variant.array.element_type;
       } else if (type_is(utp, tk_template_param)) {
         result = TRUE;
+        break;
       } else {
         break;
       }  /* if */
