@@ -4533,7 +4533,7 @@ returned by the file open routine.
   an_error_code			error_code;
   a_source_position		local_error_pos = *error_pos;
 
-  /* Determine if a open failure reason should be displayed, and if so
+  /* Determine if an open failure reason should be displayed, and if so
      what it should be. */
   if ((flags & OFR_NOT_FOUND) != 0) {
     /* Do not display a reason if the file was not found. */
