@@ -1,5 +1,26 @@
 Version 6.2
 
+11/30/20 [EDGcpfe/19889,EDGcpfe/23616]
+GNU/Clang compatibility: Friend template declarations
+
+Consider:
+
+  namespace N { void f(); }
+  struct X {
+    template<class T> friend void N::f(T&&);       // (1)
+    template<class T> friend void N::f(const T&);  // (2)
+  };
+
+Ordinarily, both friend declarations are errors, because the use of a qualified
+name ("N::f") requires a matching template to exist.  However, GCC and some
+versions of Clang accept that case.  The front end already attempted to
+emulate this behavior and was successful in doing so with (1) (see the entry
+for EDGcpfe/16435), but it issued a spurious error when a second friend
+template declaration (like (2)) is added.  That is now fixed: The example
+above is now accepted in GNU C++11 modes and in Clang C++11 modes with
+clang_version < 90000.
+
+
 11/30/20 [EDGcpfe/23591]
 Unbounded loop while checking defaulted comparison function
 

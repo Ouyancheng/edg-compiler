@@ -10782,10 +10782,10 @@ definition of a member function of a class template.
       /* Don't try to find a matching qualified name for a friend declaration
          in a prototype instantiation. */
     } else {
-      if (gpp_mode) {
-        /* Neither g++ nor clang give an error if this lookup fails.  In the
-           example below, the qualified foo ends up being a declaration, not an
-           error:
+      if (gpp_mode && clang_version_is(>=90000)) {
+        /* Neither GCC nor early versions of clang give an error if this lookup
+           fails.  In the example below, the qualified foo ends up being a
+           declaration, not an error:
              int foo();
              class B { template <class T> friend int ::foo(const B&, T); }; */
         idlb.suppress_qualified_name_redecl_error = TRUE;
@@ -10901,7 +10901,8 @@ definition of a member function of a class template.
         /* No overloading.  Simply create a new symbol. */
         sym = enter_local_symbol((a_symbol_kind)sk_function_template, locator,
                                  idlb.effective_decl_level,
-                                 /*suppress_redecl_error=*/FALSE);
+                                 (idlb.is_friend_decl &&
+                                  idlb.suppress_qualified_name_redecl_error));
         /* Mark friend functions for which this is the initial declaration. */
         if (set_invisible) sym->is_invisible = TRUE;
       }  /* if */
