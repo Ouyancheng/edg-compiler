@@ -1865,10 +1865,11 @@ is set to TRUE if a temporary that is (or can be) reused is allocated
 
   check_assertion(dip != NULL);
   if (!dip->static_temp && !long_lifetime_temps &&
-      !(dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) &&
-      !(dip->kind == (a_dynamic_init_kind)dik_zero) &&
-      !(dip->kind == (a_dynamic_init_kind)dik_constant) &&
-      !(dip->kind == (a_dynamic_init_kind)dik_constructor &&
+      !(dyn_init_is(dip, dik_nonconstant_aggregate)) &&
+      !(dyn_init_is(dip, dik_zero)) &&
+      !(dyn_init_is(dip, dik_constant)) &&
+      !(dyn_init_is(dip, dik_lambda)) &&
+      !(dyn_init_is(dip, dik_constructor) &&
         need_zeroing_for_value_initialization(dip)) &&
       dip->has_temporary_lifetime) {
     /* Simple case; a temporary that lasts until the end of the full

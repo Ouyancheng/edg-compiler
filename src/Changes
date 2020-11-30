@@ -1,5 +1,22 @@
 Version 6.2
 
+11/30/20 [EDGcpfe/21482,EDGcpfe/22869,EDGcpfe/23117]
+Assertion failures when lowering lambdas
+
+In certain cases, an assertion failure (in release_reusable_temporaries or
+free_temporary_list_entry_list) had occurred when lowering lambdas.  For
+example (with --c++20):
+
+  struct A {
+    int x;
+    int y;
+    ~A() {}
+  };
+  void f() {
+    [x = A(0)]{ return 0; }();
+  }
+
+
 11/30/20 [EDGcpfe/23618]
 GNU compatibility: coroutine builtins
 
