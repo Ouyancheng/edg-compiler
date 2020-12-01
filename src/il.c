@@ -12100,6 +12100,7 @@ stripped and a typeinfo flag is added).
           ptr = alloc_type(orig_type->kind);
           copy_type(orig_type, ptr);
           ptr->variant.ptr_to_member.type = save_copied_type;
+          base_type = orig_type;
 #if DO_IL_LOWERING
           il_lowering_flag_of(ptr) = visited_yet(type);
           ptr->typeinfo_var = NULL;
