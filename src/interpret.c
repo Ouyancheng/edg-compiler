@@ -5154,6 +5154,11 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           n_elems = tp->variant.array.variant.number_of_elements;
           elem_size = value_bytes_for_type(ips, etp, &result);
           if (!result) break;
+          if (con->uses_designated_initializers) {
+            /* Designated initializers might leave "holes" in the destination
+               object, but those should be zero-initialized. */
+            init_subobject_to_zero(ips, value, tp, complete_object);
+          }  /* if */
           elem_con = con->variant.aggregate.first_constant;
           for (k = 0; k<n_elems;) {
             if (elem_con == NULL) {
@@ -5196,6 +5201,11 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           a_field_ptr       fp = tp->variant.class_struct_union.field_list;
           a_base_class_ptr  bcp = base_classes_of(tp);
           a_constant_ptr    elem_con;
+          if (con->uses_designated_initializers) {
+            /* Designated initializers might leave "holes" in the destination
+               object, but those should be zero-initialized. */
+            init_subobject_to_zero(ips, value, tp, complete_object);
+          }  /* if */
           elem_con = con->variant.aggregate.first_constant;
           /* Initialize base subobjects first. */
           for (;;) {
@@ -5515,12 +5525,12 @@ done:
 static a_boolean constexpr_copy_object(an_interpreter_state  *ips,
                                        a_type_ptr            tp,
                                        a_byte                *src_bytes,
+                                       a_byte                *complete_src,
                                        a_byte                *dst_bytes,
-                                       a_byte                *complete_obj)
+                                       a_byte                *complete_dst)
 /*
 Copy an object of the given type from one interpreter storage location
-(src_bytes) to another (dst_bytes).  complete_obj points to the complete
-object of the destination (dst_bytes is within that object).
+(src_bytes, complete_src) to another (dst_bytes, complete_dst).
 */
 {
   a_boolean     result = TRUE;
@@ -5528,11 +5538,13 @@ object of the destination (dst_bytes is within that object).
 
   if (result) {
     a_byte_count  k;
-    (void)memcpy(dst_bytes, src_bytes, size_t_arg(n_bytes));
     /* Mark possible subobject starting positions as initialized. */
     for (k = 0; k<n_bytes; k += HOST_ALIGNMENT_REQUIRED) {
-      mark_subobject_initialized(dst_bytes+k, complete_obj);  
+      if (subobject_is_initialized(src_bytes+k, complete_src)) {
+        mark_subobject_initialized(dst_bytes+k, complete_dst);  
+      }  /* if */
     }  /* for */
+    (void)memcpy(dst_bytes, src_bytes, size_t_arg(n_bytes));
   }  /* if */
   return result;
 }  /* constexpr_copy_object */
@@ -5715,7 +5727,6 @@ Evaluate the given dynamic initialization for the given storage.
     case dik_nonconstant_aggregate:
       result = copy_val_from_constant(ips, dip->variant.constant.ptr,
                                       result_storage, complete_object);
-      mark_subobject_initialized(result_storage, complete_object);
       break;
     case dik_lambda:
       if (constexpr_lambdas_enabled) {
@@ -10524,6 +10535,7 @@ the body of the (constructor) function proper.
           break;
         } else {
           if (!constexpr_copy_object(ips, tp, src_addr->address+offset,
+                                     src_addr->complete_object,
                                      result_storage+offset, complete_object)) {
             do_constexpr_fail(result);
             break;
@@ -11539,19 +11551,22 @@ conversion to an rvalue is forced externally.
     do_constexpr_fail(result);
   } else {
     result = TRUE;
-    (void)memcpy(result_storage, value_bytes_at(cap), size_t_arg(n_bytes));
+    if (is_immediate_class_type(tp) || type_is(tp, tk_array)) {
+      result = constexpr_copy_object(ips, tp,
+                                     cap->address, cap->complete_object,
+                                     result_storage, complete_object);
+    } else {
+      (void)memcpy(result_storage, value_bytes_at(cap), size_t_arg(n_bytes));
+      if (type_is(tp, tk_pointer)) {
+        /* If a pointer value is loaded from a glvalue, give the copy its own
+           address structures (so the original will not be freed when the copy
+           is freed). */
+        copy_address_structures(result_storage);
+      }  /* if */
+    }  /* if */
     if (result_storage == complete_object) {
       /* Mark the destination storage as fully initialized. */
       mark_complete_object_initialized(complete_object);
-    }  /* if */
-    if (is_immediate_class_type(tp) || type_is(tp, tk_array)) {
-      mark_whole_subobject_initialized(ips, result_storage, tp,
-                                       complete_object);
-    } else if (type_is(tp, tk_pointer)) {
-      /* If a pointer value is loaded from a glvalue, give the copy its own
-         address structures (so the original will not be freed when the copy
-         is freed). */
-      copy_address_structures(result_storage);
     }  /* if */
   }  /* if */
   return result;
@@ -11875,6 +11890,8 @@ is within the given complete_object.
              with the enclosing call (which is of a lambda call operator). */
           a_field_ptr  src_fp = cap->capture_info.source_closure_field;
           a_byte       *this_bytes, *src_bytes;
+          a_constexpr_address
+                       *src_addr;
           check_assertion(src_fp != NULL);
           get_mapped_byte_count(&persistent_map, src_fp, field_offset);
           get_stack_bytes(ips, &ips->curr_call_frame, this_bytes);
@@ -11884,9 +11901,11 @@ is within the given complete_object.
                           pos, ips);
             break;
           }  /* if */
-          src_bytes = ((a_constexpr_address*)this_bytes)->address+field_offset;
-          if (!constexpr_copy_object(ips, src_fp->type, src_bytes, dst_bytes,
-                                     complete_object)) {
+          src_addr = (a_constexpr_address*)this_bytes;
+          src_bytes = src_addr->address+field_offset;
+          if (!constexpr_copy_object(ips, src_fp->type,
+                                     src_bytes, src_addr->complete_object,
+                                     dst_bytes, complete_object)) {
             result = FALSE;
           } else {
             mark_complete_class_object_if_needed(src_fp->type, dst_bytes);
@@ -11986,8 +12005,9 @@ is within the given complete_object.
           }  /* if */
           if (dyn_init_is(sub_dip, dik_bitwise_copy)) {
             check_assertion(sub_dip->variant.bitwise_copy.source == NULL);
-            if (!constexpr_copy_object(ips, fp->type, var_storage, dst_bytes,
-                                       complete_object)) {
+            if (!constexpr_copy_object(ips, fp->type,
+                                       var_storage, var_addr.complete_object,
+                                       dst_bytes, complete_object)) {
               do_constexpr_fail(result);
             }  /* if */
           } else if (dyn_init_is(sub_dip, dik_constructor)) {
@@ -13506,7 +13526,8 @@ the value representation of the integer value.
               a_byte_count         offset;
               bcp = find_direct_base_class_of(opnd1_type, tp);
               get_mapped_byte_count(&persistent_map, bcp, offset);
-              if (constexpr_copy_object(ips, tp, opnd1_value+offset,
+              if (constexpr_copy_object(ips, tp,
+                                        opnd1_value+offset, opnd1_value,
                                         result_storage, complete_object)) {
                 record_subobject_derivation(result_storage, NULL);
               } else {
@@ -17280,26 +17301,28 @@ the value representation of the integer value.
             do_constexpr_fail(result);
           } else if (var_bytes != NULL) {
             /* This is a variable on the interpreter stack. */
-            if (!complete_object_is_initialized(var_bytes)) {
-              info_with_pos(ec_object_not_initialized, &expr->position, ips);
-              do_constexpr_fail(result);
+            if (is_immediate_class_type(tp) || type_is(tp, tk_array)) {
+              result = constexpr_copy_object(ips, tp,
+                                             var_bytes, var_bytes,
+                                             result_storage, complete_object);
             } else {
+              if (!complete_object_is_initialized(var_bytes)) {
+                info_with_pos(ec_object_not_initialized, &expr->position, ips);
+                do_constexpr_fail(result);
+              }  /* if */
               n_bytes = value_bytes_for_type(ips, tp, &result);
-              (void)memcpy(result_storage, var_bytes, size_t_arg(n_bytes));
-              if (tp->kind == (a_type_kind)tk_pointer) {
-                /* Copying an address type.  Make sure its side structures, if
-                   any, are not shared. */
-                copy_address_structures(result_storage);
-              } else if (is_immediate_class_type(tp) ||
-                         tp->kind == (a_type_kind)tk_array) {
-                /* Mark subobjects as initialized. */
-                mark_whole_subobject_initialized(ips, result_storage, tp,
-                                                 complete_object);
+              if (result) {
+                (void)memcpy(result_storage, var_bytes, size_t_arg(n_bytes));
+                if (type_is(tp, tk_pointer)) {
+                  /* Copying an address type.  Make sure its side structures,
+                     if any, are not shared. */
+                  copy_address_structures(result_storage);
+                }  /* if */
               }  /* if */
-              if (complete_object == result_storage) {
-                /* Mark the destination storage as fully initialized. */
-                mark_complete_object_initialized(complete_object);
-              }  /* if */
+            }  /* if */
+            if (result_storage == complete_object) {
+              /* Mark the destination storage as fully initialized. */
+              mark_complete_object_initialized(complete_object);
             }  /* if */
           } else {
             /* This variable is not allocated in the interpreter.  See if it

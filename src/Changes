@@ -1,5 +1,26 @@
 Version 6.2
 
+12/1/20  [EDGcpfe/23623]
+Designated initializers and constant evaluations
+
+Consider (in GNU C mode):
+
+  struct S { int i, j, k; };
+  int main() {
+    return ({
+      struct S s = { .i = 1, .k = 3 };
+      s.j;
+    });
+  }
+
+The C standard specifies that s.j is zero even though it is seemingly "skipped"
+by the designators for the initializer of s.  However, the interpreter (which
+is invoked for the statement expression; see the entry for EDGcpfe/20980) did
+not perform that zero initialization, causing the example above to return an
+uninitialized value.  That issue -- a regression introduced in version 5.1 --
+is now fixed.
+
+
 11/30/20 [EDGcpfe/23168]
 Assertion failure "missing typeinfo variable"
 
