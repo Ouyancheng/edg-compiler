@@ -56,7 +56,7 @@ may_be_lvalue_ref_to_const_type) while checking the parameters of a defaulted
 comparison function.  For example (C++20 mode):
 
   template<typename T> struct S {
-    friend bool operator !=(S const&, T &S) = default;
+    friend bool operator !=(S const&, T&) = default;
   };                             // Previously triggered an unbounded loop.
 
 That is now fixed.
