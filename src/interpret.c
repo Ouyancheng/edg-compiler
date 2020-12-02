@@ -5328,6 +5328,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             }  /* if */
             fp = fp->next;
           }  /* for */
+          mark_subobject_initialized(value, complete_object);
         } else if (tp->kind == (a_type_kind)tk_union) {
           /* Initialize the first field (unless another field is
              designated). */
@@ -5355,6 +5356,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                                 constant_pos(con, ips), symbol_for(fp), ips);
               do_constexpr_fail(result);
             }  /* if */
+            mark_subobject_initialized(value, complete_object);
             break;
           } else if (constant_is(elem_con, ck_designator) &&
                      elem_con->variant.designator.is_field_designator &&
@@ -5409,6 +5411,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             *(a_field_ptr*)value = fp;
             mark_subobject_initialized(dst_bytes, complete_object);
           }  /* if */
+          mark_subobject_initialized(value, complete_object);
           if (this_bytes != NULL) {
             /* Unmap "this" (possibly restoring a previously active
                mapping). */
@@ -5522,8 +5525,111 @@ done:
 }  /* extract_value_from_constant */
 
 
+static a_boolean constexpr_copy_object_init_bits(
+                                       an_interpreter_state  *ips,
+                                       a_type_ptr            tp,
+                                       a_source_position     *pos,
+                                       a_byte                *src_bytes,
+                                       a_byte                *complete_src,
+                                       a_byte                *dst_bytes,
+                                       a_byte                *complete_dst)
+/*
+Copy the initialization bitmap of the subobject of type tp located as src_bytes
+(with complete object located at complete_src) to the bitmap for the subobject
+located at dst_byges/complete_dst.  Return FALSE and record a diagnostic for
+any subobjects that is not initialized.
+*/
+{
+  a_boolean  result = TRUE;
+
+  if (subobject_is_initialized(src_bytes, complete_src)) {
+    mark_subobject_initialized(dst_bytes, complete_dst);  
+  } else {
+    do_constexpr_fail(result);
+    info_with_pos(ec_object_not_initialized, pos, ips);
+    goto done;
+  }  /* if */
+  switch (tp->kind) {
+    case tk_array:
+      { /* Recursively handle each array element. */
+        a_type_ptr      etp = skip_typerefs(tp->variant.array.element_type);
+        a_targ_size_t   k, n_elems;
+        a_byte_count    elem_size = value_bytes_for_type(ips, etp, &result);
+        n_elems = tp->variant.array.variant.number_of_elements;
+        for (k = 0; k<n_elems; ++k){
+          if (!constexpr_copy_object_init_bits(ips, etp, pos,
+                                               src_bytes, complete_src,
+                                               dst_bytes, complete_dst)) {
+            result = FALSE;
+            break;
+          }  /* if */
+          src_bytes += elem_size;
+          dst_bytes += elem_size;
+        }  /* for */
+      }
+      break;
+    case tk_struct:
+    case tk_class:
+      { /* Recursively handle fields and bases. */
+        a_base_class_ptr  bcp = base_classes_of(tp);
+        a_field_ptr       fp = tp->variant.class_struct_union.field_list;
+        fp = next_alloc_field(fp);
+        for (; fp != NULL; fp = next_alloc_field(fp->next)) {
+          a_type_ptr    ftp = skip_typerefs(fp->type);
+          a_byte_count  offset;
+          get_mapped_byte_count(&persistent_map, fp, offset);
+          if (!constexpr_copy_object_init_bits(
+                                            ips, ftp, pos,
+                                            src_bytes+offset, complete_src,
+                                            dst_bytes+offset, complete_dst)) {
+            result = FALSE;
+            break;
+          }  /* if */
+        }  /* for */
+        for (; bcp != NULL; bcp = bcp->next) {
+          if (bcp->direct || bcp->is_virtual) {
+            a_byte_count  offset;
+            get_mapped_byte_count(&persistent_map, bcp, offset);
+            if (!constexpr_copy_object_init_bits(
+                                            ips, bcp->type, pos,
+                                            src_bytes+offset, complete_src,
+                                            dst_bytes+offset, complete_dst)) {
+              result = FALSE;
+              break;
+            }  /* if */
+          }  /* if */
+        }  /* for */
+      }
+      break;
+    case tk_union:
+      { /* Recursively handle the active field (if any). */
+        a_field_ptr  fp = *(a_field_ptr*)src_bytes;
+        if (fp != NULL) {
+          a_type_ptr    ftp = skip_typerefs(fp->type);
+          a_byte_count  offset;
+          get_mapped_byte_count(&persistent_map, fp, offset);
+          if (!constexpr_copy_object_init_bits(
+                                            ips, ftp, pos,
+                                            src_bytes+offset, complete_src,
+                                            dst_bytes+offset, complete_dst)) {
+            result = FALSE;
+            break;
+          }  /* if */
+        }  /* if */
+      }
+      break;
+    default:
+      /* Nothing more to do. */
+      break;
+  }  /* switch */
+done:
+  return result;
+}  /* constexpr_copy_object_init_bits */
+
+
 static a_boolean constexpr_copy_object(an_interpreter_state  *ips,
                                        a_type_ptr            tp,
+                                       a_source_position     *pos,
                                        a_byte                *src_bytes,
                                        a_byte                *complete_src,
                                        a_byte                *dst_bytes,
@@ -5537,14 +5643,13 @@ Copy an object of the given type from one interpreter storage location
   a_byte_count  n_bytes = value_bytes_for_type(ips, tp, &result);
 
   if (result) {
-    a_byte_count  k;
-    /* Mark possible subobject starting positions as initialized. */
-    for (k = 0; k<n_bytes; k += HOST_ALIGNMENT_REQUIRED) {
-      if (subobject_is_initialized(src_bytes+k, complete_src)) {
-        mark_subobject_initialized(dst_bytes+k, complete_dst);  
-      }  /* if */
-    }  /* for */
-    (void)memcpy(dst_bytes, src_bytes, size_t_arg(n_bytes));
+    if (constexpr_copy_object_init_bits(ips, tp, pos,
+                                        src_bytes, complete_src,
+                                        dst_bytes, complete_dst)) {
+      (void)memcpy(dst_bytes, src_bytes, size_t_arg(n_bytes));
+    } else {
+      result = FALSE;
+    }  /* if */
   }  /* if */
   return result;
 }  /* constexpr_copy_object */
@@ -10534,7 +10639,8 @@ the body of the (constructor) function proper.
           do_constexpr_fail(result);
           break;
         } else {
-          if (!constexpr_copy_object(ips, tp, src_addr->address+offset,
+          if (!constexpr_copy_object(ips, tp, &args->position,
+                                     src_addr->address+offset,
                                      src_addr->complete_object,
                                      result_storage+offset, complete_object)) {
             do_constexpr_fail(result);
@@ -10606,6 +10712,7 @@ the body of the (constructor) function proper.
         }  /* if */
       }  /* if */
     }  /* for */
+    mark_subobject_initialized(result_storage, complete_object);
     if (result_storage == complete_object) {
       mark_complete_object_initialized(complete_object);
     }  /* if */
@@ -11552,7 +11659,7 @@ conversion to an rvalue is forced externally.
   } else {
     result = TRUE;
     if (is_immediate_class_type(tp) || type_is(tp, tk_array)) {
-      result = constexpr_copy_object(ips, tp,
+      result = constexpr_copy_object(ips, tp, &expr->position,
                                      cap->address, cap->complete_object,
                                      result_storage, complete_object);
     } else {
@@ -11843,7 +11950,6 @@ is within the given complete_object.
     /* Simple constant initializer. */
     result = copy_val_from_constant(ips, dip->variant.constant.ptr,
                                     result_storage, complete_object);
-    mark_subobject_initialized(result_storage, complete_object);
   } else {
     cp = dip->variant.constant.ptr;
     /* Initialize each field of the closure object from the corresponding
@@ -11903,7 +12009,7 @@ is within the given complete_object.
           }  /* if */
           src_addr = (a_constexpr_address*)this_bytes;
           src_bytes = src_addr->address+field_offset;
-          if (!constexpr_copy_object(ips, src_fp->type,
+          if (!constexpr_copy_object(ips, src_fp->type, pos,
                                      src_bytes, src_addr->complete_object,
                                      dst_bytes, complete_object)) {
             result = FALSE;
@@ -12005,7 +12111,7 @@ is within the given complete_object.
           }  /* if */
           if (dyn_init_is(sub_dip, dik_bitwise_copy)) {
             check_assertion(sub_dip->variant.bitwise_copy.source == NULL);
-            if (!constexpr_copy_object(ips, fp->type,
+            if (!constexpr_copy_object(ips, fp->type, pos,
                                        var_storage, var_addr.complete_object,
                                        dst_bytes, complete_object)) {
               do_constexpr_fail(result);
@@ -12041,6 +12147,7 @@ is within the given complete_object.
        the captured values. */
     check_assertion(!result || (cap == NULL && field_con == NULL));
   }  /* if */
+  mark_subobject_initialized(result_storage, complete_object);
   return result;
 }  /* do_constexpr_lambda */
 
@@ -13526,7 +13633,7 @@ the value representation of the integer value.
               a_byte_count         offset;
               bcp = find_direct_base_class_of(opnd1_type, tp);
               get_mapped_byte_count(&persistent_map, bcp, offset);
-              if (constexpr_copy_object(ips, tp,
+              if (constexpr_copy_object(ips, tp, &expr->position,
                                         opnd1_value+offset, opnd1_value,
                                         result_storage, complete_object)) {
                 record_subobject_derivation(result_storage, NULL);
@@ -13541,7 +13648,8 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_constexpr_access_to_runtime_storage,
                               &expr->position, ips);
-              } else if (!is_initialized(src)) {
+              } else if (!subobject_is_initialized(src->address,
+                                                   src->complete_object)) {
                 do_constexpr_fail(result);
                 info_with_pos(ec_object_not_initialized, &opnd1->position,
                               ips);
@@ -17302,7 +17410,7 @@ the value representation of the integer value.
           } else if (var_bytes != NULL) {
             /* This is a variable on the interpreter stack. */
             if (is_immediate_class_type(tp) || type_is(tp, tk_array)) {
-              result = constexpr_copy_object(ips, tp,
+              result = constexpr_copy_object(ips, tp, &expr->position,
                                              var_bytes, var_bytes,
                                              result_storage, complete_object);
             } else {
