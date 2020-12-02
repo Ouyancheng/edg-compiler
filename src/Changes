@@ -1,5 +1,27 @@
 Version 6.2
 
+12/2/20  [EDGcpfe/23161]
+Multiple translation units: Out-of-line defaulted definitions
+
+The fix for EDGcpfe/22583 (in version 6.1) was too restrictive and
+inadvertently caused the front end to issue a spurious "declaration is
+incompatible" error when a function was defaulted separate from its
+declaration in one TU, while the class was defined in both TUs.  For example,
+if both TUs include a header file containing:
+
+  struct foo {
+    foo() = default;
+    ~foo() noexcept;
+  };
+
+and one TU also contains:
+
+  foo::~foo() = default;
+
+The front end would spuriously complain that the two instances of "foo::~foo()"
+were incompatible.  This is now fixed.
+
+
 12/2/20  [EDGcpfe/21189,EDGcpfe/21408,EDGcpfe/22012,EDGcpfe/23625]
 Fold-expressions in alias templates
 
