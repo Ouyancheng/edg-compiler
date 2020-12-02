@@ -15705,14 +15705,24 @@ the value representation of the integer value.
                    address and return either the address or the value, as
                    appropriate. */
                 a_byte  *dst_storage = value_bytes_at(dst);
-                n_bytes = value_bytes_for_type(ips, tp, &result);
-                (void)memcpy(dst_storage, opnd2_value, size_t_arg(n_bytes));
-                if (tp->kind == (a_type_kind)tk_pointer) {
-                  /* Copying a pointer type.  Make sure its side structures,
-                     if any, are not shared. */
-                  copy_address_structures(dst_storage);
+                if (is_immediate_class_type(tp) || type_is(tp, tk_array)) {
+                  if (!constexpr_copy_object(
+                                         ips, tp, &expr->position,
+                                         opnd2_value, opnd2_value,
+                                         dst_storage, dst->complete_object)) {
+                    result = FALSE;
+                    break;
+                  }  /* if */
                 } else {
-                  trim_bit_field_if_needed(dst, tp);
+                  n_bytes = value_bytes_for_type(ips, tp, &result);
+                  (void)memcpy(dst_storage, opnd2_value, size_t_arg(n_bytes));
+                  if (type_is(tp, tk_pointer)) {
+                    /* Copying a pointer type.  Make sure its side structures,
+                       if any, are not shared. */
+                    copy_address_structures(dst_storage);
+                  } else {
+                    trim_bit_field_if_needed(dst, tp);
+                  }  /* if */
                 }  /* if */
                 if (expr->is_lvalue || expr->is_xvalue ||
                     is_function_address(dst)) {
