@@ -14396,8 +14396,10 @@ typedef struct an_expr_node {
     struct {
       an_expr_node_ptr
 		operands;
-			/* One or two operands, depending on whether this
-			   represents a unary or binary fold. */
+			/* Usually one or two operands, depending on whether
+			   this represents a unary or binary fold.  Partial
+			   substitutions, however, can lead to additional
+			   operands. */
       a_token_kind
                 operator_token;
                         /* The operator token in the fold. */

@@ -50973,8 +50973,7 @@ left_associative is TRUE if the expansion should be evaluated as
 {
   if (generic) {
     /* Create an enk_fold node. */
-    an_arg_list_elem_ptr  alep = opnd_list;
-    an_expr_node_ptr      fold_node, opnd_nodes;
+    an_expr_node_ptr  fold_node, opnd_nodes;
     if (!cpp17_mode && gpp_mode) {
       static a_boolean  already_diagnosed = FALSE;
       if (!already_diagnosed && !in_system_header()) {
@@ -50991,34 +50990,39 @@ left_associative is TRUE if the expansion should be evaluated as
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     fold_node->variant.fold.operator_token = op_token;
     fold_node->variant.fold.left_associative = left_associative;
-    opnd_nodes = make_node_from_operand(operand_of_arg_list_elem(alep));
+    opnd_nodes = make_expr_list_from_argument_list(opnd_list, generic);
     fold_node->variant.fold.operands = opnd_nodes;
-    alep = next_elem(alep);
-    if (alep != NULL) {
-      opnd_nodes->next =
-                       make_node_from_operand(operand_of_arg_list_elem(alep));
-      check_assertion(next_elem(alep) == NULL);
-    }  /* if */
     if (unary || !left_associative) {
-      if (opnd_nodes->extra.rescan_info != NULL &&
-          opnd_nodes->extra.rescan_info
-                    ->saved_operand.pack_expansion_descr == NULL) {
-        /* A rescannable node, but we didn't record a pack-expansion
-           description entry.  That can happen during a partial substitution
-           (explicit template arguments). */
-      } else {
-        opnd_nodes->is_pack_expansion = TRUE;
-      }  /* if */
+      /* For a unary fold, mark every node that is a pack expansion as such.
+         For a left-associative binary fold, leave out the last node. */
+      an_expr_node_ptr  node = opnd_nodes;
+      for (; node != NULL; node = node->next) {
+        if (unary || node->next != NULL) {
+          if (node->extra.rescan_info != NULL &&
+              node->extra.rescan_info
+                  ->saved_operand.pack_expansion_descr == NULL) {
+            /* A rescannable node, but we didn't record a pack-expansion
+               description entry.  That can happen during a partial
+               substitution (explicit template arguments). */
+          } else {
+            node->is_pack_expansion = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* for */
     } else {
-      if (opnd_nodes->next->extra.rescan_info != NULL &&
-          opnd_nodes->next->extra.rescan_info
-                          ->saved_operand.pack_expansion_descr == NULL) {
-        /* A rescannable node, but we didn't record a pack-expansion
-           description entry. */
-        expect_error();
-      } else {
-        opnd_nodes->next->is_pack_expansion = TRUE;
-      }  /* if */
+      /* For a right-associative binary fold, leave out the first node. */
+      an_expr_node_ptr  node = opnd_nodes->next;
+      for (; node != NULL; node = node->next) {
+        if (node->extra.rescan_info != NULL &&
+            node->extra.rescan_info
+                ->saved_operand.pack_expansion_descr == NULL) {
+          /* A rescannable node, but we didn't record a pack-expansion
+             description entry.  That can happen during a partial
+             substitution (explicit template arguments). */
+        } else {
+          node->is_pack_expansion = TRUE;
+        }  /* if */
+      }  /* for */
     }  /* if */
     make_expression_operand(fold_node, result);
     free_init_component_list(opnd_list);
@@ -51159,7 +51163,7 @@ function operand: The selector is then return in *bound_function_selector.
                                        /*bundle=*/FALSE, &opnd_list);
       pedp = end_potential_pack_expansion_context(left_pesep,
                                                   /*is_declarator=*/TRUE);
-      if (pedp != NULL && !scope_stack_top().alias_in_template_decl) {
+      if (pedp != NULL) {
         /* We're scanning a pack in its generic form (i.e., without expansion
            going on). */
         generic = TRUE;
@@ -51209,7 +51213,7 @@ function operand: The selector is then return in *bound_function_selector.
                                          /*bundle=*/FALSE, &opnd_list);
         pedp = end_potential_pack_expansion_context(right_pesep,
                                                     /*is_declarator=*/TRUE);
-        if (pedp != NULL && !scope_stack_top().alias_in_template_decl) {
+        if (pedp != NULL) {
           /* We're scanning a pack in its generic form (i.e., without expansion
              going on). */
           generic = TRUE;
@@ -51271,7 +51275,6 @@ cases the selector is returned via bound_function_selector).
       append_elem(opnd_list,
                   alloc_arg_list_elem_for_operand(
                            &generic_opnds->extra.rescan_info->saved_operand));
-      check_assertion(generic_opnds->next == NULL);
     }  /* if */
   } else {
     opnd_list = rescan_expr_list(generic_opnds, rcblock);
