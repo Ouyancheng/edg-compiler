@@ -24,10 +24,9 @@ is now fixed.
 11/30/20 [EDGcpfe/23168]
 Assertion failure "missing typeinfo variable"
 
-An assertion failure when generating typeinfo information for a function
-type with an exception specification had, in some cases, resulted in an
-assertion failure ("missing typeinfo variable").  Now fixed.  For example
-(with --c++17):
+Generating typeinfo information for a function type with an exception
+specification had, in some cases, resulted in an assertion failure
+("missing typeinfo variable").  Now fixed.  For example (with --c++17):
 
   #include <typeinfo>
   void f() {}
