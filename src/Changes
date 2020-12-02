@@ -1,5 +1,36 @@
 Version 6.2
 
+12/2/20  [EDGcpfe/23163]
+Multiple translation units: Constexpr static data members in template prototype
+instantiations
+
+In configurations that support multiple translation units, when a template
+prototype instantiation contains a constexpr static data member that has a
+dependent initializer referencing another constexpr entity with internal
+linkage, and this entity appeared in multiple TUs, the front end would issue a
+diagnostic stating that the two entities were incompatible.  For example, if
+two TUs include a header containing:
+
+  constexpr int fac[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+  template<int N>
+  class count_time {
+    static constexpr int factor = fac[N];
+  public:
+    static constexpr double toDouble(int val) {
+      return static_cast<double>(val * factor);
+    }
+  };
+  constexpr double func(int val) {
+    return count_time<9>::toDouble(1);
+  }
+
+The front end would previously issue a diagnostic stating that
+"count_time<N>::factor had a different meaning".  While this is technically an
+ODR violation (meaning the diagnostic is correct) since "fac" has internal
+linkage, the front end has relaxed the check for prototype instantiations in
+non-strict modes.
+
+
 12/2/20  [EDGcpfe/23162]
 Multiple translation units: Spurious routine incompatibility with generated
 exception spec

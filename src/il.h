@@ -1718,6 +1718,10 @@ typedef int a_compare_constants_options_set;
 			/* TRUE if abk_constant entries compare equal if they
 			   point to constants that compare equal (instead of
 			   pointing to the same constant entry). */
+#define CC_CONSTEXPR_NAME_EQUIVALENCES_ALLOWED 0x20
+			/* TRUE if constexpr entities that haven't been folded
+			   can be considered equivalent so long as they have
+			   the same name. */
 
 extern a_boolean compare_constants(a_constant_ptr                   cp1,
                                    a_constant_ptr                   cp2,

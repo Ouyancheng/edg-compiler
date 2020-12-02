@@ -3208,6 +3208,10 @@ associated constants can be considered equivalent.
   check_assertion(cp1 != NULL && cp2 != NULL);
   if (!strict_ansi_mode) {
     options = CC_RELAXED_ADDRESS_OF_CONSTANT_COMPARISON;
+    if (var->is_prototype_instantiation &&
+        corresp_var->is_prototype_instantiation) {
+      options |= CC_CONSTEXPR_NAME_EQUIVALENCES_ALLOWED;
+    }  /* if */
   } else {
     options = CC_NO_OPTIONS;
   }  /* if */
