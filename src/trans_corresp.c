@@ -3003,12 +3003,16 @@ Return TRUE if the given routines are compatible with each other.
   if (!f_types_are_compatible(rp1->type, rp2->type,
                               TCF_SEEK_CORRESP |
                               TCF_REDECLARATION |
+                              TCF_IGNORE_TOP_LEVEL_NOEXCEPT |
                               TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING)) {
     /* result = FALSE; */
-  } else if (!is_generated_new_or_delete_operator(rp1) &&
-             !is_generated_new_or_delete_operator(rp2) &&
-             (!compatible_exception_spec(rp1, rp2) ||
-              rp1->compiler_generated != rp2->compiler_generated)) {
+  } else if (rp1->compiler_generated != rp2->compiler_generated &&
+             !is_generated_new_or_delete_operator(rp1) &&
+             !is_generated_new_or_delete_operator(rp2)) {
+    /* result = FALSE; */
+  } else if (!rp1->compiler_generated && !rp2->compiler_generated &&
+             !rp1->is_defaulted && !rp2->is_defaulted &&
+             !compatible_exception_spec(rp1, rp2)) {
     /* result = FALSE; */
   } else if (rp1->is_virtual != rp2->is_virtual ||
              rp1->pure_virtual != rp2->pure_virtual) {

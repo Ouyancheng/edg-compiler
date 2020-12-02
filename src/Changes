@@ -1,5 +1,34 @@
 Version 6.2
 
+12/2/20  [EDGcpfe/23162]
+Multiple translation units: Spurious routine incompatibility with generated
+exception spec
+
+In configurations that support multiple translation units, the front end could
+incorrectly mark two functions as incompatible (due to incompatible exception
+specifications) when the exception specification is generated only when needed.
+For example, if both TUs include a header containing:
+
+  template<class T>
+  struct time {
+    time() = default;
+    ~time() = default;
+  };
+  template<int N>
+  struct count_time {
+  };
+  using Time = time<count_time<9>>;
+  struct t {
+    Time grantedTime;
+    int x;
+  };
+
+and only one of the TUs has an instance of "struct t", the front end would
+previously issue a spurious "declaration had a different meaning" or
+"declaration is incompatible" diagnostic for the "time()" constructor.  This is
+now fixed.
+
+
 12/2/20  [EDGcpfe/23598]
 Mangling of nontype template parameters in prototype instantiations
 
