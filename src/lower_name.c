@@ -575,6 +575,11 @@ typedef struct a_mangling_control_block {
                            is TRUE -- in which case auto and decltype(auto)
                            typerefs should be mangled explicitly (otherwise
                            the underlying type is used). */
+  a_boolean     mangling_prototype_instantiation;
+                        /* TRUE if the entity being mangled is a
+                           prototype instantiation.  These are not typically
+                           mangled when doing lowering, but are mangled in
+                           some configurations. */
 #if IA64_ABI
   char          ctor_dtor_char;
                         /* When mangling a constructor or destructor, this
@@ -858,9 +863,13 @@ routine is not a literal operator routine.
                                  unmangled_name_of(&(rp)->source_corresp))) : \
     NULL)
 
-static void clear_mangling_control_block(a_mangling_control_block_ptr mctl)
+static void clear_mangling_control_block(
+         a_mangling_control_block_ptr mctl,
+         a_boolean                    mangling_prototype_instantiation = FALSE)
 /*
 Set the fields of the indicated mangling control block to default values.
+If the entity being mangled is a prototype instantiation, indicate that as
+well.
 */
 {
   mctl->length = 0;
@@ -878,6 +887,7 @@ Set the fields of the indicated mangling control block to default values.
 #endif /* !IA64_ABI */
   mctl->lacking_module_id = FALSE;
   mctl->mangle_auto_placeholder = FALSE;
+  mctl->mangling_prototype_instantiation = mangling_prototype_instantiation;
 #if IA64_ABI
   mctl->ctor_dtor_char = '\0';
 #endif /* IA64_ABI */
@@ -1081,15 +1091,19 @@ Restore the previous mangling_text_buffer if we're nested.
 }  /* pop_mangling_text_buffer */
 
 
-static void start_mangling(a_mangling_control_block_ptr mctl)
+static inline void start_mangling(
+         a_mangling_control_block_ptr mctl,
+         a_boolean                    mangling_prototype_instantiation = FALSE)
 /*
 Do initialization for mangling one name.  This includes setting
 mangling_text_buffer to a new mangling buffer, then clearing it and mctl.
 Must be paired with a corresponding call to end_mangling_full
 (or pop_mangling_text_buffer if end_mangling_full is not needed).
+If mangling a prototype instantiation, mangling_prototype_instantiation should
+be set to TRUE.
 */
 {
-  clear_mangling_control_block(mctl);
+  clear_mangling_control_block(mctl, mangling_prototype_instantiation);
   push_mangling_text_buffer();
   reset_text_buffer(mangling_text_buffer);
 }  /* start_mangling */
@@ -7878,92 +7892,112 @@ last argument in the list).
       check_assertion_str2(!tap->is_array_bound_of_unknown_type,
                            "mangled_template_arguments_or_parameter_pack:",
                            "is_array_bound_of_unknown_type set");
-#if !IA64_ABI
-      /* Constant argument.  The encoding for the constant begins with
-         an "X". */
+#if !DO_IL_LOWERING && ABI_COMPATIBILITY_VERSION >= 602
       if (constant_is(con, ck_template_param) &&
           con->variant.template_param.kind ==
+                             (a_template_param_constant_kind)tpck_param &&
+          !con->type->is_instantiation_dependent &&
+          mctl->mangling_prototype_instantiation) {
+        /* For template parameters in a prototype instantiation, include a
+           mangled encoding for the type of the parameter rather than the
+           template parameter itself.  That allows, e.g., differentiation
+           between these:
+             template <int *> void f() {}
+             template <char *> void f() {}
+           */
+        mangled_encoding_for_type(con->type, mctl);
+      } else
+#endif /* !DO_IL_LOWERING && ABI_COMPATIBILITY_VERSION >= 602 */
+      /* Do not insert code here. */
+      {
+#if !IA64_ABI
+        /* Constant argument.  The encoding for the constant begins with
+           an "X". */
+        if (constant_is(con, ck_template_param) &&
+            con->variant.template_param.kind ==
                              (a_template_param_constant_kind)tpck_expression &&
-          expr_node_from_tpck_expression(con) != NULL &&
-          expr_node_from_tpck_expression(con)->kind ==
+            expr_node_from_tpck_expression(con) != NULL &&
+            expr_node_from_tpck_expression(con)->kind ==
                                            (an_expr_node_kind)enk_concept_id) {
-        /* Suppress the 'X' when mangling a concept-id (otherwise the demangled
-           name will contain a spurious & prior to the concept-id). */
-      } else {
-        add_to_mangled_name('X', mctl);
-      }  /* if */
+          /* Suppress the 'X' when mangling a concept-id (otherwise the
+             demangled name will contain a spurious & prior to the concept-id).
+             */
+        } else {
+          add_to_mangled_name('X', mctl);
+        }  /* if */
 #else /* IA64_ABI */
 #if ABI_COMPATIBILITY_VERSION >= 402
-      if (constant_is(con, ck_template_param)) {
-        a_constant_ptr  base_con;
-        a_boolean       explicit_cast;
-        if (is_template_param_cast_constant(con, &base_con, &explicit_cast) &&
-            !explicit_cast) {
-          /* If the constant is an implicit cast (presumably to the template
-             parameter type), the cast shouldn't be part of the mangled name,
-             so remove it. */
-          con = base_con;
+        if (constant_is(con, ck_template_param)) {
+          a_constant_ptr  base_con;
+          a_boolean       explicit_cast;
+          if (is_template_param_cast_constant(con, &base_con, &explicit_cast)&&
+              !explicit_cast) {
+            /* If the constant is an implicit cast (presumably to the template
+               parameter type), the cast shouldn't be part of the mangled name,
+               so remove it. */
+            con = base_con;
+          }  /* if */
         }  /* if */
-      }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
-      /* If this argument is an expression, mark it accordingly.  A ck_address
-         of reference type doesn't qualify as an expression (unless we're
-         trying to be compatible with GNU 3.3 or earlier). */
-      if (constant_is(con, ck_template_param) ||
-          constant_is(con, ck_ptr_to_member) ||
-          constant_is(con, ck_aggregate) ||
-          (constant_is(con, ck_address)
+        /* If this argument is an expression, mark it accordingly.  A
+           ck_address of reference type doesn't qualify as an expression
+           (unless we're trying to be compatible with GNU 3.3 or earlier). */
+        if (constant_is(con, ck_template_param) ||
+            constant_is(con, ck_ptr_to_member) ||
+            constant_is(con, ck_aggregate) ||
+            (constant_is(con, ck_address)
 #if ABI_COMPATIBILITY_VERSION >= 402
-           && (!is_reference_type(con->type) ||
-               (emulate_gnu_abi_bugs && gnu_abi_version < 30400))
+             && (!is_reference_type(con->type) ||
+                 (emulate_gnu_abi_bugs && gnu_abi_version < 30400))
 #endif /* ABI_COMPATIBILITY_VERSION >= 402 */
-                                                                 )) {
-        /* These are treated as expressions. */
-        is_expression = TRUE;
-        /* Mark the start of the expression. */
-        add_to_mangled_name('X', mctl);
-        /* It's difficult to know ahead of time whether the constant can
-           be mangled using the <expr-primary> production or not.  Assume that
-           it can't (the usual case), and keep a pointer to the 'X' that was
-           just added in case we were wrong. */
-        save_location = mangling_text_buffer->size-1;
-      }  /* if */
-#endif /* IA64_ABI */
-      mangled_encoding_for_constant(con,
-                                    old_form,
-                                    /*in_dependent_expr=*/FALSE,
-                                    /*suppress_address_of=*/FALSE,
-                                    mctl);
-#if IA64_ABI
-      if (is_expression) {
-        /* If the constant was mangled using an <expr-primary> production
-           in the grammar (i.e., mangled name of the constant starts with
-           an L), then there is no need to bracket the expression with X ... E.
-           In that case, remove the X that had been put there; otherwise
-           close the expression with an E. */
-        check_assertion(mangling_text_buffer->buffer[save_location] == 'X');
-        if (mangling_text_buffer->buffer[save_location+1] != 'L' ||
-            (emulate_gnu_abi_bugs && gnu_abi_version < 30400)) {
-          /* In some cases, when emulating older GNU bugs, the extra X ... E
-             is required for compatibility. */
-          /* Mark the end of the expression. */
-          add_to_mangled_name('E', mctl);
-        } else if (mangling_text_buffer->buffer[save_location+1] == 'L' &&
-                   mangling_text_buffer->buffer[save_location+2] == '_' &&
-                   mangling_text_buffer->buffer[save_location+3] == 'Z' &&
-                   clang_mode) {
-          /* Clang appears to allow "XL_Z...E" mangling for concept-ids. */
-          /* Mark the end of the expression. */
-          add_to_mangled_name('E', mctl);
-        } else {
-          /* Overwrite the X with a space (which will be removed at the end
-             of mangling for this entity). */
-          mangling_text_buffer->buffer[save_location] = ' ';
-          mctl->num_leftover_spaces++;
-          mctl->length--;
+                                                                   )) {
+          /* These are treated as expressions. */
+          is_expression = TRUE;
+          /* Mark the start of the expression. */
+          add_to_mangled_name('X', mctl);
+          /* It's difficult to know ahead of time whether the constant can
+             be mangled using the <expr-primary> production or not.  Assume
+             that it can't (the usual case), and keep a pointer to the 'X' that
+             was just added in case we were wrong. */
+          save_location = mangling_text_buffer->size-1;
         }  /* if */
-      }  /* if */
 #endif /* IA64_ABI */
+        mangled_encoding_for_constant(con,
+                                      old_form,
+                                      /*in_dependent_expr=*/FALSE,
+                                      /*suppress_address_of=*/FALSE,
+                                      mctl);
+#if IA64_ABI
+        if (is_expression) {
+          /* If the constant was mangled using an <expr-primary> production
+             in the grammar (i.e., mangled name of the constant starts with
+             an L), then there is no need to bracket the expression with
+             X ... E.  In that case, remove the X that had been put there;
+             otherwise close the expression with an E. */
+          check_assertion(mangling_text_buffer->buffer[save_location] == 'X');
+          if (mangling_text_buffer->buffer[save_location+1] != 'L' ||
+              (emulate_gnu_abi_bugs && gnu_abi_version < 30400)) {
+            /* In some cases, when emulating older GNU bugs, the extra X ... E
+               is required for compatibility. */
+            /* Mark the end of the expression. */
+            add_to_mangled_name('E', mctl);
+          } else if (mangling_text_buffer->buffer[save_location+1] == 'L' &&
+                     mangling_text_buffer->buffer[save_location+2] == '_' &&
+                     mangling_text_buffer->buffer[save_location+3] == 'Z' &&
+                     clang_mode) {
+            /* Clang appears to allow "XL_Z...E" mangling for concept-ids. */
+            /* Mark the end of the expression. */
+            add_to_mangled_name('E', mctl);
+          } else {
+            /* Overwrite the X with a space (which will be removed at the end
+               of mangling for this entity). */
+            mangling_text_buffer->buffer[save_location] = ' ';
+            mctl->num_leftover_spaces++;
+            mctl->length--;
+          }  /* if */
+        }  /* if */
+#endif /* IA64_ABI */
+      }  /* if */
     } else {
       unexpected_condition();
     }  /* if */
@@ -12715,7 +12749,7 @@ made into an external) if necessary.
 #endif /* IA64_ABI && DO_IL_LOWERING */
   } else {
     /* Generate the mangled name in a buffer. */
-    start_mangling(&mctl);
+    start_mangling(&mctl, routine->is_prototype_instantiation);
     add_mangled_name_prefix(&mctl);
     /* Create the name. */
     if (externalize_if_necessary) {
@@ -13093,7 +13127,7 @@ the name in the variable entry.
     check_assertion(mangled_name != NULL);
   } else {
     /* Generate the mangled name in a buffer. */
-    start_mangling(&mctl);
+    start_mangling(&mctl, variable->is_prototype_instantiation);
     add_mangled_name_prefix(&mctl);
 #if DO_IL_LOWERING
     if (needs_to_be_externalized) {
@@ -13268,7 +13302,12 @@ is what mangled_type_name generates, plus a prefix.
        (is_immediate_class_type(type) &&
         type->variant.class_struct_union.extra_info->
                                                 template_arg_list != NULL))) {
-    start_mangling(&mctl);
+    if (is_immediate_class_type(type)) {
+      start_mangling(&mctl,
+                  type->variant.class_struct_union.is_prototype_instantiation);
+    } else {
+      start_mangling(&mctl);
+    }  /* if */
 #if IA64_ABI
     add_str_to_mangled_name("_Z", &mctl);
 #else /*!IA64_ABI */
@@ -13457,7 +13496,7 @@ encoding if suppress_parent_encoding is TRUE.
       function_name_mangling_needed(routine, &suppress_param_encoding) &&
       routine->source_corresp.name != routine_move_placeholder_name) {
     /* Mangle the function name. */
-    start_mangling(&mctl);
+    start_mangling(&mctl, routine->is_prototype_instantiation);
     add_mangled_name_prefix(&mctl);
 #if IA64_ABI && DO_IL_LOWERING
     if (routine->special_kind == (a_special_function_kind)sfk_constructor ||
@@ -13558,7 +13597,7 @@ or file scope variable with abi_tags (explicit or implicit).
 
   if (!variable->source_corresp.name_has_been_mangled &&
       variable_name_mangling_needed(variable)) {
-    start_mangling(&mctl);
+    start_mangling(&mctl, variable->is_prototype_instantiation);
     add_mangled_name_prefix(&mctl);
     mangled_variable_name_with_possible_qualification(variable, &mctl);
     /* Note final=FALSE to prevent compression and truncation at this

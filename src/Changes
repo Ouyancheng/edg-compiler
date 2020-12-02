@@ -1,5 +1,26 @@
 Version 6.2
 
+12/2/20  [EDGcpfe/23598]
+Mangling of nontype template parameters in prototype instantiations
+
+In configurations that do lowering, prototype instantiations are not
+mangled (as they are not needed for code generation), but in some
+configurations (when MANGLE_ALL_NAMES is TRUE), prototype instantiations
+are mangled and their mangled names are generally unique.  That's not true
+for cases involving nontype template parameters, for example the mangled
+names for the prototype instantiations of following two templates were
+identical:
+
+  template <int *> void f() {}
+  template <char *> void f() {}
+
+A change has been made to use the mangled encoding for the type of the
+template parameter rather than the template parameter itself in such cases,
+thereby making them unique.  This change is conditional on 
+ABI_COMPATIBILITY_VERSION >= 602 and affects only configurations that do
+not do lowering.
+
+
 12/2/20  [EDGcpfe/23161]
 Multiple translation units: Out-of-line defaulted definitions
 
