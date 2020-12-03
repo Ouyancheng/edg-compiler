@@ -5534,10 +5534,10 @@ static a_boolean constexpr_copy_object_init_bits(
                                        a_byte                *dst_bytes,
                                        a_byte                *complete_dst)
 /*
-Copy the initialization bitmap of the subobject of type tp located as src_bytes
+Copy the initialization bitmap of the subobject of type tp located at src_bytes
 (with complete object located at complete_src) to the bitmap for the subobject
-located at dst_byges/complete_dst.  Return FALSE and record a diagnostic for
-any subobjects that is not initialized.
+located at dst_bytes/complete_dst.  Return FALSE and record a diagnostic for
+any subobject that is not initialized (the diagnostic is associated with pos).
 */
 {
   a_boolean  result = TRUE;
@@ -5636,7 +5636,9 @@ static a_boolean constexpr_copy_object(an_interpreter_state  *ips,
                                        a_byte                *complete_dst)
 /*
 Copy an object of the given type from one interpreter storage location
-(src_bytes, complete_src) to another (dst_bytes, complete_dst).
+(src_bytes, complete_src) to another (dst_bytes, complete_dst).  Record a
+diagnostic (associated with pos) if attempting to copy an uninitialized
+subobject.
 */
 {
   a_boolean     result = TRUE;
