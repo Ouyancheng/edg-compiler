@@ -27357,7 +27357,8 @@ set, and its source sequence entry, if any, has been put out.)
                                    &il_template_entry->source_corresp,
                                    sym_parent_namespace(sym));
         }  /* if */
-        if (sym->is_class_member && decl_state->class_declared_in != NULL) {
+        if (sym->is_class_member && decl_state->class_declared_in != NULL &&
+            !decl_state->is_template_friend) {
           /* If this is the declaration of a member inside the class,
              record the access. */
           il_template_entry->source_corresp.access = decl_state->access;

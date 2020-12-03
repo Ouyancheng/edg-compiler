@@ -1,5 +1,32 @@
 Version 6.2
 
+12/2/20  [EDGcpfe/23164]
+Friend declarations for class member templates overwriting access
+
+When a friend declaration targets a class member template, the front end could
+overwrite the access level of the class member template with the level that was
+currently active in the class where the friend declaration appeared.  For
+example:
+
+  class _State {
+  public:
+    template<typename _Res, typename _Arg>
+    struct _Setter;
+
+    template<typename _Res, typename _Arg>
+    struct _Setter<_Res, _Arg&> {
+    };
+  };
+  template<typename _Res>
+  class promise {
+  private:
+    template<typename, typename> friend class _State::_Setter; // #1
+  };
+
+On the line labelled with #1, the access of _State::_Setter could get
+overwritten with the private access level.  This is now fixed.
+
+
 12/2/20  [EDGcpfe/23163]
 Multiple translation units: Constexpr static data members in template prototype
 instantiations
