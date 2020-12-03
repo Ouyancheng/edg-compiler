@@ -15707,7 +15707,9 @@ the value representation of the integer value.
                    address and return either the address or the value, as
                    appropriate. */
                 a_byte  *dst_storage = value_bytes_at(dst);
-                if (is_immediate_class_type(tp) || type_is(tp, tk_array)) {
+                a_boolean  copy_subobjects =
+                         is_immediate_class_type(tp) || type_is(tp, tk_array);
+                if (copy_subobjects) {
                   if (!constexpr_copy_object(
                                          ips, tp, &expr->position,
                                          opnd2_value, opnd2_value,
@@ -15733,8 +15735,18 @@ the value representation of the integer value.
                 } else {
                   /* The assignment produces an rvalue.  Copy the value once
                      more. */
-                  (void)memcpy(result_storage, dst_storage,
-                               size_t_arg(n_bytes));
+                  if (copy_subobjects) {
+                    if (!constexpr_copy_object(
+                                         ips, tp, &expr->position,
+                                         dst_storage, dst->complete_object,
+                                         result_storage, complete_object)) {
+                      result = FALSE;
+                      break;
+                    }  /* if */
+                  } else {
+                    (void)memcpy(result_storage, dst_storage,
+                                 size_t_arg(n_bytes));
+                  }  /* if */
                   mark_whole_subobject_initialized(ips, result_storage, tp,
                                                    complete_object);
                 }  /* if */
