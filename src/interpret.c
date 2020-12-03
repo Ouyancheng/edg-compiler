@@ -5542,7 +5542,9 @@ any subobject that is not initialized (the diagnostic is associated with pos).
 {
   a_boolean  result = TRUE;
 
-  if (subobject_is_initialized(src_bytes, complete_src)) {
+  if (subobject_is_initialized(src_bytes, complete_src) ||
+      (is_immediate_class_type(tp) &&
+       tp->variant.class_struct_union.is_empty_class)) {
     mark_subobject_initialized(dst_bytes, complete_dst);  
   } else {
     do_constexpr_fail(result);
@@ -17669,7 +17671,7 @@ the value representation of the integer value.
           if (is_const_qualified_type(expr->type)) {
             cap->flags |= CA_CONST_STORAGE;
           }  /* if */
-          if (tp->kind == (a_type_kind)tk_array) {
+          if (type_is(tp, tk_array)) {
             /* We are referring to the array as a whole; not just one element
                of it.  Record the length in case it is needed later on. */
             cap->length =
