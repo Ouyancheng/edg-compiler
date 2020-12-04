@@ -35439,9 +35439,9 @@ variable:
             if (var_ptr->is_template_variable &&
                 !var_ptr->is_prototype_instantiation &&
                 symbol_is(sym_ptr, sk_static_data_member) &&
-                gpp_mode && !clang_mode && expr_stack->favor_constant_result) {
-              /* In GNU C++ mode, static data member constants may be
-                 instantiated late.  Ensure that they're instantiated in
+                gpp_mode && expr_stack->favor_constant_result) {
+              /* In GNU and Clang C++ modes, static data member constants may
+                 be instantiated late.  Ensure that they're instantiated in
                  constant-evaluation contexts.  This may affect the type of
                  the variable (for arrays with unspecified bounds): So do this
                  before creating a node for the variable. */

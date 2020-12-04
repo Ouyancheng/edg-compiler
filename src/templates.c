@@ -7411,10 +7411,9 @@ expression context) rather than a declaration.
   } else if (dps.has_deducible_class_templ_args) {
     var_ptr->declared_with_class_template_placeholder = TRUE;
   }  /* if */
-  if (var_ptr->initializer_in_class &&
-      gpp_mode && gnu_version >= 40100 && !clang_mode) {
-    /* In GNU C++ mode, in-class initializers are instantiated only when
-       needed.  Since we're about to instantiate the definition, ensure it
+  if (var_ptr->initializer_in_class && gpp_mode) {
+    /* In GNU/Clang C++ modes, some in-class initializers are instantiated only
+       when needed.  Since we're about to instantiate the definition, ensure it
        will have an associated initializer. */
     ensure_inclass_static_member_constant_initializer_is_scanned(var_ptr);
   }  /* if */

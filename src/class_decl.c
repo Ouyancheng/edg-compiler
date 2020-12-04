@@ -3924,8 +3924,8 @@ void ensure_inclass_static_member_constant_initializer_is_scanned(
                                                           a_variable_ptr  var)
 /*
 The given variable entry is for a static member of a managed class type or of
-a GNU C++ class template instantiation (non-prototype).  The declaration of
-that member may have an in-class initializer, but if so scanning of that
+a GNU/Clang C++ class template instantiation (non-prototype).  The declaration
+of that member may have an in-class initializer, but if so scanning of that
 initializer was delayed.  Do this scanning now, so that the static data member
 can be used as a constant-expression.
 
@@ -3942,10 +3942,9 @@ constant-expression.
 
   check_assertion(symbol_is(var_sym, sk_static_data_member) ||
                   symbol_is(var_sym, sk_variable));
-  if (gpp_mode && gnu_version >= 40100 && !clang_mode &&
-      var->is_template_variable) {
-    /* For GNU static data members, we record a cache in the static data
-       member supplement. */
+  if (gpp_mode && var->is_template_variable) {
+    /* For GNU and Clang static data members, we record a cache in the static
+       data member supplement. */
     a_static_data_member_supplement_ptr
                sdmsp = sdm_supp(var_sym);
     if (sdmsp != NULL) {
@@ -17905,8 +17904,9 @@ template declaration and is NULL otherwise.
         member_type = decl_state->type;
         constant_member = is_const_qualified_type(member_type);
       }  /* if */
-    } else if (gpp_mode && gnu_version >= 40100 && !clang_mode &&
-               constant_member && in_class_template_definition(class_state)) {
+    } else if (((gpp_version_is(>= 40100) && constant_member) ||
+                (gpp_mode && var->is_inline)) &&
+               in_class_template_definition(class_state)) {
       /* GCC appears to instantiate the initializer on demand.  Cache and
          extract the initializer during the prototype instantiation.  The
          cache will be scanned on-demand for real instantiations (see
