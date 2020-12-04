@@ -27357,10 +27357,12 @@ set, and its source sequence entry, if any, has been put out.)
                                    &il_template_entry->source_corresp,
                                    sym_parent_namespace(sym));
         }  /* if */
-        if (sym->is_class_member && decl_state->class_declared_in != NULL &&
-            !decl_state->is_template_friend) {
+        if (sym->is_class_member && sym->parent.class_type ==
+                                               decl_state->class_declared_in) {
           /* If this is the declaration of a member inside the class,
-             record the access. */
+             record the access.  It's possible for the parent class type to
+             differ if this is a friend declaration, in which case the access
+             should not be overwritten. */
           il_template_entry->source_corresp.access = decl_state->access;
         }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
