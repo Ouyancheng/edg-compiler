@@ -5542,10 +5542,11 @@ any subobject that is not initialized (the diagnostic is associated with pos).
 {
   a_boolean  result = TRUE;
 
-  if (subobject_is_initialized(src_bytes, complete_src) ||
-      (is_immediate_class_type(tp) &&
-       tp->variant.class_struct_union.is_empty_class)) {
+  if (subobject_is_initialized(src_bytes, complete_src)) {
     mark_subobject_initialized(dst_bytes, complete_dst);  
+  } else if (is_immediate_class_type(tp) &&
+             tp->variant.class_struct_union.is_empty_class) {
+    /* Empty class type objects are always considered "initialized". */
   } else {
     do_constexpr_fail(result);
     info_with_pos(ec_object_not_initialized, pos, ips);
@@ -11966,10 +11967,12 @@ is within the given complete_object.
       a_byte_count        field_offset;
       a_byte              *dst_bytes;
       a_dynamic_init_ptr  sub_dip;
+      a_type_ptr          ftp = skip_typerefs(fp->type);
       /* Determine the offset of this field within the closure object's
          storage. */
       get_mapped_byte_count(&persistent_map, fp, field_offset);
       dst_bytes = result_storage+field_offset;
+      mark_complete_class_object_if_needed(ftp, dst_bytes);
       if (cap->is_init_capture) {
         /* Interpret the initializer for the capture. */
         sub_dip = cap->captured.initializer;
@@ -11977,8 +11980,7 @@ is within the given complete_object.
           /* Just zero the storage (for the dik_zero case) and record the
              derivation structure (which is needed even for the dik_none
              case). */
-          a_type_ptr  tp = skip_typerefs(fp->type);
-          init_subobject_to_zero(ips, dst_bytes, tp, complete_object);
+          init_subobject_to_zero(ips, dst_bytes, ftp, complete_object);
         } else {
           if (do_constexpr_dynamic_init(ips, sub_dip, pos,
                                          dst_bytes, complete_object)) {
