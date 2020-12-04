@@ -4990,9 +4990,13 @@ used as a qualifier.
             derived_class->variant.class_struct_union.extra_info->base_classes;
        bcp != NULL; bcp = bcp->next) {
     a_type_ptr base = bcp->type;
+    a_type_ptr tp;
+    a_boolean  is_public = TRUE;
+    for (tp = base; is_public && tp != NULL; tp = parent_class_or_null(tp)) {
+      is_public = tp->source_corresp.access == (an_access_specifier)as_public;
+    }  /* if */
     if (base->source_corresp.is_class_member &&
-        (base->source_corresp.access != (an_access_specifier)as_public ||
-         base->variant.class_struct_union.is_nonreal_class)) {
+        (!is_public || base->variant.class_struct_union.is_nonreal_class)) {
       /* A base class that is a non-public member of its containing
          class or is a nonreal class, which could be such a member class in
          an actual instantiation.  Add an entry to the hash table. */
