@@ -9478,36 +9478,35 @@ create_final_list:
 
 
 static void add_operand_to_arg_dependent_lookup_list(
-                                              an_operand            *operand,
-                                              a_type_list_entry_ptr *type_list)
+                                      an_operand                  *operand,
+                                      a_type_list_entry_ptr       *type_list,
+                                      a_namespace_list_entry_ptr  *ns_list,
+                                      a_type_list_entry_ptr       *class_list)
 /*
-operand is an argument of a call.  Add its type to the type list pointed
-to by type_list, which is being accumulated to do argument-dependent
-lookup.
+operand is an argument of a call.  Add its type to the type list pointed to by
+type_list, which is being accumulated to do argument-dependent lookup.
+Furthermore, if operand represents template-id denoting an indefinite function,
+add any namespaces and class associated with the template arguments to the
+lists pointed to by ns_list and class_list.
 */
 {
   if (is_indefinite_function_operand(operand)) {
     /* The operand is an indefinite function.  Loop through the symbols
        and add each function type to the list. */
-    a_symbol_ptr ovl_sym = operand->symbol, sym;
+    a_symbol_ptr  ovl_sym = operand->symbol, sym;
+    an_overload_set_traversal_block
+                  ostblock;
     reduce_projection_symbol_to_fundamental_symbol(ovl_sym);
-    /* Ignore templates. */
-    if (ovl_sym->kind != (a_symbol_kind)sk_function_template) {
-      an_overload_set_traversal_block ostblock;
-      check_assertion(ovl_sym->kind == (a_symbol_kind)sk_overloaded_function);
-      for (sym = set_up_overload_set_traversal_simple(ovl_sym, &ostblock);
-           sym != NULL;
-           sym = next_symbol_in_overload_set(&ostblock)) {
-        a_type_ptr   func_type;
-        a_symbol_ptr fund_sym = fundamental_symbol_of(sym);
-        /* Ignore templates. */
-        if (fund_sym->kind != (a_symbol_kind)sk_function_template) {
-          check_assertion(fund_sym->kind == (a_symbol_kind)sk_routine ||
-                          fund_sym->kind == (a_symbol_kind)sk_member_function);
-          func_type = routine_symbol_type(fund_sym);
-          add_to_arg_dependent_lookup_list(func_type, type_list);
-        }  /* if */
-      }  /* for */
+    for (sym = set_up_overload_set_traversal_simple(ovl_sym, &ostblock);
+         sym != NULL;
+         sym = next_symbol_in_overload_set(&ostblock)) {
+      a_symbol_ptr fund_sym = fundamental_symbol_of(sym);
+      a_type_ptr   func_type = func_sym_routine(fund_sym)->type;
+      add_to_arg_dependent_lookup_list(func_type, type_list);
+    }  /* for */
+    if (operand->template_arg_list != NULL) {
+      add_templ_arg_list_to_lookup_lists(operand->template_arg_list,
+                                         type_list, ns_list, class_list);
     }  /* if */
   } else {
     /* Normal case. */
@@ -10382,11 +10381,11 @@ in_instantiation:
       /* Do argument-dependent lookup, which may add additional functions
          from the classes and namespaces associated with the argument
          types. */
-      a_type_list_entry_ptr   type_list = NULL;
-      a_symbol_locator        locator;
-      a_symbol_list_entry_ptr symbol_list, slep;
-      a_symbol_ptr            normal_lookup_function_symbol;
-
+      a_type_list_entry_ptr       type_list = NULL, class_list = NULL;
+      a_namespace_list_entry_ptr  ns_list = NULL;
+      a_symbol_locator            locator;
+      a_symbol_list_entry_ptr     symbol_list, slep;
+      a_symbol_ptr                normal_lookup_function_symbol;
       check_assertion(init_list_ctor_arg_list == NULL);
       /* Accumulate the types used in the arguments. */
       for (arg_list_elem = arg_list;
@@ -10395,7 +10394,7 @@ in_instantiation:
         if (is_expression_component(arg_list_elem)) {
           add_operand_to_arg_dependent_lookup_list(
                                        operand_of_arg_list_elem(arg_list_elem),
-                                       &type_list);
+                                       &type_list, &ns_list, &class_list);
         }  /* if */
       }  /* for */
       /* Do argument-dependent lookup, producing a list of symbols to
@@ -10406,8 +10405,8 @@ in_instantiation:
                                                     NULL :
                                                     overloaded_function_symbol;
       symbol_list = argument_dependent_lookup(normal_lookup_function_symbol,
-                                              &locator,
-                                              &type_list,
+                                              &locator, &type_list,
+                                              &ns_list, &class_list,
                                               use_std_for_arg_dep_lookup);
       if (single_function != NULL && symbol_list != NULL) {
         /* If the function is a single non-overloaded function, overload
@@ -17864,12 +17863,13 @@ find_more_operator_candidates:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Find any non-member function for the operator. */
     if (!must_be_member_function) {
-      a_symbol_ptr             normal_sym, proj_normal_sym;
-      a_symbol_locator         locator;
-      a_type_list_entry_ptr    type_list = NULL;
-      a_symbol_list_entry_ptr  symbol_list, slep;
-      an_id_lookup_options_set idl_options;
-      a_boolean                arg_dep_lookup_done = FALSE;
+      a_symbol_ptr                normal_sym, proj_normal_sym;
+      a_symbol_locator            locator;
+      a_type_list_entry_ptr       type_list = NULL, class_list = NULL;
+      a_namespace_list_entry_ptr  ns_list = NULL;
+      a_symbol_list_entry_ptr     symbol_list, slep;
+      an_id_lookup_options_set    idl_options;
+      a_boolean                   arg_dep_lookup_done = FALSE;
       /* If the second operand has a template class type, try to
          instantiate it to expose any friend functions it declares. */
       if (!unary_operator && is_class_struct_union_type(operand_2->type)) {
@@ -17903,16 +17903,19 @@ find_more_operator_candidates:
         /* Build a list of the argument types, to be used to do
            argument-dependent lookup below. */
         arg_dep_lookup_done = TRUE;
-        add_operand_to_arg_dependent_lookup_list(operand_1, &type_list);
+        add_operand_to_arg_dependent_lookup_list(operand_1, &type_list,
+                                                 &ns_list, &class_list);
         if (!unary_operator) {
-          add_operand_to_arg_dependent_lookup_list(operand_2, &type_list);
+          add_operand_to_arg_dependent_lookup_list(operand_2, &type_list,
+                                                   &ns_list, &class_list);
         }  /* if */
       }  /* if */
       /* Do argument-dependent lookup, producing a list of symbols to
          be considered as candidate functions. */
       symbol_list = argument_dependent_lookup(proj_normal_sym, &locator,
                                               &type_list,
-                                          /*include_std_namespace=*/FALSE);
+                                              &ns_list, &class_list,
+                                              /*include_std_namespace=*/FALSE);
       for (slep = symbol_list; slep != NULL; slep = slep->next) {
         nonmember_functions_symbol = slep->symbol;
         if (is_template_dependent_context() &&

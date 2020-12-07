@@ -320,11 +320,19 @@ extern
 void add_to_arg_dependent_lookup_list(a_type_ptr		arg_type,
 				      a_type_list_entry_ptr	*type_list);
 
+void add_templ_arg_list_to_lookup_lists(
+			a_template_arg_ptr		templ_args,
+			a_type_list_entry_ptr		*type_list,
+			a_namespace_list_entry_ptr	*namespace_list,
+			a_type_list_entry_ptr		*class_list);
+
 extern a_symbol_list_entry_ptr argument_dependent_lookup(
-				a_symbol_ptr		normal_sym,
-				a_symbol_locator	*locator,
-				a_type_list_entry_ptr	*type_list,
-				a_boolean		include_std_namespace);
+                      a_symbol_ptr			normal_sym,
+                      a_symbol_locator			*locator,
+                      a_type_list_entry_ptr		*type_list,
+                      a_namespace_list_entry_ptr	*p_namespace_list,
+                      a_type_list_entry_ptr		*p_class_list,
+                      a_boolean				include_std_namespace);
 
 extern
 a_type_ptr proxy_class_for_template_param(a_type_ptr   templ_param_type);

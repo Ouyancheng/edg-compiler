@@ -1,5 +1,32 @@
 Version 6.2
 
+12/7/20  [EDGcpfe/23662]
+Argument-dependent lookup and template-ids
+
+Consider:
+
+  struct S {};
+  template<typename> struct V {};
+  namespace X {
+    struct SX {};
+    template<template<typename ...> class C> int f(SX);
+    template<typename T> int operator|(T, int(*)(SX));
+  }
+  namespace Y {
+    struct SY {};
+    template<template<typename ...> class C> int f(SY);
+  };
+  namespace Z {
+    using X::f;
+    using Y::f;
+  }
+  int r = S{} | Z::f<V>; // Previously an error.  Now okay.
+
+For argument-dependent lookup, the front end previously did not consider
+namespaces and classes associated with the templates that make up the overload
+set denoted by Z::f<V> in the example above.  That is now fixed.
+
+
 12/7/20  [EDGcpfe/23465]
 Abort on constexpr member variable in non-real instantiations
 

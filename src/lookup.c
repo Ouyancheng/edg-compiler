@@ -6376,7 +6376,8 @@ static void add_template_template_arg_to_lookup_lists(
 			a_namespace_list_entry_ptr	*namespace_list,
 			a_type_list_entry_ptr		*type_list)
 /*
-Add the namespace in which "type" is defined to the namespace_list.
+Add the namespaces and classes associated with the given template template
+argument to namespace_list and type_list, respectively.
 */
 {
   a_template_ptr		templ = tap->variant.templ.ptr;
@@ -6394,7 +6395,7 @@ Add the namespace in which "type" is defined to the namespace_list.
   /* Note that "nsp" will be NULL for global scope types. */
   nsp = scp_parent_namespace_or_null(scp);
   add_namespace_to_namespace_list(nsp, namespace_list);
-}  /* add_template_template_arg_to_lookup_list */
+}  /* add_template_template_arg_to_lookup_lists */
 
 
 static void determine_assoc_namespaces_and_classes_for_type(
@@ -6776,21 +6777,53 @@ symbol found by the normal lookup.
 }  /* remove_namespaces_used_in_normal_lookup */
 
 
-a_symbol_list_entry_ptr argument_dependent_lookup(
-                                  a_symbol_ptr		normal_sym,
-                                  a_symbol_locator	*locator,
-                                  a_type_list_entry_ptr	*type_list,
-                                  a_boolean		include_std_namespace)
+void add_templ_arg_list_to_lookup_lists(
+			a_template_arg_ptr		templ_args,
+			a_type_list_entry_ptr		*type_list,
+			a_namespace_list_entry_ptr	*namespace_list,
+			a_type_list_entry_ptr		*class_list)
 /*
-Perform C++ argument-dependent lookup as specified in 3.4.2
-[basic.lookup.koenig] of the C++ standard.  normal_sym is the result
-of a normal lookup of the function name in the context of the call and
-may be NULL.  type_list is a list of argument types to be used to
-produce a list of associated classes and namespaces from which
-candidate functions should be considered.  locator is the symbol
-locator associated with the name that is being looked up.  When
-include_std_namespace is TRUE, the std namespace is included in the
-lookup as an associated namespace (e.g., for range-based-for).
+For ever argument in templ_args:
+  - if it is a type argument, add that type to type_list, the list of types
+    from which associated namespaces and classes will be collected later on,
+  - if it is a template template argument, add its associated namespace and
+    classes (if any) to namespace_list and class_list, respectively.
+*/
+{
+  a_template_arg_ptr  tap;
+
+  begin_template_arg_list_traversal_simple(templ_args, &tap);
+  for (; tap != NULL; advance_to_next_template_arg_simple(&tap)) {
+    if (is_type_templ_arg(tap)) {
+      add_to_arg_dependent_lookup_list(tap->variant.type, type_list);
+    } else if (is_template_templ_arg(tap)) {
+      add_template_template_arg_to_lookup_lists(tap, namespace_list,
+                                                class_list);
+    }  /* if */
+  }  /* for */
+}  /* add_templ_arg_list_to_lookup_lists */
+
+
+a_symbol_list_entry_ptr argument_dependent_lookup(
+                      a_symbol_ptr			normal_sym,
+                      a_symbol_locator			*locator,
+                      a_type_list_entry_ptr		*type_list,
+                      a_namespace_list_entry_ptr	*p_namespace_list,
+                      a_type_list_entry_ptr		*p_class_list,
+                      a_boolean				include_std_namespace)
+/*
+Perform C++ argument-dependent lookup as specified in [basic.lookup.argdep] of
+the C++ standard (as of N4868).  normal_sym is the result of a normal lookup of
+the function name in the context of the call and may be NULL.  type_list is a
+list of argument types to be used to produce a list of associated classes
+(p_class_list) and namespaces (p_namespace_list) from which candidate functions
+should be considered.  p_class_list and p_namespace_list may be pre-populated
+by the called in some cases (specifically, when an argument to the call is a
+template-id naming an overload set, p_class_list and p_namespace_list will list
+the classes and namespaces associated with the template argument list).
+locator is the symbol locator associated with the name that is being looked up.
+When include_std_namespace is TRUE, the std namespace is included in the lookup
+as an associated namespace (e.g., for range-based-for).
 
 normal_sym, if not NULL, is included in the symbol list that is returned
 and must be the first entry on the list.
@@ -6801,15 +6834,17 @@ The same function may be pointed to directly and/or indirectly by
 any number of these symbols, so the caller is responsible for ignoring
 duplicate entries.
 
-The list pointed to by *type_list is freed by this routine, and *type_list
-is set to NULL.
+The lists pointed to by *type_list, *class_list, and *namespace_list are freed
+by this routine, and *type_list, *class_list, and *namespace_list are set to
+NULL.
 */
 {
   a_symbol_list_entry_ptr	slep;
   a_symbol_list_entry_ptr	symbol_list = NULL;
   a_type_list_entry_ptr		tlep;
-  a_namespace_list_entry_ptr	namespace_list = NULL;
-  a_type_list_entry_ptr		class_list = NULL;
+  a_type_list_entry_ptr		class_list = *p_class_list;
+  a_namespace_list_entry_ptr	namespace_list = *p_namespace_list;
+  
 
   /* Build a list of namespaces and classes to be included in the search. */
   for (tlep = *type_list; tlep != NULL; tlep = tlep->next) {
@@ -6884,9 +6919,11 @@ is set to NULL.
 #endif /* DEBUG */
   /* Free the lists used to create the symbol list. */
   free_list_of_type_list_entries(*type_list);
-  free_list_of_namespace_list_entries(namespace_list);
-  free_list_of_type_list_entries(class_list);
   *type_list = NULL;
+  free_list_of_namespace_list_entries(namespace_list);
+  *p_namespace_list = NULL;
+  free_list_of_type_list_entries(class_list);
+  *p_class_list = NULL;
   /* Make sure that normal_sym is pointed to by the first entry on the
      returned list. */
   check_assertion(normal_sym == NULL || symbol_list->symbol == normal_sym);
