@@ -5887,6 +5887,7 @@ returned set to TRUE.
                                initializer_constant(vp) != NULL ||
                                is_template_dependent_type(tp) ||
                                scope_stack_top().in_prototype_instantiation ||
+                               scope_stack_top().in_nonreal_instantiation ||
                                (is_immediate_class_type(tp) &&
                                 !class_symbol_supp(symbol_for(tp))
                                        ->has_nontrivial_default_constructor &&
