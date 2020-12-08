@@ -19,12 +19,13 @@ The items that can currently be highlighted are:
   - "note": highlights the "note" or "remark" keyword
   - "quote": highlights certain fill-in portions of diagnostics
   - "locus": highlights the initial source location and "^"
+  - "range1": highlights subsequent source locations
 
 Each of these can be assigned a sequence of SGR codes to highlight the
 particular item(s).  The default SGR codes are given by the
 DEFAULT_EDG_COLORS macro whose default value is:
 
-  "error=01;31:warning=01;35:note=01;36:locus=01:quote=01"
+  "error=01;31:warning=01;35:note=01;36:locus=01:quote=01:range1=32"
 
 The string is a colon-separated list of "value"="SGR codes" pairs where
 "value" is from the list above.  The values can appear in any order.  Any that

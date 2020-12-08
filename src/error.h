@@ -886,6 +886,7 @@ struct a_highlight_descr {
     hk_note,
     hk_locus,
     hk_quote,
+    hk_range1,
     hk_last     /* Must be last. */
   };
   explicit a_highlight_descr();

@@ -654,6 +654,7 @@ colors) to portions of certain diagnostics.
     set_sgr_string(a_highlight_kind::hk_note, "note");
     set_sgr_string(a_highlight_kind::hk_locus, "locus");
     set_sgr_string(a_highlight_kind::hk_quote, "quote");
+    set_sgr_string(a_highlight_kind::hk_range1, "range1");
   }  /* if */
 }  /* a_highlight_descr constructor */
 
@@ -1075,6 +1076,9 @@ being formed and is used to eliminate redundant file names in a diagnostic.
     /* Have a valid source position. */
     conv_seq_to_file_and_line(pos->seq, &file_name, &full_name,
                               &line_number, &at_end_of_source);
+    diag_color_begin(msg_buffer,
+                     a_highlight_descr::a_highlight_kind::hk_range1,
+                     &invisible_char_count);
     if (at_end_of_source) {
       add_string_to_text_buffer(msg_buffer, end_of_source_string);
     } else {
@@ -1111,6 +1115,7 @@ being formed and is used to eliminate redundant file names in a diagnostic.
       }  /* if */
       add_string_to_text_buffer(msg_buffer, suffix_string);
     }  /* if */
+    diag_color_end(msg_buffer, &invisible_char_count);
   }  /* if */
 }  /* form_source_position */
 

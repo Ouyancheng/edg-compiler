@@ -1249,13 +1249,13 @@ variable is set, its value will be used (although not all values set in
 GCC_COLORS are supported by the front end).
 
 The highlighted entities currently supported are: "error", "warning", "note",
-"locus", and "quote".
+"locus", "quote", and "range1".
 
 The default SGR color map is specified by DEFAULT_EDG_COLORS.
 */
 #ifndef DEFAULT_EDG_COLORS
 #define DEFAULT_EDG_COLORS \
-  "error=01;31:warning=01;35:note=01;36:locus=01:quote=01"
+  "error=01;31:warning=01;35:note=01;36:locus=01:quote=01:range1=32"
 #endif /* !(defined(DEFAULT_EDG_COLORS) */
 
 /*
