@@ -6783,7 +6783,7 @@ void add_templ_arg_list_to_lookup_lists(
 			a_namespace_list_entry_ptr	*namespace_list,
 			a_type_list_entry_ptr		*class_list)
 /*
-For ever argument in templ_args:
+For every argument in templ_args:
   - if it is a type argument, add that type to type_list, the list of types
     from which associated namespaces and classes will be collected later on,
   - if it is a template template argument, add its associated namespace and
@@ -6818,7 +6818,7 @@ the function name in the context of the call and may be NULL.  type_list is a
 list of argument types to be used to produce a list of associated classes
 (p_class_list) and namespaces (p_namespace_list) from which candidate functions
 should be considered.  p_class_list and p_namespace_list may be pre-populated
-by the called in some cases (specifically, when an argument to the call is a
+by the caller in some cases (specifically, when an argument to the call is a
 template-id naming an overload set, p_class_list and p_namespace_list will list
 the classes and namespaces associated with the template argument list).
 locator is the symbol locator associated with the name that is being looked up.
@@ -6845,7 +6845,6 @@ NULL.
   a_type_list_entry_ptr		class_list = *p_class_list;
   a_namespace_list_entry_ptr	namespace_list = *p_namespace_list;
   
-
   /* Build a list of namespaces and classes to be included in the search. */
   for (tlep = *type_list; tlep != NULL; tlep = tlep->next) {
     determine_assoc_namespaces_and_classes_for_type(

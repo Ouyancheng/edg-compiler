@@ -9486,7 +9486,7 @@ static void add_operand_to_arg_dependent_lookup_list(
 operand is an argument of a call.  Add its type to the type list pointed to by
 type_list, which is being accumulated to do argument-dependent lookup.
 Furthermore, if operand represents template-id denoting an indefinite function,
-add any namespaces and class associated with the template arguments to the
+add any namespaces and classes associated with the template arguments to the
 lists pointed to by ns_list and class_list.
 */
 {

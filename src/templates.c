@@ -6589,7 +6589,7 @@ described by ctws_state.
       ctws_state->variadic_param_info_tail = vpip;
     }  /* if */
   }  /* for */
-}  /* create_variadic_param_info_for_routine_params*/
+}  /* create_variadic_param_info_for_routine_params */
 
 
 void copy_exc_spec_from_prototype_template(
@@ -10874,11 +10874,11 @@ use the current global value of the template template parameter.
           /* Old list is the template argument list associated with the
              prototype instantiation of the partial specialization.  See if
              the list passed in matches it.  If the template argument lists
-             match, also check the requires clauses (if any).  We need to
-             make sure we don't return an incorrect partial specialization
-             (and instead create a new nonreal type below) because if we
-             don't do that, we could loose any pack expansion information
-             for this declaration. */
+             match, also check the requires clauses (if any).  We need to make
+             sure we don't return an incorrect partial specialization (and
+             instead create a new nonreal type below) because if we don't do
+             that, we could lose any pack expansion information for this
+             declaration. */
           old_list = ps_prototype_sym->variant.class_struct_union.type->
                       variant.class_struct_union.extra_info->template_arg_list;
           if (equiv_template_arg_lists(old_list, list_for_instantiation,
@@ -15352,9 +15352,8 @@ parameters.
       if (first_element == NULL) first_element = new_ptp;
     }  /* if */
     if (ptp->is_parameter_pack) {
-      /* Add this entry to the variadic param info list.  The
-         new entries are added to the end of the list pointed
-         to by ctws_state. */
+      /* Add this entry to the variadic param info list.  The new entries are
+         added to the end of the list pointed to by ctws_state. */
       a_variadic_param_info_ptr	vpip;
       vpip = alloc_variadic_param_info();
       vpip->param_type = first_element;
@@ -15906,8 +15905,7 @@ make_new_type:
                                         rtsp->param_type_list,
                                         templ_arg_list, templ_param_list,
                                         source_pos, options, copy_error,
-                                        ctws_state, 
-                                        reusable_param_types,
+                                        ctws_state, reusable_param_types,
                                         first_new_type_for_param_types_list);
         /* Don't substitute the return type when doing partial ordering.
            The types in the function type are substituted in the order in

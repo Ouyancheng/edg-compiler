@@ -2796,7 +2796,7 @@ Consider (in C++20 mode):
   };
   static_assert(S{}(1, 2, 3) == 2);  // Previously ambiguous.  Now okay.
 
-Previously, this elicited an ambiguity because the constraints on the two
+Previously, this elicited an ambiguity error because the constraints on the two
 candidates are not equivalent (they're both "true", but distinct "true" tokens
 are not equivalent constraints).  Now, the second candidate is selected because
 it is more specialized based on traditional deduction rules and that takes
