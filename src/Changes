@@ -1,5 +1,49 @@
 Version 6.2
 
+12/7/20  [EDGcpfe/23666]
+Colorization of diagnostic output
+
+A change has been made to enable "colorization" of certain portions of the
+diagnostics emitted by the front end (similar to the behavior of GNU and
+clang).
+
+Portions of diagnostic messages have been instrumented to enable highlighting
+of them via various escape sequences (Select Graphic Rendition or SGR) codes
+that are generally recognized by many terminals and/or terminal emulators.
+See https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters for a list.
+
+The items that can currently be highlighted are:
+
+  - "error": highlights the "error" or other error-like words
+  - "warning": highlights the "warning" keyword
+  - "note": highlights the "note" or "remark" keyword
+  - "quote": highlights certain fill-in portions of diagnostics
+  - "locus": highlights the initial source location and "^"
+
+Each of these can be assigned a sequence of SGR codes to highlight the
+particular item(s).  The default SGR codes are given by the
+DEFAULT_EDG_COLORS macro whose default value is:
+
+  "error=01;31:warning=01;35:note=01;36:locus=01:quote=01"
+
+The string is a colon-separated list of "value"="SGR codes" pairs where
+"value" is from the list above.  The values can appear in any order.  Any that
+are unset are not used.  Setting the EDG_COLOR environment variable overrides
+the default value.  If EDG_COLOR is unset, GCC_COLOR is used if set.
+
+The changes above are conditional on ENABLE_COLORIZED_DIAGNOSTICS
+(which defaults to TRUE) and are conditionally enabled by setting
+DEFAULT_ENABLE_COLORIZED_DIAGNOSTICS (which defaults to FALSE).  Additionally,
+colorized diagnostics are also disabled if any of the following are true:
+
+  - The diagnostic output is not a terminal device.
+  - The EDG_COLOR environment variable is set to the empty string.
+  - The NOCOLOR environment variable is set.
+  - The TERM environment variable is not set (or is set to "dumb").
+
+This feature will only work on terminal emulators that support this feature.
+
+
 12/7/20  [EDGcpfe/23662]
 Argument-dependent lookup and template-ids
 

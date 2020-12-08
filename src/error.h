@@ -865,6 +865,78 @@ extern void syntax_error(an_error_code error_code);
 unsigned long show_error_space_used(void);
 #endif /* DEBUG */
 
+#if ENABLE_COLORIZED_DIAGNOSTICS
+
+EXTERN a_boolean
+                colorize_diagnostics;
+                        /* If TRUE, portions of diagnostic messages are
+                           potentially highlighted (e.g., by the use of colors)
+                           to enhance readability. */
+/*
+This class encapsulates information related to highlighting portions of
+diagnostic messages by means of colors or other display attributes that
+might be available on the user's "terminal".
+*/
+struct a_highlight_descr {
+  /* An enumeration of items in a diagnostic that can be highlighted.  Also
+     update a_highlight_descr::a_highlight_descr if other items are added. */
+  enum class a_highlight_kind {
+    hk_error,
+    hk_warning,
+    hk_note,
+    hk_locus,
+    hk_quote,
+    hk_last     /* Must be last. */
+  };
+  explicit a_highlight_descr();
+  ~a_highlight_descr() = delete;
+  void highlight_begin(a_text_buffer_ptr buffer,
+                       a_highlight_kind  kind,
+                       sizeof_t          *count);
+  void highlight_end(a_text_buffer_ptr buffer,
+                     sizeof_t          *count);
+private:
+  void set_sgr_string(a_highlight_kind kind,
+                      a_const_char     *string);
+  a_const_char  *sgr_string;
+                        /* A string that contains the SGR codes for all of the
+                           highlight-able diagnostic entities.  Entities that
+                           are not specified in the string are not highlighted.
+                           */
+  a_const_char  *last_sgr_string;
+                        /* Last SGR string emitted (used as a flag that the
+                           "reset" sequence needs to follow at some point). */
+  /* For each highlight-able entity, the portion of sgr_string that applies
+     to that entity. */
+  struct an_sgr_string {
+    a_const_char
+                *ptr;   /* A map from a highlight-able entity kind to the
+                           appropriate SGR code. */
+    sizeof_t    length; /* The length of the SGR code. */
+  } sgr[(int)a_highlight_kind::hk_last];
+};  /* a_highlight_descr */
+
+EXTERN a_highlight_descr
+                *color_object;
+                        /* A pointer to an object that encapsulates information
+                           about highlighting portions of diagnostic messages.
+                           NULL until f_debug has been set (to avoid race
+                           conditions with error reporting during startup). */
+
+/* Macro interfaces to highlight_begin/end for typical uses. */
+#define diag_color_begin(buffer, kind, count)                                 \
+  if (color_object != NULL) {                                                 \
+    color_object->highlight_begin(buffer, kind, count);                       \
+  }
+#define diag_color_end(buffer, count)                                         \
+  if (color_object != NULL) {                                                 \
+    color_object->highlight_end(buffer, count);                               \
+  }
+#else /* !ENABLE_COLORIZED_DIAGNOSTICS */
+#define diag_color_begin(buffer, kind, count) /**/
+#define diag_color_end(buffer, count) /**/
+#endif /* ENABLE_COLORIZED_DIAGNOSTICS */
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 

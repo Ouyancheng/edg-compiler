@@ -615,6 +615,135 @@ static a_recorded_diagnostic_ptr
 			/* The top level array used for the hash table used
 			   to find previously issued diagnostics. */
 
+#if ENABLE_COLORIZED_DIAGNOSTICS
+
+static sizeof_t invisible_char_count;
+                        /* A count of the number of "invisible" characters
+                           that exist in an output buffer (so these can
+                           be accounted for when doing line wrapping). */
+
+a_highlight_descr::a_highlight_descr()
+/*
+Constructor to initialize information used to add display attributes (e.g.,
+colors) to portions of certain diagnostics.
+*/
+  : sgr_string(NULL),
+    last_sgr_string(NULL)
+{
+  if (colorize_diagnostics) {
+    if (getenv("NOCOLOR") != NULL) {
+      /* Set the NOCOLOR environment variable to disable colorization. */
+      colorize_diagnostics = FALSE;
+    } else if (!is_a_terminal(f_error)) {
+      /* Only colorize if errors are being sent to a terminal. */
+      colorize_diagnostics = FALSE;
+    } else {
+      /* Also require that the TERM environment variable is set (and not
+         "dumb"). */
+      a_const_char *term = getenv("TERM");
+      if (term == NULL || strcmp(term, "dumb") == 0) {
+        colorize_diagnostics = FALSE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (colorize_diagnostics) {
+    if ((this->sgr_string = getenv("EDG_COLORS")) != NULL) {
+      /* Use EDG_COLORS environment variable if set. */
+    } else if ((this->sgr_string = getenv("GCC_COLORS")) != NULL) {
+      /* Use select portions of GCC_COLORS environment variable if set. */
+    } else {
+      /* Use default settings. */
+      this->sgr_string = DEFAULT_EDG_COLORS;
+    }  /* if */
+    /* Find relevant substrings in the sgr_string, if any. */
+    set_sgr_string(a_highlight_kind::hk_error, "error");
+    set_sgr_string(a_highlight_kind::hk_warning, "warning");
+    set_sgr_string(a_highlight_kind::hk_note, "note");
+    set_sgr_string(a_highlight_kind::hk_locus, "locus");
+    set_sgr_string(a_highlight_kind::hk_quote, "quote");
+  }  /* if */
+}  /* a_highlight_descr constructor */
+
+
+void a_highlight_descr::highlight_begin(a_text_buffer_ptr buffer,
+                                        a_highlight_kind  kind,
+                                        sizeof_t          *count)
+/*
+Emits, in buffer, the appropriate escape sequence and SGR characters to
+highlight the entity described by "kind".  If non-null, increment *count by
+the number of "invisible" characters emitted here.
+*/
+{
+  if (colorize_diagnostics) {
+    this->last_sgr_string = this->sgr[(int)kind].ptr;
+    if (this->last_sgr_string != NULL) {
+      sizeof_t original_size = buffer->size;
+      add_char_to_text_buffer(buffer, '\033');
+      add_char_to_text_buffer(buffer, '[');
+      add_string_with_length_to_text_buffer(buffer, this->last_sgr_string,
+                                            this->sgr[(int)kind].length);
+      add_char_to_text_buffer(buffer, 'm');
+      if (count != NULL) {
+        *count += buffer->size - original_size;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}  /* highlight_begin */
+
+
+void a_highlight_descr::highlight_end(a_text_buffer_ptr buffer,
+                                      sizeof_t          *count)
+/*
+Emits, in buffer, the appropriate escape sequence to reset text to the
+normal state (i.e., all display attributes turned off).  If non-null, increment
+*count by the number of "invisible" characters emitted here.
+*/
+{
+  if (colorize_diagnostics && this->last_sgr_string != NULL) {
+    sizeof_t original_size = buffer->size;
+    add_char_to_text_buffer(buffer, '\033');
+    add_char_to_text_buffer(buffer, '[');
+    add_char_to_text_buffer(buffer, '0');
+    add_char_to_text_buffer(buffer, 'm');
+    if (count != NULL) {
+      *count += buffer->size - original_size;
+    }  /* if */
+    this->last_sgr_string = NULL;
+  }  /* if */
+}  /* highlight_end */
+
+
+void a_highlight_descr::set_sgr_string(a_highlight_kind kind,
+                           a_const_char     *string)
+/*
+Find (in sgr_string) the string "string" if it exists and save a pointer to
+it (and its length) in sgr[kind].
+*/
+{
+  a_const_char *ptr = strstr(this->sgr_string, string);
+  this->sgr[(int)kind].ptr = NULL;
+  this->sgr[(int)kind].length = 0;
+  if (ptr != NULL) {
+    size_t len = strlen(string);
+    if (ptr[len] == '=') {
+      ptr += len+1;
+      a_const_char *end_ptr = strchr(ptr, ':');
+      len = (end_ptr == NULL) ? strlen(ptr) : end_ptr - ptr;
+      this->sgr[(int)kind].ptr = ptr;
+      this->sgr[(int)kind].length = len;
+      /* Make sure only valid characters are in the SGR string. */
+      for (a_const_char *p = ptr; p < ptr+len ; p++) {
+        if (*p != ';' && !isdigit((unsigned char)*p)) {
+          this->sgr[(int)kind].ptr = NULL;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+}  /* set_sgr_string */
+
+#endif /* ENABLE_COLORIZED_DIAGNOSTICS */
+
 static char *diag_copy_string(a_const_char           *string)
 /*
 Make a copy of the specified string to diag_memory_region and return
@@ -1533,6 +1662,10 @@ symbol_name:
           add_string_to_text_buffer(msg_buffer, " ");
         }  /* if */
       } /* if */
+      /* Add color if so configured. */
+      diag_color_begin(msg_buffer,
+                       a_highlight_descr::a_highlight_kind::hk_quote,
+                       &invisible_char_count);
       /* Add the beginning double quote. */
       add_string_to_text_buffer(msg_buffer, "\"");
       /* Check for special kinds of routines. */
@@ -1663,6 +1796,7 @@ symbol_name:
   }  /* switch */
   /* Add the closing double quote mark. */
   add_string_to_text_buffer(msg_buffer, "\"");
+  diag_color_end(msg_buffer, &invisible_char_count);
   /* If the name is based on template arguments, add a message to that
      effect. */
   if (dfip->variant.symbol.template_args) {
@@ -2391,7 +2525,13 @@ as appropriate.
       }  /* for */
 end_of_loop:
       /* For the pass that writes the caret, write the caret at this point. */
-      if (pass_for_caret) putcwdb('^');
+      if (pass_for_caret) {
+        diag_color_begin(msg_buffer,
+                         a_highlight_descr::a_highlight_kind::hk_locus,
+                         (sizeof_t*)NULL);
+        putcwdb('^');
+        diag_color_end(msg_buffer, (sizeof_t*)NULL);
+      }  /* if */
     }  /* if */
     output_msg_buffer();
     /* After the first pass (writing the source), go on to the second pass
@@ -2455,7 +2595,13 @@ msg_buffer for later output as appropriate.
 
 end_of_loop:
       /* For the pass that writes the caret, write the caret at this point. */
-      if (pass_for_caret) putcwdb('^');
+      if (pass_for_caret) {
+        diag_color_begin(msg_buffer,
+                         a_highlight_descr::a_highlight_kind::hk_locus,
+                         (sizeof_t*)NULL);
+        putcwdb('^');
+        diag_color_end(msg_buffer, (sizeof_t*)NULL);
+      }  /* if */
     }  /* if */
     output_msg_buffer();
     /* After the first pass (writing the source), go on to the second pass
@@ -2514,6 +2660,9 @@ also added.
   char              number_buffer[50];
   a_const_char      *error_text_string;
 
+  diag_color_begin(prefix_buffer,
+                   a_highlight_descr::a_highlight_kind::hk_locus,
+                   &invisible_char_count);
   /* Print the file and line number, with a column number if it is not
      SP_COL_UNKNOWN. */
   /* If the line is from stdin, do not display the file name. */
@@ -2550,6 +2699,7 @@ also added.
     add_string_to_text_buffer(prefix_buffer, number_buffer);
     add_string_to_text_buffer(prefix_buffer, ")");
   }  /* if */
+  diag_color_end(prefix_buffer, &invisible_char_count);
 }  /* add_position_prefix */
 
 
@@ -2647,22 +2797,39 @@ number is added into the output.
       (int)effective_severity >= (int)error_promotion_threshold) {
     effective_severity = es_discretionary_error;
   }  /* if */
+#if ENABLE_COLORIZED_DIAGNOSTICS
+  /* Assume the most used case below and change as needed. */
+  a_highlight_descr::a_highlight_kind highlight_kind =
+                                 a_highlight_descr::a_highlight_kind::hk_error;
+#endif /* ENABLE_COLORIZED_DIAGNOSTICS */
   switch (effective_severity) {
     case es_more_info:
       severity_code = capitalize_severity ? ec_More_Info : ec_more_info;
+#if ENABLE_COLORIZED_DIAGNOSTICS
+      highlight_kind = a_highlight_descr::a_highlight_kind::hk_note;
+#endif /* ENABLE_COLORIZED_DIAGNOSTICS */
       break;
     case es_remark:
       severity_code = capitalize_severity ? ec_Remark : ec_remark;
       total_remarks++;
+#if ENABLE_COLORIZED_DIAGNOSTICS
+      highlight_kind = a_highlight_descr::a_highlight_kind::hk_note;
+#endif /* ENABLE_COLORIZED_DIAGNOSTICS */
       break;
     case es_warning:
       severity_code = capitalize_severity ? ec_Warning : ec_warning;
       total_warnings++;
+#if ENABLE_COLORIZED_DIAGNOSTICS
+      highlight_kind = a_highlight_descr::a_highlight_kind::hk_warning;
+#endif /* ENABLE_COLORIZED_DIAGNOSTICS */
       break;
     case es_command_line_warning:
       severity_code = capitalize_severity ? ec_Command_line_warning
                                           : ec_command_line_warning;
       total_warnings++;
+#if ENABLE_COLORIZED_DIAGNOSTICS
+      highlight_kind = a_highlight_descr::a_highlight_kind::hk_warning;
+#endif /* ENABLE_COLORIZED_DIAGNOSTICS */
       break;
     case es_discretionary_error:
     case es_error:
@@ -2696,7 +2863,9 @@ number is added into the output.
   }  /* switch */
   if (severity_code != ec_no_error) {
     error_text_string = error_text(severity_code);
+    diag_color_begin(prefix_buffer, highlight_kind, &invisible_char_count);
     add_string_to_text_buffer(prefix_buffer, error_text_string);
+    diag_color_end(prefix_buffer, &invisible_char_count);
   }  /* if */
   /* The error number may optionally be displayed based on a command
      line option. */
@@ -3468,7 +3637,12 @@ null-terminated.
       break;
   }  /* switch */
   /* Do the actual generation of the fill-in text. */
-  if (add_quotes) add_char_to_text_buffer(msg_buffer, '"');
+  if (add_quotes) {
+    add_char_to_text_buffer(msg_buffer, '"');
+    diag_color_begin(msg_buffer,
+                     a_highlight_descr::a_highlight_kind::hk_quote,
+                     (sizeof_t*)NULL);
+  }  /* if */
   switch (kind) {
     case dfk_number:
       /* A numeric fill-in.  Add it to the message buffer. */
@@ -3502,7 +3676,10 @@ null-terminated.
     default:
       break;
   }  /* switch */
-  if (add_quotes) add_char_to_text_buffer(msg_buffer, '"');
+  if (add_quotes) {
+    diag_color_end(msg_buffer, (sizeof_t*)NULL);
+    add_char_to_text_buffer(msg_buffer, '"');
+  }  /* if */
 }  /* process_fill_in */
 
 
@@ -3530,6 +3707,13 @@ indent subsequent lines when the output wraps to more than one line.
     /* Compute the number of characters that will fit on a line taking into
        account any indentation that is required. */
     usable_line_length = diagnostic_line_length - indent;
+#if ENABLE_COLORIZED_DIAGNOSTICS
+    /* If using colorized diagnostics, the escape sequences used to do the
+       colorization are "invisible" to the user and shouldn't count when
+       doing line wrapping. */
+    usable_line_length += invisible_char_count;
+    invisible_char_count = 0;
+#endif /* ENABLE_COLORIZED_DIAGNOSTICS */
     /* Put out the required indentation. */
     for (i = 0; i < indent; ++i) {
       add_char_to_text_buffer(write_diagnostic_buffer, ' ');
@@ -4045,7 +4229,7 @@ symbol, or NO_SCOPE_DEPTH.
   dfip->variant.symbol.ptr = symbol;
   dfip->variant.symbol.scope_depth = scope_depth;
   add_fill_in_to_diagnostic(diag_ptr, dfip);
-}  /* add_string_fill_in_with_depth */
+}  /* add_symbol_fill_in_with_depth */
 
 
 static void add_symbol_fill_in(a_diagnostic_ptr	diag_ptr,
@@ -6728,6 +6912,12 @@ line processing is done.
   after_end_of_error_source_line = NULL;
   f_err_src_file = NULL;
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+#if ENABLE_COLORIZED_DIAGNOSTICS
+  /* This is initialized to NULL here to disable any colorization of early
+     diagnostics and is enabled in cmd_line.c once f_error has been
+     properly initialized. */
+  color_object = NULL;
+#endif /* ENABLE_COLORIZED_DIAGNOSTICS */
 }  /* error_early_init */
 
 

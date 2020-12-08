@@ -1200,6 +1200,65 @@ are enabled or that diagnostic is specifically enabled).
 #endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
 
 /*
+Flag that is TRUE if diagnostics should be "colorized", if possible.  Certain
+portions of diagnostic messages (e.g., the word "error"), have been
+instrumented so that they can be highlighted, hopefully making the diagnostics
+easier to read.  The highlighting is performed by inserting ANSI escape
+sequences into the diagnostic string and those escape sequences are interpreted
+by terminal emulators to produce the desired results.  These escape sequences
+are only emitted when the error device (typically stderr) refers to a terminal
+and the "TERM" environment variable is set.  No check is made to ensure that
+the terminal device is capable of rendering the highlighting nor whether the
+highlighting codes are sensible for the user's terminal emulator.
+
+This colorization can be disabled by any one of:
+  - Using the --no_colors command-line option
+  - Setting the NOCOLORS environment variable
+  - Setting the EDG_COLORS environment to ""
+
+Colorization is always disabled when not writing to a terminal device.
+*/
+#ifndef ENABLE_COLORIZED_DIAGNOSTICS
+#define ENABLE_COLORIZED_DIAGNOSTICS TRUE
+#endif /* ENABLE_COLORIZED_DIAGNOSTICS */
+
+/*
+When ENABLE_COLORIZED_DIAGNOSTICS is TRUE, the
+DEFAULT_ENABLE_COLORIZED_DIAGNOSTICS specifies whether colorized diagnostics
+should be enabled by default.
+*/
+#ifndef DEFAULT_ENABLE_COLORIZED_DIAGNOSTICS
+#define DEFAULT_ENABLE_COLORIZED_DIAGNOSTICS TRUE /* FIXME: for now */
+#endif /* DEFAULT_ENABLE_COLORIZED_DIAGNOSTICS */
+
+/*
+When colorized_diagnostics is TRUE, the escape sequences emitted to achieve
+the desired highlighting are specified by a sequence of Select Graphic
+Rendition (SGR) escape sequences (for a full description, see
+https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters).  These SGR
+sequences are set by a user-configurable string that contains the name of the
+configurable entity (e.g., "error") followed by an "=" followed by the string
+of SGR characters that should be used highlight such an entity.  So,
+"error=01;31" indicates that the entity should be bold ("01") and the
+foreground text should be red ("31").  These entities are then catenated into
+a single string, separated by ":".  The entity names can appear in any order.
+
+If the environment variable EDG_COLORS is set, that string will be used
+instead of the default string.  Similarly, if the GCC_COLORS environment
+variable is set, its value will be used (although not all values set in
+GCC_COLORS are supported by the front end).
+
+The highlighted entities currently supported are: "error", "warning", "note",
+"locus", and "quote".
+
+The default SGR color map is specified by DEFAULT_EDG_COLORS.
+*/
+#ifndef DEFAULT_EDG_COLORS
+#define DEFAULT_EDG_COLORS \
+  "error=01;31:warning=01;35:note=01;36:locus=01:quote=01"
+#endif /* !(defined(DEFAULT_EDG_COLORS) */
+
+/*
 Flag that is TRUE to cause additional IL entries to contain source position
 information.  Note that this can take a lot of extra space, so you should
 enable this only if you really need it.
@@ -3379,6 +3438,8 @@ extern void close_temp_file(FILE *temp_file);
 /* If not NULL, close *f_file. */
 extern void close_file_if_open(FILE	**f_file);
 #endif /* MAKE_FRONT_END_CALLABLE */
+
+extern a_boolean is_a_terminal(FILE *file);
 
 /*
 Types used to determine the execution time of the compiler.

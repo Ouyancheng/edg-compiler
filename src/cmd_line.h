@@ -345,6 +345,9 @@ typedef enum /*an_option_kind*/ {
   optk_ms_header_unit,
   optk_modules,
   optk_concepts,
+#if ENABLE_COLORIZED_DIAGNOSTICS
+  optk_colors,
+#endif /* ENABLE_COLORIZED_DIAGNOSTICS */
   optk_last		/* Must be last. */
 } an_option_kind;
 

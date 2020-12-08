@@ -672,6 +672,7 @@ check_abbreviation()
 --class_name_injection
 --clear_flag
 --clr
+--colors
 --command
 --comments
 --compile
@@ -820,6 +821,7 @@ check_abbreviation()
 --no_clang
 --no_class_name_injection
 --no_code_gen
+--no_colors
 --no_compound_literals
 --no_concepts
 --no_const_string_literals
@@ -1652,6 +1654,8 @@ process_option()
          --no_char8_t | \
          --relaxed_abstract_checking | \
          --no_relaxed_abstract_checking | \
+         --colors | \
+         --no_colors | \
          --concepts | \
          --no_concepts | \
          --force_vtbl | \

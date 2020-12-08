@@ -2749,6 +2749,19 @@ See comment above.
 #endif /* EDG_MSDOS */
 #endif /* EDG_WIN32 */
 
+a_boolean is_a_terminal(FILE *file)
+/*
+Returns TRUE if the underlying file descriptor is open to a "terminal" device
+(e.g., not a file or a pipe).
+*/
+{
+#if __MICROSOFT_OS__
+  return file != NULL && _isatty(_fileno(file));
+#else /* !__MICROSOFT_OS__ */
+  return file != NULL && isatty(fileno(file));
+#endif /* __MICROSOFT_OS__ */
+}  /* is_a_terminal */
+
 
 static a_const_char *get_curr_dir_name(void)
 /*
