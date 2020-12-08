@@ -3439,7 +3439,7 @@ extern void close_temp_file(FILE *temp_file);
 extern void close_file_if_open(FILE	**f_file);
 #endif /* MAKE_FRONT_END_CALLABLE */
 
-extern a_boolean is_a_terminal(FILE *file);
+extern a_boolean terminal_is_color_capable(void);
 
 /*
 Types used to determine the execution time of the compiler.

@@ -634,16 +634,9 @@ colors) to portions of certain diagnostics.
     if (getenv("NOCOLOR") != NULL) {
       /* Set the NOCOLOR environment variable to disable colorization. */
       colorize_diagnostics = FALSE;
-    } else if (!is_a_terminal(f_error)) {
+    } else if (!terminal_is_color_capable()) {
       /* Only colorize if errors are being sent to a terminal. */
       colorize_diagnostics = FALSE;
-    } else {
-      /* Also require that the TERM environment variable is set (and not
-         "dumb"). */
-      a_const_char *term = getenv("TERM");
-      if (term == NULL || strcmp(term, "dumb") == 0) {
-        colorize_diagnostics = FALSE;
-      }  /* if */
     }  /* if */
   }  /* if */
   if (colorize_diagnostics) {

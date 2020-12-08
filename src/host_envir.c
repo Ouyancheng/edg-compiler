@@ -2749,18 +2749,41 @@ See comment above.
 #endif /* EDG_MSDOS */
 #endif /* EDG_WIN32 */
 
-a_boolean is_a_terminal(FILE *file)
+a_boolean terminal_is_color_capable(void)
 /*
 Returns TRUE if the underlying file descriptor is open to a "terminal" device
-(e.g., not a file or a pipe).
+(e.g., not a file or a pipe) and that it appears that the device is color
+capable.
 */
 {
+  a_boolean result = TRUE;
 #if __MICROSOFT_OS__
-  return file != NULL && _isatty(_fileno(file));
+  if (f_error == NULL || !_isatty(_fileno(f_error))) {
+    result = FALSE;
+  } else {
+    /* Set virtual terminal processing to enable handling the escape sequences
+       on Windows. */
+    HANDLE hErr = GetStdHandle(STD_ERROR_HANDLE);
+    DWORD dwMode = 0;
+    if (hErr == INVALID_HANDLE_VALUE ||
+        !GetConsoleMode(hErr, &dwMode) ||
+        !SetConsoleMode(hErr, (dwMode | ENABLE_VIRTUAL_TERMINAL_PROCESSING))) {
+      result = FALSE;
+    }  /* if */
+  }  /* if */
 #else /* !__MICROSOFT_OS__ */
-  return file != NULL && isatty(fileno(file));
+  if (f_error == NULL || !isatty(fileno(f_error))) {
+    result = FALSE;
+  } else {
+    /* Require that the TERM environment variable is set (and not "dumb"). */
+    a_const_char *term = getenv("TERM");
+    if (term == NULL || strcmp(term, "dumb") == 0) {
+      colorize_diagnostics = FALSE;
+    }  /* if */
+  }  /* if */
 #endif /* __MICROSOFT_OS__ */
-}  /* is_a_terminal */
+  return result;
+}  /* terminal_is_color_capable */
 
 
 static a_const_char *get_curr_dir_name(void)
