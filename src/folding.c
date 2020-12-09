@@ -2141,7 +2141,7 @@ for any diagnostics issued.
       !(microsoft_mode && ms_permissive) && !gpp_mode) {
     /* The resolution of Core issue 903 only allows zero literals to produce
        null pointer constants.  Explicit casts are not permitted (i.e.,
-       something like "int(0)" is not a null pointer constant. */
+       something like "int(0)" is not a null pointer constant). */
     new_constant->null_pointer_constant_ruled_out = TRUE;
   } else {
     new_constant->null_pointer_constant_ruled_out =
