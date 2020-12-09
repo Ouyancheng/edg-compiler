@@ -2137,9 +2137,16 @@ for any diagnostics issued.
   new_constant = local_constant();
   clear_constant(new_constant, (a_constant_repr_kind)ck_error);
   /* Preserve the null_pointer_constant_ruled_out flag. */
-  new_constant->null_pointer_constant_ruled_out =
+  if (cpp11_mode && !is_implicit_cast &&
+      !(microsoft_mode && ms_permissive) && !gpp_mode) {
+    /* The resolution of Core issue 903 only allows zero literals to produce
+       null pointer constants.  Explicit casts are not permitted (i.e.,
+       something like "int(0)" is not a null pointer constant. */
+    new_constant->null_pointer_constant_ruled_out = TRUE;
+  } else {
+    new_constant->null_pointer_constant_ruled_out =
                                      constant->null_pointer_constant_ruled_out;
-
+  }  /* if */
   /* Put the new type in the destination constant (preserving typedefs
      if any; that's important). */
   new_constant->type = new_type_with_typedefs = new_type;
@@ -3315,9 +3322,12 @@ for any diagnostics issued.
       if (err_severity == es_error) depends_on_fp_mode = FALSE;
     }  /* if */
     /* If the source constant was formed using operations that are not allowed
-       in forming a null pointer constant, the result cannot be used as
-       a null pointer constant. */
+       in forming a null pointer constant, the result cannot be used as a null
+       pointer constant.  In C++11 mode, only a literal can produce a null
+       pointer constant. */
     result->null_pointer_constant_ruled_out =
+                          (cpp11_mode && !(microsoft_mode && ms_permissive) &&
+                           !gpp_version_is(<60000)) ||
                           constant->null_pointer_constant_ruled_out ||
                           !constant_is(constant, ck_integer) ||
                           constant->implicit_cast;
@@ -6186,10 +6196,13 @@ error.  *err_pos is used as the position for any diagnostics issued.
                                error_detected, err_pos, result);
       if (err_severity == es_error) depends_on_fp_mode = FALSE;
     }  /* if */
-    /* If either constant was formed using operations that are not allowed
-       in forming a null pointer constant, the result cannot be used as
-       a null pointer constant. */
+    /* If either constant was formed using operations that are not allowed in
+       forming a null pointer constant, the result cannot be used as a null
+       pointer constant.  In C++11 mode, only a literal can produce a null
+       pointer constant. */
     result->null_pointer_constant_ruled_out =
+                        (cpp11_mode && !(microsoft_mode && ms_permissive) &&
+                         !gpp_version_is(<60000)) ||
                         constant_1->null_pointer_constant_ruled_out ||
                         constant_1->kind != (a_constant_repr_kind)ck_integer ||
                         (constant_1->implicit_cast &&
