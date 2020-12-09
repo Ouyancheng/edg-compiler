@@ -2311,8 +2311,11 @@ The current token is an identifier.  Return TRUE if it is a concept name.
 {
   a_symbol_ptr  sym = locator_for_curr_id.specific_symbol;
 
-  return sym != NULL &&
-         symbol_is(locator_for_curr_id.specific_symbol, sk_concept_template);
+  if (sym == NULL) {
+    sym = normal_id_lookup(&locator_for_curr_id,
+                           IDL_DO_NOT_ADD_TO_NONREAL_CLASS);
+  }  /* if */
+  return sym != NULL && symbol_is(sym, sk_concept_template);
 }  /* curr_id_is_concept_name */
 
 

@@ -25183,7 +25183,8 @@ return FALSE and:
         more_info_diagnostic(ec_nonbool_atomic_constraint,
                              &constraint->position, diag_list);
       } else {
-        result = !is_false_constant(allocated_cp);
+        result = !constant_is(allocated_cp, ck_template_param) &&
+                 !is_false_constant(allocated_cp);
         if (!result) {
           more_info_diagnostic(ec_atomic_constraint_false,
                                &constraint->position, diag_list);
