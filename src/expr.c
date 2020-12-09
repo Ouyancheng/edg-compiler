@@ -46215,6 +46215,10 @@ memory region).  Do various error checks.
     extract_constant_from_operand_with_fs_fixup(operand, constant);
   }  /* if */
   break_constant_source_corresp(constant);
+  if (cpp11_mode && !(microsoft_mode && ms_permissive) &&
+      !gpp_version_is(<60000)) {
+    constant->null_pointer_constant_ruled_out = TRUE;
+  }  /* if */
   if (!need_backing_expr) {
     constant->expr = NULL;
   }  /* if */
