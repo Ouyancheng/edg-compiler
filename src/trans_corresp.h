@@ -41,6 +41,12 @@ EXTERN a_boolean
     trans_unit_corresp_of_unknown_entry(ptr)->primary == (char*)ptr))
 
 
+extern a_boolean f_same_name(char  *entity1,
+                             char  *entity2);
+
+#define same_name(ptr1, ptr2)                                       \
+  f_same_name((char*)(ptr1), (char*)(ptr2))
+
 /*
 Routine to record builtin type correspondences.
 */

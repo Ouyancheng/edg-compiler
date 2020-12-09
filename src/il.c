@@ -7290,28 +7290,6 @@ constant should not be treated as equivalent to the underlying expression.
 }  /* unwrap_if_tpck_expression */
 
 
-static inline a_boolean same_name(a_source_correspondence_ptr scp1,
-                                  a_source_correspondence_ptr scp2)
-/*
-Given the source correspondences of two entities, return TRUE if the entities
-have the same name, FALSE otherwise.
-*/
-{
-  a_boolean    result = FALSE;
-  a_const_char *name1 = unmangled_name_of(scp1);
-  a_const_char *name2 = unmangled_name_of(scp2);
-
-  if (name1 == name2) {
-    result = TRUE;
-  } else if (name1 == NULL || name2 == NULL) {
-    /* result = FALSE; */
-  } else if (strcmp(name1, name2) == 0) {
-    result = TRUE;
-  }  /* if */
-  return result;
-}  /* same_name */
-
-
 a_boolean compare_expressions(an_expr_node_ptr                node1,
                               an_expr_node_ptr                node2,
                               a_compare_constants_options_set options)
@@ -7393,8 +7371,16 @@ are done.
             eq = equiv_template_variables(var1, var2, options);
           } else if ((options & CC_CONSTEXPR_NAME_EQUIVALENCES_ALLOWED) != 0 &&
                      var1->is_constexpr && var2->is_constexpr &&
+                     (!is_glvalue_node(node1) || is_array_type(node1->type)) &&
+                     (!is_glvalue_node(node2) || is_array_type(node2->type)) &&
                      same_name(&var1->source_corresp, &var2->source_corresp)) {
-            eq = TRUE;
+            /* This is an ODR violation, however, the usage is somewhat benign
+               when the above conditions are satisfied.  Consider the two
+               variables "the same" when they have the same value. */
+            a_constant_ptr cp1, cp2;
+            cp1 = initializer_constant(var1);
+            cp2 = initializer_constant(var2);
+            eq = compare_constants(cp1, cp2, options);
           }  /* if */
           /* Don't do the type comparison because we may be comparing variables
              from different translation units, one of which may have an
@@ -7404,16 +7390,8 @@ are done.
         }
         break;
       case enk_routine:
-        { a_routine_ptr rp1 = node_routine(node1);
-          a_routine_ptr rp2 = node_routine(node2);
-          if (same_entities(rp1, rp2)) {
-            eq = TRUE;
-          } else if ((options & CC_CONSTEXPR_NAME_EQUIVALENCES_ALLOWED) != 0 &&
-                     rp1->is_constexpr && rp2->is_constexpr &&
-                     same_name(&rp1->source_corresp, &rp2->source_corresp)) {
-            eq = TRUE;
-          }  /* if */
-        }
+        eq = same_entities(node_routine(node1),
+                           node_routine(node2));
         break;
       case enk_field:
         eq = same_entities(node_field(node1), node_field(node2));

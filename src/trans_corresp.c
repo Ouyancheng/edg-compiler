@@ -2201,8 +2201,8 @@ visited; otherwise, they may yet be set to correspond to another entry.
 }  /* clear_scope_correspondence */
 
 
-static a_boolean f_same_name(char  *entity1,
-                             char  *entity2)
+a_boolean f_same_name(char  *entity1,
+                      char  *entity2)
 /*
 Return whether the given entities have the same name (in most cases, their
 associated symbols are listed under the same header).
@@ -2243,9 +2243,6 @@ associated symbols are listed under the same header).
   }  /* if */
   return match;
 }  /* f_same_name */
-
-#define same_name(ptr1, ptr2)                                       \
-  f_same_name((char*)(ptr1), (char*)(ptr2))
 
 
 static a_boolean f_verify_name_correspondence(char  *entity1)
