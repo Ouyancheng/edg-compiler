@@ -18168,9 +18168,7 @@ indication in *rcblock).
   a_boolean         reference_case = FALSE, rvalue_reference_case = FALSE;
   a_boolean         tracking_reference_case = FALSE, handle_case = FALSE;
   a_boolean         template_param_case = FALSE;
-#if IA64_ABI
   a_boolean         void_star_case = FALSE;
-#endif /* IA64_ABI */
   an_expr_node_ptr  expr;
 #if DOING_SOURCE_ANALYSIS || BACK_END_IS_CP_GEN_BE
   a_base_class_ptr  bcp = NULL;
@@ -18239,9 +18237,7 @@ indication in *rcblock).
       } else if (!reference_case && is_void_type(underlying_cast_type)) {
         /* Casting to void * is okay. */
         cast_type_okay = TRUE;
-#if IA64_ABI
         void_star_case = TRUE;
-#endif /* IA64_ABI */
       } else if (is_template_param_type(underlying_cast_type)) {
         /* Casting to a pointer or reference to a template parameter type
            is okay in a prototype instantiation. */
@@ -18410,7 +18406,8 @@ indication in *rcblock).
 #endif /* DOING_SOURCE_ANALYSIS || BACK_END_IS_CP_GEN_BE */
                      find_base_class_of(underlying_operand_type,
                                         underlying_cast_type)) != NULL) ||
-             (!reference_case && op_is_null_pointer_value(&operand))) {
+             (!reference_case && op_is_null_pointer_value(&operand) &&
+              !void_star_case)) {
     /* Cases where the cast is known at compile time and does not require
        a dynamic cast at runtime:
        -  The types are already the same except for qualifiers.

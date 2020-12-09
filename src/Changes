@@ -1,5 +1,19 @@
 Version 6.2
 
+12/9/20  [EDGcpfe/23648]
+Missing diagnostic on dynamic_cast<void*> applied to null pointer value
+
+The front end previously accepted the following example:
+
+  struct S {};
+  auto p = dynamic_cast<void*>((S*)nullptr);  // Previously accepted.
+                                              // Now an error.
+
+The standard, however, requires a diagnostic because S is not polymorphic
+(and that is relied upon by a common SFINAE idiom to determine if a class type
+is polymorphic).  This is now fixed: A diagnostic is issued.
+
+
 12/9/20  [EDGcpfe/14164,EDGcpfe/19415,EDGcpfe/23273]
 Core issue 903: Null pointer constants
 
