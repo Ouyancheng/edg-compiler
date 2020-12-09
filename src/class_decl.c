@@ -21611,8 +21611,10 @@ static a_boolean type_is_constexpr_default_constructible(a_type_ptr  type,
                                                          a_type_ptr  context)
 /*
 Return TRUE if "type" is a class type with an accessible, unambiguous constexpr
-default constructor, or an array thereof.  For access checking, use "context"
-as the class type from which the constructor is selected.
+default constructor, or an array thereof.  In C++20 mode, also return TRUE for
+non-class types and for class types that have a trivial default constructor.
+For access checking, use "context" as the class type from which the constructor
+is selected.
 */
 {
   a_boolean      result = FALSE, error_detected, err;
@@ -21634,13 +21636,23 @@ as the class type from which the constructor is selected.
       result = default_ctor->is_constexpr ||
                default_ctor->is_declared_constexpr;
     } else {
+      /* Empty class types are typically constexpr-constructible (unless they
+         are not constexpr-destructible).  In C++20, actual initialization is
+         no longer required (per the committee's paper P1331R2), and therefore
+         nonempty class types with a trivial default constructor are constexpr-
+         default-constructible if the destructor is trivial or constexpr. */
       a_class_symbol_supplement_ptr
-        cssp = class_symbol_supp(symbol_for(type));
+                 cssp = class_symbol_supp(symbol_for(type));
       result = has_trivial_default_constructor(cssp) &&
-               !has_nontrivial_destructor(cssp) &&
+               (!has_nontrivial_destructor(cssp) ||
+                cssp->destructor->variant.routine.ptr->is_constexpr) &&
                !error_detected &&
-               type->variant.class_struct_union.is_empty_class;
+               (type->variant.class_struct_union.is_empty_class || cpp20_mode);
     }  /* if */
+  } else if (cpp20_mode) {
+    /* In C++20, non-class types are constexpr-default-constructible (see the
+       committee's paper P1331).*/
+    result = TRUE;
   }  /* if */
   return result;
 }  /* type_is_constexpr_default_constructible */
@@ -21712,13 +21724,13 @@ static a_boolean fields_initialized_for_constexpr_constructor(
                                                      a_boolean   limited_check)
 /*
 Return TRUE if the field initialization constraints for a generated constexpr
-default constructor are satisfied by the given class type.  For non-union
-types, all fields must be initialized, and for union types exactly one field
-must be initialized.  The initializers must also be constants, but we do not
-enforce that when limited_check is TRUE or for template classes (to avoid
-forcing the premature instantiation of the initializers).  Volatile fields are
-never validly initialized in a constant-expression and thus cause this routine
-to return FALSE unless limited_check is TRUE.
+default constructor are satisfied by the given class type.  Prior to C++20,
+all fields must be initialized for non-union types, and for union types exactly
+one field must be initialized.  The initializers must also be constants, but we
+do not enforce that when limited_check is TRUE or for template classes (to
+avoid forcing the premature instantiation of the initializers).  Volatile
+fields are never validly initialized in a constant-expression and thus cause
+this routine to return FALSE unless limited_check is TRUE.
 */
 {
   a_boolean    okay = TRUE, initializer_seen = FALSE;
@@ -21750,6 +21762,9 @@ to return FALSE unless limited_check is TRUE.
           continue;
         }  /* if */
       } else {
+        /* In C++20 mode, type_is_constexpr_default_constructible also returns
+           TRUE when fp->type is a non-class types or a class type with a
+           trivial default constructor. */
         member_initialized = fp->has_initializer ||
                              type_is_constexpr_default_constructible(
                                                         fp->type, class_type);

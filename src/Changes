@@ -1,5 +1,24 @@
 Version 6.2
 
+12/9/20  [EDGcpfe/23646]
+C++20: Defaulted explicitly constexpr default-constructors
+
+Consider:
+
+  struct S {
+    int i;
+    constexpr S() = default;  // Now accepted in C++20 mode.
+  };
+
+Previously this elicited an error in all C++ modes, because the default
+constructor is declared constexpr but fails to initialize the member i.
+However, the committee's paper P1331R2 lifted the requirement that a constexpr
+constructor initialize all its subobjects: The example is therefore now
+accepted in C++20 mode (but still an error in non-C++20 modes).  See also the
+entry for EDGcpfe/23055, which covers the similar case for a non-defaulted
+constexpr constructor definition.
+
+
 12/9/20  [EDGcpfe/23648]
 Missing diagnostic on dynamic_cast<void*> applied to null pointer value
 
