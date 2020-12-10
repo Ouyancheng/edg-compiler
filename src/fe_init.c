@@ -1148,6 +1148,8 @@ Install the keywords in the symbol table.
          be shared with __builtin_shuffle). */
       enter_keyword((a_token_kind)tok_builtin_shufflevector,
                     "__builtin_shufflevector");
+    }  /* if */
+    if (clang_mode || gnu_version >= 90000) {
       enter_keyword((a_token_kind)tok_builtin_convertvector,
                     "__builtin_convertvector");
     }  /* if */

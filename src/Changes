@@ -1,5 +1,12 @@
 Version 6.2
 
+12/10/20 [EDGcpfe/23640]
+GNU compatibility: __builtin_convertvector
+
+The __builtin_convertvector builtin has now been enabled when
+gnu_version >= 90000.
+
+
 12/10/20 [EDGcpfe/22967,EDGcpfe/23184]
 Abort in anon_union_field_is_active_field
 
