@@ -2945,6 +2945,19 @@ option values if they were not already set by a command line option.
           destroying_operator_delete_enabled = TRUE;
         }  /* if */
       }  /* if */
+      if (microsoft_version >= 1928) {
+        /* Visual Studio versions 16.8 and 16.9. */
+        /* If necessary, the build number can be used to distinguish these
+           (with 16.9 starting at build number 29500). */
+        if (ms_cpp20_mode) {
+          concepts_enabled = TRUE;
+          abbr_func_templates_enabled = TRUE;
+        }  /* if */
+      }  /* if */
+      if (microsoft_version >= 1929) {
+        /* Visual Studio versions 16.10 and 16.11. */
+        /* Placeholder for future releases (build numbers TBD). */
+      }  /* if */
     } else {
       /* Disable unrestricted unions because they involve making some special
          member functions "deleted", whereas Microsoft compilers prior to 1900

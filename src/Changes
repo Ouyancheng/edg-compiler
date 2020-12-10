@@ -1,5 +1,22 @@
 Version 6.2
 
+12/10/20 [EDGcpfe/23550]
+Microsoft compatibility: enabling concepts
+
+The C++20 concepts feature (see the Changes entry for EDGcpfe/20005,
+EDGcpfe/20118) is now enabled in Microsoft emulation mode when
+microsoft_version >= 1928 and --ms_c++latest is specified.
+
+A slight versioning change is also taking place to follow the changes made
+in the Microsoft Visual Studio numbering.  Previously, emulating Visual Studio
+16.x typically meant setting microsoft_version to 192x, but beginning with
+Visual Studio 16.9, some Visual Studio releases will share the same
+microsoft_version number (e.g., 16.8 and 16.9 will both map to a
+microsoft_version value of 1928) and can be distinguished (if necessary)
+by specifying the appropriate microsoft_build_number (build numbers 29500 and
+above indicate Visual Studio 16.9).
+
+
 12/10/20 [EDGcpfe/23640]
 GNU compatibility: __builtin_convertvector
 
