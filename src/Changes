@@ -79,8 +79,8 @@ DEFAULT_EDG_COLORS macro whose default value is:
 
 The string is a colon-separated list of "value"="SGR codes" pairs where
 "value" is from the list above.  The values can appear in any order.  Any that
-are unset are not used.  Setting the EDG_COLOR environment variable overrides
-the default value.  If EDG_COLOR is unset, GCC_COLOR is used if set.
+are unset are not used.  Setting the EDG_COLORS environment variable overrides
+the default value.  If EDG_COLORS is unset, GCC_COLORS is used if set.
 
 The changes above are conditional on ENABLE_COLORIZED_DIAGNOSTICS
 (which defaults to TRUE) and are conditionally enabled by setting
