@@ -21647,9 +21647,10 @@ is selected.
                (!has_nontrivial_destructor(cssp) ||
                 cssp->destructor->variant.routine.ptr->is_constexpr) &&
                !error_detected &&
-               (type->variant.class_struct_union.is_empty_class || cpp20_mode);
+               (type->variant.class_struct_union.is_empty_class ||
+                (cpp20_mode && !type_is(context, tk_union)));
     }  /* if */
-  } else if (cpp20_mode) {
+  } else if (cpp20_mode && !type_is(context, tk_union)) {
     /* In C++20, non-class types are constexpr-default-constructible (see the
        committee's paper P1331R2). */
     result = TRUE;
