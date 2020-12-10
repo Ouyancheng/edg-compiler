@@ -892,10 +892,8 @@ struct a_highlight_descr {
   explicit a_highlight_descr();
   ~a_highlight_descr() = delete;
   void highlight_begin(a_text_buffer_ptr buffer,
-                       a_highlight_kind  kind,
-                       sizeof_t          *count);
-  void highlight_end(a_text_buffer_ptr buffer,
-                     sizeof_t          *count);
+                       a_highlight_kind  kind);
+  void highlight_end(a_text_buffer_ptr buffer);
 private:
   void set_sgr_string(a_highlight_kind kind,
                       a_const_char     *string);
@@ -925,17 +923,17 @@ EXTERN a_highlight_descr
                            conditions with error reporting during startup). */
 
 /* Macro interfaces to highlight_begin/end for typical uses. */
-#define diag_color_begin(buffer, kind, count)                                 \
+#define diag_color_begin(buffer, kind)                                        \
   if (color_object != NULL) {                                                 \
-    color_object->highlight_begin(buffer, kind, count);                       \
+    color_object->highlight_begin(buffer, kind);                              \
   }
-#define diag_color_end(buffer, count)                                         \
+#define diag_color_end(buffer)                                                \
   if (color_object != NULL) {                                                 \
-    color_object->highlight_end(buffer, count);                               \
+    color_object->highlight_end(buffer);                                      \
   }
 #else /* !ENABLE_COLORIZED_DIAGNOSTICS */
-#define diag_color_begin(buffer, kind, count) /**/
-#define diag_color_end(buffer, count) /**/
+#define diag_color_begin(buffer, kind) /**/
+#define diag_color_end(buffer) /**/
 #endif /* ENABLE_COLORIZED_DIAGNOSTICS */
 
 /* Conditionally close the "edg" namespace. */

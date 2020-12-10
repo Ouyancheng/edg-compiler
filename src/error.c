@@ -617,11 +617,6 @@ static a_recorded_diagnostic_ptr
 
 #if ENABLE_COLORIZED_DIAGNOSTICS
 
-static sizeof_t invisible_char_count;
-                        /* A count of the number of "invisible" characters
-                           that exist in an output buffer (so these can
-                           be accounted for when doing line wrapping). */
-
 a_highlight_descr::a_highlight_descr()
 /*
 Constructor to initialize information used to add display attributes (e.g.,
@@ -660,48 +655,36 @@ colors) to portions of certain diagnostics.
 
 
 void a_highlight_descr::highlight_begin(a_text_buffer_ptr buffer,
-                                        a_highlight_kind  kind,
-                                        sizeof_t          *count)
+                                        a_highlight_kind  kind)
 /*
 Emits, in buffer, the appropriate escape sequence and SGR characters to
-highlight the entity described by "kind".  If non-null, increment *count by
-the number of "invisible" characters emitted here.
+highlight the entity described by "kind".
 */
 {
   if (colorize_diagnostics) {
     this->last_sgr_string = this->sgr[(int)kind].ptr;
     if (this->last_sgr_string != NULL) {
-      sizeof_t original_size = buffer->size;
       add_char_to_text_buffer(buffer, '\033');
       add_char_to_text_buffer(buffer, '[');
       add_string_with_length_to_text_buffer(buffer, this->last_sgr_string,
                                             this->sgr[(int)kind].length);
       add_char_to_text_buffer(buffer, 'm');
-      if (count != NULL) {
-        *count += buffer->size - original_size;
-      }  /* if */
     }  /* if */
   }  /* if */
 }  /* highlight_begin */
 
 
-void a_highlight_descr::highlight_end(a_text_buffer_ptr buffer,
-                                      sizeof_t          *count)
+void a_highlight_descr::highlight_end(a_text_buffer_ptr buffer)
 /*
 Emits, in buffer, the appropriate escape sequence to reset text to the
-normal state (i.e., all display attributes turned off).  If non-null, increment
-*count by the number of "invisible" characters emitted here.
+normal state (i.e., all display attributes turned off).
 */
 {
   if (colorize_diagnostics && this->last_sgr_string != NULL) {
-    sizeof_t original_size = buffer->size;
     add_char_to_text_buffer(buffer, '\033');
     add_char_to_text_buffer(buffer, '[');
     add_char_to_text_buffer(buffer, '0');
     add_char_to_text_buffer(buffer, 'm');
-    if (count != NULL) {
-      *count += buffer->size - original_size;
-    }  /* if */
     this->last_sgr_string = NULL;
   }  /* if */
 }  /* highlight_end */
@@ -1077,8 +1060,7 @@ being formed and is used to eliminate redundant file names in a diagnostic.
     conv_seq_to_file_and_line(pos->seq, &file_name, &full_name,
                               &line_number, &at_end_of_source);
     diag_color_begin(msg_buffer,
-                     a_highlight_descr::a_highlight_kind::hk_range1,
-                     &invisible_char_count);
+                     a_highlight_descr::a_highlight_kind::hk_range1);
     if (at_end_of_source) {
       add_string_to_text_buffer(msg_buffer, end_of_source_string);
     } else {
@@ -1115,7 +1097,7 @@ being formed and is used to eliminate redundant file names in a diagnostic.
       }  /* if */
       add_string_to_text_buffer(msg_buffer, suffix_string);
     }  /* if */
-    diag_color_end(msg_buffer, &invisible_char_count);
+    diag_color_end(msg_buffer);
   }  /* if */
 }  /* form_source_position */
 
@@ -1662,8 +1644,7 @@ symbol_name:
       } /* if */
       /* Add color if so configured. */
       diag_color_begin(msg_buffer,
-                       a_highlight_descr::a_highlight_kind::hk_quote,
-                       &invisible_char_count);
+                       a_highlight_descr::a_highlight_kind::hk_quote);
       /* Add the beginning double quote. */
       add_string_to_text_buffer(msg_buffer, "\"");
       /* Check for special kinds of routines. */
@@ -1794,7 +1775,7 @@ symbol_name:
   }  /* switch */
   /* Add the closing double quote mark. */
   add_string_to_text_buffer(msg_buffer, "\"");
-  diag_color_end(msg_buffer, &invisible_char_count);
+  diag_color_end(msg_buffer);
   /* If the name is based on template arguments, add a message to that
      effect. */
   if (dfip->variant.symbol.template_args) {
@@ -2525,10 +2506,9 @@ end_of_loop:
       /* For the pass that writes the caret, write the caret at this point. */
       if (pass_for_caret) {
         diag_color_begin(msg_buffer,
-                         a_highlight_descr::a_highlight_kind::hk_locus,
-                         (sizeof_t*)NULL);
+                         a_highlight_descr::a_highlight_kind::hk_locus);
         putcwdb('^');
-        diag_color_end(msg_buffer, (sizeof_t*)NULL);
+        diag_color_end(msg_buffer);
       }  /* if */
     }  /* if */
     output_msg_buffer();
@@ -2595,10 +2575,9 @@ end_of_loop:
       /* For the pass that writes the caret, write the caret at this point. */
       if (pass_for_caret) {
         diag_color_begin(msg_buffer,
-                         a_highlight_descr::a_highlight_kind::hk_locus,
-                         (sizeof_t*)NULL);
+                         a_highlight_descr::a_highlight_kind::hk_locus);
         putcwdb('^');
-        diag_color_end(msg_buffer, (sizeof_t*)NULL);
+        diag_color_end(msg_buffer);
       }  /* if */
     }  /* if */
     output_msg_buffer();
@@ -2659,8 +2638,7 @@ also added.
   a_const_char      *error_text_string;
 
   diag_color_begin(prefix_buffer,
-                   a_highlight_descr::a_highlight_kind::hk_locus,
-                   &invisible_char_count);
+                   a_highlight_descr::a_highlight_kind::hk_locus);
   /* Print the file and line number, with a column number if it is not
      SP_COL_UNKNOWN. */
   /* If the line is from stdin, do not display the file name. */
@@ -2697,7 +2675,7 @@ also added.
     add_string_to_text_buffer(prefix_buffer, number_buffer);
     add_string_to_text_buffer(prefix_buffer, ")");
   }  /* if */
-  diag_color_end(prefix_buffer, &invisible_char_count);
+  diag_color_end(prefix_buffer);
 }  /* add_position_prefix */
 
 
@@ -2861,9 +2839,9 @@ number is added into the output.
   }  /* switch */
   if (severity_code != ec_no_error) {
     error_text_string = error_text(severity_code);
-    diag_color_begin(prefix_buffer, highlight_kind, &invisible_char_count);
+    diag_color_begin(prefix_buffer, highlight_kind);
     add_string_to_text_buffer(prefix_buffer, error_text_string);
-    diag_color_end(prefix_buffer, &invisible_char_count);
+    diag_color_end(prefix_buffer);
   }  /* if */
   /* The error number may optionally be displayed based on a command
      line option. */
@@ -3638,8 +3616,7 @@ null-terminated.
   if (add_quotes) {
     add_char_to_text_buffer(msg_buffer, '"');
     diag_color_begin(msg_buffer,
-                     a_highlight_descr::a_highlight_kind::hk_quote,
-                     (sizeof_t*)NULL);
+                     a_highlight_descr::a_highlight_kind::hk_quote);
   }  /* if */
   switch (kind) {
     case dfk_number:
@@ -3675,7 +3652,7 @@ null-terminated.
       break;
   }  /* switch */
   if (add_quotes) {
-    diag_color_end(msg_buffer, (sizeof_t*)NULL);
+    diag_color_end(msg_buffer);
     add_char_to_text_buffer(msg_buffer, '"');
   }  /* if */
 }  /* process_fill_in */
@@ -3705,13 +3682,6 @@ indent subsequent lines when the output wraps to more than one line.
     /* Compute the number of characters that will fit on a line taking into
        account any indentation that is required. */
     usable_line_length = diagnostic_line_length - indent;
-#if ENABLE_COLORIZED_DIAGNOSTICS
-    /* If using colorized diagnostics, the escape sequences used to do the
-       colorization are "invisible" to the user and shouldn't count when
-       doing line wrapping. */
-    usable_line_length += invisible_char_count;
-    invisible_char_count = 0;
-#endif /* ENABLE_COLORIZED_DIAGNOSTICS */
     /* Put out the required indentation. */
     for (i = 0; i < indent; ++i) {
       add_char_to_text_buffer(write_diagnostic_buffer, ' ');
@@ -3721,15 +3691,66 @@ indent subsequent lines when the output wraps to more than one line.
       /* Output as much of the string as will fit on a line.  Wrap
          at a blank, if possible; otherwise, just wrap at the end of the
          line. */
-      segment_length = usable_line_length;
-      curr_char = segment_start + segment_length - 1;
-      /* If the character after the end is a blank, wrap on that one. */
-      if (curr_char[1] == ' ') curr_char++;
-      /* Look backward from the end of the line to find a blank. */
-      while (curr_char > segment_start && *curr_char != ' ') curr_char--;
-      /* If we found a blank, compute the length of the string up to the
-         character before the blank. */
-      if (*curr_char == ' ') segment_length = curr_char - segment_start;
+#if ENABLE_COLORIZED_DIAGNOSTICS
+      if (colorize_diagnostics) {
+        /* If using colorized diagnostics, the escape sequences used to do the
+           colorization are effectively hidden (i.e., they don't count towards
+           the character count when doing line wrapping).  Inspect the line
+           character by character to make sure these hidden sequences are
+           handled properly (i.e., don't count towards wrapping and aren't
+           split in the middle of a sequence). */
+        a_const_char *last_blank = NULL;
+        sizeof_t     visible;
+        curr_char = segment_start;
+        for (visible = 0; visible < usable_line_length - 1; visible++) {
+          while (curr_char[0] == '\033' && curr_char[1] == '[') {
+            /* Anything between "\033[" and "m" is used for colorization, so
+               skip over these characters. */
+            curr_char = strchr(curr_char+2, 'm');
+            check_assertion(curr_char != NULL);
+            curr_char++;
+          }  /* while */
+          curr_char++;
+          if (curr_char[0] == '\0') {
+            /* We're at the end of the buffer; that means that we don't
+               actually need to wrap this last segment (it just appeared that
+               way because of the added display attribute sequences). */
+            goto write_segment_start;
+          }  /* if */
+          if (curr_char[0] == ' ') {
+            last_blank = curr_char;
+          }  /* if */
+        }  /* for */
+        check_assertion(curr_char <
+                                  &prefix_buffer->buffer[prefix_buffer->size]);
+        if (curr_char[1] == ' ') {
+          /* Next character is a blank, wrap there. */
+          curr_char++;
+        } else if (curr_char[0] != ' ') {
+          /* If we didn't end on a blank, wrap at the last seen blank. */
+          if (last_blank != NULL) {
+            curr_char = last_blank;
+          } else {
+            /* Wrap at next character (to match behavior below). */
+            curr_char++;
+          }  /* if */
+        }  /* if */
+        segment_length = curr_char - segment_start;
+        check_assertion(segment_length <= length);
+      } else
+#endif /* ENABLE_COLORIZED_DIAGNOSTICS */
+      /* Do not insert code here. */
+      {
+        segment_length = usable_line_length;
+        curr_char = segment_start + segment_length - 1;
+        /* If the character after the end is a blank, wrap on that one. */
+        if (curr_char[1] == ' ') curr_char++;
+        /* Look backward from the end of the line to find a blank. */
+        while (curr_char > segment_start && *curr_char != ' ') curr_char--;
+        /* If we found a blank, compute the length of the string up to the
+           character before the blank. */
+        if (*curr_char == ' ') segment_length = curr_char - segment_start;
+      }  /* if */
       add_to_text_buffer(write_diagnostic_buffer, segment_start,
                          segment_length);
       add_char_to_text_buffer(write_diagnostic_buffer, '\n');
@@ -3738,6 +3759,7 @@ indent subsequent lines when the output wraps to more than one line.
       length -= segment_length;
       segment_start += segment_length;
     } else {
+write_segment_start:
       add_string_to_text_buffer(write_diagnostic_buffer, segment_start);
       add_char_to_text_buffer(write_diagnostic_buffer, '\n');
       break;
