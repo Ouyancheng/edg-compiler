@@ -1766,6 +1766,7 @@ is used for the increment/decrement).
     /* A post-increment or post-decrement.  Add a comma expression to
        return the value of the temporary, which is the original value
        of the operand. */
+    check_assertion(temp_var != NULL);
     op_node = make_comma_node(op_node, var_rvalue_expr(temp_var));
   }  /* if */
   overwrite_node(expr, op_node);
@@ -2980,6 +2981,7 @@ Lower the indicated fixed-point increment or decrement operation.
     /* A post-increment or post-decrement.  Add a comma expression to
        return the value of the temporary, which is the original value
        of the operand. */
+    check_assertion(temp_var != NULL);
     op_node = make_comma_node(op_node, var_rvalue_expr(temp_var));
   }  /* if */
   overwrite_node(expr, op_node);

@@ -13000,6 +13000,7 @@ Do IL lowering of an enk_temp_init expression node.
       an_expr_node_ptr dest_expr;
       /* copy_init_pos_descr need not be called here; there's no point in
          allocating any modifiers in the heap. */
+      check_assertion(dip->master_entry != NULL);
       ipd = *dip->master_entry->init_destination;
       dest_expr = make_init_entity_node(&ipd, result_is_lvalue,
                                         /*using_as_dest=*/FALSE);
