@@ -21651,7 +21651,7 @@ is selected.
     }  /* if */
   } else if (cpp20_mode) {
     /* In C++20, non-class types are constexpr-default-constructible (see the
-       committee's paper P1331).*/
+       committee's paper P1331R2). */
     result = TRUE;
   }  /* if */
   return result;
@@ -21763,7 +21763,7 @@ this routine to return FALSE unless limited_check is TRUE.
         }  /* if */
       } else {
         /* In C++20 mode, type_is_constexpr_default_constructible also returns
-           TRUE when fp->type is a non-class types or a class type with a
+           TRUE when fp->type is a non-class type or a class type with a
            trivial default constructor. */
         member_initialized = fp->has_initializer ||
                              type_is_constexpr_default_constructible(
