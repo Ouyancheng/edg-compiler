@@ -21613,8 +21613,7 @@ static a_boolean type_is_constexpr_default_constructible(a_type_ptr  type,
 Return TRUE if "type" is a class type with an accessible, unambiguous constexpr
 default constructor, or an array thereof.  In C++20 mode, also return TRUE for
 non-class types and for class types that have a trivial default constructor.
-For access checking, use "context" as the class type from which the constructor
-is selected.
+If type is the type of a subobject, context is the type of its parent object.
 */
 {
   a_boolean      result = FALSE, error_detected, err;
