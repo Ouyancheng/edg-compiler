@@ -6003,7 +6003,9 @@ otherwise, this routine will look up that storage in ips->map.
       ips->is_constant_evaluated = TRUE;
     }  /* if */
     if (do_constexpr_dynamic_init(ips, dip, pos, storage, storage)) {
-      mark_complete_object_initialized(storage);
+      if (!is_immediate_class_type(tp) && !type_is(tp, tk_array)) {
+        mark_complete_object_initialized(storage);
+      }  /* if */
     } else {
       do_constexpr_fail(result);
     }  /* if */
@@ -10496,7 +10498,9 @@ the body of the (constructor) function proper.
         } else if (!do_constexpr_expression(ips, arg, arg_bytes, arg_bytes)) {
           do_constexpr_fail(result);
         }  /* if */
-        mark_complete_object_initialized(arg_bytes);
+        if (!is_immediate_class_type(tp) && !type_is(tp, tk_array)) {
+          mark_complete_object_initialized(arg_bytes);
+        }  /* if */
       }  /* if */
       if (restore_lvalue) {
         arg->is_lvalue = TRUE;
@@ -10723,9 +10727,6 @@ the body of the (constructor) function proper.
       }  /* if */
     }  /* for */
     mark_subobject_initialized(result_storage, complete_object);
-    if (result_storage == complete_object) {
-      mark_complete_object_initialized(complete_object);
-    }  /* if */
     /* Run the function's top-level block statement. */
     if (!result) {
       /* Something went wrong.  Don't perform additional interpretation. */
@@ -11393,7 +11394,7 @@ complete_object).  Otherwise, return FALSE and record a diagnostic in *ips.
        target representation. */
     alloc_stack_bytes(ips, (a_byte_count)type_size, target_result_storage);
     alloc_stack_bytes(ips, (a_byte_count)type_size, target_result_bitmap);
-    debug_scramble(target_result_storage, type_size);
+    memzero(target_result_storage, type_size);
     memzero((char*)target_result_bitmap, type_size);
     if (!translate_interpreter_object_to_target_bytes(ips, src_type,
                                                       src_result_storage,
@@ -11412,9 +11413,10 @@ complete_object).  Otherwise, return FALSE and record a diagnostic in *ips.
                                                       complete_object)) {
       result = FALSE;
     }  /* if */
-  }  /* if */
-  if (!result) {
-    do_constexpr_fail(result);
+    if (result) {
+      mark_whole_subobject_initialized(
+                             ips, result_storage, dst_type, complete_object);
+    }  /* if */
   }  /* if */
   return result;
 }  /* do_constexpr_builtin_bit_cast */
