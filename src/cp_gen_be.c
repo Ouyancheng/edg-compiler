@@ -19081,10 +19081,12 @@ one that yields the value) of a statement expression.
     case stmk_return:
       /* "return" statement: generate "return;" or "return expr;". */
       { a_boolean simple_return = is_simple_return(statement);
-        /* If this is a simple return at the end of the function, it can
-           be omitted.  In fact, cfront doesn't like return statements in
-           inline routines, so it's desirable that it be omitted. */
-        if (simple_return && is_return_at_end_of_function(statement)) {
+        /* If this is a simple return at the end of the function and with
+           no statement attributes, it can be omitted.  In fact, cfront
+           doesn't like return statements in inline routines, so it's
+           desirable that it be omitted. */
+        if (simple_return && is_return_at_end_of_function(statement) &&
+            statement->attributes == NULL) {
           /* Simple return omitted. */
           suppress_trailing_space = TRUE;
         } else {

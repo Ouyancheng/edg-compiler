@@ -1,5 +1,20 @@
 Version 6.2
 
+12/11/20 [EDGcpfe/23679]
+C++-generating back end: return statement with attributes
+
+Previously, the C++-generating back end always omitted a return statement
+with no expression appearing at the end of a function, since simply flowing
+off the end of the function is equivalent to a return with no expression.
+However, that omission resulted in incorrect code when the return statement
+carries an attribute.  This is now fixed, and such return statements are
+now preserved in the generated code.  For example, with --c++14:
+
+  void foo() {
+    [[likely]] return;  // Previously generated only the attribute
+  }
+
+
 12/10/20 [EDGcpfe/23550]
 Microsoft compatibility: enabling concepts
 
