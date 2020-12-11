@@ -42,9 +42,9 @@ gnu_version >= 90000.
 12/10/20 [EDGcpfe/22967,EDGcpfe/23184]
 Abort in anon_union_field_is_active_field
 
-The front end previously sometimes abort in anon_union_field_is_active_field.
-This a regression, introduced by the changes for EDGcpfe/22948 in version 6.1,
-is now fixed.
+The front end previously sometimes aborted in anon_union_field_is_active_field.
+This regression, introduced by the changes for EDGcpfe/22948 in version 6.1, is
+now fixed.
 
 
 12/9/20  [EDGcpfe/23646]
