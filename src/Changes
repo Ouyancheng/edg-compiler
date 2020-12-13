@@ -135,7 +135,7 @@ DEFAULT_ENABLE_COLORIZED_DIAGNOSTICS (which defaults to FALSE).  Additionally,
 colorized diagnostics are also disabled if any of the following are true:
 
   - The diagnostic output is not a terminal device.
-  - The EDG_COLOR environment variable is set to the empty string.
+  - The EDG_COLORS environment variable is set to the empty string.
   - The NOCOLOR environment variable is set.
   - The TERM environment variable is not set (or is set to "dumb").
 
