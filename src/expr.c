@@ -40293,9 +40293,14 @@ an enumerator.
                Similarly, the Microsoft compiler either warns or accepts
                various invalid narrowing cases. */
             sev = es_warning;
+            prep_initializer_operand(operand, dest_type,
+                                     (a_boolean *)NULL, (a_conv_descr_ptr)NULL,
+                                     /*is_copy_initialization=*/TRUE,
+                                     CCO_DEFAULT, ec_unconvertible_con_expr);
+          } else {
+            pos_opt_ty2_diagnostic(sev, err_code, &operand->position,
+                                   operand->type, dest_type);
           }  /* if */
-          pos_opt_ty2_diagnostic(sev, err_code, &operand->position,
-                                 operand->type, dest_type);
         } else {
           pos_ty_str_error(ec_bad_conv_constant_expr_type, &operand->position,
                            operand->type,
