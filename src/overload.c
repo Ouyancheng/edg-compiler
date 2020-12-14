@@ -18099,7 +18099,8 @@ select_best_function:
         candidate_functions->supplemental_reversed_candidate &&
         candidate_functions->function_symbol->is_class_member &&
         same_candidate_types(candidate_functions, candidate_functions->next) &&
-        identical_types(operand_1->type, operand_2->type)) {
+        identical_types_ignoring_qualifiers(operand_1->type,
+                                            operand_2->type)) {
       /* This is an ambiguity between two candidates in a context where we
          considered reversed comparison operator candidates, and the operands
          have identical types.  For example:
