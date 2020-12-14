@@ -12047,7 +12047,7 @@ is within the given complete_object.
         check_assertion(constant_is(field_con, ck_dynamic_init));
         sub_dip = field_con->variant.dynamic_init.ptr;
         get_stack_bytes(ips, vp, var_storage);
-        if (uvtp->kind == (a_type_kind)tk_pointer) {
+        if (type_is(uvtp, tk_pointer)) {
           if (uvtp->variant.pointer.is_reference ||
               (vp->is_this_parameter && !cap->capture_by_reference)) {
             /* For a reference variable, capture the referenced value.
@@ -12060,10 +12060,6 @@ is within the given complete_object.
         /* Get the value of the captured variable. */
         if (var_storage != NULL) {
           /* We already have the variable's value in interpreter storage. */
-          if (!complete_object_is_initialized(var_storage)) {
-            info_with_pos(ec_object_not_initialized, pos, ips);
-            do_constexpr_fail(result);
-          }  /* if */
         } else if (cap->capture_by_reference) {
           /* We are not capturing the variable's value, only its address. */
         } else if (is_volatile_qualified_type(vtp)) {
