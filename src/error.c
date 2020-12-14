@@ -3710,13 +3710,13 @@ indent subsequent lines when the output wraps to more than one line.
             check_assertion(curr_char != NULL);
             curr_char++;
           }  /* while */
-          curr_char++;
-          if (curr_char[0] == '\0') {
+          if (curr_char[0] == '\0' || curr_char[1] == '\0') {
             /* We're at the end of the buffer; that means that we don't
                actually need to wrap this last segment (it just appeared that
                way because of the added display attribute sequences). */
             goto write_segment_start;
           }  /* if */
+          curr_char++;
           if (curr_char[0] == ' ') {
             last_blank = curr_char;
           }  /* if */
