@@ -8503,6 +8503,30 @@ resolution that does the special handling.
 }  /* force_indefinite_function_in_skipped_decltype */
 
 
+static a_boolean left_paren_follows_right_parens(void)
+/*
+Return TRUE if the tokens ahead consist of one or more right parentheses
+followed by a left parenthesis.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (curr_token == tok_rparen) {
+    a_token_cache  cache;
+    clear_token_cache(&cache, /*reusable=*/FALSE);
+    do {
+      cache_curr_token(&cache);
+      (void)get_token();
+    } while (curr_token == tok_rparen);
+    if (curr_token == tok_lparen) {
+      result = TRUE;
+    }  /* if */
+    rescan_cached_tokens(&cache);
+  }  /* if */
+  return result;
+}  /* left_paren_follows_right_parens */
+
+
 static void scan_field_selection_operator(
                                an_operand             *operand_1,
                                a_rescan_control_block *rcblock,
@@ -8999,7 +9023,9 @@ make_proxy_type_if_needed:
                               node);
     make_expression_operand(node, result);
     set_operand_id_details_from_locator(result, &locator);
-    if (!(rcblock == NULL ? member_name_followed_by_left_paren
+    if (!(rcblock == NULL ? (member_name_followed_by_left_paren ||
+                             (!strict_ansi_mode &&
+                              left_paren_follows_right_parens()))
                           : (call_rescan_case ||
                              is_vacuous_dtor_call_node(rcblock->expr)))) {
       /* A pseudo-destructor must be called.  In the rescan case, there are
@@ -9009,7 +9035,9 @@ make_proxy_type_if_needed:
          "call_rescan_case" will be set to TRUE if we are under a call node.
          The second case is already a vacuous call node, but we will have
          checked that it is being called when it was first parsed (i.e.,
-         before substitution). */
+         before substitution).  The standard does not permit the pseudo-
+         destructor to be parenthesized, but other compilers so seem to permit
+         it; we follow suit in non-strict modes. */
       an_error_severity  sev = es_error;
       if (gpp_version_is(<70400) && rcblock != NULL) {
         /* Older versions of GCC apparently accept this in nested SFINAE
