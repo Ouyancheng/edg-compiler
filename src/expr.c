@@ -18407,7 +18407,8 @@ indication in *rcblock).
                      find_base_class_of(underlying_operand_type,
                                         underlying_cast_type)) != NULL) ||
              (!reference_case && op_is_null_pointer_value(&operand) &&
-              !void_star_case)) {
+              (!void_star_case ||
+               is_polymorphic_class_type(underlying_operand_type)))) {
     /* Cases where the cast is known at compile time and does not require
        a dynamic cast at runtime:
        -  The types are already the same except for qualifiers.
