@@ -8,9 +8,9 @@ pseudo-destructor name that is not the immediate operand of a "call".  That
 includes parenthesized pseudo-destructor names, such as in the following
 example:
 
-  struct S {};
-  void g(S *p) {
-    (p->~S)();  // Always an error in versions 6.0 and 6.1 of the front end.
+  typedef int I;
+  void g(I *p) {
+    (p->~I)();  // Always an error in versions 6.0 and 6.1 of the front end.
   }             // Now okay in nonstrict modes.
 
 The standard currently deems this example invalid, but other implementations
