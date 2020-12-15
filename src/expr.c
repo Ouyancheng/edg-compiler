@@ -18407,8 +18407,7 @@ indication in *rcblock).
                      find_base_class_of(underlying_operand_type,
                                         underlying_cast_type)) != NULL) ||
              (!reference_case && op_is_null_pointer_value(&operand) &&
-              (!void_star_case ||
-               is_polymorphic_class_type(underlying_operand_type)))) {
+              !void_star_case)) {
     /* Cases where the cast is known at compile time and does not require
        a dynamic cast at runtime:
        -  The types are already the same except for qualifiers.
@@ -18505,7 +18504,9 @@ indication in *rcblock).
                                                            cast_type);
       }  /* if */
       expr = make_node_from_operand(&operand);
-      set_used_in_exception_or_rtti_flag(expr->type);
+      if (!op_is_null_pointer_value(&operand)) {
+        set_used_in_exception_or_rtti_flag(expr->type);
+      }  /* if */
       if (reference_case) {
         /* Generate an eok_ref_dynamic_cast operation. */
         expr = make_lvalue_operator_node(
@@ -18524,7 +18525,9 @@ indication in *rcblock).
                                   expr);
         make_expression_operand(expr, result);
       }  /* if */
-      set_used_in_exception_or_rtti_flag(expr->type);
+      if (!op_is_null_pointer_value(&operand)) {
+        set_used_in_exception_or_rtti_flag(expr->type);
+      }  /* if */
     }  /* if */
   }  /* if */
   if (err) {
