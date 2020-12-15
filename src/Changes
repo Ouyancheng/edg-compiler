@@ -1,5 +1,19 @@
 Version 6.2
 
+12/15/29 [EDGcpfe/23671]
+Source sequence entry for nonreal friend class
+
+In some cases, the front end did not record a source sequence entry for a
+friend declaration naming a nonreal class.  That in turn caused the C++-
+generating back end not to render the friend declaration.  For example:
+
+  template<typename T> struct S: public T::template N<S<T>> {
+    friend typename T::template N<S>;  // Previously not recorded in the
+  };                                   // source sequence entries list.
+
+That problem is now fixed.
+
+
 12/15/20 [EDGcpfe/23685]
 Parenthesized pseudo-destructor names
 
