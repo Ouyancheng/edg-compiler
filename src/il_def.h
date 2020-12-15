@@ -2595,6 +2595,7 @@ typedef enum an_attribute_location_tag {
 typedef a_byte a_byte_attribute_location;
 
 
+/* When adding attributes here, also update disp_attribute. */
 typedef enum an_attribute_kind_tag {
   ak_unrecognized,	/* For unrecognized attributes. */
   ak_empty_attr,	/* A pseudo-attribute marking the presence of an empty
