@@ -10562,14 +10562,16 @@ the friend and decl_info describes the friend declaration overall.
 
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
-void decl_friend_class(a_type_ptr           class_type,
-                       a_type_ptr           friend_class_type,
-                       ARG_UNUSED a_boolean for_friend_template)
+void decl_friend_class(a_type_ptr                   class_type,
+                       a_type_ptr                   friend_class_type,
+                       ARG_UNUSED a_boolean         for_friend_template,
+                       ARG_UNUSED a_decl_pos_block  *decl_pos_block)
 /*
 Do processing for declaring an entire class (friend_class_type) friend of the
 current class (class_type).  If for_friend_template is TRUE, the befriended
 class was generated from a friend template rather than specified through an
-ordinary friend class declaration.
+ordinary friend class declaration.  decl_pos_block describes extra position
+information (if available; it may be NULL).
 */
 {
   a_class_list_entry_ptr       clep;
@@ -10666,6 +10668,10 @@ ordinary friend class declaration.
                                                     declared_type);
         sssdp->autonomous_tag_decl = TRUE;
         sssdp->decl_position = error_position;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        sssdp->decl_pos_info = make_decl_pos_supplement(in_file_scope(sssdp),
+                                                        decl_pos_block);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
         add_to_source_sequence_list(
                   (char*)sssdp, (an_il_entry_kind)iek_src_seq_secondary_decl);
       } else {
@@ -25818,10 +25824,6 @@ Check that this is a valid type and if so make member_type a friend.
         }  /* if */
         record_sse_for_special_friend_class(member_type, decl_info);
 done_with_sse_for_nonstandard_friend:;
-      } else if (member_type->kind == (a_type_kind)tk_template_param &&
-                 prototype_instantiations_in_il) {
-        a_type_ptr  friend_class = proxy_class_for_template_param(member_type);
-        record_sse_for_special_friend_class(friend_class, decl_info);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
       if (normal_friend_type) {
@@ -25830,7 +25832,8 @@ done_with_sse_for_nonstandard_friend:;
            have a semantic effect and therefore do not need a call to
            decl_friend_class. */
         decl_friend_class(class_type, member_type,
-                          /*for_friend_template=*/FALSE);
+                          /*for_friend_template=*/FALSE,
+                          &decl_info->decl_pos_block);
       }  /* if */
       if (!(state->dso_flags & DSO_ELABORATED_TYPE_SPECIFIER) ||
           (state->dso_flags & DSO_TYPENAME)) {

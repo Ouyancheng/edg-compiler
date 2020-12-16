@@ -295,9 +295,10 @@ extern void check_for_invalid_friend_declaration(
 					a_symbol_ptr		sym,
 					a_symbol_locator	*locator);
 
-extern void decl_friend_class(a_type_ptr  class_type,
-			      a_type_ptr  friend_class_type,
-                              a_boolean   for_friend_template);
+extern void decl_friend_class(a_type_ptr        class_type,
+                              a_type_ptr        friend_class_type,
+                              a_boolean         for_friend_template,
+                              a_decl_pos_block  *decl_pos_block);
 
 extern a_symbol_ptr member_function_redecl_sym(
                                        a_symbol_ptr          sym,
