@@ -51,8 +51,9 @@ That is now fixed.
 12/15/20 [EDGcpfe/23690]
 Add missing attribute kind strings
 
-A number of attribute kinds were not mapped to proper display strings resulting
-in "** BAD KIND **" being displayed by the edgcpdisp.  Now fixed.
+A number of attribute kinds were not properly mapped to display strings
+resulting in "** BAD KIND **" being displayed by the edgcpdisp IL display
+program.  Now fixed.
 
 
 12/14/20 [EDGcpfe/23515,EDGcpfe/23643]
