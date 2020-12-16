@@ -11347,6 +11347,15 @@ has already been lowered.
   a_boolean        reference_case = node_operator_is(expr,
                                                      eok_ref_dynamic_cast);
 
+  if (is_constant_node(src) && is_null_pointer_value(node_constant(src))) {
+    /* Handle the cast of a constant null value specially to avoid requiring
+       the virtual function table just for this operation. */
+    make_zero_of_proper_type(expr->type, constant);
+    null_constant_node = alloc_node_for_constant(constant);
+    null_constant_node->position = expr->position;
+    overwrite_node(expr, src);
+    goto done;
+  }  /* if */
   /* Rewrite the dynamic cast as
 #if IA64_ABI
        src ?   __dynamic_cast(src, static_type, desired_type, hint) : NULL
@@ -11582,6 +11591,7 @@ has already been lowered.
   }  /* if */
   /* Overwrite the original node with the rewritten version. */
   overwrite_node(expr, test_node);
+done:
   release_local_constant(&constant);
 }  /* lower_dynamic_cast */
 
