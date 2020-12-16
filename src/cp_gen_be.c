@@ -11428,7 +11428,12 @@ this one is such a continuation.
                                          template_arg_list);
     }  /* if */
     if (friend_decl && !is_immediate_class_type(type)) {
-      /* Handle nonstandard friend declarations (such as "friend int;" and
+      /* Ensure the type is put out as an elaborated-type-specifier if
+         necessary. */
+      type = orig_type_if_nonreal_prototype_type(type);
+    }  /* if */
+    if (friend_decl && !is_immediate_class_type(type)) {
+      /* Handle non-class friend declarations (such as "friend int;" and
          "friend typedef-name;"). */
       adv_curr_source_sequence_entry();
       write_tok_str("friend ");
