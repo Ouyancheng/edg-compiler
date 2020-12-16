@@ -11,7 +11,7 @@ __builtin_zero_non_value_bits is a template dependent type.  Now fixed.
   }
 
 
-12/15/29 [EDGcpfe/23671]
+12/15/20 [EDGcpfe/23671]
 Source sequence entry for nonreal friend class
 
 In some cases, the front end did not record a source sequence entry for a
