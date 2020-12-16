@@ -17,7 +17,7 @@ That problem is now fixed.
 12/15/20 [EDGcpfe/23685]
 Parenthesized pseudo-destructor names
 
-The changes for EDGcpfe/21397 cause the front end to diagnose the use of a
+The changes for EDGcpfe/21397 caused the front end to diagnose the use of a
 pseudo-destructor name that is not the immediate operand of a "call".  That
 includes parenthesized pseudo-destructor names, such as in the following
 example:

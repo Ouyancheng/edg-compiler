@@ -9036,7 +9036,7 @@ make_proxy_type_if_needed:
          The second case is already a vacuous call node, but we will have
          checked that it is being called when it was first parsed (i.e.,
          before substitution).  The standard does not permit the pseudo-
-         destructor to be parenthesized, but other compilers so seem to permit
+         destructor to be parenthesized, but other compilers do seem to permit
          it; we follow suit in non-strict modes. */
       an_error_severity  sev = es_error;
       if (gpp_version_is(<70400) && rcblock != NULL) {
