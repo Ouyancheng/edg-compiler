@@ -1,5 +1,16 @@
 Version 6.2
 
+12/16/20 [EDGcpfe/23693]
+Microsoft compatibility: template argument to __builtin_zero_non_value_bits
+
+A spurious error had been emitted when the type of the argument to
+__builtin_zero_non_value_bits is a template dependent type.  Now fixed.
+
+  template <class T> void f(T t) {
+    __builtin_zero_non_value_bits(t);
+  }
+
+
 12/15/29 [EDGcpfe/23671]
 Source sequence entry for nonreal friend class
 

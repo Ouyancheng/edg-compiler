@@ -5932,21 +5932,24 @@ be a pointer to a complete type and may not be const-qualified.
       conv_glvalue_to_prvalue(operand);
     }  /* if */
     a_type_ptr arg_type = operand->type;
-    if (!is_pointer_type(arg_type)) {
-      /* Must be pointer type. */
-      expr_pos_error(ec_expr_not_object_pointer, init_component_pos(args));
-      err = TRUE;
-    } else if (!is_template_dependent_type(arg_type)) {
-      a_type_ptr type = type_pointed_to(arg_type);
-      if (is_void_type(type)) {
-        /* Can't be pointer to void. */
+    if (!is_template_dependent_type(arg_type)) {
+      if (!is_pointer_type(arg_type)) {
+        /* Must be pointer type. */
         expr_pos_error(ec_expr_not_object_pointer, init_component_pos(args));
         err = TRUE;
-      } else if (is_const_qualified_type(arg_type) ||
-                 is_const_qualified_type(type)) {
-        /* Can't be const-qualified. */
-        expr_pos_error(ec_cannot_be_const_qualified, init_component_pos(args));
-        err = TRUE;
+      } else {
+        a_type_ptr type = type_pointed_to(arg_type);
+        if (is_void_type(type)) {
+          /* Can't be pointer to void. */
+          expr_pos_error(ec_expr_not_object_pointer, init_component_pos(args));
+          err = TRUE;
+        } else if (is_const_qualified_type(arg_type) ||
+                   is_const_qualified_type(type)) {
+          /* Can't be const-qualified. */
+          expr_pos_error(ec_cannot_be_const_qualified,
+                         init_component_pos(args));
+          err = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
