@@ -2954,6 +2954,7 @@ option values if they were not already set by a command line option.
           abbr_func_templates_enabled = TRUE;
           modules_enabled = TRUE;
           constexpr_dynamic_alloc_enabled = TRUE;
+          constexpr_virtual_enabled = TRUE;
         }  /* if */
       }  /* if */
       if (microsoft_version >= 1929) {
