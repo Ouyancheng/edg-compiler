@@ -11428,7 +11428,7 @@ this one is such a continuation.
                                          template_arg_list);
     }  /* if */
     if (friend_decl && !is_immediate_class_type(type)) {
-      /* Ensure the type is put out as an elaborated-type-specifier if
+      /* Ensure that the type is put out as an elaborated-type-specifier if
          necessary. */
       type = orig_type_if_nonreal_prototype_type(type);
     }  /* if */
