@@ -3730,8 +3730,9 @@ indent subsequent lines when the output wraps to more than one line.
           /* If we didn't end on a blank, wrap at the last seen blank. */
           if (last_blank != NULL) {
             curr_char = last_blank;
-          } else {
-            /* Wrap at next character (to match behavior below). */
+          } else if (curr_char[0] != '\033') {
+            /* Wrap at next character (to match behavior below), but don't
+               split an escape sequence. */
             curr_char++;
           }  /* if */
         }  /* if */
