@@ -101,11 +101,11 @@ now preserved in the generated code.  For example, with --c++14:
 
 
 12/10/20 [EDGcpfe/23550]
-Microsoft compatibility: enabling concepts
+Microsoft compatibility: enabling concepts and modules
 
 The C++20 concepts feature (see the Changes entry for EDGcpfe/20005,
-EDGcpfe/20118) is now enabled in Microsoft emulation mode when
-microsoft_version >= 1928 and --ms_c++latest is specified.
+EDGcpfe/20118) and the C++20 modules feature are now enabled in Microsoft
+emulation mode when microsoft_version >= 1928 and --ms_c++latest is specified.
 
 A slight versioning change is also taking place to follow the changes made
 in the Microsoft Visual Studio numbering.  Previously, emulating Visual Studio

@@ -2952,6 +2952,8 @@ option values if they were not already set by a command line option.
         if (ms_cpp20_mode) {
           concepts_enabled = TRUE;
           abbr_func_templates_enabled = TRUE;
+          modules_enabled = TRUE;
+          constexpr_dynamic_alloc_enabled = TRUE;
         }  /* if */
       }  /* if */
       if (microsoft_version >= 1929) {
