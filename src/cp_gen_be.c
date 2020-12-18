@@ -20263,13 +20263,25 @@ Output the initializer, if any, for the indicated variable.
         if (expr != NULL && expr->kind == (an_expr_node_kind)enk_temp_init) {
           dip = expr->variant.init.dynamic_init;
           goto handle_dynamic_init;
+        } else if (con->explicit_parentheses_on_aggregate &&
+                   con->variant.aggregate.first_constant == NULL) {
+          /* An empty C++20 parenthesized aggregate initializer may be the
+             result of template instantiation, and may not parse correctly.
+             For example, "T x(Args...);" may instantiate to "int x[1]();",
+             which is invalid.  We therefore render that case using braces. */
+          write_tok_str("{}");
         } else {
-          /* We can safely express this initialization with the " = " notation.
-             However, if we know the original form used C++
+          /* We can usually safely express this initialization with the " = "
+             notation.  However, if we know the original form used C++
              braced-initialization notation, we render that.  We don't
-             attempt to render the parenthesized notation to avoid having
-             to deal with parsing ambiguities. */
-          write_tok_str(braced_init ? (char*)"{" : (char*)" = ");
+             attempt to render the parenthesized notation unless the constant
+             was recorded to be a parenthesized aggregate initializer; that
+             avoids having to deal with parsing ambiguities. */
+          if (braced_init) {
+            write_tok_ch('{');
+          } else if (!con->explicit_parentheses_on_aggregate) {
+            write_tok_str(" = ");
+          }  /* if */
           gen_initializer_constant(con, var->type,
                                    /*transparent_case=*/FALSE,
                                    /*suppress_braces=*/braced_init);
