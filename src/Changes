@@ -1,5 +1,20 @@
 Version 6.2
 
+12/17/20 [EDGcpfe/23120]
+Improvements to parenthesized aggregate initializers
+
+In C++20, aggregates can be initialized from a parenthesized list of values
+(see the entry for EDGcpfe/20913).  The standardization committee's paper
+P1975R0 made a few changes to that, enabling for example casting a value to
+an aggregate type whose first element matches the value.  For example:
+
+  struct X { int i; char *pc = nullptr; };
+  X x1 = X(1, nullptr);      // Enabled by the changes for EDGcpfe/20913.
+  X x2 = X(1);               // Now also accepted in C++20 mode.
+  X x3 = (X)(1);             // Ditto.
+  X x4 = static_cast<X>(1);  // Ditto.
+
+
 12/16/20 [EDGcpfe/23693]
 Microsoft compatibility: template argument to __builtin_zero_non_value_bits
 
