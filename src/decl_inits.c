@@ -5511,6 +5511,13 @@ returned set to TRUE.
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       remove_stop_token(tok_rparen);
       check_closing_paren_after_expr_list();
+      if (init_con != NULL) {
+        /* C++20 parenthesized aggregate initialization is handled "as if"
+           braces were specified in the source. Record that parentheses were
+           seen instead. */
+        init_con->explicit_braces_on_aggregate = FALSE;
+        init_con->explicit_parentheses_on_aggregate = TRUE;
+      }  /* if */
       /* Although the entity has no constructor, it may have a destructor that
          needs to be recorded in the dynamic init entry (if any). */
       if (cssp != NULL && init_dip != NULL && init_dip->destructor == NULL) {

@@ -959,6 +959,7 @@ associated variant fields to default values.
   cp->ptr_to_mem_constant_construct = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   cp->explicit_braces_on_aggregate = FALSE;
+  cp->explicit_parentheses_on_aggregate = FALSE;
   cp->from_undefined_preproc_id = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
   cp->flexible_array_initializer = FALSE;

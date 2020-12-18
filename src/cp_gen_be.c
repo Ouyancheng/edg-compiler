@@ -6920,12 +6920,13 @@ field designator.
   } else if (constant->kind == (a_constant_repr_kind)ck_aggregate) {
     /* Aggregate constant (e.g., "{1, 2, 3}"). */
     a_boolean      array_case = FALSE, template_dependent_case = FALSE;
+    a_boolean      use_parens = constant->explicit_parentheses_on_aggregate;
     a_constant_ptr first_con = constant->variant.aggregate.first_constant;
     /* Ordinarily, we don't put out braces if they weren't in the source.
        However, in some unusual cases, we add a designator to the aggregate
        (to indicate which element of a union should be initialized), and the
        designator would be invalid without the braces. */
-    if (!constant->explicit_braces_on_aggregate &&
+    if (!constant->explicit_braces_on_aggregate && !use_parens &&
         !constant->explicit_cast_applied &&
         !(first_con != NULL &&
           first_con->kind == (a_constant_repr_kind)ck_designator)) {
@@ -6935,13 +6936,14 @@ field designator.
       if (constant->explicit_cast_applied) {
         /* A functional-notation cast with braces; e.g., "X{1, 2}".  (The
            type name and left brace were already put out by the caller when
-           suppress_braces is TRUE.) */
+           suppress_braces is TRUE.)  In C++20 mode, this might also be using
+           parentheses instead of braces. */
         a_type_ptr  cast_type = type != NULL ? type : constant->type;
         /* Skip type qualifiers (which can be specified on the cast). */
         cast_type = skip_typerefs_not_typedefs_or_type_operators(cast_type);
         gen_type_reference(cast_type);
       }  /* if */
-      write_tok_ch('{');
+      write_tok_ch(use_parens ? '(' : '{');
     }  /* if */
     /* Figure out the kind of aggregate so we can track the type as we
        work through constants. */
@@ -7142,7 +7144,7 @@ field designator.
       }  /* for */
     }  /* if */
     if (!suppress_braces && !transparent_case) {
-      write_tok_ch('}');
+      write_tok_ch(use_parens ? ')' : '}');
     }  /* if */
   } else if (constant->kind == (a_constant_repr_kind)ck_dynamic_init) {
     /* Dynamic initialization for an element of an aggregate. */
@@ -15564,7 +15566,7 @@ gen_expr that might end up generating this expr as a temporary.
          and older versions of g++ have a bug that causes errors compiling
          the generated code if an explicit temporary is enclosed in
          redundant parentheses prior to the ellipsis. */
-      need_parens = (expr->kind != (an_expr_node_kind)enk_temp_init);
+      need_parens = TRUE;
     }  /* if */
   } else {
     is_pack_expansion = FALSE;

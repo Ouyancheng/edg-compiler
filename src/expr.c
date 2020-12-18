@@ -18103,13 +18103,14 @@ indication in *rcblock).
                                             ec_new_cast_in_embedded_cplusplus);
   /* In Microsoft mode, static_cast allows a cast to an array type if it
      does nothing. */
-  if (microsoft_bugs && !C_mode() && source_form == csf_static_cast) {
+  if (((microsoft_bugs && !C_mode()) || allow_parenthesized_aggregate_init) &&
+      source_form == csf_static_cast) {
     allow_array = TRUE;
   }  /* if */
   /* Do initial checking on the type. */
   err = cast_type_pre_check(cast_type, type_position,
                             explicit_cv_qualifiers, allow_array,
-                            /*allow_unk_bound_array=*/FALSE);
+                            allow_parenthesized_aggregate_init);
   if (rcblock == NULL) {
     /* Check for and pass over the ">". */
     (void)required_token(tok_gt, ec_exp_gt);
@@ -18129,7 +18130,9 @@ indication in *rcblock).
                            bound_function_selector);
     check_assertion(!operand->bound_function);
   }  /* if */
-  if (allow_array && is_array_type(*cast_type)) {
+  if (allow_array && is_array_type(*cast_type) &&
+      !(allow_parenthesized_aggregate_init &&
+        source_form == csf_static_cast)) {
     /* Catch cast-to-error cases allowed by above. */
     if (!check_array_cast(*cast_type, operand, type_position)) err = TRUE;
   }  /* if */
@@ -22055,7 +22058,7 @@ expression, and return the result in *result (or an error indication in
       && !nps.is_gcnew
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
      ) {
-    an_arg_list_elem_ptr sizeof_alep;\
+    an_arg_list_elem_ptr  sizeof_alep;
     sizeof_alep = get_new_allocation_size_arg(&nps);
     nps.alignment_alep = get_new_alignment_arg(&nps);
     /* Add the alignment argument (if needed) to the placement arguments
@@ -23331,6 +23334,36 @@ contains something not valid in a constant expression.
 }  /* cast_is_valid_in_current_expression_kind */
 
 
+static void scan_braced_init_list_cast(a_type_ptr         type_cast_to,
+                                       a_cast_source_form source_form,
+                                       an_init_component  *rescan_icp,
+                                       an_operand         *result);
+
+
+static a_constant_ptr get_aggr_cast_constant_if_any(an_operand  *opnd)
+/*
+The given operand represents a cast.  If the cast is modeled as an aggregate
+initialization, return the underlying aggregate constant.
+*/
+{
+  a_constant_ptr  aggr_con = NULL;
+
+  if (is_constant_operand(opnd)) {
+    aggr_con = &opnd->variant.constant;
+  } else if (is_expression_operand(opnd)) {
+    an_expr_node_ptr  expr = opnd->variant.expression;
+    if (node_is(expr, enk_temp_init)) {
+      a_dynamic_init_ptr  dip = expr->variant.init.dynamic_init;
+      if (dyn_init_is(dip, dik_constant) ||
+          dyn_init_is(dip, dik_nonconstant_aggregate)) {
+        aggr_con = dip->variant.constant.ptr;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return aggr_con;
+}  /* get_aggr_cast_constant_if_any */
+
+
 static void check_user_defined_conversions_for_cast(
                                    a_type_ptr         type_cast_to,
                                    an_operand         *operand,
@@ -23352,7 +23385,7 @@ an rvalue should be allowed, *allow_rvalue_on_rewrite is returned TRUE
 called only in C++ mode.
 */
 {
-  a_boolean    cast_to_reference, cast_to_rvalue_reference, failed;
+  a_boolean    cast_to_reference, cast_to_rvalue_reference;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean    unbox_case = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -23641,7 +23674,42 @@ called only in C++ mode.
       /* Normal case (not a cast to a reference type). */
       /* Check for user-defined conversions, but not when casting to void. */
       if (!is_void_type(type_cast_to)) {
-        if (user_defined_conversion_possible(
+        a_boolean  aggr_init = FALSE, failed = FALSE;
+        if (allow_parenthesized_aggregate_init &&
+            is_aggregate_type(type_cast_to)) {
+          an_arg_list_elem_ptr  arg_list;
+          arg_list = alloc_arg_list_elem_for_operand(operand);
+          scan_ctor_args_or_paren_aggr_init(type_cast_to,
+                                            (a_rescan_control_block*)NULL,
+                                            /*arg_list_supplied=*/TRUE,
+                                            &arg_list, &aggr_init);
+          if (aggr_init) {
+            a_constant_ptr  aggr_con;
+            unbundle_init_component_list_expressions(arg_list);
+            scan_braced_init_list_cast(type_cast_to, source_form, arg_list,
+                                       operand);
+            if (is_error_operand(operand)) {
+              *err = TRUE;
+            } else {
+              if (is_expression_operand(operand)) {
+                operand->variant.expression->is_brace_notation_cast = FALSE;
+                if (source_form == csf_static_cast) {
+                  operand->variant.expression->is_static_cast = TRUE;
+                }  /* if */
+              }  /* if */
+              aggr_con = get_aggr_cast_constant_if_any(operand);
+              if (aggr_con != NULL) {
+                aggr_con->explicit_braces_on_aggregate = FALSE;
+                aggr_con->explicit_parentheses_on_aggregate = TRUE;
+              }  /* if */
+            }  /* if */
+            *processed = TRUE;
+          }  /* if */
+          free_arg_list(arg_list);
+        }  /* if */
+        if (*processed) {
+          /* Nothing more to do. */
+        } else if (user_defined_conversion_possible(
                                          operand, type_cast_to,
                                          /*need_lvalue_result=*/FALSE,
                                          /*is_copy_initialization=*/FALSE,
@@ -25114,6 +25182,9 @@ indication in *rcblock).
     /* Check that the cast is okay and generate IL for it. */
     process_static_cast(type_cast_to, result, &start_position, &type_position,
                         /*is_safe_cast=*/FALSE, &ruled_out_expr_kinds);
+    if (rcblock != NULL && is_error_operand(result)) {
+      subst_fail(rcblock->error_detected);
+    }  /* if */
   }  /* if */
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
@@ -26232,7 +26303,8 @@ just an expression in parentheses.  Return the scanned expression in
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       } else {
         /* Normal cast (not a compound literal). */
-        a_boolean allow_array = microsoft_bugs && !C_mode();
+        a_boolean allow_array = (microsoft_bugs && !C_mode()) ||
+                                allow_parenthesized_aggregate_init;
         if (alignas_attributes != NULL) {
           /* If there were any _Alignas attributes in the type, they are
              ill-formed in the non-compound literal case. */
@@ -26241,7 +26313,7 @@ just an expression in parentheses.  Return the scanned expression in
         /* Check the type to see if it is valid in general terms. */
         err = cast_type_pre_check(&type_cast_to, &type_position,
                                   explicit_cv_qualifiers, allow_array,
-                                  /*allow_unk_bound_array=*/FALSE);
+                                  allow_parenthesized_aggregate_init);
         if (type_defined && !C_mode() && (!gpp_mode || gnu_version >= 30400)) {
           /* Only g++ versions earlier than 3.4 allow type definitions as part
              of casts. */
@@ -26256,7 +26328,8 @@ just an expression in parentheses.  Return the scanned expression in
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         end_position = result->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        if (allow_array && is_array_type(type_cast_to)) {
+        if (allow_array && !allow_parenthesized_aggregate_init &&
+            is_array_type(type_cast_to)) {
           /* Catch cast-to-error cases allowed by above. */
           if (!check_array_cast(type_cast_to, result, &type_position)) {
             /* coverity[returned_pointer] - type_cast_to not used later. */
@@ -26809,9 +26882,11 @@ freed by this routine.
     goto have_result;
   }  /* if */
   if (list_init_enabled && is_array_type(type_cast_to) &&
-      (!allow_ms_array || is_incomplete_array_type(type_cast_to))) {
-    /* We allowed array cases above in case the initializer is
-       brace-enclosed, but since it isn't, issue an error now. */
+      !allow_parenthesized_aggregate_init &&
+      (!allow_ms_array || 
+       is_incomplete_array_type(type_cast_to))) {
+    /* We allowed array cases above in case the initializer is brace-enclosed.
+       Prior to C++20, however, the non-braced-cast case is an error. */
     if (expr_error_should_be_issued()) {
       pos_ty_error(is_incomplete_array_type(type_cast_to) ?
                      ec_cast_to_incomplete_array_type :
@@ -26889,6 +26964,7 @@ freed by this routine.
                                       &supplied_arg_list, &aggr_init);
     unbundle_init_component_list_expressions(supplied_arg_list);
     if (aggr_init) {
+      a_constant_ptr  aggr_con;
       scan_braced_init_list_cast(type_cast_to, csf_functional,
                                  supplied_arg_list, result);
       if (scanning_source) {
@@ -26899,6 +26975,11 @@ freed by this routine.
       }  /* if */
       free_arg_list(supplied_arg_list);
       supplied_arg_list = NULL;
+      aggr_con = get_aggr_cast_constant_if_any(result);
+      if (aggr_con != NULL) {
+        aggr_con->explicit_braces_on_aggregate = FALSE;
+        aggr_con->explicit_parentheses_on_aggregate = TRUE;
+      }  /* if */
       goto have_result;
     }  /* if */
     scan_ctor_arguments(ctor_sym, start_position,

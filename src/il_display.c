@@ -1176,6 +1176,9 @@ Display the indicated constant entry.
   if (ptr->explicit_braces_on_aggregate) {
     disp_boolean("explicit_braces_on_aggregate", TRUE);
   }  /* if */
+  if (ptr->explicit_parentheses_on_aggregate) {
+    disp_boolean("explicit_parentheses_on_aggregate", TRUE);
+  }  /* if */
   if (ptr->from_undefined_preproc_id) {
     disp_boolean("from_undefined_preproc_id", TRUE);
   }  /* if */
