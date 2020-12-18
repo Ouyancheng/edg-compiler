@@ -20090,7 +20090,7 @@ that case).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (allow_parenthesized_aggregate_init &&
                (conv_context & CCO_EXPLICIT_CAST) != 0 &&
-               is_aggregate_type(dest_type)) {
+               is_aggregate_type(dest_type) && !ambiguous) {
       /* In C++20 mode, this might be handled by the caller using parenthesized
          aggregate initialization. */
       okay = FALSE;
@@ -20160,7 +20160,7 @@ that case).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (allow_parenthesized_aggregate_init &&
                (conv_context & CCO_EXPLICIT_CAST) != 0 &&
-               is_aggregate_type(dest_type)) {
+               is_aggregate_type(dest_type) && !ambiguous) {
       /* In C++20 mode, this might be handled by the caller using parenthesized
          aggregate initialization. */
       okay = FALSE;

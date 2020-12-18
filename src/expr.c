@@ -23727,6 +23727,9 @@ called only in C++ mode.
                                          operand);
               if (is_error_operand(operand)) {
                 *err = TRUE;
+                type2_error_in_operand(ec_no_user_defined_conversion, 
+                                       operand, operand->type, type_cast_to);
+
               } else {
                 if (is_expression_operand(operand)) {
                   operand->variant.expression->is_brace_notation_cast = FALSE;
