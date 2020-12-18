@@ -20088,6 +20088,12 @@ that case).
          caller find the conversion. */
       okay = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else if (allow_parenthesized_aggregate_init &&
+               (conv_context & CCO_EXPLICIT_CAST) != 0 &&
+               is_aggregate_type(dest_type)) {
+      /* In C++20 mode, this might be handled by the caller using parenthesized
+         aggregate initialization. */
+      okay = FALSE;
     } else {
       /* The conversion is not possible. */
       *failed = TRUE;
@@ -20152,6 +20158,12 @@ that case).
          caller find the conversion. */
       okay = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else if (allow_parenthesized_aggregate_init &&
+               (conv_context & CCO_EXPLICIT_CAST) != 0 &&
+               is_aggregate_type(dest_type)) {
+      /* In C++20 mode, this might be handled by the caller using parenthesized
+         aggregate initialization. */
+      okay = FALSE;
     } else {
       *failed = TRUE;
       /* Pick the right error code. */

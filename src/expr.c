@@ -23675,41 +23675,7 @@ called only in C++ mode.
       /* Check for user-defined conversions, but not when casting to void. */
       if (!is_void_type(type_cast_to)) {
         a_boolean  aggr_init = FALSE, failed = FALSE;
-        if (allow_parenthesized_aggregate_init &&
-            is_aggregate_type(type_cast_to)) {
-          an_arg_list_elem_ptr  arg_list;
-          arg_list = alloc_arg_list_elem_for_operand(operand);
-          scan_ctor_args_or_paren_aggr_init(type_cast_to,
-                                            (a_rescan_control_block*)NULL,
-                                            /*arg_list_supplied=*/TRUE,
-                                            &arg_list, &aggr_init);
-          if (aggr_init) {
-            a_constant_ptr  aggr_con;
-            unbundle_init_component_list_expressions(arg_list);
-            scan_braced_init_list_cast(type_cast_to, source_form, arg_list,
-                                       operand);
-            if (is_error_operand(operand)) {
-              *err = TRUE;
-            } else {
-              if (is_expression_operand(operand)) {
-                operand->variant.expression->is_brace_notation_cast = FALSE;
-                if (source_form == csf_static_cast) {
-                  operand->variant.expression->is_static_cast = TRUE;
-                }  /* if */
-              }  /* if */
-              aggr_con = get_aggr_cast_constant_if_any(operand);
-              if (aggr_con != NULL) {
-                aggr_con->explicit_braces_on_aggregate = FALSE;
-                aggr_con->explicit_parentheses_on_aggregate = TRUE;
-              }  /* if */
-            }  /* if */
-            *processed = TRUE;
-          }  /* if */
-          free_arg_list(arg_list);
-        }  /* if */
-        if (*processed) {
-          /* Nothing more to do. */
-        } else if (user_defined_conversion_possible(
+        if (user_defined_conversion_possible(
                                          operand, type_cast_to,
                                          /*need_lvalue_result=*/FALSE,
                                          /*is_copy_initialization=*/FALSE,
@@ -23745,11 +23711,45 @@ called only in C++ mode.
             conv_class_prvalue_operand_to_lvalue(operand);
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        } else if (failed) {
-          /* A user-defined conversion was our only hope, and it failed.
-             The error has already been issued. */
-          *err = TRUE;
-          *processed = TRUE;
+        } else {
+          if (allow_parenthesized_aggregate_init &&
+              is_aggregate_type(type_cast_to)) {
+            an_arg_list_elem_ptr  arg_list;
+            arg_list = alloc_arg_list_elem_for_operand(operand);
+            scan_ctor_args_or_paren_aggr_init(type_cast_to,
+                                              (a_rescan_control_block*)NULL,
+                                              /*arg_list_supplied=*/TRUE,
+                                              &arg_list, &aggr_init);
+            if (aggr_init) {
+              a_constant_ptr  aggr_con;
+              unbundle_init_component_list_expressions(arg_list);
+              scan_braced_init_list_cast(type_cast_to, source_form, arg_list,
+                                         operand);
+              if (is_error_operand(operand)) {
+                *err = TRUE;
+              } else {
+                if (is_expression_operand(operand)) {
+                  operand->variant.expression->is_brace_notation_cast = FALSE;
+                  if (source_form == csf_static_cast) {
+                    operand->variant.expression->is_static_cast = TRUE;
+                  }  /* if */
+                }  /* if */
+                aggr_con = get_aggr_cast_constant_if_any(operand);
+                if (aggr_con != NULL) {
+                  aggr_con->explicit_braces_on_aggregate = FALSE;
+                  aggr_con->explicit_parentheses_on_aggregate = TRUE;
+                }  /* if */
+              }  /* if */
+              *processed = TRUE;
+            }  /* if */
+            free_arg_list(arg_list);
+          }  /* if */
+          if (failed && !*processed) {
+            /* A user-defined conversion was our only hope, and it failed.
+               The error has already been issued. */
+            *err = TRUE;
+            *processed = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
