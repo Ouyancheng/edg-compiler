@@ -20166,7 +20166,15 @@ and the output of the type name.
             }  /* if */
           }  /* if */
         }  /* if */
-        if (!no_args) {
+        if (dip->is_explicit_cast && dip->variable != NULL &&
+            var_declared_with_placeholder_type(dip->variable)) {
+          /* We need to put out the class type, not just the constructor
+             arguments, to allow deduction of the variable type. */
+          gen_type_reference(init_entity_type);
+          (void)gen_argument_list(args, (ctor == NULL) ? NULL : ctor->type,
+                                  /*skip_num=*/0);
+                                  
+        } else if (!no_args) {
           (void)gen_argument_list_no_parens(
                     args, (ctor == NULL) ? NULL : ctor->type, /*skip_num=*/0);
         }  /* if */

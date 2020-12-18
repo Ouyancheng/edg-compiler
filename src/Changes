@@ -1,5 +1,21 @@
 Version 6.2
 
+12/18/20 [EDGcpfe/23498]
+C++-generating back end: missing type name in initializer for deduced type
+
+In a variable declaration in which the type of the variable is deduced from
+the initializer, the C++-generating back end sometimes incorrectly omitted
+the type name from the initializer expression, resulting in generated code
+that could not be compiled.  This is now fixed.  For example, with --c++17:
+
+  struct S {
+    S(int, int) {}
+  };
+  void f() {
+    auto x{S(0, 0)};  // Previously generated as "x{0,0}"
+  }
+
+
 12/17/20 [EDGcpfe/23120]
 Improvements to parenthesized aggregate initializers
 
