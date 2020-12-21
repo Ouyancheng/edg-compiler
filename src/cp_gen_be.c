@@ -20264,6 +20264,7 @@ Output the initializer, if any, for the indicated variable.
           dip = expr->variant.init.dynamic_init;
           goto handle_dynamic_init;
         } else if (con->explicit_parentheses_on_aggregate &&
+                   constant_is(con, ck_aggregate) &&
                    con->variant.aggregate.first_constant == NULL) {
           /* An empty C++20 parenthesized aggregate initializer may be the
              result of template instantiation, and may not parse correctly.

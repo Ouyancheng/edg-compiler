@@ -23356,7 +23356,9 @@ initialization, return the underlying aggregate constant.
       a_dynamic_init_ptr  dip = expr->variant.init.dynamic_init;
       if (dyn_init_is(dip, dik_constant) ||
           dyn_init_is(dip, dik_nonconstant_aggregate)) {
-        aggr_con = dip->variant.constant.ptr;
+        if (constant_is(dip->variant.constant.ptr, ck_aggregate)) {
+          aggr_con = dip->variant.constant.ptr;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
