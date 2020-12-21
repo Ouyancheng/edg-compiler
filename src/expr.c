@@ -26625,6 +26625,41 @@ previously-scanned braced initializer.
 }  /* scan_braced_init_list_cast */
 
 
+static
+a_boolean trivial_copy_of_braced_init_list(a_type_ptr            dest_type,
+                                           an_arg_list_elem_ptr  arg_list)
+/*
+Return TRUE if arg_list is a single braced-initializer list that could be
+copied by the trivial copy constructor of dest_type.  For example:
+  struct S { int x } s = S({ .x = 1 });
+Although the constructor symbol for S is NULL in this case, the cast should
+still be handled if a trivial copy constructor call is made (i.e., the
+parentheses do not themselves correspond to aggregate initialization).
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (arg_list != NULL && arg_list->next == NULL &&
+      is_braced_init_component(arg_list)) {
+    an_arg_match_summary  arg_match;
+    an_operand            opnd;
+    clear_arg_match_summary(&arg_match);
+    prep_list_initializer(arg_list, dest_type, /*is_direct_init=*/TRUE,
+                          /*check_narrowing=*/FALSE,
+                          /*warning_on_narrowing=*/FALSE,
+                          CCO_CAST | CCO_FUNC_NOTATION_CAST |
+                          CCO_EXPLICIT_CAST | CCO_DIRECT_INITIALIZATION,
+                          /*fill_in_dtor=*/TRUE, /*force_temp=*/FALSE,
+                          /*make_lvalue_temp=*/FALSE,
+                          &opnd, (an_init_state*)NULL, &arg_match);
+    if (arg_match.match_level != aml_none) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* trivial_copy_of_braced_init_list */
+
+
 void scan_ctor_args_or_paren_aggr_init(
                                       a_type_ptr             dest_type,
                                       a_rescan_control_block *rcblock,
@@ -26664,10 +26699,11 @@ aggregate initialization, wrap *arg_list with an ick_braced component and set
                                  /*bundle=*/TRUE);
     }  /* if */
   }  /* if */
-  if (!dependent_type && cssp != NULL && cssp->constructor != NULL) {
-    *aggr_init = FALSE;
-    if (allow_parenthesized_aggregate_init && aggregate_case &&
-        !overloaded_function_match_possible(
+  if (!dependent_type && cssp != NULL) {
+    if (cssp->constructor != NULL) {
+      *aggr_init = FALSE;
+      if (allow_parenthesized_aggregate_init && aggregate_case &&
+          !overloaded_function_match_possible(
                                           cssp->constructor,
                                           oc_constructor,
                                           /*is_template_id=*/FALSE,
@@ -26675,9 +26711,15 @@ aggregate initialization, wrap *arg_list with an ick_braced component and set
                                           *arg_list,
                                           /*have_selector=*/FALSE,
                                           /*bound_function_selector*/NULL)) {
-      /* No viable constructor.  The type is an aggregate, so attempt
-          aggregate initialization. */
-      *aggr_init = TRUE;
+        /* No viable constructor.  The type is an aggregate, so attempt
+           aggregate initialization. */
+        *aggr_init = TRUE;
+      }  /* if */
+    } else if (*aggr_init &&
+               trivial_copy_of_braced_init_list(dest_type, *arg_list)) {
+      /* The inner braced-initializer list should be treated as an argument
+         for the trivial copy constructor. */
+      *aggr_init = FALSE;
     }  /* if */
   }  /* if */
   if (*aggr_init) {
@@ -27100,22 +27142,38 @@ freed by this routine.
   } else if (allow_parenthesized_aggregate_init && parenthesized &&
              is_aggregate_type(type_cast_to)) {
     /* Try parenthesized aggregate initialization. */
-    a_boolean aggr_init;
+    a_boolean  aggr_init;
     scan_ctor_args_or_paren_aggr_init(type_cast_to, rcblock, arg_list_supplied,
                                       &supplied_arg_list, &aggr_init);
     /* We can assume aggregate initialization here - if type_cast_to had a
        viable constructor we would have hit ctor_case above. */
-    check_assertion(aggr_init);
     unbundle_init_component_list_expressions(supplied_arg_list);
-    scan_braced_init_list_cast(type_cast_to, csf_functional,
-                               supplied_arg_list, result);
-    if (rcblock == NULL) check_closing_paren_after_expr_list();
-    if (arg_list_supplied) {
-      /* The arg list was provided - don't free it here. */
-      supplied_arg_list->variant.braced.list = NULL;
+    if (aggr_init) {
+      /* The parentheses introduce C++20-style parenthesized aggregate
+         initialization. */
+      scan_braced_init_list_cast(type_cast_to, csf_functional,
+                                 supplied_arg_list, result);
+      if (arg_list_supplied) {
+        /* The arg list was provided - don't free it here. */
+        supplied_arg_list->variant.braced.list = NULL;
+      }  /* if */
+      free_arg_list(supplied_arg_list);
+      supplied_arg_list = NULL;
+    } else {
+      /* The parentheses correspond to the invocation of a trivial copy
+         constructor, and the copied entity is a braced initializer list
+         initializing a temporary of type type_cast_to. */
+      make_braced_init_list_operand(supplied_arg_list, result);
+      do_cast(type_cast_to, result, (an_operand*)NULL,
+              csf_functional, local_options, err,
+              &type_position, start_position,
+              end_position_or_null(&end_position));
+      if (!arg_list_supplied) {
+        free_arg_list(supplied_arg_list);
+        supplied_arg_list = NULL;
+      }  /* if */
     }  /* if */
-    free_arg_list(supplied_arg_list);
-    supplied_arg_list = NULL;
+    if (rcblock == NULL) check_closing_paren_after_expr_list();
   } else {
     /* Not a constructor case; obeys the same rules as a C-style cast. */
     if (scanning_source) add_matching_stop_token(tok_rparen);
