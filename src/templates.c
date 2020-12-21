@@ -15276,9 +15276,8 @@ parameters.
       new_ptp->is_cli_param_array = ptp->is_cli_param_array;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       if (ptp->is_parameter_pack) {
-        /* If the type is a pack, make the new parameter a pack
-           as well, otherwise make the new parameter a pack
-           element. */
+        /* If the type is a pack, make the new parameter a pack as well,
+           otherwise make the new parameter a pack element. */
         a_type_ptr	bottom_tp;
         bottom_tp = find_bottom_of_type(tp);
         if (!type_is_pack(bottom_tp)) {
@@ -15288,13 +15287,12 @@ parameters.
           if (ctws_state->new_templ_params == NULL) {
             new_ptp->pack_expansion_descr = ptp->pack_expansion_descr;
           } else {
-            /* This is used when creating deduction guide templates
-               to create a new pack expansion descriptor that refers
-               to the template parameters of the new template. */
+            /* This is used when creating deduction guide templates to create
+               a new pack expansion descriptor that refers to the template
+               parameters of the new template. */
             new_ptp->pack_expansion_descr =
                        copy_pack_expansion_descr_with_substitution(
-                                              ptp->pack_expansion_descr,
-                                              ctws_state);
+                                       ptp->pack_expansion_descr, ctws_state);
           }  /* if */
         }  /* if */
       }  /* if */
@@ -15317,8 +15315,8 @@ parameters.
                    ptp->orig_param_type_for_unevaluated_default_arg_expr;
       }  /* if */
       if ((options & CTWS_DEDUCTION_GUIDE) != 0) {
-        /* When doing substitution to create a deduction guide,
-           copy the deduction flags in the parameter type entry. */
+        /* When doing substitution to create a deduction guide, copy the
+           deduction flags in the parameter type entry. */
         new_ptp->type_involves_template_param =
                                        ptp->type_involves_template_param;
         new_ptp->type_involves_deduced_template_param =
@@ -15336,7 +15334,7 @@ parameters.
         any_more = FALSE;
       } else { 
         (void)end_potential_pack_expansion_context(
-                                         pesep, /*is_declarator=*/FALSE);
+                                              pesep, /*is_declarator=*/FALSE);
         any_more = advance_to_next_pack_element(pesep);
       }  /* if */
     }  /* while */
