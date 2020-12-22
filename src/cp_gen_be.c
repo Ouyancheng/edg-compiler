@@ -20094,6 +20094,10 @@ and the output of the type name.
       { a_routine_ptr    ctor = dip->variant.constructor.ptr;
         an_expr_node_ptr args = dip->variant.constructor.args;
         a_boolean        no_args = FALSE;
+        a_boolean        is_deduced_type_var_init;
+        is_deduced_type_var_init =
+                           (dip->is_explicit_cast && dip->variable != NULL &&
+                            var_declared_with_placeholder_type(dip->variable));
         if (is_var_init) {
           if (paren_form) {
             if (args == NULL || args->generated_default_arg) {
@@ -20154,20 +20158,26 @@ and the output of the type name.
                  constructor. */
               a_dynamic_init_ptr arg_dip = args->variant.init.dynamic_init;
               if (arg_dip->kind == (a_dynamic_init_kind)dik_constructor &&
-                  arg_dip->is_creation_of_initializer_list_object) {
+                  arg_dip->is_creation_of_initializer_list_object &&
+                  !is_deduced_type_var_init) {
                 /* The generated code will have an aggregate as the
                    argument to the std::initializer_list constructor, which
                    would ordinarily be enclosed in braces.  However, we put
                    out the braces for this initializer here, so we need to
                    suppress the aggregate braces to prevent incorrect
-                   double braces. */
+                   double braces.  If this is the initializer for a variable
+                   for which the type is deduced, however, we will put out
+                   the initializer as a function-style cast and we need the
+                   braces for the operand in that case, e.g., something like
+                     T v{T<int>({1, 2, 3})};
+                   where T is a class template with an initializer-list
+                   constructor. */
                 arg_dip->suppress_init_list_arg_braces = TRUE;
               }  /* if */
             }  /* if */
           }  /* if */
         }  /* if */
-        if (dip->is_explicit_cast && dip->variable != NULL &&
-            var_declared_with_placeholder_type(dip->variable)) {
+        if (is_deduced_type_var_init) {
           /* We need to put out the class type, not just the constructor
              arguments, to allow deduction of the variable type. */
           gen_type_reference(init_entity_type);
