@@ -5513,7 +5513,7 @@ returned set to TRUE.
       check_closing_paren_after_expr_list();
       if (init_con != NULL && constant_is(init_con, ck_aggregate)) {
         /* C++20 parenthesized aggregate initialization is handled "as if"
-           braces were specified in the source. Record that parentheses were
+           braces were specified in the source.  Record that parentheses were
            seen instead. */
         init_con->explicit_braces_on_aggregate = FALSE;
         init_con->explicit_parentheses_on_aggregate = TRUE;
