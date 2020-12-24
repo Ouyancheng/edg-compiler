@@ -18863,9 +18863,13 @@ options is a set of substitution options.
            parameter lists. */
         subst_fail(*copy_error);
       } else {
-        a_boolean            val;
-        a_subst_pairs_array  subst_pairs(1);
-        // FIXME: Record all substitution levels
+        /* If we're substituting as part of rescanning, start with the
+           substitution pairs of any enclosing class template instances. */
+        a_boolean  val;
+        a_subst_pairs_array
+                   subst_pairs = scope_stack_top().is_rescan ?
+                                                  get_current_subst_pairs() :
+                                                  a_subst_pairs_array(1);
         subst_pairs.push_back(a_subst_pairs_descr{ template_param_list,
                                                    template_arg_list,
                                                    FALSE, FALSE });

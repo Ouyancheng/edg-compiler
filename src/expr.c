@@ -8142,6 +8142,10 @@ arguments (argument-dependent lookup may still find a different template).
     a_constant_ptr con = sym->variant.constant;
     sym = NULL;
     copy_error = !constant_is(con, ck_template_param);
+  } else if (symbol_is(sym, sk_undefined)) {
+    /* Undefined symbols may be created to represent calls that require
+       argument-dependent lookup during rescan. */
+    sym = NULL;
   } else {
     /* Not a template symbol.  Fail substitution. */
     copy_error = TRUE;
@@ -35394,10 +35398,8 @@ if rescan_is_template_id is TRUE, and return the result in *operand
          error. */
       make_undefined_symbol_operand(sym_ptr,
                                     ref_entry(sym_ptr, &start_position),
-                                    &locator.source_position,
+                                    &locator,
                                     result);
-      result->is_template_id = locator.is_template_id;
-      result->template_arg_list = locator.template_arg_list;
     }  /* if */
   } else {
     /* The symbol is defined. */
@@ -35421,7 +35423,8 @@ if rescan_is_template_id is TRUE, and return the result in *operand
     } else if (name_followed_by_left_paren &&
                arg_dependent_lookup_enabled && !locator.is_qualified_name &&
                (symbol_is(sym_ptr, sk_routine) ||
-                symbol_is(sym_ptr, sk_function_template))
+                symbol_is(sym_ptr, sk_function_template) ||
+                symbol_is(sym_ptr, sk_undefined))
 #if BUILTIN_FUNCTIONS_ENABLED
                /* Argument-dependent lookup should never apply to calls of
                   GNU-style built-in functions.  Since such functions may need
@@ -35432,11 +35435,11 @@ if rescan_is_template_id is TRUE, and return the result in *operand
                     is_gnu_builtin_function(sym_ptr->variant.routine.ptr))
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
                                                                           ) {
-      /* When argument-dependent lookup is enabled, even if the symbol
-         is a simple routine name it might not be the routine that is
-         called, so go to overload resolution and handle the reference
-         there.  Argument-dependent lookup applies only if the name
-         is immediately followed by a left parenthesis. */
+      /* When argument-dependent lookup is enabled, even if the symbol is a
+         simple routine name it might not be the routine that is called, so go
+         to overload resolution and handle the reference there.  Argument-
+         dependent lookup applies only if the name is immediately followed by
+         a left parenthesis. */
       force_indefinite_function = TRUE;
       rep = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -36052,10 +36055,8 @@ overloaded_function:
                in some special circumstances, if we bothered to create one
                and save it in the IL, we preserve it here in the rescan. */
             if (rescan_operand->is_name_followed_by_left_paren) {
-              make_undefined_symbol_operand(sym_ptr,
-                                            (a_ref_entry_ptr)NULL,
-                                            &locator.source_position,
-                                            result);
+              make_undefined_symbol_operand(sym_ptr, (a_ref_entry_ptr)NULL,
+                                            &locator, result);
             } else {
               /* The undefined symbol is not about to be called, so don't
                  allow an undefined symbol operand to escape. */

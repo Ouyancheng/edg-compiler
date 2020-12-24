@@ -1449,7 +1449,7 @@ being instantiated.
 
   if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
     issep = &scope_stack[depth_innermost_instantiation_scope];
-    sym = issep->instance_sym;
+    sym = issep->template_sym;
     if (sym != NULL && sym->is_class_member) {
       a_type_ptr  parent_class = sym_parent_class(sym);
       do {
@@ -1465,9 +1465,11 @@ being instantiated.
         reverse_array(&result[0], result.length());
       }  /* if */
     }  /* if */
-    a_subst_pairs_descr  spd = { issep->template_decl_info->parameters,
-                                 issep->template_arg_list, FALSE, FALSE };
-    result.push_back(spd);
+    if (issep->template_arg_list != NULL) {
+      a_subst_pairs_descr  spd = { issep->template_decl_info->parameters,
+                                   issep->template_arg_list, FALSE, FALSE };
+      result.push_back(spd);
+    }  /* if */
   }  /* if */
   return result;
 }  /* get_current_subst_pairs */

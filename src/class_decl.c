@@ -11162,16 +11162,17 @@ a_symbol_ptr decl_dependent_class_scope_function(
                                        a_func_info_block_ptr       func_info,
                                        ARG_UNUSED a_decl_pos_block *pos_info)
 /*
-Create a routine and associated symbol for a template dependent function
-declaration of type dps->type appearing in class scope.  Although the
-declaration (and definition) of the function is template-dependent, it is not
-necessarily a template function (e.g., a friend function in a class template
-is an ordinary function).  The declaration is a friend declaration when
-friend_decl is TRUE and an (in-class) explicit specialization when expl_spec
-is TRUE.  The locator for the declarator and some extra declaration info are
-passed through locator, dps, func_info, and pos_info.  The routine symbol is
-returned (but not linked into the symbol table).  The routine entry itself is
-linked into the IL only if prototype instantiations are recorded in the IL.
+Create a routine and associated symbol for a template dependent function or an
+ineligible friend function declaration of type dps->type appearing in class
+scope.  Although the declaration (and definition) of the function is usually
+template-dependent, it is not necessarily a template function (e.g., a friend
+function in a class template is an ordinary function).  The declaration is a
+friend declaration when friend_decl is TRUE and an (in-class) explicit
+specialization when expl_spec is TRUE.  The locator for the declarator and
+some extra declaration info are passed through locator, dps, func_info, and
+pos_info.  The routine symbol is returned (but not linked into the symbol
+table).  The routine entry itself is linked into the IL only if prototype
+instantiations are recorded in the IL.
 */
 {
   a_type_ptr                    function_type = dps->type;
@@ -11206,7 +11207,8 @@ linked into the IL only if prototype instantiations are recorded in the IL.
     /* An in-class explicit specialization should be added to the current
        class scope. */
     add_to_routines_list(rp, depth_scope_stack);
-  } else if (prototype_instantiations_in_il) {
+  } else if (prototype_instantiations_in_il ||
+             !is_template_dependent_context()) {
     /* For friend placeholders, arbitrarily record the entry in the innermost
        namespace scope. */
     add_to_routines_list(rp, depth_innermost_namespace_scope);
@@ -11216,7 +11218,9 @@ linked into the IL only if prototype instantiations are recorded in the IL.
      the IL if prototype_instantiations_in_il is FALSE.  (Note that even
      though is_prototype_instantiation is TRUE, is_template_function is FALSE
      unless an explicit template argument list is specified). */
-  rp->is_prototype_instantiation = TRUE;
+  if (expl_spec || is_template_dependent_context()) {
+    rp->is_prototype_instantiation = TRUE;
+  }  /* if */
   if (expl_spec) {
     rp->is_specialized = TRUE;
     if (is_class_member) {
@@ -11438,6 +11442,17 @@ possibility.
         state->first_decl = TRUE;
         goto decl_processed;
       }  /* if */
+    } else if (state->ineligible) {
+      /* The constraints of the friend are not satisfied.  Create a dummy
+         representation for it. */
+      state->is_definition = func_info->is_definition;
+      sym = decl_dependent_class_scope_function(
+                                    /*friend_decl=*/TRUE, /*expl_spec=*/FALSE,
+                                    locator, state, func_info,
+                                    &decl_info->decl_pos_block);
+      state->sym = sym;
+      state->first_decl = TRUE;
+      goto decl_processed;
     }  /* if */
   }  /* if */
   if (!is_error_locator(*locator)) {

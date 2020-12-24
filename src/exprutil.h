@@ -2525,7 +2525,7 @@ extern void make_indefinite_function_operand(a_symbol_ptr     routine_sym,
 
 extern void make_undefined_symbol_operand(a_symbol_ptr      sym,
                                           a_ref_entry_ptr   ref_list,
-                                          a_source_position *position,
+                                          a_symbol_locator  *loc,
                                           an_operand        *operand);
 
 extern void make_sym_for_member_operand(a_symbol_ptr    member_sym,

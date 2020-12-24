@@ -8073,22 +8073,26 @@ and is a function designator.
 
 void make_undefined_symbol_operand(a_symbol_ptr      sym,
                                    a_ref_entry_ptr   ref_list,
-                                   a_source_position *position,
+                                   a_symbol_locator  *loc,
                                    an_operand        *operand)
 /*
-Make an operand for an undefined symbol.  This is a fairly transient
-operand that will be either turned into an implicitly-declared function
-(in C) or ignored (in C++, with argument_dependent lookup), or diagnosed
-as an error.  sym is the undefined symbol; ref_list is the list of
-reference entries to be recorded, if any; position is the source position
-of the reference.  The resulting operand is placed in *operand.
+Make an operand for an undefined symbol.  This is a fairly transient operand
+that will be either turned into an implicitly-declared function (in C) or
+ignored (in C++, with argument_dependent lookup), or diagnosed as an error.
+sym is the undefined symbol. ref_list is the list of reference entries to be
+recorded, if any. locator describes the position and form of the source of the
+reference.  The resulting operand is placed in *operand.
 */
 {
   clear_operand((an_operand_kind)ok_undefined_symbol, operand);
   operand->type = unknown_type();
   operand->symbol = sym;
   operand->ref_entries_list = ref_list;
-  operand->id_position = *position;
+  operand->id_position = loc->source_position;
+  if (loc->is_template_id) {
+    operand->is_template_id = TRUE;
+    operand->template_arg_list = loc->template_arg_list;
+  }  /* if */
 }  /* make_undefined_symbol_operand */
 
 
