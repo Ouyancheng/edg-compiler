@@ -16803,6 +16803,10 @@ typedef struct a_lambda_capture {
 			   is_init_capture is FALSE), or a pack expansion in
 			   an init-capture (i.e., it is preceded by "..."
 			   and is_init_capture is TRUE). */
+  a_bit_field	
+		is_pack_element:1;
+			/* TRUE if this is an instantiation of an init-capture
+			   of a pack. */
   a_bit_field
 		direct_init:1;
 			/* TRUE if init-capture is TRUE and the initializer

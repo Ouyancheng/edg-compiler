@@ -1,5 +1,23 @@
 Version 6.2
 
+12/28/20 [EDGcpfe/23718]
+Inconsistent representation of pack init-captures
+
+The IL representation for pack init-captures (a C++20 feature) was not
+consistent with the representation of other (non-init-capture) forms of
+capture.  In particular, the entries for the expansion of "... i" incorrectly
+had their is_pack_expansion flag set.  In addition, the IL for the definition
+of the pack "i" incorrectly had the is_captured_pack_element field set.  As
+part of the resolution of this issue, an is_pack_element field has been added
+to the a_lambda_capture entry (a small IL CHANGE).
+
+  template<typename ... T> void f(T ... t) {
+    [t ...] () { };
+    [... i = t] () { };
+  }
+  template void f(short, int);
+
+
 12/18/20 [EDGcpfe/23498]
 C++-generating back end: missing type name in initializer for deduced type
 

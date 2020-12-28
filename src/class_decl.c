@@ -1860,7 +1860,8 @@ capture described by lcp.  Return the field entry.
     /* ... except the pointer from the init_state back to the associated
        decl_parse_state. */
     decl_info.decl_state.init_state.decl_parse_state = &decl_info.decl_state;
-    decl_info.is_captured_pack_element = lcp->is_pack_expansion;
+    decl_info.is_captured_pack_element = lcp->is_pack_element ||
+                                         lcp->is_pack_expansion;
   } else {
     /* A simple capture. */
     if (vp != NULL) {
@@ -32478,6 +32479,7 @@ static void scan_init_capture(a_lambda_ptr           lambda,
                               a_boolean              is_ref,
                               a_source_position_ptr  capture_pos,
                               a_boolean              is_init_pack,
+                              a_boolean              is_pack_expansion,
                               a_boolean              check_duplicate)
 /*
 Scan a C++14-style init-capture for the given lambda.  If is_ref is TRUE, an
@@ -32488,9 +32490,10 @@ closure class that will be initialized as indicated.  However, since the
 closure class is not being defined yet, the initializer is prescanned and the
 result of that prescan is recorded in a dynamically allocated declaration parse
 state block.  is_init_pack is TRUE if the init-capture is a pack (i.e., it
-was preceded by "...").  check_duplicate is TRUE if we should check for a
-prior capture of this name.  For an init-capture that is a pack expansion,
-it is TRUE only for the first expansion.
+was preceded by "...").  is_pack_expansion is TRUE when is_init_pack is TRUE
+and this is the definition of the pack expansion.  check_duplicate is TRUE
+if we should check for a prior capture of this name.  For an init-capture
+that is a pack expansion, it is TRUE only for the first expansion.
 
 *capture_pos is the position to record for the capture.
 */
@@ -32509,7 +32512,8 @@ it is TRUE only for the first expansion.
     lcp = alloc_capture_for_lambda(lambda);
   }  /* if */
   lcp->is_init_capture = TRUE;
-  lcp->is_pack_expansion = is_init_pack;
+  lcp->is_pack_expansion = is_pack_expansion;
+  lcp->is_pack_element = is_init_pack && !is_pack_expansion;
   lcp->capture_by_reference = is_ref;
   lcp->capture_info.init_capture_dps = dps;
   lcp->position = *capture_pos;
@@ -32729,6 +32733,8 @@ caller has already moved past the '[', and this routine leaves the trailing
                identifier, and prescan the initializer as if for an auto
                variable declaration. */
             scan_init_capture(lambda, by_ref, &capture_pos, is_init_pack,
+                              is_init_pack && pesep != NULL &&
+                                           pesep->instantiation_descr == NULL,
                               check_duplicate);
             goto capture_processed;
           } else {

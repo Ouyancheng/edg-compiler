@@ -5697,6 +5697,9 @@ Display the indicated lambda capture.
   if (ptr->is_pack_expansion) {
     disp_boolean("is_pack_expansion", TRUE);
   }  /* if */
+  if (ptr->is_pack_element) {
+    disp_boolean("is_pack_element", TRUE);
+  }  /* if */
   if (ptr->direct_init) {
     disp_boolean("direct_init", TRUE);
   }  /* if */

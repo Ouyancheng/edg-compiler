@@ -5601,6 +5601,7 @@ in the current memory region.
   entry->capture_by_reference = FALSE;
   entry->is_implicit = FALSE;
   entry->is_pack_expansion = FALSE;
+  entry->is_pack_element = FALSE;
   entry->direct_init = FALSE;
   entry->parenthesized_init = FALSE;
   entry->position = null_source_position;
