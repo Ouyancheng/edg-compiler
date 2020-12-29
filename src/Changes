@@ -1,5 +1,19 @@
 Version 6.2
 
+12/29/20 [EDGcpfe/23719]
+Microsoft compatibility: pack init-captures and lambda disambiguation
+
+When Microsoft extensions are enabled, special processing is done to
+disambiguate between a lambda and a Microsoft attribute.  This processing
+did not correctly handle C++20 pack init-captures resulting in spurious
+errors in some cases.  Now fixed.
+
+  template<typename U, typename ... T> void f(U u, T ... t) {
+    auto l ([i = u, ... j = t](){});
+  }
+  template void f(int, char, short, int);
+
+
 12/28/20 [EDGcpfe/23718]
 Inconsistent representation of pack init-captures
 

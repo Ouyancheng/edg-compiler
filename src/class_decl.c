@@ -32981,6 +32981,11 @@ whether this is a lambda.  Return TRUE if it is.
     a_token_kind  next_tok;
     /* Skip past a comma-separated list of identifiers. */
     for (;;) {
+      if (pack_init_capture_enabled && curr_token == tok_ellipsis) {
+        /* Cache the ... of an init-capture of a pack. */
+        cache_curr_token(&cache);
+        (void)get_token();
+      }  /* if */
       /* Cache the identifier, if any. */
       if (curr_token != tok_identifier && curr_token != tok_this) break;
       cache_curr_token(&cache);
