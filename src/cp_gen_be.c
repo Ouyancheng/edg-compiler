@@ -2127,10 +2127,23 @@ it finds a node referring to a non-public class member.
     default:
       break;
   }  /* switch */
-  if (scp != NULL && scp->is_class_member &&
-      scp->access != (an_access_specifier)as_public) {
-    tblock->result = TRUE;
-    tblock->terminate = TRUE;
+  if (scp != NULL && scp->is_class_member) {
+    /* Check to make sure the member is public and that its class can be
+       named accessibly. */
+    a_boolean  is_inaccessible = FALSE;
+    a_type_ptr parent_class = scp_parent_class(scp);
+    a_boolean  for_all_scopes;
+    if (scp->access != (an_access_specifier)as_public) {
+      is_inaccessible = TRUE;
+    } else if (!entity_name_is_accessible(&parent_class->source_corresp,
+                                          iek_type, /*ignore_context=*/TRUE,
+                                          &for_all_scopes)) {
+      is_inaccessible = TRUE;
+    }  /* if */
+    if (is_inaccessible) {
+      tblock->result = TRUE;
+      tblock->terminate = TRUE;
+    }  /* if */
   }  /* if */
 }  /* check_for_inaccessible_member */
 
@@ -2505,7 +2518,7 @@ names is not public, set *for_all_scopes to FALSE.
       }  /* while */
       scp = &tp->source_corresp;
     }  /* if */
-    parent_class= scp->is_class_member ? scp_parent_class(scp) : NULL;
+    parent_class = scp->is_class_member ? scp_parent_class(scp) : NULL;
     if (kind == iek_type &&
         ((a_type_ptr)scp)->kind == (a_type_kind)tk_typeref &&
         typeref_is_type_operator((a_type_ptr)scp)) {
