@@ -2412,6 +2412,9 @@ constants for that type).
           } else {
             /* FIXME: lots more to do here. */
             a_routine_ptr rp;
+            /* FIXME: There's a chicken-and-egg problem here when the return
+               type is deduced and requires access to the class scope (e.g.,
+               returning a lambda declared within the function. */
             init_dps(&dps, &idsfp->locus, idsfp->type, ifc_ObjectTraits_None,
                      ifc_MsvcTraits_None, idsfp->specifiers, idsfp->access,
                      &psss);
