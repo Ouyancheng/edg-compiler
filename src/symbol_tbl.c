@@ -5056,9 +5056,9 @@ the symbol header of a symbol declared in the for-init scope.
 
   if (use_nonstandard_for_init_scope) {
     /* No need to check, since a for-init scope will not have been created. */
-  } else if (gpp_mode) {
-    /* In GNU C++ mode, the for-init scope is considered to be distinct from
-       the scope containing the condition and the body of the loop. */
+  } else if (gpp_version_is(<40700)) {
+    /* In early GNU C++ modes, the for-init scope is considered to be distinct
+       from the scope containing the condition and the body of the loop. */
   } else {
     /* Three scopes are treated as "the same" for lookup purposes (based on
        language in WP 6.5.3 [stmt.for] and in 6.4 [stmt.select] para 2-3). */

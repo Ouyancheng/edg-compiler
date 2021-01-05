@@ -1,5 +1,20 @@
 Version 6.2
 
+1/5/21   [EDGcpfe/23727]
+GNU compatibility: redeclaration of variable inside for loop
+
+Versions of GNU earlier than 4.7.0 allowed a variable name defined in a
+for-init construct to be reused for another variable in the loop's body (see
+the Changes entry from 1/11/05).  A change has been made to issue an error
+when gnu_version >= 40700.  For example:
+
+  void f() {
+    for (int i = 0;;) {
+      int i = 3;  // Now an error when gnu_version >= 40700
+    }
+  }
+
+
 12/29/20 [EDGcpfe/23719]
 Microsoft compatibility: pack init-captures and lambda disambiguation
 
