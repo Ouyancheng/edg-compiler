@@ -5653,7 +5653,8 @@ description of the parameters.
 
   check_assertion(result_type->kind == (a_type_kind)tk_vector);
   result_elem_type = result_type->variant.vector.element_type;
-  num_result_elements = result_type->size / result_elem_type->size;
+  num_result_elements =
+                     result_type->size / skip_typerefs(result_elem_type)->size;
   /* Change vector operators into their corresponding scalar operators. */
   switch (op) {
     case eok_vector_eq:    op = eok_eq;      break;
