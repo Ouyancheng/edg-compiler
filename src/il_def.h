@@ -3767,7 +3767,12 @@ typedef struct a_dynamic_init {
 			   and therefore will never be seen in lowered code. */
   a_bit_field	is_result_for_comma_operator:1;
 			/* If TRUE, this entity is the temporary that is the
-			   result of a "," operator. */
+			   result of a "," operator.  The master_entry field
+			   on the underlying enk_temp_init will be set to
+			   point to this initialization (so that the
+			   variable can be initialized directly rather than
+			   initializing a temporary and assigning it to
+			   the variable). */
   a_bit_field	is_reused_value:1;
 			/* TRUE if this initialization's value is reused
 			   elsewhere in the current expression via an
@@ -3965,7 +3970,7 @@ typedef struct a_dynamic_init {
 			/* If non-NULL, this entry initializes a temporary
 			   associated with the initialization entry pointed to.
 			   The master entry handles destruction etc.  This is
-			   used for the optimization of a "?" operator
+			   used for the optimization of a "?" or "," operator
 			   returning a class rvalue. */
   an_expr_rescan_info_entry_ptr
 		rescan_info;

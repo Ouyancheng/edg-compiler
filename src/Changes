@@ -1,5 +1,28 @@
 Version 6.2
 
+1/7/21   [EDGcpfe/23700]
+Temporary eliminated in lowering of class rvalue-returning comma operation
+
+In cases where the second operand of a comma operation initialized a class
+rvalue, lowering would create a temporary variable, initialize it, and then
+copy (without invoking a copy or assignment constructor) the temporary to
+its final destination.  That had violated some of the guarantees of the class.
+For example (with --c++11):
+
+  extern "C" void abort();
+  struct S {
+    void* p;
+    S() noexcept : p(this) { }
+    ~S() noexcept {
+      if (p != this) abort();   // had aborted previously
+    }
+  };
+  int main() {
+    S s = ((void)0, S());
+    return 0;
+  }
+
+
 1/6/21   [EDGcpfe/23738]
 Divide by zero floating-point exception
 
