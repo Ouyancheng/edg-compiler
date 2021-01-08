@@ -21738,9 +21738,6 @@ example, for a return, because the caller will do the destruction).
                                           &dip);
         dip->is_result_for_comma_operator = TRUE;
         dip->variant.expression = orig_expr;
-        /* Set the master_entry field in the temp init node to point to
-           this dip. */
-        final_node->variant.init.dynamic_init->master_entry = dip;
         /* This should always be TRUE, but we need to ensure that the
            appropriate tweaks are made to the dip as well. */
         if (!is_temp_init_dip_usable_in_optimization(dip, suppress_dtor)) {
