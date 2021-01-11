@@ -303,8 +303,8 @@ value as its value is target-specific).
 #endif /* defined(__x86_64) || defined(_WIN64) */
 #endif /* defined(TARG_SUPPORTS_X86_64) */
 
-#ifdef USE_X64_64
-/* USE_X64_64 is now deprecated; set TARG_SUPPORTS_X86_64 appropriately and
+#ifdef USE_X86_64
+/* USE_X86_64 is now deprecated; set TARG_SUPPORTS_X86_64 appropriately and
    use the targ_supports_x86_64 global variable to check at run-time. */
  #error Use of USE_X86_64 is deprecated; use targ_supports_x86_64 global \
         variable

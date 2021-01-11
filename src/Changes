@@ -1,5 +1,14 @@
 Version 6.2
 
+1/11/21  [EDGcpfe/23743]
+Typo: USE_X64_X64 -> USE_X86_64
+
+A mis-typing of the deprecated USE_X86_64 configuration macro in targ_def.h is
+now fixed.  Although the fix has no real consequence, it may trigger #error
+messages designed to alert the customer of uses of the deprecated macro.  The
+change was originally made by EDGcpfe/15604 et al.
+
+
 1/6/21   [EDGcpfe/23738]
 Divide by zero floating-point exception
 
