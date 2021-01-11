@@ -3753,18 +3753,19 @@ typedef struct a_dynamic_init {
 			/* If TRUE, this entity is the temporary that is
 			   the result of a "?" operator that returns a
 			   class rvalue in C++. */
-  a_bit_field	is_optimized_class_rvalue_question_mark:1;
+  a_bit_field	class_rvalue_initialized_through_master_entry:1;
 			/* If TRUE, is_result_for_class_rvalue_question_mark
-			   will also be TRUE, and an optimization has been
-			   done to avoid the final copy of the result of the
-			   "?" operation.  The kind is dik_expression and
-			   the expression pointed to by variant.expression
-			   is evaluated to effect the initialization of this
-			   temporary, but the value of the expression is not
-			   stored into the temporary (i.e., its associated
-			   node has the result_is_not_used flag set to TRUE).
-			   Note that this case is eliminated by IL lowering
-			   and therefore will never be seen in lowered code. */
+			   or is_result_for_comma_operator will also be TRUE,
+                           and an optimization has been done to avoid the final
+			   copy of the result of the "?" or "," operation.  The
+			   kind is dik_expression and the expression pointed to
+			   by variant.expression is evaluated to effect the
+			   initialization of this temporary, but the value of
+			   the expression is not stored into the temporary
+			   (i.e., its associated node has the
+			   result_is_not_used flag set to TRUE).  Note that
+			   this case is eliminated by IL lowering and therefore
+			   will never be seen in lowered code. */
   a_bit_field	is_result_for_comma_operator:1;
 			/* If TRUE, this entity is the temporary that is the
 			   result of a "," operator. */
@@ -3853,8 +3854,9 @@ typedef struct a_dynamic_init {
 			/* The expression that gives the initial value
 			   (dik_expression), or the call or GNU statement
 			   expression that returns the initial value via a
-			   constructor (dik_class_result_via_ctor).  See the
-			   note on is_optimized_class_rvalue_question_mark
+			   constructor (dik_class_result_via_ctor). See the
+			   note on
+			   class_rvalue_initialized_through_master_entry
 			   regarding one special case of dik_expression. */
     /* When kind == dik_constructor: */
     /* Used only in C++. */
@@ -3945,8 +3947,9 @@ typedef struct a_dynamic_init {
 		*init_destination;
 			/* Description of the initialization destination.
 			   Set by IL lowering, only for entries with
-			   is_optimized_class_rvalue_question_mark TRUE.
-			   Note that this points to a stack variable. */
+			   class_rvalue_initialized_through_master_entry TRUE.
+			   Note that this points to variable allocated on the
+			   stack (i.e., not something in the IL). */
   a_new_delete_supplement_ptr
 		assoc_new;
 			/* When is_freeing_of_storage_on_exception is TRUE,
@@ -3965,8 +3968,10 @@ typedef struct a_dynamic_init {
 			/* If non-NULL, this entry initializes a temporary
 			   associated with the initialization entry pointed to.
 			   The master entry handles destruction etc.  This is
-			   used for the optimization of a "?" operator
-			   returning a class rvalue. */
+			   used for the optimization of a "?" or "," operator
+			   returning a class rvalue. master_entry->
+			   class_rvalue_initialized_through_master_entry will
+			   be TRUE in such cases. */
   an_expr_rescan_info_entry_ptr
 		rescan_info;
 			/* For casts scanned in templates that might
@@ -13703,10 +13708,10 @@ typedef struct an_expr_node {
 			   pointing to the eok_question operation, but the
 			   result of that operation is discarded because the
 			   temporary is initialized by the dependent
-			   enk_temp_init nodes that are the second and third
-			   operands of the eok_question operator (see also the
-			   is_optimized_class_rvalue_question_mark flag in
-			   a_dynamic_init). */
+			   enk_temp_init nodes that are the operands of the
+			   eok_question or eok_comma operator (see also the
+			   class_rvalue_initialized_through_master_entry flag
+			   in a_dynamic_init). */
   a_bit_field	is_initialization_guard:1;
 			/* TRUE if this node is a "?" that guards a first-time
 			   test on an initialization.  When generating

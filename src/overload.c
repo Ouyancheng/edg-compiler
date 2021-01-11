@@ -20857,10 +20857,10 @@ abstract class type is okay (e.g., if we are initializing a base subobject).
 }  /* make_constructor_dynamic_init */
 
 
-void temp_init_by_bitwise_copy_from_operand(an_operand *operand,
-                                            a_type_ptr temp_type,
-                                            a_boolean  result_is_lvalue,
-                                            a_boolean  is_explicit_cast)
+static void temp_init_by_bitwise_copy_from_operand(an_operand *operand,
+                                                   a_type_ptr temp_type,
+                                                   a_boolean  result_is_lvalue,
+                                                   a_boolean  is_explicit_cast)
 /*
 Create a temporary of type temp_type and initialize it by bitwise copy from
 the given operand.  If temp_type is NULL, use the current type of the
@@ -21738,6 +21738,10 @@ example, for a return, because the caller will do the destruction).
                                           &dip);
         dip->is_result_for_comma_operator = TRUE;
         dip->variant.expression = orig_expr;
+        /* Set the master_entry field in the temp init node to point to
+           this dip. */
+        dip->class_rvalue_initialized_through_master_entry = TRUE;
+        final_node->variant.init.dynamic_init->master_entry = dip;
         /* This should always be TRUE, but we need to ensure that the
            appropriate tweaks are made to the dip as well. */
         if (!is_temp_init_dip_usable_in_optimization(dip, suppress_dtor)) {

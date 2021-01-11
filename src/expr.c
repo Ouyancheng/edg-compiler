@@ -45077,11 +45077,11 @@ lowering or a back end to do the rewriting.
                                                     /*move_case=*/FALSE)
 #if DO_IL_LOWERING
             /* Rule out a case IL lowering can't handle: returning an
-               optimized class rvalue "?" via the named return value
+               optimized class rvalue "?" or "," via the named return value
                optimization. */
             && (return_var->init_kind != (an_init_kind)initk_dynamic ||
                 !return_var->initializer.dynamic->
-                                    is_optimized_class_rvalue_question_mark)
+                                 class_rvalue_initialized_through_master_entry)
 #endif /* DO_IL_LOWERING */
                                                                             ) {
           a_symbol_ptr sym =

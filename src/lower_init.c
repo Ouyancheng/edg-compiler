@@ -9084,43 +9084,55 @@ insert_call_to_initialize_entity above for a description of the arguments.
 }  /* insert_call_to_zero_entity */
 
 
-static void lower_optimized_class_rvalue_question_mark(
+static void lower_class_rvalue_returning_operation(
                                            an_expr_node_ptr   expr,
                                            an_insert_location *insert_location)
 /*
-Lower an optimized "?" operation that returns a class rvalue.  Specifically,
+Lower a "?" or "," operation that returns a class rvalue.  Specifically,
 expr is the expression from a dynamic initialization with
-is_optimized_class_rvalue_question_mark set to TRUE, which initializes
-the temporary that is the result of the "?" operation.  The expression
+class_rvalue_initialized_through_master_entry set to TRUE, which initializes
+the temporary that is the result of the "?" or "," operation.  The expression
 is supposed to be evaluated to initialize the temporary, but its value
 is discarded.  The initialization code is inserted at *insert_location.
 The expression passed in has not been lowered yet and must be lowered.
+
+This is to handle cases like:
+
+  S s = ((void)0, S());
+
+where we don't want to create a separate temporary for "S()" and then assign
+it to "s".
 */
 {
   an_expr_node_ptr operand_1, operand_2, operand_3;
+  a_boolean        is_question = node_operator_is(expr, eok_question);
 
   check_assertion(is_operation_node(expr) &&
-                  expr->variant.operation.kind ==
-                                          (an_expr_operator_kind)eok_question);
+                  (node_operator_is(expr, eok_question) ||
+                   node_operator_is(expr, eok_comma)));
   operand_1 = expr->variant.operation.operands;
   operand_2 = operand_1->next;
-  operand_3 = operand_2->next;
-  operand_2->next = NULL;
+  if (is_question) {
+    operand_3 = operand_2->next;
+    operand_2->next = NULL;
+  }  /* if */
   /* Cast the operands to void and mark their results as not used so we
      can get better code generation. */
   set_expr_result_not_used(operand_2);
-  set_expr_result_not_used(operand_3);
   operand_2 = add_cast_if_necessary(operand_2, void_type());
-  operand_3 = add_cast_if_necessary(operand_3, void_type());
   operand_1->next = operand_2;
-  operand_2->next = operand_3;
+  if (is_question) {
+    set_expr_result_not_used(operand_3);
+    operand_3 = add_cast_if_necessary(operand_3, void_type());
+    operand_2->next = operand_3;
+  }  /* if */
   expr->type = void_type();
   set_expr_result_not_used(expr);
   /* Lower the operation now that the operands indicate the result is
      not used. */
   lower_expr(expr);
   (void)insert_expr_statement(expr, insert_location);
-}  /* lower_optimized_class_rvalue_question_mark */
+}  /* lower_class_rvalue_returning_operation */
 
 #if VLA_DEALLOCATION_REQUIRED
 
@@ -10049,7 +10061,7 @@ C99 mode for the same reason.
       /* Initializing a base class, so not a complete object. */
       have_complete_object = FALSE;
     }  /* if */
-    if (dip->is_optimized_class_rvalue_question_mark) {
+    if (dip->class_rvalue_initialized_through_master_entry) {
       /* Note the destination position for use down the tree in
          lower_temp_init. */
       dip->init_destination = ipdp;
@@ -10307,12 +10319,12 @@ C99 mode for the same reason.
           }  /* if */
         }  /* if */
       } else {
-        if (dip->is_optimized_class_rvalue_question_mark) {
-          /* For the optimized "?" class rvalue case, the expression must
-             be evaluated (it initializes the temporary) but its value is
-             not stored into the temporary. */
-          lower_optimized_class_rvalue_question_mark(source_node,
-                                                     eff_insert_location);
+        if (dip->class_rvalue_initialized_through_master_entry) {
+          /* For the case where a "?" or "," operator returns a class rvalue,
+             the expression must be evaluated (it initializes the temporary)
+             but its value is not stored into the temporary. */
+          lower_class_rvalue_returning_operation(source_node,
+                                                 eff_insert_location);
           break;
         }  /* if */
         if ((options & LDIO_FULL_EXPR) && init_expr_lifetime == NULL) {
@@ -12950,7 +12962,7 @@ Do IL lowering of an enk_temp_init expression node.
       !result_is_lvalue &&
       dip->destructor == NULL &&
       !dip->is_reused_value &&
-      !dip->is_optimized_class_rvalue_question_mark &&
+      !dip->class_rvalue_initialized_through_master_entry &&
       dip->master_entry == NULL &&
       !is_constant_node(dip->variant.expression)) {
     /* For a simple expression temporary case where the temporary is used
@@ -13313,8 +13325,8 @@ eff_insert_location specifies the insert location for any added statements
     /* Variable-length arrays (VLAs) require deallocation (treated as a
        kind of destruction). */
     non_C_case = TRUE;
-  } else if (dip->is_optimized_class_rvalue_question_mark) {
-    /* The initializer is an optimized class rvalue "?" operation. */
+  } else if (dip->class_rvalue_initialized_through_master_entry) {
+    /* The initializer is an optimized class rvalue "?" or "," operation. */
     non_C_case = TRUE;
   }  /* if */
   switch (dip->kind) {
@@ -13366,10 +13378,10 @@ eff_insert_location specifies the insert location for any added statements
          caller instead; its address is given by an implicit parameter. */
       set_var_indirect_init_pos_descr(return_value_pointer_variable, &ipd);
       dip->variable = NULL;
-      /* The current code in lower_temp_init can't handle an optimized class
-         rvalue "?" that sets the return value directly.  The front end proper
+      /* The current code in lower_temp_init can't handle a class rvalue "?"
+         or "," that sets the return value directly.  The front end proper
          is supposed to rule this out. */
-      check_assertion(!dip->is_optimized_class_rvalue_question_mark);
+      check_assertion(!dip->class_rvalue_initialized_through_master_entry);
     } else 
 #endif /* DO_RETURN_VALUE_OPTIMIZATION_IN_LOWERING */
     /* Do not insert code here; this is the "else" of an "if". */

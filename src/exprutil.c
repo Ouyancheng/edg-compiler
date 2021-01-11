@@ -15718,7 +15718,6 @@ node, convert the operand into a temp init from that node.
     a_type_ptr       unqual_type = skip_typerefs(operand->type);
     if (is_operation_node(node) && node_operator_is(node, eok_comma) &&
         is_temp_node(node->variant.operation.operands->next)) {
-      a_boolean elision_done = FALSE;
       if ((mandatory_copy_elision || gnu_mode) &&
           is_class_struct_union_type(unqual_type)) {
         /* In modes where we need to elide copies, check to see if elision
@@ -15732,12 +15731,12 @@ node, convert the operand into a temp init from that node.
         }  /* if */
         prep_elision_initializer_operand(operand, unqual_type,
                                          /*fill_in_dtor=*/TRUE, conv_context,
-                                         ec_no_error, &elision_done, &dip);
-      }  /* if */
-      if (elision_done) {
-        temp_init_by_bitwise_copy_from_operand(operand, unqual_type,
-                                               /*result_is_lvalue=*/FALSE,
-                                               /*is_explicit_cast=*/FALSE);
+                                         ec_no_error, (a_boolean*)NULL, &dip);
+        an_expr_node_ptr temp_init_expr;
+        temp_init_expr = alloc_temp_init_node(operand->type, dip,
+                                              /*is_lvalue=*/FALSE,
+                                              /*is_explicit_cast=*/FALSE);
+        make_lvalue_or_rvalue_expression_operand(temp_init_expr, operand);
       } else {
         temp_init_from_operand_full(operand, /*temp_type=*/NULL,
                                     /*result_is_lvalue=*/FALSE);
@@ -15815,7 +15814,7 @@ added and result is updated.
 
   /* In the optimized form, the temporary that is the result of the
      overall "?" is a dik_expression marked with
-     is_optimized_class_rvalue_question_mark, which means the expression
+     class_rvalue_initialized_through_master_entry, which means the expression
      pointed to should be evaluated for its effects (mainly, initializing
      the top-level temporary) but its value should not be stored into the
      temporary.  The initializations for the temporaries for each operand
@@ -15846,7 +15845,7 @@ added and result is updated.
                                          (a_dynamic_init_kind)dik_expression,
                                          &result->position,
                                          &dip);
-  dip->is_optimized_class_rvalue_question_mark = TRUE;
+  dip->class_rvalue_initialized_through_master_entry = TRUE;
   expr = make_node_from_operand(result);
   set_expr_result_not_used(expr);
   dip->variant.expression = expr;

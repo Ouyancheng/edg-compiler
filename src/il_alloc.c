@@ -2413,7 +2413,7 @@ Initialize a dynamic_init entry of the kind specified.
   dip->is_braced_initializer = FALSE;
   dip->is_partially_initialized = FALSE;
   dip->is_result_for_class_rvalue_question_mark = FALSE;
-  dip->is_optimized_class_rvalue_question_mark = FALSE;
+  dip->class_rvalue_initialized_through_master_entry = FALSE;
   dip->is_result_for_comma_operator = FALSE;
   dip->is_reused_value = FALSE;
 #if DO_IL_LOWERING

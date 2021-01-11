@@ -6723,8 +6723,8 @@ Display the indicated dynamic_init structure.
   if (ptr->is_result_for_class_rvalue_question_mark) {
     disp_boolean("is_result_for_class_rvalue_question_mark", TRUE);
   }  /* if */
-  if (ptr->is_optimized_class_rvalue_question_mark) {
-    disp_boolean("is_optimized_class_rvalue_question_mark", TRUE);
+  if (ptr->class_rvalue_initialized_through_master_entry) {
+    disp_boolean("class_rvalue_initialized_through_master_entry", TRUE);
   }  /* if */
   if (ptr->is_reused_value) {
     disp_boolean("is_reused_value", TRUE);

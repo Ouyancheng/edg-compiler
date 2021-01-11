@@ -14906,7 +14906,7 @@ options for the copy.  cblock is a control block for the copy.
 
   new_dip = alloc_dynamic_init(dip->kind);
   *new_dip = *dip;
-  if (dip->is_optimized_class_rvalue_question_mark ||
+  if (dip->class_rvalue_initialized_through_master_entry ||
       dip->is_reused_value) {
     /* Record the original and copy addresses for dynamic inits that might
        be referenced elsewhere in the copied tree, so we can get the
