@@ -24989,7 +24989,7 @@ return FALSE and:
   if (diagnose_here) {
     p_fatal = &fatal;
   }  /* if */
-  if (constraint->kind == (an_expr_node_kind)enk_concept_id) {
+  if (node_is(constraint, enk_concept_id)) {
     /* Substitute the template argument list of the concept, and then check
        the satisfaction of the concept's constraint expression with that
        substituted argument list. */
@@ -24997,6 +24997,9 @@ return FALSE and:
     a_symbol_ptr          sym;
     a_template_arg_ptr    old_args, new_args;
     a_template_param_ptr  params;
+    a_boolean             saved_in_concept_rescan =
+                                          scope_stack_top().in_concept_rescan;
+    scope_stack_top().in_concept_rescan = TRUE;
     templ = constraint->variant.concept_id.concept_template;
     sym = symbol_for(templ);
     old_args = constraint->variant.concept_id.args;
@@ -25055,6 +25058,7 @@ return FALSE and:
       }  /* if */
     }  /* if */
     free_template_arg_list(new_args);
+    scope_stack_top().in_concept_rescan = saved_in_concept_rescan;
   } else if (node_is_operator(constraint, eok_land)) {
     /* Check the two underlying constraints separately.  If the first
        determines the outcome, the second is neither substituted nor
