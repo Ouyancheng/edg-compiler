@@ -1,5 +1,25 @@
 Version 6.2
 
+1/11/21  [EDGcpfe/17807,EDGcpfe/19983,EDGcpfe/20388,EDGcpfe/22137]
+Microsoft compatibility: access checking in SFINAE contexts
+
+Earlier versions of the Microsoft compiler did not perform access checking
+as part of the SFINAE process.  Starting with version 1900, they now do.
+We now enable SFINAE access checking in Microsoft mode when microsoft_version
+is >= 1910.
+
+  struct A {
+    template <class T> static typename T::X f(T);
+  };
+  class B {
+    typedef int X;
+  };
+  int main() {
+    B b;
+    A::f(b);  // now fails overload resolution
+  }
+
+
 1/11/21  [EDGcpfe/23743]
 Typo: USE_X64_X64 -> USE_X86_64
 
