@@ -4,7 +4,7 @@ Version 6.2
 Microsoft compatibility: access checking in SFINAE contexts
 
 Earlier versions of the Microsoft compiler did not perform access checking
-as part of the SFINAE process.  Starting with version 1900, they now do.
+as part of the SFINAE process.  Starting with version 1910, they now do.
 We now enable SFINAE access checking in Microsoft mode when microsoft_version
 is >= 1910.
 
