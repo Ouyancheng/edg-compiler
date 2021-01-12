@@ -22,7 +22,7 @@ For example (with --c++11):
     return 0;
   }
 
-There is a slight IL change to support this: the
+There is a slight IL CHANGE to support this: the
 is_optimized_class_rvalue_question_mark field in a_dynamic_init has now been
 renamed to class_rvalue_initialized_through_master_entry to reflect its
 expanded role.

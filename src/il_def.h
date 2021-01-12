@@ -3756,7 +3756,7 @@ typedef struct a_dynamic_init {
   a_bit_field	class_rvalue_initialized_through_master_entry:1;
 			/* If TRUE, is_result_for_class_rvalue_question_mark
 			   or is_result_for_comma_operator will also be TRUE,
-                           and an optimization has been done to avoid the final
+			   and an optimization has been done to avoid the final
 			   copy of the result of the "?" or "," operation.  The
 			   kind is dik_expression and the expression pointed to
 			   by variant.expression is evaluated to effect the
@@ -3948,7 +3948,7 @@ typedef struct a_dynamic_init {
 			/* Description of the initialization destination.
 			   Set by IL lowering, only for entries with
 			   class_rvalue_initialized_through_master_entry TRUE.
-			   Note that this points to variable allocated on the
+			   Note that this points to a variable allocated on the
 			   stack (i.e., not something in the IL). */
   a_new_delete_supplement_ptr
 		assoc_new;
@@ -3967,7 +3967,7 @@ typedef struct a_dynamic_init {
 		master_entry;
 			/* If non-NULL, this entry initializes a temporary
 			   associated with the initialization entry pointed to.
-			   The master entry handles destruction etc.  This is
+			   The master entry handles destruction, etc.  This is
 			   used for the optimization of a "?" or "," operator
 			   returning a class rvalue. master_entry->
 			   class_rvalue_initialized_through_master_entry will
