@@ -4579,7 +4579,8 @@ variant path.
     a_type_ptr  con_addr_type = type_pointed_to(con->type);
     if (!identical_types(obj_type, con_addr_type)) {
       cap->flags |= CA_ARRAY_ELEMENT;
-      cap->length = (unsigned int)num_array_elements(obj_type);
+      cap->length =
+             (unsigned int)obj_type->variant.array.variant.number_of_elements;
       if (is_variant_path(cap)) {
         cap->variant.variant_path->base_address = cap->address;
       } else {
