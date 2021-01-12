@@ -14,7 +14,7 @@ Consider:
 
 The front end previously did not match X<int> to the partial specialization
 because it did not consider V<decltype(bool(T()))>::Type to be nondeducible.
-That is now fixed (and the case above is not accepted).
+That is now fixed (and the case above is now accepted).
 
 
 1/11/21   [EDGcpfe/23700]
