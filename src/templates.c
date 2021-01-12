@@ -12869,8 +12869,7 @@ points to the template parameter list.
          get the underlying type before checking for a template
          parameter. */
       templ_type = skip_typedefs(templ_type);
-      if (templ_type->variant.template_param.kind ==
-                             (a_template_param_type_kind)tptk_param) {
+      if (tptk_is(templ_type, tptk_param)) {
         if (depth_of_template !=
             templ_type->variant.template_param.extra_info->coordinates.depth) {
           /* Template parameters from a different nesting depth.  This can
@@ -12940,8 +12939,7 @@ points to the template parameter list.
             }  /* if */
           }  /* if */
         }  /* if */
-      } else if (templ_type->variant.template_param.kind ==
-                                    (a_template_param_type_kind)tptk_unknown) {
+      } else if (tptk_is(templ_type, tptk_unknown)) {
         /* The template type is an unknown dependent type.  This is a
            nondeduced context.  Consider it a match for now. */
         match = TRUE;
@@ -13001,13 +12999,18 @@ points to the template parameter list.
                that results from the substitution of the template
                argument values will be checked later. */
             ttp = parent_class_of(templ_type);
-            if (class_type_supp(ttp)->proxy_of_type != NULL) {
-              /* The type is a member of a proxy class.  Substitute the
-                 original template parameter for the proxy class in
-                 the matching process. */
-              ttp = class_type_supp(ttp)->proxy_of_type;
+            if (ttp->variant.class_struct_union.is_nonreal_class) {
+              /* The parent class is dependent. */
+              match = TRUE;
+            } else {
+              if (class_type_supp(ttp)->proxy_of_type != NULL) {
+                /* The type is a member of a proxy class.  Substitute the
+                   original template parameter for the proxy class in
+                   the matching process. */
+                ttp = class_type_supp(ttp)->proxy_of_type;
+              }  /* if */
+              match = is_or_contains_template_param(ttp);
             }  /* if */
-            match = is_or_contains_template_param(ttp);
           }  /* if */
         } /* if */
       }  /* if */
