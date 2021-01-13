@@ -38824,8 +38824,9 @@ handle_identifier:
         }  /* if */
         scan_identifier(&local_result, local_options, prec_level,
                         (a_rescan_control_block *)NULL, (a_symbol *)NULL,
-                        (an_operand *)NULL, FALSE, (a_template_arg *)NULL,
-                        (a_symbol_ptr *)NULL, &okay_after_typename);
+                        (an_operand *)NULL, /*rescan_is_template_id=*/FALSE,
+                        (a_template_arg *)NULL, (a_symbol_ptr *)NULL,
+                        &okay_after_typename);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         /* If okay_after_typename is TRUE, clear the flag that indicates
            we discarded a typename to suppress the warning that would otherwise
@@ -47122,6 +47123,18 @@ is TRUE if the expression is the immediate operand of an "&" operator.
           subst_fail(rcblock->error_detected);
           make_error_operand(result);
           copy_operand_position(&eriep->saved_operand, result);
+        } else if (symbol_is(sym, sk_variable_template) && is_template_id) {
+          /* If con represented a variable template reference with associated
+             explicit template arguments, resolve the associated variable
+             template instance. */
+          sym = find_template_variable(sym, &expl_templ_arg_list,
+                                       /*prototype_allowed=*/FALSE,
+                                       /*is_use=*/TRUE, /*diagnose=*/FALSE);
+          if (sym == NULL) {
+            subst_fail(rcblock->error_detected);
+            make_error_operand(result);
+            copy_operand_position(&eriep->saved_operand, result);
+          }  /* if */
         }  /* if */
       }
       break;
@@ -49553,7 +49566,7 @@ this routine is called only when microsoft_mode is TRUE.
   scan_identifier(&operand, (a_local_expr_options_set)EOPT_NO_OPTIONS,
                   PREC_LOWEST, (a_rescan_control_block *)NULL,
                   (a_symbol *)NULL, (an_operand *)NULL,
-                  FALSE, (a_template_arg *)NULL,
+                  /*rescan_is_template_id=*/FALSE, (a_template_arg *)NULL,
                   &projection_sym_ptr, (a_boolean*)NULL);
   if (is_error_operand(&operand) || projection_sym_ptr == NULL) {
     /* Some previous error. */
