@@ -23047,6 +23047,7 @@ Initialize for the C++/C-generating back end.
   scanned_types = NULL;
   available_type_scan_records = NULL;
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+  avail_access_cache_entries = NULL;
 }  /* init_cp_gen_be */
 
 #if STANDALONE_CP_GEN_BE

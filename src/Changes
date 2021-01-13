@@ -1,5 +1,14 @@
 Version 6.2
 
+1/13/21  [EDGcpfe/23758]
+C++-generating back end: invalid memory access with MAKE_FRONT_END_CALLABLE
+
+The C++-generating back end failed to set the variable
+avail_access_cache_entries to NULL upon entry, potentially resulting in
+access to freed memory in configurations in which MAKE_FRONT_END_CALLABLE
+is TRUE.  This is now fixed.
+
+
 1/12/21   [EDGcpfe/23664]
 Failure to treat certain dependent qualifiers as nondeducible
 
