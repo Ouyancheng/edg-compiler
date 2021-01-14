@@ -9,7 +9,7 @@ access to freed memory in configurations in which MAKE_FRONT_END_CALLABLE
 is TRUE.  This is now fixed.
 
 
-1/12/21   [EDGcpfe/23664]
+1/12/21  [EDGcpfe/23664]
 Failure to treat certain dependent qualifiers as nondeducible
 
 Consider:
