@@ -29170,10 +29170,7 @@ as "0 <=> operator<=>(y, x)".
      underlying operator when calling get_nondependent_call_info.  Using tsn+1
      avoids that issue. */
   tsn += 1;
-  if (expr_stack->template_deduction_context) {
-    /* The additional operator will be rescanned.  Nothing to do at this
-       time. */
-  } else if (n_active_rewrites > 100) {
+  if (n_active_rewrites > 100) {
     /* Catch excessive rewrite chains.  Unbounded rewrite chains can occur with
        code like the following:
            struct S {

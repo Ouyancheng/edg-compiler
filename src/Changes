@@ -1,5 +1,26 @@
 Version 6.2
 
+1/14/21  [EDGcpfe/23730]
+Incorrect handling of rewritten comparison operators in some SFINAE contexts
+
+Consider:
+
+  struct Order { friend bool operator<(Order, decltype(nullptr)); };
+  struct S {};
+  Order operator<=>(S const&, S const&);
+  template<typename T> concept HasNot = requires (T p) { !p; };
+  template<typename T> concept C = requires (T s) { { s < s } -> HasNot; };
+  static_assert(C<S>);  // Previously an error.  Now okay.
+
+For the static assertion to succeed, the result of "s < s" with s of type S
+must be of a type to which the "logical not" operator applies.  That is the
+case here since "s < s" is rewritten as "(s <=> s) < 0" which invokes the
+friend operator< whose type is bool.  However, previously the front end used
+the type of "(s <=> s)" (which is Order) when checking the HasNot constraint,
+and that led to a spurious error.  Similar errors could occur in other SFINAE
+contexts.  That problem is now fixed.
+
+
 1/13/21  [EDGcpfe/23758]
 C++-generating back end: invalid memory access with MAKE_FRONT_END_CALLABLE
 

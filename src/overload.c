@@ -18542,6 +18542,7 @@ no_applicable_operator_function:
           a_boolean    compiler_generated = FALSE;
           proj_function_symbol = candidate_functions->function_symbol;
           if (candidate_functions->supplemental_comparison_candidate) {
+            /* A comparison operation should be rewritten. */
             compiler_generated = TRUE;
             if (proj_function_symbol != NULL) {
               a_symbol_ptr   sym = fundamental_symbol_of(proj_function_symbol);
