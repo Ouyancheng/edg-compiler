@@ -12036,7 +12036,8 @@ list of a template function.  Returns TRUE if a match is found.
         } else if (!tpp->variant.constant.type_involves_template_param) {
           if (!identical_types(constant->type, templ_constant->type) &&
               !is_template_dependent_type(constant->type) &&
-              !(clang_mode && (flags & MTT_PARTIAL_SPEC) != 0)) {
+              !(clang_mode && (flags & MTT_PARTIAL_SPEC) != 0 &&
+                (flags & MTT_NESTED_TYPE_MATCH) != 0)) {
              match = FALSE;
           }  /* if */
         } else if (auto_template_params_enabled &&
@@ -12402,7 +12403,8 @@ partial specialization.
                                     templ_tap->variant.type,
                                     templ_arg_list,
                                     templ_param_list,
-                                    (flags & MTT_PARTIAL_SPEC));
+                                    (flags & MTT_PARTIAL_SPEC) |
+                                       MTT_NESTED_TYPE_MATCH);
     } else if (is_nontype_templ_arg(tap)) {
       /* A nontype template parameter. */
       match = matches_template_constant(tap->variant.constant,

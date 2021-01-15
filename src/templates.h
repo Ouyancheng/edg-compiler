@@ -705,6 +705,9 @@ typedef unsigned int an_mtt_flag_set;
 #define MTT_PARTIAL_SPEC 0x200
 			/* TRUE when doing deduction for the purpose of
 			   matching a partial specialization. */
+#define MTT_NESTED_TYPE_MATCH 0x400
+			/* TRUE when matching a type in a template
+			   argument list. */
 
 
 extern a_boolean matches_template_type_with_qualification_conversion(
