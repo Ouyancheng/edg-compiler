@@ -51358,7 +51358,9 @@ function operand: The selector is then return in *bound_function_selector.
            going on). */
         generic = TRUE;
         mark_arg_list_elem_as_pack_expansion(opnd_list.last_init, pedp);
-        pedp->last_token = op_tsn;
+        if (!scope_stack_top().alias_in_template_decl) {
+          pedp->last_token = op_tsn;
+        }  /* if */
       }  /* if */
       any_more = advance_to_next_pack_element(left_pesep);
     }  /* while */
