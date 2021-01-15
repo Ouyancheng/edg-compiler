@@ -1,5 +1,26 @@
 Version 6.2
 
+1/15/21  [EDGcpfe/23728]
+Coroutines in lambda expressions
+
+The implementation of the restriction that coroutines cannot be constexpr
+functions in the front end failed to account for functions that are implicitly
+constexpr if they can be constexpr.  Most notably, this includes lambda
+expressions.  For example:
+
+  #include <coroutine>
+  void f()
+  {
+    // Spurious "a constexpr function cannot be a coroutine" error
+    auto g = []() -> std::generator<int> {
+      co_yield 1;
+      co_yield 2;
+    };
+  }
+
+This is now fixed.
+
+
 1/15/21  [EDGcpfe/23704]
 Friend definitions in class templates and constexpr
 

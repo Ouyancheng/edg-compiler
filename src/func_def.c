@@ -4332,6 +4332,9 @@ is set to TRUE.
       root_sssep->last_dep_statement = csp;
     }  /* if */
     rp->is_coroutine = TRUE;
+    if (!rp->is_declared_constexpr && !rp->is_consteval) {
+      rp->is_constexpr = FALSE;
+    }
     if (special_kind_is(rp, sfk_constructor) ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
         special_kind_is(rp, sfk_static_constructor) ||
