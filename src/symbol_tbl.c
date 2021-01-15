@@ -700,8 +700,9 @@ and indentation is the indentation desired.
     a_line_number line_number;
     a_boolean	  at_end_of_source;
     if (sym->decl_position.seq > 0) {
-      conv_seq_to_file_and_line(sym->decl_position.seq, &file_name, &full_name,
-                                &line_number, &at_end_of_source);
+      (void)conv_seq_to_file_and_line(sym->decl_position.seq, &file_name,
+                                      &full_name, &line_number,
+                                      &at_end_of_source);
       if (seq_is_in_include_file(sym->decl_position.seq)) {
         (void)sprintf(buffer, "file %s", file_name);
         put_string(buffer);
@@ -10684,6 +10685,10 @@ used for C++ constructs like "operator+".  Use pos as the source position.
   sizeof_t            opname_length;
 
   clear_locator(locator, pos);
+  if (opname == onk_none) {
+    set_to_error_locator(*locator);
+    goto done;
+  }  /* if */
   hdr_ptr = *table_entry;
   if (hdr_ptr == NULL) {
     /* First use of this opname.  Allocate the header. */
@@ -10712,6 +10717,7 @@ used for C++ constructs like "operator+".  Use pos as the source position.
   locator->symbol_header = hdr_ptr;
   locator->is_operator_name = TRUE;
   locator->variant.opname = opname;
+done:;
 }  /* make_opname_locator */
 
 

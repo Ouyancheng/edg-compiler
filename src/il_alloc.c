@@ -612,6 +612,7 @@ Allocate a source file entry, initialize it, and return a pointer to it.
   sfp->first_child_file = NULL;
   sfp->last_child_file  = NULL;
   sfp->next             = NULL;
+  sfp->assoc_module     = NULL;
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   sfp->related_file_implicit_include_done = FALSE;
   sfp->is_implicit_include = FALSE;

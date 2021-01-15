@@ -229,6 +229,9 @@ typedef struct a_source_info_for_pos {
   a_boolean	at_end_of_source;
 			/* TRUE if the location is after the end of the
 			   source file. */
+  a_source_file_ptr
+		source_file;
+			/* The source file, or NULL if none is available. */
   a_const_char	*file_name;
 			/* The name of the source file, or NULL if
 			   none is available. */
@@ -765,6 +768,7 @@ Initialize the fields of the source-info-for-pos entry sifpp.
 */
 {
   sifpp->at_end_of_source = FALSE;
+  sifpp->source_file = NULL;
   sifpp->file_name = NULL;
   sifpp->line_number = 0;
   sifpp->unicode_source_kind = usk_none;
@@ -1045,20 +1049,22 @@ being formed and is used to eliminate redundant file names in a diagnostic.
   a_boolean		at_end_of_source;
   a_diagnostic_ptr	primary_dp;
   a_source_position_ptr	error_pos;
+  a_source_file_ptr     sfp;
 
   primary_dp = dp->primary_diag != NULL ? dp->primary_diag : dp;
   error_pos = &primary_dp->diag_header_pos;
   diag_file_name = "";
   if (error_pos->seq != 0) {
     /* Have a valid diagnostic source position. */
-    conv_seq_to_file_and_line(error_pos->seq, &diag_file_name, &full_name,
-                              &line_number, &at_end_of_source);
+    (void)conv_seq_to_file_and_line(error_pos->seq, &diag_file_name,
+                                    &full_name, &line_number,
+                                    &at_end_of_source);
     if (at_end_of_source) diag_file_name = "";
   }  /* if */
   if (pos->seq != 0) {
     /* Have a valid source position. */
-    conv_seq_to_file_and_line(pos->seq, &file_name, &full_name,
-                              &line_number, &at_end_of_source);
+    sfp = conv_seq_to_file_and_line(pos->seq, &file_name, &full_name,
+                                    &line_number, &at_end_of_source);
     diag_color_begin(msg_buffer,
                      a_highlight_descr::a_highlight_kind::hk_range1);
     if (at_end_of_source) {
@@ -1090,10 +1096,16 @@ being formed and is used to eliminate redundant file names in a diagnostic.
         if (line_number != SP_LINE_UNKNOWN) {
           f_add_string_to_text_buffer(msg_buffer, error_text(ec_of));
         }  /* if */
-        add_string_to_text_buffer(msg_buffer, "\"");
-        formatted_file_name = format_file_name(file_name);
+        if (sfp != NULL) {
+          formatted_file_name =
+                    format_source_file_name(sfp, /*use_name_as_written=*/FALSE,
+                                            /*quote_file_name=*/TRUE);
+        } else {
+          add_char_to_text_buffer(msg_buffer, '"');
+          formatted_file_name = format_file_name(file_name);
+          add_char_to_text_buffer(msg_buffer, '"');
+        }  /* if */
         add_string_to_text_buffer(msg_buffer, formatted_file_name);
-        add_string_to_text_buffer(msg_buffer, "\"");
       }  /* if */
       add_string_to_text_buffer(msg_buffer, suffix_string);
     }  /* if */
@@ -1847,10 +1859,11 @@ symbol_name:
       /* This message code includes the explanatory text (e.g.,
          "from translation unit"). */
       f_add_string_to_text_buffer(msg_buffer, error_text(ec_from_trans_unit));
-      add_string_to_text_buffer(msg_buffer, "\"");
-      formatted_file_name = format_file_name(tup->source_file->file_name);
+      formatted_file_name =
+                         format_source_file_name(tup->source_file,
+                                                 /*use_name_as_written=*/FALSE,
+                                                 /*quote_file_name=*/TRUE);
       add_string_to_text_buffer(msg_buffer, formatted_file_name);
-      add_string_to_text_buffer(msg_buffer, "\"");
       add_string_to_text_buffer(msg_buffer, ")");
     }  /* if */
   }  /* if */
@@ -2587,6 +2600,26 @@ end_of_loop:
 }  /* write_error_source_line */
 
 
+static a_boolean source_position_is_in_module_file(a_source_position* pos)
+/*
+Determine whether the given source position is in a module file (and therefore
+no source line is available).  Return TRUE if so, FALSE otherwise.
+*/
+{
+  a_boolean         result = FALSE;
+  a_source_file_ptr src_file;
+  a_line_number     line_no;
+  a_boolean         at_end_of_source;
+
+  src_file = source_file_for_seq(pos->seq, &line_no, &at_end_of_source,
+                                 /*physical_line=*/TRUE);
+  if (src_file != NULL && src_file->assoc_module != NULL) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* source_position_is_in_module_file */
+
+
 static void write_source_line(a_source_position		*position,
 			      a_source_info_for_pos_ptr	sifpp)
 /*
@@ -2598,8 +2631,10 @@ see if we can get the source line from a file, and if so, output that line.
   a_boolean	write_source;
   a_boolean	use_orig_line = TRUE;
 
-  if (position->seq == 0 || sifpp->at_end_of_source) {
-    /* There is no position, or it is at the end-of-file. */
+  if (position->seq == 0 || sifpp->at_end_of_source ||
+      source_position_is_in_module_file(position)) {
+    /* There is no position, the position is in a module file, or it is at the
+       end-of-file. */
     write_source = FALSE;
   } else {
     write_source = !brief_diagnostics;
@@ -2625,38 +2660,46 @@ see if we can get the source line from a file, and if so, output that line.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
-static void add_position_prefix(a_const_char      *file_name,
-	                        a_line_number     line_number,
-	                        a_column_number   column_number)
+static void add_position_prefix(a_source_info_for_pos_ptr sifpp,
+                                a_column_number           column_number)
 /*
-Add the source position (filename and line number -- when non-zero) to
-msg_buffer.  If column_number is not SP_COL_UNKNOWN, the column number is
-also added.
+Add the source position using the information in sifpp (filename and line
+number -- when non-zero) to msg_buffer.  If column_number is not
+SP_COL_UNKNOWN, the column number is also added.
 */
 {
   char              number_buffer[50];
   a_const_char      *error_text_string;
+  a_line_number     line_number = sifpp->line_number;
 
   diag_color_begin(prefix_buffer,
                    a_highlight_descr::a_highlight_kind::hk_locus);
   /* Print the file and line number, with a column number if it is not
      SP_COL_UNKNOWN. */
   /* If the line is from stdin, do not display the file name. */
-  if (strcmp(file_name, FILE_NAME_FOR_STDIN) == 0) {
+  if (strcmp(sifpp->file_name, FILE_NAME_FOR_STDIN) == 0) {
     (void)sprintf(number_buffer, "%lu", (unsigned long)line_number);
     error_text_string = error_text(ec_Line);
     add_string_to_text_buffer(prefix_buffer, error_text_string);
     add_string_to_text_buffer(prefix_buffer, " ");
     add_string_to_text_buffer(prefix_buffer, number_buffer);
   } else {
-    add_string_to_text_buffer(prefix_buffer, "\"");
-    /* Don't convert '\' to '\\' in error message output.  The
-       name should be displayed as written by the user.  This also
-       prevents doubling of directory separators on Windows. */
-    write_file_name_to_text_buffer(file_name, prefix_buffer,
-                                   /*process_escapes=*/FALSE,
-                                   /*escape_nonprintable_chars=*/FALSE);
-    add_string_to_text_buffer(prefix_buffer, "\"");
+    if (sifpp->source_file != NULL) {
+      a_const_char *file_name;
+      file_name = format_source_file_name(sifpp->source_file,
+                                          /*use_name_as_written=*/FALSE,
+                                          /*quote_file_name=*/TRUE);
+      add_string_to_text_buffer(prefix_buffer, file_name);
+    } else {
+      add_char_to_text_buffer(prefix_buffer, '"');
+      /* Don't convert '\' to '\\' in error message output.  The
+         name should be displayed as written by the user.  This also
+         prevents doubling of directory separators on Windows. */
+      write_file_name_to_text_buffer(sifpp->file_name, prefix_buffer,
+                                     /*process_escapes=*/FALSE,
+                                     /*escape_nonprintable_chars=*/FALSE);
+      add_char_to_text_buffer(prefix_buffer, '"');
+    }  /* if */
     if (line_number != SP_LINE_UNKNOWN) {
       (void)sprintf(number_buffer, "%lu", (unsigned long)line_number);
       error_text_string = error_text(ec_line);
@@ -2760,9 +2803,8 @@ number is added into the output.
       /* Print the file and line number, with a column number if the
          position could not be indicated via a caret pointing to the
          source of the current line. */
-      add_position_prefix(sifpp->file_name, sifpp->line_number,
-                          column_needed ? pos->column
-                                        : SP_COL_UNKNOWN);
+      add_position_prefix(sifpp, column_needed ? pos->column
+                                               : SP_COL_UNKNOWN);
       add_string_to_text_buffer(prefix_buffer, ": ");
     }  /* if */
   }  /* if */
@@ -4055,6 +4097,7 @@ newly created entry.
   a_diagnostic_ptr	dp;
   a_line_number		line_number;
   a_boolean		at_end_of_source;
+  a_source_file_ptr	sfp;
   a_const_char		*file_name;
   a_const_char		*full_name;
 
@@ -4070,8 +4113,9 @@ newly created entry.
     dp->severity = severity;
     dp->translation_unit = curr_translation_unit;
     /* Convert the sequence number into a compilation unit and line number. */
-    conv_seq_to_file_and_line(position->seq, &file_name, &full_name,
-                              &line_number, &at_end_of_source);
+    sfp = conv_seq_to_file_and_line(position->seq, &file_name, &full_name,
+                                    &line_number, &at_end_of_source);
+    sifpp->source_file = sfp;
     sifpp->file_name = file_name;
     sifpp->line_number = line_number;
     sifpp->at_end_of_source = at_end_of_source;
@@ -4092,9 +4136,11 @@ newly created entry.
           definition will necessarily have orig_seq < seq). */
       dp->diag_header_pos.seq = position->orig_seq;
       dp->diag_header_pos.column = position->orig_column;
-      conv_seq_to_file_and_line(position->orig_seq, &file_name, &full_name,
-                                &line_number, &at_end_of_source);
+      sfp = conv_seq_to_file_and_line(position->orig_seq, &file_name,
+                                      &full_name, &line_number,
+                                      &at_end_of_source);
       sifpp = &dp->diag_header_source_info;
+      sifpp->source_file = sfp;
       sifpp->file_name = file_name;
       sifpp->line_number = line_number;
       sifpp->at_end_of_source = at_end_of_source;
@@ -4446,9 +4492,10 @@ message appears by itself on a separate line.
   }  /* if */
   /* Get the primary source file associated with this position. */
   sfp = primary_source_file_for_seq(dp->position.seq);
-  /* format_file_name returns a pointer to a buffer that is reused.
+  /* format_source_file_name returns a pointer to a buffer that is reused.
      Make a copy of the string. */
-  file_name_copy = format_file_name(sfp->file_name);
+  file_name_copy = format_source_file_name(sfp, /*use_name_as_written=*/FALSE,
+                                           /*quote_file_name=*/FALSE);
   file_name_copy = diag_copy_string(file_name_copy);
   add_str_context_diag(dp, dck_context, context_error_code, file_name_copy);
 }  /* display_trans_unit_context */

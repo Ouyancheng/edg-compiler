@@ -8176,8 +8176,8 @@ lowering does the work.
                           (a_host_large_integer)use_pos->column);
         break;
       case bfk_LINE:
-        conv_seq_to_file_and_line(use_pos->seq, &file_name, &full_name,
-                                  &line_number, &at_end_of_source);
+        (void)conv_seq_to_file_and_line(use_pos->seq, &file_name, &full_name,
+                                        &line_number, &at_end_of_source);
         set_integer_value((an_integer_value*)result_storage,
                           (a_host_large_integer)line_number);
         break;
@@ -8187,8 +8187,9 @@ lowering does the work.
           a_constant_ptr  cp;
           if (callee->variant.builtin_function_kind ==
                                            (a_builtin_function_kind)bfk_FILE) {
-            conv_seq_to_file_and_line(use_pos->seq, &file_name, &full_name,
-                                      &line_number, &at_end_of_source);
+            (void)conv_seq_to_file_and_line(use_pos->seq, &file_name,
+                                            &full_name, &line_number,
+                                            &at_end_of_source);
             result_string = file_name;
           } else {
             /* Use the same string as if using __func__. */
@@ -9393,8 +9394,9 @@ See do_constexpr_std_allocator_allocate for the meaning of the parameters.
     a_const_char   *full_name, *diag_file_name;
     a_line_number  line_number;
     a_boolean      at_end_of_source;
-    conv_seq_to_file_and_line(ips->position.seq, &diag_file_name, &full_name,
-                              &line_number, &at_end_of_source);
+    (void)conv_seq_to_file_and_line(ips->position.seq, &diag_file_name,
+                                    &full_name, &line_number,
+                                    &at_end_of_source);
     fprintf(f_error, "\n%s\n", error_text(ec_constexpr_begin_report));
     if (line_number != 0) {
       fprintf(f_error, "%s%lu%s%s\n",

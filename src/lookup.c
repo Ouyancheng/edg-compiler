@@ -239,13 +239,17 @@ the options being used for the lookup.
 }  /* find_synthesized_projection_symbol */
 
 
-static void load_lazy_symbols_if_needed(a_scope_ptr            scope,
-                                       a_symbol_locator        *locator)
+static void load_lazy_symbols_if_needed(a_scope_ptr      scope,
+                                        a_symbol_locator *locator)
 /*
 If the kind associated with scope is a namespace or file scope, call a
 routine to see if there are symbols that should be made visible in scope.
 locator points to the symbol locator for the symbol being looked up.  Note
 that scope can be NULL.
+
+WARNING: Lazy loading of symbols may cause scope_stack to be re-allocated,
+invalidating any saved pointers into the scope stack.  Any such pointers will
+need to be reset after a call to this routine.
 */
 {
   if (scope != NULL &&
@@ -303,8 +307,11 @@ IDL_PROJ_SYMBOL_ALLOWED is specified in options.
 #endif /* CHECKING */
     /* The locator is for a specific symbol, so return the symbol for it. */
   } else {
-    ssep = &scope_stack[decl_scope_level];
+    ssep = scope_stack_entry_for(decl_scope_level);
     load_lazy_symbols_if_needed(ssep->il_scope, locator);
+    /* Lazy loading of symbols may cause scope_stack to be re-allocated,
+       invalidating ssep. */
+    ssep = scope_stack_entry_for(decl_scope_level);
     /* Look for a symbol in the current scope for which the kind matches that
        of the scope level specified by the caller. */
     scope_number = ssep->number;
@@ -2470,10 +2477,10 @@ the parameters.
 
 
 static
-a_symbol_ptr active_scope_lookup(a_scope_kind			kind,
-                                 a_scope_stack_entry_ptr	ssep,
-				 a_symbol_locator		*locator,
-                                 a_lookup_state_ptr		lookup_state)
+a_symbol_ptr active_scope_lookup(a_scope_kind       kind,
+                                 a_scope_depth      scope_depth,
+                                 a_symbol_locator   *locator,
+                                 a_lookup_state_ptr lookup_state)
 /*
 This routine is called as part of normal_id_lookup processing to handle
 scopes for which the symbols are on the active list.
@@ -2484,18 +2491,23 @@ still on the active list.  As a result, this routine will also be called
 for namespace extension and reactivation scopes in such cases.
 Note also that this routine will also be called for class reactivations
 of classes whose class scope is still on the scope stack (i.e., for classes
-that are still in the process of being defined.  ssep points to the
-scope being for which symbols are being considered.  locator is the
-symbol locator for the name being looked up.  lookup_state is used to
-pass state information between the various routines that do normal id
-lookup processing.
+that are still in the process of being defined.  scope_depth is the index into
+scope_stack for which symbols are being considered.  locator is the symbol
+locator for the name being looked up.  lookup_state is used to pass state
+information between the various routines that do normal id lookup processing.
+
+WARNING: A scope stack lookup may involve lazy loading of symbols which may
+cause scope_stack to be re-allocated, invalidating any saved pointers into the
+scope stack.  Any such pointers will need to be reset after a call to this
+routine.
 */
 {
-  a_symbol_ptr		sym = NULL;
-  a_symbol_ptr		active_sym;
-  a_symbol_ptr		prev_active_sym = NULL;
-  a_symbol_ptr		type_tag_symbol = NULL;
-  a_boolean		saved_check_decl_seq;
+  a_symbol_ptr            sym = NULL;
+  a_symbol_ptr            active_sym;
+  a_symbol_ptr            prev_active_sym = NULL;
+  a_symbol_ptr            type_tag_symbol = NULL;
+  a_boolean               saved_check_decl_seq;
+  a_scope_stack_entry_ptr ssep = scope_stack_entry_for(scope_depth);
 
 /* Local macro that tests whether or not a symbol on the active list
    is acceptable.  See if the symbol is in the proper name space. */
@@ -2517,6 +2529,9 @@ lookup processing.
     /* Skip this scope.  Note that we still look for a projected symbol. */
   } else {
     load_lazy_symbols_if_needed(ssep->il_scope, locator);
+    /* Lazy loading of symbols can cause the scope stack to be re-allocated,
+       invalidating the current pointer. */
+    ssep = scope_stack_entry_for(scope_depth);
     prev_active_sym = NULL;
     active_sym = symbol_list_from_locator(*locator);
     /* Find the first symbol on the active list for this scope. */
@@ -2594,10 +2609,10 @@ lookup processing.
 
 
 static
-a_symbol_ptr inactive_scope_lookup(a_scope_kind			kind,
-                                   a_scope_stack_entry_ptr	ssep,
-				   a_symbol_locator		*locator,
-                                   a_lookup_state_ptr		lookup_state)
+a_symbol_ptr inactive_scope_lookup(a_scope_kind       kind,
+                                   a_scope_depth      scope_depth,
+                                   a_symbol_locator   *locator,
+                                   a_lookup_state_ptr lookup_state)
 /*
 This routine is called as part of normal_id_lookup processing to handle
 scopes for which the symbols are now on the inactive list.  This
@@ -2610,16 +2625,23 @@ been changed to sck_namespace if the symbols for the namespace are
 still on the active list (this routine will not be called for such
 scopes).
 
-ssep points to the scope being for which symbols are being considered.
-locator is the symbol locator for the name being looked up.
+scope_depth is the index into scope_stack for which symbols are being
+considered.  locator is the symbol locator for the name being looked up.
 lookup_state is used to pass state information between the various routines
 that do normal id lookup processing.
+
+WARNING: A scope stack lookup may involve lazy loading of symbols which may
+cause scope_stack to be re-allocated, invalidating any saved pointers into the
+scope stack.  Any such pointers will need to be reset after a call to this
+routine.
 */
 {
-  a_boolean	skip_scope = FALSE;
-  a_symbol_ptr	sym = NULL;
-  a_boolean	saved_check_decl_seq;
-  a_boolean	found_template_param = FALSE;
+  a_boolean     skip_scope = FALSE;
+  a_symbol_ptr  sym = NULL;
+  a_boolean     saved_check_decl_seq;
+  a_boolean     found_template_param = FALSE;
+  a_scope_stack_entry_ptr
+                ssep = scope_stack_entry_for(scope_depth);
 
   saved_check_decl_seq = lookup_state->check_decl_seq;
   if (cfront_2_1_mode &&
@@ -2642,7 +2664,10 @@ that do normal id lookup processing.
       /* If the class that is being reactivated is still in the process of
          being defined, look on the active list for the symbols instead of
          looking on the inactive list as is usually the case. */
-      sym = active_scope_lookup(kind, ssep, locator, lookup_state);
+      sym = active_scope_lookup(kind, scope_depth, locator, lookup_state);
+      /* A lookup may involve lazy loading of symbols, which can cause
+         scope_stack to be re-allocated, invalidating ssep. */
+      ssep = scope_stack_entry_for(scope_depth);
     } else {
       if (lookup_state->skip_curr_scope) {
         /* Skip this scope.  Note that we still look for a projected symbol. */
@@ -2658,6 +2683,9 @@ that do normal id lookup processing.
         a_boolean			process_single_symbol = FALSE;
         a_symbol_ptr			next_sym;
         load_lazy_symbols_if_needed(ssep->il_scope, locator);
+        /* Lazy loading of symbols may cause scope_stack to be re-allocated,
+           invalidating ssep. */
+        ssep = scope_stack_entry_for(scope_depth);
         spbp = assoc_pointers_block_of(ssep);
         use_lookup_table = spbp->lookup_table != NULL;
         if (ssep->is_reactivation && is_local_scope_kind(ssep->kind)) {
@@ -3194,12 +3222,9 @@ a_symbol_ptr scope_stack_lookup(a_symbol_locator    *locator,
 				a_scope_depth       end_depth);
 
 static
-a_symbol_ptr instantiation_context_lookup(
-				a_scope_stack_entry_ptr		ssep,
-	                        a_symbol_locator	    	*locator,
-                                a_lookup_state_ptr	    	lookup_state);
-
-
+a_symbol_ptr instantiation_context_lookup(a_scope_depth      scope_depth,
+                                          a_symbol_locator   *locator,
+                                          a_lookup_state_ptr lookup_state);
 
 
 static a_symbol_ptr check_for_microsoft_hidden_template_bug(
@@ -3223,6 +3248,11 @@ the Microsoft 7.0 compiler:
     typedef C A;
   };
   B<int>::A ba;
+
+WARNING: A scope stack lookup may involve lazy loading of symbols which may
+cause scope_stack to be re-allocated, invalidating any saved pointers into the
+scope stack.  Any such pointers will need to be reset after a call to this
+routine.
 */
 {
   a_symbol_ptr	fund_orig_sym;
@@ -3258,6 +3288,11 @@ terminate.  end_depth is not included in the lookup.
 locator is the symbol locator for the name being looked up.
 lookup_state is used to pass state information between the various routines
 that do normal id lookup processing.
+
+WARNING: A scope stack lookup may involve lazy loading of symbols which may
+cause scope_stack to be re-allocated, invalidating any saved pointers into the
+scope stack.  Any such pointers will need to be reset after a call to this
+routine.
 */
 {
   a_symbol_ptr			sym = NULL;
@@ -3284,7 +3319,7 @@ that do normal id lookup processing.
   for (curr_depth = start_depth; curr_depth > end_depth;
        curr_depth = ssep->previous_scope) {
     a_scope_kind	kind;
-    ssep = &scope_stack[curr_depth];
+    ssep = scope_stack_entry_for(curr_depth);
     if (curr_scope_skipped && lookup_state->skip_curr_scope &&
         lookup_state->hidden_name_lookup &&
         ssep->kind == (a_scope_kind)sck_template_instantiation) {
@@ -3371,7 +3406,10 @@ that do normal id lookup processing.
         /* Skip class reactivation scopes for linkage lookups, except when
            looking for a template name. */
       } else {
-        sym = inactive_scope_lookup(kind, ssep, locator, lookup_state);
+        sym = inactive_scope_lookup(kind, curr_depth, locator, lookup_state);
+        /* A scope lookup may involve lazy loading of symbols which can cause
+           scope_stack to be re-allocated, invalidating ssep. */
+        ssep = scope_stack_entry_for(curr_depth);
         if (sym != NULL && microsoft_bugs && microsoft_version <= 1300 &&
             lookup_state->tentative_template_lookup &&
             !is_class_template_symbol(sym)) {
@@ -3381,6 +3419,9 @@ that do normal id lookup processing.
                                                         lookup_state,
                                                         ssep->previous_scope,
                                                         end_depth);
+          /* A scope lookup may involve lazy loading of symbols which can cause
+             scope_stack to be re-allocated, invalidating ssep. */
+           ssep = scope_stack_entry_for(curr_depth);
         }  /* if */
         if (sym == NULL && kind == (a_scope_kind)sck_template_instantiation) {
           /* For template instantiation scopes, also look on the active list if
@@ -3388,7 +3429,10 @@ that do normal id lookup processing.
              find symbols that are entered into the instantiation scope during
              a prototype instantiation, such as symbols for friend classes
              and friend functions. */
-          sym = active_scope_lookup(kind, ssep, locator, lookup_state);
+          sym = active_scope_lookup(kind, curr_depth, locator, lookup_state);
+          /* A scope lookup may involve lazy loading of symbols which can cause
+             scope_stack to be re-allocated, invalidating ssep. */
+          ssep = scope_stack_entry_for(curr_depth);
         }  /* if */
       }  /* if */
     } else if (kind == (a_scope_kind)sck_pragma) {
@@ -3403,13 +3447,19 @@ that do normal id lookup processing.
          by inactive_scope_lookup for this case.  For a reactivated
          template declaration scope, the template parameter list in
          the template_decl_info is used. */
-      sym = inactive_scope_lookup(kind, ssep, locator, lookup_state);
+      sym = inactive_scope_lookup(kind, curr_depth, locator, lookup_state);
+      /* A scope lookup may involve lazy loading of symbols which can cause
+         scope_stack to be re-allocated, invalidating ssep. */
+      ssep = scope_stack_entry_for(curr_depth);
     } else {
       /* Not a class reactivation or a template instantiation,
          i.e., normal scope.  Search through any symbols on the front
          of the active list that are from the associated scope, and see
          if any one is the symbol desired. */
-      sym = active_scope_lookup(kind, ssep, locator, lookup_state);
+      sym = active_scope_lookup(kind, curr_depth, locator, lookup_state);
+      /* A scope lookup may involve lazy loading of symbols which can cause
+         scope_stack to be re-allocated, invalidating ssep. */
+      ssep = scope_stack_entry_for(curr_depth);
       if (sym != NULL && lookup_state->is_linkage_lookup &&
           symbol_is(sym, sk_variable) &&
           sym->variant.variable.ptr->source_corresp.is_local_to_function &&
@@ -3482,7 +3532,10 @@ that do normal id lookup processing.
          yet found the symbol we are looking for.  Do the special
          template lookup that considers symbols from both the
          defining and referencing context. */
-      sym = instantiation_context_lookup(ssep, locator, lookup_state);
+      sym = instantiation_context_lookup(curr_depth, locator, lookup_state);
+      /* A scope lookup may involve lazy loading of symbols which can cause
+         scope_stack to be re-allocated, invalidating ssep. */
+      ssep = scope_stack_entry_for(curr_depth);
       break;
     } else if (check_decl_seq_in_exception_spec &&
                (kind == (a_scope_kind)sck_class_reactivation ||
@@ -3553,10 +3606,9 @@ that do normal id lookup processing.
 
 
 static
-a_symbol_ptr instantiation_context_lookup(
-				a_scope_stack_entry_ptr		ssep,
-	                        a_symbol_locator	    	*locator,
-                                a_lookup_state_ptr	    	lookup_state)
+a_symbol_ptr instantiation_context_lookup(a_scope_depth      scope_depth,
+                                          a_symbol_locator   *locator,
+                                          a_lookup_state_ptr lookup_state)
 /*
 When a normal lookup reaches an instantiation scope and, after considering the
 template parameters, still has not found a symbol, the context of the
@@ -3583,19 +3635,25 @@ finding one in the defining/referencing search and one in the
 common search, the two symbols are merged and result in either
 an overload set or an ambiguous symbol.
 
-ssep is a pointer to the scope stack entry for the template instantiation
+scope_depth is the index into scope_stack for the template instantiation
 scope.  locator is the symbol locator for the name being looked up.
 lookup_state is used to pass state information between the various routines
 that do normal id lookup processing.
+
+WARNING: A scope stack lookup may involve lazy loading of symbols which may
+cause scope_stack to be re-allocated, invalidating any saved pointers into the
+scope stack.  Any such pointers will need to be reset after a call to this
+routine.
 */
 {
-  a_scope_depth		common_depth = ssep->instantiation_common_depth;
-  a_scope_depth		def_start = ssep->previous_scope;
-  a_scope_depth		ref_start = ssep->instantiation_context_depth;
-  a_symbol_ptr		def_sym;
-  a_symbol_ptr		ref_sym = NULL;
-  a_symbol_ptr		sym = NULL;
-  a_boolean		do_not_look_in_common_scopes = FALSE;
+  a_scope_stack_entry_ptr ssep = scope_stack_entry_for(scope_depth);
+  a_scope_depth           common_depth = ssep->instantiation_common_depth;
+  a_scope_depth           def_start = ssep->previous_scope;
+  a_scope_depth           ref_start = ssep->instantiation_context_depth;
+  a_symbol_ptr            def_sym;
+  a_symbol_ptr            ref_sym = NULL;
+  a_symbol_ptr            sym = NULL;
+  a_boolean               do_not_look_in_common_scopes = FALSE;
 
 #if DEBUG
   if (debug_level >= 5 || db_flag_is_set("instantiation_lookup")) {
@@ -3621,6 +3679,9 @@ that do normal id lookup processing.
     lookup_state->decl_seq = f_get_effective_decl_seq();
   }  /* if */
   def_sym = scope_stack_lookup(locator, lookup_state, def_start, common_depth);
+  /* A scope lookup may involve lazy loading of symbols which can cause
+     scope_stack to be re-allocated, invalidating ssep. */
+  ssep = scope_stack_entry_for(scope_depth);
   if (def_sym != NULL && def_sym->is_class_member) {
     /* Do not look for a name in the referencing context if the definition
        context search found a class member. */
@@ -3643,6 +3704,9 @@ that do normal id lookup processing.
            the common depth. */
         ref_sym = scope_stack_lookup(locator, lookup_state, ref_start,
                                      common_depth);
+        /* A scope lookup may involve lazy loading of symbols which can cause
+           scope_stack to be re-allocated, invalidating ssep. */
+        ssep = scope_stack_entry_for(scope_depth);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -3666,6 +3730,9 @@ that do normal id lookup processing.
     a_symbol_ptr	common_sym;
     common_sym = scope_stack_lookup(locator, lookup_state, common_depth,
                                     NO_SCOPE_DEPTH);
+    /* A scope lookup may involve lazy loading of symbols which can cause
+       scope_stack to be re-allocated, invalidating ssep. */
+    ssep = scope_stack_entry_for(scope_depth);
     /* Assign the common symbol to whichever of the previous lookups that
        did not produce a symbol.  If both were NULL, arbitrarily use the
        common symbol as the defining context symbol. */
@@ -3817,6 +3884,11 @@ functions, classes, types, etc.).  If the symbol found is a projection
 symbol, the projection symbol pointer is recorded in the locator and the
 fundamental symbol pointer is returned.  This routine is used in both
 C and C++.
+
+WARNING: A lookup may involve lazy loading of symbols or template
+instantiations which may cause scope_stack to be re-allocated, invalidating any
+saved pointers into the scope stack.  Any such pointers will need to be reset
+after a call to this routine.
 */
 {
   a_symbol_ptr            sym, inactive_symbol_list;
@@ -3984,6 +4056,9 @@ C and C++.
                       scope_stack[DEPTH_OF_FILE_SCOPE].is_reactivation);
       sym = scope_stack_lookup(locator, &lookup_state,
                                depth_of_initial_lookup_scope, NO_SCOPE_DEPTH);
+      /* A scope stack lookup may involve lazy loading of symbols which may
+         cause scope_stack to be re-allocated, invalidating ssep. */
+      ssep = scope_stack_entry_for(depth_scope_stack);
     }  /* if */
     /* In some cases, a second lookup is done in g++ mode if any dependent
        base classes were ignored.  This is done if no symbol was found,
@@ -4024,6 +4099,9 @@ C and C++.
         new_sym = scope_stack_lookup(locator, &lookup_state,
                                      depth_of_initial_lookup_scope,
                                      NO_SCOPE_DEPTH);
+        /* A scope stack lookup may involve lazy loading of symbols which may
+           cause scope_stack to be re-allocated, invalidating ssep. */
+        ssep = scope_stack_entry_for(depth_scope_stack);
         lookup_state.force_lookup_in_dependent_bases = FALSE;
         fund_new_sym = new_sym == NULL ? NULL : fundamental_symbol_of(new_sym);
         if (fund_new_sym != NULL && fund_new_sym->is_class_member) {

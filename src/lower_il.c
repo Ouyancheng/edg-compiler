@@ -13135,8 +13135,8 @@ builtin (which will be replaced by an appropriate constant).
                                            (an_integer_kind)ik_int);
       break;
     case bfk_LINE:
-      conv_seq_to_file_and_line(use_pos->seq, &file_name, &full_name,
-                                &line_number, &at_end_of_source);
+      (void)conv_seq_to_file_and_line(use_pos->seq, &file_name, &full_name,
+                                      &line_number, &at_end_of_source);
       new_expr = node_for_integer_constant((long)line_number,
                                            (an_integer_kind)ik_int);
       break;
@@ -13146,8 +13146,8 @@ builtin (which will be replaced by an appropriate constant).
         a_targ_size_t     length;
         a_memory_region_number region_to_switch_back_to;
         if (bfk == (a_builtin_function_kind)bfk_FILE) {
-          conv_seq_to_file_and_line(use_pos->seq, &file_name, &full_name,
-                                    &line_number, &at_end_of_source);
+          (void)conv_seq_to_file_and_line(use_pos->seq, &file_name, &full_name,
+                                          &line_number, &at_end_of_source);
           result_string = file_name;
         } else {
           result_string = get_string_for_function_name(tok_func_name,

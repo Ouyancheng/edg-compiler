@@ -345,8 +345,8 @@ Dump a short summary of the symbols in the given list.
     }  /* if */
     db_symbol_name(sym);
     fprintf(f_debug, " (%s)", symbol_kind_names[(int)sym->kind]);
-    conv_seq_to_file_and_line(sym->decl_position.seq, &file_name,
-                              &full_name, &line, &at_end_of_source);
+    (void)conv_seq_to_file_and_line(sym->decl_position.seq, &file_name,
+                                    &full_name, &line, &at_end_of_source);
     if (line != 0) {
       fprintf(f_debug, " (%s:%lu)\n", file_name, (unsigned long)line);
     } else {
@@ -951,7 +951,9 @@ with same_src_error; otherwise, use distinct_src_error.
     } else {
       a_source_file_ptr  prim_file2 = primary_source_file_for_seq(pos2->seq);
       a_const_char       *file_copy;
-      file_copy = format_file_name(prim_file2->name_as_written);
+      file_copy = format_source_file_name(prim_file2,
+                                          /*use_name_as_written=*/TRUE,
+                                          /*quote_file_name=*/FALSE);
       file_copy = copy_string_to_region(FRONT_END_REGION_NUMBER, file_copy);
       pos_stsy_error(same_src_error, &sym->decl_position,
                      file_copy, sym);
@@ -1912,8 +1914,8 @@ its corresponding primary template supplement will be used instead.
       a_symbol_ptr   templ_sym = (a_symbol_ptr)tssp->il_template_entry
                                                    ->source_corresp.assoc_info;
       db_symbol_name(templ_sym);
-      conv_seq_to_file_and_line(templ_sym->decl_position.seq, &file_name,
-                                &full_name, &line, &at_end_of_source);
+      (void)conv_seq_to_file_and_line(templ_sym->decl_position.seq, &file_name,
+                                      &full_name, &line, &at_end_of_source);
       if (line != 0) {
         fprintf(f_debug, " in file %s (line %lu)\n", file_name,
                 (unsigned long)line);

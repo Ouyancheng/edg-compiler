@@ -547,7 +547,7 @@ indicated by kind.  Return TRUE if a module file was found, FALSE otherwise.
                                  /*suppress_diagnostics=*/FALSE);
     if (header_path == NULL) {
       pos_st_catastrophe(ec_cannot_find_header_for_import, &error_position,
-                          mod->name);
+                         mod->name);
     } else {
       mod->name = header_path;
       found = find_header_unit_in_map(mod, kind);
@@ -763,8 +763,7 @@ Dispatch the is_open() call to the variant for the actual object.
       result = ((an_ifc_module*)this)->is_open();
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    default:
-      unexpected_condition();
+    default_is_unexpected();
   }  /* switch */
   return result;
 }  /* is_open */
@@ -790,8 +789,7 @@ Dispatch the import() call to the variant for the actual object.
       result = ((an_ifc_module*)this)->import(midp);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    default:
-      unexpected_condition();
+    default_is_unexpected();
   }  /* switch */
   return result;
 }  /* import */
@@ -815,8 +813,7 @@ Dispatch the close() call to the variant for the actual object.
       ((an_ifc_module*)this)->close();
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    default:
-      unexpected_condition();
+    default_is_unexpected();
   }  /* switch */
 }  /* close */
 
@@ -839,8 +836,7 @@ Dispatch the pch_reset() call to the variant for the actual object.
       ((an_ifc_module*)this)->pch_reset(midp);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    default:
-      unexpected_condition();
+    default_is_unexpected();
   }  /* switch */
 }  /* pch_reset */
 
@@ -885,8 +881,7 @@ actual object.
       ((an_ifc_module*)this)->complete_definition_of_module_class(mep);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    default:
-      unexpected_condition();
+    default_is_unexpected();
   }  /* switch */
 }  /* complete_definition_of_module_class */
 
@@ -909,8 +904,7 @@ Dispatch the debug() call to the variant for the actual object.
       ((an_ifc_module*)this)->debug();
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    default:
-      unexpected_condition();
+    default_is_unexpected();
   }  /* switch */
 }  /* debug */
 
@@ -932,8 +926,7 @@ Dispatch the db_module_entity() call to the variant for the actual object.
       ((an_ifc_module*)this)->db_module_entity(mep);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    default:
-      unexpected_condition();
+    default_is_unexpected();
   }  /* switch */
 }  /* db_module_entity */
 

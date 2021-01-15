@@ -3259,6 +3259,8 @@ EXTERN jmp_buf	edg_main_setjmp_buffer;
 			   to the main routine in the event of an error. */
 #endif /* MAKE_FRONT_END_CALLABLE */
 
+typedef struct a_source_file *a_source_file_ptr;
+
 void clear_open_file_result(an_open_file_result	*open_result);
 
 /* Add the default system include file search path. */
@@ -3637,6 +3639,10 @@ extern void write_file_name_to_text_buffer(
                                   a_boolean         escape_nonprintable_chars);
 
 extern char *format_file_name(a_const_char *name);
+
+extern char *format_source_file_name(a_source_file_ptr sfp,
+				     a_boolean         use_name_as_written,
+				     a_boolean         quote_file_name);
 
 extern a_const_char *suffix_of(a_const_char *file_name);
 

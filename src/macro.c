@@ -5747,8 +5747,9 @@ make_inert_macro:
         /* __LINE__.  Make and return the string for a decimal integer
            indicating the current line number. */
         /* Convert the sequence number to a line number. */
-        conv_seq_to_file_and_line(curr_seq_number, &file_name, &full_name,
-                                  &line_number, &at_end_of_source);
+        (void)conv_seq_to_file_and_line(curr_seq_number, &file_name,
+                                        &full_name, &line_number,
+                                        &at_end_of_source);
         /* We assume we don't need to call ensure_arg_raw_text_space. */
         (void)sprintf(repl_text, "%lu", (unsigned long)line_number);
       } else if (macro_symbol == file_macro_symbol ||
@@ -5762,8 +5763,9 @@ make_inert_macro:
         } else {
           /* __FILE__.  Use the current source file name. */
           /* Convert the sequence number to a file name. */
-          conv_seq_to_file_and_line(start_pos.seq, &file_name, &full_name,
-                                    &line_number, &at_end_of_source);
+          (void)conv_seq_to_file_and_line(start_pos.seq, &file_name,
+                                          &full_name, &line_number,
+                                          &at_end_of_source);
         }  /* if */
 #if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
         if (curr_file_unicode_source_kind == usk_none) {

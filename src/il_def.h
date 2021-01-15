@@ -178,6 +178,9 @@ typedef struct a_source_file {
 		next;
 			/* The next include file referenced by the parent
 			   of this file, or NULL if there is no next file. */
+  a_module_ptr	assoc_module;
+			/* If this is a module source file, the associated
+			   module.  NULL if there is no associated module. */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   a_bit_field	related_file_implicit_include_done:1;
 			/* For a header file this is TRUE if an attempt has

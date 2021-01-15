@@ -2704,7 +2704,8 @@ extern void record_start_of_source_file(
 
 extern void record_inclusion_of_module_source_file(
                                          a_const_char      *file_name,
-                                         a_source_position *inserted_position);
+                                         a_source_position *inserted_position,
+                                         a_module_ptr      mod);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void record_inclusion_of_assembly_source_file(
@@ -2728,11 +2729,12 @@ extern a_source_file_ptr source_file_for_seq(a_seq_number   seq_number,
                                              a_line_number  *line_number,
                                              a_boolean      *at_end_of_source,
                                              a_boolean      physical_line);
-extern void conv_seq_to_file_and_line(a_seq_number  seq_number,
-			              a_const_char  **file_name,
-				      a_const_char  **full_name,
-				      a_line_number *line_number,
-                                      a_boolean     *at_end_of_source);
+extern
+a_source_file_ptr conv_seq_to_file_and_line(a_seq_number  seq_number,
+                                            a_const_char  **file_name,
+                                            a_const_char  **full_name,
+                                            a_line_number *line_number,
+                                            a_boolean     *at_end_of_source);
 
 extern a_source_file_ptr eff_primary_source_file(void);
 

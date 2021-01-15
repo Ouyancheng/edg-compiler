@@ -512,8 +512,8 @@ a source correspondence).
   } else {
     db_name(scp);
   }  /* if */
-  conv_seq_to_file_and_line(scp->decl_position.seq, &file_name,
-                            &full_name, &line, &at_end_of_source);
+  (void)conv_seq_to_file_and_line(scp->decl_position.seq, &file_name,
+                                  &full_name, &line, &at_end_of_source);
   if (line != 0) {
     fprintf(f_debug, " in file %s (line %lu)\n", file_name,
             (unsigned long)line);
@@ -3810,14 +3810,15 @@ a file that contains metadata).
 
 void record_inclusion_of_module_source_file(
                                           a_const_char      *file_name,
-                                          a_source_position *inserted_position)
+                                          a_source_position *inserted_position,
+                                          a_module_ptr      mod)
 /*
 Record sequence number information for a source file referenced in a module
 file.  Module files (such as IFC files) may record file/line/column information
 for entities, but information about the sequence of source file includes may
 not be maintained.  Additionally, the specified file may not even be accessible
 on this system (it may be an include file on a system on which the module was
-compiled).
+compiled).  The module including this source file is given by mod.
 
 This function creates a record of the source file, then creates a single
 (bogus) sequence number that is associated with the source file, then resumes
@@ -3847,6 +3848,7 @@ the file.
                               /*is_implicit_include=*/FALSE,
                               /*from_system_include_dir=*/FALSE,
                               /*is_assembly_file=*/FALSE);
+  new_file->assoc_module = mod;
   /* Increment the sequence number to create a unique number that can be
      mapped to this file. */
   curr_seq_number = ++seq_number_last_read;
@@ -4398,11 +4400,11 @@ physical line position for the sequence number.
 }  /* source_file_for_seq */
 
 
-void conv_seq_to_file_and_line(a_seq_number  seq_number,
-	     		       a_const_char  **file_name,
-			       a_const_char  **full_name,
-			       a_line_number *line_number,
-                               a_boolean     *at_end_of_source)
+a_source_file_ptr conv_seq_to_file_and_line(a_seq_number  seq_number,
+                                            a_const_char  **file_name,
+                                            a_const_char  **full_name,
+                                            a_line_number *line_number,
+                                            a_boolean     *at_end_of_source)
 /*
 For the sequence number given by seq_number, find the corresponding
 file and line number.  Return the short and long forms of the file name
@@ -4412,7 +4414,8 @@ will be set to the primary source file, the line number to the last
 line in that file, and *at_end_of_source will be set TRUE (it is
 set to FALSE in all other cases).  If the sequence number indicates an
 unknown position, the file names will be set to zero-length strings, and 
-the line number to 0.
+the line number to 0.  Return the source file pointer associated with
+seq_number.
 */
 {
   a_source_file_ptr proper_file;
@@ -4421,7 +4424,7 @@ the line number to 0.
 
   /* Find out which file the sequence number is in. */
   proper_file = source_file_for_seq(seq_number, line_number, at_end_of_source,
-                                   /*physical_line=*/FALSE);
+                                    /*physical_line=*/FALSE);
   if (proper_file == NULL) {
     /* Strange or unknown position. */
     *file_name = *full_name = "";
@@ -4444,6 +4447,7 @@ the line number to 0.
   }  /* if */
 #endif /* DEBUG */
   db_exit();
+  return proper_file;
 }  /* conv_seq_to_file_and_line */
 
 #if DEBUG
@@ -4458,8 +4462,8 @@ print the file name and line number.
   a_boolean     at_end_of_source;
   a_line_number line_number;
 
-  conv_seq_to_file_and_line(seq_number, &file_name, &full_name,
-                            &line_number, &at_end_of_source);
+  (void)conv_seq_to_file_and_line(seq_number, &file_name, &full_name,
+                                  &line_number, &at_end_of_source);
   fprintf(f_debug, "\nfile %s, line %ld\n", file_name, (long)line_number);
   return line_number;
 }  /* db_line_for_seq */

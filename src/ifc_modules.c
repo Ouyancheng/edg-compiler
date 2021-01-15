@@ -64,6 +64,17 @@ static a_text_buffer_ptr
 		operator_text_buffer;
 			/* A text buffer used to prefix operator names. */
 
+an_error_severity
+		unhandled_ifc_node_severity = es_remark;
+			/* The error severity to use for individually reported
+			   unhandled IFC nodes.  This has the potential to be
+			   extremely spammy. */
+
+an_error_severity
+		file_contains_unhandled_nodes_sev = es_warning;
+			/* The error severity to use for reporting that an IFC
+			   file contains unhandled nodes.  Typically only one
+			   report per module will be issued. */
 
 /*
 The routines and data structures below are used to support host-independent
@@ -563,6 +574,27 @@ the comments there).
 */
 #define get_tag_from_partition(partition, start) ((partition) - (start))
 
+
+inline void an_ifc_module::issue_unsupported_node_diag(a_const_char      *node,
+                                                       a_source_position *pos)
+                                                                          const
+/*
+Issue a diagnostic that an unhandled node was encountered.  node is the textual
+representation of the problematic node.  pos is the source position associated
+with the diagnostic.
+*/
+{
+  if (!unhandled_node_diag_issued) {
+    pos_st_diagnostic(file_contains_unhandled_nodes_sev,
+                      ec_module_file_contains_unsupported_constructs,
+                      &null_source_position, assoc_module_info->name);
+    unhandled_node_diag_issued = TRUE;
+  }  /* if */
+  pos_st_diagnostic(unhandled_ifc_node_severity, ec_unhandled_ifc_construct,
+                    pos, node);
+}  /* issue_unsupported_node_diag */
+
+
 inline a_const_char *an_ifc_module::get_string_at_offset(ifc_TextOffset offset)
                                                                           const
 /*
@@ -576,14 +608,13 @@ the IFC file are NULL-terminated.
   return string_table + offset;
 }  /* get_string_at_offset */
 
-#if DEBUG
 
-static a_const_char *db_decl_tag(ifc_DeclSort tag)
+static a_const_char *str_for_decl_tag(ifc_DeclSort tag)
 /*
 Return a string with the name that corresponds to the DeclSort tag.
 */
 {
-  a_const_char *result;
+  a_const_char *result = "Unexpected DeclSort";
 
   switch (tag) {
     case ifc_DeclSort_VendorExtension:  result = "VendorExtension"; break;
@@ -626,9 +657,8 @@ Return a string with the name that corresponds to the DeclSort tag.
     default_is_unexpected();
   }  /* switch */
   return result;
-}  /* db_decl_tag */
+}  /* str_for_decl_tag */
 
-#endif /* DEBUG */
 
 static void clear_str_control_block(a_str_control_block *scbp,
                                     a_module_ptr        mod,
@@ -652,30 +682,508 @@ is used to capture the string, otherwise a static buffer is used.
 }  /* clear_str_control_block */
 
 
+static a_const_char *str_for_ifc_operator(ifc_NiladicOperator niladic_op)
+/*
+Return a stringized version of the given operator.
+*/
+{
+  a_const_char *op_str = "Unexpected NiladicOperator";
+
+#define niladic_op_str(str) "NiladicOperator::" str
+  switch (niladic_op) {
+    case ifc_NiladicOperator_Unknown:
+      op_str = niladic_op_str("Unknown"); break;
+    case ifc_NiladicOperator_Msvc:
+      op_str = niladic_op_str("Msvc"); break;
+    case ifc_NiladicOperator_Phantom:
+      op_str = niladic_op_str("Phantom"); break;
+    case ifc_NiladicOperator_Constant:
+      op_str = niladic_op_str("Constant"); break;
+    case ifc_NiladicOperator_Nil:
+      op_str = niladic_op_str("Nil"); break;
+    case ifc_NiladicOperator_MsvcConstantObject:
+      op_str = niladic_op_str("MsvcConstantObject"); break;
+    case ifc_NiladicOperator_MsvcLambda:
+      op_str = niladic_op_str("MsvcLambda"); break;
+    default_is_unexpected_str("Unexpected NiladicOperator");
+  }  /* switch */
+#undef niladic_op_str
+  return op_str;
+}  /* str_for_ifc_operator */
+
+
+static a_const_char *str_for_ifc_operator(ifc_MonadicOperator monadic_op)
+/*
+Return a stringized version of the given operator.
+*/
+{
+  a_const_char *op_str = "Unexpected MonadicOperator";
+
+#define monadic_op_str(str) "MonadicOperator::" str
+  switch (monadic_op) {
+    case ifc_MonadicOperator_Unknown:
+      op_str = monadic_op_str("Unknown"); break;
+    case ifc_MonadicOperator_Msvc:
+      op_str = monadic_op_str("Msvc"); break;
+    case ifc_MonadicOperator_MsvcConfusion:
+      op_str = monadic_op_str("MsvcConfusion"); break;
+    case ifc_MonadicOperator_Plus:
+      op_str = monadic_op_str("Plus"); break;
+    case ifc_MonadicOperator_Negate:
+      op_str = monadic_op_str("Negate"); break;
+    case ifc_MonadicOperator_Deref:
+      op_str = monadic_op_str("Deref"); break;
+    case ifc_MonadicOperator_Address:
+      op_str = monadic_op_str("Address"); break;
+    case ifc_MonadicOperator_Complement:
+      op_str = monadic_op_str("Complement"); break;
+    case ifc_MonadicOperator_Not:
+      op_str = monadic_op_str("Not"); break;
+    case ifc_MonadicOperator_PreIncrement:
+      op_str = monadic_op_str("PreIncrement"); break;
+    case ifc_MonadicOperator_PreDecrement:
+      op_str = monadic_op_str("PreDecrement"); break;
+    case ifc_MonadicOperator_PostIncrement:
+      op_str = monadic_op_str("PostIncrement"); break;
+    case ifc_MonadicOperator_PostDecrement:
+      op_str = monadic_op_str("PostDecrement"); break;
+    case ifc_MonadicOperator_Await:
+      op_str = monadic_op_str("Await"); break;
+    case ifc_MonadicOperator_New:
+      op_str = monadic_op_str("New"); break;
+    case ifc_MonadicOperator_Delete:
+      op_str = monadic_op_str("Delete"); break;
+    case ifc_MonadicOperator_DeleteArray:
+      op_str = monadic_op_str("DeleteArray"); break;
+    case ifc_MonadicOperator_Truncate:
+      op_str = monadic_op_str("Truncate"); break;
+    case ifc_MonadicOperator_Ceil:
+      op_str = monadic_op_str("Ceil"); break;
+    case ifc_MonadicOperator_Floor:
+      op_str = monadic_op_str("Floor"); break;
+    case ifc_MonadicOperator_Paren:
+      op_str = monadic_op_str("Paren"); break;
+    case ifc_MonadicOperator_Brace:
+      op_str = monadic_op_str("Brace"); break;
+    case ifc_MonadicOperator_Alignas:
+      op_str = monadic_op_str("Alignas"); break;
+    case ifc_MonadicOperator_Alignof:
+      op_str = monadic_op_str("Alignof"); break;
+    case ifc_MonadicOperator_Sizeof:
+      op_str = monadic_op_str("Sizeof"); break;
+    case ifc_MonadicOperator_Cardinality:
+      op_str = monadic_op_str("Cardinality"); break;
+    case ifc_MonadicOperator_Typeid:
+      op_str = monadic_op_str("Typeid"); break;
+    case ifc_MonadicOperator_Noexcept:
+      op_str = monadic_op_str("Noexcept"); break;
+    case ifc_MonadicOperator_Requires:
+      op_str = monadic_op_str("Requires"); break;
+    case ifc_MonadicOperator_CoReturn:
+      op_str = monadic_op_str("CoReturn"); break;
+    case ifc_MonadicOperator_Yield:
+      op_str = monadic_op_str("Yield"); break;
+    case ifc_MonadicOperator_Throw:
+      op_str = monadic_op_str("Throw"); break;
+    case ifc_MonadicOperator_Expand:
+      op_str = monadic_op_str("Expand"); break;
+    case ifc_MonadicOperator_Read:
+      op_str = monadic_op_str("Read"); break;
+    case ifc_MonadicOperator_Materialize:
+      op_str = monadic_op_str("Materialize"); break;
+    case ifc_MonadicOperator_PseudoDtorCall:
+      op_str = monadic_op_str("PseudoDtorCall"); break;
+    case ifc_MonadicOperator_MsvcAssume:
+      op_str = monadic_op_str("MsvcAssume"); break;
+    case ifc_MonadicOperator_MsvcAlignof:
+      op_str = monadic_op_str("MsvcAlignof"); break;
+    case ifc_MonadicOperator_MsvcUuidof:
+      op_str = monadic_op_str("MsvcUuidof"); break;
+    case ifc_MonadicOperator_MsvcIsClass:
+      op_str = monadic_op_str("MsvcIsClass"); break;
+    case ifc_MonadicOperator_MsvcIsUnion:
+      op_str = monadic_op_str("MsvcIsUnion"); break;
+    case ifc_MonadicOperator_MsvcIsEnum:
+      op_str = monadic_op_str("MsvcIsEnum"); break;
+    case ifc_MonadicOperator_MsvcIsPolymorphic:
+      op_str = monadic_op_str("MsvcIsPolymorphic"); break;
+    case ifc_MonadicOperator_MsvcIsEmpty:
+      op_str = monadic_op_str("MsvcIsEmpty"); break;
+    case ifc_MonadicOperator_MsvcIsTriviallyCopyConstructible:
+      op_str = monadic_op_str("MsvcIsTriviallyCopyConstructible"); break;
+    case ifc_MonadicOperator_MsvcIsTriviallyCopyAssignable:
+      op_str = monadic_op_str("MsvcIsTriviallyCopyAssignable"); break;
+    case ifc_MonadicOperator_MsvcIsTriviallyDestructible:
+      op_str = monadic_op_str("MsvcIsTriviallyDestructible"); break;
+    case ifc_MonadicOperator_MsvcHasVirtualDestructor:
+      op_str = monadic_op_str("MsvcHasVirtualDestructor"); break;
+    case ifc_MonadicOperator_MsvcIsNothrowCopyConstructible:
+      op_str = monadic_op_str("MsvcIsNothrowCopyConstructible"); break;
+    case ifc_MonadicOperator_MsvcIsNothrowCopyAssignable:
+      op_str = monadic_op_str("MsvcIsNothrowCopyAssignable"); break;
+    case ifc_MonadicOperator_MsvcIsPod:
+      op_str = monadic_op_str("MsvcIsPod"); break;
+    case ifc_MonadicOperator_MsvcIsAbstract:
+      op_str = monadic_op_str("MsvcIsAbstract"); break;
+    case ifc_MonadicOperator_MsvcIsTrivial:
+      op_str = monadic_op_str("MsvcIsTrivial"); break;
+    case ifc_MonadicOperator_MsvcIsTriviallyCopyable:
+      op_str = monadic_op_str("MsvcIsTriviallyCopyable"); break;
+    case ifc_MonadicOperator_MsvcIsStandardLayout:
+      op_str = monadic_op_str("MsvcIsStandardLayout"); break;
+    case ifc_MonadicOperator_MsvcIsLiteralType:
+      op_str = monadic_op_str("MsvcIsLiteralType"); break;
+    case ifc_MonadicOperator_MsvcIsTriviallyMoveConstructible:
+      op_str = monadic_op_str("MsvcIsTriviallyMoveConstructible"); break;
+    case ifc_MonadicOperator_MsvcHasTrivialMoveAssign:
+      op_str = monadic_op_str("MsvcHasTrivialMoveAssign"); break;
+    case ifc_MonadicOperator_MsvcIsTriviallyMoveAssignable:
+      op_str = monadic_op_str("MsvcIsTriviallyMoveAssignable"); break;
+    case ifc_MonadicOperator_MsvcIsNothrowMoveAssignable:
+      op_str = monadic_op_str("MsvcIsNothrowMoveAssignable"); break;
+    case ifc_MonadicOperator_MsvcUnderlyingType:
+      op_str = monadic_op_str("MsvcUnderlyingType"); break;
+    case ifc_MonadicOperator_MsvcIsDestructible:
+      op_str = monadic_op_str("MsvcIsDestructible"); break;
+    case ifc_MonadicOperator_MsvcIsNothrowDestructible:
+      op_str = monadic_op_str("MsvcIsNothrowDestructible"); break;
+    case ifc_MonadicOperator_MsvcHasUniqueObjectRepresentations:
+      op_str = monadic_op_str("MsvcHasUniqueObjectRepresentations"); break;
+    case ifc_MonadicOperator_MsvcIsAggregate:
+      op_str = monadic_op_str("MsvcIsAggregate"); break;
+    case ifc_MonadicOperator_MsvcBuiltinAddressOf:
+      op_str = monadic_op_str("MsvcBuiltinAddressOf"); break;
+    case ifc_MonadicOperator_MsvcIsRefClass:
+      op_str = monadic_op_str("MsvcIsRefClass"); break;
+    case ifc_MonadicOperator_MsvcIsValueClass:
+      op_str = monadic_op_str("MsvcIsValueClass"); break;
+    case ifc_MonadicOperator_MsvcIsSimpleValueClass:
+      op_str = monadic_op_str("MsvcIsSimpleValueClass"); break;
+    case ifc_MonadicOperator_MsvcIsInterfaceClass:
+      op_str = monadic_op_str("MsvcIsInterfaceClass"); break;
+    case ifc_MonadicOperator_MsvcIsDelegate:
+      op_str = monadic_op_str("MsvcIsDelegate"); break;
+    case ifc_MonadicOperator_MsvcIsFinal:
+      op_str = monadic_op_str("MsvcIsFinal"); break;
+    case ifc_MonadicOperator_MsvcIsSealed:
+      op_str = monadic_op_str("MsvcIsSealed"); break;
+    case ifc_MonadicOperator_MsvcHasFinalizer:
+      op_str = monadic_op_str("MsvcHasFinalizer"); break;
+    case ifc_MonadicOperator_MsvcHasCopy:
+      op_str = monadic_op_str("MsvcHasCopy"); break;
+    case ifc_MonadicOperator_MsvcHasAssign:
+      op_str = monadic_op_str("MsvcHasAssign"); break;
+    case ifc_MonadicOperator_MsvcHasUserDestructor:
+      op_str = monadic_op_str("MsvcHasUserDestructor"); break;
+    case ifc_MonadicOperator_MsvcConfusedExpand:
+      op_str = monadic_op_str("MsvcConfusedExpand"); break;
+    default_is_unexpected_str("Unexpected MonadicOperator");
+  }  /* switch */
+  return op_str;
+#undef monadic_op_str
+}  /* str_for_ifc_operator */
+
+
+static a_const_char *str_for_ifc_operator(ifc_DyadicOperator dyadic_op)
+/*
+Return a stringized version of the given operator.
+*/
+{
+  a_const_char *op_str = "Unexpected DyadicOperator";
+
+#define dyadic_op_str(str) "DyadicOperator::" str
+  switch (dyadic_op) {
+    case ifc_DyadicOperator_Unknown:
+      op_str = dyadic_op_str("Unknown"); break;
+    case ifc_DyadicOperator_Msvc:
+      op_str = dyadic_op_str("Msvc"); break;
+    case ifc_DyadicOperator_Plus:
+      op_str = dyadic_op_str("Plus"); break;
+    case ifc_DyadicOperator_Minus:
+      op_str = dyadic_op_str("Minus"); break;
+    case ifc_DyadicOperator_Mult:
+      op_str = dyadic_op_str("Mult"); break;
+    case ifc_DyadicOperator_Slash:
+      op_str = dyadic_op_str("Slash"); break;
+    case ifc_DyadicOperator_Modulo:
+      op_str = dyadic_op_str("Module"); break;
+    case ifc_DyadicOperator_Remainder:
+      op_str = dyadic_op_str("Remainder"); break;
+    case ifc_DyadicOperator_Bitand:
+      op_str = dyadic_op_str("Bitand"); break;
+    case ifc_DyadicOperator_Bitor:
+      op_str = dyadic_op_str("Bitor"); break;
+    case ifc_DyadicOperator_Bitxor:
+      op_str = dyadic_op_str("Bitxor"); break;
+    case ifc_DyadicOperator_Lshift:
+      op_str = dyadic_op_str("Lshift"); break;
+    case ifc_DyadicOperator_Rshift:
+      op_str = dyadic_op_str("Rshift"); break;
+    case ifc_DyadicOperator_Equal:
+      op_str = dyadic_op_str("Equal"); break;
+    case ifc_DyadicOperator_NotEqual:
+      op_str = dyadic_op_str("NotEqual"); break;
+    case ifc_DyadicOperator_Less:
+      op_str = dyadic_op_str("Less"); break;
+    case ifc_DyadicOperator_LessEqual:
+      op_str = dyadic_op_str("LessEqual"); break;
+    case ifc_DyadicOperator_Greater:
+      op_str = dyadic_op_str("Greater"); break;
+    case ifc_DyadicOperator_GreaterEqual:
+      op_str = dyadic_op_str("GreaterEqual"); break;
+    case ifc_DyadicOperator_LogicAnd:
+      op_str = dyadic_op_str("LogicAnd"); break;
+    case ifc_DyadicOperator_LogicOr:
+      op_str = dyadic_op_str("LogicOr"); break;
+    case ifc_DyadicOperator_Assign:
+      op_str = dyadic_op_str("Assign"); break;
+    case ifc_DyadicOperator_PlusAssign:
+      op_str = dyadic_op_str("PlusAssign"); break;
+    case ifc_DyadicOperator_MinusAssign:
+      op_str = dyadic_op_str("MinusAssign"); break;
+    case ifc_DyadicOperator_MultAssign:
+      op_str = dyadic_op_str("MultAssign"); break;
+    case ifc_DyadicOperator_SlashAssign:
+      op_str = dyadic_op_str("SlashAssign"); break;
+    case ifc_DyadicOperator_ModuloAssign:
+      op_str = dyadic_op_str("ModuloAssign"); break;
+    case ifc_DyadicOperator_BitandAssign:
+      op_str = dyadic_op_str("BitandAssign"); break;
+    case ifc_DyadicOperator_BitorAssign:
+      op_str = dyadic_op_str("BitorAssign"); break;
+    case ifc_DyadicOperator_BitxorAssign:
+      op_str = dyadic_op_str("BitxorAssign"); break;
+    case ifc_DyadicOperator_LshiftAssign:
+      op_str = dyadic_op_str("LshiftAssign"); break;
+    case ifc_DyadicOperator_RshiftAssign:
+      op_str = dyadic_op_str("RshiftAssign"); break;
+    case ifc_DyadicOperator_Comma:
+      op_str = dyadic_op_str("Comma"); break;
+    case ifc_DyadicOperator_Arrow:
+      op_str = dyadic_op_str("Arrow"); break;
+    case ifc_DyadicOperator_ArrowStar:
+      op_str = dyadic_op_str("ArrowStar"); break;
+    case ifc_DyadicOperator_New:
+      op_str = dyadic_op_str("New"); break;
+    case ifc_DyadicOperator_NewArray:
+      op_str = dyadic_op_str("NewArray"); break;
+    case ifc_DyadicOperator_Compare:
+      op_str = dyadic_op_str("Compare"); break;
+    case ifc_DyadicOperator_Dot:
+      op_str = dyadic_op_str("Dot"); break;
+    case ifc_DyadicOperator_DotStar:
+      op_str = dyadic_op_str("DotStar"); break;
+    case ifc_DyadicOperator_Curry:
+      op_str = dyadic_op_str("Curry"); break;
+    case ifc_DyadicOperator_Apply:
+      op_str = dyadic_op_str("Apply"); break;
+    case ifc_DyadicOperator_Index:
+      op_str = dyadic_op_str("Index"); break;
+    case ifc_DyadicOperator_DefaultAt:
+      op_str = dyadic_op_str("DefaultAt"); break;
+    case ifc_DyadicOperator_Destruct:
+      op_str = dyadic_op_str("Destruct"); break;
+    case ifc_DyadicOperator_DestructAt:
+      op_str = dyadic_op_str("DestructAt"); break;
+    case ifc_DyadicOperator_Cleanup:
+      op_str = dyadic_op_str("Cleanup"); break;
+    case ifc_DyadicOperator_Qualification:
+      op_str = dyadic_op_str("Qualification"); break;
+    case ifc_DyadicOperator_Promote:
+      op_str = dyadic_op_str("Promote"); break;
+    case ifc_DyadicOperator_Demote:
+      op_str = dyadic_op_str("Demote"); break;
+    case ifc_DyadicOperator_Coerce:
+      op_str = dyadic_op_str("Coerce"); break;
+    case ifc_DyadicOperator_Rewrite:
+      op_str = dyadic_op_str("Rewrite"); break;
+    case ifc_DyadicOperator_Bless:
+      op_str = dyadic_op_str("Bless"); break;
+    case ifc_DyadicOperator_Cast:
+      op_str = dyadic_op_str("Cast"); break;
+    case ifc_DyadicOperator_ExplicitConversion:
+      op_str = dyadic_op_str("ExplicitConversion"); break;
+    case ifc_DyadicOperator_ReinterpretCast:
+      op_str = dyadic_op_str("ReinterpretCast"); break;
+    case ifc_DyadicOperator_StaticCast:
+      op_str = dyadic_op_str("StaticCast"); break;
+    case ifc_DyadicOperator_ConstCast:
+      op_str = dyadic_op_str("ConstCast"); break;
+    case ifc_DyadicOperator_DynamicCast:
+      op_str = dyadic_op_str("DynamicCast"); break;
+    case ifc_DyadicOperator_Narrow:
+      op_str = dyadic_op_str("Narrow"); break;
+    case ifc_DyadicOperator_Widen:
+      op_str = dyadic_op_str("Widen"); break;
+    case ifc_DyadicOperator_Pretend:
+      op_str = dyadic_op_str("Pretend"); break;
+    case ifc_DyadicOperator_Closure:
+      op_str = dyadic_op_str("Closure"); break;
+    case ifc_DyadicOperator_ZeroInitialize:
+      op_str = dyadic_op_str("ZeroInitialize"); break;
+    case ifc_DyadicOperator_ClearStorage:
+      op_str = dyadic_op_str("ClearStorage"); break;
+    case ifc_DyadicOperator_MsvcTryCast:
+      op_str = dyadic_op_str("MsvcTryCast"); break;
+    case ifc_DyadicOperator_MsvcCurry:
+      op_str = dyadic_op_str("MsvcCurry"); break;
+    case ifc_DyadicOperator_MsvcVirtualCurry:
+      op_str = dyadic_op_str("MsvcVirtualCurry"); break;
+    case ifc_DyadicOperator_MsvcAlign:
+      op_str = dyadic_op_str("MsvcAlign"); break;
+    case ifc_DyadicOperator_MsvcBitSpan:
+      op_str = dyadic_op_str("MsvcBitSpan"); break;
+    case ifc_DyadicOperator_MsvcBitfieldAccess:
+      op_str = dyadic_op_str("MsvcBitfieldAccess"); break;
+    case ifc_DyadicOperator_MsvcObscureBitfieldAccess:
+      op_str = dyadic_op_str("MsvcObscureBitfieldAccess"); break;
+    case ifc_DyadicOperator_MsvcInitialize:
+      op_str = dyadic_op_str("MsvcInitialize"); break;
+    case ifc_DyadicOperator_MsvcBuiltinOffsetOf:
+      op_str = dyadic_op_str("MsvcBuiltinOffsetOf"); break;
+    case ifc_DyadicOperator_MsvcIsBaseOf:
+      op_str = dyadic_op_str("MsvcIsBaseOf"); break;
+    case ifc_DyadicOperator_MsvcIsConvertibleTo:
+      op_str = dyadic_op_str("MsvcIsConvertibleTo"); break;
+    case ifc_DyadicOperator_MsvcIsTriviallyAssignable:
+      op_str = dyadic_op_str("MsvcIsTriviallyAssignable"); break;
+    case ifc_DyadicOperator_MsvcIsNothrowAssignable:
+      op_str = dyadic_op_str("MsvcIsNothrowAssignable"); break;
+    case ifc_DyadicOperator_MsvcIsAssignable:
+      op_str = dyadic_op_str("MsvcIsAssignable"); break;
+    case ifc_DyadicOperator_MsvcIsAssignableNocheck:
+      op_str = dyadic_op_str("MsvcIsAssignableNocheck"); break;
+    case ifc_DyadicOperator_MsvcBuiltinBitCast:
+      op_str = dyadic_op_str("MsvcBuiltinBitCast"); break;
+    case ifc_DyadicOperator_MsvcBuiltinIsLayoutCompatible:
+      op_str = dyadic_op_str("MsvcBuiltinIsLayoutCompatible"); break;
+    case ifc_DyadicOperator_MsvcBuiltinIsPointerInterconvertibleBaseOf:
+      op_str = dyadic_op_str("MsvcBuiltinIsPointerInterconvertibleBaseOf");
+      break;
+    case ifc_DyadicOperator_MsvcBuiltinIsPointerInterconvertibleWithClass:
+      op_str = dyadic_op_str("MsvcBuiltinIsPointerInterconvertibleWithClass");
+      break;
+    case ifc_DyadicOperator_MsvcBuiltinIsCorrespondingMember:
+      op_str = dyadic_op_str("MsvcBuiltinIsCorrespondingMember"); break;
+    case ifc_DyadicOperator_MsvcIntrinsic:
+      op_str = dyadic_op_str("MsvcIntrinsic"); break;
+    default_is_unexpected_str("Unexpected DyadicOperator");
+  }  /* switch */
+#undef dyadic_op_str
+  return op_str;
+}  /* str_for_ifc_operator */
+
+
+static a_const_char *str_for_ifc_operator(ifc_TriadicOperator triadic_op)
+/*
+Return a stringized version of the given operator.
+*/
+{
+  a_const_char *op_str = "Unexpected TriadicOperator";
+
+#define triadic_op_str(str) "TriadicOperator::" str
+  switch (triadic_op) {
+    case ifc_TriadicOperator_Unknown:
+      op_str = triadic_op_str("Unknown"); break;
+    case ifc_TriadicOperator_Msvc:
+      op_str = triadic_op_str("Msvc"); break;
+    case ifc_TriadicOperator_Choice:
+      op_str = triadic_op_str("Choice"); break;
+    case ifc_TriadicOperator_ConstructAt:
+      op_str = triadic_op_str("ConstructAt"); break;
+    case ifc_TriadicOperator_Initialize:
+      op_str = triadic_op_str("Initialize"); break;
+    default_is_unexpected_str("Unexpected TriadicOperator");
+  }  /* switch */
+#undef triadic_op_str
+  return op_str;
+}  /* str_for_ifc_operator */
+
+
+static a_const_char *str_for_ifc_operator(ifc_StorageOperator storage_op)
+/*
+Return a stringized version of the given operator.
+*/
+{
+  a_const_char *op_str = "Unexpected StorageOperator";
+
+#define storage_op_str(str) "StorageOperator::" str
+  switch (storage_op) {
+    case ifc_StorageOperator_Unknown:
+      op_str = storage_op_str("Unknown"); break;
+    case ifc_StorageOperator_Msvc:
+      op_str = storage_op_str("Msvc"); break;
+    case ifc_StorageOperator_AllocateSingle:
+      op_str = storage_op_str("AllocateSingle"); break;
+    case ifc_StorageOperator_AllocateArray:
+      op_str = storage_op_str("AllocateArray"); break;
+    case ifc_StorageOperator_DeallocateSingle:
+      op_str = storage_op_str("DeallocateSingle"); break;
+    case ifc_StorageOperator_DeallocateArray:
+      op_str = storage_op_str("DeallocateArray"); break;
+    default_is_unexpected_str("Unexpected StorageOperator");
+  }  /* switch */
+#undef storage_op_str
+  return op_str;
+}  /* str_for_ifc_operator */
+
+
+static a_const_char *str_for_ifc_operator(ifc_VariadicOperator variadic_op)
+/*
+Return a stringized version of the given operator.
+*/
+{
+  a_const_char *op_str = "Unexpected VariadicOperator";
+
+#define variadic_op_str(str) "VariadicOperator::" str
+  switch (variadic_op) {
+    case ifc_VariadicOperator_Unknown:
+      op_str = variadic_op_str("Unknown"); break;
+    case ifc_VariadicOperator_Msvc:
+      op_str = variadic_op_str("Msvc"); break;
+    case ifc_VariadicOperator_Collection:
+      op_str = variadic_op_str("Collection"); break;
+    case ifc_VariadicOperator_Sequence:
+      op_str = variadic_op_str("Sequence"); break;
+    case ifc_VariadicOperator_MsvcHasTrivialConstructor:
+      op_str = variadic_op_str("MsvcHasTrivialConstructor"); break;
+    case ifc_VariadicOperator_MsvcIsConstructible:
+      op_str = variadic_op_str("MsvcIsConstructible"); break;
+    case ifc_VariadicOperator_MsvcIsNothrowConstructible:
+      op_str = variadic_op_str("MsvcIsNothrowConstructible"); break;
+    case ifc_VariadicOperator_MsvcIsTriviallyConstructible:
+      op_str = variadic_op_str("MsvcIsTriviallyConstructible"); break;
+    default_is_unexpected_str("Unexpected VariadicOperator");
+  }  /* switch */
+#undef variadic_op_str
+  return op_str;
+}  /* str_for_ifc_operator */
+
+
 static an_opname_kind opname_from_niladic_op(ifc_NiladicOperator niladic_op)
 /*
 Map an IFC NiladicOperator to an_opname_kind.
 */
 {
-  /* FIXME: Remove initializer when op is assigned in one of the cases. */
-  an_opname_kind op = onk_none;
+  an_opname_kind op;
 
   switch (niladic_op) {
     case ifc_NiladicOperator_Unknown:
     case ifc_NiladicOperator_Msvc:
-      unexpected_condition();
+      pos_st_diagnostic(es_discretionary_error,
+                        ec_ifc_no_corresponding_operator, &error_position,
+                        str_for_ifc_operator(niladic_op));
+      op = onk_none;
       break;
     case ifc_NiladicOperator_Phantom:
     case ifc_NiladicOperator_Constant:
     case ifc_NiladicOperator_Nil:
     case ifc_NiladicOperator_MsvcConstantObject:
     case ifc_NiladicOperator_MsvcLambda:
-#if DEBUG
-      if (db_flag_is_set("ms_ignore")) {
-        (void)fprintf(f_debug, "Unsupported operation: %d\n", niladic_op);
-      }  /* if */
-#endif /* DEBUG */
-      unexpected_condition();
+      pos_st_diagnostic(es_discretionary_error,
+                        ec_ifc_no_corresponding_operator, &error_position,
+                        str_for_ifc_operator(niladic_op));
+      op = onk_none;
       break;
     default_is_unexpected_str("Unexpected NiladicOperator");
   }  /* switch */
@@ -694,7 +1202,10 @@ Map an IFC MonadicOperator to an_opname_kind.
     case ifc_MonadicOperator_Unknown:
     case ifc_MonadicOperator_Msvc:
     case ifc_MonadicOperator_MsvcConfusion:
-      unexpected_condition();
+      pos_st_diagnostic(es_discretionary_error,
+                        ec_ifc_no_corresponding_operator, &error_position,
+                        str_for_ifc_operator(monadic_op));
+      op = onk_none;
       break;
     case ifc_MonadicOperator_Plus:               op = onk_plus;          break;
     case ifc_MonadicOperator_Negate:             op = onk_minus;         break;
@@ -771,12 +1282,10 @@ Map an IFC MonadicOperator to an_opname_kind.
     case ifc_MonadicOperator_MsvcHasAssign:
     case ifc_MonadicOperator_MsvcHasUserDestructor:
     case ifc_MonadicOperator_MsvcConfusedExpand:
-#if DEBUG
-      if (db_flag_is_set("ms_ignore")) {
-        (void)fprintf(f_debug, "Unsupported operation: %d\n", monadic_op);
-      }  /* if */
-#endif /* DEBUG */
-      unexpected_condition();
+      pos_st_diagnostic(es_discretionary_error,
+                        ec_ifc_no_corresponding_operator, &error_position,
+                        str_for_ifc_operator(monadic_op));
+      op = onk_none;
       break;
     default_is_unexpected_str("Unexpected MonadicOperator");
   }  /* switch */
@@ -794,7 +1303,10 @@ Map an IFC DyadicOperator to an_opname_kind.
   switch (dyadic_op) {
     case ifc_DyadicOperator_Unknown:
     case ifc_DyadicOperator_Msvc:
-      unexpected_condition();
+      pos_st_diagnostic(es_discretionary_error,
+                        ec_ifc_no_corresponding_operator, &error_position,
+                        str_for_ifc_operator(dyadic_op));
+      op = onk_none;
       break;
     case ifc_DyadicOperator_Plus:            op = onk_plus;              break;
     case ifc_DyadicOperator_Minus:           op = onk_minus;             break;
@@ -880,12 +1392,10 @@ Map an IFC DyadicOperator to an_opname_kind.
     case ifc_DyadicOperator_MsvcBuiltinIsPointerInterconvertibleWithClass:
     case ifc_DyadicOperator_MsvcBuiltinIsCorrespondingMember:
     case ifc_DyadicOperator_MsvcIntrinsic:
-#if DEBUG
-      if (db_flag_is_set("ms_ignore")) {
-        (void)fprintf(f_debug, "Unsupported operation: %d\n", dyadic_op);
-      }  /* if */
-#endif /* DEBUG */
-      unexpected_condition();
+      pos_st_diagnostic(es_discretionary_error,
+                        ec_ifc_no_corresponding_operator, &error_position,
+                        str_for_ifc_operator(dyadic_op));
+      op = onk_none;
       break;
     default_is_unexpected_str("Unexpected DyadicOperator");
   }  /* switch */
@@ -898,23 +1408,23 @@ static an_opname_kind opname_from_triadic_op(ifc_TriadicOperator triadic_op)
 Map an IFC TriadicOperator to an_opname_kind.
 */
 {
-  /* FIXME: Remove initializer when op is assigned in one of the cases. */
-  an_opname_kind op = onk_none;
+  an_opname_kind op;
 
   switch (triadic_op) {
     case ifc_TriadicOperator_Unknown:
     case ifc_TriadicOperator_Msvc:
-      unexpected_condition();
+      pos_st_diagnostic(es_discretionary_error,
+                        ec_ifc_no_corresponding_operator, &error_position,
+                        str_for_ifc_operator(triadic_op));
+      op = onk_none;
       break;
     case ifc_TriadicOperator_Choice:
     case ifc_TriadicOperator_ConstructAt:
     case ifc_TriadicOperator_Initialize:
-#if DEBUG
-      if (db_flag_is_set("ms_ignore")) {
-        (void)fprintf(f_debug, "Unsupported operation: %d\n", triadic_op);
-      }  /* if */
-#endif /* DEBUG */
-      unexpected_condition();
+      pos_st_diagnostic(es_discretionary_error,
+                        ec_ifc_no_corresponding_operator, &error_position,
+                        str_for_ifc_operator(triadic_op));
+      op = onk_none;
       break;
     default_is_unexpected_str("Unexpected TriadicOperator");
   }  /* switch */
@@ -932,7 +1442,10 @@ Map an IFC StorageOperator to an_opname_kind.
   switch (storage_op) {
     case ifc_StorageOperator_Unknown:
     case ifc_StorageOperator_Msvc:
-      unexpected_condition();
+      pos_st_diagnostic(es_discretionary_error,
+                        ec_ifc_no_corresponding_operator, &error_position,
+                        str_for_ifc_operator(storage_op));
+      op = onk_none;
       break;
     case ifc_StorageOperator_AllocateSingle:    op = onk_new;            break;
     case ifc_StorageOperator_AllocateArray:     op = onk_array_new;      break;
@@ -949,13 +1462,15 @@ static an_opname_kind opname_from_variadic_op(ifc_VariadicOperator variadic_op)
 Map an IFC VariadicOperator to an_opname_kind.
 */
 {
-  /* FIXME: Remove initializer when op is assigned in one of the cases. */
-  an_opname_kind op = onk_none;
+  an_opname_kind op;
 
   switch (variadic_op) {
     case ifc_VariadicOperator_Unknown:
     case ifc_VariadicOperator_Msvc:
-      unexpected_condition();
+      pos_st_diagnostic(es_discretionary_error,
+                        ec_ifc_no_corresponding_operator, &error_position,
+                        str_for_ifc_operator(variadic_op));
+      op = onk_none;
       break;
     case ifc_VariadicOperator_Collection:
     case ifc_VariadicOperator_Sequence:
@@ -963,12 +1478,10 @@ Map an IFC VariadicOperator to an_opname_kind.
     case ifc_VariadicOperator_MsvcIsConstructible:
     case ifc_VariadicOperator_MsvcIsNothrowConstructible:
     case ifc_VariadicOperator_MsvcIsTriviallyConstructible:
-#if DEBUG
-      if (db_flag_is_set("ms_ignore")) {
-        (void)fprintf(f_debug, "Unsupported operation: %d\n", variadic_op);
-      }  /* if */
-#endif /* DEBUG */
-      unexpected_condition();
+      pos_st_diagnostic(es_discretionary_error,
+                        ec_ifc_no_corresponding_operator, &error_position,
+                        str_for_ifc_operator(variadic_op));
+      op = onk_none;
       break;
     default_is_unexpected_str("Unexpected VariadicOperator");
   }  /* switch */
@@ -2354,6 +2867,7 @@ constants for that type).
   a_boolean                scope_pushed = FALSE;
 
   if (!mep->imminent && mep->entity.ptr == NULL) {
+    a_source_position saved_error_position = error_position;
     /* Prepare to read from the proper partition for this declaration. */
     read_partition_at_offset(mep->variant.ifc_partition, mep->file_offset);
     tag = (ifc_DeclSort)get_tag_from_partition(mep->variant.ifc_partition,
@@ -2363,9 +2877,20 @@ constants for that type).
       scope_pushed = push_module_declaration_context(mep->scope);
     }  /* if */
     switch (tag) {
+      case ifc_DeclSort_VendorExtension:
+        { an_ifc_DeclSort_VendorExtension idsve;
+          get_DeclSort_VendorExtension(&idsve);
+          /* FIXME: Need a proper source position for this. */
+          error_position = null_source_position;
+          issue_unsupported_node_diag(str_for_decl_tag(tag), &error_position);
+          il_entity = (char *)error_type();
+          kind = iek_type;
+        }
+        break;
       case ifc_DeclSort_Variable:
         { an_ifc_DeclSort_Variable idsv, *idsvp;
           idsvp = get_DeclSort_Variable(&idsv);
+          source_position_from_locus(&error_position, &idsvp->locus);
           init_locator_from_name(idsvp->name, (ifc_TextOffset)0, &idsvp->locus,
                                  &loc);
           if (defer) {
@@ -2405,6 +2930,7 @@ constants for that type).
           a_type_ptr               old_type;
           an_ifc_DeclSort_Function idsf, *idsfp;
           idsfp = get_DeclSort_Function(&idsf);
+          source_position_from_locus(&error_position, &idsfp->locus);
           init_locator_from_name(idsfp->name, (ifc_TextOffset)0, &idsfp->locus,
                                  &loc);
           if (defer) {
@@ -2440,6 +2966,7 @@ constants for that type).
           a_routine_ptr            rp;
           an_ifc_DeclSort_Intrinsic idsi, *idsip;
           idsip = get_DeclSort_Intrinsic(&idsi);
+          source_position_from_locus(&error_position, &idsip->locus);
           init_locator_from_name((ifc_NameIndex)0, idsip->name, &idsip->locus,
                                  &loc);
           if (defer) {
@@ -2471,6 +2998,7 @@ constants for that type).
           a_type_kind                 type_kind;
           a_symbol_kind               tag_kind;
           idssp = get_DeclSort_Scope(&idss);
+          source_position_from_locus(&error_position, &idssp->locus);
           /* Should be no unnamed namespaces or types. */
           check_assertion(idssp->name != 0);
           init_locator_from_name(idssp->name, (ifc_TextOffset)0, &idssp->locus,
@@ -2495,7 +3023,8 @@ constants for that type).
                   defer_symbol_creation(mep, &loc);
                 } else {
                   /* FIXME: lots missing. */
-                  check_assertion(!(idssp->traits & ifc_ScopeTraits_Unnamed));
+                  check_assertion((idssp->traits & ifc_ScopeTraits_Unnamed)
+                                  == 0);
                   ns_sym = curr_scope_id_lookup(&loc, IDL_NO_OPTIONS);
                   if (ns_sym != NULL) {
                     if (ns_sym->kind == (a_symbol_kind)sk_namespace &&
@@ -2607,6 +3136,7 @@ class_struct_union_case:
         { an_ifc_DeclSort_Alias idsta, *idstap;
           an_ifc_TypeSort_Fundamental itsf, *itsfp;
           idstap = get_DeclSort_Alias(&idsta);
+          source_position_from_locus(&error_position, &idstap->locus);
           init_locator_from_name((ifc_NameIndex)0, idstap->name,
                                  &idstap->locus, &loc);
           if (defer) {
@@ -2630,8 +3160,10 @@ class_struct_union_case:
             } else if (itsfp->basis == ifc_TypeBasis_Namespace) {
               /* A namespace alias. */
               /* FIXME: unimplemented. */
-              unexpected_condition_str("Namespace aliases "
-                                       "are not yet implemented");
+              issue_unsupported_node_diag("DeclSort::Alias namespace",
+                                          &error_position);
+              il_entity = (char *)error_type();
+              kind = iek_type;
             } else {
               unexpected_condition();
             }  /* if */
@@ -2644,6 +3176,7 @@ class_struct_union_case:
           a_boolean                   is_scoped_enum = FALSE;
           a_scope_ptr                 enum_scope = mep->scope;
           idsep = get_DeclSort_Enumeration(&idse);
+          source_position_from_locus(&error_position, &idsep->locus);
           check_assertion(type_tag(idsep->type) == ifc_TypeSort_Fundamental);
           /* See if this is a scoped enumeration or not. */
           read_partition_at_index(ifc_type_fundamental,
@@ -2758,6 +3291,7 @@ class_struct_union_case:
       case ifc_DeclSort_Enumerator:
         { an_ifc_DeclSort_Enumerator idse, *idsep;
           idsep = get_DeclSort_Enumerator(&idse);
+          source_position_from_locus(&error_position, &idsep->locus);
           check_assertion(idsep->name != 0);
           init_locator_from_name((ifc_NameIndex)0, idsep->name, &idsep->locus,
                                  &loc);
@@ -2819,6 +3353,7 @@ class_struct_union_case:
       case ifc_DeclSort_Template:
         { an_ifc_DeclSort_Template idst, *idstp;
           idstp = get_DeclSort_Template(&idst);
+          source_position_from_locus(&error_position, &idstp->locus);
           check_assertion(idstp->name != 0);
           init_locator_from_name(idstp->name, (ifc_TextOffset)0, &idstp->locus,
                                  &loc);
@@ -2875,19 +3410,31 @@ class_struct_union_case:
           a_template_parameter_ptr  il_param = NULL;
 
           idspp = get_DeclSort_Parameter(&idsp);
+          source_position_from_locus(&error_position, &idspp->locus);
           check_assertion(idspp->name != 0);
           init_locator_from_name((ifc_NameIndex)0, idspp->name, &idspp->locus,
                                  &loc);
           /* FIXME: constraint_expr = expr_for_expr_index(idspp->constraint);*/
           /* FIXME: init_expr = expr_for_expr_index(idspp->initializer); */
           if (idspp->pack) {
-            unexpected_condition_str("Parameter packs not yet handled "
-                                     "for DeclSort::Parameter");
+            /* FIXME: Currently unsupported. */
+            issue_unsupported_node_diag("DeclSort::Parameter packs",
+                                        &error_position);
           }  /* if */
           switch (idspp->sort) {
             case ifc_ParameterSort_Object:
-              unexpected_condition_str("ParameterSort::Object "
-                                       "not yet handled");
+              /* FIXME: Currently unsupported. */
+              issue_unsupported_node_diag("ParameterSort::Object",
+                                          &error_position);
+              param = make_nontype_template_param(idspp->level,
+                                                  idspp->position,
+                                                  /*is_unnamed=*/FALSE,
+                                                  idspp->pack,
+                                                  /*is_pack_element=*/FALSE,
+                                                  /*is_non_initial=*/FALSE,
+                                                  /*is_pack_expansion=*/FALSE,
+                                                  &loc, error_type(),
+                                                  curr_templ_decl_state);
               break;
             case ifc_ParameterSort_Type:
               /* FIXME: Handle unnamed parameters properly */
@@ -2912,8 +3459,18 @@ class_struct_union_case:
                                                   curr_templ_decl_state);
               break;
             case ifc_ParameterSort_Template:
-              unexpected_condition_str("ParameterSort::Template "
-                                       "not yet handled");
+              /* FIXME: Currently unsupported. */
+              issue_unsupported_node_diag("ParameterSort::Template",
+                                          &error_position);
+              param = make_nontype_template_param(idspp->level,
+                                                  idspp->position,
+                                                  /*is_unnamed=*/FALSE,
+                                                  idspp->pack,
+                                                  /*is_pack_element=*/FALSE,
+                                                  /*is_non_initial=*/FALSE,
+                                                  /*is_pack_expansion=*/FALSE,
+                                                  &loc, error_type(),
+                                                  curr_templ_decl_state);
               break;
             default_is_unexpected_str("Unexpected ParameterSort");
           }  /* switch */
@@ -2949,32 +3506,116 @@ class_struct_union_case:
       case ifc_DeclSort_Bitfield:
       case ifc_DeclSort_Property:
         /* These entities can only exist in a class and class definitions are
-           currently handled by scanning a textual representation of the
+           currently handled by scanning a token representation of the
            class. */
         unexpected_condition();
-      case ifc_DeclSort_VendorExtension:
       case ifc_DeclSort_Temploid:
+        { an_ifc_DeclSort_Temploid idst;
+          get_DeclSort_Temploid(&idst);
+          /* FIXME: Need a proper source position here. */
+          error_position = null_source_position;
+          goto unhandled;
+        }
       case ifc_DeclSort_PartialSpecialization:
+        { an_ifc_DeclSort_PartialSpecialization idsps, *idspsp;
+          idspsp = get_DeclSort_PartialSpecialization(&idsps);
+          source_position_from_locus(&error_position, &idspsp->locus);
+          goto unhandled;
+        }
       case ifc_DeclSort_ExplicitSpecialization:
+        { an_ifc_DeclSort_ExplicitSpecialization idses;
+          get_DeclSort_ExplicitSpecialization(&idses);
+          /* FIXME: Need a proper source position here. */
+          error_position = null_source_position;
+          goto unhandled;
+        }
       case ifc_DeclSort_ExplicitInstantiation:
+        { an_ifc_DeclSort_ExplicitInstantiation idsei;
+          get_DeclSort_ExplicitInstantiation(&idsei);
+          /* FIXME: Need a proper source position here. */
+          error_position = null_source_position;
+          goto unhandled;
+        }
       case ifc_DeclSort_Concept:
+        { an_ifc_DeclSort_Concept idsc, *idscp;
+          idscp = get_DeclSort_Concept(&idsc);
+          source_position_from_locus(&error_position, &idscp->locus);
+          goto unhandled;
+        }
       case ifc_DeclSort_InheritedConstructor:
+        { an_ifc_DeclSort_InheritedConstructor idsic, *idsicp;
+          idsicp = get_DeclSort_InheritedConstructor(&idsic);
+          source_position_from_locus(&error_position, &idsicp->locus);
+          goto unhandled;
+        }
       case ifc_DeclSort_OutputSegment:
+        { an_ifc_DeclSort_OutputSegment idsos;
+          get_DeclSort_OutputSegment(&idsos);
+          /* FIXME: Need a proper source position here. */
+          error_position = null_source_position;
+          goto unhandled;
+        }
       case ifc_DeclSort_UsingDeclaration:
+        { an_ifc_DeclSort_UsingDeclaration idsud, *idsudp;
+          idsudp = get_DeclSort_UsingDeclaration(&idsud);
+          source_position_from_locus(&error_position, &idsudp->locus);
+          goto unhandled;
+        }
       case ifc_DeclSort_UsingDirective:
+        { an_ifc_DeclSort_UsingDirective idsud;
+          get_DeclSort_UsingDirective(&idsud);
+          /* FIXME: Need a proper source position here. */
+          error_position = null_source_position;
+          goto unhandled;
+        }
       case ifc_DeclSort_Friend:
+        { an_ifc_DeclSort_Friend idsf;
+          get_DeclSort_Friend(&idsf);
+          /* FIXME: Need a proper source position here. */
+          error_position = null_source_position;
+          goto unhandled;
+        }
       case ifc_DeclSort_SyntaxTree:
+        { an_ifc_DeclSort_SyntaxTree idsst;
+          get_DeclSort_SyntaxTree(&idsst);
+          /* FIXME: Need a proper source position here. */
+          error_position = null_source_position;
+          goto unhandled;
+        }
       case ifc_DeclSort_Tuple:
-      default:
-#if DEBUG
-        if (db_flag_is_set("ms_ignore")) {
-          (void)fprintf(f_debug, "Ignoring declaration: [%s]\n",
-                        db_decl_tag(tag));
-        }  /* if */
+        { an_ifc_DeclSort_Tuple idst;
+          get_DeclSort_Tuple(&idst);
+          /* FIXME: Need a proper source position here. */
+          error_position = null_source_position;
+          goto unhandled;
+        }
+      case ifc_DeclSort_Expansion:
+        { an_ifc_DeclSort_Expansion idse, *idsep;
+          idsep = get_DeclSort_Expansion(&idse);
+          source_position_from_locus(&error_position, &idsep->locus);
+          goto unhandled;
+        }
+      case ifc_DeclSort_DeductionGuide:
+        { an_ifc_DeclSort_DeductionGuide idsdg, *idsdgp;
+          idsdgp = get_DeclSort_DeductionGuide(&idsdg);
+          source_position_from_locus(&error_position, &idsdgp->locus);
+          goto unhandled;
+        }
+      case ifc_DeclSort_Barren:
+        { an_ifc_DeclSort_Barren idsb;
+          get_DeclSort_Barren(&idsb);
+          /* FIXME: Need a proper source position here. */
+          error_position = null_source_position;
+unhandled:
+          issue_unsupported_node_diag(str_for_decl_tag(tag), &error_position);
+          il_entity = (char *)error_type();
+          kind = iek_type;
+        }
         break;
-#else /* !DEBUG */
-        unexpected_condition(); /* FIXME: for now */
-#endif /* DEBUG */
+      case ifc_DeclSort_Last:
+        unexpected_condition();
+        break;
+      default_is_unexpected_str("Unexpected DeclSort");
     }  /* switch */
     if (!defer) {
       /* Record the IL entity. */
@@ -2988,6 +3629,7 @@ class_struct_union_case:
 #endif /* DEBUG */
       pop_module_declaration_context(scope_pushed);
     }  /* if */
+    error_position = saved_error_position;
   }  /* if */
   /* In some cases we may enter this routine without having a scope, but we
      should not exit it without having one. */
@@ -3037,6 +3679,8 @@ Complete the definition of the class referred to by mep (if needed).
     a_symbol_ptr             class_sym = symbol_for(class_type);
     a_scope_depth            saved_non_local_class_fixup_depth =
                                                    non_local_class_fixup_depth;
+    a_source_position        saved_error_position = error_position;
+    source_position_from_locus(&error_position, &idssp->locus);
     clear_token_cache(&cache, /*reuseable=*/FALSE);
     cache_decl_class(&cache, idssp);
     terminate_token_cache(&cache);
@@ -3091,6 +3735,7 @@ Complete the definition of the class referred to by mep (if needed).
     non_local_class_fixup_depth = saved_non_local_class_fixup_depth;
     pop_template_instantiation_scope();
     free_template_decl_info(tdip);
+    error_position = saved_error_position;
   }  /* if */
 }  /* complete_definition_of_module_class */
 
@@ -3375,7 +4020,7 @@ static a_calling_convention conv_calling_convention(
 Convert the given IFC calling convention to the corresponding EDG one.
 */
 {
-  a_calling_convention conv = cc_default;
+  a_calling_convention conv;
 
   switch (convention) {
     case ifc_CallingConvention_Cdecl:   conv = cc_cdecl; break;
@@ -3385,8 +4030,10 @@ Convert the given IFC calling convention to the corresponding EDG one.
     case ifc_CallingConvention_Clr:     conv = cc_clrcall; break;
     case ifc_CallingConvention_Vector:  conv = cc_vectorcall; break;
     case ifc_CallingConvention_Eabi:    /* conv = cc_eabicall; break; */
-      unexpected_condition_str("__eabi calling convention "
-                               "is yet not supported");
+      pos_st_diagnostic(es_discretionary_error,
+                        ec_ifc_no_corresponding_calling_conv,
+                        &error_position, "CallingConvention::Eabi");
+      conv = cc_default;
       break;
     default_is_unexpected_str("Unexpected CallingConvention");
   }  /* switch */
@@ -3474,12 +4121,11 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                 case ifc_TypePrecision_Bit32:
                   result = char32_t_type();
                   break;
-                /* FIXME: not sure how to map these: */
                 case ifc_TypePrecision_Short:
                 case ifc_TypePrecision_Long:
                 case ifc_TypePrecision_Bit64:
                 case ifc_TypePrecision_Bit128:
-                  unexpected_condition();
+                  unexpected_condition_str("Unexpected precision for wchar_t");
                   break;
                 default_is_unexpected();
               }  /* switch */
@@ -3501,16 +4147,25 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                                                              ik_unsigned_long :
                                                              ik_long;
                   break;
-                case ifc_TypePrecision_Bit64:
-                  ik = (itsfp->sign == ifc_TypeSign_Unsigned) ?
-                                                        ik_unsigned_long_long :
-                                                        ik_long_long;
-                  break;
-                /* FIXME: not sure how to map these: */
                 case ifc_TypePrecision_Bit16:
+                  ik = int_kind_for_bit_size(
+                                         16,
+                                         itsfp->sign != ifc_TypeSign_Unsigned);
+                  break;
                 case ifc_TypePrecision_Bit32:
+                  ik = int_kind_for_bit_size(
+                                         32,
+                                         itsfp->sign != ifc_TypeSign_Unsigned);
+                  break;
+                case ifc_TypePrecision_Bit64:
+                  ik = int_kind_for_bit_size(
+                                         64,
+                                         itsfp->sign != ifc_TypeSign_Unsigned);
+                  break;
                 case ifc_TypePrecision_Bit128:
-                  unexpected_condition();
+                  ik = int_kind_for_bit_size(
+                                         128,
+                                         itsfp->sign != ifc_TypeSign_Unsigned);
                   break;
                 default_is_unexpected();
               }  /* switch */
@@ -3574,14 +4229,20 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
               break;
             case ifc_TypeBasis_Enum:
               check_assertion(itsfp->precision == ifc_TypePrecision_Default);
-              unexpected_condition_str("TypeBasis::Enum not yet handled");
+              /* FIXME: Currently unsupported. */
+              issue_unsupported_node_diag("TypeBasis::Enum", &error_position);
+              result = error_type();
+              break;
             case ifc_TypeBasis_Typename:
               check_assertion(itsfp->precision == ifc_TypePrecision_Default);
               result = unknown_type();
               break;
             case ifc_TypeBasis_SegmentType:
-              unexpected_condition_str("TypeBasis::SegmentType "
-                                       "not yet handled");
+              /* FIXME: Currently unsupported. */
+              issue_unsupported_node_diag("TypeBasis::SegmentType",
+                                          &error_position);
+              result = error_type();
+              break;
             case ifc_TypeBasis_Function:
               check_assertion(itsfp->precision == ifc_TypePrecision_Default);
               result = make_routine_type(unknown_type(), /*param1=*/NULL,
@@ -3652,8 +4313,13 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
           result->variant.array.variant.number_of_elements = itsap->extent;
         }
         break;
-      case ifc_TypeSort_Method: /* FIXME: for now (same structures)?): */
-        unexpected_condition_str("TypeSort::Method is not yet implemented");
+      case ifc_TypeSort_Method:
+        { an_ifc_TypeSort_Method itsm;
+          get_TypeSort_Method(&itsm);
+          /* FIXME: Currently unsupported. */
+          issue_unsupported_node_diag("TypeSort::Method", &error_position);
+          result = error_type();
+        }
         break;
       case ifc_TypeSort_Function:
         { an_ifc_TypeSort_Function itsf, *itsfp;
@@ -3757,36 +4423,43 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
       case ifc_TypeSort_Placeholder:
         { an_ifc_TypeSort_Placeholder itsp;
           get_TypeSort_Placeholder(&itsp);
-          unexpected_condition_str("TypeSort::Placeholder "
-                                   "is not yet implemented");
+          /* FIXME: Currently unsupported. */
+          issue_unsupported_node_diag("TypeSort::Placeholder",
+                                      &error_position);
+          result = error_type();
         }
         break;
       case ifc_TypeSort_PointerToMember:
         { an_ifc_TypeSort_PointerToMember itsptm;
           get_TypeSort_PointerToMember(&itsptm);
-          unexpected_condition_str("TypeSort::PointerToMember "
-                                   "is not yet implemented.");
+          /* FIXME: Currently unsupported. */
+          issue_unsupported_node_diag("TypeSort::PointerToMember",
+                                      &error_position);
+          result = error_type();
         }
         break;
       case ifc_TypeSort_Tuple:
         { an_ifc_TypeSort_Tuple itst;
           get_TypeSort_Tuple(&itst);
-          unexpected_condition_str("TypeSort::Tuple "
-                                   "is not yet implemented.");
+          /* FIXME: Currently unsupported. */
+          issue_unsupported_node_diag("TypeSort::Tuple", &error_position);
+          result = error_type();
         }
         break;
       case ifc_TypeSort_Forall:
         { an_ifc_TypeSort_Forall itsfa;
           get_TypeSort_Forall(&itsfa);
-          unexpected_condition_str("TypeSort::Forall "
-                                   "is not yet implemented.");
+          /* FIXME: Currently unsupported. */
+          issue_unsupported_node_diag("TypeSort::Forall", &error_position);
+          result = error_type();
         }
         break;
       case ifc_TypeSort_VendorExtension:
         { an_ifc_TypeSort_VendorExtension itsve;
           get_TypeSort_VendorExtension(&itsve);
-          unexpected_condition_str("TypeSort::VendorExtension "
-                                   "is not yet implemented.");
+          issue_unsupported_node_diag("TypeSort::VendorExtension",
+                                      &error_position);
+          result = error_type();
         }
         break;
       case ifc_TypeSort_Syntactic:
@@ -3811,54 +4484,55 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
       case ifc_TypeSort_Expansion:
         { an_ifc_TypeSort_Expansion itse;
           get_TypeSort_Expansion(&itse);
-          unexpected_condition_str("TypeSort::Expansion "
-                                   "is not yet implemented.");
+          /* FIXME: Currently unsupported. */
+          issue_unsupported_node_diag("TypeSort::Expansion", &error_position);
+          result = error_type();
         }
         break;
       case ifc_TypeSort_Typename:
         { an_ifc_TypeSort_Typename itstn;
           get_TypeSort_Typename(&itstn);
-          unexpected_condition_str("TypeSort::Typename "
-                                   "is not yet implemented.");
+          /* FIXME: Currently unsupported. */
+          issue_unsupported_node_diag("TypeSort::Typename", &error_position);
+          result = error_type();
         }
         break;
       case ifc_TypeSort_Base:
         { an_ifc_TypeSort_Base itsb;
           get_TypeSort_Base(&itsb);
-          unexpected_condition_str("TypeSort::Base "
-                                   "is not yet implemented.");
+          /* FIXME: Currently unsupported. */
+          issue_unsupported_node_diag("TypeSort::Base", &error_position);
+          result = error_type();
         }
         break;
       case ifc_TypeSort_Unaligned:
         { an_ifc_TypeSort_Unaligned itsu;
           get_TypeSort_Unaligned(&itsu);
-          unexpected_condition_str("TypeSort::Unaligned "
-                                   "is not yet implemented.");
+          /* FIXME: Currently unsupported. */
+          issue_unsupported_node_diag("TypeSort::Unaligned", &error_position);
+          result = error_type();
         }
         break;
       case ifc_TypeSort_Decltype:
         { an_ifc_TypeSort_Decltype itsd;
           get_TypeSort_Decltype(&itsd);
-          unexpected_condition_str("TypeSort::Decltype "
-                                   "is not yet implemented.");
+          /* FIXME: Currently unsupported. */
+          issue_unsupported_node_diag("TypeSort::Decltype", &error_position);
+          result = error_type();
         }
         break;
       case ifc_TypeSort_SyntaxTree:
         { an_ifc_TypeSort_SyntaxTree itsst;
           get_TypeSort_SyntaxTree(&itsst);
-          unexpected_condition_str("TypeSort::SyntaxTree "
-                                   "is not yet implemented.");
+          /* FIXME: Currently unsupported. */
+          issue_unsupported_node_diag("TypeSort::Syntaxtree", &error_position);
+          result = error_type();
         }
         break;
-      default:
-#if DEBUG
-        if (db_flag_is_set("ms_ignore")) {
-          (void)fprintf(f_debug, "Unsupported type: ");
-          db_module_entity(mep);
-        }  /* if */
-#endif /* DEBUG */
-        unexpected_condition_str("Unexpected TypeSort");
+      case ifc_TypeSort_Last:
+        unexpected_condition();
         break;
+      default_is_unexpected_str("Unexpected TypeSort");
     }  /* switch */
     /* Record this mapping for future reference. */
     if (result != NULL) {
@@ -3896,10 +4570,14 @@ argument.
       }
       break;
     case ifc_ExprSort_UnaryFold:
-      unexpected_condition_str("ExprSort::UnaryFold is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::UnaryFold", &error_position);
+      break;
     case ifc_ExprSort_PackedTemplateArguments:
-      unexpected_condition_str("ExprSort::PackedTemplateArguments "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::PackedTemplateArguments",
+                                  &error_position);
+      break;
     case ifc_ExprSort_Read:
       { an_ifc_ExprSort_Read iesr, *iesrp;
         a_token_cache        cache;
@@ -4065,17 +4743,11 @@ Map the IFC locus source position information into the source position at pos.
 */
 {
   an_ifc_Source_Line   isl, *islp;
-#if CHECKING
-  ifc_NameSort         tag;
-#endif /* CHECKING */
   a_seq_number         *seq;
 
   read_partition_at_index(ifc_src_line, locus->line);
   islp = get_Source_Line(&isl);
-#if CHECKING
-  tag = name_tag(islp->file);
-  check_assertion(tag == ifc_NameSort_SourceFile);
-#endif /* CHECKING */
+  check_assertion(name_tag(islp->file) == ifc_NameSort_SourceFile);
   /* See if this file has been used before. */
   seq = &sequence_numbers[name_value(islp->file)];
   if (*seq == 0) {
@@ -4091,7 +4763,7 @@ Map the IFC locus source position information into the source position at pos.
     file_name = string_from_name_index(islp->file,
                                        (a_symbol_locator *)NULL);
     file_name = copy_string_to_region(FILE_SCOPE_REGION_NUMBER, file_name);
-    record_inclusion_of_module_source_file(file_name, pos);
+    record_inclusion_of_module_source_file(file_name, pos, assoc_module_info);
     *seq = pos->seq;
   } else {
     pos->seq = *seq;
@@ -4185,21 +4857,23 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
       case ifc_NameSort_Template:
         { an_ifc_NameSort_Template inst;
           get_NameSort_Template(&inst);
-          unexpected_condition_str("NameSort::Template is not yet handled.");
+          /* FIXME: Currently unsupported. */
+          issue_unsupported_node_diag("NameSort::Template", &error_position);
         }
         break;
       case ifc_NameSort_Specialization:
         { an_ifc_NameSort_Specialization inss;
           get_NameSort_Specialization(&inss);
-          unexpected_condition_str("NameSort::Specialization"
-                                   " is not yet handled.");
+          /* FIXME: Currently unsupported. */
+          issue_unsupported_node_diag("NameSort::Specialization",
+                                      &error_position);
         }
         break;
       case ifc_NameSort_Guide:
         { an_ifc_NameSort_Guide insg;
           get_NameSort_Guide(&insg);
-          unexpected_condition_str("NameSort::Guide"
-                                   " is not yet handled.");
+          /* FIXME: Currently unsupported. */
+          issue_unsupported_node_diag("NameSort::Guide", &error_position);
         }
         break;
       case ifc_NameSort_Identifier:
@@ -4235,7 +4909,8 @@ Given a declaration, return the name associated with that declaration.
   read_partition_at_index(decl);
   switch (tag) {
     case ifc_DeclSort_VendorExtension:
-      unexpected_condition();
+      issue_unsupported_node_diag("DeclSort::VendorExtension",
+                                  &error_position);
       break;
     case ifc_DeclSort_Enumerator:
       { an_ifc_DeclSort_Enumerator idse, *idsep;
@@ -4363,16 +5038,18 @@ Given a declaration, return the name associated with that declaration.
       }
       break;
     case ifc_DeclSort_UsingDirective:
-      { /* an_ifc_DeclSort_UsingDirective idsud, *idsudp;
-        idsudp = get_DeclSort_UsingDirective(&idsud); */
-        unexpected_condition_str("DeclSort::UsingDirective "
-                                 "is not yet defined");
+      { an_ifc_DeclSort_UsingDirective idsud;
+        get_DeclSort_UsingDirective(&idsud);
+        /* FIXME: Currently unsupported. */
+        issue_unsupported_node_diag("DeclSort::UsingDirective",
+                                    &error_position);
       }
       break;
     case ifc_DeclSort_Friend:
-      { /* an_ifc_DeclSort_Friend idsf, *idsfp;
-        idsfp = get_DeclSort_Friend(&idsf); */
-        unexpected_condition_str("DeclSort::Friend is not yet handled");
+      { an_ifc_DeclSort_Friend idsf;
+        get_DeclSort_Friend(&idsf);
+        /* FIXME: Currently unsupported. */
+        issue_unsupported_node_diag("DeclSort::Friend", &error_position);
       }
       break;
     case ifc_DeclSort_Expansion:
@@ -4383,16 +5060,18 @@ Given a declaration, return the name associated with that declaration.
       }
       break;
     case ifc_DeclSort_DeductionGuide:
-      { /* an_ifc_DeclSort_DeductionGuide idsdg, *idsdgp;
-        idsdgp = get_DeclSort_DeductionGuide(&idsdg); */
-        unexpected_condition_str("DeclSort::DeductionGuide "
-                                 "is not yet defined");
+      { an_ifc_DeclSort_DeductionGuide idsdg;
+        get_DeclSort_DeductionGuide(&idsdg);
+        /* FIXME: Currently unsupported. */
+        issue_unsupported_node_diag("DeclSort::DeductionGuide",
+                                    &error_position);
       }
       break;
     case ifc_DeclSort_Barren:
-      { /* an_ifc_DeclSort_Barren idsb, *idsbp;
-        idsbp = get_DeclSort_Barren(&idsb); */
-        unexpected_condition_str("DeclSort::Barren is not yet defined");
+      { an_ifc_DeclSort_Barren idsb;
+        get_DeclSort_Barren(&idsb);
+        /* FIXME: Currently unsupported. */
+        issue_unsupported_node_diag("DeclSort::Barren", &error_position);
       }
       break;
     case ifc_DeclSort_Tuple:
@@ -4407,9 +5086,10 @@ Given a declaration, return the name associated with that declaration.
       }
       break;
     case ifc_DeclSort_SyntaxTree:
-      { /* an_ifc_DeclSort_SyntaxTree idsst, *idsstp;
-        idsstp = get_DeclSort_SyntaxTree(&idsst); */
-        unexpected_condition_str("DeclSort::SyntaxTree is not yet defined");
+      { an_ifc_DeclSort_SyntaxTree idsst;
+        get_DeclSort_SyntaxTree(&idsst);
+        /* FIXME: Currently unsupported. */
+        issue_unsupported_node_diag("DeclSort::SyntaxTree", &error_position);
       }
       break;
     case ifc_DeclSort_Intrinsic:
@@ -4687,12 +5367,33 @@ FIXME: what other expressions can we get here?
       }
       break;
     case ifc_ExprSort_ArrayValue:
-      unexpected_condition_str("Constant from ExprSort::ArrayValue "
-                               "not yet implemented");
+      { an_ifc_ExprSort_ArrayValue iesav;
+        an_error_severity          saved_sev = unhandled_ifc_node_severity;
+        get_ExprSort_ArrayValue(&iesav);
+        /* FIXME: Currently unsupported. */
+        /* Because we're allocating an error constant, we need to issue an
+           error, otherwise this may get to lowering. */
+        unhandled_ifc_node_severity = es_discretionary_error;
+        issue_unsupported_node_diag("ExprSort::ArrayValue", &error_position);
+        cp = alloc_error_constant();
+        expect_error();
+        unhandled_ifc_node_severity = saved_sev;
+      }
       break;
     case ifc_ExprSort_ProductTypeValue:
-      unexpected_condition_str("Constant from ExprSort::ProductTypeValue "
-                               "not yet implemented");
+      { an_ifc_ExprSort_ProductTypeValue iesptv;
+        an_error_severity                saved_sev=unhandled_ifc_node_severity;
+        get_ExprSort_ProductTypeValue(&iesptv);
+        /* FIXME: Currently unsupported. */
+        /* Because we're allocating an error constant, we need to issue an
+           error, otherwise this may get to lowering. */
+        unhandled_ifc_node_severity = es_discretionary_error;
+        issue_unsupported_node_diag("ExprSort::ProductTypeValue",
+                                    &error_position);
+        cp = alloc_error_constant();
+        expect_error();
+        unhandled_ifc_node_severity = saved_sev;
+      }
       break;
     default:
       unexpected_condition();
@@ -4746,6 +5447,7 @@ Add tok to cache.  pos is the position of the token.
   if (tok != tok_error) {
     assign_curr_token_sequence_number();
     seq = curr_token_sequence_number;
+    last_token_sequence_number_of_token = seq;
   }  /* if */
   ctp = build_cached_token(tok, seq, pos);
   if (cache->first_token == NULL) {
@@ -5095,14 +5797,16 @@ Sentence containing punctuator.
       cache_token(cache, tok_template, &pos);
       break;
     case ifc_SourcePunctuator_MsvcDefaultArgumentStart:
-      unexpected_condition_str("SourcePunctuator::MsvcDefaultArgumentStart "
-                               "not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SourcePunctuator::MsvcDefaultArgumentStart",
+                                  &error_position);
       break;
     case ifc_SourcePunctuator_MsvcAlignasEdictStart:
       break;
     case ifc_SourcePunctuator_MsvcDefaultInitStart:
-      unexpected_condition_str("SourcePunctuator::MsvcDefaultInitStart "
-                               "not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SourcePunctuator::MsvcDefaultInitStart",
+                                  &error_position);
       break;
     default_is_unexpected_str("Unknown SourcePunctuator");
   }  /* switch */
@@ -5527,7 +6231,8 @@ Sentence containing keyword.
       cache_token(cache, tok_operator, &pos);
       break;
     case ifc_SourceKeyword_Pragma:
-      unexpected_condition_str("SourceKeyword::Pragma is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SourceKeyword::Pragma", &error_position);
       break;
     case ifc_SourceKeyword_Private:
       cache_token(cache, tok_private, &pos);
@@ -5653,7 +6358,8 @@ Sentence containing keyword.
       cache_token(cache, tok_declspec, &pos);
       break;
     case ifc_SourceKeyword_MsvcEabi:
-      unexpected_condition_str("SourceKeyword::MsvcEabi is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SourceKeyword::MsvcEabi", &error_position);
       break;
     case ifc_SourceKeyword_MsvcEvent:
       cache_token(cache, tok_event, &pos);
@@ -5671,7 +6377,8 @@ Sentence containing keyword.
       cache_token(cache, tok_forceinline, &pos);
       break;
     case ifc_SourceKeyword_MsvcHook:
-      unexpected_condition_str("SourceKeyword::MsvcHook is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SourceKeyword::MsvcHook", &error_position);
       break;
     case ifc_SourceKeyword_MsvcIdentifier:
       cache_token(cache, tok_microsoft_identifier, &pos);
@@ -5706,19 +6413,22 @@ Sentence containing keyword.
       cache_token(cache, tok_leave, &pos);
       break;
     case ifc_SourceKeyword_MsvcMultipleInheritance:
-      unexpected_condition_str("SourceKeyword::MsvcMultipleInheritance "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SourceKeyword::MsvcMultipleInheritance",
+                                  &error_position);
       break;
     case ifc_SourceKeyword_MsvcNullptr:
       cache_token(cache, tok_nullptr, &pos);
       break;
     case ifc_SourceKeyword_MsvcNovtordisp:
-      unexpected_condition_str("SourceKeyword::MsvcNovtordisp "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SourceKeyword::MsvcNovtordisp",
+                                  &error_position);
       break;
     case ifc_SourceKeyword_MsvcPragma:
-      unexpected_condition_str("SourceKeyword::MsvcPragma "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SourceKeyword::MsvcPragma",
+                                  &error_position);
       break;
     case ifc_SourceKeyword_MsvcPtr32:
       cache_token(cache, tok_microsoft_ptr32, &pos);
@@ -5730,8 +6440,9 @@ Sentence containing keyword.
       cache_token(cache, tok_restrict, &pos);
       break;
     case ifc_SourceKeyword_MsvcSingleInheritance:
-      unexpected_condition_str("SourceKeyword::MsvcSingleInheritance "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SourceKeyword::MsvcSingleInheritance",
+                                  &error_position);
       break;
     case ifc_SourceKeyword_MsvcSptr:
       cache_token(cache, tok_microsoft_sptr, &pos);
@@ -5758,15 +6469,17 @@ Sentence containing keyword.
       cache_token(cache, tok_unaligned, &pos);
       break;
     case ifc_SourceKeyword_MsvcUnhook:
-      unexpected_condition_str("SourceKeyword::MsvcUnhook "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SourceKeyword::MsvcUnhook",
+                                  &error_position);
       break;
     case ifc_SourceKeyword_MsvcVectorcall:
       cache_token(cache, tok_vectorcall, &pos);
       break;
     case ifc_SourceKeyword_MsvcVirtualInheritance:
-      unexpected_condition_str("SourceKeyword::MsvcVirtualInheritance "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SourceKeyword::MsvcVirtualInheritance",
+                                  &error_position);
       break;
     case ifc_SourceKeyword_MsvcW64:
       cache_token(cache, tok_microsoft_w64, &pos);
@@ -5793,9 +6506,10 @@ Sentence containing keyword.
       cache_token(cache, tok_is_trivially_constructible, &pos);
       break;
     case ifc_SourceKeyword_MsvcIsTriviallyCopyConstructible:
-      unexpected_condition_str(
-                             "SourceKeyword::MsvcIsTriviallyCopyConstructible "
-                             "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag(
+                             "SourceKeyword::MsvcIsTriviallyCopyConstructible",
+                             &error_position);
       break;
     case ifc_SourceKeyword_MsvcIsTriviallyCopyAssignable:
       cache_token(cache, tok_is_trivially_copy_assignable, &pos);
@@ -5810,12 +6524,15 @@ Sentence containing keyword.
       cache_token(cache, tok_is_nothrow_constructible, &pos);
       break;
     case ifc_SourceKeyword_MsvcIsNothrowCopyConstructible:
-      unexpected_condition_str("SourceKeyword::MsvcIsNothrowCopyConstructible "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag(
+                               "SourceKeyword::MsvcIsNothrowCopyConstructible",
+                               &error_position);
       break;
     case ifc_SourceKeyword_MsvcIsNothrowCopyAssignable:
-      unexpected_condition_str("SourceKeyword::MsvcIsNothrowCopyAssignable "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SourceKeyword::MsvcIsNothrowCopyAssignable",
+                                  &error_position);
       break;
     case ifc_SourceKeyword_MsvcIsPod:
       cache_token(cache, tok_is_pod, &pos);
@@ -5842,20 +6559,24 @@ Sentence containing keyword.
       cache_token(cache, tok_is_literal_type, &pos);
       break;
     case ifc_SourceKeyword_MsvcIsTriviallyMoveConstructible:
-      unexpected_condition_str(
-                             "SourceKeyword::MsvcIsTriviallyMoveConstructible "
-                             "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag(
+                             "SourceKeyword::MsvcIsTriviallyMoveConstructible",
+                             &error_position);
       break;
     case ifc_SourceKeyword_MsvcHasTrivialMoveAssign:
       cache_token(cache, tok_has_trivial_move_assign, &pos);
       break;
     case ifc_SourceKeyword_MsvcIsTriviallyMoveAssignable:
-      unexpected_condition_str("SourceKeyword::MsvcIsTriviallyMoveAssignable "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag(
+                                "SourceKeyword::MsvcIsTriviallyMoveAssignable",
+                                &error_position);
       break;
     case ifc_SourceKeyword_MsvcIsNothrowMoveAssignable:
-      unexpected_condition_str("SourceKeyword::MsvcIsNothrowMoveAssignable "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SourceKeyword::MsvcIsNothrowMoveAssignable",
+                                  &error_position);
       break;
     case ifc_SourceKeyword_MsvcIsConstructible:
       cache_token(cache, tok_is_constructible, &pos);
@@ -5897,23 +6618,28 @@ Sentence containing keyword.
       cache_token(cache, tok_builtin_bit_cast, &pos);
       break;
     case ifc_SourceKeyword_MsvcBuiltinIsLayoutCompatible:
-      unexpected_condition_str("SourceKeyword::MsvcBuiltinIsLayoutCompatible "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag(
+                                "SourceKeyword::MsvcBuiltinIsLayoutCompatible",
+                                &error_position);
       break;
     case ifc_SourceKeyword_MsvcBuiltinIsPointerInterconvertibleBaseOf:
-      unexpected_condition_str(
-                   "SourceKeyword::MsvcBuiltinIsPointerInterconvertibleBaseOf "
-                   "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag(
+                   "SourceKeyword::MsvcBuiltinIsPointerInterconvertibleBaseOf",
+                   &error_position);
       break;
     case ifc_SourceKeyword_MsvcBuiltinIsPointerInterconvertibleWithClass:
-      unexpected_condition_str(
-                "SourceKeyword::MsvcBuiltinIsPointerInterconvertibleWithClass "
-                "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag(
+                "SourceKeyword::MsvcBuiltinIsPointerInterconvertibleWithClass",
+                &error_position);
       break;
     case ifc_SourceKeyword_MsvcBuiltinIsCorrespondingMember:
-      unexpected_condition_str(
-                             "SourceKeyword::MsvcBuiltinIsCorrespondingMember "
-                             "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag(
+                             "SourceKeyword::MsvcBuiltinIsCorrespondingMember",
+                             &error_position);
       break;
     case ifc_SourceKeyword_MsvcIsRefClass:
       cache_token(cache, tok_is_ref_class, &pos);
@@ -6161,13 +6887,22 @@ position to use for the traits.
     }  /* if */
   }  /* if */
   if (traits & ifc_FunctionTraits_HiddenFriend) {
-    unexpected_condition_str("Hidden friends are not yet supported");
+    /* FIXME: Currently unsupported. */
+    pos_st_diagnostic(unhandled_ifc_node_severity,
+                      ec_module_file_contains_unsupported_constructs,
+                      &error_position, "FunctionTraits::HiddenFriend");
   }  /* if */
   if (traits & ifc_FunctionTraits_Constrained) {
-    unexpected_condition_str("Contrained functions are not yet supported");
+    /* FIXME: Currently unsupported. */
+    pos_st_diagnostic(unhandled_ifc_node_severity,
+                      ec_module_file_contains_unsupported_constructs,
+                      &error_position, "FunctionTraits::Constrained");
   }  /* if */
   if (traits & ifc_FunctionTraits_Vendor) {
     /* FIXME: Handle MSVC-specific traits. */
+    pos_st_diagnostic(unhandled_ifc_node_severity,
+                      ec_module_file_contains_unsupported_constructs,
+                      &error_position, "FunctionTraits::Vendor");
   }  /* if */
 }  /* cache_func_traits */
 
@@ -6222,7 +6957,9 @@ the position of the calling convention.
       cache_token(cache, tok_vectorcall, pos);
       break;
     case ifc_CallingConvention_Eabi:
-      unexpected_condition_str("Eabi calling convention is not yet supported");
+      pos_st_diagnostic(es_discretionary_error,
+                        ec_ifc_no_corresponding_calling_conv,
+                        &error_position, "CallingConvention::Eabi");
       break;
     default_is_unexpected_str("Unexpected CallingConvention");
   }  /* switch */
@@ -6252,8 +6989,8 @@ cache.  pos is the position of the exception specification.
       cache_sentence(cache, eh_spec->words);
       break;
     case ifc_NoexceptSort_Unenforced:
-      unexpected_condition_str("NoexceptSort::Unenforced "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("NoexceptSort::Unenforced", &error_position);
       break;
     case ifc_NoexceptSort_Inferred:
       /* Unreachable, but place here to have all enums covered. */
@@ -6334,7 +7071,8 @@ location of the entity referring to the type.
   read_partition_at_index(type);
   switch (tag) {
     case ifc_TypeSort_VendorExtension:
-      unexpected_condition();
+      issue_unsupported_node_diag("TypeSort::VendorExtension",
+                                  &error_position);
       break;
     case ifc_TypeSort_Fundamental:
       { an_ifc_TypeSort_Fundamental itsf, *itsfp;
@@ -6426,8 +7164,9 @@ location of the entity referring to the type.
             cache_token(cache, tok_ellipsis, &pos);
             break;
           case ifc_TypeBasis_SegmentType:
-            unexpected_condition_str("TypeBasis::SegmentType "
-                                     "is not yet handled");
+            /* FIXME: Currently unsupported. */
+            issue_unsupported_node_diag("TypeBasis::SegmentType",
+                                        &error_position);
             break;
           case ifc_TypeBasis_Class:
             check_assertion(itsfp->precision == ifc_TypePrecision_Default);
@@ -6458,13 +7197,16 @@ location of the entity referring to the type.
             cache_token(cache, tok_interface, &pos);
             break;
           case ifc_TypeBasis_Function:
-            unexpected_condition_str("TypeBasis::Function is not yet handled");
+            /* FIXME: Currently unsupported. */
+            issue_unsupported_node_diag("TypeBasis::Function",
+                                        &error_position);
             break;
           case ifc_TypeBasis_Empty:
             break;
           case ifc_TypeBasis_VariableTemplate:
-            unexpected_condition_str("Cannot cache a "
-                                     "TypeBasis::VariableTemplate");
+            /* FIXME: Currently unsupported. */
+            issue_unsupported_node_diag("TypeBasis::VariableTemplate",
+                                        &error_position);
             break;
           case ifc_TypeBasis_Auto:
             check_assertion(itsfp->precision == ifc_TypePrecision_Default);
@@ -6499,7 +7241,8 @@ location of the entity referring to the type.
       }
       break;
     case ifc_TypeSort_Expansion:
-      unexpected_condition_str("TypeSort::Expansion is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("TypeSort::Expansion", &error_position);
       break;
     case ifc_TypeSort_Pointer:
       { an_ifc_TypeSort_Pointer itsp, *itspp;
@@ -6570,7 +7313,8 @@ location of the entity referring to the type.
       }
       break;
     case ifc_TypeSort_Method:
-      unexpected_condition_str("TypeSort::Method is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("TypeSort::Method", &error_position);
       break;
     case ifc_TypeSort_Array:
       { an_ifc_TypeSort_Array itsa, *itsap;
@@ -6659,13 +7403,16 @@ location of the entity referring to the type.
       }
       break;
     case ifc_TypeSort_Forall:
-      unexpected_condition_str("TypeSort::Forall is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("TypeSort::Forall", &error_position);
       break;
     case ifc_TypeSort_Unaligned:
-      unexpected_condition_str("TypeSort::Unaligned is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("TypeSort::Unaligned", &error_position);
       break;
     case ifc_TypeSort_SyntaxTree:
-      unexpected_condition_str("TypeSort::SyntaxTree is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("TypeSort::SyntaxTree", &error_position);
       break;
     case ifc_TypeSort_Last:
       unexpected_condition();
@@ -6715,8 +7462,8 @@ is the location of the chart.
                      make_decl_index(ifc_DeclSort_Temploid,
                                      icsmp->start + idx));
         }  /* for */
+        issue_unsupported_node_diag("ChartSort::Multilevel", &error_position);
       }
-      unexpected_condition_str("ChartSort::Multilevel is not yet handled");
       break;
     case ifc_ChartSort_Last:
       unexpected_condition();
@@ -6779,27 +7526,30 @@ the location of the operator.
       unexpected_condition();
       break;
     case ifc_NiladicOperator_Phantom:
-      unexpected_condition_str("NiladicOperator::Phantom"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("NiladicOperator::Phantom", &error_position);
       break;
     case ifc_NiladicOperator_Constant:
-      unexpected_condition_str("NiladicOperator::Constant"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("NiladicOperator::Constant",
+                                  &error_position);
       break;
     case ifc_NiladicOperator_Nil:
-      unexpected_condition_str("NiladicOperator::Nil"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("NiladicOperator::Nil", &error_position);
       break;
     case ifc_NiladicOperator_Msvc:
       unexpected_condition();
       break;
     case ifc_NiladicOperator_MsvcConstantObject:
-      unexpected_condition_str("NiladicOperator::MsvcConstantObject"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("NiladicOperator::MsvcConstantObject",
+                                  &error_position);
       break;
     case ifc_NiladicOperator_MsvcLambda:
-      unexpected_condition_str("NiladicOperator::MsvcLambda"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("NiladicOperator::MsvcLambda",
+                                  &error_position);
       break;
     default_is_unexpected_str("Unexpected NiladicOperator");
   }  /* switch */
@@ -6852,24 +7602,25 @@ the location of the operator.
       cache_token(cache, tok_minus_minus, &pos);
       break;
     case ifc_MonadicOperator_Truncate:
-      unexpected_condition_str("MonadicOperator::Truncate"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("MonadicOperator::Truncate",
+                                  &error_position);
       break;
     case ifc_MonadicOperator_Ceil:
-      unexpected_condition_str("MonadicOperator::Ceil"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("MonadicOperator::Ceil", &error_position);
       break;
     case ifc_MonadicOperator_Floor:
-      unexpected_condition_str("MonadicOperator::Floor"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("MonadicOperator::Floor", &error_position);
       break;
     case ifc_MonadicOperator_Paren:
-      unexpected_condition_str("MonadicOperator::Paren"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("MonadicOperator::Paren", &error_position);
       break;
     case ifc_MonadicOperator_Brace:
-      unexpected_condition_str("MonadicOperator::Brace"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("MonadicOperator::Brace", &error_position);
       break;
     case ifc_MonadicOperator_Alignas:
       cache_token(cache, tok_alignas, &pos);
@@ -6881,8 +7632,9 @@ the location of the operator.
       cache_token(cache, tok_sizeof, &pos);
       break;
     case ifc_MonadicOperator_Cardinality:
-      unexpected_condition_str("MonadicOperator::Cardinality"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("MonadicOperator::Cardinality",
+                                  &error_position);
       break;
     case ifc_MonadicOperator_Typeid:
       cache_token(cache, tok_typeid, &pos);
@@ -6912,24 +7664,29 @@ the location of the operator.
       cache_token(cache, tok_delete, &pos);
       break;
     case ifc_MonadicOperator_DeleteArray:
-      unexpected_condition_str("MonadicOperator::DeleteArray"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("MonadicOperator::DeleteArray",
+                                  &error_position);
       break;
     case ifc_MonadicOperator_Expand:
-      unexpected_condition_str("MonadicOperator::Expand"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("MonadicOperator::Expand",
+                                  &error_position);
       break;
     case ifc_MonadicOperator_Read:
-      unexpected_condition_str("MonadicOperator::Read"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("MonadicOperator::Read",
+                                  &error_position);
       break;
     case ifc_MonadicOperator_Materialize:
-      unexpected_condition_str("MonadicOperator::Materialize"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("MonadicOperator::Materialize",
+                                  &error_position);
       break;
     case ifc_MonadicOperator_PseudoDtorCall:
-      unexpected_condition_str("MonadicOperator::PseudoDtorCall"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("MonadicOperator::PseudoDtorCall",
+                                  &error_position);
       break;
     case ifc_MonadicOperator_Msvc:
       unexpected_condition();
@@ -6959,9 +7716,10 @@ the location of the operator.
       cache_token(cache, tok_is_empty, &pos);
       break;
     case ifc_MonadicOperator_MsvcIsTriviallyCopyConstructible:
-      unexpected_condition_str(
-                            "MonadicOperator::MsvcIsTriviallyCopyConstructible"
-                            " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag(
+                           "MonadicOperator::MsvcIsTriviallyCopyConstructible",
+                           &error_position);
       break;
     case ifc_MonadicOperator_MsvcIsTriviallyCopyAssignable:
       cache_token(cache, tok_is_trivially_copy_assignable, &pos);
@@ -6973,13 +7731,16 @@ the location of the operator.
       cache_token(cache, tok_has_virtual_destructor, &pos);
       break;
     case ifc_MonadicOperator_MsvcIsNothrowCopyConstructible:
-      unexpected_condition_str(
-                              "MonadicOperator::MsvcIsNothrowCopyConstructible"
-                              " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag(
+                             "MonadicOperator::MsvcIsNothrowCopyConstructible",
+                             &error_position);
       break;
     case ifc_MonadicOperator_MsvcIsNothrowCopyAssignable:
-      unexpected_condition_str("MonadicOperator::MsvcIsNothrowCopyAssignable"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag(
+                                "MonadicOperator::MsvcIsNothrowCopyAssignable",
+                                &error_position);
       break;
     case ifc_MonadicOperator_MsvcIsPod:
       cache_token(cache, tok_is_pod, &pos);
@@ -7000,20 +7761,25 @@ the location of the operator.
       cache_token(cache, tok_is_literal_type, &pos);
       break;
     case ifc_MonadicOperator_MsvcIsTriviallyMoveConstructible:
-      unexpected_condition_str(
-                            "MonadicOperator::MsvcIsTriviallyMoveConstructible"
-                            " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag(
+                           "MonadicOperator::MsvcIsTriviallyMoveConstructible",
+                           &error_position);
       break;
     case ifc_MonadicOperator_MsvcHasTrivialMoveAssign:
       cache_token(cache, tok_has_trivial_move_assign, &pos);
       break;
     case ifc_MonadicOperator_MsvcIsTriviallyMoveAssignable:
-      unexpected_condition_str("MonadicOperator::MsvcIsTriviallyMoveAssignable"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag(
+                              "MonadicOperator::MsvcIsTriviallyMoveAssignable",
+                              &error_position);
       break;
     case ifc_MonadicOperator_MsvcIsNothrowMoveAssignable:
-      unexpected_condition_str("MonadicOperator::MsvcIsNothrowMoveAssignable"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag(
+                                "MonadicOperator::MsvcIsNothrowMoveAssignable",
+                                &error_position);
       break;
     case ifc_MonadicOperator_MsvcUnderlyingType:
       cache_token(cache, tok_underlying_type, &pos);
@@ -7067,12 +7833,14 @@ the location of the operator.
       cache_token(cache, tok_has_user_destructor, &pos);
       break;
     case ifc_MonadicOperator_MsvcConfusion:
-      unexpected_condition_str("MonadicOperator::MsvcConfusion"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("MonadicOperator::MsvcConfusion",
+                                  &error_position);
       break;
     case ifc_MonadicOperator_MsvcConfusedExpand:
-      unexpected_condition_str("MonadicOperator::MsvcConfusedExpand"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("MonadicOperator::MsvcConfusedExpand",
+                                  &error_position);
       break;
     default_is_unexpected_str("Unexpected MonadicOperator");
   }  /* switch */
@@ -7203,72 +7971,76 @@ the location of the operator.
       cache_token(cache, tok_arrow_star, &pos);
       break;
     case ifc_DyadicOperator_Curry:
-      unexpected_condition_str("DyadicOperator::Curry"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::Curry", &error_position);
       break;
     case ifc_DyadicOperator_Apply:
-      unexpected_condition_str("DyadicOperator::Apply"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::Apply", &error_position);
       break;
     case ifc_DyadicOperator_Index:
-      unexpected_condition_str("DyadicOperator::Index"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::Index", &error_position);
       break;
     case ifc_DyadicOperator_DefaultAt:
-      unexpected_condition_str("DyadicOperator::DefaultAt"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::DefaultAt",
+                                  &error_position);
       break;
     case ifc_DyadicOperator_New:
-      unexpected_condition_str("DyadicOperator::New"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::New", &error_position);
       break;
     case ifc_DyadicOperator_NewArray:
-      unexpected_condition_str("DyadicOperator::NewArray"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::NewArray", &error_position);
       break;
     case ifc_DyadicOperator_Destruct:
-      unexpected_condition_str("DyadicOperator::Destruct"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::Destruct", &error_position);
       break;
     case ifc_DyadicOperator_DestructAt:
-      unexpected_condition_str("DyadicOperator::DestructAt"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::DestructAt",
+                                  &error_position);
       break;
     case ifc_DyadicOperator_Cleanup:
-      unexpected_condition_str("DyadicOperator::Cleanup"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::Cleanup", &error_position);
       break;
     case ifc_DyadicOperator_Qualification:
-      unexpected_condition_str("DyadicOperator::Qualification"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::Qualification",
+                                  &error_position);
       break;
     case ifc_DyadicOperator_Promote:
-      unexpected_condition_str("DyadicOperator::Promote"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::Promote", &error_position);
       break;
     case ifc_DyadicOperator_Demote:
-      unexpected_condition_str("DyadicOperator::Demote"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::Demote", &error_position);
       break;
     case ifc_DyadicOperator_Coerce:
-      unexpected_condition_str("DyadicOperator::Coerce"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::Coerce", &error_position);
       break;
     case ifc_DyadicOperator_Rewrite:
-      unexpected_condition_str("DyadicOperator::Rewrite"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::Rewrite", &error_position);
       break;
     case ifc_DyadicOperator_Bless:
-      unexpected_condition_str("DyadicOperator::Bless"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::Bless", &error_position);
       break;
     case ifc_DyadicOperator_Cast:
-      unexpected_condition_str("DyadicOperator::Cast"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::Cast", &error_position);
       break;
     case ifc_DyadicOperator_ExplicitConversion:
-      unexpected_condition_str("DyadicOperator::ExplicitConversion"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::ExplicitConversion",
+                                  &error_position);
       break;
     case ifc_DyadicOperator_ReinterpretCast:
       cache_token(cache, tok_reinterpret_cast, &pos);
@@ -7283,63 +8055,73 @@ the location of the operator.
       cache_token(cache, tok_dynamic_cast, &pos);
       break;
     case ifc_DyadicOperator_Narrow:
-      unexpected_condition_str("DyadicOperator::Narrow"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::Narrow", &error_position);
       break;
     case ifc_DyadicOperator_Widen:
-      unexpected_condition_str("DyadicOperator::Widen"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::Widen", &error_position);
       break;
     case ifc_DyadicOperator_Pretend:
-      unexpected_condition_str("DyadicOperator::Pretend"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::Pretend", &error_position);
       break;
     case ifc_DyadicOperator_Closure:
-      unexpected_condition_str("DyadicOperator::Closure"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::Closure", &error_position);
       break;
     case ifc_DyadicOperator_ZeroInitialize:
-      unexpected_condition_str("DyadicOperator::ZeroInitialize"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::ZeroInitialize",
+                                  &error_position);
       break;
     case ifc_DyadicOperator_ClearStorage:
-      unexpected_condition_str("DyadicOperator::ClearStorage"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::ClearStorage",
+                                  &error_position);
       break;
     case ifc_DyadicOperator_Msvc:
       unexpected_condition();
       break;
     case ifc_DyadicOperator_MsvcTryCast:
-      unexpected_condition_str("DyadicOperator::MsvcTryCast"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::MsvcTryCast",
+                                  &error_position);
       break;
     case ifc_DyadicOperator_MsvcCurry:
-      unexpected_condition_str("DyadicOperator::MsvcCurry"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::MsvcCurry",
+                                  &error_position);
       break;
     case ifc_DyadicOperator_MsvcVirtualCurry:
-      unexpected_condition_str("DyadicOperator::MsvcVirtualCurry"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::MsvcVirtualCurry",
+                                  &error_position);
       break;
     case ifc_DyadicOperator_MsvcAlign:
-      unexpected_condition_str("DyadicOperator::MsvcAlign"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::MsvcAlign",
+                                  &error_position);
       break;
     case ifc_DyadicOperator_MsvcBitSpan:
-      unexpected_condition_str("DyadicOperator::MsvcBitSpan"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::MsvcBitSpan",
+                                  &error_position);
       break;
     case ifc_DyadicOperator_MsvcBitfieldAccess:
-      unexpected_condition_str("DyadicOperator::MsvcBitfieldAccess"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::MsvcBitfieldAccess",
+                                  &error_position);
       break;
     case ifc_DyadicOperator_MsvcObscureBitfieldAccess:
-      unexpected_condition_str("DyadicOperator::MsvcObscureBitfieldAccess"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::MsvcObscureBitfieldAccess",
+                                  &error_position);
       break;
     case ifc_DyadicOperator_MsvcInitialize:
-      unexpected_condition_str("DyadicOperator::MsvcInitialize"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::MsvcInitialize",
+                                  &error_position);
       break;
     case ifc_DyadicOperator_MsvcBuiltinOffsetOf:
       cache_token(cache, tok_builtin_offsetof, &pos);
@@ -7366,27 +8148,33 @@ the location of the operator.
       cache_token(cache, tok_builtin_bit_cast, &pos);
       break;
     case ifc_DyadicOperator_MsvcBuiltinIsLayoutCompatible:
-      unexpected_condition_str("DyadicOperator::MsvcBuiltinIsLayoutCompatible"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag(
+                               "DyadicOperator::MsvcBuiltinIsLayoutCompatible",
+                               &error_position);
       break;
     case ifc_DyadicOperator_MsvcBuiltinIsPointerInterconvertibleBaseOf:
-      unexpected_condition_str(
-                   "DyadicOperator::MsvcBuiltinIsPointerInterconvertibleBaseOf"
-                   " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag(
+                  "DyadicOperator::MsvcBuiltinIsPointerInterconvertibleBaseOf",
+                  &error_position);
       break;
     case ifc_DyadicOperator_MsvcBuiltinIsPointerInterconvertibleWithClass:
-      unexpected_condition_str(
-                "DyadicOperator::MsvcBuiltinIsPointerInterconvertibleWithClass"
-                " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag(
+               "DyadicOperator::MsvcBuiltinIsPointerInterconvertibleWithClass",
+               &error_position);
       break;
     case ifc_DyadicOperator_MsvcBuiltinIsCorrespondingMember:
-      unexpected_condition_str(
-                             "DyadicOperator::MsvcBuiltinIsCorrespondingMember"
-                             " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag(
+                            "DyadicOperator::MsvcBuiltinIsCorrespondingMember",
+                            &error_position);
       break;
     case ifc_DyadicOperator_MsvcIntrinsic:
-      unexpected_condition_str("DyadicOperator::MsvcIntrinsic"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DyadicOperator::MsvcIntrinsic",
+                                  &error_position);
       break;
     default_is_unexpected_str("Unexpected DyadicOperator");
   }  /* switch */
@@ -7411,16 +8199,18 @@ the location of the operator.
       unexpected_condition();
       break;
     case ifc_TriadicOperator_Choice:
-      unexpected_condition_str("TriadicOperator::Choice"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("TriadicOperator::Choice", &error_position);
       break;
     case ifc_TriadicOperator_ConstructAt:
-      unexpected_condition_str("TriadicOperator::ConstructAt"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("TriadicOperator::ConstructAt",
+                                  &error_position);
       break;
     case ifc_TriadicOperator_Initialize:
-      unexpected_condition_str("TriadicOperator::Initialize"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("TriadicOperator::Initialize",
+                                  &error_position);
       break;
     case ifc_TriadicOperator_Msvc:
       unexpected_condition();
@@ -7448,20 +8238,24 @@ the location of the operator.
       unexpected_condition();
       break;
     case ifc_StorageOperator_AllocateSingle:
-      unexpected_condition_str("StorageOperator::AllocateSingle"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("StorageOperator::AllocateSingle",
+                                  &error_position);
       break;
     case ifc_StorageOperator_AllocateArray:
-      unexpected_condition_str("StorageOperator::AllocateArray"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("StorageOperator::AllocateArray",
+                                  &error_position);
       break;
     case ifc_StorageOperator_DeallocateSingle:
-      unexpected_condition_str("StorageOperator::DeallocateSingle"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("StorageOperator::DeallocateSingle",
+                                  &error_position);
       break;
     case ifc_StorageOperator_DeallocateArray:
-      unexpected_condition_str("StorageOperator::DeallocateArray"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("StorageOperator::DeallocateArray",
+                                  &error_position);
       break;
     case ifc_StorageOperator_Msvc:
       unexpected_condition();
@@ -7487,12 +8281,14 @@ the location of the operator.
       unexpected_condition();
       break;
     case ifc_VariadicOperator_Collection:
-      unexpected_condition_str("VariadicOperator::Collection"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("VariadicOperator::Collection",
+                                  &error_position);
       break;
     case ifc_VariadicOperator_Sequence:
-      unexpected_condition_str("VariadicOperator::Sequence"
-                               " is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("VariadicOperator::Sequence",
+                                  &error_position);
       break;
     case ifc_VariadicOperator_Msvc:
       unexpected_condition();
@@ -7741,7 +8537,8 @@ Add the tokens corresponding to the given declaration (decl) to cache.
   read_partition_at_index(decl);
   switch (tag) {
     case ifc_DeclSort_VendorExtension:
-      unexpected_condition();
+      issue_unsupported_node_diag("DeclSort::VendorExtension",
+                                  &error_position);
       break;
     case ifc_DeclSort_Enumerator:
       { an_ifc_DeclSort_Enumerator idse, *idsep;
@@ -7782,8 +8579,9 @@ Add the tokens corresponding to the given declaration (decl) to cache.
             cache_token(cache, tok_typename, &pos);
             break;
           case ifc_ParameterSort_Object:
-            unexpected_condition_str("ParameterSort::Object "
-                                     "is not yet handled");
+            /* FIXME: Currently unsupported. */
+            issue_unsupported_node_diag("ParameterSort::Object",
+                                        &error_position);
             break;
           case ifc_ParameterSort_NonType:
             cache_type(cache, idspp->type, &idspp->locus);
@@ -7804,8 +8602,9 @@ Add the tokens corresponding to the given declaration (decl) to cache.
           cache_expr(cache, idspp->initializer);
         }  /* if */
         if (idspp->constraint != 0) {
-          unexpected_condition_str("Parameters with constraints "
-                                   "are not yet supported");
+          /* FIXME: Currently unsupported. */
+          issue_unsupported_node_diag("DeclSort::Parameter::constraint",
+                                      &error_position);
         }  /* if */
       }
       break;
@@ -7907,6 +8706,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         an_ifc_TypeSort_Fundamental itsf, *itsfp;
         idsap = get_DeclSort_Alias(&idsa);
         check_assertion(type_tag(idsap->type) == ifc_TypeSort_Fundamental);
+        source_position_from_locus(&pos, &idsap->locus);
         read_partition_at_index(idsap->type);
         itsfp = get_TypeSort_Fundamental(&itsf);
         cache_access(cache, idsap->access, /*cache_colon=*/TRUE, &pos);
@@ -7923,7 +8723,8 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       }
       break;
     case ifc_DeclSort_Temploid:
-      unexpected_condition_str("DeclSort::Temploid is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DeclSort::Temploid", &error_position);
       break;
     case ifc_DeclSort_Template:
       { an_ifc_DeclSort_Template idst, *idstp;
@@ -7932,19 +8733,23 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       }
       break;
     case ifc_DeclSort_PartialSpecialization:
-      unexpected_condition_str("DeclSort::PartialSpecialization "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DeclSort::PartialSpecialization",
+                                  &error_position);
       break;
     case ifc_DeclSort_ExplicitSpecialization:
-      unexpected_condition_str("DeclSort::ExplicitSpecialization "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DeclSort::ExplicitSpecialization",
+                                  &error_position);
       break;
     case ifc_DeclSort_ExplicitInstantiation:
-      unexpected_condition_str("DeclSort::ExplicitInstantiation "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DeclSort::ExplicitInstantiation",
+                                  &error_position);
       break;
     case ifc_DeclSort_Concept:
-      unexpected_condition_str("DeclSort::Concept is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DeclSort::Concept", &error_position);
       break;
     case ifc_DeclSort_Function:
       { an_ifc_DeclSort_Function idsf, *idsfp;
@@ -8040,7 +8845,8 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       }
       break;
     case ifc_DeclSort_Reference:
-      unexpected_condition_str("DeclSort::Reference is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DeclSort::Reference", &error_position);
       break;
     case ifc_DeclSort_UsingDeclaration:
       { an_ifc_DeclSort_UsingDeclaration idsud, *idsudp;
@@ -8058,30 +8864,36 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       }
       break;
     case ifc_DeclSort_UsingDirective:
-      unexpected_condition_str("DeclSort::UsingDirective "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DeclSort::UsingDirective", &error_position);
       break;
     case ifc_DeclSort_Friend:
-      unexpected_condition_str("DeclSort::Friend is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DeclSort::Friend", &error_position);
       break;
     case ifc_DeclSort_Expansion:
-      unexpected_condition_str("DeclSort::Expansion is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DeclSort::Expansion", &error_position);
       break;
     case ifc_DeclSort_DeductionGuide:
-      unexpected_condition_str("DeclSort::DeductionGuide "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DeclSort::DeductionGuide", &error_position);
       break;
     case ifc_DeclSort_Barren:
-      unexpected_condition_str("DeclSort::Barren is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DeclSort::Barren", &error_position);
       break;
     case ifc_DeclSort_Tuple:
-      unexpected_condition_str("DeclSort::Tuple is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DeclSort::Tuple", &error_position);
       break;
     case ifc_DeclSort_SyntaxTree:
-      unexpected_condition_str("DeclSort::SyntaxTree is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DeclSort::SyntaxTree", &error_position);
       break;
     case ifc_DeclSort_Intrinsic:
-      unexpected_condition_str("DeclSort::Intrinsic is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DeclSort::Intrinsic", &error_position);
       break;
     case ifc_DeclSort_Property:
       { an_ifc_DeclSort_Property idsp, *idspp;
@@ -8108,7 +8920,8 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       }
       break;
     case ifc_DeclSort_OutputSegment:
-      unexpected_condition_str("DeclSort::OutputSegment is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("DeclSort::OutputSegment", &error_position);
       break;
     case ifc_DeclSort_Last:
       unexpected_condition();
@@ -8130,10 +8943,12 @@ Add the tokens corresponding to the given expression (expr) to cache.
   read_partition_at_index(expr);
   switch (tag) {
     case ifc_ExprSort_VendorExtension:
-      unexpected_condition();
+      issue_unsupported_node_diag("ExprSort::VendorExtension",
+                                  &error_position);
       break;
     case ifc_ExprSort_Empty:
-      unexpected_condition_str("ExprSort::Empty is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::Empty", &error_position);
       break;
     case ifc_ExprSort_Literal:
       { an_ifc_ExprSort_Literal iesl, *ieslp;
@@ -8151,7 +8966,8 @@ Add the tokens corresponding to the given expression (expr) to cache.
       }
       break;
     case ifc_ExprSort_Lambda:
-      unexpected_condition_str("ExprSort::Lambda is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::Lambda", &error_position);
       break;
     case ifc_ExprSort_Type:
       { an_ifc_ExprSort_Type iest, *iestp;
@@ -8186,17 +9002,21 @@ Add the tokens corresponding to the given expression (expr) to cache.
       }
       break;
     case ifc_ExprSort_UnqualifiedId:
-      unexpected_condition_str("ExprSort::UnqualifiedId is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::UnqualifiedId", &error_position);
       break;
     case ifc_ExprSort_SimpleIdentifier:
-      unexpected_condition_str("ExprSort::SimpleIdentifier "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::SimpleIdentifier",
+                                  &error_position);
       break;
     case ifc_ExprSort_Pointer:
-      unexpected_condition_str("ExprSort::Pointer is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::Pointer", &error_position);
       break;
     case ifc_ExprSort_QualifiedName:
-      unexpected_condition_str("ExprSort::QualifiedName is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::QualifiedName", &error_position);
       break;
     case ifc_ExprSort_Path:
       { an_ifc_ExprSort_Path iesp, *iespp;
@@ -8308,10 +9128,12 @@ Add the tokens corresponding to the given expression (expr) to cache.
       }
       break;
     case ifc_ExprSort_String:
-      unexpected_condition_str("ExprSort::String is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::String", &error_position);
       break;
     case ifc_ExprSort_Temporary:
-      unexpected_condition_str("ExprSort::Temporary is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::Temporary", &error_position);
       break;
     case ifc_ExprSort_Call:
       { an_ifc_ExprSort_Call iesc, *iescp;
@@ -8324,48 +9146,59 @@ Add the tokens corresponding to the given expression (expr) to cache.
       }
       break;
     case ifc_ExprSort_MemberInitializer:
-      unexpected_condition_str("ExprSort::MemberInitializer "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::MemberInitializer",
+                                  &error_position);
       break;
     case ifc_ExprSort_MemberAccess:
-      unexpected_condition_str("ExprSort::MemberAccess is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::MemberAccess", &error_position);
       break;
     case ifc_ExprSort_InheritancePath:
-      unexpected_condition_str("ExprSort::InheritancePath "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::InheritancePath",
+                                  &error_position);
       break;
     case ifc_ExprSort_InitializerList:
-      unexpected_condition_str("ExprSort::InitializerList "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::InitializerList",
+                                  &error_position);
       break;
     case ifc_ExprSort_Cast:
-      unexpected_condition_str("ExprSort::Cast is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::Cast", &error_position);
       break;
     case ifc_ExprSort_Condition:
-      unexpected_condition_str("ExprSort::Condition is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::Condition", &error_position);
       break;
     case ifc_ExprSort_ExpressionList:
-      unexpected_condition_str("ExprSort::ExpressionList "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::ExpressionList", &error_position);
       break;
     case ifc_ExprSort_SizeofType:
-      unexpected_condition_str("ExprSort::SizeofType is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::SizeofType", &error_position);
       break;
     case ifc_ExprSort_Alignof:
-      unexpected_condition_str("ExprSort::Alignof is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::Alignof", &error_position);
       break;
     case ifc_ExprSort_New:
-      unexpected_condition_str("ExprSort::New is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::New", &error_position);
       break;
     case ifc_ExprSort_Delete:
-      unexpected_condition_str("ExprSort::Delete is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::Delete", &error_position);
       break;
     case ifc_ExprSort_Typeid:
-      unexpected_condition_str("ExprSort::Typeid is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::Typeid", &error_position);
       break;
     case ifc_ExprSort_DestructorCall:
-      unexpected_condition_str("ExprSort::DestructorCall "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::DestructorCall", &error_position);
       break;
     case ifc_ExprSort_SyntaxTree:
       { an_ifc_ExprSort_SyntaxTree iesst, *iesstp;
@@ -8374,63 +9207,76 @@ Add the tokens corresponding to the given expression (expr) to cache.
       }
       break;
     case ifc_ExprSort_FunctionString:
-      unexpected_condition_str("ExprSort::FunctionString "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::FunctionString", &error_position);
       break;
     case ifc_ExprSort_CompoundString:
-      unexpected_condition_str("ExprSort::CompoundString "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::CompoundString", &error_position);
       break;
     case ifc_ExprSort_StringSequence:
-      unexpected_condition_str("ExprSort::StringSequence "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::StringSequence", &error_position);
       break;
     case ifc_ExprSort_Initializer:
-      unexpected_condition_str("ExprSort::Initializer is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::Initializer", &error_position);
       break;
     case ifc_ExprSort_Requires:
-      unexpected_condition_str("ExprSort::Requires is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::Requires", &error_position);
       break;
     case ifc_ExprSort_UnaryFold:
-      unexpected_condition_str("ExprSort::UnaryFold is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::UnaryFold", &error_position);
       break;
     case ifc_ExprSort_BinaryFold:
-      unexpected_condition_str("ExprSort::BinaryFold is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::BinaryFold", &error_position);
       break;
     case ifc_ExprSort_HierarchyConversion:
-      unexpected_condition_str("ExprSort::HierarchyConversion "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::HierarchyConversion",
+                                  &error_position);
       break;
     case ifc_ExprSort_ProductTypeValue:
-      unexpected_condition_str("ExprSort::ProductTypeValue "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::ProductTypeValue",
+                                  &error_position);
       break;
     case ifc_ExprSort_SumTypeValue:
-      unexpected_condition_str("ExprSort::SumTypeValue is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::SumTypeValue", &error_position);
       break;
     case ifc_ExprSort_SubobjectValue:
-      unexpected_condition_str("ExprSort::SubobjectValue "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::SubobjectValue", &error_position);
       break;
     case ifc_ExprSort_ArrayValue:
-      unexpected_condition_str("ExprSort::ArrayValue is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::ArrayValue", &error_position);
       break;
     case ifc_ExprSort_DynamicDispatch:
-      unexpected_condition_str("ExprSort::DynamicDispatch "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::DynamicDispatch",
+                                  &error_position);
       break;
     case ifc_ExprSort_VirtualFunctionConversion:
-      unexpected_condition_str("ExprSort::VirtualFunctionConversion "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::VirtualFunctionConversion",
+                                  &error_position);
       break;
     case ifc_ExprSort_Placeholder:
-      unexpected_condition_str("ExprSort::Placeholder is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::Placeholder", &error_position);
       break;
     case ifc_ExprSort_Expansion:
-      unexpected_condition_str("ExprSort::Expansion is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::Expansion", &error_position);
       break;
     case ifc_ExprSort_Generic:
-      unexpected_condition_str("ExprSort::Generic is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::Generic", &error_position);
       break;
     case ifc_ExprSort_Tuple:
       { an_ifc_ExprSort_Tuple iest, *iestp;
@@ -8448,36 +9294,45 @@ Add the tokens corresponding to the given expression (expr) to cache.
       }
       break;
     case ifc_ExprSort_Nullptr:
-      unexpected_condition_str("ExprSort::Nullptr is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::Nullptr", &error_position);
       break;
     case ifc_ExprSort_This:
-      unexpected_condition_str("ExprSort::This is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::This", &error_position);
       break;
     case ifc_ExprSort_TemplateReference:
-      unexpected_condition_str("ExprSort::TemplateReference "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::TemplateReference",
+                                  &error_position);
       break;
     case ifc_ExprSort_PushState:
-      unexpected_condition_str("ExprSort::PushState is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::PushState", &error_position);
       break;
     case ifc_ExprSort_TypeTraitIntrinsic:
-      unexpected_condition_str("ExprSort::TypeTraitIntrinsic "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::TypeTraitIntrinsic",
+                                  &error_position);
       break;
     case ifc_ExprSort_DesignatedInitializer:
-      unexpected_condition_str("ExprSort::DesignatedInitializer "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::DesignatedInitializer",
+                                  &error_position);
       break;
     case ifc_ExprSort_PackedTemplateArguments:
-      unexpected_condition_str("ExprSort::PackedTemplateArguments "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::PackedTemplateArguments",
+                                  &error_position);
       break;
     case ifc_ExprSort_Tokens:
-      unexpected_condition_str("ExprSort::Tokens is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::Tokens", &error_position);
       break;
     case ifc_ExprSort_AssignInitializer:
-      unexpected_condition_str("ExprSort::AssignInitializer "
-                               "is not yet supported");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::AssignInitializer",
+                                  &error_position);
       break;
     case ifc_ExprSort_Last:
       unexpected_condition();
@@ -8500,11 +9355,13 @@ Add the tokens corresponding to the given syntax tree to cache.
   read_partition_at_index(syntax);
   switch (tag) {
     case ifc_SyntaxSort_VendorExtension:
-      unexpected_condition();
+      issue_unsupported_node_diag("SyntaxSort::VendorExtension",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_SimpleTypeSpecifier:
-      unexpected_condition_str("SyntaxSort::SimpleTypeSpecifier "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::SimpleTypeSpecifier",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_DecltypeSpecifier:
       { an_ifc_SyntaxSort_DecltypeSpecifier issds, *issdsp;
@@ -8513,432 +9370,516 @@ Add the tokens corresponding to the given syntax tree to cache.
       }
       break;
     case ifc_SyntaxSort_PlaceholderTypeSpecifier:
-      unexpected_condition_str("SyntaxSort::PlaceholderTypeSpecifier "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::PlaceholderTypeSpecifier",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_TypeSpecifierSeq:
-      unexpected_condition_str("SyntaxSort::TypeSpecifierSeq "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::TypeSpecifierSeq",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_DeclSpecifierSeq:
-      unexpected_condition_str("SyntaxSort::DeclSpecifierSeq "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::DeclSpecifierSeq",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_VirtualSpecifierSeq:
-      unexpected_condition_str("SyntaxSort::VirtualSpecifierSeq "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::VirtualSpecifierSeq",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_NoexceptSpecification:
-      unexpected_condition_str("SyntaxSort::NoexceptSpecification "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::NoexceptSpecification",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_ExplicitSpecifier:
-      unexpected_condition_str("SyntaxSort::ExplicitSpecifier "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::ExplicitSpecifier",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_EnumSpecifier:
-      unexpected_condition_str("SyntaxSort::EnumSpecifier "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::EnumSpecifier",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_EnumeratorDefinition:
-      unexpected_condition_str("SyntaxSort::EnumeratorDefinition "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::EnumeratorDefinition",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_ClassSpecifier:
-      unexpected_condition_str("SyntaxSort::ClassSpecifier "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::ClassSpecifier",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_MemberSpecification:
-      unexpected_condition_str("SyntaxSort::MemberSpecification "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::MemberSpecification",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_MemberDeclaration:
-      unexpected_condition_str("SyntaxSort::MemberDeclaration "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::MemberDeclaration",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_MemberDeclarator:
-      unexpected_condition_str("SyntaxSort::MemberDeclarator "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::MemberDeclarator",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_AccessSpecifier:
-      unexpected_condition_str("SyntaxSort::AccessSpecifier "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::AccessSpecifier",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_BaseSpecifierList:
-      unexpected_condition_str("SyntaxSort::BaseSpecifierList "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::BaseSpecifierList",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_BaseSpecifier:
-      unexpected_condition_str("SyntaxSort::BaseSpecifier "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::BaseSpecifier",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_TypeId:
-      unexpected_condition_str("SyntaxSort::TypeId "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::TypeId", &error_position);
       break;
     case ifc_SyntaxSort_TrailingReturnType:
-      unexpected_condition_str("SyntaxSort::TrailingReturnType "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::TrailingReturnType",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_Declarator:
-      unexpected_condition_str("SyntaxSort::Declarator "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::Declarator", &error_position);
       break;
     case ifc_SyntaxSort_PointerDeclarator:
-      unexpected_condition_str("SyntaxSort::PointerDeclarator "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::PointerDeclarator",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_ArrayDeclarator:
-      unexpected_condition_str("SyntaxSort::ArrayDeclarator "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::ArrayDeclarator",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_FunctionDeclarator:
-      unexpected_condition_str("SyntaxSort::FunctionDeclarator "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::FunctionDeclarator",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_ArrayOrFunctionDeclarator:
-      unexpected_condition_str("SyntaxSort::ArrayOrFunctionDeclarator "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::ArrayOrFunctionDeclarator",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_ParameterDeclarator:
-      unexpected_condition_str("SyntaxSort::ParameterDeclarator "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::ParameterDeclarator",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_InitDeclarator:
-      unexpected_condition_str("SyntaxSort::InitDeclarator "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::InitDeclarator",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_NewDeclarator:
-      unexpected_condition_str("SyntaxSort::NewDeclarator "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::NewDeclarator",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_SimpleDeclaration:
-      unexpected_condition_str("SyntaxSort::SimpleDeclaration "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::SimpleDeclaration",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_ExceptionDeclaration:
-      unexpected_condition_str("SyntaxSort::ExceptionDeclaration "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::ExceptionDeclaration",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_ConditionDeclaration:
-      unexpected_condition_str("SyntaxSort::ConditionDeclaration "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::ConditionDeclaration",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_StaticAssertDeclaration:
-      unexpected_condition_str("SyntaxSort::StaticAssertDeclaration "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::StaticAssertDeclaration",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_AliasDeclaration:
-      unexpected_condition_str("SyntaxSort::AliasDeclaration "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::AliasDeclaration",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_ConceptDefinition:
-      unexpected_condition_str("SyntaxSort::ConceptDefinition "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::ConceptDefinition",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_CompoundStatement:
-      unexpected_condition_str("SyntaxSort::CompoundStatement "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::CompoundStatement",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_ReturnStatement:
-      unexpected_condition_str("SyntaxSort::ReturnStatement "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::ReturnStatement",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_IfStatement:
-      unexpected_condition_str("SyntaxSort::IfStatement "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::IfStatement", &error_position);
       break;
     case ifc_SyntaxSort_WhileStatement:
-      unexpected_condition_str("SyntaxSort::WhileStatement "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::WhileStatement",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_DoWhileStatement:
-      unexpected_condition_str("SyntaxSort::DoWhileStatement "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::DoWhileStatement",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_ForStatement:
-      unexpected_condition_str("SyntaxSort::ForStatement "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::ForStatement", &error_position);
       break;
     case ifc_SyntaxSort_InitStatement:
-      unexpected_condition_str("SyntaxSort::InitStatement "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::InitStatement",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_RangeBasedForStatement:
-      unexpected_condition_str("SyntaxSort::RangeBasedForStatement "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::RangeBasedForStatement",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_ForRangeDeclaration:
-      unexpected_condition_str("SyntaxSort::ForRangeDeclaration "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::ForRangeDeclaration",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_LabeledStatement:
-      unexpected_condition_str("SyntaxSort::LabeledStatement "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::LabeledStatement",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_BreakStatement:
-      unexpected_condition_str("SyntaxSort::BreakStatement "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::BreakStatement",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_ContinueStatement:
-      unexpected_condition_str("SyntaxSort::ContinueStatement "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::ContinueStatement",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_SwitchStatement:
-      unexpected_condition_str("SyntaxSort::SwitchStatement "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::SwitchStatement",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_GotoStatement:
-      unexpected_condition_str("SyntaxSort::GotoStatement "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::GotoStatement",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_DeclarationStatement:
-      unexpected_condition_str("SyntaxSort::DeclarationStatement "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::DeclarationStatement",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_ExpressionStatement:
-      unexpected_condition_str("SyntaxSort::ExpressionStatement "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::ExpressionStatement",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_TryBlock:
-      unexpected_condition_str("SyntaxSort::TryBlock "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::TryBlock", &error_position);
       break;
     case ifc_SyntaxSort_Handler:
-      unexpected_condition_str("SyntaxSort::Handler "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::Handler", &error_position);
       break;
     case ifc_SyntaxSort_HandlerSeq:
-      unexpected_condition_str("SyntaxSort::HandlerSeq "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::HandlerSeq", &error_position);
       break;
     case ifc_SyntaxSort_FunctionTryBlock:
-      unexpected_condition_str("SyntaxSort::FunctionTryBlock "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::FunctionTryBlock",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_TypeIdListElement:
-      unexpected_condition_str("SyntaxSort::TypeIdListElement "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::TypeIdListElement",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_DynamicExceptionSpec:
-      unexpected_condition_str("SyntaxSort::DynamicExceptionSpec "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::DynamicExceptionSpec",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_StatementSeq:
-      unexpected_condition_str("SyntaxSort::StatementSeq "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::StatementSeq", &error_position);
       break;
     case ifc_SyntaxSort_FunctionBody:
-      unexpected_condition_str("SyntaxSort::FunctionBody "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::FunctionBody", &error_position);
       break;
     case ifc_SyntaxSort_Expression:
-      unexpected_condition_str("SyntaxSort::Expression "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::Expression", &error_position);
       break;
     case ifc_SyntaxSort_FunctionDefinition:
-      unexpected_condition_str("SyntaxSort::FunctionDefinition "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::FunctionDefinition",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_MemberFunctionDeclaration:
-      unexpected_condition_str("SyntaxSort::MemberFunctionDeclaration "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::MemberFunctionDeclaration",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_TemplateDeclaration:
-      unexpected_condition_str("SyntaxSort::TemplateDeclaration "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::TemplateDeclaration",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_RequiresClause:
-      unexpected_condition_str("SyntaxSort::RequiresClause "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::RequiresClause",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_SimpleRequirement:
-      unexpected_condition_str("SyntaxSort::SimpleRequirement "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::SimpleRequirement",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_TypeRequirement:
-      unexpected_condition_str("SyntaxSort::TypeRequirement "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::TypeRequirement",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_CompoundRequirement:
-      unexpected_condition_str("SyntaxSort::CompoundRequirement "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::CompoundRequirement",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_NestedRequirement:
-      unexpected_condition_str("SyntaxSort::NestedRequirement "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::NestedRequirement",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_RequirementBody:
-      unexpected_condition_str("SyntaxSort::RequirementBody "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::RequirementBody",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_TypeTemplateParameter:
-      unexpected_condition_str("SyntaxSort::TypeTemplateParameter "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::TypeTemplateParameter",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_TemplateTemplateParameter:
-      unexpected_condition_str("SyntaxSort::TemplateTemplateParameter "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::TemplateTemplateParameter",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_TypeTemplateArgument:
-      unexpected_condition_str("SyntaxSort::TypeTemplateArgument "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::TypeTemplateArgument",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_NonTypeTemplateArgument:
-      unexpected_condition_str("SyntaxSort::NonTypeTemplateArgument "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::NonTypeTemplateArgument",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_TemplateParameterList:
-      unexpected_condition_str("SyntaxSort::TemplateParameterList "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::TemplateParameterList",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_TemplateArgumentList:
-      unexpected_condition_str("SyntaxSort::TemplateArgumentList "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::TemplateArgumentList",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_TemplateId:
-      unexpected_condition_str("SyntaxSort::TemplateId "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::TemplateId", &error_position);
       break;
     case ifc_SyntaxSort_MemInitializer:
-      unexpected_condition_str("SyntaxSort::MemInitializer "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::MemInitializer",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_CtorInitializer:
-      unexpected_condition_str("SyntaxSort::CtorInitializer "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::CtorInitializer",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_LambdaIntroducer:
-      unexpected_condition_str("SyntaxSort::LambdaIntroducer "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::LambdaIntroducer",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_LambdaDeclarator:
-      unexpected_condition_str("SyntaxSort::LambdaDeclarator "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::LambdaDeclarator",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_CaptureDefault:
-      unexpected_condition_str("SyntaxSort::CaptureDefault "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::CaptureDefault",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_SimpleCapture:
-      unexpected_condition_str("SyntaxSort::SimpleCapture "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::SimpleCapture",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_InitCapture:
-      unexpected_condition_str("SyntaxSort::InitCapture "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::InitCapture", &error_position);
       break;
     case ifc_SyntaxSort_ThisCapture:
-      unexpected_condition_str("SyntaxSort::ThisCapture "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::ThisCapture", &error_position);
       break;
     case ifc_SyntaxSort_AttributedStatement:
-      unexpected_condition_str("SyntaxSort::AttributedStatement "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::AttributedStatement",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_AttributedDeclaration:
-      unexpected_condition_str("SyntaxSort::AttributedDeclaration "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::AttributedDeclaration",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_AttributeSpecifierSeq:
-      unexpected_condition_str("SyntaxSort::AttributeSpecifierSeq "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::AttributeSpecifierSeq",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_AttributeSpecifier:
-      unexpected_condition_str("SyntaxSort::AttributeSpecifier "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::AttributeSpecifier",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_AttributeUsingPrefix:
-      unexpected_condition_str("SyntaxSort::AttributeUsingPrefix "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::AttributeUsingPrefix",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_Attribute:
-      unexpected_condition_str("SyntaxSort::Attribute "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::Attribute", &error_position);
       break;
     case ifc_SyntaxSort_AttributeArgumentClause:
-      unexpected_condition_str("SyntaxSort::AttributeArgumentClause "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::AttributeArgumentClause",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_Alignas:
-      unexpected_condition_str("SyntaxSort::Alignas "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::Alignas", &error_position);
       break;
     case ifc_SyntaxSort_UsingDeclaration:
-      unexpected_condition_str("SyntaxSort::UsingDeclaration "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::UsingDeclaration",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_UsingDeclarator:
-      unexpected_condition_str("SyntaxSort::UsingDeclarator "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::UsingDeclarator",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_UsingDirective:
-      unexpected_condition_str("SyntaxSort::UsingDirective "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::UsingDirective",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_ArrayIndex:
-      unexpected_condition_str("SyntaxSort::ArrayIndex "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::ArrayIndex", &error_position);
       break;
     case ifc_SyntaxSort_SEHTry:
-      unexpected_condition_str("SyntaxSort::SEHTry "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::SEHTry", &error_position);
       break;
     case ifc_SyntaxSort_SEHExcept:
-      unexpected_condition_str("SyntaxSort::SEHExcept "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::SEHExcept", &error_position);
       break;
     case ifc_SyntaxSort_SEHFinally:
-      unexpected_condition_str("SyntaxSort::SEHFinally "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::SEHFinally", &error_position);
       break;
     case ifc_SyntaxSort_SEHLeave:
-      unexpected_condition_str("SyntaxSort::SEHLeave "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::SEHLeave", &error_position);
       break;
     case ifc_SyntaxSort_TypeTraitIntrinsic:
-      unexpected_condition_str("SyntaxSort::TypeTraitIntrinsic "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::TypeTraitIntrinsic",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_Tuple:
-      unexpected_condition_str("SyntaxSort::Tuple "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::Tuple", &error_position);
       break;
     case ifc_SyntaxSort_AsmStatement:
-      unexpected_condition_str("SyntaxSort::AsmStatement "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::AsmStatement", &error_position);
       break;
     case ifc_SyntaxSort_NamespaceAliasDefinition:
-      unexpected_condition_str("SyntaxSort::NamespaceAliasDefinition "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::NamespaceAliasDefinition",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_Super:
-      unexpected_condition_str("SyntaxSort::Super "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::Super", &error_position);
       break;
     case ifc_SyntaxSort_UnaryFoldExpression:
-      unexpected_condition_str("SyntaxSort::UnaryFoldExpression "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::UnaryFoldExpression",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_BinaryFoldExpression:
-      unexpected_condition_str("SyntaxSort::BinaryFoldExpression "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::BinaryFoldExpression",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_EmptyStatement:
-      unexpected_condition_str("SyntaxSort::EmptyStatement "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::EmptyStatement",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_StructuredBindingDeclaration:
-      unexpected_condition_str("SyntaxSort::StructuredBindingDeclaration "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::StructuredBindingDeclaration",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_StructuredBindingIdentifier:
-      unexpected_condition_str("SyntaxSort::StructuredBindingIdentifier "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::StructuredBindingIdentifier",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_UsingEnumDeclaration:
-      unexpected_condition_str("SyntaxSort::UsingEnumDeclaration "
-                               "is not yet handled");
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("SyntaxSort::UsingEnumDeclaration",
+                                  &error_position);
       break;
     case ifc_SyntaxSort_Last:
       unexpected_condition();
@@ -8977,7 +9918,8 @@ of the name.
     case ifc_NameSort_Template:
       { an_ifc_NameSort_Template inst;
         get_NameSort_Template(&inst);
-        unexpected_condition_str("NameSort::Template is not yet handled.");
+        /* FIXME: Currently unsupported. */
+        issue_unsupported_node_diag("NameSort::Template", &error_position);
       }
       break;
     case ifc_NameSort_Specialization:
@@ -9034,7 +9976,8 @@ cache_ident:
     case ifc_NameSort_Guide:
       { an_ifc_NameSort_Guide insg;
         get_NameSort_Guide(&insg);
-        unexpected_condition_str("NameSort::Guide is not yet handled");
+        /* FIXME: Currently unsupported. */
+        issue_unsupported_node_diag("NameSort::Guide", &error_position);
       }
       break;
     case ifc_NameSort_Last:
@@ -10927,7 +11870,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
 #if DEBUG
       if (db_flag_is_set("ms_ignore")) {
         (void)fprintf(f_debug, "[unsupported declaration: %s, %u]\n",
-                      db_decl_tag(tag), decl_value(decl_index));
+                      str_for_decl_tag(tag), decl_value(decl_index));
       }  /* if */
 #endif /* DEBUG */
       break;

@@ -3481,8 +3481,8 @@ Output the given source position form to f_debug.
     a_const_char   *file_name, *full_name;
     a_line_number  line_number;
     a_boolean      at_end_of_source;
-    conv_seq_to_file_and_line(pos->seq, &file_name, &full_name, &line_number,
-                              &at_end_of_source);
+    (void)conv_seq_to_file_and_line(pos->seq, &file_name, &full_name,
+                                    &line_number, &at_end_of_source);
     if (seq_is_in_include_file(pos->seq)) {
       (void)fprintf(f_debug, "file %s ", file_name);
     }  /* if */

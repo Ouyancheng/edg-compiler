@@ -197,8 +197,9 @@ should only be called if cross-reference information is being generated
 #endif /* CHECKING */
     }  /* if */
     /* Convert the source position to file name/line number. */
-    conv_seq_to_file_and_line(source_position->seq, &file_name, &full_name,
-                              &line_number, &at_end_of_source);
+    (void)conv_seq_to_file_and_line(source_position->seq, &file_name,
+                                    &full_name, &line_number,
+                                    &at_end_of_source);
     fprintf(f_xref_info, "%p\t", (void *)sym_ptr);
     /* Write the symbol name, complete with class qualifier, etc., to the
        xref file. */

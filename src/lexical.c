@@ -1980,7 +1980,7 @@ If include_last_token is TRUE, last_tsn is included in the cache.
     copy_cached_token(ctp, copy_ctp);
     add_cached_token_to_cache(copy_ctp, dest_cache);
   }  /* for */
-  if (include_last_token) {
+  if (include_last_token && last_ctp_to_copy != NULL) {
     ctp = last_ctp_to_copy;
     alloc_cached_token(copy_ctp);
     copy_cached_token(ctp, copy_ctp);

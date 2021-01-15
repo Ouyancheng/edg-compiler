@@ -11035,7 +11035,9 @@ Dump all source files at this level.
     do_indentation();
     (void)fprintf(f_C_output,
                   "%s (from line number %lu, sequence numbers %lu-%lu%s)\n",
-                  format_file_name(source_file->file_name),
+                  format_source_file_name(source_file,
+                                          /*use_name_as_written=*/FALSE,
+                                          /*quote_file_name=*/FALSE),
 		  (unsigned long)source_file->first_line_number,
                   (unsigned long)source_file->first_seq_number,
 		  (unsigned long)source_file->last_seq_number,

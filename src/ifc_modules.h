@@ -2413,22 +2413,22 @@ Information specific to an IFC module.
 /*lint -save -e1511 -e1790 -e1540*/
 struct an_ifc_module : public a_module_interface {
   an_ifc_File_Header
-                header = {};
-                        /* The values of an IFC File_Header (byte-swapped if
-                           necessary). */
+		header = {};
+			/* The values of an IFC File_Header (byte-swapped if
+			   necessary). */
   an_ifc_partition
-                partitions[(int)ifc_last+1] = {};
-                        /* Information about each of the IFC partitions that
-                           could exist in a module file. */
-  a_seq_number  *sequence_numbers = NULL;
-                        /* An array of sequence numbers, indexed by a
-                           NameSort::SourceFile index, yields the sequence
-                           number to be used for all items in the associated
-                           file.  Could be extended to a range of sequence
-                           numbers (but that would require knowing the last
-                           line in each file and that's time-consuming to
-                           compute).  Dynamically allocated once the number of
-                           source files is known. */
+		partitions[(int)ifc_last+1] = {};
+			/* Information about each of the IFC partitions that
+			   could exist in a module file. */
+  a_seq_number	*sequence_numbers = NULL;
+			/* An array of sequence numbers, indexed by a
+			   NameSort::SourceFile index, yields the sequence
+			   number to be used for all items in the associated
+			   file.  Could be extended to a range of sequence
+			   numbers (but that would require knowing the last
+			   line in each file and that's time-consuming to
+			   compute).  Dynamically allocated once the number of
+			   source files is known. */
 private:
 #if USE_MMAP_FOR_MEMORY_REGIONS
   mutable unsigned char
@@ -2440,17 +2440,21 @@ private:
 			/* Pointer to the last byte of the buffer used by
 			   get_byte, etc. */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
-  a_const_char
-		*string_table = NULL;
+  a_const_char	*string_table = NULL;
 			/* The string table of the IFC file. */
   mutable a_tmpl_decl_state_ptr
 		curr_templ_decl_state = NULL;
 			/* The current template declaration state, NULL if
 			   there is no template declaration being processed. */
   mutable Ptr_map<a_module_ref_key, a_module_import_decl_ptr>
-                referenced_modules;
-                        /* A map from a module reference to the corresponding
-                           import decl. */
+		referenced_modules;
+			/* A map from a module reference to the corresponding
+			   import decl. */
+  mutable a_boolean
+		unhandled_node_diag_issued = FALSE;
+			/* Flag to indicate whether an unhandled node
+			   diagnostic has already been issued for this
+			   module. */
 
 public:
   an_ifc_module() : a_module_interface((a_module_kind)mk_ifc),
@@ -2499,6 +2503,8 @@ private:
   inline void get_bytes(void      *entity,
                         size_t    length,
                         a_boolean header_bytes) const;
+  inline void issue_unsupported_node_diag(a_const_char      *node,
+                                          a_source_position *pos) const;
   a_boolean open_and_map_ifc_module_file(a_module_import_decl_ptr midp,
                                          a_boolean                issue_diag);
   static an_ifc_partition_map *find_ifc_partition(a_const_char *name);

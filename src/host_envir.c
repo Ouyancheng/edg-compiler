@@ -4952,8 +4952,8 @@ output without escapes.  Escape processing is done when outputting
 names in preprocessed output and similar contexts.  This routine is
 used (directly or by routines such as write_file_name) to write out the
 file name in #line directives error messages, etc.  The text buffer will
-be reused on the next call to this routine, so the contents can only be
-used until that point.
+be reused on the next call to this routine (or format_source_file_name), so the
+contents can only be used until that point.
 */
 {
   if (format_file_name_buffer == NULL) {
@@ -4984,6 +4984,53 @@ is called again.
                            /*escapes_nonprintable_chars=*/FALSE);
   return buf->buffer;
 }  /* format_file_name */
+
+
+char *format_source_file_name(a_source_file_ptr sfp,
+                              a_boolean         use_name_as_written,
+                              a_boolean         quote_file_name)
+/*
+Similar to format_file_name, except uses additional information within sfp to
+provide additional information.  Return a pointer to a version of the file name
+formatted for display purposes.  This returns a pointer into a text buffer used
+by f_format_file_name.  The pointer returned must be used before either this or
+that routine is called again.  If use_name_as_written is TRUE, use the
+name_as_written field of sfp, otherwise use the file_name field.  If
+quote_file_name is TRUE, add quotes around the formatted file name where
+appropriate.
+*/
+{
+  a_const_char      *name;
+
+  if (format_file_name_buffer == NULL) {
+    /* Allocate a buffer into which the file name will be written. */
+    format_file_name_buffer = alloc_text_buffer(256);
+  }  /* if */
+  reset_text_buffer(format_file_name_buffer);
+  name = use_name_as_written ? sfp->name_as_written : sfp->file_name;
+
+  if (sfp->assoc_module != NULL) {
+    add_string_to_text_buffer(format_file_name_buffer, "module \"");
+    add_string_to_text_buffer(format_file_name_buffer,
+                              sfp->assoc_module->name);
+    add_string_to_text_buffer(format_file_name_buffer, "\" (");
+    quote_file_name = TRUE;
+  }  /* if */
+  if (quote_file_name) {
+    add_char_to_text_buffer(format_file_name_buffer, '"');
+  }  /* if */
+  write_file_name_to_text_buffer(name, format_file_name_buffer,
+                                 /*process_escapes=*/FALSE,
+                                 /*escape_nonprintable_chars=*/FALSE);
+  if (quote_file_name) {
+    add_char_to_text_buffer(format_file_name_buffer, '"');
+  }  /* if */
+  if (sfp->assoc_module != NULL) {
+    add_char_to_text_buffer(format_file_name_buffer, ')');
+  }  /* if */
+  add_char_to_text_buffer(format_file_name_buffer, '\0');
+  return format_file_name_buffer->buffer;
+}  /* format_source_file_name */
 
 
 void write_file_name(a_const_char *name,
