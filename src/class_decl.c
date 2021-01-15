@@ -3462,9 +3462,11 @@ nested class.
              member function of a class that is specialized in-class.
              If a friend function has already been referenced, handle the
              fixup now so that the definition will be generated. */
-          defer_routine_fixup_until_use(rfp);
-          /* Set rfp to NULL to prevent it from being freed below. */
-          rfp = NULL;
+          if (!sym->variant.routine.ptr->defined) {
+            defer_routine_fixup_until_use(rfp);
+            /* Set rfp to NULL to prevent it from being freed below. */
+            rfp = NULL;
+          }  /* if */
         } else if (is_real_template_instantiation &&
                    rfp->is_template && is_friend) {
           /* A friend template in a real instantiation.   Ignore this.
@@ -11583,6 +11585,17 @@ possibility.
       if (func_info->is_definition && !locator->is_error &&
           class_type->source_corresp.is_local_to_function) {
         pos_sy_error(ec_bad_scope_for_definition, &pos_curr_token, sym);
+      }  /* if */
+      if (defer_friend_instantiation && !is_template_dependent_context() &&
+          class_type->variant.class_struct_union.is_template_class &&
+          !class_type->variant.class_struct_union.is_specialized) {
+        /* Record the routine fixup in the routine early if this is a friend
+           definition in a class template instance so that the body of the
+           function can be "instantiated" early if needed. */
+        a_routine_ptr  rp = sym->variant.routine.ptr;
+        if (rp->defined_in_friend_decl) {
+          sym->variant.routine.ptr->routine_fixup = curr_routine_fixup;
+        }  /* if */
       }  /* if */
       /* If this symbol might not be found because it is invisible, add it
          to the friend list for the class. */

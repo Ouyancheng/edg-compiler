@@ -1,5 +1,22 @@
 Version 6.2
 
+1/15/21  [EDGcpfe/23704]
+Friend definitions in class templates and constexpr
+
+Consider:
+
+  template<typename T> struct S {
+    friend constexpr int f(S<T>) { return sizeof(T); }
+  };
+  template<typename T> struct X { double x[f(T{})]; };
+  X<S<int>> xsi;  // Previously an error.  Now okay.
+
+Previously, this elicited a spurious error claiming the instantiation of the
+array dimension "f(T{})" is not a constant expression because the function
+"f" is not defined.  This was due to an ordering issue in the "instantiation"
+of the friend function definition.  That is now fixed.
+
+
 1/14/21  [EDGcpfe/23730]
 Incorrect handling of rewritten comparison operators in some SFINAE contexts
 
