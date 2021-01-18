@@ -11593,7 +11593,7 @@ possibility.
            definition in a class template instance so that the body of the
            function can be "instantiated" early if needed. */
         a_routine_ptr  rp = sym->variant.routine.ptr;
-        if (rp->defined_in_friend_decl) {
+        if (rp->defined_in_friend_decl && !func_info->is_deleted) {
           sym->variant.routine.ptr->routine_fixup = curr_routine_fixup;
         }  /* if */
       }  /* if */
