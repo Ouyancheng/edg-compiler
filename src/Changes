@@ -1,5 +1,19 @@
 Version 6.2
 
+1/18/21  [EDGcpfe/23684]
+Microsoft compatibility: __assume
+
+Microsoft's __assume builtin function allows a user to give hints to a code
+generator to optimize certain cases.  The operand of the builtin function
+is not executed and had, in cases where the expression had side-effects,
+been removed from the IL during lowering (replaced with a cast of zero to the
+correct type).  A change has been made to lower the operand of __assume in
+all cases, thereby allowing a back end to see the entire (lowered) operand.
+
+This is a slight IL CHANGE and back ends should ensure that the operand of
+an eok_assume is not evaluated.
+
+
 1/15/21  [EDGcpfe/23728]
 Coroutines in lambda expressions
 

@@ -16430,19 +16430,21 @@ cast.  See lower_expr for typical invocation.
         lower_pm_comparison(expr, /*operand1_lowered=*/FALSE);
         change_result_type_of_operator_returning_bool(expr);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (op == (an_expr_operator_kind)eok_assume &&
-                 node_has_side_effects(operand_node, (a_boolean *)NULL)) {
-        /* Issue a warning to let the user know we're ignoring
-           this __assume expression. */
-        pos_warning(ec_assume_expression_discarded,
-                    expr->variant.operation.operands->position.seq == 0 ?
+      } else if (op == (an_expr_operator_kind)eok_assume) {
+        if (node_has_side_effects(operand_node, (a_boolean *)NULL)) {
+          /* Issue a warning to let the user know we're ignoring
+             this __assume expression. */
+          pos_warning(ec_assume_expression_discarded,
+                      expr->variant.operation.operands->position.seq == 0 ?
                                   &error_position :
                                   &expr->variant.operation.operands->position);
-        /* Turn __assume(expr) into (void)0 if expr has side effects to
-           avoid problems with destructible entities inside the expression. */
-        operand_node = node_for_integer_constant((long)0,
-                                                 (an_integer_kind)ik_int);
-        change_to_cast(expr, operand_node, expr->type);
+        }  /* if */
+        /* Lower the expression so a back end can process it (i.e., to do
+           whatever optimization is relevant).  It is up to the back end to
+           ensure that the operation is not evaluated.  Note that lowering of
+           the operand may result in temporaries being created (and possibly
+           initialized). */
+        lower_expr(operand_node);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (op == (an_expr_operator_kind)eok_indirect &&
                  !expr->is_lvalue &&

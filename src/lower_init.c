@@ -10750,8 +10750,13 @@ do_keep_constant:
   }  /* switch */
   /* If the dynamic init entry indicates a destructor call, it requires
      processing to get the destruction done at the right time. */
-  if (dip->destructor != NULL) {
-    check_assertion(dip->lifetime != NULL);
+  if (dip->destructor != NULL && dip->lifetime != NULL) {
+    /* If the dynamic init entry indicates a destructor call, it requires
+       processing to get the destruction done at the right time.  Ignore
+       dynamic initialization entries that record an associated destructor
+       but no associated lifetime.  That can occur for certain expressions
+       that should not be evaluated by a back end, such as eok_assume
+       operands. */
     if (static_var_init &&
         !dip->destruction_is_for_partially_constructed_aggregate) {
       if ((dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate ||
