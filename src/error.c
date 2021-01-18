@@ -618,103 +618,44 @@ static a_recorded_diagnostic_ptr
 			/* The top level array used for the hash table used
 			   to find previously issued diagnostics. */
 
-#if ENABLE_COLORIZED_DIAGNOSTICS
 
-a_highlight_descr::a_highlight_descr()
+static inline void annotate_diagnostic(a_text_buffer_ptr            buffer,
+                                       a_diagnostic_annotation_kind kind)
 /*
-Constructor to initialize information used to add display attributes (e.g.,
-colors) to portions of certain diagnostics.
-*/
-  : sgr_string(NULL),
-    last_sgr_string(NULL)
-{
-  if (colorize_diagnostics) {
-    if (getenv("NOCOLOR") != NULL) {
-      /* Set the NOCOLOR environment variable to disable colorization. */
-      colorize_diagnostics = FALSE;
-    } else if (!terminal_is_color_capable()) {
-      /* Only colorize if errors are being sent to a terminal. */
-      colorize_diagnostics = FALSE;
-    }  /* if */
-  }  /* if */
-  if (colorize_diagnostics) {
-    if ((this->sgr_string = getenv("EDG_COLORS")) != NULL) {
-      /* Use EDG_COLORS environment variable if set. */
-    } else if ((this->sgr_string = getenv("GCC_COLORS")) != NULL) {
-      /* Use select portions of GCC_COLORS environment variable if set. */
-    } else {
-      /* Use default settings. */
-      this->sgr_string = DEFAULT_EDG_COLORS;
-    }  /* if */
-    /* Find relevant substrings in the sgr_string, if any. */
-    set_sgr_string(a_highlight_kind::hk_error, "error");
-    set_sgr_string(a_highlight_kind::hk_warning, "warning");
-    set_sgr_string(a_highlight_kind::hk_note, "note");
-    set_sgr_string(a_highlight_kind::hk_locus, "locus");
-    set_sgr_string(a_highlight_kind::hk_quote, "quote");
-    set_sgr_string(a_highlight_kind::hk_range1, "range1");
-  }  /* if */
-}  /* a_highlight_descr constructor */
-
-
-void a_highlight_descr::highlight_begin(a_text_buffer_ptr buffer,
-                                        a_highlight_kind  kind)
-/*
-Emits, in buffer, the appropriate escape sequence and SGR characters to
-highlight the entity described by "kind".
+Emits, in buffer, the "escape" sequence (DIAG_ANNOTATION_INDICATOR) followed
+by the kind of annotation, but only if annotations are enabled.
 */
 {
-  if (colorize_diagnostics) {
-    this->last_sgr_string = this->sgr[(int)kind].ptr;
-    if (this->last_sgr_string != NULL) {
-      add_char_to_text_buffer(buffer, '\033');
-      add_char_to_text_buffer(buffer, '[');
-      add_string_with_length_to_text_buffer(buffer, this->last_sgr_string,
-                                            this->sgr[(int)kind].length);
-      add_char_to_text_buffer(buffer, 'm');
-    }  /* if */
+  if (annotate_diagnostics) {
+    add_char_to_text_buffer(buffer, DIAG_ANNOTATION_INDICATOR);
+    add_char_to_text_buffer(buffer, (char)kind);
   }  /* if */
-}  /* highlight_begin */
+}  /* annotate_diagnostic */
 
 
-void a_highlight_descr::highlight_end(a_text_buffer_ptr buffer)
+static void set_sgr_string(a_diagnostic_annotation_kind kind,
+                           a_const_char                 *string)
 /*
-Emits, in buffer, the appropriate escape sequence to reset text to the
-normal state (i.e., all display attributes turned off).
+Find (in sgr_string_for_colored_diagnostics) the string if it exists and save a
+pointer to it (and its length) in sgr_map[kind].  If the string doesn't exist,
+set the pointer to NULL and the length to 0.
 */
 {
-  if (colorize_diagnostics && this->last_sgr_string != NULL) {
-    add_char_to_text_buffer(buffer, '\033');
-    add_char_to_text_buffer(buffer, '[');
-    add_char_to_text_buffer(buffer, '0');
-    add_char_to_text_buffer(buffer, 'm');
-    this->last_sgr_string = NULL;
-  }  /* if */
-}  /* highlight_end */
-
-
-void a_highlight_descr::set_sgr_string(a_highlight_kind kind,
-                           a_const_char     *string)
-/*
-Find (in sgr_string) the string "string" if it exists and save a pointer to
-it (and its length) in sgr[kind].
-*/
-{
-  a_const_char *ptr = strstr(this->sgr_string, string);
-  this->sgr[(int)kind].ptr = NULL;
-  this->sgr[(int)kind].length = 0;
+  a_const_char *ptr = strstr(sgr_string_for_colored_diagnostics, string);
+  sgr_map[(int)kind].ptr = NULL;
+  sgr_map[(int)kind].length = 0;
   if (ptr != NULL) {
     size_t len = strlen(string);
     if (ptr[len] == '=') {
       ptr += len+1;
       a_const_char *end_ptr = strchr(ptr, ':');
       len = (end_ptr == NULL) ? strlen(ptr) : end_ptr - ptr;
-      this->sgr[(int)kind].ptr = ptr;
-      this->sgr[(int)kind].length = len;
+      sgr_map[(int)kind].ptr = ptr;
+      sgr_map[(int)kind].length = len;
       /* Make sure only valid characters are in the SGR string. */
       for (a_const_char *p = ptr; p < ptr+len ; p++) {
         if (*p != ';' && !isdigit((unsigned char)*p)) {
-          this->sgr[(int)kind].ptr = NULL;
+          sgr_map[(int)kind].ptr = NULL;
           break;
         }  /* if */
       }  /* for */
@@ -722,7 +663,64 @@ it (and its length) in sgr[kind].
   }  /* if */
 }  /* set_sgr_string */
 
-#endif /* ENABLE_COLORIZED_DIAGNOSTICS */
+
+void init_colorization(void)
+/*
+Perform initialization to enable colorization of diagnostics.
+*/
+{
+  check_assertion(colorize_diagnostics);
+  if (getenv("NOCOLOR") != NULL) {
+    /* Set the NOCOLOR environment variable to disable colorization. */
+    colorize_diagnostics = FALSE;
+  } else if (!terminal_is_color_capable()) {
+    /* Only colorize if errors are being sent to a terminal. */
+    colorize_diagnostics = FALSE;
+  }  /* if */
+  if (colorize_diagnostics) {
+    if ((sgr_string_for_colored_diagnostics = getenv("EDG_COLORS")) != NULL) {
+      /* Use EDG_COLORS environment variable if set. */
+    } else if ((sgr_string_for_colored_diagnostics = getenv("GCC_COLORS")) !=
+                                                                        NULL) {
+      /* Use select portions of GCC_COLORS environment variable if set. */
+    } else {
+      /* Use default settings. */
+      sgr_string_for_colored_diagnostics = DEFAULT_EDG_COLORS;
+    }  /* if */
+    /* Find relevant substrings in the sgr_string, if any. */
+    set_sgr_string(da_error, "error");
+    set_sgr_string(da_warning, "warning");
+    set_sgr_string(da_note, "note");
+    set_sgr_string(da_locus, "locus");
+    set_sgr_string(da_quote, "quote");
+    set_sgr_string(da_range1, "range1");
+  }  /* if */
+  annotate_diagnostics = colorize_diagnostics;
+}  /* init_colorization */
+
+
+static void add_colorization_characters(a_diagnostic_annotation_kind kind)
+/*
+The diagnostic currently being written (in write_diagnostic_buffer) has
+the specified annotation kind at this point in the buffer.  Add the appropriate
+SGR code (if there is one) to the buffer.
+*/
+{
+  check_assertion(kind < da_last);
+  an_sgr_string *sgrp = &sgr_map[(int)kind];
+  if (kind == da_reset || sgrp->ptr != NULL) {
+    add_char_to_text_buffer(write_diagnostic_buffer, '\033');
+    add_char_to_text_buffer(write_diagnostic_buffer, '[');
+    if (kind == da_reset) {
+      add_char_to_text_buffer(write_diagnostic_buffer, '0');
+    } else {
+      add_string_with_length_to_text_buffer(write_diagnostic_buffer,
+                                            sgrp->ptr, sgrp->length);
+    }  /* if */
+    add_char_to_text_buffer(write_diagnostic_buffer, 'm');
+  }  /* if */
+}  /* add_colorization_characters */
+
 
 static char *diag_copy_string(a_const_char           *string)
 /*
@@ -1065,8 +1063,7 @@ being formed and is used to eliminate redundant file names in a diagnostic.
     /* Have a valid source position. */
     sfp = conv_seq_to_file_and_line(pos->seq, &file_name, &full_name,
                                     &line_number, &at_end_of_source);
-    diag_color_begin(msg_buffer,
-                     a_highlight_descr::a_highlight_kind::hk_range1);
+    annotate_diagnostic(msg_buffer, da_range1);
     if (at_end_of_source) {
       add_string_to_text_buffer(msg_buffer, end_of_source_string);
     } else {
@@ -1109,7 +1106,7 @@ being formed and is used to eliminate redundant file names in a diagnostic.
       }  /* if */
       add_string_to_text_buffer(msg_buffer, suffix_string);
     }  /* if */
-    diag_color_end(msg_buffer);
+    annotate_diagnostic(msg_buffer, da_reset);
   }  /* if */
 }  /* form_source_position */
 
@@ -1655,8 +1652,7 @@ symbol_name:
         }  /* if */
       } /* if */
       /* Add color if so configured. */
-      diag_color_begin(msg_buffer,
-                       a_highlight_descr::a_highlight_kind::hk_quote);
+      annotate_diagnostic(msg_buffer, da_quote);
       /* Add the beginning double quote. */
       add_string_to_text_buffer(msg_buffer, "\"");
       /* Check for special kinds of routines. */
@@ -1787,7 +1783,7 @@ symbol_name:
   }  /* switch */
   /* Add the closing double quote mark. */
   add_string_to_text_buffer(msg_buffer, "\"");
-  diag_color_end(msg_buffer);
+  annotate_diagnostic(msg_buffer, da_reset);
   /* If the name is based on template arguments, add a message to that
      effect. */
   if (dfip->variant.symbol.template_args) {
@@ -2518,10 +2514,7 @@ as appropriate.
 end_of_loop:
       /* For the pass that writes the caret, write the caret at this point. */
       if (pass_for_caret) {
-        diag_color_begin(msg_buffer,
-                         a_highlight_descr::a_highlight_kind::hk_locus);
         putcwdb('^');
-        diag_color_end(msg_buffer);
       }  /* if */
     }  /* if */
     output_msg_buffer();
@@ -2587,10 +2580,7 @@ msg_buffer for later output as appropriate.
 end_of_loop:
       /* For the pass that writes the caret, write the caret at this point. */
       if (pass_for_caret) {
-        diag_color_begin(msg_buffer,
-                         a_highlight_descr::a_highlight_kind::hk_locus);
         putcwdb('^');
-        diag_color_end(msg_buffer);
       }  /* if */
     }  /* if */
     output_msg_buffer();
@@ -2672,8 +2662,7 @@ SP_COL_UNKNOWN, the column number is also added.
   a_const_char      *error_text_string;
   a_line_number     line_number = sifpp->line_number;
 
-  diag_color_begin(prefix_buffer,
-                   a_highlight_descr::a_highlight_kind::hk_locus);
+  annotate_diagnostic(prefix_buffer, da_locus);
   /* Print the file and line number, with a column number if it is not
      SP_COL_UNKNOWN. */
   /* If the line is from stdin, do not display the file name. */
@@ -2718,7 +2707,7 @@ SP_COL_UNKNOWN, the column number is also added.
     add_string_to_text_buffer(prefix_buffer, number_buffer);
     add_string_to_text_buffer(prefix_buffer, ")");
   }  /* if */
-  diag_color_end(prefix_buffer);
+  annotate_diagnostic(prefix_buffer, da_reset);
 }  /* add_position_prefix */
 
 
@@ -2815,39 +2804,28 @@ number is added into the output.
       (int)effective_severity >= (int)error_promotion_threshold) {
     effective_severity = es_discretionary_error;
   }  /* if */
-#if ENABLE_COLORIZED_DIAGNOSTICS
   /* Assume the most used case below and change as needed. */
-  a_highlight_descr::a_highlight_kind highlight_kind =
-                                 a_highlight_descr::a_highlight_kind::hk_error;
-#endif /* ENABLE_COLORIZED_DIAGNOSTICS */
+  a_diagnostic_annotation_kind annotation_kind = da_error;
   switch (effective_severity) {
     case es_more_info:
       severity_code = capitalize_severity ? ec_More_Info : ec_more_info;
-#if ENABLE_COLORIZED_DIAGNOSTICS
-      highlight_kind = a_highlight_descr::a_highlight_kind::hk_note;
-#endif /* ENABLE_COLORIZED_DIAGNOSTICS */
+      annotation_kind = da_note;
       break;
     case es_remark:
       severity_code = capitalize_severity ? ec_Remark : ec_remark;
       total_remarks++;
-#if ENABLE_COLORIZED_DIAGNOSTICS
-      highlight_kind = a_highlight_descr::a_highlight_kind::hk_note;
-#endif /* ENABLE_COLORIZED_DIAGNOSTICS */
+      annotation_kind = da_note;
       break;
     case es_warning:
       severity_code = capitalize_severity ? ec_Warning : ec_warning;
       total_warnings++;
-#if ENABLE_COLORIZED_DIAGNOSTICS
-      highlight_kind = a_highlight_descr::a_highlight_kind::hk_warning;
-#endif /* ENABLE_COLORIZED_DIAGNOSTICS */
+      annotation_kind = da_warning;
       break;
     case es_command_line_warning:
       severity_code = capitalize_severity ? ec_Command_line_warning
                                           : ec_command_line_warning;
       total_warnings++;
-#if ENABLE_COLORIZED_DIAGNOSTICS
-      highlight_kind = a_highlight_descr::a_highlight_kind::hk_warning;
-#endif /* ENABLE_COLORIZED_DIAGNOSTICS */
+      annotation_kind = da_warning;
       break;
     case es_discretionary_error:
     case es_error:
@@ -2881,9 +2859,9 @@ number is added into the output.
   }  /* switch */
   if (severity_code != ec_no_error) {
     error_text_string = error_text(severity_code);
-    diag_color_begin(prefix_buffer, highlight_kind);
+    annotate_diagnostic(prefix_buffer, annotation_kind);
     add_string_to_text_buffer(prefix_buffer, error_text_string);
-    diag_color_end(prefix_buffer);
+    annotate_diagnostic(prefix_buffer, da_reset);
   }  /* if */
   /* The error number may optionally be displayed based on a command
      line option. */
@@ -3657,8 +3635,7 @@ null-terminated.
   /* Do the actual generation of the fill-in text. */
   if (add_quotes) {
     add_char_to_text_buffer(msg_buffer, '"');
-    diag_color_begin(msg_buffer,
-                     a_highlight_descr::a_highlight_kind::hk_quote);
+    annotate_diagnostic(msg_buffer, da_quote);
   }  /* if */
   switch (kind) {
     case dfk_number:
@@ -3694,7 +3671,7 @@ null-terminated.
       break;
   }  /* switch */
   if (add_quotes) {
-    diag_color_end(msg_buffer);
+    annotate_diagnostic(msg_buffer, da_reset);
     add_char_to_text_buffer(msg_buffer, '"');
   }  /* if */
 }  /* process_fill_in */
@@ -3715,75 +3692,127 @@ indent subsequent lines when the output wraps to more than one line.
   sizeof_t	usable_line_length;
   sizeof_t	indent = first_indent;
   sizeof_t	length = prefix_buffer->size - 1;
+  sizeof_t	i;
+  a_boolean     wrapping = !do_not_wrap_diagnostics && !brief_diagnostics;
 
   curr_char = prefix_buffer->buffer;
-  segment_start = curr_char;
-  for (;;) {
-    sizeof_t	segment_length;
-    sizeof_t	i;
-    /* Compute the number of characters that will fit on a line taking into
-       account any indentation that is required. */
-    usable_line_length = diagnostic_line_length - indent;
-    /* Put out the required indentation. */
-    for (i = 0; i < indent; ++i) {
-      add_char_to_text_buffer(write_diagnostic_buffer, ' ');
-    }  /* for */
-    if (length > usable_line_length && !do_not_wrap_diagnostics &&
-        !brief_diagnostics) {
-      /* Output as much of the string as will fit on a line.  Wrap
-         at a blank, if possible; otherwise, just wrap at the end of the
-         line. */
-#if ENABLE_COLORIZED_DIAGNOSTICS
-      if (colorize_diagnostics) {
-        /* If using colorized diagnostics, the escape sequences used to do the
-           colorization are effectively hidden (i.e., they don't count towards
-           the character count when doing line wrapping).  Inspect the line
-           character by character to make sure these hidden sequences are
-           handled properly (i.e., don't count towards wrapping and aren't
-           split in the middle of a sequence). */
-        a_const_char *last_blank = NULL;
-        sizeof_t     visible;
-        curr_char = segment_start;
-        for (visible = 0; visible < usable_line_length - 1; visible++) {
-          while (curr_char[0] == '\033' && curr_char[1] == '[') {
-            /* Anything between "\033[" and "m" is used for colorization, so
-               skip over these characters. */
-            curr_char = strchr(curr_char+2, 'm');
-            check_assertion(curr_char != NULL);
-            curr_char++;
-          }  /* while */
-          if (curr_char[0] == '\0' || curr_char[1] == '\0') {
-            /* We're at the end of the buffer; that means that we don't
-               actually need to wrap this last segment (it just appeared that
-               way because of the added display attribute sequences). */
-            goto write_segment_start;
-          }  /* if */
-          curr_char++;
-          if (curr_char[0] == ' ') {
-            last_blank = curr_char;
-          }  /* if */
-        }  /* for */
-        check_assertion(curr_char <
-                                  &prefix_buffer->buffer[prefix_buffer->size]);
-        if (curr_char[1] == ' ') {
-          /* Next character is a blank, wrap there. */
-          curr_char++;
-        } else if (curr_char[0] != ' ') {
-          /* If we didn't end on a blank, wrap at the last seen blank. */
-          if (last_blank != NULL) {
-            curr_char = last_blank;
-          } else if (curr_char[0] != '\033') {
-            /* Wrap at next character (to match behavior below), but don't
-               split an escape sequence. */
-            curr_char++;
-          }  /* if */
+  if (annotate_diagnostics) {
+    /* Diagnostics are annotated to identify various pieces so they can
+       be highlighted to make reading diagnostics easier.  Currently,
+       "colorizing" is the only consumer of these annotations, but
+       customers can add their own means of highlighting and would need
+       to add such code here.  If using colorized diagnostics, replace the
+       annotations in the diagnostic error message with escape sequences to
+       do the colorization.  For wrapping purposes, don't count the
+       characters used as annotations or the SGR strings used to perform
+       the actual colorization.  If not doing colorization, the
+       annotations are removed. */
+    a_const_char *last_space = NULL;
+    sizeof_t     last_space_index = 0;
+    sizeof_t     chars_left;
+    a_boolean    new_line = TRUE;
+    a_diagnostic_annotation_kind
+                 save_last_annotation, last_annotation = da_reset;
+    /* Assumes the error message is null terminated. */
+    check_assertion(prefix_buffer->buffer[prefix_buffer->size-1] == '\0');
+    for (; *curr_char != '\0'; curr_char++) {
+check_assertion(curr_char <= &prefix_buffer->buffer[prefix_buffer->size]);
+      while (*curr_char == DIAG_ANNOTATION_INDICATOR) {
+        if (colorize_diagnostics) {
+          /* Add the appropriate colorization SGR characters and keep track
+             of what annotation was last used. */
+          last_annotation = (a_diagnostic_annotation_kind)curr_char[1];
+          add_colorization_characters(last_annotation);
         }  /* if */
-        segment_length = curr_char - segment_start;
-        check_assertion(segment_length <= length);
-      } else
-#endif /* ENABLE_COLORIZED_DIAGNOSTICS */
-      /* Do not insert code here. */
-      {
+        /* Skip over the two byte annotation. */
+        curr_char += 2;
+      }  /* while */
+      if (*curr_char == '\0') break;
+      if (new_line) {
+        /* Starting a new line; put out indentation and reset counter. */
+        if (last_annotation != da_reset) {
+          /* We're in the middle of some colorization; temporarily turn it off
+             so the indentation is not colorized. */
+          add_colorization_characters(da_reset);
+        }  /* if */
+        for (i = 0; i < indent; ++i) {
+          add_char_to_text_buffer(write_diagnostic_buffer, ' ');
+        }  /* for */
+        if (last_annotation != da_reset) {
+          add_colorization_characters(last_annotation);
+        }  /* if */
+        last_space = NULL;
+        check_assertion(diagnostic_line_length > (int)indent);
+        chars_left = diagnostic_line_length - indent;
+        new_line = FALSE;
+      }  /* if */
+      /* Tentatively add this character to the buffer (it may be "removed"
+         later for wrapping purposes). */
+      add_char_to_text_buffer(write_diagnostic_buffer, *curr_char);
+      if (wrapping) {
+        if (--chars_left == 0) {
+          /* Time to wrap.  Wrap at a space if possible. */
+          new_line = TRUE;
+          if (*curr_char == ' ') {
+            /* Perfect.  Suppress the trailing space. */
+            write_diagnostic_buffer->size--;
+          } else {
+            /* Process any annotations (since they don't take up any width)
+               before looking at the "next" character. */
+            while (curr_char[1] == DIAG_ANNOTATION_INDICATOR) {
+              if (colorize_diagnostics) {
+                /* Add the appropriate colorization SGR characters and keep
+                   track of what annotation was last used. */
+                last_annotation = (a_diagnostic_annotation_kind)curr_char[2];
+                add_colorization_characters(last_annotation);
+              }  /* if */
+              /* Skip over the two byte annotation. */
+              curr_char += 2;
+            }  /* while */
+            if (curr_char[1] == '\0') {
+              /* End of the buffer. */
+              new_line = FALSE;
+            } else if (curr_char[1] == ' ') {
+              /* Next character is a space, wrap there. */
+              curr_char++;
+            } else if (last_space != NULL) {
+              /* Wrap at the last space we saw. */
+              curr_char = last_space;
+              write_diagnostic_buffer->size = last_space_index - 1;
+              last_annotation = save_last_annotation;
+            } else {
+              /* Wraps in the middle of text. */
+            }  /* if */
+          }  /* if */
+          if (new_line) {
+            add_char_to_text_buffer(write_diagnostic_buffer, '\n');
+          }  /* if */
+          /* Emit the proper indentation and re-set for new line. */
+          indent = continuation_indent;
+        } else if (*curr_char == ' ') {
+          /* Save the location of the last space we've seen. */
+          last_space = curr_char;
+          last_space_index = write_diagnostic_buffer->size;
+          save_last_annotation = last_annotation;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    add_char_to_text_buffer(write_diagnostic_buffer, '\n');
+  } else {
+    segment_start = curr_char;
+    for (;;) {
+      sizeof_t	segment_length;
+      /* Compute the number of characters that will fit on a line taking into
+         account any indentation that is required. */
+      usable_line_length = diagnostic_line_length - indent;
+      /* Put out the required indentation. */
+      for (i = 0; i < indent; ++i) {
+        add_char_to_text_buffer(write_diagnostic_buffer, ' ');
+      }  /* for */
+      if (length > usable_line_length && wrapping) {
+        /* Output as much of the string as will fit on a line.  Wrap
+           at a blank, if possible; otherwise, just wrap at the end of the
+           line. */
         segment_length = usable_line_length;
         curr_char = segment_start + segment_length - 1;
         /* If the character after the end is a blank, wrap on that one. */
@@ -3793,23 +3822,22 @@ indent subsequent lines when the output wraps to more than one line.
         /* If we found a blank, compute the length of the string up to the
            character before the blank. */
         if (*curr_char == ' ') segment_length = curr_char - segment_start;
+        add_to_text_buffer(write_diagnostic_buffer, segment_start,
+                           segment_length);
+        add_char_to_text_buffer(write_diagnostic_buffer, '\n');
+        /* Skip over the blank before starting the next segment. */
+        if (*curr_char == ' ') segment_length++;
+        length -= segment_length;
+        segment_start += segment_length;
+      } else {
+        add_string_to_text_buffer(write_diagnostic_buffer, segment_start);
+        add_char_to_text_buffer(write_diagnostic_buffer, '\n');
+        break;
       }  /* if */
-      add_to_text_buffer(write_diagnostic_buffer, segment_start,
-                         segment_length);
-      add_char_to_text_buffer(write_diagnostic_buffer, '\n');
-      /* Skip over the blank before starting the next segment. */
-      if (*curr_char == ' ') segment_length++;
-      length -= segment_length;
-      segment_start += segment_length;
-    } else {
-write_segment_start:
-      add_string_to_text_buffer(write_diagnostic_buffer, segment_start);
-      add_char_to_text_buffer(write_diagnostic_buffer, '\n');
-      break;
-    }  /* if */
-    /* Set the indentation to be used for subsequent lines. */
-    indent = continuation_indent;
-  }  /* for */
+      /* Set the indentation to be used for subsequent lines. */
+      indent = continuation_indent;
+    }  /* for */
+  }  /* if */
 }  /* format_output_line */
 
 
@@ -6980,12 +7008,12 @@ line processing is done.
   after_end_of_error_source_line = NULL;
   f_err_src_file = NULL;
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-#if ENABLE_COLORIZED_DIAGNOSTICS
-  /* This is initialized to NULL here to disable any colorization of early
-     diagnostics and is enabled in cmd_line.c once f_error has been
-     properly initialized. */
-  color_object = NULL;
-#endif /* ENABLE_COLORIZED_DIAGNOSTICS */
+  /* Annotation (and thus effectively colorization) is disabled here (and
+     re-enabled in cmd_line.c) so early diagnostics work properly. */
+  annotate_diagnostics = FALSE;
+  colorize_diagnostics = DEFAULT_ENABLE_COLORIZED_DIAGNOSTICS;
+  sgr_string_for_colored_diagnostics = NULL;
+  memzero((a_void_ptr)sgr_map, sizeof(sgr_map));
 }  /* error_early_init */
 
 

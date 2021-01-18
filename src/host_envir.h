@@ -1200,35 +1200,19 @@ are enabled or that diagnostic is specifically enabled).
 #endif /* SEQUENCING_DIAGNOSTICS_ENABLED */
 
 /*
-Flag that is TRUE if diagnostics should be "colorized", if possible.  Certain
-portions of diagnostic messages (e.g., the word "error"), have been
-instrumented so that they can be highlighted, hopefully making the diagnostics
-easier to read.  The highlighting is performed by inserting ANSI escape
-sequences into the diagnostic string and those escape sequences are interpreted
-by terminal emulators to produce the desired results.  These escape sequences
-are only emitted when the error device (typically stderr) refers to a terminal
-and the "TERM" environment variable is set.  No check is made to ensure that
-the terminal device is capable of rendering the highlighting nor whether the
-highlighting codes are sensible for the user's terminal emulator.
-
-This colorization can be disabled by any one of:
-  - Using the --no_colors command-line option
-  - Setting the NOCOLORS environment variable
-  - Setting the EDG_COLORS environment to ""
-
-Colorization is always disabled when not writing to a terminal device.
-*/
-#ifndef ENABLE_COLORIZED_DIAGNOSTICS
-#define ENABLE_COLORIZED_DIAGNOSTICS TRUE
-#endif /* ENABLE_COLORIZED_DIAGNOSTICS */
-
-/*
-When ENABLE_COLORIZED_DIAGNOSTICS is TRUE, the
 DEFAULT_ENABLE_COLORIZED_DIAGNOSTICS specifies whether colorized diagnostics
-should be enabled by default.
+should be enabled by default and is the initial value of colorized_diagnostics.
+The --[no_]colors command-line option can be used to override this value.
+Note that even when colorized_diagnostics is TRUE, colorization will be
+disabled when:
+
+  - The diagnostic output is not a terminal device.
+  - The EDG_COLORS environment variable is set to the empty string.
+  - The NOCOLOR environment variable is set.
+  - The TERM environment variable is not set (or is set to "dumb").
 */
 #ifndef DEFAULT_ENABLE_COLORIZED_DIAGNOSTICS
-#define DEFAULT_ENABLE_COLORIZED_DIAGNOSTICS TRUE /* FIXME: for now */
+#define DEFAULT_ENABLE_COLORIZED_DIAGNOSTICS TRUE
 #endif /* DEFAULT_ENABLE_COLORIZED_DIAGNOSTICS */
 
 /*

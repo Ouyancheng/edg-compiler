@@ -1607,12 +1607,10 @@ Initialize the option information table.
                          /*arg_required=*/FALSE, pchek_command_line);
   add_option_description(optk_concepts, "no_concepts", '\0', /*value=*/FALSE,
                          /*arg_required=*/FALSE, pchek_command_line);
-#if ENABLE_COLORIZED_DIAGNOSTICS
   add_option_description(optk_colors, "colors", '\0', /*value=*/TRUE,
                          /*arg_required=*/FALSE, pchek_command_line);
   add_option_description(optk_colors, "no_colors", '\0', /*value=*/FALSE,
                          /*arg_required=*/FALSE, pchek_command_line);
-#endif /* ENABLE_COLORIZED_DIAGNOSTICS */
 }  /* initialize_option_descriptions */
 
 
@@ -7063,11 +7061,6 @@ file.
 #else /* !defined(EMBEDDED_C_ALLOWED) */
   comment_undefined_macro_name(EMBEDDED_C_ALLOWED);
 #endif /* defined(EMBEDDED_C_ALLOWED) */
-#if defined(ENABLE_COLORIZED_DIAGNOSTICS)
-  define_numeric_valued_macro(ENABLE_COLORIZED_DIAGNOSTICS);
-#else /* !defined(ENABLE_COLORIZED_DIAGNOSTICS) */
-  comment_undefined_macro_name(ENABLE_COLORIZED_DIAGNOSTICS);
-#endif /* defined(ENABLE_COLORIZED_DIAGNOSTICS) */
 #if defined(ENABLE_TRANS_UNIT_TEST_MODE)
   define_numeric_valued_macro(ENABLE_TRANS_UNIT_TEST_MODE);
 #else /* !defined(ENABLE_TRANS_UNIT_TEST_MODE) */
@@ -11047,12 +11040,9 @@ enable_microsoft_mode:
       case optk_concepts:
         concepts_enabled = opt_value;
         break;
-#if ENABLE_COLORIZED_DIAGNOSTICS
       case optk_colors:
-        /* FIXME: add documentation */
         colorize_diagnostics = opt_value;
         break;
-#endif /* ENABLE_COLORIZED_DIAGNOSTICS */
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -11814,10 +11804,15 @@ enable_microsoft_mode:
     f_debug = f_error;
 #endif /* DEBUG */
   }  /* if */
-#if ENABLE_COLORIZED_DIAGNOSTICS
-  /* Must be initialized only after f_error is properly set. */
-  color_object = new_general<a_highlight_descr>();
-#endif /* ENABLE_COLORIZED_DIAGNOSTICS */
+  if (option_kind_used[(int)optk_generate_raw_listing]) {
+    /* Silently disable annotation of diagnostics (and thus colorization) if
+       a raw listing file is specified. */
+    colorize_diagnostics = FALSE;
+    annotate_diagnostics = FALSE;
+  } else if (colorize_diagnostics) {
+    /* Must be initialized only after f_error is properly set. */
+    init_colorization();
+  }  /* if */
   /* Set the predefined macro mode values based on the command-line options
      used. */
   set_predef_macro_mode(pmm_gnu, gnu_mode && !clang_mode);
@@ -12503,9 +12498,6 @@ variables declared in cmd_line.h.
   modules_enabled = FALSE;
   lazy_symbols_may_be_visible = FALSE;
   skip_module_imports = FALSE;
-#if ENABLE_COLORIZED_DIAGNOSTICS
-  colorize_diagnostics = DEFAULT_ENABLE_COLORIZED_DIAGNOSTICS;
-#endif /* ENABLE_COLORIZED_DIAGNOSTICS */
 }  /* cmd_line_static_var_init */
 
 

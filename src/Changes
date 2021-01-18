@@ -432,7 +432,7 @@ The items that can currently be highlighted are:
   - "warning": highlights the "warning" keyword
   - "note": highlights the "note" or "remark" keyword
   - "quote": highlights certain fill-in portions of diagnostics
-  - "locus": highlights the initial source location and "^"
+  - "locus": highlights the initial source location
   - "range1": highlights subsequent source locations
 
 Each of these can be assigned a sequence of SGR codes to highlight the
@@ -446,10 +446,12 @@ The string is a colon-separated list of "value"="SGR codes" pairs where
 are unset are not used.  Setting the EDG_COLORS environment variable overrides
 the default value.  If EDG_COLORS is unset, GCC_COLORS is used if set.
 
-The changes above are conditional on ENABLE_COLORIZED_DIAGNOSTICS
-(which defaults to TRUE) and are conditionally enabled by setting
-DEFAULT_ENABLE_COLORIZED_DIAGNOSTICS (which defaults to FALSE).  Additionally,
-colorized diagnostics are also disabled if any of the following are true:
+The changes above are enabled when the new global variable
+colorized_diagnostics is set to TRUE.  The default value for the variable is
+set by the new configuration macro DEFAULT_ENABLE_COLORIZED_DIAGNOSTICS (which
+defaults to TRUE).  Command-line options --[no_]colors have also been added.
+Additionally, colorized diagnostics are also disabled if any of the following
+are true:
 
   - The diagnostic output is not a terminal device.
   - The EDG_COLORS environment variable is set to the empty string.
@@ -457,6 +459,13 @@ colorized diagnostics are also disabled if any of the following are true:
   - The TERM environment variable is not set (or is set to "dumb").
 
 This feature will only work on terminal emulators that support this feature.
+
+When this feature is enabled, diagnostics are "annotated" with information
+describing the beginning and end of each of the highlight-able pieces listed
+above (see the a_diagnostic_annotation_kind enum).  These annotations are then
+converted to SGR codes in format_output_line when colorizing diagnostics, but
+customers could use the annotations to provide their own highlighting (in a
+GUI, for example).
 
 
 12/7/20  [EDGcpfe/23662]
