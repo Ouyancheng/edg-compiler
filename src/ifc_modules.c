@@ -4169,6 +4169,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                   break;
                 default_is_unexpected();
               }  /* switch */
+              check_assertion(ik != (an_integer_kind)ik_none);
               result = integer_type(ik);
               break;
             case ifc_TypeBasis_Float:
@@ -4570,13 +4571,23 @@ argument.
       }
       break;
     case ifc_ExprSort_UnaryFold:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::UnaryFold", &error_position);
+      { an_ifc_ExprSort_UnaryFold iesuf;
+        get_ExprSort_UnaryFold(&iesuf);
+        /* FIXME: Currently unsupported. */
+        issue_unsupported_node_diag("ExprSort::UnaryFold", &error_position);
+        kind = (a_templ_arg_kind)tak_type;
+        type = error_type();
+      }
       break;
     case ifc_ExprSort_PackedTemplateArguments:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::PackedTemplateArguments",
-                                  &error_position);
+      { an_ifc_ExprSort_PackedTemplateArguments iespta;
+        get_ExprSort_PackedTemplateArguments(&iespta);
+        /* FIXME: Currently unsupported. */
+        issue_unsupported_node_diag("ExprSort::PackedTemplateArguments",
+                                    &error_position);
+        kind = (a_templ_arg_kind)tak_type;
+        type = error_type();
+      }
       break;
     case ifc_ExprSort_Read:
       { an_ifc_ExprSort_Read iesr, *iesrp;
@@ -4859,6 +4870,7 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
           get_NameSort_Template(&inst);
           /* FIXME: Currently unsupported. */
           issue_unsupported_node_diag("NameSort::Template", &error_position);
+          result = "<error-name>";
         }
         break;
       case ifc_NameSort_Specialization:
@@ -4867,6 +4879,7 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
           /* FIXME: Currently unsupported. */
           issue_unsupported_node_diag("NameSort::Specialization",
                                       &error_position);
+          result = "<error-name>";
         }
         break;
       case ifc_NameSort_Guide:
@@ -4874,6 +4887,7 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
           get_NameSort_Guide(&insg);
           /* FIXME: Currently unsupported. */
           issue_unsupported_node_diag("NameSort::Guide", &error_position);
+          result = "<error-name>";
         }
         break;
       case ifc_NameSort_Identifier:

@@ -3260,8 +3260,8 @@ position of the first reference of the instance specified by "sym".
 
   a_source_position	*result_pos = scope_stack_pos;
 
-  conv_seq_to_file_and_line(scope_stack_pos->seq, &file_name, &full_name,
-                            &line_number, &at_end_of_source);
+  (void)conv_seq_to_file_and_line(scope_stack_pos->seq, &file_name, &full_name,
+                                  &line_number, &at_end_of_source);
   if (at_end_of_source) {
     a_template_instance_ptr	tip = NULL;
     /* Get the template instance (if any) associated with this symbol. */

@@ -3319,7 +3319,7 @@ routine.
   for (curr_depth = start_depth; curr_depth > end_depth;
        curr_depth = ssep->previous_scope) {
     a_scope_kind	kind;
-    ssep = scope_stack_entry_for(curr_depth);
+    ssep = &scope_stack[curr_depth];
     if (curr_scope_skipped && lookup_state->skip_curr_scope &&
         lookup_state->hidden_name_lookup &&
         ssep->kind == (a_scope_kind)sck_template_instantiation) {

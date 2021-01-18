@@ -10685,7 +10685,7 @@ used for C++ constructs like "operator+".  Use pos as the source position.
   sizeof_t            opname_length;
 
   clear_locator(locator, pos);
-  if (opname == onk_none) {
+  if (opname == (an_opname_kind)onk_none) {
     set_to_error_locator(*locator);
     goto done;
   }  /* if */
