@@ -14784,12 +14784,35 @@ call.
       } else {
         /* Specific routine is not known (e.g., call through a pointer). */
         a_boolean need_parens = TRUE;
+        a_boolean is_dependent_expr = FALSE;
+        if (is_constant_node(func_expr) &&
+            constant_is(node_constant(func_expr), ck_template_param) &&
+            tpck_is(node_constant(func_expr), tpck_expression)) {
+          is_dependent_expr = TRUE;
+        }  /* if */
         func_expr = assoc_expr_if_constant(func_expr);
         if (func_expr->kind == (an_expr_node_kind)enk_temp_init) {
           /* Do not use extra parentheses to avoid syntactic ambiguity:
              (X()) is a cast to a function type, not an explicit
              temporary. */
           need_parens = FALSE;
+        } else if (is_dependent_expr && is_operation_node(func_expr) &&
+                   (node_operator_is(func_expr, eok_dot_static) ||
+                    node_operator_is(func_expr, eok_points_to_static)) &&
+                   is_constant_node(func_expr->
+                                           variant.operation.operands->next)) {
+          a_constant_ptr con =
+                    node_constant(func_expr->variant.operation.operands->next);
+          if (constant_is(con, ck_template_param) &&
+              tpck_is(con, tpck_destructor)) {
+            /* Do not parenthesize the dependent destructor expression.  If
+               an instantiation with a scalar type occurs, resulting in a
+               pseudo-destructor reference, such an expression is permitted
+               only as the direct first operand of a call expression, and
+               enclosing the expression in parentheses would violate that
+               requirement. */
+            need_parens = FALSE;
+          }  /* if */
         }  /* if */
         gen_expr(func_expr, need_parens, /*obj_expr_of_mfunc_operator=*/FALSE);
       }  /* if */

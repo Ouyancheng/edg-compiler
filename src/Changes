@@ -1,5 +1,27 @@
 Version 6.2
 
+1/18/21  [EDGcpfe/23688]
+C++-generating back end: parenthesized dependent destructor invocation
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, when the C++-generating back end generated code
+for an explicit invocation of the destructor of a dependent type it
+enclosed the member access expression designating the destructor in
+unnecessary parentheses.  If the template is instantiated with a scalar
+type, forming a pseudo-destructor call, the resulting expression violated
+the C++ Standard's requirement that a pseudo-destructor reference be the
+direct operand of a call operation.  This is now fixed; the redundant
+parentheses are omitted in such cases.  For example, with --c++14:
+
+  template<typename T> void f(void *vp) {
+    auto p = (const T *)vp;
+    p->~T();   // Previously generated as (p->~T)()
+  }
+  void g() {
+    f<int>(nullptr);
+  }
+
+
 1/18/21  [EDGcpfe/23684]
 Microsoft compatibility: __assume
 
