@@ -3127,13 +3127,16 @@ specializations.
      which was inserted to mark the end of the cached token stream.
      If necessary, keep flushing until end-of-source is found. */
   flush_past_token_cache_terminator();
+  /* Discard the cached tokens now.  In some cases that avoid an attempt at
+     scanning the cache twice. */
+  discard_token_cache(&rfp->function_body_token_cache);
   /* Make sure various flags are set correctly in the routine entry.  This
      won't have been done before, since decl_routine was called for a
      declaration, not a definition.  Note that the defined flag must be
      set after scan_function_body has been called as in some cases it
      tests the defined flag to detect duplicate definitions. */
   rp->defined = TRUE;
-  ((a_symbol_ptr)rp->source_corresp.assoc_info)->defined = TRUE;
+  symbol_for(rp)->defined = TRUE;
   if (rp->is_in_class_specialization) {
     /* The fixup was for an in-class specialization, not for a friend
        declaration: Nothing needs to be done. */
