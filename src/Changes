@@ -31,6 +31,17 @@ is not executed and had, in cases where the expression had side-effects,
 been removed from the IL during lowering (replaced with a cast of zero to the
 correct type).  A change has been made to lower the operand of __assume in
 all cases, thereby allowing a back end to see the entire (lowered) operand.
+For example, with --microsoft:
+
+  struct A {
+    A(int);
+    ~A();
+    operator bool();
+  };
+  int main() {
+    __assume(bool(A(1)));
+    return 0;
+  }
 
 This is a slight IL CHANGE and back ends should ensure that the operand of
 an eok_assume is not evaluated.
