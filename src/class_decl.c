@@ -18117,14 +18117,16 @@ template declaration and is NULL otherwise.
     }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  /* Record the symbol declaration.  Usually it is a pure declaration (and the
-     definition must appear outside the class definition), but in C++/CLI an
-     in-class initializer makes the declaration a definition too.  Also,
-     in C++17, an inline (either explicit or implicit) static data member
-     is considered a definition. */
-  if (var->initializer_in_class) srk_flags |= SRK_INITIALIZATION;
-  record_symbol_declaration(srk_flags, sym, &locator->source_position,
-                            decl_state->source_sequence_entry);
+  if (!locator->is_error) {
+    /* Record the symbol declaration.  Usually it is a pure declaration (and
+       the definition must appear outside the class definition), but in C++/CLI
+       an in-class initializer makes the declaration a definition too.  Also,
+       in C++17, an inline (either explicit or implicit) static data member is
+       considered a definition. */
+    if (var->initializer_in_class) srk_flags |= SRK_INITIALIZATION;
+    record_symbol_declaration(srk_flags, sym, &locator->source_position,
+                              decl_state->source_sequence_entry);
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   update_decl_pos_info(&var->source_corresp, &decl_info->decl_pos_block);
   if (var->is_member_constant) {
@@ -18138,7 +18140,7 @@ template declaration and is NULL otherwise.
       name_ref->used_in_primary_declarator = TRUE;
     }  /* if */
   }  /* if */
-  if (!source_sequence_entries_disallowed) {
+  if (!source_sequence_entries_disallowed && !locator->is_error) {
     if (declared_type == NULL) declared_type = member_type;
     if (symbol_is(sym, sk_variable_template)) {
       a_src_seq_secondary_decl_ptr sssdp;

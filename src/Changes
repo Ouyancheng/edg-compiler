@@ -1,5 +1,36 @@
 Version 6.2
 
+1/19/21  [EDGcpfe/23510]
+Assertion failure in unlink_src_seq_entries after static data member error
+
+In somewhat unusual error cases, the front end aborted with an internal error
+in unlink_src_seq_entries (src_seq.c) while parsing a static data member
+declaration (usually, this involved severe preceding syntax errors).  This
+problem occurred in configurations with the configuration macro
+TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE.  For example:
+
+  template<typename T>
+  struct HK {
+    static T const& f(T const& v) {
+      return v;
+    }
+  };
+  template<typename K, typename T>
+  struct HK<HV<K, T>> {         // Error: HV undeclared
+    typedef HV<K, T>  VT;
+    typedef P<K const, T>  CT;  // Error: P undeclared
+    template<typename U> static 
+      typename E<S<U, VT>::value, CT const&>::type f(U &p) {  // (1)
+        return p.f();
+      }
+  };
+
+Due to several identifiers (HV, P, and E) not being declared, angle brackets
+are not recognized as such and (1) is parsed as a static data member
+declaration.  Previously, the front end's error recovery measures were
+insufficient and it aborted as described above.  That problem is now fixed.
+
+
 1/18/21  [EDGcpfe/23688]
 C++-generating back end: parenthesized dependent destructor invocation
 
