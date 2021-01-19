@@ -3127,7 +3127,7 @@ specializations.
      which was inserted to mark the end of the cached token stream.
      If necessary, keep flushing until end-of-source is found. */
   flush_past_token_cache_terminator();
-  /* Discard the cached tokens now.  In some cases that avoid an attempt at
+  /* Discard the cached tokens now.  In some cases that avoids an attempt at
      scanning the cache twice. */
   discard_token_cache(&rfp->function_body_token_cache);
   /* Make sure various flags are set correctly in the routine entry.  This
