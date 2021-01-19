@@ -622,7 +622,7 @@ static a_recorded_diagnostic_ptr
 static inline void annotate_diagnostic(a_text_buffer_ptr            buffer,
                                        a_diagnostic_annotation_kind kind)
 /*
-Emits, in buffer, the "escape" sequence (DIAG_ANNOTATION_INDICATOR) followed
+Emit, in buffer, the "escape" sequence (DIAG_ANNOTATION_INDICATOR) followed
 by the kind of annotation, but only if annotations are enabled.
 */
 {
@@ -671,7 +671,7 @@ Perform initialization to enable colorization of diagnostics.
 {
   check_assertion(colorize_diagnostics);
   if (getenv("NOCOLOR") != NULL) {
-    /* Set the NOCOLOR environment variable to disable colorization. */
+    /* Do not colorize if the NOCOLOR environment variable is set. */
     colorize_diagnostics = FALSE;
   } else if (!terminal_is_color_capable()) {
     /* Only colorize if errors are being sent to a terminal. */
@@ -3693,7 +3693,7 @@ indent subsequent lines when the output wraps to more than one line.
   sizeof_t	indent = first_indent;
   sizeof_t	length = prefix_buffer->size - 1;
   sizeof_t	i;
-  a_boolean     wrapping = !do_not_wrap_diagnostics && !brief_diagnostics;
+  a_boolean	wrapping = !do_not_wrap_diagnostics && !brief_diagnostics;
 
   curr_char = prefix_buffer->buffer;
   if (annotate_diagnostics) {
@@ -3709,14 +3709,14 @@ indent subsequent lines when the output wraps to more than one line.
        annotations are removed. */
     a_const_char *last_space = NULL;
     sizeof_t     last_space_index = 0;
-    sizeof_t     chars_left;
+    sizeof_t     chars_left = 0;
     a_boolean    new_line = TRUE;
     a_diagnostic_annotation_kind
-                 save_last_annotation, last_annotation = da_reset;
+                 save_last_annotation = da_reset, last_annotation = da_reset;
     /* Assumes the error message is null terminated. */
     check_assertion(prefix_buffer->buffer[prefix_buffer->size-1] == '\0');
+    /*lint --e{850} */
     for (; *curr_char != '\0'; curr_char++) {
-check_assertion(curr_char <= &prefix_buffer->buffer[prefix_buffer->size]);
       while (*curr_char == DIAG_ANNOTATION_INDICATOR) {
         if (colorize_diagnostics) {
           /* Add the appropriate colorization SGR characters and keep track

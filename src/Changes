@@ -458,7 +458,7 @@ diagnostics emitted by the front end (similar to the behavior of GNU and
 clang).
 
 Portions of diagnostic messages have been instrumented to enable highlighting
-of them via various escape sequences (Select Graphic Rendition or SGR) codes
+of them via various escape sequences (Select Graphic Rendition or SGR codes)
 that are generally recognized by many terminals and/or terminal emulators.
 See https://en.wikipedia.org/wiki/ANSI_escape_code#SGR_parameters for a list.
 
@@ -497,7 +497,7 @@ are true:
 This feature will only work on terminal emulators that support this feature.
 
 When this feature is enabled, diagnostics are "annotated" with information
-describing the beginning and end of each of the highlight-able pieces listed
+describing the beginning and end of each of the highlightable pieces listed
 above (see the a_diagnostic_annotation_kind enum).  These annotations are then
 converted to SGR codes in format_output_line when colorizing diagnostics, but
 customers could use the annotations to provide their own highlighting (in a

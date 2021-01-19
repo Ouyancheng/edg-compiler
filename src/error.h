@@ -866,7 +866,7 @@ unsigned long show_error_space_used(void);
 #endif /* DEBUG */
 
 /*
-A character that shall not normally appear in diagnostic messages that is used
+A character that cannot otherwise appear in diagnostic messages that is used
 to indicate that the character that follows indicates the type of annotation
 (and has a value from the a_diagnostic_annotation_kind enumeration).
 Default to use the ESCAPE character.
@@ -890,7 +890,7 @@ enum a_diagnostic_annotation_kind : char {
 };
 
 /*
-For colorization of diagnostics, this maps an annotate-able entity to
+For colorization of diagnostics, this maps an annotatable entity to
 the SGR character codes that should be used to display that entity.
 */
 typedef struct an_sgr_string {
@@ -922,7 +922,7 @@ EXTERN a_boolean
 EXTERN a_const_char
                 *sgr_string_for_colored_diagnostics;
                         /* A string that contains the SGR codes for all of the
-                           highlight-able diagnostic entities.  Entities that
+                           highlightable diagnostic entities.  Entities that
                            are not specified in the string are not highlighted.
                            */
 extern void init_colorization(void);

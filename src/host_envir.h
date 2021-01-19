@@ -1206,7 +1206,7 @@ The --[no_]colors command-line option can be used to override this value.
 Note that even when colorized_diagnostics is TRUE, colorization will be
 disabled when:
 
-  - The diagnostic output is not a terminal device.
+  - The diagnostic output is not directed to a terminal device.
   - The EDG_COLORS environment variable is set to the empty string.
   - The NOCOLOR environment variable is set.
   - The TERM environment variable is not set (or is set to "dumb").
