@@ -8874,6 +8874,21 @@ to FALSE and the reason for the failure is recorded in *ips.
         }  /* if */
       }  /* if */
       break;
+    case bfk_assume:
+      /* The argument to __builtin_assume is not evaluated. */
+      if (args == NULL || args->next != NULL) {
+        unexpected_condition();
+      } else {
+        interpreted = TRUE;
+          if (ips->curr_call_frame == NULL &&
+              !ips->is_constant_evaluated) {
+          /* Do not fold a __builtin_assume call inside a function unless a
+             constant-expression is really needed.  Otherwise, the
+             __builtin_assume call might become invisible to the back end. */
+          do_constexpr_fail(*p_result);
+        }  /* if */
+      }  /* if */
+      break;
     default:
       interpreted = FALSE;
   }  /* switch */

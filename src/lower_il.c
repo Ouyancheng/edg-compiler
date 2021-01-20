@@ -13498,12 +13498,8 @@ detached from the IL tree; otherwise it is set to FALSE.
     }  /* if */
 #endif /* MINIMAL_INLINING */
 #if BUILTIN_FUNCTIONS_ENABLED
-    if (is_operation_node(call_expr) &&
-        node_operator_is(call_expr, eok_call) &&
-        routine != NULL &&
-        routine->special_kind == (a_special_function_kind)sfk_none &&
-        routine->variant.builtin_function_kind !=
-                                           (a_builtin_function_kind)bfk_none) {
+    if (is_call_to_builtin_function(call_expr,
+                                    (a_builtin_function_kind)bfk_none)) {
       /* Calling a builtin function; see if there is any lowering needed
          for it. */
       lower_builtin_function_call(call_expr);
@@ -16418,6 +16414,37 @@ cast.  See lower_expr for typical invocation.
         /* Cast of pointer-to-member to base or derived class is rewritten.
            This call also lowers any subtree. */
         lower_pm_related_class_cast(expr);
+      } else if (is_call_to_builtin_function(expr,
+                                           (a_builtin_function_kind)bfk_assume)
+#if MICROSOFT_EXTENSIONS_ALLOWED
+                 || op == (an_expr_operator_kind)eok_assume
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+                                                           ) {
+        /* The argument to __assume or __builtin_assume is not evaluated;
+           issue a warning to that effect if the argument has side-effects.
+           This check must be done prior to lowering the argument. */
+        an_expr_node_ptr assume_arg = operand_node;
+        a_boolean is_assume = (op != (an_expr_operator_kind)eok_call);
+        if (!is_assume) {
+          assume_arg = assume_arg->next;
+        }  /* if */
+        if (node_has_side_effects(assume_arg, (a_boolean *)NULL)) {
+          pos_st_warning(ec_assume_expression_discarded,
+                         assume_arg->position.seq == 0 ? &error_position :
+                                                         &assume_arg->position,
+                         is_assume ? "__assume" : "__builtin_assume");
+        }  /* if */
+        /* Lower the expression so a back end can process it (i.e., to do
+           whatever optimization is relevant).  It is up to the back end to
+           ensure that the operation is not evaluated.  Note that lowering of
+           the operand may result in temporaries being created (and possibly
+           initialized). */
+        if (is_assume) {
+          lower_expr(assume_arg);
+        } else {
+          lower_call(expr, (an_init_pos_descr_ptr)NULL, (a_statement_ptr)NULL,
+                     (a_boolean *)NULL);
+        }  /* if */
       } else if (is_call_node(expr)) {
         /* Calls of various kinds. */
         lower_call(expr, (an_init_pos_descr_ptr)NULL, (a_statement_ptr)NULL,
@@ -16429,23 +16456,6 @@ cast.  See lower_expr for typical invocation.
            lowered, to allow an optimization on comparisons to constants. */
         lower_pm_comparison(expr, /*operand1_lowered=*/FALSE);
         change_result_type_of_operator_returning_bool(expr);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      } else if (op == (an_expr_operator_kind)eok_assume) {
-        if (node_has_side_effects(operand_node, (a_boolean *)NULL)) {
-          /* Issue a warning to let the user know we're ignoring
-             this __assume expression. */
-          pos_warning(ec_assume_expression_discarded,
-                      expr->variant.operation.operands->position.seq == 0 ?
-                                  &error_position :
-                                  &expr->variant.operation.operands->position);
-        }  /* if */
-        /* Lower the expression so a back end can process it (i.e., to do
-           whatever optimization is relevant).  It is up to the back end to
-           ensure that the operation is not evaluated.  Note that lowering of
-           the operand may result in temporaries being created (and possibly
-           initialized). */
-        lower_expr(operand_node);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (op == (an_expr_operator_kind)eok_indirect &&
                  !expr->is_lvalue &&
                  is_optimizable_temp_init_indirection(expr, &temp_init_node)) {

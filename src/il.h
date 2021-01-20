@@ -556,6 +556,16 @@ extern a_lambda_ptr get_current_lambda(void);
 
 extern a_namespace_ptr namespace_enclosing_class(a_type_ptr  tp);
 
+extern a_routine_ptr routine_and_node_from_function_expr(
+                                                       an_expr_node_ptr expr,
+                                                       an_expr_node_ptr *node);
+
+/*
+Convenience macro to call routine_and_node_from_function_expr when the call
+node is not needed.
+*/
+#define routine_from_function_expr(expr) \
+  (routine_and_node_from_function_expr(expr, (an_expr_node_ptr*)NULL))
 /*
 Macro to test a routine entry's special_kind field.
 */
@@ -589,12 +599,37 @@ function of the given kind.
          rp->variant.builtin_function_kind == (a_builtin_function_kind)bfk;
 }  /* is_specific_builtin */
 
+
+inline a_boolean is_call_to_builtin_function(an_expr_node_ptr        expr,
+                                             a_builtin_function_kind bfk)
+/*
+Return TRUE if the expression is a call to a builtin function (when bfk
+is bfk_none) or a call to a specific builtin function (otherwise).
+*/
+{
+  a_boolean result = FALSE;
+
+  if (expr->kind == (an_expr_node_kind)enk_operation &&
+      expr->variant.operation.kind == (an_expr_operator_kind)eok_call) {
+    a_routine_ptr rp =
+                  routine_from_function_expr(expr->variant.operation.operands);
+    if (rp != NULL) {
+      result = (bfk == (a_builtin_function_kind)0) ?
+                                                  is_gnu_builtin_function(rp) :
+                                                  is_specific_builtin(rp, bfk);
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_call_to_builtin_function */
+
 #define rout_is_specific_builtin(rp, bfk)                                   \
    is_specific_builtin(rp,(a_builtin_function_kind)(bfk))
 #else /* !BUILTIN_FUNCTIONS_ENABLED */
 #define is_gnu_builtin_function(rp) FALSE
 /*lint -emacro(506,rout_is_specific_builtin)*/
 #define rout_is_specific_builtin(rp, bfk) FALSE
+/*lint -emacro(506,is_call_to_builtin_function)*/
+#define is_call_to_builtin_function(rp, bfk) FALSE
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 /*
@@ -1032,16 +1067,6 @@ extern a_type_ptr make_routine_type(a_type_ptr        return_type,
                                     a_type_ptr        param5_type = NULL,
                                     a_type_ptr        param6_type = NULL,
                                     a_type_ptr        param7_type = NULL);
-
-extern a_routine_ptr routine_and_node_from_function_expr(
-                                                       an_expr_node_ptr expr,
-                                                       an_expr_node_ptr *node);
-/*
-Convenience macro to call routine_and_node_from_function_expr when the call
-node is not needed.
-*/
-#define routine_from_function_expr(expr) \
-  (routine_and_node_from_function_expr(expr, (an_expr_node_ptr*)NULL))
 
 extern a_type_ptr add_param_type(a_type_ptr  rout_type,
                                  a_type_ptr  param_type);
