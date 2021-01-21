@@ -221,7 +221,7 @@ change was originally made by EDGcpfe/15604 et al.
 1/6/21   [EDGcpfe/23738]
 Divide by zero floating-point exception
 
-The front end could trigger an divide by zero floating-point exception
+The front end could trigger a divide by zero floating-point exception
 (in decompose_vector_binary_operation) when folding certain vector operations.
 Now fixed.  For example (with --g++):
 
