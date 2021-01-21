@@ -604,7 +604,9 @@ inline a_boolean is_call_to_builtin_function(an_expr_node_ptr        expr,
                                              a_builtin_function_kind bfk)
 /*
 Return TRUE if the expression is a call to a builtin function (when bfk
-is bfk_none) or a call to a specific builtin function (otherwise).
+is bfk_none) or a call to a specific builtin function (otherwise).  Note that
+this code occurs early in the compilation process of the front end so 0 is
+used in place of bfk_none below (and convenience macros are also unavailable).
 */
 {
   a_boolean result = FALSE;
