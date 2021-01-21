@@ -161,6 +161,23 @@ access to freed memory in configurations in which MAKE_FRONT_END_CALLABLE
 is TRUE.  This is now fixed.
 
 
+1/12/21  [EDGcpfe/23664]
+Failure to treat certain dependent qualifiers as nondeducible
+
+Consider:
+
+  template<typename> struct V { typedef void Type; };
+  template <typename, typename = void> struct X;
+  template <typename T> struct X< T, typename V<decltype(bool(T()))>::Type> {
+    static constexpr bool value = true;
+  };
+  static_assert(X<int>::value, "");  // Previously an error.  Now okay.
+
+The front end previously did not match X<int> to the partial specialization
+because it did not consider V<decltype(bool(T()))>::Type to be nondeducible.
+That is now fixed (and the case above is now accepted).
+
+
 1/11/21  [EDGcpfe/23700]
 Temporary eliminated in lowering of class rvalue-returning comma operation
 

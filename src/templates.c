@@ -13001,13 +13001,18 @@ points to the template parameter list.
                that results from the substitution of the template
                argument values will be checked later. */
             ttp = parent_class_of(templ_type);
-            if (class_type_supp(ttp)->proxy_of_type != NULL) {
-              /* The type is a member of a proxy class.  Substitute the
-                 original template parameter for the proxy class in
-                 the matching process. */
-              ttp = class_type_supp(ttp)->proxy_of_type;
+            if (ttp->variant.class_struct_union.is_nonreal_class) {
+              /* The parent class is dependent. */
+              match = TRUE;
+            } else {
+              if (class_type_supp(ttp)->proxy_of_type != NULL) {
+                /* The type is a member of a proxy class.  Substitute the
+                   original template parameter for the proxy class in
+                   the matching process. */
+                ttp = class_type_supp(ttp)->proxy_of_type;
+              }  /* if */
+              match = is_or_contains_template_param(ttp);
             }  /* if */
-            match = is_or_contains_template_param(ttp);
           }  /* if */
         } /* if */
       }  /* if */
