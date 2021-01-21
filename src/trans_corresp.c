@@ -3499,10 +3499,6 @@ Return TRUE if the given using declarations refer to corresponding entities.
                ud1->entity.kind == (a_byte_il_entry_kind)iek_routine ||
                ud1->entity.kind == (a_byte_il_entry_kind)iek_variable ||
                ud1->entity.kind == (a_byte_il_entry_kind)iek_template) {
-      /* This can happen when the qualifier type is a Microsoft nonreal
-         instantiation. */
-      check_assertion(ud1->qualifier.class_type->variant.class_struct_union
-                                            .is_ms_instantiated_nonreal_class);
       a_type_ptr tp1, tp2;
       if (ud1->entity.kind == (a_byte_il_entry_kind)iek_type) {
         tp1 = (a_type_ptr)ud1->entity.ptr;
