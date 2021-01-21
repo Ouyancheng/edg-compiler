@@ -8880,8 +8880,8 @@ to FALSE and the reason for the failure is recorded in *ips.
         unexpected_condition();
       } else {
         interpreted = TRUE;
-          if (ips->curr_call_frame == NULL &&
-              !ips->is_constant_evaluated) {
+        if (ips->curr_call_frame == NULL &&
+            !ips->is_constant_evaluated) {
           /* Do not fold a __builtin_assume call inside a function unless a
              constant-expression is really needed.  Otherwise, the
              __builtin_assume call might become invisible to the back end. */
