@@ -23,6 +23,34 @@ example:
 This has now been fixed.
 
 
+1/21/21  [EDGcpfe/23479]
+Multiple translation units: DMIs in class templates not being scanned
+
+In configurations that support multiple translation units, the front end skips
+instantiations in secondary TUs when those instantiations have already been
+done.  For class templates that have fields with initializers, this could lead
+to the field initializers not being scanned in those secondary TUs, causing
+the front end to abort in prepare_for_trans_unit_copy.  For example, if two
+TUs both contain:
+
+  template<bool> struct X;
+  struct Y {
+    static constexpr bool val = true;
+  };
+  template<typename T> struct Z
+  {
+    using MY = Y;
+    using MX = X<MY::val>;
+    int mem_var = 0;
+    Z() {}
+  };
+  struct Foo {
+    Z<int> var{};
+  };
+
+This is now fixed.
+
+
 1/20/21  [EDGcpfe/23683]
 Clang compatibility: __builtin_assume
 

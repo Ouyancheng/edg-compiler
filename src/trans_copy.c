@@ -1377,8 +1377,8 @@ to the secondary translation unit.
           a_field_ptr corresp_field = (a_field_ptr)canonical_il_entry_of(fp);
           merge_entity_details(&fp->source_corresp,
                                &corresp_field->source_corresp);
-          check_assertion((fp->initializer == NULL) ==
-                          (corresp_field->initializer == NULL));
+          check_assertion(corresp_field->initializer != NULL ||
+                          fp->initializer == NULL);
         }  /* for */
       }  /* if */
       /* Now that we've transferred any information we needed from the
