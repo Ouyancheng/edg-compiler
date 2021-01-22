@@ -21019,6 +21019,7 @@ typedef struct a_generated_special_function_descr {
   a_boolean	move_ctor_not_constexpr;
   a_boolean	copy_assign_not_constexpr;
   a_boolean	move_assign_not_constexpr;
+  a_boolean	dtor_not_constexpr;
 			/* Flags that are TRUE if the corresponding generated
 			   special member should not be constexpr (because it
 			   requires a call to a nonconstexpr subobject
@@ -21047,6 +21048,7 @@ Clear the fields of the given structure.
   descr->move_ctor_not_constexpr = FALSE;
   descr->copy_assign_not_constexpr = FALSE;
   descr->move_assign_not_constexpr = FALSE;
+  descr->dtor_not_constexpr = FALSE;
 }  /* init_generated_special_function_descr */
 
 
@@ -21393,6 +21395,13 @@ skip_assignment_operators:
       /* A variant field with a nontrivial destructor suppresses the generation
          of a destructor. */
       gsfd->suppress_dtor = TRUE;
+    } else {
+      a_routine_ptr  rp = cssp->destructor->variant.routine.ptr;
+      if (!rp->is_constexpr) {
+        /* If this special member has to call a non-constexpr special member,
+           it is itself not constexpr. */
+        gsfd->dtor_not_constexpr = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
 done:
@@ -22441,8 +22450,9 @@ special member functions (e.g., whether they're suppressed).
 }  /* generate_move_assignment_operator */
 
 
-static void generate_destructor(a_class_def_state_ptr  class_state,
-                                a_boolean              suppressed)
+static void generate_destructor(
+                              a_class_def_state_ptr               class_state,
+                              a_generated_special_function_descr  *gsfd)
 /*
 Add a declaration for a destructor to the class definition described by
 class_state.  If suppressed is TRUE, make that destructor "deleted" (or, in
@@ -22459,8 +22469,11 @@ some Microsoft modes, record that the body cannot be generated).
   clear_func_info(&func_info);
   generate_special_function(class_state, &decl_info, &func_info,
                             (a_param_type_ptr)NULL);
-  if (suppressed) {
+  if (gsfd->suppress_dtor) {
     mark_special_member_suppressed(decl_info.decl_state.sym);
+  } else if (constexpr_enabled && !gsfd->dtor_not_constexpr &&
+             constexpr_dynamic_alloc_enabled) {
+    decl_info.decl_state.sym->variant.routine.ptr->is_constexpr = TRUE;
   }  /* if */
 }  /* generate_destructor */
 
@@ -23611,7 +23624,7 @@ The routine body is not generated until it is known to be needed.
       class_type->variant.class_struct_union.dtor_decl_suppressed = TRUE;
     } else {
       /* Add the declaration of the destructor. */
-      generate_destructor(class_state, gsfd.suppress_dtor);
+      generate_destructor(class_state, &gsfd);
     }  /* if */
   } else if (cssp->destructor != NULL) {
     a_routine_ptr  rp = cssp->destructor->variant.routine.ptr;

@@ -1,5 +1,23 @@
 Version 6.2
 
+1/22/21  [EDGcpfe/23796]
+Nontrivial generated constexpr destructors
+
+The front end previously always treated nontrivial generated destructors as not
+being constexpr.  However, that is not correct behavior if the generated
+destructor never calls a non-constexpr destructor.  For example (C++20 mode):
+
+  struct S {
+    constexpr ~S() {}
+  };
+  class C { S s; };
+  constexpr C c{};  // Previously an error.  Now okay.
+
+Previously, the front treated the (generated) destructor of C as non-constexpr.
+Now, it is considered a constexpr member function because it only calls the
+destructor of S, which is itself constexpr.
+
+
 1/21/21  [EDGcpfe/23597]
 Enum bit field initialization in Microsoft mode
 
