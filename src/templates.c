@@ -36379,12 +36379,8 @@ unless the SIR_CLEAR_VALUE flag is set in "options".
 #endif /* DEBUG */
   /* Master instances are created immediately in the primary translation unit,
      but in secondary translation units they are only established after
-     correspondence checking has been done.  Constructors always need to be
-     instantiated whether or not the master instance already has an
-     instantiation, because the constructor initializers can trigger scanning
-     of deferred entities, such as field initializers. */
+     correspondence checking has been done. */
   use_master_instance = is_primary_translation_unit ||
-                        is_constructor_symbol(sym) ||
                         in_instantiation_wrapup || rout_is_constexpr;
   if (use_master_instance) {
     if (tip->master_instance == NULL) {
