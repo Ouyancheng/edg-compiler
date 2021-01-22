@@ -1,5 +1,28 @@
 Version 6.2
 
+1/21/21  [EDGcpfe/23597]
+Enum bit field initialization in Microsoft mode
+
+In Microsoft mode, enum bit fields are treated as their underlying type when
+initializing, due to the Microsoft compiler allowing integral types to be used
+as initializers.  Unfortunately, this caused a spurious error when initializing
+a scoped enum bit field with an enumerator belonging to that scoped enum.  For
+example:
+
+  enum class E
+  {
+    A = 0x0, B = 0x1
+  };
+  struct X {
+    E member1 : 2;
+    E member2 : 2;
+  };
+  X var{E::A, E::B}; // Attempt to initialize an "int" with an enum class
+  X var2{0, 1}; // Ill-formed, still accepted in Microsoft mode
+
+This has now been fixed.
+
+
 1/21/21  [EDGcpfe/23479]
 Multiple translation units: DMIs in class templates not being scanned
 

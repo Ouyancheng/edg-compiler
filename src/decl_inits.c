@@ -3013,8 +3013,23 @@ position is available).
          initialized by integer values.  We emulate this by converting to the
          underlying integer type, and then converting the result back to the
          enumeration type. */
-      dtype = integer_type(skip_typerefs(dtype)->variant.integer.int_kind);
-      ms_enum_bit_field = TRUE;
+      an_init_component_ptr eicp = icp;
+      /* We need to find out whether the type of the initializer is an enum
+         type or not - otherwise we may wind up trying to initialize an "int"
+         with an enum.  Step through any enclosing braces - so long as they
+         only enclose a single element. */
+      while (is_braced_init_component(eicp)) {
+        if (eicp->variant.braced.list == NULL ||
+            eicp->variant.braced.list->next != NULL) {
+          break;
+        }  /* if */
+        eicp = eicp->variant.braced.list;
+      }  /* while */
+      if (is_expression_component(eicp) &&
+          is_integral_type(operand_of_arg_list_elem(eicp)->type)) {
+        dtype = integer_type(skip_typerefs(dtype)->variant.integer.int_kind);
+        ms_enum_bit_field = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   if ((fp->next == NULL || class_type->kind == (a_type_kind)tk_union) &&
