@@ -1,5 +1,26 @@
 Version 6.2
 
+1/22/21  [EDGcpfe/23797]
+Missing destructor evaluation in constexpr initialization
+
+Consider:
+
+  struct S {
+    int *m;
+    constexpr S(): m(new int{}) {}
+    constexpr ~S() { delete m; }
+  };
+  constexpr int f(const S&) { return 0; }
+  constexpr int i{ f(S{}) };  // Previously an error.  Now okay.
+
+Previously, the front end failed to evaluate the destructor for the temporary
+created by the expression S{}.  In turn, that caused the dynamic allocation in
+the constructor of S not to have a matching deallocation, and an error was
+issued claiming the initializer for i is not a constant because not all dynamic
+allocations were freed at the end of the evaluation.  That is now fixed: The
+destructor for S{} is not evaluated, and the example above is accepted.
+
+
 1/22/21  [EDGcpfe/12122,EDGcpfe/23794,EDGcpfe/23799]
 Clang compatibility: additional builtin type intrinsics
 

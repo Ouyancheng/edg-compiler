@@ -19093,11 +19093,21 @@ if the caller has determined that reinterpret_cast expressions can be folded
       if (!copy_interpreter_object_to_constant(
                                          &ips, result_storage, result_storage,
                                          result_type, result_con)) {
-        do_constexpr_fail(result);
+        result = FALSE;
+      } else if (ips.storage_stack.destructions != NULL &&
+                 (!is_constant_evaluated || !perform_destructions(&ips))) {
+        /* If there are pending destructions, but this initialization is not a
+           full-expression, we shouldn't attempt to evaluate the destruction of
+           temporaries yet.  When is_constant_evaluated is FALSE, folding is
+           not required and so we just continue as if it is not a full-
+           expression context.  is_constant_evaluated is TRUE in full-
+           expression contexts only, and therefore it is safe to attempt the
+           destruction of temporaries in that case. */
+        result = FALSE;
       } else if (dip->destructor != NULL &&
                  !do_constexpr_dtor(&ips, dip->destructor, pos,
                                     result_storage, result_storage)) {
-        do_constexpr_fail(result);
+        result = FALSE;
       } else if (ips.dyn_allocations != NULL) {
         /* Leftover dynamic allocations are always invalid in this case. */
         report_leftover_allocations(&ips);
