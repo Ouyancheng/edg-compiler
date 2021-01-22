@@ -1336,6 +1336,26 @@ typedef enum /*a_token_kind*/ {
   tok_builtin_is_layout_compatible,
   tok_builtin_is_pointer_interconvertible_base_of,
   tok_is_array,
+  tok_is_arithmetic,
+  tok_is_complete_type,
+  tok_is_compound,
+  tok_is_const,
+  tok_is_floating_point,
+  tok_is_fundamental,
+  tok_is_integral,
+  tok_is_lvalue_reference,
+  tok_is_member_function_pointer,
+  tok_is_member_object_pointer,
+  tok_is_member_pointer,
+  tok_is_object,
+  tok_is_pointer,
+  tok_is_reference,
+  tok_is_rvalue_reference,
+  tok_is_scalar,
+  tok_is_signed,
+  tok_is_unsigned,
+  tok_is_void,
+  tok_is_volatile,
   /* Place-holder for last position in enumeration. */
   tok_last
 } a_token_kind;
@@ -1539,6 +1559,26 @@ EXTERN a_const_char
    "__builtin_is_layout_compatible",
    "__builtin_is_pointer_interconvertible_base_of",
    "__is_array",
+   "__is_arithmetic",
+   "__is_complete_type",
+   "__is_compound",
+   "__is_const",
+   "__is_floating_point",
+   "__is_fundamental",
+   "__is_integral",
+   "__is_lvalue_reference",
+   "__is_member_function_pointer",
+   "__is_member_object_pointer",
+   "__is_member_pointer",
+   "__is_object",
+   "__is_pointer",
+   "__is_reference",
+   "__is_rvalue_reference",
+   "__is_scalar",
+   "__is_signed",
+   "__is_unsigned",
+   "__is_void",
+   "__is_volatile",
    "last" /* used to check that initialization is right. */
   }
 #endif /* VAR_INITIALIZERS */
@@ -13344,6 +13384,32 @@ typedef enum a_builtin_operation_kind_tag {
   bok_builtin_is_pointer_interconvertible_base_of,
 			/* Two type operands. */
   bok_is_array,		/* __is_array. One type operand. */
+  bok_is_arithmetic,    /* __is_arithmetic (Clang).  One type operand. */
+  bok_is_complete_type, /* __is_complete_type (Clang).  One type operand. */
+  bok_is_compound,      /* __is_compound (Clang).  One type operand. */
+  bok_is_const,         /* __is_const (Clang).  One type operand. */
+  bok_is_floating_point,/* __is_floating_point (Clang).  One type operand. */
+  bok_is_fundamental,   /* __is_fundamental (Clang).  One type operand. */
+  bok_is_integral,      /* __is_integral (Clang).  One type operand. */
+  bok_is_lvalue_reference,
+                        /* __is_lvalue_reference (Clang).  One type operand. */
+  bok_is_member_function_pointer,
+                        /* __is_member_function_pointer (Clang).  One type
+                           operand. */
+  bok_is_member_object_pointer,
+                        /* __is_member_object_pointer (Clang).  One type
+                           operand. */
+  bok_is_member_pointer,/* __is_member_pointer (Clang).  One type operand. */
+  bok_is_object,        /* __is_object (Clang).  One type operand. */
+  bok_is_pointer,       /* __is_pointer (Clang).  One type operand. */
+  bok_is_reference,     /* __is_reference (Clang).  One type operand. */
+  bok_is_rvalue_reference,
+                        /* __is_rvalue_reference (Clang).  One type operand. */
+  bok_is_scalar,        /* __is_scalar (Clang).  One type operand. */
+  bok_is_signed,        /* __is_signed (Clang).  One type operand. */
+  bok_is_unsigned,      /* __is_unsigned (Clang).  One type operand. */
+  bok_is_void,          /* __is_void (Clang).  One type operand. */
+  bok_is_volatile,      /* __is_volatile (Clang).  One type operand. */
   bok_last              /* Marks the end of the list. */
 } a_builtin_operation_kind_tag;
 /* Define as "a_byte" to explicitly control storage size. */

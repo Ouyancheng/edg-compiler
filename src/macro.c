@@ -7033,7 +7033,7 @@ end_arg_expansion:;
       a_const_char *builtin_name = clang_feature_test_id(map, NULL,
                                                          &arg_position);
       if (builtin_name != NULL &&
-          (builtin_function_is_enabled(builtin_name) ||
+          (builtin_function_or_keyword_is_enabled(builtin_name) ||
            (clangcpp_version_is(>=30900) &&
             strcmp(builtin_name, "__type_pack_element") == 0))) {
         /* Note: __type_pack_element is handled as a special case here because

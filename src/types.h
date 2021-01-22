@@ -369,6 +369,16 @@ Return a pointer to the associated routine type supplement.
   ((tp)->variant.routine.extra_info)
 
 
+inline a_boolean is_fundamental_type(a_type_ptr  type)
+/*
+Return TRUE if a type is a fundamental type.
+*/
+{
+  return is_void_type(type) || is_arithmetic_type(type) ||
+         is_nullptr_type(type);
+}  /* is_fundamental_type */
+
+
 inline a_boolean is_immediate_class_type(a_type_ptr  type)
 /*
 Return TRUE if a type is a direct class type (i.e., not a typeref on
