@@ -657,11 +657,10 @@ Loads the builtin function whose name is specified.
 }  /* load_matching_builtin_function_by_name */
 
 
-a_boolean builtin_function_or_keyword_is_enabled(a_const_char *name)
+a_boolean builtin_function_is_enabled(a_const_char *name)
 /*
-Returns TRUE if a builtin function or keyword with the specified name is
-enabled in the current emulation mode.  Many type intrinsics are implemented
-as keywords and __has_builtin returns TRUE for these.
+Returns TRUE if a builtin function with the specified name is enabled in
+the current emulation mode.
 */
 {
   a_boolean         result = FALSE;
@@ -670,13 +669,11 @@ as keywords and __has_builtin returns TRUE for these.
   clear_locator(&loc, &null_source_position);
   (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
   if (loc.symbol_header != NULL &&
-      (loc.symbol_header->is_builtin_function ||
-       (loc.symbol_header->symbol != NULL &&
-        loc.symbol_header->symbol->kind == (a_symbol_kind)sk_keyword))) {
+      loc.symbol_header->is_builtin_function) {
     result = TRUE;
   }  /* if */
   return result;
-}  /* builtin_function_or_keyword_is_enabled */
+}  /* builtin_function_is_enabled */
 
 
 static void preload_builtin_symbol(

@@ -683,26 +683,6 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,
                           /* tok_builtin_is_pointer_interconvertible_base_of */
    (an_opname_kind)onk_none,          /* tok_is_array */
-   (an_opname_kind)onk_none,          /* tok_is_arithmetic */
-   (an_opname_kind)onk_none,          /* tok_is_complete_type */
-   (an_opname_kind)onk_none,          /* tok_is_compound */
-   (an_opname_kind)onk_none,          /* tok_is_const */
-   (an_opname_kind)onk_none,          /* tok_is_floating_point */
-   (an_opname_kind)onk_none,          /* tok_is_fundamental */
-   (an_opname_kind)onk_none,          /* tok_is_integral */
-   (an_opname_kind)onk_none,          /* tok_is_lvalue_reference */
-   (an_opname_kind)onk_none,          /* tok_is_member_function_pointer */
-   (an_opname_kind)onk_none,          /* tok_is_member_object_pointer */
-   (an_opname_kind)onk_none,          /* tok_is_member_pointer */
-   (an_opname_kind)onk_none,          /* tok_is_object */
-   (an_opname_kind)onk_none,          /* tok_is_pointer */
-   (an_opname_kind)onk_none,          /* tok_is_reference */
-   (an_opname_kind)onk_none,          /* tok_is_rvalue_reference */
-   (an_opname_kind)onk_none,          /* tok_is_scalar */
-   (an_opname_kind)onk_none,          /* tok_is_signed */
-   (an_opname_kind)onk_none,          /* tok_is_unsigned */
-   (an_opname_kind)onk_none,          /* tok_is_void */
-   (an_opname_kind)onk_none,          /* tok_is_volatile */
    (an_opname_kind)onk_last           /* tok_last */
   }
 #endif /* VAR_INITIALIZERS */

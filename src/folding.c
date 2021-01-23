@@ -8815,72 +8815,6 @@ and, if pos is not NULL, an error will be reported.
             result = FALSE;
           }  /* if */
           break;
-        case bok_is_arithmetic:
-          result = is_arithmetic_type(type);
-          break;
-        case bok_is_complete_type:
-          result = is_complete_object_type(type);
-          break;
-        case bok_is_compound:
-          result = !is_fundamental_type(type);
-          break;
-        case bok_is_const:
-          result = is_const;
-          break;
-        case bok_is_floating_point:
-          result = is_floating_type(type);
-          break;
-        case bok_is_fundamental:
-          result = is_fundamental_type(type);
-          break;
-        case bok_is_integral:
-          result = is_integral_type(type);
-          break;
-        case bok_is_lvalue_reference:
-          result = is_lvalue_reference_type(type);
-          break;
-        case bok_is_member_function_pointer:
-          result = is_ptr_to_member_type(type) &&
-                   is_function_type(pm_member_type(type));
-          break;
-        case bok_is_member_object_pointer:
-          result = is_ptr_to_member_type(type) &&
-                   !is_function_type(pm_member_type(type));
-          break;
-        case bok_is_member_pointer:
-          result = is_ptr_to_member_type(type);
-          break;
-        case bok_is_object:
-          result = is_object_type(type);
-          break;
-        case bok_is_pointer:
-          result = is_pointer_type(type);
-          break;
-        case bok_is_reference:
-          result = is_reference_type(type);
-          break;
-        case bok_is_rvalue_reference:
-          result = is_rvalue_reference_type(type);
-          break;
-        case bok_is_scalar:
-          result = is_scalar_type(type);
-          break;
-        case bok_is_signed:
-          result = is_arithmetic_type(type) && !is_bool_type(type) &&
-                   (is_signed_integral_type(type) || is_floating_type(type));
-          break;
-        case bok_is_unsigned:
-          result = is_bool_type(type) ||
-                   (is_arithmetic_type(type) &&
-                    !(is_signed_integral_type(type) ||
-                      is_floating_type(type)));
-          break;
-        case bok_is_void:
-          result = is_void_type(type);
-          break;
-        case bok_is_volatile:
-          result = is_volatile_qualified_type(orig_type);
-          break;
         default:
           unexpected_condition();
       }  /* switch */
@@ -9134,36 +9068,6 @@ and, if pos is not NULL, an error will be reported.
         break;
       case bok_is_aggregate:
         result = class_symbol_supp(symbol_for(type))->is_class_aggregate;
-        break;
-      case bok_is_complete_type:
-          result = is_complete_object_type(type);
-          break;
-      case bok_is_compound:
-      case bok_is_object:
-          result = TRUE;
-          break;
-      case bok_is_const:
-          result = is_const;
-          break;
-      case bok_is_volatile:
-          result = is_volatile_qualified_type(orig_type);
-          break;
-      case bok_is_arithmetic:
-      case bok_is_floating_point:
-      case bok_is_fundamental:
-      case bok_is_integral:
-      case bok_is_lvalue_reference:
-      case bok_is_member_function_pointer:
-      case bok_is_member_object_pointer:
-      case bok_is_member_pointer:
-      case bok_is_pointer:
-      case bok_is_reference:
-      case bok_is_rvalue_reference:
-      case bok_is_scalar:
-      case bok_is_signed:
-      case bok_is_unsigned:
-      case bok_is_void:
-        result = FALSE;
         break;
       default:
         unexpected_condition();
@@ -9567,26 +9471,6 @@ constant is set as well.
       case bok_is_win_interface:
       case bok_is_valid_winrt_type:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      case bok_is_arithmetic:
-      case bok_is_complete_type:
-      case bok_is_compound:
-      case bok_is_const:
-      case bok_is_floating_point:
-      case bok_is_fundamental:
-      case bok_is_integral:
-      case bok_is_lvalue_reference:
-      case bok_is_member_function_pointer:
-      case bok_is_member_object_pointer:
-      case bok_is_member_pointer:
-      case bok_is_object:
-      case bok_is_pointer:
-      case bok_is_reference:
-      case bok_is_rvalue_reference:
-      case bok_is_scalar:
-      case bok_is_signed:
-      case bok_is_unsigned:
-      case bok_is_void:
-      case bok_is_volatile:
         /* Various type trait helpers that take a single argument. */
         fold_unary_type_trait_helper(expr, constant, maintain_expression, pos,
                                      /*complete_class_property=*/FALSE);

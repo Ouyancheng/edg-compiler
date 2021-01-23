@@ -14001,29 +14001,6 @@ indication in *rcblock).
       case tok_is_aggregate:            bok = bok_is_aggregate; break;
       case tok_builtin_has_attribute:   bok = bok_builtin_has_attribute; break;
       case tok_builtin_bit_cast:        bok = bok_builtin_bit_cast; break;
-      case tok_is_arithmetic:           bok = bok_is_arithmetic; break;
-      case tok_is_complete_type:        bok = bok_is_complete_type; break;
-      case tok_is_compound:             bok = bok_is_compound; break;
-      case tok_is_const:                bok = bok_is_const; break;
-      case tok_is_floating_point:       bok = bok_is_floating_point; break;
-      case tok_is_fundamental:          bok = bok_is_fundamental; break;
-      case tok_is_integral:             bok = bok_is_integral; break;
-      case tok_is_lvalue_reference:     bok = bok_is_lvalue_reference; break;
-      case tok_is_member_function_pointer:
-                                        bok = bok_is_member_function_pointer;
-                                        break;
-      case tok_is_member_object_pointer:bok = bok_is_member_object_pointer;
-                                        break;
-      case tok_is_member_pointer:       bok = bok_is_member_pointer; break;
-      case tok_is_object:               bok = bok_is_object; break;
-      case tok_is_pointer:              bok = bok_is_pointer; break;
-      case tok_is_reference:            bok = bok_is_reference; break;
-      case tok_is_rvalue_reference:     bok = bok_is_rvalue_reference; break;
-      case tok_is_scalar:               bok = bok_is_scalar; break;
-      case tok_is_signed:               bok = bok_is_signed; break;
-      case tok_is_unsigned:             bok = bok_is_unsigned; break;
-      case tok_is_void:                 bok = bok_is_void; break;
-      case tok_is_volatile:             bok = bok_is_volatile; break;
       default:
         unexpected_condition();
     }  /* switch */
@@ -33390,26 +33367,6 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_builtin_is_layout_compatible:
     case tok_builtin_is_pointer_interconvertible_base_of:
     case tok_requires:
-    case tok_is_arithmetic:
-    case tok_is_complete_type:
-    case tok_is_compound:
-    case tok_is_const:
-    case tok_is_floating_point:
-    case tok_is_fundamental:
-    case tok_is_integral:
-    case tok_is_lvalue_reference:
-    case tok_is_member_function_pointer:
-    case tok_is_member_object_pointer:
-    case tok_is_member_pointer:
-    case tok_is_object:
-    case tok_is_pointer:
-    case tok_is_reference:
-    case tok_is_rvalue_reference:
-    case tok_is_scalar:
-    case tok_is_signed:
-    case tok_is_unsigned:
-    case tok_is_void:
-    case tok_is_volatile:
       is_expr_start = TRUE;
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -39201,26 +39158,6 @@ handle_identifier:
     case tok_is_final:
     case tok_has_unique_object_representations:
     case tok_is_aggregate:
-    case tok_is_arithmetic:
-    case tok_is_complete_type:
-    case tok_is_compound:
-    case tok_is_const:
-    case tok_is_floating_point:
-    case tok_is_fundamental:
-    case tok_is_integral:
-    case tok_is_lvalue_reference:
-    case tok_is_member_function_pointer:
-    case tok_is_member_object_pointer:
-    case tok_is_member_pointer:
-    case tok_is_object:
-    case tok_is_pointer:
-    case tok_is_reference:
-    case tok_is_rvalue_reference:
-    case tok_is_scalar:
-    case tok_is_signed:
-    case tok_is_unsigned:
-    case tok_is_void:
-    case tok_is_volatile:
       /* Various single-type unary traits helpers. */
       scan_unary_type_trait_helper((a_rescan_control_block *)NULL,
                                     &local_result);
