@@ -18883,7 +18883,11 @@ can only be TRUE if the called function is "consteval").
       } else {
         do_constexpr_fail(result);
       }  /* if */
-    } else if (ips.storage_stack.destructions != NULL) {
+    } else if (ips.storage_stack.destructions != NULL ||
+               (!is_constant_evaluated &&
+                is_immediate_class_type(result_type) &&
+                has_nontrivial_destructor(
+                               class_symbol_supp(symbol_for(result_type))))) {
       /* Since we're just interpreting a call node, this isn't a full
          expression and we cannot evaluate the destruction of temporaries.
          (An exception are invocations of consteval functions, but the
