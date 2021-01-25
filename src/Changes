@@ -18,7 +18,7 @@ created by the expression S{}.  In turn, that caused the dynamic allocation in
 the constructor of S not to have a matching deallocation, and an error was
 issued claiming the initializer for i is not a constant because not all dynamic
 allocations were freed at the end of the evaluation.  That is now fixed: The
-destructor for S{} is not evaluated, and the example above is accepted.
+destructor for S{} is now evaluated, and the example above is accepted.
 
 
 1/22/21  [EDGcpfe/23796]
