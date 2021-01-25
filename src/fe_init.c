@@ -746,8 +746,39 @@ modes.
                 "__is_trivially_copyable");
   enter_keyword((a_token_kind)tok_is_literal_type, "__is_literal_type");
   if (clang_mode) {
-    enter_keyword((a_token_kind)tok_is_literal_type, "__is_literal");
+    /* Note that some of the type trait names that clang uses conflict with
+       identifiers used in some of the GNU headers; clang treats those
+       identifiers as special cases (and the front end tries to emulate
+       that). */
     enter_keyword((a_token_kind)tok_is_array, "__is_array");
+    enter_keyword((a_token_kind)tok_is_arithmetic, "__is_arithmetic");
+    enter_keyword((a_token_kind)tok_is_complete_type, "__is_complete_type");
+    enter_keyword((a_token_kind)tok_is_compound, "__is_compound");
+    enter_keyword((a_token_kind)tok_is_const, "__is_const");
+    enter_keyword((a_token_kind)tok_is_floating_point, "__is_floating_point");
+    enter_keyword((a_token_kind)tok_is_fundamental, "__is_fundamental");
+    enter_keyword((a_token_kind)tok_is_integral, "__is_integral");
+    enter_keyword((a_token_kind)tok_is_lvalue_reference,
+                  "__is_lvalue_reference");
+    enter_keyword((a_token_kind)tok_is_member_function_pointer,
+                  "__is_member_function_pointer");
+    enter_keyword((a_token_kind)tok_is_member_object_pointer,
+                  "__is_member_object_pointer");
+    enter_keyword((a_token_kind)tok_is_member_pointer, "__is_member_pointer");
+    enter_keyword((a_token_kind)tok_is_object, "__is_object");
+    enter_keyword((a_token_kind)tok_is_pointer, "__is_pointer");
+    enter_keyword((a_token_kind)tok_is_reference, "__is_reference");
+    enter_keyword((a_token_kind)tok_is_rvalue_reference,
+                  "__is_rvalue_reference");
+    enter_keyword((a_token_kind)tok_is_scalar, "__is_scalar");
+    enter_keyword((a_token_kind)tok_is_signed, "__is_signed");
+    enter_keyword((a_token_kind)tok_is_unsigned, "__is_unsigned");
+    enter_keyword((a_token_kind)tok_is_void, "__is_void");
+    enter_keyword((a_token_kind)tok_is_volatile, "__is_volatile");
+    enter_keyword((a_token_kind)tok_is_same_as, "__is_same_as");
+    /* These are synonyms for existing intrinsics. */
+    enter_keyword((a_token_kind)tok_is_literal_type, "__is_literal");
+    enter_keyword((a_token_kind)tok_is_convertible_to, "__is_convertible");
   }  /* if */
   enter_keyword((a_token_kind)tok_has_trivial_move_constructor,
                 "__has_trivial_move_constructor");
