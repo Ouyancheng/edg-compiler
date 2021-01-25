@@ -22455,8 +22455,10 @@ static void generate_destructor(
                               a_generated_special_function_descr  *gsfd)
 /*
 Add a declaration for a destructor to the class definition described by
-class_state.  If suppressed is TRUE, make that destructor "deleted" (or, in
-some Microsoft modes, record that the body cannot be generated).
+class_state.  If gsfd->suppressed is TRUE, make that destructor "deleted" (or,
+in some Microsoft modes, record that the body cannot be generated).  If
+constexpr destructors are enabled and gsfd->dtor_not_constexpr is FALSE, make
+the destructor constexpr.
 */
 {
   a_type_ptr          class_type = class_state->class_type;
