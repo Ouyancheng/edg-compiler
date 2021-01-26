@@ -498,6 +498,16 @@ template parameter type kind.
   ((tp)->variant.template_param.kind == (a_template_param_type_kind)k)
 
 /*
+Return TRUE if tp is a tk_template_param/tptk_param type that designates an
+actual type template parameter (and not one of the special cases indicated
+by certain values of its depth coordinate).
+*/
+#define type_is_actual_template_parameter(tp)                      \
+  (type_is(tp, tk_template_param) &&                               \
+   tptk_is(tp, tptk_param) &&                                      \
+   (tp)->variant.template_param.extra_info->coordinates.depth > 0)
+
+/*
 Return TRUE if cp is a template nontype parameter pack.
 */
 #define constant_is_pack(cp)						\

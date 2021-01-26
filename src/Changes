@@ -1,5 +1,18 @@
 Version 6.2
 
+1/26/21  [EDGcpfe/23805]
+C++-generating back end: out-of-bounds array access with auto type specifier
+
+Use of the auto type specifier could result in out-of-bound array accesses
+in source_corresp_for_template_param, causing unpredictable behavior
+including segfaults and incorrect output.  This is now fixed.  For example,
+with --c++17:
+
+  template<typename T> void f(T t) {
+    auto t2(t);   // Caused out-of-bounds array access
+  }
+
+
 1/25/21  [EDGcpfe/12122,EDGcpfe/23794,EDGcpfe/23799]
 Clang compatibility: additional builtin type intrinsics
 

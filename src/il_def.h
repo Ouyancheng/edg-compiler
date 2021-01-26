@@ -4102,8 +4102,8 @@ typedef int32_t a_template_nesting_depth;
 			/* When templates are nested within other templates,
 			   the nesting depth is used to associate a template
 			   parameter with a given template declaration level.
-			   The first level is 1, the second 2, etc.  Levels 0
-			   and -1 have special meanings (see below). */
+			   The first level is 1, the second 2, etc.  Levels
+			   <= 0 have special meanings (see below). */
 
 #define NO_NESTING_DEPTH	0
 			/* Depth used to indicate that a template parameter has

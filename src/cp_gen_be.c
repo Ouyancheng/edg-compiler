@@ -3877,9 +3877,7 @@ template arguments, since they cannot be named.
     switch (argp->kind) {
       case tak_type:
         tp = argp->variant.type;
-        if (tp->kind == (a_type_kind)tk_template_param &&
-            tp->variant.template_param.kind ==
-                                      (a_template_param_type_kind)tptk_param) {
+        if (type_is_actual_template_parameter(tp)) {
           scp = &tp->source_corresp;
           remapped_scp = source_corresp_for_template_param(
                           &tp->variant.template_param.extra_info->coordinates);
@@ -4339,9 +4337,7 @@ gen_name.  See gen_name for the meaning of need_closing_paren.
         gen_name(&substitute_typedef->source_corresp, iek_type,
                  options | GN_QUALIFIER, need_closing_paren);
         actual_type_used = substitute_typedef;
-      } else if (template_param_type->kind == (a_type_kind)tk_template_param &&
-                 template_param_type->variant.template_param.kind ==
-                                      (a_template_param_type_kind)tptk_param) {
+      } else if (type_is_actual_template_parameter(template_param_type)) {
         /* This is an actual parameter, not just a dependent type.  The name
            of a parameter may be different at this point in the code, so use
            the template coordinates to get the correct spelling. */
@@ -5203,11 +5199,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       a_template_ptr assoc_template = NULL;
       tp = (a_type_ptr)scp;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-      if (tp->kind == (a_type_kind)tk_template_param &&
-          tp->variant.template_param.kind ==
-                                      (a_template_param_type_kind)tptk_param &&
-          tp->variant.template_param.extra_info->coordinates.depth !=
-                                    CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH) {
+      if (type_is_actual_template_parameter(tp)) {
         /* This is the name of a template parameter, which may be different
            in the current context from what was originally recorded.  Make
            sure we use the correct name for this context. */
@@ -5736,9 +5728,7 @@ put out nothing.
            with the "template" keyword. */
         write_tok_str("template ");
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
-      } else if (class_type->kind == (a_type_kind)tk_template_param &&
-                 class_type->variant.template_param.kind ==
-                                      (a_template_param_type_kind)tptk_param) {
+      } else if (type_is_actual_template_parameter(class_type)) {
         /* This is the name of a template parameter, which may be different
            in the current context from what was originally recorded.  Make
            sure we use the correct name for this context. */

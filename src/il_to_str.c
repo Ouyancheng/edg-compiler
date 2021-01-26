@@ -2190,10 +2190,7 @@ by octl.
           an_il_entry_kind            scp_kind = iek_type;
           /* See whether the template parameter name is remapped in the
              current context. */
-          if (type->variant.template_param.kind ==
-                                     (a_template_param_type_kind)tptk_param &&
-              type->variant.template_param.extra_info->coordinates.depth !=
-                                    CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH) {
+          if (type_is_actual_template_parameter(type)) {
             a_source_correspondence_ptr new_scp;
             new_scp = source_corresp_for_template_param(
                        &type->variant.template_param.extra_info->coordinates);
