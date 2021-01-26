@@ -3250,6 +3250,7 @@ ec_ifc_no_corresponding_operator;;"no corresponding operator for IFC operator %s
 ec_ifc_no_corresponding_calling_conv;;"no corresponding calling convention for IFC calling convention %sq"
 ec_module_file_contains_unsupported_constructs;;"module %sq contains unsupported constructs"
 ec_unhandled_ifc_construct;;"unsupported IFC construct: %sq"
+ec_is_signed_no_longer_a_keyword;;"__is_signed is no longer a keyword from this point"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
