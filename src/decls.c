@@ -7052,6 +7052,15 @@ of the variable.
          (could_be_dependent_class_type(vp->type) ||
           is_class_struct_union_type(vp->type)))) {
       vp->is_constexpr = TRUE;
+    } else if ((gpp_version_is(any_version) ||
+                (clang_version_is(>= 30900) && cpp17_mode)) &&
+               dps->is_explicit_specialization) {
+      /* GCC and Clang don't require explicit specializations of constexpr
+         variables to be definitions, but the resolution of Core issue 2409
+         makes clear that it is an error (issued below in other modes). */
+      pos_warning(ec_constexpr_variable_decl_must_be_definition,
+                  &dps->constexpr_pos);
+      vp->is_constexpr = TRUE;
     } else {
       pos_error(ec_constexpr_variable_decl_must_be_definition,
                 &dps->constexpr_pos);

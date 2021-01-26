@@ -1,5 +1,22 @@
 Version 6.2
 
+1/26/21  [EDGcpfe/23812]
+GNU/Clang compatibility: Explicit specialization of constexpr variable
+
+Consider:
+
+  struct S {
+    template <typename> static constexpr int m = 104;
+  };
+  template<> constexpr int S::m<int>;  // Normally an error.  Now accepted in
+                                       // some GNU and Clang modes.
+
+The explicit specialization is normally an error because it is missing an
+initializer (see also the resolution of Core issue 2409), but GCC and Clang
+accept the case (Clang in C++17 mode only).  The front end now emulates that
+GCC and Clang behavior in the respective compatibility modes.
+
+
 1/26/21  [EDGcpfe/23805]
 C++-generating back end: out-of-bounds array access with auto type specifier
 
