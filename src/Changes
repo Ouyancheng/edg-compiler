@@ -11,7 +11,19 @@ __is_object, __is_pointer, __is_reference, __is_rvalue_reference, __is_scalar,
 __is_signed, __is_unsigned, __is_void, and __is_volatile.
 
 Additionally, enabled builtin type intrinsics now return TRUE when queried with
-__has_builtin.
+__has_builtin.  Furthermore, the intrinsic __is_signed is treated specially in
+some contexts: If it appears immediately following decl-specifiers that include
+"static", "bool", and "const", the __is_signed is treated as an ordinary
+identifier from that point (with a warning).  For example:
+
+  bool x = __is_signed(int);  // Okay.  "__is_signed" is a keyword.
+  static bool const __is_signed = false;  // Okay (with warning).
+                                          // "__is_signed" is not a keyword.
+  bool y = __is_signed(int);  // Syntax error.
+
+This matches Clang behavior and allows certain GCC headers that declared an
+__is_signed identifier to be parsed in modes that support the __is_signed
+intrinsic by default.
 
 
 1/22/21  [EDGcpfe/23797]

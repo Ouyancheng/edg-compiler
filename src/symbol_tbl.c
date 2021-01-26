@@ -17140,28 +17140,29 @@ const_for_curr_token.
   return matching_sym;
 }  /* find_literal_operator */
 
-#if SUN_EXTENSIONS_ALLOWED
 
-static void set_keyword_visibility(a_const_char *keyword,
-                                   a_boolean    is_visible)
+void set_keyword_visibility(a_const_char     *keyword,
+                            a_boolean        is_visible,
+                            a_symbol_locator *loc)
 /*
 Retrieve the symbol for the given keyword (it must exist) and set its
-visibility as indicated.
+visibility as indicated.  Also set *loc to point to the associated symbol
+header.
 */
 {
-  a_symbol_locator     locator;
   a_symbol_header_ptr  sym_hdr = find_symbol_header(keyword,
                                                     (sizeof_t)strlen(keyword),
-                                                    &locator);
+                                                    loc);
   a_symbol_ptr         sym = symbol_list_for_file_scope_symbols(sym_hdr);
 
   for (; sym != NULL; sym = sym->next) {
-    if (sym->kind == (a_symbol_kind)sk_keyword) break;
+    if (symbol_is(sym, sk_keyword)) break;
   }  /* for */
   check_assertion(sym != NULL);
   sym->is_invisible = !is_visible;
 }  /* set_keyword_visibility */
 
+#if SUN_EXTENSIONS_ALLOWED
 
 void ldscope_pragma(a_pending_pragma_ptr	ppp)
 /*
@@ -17174,17 +17175,18 @@ since these pragmas are automatically recorded in the IL, the tokens
 "enable_ldscope" or "disable_ldscope" will already have been consumed.
 */
 {
-  a_boolean	keywords_visible = FALSE;
-  a_pragma_kind	kind = ppp->descr_ptr->kind;
+  a_boolean         keywords_visible = FALSE;
+  a_pragma_kind     kind = ppp->descr_ptr->kind;
+  a_symbol_locator  loc;
 
   switch (kind) {
     case pk_enable_ldscope:  keywords_visible = TRUE;  break;
     case pk_disable_ldscope: keywords_visible = FALSE; break;
     default:                 unexpected_condition();
   }  /* switch */
-  set_keyword_visibility("__global", keywords_visible);
-  set_keyword_visibility("__symbolic", keywords_visible);
-  set_keyword_visibility("__hidden", keywords_visible);
+  set_keyword_visibility("__global", keywords_visible, &loc);
+  set_keyword_visibility("__symbolic", keywords_visible, &loc);
+  set_keyword_visibility("__hidden", keywords_visible, &loc);
 }  /* ldscope_pragma */
 
 #endif /* SUN_EXTENSIONS_ALLOWED */

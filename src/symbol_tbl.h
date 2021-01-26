@@ -7059,6 +7059,10 @@ a_translation_unit_ptr get_trans_unit_for_scope(a_scope_number	scope_number);
 
 extern a_translation_unit_ptr trans_unit_for_symbol(a_symbol_ptr	sym);
 
+extern void set_keyword_visibility(a_const_char     *keyword,
+                                   a_boolean        is_visible,
+                                   a_symbol_locator *loc);
+
 #if SUN_EXTENSIONS_ALLOWED
 extern void ldscope_pragma(a_pending_pragma_ptr ppp);
 #endif /* SUN_EXTENSIONS_ALLOWED */
