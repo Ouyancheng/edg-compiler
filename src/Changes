@@ -1,5 +1,24 @@
 Version 6.2
 
+1/26/21  [EDGcpfe/23802]
+C- and C++-generating back end: Rendering of 128-bit integer types
+
+Previously, the C- and C++-generating back ends always rendered GNU 128-bit
+integer types as "__int128_t" and "__uint128_t", which are predefined GCC
+typedefs.  However, starting in version 4.6, GCC also accepts __int128 with an
+optional "signed" or "unsigned" modifier.  That caused the back ends to render
+
+  signed __int128 x = 0;
+
+(in GNU modes with gnu_version >= 40600) as
+
+  signed __int128_t x = 0;
+
+which is invalid since the "signed" modifier cannot be applied to a typedef
+name.  That is now fixed: When the target GCC version is 40600 or larger, the
+back ends now render the 128-bit integer types using the __int128 specifier.
+
+
 1/26/21  [EDGcpfe/23812]
 GNU/Clang compatibility: Explicit specialization of constexpr variable
 

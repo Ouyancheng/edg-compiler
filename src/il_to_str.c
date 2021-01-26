@@ -1146,15 +1146,20 @@ common_long_long_processing:
 #if INT128_EXTENSIONS_ALLOWED
     /* Currently, we only accept 128-bit integer types in GNU modes, where
        such types can be denoted using the predeclared typedefs __int128_t and
-       __uint128_t.  Other dialects are likely to use a different notation for
-       these types (e.g., "signed __int128" and "unsigned __int128): This code
-       should be revised for such dialects. */ 
+       __uint128_t.  Starting with version 4.6, however, "__int128" and
+       "unsigned __int128" are also accepted.  This code will need revision
+       when such types are enabled in other modes. */
     case ik_int128:
                                 if (gnu_mode) {
 #if !STANDALONE_UTILITY_PROGRAM
                                   check_assertion(int128_extensions_enabled);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-                                  p = "__int128_t";
+                                  if (gcc_is_generated_code_target &&
+                                      gnu_target_version_number >= 40600) {
+                                    p = "__int128";
+                                  } else {
+                                    p = "__int128_t";
+                                  }  /* if */
                                 } else {
                                   p = "**128-BIT SIGNED INTEGER**";
                                 }  /* if */
@@ -1164,7 +1169,12 @@ common_long_long_processing:
 #if !STANDALONE_UTILITY_PROGRAM
                                   check_assertion(int128_extensions_enabled);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-                                  p = "__uint128_t";
+                                  if (gcc_is_generated_code_target &&
+                                      gnu_target_version_number >= 40600) {
+                                    p = "unsigned __int128";
+                                  } else {
+                                    p = "__uint128_t";
+                                  }  /* if */
                                 } else {
                                   p = "**128-BIT UNSIGNED INTEGER**";
                                 }  /* if */
