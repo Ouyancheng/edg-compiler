@@ -1137,6 +1137,14 @@ typedef struct a_scope_stack_entry {
 			/* The number of the IL memory region that was the
 			   current region at the time this scope was entered.
 			   This is restored by pop_scope. */
+  int		module_load_context_count;
+			/* Non-zero if a module entity is being loaded.  The
+			   value indicates how many module declaration contexts
+			   have been pushed, which may be greater than 1 when
+			   recursive declarations are being processed.  Note
+			   that a module declaration context may not include
+			   a scope push, and as such this value may fluctuate
+			   within the same scope. */
   a_type_ptr	assoc_type;
 			/* When kind == sck_func_prototype, this points to the
 			   function type whose prototype scope this is.  When
@@ -1370,6 +1378,14 @@ typedef struct a_scope_stack_entry {
 			   being scanned.  This is in the scope stack entry
 			   so that it will automatically nest when
 			   template instantiations are performed. */
+  a_pending_pragma_ptr
+		saved_curr_construct_pragmas;
+			/* When module_load_context_count is non-zero, this is
+			   what was originally in curr_construct_pragmas before
+			   the module load occurred.  This must be restored to
+			   curr_construct_pragmas when the module load is
+			   complete.  NULL when module_load_context_count is
+			   zero. */
   a_scope_depth	next_scope_that_affects_access_control;
 			/* Depth of the first scope stack entry below this
 			   one that has an effect on access control.

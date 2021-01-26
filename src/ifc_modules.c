@@ -2861,7 +2861,8 @@ constants for that type).
   a_symbol_ptr             ext_sym;
   a_decl_pos_block         decl_pos_block;
   a_symbol_locator         loc;
-  a_partial_scope_stack_state     psss;
+  a_partial_scope_stack_state
+                           psss;
   char                     *il_entity = NULL;
   a_byte_il_entry_kind     kind = iek_none;
   a_boolean                scope_pushed = FALSE;
@@ -2874,7 +2875,9 @@ constants for that type).
                                                ifc_decl_start);
     if (!defer) {
       mep->imminent = TRUE;
-      scope_pushed = push_module_declaration_context(mep->scope);
+      if (mep->scope != NULL) {
+        scope_pushed = push_module_declaration_context(mep->scope);
+      }  /* if */
     }  /* if */
     switch (tag) {
       case ifc_DeclSort_VendorExtension:
@@ -3187,6 +3190,7 @@ class_struct_union_case:
                because each of the enumerators needs to be registered in the
                symbol table so they can be found. */
             defer = FALSE;
+            scope_pushed = push_module_declaration_context(enum_scope);
           } else if (itsfp->basis == ifc_TypeBasis_Class ||
                      itsfp->basis == ifc_TypeBasis_Struct) {
             /* A scoped enumeration.  Enumerator definitions are deferred when
@@ -3680,6 +3684,9 @@ Complete the definition of the class referred to by mep (if needed).
     a_scope_depth            saved_non_local_class_fixup_depth =
                                                    non_local_class_fixup_depth;
     a_source_position        saved_error_position = error_position;
+    a_boolean                scope_pushed = FALSE;
+
+    scope_pushed = push_module_declaration_context(mep->scope);
     source_position_from_locus(&error_position, &idssp->locus);
     clear_token_cache(&cache, /*reuseable=*/FALSE);
     cache_decl_class(&cache, idssp);
@@ -3735,6 +3742,7 @@ Complete the definition of the class referred to by mep (if needed).
     non_local_class_fixup_depth = saved_non_local_class_fixup_depth;
     pop_template_instantiation_scope();
     free_template_decl_info(tdip);
+    pop_module_declaration_context(scope_pushed);
     error_position = saved_error_position;
   }  /* if */
 }  /* complete_definition_of_module_class */

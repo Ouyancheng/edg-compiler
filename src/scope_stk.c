@@ -2879,6 +2879,9 @@ the scope being pushed.
   ssep->is_rescan = (options & PS_IS_RESCAN) != 0;
   ssep->in_concept_rescan = FALSE;
   ssep->error_detected = FALSE;
+  if (depth_scope_stack > 0 && (ssep-1)->module_load_context_count > 0) {
+    ssep->module_load_context_count = 1;
+  }  /* if */
   ssep->is_reactivation          = (options & PS_IS_REACTIVATION) != 0;
   ssep->il_scope                 = sp;
   ssep->assoc_type               = assoc_type;
@@ -3421,6 +3424,10 @@ the scope being pushed.
   if (!is_primary_translation_unit) {
     /* No source sequence entries are created for secondary translation
        units. */
+  } else if (ssep->module_load_context_count > 0) {
+    /* In a modules context, source sequence entries are invalid. */
+    ssep->source_sequence_entries_disallowed =
+      source_sequence_entries_disallowed = TRUE;
   } else if (kind == (a_scope_kind)sck_template_declaration) {
     if (!prototype_instantiations_in_il) {
       /* Source sequence entries are generated in template declaration scopes
@@ -3445,6 +3452,7 @@ the scope being pushed.
     } else if (ssep->in_generic_instantiation) {
       /* Don't generate source sequence entries for instantiations of C++/CLI
          generics. */
+      ssep->source_sequence_entries_disallowed = TRUE;
       source_sequence_entries_disallowed = TRUE;
     } else if (cli_symbols[csk_cli_namespace] != NULL && assoc_type != NULL &&
                is_member_of_namespace_cli(assoc_type)) {
@@ -3764,18 +3772,38 @@ has triggered the need to declare/define a module entity the scope specified
 by the argument.  If needed, push the new scope(s) and return TRUE.
 */
 {
-  a_boolean result = FALSE;
+  a_boolean               result = FALSE;
+  a_scope_stack_entry_ptr ssep = &scope_stack_top();
 
-  if (scope != NULL && scope_stack_top().il_scope != scope) {
+  check_assertion(scope != NULL);
+  if (ssep->il_scope != scope) {
     push_new_top_level_declaration();
-    scope_stack_top().inside_local_class = inside_local_class = FALSE;
+    ssep = &scope_stack_top();
+    ssep->inside_local_class = inside_local_class = FALSE;
+    ssep->module_load_context_count = 1;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    ssep->source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (scope_is(scope, sck_namespace)) {
       push_namespace_extension_scope(scope->variant.assoc_namespace);
     }  /* if */
     push_lexical_state_stack();
     decl_scope_level = depth_innermost_namespace_scope;
     result = TRUE;
+  } else {
+    ssep->module_load_context_count++;
+    if (ssep->module_load_context_count == 1) {
+      /* This is the first entry into the module load context.  Save off any
+         existing curr_construct_pragmas. */
+      ssep->saved_curr_construct_pragmas = ssep->curr_construct_pragmas;
+      ssep->curr_construct_pragmas = NULL;
+    }  /* if */
   }  /* if */
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  check_assertion(ssep->module_load_context_count > 0);
+  check_assertion(ssep->curr_construct_pragmas == NULL);
   return result;
 }  /* push_module_declaration_context */
 
@@ -3790,9 +3818,24 @@ push_module_declaration_context.
   if (scope_pushed) {
     pop_lexical_state_stack();
     if (scope_stack_top().kind == (a_scope_kind)sck_namespace_extension) {
+      check_assertion(scope_stack_top().module_load_context_count == 1);
       pop_namespace_extension_scope();
     }  /* if */
+    check_assertion(scope_stack_top().module_load_context_count == 1);
     pop_scope();
+  } else {
+    a_scope_stack_entry_ptr ssep = &scope_stack_top();
+    check_assertion(ssep->module_load_context_count > 0);
+    check_assertion(ssep->curr_construct_pragmas == NULL);
+    ssep->module_load_context_count--;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    if (ssep->module_load_context_count == 0) {
+      source_sequence_entries_disallowed =
+                                      ssep->source_sequence_entries_disallowed;
+      ssep->curr_construct_pragmas = ssep->saved_curr_construct_pragmas;
+      ssep->saved_curr_construct_pragmas = NULL;
+    }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
 }  /* pop_module_declaration_context */
 
