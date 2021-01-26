@@ -2921,6 +2921,14 @@ option values if they were not already set by a command line option.
         if (ms_cpp20_mode) {
           relaxed_typename_enabled = TRUE;
           nested_inline_namespace_definitions_enabled = TRUE;
+          concepts_enabled = TRUE;
+          abbr_func_templates_enabled = TRUE;
+        }  /* if */
+      }  /* if */
+      if (microsoft_version >= 1924) {
+        /* Visual Studio 2019 version 16.4. */
+        if (!ms_permissive) {
+          long_long_promotion_allowed = TRUE;
         }  /* if */
       }  /* if */
       if (microsoft_version >= 1925) {
@@ -2948,11 +2956,11 @@ option values if they were not already set by a command line option.
         /* If necessary, the build number can be used to distinguish these
            (with 16.9 starting at build number 29500). */
         if (ms_cpp20_mode) {
-          concepts_enabled = TRUE;
-          abbr_func_templates_enabled = TRUE;
           modules_enabled = TRUE;
           constexpr_dynamic_alloc_enabled = TRUE;
           constexpr_virtual_enabled = TRUE;
+          allow_parenthesized_aggregate_init = TRUE;
+          constexpr_dynamic_alloc_enabled = TRUE;
         }  /* if */
       }  /* if */
       if (microsoft_version >= 1929) {
