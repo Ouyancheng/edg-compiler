@@ -612,10 +612,9 @@ scope.
   a_module_entity_ptr mep, *mepp = &(sym_hdr->deferred_module_entities);
 
   check_assertion(sym_hdr->deferred_module_entities != NULL);
+  scope_pushed = push_module_declaration_context(scope);
   while (*mepp != NULL) {
     if ((*mepp)->scope == scope) {
-      check_assertion(!scope_pushed);
-      scope_pushed = push_module_declaration_context(scope);
 #if DEBUG
       if (db_flag_is_set("ms_symbols")) {
         (void)fprintf(f_debug, "Loading symbol %s in ",

@@ -2866,6 +2866,7 @@ constants for that type).
   char                     *il_entity = NULL;
   a_byte_il_entry_kind     kind = iek_none;
   a_boolean                scope_pushed = FALSE;
+  a_boolean                skip_pop = FALSE;
 
   if (!mep->imminent && mep->entity.ptr == NULL) {
     a_source_position saved_error_position = error_position;
@@ -3010,7 +3011,6 @@ constants for that type).
             mep->scope = get_ifc_scope(idssp->home_scope);
             scope_pushed = push_module_declaration_context(mep->scope);
           }  /* if */
-          check_assertion(mep->scope != NULL);
           /* Look at the "type" to determine whether we have a namespace or
              not. */
           check_assertion(type_tag(idssp->type) == ifc_TypeSort_Fundamental);
@@ -3210,6 +3210,7 @@ class_struct_union_case:
             a_type_ptr   enum_type;
             a_symbol_ptr tag_sym;
             check_assertion(idsep->base != 0);
+            check_assertion(mep->scope != NULL);
             /* FIXME: idsep->alignment exists but is an ExprIndex. */
             init_dps(&dps, &idsep->locus, idsep->base, ifc_ObjectTraits_None,
                      ifc_MsvcTraits_None, idsep->specifiers, idsep->access,
@@ -3501,6 +3502,8 @@ class_struct_union_case:
           kind = dmep->entity.kind;
           check_assertion(mep->scope == NULL);
           mep->scope = dmep->scope;
+          /* We didn't push a context here, so don't pop it either. */
+          skip_pop = TRUE;
         }
         break;
       case ifc_DeclSort_Method:
@@ -3631,7 +3634,9 @@ unhandled:
         db_module_entity(mep);
       }  /* if */
 #endif /* DEBUG */
-      pop_module_declaration_context(scope_pushed);
+      if (!skip_pop) {
+        pop_module_declaration_context(scope_pushed);
+      }  /* if */
     }  /* if */
     error_position = saved_error_position;
   }  /* if */

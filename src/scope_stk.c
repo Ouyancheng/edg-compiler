@@ -3425,9 +3425,10 @@ the scope being pushed.
     /* No source sequence entries are created for secondary translation
        units. */
   } else if (ssep->module_load_context_count > 0) {
-    /* In a modules context, source sequence entries are invalid. */
+    /* When loading entities from a module, source sequence entries are
+       invalid. */
     ssep->source_sequence_entries_disallowed =
-      source_sequence_entries_disallowed = TRUE;
+                                     source_sequence_entries_disallowed = TRUE;
   } else if (kind == (a_scope_kind)sck_template_declaration) {
     if (!prototype_instantiations_in_il) {
       /* Source sequence entries are generated in template declaration scopes
@@ -3435,7 +3436,7 @@ the scope being pushed.
          instantiations for default template arguments are done in
          template declaration scopes). */
       ssep->source_sequence_entries_disallowed =
-        source_sequence_entries_disallowed = TRUE;
+                                     source_sequence_entries_disallowed = TRUE;
     }  /* if */
   } else if (kind == (a_scope_kind)sck_pragma) {
     ssep->source_sequence_entries_disallowed =
