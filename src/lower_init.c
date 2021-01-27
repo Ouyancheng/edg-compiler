@@ -10728,7 +10728,6 @@ do_keep_constant:
           goto do_assignment;
         }  /* if */
         /* Analogous to dik_nonconstant_aggregate. */
-        check_assertion(!(variable == NULL && dip->master_entry != NULL));
         clear_implied_copy_source(&lambda_source);
         lambda_source.capture = dip->variant.constant.lambda->capture_list;
         keep_constant = FALSE;
@@ -19624,9 +19623,17 @@ with the value of their corresponding captured variables.
                                       ->closure_class,
                                   expr->type));
   dip = expr->variant.init.dynamic_init;
-  /* Create a suitable temporary variable for this initialization. */
-  closure_var = make_temporary_for_dynamic_init(expr->type, dip,
-                                                &is_reusable_temp);
+  if (dip->master_entry != NULL) {
+    /* We have a lambda as a second operation in an eok_comma (or
+       similar case with eok_question).  In that case, get the variable to
+       initialize from the master_entry. */
+    closure_var = dip->master_entry->variable;
+    check_assertion(closure_var != NULL);
+  } else {
+    /* Create a suitable temporary variable for this initialization. */
+    closure_var = make_temporary_for_dynamic_init(expr->type, dip,
+                                                  &is_reusable_temp);
+  }  /* if */
   /* Change the enk_lambda node to an enk_variable node that refers to
      the closure variable.  The type and lvalueness of the node are unchanged.
      Lambda-specific field values of expr cannot be accessed after the
