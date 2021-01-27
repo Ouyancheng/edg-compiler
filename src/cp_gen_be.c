@@ -4293,14 +4293,22 @@ gen_name.  See gen_name for the meaning of need_closing_paren.
   a_type_ptr actual_type_used;
 
   /* Ignore anonymous union levels. */
-  while (class_type_supp(class_type)->anonymous_union_kind ==
+  while (is_immediate_class_type(class_type) &&
+         (class_type_supp(class_type)->anonymous_union_kind ==
                                           (an_anonymous_union_kind)auk_field ||
-         class_type
-                 ->variant.class_struct_union.is_nonstd_anonymous_union_type) {
+          class_type
+                ->variant.class_struct_union.is_nonstd_anonymous_union_type)) {
     class_type = parent_class_of(class_type);
   }  /* while */
   actual_type_used = class_type;
-  if (class_type_supp(class_type)->anonymous_union_kind
+  if (!is_immediate_class_type(class_type)) {
+    /* An accessible typedef substituted for an inaccessible class type.
+       Put out the name, using recursion if needed to put out additional
+       levels of qualification. */
+    gen_name(&class_type->source_corresp, iek_type, options | GN_QUALIFIER,
+             need_closing_paren);
+    write_tok_str("::");
+  } else if (class_type_supp(class_type)->anonymous_union_kind
                                     == (an_anonymous_union_kind)auk_variable) {
     /* Put out no name for the topmost level in a non-field anonymous union. */
     actual_type_used = NULL;
