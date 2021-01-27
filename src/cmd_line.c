@@ -2956,7 +2956,9 @@ option values if they were not already set by a command line option.
         /* If necessary, the build number can be used to distinguish these
            (with 16.9 starting at build number 29500). */
         if (ms_cpp20_mode) {
-          modules_enabled = TRUE;
+          if (!option_kind_used[(int)optk_modules]) {
+            modules_enabled = TRUE;
+          }  /* if */
           constexpr_dynamic_alloc_enabled = TRUE;
           constexpr_virtual_enabled = TRUE;
           allow_parenthesized_aggregate_init = TRUE;
