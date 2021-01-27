@@ -4337,7 +4337,8 @@ constant is being assigned, e.g.,
     /* See if the variable has been allocated already.  If so, a pointer to
        the variable will have been stored in the constant; otherwise one
        will be created. */
-    assoc_var = assoc_var_for_constant(constant, /*const_okay=*/TRUE);
+    assoc_var = assoc_var_for_constant(constant,
+                                      is_const_qualified_type(constant->type));
   }  /* if */
   *temp_var = assoc_var;
   return troublesome;

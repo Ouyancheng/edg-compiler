@@ -1,5 +1,27 @@
 Version 6.2
 
+1/27/21 [EDGcpfe/22003,EDGcpfe/23814]
+Temporary introduced by lowering was incorrectly const-qualified
+
+In configurations that do lowering, a temporary introduced by lowering
+to represent an aggregate had been incorrectly const-qualified resulting in
+generated C code that would not compile.  That was the case in configurations
+with RECORD_BACKING_EXPRS_WITH_IL_LOWERING set to FALSE for this example
+(with --c++11):
+
+  struct S {
+    void f(int x) {
+      x_ = x;
+    }
+    int x_ = 0;
+  };
+  void f(void) {
+    S().foo(1);
+  }
+
+This is a regression introduced in 6.0 by the changes for EDGcpfe/21809.
+
+
 1/26/21 [EDGcpfe/23550]
 Microsoft compatibility: enabling additional features
 
