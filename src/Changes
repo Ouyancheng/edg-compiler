@@ -6,12 +6,12 @@ Microsoft compatibility: enabling additional features
 A number of C++20 features are now enabled in various Microsoft emulation
 modes.  The C++20 concepts feature (see the Changes entry for EDGcpfe/20005,
 EDGcpfe/20118) is now enabled when microsoft_version >= 1923 and --ms_c++latest
-are specified.  The C++20 modules feature is now enabled in Microsoft
-emulation mode when microsoft_version >= 1928 and --ms_c++latest are specified.
+is specified.  The C++20 modules feature is now enabled in Microsoft
+emulation mode when microsoft_version >= 1928 and --ms_c++latest is specified.
 
 Additionally, long_long_promotion_allowed, allow_parenthesized_aggregate_init,
 and constexpr_dynamic_alloc_enabled are enabled when microsoft_version >= 1928
-and --ms_c++latest are specified.
+and --ms_c++latest is specified.
 
 A slight versioning change is also taking place to follow the changes made
 in the Microsoft Visual Studio numbering.  Previously, emulating Visual Studio
