@@ -3306,6 +3306,7 @@ class_struct_union_case:
             a_symbol_ptr   enum_con_sym;
             a_constant_ptr enum_con;
             a_type_ptr     enum_type;
+            check_assertion(mep->scope != NULL);
             if (mep->scope->kind == (a_scope_kind)sck_enum) {
               /* This is an enumerator for a scoped enum. */
               enum_type = mep->scope->variant.assoc_type;

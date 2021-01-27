@@ -8728,7 +8728,9 @@ new top-of-stack entry with information from the entry that has been popped.
                                    new_ssep->depth_template_declaration_scope;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     source_sequence_entries_disallowed =
-                                 new_ssep->source_sequence_entries_disallowed;
+                                 (new_ssep->module_load_context_count == 0) ?
+                                 new_ssep->source_sequence_entries_disallowed :
+                                 TRUE;
     if (ssep->source_sequence_list != NULL) {
       /* Merge the source sequence list from the previous top stack entry into
          the new one. */
