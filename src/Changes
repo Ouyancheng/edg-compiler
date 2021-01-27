@@ -62,7 +62,7 @@ GCC and Clang behavior in the respective compatibility modes.
 1/26/21  [EDGcpfe/23805]
 C++-generating back end: out-of-bounds array access with auto type specifier
 
-Use of the auto type specifier could result in out-of-bound array accesses
+Use of the auto type specifier could result in out-of-bounds array accesses
 in source_corresp_for_template_param, causing unpredictable behavior
 including segfaults and incorrect output.  This is now fixed.  For example,
 with --c++17:
