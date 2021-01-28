@@ -1,5 +1,25 @@
 Version 6.2
 
+1/28/21  [EDGcpfe/23792,EDGcpfe/23823]
+Spurious GNU C++17 mode error on nonconstant static data member initializer
+
+Prior to C++17, in-class static data member initializer always had to be
+constant initializers.  With C++17, such members can be "inline" and those can
+have non-constant initializers.  In GNU C++17 mode, however, the front end
+handles such members slightly differently when they appear in class template
+instances to emulate GCC's on-demand instantiation of the initializer.
+Unfortunately, that handling previously still required the constant initializer
+and that triggered spurious errors in GNU C++17 mode.  For example:
+
+  int f();
+  template<typename T> struct S {
+    static inline int const x = f();
+  };
+  int r = S<int>{}.x;  // Previously an error in GNU C++17 mode.  Now okay.
+
+That problem is now fixed.
+
+
 1/28/21  [EDGcpfe/21309]
 Microsoft compatibility: forward declaration of enum type
 

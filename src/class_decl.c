@@ -3939,6 +3939,8 @@ For the managed class case, this is similar to
 inclass_initializer_fixup_for_class, except only a specific fixup entry is
 processed, and the initializer is scanned with the constraints of a
 constant-expression.
+
+In C++17 mode, the initializer need not be a constant-expression.
 */
 {
   a_symbol_ptr   var_sym = symbol_for(var);
@@ -4034,13 +4036,15 @@ constant-expression.
     dps.in_class_scope = TRUE;
     dps.sym = var_sym;
     dps.type = dps.declared_type = var->type;
-    if (gpp_mode && var->template_info != NULL &&
-        symbol_for(var->template_info->assoc_template)
-                ->variant.static_data_member.instance_ptr->template_info
-                ->variant.variable.has_out_of_class_definition) {
+    if (cpp17_mode ||
+        (gpp_mode && var->template_info != NULL &&
+         symbol_for(var->template_info->assoc_template)
+                 ->variant.static_data_member.instance_ptr->template_info
+                 ->variant.variable.has_out_of_class_definition)) {
       /* In GNU C++ mode, if an out-of-class definition has been seen prior to
          the instantiation of the initializer, the initializer is not
-         necessarily required to be a constant. */
+         necessarily required to be a constant.  In C++17 it isn't generally
+         required to be a constant either. */
       a_boolean  incomplete_type_error_reported = FALSE;
       a_boolean  is_parenthesized_initializer = FALSE;
       a_boolean  saved_has_deduced_type = dps.has_deduced_type;
