@@ -18,7 +18,6 @@ spurious errors.  For example:
     S<N> s;  // Previously an error because S<N> considered non-literal.
   }          // Now okay.
 
-
 That is now fixed.
 
 
