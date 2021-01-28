@@ -1,6 +1,6 @@
 Version 6.2
 
-1/27/21 [EDGcpfe/23819]
+1/27/21  [EDGcpfe/23819]
 Class with a constexpr destructor and anonymous union not treated as literal
 
 The front end previously always treated a class with a constexpr destructor and
