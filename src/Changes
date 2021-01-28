@@ -43,7 +43,7 @@ with RECORD_BACKING_EXPRS_WITH_IL_LOWERING set to FALSE for this example
 This is a regression introduced in 6.0 by the changes for EDGcpfe/21809.
 
 
-1/26/21 [EDGcpfe/23550]
+1/26/21  [EDGcpfe/23550]
 Microsoft compatibility: enabling additional features
 
 A number of C++20 features are now enabled in various Microsoft emulation
