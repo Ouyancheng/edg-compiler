@@ -30908,7 +30908,8 @@ flag is set in the class symbol supplement of the given type.
       /* Don't treat managed class types as literal types. */
       cssp->known_not_to_be_a_literal_type = TRUE;
     } else if (has_nontrivial_destructor(cssp) &&
-               !cssp->destructor->variant.routine.ptr->is_constexpr) {
+               !cssp->destructor->variant.routine.ptr->is_constexpr &&
+               !cssp->destructor->variant.routine.ptr->is_deleted) {
       /* Literal class types must have trivial or constexpr destructors. */
       cssp->known_not_to_be_a_literal_type = TRUE;
     } else if (type->variant.class_struct_union.any_volatile_member &&
