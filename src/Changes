@@ -1,5 +1,17 @@
 Version 6.2
 
+1/28/21  [EDGcpfe/21309]
+Microsoft compatibility: forward declaration of enum type
+
+The C++ standard prohibits a forward declaration of an enum type but
+Microsoft allows it.  The front end had also allowed in Microsoft emulation
+mode, but only with --ms_permissive.  A change has been made to accept this
+in all Microsoft emulation modes.  For example, with --microsoft
+--no_ms_permissive:
+
+  enum E; // Now accepted even with --no_ms_permissive
+
+
 1/27/21  [EDGcpfe/23819]
 Class with a constexpr destructor and anonymous union not treated as literal
 
