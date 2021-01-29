@@ -9336,16 +9336,22 @@ See do_constexpr_std_allocator_allocate for the meaning of the parameters.
      type.  So we temporarily enable placement-new here, and record the address
      at which the object will be constructed.  do_constexpr_new then makes use
      of that information. */
-  a_boolean            result = TRUE;
+  a_boolean            result;
   a_template_arg_ptr   tap = callee->template_arg_list;
   a_constexpr_address  *cap = (a_constexpr_address*)p_arg_bytes[0];
 
   check_assertion(valid_placement_new_type == NULL &&
                   tap != NULL && tap->kind == (a_templ_arg_kind)tak_type);
-  valid_placement_new_address = cap->address;
-  valid_placement_new_type = skip_typerefs(tap->variant.type);
-  result = run_function_body(ips, scope_for_routine(callee));
-  valid_placement_new_type = NULL;
+  if (is_variant_path(cap) &&
+      !check_variant_assign(ips, cap, &call_node->position)) {
+    /* Invalid attempt to store into a non-active variant field. */
+    result = FALSE;
+  } else {
+    valid_placement_new_address = cap->address;
+    valid_placement_new_type = skip_typerefs(tap->variant.type);
+    result = run_function_body(ips, scope_for_routine(callee));
+    valid_placement_new_type = NULL;
+  }  /* if */
   return result;
 }  /* do_constexpr_std_allocator_construct_at */
 
@@ -12933,6 +12939,7 @@ Evaluate the given new-expression.
         elem_type = skip_typerefs(elem_type->variant.array.element_type);
       } while (type_is(elem_type, tk_array));
     }  /* if */
+    elem_size = value_bytes_for_type(ips, elem_type, &result); 
   } else {
     allocation = do_constexpr_dynamic_alloc(ips, elem_type, alloc_length,
                                             &expr->position, cap, &elem_size);
