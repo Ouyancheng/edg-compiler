@@ -1,5 +1,13 @@
 Version 6.2
 
+1/29/21  [EDGcpfe/23820]
+Evaluation of std::construct_at for union members
+
+The constexpr interpreter previously did not adjust the "active member" of a
+union when constructing such a member using std::construct_at.  That in turn
+could lead to spurious errors later on.  This is now fixed.
+
+
 1/28/21  [EDGcpfe/23792,EDGcpfe/23823]
 Spurious GNU C++17 mode error on nonconstant static data member initializer
 
