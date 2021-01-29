@@ -4184,6 +4184,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                   ik = int_kind_for_bit_size(
                                          8,
                                          itsfp->sign != ifc_TypeSign_Unsigned);
+                  break;
                 case ifc_TypePrecision_Bit16:
                   ik = int_kind_for_bit_size(
                                          16,
