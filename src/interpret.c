@@ -3812,6 +3812,9 @@ Output the contents of the interpreted object of type tp stored at addr.
     not_initialized = TRUE;
   }  /* if */
   switch (tp->kind) {
+    case tk_void:
+      (void)fprintf(f_debug, "(void value)\n");
+      break;
     case tk_integer:
       { a_host_large_integer  val;
         a_boolean             ovflo;
@@ -4237,8 +4240,6 @@ otherwise (and record an appropriate diagnostic).  In C++20 modes, if the
 variant path does not match the variant subobjects, mark those subobjects as
 uninitialized and activate the subobject along the variant path instead; return
 TRUE in that case.
-
-Release the variant path structures when the check is completed.
 */
 {
   a_boolean  result = TRUE, activation_mode = FALSE, strict = !cpp20_mode;
@@ -4331,7 +4332,6 @@ Release the variant path structures when the check is completed.
     unmark_complete_object_initialized(addr->complete_object);
   }  /* if */
 done:
-  release_variant_path(addr);
   return result;
 }  /* check_variant_assign */
 
@@ -13045,8 +13045,13 @@ Evaluate the given new-expression.
     }  /* if */
     /* The initializer is not an array aggregate initializer. */
     for (; k<(int)orig_alloc_length; ++k, elem += elem_size) {
-      if (!do_constexpr_dynamic_init(ips, dip, &expr->position, elem,
-                                     complete_obj)) {
+      /* Initialize each element individually.  Handle dik_zero entries
+         separately since do_constexpr_dynamic_init doesn't have the type
+         information for such entries. */
+      if (dyn_init_is(dip, dik_zero)) {
+        init_subobject_to_zero(ips, elem, elem_type, complete_obj);
+      } else if (!do_constexpr_dynamic_init(ips, dip, &expr->position, elem,
+                                            complete_obj)) {
         result = FALSE;
         break;
       }  /* if */
@@ -15727,10 +15732,6 @@ the value representation of the integer value.
                 do_constexpr_fail(result);
                 info_with_pos(ec_object_not_initialized, &opnd1->position,
                               ips);
-              } else if (is_variant_path(dst) &&
-                         !check_variant_assign(ips, dst, &expr->position)) {
-                /* Invalid attempt to store into a non-active variant field. */
-                do_constexpr_fail(result);
               } else if (ips->side_effects_disabled) {
                 /* Side-effects (like assignments) are disabled. */
                 do_constexpr_fail(result);
@@ -15738,9 +15739,19 @@ the value representation of the integer value.
                 /* Copy the value of the right operand to the indicated
                    address and return either the address or the value, as
                    appropriate. */
-                a_byte  *dst_storage = value_bytes_at(dst);
-                a_boolean  copy_subobjects =
-                         is_immediate_class_type(tp) || type_is(tp, tk_array);
+                a_byte     *dst_storage = value_bytes_at(dst);
+                a_boolean  copy_subobjects = is_immediate_class_type(tp) ||
+                                             type_is(tp, tk_array);
+                if (is_variant_path(dst)) {
+                  /* Assignment may require setting a new active field. */
+                  if (!check_variant_assign(ips, dst, &expr->position)) {
+                    /* Invalid attempt to store into a non-active variant
+                       field. */
+                    do_constexpr_fail(result);
+                  }  /* if */
+                  /* The variant path is no longer needed after this. */
+                  release_variant_path(dst);
+                }  /* if */
                 if (copy_subobjects) {
                   if (!constexpr_copy_object(
                                          ips, tp, &expr->position,
