@@ -3427,6 +3427,8 @@ class_struct_union_case:
             issue_unsupported_node_diag("DeclSort::Parameter packs",
                                         &error_position);
           }  /* if */
+          /* FIXME: Currently all paths that lead here have
+             curr_templ_decl_state == NULL. */
           switch (idspp->sort) {
             case ifc_ParameterSort_Object:
               /* FIXME: Currently unsupported. */
@@ -3462,6 +3464,20 @@ class_struct_union_case:
                                                   /*is_non_initial=*/FALSE,
                                                   /*is_pack_expansion*/FALSE,
                                                   &loc, param_type,
+                                                  curr_templ_decl_state);
+              break;
+            case ifc_ParameterSort_Placeholder:
+              /* FIXME: Currently unsupported. */
+              issue_unsupported_node_diag("ParameterSort::Placeholder",
+                                          &error_position);
+              param = make_nontype_template_param(idspp->level,
+                                                  idspp->position,
+                                                  /*is_unnamed=*/FALSE,
+                                                  idspp->pack,
+                                                  /*is_pack_element=*/FALSE,
+                                                  /*is_non_initial=*/FALSE,
+                                                  /*is_pack_expansion=*/FALSE,
+                                                  &loc, error_type(),
                                                   curr_templ_decl_state);
               break;
             case ifc_ParameterSort_Template:
@@ -4129,6 +4145,9 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                 case ifc_TypePrecision_Default:
                   result = wchar_t_type();
                   break;
+                case ifc_TypePrecision_Bit8:
+                  result = char8_t_type();
+                  break;
                 case ifc_TypePrecision_Bit16:
                   result = char16_t_type();
                   break;
@@ -4161,6 +4180,10 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                                                              ik_unsigned_long :
                                                              ik_long;
                   break;
+                case ifc_TypePrecision_Bit8:
+                  ik = int_kind_for_bit_size(
+                                         8,
+                                         itsfp->sign != ifc_TypeSign_Unsigned);
                 case ifc_TypePrecision_Bit16:
                   ik = int_kind_for_bit_size(
                                          16,
@@ -4404,22 +4427,31 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
 
           itsdp = get_TypeSort_Designated(&itsd);
           dsort = decl_tag(itsdp->decl);
-          if (dsort == ifc_DeclSort_Reference) {
-            dmep = get_and_process_ifc_decl_from_other_module(itsdp->decl);
-            result = (a_type_ptr)dmep->entity.ptr;
-            check_assertion(result != NULL && dmep->entity.kind == iek_type);
-          } else if (dsort == ifc_DeclSort_Scope ||
-                     dsort == ifc_DeclSort_Enumeration) {
-            /* Find the type of the scope declaration by processing it (in
-               case it has been deferred). */
-            dmep = get_ifc_module_entity_ptr(itsdp->decl);
-            process_ifc_declaration(dmep, /*defer=*/FALSE, (a_type_ptr)NULL);
-            result = (a_type_ptr)dmep->entity.ptr;
-            check_assertion(result != NULL && dmep->entity.kind == iek_type);
-          } else {
-            unexpected_condition_str("Unexpected DeclSort for "
-                                     "TypeSort::Designated");
-          }  /* if */
+          switch (dsort) {
+            case ifc_DeclSort_Reference:
+              dmep = get_and_process_ifc_decl_from_other_module(itsdp->decl);
+              result = (a_type_ptr)dmep->entity.ptr;
+              check_assertion(result != NULL && dmep->entity.kind == iek_type);
+              break;
+            case ifc_DeclSort_Scope:
+            case ifc_DeclSort_Enumeration:
+              /* Find the type of the scope declaration by processing it (in
+                 case it has been deferred). */
+              dmep = get_ifc_module_entity_ptr(itsdp->decl);
+              process_ifc_declaration(dmep, /*defer=*/FALSE, (a_type_ptr)NULL);
+              result = (a_type_ptr)dmep->entity.ptr;
+              check_assertion(result != NULL && dmep->entity.kind == iek_type);
+              break;
+            case ifc_DeclSort_Parameter:
+              /* FIXME: Currently unsupported. */
+              issue_unsupported_node_diag("DeclSort::Parameter",
+                                          &error_position);
+              result = error_type();
+              break;
+            default:
+              unexpected_condition_str("Unexpected DeclSort for "
+                                       "TypeSort::Designated");
+          }  /* switch */
         }
         break;
       case ifc_TypeSort_Deduced:
@@ -5333,6 +5365,11 @@ FIXME: what other expressions can we get here?
         } else {
           constant_type = type_for_type_index(ieslp->type, /*kind=*/NULL);
         }  /* if */
+        if (constant_type != NULL && is_error_type(constant_type)) {
+          cp = alloc_error_constant();
+          expect_error();
+          goto done;
+        }  /* if */
         switch (literal_tag(ieslp->value)) {
           case ifc_LiteralSort_Immediate:
             /* An immediate literal (30 bits or less). */
@@ -5423,11 +5460,50 @@ FIXME: what other expressions can we get here?
         unhandled_ifc_node_severity = saved_sev;
       }
       break;
+    case ifc_ExprSort_NamedDecl:
+      { an_ifc_ExprSort_NamedDecl iesnd, *iesndp;
+        iesndp = get_ExprSort_NamedDecl(&iesnd);
+        cp = constant_for_named_decl(iesndp);
+      }
+      break;
     default:
       unexpected_condition();
   }  /* switch */
+done:
   return cp;
 }  /* constant_for_expr_index */
+
+
+a_constant_ptr an_ifc_module::constant_for_named_decl(
+                                       an_ifc_ExprSort_NamedDecl *iesndp) const
+/*
+Returns a constant (allocated in the current IL memory region) with the value
+corresponding to the provided named declaration.  Assumes the expression is
+constant.
+FIXME: shared or unshared?
+FIXME: what other types of named declarations can we get here?
+*/
+{
+  ifc_DeclSort   tag = decl_tag(iesndp->resolution);
+  a_constant_ptr cp = NULL;
+  a_type_ptr     type;
+
+  type = type_for_type_index(iesndp->type, /*kind=*/NULL);
+  read_partition_at_index(iesndp->resolution);
+  switch (tag) {
+    case ifc_DeclSort_Enumerator:
+      { an_ifc_DeclSort_Enumerator idse, *idsep;
+        idsep = get_DeclSort_Enumerator(&idse);
+        /* Skip straight to the enumerator value. */
+        check_assertion(idsep->initializer != 0);
+        cp = constant_for_expr_index(idsep->initializer, type);
+      }
+      break;
+    default:
+      unexpected_condition_str("Unexpected DeclSort for ExprSort::NamedDecl");
+  }  /* switch */
+  return cp;
+}
 
 
 a_boolean an_ifc_module::is_class_scope(ifc_DeclIndex scope) const
@@ -5525,9 +5601,11 @@ Add a tok_literal for lit_const to cache.  pos is the position of the literal.
 #endif /* FIXED_POINT_ALLOWED */
   } else if (is_character_type(lit_const->type)) {
     lit_kind = tok_char_constant;
-  } else {
-    check_assertion(is_integral_type(lit_const->type));
+  } else if (is_integral_type(lit_const->type)) {
     lit_kind = tok_int_constant;
+  } else {
+    check_assertion(is_error_type(lit_const->type));
+    lit_kind = tok_error;
   }  /* if */
   cache_token(cache, lit_kind, pos);
   cache->last_token->extra_info_kind = (a_token_extra_info_kind)teik_constant;
@@ -7130,6 +7208,9 @@ location of the entity referring to the type.
               case ifc_TypePrecision_Default:
                 cache_token(cache, tok_char, &pos);
                 break;
+              case ifc_TypePrecision_Bit8:
+                cache_token(cache, tok_char8_t, &pos);
+                break;
               case ifc_TypePrecision_Bit16:
                 cache_token(cache, tok_char16_t, &pos);
                 break;
@@ -7153,6 +7234,9 @@ location of the entity referring to the type.
                 break;
               case ifc_TypePrecision_Long:
                 cache_token(cache, tok_long, &pos);
+                break;
+              case ifc_TypePrecision_Bit8:
+                cache_token(cache, tok_int8, &pos);
                 break;
               case ifc_TypePrecision_Bit16:
                 cache_token(cache, tok_int16, &pos);
@@ -8614,8 +8698,22 @@ Add the tokens corresponding to the given declaration (decl) to cache.
           case ifc_ParameterSort_NonType:
             cache_type(cache, idspp->type, &idspp->locus);
             break;
+          case ifc_ParameterSort_Placeholder:
+            cache_token(cache, tok_auto, &pos);
+            break;
           case ifc_ParameterSort_Template:
-            cache_type(cache, idspp->type, &idspp->locus);
+            if (idspp->type != 0) {
+              cache_type(cache, idspp->type, &idspp->locus);
+            } else {
+              /* FIXME: Confirm this is actually what is implied by a NULL
+                 type. */
+              cache_token(cache, tok_template, &pos);
+              cache_token(cache, tok_lt, &pos);
+              cache_token(cache, tok_typename, &pos);
+              cache_token(cache, tok_ellipsis, &pos);
+              cache_token(cache, tok_gt, &pos);
+              cache_token(cache, tok_typename, &pos);
+            }  /* if */
             break;
           default_is_unexpected_str("Unexpected ParameterSort");
         }  /* switch */
@@ -9169,7 +9267,9 @@ Add the tokens corresponding to the given expression (expr) to cache.
         source_position_from_locus(&pos, &iescp->locus);
         cache_expr(cache, iescp->operation);
         cache_token(cache, tok_lparen, &pos);
-        cache_expr(cache, iescp->arguments);
+        if (iescp->arguments != 0) {
+          cache_expr(cache, iescp->arguments);
+        }  /* if */
         cache_token(cache, tok_rparen, &pos);
       }
       break;
@@ -11138,6 +11238,7 @@ FIXME: more specific
               /* FIXME: not sure how to map these: */
               case ifc_TypePrecision_Short:
               case ifc_TypePrecision_Long:
+              case ifc_TypePrecision_Bit8:
               case ifc_TypePrecision_Bit64:
               case ifc_TypePrecision_Bit128:
                 unexpected_condition();
@@ -11152,6 +11253,7 @@ FIXME: more specific
               case ifc_TypePrecision_Long:    basis_str = "long";    break;
               case ifc_TypePrecision_Bit64:   basis_str = "long long"; break;
               /* FIXME: not sure how to map these: */
+              case ifc_TypePrecision_Bit8:
               case ifc_TypePrecision_Bit16:
               case ifc_TypePrecision_Bit32:
               case ifc_TypePrecision_Bit128:

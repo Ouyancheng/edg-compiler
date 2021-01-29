@@ -421,6 +421,8 @@ enum ifc_ParameterSort : ifc_Sort_type {
   ifc_ParameterSort_Object,           /* Function parameter. */
   ifc_ParameterSort_Type,             /* Type template parameter. */
   ifc_ParameterSort_NonType,          /* Non-type template parameter. */
+  /* The IFC spec is missing this, and it's scheduled for removal. */
+  ifc_ParameterSort_Placeholder,      /* "auto" template parameter. */
   ifc_ParameterSort_Template,         /* Template template parameter. */
 };
 
@@ -615,8 +617,9 @@ enum ifc_TypePrecision : uint8_t {
   ifc_TypePrecision_Default,
   ifc_TypePrecision_Short,
   ifc_TypePrecision_Long,
-  /* ifc_TypePrecision_Bit8 supposed to be here? */
-  ifc_TypePrecision_Bit16 = 4,
+  /* The IFC spec is missing this, but IFC files indicate otherwise. */
+  ifc_TypePrecision_Bit8,
+  ifc_TypePrecision_Bit16,
   ifc_TypePrecision_Bit32,
   ifc_TypePrecision_Bit64,
   ifc_TypePrecision_Bit128,
@@ -2554,6 +2557,8 @@ private:
                               a_symbol_locator   *loc) const;
   a_constant_ptr constant_for_expr_index(ifc_ExprIndex expr_index,
                                          a_type_ptr    default_type) const;
+  a_constant_ptr constant_for_named_decl(an_ifc_ExprSort_NamedDecl *iesndp)
+                                                                         const;
   /* Queries. */
   a_boolean is_class_scope(ifc_DeclIndex scope) const;
   /* Token caching. */
