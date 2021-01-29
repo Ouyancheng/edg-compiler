@@ -119,6 +119,7 @@ of the host system.
 
 /* Base configuration. */
 #define OPTIMIZED_VERSION 0
+#define NO_USR_INCLUDE 1
 
 #define ASM_FUNCTION_ALLOWED 1
 #define COMPILE_MULTIPLE_SOURCE_FILES 0
