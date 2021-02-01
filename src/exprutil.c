@@ -1205,7 +1205,8 @@ Otherwise, return FALSE.
 */
 {
   a_boolean result = (icp->pack_expansion_descr != NULL);
-  if (!result && is_expression_component(icp)) {
+  if (!result && pack_expansion_stack != NULL &&
+      pack_expansion_stack->is_suppression && is_expression_component(icp)) {
     /* When we've suppressed pack expansions, the pack expansion description
        will be NULL.  To answer whether this is a pack expansion component, we
        need to dig deeper. */

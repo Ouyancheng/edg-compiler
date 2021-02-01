@@ -1,5 +1,25 @@
 Version 6.2
 
+2/1/21   [EDGcpfe/23674]
+C++-generating back end: spurious pack expansion token output
+
+The fix for EDGcpfe/21990 introduced a regression in the C++-generating back
+end where pack expansion tokens would be outputted where they should not have
+been.  For example:
+
+  template <typename T, int size>
+  struct arr {  T arr[size]; };
+  struct Ele  {  int i; };
+  template <int... Is>
+  auto doit() {
+    // Spurious output of {{Ele{Is...}...}} in C++-generating back end mode
+    return arr<Ele, sizeof...(Is)>{{Ele{Is}...}};
+  }
+  auto returns = doit<1>();
+
+This is now fixed.
+
+
 1/29/21  [EDGcpfe/23820]
 Evaluation of std::construct_at for union members
 
