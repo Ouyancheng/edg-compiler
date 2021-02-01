@@ -15742,16 +15742,6 @@ the value representation of the integer value.
                 a_byte     *dst_storage = value_bytes_at(dst);
                 a_boolean  copy_subobjects = is_immediate_class_type(tp) ||
                                              type_is(tp, tk_array);
-                if (is_variant_path(dst)) {
-                  /* Assignment may require setting a new active field. */
-                  if (!check_variant_assign(ips, dst, &expr->position)) {
-                    /* Invalid attempt to store into a non-active variant
-                       field. */
-                    do_constexpr_fail(result);
-                  }  /* if */
-                  /* The variant path is no longer needed after this. */
-                  release_variant_path(dst);
-                }  /* if */
                 if (copy_subobjects) {
                   if (!constexpr_copy_object(
                                          ips, tp, &expr->position,
@@ -15799,6 +15789,16 @@ the value representation of the integer value.
                   if (dst_storage == dst->complete_object) {
                     mark_complete_object_initialized(dst_storage);
                   }  /* if */
+                }  /* if */
+                if (is_variant_path(dst)) {
+                  /* Assignment may require setting a new active field. */
+                  if (!check_variant_assign(ips, dst, &expr->position)) {
+                    /* Invalid attempt to store into a non-active variant
+                       field. */
+                    do_constexpr_fail(result);
+                  }  /* if */
+                  /* The variant path is no longer needed after this. */
+                  release_variant_path(dst);
                 }  /* if */
               }  /* if */
             }
