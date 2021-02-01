@@ -22327,7 +22327,7 @@ translation units (their statics are picked up after copying).
        var != NULL;
        var = var->next) {
 #if USE_PATCH_INIT_STARTUP
-    char *var_name = var->source_corresp.name;
+    a_const_char *var_name = var->source_corresp.name;
     if (var_name != NULL && var_name[0] == '_' &&
         strcmp(var_name, "__link") == 0) {
       /* Do not rename the __link variable.  It is specific to a particular
