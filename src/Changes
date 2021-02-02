@@ -1,5 +1,15 @@
 Version 6.2
 
+2/2/21   [EDGcpfe/23612]
+Incorrect handling of substitution of variable templates
+
+In somewhat complex situations (occurring in recent versions for the Boost
+"asio" library, for example), the front end did not correctly handle the
+substitution of a dependent template-id that refers to a variable template.
+That resulted in spurious overload resolution errors.  That problem is now
+fixed.
+
+
 2/1/21   [EDGcpfe/23674]
 C++-generating back end: spurious pack expansion token output
 
