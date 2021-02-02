@@ -47183,17 +47183,33 @@ is TRUE if the expression is the immediate operand of an "&" operator.
           subst_fail(rcblock->error_detected);
           make_error_operand(result);
           copy_operand_position(&eriep->saved_operand, result);
-        } else if (symbol_is(sym, sk_variable_template) && is_template_id) {
-          /* If con represented a variable template reference with associated
-             explicit template arguments, resolve the associated variable
-             template instance. */
-          sym = find_template_variable(sym, &expl_templ_arg_list,
-                                       /*prototype_allowed=*/FALSE,
-                                       /*is_use=*/TRUE, /*diagnose=*/FALSE);
-          if (sym == NULL) {
-            subst_fail(rcblock->error_detected);
-            make_error_operand(result);
-            copy_operand_position(&eriep->saved_operand, result);
+        } else {
+          if (symbol_is(sym, sk_variable_template) && is_template_id) {
+            /* If con represented a variable template reference with associated
+               explicit template arguments, resolve the associated variable
+               template instance. */
+          if (expl_templ_arg_list != NULL) {
+            a_boolean             err = FALSE;
+            a_template_param_ptr  params;
+            params = sym->variant.template_info
+                                 ->cache.decl_info->parameters;
+            expl_templ_arg_list = copy_template_arg_list_with_substitution(
+                                         sym, expl_templ_arg_list, params,
+                                         (a_template_param_ptr)NULL,
+                                         rcblock->template_arg_list,
+                                         rcblock->template_param_list,
+                                         &eriep->saved_operand.position,
+                                         rcblock->options, &err,
+                                         rcblock->ctws_state);
+          }  /* if */
+            sym = find_template_variable(sym, &expl_templ_arg_list,
+                                         /*prototype_allowed=*/FALSE,
+                                         /*is_use=*/TRUE, /*diagnose=*/FALSE);
+            if (sym == NULL) {
+              subst_fail(rcblock->error_detected);
+              make_error_operand(result);
+              copy_operand_position(&eriep->saved_operand, result);
+            }  /* if */
           }  /* if */
         }  /* if */
       }
