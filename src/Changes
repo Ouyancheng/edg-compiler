@@ -8,8 +8,8 @@ C++-generating back end where pack expansion tokens would be emitted where they
 should not have been.  For example:
 
   template <typename T, int size>
-  struct arr {  T arr[size]; };
-  struct Ele  {  int i; };
+  struct arr { T arr[size]; };
+  struct Ele { int i; };
   template <int... Is>
   auto doit() {
     // Spurious output of {{Ele{Is...}...}} in C++-generating back end mode
