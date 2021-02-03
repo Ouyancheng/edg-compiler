@@ -19118,7 +19118,7 @@ error.  conv_context describes the context of the conversion.
   } else if (is_template_dependent_context() &&
              (class_type->variant.class_struct_union.is_nonreal_class ||
               (gpp_mode && !clang_mode &&
-              (conv_context & CCO_FUNC_NOTATION_CAST) != 0 &&
+               (conv_context & CCO_FUNC_NOTATION_CAST) != 0 &&
                is_incomplete_type(class_type) &&
                !curr_expr_is_evaluated()) ||
               (alep != NULL ? arg_list_is_type_dependent(alep) :
