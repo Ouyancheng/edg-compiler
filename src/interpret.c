@@ -4428,7 +4428,8 @@ static a_boolean do_constexpr_dtor(an_interpreter_state  *ips,
                                    a_routine_ptr         callee,
                                    a_source_position     *pos,
                                    a_byte                *result_storage,
-                                   a_byte                *complete_object);
+                                   a_byte                *complete_object,
+                                   a_boolean             nonvirtual = FALSE);
 
 static a_boolean do_constexpr_dynamic_init(
                                       an_interpreter_state  *ips,
@@ -9881,8 +9882,10 @@ otherwise, return FALSE and update *ips accordingly.
       do_constexpr_fail(result);
       goto done;
     } else {
-      result = do_constexpr_dtor(ips, callee, &call_node->position,
-                                 cap->address, cap->complete_object);
+      result = do_constexpr_dtor(
+                               ips, callee, &call_node->position,
+                               cap->address, cap->complete_object,
+                               !call_node->variant.operation.is_virtual_call);
     }  /* if */
     mark_subobject_uninitialized(cap->address, cap->complete_object);
     unmark_complete_object_initialized(cap->complete_object);
@@ -10818,12 +10821,15 @@ static a_boolean do_constexpr_dtor(an_interpreter_state  *ips,
                                    a_routine_ptr         callee,
                                    a_source_position     *pos,
                                    a_byte                *result_storage,
-                                   a_byte                *complete_object)
+                                   a_byte                *complete_object,
+                                   a_boolean             nonvirtual)
 /*
 Interpret a call to the given destructor (callee).  Return TRUE if no error
 occurred; otherwise, return FALSE and update *ips accordingly.  pos is the
 position of the call.  The object being destroyed is at the location indicated
-by result_storage, which is within the given complete object.
+by result_storage, which is within the given complete object.  If nonvirtual
+(defaulted to FALSE) is TRUE, no virtual dispatch is performed for a virtual
+destructor.
 
 This is similar to do_constexpr_ctor.
 */
@@ -10862,16 +10868,41 @@ This is similar to do_constexpr_ctor.
                          &ips->diag_list);
     do_constexpr_fail(result);
   } else {
-    a_scope_ptr          callee_scope = scope_for_routine(callee);
-    a_statement_ptr      block_stmt = callee_scope->assoc_block;
-    a_call_frame         frame;
-    a_variable_ptr       this_var;
-    a_constructor_init_ptr
-                         dtor_init;
-    a_byte               *this_bytes;
-    an_alloc_seq_number  alloc_seq_number;
-    a_type_ptr           class_type = parent_class_of(callee);
-    unsigned long        up_front_cost;
+    a_scope_ptr             callee_scope;
+    a_statement_ptr         block_stmt;
+    a_call_frame            frame;
+    a_variable_ptr          this_var;
+    a_constructor_init_ptr  dtor_init;
+    a_byte                  *this_bytes;
+    an_alloc_seq_number     alloc_seq_number;
+    a_type_ptr              class_type;
+    unsigned long           up_front_cost;
+    a_byte_count            retval_offset = 0;
+    a_byte_count            this_n_bytes = sizeof(a_constexpr_address);
+    a_byte_count            with_postfix_bytes;
+    /* Allocate the "this" parameter. */
+    /* This is similar to do_constexpr_alloc_variable, except for the
+       allocation sequence number value. */
+    alloc_seq_number = ips->curr_alloc_seq_number++;
+    add_to_live_set(&ips->live_set, alloc_seq_number);
+    do_host_alignment(this_n_bytes);
+    with_postfix_bytes = this_n_bytes+sizeof(a_var_postfix);
+    alloc_complete_object(ips, with_postfix_bytes, generic_ptr_type,
+                          this_bytes);
+    clear_address(this_bytes, result_storage);
+    ((a_constexpr_address *)this_bytes)->complete_object = complete_object;
+    ((a_constexpr_address *)this_bytes)->alloc_seq_number = alloc_seq_number;
+    mark_complete_object_initialized(this_bytes);
+    /* If this is a virtual destructor call, adjust the callee. */
+    if (callee->is_virtual && !nonvirtual &&
+        !adjust_virtual_callee(&callee, &this_bytes, &retval_offset)) {
+      info_with_pos(ec_constexpr_access_to_runtime_storage, pos, ips);
+      do_constexpr_fail(result);
+      goto done;
+    }  /* if */
+    callee_scope = scope_for_routine(callee);
+    block_stmt = callee_scope->assoc_block;
+    class_type = parent_class_of(callee);
     /* Don't attempt to interpret a non-constexpr function.  The flag
        scope->is_constexpr_routine is set at the end of a constexpr function
        definition, so this also prevents the interpretation of a function that
@@ -10899,21 +10930,7 @@ This is similar to do_constexpr_ctor.
       do_constexpr_fail(result);
       goto done;
     } else {
-      /* This is similar to do_constexpr_alloc_variable, except for the
-         allocation sequence number value. */
-      a_type_ptr     this_type = skip_typerefs(this_var->type);
-      a_byte_count   this_n_bytes = sizeof(a_constexpr_address);
-      a_byte_count   with_postfix_bytes;
       a_var_postfix  *postfix;
-      alloc_seq_number = ips->curr_alloc_seq_number++;
-      add_to_live_set(&ips->live_set, alloc_seq_number);
-      do_host_alignment(this_n_bytes);
-      with_postfix_bytes = this_n_bytes+sizeof(a_var_postfix);
-      alloc_complete_object(ips, with_postfix_bytes, this_type, this_bytes);
-      clear_address(this_bytes, result_storage);
-      ((a_constexpr_address *)this_bytes)->complete_object = complete_object;
-      ((a_constexpr_address *)this_bytes)->alloc_seq_number = alloc_seq_number;
-      mark_complete_object_initialized(this_bytes);
       postfix = (a_var_postfix*)(this_bytes+this_n_bytes);
       postfix->alloc_seq_number = alloc_seq_number;
       map_or_replace_ptr(&ips->map, this_var, this_bytes,
@@ -13162,8 +13179,12 @@ Evaluate the given delete-expression.
     unmark_complete_object_initialized(arr);
     for (; k<length; ++k, elem += elem_size) {
       if (dip != NULL) {
+        /* Run the destructor.  For the non-array case, this might be a virtual
+           call: Make sure we start from the original address since
+           do_constexpr_dtor will need it for the virtual function dispatch. */
+        a_byte  *obj = ndsp->array_delete ? elem : cap->address;
         if (!do_constexpr_dtor(ips, dip->destructor, &expr->position,
-                               elem, arr)) {
+                               obj, arr)) {
           result = FALSE;
           goto done;
         }  /* if */
@@ -17866,8 +17887,8 @@ the value representation of the integer value.
   }  /* switch */
 done:
   return result;
-#undef set_result_from_opnd1
-#undef within_int_range
+#undef SET_result_val_from_operand_address
+#undef CHECK_int_range
 }  /* do_constexpr_expression */
 
 

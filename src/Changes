@@ -7,12 +7,14 @@ The __array_rank and __array_extent type intrinsics have been added in
 clang emulation mode.
 
 
-2/3/21   [EDGcpfe/23767]
+2/3/21   [EDGcpfe/23767,EDGcpfe/23844]
 Constexpr destructor evaluation
 
 The constexpr interpreter previously disallowed access to members of a class
 as soon as the destructor evaluation starts, which prevented the destructor
-body from accessing member variables.  That is now fixed.
+body from accessing member variables.  Furthermore, virtual destructors were
+not always handled correctly, and their evaluation could lead to memory
+corruption.  That is now fixed.
 
 
 2/2/21   [EDGcpfe/23816]
