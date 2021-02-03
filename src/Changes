@@ -50,7 +50,7 @@ fixed.
 2/1/21   [EDGcpfe/23674]
 C++-generating back end: spurious pack expansion token output
 
-The fix for EDGcpfe/21990 (in Version 6.0) introduced a regression in the
+The fix for EDGcpfe/21990 (in version 6.0) introduced a regression in the
 C++-generating back end where pack expansion tokens would be emitted where they
 should not have been.  For example:
 
