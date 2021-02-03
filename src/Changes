@@ -1,5 +1,13 @@
 Version 6.2
 
+2/3/21   [EDGcpfe/23767]
+Constexpr destructor evaluation
+
+The constexpr interpreter previously disallowed access to members of a class
+as soon as the destructor evaluation starts, which prevented the destructor
+body from accessing member variables.  That is now fixed.
+
+
 2/2/21   [EDGcpfe/23816]
 Overload resolution failure with conversions to arrays of unknown bound
 

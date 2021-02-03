@@ -10933,11 +10933,6 @@ This is similar to do_constexpr_ctor.
     /* Run the "constructor initializers" that describe subobject
        destructions. */
     unmark_complete_object_initialized(complete_object);
-    if (!mark_whole_subobject_uninitialized(ips, result_storage, class_type,
-                                            complete_object)) {
-      result = FALSE;
-      goto done;
-    }  /* if */
     dtor_init = callee_scope->variant.routine.constructor_inits;
     for (; dtor_init != NULL; dtor_init = dtor_init->next) {
       a_byte_count        offset;
@@ -10965,6 +10960,11 @@ This is similar to do_constexpr_ctor.
         mark_subobject_uninitialized(result_storage+offset, complete_object);
       }  /* if */
     }  /* for */
+    if (!mark_whole_subobject_uninitialized(ips, result_storage, class_type,
+                                            complete_object)) {
+      result = FALSE;
+      goto done;
+    }  /* if */
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 #if BACK_END_IS_CP_GEN_BE
     if (result) callee->evaluated_in_interpreter = TRUE;
