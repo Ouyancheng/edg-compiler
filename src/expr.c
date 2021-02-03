@@ -13479,6 +13479,19 @@ on a previously-scanned argument given by rcblock->argument_list.
       }
       break;
     case iek_expr_node:
+      { an_operand          operand;
+        if (rcblock != NULL) {
+          /* Expression case.  Rescan the operand. */
+          an_expr_node_ptr op_expr =
+                 rcblock->expr->variant.builtin_operation.operands->next->next;
+          make_rescan_operand(op_expr, rcblock, &operand);
+        } else {
+          a_local_expr_options_set local_options = EOPT_NO_OPTIONS;
+          scan_expr(&operand, PREC_PREFIX, local_options);
+        }  /* if */
+        result = make_node_from_operand(&operand);
+      }
+      break;
     case iek_constant:
       unexpected_condition_str(
                             "unimplemented constant operation argument kind");
@@ -13913,6 +13926,60 @@ previously-scanned construct of this kind.  Either way, return the result in
     conv_to_error_operand(result);
   }  /* if */
 }  /* scan_binary_type_trait_helper */
+
+
+static void scan_array_type_trait_helper(a_rescan_control_block *rcblock,
+                                         an_operand             *result)
+/*
+Scan a constant-expression of the form
+
+      __array_rank(<type>)
+  or
+      __array_extent(<type>, int)
+
+The result is a constant of size_t with the appropriate value (the number of
+dimensions for __array_rank and the number of elements in the specified
+dimension for __array_extent).  If rcblock is non-NULL, redo semantic analysis
+on a previously-scanned construct of this kind.  Either way, return the result
+in *result (or an error indication in *rcblock).
+*/
+{
+  a_builtin_operation_kind_tag  bok = bok_last;
+
+  if (rcblock != NULL) {
+    an_expr_node_ptr expr = rcblock->expr;
+    check_assertion(expr != NULL &&
+                    expr->kind == (an_expr_node_kind)enk_builtin_operation);
+    bok = (a_builtin_operation_kind_tag)expr->variant.builtin_operation.kind;
+  } else {
+    if (curr_token == tok_array_rank) {
+      bok = bok_array_rank;
+    } else {
+      check_assertion(curr_token == tok_array_extent);
+      bok = bok_array_extent;
+    }  /* if */
+  }  /* if */
+  if (!type_traits_helpers_enabled) {
+    /* Type traits helpers are not accepted in some modes. */
+    if (expr_error_should_be_issued()) {
+      check_assertion(rcblock == NULL);
+      pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
+                   builtin_operation_names[(int)bok]);
+    }  /* if */
+  }  /* if */
+  scan_call_like_builtin_operation(rcblock, bok, 
+                                   integer_type(targ_size_t_int_kind),
+                                   iek_type,
+                                   bok == bok_array_rank ? iek_none :
+                                                           iek_expr_node,
+                                   /*arg2_repeats=*/FALSE,
+                                   result);
+  if (!type_traits_helpers_enabled) {
+    /* Turn the operand into an error operand to avoid any surprises later
+       on. */
+    conv_to_error_operand(result);
+  }  /* if */
+}  /* scan_array_type_trait_helper */
 
 
 static void scan_unary_type_trait_helper(a_rescan_control_block *rcblock,
@@ -33390,6 +33457,8 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_builtin_is_layout_compatible:
     case tok_builtin_is_pointer_interconvertible_base_of:
     case tok_requires:
+    case tok_array_rank:
+    case tok_array_extent:
     case tok_is_arithmetic:
     case tok_is_complete_type:
     case tok_is_compound:
@@ -39293,6 +39362,14 @@ handle_identifier:
       /* Various binary type traits helper constructs: */
       scan_binary_type_trait_helper((a_rescan_control_block *)NULL,
                                     &local_result);
+      break;
+
+    case tok_array_rank:
+    case tok_array_extent:
+      /* Clang's array type trait helpers are sufficiently different from
+         other type trait intrinsics that they merit their own routine. */
+      scan_array_type_trait_helper((a_rescan_control_block *)NULL,
+                                   &local_result);
       break;
 
     case tok_is_valid_winrt_type:

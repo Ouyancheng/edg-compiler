@@ -751,6 +751,8 @@ modes.
        identifiers as special cases (and the front end tries to emulate
        that). */
     enter_keyword((a_token_kind)tok_is_array, "__is_array");
+    enter_keyword((a_token_kind)tok_array_rank, "__array_rank");
+    enter_keyword((a_token_kind)tok_array_extent, "__array_extent");
     enter_keyword((a_token_kind)tok_is_arithmetic, "__is_arithmetic");
     enter_keyword((a_token_kind)tok_is_complete_type, "__is_complete_type");
     enter_keyword((a_token_kind)tok_is_compound, "__is_compound");
@@ -776,6 +778,8 @@ modes.
     enter_keyword((a_token_kind)tok_is_void, "__is_void");
     enter_keyword((a_token_kind)tok_is_volatile, "__is_volatile");
     enter_keyword((a_token_kind)tok_is_same_as, "__is_same_as");
+    enter_keyword((a_token_kind)tok_reference_binds_to_temporary,
+                  "__reference_binds_to_temporary");
     /* These are synonyms for existing intrinsics. */
     enter_keyword((a_token_kind)tok_is_literal_type, "__is_literal");
     enter_keyword((a_token_kind)tok_is_convertible_to, "__is_convertible");
@@ -1370,10 +1374,6 @@ Install the keywords in the symbol table.
       /* clang allows _Static_assert in all C++ modes. */
       enter_keyword((a_token_kind)tok_static_assert, "_Static_assert");
       enter_keyword((a_token_kind)tok_is_same, "__is_same");
-      if (clang_version_is(>=70000)) {
-        enter_keyword((a_token_kind)tok_reference_binds_to_temporary,
-                      "__reference_binds_to_temporary");
-      }  /* if */
     }  /* if */
     if (decltype_enabled) {
       /* In some GNU C++ modes, the decltype feature is only available via the

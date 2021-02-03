@@ -1336,6 +1336,8 @@ typedef enum /*a_token_kind*/ {
   tok_builtin_is_layout_compatible,
   tok_builtin_is_pointer_interconvertible_base_of,
   tok_is_array,
+  tok_array_rank,
+  tok_array_extent,
   tok_is_arithmetic,
   tok_is_complete_type,
   tok_is_compound,
@@ -1559,6 +1561,8 @@ EXTERN a_const_char
    "__builtin_is_layout_compatible",
    "__builtin_is_pointer_interconvertible_base_of",
    "__is_array",
+   "__array_rank",
+   "__array_extent",
    "__is_arithmetic",
    "__is_complete_type",
    "__is_compound",
@@ -13384,6 +13388,10 @@ typedef enum a_builtin_operation_kind_tag {
   bok_builtin_is_pointer_interconvertible_base_of,
 			/* Two type operands. */
   bok_is_array,		/* __is_array. One type operand. */
+  bok_array_rank,       /* __array_rank (Clang).  One type operand (returns
+                           size_t). */
+  bok_array_extent,     /* __array_extent (Clang).  One type operand and one
+                           int (returns size_t). */
   bok_is_arithmetic,    /* __is_arithmetic (Clang).  One type operand. */
   bok_is_complete_type, /* __is_complete_type (Clang).  One type operand. */
   bok_is_compound,      /* __is_compound (Clang).  One type operand. */
@@ -17876,6 +17884,8 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__builtin_is_layout_compatible",
   "__builtin_is_pointer_interconvertible_base_of",
   "__is_array",
+  "__array_rank",
+  "__array_extent",
   "__is_arithmetic",
   "__is_complete_type",
   "__is_compound",

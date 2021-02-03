@@ -1,5 +1,12 @@
 Version 6.2
 
+2/3/21   [EDGcpfe/23849]
+Clang compatibility: __array_rank and __array_extent type intrinsics
+
+The __array_rank and __array_extent type intrinsics have been added in 
+clang emulation mode.
+
+
 2/3/21   [EDGcpfe/23767]
 Constexpr destructor evaluation
 

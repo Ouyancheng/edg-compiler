@@ -2547,6 +2547,25 @@ unsigned char are all included.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
+a_targ_size_t array_rank(a_type_ptr tp)
+/*
+Returns the array rank (i.e., the number of dimensions) of an array type
+otherwise zero.
+*/
+{
+  a_targ_size_t result = 0;
+
+  tp = skip_typerefs(tp);
+  if (!is_template_dependent_type(tp)) {
+    while (is_array(tp)) {
+      result++;
+      tp = skip_typerefs(array_element_type(tp));
+    }  /* while */
+  }  /* if */
+  return result;
+}  /* array_rank */
+
+
 a_boolean is_wchar_t_array_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is an array of wchar_t.

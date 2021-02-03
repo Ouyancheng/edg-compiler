@@ -9463,6 +9463,89 @@ expression for the returned constant will be set as well.
 }  /* fold_builtin_is_pointer_interconvertible_base_of */
 
 
+static void fold_array_intrinsic(an_expr_node_ptr   expr,
+                                 a_constant_ptr     constant,
+                                 a_boolean          maintain_expression)
+/*
+expr is an enk_builtin_operation node for an __array_rank or __array_extent
+operation.  *constant is set to a (size_t) number that represents the rank
+(i.e., number of dimensions) in the array type for __array_rank and the number
+of elements in the specified dimension for __array_extent.  If the type is not
+an array type a zero is stored.  A template parameter constant is returned for
+template dependent cases.  If maintain_expression is TRUE, the backing
+expression for the returned constant will be set as well.  Always folds to
+a constant (though it may be an error constant in some __array_extent cases).
+*/
+{
+  an_expr_node_ptr  arg = expr->variant.builtin_operation.operands;
+  a_type_ptr        type;
+  a_boolean         is_array_extent = expr->variant.builtin_operation.kind ==
+                                    (a_builtin_operation_kind)bok_array_extent;
+  a_boolean         err = FALSE;
+
+  /* eok_parens shouldn't appear here, since the construct is generated. */
+  check_assertion(arg != NULL && node_is(arg, enk_type_operand) &&
+                  (arg->next == NULL || is_array_extent));
+  type = type_operand_type(arg);
+  type = skip_typerefs(type);
+  if (is_template_dependent_type(type) ||
+      (is_array_extent && is_template_dependent_type(arg->next->type))) {
+    clear_constant(constant, (a_constant_repr_kind)ck_template_param);
+    set_template_param_constant_kind(
+                   constant, (a_template_param_constant_kind)tpck_expression);
+    constant->variant.template_param.variant.expr = expr;
+  } else {
+    a_targ_size_t    result;
+    an_expr_node_ptr dim = arg->next;
+    a_constant_ptr   con;
+    if (is_array_extent) {
+      /* Return the number of elements in the specified dimension. */
+      if (is_constant_node(dim) &&
+          constant_is((con = node_constant(dim)), ck_integer) &&
+          is_integral_type(con->type)) {
+        if (sign_of_integer_constant(con) < 0) {
+          /* Can't have a negative dimension. */
+          err = TRUE;
+        } else {
+          a_host_large_unsigned val =
+                                 unsigned_value_of_integer_constant(con, &err);
+          result = 0;
+          for (; val > 0; val--) {
+            type = skip_typerefs(type);
+            if (type->kind == (a_type_kind)tk_array) {
+              type = array_element_type(type);
+            } else {
+              break;
+            }  /* if */
+          }  /* for */
+          if (val == 0) {
+            type = skip_typerefs(type);
+            if (type->kind == (a_type_kind)tk_array) {
+              result = type->variant.array.variant.number_of_elements;
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      } else {
+        /* Only a constant unsigned integral argument can be folded. */
+        err = TRUE;
+      }  /* if */
+    } else {
+      result = array_rank(type);
+    }  /* if */
+    if (err) {
+      expr_pos_error(ec_dim_not_const_unsigned_int, &dim->position);
+      clear_constant(constant, (a_constant_repr_kind)ck_error);
+    } else {
+      clear_constant(constant, (a_constant_repr_kind)ck_integer);
+      set_unsigned_integer_value(&constant->variant.integer_value,
+                                 (a_host_large_unsigned)result);
+      if (maintain_expression) constant->expr = expr;
+    }  /* if */
+  }  /* if */
+  constant->type = expr->type;
+}  /* fold_array_intrinsic */
+
+
 void fold_builtin_operation_if_possible(
                               an_expr_node_ptr             expr,
                               a_constant_ptr               constant,
@@ -9634,6 +9717,13 @@ constant is set as well.
       case bok_builtin_is_pointer_interconvertible_base_of:
         fold_builtin_is_pointer_interconvertible_base_of(
                                           expr, constant, maintain_expression);
+        break;
+      case bok_array_rank:
+      case bok_array_extent:
+        /* Some clang-specific intrinsics can't be handled as normal type
+           traits (because their return is size_t instead of boolean and
+           __array_extent takes a second argument). */
+        fold_array_intrinsic(expr, constant, maintain_expression);
         break;
       default:
         unexpected_condition();
