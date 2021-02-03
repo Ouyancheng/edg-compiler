@@ -11107,8 +11107,10 @@ See conversion_possible.
        bounds. */
     if (cpp20_mode && is_incomplete_array_type(dest_type) &&
         is_array_type(source_type)) {
-      okay = identical_types(underlying_array_element_type(dest_type),
-                             underlying_array_element_type(source_type));
+      a_type_ptr dest_etype, source_etype;
+      dest_etype = underlying_array_element_type(dest_type);
+      source_etype = underlying_array_element_type(source_type);
+      okay = identical_types(dest_etype, source_etype);
     } else {
       /* okay = FALSE; -- already set. */
     }  /* if */

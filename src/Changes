@@ -20,7 +20,7 @@ Overload resolution failure with conversions to arrays of unknown bound
 
 Committee document P0388R4 allows for conversions of arrays of known bounds to
 pointers or references to arrays of unknown bounds.  This was implemented in
-EDGcpfe/21591 (in Version 6.0), however, the implementation missed updating
+EDGcpfe/21591 (in version 6.0), however, the implementation missed updating
 the check for an overloaded function match.  This caused spurious errors when
 attempting to call a function that had an overload set (where calling a
 function with no overload set would succeed).  For example:
