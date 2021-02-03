@@ -3080,6 +3080,10 @@ copy-initialization).
       /* A reference to non-const can bind to an rvalue in cfront mode
          or anachronisms mode. */
       source_can_be_rvalue = TRUE;
+    } else if (cpp20_mode && is_incomplete_array_type(param_type)) {
+      /* A reference to an array with unknown bounds can bind to an array with
+         known bounds. */
+      source_can_be_rvalue = TRUE;
     } else {
       /* Normal case.  An lvalue reference can bind to an rvalue only if it's
          a reference to non-volatile const. */

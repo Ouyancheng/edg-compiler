@@ -11083,8 +11083,16 @@ See conversion_possible.
     /* Catch cases where an actual argument is being converted to an incomplete
        enum or struct/union type because a function parameter has that type.
        One is allowed to declare a parameter of that type, but the type must
-       be completed if the function is defined or called. */
-    /* okay = FALSE; -- already set. */
+       be completed if the function is defined or called.  P0338R4 (in C++20)
+       allows conversions from arrays with known bounds to arrays with unknown
+       bounds. */
+    if (cpp20_mode && is_incomplete_array_type(dest_type) &&
+        is_array_type(source_type)) {
+      okay = identical_types(underlying_array_element_type(dest_type),
+                             underlying_array_element_type(source_type));
+    } else {
+      /* okay = FALSE; -- already set. */
+    }  /* if */
   } else if (is_bool(dest_type) &&
              !(is_enum(source_type) &&
                !integer_type_is_scoped_enum(source_type))) {
