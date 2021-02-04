@@ -10890,15 +10890,18 @@ This is similar to do_constexpr_ctor.
     alloc_complete_object(ips, with_postfix_bytes, generic_ptr_type,
                           this_bytes);
     clear_address(this_bytes, result_storage);
-    ((a_constexpr_address *)this_bytes)->complete_object = complete_object;
-    ((a_constexpr_address *)this_bytes)->alloc_seq_number = alloc_seq_number;
+    ((a_constexpr_address*)this_bytes)->complete_object = complete_object;
+    ((a_constexpr_address*)this_bytes)->alloc_seq_number = alloc_seq_number;
     mark_complete_object_initialized(this_bytes);
     /* If this is a virtual destructor call, adjust the callee. */
-    if (callee->is_virtual && !nonvirtual &&
-        !adjust_virtual_callee(&callee, &this_bytes, &retval_offset)) {
-      info_with_pos(ec_constexpr_access_to_runtime_storage, pos, ips);
-      do_constexpr_fail(result);
-      goto done;
+    if (callee->is_virtual && !nonvirtual) {
+      if (!adjust_virtual_callee(&callee, &this_bytes, &retval_offset)) {
+        info_with_pos(ec_constexpr_access_to_runtime_storage, pos, ips);
+        do_constexpr_fail(result);
+        goto done;
+      } else {
+        result_storage = ((a_constexpr_address*)this_bytes)->address;
+      }  /* if */
     }  /* if */
     callee_scope = scope_for_routine(callee);
     block_stmt = callee_scope->assoc_block;
@@ -10958,7 +10961,7 @@ This is similar to do_constexpr_ctor.
         a_field_ptr  fp = dtor_init->variant.field;
         get_mapped_byte_count(&persistent_map, fp, offset);
         sub_dip = dtor_init->initializer;
-        if (class_type->kind == (a_type_kind)tk_union) {
+        if (type_is(class_type, tk_union)) {
           /* Clear the active field for the enclosing union. */
           *(a_field_ptr*)result_storage = NULL;
         }  /* if */
@@ -10970,7 +10973,8 @@ This is similar to do_constexpr_ctor.
       /* Clear the derivation/active-field state. */
       *(void**)(result_storage+offset) = NULL;
       if (!do_constexpr_dtor(ips, sub_dip->destructor, pos,
-                             result_storage+offset, complete_object)) {
+                             result_storage+offset, complete_object,
+                             /*nonvirtual=*/TRUE)) {
         do_constexpr_fail(result);
         break;
       } else {
