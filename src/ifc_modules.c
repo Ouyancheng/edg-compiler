@@ -2944,7 +2944,7 @@ constants for that type).
             a_routine_ptr rp;
             /* FIXME: There's a chicken-and-egg problem here when the return
                type is deduced and requires access to the class scope (e.g.,
-               returning a lambda declared within the function. */
+               returning a lambda declared within the function). */
             init_dps(&dps, &idsfp->locus, idsfp->type, ifc_ObjectTraits_None,
                      ifc_MsvcTraits_None, idsfp->specifiers, idsfp->access,
                      &psss);
@@ -4645,7 +4645,7 @@ argument.
         kind = tak_nontype;
         /* Use the parameter type instead of the ExprSort::Read type, as the
            latter may not match (e.g., int& parameter type, int ExprSort::Read
-           type. */
+           type). */
         check_assertion(param->kind == (a_template_parameter_kind)tpk_nontype);
         type = param->variant.nontype.constant->type;
         source_position_from_locus(&pos, &iesrp->locus);
@@ -8440,7 +8440,7 @@ Add the tokens corresponding to the given variable declaration to cache.
 is_class_member is TRUE if this is a non-static data member of a class.
 access, specifiers, traits, alignment, and type are values from the IFC file
 that describe the variable declaration.  Both name and raw_name provide the
-name of the variable - if name is zero, raw_name must non-zero.  If width is
+name of the variable - if name is zero, raw_name must be non-zero.  If width is
 not zero, this is a bitfield and width is its size.  If the variable has an
 initializer then initializer is non-zero and refers to the initializer
 expression.  locus is the source location for the declaration.
@@ -8509,9 +8509,11 @@ is_class_member is TRUE if this is a non-static member of a class.  is_dtor is
 TRUE if this is a destructor declaration.  access, calling_conv, func_traits,
 func_type_traits, eh_spec, and name are values from the IFC file that describe
 the function.  return_type is the return type of the function (0 if there is no
-return type, i.e., the function is a constructor).  params is the parameter
-list (0 if there are no parameters) and param_types are the parameter types.
-locus is the position of the function declaration.
+return type, e.g., the function is a constructor or destructor).  Both params
+and param_types are the parameter list (0 for both if there are no parameters).
+If params is non-zero, param_types will be ignored as params will already
+contain the parameter types.  locus is the position of the function
+declaration.
 */
 {
   a_source_position pos;
