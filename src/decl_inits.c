@@ -8791,9 +8791,6 @@ initialized.  These are addressed in the course of the processing.
   if (cib.has_explicit_init) {
     /* User-specified initializers are present. */
     add_stop_token(tok_lbrace);
-    /* The explicit initializers may not be in the correct order - defer any
-       automatic instantiations until full processing of all initializers. */
-    defer_instantiations++;
     /* Scan the comma-separated list of initializers, caching them if this
        is not a prototype instantiation.  The cached initializers will be
        fully processed in the order in which they execute, rather than the
@@ -8843,7 +8840,6 @@ initialized.  These are addressed in the course of the processing.
       cib.pack_expansion_context_started = FALSE;
       remove_stop_token(tok_comma);
     } while (loop_token(tok_comma));
-    defer_instantiations--;
     remove_stop_token(tok_lbrace);
   }  /* if */
   /* Merge the three lists into one:  virtual base classes followed by
@@ -9513,10 +9509,6 @@ initialized.  These are addressed in the course of the processing.
 #endif /* DEBUG */
 done:
   db_exit();
-  if (defer_instantiations == 0) {
-    /* Process any deferred instantiations. */
-    process_deferred_instantiation_requests();
-  }  /* if */
   return cib.cip_list;
 }  /* ctor_initializer */
 
