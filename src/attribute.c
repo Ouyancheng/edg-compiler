@@ -6310,8 +6310,9 @@ given "may_alias" attribute to it.
          struct __attribute((may_alias)) X { ... };
        Set the may_alias flag directly. */
     type->may_alias = TRUE;
-  } else if (is_class_struct_union_type(type) || is_enum_type(type)) {
-    /* GNU compilers ignore the attribute applied on a use (as opposed to a
+  } else if (!C_mode() &&
+             (is_class_struct_union_type(type) || is_enum_type(type))) {
+    /* GNU C++ compilers ignore the attribute applied on a use (as opposed to a
        declaration) of a class/enum type with a warning.  However, since this
        this makes a subtle difference with potential grave consequences, we
        issue an error. */

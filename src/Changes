@@ -1,5 +1,16 @@
 Version 6.2
 
+2/4/21   [EDGcpfe/23649]
+GNU compatibility: may_alias attribute
+
+In C mode, GCC accepts (with a warning in some cases), the may_alias attribute
+on enum and class definitions.  A change has been made to emulate that.  For
+example (with --gcc):
+
+  __attribute((may_alias)) struct A {};
+  __attribute((may_alias)) enum E {e};
+
+
 2/3/21   [EDGcpfe/23849]
 Clang compatibility: __array_rank and __array_extent type intrinsics
 
