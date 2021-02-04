@@ -473,6 +473,7 @@ Output the indicated template argument in the way described by octl.
         rtsp = suppress_trailing_return_type_for_msvc(tp, octl);
         form_type(tp, octl);
         if (rtsp != NULL) {
+          /* coverity[dead_error_line] */
           rtsp->trailing_return_type = TRUE;
         }  /* if */
       }
@@ -4160,6 +4161,7 @@ ck_address constant).  Do the output in the way described by octl.
     unexpected_condition();
   }  /* if */
   if (is_cli_typeid) {
+    /* coverity[dead_error_line] */
     octl->output_str("::typeid", octl);
   } else {
     octl->output_str(")", octl);

@@ -5068,7 +5068,7 @@ by subsequent calls.
   }  /* if */
   while (p != end_of_arg) {
     if (is_identifier_char(p, &char_len, start_of_id == NULL)) {
-      if (start_of_id == NULL) {
+      if (start_of_id == NULL || full_id_seen) {
         /* This is the beginning of the attribute identifier or namespace
            identifier. */
         if (full_id_seen && !diagnostic_issued) {
@@ -6932,7 +6932,7 @@ end_arg_expansion:;
     add_to_macro_arg_list(special_macro_arg);
     special_repl_text = TRUE;
     repl_text = special_macro_arg->raw_text;
-    if (map != arg_values[0]) {
+    if (param_num == 0 || map != arg_values[0]) {
       /* All these predefined macros take exactly one argument, but the
          invocation had none or too many.  A diagnostic was issued above;
          here, just make the value 0 to indicate failure. */
@@ -6974,6 +6974,7 @@ end_arg_expansion:;
         } else if (type_traits_helpers_enabled) {
           /* The identifier is not the name of a feature, so check it
              against the list of supported C++ type trait helpers. */
+          /* coverity[suspicious_sizeof] */
           feature_supported =
                         (bsearch((a_bsearch_arg_type)feature_name,
                                  (a_bsearch_arg_type)clang_type_traits_helpers,
@@ -6987,6 +6988,7 @@ end_arg_expansion:;
       /* The clang-style __has_attribute macro.  Has the value 1 if the
          named attribute is available in the current execution of the front
          end and 0 otherwise. */
+      /* coverity[var_deref_model] */
       a_const_char *attribute_name = clang_feature_test_id(map, NULL,
                                                            &arg_position);
       if (attribute_name != NULL &&
@@ -7580,7 +7582,9 @@ copy_done:
                                                        delete_source_from_loc),
                                rescan_loc, rescan_loc + repl_text_len +
                                space_for_end_of_top_level_expansion_escape);
-  adjust_deletion_counts(delete_source_from_loc, slmp->num_chars_to_delete);
+  if (delete_source_from_loc != NULL) {
+    adjust_deletion_counts(delete_source_from_loc, slmp->num_chars_to_delete);
+  }  /* if */
   slmp->assoc_macro = macro_symbol;
   slmp->source_position = start_pos;
   if (invocation_slmp != NULL &&

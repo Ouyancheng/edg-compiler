@@ -7962,6 +7962,7 @@ entry_for_line_splice:
                warning. */
             finish_off_source_line_so_it_can_be_displayed_in_error();
             loc_in_line -= white_space_chars_after_backslash;
+            /* coverity[assigned_value] */
             curr_column -= white_space_chars_after_backslash;
             warning_at_line_pos(ec_white_space_inside_splice, loc_in_line);
             white_space_chars_after_backslash = 0;
@@ -22732,7 +22733,8 @@ of characters added.
       if (use_token_spelling) {
         /* The constant is a ck_string whose value is the exact spelling of
            the literal. */
-        check_assertion(constant->kind == (a_constant_repr_kind)ck_string);
+        check_assertion(constant != NULL &&
+                        constant->kind == (a_constant_repr_kind)ck_string);
         put_str_to_temp_text_buffer(constant->variant.string.value);
       } else {
         /* The constant should just be put out as normal. */
@@ -23888,6 +23890,7 @@ are handled in lexical_init.)
       /* The C++ Standard (ISO/IEC 14882:2011, Annex E.1) specifies the
          Unicode code points in the range 0x80-0xff that are considered
          identifier characters. */
+      /* coverity[dead_error_line] */
       if (uc == 0xa8 || uc == 0xaa || uc == 0xad || uc == 0xaf ||
           (uc >= 0xb2 && uc <= 0xb5) || (uc >= 0xb7 && uc <= 0xba) ||
           (uc >= 0xbc && uc <= 0xbe) || (uc >= 0xc0 && uc <= 0xd6) ||
