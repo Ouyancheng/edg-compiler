@@ -2549,8 +2549,8 @@ unsigned char are all included.
 
 a_targ_size_t array_rank(a_type_ptr tp)
 /*
-Returns the array rank (i.e., the number of dimensions) of an array type
-otherwise zero.
+If tp is an array type, return its rank (i.e., the number of dimensions);
+otherwise, return 0.
 */
 {
   a_targ_size_t result = 0;

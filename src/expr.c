@@ -13937,8 +13937,8 @@ Scan a constant-expression of the form
   or
       __array_extent(<type>, int)
 
-The result is a constant of size_t with the appropriate value (the number of
-dimensions for __array_rank and the number of elements in the specified
+The result is a constant of type size_t with the appropriate value (the number
+of dimensions for __array_rank and the number of elements in the specified
 dimension for __array_extent).  If rcblock is non-NULL, redo semantic analysis
 on a previously-scanned construct of this kind.  Either way, return the result
 in *result (or an error indication in *rcblock).
