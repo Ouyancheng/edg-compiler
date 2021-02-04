@@ -1442,10 +1442,20 @@ following the last copied ATTENTION_MARKER.
 
   while (src < slmp->line_loc + slmp->num_chars_to_delete) {
     if (*src == ATTENTION_MARKER) {
-      a_source_line_modif_ptr slmp2 = nested_source_line_modif(src);
-      src += slmp2->num_chars_to_delete;
-      *next_avail++ = ATTENTION_MARKER;
-      next_avail = copy_attention_markers(slmp2, next_avail);
+      if (has_nested_source_line_modif(src)) {
+        /* Process the nested source line modification recursively. */
+        a_source_line_modif_ptr slmp2 = nested_source_line_modif(src);
+        src += slmp2->num_chars_to_delete;
+        *next_avail++ = ATTENTION_MARKER;
+        next_avail = copy_attention_markers(slmp2, next_avail);
+      } else {
+        /* ATTENTION_MARKERs not associated with nested source line
+           modifications can occur when a raw string literal containing
+           newlines appears as a macro argument.  Just copy the
+           ATTENTION_MARKER. */
+        *next_avail++ = ATTENTION_MARKER;
+        ++src;
+      }  /* if */
     } else {
       ++src;
     }  /* if */
