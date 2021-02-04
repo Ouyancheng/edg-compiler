@@ -12366,7 +12366,8 @@ previously-scanned sizeof expression, and return the result in *result
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = rcblock->expr->expr_range.end;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    if (microsoft_bugs && operand.is_address_of_id_expression &&
+    if (operand_was_created &&
+        microsoft_bugs && operand.is_address_of_id_expression &&
         is_constant_operand(&operand) &&
         constant_is(&operand.variant.constant, ck_ptr_to_member)) {
       record_suppressed_error();
