@@ -1505,6 +1505,10 @@ can only occur inside a global module fragment.
     pass_directive_to_output();
     goto done;
   }  /* if */
+  if (!modules_enabled) {
+    pos_error(ec_modules_not_enabled, start_pos);
+    err = TRUE;
+  }  /* if */
   midp = alloc_module_import_decl();
   midp->position = *start_pos;
   if (scope_stack_top().in_export_block) {

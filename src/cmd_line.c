@@ -2237,6 +2237,7 @@ static a_flag_name
   { "core_constant_expr_is_noexcept", &core_constant_expr_is_noexcept },
   { "null_template_ptr_arg_enabled", &null_template_ptr_arg_enabled },
   { "skip_module_imports", &skip_module_imports },
+  { "skip_module_version_check", &skip_module_version_check },
   { NULL, NULL }  /* must be last */
 };
 
@@ -2956,6 +2957,7 @@ option values if they were not already set by a command line option.
         /* If necessary, the build number can be used to distinguish these
            (with 16.9 starting at build number 29500). */
         if (ms_cpp20_mode) {
+          module_keywords_enabled = TRUE;
           if (!option_kind_used[(int)optk_modules]) {
             modules_enabled = TRUE;
           }  /* if */
@@ -3826,6 +3828,7 @@ default mode (e.g., exception handling).
           concepts_enabled = TRUE;
         }  /* if */
         abbr_func_templates_enabled = TRUE;
+        module_keywords_enabled = TRUE;
         if (!option_kind_used[(int)optk_modules]) {
           modules_enabled = DEFAULT_MODULES_ENABLED;
         }  /* if */
@@ -11119,6 +11122,9 @@ enable_microsoft_mode:
       export_template_allowed = FALSE;
     }  /* if */
   }  /* if */
+  if (modules_enabled) {
+    module_keywords_enabled = TRUE;
+  }  /* if */
   if (export_template_allowed) {
     /* Export template processing requires dependent name processing. */
     if (option_kind_used[(int)optk_dependent_name_processing] &&
@@ -11143,7 +11149,7 @@ enable_microsoft_mode:
     implicit_template_inclusion_mode = FALSE;
 #endif /* INSTANTIATION_BY_IMPLICIT_INCLUSION */
     do_dependent_name_processing = TRUE;
-    if (modules_enabled) {
+    if (module_keywords_enabled) {
       /* This should not be enabled unless someone explicitly enabled it via
          the command line. */
       check_assertion(option_kind_used[(int)optk_export_template]);
@@ -12506,8 +12512,10 @@ variables declared in cmd_line.h.
   init_statement_allowed_in_range_based_for = FALSE;
   relaxed_abstract_checking = FALSE;
   modules_enabled = FALSE;
+  module_keywords_enabled = FALSE;
   lazy_symbols_may_be_visible = FALSE;
   skip_module_imports = FALSE;
+  skip_module_version_check = FALSE;
 }  /* cmd_line_static_var_init */
 
 

@@ -816,6 +816,12 @@ EXTERN a_boolean
 			   imported. */
 
 EXTERN a_boolean
+		skip_module_version_check;
+			/* TRUE when the front end should not attempt to
+			   check the module file's version and instead assume
+			   that it is a supported version. */
+
+EXTERN a_boolean
 		vla_enabled;
 			/* TRUE if support for variable length arrays (VLAs)
 			   is enabled.  Controlled by command-line options
@@ -1463,6 +1469,14 @@ EXTERN a_boolean
 EXTERN a_boolean
 		modules_enabled;
 			/* TRUE if modules should be enabled. */
+
+EXTERN a_boolean
+		module_keywords_enabled;
+			/* TRUE if module keywords should be enabled.  This
+			   must be TRUE if modules_enabled is TRUE, but if
+			   modules_enabled is FALSE and this is TRUE, module
+			   keywords will be enabled but modules cannot be
+			   imported. */
 
 EXTERN a_boolean
 		lazy_symbols_may_be_visible;

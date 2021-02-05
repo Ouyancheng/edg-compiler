@@ -432,6 +432,12 @@ extern void pos_stsy_diagnostic(an_error_severity  error_severity,
                                 a_source_position  *error_pos,
                                 a_const_char       *error_string,
                                 struct a_symbol    *symbol);
+extern void pos_st_num2_diagnostic(an_error_severity error_severity,
+                                   an_error_code     error_code,
+                                   a_source_position *error_pos,
+                                   a_const_char      *error_string,
+                                   int32_t           num1,
+                                   int32_t           num2);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 extern void pos_st_remark(an_error_code     error_code,
                           a_source_position *error_pos,

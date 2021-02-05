@@ -1361,8 +1361,8 @@ Install the keywords in the symbol table.
     /* Recognition of C++98 exported templates "export" as a keyword is
        disabled in certain modes and incompatible with C++20 modules "export".
     */
-    check_assertion(!(export_keyword_enabled && modules_enabled));
-    if (modules_enabled) {
+    check_assertion(!(export_keyword_enabled && module_keywords_enabled));
+    if (module_keywords_enabled) {
       enter_keyword((a_token_kind)tok_export, "export");
     } else if (export_keyword_enabled) {
       enter_keyword((a_token_kind)tok_cpp98_export, "export");

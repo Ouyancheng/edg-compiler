@@ -3252,6 +3252,8 @@ ec_module_file_contains_unsupported_constructs;;"module %sq contains unsupported
 ec_unhandled_ifc_construct;;"unsupported IFC construct: %sq"
 ec_is_signed_no_longer_a_keyword;;"__is_signed is no longer a keyword from this point"
 ec_dim_not_const_unsigned_int;;"an array dimension must have a constant unsigned integer value"
+ec_unsupported_ifc_file_version;;"IFC file %sq has unsupported version %d1.%d2"
+ec_modules_not_enabled;;"modules are not enabled in this mode"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -13076,7 +13076,7 @@ directive scanned or ppd_not_valid if neither was found.
 {
   a_pp_directive_kind result = ppd_not_valid;
 
-  if (!any_tokens_gotten_from_curr_source_line && modules_enabled) {
+  if (!any_tokens_gotten_from_curr_source_line && module_keywords_enabled) {
     if (strncmp(curr_char_loc, "import", 6) == 0 &&
         !is_identifier_char(&curr_char_loc[6], /*len=*/NULL,
                             /*is_identifier_start=*/FALSE)) {

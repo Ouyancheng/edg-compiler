@@ -19675,12 +19675,15 @@ processing should proceed after the call.
       }  /* if */
       cannot_bind_to_curr_construct();
       end_of_decl_action = eoda_check_semicolon;
-    } else if (modules_enabled &&
+    } else if (module_keywords_enabled &&
                check_context_sensitive_keyword(tok_module, "module")) {
       /* A module declaration (global module fragment, module unit, private
          module fragment). */
       end_potential_abbr_func_templ_caching(state);
       disallow_attributes(&state->prefix_attributes, es_error);
+      if (!modules_enabled) {
+        pos_error(ec_modules_not_enabled, &pos_curr_token);
+      }  /* if */
       module_declaration();
       cannot_bind_to_curr_construct();
       end_of_decl_action = eoda_check_semicolon;

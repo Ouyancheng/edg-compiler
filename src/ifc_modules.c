@@ -2639,6 +2639,29 @@ corresponding data structure for that partition.
 
 #endif /* CHECKING */
 
+namespace {
+
+constexpr ifc_Version supported_major_version = (ifc_Version)0;
+constexpr ifc_Version supported_minor_version = (ifc_Version)25;
+
+inline a_boolean check_ifc_version(ifc_Version major,
+                                   ifc_Version minor)
+/*
+Return TRUE if the provided IFC major and minor versions are supported, FALSE
+otherwise.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (major == supported_major_version && minor == supported_minor_version) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* check_ifc_version */
+
+}  /* namespace */
+
+
 a_boolean an_ifc_module::import(a_module_import_decl_ptr midp)
 /*
 Import an IFC module file described by midp.  The IFC file should already have
@@ -2659,6 +2682,15 @@ been confirmed to exist and the path stored in midp.
     /* Read the IFC file header (which starts after the magic number). */
     init_byte_buffer(4, f_size - 4);
     get_File_Header(&header, /*fill_storage=*/TRUE);
+    if (!skip_module_version_check &&
+        !check_ifc_version(header.major_version, header.minor_version)) {
+      result = FALSE;
+      pos_st_num2_diagnostic(es_catastrophe, ec_unsupported_ifc_file_version,
+                             &midp->module_name_position, mod->full_name,
+                             header.major_version, header.minor_version);
+      close();
+      goto done;
+    }  /* if */
     /* FIXME: The checksum is not yet checked. */
 #if USE_MMAP_FOR_MEMORY_REGIONS
     string_table = (a_const_char*)mmap_addr + header.string_table_bytes;
@@ -2739,6 +2771,7 @@ been confirmed to exist and the path stored in midp.
     /* Process all declarations in the global scope. */
     process_ifc_scope(header.global_scope, il_header.primary_scope);
   }  /* if */
+done:
   return result;
 }  /* import */
 
