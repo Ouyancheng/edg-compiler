@@ -1977,7 +1977,7 @@ Previously, the generated destructor of S was noexcept(true) because the
 variant member S::v (whose destruction is noexcept(false)) was ignored for the
 purposes of determining the exception specification.  Now, the variant member
 causes the destructor of S to become noexcept(false), which makes it
-incompatible with the base class destructor.  Some minor adjustment were also
+incompatible with the base class destructor.  Some minor adjustments were also
 made to the diagnostics in this area in Microsoft modes and C++11 modes.
 
 
