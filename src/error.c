@@ -1047,7 +1047,7 @@ being formed and is used to eliminate redundant file names in a diagnostic.
   a_boolean		at_end_of_source;
   a_diagnostic_ptr	primary_dp;
   a_source_position_ptr	error_pos;
-  a_source_file_ptr     sfp;
+  a_source_file_ptr	sfp;
 
   primary_dp = dp->primary_diag != NULL ? dp->primary_diag : dp;
   error_pos = &primary_dp->diag_header_pos;

@@ -3625,8 +3625,8 @@ extern void write_file_name_to_text_buffer(
 extern char *format_file_name(a_const_char *name);
 
 extern char *format_source_file_name(a_source_file_ptr sfp,
-				     a_boolean         use_name_as_written,
-				     a_boolean         quote_file_name);
+                                     a_boolean         use_name_as_written,
+                                     a_boolean         quote_file_name);
 
 extern a_const_char *suffix_of(a_const_char *file_name);
 
