@@ -4,7 +4,7 @@
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2020 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2021 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/
 /*
@@ -1051,6 +1051,6 @@ int main(int argc, char *argv[])
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
 *                                                               \   /         *
 * Proprietary information of Edison Design Group Inc.         /  | |  \       *
-* Copyright 1988-2020 Edison Design Group Inc.                   [_]          *
+* Copyright 1988-2021 Edison Design Group Inc.                   [_]          *
 *                                                                             *
 ******************************************************************************/

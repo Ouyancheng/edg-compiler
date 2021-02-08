@@ -1,4 +1,4 @@
-/* Edison Design Group, 2000-2020. */
+/* Edison Design Group, 2000-2021. */
 /*
 The typeinfo header should be included as "#include <typeinfo>".
 This file is provided for compatibility with older programs that use
