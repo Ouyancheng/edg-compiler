@@ -1646,7 +1646,7 @@ IFC_DECL_START(MacroSort_FunctionLike)
   IFC_DECL_FIELD(name, TextOffset)
   IFC_DECL_FIELD(parameters, FormIndex)
   IFC_DECL_FIELD(body, FormIndex)
-  IFC_DECL_FIELD(arity_variadic, mf_arity_variadic)
+  IFC_DECL_FIELD(arity_variadic, u32)
 IFC_DECL_END(MacroSort_FunctionLike)
 
 /* FormSort::Identifier */

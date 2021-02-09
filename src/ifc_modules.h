@@ -210,16 +210,6 @@ struct ifc_ParameterizedEntity {
 		attributes;
 };
 
-union ifc_mf_arity_variadic {
-  uint32_t raw;
-  struct {
-    uint32_t arity : 31;
-    uint32_t variadic : 1;
-  } fields;
-};
-static_assert(sizeof(ifc_mf_arity_variadic) == sizeof(uint32_t),
-              "ifc_mf_arity_variadic has the wrong size");
-
 /*
 Create structures for each of the IFC entities by setting the IFC_DECL macros
 appropriately and including ifc_map.h.  The net result is something like:

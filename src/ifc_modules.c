@@ -431,8 +431,6 @@ Handle nested structures differently (and check for padding).
                                 GET_SentenceIndex((x).body, from_header), \
                                 GET_SentenceIndex((x).attributes, from_header))
 
-#define GET_mf_arity_variadic(x, from_header)  GET_int((x).raw, from_header)
-
 /*
 Create get_* functions (which "read" each entity into a structure) for each of
 the IFC entities by setting the IFC_DECL macros appropriately and including
