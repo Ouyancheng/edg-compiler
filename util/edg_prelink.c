@@ -633,13 +633,13 @@ static a_boolean pl_is_absolute_file_name(char *file_name)
 Test whether or not a file name is absolute (a full path name).
 */
 {
-#if __MICROSOFT_OS__
+#if __WINDOWS_PATHS_ALLOWED__
   return ((file_name)[0] == DIRECTORY_SEPARATOR) ||
          ((file_name)[0] == '\\') ||
          (isalpha((unsigned char)(file_name)[0]) && ((file_name)[1] == ':'));
-#else /* !__MICROSOFT_OS__ */
+#else /* !__WINDOWS_PATHS_ALLOWED__ */
   return (file_name)[0] == DIRECTORY_SEPARATOR;
-#endif /* __MICROSOFT_OS__ */
+#endif /* __WINDOWS_PATHS_ALLOWED__ */
 }  /* pl_is_absolute_file_name */
 
 
@@ -1632,10 +1632,10 @@ processed further.
   *name1 = *name2 = *symbol_name = NULL;
   *type = '\0';
   pos = pl_input_line;
-#if __MICROSOFT_OS__
+#if __WINDOWS_PATHS_ALLOWED__
   /* Skip over the ":" that marks end of drive name, if any. */
   if (*(pos+1) == ':') pos += 2;
-#endif /* __MICROSOFT_OS__ */
+#endif /* __WINDOWS_PATHS_ALLOWED__ */
   /* Find the first colon which terminates either the archive or the
      file name. */
   pos = strchr(pos, ':');
@@ -3134,7 +3134,7 @@ in file_name.  Returns NULL if file_name contains no directory name.
   char	*ptr;
 
   ptr = strrchr(file_name, '/');
-#if __MICROSOFT_OS__
+#if BACKSLASH_IS_ALSO_DIR_SEPARATOR
   {
     /* Under MS-DOS, allow both forward and backward slashes.  If the
        name includes both kinds of slashes, use the last one as the
@@ -3143,7 +3143,7 @@ in file_name.  Returns NULL if file_name contains no directory name.
     ptr2 = strrchr(file_name, '\\');
     if (ptr2 != NULL && (ptr == NULL || ptr2 > ptr)) ptr = ptr2;
   }
-#endif /* __MICROSOFT_OS__ */
+#endif /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
   return ptr;
 }  /* last_dir_separator */
 

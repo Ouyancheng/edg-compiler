@@ -803,13 +803,13 @@ used to represent stdin; it must return  NULL.
       last_slash = last_backslash;
     }  /* if */
 #endif /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
-#if __MICROSOFT_OS__
+#if __WINDOWS_PATHS_ALLOWED__
     /* Check for the ":" of a disk name. */
     if (last_slash == NULL && strlen(file_name) >= 2 && file_name[1] == ':') {
       /* Disk name is specified, as in "c:abc". */
       last_slash = file_name+1;
     }  /* if */
-#endif /* __MICROSOFT_OS__ */
+#endif /* __WINDOWS_PATHS_ALLOWED__ */
 #endif /* __VMS__ */
   }  /* if */
   return(last_slash);
@@ -2515,7 +2515,7 @@ system that supports chdir.
 }  /* is_directory */
 #endif /* ifndef IS_DIRECTORY_DEFINED */
 
-#if __MICROSOFT_OS__
+#if __WINDOWS_PATHS_ALLOWED__
 
 a_boolean has_drive_specification(a_const_char *file_name)
 /*
@@ -2526,12 +2526,13 @@ the prefix of "\\" is treated as a drive specification.
 {
   a_boolean	result;
 
-  result = isalpha((unsigned char)(file_name)[0]) && ((file_name)[1] == ':') ||
-           file_name[0] == '\\' && file_name[1] == '\\';
+  result = (isalpha((unsigned char)(file_name)[0]) &&
+            ((file_name)[1] == ':')) ||
+           (file_name[0] == '\\' && file_name[1] == '\\');
   return result;
 }  /* has_drive_specification */
 
-#endif /* __MICROSOFT_OS__ */
+#endif /* __WINDOWS_PATHS_ALLOWED__ */
 
 a_boolean is_absolute_file_name(a_const_char *file_name)
 /*
@@ -2542,9 +2543,9 @@ Test whether or not a file name is absolute (a full path name).
 #if BACKSLASH_IS_ALSO_DIR_SEPARATOR
          ((file_name)[0] == '\\') ||
 #endif /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
-#if __MICROSOFT_OS__
+#if __WINDOWS_PATHS_ALLOWED__
          has_drive_specification(file_name) ||
-#endif /* __MICROSOFT_OS__ */
+#endif /* __WINDOWS_PATHS_ALLOWED__ */
         (file_name)[0] == DIRECTORY_SEPARATOR;
 }  /* is_absolute_file_name */
 
@@ -4465,12 +4466,12 @@ Add "dir_name" to the end of the directory name specified by "buf".
   int		length;
   a_boolean	starts_with_separator;
 
-#if __MICROSOFT_OS__
+#if __WINDOWS_PATHS_ALLOWED__
   /* If this is a UNC path, add one now as multiple are collapsed. */
   if (is_dir_separator(dir_name[0]) && is_dir_separator(dir_name[1])) {
     add_char_to_text_buffer(buf, DIRECTORY_SEPARATOR);
   }  /* if */
-#endif /* __MICROSOFT_OS__ */
+#endif /* __WINDOWS_PATHS_ALLOWED__ */
   while (*ptr != '\0') {
     /* Skip past any delimiter characters. */
     starts_with_separator = is_dir_separator(*ptr);
@@ -4490,11 +4491,11 @@ Add "dir_name" to the end of the directory name specified by "buf".
       char	*buf_end = &buf->buffer[buf->size - 1];
       if (buf->size == 0) {
         /* We are already at the start of the buffer. */
-#if __MICROSOFT_OS__
+#if __WINDOWS_PATHS_ALLOWED__
       } else if (buf->size == 2 && has_drive_specification(buf->buffer)) {
         /* On Windows, we are back to something like "C:".  Don't go any
            further. */
-#endif /* __MICROSOFT_OS */
+#endif /* __WINDOWS_PATHS_ALLOWED__ */
       } else {
         /* Back up to the start of the previous directory component.  This
            actually needs to be done by scanning from the start of the

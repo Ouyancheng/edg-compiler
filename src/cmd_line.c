@@ -9474,6 +9474,11 @@ file.
 #else /* !defined(WCHAR_T_ENABLING_POSSIBLE) */
   comment_undefined_macro_name(WCHAR_T_ENABLING_POSSIBLE);
 #endif /* defined(WCHAR_T_ENABLING_POSSIBLE) */
+#if defined(__WINDOWS_PATHS_ALLOWED__)
+  define_numeric_valued_macro(__WINDOWS_PATHS_ALLOWED__);
+#else /* !defined(__WINDOWS_PATHS_ALLOWED__) */
+  comment_undefined_macro_name(__WINDOWS_PATHS_ALLOWED__);
+#endif /* defined(__WINDOWS_PATHS_ALLOWED__) */
 #if defined(WRITE_CPPCLI_PORTABLE_ASSEMBLIES)
   define_numeric_valued_macro(WRITE_CPPCLI_PORTABLE_ASSEMBLIES);
 #else /* !defined(WRITE_CPPCLI_PORTABLE_ASSEMBLIES) */

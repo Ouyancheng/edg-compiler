@@ -3318,24 +3318,44 @@ handled separately.
 #endif /* DIRECTORY_SEPARATOR_STRING */
 
 /*
+Set a flag that indicates that Windows paths are expected to be encountered,
+and enabling processing accordingly.  Note that this differs from
+__MICROSOFT_OS__, as it's possible to have an OS that supports Windows paths
+but isn't Windows.
+*/
+#ifndef __WINDOWS_PATHS_ALLOWED__
+#if __MICROSOFT_OS__ || defined(__CYGWIN__)
+#define __WINDOWS_PATHS_ALLOWED__ TRUE
+#else /* !(__MICROSOFT_OS__ || defined(__CYGWIN__)) */
+#define __WINDOWS_PATHS_ALLOWED__ FALSE
+#endif /* __MICROSOFT__OS || defined(__CYGWIN__) */
+#endif /* ifndef __WINDOWS_PATHS_ALLOWED__ */
+
+#if __MICROSOFT_OS__
+#if !__WINDOWS_PATHS_ALLOWED__
+#error "__WINDOWS_PATHS_ALLOWED__ must be TRUE when __MICROSOFT_OS__ is TRUE"
+#endif /* !__WINDOWS_PATHS_ALLOWED__ */
+#endif /* MICROSOFT_OS__ */
+
+/*
 TRUE if '\' should also be treated as a directory separator in addition
 to the one defined above.  This allows some of the Microsoft directory
 handling code to be tested on a non-Microsoft system.
 */
 #ifndef BACKSLASH_IS_ALSO_DIR_SEPARATOR
-#if __MICROSOFT_OS__
+#if __WINDOWS_PATHS_ALLOWED__
 #define BACKSLASH_IS_ALSO_DIR_SEPARATOR TRUE
-#else /* !__MICROSOFT_OS__ */
+#else /* !__WINDOWS_PATHS_ALLOWED__ */
 #define BACKSLASH_IS_ALSO_DIR_SEPARATOR FALSE
-#endif /* __MICROSOFT_OS__ */
+#endif /* __WINDOWS_PATHS_ALLOWED__ */
 #endif /* ifndef BACKSLASH_IS_ALSO_DIR_SEPARATOR */
 
-#if __MICROSOFT_OS__
+#if __WINDOWS_PATHS_ALLOWED__
 #if !BACKSLASH_IS_ALSO_DIR_SEPARATOR
- #error BACKSLASH_IS_ALSO_DIR_SEPARATOR must be TRUE when __MICROSOFT_OS__ \
-        is TRUE
+ #error BACKSLASH_IS_ALSO_DIR_SEPARATOR must be TRUE when \
+        __WINDOWS_PATHS_ALLOWED__ is TRUE
 #endif /* !BACKSLASH_IS_ALSO_DIR_SEPARATOR */
-#endif /* __MICROSOFT_OS__ */
+#endif /* __WINDOWS_PATHS_ALLOWED__ */
 
 /* Add a component to a path name. */
 extern void append_to_path_name(a_text_buffer_ptr	buffer,
