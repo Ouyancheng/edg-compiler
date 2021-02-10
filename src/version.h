@@ -22,13 +22,13 @@ BEGIN_EDG_NAMESPACE
 Definition of the version number of this version.  It is made a separate
 file to make updates easy.
 */
-#define VERSION_NUMBER "6.1"  /* July 24, 2020. */
+#define VERSION_NUMBER "6.2"  /* February 10, 2021. */
 
 /*
 Version number used to set a predefined macro that expands to the
 front end version.  This must be a numeric value.
 */
-#define VERSION_NUMBER_FOR_MACRO 601
+#define VERSION_NUMBER_FOR_MACRO 602
 
 /*
 The date and time that this version was built.  These variables will
