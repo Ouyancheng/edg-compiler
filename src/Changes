@@ -974,7 +974,7 @@ example:
     template<typename, typename> friend class _State::_Setter; // #1
   };
 
-On the line labelled with #1, the access of _State::_Setter could get
+On the line labeled with #1, the access of _State::_Setter could get
 overwritten with the private access level.  This is now fixed.
 
 
