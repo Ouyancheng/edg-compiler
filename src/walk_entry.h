@@ -3953,8 +3953,8 @@ after_entry_from_class:
         walk_ptr(eptr->promise, a_variable_ptr, iek_variable);
         walk_ptr(eptr->init_await_resume, a_variable_ptr, iek_variable);
         walk_ptr(eptr->this_param_copy, a_variable_ptr, iek_variable);
-        // scope->nonstatic_variables points to the same list, so the list
-        // has already been walked.
+        /* scope->nonstatic_variables points to the same list, so the list
+           has already been walked. */
         remap_list_ptr(eptr->parameter_copies, a_variable_ptr, iek_variable);
         remap_ptr(eptr->final_suspend_label, a_label_ptr, iek_label);
         walk_ptr(eptr->initial_suspend_call, an_expr_node_ptr, iek_expr_node);

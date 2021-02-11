@@ -1,5 +1,15 @@
 Version 6.3
 
+2/10/21  [EDGcpfe/23854]
+IL display: Incomplete handling of coroutine nodes
+
+The coroutine description was not completely handled by IL display routines,
+causing edgcpdisp to display BAD ENTRY KIND when encountering the coroutine
+description, and later printed out an incomplete accounting of the coroutine
+description as part of the stmk_coroutine output.  This has now been fixed -
+stmk_coroutines now print out all associated fields.
+
+
 2/10/21  [EDGcpfe/23895]
 Supporting Windows-style paths in non-Windows modes
 

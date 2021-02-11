@@ -441,6 +441,30 @@ Display the indicated entity list and name.
 }  /* disp_entity_list */
 
 
+static void disp_variable_list(a_const_char   *name,
+                               a_variable_ptr ptr)
+/*
+Display the indicated variable list and name.
+*/
+{
+  if (ptr == NULL) {
+    disp_ptr(name, (char *)ptr, iek_variable);
+  } else {
+    for (; ptr != NULL; ptr = ptr->next) {
+      if (name != NULL) {
+        disp_name(name);
+      } else {
+        (void)printf("%*c", Label_indent, ' ');
+      }  /* if */
+      disp_ptr_value((char*)ptr, iek_variable);
+      (void)printf("\n");
+      /* Only display the list name for the first entry. */
+      name = NULL;
+    }  /* for */
+  }  /* if */
+}  /* disp_variable_list */
+
+
 static void disp_access(a_const_char        *name,
                         an_access_specifier access)
 /*
@@ -4933,17 +4957,37 @@ static void disp_coroutine_descr(a_coroutine_descr_ptr  cdp)
 Display the indicated coroutine description.
 */
 {
+  if (cdp->error_descr) {
+    disp_boolean("error_description", TRUE);
+    goto done;
+  }  /* if */
   disp_ptr("traits", (char*)cdp->traits, iek_type);
   disp_ptr("handle", (char*)cdp->handle, iek_variable);
   disp_ptr("promise", (char*)cdp->promise, iek_variable);
-  disp_ptr("initial-await-resume-called", (char*)cdp->init_await_resume,
-           iek_variable);
+  disp_ptr("init_await_resume", (char*)cdp->init_await_resume, iek_variable);
+  disp_ptr("this_param_copy", (char*)cdp->this_param_copy, iek_variable);
+  disp_variable_list("paramter_copies", cdp->parameter_copies);
+  disp_ptr("final_suspend_label", (char*)cdp->final_suspend_label, iek_label);
+  disp_ptr("initial_suspend_call", (char*)cdp->initial_suspend_call,
+           iek_expr_node);
+  disp_ptr("final_suspend_call", (char*)cdp->final_suspend_call,
+           iek_expr_node);
+  disp_ptr("unhandled_exception_call", (char*)cdp->unhandled_exception_call,
+           iek_expr_node);
+  disp_ptr("get_return_object_call", (char*)cdp->get_return_object_call,
+           iek_expr_node);
+  disp_ptr("alloc_failure_gro_call", (char*)cdp->alloc_failure_gro_call,
+           iek_expr_node);
+  disp_ptr("new_routine", (char*)cdp->new_routine, iek_routine);
+  disp_ptr("delete_routine", (char*)cdp->delete_routine, iek_routine);
+  disp_source_position("position", &cdp->position);
   if (cdp->has_return_void) {
     disp_boolean("has_return_void", TRUE);
   }  /* if */
   if (cdp->body_generated) {
     disp_boolean("body_generated", TRUE);
   }  /* if */
+done:;
 }  /* disp_coroutine_descr */
 
 
@@ -7642,6 +7686,7 @@ This routine is called during IL walking.
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
     case iek_gnu_routine_supplement:
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
+    case iek_coroutine_descr:
       break;
     default:
       (void)printf("\n");
