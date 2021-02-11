@@ -11061,9 +11061,9 @@ definitions needed to support the generated code.
 {
   a_const_char *p;
 
-  /* Put out a tentative definition of a variable that identifies the
-     version number.  This also ensures that the generated file has at
-     least one declaration when generating ANSI C. */
+  /* Put out a declaration of a variable that identifies the version number.
+     This also ensures that the generated file has at least one declaration
+     when generating ANSI C. */
   (void)fprintf(f_C_output, "extern int __EDGCPFE__");
   for (p = il_header.compiler_version; *p != '\0'; p++) {
     char ch = *p;
