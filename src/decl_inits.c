@@ -9469,6 +9469,7 @@ initialized.  These are addressed in the course of the processing.
     if (new_routine != NULL) {
       mark_routine_referenced(new_routine);
       new_routine->called = TRUE;
+#if DELETE_CAN_BE_FOLDED_INTO_DTOR
       if (exceptions_enabled) {
         a_routine_ptr delete_routine;
         /* When exceptions are enabled, the constructor has to be able to
@@ -9481,6 +9482,7 @@ initialized.  These are addressed in the course of the processing.
           delete_routine->called = TRUE;
         }  /* if */
       }  /* if */
+#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
     }  /* if */
   }  /* if */
 #endif /* NEW_CAN_BE_FOLDED_INTO_CTOR */

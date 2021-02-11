@@ -1155,10 +1155,14 @@ common_long_long_processing:
 #if !STANDALONE_UTILITY_PROGRAM
                                   check_assertion(int128_extensions_enabled);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
                                   if (gcc_is_generated_code_target &&
                                       gnu_target_version_number >= 40600) {
                                     p = "__int128";
-                                  } else {
+                                  } else
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+                                  /* Do not insert code here. */
+                                  {
                                     p = "__int128_t";
                                   }  /* if */
                                 } else {
@@ -1170,10 +1174,14 @@ common_long_long_processing:
 #if !STANDALONE_UTILITY_PROGRAM
                                   check_assertion(int128_extensions_enabled);
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+#if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
                                   if (gcc_is_generated_code_target &&
                                       gnu_target_version_number >= 40600) {
                                     p = "unsigned __int128";
-                                  } else {
+                                  } else
+#endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+                                  /* Do not insert code here. */
+                                  {
                                     p = "__uint128_t";
                                   }  /* if */
                                 } else {

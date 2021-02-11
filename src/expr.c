@@ -21107,15 +21107,20 @@ Work out the "new" routine and its arguments.  Return the new routine.
              expansion, we might end up with value initialization anyway
              so we can't fold. */
           !is_variadic_template_context()) {
-        set_class_assoc_operator_new_routine(nps->unqual_base_new_type);
+        a_boolean  delete_routine_okay = TRUE;
+#if DELETE_CAN_BE_FOLDED_INTO_DTOR
         if (exceptions_enabled) {
           set_class_assoc_operator_delete_routine(nps->unqual_base_new_type);
+          if (class_type_supp(nps->unqual_base_new_type)
+                     ->assoc_operator_delete_routine != nps->delete_routine) {
+            delete_routine_okay = FALSE;
+          }  /* if */
         }  /* if */
+#endif /* DELETE_CAN_BE_FOLDED_INTO_DTOR */
+        set_class_assoc_operator_new_routine(nps->unqual_base_new_type);
         if (class_type_supp(nps->unqual_base_new_type)
                                 ->assoc_operator_new_routine == new_routine &&
-            (!exceptions_enabled ||
-              class_type_supp(nps->unqual_base_new_type)
-                    ->assoc_operator_delete_routine == nps->delete_routine)) {
+            delete_routine_okay) {
           new_routine = NULL;
         }  /* if */
       }  /* if */
