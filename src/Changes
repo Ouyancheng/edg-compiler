@@ -4,10 +4,10 @@ Version 6.3
 IL display: Incomplete handling of coroutine nodes
 
 The coroutine description was not completely handled by the IL display
-routines. As a result, edgcpdisp displayed BAD ENTRY KIND when encountering the
-coroutine description, and later it printed out an incomplete accounting of the
-coroutine description as part of the stmk_coroutine output.  This has now been
-fixed - stmk_coroutines now print out all associated fields.
+routines.  As a result, edgcpdisp displayed BAD ENTRY KIND when encountering
+the coroutine description, and later it printed out an incomplete accounting of
+the coroutine description as part of the stmk_coroutine output.  This has now
+been fixed - stmk_coroutines now print out all associated fields.
 
 
 2/10/21  [EDGcpfe/23895]
