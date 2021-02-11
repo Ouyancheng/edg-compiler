@@ -1,5 +1,17 @@
 Version 6.3
 
+2/11/21  [EDGcpfe/23901]
+Build failures in some configurations
+
+Version 6.2 of the front end introduced a build failure in il_to_str.c for
+configurations that enable neither BACK_END_IS_C_GEN_BE nor
+BACK_END_IS_CP_GEN_BE.  That is now fixed.
+
+Furthermore, configurations that set NEW_CAN_BE_FOLDED_INTO_CTOR to TRUE but
+DELETE_CAN_BE_FOLDED_INTO_DTOR to FALSE ran into build failures for expr.c and
+decl_inits.c even in prior releases.  That is now also fixed.
+
+
 2/10/21  [EDGcpfe/23854]
 IL display: Incomplete handling of coroutine nodes
 
