@@ -3318,23 +3318,22 @@ handled separately.
 #endif /* DIRECTORY_SEPARATOR_STRING */
 
 /*
-Set a flag that indicates that Windows paths are expected to be encountered,
-and enabling processing accordingly.  Note that this differs from
-__MICROSOFT_OS__, as it's possible to have an OS that supports Windows paths
-but isn't Windows.
+Set a flag that indicates that Windows paths are expected to be encountered and
+enables processing accordingly.  Note that this differs from __MICROSOFT_OS__,
+as it's possible to have an OS that supports Windows paths but isn't Windows.
 */
-#ifndef __WINDOWS_PATHS_ALLOWED__
+#ifndef WINDOWS_PATHS_ALLOWED
 #if __MICROSOFT_OS__ || defined(__CYGWIN__)
-#define __WINDOWS_PATHS_ALLOWED__ TRUE
+#define WINDOWS_PATHS_ALLOWED TRUE
 #else /* !(__MICROSOFT_OS__ || defined(__CYGWIN__)) */
-#define __WINDOWS_PATHS_ALLOWED__ FALSE
+#define WINDOWS_PATHS_ALLOWED FALSE
 #endif /* __MICROSOFT__OS || defined(__CYGWIN__) */
-#endif /* ifndef __WINDOWS_PATHS_ALLOWED__ */
+#endif /* ifndef WINDOWS_PATHS_ALLOWED */
 
 #if __MICROSOFT_OS__
-#if !__WINDOWS_PATHS_ALLOWED__
-#error "__WINDOWS_PATHS_ALLOWED__ must be TRUE when __MICROSOFT_OS__ is TRUE"
-#endif /* !__WINDOWS_PATHS_ALLOWED__ */
+#if !WINDOWS_PATHS_ALLOWED
+#error WINDOWS_PATHS_ALLOWED must be TRUE when __MICROSOFT_OS__ is TRUE
+#endif /* !WINDOWS_PATHS_ALLOWED */
 #endif /* MICROSOFT_OS__ */
 
 /*
@@ -3343,19 +3342,19 @@ to the one defined above.  This allows some of the Microsoft directory
 handling code to be tested on a non-Microsoft system.
 */
 #ifndef BACKSLASH_IS_ALSO_DIR_SEPARATOR
-#if __WINDOWS_PATHS_ALLOWED__
+#if WINDOWS_PATHS_ALLOWED
 #define BACKSLASH_IS_ALSO_DIR_SEPARATOR TRUE
-#else /* !__WINDOWS_PATHS_ALLOWED__ */
+#else /* !WINDOWS_PATHS_ALLOWED */
 #define BACKSLASH_IS_ALSO_DIR_SEPARATOR FALSE
-#endif /* __WINDOWS_PATHS_ALLOWED__ */
+#endif /* WINDOWS_PATHS_ALLOWED */
 #endif /* ifndef BACKSLASH_IS_ALSO_DIR_SEPARATOR */
 
-#if __WINDOWS_PATHS_ALLOWED__
+#if WINDOWS_PATHS_ALLOWED
 #if !BACKSLASH_IS_ALSO_DIR_SEPARATOR
  #error BACKSLASH_IS_ALSO_DIR_SEPARATOR must be TRUE when \
-        __WINDOWS_PATHS_ALLOWED__ is TRUE
+        WINDOWS_PATHS_ALLOWED is TRUE
 #endif /* !BACKSLASH_IS_ALSO_DIR_SEPARATOR */
-#endif /* __WINDOWS_PATHS_ALLOWED__ */
+#endif /* WINDOWS_PATHS_ALLOWED */
 
 /* Add a component to a path name. */
 extern void append_to_path_name(a_text_buffer_ptr	buffer,

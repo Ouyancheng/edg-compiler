@@ -14,12 +14,12 @@ fixed - stmk_coroutines now print out all associated fields.
 Supporting Windows-style paths in non-Windows modes
 
 The front end previously tied handling of Windows-style paths to the
-__MICROSOFT_OS__ configuration variable.  This prevented handling Windows-style
-paths in non-Microsoft OS modes, including Cygwin.  A new configuration
-variable __WINDOWS_PATHS_ALLOWED__ has been added to separate this behavior and
-allow the front end to handle Windows-style paths in other modes.  This
-variable must be TRUE when __MICROSOFT_OS__ is TRUE, and defaults to TRUE when
-either __MICROSOFT_OS__ is TRUE os __CYGWIN__ is defined.
+__MICROSOFT_OS__ configuration macro.  This prevented handling Windows-style
+paths in non-Microsoft OS modes, including Cygwin.  A new configuration macro
+WINDOWS_PATHS_ALLOWED has been added to separate this behavior and allow the
+front end to handle Windows-style paths in other modes.  This variable must be
+TRUE when __MICROSOFT_OS__ is TRUE, and defaults to TRUE when either
+__MICROSOFT_OS__ is TRUE or __CYGWIN__ is defined.
 
 
 -------------------------------------------------------------------------------

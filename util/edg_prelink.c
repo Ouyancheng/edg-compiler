@@ -633,13 +633,13 @@ static a_boolean pl_is_absolute_file_name(char *file_name)
 Test whether or not a file name is absolute (a full path name).
 */
 {
-#if __WINDOWS_PATHS_ALLOWED__
+#if WINDOWS_PATHS_ALLOWED
   return ((file_name)[0] == DIRECTORY_SEPARATOR) ||
          ((file_name)[0] == '\\') ||
          (isalpha((unsigned char)(file_name)[0]) && ((file_name)[1] == ':'));
-#else /* !__WINDOWS_PATHS_ALLOWED__ */
+#else /* !WINDOWS_PATHS_ALLOWED */
   return (file_name)[0] == DIRECTORY_SEPARATOR;
-#endif /* __WINDOWS_PATHS_ALLOWED__ */
+#endif /* WINDOWS_PATHS_ALLOWED */
 }  /* pl_is_absolute_file_name */
 
 
@@ -1632,10 +1632,10 @@ processed further.
   *name1 = *name2 = *symbol_name = NULL;
   *type = '\0';
   pos = pl_input_line;
-#if __WINDOWS_PATHS_ALLOWED__
+#if WINDOWS_PATHS_ALLOWED
   /* Skip over the ":" that marks end of drive name, if any. */
   if (*(pos+1) == ':') pos += 2;
-#endif /* __WINDOWS_PATHS_ALLOWED__ */
+#endif /* WINDOWS_PATHS_ALLOWED */
   /* Find the first colon which terminates either the archive or the
      file name. */
   pos = strchr(pos, ':');
