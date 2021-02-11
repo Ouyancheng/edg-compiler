@@ -1737,9 +1737,9 @@ substitution (and is unset otherwise).
   a_substitution_ptr   sp;
   a_boolean            result = FALSE, secondary_tu;
   a_const_char         *str = NULL;
-  a_type_kind          type_kind;
-  a_type_ptr           type, utype;
-  a_boolean            type_kind_is_struct_or_class;
+  a_type_kind          type_kind = tk_error;
+  a_type_ptr           type, utype = NULL;
+  a_boolean            type_kind_is_struct_or_class = FALSE;
 
   /* Nothing to do if substitution processing is temporarily suspended. */
   if (mctl->suppress_substitutions != 0) goto end_of_routine;
