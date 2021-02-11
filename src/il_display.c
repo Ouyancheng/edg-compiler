@@ -4958,7 +4958,7 @@ Display the indicated coroutine description.
 */
 {
   if (cdp->error_descr) {
-    disp_boolean("error_description", TRUE);
+    disp_boolean("error_descr", TRUE);
     goto done;
   }  /* if */
   disp_ptr("traits", (char*)cdp->traits, iek_type);
