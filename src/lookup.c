@@ -744,6 +744,8 @@ of the symbol header.
     if (sym->is_unknown_function &&
         sym->variant.constant->variant.template_param.is_qualified_name ==
                                                            is_qualified_name &&
+        sym->variant.constant->variant.template_param.variant.
+                            unknown_function.symbol->kind == orig_sym->kind &&
         trans_unit_for_symbol(sym) == curr_translation_unit) {
       if (sym->is_class_member == orig_sym->is_class_member) {
         if (sym->is_class_member) {
