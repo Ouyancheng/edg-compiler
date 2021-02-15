@@ -14529,7 +14529,12 @@ new type may not be a typeref.
   tpp = tssp->cache.decl_info->parameters;
   check_assertion(tpp != NULL);
   /* Make a copy of the template argument list, doing substitution. */
-  new_list = copy_template_arg_list_with_substitution(
+  if (tpp == templ_param_list) {
+    /* If the parameter list to substitute is the same, we can just use a copy
+       of the template argument list directly. */
+    new_list = copy_template_arg_list(templ_arg_list);
+  } else {
+    new_list = copy_template_arg_list_with_substitution(
                                            template_sym,
                                            tap, tpp,
                                            (a_template_param_ptr)NULL,
@@ -14537,6 +14542,7 @@ new type may not be a typeref.
                                            templ_param_list, 
                                            source_pos, options,
                                            copy_error, ctws_state);
+  }  /* if */
   if (!*copy_error &&
       !template_arg_list_is_dependent(new_list)) {
     if (template_sym == symbol_for_type_pack_element &&
@@ -15519,6 +15525,9 @@ a pointer over a reference type or creating an array of references.
               new_type = type;
             } else {
               new_type = tap->variant.type;
+              if (tap->is_error) {
+                subst_fail(*copy_error);
+              }  /* if*/
             }  /* if */
           }  /* if */
         }
@@ -17477,6 +17486,7 @@ Set the template argument specified by tap to refer to an error entity.
       unexpected_condition();
       break;
   }  /* switch */
+  tap->is_error = TRUE;
 }  /* set_template_arg_to_error */
 
 
@@ -29839,7 +29849,7 @@ obtained from decl_state.
     param_used = template_param_used_in_type(param_sym,
                                              alias_type,
                                              /*deduced_only=*/FALSE,
-                                             /*exclude_parents=*/TRUE);
+                                             /*exclude_parents=*/FALSE);
     tpp->used_in_alias = param_used;
     if (param_used) {
       any_used = TRUE;

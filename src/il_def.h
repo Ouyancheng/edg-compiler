@@ -7068,6 +7068,7 @@ typedef struct a_template_arg {
 			  /* TRUE if the argument value was deduced from an
 			     array bound and should only be used if it cannot
 			     be deduced elsewhere. */
+  a_bit_field	is_error:1;
   union {
     /* When kind == tak_type. */
     a_type_ptr  type;   /* The type supplied as the argument.  This type can

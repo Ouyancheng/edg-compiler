@@ -5549,6 +5549,7 @@ any subobject that is not initialized (the diagnostic is associated with pos).
   } else if (is_immediate_class_type(tp) &&
              tp->variant.class_struct_union.is_empty_class) {
     /* Empty class type objects are always considered "initialized". */
+    goto done;
   } else {
     do_constexpr_fail(result);
     info_with_pos(ec_object_not_initialized, pos, ips);
