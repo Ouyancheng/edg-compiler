@@ -6003,7 +6003,7 @@ calls to std::is_constant_evaluated should to "true".
         !is_template_dependent_context()) ||
        (!relaxed_constexpr_enabled &&
         in_potential_constant_constexpr_context())) &&
-      constexpr_call_folding_should_be_done() &&
+      (is_constant_evaluated || constexpr_call_folding_should_be_done()) &&
       is_expression_operand(operand) && is_a_prvalue(operand) &&
       fold_constexpr_expr(operand->variant.expression, con,
                           is_constant_evaluated, /*force_prvalue=*/FALSE)) {
@@ -6474,9 +6474,10 @@ details of why folding failed.  Return TRUE if an error was issued.
          tests below where we will issue an error. */
     } else if (constexpr_enabled &&
                (expr_stack == NULL || curr_expr_kind_is_evaluated_const()) &&
-               is_template_dependent_context()) {
-      /* A dependent call might call a constexpr function and be folded,
-         so turn it into a constant and await a real instantiation. */
+               scope_is(&scope_stack_top(), sck_template_declaration)) {
+      /* A dependent call in a nested template declaration scope might call a
+         constexpr function and be folded, so turn it into a constant and
+         await a real instantiation. */
       if (operand != NULL) {
         if (scope_stack_top().is_rescan &&
             !operand_is_instantiation_dependent(operand)) {
@@ -6499,31 +6500,7 @@ details of why folding failed.  Return TRUE if an error was issued.
       /* The following is similar to a call to
          construct_not_allowed_in_cpp11_constant_expr, except that it appends
          the diag_list notes if necessary. */
-      a_boolean  emit_diagnostic = FALSE;
       if (expr_stack == NULL) {
-        emit_diagnostic = TRUE;
-        err = TRUE;
-      } else if (curr_expr_is_evaluated() &&
-                 !curr_expr_is_potentially_unevaluated() &&
-                 (routine == NULL || !routine->is_constexpr)) {
-        /* Constant expressions allow invalid operators/constructs in
-           unevaluated subexpressions, including dead operands of "?", "&&",
-           and "||". */
-        expr_stack->constant_expr_ruled_out = TRUE;
-        if (curr_expr_kind_is_const() &&
-            !expr_stack->inside_conditional_expression) {
-          /* We're in a constant expression, so this construct is an error.
-             (That is not necessarily the case in some operands of "?", "&&",
-             and "||".  Leave any diagnostic to be emitted for a higher-level
-             operation.) */
-          if (expr_error_should_be_issued()) {
-            emit_diagnostic = TRUE;
-          }  /* if */
-          err = TRUE;
-          if (operand != NULL) conv_to_error_operand(operand);
-        }  /* if */
-      }  /* if */
-      if (emit_diagnostic) {
         a_diagnostic_ptr  dp;
         if (routine != NULL && special_kind_is(routine, sfk_constructor) &&
             is_default_constructor(routine, /*is_declarative_context=*/TRUE)) {
@@ -6540,6 +6517,14 @@ details of why folding failed.  Return TRUE if an error was issued.
           add_more_info_list(dp, diag_list);
         }  /* if */
         end_diagnostic(dp);
+        err = TRUE;
+      } else if (curr_expr_is_evaluated() &&
+                 !curr_expr_is_potentially_unevaluated() &&
+                 (routine == NULL || !routine->is_constexpr)) {
+        /* Constant expressions allow invalid operators/constructs in
+           unevaluated subexpressions, including dead operands of "?", "&&",
+           and "||". */
+        expr_stack->constant_expr_ruled_out = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */

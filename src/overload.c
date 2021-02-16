@@ -21268,7 +21268,8 @@ is_transparent.  conv_context describes the context of the conversion.
         user_convert_operand(&src_copy, eff_src_type,
                              conversion, (a_conv_descr *)NULL,
                              /*force_copy_to_temp=*/FALSE);
-        force_operand_to_constant_if_possible(&src_copy);
+        force_operand_to_constant_if_possible_full(
+                                   &src_copy, /*is_constant_evaluated=*/TRUE);
         src_to_test = &src_copy;
       }  /* if */
       constant_src = is_constant_operand(src_to_test);
