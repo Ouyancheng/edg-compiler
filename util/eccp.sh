@@ -738,6 +738,7 @@ check_abbreviation()
 --gnu_version
 --guiding_decls
 --ignore_std
+--il_display
 --implicit_extern_c_type_conversion
 --implicit_include
 --implicit_noexcept
@@ -1574,6 +1575,7 @@ process_option()
          --stdc_zero_in_system_headers | \
          --no_stdc_zero_in_system_headers | \
          --ignore_std | \
+         --il_display | \
 	 --long_long | \
 	 --upc | \
 	 --no_upc | \

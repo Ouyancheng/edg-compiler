@@ -11863,7 +11863,11 @@ subroutine called in the same program as the front end.
   /* If the intermediate language was written to a file, read it back in. */
   /* The source file name is unknown until the IL is read correctly. */
   primary_source_file_name = NULL;
-  il_read(f_il_output);
+  if (skip_il_read) {
+    /* The IL should still be in memory. */
+  } else {
+    il_read(f_il_output);
+  }  /* if */
   primary_source_file_name = il_header.primary_source_file->file_name;
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   /* Generate C code. */

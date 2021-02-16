@@ -252,6 +252,11 @@ Initialize the option information table.
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
 #endif /* DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE */
+#if NEED_IL_DISPLAY
+  add_option_description(optk_il_display, "il_display", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+#endif /* NEED_IL_DISPLAY */
   add_option_description(optk_cplusplus_anachronisms, "anachronisms", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
@@ -2238,6 +2243,9 @@ static a_flag_name
   { "null_template_ptr_arg_enabled", &null_template_ptr_arg_enabled },
   { "skip_module_imports", &skip_module_imports },
   { "skip_module_version_check", &skip_module_version_check },
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+  { "skip_il_read", &skip_il_read },
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   { NULL, NULL }  /* must be last */
 };
 
@@ -7891,6 +7899,11 @@ file.
 #else /* !defined(NEED_DECLARATIVE_WALK) */
   comment_undefined_macro_name(NEED_DECLARATIVE_WALK);
 #endif /* defined(NEED_DECLARATIVE_WALK) */
+#if defined(NEED_IL_DISPLAY)
+  define_numeric_valued_macro(NEED_IL_DISPLAY);
+#else /* !defined(NEED_IL_DISPLAY) */
+  comment_undefined_macro_name(NEED_IL_DISPLAY);
+#endif /* defined(NEED_IL_DISPLAY) */
 #if defined(NEED_NAME_MANGLING)
   define_numeric_valued_macro(NEED_NAME_MANGLING);
 #else /* !defined(NEED_NAME_MANGLING) */
@@ -9698,6 +9711,16 @@ Process the arguments on the command line that invoked the compiler.
         /* Note that suppress_il_file_write is not set. */
 	break;
 #endif /* DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE */
+#if NEED_IL_DISPLAY
+      case optk_il_display:
+	/* Display IL before back end processing. */
+        check_assertion(opt_value == TRUE);
+	il_display = TRUE;
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+        skip_il_read = TRUE;
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+	break;
+#endif /* NEED_IL_DISPLAY */
       case optk_cplusplus_anachronisms:
         /* Enable or disable acceptance of anachronisms. */
         allow_anachronisms = opt_value;
@@ -11979,8 +12002,12 @@ variables declared in cmd_line.h.
 #if DO_IL_LOWERING
   suppress_il_lowering = FALSE;
 #endif /* DO_IL_LOWERING */
+#if NEED_IL_DISPLAY
+  il_display = FALSE;
+#endif /* NEED_IL_DISPLAY */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   suppress_il_file_write = FALSE;
+  skip_il_read = FALSE;
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   mod_map = NULL;
   header_unit_map = NULL;

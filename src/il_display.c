@@ -45,11 +45,11 @@ NEED_IL_DISPLAY and a call of il_display should be added in the front end.
 #include "il_walk.h"
 #if STANDALONE_IL_DISPLAY
 #include "fe_init.h"
+#endif /* STANDALONE_IL_DISPLAY */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 #include "il_file.h"
 #include "il_read.h"
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-#endif /* STANDALONE_IL_DISPLAY */
 
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
@@ -93,7 +93,7 @@ Print the string at string_ptr, whose length is string_length.
       ch = string_ptr[i];
       if (isprint((unsigned char)ch)) {
         if (ch == '"' || ch == '\\') (void)printf("\\");
-        putchar(ch);
+        (void)putchar(ch);
       } else {
         (void)printf("\\%03o",
                      (unsigned int)(ch&((1<<targ_host_string_char_bit)-1)));
@@ -3449,8 +3449,8 @@ Display the indicated routine.
   disp_ptr("next", (char *)ptr->next, iek_routine);
   disp_ptr("type", (char *)ptr->type, iek_type);
   disp_unsigned_long("function_def_number",
-                     (unsigned long)ptr->function_def_number);
-  disp_unsigned_long("memory_region", (unsigned long)ptr->memory_region);
+                     (unsigned long)(long)ptr->function_def_number);
+  disp_unsigned_long("memory_region", (unsigned long)(long)ptr->memory_region);
   disp_name("storage_class");
   disp_storage_class_name(ptr->storage_class);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -3868,7 +3868,7 @@ Display the indicated routine.
                        (unsigned long)ptr->number.virtual_function);
   } else if (ptr->is_constexpr_intrinsic) {
     disp_unsigned_long("number.constexpr_intrinsic",
-                       (unsigned long)ptr->number.constexpr_intrinsic);
+                       (unsigned long)(long)ptr->number.constexpr_intrinsic);
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ptr->overridden_functions != NULL) {
@@ -6541,7 +6541,7 @@ do_assoc_type:
     case sck_file:
     case sck_namespace:
       disp_ptr("namespaces", (char *)ptr->namespaces, iek_namespace);
-      /* Fall through. */
+      FALLTHROUGH
     case sck_function:
     case sck_block:
     case sck_class_struct_union:
@@ -7377,10 +7377,10 @@ Display the indicated asm operand.
   disp_string_ptr("constraints_string", ptr->constraints_string,
                   iek_other_text, (sizeof_t)0);
 #else /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
-  if (ptr->modifiers & aom_output) {
+  if (ptr->modifiers & (an_asm_operand_modifier)aom_output) {
     disp_boolean("aom_output", TRUE);
   }  /* if */
-  if (ptr->modifiers & aom_input) {
+  if (ptr->modifiers & (an_asm_operand_modifier)aom_input) {
     disp_boolean("aom_input", TRUE);
   }  /* if */
   for (c = ptr->constraints; c != NULL; c = c->next) {
@@ -7427,7 +7427,7 @@ Display the indicated asm entry.
   }  /* if */
   disp_ptr("operands", (char *)ptr->operands, iek_asm_operand);
   disp_ptr("clobbers", (char *)ptr->clobbers, iek_named_register_list);
-  putchar('\n');
+  (void)putchar('\n');
 #endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* disp_asm_entry */
 
@@ -8121,6 +8121,52 @@ form.
                         /*clear_fe_pointers=*/FALSE);
 }  /* disp_routine_scope_il */
 
+
+void do_il_display(char *file_name)
+/*
+Display the entire IL tree that resides in memory.  If file_name is non NULL,
+it is the name of the file from which the IL was read.
+*/
+{
+  a_memory_region_number region_number;
+
+  if (file_name == NULL) {
+    (void)printf("Display of IL produced by the compilation of \"%s\"\n",
+                 primary_source_file_name);
+  } else {
+    (void)printf(
+          "Display of IL file \"%s\", produced by the compilation of \"%s\"\n",
+          file_name, primary_source_file_name);
+  }  /* if */
+  /* Display the file scope IL. */
+  disp_file_scope_il();
+  /* Read and display the IL for each function scope. */
+  for (region_number = FILE_SCOPE_REGION_NUMBER+1;
+       region_number <= highest_used_region_number;
+       region_number++) {
+    if (
+#if IL_SHOULD_BE_WRITTEN_TO_FILE
+        index_for_il_file[region_number] != 0
+#else /* !IL_SHOULD_BE_WRITTEN_TO_FILE */
+        mem_region_table[region_number] != 0
+#endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+                                             ) {
+#if STANDALONE_IL_DISPLAY
+      read_memory_region(region_number);
+#endif /* STANDALONE_IL_DISPLAY */
+      disp_routine_scope_il(region_number);
+#if STANDALONE_IL_DISPLAY
+      free_memory_region(region_number);
+#endif /* STANDALONE_IL_DISPLAY */
+    } else {
+      /* Skip this memory region -- the associated routine was removed from
+         the IL (e.g., because it is unneeded or was reserved for a trivial
+         default constructor). */
+    }  /* if */
+  }  /* for */
+}  /* do_il_display */
+
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 
@@ -8143,7 +8189,6 @@ where file.cil specifies the IL file.  Output is to stdout.
   char                   *file_name;
   FILE                   *f_il_input;
   int                    optind = 1;
-  a_memory_region_number region_number;
 
 #if DEBUG
   /* Initialize the file variable used for debug output.  This should be
@@ -8188,25 +8233,7 @@ where file.cil specifies the IL file.  Output is to stdout.
   /* Complete the initialization (based on il_header contents). */
   standalone_utility_late_init();
   primary_source_file_name = il_header.primary_source_file->file_name;
-  (void)printf(
-          "Display of IL file \"%s\", produced by the compilation of \"%s\"\n",
-          file_name, primary_source_file_name);
-  /* Display the file scope IL. */
-  disp_file_scope_il();
-  /* Read and display the IL for each function scope. */
-  for (region_number = FILE_SCOPE_REGION_NUMBER+1;
-       region_number <= highest_used_region_number;
-       region_number++) {
-    if (index_for_il_file[region_number] != 0) {
-      read_memory_region(region_number);
-      disp_routine_scope_il(region_number);
-      free_memory_region(region_number);
-    } else {
-      /* Skip this memory region -- the associated routine was removed from
-         the IL (e.g., because it is unneeded or was reserved for a trivial
-         default constructor). */
-    }  /* if */
-  }  /* for */
+  do_il_display(file_name);
   (void)fclose(f_il_input);
   normal_termination();
   return 0;  /* Not reached; here to keep lint happy. */

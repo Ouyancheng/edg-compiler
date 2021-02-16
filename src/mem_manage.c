@@ -1618,14 +1618,14 @@ memory or with an IL file.
        compiled only for its exported templates) will have been thrown
        away before this routine is called. */
     keep_memory = TRUE;
-#if !STANDALONE_UTILITY_PROGRAM
   } else if (scope->do_not_free_memory_region) {
     /* The memory region might be needed later (e.g., for a generic
        lambda instantiation).  Do not free it. */
     keep_memory = TRUE;
-#endif /* !STANDALONE_UTILITY_PROGRAM */
+  } else if (skip_il_read) {
+    /* For debugging purposes, keep the memory region around. */
+    keep_memory = TRUE;
   }  /* if */
-#if !STANDALONE_UTILITY_PROGRAM
   if (!keep_memory && rout != NULL) {
     /* So far we don't need to keep the memory.  Go though the list of
        function scopes to see if the memory region should be kept for
@@ -1640,7 +1640,6 @@ memory or with an IL file.
       }  /* if */
     }  /* for */
   }  /* if */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
 #if DEBUG
   if (rout != NULL && debug_level >= 2) {
     fprintf(f_debug, "check_for_done_with_memory_region: ");

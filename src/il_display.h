@@ -29,6 +29,8 @@ extern void disp_file_scope_il(void);
 
 extern void disp_routine_scope_il(a_memory_region_number region_number);
 
+extern void do_il_display(char *filename);
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 

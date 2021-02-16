@@ -53,6 +53,9 @@ typedef enum /*an_option_kind*/ {
 #if DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE
   optk_write_unlowered_il,
 #endif /* DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE */
+#if NEED_IL_DISPLAY
+  optk_il_display,
+#endif /* NEED_IL_DISPLAY */
   optk_cplusplus_anachronisms,
   optk_cfront_2_1_mode,
   optk_cfront_3_0_mode,
@@ -473,11 +476,26 @@ EXTERN a_boolean
 		suppress_il_lowering;
 			/* TRUE if IL lowering should not be done. */
 #endif /* DO_IL_LOWERING */
+#if NEED_IL_DISPLAY
+                // FIXME: documentation.
+EXTERN a_boolean
+		il_display;
+			/* TRUE if the IL should be "displayed" (i.e., dumped
+			   in a textual form) to stdout as part of front end.
+			   processing. */
+#endif /* NEED_IL_DISPLAY */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
 EXTERN a_boolean
 		suppress_il_file_write;
 			/* TRUE if the writing of the IL file should be
 			   suppressed. */
+EXTERN a_boolean
+		skip_il_read;
+			/* TRUE if reading back of the IL file should be
+			   suppressed.  This can be useful for debugging
+			   purposes as the address of IL entities won't change
+			   between the front end and back end processing.  The
+			   (binary) IL file is still written. */
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
 using a_module_file_map =
 		     Ptr_map<a_C_str_handle, a_const_char*, General_allocator>;

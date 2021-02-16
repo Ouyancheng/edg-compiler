@@ -59,6 +59,9 @@ fe_wrapup.c - End of front end processing.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ms_metadata.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if NEED_IL_DISPLAY
+#include "il_display.h"
+#endif /* NEED_IL_DISPLAY */
 
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
@@ -789,6 +792,13 @@ and before the back end (if any) is executed.
   /* Lower the file scope, remove unneeded entities, etc. */
   wrap_up_file_scopes();
 
+#if NEED_IL_DISPLAY
+  if (il_display && total_errors == 0) {
+    /* Display the IL. */
+    do_il_display((char *)NULL);
+  }  /* if */
+#endif /* NEED_IL_DISPLAY */
+
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   /* Finish writing the IL file, if there is one. */
   finish_il_file();
@@ -825,9 +835,13 @@ and before the back end (if any) is executed.
      the storage goes away when the front end memory region is freed. */
   curr_stop_token_stack_entry = NULL;
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
-  /* Free all memory regions.  Anything left in any of the IL memory
-     regions should be discarded as it will be reread by the back end. */
-  free_all_memory_regions();
+  if (skip_il_read) {
+    /* Leave the memory regions intact (mostly for debugging purposes). */
+  } else {
+    /* Free all memory regions.  Anything left in any of the IL memory
+       regions should be discarded as it will be reread by the back end. */
+    free_all_memory_regions();
+  }  /* if */
 #else /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   /* Free front-end-only storage. */
   free_memory_region(FRONT_END_REGION_NUMBER);

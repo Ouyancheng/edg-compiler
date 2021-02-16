@@ -530,12 +530,17 @@ or STANDALONE_CP_GEN_BE is TRUE.
 Flag that is TRUE if the code necessary to display the IL in a readable
 form on stdout is to be compiled.  This flag may be set on the command
 line or will be forced to TRUE if STANDALONE_IL_DISPLAY is TRUE.
+This must be TRUE for the --il_display command-line option to be enabled.
 */
 #if STANDALONE_IL_DISPLAY
 #define NEED_IL_DISPLAY TRUE /* Do not change this. */
 #else /* !STANDALONE_IL_DISPLAY */
 #ifndef NEED_IL_DISPLAY
+#if DEBUG
+#define NEED_IL_DISPLAY TRUE
+#else /* !DEBUG */
 #define NEED_IL_DISPLAY FALSE
+#endif /* DEBUG */
 #endif /* ifndef NEED_IL_DISPLAY */
 #endif /* STANDALONE_IL_DISPLAY */
 

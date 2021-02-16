@@ -1,5 +1,27 @@
 Version 6.3
 
+2/16/21  [EDGcpfe/23906]
+Add --il_display command-line option
+
+Previously, to display the IL in a textual form, it was recommended to
+write the IL in binary format to a file and then build the front end
+with STANDALONE_IL_DISPLAY defined to build a second executable that would
+read the binary IL and emit a textual version.  That was cumbersome and
+prone to differences in configuration between the two executables.
+
+A new option, --il_display, has been added to enable textual IL to be
+displayed directly from the front end.  The output is written to stdout and
+is suppressed when there are errors in the IL.  The IL is displayed after
+lowering takes place (if so configured), but if the --no_il_lowering
+command-line option is used, lowering is suppressed resulting in unlowered
+IL being displayed.
+
+This new command-line option is available only when NEED_IL_DISPLAY is TRUE,
+which is now the case when DEBUG is TRUE (you can explicitly set
+NEED_IL_DISPLAY to FALSE to suppress this option).  You can still configure
+the front end as a stand-alone IL display executable if so desired.
+
+
 2/14/21  [EDGcpfe/23913]
 Spurious substitution failure when an undefined function name is used in
 a SFINAE context

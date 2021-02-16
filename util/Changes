@@ -1,5 +1,11 @@
 Version 6.3
 
+2/16/21  [EDGcpfe/23906]
+Add --il_display command-line option to eccp
+
+The --il_display command-line option has been added to the eccp script.
+
+
 -------------------------------------------------------------------------------
 Version 6.2, February 10, 2021
 
