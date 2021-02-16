@@ -18852,7 +18852,26 @@ dependent_case:;
       }  /* if */
       /* Pass the selector object as the first argument.  It can be a pointer
          to class, a class lvalue, or a class rvalue. */
-      implicit_this_argument = make_node_from_operand(bound_function_selector);
+      if (is_constant_operand(bound_function_selector) &&
+          constant_is(&bound_function_selector->variant.constant,
+                      ck_aggregate)) {
+        /* If the selector is a class constant value (resulting from constant-
+           evaluation), introduce a temporary since the call could modify the
+           object. */
+        an_operand          *opnd = bound_function_selector;
+        a_dynamic_init_ptr  temp_dip;
+        implicit_this_argument =
+                    create_expr_temporary(opnd->type, /*is_lvalue=*/FALSE,
+                                          /*is_explicit_cast=*/FALSE,
+                                          /*suppress_abstract_test=*/TRUE,
+                                          (a_dynamic_init_kind)dik_constant,
+                                          &opnd->position, &temp_dip);
+        set_dynamic_init_constant(
+                 temp_dip, alloc_shareable_constant(&opnd->variant.constant));
+      } else {
+        implicit_this_argument =
+                              make_node_from_operand(bound_function_selector);
+      }  /* if */
       implicit_this_argument->next = argument_list;
       argument_list = implicit_this_argument;
     }  /* if */
