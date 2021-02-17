@@ -295,6 +295,8 @@ extern void import_header_module(a_module_import_decl_ptr midp);
 extern void import_module(a_module_import_decl_ptr midp,
                           a_symbol_ptr             assoc_sym);
 
+extern void import_curr_module();
+
 /* Scan a preprocessing directive. */
 extern void pp_directive(void);
 /* Verify that all #ifs are closed at end of source. */

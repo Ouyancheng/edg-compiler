@@ -728,6 +728,7 @@ debug builds) don't recognize that these variables are mutually-exclusive.
         walk_list(eptr->first_child_file, a_source_file_ptr, iek_source_file);
         remap_ptr(eptr->last_child_file, a_source_file_ptr, iek_source_file);
         remap_next_ptr(eptr->next, a_source_file_ptr, iek_source_file);
+        walk_ptr(eptr->assoc_module, a_module_ptr, iek_module);
 #undef eptr
       }
       break;

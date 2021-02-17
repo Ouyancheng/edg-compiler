@@ -89,8 +89,11 @@ any).  Return TRUE if there exists an interface dependency, FALSE otherwise.
 {
   a_boolean result = FALSE;
 
-  /* The easy case of a module importing itself. */
+  /* The easy case of a module importing itself.  The only exception is an
+     implementation unit which imports its own primary interface unit. */
   if (interface_sym != NULL &&
+      (module_sym->variant.module_info.is_interface_unit ||
+       module_sym->variant.module_info.partition_name != NULL) &&
       same_module_name(module_sym->variant.module_info.primary_name,
                        interface_sym->variant.module_info.primary_name) &&
       same_module_name(module_sym->variant.module_info.partition_name,

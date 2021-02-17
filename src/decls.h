@@ -70,6 +70,17 @@ Return TRUE if we're in a module interface unit, FALSE otherwise.
 }  /* in_module_interface_unit*/
 
 
+inline a_boolean in_module_implementation_unit()
+/*
+Return TRUE if we're in a module implementation unit, FALSE otherwise.
+*/
+{
+  return (in_module_unit() &&
+          (!curr_module_sym->variant.module_info.is_interface_unit) ||
+           tu_stage_is(tud_private_module_fgmt));
+}  /* in_module_implementation_unit */
+
+
 /*
 Kinds of linkage, meaning whether or not an identifier declared in
 a certain way is linked to (the same as) some other like-named identifier

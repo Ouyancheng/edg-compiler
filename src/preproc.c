@@ -1475,6 +1475,23 @@ Import the given module.  assoc_sym is the associated symbol for the module.
 }  /* import_module */
 
 
+void import_curr_module()
+/*
+Import the module referred to by the current module unit.
+*/
+{
+  a_module_import_decl_ptr midp;
+
+  check_assertion(in_module_implementation_unit());
+  midp = alloc_module_import_decl();
+  midp->position = curr_module_sym->decl_position;
+  midp->module_name_position = curr_module_sym->decl_position;
+  midp->module_info = alloc_module((a_module_kind)mk_any);
+  midp->module_info->name = curr_module_sym->header->identifier;
+  import_module(midp, curr_module_sym);
+}  /* import_curr_module */
+
+
 void proc_modules_import(a_pp_directive_kind   ppd,
                          a_source_position_ptr start_pos)
 /*
