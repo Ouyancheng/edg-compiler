@@ -46,6 +46,30 @@ EXTERN a_boolean       any_decls_seen_this_stage;
     any_decls_seen_this_stage = FALSE;                                        \
   }
 
+extern a_symbol_ptr curr_module_sym;
+
+inline a_boolean in_module_unit()
+/*
+Return TRUE if we're in a module unit, FALSE otherwise.
+*/
+{
+  a_boolean result = curr_module_sym != NULL;
+
+  check_assertion(!result || tu_stage >= tud_module_unit);
+  return result;
+}  /* in_module_unit */
+
+
+inline a_boolean in_module_interface_unit()
+/*
+Return TRUE if we're in a module interface unit, FALSE otherwise.
+*/
+{
+  return (in_module_unit() && tu_stage_is(tud_module_unit) &&
+          curr_module_sym->variant.module_info.is_interface_unit);
+}  /* in_module_interface_unit*/
+
+
 /*
 Kinds of linkage, meaning whether or not an identifier declared in
 a certain way is linked to (the same as) some other like-named identifier

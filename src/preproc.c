@@ -1475,8 +1475,8 @@ Import the given module.  assoc_sym is the associated symbol for the module.
 }  /* import_module */
 
 
-void proc_modules_import(ARG_UNUSED a_pp_directive_kind ppd,
-                         a_source_position_ptr          start_pos)
+void proc_modules_import(a_pp_directive_kind   ppd,
+                         a_source_position_ptr start_pos)
 /*
 Process an import directive for a module.  ppd can be either ppd_import or
 ppd_export_import (if the import is exported).  Module imports can take the
@@ -1513,6 +1513,9 @@ can only occur inside a global module fragment.
   midp->position = *start_pos;
   if (scope_stack_top().in_export_block) {
     pos_error(ec_export_cannot_contain_import, start_pos);
+  }  /* if */
+  if (ppd == ppd_export_import && !in_module_interface_unit()) {
+    pos_error(ec_export_only_in_modules, start_pos);
   }  /* if */
   if (get_header_name()) {
     check_assertion(curr_token == tok_header_name);

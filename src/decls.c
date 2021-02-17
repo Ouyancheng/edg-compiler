@@ -19357,9 +19357,7 @@ An export declaration can take the following forms:
     scope_stack_top().export_pos = export_pos;
   }  /* if */
   (void)check_context_sensitive_keyword(tok_module, "module");
-  if (!(tu_stage_is(tud_module_unit) &&
-        curr_module_sym->variant.module_info.is_interface_unit)
-      && curr_token != tok_module) {
+  if (!in_module_interface_unit() && curr_token != tok_module) {
     an_error_severity severity = es_discretionary_error;
     if (microsoft_mode) {
       severity = es_warning;
