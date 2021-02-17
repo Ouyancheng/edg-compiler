@@ -38,6 +38,9 @@ in .h files.
 #include "ms_metadata.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #include "ifc_modules.h"
+#if NEED_IL_DISPLAY
+#include "il_display.h"
+#endif /* NEED_IL_DISPLAY */
 
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
@@ -265,6 +268,9 @@ EXTERN a_function_pointer function_pointers[(int)fn_last+1]
   (a_function_pointer)db_opt_pragma,
   (a_function_pointer)db_name_pragma,
 #endif /* DEBUG */
+#if NEED_IL_DISPLAY
+  (a_function_pointer)pragma_il_display,
+#endif /* NEED_IL_DISPLAY */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   (a_function_pointer)if_exists_pragma,
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */

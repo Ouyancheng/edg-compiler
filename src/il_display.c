@@ -8121,6 +8121,35 @@ form.
                         /*clear_fe_pointers=*/FALSE);
 }  /* disp_routine_scope_il */
 
+#if !STANDALONE_IL_DISPLAY
+
+void pragma_il_display(ARG_UNUSED a_pending_pragma_ptr ppp,
+                       ARG_UNUSED a_symbol_ptr         sym_ptr,
+                       ARG_UNUSED a_statement_ptr      stmt_ptr)
+/*
+A "#pragma il_display" was attached to a symbol or statement; display
+the IL associated with the entity that was bound to the pragma.
+*/
+{
+  char             *entry_ptr = NULL;
+  an_il_entry_kind kind;
+
+  if (sym_ptr != NULL) {
+    db_sym(sym_ptr);
+    entry_ptr = il_entry_for_symbol_null_okay(sym_ptr, &kind);
+  }  /* if */
+  if (stmt_ptr != NULL) {
+    db_statement(stmt_ptr);
+    entry_ptr = (char*)stmt_ptr;
+    kind = (an_il_entry_kind)iek_statement;
+  }  /* if */
+  if (entry_ptr != NULL) {
+    init_for_il_to_str_output();
+    disp_entry(entry_ptr, kind);
+  }  /* if */
+}  /* pragma_il_display */
+
+#endif /* !STANDALONE_IL_DISPLAY */
 
 void do_il_display(char *file_name)
 /*

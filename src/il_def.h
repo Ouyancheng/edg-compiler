@@ -6095,6 +6095,9 @@ enum a_pragma_kind_tag {
   pk_db_opt,		/* Used to specify a debugging option string. */
   pk_db_name,		/* Used to specify a debug entity name. */
 #endif /* DEBUG */
+#if NEED_IL_DISPLAY
+  pk_il_display,        /* To display the IL of an IL entity. */
+#endif /* NEED_IL_DISPLAY */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   pk_if_exists,		/* Used in the implementation of the Microsoft
 			   __if_exists feature. */
@@ -6198,6 +6201,9 @@ EXTERN a_const_char *pragma_ids[(int)pk_last + 1]
 /* pk_db_opt */			"db_opt",
 /* pk_db_name */		"db_name",
 #endif /* DEBUG */
+/* pk_il_display */		"il_display",
+#if NEED_IL_DISPLAY
+#endif /* NEED_IL_DISPLAY */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
 /* pk_if_exists */		"__if_exists",
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */

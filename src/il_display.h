@@ -31,6 +31,10 @@ extern void disp_routine_scope_il(a_memory_region_number region_number);
 
 extern void do_il_display(char *filename);
 
+extern void pragma_il_display(a_pending_pragma_ptr  ppp,
+                              a_symbol_ptr          sym_ptr,
+                              a_statement_ptr       stmt_ptr);
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 

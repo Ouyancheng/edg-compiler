@@ -477,6 +477,9 @@ enum a_function_number_tag {
   fn_db_opt_pragma,
   fn_db_name_pragma,
 #endif /* DEBUG */
+#if NEED_IL_DISPLAY
+  fn_pragma_il_display,
+#endif /* NEED_IL_DISPLAY */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   fn_if_exists_pragma,
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */

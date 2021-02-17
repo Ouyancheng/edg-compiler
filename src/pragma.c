@@ -395,6 +395,10 @@ possible.
     case pk_db_name:
       break;
 #endif /* DEBUG */
+#if NEED_IL_DISPLAY
+    case pk_il_display:
+      break;
+#endif /* NEED_IL_DISPLAY */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
     case pk_if_exists:
       break;
@@ -2204,6 +2208,23 @@ Initialize the pragma description table.
 		 /*read_string_as_header_name=*/FALSE,
                  es_error);
 #endif /* DEBUG */
+#if NEED_IL_DISPLAY
+  (void)add_next_construct_pragma_kind_description
+		((a_pragma_kind)pk_il_display,
+		 fn_for_function(pragma_il_display),
+		 /*is_pseudo_pragma=*/FALSE,
+		 /*may_bind_to_decl=*/TRUE,
+		 /*may_bind_to_stmt=*/TRUE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*record_pragma_text=*/FALSE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
+		 /*ignore_in_back_end=*/TRUE,
+		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
+                 es_error);
+#endif /* NEED_IL_DISPLAY */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
   if (ms_extensions) {
     (void)add_next_token_pragma_kind_description
