@@ -76,8 +76,8 @@ Return TRUE if we're in a module implementation unit, FALSE otherwise.
 */
 {
   return (in_module_unit() &&
-          (!curr_module_sym->variant.module_info.is_interface_unit) ||
-           tu_stage_is(tud_private_module_fgmt));
+          (!curr_module_sym->variant.module_info.is_interface_unit ||
+           tu_stage_is(tud_private_module_fgmt)));
 }  /* in_module_implementation_unit */
 
 
