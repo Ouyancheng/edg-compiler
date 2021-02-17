@@ -21250,9 +21250,10 @@ is_transparent.  conv_context describes the context of the conversion.
       /* Some conversions are not allowed on a nontype template argument.
          (Note that if an explicit cast was applied to the template argument,
          those restrictions do not apply.) */
-      a_type_ptr  src_type = source_operand->type, eff_src_type = src_type;
-      an_operand  src_copy, *src_to_test;
-      a_boolean   constant_src;
+      a_type_ptr      src_type = source_operand->type, eff_src_type = src_type;
+      an_operand      src_copy, *src_to_test;
+      a_boolean       constant_src = FALSE;
+      a_constant_ptr  con = local_constant(), con_to_test = NULL;
       if (!is_prototype_instantiation_context()) {
         force_operand_to_constant_if_possible_full(
                               source_operand, /*is_constant_evaluated=*/TRUE);
@@ -21272,15 +21273,21 @@ is_transparent.  conv_context describes the context of the conversion.
                                    &src_copy, /*is_constant_evaluated=*/TRUE);
         src_to_test = &src_copy;
       }  /* if */
-      constant_src = is_constant_operand(src_to_test);
+      if (is_constant_operand(src_to_test)) {
+        constant_src = TRUE;
+        con_to_test = &src_to_test->variant.constant;
+      } else if (is_expression_operand(src_to_test) &&
+                 fold_constexpr_expr(src_to_test->variant.expression, con,
+                                     /*is_constant_evaluated=*/TRUE,
+                                     /*force_prvalue=*/TRUE)) {
+        constant_src = TRUE;
+        con_to_test = con;
+      }  /* if */
       if (!conversion->is_explicit_cast &&
           !conversion_allowed_for_nontype_template_argument(
                                            &conversion->std,
                                            eff_src_type,
-                                           constant_src,
-                                           constant_src ?
-                                              &src_to_test->variant.constant :
-                                              (a_constant_ptr)NULL,
+                                           constant_src, con_to_test,
                                            dest_type,
                                            &err_code)) {
         if (expr_diagnostic_should_be_issued(es_discretionary_error,
@@ -21300,6 +21307,7 @@ is_transparent.  conv_context describes the context of the conversion.
            If so, wrap the expression in a ck_template_param entry below. */
         wrap_in_template_constant_if_needed = TRUE;
       }  /* if */
+      release_local_constant(&con);
     }  /* if */
     /* Force the result to be a prvalue. */
     conversion->result_is_a_glvalue = FALSE;
