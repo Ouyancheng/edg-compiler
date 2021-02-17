@@ -6201,8 +6201,8 @@ EXTERN a_const_char *pragma_ids[(int)pk_last + 1]
 /* pk_db_opt */			"db_opt",
 /* pk_db_name */		"db_name",
 #endif /* DEBUG */
-/* pk_il_display */		"il_display",
 #if NEED_IL_DISPLAY
+/* pk_il_display */		"il_display",
 #endif /* NEED_IL_DISPLAY */
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
 /* pk_if_exists */		"__if_exists",
