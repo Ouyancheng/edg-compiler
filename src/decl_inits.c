@@ -3995,15 +3995,20 @@ a ck_aggregate constant.
     etype = type_of_unknown_templ_param_nontype;
     base_etype = etype;
     pack_expansion = is->pack_expansion_handled = TRUE;
-  } else if (gpp_mode && scope_stack_top().in_prototype_instantiation &&
-             is_class_struct_union_type(etype)) {
-    /* GCC doesn't attempt to match the initializer to the class type in
-       template definitions, even if the type is fully known (i.e.,
-       nondependent). */
-    etype = type_of_unknown_templ_param_nontype;
-    base_etype = etype;
   } else {
     base_etype = skip_typerefs(etype);
+  }  /* if */
+  if (gpp_mode && is_immediate_class_type(base_etype) &&
+      is->decl_parse_state != NULL &&
+      is->decl_parse_state->sym != NULL) {
+    a_variable_ptr  vp = variable_for_symbol(is->decl_parse_state->sym);
+    if (vp != NULL && vp->is_prototype_instantiation) {
+      /* GCC doesn't attempt to match the initializer to the class type in
+         template definitions, even if the type is fully known (i.e.,
+         nondependent). */
+      etype = type_of_unknown_templ_param_nontype;
+      base_etype = etype;
+    }  /* if */
   }  /* if */
   etype_kind = base_etype->kind;
   if (etype_kind == (a_type_kind)tk_array) {
@@ -4254,8 +4259,8 @@ the type pointed to is opaque to declaration processing.
     case tk_class:
     case tk_struct:
     case tk_union:
-      if (dtype->variant.class_struct_union.is_nonreal_class ||
-          (gpp_mode && scope_stack_top().in_prototype_instantiation)) {
+      if (dtype->variant.class_struct_union.is_nonreal_class/* ||
+          (gpp_mode && scope_stack_top().in_prototype_instantiation)*/) {
         /* Treat nonreal classes like a template parameter since we don't
            really know their structure.  GCC also appears not to match the
            initializer to the class structure in template definitions, even
