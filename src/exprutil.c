@@ -6340,11 +6340,12 @@ Extract the constant value from the operand *operand and place it in
           if (!curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
             constant->expr = NULL;
           }  /* if */
-        } else if (is_prototype_instantiation_context() ||
-                   (microsoft_mode && in_ms_nonreal_class_instantiation()) ||
-                   scope_stack_top().alias_in_template_decl ||
+        } else if ((is_prototype_instantiation_context() ||
+                    (microsoft_mode && in_ms_nonreal_class_instantiation()) ||
+                    scope_stack_top().alias_in_template_decl ||
                    (scope_stack_top().in_nonreal_instantiation &&
-                    !scope_stack_top().is_rescan)) {
+                     !scope_stack_top().is_rescan)) &&
+                   operand_is_instantiation_dependent(operand)) {
           make_template_param_constant_from_operand(operand, constant,
                                                     (a_type_ptr)NULL);
         } else {
