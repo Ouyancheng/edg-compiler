@@ -13067,6 +13067,34 @@ returns TRUE.  On input symbol points to the symbol for the first token.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static a_boolean modules_pp_directive_is_object_like_macro()
+/*
+Return TRUE if the current characters corresponding to part of a potential
+modules pp-directive (module, import, export) are currently active object-like
+macros.  Otherwise, return FALSE.  The caller is responsible for ensuring that
+curr_char_loc points to the start of the directive and that it matches one of
+the potential modules pp-directives.
+*/
+{
+  a_boolean           result = FALSE;
+  a_symbol_header_ptr sym_hdr;
+  a_symbol_ptr        assoc_symbol;
+  a_symbol_locator    loc;
+
+  /* We're a bit lucky in that "module", "import", and "export" are all six
+     characters in length - we can hard-code this instead of requiring a
+     parameter to inform us as to the length. */
+  sym_hdr = find_symbol_header(curr_char_loc, 6, &loc);
+  assoc_symbol = symbol_list_for_file_scope_symbols(sym_hdr);
+  if (assoc_symbol != NULL &&
+      assoc_symbol->kind == (a_symbol_kind_tag)sk_macro &&
+      assoc_symbol->variant.macro_def->object_like) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* modules_pp_directive_is_object_like_macro */
+
+
 static a_pp_directive_kind get_modules_pp_directive()
 /*
 Scan modules preprocessing directives "import" and "export import".  Note that
@@ -13079,12 +13107,14 @@ directive scanned or ppd_not_valid if neither was found.
   if (!any_tokens_gotten_from_curr_source_line && module_keywords_enabled) {
     if (strncmp(curr_char_loc, "import", 6) == 0 &&
         !is_identifier_char(&curr_char_loc[6], /*len=*/NULL,
-                            /*is_identifier_start=*/FALSE)) {
+                            /*is_identifier_start=*/FALSE) &&
+        !modules_pp_directive_is_object_like_macro()) {
       result = ppd_import;
       curr_char_loc += 6;
     } else if (strncmp(curr_char_loc, "export", 6) == 0 &&
                !is_identifier_char(&curr_char_loc[6], /*len=*/NULL,
-                                   /*is_identifier_start=*/FALSE)) {
+                                   /*is_identifier_start=*/FALSE) &&
+               !modules_pp_directive_is_object_like_macro()) {
       a_const_char *saved_curr_char_loc = curr_char_loc;
       check_assertion(start_of_curr_token == curr_char_loc);
       curr_char_loc += 6;
@@ -13093,7 +13123,8 @@ directive scanned or ppd_not_valid if neither was found.
       in_preprocessing_directive = FALSE;
       if (strncmp(curr_char_loc, "import", 6) == 0 &&
           !is_identifier_char(&curr_char_loc[6], /*len=*/NULL,
-                              /*is_identifier_start=*/FALSE)) {
+                              /*is_identifier_start=*/FALSE) &&
+          !modules_pp_directive_is_object_like_macro()) {
         result = ppd_export_import;
         curr_char_loc += 6;
       } else {
@@ -13820,6 +13851,7 @@ literal_prefix_scan:
         if (ppd == ppd_not_valid) {
           goto id_scan;
         } else {
+          remember_token_start();
           proc_modules_import(ppd, &start_pos);
 	  /* After the directive has been processed, go skip white space and
 	     scan another token. */
@@ -23702,6 +23734,29 @@ host-target conversions are performed.
 }  /* init_name_linkage_constants */
 
 
+static void validate_module_name(a_symbol_ptr mod)
+/*
+Given a module symbol (for either the primary name or partition name), scan it
+for disallowed names and issue a diagnostic, if appropriate.
+*/
+{
+  for (; mod != NULL; mod = mod->next) {
+    a_const_char          *id = mod->header->identifier;
+    sizeof_t              len = mod->header->identifier_length;
+    a_source_position_ptr pos = &mod->decl_position;
+
+    /* Both "import" and "module" have 6 characters.  Any identifier with fewer
+       than 6 characters is not a match. */
+    if (mod->header->identifier_length < 6) continue;
+    if (strncmp(id, "import", len) == 0) {
+      pos_error(ec_import_name_not_allowed, pos);
+    } else if (strncmp(id, "module", len) == 0) {
+      pos_error(ec_module_name_not_allowed, pos);
+    }  /* if */
+  }  /* for */
+}  /* validate_module_name */
+
+
 static a_symbol_ptr scan_module_qualified_name()
 /*
 Scan a qualified module name portion (either the primary name or the partition
@@ -23726,6 +23781,7 @@ scanned (a tok_identifier if the name is non-empty).
       }  /* if */
     }  /* if */
   }  /* while */
+  validate_module_name(result);
   return result;
 }  /* scan_module_qualified_name */
 
