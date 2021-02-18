@@ -3,7 +3,7 @@ Version 6.3
 2/17/21  [EDGcpfe/23907]
 #pragma il_display
 
-In configurations where NEED_IL_DISPLAY is TRUE, a new #pragma, il_display
+In configurations where NEED_IL_DISPLAY is TRUE, a new #pragma, il_display,
 has been added as a debugging aid.  This is a pbk_next_construct pragma
 that binds to the declaration or statement that follows it and dumps
 (non-recursively) the IL for that entity (along with some debugging
