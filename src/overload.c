@@ -3589,6 +3589,7 @@ copy-initialization).
   } else {
     /* User-defined conversions are not allowed. */
     if (param_is_class_type && arg_is_class_type && param_is_reference &&
+        ptp == NULL &&
         !ref_type_qualifiers_dropped &&
         (could_be_dependent_class_type(arg_type) ||
          could_be_dependent_class_type(param_type))) {
@@ -21078,14 +21079,10 @@ the temporary.
       }  /* if */
     }  /* if */
   } else {
-    a_boolean class_bitwise_copy;
-#if CHECKING
-    if (conversion_routine->special_kind !=
-                                    (a_special_function_kind)sfk_constructor) {
-      internal_error("user_convert_operand: not conversion or constructor");
-    }  /* if */
-#endif /* CHECKING */
     /* Constructor. */
+    a_boolean class_bitwise_copy;
+    check_assertion_str(special_kind_is(conversion_routine, sfk_constructor),
+                        "user_convert_operand: not conversion or constructor");
     /* Make a constructor dynamic init into a temporary, and an operand for
        the value it produces. */
     set_up_for_constructor_call(operand, conversion_routine,
