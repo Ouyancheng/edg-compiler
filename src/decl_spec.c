@@ -9586,7 +9586,8 @@ Note that Microsoft appears to have a bug where attributes in this syntactic
 location are treated as though they appeared in the prefix position.
 */
 {
-  a_boolean         treat_as_prefix = microsoft_mode && microsoft_bugs;
+  a_boolean         treat_as_prefix = (microsoft_mode && microsoft_bugs &&
+                                       !dps->is_type_name);
   an_attribute_ptr  ap = scan_attributes(treat_as_prefix ? al_prefix :
                                                            al_specifier);
 

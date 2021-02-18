@@ -1,5 +1,17 @@
 Version 6.3
 
+2/18/21  [EDGcpfe/23764]
+C++-generating back end: incorrect attribute generation in Microsoft mode
+
+Due to the changes for EDGcpfe/22101,EDGcpfe/22140 (in version 6.1) when
+running in Microsoft emulation mode the front end had incorrectly classified
+attributes that appeared after the type in an alias declaration, resulting in
+their generation in the wrong location when generating C++ code.  For example,
+with --microsoft_version 1928:
+
+  using X = int [[ ]];    // Had generated "[[ ]] using X = int;"
+
+
 2/18/21  [EDGcpfe/23385,EDGcpfe/23452]
 Implicit imports of module interface units from module implementation units
 
