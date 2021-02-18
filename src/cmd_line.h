@@ -477,11 +477,10 @@ EXTERN a_boolean
 			/* TRUE if IL lowering should not be done. */
 #endif /* DO_IL_LOWERING */
 #if NEED_IL_DISPLAY
-                // FIXME: documentation.
 EXTERN a_boolean
 		il_display;
 			/* TRUE if the IL should be "displayed" (i.e., dumped
-			   in a textual form) to stdout as part of front end.
+			   in a textual form) to stdout as part of front end
 			   processing. */
 #endif /* NEED_IL_DISPLAY */
 #if IL_SHOULD_BE_WRITTEN_TO_FILE

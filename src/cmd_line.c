@@ -9713,13 +9713,13 @@ Process the arguments on the command line that invoked the compiler.
 #endif /* DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE */
 #if NEED_IL_DISPLAY
       case optk_il_display:
-	/* Display IL before back end processing. */
+        /* Display IL before back end processing. */
         check_assertion(opt_value == TRUE);
-	il_display = TRUE;
+        il_display = TRUE;
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
         skip_il_read = TRUE;
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
-	break;
+        break;
 #endif /* NEED_IL_DISPLAY */
       case optk_cplusplus_anachronisms:
         /* Enable or disable acceptance of anachronisms. */

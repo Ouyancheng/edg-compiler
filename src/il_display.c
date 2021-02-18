@@ -8153,7 +8153,7 @@ the IL associated with the entity that was bound to the pragma.
 
 void do_il_display(char *file_name)
 /*
-Display the entire IL tree that resides in memory.  If file_name is non NULL,
+Display the entire IL tree that resides in memory.  If file_name is not NULL,
 it is the name of the file from which the IL was read.
 */
 {
