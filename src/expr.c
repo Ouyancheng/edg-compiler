@@ -38269,7 +38269,8 @@ done_with_requirements:
     if (is_prototype_instantiation_context() ||
         is_alias_in_template_decl_context() ||
         (scope_stack_top().in_nonreal_instantiation &&
-         !scope_stack_top().is_rescan)) {
+         !scope_stack_top().is_rescan) ||
+        is_error_node(rrd.requires_expr)) {
       /* Not all template arguments are necessarily known yet.  Just copy the
          original expression. */
       an_expr_node_ptr  node = copy_expr_tree(rrd.requires_expr,
