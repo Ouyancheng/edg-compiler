@@ -46532,7 +46532,17 @@ memory region).  Do various error checks.
                              CCO_NONTYPE_TEMPLATE_ARG,
                              ec_bad_nontype_template_arg);
     /* Make a constant from the operand. */
-    extract_constant_from_operand_with_fs_fixup(operand, constant);
+    if ((microsoft_mode || (gpp_mode && !clang_mode)) &&
+        !is_constant_operand(operand) &&
+        is_prototype_instantiation_context() &&
+        !scope_stack_top().in_template_deduction_context) {
+      /* GCC doesn't always fold template arguments in template-dependent
+         contexts. */
+      make_template_param_constant_from_operand(operand, constant,
+                                                (a_type_ptr)NULL);
+    } else {
+      extract_constant_from_operand_with_fs_fixup(operand, constant);
+    }  /* if */
   }  /* if */
   break_constant_source_corresp(constant);
   if (cpp11_mode && !(microsoft_mode && ms_permissive) &&
