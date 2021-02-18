@@ -1714,7 +1714,9 @@ part of secondary translation units (perhaps).
         }  /* if */
 #endif /* DEBUG */
         if (!from_secondary_trans_unit) write_memory_region(n);
-        free_memory_region(n);
+        if (!skip_il_read) {
+          free_memory_region(n);
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* for */
