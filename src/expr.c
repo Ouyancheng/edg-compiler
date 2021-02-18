@@ -27359,21 +27359,7 @@ empty_parentheses:
           temp_init_node = alloc_empty_parens_func_cast(type_cast_to,
                                                         init_kind,
                                                         start_position);
-          if (constexpr_enabled && curr_expr_kind_is_const()) {
-            /* Return an empty aggregate in a constexpr constant expression. */
-            a_constant_ptr local_con = local_constant();
-            if (!make_value_initialized_constant(type_cast_to, local_con)) {
-              unexpected_condition();
-            }  /* if */
-            local_con->is_result_of_constexpr_call = TRUE;
-            if (curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
-              local_con->expr = temp_init_node;
-            }  /* if */
-            make_constant_operand(local_con, result);
-            release_local_constant(&local_con);
-          } else {
-            make_expression_operand(temp_init_node, result);
-          }  /* if */
+          make_expression_operand(temp_init_node, result);
           rule_out_expr_kinds(ROEK_CONSTANT, result);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         } else if (cli_or_cx_enabled &&
