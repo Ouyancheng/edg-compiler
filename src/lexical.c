@@ -13087,7 +13087,7 @@ the potential modules pp-directives.
   sym_hdr = find_symbol_header(curr_char_loc, 6, &loc);
   assoc_symbol = symbol_list_for_file_scope_symbols(sym_hdr);
   if (assoc_symbol != NULL &&
-      assoc_symbol->kind == (a_symbol_kind_tag)sk_macro &&
+      assoc_symbol->kind == (a_symbol_kind)sk_macro &&
       assoc_symbol->variant.macro_def->object_like) {
     result = TRUE;
   }  /* if */
