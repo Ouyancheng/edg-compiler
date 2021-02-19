@@ -46499,6 +46499,14 @@ memory region).  Do various error checks.
      saved, even if they cause template instantiations of their own. */
   need_backing_expr = (depth_template_declaration_scope != NO_SCOPE_DEPTH ||
                        operand->caused_template_instantiation);
+  if (!need_backing_expr && is_expression_operand(operand) &&
+      is_variable_node(operand->variant.expression) &&
+      node_variable(operand->variant.expression)->is_constexpr) {
+    /* We also need to preserve an expression designating a constexpr
+       variable so the template argument can be determined to refer to it
+       rather than to the folded constant. */
+    need_backing_expr = TRUE;
+  }  /* if */
   if (ms_version_is(<1310) &&
       is_pointer_type(param_type) &&
       is_an_lvalue(operand) && is_expression_operand(operand) &&

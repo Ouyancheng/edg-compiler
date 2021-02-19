@@ -1,5 +1,24 @@
 Version 6.3
 
+2/18/21  [EDGcpfe/23723]
+C++-generating back end: constexpr variables as nontype template arguments
+
+When a constexpr variable is used as a nontype template argument, the
+C++-generating back end sometimes used its initializer instead of the
+variable name as the argument in the generated code.  This could result
+in uncompilable code if the initialization involves type conversions.
+This is now fixed: a constexpr variable used as a template argument in
+the first reference to a template instance will be used in the generated
+code as well.  For example, with --c++17 --clang:
+
+  int i;
+  typedef void *PTR;
+  constexpr void * const p = &i;  // Converts int* to void*
+  template<PTR> int x1;
+  constexpr const PTR p2 = p;
+  template int x1<p2>;  // Previously generated as ill-formed "x1<&i>"
+
+
 2/18/21  [EDGcpfe/23764]
 C++-generating back end: incorrect attribute generation in Microsoft mode
 
