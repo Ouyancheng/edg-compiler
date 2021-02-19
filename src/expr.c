@@ -27250,6 +27250,9 @@ freed by this routine.
     /* We can assume aggregate initialization here - if type_cast_to had a
        viable constructor we would have hit ctor_case above. */
     unbundle_init_component_list_expressions(supplied_arg_list);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    if (scanning_source) end_position = end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     if (aggr_init) {
       /* The parentheses introduce C++20-style parenthesized aggregate
          initialization. */
