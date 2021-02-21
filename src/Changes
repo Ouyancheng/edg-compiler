@@ -1,5 +1,20 @@
 Version 6.3
 
+2/20/21  [EDGcpfe/23929]
+Microsoft compatibility: Standard-conforming preprocessor for C11 and C17
+
+Beginning with version 1928, MSVC by default uses the Standard-conforming
+preprocessor (see the entry for EDGcpfe/19828,EDGcpfe/20117) with /std:c11
+and /std:c17.  The front end has been changed to emulate this behavior with
+--ms_c11 and --ms_c17.  For example, with --microsoft_version=1928 --ms_c11,
+the following example now compiles without error, whereas it previously
+triggered the #error directive:
+
+  #if !defined(_MSVC_TRADITIONAL) || _MSVC_TRADITIONAL != 0
+  #error The Standard-conforming preprocessor is not enabled
+  #endif
+
+
 2/19/21  [EDGcpfe/23928]
 Uninitialized end-position in C++20 parenthesized aggregate initialization
 

@@ -2344,9 +2344,19 @@ option values if they were not already set by a command line option.
     }  /* if */
     if (option_kind_used[(int)optk_microsoft_c11]) {
       ms_c11 = TRUE;
+      if (microsoft_version >= 1928 &&
+          !option_kind_used[(int)optk_ms_std_preproc]) {
+        /* MSVC version 1928 uses the conforming preprocessor for C11. */
+        ms_std_preproc = TRUE;
+      }  /* if */
     }  /* if */
     if (option_kind_used[(int)optk_microsoft_c17]) {
       ms_c17 = ms_c11 = TRUE;
+      if (microsoft_version >= 1928 &&
+          !option_kind_used[(int)optk_ms_std_preproc]) {
+        /* MSVC version 1928 uses the conforming preprocessor for C17. */
+        ms_std_preproc = TRUE;
+      }  /* if */
     }  /* if */
 #if VLA_ALLOWED
     if (!(option_kind_used[(int)optk_vla])) {
