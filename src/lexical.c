@@ -13107,24 +13107,41 @@ directive scanned or ppd_not_valid if neither was found.
   if (!any_tokens_gotten_from_curr_source_line && module_keywords_enabled) {
     if (strncmp(curr_char_loc, "import", 6) == 0 &&
         !is_identifier_char(&curr_char_loc[6], /*len=*/NULL,
-                            /*is_identifier_start=*/FALSE) &&
-        !modules_pp_directive_is_object_like_macro()) {
+                            /*is_identifier_start=*/FALSE)) {
+      if (modules_pp_directive_is_object_like_macro()) {
+        a_source_position err_pos;
+        conv_line_loc_to_source_pos(curr_char_loc, &err_pos);
+        pos_st_error(ec_macro_in_import_pp_directive, &err_pos, "import");
+      }  /* if */
       result = ppd_import;
       curr_char_loc += 6;
     } else if (strncmp(curr_char_loc, "export", 6) == 0 &&
                !is_identifier_char(&curr_char_loc[6], /*len=*/NULL,
-                                   /*is_identifier_start=*/FALSE) &&
-               !modules_pp_directive_is_object_like_macro()) {
-      a_const_char *saved_curr_char_loc = curr_char_loc;
+                                   /*is_identifier_start=*/FALSE)) {
+      a_const_char      *saved_curr_char_loc = curr_char_loc;
+      a_boolean         export_is_macro = FALSE;
+      a_source_position export_pos;
+
       check_assertion(start_of_curr_token == curr_char_loc);
+      if (modules_pp_directive_is_object_like_macro()) {
+        conv_line_loc_to_source_pos(curr_char_loc, &export_pos);
+        export_is_macro = TRUE;
+      }  /* if */
       curr_char_loc += 6;
       in_preprocessing_directive = TRUE;
       skip_white_space();
       in_preprocessing_directive = FALSE;
       if (strncmp(curr_char_loc, "import", 6) == 0 &&
           !is_identifier_char(&curr_char_loc[6], /*len=*/NULL,
-                              /*is_identifier_start=*/FALSE) &&
-          !modules_pp_directive_is_object_like_macro()) {
+                              /*is_identifier_start=*/FALSE)) {
+        if (export_is_macro) {
+          pos_st_error(ec_macro_in_import_pp_directive, &export_pos, "export");
+        }  /* if */
+        if (modules_pp_directive_is_object_like_macro()) {
+          a_source_position err_pos;
+          conv_line_loc_to_source_pos(curr_char_loc, &err_pos);
+          pos_st_error(ec_macro_in_import_pp_directive, &err_pos, "import");
+        }  /* if */
         result = ppd_export_import;
         curr_char_loc += 6;
       } else {
