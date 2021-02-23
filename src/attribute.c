@@ -9845,66 +9845,63 @@ attributes from new_list are applied to tssp->attributes.
   /* Now make a pass through the "new" attribute list to see if requirements
      have been met. */
   for (new_ap = new_list; new_ap != NULL; new_ap = next_ap) {
+    a_boolean add = FALSE;
     next_ap = new_ap->next;
     new_ap->next = NULL;
-    if (is_std_attribute(new_ap) ||
-        new_ap->kind == (a_byte_attribute_kind)ak_align) {
-      a_boolean add = FALSE;
-      old_ap = find_attribute(new_ap->kind, tssp->attributes);
-      switch (new_ap->kind) {
-        case ak_align:
-          if (old_ap == NULL) {
-            /* No alignment on a previous declaration is okay. */
-            add = TRUE;
-          } else {
-            /* If a previous declaration had an alignment; the standard
-               requires that the two be equivalent.  Note that equivalency was
-               checked in the first loop, so no need to do it again here.
-               The original attribute is kept (and the new one discarded). */
-          }  /* if */
-          break;
-        case ak_deprecated:
-        case ak_maybe_unused:
-          /* Declarations and definitions do not need to match, but if the
-             attribute appears anywhere, it applies to the entity.  Add it
-             if it's not already there. */
-          if (old_ap == NULL) {
-            add = TRUE;
-          }  /* if */
-          break;
-        case ak_nodiscard:
-        default:
-          /* Unspecified; add it if it's not already there. */
-          if (old_ap == NULL) {
-            add = TRUE;
-          }  /* if */
-          break;
-        case ak_unrecognized:
-          /* Probably an error from earlier; ignore it here. */
-          break;
-        case ak_carries_dependency:
-        case ak_noreturn:
-        case ak_fallthrough:
-        case ak_likely:
-        case ak_unlikely:
-        case ak_no_unique_address:
-          /* These do not appertain to class types (and an error will be
-             emitted later).  Add them (so an error will be issued). */
+    old_ap = find_attribute(new_ap->kind, tssp->attributes);
+    switch (new_ap->kind) {
+      case ak_align:
+        if (old_ap == NULL) {
+          /* No alignment on a previous declaration is okay. */
           add = TRUE;
-          break;
-      }  /* switch */
-      if (add) {
-        /* Add the new attribute to the list of attributes for this prototype
-           instantiation (keep the list separate until the end of this
-           function). */
-        if (added_head == NULL) {
-          added_head = new_ap;
         } else {
-          check_assertion(added_tail != NULL);
-          added_tail->next = new_ap;
+          /* If a previous declaration had an alignment; the standard
+             requires that the two be equivalent.  Note that equivalency was
+             checked in the first loop, so no need to do it again here.
+             The original attribute is kept (and the new one discarded). */
         }  /* if */
-        added_tail = new_ap;
+        break;
+      case ak_deprecated:
+      case ak_maybe_unused:
+        /* Declarations and definitions do not need to match, but if the
+           attribute appears anywhere, it applies to the entity.  Add it
+           if it's not already there. */
+        if (old_ap == NULL) {
+          add = TRUE;
+        }  /* if */
+        break;
+      case ak_nodiscard:
+      default:
+        /* Unspecified; add it if it's not already there. */
+        if (old_ap == NULL) {
+          add = TRUE;
+        }  /* if */
+        break;
+      case ak_unrecognized:
+        /* Probably an error from earlier; ignore it here. */
+        break;
+      case ak_carries_dependency:
+      case ak_noreturn:
+      case ak_fallthrough:
+      case ak_likely:
+      case ak_unlikely:
+      case ak_no_unique_address:
+        /* These do not appertain to class types (and an error will be
+           emitted later).  Add them (so an error will be issued). */
+        add = TRUE;
+        break;
+    }  /* switch */
+    if (add) {
+      /* Add the new attribute to the list of attributes for this prototype
+         instantiation (keep the list separate until the end of this
+         function). */
+      if (added_head == NULL) {
+        added_head = new_ap;
+      } else {
+        check_assertion(added_tail != NULL);
+        added_tail->next = new_ap;
       }  /* if */
+      added_tail = new_ap;
     }  /* if */
   }  /* for */
   if (added_head != NULL) {

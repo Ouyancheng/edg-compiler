@@ -1,5 +1,16 @@
 Version 6.3
 
+2/23/21  [EDGcpfe/23908]
+Attributes not being correctly applied to class templates
+
+In some cases an attribute was not being applied to a class template definition
+if there had been a previous class template declaration without the attribute.
+Now fixed.  For example (with --g++):
+
+template<typename T> struct S;
+template<typename T> struct __attribute__((visibility("default"))) S {};
+
+
 2/20/21  [EDGcpfe/23929]
 Microsoft compatibility: Standard-conforming preprocessor for C11 and C17
 
