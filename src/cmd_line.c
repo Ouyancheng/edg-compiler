@@ -2359,8 +2359,9 @@ option values if they were not already set by a command line option.
       }  /* if */
     }  /* if */
 #if VLA_ALLOWED
-    if (!(option_kind_used[(int)optk_vla])) {
-      /* Support for VLAs is not yet enabled. */
+    if (!(option_kind_used[(int)optk_vla]) && !clang_mode) {
+      /* Support for VLAs is not yet enabled (but is when running in
+         clang emulation mode with --ms_extensions). */
       vla_enabled = FALSE;
     }  /* if */
 #endif /* VLA_ALLOWED */

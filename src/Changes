@@ -1,5 +1,13 @@
 Version 6.3
 
+2/23/21  [EDGcpfe/23951]
+Clang compatibility: enabling VLAs with --ms_extensions
+
+Variable length arrays (VLAs) are disabled in C mode when emulating Microsoft
+Visual Studio, but are now enabled in Clang mode when --ms_extensions is
+specified.
+
+
 2/23/21  [EDGcpfe/23908]
 Attributes not being correctly applied to class templates
 
