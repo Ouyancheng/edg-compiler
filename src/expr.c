@@ -46420,14 +46420,15 @@ to function-scope entities that it may contain.
 */
 {
   if (has_non_file_scope_ref(cp)) {
-    /* The constant has some function-scope parts, so copy its tree.
-       This should only come up in constant expressions where no automatic
-       variables can be referenced anyway, so the file-scope parts should
-       just be expression nodes and should be gone in the copy. */
+    /* The constant has some function-scope parts, so copy its tree to the
+       file scope. */
     a_constant_ptr  old_cp = local_constant();
+    a_memory_region_number  region_to_switch_back_to;
     copy_constant(cp,  old_cp);
+    switch_to_file_scope_region(&region_to_switch_back_to);
     (void)copy_constant_full(old_cp, cp,
                              CE_COPIED_CONSTANTS_MAY_BE_SHARED);
+    switch_back_to_original_region(region_to_switch_back_to);
     check_assertion_str2(!has_non_file_scope_ref(cp),
                          "extract_constant_from_operand_with_fs_fixup:",
                          "copied constant still has func scope ref");
@@ -46649,8 +46650,13 @@ the corresponding list of arguments processed so far.
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_stack_entry.is_template_arg_expression = TRUE;
-  switch_to_file_scope_region(&region_to_switch_back_to);
-  /* Scan the constant expression. */
+  /* Scan the constant expression.  Template argument constant entries are
+     allocated in file-scope memory, but the underlying expression may have
+     references to local entities (e.g., variables), which means that the
+     expression has a whole has to be allocated in the local memory region.
+     Any memory region discrepancy is later fixed up with a call to
+     do_fs_constant_fixup. */
+  switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   id_expr = result.is_id_expression;
   id_expr_address = result.is_address_of_id_expression;
@@ -46820,6 +46826,7 @@ the corresponding list of arguments processed so far.
                      &result.position, result.type);
       }  /* if */
     }  /* if */
+    do_fs_constant_fixup(constant);
   } else {
     /* No destination type (or a Microsoft-mode dependent context).  Make a
        constant from the operand.  This comes up for errors and for nonreal
@@ -46833,6 +46840,7 @@ the corresponding list of arguments processed so far.
     }  /* if */
     extract_constant_from_operand_with_fs_fixup(&result, constant);
   }  /* if */
+  switch_back_to_original_region(region_to_switch_back_to);
   if (constant->expr != NULL &&
       !curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
     /* Discard the backing expression since it can arbitrarily change from

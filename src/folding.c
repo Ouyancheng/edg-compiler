@@ -196,7 +196,8 @@ TRUE if the cast actually appeared in the source.
 */
 {
   a_boolean              is_reference_cast = is_any_reference_type(new_type);
-  an_expr_node_ptr       node = alloc_node_for_constant(old_constant);
+  an_expr_node_ptr       node = alloc_node_for_constant(old_constant),
+                         unwrapped_node;
   an_expr_operator_kind  op;
 
   if (is_reference_cast) {
@@ -207,8 +208,13 @@ TRUE if the cast actually appeared in the source.
   /* If the existing constant is already a tpck_expression, get the underlying
      expression.  This is needed to ensure that equivalent expressions compare
      equal independently of whether they were obtained through instantiation
-     or substitution. */
-  node = unwrap_if_tpck_expression(node);
+     or substitution.  With locally-allocated expressions this cannot be done
+     since it would lead to a memory region violation when we add a file-scope
+     memory entry on top of it below. */
+  unwrapped_node = unwrap_if_tpck_expression(node);
+  if (in_file_scope(unwrapped_node)) {
+    node = unwrapped_node;
+  }  /* if */
   if (node->compiler_generated &&
       is_operation_node(node) && node_operator_is(node, op)) {
     /* Drop a pre-existing implicit cast.  This is needed for deduction to
