@@ -1,5 +1,11 @@
 Version 6.3
 
+2/23/21  [EDGcpfe/23970]
+Clang compatibility: __has_builtin(__make_integer_seq)
+
+__has_builtin(__make_integer_seq) now returns 1 in clang emulation modes.
+
+
 2/23/21  [EDGcpfe/23951]
 Clang compatibility: enabling VLAs with --ms_extensions
 

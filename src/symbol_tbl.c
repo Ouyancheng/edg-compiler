@@ -8345,6 +8345,12 @@ internal alias is used.
       "  struct __make_integer_seq;",
       (a_namespace_ptr)NULL,
       /*is_metadata=*/FALSE);
+#if BUILTIN_FUNCTIONS_ENABLED
+  if (clang_mode) {
+    /* So __has_builtin will return TRUE. */
+    symbol_for_make_integer_seq->header->is_builtin_function = TRUE;
+  }  /* if */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
   /* Note that the target type of the alias template (i.e., "T") is arbitrary
      here as the template will be instantiated programatically (by
      instantiate_make_integer_seq). */
@@ -8372,6 +8378,10 @@ Creates a builtin alias template for "__type_pack_element" at the file scope.
       "  __internal_alias_decl __type_pack_element = int;",
       (a_namespace_ptr)NULL,
       /*is_metadata=*/FALSE);
+#if BUILTIN_FUNCTIONS_ENABLED
+  /* So __has_builtin will return TRUE. */
+  symbol_for_type_pack_element->header->is_builtin_function = TRUE;
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 }  /* make_type_pack_element_internal_template */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
