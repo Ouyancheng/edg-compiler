@@ -30905,7 +30905,8 @@ and whether the operator appears at the top level of a requires clause.
 
   /* Determine whether or not the second operand should be evaluated. */
   expr2_evaluated = saved_evaluated;
-  if (saved_evaluated && !might_be_overloaded) {
+  if (saved_evaluated && !might_be_overloaded &&
+      !expr_stack->possible_rescan_context) {
     /* The operator is not overloaded, so it will have the built-in
        meaning.  Examine the first operand to see if it is a constant.
        If so, we can determine whether or not the second operand should be

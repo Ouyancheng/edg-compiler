@@ -1,5 +1,29 @@
 Version 6.3
 
+2/23/21  [EDGcpfe/18078,EDGcpfe/23889]
+Premature optimization of logical operators in SFINAE contexts
+
+Consider:
+
+  template<bool> struct E { };
+  template<> struct E<true> { using type = bool; };
+  template <typename _U1> constexpr bool f() { return false; }
+  template <typename _U1> constexpr bool g() { return true; }
+  template<typename T> struct C {
+    C();
+    template<typename U, typename E<f<T>() && g<U>()>::type = true>
+      constexpr C(U&&, T const&) {}
+  };
+  struct X {};
+  C<X> b;
+
+Previously, the front end issued an error during the instantiation of C<X>
+because the expression "f<T>() && g<U>()" was folded to false for T=X, even
+though U is unknown.  Now this early folding is not done, and thus the
+constructor candidate will instead be discarded if an attempt is made to call
+it (which would trigger a substitution failure).
+
+
 2/23/21  [EDGcpfe/23951]
 Clang compatibility: enabling VLAs with --ms_extensions
 

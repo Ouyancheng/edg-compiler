@@ -14624,6 +14624,7 @@ of a subscript operation).
                               operator_position);
       }  /* if */
     } else if (constexpr_enabled && !template_constant &&
+               !expr_stack->possible_rescan_context &&
                op == (an_expr_operator_kind)eok_lor &&
                is_constant_operand(operand_1) &&
                constant_bool_value_known_at_compile_time(
@@ -14635,6 +14636,7 @@ of a subscript operation).
       cast_operand(result_type, result, /*is_implicit_cast=*/TRUE);
       did_not_fold = FALSE;
     } else if (constexpr_enabled && !template_constant &&
+               !expr_stack->possible_rescan_context &&
                op == (an_expr_operator_kind)eok_land &&
                is_constant_operand(operand_1) &&
                constant_bool_value_known_at_compile_time(
