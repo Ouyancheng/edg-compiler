@@ -21,7 +21,8 @@ Previously, the front end issued an error during the instantiation of C<X>
 because the expression "f<T>() && g<U>()" was folded to false for T=X, even
 though U is unknown.  Now this early folding is not done, and thus the
 constructor candidate will instead be discarded if an attempt is made to call
-it (which would trigger a substitution failure).
+it (which would trigger a substitution failure).  This was a regression
+introduced in version 4.13 (by the changes for EDGcpfe/17934).
 
 
 2/23/21  [EDGcpfe/23951]
