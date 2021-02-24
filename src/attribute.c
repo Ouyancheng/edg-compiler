@@ -9855,7 +9855,7 @@ attributes from new_list are applied to tssp->attributes.
           /* No alignment on a previous declaration is okay. */
           add = TRUE;
         } else {
-          /* If a previous declaration had an alignment; the standard
+          /* If a previous declaration had an alignment, the standard
              requires that the two be equivalent.  Note that equivalency was
              checked in the first loop, so no need to do it again here.
              The original attribute is kept (and the new one discarded). */
