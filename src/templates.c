@@ -2796,7 +2796,8 @@ Otherwise it is zero.
                                     (a_source_position_ptr)NULL,
                                     templ_arg_list, templ_param_list);
           } else if (tpp->variant.constant.type_involves_template_param) {
-            match = identical_types(constant_type, constant->type);
+            match = identical_types_ignoring_qualifiers(constant_type,
+                                                        constant->type);
           }  /* if */
         }  /* if */
       } else if (is_template_templ_arg(tap)) {
