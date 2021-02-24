@@ -46760,7 +46760,8 @@ the corresponding list of arguments processed so far.
                                                  constant);
     }  /* if */
     tp = skip_typerefs(param_type);
-    if (is_template_dependent_type(tp) || is_error_constant(constant)) {
+    if (is_template_dependent_type(tp) || is_error_constant(constant) ||
+        is_error_type(constant->type)) {
       /* Do not check the validity of the constant value. */
     } else if (type_is(tp, tk_pointer) || type_is(tp, tk_ptr_to_member)) {
       /* A pointer or pointer-to-member constant: Check that it is valid (e.g.,
