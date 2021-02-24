@@ -3189,6 +3189,8 @@ in-class member function template specializations.
       deferred_friend_fixup_list_tail->next = rfp;
     }  /* if */
     deferred_friend_fixup_list_tail = rfp;
+  } else if (rp->is_defaulted) {
+    force_definition_of_compiler_generated_routine(rp);
   } else {
     deferred_friend_function_fixup(rfp);
   }  /* if */

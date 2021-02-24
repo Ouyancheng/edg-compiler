@@ -1,5 +1,23 @@
 Version 6.3
 
+2/24/21  [EDGcpfe/23966]
+Internal error in scan_function_body on defaulted friend comparison
+
+The changes for EDGcpfe/23704 introduced a regression in the handling of
+defaulted friend comparison functions in version 6.2 of the front end.  For
+example:
+
+  template<typename T> struct S {
+    T value;
+    friend bool operator==(S const&, S const&) = default;
+  };
+  S<int> si;
+  bool r = si == si;
+
+Previously, this example elicited an internal error in scan_function_body
+(func_def.c).  That is now fixed.
+
+
 2/24/21  [EDGcpfe/23975]
 Spurious failure to match a dependent nontype template parameter
 
