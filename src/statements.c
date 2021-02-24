@@ -7843,6 +7843,10 @@ is being parsed within the context of the __extension__ keyword.
   a_token_set_array_element  old_else_stop_token_value;
   a_boolean                  is_function_try_block = FALSE;
   an_object_lifetime_ptr     function_try_lifetime = NULL;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_boolean                  saved_sses_disallowed =
+                                           source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter (3, "compound_statement");
 
@@ -8176,6 +8180,10 @@ is being parsed within the context of the __extension__ keyword.
   block->variant.block.extra_info->final_position = pos_curr_token;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Add a source sequence entry marking the end of the block. */
+  /* With GNU statement expressions it is possible that source sequence entries
+     were temporarily disallowed, but pushing and popping the scope stack may
+     have lost the flag that indicates that.  Restore it now. */
+  source_sequence_entries_disallowed = saved_sses_disallowed;
   add_end_of_construct_source_sequence_entry(
                            (char *)block, (a_byte_il_entry_kind)iek_statement);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
