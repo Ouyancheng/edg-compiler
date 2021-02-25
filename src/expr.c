@@ -46662,13 +46662,13 @@ the corresponding list of arguments processed so far.
      do_fs_constant_fixup. */
   switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
+  saved_sses_disallowed = source_sequence_entries_disallowed;
+  stack_saved_sses_disallowed =
+                         scope_stack_top().source_sequence_entries_disallowed;
   if (curr_il_region_number != file_scope_region_number) {
     /* Do not collect source sequence entries for declarations appearing in
        template arguments (e.g., for a GNU statement expression) because the
        expression will be discarded in any case. */
-    saved_sses_disallowed = source_sequence_entries_disallowed;
-    stack_saved_sses_disallowed =
-                         scope_stack_top().source_sequence_entries_disallowed;
     source_sequence_entries_disallowed = TRUE;
     scope_stack_top().source_sequence_entries_disallowed = TRUE;
   }  /* if */
