@@ -5857,6 +5857,17 @@ Copy a constant entry from "from" to "to".
      the "next" field. */
   to->next = NULL;
   clear_source_corresp_for_copy(&to->source_corresp);
+#if EXPENSIVE_CHECKING
+  if (constant_is(from, ck_template_param) &&
+      tpck_is(from, tpck_expression) &&
+      from->variant.template_param.local_expr_ref &&
+      expr_node_from_tpck_expression(from) == NULL) {
+    /* Copying a tpck_expression entry that requires a "local-expr-ref"
+       because of memory region constraints results in a missing link since
+       the "local-expr-ref" entry won't be copied along. */
+    internal_error("Bad constant copy");
+  }  /* if */
+#endif /* EXPENSIVE_CHECKING */
 }  /* copy_constant */
 
 
@@ -13270,9 +13281,8 @@ ck_template_param/tpck_expression constant.
 {
   an_expr_node_ptr expr;
 
-  check_assertion(cp->kind == (a_constant_repr_kind)ck_template_param &&
-                  cp->variant.template_param.kind ==
-                              (a_template_param_constant_kind)tpck_expression);
+  check_assertion(constant_is(cp, ck_template_param) &&
+                  tpck_is(cp, tpck_expression));
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
   if (cp->variant.template_param.local_expr_ref) {
     /* This constant is in file scope memory but the associated expression

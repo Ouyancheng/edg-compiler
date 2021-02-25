@@ -46609,7 +46609,7 @@ escape at the end of the expression.)
       expr = expr->variant.operation.operands;
       if (is_constant_node(expr)) {
         a_constant_ptr  cp = node_constant(expr);
-        if (constant_is(cp, ck_template_param)) {
+        if (constant_is(cp, ck_template_param) && tpck_is(cp, tpck_param)) {
           operand->kind = (an_operand_kind)ok_constant;
           operand->state = (an_operand_state)os_prvalue;
           operand->variant.constant = *cp;
