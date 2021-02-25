@@ -46645,7 +46645,7 @@ the corresponding list of arguments processed so far.
   a_variable_ptr         var = NULL;
   a_routine_ptr          rout = NULL;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-  a_boolean              saved_sses_disallowed;
+  a_boolean              saved_sses_disallowed, stack_saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(3, "scan_template_argument_constant_expression");
@@ -46667,13 +46667,18 @@ the corresponding list of arguments processed so far.
        template arguments (e.g., for a GNU statement expression) because the
        expression will be discarded in any case. */
     saved_sses_disallowed = source_sequence_entries_disallowed;
+    stack_saved_sses_disallowed =
+                         scope_stack_top().source_sequence_entries_disallowed;
     source_sequence_entries_disallowed = TRUE;
+    scope_stack_top().source_sequence_entries_disallowed = TRUE;
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   scan_expr(&result, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (curr_il_region_number != file_scope_region_number) {
     source_sequence_entries_disallowed = saved_sses_disallowed;
+    scope_stack_top().source_sequence_entries_disallowed =
+                                                  stack_saved_sses_disallowed;
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   id_expr = result.is_id_expression;
