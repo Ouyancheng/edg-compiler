@@ -1,5 +1,12 @@
 Version 6.3
 
+2/26/21  [EDGcpfe/23970]
+Clang compatibility: __has_builtin(__make_integer_seq)
+
+__has_builtin(__make_integer_seq) now returns 1 in clang emulation modes
+when clang_version >= 30900.
+
+
 2/26/21  [EDGcpfe/22267]
 Constant-evaluation of template arguments
 
