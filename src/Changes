@@ -1,5 +1,22 @@
 Version 6.3
 
+2/26/21  [EDGcpfe/23899]
+Optimize assignment of variable to itself in lowered code
+
+The change made by EDGcpfe/23122 in 6.2 could introduce an inefficiency
+in the lowered code, resulting in an assignment of a variable to itself
+in certain cases.  Lowering now recognizes such cases and removes them.
+For example:
+
+  struct A {
+    int x;
+    A mf() const;
+  };
+  void f(bool b, const A &a) {
+    const A a2 = b ? a : a.mf();
+  }
+
+
 2/26/21  [EDGcpfe/23970]
 Clang compatibility: __has_builtin(__make_integer_seq)
 

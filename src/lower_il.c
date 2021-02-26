@@ -13929,6 +13929,22 @@ appropriate.
 }  /* set_address_taken_if_necessary */
 
 
+static inline a_boolean evaluates_to_variable(an_expr_node_ptr expr,
+                                              a_variable_ptr   var)
+/*
+Returns TRUE if the expression is an enk_variable node referring to var or
+is a series of eok_comma expressions whose final result is an enk_variable
+node referring to var.
+*/
+{
+  while (is_operation_node(expr) &&
+         node_operator_is(expr, eok_comma)) {
+    expr = expr->variant.operation.operands->next;
+  }  /* if */
+  return is_variable_node(expr) && node_variable(expr) == var;
+}  /* evaluates_to_variable */
+
+
 static void optimize_node_if_possible(an_expr_node_ptr expr)
 /*
 Perform some simple optimizations on expr if possible.  Note that operations
@@ -13939,8 +13955,8 @@ throughout the entire expression).
 {
   if (is_operation_node(expr)) {
     an_expr_node_ptr      child = expr->variant.operation.operands;
+    an_expr_operator_kind op = expr->variant.operation.kind;
     if (is_operation_node(child)) {
-      an_expr_operator_kind op = expr->variant.operation.kind;
       an_expr_node_ptr      gchild = child->variant.operation.operands;
       if (op == (an_expr_operator_kind)eok_address_of) {
         if (node_operator_is(child, eok_indirect)) {
@@ -13989,6 +14005,15 @@ throughout the entire expression).
         /* Optimize "(*x).y" to "x->y". */
         rewrite_dot_field_as_points_to_field(expr);
       } /* if */
+    } else if (op == (an_expr_operator_kind)eok_assign &&
+               !expr->is_lvalue &&
+               is_variable_node(child) &&
+               evaluates_to_variable(child->next, node_variable(child))) {
+      /* Optimize "x = x" to "x" (including more likely case where the
+         expression is an eok_comma expression whose value is "x").  This
+         can happen when lowering some expressions. */
+      check_assertion(il_identical_types(expr->type, child->next->type));
+      overwrite_node(expr, child->next);
     } /* if */
   } /* if */
 }  /* optimize_node_if_possible */
@@ -16483,6 +16508,7 @@ cast.  See lower_expr for typical invocation.
         /* rvalue_expr_for_lvalue is not guaranteed to return an enk_temp_init
            node when given an enk_temp_init node, so call lower_expr again. */
         lower_expr(expr);
+        optimize_node_if_possible(expr);
       } else if (op == (an_expr_operator_kind)eok_question) {
         /* Lower a question operator and everything under it. */
         lower_question_operator(expr, assume_expr_is_non_null);
