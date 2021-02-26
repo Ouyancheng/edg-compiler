@@ -1,5 +1,48 @@
 Version 6.3
 
+2/26/21  [EDGcpfe/22267]
+Constant-evaluation of template arguments
+
+Several improvements have been made to the handling of template arguments and
+the constant-evaluation in particular.  For example, in GNU C++14 mode:
+
+  struct S {
+    constexpr S();
+    int x;
+  };
+  template <typename, int, int i> class C {
+    static constexpr S s = S(i);
+    template<typename = C<double, s.x, 42>> int f();
+       // Previously an error about s.x not being constant.
+       // Now accepted (in GNU mode).
+  };
+
+This example (which is not standard C++) was previously rejected in all modes,
+but now it is accepted in GNU C++ mode.
+
+
+2/26/21  [EDGcpfe/22003,EDGcpfe/23814]
+Temporary introduced by lowering was incorrectly const-qualified
+
+In configurations that do lowering, a temporary introduced when lowering
+a selector had been incorrectly const-qualified resulting in generated C code
+that would not compile.  That was the case in configurations with
+RECORD_BACKING_EXPRS_WITH_IL_LOWERING set to FALSE for this example
+(with --c++11):
+
+  struct S {
+    void f(int x) {
+      x_ = x;
+    }
+    int x_ = 0;
+  };
+  void f(void) {
+    S().foo(1);
+  }
+
+This is a regression introduced in 6.0 by the changes for EDGcpfe/21809.
+
+
 2/24/21  [EDGcpfe/23966]
 Internal error in scan_function_body on defaulted friend comparison
 
