@@ -555,7 +555,7 @@ emulated by default.  Version x.y.z of the GNU compiler is represented by
 the value x*10000+y*100+z.
 */
 #ifndef DEFAULT_GNU_VERSION
-#define DEFAULT_GNU_VERSION 40800
+#define DEFAULT_GNU_VERSION 80100
 #endif /* ifndef DEFAULT_GNU_VERSION */
 
 /*
@@ -723,7 +723,7 @@ emulated by default.  Version x.y.z of the clang compiler is represented by
 the value x*10000+y*100+z.
 */
 #ifndef DEFAULT_CLANG_VERSION
-#define DEFAULT_CLANG_VERSION 30500
+#define DEFAULT_CLANG_VERSION 90100
 #endif /* ifndef DEFAULT_GNU_VERSION */
 
 /*
@@ -1090,7 +1090,7 @@ version of the Microsoft compiler that is being emulated (for example,
 default value of the microsoft_version variable.
 */
 #ifndef DEFAULT_MICROSOFT_VERSION
-#define DEFAULT_MICROSOFT_VERSION 1900
+#define DEFAULT_MICROSOFT_VERSION 1926
 #endif /* ifndef DEFAULT_MICROSOFT_VERSION */
 
 /*

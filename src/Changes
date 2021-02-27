@@ -1,5 +1,22 @@
 Version 6.3
 
+2/27/21  [EDGcpfe/23986]
+Change in default versions supported by the front end
+
+The front end has been updated to emulate more recent versions of the GCC,
+Clang, and Microsoft Visual Studio compilers by default.  The default versions
+have changed as follows:
+
+  - DEFAULT_GNU_VERSION from 40800 to 80100
+  - DEFAULT_CLANG_VERSION from 30500 to 90100
+  - DEFAULT_MICROSOFT_VERSION from 1900 to 1926
+
+You can change these defaults in your defines.h, and as always, to avoid
+surprises when these values change, you should explicitly set these
+configuration macros or ensure that the proper command-line options are
+specified.
+
+
 2/26/21  [EDGcpfe/23899]
 Optimize assignment of variable to itself in lowered code
 
