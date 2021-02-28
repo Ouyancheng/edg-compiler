@@ -1462,11 +1462,33 @@ typedef struct a_source_line_modif {
 			   nested macro invocation.  See the comments on
 			   choose_raw_or_expanded_arg in macro.c for
 			   details. */
+  a_bit_field	is_concat_with_inert_macro:1;
+			/* TRUE if the inserted text of this modification
+			   includes the result of the concatenation
+			   operator ## applied to the name of an inert
+			   macro, i.e., the use of a macro in its own
+			   expansion.  This is needed to emulate the
+			   behavior of the traditional Microsoft
+			   preprocessor regarding commas appearing in
+			   __VA_ARGS__ text.  See the comments in
+			   macro_invocation describing the handling of
+			   comma_is_from_argument for details. */
+  a_bit_field	is_concat_with_va_args:1;
+			/* TRUE if the inserted text of this modification
+			   includes the result of applying the
+			   concatenation operator ## to __VA_ARGS__.  This
+			   is needed to emulate the behavior of the
+			   traditional Microsoft preprocessor regarding
+			   commas appearing in __VA_ARGS__ text.  See the
+			   comments in macro_invocation describing the
+			   handling of comma_is_from_argument for
+			   details. */
   char		orig_char;
 			/* The character that was in the source line at
 			   position line_loc (provided so that the original
-			   line can be reconstructed; not needed otherwise).
-			   Meaningless when line_loc == NULL. */
+			   line can be reconstructed; not needed
+			   otherwise).  Meaningless when line_loc ==
+			   NULL. */
   char		inserted_chars[3];
 			/* Place for an insert string of up to three characters
 			   including the end-of-insertion lexical escape.

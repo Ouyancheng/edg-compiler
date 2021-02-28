@@ -1,5 +1,43 @@
 Version 6.3
 
+2/27/21  [EDGcpfe/23821]
+Microsoft compatibility: handling of comma in variadic macro arguments
+
+As noted in the description for EDGcpfe/16179, in general the traditional
+Microsoft preprocessor does not treat commas appearing in the text of
+__VA_ARGS__ as delimiting macro arguments when __VA_ARGS__ is passed to
+another macro; however, that is sometimes not the case when the name of
+the macro to which __VA_ARGS__ is passed is constructed in certain ways by
+nested macro invocations during the rescanning of the top-level expansion.
+The changes for EDGcpfe/16179 addressed some of those patterns but failed
+to emulate the behavior of the traditional Microsoft preprocessor in others.
+For example, with -E --microsoft, both
+
+  #define CAT_V(x,...) x##__VA_ARGS__
+  #define B(...) CAT_V(M,1)(__VA_ARGS__)
+  B(abc, def)
+
+and
+
+  #define E1(x,...) x + __VA_ARGS__
+  #define CAT_N(x,y) DO_CAT(x,1)
+  #define DO_CAT(x,...) x##1
+  #define E(...) CAT_N(E,1)(__VA_ARGS__)
+  E(abc, def)
+
+failed to treat the comma in __VA_ARGS__ as a delimiter and thus produced
+the output
+
+  abc, def +
+
+The front end's emulation has now been changed to match that of MSVC,
+resulting in
+
+  abc + def
+
+for these examples.
+
+
 2/27/21  [EDGcpfe/23986]
 Change in default versions supported by the front end
 

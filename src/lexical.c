@@ -3403,6 +3403,10 @@ invocations.
   slmp->is_whitespace_kwd   = FALSE;
   slmp->is_raw_or_expanded_arg
                             = FALSE;
+  slmp->is_concat_with_inert_macro
+                            = FALSE;
+  slmp->is_concat_with_va_args
+                            = FALSE;
   slmp->inserted_text       = inserted_text;
   slmp->end_inserted_text   = end_inserted_text;
   slmp->assoc_macro         = (a_symbol_ptr)NULL;
