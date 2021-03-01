@@ -1,5 +1,13 @@
 Version 6.3
 
+3/1/21   [EDGcpfe/23890]
+Front end self build issue
+
+The FALLTHROUGH macro used by the front end to abstract use of the
+[[fallthrough]] attribute had caused spurious diagnostics when self-compiling
+the front end in modes earlier than --c++17.  Now fixed.
+
+
 2/27/21  [EDGcpfe/23821]
 Microsoft compatibility: handling of comma in variadic macro arguments
 

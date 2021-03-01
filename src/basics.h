@@ -1074,12 +1074,13 @@ NORETURN: specifies that a function will not return to its caller.
 #define __has_cpp_attribute(x) 0
 #endif /* !defined(__has_cpp_attribute) */
 
-#if __has_cpp_attribute(fallthrough)
+#if __has_cpp_attribute(fallthrough) && \
+    (__cplusplus >= __has_cpp_attribute(fallthrough))
 /*lint -estring(823,FALLTHROUGH)*/
 #define FALLTHROUGH [[fallthrough]];
-#else /* !(__has_cpp_attribute(fallthrough)) */
+#else /* !(__has_cpp_attribute(fallthrough) && ...) */
 #define FALLTHROUGH /*nothing*/
-#endif /* __has_cpp_attribute(fallthrough) */
+#endif /* __has_cpp_attribute(fallthrough) && ... */
 
 #if __has_cpp_attribute(maybe_unused)
 #define ARG_UNUSED [[maybe_unused]]
