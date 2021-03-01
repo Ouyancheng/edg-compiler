@@ -1,4 +1,4 @@
-/******************************************************************************
+
 *                                                             \  ___  /       *
 *                                                               /   \         *
 * Edison Design Group C++/C Front End                        - | \^/ | -      *
@@ -724,7 +724,7 @@ the value x*10000+y*100+z.
 */
 #ifndef DEFAULT_CLANG_VERSION
 #define DEFAULT_CLANG_VERSION 90100
-#endif /* ifndef DEFAULT_GNU_VERSION */
+#endif /* ifndef DEFAULT_CLANG_VERSION */
 
 /*
 Flag that is TRUE if a set of Microsoft C/C++ compatibility features
