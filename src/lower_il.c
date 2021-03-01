@@ -13954,7 +13954,7 @@ throughout the entire expression).
 */
 {
   if (is_operation_node(expr)) {
-    an_expr_node_ptr child = expr->variant.operation.operands;
+    an_expr_node_ptr      child = expr->variant.operation.operands;
     an_expr_operator_kind op = expr->variant.operation.kind;
     if (is_operation_node(child)) {
       an_expr_node_ptr gchild = child->variant.operation.operands;
