@@ -1466,7 +1466,7 @@ typedef struct a_source_line_modif {
 			/* TRUE if the inserted text of this modification
 			   includes the result of the concatenation
 			   operator ## applied to the name of an inert
-			   macro, i.e., the use of a macro in its own
+			   macro, i.e., the use of a macro name in its own
 			   expansion.  This is needed to emulate the
 			   behavior of the traditional Microsoft
 			   preprocessor regarding commas appearing in

@@ -420,7 +420,7 @@ typedef struct a_macro_arg {
 			   to emulate the behavior of the traditional
 			   Microsoft preprocessor regarding commas
 			   appearing in __VA_ARGS__ text.  See the comments
-			   in macro_invocation describing the setting of
+			   in macro_invocation describing the use of
 			   a_source_line_modif::is_concat_with_inert_macro
 			   and the handling of comma_is_from_argument for
 			   details. */
