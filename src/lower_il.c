@@ -13954,10 +13954,10 @@ throughout the entire expression).
 */
 {
   if (is_operation_node(expr)) {
-    an_expr_node_ptr      child = expr->variant.operation.operands;
+    an_expr_node_ptr child = expr->variant.operation.operands;
     an_expr_operator_kind op = expr->variant.operation.kind;
     if (is_operation_node(child)) {
-      an_expr_node_ptr      gchild = child->variant.operation.operands;
+      an_expr_node_ptr gchild = child->variant.operation.operands;
       if (op == (an_expr_operator_kind)eok_address_of) {
         if (node_operator_is(child, eok_indirect)) {
           check_assertion(il_identical_types(expr->type, gchild->type));
@@ -14009,7 +14009,7 @@ throughout the entire expression).
                !expr->is_lvalue &&
                is_variable_node(child) &&
                evaluates_to_variable(child->next, node_variable(child))) {
-      /* Optimize "x = x" to "x" (including more likely case where the
+      /* Optimize "x = x" to "x" (including the more likely case where the
          expression is an eok_comma expression whose value is "x").  This
          can happen when lowering some expressions. */
       check_assertion(il_identical_types(expr->type, child->next->type));
