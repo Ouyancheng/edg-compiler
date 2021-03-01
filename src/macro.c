@@ -6326,6 +6326,7 @@ do_argument_again:
                     invocation_slmp->is_concat_with_inert_macro) {
                   comma_is_from_argument = FALSE;
                 }  /* if */
+              /* coverity[var_deref_op] */
               } else if (invocation_slmp->is_concat_with_va_args) {
                 /* Similarly, given an example like
 
