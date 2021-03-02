@@ -12938,12 +12938,15 @@ Evaluate the given new-expression.
     } else {
       /* Evaluate the address at which to place the object and ensure it's
          what was passed to an enclosing "std::construct_at<T>" call. */
+      /* Allow recursive construct_at invocations from this point on. */
+      a_byte  *expected_address = valid_placement_new_address;
+      valid_placement_new_type = NULL;
       if (!do_constexpr_expression(ips, ptr_expr,
                                    result_storage, complete_object)) {
         result = FALSE;
         goto done;
       }  /* if */
-      if (cap->address != valid_placement_new_address) {
+      if (cap->address != expected_address) {
         /* The placement new address is not the one that came though the
            std::construct_at parameter.  Presumably that is a consequence of
            an incorrect std::construct_at definition. */
