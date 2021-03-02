@@ -4482,13 +4482,13 @@ deduction was successful: some cases are treated as "nondeduced contexts").
       deduction_okay = FALSE;
       break;
     }  /* if */
-    deduction_okay = deduce_from_one_pair(elem_param_type,
-                                          elem_arg_type,
-                                          qc_param_type,
-                                          qc_arg_type,
-                                          template_arg_list,
-                                          templ_params);
-    if (!deduction_okay) break;
+    if (is_template_dependent_type(elem_param_type) &&
+        !deduce_from_one_pair(elem_param_type, elem_arg_type,
+                              qc_param_type, qc_arg_type,
+                              template_arg_list, templ_params)) {
+      deduction_okay = FALSE;
+      break;
+    }  /* if */
   }  /* for */
   if (is_array && dest_type->variant.array.is_template_dependent_size_array) {
     /* Deduce the dimension of the array type if possible. */
