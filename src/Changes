@@ -1,5 +1,13 @@
 Version 6.3
 
+3/2/21   [EDGcpfe/23978]
+Abort in class_qualified_id_lookup on substitution of conversion function call
+
+In somewhat unusual SFINAE substitutions, the front end could abort with an
+internal error in class_qualified_id_lookup when substituting an explicit call
+to a conversion function.  That is now fixed.
+
+
 3/2/21   [EDGcpfe/23979]
 Lambda using a local reference without capturing it
 

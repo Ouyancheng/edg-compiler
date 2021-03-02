@@ -8269,10 +8269,7 @@ a left parenthesis in the source.
         if (constant_is(con, ck_template_param)) {
           a_constant_ptr member_con = NULL;
           a_boolean      is_template_ref = FALSE;
-          if (con->variant.template_param.kind ==
-                                 (a_template_param_constant_kind)tpck_member ||
-              con->variant.template_param.kind ==
-                             (a_template_param_constant_kind)tpck_destructor) {
+          if (tpck_is(con, tpck_member) || tpck_is(con, tpck_destructor)) {
             if (has_name(con) &&
                 unmangled_name_of(&con->source_corresp)[0] == '~') {
               /* For a destructor name, deal with the various cases. */
@@ -8298,8 +8295,7 @@ a left parenthesis in the source.
               }  /* if */
             }  /* if */
             member_con = con;
-          } else if (con->variant.template_param.kind ==
-                           (a_template_param_constant_kind)tpck_template_ref) {
+          } else if (tpck_is(con, tpck_template_ref)) {
             /* For a tpck_template_ref, check the underlying
                tpck_unknown_function to see if we're dealing with a class
                member. */
@@ -8397,6 +8393,12 @@ a left parenthesis in the source.
               goto have_symbol;
             }  /* if */
           }  /* if */
+        }  /* if */
+        if (!is_class_struct_union_type(class_struct_union_type)) {
+          *err = TRUE;
+          subst_fail(rcblock->error_detected);
+          clear_locator(locator, qualified_member_position);
+          break;
         }  /* if */
         /* Do substitution on the constant and produce a symbol. */
         sym = symbol_for_template_param_unknown_entity_rescan(
