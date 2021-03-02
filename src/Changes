@@ -1,5 +1,17 @@
 Version 6.3
 
+3/2/21   [EDGcpfe/24004]
+Clang compatibility: spurious error on __type_pack_element in some contexts
+
+The clang builtin __type_pack_element (see EDGcpfe/18310) could result in
+spurious errors when it was used in contexts in which template substitution
+was performed.  Now fixed.
+
+  template <typename... Ts> class A {
+    template <typename T = __type_pack_element<0, Ts...>> using type = bool;
+  };
+
+
 3/2/21   [EDGcpfe/23293,EDGcpfe/23497,EDGcpfe/23983]
 Failure to deduce array length from braced-list argument
 

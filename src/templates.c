@@ -9013,7 +9013,8 @@ positions (arg1_pos is the first argument position, etc.).
     /* __make_integer_seq builtin alias template. */
     result = check_make_integer_seq(template_arg_list, arg1_pos, arg2_pos,
                                     arg3_pos);
-  } else if (template_sym == symbol_for_type_pack_element) {
+  } else if (template_sym == symbol_for_type_pack_element ||
+             template_sym == symbol_for_type_pack_element_alias) {
     /* __type_pack_element builtin alias template. */
     result = check_type_pack_element(template_arg_list, arg1_pos);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -9860,7 +9861,7 @@ error type is used.
        for the template. */
     type->variant.typeref.type =
                                instantiate_make_integer_seq(template_arg_list);
-  } else if (template_sym == symbol_for_type_pack_element) {
+  } else if (template_sym == symbol_for_type_pack_element_alias) {
     /* This is the builtin alias template __type_pack_element; the template
        is instantiated programatically rather than by scanning the cache
        for the template. */
@@ -10785,6 +10786,14 @@ use the current global value of the template template parameter.
          invoke instantiate_make_integer_seq to programatically instantiate
          the template. */
       template_sym = symbol_for_make_integer_seq_alias;
+      tssp = template_sym->variant.template_info;
+      is_alias_template = TRUE;
+    } else if (template_sym == symbol_for_type_pack_element) {
+      /* For non-dependent arguments to __type_pack_element, substitute a
+         reference to the builtin alias __type_pack_element_alias which will
+         invoke instantiate_type_pack_element to programatically instantiate
+         the template. */
+      template_sym = symbol_for_type_pack_element_alias;
       tssp = template_sym->variant.template_info;
       is_alias_template = TRUE;
     } else if (!in_substitution &&

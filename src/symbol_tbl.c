@@ -8369,7 +8369,13 @@ Creates a builtin alias template for "__type_pack_element" at the file scope.
   symbol_for_type_pack_element = make_internal_template(
       "__type_pack_element",
       "template<__edg_size_type__ N, typename ...T>"
-      "  __internal_alias_decl __type_pack_element = int;",
+      "  struct __type_pack_element;",
+      (a_namespace_ptr)NULL,
+      /*is_metadata=*/FALSE);
+  symbol_for_type_pack_element_alias = make_internal_template(
+      "__type_pack_element_alias",
+      "template<__edg_size_type__ N, typename ...T>"
+      "  __internal_alias_decl __type_pack_element_alias = int;",
       (a_namespace_ptr)NULL,
       /*is_metadata=*/FALSE);
 }  /* make_type_pack_element_internal_template */
@@ -18143,6 +18149,8 @@ are handled in symbol_tbl_init.)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       pch_saved_var_array_elem(symbol_for_make_integer_seq),
       pch_saved_var_array_elem(symbol_for_make_integer_seq_alias),
+      pch_saved_var_array_elem(symbol_for_type_pack_element),
+      pch_saved_var_array_elem(symbol_for_type_pack_element_alias),
       pch_saved_var_array_elem(va_list_global_alias_has_been_created),
       pch_saved_var_array_elem(file_scope_symbols_are_on_inactive_list),
       pch_saved_var_array_elem(symbols_with_no_scope),
@@ -18228,6 +18236,8 @@ are handled in symbol_tbl_init.)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   register_trans_unit_variable(symbol_for_make_integer_seq);
   register_trans_unit_variable(symbol_for_make_integer_seq_alias);
+  register_trans_unit_variable(symbol_for_type_pack_element);
+  register_trans_unit_variable(symbol_for_type_pack_element_alias);
   register_trans_unit_variable(va_list_global_alias_has_been_created);
 #if IA64_ABI
   register_trans_unit_variable(symbol_for_namespace_abi);
@@ -18274,6 +18284,8 @@ given translation unit.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   symbol_for_make_integer_seq = NULL;
   symbol_for_make_integer_seq_alias = NULL;
+  symbol_for_type_pack_element = NULL;
+  symbol_for_type_pack_element_alias = NULL;
   va_list_global_alias_has_been_created = FALSE;
 #if IA64_ABI
   symbol_for_namespace_abi = NULL;

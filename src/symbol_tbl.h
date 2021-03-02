@@ -4832,7 +4832,16 @@ EXTERN a_symbol_ptr
 EXTERN a_symbol_ptr
                 symbol_for_type_pack_element;
                         /* Symbol for "__type_pack_element", which is a
-                           builtin alias template. */
+                           builtin class template (used for cases where
+                           template arguments to __type_pack_element are
+                           dependent). */
+
+EXTERN a_symbol_ptr
+                symbol_for_type_pack_element_alias;
+                        /* Symbol for "__type_pack_element_alias", which is a
+                           builtin alias template (used for cases where
+                           template arguments to __type_pack_element are
+                           non-dependent). */
 
 extern void reenter_block_scope_symbol(a_symbol_ptr  sym);
 
