@@ -35781,13 +35781,23 @@ variable:
             if (rvalue_only) {
               /* We determined that this variable can only be used as an
                  rvalue (e.g., because it's a constant-valued variable that
-                 cannot be captured in a lambda). */
-              if (is_array_type(result->type)) {
-                conv_array_operand_to_pointer_operand(result);
+                 cannot be captured in a lambda).  For a reference, "rvalue"
+                 means ref-indirecting the reference and the resulting
+                 expression remains a glvalue. */
+              a_constant_ptr  ref_con = NULL;
+              if ((ref_con = var_constant_value(var_ptr)) != NULL &&
+                  is_reference_type(ref_con->type)) {
+                an_expr_node_ptr ref_expr = alloc_node_for_constant(ref_con);
+                ref_expr = add_ref_indirection_to_node(ref_expr);
+                make_glvalue_expression_operand(ref_expr, result);
               } else {
-                conv_glvalue_to_prvalue(result);
+                if (is_array_type(result->type)) {
+                  conv_array_operand_to_pointer_operand(result);
+                } else {
+                  conv_glvalue_to_prvalue(result);
+                }  /* if */
+                force_operand_to_constant_if_possible(result);
               }  /* if */
-              force_operand_to_constant_if_possible(result);
             }   /* if */
           }  /* if */
           if (is_error_operand(result)) {
