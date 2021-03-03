@@ -1,5 +1,26 @@
 Version 6.3
 
+3/3/21   [EDGcpfe/24010]
+GNU compatibility: Conversions to and from incomplete class types
+
+The changes for EDGcpfe/23274 caused certain casts to incomplete class types
+to be accepted in GNU C++ modes if those casts appear in template-dependent
+contexts.  Now that change is limited to gnu_version <= 100200 but extended to
+more situations, and it also extended to conversions from (as opposed to "to")
+incomplete class types.  For example:
+
+  struct I;
+  template<typename T> void f() {
+    decltype(I(1))      *p1;
+    decltype(int(I()))  *p2;
+  }
+
+Previously the cast "I(1)" was rejected in GNU modes that don't defer prototype
+instantiations because I is an incomplete type.  Now it is accepted when
+gnu_version <= 100200.  Similarly, the cast "int(I())" is now accepted in those
+modes.
+
+
 3/2/21   [EDGcpfe/23978]
 Abort in class_qualified_id_lookup on substitution of conversion function call
 

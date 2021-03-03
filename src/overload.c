@@ -19117,16 +19117,17 @@ error.  conv_context describes the context of the conversion.
     }  /* if */
   } else if (is_template_dependent_context() &&
              (class_type->variant.class_struct_union.is_nonreal_class ||
-              (gpp_mode && !clang_mode &&
+              (gpp_version_is(<=100200) &&
                (conv_context & CCO_FUNC_NOTATION_CAST) != 0 &&
-               is_incomplete_type(class_type) &&
+               (is_incomplete_type(class_type) ||
+                (source_is_class && is_incomplete_type(source_type))) &&
                !curr_expr_is_evaluated()) ||
               (alep != NULL ? arg_list_is_type_dependent(alep) :
                               operand_is_dependent(source_operand)))) {
     /* Assume we can convert to or from an unknown type in a prototype
-       instantiation.  g++ allows usage such as "decltype(S(0))", where S
-       is an incomplete type.  That is treated as an unknown dependent
-       conversion in g++ mode. */
+       instantiation.  GCC (until version 10.2) allows usage such as
+       "decltype(S(0))", where S is an incomplete type.  That is treated
+       as an unknown dependent conversion in GNU C++ mode. */
     okay = TRUE;
     conversion->unknown_dependent_conversion = TRUE;
   } else {
