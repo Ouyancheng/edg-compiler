@@ -4481,12 +4481,27 @@ deduction was successful: some cases are treated as "nondeduced contexts").
       deduction_okay = FALSE;
       break;
     }  /* if */
-    if (is_template_dependent_type(elem_param_type) &&
-        !deduce_from_one_pair(elem_param_type, elem_arg_type,
-                              qc_param_type, qc_arg_type,
-                              template_arg_list, templ_params)) {
-      deduction_okay = FALSE;
-      break;
+    if (is_template_dependent_type(elem_param_type)) {
+      if (!deduce_from_one_pair(elem_param_type, elem_arg_type,
+                                qc_param_type, qc_arg_type,
+                                template_arg_list, templ_params)) {
+        deduction_okay = FALSE;
+        break;
+      }  /* if */
+    } else {
+      /* A nondependent element type.  Make sure the element can be
+         converted. */
+      an_arg_match_summary  local_arg_match;
+      prep_list_initializer(elem, elem_param_type, /*is_direct_init=*/FALSE,
+                            /*check_narrowing=*/FALSE,
+                            /*warning_on_narrowing=*/FALSE,
+                            CCO_DEFAULT, /*fill_in_dtor=*/FALSE,
+                            /*force_temp=*/FALSE, /*make_lvalue_temp=*/FALSE,
+                            (an_operand*)NULL, (an_init_state*)NULL,
+                            &local_arg_match);
+      if (local_arg_match.match_level == aml_none) {
+        break;
+      }  /* if */
     }  /* if */
   }  /* for */
   if (is_array && dest_type->variant.array.is_template_dependent_size_array) {
@@ -26554,7 +26569,9 @@ checks that), and *conversion describes it.
                           formal_param, conversion, err_code);
   } else {
     /* The argument is a braced-init-list. */
-    a_boolean          error_on_narrowing = strict_ansi_mode;
+    a_boolean          error_on_narrowing = strict_ansi_mode ||
+                                            gpp_mode || clang_mode ||
+                                            microsoft_mode;
     a_conv_context_set conv_context =
                      add_conv_context_for_parameter(formal_param, CCO_DEFAULT);
     check_assertion(is_braced_init_component(alep));

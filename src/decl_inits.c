@@ -4191,7 +4191,7 @@ the type pointed to is opaque to declaration processing.
   if (expr_stack->paren_as_aggregate_init) {
     is->error_on_narrowing = FALSE;
     is->warning_on_narrowing = FALSE;
-  } else if (strict_ansi_mode || (gpp_mode && gnu_version < 40700)) {
+  } else if (strict_ansi_mode || gpp_mode || clang_mode || microsoft_mode) {
     is->error_on_narrowing = TRUE;
   } else {
     is->warning_on_narrowing = TRUE;
