@@ -4500,6 +4500,7 @@ deduction was successful: some cases are treated as "nondeduced contexts").
                             (an_operand*)NULL, (an_init_state*)NULL,
                             &local_arg_match);
       if (local_arg_match.match_level == aml_none) {
+        deduction_okay = FALSE;
         break;
       }  /* if */
     }  /* if */
