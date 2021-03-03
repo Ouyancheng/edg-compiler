@@ -14545,13 +14545,11 @@ new type may not be a typeref.
     new_list = copy_template_arg_list(templ_arg_list);
   } else {
     new_list = copy_template_arg_list_with_substitution(
-                                           template_sym,
-                                           tap, tpp,
-                                           (a_template_param_ptr)NULL,
-                                           templ_arg_list,
-                                           templ_param_list, 
-                                           source_pos, options,
-                                           copy_error, ctws_state);
+                                             template_sym, tap, tpp,
+                                             (a_template_param_ptr)NULL,
+                                             templ_arg_list, templ_param_list, 
+                                             source_pos, options, copy_error,
+                                             ctws_state);
   }  /* if */
   if (!*copy_error &&
       !template_arg_list_is_dependent(new_list)) {

@@ -5864,7 +5864,7 @@ Copy a constant entry from "from" to "to".
       expr_node_from_tpck_expression(from) == NULL) {
     /* Copying a tpck_expression entry that requires a "local-expr-ref"
        because of memory region constraints results in a missing link since
-       the "local-expr-ref" entry won't be copied along. */
+       the "local-expr-ref" entry won't be copied along with the constant. */
     internal_error("Bad constant copy");
   }  /* if */
 #endif /* EXPENSIVE_CHECKING */

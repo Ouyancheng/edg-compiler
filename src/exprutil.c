@@ -5967,7 +5967,7 @@ the current context.
   /* Note that folding should always be done for noexcept operands since it
      affects the outcome of the operand.  That is true even in template-
      dependent contexts because the operand may not be itself dependent.
-     Generally-speaking, we do not need to fold calls at this time in
+     Generally speaking, we do not need to fold calls at this time in an
      ek_integral_constant or ek_template_arg context because the top-level
      expression will need to be successfully interpreted later on anyway. */
   if (!expr_stack->suppress_constexpr_call_folding &&

@@ -46435,7 +46435,7 @@ to function-scope entities that it may contain.
   if (has_non_file_scope_ref(cp)) {
     /* The constant has some function-scope parts, so copy its tree to the
        file scope. */
-    a_constant_ptr  old_cp = local_constant();
+    a_constant_ptr          old_cp = local_constant();
     a_memory_region_number  region_to_switch_back_to;
     copy_constant(cp,  old_cp);
     switch_to_file_scope_region(&region_to_switch_back_to);
@@ -46669,7 +46669,7 @@ the corresponding list of arguments processed so far.
   /* Scan the constant expression.  Template argument constant entries are
      allocated in file-scope memory, but the underlying expression may have
      references to local entities (e.g., variables), which means that the
-     expression has a whole has to be allocated in the local memory region.
+     expression as a whole has to be allocated in the local memory region.
      Any memory region discrepancy is later fixed up with a call to
      do_fs_constant_fixup. */
   switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);

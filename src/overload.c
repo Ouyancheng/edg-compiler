@@ -3589,8 +3589,7 @@ copy-initialization).
   } else {
     /* User-defined conversions are not allowed. */
     if (param_is_class_type && arg_is_class_type && param_is_reference &&
-        ptp == NULL &&
-        !ref_type_qualifiers_dropped &&
+        ptp == NULL && !ref_type_qualifiers_dropped &&
         (could_be_dependent_class_type(arg_type) ||
          could_be_dependent_class_type(param_type))) {
       /* Dependent types don't usually come here, but they do when
