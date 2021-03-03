@@ -7800,7 +7800,7 @@ tag, a typedef, or a dependent type.  A reference is not the definition.
       gen_name(&orig_type->source_corresp, iek_type, options,
                (a_boolean *)NULL);
       if (truncate_pos != 0) {
-        ((char *)nm)[truncate_pos] = 0;
+        ((char *)nm)[truncate_pos] = '_';
       }  /* if */
     }  /* if */
   } else if (is_tag_type(type) ||
