@@ -972,7 +972,7 @@ state->next_orig_line_modif is advanced to point to the next modification.
       /* The previous call returned the first code unit of a surrogate
          pair.  Return the second code unit now. */
       check_assertion(state->remaining_char_count == 1);
-      targ_ch = state->pending_surrogate_pair;
+      targ_ch = state->pending_surrogate_pair; /*lint !e530*/
     } else {
       targ_ch = (unsigned char)*lptr;
       lptr++;
@@ -1465,9 +1465,10 @@ the actual number of converted characters may be less than num_chars.  */
   set_unsigned_integer_value(&number, (a_host_large_unsigned)0);
   /* Accumulate the characters.  A wide literal with no characters (L'')
      is possible in Microsoft mode and must produce a zero value. */
+  /*lint -e{440}*/
   for (i = 0;
        temp_ptr < end_of_curr_token || conv_state.remaining_char_count > 0;
-       ++i)  /*lint !e440*/ {
+       ++i) {
     /* Convert one character of the char constant. */
     switch (character_kind) {
       case chk_char:

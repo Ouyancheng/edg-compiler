@@ -9279,7 +9279,7 @@ nonstatic_member_function:
                                                  result);
                 set_operand_name_reference_from_locator(result, &locator);
               }  /* if */
-              copy_operand(operand_1, bound_function_selector);
+              copy_operand(operand_1, bound_function_selector) /*lint !e413*/;
               bind_member_function_operand_to_selector(bound_function_selector,
                                                        is_arrow_operator,
                                                        result);
@@ -25139,7 +25139,7 @@ if it's not valid).
               related_member_pointers(adj_source_type, adj_type_cast_to,
                                       &baseward_cast, &bcp) &&
               baseward_cast &&
-              !bcp->ambiguous &&
+              !bcp->ambiguous /*lint !e530*/ &&
               !is_accessible_base_class(bcp)) {
             /* A conversion from pointer-to-member of derived to
                pointer-to-member of a private base should not be
@@ -27287,7 +27287,8 @@ freed by this routine.
     if (scanning_source ? (curr_token == tok_rparen) :
                           (arg_list_supplied ?
                                  (supplied_arg_list == NULL) :
-                                 (rcblock->argument_list == NULL))) {
+                                 (rcblock != NULL &&
+                                  rcblock->argument_list == NULL))) {
       /* Empty parentheses (or no expressions in the argument list
          provided). */
 empty_parentheses:

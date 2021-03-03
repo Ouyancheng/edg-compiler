@@ -16488,7 +16488,8 @@ cast.  See lower_expr for typical invocation.
            enk_temp_init, where the cast only adjusts cv-qualifiers that
            will be dropped anyway because the result is an rvalue. */
         a_type_ptr type = expr->type;
-        check_assertion(temp_init_node->kind ==
+        check_assertion(temp_init_node != NULL &&
+                        temp_init_node->kind ==
                                             (an_expr_node_kind)enk_temp_init &&
                         temp_init_node->is_lvalue);
         /* Convert enk_temp_init node to an rvalue. */

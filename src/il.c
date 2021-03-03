@@ -10351,6 +10351,7 @@ done to add the type to the end of the types list for the enclosing class.
     a_type_ptr	class_type = ssep->assoc_type;
     /* Note that previous_scope_of is not used because we want to consider
        scopes even if they are not visible. */
+    /*lint -e{440}*/
     for (ssep = scope_stack_entry_for(scope_level-1);
          scope_depth_of(ssep) >= DEPTH_OF_FILE_SCOPE; ssep--) {
       if (ssep->kind == (a_scope_kind)sck_class_struct_union &&

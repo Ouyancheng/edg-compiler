@@ -2756,6 +2756,9 @@ redo:
     case tk_class:
     case tk_struct:
       get_mapped_byte_count(&persistent_map, tp, result);
+#if DEBUG
+      check_assertion(ips != NULL);
+#endif /* DEBUG */
       if (result == 0) {
         if (tp->variant.class_struct_union.is_nonreal_class &&
             has_dependent_layout(tp)) {
@@ -2797,6 +2800,9 @@ redo:
       break;
     case tk_union:
       get_mapped_byte_count(&persistent_map, tp, result);
+#if DEBUG
+      check_assertion(ips != NULL);
+#endif /* DEBUG */
       if (result == 0) {
         if (tp->variant.class_struct_union.is_nonreal_class &&
             has_dependent_layout(tp)) {
@@ -2861,6 +2867,9 @@ redo:
       break;
 #endif /* FIXED_POINT_ALLOWED */
     case tk_error:
+#if DEBUG
+      check_assertion(ips != NULL);
+#endif /* DEBUG */
       ips->input_error = TRUE;
       FALLTHROUGH
     case tk_template_param:
@@ -10941,6 +10950,7 @@ This is similar to do_constexpr_ctor.
                          postfix->prev_storage);
     }  /* if */
     /* Set up the call frame. */
+    /*lint -e{733}*/
     push_call_frame(ips, &frame, callee, pos, result_storage, complete_object);
     /* Run the function's top-level block statement. */
     if (!result) {
@@ -13210,6 +13220,7 @@ done:
 }  /* do_constexpr_delete */
 
 
+/*lint -efunc(2704,*do_constexpr_expression)*/
 static a_boolean do_constexpr_expression(
                                        an_interpreter_state  *ips,
                                        an_expr_node_ptr      orig_expr,
@@ -17820,6 +17831,7 @@ the value representation of the integer value.
     case enk_statement:
       { a_call_frame     frame;
         a_statement_ptr  stmt = expr->variant.statement;
+        /*lint -e{733}*/
         push_stmt_expr(ips, &frame, expr, result_storage, complete_object);
         result = do_constexpr_block_statement(
                       ips, stmt, stmt->variant.block.extra_info->assoc_scope);

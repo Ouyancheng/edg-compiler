@@ -8905,7 +8905,6 @@ and, if pos is not NULL, an error will be reported.
     switch (kind) {
       case bok_has_assign:
       case bok_has_nothrow_assign:
-        check_assertion(cssp != NULL);  /* For Coverity. */
         if (!microsoft_mode ||
             (microsoft_version >= 1800 &&
              kind == (a_builtin_operation_kind)bok_has_nothrow_assign)) {
@@ -8918,7 +8917,6 @@ and, if pos is not NULL, an error will be reported.
         break;
       case bok_has_copy:
       case bok_has_nothrow_copy:
-        check_assertion(cssp != NULL);  /* For Coverity. */
         if (!microsoft_mode) {
           check_assertion(kind ==
                               (a_builtin_operation_kind)bok_has_nothrow_copy);
@@ -9132,6 +9130,7 @@ and, if pos is not NULL, an error will be reported.
         result = type->variant.class_struct_union.final;
         break;
       case bok_is_trivially_copy_assignable:
+        check_assertion(cssp != NULL);  /* For Coverity. */
         result = cssp->assignment_by_bitwise_copy_allowed &&
                  !cssp->has_deleted_copy_or_move_assign_operator;
         break;

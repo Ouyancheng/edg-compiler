@@ -5807,6 +5807,7 @@ precedence confusion.  Do the output in the way described by octl.
         /* The equivalent of an enum constant (an enum constant used in
            an initializer; it's a nonshared constant with the same value as
            the named enumeration constant). */
+        check_assertion(equiv_constant != NULL);
         form_name(&equiv_constant->source_corresp, iek_constant, octl);
 #if GNU_EXTENSIONS_ALLOWED
       } else if (!octl->c_generating_back_end && constant->null_keyword) {

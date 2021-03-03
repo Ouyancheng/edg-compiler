@@ -1689,7 +1689,7 @@ initialization (when ipdp->array_element_sequence is TRUE).
       init_val_node = alloc_node_for_lowered_zero_of_proper_type(entity_type);
       break;
     case dik_lambda:
-      check_assertion(!dip->variant.constant.non_constant);
+      check_assertion(dip != NULL && !dip->variant.constant.non_constant);
       FALLTHROUGH
     case dik_constant:
       /* Assign a constant to the entity to be initialized. */
@@ -1730,6 +1730,7 @@ initialization (when ipdp->array_element_sequence is TRUE).
     case dik_expression:
       /* Assign an expression to the entity to be initialized. */
       /* The expression has already been lowered. */
+      check_assertion(dip != NULL);
       init_val_node = dip->variant.expression;
       if (is_array_type(entity_type)) {
         check_assertion(is_array_type(init_val_node->type));

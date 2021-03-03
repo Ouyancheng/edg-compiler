@@ -2719,6 +2719,7 @@ the scope being pushed.
       } else {
         a_function_def_number		number;
         a_function_def_descr_ptr	fddp;
+        check_assertion(assoc_routine != NULL);
         number = assoc_routine->function_def_number;
         fddp = &il_header.function_def_table[number];
         curr_il_region_number = fddp->memory_region;
@@ -2751,13 +2752,14 @@ the scope being pushed.
         switch_il_region(file_scope_region_number);
       }  /* if */
       ssep->il_memory_region = file_scope_region_number;
+      check_assertion(assoc_namespace != NULL);
       if (kind == (a_scope_kind)sck_namespace) {
         new_il_scope = TRUE;
         sp = alloc_scope(kind, ssep->number, (a_routine_ptr)NULL);
         sp->variant.assoc_namespace = assoc_namespace;
-        assoc_namespace->variant.assoc_scope = sp;
+        assoc_namespace->variant.assoc_scope = sp; /*lint !e413*/
       } else {
-        sp = assoc_namespace->variant.assoc_scope;
+        sp = assoc_namespace->variant.assoc_scope; /*lint !e413*/
       }  /* if */
       ssep->il_memory_region = file_scope_region_number;
       break;

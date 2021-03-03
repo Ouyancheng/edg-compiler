@@ -7830,7 +7830,7 @@ last argument in the list).
 #endif /* IA64_ABI */
   /* Run through the template argument list, determining the representation
      for each argument. */
-  /*lint --e{441} loop variable not used in second expression*/
+  /*lint -e{440}*/
   for (tap = *template_arg, tap_no = 0;
        tap != NULL;
        tap_no++) {
