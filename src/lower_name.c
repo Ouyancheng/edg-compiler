@@ -6545,6 +6545,20 @@ Add mangling for the concept-id expression to the current mangled name.
 }  /* mangled_encoding_for_concept_id */
 
 
+static void mangled_encoding_for_lambda(an_expr_node_ptr         expr,
+                                        a_mangling_control_block *mctl)
+/*
+Add mangling for a lambda expression.  This doesn't appear in the IA-64
+ABI spec, but sometimes comes up when mangling names in cp_gen_be
+configurations.  Follow GCC's lead and mangle it as a braced-init list
+with no arguments.
+*/
+{
+  mangled_braced_init_list((an_expr_node_ptr)NULL, (a_constant_ptr)NULL,
+                           expr->type, mctl);
+}  /* mangled_encoding_for_lambda */
+
+
 static void mangled_encoding_for_expression_full(
                                   an_expr_node_ptr         expr,
                                   a_boolean                in_dependent_expr,
@@ -7121,6 +7135,9 @@ is TRUE.
       break;
     case enk_concept_id:
       mangled_encoding_for_concept_id(expr, mctl);
+      break;
+    case enk_lambda:
+      mangled_encoding_for_lambda(expr, mctl);
       break;
 #if VLA_DEALLOCATIONS_IN_IL
     case enk_vla_dealloc:
