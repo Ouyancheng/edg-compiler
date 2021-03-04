@@ -22919,8 +22919,7 @@ C++ functional-notation type conversions, and C++ new-style casts.
              !(expr_stack->in_static_initializer &&
                could_be_dependent_class_type(type_cast_to)) &&
              !(gpp_version_is(<=100200) && is_template_dependent_context() &&
-               is_class_struct_union_type(type_cast_to) &&
-               !curr_expr_is_evaluated())) {
+               !scope_stack_top().is_rescan && !curr_expr_is_evaluated())) {
     /* Don't allow a cast to an incomplete type (e.g., an incomplete enum
        type), but allow certain exceptions.  One of those exceptions is that
        in GNU mode casts to incomplete class types are accepted in template-

@@ -19131,7 +19131,7 @@ error.  conv_context describes the context of the conversion.
       *ctor_arg_conversion = arg_match.conversion;
       ctor_arg_conversion_set = TRUE;
     }  /* if */
-  } else if (is_template_dependent_context() &&
+  } else if (is_template_dependent_context() && !scope_stack_top().is_rescan &&
              (class_type->variant.class_struct_union.is_nonreal_class ||
               (gpp_version_is(<=100200) &&
                (conv_context & CCO_FUNC_NOTATION_CAST) != 0 &&
