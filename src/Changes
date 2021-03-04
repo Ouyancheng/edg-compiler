@@ -1,5 +1,14 @@
 Version 6.3
 
+3/4/21   [EDGcpfe/24024]
+GNU/Clang emulation: C11 _Atomic with --ms_extensions
+
+The C11 _Atomic extensions are not yet supported by Microsoft Visual Studio
+and the change for EDGcpfe/23370 (in 6.1) made that explicit, but that change
+had the undesirable effect of also disallowing those extensions in GNU and
+Clang emulation modes when --ms_extensions is specified.  Now fixed.
+
+
 3/4/21   [EDGcpfe/23692]
 Mangling of lambda expressions
 

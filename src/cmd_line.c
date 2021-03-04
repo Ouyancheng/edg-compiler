@@ -2365,7 +2365,10 @@ option values if they were not already set by a command line option.
       vla_enabled = FALSE;
     }  /* if */
 #endif /* VLA_ALLOWED */
-    c11_atomic_enabled = FALSE;
+    if (!gnu_mode) {
+      /* GNU/Clang allow Atomic with -fms-extensions. */
+      c11_atomic_enabled = FALSE;
+    }  /* if */
     /* Recent Microsoft C compilers enable the C++ spelling of static_assert
        (i.e., not _Static_assert). */
     static_assert_enabled = microsoft_version >= 1600;
