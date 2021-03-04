@@ -4488,11 +4488,11 @@ deduction was successful: some cases are treated as "nondeduced contexts").
         deduction_okay = FALSE;
         break;
       }  /* if */
-    } else {
+    } else if (is_array) {
       /* A nondependent element type.  Make sure the element can be
          converted. */
       an_arg_match_summary  local_arg_match;
-      prep_list_initializer(elem, elem_param_type, /*is_direct_init=*/FALSE,
+      prep_list_initializer(elem, elem_type, /*is_direct_init=*/FALSE,
                             /*check_narrowing=*/FALSE,
                             /*warning_on_narrowing=*/FALSE,
                             CCO_DEFAULT, /*fill_in_dtor=*/FALSE,
