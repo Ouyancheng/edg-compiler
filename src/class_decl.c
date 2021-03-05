@@ -3077,7 +3077,6 @@ specializations.
   if (!scope_stack[DEPTH_OF_FILE_SCOPE].source_sequence_entries_disallowed) {
     a_type_ptr                   tp;
     a_source_sequence_entry_ptr  ssep;
-
     /* Turn on the generation of source sequence entries. */
     source_sequence_entries_disallowed = FALSE;
     /* Now put out the source sequence entry for the routine, after
@@ -3182,8 +3181,11 @@ in-class member function template specializations.
      when this routine is called.  (The flag is ignored for constexpr functions
      and for functions with a deducible return type since their definitions
      must be processed before evaluating a call.) */
-  if (use_deferred_friend_fixup_list &&
-      !rp->is_constexpr && !rp->has_deducible_return_type) {
+  if (routine_has_been_defined(rp)) {
+    /* A prior event caused the definition to be fixed up already.  Nothing
+       more is to be done. */
+  } else if (use_deferred_friend_fixup_list &&
+             !rp->is_constexpr && !rp->has_deducible_return_type) {
     if (deferred_friend_fixup_list == NULL) deferred_friend_fixup_list = rfp;
     if (deferred_friend_fixup_list_tail != NULL) {
       deferred_friend_fixup_list_tail->next = rfp;

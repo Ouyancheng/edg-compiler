@@ -1,5 +1,28 @@
 Version 6.3
 
+3/5/21   [EDGcpfe/23935]
+Internal error in GNU C++-mode friend function definition
+
+The changes for EDGcpfe/23704 in version 6.2 of the front end introduced a
+regression in some GNU C++ modes when handling certain friend function
+definitions in class templates.  This usually led to an internal error in
+rescan_reusable_cache, but in some other configurations the abort occurred
+in set_routine_declared_type instead).  For example (GNU C++ mode with
+prototype instantiation deferral disabled):
+
+  template<typename T> struct S {
+    friend int f() { return 42; }
+  };
+  int f();
+  template<typename T> int g() {
+    return f();
+  }
+  S<int> s;
+  int r = g<int>();  // Previously triggered an internal error.  Now okay.
+
+That is now fixed.
+
+
 3/5/21   [EDGcpfe/23934]
 Internal error on invalid pointer arithmetic in some configurations
 
