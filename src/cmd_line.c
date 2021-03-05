@@ -1108,7 +1108,7 @@ Initialize the option information table.
                          "c11",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
-  /* C18 is similarly a successor of C99.  (C18 was planned to be "C17" and
+  /* C18 is similarly a successor of C11.  (C18 was planned to be "C17" and
      it is sometimes referred to as such.  Therefore, we accept both "--c17"
      and "--c18" to enable C18 mode.) */
   add_option_description(optk_c18_mode,
@@ -2285,9 +2285,9 @@ Returns TRUE if a C mode is explicitly specified.
 {
   a_boolean result = FALSE;
 
-  if (option_kind_used[(int)optk_c89_mode] &&
-      option_kind_used[(int)optk_c99_mode] &&
-      option_kind_used[(int)optk_c11_mode] &&
+  if (option_kind_used[(int)optk_c89_mode] ||
+      option_kind_used[(int)optk_c99_mode] ||
+      option_kind_used[(int)optk_c11_mode] ||
       option_kind_used[(int)optk_c18_mode]) {
     /* C mode was enabled by a command line option. */
     result = TRUE;
