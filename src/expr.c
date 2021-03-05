@@ -27866,9 +27866,9 @@ that case.
         } else {
 #if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
           /* Pointer to incomplete array is also allowed. */
-          (void)check_object_or_incomp_array_pointer_operand(operand_1,
-                                                 ec_expr_not_pointer_to_object,
-                                                             &operand_2);
+          (void)check_object_or_incomp_array_pointer_operand(
+                                     operand_1, ec_expr_not_pointer_to_object,
+                                     &operand_2, /*add_type=*/TRUE);
 #else /* !PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
           (void)check_object_pointer_operand(operand_1,
                                              ec_expr_not_pointer_to_object);
