@@ -1246,6 +1246,9 @@ Display the indicated constant entry.
   if (ptr->constant_for_base_class_from_constexpr_folding) {
     disp_boolean("constant_for_base_class_from_constexpr_folding", TRUE);
   }  /* if */
+  if (ptr->local_expr_ref) {
+    disp_boolean("local_expr_ref", TRUE);
+  }  /* if */
   disp_name("kind");
   switch (ptr->kind) {
     case ck_error:
