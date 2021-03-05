@@ -4813,6 +4813,20 @@ are done in the il_to_str routines before this routine is called.
       /* We must preserve a typedef that refers to an unnamed tag type if it
          is otherwise visible. */
       invisible = saved_invisible;
+    } else if (msvc_is_generated_code_target &&
+               underlying_type->kind == (a_type_kind)tk_pointer &&
+               (underlying_type->variant.pointer.type->kind ==
+                                                       (a_type_kind)tk_array ||
+                underlying_type->variant.pointer.type->kind ==
+                                                    (a_type_kind)tk_routine)) {
+      /* MSVC has a bug that results in spurious syntax errors when using a
+         pointer to an array or function type in a template argument list,
+         so we should preserve this typedef.  (Note the direct use of the
+         type kinds in the condition instead of the usual type-checking
+         functions.  This is done because it is the syntax that triggers
+         the MSVC bug, not the semantics, so we're checking here if the
+         underlying type will be generated as something like "T (*)[5]".) */
+      invisible = saved_invisible;
     }  /* if */
   }  /* if */
   return invisible;
