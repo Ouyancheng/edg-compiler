@@ -1,5 +1,19 @@
 Version 6.3
 
+3/5/21   [EDGcpfe/23934]
+Internal error on invalid pointer arithmetic in some configurations
+
+When the configuration macro PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED is TRUE,
+the front end sometimes aborted with an internal error in process_fill_in
+("specified fill-in not found"; error.c).  For example:
+
+  void g(void *p) { p + 1; }  // Previously triggered an abort in some
+                              // configurations.  Now an ordinary error.
+
+That regression -- introduced in version 6.2 of the front end by the changes
+for EDGcpfe/23512 -- is now fixed.
+
+
 3/5/21   [EDGcpfe/24025]
 C++-generating back end, Microsoft compatibility: pointer to array type in
 template argument
