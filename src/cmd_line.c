@@ -1191,6 +1191,12 @@ Initialize the option information table.
                          "no_short_enums",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_strict_gnu, "strict_gnu",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_strict_gnu, "no_strict_gnu",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   add_option_description(optk_long_long,
                          "long_long",
@@ -2272,7 +2278,25 @@ be given to the flag.
 }  /* set_flag_value */
 
 
-static a_boolean cpp_mode_specified(void)
+static inline a_boolean c_mode_specified(void)
+/*
+Returns TRUE if a C mode is explicitly specified.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (option_kind_used[(int)optk_c89_mode] &&
+      option_kind_used[(int)optk_c99_mode] &&
+      option_kind_used[(int)optk_c11_mode] &&
+      option_kind_used[(int)optk_c18_mode]) {
+    /* C mode was enabled by a command line option. */
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* c_mode_specified */
+
+
+static inline a_boolean cpp_mode_specified(void)
 /*
 Returns TRUE if a C++ mode is explicitly specified.
 */
@@ -3404,6 +3428,21 @@ process.
 }  /* set_c_mode_flags */
 
 
+static inline void set_implicit_gnu_nonstrict_mode()
+/*
+The std_version is being set implicitly based on the version of GNU/Clang
+being emulated.  In such cases, set strict_gnu to FALSE to mimic the behavior
+of GNU/Clang (i.e., gcc/clang only use their strict mode when -std=c* is
+explicitly specific as a command-line option and otherwise function as if
+-std-gnu* was specified).
+*/
+{
+  if (!option_kind_used[(int)optk_strict_gnu]) {
+    strict_gnu = FALSE;
+  }  /* if */
+}  /* set_implicit_gnu_nonstrict_mode */
+
+
 static void check_and_set_c_mode_options(void)
 /*
 This routine is called in C mode to check that no C++-only command-line
@@ -3422,9 +3461,9 @@ setting is used, and to set various unmentioned settings as needed.
     /* GCC 5.0 defaults to C11 mode in its C mode (but not to C++11 mode in
        its C++ mode). */
     if (gcc_mode && gnu_version >= 50000 &&
-        !option_kind_used[optk_c89_mode] &&
-        !option_kind_used[optk_c99_mode]) {
+        !c_mode_specified()) {
       std_version = 201112;
+      set_implicit_gnu_nonstrict_mode();
     }  /* if */
   }  /* if */
   if (option_kind_used[(int)optk_cplusplus_anachronisms]) {
@@ -3955,12 +3994,14 @@ setting is used, and to set various unmentioned settings as needed.
        C++14 features are enabled by default. */
     if (!cpp_mode_specified()) {
       std_version = 201402;
+      set_implicit_gnu_nonstrict_mode();
     }  /* if */
   }  /* if */
   if (clang_version_is(>=60000)) {
     /* Beginning with Clang 6.0.0, C++14 features are enabled by default. */
     if (!cpp_mode_specified()) {
       std_version = 201402;
+      set_implicit_gnu_nonstrict_mode();
     }  /* if */
   }  /* if */
   /* Reset the SVR4 C compatibility flag just in case it is set by
@@ -6791,6 +6832,11 @@ file.
 #else /* !defined(DEFAULT_STDC_ZERO_IN_SYSTEM_HEADERS) */
   comment_undefined_macro_name(DEFAULT_STDC_ZERO_IN_SYSTEM_HEADERS);
 #endif /* defined(DEFAULT_STDC_ZERO_IN_SYSTEM_HEADERS) */
+#if defined(DEFAULT_STRICT_GNU)
+  define_numeric_valued_macro(DEFAULT_STRICT_GNU);
+#else /* !defined(DEFAULT_STRICT_GNU) */
+  comment_undefined_macro_name(DEFAULT_STRICT_GNU);
+#endif /* defined(DEFAULT_STRICT_GNU) */
 #if defined(DEFAULT_STRING_LITERALS_ARE_CONST)
   define_numeric_valued_macro(DEFAULT_STRING_LITERALS_ARE_CONST);
 #else /* !defined(DEFAULT_STRING_LITERALS_ARE_CONST) */
@@ -10739,6 +10785,10 @@ enable_microsoft_mode:
            treated as if they were declared with the "packed" attribute. */
         il_header.short_enums = opt_value;
         break;
+      case optk_strict_gnu:
+        /* When set, acts like -std=c* rather than -std=gnu*. */
+        strict_gnu = opt_value;
+        break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
       case optk_long_long:
         /* The long long feature cannot be disabled when the front end is
@@ -11891,6 +11941,23 @@ enable_microsoft_mode:
 #endif /* BACK_END_IS_CP_GEN_BE */
   /* Only one C-style inlining mode can be in effect. */
   check_assertion(!(std_c99_inlining && gnu_c89_inlining));
+  if (gnu_mode && !c_mode_specified() && !cpp_mode_specified() &&
+      !option_kind_used[(int)optk_strict_gnu]) {
+    /* Emulate -std=gnu* if we're running in GNU/Clang emulation mode and
+       no --c* or --[no_]strict_gnu command-line options were given (which
+       matches gcc/clang behavior. */
+    strict_gnu = FALSE;
+  }  /* if */
+#if C99_IL_EXTENSIONS_SUPPORTED
+  if (gnu_mode &&
+      (clang_mode || C_mode() || gpp_version_is(<40800) ||
+       !strict_gnu || !user_defined_literals_enabled)) {
+    /* Early versions of GNU enable imaginary literals (e.g., "1.0i"), as
+       do later versions when -std=gnu* is specified.  Clang accepts
+       these in all modes. */
+    gnu_imaginary_literals_allowed = TRUE;
+  }  /* if */
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 }  /* proc_command_line */
 
 #if COMPILE_MULTIPLE_TRANSLATION_UNITS
@@ -12428,6 +12495,7 @@ variables declared in cmd_line.h.
   gpp_mode = FALSE;
   gnu_mode = FALSE;
   clang_mode = FALSE;
+  strict_gnu = DEFAULT_STRICT_GNU;
 #endif /* GNU_EXTENSIONS_ALLOWED || defined(_lint) */
   gnu_version = DEFAULT_GNU_VERSION;
   clang_version = DEFAULT_CLANG_VERSION;
@@ -12562,6 +12630,9 @@ variables declared in cmd_line.h.
   lazy_symbols_may_be_visible = FALSE;
   skip_module_imports = FALSE;
   skip_module_version_check = FALSE;
+#if C99_IL_EXTENSIONS_SUPPORTED
+  gnu_imaginary_literals_allowed = FALSE;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 }  /* cmd_line_static_var_init */
 
 

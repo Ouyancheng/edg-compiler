@@ -91,14 +91,18 @@ Linux using the gcc/g++ header files.
   (void)enter_predef_macro("1", "__i486__", /*cannot_be_redefined=*/TRUE,
                            /*ref_suppresses_pch_file=*/FALSE);
 #endif /* ifdef __i486__ */
-  if (!gnu_mode) {
+  if (!gnu_mode || strict_gnu) {
     /* The following macros enable the use of some Linux system header
        files (like stdio.h) when not in GNU C mode. */
     /* Setting __STRICT_ANSI__ disables parts of Linux headers that rely on
        GNU C extensions. */
+    /* GNU and Clang define __STRICT_ANSI__ when --std=c* is used, but not
+       when --std=gnu* is used; emulate that with strict_gnu. */
     (void)enter_predef_macro("1", "__STRICT_ANSI__",
                              /*cannot_be_redefined=*/FALSE,
                              /*ref_suppresses_pch_file=*/FALSE);
+  }  /* if */
+  if (!gnu_mode) {
     if (pass_stdarg_references_to_generated_code) {
       /* <stdio.h> refers to __gnuc_va_list which is declared in the Linux
          version of <stdarg.h>.  Since we're in a mode that bypasses the actual

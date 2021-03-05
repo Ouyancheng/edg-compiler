@@ -904,6 +904,7 @@ check_abbreviation()
 --no_stdarg_builtin
 --no_stdc_zero_in_system_headers
 --no_std_libs
+--no_strict_gnu
 --no_sun
 --no_sun_linker_scope
 --no_svr4
@@ -985,6 +986,7 @@ check_abbreviation()
 --stdarg_builtin
 --stdc_zero_in_system_headers
 --strict
+--strict_gnu
 --strict_warnings
 --stricter_template_checking
 --strip
@@ -1560,6 +1562,8 @@ process_option()
          --no_g++ | \
          --clang | \
          --no_clang | \
+         --strict_gnu | \
+         --no_strict_gnu | \
          --report_gnu_extensions | \
          --dep_name | \
          --no_dep_name | \

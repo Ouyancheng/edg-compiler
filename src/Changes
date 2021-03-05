@@ -1,5 +1,32 @@
 Version 6.3
 
+3/5/21   [EDGcpfe/18999,EDGcpfe/23905,EDGcpfe/23995]
+GNU/Clang compatibility: --[no_]strict_gnu command-line option
+
+The GNU and Clang compilers have two different sets of command-line options to
+specify the version of the C/C++ standard to accept: -std=gnu* and -std=c*.
+The -std=c* form closely adheres to the appropriate ISO C or C++ standard
+document while the -std=gnu* version enforces the "GNU dialect" of that
+standard (including some features that might conflict with the ISO standard).
+The front end had previously not distinguished between these modes.
+
+A new command-line option, --[no_]gnu_strict, will now be used to distinguish
+these cases.  Using the --gnu_strict command-line option will mimic the -std=c*
+variant in GNU/Clang and using the --no_gnu_strict command-line option will
+emulate the -std=gnu* GNU/Clang behavior.  The default behavior will depend
+on the value of the new configuration macro DEFAULT_GNU_STRICT (which defaults
+to TRUE) unless a --c* or --c++* command-line option is specified or the value
+of std_version is implicitly set based on the value of gnu_version or
+clang_version, in which case the gnu_strict global variable is set to FALSE.
+This mimics the gcc/clang behavior of implicitly using the -std=gnu* variants
+unless -std=c* is explicitly specified.
+
+The difference between --strict_gnu and --no_strict_gnu currently has two
+effects: with --strict_gnu, __STRICT_ANSI__ is now defined, and with
+--no_strict_gnu, complex literals (e.g., "1.0i") are now accepted (previously
+an error was given in modes where user-defined literals were enabled).
+
+
 3/5/21   [EDGcpfe/23935]
 Internal error in GNU C++-mode friend function definition
 

@@ -9186,7 +9186,7 @@ following position.
         err = TRUE;
       }  /* if */
 #if C99_IL_EXTENSIONS_SUPPORTED
-    } else if (gnu_mode && !user_defined_literals_enabled &&
+    } else if (gnu_imaginary_literals_allowed &&
                (ch == 'i' || ch == 'I' || ch == 'j' || ch == 'J')) {
       /* A GNU imaginary literal 0 (e.g., "0i").  We do not generally support
          imaginary integer literals, but for "0i" we issue a discretionary
@@ -9235,7 +9235,7 @@ following position.
     if ((ch = *curr_char_loc) == '.') goto float_accum_1;
     if (ch == 'e' || ch == 'E')       goto float_accum_2;
 #if C99_IL_EXTENSIONS_SUPPORTED
-    if (gnu_mode && !user_defined_literals_enabled &&
+    if (gnu_imaginary_literals_allowed &&
         (ch == 'i' || ch == 'I' || ch == 'j' || ch == 'J') &&
         !is_id_char[*(curr_char_loc+1)-CHAR_MIN]) {
       /* A GNU imaginary literal of integral type (e.g., "12i").  We do not
@@ -9431,7 +9431,7 @@ end_float_accum:
      configurations, also accept the "i" or "j" suffix that denotes an
      imaginary value (it can appear before or after the "f" or "l" suffix). */
 #if C99_IL_EXTENSIONS_SUPPORTED
-  if (gnu_mode && !user_defined_literals_enabled &&
+  if (gnu_imaginary_literals_allowed &&
       ((ch = *curr_char_loc) == 'i' || ch == 'I' || ch == 'j' || ch == 'J')) {
     imaginary_literal = TRUE;
     ++curr_char_loc;
@@ -9454,7 +9454,7 @@ end_float_accum:
 #endif /* FIXED_POINT_ALLOWED */
   }  /* if */
 #if C99_IL_EXTENSIONS_SUPPORTED
-  if (gnu_mode && !imaginary_literal && !user_defined_literals_enabled &&
+  if (gnu_imaginary_literals_allowed && !imaginary_literal &&
       ((ch = *curr_char_loc) == 'i' || ch == 'I' || ch == 'j' || ch == 'J')) {
     imaginary_literal = TRUE;
     ++curr_char_loc;

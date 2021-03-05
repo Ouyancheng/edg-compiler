@@ -559,6 +559,20 @@ the value x*10000+y*100+z.
 #endif /* ifndef DEFAULT_GNU_VERSION */
 
 /*
+Macro that determines the default value for the strict_gnu variable.  A
+value of TRUE indicates that the front end should emulate the ISO standard
+version of the C and C++ language accepted by GNU and C++ (i.e., corresponds
+to the -std=c* GNU/Clang command-line options).  A value of FALSE enables
+various GCC/Clang extensions to the standard.  Note that the strict_gnu
+variable is implicitly set to FALSE in cases where the version of the standard
+is not explicitly specified (that matches the GCC/Clang behavior of, e.g.,
+implicitly enabling -std=gnu++14 when using GCC 6.1.0 or later).
+*/
+#ifndef DEFAULT_STRICT_GNU
+#define DEFAULT_STRICT_GNU TRUE
+#endif /* ifndef DEFAULT_STRICT_GNU */
+
+/*
 A configuration macro that determines the minimum GNU C/C++ version that can
 be emulated by the front end.  By default, the front end not normally support
 emulation of versions of gcc and g++ prior to 3.2 (30200).
@@ -1184,6 +1198,11 @@ EXTERN a_boolean
 		clang_mode;
 			/* Accept language_features supported by GNU and
 			   clang compilers. */
+EXTERN a_boolean
+		strict_gnu;
+			/* When TRUE, combined with gnu_mode or clang_mode,
+			   acts like -std=c* rather than -std=gnu*.  Valid in
+			   both C and C++ modes. */
 #else /* !(GNU_EXTENSIONS_ALLOWED || defined(_lint)) */
 /* Make gcc_mode, gpp_mode, gnu_mode, and clang_mode constant-expressions so
    some code can be optimized away.  Since lint would warn about such code, we
@@ -1192,6 +1211,7 @@ EXTERN a_boolean
 #define gpp_mode FALSE
 #define gnu_mode FALSE
 #define clang_mode FALSE
+#define strict_gnu FALSE
 #endif /* GNU_EXTENSIONS_ALLOWED || defined(_lint) */
 
 EXTERN unsigned long
