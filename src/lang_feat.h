@@ -559,20 +559,6 @@ the value x*10000+y*100+z.
 #endif /* ifndef DEFAULT_GNU_VERSION */
 
 /*
-Macro that determines the default value for the strict_gnu variable.  A
-value of TRUE indicates that the front end should emulate the ISO standard
-version of the C and C++ language accepted by GNU and C++ (i.e., corresponds
-to the -std=c* GNU/Clang command-line options).  A value of FALSE enables
-certain incompatible GCC/Clang extensions to the standard.  Note that the
-strict_gnu variable is implicitly set to FALSE in cases where the version of
-the standard is not explicitly specified (that matches the GCC/Clang behavior
-of, e.g., implicitly enabling -std=gnu++14 when using GCC 6.1.0 or later).
-*/
-#ifndef DEFAULT_STRICT_GNU
-#define DEFAULT_STRICT_GNU TRUE
-#endif /* ifndef DEFAULT_STRICT_GNU */
-
-/*
 A configuration macro that determines the minimum GNU C/C++ version that can
 be emulated by the front end.  By default, the front end not normally support
 emulation of versions of gcc and g++ prior to 3.2 (30200).
