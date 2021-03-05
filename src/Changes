@@ -1,5 +1,38 @@
 Version 6.3
 
+3/5/21   [EDGcpfe/24025]
+C++-generating back end, Microsoft compatibility: pointer to array type in
+template argument
+
+The Microsoft compiler has a bug that results in spurious syntax errors in
+some cases if a template argument contains a pointer to array type.  The
+C++-generating back end sometimes used the underlying type of a typedef
+referring to such a type, thus triggering the MSVC bug.  For example,
+with --microsoft:
+
+  template<int> struct A {
+    typedef int type;
+  };
+  template<typename> struct B {
+    static const unsigned value= 5;
+  };
+  template<class T> struct C {
+    typedef char(*type)[B<T>::value];
+  };
+  A<sizeof(*(C<int*>::type)0)>::type x;
+
+In the last line, the template argument uses the typedef C<int*>::type,
+which is declared as a pointer to a character array.  The C++-generating
+back end previously used the underlying type of this typedef in the
+generated code, resulting in that declaration being put out as:
+
+  A<sizeof(*((char(*)[B<int*>::value])0))>::type x;
+
+This form of the template argument to A, although correct, resulted in
+spurious errors when the generated code was compiled.  This is now fixed,
+and the generated code now preserves the use of the typedef.
+
+
 3/4/21   [EDGcpfe/24024]
 GNU/Clang emulation: C11 _Atomic with --ms_extensions
 
