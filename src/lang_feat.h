@@ -563,10 +563,10 @@ Macro that determines the default value for the strict_gnu variable.  A
 value of TRUE indicates that the front end should emulate the ISO standard
 version of the C and C++ language accepted by GNU and C++ (i.e., corresponds
 to the -std=c* GNU/Clang command-line options).  A value of FALSE enables
-various GCC/Clang extensions to the standard.  Note that the strict_gnu
-variable is implicitly set to FALSE in cases where the version of the standard
-is not explicitly specified (that matches the GCC/Clang behavior of, e.g.,
-implicitly enabling -std=gnu++14 when using GCC 6.1.0 or later).
+certain incompatible GCC/Clang extensions to the standard.  Note that the
+strict_gnu variable is implicitly set to FALSE in cases where the version of
+the standard is not explicitly specified (that matches the GCC/Clang behavior
+of, e.g., implicitly enabling -std=gnu++14 when using GCC 6.1.0 or later).
 */
 #ifndef DEFAULT_STRICT_GNU
 #define DEFAULT_STRICT_GNU TRUE

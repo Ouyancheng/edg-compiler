@@ -6,25 +6,27 @@ GNU/Clang compatibility: --[no_]strict_gnu command-line option
 The GNU and Clang compilers have two different sets of command-line options to
 specify the version of the C/C++ standard to accept: -std=gnu* and -std=c*.
 The -std=c* form closely adheres to the appropriate ISO C or C++ standard
-document while the -std=gnu* version enforces the "GNU dialect" of that
+document while the -std=gnu* version selects the "GNU dialect" of that
 standard (including some features that might conflict with the ISO standard).
 The front end had previously not distinguished between these modes.
 
 A new command-line option, --[no_]gnu_strict, will now be used to distinguish
 these cases.  Using the --gnu_strict command-line option will mimic the -std=c*
 variant in GNU/Clang and using the --no_gnu_strict command-line option will
-emulate the -std=gnu* GNU/Clang behavior.  The default behavior will depend
-on the value of the new configuration macro DEFAULT_GNU_STRICT (which defaults
-to TRUE) unless a --c* or --c++* command-line option is specified or the value
-of std_version is implicitly set based on the value of gnu_version or
-clang_version, in which case the gnu_strict global variable is set to FALSE.
-This mimics the gcc/clang behavior of implicitly using the -std=gnu* variants
-unless -std=c* is explicitly specified.
+emulate the -std=gnu* GNU/Clang behavior.  In the absence of either, when
+a --c* or --c++* command-line option is explicitly specified, the -std=c*
+behavior will be used (e.g., --c++11 is equivalent to -std=c++11).  In cases
+where a language version later than C++03 is inferred from the value of
+gnu_version or clang_version, the gnu_strict global variable is set to FALSE
+(mimicking the gcc/clang behavior of implicitly using the -std=gnu* variants).
+In other cases, the default behavior is determined by the DEFAULT_STRICT_GNU
+configuration macro.
 
 The difference between --strict_gnu and --no_strict_gnu currently has two
-effects: with --strict_gnu, __STRICT_ANSI__ is now defined, and with
---no_strict_gnu, complex literals (e.g., "1.0i") are now accepted (previously
-an error was given in modes where user-defined literals were enabled).
+effects: with --strict_gnu, the __STRICT_ANSI__ predefined macro is now
+defined, and with --no_strict_gnu, complex literals (e.g., "1.0i") are now
+accepted (previously this was interpreted as a user-defined literal in modes
+where UDLs are enabled).
 
 
 3/5/21   [EDGcpfe/23935]

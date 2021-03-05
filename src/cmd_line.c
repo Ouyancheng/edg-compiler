@@ -2280,7 +2280,8 @@ be given to the flag.
 
 static inline a_boolean c_mode_specified(void)
 /*
-Returns TRUE if a C mode is explicitly specified.
+Returns TRUE if an option designating a particular version of the C Standard
+is specified.
 */
 {
   a_boolean result = FALSE;
@@ -2298,7 +2299,8 @@ Returns TRUE if a C mode is explicitly specified.
 
 static inline a_boolean cpp_mode_specified(void)
 /*
-Returns TRUE if a C++ mode is explicitly specified.
+Returns TRUE if an option designating a particular version of the C++ Standard
+is specified.
 */
 {
   a_boolean result = FALSE;
@@ -11948,7 +11950,7 @@ enable_microsoft_mode:
       !option_kind_used[(int)optk_strict_gnu]) {
     /* Emulate -std=gnu* if we're running in GNU/Clang emulation mode and
        no --c* or --[no_]strict_gnu command-line options were given (which
-       matches gcc/clang behavior. */
+       matches gcc/clang behavior). */
     strict_gnu = FALSE;
   }  /* if */
 #if C99_IL_EXTENSIONS_SUPPORTED
