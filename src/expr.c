@@ -46557,7 +46557,16 @@ memory region).  Do various error checks.
       make_template_param_constant_from_operand(operand, constant,
                                                 (a_type_ptr)NULL);
     } else {
-      extract_constant_from_operand_with_fs_fixup(operand, constant);
+      an_expr_node_ptr  expr = NULL;
+      extract_constant_from_operand(operand, constant);
+      expr = constant->expr;
+      do_fs_constant_fixup(constant);
+      if (expr != NULL && !in_file_scope(expr) &&
+          innermost_function_scope != NULL) {
+        make_local_expr_node_ref(
+                         expr, (a_local_expr_node_ref_kind)lerk_constant_expr,
+                         (char*)constant, innermost_function_scope);
+      }  /* if */
     }  /* if */
   }  /* if */
   break_constant_source_corresp(constant);

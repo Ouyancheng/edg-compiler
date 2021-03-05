@@ -4537,6 +4537,13 @@ typedef struct a_constant {
 			   do constexpr evaluation.  As such, if should never
 			   be incorporated directly into "real" IL; a copy
 			   should always be made. */
+  a_bit_field	local_expr_ref:1;
+			/* TRUE if the expression normally associated with
+			   a_constant::expr is stored in a function scope
+			   memory region while this constant is stored in the
+			   file scope memory region.  In that case,
+			   a_constant::expr will be NULL and the expression
+			   can be found using find_local_expr_node instead. */
   a_constant_repr_kind
                 kind;
                         /* The kind of representation for the constant. */
@@ -13703,8 +13710,9 @@ enum a_local_expr_node_ref_kind_tag {
 			   than the "expr" field of the constant. */
   lerk_decltype,	/* An expression used as an argument for a decltype
 			   construct. */
-  lerk_bit_field_width	/* The expression for the width of a bit-field that
+  lerk_bit_field_width,	/* The expression for the width of a bit-field that
 			   refers to a local variable. */
+  lerk_constant_expr	/* The backing expression of a constant entry. */
 };
 
 typedef a_byte a_local_expr_node_ref_kind;

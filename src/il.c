@@ -13211,6 +13211,11 @@ The expression can then be recovered using find_local_expr_node.
       ((a_field_ptr)referrer)->bit_size_constant_expr_in_local_expr_node_ref =
                                                                           TRUE;
       break;
+    case lerk_constant_expr:
+      new_ref->referrer.kind = (a_byte_il_entry_kind)iek_constant;
+      check_assertion(!((a_constant_ptr)referrer)->local_expr_ref);
+      ((a_constant_ptr)referrer)->local_expr_ref = TRUE;
+      break;
     default:
       unexpected_condition();
   }  /* switch */
