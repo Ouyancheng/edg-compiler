@@ -3437,9 +3437,11 @@ explicitly specific as a command-line option and otherwise function as if
 -std-gnu* was specified).
 */
 {
+#if GNU_EXTENSIONS_ALLOWED
   if (!option_kind_used[(int)optk_strict_gnu]) {
     strict_gnu = FALSE;
   }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* set_implicit_gnu_nonstrict_mode */
 
 
@@ -11941,6 +11943,7 @@ enable_microsoft_mode:
 #endif /* BACK_END_IS_CP_GEN_BE */
   /* Only one C-style inlining mode can be in effect. */
   check_assertion(!(std_c99_inlining && gnu_c89_inlining));
+#if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode && !c_mode_specified() && !cpp_mode_specified() &&
       !option_kind_used[(int)optk_strict_gnu]) {
     /* Emulate -std=gnu* if we're running in GNU/Clang emulation mode and
@@ -11958,6 +11961,7 @@ enable_microsoft_mode:
     gnu_imaginary_literals_allowed = TRUE;
   }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* proc_command_line */
 
 #if COMPILE_MULTIPLE_TRANSLATION_UNITS
