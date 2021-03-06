@@ -76,7 +76,7 @@ with --microsoft:
     typedef int type;
   };
   template<typename> struct B {
-    static const unsigned value= 5;
+    static const unsigned value = 5;
   };
   template<class T> struct C {
     typedef char(*type)[B<T>::value];
