@@ -32,7 +32,7 @@ The changes for EDGcpfe/23704 in version 6.2 of the front end introduced a
 regression in some GNU C++ modes when handling certain friend function
 definitions in class templates.  This usually led to an internal error in
 rescan_reusable_cache, but in some other configurations the abort occurred
-in set_routine_declared_type instead).  For example (GNU C++ mode with
+in set_routine_declared_type instead.  For example (GNU C++ mode with
 prototype instantiation deferral disabled):
 
   template<typename T> struct S {
