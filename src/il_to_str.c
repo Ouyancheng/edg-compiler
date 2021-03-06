@@ -526,8 +526,10 @@ Output the indicated template argument in the way described by octl.
               sp = innermost_function_scope;
             }  /* if */
             if (sp != NULL) {
-              expr = find_local_expr_node_in_scope((char *)con,
-                                                   lerk_constant_expr, sp);
+              expr = find_local_expr_node_in_scope(
+                                (char *)con,
+                                (a_local_expr_node_ref_kind)lerk_constant_expr,
+                                sp);
               con->expr = expr;
             }  /* if */
           }  /* if */
