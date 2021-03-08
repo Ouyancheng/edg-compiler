@@ -1086,6 +1086,10 @@ typedef struct an_expr_stack_entry {
 		expr_will_be_discarded:1;
 			/* TRUE if scanning an expression whose result will be
 			   discarded (e.g., a void expression). */
+  a_bit_field
+		statement_expression_seen:1;
+			/* TRUE if a statement expression was seen in the
+			   current expression. */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor

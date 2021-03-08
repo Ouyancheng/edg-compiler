@@ -1857,6 +1857,7 @@ is pushed regardless of any of the other factors.
   new_entry->in_coroutine_desc_init = FALSE;
   new_entry->paren_as_aggregate_init = FALSE;
   new_entry->expr_will_be_discarded = FALSE;
+  new_entry->statement_expression_seen = FALSE;
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   new_entry->lifetime = NULL;
@@ -1889,8 +1890,7 @@ is pushed regardless of any of the other factors.
     /* Constant operations should be folded to constants inside
        constant expressions. */
     /* Set the flag for pre-C++11 constant expression scanning. */
-    if (!constexpr_enabled ||
-        curr_expr_kind_is(ek_pp)) {
+    if (!constexpr_enabled || curr_expr_kind_is(ek_pp)) {
       new_entry->traditional_const_expr_required = TRUE;
     }  /* if */
     expr_stack->favor_constant_result = TRUE;
@@ -2198,6 +2198,9 @@ major expression.
     if (expr_stack->any_suppressed_error &&
         new_top->template_deduction_context) {
       new_top->any_suppressed_error = TRUE;
+    }  /* if */
+    if (expr_stack->statement_expression_seen) {
+      new_top->statement_expression_seen = TRUE;
     }  /* if */
   }  /* if */
   /* Pop the stack. */

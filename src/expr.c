@@ -26036,6 +26036,7 @@ already been consumed.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     source_sequence_entries_disallowed = saved_sses_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    expr_stack->statement_expression_seen = TRUE;
   }  /* if */
   if (!err) {
     a_statement_ptr     stmt, last_stmt;
@@ -46562,7 +46563,15 @@ memory region).  Do various error checks.
       expr = constant->expr;
       do_fs_constant_fixup(constant);
       if (expr != NULL && !in_file_scope(expr) &&
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+          !expr_stack->statement_expression_seen &&
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
           innermost_function_scope != NULL) {
+        /* Refer to the underlying expression indirectly since it lives in
+           function scope memory.  (Discard the expression if a statement
+           expression and source sequence entries are recorded, because no
+           source sequence entries could be recorded for a template
+           argument.) */
         make_local_expr_node_ref(
                          expr, (a_local_expr_node_ref_kind)lerk_constant_expr,
                          (char*)constant, innermost_function_scope);
@@ -46872,7 +46881,6 @@ the corresponding list of arguments processed so far.
                      &result.position, result.type);
       }  /* if */
     }  /* if */
-    do_fs_constant_fixup(constant);
   } else {
     /* No destination type (or a Microsoft-mode dependent context).  Make a
        constant from the operand.  This comes up for errors and for nonreal
@@ -46884,8 +46892,9 @@ the corresponding list of arguments processed so far.
       check_assertion(total_errors != 0);
       eliminate_unusual_operand_kinds(&result);
     }  /* if */
-    extract_constant_from_operand_with_fs_fixup(&result, constant);
+    extract_constant_from_operand(&result, constant);
   }  /* if */
+  do_fs_constant_fixup(constant);
   switch_back_to_original_region(region_to_switch_back_to);
   if (constant->expr != NULL &&
       !curr_expr_kind_is_one_in_which_const_exprs_are_recorded()) {
