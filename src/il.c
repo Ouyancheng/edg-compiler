@@ -5857,6 +5857,10 @@ Copy a constant entry from "from" to "to".
      the "next" field. */
   to->next = NULL;
   clear_source_corresp_for_copy(&to->source_corresp);
+  /* If the original constant referred indirectly to a backing expression,
+     the copy will not do so since it doesn't have the associated
+     "local-expr-ref" entry. */
+  to->local_expr_ref = FALSE;
 #if EXPENSIVE_CHECKING
   if (constant_is(from, ck_template_param) &&
       tpck_is(from, tpck_expression) &&
