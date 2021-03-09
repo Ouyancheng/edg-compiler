@@ -1,5 +1,21 @@
 Version 6.3
 
+3/9/21   [EDGcpfe/24028]
+Clang C++ compatibility: Flexible array members in otherwise empty classes
+
+The changes for EDGcpfe/22387 in version 6.2 of the front end introduced a
+regression: Those changes caused flexible array members in Clang C++ mode to
+be treated like standard C99 flexible array members.  However, C99 requires
+such a member not to be the sole named member of its parent type, but Clang
+does not enforce that constraint in C++ modes (it does in C modes).  The
+front end now emulates that behavior in Clang C++ modes, thereby fixing the
+regression.  For example:
+
+  struct S {
+    int fam[];  // An error in Clang C++ mode with version 6.2 of the front
+  };            // end.  Now accepted.
+
+
 3/5/21   [EDGcpfe/18999,EDGcpfe/23905,EDGcpfe/23995]
 GNU/Clang compatibility: --[no_]strict_gnu command-line option
 
