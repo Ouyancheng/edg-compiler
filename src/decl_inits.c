@@ -9152,12 +9152,18 @@ initialized.  These are addressed in the course of the processing.
         }  /* if */
         if (cip->kind == (a_constructor_init_kind)cik_field &&
             (is_ref || is_const_qualified ||
-             (ctor_rout->is_constexpr && !cpp20_mode))) {
+             (ctor_rout->is_constexpr &&
+              !(cpp20_mode ||
+                (is_incomplete_array_type(cip->variant.field->type) &&
+                 (clang_version_is(>=110000) ||
+                  (gpp_version_is(>=80000) && gpp_version_is(<100000)))))))) {
           /* An uninitialized field that probably requires initialization.
              That includes ref-type fields and const-qualified fields, as well
              as any non-variant field for a pre-C++20 constexpr constructor.
              (C++20 lifted the requirement that all subobjects be initialized
-             through P1331R2 and the resolution of Core issue 2424.) */
+             through P1331R2 and the resolution of Core issue 2424.)  Flexible
+             array members, however, need not be initialized by constexpr
+             constructors in some versions of Clang and GCC. */
           if (is_union) {
             /* We don't issue diagnostics on initializing union members,
                partly because it's not well defined what should happen when
@@ -9296,7 +9302,9 @@ initialized.  These are addressed in the course of the processing.
             dip = make_error_constant_dynamic_init();
           } else {
             check_assertion(is_immediate_class_type(tp) ||
-                            tp->kind == (a_type_kind)tk_template_param);
+                            type_is(tp, tk_template_param) ||
+                            (array_type != NULL &&
+                             is_incomplete_array_type(array_type)));
             dip = alloc_dynamic_init((a_dynamic_init_kind)dik_none);
           }  /* if */
         } else {
