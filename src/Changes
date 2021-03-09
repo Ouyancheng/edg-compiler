@@ -1,5 +1,29 @@
 Version 6.3
 
+3/9/21   [EDGcpfe/24023]
+GNU C++ compatibility: Packing non-standard-layout types
+
+In GNU and Clang C++ mode, packing attributes are ignored for fields that are
+of a non-standard-layout class type.  However, the actual criterion used by the
+front end for ignoring such attributes was that the field type is not C++03 POD
+type.  That criterion remains in effect for Clang modes, but in GNU C++ mode it
+is now relaxed to fields that are not of standard-layout aggregate class types.
+For example, in GNU C++14 mode:
+
+  struct S {
+    unsigned a = 0; // Default initializer makes this non-POD.
+  };
+  struct X {
+    S b;
+    unsigned char c;
+  } __attribute__((packed));  // Attribute was previously ignored.
+                              // Now it is applied in GNU C++14 mode (but
+                              // not in Clang C++14 mode).
+
+The new behavior has been determined by trial and error and might not match
+what GCC actually implements.
+
+
 3/9/21   [EDGcpfe/24034]
 Clang and GNU C++ compatibility: Mem-initializers for flexible array members
 

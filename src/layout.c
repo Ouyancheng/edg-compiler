@@ -760,7 +760,7 @@ only).
   a_boolean         ignore_packing = FALSE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-  if (for_alignof && gnu_version < 30400) {
+  if (for_alignof && gnu_version_is(< 30400)) {
     /* In recent GNU C and C++ compilers, __alignof__ applied to a field
        selection operation (. or ->) results in the "field alignment" rather
        than the intrinsic alignment.  For example (assuming recent GNU rules
@@ -778,7 +778,8 @@ only).
   }  /* if */
   class_type = skip_typerefs(class_type);
 #if GNU_EXTENSIONS_ALLOWED
-  if (gpp_mode && gnu_version >= 30400 && !field->is_packed &&
+  if ((gpp_version_is(>= 30400) || clang_version_is(any_version)) && 
+      !field->is_packed &&
       class_type->variant.class_struct_union.max_member_alignment > 0 &&
       class_type->variant.class_struct_union.max_member_alignment
                                                           < field_alignment &&
@@ -793,7 +794,10 @@ only).
     if (is_immediate_class_type(ftp) &&
         !ftp->variant.class_struct_union.is_packed &&
         symbol_for(ftp) != NULL &&
-        !symbol_supplement_for_class(ftp)->is_cpp03_POD) {
+        (clang_mode ?
+          !symbol_supplement_for_class(ftp)->is_cpp03_POD :
+          (!class_symbol_supp(symbol_for(ftp))->standard_layout ||
+           !class_symbol_supp(symbol_for(ftp))->is_class_aggregate))) {
       a_targ_alignment  pragma_alignment = 0;
       an_attribute_ptr  psap = find_attribute(
                                        ak_pragma_pack_state,
