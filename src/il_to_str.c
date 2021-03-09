@@ -569,17 +569,16 @@ Output the indicated template argument in the way described by octl.
             form_constant(con, need_parens, octl);
             con->implicit_cast = saved_implicit_cast;
           }  /* if */
-          if (octl->suppress_expr_in_nontype_arg) {
-            con->expr = saved_expr;
+          con->expr = saved_expr;
 #if BACK_END_IS_CP_GEN_BE
-          } else if (octl->gen_compilable_code) {
+          if (octl->gen_compilable_code) {
             /* We only want to generate an expression, rather than a
                constant value, for the first reference to a given template
                instance, because the expression might use names that will
                not be in scope in later references to the instance. */
             con->expr = NULL;
-#endif /* BACK_END_IS_CP_GEN_BE */
           }  /* if */
+#endif /* BACK_END_IS_CP_GEN_BE */
         }  /* if */
       }
       octl->processing_nontype_template_argument = FALSE;
