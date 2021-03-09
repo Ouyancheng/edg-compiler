@@ -4946,7 +4946,14 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                     }  /* if */
                   }  /* if */
                   if (!result) break;
-                  mark_complete_object_initialized(var_bytes);
+                  if (ips->disallow_mutable_field_load &&
+                      is_immediate_class_type(vtp) &&
+                      vtp->variant.class_struct_union.any_mutable_member) {
+                    /* A class value with a mutable member cannot be fully
+                       loaded and thus is not completely initialized. */
+                  } else {
+                    mark_complete_object_initialized(var_bytes);
+                  }  /* if */
                   if (!no_reverse_map) {
                     /* Set up a reverse mapping so we can re-create a variable
                        address constant if the address (with potentially a
@@ -5270,10 +5277,12 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               continue;
             }  /* if */
             if (fp->is_mutable && ips->disallow_mutable_field_load) {
-              info_with_pos_sym(ec_constexpr_mutable_field_load,
-                                &ips->position, symbol_for(fp), ips);
-              do_constexpr_fail(result);
-              break;
+              /* Mutable fields cannot be loaded.  Just skip them for now.
+                 An attempt to read this later on will fail since the
+                 corresponding subobject won't be initialized (and it cannot
+                 be initialized later because the object is const). */
+              fp = fp->next;
+              continue;
             }  /* if */
             get_mapped_byte_count(&persistent_map, fp, offset);
             ftp = skip_typerefs(fp->type);
