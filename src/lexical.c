@@ -9085,6 +9085,7 @@ the kind of token.
                                        user_defined_literals_enabled &&
                                        (clang_mode || gnu_version_is(>=80100));
   a_boolean     tentative_udl_lookup = FALSE;
+
 /*
 Macro to skip over an optional C++14 digit separator (apostrophe).  Reports
 a warning if an apostrophe is seen when digit separators are not enabled
