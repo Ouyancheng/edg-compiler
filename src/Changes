@@ -29,8 +29,8 @@ Clang and GNU C++ compatibility: Mem-initializers for flexible array members
 
 The changes for EDGcpfe/22387 in version 6.2 of the front end introduced a
 regression: Those changes resulted in an error being issued if a flexible
-array member of a class type was not initialized by the mem-initializers of a
-constexpr constructor.  For example:
+array member of a class type was value- or default-initialized by the
+mem-initializers of a constexpr constructor.  For example:
 
   struct S {
     constexpr S()

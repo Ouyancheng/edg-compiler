@@ -9163,7 +9163,8 @@ initialized.  These are addressed in the course of the processing.
              (C++20 lifted the requirement that all subobjects be initialized
              through P1331R2 and the resolution of Core issue 2424.)  Flexible
              array members, however, need not be initialized by constexpr
-             constructors in some versions of Clang and GCC. */
+             constructors in some versions of Clang and GCC (and may also get
+             here if they are value-initialized). */
           if (is_union) {
             /* We don't issue diagnostics on initializing union members,
                partly because it's not well defined what should happen when
