@@ -9081,7 +9081,10 @@ the kind of token.
   a_const_char  *valid_chars = fetch_pp_tokens ? dig_or_nondig : decimal_dig;
   a_const_char  *separator_diag_issued_for = NULL;
   a_boolean     valid_sep;
-
+  a_boolean     prefer_udl_over_imag_suffix =
+                                       user_defined_literals_enabled &&
+                                       (clang_mode || gnu_version_is(>=80100));
+  a_boolean     tentative_udl_lookup = FALSE;
 /*
 Macro to skip over an optional C++14 digit separator (apostrophe).  Reports
 a warning if an apostrophe is seen when digit separators are not enabled
@@ -9433,7 +9436,18 @@ end_float_accum:
 #if C99_IL_EXTENSIONS_SUPPORTED
   if (gnu_imaginary_literals_allowed &&
       ((ch = *curr_char_loc) == 'i' || ch == 'I' || ch == 'j' || ch == 'J')) {
-    imaginary_literal = TRUE;
+    if (prefer_udl_over_imag_suffix) {
+      /* g++ and clang treat something like 0.5il as a user-defined literal
+         if a literal operator with that suffix has been declared and as an
+         imaginary literal otherwise.  We'll try this as a ud-suffix first
+         and come back here with prefer_udl_over_imag_suffix set to FALSE
+         if the lookup fails. */
+      possible_start_of_ud_suffix = curr_char_loc;
+      potential_ud_suffix = TRUE;
+      tentative_udl_lookup = TRUE;
+    } else {
+      imaginary_literal = TRUE;
+    }  /* if */
     ++curr_char_loc;
 #if FIXED_POINT_ALLOWED
     fixed_point_ruled_out = TRUE;
@@ -9443,7 +9457,9 @@ end_float_accum:
   if ((ch = *curr_char_loc) == 'f' || ch == 'F' || ch == 'l' || ch == 'L' ||
       (float80_enabled && (ch == 'w' || ch == 'W')) ||
       (float128_enabled && (ch == 'q' || ch == 'Q'))) {
-    possible_start_of_ud_suffix = curr_char_loc;
+    if (possible_start_of_ud_suffix == NULL) {
+      possible_start_of_ud_suffix = curr_char_loc;
+    }  /* if */
     curr_char_loc++;
 #if FIXED_POINT_ALLOWED
     if (ch == 'l' || ch == 'L') {
@@ -9456,7 +9472,12 @@ end_float_accum:
 #if C99_IL_EXTENSIONS_SUPPORTED
   if (gnu_imaginary_literals_allowed && !imaginary_literal &&
       ((ch = *curr_char_loc) == 'i' || ch == 'I' || ch == 'j' || ch == 'J')) {
-    imaginary_literal = TRUE;
+    if (prefer_udl_over_imag_suffix) {
+      potential_ud_suffix = TRUE;
+      tentative_udl_lookup = TRUE;
+    } else {
+      imaginary_literal = TRUE;
+    }  /* if */
     ++curr_char_loc;
 #if FIXED_POINT_ALLOWED
     fixed_point_ruled_out = TRUE;
@@ -9757,10 +9778,50 @@ fixed_point_suffix:
       }  /* if */
       ud_lit_op_sym_for_curr_token =
                               find_literal_operator(canonical_id, id_len,
-                                                    &start_pos,
+                                                    tentative_udl_lookup
+                                                                  ? NULL
+                                                                  : &start_pos,
                                                     ud_lit_type_for_curr_token,
                                                     /*from_cache=*/FALSE,
                                                     (a_diagnostic_ptr)NULL);
+      if (ud_lit_op_sym_for_curr_token == NULL && id_len <= 2 &&
+          prefer_udl_over_imag_suffix) {
+        /* g++ and clang treat something like 0.5il as a user-defined
+           literal if the corresponding literal operator has been declared
+           and an imaginary literal otherwise.  We've just determined that
+           there's no literal operator for the suffix.  Check to see if the
+           canonical id is one of the imaginary literal suffixes and, if so,
+           go back and rescan the number as an imaginary literal. */
+        a_boolean    is_imaginary_suffix = FALSE;
+        char         other_ch = 0;
+        if (strchr("IiJj", canonical_id[0]) != NULL) {
+          is_imaginary_suffix = TRUE;
+          if (id_len == 2) {
+            other_ch = canonical_id[1];
+          }  /* if */
+        } else if (id_len == 2 && strchr("IiJj", canonical_id[1]) != NULL) {
+          is_imaginary_suffix = TRUE;
+          other_ch = canonical_id[0];
+        }  /* if */
+        if (other_ch != 0) {
+          if (strchr("FfLlWwQq", other_ch) == NULL ||
+              (!float80_enabled && (other_ch == 'W' || other_ch == 'w')) ||
+              (!float128_enabled && (other_ch == 'Q' || other_ch == 'q'))) {
+            /* The second character is not one that can be combined with
+               'i' to designate an imaginary literal. */
+            is_imaginary_suffix = FALSE;
+          }  /* if */
+        }  /* if */
+        if (is_imaginary_suffix) {
+          /* Rescan the suffix. */
+          prefer_udl_over_imag_suffix = FALSE;
+          curr_char_loc = end_of_curr_token + 1;
+          ch = *curr_char_loc;
+          possible_start_of_ud_suffix = NULL;
+          potential_ud_suffix = FALSE;
+          goto end_float_accum;
+        }  /* if */
+      }  /* if */
       if (err_code != ec_no_error &&
           (ud_lit_op_sym_for_curr_token != NULL || caching_tokens)) {
         /* There was an overflow or underflow in the numeric portion of the

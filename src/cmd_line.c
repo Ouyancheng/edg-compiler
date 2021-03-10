@@ -1192,7 +1192,7 @@ Initialize the option information table.
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
   add_option_description(optk_strict_gnu, "strict_gnu",
-                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
   add_option_description(optk_strict_gnu, "no_strict_gnu",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
