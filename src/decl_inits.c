@@ -4191,7 +4191,9 @@ the type pointed to is opaque to declaration processing.
   if (expr_stack->paren_as_aggregate_init) {
     is->error_on_narrowing = FALSE;
     is->warning_on_narrowing = FALSE;
-  } else if (strict_ansi_mode || gpp_mode || clang_mode || microsoft_mode) {
+  } else if (strict_ansi_mode ||
+             (arg_match != NULL &&
+              (gpp_mode || clang_mode || microsoft_mode))) {
     is->error_on_narrowing = TRUE;
   } else {
     is->warning_on_narrowing = TRUE;
@@ -4259,8 +4261,7 @@ the type pointed to is opaque to declaration processing.
     case tk_class:
     case tk_struct:
     case tk_union:
-      if (dtype->variant.class_struct_union.is_nonreal_class/* ||
-          (gpp_mode && scope_stack_top().in_prototype_instantiation)*/) {
+      if (dtype->variant.class_struct_union.is_nonreal_class) {
         /* Treat nonreal classes like a template parameter since we don't
            really know their structure.  GCC also appears not to match the
            initializer to the class structure in template definitions, even
