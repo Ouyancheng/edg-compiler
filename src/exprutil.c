@@ -25027,9 +25027,6 @@ return FALSE and:
     a_symbol_ptr          sym;
     a_template_arg_ptr    old_args, new_args;
     a_template_param_ptr  params;
-    a_boolean             saved_in_concept_rescan =
-                                          scope_stack_top().in_concept_rescan;
-    scope_stack_top().in_concept_rescan = TRUE;
     templ = constraint->variant.concept_id.concept_template;
     sym = symbol_for(templ);
     old_args = constraint->variant.concept_id.args;
@@ -25056,6 +25053,8 @@ return FALSE and:
          called from check_eligibility. */
       new_args = old_args;
     }  /* if */
+    push_instantiation_scope_for_rescan(sym);
+    scope_stack_top().in_concept_rescan = TRUE;
     if (copy_error) {
       /* Substitution errors during parameter mappings are not SFINAE-like if
          they occur outside atomic constraints.  For example:
@@ -25088,7 +25087,7 @@ return FALSE and:
       }  /* if */
     }  /* if */
     free_template_arg_list(new_args);
-    scope_stack_top().in_concept_rescan = saved_in_concept_rescan;
+    pop_instantiation_scope_for_rescan();
   } else if (node_is_operator(constraint, eok_land)) {
     /* Check the two underlying constraints separately.  If the first
        determines the outcome, the second is neither substituted nor

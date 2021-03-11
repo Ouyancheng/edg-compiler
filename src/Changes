@@ -1,5 +1,24 @@
 Version 6.3
 
+3/10/21  [EDGcpfe/23932]
+Abort on use of variadic requires-expression parameters
+
+The front end could previously abort with an internal error in overload.c (in
+determine_function_viability) when expanding variadic parameters of a
+requires-expression.  For example:
+
+  template<typename F, typename ...Ts> auto g(F fn, Ts ...ps) {
+    return fn(ps...);
+  }
+  template<typename F, typename ...Ts>
+    concept C = requires(F fn, Ts... ps) { g(fn, ps...); };
+  static_assert(C<void(*)(int), int>);
+         // Previously aborted when substituting the g(fn, ps...) call in
+         // the requires-expression above.
+
+That is now fixed.
+
+
 3/9/21   [EDGcpfe/24023]
 GNU C++ compatibility: Packing non-standard-layout types
 
