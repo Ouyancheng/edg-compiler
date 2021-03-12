@@ -4192,8 +4192,11 @@ the type pointed to is opaque to declaration processing.
     is->error_on_narrowing = FALSE;
     is->warning_on_narrowing = FALSE;
   } else if (strict_ansi_mode ||
-             (arg_match != NULL &&
+             ((arg_match != NULL || is->decl_parse_state == NULL) &&
               (gpp_mode || clang_mode || microsoft_mode))) {
+    /* GCC, Clang, and Microsoft generally treat narrowing as an error, but
+       sometimes it's just a warning (particularly when the initializer is
+       for a specific variable declaration). */
     is->error_on_narrowing = TRUE;
   } else {
     is->warning_on_narrowing = TRUE;
