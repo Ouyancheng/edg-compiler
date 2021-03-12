@@ -19295,8 +19295,9 @@ context.)
         a_symbol_ptr                   sym;
 
         cssp = symbol_supplement_for_class(tp);
-        if (cssp->is_class_aggregate ||
-            ((gpp_mode || microsoft_mode) && base_classes_of(tp) == NULL)) {
+        if (cssp->is_class_aggregate || clang_mode || microsoft_mode ||
+            (gpp_mode && (gpp_version_is(<30400) ? base_classes_of(tp) == NULL
+                                                 : is_trivial_class(tp)))) {
           if ((sym = cssp->symbols) != NULL) {
             /* Assume. */
             decl_info->is_anonymous_union = TRUE;
