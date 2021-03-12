@@ -461,8 +461,8 @@ RECORD_BACKING_EXPRS_WITH_IL_LOWERING set to FALSE for this example
     }
     int x_ = 0;
   };
-  void f(void) {
-    S().foo(1);
+  void g(void) {
+    S().f(1);
   }
 
 This is a regression introduced in 6.0 by the changes for EDGcpfe/21809.
