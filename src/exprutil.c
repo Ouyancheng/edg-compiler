@@ -25406,6 +25406,7 @@ subst_pairs is successful.
   if (ptp != NULL && subst_pairs.length() != 0) {
     /* Check that the parameter list can successfully be substituted, and
        record parameter pack information in *ctws_state if needed. */
+    ctws_state.routine_type_levels = 0;
     (void)param_types_after_substitutions(ptp, subst_pairs,
                                           &requires_expr->position,
                                           CTWS_NO_OPTIONS, &copy_error,
