@@ -1703,6 +1703,10 @@ extern a_routine_ptr make_routine(a_type_ptr      type_ptr,
                                   a_storage_class storage_class,
                                   a_scope_depth   scope_depth);
 
+extern a_using_decl_ptr create_using_of_enumerator(
+                                          a_type_ptr       enum_type,
+                                          a_symbol_ptr     const_sym);
+
 extern a_using_decl_ptr make_using_decl(a_symbol_ptr      sym,
                                         a_source_position *pos,
 					a_scope_depth	  scope_depth);

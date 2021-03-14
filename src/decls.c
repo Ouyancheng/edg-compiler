@@ -16151,6 +16151,7 @@ current scope.
       }  /* if */
       break;
     } else {
+      a_boolean refers_to_enumerator = FALSE;
       if (curr_token == tok_typename) {
         /* A "using typename ..." declaration.  Process the typename
            specifier. */
@@ -16173,6 +16174,16 @@ current scope.
                                  GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
         }  /* if */
       }  /* if */
+      if (!err) {
+        /* See if this is a C++20 using of an enumerator (but not a
+           using-enum that refers to an enumerator type, which is handled
+           elsewhere). */
+        if (using_enum_enabled &&
+            locator_for_curr_id.is_class_member &&
+            is_enum_type(qualifier_class_type(locator_for_curr_id))) {
+          refers_to_enumerator = TRUE;
+        }  /* if */
+      }  /* if */
       if (err) {
         /* Diagnostic has already been issued. */
       } else if (sym == NULL) {
@@ -16187,6 +16198,7 @@ current scope.
         pos_error(ec_namespace_qualified_name_required, &error_position);
         err = TRUE;
       } else if (locator_for_curr_id.is_class_member &&
+                 !refers_to_enumerator &&
                  !(microsoft_bugs && microsoft_version <= 1310 &&
                    is_type_symbol(sym))) {
         /* A class-qualified name is normally not allowed here, but it is
@@ -16209,10 +16221,18 @@ current scope.
         /* Ignore pragma declarations. */
         discard_curr_construct_pragmas();
       } else {
-        a_namespace_ptr  nsp;
-        a_type_ptr       class_type;
         /* Pragmas cannot bind to a using declaration. */
         cannot_bind_to_curr_construct();
+      }  /* if */
+      if (err) {
+        /* Nothing else to do. */
+      } else if (refers_to_enumerator) {
+        a_type_ptr   enum_type = qualifier_class_type(locator_for_curr_id);
+        check_assertion(sym != NULL && symbol_is(sym, sk_constant));
+        create_using_of_enumerator(enum_type, sym);
+      } else {
+        a_namespace_ptr  nsp;
+        a_type_ptr       class_type;
         nsp = qualifier_namespace_ptr(locator_for_curr_id);
         class_type = qualifier_class_type(locator_for_curr_id);
         if (nsp != NULL &&
@@ -19521,6 +19541,104 @@ match what has been declared.
 }  /* module_declaration */
 
 
+a_using_decl_ptr create_using_of_enumerator(
+                                          a_type_ptr       enum_type,
+                                          a_symbol_ptr     const_sym)
+/*
+Create a projection symbol for const_sym in the current scope.  Make sure
+the new symbol would not conflict with a prior declaration.  Also create the
+using-decl entry for the enumerator.  Return the using-decl entry that was
+created.
+*/
+{
+  a_symbol_locator   locator;
+  a_source_position  decl_pos;
+  a_using_decl_ptr   udp = NULL;
+  a_symbol_ptr       sym;
+
+  check_assertion(curr_token == tok_identifier);
+  decl_pos = locator_for_curr_id.source_position;
+  clear_locator(&locator, &decl_pos);
+  locator.symbol_header = const_sym->header;
+  sym = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
+  if (sym != NULL) {
+    pos_syty_error(ec_using_enum_conflicts, &decl_pos, sym, enum_type);
+  } else {
+    /* Create a using-decl entry to represent this declaration in
+       the IL. */
+    udp = make_using_decl(const_sym, &decl_pos, depth_scope_stack);
+    udp->qualifier.class_type = enum_type;
+    udp->is_enumerator = TRUE;
+    /* Update cross-reference and source-sequence info, if required. */
+    record_using_decl(const_sym, &decl_pos, udp,
+                      /*prev_udp=*/(a_using_decl_ptr)NULL);
+    (void)enter_namespace_projection_symbol(const_sym,
+                                            /*is_using_decl=*/TRUE,
+                                            &locator,
+                                            depth_scope_stack,
+                                            /*suppress_redecl_error*/FALSE);
+  }  /* if */
+  return udp;
+}  /* create_using_of_enumerator */
+
+
+static void using_enum_declaration(a_decl_parse_state  *state)
+/*
+Scan a C++20 using-enum-declaration of the form:
+
+  using elaborated-enum-specifier;
+
+This causes symbols to be created in the current scope for the enumerators of
+the enumeration specified by the elaborated-enum-specifier.
+*/
+{
+  /* By pass the "enum" keyword. */
+  check_assertion(curr_token == tok_enum);
+  (void)get_token();
+  add_stop_token(tok_semicolon);
+  if (!is_generalized_identifier_start(GID_IMPLICIT_TYPE_CONTEXT)) {
+    /* The "enum" is not followed by an identifier. */
+    syntax_error(ec_exp_identifier);
+    discard_curr_construct_pragmas();
+  } else {
+    a_symbol_ptr       sym;
+    a_boolean          err;
+    a_source_position  id_pos = pos_curr_token;
+    a_type_ptr         enum_type = NULL;
+    /* Look up the identifier. */
+    sym = coalesce_and_lookup_generalized_identifier(
+                                 GID_IMPLICIT_TYPE_CONTEXT,
+                                 ilm_tag, &err);
+    if (sym == NULL) {
+      pos_st_error(ec_undefined_identifier, &id_pos,
+                   locator_for_curr_id.symbol_header->identifier);
+    } else if (!is_enum_symbol(sym)) {
+      pos_sy_error(ec_not_an_enum_type, &id_pos, sym);
+    } else {
+      enum_type = type_symbol_type(sym);
+    }  /* if */
+    if (enum_type != NULL) {
+      a_constant_ptr	enumerators;
+      a_boolean         first = TRUE;
+      for (enumerators = enum_constants(enum_type); enumerators != NULL;
+           enumerators = enumerators->next) {
+        a_symbol_ptr     const_sym = symbol_for(enumerators);
+        a_using_decl_ptr udp;
+        udp = create_using_of_enumerator(enum_type, const_sym);
+        if (udp != NULL) {
+          udp->is_using_enum = TRUE;
+          udp->is_representative = first;
+          first = FALSE;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+    /* Bypass the identifier token. */
+    (void)get_token();
+  }  /* if */
+  remove_stop_token(tok_semicolon);
+}  /* using_enum_declaration */
+
+
 static an_end_of_decl_action
               check_special_declaration_form(a_decl_parse_state  *state,
                                              a_token_kind        *final_token)
@@ -19658,6 +19776,9 @@ processing should proceed after the call.
         }  /* if */
         using_directive(state, &using_pos);
         state->decl_okay_in_constexpr_body = TRUE;
+      } else if (curr_token == tok_enum && using_enum_enabled) {
+        /* A C++20 "using enum" declaration. */
+        using_enum_declaration(state);
       } else {
         a_token_kind  next_tok;
         /* Attributes cannot precede a using-declaration (they are allowed

@@ -17966,10 +17966,18 @@ Generate code for a class member or nonmember using-declaration.
   an_il_entry_kind         entry_kind;
   a_namespace_ptr          nsp;
   a_boolean                used_generated_typedef = FALSE, emit_using = TRUE;
+  a_boolean                any_entries_output = FALSE;
 
   /* Advance past the source sequence entry for the "using" directive. */
   adv_curr_source_sequence_entry();
   for (;;) {
+    scp = NULL;
+    if (udp->is_using_enum && !udp->is_representative) {
+      /* Multiple entries can be created by a "using-enum".  Only process
+         the representative one. */
+      goto next_entry;
+    }  /* if */
+    any_entries_output = TRUE;
     /* Position the output file to the "using" position. */
     set_output_position(&udp->position);
     /* Get the source correspondence entry for the entity. */
@@ -17981,7 +17989,15 @@ Generate code for a class member or nonmember using-declaration.
       scp = source_corresp_for_il_entry(udp->entity.ptr, entry_kind);
     }  /* if */
     check_assertion(scp != NULL);
-    if (udp->is_class_member) {
+    if (udp->is_using_enum) {
+      /* A representative entry for a C++20 "using enum" or using-declaration
+         that refers to an enumerator. */
+      if (emit_using) {
+        write_tok_str("using ");
+      }  /* if */
+      gen_name(&udp->qualifier.class_type->source_corresp, iek_type,
+               GN_NO_OPTIONS, (a_boolean*)NULL);
+    } else if (udp->is_class_member) {
       /* A class member using-declaration. */
       a_type_ptr class_type = udp->qualifier.class_type;
       a_type_ptr qualifier;
@@ -18045,7 +18061,9 @@ Generate code for a class member or nonmember using-declaration.
         gen_namespace_qualifier(nsp, GN_NO_OPTIONS, (a_boolean *)NULL);
       }  /* if */
     }  /* if */
-    if (udp->is_inheriting_ctor) {
+    if (udp->is_using_enum) {
+      /* The final part of the name is not emitted in this case. */
+    } else if (udp->is_inheriting_ctor) {
       /* udp->entity.ptr points to the class type from which to "inherit" the
          constructors, but for something like X<int>, the rendering should be
          "using X<int>::X;" and not "using X<int>::X<int>;". */
@@ -18057,6 +18075,7 @@ Generate code for a class member or nonmember using-declaration.
     if (udp->is_pack_expansion) {
       write_tok_str("...");
     }  /* if */
+next_entry:
     /* Move to the next entry. */
     udp = udp->next;
     /* Skip entries that were added for the same specified qualified-name
@@ -18070,10 +18089,10 @@ Generate code for a class member or nonmember using-declaration.
          a separate using-declaration. */
       break;
     }  /* if */
-    write_tok_str(", ");
+    if (scp != NULL) write_tok_str(", ");
     emit_using = FALSE;
   }  /* for */
-  write_tok_ch(';');
+  if (any_entries_output) write_tok_ch(';');
 }  /* gen_using_declaration */
 
 

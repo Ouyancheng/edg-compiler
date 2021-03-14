@@ -3526,8 +3526,19 @@ typedef struct a_using_decl {
 			/* TRUE for a using-declaration entry that is the
 			   "representative" for potentially multiple entries
 			   created for a using-declaration (because an overload
-			   set is referred to).  This is useful for the
-			   C++-generating back end. */
+			   set is referred to, or for a "using enum").  This
+			   is useful for the C++-generating back end. */
+  a_bit_field	is_using_enum:1;
+			/* TRUE if this entry was created for a C++20
+			   "using enum" declaration.  One entry is created
+			   for each enumerator.  The initial entry for the
+			   "using enum" has is_representative set. */
+  a_bit_field	is_enumerator:1;
+			/* TRUE if this entry was created for a C++20
+			   using-declaration that refers to an enumerator.
+			   This could be either the "using enum" case for which
+			   is_using_enum is also set, or a using-declaration
+			   in which the name refers to an enumerator. */
   an_access_specifier
                 access;
 			/* For class member using-declarations only, the
@@ -3535,12 +3546,13 @@ typedef struct a_using_decl {
 			   member. */
   a_parent_class_or_namespace
 		qualifier;
-			/* For using-declarations only, the class or namespace
-			   that was actually specified in the qualified name
-			   that appeared in the source code (which is not
-			   necessarily the same as the parent of that which is
-			   referred to by entity.ptr).  For class member
-			   using-declarations, use the class_type variant;
+			/* For using-declarations only, the class, namespace,
+			   or enum type that was actually specified in the
+			   qualified name that appeared in the source code
+			   (which is not necessarily the same as the parent
+			   of that which is referred to by entity.ptr).  For
+			   class member using-declarations or when
+			   is_enumerator is TRUE, use the class_type variant;
 			   otherwise, use the namespace_ptr variant, which
 			   will be NULL when the global qualifier ("::") was
 			   specified. */

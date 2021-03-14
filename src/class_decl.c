@@ -25089,6 +25089,7 @@ declaration from a using-declaration.)
   while (!check_for_packs || any_more) {
     a_pack_expansion_descr_ptr  pedep;
     a_using_decl_ptr            rep_udp = NULL;
+    a_boolean                   refers_to_enumerator = FALSE;
     /* Coalesce the identifier, which should be a qualified name with a class
        qualifier where the class is a base class of the current class (as
        indicated by class_type). */
@@ -25139,10 +25140,6 @@ declaration from a using-declaration.)
                               GID_DTOR_RECOGNIZED | GID_TEMPLATE_ARGS_OPTIONAL,
                               ilm_using_declaration, &err);
       }  /* if */
-    }  /* if */
-    if (!err && is_union_type(class_type)) {
-      pos_error(ec_no_access_or_using_decl_in_union, &using_pos);
-      err = TRUE;
     }  /* if */
     if (!err) {
       decl_pos = locator_for_curr_id.source_position;
@@ -25200,10 +25197,15 @@ declaration from a using-declaration.)
       }  /* if */
       if (!err) {
         a_type_ptr  parent_class = qualifier_class_type(locator_for_curr_id);
-        if ((could_be_dependent_class_type(parent_class) ||
-             has_dependent_base_class(class_type)) &&
-            (!parent_class->incomplete || gpp_mode || microsoft_mode) &&
-            !same_entities(class_type, parent_class)) {
+        refers_to_enumerator = using_enum_enabled &&
+                               is_enum_type(parent_class);
+        if (refers_to_enumerator) {
+          /* The class member using-declaration rules do not apply to a using
+             of an enumerator. */
+        } else if ((could_be_dependent_class_type(parent_class) ||
+                   has_dependent_base_class(class_type)) &&
+                  (!parent_class->incomplete || gpp_mode || microsoft_mode) &&
+                  !same_entities(class_type, parent_class)) {
           /* The qualifier is a dependent class or the enclosing class has a
              dependent base class.  Either way, we cannot in general determine
              which base class the using-declaration refers to.  Suppress the
@@ -25233,7 +25235,15 @@ declaration from a using-declaration.)
           }  /* if */
         }  /* if */
       }  /* if */
-      if (!err && !no_il_entry) {
+      if (!err && !refers_to_enumerator && is_union_type(class_type)) {
+        pos_error(ec_no_access_or_using_decl_in_union, &using_pos);
+        err = TRUE;
+      }  /* if */
+      if (err) {
+        /* Nothing else to do. */
+      } else if (refers_to_enumerator) {
+        /* No further error checks at this point for the enumerator case. */
+      } else if (!no_il_entry) {
         a_symbol_ptr  existing_sym;
         /* Look up the name in the scope of the current class. */
         clear_locator(&locator, &decl_pos);
@@ -25291,8 +25301,14 @@ declaration from a using-declaration.)
     } else {
       discard_curr_construct_pragmas();
     }  /* if */
-    if (!err && !no_il_entry &&
-        !is_duplicate_member_using_decl(declared_sym, &using_pos)) {
+    if (err) {
+      /* Nothing else to do. */
+    } else if (refers_to_enumerator) {
+      a_type_ptr   enum_type = qualifier_class_type(locator_for_curr_id);
+      check_assertion(fund_sym != NULL && symbol_is(fund_sym, sk_constant));
+      create_using_of_enumerator(enum_type, fund_sym);
+    } else if (!no_il_entry &&
+               !is_duplicate_member_using_decl(declared_sym, &using_pos)) {
       /* No error so far, so enter the using-declaration symbol. */
       a_boolean  is_overloaded = FALSE;
       other_sym = NULL;

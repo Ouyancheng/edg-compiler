@@ -2991,7 +2991,7 @@ do_set_proper_definition_needed_flag:
         walk_ptr(eptr->entity.ptr, a_char_ptr,
                  (an_il_entry_kind)eptr->entity.kind);
         walk_list(eptr->attributes, an_attribute_ptr, iek_attribute);
-        if (eptr->is_class_member) {
+        if (eptr->is_class_member || eptr->is_enumerator) {
           remap_ptr(eptr->qualifier.class_type, a_type_ptr, iek_type);
         } else {
           remap_ptr(eptr->qualifier.namespace_ptr, a_namespace_ptr,

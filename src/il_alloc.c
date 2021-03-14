@@ -4583,6 +4583,8 @@ Allocate a using-decl entry, initialize its fields, and return a pointer to it.
   udp->strong                = FALSE;
   udp->is_pack_expansion     = FALSE;
   udp->is_representative     = FALSE;
+  udp->is_using_enum         = FALSE;
+  udp->is_enumerator         = FALSE;
   udp->access                = (an_access_specifier)as_public;
   udp->qualifier.namespace_ptr
                              = NULL;

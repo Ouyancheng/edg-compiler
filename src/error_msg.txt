@@ -3258,6 +3258,8 @@ ec_import_name_not_allowed;;"\"import\" is not allowed in a module name"
 ec_module_name_not_allowed;;"\"module\" is not allowed in a module name"
 ec_macro_in_import_pp_directive;;"%sq cannot be a macro when used in an import directive"
 REMOVED;ec_macro_in_module_pp_directive;;"%sq cannot be a macro when used in a module directive"
+ec_not_an_enum_type;;"%n is not an enumeration type"
+ec_using_enum_conflicts;;"enumerator from enumeration type %t conflicts with %n"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

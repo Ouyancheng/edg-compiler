@@ -3476,7 +3476,9 @@ Return TRUE if the given using declarations refer to corresponding entities.
 {
   a_boolean  result = ud1->is_using_directive == ud2->is_using_directive &&
                       ud1->access == ud2->access &&
-                      ud1->entity.kind == ud2->entity.kind ;
+                      ud1->is_using_enum == ud2->is_using_enum &&
+                      ud1->is_enumerator == ud2->is_enumerator &&
+                      ud1->entity.kind == ud2->entity.kind;
 
   if (!result) {
     /* Nothing more to be tested. */

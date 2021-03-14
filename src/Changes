@@ -1,5 +1,28 @@
 Version 6.3
 
+3/14/21  [EDGcpfe/21586,EDGcpfe/22684]
+C++20: using enum declarations
+
+C++20 "using enum" is now implemented.  This adds thew new "using enum"
+declaration which introduces all of the enumerators of the specified type
+into the current scope, and allows using-declarations to introduce individual
+enumerators into the current scope.
+
+  // Using of enumeration
+  namespace N {
+    enum E { e1, e2};
+  }
+  using enum N::E;
+  int x = e1 + e2;
+
+  // Using of enumerator
+  enum class button { up, down };
+  struct S {
+    using button::up;
+    button b = up;
+  };
+
+
 3/11/21  [EDGcpfe/23822,EDGcpfe/23917,EDGcpfe/23998]
 Nonstandard anonymous unions with base classes
 

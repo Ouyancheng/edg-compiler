@@ -6657,11 +6657,15 @@ Display the indicated using-declaration or using-directive entry.
     /* Either a class member using-declaration or a nonmember
        using-declaration. */
     disp_boolean("is_class_member", ptr->is_class_member);
-    if (ptr->is_class_member) {
-      /* Class member using-declaration. */
-      disp_access("access", ptr->access);
-      if (ptr->is_inheriting_ctor) disp_boolean("is_inheriting_ctor", TRUE);
-      if (ptr->hidden) disp_boolean("hidden", TRUE);
+    disp_boolean("is_using_enum", ptr->is_using_enum);
+    disp_boolean("is_enumerator", ptr->is_enumerator);
+    if (ptr->is_class_member && ptr->is_enumerator) {
+      /* Class member using-declaration or using of enumerator. */
+      if (ptr->is_class_member) {
+        disp_access("access", ptr->access);
+        if (ptr->is_inheriting_ctor) disp_boolean("is_inheriting_ctor", TRUE);
+        if (ptr->hidden) disp_boolean("hidden", TRUE);
+      }  /* if */
       disp_ptr("qualifier.class_type",
                (char *)ptr->qualifier.class_type, iek_type);
     } else {

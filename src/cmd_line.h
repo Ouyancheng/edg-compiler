@@ -669,6 +669,11 @@ EXTERN a_boolean
 			   are enabled. */
 
 EXTERN a_boolean
+		using_enum_enabled;
+			/* TRUE if C++20 "using enum" declarations are
+			   enabled. */
+
+EXTERN a_boolean
 		struct_bindings_enabled;
 			/* TRUE if structured bindings (a C++17 feature) are
 			   accepted. */
