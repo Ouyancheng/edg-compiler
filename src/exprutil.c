@@ -25033,7 +25033,10 @@ return FALSE and:
     params = sym->variant.template_info->cache.decl_info->parameters;
     if (template_param_list != NULL) {
       /* Substitute the dependent arguments of the concept-id. */
-      a_ctws_state          ctws_state;
+      a_ctws_state  ctws_state;
+      a_boolean     saved_in_concept_rescan =
+                                          scope_stack_top().in_concept_rescan;
+      scope_stack_top().in_concept_rescan = TRUE;
       init_ctws_state(&ctws_state);
       /* Substitute the concept-id's original arguments.  We should really
          only substitute the parameters that are actually referenced by the
@@ -25048,6 +25051,7 @@ return FALSE and:
                                                   &constraint->position,
                                                   CTWS_NO_OPTIONS,
                                                   &copy_error, &ctws_state);
+      scope_stack_top().in_concept_rescan = saved_in_concept_rescan;
     } else {
       /* The concept-id is already fully non-dependent.  This occurs when
          called from check_eligibility. */
