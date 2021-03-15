@@ -19566,17 +19566,20 @@ created.
   } else {
     /* Create a using-decl entry to represent this declaration in
        the IL. */
+    a_symbol_ptr  new_sym;
     udp = make_using_decl(const_sym, &decl_pos, depth_scope_stack);
     udp->qualifier.class_type = enum_type;
     udp->is_enumerator = TRUE;
     /* Update cross-reference and source-sequence info, if required. */
     record_using_decl(const_sym, &decl_pos, udp,
                       /*prev_udp=*/(a_using_decl_ptr)NULL);
-    (void)enter_namespace_projection_symbol(const_sym,
+    new_sym = enter_namespace_projection_symbol(const_sym,
                                             /*is_using_decl=*/TRUE,
                                             &locator,
                                             depth_scope_stack,
                                             /*suppress_redecl_error*/FALSE);
+    set_namespace_membership(new_sym, (a_source_correspondence *)NULL,
+                             (a_namespace_ptr)NULL);
   }  /* if */
   return udp;
 }  /* create_using_of_enumerator */
@@ -19616,6 +19619,7 @@ the enumeration specified by the elaborated-enum-specifier.
       pos_sy_error(ec_not_an_enum_type, &id_pos, sym);
     } else {
       enum_type = type_symbol_type(sym);
+      enum_type = skip_typerefs(enum_type);
     }  /* if */
     if (enum_type != NULL) {
       a_constant_ptr	enumerators;

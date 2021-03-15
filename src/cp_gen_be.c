@@ -17993,7 +17993,7 @@ Generate code for a class member or nonmember using-declaration.
       /* A representative entry for a C++20 "using enum" or using-declaration
          that refers to an enumerator. */
       if (emit_using) {
-        write_tok_str("using ");
+        write_tok_str("using enum ");
       }  /* if */
       gen_name(&udp->qualifier.class_type->source_corresp, iek_type,
                GN_NO_OPTIONS, (a_boolean*)NULL);
