@@ -3336,13 +3336,9 @@ initialized.
   { byte_pos = (offset)/CHAR_BIT + sizeof(a_type_ptr)+2;                     \
     bit_pos = (offset)%CHAR_BIT; }
 
-  
 /*
-Mark the complete object at the given address as fully initialized.
+Mark a subobject within a given complete object as initialized.
 */
-#define mark_complete_object_initialized(obj)                                \
-  (*((a_byte*)obj-sizeof(a_type_ptr)-1) = 1)
-
 #define mark_subobject_initialized(subobj, complete_obj)                     \
 {                                                                            \
   a_byte        *start_byte = (complete_obj);                                \
@@ -3390,12 +3386,6 @@ indicated subobject and all its subobject as initialized.
   }  /* if */
 }  /* mark_whole_subobject_initialized */
 
-
-/*
-Mark the complete object at the given address as not fully initialized.
-*/
-#define unmark_complete_object_initialized(obj)                              \
-  (*((a_byte*)obj-sizeof(a_type_ptr)-1) = 0)
 
 #define mark_subobject_uninitialized(subobj, complete_obj)                   \
 {                                                                            \
@@ -3817,7 +3807,8 @@ Output the contents of the interpreted object of type tp stored at addr.
     goto done;
   }  /* if */
   tp = skip_typerefs(tp);
-  if (!subobject_is_initialized(addr, complete_object)) {
+  if (addr != complete_object &&
+      !subobject_is_initialized(addr, complete_object)) {
     not_initialized = TRUE;
   }  /* if */
   switch (tp->kind) {
@@ -3977,6 +3968,9 @@ Output the contents of the given complete object.
 {
   a_type_ptr  tp = complete_object_type(obj);
 
+  (void)fprintf(f_debug, ">> %s initialized:\n",
+                complete_object_is_initialized(obj) ? "Completely"
+                                                    : "Not completely");
   if (is_scalar_type(tp)) {
     db_type(tp);
     (void)fprintf(f_debug, "= ");
@@ -4048,6 +4042,19 @@ Trigger an internal error if the given path contains a cycle.
 }  /* check_no_variant_path_cycle */
 
 #endif /* EXPENSIVE_CHECKING */
+
+/*
+Mark the complete object at the given address as fully initialized.
+*/
+#define mark_complete_object_initialized(obj)                                \
+  (*((a_byte*)obj-sizeof(a_type_ptr)-1) = 1/*, db_complete_object(obj)*/)
+
+/*
+Mark the complete object at the given address as not fully initialized.
+*/
+#define unmark_complete_object_initialized(obj)                              \
+  (*((a_byte*)obj-sizeof(a_type_ptr)-1) = 0)
+
 
 static void make_anon_union_path(a_symbol_ptr              au_sym,
                                  a_variant_path_entry_ptr  *p_last_entry,
@@ -17782,7 +17789,12 @@ the value representation of the integer value.
           do_constexpr_fail(result);
         }  /* if */
         if (expr->is_lvalue || expr->is_xvalue) {
-          mark_complete_object_initialized(tmp_bytes);
+          if (!is_immediate_class_type(tp) && !type_is(tp, tk_array)) {
+            /* Make sure that scalar-like types are marked as initialized.
+               Aggregate types are marked member-by-member as they are
+               initialized. */
+            mark_complete_object_initialized(tmp_bytes);
+          }  /* if */
         } else {
           mark_subobject_initialized(tmp_bytes, tmp_complete_obj);
         }  /* if */
