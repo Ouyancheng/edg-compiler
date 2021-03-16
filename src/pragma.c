@@ -1008,7 +1008,7 @@ or sp pointer must be supplied.  The IL entry is then added to the IL.
     } else {
       entity = NULL;
       entity_kind = (an_il_entry_kind)iek_none;
-     is_global = pkdp->global;
+      is_global = pkdp->global;
     }  /* if */
     add_pragma_to_il(ppp, entity_kind, entity, is_global);
   }  /* if */
