@@ -1703,9 +1703,14 @@ extern a_routine_ptr make_routine(a_type_ptr      type_ptr,
                                   a_storage_class storage_class,
                                   a_scope_depth   scope_depth);
 
+extern void using_enum_declaration(a_type_ptr           class_type = NULL,
+                                   an_access_specifier  access = as_public);
+
 extern a_using_decl_ptr create_using_of_enumerator(
-                                          a_type_ptr       enum_type,
-                                          a_symbol_ptr     const_sym);
+                                      a_type_ptr           enum_type,
+                                      a_symbol_ptr         const_sym,
+                                      a_type_ptr           class_type = NULL,
+                                      an_access_specifier  access = as_public);
 
 extern a_using_decl_ptr make_using_decl(a_symbol_ptr      sym,
                                         a_source_position *pos,

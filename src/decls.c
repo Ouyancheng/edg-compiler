@@ -16177,11 +16177,11 @@ current scope.
       }  /* if */
       if (!err) {
         /* See if this is a C++20 using of an enumerator (but not a
-           using-enum that refers to an enumerator type, which is handled
+           "using enum" that refers to an enumerator type, which is handled
            elsewhere). */
         if (using_enum_enabled &&
-            locator_for_curr_id.is_class_member &&
-            is_enum_type(qualifier_class_type(locator_for_curr_id))) {
+            sym != NULL && symbol_is(sym, sk_constant) &&
+            is_enum_constant(sym->variant.constant)) {
           refers_to_enumerator = TRUE;
         }  /* if */
       }  /* if */
@@ -16230,7 +16230,7 @@ current scope.
       } else if (refers_to_enumerator) {
         a_type_ptr   enum_type = qualifier_class_type(locator_for_curr_id);
         check_assertion(sym != NULL && symbol_is(sym, sk_constant));
-        create_using_of_enumerator(enum_type, sym);
+        (void)create_using_of_enumerator(enum_type, sym);
       } else {
         a_namespace_ptr  nsp;
         a_type_ptr       class_type;
@@ -19543,13 +19543,22 @@ match what has been declared.
 
 
 a_using_decl_ptr create_using_of_enumerator(
-                                          a_type_ptr       enum_type,
-                                          a_symbol_ptr     const_sym)
+                                          a_type_ptr           enum_type,
+                                          a_symbol_ptr         const_sym,
+                        /* Defaulted: */  a_type_ptr           class_type,
+                                          an_access_specifier  access)
+
 /*
-Create a projection symbol for const_sym in the current scope.  Make sure
-the new symbol would not conflict with a prior declaration.  Also create the
-using-decl entry for the enumerator.  Return the using-decl entry that was
-created.
+Create a projection symbol for const_sym in the current scope.  enum_type is
+the type specified in the using-declaration, and can be different than the
+parent type of const_sym (e.g., for an enumerator from an unscoped enumeration
+where the enumerator can be named as a member of the enclosing class or
+namespace).  Make sure the new symbol would not conflict with a prior
+declaration.  Also create the using-decl entry for the enumerator.
+Return the using-decl entry that was created.  If the using-declaration or
+using-enum-declaration appears in a class scope, class_type is the type of
+the class, and access is the current access level.  If the declaration is
+not in a class scope, class_type must be NULL and access is not used.
 */
 {
   a_symbol_locator   locator;
@@ -19562,7 +19571,10 @@ created.
   clear_locator(&locator, &decl_pos);
   locator.symbol_header = const_sym->header;
   sym = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
-  if (sym != NULL) {
+  if (sym == const_sym && class_type == NULL) {
+    /* This is a redeclaration of a previous using-declaration and we are
+       in a non-class using-directive. */
+  } else if (sym != NULL) {
     pos_syty_error(ec_using_enum_conflicts, &decl_pos, sym, enum_type);
   } else {
     /* Create a using-decl entry to represent this declaration in
@@ -19574,19 +19586,27 @@ created.
     /* Update cross-reference and source-sequence info, if required. */
     record_using_decl(const_sym, &decl_pos, udp,
                       /*prev_udp=*/(a_using_decl_ptr)NULL);
-    new_sym = enter_namespace_projection_symbol(const_sym,
-                                            /*is_using_decl=*/TRUE,
-                                            &locator,
-                                            depth_scope_stack,
-                                            /*suppress_redecl_error*/FALSE);
-    set_namespace_membership(new_sym, (a_source_correspondence *)NULL,
-                             (a_namespace_ptr)NULL);
+    new_sym = enter_namespace_projection_symbol(
+                                   const_sym, /*is_using_decl=*/TRUE, &locator,
+                                   depth_scope_stack,
+                                   /*suppress_redecl_error*/FALSE);
+    if (class_type != NULL) {
+      new_sym->variant.projection.access = access;
+      set_class_membership(new_sym, (a_source_correspondence *)NULL,
+                           class_type);
+    } else {   
+      set_namespace_membership(new_sym, (a_source_correspondence *)NULL,
+                               (a_namespace_ptr)NULL);
+    }  /* if */
   }  /* if */
   return udp;
 }  /* create_using_of_enumerator */
 
 
-static void using_enum_declaration(a_decl_parse_state  *state)
+void using_enum_declaration(
+          /* Defaulted: */  a_type_ptr           class_type,
+                            an_access_specifier  access)
+
 /*
 Scan a C++20 using-enum-declaration of the form:
 
@@ -19594,9 +19614,13 @@ Scan a C++20 using-enum-declaration of the form:
 
 This causes symbols to be created in the current scope for the enumerators of
 the enumeration specified by the elaborated-enum-specifier.
-*/
+
+If the using-declaration or using-enum-declaration appears in a class scope,
+class_type is the type of the class, and access is the current access level.
+If the declaration is not in a class scope, class_type must be NULL and access
+is not used.*/
 {
-  /* By pass the "enum" keyword. */
+  /* Bypass the "enum" keyword. */
   check_assertion(curr_token == tok_enum);
   (void)get_token();
   add_stop_token(tok_semicolon);
@@ -19623,13 +19647,14 @@ the enumeration specified by the elaborated-enum-specifier.
       enum_type = skip_typerefs(enum_type);
     }  /* if */
     if (enum_type != NULL) {
-      a_constant_ptr	enumerators;
+      a_constant_ptr    enumerators;
       a_boolean         first = TRUE;
       for (enumerators = enum_constants(enum_type); enumerators != NULL;
            enumerators = enumerators->next) {
         a_symbol_ptr     const_sym = symbol_for(enumerators);
         a_using_decl_ptr udp;
-        udp = create_using_of_enumerator(enum_type, const_sym);
+        udp = create_using_of_enumerator(enum_type, const_sym, class_type,
+                                         access);
         if (udp != NULL) {
           udp->is_using_enum = TRUE;
           udp->is_representative = first;
@@ -19783,7 +19808,7 @@ processing should proceed after the call.
         state->decl_okay_in_constexpr_body = TRUE;
       } else if (curr_token == tok_enum && using_enum_enabled) {
         /* A C++20 "using enum" declaration. */
-        using_enum_declaration(state);
+        using_enum_declaration();
       } else {
         a_token_kind  next_tok;
         /* Attributes cannot precede a using-declaration (they are allowed

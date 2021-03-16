@@ -17973,7 +17973,7 @@ Generate code for a class member or nonmember using-declaration.
   for (;;) {
     scp = NULL;
     if (udp->is_using_enum && !udp->is_representative) {
-      /* Multiple entries can be created by a "using-enum".  Only process
+      /* Multiple entries can be created by a "using enum".  Only process
          the representative one. */
       goto next_entry;
     }  /* if */

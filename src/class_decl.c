@@ -25307,7 +25307,8 @@ declaration from a using-declaration.)
     } else if (refers_to_enumerator) {
       a_type_ptr   enum_type = qualifier_class_type(locator_for_curr_id);
       check_assertion(fund_sym != NULL && symbol_is(fund_sym, sk_constant));
-      create_using_of_enumerator(enum_type, fund_sym);
+      (void)create_using_of_enumerator(enum_type, fund_sym, class_type,
+                                       access);
     } else if (!no_il_entry &&
                !is_duplicate_member_using_decl(declared_sym, &using_pos)) {
       /* No error so far, so enter the using-declaration symbol. */
@@ -32102,7 +32103,15 @@ classes.
           }  /* if */
           /* Check for a using declaration or an alias declaration. */
           if (curr_token == tok_using) {
-            member_using_or_alias_declaration(&class_state);
+            if (next_token() == tok_enum) {
+              /* A C++20 "using enum" declaration.  Advance to the enum
+                 token. */
+              (void)get_token();
+              using_enum_declaration(class_type, class_state.access);
+              cannot_bind_to_curr_construct();
+            } else {
+              member_using_or_alias_declaration(&class_state);
+            }  /* if */
             goto next_declaration;
           }  /* if */
           /* Check for an access adjustment declaration. */

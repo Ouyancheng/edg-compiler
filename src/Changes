@@ -3,7 +3,7 @@ Version 6.3
 3/14/21  [EDGcpfe/21586,EDGcpfe/22684]
 C++20: using enum declarations
 
-C++20 "using enum" is now implemented.  This adds thew new "using enum"
+C++20 "using enum" is now implemented.  This adds the new "using enum"
 declaration which introduces all of the enumerators of the specified type
 into the current scope, and allows using-declarations to introduce individual
 enumerators into the current scope.

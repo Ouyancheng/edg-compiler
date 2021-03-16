@@ -4561,7 +4561,7 @@ static a_feature_support feature_support_list[] = {
     "__cpp_unicode_characters",
     "200704L" },
   { "",
-    201907,
+    0,
     &using_enum_enabled,
     "__cpp_using_enum",
     "201907L" },
