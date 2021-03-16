@@ -3400,7 +3400,7 @@ position disambiguator on tsn if non-zero.
 void record_nondependent_call(a_symbol_ptr              symbol,
                               a_token_sequence_number   tsn,
                               a_nondependent_call_depth depth,
-                              a_boolean                 supplemental,
+           /* Defaulted: */   a_boolean                 supplemental,
                               a_boolean                 reversed_opnds)
 /*
 This routine is called within the scope of a template (either a template

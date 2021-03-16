@@ -9654,7 +9654,7 @@ to it.  *decl_position is used for issuing diagnostics.
 
 
 a_type_ptr make_routine_type(a_type_ptr        return_type,
-                             a_type_ptr        param1_type,
+           /* Defaulted: */  a_type_ptr        param1_type,
                              a_type_ptr        param2_type,
                              a_type_ptr        param3_type,
                              a_type_ptr        param4_type,
