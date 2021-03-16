@@ -4641,7 +4641,9 @@ static a_byte* set_up_param_ref_for_this_ptr(
 /*
 Set up a "this" pointer in case we run into enk_param_ref nodes.  It is
 associated with &ips->curr_call_frame.  The *this object is stored at the
-address indicated by object and complete_object.
+address indicated by object and complete_object.  This mechanism is also used
+to retrieve the "this" pointer value that is associated with the implicit
+source address of certain nested lambda captures.
 */
 {
   a_byte         *this_bytes;
@@ -9943,7 +9945,7 @@ otherwise, return FALSE and update *ips accordingly.
     a_variable_ptr   params, param, this_var;
     a_byte_count     n_args = 0, n_params, retval_offset = 0;
     a_byte_count     *arg_size;
-    a_byte           *arg_ptrs, **p_arg_ptr, *arg_sizes;
+    a_byte           *arg_ptrs, **p_arg_ptr, *arg_sizes, *closure_ptr;
     an_alloc_seq_number
                      alloc_seq_number;
     unsigned long    up_front_cost;
@@ -10194,6 +10196,15 @@ otherwise, return FALSE and update *ips accordingly.
       postfix->alloc_seq_number = alloc_seq_number;
       map_or_replace_ptr(&ips->map, this_var, arg_bytes,
                          postfix->prev_storage);
+      if (callee->is_lambda_body) {
+        /* If this lambda contains a nested lambda that captures a capture
+           of this lambda, it will search ips->map for &ips->curr_call_frame
+           to find this lambda's closure object.  Make sure it will be
+           found.  See also set_up_param_ref_for_this_ptr. */
+        a_constexpr_address  *this_addr = (a_constexpr_address*)arg_bytes;
+        closure_ptr = set_up_param_ref_for_this_ptr(
+                         ips, this_addr->address, this_addr->complete_object);
+      }  /* if */
       p_arg_ptr += 1;
       arg_size += 1;
     }  /* if */
@@ -10232,6 +10243,9 @@ otherwise, return FALSE and update *ips accordingly.
       callee->evaluated_in_interpreter = TRUE;
 #endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+    }  /* if */
+    if (is_member_call && callee->is_lambda_body) {
+      unmap_param_ref_for_this_ptr(ips, closure_ptr);
     }  /* if */
     /* Release any address structures, if needed. */
     p_arg_ptr = (a_byte**)arg_ptrs;
@@ -12078,7 +12092,9 @@ is within the given complete_object.
         if (dyn_init_is(sub_dip, dik_bitwise_copy) &&
             sub_dip->variant.bitwise_copy.source == NULL) {
           /* An implicit bitwise copy from a field of the closure associated
-             with the enclosing call (which is of a lambda call operator). */
+             with the enclosing call (which is of a lambda call operator).
+             The "this" value was recorded using a call to
+             set_up_param_ref_for_this_ptr. */
           a_field_ptr  src_fp = cap->capture_info.source_closure_field;
           a_byte       *this_bytes, *src_bytes;
           a_constexpr_address
