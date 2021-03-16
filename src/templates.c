@@ -25418,7 +25418,7 @@ position information.
 
 
 an_expr_node_ptr scan_type_constraint(a_symbol_ptr  concept_templ,
-                                      a_boolean     for_requirement)
+                    /* Defaulted: */  a_boolean     for_requirement)
 /*
 The current token names a concept template represented by concept_templ.
 Scan that token and an optional template argument list that follows to form

@@ -517,7 +517,7 @@ some associated callback entries should not be freed).
 
 
 void discard_end_of_parse_actions(a_decl_parse_state     *dps,
-                                  a_decl_parse_callback  *until_action)
+                /* Defaulted: */  a_decl_parse_callback  *until_action)
 /*
 Discard the end-of-parse callbacks registered for the declaration described by
 *dps without executing them.  The callbacks are removed in reverse order of
@@ -988,7 +988,8 @@ assembler code.
 
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-a_boolean type_constraint_followed_by_auto(a_boolean  decltype_auto_okay)
+a_boolean type_constraint_followed_by_auto(
+                              /* Defaulted: */  a_boolean  decltype_auto_okay)
 /*
 The current token is a concept template name.  Return TRUE if it represents a
 type-constraint followed by "auto" or, if decltype_auto_okay is TRUE, by
@@ -1037,7 +1038,7 @@ a_symbol_ptr curr_type_symbol(a_boolean is_new_type_name,
                               a_boolean in_type_check,
                               a_boolean is_implicit_type_context,
                               a_boolean is_sizeof_context,
-                              a_boolean concept_okay)
+            /* Defaulted: */  a_boolean concept_okay)
 /*
 If the current token is an identifier or, in C++, the "::" at the start of a
 global qualified name, and if it starts the name of a type (a typedef name or,

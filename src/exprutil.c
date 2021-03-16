@@ -13623,7 +13623,7 @@ If there is an error, change "operand" to an error operand.
 a_boolean check_object_or_incomp_array_pointer_operand(an_operand    *operand,
                                                        an_error_code err_code,
                                                        an_operand    *otherop,
-                                                       a_boolean     add_type)
+                                     /* Defaulted: */  a_boolean     add_type)
 /*
 Return FALSE and issue an error message if the operand is not a pointer to
 complete object or incomplete array.  If there is an error, change "operand"
@@ -24859,7 +24859,7 @@ generate that chart.
 
 int compare_constraints(a_symbol_ptr  sym1,
                         a_symbol_ptr  sym2,
-                        a_boolean     *p_equiv)
+      /* Defaulted: */  a_boolean     *p_equiv)
 /*
 Return +1 if sym1 is more constrained than sym2, -1 if sym2 is more
 constrained than sym1, and 0 otherwise.  If p_equiv (defaulted to NULL) is
@@ -24997,7 +24997,7 @@ a_boolean constraint_satisfied(an_expr_node_ptr      constraint,
                                a_template_arg_ptr    template_arg_list,
                                a_template_param_ptr  template_param_list,
                                a_diag_list_ptr       diag_list,
-                               a_boolean             *p_fatal,
+             /* Defaulted: */  a_boolean             *p_fatal,
                                a_boolean             *p_copy_error)
 /*
 Return TRUE if the given constraint expression, built on the given template
@@ -25011,6 +25011,7 @@ return FALSE and:
     *p_fatal to TRUE and update diag_list with a corresponding note, or
   - if p_fatal is NULL and the failure is not subject to SFINAE, issue an
     error with any notes recorded in diag_list and clear diag_list.
+p_fatal and p_copy_error are NULL by default.
 */
 {
   a_boolean  result = TRUE, fatal = FALSE, diagnose_here = (p_fatal == NULL),
@@ -25350,7 +25351,7 @@ a_boolean check_type_constraint(a_type_ptr                 type,
                                 an_expr_node_ptr           constraint,
                                 a_subst_pairs_array const  &subst_pairs,
                                 a_ctws_state               *ctws_state,
-                                a_diag_list                *diag_list)
+              /* Defaulted: */  a_diag_list                *diag_list)
 /*
 constraint is an enk_concept_id node with a possibly-empty argument list
 <A1, ..., An>.  Let C be the associated concept and T the type represented by

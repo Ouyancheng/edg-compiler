@@ -476,7 +476,7 @@ For example, when "name" is "foo", this routine effectively boils down to:
 #define IFC_DECL_START(name) \
   inline concat(an_ifc_, name) * an_ifc_module::concat(get_, name) ( \
                                   concat(an_ifc_, name) *ptr, \
-                                  a_boolean             fill_storage) const \
+                /* Defaulted: */  a_boolean             fill_storage) const \
   { \
     if ((a_boolean)(/*lint -e506*/ASSUME_LITTLE_ENDIAN_IFC_MODULES || \
                                     targ_little_endian) \
@@ -504,7 +504,7 @@ little-endian.
 #define IFC_LE_DECL_START(name) \
   inline concat(an_ifc_, name) * an_ifc_module::concat(get_, name) ( \
                                   concat(an_ifc_, name) *ptr, \
-                                  a_boolean             fill_storage) const \
+                /* Defaulted: */  a_boolean             fill_storage) const \
   { \
     if (host_little_endian) { \
       check_assertion(byte_buffer + sizeof(concat(an_ifc_, name)) <= \
@@ -543,7 +543,7 @@ two fields, "field1" and "field2", whose types are "field1_type" and
 #define IFC_DECL_START(name) \
   inline concat(an_ifc_, name) * an_ifc_module::concat(get_, name) ( \
                                   concat(an_ifc_, name) *ptr, \
-                                  ARG_UNUSED a_boolean  fill_storage) const \
+                /* Defaulted: */  ARG_UNUSED a_boolean  fill_storage) const \
   {
 #define IFC_DECL_FIELD(field, type) \
     concat(GET_, type)(ptr->field, /*from_header=*/FALSE);

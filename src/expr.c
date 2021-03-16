@@ -538,7 +538,7 @@ a_boolean arg_matches_auto_template_param(
                                        an_arg_operand_ptr     arg_operand,
                                        a_type_ptr             *p_deduced_type,
                                        a_source_position_ptr  position,
-                                       a_template_arg_ptr     arg_list,
+                     /* Defaulted: */  a_template_arg_ptr     arg_list,
                                        a_template_param_ptr   param_list)
 /*
 Return TRUE if the auto template parameter type specified by param_type
@@ -549,7 +549,7 @@ parameter, or if an auto type cannot be deduced.  If *p_deduced_type is not
 NULL, it is set to either the deduced type or an error type.  param_list is
 the template parameter list that the auto template parameter is part of, and
 arg_list is` the corresponding list of template arguments that have been
-processed so far.
+processed so far.  arg_list and param_list are NULL by default.
 */
 {
   a_boolean              result = FALSE;
@@ -46654,7 +46654,7 @@ escape at the end of the expression.)
 void scan_template_argument_constant_expression(
                                            a_type_ptr             param_type,
                                            a_constant             *constant,
-                                           a_template_arg_ptr     arg_list,
+                         /* Defaulted: */  a_template_arg_ptr     arg_list,
                                            a_template_param_ptr   param_list)
 /*
 Scan a constant argument in a template reference.  Issue an error if it is
@@ -46662,7 +46662,8 @@ incompatible with the corresponding parameter type, param_type.  Return the
 constant in *constant (which must be in the file scope memory region).  If
 param_type is NULL, the parameter type is not known.  If the associated
 template parameter list is known, it is given by param_list and arg_list is
-the corresponding list of arguments processed so far.
+the corresponding list of arguments processed so far.  arg_list and param_list
+are NULL by default.
 */
 {
   an_operand             result;
