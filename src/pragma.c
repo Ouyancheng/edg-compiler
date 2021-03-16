@@ -2362,9 +2362,9 @@ Initialize the pragma description table.
      description must be provided. */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* When source sequence lists are being generated, unrecognized pragmas
-     are treated as immediate pragmas.  The source sequence information can
+     are treated as next-token pragmas.  The source sequence information can
      be used to output the pragmas in the right location (when the C++
-     generating back end is used, for example).   Immediate pragmas are
+     generating back end is used, for example).   Next-token pragmas are
      preferable to next-construct pragmas for representing unrecognized
      pragmas because next-construct pragmas are only valid in certain
      contexts.  The tokens of the pragma string will be macro-expanded when
