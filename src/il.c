@@ -20316,6 +20316,7 @@ cv-qualification or other non-base-class type adjustment.
                                    type, node);
   copy_node_value_category(node, new_node);
   new_node->compiler_generated = TRUE;
+  new_node->position = node->position;
   return new_node;
 }  /* add_cast_to_glvalue */
 
