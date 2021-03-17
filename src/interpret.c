@@ -10202,8 +10202,10 @@ otherwise, return FALSE and update *ips accordingly.
            to find this lambda's closure object.  Make sure it will be
            found.  See also set_up_param_ref_for_this_ptr. */
         a_constexpr_address  *this_addr = (a_constexpr_address*)arg_bytes;
-        closure_ptr = set_up_param_ref_for_this_ptr(
+        if (!is_runtime_data_address(this_addr)) {
+          closure_ptr = set_up_param_ref_for_this_ptr(
                          ips, this_addr->address, this_addr->complete_object);
+        }  /* if */
       }  /* if */
       p_arg_ptr += 1;
       arg_size += 1;
@@ -10244,7 +10246,7 @@ otherwise, return FALSE and update *ips accordingly.
 #endif /* BACK_END_IS_CP_GEN_BE */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     }  /* if */
-    if (is_member_call && callee->is_lambda_body) {
+    if (closure_ptr != NULL) {
       unmap_param_ref_for_this_ptr(ips, closure_ptr);
     }  /* if */
     /* Release any address structures, if needed. */
