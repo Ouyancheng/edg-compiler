@@ -9945,7 +9945,7 @@ otherwise, return FALSE and update *ips accordingly.
     a_variable_ptr   params, param, this_var;
     a_byte_count     n_args = 0, n_params, retval_offset = 0;
     a_byte_count     *arg_size;
-    a_byte           *arg_ptrs, **p_arg_ptr, *arg_sizes, *closure_ptr;
+    a_byte           *arg_ptrs, **p_arg_ptr, *arg_sizes, *closure_ptr = NULL;
     an_alloc_seq_number
                      alloc_seq_number;
     unsigned long    up_front_cost;
