@@ -11189,6 +11189,7 @@ See conversion_possible.
     /* Clang appears to allow converting any arithmetic or enum type to an
        "ext_vector_type". */
     okay = TRUE;
+    std_conv->promotion = TRUE;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
   } else if (is_arithmetic_or_enum(dest_type)) {
     /* Destination type is arithmetic or enum. */

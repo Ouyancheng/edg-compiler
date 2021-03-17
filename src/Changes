@@ -1,5 +1,15 @@
 Version 6.3
 
+3/17/21  [EDGcpfe/24071]
+Clang compatibility: Conversion to "ext_vector_type" types
+
+In Clang mode, any arithmetic or enumeration type can be converted to an
+"ext_vector_type" type (see the entry for EDGcpfe/22952,EDGcpfe/23348).
+However, the front end previously treated that conversion as an identity
+conversion; now it is treated as a promotion, which avoids overload ambiguities
+in some cases.
+
+
 3/14/21  [EDGcpfe/21586,EDGcpfe/22684]
 C++20: using enum declarations
 
