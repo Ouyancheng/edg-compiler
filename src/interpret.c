@@ -3387,6 +3387,9 @@ indicated subobject and all its subobject as initialized.
 }  /* mark_whole_subobject_initialized */
 
 
+/*
+Mark a subobject within a given complete object as uninitialized.
+*/
 #define mark_subobject_uninitialized(subobj, complete_obj)                   \
 {                                                                            \
   a_byte        *start_byte = (complete_obj);                                \
