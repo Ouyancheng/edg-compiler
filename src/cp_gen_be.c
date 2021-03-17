@@ -18078,11 +18078,11 @@ Generate code for a class member or nonmember using-declaration.
 next_entry:
     /* Move to the next entry. */
     udp = udp->next;
-    /* Skip entries that were added for the same specified qualified-name
-       because of overloaded declarations. */
+    /* Skip entries that were added for the same using-declaration because
+       because of overloaded declarations or because of a using enum. */
     while (udp != NULL && !udp->is_representative &&
            udp->source_sequence_entry == NULL) {
-      udp = udp->next_in_overload_set;
+      udp = udp->next_in_set;
     }  /* while */
     if (udp == NULL || udp->source_sequence_entry != NULL) {
       /* We have reached the end of the list or an entry that represents

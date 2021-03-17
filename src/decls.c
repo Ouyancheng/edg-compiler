@@ -16178,11 +16178,16 @@ current scope.
       if (!err) {
         /* See if this is a C++20 using of an enumerator (but not a
            "using enum" that refers to an enumerator type, which is handled
-           elsewhere). */
+           elsewhere).  A tpck_member constant for a name like T::x is
+           also treated at this point as an enumerator. */
         if (using_enum_enabled &&
-            sym != NULL && symbol_is(sym, sk_constant) &&
-            is_enum_constant(sym->variant.constant)) {
-          refers_to_enumerator = TRUE;
+            sym != NULL && symbol_is(sym, sk_constant)) {
+          a_constant_ptr cp = sym->variant.constant;
+          if (is_enum_constant(cp) ||
+             (constant_is(cp, ck_template_param) &&
+              tpck_is(cp, tpck_member))) {
+            refers_to_enumerator = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
       if (err) {
@@ -19546,7 +19551,8 @@ a_using_decl_ptr create_using_of_enumerator(
                                           a_type_ptr           enum_type,
                                           a_symbol_ptr         const_sym,
                         /* Defaulted: */  a_type_ptr           class_type,
-                                          an_access_specifier  access)
+                                          an_access_specifier  access,
+                                          a_using_decl_ptr     prev_udp)
 
 /*
 Create a projection symbol for const_sym in the current scope.  enum_type is
@@ -19559,6 +19565,8 @@ Return the using-decl entry that was created.  If the using-declaration or
 using-enum-declaration appears in a class scope, class_type is the type of
 the class, and access is the current access level.  If the declaration is
 not in a class scope, class_type must be NULL and access is not used.
+prev_udp points to a previous using-declaration entry created by a using
+enum, if any.  NULL otherwise.
 */
 {
   a_symbol_locator   locator;
@@ -19584,8 +19592,7 @@ not in a class scope, class_type must be NULL and access is not used.
     udp->qualifier.class_type = enum_type;
     udp->is_enumerator = TRUE;
     /* Update cross-reference and source-sequence info, if required. */
-    record_using_decl(const_sym, &decl_pos, udp,
-                      /*prev_udp=*/(a_using_decl_ptr)NULL);
+    record_using_decl(const_sym, &decl_pos, udp, prev_udp);
     new_sym = enter_namespace_projection_symbol(
                                    const_sym, /*is_using_decl=*/TRUE, &locator,
                                    depth_scope_stack,
@@ -19649,16 +19656,18 @@ is not used.*/
     if (enum_type != NULL) {
       a_constant_ptr    enumerators;
       a_boolean         first = TRUE;
+      a_using_decl_ptr  prev_udp = NULL;
       for (enumerators = enum_constants(enum_type); enumerators != NULL;
            enumerators = enumerators->next) {
         a_symbol_ptr     const_sym = symbol_for(enumerators);
         a_using_decl_ptr udp;
         udp = create_using_of_enumerator(enum_type, const_sym, class_type,
-                                         access);
+                                         access, prev_udp);
         if (udp != NULL) {
           udp->is_using_enum = TRUE;
           udp->is_representative = first;
           first = FALSE;
+          prev_udp = udp;
         }  /* if */
       }  /* for */
     }  /* if */

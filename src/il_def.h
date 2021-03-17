@@ -3579,12 +3579,12 @@ typedef struct a_using_decl {
 			   actually points to (and is pointed to by) the
 			   source-sequence entry for the declaration. */
   a_using_decl_ptr
-		next_in_overload_set;
+		next_in_set;
 			/* Pointer to the next in a linked list of using-decl
-			   entries that represent members of an overload set
-			   referred to by a single using-declaration.  NULL
-			   when the entry is not a member of an overload set
-			   or is the last in the chain. */
+			   entries created for a single using-declaration
+			   that names an overload set or from a single
+			   using-enum-declaration.  NULL in other cases and
+			   for the last entry in the set. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 } a_using_decl;
 

@@ -150,7 +150,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         }  /* if */
         fputc('"', f_debug);
         if (udp->hidden) fputs(" (hidden)", f_debug);
-        udp = udp->next_in_overload_set;
+        udp = udp->next_in_set;
         if (udp == NULL) break;
         fputs(", \"", f_debug);
       }  /* for */

@@ -6692,16 +6692,9 @@ Display the indicated using-declaration or using-directive entry.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   disp_ptr("source_sequence_entry", (char *)ptr->source_sequence_entry,
            iek_source_sequence_entry);
-  if (ptr->entity.kind == (a_byte_il_entry_kind)iek_routine) {
-    disp_ptr("next_in_overload_set", (char *)ptr->next_in_overload_set,
+  if (ptr->next_in_set != NULL) {
+    disp_ptr("next_in_set", (char *)ptr->next_in_set,
              iek_using_decl);
-  } else if (ptr->entity.kind == (a_byte_il_entry_kind)iek_template) {
-    a_template_ptr  tp = (a_template_ptr)ptr->entity.ptr;
-    if (tp->kind == (a_template_kind)templk_function ||
-        tp->kind == (a_template_kind)templk_member_function) {
-      disp_ptr("next_in_overload_set", (char *)ptr->next_in_overload_set,
-               iek_using_decl);
-    }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 }  /* disp_using_decl */

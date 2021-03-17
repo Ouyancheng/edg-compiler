@@ -1712,7 +1712,8 @@ extern a_using_decl_ptr create_using_of_enumerator(
                                       a_symbol_ptr         const_sym,
                                       a_type_ptr           class_type = NULL,
                                       an_access_specifier  access =
-                                               (an_access_specifier)as_public);
+                                               (an_access_specifier)as_public,
+                                      a_using_decl_ptr     prev_udp = NULL);
 
 extern a_using_decl_ptr make_using_decl(a_symbol_ptr      sym,
                                         a_source_position *pos,

@@ -3000,7 +3000,7 @@ do_set_proper_definition_needed_flag:
 #if GENERATE_SOURCE_SEQUENCE_LISTS && !KEEP_IN_IL_WALK
         remap_ptr(eptr->source_sequence_entry, a_source_sequence_entry_ptr,
                   iek_source_sequence_entry);
-        remap_ptr(eptr->next_in_overload_set, a_using_decl_ptr,
+        remap_ptr(eptr->next_in_set, a_using_decl_ptr,
                   iek_using_decl);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && ... */
 #undef eptr

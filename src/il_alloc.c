@@ -4591,7 +4591,7 @@ Allocate a using-decl entry, initialize its fields, and return a pointer to it.
   udp->decl_sequence_number  = 0;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   udp->source_sequence_entry = NULL;
-  udp->next_in_overload_set  = NULL;
+  udp->next_in_set           = NULL;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_exit();

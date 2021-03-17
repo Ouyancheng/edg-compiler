@@ -2699,8 +2699,8 @@ void record_using_decl(a_symbol_ptr                sym,
 udp points to a using-decl entry created to represent an using declaration
 specifying fundamental symbol sym.  If appropriate, update the cross reference
 and source sequence output.  prev_udp, if non-NULL, refers to the previously
-created using-decl in a function overload set.  *pos is the source position of
-the identifier in the using-declaration.
+created using-decl in either a using-enum-declaration or a function overload
+set.  *pos is the source position of the identifier in the using-declaration.
 */
 {
   /* Update the cross reference file if it exists. */
@@ -2715,7 +2715,7 @@ the identifier in the using-declaration.
       add_to_source_sequence_list((char *)udp,
                                   (an_il_entry_kind)iek_using_decl);
     } else {
-      prev_udp->next_in_overload_set = udp;
+      prev_udp->next_in_set = udp;
     }  /* if */
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
