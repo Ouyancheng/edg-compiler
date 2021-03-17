@@ -6,7 +6,8 @@ C++20: using enum declarations
 C++20 "using enum" is now implemented.  This adds the new "using enum"
 declaration which introduces all of the enumerators of the specified type
 into the current scope, and allows using-declarations to introduce individual
-enumerators into the current scope.
+enumerators into the current scope.  This feature was introduced by committee
+document P1099R5.
 
   // Using of enumeration
   namespace N {

@@ -1708,7 +1708,7 @@ extern void using_enum_declaration(a_type_ptr           class_type = NULL,
                                                (an_access_specifier)as_public);
 
 extern a_using_decl_ptr create_using_of_enumerator(
-                                      a_type_ptr           enum_type,
+                                      a_symbol_locator     *locator,
                                       a_symbol_ptr         const_sym,
                                       a_type_ptr           class_type = NULL,
                                       an_access_specifier  access =

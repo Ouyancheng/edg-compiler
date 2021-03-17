@@ -16233,9 +16233,8 @@ current scope.
       if (err) {
         /* Nothing else to do. */
       } else if (refers_to_enumerator) {
-        a_type_ptr   enum_type = qualifier_class_type(locator_for_curr_id);
         check_assertion(sym != NULL && symbol_is(sym, sk_constant));
-        (void)create_using_of_enumerator(enum_type, sym);
+        (void)create_using_of_enumerator(&locator_for_curr_id, sym);
       } else {
         a_namespace_ptr  nsp;
         a_type_ptr       class_type;
@@ -19548,53 +19547,60 @@ match what has been declared.
 
 
 a_using_decl_ptr create_using_of_enumerator(
-                                          a_type_ptr           enum_type,
+                                          a_symbol_locator     *locator,
                                           a_symbol_ptr         const_sym,
                         /* Defaulted: */  a_type_ptr           class_type,
                                           an_access_specifier  access,
                                           a_using_decl_ptr     prev_udp)
-
 /*
-Create a projection symbol for const_sym in the current scope.  enum_type is
-the type specified in the using-declaration, and can be different than the
-parent type of const_sym (e.g., for an enumerator from an unscoped enumeration
-where the enumerator can be named as a member of the enclosing class or
-namespace).  Make sure the new symbol would not conflict with a prior
-declaration.  Also create the using-decl entry for the enumerator.
-Return the using-decl entry that was created.  If the using-declaration or
-using-enum-declaration appears in a class scope, class_type is the type of
-the class, and access is the current access level.  If the declaration is
-not in a class scope, class_type must be NULL and access is not used.
-prev_udp points to a previous using-declaration entry created by a using
-enum, if any.  NULL otherwise.
+Create a projection symbol for const_sym in the current scope.  locator
+describes the parent class or namespace in the using-declaration, which
+can be different than the parent type of const_sym (e.g., for an
+enumerator from an unscoped enumeration where the enumerator can be
+named as a member of the enclosing class or namespace).  Make sure the
+new symbol would not conflict with a prior declaration.  Also create the
+using-decl entry for the enumerator.  Return the using-decl entry that
+was created.  If the using-declaration or using-enum-declaration appears
+in a class scope, class_type is the type of the class, and access is the
+current access level.  If the declaration is not in a class scope,
+class_type must be NULL and access is not used.  prev_udp points to a
+previous using-declaration entry created by a using enum, if any.  NULL
+otherwise.
 */
 {
-  a_symbol_locator   locator;
+  a_symbol_locator   local_locator;
   a_source_position  decl_pos;
   a_using_decl_ptr   udp = NULL;
   a_symbol_ptr       sym;
 
   check_assertion(curr_token == tok_identifier);
   decl_pos = locator_for_curr_id.source_position;
-  clear_locator(&locator, &decl_pos);
-  locator.symbol_header = const_sym->header;
-  sym = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
+  clear_locator(&local_locator, &decl_pos);
+  local_locator.symbol_header = const_sym->header;
+  sym = curr_scope_id_lookup(&local_locator, IDL_NO_OPTIONS);
   if (sym == const_sym && class_type == NULL) {
     /* This is a redeclaration of a previous using-declaration and we are
        in a non-class using-directive. */
   } else if (sym != NULL) {
-    pos_syty_error(ec_using_enum_conflicts, &decl_pos, sym, enum_type);
+    if (sym == const_sym) {
+      pos2_sy_diagnostic(es_error, ec_using_enum_redecl, &decl_pos,
+                         &const_sym->decl_position, sym);
+    } else {
+      pos_sy2_error(ec_using_enum_conflicts, &decl_pos, sym, const_sym);
+    }  /* if */
   } else {
     /* Create a using-decl entry to represent this declaration in
        the IL. */
     a_symbol_ptr  new_sym;
     udp = make_using_decl(const_sym, &decl_pos, depth_scope_stack);
-    udp->qualifier.class_type = enum_type;
+    udp->qualifier = locator->parent;
+    udp->is_class_member = locator->is_class_member;
     udp->is_enumerator = TRUE;
     /* Update cross-reference and source-sequence info, if required. */
     record_using_decl(const_sym, &decl_pos, udp, prev_udp);
     new_sym = enter_namespace_projection_symbol(
-                                   const_sym, /*is_using_decl=*/TRUE, &locator,
+                                   const_sym, /*is_using_decl=*/TRUE,
+                                   &local_locator,
                                    depth_scope_stack,
                                    /*suppress_redecl_error*/FALSE);
     if (class_type != NULL) {
@@ -19657,11 +19663,15 @@ is not used.*/
       a_constant_ptr    enumerators;
       a_boolean         first = TRUE;
       a_using_decl_ptr  prev_udp = NULL;
+      a_symbol_locator  locator;
+      clear_locator(&locator, &null_source_position);
+      locator.parent.class_type = enum_type;
+      locator.is_class_member = TRUE;
       for (enumerators = enum_constants(enum_type); enumerators != NULL;
            enumerators = enumerators->next) {
         a_symbol_ptr     const_sym = symbol_for(enumerators);
         a_using_decl_ptr udp;
-        udp = create_using_of_enumerator(enum_type, const_sym, class_type,
+        udp = create_using_of_enumerator(&locator, const_sym, class_type,
                                          access, prev_udp);
         if (udp != NULL) {
           udp->is_using_enum = TRUE;

@@ -25305,10 +25305,9 @@ declaration from a using-declaration.)
     if (err) {
       /* Nothing else to do. */
     } else if (refers_to_enumerator) {
-      a_type_ptr   enum_type = qualifier_class_type(locator_for_curr_id);
       check_assertion(fund_sym != NULL && symbol_is(fund_sym, sk_constant));
-      (void)create_using_of_enumerator(enum_type, fund_sym, class_type,
-                                       access);
+      (void)create_using_of_enumerator(&locator_for_curr_id,
+                                       fund_sym, class_type, access);
     } else if (!no_il_entry &&
                !is_duplicate_member_using_decl(declared_sym, &using_pos)) {
       /* No error so far, so enter the using-declaration symbol. */
