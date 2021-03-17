@@ -4193,10 +4193,15 @@ the type pointed to is opaque to declaration processing.
     is->warning_on_narrowing = FALSE;
   } else if (strict_ansi_mode ||
              ((arg_match != NULL || is->decl_parse_state == NULL) &&
-              (gpp_mode || clang_mode || microsoft_mode))) {
+              (gpp_mode || clang_mode || microsoft_mode) &&
+              !(gpp_mode && !clang_mode &&
+                scope_stack_top().decl_parse_state != NULL &&
+                scope_stack_top().decl_parse_state->sym != NULL &&
+                variable_for_symbol(
+                         scope_stack_top().decl_parse_state->sym) != NULL))) {
     /* GCC, Clang, and Microsoft generally treat narrowing as an error, but
        sometimes it's just a warning (particularly when the initializer is
-       for a specific variable declaration). */
+       for a specific variable declaration in GNU C++ mode). */
     is->error_on_narrowing = TRUE;
   } else {
     is->warning_on_narrowing = TRUE;
