@@ -21984,6 +21984,17 @@ decay on it, and return a pointer to the decayed expression.
           break;
       }  /* switch */
     }  /* if */
+  } else if (is_constant_node(node) && in_file_scope(node)) {
+    /* Handle the case of a compound literal array in file scope specially by
+       representing its decayed form as a constant.  That simplifies the
+       constexpr interpreter. */
+    a_constant_ptr  cp = node_constant(node);
+    if (cp->is_compound_literal) {
+      node->variant.constant.ptr =
+                                fs_constant((a_constant_repr_kind)ck_address);
+      set_constant_address_constant(cp, node->variant.constant.ptr);
+      processed = TRUE;
+    }  /* if */
   }  /* if */
   if (processed) {
     /* The node was rewritten above. */

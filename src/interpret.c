@@ -5025,6 +5025,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               }  /* if */
               clear_address(value, con_bytes);
               ((a_constexpr_address*)value)->flags |= CA_CONST_STORAGE;
+              ((a_constexpr_address*)value)->alloc_seq_number = 0;
               obj_type = ctp;
             }
             break;
@@ -18453,6 +18454,10 @@ diagnostic in *ips.
               do_constexpr_fail(result);
               info_with_pos(ec_constexpr_access_to_runtime_storage,
                             &ips->position, ips);
+            } else if (ips->static_lifetime_init && cp->is_compound_literal) {
+              /* This can occur when taking the address of a compound literal
+                 (e.g., the decay of a compound literal array). */
+              con->variant.address.kind = (an_address_base_kind)abk_constant;
             } else {
               con->variant.address.kind = (an_address_base_kind)abk_temporary;
               if (!((cap->flags & CA_LIFETIME_EXTENDED) ||

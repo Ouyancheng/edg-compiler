@@ -1,5 +1,22 @@
 Version 6.3
 
+3/17/21  [EDGcpfe/24020]
+Handling of namespace-scope compound literals in interpreter
+
+Consider (in GNU C++ mode):
+
+  struct I { int i; };
+  struct S {
+    constexpr S(I const *is) : is(is) {};
+    I const *is;
+  };
+  static constexpr S s = S((const I[]){{ 1000 }});
+
+Previously, this triggered an error because the array compound literal was
+treated as an limited-lifetime temporary object and the address of such an
+object cannot be part of a constant expression's result.  That is now fixed.
+
+
 3/17/21  [EDGcpfe/24071]
 Clang compatibility: Conversion to "ext_vector_type" types
 
