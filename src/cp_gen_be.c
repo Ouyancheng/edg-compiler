@@ -5317,13 +5317,17 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       }  /* if */
     }  /* if */
     if (entry_kind == iek_constant) {
-      /* Check the special case of a scoped enumerator constant: It requires
-         qualification with the enum type (except inside the enum
-         definition). */
+      /* Check the special case of a scoped enumerator constant.  In
+         general, such constants must be qualified with the enumeration
+         name, except in two cases: within the enumeration definition and
+         in a member access expression, where the C++20 "using enum"
+         feature may have made the enumerator visible in the class
+         scope. */
       a_constant_ptr  con = (a_constant_ptr)scp;
       if (is_enum_constant(con) && integer_type_is_scoped_enum(con->type)) {
         if (curr_name_context->assoc_scope !=
-                           con->type->variant.integer.enum_info.assoc_scope) {
+                            con->type->variant.integer.enum_info.assoc_scope &&
+            !curr_name_context->field_selection_context) {
           gen_enum_qualifier(con->type,
                              options & GN_PARENS_IF_GLOBAL_QUALIFIER,
                              need_closing_paren);
