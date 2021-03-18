@@ -412,13 +412,20 @@ a class template in Microsoft mode.
       hnp->partially_hidden_by_microsoft_injected_class_name = TRUE;
     }  /* if */
     check_assertion(in_file_scope(entity));
-    if (fund_hiding_sym == NULL ||
-        !(is_type_symbol(fund_hidden_sym) &&
-          fund_hiding_sym->kind == (a_symbol_kind)sk_type &&
-          fund_hiding_sym->variant.type.is_injected_class_name) ||
-        !f_identical_types(type_symbol_type(fund_hidden_sym),
-                           type_symbol_type(fund_hiding_sym),
-                           ITF_NO_FLAGS)) {
+    if (hnp->elaborated_type_specifier_needed &&
+        fund_hiding_sym != NULL && !is_tag_symbol(fund_hiding_sym)) {
+      /* We do not need qualification if the hidden symbol is a tag symbol
+         and the hiding symbol is not, as the elaborated-type-specifier
+         will be sufficient.  Furthermore, we must not add unneeded
+         qualification if the target compiler is Visual Studio 2019, as it
+         has a bug that results in spurious errors in such cases. */
+    } else if (fund_hiding_sym == NULL ||
+               !(is_type_symbol(fund_hidden_sym) &&
+                 fund_hiding_sym->kind == (a_symbol_kind)sk_type &&
+                 fund_hiding_sym->variant.type.is_injected_class_name) ||
+               !f_identical_types(type_symbol_type(fund_hidden_sym),
+                                  type_symbol_type(fund_hiding_sym),
+                                  ITF_NO_FLAGS)) {
       /* It is possible that an injected class name hides another type
          symbol that refers to the same IL entity.  In that case, no
          qualification is needed. */
