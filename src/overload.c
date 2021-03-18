@@ -25117,6 +25117,23 @@ will be an lvalue instead of the usual prvalue.
   /* If icp is on a list, break it off as a single element.  The next
      pointer will be restored below. */
   split_tail_elems(icp);
+  /* Set the mode for checking of narrowing conversions.  check_narrowing is
+     TRUE if the check for narrowing conversions as errors should be done, and
+     error_on_narrowing indicates whether diagnostics should be issued
+     in that case.  (check_narrowing TRUE and error_on_narrowing FALSE
+     is used for overload resolution cases; a narrowing conversion
+     causes failure but not a diagnostic.)  If check_narrowing is FALSE,
+     warning_on_narrowing can be TRUE to indicate that warnings should be
+     issued for narrowing conversions. */
+  if (icp->check_narrowing || (is != NULL && is->error_on_narrowing)) {
+    check_narrowing = TRUE;
+  }  /* if */
+  if (is != NULL && is->warning_on_narrowing) {
+    warning_on_narrowing = TRUE;
+  }  /* if */
+  error_on_narrowing = check_narrowing && issue_errors;
+  warning_on_narrowing = warning_on_narrowing && !check_narrowing &&
+                         issue_errors;
   /* The basic modes are:
                       issue_errors   generate_il
        Normal init    yes            yes
@@ -25175,23 +25192,6 @@ will be an lvalue instead of the usual prvalue.
      initializer_list is initialized from a braced-init-list.  In that case
      the param_type is the element type of the list. */
   if (arg_match != NULL) arg_match->param_type = dest_type;
-  /* Set the mode for checking of narrowing conversions.  check_narrowing is
-     TRUE if the check for narrowing conversions as errors should be done, and
-     error_on_narrowing indicates whether diagnostics should be issued
-     in that case.  (check_narrowing TRUE and error_on_narrowing FALSE
-     is used for overload resolution cases; a narrowing conversion
-     causes failure but not a diagnostic.)  If check_narrowing is FALSE,
-     warning_on_narrowing can be TRUE to indicate that warnings should be
-     issued for narrowing conversions. */
-  if (icp->check_narrowing || (is != NULL && is->error_on_narrowing)) {
-    check_narrowing = TRUE;
-  }  /* if */
-  if (is != NULL && is->warning_on_narrowing) {
-    warning_on_narrowing = TRUE;
-  }  /* if */
-  error_on_narrowing = check_narrowing && issue_errors;
-  warning_on_narrowing = warning_on_narrowing && !check_narrowing &&
-                         issue_errors;
   if (is_direct_init) conv_context |= CCO_DIRECT_INITIALIZATION;
   /* If the destination type is a template class, make sure it is
      instantiated. */

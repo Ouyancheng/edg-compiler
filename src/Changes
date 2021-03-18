@@ -1,5 +1,15 @@
 Version 6.3
 
+3/18/21  [EDGcpfe/24070]
+Narrowing conversions and template deduction
+
+In some fairly complex situations involving overload resolution and template
+deduction the front end failed to disqualify certain candidate function
+templates even though the candidate requires a narrowing conversion during
+the substitution of an expression in the function template's declaration.
+That problem is now fixed.
+
+
 3/17/21  [EDGcpfe/24072]
 Deferred static data member instantiation and explicit constructors
 
