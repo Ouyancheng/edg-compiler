@@ -27245,8 +27245,16 @@ freed by this routine.
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
   } else if (allow_parenthesized_aggregate_init && parenthesized &&
-             is_aggregate_type(type_cast_to)) {
-    /* Try parenthesized aggregate initialization. */
+             is_aggregate_type(type_cast_to) &&
+             /* Guard against empty parentheses: */
+             (scanning_source   ? curr_token != tok_rparen :
+              arg_list_supplied ? supplied_arg_list != NULL :
+                                : !(rcblock != NULL &&
+                                    rcblock->argument_list != NULL))) {
+    /* Try parenthesized aggregate initialization (N4868 [dcl.init.general],
+       bullet (16.6.2.2)).  Note that that does not include an initializer of
+       the form "()", which is value-initialization (N4868 [dcl.init.general],
+       bullet (16.4)). */
     a_boolean  aggr_init;
     scan_ctor_args_or_paren_aggr_init(type_cast_to, rcblock, arg_list_supplied,
                                       &supplied_arg_list, &aggr_init);

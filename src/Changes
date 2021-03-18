@@ -1,5 +1,21 @@
 Version 6.3
 
+3/18/21  [EDGcpfe/24029,EDGcpfe/24069]
+Value initialization of aggregates in C++20 mode
+
+Consider:
+
+  struct S { int i; };
+  auto s = S();
+
+In C++20 mode (which enables "parenthesized aggregate initialization"), the
+front end treated "S()" identically to "S{}" because S is an aggregate.
+However, the standard still specifies that "S()" is value-initialization,
+which is distinct from aggregate initialization.  Now, the front end treats
+"S()" again as value-initialization in C++20 mode.  (C++17 mode was
+unaffected by prior changes and always treated "S()" as value-initialization.)
+
+
 3/18/21  [EDGcpfe/24070]
 Narrowing conversions and template deduction
 
