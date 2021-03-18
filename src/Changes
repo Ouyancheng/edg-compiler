@@ -1,5 +1,23 @@
 Version 6.3
 
+3/17/21  [EDGcpfe/24072]
+Deferred static data member instantiation and explicit constructors
+
+Consider:
+
+  struct E { explicit E() = default; };
+  template<typename T> struct S {
+    static inline E value{};
+  };
+  E e = S<int>::value;
+
+The changes for EDGcpfe/23502 in version 6.2 caused the instantiation of the
+initializer for S<int>::value to be deferred until its value is needed.
+However, that deferred initializer processing was never considered to be a
+"direct-initialization" and thus the explicit constructor was incorrectly
+ignored.  That regression is now fixed.
+
+
 3/17/21  [EDGcpfe/24020]
 Handling of namespace-scope compound literals in interpreter
 

@@ -4040,6 +4040,9 @@ In C++17 mode, the initializer need not be a constant-expression.
     dps.in_class_scope = TRUE;
     dps.sym = var_sym;
     dps.type = dps.declared_type = var->type;
+    if (var->has_direct_braced_initializer) {
+      dps.has_direct_initializer = TRUE;
+    }  /* if */
     if (cpp17_mode ||
         (gpp_mode && var->template_info != NULL &&
          symbol_for(var->template_info->assoc_template)
