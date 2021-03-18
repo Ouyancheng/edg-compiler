@@ -18079,7 +18079,7 @@ next_entry:
     /* Move to the next entry. */
     udp = udp->next;
     /* Skip entries that were added for the same using-declaration because
-       because of overloaded declarations or because of a using enum. */
+       of overloaded declarations or because of a using enum. */
     while (udp != NULL && !udp->is_representative &&
            udp->source_sequence_entry == NULL) {
       udp = udp->next_in_set;
