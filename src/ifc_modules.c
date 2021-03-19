@@ -387,6 +387,7 @@ Handle nested structures differently (and check for padding).
 #define GET_DestructorSort(x, from_header)     GET_byte(x, from_header)
 #define GET_ExpansionMode(x, from_header)      GET_byte(x, from_header)
 #define GET_FunctionTypeTraits(x, from_header) GET_byte(x, from_header)
+#define GET_GuideTraits(x, from_header)        GET_byte(x, from_header)
 #define GET_InitializerSort(x, from_header)    GET_byte(x, from_header)
 #define GET_NoexceptSort(x, from_header)       GET_byte(x, from_header)
 #define GET_ObjectTraits(x, from_header)       GET_byte(x, from_header)
@@ -2578,6 +2579,8 @@ corresponding data structure for that partition.
       CHECK_SIZE(Trait_ClassTemplate);
     case ifc_trait_function_definition:
       CHECK_SIZE(Trait_FunctionDefinition);
+    case ifc_trait_deduction_guide:
+      CHECK_SIZE(Trait_DeductionGuide);
     case ifc_trait_deprecated:
       CHECK_SIZE(Trait_Deprecated);
     case ifc_trait_friend:
@@ -2640,7 +2643,7 @@ corresponding data structure for that partition.
 namespace {
 
 constexpr ifc_Version supported_major_version = (ifc_Version)0;
-constexpr ifc_Version supported_minor_version = (ifc_Version)25;
+constexpr ifc_Version supported_minor_version = (ifc_Version)30;
 
 inline a_boolean check_ifc_version(ifc_Version major,
                                    ifc_Version minor)
@@ -4489,6 +4492,11 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
       case ifc_TypeSort_Deduced:
         { an_ifc_TypeSort_Deduced itsd, *itsdp;
           itsdp = get_TypeSort_Deduced(&itsd);
+          /* This tag has been removed as of IFC version 0.30.  Keep legacy
+             handling in case it's encountered, but issue an unsupported node
+             diagnostic.  Note that the legacy handling may be incorrect in the
+             context of how the node is encountered. */
+          issue_unsupported_node_diag("TypeSort::Deduced", &error_position);
           if (itsdp->return_type == 0) {
             result = make_auto_type(&null_source_position,
                                     /*is_decltype_auto=*/FALSE);
@@ -4500,12 +4508,20 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
         }
         break;
       case ifc_TypeSort_Placeholder:
-        { an_ifc_TypeSort_Placeholder itsp;
-          get_TypeSort_Placeholder(&itsp);
-          /* FIXME: Currently unsupported. */
-          issue_unsupported_node_diag("TypeSort::Placeholder",
-                                      &error_position);
-          result = error_type();
+        { an_ifc_TypeSort_Placeholder itsp, *itspp;
+          itspp = get_TypeSort_Placeholder(&itsp);
+          switch (itspp->basis) {
+            case ifc_TypeBasis_Auto:
+            case ifc_TypeBasis_DecltypeAuto:
+              result = make_auto_type(&null_source_position,
+                                      itspp->basis ==
+                                                   ifc_TypeBasis_DecltypeAuto);
+              break;
+            default:
+              result = error_type();
+              unexpected_condition_str("Unexpected TypeBasis for "
+                                       "TypeSort::Placeholder");
+          }  /* switch */
         }
         break;
       case ifc_TypeSort_PointerToMember:
@@ -7374,7 +7390,7 @@ location of the entity referring to the type.
       }
       break;
     case ifc_TypeSort_Deduced:
-      { /* FIXME: How to distinguish between "auto" and "decltype(auto)"? */
+      { /* This tag has been removed as of IFC version 0.30. */
         cache_token(cache, tok_auto, &pos);
       }
       break;

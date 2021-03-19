@@ -3840,6 +3840,11 @@ push_module_declaration_context.
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
+  /* A template declaration may have cleared this - reset it now. */
+  /* FIXME: This seems expensive to do it here - is there a better way to
+     determine if it's needed? */
+  set_active_using_list_scope_depths(depth_scope_stack, /*set_value=*/TRUE,
+                                     NO_DECL_SEQUENCE_NUMBER);
 }  /* pop_module_declaration_context */
 
 

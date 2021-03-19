@@ -111,6 +111,7 @@ enum ifc_CallingConvention : uint8_t;
 enum ifc_DestructorSort : ifc_Sort_type;
 enum ifc_ExpansionMode : uint8_t;
 enum ifc_FunctionTypeTraits : uint8_t;
+enum ifc_GuideTraits : uint8_t;
 enum ifc_InitializerSort : ifc_Sort_type;
 enum ifc_NoexceptSort : ifc_Sort_type;
 enum ifc_ObjectTraits : uint8_t;
@@ -352,6 +353,12 @@ enum ifc_FunctionTypeTraits : uint8_t {
   ifc_FunctionTypeTraits_Volatile = 1 << 1,
   ifc_FunctionTypeTraits_Lvalue   = 1 << 2,
   ifc_FunctionTypeTraits_Rvalue   = 1 << 3,
+};
+
+/* Enumeration for GuideTraits. */
+enum ifc_GuideTraits : uint8_t {
+  ifc_GuideTraits_Nothing         = 0,
+  ifc_GuideTraits_Explicit        = 1 << 0,
 };
 
 /* Enumeration for CallingConventions. */
@@ -2013,6 +2020,7 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_src_line,
   ifc_trait_alias_template,
   ifc_trait_class_template,
+  ifc_trait_deduction_guide,
   ifc_trait_deprecated,
   ifc_trait_friend,
   ifc_trait_function_definition,
@@ -2346,6 +2354,7 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "syntax.while-statement",          ifc_syntax_while_statement },
   { "trait.alias-template",            ifc_trait_alias_template },
   { "trait.class-template",            ifc_trait_class_template },
+  { "trait.deduction-guides",          ifc_trait_deduction_guide },
   { "trait.deprecated",                ifc_trait_deprecated },
   { "trait.friend",                    ifc_trait_friend },
   { "trait.function-template",         ifc_trait_function_template },

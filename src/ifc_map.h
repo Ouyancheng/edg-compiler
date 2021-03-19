@@ -375,11 +375,11 @@ IFC_DECL_END(DeclSort_Expansion)
 IFC_DECL_START(DeclSort_DeductionGuide)
   IFC_DECL_FIELD(name, NameIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
-  IFC_DECL_FIELD(parameters, ChartIndex)
-  IFC_DECL_FIELD(specialization, TypeIndex)
-  IFC_DECL_FIELD(traits, FunctionTraits)
+  IFC_DECL_FIELD(home_scope, DeclIndex)
+  IFC_DECL_FIELD(source, ChartIndex)
+  IFC_DECL_FIELD(target, ExprIndex)
+  IFC_DECL_FIELD(traits, GuideTraits)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
-  IFC_DECL_FIELD(access, Access)
 IFC_DECL_END(DeclSort_DeductionGuide)
 
 /* DeclSort::Barren */
@@ -439,6 +439,7 @@ IFC_DECL_START(TypeSort_Designated)
 IFC_DECL_END(TypeSort_Designated)
 
 /* TypeSort::Deduced */
+/* As of IFC version 0.30, this is no longer a valid type. */
 IFC_DECL_START(TypeSort_Deduced)
   IFC_DECL_FIELD(return_type, TypeIndex)
 IFC_DECL_END(TypeSort_Deduced)
@@ -528,6 +529,7 @@ IFC_DECL_END(TypeSort_Decltype)
 IFC_DECL_START(TypeSort_Placeholder)
   IFC_DECL_FIELD(constraint, ExprIndex)
   IFC_DECL_FIELD(basis, TypeBasis)
+  IFC_DECL_FIELD(elaboration, TypeIndex)
 IFC_DECL_END(TypeSort_Placeholder)
 
 /* TypeSort::Tuple */
@@ -1207,126 +1209,286 @@ IFC_DECL_END(SyntaxSort_DecltypeSpecifier)
 
 /* SyntaxSort::PlaceholderTypeSpecifier */
 IFC_DECL_START(SyntaxSort_PlaceholderTypeSpecifier)
+  /* The IFC spec doesn't define PlaceholderType anywhere. */
+  /* IFC_DECL_FIELD(type, PlaceholderType) */
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(keyword, SourceLocation)
+  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(SyntaxSort_PlaceholderTypeSpecifier)
 
 /* SyntaxSort::TypeSpecifierSeq */
 IFC_DECL_START(SyntaxSort_TypeSpecifierSeq)
+  IFC_DECL_FIELD(type_name, SyntaxIndex)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(qualifiers, Qualifiers)
+  IFC_DECL_FIELD(unshashed, bool)
 IFC_DECL_END(SyntaxSort_TypeSpecifierSeq)
 
 /* SyntaxSort::DeclSpecifierSeq */
 IFC_DECL_START(SyntaxSort_DeclSpecifierSeq)
+  IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(type_name, SyntaxIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  /* The IFC spec does not define StorageClass anywhere. */
+  /* IFC_DECL_FIELD(storage_class, StorageClass) */
+  IFC_DECL_FIELD(storage_class, u32)
+  IFC_DECL_FIELD(declspec, SentenceIndex)
+  IFC_DECL_FIELD(explicit_kw, SyntaxIndex)
+  IFC_DECL_FIELD(qualifiers, Qualifiers)
 IFC_DECL_END(SyntaxSort_DeclSpecifierSeq)
 
 /* SyntaxSort::VirtualSpecifierSeq */
 IFC_DECL_START(SyntaxSort_VirtualSpecifierSeq)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(final_kw, SourceLocation)
+  IFC_DECL_FIELD(override_kw, SourceLocation)
+  IFC_DECL_FIELD(pure, bool)
 IFC_DECL_END(SyntaxSort_VirtualSpecifierSeq)
 
 /* SyntaxSort::NoexceptSpecification */
 IFC_DECL_START(SyntaxSort_NoexceptSpecification)
+  IFC_DECL_FIELD(expr, SyntaxIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(left_paren, SourceLocation)
+  IFC_DECL_FIELD(right_paren, SourceLocation)
 IFC_DECL_END(SyntaxSort_NoexceptSpecification)
 
 /* SyntaxSort::ExplicitSpecifier */
 IFC_DECL_START(SyntaxSort_ExplicitSpecifier)
+  IFC_DECL_FIELD(condition, ExprIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(left_paren, SourceLocation)
+  IFC_DECL_FIELD(right_paren, SourceLocation)
 IFC_DECL_END(SyntaxSort_ExplicitSpecifier)
 
 /* SyntaxSort::EnumSpecifier */
 IFC_DECL_START(SyntaxSort_EnumSpecifier)
+  IFC_DECL_FIELD(name, ExprIndex)
+  /* The IFC spec does not define KeywordSyntax anywhere. */
+  /* IFC_DECL_FIELD(class_key, KeywordSyntax) */
+  IFC_DECL_FIELD(class_key, SyntaxIndex)
+  IFC_DECL_FIELD(enumerators, SyntaxIndex)
+  IFC_DECL_FIELD(base, SyntaxIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(colon, SourceLocation)
+  IFC_DECL_FIELD(left_brace, SourceLocation)
+  IFC_DECL_FIELD(right_brace, SourceLocation)
 IFC_DECL_END(SyntaxSort_EnumSpecifier)
 
 /* SyntaxSort::EnumeratorDefinition */
 IFC_DECL_START(SyntaxSort_EnumeratorDefinition)
+  IFC_DECL_FIELD(name, TextOffset)
+  IFC_DECL_FIELD(initializer, ExprIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(equal, SourceLocation)
+  IFC_DECL_FIELD(comma, SourceLocation)
 IFC_DECL_END(SyntaxSort_EnumeratorDefinition)
 
 /* SyntaxSort::ClassSpecifier */
 IFC_DECL_START(SyntaxSort_ClassSpecifier)
+  IFC_DECL_FIELD(name, ExprIndex)
+  /* The IFC spec does not define KeywordSyntax anywhere. */
+  /* IFC_DECL_FIELD(class_key, KeywordSyntax) */
+  IFC_DECL_FIELD(class_key, SyntaxIndex)
+  IFC_DECL_FIELD(bases, SyntaxIndex)
+  IFC_DECL_FIELD(members, SyntaxIndex)
+  IFC_DECL_FIELD(left_paren, SyntaxIndex)
+  IFC_DECL_FIELD(right_paren, SyntaxIndex)
 IFC_DECL_END(SyntaxSort_ClassSpecifier)
 
 /* SyntaxSort::MemberSpecification */
 IFC_DECL_START(SyntaxSort_MemberSpecification)
+  IFC_DECL_FIELD(member_declarations, SyntaxIndex)
 IFC_DECL_END(SyntaxSort_MemberSpecification)
 
 /* SyntaxSort::MemberDeclaration */
 IFC_DECL_START(SyntaxSort_MemberDeclaration)
+  IFC_DECL_FIELD(decl_specifiers, SyntaxIndex)
+  IFC_DECL_FIELD(declarations, SyntaxIndex)
+  IFC_DECL_FIELD(semicolon, SourceLocation)
 IFC_DECL_END(SyntaxSort_MemberDeclaration)
 
 /* SyntaxSort::MemberDeclarator */
 IFC_DECL_START(SyntaxSort_MemberDeclarator)
+  IFC_DECL_FIELD(declarator, SyntaxIndex)
+  IFC_DECL_FIELD(constraint, SyntaxIndex)
+  IFC_DECL_FIELD(bitwidth, ExprIndex)
+  IFC_DECL_FIELD(initializer, ExprIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(colon, SourceLocation)
+  IFC_DECL_FIELD(comma, SourceLocation)
 IFC_DECL_END(SyntaxSort_MemberDeclarator)
 
 /* SyntaxSort::AccessSpecifier */
 IFC_DECL_START(SyntaxSort_AccessSpecifier)
+  /* The IFC spec does not define KeywordSyntax anywhere. */
+  /* IFC_DECL_FIELD(access, KeywordSyntax) */
+  IFC_DECL_FIELD(access, SyntaxIndex)
+  IFC_DECL_FIELD(colon, SourceLocation)
 IFC_DECL_END(SyntaxSort_AccessSpecifier)
 
 /* SyntaxSort::BaseSpecifierList */
 IFC_DECL_START(SyntaxSort_BaseSpecifierList)
+  IFC_DECL_FIELD(base_specifiers, SyntaxIndex)
+  IFC_DECL_FIELD(colon, SourceLocation)
 IFC_DECL_END(SyntaxSort_BaseSpecifierList)
 
 /* SyntaxSort::BaseSpecifier */
 IFC_DECL_START(SyntaxSort_BaseSpecifier)
+  IFC_DECL_FIELD(designator, ExprIndex)
+  /* The IFC spec does not define KeywordSyntax anywhere. */
+  /* IFC_DECL_FIELD(access, KeywordSyntax) */
+  IFC_DECL_FIELD(access, SyntaxIndex)
+  IFC_DECL_FIELD(virtual_kw, SourceLocation)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(virtual_kw2, SourceLocation)
+  IFC_DECL_FIELD(comma, SourceLocation)
 IFC_DECL_END(SyntaxSort_BaseSpecifier)
 
 /* SyntaxSort::TypeId */
 IFC_DECL_START(SyntaxSort_TypeId)
+  IFC_DECL_FIELD(type_specifier, SyntaxIndex)
+  IFC_DECL_FIELD(abstract_declarator, SyntaxIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(SyntaxSort_TypeId)
 
 /* SyntaxSort::TrailingReturnType */
 IFC_DECL_START(SyntaxSort_TrailingReturnType)
+  IFC_DECL_FIELD(target, SyntaxIndex)
+  IFC_DECL_FIELD(arrow, SourceLocation)
 IFC_DECL_END(SyntaxSort_TrailingReturnType)
 
 /* SyntaxSort::Declarator */
 IFC_DECL_START(SyntaxSort_Declarator)
+  IFC_DECL_FIELD(pointer, SyntaxIndex)
+  IFC_DECL_FIELD(parenthesized, SyntaxIndex)
+  IFC_DECL_FIELD(array_or_function, SyntaxIndex)
+  IFC_DECL_FIELD(trailing_target, SyntaxIndex)
+  IFC_DECL_FIELD(virtual_specifiers, SyntaxIndex)
+  IFC_DECL_FIELD(name, ExprIndex)
+  IFC_DECL_FIELD(ellipsis, SourceLocation)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(qualifiers, Qualifiers)
+  IFC_DECL_FIELD(convention, CallingConvention)
+  IFC_DECL_FIELD(callable, bool)
 IFC_DECL_END(SyntaxSort_Declarator)
 
 /* SyntaxSort::PointerDeclarator */
 IFC_DECL_START(SyntaxSort_PointerDeclarator)
+  IFC_DECL_FIELD(whole, SyntaxIndex)
+  IFC_DECL_FIELD(next, SyntaxIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  /* The IFC spec does not define PointerDeclaratorSort anywhere. */
+  /* IFC_DECL_FIELD(sort, PointerDeclaratorSort) */
+  IFC_DECL_FIELD(sort, u8)
+  IFC_DECL_FIELD(qualifiers, Qualifiers)
+  IFC_DECL_FIELD(convention, CallingConvention)
+  IFC_DECL_FIELD(callable, bool)
 IFC_DECL_END(SyntaxSort_PointerDeclarator)
 
 /* SyntaxSort::ArrayDeclarator */
 IFC_DECL_START(SyntaxSort_ArrayDeclarator)
+  IFC_DECL_FIELD(bound, ExprIndex)
+  IFC_DECL_FIELD(left_bracket, SourceLocation)
+  IFC_DECL_FIELD(right_bracket, SourceLocation)
 IFC_DECL_END(SyntaxSort_ArrayDeclarator)
 
 /* SyntaxSort::FunctionDeclarator */
 IFC_DECL_START(SyntaxSort_FunctionDeclarator)
+  IFC_DECL_FIELD(parameters, SyntaxIndex)
+  IFC_DECL_FIELD(eh_spec, SyntaxIndex)
+  IFC_DECL_FIELD(left_paren, SourceLocation)
+  IFC_DECL_FIELD(right_paren, SourceLocation)
+  /* IFC files have the size of this structure as 44 bytes, but there are only
+     24 bytes here.  Add 20 bytes of padding to get it to match. */
+  IFC_DECL_FIELD(__pad1__, u32)
+  IFC_DECL_FIELD(__pad2__, u32)
+  IFC_DECL_FIELD(__pad3__, u32)
+  IFC_DECL_FIELD(__pad4__, u32)
+  IFC_DECL_FIELD(__pad5__, u32)
 IFC_DECL_END(SyntaxSort_FunctionDeclarator)
 
 /* SyntaxSort::ArrayOrFunctionDeclarator */
 IFC_DECL_START(SyntaxSort_ArrayOrFunctionDeclarator)
+  IFC_DECL_FIELD(declarator, SyntaxIndex)
+  IFC_DECL_FIELD(next, SyntaxIndex)
 IFC_DECL_END(SyntaxSort_ArrayOrFunctionDeclarator)
 
 /* SyntaxSort::ParameterDeclarator */
 IFC_DECL_START(SyntaxSort_ParameterDeclarator)
+  IFC_DECL_FIELD(decl_specifiers, SyntaxIndex)
+  IFC_DECL_FIELD(declarator, SyntaxIndex)
+  IFC_DECL_FIELD(default_kw, ExprIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(sort, ParameterSort)
 IFC_DECL_END(SyntaxSort_ParameterDeclarator)
 
 /* SyntaxSort::InitDeclarator */
 IFC_DECL_START(SyntaxSort_InitDeclarator)
+  IFC_DECL_FIELD(declarator, SyntaxIndex)
+  IFC_DECL_FIELD(constraint, SyntaxIndex)
+  IFC_DECL_FIELD(initializer, ExprIndex)
+  IFC_DECL_FIELD(comma, SourceLocation)
 IFC_DECL_END(SyntaxSort_InitDeclarator)
 
 /* SyntaxSort::NewDeclarator */
 IFC_DECL_START(SyntaxSort_NewDeclarator)
+  IFC_DECL_FIELD(declarator, SyntaxIndex)
 IFC_DECL_END(SyntaxSort_NewDeclarator)
 
 /* SyntaxSort::SimpleDeclaration */
 IFC_DECL_START(SyntaxSort_SimpleDeclaration)
+  IFC_DECL_FIELD(decl_specifiers, SyntaxIndex)
+  IFC_DECL_FIELD(declarators, SyntaxIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(semicolon, SourceLocation)
 IFC_DECL_END(SyntaxSort_SimpleDeclaration)
 
 /* SyntaxSort::ExceptionDeclaration */
 IFC_DECL_START(SyntaxSort_ExceptionDeclaration)
+  IFC_DECL_FIELD(type_specifiers, SyntaxIndex)
+  IFC_DECL_FIELD(declarator, SyntaxIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(ellipsis, SourceLocation)
 IFC_DECL_END(SyntaxSort_ExceptionDeclaration)
 
 /* SyntaxSort::ConditionDeclaration */
 IFC_DECL_START(SyntaxSort_ConditionDeclaration)
+  IFC_DECL_FIELD(decl_specifier, SyntaxIndex)
+  IFC_DECL_FIELD(initializaerion, SyntaxIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(SyntaxSort_ConditionDeclaration)
 
 /* SyntaxSort::StaticAssertDeclaration */
 IFC_DECL_START(SyntaxSort_StaticAssertDeclaration)
+  IFC_DECL_FIELD(condition, ExprIndex)
+  IFC_DECL_FIELD(message, ExprIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(left_paren, SourceLocation)
+  IFC_DECL_FIELD(right_paren, SourceLocation)
+  IFC_DECL_FIELD(semicolon, SourceLocation)
+  IFC_DECL_FIELD(comma, SourceLocation)
 IFC_DECL_END(SyntaxSort_StaticAssertDeclaration)
 
 /* SyntaxSort::AliasDeclaration */
 IFC_DECL_START(SyntaxSort_AliasDeclaration)
+  IFC_DECL_FIELD(name, ExprIndex)
+  IFC_DECL_FIELD(aliasee, SyntaxIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(equal, SourceLocation)
+  IFC_DECL_FIELD(semicolon, SourceLocation)
 IFC_DECL_END(SyntaxSort_AliasDeclaration)
 
 /* SyntaxSort::ConceptDefinition */
 IFC_DECL_START(SyntaxSort_ConceptDefinition)
+  IFC_DECL_FIELD(parameters, SyntaxIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(name, TextOffset)
+  IFC_DECL_FIELD(initializer, ExprIndex)
+  IFC_DECL_FIELD(concept_keyword, SourceLocation)
+  IFC_DECL_FIELD(equal, SourceLocation)
+  IFC_DECL_FIELD(semicolon, SourceLocation)
 IFC_DECL_END(SyntaxSort_ConceptDefinition)
 
 /* SyntaxSort::CompoundStatement */
@@ -1745,6 +1907,10 @@ IFC_DECL_START(Source_Line)
   IFC_DECL_FIELD(file, NameIndex)
   IFC_DECL_FIELD(line, LineNumber)
 IFC_DECL_END(Source_Line)
+
+/* Trait::DeductionGuide */
+IFC_DECL_START(Trait_DeductionGuide)
+IFC_DECL_END(Trait_DeductionGuide)
 
 /* Trait::Deprecated */
 IFC_DECL_START(Trait_Deprecated)
