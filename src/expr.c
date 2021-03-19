@@ -20561,11 +20561,6 @@ Returns the base type for the new statement.
         nps->unqual_new_type->size = 0;
         set_type_size(nps->unqual_new_type);
       }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (microsoft_mode &&
-               is_incomplete_array_type(nps->unqual_new_type)) {
-      /* MSVC treats "new T[]" as "new T[0]". */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     } else if (is_incomplete_type(nps->new_type)) {
       /* A case like "new int[]" -- an incomplete array type.  C++20 allows
          this, provided we have an initializer that we can use to deduce the
@@ -20573,6 +20568,11 @@ Returns the base type for the new statement.
       if ((allow_parenthesized_aggregate_init && nps->has_new_initializer) ||
           (cpp20_mode && nps->has_braced_initializer)) {
         deduce_new_array_size(nps, dps);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      } else if (ms_version_is(<1900) &&
+                 is_incomplete_array_type(nps->unqual_new_type)) {
+        /* MSVC (18.00 and earlier) treats "new T[]" as "new T[0]". */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else {
         expr_pos_error(incomplete_type_err_code(nps->new_type),
                        &nps->type_position);

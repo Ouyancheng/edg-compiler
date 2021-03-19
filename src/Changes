@@ -1,5 +1,24 @@
 Version 6.3
 
+3/19/21  [EDGcpfe/23836]
+Microsoft compatibility: new-expressions with unspecified array bounds
+
+The front end emulates a Microsoft compiler behavior where a new-expression
+allocating an array with unspecified bound is treated as if a bound of zero
+was specifier.  For example:
+
+  int *p = new int[];  // Accepted in some Microsoft modes and treated
+                       // as "int *p = new int[0];".
+
+Unfortunately, the code emulating that behavior interacted poorly with the
+changes that allow such a new-expression with an initializer to implicitly
+dimension the allocated array (see the entry for EDGcpfe/20914).  Now, this
+emulation is limited to microsoft_version < 1900 (to match actual Microsoft
+compiler versions) and if an initializer is present, the deduction of the
+allocated length from the initializer takes precedence over assuming a zero
+length in the other cases.
+
+
 3/18/21  [EDGcpfe/23834]
 C++-generating back end: "<unnamed>" as template argument in generated code
 
