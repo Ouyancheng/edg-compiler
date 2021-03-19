@@ -1,5 +1,26 @@
 Version 6.3
 
+3/19/21  [EDGcpfe/24055]
+Dynamic allocations of multi-dimensional arrays in interpreter
+
+C++20 introduced the ability to dynamically allocate objects during constant-
+evaluation.  However, the constexpr interpreter did not correctly handle uses
+of such a dynamically allocated object when that object was a multi-dimensional
+array.  For example:
+
+  constexpr int f() {
+    int (*vec)[5] = new int[3][5];
+    vec[3][0] = 42;   // Invalid access.
+    delete [] vec;
+    return 1;
+  }
+  int x[f()];
+
+Here, the sub-expression vec[3][0] is invalid because it attempts to refer to
+an object out of bounds, but the front end failed to catch this and memory
+could be corrupted as a consequence of it.  That is now fixed.
+
+
 3/19/21  [EDGcpfe/23836]
 Microsoft compatibility: new-expressions with unspecified array bounds
 

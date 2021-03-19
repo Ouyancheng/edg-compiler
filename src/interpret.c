@@ -2574,6 +2574,7 @@ describing the problem.
     check_assertion(local_result);
     base_address = get_base_address(addr);
     pos = (a_byte_count)(addr->address - base_address) / elem_size;
+    pos = addr->length;
     info_with_pos_num(ec_constexpr_access_one_past_array_end, &expr->position, 
                       pos, ips);
   } else {
@@ -8995,12 +8996,12 @@ the missing allocation.
 
 
 static a_constexpr_allocation_ptr do_constexpr_dynamic_alloc(
-                                           an_interpreter_state  *ips,
-                                           a_type_ptr            orig_elem_tp,
-                                           a_byte_count          alloc_length,
-                                           a_source_position     *diag_pos,
-                                           a_constexpr_address   *cap,
-                                           a_byte_count          *p_elem_size)
+                                       an_interpreter_state  *ips,
+                                       a_type_ptr            orig_elem_tp,
+                                       a_byte_count          orig_alloc_length,
+                                       a_source_position     *diag_pos,
+                                       a_constexpr_address   *cap,
+                                       a_byte_count          *p_elem_size)
 /*
 Allocate alloc_length consecutive objects of type orig_elem_tp on the
 interpreter's dynamic allocation heap and place the result in *cap.  Return
@@ -9013,12 +9014,13 @@ elements in *p_elem_size.
   a_boolean            result = TRUE;
   a_type_ptr           elem_tp = skip_typerefs(orig_elem_tp);
   a_byte_count         header_size, prefix_size, bitmap_size, elem_size,
-                       total_size;
+                       total_size, alloc_length = orig_alloc_length;
   a_byte               *block;
   an_alloc_seq_number  alloc_seq_number;
   a_constexpr_allocation_ptr
                        allocation = NULL;
 
+  orig_elem_tp = elem_tp;
   if (type_is(elem_tp, tk_array)) {
     /* Adjust the number of elements for the array type. */
     do {
@@ -9089,10 +9091,10 @@ elements in *p_elem_size.
   ips->dyn_allocations = allocation;
   clear_address(cap, block+prefix_size);
   cap->variant.base_address = cap->address;
-  record_complete_object_type(elem_tp, cap->complete_object);
+  record_complete_object_type(orig_elem_tp, cap->complete_object);
   if (alloc_length != 1) {
     cap->flags |= CA_ARRAY_ELEMENT;
-    cap->length = alloc_length;
+    cap->length = orig_alloc_length;
     if (alloc_length == 0) {
       cap->flags |= CA_CANNOT_DEREFERENCE;
     }  /* if */
@@ -12930,8 +12932,13 @@ Evaluate the given new-expression.
   }  /* if */
   if (length_expr == NULL) {
     /* No declarator of the form [<run-time length>]. */
-    alloc_length = 1;
-    elem_type = type;
+    if (type_is(type, tk_array)) {
+      alloc_length = type->variant.array.variant.number_of_elements;
+      elem_type = skip_typerefs(type->variant.array.element_type);
+    } else {
+      alloc_length = 1;
+      elem_type = type;
+    }  /* if */
   } else {
     a_byte_count          opnd_n_bytes;
     a_type_ptr            length_tp = skip_typerefs(length_expr->type);
@@ -13902,6 +13909,9 @@ the value representation of the integer value.
                   result_addr->variant.addr_con = new_con;
                   result_addr->flags |= CA_ARRAY_ELEMENT;
                   break;
+                } else if (cannot_dereference(result_addr)) {
+                  do_constexpr_fail(result);
+                  info_one_past_end_of_array(result_addr, expr, ips);
                 }  /* if */
               } else {
                 /* The somewhat unusual case of an array rvalue. */
