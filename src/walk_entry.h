@@ -2527,28 +2527,42 @@ do_set_proper_definition_needed_flag:
     case iek_name_reference:
       {
 #define eptr ((a_name_reference_ptr)entry_ptr)
-        /* Note intentional use of walk_ptr instead of remap_next_ptr, because
-           of issues with export creating lists that run between translation
-           units. */
-        walk_ptr(eptr->next, a_name_reference_ptr, iek_name_reference);
-        if (eptr->qualifier != NULL) {
-          clear_or_walk_name_reference_field(eptr, eptr->qualifier,
-                                             a_name_qualifier_ptr,
-                                             iek_name_qualifier);
-        }  /* if */
-        if (eptr->special_kind == (a_special_function_kind)sfk_none) {
-          if (eptr->variant.destructor_type != NULL) {
-            clear_or_walk_name_reference_field(eptr,
-                                               eptr->variant.destructor_type,
-                                               a_type_ptr, iek_type);
+        /* In some cases we loop through a list of entries.  See the
+           next pointer processing at the bottom of the loop. */
+        for (;;) {
+          if (eptr->qualifier != NULL) {
+            clear_or_walk_name_reference_field(eptr, eptr->qualifier,
+                                               a_name_qualifier_ptr,
+                                               iek_name_qualifier);
           }  /* if */
+          if (eptr->special_kind == (a_special_function_kind)sfk_none) {
+            if (eptr->variant.destructor_type != NULL) {
+              clear_or_walk_name_reference_field(eptr,
+                                                 eptr->variant.destructor_type,
+                                                 a_type_ptr, iek_type);
+            }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING
-        } else {
-          clear_or_walk_name_reference_field(
-                  eptr, eptr->variant.property_or_event_descr,
-                  a_property_or_event_descr_ptr, iek_property_or_event_descr);
+          } else {
+            clear_or_walk_name_reference_field(
+                    eptr, eptr->variant.property_or_event_descr,
+                    a_property_or_event_descr_ptr,
+                    iek_property_or_event_descr);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && !DO_IL_LOWERING */
-        }  /* if */
+          }  /* if */
+        /* For some walks (e.g., when writing the IL), the next pointer
+           must be walked because some entities are also on other lists
+           so a remapping here will break the walking elsewhere.  For
+           the needed and keep_in_il walks, we must not walk the next
+           pointer to prevent excessive recursion.  In those walks a remap
+           actually does a walk, so we just ignore the next pointer. */
+#if !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK
+          walk_ptr(eptr->next, a_name_reference_ptr, iek_name_reference);
+          break;
+#else /* !(!NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK) */
+          entry_ptr = (char*)eptr->next;
+          if (entry_ptr == NULL) break;
+#endif /* !NEEDED_FLAG_WALK && !KEEP_IN_IL_WALK */
+        }  /* for */
 #undef eptr
       }
       break;

@@ -1,5 +1,14 @@
 Version 6.3
 
+3/19/21  [EDGcpfe/23190,EDGcpfe/23766,EDGcpfe/23697]
+Excessive recursion walking name reference entries
+
+The processing of name reference entries (mostly in C++-generating back
+end configurations) could cause stack overflow as a result of two many
+recursive calls during needed flag and/or keep-in-il walks of the IL.
+This is now fixed.
+
+
 3/19/21  [EDGcpfe/24055]
 Dynamic allocations of multi-dimensional arrays in interpreter
 
