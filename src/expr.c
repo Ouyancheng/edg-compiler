@@ -27249,7 +27249,7 @@ freed by this routine.
              /* Guard against empty parentheses: */
              (scanning_source   ? curr_token != tok_rparen :
               arg_list_supplied ? supplied_arg_list != NULL :
-                                : !(rcblock != NULL &&
+                                  !(rcblock != NULL &&
                                     rcblock->argument_list != NULL))) {
     /* Try parenthesized aggregate initialization (N4868 [dcl.init.general],
        bullet (16.6.2.2)).  Note that that does not include an initializer of
