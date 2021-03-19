@@ -17466,7 +17466,9 @@ parameter lists). */
       /* Set the source position for the name. */
       set_output_position(&param->source_corresp.decl_position);
       /* Write the name. */
-      if (has_name_before_mangling(cp)) {
+      if (has_name_before_mangling(cp) &&
+          /* Watch out for the name "<unnamed>". */
+          *unmangled_name_of(&cp->source_corresp) != '<') {
         gen_unqualified_name(&cp->source_corresp, iek_constant);
       }  /* if */
       /* Write the second part of the declarator. */

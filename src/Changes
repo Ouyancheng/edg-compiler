@@ -1,5 +1,13 @@
 Version 6.3
 
+3/18/21  [EDGcpfe/23834]
+C++-generating back end: "<unnamed>" as template argument in generated code
+
+The C++-generating back end in some complicated template cases could put
+out the string "<unnamed>" as a template parameter name when the parameter
+has no name in the source.  This is now fixed.
+
+
 3/18/21  [EDGcpfe/23839]
 C++-generating back end, Microsoft compatibility: qualification of hidden types
 
