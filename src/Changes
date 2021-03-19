@@ -1,5 +1,25 @@
 Version 6.3
 
+3/18/21  [EDGcpfe/23839]
+C++-generating back end, Microsoft compatibility: qualification of hidden types
+
+Visual Studio 2019 has a bug that causes it to report spurious errors in
+some cases when a qualified name is used in an elaborated-type-specifier
+that refers to a hidden name.  The C++-generating back end sometimes put
+out such elaborated-type-specifiers with unnecessary name qualification.
+This is now fixed, and the identifiers in such elaborated-type-specifiers
+are no longer qualified.  For example:
+
+  #include <typeinfo>
+  struct S {
+    int S;
+    void f() {
+      typeid(struct S);  // Previously generated as "struct ::S", which
+                         // triggered the MSVC bug
+    }
+  };
+
+
 3/18/21  [EDGcpfe/24029,EDGcpfe/24069]
 Value initialization of aggregates in C++20 mode
 
