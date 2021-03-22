@@ -829,6 +829,22 @@ static void mangled_simple_id_or_name(
                               a_boolean                   include_length,
                               a_mangling_control_block    *mctl);
 
+typedef Ptr_map<a_source_correspondence*, bool>
+		an_active_parent_map;
+                        /* A convenient type for the map below. */
+static an_active_parent_map
+		*active_parents;
+                        /* A map to keep track of whether an entity
+                           (a_source_correspondence *) has already been
+                           traversed during the mangling of a parent qualifier.
+                           */
+
+#if EXPENSIVE_CHECKING && IA64_ABI && ABI_COMPATIBILITY_VERSION >= 405
+static a_boolean
+                skip_substitution_check;
+                        /* Skips the IA-64 ABI substitution check when TRUE. */
+#endif /* EXPENSIVE_CHECKING && IA64_ABI && ABI_COMPATIBILITY_VERSION >= 405 */
+
 /*
 Interface to mangled_type_name_full for the usual case, where the
 caller has not checked already for a substitution in IA-64 ABI mode and
@@ -967,7 +983,7 @@ with is_pack_expansion set to FALSE and once with it set to TRUE.
 
   check_assertion(!is_pack_expansion || kind == iek_type);
 #if EXPENSIVE_CHECKING && ABI_COMPATIBILITY_VERSION >= 405
-  if (!emulate_gnu_abi_bugs) {
+  if (!emulate_gnu_abi_bugs && !skip_substitution_check) {
     /* Verify that there is no available substitution (the caller should
        already have checked this).  Skip the check when emulating GNU ABI bugs
        because in some cases the substitutions are intentionally
@@ -1106,6 +1122,9 @@ be set to TRUE.
   clear_mangling_control_block(mctl, mangling_prototype_instantiation);
   push_mangling_text_buffer();
   reset_text_buffer(mangling_text_buffer);
+#if EXPENSIVE_CHECKING && IA64_ABI && ABI_COMPATIBILITY_VERSION >= 405
+  skip_substitution_check = FALSE;
+#endif /* EXPENSIVE_CHECKING && IA64_ABI && ABI_COMPATIBILITY_VERSION >= 405 */
 }  /* start_mangling */
 
 
@@ -8876,6 +8895,21 @@ entity for mangling purposes.
   a_boolean               use_individuated_namespace = FALSE;
   a_const_char            *name;
 
+  if (active_parents->map_or_replace(scp, true)) {
+    /* Add this entity to the list of parent entities we've seen while mangling
+       the original child.  If the entity is already in the map, then we're in
+       an unbounded loop.  That can happen for cases like:
+         auto x = [](decltype([]{}) y) { return y; };
+       Here, the type for the parameter in the outer lambda depends on the type
+       of the inner lambda, but the inner lambda type uses it's parent's type
+       to disambiguate it. */
+#if EXPENSIVE_CHECKING && IA64_ABI && ABI_COMPATIBILITY_VERSION >= 405
+    /* This can cause issues with the IA-64 ABI substitution scheme, so skip
+       the check that is performed in certain configurations. */
+    skip_substitution_check = TRUE;
+#endif /* EXPENSIVE_CHECKING && IA64_ABI && ABI_COMPATIBILITY_VERSION >= 405 */
+    goto done_no_unmap;
+  }  /* if */
   /* See if the present level is nested inside some other level (class,
      scoped enum, or namespace), or is logically nested inside some other
      entity (lambdas in initializers, individuated entities) for the purposes
@@ -9255,7 +9289,10 @@ new_substitution:
                        mctl);
 #endif /* IA64_ABI */
   }  /* if */
-done:;
+done:
+  /* Remove entry for the current entity. */
+  active_parents->unmap(scp);
+done_no_unmap:;
 }  /* r_mangled_parent_qualifier */
 
 #if IA64_ABI
@@ -15116,6 +15153,7 @@ Do one-time initialization of variables related to name mangling.
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(unnamed_type_seed),
       pch_saved_var_array_elem(unnamed_member_variable_name_seed),
+      pch_saved_var_array_elem(active_parents),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
@@ -15141,6 +15179,8 @@ initialized for each compilation.
   num_compressible_string_pos_allocated = 0;
 #endif /* DEBUG */
 #endif /* !IA64_ABI */
+  active_parents = alloc_fe_of_type(an_active_parent_map);
+  construct(active_parents, /*mask_width=*/8);
 }  /* lower_name_init */
 
 /* Conditionally close the "edg" namespace. */
