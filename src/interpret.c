@@ -2565,18 +2565,9 @@ object treated as an array of one element.  Record diagnostic information
 describing the problem.
 */
 {
-  a_byte_count  elem_size, pos;
-  a_byte        *base_address;
-  a_boolean     local_result = TRUE;
-
   if (is_array_element(addr)) {
-    elem_size = value_bytes_for_type(ips, expr->type, &local_result);
-    check_assertion(local_result);
-    base_address = get_base_address(addr);
-    pos = (a_byte_count)(addr->address - base_address) / elem_size;
-    pos = addr->length;
     info_with_pos_num(ec_constexpr_access_one_past_array_end, &expr->position, 
-                      pos, ips);
+                      addr->length, ips);
   } else {
     info_with_pos(ec_constexpr_access_past_object, &expr->position, ips);
   }  /* if */
@@ -12933,7 +12924,8 @@ Evaluate the given new-expression.
   if (length_expr == NULL) {
     /* No declarator of the form [<run-time length>]. */
     if (type_is(type, tk_array)) {
-      alloc_length = type->variant.array.variant.number_of_elements;
+      alloc_length = (a_byte_count)type->variant.array
+                                        .variant.number_of_elements;
       elem_type = skip_typerefs(type->variant.array.element_type);
     } else {
       alloc_length = 1;
