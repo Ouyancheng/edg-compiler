@@ -8987,31 +8987,30 @@ the missing allocation.
 
 
 static a_constexpr_allocation_ptr do_constexpr_dynamic_alloc(
-                                       an_interpreter_state  *ips,
-                                       a_type_ptr            orig_elem_tp,
-                                       a_byte_count          orig_alloc_length,
-                                       a_source_position     *diag_pos,
-                                       a_constexpr_address   *cap,
-                                       a_byte_count          *p_elem_size)
+                                           an_interpreter_state  *ips,
+                                           a_type_ptr            elem_tp,
+                                           a_byte_count          alloc_length,
+                                           a_source_position     *diag_pos,
+                                           a_constexpr_address   *cap,
+                                           a_byte_count          *p_elem_size)
 /*
-Allocate alloc_length consecutive objects of type orig_elem_tp on the
-interpreter's dynamic allocation heap and place the result in *cap.  Return
-a pointer to the complete allocation structure if successful, and NULL
-otherwise (in which case, a diagnostic is registered in *ips for the given
-position).  If successful, also return the interpreter size of the allocated
-elements in *p_elem_size.
+Allocate alloc_length consecutive objects of type elem_tp on the interpreter's
+dynamic allocation heap and place the result in *cap.  Return a pointer to the
+complete allocation structure if successful, and NULL otherwise (in which case,
+a diagnostic is registered in *ips for the given position).  If successful,
+also return the interpreter size of the allocated elements in *p_elem_size.
 */
 {
   a_boolean            result = TRUE;
-  a_type_ptr           elem_tp = skip_typerefs(orig_elem_tp);
+  a_type_ptr           orig_elem_tp = skip_typerefs(elem_tp);
   a_byte_count         header_size, prefix_size, bitmap_size, elem_size,
-                       total_size, alloc_length = orig_alloc_length;
+                       total_size, orig_alloc_length = alloc_length;
   a_byte               *block;
   an_alloc_seq_number  alloc_seq_number;
   a_constexpr_allocation_ptr
                        allocation = NULL;
 
-  orig_elem_tp = elem_tp;
+  elem_tp = orig_elem_tp;
   if (type_is(elem_tp, tk_array)) {
     /* Adjust the number of elements for the array type. */
     do {
