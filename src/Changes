@@ -134,7 +134,7 @@ Consider (in GNU C++ mode):
   static constexpr S s = S((const I[]){{ 1000 }});
 
 Previously, this triggered an error because the array compound literal was
-treated as an limited-lifetime temporary object and the address of such an
+treated as a limited-lifetime temporary object and the address of such an
 object cannot be part of a constant expression's result.  That is now fixed.
 
 
