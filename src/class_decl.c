@@ -2202,8 +2202,9 @@ be done because the intermediate lambda does not allow implicit captures.
     a_lambda_ptr temp_lambda;
     depth = scope_depth_for_capture(vp, NO_SCOPE_DEPTH, &temp_lambda);
     check_assertion(temp_lambda != NULL && temp_lambda == lambda);
-    if (vp != NULL && vp->is_this_parameter &&
+    if (!by_reference && vp != NULL && vp->is_this_parameter &&
         explicit_copy_this_capture_enabled) {
+      /* P0806R2 deprecates implicit by-copy capture of "this". */
       pos_warning(ec_implicit_copy_this_capture_deprecated, pos);
     }  /* if */
   } else {

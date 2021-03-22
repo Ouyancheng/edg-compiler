@@ -1,5 +1,23 @@
 Version 6.3
 
+3/22/21  [EDGcpfe/24079]
+Spurious warning on by-reference capture of "this"
+
+Capturing "this" by-copy is deprecated (see the entry for EDGcpfe/20001, etc.).
+However, the front end also issued errors for implicit by-reference captures of
+"this".  For example:
+
+  struct S {
+    int g() { return  2; }
+    void f() {
+      int  value = 3;
+      [&]{ return value+g(); };  // Previously a spurious warning.  Now okay.
+    }
+  };
+
+This is now fixed.
+
+
 3/22/21  [EDGcpfe/21141,EDGcpfe/23339,EDGcpfe/24078]
 Unbounded recursion when mangling some lambda types
 
