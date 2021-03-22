@@ -35,7 +35,7 @@ Microsoft compatibility: new-expressions with unspecified array bounds
 
 The front end emulates a Microsoft compiler behavior where a new-expression
 allocating an array with unspecified bound is treated as if a bound of zero
-was specifier.  For example:
+was specified.  For example:
 
   int *p = new int[];  // Accepted in some Microsoft modes and treated
                        // as "int *p = new int[0];".
