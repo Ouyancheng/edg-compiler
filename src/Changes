@@ -1,5 +1,13 @@
 Version 6.3
 
+3/22/21  [EDGcpfe/24046]
+GNU C++ compatibility: Conversions to arrays of unknown bound
+
+The changes made for EDGcpfe/21591 for C++20 mode -- which enable binding an
+array of known length to a pointer or reference to an array of unspecified
+bound -- are now enabled in all GNU C++ modes.
+
+
 3/19/21  [EDGcpfe/23190,EDGcpfe/23697,EDGcpfe/23766]
 Excessive recursion walking name reference entries
 

@@ -3080,7 +3080,8 @@ copy-initialization).
       /* A reference to non-const can bind to an rvalue in cfront mode
          or anachronisms mode. */
       source_can_be_rvalue = TRUE;
-    } else if (cpp20_mode && is_incomplete_array_type(param_type)) {
+    } else if ((cpp20_mode || gpp_mode) &&
+               is_incomplete_array_type(param_type)) {
       /* A reference to an array with unknown bounds can bind to an array with
          known bounds. */
       source_can_be_rvalue = TRUE;
@@ -7597,7 +7598,7 @@ apply that would make one better than the other, and return
         } else {
           cmp = -1;
         }  /* if */
-      } else if (cpp20_mode &&
+      } else if ((cpp20_mode || gpp_mode) &&
                  (param_type1->variant.array.variant.number_of_elements == 0 ||
                  param_type2->variant.array.variant.number_of_elements == 0)) {
         /* C++20 [over.ics.rank] added to the above the case where n1 == n2,

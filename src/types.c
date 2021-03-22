@@ -7835,7 +7835,7 @@ check_typerefs:
                      type. */
                   compat = TRUE;
                 }  /* if */
-              } else if (cpp20_mode && is_impl_conv) {
+              } else if ((cpp20_mode || gpp_mode) && is_impl_conv) {
                 /* In C++20 mode we can implicitly convert an array with known
                    bounds to an array with unknown bounds - but not the other
                    way around. */
@@ -9153,15 +9153,17 @@ Microsoft-mode handling of the __unaligned and __restrict qualifiers).
         }  /* if */
         dest_type = pm_member_type(dest_type);
         source_type = pm_member_type(source_type);
-      } else if (!gpp_mode && !clang_mode && !ms_version_is(>= 1914) &&
+      } else if (!gpp_version_is(<80000) && !clang_mode &&
+                 !ms_version_is(>= 1914) &&
                  is_array(source_type) && is_array(dest_type)) {
         /* N4261 reworked qualification conversions to include arrays (thereby
-           resolving Core issue 330).  GCC, Clang, and (some versions of) MSVC
-           do not appear to implement that yet.  P0338R4 (in C++20) adjusted
-           this further to allow conversions from arrays with known bounds to
-           arrays with unknown bounds. */
+           resolving Core issue 330).  GCC versions prior to 8.x, Clang, and
+           (some versions of) MSVC do not appear to implement that yet.
+           P0338R4 (in C++20) adjusted this further to allow conversions from
+           arrays with known bounds to arrays with unknown bounds. */
         if (!identical_array_type_level(source_type, dest_type) &&
-            !(cpp20_mode && !has_unknown_specified_bound(dest_type) &&
+            !((cpp20_mode || gpp_mode) &&
+              !has_unknown_specified_bound(dest_type) &&
               dest_type->variant.array.variant.number_of_elements == 0)) {
           same = FALSE;
           break;
@@ -11105,7 +11107,7 @@ See conversion_possible.
        be completed if the function is defined or called.  P0338R4 (in C++20)
        allows conversions from arrays with known bounds to arrays with unknown
        bounds. */
-    if (cpp20_mode && is_incomplete_array_type(dest_type) &&
+    if ((cpp20_mode || gpp_mode) && is_incomplete_array_type(dest_type) &&
         is_array_type(source_type)) {
       a_type_ptr dest_etype, source_etype;
       dest_etype = underlying_array_element_type(dest_type);
