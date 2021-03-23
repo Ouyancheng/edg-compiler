@@ -9162,8 +9162,7 @@ Microsoft-mode handling of the __unaligned and __restrict qualifiers).
            P0338R4 (in C++20) adjusted this further to allow conversions from
            arrays with known bounds to arrays with unknown bounds. */
         if (!identical_array_type_level(source_type, dest_type) &&
-            !((cpp20_mode || gpp_mode) &&
-              !has_unknown_specified_bound(dest_type) &&
+            !(cpp20_mode && !has_unknown_specified_bound(dest_type) &&
               dest_type->variant.array.variant.number_of_elements == 0)) {
           same = FALSE;
           break;
@@ -9558,7 +9557,8 @@ a_boolean impl_pointer_conversion(
                          a_boolean            allow_qualifier_or_eh_mismatch,
                          a_boolean            suppress_extensions,
                          an_error_code        default_warning_code,
-                         a_std_conv_descr_ptr std_conv)
+                         a_std_conv_descr_ptr std_conv,
+       /* Defaulted: */  a_conv_context_set   conv_context)
 /*
 Return TRUE if it's okay to implicitly convert something of type source_type
 (any type) to something of type dest_type (a pointer type).
@@ -9581,7 +9581,8 @@ describe the conversion.  In particular, if the conversion is suspect
 and should be flagged with a warning, the warning_suggested field is
 set to an appropriate error code; normally, it is set to ec_no_error.
 default_warning_code will be copied into warning_suggested when no
-specific message applies.
+specific message applies.  conv_context (which defaults to CCO_DEFAULT)
+describes the context in which the implicit conversion is considered.
 
 Note that any type qualifiers on the types themselves (rather than the
 types pointed to) are ignored.
@@ -9668,6 +9669,9 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
        constant expressions.) */
     okay = TRUE;
   } else if (is_pointer(source_type)) {
+    a_type_compat_flags_set  tcf = TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
+                                   TCF_IGNORE_TYPE_QUALIFIERS;
+    if (!(conv_context & CCO_EXPLICIT_CAST)) tcf |= TCF_IMPLICIT_CONVERSION;
     /* Pointer --> pointer. */
     qualifiers_checked = FALSE;
     /* Get the type pointed to and drop type qualifiers and typedefs. */
@@ -9681,9 +9685,9 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
     } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
-    if (types_are_compatible_for_impl_conversion(
-                                            unqual_source_type_pointed_to,
-                                            unqual_dest_type_pointed_to)) {
+    if (f_types_are_compatible(unqual_source_type_pointed_to,
+                               unqual_dest_type_pointed_to,
+                               tcf)) {
       /* The "_for_impl_conversion" version is used to get proper handling of
          pointers to arrays with qualified element types and (in C++) to deal
          appropriately with routine linkages on function types. */
@@ -11034,7 +11038,8 @@ a_boolean impl_conversion_possible(
                           a_boolean            allow_qualifier_or_eh_mismatch,
                           a_boolean            suppress_extensions,
                           an_error_code        default_warning_code,
-                          a_std_conv_descr_ptr std_conv)
+                          a_std_conv_descr_ptr std_conv,
+        /* Defaulted: */  a_conv_context_set   conv_context)
 /*
 Return TRUE if it is okay to implicitly convert something of type
 source_type to something of type dest_type.  If source_is_constant is TRUE,
@@ -11054,7 +11059,8 @@ conversion.  In particular, if the conversion is suspect and should be
 flagged with a warning, the warning_suggested field is set to an
 appropriate error code; normally, it is set to ec_no_error.
 default_warning_code will be copied into warning_suggested when no specific
-message applies.
+message applies.  conv_context describes the context in which the conversion
+is considered (defaults to CCO_DEFAULT).
 
 Note that any top-level type qualifiers on the types are ignored, and
 when allow_qualifier_or_eh_mismatch is TRUE exception specifications
@@ -11346,7 +11352,7 @@ See conversion_possible.
                                    allow_qualifier_or_eh_mismatch,
                                    suppress_extensions,
                                    default_warning_code,
-                                   std_conv);
+                                   std_conv, conv_context);
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (is_handle_type(dest_type)) {
     /* Destination type is a C++/CLI handle. */
@@ -11600,7 +11606,8 @@ static a_boolean inverse_impl_conversion_possible(
                           a_type_ptr           dest_type,
                           a_boolean            suppress_extensions,
                           a_boolean            allow_qualifier_or_eh_mismatch,
-                          a_std_conv_descr_ptr std_conv)
+                          a_std_conv_descr_ptr std_conv,
+                          a_conv_context_set   conv_context = CCO_DEFAULT)
 /*
 Return TRUE if the conversion source_type --> dest_type can be done as
 a static_cast because the inverse dest_type --> source_type can be done as
@@ -11615,7 +11622,8 @@ filled out to describe the conversion.  In particular, if the conversion
 is suspect and should be flagged with a warning, the warning_suggested
 field is set to an appropriate error code; normally, it is set to
 ec_no_error.  When allow_qualifier_or_eh_mismatch is TRUE, cv-qualifiers and
-exception specifications are not checked.
+exception specifications are not checked.  conv_context describes the context
+in which the conversion is considered.
 */
 {
   a_boolean        okay = FALSE, baseward_cast, related_class_case = FALSE;
@@ -11674,9 +11682,8 @@ exception specifications are not checked.
                                        source_type,
                                        /*singleton_braced_init=*/FALSE,
                                        allow_qualifier_or_eh_mismatch,
-                                       suppress_extensions,
-                                       ec_bad_cast,
-                                       std_conv)
+                                       suppress_extensions, ec_bad_cast,
+                                       std_conv, conv_context)
 #if MICROSOFT_EXTENSIONS_ALLOWED
               /* Don't allow the inverse of boxing conversions.  If a
                  conversion like that is to be allowed, let it come in
@@ -11843,7 +11850,9 @@ C++ mode.  See [expr.static.cast].
                                          allow_qualifier_or_eh_mismatch,
                                          suppress_extensions,
                                          default_warning_code,
-                                         &impl_std_conv) != FALSE;
+                                         &impl_std_conv,
+                                         CCO_CAST | CCO_EXPLICIT_CAST |
+                                         CCO_DIRECT_INITIALIZATION);
     if (impl_okay &&
         (impl_std_conv.warning_suggested == ec_no_error ||
          impl_std_conv.is_mild_warning ||
@@ -11868,7 +11877,9 @@ C++ mode.  See [expr.static.cast].
                                                source_type, dest_type,
                                                suppress_extensions,
                                                allow_qualifier_or_eh_mismatch,
-                                               &inv_impl_std_conv);
+                                               &inv_impl_std_conv,
+                                               CCO_CAST | CCO_EXPLICIT_CAST |
+                                               CCO_DIRECT_INITIALIZATION);
       if (inv_impl_okay &&
           (inv_impl_std_conv.warning_suggested == ec_no_error ||
            inv_impl_std_conv.is_mild_warning)) {

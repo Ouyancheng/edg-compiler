@@ -1327,7 +1327,9 @@ extern a_boolean impl_pointer_conversion(
                          a_boolean            allow_qualifier_or_eh_mismatch,
                          a_boolean            suppress_extensions,
                          an_error_code        default_warning_code,
-                         a_std_conv_descr_ptr std_conv);
+                         a_std_conv_descr_ptr std_conv,
+       /* Defaulted: */  a_conv_context_set   conv_context = CCO_DEFAULT);
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern
 a_boolean literal_type_convertible_to_cli_string(a_type_ptr type_ptr);
@@ -1374,7 +1376,8 @@ extern a_boolean impl_conversion_possible(
                           a_boolean            allow_qualifier_or_eh_mismatch,
                           a_boolean            suppress_extensions,
                           an_error_code        default_warning_code,
-                          a_std_conv_descr_ptr std_conv);
+                          a_std_conv_descr_ptr std_conv,
+        /* Defaulted: */  a_conv_context_set   conv_context = CCO_DEFAULT);
 extern a_boolean impl_converted_constant_expr_conversion_possible(
                                            a_type_ptr       source_type,
                                            a_boolean        source_is_constant,

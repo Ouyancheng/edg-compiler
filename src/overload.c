@@ -22909,11 +22909,12 @@ direct binding is "possible" and not whether it is "valid".
     type_is_correct_or_derived = are_reference_compatible(base_dest_type,
                                                           eff_source_type);
   } else {
+    a_type_compat_flags_set  tcf = TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
+                                   TCF_IGNORE_TYPE_QUALIFIERS;
+    if (!is_cast) tcf |= TCF_IMPLICIT_CONVERSION;
     type_is_correct_or_derived =
               f_types_are_compatible(unqual_source_type, unqual_dest_type,
-                                     TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
-                                     TCF_IMPLICIT_CONVERSION |
-                                     TCF_IGNORE_TYPE_QUALIFIERS);
+                                     tcf);
   }  /* if */
   if (type_is_correct_or_derived) {
     /* No other matches need to be checked for. */
