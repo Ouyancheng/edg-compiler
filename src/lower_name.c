@@ -8901,7 +8901,7 @@ entity for mangling purposes.
        an unbounded loop.  That can happen for cases like:
          auto x = [](decltype([]{}) y) { return y; };
        Here, the type for the parameter in the outer lambda depends on the type
-       of the inner lambda, but the inner lambda type uses it's parent's type
+       of the inner lambda, but the inner lambda type uses its parent's type
        to disambiguate it. */
 #if EXPENSIVE_CHECKING && IA64_ABI && ABI_COMPATIBILITY_VERSION >= 405
     /* This can cause issues with the IA-64 ABI substitution scheme, so skip
