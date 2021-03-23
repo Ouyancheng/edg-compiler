@@ -7165,6 +7165,9 @@ is TRUE.
     case enk_initializer:
     default:
       /* Unexpected expression kind. */
+#if DEBUG
+      db_expression(expr);
+#endif  /* DEBUG */
       unexpected_condition_str(
                              "mangled_encoding_for_expression_full: bad kind");
   }  /* switch */
