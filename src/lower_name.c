@@ -8895,9 +8895,10 @@ entity for mangling purposes.
   a_boolean               use_individuated_namespace = FALSE;
   a_const_char            *name;
 
-  if (active_parents->map_or_replace(scp, true)) {
-    /* Add this entity to the list of parent entities we've seen while mangling
-       the original child.  If the entity is already in the map, then we're in
+  if (kind == iek_type &&
+      active_parents->map_or_replace(scp, true)) {
+    /* Add this type to the list of parent entities we've seen while mangling
+       the original child.  If the type is already in the map, then we're in
        an unbounded loop.  That can happen for cases like:
          auto x = [](decltype([]{}) y) { return y; };
        Here, the type for the parameter in the outer lambda depends on the type
@@ -9291,7 +9292,7 @@ new_substitution:
   }  /* if */
 done:
   /* Remove entry for the current entity. */
-  active_parents->unmap(scp);
+  if (kind == iek_type) active_parents->unmap(scp);
 done_no_unmap:;
 }  /* r_mangled_parent_qualifier */
 
@@ -9738,7 +9739,6 @@ potential performance improvement, allowing re-use of a mangled name).
       }  /* if */
     } while (--len);
     *dest = '\0';
-    check_assertion(!type->source_corresp.name_has_been_mangled);
   }  /* if */
 #endif /* IA64_ABI */
 done:;
