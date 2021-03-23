@@ -1,5 +1,18 @@
 Version 6.3
 
+3/23/21   [EDGcpfe/21142,EDGcpfe/23692]
+Mangling of lambda expressions
+
+The IA-64 ABI doesn't specifically mention mangling of lambda expressions
+(though it does specify how to mangle lambda closure types), but in some
+configurations (mostly C++-generating configurations with MANGLE_ALL_NAMES),
+a lambda expression can find its way into a mangled name, causing an
+assertion failure.  A change has been made to mangle these lambda expressions
+as GCC does -- as braced-init lists.  For example (with --c++20):
+
+  template <int N> void foo(const char (*s)[([]{}, N)]);
+
+
 3/22/21  [EDGcpfe/24079]
 Spurious warning on by-reference capture of "this"
 
