@@ -3,9 +3,9 @@ Version 6.3
 3/22/21  [EDGcpfe/24079]
 Spurious warning on by-reference capture of "this"
 
-Capturing "this" by-copy is deprecated (see the entry for EDGcpfe/20001, etc.).
-However, the front end also issued errors for implicit by-reference captures of
-"this".  For example:
+Capturing "this" by copy is deprecated (see the entry for EDGcpfe/20001, etc.).
+However, the front end also issued warnings for implicit by-reference captures
+of "this".  For example:
 
   struct S {
     int g() { return  2; }
