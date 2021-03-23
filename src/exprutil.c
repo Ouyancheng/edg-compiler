@@ -13622,16 +13622,13 @@ If there is an error, change "operand" to an error operand.
 
 a_boolean check_object_or_incomp_array_pointer_operand(an_operand    *operand,
                                                        an_error_code err_code,
-                                                       an_operand    *otherop,
-                                     /* Defaulted: */  a_boolean     add_type)
+                                                       an_operand    *otherop)
 /*
 Return FALSE and issue an error message if the operand is not a pointer to
 complete object or incomplete array.  If there is an error, change "operand"
 to an error operand.  If the operand is a pointer to incomplete array, issue
 a remark if otherop is a constant zero, a warning otherwise.  Do not accept
-the pointer to incomplete array case in strict ANSI mode.  If add_type is
-TRUE (it has a FALSE default argument) err_code has a %t fill-in and the type
-of the given operand must be passed to the diagnostic routines.
+the pointer to incomplete array case in strict ANSI mode.
 */
 {
   a_boolean  okay = TRUE;
@@ -13655,28 +13652,16 @@ of the given operand must be passed to the diagnostic routines.
       if (op_is_zero_constant(otherop) && !strict_ansi_mode) {
         if (expr_diagnostic_should_be_issued(es_remark, err_code,
                                              &operand->position)) {
-          if (add_type) {
-            expr_pos_ty_diagnostic(es_remark, err_code, &operand->position,
+          expr_pos_ty_diagnostic(es_remark, err_code, &operand->position,
                                    operand->type);
-          } else {
-            pos_remark(err_code, &operand->position);
-          }  /* if */
         }  /* if */
       } else {
-        if (add_type) {
-          expr_pos_ty_diagnostic(es_warning, err_code, &operand->position,
+        expr_pos_ty_diagnostic(es_warning, err_code, &operand->position,
                                  operand->type);
-        } else {
-          expr_pos_warning(err_code, &operand->position);
-        }  /* if */
       }  /* if */
     } else {
       /* A pointer, but not a valid pointer. */
-      if (add_type) {
-        type_error_in_operand(err_code, operand, operand->type);
-      } else {
-        error_in_operand(err_code, operand);
-      }  /* if */
+      type_error_in_operand(err_code, operand, operand->type);
       okay = FALSE;
     }  /* if */
   }  /* if */

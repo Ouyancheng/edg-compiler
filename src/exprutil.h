@@ -2114,8 +2114,7 @@ extern a_boolean check_object_pointer_operand(an_operand    *operand,
 extern a_boolean check_object_or_incomp_array_pointer_operand(
                                                an_operand    *operand,
                                                an_error_code err_code,
-                                               an_operand    *otherop,
-                                               a_boolean     add_type = FALSE);
+                                               an_operand    *otherop);
 #endif /* PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
 
 extern an_error_code expr_not_integral_or_any_enum_code(void);

@@ -2288,12 +2288,9 @@ constructs, in which case offsetof_case is TRUE.
 #if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
                  /* Pointer to incomplete array is also allowed. */
                  check_object_or_incomp_array_pointer_operand(
-                                               pointer_operand,
-                                               err_code,
-                                               integer_operand)
+                                   pointer_operand, err_code, integer_operand)
 #else /* !PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
-                 check_object_pointer_operand(pointer_operand,
-                                              err_code)
+                 check_object_pointer_operand(pointer_operand, err_code)
 #endif /* PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
                                                        ) {
         result_type = type_pointed_to(pointer_operand->type);
@@ -27876,8 +27873,7 @@ that case.
 #if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
           /* Pointer to incomplete array is also allowed. */
           (void)check_object_or_incomp_array_pointer_operand(
-                                     operand_1, ec_expr_not_pointer_to_object,
-                                     &operand_2, /*add_type=*/TRUE);
+                        operand_1, ec_expr_not_pointer_to_object, &operand_2);
 #else /* !PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
           (void)check_object_pointer_operand(operand_1,
                                              ec_expr_not_pointer_to_object);
@@ -28021,9 +28017,8 @@ that case.
       } else {
 #if PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED
         /* Pointer to incomplete array is also allowed. */
-        (void)check_object_or_incomp_array_pointer_operand(&operand_2,
-                                                 ec_expr_not_pointer_to_object,
-                                                         operand_1);
+        (void)check_object_or_incomp_array_pointer_operand(
+                        &operand_2, ec_expr_not_pointer_to_object, operand_1);
 #else /* !PTR_TO_INCOMP_ARRAY_ARITHMETIC_ALLOWED */
        (void)check_object_pointer_operand(&operand_2,
                                          ec_expr_not_pointer_to_object);
