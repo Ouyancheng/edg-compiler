@@ -13653,11 +13653,11 @@ the pointer to incomplete array case in strict ANSI mode.
         if (expr_diagnostic_should_be_issued(es_remark, err_code,
                                              &operand->position)) {
           expr_pos_ty_diagnostic(es_remark, err_code, &operand->position,
-                                   operand->type);
+                                 operand->type);
         }  /* if */
       } else {
         expr_pos_ty_diagnostic(es_warning, err_code, &operand->position,
-                                 operand->type);
+                               operand->type);
       }  /* if */
     } else {
       /* A pointer, but not a valid pointer. */
