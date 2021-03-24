@@ -19543,7 +19543,7 @@ match what has been declared.
     decl_private_module_fragment();
   } else {
     /* A module unit (primary or partition) */
-    decl_module(exported);
+    decl_module(exported || tu_is_module_interface);
   }  /* if */
 }  /* module_declaration */
 

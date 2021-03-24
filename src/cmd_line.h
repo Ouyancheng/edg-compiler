@@ -347,6 +347,7 @@ typedef enum /*an_option_kind*/ {
   optk_module_dir,
   optk_ms_module_file_map,
   optk_ms_header_unit,
+  optk_ms_mod_interface,
   optk_modules,
   optk_concepts,
   optk_colors,
@@ -1500,6 +1501,12 @@ EXTERN a_boolean
 			   modules_enabled is FALSE and this is TRUE, module
 			   keywords will be enabled but modules cannot be
 			   imported. */
+
+EXTERN a_boolean
+		tu_is_module_interface;
+			/* TRUE if module declarations should be treated as if
+			   they were exported.  This is ignored unless a module
+			   declaration is encountered. */
 
 EXTERN a_boolean
 		lazy_symbols_may_be_visible;

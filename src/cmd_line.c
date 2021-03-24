@@ -1029,6 +1029,12 @@ Initialize the option information table.
   add_option_description(optk_ms_header_unit, "ms_header_unit", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
+  add_option_description(optk_ms_mod_interface, "ms_mod_interface", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_ms_mod_interface, "no_ms_mod_interface", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
   add_option_description(optk_modules, "modules", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
@@ -9991,6 +9997,9 @@ Process the arguments on the command line that invoked the compiler.
           }  /* if */
         }
         break;
+      case optk_ms_mod_interface:
+        tu_is_module_interface = opt_value;
+        break;
       case optk_modules:
         /* Enable/disable support for modules. */
         modules_enabled = opt_value;
@@ -12613,6 +12622,7 @@ variables declared in cmd_line.h.
   relaxed_abstract_checking = FALSE;
   modules_enabled = FALSE;
   module_keywords_enabled = FALSE;
+  tu_is_module_interface = FALSE;
   lazy_symbols_may_be_visible = FALSE;
   skip_module_imports = FALSE;
   skip_module_version_check = FALSE;

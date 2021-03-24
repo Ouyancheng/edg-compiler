@@ -783,6 +783,7 @@ check_abbreviation()
 --ms_extensions
 --ms_header_unit
 --ms_mod_file_map
+--ms_mod_interface
 --ms_permissive
 --ms_rvalue_cast
 --ms_std_preprocessor
@@ -871,6 +872,7 @@ check_abbreviation()
 --no_ms_std_preprocessor
 --no_ms_cplusplus_std_value
 --no_ms_extensions
+--no_ms_mod_interface
 --no_ms_permissive
 --no_ms_rvalue_cast
 --no_ms_strict_ternary
@@ -1432,6 +1434,8 @@ process_option()
          --no_ms_cplusplus_std_value | \
          --ms_extensions | \
          --no_ms_extensions | \
+         --ms_mod_interface | \
+         --no_ms_mod_interface | \
          --ms_permissive | \
          --no_ms_permissive | \
          --ms_rvalue_cast | \
