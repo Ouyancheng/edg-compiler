@@ -1643,7 +1643,7 @@ actually declares a function, member function, or function template).
   an_exception_specification_type_ptr  estp, other_estp, end_of_list = NULL;
   a_source_position                    type_pos;
   a_boolean                            ignoring_exception_spec = FALSE;
-  a_boolean                            is_noexcept;
+  a_boolean                            is_noexcept, is_edg_throw = FALSE;
 
   db_enter(4, "scan_exception_specification");
   is_noexcept = curr_token == tok_noexcept;
@@ -1710,6 +1710,13 @@ actually declares a function, member function, or function template).
       (void)get_token();
       goto done;
     }  /* if */
+  } else if (locator_for_curr_id.symbol_header != NULL &&
+             locator_for_curr_id.symbol_header->identifier[0] == '_' &&
+             strcmp(locator_for_curr_id.symbol_header->identifier,
+                    "__edg_throw__") == 0) {
+    /* Recognize the "__edg_throw__" throw token, which is equivalent to
+       "throw" but should not elicit certain diagnostics. */
+    is_edg_throw = TRUE;
   }  /* if */
   /* Bypass "throw" or "noexcept". */
   (void)get_token();
@@ -1740,7 +1747,16 @@ actually declares a function, member function, or function template).
     } else if (curr_token == tok_rparen) {
       /* Case is "throw ()" -- which means "no exception will be thrown by
          this routine." */
-      goto finish_list;
+        if (cpp20_mode && !is_noexcept && !is_edg_throw &&
+            exc_spec_in_func_type) {
+          /* The exception-specification "throw()" was completely dropped in
+             C++20, but current practice is to accept it. */
+          pos_diagnostic(strict_ansi_mode ? es_discretionary_error
+                                          : es_warning,
+                         ec_dynamic_exc_spec_not_permitted,
+                         &func_info->throw_position);
+        }  /* if */
+        goto finish_list;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (ms_extensions && microsoft_version >= 1300 &&
                curr_token == tok_ellipsis) {
@@ -1851,7 +1867,9 @@ actually declares a function, member function, or function template).
          interact well with exception specifications becoming part of function
          types. */
       a_source_position  *pos = &func_info->throw_position;
-      if (exc_spec_in_func_type) {
+      if (is_edg_throw) {
+        /* Nothing to report. */
+      } else if (exc_spec_in_func_type) {
         pos_diagnostic(microsoft_mode ? es_warning : es_discretionary_error,
                        ec_dynamic_exc_spec_not_permitted, pos);
         esp = NULL;

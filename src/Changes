@@ -1,5 +1,17 @@
 Version 6.3
 
+3/24/21  [EDGcpfe/24090]
+C++20: throw() specifiers
+
+C++17 removed most dynamic exception specifications except the "throw()" form.
+C++20 also removed the latter (through the committee's paper P0619R4) and the
+front end now diagnoses uses of the "throw()" specifier in C++20 modes (an
+error in strict mode, a warning otherwise).  For example:
+
+  void f() throw();  // Now elicits a warning in most C++20 modes, and
+                     // an error in strict C++20 mode.
+
+
 3/24/21  [EDGcpfe/23947]
 MS compatibility: Module interface command-line option
 
