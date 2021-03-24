@@ -21518,6 +21518,7 @@ compilers.)
     if (node_operator_is(expr, eok_points_to_vacuous_destructor_call)) {
       type = type_pointed_to(type);
     }  /* if */
+    type = skip_typerefs(type);
     if ((!has_name_before_mangling(type) || is_immediate_enum_type(type)) &&
         !type->typedef_for_vacuous_dtor_call_put_out) {
       /* Generate a typedef using a temporary name. */
