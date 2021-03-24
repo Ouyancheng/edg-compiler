@@ -1672,6 +1672,12 @@ Display a_routine_type_supplement.
   if (ptr->had_been_implicitly_const) {
     disp_boolean("had_been_implicitly_const", TRUE);
   }  /* if */
+  if (ptr->is_conditionally_explicit) {
+    disp_boolean("is_conditionally_explicit", TRUE);
+  }  /* if */
+  if (ptr->has_this_param) {
+    disp_boolean("has_this_param", TRUE);
+  }  /* if */
   if (ptr->lint_varargs_count != NOT_LINT_VARARGS) {
     disp_long("lint_varargs_count", (long)ptr->lint_varargs_count);
   }  /* if */

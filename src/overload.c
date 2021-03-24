@@ -11830,12 +11830,19 @@ implicit "this" is available, e.g., during overload resolution.
                  ssep->outside_parameter_list) {
         /* "this" is visible after the closing parenthesis of certain
            function declarators. */
-        a_decl_parse_state_ptr dps = ssep->decl_parse_state;
-        a_type_ptr             rout_type = ssep->assoc_type;
-        a_type_ptr             this_class;
-        check_assertion(dps != NULL &&
-                        rout_type != NULL &&
-                        rout_type->kind == (a_type_kind)tk_routine);
+        a_decl_parse_state_ptr  dps = ssep->decl_parse_state;
+        a_type_ptr              rout_type = ssep->assoc_type;
+        a_boolean               has_this_param;
+        check_assertion(dps != NULL && rout_type != NULL &&
+                        type_is(rout_type, tk_routine));
+        if (dps->sym != NULL && !dps->in_class_scope &&
+            is_simple_function_or_template_symbol(dps->sym)) {
+          /* For out-of-class declarations, we may have determined the matching
+             in-class declaration already (e.g., when scanning a noexcept
+             argument). */
+          a_routine_ptr  rp = func_sym_routine(dps->sym);
+          rout_type = skip_typerefs(rp->type);
+        }  /* if */
         if (dps->has_trailing_return_type ?
                  !this_in_trailing_return_types_enabled : !noexcept_enabled) {
           /* If we're in a trailing return type for this function prototype
@@ -11846,9 +11853,9 @@ implicit "this" is available, e.g., during overload resolution.
              trailing return types.) */
           break;
         }  /* if */
-        this_class = rout_type->variant.routine.extra_info->this_class;
-        if (this_class != NULL &&
-            class_type_supp(this_class)->is_lambda_closure_class) {
+        has_this_param = rout_type_supp(rout_type)->has_this_param;
+        if (has_this_param &&
+            rout_type_supp(rout_type)->assoc_routine_is_lambda_body) {
           /* "this" in the trailing return type of a lambda refers to
              the surrounding context, not the "this" of the lambda. */
           continue;
@@ -11856,7 +11863,7 @@ implicit "this" is available, e.g., during overload resolution.
           /* For an in-class member function declaration, we know whether or
              not the function is static and therefore whether or not "this"
              can be referenced. */
-          if (this_class != NULL) {
+          if (has_this_param) {
             this_exists = TRUE;
             if (this_type != NULL) {
               local_this_type = f_implicit_this_param_type_of(rout_type);
@@ -11869,7 +11876,7 @@ implicit "this" is available, e.g., during overload resolution.
              have to allow the reference to "this" and issue an error later if
              it turns out the function matched is static. */
           this_exists = TRUE;
-          if (this_class != NULL) {
+          if (has_this_param) {
             /* When the declaration has explicit cv-qualifiers, we know
                the function will be nonstatic even though we don't know which
                function it will be, so "this" is permitted and no error
@@ -11895,10 +11902,11 @@ implicit "this" is available, e.g., during overload resolution.
                  presumed "this" type. */
               a_scope_stack_entry_ptr ssepr = ssep-1;
               check_assertion(scope_is(ssepr, sck_class_reactivation));
-              rout_type->variant.routine.extra_info->this_class =
-                                                             ssepr->assoc_type;
+              rout_type_supp(rout_type)->this_class = ssepr->assoc_type;
+              rout_type_supp(rout_type)->has_this_param = TRUE;
               local_this_type = f_implicit_this_param_type_of(rout_type);
-              rout_type->variant.routine.extra_info->this_class = NULL;
+              rout_type_supp(rout_type)->this_class = NULL;
+              rout_type_supp(rout_type)->has_this_param = FALSE;
             }  /* if */
           }  /* if */
           break;

@@ -1,5 +1,22 @@
 Version 6.3
 
+3/24/21  [EDGcpfe/24040]
+Spurious exception specification mismatch error
+
+The front end previously issued spurious error
+
+  struct X { void x(); };
+  template<typename T> struct S {
+    X s;
+    void f() noexcept(noexcept(s.x()));
+  };
+  template<typename T>
+    void S<T>::f() noexcept(noexcept(s.x())) {}  // Previously an error.
+                                                 // Now okay.
+
+That is now fixed.
+
+
 3/23/21  [EDGcpfe/21142,EDGcpfe/23692]
 Mangling of lambda expressions
 

@@ -15923,6 +15923,7 @@ make_new_type:
         *new_rtsp = *rtsp;
         new_rtsp->assoc_routine = NULL;
         new_rtsp->this_class = new_this_class;
+        new_rtsp->has_this_param = (new_this_class != NULL);
         new_rtsp->prototype_scope = NULL;
         new_rtsp->param_type_list = copy_param_type_list_with_substitution(
                                         rtsp->param_type_list,
@@ -17468,6 +17469,7 @@ the error type is a member, or is NULL for a nonmember.
   if (templ_rtsp->this_class != NULL) {
     /* If this is a member function, set the this class type. */
     rtsp->this_class = parent_class;
+    rtsp->has_this_param = TRUE;
   }  /* if */
   return rout_type;
 }  /* create_error_routine_type */
@@ -41111,6 +41113,7 @@ prototype instantiation of ct_sym.
   }  /* if */
   rtsp->assoc_routine_is_ctor = TRUE;
   rtsp->this_class = proto_type;
+  rtsp->has_this_param = TRUE;
   rtsp->prototyped = TRUE;
   rout->special_kind = (a_special_function_kind)sfk_constructor;
   ctor_sym->variant.routine.ptr = rout;

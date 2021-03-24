@@ -10791,6 +10791,7 @@ When templates_only is TRUE, only function templates members are considered.
          this loop.  Restore the original type for this iteration. */
       new_rts->qualifiers = new_quals;
       new_rts->this_class = new_this_class;
+      new_rts->has_this_param = new_this_class != NULL;
       new_function_is_qualified = (new_quals != TQ_NONE);
     }  /* if */
     if (symbol_is(sym, sk_projection)) {
@@ -10838,6 +10839,7 @@ When templates_only is TRUE, only function templates members are considered.
       new_function_is_qualified = TRUE;
       if (new_this_class == NULL) {
         new_rts->this_class = parent_class;
+        new_rts->has_this_param = TRUE;
       }  /* if */
       new_rts->qualifiers |= TQ_CONST;
     }  /* if */
@@ -10906,7 +10908,7 @@ When templates_only is TRUE, only function templates members are considered.
          Note that this method is used (rather than specifying the
          TCF_IGNORE_THIS_CLASS_TYPE flag) in order that only the "this" param
          of the top-level type is ignored (and not the "this" param types
-         of any other parameter types). */
+         of any other parameter types).  */
       new_rts->this_class = NULL;
       orig_rts->this_class = NULL;
       restore_this_param = TRUE;
@@ -13157,7 +13159,8 @@ to (with its overridden_functions field).
     result->decl_scope = parent_scope->number;
     rp_type = copy_routine_type_with_param_types(base_rp->type,
                                                  /*copy_default_args=*/FALSE);
-    rp_type->variant.routine.extra_info->this_class = parent_class;
+    rout_type_supp(rp_type)->this_class = parent_class;
+    rout_type_supp(rp_type)->has_this_param = TRUE;
     rp = make_routine(rp_type, (a_storage_class)sc_extern, NO_SCOPE_DEPTH);
     rp->next = parent_scope->routines;
     parent_scope->routines = rp;
@@ -13733,7 +13736,7 @@ the position of the "= default" construct.
     }  /* if */
   }  /* if */
   if (!err) {
-    a_boolean  is_member = rtsp->this_class != NULL;
+    a_boolean  is_member = rtsp->has_this_param;
     if (is_member) {
       if (rtsp->qualifiers != TQ_CONST) {
         pos_error(ec_nonconst_defaulted_member_comparison, def_pos);
@@ -16095,6 +16098,7 @@ is returned.
   rtsp = ctor_type->variant.routine.extra_info;
   rtsp->assoc_routine_is_ctor = TRUE;
   rtsp->this_class = class_type;
+  rtsp->has_this_param = TRUE;
   if (exceptions_enabled) {
     an_exception_specification_ptr  esp = alloc_exception_specification();
     esp->is_noexcept = TRUE;
@@ -16144,6 +16148,7 @@ is returned.
   rtsp = ctor_type->variant.routine.extra_info;
   rtsp->assoc_routine_is_ctor = TRUE;
   rtsp->this_class = class_type;
+  rtsp->has_this_param = TRUE;
   if (exceptions_enabled) {
     an_exception_specification_ptr  esp = alloc_exception_specification();
     esp->is_noexcept = TRUE;
@@ -16194,6 +16199,7 @@ is returned.
   rtsp = ctor_type->variant.routine.extra_info;
   rtsp->assoc_routine_is_ctor = TRUE;
   rtsp->this_class = class_type;
+  rtsp->has_this_param = TRUE;
   if (exceptions_enabled) {
     an_exception_specification_ptr  esp = alloc_exception_specification();
     esp->is_noexcept = TRUE;
@@ -16293,6 +16299,7 @@ needed IL entries for the destructor and return the associated symbol.
   rtsp = dtor_type->variant.routine.extra_info;
   rtsp->assoc_routine_is_dtor = TRUE;
   rtsp->this_class = class_type;
+  rtsp->has_this_param = TRUE;
   if (exceptions_enabled) {
     an_exception_specification_ptr  esp = alloc_exception_specification();
     esp->is_noexcept = TRUE;
@@ -20814,6 +20821,7 @@ operator should be created.  No routine body is generated at this time.
   extra_info->param_type_list = ptp;
   if (ptp != NULL) ptp->param_num = 1;
   extra_info->this_class = class_type;
+  extra_info->has_this_param = TRUE;
   extra_info->prototyped = TRUE;
   if (ptp != NULL) {
     /* Set a flag in the param type entry if its associated type is or contains
@@ -22521,6 +22529,7 @@ symbol for a called member function.
     rtp->variant.routine.return_type = void_type();
     rtsp->routine_name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
     rtsp->this_class = class_type;
+    rtsp->has_this_param = TRUE;
     rtsp->prototyped = TRUE;
     rtsp->assoc_routine_is_dtor = TRUE;
     set_routine_calling_method_flag(rtp, &null_source_position);
@@ -23816,6 +23825,7 @@ will be generated for the given class type.
   check_assertion(ptp == NULL && bptp == NULL);
   new_rtsp->exception_specification = NULL;
   new_rtsp->this_class = class_type;
+  new_rtsp->has_this_param = TRUE;
   return new_tp;
 }  /* create_inheriting_ctor_type */
 
@@ -26245,13 +26255,15 @@ the function is a nonstatic member of class_type.
          Be sure the implicit this-param type is filled in, since that's
          the only way a nonstatic member function is distinguished from a
          static member function. */
-      rout_type->variant.routine.extra_info->this_class = class_type;
+      rout_type_supp(rout_type)->this_class = class_type;
+      rout_type_supp(rout_type)->has_this_param = TRUE;
     } else if (any_cfront_mode()) {
       /* Just in case this is a copy of the weird cfront-compatibility
          typedef, clear out the implicit this-param pointer in the copied
          type entry. */
-      rout_type->variant.routine.extra_info->this_class = NULL;
-      rout_type->variant.routine.extra_info->qualifiers = TQ_NONE;
+      rout_type_supp(rout_type)->this_class = NULL;
+      rout_type_supp(rout_type)->has_this_param = FALSE;
+      rout_type_supp(rout_type)->qualifiers = TQ_NONE;
     }  /* if */
     *member_type = rout_type;
   }  /* if */
@@ -27015,7 +27027,8 @@ signature that matches that of the delegate definition).
                                                  skip_typerefs(dps->type),
                                                  /*copy_default_args=*/FALSE);
       check_assertion(mdps->type->kind == (a_type_kind)tk_routine);
-      mdps->type->variant.routine.extra_info->this_class = class_type;
+      rout_type_supp(mdps->type)->this_class = class_type;
+      rout_type_supp(mdps->type)->has_this_param = TRUE;
       ensure_underlying_function_type_is_modifiable(&dps->type,
                                                     &ctsp->invocation_type);
       if (cppcli_enabled) {
@@ -27046,7 +27059,8 @@ signature that matches that of the delegate definition).
       (void)add_param_type(mdps->type,
                            make_handle_type(
                                       cli_class_type_for(csk_system_object)));
-      mdps->type->variant.routine.extra_info->this_class = class_type;
+      rout_type_supp(mdps->type)->this_class = class_type;
+      rout_type_supp(mdps->type)->has_this_param = TRUE;
       mdps->declared_type = mdps->type;
       decl_member_function(&member_loc, func_info, &class_state, &member_info,
                            /*compiler_generated=*/TRUE);
@@ -27060,7 +27074,8 @@ signature that matches that of the delegate definition).
                                 cli_class_type_for(csk_system_iasync_result)),
                         /*param2_type=*/NULL, /*param3_type=*/NULL,
                         /*param4_type=*/NULL);
-      mdps->type->variant.routine.extra_info->this_class = class_type;
+      rout_type_supp(mdps->type)->this_class = class_type;
+      rout_type_supp(mdps->type)->has_this_param = TRUE;
       mdps->declared_type = mdps->type;
       decl_member_function(&member_loc, func_info, &class_state, &member_info,
                            /*compiler_generated=*/TRUE);
@@ -27360,7 +27375,8 @@ parameter: This function adds that parameter if the accessor is nonstatic.
   check_assertion(type->kind == (a_type_kind)tk_routine);
   if (!pdp->is_static) {
     /* The accessor must have a "this" parameter. */
-    type->variant.routine.extra_info->this_class = class_state->class_type;
+    rout_type_supp(type)->this_class = class_state->class_type;
+    rout_type_supp(type)->has_this_param = TRUE;
   }  /* if */
   mdps->type = mdps->declared_type = type;
   decl_member_function(&member_loc, &func_info, class_state, &member_info,
@@ -27485,7 +27501,8 @@ class_state->property_or_event_descr.
       raise_type = copy_routine_type_with_param_types(
                                       delegate_invocation_type(delegate_type),
                                       /*copy_default_args=*/FALSE);
-      raise_type->variant.routine.extra_info->this_class = NULL;
+      rout_type_supp(raise_type)->this_class = NULL;
+      rout_type_supp(raise_type)->has_this_param = FALSE;
       generate_trivial_accessor(class_state, raise_type, "raise");
       class_state->access = saved_access;
     }  /* if */
@@ -29151,6 +29168,7 @@ that is provided if this is a member template declaration.
                                     /*param4_type=*/NULL);
       rtsp = dps->type->variant.routine.extra_info;
       rtsp->this_class = class_type;
+      rtsp->has_this_param = TRUE;
       rtsp->qualifiers = TQ_CONST;
       dps->declared_type = dps->type;
       dps->has_deducible_return_type = TRUE;
@@ -30752,6 +30770,7 @@ C++/CX string class.
   rtsp = rout_type->variant.routine.extra_info;
   rtsp->assoc_routine_is_ctor = TRUE;
   rtsp->this_class = class_type;
+  rtsp->has_this_param = TRUE;
   rtsp->prototyped = TRUE;
   decl_info.is_constructor = TRUE;
   decl_info.decl_state.type = rout_type;
@@ -30790,6 +30809,7 @@ Inject an unnamed virtual function into the type class_state->class_type.
                                 /*param3_type=*/NULL, /*param4_type=*/NULL);
   rtsp = rout_type->variant.routine.extra_info;
   rtsp->this_class = class_type;
+  rtsp->has_this_param = TRUE;
   rtsp->prototyped = TRUE;
   decl_info.decl_state.type = rout_type;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -30816,7 +30836,7 @@ that returns type long.)
   a_member_decl_info             decl_info;
   a_decl_parse_state_ptr         dps = &decl_info.decl_state;
   a_type_ptr                     rout_type;
-  a_routine_type_supplement_ptr  rstp;
+  a_routine_type_supplement_ptr  rtsp;
   a_class_def_state              class_state;
   a_symbol_ptr                   sym;
   a_scope_ptr                    scope;
@@ -30845,10 +30865,11 @@ that returns type long.)
   rout_type = make_routine_type(integer_type((an_integer_kind)ik_long),
                                 /*param1_type=*/NULL, /*param2_type=*/NULL,
                                 /*param3_type=*/NULL, /*param4_type=*/NULL);
-  rstp = rout_type->variant.routine.extra_info;
-  rstp->has_ellipsis = TRUE;
-  rstp->prototyped = TRUE;
-  rstp->this_class = class_type;
+  rtsp = rout_type->variant.routine.extra_info;
+  rtsp->has_ellipsis = TRUE;
+  rtsp->prototyped = TRUE;
+  rtsp->this_class = class_type;
+  rtsp->has_this_param = TRUE;
   set_routine_calling_method_flag(rout_type, &null_source_position);
   dps->type = rout_type;
   /* Declare the member function. */
@@ -32998,6 +33019,7 @@ proper.
                                   /*param4_type=*/NULL);
     rtsp = dps->type->variant.routine.extra_info;
     rtsp->this_class = lambda->closure_class;
+    rtsp->has_this_param = TRUE;
     rtsp->qualifiers = TQ_CONST;
     dps->declared_type = dps->type;
     dps->has_deducible_return_type = TRUE;
@@ -33403,6 +33425,7 @@ generated for several calling conventions).
   rtsp = call_type->variant.routine.extra_info;
   rtsp->assoc_routine_is_lambda_body = FALSE;
   rtsp->this_class = NULL;
+  rtsp->has_this_param = FALSE;
   rtsp->qualifiers = TQ_NONE;
   rtsp->assoc_routine = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
@@ -33417,8 +33440,9 @@ generated for several calling conventions).
                                 /*param2_type=*/NULL, /*param3_type=*/NULL,
                                 /*param4_type=*/NULL);
   /* The conversion function is a const non-static member function: */
-  conv_type->variant.routine.extra_info->this_class = parent_class_of(call_op);
-  conv_type->variant.routine.extra_info->qualifiers = TQ_CONST;
+  rout_type_supp(conv_type)->this_class = parent_class_of(call_op);
+  rout_type_supp(conv_type)->has_this_param = TRUE;
+  rout_type_supp(conv_type)->qualifiers = TQ_CONST;
   decl_info.decl_state.type = conv_type;
   decl_info.decl_state.declared_type = conv_type;
   if (call_op->is_declared_constexpr) {

@@ -2118,6 +2118,7 @@ to default values.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
       rtsp->had_been_implicitly_const = FALSE;
       rtsp->is_conditionally_explicit = FALSE;
+      rtsp->has_this_param           = FALSE;
       rtsp->lint_varargs_count       = NOT_LINT_VARARGS;
       rtsp->arg_pragma               = (a_pragma_kind)pk_none;
 #if GNU_EXTENSIONS_ALLOWED

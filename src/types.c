@@ -12510,14 +12510,16 @@ type exists, return NULL.
       if (ftp == stp2) {
         ftp = routine_type_without_this_class(ustp2,
                                               /*copy_default_args=*/FALSE);
-        ftp->variant.routine.extra_info->this_class = uctp1;
+        rout_type_supp(ftp)->this_class = uctp1;
+        rout_type_supp(ftp)->has_this_param = TRUE;
       }  /* if */
       result = ptr_to_member_type(ftp, ctp1);
     } else if (find_base_class_of(ctp2, ctp1) != NULL) {
       if (ftp == stp1) {
         ftp = routine_type_without_this_class(ustp1,
                                               /*copy_default_args=*/FALSE);
-        ftp->variant.routine.extra_info->this_class = uctp2;
+        rout_type_supp(ftp)->this_class = uctp2;
+        rout_type_supp(ftp)->has_this_param = TRUE;
       }  /* if */
       result = ptr_to_member_type(ftp, ctp2);
     }  /* if */
@@ -13277,6 +13279,7 @@ make_new_comp_type:
     if (!C_mode()) {
       /* Set the implicit-this-parameter type. */
       rtsp->this_class = rtsp1->this_class;
+      rtsp->has_this_param = rtsp1->has_this_param;
       rtsp->qualifiers = rtsp1->qualifiers;
       rtsp->this_qualifiers = rtsp1->this_qualifiers;
       rtsp->ref_qualifiers = rtsp1->ref_qualifiers;
@@ -16347,10 +16350,10 @@ make_new_type:
       /* Fill in the return type.  It has already been determined. */
       new_type->variant.routine.return_type = new_return_type;
       /* Clone the routine type supplement, except for the pointers. */
-      *(new_type->variant.routine.extra_info) =
-                                       *(type->variant.routine.extra_info);
-      new_type->variant.routine.extra_info->assoc_routine = NULL;
-      new_type->variant.routine.extra_info->this_class = new_this_class;
+      *rout_type_supp(new_type) = *rout_type_supp(type);
+      rout_type_supp(new_type)->assoc_routine = NULL;
+      rout_type_supp(new_type)->this_class = new_this_class;
+      rout_type_supp(new_type)->has_this_param = new_this_class != NULL;
       /* Make copies of the entries on type's param types list, making the
          appropriate modifications. */
       prev_ptp = NULL;

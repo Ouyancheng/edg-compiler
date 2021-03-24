@@ -1570,6 +1570,8 @@ Parse the operand now.
          specification is used too (even though by then the routine fixup list
          is likely processed already). */
       dps.is_inclass_member_function_decl = TRUE;
+    } else {
+      dps.is_out_of_class_member_function_decl = TRUE;
     }  /* if */
   }  /* if */
   ssep->decl_parse_state = &dps;
@@ -2641,8 +2643,10 @@ this is a helper function.
      class type are encoded separately.  E.g. in
         typedef void CF() const;
      this_class == NULL but qualifiers != TQ_NONE. */
-  if (this_class != NULL) this_class = skip_typerefs(this_class);
-  rtsp->this_class = this_class;
+  if (this_class != NULL) {
+    rtsp->this_class = skip_typerefs(this_class);
+    rtsp->has_this_param = TRUE;
+  }  /* if */
   if (!qualifier_err) {
     /* The traditional "const" and "volatile" function qualifiers really apply
        to the object pointed to by the implied "this" parameter.  The

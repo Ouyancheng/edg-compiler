@@ -5608,6 +5608,7 @@ routine will be the same as the one passed in.
       new_routine->is_inheriting_ctor = routine->is_inheriting_ctor;
       new_rtsp = new_routine->type->variant.routine.extra_info;
       new_rtsp->this_class = rtsp->this_class;
+      new_rtsp->has_this_param = rtsp->has_this_param;
       mangle_alternate_entry_point_name(new_routine, routine);
       /* Make the new routine virtual if the old one is so that virtual
          destructors work correctly.  The virtual function number for the

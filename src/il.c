@@ -11929,6 +11929,7 @@ and if *p_member_type is a function type, adjust it as follows:
       if (rtsp->this_class == NULL) {
         /* Ensure that the function type is a member function type. */
         rtsp->this_class = skip_typerefs(class_type);
+        rtsp->has_this_param = TRUE;
       }  /* if */
       if (qualifiers != TQ_NONE) {
         /* Merge in qualifiers in some Microsoft/GNU instantiation contexts. */
@@ -12051,6 +12052,7 @@ return the original member type.
                                                   /*copy_default_args=*/FALSE);
       new_rtsp = skip_typerefs(new_member_type)->variant.routine.extra_info;
       new_rtsp->this_class = class_type;
+      new_rtsp->has_this_param = TRUE;
       member_type = new_member_type;
     }  /* if */
   }  /* if */
@@ -14196,6 +14198,7 @@ the new type or the original type.
     copy_type_full(orig_type, type, copy_default_args);
     rtsp = type->variant.routine.extra_info;
     rtsp->this_class = NULL;
+    rtsp->has_this_param = FALSE;
     /* Note that the qualifiers from the original type are retained. */
   }  /* if */
   return type;

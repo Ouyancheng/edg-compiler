@@ -6934,6 +6934,11 @@ typedef struct a_routine_type_supplement {
 			   type because it is substituted as part of template
 			   argument deduction, which works with types rather
 			   than routines.) */
+  a_bit_field	has_this_param:1;
+			/* TRUE if this is the type of a nonstatic member
+			   function.  (Usually, this is equivalent to
+			   this_class != NULL, but this_class is sometimes
+			   temporarily set to NULL.) */
   a_lint_varargs_count
 	         lint_varargs_count;
                         /* If not equal to NOT_LINT_VARARGS (-1), this

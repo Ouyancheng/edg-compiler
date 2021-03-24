@@ -3862,6 +3862,7 @@ particular situation.
     rtp->variant.routine.return_type = void_type();
     rtsp->assoc_routine_is_ctor = TRUE;
     rtsp->this_class = etype;
+    rtsp->has_this_param = TRUE;
     rtsp->prototyped = TRUE;
     rtsp->routine_name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
     set_routine_calling_method_flag(rtp, &null_source_position);

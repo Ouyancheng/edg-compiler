@@ -7804,6 +7804,7 @@ if appropriate.  Return the resulting declared type.
       rtsp2 = declared_type->variant.routine.extra_info;
     }  /* if */
     rtsp2->this_class = rtsp1->this_class;
+    rtsp2->has_this_param = rtsp1->has_this_param;
     rtsp2->qualifiers = rtsp1->qualifiers;
     rtsp2->this_qualifiers = rtsp1->this_qualifiers;
     rtsp2->routine_name_linkage = rtsp1->routine_name_linkage;
@@ -10694,6 +10695,7 @@ definition of a member function of a class template.
       } else {
         /* Merge type information from the two declarations. */
         a_type_ptr  prev_type;
+        dps->is_out_of_class_member_function_decl = TRUE;
         tssp = template_supplement_for_symbol(sym);
         prev_type = tssp->variant.function.routine->type;
         /* Be sure the current throw specification is consistent with the one
@@ -20106,9 +20108,9 @@ type of the guide.
     if (issue_error) {
       pos_error(ec_bad_deduction_guide_return_type, &dps->return_type_pos);
     } else {
-      a_routine_type_supplement_ptr
-            rtsp = dps->type->variant.routine.extra_info;
+      a_routine_type_supplement_ptr  rtsp = rout_type_supp(dps->type);
       rtsp->this_class = rtp;
+      rtsp->has_this_param = TRUE;
       rtsp->assoc_routine_is_ctor = TRUE;
     }  /* if */
   }  /* if */
@@ -20154,7 +20156,8 @@ placeholder type corresponding to the template name that was just scanned).
                       decl_pos_block);
   if (new_type_ptr->kind == (a_type_kind)tk_routine) {
     new_type_ptr->variant.routine.return_type = dps->specifiers_type;
-    new_type_ptr->variant.routine.extra_info->this_class = placeholder_type;
+    rout_type_supp(new_type_ptr)->this_class = placeholder_type;
+    rout_type_supp(new_type_ptr)->has_this_param = TRUE;
   } else {
     expect_error();
   }  /* if */

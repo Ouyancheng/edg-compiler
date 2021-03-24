@@ -35174,7 +35174,7 @@ in fact turn out to be a constant.
            refer to this member.  Extra tests are to be safe for errors. */
         a_type_ptr this_class = type_pointed_to(this_type);
         this_class = skip_typerefs(this_class);
-        if (is_class_struct_union_type(this_class) &&
+        if (is_immediate_class_type(this_class) &&
             is_same_class_or_base_class_thereof(this_class,
                                                 parent_class_of(field))) {
           foldable = TRUE;

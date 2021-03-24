@@ -1934,14 +1934,14 @@ the class.  rout_type is missing certain information, such as the
 this_class information.  Update rout_type with information from prev_type.
 */
 {
-  prev_type = skip_typerefs(prev_type);
-  rout_type = skip_typerefs(rout_type);
-  rout_type->variant.routine.extra_info->this_class =
-         prev_type->variant.routine.extra_info->this_class;
-  rout_type->variant.routine.extra_info->qualifiers =
-         prev_type->variant.routine.extra_info->qualifiers;
-  rout_type->variant.routine.extra_info->routine_name_linkage =
-         prev_type->variant.routine.extra_info->routine_name_linkage;
+  a_routine_type_supplement_ptr  rtsp, prev_rtsp;
+
+  rtsp = rout_type_supp(skip_typerefs(rout_type));
+  prev_rtsp = rout_type_supp(skip_typerefs(prev_type));
+  rtsp->this_class = prev_rtsp->this_class;
+  rtsp->has_this_param = prev_rtsp->has_this_param;
+  rtsp->qualifiers = prev_rtsp->qualifiers;
+  rtsp->routine_name_linkage = prev_rtsp->routine_name_linkage;
 }  /* adjust_member_routine_type */
 
 
@@ -2015,6 +2015,7 @@ member declaration (allowed in some Microsoft modes only).
          in cfront mode -- but issue a diagnostic. */
       if (rtsp->this_class != NULL) {
         rtsp->this_class = NULL;
+        rtsp->has_this_param = FALSE;
         sym = member_function_redecl_sym(
                                     locator->specific_symbol, dps,
                                     (a_template_param_ptr)NULL, &other_match);
@@ -2125,20 +2126,21 @@ member declaration (allowed in some Microsoft modes only).
     a_symbol_header_ptr  hdr = locator->symbol_header;
     if (sym != NULL) {
       /* Type was okay, but this member function has a body. */
+      a_routine_type_supplement_ptr  other_rtsp;
       pos_sy_error(ec_function_redefinition, &locator->source_position, sym);
       other_rp = sym->variant.routine.ptr;
-      rtsp->this_class =
-                       other_rp->type->variant.routine.extra_info->this_class;
-      rtsp->qualifiers =
-                       other_rp->type->variant.routine.extra_info->qualifiers;
-      rtsp->this_qualifiers =
-                  other_rp->type->variant.routine.extra_info->this_qualifiers;
+      other_rtsp = rout_type_supp(other_rp->type);
+      rtsp->this_class = other_rtsp->this_class;
+      rtsp->has_this_param = other_rtsp->has_this_param;
+      rtsp->qualifiers = other_rtsp->qualifiers;
+      rtsp->this_qualifiers = other_rtsp->this_qualifiers;
     } else {
       /* In the error case assume the member function is nonstatic and give
          it an implicit this parameter type.  This will prevent an error from
          being issued on a direct reference to a nonstatic data member in the
          function body. */
       rtsp->this_class = class_type;
+      rtsp->has_this_param = TRUE;
     }  /* if */
     /* An error has been detected.  Make a "fake" symbol and routine entry so
        that the routine definition can proceed. */
