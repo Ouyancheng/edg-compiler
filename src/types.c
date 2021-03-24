@@ -9686,8 +9686,7 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
     if (f_types_are_compatible(unqual_source_type_pointed_to,
-                               unqual_dest_type_pointed_to,
-                               tcf)) {
+                               unqual_dest_type_pointed_to, tcf)) {
       /* The "_for_impl_conversion" version is used to get proper handling of
          pointers to arrays with qualified element types and (in C++) to deal
          appropriately with routine linkages on function types. */
