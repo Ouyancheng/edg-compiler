@@ -1328,7 +1328,7 @@ extern a_boolean impl_pointer_conversion(
                          a_boolean            suppress_extensions,
                          an_error_code        default_warning_code,
                          a_std_conv_descr_ptr std_conv,
-       /* Defaulted: */  a_conv_context_set   conv_context = CCO_DEFAULT);
+                         a_conv_context_set   conv_context = CCO_DEFAULT);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern
@@ -1377,7 +1377,7 @@ extern a_boolean impl_conversion_possible(
                           a_boolean            suppress_extensions,
                           an_error_code        default_warning_code,
                           a_std_conv_descr_ptr std_conv,
-        /* Defaulted: */  a_conv_context_set   conv_context = CCO_DEFAULT);
+                          a_conv_context_set   conv_context = CCO_DEFAULT);
 extern a_boolean impl_converted_constant_expr_conversion_possible(
                                            a_type_ptr       source_type,
                                            a_boolean        source_is_constant,
