@@ -1029,6 +1029,12 @@ Initialize the option information table.
   add_option_description(optk_ms_header_unit, "ms_header_unit", '\0',
                          /*value=*/TRUE, /*arg_required=*/TRUE,
                          pchek_command_line);
+  add_option_description(optk_ms_header_unit_quote, "ms_header_unit_quote",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
+  add_option_description(optk_ms_header_unit_angle, "ms_header_unit_angle",
+                         '\0', /*value=*/TRUE, /*arg_required=*/TRUE,
+                         pchek_command_line);
   add_option_description(optk_ms_mod_interface, "ms_mod_interface", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
@@ -1645,6 +1651,8 @@ therefore must be initialized before most initialization occurs).
 {
   mod_map = new_general<a_module_file_map>(/*mask_width=*/4);
   header_unit_map=new_general<a_header_unit_map>(/*mask_width=*/4);
+  header_unit_quote_map=new_general<a_header_unit_map>(/*mask_width=*/4);
+  header_unit_angle_map=new_general<a_header_unit_map>(/*mask_width=*/4);
 }  /* initialize_command_line_variables */
 
 
@@ -10003,6 +10011,30 @@ Process the arguments on the command line that invoked the compiler.
           }  /* if */
         }
         break;
+      case optk_ms_header_unit_quote:
+      case optk_ms_header_unit_angle:
+        { a_header_unit_map *header_map = (kind == optk_ms_header_unit_angle) ?
+                                 header_unit_angle_map : header_unit_quote_map;
+          a_path_handle header_path;
+          a_const_char  *module_path;
+          split_opt_arg_on_char(opt_arg, &header_path.ptr, &module_path, '=',
+                                /*respect_quotes=*/TRUE);
+          header_path.ptr = file_name_from_opt_arg(header_path.ptr);
+          if (module_path == NULL) {
+            str_command_line_error(ec_missing_header_unit_map,
+                                   header_path.ptr);
+          } else {
+            /* Add this header->module mapping. */
+            if (header_map->get(header_path) != NULL) {
+              str_command_line_error(ec_duplicate_header_unit_map,
+                                     header_path.ptr);
+            } else {
+              header_map->map(header_path,
+                              file_name_from_opt_arg(module_path));
+            }  /* if */
+          }  /* if */
+        }
+        break;
       case optk_ms_mod_interface:
         tu_is_module_interface = opt_value;
         break;
@@ -12095,6 +12127,8 @@ variables declared in cmd_line.h.
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
   mod_map = NULL;
   header_unit_map = NULL;
+  header_unit_quote_map = NULL;
+  header_unit_angle_map = NULL;
   virtual_function_table_definition = vfd_normal;
   suppress_used_before_set_warnings = FALSE;
   addr_of_bit_field_allowed = ADDR_OF_BIT_FIELD_ALLOWED;

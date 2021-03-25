@@ -4021,6 +4021,7 @@ after_entry_from_class:
 #define eptr ((a_module_ptr)entry_ptr)
         /* FIXME: make sure all fields are walked appropriately. */
         walk_string_ptr(eptr->name, iek_other_text, 0);
+        walk_string_ptr(eptr->resolved_header, iek_other_text, 0);
         walk_string_ptr(eptr->full_name, iek_other_text, 0);
         if (eptr->module_interface != NULL) {
           conditionally_clear_fe_pointer(eptr->module_interface->f_module);

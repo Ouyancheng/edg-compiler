@@ -347,6 +347,8 @@ typedef enum /*an_option_kind*/ {
   optk_module_dir,
   optk_ms_module_file_map,
   optk_ms_header_unit,
+  optk_ms_header_unit_quote,
+  optk_ms_header_unit_angle,
   optk_ms_mod_interface,
   optk_ms_mod_translate_include,
   optk_modules,
@@ -502,16 +504,29 @@ EXTERN a_boolean
 using a_module_file_map =
 		     Ptr_map<a_C_str_handle, a_const_char*, General_allocator>;
 EXTERN a_module_file_map
-                *mod_map;
-                        /* A map for modules to find the corresponding module
-                           file.  Keys are module names, values are paths. */
+		*mod_map;
+			/* A map for modules to find the corresponding module
+			   file.  Keys are module names, values are paths. */
 using a_header_unit_map =
 		     Ptr_map<a_path_handle, a_const_char*, General_allocator>;
 EXTERN a_header_unit_map
-                *header_unit_map;
-                        /* A map for header units to find the corresponding
-                           module file.  Keys are header paths, values are
-                           module file paths. */
+		*header_unit_map;
+			/* A map for header units to find the corresponding
+			   module file.  Keys are (resolved) header paths,
+			   values are module file paths.  This map corresponds
+			   to command-line option "--ms_header_unit". */
+EXTERN a_header_unit_map
+		*header_unit_quote_map;
+			/* A map for header units to find the corresponding
+			   module file.  Keys are (unresolved) header paths,
+			   values are module file paths.  This map corresponds
+			   to command-line option "--ms_header_unit_quote". */
+EXTERN a_header_unit_map
+		*header_unit_angle_map;
+			/* A map for header units to find the corresponding
+			   module file.  Keys are (unresolved) header paths,
+			   values are module file paths.  This map corresponds
+			   to command-line option "--ms_header_unit_angle". */
 
 
 /*

@@ -1898,6 +1898,8 @@ struct Ptr_map_entry {
 			   the hash table.) */
   a_value	value;
 			/* A value associated with ptr. */
+  inline a_boolean key_set() const
+    { return ptr != a_key(); }
 };  /* Ptr_map_entry */
 
 
@@ -1939,6 +1941,10 @@ struct Ptr_map: private Allocator<Ptr_map_entry<a_Ptr_key, a_Value>> {
 #if DEBUG
   void db_ptrs() const;
 #endif /* DEBUG */
+  inline auto begin() const
+    { return table; }
+  inline auto end() const
+    { return &table[hash_mask+1]; }
 private:
   typedef Ptr_map_entry<a_key, a_value> an_entry;
   typedef typename an_allocator::an_allocation an_allocation;

@@ -414,10 +414,10 @@ module file to the caller.
 */
 {
   a_boolean     found = FALSE;
-  a_path_handle header_file{mod->name};
   a_const_char  *module_path;
 
-  module_path = header_unit_map->get(header_file);
+  module_path = resolve_header_in_map(mod->name, mod->resolved_header,
+                                      mod->is_sys_include);
   if (module_path != NULL) {
     if (check_module_file(&kind, module_path)) {
       mod->kind = kind;
@@ -552,7 +552,7 @@ indicated by kind.  Return TRUE if a module file was found, FALSE otherwise.
       pos_st_catastrophe(ec_cannot_find_header_for_import, &error_position,
                          mod->name);
     } else {
-      mod->name = header_path;
+      mod->resolved_header = header_path;
       found = find_header_unit_in_map(mod, kind);
     }  /* if */
   } else {

@@ -971,6 +971,10 @@ Display information about the indicated module.
   if (ptr->name != NULL) {
     disp_string_ptr("name", ptr->name, iek_id_name, (sizeof_t)0);
   }  /* if */
+  if (ptr->resolved_header) {
+    disp_string_ptr("resolved_header", ptr->resolved_header, iek_id_name,
+                    (sizeof_t)0);
+  }  /* if */
   if (ptr->full_name != NULL) {
     disp_string_ptr("full_name", ptr->name, iek_id_name, (sizeof_t)0);
   }  /* if */

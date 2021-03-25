@@ -1,5 +1,27 @@
 Version 6.3
 
+3/25/21  [EDGcpfe/23763]
+MS compatibility: separate header unit mappings for quote and angle imports
+
+MSVC provides header unit mapping options that give a user more granular
+control over whether the mapping applies to an import of a system header (angle
+brackets, /headerUnit:angle) or a user header (quotes, /headerUnit:quote).
+This functionality has been added to the front end with corresponding options
+--ms_header_unit_angle and --ms_header_unit_quote, respectively.  These behave
+similarly to --ms_header_unit, except that the header names given to these
+options are resolved when looked up, as opposed to being assumed to have
+already been resolved when provided on the command-line.  For example, with
+-I inc and/or --sys_include inc where the "inc" directory contains both foo.h
+and bar.h:
+
+  import "foo.h" // Requires --ms_header_unit inc/foo.h=foo.ifc, or
+                 //          --ms_header_unit_quote foo.h=foo.ifc.
+                 // Ignores  --ms_header_unit_angle foo.h=foo.ifc.
+  import <bar.h> // Requires --ms_header_unit inc/bar.h=bar.ifc, or
+                 //          --ms_header_unit_angle bar.h=bar.ifc
+                 // Ignores  --ms_header_unit_quote bar.h=bar.ifc.
+
+
 3/25/21  [EDGcpfe/23974]
 MS compatibility: #include translation to import
 

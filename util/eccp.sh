@@ -782,6 +782,8 @@ check_abbreviation()
 --ms_cplusplus_std_value
 --ms_extensions
 --ms_header_unit
+--ms_header_unit_angle
+--ms_header_unit_quote
 --ms_mod_file_map
 --ms_mod_interface
 --ms_permissive
@@ -1763,6 +1765,8 @@ process_option()
          --modules_directory | \
          --ms_mod_file_map | \
          --ms_header_unit | \
+         --ms_header_unit_angle | \
+         --ms_header_unit_quote | \
          --gnu_version | \
          --clang_version | \
 	 --definition_list_file | \
@@ -1812,7 +1816,10 @@ process_option()
           fi
           curr_param=`native_path "$curr_param"`
           ;;
-        --ms_mod_file_map | --ms_header_unit)
+        --ms_mod_file_map | \
+        --ms_header_unit | \
+        --ms_header_unit_angle | \
+        --ms_header_unit_quote)
           # Need to split on the '=' and convert the appropriate paths.
           arg1=`expr "$curr_param" : '\(.*\)=.*'`
           arg2=`expr "$curr_param" : '.*=\(.*\)'`
@@ -1873,6 +1880,8 @@ process_option()
           --modules_directory=* | \
           --ms_mod_file_map=* | \
           --ms_header_unit=* | \
+          --ms_header_unit_angle=* | \
+          --ms_header_unit_quote=* | \
           --gnu_version=* | \
           --clang_version=* | \
           --pending_instantiations=* | \
@@ -1943,7 +1952,9 @@ process_option()
           curr_arg=$opt_name=`native_path "$dir_name"`
           ;;
         --ms_mod_file_map=* | \
-        --ms_header_unit=*)
+        --ms_header_unit=* | \
+        --ms_header_unit_angle=* | \
+        --ms_header_unit_quote=*)
           # Need to split on the '=' and convert the appropriate paths.
           opt_arg=`expr $arg : '[^=]*=\(.*\)'`  # Get the string after the =
           opt_name=`expr $arg : '\([^=]*\)=.*'` # Get the string before the =

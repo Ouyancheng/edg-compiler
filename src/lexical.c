@@ -5793,6 +5793,58 @@ diagnostics related to the failure to find the header file.
 }  /* resolve_header */
 
 
+a_const_char *resolve_header_in_map(a_const_char *filename,
+                                    a_const_char *resolved_header,
+                                    a_boolean    is_system_include)
+/*
+Determine whether an entry for the header named by filename exists in a header
+map.  Return the resolved path to the module file, or NULL if no mapping
+exists.  The header named by filename has already been resolved, and the
+resolution is provided in resolved_header.
+
+The process of resolving the module file may involve looking up previously
+unresolved headers in the map.  The search path (and map used) for these
+headers is the one appropriate to the value of is_system_include.
+*/
+{
+  a_path_handle header_file{resolved_header};
+  a_const_char  *module_path;
+
+  module_path = header_unit_map->get(header_file);
+  if (module_path == NULL) {
+    a_header_unit_map *unresolved_map = is_system_include ?
+                                 header_unit_angle_map : header_unit_quote_map;
+    for (const auto& entry : *unresolved_map) {
+      a_const_char *resolved_entry;
+      if (!entry.key_set()) continue;
+      resolved_entry = resolve_header(entry.ptr.ptr, is_system_include,
+                                      /*is_include_next=*/FALSE,
+                                      /*suppress_diagnostics=*/TRUE);
+      if (header_file == resolved_entry) {
+        if (module_path != NULL) {
+          /* A duplicate entry.  Issue a diagnostic and otherwise ignore. */
+          pos_st_error(ec_multiple_header_map_matches, &error_position,
+                       filename);
+        } else {
+          /* The header matches the resolved entry.  Add the resolved path to
+             the header unit map for easier future resolution. */
+          a_path_handle new_header_file{resolved_entry};
+          /* We should not reach this point if the entry already exists in the
+             header unit map. */
+          check_assertion(header_unit_map->get(new_header_file) == NULL);
+          module_path = entry.value;
+          header_unit_map->map(new_header_file, module_path);
+          /* In Microsoft compatibility mode, continue the search to check for
+             duplicate matches. */
+          if (!microsoft_mode) break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return module_path;
+}  /* resolve_header_in_map */
+
+
 a_boolean header_can_be_found(a_const_char *filename,
                               a_boolean    is_system_include,
                               a_boolean    is_include_next)

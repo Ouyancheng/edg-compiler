@@ -1303,10 +1303,10 @@ otherwise.  Note that there is no validation performed for the mapping.
   header_path = resolve_header(header_name, is_sys_include, is_include_next,
                                /*suppress_diagnostics=*/TRUE);
   if (header_path != NULL) {
-    a_path_handle header_file{header_name};
     a_const_char  *module_path;
 
-    module_path = header_unit_map->get(header_file);
+    module_path = resolve_header_in_map(header_name, header_path,
+                                        is_sys_include);
     if (module_path != NULL) {
       result = TRUE;
     }  /* if */

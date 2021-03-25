@@ -5730,6 +5730,7 @@ Allocate and return an IL entry for a module.
 
   mep->kind = kind;
   mep->name = NULL;
+  mep->resolved_header = NULL;
   mep->full_name = NULL;
   mep->module_interface = NULL;
   mep->is_sys_include = FALSE;

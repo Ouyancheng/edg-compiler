@@ -17411,6 +17411,9 @@ Information about a module file.
 typedef struct a_module {
   a_module_kind	kind;	/* The kind of module file. */
   a_const_char	*name;	/* The name (as written) of the module file. */
+  a_const_char	*resolved_header;
+			/* The resolved header path, if this is a header unit.
+			   NULL otherwise. */
   a_const_char	*full_name;
 			/* The full path name to the module file. */
   a_module_interface_ptr
