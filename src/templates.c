@@ -7641,7 +7641,7 @@ expression context) rather than a declaration.
     var_ptr->source_corresp.referenced = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-    if (var_ptr->initializer_in_class) {
+    if (var_ptr->initializer_in_class && !dps.is_definition) {
       /* A secondary source sequence entry was recorded. */
       (void)set_src_seq_secondary_decl_fields((char*)var_ptr,
                                               dps.declared_type,
