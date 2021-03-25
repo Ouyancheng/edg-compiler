@@ -348,6 +348,7 @@ typedef enum /*an_option_kind*/ {
   optk_ms_module_file_map,
   optk_ms_header_unit,
   optk_ms_mod_interface,
+  optk_ms_mod_translate_include,
   optk_modules,
   optk_concepts,
   optk_colors,
@@ -1507,6 +1508,12 @@ EXTERN a_boolean
 			/* TRUE if module declarations should be treated as if
 			   they were exported.  This is ignored unless a module
 			   declaration is encountered. */
+
+EXTERN a_boolean
+		import_includes_from_header_map;
+			/* TRUE if #include directives should be treated as
+			   import directives when the included header is named
+			   in a header map. */
 
 EXTERN a_boolean
 		lazy_symbols_may_be_visible;

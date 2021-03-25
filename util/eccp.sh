@@ -788,6 +788,7 @@ check_abbreviation()
 --ms_rvalue_cast
 --ms_std_preprocessor
 --ms_strict_ternary
+--ms_translate_include
 --mscorlib_file_name
 --multibyte_chars
 --multi_trans_unit
@@ -876,6 +877,7 @@ check_abbreviation()
 --no_ms_permissive
 --no_ms_rvalue_cast
 --no_ms_strict_ternary
+--no_ms_translate_include
 --no_multibyte_chars
 --no_named_address_spaces
 --no_named_registers
@@ -1442,6 +1444,8 @@ process_option()
          --no_ms_rvalue_cast | \
          --ms_strict_ternary | \
          --no_ms_strict_ternary | \
+         --ms_translate_include | \
+         --no_ms_translate_include | \
 	 --cppcli | \
 	 --no_cppcli | \
 	 --c++cli | \

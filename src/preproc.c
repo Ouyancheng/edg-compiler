@@ -1288,6 +1288,33 @@ is_cstdarg is TRUE in C++ if the header name was "cstdarg".
 }  /* proc_stdarg_include */
 
 
+static a_boolean header_exists_in_header_map(a_const_char *header_name,
+                                             a_boolean    is_sys_include,
+                                             a_boolean    is_include_next)
+/*
+Check whether header_name resolves to a file, and if so, whether that file has
+a mapping in the header unit map.  Return TRUE if the mapping exists, FALSE
+otherwise.  Note that there is no validation performed for the mapping.
+*/
+{
+  a_boolean    result = FALSE;
+  a_const_char *header_path;
+
+  header_path = resolve_header(header_name, is_sys_include, is_include_next,
+                               /*suppress_diagnostics=*/TRUE);
+  if (header_path != NULL) {
+    a_path_handle header_file{header_name};
+    a_const_char  *module_path;
+
+    module_path = header_unit_map->get(header_file);
+    if (module_path != NULL) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* header_exists_in_header_map */
+
+
 static void proc_include(a_boolean is_include_next,
                          a_boolean *was_simulated_stdarg_include)
 /*
@@ -1347,47 +1374,65 @@ pass_stdarg_references_to_generated_code.
          "\" can be used in file names.) */
       name_start_pos = copy_header_name(/*process_escapes=*/FALSE);
     }  /* if */
-    /* Move past the header name. */
-    (void)get_token();
-    /* Ignore trailing junk on the line.  Do this before pushing the new file,
-       so the error can be produced on the old line. */
-    ignore_harmless_trailing_comment();
-    /* Make sure no extra token separators are emitted while generating
-       preprocessor (or raw listing) output.  This is necessary to avoid
-       turning
-         #define M <stdarg.h>
-         #include M
-       into
-         #include<stdarg . h>  */
-    no_token_separators_in_this_line_of_pp_output = TRUE;
-    if (pass_stdarg_references_to_generated_code &&
-        (strcmp(name_start_pos, "stdarg.h") == 0 ||
-         (!C_mode() &&
-          ((is_cstdarg = (strcmp(name_start_pos, "cstdarg") == 0),
-	   is_cstdarg))))) {
-      /* Instead of reading the <stdarg.h> or <cstdarg> header file, create
-         builtin definitions for the things it's known to define. */
-      proc_stdarg_include(is_cstdarg);
-      actual_include_was_suppressed = TRUE;
+    if (import_includes_from_header_map &&
+        header_exists_in_header_map(name_start_pos, is_system_include,
+                                    is_include_next)) {
+      a_module_import_decl_ptr midp;
+      midp = alloc_module_import_decl();
+      midp->position = pos_curr_token;
+      midp->module_name_position = pos_curr_token;
+      midp->module_info = alloc_module((a_module_kind)mk_header);
+      midp->module_info->name = name_start_pos;
+      midp->module_info->is_sys_include = is_system_include;
+      /* Move past the header name. */
+      (void)get_token();
+      /* Ignore trailing junk on the line.  Do this before pushing the new
+         file, so the error can be produced on the old line. */
+      ignore_harmless_trailing_comment();
+      import_header_module(midp);
     } else {
-      /* Push the name and associated search directory onto the input stack,
-         thus starting input from that file.  If the include file cannot be
-         opened, we continue processing if we're doing preprocessing only,
-         except in GNU mode where we only continue if actually creating
-         preprocessed output (e.g., not when creating Makefile
-         dependencies). */
-      open_file_and_push_input_stack(name_start_pos,
-                                     /*use_search_path=*/TRUE,
-                                     /*is_include_file=*/TRUE,
-                                     is_system_include,
-                                     /*is_preinclude=*/FALSE,
-			             /*preinclude_macros=*/FALSE,
-                                     /*is_implicit_include=*/FALSE,
-                                     is_include_next,
-				     /*continue_on_open_failure=*/
-                                            do_preprocessing_only &&
-                                            (!gnu_mode || generate_pp_output),
-                                     (a_boolean*)NULL);
+      /* Move past the header name. */
+      (void)get_token();
+      /* Ignore trailing junk on the line.  Do this before pushing the new
+         file, so the error can be produced on the old line. */
+      ignore_harmless_trailing_comment();
+      /* Make sure no extra token separators are emitted while generating
+         preprocessor (or raw listing) output.  This is necessary to avoid
+         turning
+           #define M <stdarg.h>
+           #include M
+         into
+           #include<stdarg . h>  */
+      no_token_separators_in_this_line_of_pp_output = TRUE;
+      if (pass_stdarg_references_to_generated_code &&
+          (strcmp(name_start_pos, "stdarg.h") == 0 ||
+           (!C_mode() &&
+            ((is_cstdarg = (strcmp(name_start_pos, "cstdarg") == 0),
+	     is_cstdarg))))) {
+        /* Instead of reading the <stdarg.h> or <cstdarg> header file, create
+           builtin definitions for the things it's known to define. */
+        proc_stdarg_include(is_cstdarg);
+        actual_include_was_suppressed = TRUE;
+      } else {
+        /* Push the name and associated search directory onto the input stack,
+           thus starting input from that file.  If the include file cannot be
+           opened, we continue processing if we're doing preprocessing only,
+           except in GNU mode where we only continue if actually creating
+           preprocessed output (e.g., not when creating Makefile
+           dependencies). */
+        open_file_and_push_input_stack(name_start_pos,
+                                       /*use_search_path=*/TRUE,
+                                       /*is_include_file=*/TRUE,
+                                       is_system_include,
+                                       /*is_preinclude=*/FALSE,
+			               /*preinclude_macros=*/FALSE,
+                                       /*is_implicit_include=*/FALSE,
+                                       is_include_next,
+				       /*continue_on_open_failure=*/
+                                             do_preprocessing_only &&
+                                             (!gnu_mode || generate_pp_output),
+                                       (a_boolean*)NULL);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* proc_include */

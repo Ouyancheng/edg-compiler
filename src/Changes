@@ -1,5 +1,21 @@
 Version 6.3
 
+3/25/21  [EDGcpfe/23974]
+MS compatibility: #include translation to import
+
+MSVC provides a command-line option (/translateInclude) to indicate that
+#include directives should be treated as import directives whenever the
+included header has a mapping in the header unit map.  This functionality has
+been added to the front end with a new command-line option,
+--ms_translate_include.  For example (with --ms_header_unit foo.h=foo.ifc):
+
+  #include "foo.h" // Translated to import "foo.h"
+  #include "bar.h" // No mapping; not translated
+
+A corresponding counter-option, --no_ms_translate_include, has been added to
+cancel out this setting, should it be needed.
+
+
 3/25/21  [EDGcpfe/24098]
 Concepts-related IL display
 

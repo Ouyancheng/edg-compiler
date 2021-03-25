@@ -1035,6 +1035,12 @@ Initialize the option information table.
   add_option_description(optk_ms_mod_interface, "no_ms_mod_interface", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_ms_mod_translate_include, "ms_translate_include",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_ms_mod_translate_include,
+                         "no_ms_translate_include", '\0', /*value=*/FALSE,
+                         /*arg_required=*/FALSE, pchek_command_line);
   add_option_description(optk_modules, "modules", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
@@ -10000,6 +10006,9 @@ Process the arguments on the command line that invoked the compiler.
       case optk_ms_mod_interface:
         tu_is_module_interface = opt_value;
         break;
+      case optk_ms_mod_translate_include:
+        import_includes_from_header_map = opt_value;
+        break;
       case optk_modules:
         /* Enable/disable support for modules. */
         modules_enabled = opt_value;
@@ -12623,6 +12632,7 @@ variables declared in cmd_line.h.
   modules_enabled = FALSE;
   module_keywords_enabled = FALSE;
   tu_is_module_interface = FALSE;
+  import_includes_from_header_map = FALSE;
   lazy_symbols_may_be_visible = FALSE;
   skip_module_imports = FALSE;
   skip_module_version_check = FALSE;
