@@ -1916,6 +1916,7 @@ struct Ptr_map: private Allocator<Ptr_map_entry<a_Ptr_key, a_Value>> {
   typedef a_Value a_value;
   typedef Allocator<Ptr_map_entry<a_Ptr_key, a_Value>> an_allocator;
   typedef unsigned int an_index;
+  typedef Ptr_map_entry<a_key, a_value> an_entry;
   inline Ptr_map(unsigned int mask_width, an_allocator a = an_allocator());
   inline ~Ptr_map();
   inline auto get_with_hash(a_key  key, uintptr_t  hash) const -> a_value;
@@ -1941,12 +1942,11 @@ struct Ptr_map: private Allocator<Ptr_map_entry<a_Ptr_key, a_Value>> {
 #if DEBUG
   void db_ptrs() const;
 #endif /* DEBUG */
-  inline auto begin() const
+  inline an_entry const *begin() const
     { return table; }
-  inline auto end() const
+  inline an_entry const *end() const
     { return &table[hash_mask+1]; }
 private:
-  typedef Ptr_map_entry<a_key, a_value> an_entry;
   typedef typename an_allocator::an_allocation an_allocation;
   an_entry	*table;
 			/* Pointer to the hash table. */
