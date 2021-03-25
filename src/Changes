@@ -27,10 +27,12 @@ MSVC provides a command-line option (/interface) to indicate that the source
 being compiled is intended to be a module interface unit.  A new command-line
 option, --ms_mod_interface, has been added for compatibility with this switch.
 
-Specifying --ms_mod_interface will have no effect on TUs that are not module
-units, and a corresponding counter-option, --no_ms_mod_interface, has also been
-added to disable this mode.  Note that specifying --no_ms_mod_interface will
-*not* prevent a module interface unit from being specified at the source level
+Specifying --ms_mod_interface will treat every module unit declaration as if
+it has been exported (whether or not the export keyword is present on the
+declaration), and will have no effect on TUs that are not module units.  A
+corresponding counter-option, --no_ms_mod_interface, has also been added to
+disable this mode.  Note that specifying --no_ms_mod_interface will *not*
+prevent a module interface unit from being specified at the source level
 (e.g., "export module foo;").
 
 
