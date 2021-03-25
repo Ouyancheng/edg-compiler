@@ -85,7 +85,7 @@ using namespace std;
 void *operator new(size_t) __EDG_NEW_THROWS;
 
 /* Normal operator delete. */
-void operator delete(void*) throw ();
+void operator delete(void*) __EDG_DOES_NOT_THROW;
 
 /* Nothrow version of operator new. */
 void *operator new(size_t, const __EDG_STD_NAMESPACE::nothrow_t&)

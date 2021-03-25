@@ -47,20 +47,20 @@ namespace std {
 
   class bad_cast : public exception {
   public:
-    bad_cast() throw();
-    bad_cast(const bad_cast&) throw();
-    bad_cast& operator=(const bad_cast&) throw();
-    virtual ~bad_cast() throw();
-    virtual const char* what() const throw();
+    bad_cast() __EDG_DOES_NOT_THROW;
+    bad_cast(const bad_cast&) __EDG_DOES_NOT_THROW;
+    bad_cast& operator=(const bad_cast&) __EDG_DOES_NOT_THROW;
+    virtual ~bad_cast() __EDG_DOES_NOT_THROW;
+    virtual const char* what() const __EDG_DOES_NOT_THROW;
   };
 
   class bad_typeid : public exception {
   public:
-    bad_typeid() throw();
-    bad_typeid(const bad_typeid&) throw();
-    bad_typeid& operator=(const bad_typeid&) throw();
-    virtual ~bad_typeid() throw();
-    virtual const char* what() const throw();
+    bad_typeid() __EDG_DOES_NOT_THROW;
+    bad_typeid(const bad_typeid&) __EDG_DOES_NOT_THROW;
+    bad_typeid& operator=(const bad_typeid&) __EDG_DOES_NOT_THROW;
+    virtual ~bad_typeid() __EDG_DOES_NOT_THROW;
+    virtual const char* what() const __EDG_DOES_NOT_THROW;
   };
 
 #ifdef __EDG_RUNTIME_USES_NAMESPACES
