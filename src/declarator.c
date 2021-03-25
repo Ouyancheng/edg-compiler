@@ -1753,7 +1753,7 @@ actually declares a function, member function, or function template).
              C++20, but current practice is to accept it. */
           pos_diagnostic(strict_ansi_mode ? es_discretionary_error
                                           : es_warning,
-                         ec_dynamic_exc_spec_not_permitted,
+                         ec_empty_throw_specification_not_cpp20,
                          &func_info->throw_position);
         }  /* if */
         goto finish_list;
