@@ -1832,6 +1832,11 @@ Display the indicated template parameter type supplement.
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   disp_template_param_coordinate(&ptr->coordinates);
+  if (ptr->coordinates.depth != CLASS_TEMPLATE_PLACEHOLDER_NESTING_DEPTH &&
+      ptr->constraint.type_constraint != NULL) {
+    disp_ptr("constraint.type_constraint",
+             (char *)ptr->constraint.type_constraint, iek_expr_node);
+  }  /* if */
 }  /* disp_template_param_type_supplement */
 
 
@@ -3872,6 +3877,10 @@ Display the indicated routine.
 #if DECL_MODIFIERS_IN_USE
   disp_decl_modifiers(ptr->decl_modifiers);
 #endif /* DECL_MODIFIERS_IN_USE */
+  if (ptr->trailing_requires_clause != NULL) {
+    disp_ptr("trailing_requires_clause", (char *)ptr->trailing_requires_clause,
+             iek_requires_clause);
+  }  /* if */
   if (ptr->is_virtual) {
     disp_unsigned_long("number.virtual_function",
                        (unsigned long)ptr->number.virtual_function);
@@ -4822,6 +4831,27 @@ cleanup_state_common:
                (char *)ptr->variant.concept_id.concept_template, iek_template);
       disp_template_arg_list("concept_id.args", ptr->variant.concept_id.args);
       break;
+    case enk_requires:
+      (void)printf("enk_requires\n");
+      disp_ptr("requires_expr.requirements",
+               (char *)ptr->variant.requires_expr.requirements, iek_expr_node);
+      disp_ptr("requires_expr.parameters",
+               (char *)ptr->variant.requires_expr.parameters, iek_param_type);
+      break;
+    case enk_compound_req:
+      (void)printf("enk_compound_req\n");
+      disp_ptr("compound_req.expr_and_constraint",
+               (char *)ptr->variant.compound_req.expr_and_constraint,
+               iek_expr_node);
+      if (ptr->variant.compound_req.is_noexcept) {
+        disp_boolean("compound_req.is_noexcept", TRUE);
+      }  /* if */
+      break;
+    case enk_nested_req:
+      (void)printf("enk_nested_req\n");
+      disp_ptr("nested_req.constraint",
+               (char *)ptr->variant.nested_req.constraint, iek_expr_node);
+      break;
     default:
       (void)printf("**BAD EXPR NODE KIND**\n");
   }  /* switch */
@@ -5577,10 +5607,34 @@ Display the indicated template declaration information.
   if (ptr->scope != NULL) {
      disp_ptr("scope", (char*)ptr->scope, iek_scope);
   }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  if (ptr->is_generic) {
+    disp_boolean("is_generic", TRUE);
+    disp_ptr("constraint.where_clauses", (char *)ptr->constraint.where_clauses,
+             iek_generic_constraint_clause);
+  } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  /* Do not insert code here. */
+  {
+    if (ptr->constraint.requires_clause != NULL) {
+      disp_ptr("constraint.requires_clause",
+               (char *)ptr->constraint.requires_clause, iek_requires_clause);
+    }  /* if */
+  }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   disp_source_position("template_pos", &ptr->template_pos);
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* disp_template_decl */
+
+
+static void disp_requires_clause(a_requires_clause_ptr  ptr)
+/*
+Display the indicated requires clause entry.
+*/
+{
+  disp_ptr("constraint", (char*)ptr->constraint, iek_expr_node);
+  disp_source_position("requires_pos", &ptr->requires_pos);
+}  /* disp_requires_clause */
 
 
 static void disp_template(a_template_ptr  ptr)
@@ -5620,6 +5674,9 @@ Display the indicated template.
       (void)printf("templk_template_template_param\n");
       disp_template_param_coordinate(&ptr->coordinates);
       break;
+    case templk_concept:
+      (void)printf("templk_concept\n");
+      break;
     default:
       (void)printf("**BAD TEMPLATE KIND**\n");
   }  /* switch */
@@ -5652,6 +5709,10 @@ Display the indicated template.
     case templk_variable:
       disp_ptr("variable", (char *)ptr->prototype_instantiation.variable,
                iek_variable);
+      break;
+    case templk_concept:
+      disp_ptr("constraint", (char *)ptr->prototype_instantiation.constraint,
+               iek_expr_node);
       break;
     default:
       break;
@@ -7778,6 +7839,9 @@ This routine is called during IL walking.
           break;
         case iek_template_decl:
           disp_template_decl((a_template_decl_ptr)entry_ptr);
+          break;
+        case iek_requires_clause:
+          disp_requires_clause((a_requires_clause_ptr)entry_ptr);
           break;
         case iek_template:
           disp_template((a_template_ptr)entry_ptr);
