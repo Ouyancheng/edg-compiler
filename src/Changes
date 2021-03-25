@@ -29,7 +29,9 @@ added to disable this mode.  Note that specifying --no_ms_mod_interface will
 3/24/21  [EDGcpfe/24040]
 Spurious exception specification mismatch error
 
-The front end previously issued spurious error
+The front end previously issued a spurious error on the following example
+claiming that the exception specifications of the out-of-class member
+definition does not match that of the in-class declaration:
 
   struct X { void x(); };
   template<typename T> struct S {
@@ -40,7 +42,9 @@ The front end previously issued spurious error
     void S<T>::f() noexcept(noexcept(s.x())) {}  // Previously an error.
                                                  // Now okay.
 
-That is now fixed.
+This was caused by a difference in the way the implicit "this->" qualification
+for "s.x()" (i.e., "s" is "this->x") was modeled in the two contexts.  That is
+now fixed.
 
 
 3/23/21  [EDGcpfe/21142,EDGcpfe/23692]

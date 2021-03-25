@@ -10908,7 +10908,7 @@ When templates_only is TRUE, only function templates members are considered.
          Note that this method is used (rather than specifying the
          TCF_IGNORE_THIS_CLASS_TYPE flag) in order that only the "this" param
          of the top-level type is ignored (and not the "this" param types
-         of any other parameter types).  */
+         of any other parameter types). */
       new_rts->this_class = NULL;
       orig_rts->this_class = NULL;
       restore_this_param = TRUE;
