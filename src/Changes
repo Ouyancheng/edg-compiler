@@ -41,7 +41,7 @@ cancel out this setting, should it be needed.
 3/25/21  [EDGcpfe/24098]
 Concepts-related IL display
 
-The IL display utility failed to correctly output certain concept-related
+The IL display utility failed to correctly output certain concepts-related
 entities (like requires clauses, concept templates, requires-expressions,
 etc.).  That is now fixed.
 
