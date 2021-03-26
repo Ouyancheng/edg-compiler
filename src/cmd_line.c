@@ -1650,9 +1650,9 @@ therefore must be initialized before most initialization occurs).
 */
 {
   mod_map = new_general<a_module_file_map>(/*mask_width=*/4);
-  header_unit_map=new_general<a_header_unit_map>(/*mask_width=*/4);
-  header_unit_quote_map=new_general<a_header_unit_map>(/*mask_width=*/4);
-  header_unit_angle_map=new_general<a_header_unit_map>(/*mask_width=*/4);
+  header_unit_map = new_general<a_header_unit_map>(/*mask_width=*/4);
+  header_unit_quote_map = new_general<a_header_unit_map>(/*mask_width=*/4);
+  header_unit_angle_map = new_general<a_header_unit_map>(/*mask_width=*/4);
 }  /* initialize_command_line_variables */
 
 

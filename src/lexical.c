@@ -5803,8 +5803,9 @@ exists.  The header named by filename has already been resolved, and the
 resolution is provided in resolved_header.
 
 The process of resolving the module file may involve looking up previously
-unresolved headers in the map.  The search path (and map used) for these
-headers is the one appropriate to the value of is_system_include.
+unresolved headers in the map to see if they match resolved_header.  The search
+path (and map used) for these headers is the one appropriate to the value of
+is_system_include.
 */
 {
   a_path_handle header_file{resolved_header};
