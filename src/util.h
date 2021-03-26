@@ -1943,8 +1943,10 @@ struct Ptr_map: private Allocator<Ptr_map_entry<a_Ptr_key, a_Value>> {
   void db_ptrs() const;
 #endif /* DEBUG */
   inline an_entry const *begin() const
+    /*lint -e{1535}*/
     { return table; }
   inline an_entry const *end() const
+    /*lint -e{1535}*/
     { return &table[hash_mask+1]; }
 private:
   typedef typename an_allocator::an_allocation an_allocation;
