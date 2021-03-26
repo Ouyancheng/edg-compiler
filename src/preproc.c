@@ -1425,10 +1425,10 @@ pass_stdarg_references_to_generated_code.
                                        /*is_include_file=*/TRUE,
                                        is_system_include,
                                        /*is_preinclude=*/FALSE,
-			               /*preinclude_macros=*/FALSE,
+                                       /*preinclude_macros=*/FALSE,
                                        /*is_implicit_include=*/FALSE,
                                        is_include_next,
-				       /*continue_on_open_failure=*/
+                                       /*continue_on_open_failure=*/
                                              do_preprocessing_only &&
                                              (!gnu_mode || generate_pp_output),
                                        (a_boolean*)NULL);
