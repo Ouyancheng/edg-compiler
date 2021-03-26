@@ -17968,7 +17968,9 @@ reparse_declarator:
            is not equipped to handle it, create an error locator based on the
            previously reported error. */
         set_to_named_error_locator(*locator);
-      } else if (state->variant.auto_params != NULL &&
+      } else if (!state->is_old_style_param_decl &&
+                 !state->is_struct_binding_decl &&
+                 state->variant.auto_params != NULL &&
                  !state->is_abbr_func_template) {
         /* "auto" parameters were encountered that have no associated template
            parameters.  Generate those template parameters now and prepare to
