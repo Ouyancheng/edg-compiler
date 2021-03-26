@@ -7641,12 +7641,15 @@ expression context) rather than a declaration.
     var_ptr->source_corresp.referenced = TRUE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-    if (var_ptr->initializer_in_class && !dps.is_definition) {
-      /* A secondary source sequence entry was recorded. */
-      (void)set_src_seq_secondary_decl_fields((char*)var_ptr,
-                                              dps.declared_type,
-                                              (a_name_reference_ptr)NULL,
-                                              SSSD_NO_FLAGS);
+    if (var_ptr->initializer_in_class && !source_sequence_entries_disallowed) {
+      /* If a secondary source sequence entry was recorded, record the
+         declared type in it. */
+      a_source_sequence_entry_ptr  ssep;
+      ssep = last_matching_source_sequence_entry((char*)var_ptr);
+      if (ssep != NULL && ss_entry_kind(ssep) == iek_src_seq_secondary_decl) {
+        ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr)->declared_type =
+                                                            dps.declared_type;
+      }  /* if */
     }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */

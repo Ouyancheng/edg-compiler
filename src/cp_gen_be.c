@@ -20637,6 +20637,9 @@ this one is such a continuation.
       var->template_info->template_arg_list != NULL &&
       !var->is_specialized && !var->is_prototype_instantiation) {
     is_generated_explicit_specialization = TRUE;
+    /* Be sure to include any initializer in the generated
+       specialization. */
+    consider_initialization = TRUE;
     if (suppress_invalid_explicit_specialization(
                                       &var->source_corresp, iek_variable,
                                       var->template_info->template_arg_list)) {
