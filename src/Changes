@@ -1,5 +1,47 @@
 Version 6.3
 
+3/27/21  [EDGcpfe/24089]
+C++-generating back end: pseudo-destructors in generated explicit
+specializations
+
+In some configurations in which
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is set to TRUE,
+the C++-generating back end could sometimes generate a pseudo-destructor
+call using the name of the scalar type instead of a typedef, which is an
+error and resulted in generated code that could not be compiled.  This is
+now fixed.  For example, with --c++11 -tused:
+
+  template<typename T> struct A {
+    typedef T AT;
+  };
+  template<typename T> struct B {
+    typedef typename T::AT BT;
+    BT m;
+    void f() {
+      m.~BT();
+    }
+  };
+  void g() {
+    B<A<bool>> bab;
+    bab.f();
+  }
+
+The explicit specialization generated for B<A<bool>>::f() previously
+contained the statement
+
+  m.bool::~bool();
+
+which is an error.  This has been addressed by putting out a typedef
+declaration defining a temporary name for bool preceding the explicit
+specialization and forming the pseudo-destructor invocation using that
+temporary name:
+
+  typedef bool __T12345678;
+  template<> inline void B<A<bool>>::f() {
+    m.~__T12345678();
+  }
+
+
 3/25/21  [EDGcpfe/23763]
 MS compatibility: separate header unit mappings for quote and angle imports
 
