@@ -784,6 +784,8 @@ extern void pch_message(an_error_code error_code,
 
 extern void diag_pragma(struct a_pending_pragma *ppp);
 
+extern void diagnostic_pragma(struct a_pending_pragma *ppp);
+
 extern void embedded_cplusplus_noncompliance_diagnostic(
                                               a_source_position  *error_pos,
                                               an_error_code      error_code);

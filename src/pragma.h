@@ -289,6 +289,10 @@ typedef struct a_pending_pragma {
   a_bit_field	is_microsoft_pragma_operator:1;
 			/* TRUE if the pragma was specified using a Microsoft
 			   __pragma operator. */
+  a_bit_field	is_function_style_pragma:1;
+			/* TRUE if the pragma was specified as a function-style
+			   pragma (i.e., _Pragma or __pragma, but not #pragma).
+			   */
   a_bit_field	has_been_processed:1;
 			/* TRUE if this pragma has already been processed.
 			   This is used for immediate pragmas that are

@@ -2756,7 +2756,8 @@ through *pragma_descr can be NULL.
       flush_to_newline();
     }  /* if */
     record_pragma(pkdp, start_of_dir_position, &id_position,
-                  /*is_microsoft_pragma_operator=*/FALSE);
+                  /*is_microsoft_pragma_operator=*/FALSE,
+                  /*is_function_style_pragma=*/TRUE);
   }
   rem_source_line_modif(slmp);
   /* Restore the saved lexical state variables. */
@@ -2864,7 +2865,8 @@ Note that the value returned through *pragma_descr can be NULL.
     flush_to_closing_paren();
   } else {
     record_pragma(pkdp, start_of_dir_position, &id_position,
-                 /*is_microsoft_pragma_operator=*/TRUE);
+                 /*is_microsoft_pragma_operator=*/TRUE,
+                 /*is_function_style_pragma=*/TRUE);
   }  /* if */
 }  /* process_microsoft_pragma_operator */
 

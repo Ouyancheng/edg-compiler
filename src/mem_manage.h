@@ -142,6 +142,7 @@ Free an entry in front end storage of type a_Type.
 /*
 Macro that allocates an entry for the specified type in front end memory.
 */
+/*lint -e665*/
 #define alloc_fe_of_type(type) (type*)alloc_fe(sizeof(type))
 
 /*
@@ -469,6 +470,7 @@ enum a_function_number_tag {
   fn_gcc_pragma,
 #endif /* GNU_EXTENSIONS_ALLOWED */
   fn_diag_pragma,
+  fn_diagnostic_pragma,
 #if INCLUDE_EDG_TEST_PRAGMAS
   fn_test_immediate_pragma,
   fn_test_next_construct_pragma,

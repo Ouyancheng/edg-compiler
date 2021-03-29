@@ -360,6 +360,7 @@ possible.
   ppp->descr_ptr = pkdp;
   ppp->discard_cache_when_done = TRUE;
   ppp->is_microsoft_pragma_operator = FALSE;
+  ppp->is_function_style_pragma = FALSE;
   ppp->has_been_processed = FALSE;
   ppp->pragma_text = NULL;
   ppp->il_pragma_entry = NULL;
@@ -423,6 +424,7 @@ possible.
     case pk_diag_error:
     case pk_diag_once:
     case pk_diag_default:
+    case pk_diagnostic:
     case pk_pack:
 #if IDENT_DIRECTIVE_AND_PRAGMA
     case pk_ident_pragma:
@@ -2054,6 +2056,19 @@ Initialize the pragma description table.
   (void)add_immediate_pragma_kind_description
 		((a_pragma_kind)pk_diag_default,
                  fn_for_function(diag_pragma),
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*record_pragma_text=*/FALSE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
+		 /*ignore_in_back_end=*/TRUE,
+		 /*il_info_is_complete=*/FALSE,
+		 /*read_string_as_header_name=*/FALSE,
+                 es_error);
+  (void)add_immediate_pragma_kind_description
+		((a_pragma_kind)pk_diagnostic,
+                 fn_for_function(diagnostic_pragma),
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
                  /*record_pragma_text=*/FALSE,

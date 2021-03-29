@@ -1,5 +1,41 @@
 Version 6.3
 
+3/29/21  [EDGcpfe/5372,EDGcpfe/8585,EDGcpfe/11120,EDGcpfe/13910,EDGcpfe/23583,
+          EDGcpfe/23610]
+Add "#pragma diagnostic push/pop" and rework "#pragma diag_*"
+
+A new #pragma has been added to save and restore the state of how the front
+end handles diagnostics.  This is similar to mechanisms used by other compilers
+(i.e., "#pragma GCC diagnostic push/pop" in GCC, "#pragma clang diagnostic
+push/pop" in clang, "#pragma warning( push/pop )" in Visual Studio).  The
+syntax is shown in the example below:
+
+  #pragma diagnostic push
+  #pragma diag_suppress implicit_return_from_non_void_function
+  int f() {}  // no warning here
+  #pragma diagnostic pop
+  int g() {}  // warning here
+
+The new "diagnostic" pragma affects the existing EDG-specific diag_suppress,
+diag_remark, diag_warning, diag_error, and diag_default behaviors but does not
+alter the behavior of diag_once.
+
+Note that this new mechanism does not emulate the GCC/clang/Visual Studio
+handling of pragmas that are specific to those compilers (diagnostic numbers
+cannot be easily mapped from one compiler to another).
+
+Additionally, the handling of these EDG-specific pragmas was substantially
+re-written and addresses issues where the use of diagnostic pragmas in
+template instantiations did not work as expected, for example (with -tused):
+
+  #pragma diag_suppress implicit_return_from_non_void_function
+  template <typename T> int f() {}  // no warning now
+  #pragma diag_error implicit_return_from_non_void_function
+  int main() {
+    f<int>();
+  }
+
+
 3/27/21  [EDGcpfe/24089]
 C++-generating back end: pseudo-destructors in generated explicit
 specializations

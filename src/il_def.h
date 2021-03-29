@@ -6096,6 +6096,7 @@ enum a_pragma_kind_tag {
   pk_diag_error,
   pk_diag_once,
   pk_diag_default,	/* Pragmas to control the issuing of diagnostics. */
+  pk_diagnostic,	/* Pragma to push/pop diagnostic state. */
 #if INCLUDE_EDG_TEST_PRAGMAS
   /* For testing purposes. */
   pk_test_next_statement,
@@ -6203,6 +6204,7 @@ EXTERN a_const_char *pragma_ids[(int)pk_last + 1]
 /* pk_diag_error */		"diag_error",
 /* pk_diag_once */		"diag_once",
 /* pk_diag_default */		"diag_default",
+/* pk_diagnostic */		"diagnostic",
 #if INCLUDE_EDG_TEST_PRAGMAS
 /* For testing purposes. */
 /* pk_test_next_statement */	"test_next_statement",

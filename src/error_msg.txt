@@ -3263,6 +3263,8 @@ ec_using_enum_conflicts;;"enumerator %no2 conflicts with %n1"
 ec_using_enum_redecl;;"enumerator %no has already been declared in this scope %p"
 ec_empty_throw_specification_not_cpp20;;"the \"throw()\" specification is not part of C++20 and later"
 ec_multiple_header_map_matches;;"more than entry in the header unit map matches \"%s\""
+ec_exp_push_pop;;"#pragma diagnostic must have either 'push' or 'pop' argument"
+ec_no_corresponding_push;;"no '#pragma diagnostic push' was found to match this 'diagnostic pop'"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

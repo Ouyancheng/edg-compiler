@@ -2622,14 +2622,17 @@ static void enter_pending_pragma(
 		a_pragma_kind_description_ptr	pkdp,
 		a_source_position		*directive_pos,
 		a_source_position		*id_pos,
-		a_boolean			is_microsoft_pragma_operator)
+		a_boolean			is_microsoft_pragma_operator,
+		a_boolean			is_function_style_pragma)
 /*
 Scan the current pragma directive, which has already been determined to be
 of a kind associated with the entry pointed to pkdp.  It may be recorded as
 either a token cache or as a character string.  *directive_pos is the source
 position of the start of the directive; *id_pos is the source position of
 the pragma identifier.  is_microsoft_pragma_operator is TRUE when the pragma
-being scanned is a Microsoft __pragma operator.
+being scanned is a Microsoft __pragma operator.  is_function_style_pragma is
+TRUE when the pragma being scanned is a function-style pragma (i.e., _Pragma
+or __pragma, but not #pragma).
 */
 {
   a_pending_pragma_ptr	ppp;
@@ -2638,6 +2641,7 @@ being scanned is a Microsoft __pragma operator.
   ppp->id_position = *id_pos;
   ppp->pragma_position = *directive_pos;
   ppp->is_microsoft_pragma_operator = is_microsoft_pragma_operator;
+  ppp->is_function_style_pragma = is_function_style_pragma;
   if (pkdp->fetch_pp_tokens) {
     /* When fetching pp-tokens, convert the tokens to a string in
        such a way that no additional white space is added. */
@@ -2919,13 +2923,16 @@ expansion of macros if necessary for this kind of pragma.
 void record_pragma(a_pragma_kind_description_ptr pkdp,
 		   a_source_position		 *start_of_dir_position,
 		   a_source_position		 *id_position,
-		   a_boolean			 is_microsoft_pragma_operator)
+		   a_boolean			 is_microsoft_pragma_operator,
+		   a_boolean			 is_function_style_pragma)
 /*
 Record the pragma whose kind is specified by pkdp (which may be NULL).
 start_of_dir_position is the position of the first character of the
 pragma directive.  id_position is the position of the pragma identifier.
 is_microsoft_pragma_operator is TRUE when the pragma being scanned is
-a Microsoft __pragma operator.  When the front end is doing preprocessing
+a Microsoft __pragma operator.  is_function_style_pragma is TRUE when
+the pragma being scanned is a function-style pragma (i.e., _Pragma or
+__pragma, but not #pragma).  When the front end is doing preprocessing
 only, only preprocessing immediate pragmas are actually processed.
 */
 {
@@ -2941,7 +2948,8 @@ only, only preprocessing immediate pragmas are actually processed.
     /* Scan the pragma directive, recording it as either a token cache
        or as a character string. */
     enter_pending_pragma(pkdp, start_of_dir_position, id_position,
-                         is_microsoft_pragma_operator);
+                         is_microsoft_pragma_operator,
+                         is_function_style_pragma);
     processed = TRUE;
   }  /* if */
   if (!processed) {
@@ -3078,7 +3086,8 @@ Scan and process a #pragma directive.
       pass_pp_directive_to_output = TRUE;
     }  /* if */
     record_pragma(pkdp, start_of_dir_position, &id_position,
-                  /*is_microsoft_pragma_operator=*/FALSE);
+                  /*is_microsoft_pragma_operator=*/FALSE,
+                  /*is_function_style_pragma=*/FALSE);
     if (pass_to_output) {
       /* If we are generating preprocessed output, but we are also
          doing real compilation (i.e., do_preprocessing_only is FALSE),
@@ -3108,7 +3117,8 @@ kind to distinguish it from a #pragma ident).
     enter_pending_pragma(pragma_description_for_pragma_kind[
                                                       (int)pk_ident_directive],
                          directive_pos, &pos_curr_token,
-                         /*is_microsoft_pragma_operator=*/FALSE);
+                         /*is_microsoft_pragma_operator=*/FALSE,
+                         /*is_function_style_pragma=*/FALSE);
   }  /* if */
 }  /* proc_ident */
 
