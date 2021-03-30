@@ -7469,8 +7469,8 @@ are handled in error_init.)
       pch_saved_var_array_elem(avail_diag_fill_ins),
       pch_saved_var_array_elem(error_position),
       pch_array_saved_var_array_elem(error_codes),
-      pch_array_saved_var_array_elem(pragma_diag_list),
-      pch_array_saved_var_array_elem(pragma_diag_stack),
+      pch_saved_var_array_elem(pragma_diag_list),
+      pch_saved_var_array_elem(pragma_diag_stack),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
