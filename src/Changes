@@ -25,7 +25,7 @@ handling of pragmas that are specific to those compilers (diagnostic numbers
 cannot be easily mapped from one compiler to another).
 
 Additionally, the handling of these EDG-specific pragmas was substantially
-re-written and addresses issues where the use of diagnostic pragmas in
+rewritten and addresses issues where the use of diagnostic pragmas in
 template instantiations did not work as expected, for example (with -tused):
 
   #pragma diag_suppress implicit_return_from_non_void_function

@@ -125,6 +125,7 @@ Construct *p_object with the given arguments.
 */
 {
   typedef Value_for_ptr<a_Ptr> an_object;
+  /*lint -e1556*/
   ::new((void*)p_object) an_object(fwd<an_Arg_pack>(args)...);
 }  /* construct */
 

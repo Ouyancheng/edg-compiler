@@ -5440,7 +5440,7 @@ a_boolean set_severity_for_error_number(int               error_number,
                                         a_boolean         make_default)
 /*
 Given an error number, this routine updates the table used to override the
-error severity of diagnostic messages. If the error number is out of range
+error severity of diagnostic messages.  If the error number is out of range
 return TRUE, otherwise return FALSE.  make_default is TRUE when this is called
 for a value set on the command line or as part of the initial front end
 configuration.  This causes both the current_severity and default_severity
@@ -5451,7 +5451,6 @@ current_severity field.
 */
 {
   a_boolean			err;
-
 
   err = (error_number <= (int)ec_no_error || error_number >= (int)ec_last);
   if (!err) {
