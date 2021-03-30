@@ -2921,10 +2921,10 @@ expansion of macros if necessary for this kind of pragma.
 
 
 void record_pragma(a_pragma_kind_description_ptr pkdp,
-		   a_source_position		 *start_of_dir_position,
-		   a_source_position		 *id_position,
-		   a_boolean			 is_microsoft_pragma_operator,
-		   a_boolean			 is_function_style_pragma)
+                   a_source_position             *start_of_dir_position,
+                   a_source_position             *id_position,
+                   a_boolean                     is_microsoft_pragma_operator,
+                   a_boolean                     is_function_style_pragma)
 /*
 Record the pragma whose kind is specified by pkdp (which may be NULL).
 start_of_dir_position is the position of the first character of the

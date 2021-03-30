@@ -489,8 +489,8 @@ struct an_error_code_entry {
                                    for this error code. */
   a_bit_field   severity_changed_by_pragma:1;
                                 /* TRUE if the severity of this error code has
-                                   ever been has ever been modified by a pragma
-                                   during the current compilation. */
+                                   ever been modified by a pragma during the
+                                   current compilation. */
 };
 
 static an_error_code_entry
@@ -498,6 +498,11 @@ static an_error_code_entry
                                 /* An array of consisting of information
                                    related to how each error code is handled.
                                    */
+static a_boolean
+                error_codes_initialized;
+                                /* A flag used to avoid re-initialization of
+                                   error_codes when compiling the first
+                                   translation unit. */
 
 static an_il_to_str_output_control_block
 		octl;	/* Output control block for interface to il_to_str
@@ -601,9 +606,8 @@ struct a_pragma_diag_elem {
   inline a_pragma_diag_elem(a_pragma_kind     kind,
                             a_source_position *pos,
                             int               error_number);
-  a_seq_number  seq;    /* Sequence number (location of pragma). */
-  a_column_number
-                column; /* Column number (of location of pragma). */
+  a_simple_source_position
+                spos;   /* Source position of the pragma. */
   a_pragma_kind kind;   /* The pk_diag* pragma kind. */
   a_bit_field   is_pop:1;
                         /* TRUE if this corresponds to a "diagnostic pop". */
@@ -620,21 +624,21 @@ struct a_pragma_diag_elem {
 
 
 inline a_pragma_diag_elem::a_pragma_diag_elem(a_pragma_kind     _kind,
-                                              a_source_position *_pos)
+                                              a_source_position *pos)
 /*
 Constructor for pk_diagnostic entries.
 */
   : kind(_kind)
   , is_pop(FALSE)
 {
-  this->seq = _pos->seq;
-  this->column = _pos->column;
+  this->spos.seq = pos->seq;
+  this->spos.column = pos->column;
   this->variant.corresponding_push = 0;
 }  /* a_pragma_diag_elem::a_pragma_diag_elem */
 
 
 inline a_pragma_diag_elem::a_pragma_diag_elem(a_pragma_kind     _kind,
-                                              a_source_position *_pos,
+                                              a_source_position *pos,
                                               int               error_number)
 /*
 Constructor for pk_diag* entries.
@@ -642,8 +646,8 @@ Constructor for pk_diag* entries.
   : kind(_kind)
   , is_pop(FALSE)
 {
-  this->seq = _pos->seq;
-  this->column = _pos->column;
+  this->spos.seq = pos->seq;
+  this->spos.column = pos->column;
   this->variant.error_number = error_number;
 }  /* a_pragma_diag_elem::a_pragma_diag_elem */
 
@@ -654,9 +658,9 @@ static inline a_boolean operator==(const a_pragma_diag_elem &e1,
 Return TRUE if e1 and e2 have the same values for all non-static data members.
 */
 {
-  return (e1.seq == e2.seq &&
-          e1.column == e2.column &&
-          e1.kind == e2.kind &&
+  return (e1.kind == e2.kind &&
+          e1.spos.seq == e2.spos.seq &&
+          e1.spos.column == e2.spos.column &&
           (e1.kind == (a_pragma_kind)pk_diagnostic ?
                e1.variant.corresponding_push == e2.variant.corresponding_push :
                e1.variant.error_number == e2.variant.error_number));
@@ -674,7 +678,7 @@ static Dyn_array<a_pragma_diag_elem>
 static Dyn_array<a_ptrdiff>
                 *pragma_diag_stack;
                         /* A stack that keeps track of "diagnostic push"
-                           pragma indicies so that they can later be matched
+                           pragma indices so that they can later be matched
                            with the corresponding "diagnostic pop". */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
@@ -3244,11 +3248,11 @@ to keep track of the desired result.
   a_pragma_diag_elem *p1 = (a_pragma_diag_elem*)key;
   a_pragma_diag_elem *p2 = (a_pragma_diag_elem*)candidate;
 
-  result = p1->seq - p2->seq;
+  result = p1->spos.seq - p2->spos.seq;
   if (result > 0) {
     pdl_lower_bound = p2;
   } else if (result == 0) {
-    result = p1->column - p2->column;
+    result = p1->spos.column - p2->spos.column;
     if (result >= 0) {
       pdl_lower_bound = p2;
     }  /* if */
@@ -3295,8 +3299,8 @@ a source location of an error (that is typically not on a #pragma line).
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 static void check_for_overridden_severity(an_error_code     error_code,
-					  an_error_severity *severity,
-					  a_source_position *pos)
+                                          an_error_severity *severity,
+                                          a_source_position *pos)
 /*
 Determine whether this error code should have its severity
 overridden by a value specified on the command line.  Diagnostics
@@ -3321,11 +3325,12 @@ in the source.
          has an effect on this diagnostic severity. */
       a_pragma_diag_elem *ptr = NULL;
       if (pragma_diag_list == NULL) {
+        /* During early error processing, the list may not be allocated. */
       } else if (pragma_diag_list->length() == 0) {
         /* There are no entries on the list. */
-      } else if (pragma_diag_list->back_elem().seq < pos->seq ||
-                 (pragma_diag_list->back_elem().seq == pos->seq &&
-                  pragma_diag_list->back_elem().column < pos->column)) {
+      } else if (pragma_diag_list->back_elem().spos.seq < pos->seq ||
+                 (pragma_diag_list->back_elem().spos.seq == pos->seq &&
+                  pragma_diag_list->back_elem().spos.column < pos->column)) {
         /* A common case is that the error being reported is after all of the
            pragmas in the array.  In that case, no search is needed. */
         ptr = &pragma_diag_list->back_elem();
@@ -3343,7 +3348,7 @@ in the source.
                           ptr <= pragma_diag_list->end());
           if (ptr->kind == (a_pragma_kind)pk_diagnostic) {
             if (ptr->is_pop) {
-              /* Skip to corresponding "push" for this "pop". */
+              /* Skip to the corresponding "push" for this "pop". */
               ptr = &(*pragma_diag_list)[ptr->variant.corresponding_push];
               continue;
             }  /* if */
@@ -3353,7 +3358,7 @@ in the source.
             break;
           }  /* if */
           if (ptr == pragma_diag_list->begin()) {
-            /* At beginning. */
+            /* At the beginning. */
             break;
           }  /* if */
           ptr--;
@@ -5404,19 +5409,19 @@ TRUE if the error tag is invalid.
 }  /* convert_error_tag_to_error_code */
 
 
-a_boolean set_severity_for_error_tag(a_const_char	*tag,
-				     an_error_severity	severity,
-				     a_boolean		make_default)
+a_boolean set_severity_for_error_tag(a_const_char      *tag,
+                                     an_error_severity severity,
+                                     a_boolean         make_default)
 /*
-Given an error tag string, this routine looks up the error tag and
-updates the table used to override the error severity of diagnostic
-messages.  If the tag cannot be found return TRUE, otherwise return
-FALSE. make_default is TRUE when this is called for a value set on
-the command line or as part of the initial front end configuration.
-This causes both the current and default tables to be updated.  For
-other calls, only the current table is updated.  If the severity is
-"es_default" the severity from the default table is used to reset the
-value in the current table.
+Given an error tag string, this routine looks up the error tag and updates the
+table used to override the error severity of diagnostic messages.  If the tag
+cannot be found return TRUE, otherwise return FALSE.  make_default is TRUE when
+this is called for a value set on the command line or as part of the initial
+front end configuration.  This causes both the current_severity and
+default_severity fields of the error_codes array to be updated.  For other
+calls, only the current_severity field is updated.  If the severity is
+"es_default" the severity from the default_severity field is used to reset the
+value in the current_severity field.
 */
 {
   a_boolean     err;
@@ -5430,18 +5435,19 @@ value in the current table.
 }  /* set_severity_for_error_tag */
 
 
-a_boolean set_severity_for_error_number(int		   error_number,
-				        an_error_severity  severity,
-				        a_boolean	   make_default)
+a_boolean set_severity_for_error_number(int               error_number,
+                                        an_error_severity severity,
+                                        a_boolean         make_default)
 /*
-Given an error number, this routine updates the table used to override
-the error severity of diagnostic messages. If the error number is out
-of range return TRUE, otherwise return FALSE.  make_default is TRUE
-when this is called for a value set on the command line or as part of
-the initial front end configuration.  This causes both the current and
-default tables to be updated.  For other calls, only the current table
-is updated.  If the severity is "es_default" the severity from the default
-table is used to reset the value in the current table.
+Given an error number, this routine updates the table used to override the
+error severity of diagnostic messages. If the error number is out of range
+return TRUE, otherwise return FALSE.  make_default is TRUE when this is called
+for a value set on the command line or as part of the initial front end
+configuration.  This causes both the current_severity and default_severity
+fields of the error_codes array to be updated.  For other calls, only the
+current_severity field is updated.  If the severity is "es_default" the
+severity from the default_severity field is used to reset the value in the
+current_severity field.
 */
 {
   a_boolean			err;
@@ -7240,7 +7246,7 @@ as _Pragma that are not parsed except during instantiations).
           /* Queue the information for the pragma. */
           if (pragma_diag_list->length() > 0) {
             /* Make sure the pragmas are ordered by sequence number. */
-            check_assertion(pragma_diag_list->back_elem().seq <= pos.seq);
+            check_assertion(pragma_diag_list->back_elem().spos.seq <= pos.seq);
           }  /* if */
           /* Add the pragma to the list. */
           pragma_diag_list->push_back({kind, &pos, (int)error_number});
@@ -7303,7 +7309,8 @@ parsed except during instantiations).
     } else {
       if (pragma_diag_list->length() > 0) {
         /* Make sure the pragmas are ordered by sequence number. */
-        check_assertion(pragma_diag_list->back_elem().seq< pos_curr_token.seq);
+        check_assertion(
+                  pragma_diag_list->back_elem().spos.seq < pos_curr_token.seq);
       }  /* if */
       /* Add the pragma to the list. */
       pragma_diag_list->push_back(
@@ -7430,6 +7437,7 @@ line processing is done.
   /* Zeroing this array causes it to be set to default values (e.g.,
      es_default). */
   memzero((a_void_ptr)error_codes, sizeof(error_codes));
+  error_codes_initialized = TRUE;
 #if !STANDALONE_UTILITY_PROGRAM
   error_source_line = NULL;
   after_end_of_error_source_line = NULL;
@@ -7505,22 +7513,20 @@ of each compilation.
 #endif /* DEBUG */
   memzero((char *)recorded_diagnostic_table,
           sizeof(recorded_diagnostic_table));
-  { /* The error_codes array has been initialized in early_error_init, so there
-       is no need to re-initialize it for the first compilation unit. */
-    static a_boolean first_time = TRUE;
-    if (!first_time) {
-      for (an_error_code_entry *ptr = error_codes;
-           ptr < &error_codes[(int)ec_last];
-           ptr++) {
-        /* Re-initialize all fields except default_severity. */
-        ptr->current_severity = es_default;
-        ptr->once = FALSE;
-        ptr->diagnostic_issued = FALSE;
-        ptr->severity_changed_by_pragma = FALSE;
-      }  /* for */
-    }  /* if */
-    first_time = FALSE;
-  }
+  /* The error_codes array has been initialized in early_error_init, so there
+     is no need to re-initialize it for the first compilation unit. */
+  if (!error_codes_initialized) {
+    for (an_error_code_entry *ptr = error_codes;
+         ptr < &error_codes[(int)ec_last];
+         ptr++) {
+      /* Re-initialize all fields except default_severity. */
+      ptr->current_severity = es_default;
+      ptr->once = FALSE;
+      ptr->diagnostic_issued = FALSE;
+      ptr->severity_changed_by_pragma = FALSE;
+    }  /* for */
+  }  /* if */
+  error_codes_initialized = FALSE;
 #if !STANDALONE_UTILITY_PROGRAM
   clear_file_index_list();
   can_locate_source_line_info_cached = FALSE;

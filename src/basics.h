@@ -951,7 +951,6 @@ EXTERN a_source_position
 			/* Special position used for PCH processing of
 			   preincluded files. */
 
-#if FULLY_RESOLVED_MACRO_POSITIONS || RECORD_MACRO_INVOCATIONS
 typedef struct a_simple_source_position *a_simple_source_position_ptr;
 typedef struct a_simple_source_position {
   /* Indicates a source position without the dual-resolution (macro)
@@ -960,7 +959,6 @@ typedef struct a_simple_source_position {
   a_column_number
 		column;
 } a_simple_source_position;
-#endif /* FULLY_RESOLVED_MACRO_POSITIONS || RECORD_MACRO_INVOCATIONS */
 
 typedef enum /*a_C_dialect*/ {
   /* Possible C/C++ dialects to compile. */

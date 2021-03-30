@@ -2067,7 +2067,7 @@ Initialize the pragma description table.
 		 /*read_string_as_header_name=*/FALSE,
                  es_error);
   (void)add_immediate_pragma_kind_description
-		((a_pragma_kind)pk_diagnostic,
+                ((a_pragma_kind)pk_diagnostic,
                  fn_for_function(diagnostic_pragma),
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
@@ -2075,9 +2075,9 @@ Initialize the pragma description table.
                  /*expand_macros=*/FALSE,
                  /*processing_C_code=*/FALSE,
                  /*fetch_pp_tokens=*/FALSE,
-		 /*ignore_in_back_end=*/TRUE,
-		 /*il_info_is_complete=*/FALSE,
-		 /*read_string_as_header_name=*/FALSE,
+                 /*ignore_in_back_end=*/TRUE,
+                 /*il_info_is_complete=*/FALSE,
+                 /*read_string_as_header_name=*/FALSE,
                  es_error);
 #if INCLUDE_EDG_TEST_PRAGMAS
   (void)add_next_construct_pragma_kind_description
