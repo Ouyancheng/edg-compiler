@@ -19,7 +19,7 @@ Similarly, template instantiation had often resulted in surprising diagnostics.
 For example, with -tused:
 
   #pragma diag_suppress implicit_return_from_non_void_function
-  template <typename T> int f() {}  // previously a warning, now suppressed
+  template <typename T> int f() {}  // previously an error, now suppressed
   #pragma diag_error implicit_return_from_non_void_function
   int main() {
     f<int>();
