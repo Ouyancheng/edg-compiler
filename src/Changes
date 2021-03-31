@@ -2,13 +2,39 @@ Version 6.3
 
 3/29/21  [EDGcpfe/5372,EDGcpfe/8585,EDGcpfe/11120,EDGcpfe/13910,EDGcpfe/23583,
           EDGcpfe/23610]
-Add "#pragma diagnostic push/pop" and rework "#pragma diag_*"
+Changes to "#pragma diag_*" and add "#pragma diagnostic push/pop"
 
-A new #pragma has been added to save and restore the state of how the front
-end handles diagnostics.  This is similar to mechanisms used by other compilers
-(i.e., "#pragma GCC diagnostic push/pop" in GCC, "#pragma clang diagnostic
-push/pop" in clang, "#pragma warning( push/pop )" in Visual Studio).  The
-syntax is shown in the example below:
+The previous implementation of the EDG-specific "#pragma diag_*" feature
+had resulted in some unexpected diagnostics because the pragmas had been
+acted upon at unexpected points in the compilation.  In the following example,
+the processing that detects whether or not a function is referenced is
+performed at the end of the compilation, resulting in a spurious error:
+
+  #pragma diag_suppress declared_but_not_referenced
+  static void f() { }   // had given an error, now suppressed
+  #pragma diag_error declared_but_not_referenced
+  static void g() { }   // gives an error (now and previously)
+
+Similarly, template instantiation had often resulted in surprising diagnostics.
+For example, with -tused:
+
+  #pragma diag_suppress implicit_return_from_non_void_function
+  template <typename T> int f() {}  // previously a warning, now suppressed
+  #pragma diag_error implicit_return_from_non_void_function
+  int main() {
+    f<int>();
+  }
+
+The handling of these EDG-specific pragmas was substantially rewritten to base
+the behavior on the source location of the error (i.e., what "#pragma diag_*"
+was in effect at that location in the source code), rather than the point
+in the compilation where the error was detected.
+
+Additionally, a new EDG-specific #pragma has been added to save and restore the
+state of how the front end handles diagnostics.  This is similar to mechanisms
+used by other compilers (i.e., "#pragma GCC diagnostic push/pop" in GCC,
+"#pragma clang diagnostic push/pop" in clang, "#pragma warning( push/pop )"
+in Visual Studio).  The syntax is shown in the example below:
 
   #pragma diagnostic push
   #pragma diag_suppress implicit_return_from_non_void_function
@@ -23,17 +49,6 @@ alter the behavior of diag_once.
 Note that this new mechanism does not emulate the GCC/clang/Visual Studio
 handling of pragmas that are specific to those compilers (diagnostic numbers
 cannot be easily mapped from one compiler to another).
-
-Additionally, the handling of these EDG-specific pragmas was substantially
-rewritten and addresses issues where the use of diagnostic pragmas in
-template instantiations did not work as expected, for example (with -tused):
-
-  #pragma diag_suppress implicit_return_from_non_void_function
-  template <typename T> int f() {}  // no warning now
-  #pragma diag_error implicit_return_from_non_void_function
-  int main() {
-    f<int>();
-  }
 
 
 3/27/21  [EDGcpfe/24089]
