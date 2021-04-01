@@ -19609,7 +19609,7 @@ otherwise.
       new_sym->variant.projection.access = access;
       set_class_membership(new_sym, (a_source_correspondence *)NULL,
                            class_type);
-    } else {   
+    } else if (is_file_or_namespace_scope(&scope_stack_top())) {
       set_namespace_membership(new_sym, (a_source_correspondence *)NULL,
                                (a_namespace_ptr)NULL);
     }  /* if */
