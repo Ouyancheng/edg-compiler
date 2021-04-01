@@ -5,10 +5,12 @@ Version 6.3
 Changes to "#pragma diag_*" and add "#pragma diagnostic push/pop"
 
 The previous implementation of the EDG-specific "#pragma diag_*" feature
-had resulted in some unexpected diagnostics because the pragmas had been
-acted upon at unexpected points in the compilation.  In the following example,
-the processing that detects whether or not a function is referenced is
-performed at the end of the compilation, resulting in a spurious error:
+had resulted in some unexpected diagnostics because the pragmas had been acted
+upon at unexpected points in the compilation.  For example, in each of the
+following cases, the diag_error #pragmas surprisingly affected the declarations
+that precede them.  In the following example, the processing that detects
+whether or not a function is referenced is performed at the end of the
+compilation, resulting in a spurious error:
 
   #pragma diag_suppress declared_but_not_referenced
   static void f() { }   // had given an error, now suppressed
