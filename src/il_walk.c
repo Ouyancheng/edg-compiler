@@ -2921,42 +2921,16 @@ it's the initializer for an aggregate.
       if (tblock->process_template_parameter_constants_and_expressions) {
         switch (constant->variant.template_param.kind) {
           case tpck_expression:
-            { an_expr_node_ptr expr = expr_node_from_tpck_expression(constant);
-              if (expr == NULL && constant->local_expr_ref) {
-                /* The expression involves entities local to a function and
-                   thus must be accessed via a local expr ref. */
-                a_scope_ptr sp;
-                if (constant->source_corresp.enclosing_routine != NULL &&
-                    constant->source_corresp.enclosing_routine->
-                             function_def_number != NULL_function_def_number) {
-                  sp = scope_for_routine_or_null(
-                                   constant->source_corresp.enclosing_routine);
-                } else {
-                  sp = innermost_function_scope;
-                }  /* if */
-                if (sp != NULL) {
-                  expr = find_local_expr_node_in_scope(
-                                (char *)constant,
-                                (a_local_expr_node_ref_kind)lerk_constant_expr,
-                                sp);
-                }  /* if */
-              }  /* if */
-              if (expr != NULL) {
-                traverse_expr(expr, tblock);
-              }  /* if */
-            }
-            break;
           case tpck_sizeof:
           case tpck_alignof:
           case tpck_uuidof:
           case tpck_typeid:
           case tpck_noexcept:
-            if (constant->variant.template_param.variant.templ_sizeof.expr !=
-                                                                        NULL) {
-              traverse_expr(constant->
-                              variant.template_param.variant.templ_sizeof.expr,
-                            tblock);
-            }  /* if */
+            { an_expr_node_ptr expr = expr_node_from_constant(constant);
+              if (expr != NULL) {
+                traverse_expr(expr, tblock);
+              }  /* if */
+            }
             break;
           case tpck_address:
             traverse_constant(constant->

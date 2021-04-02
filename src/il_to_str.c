@@ -505,36 +505,12 @@ Output the indicated template argument in the way described by octl.
             /* We should just put out the constant value, not the backing
                expression. */
             con->expr = NULL;
-          }  /* if */
-          expr = con->expr;
-          if (expr == NULL &&
-              con->kind == (a_constant_repr_kind)ck_template_param &&
-              con->variant.template_param.kind ==
-                             (a_template_param_constant_kind)tpck_expression) {
-            expr = expr_node_from_tpck_expression(con);
-          }  /* if */
-          if (expr == NULL && con->local_expr_ref) {
-            /* The expression involves entities local to a function and
-               thus must be accessed via a local expr ref. */
-            a_scope_ptr sp;
-            if (con->source_corresp.enclosing_routine != NULL &&
-                con->source_corresp.enclosing_routine->function_def_number !=
-                                                    NULL_function_def_number) {
-              sp = scope_for_routine_or_null(con->
-                                             source_corresp.enclosing_routine);
-            } else {
-              sp = innermost_function_scope;
+            expr = NULL;
+          } else {
+            expr = expr_node_from_constant(con);
+            if (expr != NULL && octl->skip_implicit_steps != NULL) {
+              expr = octl->skip_implicit_steps(expr);
             }  /* if */
-            if (sp != NULL) {
-              expr = find_local_expr_node_in_scope(
-                                (char *)con,
-                                (a_local_expr_node_ref_kind)lerk_constant_expr,
-                                sp);
-              con->expr = expr;
-            }  /* if */
-          }  /* if */
-          if (expr != NULL && octl->skip_implicit_steps != NULL) {
-            expr = octl->skip_implicit_steps(expr);
           }  /* if */
           /* See whether we need parentheses around the argument to prevent
              a ">" operator from being interpreted as the end of the

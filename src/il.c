@@ -13312,6 +13312,58 @@ ck_template_param/tpck_expression constant.
   return expr;
 }  /* expr_node_from_tpck_expression */
 
+
+an_expr_node_ptr expr_node_from_constant(a_constant_ptr cp)
+/*
+Return the expression node, if any, associated with cp: the backing
+expression, if present, otherwise the expression for the specific variant
+of the constant.  Find the node via the local expression node mechanism if
+necessary.
+*/
+{
+  an_expr_node_ptr expr = cp->expr;
+
+  if (expr == NULL) {
+    if (constant_is(cp, ck_template_param)) {
+      if (tpck_is(cp, tpck_expression)) {
+        expr = cp->variant.template_param.variant.expr;
+      } else if (tpck_is(cp, tpck_sizeof) || tpck_is(cp, tpck_alignof) ||
+                 tpck_is(cp, tpck_uuidof) || tpck_is(cp, tpck_typeid) ||
+                 tpck_is(cp, tpck_noexcept)) {
+        expr = cp->variant.template_param.variant.templ_sizeof.expr;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (expr == NULL && (cp->local_expr_ref ||
+                       (constant_is(cp, ck_template_param) &&
+                        cp->variant.template_param.local_expr_ref))) {
+    /* The expression involves entities local to a function and thus must
+       be accessed via the local expression node mechanism. */
+    a_scope_ptr sp;
+    if (cp->source_corresp.enclosing_routine != NULL &&
+        cp->source_corresp.enclosing_routine->function_def_number !=
+                                                    NULL_function_def_number) {
+      sp = scope_for_routine_or_null(cp->source_corresp.enclosing_routine);
+    } else {
+      sp = innermost_function_scope;
+    }  /* if */
+    if (sp != NULL) {
+      if (cp->local_expr_ref) {
+        expr = find_local_expr_node_in_scope(
+                                (char *)cp,
+                                (a_local_expr_node_ref_kind)lerk_constant_expr,
+                                sp);
+      } else {
+        expr = find_local_expr_node_in_scope(
+                               (char *)cp,
+                               (a_local_expr_node_ref_kind)lerk_tpl_param_expr,
+                               sp);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  return expr;
+}  /* expr_node_from_constant */
+
 #if !STANDALONE_UTILITY_PROGRAM
 
 void make_local_scope_ref(a_scope_ptr            scope,
