@@ -6311,6 +6311,7 @@ curr_routine points to the routine entry; otherwise, it is NULL.
           an_error_severity   severity = es_warning;
           an_init_kind        init_kind;
           an_initializer_ptr  ip;
+          a_boolean           suppress_diagnostic = FALSE;
 
           /* Check for a dynamic initialization that has side effects (such as
              a constructor call).  If such an initialization exists, suppress
@@ -6326,7 +6327,7 @@ curr_routine points to the routine entry; otherwise, it is NULL.
                if they would occur in all instantiations.  In addition, there
                is no way for a user to fix such a diagnostic that occurs
                only in some instantiations. */
-            severity = es_none;
+            suppress_diagnostic = TRUE;
           } else if (var_ptr->is_enhanced_for_iterator) {
             /* Iterator variables of C++/CLI "for each" statements or
                range-based-for statements shouldn't get warnings if
@@ -6374,7 +6375,12 @@ curr_routine points to the routine entry; otherwise, it is NULL.
             check_assertion(sym->value_has_been_set);
             error_code = ec_set_but_not_used;
           }  /* if */
-          report_unreferenced(sym, error_code, severity);
+          if (!suppress_diagnostic) {
+            /* An es_none diagnostic could still be issued if the severity
+               is overridden.  suppress_diagnostic is used to make sure the
+               diagnostic is never issued. */
+            report_unreferenced(sym, error_code, severity);
+          }  /* if */
         }  /* if */
       }  /* if */
       /* Check if this variable was declared using a type with no
