@@ -6252,6 +6252,15 @@ curr_routine points to the routine entry; otherwise, it is NULL.
             if (ptp != NULL && ptp->is_pack_element && sym->is_invisible) {
               /* Non-initial pack element parameter variables are marked as
                  invisible.  Such symbols are never marked as referenced. */
+            } else if (is_nonspecialized_instantiation_context() &&
+                       is_real_instantiation_context()) {
+              /* Don't issue unreferenced warnings in template instantiations.
+                 These will have been issued in the prototype instantiation
+                 if they would occur in all instantiations.  In addition, there
+                 is no way for a user to fix such a diagnostic that occurs
+                 only in some instantiations.  A parameter might be considered
+                 unreferenced in an instantiation if it was used in a pack
+                 expansion that was empty in that instantiation. */
             } else {
               /* Unreferenced parameter. */
               report_unreferenced(sym, ec_unreferenced_function_param,
@@ -6309,7 +6318,16 @@ curr_routine points to the routine entry; otherwise, it is NULL.
           get_variable_initializer(var_ptr,
                                    scope_stack[depth_scope_stack].il_scope,
                                    &init_kind, &ip);
-          if (var_ptr->is_enhanced_for_iterator) {
+          if (nonclass_prototype_instantiations &&
+              is_nonspecialized_instantiation_context() &&
+              is_real_instantiation_context()) {
+            /* Don't issue unreferenced warnings in template instantiations.
+               These will have been issued in the prototype instantiation
+               if they would occur in all instantiations.  In addition, there
+               is no way for a user to fix such a diagnostic that occurs
+               only in some instantiations. */
+            severity = es_none;
+          } else if (var_ptr->is_enhanced_for_iterator) {
             /* Iterator variables of C++/CLI "for each" statements or
                range-based-for statements shouldn't get warnings if
                unreferenced.  The loop itself might be the side effect. */

@@ -1,5 +1,37 @@
 Version 6.3
 
+4/4/21   [EDGcpfe/24000,EDGcpfe/24127]
+Diagnostics for unreferenced variables in template instantiations
+
+Formerly, the front end would issue a diagnostic about an unreferenced
+variable during a template instantiations in cases where the diagnostic
+was not useful because it was potentially issued on only some instantiations,
+so there was no way for the user to change the code to avoid the diagnostic.
+When the front end could determine during the prototype instantiation that
+an entity was always unused and never had side-effects, a diagnostic would
+be issued during the prototype instantiation, and that would cause any
+diagnostics during real instantiations to be suppressed.  That behavior has
+not changed, so now only cases in prototype instantiations are diagnosed.
+In modes in which prototype instantiations are not done the behavior has
+not changed.
+
+A similar change has been made for unused function parameters where a
+diagnostic could be issued in a case where the parameter was used only
+in an empty pack expansion.
+
+  template <class T> void f(T) {
+    T x;    // formerly, warned in some instantiations
+    int y;  // warned during prototype instantiation
+  }
+  struct A {
+    A(){}
+  };
+  int main() {
+    f(1);  // would warn that x is unreferenced
+    f(A()); // would not warn because declaration of x has side-effects
+  }
+
+
 3/29/21  [EDGcpfe/5372,EDGcpfe/8585,EDGcpfe/11120,EDGcpfe/13910,EDGcpfe/23583,
           EDGcpfe/23610]
 Changes to "#pragma diag_*" and add "#pragma diagnostic push/pop"
