@@ -10,11 +10,12 @@ so there was no way for the user to change the code to avoid the diagnostic.
 When the front end could determine during the prototype instantiation that
 an entity was always unused and never had side-effects, a diagnostic would
 be issued during the prototype instantiation, and that would cause any
-diagnostics during real instantiations to be suppressed.  The behavior during
-prototype instantiations remains the same, so now unreferenced variable
-diagnostics are only issued in prototype (not real) instantiations.
-In modes in which prototype instantiations are not done the behavior has
-not changed.
+diagnostics during real instantiations to be suppressed. The front end has
+now been changed to not emit these diagnostics at all during real
+instantiations.  The behavior during prototype instantiations remains the
+same, so now unreferenced variable diagnostics are only issued in prototype
+instantiations.  In modes in which prototype instantiations are not done
+the behavior has not changed.
 
 A similar change has been made for unused function parameters where a
 diagnostic could be issued in a case where the parameter was used only
