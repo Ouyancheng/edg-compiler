@@ -4,14 +4,15 @@ Version 6.3
 Diagnostics for unreferenced variables in template instantiations
 
 Formerly, the front end would issue a diagnostic about an unreferenced
-variable during a template instantiations in cases where the diagnostic
+variable during a template instantiation in cases where the diagnostic
 was not useful because it was potentially issued on only some instantiations,
 so there was no way for the user to change the code to avoid the diagnostic.
 When the front end could determine during the prototype instantiation that
 an entity was always unused and never had side-effects, a diagnostic would
 be issued during the prototype instantiation, and that would cause any
-diagnostics during real instantiations to be suppressed.  That behavior has
-not changed, so now only cases in prototype instantiations are diagnosed.
+diagnostics during real instantiations to be suppressed.  The behavior during
+prototype instantiations remains the same, so now unreferenced variable
+diagnostics are only issued in prototype (not real) instantiations.
 In modes in which prototype instantiations are not done the behavior has
 not changed.
 
