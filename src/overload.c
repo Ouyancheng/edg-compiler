@@ -11901,6 +11901,11 @@ implicit "this" is available, e.g., during overload resolution.
                  temporarily as the this_class in order to generate the
                  presumed "this" type. */
               a_scope_stack_entry_ptr ssepr = ssep-1;
+              if (scope_is(ssepr, sck_template_instantiation)) {
+                /* For member templates, an instantiation scope might be
+                   next. */
+                ssepr = ssepr-1;
+              }  /* if */
               check_assertion(scope_is(ssepr, sck_class_reactivation));
               rout_type_supp(rout_type)->this_class = ssepr->assoc_type;
               rout_type_supp(rout_type)->has_this_param = TRUE;
