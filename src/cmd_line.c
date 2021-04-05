@@ -544,6 +544,9 @@ Initialize the option information table.
   add_option_description(optk_microsoft_await, "ms_await",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_microsoft_await_strict, "ms_await_strict",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #if NEAR_AND_FAR_ALLOWED
   add_option_description(optk_microsoft_16_mode, "microsoft_16",
                          '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -2818,8 +2821,9 @@ option values if they were not already set by a command line option.
         /* This may have been enabled already via --set_flag; we don't want to
            override that. */
         if (ms_cpp20_mode ||
-            option_kind_used[(int)optk_microsoft_await]) {
-          /* Enabled with /std:c++latest or /await. */
+            option_kind_used[(int)optk_microsoft_await] ||
+            option_kind_used[(int)optk_microsoft_await_strict]) {
+          /* Enabled with /std:c++latest or /await or /await:strict. */
           coroutines_enabled = COROUTINE_ENABLING_POSSIBLE;
         }  /* if */
       }  /* if */
@@ -10401,6 +10405,11 @@ enable_microsoft_mode:
         ms_std_preproc = opt_value;
         opt_value = TRUE;
         goto enable_microsoft_mode;
+      case optk_microsoft_await_strict:
+        /* Emulate /await:strict to explicitly request experimental pre-C++20
+           coroutine behavior in C++14 and C++17 modes. */
+        ms_await_strict = TRUE;
+        FALLTHROUGH
       case optk_microsoft_await:
         /* Emulate Microsoft's /await command-line option to enable
            experimental pre-C++20 coroutine behavior. */
@@ -12652,6 +12661,7 @@ variables declared in cmd_line.h.
   lambda_allowed_in_uneval_context = FALSE;
   ms_std_preproc = FALSE;
   ms_await = FALSE;
+  ms_await_strict = FALSE;
   fold_expressions_enabled = FALSE;
   variadic_using_decls_enabled = FALSE;
   class_template_arg_deduction_enabled = FALSE;

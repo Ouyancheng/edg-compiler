@@ -1,5 +1,11 @@
 Version 6.3
 
+4/5/21   [EDGcpfe/24035]
+Add the --ms_await_strict command-line option to eccp
+
+The --ms_await_strict command-line option has been added to the eccp script.
+
+
 2/16/21  [EDGcpfe/23906]
 Add --il_display command-line option to eccp
 

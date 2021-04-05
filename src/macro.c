@@ -11425,6 +11425,13 @@ command line -D options.
                                /*cannot_be_redefined=*/TRUE,
                                /*ref_suppresses_pch_file=*/FALSE);
     }  /* if */
+    if (ms_await_strict) {
+      /* This macro is defined only when using the pre-C++20 coroutine
+         implementation. */
+      (void)enter_predef_macro("202103L", "_DOWNLEVEL_COROUTINES_SUPPORTED",
+                               /*cannot_be_redefined=*/TRUE,
+                               /*ref_suppresses_pch_file=*/FALSE);
+    }  /* if */
     if (cppcli_enabled) {
       /* Define _MANAGED when C++/CLI is enabled. */
       (void)enter_predef_macro("1", "_MANAGED",

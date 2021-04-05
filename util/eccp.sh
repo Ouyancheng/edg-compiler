@@ -772,6 +772,7 @@ check_abbreviation()
 --modules
 --modules_directory
 --ms_await
+--ms_await_strict
 --ms_c++14
 --ms_c++17
 --ms_c++20
@@ -1424,6 +1425,7 @@ process_option()
          --modules | \
          --no_modules | \
          --ms_await | \
+         --ms_await_strict | \
          --ms_c++14 | \
          --ms_c++17 | \
          --ms_c++20 | \
