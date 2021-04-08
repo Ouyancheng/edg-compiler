@@ -579,9 +579,9 @@ document while the -std=gnu* version selects the "GNU dialect" of that
 standard (including some features that might conflict with the ISO standard).
 The front end had previously not distinguished between these modes.
 
-A new command-line option, --[no_]struct_gnu, will now be used to distinguish
-these cases.  Using the --struct_gnu command-line option will mimic the -std=c*
-variant in GNU/Clang and using the --no_struct_gnu command-line option will
+A new command-line option, --[no_]strict_gnu, will now be used to distinguish
+these cases.  Using the --strict_gnu command-line option will mimic the -std=c*
+variant in GNU/Clang and using the --no_strict_gnu command-line option will
 emulate the -std=gnu* GNU/Clang behavior.  In the absence of either, when
 a --c* or --c++* command-line option is explicitly specified, the -std=c*
 behavior will be used (e.g., --c++11 is equivalent to -std=c++11); otherwise,
