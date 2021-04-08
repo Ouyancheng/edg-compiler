@@ -9723,7 +9723,8 @@ if *p_this_arg is not statically initialized.)
            done. */
         break;
       }  /* if */
-      ovfp = bcp->overriding_virtual_functions;
+      check_assertion(!bcp->is_pack_expansion);
+      ovfp = bcp->variant.overriding_virtual_functions;
       for (; ovfp != NULL; ovfp = ovfp->next) {
         if (ovfp->primary_function == callee) {
           a_base_class_ptr  ret_base = ovfp->return_adjustment_base_class;

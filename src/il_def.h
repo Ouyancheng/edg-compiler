@@ -7532,7 +7532,9 @@ typedef struct a_base_class {
 			   class invented for a projection of a member of
 			   a nonreal class into another class, e.g., via
 			   a using-declaration. */
-  an_overriding_virtual_function_ptr
+  union {
+    /* If is_pack_expansion = FALSE: */
+    an_overriding_virtual_function_ptr
 		overriding_virtual_functions;
 			/* Pointer to a linked list of entries representing
 			   functions declared in derived classes that
@@ -7540,6 +7542,12 @@ typedef struct a_base_class {
                            current base class.  These entries are sorted by
 			   virtual function number of the routine pointed
 			   to by the primary_function field. */
+    /* If is_pack_expansion = TRUE: */
+    struct a_pack_expansion_descr
+		*pack_expansion_descr;
+			/* The pack expansion description for this base
+			   specifier.  (Front end only.) */
+  } variant;
 #if DO_IL_LOWERING
 #if !IA64_ABI
   a_variable_ptr

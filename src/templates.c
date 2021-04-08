@@ -29148,6 +29148,7 @@ optionally prefixed with the keyword "explicit".
   if (!locator->is_error) {
     add_deduction_guide(sym,
                         &ct_tssp->variant.class_template.deduction_guides);
+    ct_tssp->variant.class_template.explicit_deduction_guides_added = TRUE;
   }  /* if */
   update_function_template_default_args(decl_state, sym, tssp);
   return sym;
@@ -41279,6 +41280,24 @@ up-to-date.
     ct_tssp->variant.class_template.implicit_deduction_guides_added = TRUE;
   }  /* if */
 }  /* update_implicit_deduction_guides */
+
+
+a_symbol_ptr make_aggregate_deduction_candidate(a_symbol_ptr      ct_sym,
+                                                a_param_type_ptr  params)
+/*
+ct_sym is the symbol for class template for with class template argument
+deduction (CTAD) is being performed, and the caller has determined that an
+"aggregate deduction candidate" (see N4885 [over.match.class.deduct]/1) should
+be created with the given set of parameters.  Create such a deduction guide
+template and return a symbol for it.
+*/
+{
+  a_symbol_ptr  guide = NULL;
+
+  // FIXME
+  return guide;
+}  /* make_aggregate_deduction_candidate */
+
 
 #if DEBUG
 unsigned long db_show_template_space_used(unsigned long grand_total)

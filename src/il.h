@@ -3080,6 +3080,8 @@ extern void db_subobject_path(a_subobject_path  *path);
 
 extern void db_constant(a_constant *cp);
 
+extern void db_param_type_list(a_param_type_ptr  ptp,
+                               a_boolean         comma_required = FALSE);
 extern void db_type(a_type *tp);
 
 extern void db_function_param_list(a_type_ptr  tp);

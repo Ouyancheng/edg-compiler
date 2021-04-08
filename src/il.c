@@ -1352,13 +1352,74 @@ Dump the given exception specification (which may be NULL), for debug purposes.
 }  /* db_exception_spec */
 
 
+void db_param_type_list(a_param_type_ptr  ptp,
+      /* Defaulted: */  a_boolean         comma_required)
+/*
+Output a comma-separated list of parameters described by ptp.  If
+comma_required is TRUE (it is defaulted to FALSE) output ", " first.
+*/
+{
+  while (ptp != NULL) {
+    if (comma_required) fputs(", ", f_debug);
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (ptp->is_cli_param_array) fputs("... ", f_debug);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    if (ptp->qualifiers != TQ_NONE && remove_qualifiers_from_param_types) {
+      a_type_qualifier_set  qualifiers = ptp->qualifiers;
+      fputs("[", f_debug);
+      if (qualifiers & TQ_CONST) {
+        fputs("const", f_debug);
+        qualifiers &= ~TQ_CONST;
+        if (qualifiers != TQ_NONE) fputs(" ", f_debug);
+      }  /* if */
+      if (qualifiers & TQ_VOLATILE) {
+        fputs("volatile", f_debug);
+        qualifiers &= ~TQ_VOLATILE;
+        if (qualifiers != TQ_NONE) fputs(" ", f_debug);
+      }  /* if */
+      if (qualifiers & TQ_RESTRICT) {
+        fputs("restrict", f_debug);
+      }  /* if */
+      fputs("] ", f_debug);
+    }  /* if */
+    db_abbreviated_type(ptp->type);
+    if (ptp->is_parameter_pack) fputs(" ...", f_debug);
+    if (ptp->has_default_arg) {
+      an_expr_node_ptr expr = ptp->default_arg_expr;
+      fputs(" (= ", f_debug);
+      if (expr == NULL) {
+        /* Can be NULL for template parameter based default arguments. */
+        fputs("<NULL>", f_debug);
+      } else {
+        switch (expr->kind) {
+          case enk_constant:
+            db_constant(node_constant(expr));
+            break;
+          case enk_variable:
+            db_name_full(&node_variable(expr)->source_corresp, iek_variable);
+            break;
+          case enk_error:
+            fputs("<error>", f_debug);
+            break;
+          default:
+            fputs("<expr>", f_debug);
+            break;
+        }  /* switch */
+      }  /* if */
+      fputs(")", f_debug);
+    }  /* if */
+    comma_required = TRUE;
+    ptp = ptp->next;
+  }  /* while */
+}  /* db_param_type_list */
+
+
 void db_type(a_type *tp)
 /*
 Dump the contents of the indicated type entry, for debug purposes.
 */
 {
   a_field_ptr                   fp;
-  a_param_type_ptr              ptp;
   a_class_type_supplement_ptr	ctsp;
   a_routine_type_supplement_ptr rtsp;
   a_boolean	                comma_required;
@@ -1653,61 +1714,7 @@ Dump the contents of the indicated type entry, for debug purposes.
              first parameter yet. */
           comma_required = FALSE;
         }  /* if */
-        ptp = rtsp->param_type_list;
-        while (ptp != NULL) {
-          if (comma_required) fputs(", ", f_debug);
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          if (ptp->is_cli_param_array) fputs("... ", f_debug);
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-          if (ptp->qualifiers != TQ_NONE &&
-              remove_qualifiers_from_param_types) {
-            a_type_qualifier_set  qualifiers = ptp->qualifiers;
-            fputs("[", f_debug);
-            if (qualifiers & TQ_CONST) {
-              fputs("const", f_debug);
-              qualifiers &= ~TQ_CONST;
-              if (qualifiers != TQ_NONE) fputs(" ", f_debug);
-            }  /* if */
-            if (qualifiers & TQ_VOLATILE) {
-              fputs("volatile", f_debug);
-              qualifiers &= ~TQ_VOLATILE;
-              if (qualifiers != TQ_NONE) fputs(" ", f_debug);
-            }  /* if */
-            if (qualifiers & TQ_RESTRICT) {
-              fputs("restrict", f_debug);
-            }  /* if */
-            fputs("] ", f_debug);
-          }  /* if */
-          db_abbreviated_type(ptp->type);
-          if (ptp->is_parameter_pack) fputs(" ...", f_debug);
-          if (ptp->has_default_arg) {
-            an_expr_node_ptr expr = ptp->default_arg_expr;
-            fputs(" (= ", f_debug);
-            if (expr == NULL) {
-              /* Can be NULL for template parameter based default arguments. */
-              fputs("<NULL>", f_debug);
-            } else {
-              switch (expr->kind) {
-                case enk_constant:
-                  db_constant(node_constant(expr));
-                  break;
-                case enk_variable:
-                  db_name_full(&node_variable(expr)->source_corresp,
-                               iek_variable);
-                  break;
-                case enk_error:
-                  fputs("<error>", f_debug);
-                  break;
-                default:
-                  fputs("<expr>", f_debug);
-                  break;
-              }  /* switch */
-            }  /* if */
-            fputs(")", f_debug);
-          }  /* if */
-          comma_required = TRUE;
-          ptp = ptp->next;
-        }  /* while */
+        db_param_type_list(rtsp->param_type_list, comma_required);
         if (rtsp->has_ellipsis) {
           if (comma_required) fputs(", ", f_debug);
           fputs("...", f_debug);

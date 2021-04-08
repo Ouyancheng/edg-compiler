@@ -90,6 +90,8 @@ extern a_constant_ptr move_local_constant_to_il(a_constant_ptr *cp);
 
 extern a_param_type_ptr alloc_param_type(a_type_ptr type);
 
+extern void free_param_type_list(a_param_type_ptr  ptp);
+
 extern a_derivation_step_ptr alloc_derivation_step(void);
 
 extern a_base_class_derivation_ptr alloc_base_class_derivation(void);

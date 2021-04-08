@@ -5409,7 +5409,7 @@ function.
 {
   a_boolean has_override = FALSE;
   an_overriding_virtual_function_ptr
-            overrides = bcp->overriding_virtual_functions;
+            overrides = bcp->variant.overriding_virtual_functions;
 
   if (overrides != NULL && any_virtual_steps_in_derivation(bcp)) {
     if (bcp->is_virtual) {
@@ -5992,7 +5992,7 @@ FALSE means either the base class does not need a virtual function table
          class does not override any virtual functions. */
       needed = TRUE;
 #endif /* ABI_CHANGES_FOR_RTTI */
-    } else if (bcp->overriding_virtual_functions != NULL) {
+    } else if (bcp->variant.overriding_virtual_functions != NULL) {
       /* Some of the virtual functions in the base class are overridden
          in class_type, so a separate virtual function table instance is
          needed. */
@@ -6020,7 +6020,7 @@ FALSE means either the base class does not need a virtual function table
            dsp != NULL;
            dsp = dsp->next) {
         a_base_class_ptr other_bcp = corresp_base_class(dsp->base_class, bcp);
-        if (other_bcp->overriding_virtual_functions != NULL) {
+        if (other_bcp->variant.overriding_virtual_functions != NULL) {
           /* This base class has overridden functions, so we need a
              separate instance. */
           needed = TRUE;
@@ -7123,7 +7123,7 @@ gives the offset to the virtual base class whose vtable is being made.
     }  /* if */
     /* Find the class in which this routine was overridden. */
     overrider_bcp = bcp;
-    for (ovfp = bcp->overriding_virtual_functions; ovfp != NULL; 
+    for (ovfp = bcp->variant.overriding_virtual_functions; ovfp != NULL; 
          ovfp = ovfp->next) {
       if (ovfp->primary_function == voep->routine) {
         overrider_bcp = ovfp->base_class;
@@ -7430,7 +7430,7 @@ table.
   } else {
     /* Get the list of overriding functions, i.e., functions in the base
        class that are overridden in the class_type. */
-    override_list = bcp->overriding_virtual_functions;
+    override_list = bcp->variant.overriding_virtual_functions;
     class_whose_vtbl_is_being_made = bcp->type;
   }  /* if */
   ctsp = class_whose_vtbl_is_being_made->variant.class_struct_union.extra_info;
@@ -21594,7 +21594,8 @@ will be put out later.
        bcp != NULL;
        bcp = bcp->next) {
     /* Look at each virtual function override in the base class. */
-    an_overriding_virtual_function_ptr ovf = bcp->overriding_virtual_functions;
+    an_overriding_virtual_function_ptr
+                               ovf = bcp->variant.overriding_virtual_functions;
     for (; ovf != NULL; ovf = ovf->next) {
       if (ovf->overriding_function == routine) {
         /* This is an override for the function we care about. */

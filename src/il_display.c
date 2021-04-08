@@ -7100,9 +7100,11 @@ Display the indicated base class entry.
 #endif /* !IA64_ABI */
   }  /* if */
   disp_ptr("derivation", (char *)ptr->derivation, iek_base_class_derivation);
-  disp_ptr("overriding_virtual_functions",
-           (char *)ptr->overriding_virtual_functions,
-           iek_overriding_virtual_function );
+  if (!ptr->is_pack_expansion) {
+    disp_ptr("variant.overriding_virtual_functions",
+             (char *)ptr->variant.overriding_virtual_functions,
+             iek_overriding_virtual_function );
+  }  /* if */
 #if DO_IL_LOWERING
 #if IA64_ABI
   /* Do not print out ptr->virtual_function_table_var, which is used only

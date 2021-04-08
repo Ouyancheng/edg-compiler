@@ -17937,8 +17937,7 @@ chain of casts is used to disambiguate the derivation path.
     an_overriding_virtual_function_ptr virt_func;
     a_base_class_ptr                   base_class =
                    find_base_class_of(complete_object_type, class_of_function);
-
-    check_assertion(base_class != NULL);
+    check_assertion(base_class != NULL && !base_class->is_pack_expansion);
     if (base_class->ambiguous) {
       /* There is more than one derivation path from the class of the
          function to the complete object type.  There might be different
@@ -17964,7 +17963,8 @@ chain of casts is used to disambiguate the derivation path.
           if (pointer_case) this_derived = type_pointed_to(this_derived);
           this_derived = skip_typerefs(this_derived);
           base_class = find_base_class_of(this_derived, class_of_function);
-          for (virt_func = base_class->overriding_virtual_functions;
+          check_assertion(!base_class->is_pack_expansion);
+          for (virt_func = base_class->variant.overriding_virtual_functions;
                virt_func != NULL; virt_func = virt_func->next) {
             if (same_entities(virt_func->primary_function, target_function)) {
               /* Found an override. */
@@ -17979,7 +17979,7 @@ chain of casts is used to disambiguate the derivation path.
     } else {
       /* The derivation is unambiguous and we can rely on the list of
          virtual functions in base_class. */
-      for (virt_func = base_class->overriding_virtual_functions;
+      for (virt_func = base_class->variant.overriding_virtual_functions;
            virt_func != NULL; virt_func = virt_func->next) {
         if (same_entities(virt_func->primary_function, base_class_function)) {
           /* Found an override. */

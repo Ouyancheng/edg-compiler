@@ -4586,10 +4586,13 @@ static void db_virtual_function_override_list(a_base_class_ptr  bcp)
 Dump a base class's list of overriding virtual functions, for debug purposes.
 */
 {
-  an_overriding_virtual_function_ptr ovfp = bcp->overriding_virtual_functions;
-  for (; ovfp != NULL; ovfp = ovfp->next) {
-    db_virtual_function_override(ovfp);
-  }  /* for */
+  if (!bcp->is_pack_expansion) {
+    an_overriding_virtual_function_ptr
+                             ovfp = bcp->variant.overriding_virtual_functions;
+    for (; ovfp != NULL; ovfp = ovfp->next) {
+      db_virtual_function_override(ovfp);
+    }  /* for */
+  }  /* if */
 }  /* db_virtual_function_override_list */
 
 
@@ -4601,7 +4604,8 @@ Dump the virtual function override lists for a class, by base class.
   a_base_class_ptr  bcp;
 
   for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
-    if (bcp->overriding_virtual_functions != NULL) {
+    if (!bcp->is_pack_expansion &&
+        bcp->variant.overriding_virtual_functions != NULL) {
       fputs("virtual function override list for base class \"", f_debug);
       db_type_name(bcp->type);
       fputs("\" in class \"", f_debug);
@@ -4618,10 +4622,13 @@ static void db_virtual_function_number_sequence(a_base_class_ptr  bcp)
 Dump a sequence of virtual function numbers, for debug purposes.
 */
 {
-  an_overriding_virtual_function_ptr ovfp = bcp->overriding_virtual_functions;
-  for (; ovfp != NULL; ovfp = ovfp->next) {
-    fprintf(f_debug, " %d", ovfp->primary_function->number.virtual_function);
-  }  /* for */
+  if (!bcp->is_pack_expansion) {
+    an_overriding_virtual_function_ptr
+                             ovfp = bcp->variant.overriding_virtual_functions;
+    for (; ovfp != NULL; ovfp = ovfp->next) {
+      fprintf(f_debug, " %d", ovfp->primary_function->number.virtual_function);
+    }  /* for */
+  }  /* if */
 }  /* db_virtual_function_number_sequence */
 #endif /* DEBUG */
 
@@ -4670,7 +4677,7 @@ ambiguity.
   for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
     /* See if there any overriding virtual functions.  If there are,
        scan the list to look for duplicate primary functions. */
-    ovfp = bcp->overriding_virtual_functions;
+    ovfp = bcp->variant.overriding_virtual_functions;
 #if DEBUG
     if (debug_level >= 4) {
       if (ovfp != NULL) {
@@ -4749,7 +4756,7 @@ If the given member is not overridden, *p_bcp and *p_rp are left unchanged.
 */
 {
   an_overriding_virtual_function_ptr
-                                ovfp = (*p_bcp)->overriding_virtual_functions;
+                        ovfp = (*p_bcp)->variant.overriding_virtual_functions;
 
   if (ovfp != NULL) {
     a_routine_ptr  rp = *p_rp;
@@ -4787,12 +4794,12 @@ for the class to which they belong.
   db_enter(4, "insert_in_virtual_function_override_list");
   /* Add it to the base class's list, observing the order dictated by the
      virtual function numbers in the primary functions. */
-  ovfp = base_class->overriding_virtual_functions;
+  ovfp = base_class->variant.overriding_virtual_functions;
   if (ovfp == NULL ||
       new_ovfp->primary_function->number.virtual_function <
                         ovfp->primary_function->number.virtual_function) {
     /* Add the new entry to the start of the list. */
-    base_class->overriding_virtual_functions = new_ovfp;
+    base_class->variant.overriding_virtual_functions = new_ovfp;
     new_ovfp->next = ovfp;
   } else {
     /* It must be inserted somewhere beyond the start of the list.  Look
@@ -4840,16 +4847,16 @@ new_direct_bcp->derived_class.
   a_boolean                           check_new_list;
 
   db_enter(4, "copy_virtual_function_override_list");
-  if (old_bcp->overriding_virtual_functions == NULL) {
+  if (old_bcp->variant.overriding_virtual_functions == NULL) {
     /* Nothing to copy. */
   } else {
     /* if new_bcp does not have a list of overriding virtual functions, no
        cross checking is required before doing the copies. */
-    check_new_list = (new_bcp->overriding_virtual_functions != NULL);
+    check_new_list = (new_bcp->variant.overriding_virtual_functions != NULL);
     /* Make a pass over the list from old_bcp.  For each entry on it, see if
        a copy needs to be made.  If so, allocate an new entry and add it to
        the appropriate place in the list. */
-    for (ovfp_to_copy = old_bcp->overriding_virtual_functions;
+    for (ovfp_to_copy = old_bcp->variant.overriding_virtual_functions;
          ovfp_to_copy != NULL;
          ovfp_to_copy = ovfp_to_copy->next) {
       /* The base class of the overriding function must be translated into
@@ -4865,7 +4872,8 @@ new_direct_bcp->derived_class.
                  corresp_base_class(ovfp_to_copy->base_class, new_direct_bcp);
       }  /* if */
       if (check_new_list) {
-        for (ovfp_from_new_list = new_bcp->overriding_virtual_functions;
+        for (ovfp_from_new_list =
+                                new_bcp->variant.overriding_virtual_functions;
              ovfp_from_new_list != NULL;
              ovfp_from_new_list = ovfp_from_new_list->next) {
           if (ovfp_from_new_list->primary_function ==
@@ -5566,7 +5574,7 @@ appears on a linked list pointed to from base_class.
      was overridden by a function in another base class (one on the path
      between the current class and the class of which the primary function
      is a member), we can simply reuse that entry. */
-  ovfp = base_class->overriding_virtual_functions;
+  ovfp = base_class->variant.overriding_virtual_functions;
   /*lint --e{850}*/
   for (; ovfp != NULL; ovfp = ovfp->next) {
     if (ovfp->primary_function == primary_func) {
@@ -7770,7 +7778,7 @@ with class_state.
   an_overriding_virtual_function_ptr  ovfp;
 
   db_enter(5, "verify_virt_func_override_list");
-  ovfp = base_class->overriding_virtual_functions;
+  ovfp = base_class->variant.overriding_virtual_functions;
 #if DEBUG
   if (debug_level >= 5) {
     if (ovfp != NULL) {
@@ -9554,7 +9562,7 @@ to FALSE before returning).
   /* Add base classes derived from this base class to the current class' base
      class list.  They are marked as indirect. */
   for (bcp = base_classes_of(bcp_type); bcp != NULL; bcp = bcp->next) {
-    if (bcp->overriding_virtual_functions != NULL) {
+    if (bcp->variant.overriding_virtual_functions != NULL) {
       any_base_class_fixup_required = TRUE;
     }  /* if */
     if (!bcp->direct) {
@@ -9589,7 +9597,7 @@ to FALSE before returning).
   if (any_base_class_fixup_required) {
     for (bcp = base_classes_of(bcp_type); bcp != NULL; bcp = bcp->next) {
       a_base_class_ptr  new_bcp;
-      if (bcp->overriding_virtual_functions != NULL ||
+      if (bcp->variant.overriding_virtual_functions != NULL ||
           (bcp->direct && bcp->is_virtual && !bcp->derivation->direct)) {
         /* bcp is a base class of direct_bcp->type.  We need to find the
            corresponding base class of class_type.  Find a disambiguator in
@@ -9608,7 +9616,7 @@ to FALSE before returning).
         while (!bcdp->direct) bcdp = bcdp->next;
         (void)update_base_class_derivation(new_bcp, path, bcdp->access);
       }  /* if */
-      if (bcp->overriding_virtual_functions != NULL) {
+      if (bcp->variant.overriding_virtual_functions != NULL) {
 #if DEBUG
         if (debug_level >= 4) {
           fputs("copying virtual function override list from ", f_debug);
@@ -10149,6 +10157,7 @@ skip_base_class:
                                                    /*is_declarator=*/FALSE);
       if (pedep != NULL && new_direct_bcp != NULL) {
         new_direct_bcp->is_pack_expansion = TRUE;
+        new_direct_bcp->variant.pack_expansion_descr = pedep;
       }  /* if */
       any_types = advance_to_next_pack_element(pesep);
     }  /* while */
@@ -10505,7 +10514,8 @@ implicitly as part of the dispose pattern implementation.
   }  /* if */
 #endif /* DEBUG */
 #if EXPENSIVE_CHECKING
-  if (type_ptr->kind != (a_type_kind)tk_union) {
+  if (!type_is(type_ptr, tk_union) &&
+      !type_ptr->variant.class_struct_union.is_nonreal_class) {
     for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
       verify_path_consistency(type_ptr, bcp);
       verify_virt_func_override_list(class_state, bcp);
@@ -31176,9 +31186,9 @@ wrap_up_class_definition.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Do not insert code here. */
     if (!class_state->class_aggregate_ruled_out) {
-      /* Classes with no constructors, no private or protected nonstatic
-         data members, no base classes, and no virtual functions are used to
-         declare "aggregate" objects. */
+      /* Classes with no constructors, no private or protected nonstatic data
+         members, no base classes (prior to C++17), and no virtual functions
+         are used to declare "aggregate" objects. */
       cssp->is_class_aggregate = TRUE;
     }  /* if */
     /* Issue a diagnostic on a class with no user-defined constructor and

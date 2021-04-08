@@ -1419,6 +1419,9 @@ extern void complete_generated_member_template(
 
 extern void update_implicit_deduction_guides(a_symbol_ptr  ct_sym);
 
+extern a_symbol_ptr make_aggregate_deduction_candidate(
+                                                     a_symbol_ptr      ct_sym,
+                                                     a_param_type_ptr  params);
 #if DEBUG
 extern unsigned long db_show_template_space_used(unsigned long grand_total);
 #endif /* DEBUG */

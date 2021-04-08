@@ -28013,6 +28013,275 @@ next_function:;
 }  /* select_overloaded_assignment_operator */
 
 
+static a_boolean designator_component_matches_field(
+                                               an_arg_list_elem_ptr  alep,
+                                               a_field_ptr           *p_field)
+/*
+alep is a designator component and *p_field heads a list of fields.  Return
+TRUE if any of the fields in the list has a name matching a field name
+designated by alep, and if so set *p_field to that field.  Otherwise, return
+FALSE.
+*/
+{
+  a_boolean            result = FALSE;
+  a_field_ptr          fp = *p_field;
+  a_symbol_header_ptr  field_name = alep->variant.designator.field_name;
+
+  if (field_name != NULL) {
+    for (; fp != NULL; fp = next_proper_initializable_field(fp->next)) {
+      if (symbol_for(fp) != NULL &&
+          symbol_for(fp)->header == field_name) {
+        result = TRUE;
+        *p_field = fp;
+        break;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* designator_component_matches_field */
+
+
+static a_boolean update_param_list_for_aggr_candidate(
+                                           a_param_type_ptr  *param_list,
+                                           a_type_ptr        proto_type,
+                                           an_arg_list_elem  **p_elems,
+                                           a_boolean         *p_trailing_pack)
+/*
+Determine the parameters for the "aggregate deduction candidate" (see N4885
+[over.match.class.deduct]/1) needed to deduce class template arguments from an
+aggregate initializer.  This function operates recursively.
+
+param_list points to the "end pointer" of a list of parameter type entries and
+a call to this function will add parameters corresponding to the elements e_i
+to be initialized in proto_type according to the rules in N4885
+[over.match.class.deduct]/1.  *p_elems is the list of initializers x_i matched
+up with the e_i, and *p_elems is updated to the element that follows the x_i
+if any (or NULL otherwise).  If the last e_i is a pack expansion (from a base
+class expansion in the aggregate type), *p_trailing_pack is set to TRUE;
+otherwise it is set to FALSE.
+*/
+{
+  a_boolean             okay = TRUE, trailing_pack = FALSE;
+  a_base_class_ptr      bcp = base_classes_of(proto_type);
+  a_field_ptr           fp = fields_of(proto_type);
+  long                  n_elems_left;
+  an_arg_list_elem_ptr  alep = *p_elems;
+  uint32_t              param_num = 0;
+
+  if (is_array_type(proto_type)) {
+    a_type_ptr  atp = skip_typerefs(proto_type);
+    check_assertion(!has_unknown_specified_bound(atp));
+    n_elems_left = (long)atp->variant.array.variant.number_of_elements;
+    if (n_elems_left == 0 && !atp->variant.array.bound_is_zero) {
+      n_elems_left = -1;
+    }  /* if */
+    bcp = NULL;
+    fp = NULL;
+  } else {
+    bcp = base_classes_of(proto_type);
+    fp = fields_of(proto_type);
+    n_elems_left = 0;
+  }  /* if */
+  for (alep = *p_elems; alep != NULL;) {
+    if (bcp != NULL) {
+      /* We have a base class left: Check how initializer elements should be
+         assigned to it. */
+      if (!bcp->direct) {
+        /* Skip indirect base classes here (we might handle them recursively
+           below, instead). */
+        continue;
+      }  /* if */
+      trailing_pack = FALSE;
+      if (bcp->is_pack_expansion) {
+        /* Assume the expansion will be empty for now.  That standard requires
+           this for non-trailing expansions.  A trailing expansion takes the
+           remaining initializer elements, but we do not know whether it's a
+           trailing expansion until we have completed this process.  For now,
+           set a flag indicating that the last processed element was
+           variadic. */
+        trailing_pack = TRUE;
+        *param_list = alloc_param_type(bcp->type);
+        (*param_list)->param_num = ++param_num;
+        (*param_list)->is_parameter_pack = TRUE;
+        (*param_list)->pack_expansion_descr =
+                                            bcp->variant.pack_expansion_descr;
+        param_list = &(*param_list)->next;
+        alep = next_elem(alep);
+      } else if (is_designator_component(alep)) {
+        /* A designator when a base class initializer is still expected: That
+           cannot be a match. */
+        okay = FALSE;
+        break;
+      } else if (is_braced_init_component(alep) ||
+                 is_template_dependent_type(bcp->type) ||
+                 !class_symbol_supp(symbol_for(bcp->type))
+                                                       ->is_class_aggregate) {
+        /* Assume a braced component will initialize the bcp element.  If the
+           base is dependent is or not itself an aggregate type, assume it
+           will be initialized by the single initializer component. */
+        *param_list = alloc_param_type(bcp->type);
+        (*param_list)->param_num = ++param_num;
+        param_list = &(*param_list)->next;
+        alep = next_elem(alep);
+      } else {
+        /* A nondependent aggregate base initialized with a sequence of
+           non-brace-enclosed initializers.  Treat it recursively. */
+        if (!update_param_list_for_aggr_candidate(param_list, bcp->type,
+                                                  &alep, p_trailing_pack)) {
+          okay = FALSE;
+          break;
+        }  /* if */
+      }  /* if */
+      bcp = bcp->next;
+    } else if (fp != NULL || n_elems_left != 0) {
+      /* We're out of base classes (at this level), but we have nonstatic data
+         members left. */
+      a_type_ptr  tp, utp;
+      trailing_pack = FALSE;
+      if (fp != NULL) {
+        tp = fp->type;
+      } else {
+        tp = array_element_type(proto_type);
+      }  /* if */
+      utp = skip_typerefs(tp);
+      if (is_designator_component(alep)) {
+        if (fp != NULL && designator_component_matches_field(alep, &fp)) {
+          alep = next_elem(alep);
+          if (is_designator_component(alep)) {
+            /* Chained designators (as in ".x.y = 42") are not permitted in
+               standard C++. */
+            okay = FALSE;
+            break;
+          }  /* if */
+        } else {
+          /* The designator doesn't match the current field, or we are in an
+             array (and array designators are currently nonstandard in C++). */
+          okay = FALSE;
+          break;
+        }  /* if */
+      }  /* if */
+      if (is_braced_init_component(alep) ||
+          !is_aggregate_type(tp) ||
+          (type_is(utp, tk_array) ?
+                           utp->variant.array.is_template_dependent_size_array
+                         : is_template_dependent_type(tp))) {
+        /* If the current initializer element is braced or if template
+           dependence prevents us from matching initializers with elided
+           braces with the underlying structure of the type, threat the
+           current initializer element as initializing the whole type. */
+        if (type_is(utp, tk_array) &&
+            (is_braced_init_component(alep) ||
+             operand_of_arg_list_elem(alep)->is_simple_string_literal)) {
+          /* N4885 [over.match.class.deduct]/(1.8) forces an rvalue reference
+             for the type of a parameter that corresponds to an array field in
+             the aggregate, if the corresponding initializer is a braced
+             initializer or a string literal. */
+          tp = make_rvalue_reference_type(tp);
+        }  /* if */
+        *param_list = alloc_param_type(tp);
+        (*param_list)->param_num = ++param_num;
+        param_list = &(*param_list)->next;
+        alep = next_elem(alep);
+      } else {
+        /* A nondependent class type or an array with a known bound.  Treat it
+           recursively. */
+        if (!update_param_list_for_aggr_candidate(param_list, bcp->type,
+                                                  &alep, p_trailing_pack)) {
+          okay = FALSE;
+          break;
+        }  /* if */
+      }  /* if */
+      if (fp != NULL) {
+        fp = next_proper_initializable_field(fp->next);
+      } else if (n_elems_left > 0) {
+        /* Count down the elements of an array.  Not that for a flexible array
+           member, n_elems_left == -1, causing us to pick up all the remaining
+           initializers. */
+        --n_elems_left;
+      }  /* if */
+    } else {
+      /* We ran out of elements to initialize at this level. */
+      break;
+    }  /* if */
+  }  /* for */
+  *p_elems = alep;
+  *p_trailing_pack = trailing_pack;
+  return okay;
+}  /* update_param_list_for_aggr_candidate */
+
+
+static a_symbol_ptr add_aggregate_deduction_candidate_if_needed(
+                                          a_symbol_ptr       ct_sym,
+                                          an_arg_list_elem   *initializer_alep,
+                                          a_source_position  *pos)
+/*
+We are performing class template argument deduction for the class template
+described by ct_sym in a context that looks like aggregate initialization.
+initializer_alep is the braced initializer provided for that aggregate
+initialization.  The caller has determined that that template is defined
+and does not currently have associated explicit deduction guides.  If
+appropriate, produce the "aggregate deduction candidate" (see N4885
+[over.match.class.deduct]/1) and return a symbol for it.
+*/
+{
+  a_symbol_ptr      aggr_candidate = NULL;
+  a_template_symbol_supplement_ptr
+                    ct_tssp = ct_sym->variant.template_info;
+  a_type_ptr        proto_type;
+  a_param_type_ptr  param_list = NULL;
+  a_boolean         trailing_pack = FALSE;
+
+  proto_type = ct_tssp->variant.class_template.prototype_instantiation
+                      ->variant.class_struct_union.type;
+  if (!is_immediate_class_type(proto_type) ||
+      !class_symbol_supp(symbol_for(proto_type))->is_class_aggregate) {
+    goto done;
+  }  /* if */
+  if (update_param_list_for_aggr_candidate(&param_list, proto_type,
+                                           &initializer_alep,
+                                           &trailing_pack) &&
+      (initializer_alep == NULL || trailing_pack)) {
+    /* The initializers match up "structurally" with the class template
+       definition.  Use the resulting parameter list to create a deduction
+       guide template. */
+#if DEBUG
+    if (db_flag_is_set("ctad")) {
+      fprintf(f_debug, "\nParameters for aggregate deduction candidate:"
+                       " (line %d, column %d)\n"
+                       "   (",
+              (int)pos->seq, (int)pos->column);
+      db_param_type_list(param_list);
+      fprintf(f_debug, ")\n");
+    }  /* if */
+#endif /* DEBUG */
+    aggr_candidate = make_aggregate_deduction_candidate(ct_sym, param_list);
+    if (aggr_candidate != NULL) {
+      // FIXME: Add the candidate to the overload set for the deduction
+      // guides.
+    }  /* if */
+  }  /* if */
+done:
+  if (aggr_candidate == NULL && param_list != NULL) {
+    free_param_type_list(param_list);
+  }  /* if */
+  return aggr_candidate;
+}  /* add_aggregate_deduction_candidate_if_needed */
+
+
+static void remove_aggregate_deduction_candidate(
+                             a_template_symbol_supplement_ptr  ct_tssp,
+                             a_symbol_ptr                      aggr_candidate)
+/*
+aggr_candidate is an "aggregate deduction candidate" (see N4885
+[over.match.class.deduct]/1) currently associated with the class template
+described by ct_tssp: Remove that guide from the set of deduction guides for
+that class template.
+*/
+{
+  // FIXME
+}  /* remove_aggregate_deduction_candidate */
+
+
 a_boolean deduce_class_template_args(a_type_ptr        placeholder_type,
                                      a_boolean         is_direct_init,
                                      a_boolean         parenthesized_init,
@@ -28037,9 +28306,9 @@ set to TRUE and FALSE is returned.
 */
 {
   a_boolean     result = TRUE;
-  a_symbol_ptr  ct_sym, guide_set, selected_sym = NULL;
+  a_symbol_ptr  ct_sym, guide_set, aggr_candidate = NULL, selected_sym = NULL;
   a_template_symbol_supplement_ptr
-                ct_tssp;
+                ct_tssp = NULL;
   an_arg_list_elem_ptr
                 init_list_ctor_arg_list = NULL;
   an_arg_match_summary_ptr
@@ -28090,7 +28359,7 @@ set to TRUE and FALSE is returned.
     result = FALSE;
     goto done;
   }  /* if */
-  ct_tssp = template_supplement_for_symbol(ct_sym);
+  ct_tssp = ct_sym->variant.template_info;
   if (!ct_tssp->variant.class_template.implicit_deduction_guides_added ||
       (ct_sym->defined &&
        ct_tssp->variant.class_template.interim_implicit_deduction_guides)) {
@@ -28098,6 +28367,12 @@ set to TRUE and FALSE is returned.
        outdated because they were generated when the class template was not
        defined, but now it is defined. */
     update_implicit_deduction_guides(ct_sym);
+  }  /* if */
+  if (ct_sym->defined &&
+      !ct_tssp->variant.class_template.explicit_deduction_guides_added &&
+      init_list_ctor_arg_list != NULL) {
+    aggr_candidate = add_aggregate_deduction_candidate_if_needed(
+                                       ct_sym, initializer_alep , source_pos);
   }  /* if */
   guide_set = ct_tssp->variant.class_template.deduction_guides;
   if (guide_set == NULL) {
@@ -28164,6 +28439,10 @@ set to TRUE and FALSE is returned.
     *still_dependent = FALSE;
   }  /* if */
 done:
+  if (aggr_candidate != NULL) {
+    check_assertion(ct_tssp != NULL);
+    remove_aggregate_deduction_candidate(ct_tssp, aggr_candidate);
+  }  /* if */
   return result;
 }  /* deduce_class_template_args */
 

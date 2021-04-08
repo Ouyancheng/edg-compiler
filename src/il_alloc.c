@@ -1140,6 +1140,12 @@ that no release requests were made for unrequested local constants.
 
 #endif /* CHECKING */
 
+static a_param_type_ptr
+		avail_param_types;
+			/* List of freed parameter type entries that are
+			   available for reuse. */
+
+
 a_param_type_ptr alloc_param_type(a_type_ptr type)
 /*
 Allocate a new parameter type entry and return a pointer to it.  Set its
@@ -1151,10 +1157,15 @@ in the file scope memory region.
 
   db_enter(5, "alloc_param_type");
 
-  ptp = (a_param_type_ptr)alloc_il(sizeof(a_param_type));
+  if (avail_param_types != NULL) {
+    ptp = avail_param_types;
+    avail_param_types = avail_param_types->next;
+  } else {
+    ptp = (a_param_type_ptr)alloc_il(sizeof(a_param_type));
 #if DEBUG
-  num_param_types_allocated++;
+    num_param_types_allocated++;
 #endif /* DEBUG */
+  }  /* if */
   ptp->next = NULL;
   ptp->type = type;
   ptp->declared_type = NULL;
@@ -1195,6 +1206,22 @@ in the file scope memory region.
   db_exit();
   return ptp;
 }  /* alloc_param_type */
+
+
+void free_param_type_list(a_param_type_ptr  ptp)
+/*
+Return a list of parameter type entries to the available list.
+*/
+{
+  a_param_type_ptr  next_ptp;
+
+  while (ptp != NULL) {
+    next_ptp = ptp->next;
+    ptp->next = avail_param_types;
+    avail_param_types = ptp;
+    ptp = next_ptp;
+  }  /* while */
+}  /* free_param_type_list */
 
 
 a_derivation_step_ptr alloc_derivation_step(void)
@@ -1527,7 +1554,7 @@ to it.
   bcp->pointer_base_class              = NULL;
 #endif /* !IA64_ABI */
   bcp->derivation                      = NULL;
-  bcp->overriding_virtual_functions    = NULL;
+  bcp->variant.overriding_virtual_functions = NULL;
 #if CFRONT_OBJECT_CODE_COMPATIBILITY
   bcp->complete_subobject              = FALSE;
   bcp->pointer_offset_is_set           = FALSE;

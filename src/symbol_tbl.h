@@ -1231,8 +1231,8 @@ typedef struct a_class_symbol_supplement {
 			   type. */
   a_bit_field	is_class_aggregate:1;
 			/* TRUE if the class has no constructors, no base
-			   classes, no private or protected members, and
-			   no virtual functions. */
+			   classes (prior to C++17), no private or protected
+			   members, and no virtual functions. */
   a_bit_field	is_cpp03_POD:1;
 			/* TRUE if the class is a "POD" (in the C++03 sense: an
 			   aggregate with further restrictions that make it
@@ -2993,6 +2993,10 @@ typedef struct a_template_symbol_supplement {
 			/* TRUE if this is a template "invented" for the
 			   checking of template template argument
 			   compatibility. */
+      a_bit_field
+		explicit_deduction_guides_added:1;
+			/* TRUE if at least one explicit deduction guide is
+			   recorded in the deduction_guides symbol. */
       a_bit_field
 		implicit_deduction_guides_added:1;
 			/* TRUE if deduction_guides includes generated

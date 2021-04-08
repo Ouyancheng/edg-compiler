@@ -3659,6 +3659,7 @@ and return a pointer to it.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       tssp->variant.class_template.any_ms_instantiated_nonreal_classes = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      tssp->variant.class_template.explicit_deduction_guides_added = FALSE;
       tssp->variant.class_template.implicit_deduction_guides_added = FALSE;
       tssp->variant.class_template.interim_implicit_deduction_guides = FALSE;
       tssp->variant.class_template.has_alias_params_not_in_type = FALSE;

@@ -3202,9 +3202,13 @@ do_set_proper_definition_needed_flag:
 #endif /* !IA64_ABI */
         walk_list_not_needed(eptr->derivation, a_base_class_derivation_ptr,
                              iek_base_class_derivation);
-        walk_list_not_needed(eptr->overriding_virtual_functions,
-                             an_overriding_virtual_function_ptr,
-                             iek_overriding_virtual_function);
+        if (eptr->is_pack_expansion) {
+          conditionally_clear_fe_pointer(eptr->variant.pack_expansion_descr);
+        } else {
+          walk_list_not_needed(eptr->variant.overriding_virtual_functions,
+                               an_overriding_virtual_function_ptr,
+                               iek_overriding_virtual_function);
+        }  /* if */
 #if DO_IL_LOWERING
 #if !IA64_ABI
         conditionally_clear_fe_pointer(eptr->virtual_function_table_var);
