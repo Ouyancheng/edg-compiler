@@ -10158,6 +10158,9 @@ skip_base_class:
       if (pedep != NULL && new_direct_bcp != NULL) {
         new_direct_bcp->is_pack_expansion = TRUE;
         new_direct_bcp->variant.pack_expansion_descr = pedep;
+        /* Ensure the class is marked as nonreal.  This might not always be
+           the case for local classes. */
+        type_ptr->variant.class_struct_union.is_nonreal_class = TRUE;
       }  /* if */
       any_types = advance_to_next_pack_element(pesep);
     }  /* while */
@@ -10517,8 +10520,10 @@ implicitly as part of the dispose pattern implementation.
   if (!type_is(type_ptr, tk_union) &&
       !type_ptr->variant.class_struct_union.is_nonreal_class) {
     for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
-      verify_path_consistency(type_ptr, bcp);
-      verify_virt_func_override_list(class_state, bcp);
+      if (!bcp->is_pack_expansion) {
+        verify_path_consistency(type_ptr, bcp);
+        verify_virt_func_override_list(class_state, bcp);
+      }  /* if */
     }  /* for */
   }  /* if */
 #endif /* EXPENSIVE_CHECKING */
