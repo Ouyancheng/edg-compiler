@@ -1,5 +1,13 @@
 Version 6.3
 
+4/9/21   [EDGcpfe/24137]
+Abort in constraint_chart_of
+
+The front end could previously abort in constraint_chart_of due to a null
+pointer indirection when dealing with certain constrained function templates.
+That is now fixed.
+
+
 4/9/21   [EDGcpfe/24060]
 C++-generating back end: dependent decltype with member access operand
 

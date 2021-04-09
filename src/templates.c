@@ -10373,26 +10373,6 @@ is the template of which sym is an instance.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static inline a_template_param_ptr templ_params_of(a_symbol_ptr  template_sym)
-/*
-Return the list of template parameters for the given template.
-*/
-{
-  a_template_param_ptr  params;
-  a_template_symbol_supplement_ptr
-                        tssp = template_sym->variant.template_info;
-
-  if (symbol_is(template_sym, sk_function_template)) {
-    params = tssp->variant.function.decl_cache.decl_info->parameters;
-  } else if (symbol_is(template_sym, sk_variable_template)) {
-    params = tssp->variant.variable.decl_cache.decl_info->parameters;
-  } else {
-    params = tssp->cache.decl_info->parameters;
-  }  /* if */
-  return params;
-}  /* templ_params_of */
-
-
 static a_boolean requires_constraint_satisfied(
                                           a_symbol_ptr           template_sym,
                                           a_requires_clause_ptr  rcp,

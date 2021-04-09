@@ -24769,7 +24769,7 @@ generate that chart.
       if (tssp->has_template_param_constraint) {
         /* Collect any type constraints on the parameters. */
         a_boolean             auto_param_seen = FALSE;
-        a_template_param_ptr  tpp, params = tssp->cache.decl_info->parameters;
+        a_template_param_ptr  tpp, params = templ_params_of(sym);
         for (tpp = params; tpp != NULL; tpp = tpp->next) {
           an_expr_node_ptr  type_constraint = NULL;
           if (symbol_is(tpp->param_symbol, sk_type)) {
