@@ -15230,6 +15230,11 @@ expression (i.e., id-expression or member access).
       }  /* if */
     }  /* if */
     expr = strip_ref_indirect(expr, /*parens_also=*/FALSE);
+  } else if (is_constant_operand(operand)) {
+    expr = expr_node_from_constant(&operand->variant.constant);
+    if (expr != NULL) {
+      expr = strip_ref_indirect(expr, /*parens_also=*/FALSE);
+    }  /* if */
   }  /* if */
   /* Note that skip_parens is not called here, because parentheses are
      significant. */
