@@ -1,5 +1,32 @@
 Version 6.3
 
+4/9/21   [EDGcpfe/24060]
+C++-generating back end: dependent decltype with member access operand
+
+In some cases, the C++-generating back end incorrectly added parentheses
+around the operand of a decltype operator, changing the result type in the
+generated code from what it was in the original source.  For example, with
+--c++11:
+
+  struct S { int x; } s;
+  template<class T, T* t> void f(decltype(t->x) x) {
+    x = 66;
+  }
+  int main() {
+    int y = 42;
+    f<S, &s>(y);
+    return y;
+  }
+
+In the original code, the type of the parameter of f<S, &s> is "int", so
+the assignment to x in the body of the function has no effect on the value
+of y and the return value from main() is 42.  The C++-generating back end,
+however, previously put out the decltype as "decltype((t->x))".  The added
+parentheses made the parameter type "int&", resulting in a return value of
+66 from main().  This is now fixed, and no parentheses are added in such
+cases.
+
+
 4/8/21   [EDGcpfe/24133]
 Representation of type constraints for deduced return types
 
