@@ -5582,6 +5582,16 @@ on every expression.
           octl->output_str("<expression>", octl);
         }  /* if */
         break;
+      case enk_concept_id:
+        /* Output the concept-id (but abbreviate its arguments if any). */
+        { a_template_arg_ptr  tap = expr->variant.concept_id.args;
+          form_name(&expr->variant.concept_id.concept_template->source_corresp,
+                    (an_il_entry_kind)iek_template, octl);
+          if (tap != NULL) {
+            octl->output_str("<...>", octl);
+          }  /* if */
+        }
+        break;
       default:
         octl->output_str("<expression>", octl);
         break;
