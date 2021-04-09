@@ -11875,22 +11875,21 @@ and do not issue any diagnostics (including warnings).
         }  /* if */
       } else {
         /* Check that the destructor is accessible and mark it referenced. */
-        if (!has_deleted_or_nontrivial_destructor(cssp)) {
-          /* A defaulted trivial destructor is not actually called. */
-          evaluated = FALSE;
-        }  /* if */
-        reference_to_implicitly_invoked_function(dtor_sym, position,
-                                                 object_class_type,
-                                                 honor_virtual, evaluated,
-                                                 instantiate,
-                                                 check_access,
-                                                 /*elided_reference=*/FALSE,
-                                                 error_detected);
+        reference_to_implicitly_invoked_function(
+               dtor_sym, position, object_class_type, honor_virtual,
+               evaluated && has_deleted_or_nontrivial_destructor(cssp),
+               instantiate, check_access, /*elided_reference=*/FALSE,
+               error_detected);
         dtor_routine = dtor_sym->variant.routine.ptr;
       }  /* if */
-      if (!has_deleted_or_nontrivial_destructor(cssp)) {
+      if (!has_deleted_or_nontrivial_destructor(cssp) && evaluated) {
         /* A trivial destructor (e.g., a defaulted destructor).  Treat it as
-           an implicitly-declared destructor (i.e., return NULL). */
+           an implicitly-declared destructor (i.e., return NULL) if this is
+           an evaluated context.  (In an unevaluated context, we may be
+           checking whether the destructor throws, which is possible with
+           something like:
+             struct S { ~S() noexcept(false) = default; };
+           In that case, the caller needs the actual destructor entry. */
         dtor_routine = NULL;
       }  /* if */
     } else if (class_type->variant.class_struct_union.dtor_decl_suppressed &&

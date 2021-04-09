@@ -1,5 +1,21 @@
 Version 6.3
 
+4/9/21   [EDGcpfe/24056]
+Trivial throwing destructors
+
+Consider:
+
+  struct TTD {
+    ~TTD() noexcept(false) = default;
+  };
+  static_assert(!__is_nothrow_destructible(TTD), "");
+    // Previously spuriously failed.  Now okay.
+
+The front end previously produced "true" for __is_nothrow_destructible(TTD)
+because trivial destructors were discarded too early.  That is now fixed and
+the example above is now accepted.
+
+
 4/9/21   [EDGcpfe/24137]
 Abort in constraint_chart_of
 
