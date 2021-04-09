@@ -28185,7 +28185,7 @@ otherwise it is set to FALSE.
       } else {
         /* A nondependent class type or an array with a known bound.  Treat it
            recursively. */
-        if (!update_param_list_for_aggr_candidate(param_list, bcp->type,
+        if (!update_param_list_for_aggr_candidate(param_list, utp,
                                                   &alep, p_trailing_pack)) {
           okay = FALSE;
           break;
