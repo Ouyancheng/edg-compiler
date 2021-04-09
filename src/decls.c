@@ -7847,6 +7847,10 @@ type entry if appropriate, otherwise using the indicated declared_type.
        likely different from that of previous declarations.  Hence, force the
        use of the type just parsed to correctly record that information. */
     use_routine_type = FALSE;
+  } else if (routine_ptr->has_deducible_return_type) {
+    /* Capture the "auto" or "decltype(auto)" return type (possibly including
+       constraints) if applicable. */
+    use_routine_type = FALSE;
   } else if (!identical_types(declared_type, rout_type)) {
     /* The types are not identical, so the routine's type cannot also be
        used as the declared type. */

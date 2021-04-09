@@ -2192,8 +2192,18 @@ by octl.
         } /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
       } else if (type->variant.typeref.is_deduced_decltype_auto) {
+        an_expr_node_ptr  constraint = type->variant.typeref.extra_info->expr;
+        if (constraint != NULL) {
+          form_expression(constraint, octl);
+          octl->output_str(" ", octl);
+        }  /* if */
         octl->output_str("decltype(auto)", octl);
       } else if (type->variant.typeref.is_deduced_auto) {
+        an_expr_node_ptr  constraint = type->variant.typeref.extra_info->expr;
+        if (constraint != NULL) {
+          form_expression(constraint, octl);
+          octl->output_str(" ", octl);
+        }  /* if */
         octl->output_str("auto", octl);
       } else if (type->variant.typeref.is_deduced_class) {
         a_type_ptr      instance = type->variant.typeref.type;
@@ -2213,6 +2223,14 @@ by octl.
         if (is_auto_type(type)) {
           /* A type entry representing an "auto" or "decltype(auto)" type
              specifier. */
+          /* If the placeholder is constrained, render that constraint. */
+          an_expr_node_ptr
+                    constraint = type->variant.template_param.extra_info
+                                     ->constraint.type_constraint;
+          if (constraint != NULL) {
+            form_expression(constraint, octl);
+            octl->output_str(" ", octl);
+          }  /* if */
           if (type->variant.template_param.extra_info
                   ->coordinates.position == DECLTYPE_AUTO_POS_NUMBER) {
             octl->output_str("decltype(auto)", octl);

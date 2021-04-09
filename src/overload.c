@@ -28631,9 +28631,17 @@ TRUE and FALSE is returned.
         /* Add a tk_typeref on top of the deduced type so we can tell where
            "auto" appeared originally.  This matters for redeclaration
            processing in return types. */
-        templ_arg->variant.type = alloc_type((a_type_kind)tk_typeref);
-        templ_arg->variant.type->variant.typeref.type = *deduced_auto_type;
-        templ_arg->variant.type->variant.typeref.is_deduced_auto = TRUE;
+        an_expr_node_ptr
+                    constraints = auto_type->variant.template_param.extra_info
+                                           ->constraint.type_constraint;
+        a_type_ptr  tp = alloc_type((a_type_kind)tk_typeref);
+        tp->variant.typeref.type = *deduced_auto_type;
+        tp->variant.typeref.is_deduced_auto = TRUE;
+        if (constraints != NULL) {
+          tp->variant.typeref.extra_info->expr = copy_expr_tree(constraints,
+                                                                CE_NO_OPTIONS);
+        }  /* if */
+        templ_arg->variant.type = tp;
       }  /* if */
       /* Substitute the deduced type to obtain the actual type for the current
          declaration. */

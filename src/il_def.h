@@ -8721,7 +8721,11 @@ typedef struct a_typeref_type_supplement {
 			   __underlying_type construct (is_underlying_type),
 			   as expression arguments are not allowed.  The
 			   function decltype_arg can be used to fetch the
-			   expression (if there is one) in all cases.*/
+			   expression (if there is one) in all cases.  This
+			   field also records the constraint associated with
+			   a deduced return type when is_deduced_decltype_auto
+			   or is_deduced_auto is TRUE in the tk_typeref type
+			   entry. */
 #if UPC_EXTENSIONS_ALLOWED
   a_upc_block_size
 		upc_block_size;

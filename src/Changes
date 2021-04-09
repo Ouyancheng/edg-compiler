@@ -1,5 +1,17 @@
 Version 6.3
 
+4/8/21   [EDGcpfe/24133]
+Representation of type constraints for deduced return types
+
+The front end previously did not always record a "declared type" that
+represents a placeholder type for a function with a deduced return type, and
+if that placeholder was specified with a constraint that constraint was not
+recorded in the IL.  Now this is done consistently and the C++-generating back
+end renders that constraint.  Furthermore, the tk_typeref type entry placed
+over the deduced type now also records the constraint in the associated
+a_typeref_type_supplement entry.
+
+
 4/5/21   [EDGcpfe/24035]
 Microsoft compatibility: --ms_await_strict
 
