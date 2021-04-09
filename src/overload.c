@@ -28638,8 +28638,11 @@ TRUE and FALSE is returned.
         tp->variant.typeref.type = *deduced_auto_type;
         tp->variant.typeref.is_deduced_auto = TRUE;
         if (constraints != NULL) {
+          a_memory_region_number region_to_switch_back_to;
+          switch_to_file_scope_region(&region_to_switch_back_to);
           tp->variant.typeref.extra_info->expr = copy_expr_tree(constraints,
                                                                 CE_NO_OPTIONS);
+          switch_back_to_original_region(region_to_switch_back_to);
         }  /* if */
         templ_arg->variant.type = tp;
       }  /* if */
