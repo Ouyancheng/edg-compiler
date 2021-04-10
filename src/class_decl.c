@@ -19770,16 +19770,16 @@ declarations.
        extension otherwise in C mode, and in Microsoft and GNU C++ modes as 
        long as the class has no virtual base classes. */
     if (C_mode() ||
-        ((ms_extensions || gpp_mode) &&
+        ((ms_extensions || gpp_mode || clang_mode) &&
          !class_type->variant.class_struct_union.any_virtual_base_classes)) {
       /* The member must be an incomplete array, but not one whose
          underlying element type is incomplete. */
       if (is_array_type(ufield_type) &&
           !is_incomplete_type(underlying_array_element_type(ufield_type))) {
         if (is_union_type(class_type)) {
-          /* Incomplete member in a union; not usually allowed. */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-          if (ms_extensions) {
+          /* Incomplete member in a union; only allowed in Microsoft and Clang
+             modes. */
+          if (ms_extensions || clang_mode) {
             /* In Microsoft mode, any member of a union can have such an
                array type.  The problem of a zero-sized union is dealt with
                in the layout code. */
@@ -19789,7 +19789,6 @@ declarations.
                                                                           TRUE;
 
           }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         } else {
           /* The field has an incomplete array type, and it's a member of a
              struct or class.  This can sometimes be okay -- in Microsoft
@@ -31121,10 +31120,9 @@ wrap_up_class_definition.
        are constraints on how it can be used.  (E.g., it can't be the element
        type of an array, and in Microsoft and GNU C++ modes it can't be used
        as a base class.) */
-    check_assertion((C_mode() || ms_extensions || gpp_mode) &&
-                    !is_union_type(class_state->class_type));
-    class_type->variant.class_struct_union.
-                                    contains_flexible_array_member = TRUE;
+    check_assertion((C_mode() || ms_extensions || gpp_mode || clang_mode));
+    class_type->variant.class_struct_union.contains_flexible_array_member =
+                                                                         TRUE;
     if ((strict_ansi_mode || (gnu_mode && gnu_version < 30000)) && !c99_mode) {
       a_field_ptr  fp = class_state->end_of_field_list;
       pos_diagnostic(strict_ansi_error_severity,
