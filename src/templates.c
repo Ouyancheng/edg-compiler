@@ -41262,8 +41262,9 @@ up-to-date.
 }  /* update_implicit_deduction_guides */
 
 
-a_symbol_ptr make_aggregate_deduction_candidate(a_symbol_ptr      ct_sym,
-                                                a_param_type_ptr  params)
+a_symbol_ptr make_aggregate_deduction_candidate(
+                                           ARGUNUSED a_symbol_ptr      ct_sym,
+                                           ARGUNUSED a_param_type_ptr  params)
 /*
 ct_sym is the symbol for class template for with class template argument
 deduction (CTAD) is being performed, and the caller has determined that an
@@ -41274,7 +41275,7 @@ template and return a symbol for it.
 {
   a_symbol_ptr  guide = NULL;
 
-  // FIXME
+  // FIXME: Also remove ARUNUSED above
   return guide;
 }  /* make_aggregate_deduction_candidate */
 
