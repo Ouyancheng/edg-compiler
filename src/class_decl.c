@@ -19780,9 +19780,9 @@ declarations.
           /* Incomplete member in a union; only allowed in Microsoft and Clang
              modes. */
           if (ms_extensions || clang_mode) {
-            /* In Microsoft mode, any member of a union can have such an
-               array type.  The problem of a zero-sized union is dealt with
-               in the layout code. */
+            /* In Microsoft and Clang modes, any member of a union can have
+               such an array type.  The problem of a zero-sized union is dealt
+               with in the layout code. */
             incomplete_okay = TRUE;
             class_type
                 ->variant.class_struct_union.contains_flexible_array_member =
@@ -31114,12 +31114,12 @@ wrap_up_class_definition.
   if (class_state->last_field_is_incomplete_array) {
     /* The last field that was recorded was an incomplete array.  This is
        permitted in C mode (as an extension), in C99 mode, and in GNU (most
-       versions) and Microsoft mode (both C and C++).  If this is an early
-       GNU mode or a strict-ANSI-C89 mode, issue a diagnostic.  Otherwise,
-       mark class_type as containing an incomplete array member, since there
-       are constraints on how it can be used.  (E.g., it can't be the element
-       type of an array, and in Microsoft and GNU C++ modes it can't be used
-       as a base class.) */
+       versions), Clang and Microsoft (both C and C++) modes.  If this is an
+       early GNU mode or a strict-ANSI-C89 mode, issue a diagnostic.
+       Otherwise, mark class_type as containing an incomplete array member,
+       since there are constraints on how it can be used.  (E.g., it can't be
+       the element type of an array, and in Microsoft, Clang, and GNU C++
+       modes it can't be used as a base class.) */
     check_assertion((C_mode() || ms_extensions || gpp_mode || clang_mode));
     class_type->variant.class_struct_union.contains_flexible_array_member =
                                                                          TRUE;
