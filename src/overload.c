@@ -10027,17 +10027,19 @@ static an_error_code default_undefined_code[(int)oc_last] = {
 };
 
 
-static a_boolean candidates_include_constraints(a_candidate_function_ptr  cfp)
+static a_boolean candidates_include_constraints_and_nonreal_parent(
+                                                a_candidate_function_ptr  cfp)
 /*
 Return TRUE if any of the given candidates include a constrained function or
-function template.
+function template and have a nonreal parent class.
 */
 {
   a_boolean  result = FALSE;
 
   for (; cfp != NULL; cfp = cfp->next) {
     a_symbol_ptr  sym = cfp->function_symbol;
-    if (sym != NULL) {
+    if (sym != NULL && sym->is_class_member &&
+        sym_parent_class(sym)->variant.class_struct_union.is_nonreal_class) {
       if (symbol_is(sym, sk_function_template)) {
         a_template_symbol_supplement_ptr  tssp = sym->variant.template_info;
         if (tssp->has_template_param_constraint ||
@@ -10062,7 +10064,7 @@ function template.
     }  /* if */
   }  /* for */
   return result;
-}  /* candidates_include_constraints */
+}  /* candidates_include_constraints_and_nonreal_parent */
 
 
 a_symbol_ptr select_overloaded_function(
@@ -10529,7 +10531,7 @@ in_instantiation:
   /* The candidate_functions list now contains all the viable functions.
      Find the best one(s). */
   if (is_template_dependent_context() && !scope_stack_top().is_rescan &&
-      candidates_include_constraints(candidate_functions)) {
+      candidates_include_constraints_and_nonreal_parent(candidate_functions)) {
     /* Consider:
          template<typename T> struct S {
            int f();
