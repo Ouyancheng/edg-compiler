@@ -1,5 +1,31 @@
 Version 6.3
 
+4/12/21  [EDGcpfe/23841]
+Microsoft C++ compatibility: Friend function template injection
+
+In Microsoft C++ modes with microsoft_version >= 1800 the front end no longer
+injects friend function templates into the surrounding namespace scope.  For
+example:
+
+  template<typename T> struct S {
+    template<typename U>
+      friend bool operator==(S const&, U const&);
+    S(T const&) {}
+  };
+  template<typename T> struct X { S<int> f; };
+  struct Y {
+    enum E { e };
+    int g(int i) {
+      return i == e;  // Previously ambiguous.  Now okay.
+    }
+  };
+
+Previously, "i == e" was ambiguous (in Microsoft C++ mode) between the built-in
+equality operator and the injected function template.  Now, the template is no
+longer a candidate when microsoft_version >= 1800 and this example is then
+accepted.
+
+
 4/9/21   [EDGcpfe/24056]
 Trivial throwing destructors
 

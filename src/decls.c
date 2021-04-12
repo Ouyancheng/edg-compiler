@@ -9293,7 +9293,7 @@ for use in generating cross-reference output describing this declaration.
            introduce default arguments.  Such default arguments are accepted,
            however, in GNU C++ mode or when friend name injection is
            enabled. */
-        if (!(friend_function_injection_enabled || gpp_mode ) &&
+        if (!(friend_function_injection_enabled || gpp_mode) &&
             is_friend_decl && func_info->any_default_args) {
           pos_diagnostic(es_discretionary_error,
                          ec_friend_cannot_add_default_arguments,
@@ -10607,11 +10607,13 @@ definition of a member function of a class template.
           scope_stack[idlb.effective_decl_level].in_prototype_instantiation ||
           in_nonreal_instantiation ||
           scope_stack[idlb.effective_decl_level].in_generic_definition;
-  if (idlb.is_friend_decl && !friend_function_injection_enabled &&
+  if (idlb.is_friend_decl &&
+      (!friend_function_injection_enabled || ms_version_is(>= 1800)) &&
       (!(gpp_mode && gnu_version < 50000 && !clang_mode) ||
        locator->is_operator_name)) {
     /* g++ injects function templates even when they don't inject normal
-       functions. */
+       functions.  MSVC 18.00 an later no longer inject friend function
+       templates. */
     set_invisible = TRUE;
   }  /* if */
   if (locator->is_qualified_name && locator->is_class_member &&
