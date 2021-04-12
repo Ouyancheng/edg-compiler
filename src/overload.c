@@ -28269,8 +28269,8 @@ done:
 
 
 static void remove_aggregate_deduction_candidate(
-                   ARGUNUSED a_template_symbol_supplement_ptr  ct_tssp,
-                   ARGUNUSED a_symbol_ptr                      aggr_candidate)
+                  ARG_UNUSED a_template_symbol_supplement_ptr  ct_tssp,
+                  ARG_UNUSED a_symbol_ptr                      aggr_candidate)
 /*
 aggr_candidate is an "aggregate deduction candidate" (see N4885
 [over.match.class.deduct]/1) currently associated with the class template
