@@ -1,5 +1,27 @@
 Version 6.3
 
+4/13/21  [EDGcpfe/24080]
+C++-generating back end: CTAD with dependent type
+
+In some cases with class template argument deduction using a dependent type
+in a templated context, the C++-generating back end generated code that
+could not be compiled by g++ or clang.  This is now fixed.  For example,
+with --c++17 --gnu_version=90300:
+
+  template<typename T> struct X { };
+  template<typename...> struct Y {
+    Y();
+  };
+  template<typename T> auto f() { }
+  template<auto &F> struct Z {
+    using T = X<decltype(F)>;
+    static void g() {
+      auto x = f<T>();
+      Y c(x);  // Was generated as "Y c(Y(x))", producing g++/clang errors
+    }
+  };
+
+
 4/12/21  [EDGcpfe/23841]
 Microsoft C++ compatibility: Friend function template injection
 
