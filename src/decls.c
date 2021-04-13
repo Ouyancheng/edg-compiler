@@ -10612,7 +10612,7 @@ definition of a member function of a class template.
       (!(gpp_mode && gnu_version < 50000 && !clang_mode) ||
        locator->is_operator_name)) {
     /* g++ injects function templates even when they don't inject normal
-       functions.  MSVC 18.00 an later no longer inject friend function
+       functions.  MSVC 18.00 and later no longer inject friend function
        templates. */
     set_invisible = TRUE;
   }  /* if */
