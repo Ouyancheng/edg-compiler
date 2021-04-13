@@ -20255,14 +20255,29 @@ and the output of the type name.
             }  /* if */
           }  /* if */
         }  /* if */
-        if (is_deduced_type_var_init &&
-            (args == NULL || args->next != NULL)) {
+        if (is_deduced_type_var_init) {
           /* We need to put out the class type, not just the constructor
              arguments, to allow deduction of the variable type. */
+          a_boolean need_closing_paren;
+          if (paren_form && args != NULL && args->next == NULL &&
+              (gcc_is_generated_code_target ||
+               clang_is_generated_code_target)) {
+            /* g++ and clang have a bug that causes spurious errors for a
+               declaration of the form
+                 T x(T(y));
+               so add an extra set of parentheses to avoid that
+               possibility. */
+            write_tok_ch('(');
+            need_closing_paren = TRUE;
+          } else {
+            need_closing_paren = FALSE;
+          }  /* if */
           gen_type_reference(init_entity_type);
           (void)gen_argument_list(args, (ctor == NULL) ? NULL : ctor->type,
                                   /*skip_num=*/0);
-                                  
+          if (need_closing_paren) {
+            write_tok_ch(')');
+          }  /* if */
         } else if (!no_args) {
           (void)gen_argument_list_no_parens(
                     args, (ctor == NULL) ? NULL : ctor->type, /*skip_num=*/0);
