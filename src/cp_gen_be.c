@@ -20255,7 +20255,8 @@ and the output of the type name.
             }  /* if */
           }  /* if */
         }  /* if */
-        if (is_deduced_type_var_init) {
+        if (is_deduced_type_var_init &&
+            (args == NULL || args->next != NULL)) {
           /* We need to put out the class type, not just the constructor
              arguments, to allow deduction of the variable type. */
           gen_type_reference(init_entity_type);
