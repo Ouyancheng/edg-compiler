@@ -1,5 +1,14 @@
 Version 6.3
 
+4/13/21  [EDGcpfe/23110,EDGcpfe/23694,EDGcpfe/23923,EDGcpfe/23924]
+Constrained function templates sometimes erroneously discarded
+
+When processing a nondependent call in a template-dependent context, the front
+end sometimes discarded constrained function templates when it should not have
+done so.  That could result in spurious overload resolution errors in somewhat
+complex cases.  That problem is now fixed.
+
+
 4/13/21  [EDGcpfe/24080]
 C++-generating back end: CTAD with dependent type
 
