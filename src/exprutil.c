@@ -17039,32 +17039,39 @@ reference entry, or is NULL if none is needed.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (routine->has_deducible_return_type &&
-      !routine->has_deduced_return_type &&
-      !routine->is_prototype_instantiation &&
-      !routine->defined &&
-      expr_stack->suppress_diagnostics) {
-    /* A function with a deducible return type that has not (yet) been deduced.
-       If we are in a context where diagnostics are suppressed, treat the
-       absence of a definition as a (suppressed) expression diagnostic rather
-       than letting it be handled as an error "outside the immediate context"
-       later on. */
-    a_boolean                could_be_instantiated = FALSE;
-    a_template_instance_ptr  tip = routine_sym->variant.routine.instance_ptr;
-    if (tip != NULL) {
-      a_symbol_ptr  tsym;
-      tsym = prototype_template_if_template_symbol(tip->template_sym);
-      if (tsym->defined) {
-        could_be_instantiated = TRUE;
-      }  /* if */
-    } else if (routine_sym->variant.routine.ptr
-                          ->friend_defined_in_instantiation) {
-      could_be_instantiated = TRUE;
-    }  /* if */
-    if (!could_be_instantiated) {
+  if (expr_stack->suppress_diagnostics) {
+    /* Catch some invalid situations that would otherwise result in actual
+       errors later on. */
+    if (routine->is_ineligible) {
       record_suppressed_error();
       make_error_operand(result);
       goto done;
+    } else if (routine->has_deducible_return_type &&
+               !routine->has_deduced_return_type &&
+               !routine->is_prototype_instantiation &&
+               !routine->defined) {
+      /* A function with a deducible return type that has not (yet) been
+         deduced.  If we are in a context where diagnostics are suppressed,
+         treat the absence of a definition as a (suppressed) expression
+         diagnostic rather than letting it be handled as an error "outside the
+         immediate context" later on. */
+      a_boolean                could_be_instantiated = FALSE;
+      a_template_instance_ptr  tip = routine_sym->variant.routine.instance_ptr;
+      if (tip != NULL) {
+        a_symbol_ptr  tsym;
+        tsym = prototype_template_if_template_symbol(tip->template_sym);
+        if (tsym->defined) {
+          could_be_instantiated = TRUE;
+        }  /* if */
+      } else if (routine_sym->variant.routine.ptr
+                            ->friend_defined_in_instantiation) {
+        could_be_instantiated = TRUE;
+      }  /* if */
+      if (!could_be_instantiated) {
+        record_suppressed_error();
+        make_error_operand(result);
+        goto done;
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Make an expression for the function. */
