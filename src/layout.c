@@ -838,7 +838,7 @@ only).
        been updated as needed.  Nothing more to be done. */
 #if IA64_ABI
   } else if (emulate_gnu_abi_bugs && field->is_bit_field &&
-             field->bit_size == 0 && !is_union_type(class_type)) {
+             field->bit_size == 0 && !type_is(class_type, tk_union)) {
     /* Note that GNU compilers do not consider the alternative field
        alignment for zero-width bit fields in structs and classes (but
        they do in unions).  We therefore do not use "field_alignment_for"
@@ -847,9 +847,10 @@ only).
     field_alignment = alignment_of_type(field->type);
 #endif /* IA64_ABI */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  } else if (microsoft_mode && type_explicitly_aligned(field->type)) {
+  } else if (microsoft_mode && type_contains_explicit_alignment(field->type)) {
     /* Microsoft does not apply packing/alignment directives to fields of
        types with explicit alignment requirements. */
+    class_type_supp(class_type)->has_explicitly_aligned_subobject = TRUE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   } else if (ignore_packing) {
@@ -3150,6 +3151,13 @@ Lay out the nonvirtual direct base class bcp.
       a_class_type_supplement_ptr  base_ctsp = class_type_supp(bcp->type);
       size = base_ctsp->size_without_virtual_base_classes;
       alignment = base_ctsp->alignment_without_virtual_base_classes;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (microsoft_mode && type_contains_explicit_alignment(bcp->type)) {
+        /* Microsoft does not apply packing/alignment directives to bases of
+           types with explicit alignment requirements. */
+      } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Do not insert code here. */
       if (packing_applies_to_base_classes) {
         adjust_alignment_for_packing(&alignment, bcp->derived_class);
       }  /* if */

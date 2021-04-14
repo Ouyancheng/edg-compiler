@@ -1,5 +1,20 @@
 Version 6.3
 
+4/14/21  [EDGcpfe/23937]
+Microsoft compatibility: Packing and explicitly-aligned types
+
+In Microsoft modes, the front end ignores packing directives for fields of
+types with explicit alignment requirements (see the entry of 8/1/05).  Now,
+that behavior is extended to base classes and to types containing subobjects
+with explicit alignment requirements.  For example:
+
+  #pragma pack(1)
+  struct alignas(16) A {};
+  struct B { A a; };  // 16-byte aligned despite #pragma in effect.
+  struct D: B {};     // Ditto.
+  static_assert(alignof(D) == 16, "");  // Now accepted in Microsoft mode.
+
+
 4/13/21  [EDGcpfe/23110,EDGcpfe/23694,EDGcpfe/23923,EDGcpfe/23924]
 Constrained function templates sometimes erroneously discarded
 

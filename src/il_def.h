@@ -8214,6 +8214,10 @@ typedef struct a_class_type_supplement {
   a_bit_field	has_coclass_attribute:1;
 			/* TRUE if the "coclass" Microsoft attribute has been
 			   applied to this class. */
+  a_bit_field	has_explicitly_aligned_subobject:1;
+			/* TRUE if one of the (possibly indirect) subobjects
+			   has a type that is explicitly aligned.  This affects
+			   class layout in Microsoft mode. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED

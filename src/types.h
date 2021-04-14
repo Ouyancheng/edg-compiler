@@ -548,7 +548,7 @@ extern a_targ_alignment f_alignment_of_type(a_type_ptr  tp);
    (tp)->kind != (a_type_kind)tk_typeref ? (tp)->alignment :          \
                                            f_alignment_of_type((tp)))
 
-extern a_boolean type_explicitly_aligned(a_type_ptr  tp);
+extern a_boolean type_contains_explicit_alignment(a_type_ptr  tp);
 #else /* !(GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED) */
 #define alignment_of_type(tp)  (skip_typerefs(tp)->alignment)
 #endif /* GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED */
