@@ -5505,7 +5505,7 @@ FIXME: what other expressions can we get here?
       { an_ifc_ExprSort_ProductTypeValue iesptv, *iesptvp;
         a_module_entity_ptr              mep;
         a_type_ptr                       tp;
-        a_boolean                        is_constant = FALSE, scope_pushed;
+        a_boolean                        is_constant = FALSE;
         a_dynamic_init_ptr               dip = NULL;
         an_expr_stack_entry              expr_stack_entry;
 
