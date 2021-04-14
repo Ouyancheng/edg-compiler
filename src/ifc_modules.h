@@ -116,6 +116,7 @@ enum ifc_InitializerSort : ifc_Sort_type;
 enum ifc_NoexceptSort : ifc_Sort_type;
 enum ifc_ObjectTraits : uint8_t;
 enum ifc_ParameterSort : ifc_Sort_type;
+enum ifc_PointerDeclaratorSort : ifc_Sort_type;
 enum ifc_Qualifiers : uint8_t;
 enum ifc_ReachableProperties : uint8_t;
 enum ifc_ReadConversionSort : ifc_Sort_type;
@@ -421,6 +422,16 @@ enum ifc_ParameterSort : ifc_Sort_type {
   /* The IFC spec is missing this, and it's scheduled for removal. */
   ifc_ParameterSort_Placeholder,      /* "auto" template parameter. */
   ifc_ParameterSort_Template,         /* Template template parameter. */
+};
+
+/* The IFC spec is missing this - details provided via email correspondence. */
+/* Enumerator for PointerDeclaratorSort (i.e., types of pointer declarators).*/
+enum ifc_PointerDeclaratorSort : ifc_Sort_type {
+  ifc_PointerDeclaratorSort_None,
+  ifc_PointerDeclaratorSort_Pointer,            /* T* */
+  ifc_PointerDeclaratorSort_LvalueReference,    /* T& */
+  ifc_PointerDeclaratorSort_RvalueReference,    /* T&& */
+  ifc_PointerDeclaratorSort_PointerToMember,    /* T X::* */
 };
 
 /* Macros used to access TypeIndex::tag and TypeIndex::value. */
@@ -2570,7 +2581,8 @@ private:
   void cache_decl(a_token_cache_ptr  cache,
                   ifc_DeclIndex      decl) const;
   void cache_expr(a_token_cache_ptr cache,
-                  ifc_ExprIndex     expr) const;
+                  ifc_ExprIndex     expr,
+                  a_token_kind      tuple_separator = tok_comma) const;
   void cache_syntax(a_token_cache_ptr cache,
                     ifc_SyntaxIndex   syntax) const;
   void cache_chart(a_token_cache_ptr  cache,

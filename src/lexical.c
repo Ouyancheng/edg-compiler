@@ -14911,6 +14911,12 @@ to alter the consistency check at the end of the routine.
   lssep = curr_lexical_state_stack_entry;
   /* Unlink this entry from the stack. */
   curr_lexical_state_stack_entry = lssep->next;
+  if (scope_stack_top().module_load_context_count > 0 &&
+      curr_lexical_state_stack_entry == NULL) {
+    /* A lexical state was pushed late to facilitate lazy loading of a module
+       entity.  Treat this pop as if it were a final pop. */
+    final_pop = TRUE;
+  }  /* if */
   /* Add the old entry to the list of available stack entries. */
   lssep->next = avail_lexical_state_stack_entries;
   error_position = lssep->error_position;

@@ -1209,9 +1209,11 @@ IFC_DECL_END(SyntaxSort_DecltypeSpecifier)
 
 /* SyntaxSort::PlaceholderTypeSpecifier */
 IFC_DECL_START(SyntaxSort_PlaceholderTypeSpecifier)
-  /* The IFC spec doesn't define PlaceholderType anywhere. */
   /* IFC_DECL_FIELD(type, PlaceholderType) */
-  IFC_DECL_FIELD(type, TypeIndex)
+  /* PlaceholderType *is* the TypeSort::Placeholder structure, embedded here.
+     Expand to its individual fields rather than nesting the type. */
+  IFC_DECL_FIELD(constraint, ExprIndex)
+  IFC_DECL_FIELD(basis, TypeBasis)
   IFC_DECL_FIELD(keyword, SourceLocation)
   IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(SyntaxSort_PlaceholderTypeSpecifier)
@@ -1222,7 +1224,7 @@ IFC_DECL_START(SyntaxSort_TypeSpecifierSeq)
   IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(qualifiers, Qualifiers)
-  IFC_DECL_FIELD(unshashed, bool)
+  IFC_DECL_FIELD(unhashed, bool)
 IFC_DECL_END(SyntaxSort_TypeSpecifierSeq)
 
 /* SyntaxSort::DeclSpecifierSeq */
@@ -1379,9 +1381,9 @@ IFC_DECL_START(SyntaxSort_PointerDeclarator)
   IFC_DECL_FIELD(whole, SyntaxIndex)
   IFC_DECL_FIELD(next, SyntaxIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
-  /* The IFC spec does not define PointerDeclaratorSort anywhere. */
-  /* IFC_DECL_FIELD(sort, PointerDeclaratorSort) */
-  IFC_DECL_FIELD(sort, u8)
+  /* The IFC spec does not define PointerDeclaratorSort anywhere.  Details have
+     been filled in via email correspondence. */
+  IFC_DECL_FIELD(sort, PointerDeclaratorSort)
   IFC_DECL_FIELD(qualifiers, Qualifiers)
   IFC_DECL_FIELD(convention, CallingConvention)
   IFC_DECL_FIELD(callable, bool)
@@ -1419,7 +1421,7 @@ IFC_DECL_END(SyntaxSort_ArrayOrFunctionDeclarator)
 IFC_DECL_START(SyntaxSort_ParameterDeclarator)
   IFC_DECL_FIELD(decl_specifiers, SyntaxIndex)
   IFC_DECL_FIELD(declarator, SyntaxIndex)
-  IFC_DECL_FIELD(default_kw, ExprIndex)
+  IFC_DECL_FIELD(default_expr, ExprIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(sort, ParameterSort)
 IFC_DECL_END(SyntaxSort_ParameterDeclarator)
@@ -1589,6 +1591,7 @@ IFC_DECL_END(SyntaxSort_FunctionBody)
 
 /* SyntaxSort::Expression */
 IFC_DECL_START(SyntaxSort_Expression)
+  IFC_DECL_FIELD(expression, ExprIndex)
 IFC_DECL_END(SyntaxSort_Expression)
 
 /* SyntaxSort::FunctionDefinition */
@@ -1601,6 +1604,9 @@ IFC_DECL_END(SyntaxSort_MemberFunctionDeclaration)
 
 /* SyntaxSort::TemplateDeclaration */
 IFC_DECL_START(SyntaxSort_TemplateDeclaration)
+  IFC_DECL_FIELD(parameters, SyntaxIndex)
+  IFC_DECL_FIELD(subject, SyntaxIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(SyntaxSort_TemplateDeclaration)
 
 /* SyntaxSort::RequiresClause */
@@ -1629,30 +1635,65 @@ IFC_DECL_END(SyntaxSort_RequirementBody)
 
 /* SyntaxSort::TypeTemplateParameter */
 IFC_DECL_START(SyntaxSort_TypeTemplateParameter)
+  IFC_DECL_FIELD(name, TextOffset)
+  IFC_DECL_FIELD(constraint, SyntaxIndex)
+  IFC_DECL_FIELD(argument, SyntaxIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(ellipsis, SourceLocation)
 IFC_DECL_END(SyntaxSort_TypeTemplateParameter)
 
 /* SyntaxSort::TemplateTemplateParameter */
 IFC_DECL_START(SyntaxSort_TemplateTemplateParameter)
+  IFC_DECL_FIELD(name, TextOffset)
+  IFC_DECL_FIELD(argument, SyntaxIndex)
+  IFC_DECL_FIELD(parameters, SyntaxIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(ellipsis, SourceLocation)
+  IFC_DECL_FIELD(comma, SourceLocation)
+  /* The IFC spec does not define KeywordSyntax anywhere. */
+  /* IFC_DECL_FIELD(key, KeywordSyntax) */
+  IFC_DECL_FIELD(key, SyntaxIndex)
 IFC_DECL_END(SyntaxSort_TemplateTemplateParameter)
 
 /* SyntaxSort::TypeTemplateArgument */
 IFC_DECL_START(SyntaxSort_TypeTemplateArgument)
+  /* The IFC spec has this as an ExprIndex, but tests seem to indicate it's
+     a SyntaxIndex. */
+  /* IFC_DECL_FIELD(argument, ExprIndex) */
+  IFC_DECL_FIELD(argument, SyntaxIndex)
+  IFC_DECL_FIELD(ellipsis, SourceLocation)
+  IFC_DECL_FIELD(comma, SourceLocation)
 IFC_DECL_END(SyntaxSort_TypeTemplateArgument)
 
 /* SyntaxSort::NonTypeTemplateArgument */
 IFC_DECL_START(SyntaxSort_NonTypeTemplateArgument)
+  IFC_DECL_FIELD(argument, ExprIndex)
+  IFC_DECL_FIELD(ellipsis, SourceLocation)
+  IFC_DECL_FIELD(comma, SourceLocation)
 IFC_DECL_END(SyntaxSort_NonTypeTemplateArgument)
 
 /* SyntaxSort::TemplateParameterList */
 IFC_DECL_START(SyntaxSort_TemplateParameterList)
+  IFC_DECL_FIELD(parameters, SyntaxIndex)
+  IFC_DECL_FIELD(clause, SyntaxIndex)
+  IFC_DECL_FIELD(left_angle, SourceLocation)
+  IFC_DECL_FIELD(right_angle, SourceLocation)
 IFC_DECL_END(SyntaxSort_TemplateParameterList)
 
 /* SyntaxSort::TemplateArgumentList */
 IFC_DECL_START(SyntaxSort_TemplateArgumentList)
+  IFC_DECL_FIELD(arguments, SyntaxIndex)
+  IFC_DECL_FIELD(left_angle, SourceLocation)
+  IFC_DECL_FIELD(right_angle, SourceLocation)
 IFC_DECL_END(SyntaxSort_TemplateArgumentList)
 
 /* SyntaxSort::TemplateId */
 IFC_DECL_START(SyntaxSort_TemplateId)
+  IFC_DECL_FIELD(name, SyntaxIndex)
+  IFC_DECL_FIELD(symbol, ExprIndex)
+  IFC_DECL_FIELD(arguments, SyntaxIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(template_kw, SourceLocation)
 IFC_DECL_END(SyntaxSort_TemplateId)
 
 /* SyntaxSort::MemInitializer */

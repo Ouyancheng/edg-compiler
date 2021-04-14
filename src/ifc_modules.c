@@ -392,11 +392,11 @@ Handle nested structures differently (and check for padding).
 #define GET_NoexceptSort(x, from_header)       GET_byte(x, from_header)
 #define GET_ObjectTraits(x, from_header)       GET_byte(x, from_header)
 #define GET_ParameterSort(x, from_header)      GET_byte(x, from_header)
+#define GET_PointerDeclaratorSort(x, from_header) GET_byte(x, from_header)
 #define GET_Qualifiers(x, from_header)         GET_byte(x, from_header)
 #define GET_ReachableProperties(x, from_header)GET_byte(x, from_header)
 #define GET_ReadConversionSort(x, from_header) GET_byte(x, from_header)
 #define GET_ScopeTraits(x, from_header)        GET_byte(x, from_header)
-/*lint -esym(750,GET_SyntaxSort)*/
 #define GET_SyntaxSort(x, from_header)         GET_byte(x, from_header)
 #define GET_TypeBasis(x, from_header)          GET_byte(x, from_header)
 #define GET_TypePrecision(x, from_header)      GET_byte(x, from_header)
@@ -3412,6 +3412,14 @@ class_struct_union_case:
             clear_token_cache(&cache, /*reuseable=*/FALSE);
             cache_decl_template(&cache, idstp);
             terminate_token_cache(&cache);
+#if DEBUG
+            if (db_flag_is_set("ms_ifc_token_def")) {
+              pos_in_temp_text_buffer = 0;
+              add_token_cache_to_string(&cache);
+              fprintf(stderr, "Reconstituted template declaration:\n%s\n"
+                              "---------------------\n", temp_text_buffer);
+            }  /* if */
+#endif /* DEBUG */
             rescan_cached_tokens(&cache);
             init_decl_parse_state(&dps);
             init_templ_decl_state(&decl_state, &dps);
@@ -3751,8 +3759,8 @@ Complete the definition of the class referred to by mep (if needed).
     if (db_flag_is_set("ms_ifc_token_def")) {
       pos_in_temp_text_buffer = 0;
       add_token_cache_to_string(&cache);
-      fprintf(stderr, "Class def using cache_decl_class:\n%s\n"
-                      "---------------------------------\n", temp_text_buffer);
+      fprintf(stderr, "Reconstituted class definition:\n%s\n"
+                      "-------------------------------\n", temp_text_buffer);
     }  /* if */
 #endif /* DEBUG */
     rescan_cached_tokens(&cache);
@@ -5494,18 +5502,30 @@ FIXME: what other expressions can we get here?
       }
       break;
     case ifc_ExprSort_ProductTypeValue:
-      { an_ifc_ExprSort_ProductTypeValue iesptv;
-        an_error_severity                saved_sev=unhandled_ifc_node_severity;
-        get_ExprSort_ProductTypeValue(&iesptv);
-        /* FIXME: Currently unsupported. */
-        /* Because we're allocating an error constant, we need to issue an
-           error, otherwise this may get to lowering. */
-        unhandled_ifc_node_severity = es_discretionary_error;
-        issue_unsupported_node_diag("ExprSort::ProductTypeValue",
-                                    &error_position);
-        cp = alloc_error_constant();
-        expect_error();
-        unhandled_ifc_node_severity = saved_sev;
+      { an_ifc_ExprSort_ProductTypeValue iesptv, *iesptvp;
+        a_module_entity_ptr              mep;
+        a_type_ptr                       tp;
+        a_boolean                        is_constant = FALSE, scope_pushed;
+        a_dynamic_init_ptr               dip = NULL;
+        an_expr_stack_entry              expr_stack_entry;
+
+        iesptvp = get_ExprSort_ProductTypeValue(&iesptv);
+        mep = get_ifc_module_entity_ptr(iesptvp->class_decl);
+        process_ifc_declaration(mep, /*defer=*/FALSE,
+                                /*enumeration_type=*/NULL);
+        check_assertion(mep->entity.kind == (an_il_entry_kind)iek_type);
+        tp = (a_type_ptr)mep->entity.ptr;
+        complete_type_is_needed(tp);
+        /* FIXME: Are there any other ways to get here? */
+        push_expr_stack(ek_init_constant, &expr_stack_entry,
+                        /*force_object_lifetime=*/FALSE,
+                        /*suppress_object_lifetime=*/FALSE);
+        value_initialization(tp, /*copy_init_context=*/FALSE,
+                             /*generate_il=*/TRUE, &error_position,
+                             /*ctor_called=*/NULL, &is_constant, &dip, &cp,
+                             /*is=*/NULL, /*error_detected=*/NULL);
+        pop_expr_stack();
+        check_assertion(is_constant);
       }
       break;
     case ifc_ExprSort_NamedDecl:
@@ -7183,6 +7203,26 @@ specifier(s).
 }  /* cache_basic_specifiers */
 
 
+static void cache_qualifiers(a_token_cache_ptr     cache,
+                             ifc_Qualifiers        qualifiers,
+                             a_source_position_ptr pos)
+/*
+Add tokens corresponding to qualifiers to cache.  pos is the position of the
+qualifier(s).
+*/
+{
+  if (qualifiers & ifc_Qualifier_Const) {
+    cache_token(cache, tok_const, pos);
+  }  /* if */
+  if (qualifiers & ifc_Qualifier_Volatile) {
+    cache_token(cache, tok_volatile, pos);
+  }  /* if */
+  if (qualifiers & ifc_Qualifier_Restrict) {
+    cache_token(cache, tok_restrict, pos);
+  }  /* if */
+}  /* cache_qualifiers */
+
+
 void an_ifc_module::cache_scope(a_token_cache_ptr  cache,
                                 ifc_ScopeIndex     scope,
                                 ifc_SourceLocation *locus) const
@@ -8341,11 +8381,9 @@ the location of the operator.
 }  /* cache_operator */
 
 
-/*lint -e2707*/ /* Remove when the routine returns to its caller. */
-/* Remove ARG_UNUSED as well. */
-void an_ifc_module::cache_operator(ARG_UNUSED a_token_cache_ptr cache,
-                                   ifc_TriadicOperator          op,
-                                   ifc_SourceLocation           *locus) const
+void an_ifc_module::cache_operator(a_token_cache_ptr   cache,
+                                   ifc_TriadicOperator op,
+                                   ifc_SourceLocation  *locus) const
 /*
 Add the tokens corresponding to the given Triadic Operator to cache.  locus is
 the location of the operator.
@@ -8359,13 +8397,10 @@ the location of the operator.
       unexpected_condition();
       break;
     case ifc_TriadicOperator_Choice:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("TriadicOperator::Choice", &error_position);
+      cache_token(cache, tok_quest_mark, &pos);
       break;
     case ifc_TriadicOperator_ConstructAt:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("TriadicOperator::ConstructAt",
-                                  &error_position);
+      cache_token(cache, tok_new, &pos);
       break;
     case ifc_TriadicOperator_Initialize:
       /* FIXME: Currently unsupported. */
@@ -9108,7 +9143,8 @@ Add the tokens corresponding to the given declaration (decl) to cache.
 
 
 void an_ifc_module::cache_expr(a_token_cache_ptr cache,
-                               ifc_ExprIndex     expr) const
+                               ifc_ExprIndex     expr,
+                               a_token_kind      tuple_separator) const
 /*
 Add the tokens corresponding to the given expression (expr) to cache.
 */
@@ -9178,21 +9214,43 @@ Add the tokens corresponding to the given expression (expr) to cache.
       }
       break;
     case ifc_ExprSort_UnqualifiedId:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::UnqualifiedId", &error_position);
+      { an_ifc_ExprSort_UnqualifiedId iesui, *iesuip;
+        iesuip = get_ExprSort_UnqualifiedId(&iesui);
+        source_position_from_locus(&pos, &iesuip->locus);
+        if (iesuip->template_keyword.line != 0) {
+          cache_token(cache, tok_template, &pos);
+        }  /* if */
+        /* FIXME: Do we need to handle the "type" and "resolution" fields
+           here? */
+        if (iesuip->name != 0) {
+          cache_name(cache, iesuip->name, &iesuip->locus);
+        }  /* if */
+      }
       break;
     case ifc_ExprSort_SimpleIdentifier:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::SimpleIdentifier",
-                                  &error_position);
+      { an_ifc_ExprSort_SimpleIdentifier iessi, *iessip;
+        iessip = get_ExprSort_SimpleIdentifier(&iessi);
+        /* FIXME: Do we need to handle the "type" field here? */
+        cache_name(cache, iessip->name, &iessip->locus);
+      }
       break;
     case ifc_ExprSort_Pointer:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::Pointer", &error_position);
+      { an_ifc_ExprSort_Pointer iesp, *iespp;
+        iespp = get_ExprSort_Pointer(&iesp);
+        source_position_from_locus(&pos, &iespp->locus);
+        cache_token(cache, tok_star, &pos);
+      }
       break;
     case ifc_ExprSort_QualifiedName:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::QualifiedName", &error_position);
+      { an_ifc_ExprSort_QualifiedName iesqn, *iesqnp;
+        iesqnp = get_ExprSort_QualifiedName(&iesqn);
+        source_position_from_locus(&pos, &iesqnp->locus);
+        /* FIXME: Do we need to handle the "type" field here? */
+        if (iesqnp->typename_keyword.line != 0) {
+          cache_token(cache, tok_typename, &pos);
+        }  /* if */
+        cache_expr(cache, iesqnp->elements, /*separator=*/tok_colon_colon);
+      }
       break;
     case ifc_ExprSort_Path:
       { an_ifc_ExprSort_Path iesp, *iespp;
@@ -9231,9 +9289,24 @@ Add the tokens corresponding to the given expression (expr) to cache.
             cache_arg();
             cache_operator(cache, iesmp->op, &iesmp->locus);
             break;
+          case opkind_other:
+            { a_token_kind ltok, rtok;
+              if (iesmp->op == ifc_MonadicOperator_Paren) {
+                ltok = tok_lparen;
+                rtok = tok_rparen;
+              } else if (iesmp->op == ifc_MonadicOperator_Brace) {
+                ltok = tok_lbrace;
+                rtok = tok_rbrace;
+              } else {
+                unexpected_condition();
+              }  /* if */
+              cache_token(cache, ltok, &pos);
+              cache_expr(cache, iesmp->argument);
+              cache_token(cache, rtok, &pos);
+            }
+            break;
           case opkind_c_cast:
           case opkind_cpp_cast:
-          case opkind_other:
             unexpected_condition();
             break;
           default_is_unexpected();
@@ -9292,15 +9365,33 @@ Add the tokens corresponding to the given expression (expr) to cache.
       { an_ifc_ExprSort_Triad iest, *iestp;
         iestp = get_ExprSort_Triad(&iest);
         source_position_from_locus(&pos, &iestp->locus);
-        check_assertion(get_operator_kind(iestp->op) == opkind_func_like);
-        cache_operator(cache, iestp->op, &iestp->locus);
-        cache_token(cache, tok_lparen, &pos);
-        cache_expr(cache, iestp->arguments_0);
-        cache_token(cache, tok_comma, &pos);
-        cache_expr(cache, iestp->arguments_1);
-        cache_token(cache, tok_comma, &pos);
-        cache_expr(cache, iestp->arguments_2);
-        cache_token(cache, tok_rparen, &pos);
+        switch (iestp->op) {
+          case ifc_TriadicOperator_Choice:
+            {
+              cache_expr(cache, iestp->arguments_0);
+              cache_operator(cache, iestp->op, &iestp->locus);
+              cache_expr(cache, iestp->arguments_1);
+              cache_token(cache, tok_colon, &pos);
+              cache_expr(cache, iestp->arguments_2);
+            }
+            break;
+          case ifc_TriadicOperator_ConstructAt:
+            {
+              cache_operator(cache, iestp->op, &iestp->locus);
+              cache_token(cache, tok_lparen, &pos);
+              cache_expr(cache, iestp->arguments_0);
+              cache_token(cache, tok_rparen, &pos);
+              cache_expr(cache, iestp->arguments_1);
+              if (iestp->arguments_2 != 0) {
+                cache_token(cache, tok_lparen, &pos);
+                cache_expr(cache, iestp->arguments_2);
+                cache_token(cache, tok_rparen, &pos);
+              }  /* if */
+            }
+            break;
+          default:
+            unexpected_condition();
+        }  /* switch */
       }
       break;
     case ifc_ExprSort_String:
@@ -9418,9 +9509,15 @@ Add the tokens corresponding to the given expression (expr) to cache.
                                   &error_position);
       break;
     case ifc_ExprSort_ProductTypeValue:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::ProductTypeValue",
-                                  &error_position);
+      { an_ifc_ExprSort_ProductTypeValue iesptv, *iesptvp;
+        iesptvp = get_ExprSort_ProductTypeValue(&iesptv);
+        source_position_from_locus(&pos, &iesptvp->locus);
+        /* FIXME: This node seems to be for value-initialization of entities.
+           Are there any other cases that get here? */
+        cache_name_from_decl(cache, iesptvp->class_decl, &iesptvp->locus);
+        cache_token(cache, tok_lbrace, &pos);
+        cache_token(cache, tok_rbrace, &pos);
+      }
       break;
     case ifc_ExprSort_SumTypeValue:
       /* FIXME: Currently unsupported. */
@@ -9465,7 +9562,7 @@ Add the tokens corresponding to the given expression (expr) to cache.
                        (ifc_ExprIndex)read_index_from_heap(ifc_heap_expr,
                                                            iestp->start + idx);
           if (idx > 0) {
-            cache_token(cache, tok_comma, &pos);
+            cache_token(cache, tuple_separator, &pos);
           }  /* if */
           cache_expr(cache, eidx);
         }  /* for */
@@ -9528,7 +9625,8 @@ void an_ifc_module::cache_syntax(ARG_UNUSED a_token_cache_ptr cache,
 Add the tokens corresponding to the given syntax tree to cache.
 */
 {
-  ifc_SyntaxSort tag = syntax_tag(syntax);
+  ifc_SyntaxSort    tag = syntax_tag(syntax);
+  a_source_position pos;
 
   read_partition_at_index(syntax);
   switch (tag) {
@@ -9537,45 +9635,111 @@ Add the tokens corresponding to the given syntax tree to cache.
                                   &error_position);
       break;
     case ifc_SyntaxSort_SimpleTypeSpecifier:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::SimpleTypeSpecifier",
-                                  &error_position);
+      { an_ifc_SyntaxSort_SimpleTypeSpecifier isssts, *issstsp;
+        issstsp = get_SyntaxSort_SimpleTypeSpecifier(&isssts);
+        if (issstsp->type != 0) {
+          check_assertion(issstsp->expr == 0);
+          cache_type(cache, issstsp->type, &issstsp->locus);
+        } else {
+          check_assertion(issstsp->expr != 0);
+          cache_expr(cache, issstsp->expr);
+        }  /* if */
+      }
       break;
     case ifc_SyntaxSort_DecltypeSpecifier:
       { an_ifc_SyntaxSort_DecltypeSpecifier issds, *issdsp;
         issdsp = get_SyntaxSort_DecltypeSpecifier(&issds);
+        source_position_from_locus(&pos, &issdsp->decltype_keyword);
+        cache_token(cache, tok_decltype, &pos);
+        cache_token(cache, tok_lparen, &pos);
         cache_expr(cache, issdsp->expr);
+        cache_token(cache, tok_rparen, &pos);
       }
       break;
     case ifc_SyntaxSort_PlaceholderTypeSpecifier:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::PlaceholderTypeSpecifier",
-                                  &error_position);
+      { an_ifc_SyntaxSort_PlaceholderTypeSpecifier isspts, *issptsp;
+        issptsp = get_SyntaxSort_PlaceholderTypeSpecifier(&isspts);
+        source_position_from_locus(&pos, &issptsp->locus);
+        /* FIXME: Handle the constraint field. */
+        if (issptsp->basis == ifc_TypeBasis_Auto) {
+          cache_token(cache, tok_auto, &pos);
+        } else {
+          check_assertion(issptsp->basis == ifc_TypeBasis_DecltypeAuto);
+          cache_token(cache, tok_decltype, &pos);
+          cache_token(cache, tok_lparen, &pos);
+          cache_token(cache, tok_auto, &pos);
+          cache_token(cache, tok_rparen, &pos);
+        }  /* if */
+      }
       break;
     case ifc_SyntaxSort_TypeSpecifierSeq:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::TypeSpecifierSeq",
-                                  &error_position);
+      { an_ifc_SyntaxSort_TypeSpecifierSeq isstss, *isstssp;
+        isstssp = get_SyntaxSort_TypeSpecifierSeq(&isstss);
+        source_position_from_locus(&pos, &isstssp->locus);
+        cache_qualifiers(cache, isstssp->qualifiers, &pos);
+        if (isstssp->type != 0) {
+          check_assertion(isstssp->type_name == 0);
+          cache_type(cache, isstssp->type, &isstssp->locus);
+        } else {
+          check_assertion(isstssp->type_name != 0);
+          cache_syntax(cache, isstssp->type_name);
+        }  /* if */
+      }
       break;
     case ifc_SyntaxSort_DeclSpecifierSeq:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::DeclSpecifierSeq",
-                                  &error_position);
+      { an_ifc_SyntaxSort_DeclSpecifierSeq issdss, *issdssp;
+        issdssp = get_SyntaxSort_DeclSpecifierSeq(&issdss);
+        source_position_from_locus(&pos, &issdssp->locus);
+        /* FIXME: Handle storage_class field. */
+        if (issdssp->declspec != 0) {
+          cache_sentence(cache, issdssp->declspec);
+        }  /* if */
+        if (issdssp->explicit_kw != 0) {
+          cache_syntax(cache, issdssp->explicit_kw);
+        }  /* if */
+        cache_qualifiers(cache, issdssp->qualifiers, &pos);
+        if (issdssp->type != 0) {
+          check_assertion(issdssp->type_name == 0);
+          cache_type(cache, issdssp->type, &issdssp->locus);
+        } else {
+          check_assertion(issdssp->type_name != 0);
+          cache_syntax(cache, issdssp->type_name);
+        }  /* if */
+      }
       break;
     case ifc_SyntaxSort_VirtualSpecifierSeq:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::VirtualSpecifierSeq",
-                                  &error_position);
+      { an_ifc_SyntaxSort_VirtualSpecifierSeq issvss, *issvssp;
+        issvssp = get_SyntaxSort_VirtualSpecifierSeq(&issvss);
+        source_position_from_locus(&pos, &issvssp->locus);
+        if (issvssp->override_kw.line != 0) {
+          cache_token(cache, tok_override, &pos);
+        }  /* if */
+        if (issvssp->final_kw.line != 0) {
+          cache_token(cache, tok_final, &pos);
+        }  /* if */
+      }
       break;
     case ifc_SyntaxSort_NoexceptSpecification:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::NoexceptSpecification",
-                                  &error_position);
+      { an_ifc_SyntaxSort_NoexceptSpecification issns, *issnsp;
+        issnsp = get_SyntaxSort_NoexceptSpecification(&issns);
+        source_position_from_locus(&pos, &issnsp->locus);
+        cache_token(cache, tok_noexcept, &pos);
+        cache_token(cache, tok_lparen, &pos);
+        cache_syntax(cache, issnsp->expr);
+        cache_token(cache, tok_rparen, &pos);
+      }
       break;
     case ifc_SyntaxSort_ExplicitSpecifier:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::ExplicitSpecifier",
-                                  &error_position);
+      { an_ifc_SyntaxSort_ExplicitSpecifier isses, *issesp;
+        issesp = get_SyntaxSort_ExplicitSpecifier(&isses);
+        source_position_from_locus(&pos, &issesp->locus);
+        cache_token(cache, tok_explicit, &pos);
+        if (issesp->condition != 0) {
+          cache_token(cache, tok_lparen, &pos);
+          cache_expr(cache, issesp->condition);
+          cache_token(cache, tok_rparen, &pos);
+        }  /* if */
+      }
       break;
     case ifc_SyntaxSort_EnumSpecifier:
       /* FIXME: Currently unsupported. */
@@ -9623,47 +9787,151 @@ Add the tokens corresponding to the given syntax tree to cache.
                                   &error_position);
       break;
     case ifc_SyntaxSort_TypeId:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::TypeId", &error_position);
+      { an_ifc_SyntaxSort_TypeId issti, *isstip;
+        isstip = get_SyntaxSort_TypeId(&issti);
+        cache_syntax(cache, isstip->type_specifier);
+        if (isstip->abstract_declarator != 0) {
+          cache_syntax(cache, isstip->abstract_declarator);
+        }  /* if */
+      }
       break;
     case ifc_SyntaxSort_TrailingReturnType:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::TrailingReturnType",
-                                  &error_position);
+      { an_ifc_SyntaxSort_TrailingReturnType isstrt, *isstrtp;
+        isstrtp = get_SyntaxSort_TrailingReturnType(&isstrt);
+        source_position_from_locus(&pos, &isstrtp->arrow);
+        cache_token(cache, tok_arrow, &pos);
+        cache_syntax(cache, isstrtp->target);
+      }
       break;
     case ifc_SyntaxSort_Declarator:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::Declarator", &error_position);
+      { an_ifc_SyntaxSort_Declarator issd, *issdp;
+        issdp = get_SyntaxSort_Declarator(&issd);
+        source_position_from_locus(&pos, &issdp->locus);
+        if (issdp->convention != 0) {
+          cache_calling_convention(cache, issdp->convention, &pos);
+        }  /* if */
+        if (issdp->pointer != 0) {
+          cache_syntax(cache, issdp->pointer);
+        } else if (issdp->parenthesized != 0) {
+          cache_token(cache, tok_lparen, &pos);
+          cache_syntax(cache, issdp->parenthesized);
+          cache_token(cache, tok_rparen, &pos);
+        } else if (issdp->array_or_function != 0) {
+          cache_syntax(cache, issdp->array_or_function);
+        }  /* if */
+        cache_qualifiers(cache, issdp->qualifiers, &pos);
+        if (issdp->virtual_specifiers != 0) {
+          cache_syntax(cache, issdp->virtual_specifiers);
+        }  /* if */
+        if (issdp->name != 0) {
+          /* FIXME: Confirm and ensure that the name is cached at the right
+             location in the sequence of tokens. */
+          cache_expr(cache, issdp->name);
+        }  /* if */
+        if (issdp->trailing_target != 0) {
+          cache_syntax(cache, issdp->trailing_target);
+        }  /* if */
+      }
       break;
     case ifc_SyntaxSort_PointerDeclarator:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::PointerDeclarator",
-                                  &error_position);
+      { an_ifc_SyntaxSort_PointerDeclarator isspd, *isspdp;
+        isspdp = get_SyntaxSort_PointerDeclarator(&isspd);
+        source_position_from_locus(&pos, &isspdp->locus);
+        cache_qualifiers(cache, isspdp->qualifiers, &pos);
+        if (isspdp->convention != 0) {
+          cache_calling_convention(cache, isspdp->convention, &pos);
+        }  /* if */
+        switch (isspdp->sort) {
+          case ifc_PointerDeclaratorSort_None:
+            unexpected_condition();
+            break;
+          case ifc_PointerDeclaratorSort_Pointer:
+            cache_token(cache, tok_star, &pos);
+            break;
+          case ifc_PointerDeclaratorSort_LvalueReference:
+            cache_token(cache, tok_ampersand, &pos);
+            break;
+          case ifc_PointerDeclaratorSort_RvalueReference:
+            cache_token(cache, tok_and_and, &pos);
+            break;
+          case ifc_PointerDeclaratorSort_PointerToMember:
+            check_assertion(isspdp->whole != 0);
+            cache_syntax(cache, isspdp->whole);
+            cache_token(cache, tok_colon_colon, &pos);
+            cache_token(cache, tok_star, &pos);
+            break;
+          default_is_unexpected_str("Unexpected PointerDeclaratorSort");
+        }  /* switch */
+        if (isspdp->next != 0) {
+          cache_syntax(cache, isspdp->next);
+        }  /* if */
+      }
       break;
     case ifc_SyntaxSort_ArrayDeclarator:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::ArrayDeclarator",
-                                  &error_position);
+      { an_ifc_SyntaxSort_ArrayDeclarator issad, *issadp;
+        issadp = get_SyntaxSort_ArrayDeclarator(&issad);
+        source_position_from_locus(&pos, &issadp->left_bracket);
+        cache_token(cache, tok_lbracket, &pos);
+        if (issadp->bound != 0) {
+          cache_expr(cache, issadp->bound);
+        }  /* if */
+        source_position_from_locus(&pos, &issadp->right_bracket);
+        cache_token(cache, tok_rbracket, &pos);
+      }
       break;
     case ifc_SyntaxSort_FunctionDeclarator:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::FunctionDeclarator",
-                                  &error_position);
+      { an_ifc_SyntaxSort_FunctionDeclarator issfd, *issfdp;
+        issfdp = get_SyntaxSort_FunctionDeclarator(&issfd);
+        source_position_from_locus(&pos, &issfdp->left_paren);
+        cache_token(cache, tok_lparen, &pos);
+        if (issfdp->parameters != 0) {
+          cache_syntax(cache, issfdp->parameters);
+        }  /* if */
+        source_position_from_locus(&pos, &issfdp->right_paren);
+        cache_token(cache, tok_rparen, &pos);
+        if (issfdp->eh_spec != 0) {
+          cache_syntax(cache, issfdp->eh_spec);
+        }  /* if */
+      }
       break;
     case ifc_SyntaxSort_ArrayOrFunctionDeclarator:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::ArrayOrFunctionDeclarator",
-                                  &error_position);
+      { an_ifc_SyntaxSort_ArrayOrFunctionDeclarator issafd, *issafdp;
+        issafdp = get_SyntaxSort_ArrayOrFunctionDeclarator(&issafd);
+        cache_syntax(cache, issafdp->declarator);
+        if (issafdp->next != 0) {
+          cache_syntax(cache, issafdp->next);
+        }  /* if */
+      }
       break;
     case ifc_SyntaxSort_ParameterDeclarator:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::ParameterDeclarator",
-                                  &error_position);
+      { an_ifc_SyntaxSort_ParameterDeclarator isspd, *isspdp;
+        isspdp = get_SyntaxSort_ParameterDeclarator(&isspd);
+        source_position_from_locus(&pos, &isspdp->locus);
+        if (isspdp->decl_specifiers != 0) {
+          cache_syntax(cache, isspdp->decl_specifiers);
+        }  /* if */
+        cache_syntax(cache, isspdp->declarator);
+        if (isspdp->default_expr != 0) {
+          cache_token(cache, tok_eq, &pos);
+          cache_expr(cache, isspdp->default_expr);
+        }  /* if */
+      }
       break;
     case ifc_SyntaxSort_InitDeclarator:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::InitDeclarator",
-                                  &error_position);
+      { an_ifc_SyntaxSort_InitDeclarator issid, *issidp;
+        issidp = get_SyntaxSort_InitDeclarator(&issid);
+        cache_syntax(cache, issidp->declarator);
+        /* FIXME: Handle the constraint field. */
+        if (issidp->initializer != 0) {
+          /* FIXME: Find a way to get a proper source position for this. */
+          cache_token(cache, tok_eq, &null_source_position);
+          cache_expr(cache, issidp->initializer);
+        }  /* if */
+        if (issidp->comma.line != 0) {
+          source_position_from_locus(&pos, &issidp->comma);
+          cache_token(cache, tok_comma, &pos);
+        }  /* if */
+      }
       break;
     case ifc_SyntaxSort_NewDeclarator:
       /* FIXME: Currently unsupported. */
@@ -9671,9 +9939,15 @@ Add the tokens corresponding to the given syntax tree to cache.
                                   &error_position);
       break;
     case ifc_SyntaxSort_SimpleDeclaration:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::SimpleDeclaration",
-                                  &error_position);
+      { an_ifc_SyntaxSort_SimpleDeclaration isssd, *isssdp;
+        isssdp = get_SyntaxSort_SimpleDeclaration(&isssd);
+        if (isssdp->decl_specifiers != 0) {
+          cache_syntax(cache, isssdp->decl_specifiers);
+        }  /* if */
+        cache_syntax(cache, isssdp->declarators);
+        source_position_from_locus(&pos, &isssdp->semicolon);
+        cache_token(cache, tok_semicolon, &pos);
+      }
       break;
     case ifc_SyntaxSort_ExceptionDeclaration:
       /* FIXME: Currently unsupported. */
@@ -9686,9 +9960,19 @@ Add the tokens corresponding to the given syntax tree to cache.
                                   &error_position);
       break;
     case ifc_SyntaxSort_StaticAssertDeclaration:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::StaticAssertDeclaration",
-                                  &error_position);
+      { an_ifc_SyntaxSort_StaticAssertDeclaration isssad, *isssadp;
+        isssadp = get_SyntaxSort_StaticAssertDeclaration(&isssad);
+        source_position_from_locus(&pos, &isssadp->locus);
+        cache_token(cache, tok_static_assert, &pos);
+        cache_token(cache, tok_lparen, &pos);
+        cache_expr(cache, isssadp->condition);
+        if (isssadp->message != 0) {
+          cache_token(cache, tok_comma, &pos);
+          cache_expr(cache, isssadp->message);
+        }  /* if */
+        cache_token(cache, tok_rparen, &pos);
+        cache_token(cache, tok_semicolon, &pos);
+      }
       break;
     case ifc_SyntaxSort_AliasDeclaration:
       /* FIXME: Currently unsupported. */
@@ -9814,8 +10098,10 @@ Add the tokens corresponding to the given syntax tree to cache.
       issue_unsupported_node_diag("SyntaxSort::FunctionBody", &error_position);
       break;
     case ifc_SyntaxSort_Expression:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::Expression", &error_position);
+      { an_ifc_SyntaxSort_Expression isse, *issep;
+        issep = get_SyntaxSort_Expression(&isse);
+        cache_expr(cache, issep->expression);
+      }
       break;
     case ifc_SyntaxSort_FunctionDefinition:
       /* FIXME: Currently unsupported. */
@@ -9828,9 +10114,13 @@ Add the tokens corresponding to the given syntax tree to cache.
                                   &error_position);
       break;
     case ifc_SyntaxSort_TemplateDeclaration:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::TemplateDeclaration",
-                                  &error_position);
+      { an_ifc_SyntaxSort_TemplateDeclaration isstd, *isstdp;
+        isstdp = get_SyntaxSort_TemplateDeclaration(&isstd);
+        source_position_from_locus(&pos, &isstdp->locus);
+        cache_token(cache, tok_template, &pos);
+        cache_syntax(cache, isstdp->parameters);
+        cache_syntax(cache, isstdp->subject);
+      }
       break;
     case ifc_SyntaxSort_RequiresClause:
       /* FIXME: Currently unsupported. */
@@ -9863,38 +10153,106 @@ Add the tokens corresponding to the given syntax tree to cache.
                                   &error_position);
       break;
     case ifc_SyntaxSort_TypeTemplateParameter:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::TypeTemplateParameter",
-                                  &error_position);
+      { an_ifc_SyntaxSort_TypeTemplateParameter issttp, *issttpp;
+        issttpp = get_SyntaxSort_TypeTemplateParameter(&issttp);
+        source_position_from_locus(&pos, &issttpp->locus);
+        cache_token(cache, tok_typename, &pos);
+        if (issttpp->ellipsis.line != 0) {
+          cache_token(cache, tok_ellipsis, &pos);
+        }  /* if */
+        cache_identifier(cache, get_string_at_offset(issttpp->name), &pos);
+        /* FIXME: Handle constraint field. */
+        if (issttpp->argument != 0) {
+          cache_token(cache, tok_eq, &pos);
+          cache_syntax(cache, issttpp->argument);
+        }  /* if */
+      }
       break;
     case ifc_SyntaxSort_TemplateTemplateParameter:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::TemplateTemplateParameter",
-                                  &error_position);
+      { an_ifc_SyntaxSort_TemplateTemplateParameter issttp, *issttpp;
+        issttpp = get_SyntaxSort_TemplateTemplateParameter(&issttp);
+        source_position_from_locus(&pos, &issttpp->locus);
+        cache_token(cache, tok_template, &pos);
+        cache_syntax(cache, issttpp->parameters);
+        cache_token(cache, tok_gt, &pos);
+        if (issttpp->ellipsis.line != 0) {
+          cache_token(cache, tok_ellipsis, &pos);
+        }  /* if */
+        cache_identifier(cache, get_string_at_offset(issttpp->name), &pos);
+        if (issttpp->argument != 0) {
+          cache_token(cache, tok_eq, &pos);
+          cache_syntax(cache, issttpp->argument);
+        }  /* if */
+        if (issttpp->comma.line != 0) {
+          cache_token(cache, tok_comma, &pos);
+        }  /* if */
+      }
       break;
     case ifc_SyntaxSort_TypeTemplateArgument:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::TypeTemplateArgument",
-                                  &error_position);
+      { an_ifc_SyntaxSort_TypeTemplateArgument isstta, *issttap;
+        issttap = get_SyntaxSort_TypeTemplateArgument(&isstta);
+        cache_syntax(cache, issttap->argument);
+        if (issttap->ellipsis.line != 0) {
+          source_position_from_locus(&pos, &issttap->ellipsis);
+          cache_token(cache, tok_ellipsis, &pos);
+        }  /* if */
+        if (issttap->comma.line != 0) {
+          source_position_from_locus(&pos, &issttap->comma);
+          cache_token(cache, tok_comma, &pos);
+        }  /* if */
+      }
       break;
     case ifc_SyntaxSort_NonTypeTemplateArgument:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::NonTypeTemplateArgument",
-                                  &error_position);
+      { an_ifc_SyntaxSort_NonTypeTemplateArgument issntta, *issnttap;
+        issnttap = get_SyntaxSort_NonTypeTemplateArgument(&issntta);
+        cache_expr(cache, issnttap->argument);
+        if (issnttap->ellipsis.line != 0) {
+          source_position_from_locus(&pos, &issnttap->ellipsis);
+          cache_token(cache, tok_ellipsis, &pos);
+        }  /* if */
+        if (issnttap->comma.line != 0) {
+          source_position_from_locus(&pos, &issnttap->comma);
+          cache_token(cache, tok_comma, &pos);
+        }  /* if */
+      }
       break;
     case ifc_SyntaxSort_TemplateParameterList:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::TemplateParameterList",
-                                  &error_position);
+      { an_ifc_SyntaxSort_TemplateParameterList isstpl, *isstplp;
+        isstplp = get_SyntaxSort_TemplateParameterList(&isstpl);
+        source_position_from_locus(&pos, &isstplp->left_angle);
+        cache_token(cache, tok_lt, &pos);
+        cache_syntax(cache, isstplp->parameters);
+        /* FIXME: Handle the "clause" field. */
+        source_position_from_locus(&pos, &isstplp->right_angle);
+        cache_token(cache, tok_gt, &pos);
+      }
       break;
     case ifc_SyntaxSort_TemplateArgumentList:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::TemplateArgumentList",
-                                  &error_position);
+      { an_ifc_SyntaxSort_TemplateArgumentList isstal, *isstalp;
+        isstalp = get_SyntaxSort_TemplateArgumentList(&isstal);
+        source_position_from_locus(&pos, &isstalp->left_angle);
+        cache_token(cache, tok_lt, &pos);
+        cache_syntax(cache, isstalp->arguments);
+        /* FIXME: Handle the "clause" field. */
+        source_position_from_locus(&pos, &isstalp->right_angle);
+        cache_token(cache, tok_gt, &pos);
+      }
       break;
     case ifc_SyntaxSort_TemplateId:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::TemplateId", &error_position);
+      { an_ifc_SyntaxSort_TemplateId issti, *isstip;
+        isstip = get_SyntaxSort_TemplateId(&issti);
+        source_position_from_locus(&pos, &isstip->locus);
+        if (isstip->template_kw.line != 0) {
+          cache_token(cache, tok_template, &pos);
+        }  /* if */
+        if (isstip->name != 0) {
+          cache_syntax(cache, isstip->name);
+        } else {
+          check_assertion(isstip->symbol != 0);
+          cache_expr(cache, isstip->symbol);
+        }  /* if */
+        cache_syntax(cache, isstip->arguments);
+      }
       break;
     case ifc_SyntaxSort_MemInitializer:
       /* FIXME: Currently unsupported. */
