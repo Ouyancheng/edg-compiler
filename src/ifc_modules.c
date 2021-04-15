@@ -4159,6 +4159,9 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                     case ifc_TypePrecision_Default:
                       result = integer_type((an_integer_kind)ik_char);
                       break;
+                    case ifc_TypePrecision_Bit8:
+                      result = char8_t_type();
+                      break;
                     case ifc_TypePrecision_Bit16:
                       result = char16_t_type();
                       break;
