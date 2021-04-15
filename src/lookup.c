@@ -2335,12 +2335,13 @@ of the lookup is returned to the caller.
 */
 {
   a_symbol_ptr		synth_sym = NULL;
-  a_symbol_ptr		new_sym;
+  a_symbol_ptr		new_sym, ns_sym;
   a_symbol_ptr		sym = sym_from_scope;
   an_active_using_directive_ptr
 			audp;
   a_namespace_symbol_supplement_ptr
 			nssp;
+  a_namespace_ptr	nsp;
   a_boolean		gpp_namespace_only_mode = FALSE;
 
   db_enter(4, "do_using_directive_lookup");
@@ -2373,6 +2374,10 @@ of the lookup is returned to the caller.
     }  /* if */
     /* Search for a symbol in the lookup table for the namespace. */
     nssp = audp->namespace_supplement;
+    ns_sym = fundamental_symbol_of(nssp->symbol);
+    check_assertion(ns_sym->kind == (a_symbol_kind)sk_namespace);
+    nsp = skip_namespace_aliases(ns_sym->variant.namespace_info.ptr);
+    load_lazy_symbols_if_needed(nsp->variant.assoc_scope, locator);
     for (new_sym = find_symbol_list_in_table(&nssp->pointers_block,
                                              locator->symbol_header);
          new_sym != NULL;
