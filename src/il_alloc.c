@@ -1879,6 +1879,7 @@ Give an pointer to a class-type-supplement entry, initialize its fields.
   ctsp->is_cppcx_box                      = FALSE;
   ctsp->is_partial                        = FALSE;
   ctsp->has_coclass_attribute             = FALSE;
+  ctsp->has_explicitly_aligned_subobject  = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DO_IL_LOWERING
   ctsp->compiler_generated                = FALSE;

@@ -7206,6 +7206,15 @@ Display the indicated class type supplement entry.
   } else if (ptr->is_cppcx_box) {
     disp_boolean("is_cppcx_box", TRUE);
   }  /* if */
+  if (ptr->is_partial) {
+    disp_boolean("is_partial", TRUE);
+  }  /* if */
+  if (ptr->has_coclass_attribute) {
+    disp_boolean("has_coclass_attribute", TRUE);
+  }  /* if */
+  if (ptr->has_explicitly_aligned_subobject) {
+    disp_boolean("has_explicitly_aligned_subobject", TRUE);
+  }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
