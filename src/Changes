@@ -1,5 +1,14 @@
 Version 6.3
 
+4/16/21  [EDGcpfe/23768]
+Constrained member functions with deducible return types
+
+In some cases, a constrained member function with a deducible return type
+triggered an error during overload resolution when its constraint is not
+satisfied when instead that member function should just have been discarded
+as a candidate.  That is now fixed.
+
+
 4/14/21  [EDGcpfe/23937]
 Microsoft compatibility: Packing and explicitly-aligned types
 
