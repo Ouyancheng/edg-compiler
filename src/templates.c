@@ -41051,18 +41051,20 @@ done:
 }  /* make_template_implicit_deduction_guide */
 
 
-static void add_guide_for_hypothetical_constructor(
-			a_symbol_ptr				ct_sym,
-			a_template_symbol_supplement_ptr	ct_tssp,
-			a_type_ptr				proto_type,
-			a_type_ptr				param_type)
+static a_symbol_ptr add_guide_for_param_type_list(
+			a_symbol_ptr                        ct_sym,
+			a_template_symbol_supplement_ptr    ct_tssp,
+			a_type_ptr                          proto_type,
+			a_param_type_ptr                    params)
 /*
 Create a function template to be used as an implicit deduction guide
-for a hypothetical constructor.  The guide that is created has the
-template parameter list of the enclosing class template (specified by
-ct_sym and ct_tssp).  The constructor has either no parameter (if param_type
-is NULL) or one parameter whose type is param_type. proto_type is the
-prototype instantiation of ct_sym.
+for an invented constructor based on the parameter type list specified by
+params, which can be NULL if there are no parameters.  The guide is either
+for a hypothetical constructor or for an aggregate deduction candidate.
+The  The guide that is created has the template parameter list of the
+enclosing class template (specified by ct_sym and ct_tssp).  proto_type is the
+prototype instantiation of ct_sym.  If a guide is successfully created,
+return the symbol pointer for the guide.  Otherwise, return NULL.
 */
 {
   a_symbol_ptr			ctor_sym;
@@ -41071,7 +41073,6 @@ prototype instantiation of ct_sym.
   a_routine_ptr			rout;
   a_type_ptr			rout_type;
   a_routine_type_supplement_ptr	rtsp;
-  a_param_type_ptr		ptp = NULL;
 
   /* Create a symbol locator for a constructor for ct_sym. */
   make_locator_for_symbol(ct_sym, &locator);
@@ -41089,10 +41090,8 @@ prototype instantiation of ct_sym.
   rout->type = rout_type;
   rtsp = rout_type->variant.routine.extra_info;
   rout_type->variant.routine.return_type = void_type();
-  if (param_type != NULL) {
-    ptp = alloc_param_type(param_type);
-    ptp->param_num = 1;
-    rtsp->param_type_list = ptp;
+  if (params != NULL) {
+    rtsp->param_type_list = params;
     /* Set the flags to indicate whether the parameter uses template
        parameter types. */
     set_parameter_list_template_param_flags(rout_type);
@@ -41110,6 +41109,31 @@ prototype instantiation of ct_sym.
     add_deduction_guide(new_sym,
                         &ct_tssp->variant.class_template.deduction_guides);
   }  /* if */
+  return new_sym;
+}  /* add_guide_for_param_type_list */
+
+
+static void add_guide_for_hypothetical_constructor(
+			a_symbol_ptr				ct_sym,
+			a_template_symbol_supplement_ptr	ct_tssp,
+			a_type_ptr				proto_type,
+			a_type_ptr				param_type)
+/*
+Create a function template to be used as an implicit deduction guide
+for a hypothetical constructor.  The guide that is created has the
+template parameter list of the enclosing class template (specified by
+ct_sym and ct_tssp).  The constructor has either no parameter (if param_type
+is NULL) or one parameter whose type is param_type. proto_type is the
+prototype instantiation of ct_sym.
+*/
+{
+  a_param_type_ptr		ptp = NULL;
+
+  if (param_type != NULL) {
+    ptp = alloc_param_type(param_type);
+    ptp->param_num = 1;
+  }  /* if */
+  (void)add_guide_for_param_type_list(ct_sym, ct_tssp, proto_type, ptp);
 }  /* add_guide_for_hypothetical_constructor */
 
 
@@ -41262,9 +41286,8 @@ up-to-date.
 }  /* update_implicit_deduction_guides */
 
 
-a_symbol_ptr make_aggregate_deduction_candidate(
-                                          ARG_UNUSED a_symbol_ptr      ct_sym,
-                                          ARG_UNUSED a_param_type_ptr  params)
+a_symbol_ptr make_aggregate_deduction_candidate(a_symbol_ptr      ct_sym,
+                                                a_param_type_ptr  params)
 /*
 ct_sym is the symbol for class template for with class template argument
 deduction (CTAD) is being performed, and the caller has determined that an
@@ -41273,9 +41296,15 @@ be created with the given set of parameters.  Create such a deduction guide
 template and return a symbol for it.
 */
 {
-  a_symbol_ptr  guide = NULL;
+  a_template_symbol_supplement_ptr ct_tssp =
+                                        template_supplement_for_symbol(ct_sym);
+  a_symbol_ptr                     proto_sym;
+  a_type_ptr                       proto_type;
+  a_symbol_ptr                     guide = NULL;
 
-  // FIXME: Also remove ARUNUSED above
+  proto_sym = ct_tssp->variant.class_template.prototype_instantiation;
+  proto_type = type_symbol_type(proto_sym);
+  guide = add_guide_for_param_type_list(ct_sym, ct_tssp, proto_type, params);
   return guide;
 }  /* make_aggregate_deduction_candidate */
 

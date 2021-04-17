@@ -6968,6 +6968,26 @@ set).  Add new_guide to this set.
 }  /* add_deduction_guide */
 
 
+void remove_deduction_guide(a_symbol_ptr  guide,
+                            a_symbol_ptr  *p_guide_set)
+/*
+*p_guide_set represents a set of deduction guides, or possibly a pointer to
+just one symbol (which then must to point to guide).  Remove guide from
+the set.
+*/
+{
+  a_symbol_ptr  guide_set = *p_guide_set;
+
+  check_assertion(guide_set != NULL);
+  if (guide_set == guide) {
+    *p_guide_set = NULL;
+  } else {
+    check_assertion(symbol_is(guide_set, sk_overloaded_function));
+    remove_symbol_from_overload_set(guide, guide_set);
+  }  /* if */
+}  /* remove_deduction_guide */
+
+
 a_type_ptr function_or_template_symbol_type(a_symbol_ptr sym)
 /*
 Return the type of a function, whether a simple function or a function

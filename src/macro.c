@@ -4457,8 +4457,10 @@ static a_feature_support feature_support_list[] = {
   { "",
     0,
     &class_template_arg_deduction_enabled,
-    "__cpp_deduction_guides",
-    "201703L" },
+    NULL,		/* __cpp_deduction_guides must be handled specially,
+			   as the macro name takes on different values
+			   depending on the level of support. */
+    NULL },
   { "",
     0,
     &designators_allowed,
@@ -11269,6 +11271,17 @@ command line -D options.
                                  /*ref_suppresses_pch_file=*/FALSE);
       } else if (constexpr_enabled) {
         (void)enter_predef_macro("200704L", "__cpp_constexpr",
+                                 /*cannot_be_redefined=*/TRUE,
+                                 /*ref_suppresses_pch_file=*/FALSE);
+      }  /* if */
+      if (class_template_arg_deduction_enabled) {
+        a_const_char *value;
+        if (cpp20_mode) {
+          value = "201909L";
+        } else {
+          value = "201703L";
+        }  /* if */
+        (void)enter_predef_macro(value, "__cpp_deduction_guides",
                                  /*cannot_be_redefined=*/TRUE,
                                  /*ref_suppresses_pch_file=*/FALSE);
       }  /* if */

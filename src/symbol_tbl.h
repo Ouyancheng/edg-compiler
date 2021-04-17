@@ -4798,6 +4798,9 @@ extern a_symbol_ptr enter_overloaded_symbol(a_symbol_kind    sym_kind,
 extern void add_deduction_guide(a_symbol_ptr  new_guide,
                                 a_symbol_ptr  *p_guide_set);
 
+extern void remove_deduction_guide(a_symbol_ptr  new_guide,
+                                   a_symbol_ptr  *p_guide_set);
+
 extern a_type_ptr function_or_template_symbol_type(a_symbol_ptr sym);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED

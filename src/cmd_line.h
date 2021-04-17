@@ -692,6 +692,11 @@ EXTERN a_boolean
 			   enabled. */
 
 EXTERN a_boolean
+		aggregate_ctad_enabled;
+			/* TRUE if C++20 class template argument deduction
+			   for aggregates is enabled. */
+
+EXTERN a_boolean
 		struct_bindings_enabled;
 			/* TRUE if structured bindings (a C++17 feature) are
 			   accepted. */

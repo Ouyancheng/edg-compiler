@@ -28064,8 +28064,8 @@ otherwise it is set to FALSE.
 */
 {
   a_boolean             okay = TRUE, trailing_pack = FALSE;
-  a_base_class_ptr      bcp = base_classes_of(proto_type);
-  a_field_ptr           fp = fields_of(proto_type);
+  a_base_class_ptr      bcp;
+  a_field_ptr           fp;
   long                  n_elems_left;
   an_arg_list_elem_ptr  alep = *p_elems;
   uint32_t              param_num = 0;
@@ -28242,6 +28242,7 @@ appropriate, produce the "aggregate deduction candidate" (see N4885
   if (update_param_list_for_aggr_candidate(&param_list, proto_type,
                                            &initializer_alep,
                                            &trailing_pack) &&
+      param_list != NULL &&
       (initializer_alep == NULL || trailing_pack)) {
     /* The initializers match up "structurally" with the class template
        definition.  Use the resulting parameter list to create a deduction
@@ -28256,11 +28257,9 @@ appropriate, produce the "aggregate deduction candidate" (see N4885
       fprintf(f_debug, ")\n");
     }  /* if */
 #endif /* DEBUG */
+    /* Attempt to create the aggregate deduction candidate.  If one is
+       created, it is also added to the deduction guide overload set. */
     aggr_candidate = make_aggregate_deduction_candidate(ct_sym, param_list);
-    if (aggr_candidate != NULL) {
-      // FIXME: Add the candidate to the overload set for the deduction
-      // guides.
-    }  /* if */
   }  /* if */
 done:
   if (aggr_candidate == NULL && param_list != NULL) {
@@ -28271,8 +28270,8 @@ done:
 
 
 static void remove_aggregate_deduction_candidate(
-                  ARG_UNUSED a_template_symbol_supplement_ptr  ct_tssp,
-                  ARG_UNUSED a_symbol_ptr                      aggr_candidate)
+                           a_template_symbol_supplement_ptr  ct_tssp,
+                           a_symbol_ptr                      aggr_candidate)
 /*
 aggr_candidate is an "aggregate deduction candidate" (see N4885
 [over.match.class.deduct]/1) currently associated with the class template
@@ -28280,7 +28279,8 @@ described by ct_tssp: Remove that guide from the set of deduction guides for
 that class template.
 */
 {
-  // FIXME; also remove ARUNUSED above
+  remove_deduction_guide(aggr_candidate, 
+                         &ct_tssp->variant.class_template.deduction_guides);
 }  /* remove_aggregate_deduction_candidate */
 
 
@@ -28370,7 +28370,8 @@ set to TRUE and FALSE is returned.
        defined, but now it is defined. */
     update_implicit_deduction_guides(ct_sym);
   }  /* if */
-  if (ct_sym->defined &&
+  if (aggregate_ctad_enabled &&
+      ct_sym->defined &&
       !ct_tssp->variant.class_template.explicit_deduction_guides_added &&
       init_list_ctor_arg_list != NULL) {
     aggr_candidate = add_aggregate_deduction_candidate_if_needed(
