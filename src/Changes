@@ -1,5 +1,23 @@
 Version 6.3
 
+4/19/21  [EDGcpfe/23980]
+Cast with brace notation incorrectly rendered by the C++-generating back end
+
+Consider:
+
+  template<typename T, unsigned N> struct A { T m[N]; };
+  template<typename T, T... Vs> struct S {};
+  struct Pos { unsigned u; };
+  template<typename T, T... Vs>
+    A<Pos, sizeof...(Vs)> f(S<T, Vs...>) {
+      return {{ Pos{Vs}... }};  // Previously misrendered.  Now okay.
+    }
+
+Previously, the initializer element "Pos{Vs}..." was incorrectly rendered as
+"((Pos)(Vs))..." by the C++-generating back end.  The underlying problem was an
+incorrect flag in the IL.  That is now fixed.
+
+
 4/19/21  [EDGcpfe/24169,EDGcpfe/24176]
 Clang compatibility: Add builtin functions for 12.0.0
 

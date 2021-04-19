@@ -26718,6 +26718,7 @@ previously-scanned braced initializer.
     if (expr->kind == (an_expr_node_kind)enk_temp_init) {
       a_dynamic_init_ptr  dip = expr->variant.init.dynamic_init;
       dip->is_explicit_cast = TRUE;
+      dip->is_braced_initializer = TRUE;
       if (dip->kind == (a_dynamic_init_kind)dik_constant ||
           dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
         dip->variant.constant.ptr->explicit_cast_applied = TRUE;
