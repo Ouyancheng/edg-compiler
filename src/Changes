@@ -1,5 +1,11 @@
 Version 6.3
 
+4/19/21  [EDGcpfe/24169,EDGcpfe/24176]
+Clang compatibility: Add builtin functions for 12.0.0
+
+Builtins for clang 12.0.0 have been added.
+
+
 4/16/21  [EDGcpfe/23768]
 Constrained member functions with deducible return types
 
