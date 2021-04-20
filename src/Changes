@@ -1,7 +1,7 @@
 Version 6.3
 
 4/19/21  [EDGcpfe/23980]
-Cast with brace notation incorrectly rendered by the C++-generating back end
+C++-generating back end: Cast with brace notation incorrectly rendered
 
 Consider:
 
