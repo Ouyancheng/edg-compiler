@@ -5407,8 +5407,6 @@ dynamic init that underlies the cast, or NULL if there isn't one.
   } else {
     /* Not a cast with a saved braced-init-list. */
     if (dip != NULL) {
-      check_assertion(!dip->is_braced_initializer &&
-                      !dip->is_compound_literal);
       op1 = arg_list_from_dyn_init(dip);
     }  /* if */
     if (rcblock->operator_token == tok_typename) {
