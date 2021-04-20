@@ -1,5 +1,23 @@
 Version 6.3
 
+4/20/21  [EDGcpfe/21589,EDGcpfe/22350,EDGcpfe/22466,EDGcpfe/22465]
+C++: Class template argument deduction for aggregates
+
+The C++20 feature that extends class template argument deduction to include
+aggregates (described in committee papers P1816R0 and P2082R1) is now
+implemented.
+
+  template <typename T> struct A {
+    T x;
+    T y;
+  };
+  template <typename T> struct B {
+    A<T> a;
+    T t;
+  };
+  B b = {{1u, 2u}, 3}; // B<int> deduced
+
+
 4/19/21  [EDGcpfe/23980]
 C++-generating back end: Cast with brace notation incorrectly rendered
 
