@@ -1,6 +1,6 @@
 Version 6.3
 
-4/20/21  [EDGcpfe/21589,EDGcpfe/22350,EDGcpfe/22466,EDGcpfe/22465]
+4/20/21  [EDGcpfe/21589,EDGcpfe/22350,EDGcpfe/22465,EDGcpfe/22466]
 C++: Class template argument deduction for aggregates
 
 The C++20 feature that extends class template argument deduction to include
@@ -16,6 +16,11 @@ implemented.
     T t;
   };
   B b = {{1u, 2u}, 3}; // B<int> deduced
+
+This support involves a small IL CHANGE.  The overriding_virtual_functions
+field in a_base_class has been moved into a union, and uses of the field
+should check the value of the is_pack_expansion flag.
+
 
 
 4/19/21  [EDGcpfe/23980]

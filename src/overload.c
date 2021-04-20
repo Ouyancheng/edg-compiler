@@ -28020,9 +28020,9 @@ static a_boolean designator_component_matches_field(
                                                a_field_ptr           *p_field)
 /*
 alep is a designator component and *p_field heads a list of fields.  Return
-TRUE if any of the fields in the list has a name matching a field name
-designated by alep, and if so set *p_field to that field.  Otherwise, return
-FALSE.
+TRUE if any of the fields in the list has a name matching the field name
+(if any) designated by alep, and if so set *p_field to that field.  Otherwise,
+return FALSE.
 */
 {
   a_boolean            result = FALSE;
@@ -28095,7 +28095,7 @@ otherwise it is set to FALSE.
       }  /* if */
       trailing_pack = FALSE;
       if (bcp->is_pack_expansion) {
-        /* Assume the expansion will be empty for now.  That standard requires
+        /* Assume the expansion will be empty for now.  The standard requires
            this for non-trailing expansions.  A trailing expansion takes the
            remaining initializer elements, but we do not know whether it's a
            trailing expansion until we have completed this process.  For now,
@@ -28119,7 +28119,7 @@ otherwise it is set to FALSE.
                  !class_symbol_supp(symbol_for(bcp->type))
                                                        ->is_class_aggregate) {
         /* Assume a braced component will initialize the bcp element.  If the
-           base is dependent is or not itself an aggregate type, assume it
+           base is dependent or is not itself an aggregate type, assume it
            will be initialized by the single initializer component. */
         *param_list = alloc_param_type(bcp->type);
         (*param_list)->param_num = ++param_num;
@@ -28196,7 +28196,7 @@ otherwise it is set to FALSE.
       if (fp != NULL) {
         fp = next_proper_initializable_field(fp->next);
       } else if (n_elems_left > 0) {
-        /* Count down the elements of an array.  Not that for a flexible array
+        /* Count down the elements of an array.  Note that for a flexible array
            member, n_elems_left == -1, causing us to pick up all the remaining
            initializers. */
         --n_elems_left;

@@ -41061,7 +41061,7 @@ Create a function template to be used as an implicit deduction guide
 for an invented constructor based on the parameter type list specified by
 params, which can be NULL if there are no parameters.  The guide is either
 for a hypothetical constructor or for an aggregate deduction candidate.
-The  The guide that is created has the template parameter list of the
+The guide that is created has the template parameter list of the
 enclosing class template (specified by ct_sym and ct_tssp).  proto_type is the
 prototype instantiation of ct_sym.  If a guide is successfully created,
 return the symbol pointer for the guide.  Otherwise, return NULL.
@@ -41123,7 +41123,7 @@ Create a function template to be used as an implicit deduction guide
 for a hypothetical constructor.  The guide that is created has the
 template parameter list of the enclosing class template (specified by
 ct_sym and ct_tssp).  The constructor has either no parameter (if param_type
-is NULL) or one parameter whose type is param_type. proto_type is the
+is NULL) or one parameter whose type is param_type.  proto_type is the
 prototype instantiation of ct_sym.
 */
 {
@@ -41289,7 +41289,7 @@ up-to-date.
 a_symbol_ptr make_aggregate_deduction_candidate(a_symbol_ptr      ct_sym,
                                                 a_param_type_ptr  params)
 /*
-ct_sym is the symbol for class template for with class template argument
+ct_sym is the symbol for a class template for which class template argument
 deduction (CTAD) is being performed, and the caller has determined that an
 "aggregate deduction candidate" (see N4885 [over.match.class.deduct]/1) should
 be created with the given set of parameters.  Create such a deduction guide
