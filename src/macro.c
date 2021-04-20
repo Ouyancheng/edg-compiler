@@ -11277,7 +11277,7 @@ command line -D options.
       if (class_template_arg_deduction_enabled) {
         a_const_char *value;
         if (cpp20_mode) {
-          value = "201909L";
+          value = "201907L";
         } else {
           value = "201703L";
         }  /* if */
