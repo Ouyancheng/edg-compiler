@@ -1388,7 +1388,7 @@ comma_required is TRUE (it is defaulted to FALSE) output ", " first.
       an_expr_node_ptr expr = ptp->default_arg_expr;
       fputs(" (= ", f_debug);
       if (expr == NULL) {
-        /* Can be NULL for template parameter based default arguments. */
+        /* Can be NULL for default arguments based on template parameters. */
         fputs("<NULL>", f_debug);
       } else {
         switch (expr->kind) {
