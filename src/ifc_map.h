@@ -294,14 +294,12 @@ IFC_DECL_END(DeclSort_Method)
 IFC_DECL_START(DeclSort_Constructor)
   IFC_DECL_FIELD(name, TextOffset)
   IFC_DECL_FIELD(locus, SourceLocation)
-  IFC_DECL_FIELD(source, TypeIndex)
+  IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(home_scope, DeclIndex)
-  IFC_DECL_FIELD(eh_spec, NoexceptSpecification)
-  IFC_DECL_FIELD(chart, ChartIndex) // ?
+  IFC_DECL_FIELD(chart, ChartIndex)
   IFC_DECL_FIELD(traits, FunctionTraits)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
   IFC_DECL_FIELD(access, Access)
-  IFC_DECL_FIELD(convention, CallingConvention)
   IFC_DECL_FIELD(properties, ReachableProperties)
 IFC_DECL_END(DeclSort_Constructor)
 
@@ -309,16 +307,12 @@ IFC_DECL_END(DeclSort_Constructor)
 IFC_DECL_START(DeclSort_InheritedConstructor)
   IFC_DECL_FIELD(name, TextOffset)
   IFC_DECL_FIELD(locus, SourceLocation)
-  IFC_DECL_FIELD(source, TypeIndex)
+  IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(home_scope, DeclIndex)
-  IFC_DECL_FIELD(eh_spec, NoexceptSpecification)
   IFC_DECL_FIELD(chart, ChartIndex)
   IFC_DECL_FIELD(traits, FunctionTraits)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
   IFC_DECL_FIELD(access, Access)
-  IFC_DECL_FIELD(convention, CallingConvention)
-  IFC_DECL_FIELD(__padding1__, u8)
-  IFC_DECL_FIELD(__padding2__, u16)
   IFC_DECL_FIELD(base_ctor, DeclIndex)
 IFC_DECL_END(DeclSort_InheritedConstructor)
 
@@ -362,7 +356,7 @@ IFC_DECL_END(DeclSort_UsingDirective)
 
 /* DeclSort::Friend */
 IFC_DECL_START(DeclSort_Friend)
-  IFC_DECL_FIELD(entity, TypeIndex)
+  IFC_DECL_FIELD(entity, ExprIndex)
 IFC_DECL_END(DeclSort_Friend)
 
 /* DeclSort::Expansion */
@@ -438,11 +432,12 @@ IFC_DECL_START(TypeSort_Designated)
   IFC_DECL_FIELD(decl, DeclIndex)
 IFC_DECL_END(TypeSort_Designated)
 
-/* TypeSort::Deduced */
-/* As of IFC version 0.30, this is no longer a valid type. */
-IFC_DECL_START(TypeSort_Deduced)
-  IFC_DECL_FIELD(return_type, TypeIndex)
-IFC_DECL_END(TypeSort_Deduced)
+/* TypeSort::Tor */
+IFC_DECL_START(TypeSort_Tor)
+  IFC_DECL_FIELD(source, TypeIndex)
+  IFC_DECL_FIELD(eh_spec, NoexceptSpecification)
+  IFC_DECL_FIELD(convention, CallingConvention)
+IFC_DECL_END(TypeSort_Tor)
 
 /* TypeSort::Syntactic */
 IFC_DECL_START(TypeSort_Syntactic)
@@ -1187,6 +1182,48 @@ IFC_DECL_START(ChartSort_Multilevel)
   IFC_DECL_FIELD(start, Index)
   IFC_DECL_FIELD(cardinality, Cardinality)
 IFC_DECL_END(ChartSort_Multilevel)
+
+/* AttrSort::Nothing */
+IFC_DECL_START(AttrSort_Nothing)
+IFC_DECL_END(AttrSort_Nothing)
+
+/* AttrSort::Basic */
+IFC_DECL_START(AttrSort_Basic)
+IFC_DECL_END(AttrSort_Basic)
+
+/* AttrSort::Scoped */
+IFC_DECL_START(AttrSort_Scoped)
+IFC_DECL_END(AttrSort_Scoped)
+
+/* AttrSort::Labeled */
+IFC_DECL_START(AttrSort_Labeled)
+IFC_DECL_END(AttrSort_Labeled)
+
+/* AttrSort::Called */
+IFC_DECL_START(AttrSort_Called)
+  IFC_DECL_FIELD(function, AttrIndex)
+  IFC_DECL_FIELD(arguments, AttrIndex)
+IFC_DECL_END(AttrSort_Called)
+
+/* AttrSort::Expanded */
+IFC_DECL_START(AttrSort_Expanded)
+  IFC_DECL_FIELD(operand, AttrIndex)
+IFC_DECL_END(AttrSort_Expanded)
+
+/* AttrSort::Factored */
+IFC_DECL_START(AttrSort_Factored)
+IFC_DECL_END(AttrSort_Factored)
+
+/* AttrSort::Elaborated */
+IFC_DECL_START(AttrSort_Elaborated)
+  IFC_DECL_FIELD(expression, ExprIndex)
+IFC_DECL_END(AttrSort_Elaborated)
+
+/* AttrSort::Tuple */
+IFC_DECL_START(AttrSort_Tuple)
+  IFC_DECL_FIELD(start, Index)
+  IFC_DECL_FIELD(cardinality, Cardinality)
+IFC_DECL_END(AttrSort_Tuple)
 
 /* SyntaxSort::VendorExtension */
 IFC_DECL_START(SyntaxSort_VendorExtension)

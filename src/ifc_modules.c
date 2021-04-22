@@ -94,6 +94,9 @@ static void cache_token(a_token_cache_ptr     cache,
                         a_token_kind          tok,
                         a_source_position_ptr pos);
 
+static void cache_identifier(a_token_cache_ptr     cache,
+                             a_const_char          *name,
+                             a_source_position_ptr pos);
 
 NORETURN static unsigned char buffer_overrun(void)
 /*
@@ -338,6 +341,7 @@ Handle nested structures differently (and check for padding).
 */
 
 #define GET_ActiveMember(x, from_header)       GET_int(x, from_header)
+#define GET_AttrIndex(x, from_header)          GET_int(x, from_header)
 #define GET_ByteOffset(x, from_header)         GET_int(x, from_header)
 #define GET_Cardinality(x, from_header)        GET_int(x, from_header)
 #define GET_ChartIndex(x, from_header)         GET_int(x, from_header)
@@ -2099,8 +2103,8 @@ corresponding data structure for that partition.
       CHECK_SIZE(TypeSort_Fundamental);
     case ifc_type_designated:
       CHECK_SIZE(TypeSort_Designated);
-    case ifc_type_deduced:
-      CHECK_SIZE(TypeSort_Deduced);
+    case ifc_type_tor:
+      CHECK_SIZE(TypeSort_Tor);
     case ifc_type_syntactic:
       CHECK_SIZE(TypeSort_Syntactic);
     case ifc_type_expansion:
@@ -2138,7 +2142,7 @@ corresponding data structure for that partition.
     case ifc_type_syntax_tree:
       CHECK_SIZE(TypeSort_SyntaxTree);
     case ifc_name_identifier:
-      unexpected_condition_str("No partition for NameSort::Identifier");
+      unexpected_condition_str("No partition for NameSort::Identifier"); break;
     case ifc_name_operator:
       CHECK_SIZE(NameSort_Operator);
     case ifc_name_conversion:
@@ -2315,6 +2319,24 @@ corresponding data structure for that partition.
       CHECK_SIZE(ChartSort_Unilevel);
     case ifc_chart_multilevel:
       CHECK_SIZE(ChartSort_Multilevel);
+    case ifc_attr_nothing:
+      unexpected_condition_str("No partition for AttrSort::Nothing"); break;
+    case ifc_attr_basic:
+      CHECK_SIZE(AttrSort_Basic);
+    case ifc_attr_called:
+      CHECK_SIZE(AttrSort_Called);
+    case ifc_attr_elaborated:
+      CHECK_SIZE(AttrSort_Elaborated);
+    case ifc_attr_expanded:
+      CHECK_SIZE(AttrSort_Expanded);
+    case ifc_attr_factored:
+      CHECK_SIZE(AttrSort_Factored);
+    case ifc_attr_labeled:
+      CHECK_SIZE(AttrSort_Labeled);
+    case ifc_attr_scoped:
+      CHECK_SIZE(AttrSort_Scoped);
+    case ifc_attr_tuple:
+      CHECK_SIZE(AttrSort_Tuple);
     case ifc_syntax_vendor_extension:
       CHECK_SIZE(SyntaxSort_VendorExtension);
     case ifc_syntax_simple_type_specifier:
@@ -2600,6 +2622,7 @@ corresponding data structure for that partition.
     case ifc_const_str:
     case ifc_form_spec:
     case ifc_heap_chart:
+    case ifc_heap_attr:
     case ifc_heap_decl:
     case ifc_heap_expr:
     case ifc_heap_form:
@@ -2609,6 +2632,7 @@ corresponding data structure for that partition.
     case ifc_heap_type:
     case ifc_macro_func_like:
     case ifc_macro_obj_like:
+    case ifc_msvc_trait_decl_attrs:
     case ifc_msvc_trait_code_segment:
     case ifc_msvc_trait_codegen_expr_trees:
     case ifc_msvc_trait_entity_init_locus:
@@ -2643,7 +2667,7 @@ corresponding data structure for that partition.
 namespace {
 
 constexpr ifc_Version supported_major_version = (ifc_Version)0;
-constexpr ifc_Version supported_minor_version = (ifc_Version)30;
+constexpr ifc_Version supported_minor_version = (ifc_Version)31;
 
 inline a_boolean check_ifc_version(ifc_Version major,
                                    ifc_Version minor)
@@ -2870,6 +2894,52 @@ location as the original.
     unexpected_condition();
   }  /* if */
 }  /* ifc_modules_pch_reset */
+
+
+static a_template_ptr parse_cached_template(a_token_cache_ptr cache,
+                                            a_scope_ptr       encl_scope)
+/*
+Parse the tokens corresponding to a template declaration cache, and return the
+corresponding template.  encl_scope is the scope containing the template
+declaration.
+*/
+{
+  a_decl_parse_state dps;
+  a_tmpl_decl_state  decl_state;
+  a_token_kind       final_token = tok_semicolon;
+
+#if DEBUG
+  if (db_flag_is_set("ms_ifc_token_def")) {
+    pos_in_temp_text_buffer = 0;
+    add_token_cache_to_string(cache);
+    fprintf(stderr, "Reconstituted template declaration:\n%s\n"
+                    "---------------------\n", temp_text_buffer);
+  }  /* if */
+#endif /* DEBUG */
+  rescan_cached_tokens(cache);
+  init_decl_parse_state(&dps);
+  init_templ_decl_state(&decl_state, &dps);
+  decl_state.pragmas_bound_to_template = extract_curr_construct_pragmas();
+  decl_state.starting_token_sequence_number = curr_token_sequence_number;
+  decl_state.final_token_ptr = &final_token;
+  decl_state.enclosing_scope = encl_scope;
+  template_or_specialization_declaration_full(&decl_state,
+                                              /*is_generic=*/FALSE,
+                                              /*orig_dps=*/NULL);
+  if (curr_token != final_token) {
+    expect_error();
+    flush_tokens_without_warning();
+  } else {
+    (void)get_token();
+    if (curr_token == tok_semicolon) {
+      /* Microsoft sometimes adds a semicolon after the final closing brace. */
+      (void)get_token();
+    }  /* if */
+  }  /* if */
+  check_assertion(curr_token == tok_end_of_source);
+  (void)get_token();
+  return decl_state.il_template_entry;
+}  /* parse_cached_template */
 
 
 /* FIXME: might be able to get rid of enumeration_type now that enums aren't
@@ -3171,7 +3241,6 @@ class_struct_union_case:
         break;
       case ifc_DeclSort_Alias:
         { an_ifc_DeclSort_Alias idsta, *idstap;
-          an_ifc_TypeSort_Fundamental itsf, *itsfp;
           idstap = get_DeclSort_Alias(&idsta);
           source_position_from_locus(&error_position, &idstap->locus);
           init_locator_from_name((ifc_NameIndex)0, idstap->name,
@@ -3179,28 +3248,56 @@ class_struct_union_case:
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
-            check_assertion(type_tag(idstap->type)== ifc_TypeSort_Fundamental);
-            /* Read the type to see what kind it is. */
-            read_partition_at_index(ifc_type_fundamental,
-                                    type_value(idstap->type));
-            itsfp = get_TypeSort_Fundamental(&itsf);
-            if (itsfp->basis == ifc_TypeBasis_Typename) {
-              /* A type alias; declare a typedef for this case. */
-              init_dps(&dps, &idstap->locus, idstap->aliasee,
-                       ifc_ObjectTraits_None, ifc_MsvcTraits_None,
-                       idstap->specifiers, idstap->access, &psss);
-              clear_decl_pos_block(&decl_pos_block);
-              decl_typedef(&loc, &dps, (a_type_ptr)NULL, &decl_pos_block);
-              restore_partial_scope_stack_if_necessary(&psss);
-              il_entity = (char *)dps.sym->variant.type.ptr;
-              kind = iek_type;
-            } else if (itsfp->basis == ifc_TypeBasis_Namespace) {
-              /* A namespace alias. */
-              /* FIXME: unimplemented. */
-              issue_unsupported_node_diag("DeclSort::Alias namespace",
-                                          &error_position);
-              il_entity = (char *)error_type();
-              kind = iek_type;
+            ifc_TypeSort tag = type_tag(idstap->type);
+            if (tag == ifc_TypeSort_Fundamental) {
+              an_ifc_TypeSort_Fundamental itsf, *itsfp;
+              /* Read the type to see what kind it is. */
+              read_partition_at_index(idstap->type);
+              itsfp = get_TypeSort_Fundamental(&itsf);
+              if (itsfp->basis == ifc_TypeBasis_Typename) {
+                /* A type alias; declare a typedef for this case. */
+                init_dps(&dps, &idstap->locus, idstap->aliasee,
+                         ifc_ObjectTraits_None, ifc_MsvcTraits_None,
+                         idstap->specifiers, idstap->access, &psss);
+                clear_decl_pos_block(&decl_pos_block);
+                decl_typedef(&loc, &dps, (a_type_ptr)NULL, &decl_pos_block);
+                restore_partial_scope_stack_if_necessary(&psss);
+                il_entity = (char *)dps.sym->variant.type.ptr;
+                kind = iek_type;
+              } else if (itsfp->basis == ifc_TypeBasis_Namespace) {
+                /* A namespace alias. */
+                /* FIXME: unimplemented. */
+                issue_unsupported_node_diag("DeclSort::Alias namespace",
+                                            &error_position);
+                il_entity = (char *)error_type();
+                kind = iek_type;
+              } else {
+                unexpected_condition();
+              }  /* if */
+            } else if (tag == ifc_TypeSort_Forall) {
+              an_ifc_TypeSort_Forall itsf, *itsfp;
+              a_token_cache          cache;
+              a_source_position      pos;
+              read_partition_at_index(idstap->aliasee);
+              itsfp = get_TypeSort_Forall(&itsf);
+              source_position_from_locus(&pos, &idstap->locus);
+              /* A template alias; declare a typedef for this case. */
+              if (mep->scope == NULL) {
+                mep->scope = get_ifc_scope(idstap->home_scope);
+                scope_pushed = push_module_declaration_context(mep->scope);
+              }  /* if */
+              clear_token_cache(&cache, /*reuseable=*/FALSE);
+              cache_token(&cache, tok_template, &pos);
+              cache_chart(&cache, itsfp->chart, &idstap->locus);
+              cache_token(&cache, tok_using, &pos);
+              cache_identifier(&cache, get_string_at_offset(idstap->name),
+                               &pos);
+              cache_token(&cache, tok_assign, &pos);
+              cache_type(&cache, itsfp->subject, &idstap->locus);
+              cache_token(&cache, tok_semicolon, &pos);
+              terminate_token_cache(&cache);
+              il_entity = (char*)parse_cached_template(&cache, mep->scope);
+              kind = iek_template;
             } else {
               unexpected_condition();
             }  /* if */
@@ -3400,11 +3497,7 @@ class_struct_union_case:
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
-            a_tmpl_decl_state  decl_state;
-            a_template_ptr     tmpl;
-            a_token_cache      cache;
-            a_token_kind       final_token = tok_semicolon;
-
+            a_token_cache cache;
             if (mep->scope == NULL) {
               mep->scope = get_ifc_scope(idstp->home_scope);
               scope_pushed = push_module_declaration_context(mep->scope);
@@ -3412,41 +3505,7 @@ class_struct_union_case:
             clear_token_cache(&cache, /*reuseable=*/FALSE);
             cache_decl_template(&cache, idstp);
             terminate_token_cache(&cache);
-#if DEBUG
-            if (db_flag_is_set("ms_ifc_token_def")) {
-              pos_in_temp_text_buffer = 0;
-              add_token_cache_to_string(&cache);
-              fprintf(stderr, "Reconstituted template declaration:\n%s\n"
-                              "---------------------\n", temp_text_buffer);
-            }  /* if */
-#endif /* DEBUG */
-            rescan_cached_tokens(&cache);
-            init_decl_parse_state(&dps);
-            init_templ_decl_state(&decl_state, &dps);
-            decl_state.pragmas_bound_to_template =
-                                              extract_curr_construct_pragmas();
-            decl_state.starting_token_sequence_number =
-                                                    curr_token_sequence_number;
-            decl_state.final_token_ptr = &final_token;
-            decl_state.enclosing_scope = mep->scope;
-            template_or_specialization_declaration_full(&decl_state,
-                                                        /*is_generic=*/FALSE,
-                                                        /*orig_dps=*/NULL);
-            if (curr_token != final_token) {
-              expect_error();
-              flush_tokens_without_warning();
-            } else {
-              (void)get_token();
-              if (curr_token == tok_semicolon) {
-                /* Microsoft sometimes adds a semicolon after the final closing
-                   brace. */
-                (void)get_token();
-              }  /* if */
-            }  /* if */
-            check_assertion(curr_token == tok_end_of_source);
-            (void)get_token();
-            tmpl = decl_state.il_template_entry;
-            il_entity = (char*)tmpl;
+            il_entity = (char*)parse_cached_template(&cache, mep->scope);
             kind = iek_template;
           }  /* if */
         }
@@ -4500,23 +4559,10 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
           }  /* switch */
         }
         break;
-      case ifc_TypeSort_Deduced:
-        { an_ifc_TypeSort_Deduced itsd, *itsdp;
-          itsdp = get_TypeSort_Deduced(&itsd);
-          /* This tag has been removed as of IFC version 0.30.  Keep legacy
-             handling in case it's encountered, but issue an unsupported node
-             diagnostic.  Note that the legacy handling may be incorrect in the
-             context of how the node is encountered. */
-          issue_unsupported_node_diag("TypeSort::Deduced", &error_position);
-          if (itsdp->return_type == 0) {
-            result = make_auto_type(&null_source_position,
-                                    /*is_decltype_auto=*/FALSE);
-          } else {
-            result = type_for_type_index(itsdp->return_type, kind);
-            result = add_placeholder_typeref(result,
-                                             /*is_decltype_auto=*/FALSE);
-          }  /* if */
-        }
+      case ifc_TypeSort_Tor:
+        /* This type should only be encountered when processing a constructor,
+           and that is directly handled with that constructor declaration.*/
+        unexpected_condition();
         break;
       case ifc_TypeSort_Placeholder:
         { an_ifc_TypeSort_Placeholder itsp, *itspp;
@@ -5568,6 +5614,18 @@ FIXME: what other types of named declarations can we get here?
         /* Skip straight to the enumerator value. */
         check_assertion(idsep->initializer != 0);
         cp = constant_for_expr_index(idsep->initializer, type);
+      }
+      break;
+    case ifc_DeclSort_Function:
+      { an_error_severity saved_sev = unhandled_ifc_node_severity;
+        /* Since we're creating an error constant this needs to be an error so
+           that we do not proceed to lowering. */
+        unhandled_ifc_node_severity = es_error;
+        issue_unsupported_node_diag("DeclSort::Function"
+                                    " for ExprSort::NamedDecl",
+                                    &error_position);
+        cp = alloc_error_constant();
+        unhandled_ifc_node_severity = saved_sev;
       }
       break;
     default:
@@ -7432,10 +7490,10 @@ location of the entity referring to the type.
         cache_name_from_decl(cache, itsdp->decl, locus);
       }
       break;
-    case ifc_TypeSort_Deduced:
-      { /* This tag has been removed as of IFC version 0.30. */
-        cache_token(cache, tok_auto, &pos);
-      }
+    case ifc_TypeSort_Tor:
+      /* This type should only be encountered when processing a constructor,
+         and that is directly handled with that constructor declaration.*/
+      unexpected_condition();
       break;
     case ifc_TypeSort_Syntactic:
       { an_ifc_TypeSort_Syntactic itss, *itssp;
@@ -8675,6 +8733,8 @@ Add the tokens corresponding to the given template declaration (decl) to cache.
   type = type_for_type_index(decl->type, &kind);
   if (type != NULL && type_is(type, tk_unknown)) {
     /* This is an alias template declaration. */
+    /* As of IFC 0.31, this should no longer be encountered (template aliases
+       are now handled by DeclSort::Alias). */
     check_assertion(name_tag(decl->name) == ifc_NameSort_Identifier);
     cache_token(cache, tok_using, &pos);
     cache_name(cache, decl->name, &decl->locus);
@@ -8917,22 +8977,38 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       break;
     case ifc_DeclSort_Alias:
       { an_ifc_DeclSort_Alias       idsa, *idsap;
-        an_ifc_TypeSort_Fundamental itsf, *itsfp;
+        ifc_TypeSort                tag;
         idsap = get_DeclSort_Alias(&idsa);
-        check_assertion(type_tag(idsap->type) == ifc_TypeSort_Fundamental);
+        tag = type_tag(idsap->type);
         source_position_from_locus(&pos, &idsap->locus);
-        read_partition_at_index(idsap->type);
-        itsfp = get_TypeSort_Fundamental(&itsf);
         cache_access(cache, idsap->access, /*cache_colon=*/TRUE, &pos);
-        if (itsfp->basis == ifc_TypeBasis_Typename) {
+        if (tag == ifc_TypeSort_Fundamental) {
+          an_ifc_TypeSort_Fundamental itsf, *itsfp;
+          read_partition_at_index(idsap->type);
+          itsfp = get_TypeSort_Fundamental(&itsf);
+          if (itsfp->basis == ifc_TypeBasis_Typename) {
+            cache_token(cache, tok_using, &pos);
+          } else {
+            check_assertion(itsfp->basis == ifc_TypeBasis_Namespace);
+            cache_token(cache, tok_namespace, &pos);
+          }  /* if */
+          cache_identifier(cache, get_string_at_offset(idsap->name), &pos);
+          cache_token(cache, tok_assign, &pos);
+          cache_type(cache, idsap->aliasee, &idsap->locus);
+        } else if (tag == ifc_TypeSort_Forall) {
+          an_ifc_TypeSort_Forall itsf, *itsfp;
+          check_assertion(type_tag(idsap->aliasee) == ifc_TypeSort_Forall);
+          read_partition_at_index(idsap->aliasee);
+          itsfp = get_TypeSort_Forall(&itsf);
+          cache_token(cache, tok_template, &pos);
+          cache_chart(cache, itsfp->chart, &idsap->locus);
           cache_token(cache, tok_using, &pos);
+          cache_identifier(cache, get_string_at_offset(idsap->name), &pos);
+          cache_token(cache, tok_assign, &pos);
+          cache_type(cache, itsfp->subject, &idsap->locus);
         } else {
-          check_assertion(itsfp->basis == ifc_TypeBasis_Namespace);
-          cache_token(cache, tok_namespace, &pos);
+          unexpected_condition();
         }  /* if */
-        cache_identifier(cache, get_string_at_offset(idsap->name), &pos);
-        cache_token(cache, tok_assign, &pos);
-        cache_type(cache, idsap->aliasee, &idsap->locus);
         cache_token(cache, tok_semicolon, &pos);
       }
       break;
@@ -9015,6 +9091,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       break;
     case ifc_DeclSort_Constructor:
       { an_ifc_DeclSort_Constructor idsc, *idscp;
+        an_ifc_TypeSort_Tor         itst, *itstp;
         an_ifc_DeclSort_Scope       idss, *idssp;
         ifc_ChartIndex              params = (ifc_ChartIndex)0;
 
@@ -9022,14 +9099,17 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         check_assertion(decl_tag(idscp->home_scope) == ifc_DeclSort_Scope);
         read_partition_at_index(idscp->home_scope);
         idssp = get_DeclSort_Scope(&idss);
-        if (idscp->source != 0) {
+        check_assertion(type_tag(idscp->type) == ifc_TypeSort_Tor);
+        read_partition_at_index(idscp->type);
+        itstp = get_TypeSort_Tor(&itst);
+        if (itstp->source != 0) {
           params = get_func_params_from_trait(decl);
         }  /* if */
         cache_function_decl(cache, /*class_member=*/TRUE, /*is_dtor=*/FALSE,
-                            idscp->access, idscp->convention, idscp->traits,
+                            idscp->access, itstp->convention, idscp->traits,
                             (ifc_FunctionTypeTraits)0, (ifc_TypeIndex)0,
-                            idssp->name, params, idscp->source,
-                            &idscp->eh_spec, &idscp->locus);
+                            idssp->name, params, itstp->source,
+                            &itstp->eh_spec, &idscp->locus);
       }
       break;
     case ifc_DeclSort_InheritedConstructor:
@@ -11855,9 +11935,9 @@ FIXME: more specific
         /* FIXME: Handle this. */
       }
       break;
-    case ifc_TypeSort_Deduced:
-      { an_ifc_TypeSort_Deduced itsd;
-        get_TypeSort_Deduced(&itsd);
+    case ifc_TypeSort_Tor:
+      { an_ifc_TypeSort_Tor itst;
+        get_TypeSort_Tor(&itst);
         /* FIXME: Handle this. */
       }
       break;
@@ -12187,7 +12267,11 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
       break;
     case ifc_DeclSort_Constructor:
       { an_ifc_DeclSort_Constructor idsc, *idscp;
+        an_ifc_TypeSort_Tor         itst, *itstp;
         idscp = get_DeclSort_Constructor(&idsc);
+        check_assertion(type_tag(idscp->type) == ifc_TypeSort_Tor);
+        read_partition_at_index(idscp->type);
+        itstp = get_TypeSort_Tor(&itst);
         str_ifc_common_decl(&idscp->locus, idscp->access,
                             (ifc_BasicSpecifiers)ifc_BasicSpecifiers_Cxx,
                             ifc_ObjectTraits_None, scbp);
@@ -12196,8 +12280,8 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
            type's name by going through the home_scope field. */
         str_ifc_class_name(idscp->home_scope, scbp);
         add_char_to_text_buffer(scbp->text_buffer, '(');
-        if (idscp->source != 0) {
-          str_ifc_type_index(idscp->source, scbp);
+        if (itstp->source != 0) {
+          str_ifc_type_index(itstp->source, scbp);
         }  /* if */
         /* FIXME: todo: idscp->default_arguments */
         add_char_to_text_buffer(scbp->text_buffer, ')');
@@ -12223,22 +12307,29 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
       break;
     case ifc_DeclSort_Alias:
       { an_ifc_DeclSort_Alias       idsta, *idstap;
-        an_ifc_TypeSort_Fundamental itsf, *itsfp;
+        ifc_TypeSort                tag;
         idstap = get_DeclSort_Alias(&idsta);
         /* FIXME: lots missing */
-        check_assertion(type_tag(idstap->type) == ifc_TypeSort_Fundamental);
+        tag = type_tag(idstap->type);
         /* Read the type to see what kind it is. */
-        read_partition_at_index(ifc_type_fundamental,
-                                type_value(idstap->type));
-        itsfp = get_TypeSort_Fundamental(&itsf);
-        if (itsfp->basis == ifc_TypeBasis_Typename) {
-          /* A type alias. */
-          add_string_to_text_buffer(scbp->text_buffer, "typedef ");
-          str_ifc_type_index(idstap->aliasee, scbp);
-          add_char_to_text_buffer(scbp->text_buffer, ' ');
-          str_ifc_text_offset(idstap->name, scbp);
-        } else if (itsfp->basis == ifc_TypeBasis_Namespace) {
-          /* A namespace alias. */
+        read_partition_at_index(idstap->type);
+        if (tag == ifc_TypeSort_Fundamental) {
+          an_ifc_TypeSort_Fundamental itsf, *itsfp;
+          itsfp = get_TypeSort_Fundamental(&itsf);
+          if (itsfp->basis == ifc_TypeBasis_Typename) {
+            /* A type alias. */
+            add_string_to_text_buffer(scbp->text_buffer, "typedef ");
+            str_ifc_type_index(idstap->aliasee, scbp);
+            add_char_to_text_buffer(scbp->text_buffer, ' ');
+            str_ifc_text_offset(idstap->name, scbp);
+          } else if (itsfp->basis == ifc_TypeBasis_Namespace) {
+            /* A namespace alias. */
+            /* FIXME: unimplemented. */
+            unexpected_condition();
+          } else {
+            unexpected_condition();
+          }  /* if */
+        } else if (tag == ifc_TypeSort_Forall) {
           /* FIXME: unimplemented. */
           unexpected_condition();
         } else {

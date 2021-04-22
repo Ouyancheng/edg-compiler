@@ -45,6 +45,7 @@ constexpr a_byte ifc_magic_numbers[] = { 0x54, 0x51, 0x45, 0x1A };
 typedef uint32_t ifc_Index_type;
 
 enum ifc_ActiveMember : uint32_t;
+enum ifc_AttrIndex : ifc_Index_type;
 enum ifc_ByteOffset : uint32_t;
 enum ifc_Cardinality : uint32_t;
 enum ifc_ChartIndex : ifc_Index_type;
@@ -129,7 +130,7 @@ enum ifc_Version : uint8_t;
 enum ifc_WordSort : ifc_Sort_type;
 
 /* Embedded tags: */
-enum ifc_ChartSort : ifc_Sort_type;
+enum ifc_AttrSort : ifc_Sort_type;
 enum ifc_ChartSort : ifc_Sort_type;
 enum ifc_DeclSort : ifc_Sort_type;
 enum ifc_ExprSort : ifc_Sort_type;
@@ -443,7 +444,7 @@ enum ifc_TypeSort : ifc_Sort_type {
   ifc_TypeSort_VendorExtension,
   ifc_TypeSort_Fundamental,
   ifc_TypeSort_Designated,
-  ifc_TypeSort_Deduced,
+  ifc_TypeSort_Tor,
   ifc_TypeSort_Syntactic,
   ifc_TypeSort_Expansion,
   ifc_TypeSort_Pointer,
@@ -959,6 +960,25 @@ enum ifc_ChartSort : ifc_Sort_type {
   ifc_ChartSort_Multilevel,
   /* Must be last. */
   ifc_ChartSort_Last
+};
+
+/* Macros used to access AttrIndex::tag and AttrIndex::value. */
+#define attr_tag(attr) ((ifc_AttrSort)((attr) & 0x0000000F))
+#define attr_value(attr) ((ifc_Index)((attr) >> 4))
+
+/* Enumeration for AttrSort (i.e., kinds of attributes). */
+enum ifc_AttrSort : ifc_Sort_type {
+  ifc_AttrSort_Nothing,
+  ifc_AttrSort_Basic,
+  ifc_AttrSort_Scoped,
+  ifc_AttrSort_Labeled,
+  ifc_AttrSort_Called,
+  ifc_AttrSort_Expanded,
+  ifc_AttrSort_Factored,
+  ifc_AttrSort_Elaborated,
+  ifc_AttrSort_Tuple,
+  /* Must be last. */
+  ifc_AttrSort_Last
 };
 
 /* Enumeration for WordSort (i.e., kinds of words). */
@@ -1655,7 +1675,7 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_type_vendor_extension = ifc_type_start + ifc_TypeSort_VendorExtension,
   ifc_type_fundamental = ifc_type_start + ifc_TypeSort_Fundamental,
   ifc_type_designated = ifc_type_start + ifc_TypeSort_Designated,
-  ifc_type_deduced = ifc_type_start + ifc_TypeSort_Deduced,
+  ifc_type_tor = ifc_type_start + ifc_TypeSort_Tor,
   ifc_type_syntactic = ifc_type_start + ifc_TypeSort_Syntactic,
   ifc_type_expansion = ifc_type_start + ifc_TypeSort_Expansion,
   ifc_type_pointer = ifc_type_start + ifc_TypeSort_Pointer,
@@ -1782,6 +1802,18 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_chart_unilevel = ifc_chart_start + ifc_ChartSort_Unilevel,
   ifc_chart_multilevel = ifc_chart_start + ifc_ChartSort_Multilevel,
   ifc_chart_end = ifc_chart_start + (ifc_ChartSort_Last-1),
+  /* Group all AttrIndex::Tag partitions together. */
+  ifc_attr_start,
+  ifc_attr_nothing = ifc_attr_start + ifc_AttrSort_Nothing,
+  ifc_attr_basic = ifc_attr_start + ifc_AttrSort_Basic,
+  ifc_attr_scoped = ifc_attr_start + ifc_AttrSort_Scoped,
+  ifc_attr_labeled = ifc_attr_start + ifc_AttrSort_Labeled,
+  ifc_attr_called = ifc_attr_start + ifc_AttrSort_Called,
+  ifc_attr_expanded = ifc_attr_start + ifc_AttrSort_Expanded,
+  ifc_attr_factored = ifc_attr_start + ifc_AttrSort_Factored,
+  ifc_attr_elaborated = ifc_attr_start + ifc_AttrSort_Elaborated,
+  ifc_attr_tuple = ifc_attr_start + ifc_AttrSort_Tuple,
+  ifc_attr_end = ifc_attr_start + (ifc_AttrSort_Last-1),
   /* Group all SyntaxIndex::Tag partitions together. */
   ifc_syntax_start,
   ifc_syntax_vendor_extension = ifc_syntax_start +
@@ -2003,6 +2035,7 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_const_i64,
   ifc_const_str,
   ifc_form_spec,
+  ifc_heap_attr,
   ifc_heap_chart,
   ifc_heap_decl,
   ifc_heap_expr,
@@ -2013,6 +2046,7 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_heap_type,
   ifc_msvc_trait_code_segment,
   ifc_msvc_trait_codegen_expr_trees,
+  ifc_msvc_trait_decl_attrs,
   ifc_msvc_trait_entity_init_locus,
   ifc_msvc_trait_impl_pragmas,
   ifc_msvc_trait_named_func_params,
@@ -2065,6 +2099,7 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   /* Not mentioned in spec.  Found in IFC files. */
   { ".msvc.trait.codegen-expression-trees",
                                        ifc_msvc_trait_codegen_expr_trees },
+  { ".msvc.trait.decl-attrs",          ifc_msvc_trait_decl_attrs },
   /* Not mentioned in spec.  Found in IFC files. */
   { ".msvc.trait.entity-initializer-locus", ifc_msvc_trait_entity_init_locus },
   /* Not mentioned in spec.  Found in IFC files. */
@@ -2082,6 +2117,14 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { ".msvc.trait.suppressed-warnings", ifc_msvc_trait_suppressed_warnings },
   { ".msvc.trait.uuid",                ifc_msvc_trait_uuid },
   { ".msvc.trait.vendor-traits",       ifc_msvc_trait_vendor_traits },
+  { "attr.basic",                      ifc_attr_basic },
+  { "attr.called",                     ifc_attr_called },
+  { "attr.elaborated",                 ifc_attr_elaborated },
+  { "attr.expanded",                   ifc_attr_expanded },
+  { "attr.factored",                   ifc_attr_factored },
+  { "attr.labeled",                    ifc_attr_labeled },
+  { "attr.scoped",                     ifc_attr_scoped },
+  { "attr.tuple",                      ifc_attr_tuple },
   { "chart.multilevel",                ifc_chart_multilevel },
   { "chart.none",                      ifc_chart_none },
   { "chart.unilevel",                  ifc_chart_unilevel },
@@ -2184,6 +2227,7 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "expr.vendor-extension",           ifc_expr_vendor_extension },
   { "expr.virtual-function-conversion",ifc_expr_virtual_function },
   { "form.spec",                       ifc_form_spec },
+  { "heap.attr",                       ifc_heap_attr },
   { "heap.chart",                      ifc_heap_chart },
   { "heap.decl",                       ifc_heap_decl },
   { "heap.expr",                       ifc_heap_expr },
@@ -2377,7 +2421,6 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "type.array",                      ifc_type_array },
   { "type.base",                       ifc_type_base },
   { "type.decltype",                   ifc_type_decltype },
-  { "type.deduced",                    ifc_type_deduced },
   { "type.designated",                 ifc_type_designated },
   { "type.expansion",                  ifc_type_expansion },
   { "type.forall",                     ifc_type_forall },
@@ -2392,6 +2435,7 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "type.rvalue-reference",           ifc_type_rvalue_reference },
   { "type.syntactic",                  ifc_type_syntactic },
   { "type.syntax-tree",                ifc_type_syntax_tree },
+  { "type.tor",                        ifc_type_tor },
   { "type.tuple",                      ifc_type_tuple },
   { "type.typename",                   ifc_type_typename },
   { "type.unaligned",                  ifc_type_unaligned },
