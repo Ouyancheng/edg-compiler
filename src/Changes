@@ -1,5 +1,20 @@
 Version 6.3
 
+4/22/21  [EDGcpfe/24185]
+Diagnostics for invalid reinterpret_cast-like operations
+
+Consider:
+
+  template<char (*)()> struct S {};
+  int f();
+  S<(char (*)())f> x;  // Previously accepted.  Now an error.
+
+The cast in the template argument for S has reinterpret_cast semantics, which
+the standard does not allow.  Previously, however, the front end did not
+diagnose the error.  Now, it does, except in Microsoft C++ modes (because
+current Microsoft compilers still accept such code).
+
+
 4/22/21  [EDGcpfe/22347,EDGcpfe/24008,EDGcpfe/24036]
 C++20: Modules Dependency Discovery (P1857R3)
 

@@ -1514,6 +1514,13 @@ type.
        a null pointer value. */
     if (!fold_constant_addr_exprs && !is_null_pointer_value(old_constant)) {
       *did_not_fold = TRUE;
+    } else if (constexpr_enabled && !microsoft_mode &&
+               (int)expr_stack->expression_kind <= (int)ek_template_arg) {
+      /* reinterpret_cast is not permitted in constant-expression contexts.
+         Avoid folding such casts, so that the interpreter can easily
+         recognize attempts at evaluation them.  MSVC does fold those
+         casts (and thus accepts nonstandard cases). */ 
+      *did_not_fold = TRUE;
     }  /* if */
   } else if (related_class_pointers(old_type, new_type,
                                     &baseward_cast, &bcp)) {
