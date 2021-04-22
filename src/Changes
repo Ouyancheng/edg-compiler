@@ -1,5 +1,20 @@
 Version 6.3
 
+4/22/21  [EDGcpfe/21185,EDGcpfe/24187]
+Spurious error on union member designator in GNU and Clang C++ modes
+
+Consider:
+
+  union U {
+    int i;
+    int v = 0;
+  } u = { .v = 5 };  // Now accepted in GNU/Clang C++11 modes.
+
+Previously, the front end issued an error on this example in GNU and Clang
+C++11 modes, even though the corresponding compilers accept this case.  The
+front end now emulates GCC and Clang in this regard.
+
+
 4/20/21  [EDGcpfe/21589,EDGcpfe/22350,EDGcpfe/22465,EDGcpfe/22466]
 C++: Class template argument deduction for aggregates
 

@@ -3320,7 +3320,7 @@ initialization. */
   if (skip_designator) {
     next_icp = next_elem(icp);
   }  /* if */
-  if (!C_mode() && okay &&
+  if (!C_mode() && okay && !type_is(class_type, tk_union) &&
       !class_type->variant.class_struct_union.is_nonreal_class &&
       !symbol_supplement_for_class(class_type)->is_cpp03_POD &&
       !cpp20_designators_restriction) {
