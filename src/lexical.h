@@ -526,6 +526,8 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_explicit */
    (an_opname_kind)onk_none,          /* tok_cpp98_export */
    (an_opname_kind)onk_none,          /* tok_export */
+   (an_opname_kind)onk_none,          /* tok_export_keyword */
+   (an_opname_kind)onk_none,          /* tok_import */
    (an_opname_kind)onk_none,          /* tok_module */
    (an_opname_kind)onk_none,          /* tok_mutable */
    (an_opname_kind)onk_none,          /* tok_namespace */

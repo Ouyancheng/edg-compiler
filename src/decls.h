@@ -21,6 +21,10 @@ decls.h -- Declarations related to decls.c (having to do with scanning
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+/*
+An enumeration to track the stage of a translation unit.  Note that the
+ordering of these enumerations is important.
+*/
 enum a_tu_decl_stage {
   tud_none,			/* No declarations of any kind have been seen
 				   for this translation unit. */
@@ -35,22 +39,40 @@ enum a_tu_decl_stage {
 				   module fragment stage. */
 };
 
-EXTERN a_tu_decl_stage tu_stage;
-EXTERN a_boolean       any_decls_seen_this_stage;
+EXTERN a_tu_decl_stage
+                tu_stage;
+                        /* The stage of the current translation unit.
+                           Originally set to tud_none and is then set to
+                           either tud_basic_tu (if a declaration is seen) or
+                           one of tud_global_module_fgmt or tud_module_unit if
+                           a global module fragment or module declaration
+                           (respectively) are seen.  Should only be set by
+                           calling set_tu_stage. */
 
+EXTERN a_boolean
+                any_decls_seen_this_stage;
+                        /* TRUE if any declaration has been seen in the
+                           current stage of the translation unit. */
+
+/* Helper macro for testing the value of tu_stage. */
 #define tu_stage_is(stage)                                                    \
   (tu_stage == stage)
 
+/* Utility to set the translation unit's stage (and reset declarations). */
 #define set_tu_stage(stage)                                                   \
   { tu_stage = stage;                                                         \
     any_decls_seen_this_stage = FALSE;                                        \
   }
 
-extern a_symbol_ptr curr_module_sym;
+extern a_symbol_ptr
+                curr_module_sym;
+                        /* When compiling a module unit, the symbol for the
+                           module. */
 
 inline a_boolean in_module_unit()
 /*
-Return TRUE if we're in a module unit, FALSE otherwise.
+Return TRUE if we're in a module unit, FALSE otherwise.  Note that the result
+cannot be accurately determined until a module declaration has been seen.
 */
 {
   a_boolean result = curr_module_sym != NULL;
@@ -62,7 +84,9 @@ Return TRUE if we're in a module unit, FALSE otherwise.
 
 inline a_boolean in_module_interface_unit()
 /*
-Return TRUE if we're in a module interface unit, FALSE otherwise.
+Return TRUE if we're in a module interface unit, FALSE otherwise.  Note that
+the result cannot be accurately determined until a module declaration has been
+seen.
 */
 {
   return (in_module_unit() && tu_stage_is(tud_module_unit) &&
@@ -72,7 +96,9 @@ Return TRUE if we're in a module interface unit, FALSE otherwise.
 
 inline a_boolean in_module_implementation_unit()
 /*
-Return TRUE if we're in a module implementation unit, FALSE otherwise.
+Return TRUE if we're in a module implementation unit, FALSE otherwise.  Note
+that the result cannot be accurately determined until a module declaration has
+been seen.
 */
 {
   return (in_module_unit() &&

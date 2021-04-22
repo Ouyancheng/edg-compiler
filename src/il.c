@@ -3681,6 +3681,12 @@ is used.
          value in such cases). */
       curr_seq_number_lookup_entry->last = seq_number - 1;
     }  /* if */
+#if EXPENSIVE_CHECKING
+    if (curr_seq_number_lookup_entry != NULL) {
+      /* Make sure the sequence numbers are in increasing order. */
+      check_assertion(curr_seq_number_lookup_entry->first < seq_number);
+    }  /* if */
+#endif /* EXPENSIVE_CHECKING */
     snlep = alloc_seq_number_lookup_entry();
     if (il_header.num_seq_number_lookup_entries >=
                                                 seq_number_lookup_table_size) {

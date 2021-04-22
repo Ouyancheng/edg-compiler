@@ -13186,92 +13186,160 @@ returns TRUE.  On input symbol points to the symbol for the first token.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static a_boolean modules_pp_directive_is_object_like_macro()
+static a_boolean is_module_pp_directive(a_token_kind *ctoken)
 /*
-Return TRUE if the current characters corresponding to part of a potential
-modules pp-directive (module, import, export) are currently active object-like
-macros.  Otherwise, return FALSE.  The caller is responsible for ensuring that
-curr_char_loc points to the start of the directive and that it matches one of
-the potential modules pp-directives.
+Perform special handling for modules-related preprocessing directives
+"modules", "import" and "export".  Return TRUE (and set *ctoken) if the input
+matches one of these directives:
+
+  pp-module:
+    export    module pp-tokens    ; new-line
+          opt                 opt
+  pp-import:
+    export    import header-name pp-tokens    ; new-line
+          opt                             opt
+    export    import header-name-tokens pp-tokens    ; new-line
+          opt                                    opt
+    export    import pp-tokens ; new-line
+          opt
+
+Note that if "export" matches any of these, the tok_export_keyword (which
+represents export-keyword in the standard) is returned rather than tok_export
+(which represents the export keyword in the standard).
+
+Note also that when "export" is present, this routine is called twice:
+initially to determine which type of "export" it is, and a second time to
+process the "import" or "module" that follows it.
 */
 {
-  a_boolean           result = FALSE;
-  a_symbol_header_ptr sym_hdr;
-  a_symbol_ptr        assoc_symbol;
-  a_symbol_locator    loc;
+  a_boolean         export_seen = FALSE;
+  a_token_kind      token = tok_error, next;
+  a_const_char      *saved_curr_char_loc = curr_char_loc, *start_of_args;
+  a_boolean         saved_fetch_pp_tokens = fetch_pp_tokens;
+  a_boolean         saved_expand_macros = expand_macros;
+  a_source_position start_pos;
 
-  /* We're a bit lucky in that "module", "import", and "export" are all six
-     characters in length - we can hard-code this instead of requiring a
-     parameter to inform us as to the length. */
-  sym_hdr = find_symbol_header(curr_char_loc, 6, &loc);
-  assoc_symbol = symbol_list_for_file_scope_symbols(sym_hdr);
-  if (assoc_symbol != NULL &&
-      assoc_symbol->kind == (a_symbol_kind)sk_macro &&
-      assoc_symbol->variant.macro_def->object_like) {
-    result = TRUE;
+  macro_line_loc_to_source_pos(start_of_curr_token, start_pos)
+  /* All processing in this function is as though we're in a preprocessing
+     directive. */
+  in_preprocessing_directive = TRUE;
+  fetch_pp_tokens = TRUE;
+  expand_macros = FALSE;
+  /* We know the first character is either 'i', 'e', or 'm', and that the
+     caller has verified that these are "import", "export", and "module"
+     respectively, so just use the first character here. */
+  if (*curr_char_loc == 'e') {
+    /* "export" */
+    export_seen = TRUE;
+    curr_char_loc += 6;
+    skip_white_space();
+    start_of_args = curr_char_loc;
   }  /* if */
-  return result;
-}  /* modules_pp_directive_is_object_like_macro */
-
-
-static a_pp_directive_kind get_modules_pp_directive()
-/*
-Scan modules preprocessing directives "import" and "export import".  Note that
-"export" by itself is not a preprocessing directive.  Return the kind of
-directive scanned or ppd_not_valid if neither was found.
-*/
-{
-  a_pp_directive_kind result = ppd_not_valid;
-
-  if (!any_tokens_gotten_from_curr_source_line && module_keywords_enabled) {
-    if (strncmp(curr_char_loc, "import", 6) == 0 &&
-        !is_identifier_char(&curr_char_loc[6], /*len=*/NULL,
-                            /*is_identifier_start=*/FALSE)) {
-      if (modules_pp_directive_is_object_like_macro()) {
-        a_source_position err_pos;
-        conv_line_loc_to_source_pos(curr_char_loc, &err_pos);
-        pos_st_error(ec_macro_in_import_pp_directive, &err_pos, "import");
+  if (*curr_char_loc == 'i' &&
+      (!export_seen ||
+       ((strncmp(curr_char_loc+1, "mport", 5) == 0) &&
+         !is_identifier_char(&curr_char_loc[6], /*len=*/NULL,
+                             /*is_identifier_start=*/FALSE)))) {
+    /* "import" */
+    curr_char_loc += 6;
+    skip_white_space();
+    if (!export_seen) start_of_args = curr_char_loc;
+    next = get_token();
+    if (next == tok_identifier || next == tok_lt || next == tok_colon ||
+        next == tok_string_literal) {
+      token = tok_import;
+    } else {
+      /* We're treating this as an identifier rather than a keyword; that might
+         be fine, but issue a remark just to flag it. */
+      pos_st_remark(ec_identifier_not_keyword, &start_pos, "import");
+    }  /* if */
+  } else if (*curr_char_loc == 'm' &&
+             (!export_seen ||
+              ((strncmp(curr_char_loc+1, "odule", 5) == 0) &&
+                !is_identifier_char(&curr_char_loc[6], /*len=*/NULL,
+                                    /*is_identifier_start=*/FALSE)))) {
+    /* Potential module-keyword; look for an identifier or tok_colon or
+       tok_semicolon to make the final determination. */
+    curr_char_loc += 6;
+    skip_white_space();
+    if (!export_seen) start_of_args = curr_char_loc;
+    next = get_token();
+    if (next == tok_identifier || next == tok_colon ||
+        next == tok_semicolon) {
+      token = tok_module;
+      if (next == tok_semicolon) {
+        /* Already seen a semicolon; skip directly to check for newline. */
+        goto check_for_newline;
       }  /* if */
-      result = ppd_import;
-      curr_char_loc += 6;
-    } else if (strncmp(curr_char_loc, "export", 6) == 0 &&
-               !is_identifier_char(&curr_char_loc[6], /*len=*/NULL,
-                                   /*is_identifier_start=*/FALSE)) {
-      a_const_char      *saved_curr_char_loc = curr_char_loc;
-      a_boolean         export_is_macro = FALSE;
-      a_source_position export_pos;
-
-      check_assertion(start_of_curr_token == curr_char_loc);
-      if (modules_pp_directive_is_object_like_macro()) {
-        conv_line_loc_to_source_pos(curr_char_loc, &export_pos);
-        export_is_macro = TRUE;
-      }  /* if */
-      curr_char_loc += 6;
-      in_preprocessing_directive = TRUE;
-      skip_white_space();
-      in_preprocessing_directive = FALSE;
-      if (strncmp(curr_char_loc, "import", 6) == 0 &&
-          !is_identifier_char(&curr_char_loc[6], /*len=*/NULL,
-                              /*is_identifier_start=*/FALSE)) {
-        if (export_is_macro) {
-          pos_st_error(ec_macro_in_import_pp_directive, &export_pos, "export");
-        }  /* if */
-        if (modules_pp_directive_is_object_like_macro()) {
-          a_source_position err_pos;
-          conv_line_loc_to_source_pos(curr_char_loc, &err_pos);
-          pos_st_error(ec_macro_in_import_pp_directive, &err_pos, "import");
-        }  /* if */
-        result = ppd_export_import;
-        curr_char_loc += 6;
-      } else {
-        curr_char_loc = saved_curr_char_loc;
-      }  /* if */
-      /* skip_white_space sets start_of_curr_token to NULL - re-set it here. */
-      start_of_curr_token = saved_curr_char_loc;
+    } else {
+      /* We're treating this as an identifier rather than a keyword; that might
+         be fine, but issue a remark just to flag it. */
+      pos_st_remark(ec_identifier_not_keyword, &start_pos, "module");
     }  /* if */
   }  /* if */
-  return result;
-}  /* get_modules_pp_directive */
+  if (token != tok_error) {
+    if (!within_curr_source_line(start_of_curr_token)) {
+      /* This appears to be the result of a macro expansion and expanded macros
+         cannot contain preprocessor directives.  Give an error to explain that
+         and let the processing continue as though it is not a preprocessing
+         directive. */
+      pos_error(ec_module_directive_in_macro, &start_pos);
+      token = tok_error;
+    }  /* if */
+    if (token != tok_error) {
+      /* This appears to be a preprocessing directive, but in order to match
+         a pp-import or pp-module directive, there must eventually be a
+         semicolon immediately preceding the first new-line. */
+      do {
+        skip_white_space();
+        next = get_token();
+        if (next == tok_semicolon) {
+check_for_newline:
+          skip_white_space();
+          if (get_token() != tok_newline) {
+            /* No newline after first semicolon. */
+            token = tok_error;
+          }  /* if */
+          break;
+        }  /* if */
+      } while (next != tok_newline && next != tok_end_of_source);
+      if (token == tok_error || next != tok_semicolon) {
+        /* No semicolon found before newline.  This isn't ill-formed, but is
+           unlikely to be what the user is trying to do. */
+        pos_warning(ec_apparent_module_pp_directive, &start_pos);
+        token = tok_error;
+      }  /* if */
+    }  /* if */
+    if (!export_seen && token == tok_module && pp_if_stack_depth != -1) {
+      /* A module directive cannot occur within a #if preprocessor directive.*/
+      pos_error(ec_module_directive_in_if, &start_pos);
+      token = tok_error;
+    }  /* if */
+  }  /* if */
+  /* Always reset to original value. */
+  start_of_curr_token = saved_curr_char_loc;
+  if (token == tok_error) {
+    /* Just a regular identifier; restore things that this routine might
+       have changed. */
+    curr_char_loc = saved_curr_char_loc;
+  } else {
+    /* The input matches the syntax of a preprocessor directive.  If
+       "export" was seen on this invocation, return tok_export_keyword,
+       otherwise return tok_import or tok_module as appropriate. */
+    if (export_seen) {
+      *ctoken = tok_export_keyword;
+    } else {
+      *ctoken = token;
+    }  /* if */
+    /* All tokens here are 6 characters long. */
+    end_of_curr_token = start_of_curr_token + 5;
+    curr_char_loc = start_of_args;
+  }  /* if */
+  in_preprocessing_directive = FALSE;
+  fetch_pp_tokens = saved_fetch_pp_tokens;
+  expand_macros = saved_expand_macros;
+  return token != tok_error;
+}  /* is_module_pp_directive */
 
 
 a_token_kind get_token(void)
@@ -13972,32 +14040,38 @@ literal_prefix_scan:
         goto concatenate_adjacent_string_literals;
       }  /* if */
       /* This can't fall through into the next case. */
-    case 'i':
-    case 'e':
-      { a_pp_directive_kind ppd;
-        a_source_position   start_pos;
-
-        if (currently_in_pp_if_skip) {
-          goto id_scan;
-        }  /* if */
-        macro_line_loc_to_source_pos(start_of_curr_token, start_pos)
-        /* Probably an identifier, but check for import/export import
-           preprocessing directives. */
-        ppd = get_modules_pp_directive();
-        if (ppd == ppd_not_valid) {
-          goto id_scan;
-        } else {
-          remember_token_start();
-          proc_modules_import(ppd, &start_pos);
-	  /* After the directive has been processed, go skip white space and
-	     scan another token. */
-	  skip_white_space();
-	  goto start_of_token_scan;
-        }  /* if */
-      }
+    case 'i':   /* Potentially the beginning of "import" directive. */
+    case 'e':   /* Potentially the beginning of "export" directive. */
+    case 'm':   /* Potentially the beginning of "module" directive. */
+      /* In C++20, the "import", "export", and "module" strings are
+         technically preprocessing directives in some circumstances.  This
+         code determines whether they should be considered as such or should
+         be treated as identifiers.  Check for the desired strings before
+         invoking a function call to probe deeper (because this code is
+         frequently executed, e.g., when paring "int"). */
+      if (module_keywords_enabled &&
+          !in_preprocessing_directive &&
+          (curr_token == tok_export_keyword ||
+           !any_tokens_gotten_from_curr_source_line) &&
+          (((*curr_char_loc == 'i' &&
+                                 strncmp(curr_char_loc+1, "mport", 5) == 0) ||
+            (*curr_char_loc == 'e' &&
+                                 strncmp(curr_char_loc+1, "xport", 5) == 0) ||
+            (*curr_char_loc == 'm' &&
+                                 strncmp(curr_char_loc+1, "odule", 5) == 0)) &&
+           !is_identifier_char(&curr_char_loc[6], /*len=*/NULL,
+                               /*is_identifier_start=*/FALSE)) &&
+          is_module_pp_directive(&ctoken)) {
+        /* It has been determined that the string was indeed a modules-related
+           preprocessor directive and ctoken has been set accordingly. */
+        goto end_of_token_scan;
+      } else {
+        /* Scan as an identifier. */
+        goto id_scan;
+      }  /* if */
       /* This can't fall through into the next case. */
     case 'a': case 'b': case 'c': case 'd': /*above*/ case 'f': case 'g':
-    case 'h': /*above*/ case 'j': case 'k': case 'l': case 'm': case 'n':
+    case 'h': /*above*/ case 'j': case 'k': case 'l': /*above*/ case 'n':
     case 'o': case 'p': case 'q': case 'r': case 's': case 't': /*above*/
     case 'v': case 'w': case 'x': case 'y': case 'z':
     case 'A': case 'B': case 'C': case 'D': case 'E': case 'F': case 'G':

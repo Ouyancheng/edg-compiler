@@ -1220,7 +1220,7 @@ translation of certain characters to UTF-8.
 }  /* extract_header_name */
 
 
-static a_const_char *copy_header_name(a_boolean process_escapes)
+a_const_char *copy_header_name(a_boolean process_escapes)
 /*
 Allocate and copy the file name from the current token (a header name).
 Escapes in the string are processed only if process_escapes is TRUE.
@@ -1436,201 +1436,6 @@ pass_stdarg_references_to_generated_code.
     }  /* if */
   }  /* if */
 }  /* proc_include */
-
-
-static a_boolean check_module_already_imported(a_module_import_decl_ptr midp)
-/*
-Check if the module import declaration imports a module that has already been
-imported.  If so, return TRUE and update *midp to refer to the original import
-declaration.  Otherwise, return FALSE and leave *midp unmodified.
-*/
-{
-  a_boolean    already_included = FALSE;
-  a_module_ptr mod = midp->module_info;
-
-  for (a_module_import_decl_ptr ptr = il_header.imported_modules;
-       ptr != NULL; ptr = ptr->next) {
-    a_boolean    same_name, same_file;
-
-    /* Check both the name of the module and the resolved module file (a header
-       unit could possibly reference the same module file from multiple
-       paths). */
-    same_name = (strcmp(ptr->module_info->name, mod->name) == 0);
-    same_file = (mod->full_name != NULL &&
-                 strcmp(ptr->module_info->full_name, mod->full_name) == 0);
-    if (same_name || same_file) {
-      pos_st_remark(ec_module_already_imported, &midp->module_name_position,
-                    mod->name);
-      *midp = *ptr;
-      already_included = TRUE;
-      break;
-    }  /* if */
-  }  /* for */
-  return already_included;
-}  /* check_module_already_imported */
-
-
-void import_header_module(a_module_import_decl_ptr midp)
-/*
-Import the given header module.
-*/
-{
-  /* See if there's a known module file for the imported header and import
-     that file if so. */
-  if (find_module_file(midp->module_info, (a_module_kind)mk_any)) {
-    if (!check_module_already_imported(midp)) {
-      import_module_file(midp);
-      /* Add this to the list of imported modules regardless of whether the
-         import was successful - future attempts to import the same module
-         aren't likely to succeed if this one failed. */
-      midp->next = il_header.imported_modules;
-      il_header.imported_modules = midp;
-    }  /* if */
-  } else {
-    /* The set of importable headers is implementation defined.  Currently no
-       headers are importable. */
-    pos_st_catastrophe(ec_header_not_importable, &midp->module_name_position,
-                       midp->module_info->name);
-  }  /* if */
-}  /* import_header_module */
-
-
-void import_module(a_module_import_decl_ptr midp,
-                   a_symbol_ptr             assoc_sym)
-/*
-Import the given module.  assoc_sym is the associated symbol for the module.
-*/
-{
-  a_boolean already_included = FALSE;
-
-  /* See if this module has already been imported.  If so, ignore it. */
-  already_included = check_module_already_imported(midp);
-  if (!already_included &&
-      !check_module_has_interface_dependency(assoc_sym, curr_module_sym,
-                                             &midp->module_name_position)) {
-    if (find_module_file(midp->module_info, (a_module_kind)mk_any)) {
-      import_module_file(midp);
-    }  /* if */
-    /* Add this to the list of imported modules regardless of whether the
-       import was successful - future attempts to import the same module
-       aren't likely to succeed if this one failed. */
-    midp->next = il_header.imported_modules;
-    il_header.imported_modules = midp;
-  }  /* if */
-}  /* import_module */
-
-
-void import_curr_module()
-/*
-Import the module referred to by the current module unit.
-*/
-{
-  a_module_import_decl_ptr midp;
-
-  check_assertion(in_module_implementation_unit());
-  midp = alloc_module_import_decl();
-  midp->position = curr_module_sym->decl_position;
-  midp->module_name_position = curr_module_sym->decl_position;
-  midp->module_info = alloc_module((a_module_kind)mk_any);
-  midp->module_info->name = curr_module_sym->header->identifier;
-  import_module(midp, curr_module_sym);
-}  /* import_curr_module */
-
-
-void proc_modules_import(a_pp_directive_kind   ppd,
-                         a_source_position_ptr start_pos)
-/*
-Process an import directive for a module.  ppd can be either ppd_import or
-ppd_export_import (if the import is exported).  Module imports can take the
-following forms:
-
-  import <module-name>;            // Named module import
-  import :<module-partition-name>; // Module partition import
-  import <header-name>             // Header import
-
-A named module import imports the primary module interface, whereas the module
-partition import imports just that module partition.  The latter can only be
-done from within a module unit.
-
-A header import is similar to a #include directive but does not insert the
-header into the source.  Instead it behaves as if the header is a module with
-somewhat different rules (notably it does introduce macros).  A header import
-can only occur inside a global module fragment.
-*/
-{
-  a_module_import_decl_ptr midp;
-  an_attribute_ptr         attributes = NULL;
-  a_symbol_ptr             module_sym = NULL;
-  a_boolean                err = FALSE;
-
-  if (generate_pp_output) {
-    pass_directive_to_output();
-    goto done;
-  }  /* if */
-  if (!modules_enabled) {
-    pos_error(ec_modules_not_enabled, start_pos);
-    err = TRUE;
-  }  /* if */
-  midp = alloc_module_import_decl();
-  midp->position = *start_pos;
-  if (scope_stack_top().in_export_block) {
-    pos_error(ec_export_cannot_contain_import, start_pos);
-  }  /* if */
-  if (ppd == ppd_export_import && !in_module_interface_unit()) {
-    pos_error(ec_export_only_in_modules, start_pos);
-  }  /* if */
-  if (get_header_name()) {
-    check_assertion(curr_token == tok_header_name);
-    midp->module_name_position = pos_curr_token;
-    midp->module_info = alloc_module((a_module_kind)mk_header);
-    midp->module_info->name = copy_header_name(/*process_escapes=*/FALSE);
-    midp->module_info->is_sys_include = (*start_of_curr_token == '<');
-  } else {
-    a_symbol_ptr      primary_name, partition_name;
-    a_source_position pos = pos_curr_token;
-
-    scan_module_name(&primary_name, &partition_name);
-    if (locator_for_curr_id.is_error) {
-      err = TRUE;
-    }  /* if */
-    if (primary_name == NULL && partition_name != NULL &&
-        curr_module_sym != NULL) {
-      primary_name = curr_module_sym->variant.module_info.primary_name;
-    }  /* if */
-    if (!err && primary_name == NULL) {
-      /* Trying to import a module with no name.  Either something like
-         "import :foo" without a current module unit, or the module unit was
-         declared without a name (already diagnosed). */
-      pos_error(ec_cannot_import_module_with_no_name, &pos);
-      err = TRUE;
-    }  /* if */
-    module_sym = make_module_symbol(primary_name, partition_name,
-                                    /*is_interface=*/TRUE, &pos);
-    /* FIXME: attach symbol to the appropriate place */
-    /* We don't currently know what kind of module this is. */
-    midp->module_name_position = pos;
-    midp->module_info = alloc_module((a_module_kind)mk_any);
-    midp->module_info->name = module_sym->header->identifier;
-  }  /* if */
-  if (!err) {
-    attributes = scan_attributes(al_module);
-  }  /* if */
-  /* Do not allow pragmas to bind to module import declarations. */
-  cannot_bind_to_curr_construct();
-  attach_attributes(attributes, (char*)midp, iek_module_import_decl);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  add_to_source_sequence_list((char*)midp, iek_module_import_decl);
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-  if (!err) {
-    error_position = midp->module_name_position;
-    if (midp->module_info->kind == (a_module_kind)mk_header) {
-      import_header_module(midp);
-    } else {
-      import_module(midp, module_sym);
-    }  /* if */
-  }  /* if */
-done:;
-}  /* proc_modules_import */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -4544,7 +4349,9 @@ following the processing of a preincluded file.
 void pp_directive(void)
 /*
 The "#" of a preprocessor directive is the current character.  Scan and
-execute the preprocessor directive.
+execute the preprocessor directive.  Note that this routine handles all
+of the preprocessor directives that begin with "#"; the modules-related
+preprocessor directives are handled by is_module_pp_directive.
 */
 {
   a_boolean	     	save_fetch_pp_tokens = fetch_pp_tokens;

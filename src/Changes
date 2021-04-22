@@ -1,5 +1,13 @@
 Version 6.3
 
+4/22/21  [EDGcpfe/22347,EDGcpfe/24008,EDGcpfe/24036]
+C++20: Modules Dependency Discovery (P1857R3)
+
+A change has been made to implement committee paper P1857R3 which deals with
+restricting the syntax of the C++20 modules feature to enable fast dependency
+scanning via partial preprocessing.
+
+
 4/22/21  [EDGcpfe/21185,EDGcpfe/24187]
 Spurious error on union member designator in GNU and Clang C++ modes
 

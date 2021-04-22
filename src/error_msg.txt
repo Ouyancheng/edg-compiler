@@ -3256,7 +3256,7 @@ ec_unsupported_ifc_file_version;;"IFC file %sq has unsupported version %d1.%d2"
 ec_modules_not_enabled;;"modules are not enabled in this mode"
 ec_import_name_not_allowed;;"\"import\" is not allowed in a module name"
 ec_module_name_not_allowed;;"\"module\" is not allowed in a module name"
-ec_macro_in_import_pp_directive;;"%sq cannot be a macro when used in an import directive"
+REMOVED;ec_macro_in_import_pp_directive;;"%sq cannot be a macro when used in an import directive"
 REMOVED;ec_macro_in_module_pp_directive;;"%sq cannot be a macro when used in a module directive"
 ec_not_an_enum_type;;"%n is not an enumeration type"
 ec_using_enum_conflicts;;"enumerator %no2 conflicts with %n1"
@@ -3265,6 +3265,14 @@ ec_empty_throw_specification_not_cpp20;;"the \"throw()\" specification is not pa
 ec_multiple_header_map_matches;;"more than entry in the header unit map matches \"%s\""
 ec_exp_push_pop;;"#pragma diagnostic must have either 'push' or 'pop' argument"
 ec_no_corresponding_push;;"no '#pragma diagnostic push' was found to match this 'diagnostic pop'"
+ec_macro_in_pp_directive;;"%sq cannot be a macro when used in an import or module directive"
+ec_not_global_namespace;;"this directive can only appear in the global namespace scope"
+ec_export_not_at_namespace_scope;;"an \"export\" declaration can appear only at global or namespace scope"
+ec_identifier_not_keyword;;"%sq is parsed as an identifier rather than a keyword because the tokens that follow it do not match those of a preprocessor directive"
+ec_apparent_module_pp_directive;;"this appears to be the start of a preprocessor directive, but the lack of a ';' followed immediately by a newline prevents that"
+ec_module_directive_in_macro;;"this appears to be a modules preprocessing directive, but such directives cannot appear within a macro expansion"
+ec_module_directive_in_if;;"a \"module\" directive cannot appear within the scope of conditional inclusion (e.g., #if, #else, #elseif, etc.)"
+ec_import_skipped;;"the import of %sq has been skipped"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

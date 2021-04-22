@@ -19358,6 +19358,67 @@ decl_pos_block.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 }  /* typedef_declaration */
 
+/*
+Utility macro that returns TRUE if curr_token is one of tok_export or
+tok_export_keyword (for cases where it doesn't matter).
+*/
+#define curr_token_is_export() \
+  (curr_token == tok_export || curr_token == tok_export_keyword)
+
+
+static inline a_boolean cursory_modules_check(void)
+/*
+Return TRUE if the current modules-related declaration (based upon curr_token
+which is one of module, import, or export) passes some basic tests: the
+"keyword" must not be an object-like macro and must appear at the proper scope.
+Otherwise an error is generated, FALSE is returned and the remaining portion of
+the declaration is flushed.
+*/
+{
+  a_boolean           err = FALSE;
+  a_symbol_header_ptr sym_hdr;
+  a_symbol_ptr        assoc_symbol;
+  a_symbol_locator    loc;
+  a_const_char        *token_string;
+
+  /* We're a bit lucky in that "module", "import", and "export" are all six
+     characters in length - we can hard-code this instead of requiring a
+     parameter to inform us as to the length. */
+  switch (curr_token) {
+    case tok_module: token_string = "module"; break;
+    case tok_import: token_string = "import"; break;
+    case tok_export_keyword:
+    case tok_export: token_string = "export"; break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  sym_hdr = find_symbol_header(token_string, 6, &loc);
+  assoc_symbol = symbol_list_for_file_scope_symbols(sym_hdr);
+  if (assoc_symbol != NULL &&
+      assoc_symbol->kind == (a_symbol_kind)sk_macro &&
+      assoc_symbol->variant.macro_def->object_like) {
+    /* Can't be defined as an object-like macro. */
+    pos_st_error(ec_macro_in_pp_directive, &pos_curr_token, token_string);
+    err = TRUE;
+  }  /* if */
+  if ((curr_token == tok_import || curr_token == tok_module) &&
+      depth_scope_stack != DEPTH_OF_FILE_SCOPE) {
+    /* Not at global namespace scope. */
+    pos_error(ec_not_global_namespace, &pos_curr_token);
+    err = TRUE;
+  } else if (curr_token_is_export() &&
+             !is_file_or_namespace_scope(&scope_stack_top())) {
+    /* Not at namespace scope. */
+    pos_error(ec_export_not_at_namespace_scope, &pos_curr_token);
+    err = TRUE;
+  }  /* if */
+  if (err) {
+    /* Flush until semicolon. */
+    flush_tokens();
+  }  /* if */
+  return !err;
+}  /* cursory_modules_check */
+
 
 static void export_declaration()
 /*
@@ -19373,59 +19434,173 @@ An export declaration can take the following forms:
   a_boolean         block_export = FALSE;
   a_source_position export_pos = pos_curr_token;
 
-  db_enter(3, "export_declaration");
-  /* Advance past the "export" token. */
-  (void)get_token();
-  if (curr_token == tok_lbrace) {
-    block_export = TRUE;
-    saved_in_export_block = scope_stack_top().in_export_block;
-    scope_stack_top().in_export_block = TRUE;
-    add_stop_token(tok_rbrace);
-  }  /* if */
-  if (scope_stack_top().exporting_decl) {
-    pos2_diagnostic(es_error, ec_export_cannot_contain_export, &export_pos,
-                    &scope_stack_top().export_pos);
-  } else {
-    scope_stack_top().exporting_decl = TRUE;
-    scope_stack_top().export_pos = export_pos;
-  }  /* if */
-  (void)check_context_sensitive_keyword(tok_module, "module");
-  if (!in_module_interface_unit() && curr_token != tok_module) {
-    an_error_severity severity = es_discretionary_error;
-    if (microsoft_mode) {
-      severity = es_warning;
-    }  /* if */
-    pos_diagnostic(severity, ec_export_only_in_modules, &export_pos);
-  }  /* if */
-  if (block_export) {
-    a_decl_sequence_number old_decl_seq_counter = decl_seq_counter;
-    /* Advance past the "{". */
+  add_stop_token(tok_semicolon);
+  if (cursory_modules_check()) {
+    /* Advance past the "export" token. */
     (void)get_token();
-    while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
+    if (curr_token == tok_lbrace) {
+      block_export = TRUE;
+      saved_in_export_block = scope_stack_top().in_export_block;
+      scope_stack_top().in_export_block = TRUE;
+    }  /* if */
+    if (scope_stack_top().exporting_decl) {
+      /* Can't nest export declarations. */
+      pos2_diagnostic(es_error, ec_export_cannot_contain_export, &export_pos,
+                      &scope_stack_top().export_pos);
+    } else {
+      scope_stack_top().exporting_decl = TRUE;
+      scope_stack_top().export_pos = export_pos;
+    }  /* if */
+    if (!in_module_interface_unit() && curr_token != tok_module) {
+      an_error_severity severity = es_discretionary_error;
+      if (microsoft_mode) {
+        severity = es_warning;
+      }  /* if */
+      pos_diagnostic(severity, ec_export_only_in_modules, &export_pos);
+    }  /* if */
+    if (block_export) {
+      a_decl_sequence_number old_decl_seq_counter = decl_seq_counter;
+      /* Advance past the "{". */
+      add_stop_token(tok_rbrace);
+      (void)get_token();
+      while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
+        declaration(/*function_definition_allowed=*/TRUE,
+                    /*is_old_style_param_decl=*/FALSE,
+                    /*is_top_level_declaration=*/FALSE,
+                    /*marked_as_gnu_extension=*/FALSE,
+                    (a_param_id_ptr)NULL, (a_source_range *)NULL);
+      }  /* while */
+      remove_stop_token(tok_rbrace);
+      (void)required_token(tok_rbrace, ec_exp_rbrace);
+      if (decl_seq_counter == old_decl_seq_counter) {
+        pos_error(ec_export_must_introduce_name, &export_pos);
+      }  /* if */
+      scope_stack_top().in_export_block = saved_in_export_block;
+    } else {
       declaration(/*function_definition_allowed=*/TRUE,
                   /*is_old_style_param_decl=*/FALSE,
                   /*is_top_level_declaration=*/FALSE,
                   /*marked_as_gnu_extension=*/FALSE,
                   (a_param_id_ptr)NULL, (a_source_range *)NULL);
-    } /* while */
-    remove_stop_token(tok_rbrace);
-    (void)required_token(tok_rbrace, ec_exp_rbrace);
-    if (decl_seq_counter == old_decl_seq_counter) {
-      pos_error(ec_export_must_introduce_name, &export_pos);
     }  /* if */
-    scope_stack_top().in_export_block = saved_in_export_block;
-  } else {
-    declaration(/*function_definition_allowed=*/TRUE,
-                /*is_old_style_param_decl=*/FALSE,
-                /*is_top_level_declaration=*/FALSE,
-                /*marked_as_gnu_extension=*/FALSE,
-                (a_param_id_ptr)NULL, (a_source_range *)NULL);
+    if (!scope_stack_top().in_export_block) {
+      scope_stack_top().exporting_decl = FALSE;
+    }  /* if */
   }  /* if */
-  if (!scope_stack_top().in_export_block) {
-    scope_stack_top().exporting_decl = FALSE;
-  }  /* if */
-  db_exit();
+  remove_stop_token(tok_semicolon);
+  /* No semicolon processing is performed here. */
 }  /* export_declaration */
+
+
+static void import_curr_module(void)
+/*
+Import the module referred to by the current module unit.
+*/
+{
+  a_module_import_decl_ptr midp;
+
+  check_assertion(in_module_implementation_unit());
+  midp = alloc_module_import_decl();
+  midp->position = curr_module_sym->decl_position;
+  midp->module_name_position = curr_module_sym->decl_position;
+  midp->module_info = alloc_module((a_module_kind)mk_any);
+  midp->module_info->name = curr_module_sym->header->identifier;
+  import_module(midp, curr_module_sym);
+}  /* import_curr_module */
+
+
+static void import_declaration(void)
+/*
+Process an import declaration.  Module imports can take the following forms:
+
+  import-keyword module-name attribute-specifier-seq    ;      # Named module
+                                                    opt
+  import-keyword module-partition attribute-specifier-seq    ; # Module part.
+                                                         opt
+  import-keyword header-name attribute-specifier-seq    ;      # Header import
+                                                    opt
+
+A named module import imports the primary module interface, whereas the module
+partition import imports just that module partition.  The latter can only be
+done from within a module unit.
+
+A header import is similar to a #include directive but does not insert the
+header into the source.  Instead it behaves as if the header is a module with
+somewhat different rules (notably it does introduce macros).  A header import
+can only occur inside a global module fragment.
+
+If scope_stack_top().exporting_decl is TRUE, this import declaration was
+preceded by an export-keyword.
+*/
+{
+  a_module_import_decl_ptr midp;
+  an_attribute_ptr         attributes = NULL;
+  a_symbol_ptr             module_sym = NULL;
+  a_boolean                err = FALSE;
+
+  add_stop_token(tok_semicolon);
+  if (cursory_modules_check()) {
+    midp = alloc_module_import_decl();
+    midp->position = pos_curr_token;
+    if (scope_stack_top().in_export_block) {
+      pos_error(ec_export_cannot_contain_import, &pos_curr_token);
+    }  /* if */
+    check_assertion(!in_preprocessing_directive && !fetch_pp_tokens);
+    /* Scan the header name (if there is one).  Note that no get_token is
+       performed to skip tok_import (that is done automatically by
+       get_header_name. */
+    (void)get_header_name();
+    if (curr_token == tok_header_name) {
+      midp->module_name_position = pos_curr_token;
+      midp->module_info = alloc_module((a_module_kind)mk_header);
+      midp->module_info->name = copy_header_name(/*process_escapes=*/FALSE);
+      midp->module_info->is_sys_include = (*start_of_curr_token == '<');
+      (void)get_token();
+    } else {
+      a_symbol_ptr      primary_name, partition_name;
+      a_source_position pos = pos_curr_token;
+      scan_module_name(&primary_name, &partition_name);
+      if (locator_for_curr_id.is_error) {
+        err = TRUE;
+      }  /* if */
+      if (primary_name == NULL && partition_name != NULL &&
+          curr_module_sym != NULL) {
+        primary_name = curr_module_sym->variant.module_info.primary_name;
+      }  /* if */
+      if (!err && primary_name == NULL) {
+        /* Trying to import a module with no name.  Either something like
+           "import :foo" without a current module unit, or the module unit was
+           declared without a name (already diagnosed). */
+        pos_error(ec_cannot_import_module_with_no_name, &pos);
+        err = TRUE;
+      }  /* if */
+      module_sym = make_module_symbol(primary_name, partition_name,
+                                      /*is_interface=*/TRUE, &pos);
+      /* FIXME: attach symbol to the appropriate place */
+      /* We don't currently know what kind of module this is. */
+      midp->module_name_position = pos;
+      midp->module_info = alloc_module((a_module_kind)mk_any);
+      midp->module_info->name = module_sym->header->identifier;
+    }  /* if */
+    if (!err) {
+      attributes = scan_attributes(al_module);
+    }  /* if */
+    attach_attributes(attributes, (char*)midp, iek_module_import_decl);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+    add_to_source_sequence_list((char*)midp, iek_module_import_decl);
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    if (!err) {
+      error_position = midp->module_name_position;
+      if (midp->module_info->kind == (a_module_kind)mk_header) {
+        import_header_module(midp);
+      } else {
+        import_module(midp, module_sym);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  remove_stop_token(tok_semicolon);
+  /* The caller will verify that a semicolon follows. */
+}  /* import_declaration */
 
 
 static void decl_global_module_fragment(a_source_position_ptr module_pos)
@@ -19485,10 +19660,19 @@ left unchanged.
 {
   a_source_position module_pos = pos_curr_token;
   a_symbol_ptr      primary_name, partition_name;
+  a_boolean         err = FALSE;
   
   scan_module_name(&primary_name, &partition_name);
   if (primary_name == NULL) {
     pos_error(ec_module_req_primary_name, &module_pos);
+    err = TRUE;
+  }  /* if */
+  if (curr_token != tok_semicolon) {
+    /* Look ahead to make sure a semicolon follows the name -- otherwise the
+       declaration is ill-formed and there's no sense trying to import a
+       "module" that might not be there.  No diagnostic is issued here
+       (the caller does that). */
+    err = TRUE;
   }  /* if */
   if (!(tu_stage_is(tud_none) || tu_stage_is(tud_global_module_fgmt))) {
     an_error_severity severity = es_discretionary_error;
@@ -19499,15 +19683,18 @@ left unchanged.
       severity = es_warning;
     }  /* if */
     pos_diagnostic(severity, err_code, &module_pos);
+    if (severity != es_warning) err = TRUE;
   }
-  if (curr_module_sym == NULL) {
-    curr_module_sym = make_module_symbol(primary_name, partition_name,
-                                         is_interface, &module_pos);
-    set_tu_stage(tud_module_unit);
-    if (!is_interface && partition_name == NULL) {
-      /* A non-interface module declaration with no partition implicitly
-         imports its own primary interface unit. */
-      import_curr_module();
+  if (!err) {
+    if (curr_module_sym == NULL) {
+      curr_module_sym = make_module_symbol(primary_name, partition_name,
+                                           is_interface, &module_pos);
+      set_tu_stage(tud_module_unit);
+      if (!is_interface && partition_name == NULL) {
+        /* A non-interface module declaration with no partition implicitly
+           imports its own primary interface unit. */
+        import_curr_module();
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* decl_module */
@@ -19522,8 +19709,8 @@ A module declaration can take the following forms:
         [export] module A[.B]*[:PA[.PB]*]; // Module unit
         module : private;                  // Private module fragment
 
-A well formed module declaration will change the translation unit stage to
-match what has been declared.
+A well formed module declaration will change the translation unit stage (i.e.,
+tu_stage) to match what has been declared.
 */
 {
   a_source_position module_pos;
@@ -19531,26 +19718,31 @@ match what has been declared.
 
   check_assertion(curr_token == tok_module);
   module_pos = pos_curr_token;
-  (void)get_token();
-  if (curr_token == tok_semicolon) {
-    /* A global module fragment. */
-    if (exported) {
-      pos_st_error(ec_cannot_export_fgmt, &scope_stack_top().export_pos,
-                   "global");
+  add_stop_token(tok_semicolon);
+  if (cursory_modules_check()) {
+    (void)get_token();
+    if (curr_token == tok_semicolon) {
+      /* A global module fragment. */
+      if (exported) {
+        pos_st_error(ec_cannot_export_fgmt, &scope_stack_top().export_pos,
+                     "global");
+      }  /* if */
+      decl_global_module_fragment(&module_pos);
+    } else if (curr_token == tok_colon && next_token() == tok_private) {
+      /* A private module fragment. */
+      (void)get_token(); /* Advance to tok_private. */
+      if (exported) {
+        pos_st_error(ec_cannot_export_fgmt, &scope_stack_top().export_pos,
+                     "private");
+      }  /* if */
+      decl_private_module_fragment();
+    } else {
+      /* A module unit (primary or partition) */
+      decl_module(exported || tu_is_module_interface);
     }  /* if */
-    decl_global_module_fragment(&module_pos);
-  } else if (curr_token == tok_colon && next_token() == tok_private) {
-    /* A private module fragment. */
-    (void)get_token(); /* Advance to tok_private. */
-    if (exported) {
-      pos_st_error(ec_cannot_export_fgmt, &scope_stack_top().export_pos,
-                   "private");
-    }  /* if */
-    decl_private_module_fragment();
-  } else {
-    /* A module unit (primary or partition) */
-    decl_module(exported || tu_is_module_interface);
   }  /* if */
+  remove_stop_token(tok_semicolon);
+  /* Caller takes care of semicolon. */
 }  /* module_declaration */
 
 
@@ -19694,6 +19886,23 @@ is not used.*/
   }  /* if */
   remove_stop_token(tok_semicolon);
 }  /* using_enum_declaration */
+
+
+static inline a_boolean check_modules_enabled(void)
+/*
+Issue an error and skip to the next semicolon if modules are not enabled in the
+current mode.  Return TRUE if modules are enabled in this mode (and FALSE
+otherwise).
+*/
+{
+  if (!modules_enabled) {
+    pos_error(ec_modules_not_enabled, &pos_curr_token);
+    add_stop_token(tok_semicolon);
+    flush_tokens();
+    remove_stop_token(tok_semicolon);
+  }  /* if */
+  return modules_enabled;
+}  /* check_modules_enabled */
 
 
 static an_end_of_decl_action
@@ -19856,20 +20065,16 @@ processing should proceed after the call.
       }  /* if */
       cannot_bind_to_curr_construct();
       end_of_decl_action = eoda_check_semicolon;
-    } else if (module_keywords_enabled &&
-               check_context_sensitive_keyword(tok_module, "module")) {
+    } else if (curr_token == tok_module && check_modules_enabled()) {
       /* A module declaration (global module fragment, module unit, private
          module fragment). */
       end_potential_abbr_func_templ_caching(state);
       disallow_attributes(&state->prefix_attributes, es_error);
-      if (!modules_enabled) {
-        pos_error(ec_modules_not_enabled, &pos_curr_token);
-      }  /* if */
       module_declaration();
       cannot_bind_to_curr_construct();
       end_of_decl_action = eoda_check_semicolon;
       goto done;
-    } else if (curr_token == tok_export) {
+    } else if (curr_token_is_export() && check_modules_enabled()) {
       /* An "export" declaration.  Attributes cannot begin an "export"
          declaration. */
       end_potential_abbr_func_templ_caching(state);
@@ -19878,6 +20083,15 @@ processing should proceed after the call.
       export_declaration();
       cannot_bind_to_curr_construct();
       end_of_decl_action = eoda_skip_final_token;
+    } else if (curr_token == tok_import && check_modules_enabled()) {
+      /* An "import" declaration.  Attributes cannot begin an "import"
+         declaration. */
+      end_potential_abbr_func_templ_caching(state);
+      disallow_attributes(&state->prefix_attributes, es_error);
+      discard_curr_construct_pragmas();
+      import_declaration();
+      cannot_bind_to_curr_construct();
+      end_of_decl_action = eoda_check_semicolon;
     } else if (cpp11_mode && curr_token == tok_semicolon) {
       /* C++11 allows empty declarations. */
       cannot_bind_to_curr_construct();
@@ -19905,8 +20119,16 @@ processing should proceed after the call.
     }  /* if */
   }  /* if */
   if (!scanning_generated_code) {
-    if (!any_decls_seen_this_stage) any_decls_seen_this_stage = TRUE;
-    if (tu_stage_is(tud_none)) set_tu_stage(tud_basic_tu);
+    if (tu_stage_is(tud_none)) {
+      /* It was previously unknown what type of translation unit was being
+         compiled, but neither a global module fragment nor a module
+         declaration have been seen before the first declaration, so this must
+         not be a module unit. */
+      set_tu_stage(tud_basic_tu);
+    }  /* if */
+    /* Record that a declaration has been seen in this stage of the translation
+       unit. */
+    any_decls_seen_this_stage = TRUE;
   }  /* if */
   if (end_of_decl_action != eoda_not_at_end) {
     /* Nothing more to do in this routine. */
@@ -21165,18 +21387,27 @@ parse state with fields described by the corresponding given parameters.
 
 void translation_unit(void)
 /*
-Scan a translation-unit (3.7).  This is the topmost syntactic entity in
-a compilation.  The syntax is
+Scan a translation-unit.  This is the topmost syntactic entity in a
+compilation.  The C syntax is
 
-3.7    translation-unit:
-		external-declaration
-		translation-unit external-declaration
+  translation-unit:
+    external-declaration
+    translation-unit external-declaration
 
-In C++, however, the declaration list is optional (3.4):
+In C++, however, the declaration list is optional and, starting with C++20,
+module units are also accepted [basic.link]:
 
-       translation-union:
-                declaration-seq
-                               opt
+  translation-unit:
+    declaration-seq
+                   opt
+    global-module-fragment    module-declaration declaration-seq
+                          opt                                   opt
+                                                    private-module-fragment
+                                                                           opt
+Note that the parsing of a module unit is not syntax-driven from the top,
+rather declarations are scanned and the state of the translation unit (as
+kept in tu_stage) is updated (by module_declaration) as module declarations
+are encountered.
 */
 {
   if (using_a_pch_file) {

@@ -35,6 +35,8 @@ BEGIN_EDG_NAMESPACE
 
 /*
 If this list is updated, be sure to change pp_directive_kind_names below.
+Note that the "import", "export", and "module" preprocessor directives are
+handled outside of this framework (see is_module_pp_directive).
 */
 typedef enum /*a_pp_directive_kind*/ {
   /* Enumeration of preprocessing directives. */
@@ -50,8 +52,7 @@ typedef enum /*a_pp_directive_kind*/ {
 #if ATT_PREPROCESSING_EXTENSIONS_ALLOWED
   ppd_assert, ppd_unassert,
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
-  ppd_import,
-  ppd_export_import,
+  ppd_import,         /* #import Microsoft extension */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ppd_using,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -94,7 +95,6 @@ EXTERN a_const_char
     "unassert",
 #endif /* ATT_PREPROCESSING_EXTENSIONS_ALLOWED */
     "import",
-    "export import",
 #if MICROSOFT_EXTENSIONS_ALLOWED
     "using",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -287,15 +287,7 @@ EXTERN a_gcc_pragma_options_entry_ptr
 			   values). */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 
-extern void proc_modules_import(a_pp_directive_kind   ppd,
-                                a_source_position_ptr start_pos);
-
-extern void import_header_module(a_module_import_decl_ptr midp);
-
-extern void import_module(a_module_import_decl_ptr midp,
-                          a_symbol_ptr             assoc_sym);
-
-extern void import_curr_module();
+extern a_const_char *copy_header_name(a_boolean process_escapes);
 
 /* Scan a preprocessing directive. */
 extern void pp_directive(void);

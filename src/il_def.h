@@ -1173,9 +1173,11 @@ typedef enum /*a_token_kind*/ {
   tok_const_cast,
   tok_dynamic_cast,
   tok_explicit,
-  tok_cpp98_export,
-  tok_export,
-  tok_module,
+  tok_cpp98_export,     /* Used for deprecated "export" templates. */
+  tok_export,           /* Used for the "export" keyword. */
+  tok_export_keyword,   /* Used for export-keyword in the language. */
+  tok_import,           /* Used for import-keyword in the language. */
+  tok_module,           /* Used for module-keyword in the language. */
   tok_mutable,
   tok_namespace,
   tok_reinterpret_cast,
@@ -1436,7 +1438,8 @@ EXTERN a_const_char
    "::", ".*", "->*", "asm", "catch", "class", "delete", "friend",
    "inline", "new", "operator", "private", "protected", "public",
    "template", "this", "throw", "try", "virtual", "wchar_t",
-   "const_cast", "dynamic_cast", "explicit", "export", "export", "module",
+   "const_cast", "dynamic_cast", "explicit",
+   "export", "export", "export", "import", "module",
    "mutable", "namespace", "reinterpret_cast", "static_cast", "typeid",
    "using", "bool", "false", "true", "typename", "static_assert", "decltype",
    "__typeof__", "__auto_type", "__extension__", "__null",

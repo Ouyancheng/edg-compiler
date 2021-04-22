@@ -211,6 +211,11 @@ struct an_edg_module : public a_module_interface {
 };  /* an_edg_module */
 /*lint -restore*/
 
+extern void import_header_module(a_module_import_decl_ptr midp);
+
+extern void import_module(a_module_import_decl_ptr midp,
+                          a_symbol_ptr             assoc_sym);
+
 #if DEBUG
 extern void db_module(a_module_ptr mod);
 
