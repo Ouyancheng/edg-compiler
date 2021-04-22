@@ -277,7 +277,8 @@ otherwise return NULL.
   locator.is_file_scope_qualified_name = TRUE;
   check_assertion(!C_mode());
   sym = find_external_symbol(&locator, (a_name_linkage_kind)nlk_external,
-                             rout_type, &ext_locator);
+                             rout_type, (a_requires_clause*)NULL,
+                             &ext_locator);
   /* See if we found a suitable symbol.  Require an exact match on
      the symbol name (to prevent re-using an existing routine that may
      differ only in case sensitivity or number of unique significant

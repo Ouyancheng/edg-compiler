@@ -3168,7 +3168,12 @@ a_boolean constraint_satisfied(an_expr_node_ptr      constraint,
                                a_boolean             *p_fatal = NULL,
                                a_boolean             *p_copy_error = NULL);
 
-extern void check_eligibility(a_decl_parse_state  *dps);
+an_expr_node_ptr  substitute_expr(an_expr_node_ptr           expr,
+                                  a_subst_pairs_array const  &subst_pairs,
+                                  a_ctws_state               *ctws_state,
+                                  a_constant_ptr             cp,
+                                  a_constant_ptr             *p_allocated_cp,
+                                  a_boolean                  *p_err);
 
 extern
 a_boolean check_type_constraint(a_type_ptr                 type,

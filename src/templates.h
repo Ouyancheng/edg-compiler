@@ -511,6 +511,9 @@ extern void get_substitution_pairs_for_template_class(
                                            a_template_param_ptr  *p_t_params,
                                            a_template_arg_ptr    *p_t_args);
 
+extern void get_all_class_subst_pairs(a_type_ptr           class_type,
+                                      a_subst_pairs_array  *p_array);
+
 extern a_subst_pairs_array get_current_subst_pairs(void);
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
@@ -930,7 +933,7 @@ extern a_symbol_ptr copy_parent_type_with_substitution(
 
 extern a_variable_ptr copy_template_variable_with_substitution(
 			a_variable_ptr			var,
-			a_template_arg_ptr		*templ_arg_list,
+			a_template_arg_ptr		templ_arg_list,
 			a_template_param_ptr		templ_param_list,
 			a_source_position		*source_pos,
 			a_ctws_options_set		options,

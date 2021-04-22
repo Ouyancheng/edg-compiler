@@ -2285,7 +2285,6 @@ typedef int a_ctws_options_set;
 #define CTWS_EXPLICIT_CAST_OPERAND	0x8000
 			/* TRUE when CTWS_CAST_OPERAND is TRUE and the
 			   associated cast is explicit in the source. */
-
 #define CTWS_IN_PARENT_SUBSTITUTION	0x10000
 			/* TRUE when substitution is being recursively
 			   performed on parent template parameters and
@@ -3311,6 +3310,16 @@ extern an_expr_node_ptr unwrap_if_tpck_expression(an_expr_node_ptr  expr);
 extern a_boolean compare_expressions(an_expr_node_ptr                node1,
                                      an_expr_node_ptr                node2,
                                      a_compare_constants_options_set options);
+
+
+inline a_requires_clause_ptr trailing_requires_clause(a_routine_ptr  rp)
+/*
+Return the trailing requires-clause associated with rp, if any.
+*/
+{
+  return rp->trailing_requires_clause;
+}  /* trailing_requires_clause */
+
 
 extern a_boolean equiv_requires_clauses(a_requires_clause_ptr  rcp1,
                                         a_requires_clause_ptr  rcp2);

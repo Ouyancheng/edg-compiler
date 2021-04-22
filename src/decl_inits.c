@@ -515,8 +515,8 @@ vp had an incomplete array type that has been completed by an initializer.
     if (!is_error_locator(locator)) {
       name_linkage = symbol_ptr->
                            variant.variable.ptr->source_corresp.name_linkage;
-      ext_sym = find_external_symbol(&locator, name_linkage,
-                                     (a_type_ptr)NULL, &ext_locator);
+      ext_sym = find_external_symbol(&locator, name_linkage, (a_type_ptr)NULL,
+                                     (a_requires_clause*)NULL,&ext_locator);
       check_assertion(ext_sym != NULL);
       (void)reconcile_external_symbol_types(ext_sym, source_pos, vp_type,
                                             es_error);

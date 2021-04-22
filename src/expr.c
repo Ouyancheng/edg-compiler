@@ -36065,15 +36065,15 @@ normal_function:
         case sk_member_function:
           if (force_indefinite_function) goto overloaded_function;
           /* Static member functions are handled like normal functions. */
-          routine_ptr = sym_ptr->variant.routine.ptr;
-          if (routine_ptr->is_ineligible) {
+          if (is_ineligible(sym_ptr)) {
             if (expr_error_should_be_issued()) {
               pos_sy_error(ec_ineligible_member_function,
-                           &locator.source_position, symbol_for(routine_ptr));
+                           &locator.source_position, sym_ptr);
             }  /* if */
             make_error_operand(result);
             break;
           }  /* if */
+          routine_ptr = sym_ptr->variant.routine.ptr;
           if (!routine_type_is_nonstatic_member_function(routine_ptr->type)) {
             goto normal_function;
           }  /* if */
@@ -47100,8 +47100,10 @@ Scan a C++20-style requires-clause, of the form:
 
 where <limited-expr> is an expression that is composed only of primary
 expressions (in the standard sense) and logical "or" and "and" operators.
-If discard is TRUE, discard the representation of the clause and return NULL.
-Otherwise, return a pointer to that representation.
+If discard is TRUE, this is called for the instantiation of a template and
+the clause was previously scanned in its generic form: discard the tokens of
+the instantiated requires-clause and return instead its generic representation.
+If discard is FALSE, return a pointer to the scanned representation.
 */
 {
   a_requires_clause_ptr    rcp = NULL;
@@ -47133,12 +47135,8 @@ Otherwise, return a pointer to that representation.
     }  /* if */
     scan_expr(&opnd, PREC_QUEST_MARK,
               EOPT_CONSTRAINT_EXPR | EOPT_REQUIRES_CLAUSE);
-    if (!discard) {
-      rcp->constraint = make_node_from_operand(&opnd);
-      check_and_adjust_constraint_expression(rcp->constraint);
-    } else {
-      reclaim_fs_nodes_of_operand(&opnd);
-    }  /* if */
+    rcp->constraint = make_node_from_operand(&opnd);
+    check_and_adjust_constraint_expression(rcp->constraint);
     pop_expr_stack();
     restore_expr_stack(saved_expr_stack);
     scope_stack_top().implicit_typename = saved_implicit_typename;
@@ -47149,12 +47147,14 @@ Otherwise, return a pointer to that representation.
     rrd.requires_clause = rcp;
     (void)requires_ranges->map_or_replace(requires_tsn, rrd);
   } else {
-    /* Discard the requires clause (presumably because this is a real
+    /* Discard the requires clause tokens (presumably because this is a real
        instantiation).  Retrieve from requires_ranges the token sequence
        number of the token following the clause.  For trailing requires
        clauses, that token might have been replaced by a tok_end_of_source
-       entry. */
+       entry.  Set rcp to the requires-clause representation that was created
+       when these tokens were originally parsed. */
     rrd = requires_ranges->get(requires_tsn);
+    rcp = rrd.requires_clause;
     check_assertion(rrd.next_tsn != a_token_sequence_number());
     while (curr_token_sequence_number < rrd.next_tsn &&
            curr_token != tok_end_of_source) {
@@ -47290,39 +47290,22 @@ is TRUE if the expression is the immediate operand of an "&" operator.
       check_assertion(sym != NULL);
       break;
     case enk_variable:
-      { a_variable_ptr               var = expr->variant.variable.ptr;
-        a_variable_template_info_ptr vtip = var->template_info;
+      { a_variable_ptr  var = expr->variant.variable.ptr;
         /* For a variable template, find the instance based on the
            substituted arguments. */
         if (var->is_nonreal && !var->is_prototype_instantiation) {
           a_boolean            copy_error = FALSE;
-          a_template_arg_ptr   t_args = vtip->template_arg_list;
-          a_template_param_ptr t_params;
-          a_symbol_ptr         t_sym = symbol_for(vtip->assoc_template);
-          a_template_symbol_supplement_ptr
-                               tssp;
-          tssp = t_sym->variant.template_info;
-          t_params = tssp->variant.variable.decl_cache.decl_info->parameters;
-          t_args =
-              copy_template_arg_list_with_substitution_rebuilding_arg_operands(
-                  t_sym, t_args, t_params,
-                  rcblock->template_arg_list, rcblock->template_param_list,
-                  &rcblock->expr->position, rcblock->options,
-                  &copy_error, rcblock->ctws_state);
-          if (copy_error) {
-            /* Don't attempts to find a matching instance. */
-          } else {
-            var = copy_template_variable_with_substitution(
-                          var, &t_args, t_params,
+          var = copy_template_variable_with_substitution(
+                          var, rcblock->template_arg_list,
+                          rcblock->template_param_list,
                           &rcblock->expr->position, rcblock->options,
                           &copy_error, rcblock->ctws_state);
-            if (var == NULL) {
-              /* Substitution failed (presumably because the constraints were
-                 not satisfied). */
-              copy_error = TRUE;
-            } else {
-              sym = symbol_for(var);
-            }  /* if */
+          if (var == NULL) {
+            /* Substitution failed (e.g., because the constraints were not
+               satisfied). */
+            copy_error = TRUE;
+          } else {
+            sym = symbol_for(var);
           }  /* if */
           if (copy_error) {
             subst_fail(rcblock->error_detected);

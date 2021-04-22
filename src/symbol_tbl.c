@@ -4013,6 +4013,7 @@ state.
     case sk_member_function:
       sym_ptr->variant.routine.ptr = NULL;
       sym_ptr->variant.routine.instance_ptr = NULL;
+      sym_ptr->variant.routine.pending_trailing_requires_clause = FALSE;
       break;
     case sk_label:
       sym_ptr->variant.label.ptr = NULL;
@@ -8319,6 +8320,83 @@ call of file_scope_id_lookup or namespace_qualified_id_lookup.
 }  /* look_up_name_string_in_namespace */
 
 
+a_boolean resolve_pending_trailing_requires_clause(a_symbol_ptr  sym)
+/*
+sym represents a member function or a friend function of a class template
+instance with a requires-clause whose satisfaction has not been resolved yet.
+Resolve it now (by substituting the requires-clause constraint.  Return TRUE
+if the constraints fails, or FALSE otherwise.
+*/
+{
+  a_routine_ptr          rp = sym->variant.routine.ptr;
+  a_requires_clause_ptr  rcp = rp->trailing_requires_clause;;
+  a_subst_pairs_array    subst_pairs(1);
+  a_subst_pairs_descr    top_pair;
+  an_expr_node_ptr       constraint;
+  a_boolean              err = FALSE;
+  a_type_ptr             enclosing_class;
+
+  if (symbol_is(sym, sk_member_function)) {
+    enclosing_class = sym_parent_class(sym);
+  } else {
+    /* A friend function defined in a class template instance. */
+    check_assertion(rp->routine_fixup != NULL);
+    enclosing_class = class_from_routine_fixup(rp->routine_fixup);
+  }  /*if */
+  sym->variant.routine.pending_trailing_requires_clause = FALSE;
+  /* Identify all the substitutions applicable to the constraint. */
+  get_all_class_subst_pairs(enclosing_class, &subst_pairs);
+  /* We are going to substitute the constraint from the outside in.  All but
+     the last substitution are ordinary expression substitutions, and the last
+     one will go through the constraint satisfaction test. */
+  top_pair = subst_pairs.back_elem();
+  subst_pairs.pop_back();
+  constraint = rcp->constraint;
+  if (subst_pairs.length() != 0) {
+    a_constant_ptr  cp = local_constant(), allocated_cp = NULL;
+    a_ctws_state    ctws_state;
+    init_ctws_state(&ctws_state);
+    constraint = substitute_expr(rcp->constraint, subst_pairs, &ctws_state,
+                                 cp, &allocated_cp, &err);
+    if (err) {
+    } else if (constraint != NULL) {
+      release_local_constant(&cp);
+    } else {
+      if (allocated_cp == NULL) {
+        /* The constant result was constructed in *cp: Move it to file
+           scope memory. */
+        allocated_cp = move_local_constant_to_il(&cp);
+      } else {
+        release_local_constant(&cp);
+      }  /* if */
+      constraint = alloc_node_for_constant(allocated_cp);
+    }  /* if */
+  }  /* if */
+  if (!err) {
+    a_diag_list  diag_list;
+    a_type_ptr   enclosing_template_class = enclosing_class;
+    while (class_type_supp(enclosing_template_class)->assoc_template == 0) {
+      enclosing_template_class = parent_class_of(enclosing_template_class);
+    }  /* while */
+    push_class_reactivation_scope(enclosing_class, /*extend_namespace=*/FALSE);
+    push_instantiation_scope_for_rescan(
+       symbol_for(class_type_supp(enclosing_template_class)->assoc_template));
+    clear_diag_list(&diag_list);
+    if (!constraint_satisfied(constraint,
+                              top_pair.args, top_pair.params,
+                              &diag_list, &err)) {
+      err = TRUE;
+    }  /* if */
+    pop_instantiation_scope_for_rescan();
+    pop_class_reactivation_scope();
+  }  /* if */
+  if (err) {
+    rp->is_ineligible = TRUE;
+  }
+  return err;
+}  /* resolve_pending_trailing_requires_clause */
+
+
 static a_symbol_ptr make_internal_template(a_const_char    *symbol_name,
                                            a_const_char    *definition_string,
                                            a_namespace_ptr ns_ptr,
@@ -10034,6 +10112,7 @@ If not, expand ident_buffer by reallocating it.
 a_symbol_ptr f_find_external_symbol(a_symbol_locator     *location,
                                     a_name_linkage_kind  linkage,
                                     a_type_ptr           rout_type,
+                                    a_requires_clause    *trcp,
                                     a_boolean            c_overload,
                                     a_symbol_locator     *ext_location)
 /*
@@ -10049,8 +10128,9 @@ to be unique (with some exceptions for global variable and entities with C
 name linkage), whereas in C we allow for differences in external names
 due to truncation.  If c_overload is TRUE, this is a case where the Clang
 "overloadable" attribute was specified: Even in C-mode this requires a type
-check.  For function cases, rout_type is the type of the function.  linkage
-is the name-linkage of the entity being declared by the identifier.
+check.  For function cases, rout_type is the type of the function and trcp
+is the trailing-requires-clause (NULL if none).  linkage is the name-linkage
+of the entity being declared by the identifier.
 */
 {
   a_symbol_header_ptr hdr_ptr;
@@ -10166,8 +10246,8 @@ is the name-linkage of the entity being declared by the identifier.
                                   variant.variable->source_corresp;
       } else if (sym->kind == (a_symbol_kind)sk_extern_routine) {
         sym_is_variable = FALSE;
-        scp = &sym->variant.extern_symbol_descr->
-                                  variant.routine.ptr->source_corresp;
+        scp = &sym->variant.extern_symbol_descr->variant.routine.ptr
+                                               ->source_corresp;
       } else {
         /* Ignore other symbols on the list.  These include synthesized
            namespace projection symbols, and unknown function symbols. */
@@ -10245,13 +10325,19 @@ is the name-linkage of the entity being declared by the identifier.
           if (param_types_are_compatible(rout_type, other_type,
                                          TCF_NO_FLAGS)) {
             /* Param types are compatible, so we have a match, unless a
-               special situation applies.  The only such special situation
-               at this time occurs with the enable_if attributes. */
-            if (!(rout_type->variant.routine.extra_info
+               special situation applies.  The first such special situation
+               is if we have incompatible requires clauses (e.g., on friend
+               function declarations).  The other such special situation
+               occurs with mismatched enable_if attributes. */
+            a_requires_clause_ptr  old_trcp = esdp->variant.routine.ptr
+                                                  ->trailing_requires_clause;
+            if ((old_trcp == trcp ||
+                 equiv_requires_clauses(old_trcp, trcp)) &&
+                (!(rout_type->variant.routine.extra_info
                                                  ->has_enable_if_attribute ||
-                  other_type->variant.routine.extra_info
+                   other_type->variant.routine.extra_info
                                                  ->has_enable_if_attribute) ||
-                compatible_enable_if_attributes(rout_type, other_type)) {
+                 compatible_enable_if_attributes(rout_type, other_type))) {
               break;
             }  /* if */
           }  /* if */
@@ -11760,8 +11846,7 @@ that can be called with zero arguments.
       pos_ty_error(ec_ambiguous_default_constructor, err_pos, class_type);
     }  /* if */
     local_err = TRUE;
-  } else if (ctor_sym == NULL ||
-             ctor_sym->variant.routine.ptr->is_ineligible) {
+  } else if (ctor_sym == NULL || is_ineligible(ctor_sym)) {
     if (trivial && ctor_sym == NULL) {
       /* The class has an implicit (not user-declared) trivial default
          constructor.  Note that we get here for the combination of
@@ -11776,7 +11861,7 @@ that can be called with zero arguments.
       } else {
         a_diagnostic_ptr dp;
         an_error_code    err_code = ec_no_default_constructor;
-        if (ctor_sym != NULL && ctor_sym->variant.routine.ptr->is_ineligible) {
+        if (ctor_sym != NULL && is_ineligible(ctor_sym)) {
           err_code = ec_ineligible_default_constructor;
         }  /* if */
         dp = pos_ty_start_error(err_code, err_pos, class_type);
@@ -12017,8 +12102,7 @@ and do not issue any diagnostics (including warnings).
     } else {
       pos_ty_error(ec_ambiguous_copy_constructor, err_pos, class_type);
     }  /* if */
-  } else if (cctor_sym == NULL ||
-             cctor_sym->variant.routine.ptr->is_ineligible) {
+  } else if (cctor_sym == NULL || is_ineligible(cctor_sym)) {
     /* No applicable copy constructor. */
     if (class_type->variant.class_struct_union.copy_ctor_decl_suppressed &&
         allow_suppressed_ctor) {

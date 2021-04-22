@@ -8164,7 +8164,9 @@ static void scan_trailing_requires_clause(a_decl_parse_state  *dps,
 The current token is "requires" following an otherwise-complete declarator
 described by dps, func_info, and loc.  Parse or skip the requires-clause that
 presumably follows, as appropriate, and update dps->trailing_requires_clause
-as needed.
+as needed.  (Note that N4885 [temp.inst]/17 makes it clear that (trailing)
+requires clauses aren't instantiated when a member function of a template
+class is partially instantiated.
 */
 {
   a_boolean  discard_clause = dps->is_template_rescan,
@@ -8176,14 +8178,17 @@ as needed.
     if (is_unspecialized_template_class(class_type) &&
         !class_type->variant.class_struct_union.is_prototype_instantiation) {
       /* When instantiating ordinary members of class templates, ignore the
-         requires clause.  It will be substituted later. */
+         requires-clause tokens.  The requires-clause recorded for the
+         prototype instantiation will be recorded instead, and will be
+         substituted at the first point of reference. */
+      discard_clause = TRUE;
       is_ordinary_member_instantiation = TRUE;
     }  /* if */
   }  /* if */
   if (!type_is(dps->type, tk_routine) ||
       (!(is_template_dependent_context() &&
-                dps->function_definition_allowed) &&
-       !discard_clause && !is_ordinary_member_instantiation)) {
+         dps->function_definition_allowed) &&
+       !discard_clause)) {
     pos_error(ec_trailing_requires_clause_not_on_template, &pos_curr_token);
   }  /* if */
   /* Reactivate any parent scope and the function parameter scope. */
@@ -8225,7 +8230,7 @@ as needed.
     pop_namespace_reactivation_scope();
   }  /* if */
   if (is_ordinary_member_instantiation) {
-    check_eligibility(dps);
+    dps->pending_trailing_requires_clause = TRUE;
   }  /* if */
 }  /* scan_trailing_requires_clause */
 

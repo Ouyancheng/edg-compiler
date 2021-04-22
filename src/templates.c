@@ -1224,7 +1224,7 @@ itself recursively to process classes nested within this class.
        will be generated even if the instantiation required flag is not set. */
     rout = ctsp->assoc_scope->routines;
     while (rout != NULL) {
-      sym = (a_symbol_ptr)rout->source_corresp.assoc_info;
+      sym = symbol_for(rout);
       tip = sym->variant.routine.instance_ptr;
       if (tip == NULL) {
         /* Under certain conditions the instance pointer will be NULL.  This
@@ -1233,8 +1233,6 @@ itself recursively to process classes nested within this class.
       } else if (rout->is_prototype_instantiation) {
         /* Don't add prototype instantiations of member templates to the
            instantiations required list. */
-      } else if (rout->is_ineligible) {
-        /* Don't instantiate ineligible members. */
       } else {
         /* Simply add the function to the instantiation list, without setting
            the flag. */
@@ -1437,6 +1435,29 @@ Otherwise, set *p_t_params and *p_t_args to NULL.
 }  /* get_substitution_pairs_for_template_class */
 
 
+void get_all_class_subst_pairs(a_type_ptr           class_type,
+                               a_subst_pairs_array  *p_array)
+/*
+Accumulate in *p_array the substitution pairs of class types and all its
+enclosing template class types, if any (starting from the outermost).
+*/
+{
+  do {
+    if (class_type->variant.class_struct_union.is_template_class &&
+        !class_type->variant.class_struct_union.is_specialized) {
+      a_subst_pairs_descr  pspd = { NULL, NULL, FALSE, FALSE };
+      get_substitution_pairs_for_template_class(class_type,
+                                                &pspd.params, &pspd.args);
+      p_array->push_back(pspd);
+    }  /* if */
+    class_type = parent_class_or_null(class_type);
+  } while (class_type != NULL);
+  if (p_array->length() > 1) {
+    reverse_array(p_array->begin(), p_array->length());
+  }  /* if */
+}  /* get_all_class_subst_pairs */
+
+
 a_subst_pairs_array get_current_subst_pairs(void)
 /*
 Return an array describing the substitution pairs for the entity currently
@@ -1451,19 +1472,7 @@ being instantiated.
     issep = &scope_stack[depth_innermost_instantiation_scope];
     sym = issep->template_sym;
     if (sym != NULL && sym->is_class_member) {
-      a_type_ptr  parent_class = sym_parent_class(sym);
-      do {
-        if (parent_class->variant.class_struct_union.is_template_class) {
-          a_subst_pairs_descr  pspd = { NULL, NULL, FALSE, FALSE };
-          get_substitution_pairs_for_template_class(parent_class,
-                                                    &pspd.params, &pspd.args);
-          result.push_back(pspd);
-        }  /* if */
-        parent_class = parent_class_or_null(parent_class);
-      } while (parent_class != NULL);
-      if (result.length() > 1) {
-        reverse_array(&result[0], result.length());
-      }  /* if */
+      get_all_class_subst_pairs(sym_parent_class(sym), &result);
     }  /* if */
     if (issep->template_arg_list != NULL) {
       a_subst_pairs_descr  spd = { issep->template_decl_info->parameters,
@@ -13593,7 +13602,7 @@ Otherwise, return the original template.
 
 a_variable_ptr copy_template_variable_with_substitution(
 			a_variable_ptr			var,
-			a_template_arg_ptr		*templ_arg_list,
+			a_template_arg_ptr		templ_arg_list,
 			a_template_param_ptr		templ_param_list,
 			a_source_position		*source_pos,
 			a_ctws_options_set		options,
@@ -13606,43 +13615,66 @@ templ_param_list.  Return a pointer to the resulting variable, or NULL
 if an error occurred.
 */
 {
-  a_variable_ptr  result_var = var;
-  a_symbol_ptr    var_templ_sym;
-  a_template_ptr  var_templ;
+  a_variable_ptr      result_var = var;
+  a_symbol_ptr        var_templ_sym;
+  a_template_ptr      var_templ;
+  a_template_arg_ptr  t_args = var->template_info->template_arg_list;
 
   var_templ = var->template_info->assoc_template;
   var_templ_sym = symbol_for(var_templ);
   /* If this is a class member, substitute the parent. */
-  if (var_templ_sym->is_class_member) {
+  if (var_templ_sym->is_class_member &&
+      sym_parent_class(var_templ_sym)
+                              ->variant.class_struct_union.is_nonreal_class) {
     a_symbol_ptr	sym;
     a_type_ptr		parent_type;
     sym = symbol_for(var);
     parent_type = parent_class_of(var);
     check_assertion(sym != NULL);
     sym = copy_parent_type_with_substitution(var_templ_sym, parent_type,
-                                             *templ_arg_list, templ_param_list,
+                                             templ_arg_list, templ_param_list,
                                              source_pos,
                                              /*is_type=*/FALSE,
                                              options,
                                              copy_error, ctws_state);
     if (sym != NULL) sym = fundamental_symbol_of(sym);
-    if (sym == NULL || !symbol_is(sym, sk_variable_template)) {
+    if (sym == NULL) {
       /* The variable was specified as something like A<T>::B, but the
-         substituted "A<T>" does not contain a B, or the B found is not
-         a variable template. */
+         substituted "A<T>" does not contain a B. */
       subst_fail(*copy_error);
       var = NULL;
-    } else {
+    } else if (symbol_is(sym, sk_variable_template)) {
+      /* A<T>::B is a variable template as expected: Substitute it below. */
       var = variable_for_symbol(sym);
+      var_templ = var->template_info->assoc_template;
+      var_templ_sym = symbol_for(var_templ);
+    } else if (is_nontype_template_param_symbol(sym)) {
+      /* A dependent construct.  Don't attempt to substitute it, but don't
+         fail substitution either. */
+      var = NULL;
+    } else {
+      /* Something unexpected: Fail substitution. */
+      subst_fail(*copy_error);
+      var = NULL;
     }  /* if */
   }  /* if */
   if (var != NULL) {
-    a_symbol_ptr    sym;
-    var_templ = var->template_info->assoc_template;
-    var_templ_sym = symbol_for(var_templ);
-    sym = find_template_variable(var_templ_sym, templ_arg_list,
-                                 /*prototype_allowed=*/FALSE,
-                                 /*is_use=*/TRUE, /*diagnose=*/FALSE);
+    a_symbol_ptr          sym;
+    a_template_param_ptr  t_params;
+    a_template_symbol_supplement_ptr
+                          tssp = var_templ_sym->variant.template_info;
+    t_params = tssp->variant.variable.decl_cache.decl_info->parameters;
+    t_args = copy_template_arg_list_with_substitution_rebuilding_arg_operands(
+                                 var_templ_sym, t_args, t_params,
+                                 templ_arg_list, templ_param_list,
+                                 source_pos, options, copy_error, ctws_state);
+    if (!*copy_error) {
+      sym = find_template_variable(var_templ_sym, &t_args,
+                                   /*prototype_allowed=*/FALSE,
+                                   /*is_use=*/TRUE, /*diagnose=*/FALSE);
+    } else {
+      sym = NULL;
+    }  /* if */
     if (sym != NULL) {
       result_var = variable_for_symbol(sym);
     } else {
@@ -19861,6 +19893,7 @@ found_sym:
     /* A placeholder a_template entry was created in the prototype
        instantiation.  It serves as the associated "template". */
     rp->assoc_template = proto_rp->assoc_template;
+    rp->trailing_requires_clause = proto_rp->trailing_requires_clause;
     if (proto_rp->is_deleted) rp->is_deleted = TRUE;
     if (proto_rp->is_defaulted) rp->is_defaulted = TRUE;
     check_for_function_template_default_args(

@@ -17040,7 +17040,7 @@ reference entry, or is NULL if none is needed.
   if (expr_stack->suppress_diagnostics) {
     /* Catch some invalid situations that would otherwise result in actual
        errors later on. */
-    if (routine->is_ineligible) {
+    if (is_ineligible(routine_sym)) {
       record_suppressed_error();
       make_error_operand(result);
       goto done;
@@ -25054,10 +25054,6 @@ p_fatal and p_copy_error are NULL by default.
                                                   CTWS_NO_OPTIONS,
                                                   &copy_error, &ctws_state);
       scope_stack_top().in_concept_rescan = saved_in_concept_rescan;
-    } else {
-      /* The concept-id is already fully non-dependent.  This occurs when
-         called from check_eligibility. */
-      new_args = old_args;
     }  /* if */
     push_instantiation_scope_for_rescan(sym);
     scope_stack_top().in_concept_rescan = TRUE;
@@ -25182,7 +25178,8 @@ p_fatal and p_copy_error are NULL by default.
         allocated_cp = cached_subst.constant;
       }  /* if */
     } else {
-      /* No parameters: This occurs when called from check_eligibility. */
+      /* No parameters: This can occur when called from
+         resolve_pending_trailing_requires_clause. */
       expr = constraint;
     }  /* if */
     if (copy_error) {
@@ -25248,29 +25245,56 @@ p_fatal and p_copy_error are NULL by default.
 }  /* constraint_satisfied */
 
 
-void check_eligibility(a_decl_parse_state  *dps)
+an_expr_node_ptr substitute_expr(an_expr_node_ptr           expr,
+                                 a_subst_pairs_array const  &subst_pairs,
+                                 a_ctws_state               *ctws_state,
+                                 a_constant_ptr             cp,
+                                 a_constant_ptr             *p_allocated_cp,
+                                 a_boolean                  *p_err)
 /*
-dps is associated with a declarator of an ordinary member of a real class
-template instantiation that has a trailing requires clause.  If the clause
-is not satisfied, set dps->ineligible to TRUE.
+Substitute the given expression with all the template parameter/argument pairs
+in subst_pairs (if there are multiple pairs in the array, the first ones
+represent enclosing class template instances).  ctws_state is the substitution
+state to use throughout this process.  If the result of the substitution is a
+general expression, return its representation.  If it is a constant that is
+already allocated in the IL, return it through *p_allocated_cp.  If it is
+another constant value, record that value in *cp.  If the substitution fails
+at any stage, set *p_err to TRUE.
 */
 {
-  a_requires_clause_ptr  rcp = dps->trailing_requires_clause;
+  a_constant_ptr     allocated_cp = NULL;
+  int                levels = (int)subst_pairs.length();
+  a_source_position  *pos = &expr->position;
 
-  if (rcp != NULL && rcp->constraint != NULL) {
-    a_boolean    err = FALSE;
-    a_diag_list  diag_list;
-    clear_diag_list(&diag_list);
-    if (!constraint_satisfied(rcp->constraint, (a_template_arg_ptr)NULL,
-                              (a_template_param_ptr)NULL, &diag_list, &err)) {
-      dps->ineligible = TRUE;
+  for (int k = 0; k < levels && !*p_err; ++k) {
+    a_subst_pairs_descr const  *spd = &subst_pairs[k];
+    a_ctws_options_set         options = CTWS_NON_CONSTANT_EXPR;
+    if (k < levels-1) {
+      /* The next iteration may have to rescan the result. */
+      options |= CTWS_MAY_BE_RESCANNED;
     }  /* if */
-  } else {
-    /* In error cases, the trailing requires clause may not have been
-       recorded. */
-    expect_error();
-  }  /* if */
-}  /* check_eligibility */
+    if (expr != NULL) {
+      expr = copy_template_param_expr(
+                         expr, spd->args, spd->params, (a_type_ptr)NULL,
+                         pos, options, p_err, ctws_state, cp,
+                         &allocated_cp);
+    } else if (allocated_cp != NULL) {
+      allocated_cp = copy_template_param_con(
+                         allocated_cp, spd->args, spd->params,
+                         (a_type_ptr)NULL, pos, options, p_err,
+                         ctws_state, cp);
+    } else {
+      a_constant_ptr  src_cp = local_constant();
+      *src_cp = *cp;
+      allocated_cp = copy_template_param_con(
+                         src_cp, spd->args, spd->params, (a_type_ptr)NULL,
+                         pos, options, p_err, ctws_state, cp);
+      release_local_constant(&src_cp);
+    }  /* if */
+  }  /* for */
+  *p_allocated_cp  = allocated_cp;
+  return expr;
+}  /* substitute_expr */
 
 
 static a_type_ptr check_requirement_expr(
@@ -25292,33 +25316,9 @@ potentially throwing.
   a_boolean         err = FALSE, is_noexcept = TRUE;
   a_constant_ptr    cp = local_constant(), allocated_cp = NULL;
   an_expr_node_ptr  expr = req_expr;
-  int               levels = (int)subst_pairs.length();
 
-  for (int k = 0; k < levels && !err; ++k) {
-    a_subst_pairs_descr const  *spd = &subst_pairs[k];
-    a_ctws_options_set         options = CTWS_NON_CONSTANT_EXPR;
-    if (k < levels-1) {
-      options |= CTWS_MAY_BE_RESCANNED;
-    }  /* if */
-    if (expr != NULL) {
-      expr = copy_template_param_expr(
-                         expr, spd->args, spd->params, (a_type_ptr)NULL,
-                         &req_expr->position, options, &err, ctws_state, cp,
-                         &allocated_cp);
-    } else if (allocated_cp != NULL) {
-      allocated_cp = copy_template_param_con(
-                         allocated_cp, spd->args, spd->params,
-                         (a_type_ptr)NULL, &req_expr->position, options, &err,
-                         ctws_state, cp);
-    } else {
-      a_constant_ptr  src_cp = local_constant();
-      *src_cp = *cp;
-      allocated_cp = copy_template_param_con(
-                         src_cp, spd->args, spd->params, (a_type_ptr)NULL,
-                         &req_expr->position, options, &err, ctws_state, cp);
-      release_local_constant(&src_cp);
-    }  /* if */
-  }  /* for */
+  expr = substitute_expr(expr, subst_pairs, ctws_state,
+                         cp, &allocated_cp, &err);
   if (err) {
     result = NULL;
   } else if (expr != NULL) {

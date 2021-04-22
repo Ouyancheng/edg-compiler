@@ -5063,7 +5063,8 @@ entity.
         a_symbol_ptr      esym;
         make_locator_for_symbol(symbol_for(rp), &loc);
         esym = find_external_symbol(&loc, rp->source_corresp.name_linkage,
-                                    rp->type, &eloc);
+                                    rp->type, rp->trailing_requires_clause,
+                                    &eloc);
         check_assertion(esym != NULL &&
                         esym->kind == (a_symbol_kind)sk_extern_routine);
         prev_type = esym->variant.extern_symbol_descr->type;

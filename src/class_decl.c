@@ -115,6 +115,15 @@ typedef struct a_routine_fixup {
 } a_routine_fixup;
 
 
+a_type_ptr class_from_routine_fixup(a_routine_fixup  *fixup)
+/*
+Return the "enclosing class" associated with the given routine fixup.
+*/
+{
+  return fixup->class_type;
+}  /* class_from_routine_fixup */
+
+
 /*
 Structure for keeping track of classes for which fixup processing
 must still be done.  The fixups are deferred until the outermost
@@ -10936,14 +10945,16 @@ When templates_only is TRUE, only function templates members are considered.
     new_rts->exception_specification = NULL;
     match = routine_types_are_redecl_compatible(orig_type, new_type,
                                                 tcf_flags);
-    if (match &&
-        (routine->trailing_requires_clause != NULL ||
-         dps->trailing_requires_clause)) {
-      if (dps->is_explicit_specialization || dps->is_explicit_instantiation) {
-        if (routine->is_ineligible) match = FALSE;
-      } else {
-        match = equiv_requires_clauses(routine->trailing_requires_clause,
-                                       dps->trailing_requires_clause);
+    if (match) {
+      a_requires_clause  *other_rcp = trailing_requires_clause(routine);
+      if (other_rcp != NULL || dps->trailing_requires_clause) {
+        if (dps->is_explicit_specialization ||
+            dps->is_explicit_instantiation) {
+          if (is_ineligible(fund_sym)) match = FALSE;
+        } else {
+          match = equiv_requires_clauses(other_rcp,
+                                         dps->trailing_requires_clause);
+        }  /* if */
       }  /* if */
     }  /* if */
     orig_rts->exception_specification = orig_esp;
@@ -11336,6 +11347,7 @@ instantiations are recorded in the IL.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     rp->declared_type = func_info->declared_type;
     rp->declared_storage_class = dps->declared_storage_class;
+    rp->trailing_requires_clause = dps->trailing_requires_clause;
     if (ssep != NULL && prototype_instantiations_in_il) {
       ssep->entity.kind = (a_byte_il_entry_kind)iek_routine;
       ssep->entity.ptr  = (char *)rp;
@@ -11623,10 +11635,14 @@ possibility.
           !class_type->variant.class_struct_union.is_specialized) {
         /* Record the routine fixup in the routine early if this is a friend
            definition in a class template instance so that the body of the
-           function can be "instantiated" early if needed. */
+           function can be "instantiated" early if needed.  Also record
+           whether a trailing requires clause might need substitution when
+           the function is referenced. */
         a_routine_ptr  rp = sym->variant.routine.ptr;
         if (rp->defined_in_friend_decl && !func_info->is_deleted) {
           sym->variant.routine.ptr->routine_fixup = curr_routine_fixup;
+          sym->variant.routine.pending_trailing_requires_clause =
+                                      state->pending_trailing_requires_clause;
         }  /* if */
       }  /* if */
       /* If this symbol might not be found because it is invisible, add it
@@ -11943,11 +11959,10 @@ was used).
         /* The previously declared function with the same name (or, if it is
            already overloaded, any instance of it) does not have a matching
            type, so sym remains a candidate for overloading. */
-      } else if (fundamental_symbol_of(new_sym)
-                                        ->variant.routine.ptr->is_ineligible) {
+      } else if (is_ineligible(fundamental_symbol_of(new_sym))) {
         /* The previous declaration was not "eligible" (meaning that a trailing
-           requires-clause failed when the enclosing class was instantiated).
-           Do not issue an error even though the types otherwise match. */
+           requires-clause failed).  Do not issue an error even though the
+           types otherwise match. */
         suppress_redecl_error = TRUE;
       } else if (is_class_member_using_decl_symbol(new_sym)) {
         /* A using-declaration previously declared a matching function or
@@ -14532,7 +14547,7 @@ set; otherwise, it is NULL.
       /* Set the pointer to the destructor symbol in the class symbol
          supplement. */
       { a_symbol_ptr  dtor_sym = cssp->destructor;
-        if (dtor_sym == NULL || dtor_sym->variant.routine.ptr->is_ineligible) {
+        if (dtor_sym == NULL || is_ineligible(dtor_sym)) {
           cssp->destructor = sym;
         } else if (sym->variant.routine.ptr->assoc_template != NULL &&
                    !decl_info->decl_state.ineligible) {
@@ -23669,7 +23684,7 @@ The routine body is not generated until it is known to be needed.
   } else if (cssp->destructor != NULL) {
     a_routine_ptr  rp = cssp->destructor->variant.routine.ptr;
     update_routine_type_exception_specification_if_needed(rp, &rp->type);
-    if (rp->is_ineligible) {
+    if (is_ineligible(cssp->destructor)) {
       a_diagnostic_ptr  dp;
       a_diag_list       diag_list;
       clear_diag_list(&diag_list);
@@ -24194,7 +24209,7 @@ Generate those constructors.
       }  /* if */
       for (bctor = base_ctors; bctor != NULL; bctor = bctor->next) {
         if (symbol_is(bctor, sk_member_function)) {
-          if (bctor->variant.routine.ptr->is_ineligible) continue;
+          if (is_ineligible(bctor)) continue;
           generate_inheriting_constructors_for_base_ctor(bctor, udp, cdsp);
         } else if (symbol_is(bctor, sk_function_template)) {
           generate_inheriting_constructors_for_base_template(bctor, udp, cdsp);
@@ -29445,6 +29460,12 @@ that is provided if this is a member template declaration.
                  member "ineligible". */
               rout_sym->variant.routine.ptr->is_ineligible = TRUE;
               tip->suppress_instantiation = TRUE;
+            } else if (dps->pending_trailing_requires_clause) {
+              /* Record that a trailing requires clause is associated with
+                 this instance (it will need substitution at the first point
+                 of reference). */
+              rout_sym->variant.routine.pending_trailing_requires_clause =
+                                                                         TRUE;
             }  /* if */
           }  /* if */
         }  /* if */

@@ -1297,7 +1297,8 @@ such pointer is found, NULL is returned.
   a_symbol_ptr      sym = NULL;;
 
   sym = find_external_symbol(locator, (a_name_linkage_kind)nlk_external,
-			     (a_type_ptr)NULL, &new_locator);
+                             (a_type_ptr)NULL, (a_requires_clause*)NULL,
+                             &new_locator);
   if (sym != NULL && sym->kind == (a_symbol_kind)sk_extern_routine && 
       sym->variant.extern_symbol_descr->
                                   variant.routine.is_implicit_declaration) {

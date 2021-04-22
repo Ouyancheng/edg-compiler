@@ -3800,6 +3800,11 @@ typedef struct a_symbol {
                         /* Present for template functions and member functions
                            of template classes.  Points to information about
                            the particular instance of the function. */
+      a_bit_field
+		pending_trailing_requires_clause:1;
+			/* TRUE for constrained ordinary member functions of
+			   class templates when the constraint has not been
+			   substituted yet. */
     } routine;
     /* When kind == sk_label: */
     struct {
@@ -5473,11 +5478,13 @@ extern void add_symbol_to_inactive_list(a_symbol_ptr sym_ptr);
 extern a_symbol_ptr f_find_external_symbol(a_symbol_locator     *location,
                                            a_name_linkage_kind  linkage,
                                            a_type_ptr           type,
+                                           a_requires_clause    *trcp,
                                            a_boolean            c_overload,
                                            a_symbol_locator     *ext_location);
 
-#define find_external_symbol(loc, linkage, type, ext_loc)                    \
-  (f_find_external_symbol(loc, linkage, type, /*c_overload=*/FALSE, ext_loc))
+#define find_external_symbol(loc, linkage, type, trcp, ext_loc)               \
+  (f_find_external_symbol(loc, linkage, type, trcp, /*c_overload=*/FALSE,     \
+                          ext_loc))
 
 extern void change_to_destructor_or_finalizer_locator(
                                                  a_symbol_locator  *locator,
@@ -7234,6 +7241,26 @@ extern a_symbol_ptr look_up_name_string_in_namespace(
                                         a_namespace_ptr          ns_ptr,
                                         an_id_lookup_options_set options);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+
+
+extern a_boolean resolve_pending_trailing_requires_clause(a_symbol_ptr  sym);
+
+inline a_boolean is_ineligible(a_symbol_ptr  sym)
+/*
+Return whether the function or member function associated with the given symbol
+does not satisfy its trailing requires-clause.  If necessary, this substituted
+and evaluates the associated constraint.
+*/
+{
+  a_boolean  result;
+
+  if (sym->variant.routine.pending_trailing_requires_clause) {
+    result = resolve_pending_trailing_requires_clause(sym);
+  } else {
+    result = func_sym_routine(sym)->is_ineligible;
+  }  /* if */
+  return result;
+}  /* is_ineligible */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

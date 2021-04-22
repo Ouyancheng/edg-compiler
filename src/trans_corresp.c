@@ -253,6 +253,7 @@ sym.
   a_symbol_locator     loc, ext_loc;
   a_name_linkage_kind  name_linkage;
   a_type_ptr           routine_type;
+  a_requires_clause    *trcp;
 
   check_assertion(sym->kind == (a_symbol_kind)sk_routine ||
                   sym->kind == (a_symbol_kind)sk_member_function ||
@@ -264,14 +265,16 @@ sym.
     a_routine_ptr  routine = sym->variant.routine.ptr;
     name_linkage = routine->source_corresp.name_linkage;
     routine_type = routine->type;
+    trcp = routine->trailing_requires_clause;
   } else {
     /* A variable symbol. */
     a_variable_ptr  variable = sym->variant.variable.ptr;
     name_linkage = variable->source_corresp.name_linkage;
     routine_type = NULL;
+    trcp = NULL;
   }  /* if */
   make_locator_for_symbol(sym, &loc);
-  (void)find_external_symbol(&loc, name_linkage, routine_type, &ext_loc);
+  (void)find_external_symbol(&loc, name_linkage, routine_type, trcp, &ext_loc);
   return ext_loc.symbol_header->other_symbols;
 }  /* corresp_extern_symbol_list */
 

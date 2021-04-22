@@ -12154,7 +12154,9 @@ typedef struct a_routine {
   a_bit_field	is_ineligible:1;
 			/* TRUE for constrained ordinary member functions of
 			   class templates when the constraint is not
-			   satisfied. */
+			   satisfied.  This flag is set on-demand and should
+			   therefore always be queried through the function
+			   is_ineligible. */
 #if DECL_MODIFIERS_IN_USE
   a_decl_modifier
 		decl_modifiers;
@@ -12166,8 +12168,9 @@ typedef struct a_routine {
   a_requires_clause_ptr
 		trailing_requires_clause;
 			/* If this is a constrained templated function, the
-			   associated trailing requires clause if any.
-			   Otherwise, NULL. */
+			   associated trailing requires clause if any (it is
+			   always the original parameterized constraint, not
+			   the substituted one).  Otherwise, NULL. */
   union {
     /* When is_constexpr_intrinsic is FALSE: */
     a_virtual_function_number

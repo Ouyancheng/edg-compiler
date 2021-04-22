@@ -4231,8 +4231,8 @@ it is always NULL.
           (is_an_lvalue(arg_operand) ||
            is_a_function_designator(arg_operand))) ||
          indefinite_function_designator)) {
-      /* A special case ([temp.deduct.call] paragraph 3): If the parameter
-         type is a "forwarding reference" and the argument is an lvalue, use a
+      /* A special case (N4885 [temp.deduct.call]/3): If the parameter type is
+         a "forwarding reference" and the argument is an lvalue, use a
          reference-to-arg-type for the argument type, which will eventually
          produce a parameter type that is an lvalue reference (because of the
          reference collapsing rules).  A "forwarding reference" is an rvalue
@@ -5593,7 +5593,7 @@ in a new-expression).
            operator should be handled using rewrite rules. */
         goto reject_function;
       }  /* if */
-      if (routine->is_ineligible) {
+      if (is_ineligible(function_symbol)) {
         goto reject_function;
       }  /* if */
       routine_type = routine->type;
@@ -10625,7 +10625,7 @@ normal_no_function_matches:
            of a lambda. */
         if (err_none_applies == ec_no_matching_function ||
             err_none_applies == ec_no_matching_new_function) {
-          if (func_sym_routine(overloaded_function_symbol)->is_ineligible) {
+          if (is_ineligible(overloaded_function_symbol)) {
             err_none_applies = ec_function_ineligible;
           } else {
             err_none_applies = ec_function_does_not_match_arguments;
@@ -27911,8 +27911,7 @@ traversal_start:
                                      routine_type,
                                      selector_match);
       if (selector_match->match_level == aml_none ||
-          (!symbol_is(sym, sk_function_template) &&
-           sym->variant.routine.ptr->is_ineligible)) {
+          (!symbol_is(sym, sk_function_template) && is_ineligible(sym))) {
         /* This assignment operator cannot be used. */
         goto reject_function;
       }  /* if */

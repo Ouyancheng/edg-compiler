@@ -2289,10 +2289,10 @@ copyable class type with an eligible (non-deleted) default constructor.
     result = has_trivial_default_constructor(cssp) &&
              is_trivially_copyable_type(tp);
     if (result && cssp->trivial_default_constructor != NULL) {
-      a_routine_ptr  rp = cssp->trivial_default_constructor
-                              ->variant.routine.ptr;
+      a_symbol_ptr   sym = cssp->trivial_default_constructor;
+      a_routine_ptr  rp = sym->variant.routine.ptr;
       if ((rp->is_deleted && !gpp_version_is(>=50000) && !clang_mode) ||
-          rp->is_ineligible) {
+          is_ineligible(sym)) {
         /* A deleted trivial default constructor makes the type non-trivial
            (Clang and some versions of GCC do not consider that).  Similarly,
            a failed constraint (indicated by is_ineligible) also makes it
@@ -13563,7 +13563,7 @@ C++ mode.
       goto distinguishable_determined;
     } else {
       a_routine_ptr          old_rp = old_sym_ptr->variant.routine.ptr;
-      a_requires_clause_ptr  old_rcp = old_rp->trailing_requires_clause,
+      a_requires_clause_ptr  old_rcp = trailing_requires_clause(old_rp),
                              new_rcp = dps->trailing_requires_clause;
       if (old_rcp != new_rcp && !equiv_requires_clauses(old_rcp, new_rcp)) {
         distinguishable = TRUE;

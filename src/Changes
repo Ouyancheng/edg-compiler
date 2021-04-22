@@ -1,5 +1,40 @@
 Version 6.3
 
+4/22/21  [EDGcpfe/23703,EDGcpfe/23939,EDGcpfe/23948,EDGcpfe/24163]
+Trailing requires clauses on non-templates
+
+Consider:
+
+  template<typename T>
+    concept C1 = requires(T t) { t.f(); };
+  template<typename T> requires C1<T&> void f(T&&);
+  template<typename T>
+    concept C2 = requires(T &t) { f(t); };
+  template<typename T> struct B {
+    void g() requires C2<T>;  // (1)
+  };
+  struct D: B<D> {  // (2)
+    int f();
+  };
+  int main() {
+    f(D{});  // (3)  Previously an error.  Now okay.
+  }
+
+Line (2) causes the instantiation of line (1) with T=D where D is still
+incomplete.  Previously, that included instantiating the trailing requires
+clause C2<T>, which found an unsatisfied constraint C1<D&> because T=D is
+still incomplete.  Since constraint evaluations are cached (as the standard
+permits), this resulted in the call on line (3) to fail to find a viable
+candidate (the candidate f<D> also requires the constraint C1<D&>).  The
+C++20 standard, however, does not actually permit the instantiation of the
+constraint in line (1) until the member g() that it declares is used in
+some way that requires the constraint to be known.  The front end now
+implements that on-demand behavior for such trailing requires clauses, and
+as a consequence it now also accepts the example above (a variation of that
+situation appears in at least one standard-library implementation).
+
+
+
 4/22/21  [EDGcpfe/24185]
 Diagnostics for invalid reinterpret_cast-like operations
 

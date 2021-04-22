@@ -314,6 +314,7 @@ be restored).
   dps->position_of_this_reference_in_trailing_return_set = FALSE;
   dps->vla_field_treated_as_zero_length_array = FALSE;
   dps->is_struct_binding_decl = FALSE;
+  dps->pending_trailing_requires_clause = FALSE;
   dps->ineligible = FALSE;
   dps->is_abbr_func_template = FALSE;
   clear_init_state(&dps->init_state);
@@ -3672,10 +3673,16 @@ when the declaration is a friend declaration within a class.
             goto done;
           } else {
             /* Compare the routine type of the current declaration with that
-               of the previous declaration. */
+               of the previous declaration.  If present, also compare
+               requires-clauses. */
+            a_requires_clause_ptr  old_trcp,
+                                   new_trcp = dps->trailing_requires_clause;
             rp = fund_other_decl->variant.routine.ptr;
+            old_trcp = trailing_requires_clause(rp);
             if (routine_types_are_redecl_compatible(rp->type, idlbp->type,
-                                                    TCF_NO_FLAGS)) {
+                                                    TCF_NO_FLAGS) &&
+                (old_trcp == new_trcp ||
+                 equiv_requires_clauses(old_trcp, new_trcp))) {
               /* Other_decl matches the current declaration.  Null out
                  *overload_symbol in case it was set. */
               other_decl = fund_other_decl;
@@ -4604,6 +4611,7 @@ created; the caller must set it.
        any truncation, etc.). */
     ext_sym = f_find_external_symbol(locator, name_linkage,
                                      is_function ? type_ptr : NULL,
+                                     dps->trailing_requires_clause,
                                      idlbp->c_overload, &ext_locator);
     if (ext_sym != NULL) {
       /* There is an existing external symbol for the name. */
@@ -9915,7 +9923,6 @@ skip_overloading:;
       scope_depth = DEPTH_OF_FILE_SCOPE;
     }  /* if */
     routine_ptr = make_routine(type_ptr, storage_class, scope_depth);
-    routine_ptr->has_deducible_return_type = dps->has_deducible_return_type;
     if (C_dialect == C_dialect_cplusplus) {
       if (locator->is_operator_name) {
         set_routine_special_kind(routine_ptr,
@@ -9925,6 +9932,8 @@ skip_overloading:;
         set_routine_special_kind(routine_ptr,
                                  (a_special_function_kind)sfk_udl_operator);
       }  /* if */
+      routine_ptr->has_deducible_return_type = dps->has_deducible_return_type;
+      routine_ptr->trailing_requires_clause = dps->trailing_requires_clause;
     }  /* if */
     if (*ext_sym == NULL) {
       dps->first_decl = TRUE;
