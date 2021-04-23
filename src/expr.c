@@ -38292,7 +38292,9 @@ done_with_requirements:
     } else {
       a_subst_pairs_array  subst_pairs = get_current_subst_pairs();
       a_boolean            val;
+      push_instantiation_scope_for_rescan(/*template_sym=*/NULL);
       val = requires_expr_satisfied(rrd.requires_expr, subst_pairs);
+      pop_instantiation_scope_for_rescan();
       make_integer_constant_operand(result, (a_host_large_integer)val);
       result->type = bool_type();
       result->variant.constant.type = result->type;
