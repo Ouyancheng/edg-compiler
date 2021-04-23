@@ -38523,7 +38523,7 @@ directive.
         sym_diagnostic(strict_ansi_discretionary_severity,
                        ec_instantiation_requested_and_specialized, sym);
       }  /* if */
-    } else if (routine->is_deleted) {
+    } else if (routine->is_deleted || is_ineligible(symbol_for(routine))) {
       /* The routine is deleted.  Don't give an error, but ignore an
          attempt to instantiate the function. */
       result = FALSE;
