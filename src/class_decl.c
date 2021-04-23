@@ -14550,7 +14550,7 @@ set; otherwise, it is NULL.
         if (dtor_sym == NULL || is_ineligible(dtor_sym)) {
           cssp->destructor = sym;
         } else if (sym->variant.routine.ptr->assoc_template != NULL &&
-                   !decl_info->decl_state.ineligible) {
+                   !is_ineligible(sym)) {
           a_symbol_ptr  old_sym, new_sym;
           int           order;
           old_sym = symbol_for(dtor_sym->variant.routine.ptr->assoc_template);
@@ -15321,6 +15321,11 @@ implicitly declared member functions.
                                  /*suppress_redecl_error=*/TRUE);
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (decl_state->pending_trailing_requires_clause) {
+    /* Record that a trailing requires clause is associated with this instance
+       (it will need substitution at the first point of reference). */
+    sym->variant.routine.pending_trailing_requires_clause = TRUE;
   }  /* if */
   decl_state->sym = sym;
   /* Create the routine entry for the member function. */
@@ -29460,12 +29465,6 @@ that is provided if this is a member template declaration.
                  member "ineligible". */
               rout_sym->variant.routine.ptr->is_ineligible = TRUE;
               tip->suppress_instantiation = TRUE;
-            } else if (dps->pending_trailing_requires_clause) {
-              /* Record that a trailing requires clause is associated with
-                 this instance (it will need substitution at the first point
-                 of reference). */
-              rout_sym->variant.routine.pending_trailing_requires_clause =
-                                                                         TRUE;
             }  /* if */
           }  /* if */
         }  /* if */
