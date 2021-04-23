@@ -945,7 +945,7 @@ imported.  If so, return TRUE and update *midp to refer to the original import
 declaration.  Otherwise, return FALSE and leave *midp unmodified.
 */
 {
-  a_boolean    already_included = FALSE;
+  a_boolean    already_imported = FALSE;
   a_module_ptr mod = midp->module_info;
 
   for (a_module_import_decl_ptr ptr = il_header.imported_modules;
@@ -962,11 +962,11 @@ declaration.  Otherwise, return FALSE and leave *midp unmodified.
       pos_st_remark(ec_module_already_imported, &midp->module_name_position,
                     mod->name);
       *midp = *ptr;
-      already_included = TRUE;
+      already_imported = TRUE;
       break;
     }  /* if */
   }  /* for */
-  return already_included;
+  return already_imported;
 }  /* check_module_already_imported */
 
 
@@ -991,7 +991,7 @@ Import the given header module.
     pos_st_warning(ec_import_skipped, &midp->module_name_position,
                    midp->module_info->name);
   } else {
-    /* The set of importable headers is implementation defined.  Currently no
+    /* The set of importable headers is implementation-defined.  Currently no
        headers are importable. */
     pos_st_catastrophe(ec_header_not_importable, &midp->module_name_position,
                        midp->module_info->name);
@@ -1005,11 +1005,11 @@ void import_module(a_module_import_decl_ptr midp,
 Import the given module.  assoc_sym is the associated symbol for the module.
 */
 {
-  a_boolean already_included = FALSE;
+  a_boolean already_imported = FALSE;
 
   /* See if this module has already been imported.  If so, ignore it. */
-  already_included = check_module_already_imported(midp);
-  if (!already_included &&
+  already_imported = check_module_already_imported(midp);
+  if (!already_imported &&
       !check_module_has_interface_dependency(assoc_sym, curr_module_sym,
                                              &midp->module_name_position)) {
     if (find_module_file(midp->module_info, (a_module_kind)mk_any)) {

@@ -19377,7 +19377,7 @@ tok_export_keyword (for cases where it doesn't matter).
 
 static inline a_boolean cursory_modules_check(void)
 /*
-Return TRUE if the current modules-related declaration (based upon curr_token
+Return TRUE if the current modules-related declaration (based upon curr_token,
 which is one of module, import, or export) passes some basic tests: the
 "keyword" must not be an object-like macro and must appear at the proper scope.
 Otherwise an error is generated, FALSE is returned and the remaining portion of

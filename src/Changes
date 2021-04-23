@@ -54,7 +54,7 @@ current Microsoft compilers still accept such code).
 4/22/21  [EDGcpfe/22347,EDGcpfe/24008,EDGcpfe/24036]
 C++20: Modules Dependency Discovery (P1857R3)
 
-A change has been made to implement committee paper P1857R3 which deals with
+A change has been made to implement committee paper P1857R3, which deals with
 restricting the syntax of the C++20 modules feature to enable fast dependency
 scanning via partial preprocessing.
 

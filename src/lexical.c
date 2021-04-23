@@ -13189,7 +13189,7 @@ returns TRUE.  On input symbol points to the symbol for the first token.
 static a_boolean is_module_pp_directive(a_token_kind *ctoken)
 /*
 Perform special handling for modules-related preprocessing directives
-"modules", "import" and "export".  Return TRUE (and set *ctoken) if the input
+"module", "import" and "export".  Return TRUE (and set *ctoken) if the input
 matches one of these directives:
 
   pp-module:
@@ -14044,11 +14044,11 @@ literal_prefix_scan:
     case 'e':   /* Potentially the beginning of "export" directive. */
     case 'm':   /* Potentially the beginning of "module" directive. */
       /* In C++20, the "import", "export", and "module" strings are
-         technically preprocessing directives in some circumstances.  This
-         code determines whether they should be considered as such or should
-         be treated as identifiers.  Check for the desired strings before
-         invoking a function call to probe deeper (because this code is
-         frequently executed, e.g., when paring "int"). */
+         considered to introduce preprocessing directives in some
+         circumstances.  This code determines whether they do so or should be
+         treated as identifiers.  Check for the desired strings before invoking
+         a function call to probe deeper (because this code is frequently
+         executed, e.g., when scanning "int"). */
       if (module_keywords_enabled &&
           !in_preprocessing_directive &&
           (curr_token == tok_export_keyword ||
@@ -14062,7 +14062,7 @@ literal_prefix_scan:
            !is_identifier_char(&curr_char_loc[6], /*len=*/NULL,
                                /*is_identifier_start=*/FALSE)) &&
           is_module_pp_directive(&ctoken)) {
-        /* It has been determined that the string was indeed a modules-related
+        /* It has been determined that the current line is indeed a
            preprocessor directive and ctoken has been set accordingly. */
         goto end_of_token_scan;
       } else {
