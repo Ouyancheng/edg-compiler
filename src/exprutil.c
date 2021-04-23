@@ -25054,6 +25054,9 @@ p_fatal and p_copy_error are NULL by default.
                                                   CTWS_NO_OPTIONS,
                                                   &copy_error, &ctws_state);
       scope_stack_top().in_concept_rescan = saved_in_concept_rescan;
+    } else {
+      /* The concept-id is already fully non-dependent. */
+      new_args = old_args;
     }  /* if */
     push_instantiation_scope_for_rescan(sym);
     scope_stack_top().in_concept_rescan = TRUE;
