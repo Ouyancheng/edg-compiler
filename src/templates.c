@@ -1438,7 +1438,7 @@ Otherwise, set *p_t_params and *p_t_args to NULL.
 void get_all_class_subst_pairs(a_type_ptr           class_type,
                                a_subst_pairs_array  *p_array)
 /*
-Accumulate in *p_array the substitution pairs of class types and all its
+Accumulate in *p_array the substitution pairs of class_type and all its
 enclosing template class types, if any (starting from the outermost).
 */
 {

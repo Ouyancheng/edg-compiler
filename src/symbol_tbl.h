@@ -7248,7 +7248,7 @@ extern a_boolean resolve_pending_trailing_requires_clause(a_symbol_ptr  sym);
 inline a_boolean is_ineligible(a_symbol_ptr  sym)
 /*
 Return whether the function or member function associated with the given symbol
-does not satisfy its trailing requires-clause.  If necessary, this substituted
+does not satisfy its trailing requires-clause.  If necessary, this substitutes
 and evaluates the associated constraint.
 */
 {

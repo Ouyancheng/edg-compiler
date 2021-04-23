@@ -8324,7 +8324,7 @@ a_boolean resolve_pending_trailing_requires_clause(a_symbol_ptr  sym)
 /*
 sym represents a member function or a friend function of a class template
 instance with a requires-clause whose satisfaction has not been resolved yet.
-Resolve it now (by substituting the requires-clause constraint.  Return TRUE
+Resolve it now (by substituting the requires-clause constraint).  Return TRUE
 if the constraints fails, or FALSE otherwise.
 */
 {
