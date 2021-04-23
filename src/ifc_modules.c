@@ -3248,8 +3248,8 @@ class_struct_union_case:
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
-            ifc_TypeSort tag = type_tag(idstap->type);
-            if (tag == ifc_TypeSort_Fundamental) {
+            ifc_TypeSort alias_tag = type_tag(idstap->type);
+            if (alias_tag == ifc_TypeSort_Fundamental) {
               an_ifc_TypeSort_Fundamental itsf, *itsfp;
               /* Read the type to see what kind it is. */
               read_partition_at_index(idstap->type);
@@ -3274,7 +3274,7 @@ class_struct_union_case:
               } else {
                 unexpected_condition();
               }  /* if */
-            } else if (tag == ifc_TypeSort_Forall) {
+            } else if (alias_tag == ifc_TypeSort_Forall) {
               an_ifc_TypeSort_Forall itsf, *itsfp;
               a_token_cache          cache;
               a_source_position      pos;
@@ -8977,12 +8977,12 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       break;
     case ifc_DeclSort_Alias:
       { an_ifc_DeclSort_Alias       idsa, *idsap;
-        ifc_TypeSort                tag;
+        ifc_TypeSort                alias_tag;
         idsap = get_DeclSort_Alias(&idsa);
-        tag = type_tag(idsap->type);
+        alias_tag = type_tag(idsap->type);
         source_position_from_locus(&pos, &idsap->locus);
         cache_access(cache, idsap->access, /*cache_colon=*/TRUE, &pos);
-        if (tag == ifc_TypeSort_Fundamental) {
+        if (alias_tag == ifc_TypeSort_Fundamental) {
           an_ifc_TypeSort_Fundamental itsf, *itsfp;
           read_partition_at_index(idsap->type);
           itsfp = get_TypeSort_Fundamental(&itsf);
@@ -8995,7 +8995,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
           cache_identifier(cache, get_string_at_offset(idsap->name), &pos);
           cache_token(cache, tok_assign, &pos);
           cache_type(cache, idsap->aliasee, &idsap->locus);
-        } else if (tag == ifc_TypeSort_Forall) {
+        } else if (alias_tag == ifc_TypeSort_Forall) {
           an_ifc_TypeSort_Forall itsf, *itsfp;
           check_assertion(type_tag(idsap->aliasee) == ifc_TypeSort_Forall);
           read_partition_at_index(idsap->aliasee);
@@ -12307,13 +12307,13 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
       break;
     case ifc_DeclSort_Alias:
       { an_ifc_DeclSort_Alias       idsta, *idstap;
-        ifc_TypeSort                tag;
+        ifc_TypeSort                alias_tag;
         idstap = get_DeclSort_Alias(&idsta);
         /* FIXME: lots missing */
-        tag = type_tag(idstap->type);
+        alias_tag = type_tag(idstap->type);
         /* Read the type to see what kind it is. */
         read_partition_at_index(idstap->type);
-        if (tag == ifc_TypeSort_Fundamental) {
+        if (alias_tag == ifc_TypeSort_Fundamental) {
           an_ifc_TypeSort_Fundamental itsf, *itsfp;
           itsfp = get_TypeSort_Fundamental(&itsf);
           if (itsfp->basis == ifc_TypeBasis_Typename) {
@@ -12329,7 +12329,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
           } else {
             unexpected_condition();
           }  /* if */
-        } else if (tag == ifc_TypeSort_Forall) {
+        } else if (alias_tag == ifc_TypeSort_Forall) {
           /* FIXME: unimplemented. */
           unexpected_condition();
         } else {
