@@ -1464,20 +1464,29 @@ Return an array describing the substitution pairs for the entity currently
 being instantiated.  
 */
 {
-  a_subst_pairs_array      result(1);
-  a_scope_stack_entry_ptr  issep;
-  a_symbol_ptr             sym;
+  a_subst_pairs_array  result(1);
+  a_scope_depth        idepth = depth_innermost_instantiation_scope;
 
-  if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
-    issep = &scope_stack[depth_innermost_instantiation_scope];
-    sym = issep->template_sym;
-    if (sym != NULL && sym->is_class_member) {
-      get_all_class_subst_pairs(sym_parent_class(sym), &result);
-    }  /* if */
-    if (issep->template_arg_list != NULL) {
-      a_subst_pairs_descr  spd = { issep->template_decl_info->parameters,
-                                   issep->template_arg_list, FALSE, FALSE };
-      result.push_back(spd);
+  if (idepth != NO_SCOPE_DEPTH) {
+    /* There is at least one active instantiation on the scope stack.  Walk
+       down the stack looking and collect parameter/argument lists for the
+       instantiation of nested templates until we hit a namespace scope. */
+    do {
+      a_scope_stack_entry_ptr  issep = &scope_stack[idepth];
+      if (scope_is(issep, sck_template_instantiation) &&
+          issep->template_arg_list != NULL) {
+        a_subst_pairs_descr  spd = { issep->template_decl_info->parameters,
+                                     issep->template_arg_list, FALSE, FALSE };
+        result.push_back(spd);
+      } else if (is_file_or_namespace_scope(issep)) {
+        break;
+      }  /* if */
+      idepth = issep->previous_scope;
+    } while (idepth != NO_SCOPE_DEPTH);
+    /* If multiple templates were involved, reverse their order. */
+    a_ptrdiff  length = result.length();
+    if (length > 1) {
+      reverse_array(result.begin(), length);
     }  /* if */
   }  /* if */
   return result;
@@ -8219,8 +8228,11 @@ instantiation-dependent.
 
   switch (tap->kind) {
     case tak_type:
-      template_param_found =
-       is_instantiation_dependent_type_or_cli_generic_param(tap->variant.type);
+      { a_type_ptr  tp = tap->variant.type;
+        template_param_found =
+                     tp != NULL &&
+                     is_instantiation_dependent_type_or_cli_generic_param(tp);
+      }
       break;
     case tak_nontype:
       if (tap->arg_operand != NULL) {
