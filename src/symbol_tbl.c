@@ -8334,7 +8334,7 @@ if the constraints fails, or FALSE otherwise.
   a_subst_pairs_descr    top_pair;
   an_expr_node_ptr       constraint;
   a_boolean              err = FALSE;
-  a_type_ptr             enclosing_class;
+  a_type_ptr             enclosing_class, enclosing_template_class;
 
   if (symbol_is(sym, sk_member_function)) {
     enclosing_class = sym_parent_class(sym);
@@ -8346,6 +8346,13 @@ if the constraints fails, or FALSE otherwise.
   sym->variant.routine.pending_trailing_requires_clause = FALSE;
   /* Identify all the substitutions applicable to the constraint. */
   get_all_class_subst_pairs(enclosing_class, &subst_pairs);
+  enclosing_template_class = enclosing_class;
+  while (class_type_supp(enclosing_template_class)->assoc_template == 0) {
+    enclosing_template_class = parent_class_of(enclosing_template_class);
+  }  /* while */
+  push_class_reactivation_scope(enclosing_class, /*extend_namespace=*/FALSE);
+  push_instantiation_scope_for_rescan(
+       symbol_for(class_type_supp(enclosing_template_class)->assoc_template));
   /* We are going to substitute the constraint from the outside in.  All but
      the last substitution are ordinary expression substitutions, and the last
      one will go through the constraint satisfaction test. */
@@ -8374,25 +8381,17 @@ if the constraints fails, or FALSE otherwise.
   }  /* if */
   if (!err) {
     a_diag_list  diag_list;
-    a_type_ptr   enclosing_template_class = enclosing_class;
-    while (class_type_supp(enclosing_template_class)->assoc_template == 0) {
-      enclosing_template_class = parent_class_of(enclosing_template_class);
-    }  /* while */
-    push_class_reactivation_scope(enclosing_class, /*extend_namespace=*/FALSE);
-    push_instantiation_scope_for_rescan(
-       symbol_for(class_type_supp(enclosing_template_class)->assoc_template));
     clear_diag_list(&diag_list);
-    if (!constraint_satisfied(constraint,
-                              top_pair.args, top_pair.params,
+    if (!constraint_satisfied(constraint, top_pair.args, top_pair.params,
                               &diag_list, &err)) {
       err = TRUE;
     }  /* if */
-    pop_instantiation_scope_for_rescan();
-    pop_class_reactivation_scope();
   }  /* if */
   if (err) {
     rp->is_ineligible = TRUE;
   }
+  pop_instantiation_scope_for_rescan();
+  pop_class_reactivation_scope();
   return err;
 }  /* resolve_pending_trailing_requires_clause */
 

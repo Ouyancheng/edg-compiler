@@ -18924,9 +18924,7 @@ options is a set of substitution options.
       }
       break;
     case enk_concept_id:
-      if (template_arg_list_is_dependent(template_arg_list)) {
-        /* Don't attempt to substitute concept-ids with dependent parameter
-           lists. */
+      {
         a_template_arg_ptr  new_args =
              copy_template_arg_list_with_substitution_rebuilding_arg_operands(
                                  (a_symbol_ptr)NULL,
@@ -18934,20 +18932,25 @@ options is a set of substitution options.
                                  (a_template_param_ptr)NULL,
                                  template_arg_list, template_param_list,
                                  source_pos, options, copy_error, ctws_state);
-        if (!*copy_error) {
-          expr_copy = copy_node(expr);
-          expr_copy->variant.concept_id.args = new_args;
+        if (template_arg_list_is_dependent(new_args)) {
+          /* Don't attempt to substitute concept-ids with dependent parameter
+             lists. */
+          if (!*copy_error) {
+            expr_copy = copy_node(expr);
+            expr_copy->variant.concept_id.args = new_args;
+          }  /* if */
+        } else {
+          a_boolean    val;
+          a_diag_list  diag_list;
+          clear_diag_list(&diag_list);
+          val = constraint_satisfied(expr, template_arg_list,
+                                     template_param_list, &diag_list,
+                                     copy_error, copy_error);
+          make_bool_constant_value(val, constant);
+          discard_more_info_list(&diag_list);
+          free_template_arg_list(new_args);
         }  /* if */
-      } else {
-        a_boolean    val;
-        a_diag_list  diag_list;
-        clear_diag_list(&diag_list);
-        val = constraint_satisfied(expr, template_arg_list,
-                                   template_param_list, &diag_list,
-                                   copy_error, copy_error);
-        make_bool_constant_value(val, constant);
-        discard_more_info_list(&diag_list);
-      }  /* if */
+      }
       break;
     case enk_requires:
       if (template_arg_list_is_dependent(template_arg_list)) {

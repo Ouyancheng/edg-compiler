@@ -8228,11 +8228,8 @@ instantiation-dependent.
 
   switch (tap->kind) {
     case tak_type:
-      { a_type_ptr  tp = tap->variant.type;
-        template_param_found =
-                     tp != NULL &&
-                     is_instantiation_dependent_type_or_cli_generic_param(tp);
-      }
+      template_param_found =
+       is_instantiation_dependent_type_or_cli_generic_param(tap->variant.type);
       break;
     case tak_nontype:
       if (tap->arg_operand != NULL) {
