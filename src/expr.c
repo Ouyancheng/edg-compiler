@@ -47324,12 +47324,26 @@ is TRUE if the expression is the immediate operand of an "&" operator.
             a_symbol_locator  loc;
             a_scope_depth     saved_depth_of_initial_lookup_scope =
                                                 depth_of_initial_lookup_scope;
-            make_locator_for_symbol(sym, &loc);
-            clear_specific_symbol(loc);
             while (!scope_is(&scope_stack[depth_of_initial_lookup_scope--],
                              sck_instantiation_context)) {
             }  /* while */
-            sym = normal_id_lookup(&loc, IDL_NO_OPTIONS);
+            if (var->is_this_parameter) {
+              a_variable_ptr  this_var;
+              a_type_ptr      this_type;
+              if (!variable_this_exists(&this_var, &this_type)) {
+                subst_fail(rcblock->error_detected);
+              } else {
+                make_this_variable_operand(this_var, this_type,
+                                           expr->compiler_generated,
+                                           &expr->position, &expr->position,
+                                           result);
+                copy_operand_position(&eriep->saved_operand, result);
+              }  /* if */
+            } else {
+              make_locator_for_symbol(sym, &loc);
+              clear_specific_symbol(loc);
+              sym = normal_id_lookup(&loc, IDL_NO_OPTIONS);
+            }  /* if */
             depth_of_initial_lookup_scope =
                                           saved_depth_of_initial_lookup_scope;
           }  /* if */

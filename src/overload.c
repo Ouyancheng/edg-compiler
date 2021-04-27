@@ -11717,7 +11717,7 @@ implicit "this" is available, e.g., during overload resolution.
   a_boolean               this_exists = FALSE;
   a_variable_ptr          local_this_var = NULL;
   a_type_ptr              local_this_type = NULL;
-  a_scope_stack_entry_ptr ssep = &scope_stack_top();
+  a_scope_stack_entry_ptr ssep = &scope_stack[depth_of_initial_lookup_scope];
   a_scope_ptr             enclosing_rout_scope = NULL;
 
   /* If we are in a lambda declarator, step out of it since the closure's
