@@ -47316,6 +47316,23 @@ is TRUE if the expression is the immediate operand of an "&" operator.
           }  /* if */
         } else {
           sym = symbol_for(var);
+          if (var->source_corresp.is_local_to_function &&
+              !scope_is(&scope_stack_top(), sck_function_access)) {
+            /* For a local function variable (outside a function signature
+               rescan context), look up the variable again to obtain the
+               instantiated version of it. */
+            a_symbol_locator  loc;
+            a_scope_depth     saved_depth_of_initial_lookup_scope =
+                                                depth_of_initial_lookup_scope;
+            make_locator_for_symbol(sym, &loc);
+            clear_specific_symbol(loc);
+            while (!scope_is(&scope_stack[depth_of_initial_lookup_scope--],
+                             sck_instantiation_context)) {
+            }  /* while */
+            sym = normal_id_lookup(&loc, IDL_NO_OPTIONS);
+            depth_of_initial_lookup_scope =
+                                          saved_depth_of_initial_lookup_scope;
+          }  /* if */
         }  /* if */
       }
       break;
@@ -47927,9 +47944,13 @@ set accordingly.
     /* A braced-init-list. */
     operator_token = tok_lbrace;
   } else if (expr->kind == (an_expr_node_kind)enk_variable) {
-    /* A variable reference: Rescannable if it is a variable template. */
+    /* A variable reference: Rescannable if it is a variable template.  Also
+       rescan local variables in contexts that aren't function signatures
+       (specifically: requires-expressions). */
     a_variable_ptr  vp = node_variable(expr);
-    if (vp->is_template_variable) {
+    if (vp->is_template_variable ||
+        (vp->source_corresp.is_local_to_function &&
+         !scope_is(&scope_stack_top(), sck_function_access))) {
       operator_token = tok_identifier;
     } else {
       rescannable = FALSE;
