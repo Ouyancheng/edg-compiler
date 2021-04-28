@@ -1469,8 +1469,8 @@ being instantiated.
 
   if (idepth != NO_SCOPE_DEPTH) {
     /* There is at least one active instantiation on the scope stack.  Walk
-       down the stack looking and collect parameter/argument lists for the
-       instantiation of nested templates until we hit a namespace scope. */
+       down the stack collecting parameter/argument lists for the instantiation
+       of nested templates until we hit a namespace scope. */
     do {
       a_scope_stack_entry_ptr  issep = &scope_stack[idepth];
       if (scope_is(issep, sck_template_instantiation) &&
