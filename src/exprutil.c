@@ -5693,11 +5693,23 @@ substitutions to be done.
          operands. */
       eliminate_unusual_operand_kinds(operand);
     }  /* if */
-    /* When calling make_node_from_operand, make sure possible_rescan_context
-       is TRUE so that necessary rescan info is recorded in the node. */
-    expr_stack->possible_rescan_context = TRUE;
-    expr = make_node_from_operand(operand);
-    expr_stack->possible_rescan_context = saved_possible_rescan_context;
+    if (is_constant_operand(operand) &&
+        constant_is(&operand->variant.constant, ck_template_param) &&
+        tpck_is(&operand->variant.constant, tpck_expression) &&
+        (expr = expr_node_from_tpck_expression(&operand->variant.constant))
+                                                                    != NULL &&
+        expr->extra.rescan_info != NULL) {
+      /* If the operand is just a tpck_expression constant wrapping an
+         expression with associated rescan information, use the expression
+         directly instead of wrapping the constant in an enk_constant node,
+         because the latter can lead to memory region complications. */
+    } else {
+      /* When calling make_node_from_operand, make sure possible_rescan_context
+         is TRUE so that necessary rescan info is recorded in the node. */
+      expr_stack->possible_rescan_context = TRUE;
+      expr = make_node_from_operand(operand);
+      expr_stack->possible_rescan_context = saved_possible_rescan_context;
+    }  /* if */
     copy_icp = rescan_expr_as_arg_list_elem(expr, rcblock);
   } else if (is_braced_init_component(icp)) {
     /* Rescan a brace-enclosed list of init-components. */
