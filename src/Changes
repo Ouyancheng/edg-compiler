@@ -1,5 +1,12 @@
 Version 6.3
 
+4/28/21  [EDGcpfe/24228]
+GNU compatibility: GCC 11.1.0 builtins
+
+Signatures for builtin functions have been updated to reflect the GCC 11.1.0
+release.
+
+
 4/23/21  [EDGcpfe/23972,EDGcpfe/23973,EDGcpfe/24178]
 Internal errors when substituting certain requires-expression
 
