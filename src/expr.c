@@ -38189,6 +38189,7 @@ Record the representation or the requires-expression in *result.
     }  /* if */
     if (il_region != file_scope_region_number) {
       switch_il_region(il_region);
+      scope_stack_top().il_memory_region = il_region;
     }  /* if */
     if (!required_token(tok_lbrace, ec_exp_lbrace)) {
       make_error_operand(result);
@@ -38265,7 +38266,7 @@ done_with_requirements:
         possibly_add_orphaned_file_scope_il_entry((char*)params,
                                                   iek_param_type);
       }  /* if */
-      switch_il_region(file_scope_region_number);
+      switch_il_region(il_region);
     }  /* if */
     pop_scope();
     remove_stop_token(tok_rbrace);
