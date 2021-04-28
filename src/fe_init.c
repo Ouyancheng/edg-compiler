@@ -1204,7 +1204,8 @@ Install the keywords in the symbol table.
   if (ms_extensions || clang_mode || gnu_version_is(>=70000)) {
     enter_keyword((a_token_kind)tok_builtin_addressof, "__builtin_addressof");
   }  /* if */
-  if (mscpp_version_is(>=1926) || clang_version_is(>=90000)) {
+  if (mscpp_version_is(>=1926) || clang_version_is(>=90000) ||
+      gpp_version_is(>=110000)) {
     enter_builtin_keyword((a_token_kind)tok_builtin_bit_cast,
                           "__builtin_bit_cast");
   }  /* if */
