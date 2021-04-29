@@ -1,5 +1,50 @@
 Version 6.3
 
+4/29/21  [EDGcpfe/22034]
+Incorrect class size without virtual base classes with empty classes
+
+In IA-64 ABI modes with re-used tail padding, when handling a non-POD empty
+class (e.g., a lambda closure class), the front end could incorrectly record
+the size_without_virtual_base_classes field in the associated
+a_class_type_supplement as zero, rather than the appropriate size for an empty
+class.  This could cause some spurious failures and incorrect treatment of a
+class without virtual bases as if it had virtual bases.  For example, with
+multiple translation units (with IA64_ABI == TRUE and
+DEFAULT_REMOVE_UNNEEDED_ENTITIES == FALSE), the front end would previously
+abort in set_parent_scope when two TUs both included a header containing:
+
+  template<class T> struct my_vector {
+    typedef T element_type;
+    element_type const &front() const {return __ptr[0];}
+  private:
+    element_type *__ptr;
+  };
+  template<class T> struct my_shared_ptr {
+  public:
+    typedef T element_type;
+    element_type *__ptr;
+  };
+  struct SubscriptionCountByTag
+  {
+    SubscriptionCountByTag(SubscriptionCountByTag const& other);
+    virtual ~SubscriptionCountByTag();
+  };
+  struct SubscriptionCountByTypedInstance
+  {
+    void foo() const
+    {
+      // Previous abort in set_parent_scope when processing this entity in a
+      // secondary TU
+      [](my_shared_ptr<SubscriptionCountByTag> const& subCount) {
+      }(tagCounts_.front());
+    }
+  private:
+    my_vector<my_shared_ptr<SubscriptionCountByTag>> tagCounts_;
+  };
+
+This is now fixed.
+
+
 4/28/21  [EDGcpfe/24228]
 GNU compatibility: GCC 11.1.0 builtins
 

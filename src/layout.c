@@ -5029,6 +5029,7 @@ for handling virtual bases and functions.
 #if IA64_ABI
   a_boolean         is_POD = FALSE;
 #endif /* IA64_ABI */
+  a_boolean         zero_size_adjusted = FALSE;
 
   db_enter(3, "do_class_layout");
   if (class_type->variant.class_struct_union.is_prototype_instantiation ||
@@ -5212,6 +5213,7 @@ for handling virtual bases and functions.
     /* Do not insert code here. */
     if (!(gcc_mode || (gpp_mode && gnu_zero_sized_class_type(class_type)))) {
       class_type->size = 1;
+      zero_size_adjusted = TRUE;
     }  /* if */
   }  /* if */
   /* If the class has virtual base classes, the size and alignment without
@@ -5220,7 +5222,7 @@ for handling virtual bases and functions.
   if (!C_mode() &&
       !lob.class_type->variant.class_struct_union.any_virtual_base_classes
 #if IA64_ABI
-      && (!targ_reuse_tail_padding || is_POD)
+      && (!targ_reuse_tail_padding || is_POD || zero_size_adjusted)
 #endif /* IA64_ABI */
                                              ) {
     a_class_type_supplement_ptr	ctsp = lob.class_type->
