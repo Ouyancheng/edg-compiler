@@ -2350,6 +2350,26 @@ sizeof_cases:
       break;
     case enk_requires:
       fputs("requires-expr\n", f_debug);
+      {
+        an_expr_node_ptr  req = node->variant.requires_expr.requirements;
+        for (; req != NULL; req = req->next) {
+          db_expr_node(req, level+2);
+        }  /* for */
+      }
+      break;
+    case enk_compound_req:
+      fputs("compound-req\n", f_debug);
+      db_expr_node(node->variant.compound_req.expr_and_constraint, level+2);
+      if (node->variant.compound_req.expr_and_constraint->next != NULL) {
+        for (a = 0; a < level; a++) fputs(" ", f_debug);
+        fputs("  ->", f_debug);
+        db_expr_node(node->variant.compound_req.expr_and_constraint->next,
+                     level+6);
+      }  /* if */
+      break;
+    case enk_nested_req:
+      fputs("nested-req\n", f_debug);
+      db_expr_node(node->variant.nested_req.constraint, level+2);
       break;
     case enk_error:
       fputs("error node\n", f_debug);
