@@ -3171,6 +3171,7 @@ a_boolean constraint_satisfied(an_expr_node_ptr      constraint,
 an_expr_node_ptr  substitute_expr(an_expr_node_ptr           expr,
                                   a_subst_pairs_array const  &subst_pairs,
                                   a_ctws_state               *ctws_state,
+                                  a_ctws_options_set         options,
                                   a_constant_ptr             cp,
                                   a_constant_ptr             *p_allocated_cp,
                                   a_boolean                  *p_err);

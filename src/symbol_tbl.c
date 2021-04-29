@@ -8364,7 +8364,8 @@ if the constraints fails, or FALSE otherwise.
     a_ctws_state    ctws_state;
     init_ctws_state(&ctws_state);
     constraint = substitute_expr(rcp->constraint, subst_pairs, &ctws_state,
-                                 cp, &allocated_cp, &err);
+                                 CTWS_MAY_BE_RESCANNED, cp, &allocated_cp,
+                                 &err);
     if (err) {
     } else if (constraint != NULL) {
       release_local_constant(&cp);

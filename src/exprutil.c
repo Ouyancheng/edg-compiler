@@ -25263,6 +25263,7 @@ p_fatal and p_copy_error are NULL by default.
 an_expr_node_ptr substitute_expr(an_expr_node_ptr           expr,
                                  a_subst_pairs_array const  &subst_pairs,
                                  a_ctws_state               *ctws_state,
+                                 a_ctws_options_set         options,
                                  a_constant_ptr             cp,
                                  a_constant_ptr             *p_allocated_cp,
                                  a_boolean                  *p_err)
@@ -25270,11 +25271,12 @@ an_expr_node_ptr substitute_expr(an_expr_node_ptr           expr,
 Substitute the given expression with all the template parameter/argument pairs
 in subst_pairs (if there are multiple pairs in the array, the first ones
 represent enclosing class template instances).  ctws_state is the substitution
-state to use throughout this process.  If the result of the substitution is a
-general expression, return its representation.  If it is a constant that is
-already allocated in the IL, return it through *p_allocated_cp.  If it is
-another constant value, record that value in *cp.  If the substitution fails
-at any stage, set *p_err to TRUE.
+state to use throughout this process and the flags in options are passed along
+to the substitution routines.  If the result of the substitution is a general
+expression, return its representation.  If it is a constant that is already
+allocated in the IL, return it through *p_allocated_cp.  If it is another
+constant value, record that value in *cp.  If the substitution fails at any
+stage, set *p_err to TRUE.
 */
 {
   a_constant_ptr     allocated_cp = NULL;
@@ -25283,27 +25285,27 @@ at any stage, set *p_err to TRUE.
 
   for (int k = 0; k < levels && !*p_err; ++k) {
     a_subst_pairs_descr const  *spd = &subst_pairs[k];
-    a_ctws_options_set         options = CTWS_NON_CONSTANT_EXPR;
+    a_ctws_options_set         all_options = options | CTWS_NON_CONSTANT_EXPR;
     if (k < levels-1) {
       /* The next iteration may have to rescan the result. */
-      options |= CTWS_MAY_BE_RESCANNED;
+      all_options |= CTWS_MAY_BE_RESCANNED;
     }  /* if */
     if (expr != NULL) {
       expr = copy_template_param_expr(
                          expr, spd->args, spd->params, (a_type_ptr)NULL,
-                         pos, options, p_err, ctws_state, cp,
+                         pos, all_options, p_err, ctws_state, cp,
                          &allocated_cp);
     } else if (allocated_cp != NULL) {
       allocated_cp = copy_template_param_con(
                          allocated_cp, spd->args, spd->params,
-                         (a_type_ptr)NULL, pos, options, p_err,
+                         (a_type_ptr)NULL, pos, all_options, p_err,
                          ctws_state, cp);
     } else {
       a_constant_ptr  src_cp = local_constant();
       *src_cp = *cp;
       allocated_cp = copy_template_param_con(
                          src_cp, spd->args, spd->params, (a_type_ptr)NULL,
-                         pos, options, p_err, ctws_state, cp);
+                         pos, all_options, p_err, ctws_state, cp);
       release_local_constant(&src_cp);
     }  /* if */
   }  /* for */
@@ -25332,7 +25334,7 @@ potentially throwing.
   a_constant_ptr    cp = local_constant(), allocated_cp = NULL;
   an_expr_node_ptr  expr = req_expr;
 
-  expr = substitute_expr(expr, subst_pairs, ctws_state,
+  expr = substitute_expr(expr, subst_pairs, ctws_state, CTWS_NO_OPTIONS,
                          cp, &allocated_cp, &err);
   if (err) {
     result = NULL;
