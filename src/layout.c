@@ -5134,10 +5134,9 @@ for handling virtual bases and functions.
        virtual base classes will already have been recorded; otherwise, record
        it now. */
     if (!C_mode() &&
-        !lob.class_type->variant.class_struct_union.any_virtual_base_classes &&
+        !class_type->variant.class_struct_union.any_virtual_base_classes &&
         !is_POD) {
-      a_class_type_supplement_ptr  ctsp = lob.class_type->
-                                         variant.class_struct_union.extra_info;
+      a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
       ctsp->size_without_virtual_base_classes = lob.byte_offset;
       ctsp->alignment_without_virtual_base_classes = lob.alignment;
     }  /* if */
@@ -5214,6 +5213,8 @@ for handling virtual bases and functions.
     if (!(gcc_mode || (gpp_mode && gnu_zero_sized_class_type(class_type)))) {
       class_type->size = 1;
 #if IA64_ABI
+      /* Because we found the need to adjust the class size here, we may need
+         to also adjust ctsp->size_without_virtual_base_classes below. */
       zero_size_adjusted = TRUE;
 #endif /* IA64_ABI */
     }  /* if */
@@ -5222,13 +5223,12 @@ for handling virtual bases and functions.
      virtual base classes will already have been recorded; otherwise, record
      it now. */
   if (!C_mode() &&
-      !lob.class_type->variant.class_struct_union.any_virtual_base_classes
+      !class_type->variant.class_struct_union.any_virtual_base_classes
 #if IA64_ABI
       && (!targ_reuse_tail_padding || is_POD || zero_size_adjusted)
 #endif /* IA64_ABI */
-                                             ) {
-    a_class_type_supplement_ptr	ctsp = lob.class_type->
-                                        variant.class_struct_union.extra_info;
+                                                                   ) {
+    a_class_type_supplement_ptr	ctsp = class_type_supp(class_type);
     ctsp->size_without_virtual_base_classes = class_type->size;
     ctsp->alignment_without_virtual_base_classes = class_type->alignment;
   }  /* if */
