@@ -1,7 +1,7 @@
 Version 6.3
 
 4/29/21  [EDGcpfe/22034]
-Incorrect class size without virtual base classes with empty classes
+Incorrect size for an empty class with no virtual bases
 
 In IA-64 ABI modes with re-used tail padding, when handling a non-POD empty
 class (e.g., a lambda closure class), the front end could incorrectly record
