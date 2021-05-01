@@ -533,6 +533,13 @@ Output the indicated template argument in the way described by octl.
               con->expr = expr;
             }  /* if */
           }  /* if */
+          if (expr != NULL && octl->type_operator_expr_is_unusable != NULL &&
+              octl->type_operator_expr_is_unusable(expr)) {
+            /* The expression uses an undefined type or a local type that
+               is not visible.  Just use the constant value. */
+            expr = NULL;
+            con->expr = NULL;
+          }  /* if */
           if (expr != NULL && octl->skip_implicit_steps != NULL) {
             expr = octl->skip_implicit_steps(expr);
           }  /* if */

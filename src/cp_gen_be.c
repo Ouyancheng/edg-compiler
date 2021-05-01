@@ -10651,14 +10651,16 @@ static void check_for_member_of_undefined_or_local_class(
 This routine is called by traverse_expr in a top-down traversal of an
 expression tree.  It stops the traversal and sets the result to TRUE when
 it finds a node referring to a member of a class that has not yet been
-defined or a local class.  In addition, as a special case, it checks for an
-attempt to use a reference as the object expression in a member function
-call if the generated code target is an older version of MSVC, since such
-expressions result in spurious errors when the generated code is compiled
-by those compilers.  It is used by suppress_invalid_explicit_specialization
-to detect references in exception specifications that would make the class
-containing such an exception specification invalid and by form_type to
-avoid putting out invalid type operator expressions.
+defined or a local class or a local variable or constant.  In addition, as
+a special case, it checks for an attempt to use a reference as the object
+expression in a member function call if the generated code target is an
+older version of MSVC, since such expressions result in spurious errors
+when the generated code is compiled by those compilers.  It is used by
+suppress_invalid_explicit_specialization to detect references in exception
+specifications that would make the class containing such an exception
+specification invalid, by form_type to avoid putting out invalid type
+operator expressions, and by form_a_template_arg to avoid references to
+out-of-scope local variables.
 */
 {
   a_source_correspondence_ptr scp = NULL;
@@ -10679,19 +10681,29 @@ avoid putting out invalid type operator expressions.
     default:
       break;
   }  /* switch */
-  if (scp != NULL && scp->is_class_member &&
-      ((!scp_parent_class(scp)->has_been_defined &&
-        !class_is_in_name_context_stack(
+  if (scp != NULL) {
+    if (scp->is_class_member &&
+        ((!scp_parent_class(scp)->has_been_defined &&
+          !class_is_in_name_context_stack(
                                   scp_parent_class(scp),
                                   /*include_base_classes=*/FALSE,
                                   /*ignore_field_selection_contexts=*/TRUE)) ||
-       scp->is_local_to_function)) {
-    /* This node refers to a member of a not-yet-defined or local class, so
-       an explicit specialization for the class in which this expression
-       appears or a type operator containing this expression would be
-       invalid. */
-    tblock->result = TRUE;
-    tblock->terminate = TRUE;
+         scp->is_local_to_function)) {
+      /* This node refers to a member of a not-yet-defined or local class,
+         so an explicit specialization for the class in which this
+         expression appears or a type operator containing this expression
+         would be invalid. */
+      tblock->result = TRUE;
+      tblock->terminate = TRUE;
+    } else if (!scp->is_class_member && scp->is_local_to_function) {
+      a_scope_ptr sp = scope_for_routine(scp->enclosing_routine);
+      if (sp != NULL && !scope_is_in_name_context_stack(sp)) {
+        /* This is something like a local variable referenced from outside
+           the scope in which it is declared.  The name is unusable. */
+        tblock->result = TRUE;
+        tblock->terminate = TRUE;
+      }  /* if */
+    }  /* if */
   }  /* if */
   if (msvc_is_generated_code_target && msvc_target_version_number < 1914 &&
       is_operation_node(expr) && node_operator_is(expr, eok_dot_member_call) &&
@@ -10711,10 +10723,10 @@ avoid putting out invalid type operator expressions.
 static a_boolean expr_uses_undefined_or_local_type(an_expr_node_ptr expr)
 /*
 Walk the tree rooted in expr looking for references to members of classes
-that haven't been defined yet and local classes.  In addition, older
-versions of MSVC issue a spurious error if the expression in a decltype is
-a member function call in which the object expression is a reference, so
-check for that also as a special case.
+that haven't been defined yet and local classes and to local variables and
+constants.  In addition, older versions of MSVC issue a spurious error if
+the expression in a decltype is a member function call in which the object
+expression is a reference, so check for that also as a special case.
 */
 {
   an_expr_or_stmt_traversal_block tblock;
@@ -23103,9 +23115,7 @@ Initialize for the C++/C-generating back end.
   }  /* if */
   octl.has_unprotected_gt_or_comma_operation =
                                          has_unprotected_gt_or_comma_operation;
-#if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   octl.type_operator_expr_is_unusable = expr_uses_undefined_or_local_type;
-#endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   octl.skip_implicit_steps = skip_implicit_steps;
   octl.gen_compilable_code = TRUE;
   octl.gen_pcc_code = il_header.pcc_compatibility_mode;
