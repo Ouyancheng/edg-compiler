@@ -6365,8 +6365,8 @@ declared entity is known to not be a function.
           if (reactivate_scope) {
             /* Reactivate the scope of the parent class.  It will be
                deactivated once the entire declarator has been scanned. */
-            push_class_and_template_reactivation_scope_full
-                           (*p_member_parent_type,
+            push_class_and_template_reactivation_scope_full(
+                            *p_member_parent_type,
                             /*reactivate_template_params=*/FALSE,
                             is_specialization,
                             /*extend_namespace=*/FALSE,

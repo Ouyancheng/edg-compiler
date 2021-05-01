@@ -9961,7 +9961,7 @@ void push_instantiation_scope_for_class(
 /*
 Push a template instantiation scope for "class_type".  This is used
 to reactivate a template instantiation scope after the class has been
-instantiated, and in Microsoft mode to push an instantiate scope used
+instantiated, and in Microsoft mode to push an instantiation scope used
 when a class specialization is defined (is_microsoft_specialization_scope
 is TRUE in this case).  As a result, partial specializations need not be
 taken into account (if the class has been instantiated, the class_template of

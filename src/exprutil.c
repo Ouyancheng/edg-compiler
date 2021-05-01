@@ -25010,7 +25010,8 @@ a_boolean constraint_satisfied(an_expr_node_ptr      constraint,
                                a_template_arg_ptr    template_arg_list,
                                a_template_param_ptr  template_param_list,
                                a_diag_list_ptr       diag_list,
-             /* Defaulted: */  a_boolean             *p_fatal,
+             /* Defaulted: */  a_ctws_options_set    options,
+                               a_boolean             *p_fatal,
                                a_boolean             *p_copy_error)
 /*
 Return TRUE if the given constraint expression, built on the given template
@@ -25024,6 +25025,7 @@ return FALSE and:
     *p_fatal to TRUE and update diag_list with a corresponding note, or
   - if p_fatal is NULL and the failure is not subject to SFINAE, issue an
     error with any notes recorded in diag_list and clear diag_list.
+options is a set of substitution options; it is CTWS_NO_OPTIONS by default.
 p_fatal and p_copy_error are NULL by default.
 */
 {
@@ -25052,6 +25054,9 @@ p_fatal and p_copy_error are NULL by default.
                                           scope_stack_top().in_concept_rescan;
       scope_stack_top().in_concept_rescan = TRUE;
       init_ctws_state(&ctws_state);
+      if (options & CTWS_SUBST_PARENT_CLASS_ARGS) {
+        ctws_state.in_parent_substitution = TRUE;
+      }  /* if */
       /* Substitute the concept-id's original arguments.  We should really
          only substitute the parameters that are actually referenced by the
          atomic constraint (presumably, those are those for which
@@ -25063,7 +25068,7 @@ p_fatal and p_copy_error are NULL by default.
                                                   template_arg_list,
                                                   template_param_list, 
                                                   &constraint->position,
-                                                  CTWS_NO_OPTIONS,
+                                                  options,
                                                   &copy_error, &ctws_state);
       scope_stack_top().in_concept_rescan = saved_in_concept_rescan;
     } else {
@@ -25091,7 +25096,7 @@ p_fatal and p_copy_error are NULL by default.
       a_diagnostic_ptr  prev_diags = diag_list->tail;
       an_expr_node_ptr  expr = templ->prototype_instantiation.constraint;
       /* Evaluate the resulting constraint. */
-      result = constraint_satisfied(expr, new_args, params, diag_list,
+      result = constraint_satisfied(expr, new_args, params, diag_list, options,
                                     p_fatal);
       if (!result && !*p_fatal) {
         /* Insert a diagnostic before the ones detailing the constraint
@@ -25111,10 +25116,10 @@ p_fatal and p_copy_error are NULL by default.
        evaluated. */
     an_expr_node_ptr  opnds = constraint->variant.operation.operands;
     result = constraint_satisfied(opnds, template_arg_list,
-                                  template_param_list, diag_list,
+                                  template_param_list, diag_list, options,
                                   p_fatal, &copy_error) &&
              constraint_satisfied(opnds->next, template_arg_list,
-                                  template_param_list, diag_list,
+                                  template_param_list, diag_list, options,
                                   p_fatal, &copy_error);
   } else if (node_is_operator(constraint, eok_lor)) {
     /* Check the two underlying constraints separately.  If the first
@@ -25122,11 +25127,11 @@ p_fatal and p_copy_error are NULL by default.
        evaluated. */
     an_expr_node_ptr  opnds = constraint->variant.operation.operands;
     result = constraint_satisfied(opnds, template_arg_list,
-                                  template_param_list, diag_list,
+                                  template_param_list, diag_list, options,
                                   p_fatal, &copy_error) ||
              (!*p_fatal && !copy_error &&
               constraint_satisfied(opnds->next, template_arg_list,
-                                   template_param_list, diag_list,
+                                   template_param_list, diag_list, options,
                                    p_fatal, &copy_error));
   } else {
     /* An atomic constraint.  First perform substitution (or reuse a cached
@@ -25148,10 +25153,13 @@ p_fatal and p_copy_error are NULL by default.
         a_memory_region_number  region_to_switch_back_to;
         switch_to_file_scope_region(&region_to_switch_back_to);
         init_ctws_state(&ctws_state);
+        if (options & CTWS_SUBST_PARENT_CLASS_ARGS) {
+          ctws_state.in_parent_substitution = TRUE;
+        }  /* if */
         expr = copy_template_param_expr(
                             constraint, template_arg_list, template_param_list,
                             (a_type_ptr)NULL, &constraint->position,
-                            CTWS_NO_OPTIONS, &copy_error, &ctws_state,
+                            options, &copy_error, &ctws_state,
                             cp, &allocated_cp);
         /* Store the substitution in the cache. */
         if (expr != NULL || copy_error) {
