@@ -167,6 +167,8 @@ This support involves a small IL CHANGE.  The overriding_virtual_functions
 field in a_base_class has been moved into a union, and uses of the field
 should check the value of the is_pack_expansion flag.
 
+This feature is also enabled in Microsoft mode when microsoft_version >=
+1927 and --ms_c++20 (or --ms_c++latest) is specified.
 
 
 4/19/21  [EDGcpfe/23980]
