@@ -19899,16 +19899,16 @@ is not used.*/
 
 static inline a_boolean check_modules_enabled(void)
 /*
-Issue an error and skip to the next semicolon if modules are not enabled in the
-current mode.  Return TRUE if modules are enabled in this mode (and FALSE
-otherwise).
+This is a utility routine that is called when a modules-related declaration
+is about to be scanned.  The handling of this case may vary from emulation
+to emulation, but currently an error is issued for the first case and
+modules are then enabled, as presumably the user had neglected to enable
+modules.
 */
 {
   if (!modules_enabled) {
     pos_error(ec_modules_not_enabled, &pos_curr_token);
-    add_stop_token(tok_semicolon);
-    flush_tokens();
-    remove_stop_token(tok_semicolon);
+    modules_enabled = TRUE;
   }  /* if */
   return modules_enabled;
 }  /* check_modules_enabled */

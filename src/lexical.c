@@ -13250,8 +13250,8 @@ process the "import" or "module" that follows it.
       token = tok_import;
     } else {
       /* We're treating this as an identifier rather than a keyword; that might
-         be fine, but issue a remark just to flag it. */
-      pos_st_remark(ec_identifier_not_keyword, &start_pos, "import");
+         be fine, but issue a warning just to flag it. */
+      pos_st_warning(ec_identifier_not_keyword, &start_pos, "import");
     }  /* if */
   } else if (*curr_char_loc == 'm' &&
              (!export_seen ||
@@ -13273,8 +13273,8 @@ process the "import" or "module" that follows it.
       }  /* if */
     } else {
       /* We're treating this as an identifier rather than a keyword; that might
-         be fine, but issue a remark just to flag it. */
-      pos_st_remark(ec_identifier_not_keyword, &start_pos, "module");
+         be fine, but issue a warning just to flag it. */
+      pos_st_warning(ec_identifier_not_keyword, &start_pos, "module");
     }  /* if */
   }  /* if */
   if (token != tok_error) {
