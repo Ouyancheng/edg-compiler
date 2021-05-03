@@ -10696,8 +10696,13 @@ out-of-scope local variables.
       tblock->result = TRUE;
       tblock->terminate = TRUE;
     } else if (!scp->is_class_member && scp->is_local_to_function) {
-      a_scope_ptr sp = scope_for_routine(scp->enclosing_routine);
-      if (sp != NULL && !scope_is_in_name_context_stack(sp)) {
+      a_scope_ptr sp = NULL;
+      if (scp->enclosing_routine != NULL &&
+          scp->enclosing_routine->function_def_number !=
+                                                    NULL_function_def_number) {
+        sp = scope_for_routine(scp->enclosing_routine);
+      }  /* if */
+      if (sp == NULL || !scope_is_in_name_context_stack(sp)) {
         /* This is something like a local variable referenced from outside
            the scope in which it is declared.  The name is unusable. */
         tblock->result = TRUE;
