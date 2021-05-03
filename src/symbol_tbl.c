@@ -8384,8 +8384,8 @@ if the constraints fails, or FALSE otherwise.
     a_diag_list  diag_list;
     clear_diag_list(&diag_list);
     /* Check the constraint.  Note that CTWS_SUBST_PARENT_CLASS_ARGS is needed
-       to ensure that template parameter pack in the parent class are correctly
-       substituted in the constraint. */
+       to ensure that template parameter packs in the parent class are
+       correctly substituted in the constraint. */
     if (!constraint_satisfied(constraint, top_pair.args, top_pair.params,
                               &diag_list, CTWS_SUBST_PARENT_CLASS_ARGS,
                               &err)) {

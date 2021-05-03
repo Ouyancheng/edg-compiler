@@ -24899,7 +24899,7 @@ sym2 and vice versa; otherwise, set it to FALSE.
       result = 0;
       equiv = TRUE;
     }  /* if */
-  } else {
+  } else if (sym1 != sym2) {
     /* Both declarations are constrained: Check subsumption. */
     a_boolean  sym1_subsumes_sym2 = subsumes_constraint_chart(chart1, chart2),
                sym2_subsumes_sym1 = subsumes_constraint_chart(chart2, chart1);
