@@ -10664,6 +10664,7 @@ out-of-scope local variables.
 */
 {
   a_source_correspondence_ptr scp = NULL;
+  a_boolean                   is_generic_closure_call_operator = FALSE;
 
   switch (expr->kind) {
     case enk_variable:
@@ -10671,6 +10672,11 @@ out-of-scope local variables.
       break;
     case enk_routine:
       scp = &node_routine(expr)->source_corresp;
+      if (scp->is_class_member) {
+        is_generic_closure_call_operator =
+                 scp_parent_class(scp)->variant.class_struct_union.extra_info->
+                                               is_generic_lambda_closure_class;
+      }  /* if */
       break;
     case enk_field:
       scp = &node_field(expr)->source_corresp;
@@ -10682,7 +10688,7 @@ out-of-scope local variables.
       break;
   }  /* switch */
   if (scp != NULL) {
-    if (scp->is_class_member &&
+    if (scp->is_class_member && !is_generic_closure_call_operator &&
         ((!scp_parent_class(scp)->has_been_defined &&
           !class_is_in_name_context_stack(
                                   scp_parent_class(scp),
