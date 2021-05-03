@@ -1,5 +1,23 @@
 Version 6.3
 
+5/3/21   [EDGcpfe/24259]
+Abort after using-declaration for assignment operator
+
+Consider:
+
+  template<typename T> struct X: T {
+    X& operator=(const X& other) = default;
+    using T::operator=;
+    X& operator=(X&&) noexcept;  // Previously triggered an internal error.
+  };
+
+Previously, the using-declaration introduced a symbol for the assignment
+operator without also updating the assignment operator entry in the symbol
+supplement for the associated class.  That triggered an internal error when
+attempting to add the subsequent assignment operator its overload set.  That
+is now fixed.
+
+
 4/29/21  [EDGcpfe/22034]
 Incorrect size for an empty class with no virtual bases
 

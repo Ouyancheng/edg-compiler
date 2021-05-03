@@ -24840,9 +24840,15 @@ is the access specifier applicable to the new declaration.
         reenter_symbol(front_sym, depth_scope_stack, /*suppress_error=*/TRUE);
       }  /* if */
     } else {
+      a_class_symbol_supplement_ptr
+                 cssp = class_symbol_supp(symbol_for(class_type));
+      a_boolean  is_assignment = *other_sym == cssp->assignment_operator;
       *other_sym = add_symbol_to_overload_list(new_sym, *other_sym,
                                               /*use_namespace=*/FALSE,
                                               (a_namespace_ptr)NULL);
+      if (is_assignment) {
+        cssp->assignment_operator = *other_sym;
+      }  /* if */
       set_mixed_static_nonstatic_flag(*other_sym);
     }  /* if */
     if (fund_sym->kind == (a_symbol_kind)sk_member_function) {
