@@ -7,12 +7,14 @@ An abort would occur (in attach_attributes_to_routine_instance) if a GCC
 target pragma was used in a context in which the associated attribute
 would be applied to a member function of a class template.  Now fixed.
 
-  #pragma GCC target("avx,avx2,fma")
-  template <class T> struct A {
-    constexpr operator bool() { return true; }
+  #pragma GCC target ("avx")
+  template <typename T> struct A {
+    const T* f() { return nullptr; }
   };
-  constexpr A<bool> f() { return {}; }
-  static_assert(f(), "");
+  int main() {
+    A<char> a;
+    a.f();
+  }
 
 
 5/3/21   [EDGcpfe/24259]
