@@ -62,8 +62,8 @@ Consider:
 Previously, the using-declaration introduced a symbol for the assignment
 operator without also updating the assignment operator entry in the symbol
 supplement for the associated class.  That triggered an internal error when
-attempting to add the subsequent assignment operator its overload set.  That
-is now fixed.
+attempting to add the subsequent assignment operator to its overload set.
+That is now fixed.
 
 
 4/29/21  [EDGcpfe/22034]
