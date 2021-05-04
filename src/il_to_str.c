@@ -2471,7 +2471,7 @@ available or not portable).
         /* With unknown template cases, you always need the underlying
            expression to make sense of things. */
         render = TRUE;
-      } else if (octl->gen_compilable_code &&
+      } else if (octl->gen_compilable_code && expr != NULL &&
                  (octl->type_operator_expr_is_unusable == NULL ||
                   !octl->type_operator_expr_is_unusable(expr))) {
         /* We're generating compilable code, and the decltype or typeof is
