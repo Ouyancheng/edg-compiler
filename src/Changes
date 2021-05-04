@@ -1,5 +1,20 @@
 Version 6.3
 
+5/4/21   [EDGcpfe/24208,EDGcpfe/24122]
+GNU C++ compatibility: abort when GCC target attribute is used with templates
+
+An abort would occur (in attach_attributes_to_routine_instance) if a GCC
+target pragma was used in a context in which the associated attribute
+would be applied to a member function of a class template.  Now fixed.
+
+  #pragma GCC target("avx,avx2,fma")
+  template <class T> struct A {
+    constexpr operator bool() { return true; }
+  };
+  constexpr A<bool> f() { return {}; }
+  static_assert(f(), "");
+
+
 5/3/21   [EDGcpfe/24259]
 Abort after using-declaration for assignment operator
 

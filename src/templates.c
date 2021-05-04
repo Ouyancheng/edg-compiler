@@ -1606,6 +1606,10 @@ instantiation.
   } else {
     tcp = &tssp->variant.function.decl_cache;
   }  /* if */
+  /* If the decl_cache is not filled in, fall back to the primary cache. */
+  if (tcp->decl_info == NULL) {
+    tcp = cache_for_template(tssp);
+  }  /* if */
   return tcp;
 }  /* decl_cache_for_function_template */
 

@@ -5383,7 +5383,7 @@ Push an instantiation scope for expression rescan.  template_sym is
 the template that is being rescanned and can be NULL.
 */
 {
-  a_template_decl_info_ptr	tdip;
+  a_template_decl_info_ptr	tdip = NULL;
   a_routine_ptr			rp = NULL;
   a_scope_stack_entry_ptr	ssep;
   a_scope_depth			orig_access_depth;
@@ -5394,12 +5394,13 @@ the template that is being rescanned and can be NULL.
     tssp = template_supplement_for_symbol(template_sym);
     check_assertion(tssp != NULL);
     /* Get the template decl. info. to get the context to be used for
-       access checking. */
+       access checking.  Use the decl_cache, if present, for functions. */
     if (template_sym->kind == (a_symbol_kind)sk_function_template ||
         template_sym->kind == (a_symbol_kind)sk_member_function) {
       rp = tssp->variant.function.routine;
       tdip = tssp->variant.function.decl_cache.decl_info;
-    } else {
+    }  /* if */
+    if (tdip == NULL) {
       tdip = tssp->cache.decl_info;
     }  /* if */
   } else {
