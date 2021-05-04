@@ -8882,6 +8882,9 @@ for use in generating cross-reference output describing this declaration.
   a_boolean                old_decl_has_body = FALSE;
   a_boolean                redeclaration = FALSE, is_guiding_decl = FALSE;
   a_routine_ptr            routine_ptr = NULL;
+#if GNU_FUNCTION_MULTIVERSIONING
+  a_routine_ptr            repr_rout_ptr = NULL;
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
   an_id_linkage_kind       linkage;
   a_source_correspondence  *source_corresp_ptr;
   a_scope_depth            effective_decl_level;
@@ -10320,7 +10323,7 @@ skip_overloading:;
         }  /* if */
       } else {
         /* No representative routine yet. */
-        target = routine_ptr;
+        repr_rout_ptr = target = routine_ptr;
       }  /* if */
       (void)process_multiversion_function(target_ap, effective_decl_level,
                                           representative, &target,
@@ -10532,6 +10535,19 @@ skip_overloading:;
 #endif /* NEED_NAME_MANGLING */
   routine_ptr->suppress_inline_body =
                                     routine_ptr->definition_for_inlining_only;
+#if GNU_FUNCTION_MULTIVERSIONING
+  if (repr_rout_ptr != NULL) {
+    an_attribute_ptr *next_ap = &repr_rout_ptr->source_corresp.attributes;
+    /* The original routine pointer became the representative.  Ensure the
+       (non-target) attributes are applied to the representative as well. */
+    for (an_attribute_ptr ap = routine_ptr->source_corresp.attributes;
+         ap != NULL; ap = ap->next) {
+      if (ap->kind == (a_byte_attribute_kind)ak_target) continue;
+      copy_attribute(ap, *next_ap);
+      next_ap = &(*next_ap)->next;
+    }  /* for */
+  }  /* if */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
 #if GNU_EXTENSIONS_ALLOWED
   /* Restore dps->type, since it may have been modified by type-transforming
      attributes. */

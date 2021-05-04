@@ -2498,6 +2498,7 @@ entry.
           /* Strict matching is requested.  (However, when matching built-in
              declarations just retain the source attribute.) */
           a_diagnostic_ptr dp;
+          check_assertion(ap1->name != NULL);
           dp = pos_st_start_error(
                             ec_missing_attribute_in_other_translation_unit,
                             &ap1->position, ap1->name);
@@ -3550,11 +3551,21 @@ Return TRUE if the given using declarations refer to corresponding entities.
                             (a_constant_ptr)ud2->entity.ptr);
     }  /* if */
   } else {
-    /* Non-dependent case: check that the canonical entries match up. */
+    /* Non-dependent case: check that the canonical entries match up.  For
+       using declarations that refer to base classes, there is no source
+       correspondence data immediately associated with the pointer, so some
+       additional work is required. */
+    char *entity1, *entity2;
+    if (ud1->entity.kind == (a_byte_il_entry_kind)iek_base_class) {
+      entity1=canonical_il_entry_of(((a_base_class_ptr)ud1->entity.ptr)->type);
+      entity2=canonical_il_entry_of(((a_base_class_ptr)ud2->entity.ptr)->type);
+    } else {
+      entity1 = canonical_il_entry_of(ud1->entity.ptr);
+      entity2 = canonical_il_entry_of(ud2->entity.ptr);
+    }  /* if */
     result = canonical_il_entry_of(ud1->qualifier.class_type) ==
                            canonical_il_entry_of(ud2->qualifier.class_type) &&
-             canonical_il_entry_of(ud1->entity.ptr) ==
-                                       canonical_il_entry_of(ud2->entity.ptr);
+             entity1 == entity2;
   }  /* if */
   return result;
 }  /* equiv_base_using_decls */
@@ -6502,6 +6513,53 @@ entities.
 }  /* find_template_correspondence */
 
 
+static a_boolean check_gnu_multiversion_routine_corresponds(
+                                                 a_routine_ptr routine,
+                                                 a_routine_ptr corresp_routine)
+/*
+If routine is a GNU multiversion routine, verify that it corresponds with
+corresp_routine.  Return TRUE if so, FALSE otherwise.  Note that a
+representative routine is considered to correspond with a routine that has no
+multiversioning.
+*/
+{
+  a_boolean result = TRUE;
+#if GNU_FUNCTION_MULTIVERSIONING
+  a_gnu_routine_supplement_ptr grsp, corresp_grsp;
+  a_boolean                    routine_is_rep, corresp_routine_is_rep;
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
+
+#if GNU_FUNCTION_MULTIVERSIONING
+  grsp = gnu_routine_supp_or_null(routine);
+  corresp_grsp = gnu_routine_supp_or_null(corresp_routine);
+  routine_is_rep = grsp == NULL || !grsp->is_target_specific_version;
+  corresp_routine_is_rep = corresp_grsp == NULL ||
+                           !corresp_grsp->is_target_specific_version;
+  result = routine_is_rep == corresp_routine_is_rep;
+  if (result && !routine_is_rep) {
+    an_attribute_ptr ap, corresp_ap;
+    /* Both routines are target-specific versions.  Check that the targets
+       match.  To do this, we need to dive into the target attributes. */
+    ap = find_attribute(ak_target, routine->source_corresp.attributes);
+    corresp_ap = find_attribute(ak_target,
+                                corresp_routine->source_corresp.attributes);
+    check_assertion(ap != NULL && ap->arguments != NULL &&
+                    ap->arguments->kind ==
+                                         (an_attribute_arg_kind)aak_raw_token);
+    check_assertion(corresp_ap != NULL && corresp_ap->arguments != NULL &&
+                    corresp_ap->arguments->kind ==
+                                         (an_attribute_arg_kind)aak_raw_token);
+    if (strcmp(ap->arguments->variant.token,
+               corresp_ap->arguments->variant.token) != 0) {
+      /* The targets do not match. */
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+#endif /* GNU_FUNCTION_MULTIVERSIONING */
+  return result;
+}  /* check_gnu_multiversion_routine_corresponds */
+
+
 static a_symbol_ptr check_routine_sym_corresponds(a_symbol_ptr   sym,
                                                   a_routine_ptr  routine)
 /*
@@ -6525,6 +6583,10 @@ with sym.  This is called from find_corresponding_routine_on_list.
     /* Skip this symbol. */
   } else if (corresp_routine->is_template_function) {
     /* An ordinary function never corresponds to a template instance. */
+  } else if (!check_gnu_multiversion_routine_corresponds(routine,
+                                                         corresp_routine)) {
+    /* The routines disagree on their target version, so they cannot
+       correspond. */
   } else if (routine->special_kind == (a_special_function_kind)sfk_operator &&
              corresp_routine->special_kind ==
                                       (a_special_function_kind)sfk_operator &&

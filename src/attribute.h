@@ -208,7 +208,9 @@ also copy_of_attributes_list and copy_of_attributes_with_substitution.
 */
 #define copy_attribute(from, to)                                             \
   { (to) = alloc_attribute();                                                \
-    *(to) = *(from); }
+    *(to) = *(from);                                                         \
+    (to)->next = NULL;                                                       \
+  }
 
 extern an_attribute_ptr copy_of_attributes_list(an_attribute_ptr  attributes);
 

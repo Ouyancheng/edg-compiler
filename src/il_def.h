@@ -12461,6 +12461,9 @@ if the "gnu_extra_info" field has not been allocated):
 
 has_gnu_routine_supp is used to test whether or not the field has been
 allocated.
+
+gnu_routine_supp_or_null behaves the same as gnu_routine_supp when CHECKING is
+FALSE.
 */
 #define ensure_gnu_routine_supp(rp) \
   (((rp)->gnu_extra_info) == NULL ? alloc_gnu_supplement_for_routine(rp) : \
@@ -12473,6 +12476,7 @@ allocated.
 #else /* !CHECKING */
 #define gnu_routine_supp(rp) ((rp)->gnu_extra_info)
 #endif /* CHECKING */
+#define gnu_routine_supp_or_null(rp) ((rp)->gnu_extra_info)
 
 #endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
 

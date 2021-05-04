@@ -3280,6 +3280,7 @@ primary IL.
             case iek_attribute:
             case iek_name_reference:
             case iek_name_qualifier:
+            case iek_gnu_routine_supplement:
               break;
             default:
               err = TRUE;

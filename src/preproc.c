@@ -3419,6 +3419,8 @@ where "options" is a list of optionally-parenthesized strings.
               ap = gcc_pragma_options_stack->target_pragma_attribute;
             } else {
               ap = alloc_attribute();
+              ap->name = copy_string_to_region(file_scope_region_number,
+                                               "GCC-target");
             }  /* if */
             ap->kind = (a_byte_attribute_kind)ak_target;
             ap->arguments = aap;

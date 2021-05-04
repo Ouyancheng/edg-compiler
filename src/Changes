@@ -1,5 +1,36 @@
 Version 6.3
 
+5/4/21   [EDGcpfe/23467]
+Multiple translation units: Spurious diagnostic about mismatched using decls,
+failure to mix function attributes when one TU has GNU function multiversioning
+
+When compiling multiple translation units, the front end would issue a spurious
+diagnostic stating that a class declaration that contains a base class using
+declaration was incompatible with an identical class declaration in another TU.
+For example, if two TUs both include a header containing:
+
+  struct Base {};
+  struct Derived : Base
+  {
+    using Base::Base; // Triggers a spurious "Derived is incompatible" error
+  };
+
+In addition, when one TU uses GNU function multiversioning while the other
+doesn't, the front end could issue spurious diagnostics and/or segfault when
+diagnosing missing attributes in verify_attr_corresp_one_way.  For example,
+if two TUs both include a header containing:
+
+  inline void __attribute__((__gnu_inline__)) foo() {}
+
+and one TU contains (prior to the #include):
+
+  #pragma GCC target "sse2"
+
+the front end would issue a spurious diagnostic about the __gnu_inline__
+attribute missing on foo() in one of the TUs, and then potentially segfault
+(depending on which TU contained the pragma).  These issues are now fixed.
+
+
 5/4/21   [EDGcpfe/24208,EDGcpfe/24122]
 GNU C++ compatibility: abort when GCC target attribute is used with templates
 
