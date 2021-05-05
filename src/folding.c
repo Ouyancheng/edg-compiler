@@ -5630,8 +5630,8 @@ then converting the result back to being THREADS-based if appropriate.
 }  /* binary_upc_threads_operation */
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
-
 #if GNU_VECTOR_TYPES_ALLOWED
+
 static void decompose_vector_binary_operation(
                                       an_expr_operator_kind op,
                                       a_constant            *constant_1,
@@ -5752,6 +5752,7 @@ description of the parameters.
   /* Propagate the result to the caller. */
   *did_not_fold = local_not_folded;
 }  /* decompose_vector_binary_operation */
+
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 void binary_operation(an_expr_operator_kind op,

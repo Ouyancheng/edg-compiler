@@ -5451,6 +5451,13 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           if (!result) break;
           elem_con = con->variant.aggregate.first_constant;
           for (k = 0; k<n_elems;) {
+            if (elem_con == NULL) {
+              if (k<n_elems) {
+                /* Not all elements are covered.  Zero the remainder. */
+                memzero(value, size_t_arg((n_elems-k)*elem_size));
+              }  /* if */
+              break;
+            }  /* if */
             if (!copy_val_from_constant(
                                      ips, elem_con, value, complete_object)) {
               do_constexpr_fail(result);
@@ -5459,13 +5466,6 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             elem_con = elem_con->next;
             k += 1;
             value += elem_size;
-            if (elem_con == NULL) {
-              if (k<n_elems) {
-                /* Not all elements are covered.  Zero the remainder. */
-                memzero(value, size_t_arg((n_elems-k)*elem_size));
-              }  /* if */
-              break;
-            }  /* if */
           }  /* for */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 #if C99_IL_EXTENSIONS_SUPPORTED
@@ -11783,10 +11783,11 @@ static a_boolean check_boolean_condition(an_interpreter_state  *ips,
                                          a_type_ptr            tp,
                                          a_boolean             *p_cond)
 /*
-value is the result of evaluating expr, which has the given type (after
-skipping typerefs).  The expression is used as a boolean condition: If
-that condition can be determined to be true or false, set *p_cond to that
-condition and return TRUE.  Otherwise, return FALSE and record a diagnostic.
+value is the result (or a sub-result in vector cases) of evaluating expr, which
+has the given type (after skipping typerefs).  The expression is used as a
+boolean condition: If that condition can be determined to be true or false, set
+*p_cond to that condition and return TRUE.  Otherwise, return FALSE and record
+a diagnostic.
 */
 {
   a_boolean  result = TRUE;
@@ -13257,6 +13258,170 @@ done:
 }  /* do_constexpr_delete */
 
 
+static a_boolean do_constexpr_vector_binary_op(
+                                       an_interpreter_state  *ips,
+                                       an_expr_node_ptr      expr,
+                                       a_type_ptr            tp,
+                                       a_byte                *src1,
+                                       a_byte                *src2,
+                                       a_byte                *dst,
+                                       a_byte                *complete_object)
+/*
+The given expression (with ) is a vector operation applied to two operands
+(stored at src1 and src2, respectively).  Compute the result and store it at
+dst (which is part of the complete object pointed to by complete_object).
+*/
+{
+  a_boolean        result = TRUE, is_integer, is_signed;
+  a_type_ptr       etp = skip_typerefs(tp->variant.vector.element_type);
+  a_targ_size_t    k, n_elems = tp->size/etp->size;
+  a_byte_count     elem_size = value_bytes_for_type(ips, etp, &result);
+  an_integer_kind  int_kind = ik_none;
+  
+  is_integer = type_is(etp, tk_integer);
+  if (is_integer) {
+    int_kind = etp->variant.integer.int_kind;
+    is_signed = int_kind_is_signed[int_kind];
+  }  /* if */
+  check_assertion(result && (is_integer || type_is(etp, tk_float)));
+  for (k = 0; k<n_elems; ++k) {
+    if (is_integer) {
+      a_boolean  ovflo = FALSE;
+      switch (expr->variant.operation.kind) {
+        case eok_add:
+          *(an_integer_value*)dst = *(an_integer_value*)src1;
+          add_integer_values((an_integer_value*)dst, (an_integer_value*)src2,
+                             is_signed, &ovflo);
+          break;
+        case eok_subtract:
+          *(an_integer_value*)dst = *(an_integer_value*)src1;
+          subtract_integer_values((an_integer_value*)dst, 
+                                  (an_integer_value*)src2,
+                                  is_signed, &ovflo);
+          break;
+        case eok_multiply:
+          *(an_integer_value*)dst = *(an_integer_value*)src1;
+          multiply_integer_values((an_integer_value*)dst,
+                                  (an_integer_value*)src2,
+                                  is_signed, &ovflo);
+          break;
+        case eok_divide:
+          *(an_integer_value*)dst = *(an_integer_value*)src1;
+          divide_integer_values((an_integer_value*)dst,
+                                (an_integer_value*)src2,
+                                is_signed, &ovflo);
+          break;
+        case eok_remainder:
+          *(an_integer_value*)dst = *(an_integer_value*)src1;
+          remainder_integer_values((an_integer_value*)dst,
+                                   (an_integer_value*)src2,
+                                   is_signed, &ovflo);
+          break;
+        case eok_shiftl:
+        case eok_shiftr:
+          { a_host_large_integer  host_int_val;
+            an_expr_node_ptr      opnd1 = expr->variant.operation.operands,
+                                  opnd2 = opnd1->next;
+            a_type_ptr            tp2 = skip_typerefs(opnd2->type);
+            get_int_val_from(src2, tp2, host_int_val, ovflo);
+            if (ovflo) {
+              do_constexpr_fail(result);
+              info_with_pos(ec_integer_overflow, &expr->position, ips);
+              break;
+            } else if (host_int_val < 0) {
+              do_constexpr_fail(result);
+              info_with_pos(ec_constexpr_negative_shift, &expr->position, ips);
+              break;
+            } else if (host_int_val >=
+                            (a_host_large_integer)(tp->size * targ_char_bit)) {
+              do_constexpr_fail(result);
+              info_with_pos_num(ec_constexpr_shift_excess, &expr->position,
+                                (uint32_t)host_int_val, ips);
+              break;
+            }  /* if */
+            *(an_integer_value*)dst = *(an_integer_value*)src1;
+            if (node_operator_is(expr, eok_shiftl)) {
+              if (is_signed) {
+                if (sign_of(*(an_integer_value*)dst)) {
+                  info_with_pos(ec_constexpr_shift_negative_value,
+                                &expr->position, ips);
+                  do_constexpr_fail(result);
+                  break;
+                }  /* if */
+              }  /* if */
+              shift_left_integer_value((an_integer_value*)dst,
+                                       (int)host_int_val, &ovflo);
+            } else {
+              shift_right_integer_value((an_integer_value*)dst,
+                                        (int)host_int_val, is_signed,
+                                        targ_right_shift_is_arithmetic);
+            }  /* if */
+          }
+          break;
+        case eok_and:
+          *(an_integer_value*)dst = *(an_integer_value*)src1;
+          and_integer_values((an_integer_value*)dst, (an_integer_value*)src2);
+          break;
+        case eok_or:
+          *(an_integer_value*)dst = *(an_integer_value*)src1;
+          or_integer_values((an_integer_value*)dst, (an_integer_value*)src2);
+          break;
+        case eok_xor:
+          *(an_integer_value*)dst = *(an_integer_value*)src1;
+          xor_integer_values((an_integer_value*)dst, (an_integer_value*)src2);
+          break;
+        default:
+          unexpected_condition();
+      }  /* switch */
+      if (is_signed) {
+        sign_extend_integer_value((an_integer_value*)dst,
+                                  (int)(etp->size * targ_char_bit));
+      } else {
+        and_integer_values((an_integer_value*)dst,
+                           &max_integer_value_of_kind[int_kind]);
+      }  /* if */
+    } else {
+      a_boolean  err = FALSE, depends_on_fp_mode;
+      switch (expr->variant.operation.kind) {
+        case eok_add:
+          fp_add(etp->variant.float_kind,
+                 fp_value(src1), fp_value(src1), fp_value(dst),
+                 &err, &depends_on_fp_mode);
+          break;
+        case eok_subtract:
+          fp_subtract(etp->variant.float_kind,
+                      fp_value(src1), fp_value(src1), fp_value(dst),
+                      &err, &depends_on_fp_mode);
+          break;
+        case eok_multiply:
+          fp_multiply(etp->variant.float_kind,
+                      fp_value(src1), fp_value(src1), fp_value(dst),
+                      &err, &depends_on_fp_mode);
+          break;
+        case eok_divide:
+          fp_divide(etp->variant.float_kind,
+                    fp_value(src1), fp_value(src1), fp_value(dst),
+                    &err, &depends_on_fp_mode);
+          break;
+        default:
+          unexpected_condition();
+      }  /* switch */
+      if (err) {
+        do_constexpr_fail(result);
+        info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
+        goto done;
+      }  /* if */
+    }  /* if */
+    mark_subobject_initialized(dst, complete_object);
+    src1 += elem_size;
+    src2 += elem_size;
+    dst += elem_size;
+  }  /* for */
+done:
+  return result;
+}  /* do_constexpr_vector_binary_op */
+
+
 /*lint -efunc(2704,*do_constexpr_expression)*/
 static a_boolean do_constexpr_expression(
                                        an_interpreter_state  *ips,
@@ -14075,6 +14240,32 @@ the value representation of the integer value.
             }
             break;
 #if GNU_VECTOR_TYPES_ALLOWED
+          case eok_vector_not:
+            { a_byte  *src = opnd1_value, *dst = result_storage;
+              a_type  *setp = skip_typerefs(opnd1_type
+                                               ->variant.vector.element_type),
+                      *detp = skip_typerefs(tp->variant.vector.element_type);
+              int     k, len = tp->size/detp->size;
+              a_byte_count
+                      sstep = value_bytes_for_type(ips, setp, &result),
+                      dstep = value_bytes_for_type(ips, detp, &result);
+              for (k = 0; k<len; ++k) {
+                a_boolean  bool_val;
+                if (check_boolean_condition(ips, src, expr, setp, &bool_val)) {
+                  if (bool_val) {
+                    *(an_integer_value *)dst = zero_int;
+                  } else {
+                    *(an_integer_value *)dst = one_int;
+                  }  /* if */
+                } else {
+                  do_constexpr_fail(result);
+                  break;
+                }  /* if */
+                src += sstep;
+                dst += dstep;
+              }  /* for */
+            }
+            break;
           case eok_vector_fill:
             /* Copy the operand to every slot of the result. */
             { int     k, len = tp->size/opnd1_type->size;
@@ -14653,8 +14844,18 @@ the value representation of the integer value.
                 info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
               }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if GNU_VECTOR_TYPES_ALLOWED
+            } else if (expr->variant.operation.type_kind ==
+                                                     (a_type_kind)tk_vector) {
+              if (!do_constexpr_vector_binary_op(
+                       ips, expr, tp, opnd1_value, opnd2_value,
+                                         result_storage, complete_object)) {
+                result = FALSE;
+              }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
             } else {
               /* Other types. */
+              do_constexpr_fail(result);
               info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
                             &expr->position, ips);
             }  /* if */
@@ -14690,8 +14891,18 @@ the value representation of the integer value.
                 info_with_pos(ec_constexpr_fp_error, &expr->position, ips);
               }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+#if GNU_VECTOR_TYPES_ALLOWED
+            } else if (expr->variant.operation.type_kind ==
+                                                     (a_type_kind)tk_vector) {
+              if (!do_constexpr_vector_binary_op(
+                       ips, expr, tp, opnd1_value, opnd2_value,
+                                         result_storage, complete_object)) {
+                result = FALSE;
+              }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
             } else {
               /* Other types. */
+              do_constexpr_fail(result);
               info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
                             &expr->position, ips);
             }  /* if */
@@ -14729,6 +14940,7 @@ the value representation of the integer value.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
             } else {
               /* Other types. */
+              do_constexpr_fail(result);
               info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
                             &expr->position, ips);
             }  /* if */
@@ -15063,86 +15275,118 @@ the value representation of the integer value.
             }
             break;
           case eok_shiftl:
-            /* Check for a valid value of opnd2, which must be non-negative
-               and less than the number of bits in opnd1. */
-            int_kind = tp->variant.integer.int_kind;
-            is_signed = int_kind_is_signed[int_kind];
-            get_int_val_from(opnd2_value, opnd2_type, host_int_val, ovfl);
-            if (ovfl) {
-              do_constexpr_fail(result);
-            } else if (host_int_val < 0 ||
-                       host_int_val >=
-                          (a_host_large_integer)(tp->size * targ_char_bit)) {
-              do_constexpr_fail(result);
-            }  /* if */
-            if (result) {
-              /* Range checking for the "shift left" operator applied to a
-                 signed value is a little peculiar.  Shifting negative values
-                 has undefined behavior (which must be caught during constexpr
-                 evaluation).  Shifting non-negative values is valid if the
-                 result of the shift operation fits in the corresponding
-                 unsigned type. */
-              if (is_signed) {
-                if (sign_of(*(an_integer_value*)opnd1_value)) {
-                  info_with_pos(ec_constexpr_shift_negative_value,
-                                &expr->position, ips);
-                  do_constexpr_fail(result);
-                  break;
-                }  /* if */
+            if (expr->variant.operation.type_kind == (a_type_kind)tk_integer) {
+              /* Check for a valid value of opnd2, which must be non-negative
+                 and less than the number of bits in opnd1. */
+              int_kind = tp->variant.integer.int_kind;
+              is_signed = int_kind_is_signed[int_kind];
+              get_int_val_from(opnd2_value, opnd2_type, host_int_val, ovfl);
+              if (ovfl) {
+                do_constexpr_fail(result);
+              } else if (host_int_val < 0 ||
+                         host_int_val >=
+                            (a_host_large_integer)(tp->size * targ_char_bit)) {
+                do_constexpr_fail(result);
               }  /* if */
-              shift_left_integer_value((an_integer_value*)opnd1_value,
-                                       (int)host_int_val, &ovfl);
-              if (is_signed) {
-                if (ovfl ||
-                    cmp_integer_values((an_integer_value*)opnd1_value,
-                                       /*op1_is_signed=*/FALSE,
-                                       &max_integer_value_of_kind[
+              if (result) {
+                /* Range checking for the "shift left" operator applied to a
+                   signed value is a little peculiar.  Shifting negative values
+                   has undefined behavior (which must be caught during constant
+                   evaluation).  Shifting non-negative values is valid if the
+                   result of the shift operation fits in the corresponding
+                   unsigned type. */
+                if (is_signed) {
+                  if (sign_of(*(an_integer_value*)opnd1_value)) {
+                    info_with_pos(ec_constexpr_shift_negative_value,
+                                  &expr->position, ips);
+                    do_constexpr_fail(result);
+                    break;
+                  }  /* if */
+                }  /* if */
+                shift_left_integer_value((an_integer_value*)opnd1_value,
+                                         (int)host_int_val, &ovfl);
+                if (is_signed) {
+                  if (ovfl ||
+                      cmp_integer_values((an_integer_value*)opnd1_value,
+                                         /*op1_is_signed=*/FALSE,
+                                         &max_integer_value_of_kind[
                                               unsigned_int_kind_of[int_kind]],
-                                       /*op2_is_signed=*/FALSE) > 0) {
-                  do_constexpr_fail(result);
-                  info_with_pos_type(ec_constexpr_integer_overflow,
-                                     &expr->position, opnd1_type, ips);
-                  break;
+                                         /*op2_is_signed=*/FALSE) > 0) {
+                    do_constexpr_fail(result);
+                    info_with_pos_type(ec_constexpr_integer_overflow,
+                                       &expr->position, opnd1_type, ips);
+                    break;
+                  }  /* if */
+                  /* Sign-extend the result. */
+                  sign_extend_integer_value((an_integer_value*)opnd1_value,
+                                            (int)(tp->size * targ_char_bit));
+                } else {
+                  /* Discard overflowing bit. */
+                  and_integer_values((an_integer_value*)opnd1_value,
+                                     &max_integer_value_of_kind[int_kind]);
                 }  /* if */
-                /* Sign-extend the result. */
-                sign_extend_integer_value((an_integer_value*)opnd1_value,
-                                          (int)(tp->size * targ_char_bit));
-                                          
-              } else {
-                /* Discard overflowing bit. */
-                and_integer_values((an_integer_value*)opnd1_value,
-                                   &max_integer_value_of_kind[int_kind]);
-              }  /* if */
-              *(an_integer_value *)result_storage =
+                *(an_integer_value *)result_storage =
                                              *(an_integer_value *)opnd1_value;
+              } else {
+                info_with_pos(ec_integer_overflow, &expr->position, ips);
+              }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
+            } else if (expr->variant.operation.type_kind ==
+                                                     (a_type_kind)tk_vector) {
+              if (!do_constexpr_vector_binary_op(
+                       ips, expr, tp, opnd1_value, opnd2_value,
+                                         result_storage, complete_object)) {
+                result = FALSE;
+              }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
             } else {
-              info_with_pos(ec_integer_overflow, &expr->position, ips);
+              /* Other types. */
+              do_constexpr_fail(result);
+              info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                            &expr->position, ips);
             }  /* if */
             break;
           case eok_shiftr:
-            /* Check for a valid value of opnd2, which must be non-negative
-               and less than the number of bits in opnd1. */
-            int_kind = tp->variant.integer.int_kind;
-            is_signed = int_kind_is_signed[int_kind];
-            get_int_val_from(opnd2_value, opnd2_type, host_int_val, ovfl);
-            if (ovfl) {
-              do_constexpr_fail(result);
-            } else if (host_int_val < 0 ||
-                       host_int_val >=
+            if (expr->variant.operation.type_kind == (a_type_kind)tk_integer) {
+              /* Check for a valid value of opnd2, which must be non-negative
+                 and less than the number of bits in opnd1. */
+              int_kind = tp->variant.integer.int_kind;
+              is_signed = int_kind_is_signed[int_kind];
+              get_int_val_from(opnd2_value, opnd2_type, host_int_val, ovfl);
+              if (ovfl) {
+                do_constexpr_fail(result);
+              } else if (host_int_val < 0 ||
+                         host_int_val >=
                            (a_host_large_integer)(tp->size * targ_char_bit)) {
-              do_constexpr_fail(result);
-            }  /* if */
-            if (result) {
-              shift_right_integer_value((an_integer_value *)opnd1_value,
-                                        (int)host_int_val, is_signed,
-                                        targ_right_shift_is_arithmetic);
-              CHECK_int_range(opnd1_value, opnd1_type);
-              if (result) {
-                *(an_integer_value *)result_storage =
-                                             *(an_integer_value *)opnd1_value;
+                do_constexpr_fail(result);
               }  /* if */
+              if (result) {
+                shift_right_integer_value((an_integer_value *)opnd1_value,
+                                          (int)host_int_val, is_signed,
+                                          targ_right_shift_is_arithmetic);
+                CHECK_int_range(opnd1_value, opnd1_type);
+                if (result) {
+                  *(an_integer_value *)result_storage =
+                                             *(an_integer_value *)opnd1_value;
+                }  /* if */
+              } else {
+                do_constexpr_fail(result);
+                info_with_pos(ec_integer_overflow, &expr->position, ips);
+              }  /* if */
+#if GNU_VECTOR_TYPES_ALLOWED
+            } else if (expr->variant.operation.type_kind ==
+                                                     (a_type_kind)tk_vector) {
+              if (!do_constexpr_vector_binary_op(
+                       ips, expr, tp, opnd1_value, opnd2_value,
+                                         result_storage, complete_object)) {
+                result = FALSE;
+              }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
             } else {
-              info_with_pos(ec_integer_overflow, &expr->position, ips);
+              /* Other types. */
+              do_constexpr_fail(result);
+              info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                            &expr->position, ips);
             }  /* if */
             break;
           case eok_and:
@@ -15151,6 +15395,20 @@ the value representation of the integer value.
                                              *(an_integer_value *)opnd1_value;
               and_integer_values((an_integer_value*)result_storage,
                                  (an_integer_value*)opnd2_value);
+#if GNU_VECTOR_TYPES_ALLOWED
+            } else if (expr->variant.operation.type_kind ==
+                                                     (a_type_kind)tk_vector) {
+              if (!do_constexpr_vector_binary_op(
+                       ips, expr, tp, opnd1_value, opnd2_value,
+                                         result_storage, complete_object)) {
+                result = FALSE;
+              }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+            } else {
+              /* Other types. */
+              do_constexpr_fail(result);
+              info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                            &expr->position, ips);
             }  /* if */
             break;
           case eok_or:
@@ -15159,6 +15417,20 @@ the value representation of the integer value.
                                              *(an_integer_value *)opnd1_value;
               or_integer_values((an_integer_value*)result_storage,
                                 (an_integer_value*)opnd2_value);
+#if GNU_VECTOR_TYPES_ALLOWED
+            } else if (expr->variant.operation.type_kind ==
+                                                     (a_type_kind)tk_vector) {
+              if (!do_constexpr_vector_binary_op(
+                       ips, expr, tp, opnd1_value, opnd2_value,
+                                         result_storage, complete_object)) {
+                result = FALSE;
+              }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+            } else {
+              /* Other types. */
+              do_constexpr_fail(result);
+              info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                            &expr->position, ips);
             }  /* if */
             break;
           case eok_xor:
@@ -15167,6 +15439,20 @@ the value representation of the integer value.
                                              *(an_integer_value *)opnd1_value;
               xor_integer_values((an_integer_value*)result_storage,
                                  (an_integer_value*)opnd2_value);
+#if GNU_VECTOR_TYPES_ALLOWED
+            } else if (expr->variant.operation.type_kind ==
+                                                     (a_type_kind)tk_vector) {
+              if (!do_constexpr_vector_binary_op(
+                       ips, expr, tp, opnd1_value, opnd2_value,
+                                         result_storage, complete_object)) {
+                result = FALSE;
+              }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+            } else {
+              /* Other types. */
+              do_constexpr_fail(result);
+              info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                            &expr->position, ips);
             }  /* if */
             break;
           case eok_eq:
@@ -16617,7 +16903,8 @@ the value representation of the integer value.
               } else if (ips->side_effects_disabled) {
                 /* Side-effects (like assignments) are disabled. */
                 do_constexpr_fail(result);
-              } else {
+              } else if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_integer) {
                 /* Shift the bits stored in the first operand left by the
                    number of bits indicated by the second operand.  Return
                    the left operand (as an lvalue). */
@@ -16653,6 +16940,11 @@ the value representation of the integer value.
                     *(an_integer_value*)result_storage = *int_value_at(dst);
                   }  /* if */
                 }  /* if */
+              } else {
+                /* Other types. */
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                              &expr->position, ips);
               }  /* if */
             }
             break;
@@ -16690,7 +16982,8 @@ the value representation of the integer value.
               } else if (ips->side_effects_disabled) {
                 /* Side-effects (like assignments) are disabled. */
                 do_constexpr_fail(result);
-              } else {
+              } else if (expr->variant.operation.type_kind ==
+                                                    (a_type_kind)tk_integer) {
                 /* Shift the bits stored in the first operand left by the
                    number of bits indicated by the second operand.  Return
                    the left operand (as an lvalue). */
@@ -16727,6 +17020,11 @@ the value representation of the integer value.
                     *(an_integer_value*)result_storage = *int_value_at(dst);
                   }  /* if */
                 }  /* if */
+              } else {
+                /* Other types. */
+                do_constexpr_fail(result);
+                info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
+                              &expr->position, ips);
               }  /* if */
             }
             break;
@@ -17245,6 +17543,37 @@ the value representation of the integer value.
                     SET_result_val_from_operand_address(&result_addr);
                   }  /* if */
                 }  /* if */
+              }  /* if */
+            }
+            break;
+          case eok_vector_subscript:
+            /* The first operand is a vector (lvalue or rvalue), and the
+               second operand is an integer. */
+            { int           len = opnd1_type->size/tp->size;
+              a_type_ptr    etp;
+              a_byte_count  esize;
+              check_assertion(type_is(opnd1_type, tk_vector) &&
+                              type_is(opnd2_type, tk_integer));
+              get_int_val_from(opnd2_value, opnd2_type, host_int_val, ovfl);
+              if (host_int_val < 0 || (int)host_int_val >= len) {
+                do_constexpr_fail(result);
+                info_with_pos_num2(ec_constexpr_out_of_bounds_array_access,
+                                   &expr->position, (uint32_t)host_int_val,
+                                   (uint32_t)len, ips);
+                break;
+              }  /* if */
+              etp = skip_typerefs(opnd1_type->variant.vector.element_type);
+              esize = value_bytes_for_type(ips, etp, &result);
+              if (!result) break;
+              if (opnd1->is_lvalue) {
+                a_constexpr_address
+                             result_addr = *(a_constexpr_address*)opnd1_value;
+                result_addr.address += host_int_val*esize;
+                result_addr.flags &= ~CA_ARRAY_ELEMENT;
+                SET_result_val_from_operand_address(&result_addr);
+              } else {
+                (void)memcpy(result_storage, opnd1_value+host_int_val*esize,
+                             size_t_arg(esize));
               }  /* if */
             }
             break;

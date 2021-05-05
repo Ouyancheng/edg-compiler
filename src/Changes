@@ -1,5 +1,25 @@
 Version 6.3
 
+5/5/21   [EDGcpfe/18134,EDGcpfe/20669,EDGcpfe/24253]
+Vector operations handled incorrectly in constexpr interpreter
+
+Ordinarily, attempting to perform a constexpr operation not supported by the
+interpreter, causes the interpreter to report an interpretation failure.
+However, for certain vector operations that were not previously supported
+(like addition) the interpreter did not report a failure and produced
+unpredictable results instead.  The interpreter has been updated to support a
+variety of vector operations, and to more reliably fail interpretation for
+unsupported operations.  For example:
+
+  using V __attribute__((vector_size(4))) = unsigned char;
+  constexpr auto f() {
+    auto a = V{1, 2, 3, 4};
+    auto b = V{1, 2, 3, 4};
+    return a + b;
+  }
+  auto r = f();  // Previously produced unpredictable results.  Now okay.
+
+
 5/4/21   [EDGcpfe/23467]
 Multiple translation units: Spurious diagnostic about mismatched using decls,
 failure to mix function attributes when one TU has GNU function multiversioning
