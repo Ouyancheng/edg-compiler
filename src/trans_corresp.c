@@ -6514,8 +6514,8 @@ entities.
 
 
 static a_boolean check_gnu_multiversion_routine_corresponds(
-                                                 a_routine_ptr routine,
-                                                 a_routine_ptr corresp_routine)
+                                      ARG_UNUSED a_routine_ptr routine,
+                                      ARG_UNUSED a_routine_ptr corresp_routine)
 /*
 If routine is a GNU multiversion routine, verify that it corresponds with
 corresp_routine.  Return TRUE if so, FALSE otherwise.  Note that a
