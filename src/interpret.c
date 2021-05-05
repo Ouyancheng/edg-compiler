@@ -13257,6 +13257,7 @@ done:
   return result;
 }  /* do_constexpr_delete */
 
+#if GNU_VECTOR_TYPES_ALLOWED
 
 static a_boolean do_constexpr_vector_binary_op(
                                        an_interpreter_state  *ips,
@@ -13421,6 +13422,7 @@ done:
   return result;
 }  /* do_constexpr_vector_binary_op */
 
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
 
 /*lint -efunc(2704,*do_constexpr_expression)*/
 static a_boolean do_constexpr_expression(
@@ -17546,6 +17548,7 @@ the value representation of the integer value.
               }  /* if */
             }
             break;
+#if GNU_VECTOR_TYPES_ALLOWED
           case eok_vector_subscript:
             /* The first operand is a vector (lvalue or rvalue), and the
                second operand is an integer. */
@@ -17577,6 +17580,7 @@ the value representation of the integer value.
               }  /* if */
             }
             break;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
           case eok_dot_field:
           case eok_points_to_field:
             { a_constexpr_address  result_addr;
