@@ -31,7 +31,7 @@ attribute missing on foo() in one of the TUs, and then potentially segfault
 (depending on which TU contained the pragma).  These issues are now fixed.
 
 
-5/4/21   [EDGcpfe/24208,EDGcpfe/24122]
+5/4/21   [EDGcpfe/24122,EDGcpfe/24208]
 GNU C++ compatibility: abort when GCC target attribute is used with templates
 
 An abort would occur (in attach_attributes_to_routine_instance) if a GCC
