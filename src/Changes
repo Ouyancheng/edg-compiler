@@ -1,5 +1,21 @@
 Version 6.3
 
+5/5/21   [EDGcpfe/24221]
+Abort in deduce_auto_type on specialization of deleted member
+
+Consider:
+
+  template <class ...Ts> struct S {
+    static auto& f() = delete;
+  };
+  template <> inline auto &S<>::f() {
+    int x = 42;
+    return x;
+  }
+
+Previously this aborted in deduce_auto_type (overload.c).  That is now fixed.
+
+
 5/5/21   [EDGcpfe/18134,EDGcpfe/20669,EDGcpfe/24253]
 Vector operations handled incorrectly in constexpr interpreter
 

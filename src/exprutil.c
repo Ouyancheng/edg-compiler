@@ -18414,8 +18414,15 @@ error cases.
     return_type = type_of_unknown_templ_param_nontype;
   } else {
     return_type = il_return_type_of(function_type);
-    if (rout != NULL && rout->has_deduced_return_type) {
-      return_type = type_without_deduced_auto_placeholder(return_type);
+    if (rout != NULL) {
+      if (rout->has_deduced_return_type) {
+        return_type = type_without_deduced_auto_placeholder(return_type);
+      } else if (rout->is_deleted && rout->has_deducible_return_type) {
+        /* Avoid having the "auto" type (which looks like a template parameter)
+           leak into the expression IL. */
+        expect_error();
+        return_type = error_type();
+      }  /* if */
     }  /* if */
     if (is_ptr_to_member_type(function_node->type)) {
       /* Call using a pointer-to-member-function. */
