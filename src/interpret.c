@@ -13262,9 +13262,10 @@ static a_boolean do_constexpr_vector_binary_op(
                                        a_byte                *dst,
                                        a_byte                *complete_object)
 /*
-The given expression (with ) is a vector operation applied to two operands
-(stored at src1 and src2, respectively).  Compute the result and store it at
-dst (which is part of the complete object pointed to by complete_object).
+The given expression (with type tp after dropping qualifiers) is a vector
+operation applied to two operands (stored at src1 and src2, respectively).
+Compute the result and store it at dst (which is part of the complete object
+pointed to by complete_object).
 */
 {
   a_boolean        result = TRUE, is_integer, is_signed = FALSE;
