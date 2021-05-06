@@ -14126,7 +14126,6 @@ placeholder.  Otherwise, return the given type.
   return result;
 }  /* type_without_deduced_auto_placeholder */
 
-#if GENERATE_SOURCE_SEQUENCE_LISTS
 
 void copy_routine_type_default_args(a_type_ptr  from_type,
                                     a_type_ptr  to_type)
@@ -14152,6 +14151,10 @@ from_type to to_type.  This should be called only in C++ mode.
       to_ptp->has_default_arg = TRUE;
       to_ptp->default_arg_appeared_in_class_definition =
                             from_ptp->default_arg_appeared_in_class_definition;
+      if (from_ptp->has_unevaluated_template_default) {
+        to_ptp->has_unevaluated_template_default = TRUE;
+        to_ptp->orig_param_type_for_unevaluated_default_arg_expr = from_ptp;
+      }  /* if */
       if (from_ptp->default_arg_expr != NULL) {
         if (to_ptp->default_arg_expr == NULL) {
           to_ptp->default_arg_expr =
@@ -14168,7 +14171,6 @@ from_type to to_type.  This should be called only in C++ mode.
   db_exit();
 }  /* copy_routine_type_default_args */
 
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 a_type_ptr copy_routine_type_with_param_types(a_type_ptr  from_type,
                                               a_boolean   copy_default_args)

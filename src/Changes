@@ -1,5 +1,26 @@
 Version 6.3
 
+5/6/21   [EDGcpfe/24210]
+Abort when inheriting constructors with default arguments in nested classes
+
+The front end could abort in copy_param_type_list when attempting to copy the
+default arguments of a constructor being inherited that belongs to a nested
+class.  For example:
+
+  struct A {
+    struct B {
+      B(int x = 0) { }
+    };
+    struct C : B {
+      using B::B; // Abort triggered here
+      C(void *);
+    };
+  };
+  A::C c;
+
+This is now fixed.
+
+
 5/6/21   [EDGcpfe/23468]
 Multiple translation units: Spurious incompatibility diagnostic on function
 templates

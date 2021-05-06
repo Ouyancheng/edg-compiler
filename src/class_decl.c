@@ -112,6 +112,9 @@ typedef struct a_routine_fixup {
   a_bit_field	process_exception_spec:1;
 			/* When TRUE, the operand of an noexcept specifier
 			   must be scanned. */
+  a_bit_field	inheriting_ctor:1;
+			/* When TRUE, this is the fixup for an inheriting
+			   constructor. */
 } a_routine_fixup;
 
 
@@ -251,6 +254,7 @@ initialize it.
   rfp->is_template = FALSE;
   rfp->is_definition = FALSE;
   rfp->process_exception_spec = FALSE;
+  rfp->inheriting_ctor = FALSE;
   clear_func_info(&rfp->func_info);
   /* We don't know whether this cache will be reused or not.  Make it
      reusable here.  If it is rescanned as a nonreusable cache we
@@ -671,6 +675,18 @@ is a list of default arguments to be fixed up.
   rfp->def_arg_expr_fixup_list = default_args;
   add_to_routine_fixup_list(rfp);
 }  /* add_routine_fixup_for_template_decl */
+
+
+static void add_routine_fixup_for_inheriting_ctor(a_symbol_ptr symbol,
+                                                  a_type_ptr   class_type)
+{
+  a_routine_fixup_ptr rfp;
+
+  rfp = alloc_routine_fixup(class_type);
+  rfp->symbol = symbol;
+  rfp->inheriting_ctor = TRUE;
+  add_to_routine_fixup_list(rfp);
+}  /* add_routine_fixup_for_inheriting_ctor */
 
 
 static a_class_fixup_ptr alloc_class_fixup(void)
@@ -3020,6 +3036,13 @@ fixup_declared_type: ;
                                          rfp->func_info.declared_type);
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+      }  /* if */
+      if (rfp->inheriting_ctor) {
+        a_routine_ptr ctor, inh_ctor;
+        ctor = sym->variant.routine.ptr;
+        inh_ctor = inh_ctor_inherited_ctor(ctor);
+        check_assertion(inh_ctor != NULL);
+        copy_routine_type_default_args(inh_ctor->type, ctor->type);
       }  /* if */
     }  /* for */
     if (curr_scope_class_type != NULL) {
@@ -23832,16 +23855,10 @@ will be generated for the given class type.
                     new_rtsp = rout_type_supp(new_tp);
   a_param_type_ptr  ptp, bptp;
 
-  copy_type(brp->type, new_tp);
-  ptp = new_rtsp->param_type_list;
-  bptp = function_type_params(brp->type);
-  for (; ptp != NULL && bptp != NULL; ptp = ptp->next, bptp = bptp->next) {
-    if (ptp->has_default_arg) {
-      check_assertion(bptp->has_default_arg);
-      ptp->orig_param_type_for_unevaluated_default_arg_expr = bptp;
-    }  /* if */
-  }  /* for */
-  check_assertion(ptp == NULL && bptp == NULL);
+  /* We will copy the default arguments later via a routine fixup.  For now,
+     avoid copying the default arguments as they may not yet be ready to be
+     copied. */
+  copy_type_full(brp->type, new_tp, /*copy_default_args=*/FALSE);
   new_rtsp->exception_specification = NULL;
   new_rtsp->this_class = class_type;
   new_rtsp->has_this_param = TRUE;
@@ -24011,6 +24028,8 @@ templates from that base template.
     curr_default_args = NULL;
     complete_generated_member_template(&templ_decl_state, &func_info,
                                        decl_info.decl_state.sym);
+    add_routine_fixup_for_inheriting_ctor(symbol_for(new_rp),
+                                          cdsp->class_type);
     pop_scope();
     done_with_func_info(func_info);
     update_template_param_symbols_for_param_list(btpl);
@@ -24151,6 +24170,8 @@ constructor.
         new_rp->is_deleted = TRUE;
         new_rp->defined = TRUE;
       }  /* if */
+      add_routine_fixup_for_inheriting_ctor(symbol_for(new_rp),
+                                            cdsp->class_type);
     }  /* if */
   }  /* if */
   cdsp->access = saved_access;
