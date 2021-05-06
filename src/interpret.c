@@ -13273,7 +13273,7 @@ The given expression (with ) is a vector operation applied to two operands
 dst (which is part of the complete object pointed to by complete_object).
 */
 {
-  a_boolean        result = TRUE, is_integer, is_signed;
+  a_boolean        result = TRUE, is_integer, is_signed = FALSE;
   a_type_ptr       etp = skip_typerefs(tp->variant.vector.element_type);
   a_targ_size_t    k, n_elems = tp->size/etp->size;
   a_byte_count     elem_size = value_bytes_for_type(ips, etp, &result);
