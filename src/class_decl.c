@@ -23853,7 +23853,6 @@ will be generated for the given class type.
   a_type_ptr        new_tp = alloc_type((a_type_kind)tk_routine);
   a_routine_type_supplement_ptr
                     new_rtsp = rout_type_supp(new_tp);
-  a_param_type_ptr  ptp, bptp;
 
   /* We will copy the default arguments later via a routine fixup.  For now,
      avoid copying the default arguments as they may not yet be ready to be
