@@ -2962,6 +2962,51 @@ set_corresp_for_routines).  Issue diagnostics as appropriate.
 }  /* verify_corresp_for_default_arg_entities */
 
 
+static a_boolean exc_spec_is_always_compatible(a_routine_ptr rp)
+/*
+Given a routine whose exception specification is being checked for a match with
+another (not provided here) routine, return TRUE if the exception specification
+should be considered compatible with any exception specification on the other
+routine.
+
+Note that the checks in same_exception_spec are not repeated here, as these are
+assumed to have already occurred (and presumably that has already returned
+FALSE).  A TRUE result from this routine does not indicate that the exception
+specifications are the same, rather that they could be the same and further
+accuracy is not possible at this stage of compilation.
+*/
+{
+  a_boolean  result = FALSE;
+  an_exception_specification_ptr
+             esp;
+
+  check_assertion(rp->type->kind == (a_type_kind)tk_routine);
+  esp = rp->type->variant.routine.extra_info->exception_specification;
+  if (esp != NULL && esp->indeterminate) {
+    result = TRUE;
+  } else if (esp->copy_from_prototype) {
+    a_template_instance_ptr
+                  tip = symbol_for(rp)->variant.routine.instance_ptr;
+    a_symbol_ptr  templ_sym = tip->template_sym,
+                  proto_templ_sym = prototype_template_of(templ_sym);
+    a_template_symbol_supplement_ptr
+                  proto_tssp = template_supplement_for_symbol(proto_templ_sym);
+    a_routine_ptr proto_rp = proto_tssp->variant.function.routine;
+    a_type_ptr    proto_rtp = skip_typerefs(proto_rp->type);
+    a_routine_type_supplement_ptr
+                  proto_rtsp = proto_rtp->variant.routine.extra_info;
+    an_exception_specification_ptr
+                  proto_esp = proto_rtsp->exception_specification;
+
+    check_assertion(proto_esp != NULL);
+    if (proto_esp->indeterminate || proto_esp->throw_any) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* exc_spec_is_always_compatible */
+
+
 static a_boolean compatible_exception_spec(a_routine_ptr  rp1,
                                            a_routine_ptr  rp2)
 /*
@@ -2972,19 +3017,13 @@ if either one has an indeterminate exception specification.
   a_boolean  result = same_exception_spec(rp1->type, rp2->type);
 
   if (!result) {
-    if (rp1->type->kind == (a_type_kind)tk_routine) {
-      an_exception_specification_ptr
-         esp = rp1->type->variant.routine.extra_info->exception_specification;
-      if (esp != NULL && esp->indeterminate) {
-        result = TRUE;
-      }  /* if */
+    if (rp1->type->kind == (a_type_kind)tk_routine &&
+        exc_spec_is_always_compatible(rp1)) {
+      result = TRUE;
     }  /* if */
-    if (rp2->type->kind == (a_type_kind)tk_routine) {
-      an_exception_specification_ptr
-         esp = rp2->type->variant.routine.extra_info->exception_specification;
-      if (esp != NULL && esp->indeterminate) {
-        result = TRUE;
-      }  /* if */
+    if (rp2->type->kind == (a_type_kind)tk_routine &&
+        exc_spec_is_always_compatible(rp2)) {
+      result = TRUE;
     }  /* if */
   }  /* if */
   return result;

@@ -1,5 +1,49 @@
 Version 6.3
 
+6/7/21   [EDGcpfe/23468]
+Multiple translation units: Spurious incompatibility diagnostic on function
+templates
+
+When compiling multiple translation units, the front end could issue a spurious
+diagnostic complaining that two identical routines are incompatible due to
+their exception specifications when the exception specification is instantiated
+in one TU but not the other.  For example, the front end would issue a spurious
+diagnostic when compiling two TUs that both contain:
+
+  template<typename T> struct Empty {};
+  template<typename T> struct Bad {
+    // Spurious diagnostic issued when X below is instantiated in only one TU
+    template <typename... l> Bad() noexcept(Empty<l...>::val2);
+  };
+  template<typename T> struct S1 {
+    S1();
+    Bad<T> var;
+  };
+  template<typename T> void func() {
+    S1<char> var;
+  }
+  template<typename T> class S2;
+  template<> class S2<char> {
+    void foo() {
+      func<char>();
+    }
+  };
+  template<typename T>
+  struct X {
+    X() {
+      S1<char> var;
+    }
+  };
+
+and one TU also contains:
+
+  void f() {
+    X<int> var;
+  }
+
+This is now fixed.
+
+
 5/5/21   [EDGcpfe/24221]
 Abort in deduce_auto_type on specialization of deleted member
 
