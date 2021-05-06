@@ -20,9 +20,9 @@ Previously this aborted in deduce_auto_type (overload.c).  That is now fixed.
 Vector operations handled incorrectly in constexpr interpreter
 
 Ordinarily, attempting to perform a constexpr operation not supported by the
-interpreter, causes the interpreter to report an interpretation failure.
+interpreter causes the interpreter to report an interpretation failure.
 However, for certain vector operations that were not previously supported
-(like addition) the interpreter did not report a failure and produced
+(like addition), the interpreter did not report a failure and produced
 unpredictable results instead.  The interpreter has been updated to support a
 variety of vector operations, and to more reliably fail interpretation for
 unsupported operations.  For example:

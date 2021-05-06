@@ -5450,12 +5450,10 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           a_byte_count    elem_size = value_bytes_for_type(ips, etp, &result);
           if (!result) break;
           elem_con = con->variant.aggregate.first_constant;
-          for (k = 0; k<n_elems;) {
+          for (k = 0; k<n_elems; k += 1) {
             if (elem_con == NULL) {
-              if (k<n_elems) {
-                /* Not all elements are covered.  Zero the remainder. */
-                memzero(value, size_t_arg((n_elems-k)*elem_size));
-              }  /* if */
+              /* Not all elements are covered.  Zero the remainder. */
+              memzero(value, size_t_arg((n_elems-k)*elem_size));
               break;
             }  /* if */
             if (!copy_val_from_constant(
@@ -5464,7 +5462,6 @@ formats as necessary.  Return FALSE if the constant is an error constant.
               break;
             }  /* if */
             elem_con = elem_con->next;
-            k += 1;
             value += elem_size;
           }  /* for */
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
@@ -5474,22 +5471,19 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           a_targ_size_t   k, n_elems = 2;
           a_byte_count    elem_size = sizeof(an_internal_float_value);
           elem_con = con->variant.aggregate.first_constant;
-          for (k = 0; k<n_elems;) {
+          for (k = 0; k<n_elems; k += 1) {
+            if (elem_con == NULL) {
+              /* Not all elements are covered.  Zero the remainder. */
+              memzero(value, size_t_arg((n_elems-k)*elem_size));
+              break;
+            }  /* if */
             if (!copy_val_from_constant(
                                      ips, elem_con, value, complete_object)) {
               do_constexpr_fail(result);
               break;
             }  /* if */
             elem_con = elem_con->next;
-            k += 1;
             value += elem_size;
-            if (elem_con == NULL) {
-              if (k<n_elems) {
-                /* Not all elements are covered.  Zero the remainder. */
-                memzero(value, size_t_arg((n_elems-k)*elem_size));
-              }  /* if */
-              break;
-            }  /* if */
           }  /* for */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
         } else {
