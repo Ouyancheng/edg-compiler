@@ -387,8 +387,8 @@ A bad name mangling has been encountered.  Record an error.
 
 #if IA64_ABI
 
-static a_const_char get_char(a_const_char                          *ptr,
-                             ARG_UNUSED a_decode_control_block_ptr dctl)
+static char get_char(a_const_char                          *ptr,
+                     ARG_UNUSED a_decode_control_block_ptr dctl)
 /*
 Get and return the character pointed to by ptr.  Stub version; this
 does nothing in the IA-64 ABI, but it's called from some low-level routines.
@@ -419,8 +419,8 @@ Return TRUE if the part of the mangled name at id begins with the string str.
 
 #else /* !IA64_ABI */
 
-static a_const_char get_char(a_const_char               *ptr,
-                             a_decode_control_block_ptr dctl)
+static char get_char(a_const_char               *ptr,
+                     a_decode_control_block_ptr dctl)
 /*
 Get and return the character pointed to by ptr.  However, if that
 position is at or beyond dctl->end_of_name, return a null character
