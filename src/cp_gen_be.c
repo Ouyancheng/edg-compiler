@@ -637,10 +637,11 @@ static void gen_template_header(a_template_decl_ptr tdp,
                                 a_boolean           is_cppcli_generic,
                                 a_boolean           for_generic_lambda);
 static a_boolean strip_lvalue_cast_sequence(an_expr_node_ptr *expr);
-static void gen_initializer_constant(a_constant_ptr constant,
-                                     a_type_ptr     type,
-                                     a_boolean      transparent_case,
-                                     a_boolean      suppress_braces);
+static void gen_initializer_constant(a_constant_ptr     constant,
+                                     a_type_ptr         type,
+                                     a_boolean          transparent_case,
+                                     a_boolean          suppress_braces,
+                                     a_dynamic_init_ptr dip = NULL);
 static void gen_initializer_expr(an_expr_node_ptr expr,
                                  a_type_ptr       type,
                                  a_boolean        need_parens,
@@ -6919,10 +6920,11 @@ aggregate constant and braces around it should be suppressed.
 }  /* gen_designator */
 
 
-static void gen_initializer_constant(a_constant_ptr constant,
-                                     a_type_ptr     type,
-                                     a_boolean      transparent_case,
-                                     a_boolean      suppress_braces)
+static void gen_initializer_constant(a_constant_ptr     constant,
+                                     a_type_ptr         type,
+                                     a_boolean          transparent_case,
+                                     a_boolean          suppress_braces,
+                                     a_dynamic_init_ptr dip)
 /*
 Generate an initializer constant, which differs from a normal constant in
 that it can contain aggregates and dynamic initializations.  type is
@@ -6933,7 +6935,8 @@ constant is an aggregate the braces around it are suppressed.  When
 transparent_case is TRUE, the constant represents an expression being
 passed as an argument to a parameter that is a transparent union (a GNU
 C extension); in this case, the braces are also suppressed, as is the
-field designator.
+field designator.  If dip is non-NULL, it describes the dynamic initializer
+for which constant is the value.
 */
 {
   a_constant_ptr    sub_con;
@@ -6971,6 +6974,11 @@ field designator.
         /* Skip type qualifiers (which can be specified on the cast). */
         cast_type = skip_typerefs_not_typedefs_or_type_operators(cast_type);
         gen_type_reference(cast_type);
+      }  /* if */
+      if (use_parens && dip != NULL && dip->is_braced_initializer) {
+        /* This constant is for something like "T x({y,z});".  The outer
+           parentheses were supplied by the caller, so use braces here. */
+        use_parens = FALSE;
       }  /* if */
       write_tok_ch(use_parens ? '(' : '{');
     }  /* if */
@@ -20141,7 +20149,7 @@ and the output of the type name.
          were already put out above. */
       gen_initializer_constant(con, init_entity_type,
                                /*transparent_case=*/FALSE,
-                               /*suppress_braces=*/!paren_form);
+                               /*suppress_braces=*/!paren_form, dip);
       break;
     case dik_nonconstant_aggregate:
       /* Nonconstant aggregate constant, used in cases like
