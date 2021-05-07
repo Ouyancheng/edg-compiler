@@ -20066,6 +20066,7 @@ options.
         copy_constant(con, constant);
         constant->type = new_type;
         constant->expr = NULL;
+        constant->is_generic_initializer = FALSE;
       }  /* if */
       con_copy = NULL;
     }  /* if */
@@ -20196,9 +20197,19 @@ lookup options.
                                             /*address_escapes=*/TRUE)) {
           /* The expression has constant pointer value (possibly
              template-dependent), so return that constant. */
-        } else if (is_template_dependent_type(expr_copy->type) ||
-                   !fold_expr(expr_copy, constant)) {
+        } else if (is_template_dependent_type(expr_copy->type)) {
           make_template_param_expr_constant(expr_copy, constant);
+        } else if (!fold_expr(expr_copy, constant)) {
+          if (!(options & CTWS_NON_CONSTANT_EXPR) &&
+              !expr_is_instantiation_dependent(expr_copy)) {
+            /* If we are in a context requiring a constant result and the
+               substituted expression does not fold to a constant, the
+               substitution effectively fails. */
+            set_error_constant(constant);
+            subst_fail(*copy_error);
+          } else {
+            make_template_param_expr_constant(expr_copy, constant);
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */

@@ -1,5 +1,30 @@
 Version 6.3
 
+5/7/21   [EDGcpfe/23909,EDGcpfe/23910]
+Incorrect substitution of some nontype template arguments
+
+Consider:
+
+  template<typename T, T V> struct C { static constexpr T value = V; };
+  struct HasConstexpr {
+    template <typename T> static auto test(int) -> C<bool, (T{}.f(), true)>;
+    template <typename T> static auto test(...) -> C<bool, false>;
+  };
+  template<typename T> constexpr bool hasConstexpr() {
+      using X = decltype(HasConstexpr::template test<T>(0));
+      return X::value;
+  };
+  struct WithConstexpr { constexpr int f() { return 0; } };
+  struct WithoutConstexpr { void foo(); };
+  static_assert(hasConstexpr<WithConstexpr>(), "");
+  static_assert(!hasConstexpr<WithoutConstexpr>(), "");
+
+Previously, this triggered spurious errors because of a pair of bugs in the
+code handling substitution of nontype template arguments (particularly, the
+substitution of "T{}.f{}" in this example).  Those bugs are now fixed and the
+example above is now accepted (in C++11 and later modes).
+
+
 5/6/21   [EDGcpfe/24284]
 C++-generating back end: parenthesized braced constant aggregate initializers
 
