@@ -1,6 +1,6 @@
 Version 6.3
 
-5.6/21   [EDGcpfe/24284]
+5/6/21   [EDGcpfe/24284]
 C++-generating back end: parenthesized braced constant aggregate initializers
 
 The C++-generating back end incorrectly replaced a parenthesized braced
