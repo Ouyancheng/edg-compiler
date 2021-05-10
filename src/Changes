@@ -21,7 +21,7 @@ Consider:
 
 Previously, this triggered spurious errors because of a pair of bugs in the
 code handling substitution of nontype template arguments (particularly, the
-substitution of "T{}.f{}" in this example).  Those bugs are now fixed and the
+substitution of "T{}.f()" in this example).  Those bugs are now fixed and the
 example above is now accepted (in C++11 and later modes).
 
 
