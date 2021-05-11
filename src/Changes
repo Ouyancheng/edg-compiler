@@ -1,5 +1,16 @@
 Version 6.3
 
+5/11/21   [EDGcpfe/24272]
+__gnu__ attribute namespace not recognized
+
+Previously when encountering the attribute namespace "__gnu__" we
+would warn that "__gnu__" is not a recognized namespace, and fail to
+recognize attributes within the namespace.
+
+This is now fixed, and we now recognize the "__gnu__" attribute
+namespace as equivalent to the "gnu" attribute namespace.
+
+
 5/7/21   [EDGcpfe/23909,EDGcpfe/23910]
 Incorrect substitution of some nontype template arguments
 

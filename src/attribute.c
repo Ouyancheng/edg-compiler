@@ -885,6 +885,7 @@ A list of attribute namespaces that are known to the front end.
 static a_const_char *valid_attribute_namespaces[] = {
   "clang",
   "gnu",
+  "__gnu__",
 #if INCLUDE_EDG_TEST_ATTRIBUTES
   "edg",
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
@@ -1291,6 +1292,16 @@ comparison or any auxiliary comparisons).
 }  /* attribute_condition_satisfied */
 
 
+static a_boolean is_attr_in_gnu_namespace(an_attribute_ptr  ap)
+/*
+Check whether the given attribute is in the gnu attribute namespace.
+*/
+{
+  return strcmp(ap->namespace_name, "gnu") == 0 ||
+         strcmp(ap->namespace_name, "__gnu__") == 0;
+}  /* is_attr_in_gnu_namespace */
+
+
 static a_boolean attribute_namespace_satisfied(a_const_char      **cond,
                                                an_attribute_ptr  ap)
 /*
@@ -1331,7 +1342,7 @@ the attribute string past the closing "]" or "}".
          Err on the side of accepting them. */
       if (!(clang_mode && ap->family ==
                               (a_byte_attribute_family)af_has_cpp_attribute) &&
-          gnu_mode && strcmp(ap->namespace_name, "gnu") == 0) {
+          gnu_mode && is_attr_in_gnu_namespace(ap)) {
         match = TRUE;
         /* *cond doesn't need to be updated. */
       }  /* if */
@@ -1496,7 +1507,7 @@ there is an applicable one; otherwise, return NULL.
       family == (a_byte_attribute_family)af_std &&
       ap->namespace_name != NULL &&
       !ms_extensions &&
-      strcmp(ap->namespace_name, "gnu") == 0) {
+      is_attr_in_gnu_namespace(ap)) {
     /* Starting with version 4.8, GCC maps standard attributes of the form
        [[ gnu::xyz(...) ]] to __attribute((xyz(...))).  This includes
        attribute names with added underscores (see below). */
