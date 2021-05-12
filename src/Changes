@@ -1,5 +1,35 @@
 Version 6.3
 
+5/12/21  [EDGcpfe/23989]
+GNU and Microsoft C++20 compatibility: Ambiguous comparisons
+
+Consider the following C++20 code:
+
+  template<typename T> struct S {
+    S() {}
+    template<typename U> S(S<U> const&) {}
+    bool operator==(S const&) { return true; }
+  };
+  S<int const> x;
+  S<int> y;
+  auto r = x == y;  // Ambiguous in standard C++20, but accepted in
+                    // Microsoft and GNU modes.
+
+The overload resolution process for "x == y" considers two candidates:
+  1) the normal member operator S<int const>::operator==, and
+  2) the operator S<int>::operator== that results from trying
+       the comparison in reversed order.
+The first candidate matches exactly on the x operand, but requires a
+(user-defined) conversion on the y operand.  The second candidate, however,
+has opposite matches: x requires a user-defined conversion and y matches
+exactly.  Such situations are always ambiguous in standard C++, but GCC and
+Microsoft appear to introduce an tie breaker for this specific pattern.  The
+front end now emulates this by discarding the "reversed-operands" candidate
+if it is the only competing candidate for a comparison where the other
+candidate is generated from the same function or templated entity.  That
+causes the example above to be accepted in Microsoft and GNU C++20 modes.
+
+
 5/12/21  [EDGcpfe/24310]
 C++-generating back end: parenthesized zero-initialization expressions
 

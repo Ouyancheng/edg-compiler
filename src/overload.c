@@ -1629,6 +1629,7 @@ Print a candidate function entry for debugging purposes.
 {
   unsigned long            narg;
   an_arg_match_summary_ptr amsp;
+  a_boolean                has_notes = FALSE;
 
   if (cfp->function_symbol != NULL) {
     /* Normal function case. */
@@ -1646,8 +1647,19 @@ Print a candidate function entry for debugging purposes.
     fprintf(f_debug, "\n");
   }  /* if */
   if (cfp->is_function_template) {
-    fprintf(f_debug, "(function template)\n");
+    fprintf(f_debug, "(function template");
+    has_notes = TRUE;
   }  /* if */
+  if (cfp->supplemental_comparison_candidate) {
+    fprintf(f_debug, has_notes ? ", " : "(");
+    fprintf(f_debug, cfp->supplemental_reversed_candidate ?
+                                         "supp. reversed comparison candidate"
+                                       : "supp. comparison candidate");
+    has_notes = TRUE;
+  }  /* if */
+  if (has_notes) {
+    fprintf(f_debug, ")\n");
+  }  /* if*/
   /* Display the arg match list. */
   narg = 0;
   for (amsp = cfp->arg_matches; amsp != NULL; amsp = amsp->next) {
@@ -9325,7 +9337,6 @@ is set to TRUE.
          set to date. */
       for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
         /* Also keep functions with error matches in the best-match set. */
-        curr_arg = cfp->current_arg_match;
         if (cfp->in_best_match_set_for_curr_argument) {
           /* This function is in the best-match set for the current
              argument. */
@@ -9471,6 +9482,52 @@ create_final_list:
       }  /* if */
     }  /* for */
     candidates = *candidate_functions;
+    if (number_in_best_match_set == 0 &&
+        (gpp_version_is(any_version) || ms_version_is(any_version)) &&
+        candidates->supplemental_reversed_candidate !=
+                          candidates->next->supplemental_reversed_candidate &&
+        candidates->function_symbol != NULL &&
+        candidates->next->function_symbol != NULL &&
+        candidates->next->next == NULL) {
+      /* Check for a special case where one of the candidates is a rewritten
+         comparison with reversed candidates and the other is not.  In such
+         cases, the "reversed" candidate is dropped if the two result from the
+         same construct (in the case of a member of a class template instance,
+         that includes cases where the generic member is the same).   This
+         enables examples like:
+            template<typename T> struct S {
+              S() {}
+              template<typename U> S(S<U> const&) {}
+              bool operator==(S const&) { return true; }
+            };
+            S<int const> x;
+            S<int> y;
+            auto r = x == y;  // Ambiguous in standard C++20, but accepted
+                              // in Microsoft and GNU modes.
+      */
+      a_symbol_ptr  sym1 = candidates->function_symbol,
+                    sym2 = candidates->next->function_symbol;
+      if (is_simple_function_symbol(sym1) &&
+          sym1->variant.routine.instance_ptr != NULL) {
+        sym1 = sym1->variant.routine.instance_ptr->template_sym;
+      }  /* if */
+      if (is_simple_function_symbol(sym2) &&
+          sym2->variant.routine.instance_ptr != NULL) {
+        sym2 = sym2->variant.routine.instance_ptr->template_sym;
+      }  /* if */
+      if (sym1 == sym2) {
+        if (candidates->supplemental_reversed_candidate) {
+          candidates->in_best_match_set = FALSE;
+          candidates->next->in_best_match_set = TRUE;
+        } else {
+          candidates->in_best_match_set = TRUE;
+          candidates->next->in_best_match_set = FALSE;
+        }  /* if */
+        number_in_best_match_set = 1;
+        overall_ambiguity = FALSE;
+        goto create_final_list;
+      }  /* if */
+    }  /* if */
   }  /* if */
   if (*undecidable_because_of_error) {
     *ambiguous = TRUE;
@@ -18009,37 +18066,40 @@ find_more_operator_candidates:
       }  /* for */
       free_list_of_symbol_list_entries(symbol_list);
     }  /* if */
-    /* See if the built-in meaning of the operator can apply if we
-       convert the class operand(s) to a built-in type through use of
-       a conversion function. */
-    if (sun_mode &&
-        some_candidate_matches_without_user_defined_convs(
-                                                    candidate_functions)) {
-      /* The Sun compiler up to 5.8 seems to not try built-in operator
-         matches if it has a user-written candidate that doesn't require
-         a user-defined conversion to match.  5.9 seems to have eliminated
-         that, but we don't yet have a sun_version option... */
-      try_user_conversions = FALSE;
+    if (!find_reversed_candidates) {
+      /* See if the built-in meaning of the operator can apply if we convert
+         the class operand(s) to a built-in type through use of a conversion
+         function.  (This is not needed for "reversed comparison candidates"
+         since the built-in comparison candidates are symmetric.) */
+      if (sun_mode &&
+          some_candidate_matches_without_user_defined_convs(
+                                                      candidate_functions)) {
+        /* The Sun compiler up to 5.8 seems to not try built-in operator
+           matches if it has a user-written candidate that doesn't require
+           a user-defined conversion to match.  5.9 seems to have eliminated
+           that, but we don't yet have a sun_version option... */
+        try_user_conversions = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    } else if (cli_or_cx_enabled &&
-               !unary_operator && kind == (an_opname_kind)onk_plus &&
-               (is_literal_convertible_to_cli_string(operand_1,
-                                              /*allow_complex=*/FALSE) ||
-                is_literal_convertible_to_cli_string(operand_2,
-                                              /*allow_complex=*/FALSE))) {
-      /* When the "+" operator is applied to a string literal,
-         don't try the built-in "+".  See ECMA-372 15.6.3. */
-      try_user_conversions = FALSE;
+      } else if (cli_or_cx_enabled &&
+                 !unary_operator && kind == (an_opname_kind)onk_plus &&
+                 (is_literal_convertible_to_cli_string(operand_1,
+                                                /*allow_complex=*/FALSE) ||
+                  is_literal_convertible_to_cli_string(operand_2,
+                                                /*allow_complex=*/FALSE))) {
+        /* When the "+" operator is applied to a string literal,
+           don't try the built-in "+".  See ECMA-372 15.6.3. */
+        try_user_conversions = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    }  /* if */
-    if (try_user_conversions) {
-      /* See if we can find user-defined conversions to built-in types
-         that will make the built-in operator feasible.  The argument
-         matches are compared to the best match so far from the above
-         searches. */
-      try_conversions_for_builtin_operator(kind, unary_operator,
-                                           arg_list,
-                                           &candidate_functions);
+      }  /* if */
+      if (try_user_conversions) {
+        /* See if we can find user-defined conversions to built-in types
+           that will make the built-in operator feasible.  The argument
+           matches are compared to the best match so far from the above
+           searches. */
+        try_conversions_for_builtin_operator(kind, unary_operator,
+                                             arg_list,
+                                             &candidate_functions);
+      }  /* if */
     }  /* if */
     if (spaceship_enabled) {
       /* For comparison operators, consider additional candidates: 
@@ -18134,6 +18194,7 @@ select_best_function:
         candidate_functions != NULL && candidate_functions->next != NULL &&
         candidate_functions->next->next == NULL &&
         candidate_functions->supplemental_reversed_candidate &&
+        candidate_functions->function_symbol != NULL &&
         candidate_functions->function_symbol->is_class_member &&
         same_candidate_types(candidate_functions, candidate_functions->next) &&
         identical_types_ignoring_qualifiers(operand_1->type,
