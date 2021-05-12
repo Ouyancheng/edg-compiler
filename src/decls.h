@@ -634,6 +634,9 @@ typedef struct an_init_state {
   a_bit_field	implicit_aggr_initializer:1;
 			/* TRUE while processing an implicit aggregate
 			   initializer. */
+  a_bit_field	return_expression:1;
+			/* TRUE when the "initializer" is really a return
+			   expression. */
 } an_init_state;
 
 

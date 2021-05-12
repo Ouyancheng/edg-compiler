@@ -1,5 +1,17 @@
 Version 6.3
 
+5/12/21  [EDGcpfe/24213]
+GNU C++ compatibility: Severity of narrowing conversion in return expression
+
+In GNU C++ mode, the front end now issues a warning instead of an error when
+encountering narrowing in a braced return construct.  For example:
+
+  struct S { short x; };
+  S g(int p) {
+    return { p };  // Previously an error in GNU C++11 mode.  Now a warning.
+  }
+
+
 5/12/21  [EDGcpfe/23969]
 Extraneous destructor call in conditional operator
 

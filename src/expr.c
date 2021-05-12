@@ -45656,6 +45656,7 @@ make_coroutine_result_expression.)
                   /*force_object_lifetime=*/FALSE,
                   /*suppress_object_lifetime=*/FALSE);
   expr_clear_init_state(&init_state);
+  init_state.return_expression = TRUE;
   if (curr_token == tok_lbrace && (gpp_mode || list_init_enabled)) {
     /* A C++11 list initializer. */
     if (!list_init_enabled) {
