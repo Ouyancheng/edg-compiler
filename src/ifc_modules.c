@@ -4786,9 +4786,12 @@ argument.
         (void)get_token();
       }
       break;
+    case ifc_ExprSort_NamedDecl:
     case ifc_ExprSort_Literal:
       kind = tak_nontype;
-      cp = constant_for_expr_index(expr_index, /*default_type=*/NULL);
+      check_assertion(param->kind == (a_template_parameter_kind)tpk_nontype);
+      type = param->variant.nontype.constant->type;
+      cp = constant_for_expr_index(expr_index, type);
       break;
     default:
       unexpected_condition_str("Unexpected expr kind for template arg");
@@ -5479,7 +5482,7 @@ FIXME: what other expressions can we get here?
           case ifc_LiteralSort_Immediate:
             /* An immediate literal (30 bits or less). */
             cp = alloc_constant(ck_integer);
-            if (ieslp->type == 0) {
+            if (ieslp->type == 0 && constant_type == NULL) {
               /* FIXME: not sure why the type is zero in some cases. */
               set_unsigned_integer_constant(cp,
                             (a_host_large_unsigned)literal_index(ieslp->value),
