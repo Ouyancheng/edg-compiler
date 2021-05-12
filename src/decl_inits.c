@@ -4139,7 +4139,12 @@ are TRUE.
       dik = (a_dynamic_init_kind)dik_nonconstant_aggregate;
     }  /* if */
     if (is->has_dynamic_init_component || is->force_dynamic_init) {
-      is->init_dip = alloc_dynamic_init(dik);
+      /* This function is called in expression contexts, and in such cases
+         some expression context information (such as being in a branch of a
+         conditional operator) must be recorded by calling
+         alloc_expr_dynamic_init instead of alloc_dynamic_init. */
+      is->init_dip = expr_stack != NULL ? alloc_expr_dynamic_init(dik)
+                                        : alloc_dynamic_init(dik);
       is->init_dip->variant.constant.ptr = is->init_con;
       is->init_dip->is_braced_initializer = TRUE;
       is->init_dip->is_partially_initialized = is->partial_initializer;

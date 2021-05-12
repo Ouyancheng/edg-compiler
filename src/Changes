@@ -1,5 +1,40 @@
 Version 6.3
 
+5/12/21  [EDGcpfe/23969]
+Extraneous destructor call in conditional operator
+
+In some cases involving a combination of list-initialization and aggregate
+initialization within a branch of a conditional operator, the lowered IL failed
+to skip the destruction of temporaries in the non-executed branch of that
+operator.  For example:
+
+  #include <initializer_list>
+  extern "C" int printf(const char*,...);
+  
+  template<typename T> struct V {
+        V(std::initializer_list<T>) { printf("Ctor\n"); }
+        ~V() { printf("Dtor\n"); }
+  };
+  struct S { V<char> data; } ;
+  struct W { void f(S&&) {} };
+  int main() {
+    W p;
+    bool detected = true;
+    detected ? p.f({{0x01}}) : p.f({{0x02}});
+  }
+
+Code generated from the lowered version of the IL would cause the resulting
+program to output
+
+  Ctor
+  Dtor
+  Dtor
+
+(the last line is extraneous).  This was the consequence of the dynamic
+initializer flag "inside_conditional_expression" not being set to TRUE in
+an entry of the unlowered IL.  That is now fixed.
+
+
 5/12/21  [EDGcpfe/23989]
 GNU and Microsoft C++20 compatibility: Ambiguous comparisons
 
