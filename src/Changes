@@ -1,5 +1,35 @@
 Version 6.3
 
+5/11/21   [EDGcpfe/24238]
+Assertion failure displaying IL containing designated initializers
+
+When displaying the intermediate language, either by the edgcpdisp utility
+or via the --il_display command-line option (see EDGcpfe/23906), if
+gcc_or_clang_is_generated_code_target is TRUE and the IL contains a
+compiler-generated designated initializer, the result was an assertion
+failure in form_constant.  This is now fixed.  For example, with
+--g++ --c++20 --il_display, the following example issued an assertion
+failure because of the initialization of the second member of the union:
+
+  template<typename T> struct B {
+    union {
+      struct {
+        T e[4];
+      };
+      struct {
+        T x;
+      };
+    };
+    constexpr B(T x): x(x) { // assertion failed on IL for this initialization
+    }
+  };
+  template<typename T> class D : public B<T> {
+    constexpr D(const T x_) : B<T>(x_) {}
+    static const D<T> m;
+  };
+  template<> constexpr D<float> D<float>::m = D<float>(1.f);
+
+
 5/11/21   [EDGcpfe/24272]
 GNU Compatibility: __gnu__ attribute namespace not recognized
 

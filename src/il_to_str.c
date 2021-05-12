@@ -6393,7 +6393,8 @@ do_sizeof_cases:
         }  /* if */
 #if BACK_END_IS_CP_GEN_BE
         if (il_header.source_language == sl_Cplusplus &&
-            gcc_or_clang_is_generated_code_target) {
+            gcc_or_clang_is_generated_code_target &&
+            octl->gen_compilable_code) {
           /* g++ does not accept the C99 syntax for designated initializers
              but does accept a nonstandard variant:
                  struct S s = { m: 0 }; */
