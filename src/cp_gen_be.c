@@ -16666,11 +16666,16 @@ sizeof_cases:
       break;
     case enk_temp_init:
       /* Temporary creation/initialization. */
+      dip = expr->variant.init.dynamic_init;
+      if (dip->kind == (a_dynamic_init_kind)dik_zero) {
+        /* Something like T(); avoid unneeded parentheses, which could make
+           this look like "(T())", a cast to a function type. */
+        need_parens = FALSE;
+      }  /* if */
       if (need_parens) write_tok_ch('(');
       if (expr->is_lvalue) {
         /* Using the temp as an lvalue. */
         a_type_ptr         temp_type = expr->type;
-        dip = expr->variant.init.dynamic_init;
         if (C_mode()) {
           /* Lvalue for a temp-init in C.  This comes up for a C99 compound
              literal. */
@@ -16680,7 +16685,7 @@ sizeof_cases:
           /* Lvalue temp-init in C++. */
           gen_temp_init(expr, obj_expr_of_mfunc_operator);
         }  /* if */
-      } else if ((dip = expr->variant.init.dynamic_init)->is_reused_value &&
+      } else if (dip->is_reused_value &&
                  (dip->kind == (a_dynamic_init_kind)dik_expression ||
                   dip->kind ==
                             (a_dynamic_init_kind)dik_class_result_via_ctor)) {

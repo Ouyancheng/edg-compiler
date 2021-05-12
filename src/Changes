@@ -1,5 +1,31 @@
 Version 6.3
 
+5/12/21  [EDGcpfe/24310]
+C++-generating back end: parenthesized zero-initialization expressions
+
+In some circumstances, the C++-generating back end could put out redundant
+parentheses enclosing an explicit zero-initialization temporary.  In
+certain expressions, the resulting expression formed a cast to a function
+type, leading to uncompilable generated code.  For example, with --c++17
+--gnu_version=100200:
+
+  struct S {
+    S() {};
+    S(const S &other) {};
+  };
+  int operator+(S, S) {
+    return 0;
+  }
+  template<typename T> int f() {
+    return S() + S();
+  }
+
+The expression in the return statement of f() was previously generated as
+"((S()) + (S()))", which is parsed as a cast to the function type "S()" of
+the result of applying the unary "+" operator to S().  This is now fixed,
+and the redundant parentheses are now suppressed in such cases.
+
+
 5/11/21  [EDGcpfe/24238]
 Assertion failure displaying IL containing designated initializers
 
