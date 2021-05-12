@@ -30,16 +30,16 @@ because of the initialization of the second member of the union:
   template<> constexpr D<float> D<float>::m = D<float>(1.f);
 
 
-5/11/21   [EDGcpfe/24272]
+5/11/21  [EDGcpfe/24272]
 GNU Compatibility: __gnu__ attribute namespace not recognized
 
-Previously when encountering the attribute namespace "__gnu__" the
-frontend would warn that "__gnu__" is not a recognized namespace, and
-fail to recognize attributes within the namespace.
+Previously when encountering the attribute namespace "__gnu__" the front end
+would warn that "__gnu__" is not a recognized namespace and fail to recognize
+attributes within the namespace.
 
-This is now fixed, and the frontend now recognizes the "__gnu__"
-attribute namespace as equivalent to the "gnu" attribute namespace. As
-an example, the following are now equivalent:
+This is now fixed, and the front end now recognizes the "__gnu__" attribute
+namespace as equivalent to the "gnu" attribute namespace.  As an example, the
+following are now equivalent:
 
   static void foo [[gnu::unused]] (void) { }
   static void foo [[__gnu__::unused]] (void) { }
