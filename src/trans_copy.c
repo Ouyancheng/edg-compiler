@@ -3280,7 +3280,9 @@ primary IL.
             case iek_attribute:
             case iek_name_reference:
             case iek_name_qualifier:
+#if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
             case iek_gnu_routine_supplement:
+#endif /* GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED */
               break;
             default:
               err = TRUE;
