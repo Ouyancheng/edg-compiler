@@ -70,7 +70,7 @@ The first candidate matches exactly on the x operand, but requires a
 (user-defined) conversion on the y operand.  The second candidate, however,
 has opposite matches: x requires a user-defined conversion and y matches
 exactly.  Such situations are always ambiguous in standard C++, but GCC and
-Microsoft appear to introduce an tie breaker for this specific pattern.  The
+Microsoft appear to introduce a tie breaker for this specific pattern.  The
 front end now emulates this by discarding the "reversed-operands" candidate
 if it is the only competing candidate for a comparison where the other
 candidate is generated from the same function or templated entity.  That
