@@ -14038,6 +14038,11 @@ typedef struct an_expr_node {
 			/* TRUE when the operation was a reinterpret_cast
 			   in the source. */
       a_bit_field
+		is_reinterpret_like_cast:1;
+			/* TRUE when the operation has reinterpret_cast
+			   semantics (but perhaps did not appear as such in
+			   the source code). */
+      a_bit_field
 		is_const_cast:1;
 			/* TRUE when the operation was a const_cast in the
 			   source. */

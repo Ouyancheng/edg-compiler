@@ -1,5 +1,21 @@
 Version 6.3
 
+5/13/21  [EDGcpfe/22472,EDGcpfe/23539,EDGcpfe/23840]
+Constant-evaluation of pointer and pointer-to-member casts
+
+The front end was previously unable to constant-evaluate certain point and
+pointer-to-member casts: That is now fixed.  For example:
+
+
+  struct S {
+    int const *const *p;
+    constexpr S(int **p) : p(p) {}
+  };
+  constexpr S sp(nullptr);  // Previously an error because the conversion
+                            // in the mem-initializer was not supported.
+                            // Now okay.
+
+
 5/12/21  [EDGcpfe/24213]
 GNU C++ compatibility: Severity of narrowing conversion in return expression
 

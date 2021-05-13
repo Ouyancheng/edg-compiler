@@ -4457,6 +4457,9 @@ Display the indicated expression node.
       if (ptr->variant.operation.is_reinterpret_cast) {
         disp_boolean("is_reinterpret_cast", TRUE);
       }  /* if */
+      if (ptr->variant.operation.is_reinterpret_like_cast) {
+        disp_boolean("is_reinterpret_like_cast", TRUE);
+      }  /* if */
       if (ptr->variant.operation.is_const_cast) {
         disp_boolean("is_const_cast", TRUE);
       }  /* if */

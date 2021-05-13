@@ -3448,6 +3448,7 @@ fields to default values.
       node->variant.operation.type_kind = (a_type_kind)tk_unknown;
       node->variant.operation.returns_lvalue_instead_of_usual_rvalue = FALSE;
       node->variant.operation.is_reinterpret_cast = FALSE;
+      node->variant.operation.is_reinterpret_like_cast = FALSE;
       node->variant.operation.is_const_cast = FALSE;
       node->variant.operation.is_reference_cast = FALSE;
       node->variant.operation.is_rvalue_reference_cast = FALSE;

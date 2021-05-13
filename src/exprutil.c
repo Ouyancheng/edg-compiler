@@ -9111,6 +9111,8 @@ indicates that the cast comes from a reinterpret_cast construct in the source.
     *p_node = make_operator_node((an_expr_operator_kind)eok_cast, new_type,
                                  *p_node);
     (*p_node)->variant.operation.is_reinterpret_cast = is_reinterpret_cast;
+    (*p_node)->variant.operation.is_reinterpret_like_cast =
+                                                        reinterpret_semantics;
     if (is_implicit_cast) {
       (*p_node)->compiler_generated = TRUE;
       (*p_node)->position = *err_pos;
