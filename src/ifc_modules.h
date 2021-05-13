@@ -2512,6 +2512,11 @@ private:
 			/* Flag to indicate whether an unhandled node
 			   diagnostic has already been issued for this
 			   module. */
+  mutable a_boolean
+		suppress_default_arguments = FALSE;
+			/* Flag to indicate whether default arguments should be
+			   included when processing an entity in this module.
+			*/
 
 public:
   an_ifc_module() : a_module_interface((a_module_kind)mk_ifc),
@@ -2684,6 +2689,11 @@ private:
                                ifc_SourceLocation    *locus) const;
   void cache_decl_class(a_token_cache_ptr     cache,
                         an_ifc_DeclSort_Scope *decl) const;
+  uint32_t cache_decl_template_signature(
+                                        a_token_cache_ptr        cache,
+                                        an_ifc_DeclSort_Template *decl,
+                                        a_boolean                add_semicolon)
+                                                                         const;
   void cache_decl_template(a_token_cache_ptr        cache,
                            an_ifc_DeclSort_Template *decl) const;
   void cache_variable_decl(a_token_cache_ptr   cache,

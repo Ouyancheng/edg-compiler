@@ -3498,15 +3498,64 @@ class_struct_union_case:
             defer_symbol_creation(mep, &loc);
           } else {
             a_token_cache cache;
+            a_non_type_kind nt_kind;
+            a_type_ptr      type;
+            a_boolean       do_forward_decl;
+            a_boolean       saved_suppress_default_arguments;
             if (mep->scope == NULL) {
               mep->scope = get_ifc_scope(idstp->home_scope);
               scope_pushed = push_module_declaration_context(mep->scope);
             }  /* if */
-            clear_token_cache(&cache, /*reuseable=*/FALSE);
-            cache_decl_template(&cache, idstp);
-            terminate_token_cache(&cache);
-            il_entity = (char*)parse_cached_template(&cache, mep->scope);
-            kind = iek_template;
+
+            /* It's possible for a template body to refer to itself (or to
+               another entity that refers back to it) and trigger a recursive
+               attempt to recreate this entity.  This can be solved with
+               forward declarations (which most certainly had to exist in the
+               original code).  However, non-external linkage variable
+               templates cannot have a both a forward declaration and a
+               definition, so we cannot put out a forward declaration always.
+            */
+            type = type_for_type_index(idstp->type, &nt_kind);
+            do_forward_decl = (type != type_of_unknown_templ_param_nontype ||
+                               idstp->entity.body == 0);
+            saved_suppress_default_arguments = suppress_default_arguments;
+            if (do_forward_decl) {
+              /* It's possible that this entity has already been declared, in
+                 which case a forward declaration isn't needed and can cause
+                 problems (e.g., with default arguments being re-declared). */
+              a_symbol_ptr sym = curr_scope_id_lookup(&loc, IDL_NO_OPTIONS);
+              if (sym != NULL) {
+                do_forward_decl = FALSE;
+              }  /* if */
+            }  /* if */
+            if (do_forward_decl) {
+              suppress_default_arguments = FALSE;
+              clear_token_cache(&cache, /*reuseable=*/FALSE);
+              cache_decl_template_signature(&cache, idstp,
+                                            /*add_semicolon=*/TRUE);
+              terminate_token_cache(&cache);
+              suppress_default_arguments = saved_suppress_default_arguments;
+              il_entity = (char*)parse_cached_template(&cache, mep->scope);
+              kind = iek_template;
+            }  /* if */
+            if (idstp->entity.body != 0) {
+              /* There is a definition of the template.  Record the resolution
+                 of the signature immediately so that the below processing
+                 of the definition has access to it.  If we provided a forward
+                 declaration of the entity, we will need to suppress any
+                 default arguments on the definition. */
+              if (do_forward_decl) {
+                mep->entity.ptr = il_entity;
+                mep->entity.kind = kind;
+              }  /* if */
+              suppress_default_arguments = do_forward_decl;
+              clear_token_cache(&cache, /*reuseable=*/FALSE);
+              cache_decl_template(&cache, idstp);
+              terminate_token_cache(&cache);
+              suppress_default_arguments = saved_suppress_default_arguments;
+              il_entity = (char*)parse_cached_template(&cache, mep->scope);
+              kind = iek_template;
+            }  /* if */
           }  /* if */
         }
         break;
@@ -8719,22 +8768,31 @@ This will not cache the class name and type (class/struct/union).
 }  /* cache_decl_class */
 
 
-void an_ifc_module::cache_decl_template(a_token_cache_ptr        cache,
-                                        an_ifc_DeclSort_Template *decl) const
+uint32_t an_ifc_module::cache_decl_template_signature(
+                                        a_token_cache_ptr        cache,
+                                        an_ifc_DeclSort_Template *decl,
+                                        a_boolean                add_semicolon)
+                                                                          const
 /*
-Add the tokens corresponding to the given template declaration (decl) to cache.
+Add the tokens corresponding to the given template declaration's (decl)
+signature to cache.  If add_semicolon is TRUE, include the terminating
+semicolon that would be expected for a forward declaration.  Return the offset
+into the template declaration's body at which to find the definition, or zero
+if there is no offset/the offset is not needed.
 */
 {
   a_source_position pos;
   a_type_ptr        type;
   a_non_type_kind   kind;
+  uint32_t          offset = 0;
 
   source_position_from_locus(&pos, &decl->locus);
   cache_token(cache, tok_template, &pos);
   cache_chart(cache, decl->chart, &decl->locus);
   /* FIXME: Handle attributes. */
   type = type_for_type_index(decl->type, &kind);
-  if (type != NULL && type_is(type, tk_unknown)) {
+  check_assertion(type != NULL);
+  if (type_is(type, tk_unknown)) {
     /* This is an alias template declaration. */
     /* As of IFC 0.31, this should no longer be encountered (template aliases
        are now handled by DeclSort::Alias). */
@@ -8743,7 +8801,8 @@ Add the tokens corresponding to the given template declaration (decl) to cache.
     cache_name(cache, decl->name, &decl->locus);
     cache_token(cache, tok_assign, &pos);
     cache_type(cache, (ifc_TypeIndex)decl->entity.index, &decl->locus);
-    cache_token(cache, tok_semicolon, &pos);
+    /* We always need a semicolon here. */
+    add_semicolon = TRUE;
   } else if (is_class_struct_union_type(type)) {
     cache_type(cache, decl->type, &decl->locus);
     if (decl->entity.body != 0) {
@@ -8752,38 +8811,39 @@ Add the tokens corresponding to the given template declaration (decl) to cache.
       push_stop_token_stack();
       add_stop_token(tok_lbrace);
       add_stop_token(tok_colon);
-      uint32_t offset = cache_sentence(cache, decl->entity.body, /*offset=*/0,
-                                       /*look_for_stop_token=*/TRUE);
+      offset = cache_sentence(cache, decl->entity.body, /*offset=*/0,
+                              /*look_for_stop_token=*/TRUE);
       clear_stop_tokens();
       pop_stop_token_stack();
-      cache_name(cache, decl->name, &decl->locus);
-      (void)cache_sentence(cache, decl->entity.body, offset);
-    } else {
-      cache_name(cache, decl->name, &decl->locus);
-      cache_token(cache, tok_semicolon, &pos);
     }  /* if */
-  } else if (is_function_type(type)) {
-    /* FIXME: Cache the entity corresponding to decl->entity.index instead.
-       Currently this may be missing information, so use the soon-to-be-removed
-       entity.head instead. */
-    cache_sentence(cache, decl->entity.head);
-    if (decl->entity.body == 0) {
-      /* This is a forward declaration - add the expected closing ';'. */
-      cache_token(cache, tok_semicolon, &pos);
-    } else {
-      cache_sentence(cache, decl->entity.body);
-    }  /* if */
+    cache_name(cache, decl->name, &decl->locus);
   } else {
-    /* Variable template. */
+    /* Function or variable template. */
     /* FIXME: Cache the entity corresponding to decl->entity.index instead.
        Currently this may be missing information, so use the soon-to-be-removed
        entity.head instead. */
     cache_sentence(cache, decl->entity.head);
-    if (decl->entity.body != 0) {
-      (void)cache_sentence(cache, decl->entity.body);
-    } else {
-      cache_token(cache, tok_semicolon, &pos);
-    }  /* if */
+  }  /* if */
+  if (add_semicolon) {
+    cache_token(cache, tok_semicolon, &pos);
+  }  /* if */
+  return offset;
+}  /* cache_decl_template_signature */
+
+
+void an_ifc_module::cache_decl_template(a_token_cache_ptr        cache,
+                                        an_ifc_DeclSort_Template *decl) const
+/*
+Add the tokens corresponding to the given template declaration (decl) to cache.
+*/
+{
+  a_boolean         decl_only = decl->entity.body == 0;
+  uint32_t          offset;
+
+  offset = cache_decl_template_signature(cache, decl,
+                                         /*add_semicolon=*/decl_only);
+  if (!decl_only) {
+    (void)cache_sentence(cache, decl->entity.body, offset);
   }  /* if */
 }  /* cache_decl_template */
 
@@ -8874,7 +8934,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         if (idspp->name != 0) {
           cache_identifier(cache, get_string_at_offset(idspp->name), &pos);
         }  /* if */
-        if (idspp->initializer != 0) {
+        if (idspp->initializer != 0 && !suppress_default_arguments) {
           cache_token(cache, tok_assign, &pos);
           cache_expr(cache, idspp->initializer);
         }  /* if */
