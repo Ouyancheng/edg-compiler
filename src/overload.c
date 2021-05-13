@@ -9493,7 +9493,7 @@ create_final_list:
          comparison with reversed candidates and the other is not.  In such
          cases, the "reversed" candidate is dropped if the two result from the
          same construct (in the case of a member of a class template instance,
-         that includes cases where the generic member is the same).  This
+         that includes cases where the generic member is the same).   This
          enables examples like:
             template<typename T> struct S {
               S() {}
