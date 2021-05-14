@@ -6362,12 +6362,14 @@ process_assignment:
         case eok_comma:
 #if CHECKING
 #if !STANDALONE_UTILITY_PROGRAM
-          if (!il_identical_types(operand_2->type, expr_type)) {
+          { a_type_ptr op2_type = skip_typerefs(operand_2->type);
+            if (!il_identical_types(op2_type, expr_type)) {
 #if DEBUG
-            db_expression(expr);
+              db_expression(expr);
 #endif /* DEBUG */
-            internal_error("dump_expr: bad type on eok_comma");
-          }  /* if */
+              internal_error("dump_expr: bad type on eok_comma");
+            }  /* if */
+          }
 #endif /* !STANDALONE_UTILITY_PROGRAM */
           check_result_not_used_flag(operand_1);
 #endif /* CHECKING */
@@ -6469,13 +6471,16 @@ process_assignment:
           operand_3 = operand_2->next;
 #if CHECKING
 #if !STANDALONE_UTILITY_PROGRAM
-          if (!il_identical_types(operand_2->type, expr_type) ||
-              !il_identical_types(operand_3->type, expr_type)) {
+          { a_type_ptr op2_type = skip_typerefs(operand_2->type);
+            a_type_ptr op3_type = skip_typerefs(operand_3->type);
+            if (!il_identical_types(op2_type, expr_type) ||
+                !il_identical_types(op3_type, expr_type)) {
 #if DEBUG
-            db_expression(expr);
+              db_expression(expr);
 #endif /* DEBUG */
-            internal_error("dump_expr: bad type on eok_question");
-          }  /* if */
+              internal_error("dump_expr: bad type on eok_question");
+            }  /* if */
+          }
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 #endif /* CHECKING */
           dump_boolean_controlling_expression(operand_1);

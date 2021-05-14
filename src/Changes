@@ -1,5 +1,24 @@
 Version 6.3
 
+5/14/21  [EDGcpfe/24289]
+Assertion failure in perform_post_pass_on_lowered_expression
+
+In configurations that do lowering and have EXPENSIVE_CHECKING set to TRUE,
+an assertion failure (in perform_post_pass_on_lowered_expression) had been
+introduced in version 6.2 as a result of the changes for EDGcpfe/20535.
+The change caused an internal IL consistency check to fail on cases such as:
+
+  int a;
+  volatile int b;
+  int main() {
+    const int N = 10;
+    int i = 1;
+    a = (i > 0 ? b : N) - b;
+  }
+
+The internal consistency check has been modified to allow such cases.
+
+
 5/14/21  [EDGcpfe/23731]
 Abort in C++-generating back end on specialization of static data member
 

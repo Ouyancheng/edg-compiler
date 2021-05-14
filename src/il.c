@@ -22577,6 +22577,13 @@ already indicates the load.
             rvalueable = is_class_struct_union_type(node->type) &&
                          is_glvalue_node(node->variant.operation.operands);
             break;
+          case eok_question:
+            /* If the second and third operands of an rvalue eok_question
+               are glvalues, then the expression is rvaluable. */
+            rvalueable =
+                 is_glvalue_node(node->variant.operation.operands->next) &&
+                 is_glvalue_node(node->variant.operation.operands->next->next);
+            break;
           case eok_lvalue_cast:  /* Not rvalueable; when converted to an
                                     rvalue it gets rewritten as a normal
                                     cast. */
