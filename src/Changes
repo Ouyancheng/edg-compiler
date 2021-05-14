@@ -20,12 +20,14 @@ reflects the behavior of the Microsoft compiler).
 C++-generating back end: incorrect parameter name in template definition
 
 In configurations in which template definitions are generated from the
-prototype instantiation IL, the C++-generating back end could put out
-references to template parameters in a class template definition using the
-name of a parameter of a previous template declaration.  This occurred
-when the class template is used in class template argument deduction and
-the referenced template parameter has a default argument.  This is now
-fixed.  For example, with --c++17 --gnu_version=90100:
+prototype instantiation IL, the C++-generating back end could erroneously
+put out references to template parameters in a class template definition
+using the name of a parameter of a previous template declaration.  This is
+a regression introduced in version 6.1 by the changes for EDGcpfe/22562.
+The error occurred when the class template is used in class template
+argument deduction and the referenced template parameter has a default
+argument.  This is now fixed.  For example, with --c++17
+--gnu_version=90100:
 
   template<typename XXX> struct Z;
   template<typename T = short> class S {
