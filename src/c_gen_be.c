@@ -11053,6 +11053,29 @@ Dump all source files at this level.
 }  /* dump_source_file_correspondence_info */
 
 
+#if C_GEN_BE_GENERATES_ANSI_C
+
+static void dump_size_t_type(void)
+/*
+Write out the size_t type of the target architecture.  Don't do allocation,
+because that is not allowed in a back end.
+*/
+{
+  a_type targ_size_type;
+
+  /* Can't call clear_type in a standalone program.  We only need a correctly
+     sized integer type though, so zero out the type object, set the type kind,
+     and set the integer kind. */
+  memzero((char *)&targ_size_type, sizeof(targ_size_type));
+  targ_size_type.kind = (a_type_kind)tk_integer;
+  targ_size_type.variant.integer.int_kind = targ_size_t_int_kind;
+
+  /* Write out the type. */
+  form_type(&targ_size_type, &octl);
+}  /* dump_size_t_type */
+
+#endif /* C_GEN_BE_GENERATES_ANSI_C */
+
 static void dump_header_code(void)
 /*
 Write a header at the beginning of the generated file, containing any
@@ -11075,17 +11098,28 @@ definitions needed to support the generated code.
   (void)fprintf(f_C_output, ";\n");
 #if C_GEN_BE_GENERATES_ANSI_C
 #if __BSD__
-  /* Get bcopy and bzero declared. */
-  /* Can't put out full prototype because we don't know what size_t is.
-     Can't include <strings.h> because it might declare names that get
-     used otherwise in this program. */
-  (void)fprintf(f_C_output, "void bcopy(); void bzero();\n");
+  /* Get bcopy declared.
+     void bcopy(const void *,void *,size_t); */
+  (void)fprintf(f_C_output,
+                "void bcopy(const void *,void *,");
+  dump_size_t_type();
+  (void)fprintf(f_C_output, ");\n");
+  /* Get bzero declared.
+     void bzero(void *,size_t); */
+  (void)fprintf(f_C_output, "void bzero(void *,");
+  dump_size_t_type();
+  (void)fprintf(f_C_output, ");\n");
 #else  /* !__BSD__ */
-  /* Get memcpy and memset declared. */
-  /* Can't put out full prototype because we don't know what size_t is.
-     Can't include <string.h> because it might declare names that get
-     used otherwise in this program. */
-  (void)fprintf(f_C_output, "void *memcpy(); void *memset();\n");
+  /* Get memcpy declared.
+     void *memcpy(void *,const void *,size_t); */
+  (void)fprintf(f_C_output, "void *memcpy(void *,const void *,");
+  dump_size_t_type();
+  (void)fprintf(f_C_output, ");\n");
+  /* Get memset declared.
+     void *memset(void *,int,size_t); */
+  (void)fprintf(f_C_output, "void *memset(void *,int,");
+  dump_size_t_type();
+  (void)fprintf(f_C_output, ");\n");
 #endif /* __BSD__ */
 #else /* !C_GEN_BE_GENERATES_ANSI_C */
   /* Routine needed to adjust the signedness of bit field accesses
