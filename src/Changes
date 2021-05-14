@@ -51,7 +51,7 @@ argument.  This is now fixed.  For example, with --c++17
 5/13/21  [EDGcpfe/22472,EDGcpfe/23539,EDGcpfe/23840]
 Constant-evaluation of pointer and pointer-to-member casts
 
-The front end was previously unable to constant-evaluate certain point and
+The front end was previously unable to constant-evaluate certain pointer and
 pointer-to-member casts: That is now fixed.  For example:
 
 
