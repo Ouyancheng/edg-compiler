@@ -13660,20 +13660,25 @@ the value representation of the integer value.
                   do_constexpr_fail(result);
                 }  /* if */
               } else if (tp->kind == (a_type_kind)tk_pointer) {
+                /* E.g., a conversion from X* to X const* or X* to void*. */
                 a_type_ptr  utp1 = skip_typerefs(tp->variant.pointer.type);
                 a_type_ptr  utp2;
                 utp2 = skip_typerefs(opnd1_type->variant.pointer.type);
-                if (!(expr->variant.operation.is_reinterpret_cast ||
-                      expr->variant.operation.is_reinterpret_like_cast) &&
-                    (!type_is(utp2, tk_void) || type_is(utp1, tk_void))) {
-                  /* E.g., a conversion from X* to X const* or X* to void*. */
-                  *(a_constexpr_address*)result_storage =
-                                           *(a_constexpr_address*)opnd1_value;
-                } else {
+                if (type_is(utp1, tk_error) || type_is(utp2, tk_error)) {
+                  do_constexpr_fail(result);
+                  ips->input_error = TRUE;
+                  break;
+                }  /* if */
+                if (expr->variant.operation.is_reinterpret_cast ||
+                    expr->variant.operation.is_reinterpret_like_cast ||
+                    (type_is(utp2, tk_void) && !type_is(utp1, tk_void))) {
                   info_with_pos_type2(ec_constexpr_invalid_type_conversion,
                                       &expr->position, opnd1_type, tp, ips);
                   do_constexpr_fail(result);
+                  break;
                 }  /* if */
+                *(a_constexpr_address*)result_storage =
+                                           *(a_constexpr_address*)opnd1_value;
               } else if (tp->kind == (a_type_kind)tk_ptr_to_member) {
                 if (!expr->variant.operation.is_reinterpret_cast) {
                   *(a_constexpr_ptr_to_mem*)result_storage =
