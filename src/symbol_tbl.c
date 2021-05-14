@@ -16597,6 +16597,7 @@ pointer to the new template parameter.
   /* Copy the old parameter to the new parameter. */
   *new_tpp = *orig_tpp;
   new_tpp->next = NULL;
+  new_tpp->il_template_parameter = NULL;
   new_tpp->do_prototype_instantiation = FALSE;
   /* Update the fields that are based on the symbol to refer to the
      proper information. */

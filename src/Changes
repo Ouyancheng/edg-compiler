@@ -1,5 +1,25 @@
 Version 6.3
 
+5/13/21  [EDGcpfe/23724,EDGcpfe/23940,EDGcpfe/24251,EDGcpfe/24267]
+C++-generating back end: incorrect parameter name in template definition
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end could put out
+references to template parameters in a class template definition using the
+name of a parameter of a previous template declaration.  This occurred
+when the class template is used in class template argument deduction and
+the referenced template parameter has a default argument.  This is now
+fixed.  For example, with --c++17 --gnu_version=90100:
+
+  template<typename XXX> struct Z;
+  template<typename T = short> class S {
+    T t;  // previously generated as "XXX t;"
+  };
+  int main() {
+    S x;  // class template argument deduction
+  }
+
+
 5/13/21  [EDGcpfe/22472,EDGcpfe/23539,EDGcpfe/23840]
 Constant-evaluation of pointer and pointer-to-member casts
 
