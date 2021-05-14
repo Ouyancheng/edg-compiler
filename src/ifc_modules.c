@@ -3506,13 +3506,12 @@ class_struct_union_case:
               mep->scope = get_ifc_scope(idstp->home_scope);
               scope_pushed = push_module_declaration_context(mep->scope);
             }  /* if */
-
             /* It's possible for a template body to refer to itself (or to
                another entity that refers back to it) and trigger a recursive
                attempt to recreate this entity.  This can be solved with
                forward declarations (which most certainly had to exist in the
                original code).  However, non-external linkage variable
-               templates cannot have a both a forward declaration and a
+               templates cannot have both a forward declaration and a
                definition, so we cannot put out a forward declaration always.
             */
             type = type_for_type_index(idstp->type, &nt_kind);
