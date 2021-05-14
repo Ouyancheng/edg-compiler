@@ -31866,6 +31866,13 @@ that follows.
         if (symbol_is(sym, sk_variable)) {
           update_variable_decl_info(vp, dps, dps->is_definition);
         }  /* if */
+        if (!already_specialized && sym->defined) {
+          /* For a static data member, the instantiation of the enclosing class
+             might have cause symbol to be marked as "defined" because it has
+             an in-class initializer (in C++17 modes).  However, the explicit
+             specialization ignores that initializer. */
+          sym->defined = FALSE;
+        }  /* if */
       } else {
         a_boolean  defaulted;
         check_assertion(sym->kind == (a_symbol_kind)sk_routine ||

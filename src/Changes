@@ -1,5 +1,20 @@
 Version 6.3
 
+5/14/21  [EDGcpfe/23731]
+Abort in C++-generating back end on specialization of static data member
+
+Consider:
+
+  template<int I> struct S {
+    static constexpr int N = I;
+  };
+  template<> constexpr int S<1>::N = 100;
+
+In C++17 mode, the front end previously aborted with an internal error in
+gen_variable_decl, because the source sequence entry associated with the
+explicit specialization did not record a "declared type".  That is now fixed.
+
+
 5/14/21  [EDGcpfe/24309]
 C-generating back end: memcpy, memset, bcopy, bzero declarations
 
