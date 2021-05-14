@@ -9656,7 +9656,8 @@ the selection, not an operator token for the call.
           /* ".*" operator. */
           qual_operand_1_type = operand_1->type;
           operand_1_type = skip_typerefs(qual_operand_1_type);
-          if (cpp11_mode && !microsoft_mode && is_a_prvalue(operand_1) &&
+          if (cpp11_mode && !microsoft_mode && !gpp_version_is(<100000) &&
+              is_a_prvalue(operand_1) &&
               is_immediate_class_type(operand_1_type)) {
             conv_class_prvalue_operand_to_glvalue(operand_1, /*xvalue=*/TRUE);
           }  /* if */
