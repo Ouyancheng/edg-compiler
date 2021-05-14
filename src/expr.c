@@ -9647,6 +9647,7 @@ the selection, not an operator token for the call.
           }  /* if */
           if (operand1_type_okay) {
             qual_operand_1_type = type_pointed_to(operand_1->type);
+            operand_1_type = skip_typerefs(qual_operand_1_type);
           } else {
             /* Not a pointer. */
             err = TRUE;
@@ -9654,14 +9655,17 @@ the selection, not an operator token for the call.
         } else {
           /* ".*" operator. */
           qual_operand_1_type = operand_1->type;
-          revert_microsoft_rvalue_to_lvalue_if_possible(operand_1);
+          operand_1_type = skip_typerefs(qual_operand_1_type);
+          if (cpp11_mode && !microsoft_mode && is_a_prvalue(operand_1) &&
+              is_immediate_class_type(operand_1_type)) {
+            conv_class_prvalue_operand_to_glvalue(operand_1, /*xvalue=*/TRUE);
+          }  /* if */
           if (is_a_glvalue(operand_1)) using_lvalue(operand_1);
         }  /* if */
         if (!err) {
           /* Drop any qualifiers or typedefs on the underlying first operand
              type and see if it is a class. */
-          operand_1_type = skip_typerefs(qual_operand_1_type);
-          if (!is_class_struct_union_type(operand_1_type)) {
+          if (!is_immediate_class_type(operand_1_type)) {
             /* Not (a pointer to) a class. */
             an_error_code err_code;
             err_code = is_arrow_operator ? ec_expr_not_ptr_to_class :
@@ -9755,13 +9759,13 @@ the selection, not an operator token for the call.
               and an xvalue otherwise. The result of a .* expression whose
               second operand is a pointer to a member function is a prvalue."
            (In C++11 and C++14, "E1->*E2" is by definition "(*(E1)).*E2".) */
-        if (selection_from_prvalue_is_xvalue) {
+        if (selection_from_prvalue_is_xvalue && !microsoft_mode) {
           if (ptr_to_data_member_case) {
             result_is_a_glvalue = TRUE;
             result_is_an_xvalue = !is_arrow_operator &&
                                   !is_an_lvalue(operand_1);
           }  /* if */
-        } else if (cpp11_mode) {
+        } else if (cpp11_mode && !microsoft_mode) {
           if (ptr_to_data_member_case) {
             if (is_arrow_operator || is_an_lvalue(operand_1)) {
               result_is_a_glvalue = TRUE;
@@ -9776,10 +9780,10 @@ the selection, not an operator token for the call.
             /* The result is an lvalue if the operator is "->*" or if the
                first operand is an lvalue (or might be, if an error). */
             result_is_a_glvalue = TRUE;
-          } else if (any_cfront_mode() || microsoft_mode) {
+          } else if (any_cfront_mode() || ms_version_is(<1900)) {
             /* ARM rules: the result is always an lvalue and that doesn't
                depend on the value category of the left operand. */
-            /* Also the case for MSVC.  Still true in VC11, VC12 CTP. */
+            /* Also the case for MSVC up to 18.x. */
             result_is_a_glvalue = TRUE;
             /* Force the "->*" form to get an lvalue result. */
             conv_selector_to_object_pointer(operand_1, &is_arrow_operator);

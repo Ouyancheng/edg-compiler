@@ -1,5 +1,21 @@
 Version 6.3
 
+5/13/21  [EDGcpfe/23296,EDGcpfe/23831]
+Value category of selection through pointer-to-data-member
+
+Consider:
+
+  struct S { int i; };
+  int S::*pmd = &S::i;
+  S f();
+  int &&r = f().*pmd;  // Previously an error in many modes.  Now okay.
+
+Previously, the expression "f().*pmd" was treated as an lvalue in many modes.
+Now it's an xvalue in non-Microsoft C++11 mode.  In Microsoft mode it's still
+an lvalue when microsoft_version < 1900, and a prvalue otherwise (which
+reflects the behavior of the Microsoft compiler).
+
+
 5/13/21  [EDGcpfe/23724,EDGcpfe/23940,EDGcpfe/24251,EDGcpfe/24267]
 C++-generating back end: incorrect parameter name in template definition
 

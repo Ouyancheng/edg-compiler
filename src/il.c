@@ -29034,8 +29034,7 @@ static a_byte lvalue_rvalue_test[(int)eok_last+1] = {
   /* eok_vector_subscript: */		LVRV_OPND2_IS_PRVALUE,
   /* eok_dot_field: */			LVRV_NO_REQUIREMENTS,
   /* eok_points_to_field: */		LVRV_OPND1_IS_PRVALUE,
-  /* eok_pm_field: */			LVRV_OPND1_IS_GLVALUE_IF_EXPR_IS |
-					LVRV_OPND2_IS_PRVALUE,
+  /* eok_pm_field: */			LVRV_OPND2_IS_PRVALUE,
   /* eok_pm_points_to_field: */		LVRV_OPND1_IS_PRVALUE |
 					LVRV_OPND2_IS_PRVALUE,
   /* eok_dot_pm_func_ptr */		LVRV_OPND2_IS_PRVALUE,
