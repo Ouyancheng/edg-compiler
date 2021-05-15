@@ -6300,7 +6300,22 @@ precedence confusion.  Do the output in the way described by octl.
 do_sizeof_cases:
           { an_expr_node_ptr  expr = generic_sizeof_arg_expr(constant);
             if (expr != NULL) {
+              a_boolean parens_needed = FALSE;
+              if (is_constant_node(expr)) {
+                an_expr_node_ptr e2 =
+                                  expr_node_from_constant(node_constant(expr));
+                if (e2 != NULL && node_is(e2, enk_temp_init) &&
+                    dyn_init_is(e2->variant.init.dynamic_init, dik_zero)) {
+                  /* Avoid putting out something like "sizeof(T())", which
+                     would be the size of a function type. */
+                  parens_needed = TRUE;
+                  octl->output_str("(", octl);
+                }  /* if */
+              }  /* if */
               form_expression(expr, octl);
+              if (parens_needed) {
+                octl->output_str(")", octl);
+              }  /* if */
             } else {
               form_type(
                     constant->variant.template_param.variant.templ_sizeof.type,
