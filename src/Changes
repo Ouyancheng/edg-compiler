@@ -1,5 +1,30 @@
 Version 6.3
 
+5/16/21  [EDGcpfe/23825]
+Spurious access error using protected inheriting constructor
+
+The front end could issue a spurious access error on a reference to an
+inherited protected constructor.  Now fixed.
+
+  struct A {
+    static void f();
+  protected:
+    A(int);
+  };
+  struct B {
+    B(A*);
+  };
+  struct C : public A {
+    using A::A;
+    static void f() {
+      A::f();
+    }
+  };
+  inline void A::f() {
+    B p(new C(99));
+  }
+
+
 5/14/21  [EDGcpfe/24289]
 Assertion failure in perform_post_pass_on_lowered_expression
 

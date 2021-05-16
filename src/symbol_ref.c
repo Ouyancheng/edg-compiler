@@ -2832,7 +2832,9 @@ warnings).
     } else if (class_of_object != NULL) {
       /* Protected members of a base class can only be accessed through an
          object of a derived class.  Again, if error_detected is non-NULL,
-         any diagnostic will be suppressed. */
+         any diagnostic will be suppressed.  If sym refers to an inheriting
+         constructor, use the underlying constructor symbol for the test. */
+      sym = originator_symbol_of(sym);
       (void)check_protected_member_access(sym, sym, pos, class_of_object,
                                           error_detected);
     }  /* if */
