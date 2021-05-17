@@ -46454,9 +46454,16 @@ expression context.  Return either *is_constant TRUE and a constant value in
 void do_fs_constant_fixup(a_constant_ptr  cp)
 /*
 The given constant is allocated in file-scope memory.  Adjust any references
-to function-scope entities that it may contain.
+to function-scope entities that it may contain.  This function is sometimes
+called outside of expression contexts (i.e., when there is no expression
+stack).
 */
 {
+  an_expr_copy_options_set  ce_options = CE_NO_OPTIONS;
+
+  if (expr_stack != NULL && expr_stack->possible_rescan_context) {
+    ce_options |= CE_PRESERVE_RESCAN_INFO;
+  }  /* if */
   if (has_non_file_scope_ref(cp)) {
     /* The constant has some function-scope parts, so copy its tree to the
        file scope. */
@@ -46465,7 +46472,7 @@ to function-scope entities that it may contain.
     copy_constant(cp,  old_cp);
     switch_to_file_scope_region(&region_to_switch_back_to);
     (void)copy_constant_full(old_cp, cp,
-                             CE_COPIED_CONSTANTS_MAY_BE_SHARED);
+                             ce_options | CE_COPIED_CONSTANTS_MAY_BE_SHARED);
     switch_back_to_original_region(region_to_switch_back_to);
     check_assertion_str2(!has_non_file_scope_ref(cp),
                          "extract_constant_from_operand_with_fs_fixup:",
@@ -46486,7 +46493,8 @@ to function-scope entities that it may contain.
     a_routine_ptr    rp = var->source_corresp.enclosing_routine;
     a_scope_ptr      func_scope = scope_for_routine(rp);
     switch_il_region(mem_region_for_routine(rp));
-    expr = copy_expr_tree(expr, CE_COPYING_FOR_LOCAL_EXPR_NODE_REF);
+    expr = copy_expr_tree(expr,
+                          ce_options | CE_COPYING_FOR_LOCAL_EXPR_NODE_REF);
     switch_il_region(file_scope_region_number);
     make_local_expr_node_ref(expr,
                              (a_local_expr_node_ref_kind)lerk_tpl_param_expr,
