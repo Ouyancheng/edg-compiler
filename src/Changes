@@ -1,5 +1,13 @@
 Version 6.3
 
+5/17/21  [EDGcpfe/24329]
+GNU Compatibility: GCC 8.5.0 builtins
+
+A change has been made to extend the GCC 8.4.0 builtins to GCC 8.5.0 (i.e.,
+there are no changes to the builtin signatures themselves, but certain builtins
+are now available with gnu_version == 80500).
+
+
 5/16/21  [EDGcpfe/23825]
 Spurious access error using protected inheriting constructor
 
