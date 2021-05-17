@@ -72,7 +72,7 @@ C-generating back end: memcpy, memset, bcopy, bzero declarations
 
 Previously the C-generating back end unconditionally emitted un-prototyped
 declarations for builtin functions memcpy, memset, bcopy, and bzero; now those
-declarations are emitted as prototyped declarations. This avoids the warnings
+declarations are emitted as prototyped declarations.  This avoids the warnings
 that some back end compilers (e.g., gcc 11.1.0) emit when compiling the
 generated code.
 
