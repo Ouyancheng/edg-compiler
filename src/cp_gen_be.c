@@ -6536,8 +6536,29 @@ compound literal.
     write_tok_ch('{');
   }  /* if */
   if (literal_con != NULL) {
+    a_dynamic_init_ptr dip2;
+    a_constant_ptr     sub_con = NULL;
+    if (constant_is(literal_con, ck_aggregate) &&
+        literal_con->expr != NULL &&
+        node_is(literal_con->expr, enk_temp_init)) {
+      dip2 = literal_con->expr->variant.init.dynamic_init;
+      if (dip2->is_explicit_cast && dyn_init_is(dip2, dik_constant) &&
+          dip2->variant.constant.ptr->explicit_cast_applied) {
+        /* Ensure that the processing of the aggregate does not emit a
+           possibly-redundant, possibly-erroneous cast as the operand of
+           the cast generated above. */
+        dip2->is_explicit_cast = FALSE;
+        sub_con = dip2->variant.constant.ptr;
+        sub_con->explicit_cast_applied = FALSE;
+      }  /* if */
+    }  /* if */
     gen_initializer_constant(literal_con, literal_type, transparent_case,
                              /*suppress_braces=*/FALSE);
+    if (sub_con != NULL) {
+      /* Restore the explicit-cast flags cleared above. */
+      dip2->is_explicit_cast = TRUE;
+      sub_con->explicit_cast_applied = TRUE;
+    }  /* if */
   } else {
     a_boolean parens_needed;
     check_assertion(dip->kind == (a_dynamic_init_kind)dik_expression);
