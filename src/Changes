@@ -1,5 +1,16 @@
 Version 6.3
 
+5/18/21  [EDGcpfe/24334]
+C++-generating back end: array, pointer, and reference casts in initializers
+
+The C++-generating back end could put out an initializer expression as a
+functional-notation cast even when the type is an array, pointer, or
+reference type, which is a syntax error.  This is now fixed, and a C-style
+cast is used instead.  For example, with --c++20:
+
+int (&&r)[3] = static_cast<int[3]>(0);  // Previously generated as int[3](0)
+
+
 5/17/21  [EDGcpfe/24328]
 __FILE__/__BASE_FILE__ with non-ASCII file names
 

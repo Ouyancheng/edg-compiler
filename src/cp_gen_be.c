@@ -6970,10 +6970,24 @@ for which constant is the value.
            type name and left brace were already put out by the caller when
            suppress_braces is TRUE.)  In C++20 mode, this might also be using
            parentheses instead of braces. */
-        a_type_ptr  cast_type = type != NULL ? type : constant->type;
+        a_type_ptr cast_type = type != NULL ? type : constant->type;
+        a_boolean  need_closing_paren = FALSE;
         /* Skip type qualifiers (which can be specified on the cast). */
         cast_type = skip_typerefs_not_typedefs_or_type_operators(cast_type);
+        if (cast_type->kind == (a_type_kind)tk_array ||
+            cast_type->kind == (a_type_kind)tk_pointer) {
+          /* We cannot use a functional-notation cast with a type that uses
+             array, pointer, or reference syntax, e.g., "T[3](0)"
+             (presumably the original source used a C-style or new-style
+             cast, but that isn't captured by the constant).  Fall back to
+             a C-style cast. */
+          write_tok_ch('(');
+          need_closing_paren = TRUE;
+        }  /* if */
         gen_type_reference(cast_type);
+        if (need_closing_paren) {
+          write_tok_ch(')');
+        }  /* if */
       }  /* if */
       if (use_parens && dip != NULL && dip->is_braced_initializer) {
         /* This constant is for something like "T x({y,z});".  The outer
