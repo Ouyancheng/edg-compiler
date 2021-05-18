@@ -298,6 +298,11 @@ static a_source_line_modif_ptr
 			   expand_top_level_pcc_macro when that routine is
 			   active; NULL otherwise. */
 
+static a_text_buffer_ptr
+		file_name_text_buffer;
+			/* A buffer to hold the results of the __FILE__ and
+			   __BASE_FILE__ predefined macros. */
+
 /*
 Maximum nesting depth of calls of a single macro in pcc mode.  Used to
 catch recursion, but crudely, because a general recursion check is
@@ -5801,55 +5806,21 @@ make_inert_macro:
                                           &full_name, &line_number,
                                           &at_end_of_source);
         }  /* if */
-#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
-        if (curr_file_unicode_source_kind == usk_none) {
-          /* If the current file is not Unicode, convert the file name to
-             native multibyte characters. */
-          file_name = format_file_name(file_name);
+        if (file_name_text_buffer == NULL) {
+          file_name_text_buffer = alloc_text_buffer(256);
         }  /* if */
-#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
-        /* Determine the file name length.  Count each backslash as
-           two characters because it must be escaped in the string. */
-        repl_text_len = 0;
-        for (temp_ptr = file_name; *temp_ptr != '\0'; temp_ptr++) {
-          char ch = *temp_ptr;
-          if (isprint((unsigned char)ch)) {
-            if (!exp_header_name && (ch == '"' || ch == '\\')) repl_text_len++;
-            repl_text_len++;
-          } else if (ch == '\n') {
-            /* Newline is put out as \n. */
-            repl_text_len += 2;
-          } else {
-            /* Unprintable characters are put out as \ooo. */
-            repl_text_len += 4;
-          }  /* if */
-        }  /* for */
+        reset_text_buffer(file_name_text_buffer);
+        add_to_text_buffer(file_name_text_buffer, "\"", 1);
+        write_file_name_to_text_buffer(file_name, file_name_text_buffer,
+                                       /*process_escapes=*/TRUE,
+                                       /*escape_nonprintable=*/FALSE);
+        add_to_text_buffer(file_name_text_buffer, "\"", 2);
         /* Allocate space for the filename string. */
-        /* "+3" in the following is for the two quotes and the null. */
-        ensure_arg_raw_text_space(repl_text_len+3, special_macro_arg);
-        /* Copy the filename, expanding each backslash to two backslashes. */
-        text_loc = repl_text;
-        *text_loc++ = '"';  /* Opening quote. */
-        for (temp_ptr = file_name; *temp_ptr != '\0'; temp_ptr++) {
-          char ch = *temp_ptr;
-          if (isprint((unsigned char)ch)) {
-            if (!exp_header_name && (ch == '"' || ch == '\\')) {
-              *text_loc++ = '\\';
-            }  /* if */
-            *text_loc++ = ch;
-          } else if (ch == '\n') {
-            /* Newline is put out as \n. */
-            *text_loc++ = '\\';
-            *text_loc++ = 'n';
-          } else {
-            /* Unprintable characters are put out as \ooo. */
-            sprintf(text_loc, "\\%03o",
-                        (unsigned int)(ch&((1<<targ_host_string_char_bit)-1)));
-            text_loc += 4;
-          }  /* if */
-        }  /* for */
-        *text_loc++ = '"';  /* Closing quote. */
-        *text_loc = '\0';   /* Final null. */
+        ensure_arg_raw_text_space(file_name_text_buffer->size,
+                                  special_macro_arg);
+        /* Copy the filename. */
+        repl_text_len = file_name_text_buffer->size;
+        memcpy(repl_text, file_name_text_buffer->buffer, repl_text_len);
         /* repl_text_len gets recomputed below. */
       } else if (macro_symbol == defined_macro_symbol) {
         /* "defined".  This is not, strictly speaking, a macro -- it's
@@ -11845,6 +11816,7 @@ Do one-time initialization of variables related to macro processing.
   registered_pointers = NULL;
   macro_buffer_region_in_progress = NULL;
   f_predef_macros = NULL;
+  file_name_text_buffer = NULL;
   /* Save variables from macro.h and macro.c that are needed for
      precompiled headers */
   if (precompiled_header_processing_required) {

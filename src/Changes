@@ -1,5 +1,14 @@
 Version 6.3
 
+5/17/21  [EDGcpfe/24328]
+__FILE__/__BASE_FILE__ with non-ASCII file names
+
+In some locales, using the __FILE__ or __BASE_FILE__ predefined macros with
+a file name containing non-ASCII characters could produce incorrect
+results, with some, but not all, bytes of a multibyte character being
+replaced by octal escapes.  This is now fixed.
+
+
 5/17/21  [EDGcpfe/24329]
 GNU Compatibility: GCC 8.5.0 builtins
 
