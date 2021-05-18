@@ -1042,7 +1042,7 @@ called.
   /* For diagnostics in C99 mode we want to see "_Bool" rather "bool" or the
      type underlying _Bool. */
   octl.render_c99_bool = c99_mode;
-  octl.remove_template_typedefs = !display_template_typedefs_in_diagnostics;
+  octl.keep_template_typedefs = display_template_typedefs_in_diagnostics;
 }  /* set_up_output_control_block */
 
 
@@ -1482,10 +1482,10 @@ specified by dp.
   a_symbol_ptr			corresp_template_sym = NULL;
   a_template_instance_ptr	tip = NULL;
   a_symbol_ptr			sym_to_display = NULL;
-  a_boolean			saved_remove_template_typedefs;
+  a_boolean			saved_keep_template_typedefs;
   a_symbol_ptr			sym = dfip->variant.symbol.ptr;
-  a_boolean  saved_render_auto_deduction_typerefs =
-                                octl.render_auto_deduction_typerefs;
+  a_boolean  			saved_render_auto_deduction_typerefs =
+				          octl.render_auto_deduction_typerefs;
 
   /* Determine the fundamental symbol of this symbol. */
   fund_sym = fundamental_symbol_of(sym);
@@ -1786,8 +1786,8 @@ symbol_name:
       }
       /* When outputting a type based on a template definition, don't remove
          member typedefs. */
-      saved_remove_template_typedefs = octl.remove_template_typedefs;
-      octl.remove_template_typedefs = corresp_template_sym == NULL;
+      saved_keep_template_typedefs = octl.keep_template_typedefs;
+      octl.keep_template_typedefs = corresp_template_sym != NULL;
       if (routine != NULL) {
         if (dfip->variant.symbol.force_function_params) {
           /* "%np" was specified for this fill-in. */
@@ -1859,7 +1859,7 @@ symbol_name:
       }  /* if */
       /* Restore the typedef removal state before outputting the template
          argument values. */
-      octl.remove_template_typedefs = saved_remove_template_typedefs;
+      octl.keep_template_typedefs = saved_keep_template_typedefs;
       if (distinct_template_signatures) {
         /* Display the template argument information, if any. */
         a_symbol_ptr	templ_arg_sym;

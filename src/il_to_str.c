@@ -111,7 +111,7 @@ Clear an output control block to default values.
   octl->force_qualified_name      = FALSE;
   octl->gen_vla_array_as_asterisk_bound_array = FALSE;
   octl->gen_raw_tab_in_literals   = FALSE;
-  octl->remove_template_typedefs  = FALSE;
+  octl->keep_template_typedefs    = TRUE;
   octl->suppress_line_breaking    = FALSE;
   octl->suppress_cast_on_short_integral_const = FALSE;
   octl->suppress_name_in_template_cast_enum_const = FALSE;
@@ -2420,8 +2420,11 @@ members of template classes.
 {
   a_boolean	result = FALSE;
 
-  if (octl->remove_template_typedefs) {
-    if (type->source_corresp.is_class_member) {
+  if (!octl->keep_template_typedefs) {
+    if (type->variant.typeref.is_template_alias &&
+        !type->variant.typeref.is_dependent) {
+      result = TRUE;
+    } else if (type->source_corresp.is_class_member) {
       /* Drop the typedef if it was defined in a template class.  This is
          done even if the class was specialized. */
       a_type_ptr	parent_type = parent_class_of(type);
