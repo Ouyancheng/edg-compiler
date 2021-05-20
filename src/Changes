@@ -1,17 +1,17 @@
 Version 6.3
 
 5/20/21  [EDGcpfe/24332]
-Microsoft compatibility: C keyword _Pragma for all C modes
+Microsoft compatibility: C keyword _Pragma for all modes
 
-Microsoft C mode when emulating Visual Studio 16.6 or later would previously
+Microsoft mode when emulating Visual Studio 16.6 or later would previously
 require at least C99 to be specified for the C keyword _Pragma to be
 recognized.  This is now fixed.
 
-In Microsoft C mode 16.6.x and later with --c:
+In Microsoft mode 16.6.x and later, with --c or --c++:
 
   _Pragma(once) // Previously invalid. Now valid.
 
-In Microsoft C mode 16.5.x and earlier with --c:
+In Microsoft mode 16.5.x and earlier, with --c or --c++:
 
   _Pragma(once) // Previously invalid. Still invalid.
 
