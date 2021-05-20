@@ -4971,12 +4971,15 @@ Map the IFC locus source position information into the source position at pos.
        source sequence entry is allocated to the entire file (so locus->line
        is unused here -- perhaps in the future a series of sequence numbers
        can be allocated and locus->line can be added to this base sequence
-       number). */
+       number).  Save and restore curr_seq_number (so the newly allocated
+       sequence number doesn't get used for subsequent tokens). */
+    a_seq_number save_curr_seq_number = curr_seq_number;
     a_const_char *file_name;
     file_name = string_from_name_index(islp->file,
                                        (a_symbol_locator *)NULL);
     file_name = copy_string_to_region(FILE_SCOPE_REGION_NUMBER, file_name);
     record_inclusion_of_module_source_file(file_name, pos, assoc_module_info);
+    curr_seq_number = save_curr_seq_number;
     *seq = pos->seq;
   } else {
     pos->seq = *seq;
