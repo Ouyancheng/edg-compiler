@@ -4975,6 +4975,9 @@ This function is also called in clang mode.
     if (gnu_version >= 60000) {
       enumerator_attributes_enabled = TRUE;
     }  /* if */
+    if (gnu_version >= 90000) {
+      terse_static_assert_enabled = TRUE;
+    }  /* if */
   }  /* if */
 }  /* check_and_set_gcc_mode_options */
 

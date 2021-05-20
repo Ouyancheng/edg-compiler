@@ -1,5 +1,20 @@
 Version 6.3
 
+5/20/21  [EDGcpfe/24198]
+GNU Compatibility: GCC 9.x+ single argument _Static_assert
+
+GCC mode when emulating GCC 9 or later would previously error when encountering
+a single argument _Static_assert.  This is now fixed.
+
+In GCC mode 9.x and later:
+
+_Static_assert(1); // Previously invalid.  Now valid.
+
+In GCC mode 8.x and earlier:
+
+_Static_assert(1); // Previously invalid.  Still invalid.
+
+
 5/18/21  [EDGcpfe/24334]
 C++-generating back end: array, pointer, and reference casts in initializers
 
