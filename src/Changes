@@ -1,10 +1,10 @@
 Version 6.3
 
 5/20/21  [EDGcpfe/24332]
-Microsoft compatibility: C keyword _Pragma for all modes
+Microsoft compatibility: C Standard _Pragma for all modes
 
 Microsoft mode when emulating Visual Studio 16.6 or later would previously
-require at least C99 to be specified for the C keyword _Pragma to be
+require at least C99 to be specified for the C Standard _Pragma to be
 recognized.  This is now fixed.
 
 In Microsoft mode 16.6.x and later, with --c or --c++:
