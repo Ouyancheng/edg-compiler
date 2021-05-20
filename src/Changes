@@ -24,11 +24,11 @@ a single argument _Static_assert.  This is now fixed.
 
 In GCC mode 9.x and later:
 
-_Static_assert(1); // Previously invalid.  Now valid.
+  _Static_assert(1); // Previously invalid.  Now valid.
 
 In GCC mode 8.x and earlier:
 
-_Static_assert(1); // Previously invalid.  Still invalid.
+  _Static_assert(1); // Previously invalid.  Still invalid.
 
 
 5/18/21  [EDGcpfe/24334]
