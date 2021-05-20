@@ -2439,6 +2439,10 @@ option values if they were not already set by a command line option.
       }  /* if */
     }  /* if */
     universal_character_names_allowed = TRUE;
+    if (microsoft_version >= 1926) {
+      /* Visual Studio version 16.6. */
+      pragma_operator_allowed = TRUE;
+    }  /* if */
     if (ms_c11 && microsoft_version >= 1927) {
       /* Visual Studio version 16.7. */
       /* Note that compound literals are already enabled above. */
