@@ -2381,8 +2381,8 @@ option values if they were not already set by a command line option.
       uliterals_enabled = TRUE;
     }  /* if */
   }  /* if */
-  if (microsoft_version >= 1926) {
-    /* Visual Studio version 16.6. */
+  if (microsoft_version >= 1925) {
+    /* Visual Studio version 16.5. */
     pragma_operator_allowed = TRUE;
   }  /* if */
   if (C_mode()) {

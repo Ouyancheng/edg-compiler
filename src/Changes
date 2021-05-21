@@ -3,15 +3,15 @@ Version 6.3
 5/20/21  [EDGcpfe/24332]
 Microsoft compatibility: C Standard _Pragma for all modes
 
-Microsoft mode when emulating Visual Studio 16.6 or later would previously
+Microsoft mode when emulating Visual Studio 16.5 or later would previously
 require at least C99 to be specified for the C Standard _Pragma to be
 recognized.  This is now fixed.
 
-In Microsoft mode 16.6.x and later, with --c or --c++:
+In Microsoft mode 16.5.x and later, with --c or --c++:
 
   _Pragma(once) // Previously invalid. Now valid.
 
-In Microsoft mode 16.5.x and earlier, with --c or --c++:
+In Microsoft mode 16.4.x and earlier, with --c or --c++:
 
   _Pragma(once) // Previously invalid. Still invalid.
 
