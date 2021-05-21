@@ -2060,13 +2060,13 @@ be required to invoke the latter.
 #endif /* ifndef DEFAULT_GUIDING_DECLS_ALLOWED */
 
 /*
-Flag that is TRUE if, by default, template specializations may be declared
-using the "old syntax" -- i.e., if the "template <>" syntax is not required.
-It is the initial value of global variable old_specializations_allowed,
-which is also controlled by command line option --[no_]old_specializations.
-(When old_specializations_allowed is TRUE but guiding_decls_allowed is FALSE,
-the effect is that old-style specializations for non-member functions will
-not be recognized as such.)
+Flag that is TRUE if, by default in C++03 mode, template specializations may
+be declared using the "old syntax" -- i.e., if the "template <>" syntax is not
+required.  It is the initial value of global
+variable old_specializations_allowed, which is also controlled by the command
+line option --[no_]old_specializations.  (When old_specializations_allowed is
+TRUE but guiding_decls_allowed is FALSE, the effect is that old-style
+specializations for non-member functions will not be recognized as such.)
 */
 #ifndef DEFAULT_OLD_SPECIALIZATIONS_ALLOWED
 #define DEFAULT_OLD_SPECIALIZATIONS_ALLOWED TRUE

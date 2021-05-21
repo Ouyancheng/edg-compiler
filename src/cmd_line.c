@@ -4121,6 +4121,11 @@ setting is used, and to set various unmentioned settings as needed.
   if (!option_kind_used[(int)optk_relaxed_abstract_checking]) {
     relaxed_abstract_checking = TRUE;
   }  /* if */
+  if (!option_kind_used[(int)optk_old_specializations]) {
+    /* Require the "template<>" prefix for explicit specializations by default
+       in C++11 mode. */
+    old_specializations_allowed = !cpp11_mode;
+  }  /* if */
 }  /* check_and_set_cplusplus_mode_options */
 
 
@@ -5007,6 +5012,11 @@ before this routine is called.
   /* Enable recognition of digraphs. */
   if (!(option_kind_used[(int)optk_alternative_tokens])) {
     alternative_tokens_allowed = TRUE;
+  }  /* if */
+  if (!option_kind_used[(int)optk_old_specializations]) {
+    /* Explicitl specializations can omit the "template<>" prefix in GCC 3.3.x
+       and earlier. */
+    old_specializations_allowed = gpp_version_is(<30400);
   }  /* if */
   if (gnu_version >= 30400) {
     /* Version 3.4 of GNU C++ introduces standard parsing for templates. */

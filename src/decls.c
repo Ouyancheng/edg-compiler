@@ -5654,6 +5654,13 @@ definition).
       } else {
         code = ec_old_specialization_not_allowed;
       }  /* if */
+    } else if (gpp_version_is(any_version)) {
+      /* Similarly to Microsoft, GCC appears to accept old-style explicit
+         specializations that are not class definitions. */
+      if (!is_class_symbol(sym) ||
+          curr_token == tok_colon || curr_token == tok_lbrace) {
+        code = ec_old_specialization_not_allowed;
+      }  /* if */
     } else if (strict_ansi_mode) {
       /* Old-style template specialization is nonstandard. */
       code = ec_nonstd_old_specialization;

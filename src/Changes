@@ -1,6 +1,17 @@
 Version 6.3
 
 5/21/21  [EDGcpfe/24227]
+Old-style specializations
+
+Previously, the front end accepted old-style explicit specializations (i.e.,
+without the "template<>" prefix) by default in many nonstrict C++ modes (unless
+the configuration macro DEFAULT_OLD_SPECIALIZATIONS_ALLOWED is set to FALSE).
+Now, it no longer does so by default in C++11 modes, nor in GNU C++ modes with
+gnu_version >= 30400 (although in GNU modes, and exception is made for
+old-style explicit class template specializations that are not definitions).
+
+
+5/21/21  [EDGcpfe/24227]
 Equality folding in GNU and Clang C++ modes
 
 The front end emulates a GCC behavior where expressions like "x == x" (with x a
