@@ -3884,8 +3884,8 @@ the file.
   new_file->assoc_module = mod;
   /* Increment the sequence number to create a unique number that can be
      mapped to this file. */
-  curr_seq_number = ++seq_number_last_read;
-  set_position_to(*inserted_position, curr_seq_number, SP_COL_UNKNOWN);
+  ++seq_number_last_read;
+  set_position_to(*inserted_position, seq_number_last_read, SP_COL_UNKNOWN);
   record_end_of_source_file(new_file, seq_number_last_read);
   if (curr_ise != NULL) {
     /* Resume the previous file where we left off. */
