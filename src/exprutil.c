@@ -14694,7 +14694,8 @@ of a subscript operation).
                             result_type, &result->variant.constant,
                             &did_not_fold, &template_constant,
                             operator_position);
-    } else if (gnu_mode &&
+    } else if ((gcc_version_is(any_version) ||
+                (gpp_version_is(<60000) && constexpr_enabled)) &&
                (op == (an_expr_operator_kind)eok_eq ||
                 op == (an_expr_operator_kind)eok_ne) &&
                operand_is_prvalue_for_variable(operand_1, &vp1) &&
@@ -14702,9 +14703,11 @@ of a subscript operation).
                vp1 == vp2 &&
                !is_floating_type(/*lint !e413*/vp1->type) &&
                !is_volatile_qualified_type(/*lint !e413*/vp1->type)) {
-      /* Similarly GCC folds x==x and x!=x, for identical variables, except
-         for floating-point type variables (since NaN != NaN) and volatile
-         variables (since different reads can produce different values). */
+      /* Similarly GCC folds x==x and x!=x, for identical variables in C mode,
+         except for floating-point type variables (since NaN != NaN) and
+         volatile variables (since different reads can produce different
+         values).  GCC prior to version 6.x also does this in C++11 and
+         later modes. */
       clear_operand((an_operand_kind)ok_constant, result);
       result->type = result_type;
       result->state = (an_operand_state)os_prvalue;
