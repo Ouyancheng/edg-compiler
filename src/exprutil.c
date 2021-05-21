@@ -21268,12 +21268,12 @@ it might produce an error).
                                                    node_constant(op2),
                                                    result_con)) {
                 con_expr_value = alloc_shareable_constant(result_con);
+                node->is_lvalue = node->is_xvalue = FALSE;
+                node->type = prvalue_node_type;
+                processed = TRUE;
               }  /* if */
             }  /* if */
           }  /* if */
-          node->is_lvalue = node->is_xvalue = FALSE;
-          node->type = prvalue_node_type;
-          processed = TRUE;
           break;
         case eok_cli_subscript:
           /* C++/CLI array subscript.  Can never be folded to a constant. */

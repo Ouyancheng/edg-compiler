@@ -1,5 +1,22 @@
 Version 6.3
 
+5/21/21  [EDGcpfe/24358]
+Subscript operations converted to prvalues
+
+Consider:
+
+  int const volatile *p;
+  void f() {
+    int y = p[0];
+  }
+
+The IL entry representing p[0] is an expression node with type int because that
+expression undergoes a glvalue-to-prvalue conversion that drops the const and
+volatile qualifiers.  In such cases, the an_expr_node::orig_lvalue_type field
+should record the type prior to that conversion, but it failed to do so for
+subscript operations.  That is now fixed.
+
+
 5/20/21  [EDGcpfe/24332]
 Microsoft compatibility: C Standard _Pragma for all modes
 
