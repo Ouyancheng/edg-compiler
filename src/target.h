@@ -709,6 +709,13 @@ EXTERN a_targ_alignment
 			   Initialized to the default value but
 			   reconfigurable. */
 
+EXTERN a_boolean
+		targ_microsoft_ptr_to_member_sizing;
+			/* TRUE if the size of pointer-to-member types should
+			   follow the class-dependent rules implemented by
+			   Microsoft compilers (see the configuration macro
+			   TARG_MICROSOFT_PTR_TO_MEMBER_SIZING, which is the
+			   default value for this variable). */
 
 /*
 Virtual function info.
@@ -1289,6 +1296,7 @@ EXTERN an_integer_kind
 #undef TARG_ALIGNOF_PTR_TO_DATA_MEMBER
 #undef TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION
 #undef TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION
+#undef TARG_MICROSOFT_PTR_TO_MEMBER_SIZING
 #undef TARG_SIZEOF_VIRTUAL_FUNCTION_INFO
 #undef TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO
 #undef TARG_SIZEOF_PTR_TO_VIRTUAL_BASE_CLASS
@@ -1493,6 +1501,8 @@ EXTERN an_integer_kind
                         targ_sizeof_ptr_to_member_function
 #define TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION                             \
                         targ_alignof_ptr_to_member_function
+#define TARG_MICROSOFT_PTR_TO_MEMBER_SIZING                             \
+                        targ_microsoft_ptr_to_member_sizing
 #define TARG_SIZEOF_VIRTUAL_FUNCTION_INFO                               \
                         targ_sizeof_virtual_function_info
 #define TARG_ALIGNOF_VIRTUAL_FUNCTION_INFO                              \

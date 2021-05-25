@@ -9005,6 +9005,11 @@ file.
 #else /* !defined(TARG_MICROSOFT_BIT_FIELD_ALLOCATION) */
   comment_undefined_macro_name(TARG_MICROSOFT_BIT_FIELD_ALLOCATION);
 #endif /* defined(TARG_MICROSOFT_BIT_FIELD_ALLOCATION) */
+#if defined(TARG_MICROSOFT_PTR_TO_MEMBER_SIZING)
+  define_numeric_valued_macro(TARG_MICROSOFT_PTR_TO_MEMBER_SIZING);
+#else /* !defined(TARG_MICROSOFT_PTR_TO_MEMBER_SIZING) */
+  comment_undefined_macro_name(TARG_MICROSOFT_PTR_TO_MEMBER_SIZING);
+#endif /* defined(TARG_MICROSOFT_PTR_TO_MEMBER_SIZING) */
 #if defined(TARG_MINIMUM_PACK_ALIGNMENT)
   define_numeric_valued_macro(TARG_MINIMUM_PACK_ALIGNMENT);
 #else /* !defined(TARG_MINIMUM_PACK_ALIGNMENT) */

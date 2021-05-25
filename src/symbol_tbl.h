@@ -1443,6 +1443,11 @@ typedef struct a_class_symbol_supplement {
   a_bit_field	default_ctor_body_delayed:1;
 			/* TRUE if the generation of the default constructor
 			   body has been delayed. */
+  a_bit_field	base_classes_fixed:1;
+			/* TRUE if the base classes (if any) have been
+			   determined (except perhaps for some C++/CLI bases
+			   that are added implicitly late in the definition
+			   process). */
   a_scope_pointers_block
 		pointers_block;
 			/* A block of pointers that are logically part of the

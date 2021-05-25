@@ -2566,6 +2566,40 @@ integer the same size as a pointer.
 #endif /* TARG_ALL_POINTERS_SAME_SIZE */
 
 /*
+Flag that is TRUE if the pointer-to-member representation should be assumed
+to match that of the Microsoft compiler.  Microsoft makes the implementation
+of a pointer-to-member dependent on the inheritance characteristics of the
+parent class.  Specifically, the representation contains the following
+  - For classes whose base classes are not yet known:
+      pointer-to-data member: 3 int values
+      pointer-to-function member: 1 function pointer + 3 int values
+  - For classes with virtual bases:
+      pointer-to-data member: 2 int values
+      pointer-to-function member: 1 function pointer + 2 int values
+  - For classes with multiple inheritance at any level:
+      pointer-to-data member: 1 int value
+      pointer-to-function member: 1 function pointer + 1 int value
+  - For other classes:
+      pointer-to-data member: 1 int value
+      pointer-to-function member: 1 function pointer
+When this flag is TRUE, pointer-to-member size configuration values like
+TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION are ignored.
+*/
+#ifndef TARG_MICROSOFT_PTR_TO_MEMBER_SIZING
+#define TARG_MICROSOFT_PTR_TO_MEMBER_SIZING FALSE
+#endif /* ifndef TARG_MICROSOFT_PTR_TO_MEMBER_SIZING */
+
+/*
+Currently, the Microsoft pointer-to-member representation is incompatible
+with the ABIs supported by IL lowering.
+*/
+#if TARG_MICROSOFT_PTR_TO_MEMBER_SIZING && DO_IL_LOWERING
+ #error -- TARG_MICROSOFT_PTR_TO_MEMBER_SIZING and DO_IL_LOWERING cannot both \
+           be TRUE
+#endif /* TARG_MICROSOFT_PTR_TO_MEMBER_SIZING && DO_IL_LOWERING */
+
+
+/*
 The standard disallows a cast of a pointer to member from a virtual base to
 a derived base.  That is because such a cast requires extra information
 in the runtime representation that's not present in some ABIs.  When this

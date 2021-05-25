@@ -657,6 +657,12 @@ are diagnosed.
                    "must use SoftFloat library for this configuration");
   }  /* if */
 #endif /* !USE_SOFTFLOAT */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  check_assertion_str2(!targ_microsoft_ptr_to_member_sizing ||
+                       targ_all_pointers_same_size,
+                       "Microsoft pointer-to-member layout assumes all",
+                       " pointers have the same size");
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* check_target_configuration */
 
 #endif /* CHECKING */

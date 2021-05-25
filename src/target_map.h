@@ -101,6 +101,8 @@ static void TARGET_MAP_ROUTINE_NAME(TARGET_CONFIGURATION) {
                    targ_alignof_ptr_to_data_member, _TC)
   TARGET_MAP_MACRO(TARG_ALIGNOF_PTR_TO_MEMBER_FUNCTION,
                    targ_alignof_ptr_to_member_function, _TC)
+  TARGET_MAP_MACRO(TARG_MICROSOFT_PTR_TO_MEMBER_SIZING,
+                   targ_microsoft_ptr_to_member_sizing, _TC)
 #if !IA64_ABI
   TARGET_MAP_MACRO(TARG_ALIGNOF_PTR_TO_VIRTUAL_BASE_CLASS,
                    targ_alignof_ptr_to_virtual_base_class, _TC)

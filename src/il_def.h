@@ -7691,7 +7691,11 @@ enum an_inheritance_kind_tag {
   ihk_none,		/* No inheritance kind specified. */
   ihk_single,		/* Single inheritance specified. */
   ihk_multiple,		/* Multiple inheritance specified. */
-  ihk_virtual		/* Virtual inheritance specified. */
+  ihk_virtual,		/* Virtual inheritance specified. */
+  ihk_incomplete,	/* The inheritance kind was needed without knowing
+			   the base classes yet (i.e., before the base class
+			   specifiers have been seen). */
+  ihk_last = ihk_incomplete
 };
 typedef a_byte an_inheritance_kind;
 
@@ -7699,24 +7703,18 @@ typedef a_byte an_inheritance_kind;
 /*
 Names of inheritance kinds, used for diagnostics.
 */
-EXTERN a_const_char *inheritance_kind_names[(int)ihk_virtual+1]
+EXTERN a_const_char *inheritance_kind_names[(int)ihk_last+1]
 #if VAR_INITIALIZERS
 = {
 /* ihk_none */		"none",
-/* ihk_single*/		"__single_inheritance",
-/* ihk_multiple*/	"__multiple_inheritance",
-/* ihk_virtual*/	"__virtual_inheritance"
+/* ihk_single */	"__single_inheritance",
+/* ihk_multiple */	"__multiple_inheritance",
+/* ihk_virtual */	"__virtual_inheritance",
+/* ihk_incomplete */	"incomplete"
 }
 #endif /* VAR_INITIALIZERS */
 ;
 
-
-EXTERN an_inheritance_kind
-		default_inheritance_kind;
-			/* Default to which the inheritance_kind field for
-			   class is set, in the absence of an explicit
-			   specification, if the class is used in a
-			   pointer-to-member declaration. */
 
 /*
 Class type kinds to distinguish the various kinds of C++/CLI class types.

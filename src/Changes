@@ -1,5 +1,31 @@
 Version 6.3
 
+5/21/21  [EDGcpfe/23677]
+Microsoft compatibility: Size of pointer-to-member types
+
+The front end does not currently implement the Microsoft C++ ABI per se (even
+though it implements some Microsoft-specific behaviors in that area, such as
+the bit field layout strategy).  Now, however, it can be configured to compute
+the same size as the Microsoft compilers for pointer-to-member types when IL
+lowering is disabled.  A new macro TARG_MICROSOFT_PTR_TO_MEMBER_SIZING can be
+configured to TRUE to enable that behavior (or a variant of that macro for a
+specific target configuration).  The Microsoft ABI size of pointer-to-member
+types depends on the "inheritance kind" of the associated class.  Previously,
+the front end identified four values for that kind: ihk_none, ihk_single,
+ihk_multiple, and ihk_virtual.  Now, an additional value ihk_incomplete has
+been introduced to describe cases where a pointer-to-member type is formed
+while the inheritance kind of the associated class is not known yet.  For
+example:
+
+  struct I;
+  static_assert(sizeof(char I::*) == 3*sizeof(int), "");
+    // Now accepted when TARG_MICROSOFT_PTR_TO_MEMBER_SIZING is TRUE.
+
+The global variable default_inheritance_kind has been removed (it previously
+the inheritance kind assigned to incomplete classes associated with pointer-
+to-member types).
+
+
 5/21/21  [EDGcpfe/24227]
 Old-style specializations
 

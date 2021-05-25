@@ -212,30 +212,6 @@ inheritance kind is returned in *pos.  Return TRUE if the scan is successful.
 }  /* scan_inheritance_kind */
 
 
-static a_boolean any_multiple_inheritance(a_type_ptr  class_type)
-/*
-Return TRUE if the specified class type or any of its base classes was
-declared with more than one base class.
-*/
-{
-  a_boolean                    multiple = FALSE;
-  a_base_class_ptr             bcp;
-
-  bcp = base_classes_of(class_type);
-  if (bcp != NULL) {
-    /* Find the first direct base class. */
-    while (!bcp->direct) bcp = bcp->next;
-    if (bcp->next != NULL || any_multiple_inheritance(bcp->type)) {
-      /* If there's a next pointer, there must be another direct base
-         class.  Otherwise, it depends on the inheritance of the
-         associated class type. */
-      multiple = TRUE;
-    }  /* if */
-  }  /* if */
-  return multiple;
-}  /* any_multiple_inheritance */
-
-
 void check_inheritance_kind(a_type_ptr           class_type,
                             an_inheritance_kind  inheritance_kind,
                             a_source_position    *err_pos)
@@ -246,10 +222,9 @@ is insufficient for the actual characteristics of the class.  *err_pos
 indicates the source position at which the error should be put out.
 */
 {
-  a_boolean  err;
-
-  if (inheritance_kind != (an_inheritance_kind)ihk_none) {
-    err = FALSE;
+  if (inheritance_kind != (an_inheritance_kind)ihk_none &&
+      inheritance_kind != (an_inheritance_kind)ihk_incomplete) {
+    a_boolean  err = FALSE;
     if (class_type->variant.class_struct_union.any_virtual_base_classes) {
       err = inheritance_kind < (an_inheritance_kind)ihk_virtual;
     } else if (any_multiple_inheritance(class_type)) {

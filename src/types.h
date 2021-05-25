@@ -780,6 +780,8 @@ extern a_boolean type_masks_handler_param_type(a_type_ptr  type_1,
                                                a_type_ptr  type_2);
 extern a_boolean set_array_type_size(a_type_ptr  array_type,
                                      a_boolean   suppress_error);
+extern a_boolean any_multiple_inheritance(a_type_ptr  class_type);
+extern an_inheritance_kind implied_inheritance_kind(a_type_ptr  class_type);
 extern void set_type_size(a_type_ptr type_ptr);
 extern a_type_ptr type_after_integral_promotion(a_type_ptr type);
 extern a_type_ptr default_argument_promotion(a_type_ptr old_type);

@@ -4878,6 +4878,58 @@ yet.  base_alignment is the alignment of the underlying type for the enum.
 }  /* check_explicit_enum_alignment */
 
 
+a_boolean any_multiple_inheritance(a_type_ptr  class_type)
+/*
+Return TRUE if the specified class type or any of its base classes was
+declared with more than one base class.
+*/
+{
+  a_boolean                    multiple = FALSE;
+  a_base_class_ptr             bcp;
+
+  bcp = base_classes_of(class_type);
+  if (bcp != NULL) {
+    /* Find the first direct base class. */
+    while (!bcp->direct) bcp = bcp->next;
+    if (bcp->next != NULL || any_multiple_inheritance(bcp->type)) {
+      /* If there's a next pointer, there must be another direct base
+         class.  Otherwise, it depends on the inheritance of the
+         associated class type. */
+      multiple = TRUE;
+    }  /* if */
+  }  /* if */
+  return multiple;
+}  /* any_multiple_inheritance */
+
+
+an_inheritance_kind implied_inheritance_kind(a_type_ptr  class_type)
+/*
+Return the implied Microsoft "inheritance kind" for the given class type,
+assuming no inheritance kind was explicitly specified.  The rules are as
+follows:
+  - if the class has any virtual base, the implied kind is ihk_virtual
+  - otherwise, if the class may still have unspecified bases, the implied
+    kind is ihk_incomplete
+  - otherwise, if the class uses multiple inheritance (direct or indirect),
+    the implied kind is ihk_multiple
+  - otherwise, it is ihk_single
+*/
+{
+  an_inheritance_kind  inh_kind;
+
+  if (class_type->variant.class_struct_union.any_virtual_base_classes) {
+    inh_kind = (an_inheritance_kind)ihk_virtual;
+  } else if (!class_symbol_supp(symbol_for(class_type))->base_classes_fixed) {
+    inh_kind = (an_inheritance_kind)ihk_incomplete;
+  } else if (any_multiple_inheritance(class_type)) {
+    inh_kind = (an_inheritance_kind)ihk_multiple;
+  } else {
+    inh_kind = (an_inheritance_kind)ihk_single;
+  }  /* if */
+  return inh_kind;
+}  /* implied_inheritance_kind */
+
+
 void set_type_size(a_type_ptr type_ptr)
 /*
 Compute and set the size of the type pointed to by type_ptr.  If it is already
@@ -4986,14 +5038,51 @@ set, leave it alone.  Also compute and set the alignment requirement.
         (void)set_array_type_size(type_ptr, /*suppress_error=*/FALSE);
         goto size_already_set;
       case tk_ptr_to_member:
-        if (is_function_type(pm_member_type(type_ptr))) {
-          /* Pointer to nonstatic member function. */
-          size = targ_sizeof_ptr_to_member_function;
-          alignment = targ_alignof_ptr_to_member_function;
-        } else {
-          /* Pointer to nonstatic data member. */
-          size = targ_sizeof_ptr_to_data_member;
-          alignment = targ_alignof_ptr_to_data_member;
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (targ_microsoft_ptr_to_member_sizing) {
+          a_type_ptr  class_type = pm_class_type(type_ptr);
+          an_inheritance_kind
+                      inh_kind = class_type_supp(class_type)->inheritance_kind;
+          if (inh_kind == (an_inheritance_kind)ihk_none) {
+            inh_kind = implied_inheritance_kind(class_type);
+          }  /* if */
+          if (is_function_type(pm_member_type(type_ptr))) {
+            /* Pointer to nonstatic member function. */
+            size = targ_sizeof_pointer;
+            switch (inh_kind) {
+              case ihk_incomplete: size += 3*targ_sizeof_int; break;
+              case ihk_single:     /* No adjustment. */       break;
+              case ihk_multiple:   size += targ_sizeof_int;   break;
+              case ihk_virtual:    size += 2*targ_sizeof_int; break;
+              default:             unexpected_condition();
+            }  /* switch */
+            alignment = targ_alignof_pointer;
+          } else {
+            /* Pointer to nonstatic data member. */
+            switch (inh_kind) {
+              case ihk_incomplete: size = 3*targ_sizeof_int; break;
+              case ihk_single:     size = targ_sizeof_int;   break;
+              case ihk_multiple:   size = targ_sizeof_int;   break;
+              case ihk_virtual:    size = 2*targ_sizeof_int; break;
+              default:             unexpected_condition();
+            }  /* switch */
+            alignment = targ_alignof_int;
+          }  /* if */
+          /* Ensure the size is a multiple of the alignment: */
+          size = (size+alignment-1) & ~(alignment-1);
+        } else
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        {
+        /* Do not insert code here. */
+          if (is_function_type(pm_member_type(type_ptr))) {
+            /* Pointer to nonstatic member function. */
+            size = targ_sizeof_ptr_to_member_function;
+            alignment = targ_alignof_ptr_to_member_function;
+          } else {
+            /* Pointer to nonstatic data member. */
+            size = targ_sizeof_ptr_to_data_member;
+            alignment = targ_alignof_ptr_to_data_member;
+          }  /* if */
         }  /* if */
         break;
       case tk_nullptr:

@@ -12042,11 +12042,7 @@ exception are certain template instantiation cases in GNU and Microsoft modes
       /* Force instantiation of template class. */
       instantiate_template_class(class_type);
       if (ctsp->inheritance_kind == (an_inheritance_kind)ihk_none) {
-        if (!is_incomplete_type(class_type)) {
-          check_inheritance_kind(class_type, default_inheritance_kind,
-                                 &error_position);
-        }  /* if */
-        ctsp->inheritance_kind = default_inheritance_kind;
+        ctsp->inheritance_kind = implied_inheritance_kind(class_type);
       }  /* if */
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -30776,9 +30772,6 @@ of the front end.
   num_based_type_fixups_allocated        = 0;
   num_copy_remap_entries_allocated       = 0;
 #endif /* DEBUG */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  default_inheritance_kind = (an_inheritance_kind)ihk_virtual;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if UPC_EXTENSIONS_ALLOWED
   max_upc_block_size = MAX_UPC_BLOCK_SIZE;
 #endif /* UPC_EXTENSIONS_ALLOWED */

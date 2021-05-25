@@ -10543,6 +10543,7 @@ implicitly as part of the dispose pattern implementation.
   }  /* if */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  class_symbol_supp(symbol_for(type_ptr))->base_classes_fixed = TRUE;
 #if DEBUG
   if (debug_level >= 3 || db_flag_is_set("base_specifiers")) {
     db_base_class_list(type_ptr);
@@ -31498,7 +31499,7 @@ classes.
   a_boolean                        err = FALSE;
   a_symbol_ptr                     tag_sym = symbol_for(class_type);
   a_scope_ptr                      scope_ptr;
-  a_class_symbol_supplement_ptr    cssp;
+  a_class_symbol_supplement_ptr    cssp = class_type_supp(tag_sym);
   a_class_type_supplement_ptr      ctsp = class_type_supp(class_type);
   a_routine_fixup_ptr              saved_routine_fixup = NULL;
   a_template_symbol_supplement_ptr class_tssp;
@@ -31538,7 +31539,6 @@ classes.
   classes_that_may_need_fixups = 
                    &curr_class_fixup_header(/*for_instantiation=*/FALSE)->
                                                   classes_that_may_need_fixups;
-  cssp = tag_sym->variant.class_struct_union.extra_info;
   /* Place the class on a list tracking classes with source definitions so we
      know that the class and its members are potentially subject to fixups.
      This is useful to ensure some actions are taken after any such fixups
@@ -31869,7 +31869,12 @@ classes.
       add_implicit_coclass_bases(&class_state);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    if (ctsp->base_classes != NULL) wrapup_base_classes(&class_state);
+    if (ctsp->base_classes != NULL) {
+      wrapup_base_classes(&class_state);
+    } else {
+      /* Record that we know that there aren't any base classes. */
+      cssp->base_classes_fixed = TRUE;
+    }  /* if */
   }  /* if */
   if (curr_token != tok_lbrace) {
 #if MICROSOFT_EXTENSIONS_ALLOWED

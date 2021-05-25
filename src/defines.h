@@ -278,6 +278,10 @@ Flags to be set for any version that uses the C++ generating back end.
 #define AUTOMATIC_TEMPLATE_INSTANTIATION 0
 #endif /* ifndef AUTOMATIC_TEMPLATE_INSTANTIATION */
 #endif /* ifdef SSI_VERSION */
+#else /* !defined(CP_GEN_BE_VERSION) */
+#ifndef BACK_END_IS_CP_GEN_BE
+#define BACK_END_IS_CP_GEN_BE 0
+#endif /* ifndef BACK_END_IS_CP_GEN_BE */
 #endif /* ifdef CP_GEN_BE_VERSION */
 
 #ifdef __sun
@@ -663,6 +667,7 @@ command-line when compiling system headers.
 #define TARG_MAX_BASE_CLASS_OFFSET_win64 0
 #define TARG_MAX_CLASS_OBJECT_SIZE_win64 0
 #define TARG_MICROSOFT_BIT_FIELD_ALLOCATION_win64 0
+#define TARG_MICROSOFT_PTR_TO_MEMBER_SIZING_win64 BACK_END_IS_CP_GEN_BE
 #define TARG_MINIMUM_STRUCT_ALIGNMENT_win64 1
 #define TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED_win64 1
 #define TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT_win64 1
@@ -831,6 +836,7 @@ command-line when compiling system headers.
 #define TARG_MAX_BASE_CLASS_OFFSET_win32 0
 #define TARG_MAX_CLASS_OBJECT_SIZE_win32 0
 #define TARG_MICROSOFT_BIT_FIELD_ALLOCATION_win32 1
+#define TARG_MICROSOFT_PTR_TO_MEMBER_SIZING_win32 BACK_END_IS_CP_GEN_BE
 #define TARG_MINIMUM_STRUCT_ALIGNMENT_win32 1
 #define TARG_NONNEGATIVE_ENUM_BIT_FIELD_IS_UNSIGNED_win32 0
 #define TARG_OPTIMIZE_EMPTY_BASE_CLASS_LAYOUT_win32 1
@@ -1019,6 +1025,7 @@ command-line when compiling system headers.
 #define KEEP_OBJECT_LIFETIME_INFO_IN_LOWERED_IL_WHEN_EH_ENABLED 1
 #define DUMP_LOWERED_EH_CONSTRUCTS_IN_C_GEN_BE 1
 #define TARG_MICROSOFT_BIT_FIELD_ALLOCATION 0
+#define TARG_MICROSOFT_PTR_TO_MEMBER_SIZING 0
 #define DEFAULT_MICROSOFT_MODE 0
 #define EXTRA_SOURCE_POSITIONS_IN_IL 1
 #define DEFAULT_SVR4_C_MODE 0
@@ -1159,6 +1166,7 @@ command-line when compiling system headers.
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 
 #define TARG_MICROSOFT_BIT_FIELD_ALLOCATION 1
+#define TARG_MICROSOFT_PTR_TO_MEMBER_SIZING 0
 
 /* Configuration definitions determined by dettarg.c: */
 #if defined(__x86_64__)

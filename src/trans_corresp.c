@@ -3634,17 +3634,15 @@ the nonspecialized type has a definition).
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static an_inheritance_kind inheritance_kind_of(a_class_type_supplement_ptr sup)
+static an_inheritance_kind inheritance_kind_of(a_type_ptr  type)
 /*
-Return the inheritance kind for the class type associated with the given
-class type supplement, taking into account the default inheritance kind if
-none was recorded.
+Return the inheritance kind for the given class type.
 */
 {
-  an_inheritance_kind  result = sup->inheritance_kind;
+  an_inheritance_kind  result = class_type_supp(type)->inheritance_kind;
 
   if (result == (an_inheritance_kind)ihk_none) {
-    result = default_inheritance_kind;
+    result = implied_inheritance_kind(type);
   }  /* if */
   return result;
 }  /* inheritance_kind_of */
@@ -3986,9 +3984,10 @@ type is in fact valid.
                                    corresp_sup->virtual_function_info_offset ||
             sup->anonymous_union_kind != corresp_sup->anonymous_union_kind
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            || inheritance_kind_of(sup) != inheritance_kind_of(corresp_sup)
+            || inheritance_kind_of(type) !=
+                                      inheritance_kind_of(corresp_type)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-                                                                  )))) ||
+                                                                       )))) ||
         class_info.is_template_class != corresp_info.is_template_class ||
         class_info.is_nonreal_class != corresp_info.is_nonreal_class ||
         class_info.is_prototype_instantiation !=

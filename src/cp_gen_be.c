@@ -7314,6 +7314,7 @@ Put out a Microsoft inheritance kind, e.g., __single_inheritance.
 {
   switch (kind) {
     case ihk_none:
+    case ihk_incomplete:
       break;
     case ihk_single:
       write_tok_str("__single_inheritance ");
