@@ -1,6 +1,6 @@
 Version 6.3
 
-5/21/21  [EDGcpfe/23677]
+5/25/21  [EDGcpfe/23677]
 Microsoft compatibility: Size of pointer-to-member types
 
 The front end does not currently implement the Microsoft C++ ABI per se (even
