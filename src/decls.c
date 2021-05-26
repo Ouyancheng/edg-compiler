@@ -5656,7 +5656,7 @@ definition).
       }  /* if */
     } else if (gpp_version_is(any_version)) {
       /* Similarly to Microsoft, GCC appears to accept old-style explicit
-         specializations that are not class definitions. */
+         specializations of class templates that are not definitions. */
       if (!is_class_symbol(sym) ||
           curr_token == tok_colon || curr_token == tok_lbrace) {
         code = ec_old_specialization_not_allowed;

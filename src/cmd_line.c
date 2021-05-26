@@ -5014,7 +5014,7 @@ before this routine is called.
     alternative_tokens_allowed = TRUE;
   }  /* if */
   if (!option_kind_used[(int)optk_old_specializations]) {
-    /* Explicitl specializations can omit the "template<>" prefix in GCC 3.3.x
+    /* Explicit specializations can omit the "template<>" prefix in GCC 3.3.x
        and earlier. */
     old_specializations_allowed = gpp_version_is(<30400);
   }  /* if */

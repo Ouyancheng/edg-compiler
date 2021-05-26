@@ -26,15 +26,15 @@ the inheritance kind assigned to incomplete classes associated with pointer-
 to-member types).
 
 
-5/21/21  [EDGcpfe/24227]
+5/21/21  [EDGcpfe/24188]
 Old-style specializations
 
 Previously, the front end accepted old-style explicit specializations (i.e.,
 without the "template<>" prefix) by default in many nonstrict C++ modes (unless
 the configuration macro DEFAULT_OLD_SPECIALIZATIONS_ALLOWED is set to FALSE).
 Now, it no longer does so by default in C++11 modes, nor in GNU C++ modes with
-gnu_version >= 30400 (although in GNU modes, and exception is made for
-old-style explicit class template specializations that are not definitions).
+gnu_version >= 30400 (although in GNU modes, an exception is made for old-style
+explicit class template specializations that are not definitions).
 
 
 5/21/21  [EDGcpfe/24227]
