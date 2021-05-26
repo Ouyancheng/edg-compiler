@@ -4901,6 +4901,7 @@ declared with more than one base class.
   return multiple;
 }  /* any_multiple_inheritance */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 an_inheritance_kind implied_inheritance_kind(a_type_ptr  class_type)
 /*
@@ -4929,6 +4930,7 @@ follows:
   return inh_kind;
 }  /* implied_inheritance_kind */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void set_type_size(a_type_ptr type_ptr)
 /*
