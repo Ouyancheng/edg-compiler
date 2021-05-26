@@ -31499,7 +31499,7 @@ classes.
   a_boolean                        err = FALSE;
   a_symbol_ptr                     tag_sym = symbol_for(class_type);
   a_scope_ptr                      scope_ptr;
-  a_class_symbol_supplement_ptr    cssp = class_type_supp(tag_sym);
+  a_class_symbol_supplement_ptr    cssp = class_symbol_supp(tag_sym);
   a_class_type_supplement_ptr      ctsp = class_type_supp(class_type);
   a_routine_fixup_ptr              saved_routine_fixup = NULL;
   a_template_symbol_supplement_ptr class_tssp;

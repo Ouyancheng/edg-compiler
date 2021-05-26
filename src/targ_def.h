@@ -2583,7 +2583,8 @@ parent class.  Specifically, the representation contains the following
       pointer-to-data member: 1 int value
       pointer-to-function member: 1 function pointer
 When this flag is TRUE, pointer-to-member size configuration values like
-TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION are ignored.
+TARG_SIZEOF_PTR_TO_MEMBER_FUNCTION are ignored.  This macro is the initial
+value for the global variable targ_microsoft_ptr_to_member_sizing.
 */
 #ifndef TARG_MICROSOFT_PTR_TO_MEMBER_SIZING
 #define TARG_MICROSOFT_PTR_TO_MEMBER_SIZING FALSE

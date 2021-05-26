@@ -22,8 +22,8 @@ example:
     // Now accepted when TARG_MICROSOFT_PTR_TO_MEMBER_SIZING is TRUE.
 
 The global variable default_inheritance_kind has been removed (it previously
-the inheritance kind assigned to incomplete classes associated with pointer-
-to-member types).
+decided the inheritance kind assigned to incomplete classes associated with
+pointer-to-member types).
 
 
 5/21/21  [EDGcpfe/24188]
