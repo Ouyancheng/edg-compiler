@@ -11563,12 +11563,16 @@ error indication in *rcblock).
     make_error_operand(result);
     operand_will_not_be_used_because_of_error(&operand);
   } else {
+    a_type_ptr  opnd_type = operand.type;
+    if (is_any_reference_type(opnd_type)) {
+      opnd_type = type_pointed_to(opnd_type);
+    }  /* if */
     if (C_dialect == C_dialect_cplusplus &&
         /* Note: not is_overloadable_type_first_operand on purpose; we want
            to handle pointer-to-template-param better than the generic way.
            Also, in C++/CLI mode *"string" shouldn't consider the possibility
            of converting the string literal to a handle to System::String. */
-        is_overloadable_first_operand_type(operand.type)) {
+        is_overloadable_first_operand_type(opnd_type)) {
       a_boolean has_predef_meaning = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* C++/CLI allows overloading on a handle, but it also allows the

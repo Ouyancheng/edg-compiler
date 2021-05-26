@@ -1,5 +1,18 @@
 Version 6.3
 
+5/26/21  [EDGcpfe/24360]
+Spurious error on certain dependent uses of the unary "*" operator
+
+Consider, in C++20 mode:
+
+  template<typename T> concept D = requires(T &&p) {
+    *(decltype(p)&&)p;  // Previously a spurious error.  Now okay.
+  };
+
+The front end previously spuriously diagnosed the use of the unary "*" in
+this example.  That is now fixed.
+
+
 5/25/21  [EDGcpfe/23677]
 Microsoft compatibility: Size of pointer-to-member types
 
