@@ -1166,7 +1166,9 @@ command-line when compiling system headers.
 #endif /* USE_LONG_DOUBLE_FOR_HOST_FP_VALUE */
 
 #define TARG_MICROSOFT_BIT_FIELD_ALLOCATION 1
+#ifndef TARG_MICROSOFT_PTR_TO_MEMBER_SIZING 
 #define TARG_MICROSOFT_PTR_TO_MEMBER_SIZING BACK_END_IS_CP_GEN_BE
+#endif /* TARG_MICROSOFT_PTR_TO_MEMBER_SIZING */
 
 /* Configuration definitions determined by dettarg.c: */
 #if defined(__x86_64__)
