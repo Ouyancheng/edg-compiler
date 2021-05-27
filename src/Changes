@@ -1,5 +1,31 @@
 Version 6.3
 
+5/26/21  [EDGcpfe/24339]
+Alias templates in diagnostics
+
+Consider the following (erroneous) example:
+
+  template<typename T> struct S {
+    typedef T Type;
+  };
+  template<typename> struct X {};
+  X<S<int>::Type> xsi = 42;  // Error: conversion failure.
+
+By default, the diagnostic for the last line expresses the destination type as
+"X<int>" instead of "X<S<int>::Type>"; i.e., it "looks through" instantiations
+of member typedefs (since that is usually more helpful to analyze the cause of
+the error.  Now the same occurs with instantiations of alias templates.
+For example:
+
+  template<typename T> using A = T;
+  template<typename> struct X {};
+  X<A<int>> xsi = 42;  // Error: conversion failure.
+
+By default the diagnostic for this example now also mentions "X<int>", whereas
+previously it mentioned "X<A<int>>".  With both examples, the original form can
+be produced with the command-line option --template_typedefs_in_diagnostics.
+
+
 5/26/21  [EDGcpfe/24360]
 Spurious error on certain dependent uses of the unary "*" operator
 

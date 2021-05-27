@@ -2423,6 +2423,7 @@ members of template classes.
   if (!octl->keep_template_typedefs) {
     if (type->variant.typeref.is_template_alias &&
         !type->variant.typeref.is_dependent) {
+      /* Drop the alias, unless the alias is dependent. */
       result = TRUE;
     } else if (type->source_corresp.is_class_member) {
       /* Drop the typedef if it was defined in a template class.  This is
