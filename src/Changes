@@ -13,7 +13,7 @@ Consider the following (erroneous) example:
 
 By default, the diagnostic for the last line expresses the destination type as
 "X<int>" instead of "X<S<int>::Type>"; i.e., it "looks through" instantiations
-of member typedefs (since that is usually more helpful to analyze the cause of
+of member typedefs, since that is usually more helpful to analyze the cause of
 the error.  Now the same occurs with instantiations of alias templates.
 For example:
 
