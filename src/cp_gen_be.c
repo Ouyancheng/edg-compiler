@@ -10727,6 +10727,7 @@ out-of-scope local variables.
   }  /* switch */
   if (scp != NULL) {
     if (scp->is_class_member &&
+        !scp_parent_class(scp)->variant.class_struct_union.is_nonreal_class &&
         ((!scp_parent_class(scp)->has_been_defined &&
           !class_is_in_name_context_stack(
                                   scp_parent_class(scp),
