@@ -5831,8 +5831,25 @@ successfully emitted.
   a_name_qualifier_ptr qual;
   a_constant_ptr       cp = (entry_kind == iek_constant) ? (a_constant_ptr)scp
                                                          : NULL;
+  a_boolean            qual_is_mbr_of_curr_instantiation = FALSE;
 
-  if (octl.output_name_reference == NULL) {
+  if (nrp != NULL && nrp->qualifier != NULL && nrp->qualifier->is_class) {
+    a_type_ptr tp =
+              skip_typerefs_not_typedefs(nrp->qualifier->qualifier.class_type);
+    if ((is_immediate_class_type(tp) &&
+         tp->variant.class_struct_union.is_nonreal_class) ||
+        (type_is_typedef(tp) && tp->variant.typeref.is_nonreal) &&
+        tp->source_corresp.is_class_member &&
+        class_is_in_name_context_stack(
+                                   parent_class_of(tp),
+                                   /*include_base_classes=*/FALSE,
+                                   /*ignore_field_selection_contexts=*/TRUE)) {
+      /* We can use the qualifier safely, even though it is dependent. */
+      qual_is_mbr_of_curr_instantiation = TRUE;
+    }  /* if */
+  }  /* if */
+  if (octl.output_name_reference == NULL &&
+      !qual_is_mbr_of_curr_instantiation) {
     /* Name references in template arguments are captured from the first
        use of the instance.  If that use was nested inside a class or
        namespace, the names may have been unqualified or partially
@@ -5843,7 +5860,11 @@ successfully emitted.
        expressions in template arguments (form_template_args sets
        octl.output_name_reference to NULL to indicate that we are in the
        context of a template argument list) so that gen_name will provide
-       qualification as needed in the current context. */
+       qualification as needed in the current context.  (This is not a
+       problem within prototype instantiations, and using the generated
+       qualifier instead of the qualifier that appears in the source can
+       trigger bugs in some target compilers, so we should use the recorded
+       qualifier in such cases.) */
   } else if (nrp != NULL) {
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     if (nrp->qualifier == NULL && scp->is_class_member && !is_declaration &&

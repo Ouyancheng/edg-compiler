@@ -1,5 +1,14 @@
 Version 6.3
 
+5/28/21  [EDGcpfe/24361]
+C++-generating back end: g++ 11.1 compatibility
+
+In certain complex cases (once such example appears in the gcc version 11.1
+<chrono> header), the C++-generating back end could produce correct output
+that nevertheless caused g++ to encounter an internal error when compiling
+the generated code.  This is now fixed.
+
+
 5/26/21  [EDGcpfe/24339]
 Alias templates in diagnostics
 
