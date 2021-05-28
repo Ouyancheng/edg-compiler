@@ -5836,9 +5836,9 @@ successfully emitted.
   if (nrp != NULL && nrp->qualifier != NULL && nrp->qualifier->is_class) {
     a_type_ptr tp =
               skip_typerefs_not_typedefs(nrp->qualifier->qualifier.class_type);
-    if ((is_immediate_class_type(tp) &&
-         tp->variant.class_struct_union.is_nonreal_class) ||
-        (type_is_typedef(tp) && tp->variant.typeref.is_nonreal) &&
+    if (((is_immediate_class_type(tp) &&
+          tp->variant.class_struct_union.is_nonreal_class) ||
+         (type_is_typedef(tp) && tp->variant.typeref.is_nonreal)) &&
         tp->source_corresp.is_class_member &&
         class_is_in_name_context_stack(
                                    parent_class_of(tp),
