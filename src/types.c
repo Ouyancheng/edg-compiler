@@ -9135,15 +9135,15 @@ is set to TRUE.  Otherwise it is set to FALSE.  p_qualifiers_added
 can be NULL if the caller does not need this flag returned.
 
 If ignore_underlying_type is TRUE, return TRUE once we've reached the
-underlying type of either source_type or dest_type and return the types
-that were reached in underlying_source_type and underlying_dest_type if
-requested to do so by the caller by providing non-NULL values for those
-parameters.  If qual_pattern_only is TRUE, differences in the pattern of
-pointer/pointer-to-member/array constructs are ignored (this is used to
-determine whether a cast "casts away constness").  If warning_suggested
-is non-NULL, it will be set to any warning suggested for the conversion,
-or to ec_no_error if no warning is needed (this is useful for some weird
-Microsoft-mode handling of the __unaligned and __restrict qualifiers).
+underlying type of either source_type or dest_type and return the types that
+were reached in underlying_source_type and underlying_dest_type if requested
+to do so by the caller by providing non-NULL values for those parameters.  If
+qual_pattern_only is TRUE, we are only checking the "casts away constness"
+property (N4885 [expr.const.cast]/7) and the underlying type after a sequence
+of matching pointer/pointer-to-member/array constructs are ignored.  If
+warning_suggested is non-NULL, it will be set to any warning suggested for the
+conversion, or to ec_no_error if no warning is needed (this is useful for some
+weird Microsoft-mode handling of the __unaligned and __restrict qualifiers).
 */
 {
   a_boolean     same;
@@ -9204,16 +9204,23 @@ Microsoft-mode handling of the __unaligned and __restrict qualifiers).
       }  /* if */
       dest_type = skip_typerefs(dest_type);
       source_type = skip_typerefs(source_type);
-      if (qual_pattern_only &&
-          (is_pointer(source_type) || is_ptr_to_member(source_type) ||
-           is_array(source_type)) &&
-          (is_pointer(dest_type) || is_ptr_to_member(dest_type) ||
-           is_array(dest_type))) {
+      if (qual_pattern_only) {
+        /* We are only checking the leading cv-qualification pattern.  If the
+           nature of the underlying type differs, there is nothing more to
+           check.  Furthermore, if what follows is not a pointer, handle,
+           pointer-to-member, or array, there are no more cv-qualifiers to
+           check either. */
+        if (source_type->kind != dest_type->kind ||
+            !(is_pointer_or_handle(source_type) ||
+              is_ptr_to_member(source_type) ||
+              is_array(source_type))) {
+          break;
+        }  /* if */
         if (is_array(dest_type)) {
           dest_type = dest_type->variant.array.element_type;
           if (!strict_ansi_mode) dest_type = skip_typerefs(dest_type);
         } else {
-          dest_type = is_pointer(dest_type) ?
+          dest_type = is_pointer_or_handle(dest_type) ?
                            dest_type->variant.pointer.type :
                            pm_member_type(dest_type);
         }  /* if */
@@ -9221,7 +9228,7 @@ Microsoft-mode handling of the __unaligned and __restrict qualifiers).
           source_type = source_type->variant.array.element_type;
           if (!strict_ansi_mode) source_type = skip_typerefs(source_type);
         } else {
-          source_type = is_pointer(source_type) ?
+          source_type = is_pointer_or_handle(source_type) ?
                              source_type->variant.pointer.type :
                              pm_member_type(source_type);
         }  /* if */

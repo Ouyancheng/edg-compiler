@@ -1,5 +1,18 @@
 Version 6.3
 
+6/1/21   [EDGcpfe/20413,EDGcpfe/22068,EDGcpfe/22974,EDGcpfe/24354]
+Spurious error on reinterpret_cast
+
+In some cases, the front end issued a spurious error about casting away
+constness with a reinterpret_cast expression.  For example:
+
+  char data[42];
+  auto r = reinterpret_cast<char const**>(&data);
+             // Previously resulted in a (spurious) error.  Now okay.
+
+That is now fixed.
+
+
 6/1/21   [EDGcpfe/22008]
 Type transforming attributes for alias templates
 
