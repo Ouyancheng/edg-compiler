@@ -9992,27 +9992,33 @@ error type is used.
       type_name_full(&dps);
       check_type_definition_in_type_name(&dps);
       template_sym->ignore_in_decl_scope = saved_ignore_in_decl_scope;
+      /* Set id_attributes here so that if attributes are present, both the
+         below calls to attach_type_attributes and attach_decl_attributes have
+         the correct list of attributes. */
+      if (tssp->attributes != NULL) {
+        dps.id_attributes = copy_of_attributes_with_substitution(
+                                 tssp->attributes, /*primary_only=*/FALSE,
+                                 template_sym,
+                                 tssp->cache.decl_info->parameters,
+                                 template_arg_list, parent_class,
+                                 /*is_partial_instantiation=*/FALSE,
+                                 (a_boolean*)NULL);
+      }  /* if */
       if (type->variant.typeref.type == NULL) {
-        /* Apply type transforming attributes to the scanned type, rather than
-           the type alias instantiation type. This allows us to apply type
-           transforming attributes and preserve the type alias instance type as
-           sugar. */
-        if (tssp->attributes != NULL) {
-          dps.id_attributes = copy_of_attributes_with_substitution(
-                                   tssp->attributes, /*primary_only=*/FALSE,
-                                   template_sym,
-                                   tssp->cache.decl_info->parameters,
-                                   template_arg_list, parent_class,
-                                   /*is_partial_instantiation=*/FALSE,
-                                   (a_boolean*)NULL);
-          attach_type_attributes(&dps.type, dps.id_attributes, &dps);
-        }  /* if */
-
         /* The type pointed to by the typeref will normally be NULL except
            in the case where an existing_instance_sym is being used in
            error cases.  In that case, the type will have been updated
            to refer to an error type while the instantiation of this type
-           was underway.  Don't update the type in that case. */
+           was underway.  Don't update the type in that case.
+
+           If we're using the scanned type, apply type transforming attributes
+           to the scanned type, rather than the type alias instantiation
+           type. This allows us to apply type transforming attributes and
+           preserve the type alias instance type as sugar. */
+        if (tssp->attributes != NULL) {
+          attach_type_attributes(&dps.type, dps.id_attributes, &dps);
+        }  /* if */
+
         type->variant.typeref.type = dps.type;
       }  /* if */
       dps.sym = instance_sym;
