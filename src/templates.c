@@ -9993,6 +9993,21 @@ error type is used.
       check_type_definition_in_type_name(&dps);
       template_sym->ignore_in_decl_scope = saved_ignore_in_decl_scope;
       if (type->variant.typeref.type == NULL) {
+        /* Apply type transforming attributes to the scanned type, rather than
+           the type alias instantiation type. This allows us to apply type
+           transforming attributes and preserve the type alias instance type as
+           sugar. */
+        if (tssp->attributes != NULL) {
+          dps.id_attributes = copy_of_attributes_with_substitution(
+                                   tssp->attributes, /*primary_only=*/FALSE,
+                                   template_sym,
+                                   tssp->cache.decl_info->parameters,
+                                   template_arg_list, parent_class,
+                                   /*is_partial_instantiation=*/FALSE,
+                                   (a_boolean*)NULL);
+          attach_type_attributes(&dps.type, dps.id_attributes, &dps);
+        }  /* if */
+
         /* The type pointed to by the typeref will normally be NULL except
            in the case where an existing_instance_sym is being used in
            error cases.  In that case, the type will have been updated
@@ -10008,15 +10023,10 @@ error type is used.
         /* Process any pragmas that are to be bound to this instance. */
         process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
       }  /* if */
-      /* Apply any attributes to the alias. */
+      /* Apply any non-type transforming attributes to the alias. Type
+         transforming attributes are applied prior to this step, to the
+         scanned type. */
       if (tssp->attributes != NULL) {
-        dps.id_attributes = copy_of_attributes_with_substitution(
-                                   tssp->attributes, /*primary_only=*/FALSE,
-                                   template_sym,
-                                   tssp->cache.decl_info->parameters,
-                                   template_arg_list, parent_class,
-                                   /*is_partial_instantiation=*/FALSE,
-                                   (a_boolean*)NULL);
         attach_decl_attributes(&dps, /*primary_decl=*/TRUE);
       }  /* if */
       /* In the normal case the current token should be end_of_source,

@@ -1,5 +1,19 @@
 Version 6.3
 
+6/1/21   [EDGcpfe/22008]
+Type transforming attributes for alias templates
+
+Consider:
+
+  template<typename T, int N>
+  using V [[gnu::__vector_size__(N)]] = T;
+
+The front end previously treated type transforming attributes (e.g., the above
+gnu::__vector_size__ attribute) when applied to alias templates as no-ops. This
+is now fixed, and type transforming attributes will now work as expected in
+alias templates.
+
+
 6/1/21   [EDGcpfe/24392]
 GNU compatibility: GCC 9.4.0 builtins
 
