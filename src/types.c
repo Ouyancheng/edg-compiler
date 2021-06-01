@@ -4930,6 +4930,54 @@ follows:
   return inh_kind;
 }  /* implied_inheritance_kind */
 
+
+static void compute_microsoft_ptr_to_member_layout(
+                                               a_type_ptr        pm_type,
+                                               a_targ_size_t     *p_size,
+                                               a_targ_alignment  *p_alignment)
+/*
+Compute the size and alignment of the given pointer-to-member type according
+to the Microsoft ABI (assuming the sizes of "int" and pointer types match that
+of the front end's target settings).
+*/
+{
+  a_targ_size_t        size;
+  a_targ_alignment     alignment;
+  a_type_ptr           class_type = pm_class_type(pm_type);
+  an_inheritance_kind  inh_kind = class_type_supp(class_type)
+                                                           ->inheritance_kind;
+
+  if (inh_kind == (an_inheritance_kind)ihk_none) {
+    inh_kind = implied_inheritance_kind(class_type);
+  }  /* if */
+  if (is_function_type(pm_member_type(pm_type))) {
+    /* Pointer to nonstatic member function. */
+    size = targ_sizeof_pointer;
+    switch (inh_kind) {
+      case ihk_incomplete: size += 3*targ_sizeof_int; break;
+      case ihk_single:     /* No adjustment. */       break;
+      case ihk_multiple:   size += targ_sizeof_int;   break;
+      case ihk_virtual:    size += 2*targ_sizeof_int; break;
+      default:             unexpected_condition();
+    }  /* switch */
+    alignment = targ_alignof_pointer;
+  } else {
+    /* Pointer to nonstatic data member. */
+    switch (inh_kind) {
+      case ihk_incomplete: size = 3*targ_sizeof_int; break;
+      case ihk_single:     size = targ_sizeof_int;   break;
+      case ihk_multiple:   size = targ_sizeof_int;   break;
+      case ihk_virtual:    size = 2*targ_sizeof_int; break;
+      default:             unexpected_condition();
+    }  /* switch */
+    alignment = targ_alignof_int;
+  }  /* if */
+  /* Ensure the size is a multiple of the alignment: */
+  size = (size+alignment-1) & ~(alignment-1);
+  *p_size = size;
+  *p_alignment = alignment;
+}  /* compute_microsoft_ptr_to_member_layout */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void set_type_size(a_type_ptr type_ptr)
@@ -5042,36 +5090,7 @@ set, leave it alone.  Also compute and set the alignment requirement.
       case tk_ptr_to_member:
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (targ_microsoft_ptr_to_member_sizing) {
-          a_type_ptr  class_type = pm_class_type(type_ptr);
-          an_inheritance_kind
-                      inh_kind = class_type_supp(class_type)->inheritance_kind;
-          if (inh_kind == (an_inheritance_kind)ihk_none) {
-            inh_kind = implied_inheritance_kind(class_type);
-          }  /* if */
-          if (is_function_type(pm_member_type(type_ptr))) {
-            /* Pointer to nonstatic member function. */
-            size = targ_sizeof_pointer;
-            switch (inh_kind) {
-              case ihk_incomplete: size += 3*targ_sizeof_int; break;
-              case ihk_single:     /* No adjustment. */       break;
-              case ihk_multiple:   size += targ_sizeof_int;   break;
-              case ihk_virtual:    size += 2*targ_sizeof_int; break;
-              default:             unexpected_condition();
-            }  /* switch */
-            alignment = targ_alignof_pointer;
-          } else {
-            /* Pointer to nonstatic data member. */
-            switch (inh_kind) {
-              case ihk_incomplete: size = 3*targ_sizeof_int; break;
-              case ihk_single:     size = targ_sizeof_int;   break;
-              case ihk_multiple:   size = targ_sizeof_int;   break;
-              case ihk_virtual:    size = 2*targ_sizeof_int; break;
-              default:             unexpected_condition();
-            }  /* switch */
-            alignment = targ_alignof_int;
-          }  /* if */
-          /* Ensure the size is a multiple of the alignment: */
-          size = (size+alignment-1) & ~(alignment-1);
+          compute_microsoft_ptr_to_member_layout(type_ptr, &size, &alignment);
         } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         {
