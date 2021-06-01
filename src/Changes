@@ -1,5 +1,13 @@
 Version 6.3
 
+6/1/21   [EDGcpfe/24392]
+GNU compatibility: GCC 9.4.0 builtins
+
+No new builtins were introduced in GCC 9.4.0, but the builtin_def.h file
+has been modified to reflect availability of certain builtins when
+gnu_version == 90400.
+
+
 5/28/21  [EDGcpfe/24361]
 C++-generating back end: g++ 11.1 compatibility
 
