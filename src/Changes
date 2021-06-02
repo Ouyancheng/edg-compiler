@@ -1,5 +1,34 @@
 Version 6.3
 
+6/2/21   [EDGcpfe/24393]
+Microsoft compatibility: problem with ADL using-directive lookup emulation
+
+In permissive Microsoft mode we emulate a quirk of the Microsoft compiler
+where it ignores certain namespaces during argument-dependent lookup if
+those namespaces were searched during the normal lookup (see EDGcpfe/9368).
+Our emulation incorrectly ignored using-directives that appeared after the
+point at which the lookup was effectively being done.  Now fixed.
+
+  namespace std {
+    template <class T> T&& declval() noexcept;
+  }
+  float h(int *) { return 1; }
+  namespace N1 {
+    namespace N2 {
+      struct A{};
+      int h(A *) { return 2; }
+    }
+    template<typename T> struct B {
+      // Resolved to incorrect function h
+      template<typename U> static decltype(h(std::declval<U*>())) test(int);
+      typedef decltype(test< N2::A >(0)) type;
+    };
+    template <typename T> void f() { B<float>(); }
+    void g() { f<double>(); }
+    using namespace N2;
+  }
+
+
 6/1/21   [EDGcpfe/20413,EDGcpfe/22068,EDGcpfe/22974,EDGcpfe/24354]
 Spurious error on reinterpret_cast
 
