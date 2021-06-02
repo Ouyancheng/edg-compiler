@@ -6678,13 +6678,17 @@ the call target).
         release_constant = FALSE;
         make_expression_operand(temp_node, result);
       }  /* if */
-    } else if (is_consteval && consteval_failure(rout, result_con,
-                                                 &call_expr->position,
-                                                 diag_list)) {
-      /* The folding of a consteval call failed in a context where it cannot
-         fail: Proceed as if folding succeeded. */
-      make_constant_operand(result_con, result);
-      folded = TRUE;
+    } else if (is_consteval) {
+      if (expr_is_instantiation_dependent(call_expr)) {
+       make_expression_operand(call_expr, result);
+       make_template_param_expr_constant_operand(result);
+      } else if (consteval_failure(rout, result_con, &call_expr->position,
+                                   diag_list)) {
+        /* The folding of a consteval call failed in a context where it cannot
+           fail: Proceed as if folding succeeded. */
+        make_constant_operand(result_con, result);
+        folded = TRUE;
+      }  /* if */
     }  /* if */
     if (release_constant) release_local_constant(&result_con);
     /* Check for calls to std::is_constant_evaluated() and

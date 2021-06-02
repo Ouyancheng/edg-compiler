@@ -1,5 +1,23 @@
 Version 6.3
 
+6/2/21   [EDGcpfe/24389]
+Spurious consteval failure in temmplated contexts
+
+Consider:
+
+  consteval long p(unsigned) { long r = 1; return r; }
+  template<typename T, typename U> struct X {};
+  template<int, int> struct Y {};
+  template<typename> struct S {
+    static constexpr int f() { return 1; }
+    static constexpr unsigned u = { f() };
+    using P = X<int, Y<1, p(u)>>;  // Previously an error.  Now okay.
+  };
+
+Previously, the front end issued an error about p(u) being a call to a
+consteval that doesn't produce a constant.  That is now fixed.
+
+
 6/2/21   [EDGcpfe/24393]
 Microsoft compatibility: problem with ADL using-directive lookup emulation
 
