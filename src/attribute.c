@@ -3701,8 +3701,9 @@ static bool is_non_tag_type_transforming_attribute(an_attribute_ptr  ap)
 /*
 This function determines if the given attribute both is a type transforming
 attribute, and does not apply to tags.  This is used to determine which
-attributes are applied by attach_attributes and its compliment
-attach_type_transforming_attributes.
+attributes are applied by attach_attributes and which attributes are extracted
+via extract_type_transforming_attributes (these are then generally applied with
+attach_type_attributes).
 */
 {
   return is_type_transforming_attribute(ap) && !is_tag_attribute(ap);
@@ -3717,7 +3718,9 @@ Attach and apply the given list of attributes to the given IL entry, except
 that type-transforming attributes applied in a location other than al_tag_name
 are not applied (but still attached).  Perform any required checking, and
 update the IL entry's fields if applicable.  (To apply type-transforming
-attributes, call attach_type_attributes.)
+attributes, call attach_type_attributes.  If not already separated,
+extract_type_transforming_attributes should be used to form a separate list of
+attributes for attach_type_attributes.)
 */
 {
   char              *new_entity = entity;
@@ -3849,34 +3852,49 @@ produces *p_type.
 }  /* attach_type_attributes */
 
 
-void attach_type_transforming_attributes(a_type_ptr        *p_type,
-                                         an_attribute_ptr  attributes,
-                                         void              *assoc_info)
+void extract_type_transforming_attributes(an_attribute_ptr *p_attributes,
+                                          an_attribute_ptr *p_extracted)
 /*
-Apply the given attributes which are both type transforming and do not apply to
-tags to *p_type, which results in a type T.  Attach the attributes to the type
-entry for T directly if T is a routine type, and via a typeref pointing to the
-attributes on top of T otherwise.  Return the type entry to which the
-attributes are attached through *p_type.  If attributes is NULL, do nothing.
-assoc_info is the value that should be recorded in the assoc_info field of the
-attribute while it is applied to the type: Normally, it is a pointer to the
-a_decl_parse_state associated with the construct that produces *p_type.
+Update the list of attributes pointed to by p_attributes removing attributes
+which are both type transforming and do not apply to tags.  The removed
+attributes are placed into a new attribute list pointed to by p_extracted.
+This is generally used to extract attributes so that p_attributes can be passed
+to attach_attributes, while p_extracted can be passed to
+attach_type_attributes.
 */
 {
-  an_attribute_ptr  filtered = NULL, *p_attr = &filtered, ap;
+  /* Create a copy of the pointer to the currently examined attribute. */
+  an_attribute_ptr  curr_ap = *p_attributes;
 
-  /* Create a filtered view of the attribute list, which includes only those
-     attributes which are both type transforming, and do not apply to tags. */
-  for (ap = attributes; ap != NULL; ap = ap->next) {
-    if (!is_non_tag_type_transforming_attribute(ap)) continue;
-    copy_attribute(ap, *p_attr);
-    p_attr = &(*p_attr)->next;
-  }  /* for */
+  /* Process the attributes from p_attributes, assigning them to either an
+     updated p_attributes or p_extracted. */
+  while (curr_ap != NULL) {
+    if (is_non_tag_type_transforming_attribute(curr_ap)) {
+      /* The attribute is both type transforming and does not apply to tags, it
+         belongs in the extracted list.  Updated the extracted list head to
+         point to this attribute, then update the head position. */
+      *p_extracted = curr_ap;
+      p_extracted = &curr_ap->next;
+    } else {
+      /* The attribute was not type transforming or applies to tags, it belongs
+         in the attributes list.  Updated the attributes list head to point to
+         this attribute, then update the head position. */
+      *p_attributes = curr_ap;
+      p_attributes = &curr_ap->next;
+    }  /* if */
 
-  if (filtered != NULL) {
-    attach_type_attributes(p_type, filtered, assoc_info);
-  }  /* if */
-}  /* attach_type_transforming_attributes */
+    {
+      /* Update the curr_ap to point to the next attribute to examine. */
+      an_attribute_ptr  tmp_ap = curr_ap;
+      curr_ap = tmp_ap->next;
+
+      /* Break the chain on the attribute we just finished working with.  The
+         head of this chain will be set by the next loop or otherwise will
+         remain null designating the end of the list. */
+      tmp_ap->next = NULL;
+    }
+  }  /* while */
+}
 
 
 an_attribute_ptr copy_of_attributes_list(an_attribute_ptr  attributes)

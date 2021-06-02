@@ -10009,15 +10009,17 @@ error type is used.
            in the case where an existing_instance_sym is being used in
            error cases.  In that case, the type will have been updated
            to refer to an error type while the instantiation of this type
-           was underway.  Don't update the type in that case.
-
-           If we're using the scanned type, apply type transforming attributes
-           to the scanned type, rather than the type alias instantiation
-           type. This allows us to apply type transforming attributes and
-           preserve the type alias instance type as sugar. */
+           was underway.  Don't update the type in that case. */
         if (tssp->attributes != NULL) {
-          attach_type_transforming_attributes(&dps.type, dps.id_attributes,
-                                              &dps);
+          /* If we're using the scanned type, apply type transforming
+             attributes to the scanned type, rather than the type alias
+             instantiation type. This allows us to apply type transforming
+             attributes and preserve the type alias instance type as sugar. */
+          an_attribute_ptr  type_transforming_attributes;
+          extract_type_transforming_attributes(&dps.id_attributes,
+                                               &type_transforming_attributes);
+          attach_type_attributes(&dps.type, type_transforming_attributes,
+                                 &dps);
         }  /* if */
 
         type->variant.typeref.type = dps.type;
