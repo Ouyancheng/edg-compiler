@@ -1,5 +1,21 @@
 Version 6.3
 
+6/2/21   [EDGcpfe/24113]
+C++-generating back end: dependent operator< template argument list
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, a function-style invocation of an operator<
+template with an explicit template argument list appearing in a template
+definition incorrectly concatenated the "<" of the operator function name
+with the "<" of the template argument list.  This is now fixed.  For
+example, with --g++:
+
+  template<typename T> bool operator <(T, T);
+  template<typename T> void f() {
+    operator< <int>(T(), 0);  // Previously generated as "operator<<int>"
+  }
+
+
 6/2/21   [EDGcpfe/24389]
 Spurious consteval failure in temmplated contexts
 

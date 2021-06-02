@@ -4186,29 +4186,37 @@ entity is a template class, add the template arguments.
   /* The bare name is the unqualified name without the template arguments: */
   gen_bare_name(scp, entry_kind);
   if (il_header.source_language == sl_Cplusplus) {
-    if (entry_kind == (an_il_entry_kind)iek_constant &&
-        gcc_or_clang_is_generated_code_target) {
+    if (entry_kind == (an_il_entry_kind)iek_constant) {
       a_constant_ptr cp = (a_constant_ptr)scp;
-      a_const_char   *name = unmangled_name_of(scp);
-      if (cp->kind == (a_constant_repr_kind)ck_template_param &&
-          cp->variant.template_param.kind ==
-                                 (a_template_param_constant_kind)tpck_member &&
-          name != NULL && name[0] == '~') {
-        /* This is a dependent destructor.  Check to see if it is a member
-           of the current instantiation, i.e., if its parent class is in
-           the name context stack as other than a field selection
-           context. */
-        a_type_ptr parent_class = scp_parent_class(scp);
-        if (!class_is_in_name_context_stack(
+      if (constant_is(cp, ck_template_param) &&
+          tpck_is(cp, tpck_unknown_function) &&
+          cp->variant.template_param.variant.unknown_function.opname_kind ==
+                                                      (an_opname_kind)onk_lt) {
+        /* Add a space to avoid concatenation of "operator<" with the "<"
+           of a template argument list. */
+        write_space();
+      } else if (gcc_or_clang_is_generated_code_target) {
+        a_const_char   *name = unmangled_name_of(scp);
+        if (constant_is(cp, ck_template_param) &&
+            tpck_is(cp, tpck_member) &&
+            name != NULL && name[0] == '~') {
+          /* This is a dependent destructor.  Check to see if it is a
+             member of the current instantiation, i.e., if its parent class
+             is in the name context stack as other than a field selection
+             context. */
+          a_type_ptr parent_class = scp_parent_class(scp);
+          if (!class_is_in_name_context_stack(
                                    parent_class,
                                    /*include_base_classes=*/FALSE,
                                    /*ignore_field_selection_contexts=*/TRUE)) {
-          /* g++ has a bug that causes it to report an error for a
-             dependent destructor name that is not a member of the current
-             instantiation if it does not have a template argument list.
-             Use the destructor's parent class's template argument list. */
-          scp = &parent_class->source_corresp;
-          entry_kind = (an_il_entry_kind)iek_type;
+            /* g++ has a bug that causes it to report an error for a
+               dependent destructor name that is not a member of the
+               current instantiation if it does not have a template
+               argument list.  Use the destructor's parent class's template
+               argument list. */
+            scp = &parent_class->source_corresp;
+            entry_kind = (an_il_entry_kind)iek_type;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
