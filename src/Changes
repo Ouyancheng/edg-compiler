@@ -1,5 +1,24 @@
 Version 6.3
 
+6/2/21   [EDGcpfe/23870]
+C++-generating back end: enum types and GNU "mode" attribute
+
+Consider (in GNU C++ mode):
+
+  typedef enum { e } E __attribute((mode(word)));
+  E x = e;
+
+Previously, the C++-generating back end did not render the enum type (it was
+just replaced by an integer type like "long"), and thus the rendered code for
+"E x = e;" would refer to an "e" that was never declared.  That is now fixed
+by treating the enumeration type definition as an "autonomous" definition,
+which results in the code above to be rendered as something like:
+
+  enum { e };
+  typedef long E __attribute((mode(word)));
+  E x = (e);
+
+
 6/2/21   [EDGcpfe/24113]
 C++-generating back end: dependent operator< template argument list
 

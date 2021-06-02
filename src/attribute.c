@@ -6653,6 +6653,30 @@ doesn't apply to the given type, issue an error and return an error type.
         type->variant.integer.int_kind = mode_type->variant.integer.int_kind;
       }  /* if */
     } else {
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+      if (is_enum_type(type)) {
+        /* Consider something like:
+             typedef enum { e } E __attribute((mode(word)));
+             E x = e;
+           At this point, the entry for the enum type is not "autonomous"
+           because it's part of the declaration of something else (i.e., the
+           typedef E).  However, we're about to replace the enum type by a
+           plain integer type and the C++-generating back end will thus never
+           render the non-autonomous declaration because it would only do so
+           while traversing E.  That would lead to an error since the constant
+           e would never be declared.  So if the enumeration is defined, we now
+           mark it as autonomous, which will change the C++-generating back end
+           rendering to something like:
+             enum { e };
+             typedef long E __attribute((mode(word)));
+             E x = (e);
+           and that is equivalent to the input. */
+        a_type_ptr  etp = skip_typerefs(type);
+        if (!etp->incomplete) {
+          etp->autonomous_primary_tag_decl = TRUE;
+        }  /* if */
+      }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       type = mode_type;
     }  /* if */
 #if GNU_VECTOR_TYPES_ALLOWED
