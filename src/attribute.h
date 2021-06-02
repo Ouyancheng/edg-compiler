@@ -182,6 +182,10 @@ extern void attach_type_attributes(a_type_ptr        *p_type,
                                    an_attribute_ptr  attributes,
                                    void              *assoc_info);
 
+extern void attach_type_transforming_attributes(a_type_ptr        *p_type,
+                                                an_attribute_ptr  attributes,
+                                                void              *assoc_info);
+
 extern a_boolean attribute_is_template_dependent(an_attribute_ptr ap);
 
 extern a_boolean equivalent_attributes(an_attribute_ptr  ap1,

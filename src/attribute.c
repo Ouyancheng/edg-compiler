@@ -3697,6 +3697,18 @@ the attribute to get marked as unrecognized.
 }  /* apply_one_attribute */
 
 
+static bool is_non_tag_type_transforming_attribute(an_attribute_ptr  ap)
+/*
+This function determines if the given attribute both is a type transforming
+attribute, and does not apply to tags.  This is used to determine which
+attributes are applied by attach_attributes and its compliment
+attach_type_transforming_attributes.
+*/
+{
+  return is_type_transforming_attribute(ap) && !is_tag_attribute(ap);
+}
+
+
 void attach_attributes(an_attribute_ptr  attributes,
                        char              *entity,
                        an_il_entry_kind  entity_kind)
@@ -3720,7 +3732,7 @@ attributes, call attach_type_attributes.)
     /* Save the "next" pointer because attribute application might move the
        attribute. */
     next_ap = ap->next;
-    if (!is_type_transforming_attribute(ap) || is_tag_attribute(ap)) {
+    if (!is_non_tag_type_transforming_attribute(ap)) {
       new_entity = apply_one_attribute(ap, new_entity, entity_kind);
     }  /* if */
   }  /* for */
@@ -3835,6 +3847,36 @@ produces *p_type.
 #endif /* DEBUG */
   }  /* if */
 }  /* attach_type_attributes */
+
+
+void attach_type_transforming_attributes(a_type_ptr        *p_type,
+                                         an_attribute_ptr  attributes,
+                                         void              *assoc_info)
+/*
+Apply the given attributes which are both type transforming and do not apply to
+tags to *p_type, which results in a type T.  Attach the attributes to the type
+entry for T directly if T is a routine type, and via a typeref pointing to the
+attributes on top of T otherwise.  Return the type entry to which the
+attributes are attached through *p_type.  If attributes is NULL, do nothing.
+assoc_info is the value that should be recorded in the assoc_info field of the
+attribute while it is applied to the type: Normally, it is a pointer to the
+a_decl_parse_state associated with the construct that produces *p_type.
+*/
+{
+  an_attribute_ptr  filtered = NULL, *p_attr = &filtered, ap;
+
+  /* Create a filtered view of the attribute list, which includes only those
+     attributes which are both type transforming, and do not apply to tags. */
+  for (ap = attributes; ap != NULL; ap = ap->next) {
+    if (!is_non_tag_type_transforming_attribute(ap)) continue;
+    copy_attribute(ap, *p_attr);
+    p_attr = &(*p_attr)->next;
+  }  /* for */
+
+  if (filtered != NULL) {
+    attach_type_attributes(p_type, filtered, assoc_info);
+  }  /* if */
+}  /* attach_type_transforming_attributes */
 
 
 an_attribute_ptr copy_of_attributes_list(an_attribute_ptr  attributes)

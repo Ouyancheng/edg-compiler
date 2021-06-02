@@ -10016,7 +10016,8 @@ error type is used.
            type. This allows us to apply type transforming attributes and
            preserve the type alias instance type as sugar. */
         if (tssp->attributes != NULL) {
-          attach_type_attributes(&dps.type, dps.id_attributes, &dps);
+          attach_type_transforming_attributes(&dps.type, dps.id_attributes,
+                                              &dps);
         }  /* if */
 
         type->variant.typeref.type = dps.type;
