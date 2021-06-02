@@ -3707,7 +3707,7 @@ attach_type_attributes).
 */
 {
   return is_type_transforming_attribute(ap) && !is_tag_attribute(ap);
-}
+}  /* is_non_tag_type_transforming_attribute */
 
 
 void attach_attributes(an_attribute_ptr  attributes,
@@ -3894,7 +3894,7 @@ attach_type_attributes.
       tmp_ap->next = NULL;
     }
   }  /* while */
-}
+}  /* extract_type_transforming_attributes */
 
 
 an_attribute_ptr copy_of_attributes_list(an_attribute_ptr  attributes)
