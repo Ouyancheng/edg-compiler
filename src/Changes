@@ -1,5 +1,27 @@
 Version 6.3
 
+6/3/21   [EDGcpfe/23771]
+Microsoft compatibility: Trivial copyable structs with const members
+
+Consider:
+
+  struct X {
+    int i;
+    X() = default;
+  };
+  struct S {
+    const X x;
+  };
+  static_assert(__is_trivially_copyable(S), "");
+  static_assert(__is_trivial(S), "");
+
+In Microsoft mode with microsoft_version >= 1927, both assertions now pass,
+whereas previously they both failed.  Having the first assertion succeed is
+an improvement since S is indeed trivially copyable.  However, S is not a
+"trivial class" because its (implicit) default constructor is deleted; we
+thus emulate a bug of the Microsoft compiler for that case.
+
+
 6/3/21   [EDGcpfe/24303]
 Inert macro names appearing in diagnostic output with macro positions
 

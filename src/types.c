@@ -1999,10 +1999,13 @@ Return TRUE if the given type is trivially copyable.
     if (is_scalar(tp)) {
       result = TRUE;
     } else if (is_immediate_class_type(tp)) {
-      /* A class type is trivially copyable if:
-          - it has no nontrivial move/copy constructors, and
-          - it has no nontrivial move/copy assignment operators, and
-          - it has a trivial destructor.
+      /* A class type is trivially copyable if (N4878 [class.prop]/1):
+          - it has at least one eligible move/copy function, and
+          - it has no nontrivial move/copy functions, and
+          - it has a trivial non-deleted destructor.
+        "Eligible" here means that the special member is not deleted,
+        it constraints are satisfied and no other matching special
+        member is more constrained (N4878 special]/6).
       */
       a_class_symbol_supplement_ptr  cssp;
       if (symbol_for(tp) == NULL) {
@@ -2051,7 +2054,7 @@ Return TRUE if the given type is trivially copyable.
                to make the type trivially copyable. */
             has_trivial_copy_function = TRUE;
             continue;
-          } else if (rp->is_deleted && !microsoft_mode) {
+          } else if (rp->is_deleted && !ms_version_is(<1927)) {
             /* Deleted copy functions don't affect trivial copyability. */
             continue;
           }  /* if */
@@ -2095,7 +2098,7 @@ Return TRUE if the given type is trivially copyable.
                  sufficient) to make the type trivially copyable. */
               has_trivial_copy_function = TRUE;
               continue;
-            } else if (rp->is_deleted && !microsoft_mode) {
+            } else if (rp->is_deleted && !ms_version_is(<1927)) {
               /* Deleted copy functions don't affect trivial copyability. */
               continue;
             } else if (rp->compiler_generated ||
@@ -2291,12 +2294,14 @@ copyable class type with an eligible (non-deleted) default constructor.
     if (result && cssp->trivial_default_constructor != NULL) {
       a_symbol_ptr   sym = cssp->trivial_default_constructor;
       a_routine_ptr  rp = sym->variant.routine.ptr;
-      if ((rp->is_deleted && !gpp_version_is(>=50000) && !clang_mode) ||
+      if ((rp->is_deleted &&
+           !(gpp_version_is(>=50000) || clang_mode || microsoft_mode)) ||
           is_ineligible(sym)) {
         /* A deleted trivial default constructor makes the type non-trivial
-           (Clang and some versions of GCC do not consider that).  Similarly,
-           a failed constraint (indicated by is_ineligible) also makes it
-           non-trivial. */
+           (N4878 [class.prop]/2: "... has one or more eligible default
+           constructors), but Clang, MSVC, and some versions of GCC do not
+           consider that.  Similarly, a failed constraint (indicated by
+           is_ineligible) also makes it non-trivial. */
         result = FALSE;
       }  /* if */
     }  /* if */
