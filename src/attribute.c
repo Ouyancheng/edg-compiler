@@ -227,7 +227,8 @@ static an_attr_descr known_attr_table[] = {
   { "noreturn", "", "1c+", ak_noreturn },
   { "override", "", "1c+", ak_override },
   { "nodiscard", "?(sx)", "1c+(201703-|M(1910-))", ak_nodiscard },
-  { "maybe_unused", "", "1c+(201703-|M(1910-))", ak_maybe_unused },
+  { "maybe_unused", "", "1c+(201703-|M(1910-)|G(70100)|C(30900))",
+    ak_maybe_unused },
   { "fallthrough", "", "1c+(201703-|M(1910-))", ak_fallthrough },
   { "likely", "", "1c+(202002-|G(80300-))", ak_likely },
   { "unlikely", "", "1c+(202002-|G(80300-))", ak_unlikely },
@@ -1286,7 +1287,9 @@ comparison or any auxiliary comparisons).
         break;
     }  /* switch */
     str += 1;
-    result = mode && in_attr_cond_range(version, &str, ap);
+    /* Compute the result of this operation.  Note that we check the condition
+       before checking the mode to ensure full expression parsing. */
+    result = in_attr_cond_range(version, &str, ap) && mode;
   }  /* while */
   return result;
 }  /* attribute_condition_satisfied */
