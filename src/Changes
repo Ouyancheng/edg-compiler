@@ -50,7 +50,7 @@ Consider:
   };
 
 Previously, the front end issued an error about p(u) being a call to a
-consteval that doesn't produce a constant.  That is now fixed.
+consteval function that doesn't produce a constant.  That is now fixed.
 
 
 6/2/21   [EDGcpfe/24393]
