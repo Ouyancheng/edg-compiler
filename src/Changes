@@ -1,5 +1,26 @@
 Version 6.3
 
+6/3/21   [EDGcpfe/23953,EDGcpfe/24298]
+Spurious narrowing error on some template arguments
+
+Consider:
+
+  struct S {
+    unsigned int x;
+    constexpr S(unsigned int x): x(x) {}
+  };
+  template<int> void g();
+  int main() {
+    constexpr S s(42);
+    g<s.x>();  // Previously an error.  Now okay.
+  }
+
+Previously, the call g<s.x>() produced an error because s.x was not folded
+prior to check for a narrowing conversion (after folding, the known value 42U
+s.x causes the conversion from unsigned int to int not to be a narrowing
+conversion).  That is now fixed.
+
+
 6/2/21   [EDGcpfe/23870]
 C++-generating back end: enum types and GNU "mode" attribute
 

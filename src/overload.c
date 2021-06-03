@@ -26951,15 +26951,16 @@ if so.
     compatible = (arg_summary.match_level != aml_none);
     if (compatible) {
       /* Some conversions are not allowed on a nontype template argument. */
-      a_boolean       source_is_constant = is_constant_operand(operand);
+      a_boolean       source_is_constant = is_constant_operand(operand),
+                      free_local_con = FALSE;
       a_type_ptr      opnd_type = operand->type;
       a_constant_ptr  con = NULL;
-      a_variable_ptr  var;
       a_routine_ptr   conv_func = arg_summary.conversion.routine;
       if (constexpr_enabled && conv_func != NULL) {
         /* Conversion functions may be allowed if they are constexpr and their
            invocation produces an actual constant result. */
         con = local_constant();
+        free_local_con = TRUE;
         if (constant_conv_function_result(conv_func, operand, param_type,
                                           con)) {
           source_is_constant = TRUE;
@@ -26969,15 +26970,22 @@ if so.
         }  /* if */
       } else if (source_is_constant) {
         con = &operand->variant.constant;
-      } else if (is_integral_or_enum_type(param_type) &&
-                 operand_is_lvalue_for_variable(operand, &var) &&
-                 is_potentially_constant_valued_variable(var)) {
-        /* An lvalue variable won't have been folded since it could bind to a
-           reference parameter.  However, if the parameter has integer or enum
+      } else if (is_arithmetic_or_enum_type(param_type) &&
+                 is_an_lvalue(operand) && is_expression_operand(operand)) {
+        /* An lvalue expression won't have been folded since it could bind to
+           a reference parameter.  However, if the parameter has arithmetic
            type, we should identify the constant case to deal with narrowing
            conversions. */
-        con = var_constant_value(var);
-        if (con != NULL) source_is_constant = TRUE;
+        a_diag_list  diag_list;
+        clear_diag_list(&diag_list);
+        con = local_constant();
+        free_local_con = TRUE;
+        if (interpret_expr(operand->variant.expression,
+                           /*is_constant_evaluated=*/TRUE,
+                            /*force_rvalue=*/TRUE, con, &diag_list)) {
+          source_is_constant = TRUE;
+        }  /* if */
+        discard_more_info_list(&diag_list);
       }  /* if */
       if (compatible &&
           !conversion_allowed_for_nontype_template_argument(
@@ -26989,7 +26997,7 @@ if so.
                                                   (an_error_code *)NULL)) {
         compatible = FALSE;
       }  /* if */
-      if (constexpr_enabled && conv_func != NULL) {
+      if (free_local_con) {
         release_local_constant(&con);
       }  /* if */
     }  /* if */
