@@ -6855,7 +6855,7 @@ symbol found by the normal lookup.
          audp != NULL; audp = audp->next_that_applies_at_depth) {
       nsp = audp->namespace_supplement->symbol->variant.namespace_info.ptr;
       /* Don't remove a namespace if the using-directive appeared after
-         point where the normal symbol was found. */
+         the point where the normal symbol was found. */
       if (normal_sym->decl_seq > audp->effective_decl_seq) {
         remove_namespace_from_list(namespace_list, nsp);
       }  /* if */
