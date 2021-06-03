@@ -10015,7 +10015,7 @@ error type is used.
              attributes to the scanned type, rather than the type alias
              instantiation type. This allows us to apply type transforming
              attributes and preserve the type alias instance type as sugar. */
-          an_attribute_ptr  type_transforming_attributes;
+          an_attribute_ptr  type_transforming_attributes = NULL;
           extract_type_transforming_attributes(&dps.id_attributes,
                                                &type_transforming_attributes);
           attach_type_attributes(&dps.type, type_transforming_attributes,
