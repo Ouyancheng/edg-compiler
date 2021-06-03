@@ -96,16 +96,16 @@ That is now fixed.
 
 
 6/1/21   [EDGcpfe/22008]
-Type transforming attributes for alias templates
+Type-transforming attributes for alias templates
 
 Consider:
 
   template<typename T, int N>
   using V [[gnu::__vector_size__(N)]] = T;
 
-The front end previously treated type transforming attributes (e.g., the above
+The front end previously treated type-transforming attributes (e.g., the above
 gnu::__vector_size__ attribute) when applied to alias templates as no-ops. This
-is now fixed, and type transforming attributes will now work as expected in
+is now fixed, and type-transforming attributes will now work as expected in
 alias templates.
 
 

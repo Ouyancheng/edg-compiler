@@ -10011,9 +10011,9 @@ error type is used.
            to refer to an error type while the instantiation of this type
            was underway.  Don't update the type in that case. */
         if (tssp->attributes != NULL) {
-          /* If we're using the scanned type, apply type transforming
+          /* If we're using the scanned type, apply type-transforming
              attributes to the scanned type, rather than the type alias
-             instantiation type. This allows us to apply type transforming
+             instantiation type.  This allows us to apply type-transforming
              attributes and preserve the type alias instance type as sugar. */
           an_attribute_ptr  type_transforming_attributes = NULL;
           extract_type_transforming_attributes(&dps.id_attributes,
@@ -10032,8 +10032,8 @@ error type is used.
         /* Process any pragmas that are to be bound to this instance. */
         process_curr_construct_pragmas(instance_sym, (a_statement_ptr)NULL);
       }  /* if */
-      /* Apply any non-type transforming attributes to the alias. Type
-         transforming attributes are applied prior to this step, to the
+      /* Apply any non-type-transforming attributes to the alias.
+         Type-transforming attributes are applied prior to this step, to the
          scanned type. */
       if (tssp->attributes != NULL) {
         attach_decl_attributes(&dps, /*primary_decl=*/TRUE);

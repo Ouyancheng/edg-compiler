@@ -3699,8 +3699,8 @@ the attribute to get marked as unrecognized.
 
 static bool is_non_tag_type_transforming_attribute(an_attribute_ptr  ap)
 /*
-This function determines if the given attribute both is a type transforming
-attribute, and does not apply to tags.  This is used to determine which
+This function determines if the given attribute both is a type-transforming
+attribute and does not apply to tags.  This is used to determine which
 attributes are applied by attach_attributes and which attributes are extracted
 via extract_type_transforming_attributes (these are then generally applied with
 attach_type_attributes).
@@ -3856,38 +3856,36 @@ void extract_type_transforming_attributes(an_attribute_ptr *p_attributes,
                                           an_attribute_ptr *p_extracted)
 /*
 Update the list of attributes pointed to by p_attributes removing attributes
-which are both type transforming and do not apply to tags.  The removed
+that are both type-transforming and do not apply to tags.  The removed
 attributes are placed into a new attribute list pointed to by p_extracted.
 This is generally used to extract attributes so that p_attributes can be passed
 to attach_attributes, while p_extracted can be passed to
 attach_type_attributes.
 */
 {
-  /* Create a copy of the pointer to the currently examined attribute. */
+  /* Create a copy of the pointer to the currently-examined attribute. */
   an_attribute_ptr  curr_ap = *p_attributes;
 
   /* Process the attributes from p_attributes, assigning them to either an
      updated p_attributes or p_extracted. */
   while (curr_ap != NULL) {
     if (is_non_tag_type_transforming_attribute(curr_ap)) {
-      /* The attribute is both type transforming and does not apply to tags, it
-         belongs in the extracted list.  Updated the extracted list head to
+      /* The attribute is both type-transforming and does not apply to tags, it
+         belongs in the extracted list.  Update the extracted list head to
          point to this attribute, then update the head position. */
       *p_extracted = curr_ap;
       p_extracted = &curr_ap->next;
     } else {
-      /* The attribute was not type transforming or applies to tags, it belongs
-         in the attributes list.  Updated the attributes list head to point to
+      /* The attribute was not type-transforming or applies to tags, it belongs
+         in the attributes list.  Update the attributes list head to point to
          this attribute, then update the head position. */
       *p_attributes = curr_ap;
       p_attributes = &curr_ap->next;
     }  /* if */
-
     {
       /* Update the curr_ap to point to the next attribute to examine. */
       an_attribute_ptr  tmp_ap = curr_ap;
       curr_ap = tmp_ap->next;
-
       /* Break the chain on the attribute we just finished working with.  The
          head of this chain will be set by the next loop or otherwise will
          remain null designating the end of the list. */
