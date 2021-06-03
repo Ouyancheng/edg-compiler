@@ -6194,9 +6194,14 @@ curr_routine points to the routine entry; otherwise, it is NULL.
            sk_extern_variable processing.  Usually, we issue no warning for
            unused "extern" variables; this is a long-standing C convention. */
       } else if (anon_ns_mem) {
-        /* In unnamed namespaces a warning is issued for unused declarations,
-           and an error for missing definitions that were referenced. */
-        if (!sym->referenced) {
+        /* In unnamed namespaces a warning is issued for unannotated unused
+           declarations, and an error for missing definitions that were
+           referenced. */
+        an_attribute_ptr maybe_unused_attr = find_attribute(
+                                           ak_maybe_unused,
+                                           var_ptr->source_corresp.attributes);
+
+        if (!sym->referenced && maybe_unused_attr == NULL) {
           report_unreferenced(sym, ec_declared_but_not_referenced,
                               es_warning);
         } else if ((var_ptr->used || sym->value_has_been_set) &&
