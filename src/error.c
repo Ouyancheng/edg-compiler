@@ -2279,9 +2279,13 @@ form for the file, or usk_none if the file is not Unicode.
       head_of_file_index_list == NULL) {
     /* Either the file position is strange or unknown, we are at the end of
        the primary source file, the input is from stdin, the input is
-       from a C++/CLI assembly file, or there is no file index information (for
-       example, because we are currently in the back end).  The original source
-       line cannot be recovered. */
+       from a module or C++/CLI assembly file, or there is no file index
+       information (for example, because we are currently in the back end).
+       The original source line cannot be recovered.  Note that in the case
+       of a header module, it may be possible to find the original source
+       (but it's also possible that the source file has been changed more
+       recently than the module file itself).  This may be revisited in the
+       future. */
     goto return_point;
   } else {
     /* Determine the optimum starting position in the file to read the desired
