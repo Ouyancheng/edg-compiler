@@ -1,5 +1,25 @@
 Version 6.3
 
+6/3/21   [EDGcpfe/24303]
+Inert macro names appearing in diagnostic output with macro positions
+
+When a macro name appears in its own expansion, it is marked as "inert" and
+treated as a simple identifier.  If the use of that identifier results in a
+diagnostic, the front end could abort with a segfault in configurations in
+which diagnostic output includes macro context information.  For example,
+with --microsoft --c99 --macro_positions_in_diagnostics, the following
+resulted in a segfault attempting to display a warning about the implicit
+declaration of the function "bar" (the inert macro name):
+
+  #define bar2(a) bar(a)
+  #define bar(a) bar2(a)
+  #define foobar(a) bar(a)
+  void f(void) {
+    foobar(1);  /* Previously caused a segfault displaying the macro
+                   invocation stack. */
+  }
+
+
 6/3/21   [EDGcpfe/24364]
 Standard attribute "maybe_unused" diagnostics and compatibility
 

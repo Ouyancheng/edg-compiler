@@ -6768,6 +6768,7 @@ end_arg_expansion:;
 #if RECORD_MACRO_INVOCATIONS
           /* Remove the record of this invocation. */
           revert_macro_invocation_record();
+          this_macro_invocation_record = invocation_slmp->invocation_record;
 #endif /* RECORD_MACRO_INVOCATIONS */
           /* Start the replacement text with the macro name, preceded by
              an LE_TEMPORARILY_INERT_MACRO escape and followed by a '('. */
@@ -7585,6 +7586,7 @@ copy_done:
         macro_depth = saved_macro_depth;
 #if RECORD_MACRO_INVOCATIONS
         revert_macro_invocation_record();
+        this_macro_invocation_record = invocation_slmp->invocation_record;
 #endif /* RECORD_MACRO_INVOCATIONS */
         free_macro_arg_entries(prev_end_of_macro_arg_list);
 #if FULLY_RESOLVED_MACRO_POSITIONS
