@@ -2751,7 +2751,8 @@ extern void record_start_of_source_file(
 extern void record_inclusion_of_module_source_file(
                                          a_const_char      *file_name,
                                          a_source_position *inserted_position,
-                                         a_module_ptr      mod);
+                                         a_module_ptr      mod,
+                                         uint32_t          max_line_number);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void record_inclusion_of_assembly_source_file(

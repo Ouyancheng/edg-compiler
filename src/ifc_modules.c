@@ -2769,15 +2769,41 @@ been confirmed to exist and the path stored in midp.
     }  /* for */
     (void)fseek(f_module, 0L, SEEK_SET);
     if (partitions[ifc_name_source_file].name != NULL) {
-      /* Allocate an array to map source files to sequence numbers for the
-         the module.  No information about the sequence numbers is recorded
-         yet (we do that only if the source file is later referenced). */
+      /* Allocate an array to map source locations to sequence numbers for each
+         file referenced by the module.  No information about the sequence
+         numbers is recorded yet (we do that only if the source file is later
+         referenced). */
       an_ifc_partition *nsf_pp = &partitions[ifc_name_source_file];
-      size_t size;
       check_assertion(nsf_pp->entry_size != 0);
-      size = (nsf_pp->size / nsf_pp->entry_size) * sizeof(a_seq_number);
-      sequence_numbers = (a_seq_number *)alloc_il(size);
+      size_t num_files = nsf_pp->size / nsf_pp->entry_size;
+      size_t size = num_files * sizeof(a_module_sequence_number_mapping);
+      sequence_numbers = (a_module_sequence_number_mapping *)alloc_fe(size);
       memzero((char *)sequence_numbers, size);
+      if (partitions[ifc_src_line].name != NULL) {
+        check_assertion(partitions[ifc_src_line].entry_size != 0);
+        /* As a (hopefully) temporary measure, for each file referenced in
+           the module, we need to determine the largest line number that will
+           be seen in that file (we don't actually need the last line number in
+           the file, just the largest one that will be seen in the source
+           location, though the last number would do).  This number will be
+           used (if needed) to increment the source sequence when the module is
+           referenced to effectively reserve those source sequence numbers for
+           the file. */
+        for (size_t idx = 0;
+             idx < partitions[ifc_src_line].size /
+                                           partitions[ifc_src_line].entry_size;
+             idx++) {
+          an_ifc_Source_Line   isl, *islp;
+          read_partition_at_index(ifc_src_line, idx);
+          islp = get_Source_Line(&isl);
+          size_t file_index = name_value(islp->file);
+          check_assertion(name_tag(islp->file) == ifc_NameSort_SourceFile &&
+                          file_index < num_files);
+          if (islp->line > sequence_numbers[file_index].max_line_number) {
+            sequence_numbers[file_index].max_line_number = islp->line;
+          }  /* if */
+        }  /* for */
+      }  /* if */
     }  /* if */
     import_referenced_modules();
 #if DEBUG
@@ -4956,36 +4982,39 @@ Map the IFC locus source position information into the source position at pos.
 */
 {
   an_ifc_Source_Line   isl, *islp;
-  a_seq_number         *seq;
 
   read_partition_at_index(ifc_src_line, locus->line);
   islp = get_Source_Line(&isl);
   check_assertion(name_tag(islp->file) == ifc_NameSort_SourceFile);
-  /* See if this file has been used before. */
-  seq = &sequence_numbers[name_value(islp->file)];
-  if (*seq == 0) {
-    /* First time accessing this source file; record the start of a new
-       source file.  Note that this may be out-of-order as it depends on the
-       order that entities are used, but the full tree of source file
-       references isn't available in the IFC file.  Note also that a single
-       source sequence entry is allocated to the entire file (so locus->line
-       is unused here -- perhaps in the future a series of sequence numbers
-       can be allocated and locus->line can be added to this base sequence
-       number). */
-    a_const_char *file_name;
-    file_name = string_from_name_index(islp->file,
-                                       (a_symbol_locator *)NULL);
-    file_name = copy_string_to_region(FILE_SCOPE_REGION_NUMBER, file_name);
-    record_inclusion_of_module_source_file(file_name, pos, assoc_module_info);
-    *seq = pos->seq;
+  if (islp->line == 0 && name_value(islp->file) == 0) {
+    /* Visual Studio uses this to indicate that the entity doesn't have
+       a source location (e.g., builtins), so use a null position. */
+    *pos = null_source_position;
   } else {
-    pos->seq = *seq;
-  }  /* if */
-  pos->column = locus->column;
+    /* See if this file has been used before. */
+    a_module_sequence_number_mapping *msnmp =
+                                     &sequence_numbers[name_value(islp->file)];
+    if (msnmp->starting_sequence_number == 0) {
+      /* First time accessing this source file; record the start of a new
+         source file.  Note that this may be out-of-order as it depends on the
+         order that entities are used, but the full tree of source file
+         references isn't available in the IFC file. */
+      a_const_char *file_name;
+      file_name = string_from_name_index(islp->file,
+                                         (a_symbol_locator *)NULL);
+      file_name = copy_string_to_region(FILE_SCOPE_REGION_NUMBER, file_name);
+      record_inclusion_of_module_source_file(file_name, pos, assoc_module_info,
+                                             msnmp->max_line_number);
+      msnmp->starting_sequence_number = pos->seq;
+    }  /* if */
+    check_assertion(islp->line <= msnmp->max_line_number);
+    pos->seq = msnmp->starting_sequence_number + islp->line;
+    pos->column = locus->column;
 #if FULLY_RESOLVED_MACRO_POSITIONS
-  pos->orig_seq = pos->seq;
-  pos->orig_column = pos->column;
+    pos->orig_seq = pos->seq;
+    pos->orig_column = pos->column;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+  }  /* if */
 }  /* source_position_from_locus */
 
 

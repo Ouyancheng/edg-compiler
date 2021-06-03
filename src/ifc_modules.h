@@ -2469,6 +2469,19 @@ Information specific to an IFC module.
 */
 /*lint -save -e1511 -e1790 -e1540*/
 struct an_ifc_module : public a_module_interface {
+  /* A local type used as an array (indexed by a file index) to provide
+     information about mapping of sequence numbers for the file. */
+  struct a_module_sequence_number_mapping {
+    a_seq_number
+		starting_sequence_number;
+			/* Zero until the first time the file is referenced,
+			   then set to the initial sequence number for the
+			   file. */
+    uint32_t	max_line_number;
+			/* The maximum line number that will be seen in the
+			   file.  Used to allocate a block of sequence numbers
+			   that map to this file. */
+  };
   an_ifc_File_Header
 		header = {};
 			/* The values of an IFC File_Header (byte-swapped if
@@ -2477,15 +2490,12 @@ struct an_ifc_module : public a_module_interface {
 		partitions[(int)ifc_last+1] = {};
 			/* Information about each of the IFC partitions that
 			   could exist in a module file. */
-  a_seq_number	*sequence_numbers = NULL;
-			/* An array of sequence numbers, indexed by a
-			   NameSort::SourceFile index, yields the sequence
-			   number to be used for all items in the associated
-			   file.  Could be extended to a range of sequence
-			   numbers (but that would require knowing the last
-			   line in each file and that's time-consuming to
-			   compute).  Dynamically allocated once the number of
-			   source files is known. */
+  a_module_sequence_number_mapping
+		*sequence_numbers = NULL;
+			/* A mapping of sequence numbers for the module,
+			   indexed by a NameSort::SourceFile index.
+			   Dynamically allocated (in front end memory) once
+			   the number of source files is known. */
 private:
 #if USE_MMAP_FOR_MEMORY_REGIONS
   mutable unsigned char

@@ -3843,8 +3843,9 @@ a file that contains metadata).
 
 void record_inclusion_of_module_source_file(
                                           a_const_char      *file_name,
-                                          a_source_position *inserted_position,
-                                          a_module_ptr      mod)
+                                          a_source_position *starting_seq_num,
+                                          a_module_ptr      mod,
+                                          uint32_t          max_line_number)
 /*
 Record sequence number information for a source file referenced in a module
 file.  Module files (such as IFC files) may record file/line/column information
@@ -3853,16 +3854,15 @@ not be maintained.  Additionally, the specified file may not even be accessible
 on this system (it may be an include file on a system on which the module was
 compiled).  The module including this source file is given by mod.
 
-This function creates a record of the source file, then creates a single
-(bogus) sequence number that is associated with the source file, then resumes
-the previous file.  The result is a single position (returned in
-*inserted_position), which can be used as position information for any item in
-the file.
+This function creates a record of the source file, with max_line_number lines
+that are associated with the source file, then resumes the previous file.  The
+initial source position for the file is returned in *starting_seq_num.
 */
 {
   a_source_file_ptr parent_file, new_file;
 
-  check_assertion(curr_seq_number_lookup_entry != NULL);
+  check_assertion(curr_seq_number_lookup_entry != NULL &&
+                  max_line_number >= 1);
   parent_file = curr_seq_number_lookup_entry->source_file;
   check_assertion(parent_file != NULL);
   /* Record the new source file.  Specify an unknown line number to suppress
@@ -3882,10 +3882,8 @@ the file.
                               /*from_system_include_dir=*/FALSE,
                               /*is_assembly_file=*/FALSE);
   new_file->assoc_module = mod;
-  /* Increment the sequence number to create a unique number that can be
-     mapped to this file. */
-  ++seq_number_last_read;
-  set_position_to(*inserted_position, seq_number_last_read, SP_COL_UNKNOWN);
+  set_position_to(*starting_seq_num, seq_number_last_read + 1, SP_COL_UNKNOWN);
+  seq_number_last_read += max_line_number + 1;
   record_end_of_source_file(new_file, seq_number_last_read);
   if (curr_ise != NULL) {
     /* Resume the previous file where we left off. */

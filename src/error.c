@@ -2270,6 +2270,7 @@ form for the file, or usk_none if the file is not Unicode.
   conv_seq_to_physical_file_and_line(seq_number, &src_file, &physical_line,
                                      &at_end_of_source);
   if (physical_line == 0 ||
+      src_file->assoc_module != NULL ||
       at_end_of_source ||
       strcmp(src_file->full_name, FILE_NAME_FOR_STDIN) == 0 ||
 #if MICROSOFT_EXTENSIONS_ALLOWED
