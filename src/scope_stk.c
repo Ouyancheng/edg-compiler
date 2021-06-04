@@ -6197,11 +6197,7 @@ curr_routine points to the routine entry; otherwise, it is NULL.
         /* In unnamed namespaces a warning is issued for unannotated unused
            declarations, and an error for missing definitions that were
            referenced. */
-        an_attribute_ptr maybe_unused_attr = find_attribute(
-                                           ak_maybe_unused,
-                                           var_ptr->source_corresp.attributes);
-
-        if (!sym->referenced && maybe_unused_attr == NULL) {
+        if (!sym->referenced && !var_ptr->source_corresp.maybe_unused) {
           report_unreferenced(sym, ec_declared_but_not_referenced,
                               es_warning);
         } else if ((var_ptr->used || sym->value_has_been_set) &&
