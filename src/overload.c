@@ -8668,7 +8668,7 @@ other.  Return
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else if ((cmp = compare_enable_if_attributes(cfp1, cfp2)) != 0) {
     /* Clang's enable_if attributes can distinguish candidates. */
-  } else if (gpp_mode && gnu_version >= 70000 && !clang_mode &&
+  } else if (gpp_version_is(>= 70000) &&
              (cmp = compare_for_using_declaration(cfp1, cfp2)) != 0) {
     /* GCC has a nonstandard behavior for member using-declarations that refer
        to member function templates.  Instead of hiding the base member, it
@@ -9426,7 +9426,7 @@ end_func_winnow:;
       *undecidable_because_of_error = TRUE;
 #if GNU_EXTENSIONS_ALLOWED
     } else if (gpp_mode && (gnu_version < 40000 || gnu_version >= 40400) &&
-               number_in_best_match_set == 0) {
+               !clang_mode && number_in_best_match_set == 0) {
       /* g++ has an "extension" that chooses one function match over another
          if the worst conversion for its arguments is not as bad as the worst
          conversion for another function's arguments.  This is tested after

@@ -1,5 +1,24 @@
 Version 6.3
 
+6/4/21   [EDGcpfe/23670]
+Spurious Clang-mode error on use of overloaded templates
+
+Consider:
+
+  struct S {
+    template<typename T> S(T&);
+    template<typename T> S(T&&);
+    S();
+  };
+  struct R { R(); };
+  const R r;
+  S s(r);  // Previously an ambiguity in some Clang C++11 modes.  Now okay.
+
+In GNU C++11 modes with gnu_version < 40900 this is ambiguous.  However, the
+front end also treated Clang modes in the same way when gnu_version < 40900.
+That is now fixed: The case is now always accepted in Clang C++11 modes.
+
+
 6/4/21   [EDGcpfe/24283]
 GNU compatibility: Result of __builtin_memcmp in interpreter
 

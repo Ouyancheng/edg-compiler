@@ -3293,7 +3293,7 @@ entire_type is FALSE, and must be zero otherwise.
        reference (i.e, not an rvalue reference) or if they are the
        same kind of reference, the one that is more qualified. */
     if (!(microsoft_mode && microsoft_version < 1800) &&
-        !(gpp_mode && gnu_version < 40900) && !sun_mode &&
+        !gpp_version_is(<40900) && !sun_mode &&
         (type_1_is_reference && type_2_is_reference) &&
         (type_1_is_lvalue_reference != type_2_is_lvalue_reference)) {
       /* An lvalue reference is more specialized than an rvalue reference.
