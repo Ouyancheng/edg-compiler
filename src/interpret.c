@@ -7984,6 +7984,11 @@ expression node and interpreter state.
                                       ec_constexpr_access_to_runtime_storage,
                 &call_node->variant.operation.operands->next->next->position,
                 ips);
+  } else if (gpp_mode && !clang_mode &&
+             addr1->complete_object == addr2->complete_object) {
+    /* GCC appears to return 0 in cases where the two pointers refer to the
+       same object. */
+    goto return_result;
   } else if (!type_is(tp, tk_void)) {
     /* String or character array comparison. */
     an_integer_value  *ptr1 = (an_integer_value*)addr1->address;

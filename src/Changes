@@ -1,5 +1,17 @@
 Version 6.3
 
+6/4/21   [EDGcpfe/24283]
+GNU compatibility: Result of __builtin_memcmp in interpreter
+
+In cases where the first and second arguments to the __builtin_memcmp routine
+points to the same object, GNU appears to return 0 regardless of the size
+specified and the front end now emulates that.  The following example (with
+--g++ --c++14) is now accepted even though the size is longer than the
+length of the input strings:
+
+  static_assert(__builtin_memcmp("foo", "foo", 99) == 0);
+
+
 6/3/21   [EDGcpfe/24370]
 C++-generating back end: variables with dependent deduced types
 
