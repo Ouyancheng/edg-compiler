@@ -1,5 +1,23 @@
 Version 6.3
 
+6/3/21   [EDGcpfe/24370]
+C++-generating back end: variables with dependent deduced types
+
+In configurations in which the C++-generating back end generates template
+definitions from the prototype instantiation IL, the C++-generating back
+end produced incorrect code using an undeclared temporary name (of the form
+__T12345678) for the declaration of a variable whose type is deduced from a
+dependent initializer expression.  This was a regression introduced by the
+changes for EDGcpfe/23498 in version 6.2 and is now fixed.  For example,
+with --c++17 --g++:
+
+  template<typename T> T&& f(T&);
+  template<typename T> void g() {
+    T t;
+    auto x(f(t));  // Previously generated as "x(__T12345678(f(t)))"
+  }
+
+
 6/3/21   [EDGcpfe/23771]
 Microsoft compatibility: Trivial copyable structs with const members
 

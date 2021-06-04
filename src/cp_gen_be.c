@@ -20351,7 +20351,8 @@ and the output of the type name.
             }  /* if */
           }  /* if */
         }  /* if */
-        if (is_deduced_type_var_init) {
+        if (is_deduced_type_var_init &&
+            has_name_before_mangling(init_entity_type)) {
           /* We need to put out the class type, not just the constructor
              arguments, to allow deduction of the variable type. */
           a_boolean need_closing_paren;
