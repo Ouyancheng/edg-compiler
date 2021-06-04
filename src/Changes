@@ -76,10 +76,10 @@ Consider:
   }  // namespace
 
 Previously, the front end would report warnings for unused variables even if
-annotated with the "maybe_unused" standard attribute. This is now fixed, and
+annotated with the "maybe_unused" standard attribute.  This is now fixed, and
 warnings are no longer emitted for these variables.
 
-Additionally, two compatibility issues have been fixed. For both GNU mode with
+Additionally, two compatibility issues have been fixed.  For both GNU mode with
 gnu_version >= 70100 and Clang mode with clang_version >= 30900, the front end
 now recognizes the "maybe_unused" standard attribute in C++ mode for C++11 or
 later.
