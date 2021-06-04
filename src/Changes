@@ -101,9 +101,9 @@ Consider:
   }
 
 Previously, the call g<s.x>() produced an error because s.x was not folded
-prior to check for a narrowing conversion (after folding, the known value 42U
-s.x causes the conversion from unsigned int to int not to be a narrowing
-conversion).  That is now fixed.
+prior to checking for a narrowing conversion (after folding, the known value
+42U for s.x causes the conversion from unsigned int to int not to be a
+narrowing conversion).  That is now fixed.
 
 
 6/2/21   [EDGcpfe/23870]

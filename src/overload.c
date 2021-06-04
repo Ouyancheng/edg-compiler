@@ -26983,7 +26983,7 @@ if so.
         free_local_con = TRUE;
         if (interpret_expr(operand->variant.expression,
                            /*is_constant_evaluated=*/TRUE,
-                            /*force_rvalue=*/TRUE, con, &diag_list)) {
+                           /*force_rvalue=*/TRUE, con, &diag_list)) {
           source_is_constant = TRUE;
         }  /* if */
         discard_more_info_list(&diag_list);
