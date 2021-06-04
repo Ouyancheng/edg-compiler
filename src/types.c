@@ -2004,8 +2004,8 @@ Return TRUE if the given type is trivially copyable.
           - it has no nontrivial move/copy functions, and
           - it has a trivial non-deleted destructor.
         "Eligible" here means that the special member is not deleted,
-        it constraints are satisfied and no other matching special
-        member is more constrained (N4878 special]/6).
+        its constraints are satisfied, and no other matching special
+        member is more constrained (N4878 [special]/6).
       */
       a_class_symbol_supplement_ptr  cssp;
       if (symbol_for(tp) == NULL) {
@@ -2299,7 +2299,7 @@ copyable class type with an eligible (non-deleted) default constructor.
           is_ineligible(sym)) {
         /* A deleted trivial default constructor makes the type non-trivial
            (N4878 [class.prop]/2: "... has one or more eligible default
-           constructors), but Clang, MSVC, and some versions of GCC do not
+           constructors"), but Clang, MSVC, and some versions of GCC do not
            consider that.  Similarly, a failed constraint (indicated by
            is_ineligible) also makes it non-trivial. */
         result = FALSE;
