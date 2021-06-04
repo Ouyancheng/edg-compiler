@@ -21380,7 +21380,8 @@ is_transparent.  conv_context describes the context of the conversion.
                                            constant_src, con_to_test,
                                            dest_type,
                                            &err_code) &&
-          !operand_is_instantiation_dependent(source_operand)) {
+          (constant_src ||
+           !operand_is_instantiation_dependent(source_operand))) {
         if (expr_diagnostic_should_be_issued(es_discretionary_error,
                                              err_code, err_pos)) {
           an_error_severity  sev = es_discretionary_error;
@@ -26996,7 +26997,8 @@ if so.
                                                   con,
                                                   param_type,
                                                   (an_error_code *)NULL) &&
-          !operand_is_instantiation_dependent(operand)) {
+          (source_is_constant ||
+           !operand_is_instantiation_dependent(operand))) {
         compatible = FALSE;
       }  /* if */
       if (free_local_con) {
