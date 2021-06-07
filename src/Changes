@@ -28,10 +28,9 @@ specified and the front end now emulates that.  The following example (with
 --g++ --c++14) is now accepted even though the size is longer than the
 length of the input strings:
 
-  static_assert(__builtin_memcmp("foo", "foo", 99) == 0);
-
-Note that this behavior depends on an implementation sharing storage for
-identical string literals and is not guaranteed by the Standard.
+  constexpr const char *a = "abc";
+  constexpr const char *b = a;
+  static_assert(__builtin_memcmp(a, b, 99) == 0);
 
 
 6/3/21   [EDGcpfe/24370]
