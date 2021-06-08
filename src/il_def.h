@@ -2668,9 +2668,12 @@ typedef enum an_attribute_kind_tag {
   ak_deprecated,	/* "deprecated" (std, gnu, ms). */
   ak_final,		/* "final" (std). */
   ak_hiding,		/* "hiding" (std). */
+  ak_known_semantics,	/* "known_semantics" (std) "msvc" Microsoft
+			   mode only. */
   ak_noreturn,		/* "noreturn" (std, gnu, ms) or "volatile" (gnu). */
   ak_override,		/* "override" (std). */
   ak_nodiscard,		/* "nodiscard" (std). */
+  ak_noop_dtor, 	/* "noop_dtor" (std) "msvc" Microsoft mode only. */
   ak_maybe_unused,	/* "maybe_unused" (std). */
   ak_fallthrough,	/* "fallthrough" (std). */
   ak_likely,		/* "likely" (std). */

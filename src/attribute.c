@@ -197,6 +197,13 @@ typedef struct an_attr_descr {
 			   std_version >= 201703 or when microsoft_version >=
 			   1910.
 
+			   If the auxiliary versions should be used in place of
+			   the default range of applicable versions, the
+			   applicable versions can be omitted.  For example,
+			   "c[msvc](|M(1910-))" specifies a standard-notation
+			   attribute in the "msvc" namespace that's only
+			   available when microsoft_version >= 1910.
+
 			   A prefix "1" means the attribute can appear at most
 			   once per attribute group.  E.g., "1c+" indicates a
 			   standard C++ attribute that can appear at most once
@@ -224,9 +231,11 @@ static an_attr_descr known_attr_table[] = {
   { "deprecated", "?(sx)", "1c+(201402-|M(1910-))", ak_deprecated },
   { "final", "", "1c+", ak_final },
   { "hiding", "", "1c+", ak_hiding },
+  { "known_semantics", "", "c+[msvc](|M(1927-))", ak_known_semantics },
   { "noreturn", "", "1c+", ak_noreturn },
   { "override", "", "1c+", ak_override },
   { "nodiscard", "?(sx)", "1c+(201703-|M(1910-))", ak_nodiscard },
+  { "noop_dtor", "", "c+[msvc](|M(1928-))", ak_noop_dtor },
   { "maybe_unused", "", "1c+(201703-|M(1910-)|G(70100-)|C(30900-))",
     ak_maybe_unused },
   { "fallthrough", "", "1c+(201703-|M(1910-))", ak_fallthrough },
@@ -652,9 +661,11 @@ static an_attr_appl_descr known_attr_appl_table[(int)ak_last+1] = {
   { ak_deprecated, "t|p|c|e|r|v|d|n|E", apply_deprecated_attr },
   { ak_final, "r:+v!|c:+d!", apply_final_attr },
   { ak_hiding, "t|c|e|r:+m!|v|d", apply_hiding_attr },
+  { ak_known_semantics, "", NO_APPL_FN },
   { ak_noreturn, "t|p|r|v|d", apply_noreturn_attr },
   { ak_override, "r:+v!", apply_override_attr },
   { ak_nodiscard, "r|c|e", apply_nodiscard_attr },
+  { ak_noop_dtor, "", NO_APPL_FN },
   { ak_maybe_unused, "c|t|v|p|d|r|e|E", apply_maybe_unused_attr },
   { ak_fallthrough, "s", apply_fallthrough_attr },
   { ak_likely, "l|s", apply_likely_attr },
@@ -887,6 +898,7 @@ static a_const_char *valid_attribute_namespaces[] = {
   "clang",
   "gnu",
   "__gnu__",
+  "msvc",
 #if INCLUDE_EDG_TEST_ATTRIBUTES
   "edg",
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
@@ -1258,10 +1270,16 @@ Return TRUE if the condition is satisfied (either by the primary version
 comparison or any auxiliary comparisons).
 */
 {
-  a_boolean      result, mode = FALSE;
+  a_boolean      result = FALSE, mode = FALSE;
 
-  /* See if the primary range comparison succeeds. */
-  result = in_attr_cond_range(version, &str, ap);
+  if (str[0] == '(' && str[1] == '|') {
+    /* If the condition starts with "(|", there is no primary condition, and
+       only auxiliary conditions are considered. */
+    str += 1;
+  } else {
+    /* See if the primary range comparison succeeds. */
+    result = in_attr_cond_range(version, &str, ap);
+  }
   /* Process any auxiliary version ranges if necessary. */
   while (!result && str[0] == '|') {
     str += 1;

@@ -5852,6 +5852,7 @@ Display the indicated attribute entry.
     case ak_deprecated:          kind_name = "deprecated";          break;
     case ak_final:               kind_name = "final";               break;
     case ak_hiding:              kind_name = "hiding";              break;
+    case ak_known_semantics:     kind_name = "known_semantics";     break;
     case ak_noreturn:            kind_name = "noreturn";            break;
     case ak_override:            kind_name = "override";            break;
     case ak_nodiscard:           kind_name = "nodiscard";           break;
@@ -5916,6 +5917,7 @@ Display the indicated attribute entry.
                                                                     break;
     case ak_nocommon:            kind_name = "nocommon";            break;
     case ak_nonnull:             kind_name = "nonnull";             break;
+    case ak_noop_dtor:           kind_name = "noop_dtor";           break;
     case ak_noplt:               kind_name = "noplt";               break;
     case ak_packed:              kind_name = "packed";              break;
     case ak_pure:                kind_name = "pure";                break;

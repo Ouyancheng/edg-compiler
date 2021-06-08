@@ -1,5 +1,23 @@
 Version 6.3
 
+6/8/21   [EDGcpfe/24359]
+MS Compatibility: Support "msvc" standard-notation attributes
+
+Consider:
+
+  struct C {
+    [[msvc::noop_dtor]] ~C() { }
+  };
+
+  struct [[msvc::known_semantics]] C {
+  };
+
+Previously, in Microsoft C++ modes standard-notation attributes "noop_dtor" and
+"known_semantics" within the "msvc" attribute namespace were not recognized.
+This is now fixed.  "noop_dtor" is now recognized with microsoft_version >=
+1928 and "known_semantics" is now recognized with microsoft_version >= 1927.
+
+
 6/4/21   [EDGcpfe/23670]
 Spurious Clang-mode error on use of overloaded templates
 
