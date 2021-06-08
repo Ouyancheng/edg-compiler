@@ -3651,6 +3651,41 @@ setting is used, and to set various unmentioned settings as needed.
 }  /* check_and_set_c_mode_options */
 
 
+static void check_and_set_default_cpp_standard_version(void)
+/*
+This routine is called in C++ mode to set the default C++ standard version
+taking int account any compiler emulation and the version of the emulation.
+*/
+{
+  if (std_version == 0) {
+    /* No specific version of C++ has been established yet: Use the appropriate
+       default. */
+    std_version = DEFAULT_CPP_MODE;
+  }  /* if */
+  if (!cpp_mode_specified()) {
+    if (gnu_mode && !clang_mode) {
+      /* Handle GNU mode C++ standard version defaults. */
+      if (gnu_version >= 110000) {
+        /* Beginning with g++ 11.1.0 (the first g++ release in the 11.x
+           series), C++17 features are enabled by default. */
+        std_version = 201703;
+      } else if (gnu_version >= 60000) {
+        /* Beginning with g++ 6.1.0 (the first g++ release in the 6.x series),
+           C++14 features are enabled by default. */
+        std_version = 201402;
+      }  /* if */
+    } else if (clang_mode) {
+      /* Handle Clang mode C++ standard version defaults. */
+      if (clang_version >= 60000) {
+        /* Beginning with Clang 6.0.0, C++14 features are enabled by
+           default. */
+        std_version = 201402;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+}
+
+
 static void check_and_set_cpp11_mode_options(a_boolean value)
 /*
 Explicitly enable (when value is TRUE) or disable (when value is FALSE) any
@@ -4001,24 +4036,9 @@ setting is used, and to set various unmentioned settings as needed.
 */
 {
   check_assertion(!C_mode());
-  if (std_version == 0) {
-    /* No specific version of C++ has been established yet: Use the appropriate
-       default. */
-    std_version = DEFAULT_CPP_MODE;
-  }  /* if */
-  if (gnu_mode && !clang_mode && gnu_version >= 60000) {
-    /* Beginning with g++ 6.1.0 (the first g++ release in the 6.x series),
-       C++14 features are enabled by default. */
-    if (!cpp_mode_specified()) {
-      std_version = 201402;
-    }  /* if */
-  }  /* if */
-  if (clang_version_is(>=60000)) {
-    /* Beginning with Clang 6.0.0, C++14 features are enabled by default. */
-    if (!cpp_mode_specified()) {
-      std_version = 201402;
-    }  /* if */
-  }  /* if */
+  /* Update the default C++ standard version accounting for any compiler
+     emulation and the version of the emulation. */
+  check_and_set_default_cpp_standard_version();
   /* Reset the SVR4 C compatibility flag just in case it is set by
      default. */
   SVR4_C_mode = FALSE;
