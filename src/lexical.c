@@ -10491,7 +10491,8 @@ a_boolean accum_quoted_string(
                   a_string_or_char_literal_kind literal_kind,
                   char                          quoting_char,
                   a_const_char                  *start_of_raw_string_delimiter,
-                  int                           raw_string_delimiter_len)
+                  int                           raw_string_delimiter_len,
+/* Defaulted: */  an_orig_line_modif_ptr        *p_last_olmp)
 /*
 Scan a quoted construct, i.e., a character constant or a string literal.
 literal_kind describes the literal being scanned (string or character, the
@@ -10501,22 +10502,29 @@ routine is also used for header names in #include and #line directives
 the initial quote.  Scan to the matching closing quote (indicated by
 quoting_char), and do not be confused by escaped characters and multibyte
 character sequences.  Increment *num_chars by the number of target code
-units contained in the string, after escape processing.  curr_char_loc
-and end_of_curr_token are set to point just before the closing quote of the
+units contained in the string, after escape processing.  curr_char_loc and
+end_of_curr_token are set to point just before the closing quote of the
 string.  If raw_string_delimiter_len is >= 0, the string being scanned is a
 C++11 raw string, and the terminating '"' must be preceded by the same
 string (of that length) to which start_of_raw_string_delimiter points,
 preceded by a right parenthesis; *num_chars will not include the length of
-this trailing delimiter sequence.  If raw_string_delimiter_len is < 0,
-start_of_raw_string_delimiter is not used.  The return value is TRUE if the
-string was not terminated before the end of the line, FALSE if it was.  The
-caller is responsible for issuing error messages.
+this trailing delimiter sequence.  p_last_olmp defaults to NULL; if
+non-NULL, *p_last_olmp is set point to the last an_orig_line_modif entry
+processed by this routine or to NULL if none were, and scanning for
+modifications will begin with the next entry after that one instead of the
+beginning of the list for subsequent calls to this function for multi-line
+strings.  If raw_string_delimiter_len is < 0, start_of_raw_string_delimiter
+is not used.  The return value is TRUE if the string was not terminated
+before the end of the line, FALSE if it was.  The caller is responsible for
+issuing error messages.
 */
 {
   char                   ch;
   unsigned long          nchars;
   a_boolean              unterminated = FALSE;
   an_orig_line_modif_ptr olmp = NULL;
+  an_orig_line_modif_ptr last_olmp = (p_last_olmp != NULL) ? *p_last_olmp
+                                                           : NULL;
   int                    delim_len_adjustment = 0;
   a_boolean              is_raw_string;
   a_boolean              is_string_literal;
@@ -10531,9 +10539,11 @@ caller is responsible for issuing error messages.
     /* This is a raw string literal, potentially including trigraphs and
        line splices that will be reversed.  Set up to account for those
        changes in the character count. */
-    for (olmp = orig_line_modif_list;
+    for (olmp = (last_olmp != NULL) ? last_olmp->next : orig_line_modif_list;
          olmp != NULL && olmp->line_loc < curr_char_loc;
-         olmp = olmp->next) {}
+         olmp = olmp->next) {
+      last_olmp = olmp;
+    }  /* for */
   }  /* if */
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
   /* Initialize for scanning multibyte characters in the string. */
@@ -10650,6 +10660,7 @@ caller is responsible for issuing error messages.
         default:
           unexpected_condition();
       }  /* switch */
+      last_olmp = olmp;
       olmp = olmp->next;
     } else if (ch == LE_ESCAPE) {
       if (curr_char_loc[1] == LE_NULL) {
@@ -10771,6 +10782,9 @@ return_point:
     *num_chars += nchars;
   } else {
     *num_chars += nchars - raw_string_delimiter_len - delim_len_adjustment - 1;
+  }  /* if */
+  if (p_last_olmp != NULL) {
+    *p_last_olmp = last_olmp;
   }  /* if */
   return unterminated;
 }  /* accum_quoted_string */
@@ -10945,6 +10959,7 @@ start_of_raw_string_delimiter is not used.
 */
 {
   an_orig_line_modif_ptr     olmp;
+  an_orig_line_modif_ptr     prev_olmp = NULL;
   a_boolean                  result = FALSE;
   a_boolean                  is_raw_string;
   a_const_char               *delim_ptr;
@@ -10993,7 +11008,7 @@ start_of_raw_string_delimiter is not used.
     curr_char_loc -= 2;
     if (!accum_quoted_string(num_chars, /*is_header_name=*/FALSE,
                              literal_kind, '"', delim_ptr,
-                             raw_string_delimiter_len)) {
+                             raw_string_delimiter_len, &prev_olmp)) {
       /* End of string, done. */
       result = TRUE;
       break;
