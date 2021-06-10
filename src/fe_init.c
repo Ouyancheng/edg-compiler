@@ -1010,7 +1010,6 @@ Install the keywords in the symbol table.
          for ms_extensions), and have not been implemented by clang. */
       enter_underscore_keywords((a_token_kind)tok_except, "__except");
       enter_keyword((a_token_kind)tok_clrcall, "__clrcall");
-      enter_keyword((a_token_kind)tok_unaligned, "__unaligned");
       enter_underscore_keywords((a_token_kind)tok_assume, "__assume");
       enter_keyword((a_token_kind)tok_noop, "__noop");
       if (C_dialect == C_dialect_cplusplus) {
@@ -1036,6 +1035,7 @@ Install the keywords in the symbol table.
     enter_underscore_keywords((a_token_kind)tok_vectorcall, "__vectorcall");
     enter_underscore_keywords((a_token_kind)tok_microsoft_inline, "__inline");
     enter_underscore_keywords((a_token_kind)tok_forceinline, "__forceinline");
+    enter_keyword((a_token_kind)tok_unaligned, "__unaligned");
     enter_underscore_keywords((a_token_kind)tok_ext_alignof, "__alignof");
     enter_keyword((a_token_kind)tok_ext_alignof, "__builtin_alignof");
     enter_keyword((a_token_kind)tok_pretty_function_name, "__FUNCSIG__");
