@@ -1012,18 +1012,6 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_clrcall, "__clrcall");
       enter_keyword((a_token_kind)tok_unaligned, "__unaligned");
       enter_underscore_keywords((a_token_kind)tok_assume, "__assume");
-      if (targ_int16_int_kind != (an_integer_kind)ik_none) {
-        /* There is a 16 bit target integer kind to which __int16 can map. */
-        enter_underscore_keywords((a_token_kind)tok_int16, "__int16");
-      }  /* if */
-      if (targ_int64_int_kind != (an_integer_kind)ik_none) {
-        /* There is a 64 bit target integer kind to which __int64 can map. */
-        enter_underscore_keywords((a_token_kind)tok_int64, "__int64");
-      }  /* if */
-      /* __w64 is enabled even when 64-bit pointer extensions are not enabled
-         because it is useful for diagnosing porting problems in 32-bit-only
-         code. */
-      enter_underscore_keywords((a_token_kind)tok_microsoft_w64, "__w64");
       enter_keyword((a_token_kind)tok_noop, "__noop");
       if (C_dialect == C_dialect_cplusplus) {
         enter_keyword((a_token_kind)tok_event, "__event");
@@ -1057,10 +1045,22 @@ Install the keywords in the symbol table.
       /* There is a 8 bit target integer kind to which __int8 can map. */
       enter_underscore_keywords((a_token_kind)tok_int8, "__int8");
     }  /* if */
+    if (targ_int16_int_kind != (an_integer_kind)ik_none) {
+      /* There is a 16 bit target integer kind to which __int16 can map. */
+        enter_underscore_keywords((a_token_kind)tok_int16, "__int16");
+      }  /* if */
     if (targ_int32_int_kind != (an_integer_kind)ik_none) {
       /* There is a 32 bit target integer kind to which __int32 can map. */
       enter_underscore_keywords((a_token_kind)tok_int32, "__int32");
     }  /* if */
+    if (targ_int64_int_kind != (an_integer_kind)ik_none) {
+      /* There is a 64 bit target integer kind to which __int64 can map. */
+      enter_underscore_keywords((a_token_kind)tok_int64, "__int64");
+    }  /* if */
+    /* __w64 is enabled even when 64-bit pointer extensions are not enabled
+       because it is useful for diagnosing porting problems in 32-bit-only
+       code. */
+    enter_underscore_keywords((a_token_kind)tok_microsoft_w64, "__w64");
     if (microsoft_64bit_pointer_extensions_enabled) {
       enter_underscore_keywords((a_token_kind)tok_microsoft_ptr32, "__ptr32");
       enter_underscore_keywords((a_token_kind)tok_microsoft_ptr64, "__ptr64");
