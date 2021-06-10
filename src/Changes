@@ -1,5 +1,16 @@
 Version 6.3
 
+6/10/21  [EDGcpfe/24385]
+Properly emulate supported keywords of -fms-extensions
+
+Previously, in both GNU and Clang mode when specifying --ms_extensions to
+emulate -fms-extensions, the front end recognized a number of Microsoft
+specific keywords that are not recognized by the emulated compiler (e.g.,
+__try, __except, etc. for GCC; __noop, __event, etc. for Clang).  This is now
+fixed, and the front end now only adds the keywords supported by the respective
+compiler when --ms_extensions is specified.
+
+
 6/9/21   [EDGcpfe/23094]
 Coroutine promise type with overloaded return_value member functions
 
