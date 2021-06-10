@@ -10961,14 +10961,12 @@ start_of_raw_string_delimiter is not used.
   an_orig_line_modif_ptr     olmp;
   an_orig_line_modif_ptr     prev_olmp = NULL;
   a_boolean                  result = FALSE;
-  a_boolean                  is_raw_string;
   a_const_char               *delim_ptr;
   a_pointer_registration     delim_ptr_reg;
   a_pointer_registration_ptr save_registered_pointers = registered_pointers;
 
   register_pointer_variable(delim_ptr, delim_ptr_reg);
   delim_ptr = start_of_raw_string_delimiter;
-  is_raw_string = (literal_kind & SCLK_RAW_STRING_LITERAL) != 0;
   while (curr_char_loc[0] == LE_ESCAPE &&
          curr_char_loc[1] == LE_NEWLINE) {
     /* Inject the characters \ n on top of the NEWLINE escape, and add an
