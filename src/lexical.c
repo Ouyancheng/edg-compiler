@@ -10971,25 +10971,6 @@ start_of_raw_string_delimiter is not used.
   is_raw_string = (literal_kind & SCLK_RAW_STRING_LITERAL) != 0;
   while (curr_char_loc[0] == LE_ESCAPE &&
          curr_char_loc[1] == LE_NEWLINE) {
-    if (is_raw_string && end_orig_line_modif_list != NULL &&
-        end_orig_line_modif_list->line_loc == curr_char_loc &&
-        end_orig_line_modif_list->kind == olm_line_splice) {
-      /* The previous physical line ended in a line splice, which was
-         already seen by accum_quoted_string.  Because a line splice adds
-         no characters to the logical line, the modification for the line
-         splice and the one we're about to add for the multiline string
-         splice will have the same line_loc and will both be processed by
-         the next call to accum_quoted_string.  Decrement the character
-         count appropriately so the line splice won't be counted twice.
-         (A loop is needed in case there are multiple adjacent line
-         splices.) */
-      for (olmp = orig_line_modif_list; olmp != NULL; olmp = olmp->next) {
-        if (olmp->line_loc == curr_char_loc && olmp->kind == olm_line_splice) {
-          check_assertion(*num_chars >= 2);
-          *num_chars -= 2;
-        }  /* if */
-      }  /* for */
-    }  /* if */
     /* Inject the characters \ n on top of the NEWLINE escape, and add an
        entry to the orig_line_modif_list so that this can be undone. */
     olmp = add_orig_line_modif(olm_multiline_string_splice,
