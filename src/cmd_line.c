@@ -3657,13 +3657,15 @@ This routine is called in C++ mode to set the default C++ standard version
 taking int account any compiler emulation and the version of the emulation.
 */
 {
-  if (std_version == 0) {
-    /* No specific version of C++ has been established yet: Use the appropriate
-       default. */
-    std_version = DEFAULT_CPP_MODE;
-  }  /* if */
   if (!cpp_mode_specified()) {
-    if (gnu_mode && !clang_mode) {
+    if (clang_mode) {
+      /* Handle Clang mode C++ standard version defaults. */
+      if (clang_version >= 60000) {
+        /* Beginning with Clang 6.0.0, C++14 features are enabled by
+           default. */
+        std_version = 201402;
+      }  /* if */
+    } else if (gnu_mode) {
       /* Handle GNU mode C++ standard version defaults. */
       if (gnu_version >= 110000) {
         /* Beginning with g++ 11.1.0 (the first g++ release in the 11.x
@@ -3674,13 +3676,11 @@ taking int account any compiler emulation and the version of the emulation.
            C++14 features are enabled by default. */
         std_version = 201402;
       }  /* if */
-    } else if (clang_mode) {
-      /* Handle Clang mode C++ standard version defaults. */
-      if (clang_version >= 60000) {
-        /* Beginning with Clang 6.0.0, C++14 features are enabled by
-           default. */
-        std_version = 201402;
-      }  /* if */
+    }  /* if */
+    if (std_version == 0) {
+      /* No specific version of C++ has been established yet: Use the
+         appropriate default. */
+      std_version = DEFAULT_CPP_MODE;
     }  /* if */
   }  /* if */
 }

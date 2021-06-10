@@ -31,9 +31,8 @@ significant.
 6/8/21   [EDGcpfe/24192]
 GCC 11.x compatibility: Default to C++17
 
-Previously, in GNU C++ mode with gnu_version >= 110000 the front end defaulted
-to C++14.  This is now fixed, and GNU C++ mode with gnu_version >= 110000
-now defaults to C++17.
+In GCC 11.x GNU changed the default C++ mode to C++17.  We now emulate this
+behavior, and GNU C++ mode with gnu_version >= 110000 now defaults to C++17.
 
 
 6/8/21   [EDGcpfe/24359]
