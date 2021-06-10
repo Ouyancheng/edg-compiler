@@ -9842,26 +9842,6 @@ a nonstatic member function, P1 is the type of this.)
                                           IDL_DO_NOT_ADD_TO_NONREAL_CLASS);
     rvoid_sym = look_up_name_string_in_class("return_void", promise_type,
                                              IDL_DO_NOT_ADD_TO_NONREAL_CLASS);
-    if (rv_sym != NULL) {
-      check_assertion(is_function_or_template_symbol(rv_sym));
-      a_type_ptr rout_type = skip_typerefs(func_sym_routine(rv_sym)->type);
-      a_type_ptr return_type =
-                         skip_typerefs(rout_type->variant.routine.return_type);
-      if (!is_void_type(return_type)) {
-        pos_sy_error(ec_promise_type_returns_return_void,
-                     &rv_sym->decl_position, rv_sym);
-      }  /* if */
-    }  /* if */
-    if (rvoid_sym != NULL) {
-      check_assertion(is_function_or_template_symbol(rvoid_sym));
-      a_type_ptr rout_type = skip_typerefs(func_sym_routine(rvoid_sym)->type);
-      a_type_ptr return_type =
-                         skip_typerefs(rout_type->variant.routine.return_type);
-      if (!is_void_type(return_type)) {
-        pos_sy_error(ec_promise_type_returns_return_void,
-                     &rvoid_sym->decl_position, rvoid_sym);
-      }  /* if */
-    }  /* if */
     if (rv_sym != NULL && rvoid_sym != NULL) {
       a_diagnostic_ptr dp;
       dp = pos_ty_start_error(ec_no_return_value_and_return_void,

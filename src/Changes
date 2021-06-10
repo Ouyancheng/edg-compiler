@@ -1,5 +1,13 @@
 Version 6.3
 
+6/9/21   [EDGcpfe/23094]
+Coroutine promise type with overloaded return_value member functions
+
+In cases in which a coroutine promise type has overloaded return_value
+member functions, the front end could abort with a segfault.  This is now
+fixed.
+
+
 6/9/21   [EDGcpfe/24404]
 Performance with large multi-line raw string literals
 

@@ -45607,6 +45607,15 @@ This routine frees alep.
                              (a_template_arg_ptr)NULL, alep,
                              &selector_operand, &call_operand);
   result = make_node_from_operand(&call_operand);
+  if (!is_yield && !is_void_type(result->type)) {
+    /* The call to return_value or return_void must have a void type. */
+    an_expr_node_ptr callee = result->variant.operation.operands;
+    a_symbol_ptr     sym;
+    check_assertion(is_routine_node(callee));
+    sym = symbol_for(node_routine(callee));
+    pos_sy_error(ec_promise_type_returns_return_void, &sym->decl_position,
+                 sym);
+  }  /* if */
   if (void_expr != NULL) {
     result = make_comma_node(void_expr, result);
   }  /* if */
