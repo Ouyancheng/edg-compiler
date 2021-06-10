@@ -10,6 +10,11 @@ __try, __except, etc. for GCC; __noop, __event, etc. for Clang).  This is now
 fixed, and the front end now only adds the keywords supported by the respective
 compiler when --ms_extensions is specified.
 
+Notable exceptions include the following keywords in Clang mode (these keywords
+are not supported by Clang with -fms-extensions specified, but we will continue
+to support them in Clang mode with --ms_extensions specified per prior customer
+request): __w64, __int16, __int64, and __unaligned.
+
 
 6/9/21   [EDGcpfe/23094]
 Coroutine promise type with overloaded return_value member functions
