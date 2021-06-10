@@ -45607,7 +45607,7 @@ This routine frees alep.
                              (a_template_arg_ptr)NULL, alep,
                              &selector_operand, &call_operand);
   result = make_node_from_operand(&call_operand);
-  if (!is_yield && !is_void_type(result->type)) {
+  if (!is_yield && !is_error_node(result) && !is_void_type(result->type)) {
     /* The call to return_value or return_void must have a void type. */
     an_expr_node_ptr callee = result->variant.operation.operands;
     a_symbol_ptr     sym;
