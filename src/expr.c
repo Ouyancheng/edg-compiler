@@ -45610,11 +45610,17 @@ This routine frees alep.
   if (!is_yield && !is_error_node(result) && !is_void_type(result->type)) {
     /* The call to return_value or return_void must have a void type. */
     an_expr_node_ptr callee = result->variant.operation.operands;
-    a_symbol_ptr     sym;
-    check_assertion(is_routine_node(callee));
-    sym = symbol_for(node_routine(callee));
-    pos_sy_error(ec_promise_type_returns_return_void, &sym->decl_position,
-                 sym);
+    if (is_routine_node(callee)) {
+      a_symbol_ptr sym = symbol_for(node_routine(callee));
+      pos_sy_error(ec_promise_type_returns_return_void, &sym->decl_position,
+                   sym);
+    } else if (is_constant_node(callee) &&
+               constant_is(node_constant(callee), ck_template_param) &&
+               tpck_is(node_constant(callee), tpck_member)) {
+      /* Do not report an error for a member of a nonreal promise type. */
+    } else {
+      unexpected_condition();
+    }  /* if */
   }  /* if */
   if (void_expr != NULL) {
     result = make_comma_node(void_expr, result);
