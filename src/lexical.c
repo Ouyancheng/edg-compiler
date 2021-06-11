@@ -10959,7 +10959,7 @@ start_of_raw_string_delimiter is not used.
 */
 {
   an_orig_line_modif_ptr     olmp;
-  an_orig_line_modif_ptr     prev_olmp = NULL;
+  an_orig_line_modif_ptr     prev_olmp = end_orig_line_modif_list;
   a_boolean                  result = FALSE;
   a_const_char               *delim_ptr;
   a_pointer_registration     delim_ptr_reg;
