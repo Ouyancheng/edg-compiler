@@ -4,16 +4,22 @@ Version 6.3
 Properly emulate supported keywords of -fms-extensions
 
 Previously, in both GNU and Clang mode when specifying --ms_extensions to
-emulate -fms-extensions, the front end recognized a number of Microsoft
-specific keywords that are not recognized by the emulated compiler (e.g.,
-__try, __except, etc. for GCC; __noop, __event, etc. for Clang).  This is now
-fixed, and the front end now only adds the keywords supported by the respective
-compiler when --ms_extensions is specified.
+emulate -fms-extensions, the front end recognized a number of
+Microsoft-specific keywords that are not recognized by the emulated compiler
+(e.g., __try, __except, etc. for GCC; __clrcall, __event, etc. for Clang).
+This is now fixed, and the front end now only adds the keywords supported by
+the respective compiler when --ms_extensions is specified.
 
-Notable exceptions include the following keywords in Clang mode (these keywords
-are not supported by Clang with -fms-extensions specified, but we will continue
-to support them in Clang mode with --ms_extensions specified per prior customer
-request): __w64, __int16, __int64, and __unaligned.
+There are some notable exceptions where GCC and Clang implement a
+Microsoft-specific language extension without the use of a keyword.  Until we
+can reevaluate this decision, we will continue to support these language
+features as keywords when --ms_extensions is specified.
+
+The specific keywords for GCC mode are: __if_exists, __if_not_exists, and
+__declspec.
+
+The specific keywords for Clang mode are: __assume, __noop, __except, __w64,
+__int16, __int64, and __unaligned.
 
 
 6/9/21   [EDGcpfe/23094]

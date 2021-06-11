@@ -995,23 +995,23 @@ Install the keywords in the symbol table.
   enter_keyword((a_token_kind)tok_pretty_function_name, "__PRETTY_FUNCTION__");
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (ms_extensions && (!gnu_mode || clang_mode)) {
-    /* Enter keywords that are Microsoft "extensions", i.e., those that
-       clang recognizes in -fms-extensions mode.
+    /* Enter keywords that are Microsoft "extensions", i.e., those that MSVC
+       recognizes by default, and Clang recognizes in -fms-extensions mode.
 
-       This logic is only valid for non-GNU modes, as GCC does not implement
-       any of these keywords in their implementation of -fms-extensions (though
-       __align_of and __inline appear for other reasons).
+       This specific branch is only valid for non-GNU modes, as GCC does not
+       implement any of these keywords in their implementation of
+       -fms-extensions (though __align_of and __inline appear for other
+       reasons).  That said, there are a small number of keywords that are
+       supported in Microsoft, GNU, and Clang mode that are handled in a branch
+       following this one.
 
        Note that as Clang mode is based off of GNU mode, we must explicitly
-       allow Clang here. */
+       allow Clang to enter this branch. */
     if (!clang_mode) {
       /* The following keywords are only valid in Microsoft mode (or when the
          front end is not running under Microsoft mode, but has support enabled
          for ms_extensions), and have not been implemented by clang. */
-      enter_underscore_keywords((a_token_kind)tok_except, "__except");
       enter_keyword((a_token_kind)tok_clrcall, "__clrcall");
-      enter_underscore_keywords((a_token_kind)tok_assume, "__assume");
-      enter_keyword((a_token_kind)tok_noop, "__noop");
       if (C_dialect == C_dialect_cplusplus) {
         enter_keyword((a_token_kind)tok_event, "__event");
       }  /* if */
@@ -1027,14 +1027,15 @@ Install the keywords in the symbol table.
     enter_underscore_keywords((a_token_kind)tok_microsoft_try, "__try");
     enter_underscore_keywords((a_token_kind)tok_finally, "__finally");
     enter_underscore_keywords((a_token_kind)tok_leave, "__leave");
+    enter_underscore_keywords((a_token_kind)tok_except, "__except");
     enter_underscore_keywords((a_token_kind)tok_cdecl, "__cdecl");
-    enter_underscore_keywords((a_token_kind)tok_declspec, "__declspec");
     enter_underscore_keywords((a_token_kind)tok_fastcall, "__fastcall");
     enter_underscore_keywords((a_token_kind)tok_stdcall, "__stdcall");
     enter_keyword((a_token_kind)tok_thiscall, "__thiscall");
     enter_underscore_keywords((a_token_kind)tok_vectorcall, "__vectorcall");
     enter_underscore_keywords((a_token_kind)tok_microsoft_inline, "__inline");
     enter_underscore_keywords((a_token_kind)tok_forceinline, "__forceinline");
+    enter_underscore_keywords((a_token_kind)tok_assume, "__assume");
     enter_keyword((a_token_kind)tok_unaligned, "__unaligned");
     enter_underscore_keywords((a_token_kind)tok_ext_alignof, "__alignof");
     enter_keyword((a_token_kind)tok_ext_alignof, "__builtin_alignof");
@@ -1056,20 +1057,19 @@ Install the keywords in the symbol table.
       /* There is a 64 bit target integer kind to which __int64 can map. */
       enter_underscore_keywords((a_token_kind)tok_int64, "__int64");
     }  /* if */
-    /* __w64 is enabled even when 64-bit pointer extensions are not enabled
-       because it is useful for diagnosing porting problems in 32-bit-only
-       code. */
-    enter_underscore_keywords((a_token_kind)tok_microsoft_w64, "__w64");
     if (microsoft_64bit_pointer_extensions_enabled) {
       enter_underscore_keywords((a_token_kind)tok_microsoft_ptr32, "__ptr32");
       enter_underscore_keywords((a_token_kind)tok_microsoft_ptr64, "__ptr64");
       enter_underscore_keywords((a_token_kind)tok_microsoft_sptr, "__sptr");
       enter_underscore_keywords((a_token_kind)tok_microsoft_uptr, "__uptr");
     }  /* if */
+    /* __w64 is enabled even when 64-bit pointer extensions are not enabled
+       because it is useful for diagnosing porting problems in 32-bit-only
+       code. */
+    enter_underscore_keywords((a_token_kind)tok_microsoft_w64, "__w64");
+    enter_keyword((a_token_kind)tok_noop, "__noop");
     if (C_dialect == C_dialect_cplusplus) {
       enter_underscore_keywords((a_token_kind)tok_uuidof, "__uuidof");
-      enter_keyword((a_token_kind)tok_if_exists, "__if_exists");
-      enter_keyword((a_token_kind)tok_if_not_exists, "__if_not_exists");
       enter_keyword((a_token_kind)tok_super, "__super");
       enter_keyword((a_token_kind)tok_interface, "__interface");
     }  /* if */
@@ -1084,6 +1084,16 @@ Install the keywords in the symbol table.
       enter_keyword((a_token_kind)tok_native_nullptr, "__nullptr");
     }  /* if */
   }  /* if */
+  if (ms_extensions) {
+    /* Enter keywords that are Microsoft "extensions", i.e., those that MSVC
+       recognizes by default, and that GCC as well as Clang recognizes in
+       their respective -fms-extensions mode. */
+    enter_underscore_keywords((a_token_kind)tok_declspec, "__declspec");
+    if (C_dialect == C_dialect_cplusplus) {
+      enter_keyword((a_token_kind)tok_if_exists, "__if_exists");
+      enter_keyword((a_token_kind)tok_if_not_exists, "__if_not_exists");
+    }  /* if */
+  }
   if (microsoft_mode) {
     /* Enter Microsoft-specific keywords that aren't recognized in clang's
        -fms-extensions mode. */
