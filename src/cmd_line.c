@@ -3654,7 +3654,7 @@ setting is used, and to set various unmentioned settings as needed.
 static void check_and_set_default_cpp_standard_version(void)
 /*
 This routine is called in C++ mode to set the default C++ standard version
-taking int account any compiler emulation and the version of the emulation.
+taking into account any compiler emulation and the version of the emulation.
 */
 {
   if (!cpp_mode_specified()) {
