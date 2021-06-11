@@ -2666,7 +2666,7 @@ extern a_boolean accum_quoted_string(
                   char                          quoting_char,
                   a_const_char                  *start_of_raw_string_delimiter,
                   int                           raw_string_delimiter_len,
-                  an_orig_line_modif_ptr        *p_last_olmp = NULL);
+                  an_orig_line_modif_ptr        last_olmp = NULL);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean is_valid_GUID_string(a_const_char  *str,
