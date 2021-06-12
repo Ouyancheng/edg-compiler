@@ -33,9 +33,9 @@ fixed.
 6/9/21   [EDGcpfe/24404]
 Performance with large multi-line raw string literals
 
-A change has been made to the front end to improve the performance of the
-front end when processing multi-line raw string literals.  For very large
-literals (containing tens of thousands of lines), the improvement could be
+A change has been made to improve the performance of the front end when
+processing multi-line raw string literals.  For very large literals
+(containing tens of thousands of lines), the improvement could be
 significant.
 
 
