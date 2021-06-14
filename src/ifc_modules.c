@@ -466,7 +466,7 @@ For example, when "name" is "foo", this routine effectively boils down to:
   {
     if (targ_little_endian == host_little_endian) {
       if (fill_storage) {
-        memcpy(ptr, byte_buffer, sizeof(an_ifc_foo);
+        memcpy(ptr, byte_buffer, sizeof(an_ifc_foo));
       } else {
         ptr = (an_ifc_foo*)byte_buffer;
       }
