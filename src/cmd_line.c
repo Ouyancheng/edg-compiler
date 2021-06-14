@@ -3683,7 +3683,7 @@ taking into account any compiler emulation and the version of the emulation.
       std_version = DEFAULT_CPP_MODE;
     }  /* if */
   }  /* if */
-}
+}  /* check_and_set_default_cpp_standard_version */
 
 
 static void check_and_set_cpp11_mode_options(a_boolean value)
