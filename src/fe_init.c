@@ -1086,8 +1086,8 @@ Install the keywords in the symbol table.
   }  /* if */
   if (ms_extensions) {
     /* Enter keywords that are Microsoft "extensions", i.e., those that MSVC
-       recognizes by default, and that GCC as well as Clang recognizes in
-       their respective -fms-extensions mode. */
+       recognizes by default, and that GCC as well as Clang recognize in their
+       respective -fms-extensions modes. */
     enter_underscore_keywords((a_token_kind)tok_declspec, "__declspec");
     if (C_dialect == C_dialect_cplusplus) {
       enter_keyword((a_token_kind)tok_if_exists, "__if_exists");
