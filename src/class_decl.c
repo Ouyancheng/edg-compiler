@@ -24148,6 +24148,10 @@ constructor.
       if (brp->is_explicit_constructor) {
         new_rp->is_explicit_constructor = TRUE;
       }  /* if */
+      if (brp->is_initializer_list_ctor) {
+        new_rp->is_initializer_list_ctor = TRUE;
+        class_type_supp(cdsp->class_type)->has_initializer_list_ctor = TRUE;
+      }  /* if */
       /* This may be a member function of a template class - copy the needed
          bits to ensure we can do things like instantiate default arguments. */
       new_rp->assoc_template = brp->assoc_template;

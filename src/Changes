@@ -1,5 +1,25 @@
 Version 6.3
 
+6/15/21  [EDGcpfe/24417,EDGcpfe/24423]
+Inheriting initializer-list constructors
+
+The front end previously failed to mark inheriting constructors that have
+std::initializer_list parameters as being initializer-list constructors and
+their classes as having an initializer-list constructor.  After the changes
+for EDGcpfe/24210, this omission resulted in incorrect overload resolution
+when an inherited initializer-list constructor in a class template has a
+default argument.  This is now fixed.  For example, with --c++11:
+
+  #include <initializer_list>
+  template <typename T> struct B {
+    B(std::initializer_list<T>, int = 1);
+  };
+  template <class T> struct D : public B<T> {
+    using B<T>::B;
+  };
+  D<int> di{0};  // Previously an error, "no instance of constructor matches"
+
+
 6/10/21  [EDGcpfe/24385]
 Properly emulate supported keywords of -fms-extensions
 
