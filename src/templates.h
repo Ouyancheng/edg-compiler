@@ -489,11 +489,12 @@ extern void add_to_partial_order_candidates_list(
 			a_template_arg_ptr		templ_arg_list);
 
 extern void select_best_partial_order_candidate(
-			a_partial_order_candidate_ptr	psc_list,
-			a_symbol_ptr			instance_sym,
-			a_symbol_ptr			*best_sym,
-			a_template_arg_ptr		*best_arg_list,
-			a_boolean			*p_ambiguous);
+                        a_partial_order_candidate_ptr  psc_list,
+                        a_symbol_ptr                   instance_sym,
+                        a_symbol_ptr                   *best_sym,
+                        a_template_arg_ptr             *best_arg_list,
+                        a_boolean                      *p_ambiguous,
+                        a_boolean                      no_diagnostics = FALSE);
 
 extern
 a_template_cache_ptr cache_for_template(a_template_symbol_supplement_ptr tssp);
@@ -900,7 +901,8 @@ extern void check_for_uninstantiated_template_class(a_type_ptr  type);
 extern
 void complete_template_variable_type_is_needed(a_variable_ptr vp);
 
-extern void f_instantiate_template_class(a_type_ptr  type);
+extern void f_instantiate_template_class(a_type_ptr  type,
+                                         a_boolean   *p_error = NULL);
 
 extern void instantiate_template_enum(a_type_ptr		enum_type);
 
@@ -1278,14 +1280,19 @@ EXTERN a_boolean
 #endif /* ENSURE_LOWERED_TYPE_LIST_ORDERING */
 
 
-/* tp is a class type.  If it is incomplete, see if it is a template class in
-   need of instantiation and, if so, instantiate it. */
-#define instantiate_template_class(tp)                                  \
-{								        \
-  if (is_incomplete_type(tp) && is_class_struct_union_type(tp)) {	\
-    f_instantiate_template_class(tp);					\
-  }  /* if */							        \
-}
+inline void instantiate_template_class(a_type_ptr  tp,
+                                       a_boolean   *p_subst_error = NULL)
+/*
+tp is a class type.  If it is incomplete, see if it is a template class in
+need of instantiation and, if so, instantiate it.  If p_subst_error is non-NULL
+and an error occurs during partial specialization selection, *p_subst_error is
+set to TRUE.
+*/
+{
+  if (is_incomplete_type(tp) && is_class_struct_union_type(tp)) {
+    f_instantiate_template_class(tp, p_subst_error);
+  }  /* if */
+}  /* instantiate_template_class */
 
 /*
 Return TRUE if there have been any exported templates defined in the current

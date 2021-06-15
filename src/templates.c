@@ -4190,18 +4190,19 @@ templates being ordered are class or variable template partial specializations.
 
 
 void select_best_partial_order_candidate(
-			a_partial_order_candidate_ptr	psc_list,
-			a_symbol_ptr			instance_sym,
-			a_symbol_ptr			*best_sym,
-			a_template_arg_ptr		*best_arg_list,
-			a_boolean			*p_ambiguous)
+                        a_partial_order_candidate_ptr  psc_list,
+                        a_symbol_ptr                   instance_sym,
+                        a_symbol_ptr                   *best_sym,
+                        a_template_arg_ptr             *best_arg_list,
+                        a_boolean                      *p_ambiguous,
+       /* Defaulted: */ a_boolean                      no_diagnostics)
 /*
-Return the best partial specialization symbol and its associated
-template argument list.  There should only be one entry
-left on the list, unless there is an ambiguity.  Return the first
-entry on the list.  If there are multiple entries, issue an error
-if the candidates are partial specializations, and set *p_ambiguous
-to TRUE.
+Return the best partial specialization symbol and its associated template
+argument list.  There should only be one entry left on the list, unless there
+is an ambiguity.  Return the first entry on the list.  If there are multiple
+entries, issue an error if the candidates are partial specializations, and set
+*p_ambiguous to TRUE if p_ambiguous is non-NULL.  If no_diagnostics is TRUE (it
+is FALSE by default), do not issue the diagnostic.
 */
 {
   a_partial_order_candidate_ptr	pscp;
@@ -4251,7 +4252,7 @@ to TRUE.
     /* There is more than one entry on the list -- issue an error if the
        entries are partial specializations. */
     ambiguous = TRUE;
-    if ((*best_sym)->kind == (a_symbol_kind)sk_class_template) {
+    if (symbol_is(*best_sym, sk_class_template) && !no_diagnostics) {
       a_diagnostic_ptr dp;
       dp = pos_sy_start_error(ec_ambiguous_partial_spec, &error_position,
                               instance_sym);
@@ -4280,13 +4281,15 @@ to TRUE.
 
 static a_symbol_ptr check_partial_specializations(
 				a_symbol_ptr		instance_sym,
-				a_symbol_ptr		template_sym)
+				a_symbol_ptr		template_sym,
+				a_boolean		*p_subst_error = NULL)
 /*
 instance_sym identifies a template class or variable that is about to be
 instantiated.  template_sym points to the primary template on which the
 instantiation will be based.  If a matching partial specialization is found,
 return the symbol associated with that partial specialization; otherwise
-return NULL.
+return NULL.  If p_subst_error is non-NULL and the partial specializations are
+ambiguous, set *p_subst_error = TRUE and inhibit the ambiguity diagnostic.
 */
 {
   a_template_symbol_supplement_ptr	tssp;
@@ -4315,10 +4318,10 @@ return NULL.
        the template argument list with respect to the partial
        specialization.  If more than one match was found, this routine
        will report the ambiguity. */
-    select_best_partial_order_candidate(candidate_list, instance_sym,
-                                        &matching_sym,
-                                        p_partial_spec_arg_list,
-                                        (a_boolean*)NULL);
+    select_best_partial_order_candidate(
+                                  candidate_list, instance_sym, &matching_sym,
+                                  p_partial_spec_arg_list, p_subst_error,
+                                  /*no_diagnostics=*/p_subst_error != NULL);
   }  /* if */
 #if DEBUG
   if (db_flag_is_set("partial_ord") && matching_sym != NULL) {
@@ -4855,7 +4858,8 @@ metadata, if needed.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-void f_instantiate_template_class(a_type_ptr  class_type)
+void f_instantiate_template_class(a_type_ptr  class_type,
+                 /* Defaulted: */ a_boolean   *p_subst_error)
 /*
 class_type is an incomplete class type.  If it is an instance of a class
 template, perform a full instantiation of it.  This entails rescanning the
@@ -4865,6 +4869,9 @@ and the class body (from opening left brace through closing right brace).
 The template arguments (the real values which the template parameters take
 on) have been recorded in class_type and will be substituted for the
 template parameters when the instantiation scope is pushed.
+
+If p_subst_error is non-NULL and an error occurs during partial specialization
+selection, *p_subst_error is set to TRUE and the class type is left incomplete.
 
 This routine should be called from macro instantiate_template_class,
 which determines that class_type is an incomplete type.  If it also turns
@@ -4954,20 +4961,22 @@ be completed here.
     instantiate_cli_generic_delegate(class_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
-    a_template_cache_ptr	body_cache;
-    a_boolean			trans_unit_pushed;
+    a_template_cache_ptr	   body_cache;
+    a_boolean			   trans_unit_pushed;
     /* The instantiation process may rescan various things and invalidate the
        current token positions as a result.  Save these positions so that they
        may be restored when we are done. */
-    a_source_position		saved_pos_curr_token, saved_error_position;
+    a_source_position		   saved_pos_curr_token, saved_error_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    a_source_position		saved_curr_construct_end_position;
+    a_source_position		   saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    a_constant			saved_const_for_curr_token,
-				saved_const_with_curr_tok_spelling;
-    a_symbol_ptr		prototype_instantiation_sym;
+    a_constant			   saved_const_for_curr_token,
+				   saved_const_with_curr_tok_spelling;
+    a_symbol_ptr		   prototype_instantiation_sym;
 #if GNU_EXTENSIONS_ALLOWED
     a_gcc_pragma_options_entry_ptr save_gcc_pragma_options_stack;
+    a_template_symbol_supplement_ptr
+                                   orig_tssp = tssp;
     /* If any "GCC pragma" options are in effect, disable them (the pragmas
        that were in effect during the prototype instantiation are used rather
        than the pragmas that are in effect during the real instantiation). */
@@ -4985,8 +4994,8 @@ be completed here.
         saved_const_with_curr_tok_spelling = const_with_curr_tok_spelling;
       }  /* if */
     }  /* if */
-    if (class_type->variant.class_struct_union.
-                                            is_ms_instantiated_nonreal_class) {
+    if (class_type->variant.class_struct_union
+                           .is_ms_instantiated_nonreal_class) {
       /* For a Microsoft instantiated nonreal class, indicate that this is
          a nonreal instantiation context. */
       ps_options |= PS_NONREAL_INSTANTIATION;
@@ -4997,9 +5006,6 @@ be completed here.
     if (tssp->is_specific_definition) ps_options |= PS_IS_SPECIALIZATION;
     /* Switch to the translation unit containing the template, if needed. */
     trans_unit_pushed = push_translation_unit_if_needed(template_sym);
-    /* Indicate that this template has been used for the purpose of
-       generating a full instantiation.  */
-    tssp->variant.class_template.any_full_instantiations = TRUE;
     /* Check whether this particular instance should be generated from a
        partial specialization.  This is only done for class templates, not
        normal nested classes of class templates. */
@@ -5007,7 +5013,7 @@ be completed here.
         tssp->partial_specializations != NULL) {
       a_symbol_ptr		partial_spec_sym;
       partial_spec_sym = check_partial_specializations(
-                                                   instance_sym, template_sym);
+                                    instance_sym, template_sym, p_subst_error);
       if (partial_spec_sym != NULL) {
         template_sym = partial_spec_sym;
         tssp = template_supplement_for_symbol(template_sym);
@@ -5022,6 +5028,11 @@ be completed here.
     body_cache = cache_for_template(tssp_of_prototype);
     /* There is a class template from which to generate this class and it is
        a real instantiation. */
+    if (p_subst_error == NULL || !*p_subst_error) {
+      /* Indicate that this template has been used for the purpose of
+         generating a full instantiation.  */
+      orig_tssp->variant.class_template.any_full_instantiations = TRUE;
+    }  /* if */
     /* Update the class symbol supplement pointer that points to the
        prototype instantiation.  Instances of a class template can sometimes
        be created before this is known.  Furthermore, even if it was set
@@ -14794,10 +14805,30 @@ the symbol from the original parent type.  is_type is TRUE if the entity
 being looked up is known to be a type.
 */
 {
-  a_type_ptr			conv_type;
-  a_symbol_ptr			new_sym = NULL;
+  a_type_ptr    conv_type;
+  a_symbol_ptr  new_sym = NULL;
+  a_boolean     *p_copy_error = NULL;
 
-  complete_class_type_is_needed(parent_type);
+  if (ms_version_is(<1929) || clang_version_is(<130000)) {
+    /* Clang and MSVC have very similar bugs that appear to handle ambiguous
+       partial specializations as deduction failures (i.e., they're treated in
+       the immediate context of the deduction).  We know they are bugs because
+       subsequent misuses of the named type are not diagnosed.  For example:
+         template<typename T, typename U> struct S {};
+         template<typename T> struct S<T, T> {};
+         template<typename T, typename U> struct S<T*, U*> {};
+         template<typename ... Ts> using V = void;
+         template<typename T, typename U = void> struct X {};
+         template<typename T> struct X<T, V<typename S<T, T>::type>>;
+         X<int*> xpi;  // Should be an error, but Clang and MSVC accept.
+         S<int*, int*>::undefined u = "hello";
+                       // Clang and MSVC still accept even though "undefined"
+                       // appears nowhere.
+       We only emulate the deduction failure part. */
+    p_copy_error = copy_error;
+  }  /* if */
+  complete_class_type_is_needed(parent_type, p_copy_error);
+  if (*copy_error) goto done;
   /* Determine whether orig_sym is an unknown conversion function symbol.
      If so, get its type. */
   conv_type = type_if_unknown_conversion_function_symbol(orig_sym);
@@ -14881,6 +14912,7 @@ being looked up is known to be a type.
       }  /* if */
     }  /* if */
   }  /* if */
+done:
   return new_sym;
 }  /* look_up_member_in_substituted_parent */
 

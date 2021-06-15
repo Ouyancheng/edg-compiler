@@ -220,18 +220,23 @@ extern void symbol_ref_one_time_init(void);
    pointer tp that is passed in need not be a class type.) */
 #define record_complete_class_type_needed(tp)  /* Nothing */
 
-/* tp is a class type.  This is a context in which a type is required to be
-   complete, so if tp is incomplete see if it is a template class that can
-   be instantiated.  Issuing a diagnostic on an incomplete type is done
-   separately.  Also (if appropriate for the implementation) record that the
-   class was required to be complete in the current context. */
-#define complete_class_type_is_needed(tp)                               \
-{                                                                       \
-  if (C_dialect == C_dialect_cplusplus) {                               \
-    instantiate_template_class(tp);                                     \
-  }  /* if */                                                           \
-  record_complete_class_type_needed(tp);                                \
-}
+inline void complete_class_type_is_needed(a_type_ptr  tp,
+                                          a_boolean   *p_subst_error = NULL)
+/*
+tp is a class type.  This is a context in which a type is required to be
+complete, so if tp is incomplete see if it is a template class that can be
+instantiated.  Issuing a diagnostic on an incomplete type is done separately.
+Also (if appropriate for the implementation) record that the class was
+required to be complete in the current context.  If p_subst_error is non-NULL
+and an error occurs during partial specialization selection, *p_subst_error is
+set to TRUE.
+*/
+{
+  if (!C_mode()) {
+    instantiate_template_class(tp, p_subst_error);
+  }  /* if */
+  record_complete_class_type_needed(tp);
+}  /* complete_class_type_is_needed */
 
 inline void complete_type_is_needed(a_type_ptr  tp)
 /*
