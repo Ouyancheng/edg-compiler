@@ -47,21 +47,12 @@ behavior, and GNU C++ mode with gnu_version >= 110000 now defaults to C++17.
 
 
 6/8/21   [EDGcpfe/24359]
-MS Compatibility: Support "msvc" standard-notation attributes
+MS Compatibility: Support "msvc" attribute namespace
 
-Consider:
-
-  struct C {
-    [[msvc::noop_dtor]] ~C() { }
-  };
-
-  struct [[msvc::known_semantics]] C {
-  };
-
-Previously, in Microsoft C++ modes standard-notation attributes "noop_dtor" and
-"known_semantics" within the "msvc" attribute namespace were not recognized.
-This is now fixed.  "noop_dtor" is now recognized with microsoft_version >=
-1928 and "known_semantics" is now recognized with microsoft_version >= 1927.
+The "msvc" attribute namespace is now recognized.  In addition, the front end
+now recognizes (and does no further processing for) the "known_semantics" (when
+microsoft_version >= 1927) and "noop_dtor" (when microsoft_version >= 1928)
+attributes within that namespace.
 
 
 6/4/21   [EDGcpfe/23670]
