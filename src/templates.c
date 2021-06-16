@@ -4973,10 +4973,10 @@ be completed here.
     a_constant			   saved_const_for_curr_token,
 				   saved_const_with_curr_tok_spelling;
     a_symbol_ptr		   prototype_instantiation_sym;
-#if GNU_EXTENSIONS_ALLOWED
-    a_gcc_pragma_options_entry_ptr save_gcc_pragma_options_stack;
     a_template_symbol_supplement_ptr
                                    orig_tssp = tssp;
+#if GNU_EXTENSIONS_ALLOWED
+    a_gcc_pragma_options_entry_ptr save_gcc_pragma_options_stack;
     /* If any "GCC pragma" options are in effect, disable them (the pragmas
        that were in effect during the prototype instantiation are used rather
        than the pragmas that are in effect during the real instantiation). */
