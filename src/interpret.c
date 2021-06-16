@@ -154,18 +154,24 @@ of the value of that object.  The prefix has the following components in order:
   init_bits[n-1]
   ...
   init_bits[0]
-  init_flag
+  object_flags
   type_ptr
   (data representation starts here)
 
 Given a data pointer, traversing the prefix backwards provides the type of the
-complete object (type_ptr), a byte (init_flag) that is zero until the object
-is fully initialized, and, for class and array objects, bit sets indicating
-whether a given offset in the data representation has been initialized.  Note
-that only one bit is set per scalar entity.  For example, if integers are
-represented using eight bytes and the leading entry of an array is initialized,
-then bit 0 of init_bits[0] will be set, but bits 1 through 7 will remain
-unchanged even though their corresponding bytes have valid values.
+complete object (type_ptr), a byte (object_flags) that tracks some properties
+of the complete object (see below), and, for class and array objects, bit sets
+indicating whether a given offset in the data representation has been
+initialized.  Note that only one bit is set per scalar entity.  For example,
+if integers are represented using eight bytes and the leading entry of an
+array is initialized, then bit 0 of init_bits[0] will be set, but bits 1
+through 7 will remain unchanged even though their corresponding bytes have
+valid values.  Currently, object_flags has two flags:
+  0x01: Set when the complete object has been initialized (mainly used
+        for non-aggregate objects).
+  0x02: Set when the complete object has been dynamically allocated.
+        In that case, the recorded type (type_ptr) of the complete object
+        is actually the element type.
 
 The representation of variables (including parameters) also has a "postfix"
 block that includes (a) an allocation sequence number that describes its
@@ -304,6 +310,21 @@ request larger chunks are handled in terms of individual calls to alloc_general
 (and are freed by a call to free_general).
 */
 #define CONSTEXPR_STACK_ALLOC_LIMIT (1<<10)
+
+/*
+The complete object flag values.
+*/
+#define COMPLETE_OBJ_INITIALIZED ((a_byte)0x01)
+#define COMPLETE_OBJ_DYN_ALLOC   ((a_byte)0x02)
+
+#define set_complete_obj_flag(obj, flag)                                     \
+  (*((a_byte*)obj-sizeof(a_type_ptr)-1) |= flag)
+
+#define clear_complete_obj_flag(obj, flag)                                   \
+  (*((a_byte*)obj-sizeof(a_type_ptr)-1) &= ~flag)
+
+#define complete_obj_flag(obj, flag)                                         \
+  ((*((a_byte*)(obj)-sizeof(a_type_ptr)-1) & flag) != 0)
 
 /*
 Structure describing a destruction to be performed.  A storage stack state
@@ -3563,7 +3584,7 @@ done:;
 Return TRUE if the given complete object is fully initialized.
 */
 #define complete_object_is_initialized(complete_object)                      \
-  (*((complete_object)-sizeof(a_type_ptr)-1) != 0)
+  complete_obj_flag(complete_object, COMPLETE_OBJ_INITIALIZED)
 
 
 /*
@@ -3612,10 +3633,22 @@ interpreter storage.
   } else {
     a_byte*     parent_addr = cap1->complete_object;
     a_type_ptr  parent_type = complete_object_type(parent_addr);
+    a_boolean   check_dyn_alloc = TRUE;
     for (;;) {
+      a_type_ptr  etp = NULL;
       if (parent_type->kind == (a_type_kind)tk_array) {
-        a_type_ptr    etp = skip_typerefs(
-                                     parent_type->variant.array.element_type);
+        etp = skip_typerefs(parent_type->variant.array.element_type);
+      } else if (complete_obj_flag(parent_addr, COMPLETE_OBJ_DYN_ALLOC) &&
+                 check_dyn_alloc) {
+        /* If the complete object was dynamically allocated, the recorded
+           complete object is actually the allocated element type.  Treat it
+           as an array on this first iteration. */
+        etp = parent_type;
+        check_dyn_alloc = FALSE;
+      }  /* if */
+      if (etp != NULL) {
+        /* The case of an array, or of a dynamically-allocated object (always
+           treated as an array the first time around). */
         a_byte_count  esize, idx1, idx2;
         a_boolean     dummy_result = TRUE;
         esize = value_bytes_for_type(ips, etp, &dummy_result);
@@ -3635,6 +3668,12 @@ interpreter storage.
         a_field_ptr  fp1, fp2;
         a_base_class_ptr  bcp1, bcp2;
         a_byte_count      offset;
+        if (cap1->address == parent_addr || cap2->address == parent_addr) {
+          /* At least one of the addresses is that of a class object and the
+             other is pointing at or within that same object. */
+          comparable = TRUE;
+          break;
+        }  /* if */
         find_subobject_for_interpreter_address(ips, cap1, parent_addr,
                                                parent_type, &fp1, &bcp1);
         find_subobject_for_interpreter_address(ips, cap2, parent_addr,
@@ -4042,13 +4081,13 @@ Trigger an internal error if the given path contains a cycle.
 Mark the complete object at the given address as fully initialized.
 */
 #define mark_complete_object_initialized(obj)                                \
-  (*((a_byte*)obj-sizeof(a_type_ptr)-1) = 1/*, db_complete_object(obj)*/)
+  set_complete_obj_flag(obj, COMPLETE_OBJ_INITIALIZED)
 
 /*
 Mark the complete object at the given address as not fully initialized.
 */
 #define unmark_complete_object_initialized(obj)                              \
-  (*((a_byte*)obj-sizeof(a_type_ptr)-1) = 0)
+  clear_complete_obj_flag(obj, COMPLETE_OBJ_INITIALIZED)
 
 
 static void make_anon_union_path(a_symbol_ptr              au_sym,
@@ -9090,6 +9129,7 @@ also return the interpreter size of the allocated elements in *p_elem_size.
   }  /* if */
   cap->alloc_seq_number = alloc_seq_number;
   *p_elem_size = elem_size;
+  *(cap->complete_object-sizeof(a_type_ptr)-1) |= COMPLETE_OBJ_DYN_ALLOC;
 done:
   return allocation;
 }  /* do_constexpr_dynamic_alloc */
@@ -9292,7 +9332,7 @@ already-evaluated arguments of the call.
                            callee->type, ips);
     goto done;
   }  /* if */
-  elem_tp = tap->variant.type;
+  elem_tp = skip_typerefs(tap->variant.type);
   if (!same_entities(allocation->elem_type, elem_tp)) {
     info_with_pos_type2(ec_constexpr_bad_deallocation_type,
                         &call_node->position, elem_tp, allocation->elem_type,
