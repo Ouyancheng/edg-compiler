@@ -1,5 +1,31 @@
 Version 6.3
 
+6/15/21  [EDGcpfe/24202]
+Microsoft and Clang C++ compatibility: Partial specializations in deductions
+
+Consider (in C++11 modes):
+
+  template<typename T, typename U> struct S {};
+  template<typename T> struct S<T, T> {};
+  template<typename T, typename U> struct S<T*, U*> {};
+  template<typename ... Ts> using V = void;
+  template<typename T, typename U = void> struct X {};
+  template<typename T> struct X<T, V<typename S<T, T>::type>>;
+  X<int*> xpi;  // Now accepted in Clang and Microsoft C++ modes.
+  S<int*, int*>::undefined u = "hello";
+                // Still an error.
+
+Clang and MSVC accept the code above.  The definition of xpi is normally an
+error because it requires resolving S<int*, int*> to a partial specialization
+but the partial specializations of S are ambiguous for these arguments.  Now,
+however, the front end treats that ambiguity as a deduction failure and thus
+the primary template of X is selected for X<int*>.  Clang and MSVC appear to
+essentially ignore the declaration of u after that, presumably due to an
+inconsistent internal state: The front end does not attempt to emulate that
+aspect of this example, and thus an error is still emitted for the declaration
+of u.
+
+
 6/15/21  [EDGcpfe/24417,EDGcpfe/24423]
 Inheriting initializer-list constructors
 

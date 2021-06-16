@@ -4195,14 +4195,14 @@ void select_best_partial_order_candidate(
                         a_symbol_ptr                   *best_sym,
                         a_template_arg_ptr             *best_arg_list,
                         a_boolean                      *p_ambiguous,
-       /* Defaulted: */ a_boolean                      no_diagnostics)
+      /* Defaulted: */  a_boolean                      no_diagnostics)
 /*
 Return the best partial specialization symbol and its associated template
 argument list.  There should only be one entry left on the list, unless there
 is an ambiguity.  Return the first entry on the list.  If there are multiple
-entries, issue an error if the candidates are partial specializations, and set
-*p_ambiguous to TRUE if p_ambiguous is non-NULL.  If no_diagnostics is TRUE (it
-is FALSE by default), do not issue the diagnostic.
+entries, issue an error if no_diagnostics is FALSE (the default value) and the
+candidates are partial specializations, and set *p_ambiguous to TRUE if
+p_ambiguous is non-NULL.
 */
 {
   a_partial_order_candidate_ptr	pscp;
@@ -4859,7 +4859,7 @@ metadata, if needed.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void f_instantiate_template_class(a_type_ptr  class_type,
-                 /* Defaulted: */ a_boolean   *p_subst_error)
+                /* Defaulted: */  a_boolean   *p_subst_error)
 /*
 class_type is an incomplete class type.  If it is an instance of a class
 template, perform a full instantiation of it.  This entails rescanning the
@@ -4870,8 +4870,9 @@ The template arguments (the real values which the template parameters take
 on) have been recorded in class_type and will be substituted for the
 template parameters when the instantiation scope is pushed.
 
-If p_subst_error is non-NULL and an error occurs during partial specialization
-selection, *p_subst_error is set to TRUE and the class type is left incomplete.
+If p_subst_error is non-NULL (it is NULL by default) and an error occurs
+during partial specialization selection, *p_subst_error is set to TRUE and the
+class type is left incomplete.
 
 This routine should be called from macro instantiate_template_class,
 which determines that class_type is an incomplete type.  If it also turns
@@ -4961,18 +4962,18 @@ be completed here.
     instantiate_cli_generic_delegate(class_type);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   } else {
-    a_template_cache_ptr	   body_cache;
-    a_boolean			   trans_unit_pushed;
+    a_template_cache_ptr           body_cache;
+    a_boolean                      trans_unit_pushed;
     /* The instantiation process may rescan various things and invalidate the
        current token positions as a result.  Save these positions so that they
        may be restored when we are done. */
-    a_source_position		   saved_pos_curr_token, saved_error_position;
+    a_source_position              saved_pos_curr_token, saved_error_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-    a_source_position		   saved_curr_construct_end_position;
+    a_source_position              saved_curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    a_constant			   saved_const_for_curr_token,
-				   saved_const_with_curr_tok_spelling;
-    a_symbol_ptr		   prototype_instantiation_sym;
+    a_constant                     saved_const_for_curr_token,
+                                   saved_const_with_curr_tok_spelling;
+    a_symbol_ptr                   prototype_instantiation_sym;
     a_template_symbol_supplement_ptr
                                    orig_tssp = tssp;
 #if GNU_EXTENSIONS_ALLOWED
