@@ -4947,7 +4947,7 @@ of the front end's target settings).
 */
 {
   a_targ_size_t        size;
-  a_targ_alignment     alignment;
+  a_targ_alignment     alignment = targ_alignof_pointer;
   a_type_ptr           class_type = pm_class_type(pm_type);
   an_inheritance_kind  inh_kind = class_type_supp(class_type)
                                                            ->inheritance_kind;
@@ -4965,7 +4965,8 @@ of the front end's target settings).
       case ihk_virtual:    size += 2*targ_sizeof_int; break;
       default:             unexpected_condition();
     }  /* switch */
-    alignment = targ_alignof_pointer;
+    /* Ensure the size is a multiple of the alignment: */
+    size = (size+alignment-1) & ~(alignment-1);
   } else {
     /* Pointer to nonstatic data member. */
     switch (inh_kind) {
@@ -4975,10 +4976,15 @@ of the front end's target settings).
       case ihk_virtual:    size = 2*targ_sizeof_int; break;
       default:             unexpected_condition();
     }  /* switch */
-    alignment = targ_alignof_int;
+    /* Note: The size of a pointer-to-data-member is not adjusted for its
+       alignment!  That means, for example, that the following is accepted in
+       the Win64 ABI, even though int and int* have different sizes:
+          struct S;
+          static_assert(sizeof(int S::*) == 3*sizeof(int), "");
+          static_assert(alignof(int S::*) == alignof(int*), "");
+          static_assert(sizeof(int (S::*[7])) == 21*sizeof(int), "");
+    */
   }  /* if */
-  /* Ensure the size is a multiple of the alignment: */
-  size = (size+alignment-1) & ~(alignment-1);
   *p_size = size;
   *p_alignment = alignment;
 }  /* compute_microsoft_ptr_to_member_layout */
