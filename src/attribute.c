@@ -6673,7 +6673,9 @@ doesn't apply to the given type, issue an error and return an error type.
       }  /* if */
     } else {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
-      if (is_enum_type(type)) {
+      a_decl_parse_state  *dps = (a_decl_parse_state*)ap->assoc_info;
+      if (is_enum_type(type) &&
+          (dps->dso_flags & DSO_DEFINES_SOMETHING) != 0) {
         /* Consider something like:
              typedef enum { e } E __attribute((mode(word)));
              E x = e;
