@@ -24063,7 +24063,6 @@ constructor.
   a_routine_ptr        brp;
   a_base_class_ptr     bcp;
   an_access_specifier  saved_access = cdsp->access;
-  a_type_ptr           brtp;
   a_type_ptr           new_tp;
   a_symbol_ptr         dctor;
 
@@ -24071,7 +24070,6 @@ constructor.
   check_assertion(udp->entity.kind == (a_byte_il_entry_kind)iek_base_class);
   bcp = (a_base_class_ptr)udp->entity.ptr;
   brp = bctor->variant.routine.ptr;
-  brtp = skip_typerefs(brp->type);
   new_tp = create_inheriting_ctor_type(brp, cdsp->class_type);
   /* Check if the derived class already contains a constructor with this
      signature: */
