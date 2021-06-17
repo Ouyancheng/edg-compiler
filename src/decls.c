@@ -15092,7 +15092,7 @@ this using-directive.
 }  /* make_using_directive */
 
 
-static void add_implicit_using_directive(
+void add_implicit_using_directive(
 				a_namespace_ptr		nsp,
 				a_boolean		inline_namespace,
 				a_boolean		namespace_pushed)

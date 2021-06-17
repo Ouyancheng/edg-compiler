@@ -3186,11 +3186,18 @@ constants for that type).
                                              (a_namespace_ptr)NULL);
                     nsp->source_corresp.name_linkage =
                                    (a_name_linkage_kind)nlk_cplusplus_external;
+                    if (idssp->traits & ifc_ScopeTraits_Inline) {
+                      nsp->is_inline = TRUE;
+                    }  /* if */
                     ns_sym->variant.namespace_info.ptr = nsp;
                     add_to_namespaces_list(nsp);
                     (void)push_namespace_scope((a_scope_kind)sck_namespace,
                                                nsp);
                     nsp->variant.assoc_scope->variant.assoc_namespace = nsp;
+                    if (nsp->is_inline) {
+                      add_implicit_using_directive(nsp, /*is_inline=*/TRUE,
+                                                   /*namespace_pushed=*/TRUE);
+                    }  /* if */
                   }  /* if */
                   /* Process declarations in the namespace scope (which makes
                      their symbols available but not their definitions). */
