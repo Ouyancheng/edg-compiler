@@ -20,25 +20,6 @@ type subobject into such dynamically-allocated storage.  For example:
 That problem is now fixed.
 
 
-6/16/21  [EDGcpfe/24157]
-Inheriting copy/move constructors
-
-The changes to the implementation of inheriting constructors for
-EDGcpfe/17687 (in version 6.1) introduced a regression for cases in which a
-class copy/move constructor that has a default argument is inherited by a
-derived class.  This is now fixed.  For example, with --c++14:
-
-  struct B {
-    B(const B&, int = 0) { }
-  };
-  class D : B {
-    using B::B;
-    void f(const D &d) {
-      D x(d, 1);  // Previously an error, "no instance of constructor matches"
-    }
-  };
-
-
 6/15/21  [EDGcpfe/24202]
 Microsoft and Clang C++ compatibility: Partial specializations in deductions
 

@@ -24063,112 +24063,120 @@ constructor.
   a_routine_ptr        brp;
   a_base_class_ptr     bcp;
   an_access_specifier  saved_access = cdsp->access;
-  a_type_ptr           new_tp;
-  a_symbol_ptr         dctor;
+  a_type_ptr           brtp;
 
   check_assertion(symbol_is(bctor, sk_member_function));
   check_assertion(udp->entity.kind == (a_byte_il_entry_kind)iek_base_class);
   bcp = (a_base_class_ptr)udp->entity.ptr;
   brp = bctor->variant.routine.ptr;
-  new_tp = create_inheriting_ctor_type(brp, cdsp->class_type);
-  /* Check if the derived class already contains a constructor with this
-     signature: */
-  dctor = class_symbol_supp(symbol_for(cdsp->class_type))->constructor;
-  if (dctor != NULL && symbol_is(dctor, sk_overloaded_function)) {
-    dctor = dctor->variant.overloaded_function.symbols;
-  }  /* if */
-  for (; dctor != NULL; dctor = dctor->next) {
-    a_routine_ptr  drp;
-    if (!symbol_is(dctor, sk_member_function)) {
-      /* This could be a constructor template.  In any case, there is no
-         conflict. */
-      continue;
+  brtp = skip_typerefs(brp->type);
+  /* Exclude copy/move constructors. */
+  if (!is_copy_constructor_type(brtp, udp->qualifier.class_type,
+                                /*qualifiers=*/NULL,
+                                /*include_move_ctors=*/TRUE,
+                                /*is_declarative_context=*/TRUE)) {
+    a_type_ptr        new_tp;
+    a_symbol_ptr      dctor;
+    new_tp = create_inheriting_ctor_type(brp, cdsp->class_type);
+    /* Check if the derived class already contains a constructor with this
+       signature: */
+    dctor = class_symbol_supp(symbol_for(cdsp->class_type))->constructor;
+    if (dctor != NULL && symbol_is(dctor, sk_overloaded_function)) {
+      dctor = dctor->variant.overloaded_function.symbols;
     }  /* if */
-    drp  = dctor->variant.routine.ptr;
-    if (!drp->is_inheriting_ctor &&
-        f_types_are_compatible(drp->type, new_tp,
-                               TCF_REDECLARATION |
-                               TCF_IGNORE_THIS_CLASS_TYPE |
-                               TCF_IGNORE_TOP_LEVEL_NOEXCEPT)) {
-      /* Don't inherit constructors that match a non-inheriting constructor
-         declared in the derived class. */
-      break;
-    }  /* if */
-    if (drp->is_inheriting_ctor &&
-        (bcp->is_virtual || inh_ctor_inherits_virtually(brp)) &&
-        inh_ctor_inherits_virtually(drp)) {
-      if (get_inh_ctor_originator(brp, /*ignore_virtual=*/FALSE) ==
-          get_inh_ctor_originator(drp, /*ignore_virtual=*/FALSE)) {
-        /* Don't inherit inheriting constructors that both inherit the same
-           original routine from a virtual base class. */
+    for (; dctor != NULL; dctor = dctor->next) {
+      a_routine_ptr  drp;
+      if (!symbol_is(dctor, sk_member_function)) {
+        /* This could be a constructor template.  In any case, there is no
+           conflict. */
+        continue;
+      }  /* if */
+      drp  = dctor->variant.routine.ptr;
+      if (!drp->is_inheriting_ctor &&
+          f_types_are_compatible(drp->type, new_tp,
+                                 TCF_REDECLARATION |
+                                 TCF_IGNORE_THIS_CLASS_TYPE |
+                                 TCF_IGNORE_TOP_LEVEL_NOEXCEPT)) {
+        /* Don't inherit constructors that match a non-inheriting constructor
+           declared in the derived class. */
         break;
       }  /* if */
-    }  /* if */
-  }  /* for */
-  if (dctor == NULL) {
-    /* There is no constructor with this signature yet: Generate one now
-       (the declaration only; the definition is generated only if used). */
-    a_member_decl_info  decl_info;
-    a_func_info_block   func_info;
-    a_symbol_locator    loc;
-    a_routine_ptr       new_rp;
-    initialize_member_decl_info(&decl_info, &udp->position);
-    decl_info.is_constructor = TRUE;
-    decl_info.decl_state.is_inheriting_ctor = TRUE;
-    decl_info.decl_state.inherited_routine = brp;
-    if (bcp->is_virtual || inh_ctor_inherits_virtually(brp)) {
-      decl_info.decl_state.inherits_virtually = TRUE;
-    }  /* if */
-    decl_info.decl_state.first_decl = TRUE;
-    decl_info.decl_state.type = new_tp;
-    if (brp->is_constexpr) {
-      decl_info.decl_state.dso_flags |= (a_decl_flag_set)DSO_CONSTEXPR;
-    }  /* if */
-    if (brp->is_consteval) {
-      decl_info.decl_state.dso_flags |= (a_decl_flag_set)DSO_CONSTEVAL;
-    }  /* if */
-    clear_func_info(&func_info);
-    func_info.is_inline = TRUE;
-    make_locator_for_symbol(symbol_for(cdsp->class_type), &loc);
-    change_class_locator_into_constructor_locator(&loc, &udp->position,
-                                                  /*is_static_ctor=*/FALSE);
-    cdsp->access = brp->source_corresp.access;
-    decl_member_function(&loc, &func_info, cdsp, &decl_info,
-                         /*compiler_generated=*/TRUE);
-    new_rp = decl_info.decl_state.sym->variant.routine.ptr;
-    new_rp->generating_using_decl = udp;
-    new_rp->is_inheriting_ctor = TRUE;
-    if (brp->is_explicit_constructor) {
-      new_rp->is_explicit_constructor = TRUE;
-    }  /* if */
-    if (brp->is_initializer_list_ctor) {
-      new_rp->is_initializer_list_ctor = TRUE;
-      class_type_supp(cdsp->class_type)->has_initializer_list_ctor = TRUE;
-    }  /* if */
-    /* This may be a member function of a template class - copy the needed
-       bits to ensure we can do things like instantiate default arguments. */
-    new_rp->assoc_template = brp->assoc_template;
-    decl_info.decl_state.sym->variant.routine.instance_ptr =
+      if (drp->is_inheriting_ctor &&
+          (bcp->is_virtual || inh_ctor_inherits_virtually(brp)) &&
+          inh_ctor_inherits_virtually(drp)) {
+        if (get_inh_ctor_originator(brp, /*ignore_virtual=*/FALSE) ==
+            get_inh_ctor_originator(drp, /*ignore_virtual=*/FALSE)) {
+          /* Don't inherit inheriting constructors that both inherit the same
+             original routine from a virtual base class. */
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    if (dctor == NULL) {
+      /* There is no constructor with this signature yet: Generate one now
+         (the declaration only; the definition is generated only if used). */
+      a_member_decl_info  decl_info;
+      a_func_info_block   func_info;
+      a_symbol_locator    loc;
+      a_routine_ptr       new_rp;
+      initialize_member_decl_info(&decl_info, &udp->position);
+      decl_info.is_constructor = TRUE;
+      decl_info.decl_state.is_inheriting_ctor = TRUE;
+      decl_info.decl_state.inherited_routine = brp;
+      if (bcp->is_virtual || inh_ctor_inherits_virtually(brp)) {
+        decl_info.decl_state.inherits_virtually = TRUE;
+      }  /* if */
+      decl_info.decl_state.first_decl = TRUE;
+      decl_info.decl_state.type = new_tp;
+      if (brp->is_constexpr) {
+        decl_info.decl_state.dso_flags |= (a_decl_flag_set)DSO_CONSTEXPR;
+      }  /* if */
+      if (brp->is_consteval) {
+        decl_info.decl_state.dso_flags |= (a_decl_flag_set)DSO_CONSTEVAL;
+      }  /* if */
+      clear_func_info(&func_info);
+      func_info.is_inline = TRUE;
+      make_locator_for_symbol(symbol_for(cdsp->class_type), &loc);
+      change_class_locator_into_constructor_locator(&loc, &udp->position,
+                                                    /*is_static_ctor=*/FALSE);
+      cdsp->access = brp->source_corresp.access;
+      decl_member_function(&loc, &func_info, cdsp, &decl_info,
+                           /*compiler_generated=*/TRUE);
+      new_rp = decl_info.decl_state.sym->variant.routine.ptr;
+      new_rp->generating_using_decl = udp;
+      new_rp->is_inheriting_ctor = TRUE;
+      if (brp->is_explicit_constructor) {
+        new_rp->is_explicit_constructor = TRUE;
+      }  /* if */
+      if (brp->is_initializer_list_ctor) {
+        new_rp->is_initializer_list_ctor = TRUE;
+        class_type_supp(cdsp->class_type)->has_initializer_list_ctor = TRUE;
+      }  /* if */
+      /* This may be a member function of a template class - copy the needed
+         bits to ensure we can do things like instantiate default arguments. */
+      new_rp->assoc_template = brp->assoc_template;
+      decl_info.decl_state.sym->variant.routine.instance_ptr =
                                            bctor->variant.routine.instance_ptr;
-    if (exceptions_enabled) {
-      form_exception_specification_for_generated_function(new_rp, bctor);
+      if (exceptions_enabled) {
+        form_exception_specification_for_generated_function(new_rp, bctor);
+      }  /* if */
+      done_with_func_info(func_info);
+      if (instantiate_extern_inline && !new_rp->is_deleted &&
+          !new_rp->is_consteval) {
+        /* When inline functions are instantiated like templates, add the
+           function to the list of inline functions if it is inline.  (Members
+           of prototype instantiations don't need to be treated that way, of
+           course.) */
+        add_to_inline_function_list(new_rp);
+      }  /* if */
+      if (!new_rp->is_deleted &&
+          suppress_inh_ctor_default_ctor(cdsp->class_type)) {
+        new_rp->is_deleted = TRUE;
+        new_rp->defined = TRUE;
+      }  /* if */
+      add_routine_fixup_for_inheriting_ctor(symbol_for(new_rp),
+                                            cdsp->class_type);
     }  /* if */
-    done_with_func_info(func_info);
-    if (instantiate_extern_inline && !new_rp->is_deleted &&
-        !new_rp->is_consteval) {
-      /* When inline functions are instantiated like templates, add the
-         function to the list of inline functions if it is inline.  (Members
-         of prototype instantiations don't need to be treated that way, of
-         course.) */
-      add_to_inline_function_list(new_rp);
-    }  /* if */
-    if (!new_rp->is_deleted &&
-        suppress_inh_ctor_default_ctor(cdsp->class_type)) {
-      new_rp->is_deleted = TRUE;
-      new_rp->defined = TRUE;
-    }  /* if */
-    add_routine_fixup_for_inheriting_ctor(symbol_for(new_rp),
-                                          cdsp->class_type);
   }  /* if */
   cdsp->access = saved_access;
 }  /* generate_inheriting_constructors_for_base_ctor */
