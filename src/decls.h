@@ -1934,6 +1934,16 @@ extern void mark_inline_variable(a_variable_ptr var,
 
 extern void diagnose_unattached_attributes(an_attribute_ptr  attributes);
 
+extern void create_nonmember_using_declaration(
+                                       a_symbol_ptr     sym,
+                                       a_symbol_ptr     *overload_sym_ptr,
+                                       a_symbol_ptr     other_decl,
+                                       a_namespace_ptr  nsp,
+                                       a_type_ptr       class_type,
+                                       a_using_decl_ptr *prev_udp,
+                                       a_boolean        is_list,
+                                       a_boolean        suppress_redecl_error);
+
 extern void decls_one_time_init(void);
 
 extern void decls_trans_unit_init(void);

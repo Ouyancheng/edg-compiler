@@ -3828,8 +3828,8 @@ push_module_declaration_context.
     pop_scope();
   } else {
     a_scope_stack_entry_ptr ssep = &scope_stack_top();
-    check_assertion(ssep->module_load_context_count > 0);
-    check_assertion(ssep->curr_construct_pragmas == NULL);
+    check_assertion(ssep->module_load_context_count > 0 &&
+                    ssep->curr_construct_pragmas == NULL);
     ssep->module_load_context_count--;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     if (ssep->module_load_context_count == 0) {

@@ -3007,6 +3007,9 @@ constants for that type).
     if (!defer) {
       mep->imminent = TRUE;
       if (mep->scope != NULL) {
+        /* If this module entity has a scope, re-activate it now (note that
+           if it's already activated, scope_pushed will be FALSE).  If it
+           does not already have a scope, one may be created below. */
         scope_pushed = push_module_declaration_context(mep->scope);
       }  /* if */
     }  /* if */
@@ -3282,6 +3285,10 @@ class_struct_union_case:
               itsfp = get_TypeSort_Fundamental(&itsf);
               if (itsfp->basis == ifc_TypeBasis_Typename) {
                 /* A type alias; declare a typedef for this case. */
+                if (mep->scope == NULL) {
+                  mep->scope = get_ifc_scope(idstap->home_scope);
+                  scope_pushed = push_module_declaration_context(mep->scope);
+                }  /* if */
                 init_dps(&dps, &idstap->locus, idstap->aliasee,
                          ifc_ObjectTraits_None, ifc_MsvcTraits_None,
                          idstap->specifiers, idstap->access, &psss);
@@ -3757,9 +3764,53 @@ class_struct_union_case:
       case ifc_DeclSort_UsingDeclaration:
         { an_ifc_DeclSort_UsingDeclaration idsud, *idsudp;
           idsudp = get_DeclSort_UsingDeclaration(&idsud);
-          source_position_from_locus(&error_position, &idsudp->locus);
-          goto unhandled;
+          if (defer) {
+            init_locator_from_name((ifc_NameIndex)0, idsudp->name,
+                                   &idsudp->locus, &loc);
+            defer_symbol_creation(mep, &loc);
+          } else {
+            source_position_from_locus(&error_position, &idsudp->locus);
+            if (decl_tag(idsudp->resolution) == ifc_DeclSort_Tuple) {
+              /* Multiple declaration case. */
+              goto unhandled;
+            }  /* if */
+            a_module_entity_ptr umep =
+                                 get_ifc_module_entity_ptr(idsudp->resolution);
+            process_ifc_declaration(umep, /*defer=*/FALSE, (a_type_ptr)NULL);
+            if (scope_is(umep->scope, sck_class_struct_union)) {
+              /* FIXME: Need to call create_member_using_declaration here. */
+              goto unhandled;
+            } else {
+              /* Non-member using declaration.  Could be file scope or
+                 namespace scope. */
+              a_symbol_ptr     null_sym_ptr = NULL;
+              a_using_decl_ptr prev_udp = NULL;
+              a_namespace_ptr  nsp = NULL;
+              a_source_correspondence *scp =
+                                    (a_source_correspondence*)umep->entity.ptr;
+              if (scp->parent_scope == NULL) {
+                /* Probably shouldn't happen, but happens now because of other
+                   issues. */
+                goto unhandled;
+              }  /* if */
+              if (scope_is(scp->parent_scope, sck_namespace)) {
+                nsp = scp_parent_namespace(scp);
+              }  /* if */
+              /* FIXME: This will need to be re-worked when handling the
+                 ifc_DeclSort_Tuple case (i.e., multiple items). */
+              create_nonmember_using_declaration(
+                                               (a_symbol_ptr)scp->assoc_info,
+                                               &null_sym_ptr,
+                                               (a_symbol_ptr)NULL,
+                                               nsp,
+                                               (a_type_ptr)NULL,
+                                               &prev_udp,
+                                               /*is_list=*/FALSE,
+                                               /*suppress_redecl_error=*/TRUE);
+            }  /* if */
+          }  /* if */
         }
+        break;
       case ifc_DeclSort_UsingDirective:
         { an_ifc_DeclSort_UsingDirective idsud;
           get_DeclSort_UsingDirective(&idsud);
@@ -5464,7 +5515,7 @@ after the declaration has been processed.
     }  /* if */
     if (specifiers & ifc_BasicSpecifiers_Deprecated) {
       ap = make_module_attribute("deprecated",
-                                 (a_byte_attribute_family)af_ms_declspec, ap);
+                                 (a_byte_attribute_family)af_std, ap);
     }  /* if */
     if (specifiers & ifc_BasicSpecifiers_InitializedInClass) {
       /* FIXME: Anything to do here? */
@@ -9237,15 +9288,22 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       { an_ifc_DeclSort_UsingDeclaration idsud, *idsudp;
         idsudp = get_DeclSort_UsingDeclaration(&idsud);
         source_position_from_locus(&pos, &idsudp->locus);
+#if 0
         cache_access(cache, idsudp->access, /*cache_colon=*/TRUE, &pos);
         cache_basic_specifiers(cache, idsudp->specifiers, &pos);
         cache_token(cache, tok_using, &pos);
+        /* FIXME: This isn't correct -- we need to (fully?) qualify the
+           declindex(s) specified by idsudp->resolution.  See the other
+           use of ifc_DeclSort_UsingDeclaration for an example. */
         if (idsudp->parent != 0) {
           cache_expr(cache, idsudp->parent);
           cache_token(cache, tok_colon_colon, &pos);
         }  /* if */
         cache_identifier(cache, get_string_at_offset(idsudp->name), &pos);
         cache_token(cache, tok_semicolon, &pos);
+#else /* 0 */
+        issue_unsupported_node_diag("DeclSort::UsingDeclaration", &pos);
+#endif /* 0 */
       }
       break;
     case ifc_DeclSort_UsingDirective:

@@ -15958,7 +15958,7 @@ placed.
 }  /* make_using_decl */
 
 
-static void create_nonmember_using_declaration(
+void create_nonmember_using_declaration(
                                        a_symbol_ptr     sym,
                                        a_symbol_ptr     *overload_sym_ptr,
                                        a_symbol_ptr     other_decl,

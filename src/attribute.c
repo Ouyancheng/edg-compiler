@@ -2352,18 +2352,12 @@ location or arguments for the attribute.
 */
 {
   an_attribute_ptr   ap;
-  an_attr_descr_ptr  adp;
 
   ap = make_attribute((an_attribute_family)family);
   ap->position = null_source_position;
   ap->next = next;
   ap->name = copy_string_to_region(file_scope_region_number, name);
-  adp = get_attr_descr_for_attribute(ap);
-#if CHECKING
-  check_assertion(adp != NULL);
-#else  /* !CHECKING */
-  (void)adp; /* "Use" adp to suppress compiler warning. */
-#endif /* CHECKING */
+  check_assertion(get_attr_descr_for_attribute(ap) != NULL);
   return ap;
 }  /* make_module_attribute */
 
