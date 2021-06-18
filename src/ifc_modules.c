@@ -2998,6 +2998,14 @@ constants for that type).
   a_boolean                scope_pushed = FALSE;
   a_boolean                skip_pop = FALSE;
 
+#if DEBUG
+  static unsigned long nested_decls = 0;
+  if (db_flag_is_set("ifc_decl")) {
+    (void)fprintf(f_debug, "[>%lu]%s ", nested_decls++,
+                                       defer ? " (deferred)" : "");
+    db_mep(mep);
+  }  /* if */
+#endif /* DEBUG */
   if (!mep->imminent && mep->entity.ptr == NULL) {
     a_source_position saved_error_position = error_position;
     /* Prepare to read from the proper partition for this declaration. */
@@ -3893,6 +3901,12 @@ unhandled:
   /* In some cases we may enter this routine without having a scope, but we
      should not exit it without having one. */
   check_assertion(mep->scope != NULL);
+#if DEBUG
+  if (db_flag_is_set("ifc_decl")) {
+    (void)fprintf(f_debug, "[<%lu] ", --nested_decls);
+    db_mep(mep);
+  }  /* if */
+#endif /* DEBUG */
 }  /* process_ifc_declaration */
 
 
@@ -4028,6 +4042,26 @@ Print debug information related to a module entity that refers to this module.
     (void)fprintf(f_debug, "\n");
   }  /* if */
 }  /* db_module_entity */
+
+
+void db_mep(a_module_entity_ptr mep)
+/*
+Print information about the module entity pointer.
+*/
+{
+  if (mep->module_info != NULL) {
+    (void)fprintf(f_debug, "[%s]: ", mep->module_info->name);
+  }  /* if */
+  if (mep->scope != NULL) {
+    db_scope(mep->scope);
+    (void)fprintf(f_debug, ": ");
+  }  /* if */
+  if (mep->entity.kind != iek_none) {
+    db_entity_info(mep->entity.ptr, (an_il_entry_kind)mep->entity.kind);
+  } else {
+    (void)fprintf(f_debug, "\n");
+  }  /* if */
+}  /* db_mep */
 
 #endif /* DEBUG */
 

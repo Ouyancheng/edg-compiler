@@ -2919,6 +2919,10 @@ extern void ifc_modules_one_time_init();
 
 extern void ifc_modules_init();
 
+#if DEBUG
+extern void db_mep(a_module_entity_ptr mep);
+#endif /* DEBUG */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /*lint -restore*/ /* FIXME: temporary. */
