@@ -3058,11 +3058,11 @@ fixup_declared_type: ;
         check_assertion(inh_ctor != NULL);
         if (rfp->inh_copy_move_ctor) {
           /* Copy/move constructors can only be inherited if they have more
-             than one parameter and the second one has a default argument.
-             Ensure that the default argument from the second parameter of
-             the inherited constructor is not copied to the inheriting
-             constructor, in accord with the restriction in
-             [over.match.general] paragraph 9 (N4885) prohibiting an
+             than one parameter (implying that the second one has a default
+             argument).  Ensure that the default argument from the second
+             parameter of the inherited constructor is not copied to the
+             inheriting constructor, in accord with the restriction in
+             [over.match.funcs.general] paragraph 9 (N4885) prohibiting an
              inherited copy constructor from being used to initialize an
              object of the derived class from an object of the base or
              derived type. */
@@ -24111,9 +24111,10 @@ constructor.
                                /*is_declarative_context=*/TRUE)) {
     if (brtp->variant.routine.extra_info->param_type_list->next == NULL) {
       /* A single-argument copy/move constructor cannot be inherited.  See
-         the restriction in [over.match.general] paragraph 9 prohibiting
-         an inherited copy constructor from being used to initialize a
-         derived class object of the type of the base or derived class. */
+         the restriction in [over.match.funcs.general] paragraph 9 (N4885)
+         prohibiting an inherited copy constructor from being used to
+         initialize a derived class object from an object of the type of
+         the base or derived class. */
       okay_to_inherit = FALSE;
     } else {
       copy_move_case = TRUE;
