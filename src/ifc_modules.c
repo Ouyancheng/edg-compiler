@@ -9424,22 +9424,19 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       { an_ifc_DeclSort_UsingDeclaration idsud, *idsudp;
         idsudp = get_DeclSort_UsingDeclaration(&idsud);
         source_position_from_locus(&pos, &idsudp->locus);
-#if 0
         cache_access(cache, idsudp->access, /*cache_colon=*/TRUE, &pos);
         cache_basic_specifiers(cache, idsudp->specifiers, &pos);
         cache_token(cache, tok_using, &pos);
         /* FIXME: This isn't correct -- we need to (fully?) qualify the
            declindex(s) specified by idsudp->resolution.  See the other
            use of ifc_DeclSort_UsingDeclaration for an example. */
+        issue_unsupported_node_diag("DeclSort::UsingDeclaration", &pos);
         if (idsudp->parent != 0) {
           cache_expr(cache, idsudp->parent);
           cache_token(cache, tok_colon_colon, &pos);
         }  /* if */
         cache_identifier(cache, get_string_at_offset(idsudp->name), &pos);
         cache_token(cache, tok_semicolon, &pos);
-#else /* 0 */
-        issue_unsupported_node_diag("DeclSort::UsingDeclaration", &pos);
-#endif /* 0 */
       }
       break;
     case ifc_DeclSort_UsingDirective:
