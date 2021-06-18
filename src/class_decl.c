@@ -115,6 +115,10 @@ typedef struct a_routine_fixup {
   a_bit_field	inheriting_ctor:1;
 			/* When TRUE, this is the fixup for an inheriting
 			   constructor. */
+  a_bit_field	inh_copy_move_ctor:1;
+			/* When TRUE, this is the fixup for an inheriting
+			   constructor that inherits from a copy/move base
+			   class constructor. */
 } a_routine_fixup;
 
 
@@ -255,6 +259,7 @@ initialize it.
   rfp->is_definition = FALSE;
   rfp->process_exception_spec = FALSE;
   rfp->inheriting_ctor = FALSE;
+  rfp->inh_copy_move_ctor = FALSE;
   clear_func_info(&rfp->func_info);
   /* We don't know whether this cache will be reused or not.  Make it
      reusable here.  If it is rescanned as a nonreusable cache we
@@ -678,13 +683,22 @@ is a list of default arguments to be fixed up.
 
 
 static void add_routine_fixup_for_inheriting_ctor(a_symbol_ptr symbol,
-                                                  a_type_ptr   class_type)
+                                                  a_type_ptr   class_type,
+                                                  a_boolean    copy_move_ctor)
+/*
+Create a routine fixup entry for an inheriting constructor.  symbol points
+to the inheriting constructor, which is a member of class_type.  If
+copy_move_ctor is TRUE, the inherited constructor is a copy/move
+constructor, which is only permitted if that constructor has a default
+argument.
+*/
 {
   a_routine_fixup_ptr rfp;
 
   rfp = alloc_routine_fixup(class_type);
   rfp->symbol = symbol;
   rfp->inheriting_ctor = TRUE;
+  rfp->inh_copy_move_ctor = copy_move_ctor;
   add_to_routine_fixup_list(rfp);
 }  /* add_routine_fixup_for_inheriting_ctor */
 
@@ -3042,7 +3056,24 @@ fixup_declared_type: ;
         ctor = sym->variant.routine.ptr;
         inh_ctor = inh_ctor_inherited_ctor(ctor);
         check_assertion(inh_ctor != NULL);
+        if (rfp->inh_copy_move_ctor) {
+          /* Copy/move constructors can only be inherited if they have more
+             than one parameter and the second one has a default argument.
+             Ensure that the default argument from the second parameter of
+             the inherited constructor is not copied to the inheriting
+             constructor, in accord with the restriction in
+             [over.match.general] paragraph 9 (N4885) prohibiting an
+             inherited copy constructor from being used to initialize an
+             object of the derived class from an object of the base or
+             derived type. */
+          inh_ctor->type->variant.routine.extra_info->param_type_list->
+                                                 next->has_default_arg = FALSE;
+        }  /* if */
         copy_routine_type_default_args(inh_ctor->type, ctor->type);
+        if (rfp->inh_copy_move_ctor) {
+          inh_ctor->type->variant.routine.extra_info->param_type_list->
+                                                  next->has_default_arg = TRUE;
+        }  /* if */
       }  /* if */
     }  /* for */
     if (curr_scope_class_type != NULL) {
@@ -24029,7 +24060,8 @@ templates from that base template.
     complete_generated_member_template(&templ_decl_state, &func_info,
                                        decl_info.decl_state.sym);
     add_routine_fixup_for_inheriting_ctor(symbol_for(new_rp),
-                                          cdsp->class_type);
+                                          cdsp->class_type,
+                                          /*copy_move_ctor=*/FALSE);
     pop_scope();
     done_with_func_info(func_info);
     update_template_param_symbols_for_param_list(btpl);
@@ -24064,6 +24096,8 @@ constructor.
   a_base_class_ptr     bcp;
   an_access_specifier  saved_access = cdsp->access;
   a_type_ptr           brtp;
+  a_boolean            okay_to_inherit = TRUE;
+  a_boolean            copy_move_case = FALSE;
 
   check_assertion(symbol_is(bctor, sk_member_function));
   check_assertion(udp->entity.kind == (a_byte_il_entry_kind)iek_base_class);
@@ -24071,10 +24105,21 @@ constructor.
   brp = bctor->variant.routine.ptr;
   brtp = skip_typerefs(brp->type);
   /* Exclude copy/move constructors. */
-  if (!is_copy_constructor_type(brtp, udp->qualifier.class_type,
-                                /*qualifiers=*/NULL,
-                                /*include_move_ctors=*/TRUE,
-                                /*is_declarative_context=*/TRUE)) {
+  if (is_copy_constructor_type(brtp, udp->qualifier.class_type,
+                               /*qualifiers=*/NULL,
+                               /*include_move_ctors=*/TRUE,
+                               /*is_declarative_context=*/TRUE)) {
+    if (brtp->variant.routine.extra_info->param_type_list->next == NULL) {
+      /* A single-argument copy/move constructor cannot be inherited.  See
+         the restriction in [over.match.general] paragraph 9 prohibiting
+         an inherited copy constructor from being used to initialize a
+         derived class object of the type of the base or derived class. */
+      okay_to_inherit = FALSE;
+    } else {
+      copy_move_case = TRUE;
+    }  /* if */
+  }  /* if */
+  if (okay_to_inherit) {
     a_type_ptr        new_tp;
     a_symbol_ptr      dctor;
     new_tp = create_inheriting_ctor_type(brp, cdsp->class_type);
@@ -24175,7 +24220,7 @@ constructor.
         new_rp->defined = TRUE;
       }  /* if */
       add_routine_fixup_for_inheriting_ctor(symbol_for(new_rp),
-                                            cdsp->class_type);
+                                            cdsp->class_type, copy_move_case);
     }  /* if */
   }  /* if */
   cdsp->access = saved_access;
