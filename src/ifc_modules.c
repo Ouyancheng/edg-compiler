@@ -3002,7 +3002,7 @@ constants for that type).
   static unsigned long nested_decls = 0;
   if (db_flag_is_set("ifc_decl")) {
     (void)fprintf(f_debug, "[>%lu]%s ", nested_decls++,
-                                       defer ? " (deferred)" : "");
+                                        defer ? " (deferred)" : "");
     db_mep(mep);
   }  /* if */
 #endif /* DEBUG */
