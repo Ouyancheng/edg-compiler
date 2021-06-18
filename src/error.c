@@ -3607,10 +3607,18 @@ message appears by itself on a separate line.
     /* Compiler generated functions need additional information. */
     if (ssep->assoc_routine->compiler_generated) {
       sym = (a_symbol_ptr)ssep->assoc_routine->source_corresp.assoc_info;
-      result = TRUE;
-      error_code = add_detected_prefix ?
+      if (symbol_is(sym, sk_member_function) &&
+          func_sym_routine(sym)->is_inheriting_ctor) {
+        /* Inheriting constructors have unusual template information that
+           does not accommodate the usual display of instantiation contexts,
+           and information regarding their implicit instantiation is not
+           likely to be helpful in any event.  Skip this entry. */
+      } else {
+        result = TRUE;
+        error_code = add_detected_prefix ?
                             ec_det_during_compiler_generated_function_context :
                             ec_compiler_generated_function_context;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (result) {

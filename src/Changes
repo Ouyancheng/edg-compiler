@@ -1,5 +1,33 @@
 Version 6.3
 
+6/18/21  [EDGcpfe/24061]
+Assertion failure generating diagnostic output involving inheriting constructor
+
+The changes to the implementation of inheriting constructors for
+EDGcpfe/17687 (in version 6.1) introduced a regression resulting in a
+failed assertion (in form_template_arg_info) for cases in which a
+diagnostic is issued and the trace of instantiation contexts includes an
+inheriting constructor.  This is now fixed.  For example, compiling the
+following code with --c++14 --remarks -tused previously aborted attempting
+to display a remark noting the use of a temporary in the call to f:
+
+  template<typename T> void f(T &&);
+  template <typename T, typename U> struct B {
+    B(T) {
+      f(T{}); // Previously caused an abort displaying a remark
+    }
+  };
+  template <typename> class D : B<int, int> {
+    using B::B;
+  };
+  template <typename T> void bar(T t) {
+    D<char> d(t);
+  }
+  void foo() {
+    bar(0);
+  }
+
+
 6/17/21  [EDGcpfe/23029,EDGcpfe/24157,EDGcpfe/24262]
 Inheriting copy/move constructors with default arguments
 
