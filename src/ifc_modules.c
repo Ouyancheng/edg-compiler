@@ -4052,13 +4052,12 @@ Print information about the module entity pointer.
   if (mep->module_info != NULL) {
     (void)fprintf(f_debug, "[%s]: ", mep->module_info->name);
   }  /* if */
-  if (mep->scope != NULL) {
-    db_scope(mep->scope);
-    (void)fprintf(f_debug, ": ");
-  }  /* if */
   if (mep->entity.kind != iek_none) {
-    db_entity_info(mep->entity.ptr, (an_il_entry_kind)mep->entity.kind);
+    db_scp((a_source_correspondence*)mep->entity.ptr);
   } else {
+    if (mep->scope != NULL) {
+      db_scope(mep->scope);
+    }  /* if */
     (void)fprintf(f_debug, "\n");
   }  /* if */
 }  /* db_mep */
