@@ -1944,10 +1944,9 @@ extern void create_nonmember_using_declaration(
                                        a_boolean        is_list,
                                        a_boolean        suppress_redecl_error);
 
-extern void add_implicit_using_directive(
-				a_namespace_ptr		nsp,
-				a_boolean		inline_namespace,
-				a_boolean		namespace_pushed);
+extern void add_implicit_using_directive(a_namespace_ptr nsp,
+                                         a_boolean       inline_namespace,
+                                         a_boolean       namespace_pushed);
 
 extern void decls_one_time_init(void);
 
