@@ -3609,7 +3609,8 @@ message appears by itself on a separate line.
       sym = (a_symbol_ptr)ssep->assoc_routine->source_corresp.assoc_info;
       if (symbol_is(sym, sk_member_function) &&
           func_sym_routine(sym)->is_inheriting_ctor &&
-          func_sym_routine(sym)->assoc_template != NULL) {
+          func_sym_routine(sym)->assoc_template != NULL &&
+          !func_sym_routine(sym)->is_template_function) {
         /* Inheriting constructors have unusual template information that
            does not accommodate the usual display of instantiation contexts,
            and information regarding their implicit instantiation is not
