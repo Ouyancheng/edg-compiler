@@ -2998,9 +2998,16 @@ constants for that type).
   a_boolean                scope_pushed = FALSE;
   a_boolean                skip_pop = FALSE;
 
+#if EXPENSIVE_CHECKING
+  /* Enable eager loading of modules if the eager_load_modules flag is set as a
+     development work flow improvement.  As this is intended solely to ease
+     project development, enable this check only when expensive checking is
+     enabled.  Thereby, ensuring only development builds pay the cost of this
+     branch. */
   if (eager_load_modules) {
     defer = FALSE;
   }  /* if */
+#endif /* EXPENSIVE_CHECKING */
 #if DEBUG
   static unsigned long nested_decls = 0;
   if (db_flag_is_set("ifc_decl")) {

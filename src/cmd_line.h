@@ -2361,10 +2361,12 @@ EXTERN a_boolean
 			/* TRUE if no diagnostic should be issued on
 			   anonymous types declared in anonymous unions. */
 
+#if EXPENSIVE_CHECKING
 EXTERN a_boolean
 		eager_load_modules;
 			/* TRUE if imported modules should be loaded eagerly
 			   (as opposed to imported on demand). */
+#endif /* EXPENSIVE_CHECKING */
 
 EXTERN a_boolean
 		use_nonstd_partial_ordering;
