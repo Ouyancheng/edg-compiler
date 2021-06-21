@@ -1,5 +1,13 @@
 Version 6.3
 
+6/21/21  [EDGcpfe/24454]
+Microsoft compatibility: value of _MSVC_LANG for --ms_c++latest
+
+In accordance with new versions of Visual Studio, the front end now sets
+the value of _MSVC_LANG to 202004L when --ms_c++latest is specified with
+microsoft_version >= 1929.
+
+
 6/18/21  [EDGcpfe/24061]
 Assertion failure generating diagnostic output involving inheriting constructor
 

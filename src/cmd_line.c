@@ -3046,7 +3046,9 @@ option values if they were not already set by a command line option.
       }  /* if */
       if (microsoft_version >= 1929) {
         /* Visual Studio versions 16.10 and 16.11. */
-        /* Placeholder for future releases (build numbers TBD). */
+        if (ms_cpplatest_mode) {
+          msvc_lang = "202004L";
+        }  /* if */
       }  /* if */
     } else {
       /* Disable unrestricted unions because they involve making some special
