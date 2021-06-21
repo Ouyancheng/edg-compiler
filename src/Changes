@@ -1,5 +1,20 @@
 Version 6.3
 
+6/21/21  [EDGcpfe/24400]
+Spurious "pack not expanded" error on use of alias template
+
+In some cases, the use of an alias template instance that refers to a
+template parameter type that is template parameter pack could result
+in a spurious "parameter pack ... was referenced but not expanded"
+error.  Now fixed.
+
+  template <int> struct A { template <class U, class> using C = U; };
+  template <class... Ts>
+    using D = typename A<sizeof...(Ts)>::template C<Ts...>;
+  template <class... Ts> struct E { D<Ts..., bool> d; };
+  E<bool> e;
+
+
 6/21/21  [EDGcpfe/23988,EDGcpfe/24109,EDGcpfe/24261,EDGcpfe/24441]
 Microsoft compatibility: static data member in in-class specialization
 
