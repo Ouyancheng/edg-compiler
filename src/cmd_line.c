@@ -2223,6 +2223,7 @@ static a_flag_name
 		flag_names[] = {
   { "suppress_inline_corresp_check", &suppress_inline_corresp_check },
   { "allow_anon_types_in_anon_unions", &allow_anon_types_in_anon_unions },
+  { "eager_load_modules", &eager_load_modules },
 #if IA64_ABI
   { "emulate_gnu_abi_bugs", &emulate_gnu_abi_bugs },
   { "emulate_unsafe_gnu_abi_bugs", &emulate_unsafe_gnu_abi_bugs },

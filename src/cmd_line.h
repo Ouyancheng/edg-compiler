@@ -2362,6 +2362,11 @@ EXTERN a_boolean
 			   anonymous types declared in anonymous unions. */
 
 EXTERN a_boolean
+		eager_load_modules;
+			/* TRUE if imported modules should be loaded eagerly
+			   (as opposed to imported on demand). */
+
+EXTERN a_boolean
 		use_nonstd_partial_ordering;
 			/* TRUE if the incorrect variant of partial ordering
 			   present in versions through 3.10 should be used. */

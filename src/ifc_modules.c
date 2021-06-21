@@ -2998,6 +2998,9 @@ constants for that type).
   a_boolean                scope_pushed = FALSE;
   a_boolean                skip_pop = FALSE;
 
+  if (eager_load_modules) {
+    defer = FALSE;
+  }  /* if */
 #if DEBUG
   static unsigned long nested_decls = 0;
   if (db_flag_is_set("ifc_decl")) {
