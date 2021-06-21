@@ -18276,8 +18276,9 @@ template declaration and is NULL otherwise.
   process_curr_construct_pragmas(sym, (a_statement_ptr)NULL);
   /* Special processing for static data members of template classes. */
   prototype_tag_sym = class_state->corresp_prototype_tag_sym;
-  if (prototype_tag_sym != NULL || class_state->is_nonreal_instantiation ||
-      class_state->is_generic_definition || decl_info->is_member_template) {
+  if ((prototype_tag_sym != NULL || class_state->is_nonreal_instantiation ||
+       class_state->is_generic_definition || decl_info->is_member_template) &&
+      !class_type->variant.class_struct_union.is_in_class_specialization) {
     /* A nonnull instance_ptr marks this static data member as a member of
        a (real or nonreal) instantiation of a class template. */
     if (!is_error_locator(*locator)) {

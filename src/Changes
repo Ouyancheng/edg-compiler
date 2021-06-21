@@ -1,5 +1,20 @@
 Version 6.3
 
+6/21/21  [EDGcpfe/23988,EDGcpfe/24109,EDGcpfe/24261,EDGcpfe/24441]
+Microsoft compatibility: static data member in in-class specialization
+
+The front end aborted (in decl_static_data_member) if an in-class
+specialization of a class template declared a static data member.
+Now fixed.
+
+  template <typename T> struct A {
+    template <typename U> struct B;
+    template <> struct B<int> {
+      static T t;
+    };
+  };
+
+
 6/21/21  [EDGcpfe/24454]
 Microsoft compatibility: value of _MSVC_LANG for --ms_c++latest
 
