@@ -3329,6 +3329,13 @@ in the source.
          array, then search backwards to see if any prior pragma in the source
          has an effect on this diagnostic severity. */
       a_pragma_diag_elem *ptr = NULL;
+      if (pos->seq == 0) {
+        /* If the source position is null, it's likely that the position is
+           that of a compiler-generated construct, so instead use a source
+           position that is likely to be near code that is currently being
+           compiled. */
+        pos = &error_position;
+      }  /* if */
       if (pragma_diag_list == NULL) {
         /* During early error processing, the list may not be allocated. */
       } else if (pragma_diag_list->length() == 0) {
