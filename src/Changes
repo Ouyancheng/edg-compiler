@@ -4,7 +4,7 @@ Version 6.3
 Spurious "pack not expanded" error on use of alias template
 
 In some cases, the use of an alias template instance that refers to a
-template parameter type that is template parameter pack could result
+template parameter type that is a template parameter pack could result
 in a spurious "parameter pack ... was referenced but not expanded"
 error.  Now fixed.
 
