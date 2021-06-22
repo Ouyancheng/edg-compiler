@@ -2910,13 +2910,18 @@ appears.  Diagnostics may be emitted at the given position.
         break;
       case sck_class_reactivation:
         /* A class declared in a class reactivation scope.  This should only
-           occur for lambda closure classes.  Make the closure class a
-           member of the reactivated class. */
+           occur for lambda closure classes, unless we're in a context where
+           we are lazy-loading module entities.  Make the class a member of the
+           reactivated class. */
         { a_type_ptr  parent = scope_stack[decl_level].assoc_type;
-          check_assertion(class_type_supp(class_type)->
-                                                     is_lambda_closure_class);
+          a_class_type_supplement_ptr
+                      ctsp = class_type_supp(class_type);
+          check_assertion(ctsp->is_lambda_closure_class ||
+                          scope_stack_top().module_load_context_count > 0);
           set_class_membership(tag_sym, &class_type->source_corresp, parent);
-          class_type->source_corresp.access = (an_access_specifier)as_public;
+          if (ctsp->is_lambda_closure_class) {
+            class_type->source_corresp.access = (an_access_specifier)as_public;
+          }  /* if */
         }
         break;
       case sck_namespace:

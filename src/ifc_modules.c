@@ -3152,6 +3152,7 @@ constants for that type).
           an_ifc_TypeSort_Fundamental itsf, *itsfp;
           a_type_kind                 type_kind;
           a_symbol_kind               tag_kind;
+
           idssp = get_DeclSort_Scope(&idss);
           source_position_from_locus(&error_position, &idssp->locus);
           /* Should be no unnamed namespaces or types. */
@@ -3161,6 +3162,21 @@ constants for that type).
           if (mep->scope == NULL) {
             mep->scope = get_ifc_scope(idssp->home_scope);
             scope_pushed = push_module_declaration_context(mep->scope);
+          }  /* if */
+          if (scope_is(mep->scope, sck_class_struct_union)) {
+            /* This is a child class.  It will have already been entered as a
+               member of the parent class.  Find that entry and skip the rest
+               of the processing. */
+            a_type_ptr   parent_class = mep->scope->variant.assoc_type;
+            a_symbol_ptr sym;
+            sym = look_up_name_string_in_class(loc.symbol_header->identifier,
+                                               parent_class,
+                                               IDL_TENTATIVE_TYPE_LOOKUP |
+                                                              IDL_MUST_BE_TAG);
+            check_assertion(sym != NULL && is_class_struct_union_symbol(sym));
+            il_entity = (char*)(sym->variant.class_struct_union.type);
+            kind = iek_type;
+            break;
           }  /* if */
           /* Look at the "type" to determine whether we have a namespace or
              not. */
@@ -4313,6 +4329,13 @@ Given a scope index find and return the associated scope.
   } else {
     a_module_entity_ptr mep = get_ifc_module_entity_ptr(scope_index);
     process_ifc_declaration(mep, /*defer=*/FALSE, /*enumeration_type=*/NULL);
+    if (mep->entity.kind == (a_byte_il_entry_kind)iek_type) {
+      a_type_ptr tp = (a_type_ptr)mep->entity.ptr;
+      /* We need the scope associated with this type.  Given its scope was
+         referenced, it must be complete. */
+      complete_class_type_is_needed(tp, /*subst_err*/NULL);
+      check_assertion(!tp->incomplete);
+    }  /* if */
     result = get_assoc_scope_of_il_entry(mep->entity.ptr,
                                          (an_il_entry_kind)mep->entity.kind);
   }  /* if */

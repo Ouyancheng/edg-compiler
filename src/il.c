@@ -13496,6 +13496,10 @@ a_scope_ptr get_assoc_scope_of_il_entry(char             *entity,
 /*
 Given an IL entity, return the associated scope (e.g., for a namespace, return
 the namespace's scope).  If there is no associated scope, return NULL.
+
+For class types, the scope here may be NULL if the class type needs to be
+completed but hasn't.  Since that has an impact on the semantics of the code,
+the caller must ensure the class type is complete before calling this routine.
 */
 {
   a_scope_ptr result = NULL;
@@ -13608,6 +13612,19 @@ the namespace's scope).  If there is no associated scope, return NULL.
       { a_lambda_ptr ptr = (a_lambda_ptr)entity;
         result = get_assoc_scope_of_il_entry((char*)ptr->lambda_routine,
                                              iek_routine);
+      }
+      break;
+    case iek_type:
+      { a_type_ptr ptr = (a_type_ptr)entity;
+        ptr = skip_typerefs(ptr);
+        if (is_class_struct_union_type(ptr)) {
+          a_class_type_supplement_ptr ctsp = class_type_supp(ptr);
+          if (ctsp != NULL) {
+            result = ctsp->assoc_scope;
+          }  /* if */
+        } else if (is_scoped_enum_type(ptr)) {
+          result = ptr->variant.integer.enum_info.assoc_scope;
+        }  /* if */
       }
       break;
     default:
