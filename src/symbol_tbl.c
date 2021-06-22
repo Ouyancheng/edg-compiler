@@ -9309,7 +9309,10 @@ in alep.  The caller is responsible for freeing the created argument list.
   for (rout_param_var = sp->variant.routine.parameters;
        rout_param_var != NULL; rout_param_var = rout_param_var->next) {
     var_expr = var_rvalue_expr(rout_param_var);
-    make_expression_operand(var_expr, &arg_operand);
+    if (is_reference_type(var_expr->type)) {
+      var_expr = add_ref_indirection_to_node(var_expr);
+    }  /* if */
+    make_lvalue_or_rvalue_expression_operand(var_expr, &arg_operand);
     *next_alep = alloc_arg_list_elem_for_operand(&arg_operand);
     next_alep = &(*next_alep)->next;
   }  /* for */
