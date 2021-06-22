@@ -9722,13 +9722,15 @@ coroutine as described in N4810 (or N4775+P0912R5).
   make_coroutine_promise_call_operand(&operand, "get_return_object",
                                       promise_var, /*add_await=*/FALSE,
                                       /*init_suspend=*/FALSE);
-  prep_elision_initializer_operand(&operand, coroutine->type->
+  if (is_class_or_struct(operand.type)) {
+    prep_elision_initializer_operand(&operand, coroutine->type->
                                                    variant.routine.return_type,
-                                   /*fill_in_dtor=*/FALSE,
-                                   CCO_INITIALIZING_RETURN_VALUE,
-                                   ec_bad_return_value_type,
-                                   /*elision_done=*/NULL,
-                                   &dip);
+                                     /*fill_in_dtor=*/FALSE,
+                                     CCO_INITIALIZING_RETURN_VALUE,
+                                     ec_bad_return_value_type,
+                                     /*elision_done=*/NULL,
+                                     &dip);
+  }  /* if */
   cr_desc->get_return_object_call = expr_node_from_operand(&operand);
   set_possibly_null_expr_result_not_used(cr_desc->get_return_object_call);
   select_coroutine_new_delete(cr_desc, coroutine);
