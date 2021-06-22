@@ -818,18 +818,23 @@ The output includes template arguments on template classes.
     /* Output the base name. */
     octl->output_str(name, octl);
   }  /* if */
-  /* Check for template arguments on a class name. */
-  if (il_header.source_language == sl_Cplusplus && entry_kind == iek_type &&
+  /* Check for template arguments. */
+  if (il_header.source_language == sl_Cplusplus && 
       !octl->suppress_template_args) {
-    a_type_ptr		type = (a_type_ptr)scp;
     a_template_arg_ptr	tap = NULL;
-    /* Ignore template parameters and classes whose bodies have been
-       eliminated. */
-    if (is_immediate_class_type(type) &&
-        type->variant.class_struct_union.extra_info != NULL) {
-      tap = type->variant.class_struct_union.extra_info->template_arg_list;
-    } else if (type->kind == (a_type_kind)tk_typeref) {
-      tap = type->variant.typeref.extra_info->orig_template_arg_list;
+    if (entry_kind == iek_type) {
+      a_type_ptr  type = (a_type_ptr)scp;
+      /* Ignore template parameters and classes whose bodies have been
+         eliminated. */
+      if (is_immediate_class_type(type)) {
+        tap = class_type_supp(type)->template_arg_list;
+      } else if (type->kind == (a_type_kind)tk_typeref) {
+        tap = type->variant.typeref.extra_info->orig_template_arg_list;
+      }  /* if */
+#if DEBUG
+    } else if (octl->debug_output && entry_kind == iek_routine) {
+      tap = ((a_routine_ptr)scp)->template_arg_list;
+#endif /* DEBUG */
     }  /* if */
     if (tap != NULL) {
       /* This is a template class name or template alias name.  Put out the
@@ -2271,6 +2276,21 @@ by octl.
           } else {
             form_name(scp, (an_il_entry_kind)scp_kind, octl);
           }  /* if */
+#if DEBUG
+          if (octl->debug_output) {
+            if (type->variant.template_param.kind ==
+                                     (a_template_param_type_kind)tptk_param) {
+              char  buf[100];
+              (void)sprintf(
+                      buf, "#(%lu,%lu)",
+                      (unsigned long)type->variant.template_param.extra_info
+                                         ->coordinates.depth,
+                      (unsigned long)type->variant.template_param.extra_info
+                                         ->coordinates.position);
+              octl->output_str(buf, octl);
+            }  /* if */
+          }  /* if */
+#endif /* DEBUG */
         }  /* if */
       }
       break;
@@ -5613,6 +5633,20 @@ on every expression.
   }  /* if */
   octl->render_auto_deduction_typerefs = saved_render_auto_deduction_typerefs;
 }  /* form_expression */
+
+#if DEBUG
+
+void db_abbr_expr(an_expr_node_ptr                       expr,
+                  an_il_to_str_output_control_block_ptr  octl)
+/*
+Output the given expression in compact form.  This is only for use by the
+debug output routines.
+*/
+{
+  form_expression(expr, octl);
+}  /* db_abbr_expr */
+
+#endif /* DEBUG */
 
 
 static void form_dynamic_init_constant(

@@ -1,5 +1,20 @@
 Version 6.3
 
+6/22/21  [EDGcpfe/24399]
+Implicit deduction guides and template constraints
+
+Class template argument deduction (a C++17 feature) relies on "implicit
+deduction guides", which are templates that are synthesized from the
+declarations of class templates and their constructors and constructor
+templates.  These implicit deduction guides have template parameters
+that are distinct from those of the associated class templates and
+constructors, but the front end previously failed to update any constraints
+(a C++20 feature) associated with those class templates and constructors to
+account for the new template parameters.  That could result in the deduction
+process producing erroneous substitutions of the constraints, which likely
+resulted in aborts later on.  That problem is now fixed.
+
+
 6/22/21  [EDGcpfe/23920]
 Internal error when a coroutine returns a non-class type
 

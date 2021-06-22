@@ -1743,7 +1743,13 @@ Dump the contents of the indicated type entry, for debug purposes.
             fputs("\" ", f_debug);
           }  /* if */
           if (tp->variant.typeref.is_decltype) {
-            fputs("decltype ", f_debug);
+            fputs("decltype(", f_debug);
+            an_il_to_str_output_control_block octl;
+            clear_il_to_str_output_control_block(&octl);
+            octl.output_str = put_str_to_f_debug;
+            octl.debug_output = TRUE;
+            db_abbr_expr(decltype_arg(tp), &octl);
+            fputs(") ", f_debug);
           }  /* if */
           if (tp->variant.typeref.is_underlying_type) {
             fputs("__underlying_type ", f_debug);
@@ -18965,8 +18971,8 @@ options is a set of substitution options.
                                  (a_template_param_ptr)NULL,
                                  template_arg_list, template_param_list,
                                  source_pos, options, copy_error, ctws_state);
-        if (template_arg_list_is_dependent(new_args)) {
-          /* Don't attempt to substitute concept-ids with dependent parameter
+        if (new_args == NULL || template_arg_list_is_dependent(new_args)) {
+          /* Don't attempt to evaluate concept-ids with dependent parameter
              lists. */
           if (!*copy_error) {
             expr_copy = copy_node(expr);
@@ -19030,6 +19036,43 @@ end_of_routine:
   release_local_constant(&constant_3);
   return expr_copy;
 }  /* copy_template_param_expr */
+
+
+an_expr_node_ptr copy_expr_with_substitutions(
+                                    an_expr_node_ptr      expr,
+                                    a_template_arg_ptr    template_arg_list,
+                                    a_template_param_ptr  template_param_list,
+                                    a_ctws_options_set    options,
+                                    a_boolean             *copy_error,
+                                    a_ctws_state_ptr      ctws_state)
+/*
+Create and return a copy of the given expresion, with the given template
+parameters substituted by the given template argument list.  If this process
+fails, set *copy_error to TRUE.  The substitution process is guides by the
+given options and the given state object.
+
+See also substitute_expr, which can substitute multiple levels of template
+parameters.
+*/
+{
+  a_constant_ptr    const_result = local_constant();
+  a_constant_ptr    alloc_const_result;
+
+  expr =  copy_template_param_expr(expr,
+                                   template_arg_list, template_param_list,
+                                   /*guide_type=*/(a_type_ptr)NULL,
+                                   &expr->position,
+                                   options, copy_error, ctws_state,
+                                   const_result, &alloc_const_result);
+  if (*copy_error) {
+    expr = NULL;
+  } else {
+    expr = alloc_copied_template_param_expr(expr, const_result,
+                                            alloc_const_result);
+  }  /* if */
+  release_local_constant(&const_result);
+  return expr;
+}  /* copy_expr_with_substitutions */
 
 
 a_type_ptr type_of_decltype_expr_with_substitution(
@@ -24111,6 +24154,11 @@ instantiation-dependent.
     /* Treat local variables of function templates as "instantiation
        dependent". */
     examine_var_init_for_instantiation_dependence(node_variable(expr), tblock);
+  } else if (node_is(expr, enk_type_operand)) {
+    /* enk_type_operand nodes have "void" type, but the instantiation
+       dependence is in the operand type. */
+    examine_type_for_instantiation_dependence(expr->variant.type_operand.type,
+                                              tblock);
   }  /* if */
 }  /* examine_expr_for_instantiation_dependence */
 
