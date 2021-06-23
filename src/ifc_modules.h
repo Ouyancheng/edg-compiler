@@ -41,109 +41,117 @@ constexpr a_byte ifc_magic_numbers[] = { 0x54, 0x51, 0x45, 0x1A };
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 /* These types are described by the IFC document. */
+
+/*
+For enumeration types that have associated enumerator constants, an opaque
+declaration is provided first to keep a compact overview that can more
+conveniently be compared to the lists in the IFC document.  The complete
+definition follows later on.
+*/
+
 /* 32-bit types: */
 typedef uint32_t ifc_Index_type;
 
-enum ifc_ActiveMember : uint32_t;
-enum ifc_AttrIndex : ifc_Index_type;
-enum ifc_ByteOffset : uint32_t;
-enum ifc_Cardinality : uint32_t;
-enum ifc_ChartIndex : ifc_Index_type;
-enum ifc_Column : uint32_t;
-enum ifc_DeclIndex : ifc_Index_type;
-enum ifc_DelimiterSort : uint32_t;
-enum ifc_EntitySize : uint32_t;
-enum ifc_ExprIndex : ifc_Index_type;
-enum ifc_FormIndex : ifc_Index_type;
-enum ifc_Index : ifc_Index_type;
-enum ifc_LanguageVersion : uint32_t;
-enum ifc_LineIndex : ifc_Index_type;
-enum ifc_LineNumber : uint32_t;
-enum ifc_LitIndex : ifc_Index_type;
-enum ifc_MacroIndex : ifc_Index_type;
-enum ifc_MsvcTraits : uint32_t;
-enum ifc_NameIndex : ifc_Index_type;
-enum ifc_ParameterLevel : uint32_t;
-enum ifc_ParameterPosition : uint32_t;
-enum ifc_PragmaIndex : ifc_Index_type;
-enum ifc_ScopeIndex : ifc_Index_type;
-enum ifc_SegmentTraits : uint32_t;
-enum ifc_SegmentType : uint32_t;
-enum ifc_SentenceIndex : ifc_Index_type;
-enum ifc_StmtIndex : ifc_Index_type;
-enum ifc_StringIndex : ifc_Index_type;
-enum ifc_SyntaxIndex : ifc_Index_type;
-enum ifc_TextOffset : uint32_t;
-enum ifc_TypeIndex : ifc_Index_type;
-enum ifc_UniqueID : uint32_t;
-enum ifc_UnitIndex : ifc_Index_type;
-enum ifc_WordIndex : ifc_Index_type;
+enum ifc_ActiveMember : uint32_t {};
+enum ifc_AttrIndex : ifc_Index_type {};
+enum ifc_ByteOffset : uint32_t {};
+enum ifc_Cardinality : uint32_t {};
+enum ifc_ChartIndex : ifc_Index_type {};
+enum ifc_Column : uint32_t {};
+enum ifc_DeclIndex : ifc_Index_type {};
+enum ifc_DelimiterSort : uint32_t {};
+enum ifc_EntitySize : uint32_t {};
+enum ifc_ExprIndex : ifc_Index_type {};
+enum ifc_FormIndex : ifc_Index_type {};
+enum ifc_Index : ifc_Index_type {};
+enum ifc_LanguageVersion : uint32_t {};
+enum ifc_LineIndex : ifc_Index_type {};
+enum ifc_LineNumber : uint32_t {};
+enum ifc_LitIndex : ifc_Index_type {};
+enum ifc_MacroIndex : ifc_Index_type {};
+enum ifc_MsvcTraits : uint32_t;  /* Defined below. */
+enum ifc_NameIndex : ifc_Index_type {};
+enum ifc_ParameterLevel : uint32_t {};
+enum ifc_ParameterPosition : uint32_t {};
+enum ifc_PragmaIndex : ifc_Index_type {};
+enum ifc_ScopeIndex : ifc_Index_type {};
+enum ifc_SegmentTraits : uint32_t {};
+enum ifc_SegmentType : uint32_t {};
+enum ifc_SentenceIndex : ifc_Index_type {};
+enum ifc_StmtIndex : ifc_Index_type {};
+enum ifc_StringIndex : ifc_Index_type {};
+enum ifc_SyntaxIndex : ifc_Index_type {};
+enum ifc_TextOffset : uint32_t {};
+enum ifc_TypeIndex : ifc_Index_type {};
+enum ifc_UniqueID : uint32_t {};
+enum ifc_UnitIndex : ifc_Index_type {};
+enum ifc_WordIndex : ifc_Index_type {};
 
 /* 16-bit types: */
 typedef uint16_t ifc_Operator_type;
 
-enum ifc_DyadicOperator : ifc_Operator_type;
-enum ifc_EHFlags : uint16_t;
-enum ifc_FormOperator : ifc_Operator_type;
-enum ifc_FunctionTraits : uint16_t;
-enum ifc_MonadicOperator : ifc_Operator_type;
-enum ifc_NiladicOperator : ifc_Operator_type;
-enum ifc_Operator : uint16_t;
-enum ifc_PackSize : uint16_t;
-enum ifc_SourceDirective : uint16_t;
-enum ifc_SourceIdentifier : uint16_t;
-enum ifc_SourceKeyword : uint16_t;
-enum ifc_SourceLiteral : uint16_t;
-enum ifc_SourceOperator : uint16_t;
-enum ifc_SourcePunctuator : uint16_t;
-enum ifc_StorageOperator : ifc_Operator_type;
-enum ifc_TriadicOperator : ifc_Operator_type;
-enum ifc_VariadicOperator : ifc_Operator_type;
+enum ifc_DyadicOperator : ifc_Operator_type;  /* Defined below. */
+enum ifc_EHFlags : uint16_t {};
+enum ifc_FormOperator : ifc_Operator_type {};
+enum ifc_FunctionTraits : uint16_t;  /* Defined below. */
+enum ifc_MonadicOperator : ifc_Operator_type;  /* Defined below. */
+enum ifc_NiladicOperator : ifc_Operator_type;  /* Defined below. */
+enum ifc_Operator : uint16_t {};
+enum ifc_PackSize : uint16_t {};
+enum ifc_SourceDirective : uint16_t;  /* Defined below. */
+enum ifc_SourceIdentifier : uint16_t;  /* Defined below. */
+enum ifc_SourceKeyword : uint16_t;  /* Defined below. */
+enum ifc_SourceLiteral : uint16_t;  /* Defined below. */
+enum ifc_SourceOperator : uint16_t;  /* Defined below. */
+enum ifc_SourcePunctuator : uint16_t;  /* Defined below. */
+enum ifc_StorageOperator : ifc_Operator_type;  /* Defined below. */
+enum ifc_TriadicOperator : ifc_Operator_type;  /* Defined below. */
+enum ifc_VariadicOperator : ifc_Operator_type;  /* Defined below. */
 
 /* 8-bit types: */
 typedef uint8_t ifc_Sort_type;
 
-enum ifc_Abi : uint8_t;
-enum ifc_Access : uint8_t;
-enum ifc_Architecture : uint8_t;
-enum ifc_Associativity : uint8_t;
-enum ifc_BasicSpecifiers : uint8_t;
-enum ifc_CallingConvention : uint8_t;
-enum ifc_DestructorSort : ifc_Sort_type;
-enum ifc_ExpansionMode : uint8_t;
-enum ifc_FunctionTypeTraits : uint8_t;
-enum ifc_GuideTraits : uint8_t;
-enum ifc_InitializerSort : ifc_Sort_type;
-enum ifc_NoexceptSort : ifc_Sort_type;
-enum ifc_ObjectTraits : uint8_t;
-enum ifc_ParameterSort : ifc_Sort_type;
-enum ifc_PointerDeclaratorSort : ifc_Sort_type;
-enum ifc_Qualifiers : uint8_t;
-enum ifc_ReachableProperties : uint8_t;
-enum ifc_ReadConversionSort : ifc_Sort_type;
-enum ifc_ScopeTraits : uint8_t;
-enum ifc_SyntaxSort : ifc_Sort_type;
-enum ifc_TypeBasis : uint8_t;
-enum ifc_TypePrecision : uint8_t;
-enum ifc_TypeSign : uint8_t;
-enum ifc_Version : uint8_t;
-enum ifc_WordSort : ifc_Sort_type;
+enum ifc_Abi : uint8_t {};
+enum ifc_Access : uint8_t;  /* Defined below. */
+enum ifc_Architecture : uint8_t;  /* Defined below. */
+enum ifc_Associativity : uint8_t {};
+enum ifc_BasicSpecifiers : uint8_t;  /* Defined below. */
+enum ifc_CallingConvention : uint8_t;  /* Defined below. */
+enum ifc_DestructorSort : ifc_Sort_type {};
+enum ifc_ExpansionMode : uint8_t;  /* Defined below. */
+enum ifc_FunctionTypeTraits : uint8_t;  /* Defined below. */
+enum ifc_GuideTraits : uint8_t;  /* Defined below. */
+enum ifc_InitializerSort : ifc_Sort_type;  /* Defined below. */
+enum ifc_NoexceptSort : ifc_Sort_type;  /* Defined below. */
+enum ifc_ObjectTraits : uint8_t;  /* Defined below. */
+enum ifc_ParameterSort : ifc_Sort_type;  /* Defined below. */
+enum ifc_PointerDeclaratorSort : ifc_Sort_type;  /* Defined below. */
+enum ifc_Qualifiers : uint8_t;  /* Defined below. */
+enum ifc_ReachableProperties : uint8_t;  /* Defined below. */
+enum ifc_ReadConversionSort : ifc_Sort_type;  /* Defined below. */
+enum ifc_ScopeTraits : uint8_t;  /* Defined below. */
+enum ifc_SyntaxSort : ifc_Sort_type;  /* Defined below. */
+enum ifc_TypeBasis : uint8_t;  /* Defined below. */
+enum ifc_TypePrecision : uint8_t;  /* Defined below. */
+enum ifc_TypeSign : uint8_t;  /* Defined below. */
+enum ifc_Version : uint8_t {};
+enum ifc_WordSort : ifc_Sort_type;  /* Defined below. */
 
 /* Embedded tags: */
-enum ifc_AttrSort : ifc_Sort_type;
-enum ifc_ChartSort : ifc_Sort_type;
-enum ifc_DeclSort : ifc_Sort_type;
-enum ifc_ExprSort : ifc_Sort_type;
-enum ifc_FormSort : ifc_Sort_type;
-enum ifc_LiteralSort : ifc_Sort_type;
-enum ifc_MacroSort : ifc_Sort_type;
-enum ifc_NameSort : ifc_Sort_type;
-enum ifc_OperatorSort : ifc_Sort_type;
-enum ifc_PragmaSort : ifc_Sort_type;
-enum ifc_StmtSort : ifc_Sort_type;
-enum ifc_StringSort : ifc_Sort_type;
-enum ifc_TypeSort : ifc_Sort_type;
-enum ifc_UnitSort : ifc_Sort_type;
+enum ifc_AttrSort : ifc_Sort_type;  /* Defined below. */
+enum ifc_ChartSort : ifc_Sort_type;  /* Defined below. */
+enum ifc_DeclSort : ifc_Sort_type;  /* Defined below. */
+enum ifc_ExprSort : ifc_Sort_type;  /* Defined below. */
+enum ifc_FormSort : ifc_Sort_type;  /* Defined below. */
+enum ifc_LiteralSort : ifc_Sort_type;  /* Defined below. */
+enum ifc_MacroSort : ifc_Sort_type;  /* Defined below. */
+enum ifc_NameSort : ifc_Sort_type;  /* Defined below. */
+enum ifc_OperatorSort : ifc_Sort_type;  /* Defined below. */
+enum ifc_PragmaSort : ifc_Sort_type;  /* Defined below. */
+enum ifc_StmtSort : ifc_Sort_type;  /* Defined below. */
+enum ifc_StringSort : ifc_Sort_type;  /* Defined below. */
+enum ifc_TypeSort : ifc_Sort_type;  /* Defined below. */
+enum ifc_UnitSort : ifc_Sort_type;  /* Defined below. */
 
 /* Some IFC fields have fundamental types. */
 typedef uint8_t  ifc_bool;
