@@ -410,6 +410,7 @@ the entry pointed to by dps->routine_fixup.
                      (a_type_ptr)NULL, rp);
     (void)push_scope((a_scope_kind)sck_func_prototype, func_info->scope_number,
                      underlying_function_type(dps->sym), (a_routine_ptr)NULL);
+    scope_stack_top().decl_parse_state = dps;
     /* Reactivate prototype scope symbols, but keep parameters that still have
        unparsed default arguments invisible (except for the first, which we're
        about to parse). */

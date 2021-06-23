@@ -1,5 +1,24 @@
 Version 6.3
 
+6/23/21  [EDGcpfe/23999]
+Incorrect handling of __builtin_LINE, etc. in default arguments
+
+Consider:
+
+  consteval int f(unsigned int = __builtin_LINE()) {
+    return 42;
+  }
+  void g(int = f()) {}  // Previously an error.  Now okay.
+
+Previously, the front end issued an error because it never folded calls to
+__builtin_LINE (or __builtin_COLUMN, __builtin_FILE, or __builtin_FUNCTION) if
+such calls appeared in a default argument: In this case that produces an error
+because f() is consteval and therefore must produce a constant result when it
+appears in the default argument of the non-consteval function g().  That is now
+fixed: The constant-evaluation of these built-in functions is now deferred in a
+default argument only if that argument is for a consteval function.
+
+
 6/22/21  [EDGcpfe/24457]
 Spurious error for promise constructor with coroutine reference parameter
 
