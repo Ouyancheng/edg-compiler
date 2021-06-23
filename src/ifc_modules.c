@@ -5220,7 +5220,7 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
             check_assertion(result[0] == '"' && result[1] == '"');
             result += 2;
             make_literal_opname_locator(result, strlen(result), loc,
-                                        &null_source_position);
+                                        (a_source_position*)NULL);
             /* FIXME: set this? */
             loc->is_udl_operator_name = TRUE;
             result = loc->symbol_header->identifier;
