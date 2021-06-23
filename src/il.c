@@ -19048,7 +19048,7 @@ an_expr_node_ptr copy_expr_with_substitutions(
 /*
 Create and return a copy of the given expression, with the given template
 parameters substituted by the given template argument list.  If this process
-fails, set *copy_error to TRUE.  The substitution process is guides by the
+fails, set *copy_error to TRUE.  The substitution process is guided by the
 given options and the given state object.
 
 See also substitute_expr, which can substitute multiple levels of template
