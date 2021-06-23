@@ -1,5 +1,20 @@
 Version 6.3
 
+6/23/21  [EDGcpfe/23769]
+Abort after defaulted operator<=> with a noexcept-specifier
+
+Consider:
+
+  #include <compare>
+  template <bool NE> struct S {
+    [[nodiscard]] auto operator<=>(S const&) const noexcept(NE) = default;
+  };
+  S<true> x;  // Previously aborted.  Now okay.
+
+Previously, this aborted with an internal error in decl_member_function.
+That is now fixed.
+
+
 6/23/21  [EDGcpfe/23999]
 Incorrect handling of __builtin_LINE, etc. in default arguments
 

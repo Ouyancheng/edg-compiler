@@ -16905,7 +16905,6 @@ value for the decl_state.
 */
 {
   instantiate_exception_spec_if_needed_full((a_tmpl_decl_state_ptr)NULL, sym);
-
 }  /* instantiate_exception_spec_if_needed */
 
 

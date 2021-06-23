@@ -24357,7 +24357,10 @@ declared, declare one that matches the spaceship operator.
     clear_func_info(&func_info);
     /* All special functions are inline definitions. */
     func_info.is_inline = TRUE;
-    if (exceptions_enabled) func_info.throw_position = *pos;
+    if (exceptions_enabled) {
+      func_info.throw_position = *pos;
+      instantiate_exception_spec_if_needed(symbol_for(srp));
+    }  /* if */
     make_opname_locator((an_opname_kind)onk_eq, &loc, pos);
     rtp = copy_routine_type_with_param_types(skip_typerefs(srp->type),
                                              /*copy_default_args=*/FALSE);
