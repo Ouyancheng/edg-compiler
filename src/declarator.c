@@ -1541,6 +1541,10 @@ Parse the operand now.
   a_decl_parse_state              dps;
   a_symbol_ptr                    lookup_sym = NULL;
   a_boolean                       saved_is_invisible = FALSE;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  a_source_position               saved_curr_construct_end_position =
+                                                  curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 
   check_assertion(rp->type->kind == (a_type_kind)tk_routine &&
                   scope_is(ssep, sck_func_prototype));
@@ -1600,6 +1604,9 @@ Parse the operand now.
   }  /* if */
   /* Skip past the tok_end_of_source. */
   (void)get_token();
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+  curr_construct_end_position = saved_curr_construct_end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 }  /* delayed_scan_of_exception_spec */
 
 

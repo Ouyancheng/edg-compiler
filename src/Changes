@@ -1,5 +1,24 @@
 Version 6.3
 
+6/23/21  [EDGcpfe/24431]
+End-position of variable initializer involving constructor call
+
+Consider:
+
+  template<typename> struct X { X() noexcept(1); };
+  struct S {
+    X<int> xi;
+  };
+  void f() {
+    S *s = new S();
+  }
+
+When EXTRA_SOURCE_POSITIONS_IN_IL is TRUE, the end position recorded for the
+initializer of s was erroneous because the delayed scanning of the noexcept-
+specifier of X::X() failed to fully restore the lexical state prior to the
+scanning.  That is now fixed.
+
+
 6/23/21  [EDGcpfe/23769]
 Abort after defaulted operator<=> with a noexcept-specifier
 
