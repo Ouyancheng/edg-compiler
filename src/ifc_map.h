@@ -866,7 +866,8 @@ IFC_DECL_END(ExprSort_ExpressionList)
 IFC_DECL_START(ExprSort_SizeofType)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
-  IFC_DECL_FIELD(operand, SyntaxIndex)
+  /* The IFC spec says this is a SyntaxIndex, but it's actually a TypeIndex. */
+  IFC_DECL_FIELD(operand, TypeIndex)
 IFC_DECL_END(ExprSort_SizeofType)
 
 /* ExprSort::Alignof */

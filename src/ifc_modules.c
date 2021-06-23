@@ -7875,8 +7875,10 @@ this is needed.
       issue_unsupported_node_diag("TypeSort::Unaligned", &error_position);
       break;
     case ifc_TypeSort_SyntaxTree:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("TypeSort::SyntaxTree", &error_position);
+      { an_ifc_TypeSort_SyntaxTree itsst, *itsstp;
+        itsstp = get_TypeSort_SyntaxTree(&itsst);
+        cache_syntax(cache, itsstp->syntax);
+      }
       break;
     case ifc_TypeSort_Last:
       unexpected_condition();
@@ -9880,8 +9882,14 @@ Add the tokens corresponding to the given expression (expr) to cache.
       issue_unsupported_node_diag("ExprSort::ExpressionList", &error_position);
       break;
     case ifc_ExprSort_SizeofType:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::SizeofType", &error_position);
+      { an_ifc_ExprSort_SizeofType iessot, *iessotp;
+        iessotp = get_ExprSort_SizeofType(&iessot);
+        source_position_from_locus(&pos, &iessotp->locus);
+        cache_token(cache, tok_sizeof, &pos);
+        cache_token(cache, tok_lparen, &pos);
+        cache_type(cache, iessotp->operand, &iessotp->locus);
+        cache_token(cache, tok_rparen, &pos);
+      }
       break;
     case ifc_ExprSort_Alignof:
       /* FIXME: Currently unsupported. */
