@@ -40894,18 +40894,17 @@ fails.
     if (symbol_is(param_sym, sk_type)) {
       /* If this is a constrained template type parameter, substitute the
          constraint. */
-      a_type_ptr  param_type = tpp->variant.type;
+      a_type_ptr        param_type = tpp->variant.type;
       an_expr_node_ptr  constraint;
       constraint = param_type->variant.template_param.extra_info
                              ->constraint.type_constraint;
       if (constraint != NULL) {
-        a_ctws_state         ctws_state;
         init_ctws_state(&ctws_state);
         constraint = copy_expr_with_substitutions(
                                             constraint,
                                             templ_arg_list, templ_param_list,
-                                             (CTWS_MAY_BE_RESCANNED |
-                                              CTWS_NON_CONSTANT_EXPR),
+                                            (CTWS_MAY_BE_RESCANNED |
+                                             CTWS_NON_CONSTANT_EXPR),
                                             copy_error, &ctws_state);
         if (!*copy_error) {
           param_type->variant.template_param.extra_info

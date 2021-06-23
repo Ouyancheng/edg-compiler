@@ -19046,7 +19046,7 @@ an_expr_node_ptr copy_expr_with_substitutions(
                                     a_boolean             *copy_error,
                                     a_ctws_state_ptr      ctws_state)
 /*
-Create and return a copy of the given expresion, with the given template
+Create and return a copy of the given expression, with the given template
 parameters substituted by the given template argument list.  If this process
 fails, set *copy_error to TRUE.  The substitution process is guides by the
 given options and the given state object.
