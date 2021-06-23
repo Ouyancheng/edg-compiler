@@ -2756,7 +2756,7 @@ this includes incomplete class, struct, or union types.
 a_boolean is_class_struct_type(a_type_ptr tp)
 /*
 Return TRUE if the given type is a class or struct type.  Note that
-this includes incomplete class or struct union types.
+this includes incomplete class or struct types.
 */
 {
   tp = skip_typerefs(tp);
