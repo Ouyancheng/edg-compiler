@@ -2999,11 +2999,14 @@ constants for that type).
   a_boolean                skip_pop = FALSE;
 
 #if EXPENSIVE_CHECKING
-  /* Enable eager loading of modules if the eager_load_modules flag is set as a
-     development work flow improvement.  As this is intended solely to ease
-     project development, enable this check only when expensive checking is
-     enabled.  Thereby, ensuring only development builds pay the cost of this
-     branch. */
+  /* When this flag is set, eagerly load all entities in a module.  Entities
+     are typically lazily loaded (i.e., only when needed) and eagerly loading
+     all entities in a module can be used as a debugging aid to ensure that all
+     entities load properly.
+
+     As this feature is not supported in production builds and this branch is
+     in an anticipated hot path, conditionally enable it with
+     EXPENSIVE_CHECKING as an optimization. */
   if (eager_load_modules) {
     defer = FALSE;
   }  /* if */

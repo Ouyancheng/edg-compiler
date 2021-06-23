@@ -2365,7 +2365,8 @@ EXTERN a_boolean
 EXTERN a_boolean
 		eager_load_modules;
 			/* TRUE if imported modules should be loaded eagerly
-			   (as opposed to imported on demand). */
+			   (as opposed to imported on demand).  Note this
+			   feature is not supported in production builds. */
 #endif /* EXPENSIVE_CHECKING */
 
 EXTERN a_boolean
