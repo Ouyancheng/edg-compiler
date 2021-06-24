@@ -377,9 +377,10 @@ std.
                              std_namespace);
   enter_predeclared_class(type, depth_scope_stack, &null_source_position);
   pop_namespace_scope();
-  /* Make sure it cannot be used until actually declared.  g++ make the
-     name visible in modes where aligned new is allowed. */
-  sym->is_invisible = !gpp_mode;
+  /* Make sure it cannot be used until actually declared.  g++ and
+     Microsoft make the name visible in modes where aligned new is
+     allowed. */
+  sym->is_invisible = !(gpp_mode || microsoft_mode);
   return type;
 }  /* make_and_enter_align_val_type */
 
