@@ -7035,7 +7035,10 @@ current scope.
 
   ssep = &scope_stack[depth_innermost_instantiation_scope];
   check_assertion(ssep->template_decl_info != NULL);
-  if (ssep->is_rescan && ssep->template_sym != NULL) {
+  if (ssep->module_load_context_count != 0) {
+    /* A module is being loaded; disable this check for this entity. */
+    decl_seq_number = NO_DECL_SEQUENCE_NUMBER;
+  } else if (ssep->is_rescan && ssep->template_sym != NULL) {
     /* When rescanning a template X, only declarations prior to X are
        visible. */
     decl_seq_number = ssep->template_sym->decl_seq-1;
