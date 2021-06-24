@@ -1,10 +1,11 @@
 Version 6.3
 
 6/24/21  [EDGcpfe/24460]
-GNU C++ compatibility: std::align_val_t is predeclared
+GNU and Microsoft compatibility: std::align_val_t is predeclared
 
-g++ allows the use of std::align_val_t without including <new>.  We now
-emulate this behavior in g++ mode when aligned operator new is supported.
+Microsoft and g++ allow the use of std::align_val_t without including <new>.
+We now emulate this behavior in Microsoft and g++ modes when aligned operator
+new is supported.
 
   std::align_val_t x;
 
