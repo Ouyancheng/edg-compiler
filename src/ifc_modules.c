@@ -8056,6 +8056,7 @@ is the location of the chart.
 */
 {
   ifc_ChartSort     tag = chart_tag(chart);
+  ifc_ExprIndex     constraint = (ifc_ExprIndex)0;
   a_source_position pos;
 
   source_position_from_locus(&pos, locus);
@@ -8068,6 +8069,7 @@ is the location of the chart.
     case ifc_ChartSort_Unilevel:
       { an_ifc_ChartSort_Unilevel icsu, *icsup;
         icsup = get_ChartSort_Unilevel(&icsu);
+        constraint = icsup->constraint;
         for (ifc_Index_type idx = 0; idx < icsup->cardinality; ++idx) {
           if (idx > 0) cache_token(cache, tok_comma, &pos);
           cache_decl(cache,
@@ -8095,6 +8097,10 @@ is the location of the chart.
     default_is_unexpected_str("Unexpected ChartSort");
   }  /* switch */
   cache_token(cache, tok_gt, &pos);
+  if (constraint != (ifc_ExprIndex)0) {
+    /* The template parameter list is followed by a requires-clause. */
+    cache_expr(cache, constraint);
+  }  /* if */
 }  /* cache_chart */
 
 
@@ -10612,9 +10618,12 @@ Add the tokens corresponding to the given syntax tree to cache.
       }
       break;
     case ifc_SyntaxSort_RequiresClause:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::RequiresClause",
-                                  &error_position);
+      { an_ifc_SyntaxSort_RequiresClause issrc, *issrcp;
+        issrcp = get_SyntaxSort_RequiresClause(&issrc);
+        source_position_from_locus(&pos, &issrcp->locus);
+        cache_token(cache, tok_requires, &pos);
+        cache_expr(cache, issrcp->condition);
+      }
       break;
     case ifc_SyntaxSort_SimpleRequirement:
       /* FIXME: Currently unsupported. */
@@ -10860,8 +10869,16 @@ Add the tokens corresponding to the given syntax tree to cache.
                                   &error_position);
       break;
     case ifc_SyntaxSort_Tuple:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::Tuple", &error_position);
+      { an_ifc_SyntaxSort_Tuple isst, *isstp;
+        isstp = get_SyntaxSort_Tuple(&isst);
+        uint32_t  k, N = (uint32_t)isstp->cardinality;
+        for (k = 0; k<N; ++k) {
+          ifc_SyntaxIndex si;
+          read_partition_at_index(ifc_heap_syn, isstp->start+k);
+          GET_SyntaxIndex(si, /*from_header=*/FALSE);
+          cache_syntax(cache, si);
+        }  /* for */
+      }
       break;
     case ifc_SyntaxSort_AsmStatement:
       /* FIXME: Currently unsupported. */

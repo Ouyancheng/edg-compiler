@@ -1649,6 +1649,8 @@ IFC_DECL_END(SyntaxSort_TemplateDeclaration)
 
 /* SyntaxSort::RequiresClause */
 IFC_DECL_START(SyntaxSort_RequiresClause)
+  IFC_DECL_FIELD(condition, ExprIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(SyntaxSort_RequiresClause)
 
 /* SyntaxSort::SimpleRequirement */
@@ -1836,6 +1838,8 @@ IFC_DECL_END(SyntaxSort_TypeTraitIntrinsic)
 
 /* SyntaxSort::Tuple */
 IFC_DECL_START(SyntaxSort_Tuple)
+  IFC_DECL_FIELD(start, Index)
+  IFC_DECL_FIELD(cardinality, Cardinality)
 IFC_DECL_END(SyntaxSort_Tuple)
 
 /* SyntaxSort::AsmStatement */
