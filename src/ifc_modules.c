@@ -3790,8 +3790,38 @@ class_struct_union_case:
         { an_ifc_DeclSort_Concept idsc, *idscp;
           idscp = get_DeclSort_Concept(&idsc);
           source_position_from_locus(&error_position, &idscp->locus);
-          goto unhandled;
+          if (defer) {
+            /* The concept isn't used yet.  For now, just register the
+               presence of the concept name in the symbol table. */
+            init_locator_from_name((ifc_NameIndex)0, idscp->name,
+                                   &idscp->locus, &loc);
+            defer_symbol_creation(mep, &loc);
+          } else {
+            /* Create a definition for the concept and scan it. */
+            a_token_sequence_number  saved_tsn = curr_token_sequence_number;
+            a_token_cache            cache;
+            if (mep->scope == NULL) {
+              mep->scope = get_ifc_scope(idscp->home_scope);
+            }  /* if */
+            /* Activate the parent scope if needed. */
+            a_boolean  must_pop = push_module_declaration_context(mep->scope);
+            clear_token_cache(&cache, /*reuseable=*/FALSE);
+            /* Generate the template parameter list. */
+            cache_token(&cache, tok_template, &null_source_position);
+            cache_chart(&cache, idscp->chart, &idscp->locus);
+            /* Generate "concept <concept-name>". */
+            cache_sentence(&cache, idscp->head);
+            /* Generate "= <constraint-expression> ;". */
+            cache_sentence(&cache, idscp->body);
+            /* Terminate the definition cache and parse it. */
+            terminate_token_cache(&cache);
+            (void)parse_cached_template(&cache, mep->scope);
+            /* Restore the original context. */
+            pop_module_declaration_context(must_pop);
+            curr_token_sequence_number = saved_tsn;
+          }  /* if */
         }
+        break;
       case ifc_DeclSort_InheritedConstructor:
         { an_ifc_DeclSort_InheritedConstructor idsic, *idsicp;
           idsicp = get_DeclSort_InheritedConstructor(&idsic);
@@ -9130,6 +9160,25 @@ Add the tokens corresponding to the given template declaration (decl) to cache.
 }  /* cache_decl_template */
 
 
+void an_ifc_module::cache_type_param_introducer(a_token_cache_ptr  cache,
+                                                ifc_ExprIndex      constraint,
+                                                a_source_position  *pos) const
+/*
+constraint is zero for unconstrained parameters or refers to a concept-id
+expression otherwise.  In the former case, add a "typename" token to introduce
+a template parameter, but in the latter case emit the concept-id.
+*/
+{
+  if (constraint == (ifc_ExprIndex)0) {
+    /* An unconstrained type parameter is introduced by the "typename"
+       keyword (or "class", but we'll use "typename"). */
+    cache_token(cache, tok_typename, pos);
+  } else {
+    cache_expr(cache, constraint);
+  }  /* if */
+}  /* cache_type_param_introducer */
+
+
 void an_ifc_module::cache_decl(a_token_cache_ptr cache,
                                ifc_DeclIndex     decl) const
 /*
@@ -9182,7 +9231,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         source_position_from_locus(&pos, &idspp->locus);
         switch (idspp->sort) {
           case ifc_ParameterSort_Type:
-            cache_token(cache, tok_typename, &pos);
+            cache_type_param_introducer(cache, idspp->constraint, &pos);
             break;
           case ifc_ParameterSort_Object:
             /* FIXME: Currently unsupported. */
@@ -9224,11 +9273,6 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         if (idspp->initializer != 0 && !suppress_default_arguments) {
           cache_token(cache, tok_assign, &pos);
           cache_expr(cache, idspp->initializer);
-        }  /* if */
-        if (idspp->constraint != 0) {
-          /* FIXME: Currently unsupported. */
-          issue_unsupported_node_diag("DeclSort::Parameter::constraint",
-                                      &error_position);
         }  /* if */
       }
       break;
@@ -9581,9 +9625,11 @@ Add the tokens corresponding to the given declaration (decl) to cache.
 
 void an_ifc_module::cache_expr(a_token_cache_ptr cache,
                                ifc_ExprIndex     expr,
-                               a_token_kind      tuple_separator) const
+             /* Defaulted: */  a_token_kind      tuple_separator) const
 /*
-Add the tokens corresponding to the given expression (expr) to cache.
+Add the tokens corresponding to the given expression (expr) to cache.  When
+caching a constructed tagged as ifc_ExprSort_Tuple, separate the constituent
+expression by the tuple_separator token (tok_comma by default).
 */
 {
   ifc_ExprSort      tag = expr_tag(expr);

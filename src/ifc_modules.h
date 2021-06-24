@@ -2651,6 +2651,9 @@ private:
   void cache_type(a_token_cache_ptr  cache,
                   ifc_TypeIndex      type,
                   ifc_SourceLocation *locus) const;
+  void cache_type_param_introducer(a_token_cache_ptr  cache,
+                                   ifc_ExprIndex      constraint,
+                                   a_source_position  *pos) const;
   void cache_decl(a_token_cache_ptr  cache,
                   ifc_DeclIndex      decl) const;
   void cache_expr(a_token_cache_ptr cache,
