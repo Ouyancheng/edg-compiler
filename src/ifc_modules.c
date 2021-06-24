@@ -4678,13 +4678,20 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
         break;
       case ifc_TypeSort_Array:
         { an_ifc_TypeSort_Array itsa, *itsap;
+          a_constant_ptr        elem_count;
+          a_boolean             err = FALSE;
           itsap = get_TypeSort_Array(&itsa);
           result = alloc_type((a_type_kind)tk_array);
           result->variant.array.element_type =
                                            type_for_type_index(itsap->element,
                                                                /*kind=*/NULL);
-          /* FIXME: this is wrong: */
-          result->variant.array.variant.number_of_elements = itsap->extent;
+          elem_count = constant_for_expr_index(itsap->extent,
+                                               /*default_type=*/NULL);
+          check_assertion(elem_count->kind== (a_constant_repr_kind)ck_integer);
+          result->variant.array.variant.number_of_elements =
+                          unsigned_value_of_integer_constant(elem_count, &err);
+          check_assertion(!err);
+          set_array_type_size(result, /*suppress_error=*/FALSE);
         }
         break;
       case ifc_TypeSort_Method:
@@ -7549,12 +7556,22 @@ done:;
 }  /* cache_scope */
 
 
-void an_ifc_module::cache_type(a_token_cache_ptr  cache,
-                               ifc_TypeIndex      type,
-                               ifc_SourceLocation *locus) const
+void an_ifc_module::cache_type_first_pass(a_token_cache_ptr  cache,
+                                          ifc_TypeIndex      type,
+                                          ifc_SourceLocation *locus) const
 /*
-Add the tokens corresponding to the given type to cache.  locus is the source
-location of the entity referring to the type.
+Add the tokens to cache corresponding to the portion of the given type that
+precedes an identifier.  locus is the source location of the entity referring
+to the type.  This routine will often need to be called in concert with
+cache_type_second_pass, which will cache tokens corresponding to the portion
+of type that follows an identifier.  For example:
+
+   ~v~ This routine caches this portion of the type
+   int arr[3];
+          ~^~ but not this portion.
+
+See form_type_first_part and form_type_second_part for more details as to why
+this is needed.
 */
 {
   ifc_TypeSort      tag = type_tag(type);
@@ -7746,7 +7763,7 @@ location of the entity referring to the type.
     case ifc_TypeSort_Pointer:
       { an_ifc_TypeSort_Pointer itsp, *itspp;
         itspp = get_TypeSort_Pointer(&itsp);
-        cache_type(cache, itspp->pointee, locus);
+        cache_type_first_pass(cache, itspp->pointee, locus);
         if (type_tag(itspp->pointee) != ifc_TypeSort_PointerToMember) {
           /* The tok_star will already have been cached if the pointee is a
              pointer-to-member. */
@@ -7766,21 +7783,12 @@ location of the entity referring to the type.
           cache_calling_convention(cache, itsmp->convention, &pos);
           cache_type(cache, itsmp->scope, locus);
           cache_token(cache, tok_colon_colon, &pos);
-          cache_token(cache, tok_star, &pos);
-          cache_token(cache, tok_rparen, &pos);
-          cache_token(cache, tok_lparen, &pos);
-          if (itsmp->source != 0) {
-            cache_type(cache, itsmp->source, locus);
-          }  /* if */
-          cache_token(cache, tok_rparen, &pos);
-          cache_exception_spec(cache, &itsmp->eh_spec, &pos);
-          cache_func_type_traits(cache, itsmp->traits, &pos);
         } else {
           cache_type(cache, itsptmp->scope, locus);
           cache_token(cache, tok_colon_colon, &pos);
           cache_type(cache, itsptmp->member, locus);
-          cache_token(cache, tok_star, &pos);
         }  /* if */
+        cache_token(cache, tok_star, &pos);
       }
       break;
     case ifc_TypeSort_LvalueReference:
@@ -7801,14 +7809,8 @@ location of the entity referring to the type.
       { an_ifc_TypeSort_Function itsf, *itsfp;
         itsfp = get_TypeSort_Function(&itsf);
         cache_type(cache, itsfp->target, locus);
-        cache_calling_convention(cache, itsfp->convention, &pos);
         cache_token(cache, tok_lparen, &pos);
-        if (itsfp->source != 0) {
-          cache_type(cache, itsfp->source, locus);
-        }  /* if */
-        cache_token(cache, tok_rparen, &pos);
-        cache_func_type_traits(cache, itsfp->traits, &pos);
-        cache_exception_spec(cache, &itsfp->eh_spec, &pos);
+        cache_calling_convention(cache, itsfp->convention, &pos);
       }
       break;
     case ifc_TypeSort_Method:
@@ -7818,13 +7820,7 @@ location of the entity referring to the type.
     case ifc_TypeSort_Array:
       { an_ifc_TypeSort_Array itsa, *itsap;
         itsap = get_TypeSort_Array(&itsa);
-        /* FIXME: Currently this puts the size before the name, e.g., int[3]
-           arr.  Multi-dimensional arrays need special handling for the element
-           as well. */
-        cache_type(cache, itsap->element, locus);
-        cache_token(cache, tok_lbracket, &pos);
-        cache_expr(cache, itsap->extent);
-        cache_token(cache, tok_rbracket, &pos);
+        cache_type_first_pass(cache, itsap->element, locus);
       }
       break;
     case ifc_TypeSort_Typename:
@@ -7846,7 +7842,7 @@ location of the entity referring to the type.
         if (itsqp->qualifiers & ifc_Qualifier_Restrict) {
           cache_token(cache, tok_restrict, &pos);
         }  /* if */
-        cache_type(cache, itsqp->unqualified, locus);
+        cache_type_first_pass(cache, itsqp->unqualified, locus);
       }
       break;
     case ifc_TypeSort_Base:
@@ -7920,6 +7916,133 @@ location of the entity referring to the type.
       break;
     default_is_unexpected_str("Unexpected TypeSort");
   }  /* switch */
+}  /* cache_type_first_pass */
+
+
+void an_ifc_module::cache_type_second_pass(a_token_cache_ptr  cache,
+                                           ifc_TypeIndex      type,
+                                           ifc_SourceLocation *locus) const
+/*
+Add the tokens to cache corresponding to the portion of the given type that
+follows an identifier.  locus is the source location of the entity referring
+to the type.  This routine will often need to be called in concert with
+cache_type_first_pass, which will cache tokens corresponding to the portion
+of type that precedes an identifier.  For example:
+
+          ~v~ This routine caches this portion of the type
+   int arr[3];
+   ~^~ but not this portion.
+
+See form_type_first_part and form_type_second_part for more details as to why
+this is needed.
+*/
+{
+  ifc_TypeSort      tag = type_tag(type);
+  a_source_position pos;
+
+  source_position_from_locus(&pos, locus);
+  read_partition_at_index(type);
+  switch (tag) {
+    case ifc_TypeSort_VendorExtension:
+      issue_unsupported_node_diag("TypeSort::VendorExtension",
+                                  &error_position);
+      break;
+    case ifc_TypeSort_Tor:
+      /* This type should only be encountered when processing a constructor,
+         and that is directly handled with that constructor declaration.*/
+      unexpected_condition();
+      break;
+    case ifc_TypeSort_Pointer:
+      { an_ifc_TypeSort_Pointer itsp, *itspp;
+        itspp = get_TypeSort_Pointer(&itsp);
+        cache_type_second_pass(cache, itspp->pointee, locus);
+      }
+      break;
+    case ifc_TypeSort_PointerToMember:
+      { an_ifc_TypeSort_PointerToMember itsptm, *itsptmp;
+        itsptmp = get_TypeSort_PointerToMember(&itsptm);
+        if (type_tag(itsptmp->member) == ifc_TypeSort_Method) {
+          an_ifc_TypeSort_Method itsm, *itsmp;
+          read_partition_at_index(itsptmp->member);
+          itsmp = get_TypeSort_Method(&itsm);
+          cache_token(cache, tok_rparen, &pos);
+          cache_token(cache, tok_lparen, &pos);
+          if (itsmp->source != 0) {
+            cache_type(cache, itsmp->source, locus);
+          }  /* if */
+          cache_token(cache, tok_rparen, &pos);
+          cache_exception_spec(cache, &itsmp->eh_spec, &pos);
+          cache_func_type_traits(cache, itsmp->traits, &pos);
+        }  /* if */
+      }
+      break;
+    case ifc_TypeSort_Function:
+      { an_ifc_TypeSort_Function itsf, *itsfp;
+        itsfp = get_TypeSort_Function(&itsf);
+        cache_token(cache, tok_rparen, &pos);
+        cache_token(cache, tok_lparen, &pos);
+        if (itsfp->source != 0) {
+          cache_type(cache, itsfp->source, locus);
+        }  /* if */
+        cache_token(cache, tok_rparen, &pos);
+        cache_func_type_traits(cache, itsfp->traits, &pos);
+        cache_exception_spec(cache, &itsfp->eh_spec, &pos);
+      }
+      break;
+    case ifc_TypeSort_Array:
+      { an_ifc_TypeSort_Array itsa, *itsap;
+        itsap = get_TypeSort_Array(&itsa);
+        cache_token(cache, tok_lbracket, &pos);
+        cache_expr(cache, itsap->extent);
+        cache_token(cache, tok_rbracket, &pos);
+        cache_type_second_pass(cache, itsap->element, locus);
+      }
+      break;
+    case ifc_TypeSort_Qualified:
+      { an_ifc_TypeSort_Qualified itsq, *itsqp;
+        itsqp = get_TypeSort_Qualified(&itsq);
+        cache_type_second_pass(cache, itsqp->unqualified, locus);
+      }
+      break;
+    case ifc_TypeSort_Fundamental:
+    case ifc_TypeSort_Designated:
+    case ifc_TypeSort_Syntactic:
+    case ifc_TypeSort_Expansion:
+    case ifc_TypeSort_LvalueReference:
+    case ifc_TypeSort_RvalueReference:
+    case ifc_TypeSort_Method:
+    case ifc_TypeSort_Typename:
+    case ifc_TypeSort_Base:
+    case ifc_TypeSort_Decltype:
+    case ifc_TypeSort_Placeholder:
+    case ifc_TypeSort_Tuple:
+    case ifc_TypeSort_Forall:
+    case ifc_TypeSort_Unaligned:
+    case ifc_TypeSort_SyntaxTree:
+      /* All of these were completely handled by the first pass. */
+      break;
+    case ifc_TypeSort_Last:
+      unexpected_condition();
+      break;
+    default_is_unexpected_str("Unexpected TypeSort");
+  }  /* switch */
+}  /* cache_type_second_pass */
+
+
+void an_ifc_module::cache_type(a_token_cache_ptr  cache,
+                               ifc_TypeIndex      type,
+                               ifc_SourceLocation *locus) const
+/*
+Add the tokens to cache corresponding to the given type.  locus is the source
+location of the entity referring to the type.  This routine should only be
+called when there is no identifier portion involved and therefore both the
+preceding and following portions of the type can be immediately cached.  If
+there is an identifier portion involved, cache_type_first_pass and
+cache_type_second_pass should be used instead.
+*/
+{
+  cache_type_first_pass(cache, type, locus);
+  cache_type_second_pass(cache, type, locus);
 }  /* cache_type */
 
 
@@ -8855,13 +8978,14 @@ expression.  locus is the source location for the declaration.
     cache_expr(cache, alignment);
     cache_token(cache, tok_rparen, &pos);
   }  /* if */
-  cache_type(cache, type, locus);
+  cache_type_first_pass(cache, type, locus);
   if (name != 0) {
     cache_name(cache, name, locus);
   } else {
     check_assertion(raw_name != 0);
     cache_identifier(cache, get_string_at_offset(raw_name), &pos);
   }  /* if */
+  cache_type_second_pass(cache, type, locus);
   if (width != 0) {
     cache_token(cache, tok_colon, &pos);
     cache_expr(cache, width);
@@ -9108,6 +9232,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       break;
     case ifc_DeclSort_Parameter:
       { an_ifc_DeclSort_Parameter idsp, *idspp;
+        a_boolean                 need_second_pass = FALSE;
         idspp = get_DeclSort_Parameter(&idsp);
         source_position_from_locus(&pos, &idspp->locus);
         switch (idspp->sort) {
@@ -9120,7 +9245,8 @@ Add the tokens corresponding to the given declaration (decl) to cache.
                                         &error_position);
             break;
           case ifc_ParameterSort_NonType:
-            cache_type(cache, idspp->type, &idspp->locus);
+            cache_type_first_pass(cache, idspp->type, &idspp->locus);
+            need_second_pass = TRUE;
             break;
           case ifc_ParameterSort_Placeholder:
             cache_token(cache, tok_auto, &pos);
@@ -9146,6 +9272,9 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         }  /* if */
         if (idspp->name != 0) {
           cache_identifier(cache, get_string_at_offset(idspp->name), &pos);
+        }  /* if */
+        if (need_second_pass) {
+          cache_type_second_pass(cache, idspp->type, &idspp->locus);
         }  /* if */
         if (idspp->initializer != 0 && !suppress_default_arguments) {
           cache_token(cache, tok_assign, &pos);
