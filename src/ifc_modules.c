@@ -5143,7 +5143,8 @@ Map the IFC locus source position information into the source position at pos.
     }  /* if */
     check_assertion(islp->line <= msnmp->max_line_number);
     pos->seq = msnmp->starting_sequence_number + islp->line;
-    pos->column = locus->column;
+    /* Add one to map 0-based IFC column numbers to 1-based EDG numbers. */
+    pos->column = locus->column+1;
 #if FULLY_RESOLVED_MACRO_POSITIONS
     pos->orig_seq = pos->seq;
     pos->orig_column = pos->column;
