@@ -2282,11 +2282,11 @@ by octl.
                                      (a_template_param_type_kind)tptk_param) {
               char  buf[100];
               (void)sprintf(
-                      buf, "#(%lu,%lu)",
-                      (unsigned long)type->variant.template_param.extra_info
-                                         ->coordinates.depth,
-                      (unsigned long)type->variant.template_param.extra_info
-                                         ->coordinates.position);
+                      buf, "#(%ld,%ld)",
+                      (long)type->variant.template_param.extra_info
+                                ->coordinates.depth,
+                      (long)type->variant.template_param.extra_info
+                                ->coordinates.position);
               octl->output_str(buf, octl);
             }  /* if */
           }  /* if */
