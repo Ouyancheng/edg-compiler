@@ -1,5 +1,13 @@
 Version 6.3
 
+6/24/21  [EDGcpfe/24460]
+GNU C++ compatibility: std::align_val_t is predeclared
+
+g++ allows the use of std::align_val_t without including <new>.  We now
+emulate this behavior in g++ mode when aligned operator new is supported.
+
+  std::align_val_t x;
+
 6/23/21  [EDGcpfe/23366]
 Assertion failure with nested co_yield
 
