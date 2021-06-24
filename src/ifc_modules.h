@@ -2642,12 +2642,6 @@ private:
   void cache_scope(a_token_cache_ptr  cache,
                    ifc_ScopeIndex     scope,
                    ifc_SourceLocation *locus) const;
-  void cache_type_first_pass(a_token_cache_ptr  cache,
-                             ifc_TypeIndex      type,
-                             ifc_SourceLocation *locus) const;
-  void cache_type_second_pass(a_token_cache_ptr  cache,
-                              ifc_TypeIndex      type,
-                              ifc_SourceLocation *locus) const;
   void cache_type(a_token_cache_ptr  cache,
                   ifc_TypeIndex      type,
                   ifc_SourceLocation *locus) const;
