@@ -21163,6 +21163,16 @@ be called to start a copy.
       expr_copy->variant.fold.left_associative =
                                           expr->variant.fold.left_associative;
       break;
+    case enk_yield:
+    case enk_await:
+      expr_copy->variant.await_info.operand =
+                             i_copy_expr_tree(expr->variant.await_info.operand,
+                                              options, cblock);
+      expr_copy->variant.await_info.ready_resume_suspend =
+                    i_copy_list_of_expr_trees(expr->variant.await_info.
+                                                          ready_resume_suspend,
+                                              options, cblock);
+      break;
     case enk_requires:
       expr_copy->variant.requires_expr.requirements =
                         i_copy_list_of_expr_trees(
