@@ -1866,21 +1866,24 @@ sufficient to hold len characters of the indicated kind.
 
 
 void concat_string_literals(a_token_cache_ptr cache,
-                            a_character_kind  character_kind)
+                            a_character_kind  character_kind,
+          /* Defaulted: */  a_cached_token    *first_token)
 /*
 Concatenate two or more string literals contained in the indicated token
 cache, and replace the constant in the first cached string token with the
-constant for the concatenation.  (The rest of the cached tokens are left as
-they are; the caller removes and frees them.)  The result string will have
-characters of the given kind.  Some of the constants may be error constants if
-there were malformed string literals in the input; in that case, the output is
-an error constant.  Some of the entries in the token cache may be for pragmas;
-they are ignored.  This routine implements the lexical concatenation of
-section 2.1.1.2, phase 6, of the C standard.  The nulls from the initial
-strings are discarded in doing the concatenation, and the one from the last
-string is copied as the final null of the concatenated string; see ANSI C
-3.1.4.  The cached strings either all have the given character kind, or a
-mix of the given kind and chk_char.
+constant for the concatenation.  If first_token is non-NULL, it points to an
+element of the given cache and that is where concatenation starts; otherwise,
+concatenation starts with the first token in the given cache.  (The rest of
+the cached tokens are left as they are; the caller removes and frees them.)
+The result string will have characters of the given kind.  Some of the
+constants may be error constants if there were malformed string literals in
+the input; in that case, the output is an error constant.  Some of the entries
+in the token cache may be for pragmas; they are ignored.  This routine
+implements the lexical concatenation of section 2.1.1.2, phase 6, of the C
+standard.  The nulls from the initial strings are discarded in doing the
+concatenation, and the one from the last string is copied as the final null of
+the concatenated string; see ANSI C 3.1.4.  The cached strings either all have
+the given character kind, or a mix of the given kind and chk_char.
 */
 {
   a_targ_size_t      total_len = 0, str_len, null_len;
@@ -1890,11 +1893,14 @@ mix of the given kind and chk_char.
   char               *new_str;
 
   db_enter(4, "concat_string_literals");
-  /* Determine the length of the terminating null on strings.  It's usually
-     1, but it may be bigger for wide string literals. */
+  if (first_token == NULL) {
+    first_token = cache->first_token;
+  }  /* if */
+  /* Determine the length of the terminating null on strings.  It's usually 1,
+     but it may be bigger for wide string literals. */
   null_len = character_size[character_kind];
   /* Determine the length of the concatenation. */
-  for (ctp = cache->first_token; ctp != NULL; ctp = ctp->next) {
+  for (ctp = first_token; ctp != NULL; ctp = ctp->next) {
     /* Ignore pragma entries. */
     if (ctp->extra_info_kind == (a_token_extra_info_kind)teik_pragma) continue;
     check_assertion_str((a_token_kind)ctp->token == tok_string_literal &&

@@ -1610,6 +1610,7 @@ to the correct next token.
   if (cache->last_token == ctp) {
     check_assertion(ctp->next == NULL);
     cache->last_token = *prev_ptr;
+    if (cache->last_token != NULL) cache->last_token->next = NULL;
   }  /* if */
   if (*prev_ptr == NULL) {
     check_assertion(cache->first_token == ctp);

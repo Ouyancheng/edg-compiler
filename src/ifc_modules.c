@@ -16,11 +16,13 @@ ifc_modules.c -- Microsoft-specific IFC module code
 #include "basic_hdrs.h"
 #include "fe_common.h"
 #include "ifc_modules.h"
-#include "decl_spec.h"
-#include "symbol_ref.h"
+
 #include "class_decl.h"
+#include "decl_spec.h"
 #include "exprutil.h"
+#include "literals.h"
 #include "pch.h"
+#include "symbol_ref.h"
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
@@ -6034,9 +6036,14 @@ type of string literal (e.g., UTF-8, wchar, etc).  pos is the position of the
 literal.
 */
 {
-  a_constant_ptr cp;
-  char           *val;
+  a_constant_ptr  cp;
+  char            *val;
+  a_cached_token  *prev_string = NULL;
 
+  if (cache->last_token != NULL &&
+      cache->last_token->token == tok_string_literal) {
+    prev_string = cache->last_token;
+  }  /* if */
   cache_token(cache, tok_string_literal, pos);
   cache->last_token->extra_info_kind = (a_token_extra_info_kind)teik_constant;
   cache->last_token->variant.constant = cp = alloc_cached_constant();
@@ -6046,6 +6053,10 @@ literal.
   cp->type = string_literal_type(kind, length);
   cp->variant.string.length = length;
   cp->variant.string.value  = val;
+  if (prev_string != NULL) {
+    concat_string_literals(cache, kind, prev_string);
+    remove_token_from_cache(cache->last_token, &prev_string, cache);
+  }  /* if */
 }  /* cache_string_literal */
 
 
