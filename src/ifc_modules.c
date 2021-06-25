@@ -4024,10 +4024,9 @@ Complete the definition of the class referred to by mep (if needed).
     terminate_token_cache(&cache);
 #if DEBUG
     if (db_flag_is_set("ms_ifc_token_def")) {
-      pos_in_temp_text_buffer = 0;
-      add_token_cache_to_string(&cache);
-      fprintf(stderr, "Reconstituted class definition:\n%s\n"
-                      "-------------------------------\n", temp_text_buffer);
+      fprintf(f_debug, "Reconstituted class definition:\n");
+      db_tokens(&cache);
+      fprintf(f_debug, "\n---------------------\n");
     }  /* if */
 #endif /* DEBUG */
     rescan_cached_tokens(&cache);
