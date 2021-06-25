@@ -143,6 +143,7 @@ enum ifc_ChartSort : ifc_Sort_type;  /* Defined below. */
 enum ifc_DeclSort : ifc_Sort_type;  /* Defined below. */
 enum ifc_ExprSort : ifc_Sort_type;  /* Defined below. */
 enum ifc_FormSort : ifc_Sort_type;  /* Defined below. */
+enum ifc_KeywordSort : ifc_Sort_type; /* Defined below. */
 enum ifc_LiteralSort : ifc_Sort_type;  /* Defined below. */
 enum ifc_MacroSort : ifc_Sort_type;  /* Defined below. */
 enum ifc_NameSort : ifc_Sort_type;  /* Defined below. */
@@ -219,6 +220,11 @@ struct ifc_ParameterizedEntity {
 		body;
   ifc_SentenceIndex
 		attributes;
+};
+
+struct ifc_KeywordSyntax {
+  ifc_SourceLocation locus;
+  ifc_KeywordSort    value;
 };
 
 /*
@@ -1629,6 +1635,25 @@ enum ifc_FormSort : ifc_Sort_type {
   ifc_FormSort_Last
 };
 
+
+/* Enumeration for KeywordSort (i.e., kinds of keywords). */
+enum ifc_KeywordSort : ifc_Sort_type {
+  ifc_KeywordSort_Nothing,
+  ifc_KeywordSort_Class,
+  ifc_KeywordSort_Struct,
+  ifc_KeywordSort_Union,
+  ifc_KeywordSort_Public,
+  ifc_KeywordSort_Protected,
+  ifc_KeywordSort_Private,
+  ifc_KeywordSort_Default,
+  ifc_KeywordSort_Delete,
+  ifc_KeywordSort_Mutable,
+  ifc_KeywordSort_Constexpr,
+  ifc_KeywordSort_Consteval,
+  ifc_KeywordSort_Typename,
+};
+
+
 /* Macros used to access FormOperator::tag and FormOperator::value. */
 #define form_op_tag(form_op) ((ifc_WordSort)((form_op) & 0x00000007))
 #define form_op_value(form_op) ((ifc_Index)((form_op) >> 3))
@@ -2078,15 +2103,13 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_sentence,
   ifc_src_line,
   ifc_trait_alias_template,
-  ifc_trait_class_template,
-  ifc_trait_deduction_guide,
+  ifc_trait_attribute,
+  ifc_trait_deduction_guides,
   ifc_trait_deprecated,
   ifc_trait_friend,
   ifc_trait_function_definition,
-  ifc_trait_function_template,
   ifc_trait_requires,
   ifc_trait_specialization,
-  ifc_trait_variable_template,
   ifc_word,
   ifc_last
 };
@@ -2421,17 +2444,14 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "syntax.vendor-extension",         ifc_syntax_vendor_extension },
   { "syntax.virtual-specifier-seq",    ifc_syntax_virtual_specifier_seq },
   { "syntax.while-statement",          ifc_syntax_while_statement },
+  { "trait.attribute",                 ifc_trait_attribute },
   { "trait.alias-template",            ifc_trait_alias_template },
-  { "trait.class-template",            ifc_trait_class_template },
-  { "trait.deduction-guides",          ifc_trait_deduction_guide },
+  { "trait.deduction-guides",          ifc_trait_deduction_guides },
   { "trait.deprecated",                ifc_trait_deprecated },
   { "trait.friend",                    ifc_trait_friend },
-  { "trait.function-template",         ifc_trait_function_template },
   { "trait.mapping-expr",              ifc_trait_function_definition },
-  /* Not mentioned in spec.  Found in IFC files. */
   { "trait.requires",                  ifc_trait_requires },
   { "trait.specialization",            ifc_trait_specialization },
-  { "trait.variable-template",         ifc_trait_variable_template },
   { "type.array",                      ifc_type_array },
   { "type.base",                       ifc_type_base },
   { "type.decltype",                   ifc_type_decltype },
@@ -2907,19 +2927,19 @@ void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_FunctionDefinition>(
                                              ifc_DeclIndex       decl_index,
                                              a_str_control_block *scbp) const;
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_FunctionTemplate>(
-                                             ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp) const;
-template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_ClassTemplate>(
-                                             ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp) const;
-template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_AliasTemplate>(
                                              ifc_DeclIndex       decl_index,
                                              a_str_control_block *scbp) const;
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_VariableTemplate>(
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_DeductionGuides>(
+                                             ifc_DeclIndex       decl_index,
+                                             a_str_control_block *scbp) const;
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Requires>(
+                                             ifc_DeclIndex       decl_index,
+                                             a_str_control_block *scbp) const;
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Attribute>(
                                              ifc_DeclIndex       decl_index,
                                              a_str_control_block *scbp) const;
 template<>
@@ -2932,6 +2952,10 @@ void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcUuid>(
                                              a_str_control_block *scbp) const;
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcFuncParams>(
+                                             ifc_DeclIndex       decl_index,
+                                             a_str_control_block *scbp) const;
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcDeclAttrs>(
                                              ifc_DeclIndex       decl_index,
                                              a_str_control_block *scbp) const;
 

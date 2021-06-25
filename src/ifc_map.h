@@ -1305,9 +1305,7 @@ IFC_DECL_END(SyntaxSort_ExplicitSpecifier)
 /* SyntaxSort::EnumSpecifier */
 IFC_DECL_START(SyntaxSort_EnumSpecifier)
   IFC_DECL_FIELD(name, ExprIndex)
-  /* The IFC spec does not define KeywordSyntax anywhere. */
-  /* IFC_DECL_FIELD(class_key, KeywordSyntax) */
-  IFC_DECL_FIELD(class_key, SyntaxIndex)
+  IFC_DECL_FIELD(class_key, KeywordSyntax)
   IFC_DECL_FIELD(enumerators, SyntaxIndex)
   IFC_DECL_FIELD(base, SyntaxIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
@@ -1328,9 +1326,7 @@ IFC_DECL_END(SyntaxSort_EnumeratorDefinition)
 /* SyntaxSort::ClassSpecifier */
 IFC_DECL_START(SyntaxSort_ClassSpecifier)
   IFC_DECL_FIELD(name, ExprIndex)
-  /* The IFC spec does not define KeywordSyntax anywhere. */
-  /* IFC_DECL_FIELD(class_key, KeywordSyntax) */
-  IFC_DECL_FIELD(class_key, SyntaxIndex)
+  IFC_DECL_FIELD(class_key, KeywordSyntax)
   IFC_DECL_FIELD(bases, SyntaxIndex)
   IFC_DECL_FIELD(members, SyntaxIndex)
   IFC_DECL_FIELD(left_paren, SyntaxIndex)
@@ -1362,9 +1358,7 @@ IFC_DECL_END(SyntaxSort_MemberDeclarator)
 
 /* SyntaxSort::AccessSpecifier */
 IFC_DECL_START(SyntaxSort_AccessSpecifier)
-  /* The IFC spec does not define KeywordSyntax anywhere. */
-  /* IFC_DECL_FIELD(access, KeywordSyntax) */
-  IFC_DECL_FIELD(access, SyntaxIndex)
+  IFC_DECL_FIELD(access, KeywordSyntax)
   IFC_DECL_FIELD(colon, SourceLocation)
 IFC_DECL_END(SyntaxSort_AccessSpecifier)
 
@@ -1377,9 +1371,7 @@ IFC_DECL_END(SyntaxSort_BaseSpecifierList)
 /* SyntaxSort::BaseSpecifier */
 IFC_DECL_START(SyntaxSort_BaseSpecifier)
   IFC_DECL_FIELD(designator, ExprIndex)
-  /* The IFC spec does not define KeywordSyntax anywhere. */
-  /* IFC_DECL_FIELD(access, KeywordSyntax) */
-  IFC_DECL_FIELD(access, SyntaxIndex)
+  IFC_DECL_FIELD(access, KeywordSyntax)
   IFC_DECL_FIELD(virtual_kw, SourceLocation)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(virtual_kw2, SourceLocation)
@@ -1690,9 +1682,7 @@ IFC_DECL_START(SyntaxSort_TemplateTemplateParameter)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(ellipsis, SourceLocation)
   IFC_DECL_FIELD(comma, SourceLocation)
-  /* The IFC spec does not define KeywordSyntax anywhere. */
-  /* IFC_DECL_FIELD(key, KeywordSyntax) */
-  IFC_DECL_FIELD(key, SyntaxIndex)
+  IFC_DECL_FIELD(key, KeywordSyntax)
 IFC_DECL_END(SyntaxSort_TemplateTemplateParameter)
 
 /* SyntaxSort::TypeTemplateArgument */
@@ -1998,21 +1988,19 @@ IFC_DECL_END(Trait_DeductionGuide)
 /* Trait::Deprecated */
 IFC_DECL_START(Trait_Deprecated)
   IFC_DECL_FIELD(decl, DeclIndex)
-  IFC_DECL_FIELD(trait, u32)
+  IFC_DECL_FIELD(trait, TextOffset)
 IFC_DECL_END(Trait_Deprecated)
 
 /* Trait::Specialization */
 IFC_DECL_START(Trait_Specialization)
   IFC_DECL_FIELD(decl, DeclIndex)
-  IFC_DECL_FIELD(trait, u32)
-  IFC_DECL_FIELD(__padding__, u32)
+  IFC_DECL_FIELD(trait, Sequence)
 IFC_DECL_END(Trait_Specialization)
 
 /* Trait::Friend */
 IFC_DECL_START(Trait_Friend)
   IFC_DECL_FIELD(decl, DeclIndex)
-  IFC_DECL_FIELD(trait, u32)
-  IFC_DECL_FIELD(__padding__, u32)
+  IFC_DECL_FIELD(trait, Sequence)
 IFC_DECL_END(Trait_Friend)
 
 /* Trait::FunctionDefinition */
@@ -2023,29 +2011,29 @@ IFC_DECL_START(Trait_FunctionDefinition)
   IFC_DECL_FIELD(body, StmtIndex)
 IFC_DECL_END(Trait_FunctionDefinition)
 
-/* Trait::FunctionTemplate */
-IFC_DECL_START(Trait_FunctionTemplate)
-  IFC_DECL_FIELD(decl, DeclIndex)
-  IFC_DECL_FIELD(trait, u32)
-IFC_DECL_END(Trait_FunctionTemplate)
-
-/* Trait::ClassTemplate */
-IFC_DECL_START(Trait_ClassTemplate)
-  IFC_DECL_FIELD(decl, DeclIndex)
-  IFC_DECL_FIELD(trait, u32)
-IFC_DECL_END(Trait_ClassTemplate)
-
 /* Trait::AliasTemplate */
 IFC_DECL_START(Trait_AliasTemplate)
   IFC_DECL_FIELD(decl, DeclIndex)
-  IFC_DECL_FIELD(trait, u32)
+  IFC_DECL_FIELD(trait, SyntaxIndex)
 IFC_DECL_END(Trait_AliasTemplate)
 
-/* Trait::VariableTemplate */
-IFC_DECL_START(Trait_VariableTemplate)
+/* Trait::DeductionGuides */
+IFC_DECL_START(Trait_DeductionGuides)
   IFC_DECL_FIELD(decl, DeclIndex)
-  IFC_DECL_FIELD(trait, u32)
-IFC_DECL_END(Trait_VariableTemplate)
+  IFC_DECL_FIELD(trait, DeclIndex)
+IFC_DECL_END(Trait_DeductionGuides)
+
+/* Trait::Requires */
+IFC_DECL_START(Trait_Requires)
+  IFC_DECL_FIELD(decl, DeclIndex)
+  IFC_DECL_FIELD(trait, SyntaxIndex)
+IFC_DECL_END(Trait_Requires)
+
+/* Trait::Attribute */
+IFC_DECL_START(Trait_Attribute)
+  IFC_DECL_FIELD(decl, DeclIndex)
+  IFC_DECL_FIELD(trait, AttrIndex)
+IFC_DECL_END(Trait_Attribute)
 
 /* Trait::MsvcVendorTrait */
 IFC_DECL_START(Trait_MsvcVendorTrait)
@@ -2064,6 +2052,13 @@ IFC_DECL_START(Trait_MsvcFuncParams)
   IFC_DECL_FIELD(decl, DeclIndex)
   IFC_DECL_FIELD(params, ChartIndex)
 IFC_DECL_END(Trait_MsvcFuncParams)
+
+/* Trait::MsvcDeclAttrs */
+IFC_DECL_START(Trait_MsvcDeclAttrs)
+  IFC_DECL_FIELD(decl, DeclIndex)
+  /* The IFC spec is silent on the type of the trait here. */
+  IFC_DECL_FIELD(trait, AttrIndex)
+IFC_DECL_END(Trait_MsvcDeclAttrs)
 
 /* Sentences: Internal token stream from MSVC. */
 IFC_DECL_START(Sentence)

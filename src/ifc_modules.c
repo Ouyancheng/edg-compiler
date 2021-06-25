@@ -395,6 +395,7 @@ Handle nested structures differently (and check for padding).
 #define GET_FunctionTypeTraits(x, from_header) GET_byte(x, from_header)
 #define GET_GuideTraits(x, from_header)        GET_byte(x, from_header)
 #define GET_InitializerSort(x, from_header)    GET_byte(x, from_header)
+#define GET_KeywordSort(x, from_header)        GET_byte(x, from_header)
 #define GET_NoexceptSort(x, from_header)       GET_byte(x, from_header)
 #define GET_ObjectTraits(x, from_header)       GET_byte(x, from_header)
 #define GET_ParameterSort(x, from_header)      GET_byte(x, from_header)
@@ -437,6 +438,11 @@ Handle nested structures differently (and check for padding).
                                 GET_SentenceIndex((x).head, from_header), \
                                 GET_SentenceIndex((x).body, from_header), \
                                 GET_SentenceIndex((x).attributes, from_header))
+
+#define GET_KeywordSyntax(x, from_header) \
+                                 (GET_SourceLocation((x).locus, from_header), \
+                                  GET_KeywordSort((x).value, from_header), \
+                                  pad(3))
 
 /*
 Create get_* functions (which "read" each entity into a structure) for each of
@@ -2589,6 +2595,14 @@ corresponding data structure for that partition.
       CHECK_SIZE(FormSort_Tuple);
     case ifc_form_junk:
       CHECK_SIZE(FormSort_Junk);
+    case ifc_msvc_trait_decl_attrs:
+      CHECK_SIZE(Trait_MsvcDeclAttrs);
+    case ifc_msvc_trait_named_func_params:
+      CHECK_SIZE(Trait_MsvcFuncParams);
+    case ifc_msvc_trait_uuid:
+      CHECK_SIZE(Trait_MsvcUuid);
+    case ifc_msvc_trait_vendor_traits:
+      CHECK_SIZE(Trait_MsvcVendorTrait);
     case ifc_scope_desc:
       CHECK_SIZE(Scope_Descriptor);
     case ifc_scope_member:
@@ -2597,27 +2611,24 @@ corresponding data structure for that partition.
       CHECK_SIZE(Sentence);
     case ifc_src_line:
       CHECK_SIZE(Source_Line);
+    case ifc_trait_attribute:
+      CHECK_SIZE(Trait_Attribute);
     case ifc_trait_alias_template:
       CHECK_SIZE(Trait_AliasTemplate);
-    case ifc_trait_class_template:
-      CHECK_SIZE(Trait_ClassTemplate);
     case ifc_trait_function_definition:
       CHECK_SIZE(Trait_FunctionDefinition);
-    case ifc_trait_deduction_guide:
-      CHECK_SIZE(Trait_DeductionGuide);
+    case ifc_trait_deduction_guides:
+      CHECK_SIZE(Trait_DeductionGuides);
     case ifc_trait_deprecated:
       CHECK_SIZE(Trait_Deprecated);
     case ifc_trait_friend:
       CHECK_SIZE(Trait_Friend);
-    case ifc_trait_function_template:
-      CHECK_SIZE(Trait_FunctionTemplate);
+    case ifc_trait_requires:
+      CHECK_SIZE(Trait_Requires);
     case ifc_trait_specialization:
       CHECK_SIZE(Trait_Specialization);
-    case ifc_trait_variable_template:
-      CHECK_SIZE(Trait_VariableTemplate);
     case ifc_word:
       CHECK_SIZE(Word);
-    case ifc_trait_requires:
     case ifc_cmd_line:
     case ifc_const_f64:
     case ifc_const_i64:
@@ -2634,17 +2645,13 @@ corresponding data structure for that partition.
     case ifc_heap_type:
     case ifc_macro_func_like:
     case ifc_macro_obj_like:
-    case ifc_msvc_trait_decl_attrs:
     case ifc_msvc_trait_code_segment:
     case ifc_msvc_trait_codegen_expr_trees:
     case ifc_msvc_trait_entity_init_locus:
     case ifc_msvc_trait_impl_pragmas:
-    case ifc_msvc_trait_named_func_params:
     case ifc_msvc_trait_spec_encodings:
     case ifc_msvc_trait_suppressed_warnings:
     case ifc_msvc_trait_templ_templ_param_classes:
-    case ifc_msvc_trait_uuid:
-    case ifc_msvc_trait_vendor_traits:
     case ifc_module_exported:
     case ifc_module_imported:
     case ifc_pragma_state:
@@ -2669,7 +2676,7 @@ corresponding data structure for that partition.
 namespace {
 
 constexpr ifc_Version supported_major_version = (ifc_Version)0;
-constexpr ifc_Version supported_minor_version = (ifc_Version)31;
+constexpr ifc_Version supported_minor_version = (ifc_Version)32;
 
 inline a_boolean check_ifc_version(ifc_Version major,
                                    ifc_Version minor)
@@ -13295,41 +13302,6 @@ Generate a string for the specified associated constexpr function trait.
 
 
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_FunctionTemplate>(
-                                     ifc_DeclIndex                  decl_index,
-                                     ARG_UNUSED a_str_control_block *scbp)
-                                                                          const
-/*
-Generate a string for the specified associated function template trait.
-*/
-{
-  an_ifc_Trait_FunctionTemplate itft;
-
-  read_partition_at_index(ifc_trait_function_template, decl_index);
-  get_Trait_FunctionTemplate(&itft);
-  unexpected_condition_str("AssociatedTrait<FunctionTemplate>"
-                           " is not specified.");
-}  /* str_ifc_associated_trait<an_ifc_Trait_FunctionTemplate> */
-
-
-template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_ClassTemplate>(
-                                     ifc_DeclIndex                  decl_index,
-                                     ARG_UNUSED a_str_control_block *scbp)
-                                                                          const
-/*
-Generate a string for the specified associated class template trait.
-*/
-{
-  an_ifc_Trait_ClassTemplate itct;
-
-  read_partition_at_index(ifc_trait_class_template, decl_index);
-  get_Trait_ClassTemplate(&itct);
-  unexpected_condition_str("AssociatedTrait<ClassTemplate> is not specified.");
-}  /* str_ifc_associated_trait<an_ifc_Trait_ClassTemplate> */
-
-
-template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_AliasTemplate>(
                                      ifc_DeclIndex                  decl_index,
                                      ARG_UNUSED a_str_control_block *scbp)
@@ -13347,21 +13319,55 @@ Generate a string for the specified associated template alias trait.
 
 
 template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_VariableTemplate>(
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_DeductionGuides>(
                                      ifc_DeclIndex                  decl_index,
                                      ARG_UNUSED a_str_control_block *scbp)
                                                                           const
 /*
-Generate a string for the specified associated variable template trait.
+Generate a string for the specified associated deduction guides trait.
 */
 {
-  an_ifc_Trait_VariableTemplate itvt;
+  an_ifc_Trait_DeductionGuides itdg;
 
-  read_partition_at_index(ifc_trait_variable_template, decl_index);
-  get_Trait_VariableTemplate(&itvt);
-  unexpected_condition_str("AssociatedTrait<VariableTemplate>"
+  read_partition_at_index(ifc_trait_deduction_guides, decl_index);
+  get_Trait_DeductionGuides(&itdg);
+  unexpected_condition_str("AssociatedTrait<DeductionGuides>"
                            " is not specified.");
-}  /* str_ifc_associated_trait<an_ifc_Trait_VariableTemplate> */
+}  /* str_ifc_associated_trait<an_ifc_Trait_DeductionGuides> */
+
+
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Requires>(
+                                     ifc_DeclIndex                  decl_index,
+                                     ARG_UNUSED a_str_control_block *scbp)
+                                                                          const
+/*
+Generate a string for the specified associated requires trait.
+*/
+{
+  an_ifc_Trait_Requires itr;
+
+  read_partition_at_index(ifc_trait_requires, decl_index);
+  get_Trait_Requires(&itr);
+  unexpected_condition_str("AssociatedTrait<Requires> is not specified.");
+}  /* str_ifc_associated_trait<an_ifc_Trait_Requires> */
+
+
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Attribute>(
+                                     ifc_DeclIndex                  decl_index,
+                                     ARG_UNUSED a_str_control_block *scbp)
+                                                                          const
+/*
+Generate a string for the specified associated template alias trait.
+*/
+{
+  an_ifc_Trait_Attribute ita;
+
+  read_partition_at_index(ifc_trait_attribute, decl_index);
+  get_Trait_Attribute(&ita);
+  unexpected_condition_str("AssociatedTrait<Attribute> is not specified.");
+}  /* str_ifc_associated_trait<an_ifc_Trait_Attribute> */
 
 
 template<>
@@ -13416,6 +13422,23 @@ Generate a string for the specified associated MSVC UUID trait.
 }  /* str_ifc_associated_trait<an_ifc_Trait_MsvcUuid> */
 
 
+template<>
+void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcDeclAttrs>(
+                                    ifc_DeclIndex                  decl_index,
+                                    ARG_UNUSED a_str_control_block *scbp) const
+/*
+Generate a string for the specified associated MSVC UUID trait.
+*/
+{
+  an_ifc_Trait_MsvcDeclAttrs itmsvcdeclattrs;
+
+  read_partition_at_index(ifc_msvc_trait_decl_attrs, decl_index);
+  get_Trait_MsvcDeclAttrs(&itmsvcdeclattrs);
+  unexpected_condition_str("AssociatedTrait<MsvcDeclAttrs>"
+                           " is not yet handled.");
+}  /* str_ifc_associated_trait<an_ifc_Trait_MsvcDeclAttrs> */
+
+   
 /*lint -e2707*/ /* Remove when the routine returns to its caller. */
 void an_ifc_module::str_ifc_syntax_node(
                                    ifc_SyntaxIndex                syntax_index,
