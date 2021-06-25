@@ -23768,7 +23768,7 @@ formatting.
 
   add_token_cache_to_string(cache);
   auto do_indent = [&indent](sizeof_t  *k) {
-                     for (int i = 0; i<indent; ++i) {
+                     for (sizeof_t i = 0; i<indent; ++i) {
                        (void)fputc(' ', f_debug);
                      }  /* for */
                      /* Skip leading spaces in the text. */
