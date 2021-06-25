@@ -2627,11 +2627,14 @@ private:
                 ifc_MsvcTraits              msvc_traits,
                 ifc_BasicSpecifiers         specifiers,
                 ifc_Access                  access,
+                ifc_ExprIndex               alignment,
                 a_partial_scope_stack_state *psssp) const;
   void init_locator_from_name(ifc_NameIndex      name_index,
                               ifc_TextOffset     text_offset,
                               ifc_SourceLocation *locus,
                               a_symbol_locator   *loc) const;
+  void unsigned_integer_for_expr_index(ifc_ExprIndex    expr_index,
+                                       an_integer_value *value) const;
   a_constant_ptr constant_for_expr_index(ifc_ExprIndex expr_index,
                                          a_type_ptr    default_type) const;
   a_constant_ptr constant_for_named_decl(an_ifc_ExprSort_NamedDecl *iesndp)

@@ -934,6 +934,7 @@ there was an overflow error.
                                        targ_char_bit - *bit_offset);
   }  /* if */
   if (!overflow) {
+    check_assertion(alignment != 0);
     byte_mod = *byte_offset % alignment;
     if (byte_mod != 0) {
       /* Increment the byte offset to make it a multiple of the required

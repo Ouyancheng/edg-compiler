@@ -3055,10 +3055,9 @@ constants for that type).
           } else {
             /* FIXME: lots more to do here. */
             a_variable_ptr vp;
-            /* FIXME: idsvp->alignment exists but is an ExprIndex. */
             init_dps(&dps, &idsvp->locus, idsvp->type, idsvp->traits,
                      ifc_MsvcTraits_None, idsvp->specifier, idsvp->access,
-                     &psss);
+                     idsvp->alignment, &psss);
             if (mep->scope == NULL) {
               mep->scope = get_ifc_scope(idsvp->home_scope);
               scope_pushed = push_module_declaration_context(mep->scope);
@@ -3100,7 +3099,7 @@ constants for that type).
                returning a lambda declared within the function). */
             init_dps(&dps, &idsfp->locus, idsfp->type, ifc_ObjectTraits_None,
                      ifc_MsvcTraits_None, idsfp->specifiers, idsfp->access,
-                     &psss);
+                     (ifc_ExprIndex)0, &psss);
             if (mep->scope == NULL) {
               mep->scope = get_ifc_scope(idsfp->home_scope);
               scope_pushed = push_module_declaration_context(mep->scope);
@@ -3133,7 +3132,7 @@ constants for that type).
                ifc_DeclSort_Function).*/
             init_dps(&dps, &idsip->locus, idsip->type, ifc_ObjectTraits_None,
                      ifc_MsvcTraits_None, idsip->specifiers, idsip->access,
-                     &psss);
+                     (ifc_ExprIndex)0, &psss);
             clear_func_info(&func_info);
             clear_decl_pos_block(&decl_pos_block);
             decl_routine(&loc, &dps, &func_info, SRK_DECLARATION, &linkage_ptr,
@@ -3334,7 +3333,8 @@ class_struct_union_case:
                 }  /* if */
                 init_dps(&dps, &idstap->locus, idstap->aliasee,
                          ifc_ObjectTraits_None, ifc_MsvcTraits_None,
-                         idstap->specifiers, idstap->access, &psss);
+                         idstap->specifiers, idstap->access, (ifc_ExprIndex)0,
+                         &psss);
                 clear_decl_pos_block(&decl_pos_block);
                 decl_typedef(&loc, &dps, (a_type_ptr)NULL, &decl_pos_block);
                 restore_partial_scope_stack_if_necessary(&psss);
@@ -3414,14 +3414,13 @@ class_struct_union_case:
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
-            a_type_ptr   enum_type;
-            a_symbol_ptr tag_sym;
-            check_assertion(idsep->base != 0);
-            check_assertion(mep->scope != NULL);
-            /* FIXME: idsep->alignment exists but is an ExprIndex. */
+            a_type_ptr       enum_type;
+            a_symbol_ptr     tag_sym;
+            an_integer_value alignment;
+            check_assertion(idsep->base != 0 && mep->scope != NULL);
             init_dps(&dps, &idsep->locus, idsep->base, ifc_ObjectTraits_None,
                      ifc_MsvcTraits_None, idsep->specifiers, idsep->access,
-                     &psss);
+                     idsep->alignment, &psss);
             clear_decl_pos_block(&decl_pos_block);
             /* Allocate an integer type and set its size based on the type
                specified by idsep->base. */
@@ -3431,7 +3430,10 @@ class_struct_union_case:
             enum_type->size = skip_typerefs(dps.type)->size;
             integer_type_supp(enum_type)->base_type = dps.type;
             enum_type->variant.integer.has_explicit_enum_base = TRUE;
+            unsigned_integer_for_expr_index(idsep->alignment, &alignment);
+            // FIXME: needed?
             enum_type->alignment = dps.alignment;
+            // FIXME: check_assertion(enum_type->alignment != 0);
             /* FIXME: for now: */
             enum_type->source_corresp.name_linkage =
                                    (a_name_linkage_kind)nlk_cplusplus_external;
@@ -5555,6 +5557,7 @@ void an_ifc_module::init_dps(a_decl_parse_state          *dps,
                              ifc_MsvcTraits              msvc_traits,
                              ifc_BasicSpecifiers         specifiers,
                              ifc_Access                  access,
+                             ifc_ExprIndex               alignment,
                              a_partial_scope_stack_state *psssp) const
 /*
 Map the IFC fields given by locus, type_index, alignment, traits, msvc_traits,
@@ -5652,6 +5655,16 @@ after the declaration has been processed.
     save_partial_scope_stack(psssp);
     scope_stack[decl_scope_level].current_access = il_access;
   }  /* if */
+  if (alignment != 0) {
+    /* Not all cases use alignment (e.g., functions). */
+    an_integer_value alignment_value;
+    a_boolean        err;
+    unsigned_integer_for_expr_index(alignment, &alignment_value);
+    dps->alignment = unsigned_value_of_integer_value(&alignment_value,
+                                                     /*is_signed=*/FALSE,
+                                                     &err);
+    check_assertion(!err);
+  }  /* if */
 }  /* init_dps */
 
 
@@ -5683,6 +5696,45 @@ FIXME: Not sure if we need source location here.
     (void)find_symbol(name, (sizeof_t)strlen(name), loc);
   }  /* if */
 }  /* init_locator_from_name */
+
+
+void an_ifc_module::unsigned_integer_for_expr_index(
+                                                   ifc_ExprIndex    expr_index,
+                                                   an_integer_value *value)
+                                                                          const
+/*
+Returns in *value, the unsigned integer value represented by expr_index
+(which must be either a LiteralSort::Immediate or LiteralSort::Integer).
+No casting is performed.
+*/
+{
+  ifc_ExprSort            tag = expr_tag(expr_index);
+  an_ifc_ExprSort_Literal iesl, *ieslp;
+  char                    raw_val[64/CHAR_BIT];
+
+  /* Prepare to read from the proper partition for this expression. */
+  read_partition_at_index(expr_index);
+  check_assertion(tag == ifc_ExprSort_Literal);
+  ieslp = get_ExprSort_Literal(&iesl);
+  switch (literal_tag(ieslp->value)) {
+    case ifc_LiteralSort_Immediate:
+      /* An immediate literal (30 bits or less). */
+      set_unsigned_integer_value(value,
+                           (a_host_large_unsigned)literal_index(ieslp->value));
+      break;
+    case ifc_LiteralSort_Integer:
+      /* An integer larger than 30 bits. */
+      read_partition_at_index(ifc_const_i64,
+                              literal_index(ieslp->value));
+      GET_64bit_int(raw_val, /*from_header=*/FALSE);
+      if (!conv_bytes_to_integer_value(value, raw_val,
+                                       sizeof(raw_val))) {
+        unexpected_condition_str("Failed to get 64-bit integer");
+      }  /* if */
+      break;
+    default_is_unexpected();
+  }  /* switch */
+}  /* an_ifc_module::unsigned_integer_for_expr_index */
 
 
 a_constant_ptr an_ifc_module::constant_for_expr_index(
@@ -5721,42 +5773,26 @@ FIXME: what other expressions can we get here?
         }  /* if */
         switch (literal_tag(ieslp->value)) {
           case ifc_LiteralSort_Immediate:
-            /* An immediate literal (30 bits or less). */
-            cp = alloc_constant(ck_integer);
-            if (ieslp->type == 0 && constant_type == NULL) {
-              /* FIXME: not sure why the type is zero in some cases. */
-              set_unsigned_integer_constant(cp,
+          case ifc_LiteralSort_Integer:
+            /* An integer. */
+            { an_integer_value value;
+              /* Retrieve the unsigned value of the integer. */
+              unsigned_integer_for_expr_index(expr_index, &value);
+              cp = alloc_constant(ck_integer);
+              if (ieslp->type == 0 && constant_type == NULL) {
+                /* FIXME: not sure why the type is zero in some cases. */
+                set_unsigned_integer_constant(cp,
                             (a_host_large_unsigned)literal_index(ieslp->value),
                             (an_integer_kind)ik_unsigned_int);
-            } else {
-              check_assertion(constant_type != NULL);
-              stripped_type = skip_typerefs(constant_type);
-              check_assertion(stripped_type->kind == (a_type_kind)tk_integer);
-              set_unsigned_integer_constant(cp,
-                            (a_host_large_unsigned)literal_index(ieslp->value),
-                            stripped_type->variant.integer.int_kind);
-              cp->type = constant_type;
-            }  /* if */
-            break;
-          case ifc_LiteralSort_Integer:
-            /* An integer larger than 30 bits. */
-            { an_integer_value value;
-              char             raw_val[64/CHAR_BIT];
-
-              check_assertion(constant_type != NULL);
-              cp = alloc_constant(ck_integer);
-              read_partition_at_index(ifc_const_i64,
-                                      literal_index(ieslp->value));
-              GET_64bit_int(raw_val, /*from_header=*/FALSE);
-              if (!conv_bytes_to_integer_value(&value, raw_val,
-                                               sizeof(raw_val))) {
-                unexpected_condition_str("Failed to get 64-bit integer");
-              }  /* if */
-              stripped_type = skip_typerefs(constant_type);
-              check_assertion(stripped_type->kind == (a_type_kind)tk_integer);
-              set_unsigned_integer_constant(cp, value,
+              } else {
+                check_assertion(constant_type != NULL);
+                stripped_type = skip_typerefs(constant_type);
+                check_assertion(stripped_type->kind ==
+                                                      (a_type_kind)tk_integer);
+                set_unsigned_integer_constant(cp, value,
                                       stripped_type->variant.integer.int_kind);
-              cp->type = constant_type;
+                cp->type = constant_type;
+              }  /* if */
             }
             break;
           case ifc_LiteralSort_FloatingPoint:

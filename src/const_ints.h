@@ -154,6 +154,11 @@ extern a_host_large_integer value_of_integer_value(
 					a_boolean		is_signed,
 					a_boolean		*ovflo);
 
+extern a_host_large_unsigned unsigned_value_of_integer_value(
+					    an_integer_value	*int_value,
+					    a_boolean		is_signed,
+					    a_boolean		*ovflo);
+
 extern a_host_large_integer value_of_integer_constant(a_constant *cp,
                                                       a_boolean  *ovflo);
 

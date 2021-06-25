@@ -150,11 +150,6 @@ static char *str_for_integer_value(an_integer_value *p_value,
                                    a_boolean        non_arithmetic,
                                    a_targ_size_t    size);
 
-static a_host_large_unsigned unsigned_value_of_integer_value(
-					    an_integer_value	*int_value,
-					    a_boolean		is_signed,
-					    a_boolean		*ovflo);
-
 void conv_integer_value_to_float(an_integer_value		*int_value,
 				 a_boolean			is_signed,
 			         an_internal_float_value	*float_value,
@@ -234,7 +229,7 @@ If the value is not representable as a host large integer, return *ovflo TRUE.
 }  /* value_of_integer_value */
 
 
-static a_host_large_unsigned unsigned_value_of_integer_value(
+a_host_large_unsigned unsigned_value_of_integer_value(
 					    an_integer_value	*int_value,
 					    a_boolean		is_signed,
 					    a_boolean		*ovflo)
