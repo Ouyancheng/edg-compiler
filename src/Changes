@@ -1,5 +1,26 @@
 Version 6.3
 
+6/25/21  [EDGcpfe/24349]
+Microsoft compatibility: using-directives vs class templates
+
+Emulating early versions of MSVC (see the entry of 11/11/03), the front end
+previously accepted (in microsoft_bugs mode) cases in which a
+using-directive ambiguates the name of a class template, e.g.:
+
+  namespace N {
+    template <int I> class X {};
+  }; 
+  using namespace N;
+  template <class T> class X {};
+  X<int> xi;  // uses ::X
+
+More recent versions of MSVC now issue an error for this code, so the front
+end no longer accepts it with microsoft_version >= 1900.  This change also
+affects the output of the C++-generating back end, which previously failed
+to preserve qualification appearing in the original source needed to
+disambiguate such cases.  That omission is now also fixed.
+
+
 6/24/21  [EDGcpfe/24460]
 GNU and Microsoft compatibility: std::align_val_t is predeclared
 

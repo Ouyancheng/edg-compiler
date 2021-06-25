@@ -2346,9 +2346,10 @@ of the lookup is returned to the caller.
   a_boolean		gpp_namespace_only_mode = FALSE;
 
   db_enter(4, "do_using_directive_lookup");
-  if (microsoft_bugs && sym_from_scope != NULL) {
-    /* In Microsoft bugs mode, a class template symbol found suppresses the
-       using-directive lookup from that scope. */
+  if (microsoft_bugs && microsoft_version < 1900 && sym_from_scope != NULL) {
+    /* In Microsoft bugs mode for older MSVC versions, a class template
+       symbol found suppresses the using-directive lookup from that
+       scope. */
     a_symbol_ptr	fund_sym;
     fund_sym = fundamental_symbol_of(sym_from_scope);
     if (is_class_template_symbol(fund_sym)) {
