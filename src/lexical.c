@@ -3071,6 +3071,14 @@ Macro that is TRUE when tokens are being rescanned from a cache.
 #define rescanning_cached_tokens()				\
   (cached_token_rescan_list != NULL || reusable_cache_stack != NULL)
 
+extern a_boolean f_rescanning_cached_tokens(void)
+/*
+Return whether tokens are being rescanned from a cache.
+*/
+{
+  return rescanning_cached_tokens();
+}  /* f_rescanning_cached_tokens */
+
 
 static an_orig_line_modif_ptr add_orig_line_modif(
                                 an_orig_line_modif_kind kind,

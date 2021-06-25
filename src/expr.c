@@ -37272,7 +37272,7 @@ token following the operator, and should not be discarded.
   /* Check for the opening "(". */
   (void)required_token_no_advance(tok_lparen, ec_exp_lparen);
   add_stop_token(tok_rparen);
-  if (get_token_cache_being_scanned() == NULL) {
+  if (!f_rescanning_cached_tokens()) {
     /* We are scanning from source, so check to see if the next token is a
        string literal.  We use skip_white_space and check *curr_char_loc
        directly instead of fetching a token so we can do the initial scan
