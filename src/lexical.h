@@ -3008,6 +3008,8 @@ extern void db_rescan_list(void);
 extern void db_token_cache(a_token_cache *cache,
                            a_const_char	 *cache_name);
 
+extern void db_tokens(a_token_cache  *cache);
+
 extern void db_stop_tokens(void);
 #endif /* DEBUG */
 

@@ -23754,8 +23754,62 @@ Display the contents of a token cache.
       fprintf(f_debug, "Token %lu:\n", count++);
       db_cached_token(ctp);
     }  /* for */
-  }  /* if */
+  }  /* s */
 }  /* db_token_cache */
+
+
+void db_tokens(a_token_cache  *cache)
+/*
+Display the contents of the given token cache as text, which some simple-minded
+formatting.
+*/
+{
+  sizeof_t  saved_pos = pos_in_temp_text_buffer, indent = 0;
+
+  add_token_cache_to_string(cache);
+  auto do_indent = [&indent](sizeof_t  *k) {
+                     for (int i = 0; i<indent; ++i) {
+                       (void)fputc(' ', f_debug);
+                     }  /* for */
+                     /* Skip leading spaces in the text. */
+                     while (*k+1 < pos_in_temp_text_buffer &&
+                            temp_text_buffer[*k] == ' ') {
+                       *k += 1;
+                     }  /* while */
+                   }; 
+  for (sizeof_t k = saved_pos; k<pos_in_temp_text_buffer; ++k) {
+    if (temp_text_buffer[k] == '{') {
+      /* Switch to a new line and increase the indentation. */
+      fprintf(f_debug, "{\n");
+      indent += 2;
+      do_indent(&k);
+    } else if (temp_text_buffer[k] == '}') {
+      /* Decrease the indentation.  Emit the closing brace on its own. */
+      (void)fputc('\n', f_debug);
+      indent -= 2;
+      do_indent(&k);
+      (void)fputc('}', f_debug);
+      if (k+1<pos_in_temp_text_buffer && temp_text_buffer[k+1] == ';') {
+        /* If the closing brace is followed by a semicolon, add that semicolon
+           immediately after the brace. */
+        (void)fputc(';', f_debug);
+        k += 1;
+      }  /* if */
+      (void)fputc('\n', f_debug);
+      do_indent(&k);
+    } else if (temp_text_buffer[k] == ';') {
+      /* Switch to a new line. */
+      fprintf(f_debug, ";\n");
+      do_indent(&k);
+    } else {
+      /* Just put out the character. */
+      (void)fputc(temp_text_buffer[k], f_debug);
+    }  /* if */
+  }  /* for */
+  /* Restore the temporary text buffer to its prior state. */
+  pos_in_temp_text_buffer = saved_pos;
+  temp_text_buffer[saved_pos] = '\0';
+}  /* db_tokens */
 
 
 unsigned long show_lexical_space_used(void)
