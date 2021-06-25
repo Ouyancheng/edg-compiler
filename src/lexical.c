@@ -23786,7 +23786,7 @@ formatting.
     } else if (temp_text_buffer[k] == '}') {
       /* Decrease the indentation.  Emit the closing brace on its own. */
       (void)fputc('\n', f_debug);
-      indent -= 2;
+      if (indent >= 2) indent -= 2;
       do_indent(&k);
       (void)fputc('}', f_debug);
       if (k+1<pos_in_temp_text_buffer && temp_text_buffer[k+1] == ';') {
