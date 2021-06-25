@@ -1659,7 +1659,7 @@ Return the kind of operator described by op.
       kind = opkind_func_like;
       break;
     case ifc_MonadicOperator_MsvcConfusedExpand:
-      kind = opkind_other;
+      kind = opkind_post;
       break;
     default_is_unexpected_str("Unexpected MonadicOperator");
   }  /* switch */
@@ -8508,14 +8508,11 @@ the location of the operator.
       cache_token(cache, tok_has_user_destructor, &pos);
       break;
     case ifc_MonadicOperator_MsvcConfusion:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("MonadicOperator::MsvcConfusion",
-                                  &error_position);
-      break;
+      /* This is just a placeholder value separating legitimate operators
+         from operators that are anticipated to be removed in the future. */
+      unexpected_condition();
     case ifc_MonadicOperator_MsvcConfusedExpand:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("MonadicOperator::MsvcConfusedExpand",
-                                  &error_position);
+      cache_token(cache, tok_ellipsis, &pos);
       break;
     default_is_unexpected_str("Unexpected MonadicOperator");
   }  /* switch */
@@ -9976,8 +9973,26 @@ expression by the tuple_separator token (tok_comma by default).
       issue_unsupported_node_diag("ExprSort::Condition", &error_position);
       break;
     case ifc_ExprSort_ExpressionList:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::ExpressionList", &error_position);
+      { an_ifc_ExprSort_ExpressionList esel, *eselp;
+        eselp = get_ExprSort_ExpressionList(&esel);
+        if (eselp->delimiter != ifc_Delimiter_Unknown) {
+          source_position_from_locus(&pos, &eselp->left);
+          cache_token(cache,
+                      eselp->delimiter == ifc_Delimiter_Brace ? tok_lbrace
+                                                              : tok_lparen,
+                      &pos);
+        }  /* if */
+        if (eselp->contents != (ifc_ExprIndex)0) {
+          cache_expr(cache, eselp->contents);
+        }  /* if */
+        if (eselp->delimiter != ifc_Delimiter_Unknown) {
+          source_position_from_locus(&pos, &eselp->right);
+          cache_token(cache,
+                      eselp->delimiter == ifc_Delimiter_Brace ? tok_rbrace
+                                                              : tok_rparen,
+                      &pos);
+        }  /* if */
+      }
       break;
     case ifc_ExprSort_SizeofType:
       { an_ifc_ExprSort_SizeofType iessot, *iessotp;
@@ -9994,8 +10009,31 @@ expression by the tuple_separator token (tok_comma by default).
       issue_unsupported_node_diag("ExprSort::Alignof", &error_position);
       break;
     case ifc_ExprSort_New:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::New", &error_position);
+      { an_ifc_ExprSort_New  iesn, *iesnp;
+        iesnp = get_ExprSort_New(&iesn);
+        if (iesnp->double_colon.line != 0) {
+          source_position_from_locus(&pos, &iesnp->double_colon);
+          cache_token(cache, tok_colon_colon, &pos);
+        }  /* if */
+        source_position_from_locus(&pos, &iesnp->new_keyword);
+        cache_token(cache, tok_new, &pos);
+        /* iesnp->placement appears to always represent a parenthesized
+           expression list.  If the list is empty, this is not a placement-new
+           expression. */
+        ifc_ExprSort  tag = expr_tag(iesnp->placement);
+        check_assertion(tag == ifc_ExprSort_ExpressionList);
+        read_partition_at_index(iesnp->placement);
+        an_ifc_ExprSort_ExpressionList esel, *eselp;
+        eselp = get_ExprSort_ExpressionList(&esel);
+        if (eselp->contents != (ifc_ExprIndex)0) {
+          /* The list is not empty. */
+          cache_expr(cache, iesnp->placement);
+        }  /* if */
+        cache_type(cache, iesnp->allocated_type, &iesnp->new_keyword);
+        if (iesnp->initializer != (ifc_ExprIndex)0) {
+          cache_expr(cache, iesnp->initializer);
+        }  /* if */
+      }
       break;
     case ifc_ExprSort_Delete:
       /* FIXME: Currently unsupported. */

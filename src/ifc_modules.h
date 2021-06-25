@@ -59,7 +59,7 @@ enum ifc_Cardinality : uint32_t {};
 enum ifc_ChartIndex : ifc_Index_type {};
 enum ifc_Column : uint32_t {};
 enum ifc_DeclIndex : ifc_Index_type {};
-enum ifc_DelimiterSort : uint32_t {};
+enum ifc_DelimiterSort : uint8_t;  /* Defined below. */
 enum ifc_EntitySize : uint32_t {};
 enum ifc_ExprIndex : ifc_Index_type {};
 enum ifc_FormIndex : ifc_Index_type {};
@@ -246,6 +246,12 @@ appropriately and including ifc_map.h.  The net result is something like:
   };  /* #name */
 
 #include "ifc_map.h"
+
+enum ifc_DelimiterSort : uint8_t {
+  ifc_Delimiter_Unknown = 0,
+  ifc_Delimiter_Brace = 1,
+  ifc_Delimiter_Parenthesis = 2
+};
 
 /*lint -save -e835*/ /* Allow 1 << 0 in the code below. */
 /* Enumeration for Architectures. */
