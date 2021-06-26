@@ -15957,15 +15957,14 @@ placed.
 }  /* make_using_decl */
 
 
-void create_nonmember_using_declaration(
-                                       a_symbol_ptr     sym,
-                                       a_symbol_ptr     *overload_sym_ptr,
-                                       a_symbol_ptr     other_decl,
-                                       a_namespace_ptr  nsp,
-                                       a_type_ptr       class_type,
-                                       a_using_decl_ptr *prev_udp,
-                                       a_boolean        is_list,
-                                       a_boolean        suppress_redecl_error)
+void create_nonmember_using_declaration(a_symbol_ptr     sym,
+                                        a_symbol_ptr     *overload_sym_ptr,
+                                        a_symbol_ptr     other_decl,
+                                        a_namespace_ptr  nsp,
+                                        a_type_ptr       class_type,
+                                        a_using_decl_ptr *prev_udp,
+                                        a_boolean        is_list,
+                                        a_boolean        suppress_redecl_error)
 /*
 Create a projection for symbol "sym" from namespace "nsp" (or, in
 Microsoft bugs mode, from the class "class_type").  If this is part of
