@@ -47356,15 +47356,17 @@ is TRUE if the expression is the immediate operand of an "&" operator.
         } else {
           sym = symbol_for(var);
           if (var->source_corresp.is_local_to_function &&
-              !scope_is(&scope_stack_top(), sck_function_access)) {
+              !scope_is(&scope_stack_top(), sck_function_access) &&
+              !var->is_parameter) {
             /* For a local function variable (outside a function signature
                rescan context), look up the variable again to obtain the
                instantiated version of it. */
             a_symbol_locator  loc;
             a_scope_depth     saved_depth_of_initial_lookup_scope =
                                                 depth_of_initial_lookup_scope;
-            while (!scope_is(&scope_stack[depth_of_initial_lookup_scope--],
+            while (!scope_is(&scope_stack[depth_of_initial_lookup_scope],
                              sck_instantiation_context)) {
+              --depth_of_initial_lookup_scope;
             }  /* while */
             if (var->is_this_parameter) {
               a_variable_ptr  this_var;
