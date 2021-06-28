@@ -3498,33 +3498,6 @@ this is &scp.attributes.)
 
 #if DEBUG
 
-static void db_source_position(a_source_position  *pos)
-/*
-Output the given source position form to f_debug.
-*/
-{
-  if (pos->seq > 0) {
-    a_const_char   *file_name, *full_name;
-    a_line_number  line_number;
-    a_boolean      at_end_of_source;
-    (void)conv_seq_to_file_and_line(pos->seq, &file_name, &full_name,
-                                    &line_number, &at_end_of_source);
-    if (seq_is_in_include_file(pos->seq)) {
-      (void)fprintf(f_debug, "file %s ", file_name);
-    }  /* if */
-    if (at_end_of_source) {
-      (void)fprintf(f_debug, "end of source");
-    } else {
-      (void)fprintf(f_debug, "line %lu, column %lu",
-                    (unsigned long)line_number, (unsigned long)pos->column);
-    }  /* if */
-  } else {
-    (void)fprintf(f_debug, "null source position (col. = %lu)",
-                  (unsigned long)pos->column);
-  }  /* if */
-}  /* db_source_position */
-
-
 void db_attribute(an_attribute_ptr  ap)
 /*
 Output the given attribute to f_debug.

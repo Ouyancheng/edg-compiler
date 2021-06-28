@@ -23767,14 +23767,52 @@ Display the contents of a token cache.
 }  /* db_token_cache */
 
 
+void db_source_position(a_source_position  *pos)
+/*
+Output the given source position form to f_debug.
+*/
+{
+  if (pos->seq > 0) {
+    a_const_char   *file_name, *full_name;
+    a_line_number  line_number;
+    a_boolean      at_end_of_source;
+    (void)conv_seq_to_file_and_line(pos->seq, &file_name, &full_name,
+                                    &line_number, &at_end_of_source);
+    if (seq_is_in_include_file(pos->seq)) {
+      (void)fprintf(f_debug, "file %s ", file_name);
+    }  /* if */
+    if (at_end_of_source) {
+      (void)fprintf(f_debug, "end of source");
+    } else {
+      (void)fprintf(f_debug, "line %lu, column %lu",
+                    (unsigned long)line_number, (unsigned long)pos->column);
+    }  /* if */
+  } else {
+    (void)fprintf(f_debug, "null source position (col. = %lu)",
+                  (unsigned long)pos->column);
+  }  /* if */
+}  /* db_source_position */
+
+
 void db_tokens(a_token_cache  *cache)
 /*
 Display the contents of the given token cache as text, which some simple-minded
 formatting.
 */
 {
-  sizeof_t  saved_pos = pos_in_temp_text_buffer, indent = 0;
+  sizeof_t             saved_pos = pos_in_temp_text_buffer, indent = 0;
+  a_cached_token_ptr  ctp = cache->first_token;
 
+  for (; ctp != NULL; ctp = ctp->next) {
+    if (ctp->source_position.seq != 0) {
+      if (ctp != cache->first_token) {
+        fprintf(f_debug, "(approx.) ");
+      }  /* if */
+      db_source_position(&ctp->source_position);
+      fprintf(f_debug, " (seq = %ld)\n", (long)ctp->source_position.seq);
+      break;
+    }  /* if */
+  }  /* if */
   add_token_cache_to_string(cache);
   auto do_indent = [&indent](sizeof_t  *k) {
                      for (sizeof_t i = 0; i<indent; ++i) {
@@ -23786,7 +23824,7 @@ formatting.
                        *k += 1;
                      }  /* while */
                    }; 
-  /*lint --e{,850} k modified in loop */
+  /*lint --e{850} k modified in loop */
   for (sizeof_t k = saved_pos; k<pos_in_temp_text_buffer; ++k) {
     if (temp_text_buffer[k] == '{') {
       /* Switch to a new line and increase the indentation. */
