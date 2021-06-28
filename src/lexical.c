@@ -23786,6 +23786,7 @@ formatting.
                        *k += 1;
                      }  /* while */
                    }; 
+  /*lint --e{,850} k modified in loop */
   for (sizeof_t k = saved_pos; k<pos_in_temp_text_buffer; ++k) {
     if (temp_text_buffer[k] == '{') {
       /* Switch to a new line and increase the indentation. */
