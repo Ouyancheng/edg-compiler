@@ -23803,6 +23803,8 @@ formatting.
   sizeof_t             saved_pos = pos_in_temp_text_buffer, indent = 0;
   a_cached_token_ptr  ctp = cache->first_token;
 
+  /* If any of the tokens in the cache has an associated position, output a
+     description of that position first. */
   for (; ctp != NULL; ctp = ctp->next) {
     if (ctp->source_position.seq != 0) {
       if (ctp != cache->first_token) {
