@@ -3612,13 +3612,22 @@ class_struct_union_case:
               a_symbol_ptr sym = curr_scope_id_lookup(&loc, IDL_NO_OPTIONS);
               if (sym != NULL) {
                 do_forward_decl = FALSE;
+              } else if ((idstp->properties &
+                                  ifc_ReachableProperties_Initializer) != 0) {
+                /* If this is an "= delete" definition, do not issue a
+                   "forward declaration" (i.e., without "= delete") since that
+                   would be invalid.  Such definitions will have the
+                   "Initializer" property set.  Variable templates can also
+                   have that property, but they do not need "forward
+                   declarations" either. */
+                do_forward_decl = FALSE;
               }  /* if */
             }  /* if */
             if (do_forward_decl) {
               suppress_default_arguments = FALSE;
               clear_token_cache(&cache, /*reuseable=*/FALSE);
-              cache_decl_template_signature(&cache, idstp,
-                                            /*add_semicolon=*/TRUE);
+              cache_decl_template_declaration(&cache, idstp,
+                                              /*add_semicolon=*/TRUE);
               terminate_token_cache(&cache);
               suppress_default_arguments = saved_suppress_default_arguments;
               il_entity = (char*)parse_cached_template(&cache, mep->scope);
@@ -7263,14 +7272,10 @@ the location of the Sentence containing id.
     default_is_unexpected_str("Unknown SourceIdentifier");
   }  /* switch */
   check_assertion(name != NULL);
-  /* FIXME: MSVC has a bug where the "default" (and maybe "delete"?) in
-      "pair(const pair&) = delete" is encoded as an identifier rather than a
-      keyword.  Work around that bug here and remove this in future editions
-      where this is fixed. */
-  if (strncmp(name, "default", 7) == 0) {
+  /* Microsoft treats "default" as an identifier rather than a keyword.  That
+     is also the case in the token sequences recorded in IFC files. */
+  if (strcmp(name, "default") == 0) {
     cache_token(cache, tok_default, &pos);
-  } else if (strncmp(name, "delete", 6) == 0) {
-    cache_token(cache, tok_delete, &pos);
   } else {
     cache_identifier(cache, name, &pos);
   }  /* if */
@@ -7809,8 +7814,10 @@ this is needed.
       }
       break;
     case ifc_TypeSort_Expansion:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("TypeSort::Expansion", &error_position);
+      { an_ifc_TypeSort_Expansion itse, *itsep;
+        itsep = get_TypeSort_Expansion(&itse);
+        cache_type_first_pass(cache, itsep->pack, locus);
+      }
       break;
     case ifc_TypeSort_Pointer:
       { an_ifc_TypeSort_Pointer itsp, *itspp;
@@ -7913,10 +7920,8 @@ this is needed.
     case ifc_TypeSort_Decltype:
       { an_ifc_TypeSort_Decltype itsd, *itsdp;
         itsdp = get_TypeSort_Decltype(&itsd);
-        cache_token(cache, tok_decltype, &pos);
-        cache_token(cache, tok_lparen, &pos);
+        /* decltype constructs are currently represented as token sequences. */
         cache_syntax(cache, itsdp->expr);
-        cache_token(cache, tok_rparen, &pos);
       }
       break;
     case ifc_TypeSort_Placeholder:
@@ -8056,10 +8061,16 @@ this is needed.
         cache_type_second_pass(cache, itsqp->unqualified, locus);
       }
       break;
+    case ifc_TypeSort_Expansion:
+      { an_ifc_TypeSort_Expansion itse, *itsep;
+        itsep = get_TypeSort_Expansion(&itse);
+        cache_type_second_pass(cache, itsep->pack, locus);
+        cache_token(cache, tok_ellipsis, &pos);
+      }
+      break;
     case ifc_TypeSort_Fundamental:
     case ifc_TypeSort_Designated:
     case ifc_TypeSort_Syntactic:
-    case ifc_TypeSort_Expansion:
     case ifc_TypeSort_LvalueReference:
     case ifc_TypeSort_RvalueReference:
     case ifc_TypeSort_Method:
@@ -9135,16 +9146,16 @@ This will not cache the class name and type (class/struct/union).
 }  /* cache_decl_class */
 
 
-uint32_t an_ifc_module::cache_decl_template_signature(
+uint32_t an_ifc_module::cache_decl_template_declaration(
                                         a_token_cache_ptr        cache,
                                         an_ifc_DeclSort_Template *decl,
                                         a_boolean                add_semicolon)
                                                                           const
 /*
-Add the tokens corresponding to the given template declaration's (decl)
-signature to cache.  If add_semicolon is TRUE, include the terminating
-semicolon that would be expected for a forward declaration.  Return the offset
-into the template declaration's body at which to find the definition, or zero
+Add the tokens corresponding to the given template declaration (decl) to cache.
+If add_semicolon is TRUE, include the terminating semicolon that would be
+expected for a declaration that isn't a definition.  Return the offset into the
+template declaration's body at which to find the definition, or zero
 if there is no offset/the offset is not needed.
 */
 {
@@ -9195,7 +9206,7 @@ if there is no offset/the offset is not needed.
     cache_token(cache, tok_semicolon, &pos);
   }  /* if */
   return offset;
-}  /* cache_decl_template_signature */
+}  /* cache_decl_template_declaration */
 
 
 void an_ifc_module::cache_decl_template(a_token_cache_ptr        cache,
@@ -9207,8 +9218,8 @@ Add the tokens corresponding to the given template declaration (decl) to cache.
   a_boolean         decl_only = decl->entity.body == 0;
   uint32_t          offset;
 
-  offset = cache_decl_template_signature(cache, decl,
-                                         /*add_semicolon=*/decl_only);
+  offset = cache_decl_template_declaration(cache, decl,
+                                           /*add_semicolon=*/decl_only);
   if (!decl_only) {
     (void)cache_sentence(cache, decl->entity.body, offset);
   }  /* if */
@@ -9943,13 +9954,20 @@ expression by the tuple_separator token (tok_comma by default).
     case ifc_ExprSort_Call:
       { an_ifc_ExprSort_Call iesc, *iescp;
         iescp = get_ExprSort_Call(&iesc);
-        source_position_from_locus(&pos, &iescp->locus);
         cache_expr(cache, iescp->operation);
-        cache_token(cache, tok_lparen, &pos);
         if (iescp->arguments != 0) {
+#if CHECKING
+          ifc_ExprSort  tag = expr_tag(iescp->arguments);
+          check_assertion(tag == ifc_ExprSort_ExpressionList);
+#endif /* CHECKING */
           cache_expr(cache, iescp->arguments);
+        } else {
+          /* Sometimes (but not always) an empty argument list appears to be
+             represented using a null "arguments" field. */
+          source_position_from_locus(&pos, &iescp->locus);
+          cache_token(cache, tok_lparen, &pos);
+          cache_token(cache, tok_rparen, &pos);
         }  /* if */
-        cache_token(cache, tok_rparen, &pos);
       }
       break;
     case ifc_ExprSort_MemberInitializer:
@@ -10077,8 +10095,15 @@ expression by the tuple_separator token (tok_comma by default).
       issue_unsupported_node_diag("ExprSort::Initializer", &error_position);
       break;
     case ifc_ExprSort_Requires:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::Requires", &error_position);
+      { an_ifc_ExprSort_Requires  iesr, *iesrp;
+        iesrp = get_ExprSort_Requires(&iesr);
+        source_position_from_locus(&pos, &iesrp->locus);
+        cache_token(cache, tok_requires, &pos);
+        if (iesrp->parameters != 0) {
+          cache_syntax(cache, iesrp->parameters);
+        }  /* if */
+        cache_syntax(cache, iesrp->body);
+      }
       break;
     case ifc_ExprSort_UnaryFold:
       /* FIXME: Currently unsupported. */
@@ -10181,9 +10206,10 @@ expression by the tuple_separator token (tok_comma by default).
                                   &error_position);
       break;
     case ifc_ExprSort_PackedTemplateArguments:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::PackedTemplateArguments",
-                                  &error_position);
+      { an_ifc_ExprSort_PackedTemplateArguments  espta, *esptap;
+        esptap = get_ExprSort_PackedTemplateArguments(&espta);
+        cache_expr(cache, esptap->arguments);
+      }
       break;
     case ifc_ExprSort_Tokens:
       /* FIXME: Currently unsupported. */
@@ -10726,9 +10752,20 @@ Add the tokens corresponding to the given syntax tree to cache.
                                   &error_position);
       break;
     case ifc_SyntaxSort_CompoundRequirement:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::CompoundRequirement",
-                                  &error_position);
+      { an_ifc_SyntaxSort_CompoundRequirement isscr, *isscrp;
+        isscrp = get_SyntaxSort_CompoundRequirement(&isscr);
+        source_position_from_locus(&pos, &isscrp->locus);
+        cache_token(cache, tok_lbrace, &pos);
+        cache_expr(cache, isscrp->condition);
+        source_position_from_locus(&pos, &isscrp->right_curly);
+        cache_token(cache, tok_rbrace, &pos);
+        if (isscrp->noexcept_loc.line != 0) {
+          source_position_from_locus(&pos, &isscrp->noexcept_loc);
+          cache_token(cache, tok_noexcept, &pos);
+        }  /* if */
+        cache_token(cache, tok_arrow, &pos);
+        cache_expr(cache, isscrp->constraint);
+      }
       break;
     case ifc_SyntaxSort_NestedRequirement:
       /* FIXME: Currently unsupported. */
@@ -10736,9 +10773,14 @@ Add the tokens corresponding to the given syntax tree to cache.
                                   &error_position);
       break;
     case ifc_SyntaxSort_RequirementBody:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::RequirementBody",
-                                  &error_position);
+      { an_ifc_SyntaxSort_RequirementBody issrb, *issrbp;
+        issrbp = get_SyntaxSort_RequirementBody(&issrb);
+        source_position_from_locus(&pos, &issrbp->locus);
+        cache_token(cache, tok_lbrace, &pos);
+        cache_syntax(cache, issrbp->requirements);
+        source_position_from_locus(&pos, &issrbp->right_curly);
+        cache_token(cache, tok_rbrace, &pos);
+      }
       break;
     case ifc_SyntaxSort_TypeTemplateParameter:
       { an_ifc_SyntaxSort_TypeTemplateParameter issttp, *issttpp;

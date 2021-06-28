@@ -1655,6 +1655,11 @@ IFC_DECL_END(SyntaxSort_TypeRequirement)
 
 /* SyntaxSort::CompoundRequirement */
 IFC_DECL_START(SyntaxSort_CompoundRequirement)
+  IFC_DECL_FIELD(condition, ExprIndex)
+  IFC_DECL_FIELD(constraint, ExprIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(right_curly, SourceLocation)
+  IFC_DECL_FIELD(noexcept_loc, SourceLocation)
 IFC_DECL_END(SyntaxSort_CompoundRequirement)
 
 /* SyntaxSort::NestedRequirement */
@@ -1663,6 +1668,9 @@ IFC_DECL_END(SyntaxSort_NestedRequirement)
 
 /* SyntaxSort::RequirementBody */
 IFC_DECL_START(SyntaxSort_RequirementBody)
+  IFC_DECL_FIELD(requirements, SyntaxIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
+  IFC_DECL_FIELD(right_curly, SourceLocation)
 IFC_DECL_END(SyntaxSort_RequirementBody)
 
 /* SyntaxSort::TypeTemplateParameter */

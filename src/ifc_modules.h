@@ -2745,7 +2745,7 @@ private:
                                ifc_SourceLocation    *locus) const;
   void cache_decl_class(a_token_cache_ptr     cache,
                         an_ifc_DeclSort_Scope *decl) const;
-  uint32_t cache_decl_template_signature(
+  uint32_t cache_decl_template_declaration(
                                         a_token_cache_ptr        cache,
                                         an_ifc_DeclSort_Template *decl,
                                         a_boolean                add_semicolon)
