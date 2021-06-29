@@ -6,10 +6,19 @@ IL support for coroutine get_return_object_on_allocation_failure
 The alloc_failure_gro_call member of the a_coroutine_descr IL entry
 contains a pointer to an expression node for a call to the promise type
 member get_return_object_on_allocation_failure (if such a member exists).
-According to the C++ Standard, this function is to be invoked as a static
-member function; however, the expression tree for the call previously
-called the function as if it were a non-static member function, with the
-promise object as the object expression.  This is now fixed.
+According to the C++ Standard, this function is to be invoked as if by an
+expression of the form
+
+  T::get_return_object_on_allocation_failure()
+
+where T is the promise type.  Previously, however, the expression tree for
+this node called the function as if by an expression of the form
+
+  t.get_return_object_on_allocation_failure()
+
+where t is the promise object.  In addition, the front end incorrectly
+imposed several restrictions on the declaration of this function that are
+not required by the Standard.  These issues are now fixed.
 
 
 6/25/21  [EDGcpfe/24349]
