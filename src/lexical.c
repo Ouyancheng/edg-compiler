@@ -23763,13 +23763,14 @@ Display the contents of a token cache.
       fprintf(f_debug, "Token %lu:\n", count++);
       db_cached_token(ctp);
     }  /* for */
-  }  /* s */
+  }  /* if */
 }  /* db_token_cache */
 
 
 void db_source_position(a_source_position  *pos)
 /*
-Output the given source position form to f_debug.
+Output the given source position to f_debug, both using a raw sequence number
+and using the associated file name and line number.
 */
 {
   if (pos->seq > 0) {
@@ -23796,11 +23797,11 @@ Output the given source position form to f_debug.
 
 void db_tokens(a_token_cache  *cache)
 /*
-Display the contents of the given token cache as text, which some simple-minded
+Display the contents of the given token cache as text, with some simple-minded
 formatting.
 */
 {
-  sizeof_t             saved_pos = pos_in_temp_text_buffer, indent = 0;
+  sizeof_t            saved_pos = pos_in_temp_text_buffer, indent = 0;
   a_cached_token_ptr  ctp = cache->first_token;
 
   /* If any of the tokens in the cache has an associated position, output a
