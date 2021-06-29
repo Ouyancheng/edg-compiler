@@ -10034,8 +10034,8 @@ expression by the tuple_separator token (tok_comma by default).
         cache_expr(cache, iescp->operation);
         if (iescp->arguments != 0) {
 #if CHECKING
-          ifc_ExprSort  tag = expr_tag(iescp->arguments);
-          check_assertion(tag == ifc_ExprSort_ExpressionList);
+          ifc_ExprSort  arguments_tag = expr_tag(iescp->arguments);
+          check_assertion(arguments_tag == ifc_ExprSort_ExpressionList);
 #endif /* CHECKING */
           cache_expr(cache, iescp->arguments);
         } else {
@@ -10122,8 +10122,10 @@ expression by the tuple_separator token (tok_comma by default).
         /* iesnp->placement appears to always represent a parenthesized
            expression list.  If the list is empty, this is not a placement-new
            expression. */
-        ifc_ExprSort  tag = expr_tag(iesnp->placement);
-        check_assertion(tag == ifc_ExprSort_ExpressionList);
+#if CHECKING
+        ifc_ExprSort  placement_tag = expr_tag(iesnp->placement);
+        check_assertion(placement_tag == ifc_ExprSort_ExpressionList);
+#endif /* CHECKING */
         read_partition_at_index(iesnp->placement);
         an_ifc_ExprSort_ExpressionList esel, *eselp;
         eselp = get_ExprSort_ExpressionList(&esel);
