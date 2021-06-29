@@ -1863,7 +1863,7 @@ binary search.
   for (ptrdiff_t i = 1; i < num_elements; ++i) {
     auto &&curr_value = value_fn(i);
     if (!(last_value < curr_value)) {
-      fprintf(stderr, "Binary search element %t (", i);
+      fprintf(stderr, "Binary search element %td (", i);
 #if DEBUG
       db_f_print_t(stderr, curr_value);
 #else /* !DEBUG */
