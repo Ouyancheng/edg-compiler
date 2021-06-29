@@ -1864,7 +1864,11 @@ binary search.
     auto &&curr_value = value_fn(i);
     if (!(last_value < curr_value)) {
       fprintf(stderr, "Binary search element %d (", i);
+#if DEBUG
       db_f_print_t(stderr, curr_value);
+#else /* !DEBUG */
+      fprintf(stderr, "unspecified");
+#endif /* DEBUG */
       fprintf(stderr, ") is out of order\n");
       any_out_of_order = TRUE;
     }  /* if */
