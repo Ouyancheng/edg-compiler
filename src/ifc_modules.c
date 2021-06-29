@@ -4251,27 +4251,25 @@ Validate that the state of the partition map for binary search.
 {
   uint32_t num_partitions = ifc_last + 1;
   uint32_t num_nameless_partitions = 0;
-  an_ifc_partition_map *last_map_ptr = map_ptr++;
+  an_ifc_partition_map *last_map_ptr = NULL;
   a_boolean any_out_of_order = FALSE;
 
   for (uint32_t i = 0; i < num_partitions; ++i) {
     if (map_ptr->name == NULL) {
       ++num_nameless_partitions;
-      continue;
-    }  /* if */
-    /* Assert that we have no nameless partitions to ensure, we didn't see a
-       partition without a name followed by a partition with a name.  This in
-       effect verifies any nameless partitions are at the end of the map. */
-    check_assertion(num_nameless_partitions == 0);
-    {
+    } else if (last_map_ptr != NULL) {
+      /* Assert that we have no nameless partitions to ensure, we didn't see a
+         partition without a name followed by a partition with a name.  This in
+         effect verifies any nameless partitions are at the end of the map. */
+      check_assertion(num_nameless_partitions == 0);
       an_ifc_partition_name last_entry{last_map_ptr->name};
       an_ifc_partition_name curr_entry{map_ptr->name};
       if (!(last_entry < curr_entry)) {
         fprintf(stderr, "Partition %s is out of order\n", map_ptr->name);
         any_out_of_order = TRUE;
       }
-      last_map_ptr = map_ptr++;
     }  /* if */
+    last_map_ptr = map_ptr++;
   }  /* for */
   /* Fail loudly if partitions are not ordered correctly, delayed so
      multiple partition order errors can be reported first. */
@@ -4291,7 +4289,7 @@ pointer to that entry or NULL if it could not be found.
 {
   /* The number of partitions is adjusted to remove any nameless partition map
      entries. */
-  uint32_t num_partitions = ifc_last - 4;
+  uint32_t num_partitions = ifc_last - 3;
   /* Create a wrapped version of partition_name for comparisons. */
   an_ifc_partition_name partition_name{name};
   /* Provide a value function for retrieving the wrapped partition name at the
