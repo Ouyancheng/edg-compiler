@@ -3074,6 +3074,7 @@ constants for that type).
             clear_decl_pos_block(&decl_pos_block);
             decl_variable(&loc, &dps, SRK_DEFINITION, &linkage_ptr, &ext_sym,
                           &decl_pos_block);
+            /* FIXME: check that the alignment has been set properly. */
             vp = dps.sym->variant.variable.ptr;
             if (idsvp->initializer != 0) {
               /* Variable has an initializer. */
@@ -3425,7 +3426,6 @@ class_struct_union_case:
           } else {
             a_type_ptr       enum_type;
             a_symbol_ptr     tag_sym;
-            an_integer_value alignment;
             check_assertion(idsep->base != 0 && mep->scope != NULL);
             init_dps(&dps, &idsep->locus, idsep->base, ifc_ObjectTraits_None,
                      ifc_MsvcTraits_None, idsep->specifiers, idsep->access,
@@ -3437,12 +3437,14 @@ class_struct_union_case:
             enum_type->variant.integer.int_kind = (an_integer_kind)ik_int;
             enum_type->variant.integer.enum_type = TRUE;
             enum_type->size = skip_typerefs(dps.type)->size;
-            integer_type_supp(enum_type)->base_type = dps.type;
             enum_type->variant.integer.has_explicit_enum_base = TRUE;
-            unsigned_integer_for_expr_index(idsep->alignment, &alignment);
-            // FIXME: needed?
+            integer_type_supp(enum_type)->base_type = dps.type;
+            if (dps.alignment == 0) {
+              /* Alignment was not specifically specified; use the alignment
+                 of the base type. */
+              dps.alignment = skip_typerefs(dps.type)->alignment;
+            }  /* if */
             enum_type->alignment = dps.alignment;
-            // FIXME: check_assertion(enum_type->alignment != 0);
             /* FIXME: for now: */
             enum_type->source_corresp.name_linkage =
                                    (a_name_linkage_kind)nlk_cplusplus_external;
@@ -5663,7 +5665,10 @@ specifiers, and access to internal values used in the front end and set those
 fields in *dps.  *psssp is a place in which to store various fields of the
 decl_scope_level scope_stack entry (saved only if necessary).
 restore_partial_scope_stack_if_necessary should be called with this pointer
-after the declaration has been processed.
+after the declaration has been processed.  Note that although dps->alignment
+is (conditionally) set in this routine, the IFC file only specifies an
+alignment if the alignment is explicitly specified.  Therefore callers of
+this routine need to handle the case where dps->alignment is 0.
 */
 {
   an_attribute_ptr ap = NULL;
@@ -5758,9 +5763,10 @@ after the declaration has been processed.
     an_integer_value alignment_value;
     a_boolean        err;
     unsigned_integer_for_expr_index(alignment, &alignment_value);
-    dps->alignment = unsigned_value_of_integer_value(&alignment_value,
-                                                     /*is_signed=*/FALSE,
-                                                     &err);
+    dps->alignment = (a_targ_alignment)unsigned_value_of_integer_value(
+                                                           &alignment_value,
+                                                           /*is_signed=*/FALSE,
+                                                           &err);
     check_assertion(!err);
   }  /* if */
 }  /* init_dps */
@@ -5830,6 +5836,7 @@ No casting is performed.
         unexpected_condition_str("Failed to get 64-bit integer");
       }  /* if */
       break;
+    case ifc_LiteralSort_FloatingPoint:
     default_is_unexpected();
   }  /* switch */
 }  /* an_ifc_module::unsigned_integer_for_expr_index */
