@@ -4266,7 +4266,6 @@ Validate that the state of the partition map for binary search.
 {
   uint32_t num_partitions = ifc_last + 1;
   uint32_t num_nameless_partitions = 0;
-  a_boolean any_out_of_order = FALSE;
 
   for (uint32_t i = 0; i < num_partitions; ++i) {
     if (map_ptr->name == NULL) {
