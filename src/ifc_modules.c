@@ -4403,6 +4403,8 @@ void an_ifc_module::process_scope_member_sequence(ifc_Sequence seq) const
 Process a sequence of IFC scope member declarations.
 */
 {
+  /* Guard this logic behind a feature flag to prevent aborts. */
+#if IFC_PROCESS_TEMPLATE_SPECIALZIATIONS
   for (size_t idx = 0; idx < seq.cardinality; ++idx) {
     an_ifc_Scope_Member ism, *ismp;
     a_module_entity_ptr dmep;
@@ -4416,6 +4418,7 @@ Process a sequence of IFC scope member declarations.
     dmep = get_ifc_module_entity_ptr(ismp->index);
     process_ifc_declaration(dmep, /*defer=*/FALSE, (a_type_ptr)NULL);
   }
+#endif /* IFC_PROCESS_TEMPLATE_SPECIALZIATIONS */
 }  /* process_scope_member_sequence */
 
 
