@@ -1836,6 +1836,134 @@ Sort the elements of the given sequence.
 }  /* sort */
 
 
+template<typename T, typename a_value_fn_T>
+inline ptrdiff_t lower_bound(ptrdiff_t num_elements,
+                             const T& value, a_value_fn_T value_fn)
+/*
+Search for the first element in a container of num_elements elements, that is
+not less than (i.e. greater or equal to) value using value_fn to retrieve
+values at a given index.  value_fn should take a ptrdiff_t argument
+representing a given index into the container, and return the value of type T
+at that index.  Return the index of said element or -1 if no such element is
+found.
+*/
+{
+  ptrdiff_t begin_idx = 0;
+  ptrdiff_t curr_size = num_elements;
+
+  while (curr_size > 0) {
+    /* Calculate the current index.  First compute an index relative to the
+       amount of data we have.  Then add the relative index to our starting
+       index to get the true index into the unknown container. */
+    ptrdiff_t midpoint_idx = curr_size / 2;
+    ptrdiff_t curr_idx = begin_idx + midpoint_idx;
+    /* Retrieve the value at our current index from the unknown container.
+       Extracted to a variable to ease debugging. */
+    auto &&curr_value = value_fn(curr_idx);
+    if (curr_value < value) {
+      /* The value was smaller than the value we're searching for (we want the
+         first value greater than or equal to our target value) so consider the
+         value to our immediate right the new best candidate.
+
+         The best candidate and starting search positions are algorithmically
+         equivalent (begin_idx is the largest value we know of that was
+         preceded by a value smaller than our target value.  Thus, it's both
+         our best current answer to the lower bound, and the earliest point we
+         will need to check going forward).  Therefore, update begin_idx with
+         this new best candidate index.
+
+         Since this algorithm works with a rolling count of elements rather
+         than indexes, we need to subtract the number of elements we just
+         removed (i.e. our midpoint index + 1 to make the count inclusive).
+         Note that since we may have an even or odd count, we can't do a blind
+         assignment of curr_size / 2 (inflates the count when even) or
+         curr_size / 2 - 1 (deflates the count when odd) without adding an
+         additional branch.
+
+         Additionally, note that if the index we've moved onto is past the end
+         of the array that's okay as we will end up with num_elements (which
+         then gets transformed to -1 at the end of the function) as intended,
+         and we will not reenter as curr_size will be 0. */
+      begin_idx = curr_idx + 1;
+      curr_size -= midpoint_idx + 1;
+    } else {
+      /* The value was greater than or equal to the value we're searching for,
+         so we need to consider earlier elements.
+
+         Since this algorithm works with a rolling count of elements rather
+         than indexes, we need to subtract the number of elements we just
+         removed.  Since our midpoint already in effect represents the number
+         of elements in the left half that remain to be examined, simply use
+         its value. */
+      curr_size = midpoint_idx;
+    }  /* if */
+  }  /* while */
+  /* We ran out of elements and ran past the end of the container, detect this
+     and return -1 (to better to conform to developer expectations of "no
+     result"). */
+  if (begin_idx == num_elements) {
+    begin_idx = -1;
+  }  /* if */
+  return begin_idx;
+}  /* lower_bound */
+
+
+template<typename T>
+inline ptrdiff_t array_lower_bound(T* t_start, ptrdiff_t num_elements,
+                                   const T& value)
+/*
+Search for the first element in an array of num_elements elements beginning at
+t_start, that is not less than (i.e. greater or equal to) value.  Return the
+index of said element or -1 if no such element is found.
+*/
+{
+  return lower_bound(num_elements, value, [t_start](ptrdiff_t idx) {
+    return *(t_start + idx);
+  });
+}  /* lower_bound */
+
+
+template<typename T, typename a_value_fn_T>
+inline ptrdiff_t bin_search(ptrdiff_t num_elements,
+                            const T& value, a_value_fn_T value_fn)
+/*
+Search for the first element in a container of num_elements elements, that is
+equal to value using value_fn to retrieve values at a given index.  value_fn
+should take a ptrdiff_t argument representing a given index into the container,
+and return the value of type T at that index.  Return the index of said element
+or -1 if no such element is found.
+*/
+{
+  ptrdiff_t result_idx = lower_bound(num_elements, value, value_fn);
+
+  /* If we received a valid result index into our container, check to see if
+     the value at the result index matches the value we were searching for.
+
+     Use !(x == y) rather than x != y to simplify implementing wrapper types we
+     may want to feed to bin_search. */
+  if (result_idx != -1 && !(value_fn(result_idx) == value)) {
+    /* The value didn't match so invalidate the result index. */
+    result_idx = -1;
+  }  /* if */
+  return result_idx;
+}  /* bin_search */
+
+
+template<typename T>
+inline ptrdiff_t array_bin_search(T* t_start, ptrdiff_t num_elements,
+                                  const T& value)
+/*
+Search for the first element in an array of num_elements elements beginning at
+t_start, that is equal to value.  Return the index of said element or -1 if no
+such element is found.
+*/
+{
+  return bin_search(num_elements, value, [t_start](ptrdiff_t idx) {
+    return *(t_start + idx);
+  });
+}  /* bin_search */
+
+
 inline uintptr_t hash_ptr(void  *ptr)
 /*
 Return a hash value for the given pointer value.
