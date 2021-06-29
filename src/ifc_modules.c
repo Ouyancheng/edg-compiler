@@ -3600,6 +3600,10 @@ class_struct_union_case:
                original code).  However, non-external linkage variable
                templates cannot have both a forward declaration and a
                definition, so we cannot put out a forward declaration always.
+               FIXME: This should be done in one pass instead: The template
+               declaration should be processed, then the body (if needed)
+               without re-parsing the declaration.  The routines in templates.c
+               might need refactoring to accommodate that.
             */
             type = type_for_type_index(idstp->type, &nt_kind);
             do_forward_decl = (type != type_of_unknown_templ_param_nontype ||
@@ -3612,8 +3616,8 @@ class_struct_union_case:
               a_symbol_ptr sym = curr_scope_id_lookup(&loc, IDL_NO_OPTIONS);
               if (sym != NULL) {
                 do_forward_decl = FALSE;
-              } else if ((idstp->properties &
-                                  ifc_ReachableProperties_Initializer) != 0) {
+              } else if (idstp->entity.body != 0 &&
+                         sentence_is_deleted(idstp->entity.body)) {
                 /* If this is an "= delete" definition, do not issue a
                    "forward declaration" (i.e., without "= delete") since that
                    would be invalid.  Such definitions will have the
@@ -7432,6 +7436,47 @@ return the index of that token.  Otherwise the return value is meaningless.
 done:;
   return idx;
 }  /* cache_sentence */
+
+
+a_boolean an_ifc_module::sentence_is_deleted(ifc_SentenceIndex  sentence) const
+/*
+Given a SentenceIndex, return TRUE if it represents the sequence "= delete".
+Otherwise, return FALSE.
+*/
+{
+  a_boolean          result = FALSE, equal_seen = FALSE;
+  an_ifc_Sentence    is, *isp;
+
+  if (sentence == 0) {
+    goto done;
+  }  /* if */
+  read_partition_at_index(ifc_sentence, sentence-1);
+  isp = get_Sentence(&is);
+  for (uint32_t k = 0; k < isp->cardinality; ++k) {
+    an_ifc_Word iw, *iwp;
+    read_partition_at_index(ifc_word, isp->start + k);
+    iwp = get_Word(&iw);
+    if (iwp->sort == ifc_WordSort_Directive ||
+        (iwp->sort == ifc_WordSort_Punctuator &&
+         (uint16_t)iwp->value > (uint16_t)ifc_SourcePunctuator_Msvc)) {
+      /* Ignore MSVC-specific insertions. */
+      continue;
+    } else if (!equal_seen &&
+               iwp->sort == ifc_WordSort_Operator &&
+               iwp->value == ifc_SourceOperator_Equal) {
+      equal_seen = TRUE;
+    } else if (equal_seen &&
+               iwp->sort == ifc_WordSort_Keyword &&
+               iwp->value == ifc_SourceKeyword_Delete) {
+      result = TRUE;
+      break;
+    } else {
+      break;
+    }  /* if */
+  }  /* if */
+done:;
+  return result;
+}  /* sentence_is_deleted */
 
 
 static void cache_object_traits(a_token_cache_ptr     cache,

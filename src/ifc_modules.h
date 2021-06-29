@@ -2721,6 +2721,7 @@ private:
                           ifc_SentenceIndex sentence,
                           uint32_t          offset = 0,
                           a_boolean         look_for_stop_token = FALSE) const;
+  a_boolean sentence_is_deleted(ifc_SentenceIndex sentence) const;
   void cache_word(a_token_cache_ptr     cache,
                   an_ifc_Word           *word) const;
   void cache_source_directive(a_token_cache_ptr     cache,
