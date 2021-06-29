@@ -1,5 +1,17 @@
 Version 6.3
 
+6/28/21  [EDGcpfe/24022]
+IL support for coroutine get_return_object_on_allocation_failure
+
+The alloc_failure_gro_call member of the a_coroutine_descr IL entry
+contains a pointer to an expression node for a call to the promise type
+member get_return_object_on_allocation_failure (if such a member exists).
+According to the C++ Standard, this function is to be invoked as a static
+member function; however, the expression tree for the call previously
+called the function as if it were a non-static member function, with the
+promise object as the object expression.  This is now fixed.
+
+
 6/25/21  [EDGcpfe/24349]
 Microsoft compatibility: using-directives vs class templates
 

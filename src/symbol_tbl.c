@@ -9652,21 +9652,52 @@ and if so, resolve and record the appropriate call.
   if (alloc_fail_sym != NULL) {
     an_operand         operand;
     a_dynamic_init_ptr dip;
-
-    make_coroutine_promise_call_operand(
-                                     &operand,
-                                     "get_return_object_on_allocation_failure",
-                                     promise_var, /*add_await=*/FALSE,
-                                     /*init_suspend=*/FALSE);
-    prep_elision_initializer_operand(&operand, coroutine->type->
+    an_expr_node_ptr   rout_node = NULL;
+    a_type_ptr         rout_type;
+    a_symbol_ptr sym;
+    a_boolean          ambiguous = FALSE;
+    if (symbol_is(alloc_fail_sym, sk_overloaded_function)) {
+      alloc_fail_sym = alloc_fail_sym->variant.overloaded_function.symbols;
+    }  /* if */
+    for (sym = alloc_fail_sym; sym != NULL; sym = sym->next) {
+      rout_type = routine_symbol_type(sym);
+      if (!rout_type_supp(rout_type)->has_this_param &&
+          (rout_type_supp(rout_type)->param_type_list == NULL ||
+           rout_type_supp(rout_type)->param_type_list->has_default_arg)) {
+        /* This routine is a static member function that can be called with
+           no arguments. */
+        if (rout_node != NULL) {
+          ambiguous = TRUE;
+        } else {
+          rout_node = function_rvalue_expr(func_sym_routine(sym));
+        }  /* if */
+      }  /* if */
+    }  /* for */
+    if (rout_node == NULL || ambiguous) {
+      type_error(ec_bad_gro_on_alloc_fail, promise_type);
+    } else {
+      make_function_call(rout_node, rout_type, /*is_virtual=*/FALSE,
+                         /*virtual_suppressed=*/FALSE,
+                         /*selector_is_object_pointer=*/FALSE,
+                         /*compiler_generated=*/TRUE, /*is_conversion=*/FALSE,
+                         /*arg_dep_lookup_suppressed=*/FALSE,
+                         /*qualified_function_name=*/TRUE,
+                         /*found_through_adl=*/FALSE,
+                         /*uses_operator_syntax=*/FALSE, pos, &operand,
+                         /*p_folded=*/NULL, /*p_function_call_node=*/NULL);
+      if (is_class_struct_union_type(coroutine->type->
+                                                variant.routine.return_type)) {
+        prep_elision_initializer_operand(&operand, coroutine->type->
                                                    variant.routine.return_type,
-                                     /*fill_in_dtor=*/FALSE,
-                                     CCO_INITIALIZING_RETURN_VALUE,
-                                     ec_bad_return_value_type,
-                                     /*elision_done=*/NULL,
-                                     &dip);
-    cr_desc->alloc_failure_gro_call = expr_node_from_operand(&operand);
-    set_possibly_null_expr_result_not_used(cr_desc->alloc_failure_gro_call);
+                                         /*fill_in_dtor=*/FALSE,
+                                         CCO_INITIALIZING_RETURN_VALUE,
+                                         ec_bad_return_value_type,
+                                         /*elision_done=*/NULL,
+                                         &dip);
+      }  /* if */
+      cr_desc->alloc_failure_gro_call = expr_node_from_operand(&operand);
+      set_possibly_null_expr_result_not_used(cr_desc->alloc_failure_gro_call);
+    }  /* if */
   }  /* if */
   cr_desc->final_suspend_label = make_coroutine_final_suspend_label();
   pop_expr_stack();

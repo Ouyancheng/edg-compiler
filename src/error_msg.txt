@@ -3273,6 +3273,7 @@ ec_apparent_module_pp_directive;;"this appears to be the start of a preprocessor
 ec_module_directive_in_macro;;"this appears to be a modules preprocessing directive, but such directives cannot appear within a macro expansion"
 ec_module_directive_in_if;;"a \"module\" directive cannot appear within the scope of conditional inclusion (e.g., #if, #else, #elseif, etc.)"
 ec_import_skipped;;"the import of %sq has been skipped"
+ec_bad_gro_on_alloc_fail;;"no suitable get_return_object_on_allocation_failure declared in promise type %t"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
