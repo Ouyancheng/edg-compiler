@@ -1878,8 +1878,9 @@ binary search.
 
 
 template<typename T, typename a_value_fn_T>
-inline ptrdiff_t lower_bound(ptrdiff_t num_elements,
-                             const T& value, a_value_fn_T value_fn)
+inline ptrdiff_t lower_bound(ptrdiff_t    num_elements,
+                             const T      &value,
+                             a_value_fn_T value_fn)
 /*
 Search for the first element in a container of num_elements elements, that is
 not less than (i.e. greater or equal to) value using value_fn to retrieve
@@ -1955,8 +1956,9 @@ found.
 
 
 template<typename T>
-inline ptrdiff_t array_lower_bound(T* t_start, ptrdiff_t num_elements,
-                                   const T& value)
+inline ptrdiff_t array_lower_bound(T         *t_start,
+                                   ptrdiff_t num_elements,
+                                   const T   &value)
 /*
 Search for the first element in an array of num_elements elements beginning at
 t_start, that is not less than (i.e. greater or equal to) value.  Return the
@@ -1970,8 +1972,9 @@ index of said element or -1 if no such element is found.
 
 
 template<typename T, typename a_value_fn_T>
-inline ptrdiff_t bin_search(ptrdiff_t num_elements,
-                            const T& value, a_value_fn_T value_fn)
+inline ptrdiff_t bin_search(ptrdiff_t    num_elements,
+                            const T      &value,
+                            a_value_fn_T value_fn)
 /*
 Search for the first element in a container of num_elements elements, that is
 equal to value using value_fn to retrieve values at a given index.  value_fn
@@ -1996,8 +1999,9 @@ or -1 if no such element is found.
 
 
 template<typename T>
-inline ptrdiff_t array_bin_search(T* t_start, ptrdiff_t num_elements,
-                                  const T& value)
+inline ptrdiff_t array_bin_search(T         *t_start,
+                                  ptrdiff_t num_elements,
+                                  const T   &value)
 /*
 Search for the first element in an array of num_elements elements beginning at
 t_start, that is equal to value.  Return the index of said element or -1 if no
