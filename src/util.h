@@ -1836,6 +1836,47 @@ Sort the elements of the given sequence.
 }  /* sort */
 
 
+#if DEBUG
+template<typename T>
+void db_f_print_t(FILE *stream, const T &value)
+/*
+Provide a generic printing interface for generic function diagnostics.
+*/
+{
+  fprintf(stream, "unspecified");
+}
+#endif /* DEBUG */
+
+
+#if EXPENSIVE_CHECKING
+template<typename a_value_fn_T>
+inline void validate_elements_in_order(ptrdiff_t    num_elements,
+                                       a_value_fn_T value_fn)
+/*
+Validate that the input container of num_elements elements is in order for a
+binary search.
+*/
+{
+  a_boolean any_out_of_order = FALSE;
+  auto &&last_value = value_fn(0);
+
+  for (ptrdiff_t i = 1; i < num_elements; ++i) {
+    auto &&curr_value = value_fn(i);
+    if (!(last_value < curr_value)) {
+      fprintf(stderr, "Binary search element %d (", i);
+      db_f_print_t(stderr, curr_value);
+      fprintf(stderr, ") is out of order\n");
+      any_out_of_order = TRUE;
+    }  /* if */
+    last_value = curr_value;
+  }  /* for */
+  /* Fail loudly if anything is not ordered correctly, delayed so multiple
+     order errors can be reported first. */
+  check_assertion(!any_out_of_order);
+}
+#endif /* EXPENSIVE_CHECKING */
+
+
 template<typename T, typename a_value_fn_T>
 inline ptrdiff_t lower_bound(ptrdiff_t num_elements,
                              const T& value, a_value_fn_T value_fn)
@@ -1851,6 +1892,11 @@ found.
   ptrdiff_t begin_idx = 0;
   ptrdiff_t curr_size = num_elements;
 
+#if EXPENSIVE_CHECKING
+  if (num_elements >= 2) {
+    validate_elements_in_order(num_elements, value_fn);
+  }  /* if */
+#endif /* EXPENSIVE_CHECKING */
   while (curr_size > 0) {
     /* Calculate the current index.  First compute an index relative to the
        amount of data we have.  Then add the relative index to our starting

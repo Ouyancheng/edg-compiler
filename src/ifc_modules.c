@@ -4241,6 +4241,21 @@ struct an_ifc_partition_name {
 }  /* namespace */
 
 
+#if DEBUG
+template<>
+void db_f_print_t(FILE *stream, const an_ifc_partition_name &partition_name)
+/*
+Provide a generic printer for an_ifc_partition_name. Note that this
+specialization would normally be predeclared in util.h, however as
+an_ifc_partition_name has internal linkage it's safe to declare the
+specialization here.
+*/
+{
+  fprintf(stream, partition_name.name);
+} /* db_f_print_t */
+#endif /* DEBUG */
+
+
 #if EXPENSIVE_CHECKING
 static void validate_ifc_partition_map(
                                 an_ifc_partition_map *map_ptr,
@@ -4251,29 +4266,19 @@ Validate that the state of the partition map for binary search.
 {
   uint32_t num_partitions = ifc_last + 1;
   uint32_t num_nameless_partitions = 0;
-  an_ifc_partition_map *last_map_ptr = NULL;
   a_boolean any_out_of_order = FALSE;
 
   for (uint32_t i = 0; i < num_partitions; ++i) {
     if (map_ptr->name == NULL) {
       ++num_nameless_partitions;
-    } else if (last_map_ptr != NULL) {
+    } else {
       /* Assert that we have no nameless partitions to ensure, we didn't see a
          partition without a name followed by a partition with a name.  This in
          effect verifies any nameless partitions are at the end of the map. */
       check_assertion(num_nameless_partitions == 0);
-      an_ifc_partition_name last_entry{last_map_ptr->name};
-      an_ifc_partition_name curr_entry{map_ptr->name};
-      if (!(last_entry < curr_entry)) {
-        fprintf(stderr, "Partition %s is out of order\n", map_ptr->name);
-        any_out_of_order = TRUE;
-      }
-    }  /* if */
-    last_map_ptr = map_ptr++;
+    }
+    ++map_ptr;
   }  /* for */
-  /* Fail loudly if partitions are not ordered correctly, delayed so
-     multiple partition order errors can be reported first. */
-  check_assertion(!any_out_of_order);
   /* Verify that we're skipping the correct number of nameless partitions. */
   check_assertion(num_partitions ==
                   num_nameless_partitions + num_searchable_partitions);
