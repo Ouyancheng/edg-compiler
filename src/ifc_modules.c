@@ -4241,6 +4241,7 @@ struct an_ifc_partition_name {
 }  /* namespace */
 
 
+#if EXPENSIVE_CHECKING
 #if DEBUG
 template<>
 void db_f_print_t(FILE *stream, const an_ifc_partition_name &partition_name)
@@ -4256,7 +4257,6 @@ specialization here.
 #endif /* DEBUG */
 
 
-#if EXPENSIVE_CHECKING
 static void validate_ifc_partition_map(
                                 an_ifc_partition_map *map_ptr,
                                 uint32_t             num_searchable_partitions)

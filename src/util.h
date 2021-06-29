@@ -1838,7 +1838,7 @@ Sort the elements of the given sequence.
 
 #if DEBUG
 template<typename T>
-void db_f_print_t(FILE *stream, const T &value)
+void db_f_print_t(FILE *stream, ARG_UNUSED const T &value)
 /*
 Provide a generic printing interface for generic function diagnostics.
 */
