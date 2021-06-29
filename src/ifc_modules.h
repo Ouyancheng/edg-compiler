@@ -63,6 +63,7 @@ enum ifc_DelimiterSort : uint8_t;  /* Defined below. */
 enum ifc_EntitySize : uint32_t {};
 enum ifc_ExprIndex : ifc_Index_type {};
 enum ifc_FormIndex : ifc_Index_type {};
+enum ifc_FormSpecIndex : ifc_Index_type {};
 enum ifc_Index : ifc_Index_type {};
 enum ifc_LanguageVersion : uint32_t {};
 enum ifc_LineIndex : ifc_Index_type {};
@@ -2112,7 +2113,7 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_trait_specialization,
   ifc_word,
   ifc_last
-};
+};  /* an_ifc_partition_kind */
 /*lint -restore*/
 
 
@@ -2618,8 +2619,11 @@ private:
                                                 const ifc_ModuleReference *ref)
                                                                          const;
   void import_referenced_modules() const;
+  void process_scope_member_sequence(ifc_Sequence seq) const;
+  void process_template_specializations(ifc_DeclIndex home_scope) const;
   void process_ifc_scope(ifc_ScopeIndex scope_index,
                          a_scope_ptr    scope) const;
+  size_t get_num_entries(an_ifc_partition_kind partition) const;
   /* Module entity getters. */
   a_module_entity_ptr get_ifc_module_entity_ptr(
                                        an_ifc_partition_kind partition,
@@ -2746,6 +2750,10 @@ private:
                                ifc_SourceLocation    *locus) const;
   void cache_decl_class(a_token_cache_ptr     cache,
                         an_ifc_DeclSort_Scope *decl) const;
+  uint32_t try_cache_class_attributes_from_body(
+                                               a_token_cache_ptr cache,
+                                               ifc_SentenceIndex body_sentence)
+                                                                         const;
   uint32_t cache_decl_template_declaration(
                                         a_token_cache_ptr        cache,
                                         an_ifc_DeclSort_Template *decl,
@@ -2753,6 +2761,14 @@ private:
                                                                          const;
   void cache_decl_template(a_token_cache_ptr        cache,
                            an_ifc_DeclSort_Template *decl) const;
+  uint32_t cache_decl_partial_specialization_signature(
+                                   a_token_cache_ptr                     cache,
+                                   an_ifc_DeclSort_PartialSpecialization *decl)
+                                                                         const;
+  void cache_decl_partial_specialization(
+                                   a_token_cache_ptr                     cache,
+                                   an_ifc_DeclSort_PartialSpecialization *decl)
+                                                                         const;
   void cache_variable_decl(a_token_cache_ptr   cache,
                            a_boolean           is_class_member,
                            ifc_Access          access,
@@ -2787,6 +2803,8 @@ private:
   /* Readers and reading helpers. */
   inline size_t file_offset_of(an_ifc_partition_kind partition,
                                ifc_Index_type        index) const;
+  inline ifc_DeclIndex decl_index_of(an_ifc_partition_kind partition,
+                                     size_t                file_offset) const;
   inline void read_partition_at_offset(an_ifc_partition_kind partition,
                                        size_t                offset) const;
   inline void read_partition_at_index(an_ifc_partition_kind partition,
@@ -2809,6 +2827,7 @@ private:
   inline void read_partition_at_index(ifc_ChartSort  chart_kind,
                                       ifc_Index_type index) const;
   inline void read_partition_at_index(ifc_ChartIndex chart) const;
+  inline void read_partition_at_index(ifc_FormSpecIndex form_spec) const;
   inline void read_partition_at_index(ifc_SyntaxSort syntax_kind,
                                       ifc_Index_type index) const;
   inline void read_partition_at_index(ifc_SyntaxIndex syntax) const;

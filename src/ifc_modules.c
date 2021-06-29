@@ -353,6 +353,7 @@ Handle nested structures differently (and check for padding).
 #define GET_EntitySize(x, from_header)         GET_int(x, from_header)
 #define GET_ExprIndex(x, from_header)          GET_int(x, from_header)
 #define GET_FormIndex(x, from_header)          GET_int(x, from_header)
+#define GET_FormSpecIndex(x, from_header)      GET_int(x, from_header)
 #define GET_Index(x, from_header)              GET_int(x, from_header)
 #define GET_LanguageVersion(x, from_header)    GET_int(x, from_header)
 #define GET_LineIndex(x, from_header)          GET_int(x, from_header)
@@ -2798,10 +2799,8 @@ been confirmed to exist and the path stored in midp.
            used (if needed) to increment the source sequence when the module is
            referenced to effectively reserve those source sequence numbers for
            the file. */
-        for (size_t idx = 0;
-             idx < partitions[ifc_src_line].size /
-                                           partitions[ifc_src_line].entry_size;
-             idx++) {
+        for (size_t idx = 0, num_src_lines = get_num_entries(ifc_src_line);
+             idx < num_src_lines; idx++) {
           an_ifc_Source_Line   isl, *islp;
           read_partition_at_index(ifc_src_line, idx);
           islp = get_Source_Line(&isl);
@@ -2885,8 +2884,7 @@ this module.
 */
 {
   if (partitions[ifc_module_exported].name != NULL) {
-    auto num_modules = partitions[ifc_module_exported].size /
-                       partitions[ifc_module_exported].entry_size;
+    auto num_modules = get_num_entries(ifc_module_exported);
     read_partition_at_index(ifc_module_exported, 0);
     for (decltype(num_modules) idx = 0; idx < num_modules; ++idx) {
       ifc_ModuleReference imr;
@@ -2974,6 +2972,53 @@ declaration.
   (void)get_token();
   return decl_state.il_template_entry;
 }  /* parse_cached_template */
+
+
+static a_template_ptr parse_cached_partial_specialization(
+                                                  a_token_cache_ptr cache,
+                                                  a_scope_ptr       encl_scope)
+/*
+Parse the tokens corresponding to a partial specialization declaration cache,
+and return the corresponding partial specialization.  encl_scope is the scope
+containing the partial specialization declaration.
+*/
+{
+  a_decl_parse_state dps;
+  a_tmpl_decl_state  decl_state;
+  a_token_kind       final_token = tok_semicolon;
+
+#if DEBUG
+  if (db_flag_is_set("ms_ifc_token_def")) {
+    pos_in_temp_text_buffer = 0;
+    add_token_cache_to_string(cache);
+    fprintf(stderr, "Reconstituted partial specialization declaration:\n%s\n"
+                    "---------------------\n", temp_text_buffer);
+  }  /* if */
+#endif /* DEBUG */
+  rescan_cached_tokens(cache);
+  init_decl_parse_state(&dps);
+  init_templ_decl_state(&decl_state, &dps);
+  decl_state.pragmas_bound_to_template = extract_curr_construct_pragmas();
+  decl_state.starting_token_sequence_number = curr_token_sequence_number;
+  decl_state.final_token_ptr = &final_token;
+  decl_state.enclosing_scope = encl_scope;
+  template_or_specialization_declaration_full(&decl_state,
+                                              /*is_generic=*/FALSE,
+                                              /*orig_dps=*/NULL);
+  if (curr_token != final_token) {
+    expect_error();
+    flush_tokens_without_warning();
+  } else {
+    (void)get_token();
+    if (curr_token == tok_semicolon) {
+      /* Microsoft sometimes adds a semicolon after the final closing brace. */
+      (void)get_token();
+    }  /* if */
+  }  /* if */
+  check_assertion(curr_token == tok_end_of_source);
+  (void)get_token();
+  return decl_state.il_template_entry;
+}  /* parse_cached_partial_specialization */
 
 
 /* FIXME: might be able to get rid of enumeration_type now that enums aren't
@@ -3657,6 +3702,12 @@ class_struct_union_case:
               il_entity = (char*)parse_cached_template(&cache, mep->scope);
               kind = iek_template;
             }  /* if */
+
+            /* Compute the DeclIndex of the current template, then process
+               the associated specializations. */
+            ifc_DeclIndex decl_idx = decl_index_of(mep->variant.ifc_partition,
+                                                   mep->file_offset);
+            process_template_specializations(decl_idx);
           }  /* if */
         }
         break;
@@ -3795,8 +3846,31 @@ class_struct_union_case:
         { an_ifc_DeclSort_PartialSpecialization idsps, *idspsp;
           idspsp = get_DeclSort_PartialSpecialization(&idsps);
           source_position_from_locus(&error_position, &idspsp->locus);
-          goto unhandled;
+          init_locator_from_name(idspsp->name, (ifc_TextOffset)0,
+                                 &idspsp->locus, &loc);
+          if (defer) {
+            defer_symbol_creation(mep, &loc);
+          } else {
+            a_token_cache cache;
+            if (mep->scope == NULL) {
+              mep->scope = get_ifc_scope(idspsp->home_scope);
+              scope_pushed = push_module_declaration_context(mep->scope);
+            }  /* if */
+            if (idspsp->entity.body != 0) {
+              /* There is a definition of the partial specialization.  Record
+                 the resolution of the signature immediately so that the below
+                 processing of the definition has access to it. */
+              clear_token_cache(&cache, /*reuseable=*/FALSE);
+              cache_decl_partial_specialization(&cache, idspsp);
+              terminate_token_cache(&cache);
+              il_entity = (char*)parse_cached_partial_specialization(
+                                                                   &cache,
+                                                                   mep->scope);
+              kind = iek_template;
+            }  /* if */
+          }  /* if */
         }
+        break;
       case ifc_DeclSort_ExplicitSpecialization:
         { an_ifc_DeclSort_ExplicitSpecialization idses;
           get_DeclSort_ExplicitSpecialization(&idses);
@@ -4324,6 +4398,67 @@ pointer to that entry or NULL if it could not be found.
 }  /* find_ifc_partition */
 
 
+void an_ifc_module::process_scope_member_sequence(ifc_Sequence seq) const
+/*
+Process a sequence of IFC scope member declarations.
+*/
+{
+  for (size_t idx = 0; idx < seq.cardinality; ++idx) {
+    an_ifc_Scope_Member ism, *ismp;
+    a_module_entity_ptr dmep;
+
+    /* Load the scope member. */
+    read_partition_at_index(ifc_scope_member, seq.start + idx);
+    ismp = get_Scope_Member(&ism);
+
+    /* Get the associated IFC module entity pointer, and then use it to process
+       this scope member via process_ifc_declaration. */
+    dmep = get_ifc_module_entity_ptr(ismp->index);
+    process_ifc_declaration(dmep, /*defer=*/FALSE, (a_type_ptr)NULL);
+  }
+}  /* process_scope_member_sequence */
+
+
+void an_ifc_module::process_template_specializations(ifc_DeclIndex  decl_idx)
+                                                                          const
+/*
+Process any template specializations of the template represented by DeclIndex.
+*/
+{
+  size_t num_trait_specializations = get_num_entries(ifc_trait_specialization);
+  /* Provide a value function for retrieving the trait specialization at the
+     given trait specialization partition index. */
+  auto value_lambda = [this](ptrdiff_t idx) {
+    an_ifc_Trait_Specialization its, *itsp;
+
+    read_partition_at_index(ifc_trait_specialization, idx);
+    itsp = get_Trait_Specialization(&its);
+    return itsp->decl;
+  };
+  /* Get the partition index (if any) for the given decl index (decl_idx). */
+  ptrdiff_t partition_idx = bin_search(num_trait_specializations, decl_idx,
+                                       value_lambda);
+
+  if (partition_idx != -1) {
+    /* A trait specialization was found for the given decl index (decl_idx).
+       Load the trait specialization (again) to retrieve the trait, then
+       processing the sequence of specializations with
+       process_scope_member_sequence.
+
+       Note that the implementation of bin_search at the time of writing does
+       not guarantee that the last read value is the one who's index is
+       returned.  Thus, we cannot (as an optimization) share a variable with
+       the value_lambda to prevent double reading (though this is unlikely to
+       ever represent a significant cost in terms of CPU time). */
+    an_ifc_Trait_Specialization its, *itsp;
+
+    read_partition_at_index(ifc_trait_specialization, partition_idx);
+    itsp = get_Trait_Specialization(&its);
+    process_scope_member_sequence(itsp->trait);
+  }
+}  /* process_template_specializations */
+
+
 void an_ifc_module::process_ifc_scope(ifc_ScopeIndex scope_index,
                                       a_scope_ptr    scope) const
 /*
@@ -4357,6 +4492,22 @@ deferred until they are referenced.
     pop_module_declaration_context(scope_pushed);
   }  /* if */
 }  /* process_ifc_scope */
+
+
+size_t an_ifc_module::get_num_entries(an_ifc_partition_kind partition) const
+/*
+Return the number of entries in a given partition.
+*/
+{
+  size_t num_entries = 0;
+
+  /* If there is an entry size defined, calculate the number of entries. */
+  if (partitions[partition].entry_size != 0) {
+    num_entries = partitions[partition].size /
+                  partitions[partition].entry_size;
+  }
+  return num_entries;
+}  /* get_num_entries */
 
 
 a_module_entity_ptr an_ifc_module::get_ifc_module_entity_ptr(
@@ -9275,6 +9426,34 @@ This will not cache the class name and type (class/struct/union).
 }  /* cache_decl_class */
 
 
+uint32_t an_ifc_module::try_cache_class_attributes_from_body(
+                                               a_token_cache_ptr cache,
+                                               ifc_SentenceIndex body_sentence)
+                                                                          const
+/*
+MSVC puts attributes for class templates as part of the body_sentence.  As
+attributes these need to go before the identifier for class templates and
+partial specializations of said class templates, if any attributes are present,
+this function caches the attributes into the given cache.  It then returns the
+actual offset into the body_sentence where the brace wrapped
+member-specification can be found (for use by later processing).
+*/
+{
+  uint32_t offset = 0;
+
+  if (body_sentence != 0) {
+    push_stop_token_stack();
+    add_stop_token(tok_lbrace);
+    add_stop_token(tok_colon);
+    offset = cache_sentence(cache, body_sentence, /*offset=*/0,
+                            /*look_for_stop_token=*/TRUE);
+    clear_stop_tokens();
+    pop_stop_token_stack();
+  }
+  return offset;
+}
+
+
 uint32_t an_ifc_module::cache_decl_template_declaration(
                                         a_token_cache_ptr        cache,
                                         an_ifc_DeclSort_Template *decl,
@@ -9312,17 +9491,7 @@ if there is no offset/the offset is not needed.
     add_semicolon = TRUE;
   } else if (is_class_struct_union_type(type)) {
     cache_type(cache, decl->type, &decl->locus);
-    if (decl->entity.body != 0) {
-      /* MSVC puts attributes as part of the body, but they need to precede
-         the identifier. */
-      push_stop_token_stack();
-      add_stop_token(tok_lbrace);
-      add_stop_token(tok_colon);
-      offset = cache_sentence(cache, decl->entity.body, /*offset=*/0,
-                              /*look_for_stop_token=*/TRUE);
-      clear_stop_tokens();
-      pop_stop_token_stack();
-    }  /* if */
+    offset = try_cache_class_attributes_from_body(cache, decl->entity.body);
     cache_name(cache, decl->name, &decl->locus);
   } else {
     /* Function or variable template. */
@@ -9353,6 +9522,81 @@ Add the tokens corresponding to the given template declaration (decl) to cache.
     (void)cache_sentence(cache, decl->entity.body, offset);
   }  /* if */
 }  /* cache_decl_template */
+
+
+uint32_t an_ifc_module::cache_decl_partial_specialization_signature(
+                                   a_token_cache_ptr                     cache,
+                                   an_ifc_DeclSort_PartialSpecialization *decl)
+                                                                          const
+/*
+Add the tokens corresponding to the given partial specializations declaration's
+(decl) signature to cache.  Return the offset into the partial specialization's
+body at which to find the definition, or zero if there is no offset/the offset
+is not needed.
+*/
+{
+  a_source_position pos;
+  uint32_t          offset = 0;
+
+  /* Reconstruct the template-head. */
+  source_position_from_locus(&pos, &decl->locus);
+  cache_token(cache, tok_template, &pos);
+  cache_chart(cache, decl->chart, &decl->locus);
+  {
+    /* Reconstruct the declaration. */
+    a_type_ptr               type;
+    a_non_type_kind          kind;
+    an_ifc_Form_Spec         ifs, *ifsp;
+    an_ifc_DeclSort_Template idst, *idstp;
+
+    /* Load the specialization form. */
+    read_partition_at_index(decl->form);
+    ifsp = get_Form_Spec(&ifs);
+    /* Load the declaration of the primary definition. */
+    read_partition_at_index(ifsp->primary_template);
+    idstp = get_DeclSort_Template(&idst);
+    /* Load the type from the declaration to determine what we're
+       generating. */
+    type = type_for_type_index(idstp->type, &kind);
+    check_assertion(type != NULL);
+    if (is_class_struct_union_type(type)) {
+      /* We're reconstructing a class template. */
+      /* FIXME: This is a hack, we're caching the parent type to get
+         struct/class keyword. */
+      cache_type(cache, idstp->type, &decl->locus);
+      offset = try_cache_class_attributes_from_body(cache, decl->entity.body);
+      /* Use the specialization form to reconstruct the simple-template-id. */
+      {
+        /* Reconstruct the template-name. */
+        cache_name(cache, idstp->name, &decl->locus);
+        /* Reconstruct the template-argument-list and enclosing angle
+           brackets. */
+        cache_token(cache, tok_lt, &pos);
+        cache_expr(cache, ifsp->arguments);
+        cache_token(cache, tok_gt, &pos);
+      }
+    }
+  }
+  return offset;
+}  /* cache_decl_partial_specialization_signature */
+
+
+void an_ifc_module::cache_decl_partial_specialization(
+                                   a_token_cache_ptr                     cache,
+                                   an_ifc_DeclSort_PartialSpecialization *decl)
+                                                                          const
+/*
+Add the tokens corresponding to the given partial specialization declaration
+(decl) to cache.
+*/
+{
+  a_boolean decl_only = decl->entity.body == 0;
+  uint32_t  offset = cache_decl_partial_specialization_signature(cache, decl);
+
+  if (!decl_only) {
+    (void)cache_sentence(cache, decl->entity.body, offset);
+  }  /* if */
+}  /* cache_decl_partial_specialization */
 
 
 void an_ifc_module::cache_type_param_introducer(a_token_cache_ptr  cache,
@@ -10337,9 +10581,9 @@ expression by the tuple_separator token (tok_comma by default).
                                   &error_position);
       break;
     case ifc_ExprSort_PackedTemplateArguments:
-      { an_ifc_ExprSort_PackedTemplateArguments  espta, *esptap;
-        esptap = get_ExprSort_PackedTemplateArguments(&espta);
-        cache_expr(cache, esptap->arguments);
+      { an_ifc_ExprSort_PackedTemplateArguments iespta, *iesptap;
+        iesptap = get_ExprSort_PackedTemplateArguments(&iespta);
+        cache_expr(cache, iesptap->arguments);
       }
       break;
     case ifc_ExprSort_Tokens:
@@ -11328,6 +11572,29 @@ typically memory-mapped and could change during PCH file processing).
 }  /* file_offset_of */
 
 
+inline ifc_DeclIndex an_ifc_module::decl_index_of(
+                                             an_ifc_partition_kind partition,
+                                             size_t                file_offset)
+                                                                          const
+/*
+Return the ifc_DeclIndex derived from the partition kind and file offset.
+*/
+{
+  /* Compute the index into the partition by first subtracting the start of the
+     partition in the file, producing "part_offset".  Then compute our index in
+     the partition by dividing our offset by the size of entries in the
+     partition.  Then adapt the EDG partition kind to the IFC partition
+     encoding by subtracting the starting index.  Use the IFC partition
+     information and the index value to form an ifc_DeclIndex. */
+  size_t part_offset = file_offset - partitions[partition].offset;
+  size_t part_index = part_offset / partitions[partition].entry_size;
+  uint32_t ifc_partition = partition - ifc_decl_start;
+
+  check_assertion(ifc_decl_start < partition && partition < ifc_decl_end);
+  return make_decl_index(ifc_partition, part_index);
+}  /* decl_index_of */
+
+
 inline void an_ifc_module::read_partition_at_offset(
                                                an_ifc_partition_kind partition,
                                                size_t                offset)
@@ -11492,6 +11759,17 @@ Overload wrapper for "read_partition_at_index" that converts an
 }  /* read_partition_at_index */
 
 
+inline void an_ifc_module::read_partition_at_index(ifc_FormSpecIndex form_spec)
+                                                                          const
+/*
+Overload wrapper for "read_partition_at_index" that converts an
+"ifc_FormSpecIndex" into its tag and index components for convenience.
+*/
+{
+  read_partition_at_index(ifc_form_spec, form_spec);
+}  /* read_partition_at_index */
+
+
 inline void an_ifc_module::read_partition_at_index(ifc_SyntaxSort syntax_kind,
                                                    ifc_Index_type index) const
 /*
@@ -11548,7 +11826,7 @@ relied upon to contain the result.
   uint32_t idx, min_idx, max_idx, num_entries;
 
   if (partitions[partition].size == 0) goto done;
-  num_entries = partitions[partition].size / partitions[partition].entry_size;
+  num_entries = get_num_entries(partition);
   min_idx = 0;
   max_idx = num_entries-1;
   while (min_idx <= max_idx && max_idx < num_entries) {

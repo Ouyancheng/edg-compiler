@@ -232,7 +232,7 @@ IFC_DECL_START(DeclSort_PartialSpecialization)
   IFC_DECL_FIELD(home_scope, DeclIndex)
   IFC_DECL_FIELD(chart, ChartIndex)
   IFC_DECL_FIELD(entity, ParameterizedEntity)
-  IFC_DECL_FIELD(form, Index)
+  IFC_DECL_FIELD(form, FormSpecIndex)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
   IFC_DECL_FIELD(access, Access)
   IFC_DECL_FIELD(properties, ReachableProperties)
@@ -1982,6 +1982,18 @@ IFC_DECL_START(FormSort_Junk)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(spelling, TextOffset)
 IFC_DECL_END(FormSort_Junk)
+
+/* Form::Spec */
+/* This represents the value retrieved from a FormSpecIndex in the "form.spec"
+   partition.  This partition is not documented as of IFC 31, and this decl is
+   constructed via information received from Gaby via email.  The name of the
+   IFC Decl will probably change after documentation. */
+IFC_DECL_START(Form_Spec)
+  /* Gaby called this "template", however we're using primary_template to avoid
+     keyword conflicts. */
+  IFC_DECL_FIELD(primary_template, DeclIndex)
+  IFC_DECL_FIELD(arguments, ExprIndex)
+IFC_DECL_END(Source_Line)
 
 /* Source::Line */
 IFC_DECL_START(Source_Line)
