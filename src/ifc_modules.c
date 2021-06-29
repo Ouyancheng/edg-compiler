@@ -4220,22 +4220,97 @@ issue_diag == TRUE) otherwise.
 }  /* open_and_map_ifc_module_file */
 
 
+namespace {
+/*
+An internal representation of an IFC partition name used to facilitate binary
+search of the partition map.
+*/
+struct an_ifc_partition_name {
+  a_const_char *name;
+
+  bool operator<(const an_ifc_partition_name& other) const
+  {
+    return strcmp(name, other.name) < 0;
+  } /* operator< */
+
+  bool operator==(const an_ifc_partition_name& other) const
+  {
+    return strcmp(name, other.name) == 0;
+  } /* operator== */
+};  /* an_ifc_partition_name */
+}  /* namespace */
+
+
+#if EXPENSIVE_CHECKING
+static void validate_ifc_partition_map(
+                                an_ifc_partition_map *map_ptr,
+                                uint32_t             num_searchable_partitions)
+/*
+Validate that the state of the partition map for binary search.
+*/
+{
+  uint32_t num_partitions = ifc_last + 1;
+  uint32_t num_nameless_partitions = 0;
+  an_ifc_partition_map *last_map_ptr = map_ptr++;
+  a_boolean any_out_of_order = FALSE;
+
+  for (uint32_t i = 0; i < num_partitions; ++i) {
+    if (map_ptr->name == NULL) {
+      ++num_nameless_partitions;
+      continue;
+    }  /* if */
+    /* Assert that we have no nameless partitions to ensure, we didn't see a
+       partition without a name followed by a partition with a name.  This in
+       effect verifies any nameless partitions are at the end of the map. */
+    check_assertion(num_nameless_partitions == 0);
+    {
+      an_ifc_partition_name last_entry{last_map_ptr->name};
+      an_ifc_partition_name curr_entry{map_ptr->name};
+      if (!(last_entry < curr_entry)) {
+        fprintf(stderr, "Partition %s is out of order\n", map_ptr->name);
+        any_out_of_order = TRUE;
+      }
+      last_map_ptr = map_ptr++;
+    }  /* if */
+  }  /* for */
+  /* Fail loudly if partitions are not ordered correctly, delayed so
+     multiple partition order errors can be reported first. */
+  check_assertion(!any_out_of_order);
+  /* Verify that we're skipping the correct number of nameless partitions. */
+  check_assertion(num_partitions ==
+                  num_nameless_partitions + num_searchable_partitions);
+}  /* validate_ifc_partition_map */
+#endif /* EXPENSIVE_CHECKING */
+
+
 an_ifc_partition_map *an_ifc_module::find_ifc_partition(a_const_char *name)
 /*
 Find the IFC partition map entry for the partition matching name.  Return a
 pointer to that entry or NULL if it could not be found.
 */
 {
-  an_ifc_partition_map *map_ptr;
+  /* The number of partitions is adjusted to remove any nameless partition map
+     entries. */
+  uint32_t num_partitions = ifc_last - 4;
+  /* Create a wrapped version of partition_name for comparisons. */
+  an_ifc_partition_name partition_name{name};
+  /* Provide a value function for retrieving the wrapped partition name at the
+     given partition map index. */
+  auto value_lambda = [](ptrdiff_t idx) {
+    return an_ifc_partition_name{ifc_partition_map[idx].name};
+  };
+  /* Get the partition map index (if any) for the given partition name. */
+  ptrdiff_t partition_map_idx = bin_search(num_partitions, partition_name,
+                                           value_lambda);
+  an_ifc_partition_map *map_ptr = NULL;
 
-  /* FIXME: replace with binary search. */
-  for (map_ptr = ifc_partition_map; map_ptr->name != NULL; map_ptr++) {
-    if (strcmp(name, map_ptr->name) == 0) {
-      break;
-    }  /* if */
-  }  /* for */
-  if (map_ptr->name == NULL) {
-    map_ptr = NULL;
+#if EXPENSIVE_CHECKING
+  validate_ifc_partition_map(ifc_partition_map, num_partitions);
+#endif /* EXPENSIVE_CHECKING */
+  /* If we have a matching partition map entry, return it, otherwise return
+     null. */
+  if (partition_map_idx != -1) {
+    map_ptr = &ifc_partition_map[partition_map_idx];
   }  /* if */
   return map_ptr;
 }  /* find_ifc_partition */
