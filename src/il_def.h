@@ -15296,8 +15296,7 @@ typedef struct a_coroutine_descr {
 		alloc_failure_gro_call;
 			/* An expression containing the call to the static
 			   promise type member function
-			   get_return_object_on_allocation_failure().
-			*/
+			   get_return_object_on_allocation_failure(). */
   a_routine_ptr	new_routine;
 			/* A pointer to the "new" routine that should be used
 			   for allocating the coroutine state. */

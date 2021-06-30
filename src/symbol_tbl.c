@@ -9654,7 +9654,7 @@ and if so, resolve and record the appropriate call.
     a_dynamic_init_ptr dip;
     an_expr_node_ptr   rout_node = NULL;
     a_type_ptr         rout_type = NULL;
-    a_symbol_ptr sym;
+    a_symbol_ptr       sym;
     a_boolean          ambiguous = FALSE;
     if (symbol_is(alloc_fail_sym, sk_overloaded_function)) {
       alloc_fail_sym = alloc_fail_sym->variant.overloaded_function.symbols;
