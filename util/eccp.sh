@@ -415,6 +415,10 @@ remove_instantiation_flags=0
 #
 driver_debug=0
 #
+# Label driver debug commands as they are executed
+#
+verbose_driver_debug=0
+#
 # Special option for testing precompiled headers
 #
 pch_test_mode=0
@@ -521,6 +525,21 @@ escape_if_needed()
   fi
 }  # escape_if_needed
 
+
+#
+# Function used to print driver debug information if driver debug is enabled.
+#
+try_debug_driver()
+{
+  if [ $driver_debug -ne 0 ] ; then
+    if [ $verbose_driver_debug -ne 0 ] ; then
+      echo -n "driver debug: "
+    fi
+    echo $1
+  fi
+}  # try_debug_driver
+
+
 #
 # Function that compiles a generated C file
 #
@@ -540,9 +559,7 @@ compile_int_c()
     mv -f $eccp_tmpdir/sld.txt $int_c_file
   fi
   command="$cc_command $c_to_obj_options -c $int_c_file"
-  if [ $driver_debug -ne 0 ] ; then
-    echo $command
-  fi
+  try_debug_driver "$command"
   $command >$cc_tmp_file 2>&1
   status=$?
   # MSVC echoes the filename back to the console.  Check for output that is
@@ -593,9 +610,7 @@ compile_int_c()
 #
     if [ $int_c_obj_name != $int_c_output ] ; then
       command="mv -f $int_c_obj_name $int_c_output"
-      if [ $driver_debug -ne 0 ] ; then
-        echo $command
-      fi
+      try_debug_driver "$command"
       $command
     fi
 #
@@ -1035,6 +1050,7 @@ check_abbreviation()
 --variadic_macros
 --variadic_templates
 --vcmeta_directory
+--verbose_driver_debug
 --version
 --vla
 --wchar_t_keyword
@@ -1079,6 +1095,11 @@ process_option()
     --driver_debug)
 #     Show commands as they are executed.
       driver_debug=1
+      ;;
+    --verbose_driver_debug)
+#     Show commands as they are executed prefixed with "driver debug: "
+      driver_debug=1
+      verbose_driver_debug=1
       ;;
     -O | --optimize)
 #     Generate optimized code
@@ -2343,9 +2364,7 @@ fi
 #
 if [ -z "$cfiles" -a $source_file_name_optional -eq 1 ] ; then
   command=${CPFE}" "$feoptions" "$EDG_CPFE_DEFAULT_OPTIONS
-  if [ $driver_debug -ne 0 ] ; then
-    echo $command
-  fi
+  try_debug_driver "$command"
   invoke_front_end 0  # Run front end and keep output
   status=$?
 fi
@@ -2479,9 +2498,7 @@ do
   if [ "$EDG_CPFE_OUTPUT_FILTER" != "" ] ; then
     command_output="  2>$output_tmp_file"
   fi
-  if [ $driver_debug -ne 0 ] ; then
-    echo $command
-  fi
+  try_debug_driver "$command"
   if [ $pch_test_mode -eq 1 ] ; then
     # In PCH test mode, we immediately repeat the same compilation.
     # The first compilation should generate a PCH file, the second should
@@ -2675,9 +2692,7 @@ then
                      $EDG_LINKER_LIB_PATHS \
 		     $object_files -- \
                      $EDG_STD_LIBS"
-        if [ $driver_debug -ne 0 ] ; then
-          echo $command
-        fi
+        try_debug_driver "$command"
         eval $command
         status=$?
         if [ $status -gt $max_status ] ; then
@@ -2695,9 +2710,9 @@ then
         rm -f $new_obj_list_file
         if [ $driver_debug -ne 0 ] ; then
           if [ "$object_files" != "$new_obj_list_file" ] ; then
-            echo Updating object file list
-            echo "  old list: $object_files"
-            echo "  new list: $new_list"
+            try_debug_driver "Updating object file list"
+            try_debug_driver "  old list: $object_files"
+            try_debug_driver "  new list: $new_list"
           fi
         fi
         object_files="$new_list"
@@ -2743,9 +2758,7 @@ then
 #     Link the executable.  The linker output is saved to a file and then
 #     fed through edg_decode to demangle the names.
 #
-      if [ $driver_debug -ne 0 ] ; then
-        echo $link_command $link_command_suffix
-      fi
+      try_debug_driver "$link_command $link_command_suffix"
       link_error_file=$eccp_tmpdir/link_error_file.txt
       $link_command $link_command_suffix >$link_error_file 2>&1
       status=$?
@@ -2763,9 +2776,7 @@ then
 #         Do "patch" processing.
           chmod -x $executable
           command="$PATCH $executable"
-          if [ $driver_debug -ne 0 ] ; then
-            echo $command
-          fi
+          try_debug_driver "$command"
           $command
           status=$?
           if [ $status -gt $max_status ] ; then
@@ -2785,14 +2796,10 @@ then
           tmpfile=$eccp_tmpdir/munch_tmp
           command="nm $EDG_MUNCH_NM_OPTIONS $executable | \
                    $MUNCH $EDG_MUNCH_OPTIONS"
-          if [ $driver_debug -ne 0 ] ; then
-            echo $command
-          fi
+          try_debug_driver "$command"
           eval $command >$tmpfile.c
           command="$cc_command $c_to_obj_options -c $tmpfile.c"
-          if [ $driver_debug -ne 0 ] ; then
-            echo $command
-          fi
+          try_debug_driver "$command"
           (cd $eccp_tmpdir; $command)
           status=$?
           if [ $status -ne 0 ] ; then
@@ -2801,9 +2808,7 @@ then
           fi
 #         Do the link again.
           command="$link_command $tmpfile.o $link_command_suffix"
-          if [ $driver_debug -ne 0 ] ; then
-            echo $command
-          fi
+          try_debug_driver "$command"
           $command >$link_error_file 2>&1
           status=$?
           $EDG_DECODE <$link_error_file 1>&2
@@ -2816,9 +2821,7 @@ then
       if [ $strip_executable -ne 0 ] ; then
 #       Run the "strip" command on the executable if requested.
         command="$STRIP $executable"
-        if [ $driver_debug -ne 0 ] ; then
-          echo $command
-        fi
+        try_debug_driver "$command"
 	$command
       fi
       if [ "$rofiles" != "" ] ; then
