@@ -2319,7 +2319,7 @@ extern
 a_boolean skip_to_token_handle_location(a_token_cache_ptr	cache,
 					a_cached_token_handle	token_handle);
 
-extern a_boolean f_rescanning_cached_tokens(void);
+extern a_boolean scanning_from_token_cache(void);
 
 extern a_token_cache_ptr get_token_cache_being_scanned(void);
 

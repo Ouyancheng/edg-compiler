@@ -3072,7 +3072,7 @@ Macro that is TRUE when tokens are being rescanned from a cache.
 #define rescanning_cached_tokens()				\
   (cached_token_rescan_list != NULL || reusable_cache_stack != NULL)
 
-extern a_boolean f_rescanning_cached_tokens(void)
+a_boolean scanning_from_token_cache(void)
 /*
 Return whether tokens are being rescanned from a cache.
 */
