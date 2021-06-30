@@ -5991,9 +5991,11 @@ No casting is performed.
       }  /* if */
       break;
     case ifc_LiteralSort_FloatingPoint:
+      unexpected_condition();
+      break;
     default_is_unexpected();
   }  /* switch */
-}  /* an_ifc_module::unsigned_integer_for_expr_index */
+}  /* unsigned_integer_for_expr_index */
 
 
 a_constant_ptr an_ifc_module::constant_for_expr_index(
