@@ -9660,16 +9660,18 @@ and if so, resolve and record the appropriate call.
       alloc_fail_sym = alloc_fail_sym->variant.overloaded_function.symbols;
     }  /* if */
     for (sym = alloc_fail_sym; sym != NULL; sym = sym->next) {
-      rout_type = routine_symbol_type(sym);
-      if (!rout_type_supp(rout_type)->has_this_param &&
-          (rout_type_supp(rout_type)->param_type_list == NULL ||
-           rout_type_supp(rout_type)->param_type_list->has_default_arg)) {
-        /* This routine is a static member function that can be called with
-           no arguments. */
-        if (rout_node != NULL) {
-          ambiguous = TRUE;
-        } else {
-          rout_node = function_rvalue_expr(func_sym_routine(sym));
+      if (symbol_is(sym, sk_member_function)) {
+        rout_type = routine_symbol_type(sym);
+        if (!rout_type_supp(rout_type)->has_this_param &&
+            (rout_type_supp(rout_type)->param_type_list == NULL ||
+             rout_type_supp(rout_type)->param_type_list->has_default_arg)) {
+          /* This routine is a static member function that can be called with
+             no arguments. */
+          if (rout_node != NULL) {
+            ambiguous = TRUE;
+          } else {
+            rout_node = function_rvalue_expr(func_sym_routine(sym));
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* for */
