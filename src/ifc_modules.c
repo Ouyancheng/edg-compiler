@@ -10073,8 +10073,8 @@ void an_ifc_module::cache_expr(a_token_cache_ptr cache,
              /* Defaulted: */  a_token_kind      tuple_separator) const
 /*
 Add the tokens corresponding to the given expression (expr) to cache.  When
-caching a constructed tagged as ifc_ExprSort_Tuple, separate the constituent
-expression by the tuple_separator token (tok_comma by default).
+caching a construct tagged as ifc_ExprSort_Tuple, separate the constituent
+expressions by the tuple_separator token (tok_comma by default).
 */
 {
   ifc_ExprSort      tag = expr_tag(expr);
