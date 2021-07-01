@@ -5966,13 +5966,12 @@ Returns in *value, the unsigned integer value represented by expr_index
 No casting is performed.
 */
 {
-  ifc_ExprSort            tag = expr_tag(expr_index);
   an_ifc_ExprSort_Literal iesl, *ieslp;
   char                    raw_val[64/CHAR_BIT];
 
   /* Prepare to read from the proper partition for this expression. */
+  check_assertion(expr_tag(expr_index) == ifc_ExprSort_Literal);
   read_partition_at_index(expr_index);
-  check_assertion(tag == ifc_ExprSort_Literal);
   ieslp = get_ExprSort_Literal(&iesl);
   switch (literal_tag(ieslp->value)) {
     case ifc_LiteralSort_Immediate:
