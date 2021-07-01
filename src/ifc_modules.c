@@ -3119,7 +3119,6 @@ constants for that type).
             clear_decl_pos_block(&decl_pos_block);
             decl_variable(&loc, &dps, SRK_DEFINITION, &linkage_ptr, &ext_sym,
                           &decl_pos_block);
-            /* FIXME: check that the alignment has been set properly. */
             vp = dps.sym->variant.variable.ptr;
             if (idsvp->initializer != 0) {
               /* Variable has an initializer. */
@@ -3129,6 +3128,9 @@ constants for that type).
                                                           vp->type);
               vp->initializer.constant = cp;
               vp->init_kind = (an_init_kind)initk_static;
+            }  /* if */
+            if (dps.alignment != 0) {
+              vp->alignment = dps.alignment;
             }  /* if */
             restore_partial_scope_stack_if_necessary(&psss);
             il_entity = (char *)vp;
