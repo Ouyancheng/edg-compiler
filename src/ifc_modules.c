@@ -3946,7 +3946,7 @@ class_struct_union_case:
           } else {
             source_position_from_locus(&error_position, &idsudp->locus);
             if (decl_tag(idsudp->resolution) == ifc_DeclSort_Tuple) {
-              /* Multiple declaration case. */
+              /* FIXME: Not sure what this is. */
               goto unhandled;
             }  /* if */
             a_module_entity_ptr umep =
@@ -9988,10 +9988,6 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         cache_access(cache, idsudp->access, /*cache_colon=*/TRUE, &pos);
         cache_basic_specifiers(cache, idsudp->specifiers, &pos);
         cache_token(cache, tok_using, &pos);
-        /* FIXME: This isn't correct -- we need to (fully?) qualify the
-           declindex(s) specified by idsudp->resolution.  See the other
-           use of ifc_DeclSort_UsingDeclaration for an example. */
-        issue_unsupported_node_diag("DeclSort::UsingDeclaration", &pos);
         if (idsudp->parent != 0) {
           cache_expr(cache, idsudp->parent);
           cache_token(cache, tok_colon_colon, &pos);
