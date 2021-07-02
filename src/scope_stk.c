@@ -2775,7 +2775,17 @@ the scope being pushed.
       symbol_supplement_for_class(assoc_type)->member_decl_scope =
                                                               ssep->number;
       new_il_scope = TRUE;
-      sp = alloc_scope(kind, ssep->number, (a_routine_ptr)NULL);
+      /* In some contexts (e.g., modules), the associated scope of the class
+         was needed before it was created.  In those contexts, a placeholder
+         scope was created - use that scope if it exists. */
+      sp = class_type_supp(assoc_type)->assoc_scope;
+      if (sp == NULL) {
+        sp = alloc_scope(kind, ssep->number, (a_routine_ptr)NULL);
+      } else {
+        check_assertion(sp->is_placeholder_scope && scope_is(sp, kind));
+        sp->is_placeholder_scope = FALSE;
+        sp->number = ssep->number;
+      }  /* if */
       sp->depth_in_scope_stack = depth_scope_stack;
       break;
     case sck_condition:
@@ -4242,7 +4252,7 @@ flags passed to the push scope routines.
 
   /* Find the IL scope to get the scope number. */
   il_scope = class_type->variant.class_struct_union.extra_info->assoc_scope;
-  check_assertion_str2(il_scope != NULL,
+  check_assertion_str2(!scope_is_null_or_placeholder(il_scope),
                        "push_single_class_reactivation_scope:",
                        "NULL assoc_scope");
   (void)push_scope_full((a_scope_kind)sck_class_reactivation,
@@ -5780,7 +5790,7 @@ body.  Only called in C++ mode.
     if (is_immediate_class_type(tp) &&
         !tp->variant.class_struct_union.is_nonreal_class) {
       class_scope = class_type_supp(tp)->assoc_scope;
-      if (class_scope != NULL) {
+      if (!scope_is_null_or_placeholder(class_scope)) {
         /* Check the member functions of the nested class. */
         check_referenced_member_functions(class_scope, is_function_local,
                                           (within_unnamed_class ||
@@ -6086,7 +6096,7 @@ outermost class.
 
   ctsp = type->variant.class_struct_union.extra_info;
   unnamed_ns_member = is_member_of_unnamed_namespace(&type->source_corresp);
-  if (ctsp->assoc_scope != NULL) {
+  if (!scope_is_null_or_placeholder(ctsp->assoc_scope)) {
     /* A class definition was provided. */
     a_routine_ptr   rp = ctsp->assoc_scope->routines;
     a_variable_ptr  vp = ctsp->assoc_scope->variables;
@@ -7691,7 +7701,7 @@ is done, is that all the classes have to have been marked first.
       }  /* if */
     } else if (is_immediate_class_type(tp)) {
       a_class_type_supplement_ptr  ctsp = class_type_supp(tp);
-      if (ctsp->assoc_scope != NULL) {
+      if (!scope_is_null_or_placeholder(ctsp->assoc_scope)) {
         /* Apply the check to each of the types defined in the class. */
         set_needed_flags_for_typedefs(ctsp->assoc_scope);
       }  /* if */
@@ -7743,7 +7753,7 @@ been completed.
          it. */
       a_class_type_supplement_ptr  ctsp = class_type_supp(tp);
       remark_as_needed((char *)tp, (an_il_entry_kind)iek_type);
-      if (ctsp->assoc_scope != NULL) {
+      if (!scope_is_null_or_placeholder(ctsp->assoc_scope)) {
         /* Check nested classes and static data members, too.  Note that this
            may be done even if the class itself is not needed. */
         set_needed_flags_at_end_of_file_scope(ctsp->assoc_scope);
@@ -8045,7 +8055,7 @@ calls itself recursively, and on those calls sp will be a block scope.
     if (is_immediate_class_type(type)) {
       /* Visit the class scope if it has one. */
       a_scope_ptr class_scope = class_type_supp(type)->assoc_scope;
-      if (class_scope != NULL) {
+      if (!scope_is_null_or_placeholder(class_scope)) {
         /* Visit the member functions of the class. */
         for (routine = class_scope->routines;
              routine != NULL;

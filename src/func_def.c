@@ -3546,7 +3546,8 @@ scope.
   a_routine_type_supplement_ptr
                 rtsp;
 
-  check_assertion(class_type_supp(class_type)->assoc_scope != NULL);
+  check_assertion(!scope_is_null_or_placeholder(class_type_supp(class_type)
+                                                               ->assoc_scope));
   /* Switch translation units if necessary. */
   context->trans_unit_pushed = push_translation_unit_if_needed(rout_sym);
   /* Reset the innermost scope that affects access control so that any existing

@@ -7296,7 +7296,7 @@ progenitor_sym is a member) if ambiguous is TRUE.
   sym = alloc_symbol((a_symbol_kind)sk_projection, progenitor_sym->header,
                      &progenitor_sym->decl_position);
   set_class_membership(sym, (a_source_correspondence *)NULL, class_ptr);
-  if (scope != NULL) sym->decl_scope = scope->number;
+  if (!scope_is_null_or_placeholder(scope)) sym->decl_scope = scope->number;
   sym->ambiguous = ambiguous;
   pdp = sym->variant.projection.extra_info;
   if (progenitor_sym->kind == (a_symbol_kind)sk_projection) {
@@ -14584,7 +14584,7 @@ the lookup should consider C++/CLI interface classes.
 #endif /* DEBUG */
   /* First look in the scope of the base class itself. */
   scope = base_type->variant.class_struct_union.extra_info->assoc_scope;
-  if (scope == NULL) {
+  if (scope_is_null_or_placeholder(scope)) {
     /* This is probably a nonreal class encountered during a prototype
        instantiation.  Ignore it. */
     sym = NULL;

@@ -8347,7 +8347,8 @@ a left parenthesis in the source.
                  associated scope, but they are considered complete.) */
               if (is_immediate_class_type(lookup_type) &&
                   (!lookup_type->incomplete ||
-                   class_type_supp(lookup_type)->assoc_scope != NULL) &&
+                   !scope_is_null_or_placeholder(class_type_supp(lookup_type)
+                                                             ->assoc_scope)) &&
                   symbol_for(member_con) != NULL) {
                 check_assertion(qualified_member_position != NULL);
                 clear_locator(locator, qualified_member_position);
@@ -8829,7 +8830,8 @@ make_proxy_type_if_needed:
         /* Instantiate the class if it is a template class. */
         complete_class_type_is_needed(class_struct_union_type);
         if (class_struct_union_type->incomplete &&
-            class_type_supp(class_struct_union_type)->assoc_scope == NULL &&
+            scope_is_null_or_placeholder(
+                      class_type_supp(class_struct_union_type)->assoc_scope) &&
             is_template_dependent_context() && rcblock == NULL &&
             (gpp_mode || clang_mode || microsoft_mode)) {
           class_struct_union_type = type_of_unknown_templ_param_nontype;

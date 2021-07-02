@@ -6921,7 +6921,7 @@ next_named_override:
       a_class_symbol_supplement_ptr  base_class_cssp;
       base_class_scope = class_type_supp(bcp->type)->assoc_scope;
       base_class_cssp = symbol_supplement_for_class(bcp->type);
-      if (base_class_scope == NULL ||
+      if (scope_is_null_or_placeholder(base_class_scope) ||
           bcp->type->variant.class_struct_union.is_nonreal_class) {
         /* This is probably a nonreal base class in a prototype instantiation.
            Don't attempt a lookup in this case. */
@@ -7863,8 +7863,8 @@ with class_state.
          (which happens in C++/CLI mode); in such cases, the scope for the
          class definition must have been pushed. */
       check_assertion(cli_or_cx_enabled &&
-                      class_type_supp(class_state->class_type)->assoc_scope
-                                                                     != NULL);
+                      !scope_is_null_or_placeholder(class_type_supp(
+                                       class_state->class_type)->assoc_scope));
     } else if (ovfp->base_class != base_class) {
       a_base_class_ptr  bcp = base_classes_of(class_state->class_type);
       for (; bcp != NULL; bcp = bcp->next) {
@@ -9268,8 +9268,9 @@ issue an error and return FALSE.
       okay = FALSE;
     }  /* if */
     if (is_incomplete_type(base_class_type)) {
+      a_class_type_supplement_ptr ctsp = class_type_supp(base_class_type);
       if ((gpp_mode || microsoft_mode) &&
-          class_type_supp(base_class_type)->assoc_scope != NULL &&
+          !scope_is_null_or_placeholder(ctsp->assoc_scope) &&
           is_template_param_or_nonreal_class_type(base_class_type)) {
         /* Microsoft and GNU compilers never check the completeness of a
            parameterized base class that has not been fully parsed yet.
@@ -9736,7 +9737,7 @@ to FALSE before returning).
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (bcp_cssp->default_indexed_properties != NULL &&
-      ctsp->assoc_scope != NULL) {
+      !scope_is_null_or_placeholder(ctsp->assoc_scope)) {
     /* A base class added after its scope has been pushed: Inherit any
        default-indexed properties.  (For normal bases, this is done after the
        class scope is pushed.) */
@@ -19146,7 +19147,7 @@ nonstandard anonymous unions is_nonstd is TRUE.
     a_scope_ptr  scope = skip_typerefs(assoc_object_type)
                                         ->variant.class_struct_union.extra_info
                                         ->assoc_scope;
-    if (scope != NULL) {
+    if (!scope_is_null_or_placeholder(scope)) {
       a_type_ptr  nested_type = scope->types;
       for (; nested_type != NULL; nested_type = nested_type->next) {
         if (allow_anon_types_in_anon_unions && !has_name(nested_type)) {
@@ -33337,7 +33338,7 @@ NULL in such cases.
       closure_class->variant.class_struct_union.is_nonreal_class) {
     /* Mark all the member functions as prototype instantiations. */
     a_scope_ptr  closure_scope = class_type_supp(closure_class)->assoc_scope;
-    if (closure_scope != NULL) {
+    if (!scope_is_null_or_placeholder(closure_scope)) {
       for (rp = closure_scope->routines; rp != NULL; rp = rp->next) {
         rp->is_prototype_instantiation = TRUE;
       }  /* if */
@@ -34109,7 +34110,7 @@ are entailed in its definition and marks them external as well.
   for (; bcp != NULL; bcp = bcp->next) {
     check_type_for_linkage_change(bcp->type, count);
   }  /* for */
-  if (ctsp->assoc_scope != NULL) {
+  if (!scope_is_null_or_placeholder(ctsp->assoc_scope)) {
     /* A routine entry for a member function needs not only a check of
        return and parameter types; it may also need its own linkage and
        storage class set properly. */
@@ -34319,7 +34320,7 @@ defined inline, or if has a nested class with such members, return TRUE.
   a_type_ptr     tp;
 
   scope = class_type->variant.class_struct_union.extra_info->assoc_scope;
-  if (scope == NULL) {
+  if (scope_is_null_or_placeholder(scope)) {
     /* Class has not been defined. */
   } else if (scope->variables != NULL) {
     /* At least one static data member: external linkage is required. */

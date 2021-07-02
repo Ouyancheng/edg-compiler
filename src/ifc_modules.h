@@ -318,6 +318,25 @@ enum ifc_BasicSpecifiers : uint8_t {
                                                      module */
 };
 
+
+inline a_boolean is_from_gmf(ifc_BasicSpecifiers specifier)
+/*
+Return TRUE if the specifier indicates the associated entity came from the
+global module fragment, FALSE otherwise.
+*/
+{
+  a_boolean result;
+  /* Lambda closure class members are marked as being members of the GMF
+     without actually being members of the GMF.  But even so, in general, if
+     something is the member of a class then it's reasonable to expect that we
+     can treat it as not a member of the GMF and allow the containing class'
+     membership in the GMF to cover it, if necessary. */
+  result = ((specifier & ifc_BasicSpecifiers_IsMemberOfGlobalModules) != 0) &&
+           ((specifier & ifc_BasicSpecifiers_InitializedInClass) == 0);
+  return result;
+}  /* is_from_gmf */
+
+
 /* Enumeration for ObjectTraits. */
 enum ifc_ObjectTraits : uint8_t {
   ifc_ObjectTraits_None        = 0,

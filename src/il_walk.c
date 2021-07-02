@@ -1383,7 +1383,7 @@ the subtree is walked again if it has changed.
       a_class_type_supplement_ptr ctsp = class_type_supp(type);
       a_scope_ptr                 scope = ctsp->assoc_scope;
       il_entry_prefix_of(ctsp).keep_in_il = FALSE;
-      if (scope != NULL) {
+      if (!scope_is_null_or_placeholder(scope)) {
         il_entry_prefix_of(scope).keep_in_il = FALSE;
       }  /* if */
     }  /* if */
@@ -1432,7 +1432,7 @@ See the header comment of that routine for details.
        FALSE. */
     if (is_immediate_class_type(type) && il_entry_prefix_of(type).keep_in_il) {
       a_class_type_supplement_ptr ctsp = class_type_supp(type);
-      if (ctsp->assoc_scope != NULL) {
+      if (!scope_is_null_or_placeholder(ctsp->assoc_scope)) {
         r_keep_definitions_of_virtual_functions_in_scope(ctsp->assoc_scope);
       }  /* if */
     }  /* if */
@@ -2192,7 +2192,7 @@ which these are local declarations.
       remark_as_needed    ((char *)type, (an_il_entry_kind)iek_type);
       remark_to_keep_in_il((char *)type, (an_il_entry_kind)iek_type);
       ctsp = class_type_supp(type);
-      if (ctsp->assoc_scope != NULL) {
+      if (!scope_is_null_or_placeholder(ctsp->assoc_scope)) {
         /* Set the flag on nested classes and other members too. */
         walk_subtrees_of_local_entities(ctsp->assoc_scope);
       }  /* if */
@@ -2761,7 +2761,7 @@ in cases where the orphan lists have not been generated yet.
           type->variant.class_struct_union.extra_info != NULL) {
         a_scope_ptr class_scope =
                       type->variant.class_struct_union.extra_info->assoc_scope;
-        if (class_scope != NULL) {
+        if (!scope_is_null_or_placeholder(class_scope)) {
           process_local_types(class_scope, list_processing_routine);
         }  /* if */
       }  /* if */

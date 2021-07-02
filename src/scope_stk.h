@@ -1747,6 +1747,16 @@ associated scope is a file or namespace scope.
    (ssep)->kind == (a_scope_kind)sck_namespace ||            \
    (ssep)->kind == (a_scope_kind)sck_namespace_extension)
 
+
+inline a_boolean scope_is_null_or_placeholder(a_scope_ptr sp)
+/*
+Return TRUE if sp is either NULL or a placeholder scope, FALSE otherwise.
+*/
+{
+  return sp == NULL || sp->is_placeholder_scope;
+}  /* scope_is_placeholder */
+
+
 /*
 TRUE if we are in a context in which template dependent types need to
 be handled in contexts such as expressions.  Typically, this is in

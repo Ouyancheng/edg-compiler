@@ -1943,6 +1943,29 @@ Utility to restore the previous name linkage state if it was previously saved.
 }  /* restore_partial_scope_stack_if_necessary */
 
 
+static a_boolean already_on_deferred_list(a_module_entity_ptr mep,
+                                          a_symbol_locator    *loc)
+/*
+Check whether the module entity specified by mep is in the deferred entity
+list for the associated symbol locator (loc).  Return TRUE if so, otherwise
+return FALSE.
+*/
+{
+  a_boolean           on_list = FALSE;
+  a_module_entity_ptr list_mep;
+
+  check_assertion(loc->symbol_header != NULL);
+  for (list_mep = loc->symbol_header->deferred_module_entities;
+       list_mep != NULL; list_mep = list_mep->next) {
+    if (list_mep == mep) {
+      on_list = TRUE;
+      break;
+    }  /* if */
+  }  /* for */
+  return on_list;
+}  /* already_on_deferred_list */
+
+
 static void defer_symbol_creation(a_module_entity_ptr mep,
                                   a_symbol_locator    *loc)
 /*
@@ -1955,16 +1978,22 @@ name lookup, a symbol header with a matching, non-NULL deferred_module_entities
 field is encountered, an IL entity and symbol are created at that time.
 */
 {
-  check_assertion(loc->symbol_header != NULL);
-  mep->next = loc->symbol_header->deferred_module_entities;
-  loc->symbol_header->deferred_module_entities = mep;
+  /* FIXME: Checking for being on the list every time this is called can get
+     expensive.  Perhaps add a flag to mep itself to indicate whether it's
+     already been added to the deferred list?  Another consideration: Is it
+     possible to get here for an entity that's already been completed? */
+  if (!already_on_deferred_list(mep, loc)) {
+    check_assertion(loc->symbol_header != NULL);
+    mep->next = loc->symbol_header->deferred_module_entities;
+    loc->symbol_header->deferred_module_entities = mep;
 #if DEBUG
-  if (db_flag_is_set("ms_symbols")) {
-    (void)fprintf(f_debug, "Defer symbol creation for %s",
-                  loc->symbol_header->identifier);
-    (void)fprintf(f_debug, "\n");
-  }  /* if */
+    if (db_flag_is_set("ms_symbols")) {
+      (void)fprintf(f_debug, "Defer symbol creation for %s",
+                    loc->symbol_header->identifier);
+      (void)fprintf(f_debug, "\n");
+    }  /* if */
 #endif /* DEBUG */
+  }  /* if */
 }  /* defer_symbol_creation */
 
 
@@ -3110,8 +3139,10 @@ constants for that type).
             /* FIXME: lots more to do here. */
             a_variable_ptr vp;
             init_dps(&dps, &idsvp->locus, idsvp->type, idsvp->traits,
-                     ifc_MsvcTraits_None, idsvp->specifier, idsvp->access,
+                     ifc_MsvcTraits_None, idsvp->specifiers, idsvp->access,
                      idsvp->alignment, &psss);
+            /* Since we're declaring a variable, a complete type is needed. */
+            complete_type_is_needed(dps.type);
             if (mep->scope == NULL) {
               mep->scope = get_ifc_scope(idsvp->home_scope);
               scope_pushed = push_module_declaration_context(mep->scope);
@@ -3441,7 +3472,7 @@ class_struct_union_case:
         { an_ifc_DeclSort_Enumeration idse, *idsep;
           an_ifc_TypeSort_Fundamental itsf, *itsfp;
           a_boolean                   is_scoped_enum = FALSE;
-          a_scope_ptr                 enum_scope = mep->scope;
+          a_scope_ptr                 enum_scope;
           idsep = get_DeclSort_Enumeration(&idse);
           source_position_from_locus(&error_position, &idsep->locus);
           check_assertion(type_tag(idsep->type) == ifc_TypeSort_Fundamental);
@@ -3453,8 +3484,11 @@ class_struct_union_case:
             /* A classic enumeration.  Don't bother to defer in this case
                because each of the enumerators needs to be registered in the
                symbol table so they can be found. */
-            defer = FALSE;
-            scope_pushed = push_module_declaration_context(enum_scope);
+            if (defer) {
+              defer = FALSE;
+              mep->imminent = TRUE;
+              scope_pushed = push_module_declaration_context(mep->scope);
+            }  /* if */
           } else if (itsfp->basis == ifc_TypeBasis_Class ||
                      itsfp->basis == ifc_TypeBasis_Struct) {
             /* A scoped enumeration.  Enumerator definitions are deferred when
@@ -3471,9 +3505,15 @@ class_struct_union_case:
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
-            a_type_ptr       enum_type;
-            a_symbol_ptr     tag_sym;
-            check_assertion(idsep->base != 0 && mep->scope != NULL);
+            a_type_ptr   enum_type;
+            a_symbol_ptr tag_sym;
+            check_assertion(idsep->base != 0);
+            if (mep->scope == NULL) {
+              mep->scope = get_ifc_scope(idsep->home_scope);
+              scope_pushed = push_module_declaration_context(mep->scope);
+            }  /* if */
+            check_assertion(mep->scope != NULL);
+            enum_scope = mep->scope;
             init_dps(&dps, &idsep->locus, idsep->base, ifc_ObjectTraits_None,
                      ifc_MsvcTraits_None, idsep->specifiers, idsep->access,
                      idsep->alignment, &psss);
@@ -4607,6 +4647,25 @@ entity from the referenced module.
 }  /* get_and_process_ifc_decl_from_other_module */
 
 
+static inline void ensure_type_has_scope(a_type_ptr tp)
+/*
+Ensure that the provided type has a scope associated with it that can be used
+as the parent scope of a nested entity.  Note that if this type cannot have a
+scope associated with it, it will continue to not have an associated scope.
+*/
+{
+  /* FIXME: Do we need to worry about scoped enums here? */
+  if (is_class_struct_union_type(tp)) {
+    a_class_type_supplement_ptr ctsp;
+    ctsp = class_type_supp(tp);
+    if (ctsp->assoc_scope == NULL) {
+      ctsp->assoc_scope = alloc_placeholder_scope(sck_class_struct_union,
+                                                  /*assoc_routine=*/NULL);
+    }  /* if */
+  }  /* if */
+}  /* ensure_type_has_scope */
+
+
 a_scope_ptr an_ifc_module::get_ifc_scope(ifc_DeclIndex scope_index) const
 /*
 Given a scope index find and return the associated scope.
@@ -4618,16 +4677,21 @@ Given a scope index find and return the associated scope.
     result = il_header.primary_scope;
   } else {
     a_module_entity_ptr mep = get_ifc_module_entity_ptr(scope_index);
+    a_type_ptr          assoc_type = NULL;
     process_ifc_declaration(mep, /*defer=*/FALSE, /*enumeration_type=*/NULL);
     if (mep->entity.kind == (a_byte_il_entry_kind)iek_type) {
-      a_type_ptr tp = (a_type_ptr)mep->entity.ptr;
-      /* We need the scope associated with this type.  Given its scope was
-         referenced, it must be complete. */
-      complete_class_type_is_needed(tp, /*subst_err*/NULL);
-      check_assertion(!tp->incomplete);
+      assoc_type = (a_type_ptr)mep->entity.ptr;
+      ensure_type_has_scope(assoc_type);
     }  /* if */
     result = get_assoc_scope_of_il_entry(mep->entity.ptr,
                                          (an_il_entry_kind)mep->entity.kind);
+    if (assoc_type != NULL &&
+        (scope_is(result, sck_class_struct_union) ||
+         scope_is(result, sck_enum) || scope_is(result, sck_func_prototype))) {
+      check_assertion(result->variant.assoc_type == NULL ||
+                      result->variant.assoc_type == assoc_type);
+      result->variant.assoc_type = assoc_type;
+    }  /* if */
   }  /* if */
   return result;
 }  /* get_ifc_scope */
@@ -5570,8 +5634,11 @@ a_const_char *an_ifc_module::name_from_decl(ifc_DeclIndex decl) const
 Given a declaration, return the name associated with that declaration.
 */
 {
-  a_const_char *result = NULL;
-  ifc_DeclSort tag = decl_tag(decl);
+  a_const_char   *result = NULL;
+  ifc_DeclSort   tag = decl_tag(decl);
+  a_boolean      gmf_decl = FALSE;
+  ifc_DeclIndex  gmf_decl_scope = (ifc_DeclIndex)0;
+  ifc_TypeIndex  gmf_decl_type = (ifc_TypeIndex)0;
 
   read_partition_at_index(decl);
   switch (tag) {
@@ -5583,12 +5650,20 @@ Given a declaration, return the name associated with that declaration.
       { an_ifc_DeclSort_Enumerator idse, *idsep;
         idsep = get_DeclSort_Enumerator(&idse);
         result = get_string_at_offset(idsep->name);
+        if (is_from_gmf(idsep->specifiers)) {
+          gmf_decl = TRUE;
+          gmf_decl_type = idsep->type;
+        }  /* if */
       }
       break;
     case ifc_DeclSort_Variable:
       { an_ifc_DeclSort_Variable idsv, *idsvp;
         idsvp = get_DeclSort_Variable(&idsv);
         result = string_from_name_index(idsvp->name, /*loc=*/NULL);
+        if (is_from_gmf(idsvp->specifiers)) {
+          gmf_decl = TRUE;
+          gmf_decl_scope = idsvp->home_scope;
+        }  /* if */
       }
       break;
     case ifc_DeclSort_Parameter:
@@ -5601,30 +5676,50 @@ Given a declaration, return the name associated with that declaration.
       { an_ifc_DeclSort_Field idsf, *idsfp;
         idsfp = get_DeclSort_Field(&idsf);
         result = get_string_at_offset(idsfp->name);
+        if (is_from_gmf(idsfp->specifiers)) {
+          gmf_decl = TRUE;
+          gmf_decl_scope = idsfp->home_scope;
+        }  /* if */
       }
       break;
     case ifc_DeclSort_Bitfield:
       { an_ifc_DeclSort_Bitfield idsb, *idsbp;
         idsbp = get_DeclSort_Bitfield(&idsb);
         result = get_string_at_offset(idsbp->name);
+        if (is_from_gmf(idsbp->specifiers)) {
+          gmf_decl = TRUE;
+          gmf_decl_scope = idsbp->home_scope;
+        }  /* if */
       }
       break;
     case ifc_DeclSort_Scope:
       { an_ifc_DeclSort_Scope idss, *idssp;
         idssp = get_DeclSort_Scope(&idss);
         result = string_from_name_index(idssp->name, /*loc=*/NULL);
+        if (is_from_gmf(idssp->specifiers)) {
+          gmf_decl = TRUE;
+          gmf_decl_scope = idssp->home_scope;
+        }  /* if */
       }
       break;
     case ifc_DeclSort_Enumeration:
       { an_ifc_DeclSort_Enumeration idse, *idsep;
         idsep = get_DeclSort_Enumeration(&idse);
         result = get_string_at_offset(idsep->name);
+        if (is_from_gmf(idsep->specifiers)) {
+          gmf_decl = TRUE;
+          gmf_decl_scope = idsep->home_scope;
+        }  /* if */
       }
       break;
     case ifc_DeclSort_Alias:
       { an_ifc_DeclSort_Alias idsa, *idsap;
         idsap = get_DeclSort_Alias(&idsa);
         result = get_string_at_offset(idsap->name);
+        if (is_from_gmf(idsap->specifiers)) {
+          gmf_decl = TRUE;
+          gmf_decl_scope = idsap->home_scope;
+        }  /* if */
       }
       break;
     case ifc_DeclSort_Temploid:
@@ -5634,12 +5729,20 @@ Given a declaration, return the name associated with that declaration.
       { an_ifc_DeclSort_Template idst, *idstp;
         idstp = get_DeclSort_Template(&idst);
         result = string_from_name_index(idstp->name, /*loc=*/NULL);
+        if (is_from_gmf(idstp->specifiers)) {
+          gmf_decl = TRUE;
+          gmf_decl_scope = idstp->home_scope;
+        }  /* if */
       }
       break;
     case ifc_DeclSort_PartialSpecialization:
       { an_ifc_DeclSort_PartialSpecialization idsps, *idspsp;
         idspsp = get_DeclSort_PartialSpecialization(&idsps);
         result = string_from_name_index(idspsp->name, /*loc=*/NULL);
+        if (is_from_gmf(idspsp->specifiers)) {
+          gmf_decl = TRUE;
+          gmf_decl_scope = idspsp->home_scope;
+        }  /* if */
       }
       break;
     case ifc_DeclSort_ExplicitSpecialization:
@@ -5660,36 +5763,60 @@ Given a declaration, return the name associated with that declaration.
       { an_ifc_DeclSort_Concept idsc, *idscp;
         idscp = get_DeclSort_Concept(&idsc);
         result = get_string_at_offset(idscp->name);
+        if (is_from_gmf(idscp->specifiers)) {
+          gmf_decl = TRUE;
+          gmf_decl_scope = idscp->home_scope;
+        }  /* if */
       }
       break;
     case ifc_DeclSort_Function:
       { an_ifc_DeclSort_Function idsf, *idsfp;
         idsfp = get_DeclSort_Function(&idsf);
         result = string_from_name_index(idsfp->name, /*loc=*/NULL);
+        if (is_from_gmf(idsfp->specifiers)) {
+          gmf_decl = TRUE;
+          gmf_decl_scope = idsfp->home_scope;
+        }  /* if */
       }
       break;
     case ifc_DeclSort_Method:
       { an_ifc_DeclSort_Method idsm, *idsmp;
         idsmp = get_DeclSort_Method(&idsm);
         result = string_from_name_index(idsmp->name, /*loc=*/NULL);
+        if (is_from_gmf(idsmp->specifiers)) {
+          gmf_decl = TRUE;
+          gmf_decl_scope = idsmp->home_scope;
+        }  /* if */
       }
       break;
     case ifc_DeclSort_Constructor:
       { an_ifc_DeclSort_Constructor idsc, *idscp;
         idscp = get_DeclSort_Constructor(&idsc);
         result = name_from_decl(idscp->home_scope);
+        if (is_from_gmf(idscp->specifiers)) {
+          gmf_decl = TRUE;
+          gmf_decl_scope = idscp->home_scope;
+        }  /* if */
       }
       break;
     case ifc_DeclSort_InheritedConstructor:
-      { an_ifc_DeclSort_InheritedConstructor idscic, *idscicp;
-        idscicp = get_DeclSort_InheritedConstructor(&idscic);
-        result = name_from_decl(idscicp->home_scope);
+      { an_ifc_DeclSort_InheritedConstructor idsic, *idsicp;
+        idsicp = get_DeclSort_InheritedConstructor(&idsic);
+        result = name_from_decl(idsicp->home_scope);
+        if (is_from_gmf(idsicp->specifiers)) {
+          gmf_decl = TRUE;
+          gmf_decl_scope = idsicp->home_scope;
+        }  /* if */
       }
       break;
     case ifc_DeclSort_Destructor:
       { an_ifc_DeclSort_Destructor idsd, *idsdp;
         idsdp = get_DeclSort_Destructor(&idsd);
         result = name_from_decl(idsdp->home_scope);
+        if (is_from_gmf(idsdp->specifiers)) {
+          gmf_decl = TRUE;
+          gmf_decl_scope = idsdp->home_scope;
+        }  /* if */
       }
       break;
     case ifc_DeclSort_Reference:
@@ -5702,6 +5829,10 @@ Given a declaration, return the name associated with that declaration.
       { an_ifc_DeclSort_UsingDeclaration idsud, *idsudp;
         idsudp = get_DeclSort_UsingDeclaration(&idsud);
         result = get_string_at_offset(idsudp->name);
+        if (is_from_gmf(idsudp->specifiers)) {
+          gmf_decl = TRUE;
+          gmf_decl_scope = idsudp->home_scope;
+        }  /* if */
       }
       break;
     case ifc_DeclSort_UsingDirective:
@@ -5727,11 +5858,15 @@ Given a declaration, return the name associated with that declaration.
       }
       break;
     case ifc_DeclSort_DeductionGuide:
-      { an_ifc_DeclSort_DeductionGuide idsdg;
-        get_DeclSort_DeductionGuide(&idsdg);
+      { an_ifc_DeclSort_DeductionGuide idsdg, *idsdgp;
+        idsdgp = get_DeclSort_DeductionGuide(&idsdg);
         /* FIXME: Currently unsupported. */
         issue_unsupported_node_diag("DeclSort::DeductionGuide",
                                     &error_position);
+        if (is_from_gmf(idsdgp->specifiers)) {
+          gmf_decl = TRUE;
+          gmf_decl_scope = idsdgp->home_scope;
+        }  /* if */
       }
       break;
     case ifc_DeclSort_Barren:
@@ -5763,6 +5898,10 @@ Given a declaration, return the name associated with that declaration.
       { an_ifc_DeclSort_Intrinsic idsi, *idsip;
         idsip = get_DeclSort_Intrinsic(&idsi);
         result = get_string_at_offset(idsip->name);
+        if (is_from_gmf(idsip->specifiers)) {
+          gmf_decl = TRUE;
+          gmf_decl_scope = idsip->home_scope;
+        }  /* if */
       }
       break;
     case ifc_DeclSort_Property:
@@ -5783,6 +5922,27 @@ Given a declaration, return the name associated with that declaration.
     default_is_unexpected_str("Unexpected DeclSort");
   }  /* switch */
   check_assertion(result != NULL);
+  if (gmf_decl) {
+    a_symbol_locator loc;
+    /* FIXME: Do we want to have this check here, or should we always load the
+       module's version of the declaration and rely on visibility rules to sort
+       it out later?  Currently visibility is not well implemented and so the
+       interplay here is not well understood. */
+    if (find_symbol(result, strlen(result), &loc) == NULL) {
+      /* Declarations that come from the global module fragment aren't added to
+         the module scope, so we need to ensure that we've added these names to
+         the lazy loaded symbols list. */
+      a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl);
+      if (gmf_decl_type != 0) {
+        a_type_ptr tp = type_for_type_index(gmf_decl_type, /*kind=*/NULL);
+        ensure_type_has_scope(tp);
+        mep->scope = get_assoc_scope_of_il_entry((char*)tp, iek_type);
+      } else {
+        mep->scope = get_ifc_scope(gmf_decl_scope);
+      }  /* if */
+      defer_symbol_creation(mep, &loc);
+    }  /* if */
+  }  /* if */
   return result;
 }  /* name_from_decl */
 
@@ -9663,7 +9823,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
           access = idsvp->access;
         }  /* if */
         cache_variable_decl(cache, /*is_class_member=*/FALSE, access,
-                            idsvp->specifier, idsvp->traits, idsvp->alignment,
+                            idsvp->specifiers, idsvp->traits, idsvp->alignment,
                             idsvp->type, idsvp->name, (ifc_TextOffset)0,
                             (ifc_ExprIndex)0, idsvp->initializer,
                             &idsvp->locus);
@@ -9724,9 +9884,9 @@ Add the tokens corresponding to the given declaration (decl) to cache.
     case ifc_DeclSort_Field:
       { an_ifc_DeclSort_Field idsf, *idsfp;
         idsfp = get_DeclSort_Field(&idsf);
-        check_assertion((idsfp->specifier & ifc_BasicSpecifiers_C) == 0);
+        check_assertion((idsfp->specifiers & ifc_BasicSpecifiers_C) == 0);
         cache_variable_decl(cache, /*is_class_member=*/TRUE, idsfp->access,
-                            idsfp->specifier, idsfp->traits, idsfp->alignment,
+                            idsfp->specifiers, idsfp->traits, idsfp->alignment,
                             idsfp->type, (ifc_NameIndex)0, idsfp->name,
                             (ifc_ExprIndex)0, idsfp->initializer,
                             &idsfp->locus);
@@ -9735,10 +9895,10 @@ Add the tokens corresponding to the given declaration (decl) to cache.
     case ifc_DeclSort_Bitfield:
       { an_ifc_DeclSort_Bitfield idsbf, *idsbfp;
         idsbfp = get_DeclSort_Bitfield(&idsbf);
-        check_assertion((idsbfp->specifier & ifc_BasicSpecifiers_C) == 0);
+        check_assertion((idsbfp->specifiers & ifc_BasicSpecifiers_C) == 0);
         check_assertion(idsbfp->width != 0);
         cache_variable_decl(cache, /*is_class_member=*/TRUE, idsbfp->access,
-                            idsbfp->specifier, idsbfp->traits,
+                            idsbfp->specifiers, idsbfp->traits,
                             (ifc_ExprIndex)0, idsbfp->type, (ifc_NameIndex)0,
                             idsbfp->name, idsbfp->width, idsbfp->initializer,
                             &idsbfp->locus);
@@ -10144,9 +10304,13 @@ expressions by the tuple_separator token (tok_comma by default).
         if (iesuip->template_keyword.line != 0) {
           cache_token(cache, tok_template, &pos);
         }  /* if */
-        /* FIXME: Do we need to handle the "type" and "resolution" fields
-           here? */
-        if (iesuip->name != 0) {
+        /* It's possible to have this with no name/resolution at all.  For
+           example, if a construct of the form "::foo::bar" has been encoded,
+           the first element of the ExprSort::Tuple will refer to the empty
+           string that precedes the first "::". */
+        if (iesuip->resolution != 0) {
+          cache_expr(cache, iesuip->resolution);
+        } else if (iesuip->name != 0) {
           cache_name(cache, iesuip->name, &iesuip->locus);
         }  /* if */
       }
@@ -13128,7 +13292,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         idsvp = get_DeclSort_Variable(&idsv);
         /* Emit a variable declaration. */
         /* FIXME: idsvp->alignment exists but is an ExprIndex. */
-        str_ifc_common_decl(&idsvp->locus, idsvp->access, idsvp->specifier,
+        str_ifc_common_decl(&idsvp->locus, idsvp->access, idsvp->specifiers,
                             idsvp->traits, scbp);
         str_ifc_type_index(idsvp->type, scbp);
         add_char_to_text_buffer(scbp->text_buffer, ' ');
@@ -13165,7 +13329,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
       { an_ifc_DeclSort_Field idsf, *idsfp;
         idsfp = get_DeclSort_Field(&idsf);
         /* FIXME: idsfp->alignment exists but is an ExprIndex. */
-        str_ifc_common_decl(&idsfp->locus, idsfp->access, idsfp->specifier,
+        str_ifc_common_decl(&idsfp->locus, idsfp->access, idsfp->specifiers,
                             idsfp->traits, scbp);
         str_ifc_type_index(idsfp->type, scbp);
         add_char_to_text_buffer(scbp->text_buffer, ' ');
@@ -13175,7 +13339,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
     case ifc_DeclSort_Bitfield:
       { an_ifc_DeclSort_Bitfield idsb, *idsbp;
         idsbp = get_DeclSort_Bitfield(&idsb);
-        str_ifc_common_decl(&idsbp->locus, idsbp->access, idsbp->specifier,
+        str_ifc_common_decl(&idsbp->locus, idsbp->access, idsbp->specifiers,
                             idsbp->traits, scbp);
         str_ifc_type_index(idsbp->type, scbp);
         add_char_to_text_buffer(scbp->text_buffer, ' ');
@@ -13351,7 +13515,7 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
         idsep = get_DeclSort_Enumerator(&idse);
         /* Emit an enumerator declaration. */
         /* FIXME: idsep->access unused here (to suppress access field): */
-        str_ifc_common_decl(&idsep->locus, ifc_Access_None, idsep->specifier,
+        str_ifc_common_decl(&idsep->locus, ifc_Access_None, idsep->specifiers,
                             (ifc_ObjectTraits)ifc_ObjectTraits_None, scbp);
         add_char_to_text_buffer(scbp->text_buffer, ' ');
         str_ifc_text_offset(idsep->name, scbp);

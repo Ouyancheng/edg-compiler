@@ -11813,7 +11813,7 @@ typedef, we must make sure to propagate that to its members.
 
   check_assertion(!C_mode() && is_immediate_class_type(tp));
   scope = tp->variant.class_struct_union.extra_info->assoc_scope;
-  if (scope != NULL) {
+  if (!scope_is_null_or_placeholder(scope)) {
     for (routine = scope->routines; routine != NULL; routine = routine->next) {
       routine->source_corresp.name_linkage = name_linkage;
       if (name_linkage == (a_name_linkage_kind)nlk_cplusplus_external ||

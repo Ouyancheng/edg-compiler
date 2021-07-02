@@ -17170,6 +17170,12 @@ typedef struct a_scope {
 		is_stmt_expr_block:1;
 			/* TRUE for the top-level block scope of a statement
 			   expression. */
+  a_bit_field
+		is_placeholder_scope:1;
+			/* TRUE if this scope was created as a placeholder to
+			   be filled in at a future point.  FALSE if this is
+			   either not a placeholder scope, or a placeholder
+			   scope that has since been filled in. */
   union {
     /* When kind == sck_file, no variant fields. */
     /* When kind == sck_template_declaration, no variant fields. */

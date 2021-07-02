@@ -661,7 +661,7 @@ list to the primary translation unit IL.
     if (is_immediate_class_type(type)) {
       a_scope_ptr class_scope =
                       type->variant.class_struct_union.extra_info->assoc_scope;
-      if (class_scope != NULL) {
+      if (!scope_is_null_or_placeholder(class_scope)) {
         copy_function_bodies_from_secondary_to_primary_IL(class_scope);
       }  /* if */
     }  /* if */
@@ -1417,6 +1417,7 @@ to the secondary translation unit.
       /* A class with a scope.  Do a recursive call to process it. */
       a_scope_ptr class_scope =
                       type->variant.class_struct_union.extra_info->assoc_scope;
+      check_assertion(!class_scope->is_placeholder_scope);
       keep_on_list = prepare_for_trans_unit_copy(class_scope,
                                                  any_removed_function_bodies);
     } else if (entry_should_be_copied(type)) {
@@ -2125,6 +2126,7 @@ unit set to the primary translation unit.
         /* A class with a scope.  Do a recursive call to process it. */
         a_scope_ptr class_scope = type->variant.class_struct_union.
                                                        extra_info->assoc_scope;
+        check_assertion(!class_scope->is_placeholder_scope);
         finish_trans_unit_copy(class_scope);
       }  /* if */
       if (!entry_to_be_merged(type)) {
@@ -2732,6 +2734,7 @@ to the primary IL.
         a_scope_ptr class_scope =
                       type->variant.class_struct_union.extra_info->assoc_scope;
         if (class_scope != NULL) {
+          check_assertion(!class_scope->is_placeholder_scope);
           finish_scope_moved_entity_processing(class_scope);
         }  /* if */
       }  /* if */

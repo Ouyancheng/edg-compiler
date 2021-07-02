@@ -4354,7 +4354,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
         is_file_or_namespace_scope(&scope_stack[depth_scope_stack]) &&
         class_type->variant.class_struct_union.is_prototype_instantiation &&
         ctsp->template_arg_list != NULL &&
-        !(ctsp->assoc_scope != NULL &&
+        !(!scope_is_null_or_placeholder(ctsp->assoc_scope) &&
           ctsp->assoc_scope->depth_in_scope_stack != NO_SCOPE_DEPTH)) {
       /* A prototype instantiation of a class template (as opposed of that of
          a class nested in a class template).
@@ -4883,7 +4883,7 @@ Handle an "__event __interface" declaration in (a COM) class_type.
       expect_error();
     } else {
       a_class_type_supplement_ptr  ictsp = class_type_supp(interface_type);
-      if (ictsp->assoc_scope == NULL) {
+      if (scope_is_null_or_placeholder(ictsp->assoc_scope)) {
         /* The interface class must have been previously defined. */
         pos_error(ec_event_interface_must_be_previously_defined,
                   &interface_type->source_corresp.decl_position);

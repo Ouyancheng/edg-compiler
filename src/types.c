@@ -476,7 +476,7 @@ incomplete (because the definition is not done yet).
   ctsp = tp->variant.class_struct_union.extra_info;
   has_body = (tp->variant.class_struct_union.field_list != NULL ||
               tp->variant.class_struct_union.is_empty_class ||
-              ctsp->assoc_scope != NULL);
+              !scope_is_null_or_placeholder(ctsp->assoc_scope));
   return has_body;
 }  /* class_type_has_body */
 
@@ -4206,8 +4206,10 @@ class will be instantiated if necessary so that its base classes are known.
        been seen. */
     if (is_immediate_class_type(base_class) &&
         is_immediate_class_type(derived_class) &&
-        class_type_supp(derived_class)->assoc_scope != NULL &&
-        class_type_supp(base_class)->assoc_scope != NULL) {
+        !scope_is_null_or_placeholder(class_type_supp(derived_class)
+                                                              ->assoc_scope) &&
+        !scope_is_null_or_placeholder(class_type_supp(base_class)
+                                                              ->assoc_scope)) {
       /* See if the base class appears on the base class list for the derived
          type.  The base class list contains all base classes, both direct
          and indirect. */
@@ -16865,7 +16867,7 @@ that type's definition.
   if (num_classes_on_scope_stack != 0) {
     tp = skip_typerefs(tp);
     if (is_incomplete(tp) && is_immediate_class_type(tp) &&
-        tp->variant.class_struct_union.extra_info->assoc_scope != NULL) {
+        !scope_is_null_or_placeholder(class_type_supp(tp)->assoc_scope)) {
       /* tp describes a class type that is being defined, but we may be in the
          midst of the instantiation of a template that's not inside the class.
          Walk the scope stack and parent types to ensure that we are in fact

@@ -1624,7 +1624,8 @@ Dump the contents of the indicated type entry, for debug purposes.
               }  /* if */
             } /* for */
           }  /* if */
-          if (ctsp != NULL && ctsp->assoc_scope != NULL) {
+          if (ctsp != NULL &&
+              !scope_is_null_or_placeholder(ctsp->assoc_scope)) {
             a_variable_ptr    vp = ctsp->assoc_scope->variables;
             a_routine_ptr     rp = ctsp->assoc_scope->routines;
             a_using_decl_ptr  udecp = ctsp->assoc_scope->using_declarations;
@@ -10162,7 +10163,7 @@ for the scope, which means no last-pointer is being maintained (anymore).
     check_assertion_str(!C_mode(),
                         "get_scope_for_list: class scope in C mode");
     sp = class_type_supp(scp_parent_class(scp))->assoc_scope;
-    if (sp != NULL) {
+    if (!scope_is_null_or_placeholder(sp)) {
       scope_level = sp->depth_in_scope_stack;
     }  /* if */
     if (scope_level == NO_SCOPE_DEPTH) {
@@ -13628,8 +13629,12 @@ the caller must ensure the class type is complete before calling this routine.
           if (ctsp != NULL) {
             result = ctsp->assoc_scope;
           }  /* if */
-        } else if (is_scoped_enum_type(ptr)) {
-          result = ptr->variant.integer.enum_info.assoc_scope;
+        } else if (is_enum_type(ptr)) {
+          if (is_scoped_enum_type(ptr)) {
+            result = ptr->variant.integer.enum_info.assoc_scope;
+          } else {
+            result = ptr->source_corresp.parent_scope;
+          }  /* if */
         }  /* if */
       }
       break;
@@ -13649,7 +13654,7 @@ type, or NULL if the lambda body routine does not exist yet.
   a_routine_ptr	rp = NULL;
   a_scope_ptr   scope = class_type_supp(type)->assoc_scope;
 
-  if (scope != NULL) {
+  if (!scope_is_null_or_placeholder(scope)) {
     if (!class_type_supp(type)->is_generic_lambda_closure_class) {
       /* A normal (i.e., non-generic) lambda.  Look among the routine entries
          in the class scope. */
@@ -15323,7 +15328,7 @@ scope.  Otherwise, return NULL.
          test_type = test_type->next) {
       if (is_immediate_class_type(test_type)) {
         subscope=test_type->variant.class_struct_union.extra_info->assoc_scope;
-        if (subscope != NULL) {
+        if (!scope_is_null_or_placeholder(subscope)) {
           result_scope = find_scope_of_variable(variable, subscope);
           if (result_scope != NULL) goto end_of_routine;
         }  /* if */
@@ -15362,7 +15367,7 @@ appropriate scope.  Otherwise, return NULL.
     }  /* if */
     if (!C_mode() && is_immediate_class_type(test_type)) {
       subscope = test_type->variant.class_struct_union.extra_info->assoc_scope;
-      if (subscope != NULL) {
+      if (!scope_is_null_or_placeholder(subscope)) {
         result_scope = find_scope_of_type(type, subscope);
         if (result_scope != NULL) goto end_of_routine;
       }  /* if */
@@ -26324,7 +26329,7 @@ as well.
     if (do_subscopes && is_immediate_class_type(type)) {
       a_class_type_supplement_ptr ctsp =
                                    type->variant.class_struct_union.extra_info;
-      if (ctsp != NULL && ctsp->assoc_scope != NULL) {
+      if (ctsp != NULL && !scope_is_null_or_placeholder(ctsp->assoc_scope)) {
         db_type_list(ctsp->assoc_scope->types, indent+2, do_subscopes);
       }  /* if */
     }  /* if */
@@ -26578,7 +26583,7 @@ its subscopes.
     }  /* if */
     if (!C_mode() && is_immediate_class_type(type)) {
       sub_scope = type->variant.class_struct_union.extra_info->assoc_scope;
-      if (sub_scope != NULL) {
+      if (!scope_is_null_or_placeholder(sub_scope)) {
         count += num_file_scope_entities_with_assoc_pragmas(sub_scope);
       }  /* if */
     }  /* if */
@@ -27057,7 +27062,7 @@ functions have been removed from the IL.
 
   /* Get the scope associated with this class. */
   sp = class_type->variant.class_struct_union.extra_info->assoc_scope;
-  if (sp != NULL) {
+  if (!scope_is_null_or_placeholder(sp)) {
     /* Traverse its member function list. */
     for (rp = sp->routines; rp != NULL; rp = rp->next) {
       eliminate_routine_default_arg_object_lifetimes(rp);
@@ -27166,7 +27171,7 @@ necessary processing on those members to clear instantiation information.
   a_class_type_supplement_ptr ctsp = class_type_supp(class_type);
 
   check_assertion(!C_mode() && ctsp != NULL);
-  if (ctsp->assoc_scope != NULL) {
+  if (!scope_is_null_or_placeholder(ctsp->assoc_scope)) {
     a_scope_ptr scope = ctsp->assoc_scope;
     /* Only check the members if there might be some templates.  Suppress this
        for prototype instantiations and generics, which will not have members
@@ -27212,7 +27217,7 @@ necessary processing on those members.
   /* Clear instantiation information for any template members. */
   clear_instantiation_information_for_eliminated_members(class_type);
   /* Do the same processing for nested classes. */
-  if (ctsp->assoc_scope != NULL) {
+  if (!scope_is_null_or_placeholder(ctsp->assoc_scope)) {
     a_type_ptr  tp = ctsp->assoc_scope->types;
     for (; tp != NULL; tp = tp->next) {
       if (is_immediate_class_type(tp)) {
@@ -27284,7 +27289,7 @@ of the class.
       a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
       /* Note that even though class_type is complete, it may not have an
          associated scope (e.g., in the case of some nonreal classes). */
-      if (ctsp->assoc_scope != NULL) {
+      if (!scope_is_null_or_placeholder(ctsp->assoc_scope)) {
         a_type_ptr  tp = ctsp->assoc_scope->types;
         for (; tp != NULL; tp = tp->next) {
           if (is_immediate_class_type(tp)) {
@@ -28255,7 +28260,7 @@ NULL if the result is unknown).
 
   if (unknown == NULL) unknown = &local_unknown;
   *unknown = FALSE;
-  if (scope == NULL) {
+  if (scope_is_null_or_placeholder(scope)) {
     /* The class is declared but not defined. */
     routine = NULL;
     *unknown = TRUE;

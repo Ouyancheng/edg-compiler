@@ -4701,6 +4701,7 @@ points to the associated routine if the kind is sck_function.
 #endif /* SCOPE_ORPHANED_LIST_PROCESSING_NEEDED */
   sp->is_constexpr_routine = FALSE;
   sp->is_stmt_expr_block = FALSE;
+  sp->is_placeholder_scope = FALSE;
   set_scope_kind(sp, kind, assoc_routine);
   sp->assoc_block                 = NULL;
   sp->lifetime                    = NULL;
@@ -4740,6 +4741,21 @@ points to the associated routine if the kind is sck_function.
   db_exit();
   return sp;
 }  /* alloc_scope */
+
+
+a_scope_ptr alloc_placeholder_scope(a_scope_kind  kind,
+                                    a_routine_ptr assoc_routine)
+/*
+Allocate a scope entry for a placeholder scope.  kind indicates the scope kind
+(e.g., function, block), and assoc_routine points to the associated routine if
+the kind is sck_function.
+*/
+{
+  a_scope_ptr sp = alloc_scope(kind, NO_SCOPE_NUMBER, assoc_routine);
+
+  sp->is_placeholder_scope = TRUE;
+  return sp;
+}  /* alloc_placeholder_scope */
 
 
 a_local_scope_ref_ptr alloc_local_scope_ref(void)

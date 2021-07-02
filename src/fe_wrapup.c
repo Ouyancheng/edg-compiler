@@ -242,7 +242,7 @@ referenced by exported templates.
     if (is_immediate_class_type(type) && !ignore_type_in_back_end(type)) {
       a_scope_ptr scope =
                       type->variant.class_struct_union.extra_info->assoc_scope;
-      if (scope != NULL) {
+      if (!scope_is_null_or_placeholder(scope)) {
         externalize_statics_for_exported_templates(scope);
       }  /* if */
     }  /* if */

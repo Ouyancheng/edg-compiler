@@ -1212,7 +1212,7 @@ itself recursively to process classes nested within this class.
   ctsp = class_type->variant.class_struct_union.extra_info;
   /* The assoc_scope pointer can be NULL if errors occurred during the
      instantiation of the class. */
-  if (ctsp->assoc_scope != NULL) {
+  if (!scope_is_null_or_placeholder(ctsp->assoc_scope)) {
     /* Function instantiation entries are put on the list, but are not
        marked for actual instantiation (that is, for generation of the
        function body) at this time.  That will happen if/when there
@@ -4851,7 +4851,7 @@ metadata, if needed.
 {
   a_type_ptr	proto_type;
   proto_type = prototype_instantiation_for_template(template_sym);
-  if (class_type_supp(proto_type)->assoc_scope == NULL) {
+  if (scope_is_null_or_placeholder(class_type_supp(proto_type)->assoc_scope)) {
     complete_class_type_is_needed(proto_type);
   }  /* if */
 }  /* get_definition_of_generic_if_needed */
@@ -4935,7 +4935,8 @@ be completed here.
     else if (class_type->variant.class_struct_union.is_generic_constraint) {
       complete_generic_constraint_type(class_type);
 #if GET_DEFINITION_OF_CLASS_NEEDED
-    } else if (class_type_supp(class_type)->assoc_scope == NULL) {
+    } else if (scope_is_null_or_placeholder(class_type_supp(class_type)
+                                                              ->assoc_scope)) {
       /* Call a routine to potentially find a definition of this class. */
       get_definition_of_class(class_type);
 #endif /* GET_DEFINITION_OF_CLASS_NEEDED */
@@ -4952,7 +4953,8 @@ be completed here.
        explicitly specialized.  Simply ignore the instantiation request. */
 #if GET_DEFINITION_OF_CLASS_NEEDED
     /* Call a routine to potentially find a definition of this class. */
-    if (class_type_supp(class_type)->assoc_scope == NULL) {
+    if (scope_is_null_or_placeholder(class_type_supp(class_type)
+                                                              ->assoc_scope)) {
       get_definition_of_class(class_type);
     }  /* if */
 #endif /* GET_DEFINITION_OF_CLASS_NEEDED */
@@ -19826,7 +19828,7 @@ and create a function instantiation entry to bind the two symbols together.
     a_scope_ptr	proto_class_scope;
     tp = type_symbol_type(corresp_prototype_tag_sym);
     proto_class_scope = tp->variant.class_struct_union.extra_info->assoc_scope;
-    if (proto_class_scope != NULL) {
+    if (!scope_is_null_or_placeholder(proto_class_scope)) {
       /* The prototype instantiation can be incomplete in certain error
          cases. */
       for (sym = find_symbol_list_in_table(&cssp->pointers_block,
@@ -20034,7 +20036,7 @@ instance to the definitions list for the template.
        corresp_prototype_tag_sym were declared. */
     a_scope_ptr	prototype_scope;
     prototype_scope = tp->variant.class_struct_union.extra_info->assoc_scope;
-    if (prototype_scope == NULL) {
+    if (scope_is_null_or_placeholder(prototype_scope)) {
       /* In some error cases the prototype instantiation type does not have
          a definition. */
       expect_error();
@@ -20178,7 +20180,7 @@ this routine has no effect.
        corresp_prototype_tag_sym were declared. */
     prototype_scope = corresp_prototype_type->
                             variant.class_struct_union.extra_info->assoc_scope;
-    if (prototype_scope == NULL) {
+    if (scope_is_null_or_placeholder(prototype_scope)) {
       /* In some error cases the prototype instantiation type does not have
          a definition. */
       expect_error();
@@ -20254,7 +20256,7 @@ Note that if parent_class is not an instantiation, this routine has no effect.
        corresp_prototype_tag_sym were declared. */
     prototype_scope = corresp_prototype_type->
                             variant.class_struct_union.extra_info->assoc_scope;
-    if (prototype_scope == NULL) {
+    if (scope_is_null_or_placeholder(prototype_scope)) {
       /* In some error cases the prototype instantiation type does not have
          a definition. */
       expect_error();
@@ -21811,8 +21813,8 @@ initially used when processing the declaration of a partial specialization.
            to a non-local list. */
         check_assertion(total_errors != 0);
       } else if (sym->is_class_member &&
-                 sym_parent_class(sym)->variant.class_struct_union.
-                                             extra_info->assoc_scope == NULL) {
+                 scope_is_null_or_placeholder(
+                        class_type_supp(sym_parent_class(sym))->assoc_scope)) {
         /* An error occurred earlier resulting in an invalid parent class
            (one that is incomplete and not in the process of being defined). */
         decl_state->decl_scope_err = TRUE;
@@ -27446,7 +27448,8 @@ set, and its source sequence entry, if any, has been put out.)
         /* Set parent information in the IL entry. */
         if (sym->is_class_member) {
           a_type_ptr  parent_type = sym_parent_class(sym);
-          if (class_type_supp(parent_type)->assoc_scope == NULL) {
+          if (scope_is_null_or_placeholder(class_type_supp(parent_type)
+                                                              ->assoc_scope)) {
             /* This could happen with something like:
                  template<class T> struct A;
                  template<class T> struct A<T>::B;  // Error. */
@@ -27619,8 +27622,8 @@ Create the variable entry variable template specified by template_sym.
          to a non-local list. */
       check_assertion(total_errors != 0);
     } else if (template_sym->is_class_member &&
-               sym_parent_class(template_sym)->variant.class_struct_union.
-                                             extra_info->assoc_scope == NULL) {
+               scope_is_null_or_placeholder(class_type_supp(
+                               sym_parent_class(template_sym))->assoc_scope)) {
       /* An error occurred earlier resulting in an invalid parent class
          (one that is incomplete and not in the process of being defined). */
       decl_state->decl_scope_err = TRUE;

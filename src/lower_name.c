@@ -13413,7 +13413,7 @@ compression and truncation.
       a_class_type_supplement_ptr ctsp =
                                    type->variant.class_struct_union.extra_info;
       class_scope = ctsp->assoc_scope;
-      if (class_scope != NULL) {
+      if (!scope_is_null_or_placeholder(class_scope)) {
         do_type_list_type_name_mangling(class_scope->types);
       }  /* if */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
@@ -13512,7 +13512,7 @@ including classes.
       a_class_type_supplement_ptr ctsp =
                                    type->variant.class_struct_union.extra_info;
       class_scope = ctsp->assoc_scope;
-      if (class_scope != NULL) {
+      if (!scope_is_null_or_placeholder(class_scope)) {
         do_scope_other_name_mangling(class_scope);
       }  /* if */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE
@@ -13842,7 +13842,7 @@ also processed.
       a_class_type_supplement_ptr ctsp =
                                    type->variant.class_struct_union.extra_info;
       class_scope = ctsp->assoc_scope;
-      if (class_scope != NULL) {
+      if (!scope_is_null_or_placeholder(class_scope)) {
         do_scope_final_name_mangling(class_scope);
       }  /* if */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE

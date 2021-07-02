@@ -2905,7 +2905,7 @@ generate/define typeinfo variables for any types that need them.
     if (is_immediate_class_type(type)) {
       a_class_type_supplement_ptr ctsp =
                                    type->variant.class_struct_union.extra_info;
-      if (ctsp->assoc_scope != NULL) {
+      if (!scope_is_null_or_placeholder(ctsp->assoc_scope)) {
         generate_scope_typeinfo_vars(ctsp->assoc_scope);
       }  /* if */
 #if PROMOTE_LOCAL_ENTITIES_TO_FILE_SCOPE

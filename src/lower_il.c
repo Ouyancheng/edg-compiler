@@ -5228,7 +5228,8 @@ is referenced.
   a_boolean     result = FALSE;
 
   check_assertion(is_immediate_class_type(class_type) &&
-                  class_type_supp(class_type)->assoc_scope != NULL);
+                  !scope_is_null_or_placeholder(class_type_supp(class_type)
+                                                               ->assoc_scope));
   for (rp = class_type_supp(class_type)->assoc_scope->routines;
        rp != NULL;
        rp = rp->next) {
@@ -6369,7 +6370,7 @@ mode; *optional will be set as usual.
     *force_static = TRUE;
   } else {
     scope = ctsp->assoc_scope;
-    if (scope == NULL) {
+    if (scope_is_null_or_placeholder(scope)) {
       /* The class is declared but not defined. */
       defined_here = FALSE;
     } else if (!class_type->variant.class_struct_union
@@ -8339,7 +8340,7 @@ functions, including virtual functions, needed in this process).
         !ignore_type_in_back_end(type)) {
       define_virtual_function_tables(type);
       class_scope = type->variant.class_struct_union.extra_info->assoc_scope;
-      if (class_scope != NULL) {
+      if (!scope_is_null_or_placeholder(class_scope)) {
         define_scope_virtual_function_tables(class_scope);
       }  /* if */
     }  /* if */
@@ -8715,7 +8716,7 @@ routine assumes the class type is as complete as it will ever get.
     error_position = class_type->source_corresp.decl_position;
     /* If the class has a definition, the processing of the definition
        should be complete. */
-    check_assertion_str(ctsp->assoc_scope == NULL ||
+    check_assertion_str(scope_is_null_or_placeholder(ctsp->assoc_scope) ||
                         !is_incomplete_type(class_type),
                         "prelower_class_type: class definition not completed");
 #if IA64_ABI
@@ -8912,7 +8913,7 @@ Do IL lowering on the indicated class/struct/union type.
   lower_field_list(class_type);
   error_position = class_type->source_corresp.decl_position;
   ctsp = class_type->variant.class_struct_union.extra_info;
-  if (ctsp->assoc_scope != NULL) {
+  if (!scope_is_null_or_placeholder(ctsp->assoc_scope)) {
     /* There is a definition for the class. */
     /* Lower the base classes. */
     for (bcp = ctsp->base_classes; bcp != NULL; bcp = bcp->next) {
@@ -12550,7 +12551,7 @@ object_node is the object pointer and pmf_node is an rvalue pointer-to-member.
   /* Make "(this_temp = (object_type *)((char *)object + pmf.d)". */
   this_temp_assign_node = make_var_assignment_expr(*this_temp_var, cast_node);
   if (pointer_to_member_call_optimization_allowed &&
-      class_type->variant.class_struct_union.extra_info->assoc_scope != NULL &&
+      !scope_is_null_or_placeholder(class_type_supp(class_type)->assoc_scope)&&
       !class_type->variant.class_struct_union.
                              any_virtual_functions_including_in_base_classes) {
     /* No virtual functions, so use the simpler form. */
@@ -20481,7 +20482,7 @@ namespace scope), at the position indicated by *insert_pointer, and
   scope = ctsp->assoc_scope;
   /* If the class has constants, static data members, member functions,
      or local types, promote them out of the class scope. */
-  if (scope != NULL) {
+  if (!scope_is_null_or_placeholder(scope)) {
 #if DEBUG
     if (debug_level >= 4) {
       (void)fprintf(f_debug, "Promoting the members out of ");
@@ -20715,7 +20716,7 @@ by things that will be in the file scope.
           break;
         }  /* if */
         class_scope = type->variant.class_struct_union.extra_info->assoc_scope;
-        if (class_scope != NULL) {
+        if (!scope_is_null_or_placeholder(class_scope)) {
           if (local_entities_should_be_promoted(class_scope)) {
             promotion_needed = TRUE;
             break;
@@ -20927,7 +20928,7 @@ so they are left in the scope.
            an inline function is not inlinable, a static definition may
            be needed and its name must be mangled. */
         a_class_type_supplement_ptr ctsp = class_type_supp(type);
-        if (ctsp->assoc_scope != NULL) {
+        if (!scope_is_null_or_placeholder(ctsp->assoc_scope)) {
           do_scope_other_name_mangling(ctsp->assoc_scope);
         }  /* if */
       }  /* if */

@@ -19710,7 +19710,7 @@ we are scanning a C++/CLI typeid of the form X::typeid.
      lookup if the class is nonreal. */
   do_class_lookup = class_type != NULL &&
      is_class_struct_union_type(class_type) &&
-     (class_type->variant.class_struct_union.extra_info->assoc_scope != NULL ||
+     (!scope_is_null_or_placeholder(class_type_supp(class_type)->assoc_scope)||
       (class_type->variant.class_struct_union.is_nonreal_class &&
        !class_type->variant.class_struct_union.is_prototype_instantiation));
   /* Only get normal_sym from the locator if a fundamental symbol was
@@ -20830,8 +20830,8 @@ selection operator, in which case it points to the type of the left operand.
           /* Make sure that the class type is a complete type. */
           if (qualifier_is_type && qualifier_type_is_class &&
               is_incomplete_type(qualifier_type) &&
-              qualifier_type->variant.class_struct_union.
-                                         extra_info->assoc_scope == NULL) {
+              scope_is_null_or_placeholder(class_type_supp(qualifier_type)
+                                                              ->assoc_scope)) {
             /* If the type is incomplete we also check whether the type is
 	       currently being defined -- it is considered complete if it
 	       is being defined.  We determine this by checking the
@@ -21715,8 +21715,8 @@ See also coalesce_and_lookup_generalized_identifier.
                      qualifier_is_type && !is_nonclass_dtor_or_finalizer && 
                      is_incomplete_type(qualifier_type) &&
                      is_immediate_class_type(qualifier_type) &&
-                     qualifier_type->variant.class_struct_union.
-                                         extra_info->assoc_scope == NULL) {
+                     scope_is_null_or_placeholder(
+                               class_type_supp(qualifier_type)->assoc_scope)) {
             /* An error must have occurred while scanning the class
                qualifier.  Don't try to do the lookup of the identifier
                following the qualifier.   If the type is incomplete we also
