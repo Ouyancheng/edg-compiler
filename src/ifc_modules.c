@@ -4446,7 +4446,6 @@ Process a sequence of IFC scope member declarations.
 */
 {
   /* Guard this logic behind a feature flag to prevent aborts. */
-#if IFC_PROCESS_TEMPLATE_SPECIALZIATIONS
   for (size_t idx = 0; idx < seq.cardinality; ++idx) {
     an_ifc_Scope_Member ism, *ismp;
     a_module_entity_ptr dmep;
@@ -4465,7 +4464,6 @@ Process a sequence of IFC scope member declarations.
     dmep = get_ifc_module_entity_ptr(ismp->index);
     process_ifc_declaration(dmep, /*defer=*/FALSE, (a_type_ptr)NULL);
   }
-#endif /* IFC_PROCESS_TEMPLATE_SPECIALZIATIONS */
 }  /* process_scope_member_sequence */
 
 
@@ -8501,7 +8499,9 @@ this is needed.
       { an_ifc_TypeSort_Array itsa, *itsap;
         itsap = get_TypeSort_Array(&itsa);
         cache_token(cache, tok_lbracket, &pos);
-        cache_expr(cache, itsap->extent);
+        if (itsap->extent != 0) {
+          cache_expr(cache, itsap->extent);
+        }  /* if */
         cache_token(cache, tok_rbracket, &pos);
         cache_type_second_pass(cache, itsap->element, locus);
       }
