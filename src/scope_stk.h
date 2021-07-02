@@ -1754,7 +1754,7 @@ Return TRUE if sp is either NULL or a placeholder scope, FALSE otherwise.
 */
 {
   return sp == NULL || sp->is_placeholder_scope;
-}  /* scope_is_placeholder */
+}  /* scope_is_null_or_placeholder */
 
 
 /*

@@ -327,10 +327,10 @@ global module fragment, FALSE otherwise.
 {
   a_boolean result;
   /* Lambda closure class members are marked as being members of the GMF
-     without actually being members of the GMF.  But even so, in general, if
-     something is the member of a class then it's reasonable to expect that we
-     can treat it as not a member of the GMF and allow the containing class'
-     membership in the GMF to cover it, if necessary. */
+     without actually being members of the GMF.  More generally, if something
+     is the member of a class then it's reasonable to expect that we can treat
+     it as not a member of the GMF and allow the containing class' membership
+     in the GMF to cover it, if necessary. */
   result = ((specifier & ifc_BasicSpecifiers_IsMemberOfGlobalModules) != 0) &&
            ((specifier & ifc_BasicSpecifiers_InitializedInClass) == 0);
   return result;

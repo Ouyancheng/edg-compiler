@@ -5936,7 +5936,7 @@ Given a declaration, return the name associated with that declaration.
     if (find_symbol(result, strlen(result), &loc) == NULL) {
       /* Declarations that come from the global module fragment aren't added to
          the module scope, so we need to ensure that we've added these names to
-         the lazy loaded symbols list. */
+         the lazily-loaded symbols list. */
       a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl);
       if (gmf_decl_type != 0) {
         a_type_ptr tp = type_for_type_index(gmf_decl_type, /*kind=*/NULL);
