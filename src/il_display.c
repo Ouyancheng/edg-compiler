@@ -7174,7 +7174,7 @@ Display the indicated class type supplement entry.
   }  /* if */
   /* Only display orig_type_kind it differs from the type kind specified on
      the definition. */
-  if (scope_is_null_or_placeholder(ptr->assoc_scope)) {
+  if (!scope_is_null_or_placeholder(ptr->assoc_scope)) {
     /* The associated type does have a definition. */
     a_type_ptr  class_type = ptr->assoc_scope->variant.assoc_type;
     if (class_type != NULL && class_type->kind != ptr->orig_type_kind) {

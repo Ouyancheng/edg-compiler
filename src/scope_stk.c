@@ -2767,6 +2767,7 @@ the scope being pushed.
       /* Class/struct/union definitions require the file-scope memory region,
          since the entities created to represent the members are pointed to
          from the type entry. */
+      check_assertion(assoc_type != NULL);
       if (curr_il_region_number != file_scope_region_number) {
         switch_il_region(file_scope_region_number);
       }  /* if */
