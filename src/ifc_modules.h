@@ -214,7 +214,7 @@ struct ifc_NoexceptSpecification {
 };  /* ifc_NoexceptSpecification */
 
 struct ifc_ParameterizedEntity {
-  ifc_Index	index;
+  ifc_DeclIndex decl;
   ifc_SentenceIndex
 		head;
   ifc_SentenceIndex
@@ -2780,7 +2780,7 @@ private:
                                                                          const;
   void cache_decl_template(a_token_cache_ptr        cache,
                            an_ifc_DeclSort_Template *decl) const;
-  uint32_t cache_decl_partial_specialization_signature(
+  uint32_t cache_decl_partial_specialization_declaration(
                                    a_token_cache_ptr                     cache,
                                    an_ifc_DeclSort_PartialSpecialization *decl)
                                                                          const;

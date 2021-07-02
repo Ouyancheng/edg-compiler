@@ -435,7 +435,7 @@ Handle nested structures differently (and check for padding).
                                    GET_NoexceptSort((x).sort, from_header), \
                                    pad(3))
 #define GET_ParameterizedEntity(x, from_header) \
-                               (GET_Index((x).index, from_header), \
+                               (GET_Index((x).decl, from_header), \
                                 GET_SentenceIndex((x).head, from_header), \
                                 GET_SentenceIndex((x).body, from_header), \
                                 GET_SentenceIndex((x).attributes, from_header))
@@ -9645,16 +9645,9 @@ if there is no offset/the offset is not needed.
   type = type_for_type_index(decl->type, &kind);
   check_assertion(type != NULL);
   if (type_is(type, tk_unknown)) {
-    /* This is an alias template declaration. */
-    /* As of IFC 0.31, this should no longer be encountered (template aliases
+    /* As of IFC 0.31, this should no longer be encountered (alias templates
        are now handled by DeclSort::Alias). */
-    check_assertion(name_tag(decl->name) == ifc_NameSort_Identifier);
-    cache_token(cache, tok_using, &pos);
-    cache_name(cache, decl->name, &decl->locus);
-    cache_token(cache, tok_assign, &pos);
-    cache_type(cache, (ifc_TypeIndex)decl->entity.index, &decl->locus);
-    /* We always need a semicolon here. */
-    add_semicolon = TRUE;
+    unexpected_condition_str("Unexpected alias template");
   } else if (is_class_struct_union_type(type)) {
     cache_type(cache, decl->type, &decl->locus);
     offset = try_cache_class_attributes_from_body(cache, decl->entity.body);
@@ -9690,7 +9683,7 @@ Add the tokens corresponding to the given template declaration (decl) to cache.
 }  /* cache_decl_template */
 
 
-uint32_t an_ifc_module::cache_decl_partial_specialization_signature(
+uint32_t an_ifc_module::cache_decl_partial_specialization_declaration(
                                    a_token_cache_ptr                     cache,
                                    an_ifc_DeclSort_PartialSpecialization *decl)
                                                                           const
@@ -9726,25 +9719,40 @@ is not needed.
     type = type_for_type_index(idstp->type, &kind);
     check_assertion(type != NULL);
     if (is_class_struct_union_type(type)) {
-      /* We're reconstructing a class template. */
+      /* We're reconstructing a class. */
       /* FIXME: This is a hack, we're caching the parent type to get
          struct/class keyword. */
       cache_type(cache, idstp->type, &decl->locus);
-      offset = try_cache_class_attributes_from_body(cache, decl->entity.body);
-      /* Use the specialization form to reconstruct the simple-template-id. */
-      {
-        /* Reconstruct the template-name. */
-        cache_name(cache, idstp->name, &decl->locus);
-        /* Reconstruct the template-argument-list and enclosing angle
-           brackets. */
-        cache_token(cache, tok_lt, &pos);
-        cache_expr(cache, ifsp->arguments);
-        cache_token(cache, tok_gt, &pos);
-      }
+      /* Cache the attributes of the class. */
+      cache_sentence(cache, decl->entity.attributes);
+    } else {
+      /* We're reconstructing a variable. */
+      ifc_DeclIndex templated_decl_idx = decl->entity.decl;
+      an_ifc_DeclSort_Variable idsv, *idsvp;
+
+      /* Verify the templated decl index is a variable, then read the variable
+         so we can get the type of our variable partial specialization. */
+      check_assertion(decl_tag(templated_decl_idx) == ifc_DeclSort_Variable);
+      read_partition_at_index(templated_decl_idx);
+      idsvp = get_DeclSort_Variable(&idsv);
+      /* Cache the attributes of the variable. */
+      cache_sentence(cache, decl->entity.attributes);
+      /* Cache the type of the variable we just found. */
+      cache_type(cache, idsvp->type, &decl->locus);
+    }  /* if */
+    /* Use the specialization form to reconstruct the simple-template-id. */
+    {
+      /* Reconstruct the template-name. */
+      cache_name(cache, idstp->name, &decl->locus);
+      /* Reconstruct the template-argument-list and enclosing angle
+         brackets. */
+      cache_token(cache, tok_lt, &pos);
+      cache_expr(cache, ifsp->arguments);
+      cache_token(cache, tok_gt, &pos);
     }
   }
   return offset;
-}  /* cache_decl_partial_specialization_signature */
+}  /* cache_decl_partial_specialization_declaration */
 
 
 void an_ifc_module::cache_decl_partial_specialization(
@@ -9757,7 +9765,8 @@ Add the tokens corresponding to the given partial specialization declaration
 */
 {
   a_boolean decl_only = decl->entity.body == 0;
-  uint32_t  offset = cache_decl_partial_specialization_signature(cache, decl);
+  uint32_t  offset = cache_decl_partial_specialization_declaration(cache,
+                                                                   decl);
 
   if (!decl_only) {
     (void)cache_sentence(cache, decl->entity.body, offset);
