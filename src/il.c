@@ -7407,8 +7407,24 @@ are done.
           }  /* if */
           an_expr_node_ptr   op1 = node1->variant.operation.operands;
           an_expr_node_ptr   op2 = node2->variant.operation.operands;
-
           check_assertion(op1 != NULL && op2 != NULL);
+          if (node_operator_is(node1, eok_call) &&
+              is_variable_node(op1) && is_variable_node(op2) &&
+              node_variable(op1) != node_variable(op2) &&
+              (options & CC_EXACT_DECLTYPE_EXPR_MATCH_REQUIRED) &&
+              same_name(&node_variable(op1)->source_corresp,
+                        &node_variable(op2)->source_corresp) &&
+              identical_types_full(op1->type, op2->type, itf_options)) {
+            /* This is a "function call" to a variable, which can occur in
+               a dependent expression.  Although it is an ODR violation,
+               the danger is minimal since the variables have the same
+               types and the expressions appear in the operands of decltype
+               operators, so the calls will not be executed.  Treat the
+               variables as matching and just check the argument lists. */
+            op1 = op1->next;
+            op2 = op2->next;
+            check_assertion(op1 != NULL && op2 != NULL);
+          }  /* if */
           eq = compare_expression_lists(op1, op2, options);
         }  /* if */
         break;

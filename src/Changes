@@ -1,5 +1,29 @@
 Version 6.3
 
+7/2/21   [EDGcpfe/23742]
+Multiple translation units: dependent call to variable member of unnamed
+namespace
+
+In some cases when compiling multiple translation units, the front end
+issued a "had a different meaning" error for a dependent function call when
+the function name resolves in the template definition context to a variable
+that is a member of an unnamed namespace.  Such variables have internal
+linkage and thus are not the same entity, resulting in the diagnostic.
+Although this usage is a violation of the C++ Standard's "one definition
+rule," the front end has now been changed to accept this usage in some
+cases.  For example, when the following code appears in more than one
+translation unit, the front end now no longer issues an error on the call
+to the variable "x" in the member function template d::f:
+
+  struct h {};
+  namespace {
+    auto x = h{};
+  }
+  struct d {
+    template <typename e> auto f(e bz) -> decltype(x(bz));
+  };
+
+
 6/28/21  [EDGcpfe/24022]
 IL support for coroutine get_return_object_on_allocation_failure
 
