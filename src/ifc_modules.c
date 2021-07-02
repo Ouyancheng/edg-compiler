@@ -4454,7 +4454,12 @@ Process a sequence of IFC scope member declarations.
     /* Load the scope member. */
     read_partition_at_index(ifc_scope_member, seq.start + idx);
     ismp = get_Scope_Member(&ism);
-
+    /* FIXME: We're temporarily limiting ourselves to partial specializations
+       as they are the only specialization we have an implementation for
+       currently. */
+    if (decl_tag(ismp->index) != ifc_DeclSort_PartialSpecialization) {
+      continue;
+    }  /* if */
     /* Get the associated IFC module entity pointer, and then use it to process
        this scope member via process_ifc_declaration. */
     dmep = get_ifc_module_entity_ptr(ismp->index);
