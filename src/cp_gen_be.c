@@ -7953,13 +7953,13 @@ tag, a typedef, or a dependent type.  A reference is not the definition.
       /* The elaborated type specifier is always required in C mode. */
       use_elab_type_spec = TRUE;
     } else if (!type->has_been_declared || type->definition_delayed) {
+      a_const_char *nm;
       if ((gcc_is_generated_code_target || msvc_is_generated_code_target) &&
           type->kind == (a_type_kind)tk_integer &&
           integer_type_is_scoped_enum(type) &&
           is_namespace_member(type) && parent_namespace_of(type)->is_std &&
-          has_name_before_mangling(type) &&
-          strcmp(unmangled_name_of(&type->source_corresp),
-                 "align_val_t") == 0) {
+          (nm = unmangled_name_of(&type->source_corresp),
+           (nm != NULL ? strcmp(nm, "align_val_t") == 0 : FALSE))) {
         /* MSVC and g++ predeclare the name "std::align_val_t". */
         type->has_been_declared = TRUE;
       } else {
