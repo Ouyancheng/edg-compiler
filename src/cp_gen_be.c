@@ -7897,7 +7897,7 @@ tag, a typedef, or a dependent type.  A reference is not the definition.
   } else if (is_tag_type(type) ||
              type->kind == (a_type_kind)tk_template_param) {
     /* A class, struct, union, enum, or dependent type. */
-    a_boolean use_elab_type_spec;
+    a_boolean use_elab_type_spec = FALSE;
     /* In C++, don't use "class X" instead of "X" unless that is required,
        e.g., because there's something else called "X" in the same scope. */
     if (!C_mode() && is_immediate_class_type(type) &&
