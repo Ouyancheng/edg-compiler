@@ -445,6 +445,13 @@ Handle nested structures differently (and check for padding).
                                   GET_KeywordSort((x).value, from_header), \
                                   pad(3))
 
+#define GET_NestableWord(x, from_header) \
+                                 (GET_SourceLocation((x).locus, from_header), \
+                                  GET_Index((x).index, from_header), \
+                                  GET_u16((x).value, from_header), \
+                                  GET_WordSort((x).sort, from_header), \
+                                  pad(1))
+
 /*
 Create get_* functions (which "read" each entity into a structure) for each of
 the IFC entities by setting the IFC_DECL macros appropriately and including
@@ -3744,12 +3751,14 @@ class_struct_union_case:
               il_entity = (char*)parse_cached_template(&cache, mep->scope);
               kind = iek_template;
             }  /* if */
-
-            /* Compute the DeclIndex of the current template, then process
-               the associated specializations. */
-            ifc_DeclIndex decl_idx = decl_index_of(mep->variant.ifc_partition,
-                                                   mep->file_offset);
-            process_template_specializations(decl_idx);
+            {
+              /* Compute the DeclIndex of the current template, then process
+                 the associated specializations. */
+              ifc_DeclIndex decl_idx = decl_index_of(
+                                                    mep->variant.ifc_partition,
+                                                    mep->file_offset);
+              process_template_specializations(decl_idx);
+            }
           }  /* if */
         }
         break;
@@ -3899,11 +3908,15 @@ class_struct_union_case:
               scope_pushed = push_module_declaration_context(mep->scope);
             }  /* if */
             if (idspsp->entity.body != 0) {
+              ifc_DeclIndex decl_idx = decl_index_of(
+                                                    mep->variant.ifc_partition,
+                                                    mep->file_offset);
+
               /* There is a definition of the partial specialization.  Record
                  the resolution of the signature immediately so that the below
                  processing of the definition has access to it. */
               clear_token_cache(&cache, /*reuseable=*/FALSE);
-              cache_decl_partial_specialization(&cache, idspsp);
+              cache_decl_partial_specialization(&cache, decl_idx, idspsp);
               terminate_token_cache(&cache);
               il_entity = (char*)parse_cached_partial_specialization(
                                                                    &cache,
@@ -4467,7 +4480,7 @@ Process a sequence of IFC scope member declarations.
 }  /* process_scope_member_sequence */
 
 
-void an_ifc_module::process_template_specializations(ifc_DeclIndex  decl_idx)
+void an_ifc_module::process_template_specializations(ifc_DeclIndex decl_idx)
                                                                           const
 /*
 Process any template specializations of the template represented by DeclIndex.
@@ -4503,7 +4516,7 @@ Process any template specializations of the template represented by DeclIndex.
     read_partition_at_index(ifc_trait_specialization, partition_idx);
     itsp = get_Trait_Specialization(&its);
     process_scope_member_sequence(itsp->trait);
-  }
+  }  /* if */
 }  /* process_template_specializations */
 
 
@@ -7723,7 +7736,33 @@ Add token(s) corresponding to word to cache.
       break;
     default_is_unexpected_str("Unknown WordSort");
   }  /* switch */
-}  /* add_word_to_cache */
+}  /* cache_word */
+
+
+static inline void translate_word(ifc_NestableWord *nestable_word,
+                                  an_ifc_Word      *word)
+/*
+Convert a NestableWord to a Word.  This works around our need for two different
+word types allowing us to reuse Word routines for NestableWord.
+*/
+{
+  word->locus = nestable_word->locus;
+  word->index = nestable_word->index;
+  word->value = nestable_word->value;
+  word->sort = nestable_word->sort;
+}  /* translate_word */
+
+
+void an_ifc_module::cache_word(a_token_cache_ptr cache,
+                               ifc_NestableWord  *word) const
+/*
+Add token(s) corresponding to word to cache.
+*/
+{
+  an_ifc_Word aiw;
+  translate_word(word, &aiw);
+  cache_word(cache, &aiw);
+}  /* cache_word */
 
 
 uint32_t an_ifc_module::cache_sentence(a_token_cache_ptr cache,
@@ -9689,8 +9728,9 @@ Add the tokens corresponding to the given template declaration (decl) to cache.
 
 
 uint32_t an_ifc_module::cache_decl_partial_specialization_declaration(
-                                   a_token_cache_ptr                     cache,
-                                   an_ifc_DeclSort_PartialSpecialization *decl)
+                                a_token_cache_ptr                     cache,
+                                ifc_DeclIndex                         decl_idx,
+                                an_ifc_DeclSort_PartialSpecialization *decl)
                                                                           const
 /*
 Add the tokens corresponding to the given partial specializations declaration's
@@ -9729,7 +9769,7 @@ is not needed.
          struct/class keyword. */
       cache_type(cache, idstp->type, &decl->locus);
       /* Cache the attributes of the class. */
-      cache_sentence(cache, decl->entity.attributes);
+      cache_attrs(cache, decl_idx);
     } else {
       /* We're reconstructing a variable. */
       ifc_DeclIndex templated_decl_idx = decl->entity.decl;
@@ -9741,7 +9781,7 @@ is not needed.
       read_partition_at_index(templated_decl_idx);
       idsvp = get_DeclSort_Variable(&idsv);
       /* Cache the attributes of the variable. */
-      cache_sentence(cache, decl->entity.attributes);
+      cache_attrs(cache, decl_idx);
       /* Cache the type of the variable we just found. */
       cache_type(cache, idsvp->type, &decl->locus);
     }  /* if */
@@ -9761,8 +9801,9 @@ is not needed.
 
 
 void an_ifc_module::cache_decl_partial_specialization(
-                                   a_token_cache_ptr                     cache,
-                                   an_ifc_DeclSort_PartialSpecialization *decl)
+                                a_token_cache_ptr                     cache,
+                                ifc_DeclIndex                         decl_idx,
+                                an_ifc_DeclSort_PartialSpecialization *decl)
                                                                           const
 /*
 Add the tokens corresponding to the given partial specialization declaration
@@ -9771,6 +9812,7 @@ Add the tokens corresponding to the given partial specialization declaration
 {
   a_boolean decl_only = decl->entity.body == 0;
   uint32_t  offset = cache_decl_partial_specialization_declaration(cache,
+                                                                   decl_idx,
                                                                    decl);
 
   if (!decl_only) {
@@ -9796,6 +9838,83 @@ a template parameter, but in the latter case emit the concept-id.
     cache_expr(cache, constraint);
   }  /* if */
 }  /* cache_type_param_introducer */
+
+
+void an_ifc_module::cache_attr(a_token_cache_ptr cache,
+                               ifc_AttrIndex     attr) const
+/*
+Add the tokens corresponding to the given attribute (attr) to cache.
+*/
+{
+  ifc_AttrSort      tag = attr_tag(attr);
+  a_source_position pos;
+
+  read_partition_at_index(attr);
+  switch (tag) {
+    case ifc_AttrSort_Basic:
+      { an_ifc_AttrSort_Basic iasb, *iasbp;
+        iasbp = get_AttrSort_Basic(&iasb);
+        source_position_from_locus(&pos, &iasbp->word.locus);
+        cache_token(cache, tok_lbracket, &pos);
+        cache_token(cache, tok_lbracket, &pos);
+        cache_word(cache, &iasbp->word);
+        cache_token(cache, tok_rbracket, &pos);
+        cache_token(cache, tok_rbracket, &pos);
+      }
+      break;
+    case ifc_AttrSort_Scoped:
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("AttrSort::Scoped",
+                                  &error_position);
+      break;
+    case ifc_AttrSort_Labeled:
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("AttrSort::Labeled",
+                                  &error_position);
+      break;
+    case ifc_AttrSort_Called:
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("AttrSort::Called",
+                                  &error_position);
+      break;
+    case ifc_AttrSort_Expanded:
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("AttrSort::Expanded",
+                                  &error_position);
+      break;
+    case ifc_AttrSort_Factored:
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("AttrSort::Factored",
+                                  &error_position);
+      break;
+    case ifc_AttrSort_Elaborated:
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("AttrSort::Elaborated",
+                                  &error_position);
+      break;
+    case ifc_AttrSort_Tuple:
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("AttrSort::Tuple",
+                                  &error_position);
+      break;
+  default_is_unexpected_str("Unexpected AttrSort");
+  }  /* switch */
+}  /* cache_attr */
+
+
+void an_ifc_module::cache_attrs(a_token_cache_ptr cache,
+                                ifc_DeclIndex     decl_idx) const
+/*
+Add the tokens corresponding to the attributes of the given declaration at
+decl_idx to cache.
+*/
+{
+  ifc_AttrIndex attr_idx = attr_index_of(decl_idx);
+
+  if (attr_idx != 0) {
+    cache_attr(cache, attr_idx);
+  }  /* if */
+}  /* cache_attrs */
 
 
 void an_ifc_module::cache_decl(a_token_cache_ptr cache,
@@ -11775,6 +11894,51 @@ Return the ifc_DeclIndex derived from the partition kind and file offset.
 }  /* decl_index_of */
 
 
+ifc_AttrIndex an_ifc_module::attr_index_of(ifc_DeclIndex decl_idx) const
+/*
+Search the ".msvc.trait.vendor-traits" partition for any attribute associated
+with a given ifc_DeclIndex (decl_idx).  If a matching attribute is found return
+its ifc_AttrIndex.
+FIXME: Can there be multiple matches?
+*/
+{
+  size_t num_trait_attributes = get_num_entries(ifc_msvc_trait_decl_attrs);
+  /* Provide a value function for retrieving the trait attribute at the
+     given trait specialization partition index. */
+  auto value_lambda = [this](ptrdiff_t idx) {
+    an_ifc_Trait_MsvcDeclAttrs ita, *itap;
+
+    read_partition_at_index(ifc_msvc_trait_decl_attrs, idx);
+    itap = get_Trait_MsvcDeclAttrs(&ita);
+    return itap->decl;
+  };
+  /* Get the partition index (if any) for the given decl index (decl_idx). */
+  ptrdiff_t partition_idx = bin_search(num_trait_attributes, decl_idx,
+                                       value_lambda);
+  /* Setup the return value, default to 0 which represent no result. */
+  ifc_AttrIndex attr_idx = (ifc_AttrIndex)0;
+
+  if (partition_idx != -1) {
+    /* A trait attribute was found for the given decl index (decl_idx).
+       Load the trait attribute (again) to retrieve the trait, then
+       processing the sequence of specializations with
+       process_scope_member_sequence.
+
+       Note that the implementation of bin_search at the time of writing does
+       not guarantee that the last read value is the one who's index is
+       returned.  Thus, we cannot (as an optimization) share a variable with
+       the value_lambda to prevent double reading (though this is unlikely to
+       ever represent a significant cost in terms of CPU time). */
+    an_ifc_Trait_MsvcDeclAttrs ita, *itap;
+
+    read_partition_at_index(ifc_msvc_trait_decl_attrs, partition_idx);
+    itap = get_Trait_MsvcDeclAttrs(&ita);
+    attr_idx = itap->trait;
+  }  /* if */
+  return attr_idx;
+}  /* attr_index_of */
+
+
 inline void an_ifc_module::read_partition_at_offset(
                                                an_ifc_partition_kind partition,
                                                size_t                offset)
@@ -11802,6 +11966,28 @@ GET_short, etc.
 */
 {
   read_partition_at_offset(partition, file_offset_of(partition, index));
+}  /* read_partition_at_index */
+
+
+inline void an_ifc_module::read_partition_at_index(ifc_AttrSort   attr_kind,
+                                                   ifc_Index_type index) const
+/*
+Overload wrapper for "read_partition_at_index" that converts an "ifc_AttrSort"
+kind into an "an_ifc_partition_kind" kind for convenience.
+*/
+{
+  read_partition_at_index((an_ifc_partition_kind)(ifc_attr_start + attr_kind),
+                          index);
+}  /* read_partition_at_index */
+
+
+inline void an_ifc_module::read_partition_at_index(ifc_AttrIndex attr) const
+/*
+Overload wrapper for "read_partition_at_index" that converts an "ifc_AttrIndex"
+into its tag and index components for convenience.
+*/
+{
+  read_partition_at_index(attr_tag(attr), attr_value(attr));
 }  /* read_partition_at_index */
 
 

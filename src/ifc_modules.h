@@ -228,6 +228,21 @@ struct ifc_KeywordSyntax {
   ifc_KeywordSort    value;
 };
 
+/* Words: MSVC "Tokens" (primarily used by Sentences).
+
+   Make sure to update Word (in ifc_map.h) and translate_word (in
+   ifc_modules.c) for any changes made here. */
+struct ifc_NestableWord {
+  ifc_SourceLocation
+		locus;
+  ifc_Index
+		index;
+  uint16_t
+		value;
+  ifc_WordSort
+		sort;
+};  /* ifc_NestableWord */
+
 /*
 Create structures for each of the IFC entities by setting the IFC_DECL macros
 appropriately and including ifc_map.h.  The net result is something like:
@@ -2706,6 +2721,8 @@ private:
   void cache_type_param_introducer(a_token_cache_ptr  cache,
                                    ifc_ExprIndex      constraint,
                                    a_source_position  *pos) const;
+  void cache_attr(a_token_cache_ptr  cache, ifc_AttrIndex attr) const;
+  void cache_attrs(a_token_cache_ptr cache, ifc_DeclIndex decl_idx) const;
   void cache_decl(a_token_cache_ptr  cache,
                   ifc_DeclIndex      decl) const;
   void cache_expr(a_token_cache_ptr cache,
@@ -2745,8 +2762,10 @@ private:
                           uint32_t          offset = 0,
                           a_boolean         look_for_stop_token = FALSE) const;
   a_boolean sentence_is_deleted(ifc_SentenceIndex sentence) const;
-  void cache_word(a_token_cache_ptr     cache,
-                  an_ifc_Word           *word) const;
+  void cache_word(a_token_cache_ptr cache,
+                  an_ifc_Word       *word) const;
+  void cache_word(a_token_cache_ptr cache,
+                  ifc_NestableWord  *word) const;
   void cache_source_directive(a_token_cache_ptr     cache,
                               ifc_SourceDirective   directive,
                               ifc_SourceLocation    *locus) const;
@@ -2781,12 +2800,14 @@ private:
   void cache_decl_template(a_token_cache_ptr        cache,
                            an_ifc_DeclSort_Template *decl) const;
   uint32_t cache_decl_partial_specialization_declaration(
-                                   a_token_cache_ptr                     cache,
-                                   an_ifc_DeclSort_PartialSpecialization *decl)
+                                a_token_cache_ptr                     cache,
+                                ifc_DeclIndex                         decl_idx,
+                                an_ifc_DeclSort_PartialSpecialization *decl)
                                                                          const;
   void cache_decl_partial_specialization(
-                                   a_token_cache_ptr                     cache,
-                                   an_ifc_DeclSort_PartialSpecialization *decl)
+                                a_token_cache_ptr                     cache,
+                                ifc_DeclIndex                         decl_idx,
+                                an_ifc_DeclSort_PartialSpecialization *decl)
                                                                          const;
   void cache_variable_decl(a_token_cache_ptr   cache,
                            a_boolean           is_class_member,
@@ -2824,11 +2845,15 @@ private:
                                ifc_Index_type        index) const;
   inline ifc_DeclIndex decl_index_of(an_ifc_partition_kind partition,
                                      size_t                file_offset) const;
+  inline ifc_AttrIndex attr_index_of(ifc_DeclIndex decl_idx) const;
   inline void read_partition_at_offset(an_ifc_partition_kind partition,
                                        size_t                offset) const;
   inline void read_partition_at_index(an_ifc_partition_kind partition,
                                       ifc_Index_type        index) const;
-  inline void read_partition_at_index(ifc_TypeSort   type_kind,
+  inline void read_partition_at_index(ifc_AttrSort   type_kind,
+                                      ifc_Index_type index) const;
+  inline void read_partition_at_index(ifc_AttrIndex type) const;
+  inline void read_partition_at_index(ifc_TypeSort   attr_kind,
                                       ifc_Index_type index) const;
   inline void read_partition_at_index(ifc_TypeIndex type) const;
   inline void read_partition_at_index(ifc_ExprSort   expr_kind,
