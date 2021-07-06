@@ -2779,7 +2779,7 @@ the scope being pushed.
       /* In some contexts (e.g., modules), the associated scope of the class
          was needed before it was created.  In those contexts, a placeholder
          scope was created - use that scope if it exists. */
-      sp = class_type_supp(assoc_type)->assoc_scope;
+      sp = class_type_supp(assoc_type)->assoc_scope; /*lint !e413*/
       if (sp == NULL) {
         sp = alloc_scope(kind, ssep->number, (a_routine_ptr)NULL);
       } else {
