@@ -1912,11 +1912,14 @@ template, add its instances as well in case they may be needed.
       has_name_before_mangling(targ_type)) {
     a_boolean typedef_added = FALSE;
     a_boolean circular = target_type_has_circularity(type);
-    if (!circular && !entity_name_is_accessible(
-                              &targ_type->source_corresp, iek_type,
-                              /*ignore_context=*/TRUE, &targ_for_all_scopes)) {
+    if (!circular && (type->variant.typeref.is_prototype_instantiation ||
+                      !entity_name_is_accessible(
+                             &targ_type->source_corresp, iek_type,
+                             /*ignore_context=*/TRUE, &targ_for_all_scopes))) {
       /* This typedef can be substituted for the target type when that type
-         is inaccessible.  Add it to the table of such typedefs. */
+         is inaccessible or if it is the prototype instantiation of an
+         alias template, which might be used in a later template
+         definition.  Add it to the table of such typedefs. */
       add_typedef_to(accessible_typedef_hash_table, type);
       typedef_added = TRUE;
     }  /* if */

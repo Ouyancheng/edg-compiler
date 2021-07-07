@@ -1,5 +1,23 @@
 Version 6.3
 
+7/6/21   [EDGcpfe/24496]
+C++-generating back end: variadic alias templates
+
+The changes for EDGcpfe/22430 (in version 6.2) introduced a regression for
+some cases involving variadic alias templates, causing the C++-generating
+back end to use the underlying type of the alias template specialization
+instead of the alias template itself, resulting in generated code that
+could not be compiled.  This is now fixed.  For example,
+
+  template <class...> struct a;
+  template <int I> struct b {
+    using c = void;
+  };
+  template <class... Ts> using d = b<sizeof...(Ts)>;
+  // The following was previously generated as "b<sizeof...(a<Ts>)> ::c":
+  template <class... Ts> using e = typename d<a<Ts>...>::c;
+
+
 7/2/21   [EDGcpfe/23742]
 Multiple translation units: dependent call to variable member of unnamed
 namespace
