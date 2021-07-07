@@ -2850,7 +2850,7 @@ private:
                                        size_t                offset) const;
   inline void read_partition_at_index(an_ifc_partition_kind partition,
                                       ifc_Index_type        index) const;
-  inline void read_partition_at_index(ifc_AttrSort   type_kind,
+  inline void read_partition_at_index(ifc_AttrSort   attr_kind,
                                       ifc_Index_type index) const;
   inline void read_partition_at_index(ifc_AttrIndex type) const;
   inline void read_partition_at_index(ifc_TypeSort   attr_kind,

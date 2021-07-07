@@ -11969,6 +11969,75 @@ GET_short, etc.
 }  /* read_partition_at_index */
 
 
+namespace {
+/*
+Stores an exclusive range from start to end of an_ifc_partition_kinds.
+*/
+struct an_ifc_partition_kind_range {
+  an_ifc_partition_kind start;
+  an_ifc_partition_kind end;
+};  /* an_ifc_partition_kind_range */
+
+/*
+Declare a deleted function that must be specialized via the below macro to
+return the correct an_ifc_partition_kind_range based on a type T.
+*/
+template<typename T>
+inline an_ifc_partition_kind_range get_partition_kind_range() = delete;
+
+
+/*
+Generate a specialization that returns the exclusive range within the
+ifc_partition_kind where a given ifc_SortKind resides.  As this
+transformation is defined both by names in camel and snake case, accept
+both forms of the name.
+
+For example, when SortNameCamel is "Type" and SortNameSnake is "type", the
+following is generated:
+
+  template<>
+  inline an_ifc_partition_kind_range get_partition_kind_range<ifc_TypeSort>()
+  {
+    return {ifc_type_start, ifc_type_end};
+  }
+*/
+#define DEF_KIND_RANGE(SortNameCamel, SortNameSnake) \
+  template<> \
+  inline an_ifc_partition_kind_range get_partition_kind_range< \
+                                            ifc_ ## SortNameCamel ## Sort >() \
+  { \
+    return {ifc_ ## SortNameSnake ## _start, ifc_ ## SortNameSnake ## _end}; \
+  }
+
+
+/* Define the used ranges */
+DEF_KIND_RANGE(Attr, attr)
+DEF_KIND_RANGE(Type, type)
+DEF_KIND_RANGE(Expr, expr)
+DEF_KIND_RANGE(Stmt, stmt)
+DEF_KIND_RANGE(Decl, decl)
+DEF_KIND_RANGE(Name, name)
+DEF_KIND_RANGE(Chart, chart)
+
+/* Undefine the macro to prevent unintended usage. */
+#undef DEF_KIND_RANGE
+
+template<typename T>
+inline an_ifc_partition_kind get_partition_kind(T sort_kind)
+/*
+Return the corresponding an_ifc_partition_kind for a given ifc_Sort_type value
+sort_kind.
+*/
+{
+  an_ifc_partition_kind_range kind_range = get_partition_kind_range<T>();
+  an_ifc_partition_kind kind =
+                         (an_ifc_partition_kind)(kind_range.start + sort_kind);
+  check_assertion(kind <= kind_range.end);
+  return kind;
+}  /* get_partition_kind */
+}  /* namespace */
+
+
 inline void an_ifc_module::read_partition_at_index(ifc_AttrSort   attr_kind,
                                                    ifc_Index_type index) const
 /*
@@ -11976,8 +12045,7 @@ Overload wrapper for "read_partition_at_index" that converts an "ifc_AttrSort"
 kind into an "an_ifc_partition_kind" kind for convenience.
 */
 {
-  read_partition_at_index((an_ifc_partition_kind)(ifc_attr_start + attr_kind),
-                          index);
+  read_partition_at_index(get_partition_kind(attr_kind), index);
 }  /* read_partition_at_index */
 
 
@@ -11998,8 +12066,7 @@ Overload wrapper for "read_partition_at_index" that converts an "ifc_TypeSort"
 kind into an "an_ifc_partition_kind" kind for convenience.
 */
 {
-  read_partition_at_index((an_ifc_partition_kind)(ifc_type_start + type_kind),
-                          index);
+  read_partition_at_index(get_partition_kind(type_kind), index);
 }  /* read_partition_at_index */
 
 
@@ -12020,8 +12087,7 @@ Overload wrapper for "read_partition_at_index" that converts an "ifc_ExprSort"
 kind into an "an_ifc_partition_kind" kind for convenience.
 */
 {
-  read_partition_at_index((an_ifc_partition_kind)(ifc_expr_start + expr_kind),
-                          index);
+  read_partition_at_index(get_partition_kind(expr_kind), index);
 }  /* read_partition_at_index */
 
 
@@ -12042,8 +12108,7 @@ Overload wrapper for "read_partition_at_index" that converts an "ifc_StmtSort"
 kind into an "an_ifc_partition_kind" kind for convenience.
 */
 {
-  read_partition_at_index((an_ifc_partition_kind)(ifc_stmt_start + stmt_kind),
-                          index);
+  read_partition_at_index(get_partition_kind(stmt_kind), index);
 }  /* read_partition_at_index */
 
 
@@ -12064,8 +12129,7 @@ Overload wrapper for "read_partition_at_index" that converts an "ifc_DeclSort"
 kind into an "an_ifc_partition_kind" kind for convenience.
 */
 {
-  read_partition_at_index((an_ifc_partition_kind)(ifc_decl_start + decl_kind),
-                          index);
+  read_partition_at_index(get_partition_kind(decl_kind), index);
 }  /* read_partition_at_index */
 
 
@@ -12087,8 +12151,7 @@ kind into an "an_ifc_partition_kind" kind for convenience.
 */
 {
   if (name_kind != ifc_NameSort_Identifier) {
-    read_partition_at_index((an_ifc_partition_kind)(ifc_name_start+name_kind),
-                            index);
+    read_partition_at_index(get_partition_kind(name_kind), index);
   }  /* if */
 }  /* read_partition_at_index */
 
@@ -12110,8 +12173,7 @@ Overload wrapper for "read_partition_at_index" that converts an "ifc_ChartSort"
 kind into an "an_ifc_partition_kind" kind for convenience.
 */
 {
-  read_partition_at_index((an_ifc_partition_kind)(ifc_chart_start +chart_kind),
-                          index);
+  read_partition_at_index(get_partition_kind(chart_kind), index);
 }  /* read_partition_at_index */
 
 
