@@ -1,5 +1,35 @@
 Version 6.3
 
+7/7/21   [EDGcpfe/24488]
+C++-generating back end, Microsoft compatibility: matching explicit
+specializations of function templates
+
+MSVC has a bug that sometimes fails to match an explicit specialization of
+a function template with its primary template if the explicit
+specialization relies on template argument deduction rather than explicit
+template arguments.  In C++-generating back end configurations with
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE, when
+msvc_is_generated_code_target is TRUE a generated explicit specialization
+was put out without an explicit template argument list if none of the
+references to that template instance in the original source uses explicit
+template arguments.  The generated C++ code could thus trigger the MSVC
+bug.  This has now been addressed by putting out explicit template
+arguments for all generated explicit specializations of function templates
+when msvc_is_generated_code_target is TRUE.  (This was already the case
+when clang_is_generated_code_target is TRUE; see EDGcpfe/21339.)  For
+example, the explicit specialization for the function template "f" in the
+following code resulted in a C2912 "not a specialization of a function
+template" error when MSVC compiled the generated code:
+
+  template<typename T, int V> struct A { };
+  template<typename T, int V, typename = A<T, V>> struct B { };
+  template<typename T, int V> B<T, 2*V> f(B<T, V>&);
+  void g() {
+    B<int,8> bi8;
+    f(bi8);
+  }
+
+
 7/6/21   [EDGcpfe/24496]
 C++-generating back end: variadic alias templates
 

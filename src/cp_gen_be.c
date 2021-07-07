@@ -3798,12 +3798,14 @@ argument list and to FALSE otherwise.
     /* Check for template arguments on a routine, but put them out only if
        explicit template arguments (e.g., f<int>) were used with the name
        at some point in the program or on a generated explicit
-       specialization in clang code; the latter case works around a clang
-       bug that can result in spurious errors if the template arguments are
-       omitted in an explicit specialization declaration. */
+       specialization in clang or Microsoft code; the latter case works
+       around bugs in those compilers that can result in spurious errors if
+       the template arguments are omitted in an explicit specialization
+       declaration. */
     a_routine_ptr rout = (a_routine_ptr)scp;
     if (rout->expl_template_arg_list_used ||
-        (clang_is_generated_code_target &&
+        ((clang_is_generated_code_target ||
+          msvc_is_generated_code_target) &&
          (is_generated_explicit_specialization ||
           (in_friend_declaration &&
            curr_name_context->is_generated_explicit_class_specialization)) &&
@@ -4086,18 +4088,20 @@ defaulted.
         }  /* if */
       }  /* if */
     } else if (entry_kind == iek_routine &&
-               !(clang_is_generated_code_target &&
+               !((clang_is_generated_code_target ||
+                  msvc_is_generated_code_target) &&
                  (is_generated_explicit_specialization ||
                   (in_friend_declaration &&
                    curr_name_context->
                                is_generated_explicit_class_specialization)))) {
       /* Only put out function template arguments if they were explicitly
-         specified anywhere in the translation unit.  Clang has a bug that
-         sometimes requires putting out explicit template arguments for an
-         explicit specialization declaration rather than relying on
-         template argument deduction from the function parameters, so we
-         always put out template arguments for generated explicit
-         specialization declarations when clang is the target. */
+         specified anywhere in the translation unit.  Clang and MSVC have
+         bugs that sometimes require putting out explicit template
+         arguments for an explicit specialization declaration rather than
+         relying on template argument deduction from the function
+         parameters, so we always put out template arguments for generated
+         explicit specialization declarations when one of those compilers
+         is the target. */
       begin_template_arg_list_traversal_simple(tap, &argp);
       for (; argp != NULL && argp->explicitly_specified;
            advance_to_next_template_arg_simple(&argp)) {
