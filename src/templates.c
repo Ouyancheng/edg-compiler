@@ -4948,6 +4948,9 @@ be completed here.
                                             is_ms_instantiated_nonreal_class) {
     /* Don't try to instantiate a template class without real template
        arguments (unless it is a Microsoft instantiated nonreal class). */
+  } else if (cssp->instantiation_in_progress) {
+    /* This particular template class (not just some other one based on
+       the same template) is currently being instantiated. */
   } else if (class_type->variant.class_struct_union.is_specialized) {
     /* This is an attempt to instantiate an incomplete type that is
        explicitly specialized.  Simply ignore the instantiation request. */
@@ -4991,6 +4994,7 @@ be completed here.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     saved_curr_construct_end_position = curr_construct_end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    cssp->instantiation_in_progress = TRUE;
     if (is_literal_token(curr_token)) {
       saved_const_for_curr_token = const_for_curr_token;
       if (curr_token == tok_ud_literal) {
@@ -5051,9 +5055,6 @@ be completed here.
          instantiation is still being processed.  We simply ignore the
          instantiation request which will typically result in an incomplete
          type not allowed error to be issued by the caller. */
-    } else if (cssp->instantiation_in_progress) {
-      /* This particular template class (not just some other one based on
-         the same template) is currently being instantiated. */
     } else if (cssp->being_defined) {
       /* scan_class_definition is already being called for this template class,
          but apparently it's not for an instantiation.  This can happen with
@@ -5110,7 +5111,6 @@ be completed here.
          class template.  It will be decremented when the instantiation is
          complete. */
       ++(tssp->pending_instantiations);
-      cssp->instantiation_in_progress = TRUE;
       if (template_sym->kind == (a_symbol_kind)sk_class_template) {
         /* If this is an instance of a class template (as opposed to a
            nested class of a class template) update the class_template
@@ -5362,7 +5362,6 @@ be completed here.
       flush_past_token_cache_terminator();
       /* Decrement the count of instantiations-in-progress for the current
          class template. */
-      cssp->instantiation_in_progress = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (is_nonreal_instantiation) {
         --(tssp->variant.class_template.pending_nonreal_instantiations);
@@ -5398,6 +5397,7 @@ be completed here.
       /* If the translation unit stack was pushed above, pop it now. */
       if (trans_unit_pushed) pop_translation_unit_stack();
     }  /* if */
+    cssp->instantiation_in_progress = FALSE;
     if (is_literal_token(curr_token)) {
       const_for_curr_token = saved_const_for_curr_token;
       if (curr_token == tok_ud_literal) {
