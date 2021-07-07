@@ -4459,7 +4459,7 @@ Process a sequence of IFC scope member declarations.
 */
 {
   /* Guard this logic behind a feature flag to prevent aborts. */
-  for (size_t idx = 0; idx < seq.cardinality; ++idx) {
+  for (uint32_t idx = 0; idx < seq.cardinality; ++idx) {
     an_ifc_Scope_Member ism, *ismp;
     a_module_entity_ptr dmep;
 
@@ -9855,9 +9855,13 @@ Add the tokens corresponding to the given attribute (attr) to cache.
       { an_ifc_AttrSort_Basic iasb, *iasbp;
         iasbp = get_AttrSort_Basic(&iasb);
         source_position_from_locus(&pos, &iasbp->word.locus);
+        /* Add the beginning "[[". */
         cache_token(cache, tok_lbracket, &pos);
         cache_token(cache, tok_lbracket, &pos);
+        /* Add the text represented by word.  This is generally
+           an identifier, e.g., "deprecated". */
         cache_word(cache, &iasbp->word);
+        /* Add the ending "]]". */
         cache_token(cache, tok_rbracket, &pos);
         cache_token(cache, tok_rbracket, &pos);
       }
@@ -9893,9 +9897,29 @@ Add the tokens corresponding to the given attribute (attr) to cache.
                                   &error_position);
       break;
     case ifc_AttrSort_Tuple:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("AttrSort::Tuple",
-                                  &error_position);
+      /* The IFC says that:
+
+           An AttrIndex reference with tag AttrSort::Tuple denotes a sequence
+           of comma-separated attributes.
+
+         This isn't quite right.  The IFC treats [[foo]] [[bar]] equivalently
+         to [[foo, bar]].  In other words, this is used to represent a group of
+         attributes regardless of syntax.  We could choose to reconstruct the
+         attributes with the latter representation, but to simplify the logic
+         of this function (at least until all AttrSorts are implemented) we use
+         the former representation (as this ensures we don't end up with an
+         empty attribute, i.e., "[[]]"). */
+      { an_ifc_AttrSort_Tuple iast, *iastp;
+        iastp = get_AttrSort_Tuple(&iast);
+        /* Retrieve the attribute indexes from the attribute heap, then recurse
+           to process the attributes at the retrieved indexes. */
+        for (uint32_t idx = 0; idx < iastp->cardinality; ++idx) {
+          ifc_AttrIndex attr_idx =
+                       (ifc_AttrIndex)read_index_from_heap(ifc_heap_attr,
+                                                           iastp->start + idx);
+          cache_attr(cache, attr_idx);
+        }
+      }
       break;
   default_is_unexpected_str("Unexpected AttrSort");
   }  /* switch */
@@ -11899,7 +11923,6 @@ ifc_AttrIndex an_ifc_module::attr_index_of(ifc_DeclIndex decl_idx) const
 Search the ".msvc.trait.vendor-traits" partition for any attribute associated
 with a given ifc_DeclIndex (decl_idx).  If a matching attribute is found return
 its ifc_AttrIndex.
-FIXME: Can there be multiple matches?
 */
 {
   size_t num_trait_attributes = get_num_entries(ifc_msvc_trait_decl_attrs);
