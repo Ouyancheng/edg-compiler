@@ -1,5 +1,23 @@
 Version 6.3
 
+7/7/21   [EDGcpfe/24495]
+C++-generating back end: braced member initializers with explicit
+brace-notation casts
+
+In some cases in which the value of a default member initializer using the
+braced form is an explicit cast that also uses brace notation, the
+C++-generating back end omitted the outer braces, resulting in a syntax
+error when the generated code was compiled.  This is now fixed.  For
+example:
+
+  struct A {
+    constexpr A(float) { }
+  };
+  struct B {
+    A m{ A{0.0F} };  // Previously generated as "m(A{0.0F})"
+  };
+
+
 7/7/21   [EDGcpfe/24488]
 C++-generating back end, Microsoft compatibility: matching explicit
 specializations of function templates

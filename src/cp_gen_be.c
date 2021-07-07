@@ -9783,12 +9783,13 @@ static void gen_field_initializer(a_field_ptr  field)
         /* The initializer will be put out as an expression.  Check to see
            if the expression carries its own braces or not. */
         if (cp->expr->kind == (an_expr_node_kind)enk_temp_init &&
-            cp->expr->variant.init.dynamic_init->is_braced_initializer) {
+            cp->expr->variant.init.dynamic_init->is_braced_initializer &&
+            !cp->expr->variant.init.dynamic_init->is_explicit_cast) {
           /* The braces will come from the expression. */
         } else {
           /* An aggregate expression such as might be the result of a
-             constexpr function invocation: braces must be supplied
-             here. */
+             constexpr function invocation or a cast like T{0}: braces must
+             be supplied here. */
           need_braces = TRUE;
         }  /* if */
       } else {
