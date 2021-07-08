@@ -4387,7 +4387,7 @@ an_ifc_partition_name has internal linkage it's safe to declare the
 specialization here.
 */
 {
-  fprintf(stream, partition_name.name);
+  fprintf(stream, "%s", partition_name.name);
 } /* db_f_print_t */
 #endif /* DEBUG */
 
