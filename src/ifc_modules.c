@@ -9677,14 +9677,12 @@ template declaration's body at which to find the definition, or zero
 if there is no offset/the offset is not needed.
 */
 {
-  a_source_position pos;
   a_type_ptr        type;
   a_non_type_kind   kind;
   uint32_t          offset = 0;
 
-  source_position_from_locus(&pos, &decl->locus);
-  cache_token(cache, tok_template, &pos);
-  cache_chart(cache, decl->chart, &decl->locus);
+  /* Reconstruct the template-head. */
+  cache_template_head(cache, decl->chart, &decl->locus);
   /* FIXME: Handle attributes. */
   type = type_for_type_index(decl->type, &kind);
   check_assertion(type != NULL);
@@ -9704,6 +9702,8 @@ if there is no offset/the offset is not needed.
     cache_sentence(cache, decl->entity.head);
   }  /* if */
   if (add_semicolon) {
+    a_source_position pos;
+    source_position_from_locus(&pos, &decl->locus);
     cache_token(cache, tok_semicolon, &pos);
   }  /* if */
   return offset;
@@ -9737,12 +9737,8 @@ Add the tokens corresponding to the given partial specializations declaration's
 (decl) signature to cache.
 */
 {
-  a_source_position pos;
-
   /* Reconstruct the template-head. */
-  source_position_from_locus(&pos, &decl->locus);
-  cache_token(cache, tok_template, &pos);
-  cache_chart(cache, decl->chart, &decl->locus);
+  cache_template_head(cache, decl->chart, &decl->locus);
   {
     /* Reconstruct the declaration. */
     /* FIXME: Eventually this entire block should be replaceable by a
@@ -9816,9 +9812,13 @@ Add the tokens corresponding to the given partial specializations declaration's
       cache_name(cache, idstp->name, &decl->locus);
       /* Reconstruct the template-argument-list and enclosing angle
          brackets. */
-      cache_token(cache, tok_lt, &pos);
-      cache_expr(cache, ifsp->arguments);
-      cache_token(cache, tok_gt, &pos);
+      {
+        a_source_position pos;
+        source_position_from_locus(&pos, &decl->locus);
+        cache_token(cache, tok_lt, &pos);
+        cache_expr(cache, ifsp->arguments);
+        cache_token(cache, tok_gt, &pos);
+      }
     }
   }
 }  /* cache_decl_partial_specialization_declaration */
@@ -9951,7 +9951,7 @@ void an_ifc_module::cache_attrs(a_token_cache_ptr cache,
                                 ifc_DeclIndex     decl_idx) const
 /*
 Add the tokens corresponding to the attributes of the given declaration at
-decl_idx to cache.
+decl_idx to the cache.
 */
 {
   ifc_AttrIndex attr_idx = attr_index_of(decl_idx);
@@ -9960,6 +9960,22 @@ decl_idx to cache.
     cache_attr(cache, attr_idx);
   }  /* if */
 }  /* cache_attrs */
+
+
+void an_ifc_module::cache_template_head(a_token_cache_ptr cache,
+                                        ifc_ChartIndex    chart_idx,
+                                        ifc_SourceLocation *locus) const
+/*
+Add the tokens corresponding to the template head described by the given
+chart_idx to the cache.
+*/
+{
+  a_source_position pos;
+
+  source_position_from_locus(&pos, locus);
+  cache_token(cache, tok_template, &pos);
+  cache_chart(cache, chart_idx, locus);
+}  /* cache_template_head */
 
 
 void an_ifc_module::cache_decl(a_token_cache_ptr cache,
