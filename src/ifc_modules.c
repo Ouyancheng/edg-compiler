@@ -4381,7 +4381,7 @@ struct an_ifc_partition_name {
 template<>
 void db_f_print_t(FILE *stream, const an_ifc_partition_name &partition_name)
 /*
-Provide a generic printer for an_ifc_partition_name. Note that this
+Provide a generic printer for an_ifc_partition_name.  Note that this
 specialization would normally be predeclared in util.h, however as
 an_ifc_partition_name has internal linkage it's safe to declare the
 specialization here.

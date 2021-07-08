@@ -2090,8 +2090,8 @@ IFC_DECL_END(Sentence)
 
 /* Words: MSVC "Tokens" (primarily used by Sentences).
 
-   Make sure to update NestableWord and GET_NestableWord
-   for any changes made here. */
+   Make sure to update NestableWord (and its supporting logic) for any changes
+   made here. */
 IFC_DECL_START(Word)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(index, Index)
