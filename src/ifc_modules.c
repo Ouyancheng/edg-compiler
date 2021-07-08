@@ -9486,6 +9486,7 @@ the location of the operator.
 
 
 void an_ifc_module::cache_variable_decl(a_token_cache_ptr   cache,
+                                        ifc_DeclIndex       decl_idx,
                                         a_boolean           is_class_member,
                                         ifc_Access          access,
                                         ifc_BasicSpecifiers specifiers,
@@ -9521,13 +9522,14 @@ expression.  locus is the source location for the declaration.
     /* This is a static data member. */
     cache_token(cache, tok_static, &pos);
   }  /* if */
-  cache_object_traits(cache, traits, &pos);
+  cache_attrs(cache, decl_idx);
   if (alignment != 0) {
     cache_token(cache, tok_alignas, &pos);
     cache_token(cache, tok_lparen, &pos);
     cache_expr(cache, alignment);
     cache_token(cache, tok_rparen, &pos);
   }  /* if */
+  cache_object_traits(cache, traits, &pos);
   cache_type_first_pass(cache, type, locus);
   if (name != 0) {
     cache_name(cache, name, locus);
@@ -10016,7 +10018,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         if (is_class_scope(idsvp->home_scope)) {
           access = idsvp->access;
         }  /* if */
-        cache_variable_decl(cache, /*is_class_member=*/FALSE, access,
+        cache_variable_decl(cache, decl, /*is_class_member=*/FALSE, access,
                             idsvp->specifiers, idsvp->traits, idsvp->alignment,
                             idsvp->type, idsvp->name, (ifc_TextOffset)0,
                             (ifc_ExprIndex)0, idsvp->initializer,
@@ -10079,7 +10081,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       { an_ifc_DeclSort_Field idsf, *idsfp;
         idsfp = get_DeclSort_Field(&idsf);
         check_assertion((idsfp->specifiers & ifc_BasicSpecifiers_C) == 0);
-        cache_variable_decl(cache, /*is_class_member=*/TRUE, idsfp->access,
+        cache_variable_decl(cache, decl, /*is_class_member=*/TRUE, idsfp->access,
                             idsfp->specifiers, idsfp->traits, idsfp->alignment,
                             idsfp->type, (ifc_NameIndex)0, idsfp->name,
                             (ifc_ExprIndex)0, idsfp->initializer,
@@ -10091,8 +10093,8 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         idsbfp = get_DeclSort_Bitfield(&idsbf);
         check_assertion((idsbfp->specifiers & ifc_BasicSpecifiers_C) == 0);
         check_assertion(idsbfp->width != 0);
-        cache_variable_decl(cache, /*is_class_member=*/TRUE, idsbfp->access,
-                            idsbfp->specifiers, idsbfp->traits,
+        cache_variable_decl(cache, decl, /*is_class_member=*/TRUE,
+                            idsbfp->access, idsbfp->specifiers, idsbfp->traits,
                             (ifc_ExprIndex)0, idsbfp->type, (ifc_NameIndex)0,
                             idsbfp->name, idsbfp->width, idsbfp->initializer,
                             &idsbfp->locus);

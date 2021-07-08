@@ -2813,6 +2813,7 @@ private:
                                 an_ifc_DeclSort_PartialSpecialization *decl)
                                                                          const;
   void cache_variable_decl(a_token_cache_ptr   cache,
+                           ifc_DeclIndex       decl_idx,
                            a_boolean           is_class_member,
                            ifc_Access          access,
                            ifc_BasicSpecifiers specifiers,
