@@ -9727,20 +9727,17 @@ Add the tokens corresponding to the given template declaration (decl) to cache.
 }  /* cache_decl_template */
 
 
-uint32_t an_ifc_module::cache_decl_partial_specialization_declaration(
+void an_ifc_module::cache_decl_partial_specialization_declaration(
                                 a_token_cache_ptr                     cache,
                                 ifc_DeclIndex                         decl_idx,
                                 an_ifc_DeclSort_PartialSpecialization *decl)
                                                                           const
 /*
 Add the tokens corresponding to the given partial specializations declaration's
-(decl) signature to cache.  Return the offset into the partial specialization's
-body at which to find the definition, or zero if there is no offset/the offset
-is not needed.
+(decl) signature to cache.
 */
 {
   a_source_position pos;
-  uint32_t          offset = 0;
 
   /* Reconstruct the template-head. */
   source_position_from_locus(&pos, &decl->locus);
@@ -9748,45 +9745,73 @@ is not needed.
   cache_chart(cache, decl->chart, &decl->locus);
   {
     /* Reconstruct the declaration. */
-    a_type_ptr               type;
-    a_non_type_kind          kind;
-    an_ifc_Form_Spec         ifs, *ifsp;
-    an_ifc_DeclSort_Template idst, *idstp;
+    /* FIXME: Eventually this entire block should be replaceable by a
+       cache_decl call (due to problems in the IFC -- namely the templated decl
+       having a mangled NameSort Identifier name instead of a NameSort
+       Specialization -- this is not yet possible). */
+    ifc_DeclIndex templated_decl_idx = decl->entity.decl;
 
-    /* Load the specialization form. */
-    read_partition_at_index(decl->form);
-    ifsp = get_Form_Spec(&ifs);
-    /* Load the declaration of the primary definition. */
-    read_partition_at_index(ifsp->primary_template);
-    idstp = get_DeclSort_Template(&idst);
-    /* Load the type from the declaration to determine what we're
-       generating. */
-    type = type_for_type_index(idstp->type, &kind);
-    check_assertion(type != NULL);
-    if (is_class_struct_union_type(type)) {
-      /* We're reconstructing a class. */
-      /* FIXME: This is a hack, we're caching the parent type to get
-         struct/class keyword. */
-      cache_type(cache, idstp->type, &decl->locus);
-      /* Cache the attributes of the class. */
-      cache_attrs(cache, decl_idx);
-    } else {
-      /* We're reconstructing a variable. */
-      ifc_DeclIndex templated_decl_idx = decl->entity.decl;
-      an_ifc_DeclSort_Variable idsv, *idsvp;
+    /* Read the partition for the templated declaration. */
+    read_partition_at_index(templated_decl_idx);
+    /* Add the declaration's introducing tokens. */
+    switch (decl_tag(templated_decl_idx)) {
+      case ifc_DeclSort_Scope:
+        { /* We're reconstructing a class. */
+          an_ifc_DeclSort_Scope idss, *idssp;
 
-      /* Verify the templated decl index is a variable, then read the variable
-         so we can get the type of our variable partial specialization. */
-      check_assertion(decl_tag(templated_decl_idx) == ifc_DeclSort_Variable);
-      read_partition_at_index(templated_decl_idx);
-      idsvp = get_DeclSort_Variable(&idsv);
-      /* Cache the attributes of the variable. */
-      cache_attrs(cache, decl_idx);
-      /* Cache the type of the variable we just found. */
-      cache_type(cache, idsvp->type, &decl->locus);
-    }  /* if */
+          idssp = get_DeclSort_Scope(&idss);
+#if DEBUG
+          {
+            /* Validate the scope to ensure it's a class or struct as we
+               expect. */
+            an_ifc_TypeSort_Fundamental itsf, *itsfp;
+
+            check_assertion(type_tag(idssp->type) == ifc_TypeSort_Fundamental);
+            read_partition_at_index(ifc_type_fundamental,
+                                    type_value(idssp->type));
+            itsfp = get_TypeSort_Fundamental(&itsf);
+            switch (itsfp->basis) {
+              case ifc_TypeBasis_Class:
+              case ifc_TypeBasis_Struct:
+                break;
+              default_is_unexpected_str("Unexpected TypeSort");
+            }  /* switch */
+          }
+#endif /* DEBUG */
+          /* Cache the struct/class keyword. */
+          cache_type(cache, idssp->type, &decl->locus);
+          /* Cache the attributes of the class. */
+          cache_attrs(cache, decl_idx);
+        }
+        break;
+      case ifc_DeclSort_Variable:
+        { /* We're reconstructing a variable. */
+          an_ifc_DeclSort_Variable idsv, *idsvp;
+
+          idsvp = get_DeclSort_Variable(&idsv);
+          /* Cache the attributes of the variable. */
+          cache_attrs(cache, decl_idx);
+          /* Cache the type of the variable we just found. */
+          cache_type(cache, idsvp->type, &decl->locus);
+        }
+        break;
+      default_is_unexpected_str("Unexpected DeclSort");
+    }  /* switch */
     /* Use the specialization form to reconstruct the simple-template-id. */
     {
+      /* FIXME: At the time of writing the name used by the templated
+         declaration is mangled due to a MSVC bug, as a result we must extract
+         the name from the primary definition's declaration. */
+      an_ifc_Form_Spec         ifs, *ifsp;
+      an_ifc_DeclSort_Template idst, *idstp;
+
+      /* Load the specialization form to figure out what the primary
+         definition's declaration is. */
+      read_partition_at_index(decl->form);
+      ifsp = get_Form_Spec(&ifs);
+      /* Load the declaration of the primary definition. */
+      read_partition_at_index(ifsp->primary_template);
+      idstp = get_DeclSort_Template(&idst);
       /* Reconstruct the template-name. */
       cache_name(cache, idstp->name, &decl->locus);
       /* Reconstruct the template-argument-list and enclosing angle
@@ -9796,7 +9821,6 @@ is not needed.
       cache_token(cache, tok_gt, &pos);
     }
   }
-  return offset;
 }  /* cache_decl_partial_specialization_declaration */
 
 
@@ -9810,13 +9834,10 @@ Add the tokens corresponding to the given partial specialization declaration
 (decl) to cache.
 */
 {
-  a_boolean decl_only = decl->entity.body == 0;
-  uint32_t  offset = cache_decl_partial_specialization_declaration(cache,
-                                                                   decl_idx,
-                                                                   decl);
-
-  if (!decl_only) {
-    (void)cache_sentence(cache, decl->entity.body, offset);
+  cache_decl_partial_specialization_declaration(cache, decl_idx, decl);
+  if (decl->entity.body != 0) {
+    /* We have a body for this declaration, cache it. */
+    (void)cache_sentence(cache, decl->entity.body);
   }  /* if */
 }  /* cache_decl_partial_specialization */
 
