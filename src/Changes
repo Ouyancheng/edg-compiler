@@ -1,5 +1,20 @@
 Version 6.3
 
+7/8/21   [EDGcpfe/24497]
+GNU/Clang compatibility: Standard attributes with leading and trailing "__"
+
+Attribute names that begin and end with "__" now have those underscores
+stripped (in GNU and Clang emulation modes) when those attribute names appear
+in a standard attribute context (previously such stripping only occurred in a
+GNU-specific __attribute(()) context).  For example (with --g++ --c++20):
+
+  int y [[__deprecated__]];
+  [[__nodiscard__]] int f() { return 0; }
+  struct S {
+    [[__no_unique_address__]] int x;
+  };
+
+
 7/7/21   [EDGcpfe/24495]
 C++-generating back end: braced member initializers with explicit
 brace-notation casts

@@ -1485,15 +1485,17 @@ static an_attr_name_map_entry_ptr *lookup_attribute_name(
                                                     an_attribute_family family)
 /*
 Look up name in the attr_name_map hash table (which is initialized if this
-is its first use).  If family is af_gnu (or af_has_cpp_attribute), the optional
-leading and trailing "__" is stripped before looking up the name.  Return the
-result of the lookup.
+is its first use).  In some (mainly GNU-specific) cases an optional leading and
+trailing "__" is stripped before looking up the name.  Return the result of the
+lookup.
 */
 {
   char buf[MAX_ATTRIBUTE_NAME_LENGTH + 1];
 
-  if ((family == af_gnu || family == af_has_cpp_attribute) &&
-       name[0] == '_' && name[1] == '_') {
+  if ((family == af_gnu ||
+       family == af_has_cpp_attribute ||
+       (family == af_std && gnu_mode)) &&
+      name[0] == '_' && name[1] == '_') {
     /* Strip leading and trailing "__" if the result would be neither empty
        nor too long. */
     sizeof_t len = strlen(name);
