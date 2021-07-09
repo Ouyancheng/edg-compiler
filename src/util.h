@@ -1844,7 +1844,7 @@ Provide a generic printing interface for generic function diagnostics.
 */
 {
   fprintf(stream, "unspecified");
-}
+}  /* db_f_print_t */
 #endif /* DEBUG */
 
 
@@ -1877,7 +1877,7 @@ binary search.
   /* Fail loudly if anything is not ordered correctly, delayed so multiple
      order errors can be reported first. */
   check_assertion(!any_out_of_order);
-}
+}  /* validate_elements_in_order */
 #endif /* EXPENSIVE_CHECKING */
 
 
@@ -1886,8 +1886,8 @@ inline ptrdiff_t lower_bound(ptrdiff_t    num_elements,
                              const T      &value,
                              a_value_fn_T value_fn)
 /*
-Search for the first element in a container of num_elements elements, that is
-not less than (i.e. greater or equal to) value using value_fn to retrieve
+Search for the first element in a container of num_elements elements that is
+not less than (i.e., greater or equal to) value using value_fn to retrieve
 values at a given index.  value_fn should take a ptrdiff_t argument
 representing a given index into the container, and return the value of type T
 at that index.  Return the index of said element or -1 if no such element is
@@ -1917,15 +1917,15 @@ found.
          value to our immediate right the new best candidate.
 
          The best candidate and starting search positions are algorithmically
-         equivalent (begin_idx is the largest value we know of that was
+         equivalent. begin_idx is the largest value we know of that was
          preceded by a value smaller than our target value.  Thus, it's both
          our best current answer to the lower bound, and the earliest point we
-         will need to check going forward).  Therefore, update begin_idx with
+         will need to check going forward.  Therefore, update begin_idx with
          this new best candidate index.
 
          Since this algorithm works with a rolling count of elements rather
          than indexes, we need to subtract the number of elements we just
-         removed (i.e. our midpoint index + 1 to make the count inclusive).
+         removed (i.e., our midpoint index + 1) to make the count inclusive.
          Note that since we may have an even or odd count, we can't do a blind
          assignment of curr_size / 2 (inflates the count when even) or
          curr_size / 2 - 1 (deflates the count when odd) without adding an
@@ -1965,14 +1965,15 @@ inline ptrdiff_t array_lower_bound(T         *t_start,
                                    const T   &value)
 /*
 Search for the first element in an array of num_elements elements beginning at
-t_start, that is not less than (i.e. greater or equal to) value.  Return the
+t_start, that is not less than (i.e., greater or equal to) value.  Return the
 index of said element or -1 if no such element is found.
 */
 {
-  return lower_bound(num_elements, value, [t_start](ptrdiff_t idx) {
+  auto read_array_element_at = [t_start](ptrdiff_t idx) {
     return *(t_start + idx);
-  });
-}  /* lower_bound */
+  };
+  return lower_bound(num_elements, value, read_array_element_at);
+}  /* array_lower_bound */
 
 
 template<typename T, typename a_value_fn_T>
@@ -1980,7 +1981,7 @@ inline ptrdiff_t bin_search(ptrdiff_t    num_elements,
                             const T      &value,
                             a_value_fn_T value_fn)
 /*
-Search for the first element in a container of num_elements elements, that is
+Search for the first element in a container of num_elements elements that is
 equal to value using value_fn to retrieve values at a given index.  value_fn
 should take a ptrdiff_t argument representing a given index into the container,
 and return the value of type T at that index.  Return the index of said element
@@ -2012,10 +2013,11 @@ t_start, that is equal to value.  Return the index of said element or -1 if no
 such element is found.
 */
 {
-  return bin_search(num_elements, value, [t_start](ptrdiff_t idx) {
+  auto read_array_element_at = [t_start](ptrdiff_t idx) {
     return *(t_start + idx);
-  });
-}  /* bin_search */
+  };
+  return bin_search(num_elements, value, read_array_element_at);
+}  /* array_bin_search */
 
 
 inline uintptr_t hash_ptr(void  *ptr)

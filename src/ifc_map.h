@@ -1986,9 +1986,10 @@ IFC_DECL_END(FormSort_Junk)
 
 /* Form::Spec */
 /* This represents the value retrieved from a FormSpecIndex in the "form.spec"
-   partition.  This partition is not documented as of IFC 31, and this decl is
-   constructed via information received from Gaby via email.  The name of the
-   IFC Decl will probably change after documentation. */
+   partition.  This partition is not documented as of IFC 0.31, and this decl
+   is constructed via information received via email.  The name of the IFC Decl
+   will probably change after documentation. */
+/* FIXME: Check later versions of the IFC for an official name. */
 IFC_DECL_START(Form_Spec)
   /* Gaby called this "template", however we're using primary_template to avoid
      keyword conflicts. */

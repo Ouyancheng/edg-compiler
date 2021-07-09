@@ -4396,7 +4396,9 @@ static void validate_ifc_partition_map(
                                 an_ifc_partition_map *map_ptr,
                                 uint32_t             num_searchable_partitions)
 /*
-Validate that the state of the partition map for binary search.
+Validate the state of the partition map for binary search, ensuring that
+nameless partitions are at the end of the partition map and that all nameless
+partitions are omitted from the search.
 */
 {
   uint32_t num_partitions = ifc_last + 1;
@@ -4406,11 +4408,11 @@ Validate that the state of the partition map for binary search.
     if (map_ptr->name == NULL) {
       ++num_nameless_partitions;
     } else {
-      /* Assert that we have no nameless partitions to ensure, we didn't see a
+      /* Assert that we have no nameless partitions, to ensure we didn't see a
          partition without a name followed by a partition with a name.  This in
          effect verifies any nameless partitions are at the end of the map. */
       check_assertion(num_nameless_partitions == 0);
-    }
+    }  /* if */
     ++map_ptr;
   }  /* for */
   /* Verify that we're skipping the correct number of nameless partitions. */
@@ -4458,7 +4460,6 @@ void an_ifc_module::process_scope_member_sequence(ifc_Sequence seq) const
 Process a sequence of IFC scope member declarations.
 */
 {
-  /* Guard this logic behind a feature flag to prevent aborts. */
   for (uint32_t idx = 0; idx < seq.cardinality; ++idx) {
     an_ifc_Scope_Member ism, *ismp;
     a_module_entity_ptr dmep;
@@ -4476,14 +4477,14 @@ Process a sequence of IFC scope member declarations.
        this scope member via process_ifc_declaration. */
     dmep = get_ifc_module_entity_ptr(ismp->index);
     process_ifc_declaration(dmep, /*defer=*/FALSE, (a_type_ptr)NULL);
-  }
+  }  /* for */
 }  /* process_scope_member_sequence */
 
 
 void an_ifc_module::process_template_specializations(ifc_DeclIndex decl_idx)
                                                                           const
 /*
-Process any template specializations of the template represented by DeclIndex.
+Process any specializations of the template represented by decl_idx.
 */
 {
   size_t num_trait_specializations = get_num_entries(ifc_trait_specialization);
@@ -4496,18 +4497,17 @@ Process any template specializations of the template represented by DeclIndex.
     itsp = get_Trait_Specialization(&its);
     return itsp->decl;
   };
-  /* Get the partition index (if any) for the given decl index (decl_idx). */
+  /* Get the partition index (if any) for decl_idx. */
   ptrdiff_t partition_idx = bin_search(num_trait_specializations, decl_idx,
                                        value_lambda);
 
   if (partition_idx != -1) {
-    /* A trait specialization was found for the given decl index (decl_idx).
-       Load the trait specialization (again) to retrieve the trait, then
-       processing the sequence of specializations with
-       process_scope_member_sequence.
+    /* A trait specialization was found for decl_idx.  Load the trait
+       specialization (again) to retrieve the trait, then process the sequence
+       of specializations with process_scope_member_sequence.
 
        Note that the implementation of bin_search at the time of writing does
-       not guarantee that the last read value is the one who's index is
+       not guarantee that the last read value is the one whose index is
        returned.  Thus, we cannot (as an optimization) share a variable with
        the value_lambda to prevent double reading (though this is unlikely to
        ever represent a significant cost in terms of CPU time). */
@@ -4566,7 +4566,7 @@ Return the number of entries in a given partition.
   if (partitions[partition].entry_size != 0) {
     num_entries = partitions[partition].size /
                   partitions[partition].entry_size;
-  }
+  }  /* if */
   return num_entries;
 }  /* get_num_entries */
 
@@ -9499,14 +9499,14 @@ void an_ifc_module::cache_variable_decl(a_token_cache_ptr   cache,
                                         ifc_ExprIndex       initializer,
                                         ifc_SourceLocation  *locus) const
 /*
-Add the tokens corresponding to the given variable declaration to cache.
-is_class_member is TRUE if this is a non-static data member of a class.
-access, specifiers, traits, alignment, and type are values from the IFC file
-that describe the variable declaration.  Both name and raw_name provide the
-name of the variable - if name is zero, raw_name must be non-zero.  If width is
-not zero, this is a bitfield and width is its size.  If the variable has an
-initializer then initializer is non-zero and refers to the initializer
-expression.  locus is the source location for the declaration.
+Add the tokens corresponding to the given variable declaration (indexed in the
+IFC by decl_idx) to cache.  is_class_member is TRUE if this is a non-static
+data member of a class.  access, specifiers, traits, alignment, and type are
+values from the IFC file that describe the variable declaration.  Both name and
+raw_name provide the name of the variable - if name is zero, raw_name must be
+non-zero.  If width is not zero, this is a bitfield and width is its size.  If
+the variable has an initializer then initializer is non-zero and refers to the
+initializer expression.  locus is the source location for the declaration.
 */
 {
   a_source_position pos;
@@ -9643,12 +9643,11 @@ uint32_t an_ifc_module::try_cache_class_attributes_from_body(
                                                ifc_SentenceIndex body_sentence)
                                                                           const
 /*
-MSVC puts attributes for class templates as part of the body_sentence.  As
-attributes these need to go before the identifier for class templates and
-partial specializations of said class templates, if any attributes are present,
-this function caches the attributes into the given cache.  It then returns the
-actual offset into the body_sentence where the brace wrapped
-member-specification can be found (for use by later processing).
+MSVC puts attributes for class templates as part of the body_sentence.  This
+function caches those attributes independently (so that they can be placed
+prior to the identifier). The return value is the new offset into the body
+sentence where the brace-wrapped member-specification can be found (for use by
+later processing).
 */
 {
   uint32_t offset = 0;
@@ -9661,9 +9660,9 @@ member-specification can be found (for use by later processing).
                             /*look_for_stop_token=*/TRUE);
     clear_stop_tokens();
     pop_stop_token_stack();
-  }
+  }  /* if */
   return offset;
-}
+}  /* try_cache_class_attributes_from_body */
 
 
 uint32_t an_ifc_module::cache_decl_template_declaration(
@@ -9729,14 +9728,52 @@ Add the tokens corresponding to the given template declaration (decl) to cache.
 }  /* cache_decl_template */
 
 
+void an_ifc_module::cache_specialization_simple_template_id(
+                                                   a_token_cache_ptr  cache,
+                                                   ifc_FormSpecIndex  form_idx,
+                                                   ifc_SourceLocation *locus)
+                                                                         const
+/*
+Add the tokens for a specialization's simple-template-id via the
+specialization's form spec (form_idx) to the cache.  locus is the location of
+the specialization.
+*/
+{
+  /* FIXME: At the time of writing the name used by the templated
+     declaration is mangled due to a MSVC bug, as a result we must extract
+     the name from the primary template's declaration. */
+  an_ifc_Form_Spec         ifs, *ifsp;
+  an_ifc_DeclSort_Template idst, *idstp;
+
+  /* Load the specialization form to figure out what the primary
+     template's declaration is. */
+  read_partition_at_index(form_idx);
+  ifsp = get_Form_Spec(&ifs);
+  /* Load the declaration of the primary template. */
+  read_partition_at_index(ifsp->primary_template);
+  idstp = get_DeclSort_Template(&idst);
+  /* Reconstruct the template-name. */
+  cache_name(cache, idstp->name, locus);
+  /* Reconstruct the template-argument-list and enclosing angle
+     brackets. */
+  {
+    a_source_position pos;
+    source_position_from_locus(&pos, locus);
+    cache_token(cache, tok_lt, &pos);
+    cache_expr(cache, ifsp->arguments);
+    cache_token(cache, tok_gt, &pos);
+  }
+}  /* cache_specialization_simple_template_id */
+
+
 void an_ifc_module::cache_decl_partial_specialization_declaration(
                                 a_token_cache_ptr                     cache,
                                 ifc_DeclIndex                         decl_idx,
                                 an_ifc_DeclSort_PartialSpecialization *decl)
                                                                           const
 /*
-Add the tokens corresponding to the given partial specializations declaration's
-(decl) signature to cache.
+Add the tokens corresponding to the given partial specialization declaration
+(decl indexed in the IFC by decl_idx) to cache.
 */
 {
   /* Reconstruct the template-head. */
@@ -9751,7 +9788,6 @@ Add the tokens corresponding to the given partial specializations declaration's
 
     /* Read the partition for the templated declaration. */
     read_partition_at_index(templated_decl_idx);
-    /* Add the declaration's introducing tokens. */
     switch (decl_tag(templated_decl_idx)) {
       case ifc_DeclSort_Scope:
         { /* We're reconstructing a class. */
@@ -9772,7 +9808,8 @@ Add the tokens corresponding to the given partial specializations declaration's
               case ifc_TypeBasis_Class:
               case ifc_TypeBasis_Struct:
                 break;
-              default_is_unexpected_str("Unexpected TypeSort");
+              default:
+                unexpected_condition_str("Unexpected TypeSort");
             }  /* switch */
           }
 #endif /* DEBUG */
@@ -9780,6 +9817,9 @@ Add the tokens corresponding to the given partial specializations declaration's
           cache_type(cache, idssp->type, &decl->locus);
           /* Cache the attributes of the class. */
           cache_attrs(cache, decl_idx);
+          /* Cache the simple-template-id. */
+          cache_specialization_simple_template_id(cache, decl->form,
+                                                  &decl->locus);
         }
         break;
       case ifc_DeclSort_Variable:
@@ -9789,39 +9829,20 @@ Add the tokens corresponding to the given partial specializations declaration's
           idsvp = get_DeclSort_Variable(&idsv);
           /* Cache the attributes of the variable. */
           cache_attrs(cache, decl_idx);
-          /* Cache the type of the variable we just found. */
-          cache_type(cache, idsvp->type, &decl->locus);
+          /* Cache the tokens for the variable type that precede the
+             simple-template-id. */
+          cache_type_first_pass(cache, idsvp->type, &idsvp->locus);
+          /* Cache the simple-template-id. */
+          cache_specialization_simple_template_id(cache, decl->form,
+                                                  &decl->locus);
+          /* Cache the tokens for the variable type that follow the
+             simple-template-id (if any). */
+          cache_type_second_pass(cache, idsvp->type, &idsvp->locus);
         }
         break;
-      default_is_unexpected_str("Unexpected DeclSort");
+      default:
+        unexpected_condition_str("Unexpected DeclSort");
     }  /* switch */
-    /* Use the specialization form to reconstruct the simple-template-id. */
-    {
-      /* FIXME: At the time of writing the name used by the templated
-         declaration is mangled due to a MSVC bug, as a result we must extract
-         the name from the primary definition's declaration. */
-      an_ifc_Form_Spec         ifs, *ifsp;
-      an_ifc_DeclSort_Template idst, *idstp;
-
-      /* Load the specialization form to figure out what the primary
-         definition's declaration is. */
-      read_partition_at_index(decl->form);
-      ifsp = get_Form_Spec(&ifs);
-      /* Load the declaration of the primary definition. */
-      read_partition_at_index(ifsp->primary_template);
-      idstp = get_DeclSort_Template(&idst);
-      /* Reconstruct the template-name. */
-      cache_name(cache, idstp->name, &decl->locus);
-      /* Reconstruct the template-argument-list and enclosing angle
-         brackets. */
-      {
-        a_source_position pos;
-        source_position_from_locus(&pos, &decl->locus);
-        cache_token(cache, tok_lt, &pos);
-        cache_expr(cache, ifsp->arguments);
-        cache_token(cache, tok_gt, &pos);
-      }
-    }
   }
 }  /* cache_decl_partial_specialization_declaration */
 
@@ -9833,7 +9854,7 @@ void an_ifc_module::cache_decl_partial_specialization(
                                                                           const
 /*
 Add the tokens corresponding to the given partial specialization declaration
-(decl) to cache.
+(decl indexed in the IFC by decl_idx) to cache.
 */
 {
   cache_decl_partial_specialization_declaration(cache, decl_idx, decl);
@@ -9920,18 +9941,18 @@ Add the tokens corresponding to the given attribute (attr) to cache.
                                   &error_position);
       break;
     case ifc_AttrSort_Tuple:
-      /* The IFC says that:
+      /* The IFC specification states:
 
            An AttrIndex reference with tag AttrSort::Tuple denotes a sequence
            of comma-separated attributes.
 
-         This isn't quite right.  The IFC treats [[foo]] [[bar]] equivalently
-         to [[foo, bar]].  In other words, this is used to represent a group of
-         attributes regardless of syntax.  We could choose to reconstruct the
-         attributes with the latter representation, but to simplify the logic
-         of this function (at least until all AttrSorts are implemented) we use
-         the former representation (as this ensures we don't end up with an
-         empty attribute, i.e., "[[]]"). */
+         This isn't quite right, and in the binary IFC files [[foo]] [[bar]] is
+         treated equivalently to [[foo, bar]].  In other words, this is used to
+         represent a group of attributes regardless of syntax.  We could choose
+         to reconstruct the attributes with the latter representation, but to
+         simplify the logic of this function (at least until all AttrSorts are
+         implemented) we use the former representation (as this ensures we
+         don't end up with an empty attribute, i.e., "[[]]"). */
       { an_ifc_AttrSort_Tuple iast, *iastp;
         iastp = get_AttrSort_Tuple(&iast);
         /* Retrieve the attribute indexes from the attribute heap, then recurse
@@ -9941,7 +9962,7 @@ Add the tokens corresponding to the given attribute (attr) to cache.
                        (ifc_AttrIndex)read_index_from_heap(ifc_heap_attr,
                                                            iastp->start + idx);
           cache_attr(cache, attr_idx);
-        }
+        }  /* for */
       }
       break;
   default_is_unexpected_str("Unexpected AttrSort");
@@ -9964,12 +9985,13 @@ decl_idx to the cache.
 }  /* cache_attrs */
 
 
-void an_ifc_module::cache_template_head(a_token_cache_ptr cache,
-                                        ifc_ChartIndex    chart_idx,
+void an_ifc_module::cache_template_head(a_token_cache_ptr  cache,
+                                        ifc_ChartIndex     chart_idx,
                                         ifc_SourceLocation *locus) const
 /*
 Add the tokens corresponding to the template head described by the given
-chart_idx to the cache.
+chart_idx to the cache.  locus is the location of the associated template or
+specialization.
 */
 {
   a_source_position pos;
@@ -10081,10 +10103,10 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       { an_ifc_DeclSort_Field idsf, *idsfp;
         idsfp = get_DeclSort_Field(&idsf);
         check_assertion((idsfp->specifiers & ifc_BasicSpecifiers_C) == 0);
-        cache_variable_decl(cache, decl, /*is_class_member=*/TRUE, idsfp->access,
-                            idsfp->specifiers, idsfp->traits, idsfp->alignment,
-                            idsfp->type, (ifc_NameIndex)0, idsfp->name,
-                            (ifc_ExprIndex)0, idsfp->initializer,
+        cache_variable_decl(cache, decl, /*is_class_member=*/TRUE,
+                            idsfp->access, idsfp->specifiers, idsfp->traits,
+                            idsfp->alignment, idsfp->type, (ifc_NameIndex)0,
+                            idsfp->name, (ifc_ExprIndex)0, idsfp->initializer,
                             &idsfp->locus);
       }
       break;
@@ -11974,20 +11996,19 @@ its ifc_AttrIndex.
     itap = get_Trait_MsvcDeclAttrs(&ita);
     return itap->decl;
   };
-  /* Get the partition index (if any) for the given decl index (decl_idx). */
+  /* Get the partition index (if any) for decl_idx. */
   ptrdiff_t partition_idx = bin_search(num_trait_attributes, decl_idx,
                                        value_lambda);
-  /* Setup the return value, default to 0 which represent no result. */
+  /* Set up the return value, default to 0 which represents no result. */
   ifc_AttrIndex attr_idx = (ifc_AttrIndex)0;
 
   if (partition_idx != -1) {
-    /* A trait attribute was found for the given decl index (decl_idx).
-       Load the trait attribute (again) to retrieve the trait, then
-       processing the sequence of specializations with
-       process_scope_member_sequence.
+    /* A trait attribute was found for decl_idx.  Load the trait attribute
+       (again) to retrieve the trait, then processing the sequence of
+       specializations with process_scope_member_sequence.
 
        Note that the implementation of bin_search at the time of writing does
-       not guarantee that the last read value is the one who's index is
+       not guarantee that the last read value is the one whose index is
        returned.  Thus, we cannot (as an optimization) share a variable with
        the value_lambda to prevent double reading (though this is unlikely to
        ever represent a significant cost in terms of CPU time). */
