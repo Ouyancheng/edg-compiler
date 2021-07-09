@@ -1991,8 +1991,8 @@ IFC_DECL_END(FormSort_Junk)
    will probably change after documentation. */
 /* FIXME: Check later versions of the IFC for an official name. */
 IFC_DECL_START(Form_Spec)
-  /* Gaby called this "template", however we're using primary_template to avoid
-     keyword conflicts. */
+  /* This was specified as "template" in the aforementioned email, however
+     we're using primary_template to avoid keyword conflicts. */
   IFC_DECL_FIELD(primary_template, DeclIndex)
   IFC_DECL_FIELD(arguments, ExprIndex)
 IFC_DECL_END(Source_Line)

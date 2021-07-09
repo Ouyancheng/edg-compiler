@@ -9645,7 +9645,7 @@ uint32_t an_ifc_module::try_cache_class_attributes_from_body(
 /*
 MSVC puts attributes for class templates as part of the body_sentence.  This
 function caches those attributes independently (so that they can be placed
-prior to the identifier). The return value is the new offset into the body
+prior to the identifier).  The return value is the new offset into the body
 sentence where the brace-wrapped member-specification can be found (for use by
 later processing).
 */
