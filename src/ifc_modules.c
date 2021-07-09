@@ -9965,7 +9965,7 @@ Add the tokens corresponding to the given attribute (attr) to cache.
         }  /* for */
       }
       break;
-  default_is_unexpected_str("Unexpected AttrSort");
+    default_is_unexpected_str("Unexpected AttrSort");
   }  /* switch */
 }  /* cache_attr */
 
