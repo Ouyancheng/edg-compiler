@@ -14,6 +14,9 @@ GNU-specific __attribute(()) context).  For example (with --g++ --c++20):
     [[__no_unique_address__]] int x;
   };
 
+The use of [[__no_unique_address__]] in the GNU 11.1.0 <tuple> header had
+caused a segfault at runtime when using std::thread::join.
+
 
 7/7/21   [EDGcpfe/24495]
 C++-generating back end: braced member initializers with explicit
