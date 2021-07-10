@@ -20,6 +20,7 @@ ifc_modules.c -- Microsoft-specific IFC module code
 #include "class_decl.h"
 #include "decl_spec.h"
 #include "exprutil.h"
+#include "func_def.h"
 #include "literals.h"
 #include "pch.h"
 #include "symbol_ref.h"
@@ -3057,6 +3058,352 @@ containing the partial specialization declaration.
 }  /* parse_cached_partial_specialization */
 
 
+/*
+A simple structure that can be used to locate the body of a function stored in
+an IFC module file.
+*/
+struct an_ifc_function_body {
+  ifc_DeclIndex	decl;
+			/* The IFC "DeclIndex" of the routine. */
+  an_ifc_module const
+		*ifc_module;
+			/* The IFC module descriptor that this body is
+			   associated with. */
+};
+
+
+static inline a_boolean operator==(an_ifc_function_body  ifb1,
+                                   an_ifc_function_body  ifb2)
+/*
+Return whether the two given an_ifc_function_body entries are equal.
+*/
+{
+  return ifb1.decl == ifb2.decl &&
+         ifb1.ifc_module == ifb2.ifc_module;
+}  /* operator== */
+
+
+static inline a_boolean operator!=(an_ifc_function_body  ifb1,
+                                   an_ifc_function_body  ifb2)
+/*
+Return whether the two given an_ifc_function_body entries are different.
+*/
+{
+  return !(ifb1 == ifb2);
+}  /* operator!= */
+
+
+using an_ifc_function_body_map = Ptr_map<a_routine_ptr, an_ifc_function_body>; 
+			/* The type of a map that associates IFC function
+			   bodies with IL routine entries. */
+
+static an_ifc_function_body_map
+		*ifc_function_bodies;
+			/* A map from IL routine entry pointers to entries of
+			   type an_ifc_function_body that can be used to
+			   retrieve the definition of a function body when
+			   needed. */
+
+		
+static void record_pending_ifc_function_body(a_routine_ptr        rp,
+                                             ifc_DeclIndex        decl_idx,
+                                             an_ifc_module const  *ifc_module)
+/*
+Record the information needed to retrieve a definition for rp if it turns out
+to be needed later on.
+*/
+{
+  ifc_function_bodies->map(rp, an_ifc_function_body{ decl_idx, ifc_module });
+}  /* record_pending_ifc_function_body */
+
+
+void an_ifc_module::cache_statement(a_token_cache_ptr  cache,
+                                    ifc_StmtIndex      stmt_idx,
+                  /* Defaulted: */  a_boolean          is_func_body) const
+/*
+Add tokens corresponding to the statement at stmt_idx to the given cache.  If
+is_func_body is TRUE (it is FALSE by default), the function is being called
+for the top-level statement of a function: In the IFC representation that is
+not always compound statement (ifc_StmtSort_Block) and therefore the caller
+takes responsibility for generating braces in that case (i.e., when
+is_func_body is TRUE, this routine does not cache delimiting braces for a
+compound statement).
+*/
+{
+  a_source_position  pos;
+  ifc_StmtSort       tag = stmt_tag(stmt_idx);
+
+  read_partition_at_index(tag, stmt_value(stmt_idx));
+  switch (tag) {
+    case ifc_StmtSort_VendorExtension:
+      { an_ifc_StmtSort_VendorExtension issve;
+        get_StmtSort_VendorExtension(&issve);
+        unexpected_condition_str("StmtSort::VendorExtension"
+                                 " is not yet handled");
+      }
+      break;
+    case ifc_StmtSort_Empty:
+      { an_ifc_StmtSort_Empty isse;
+        get_StmtSort_Empty(&isse);
+        unexpected_condition_str("StmtSort::Empty"
+                                 " is not yet handled");
+      }
+      break;
+    case ifc_StmtSort_If:
+      { an_ifc_StmtSort_If issi;
+        get_StmtSort_If(&issi);
+        unexpected_condition_str("StmtSort::If"
+                                 " is not yet handled");
+      }
+      break;
+    case ifc_StmtSort_For:
+      { an_ifc_StmtSort_For issf;
+        get_StmtSort_For(&issf);
+        unexpected_condition_str("StmtSort::For"
+                                 " is not yet handled");
+      }
+      break;
+    case ifc_StmtSort_Case:
+      { an_ifc_StmtSort_Case issc;
+        get_StmtSort_Case(&issc);
+        unexpected_condition_str("StmtSort::Case"
+                                 " is not yet handled");
+      }
+      break;
+    case ifc_StmtSort_While:
+      { an_ifc_StmtSort_While issw;
+        get_StmtSort_While(&issw);
+        unexpected_condition_str("StmtSort::While"
+                                 " is not yet handled");
+      }
+      break;
+    case ifc_StmtSort_Block:
+      { an_ifc_StmtSort_Block issb, *issbp;
+        issbp = get_StmtSort_Block(&issb);
+        uint32_t  k, N = (uint32_t)issbp->cardinality;
+        if (!is_func_body) {
+          cache_token(cache, tok_lbrace, &null_source_position);
+        }  /* if */
+        for (k = 0; k < N; ++k) {
+          ifc_StmtIndex si;
+          read_partition_at_index(ifc_heap_stmt, issbp->start+k);
+          GET_StmtIndex(si, /*from_header=*/FALSE);
+          cache_statement(cache, si);
+        }  /* for */
+        if (!is_func_body) {
+          cache_token(cache, tok_rbrace, &null_source_position);
+        }  /* if */
+      }
+      break;
+    case ifc_StmtSort_Break:
+      { an_ifc_StmtSort_Break issb;
+        get_StmtSort_Break(&issb);
+        unexpected_condition_str("StmtSort::Break"
+                                 " is not yet handled");
+      }
+      break;
+    case ifc_StmtSort_Switch:
+      { an_ifc_StmtSort_Switch isss;
+        get_StmtSort_Switch(&isss);
+        unexpected_condition_str("StmtSort::Switch"
+                                 " is not yet handled");
+      }
+      break;
+    case ifc_StmtSort_DoWhile:
+      { an_ifc_StmtSort_DoWhile issdw;
+        get_StmtSort_DoWhile(&issdw);
+        unexpected_condition_str("StmtSort::DoWhile"
+                                 " is not yet handled");
+      }
+      break;
+    case ifc_StmtSort_Default:
+      { an_ifc_StmtSort_Default issd;
+        get_StmtSort_Default(&issd);
+        unexpected_condition_str("StmtSort::Default"
+                                 " is not yet handled");
+      }
+      break;
+    case ifc_StmtSort_Continue:
+      { an_ifc_StmtSort_Continue issc;
+        get_StmtSort_Continue(&issc);
+        unexpected_condition_str("StmtSort::Continue"
+                                 " is not yet handled");
+      }
+      break;
+    case ifc_StmtSort_Expression:
+      { an_ifc_StmtSort_Expression isse;
+        get_StmtSort_Expression(&isse);
+        unexpected_condition_str("StmtSort::Expression"
+                                 " is not yet handled");
+      }
+      break;
+    case ifc_StmtSort_Return:
+      { an_ifc_StmtSort_Return issr, *issrp;
+        issrp = get_StmtSort_Return(&issr);
+        source_position_from_locus(&pos, &issrp->locus);
+        cache_token(cache, tok_return, &pos);
+        cache_expr(cache, issrp->expr);
+        cache_token(cache, tok_semicolon, &null_source_position);
+      }
+      break;
+    case ifc_StmtSort_VariableDecl:
+      { an_ifc_StmtSort_VariableDecl issvd;
+        get_StmtSort_VariableDecl(&issvd);
+        unexpected_condition_str("StmtSort::VariableDecl"
+                                 " is not yet handled");
+      }
+      break;
+    case ifc_StmtSort_Expansion:
+      { an_ifc_StmtSort_Expansion isse;
+        get_StmtSort_Expansion(&isse);
+        unexpected_condition_str("StmtSort::Expansion"
+                                 " is not yet handled");
+      }
+      break;
+    case ifc_StmtSort_SyntaxTree:
+      { an_ifc_StmtSort_SyntaxTree issst;
+        get_StmtSort_SyntaxTree(&issst);
+        unexpected_condition_str("StmtSort::SyntaxTree"
+                                 " is not yet handled");
+      }
+      break;
+    case ifc_StmtSort_Last:
+      unexpected_condition();
+      break;
+    default_is_unexpected_str("Unknown StmtSort kind");
+  }  /* switch */
+}  /* cache_statement */
+
+
+void an_ifc_module::cache_function_body(a_token_cache_ptr  cache,
+                                        ifc_DeclIndex      decl_idx,
+                                        a_routine_ptr      rp,
+                                        a_func_info_block  *func_info) const
+/*
+decl_idx points to the IFC representation of rp: That representation was
+already loaded previously and found to be associated with a definition in
+an ifc_trait_function_definition partition.  Load that IFC partition now and
+process it.  As part of this processing, the parameter names of rp are also
+loaded.
+*/
+{
+  size_t  num_defs = get_num_entries(ifc_trait_function_definition);
+
+  /* The following lambda returns the ifc_DeclIndex associated with the
+     function definition at position idx in the ifc_trait_function_definition
+     partition.  That is used to feed the call to bin_search below. */
+  auto    value_lambda = [this](ptrdiff_t idx) {
+    an_ifc_Trait_FunctionDefinition  itfd, *itfdp;
+    read_partition_at_index(ifc_trait_function_definition, idx);
+    itfdp = get_Trait_FunctionDefinition(&itfd);
+    return itfdp->decl;
+  };
+  /* Get the partition index (if any) for the given decl index (decl_idx). */
+  ptrdiff_t partition_idx = bin_search(num_defs, decl_idx, value_lambda);
+  if (partition_idx != -1) {
+    an_ifc_Trait_FunctionDefinition  itfd, *itfdp;
+    read_partition_at_index(ifc_trait_function_definition, partition_idx);
+    itfdp = get_Trait_FunctionDefinition(&itfd);
+    /* Retrieve the parameter names. */
+    check_assertion(type_is(rp->type, tk_routine));
+    a_param_type_ptr  params = function_type_params(rp->type), ptp;
+    if (params != NULL) {
+      /* Parameters are represented as a single-level IFC "chart" pointing to
+         a sequence of ifc_DeclSort_Parameter entries of kind
+         ifc_ParameterSort_Object. */
+      ifc_ChartSort  tag = chart_tag(itfdp->parameters);
+      check_assertion(tag == ifc_ChartSort_Unilevel);
+      an_ifc_ChartSort_Unilevel icsu, *icsup;
+      read_partition_at_index(tag, chart_value(itfdp->parameters));
+      icsup = get_ChartSort_Unilevel(&icsu);
+      ifc_Index_type  k, N = icsup->cardinality;
+      read_partition_at_index(make_decl_index(ifc_DeclSort_Parameter,
+                                              icsup->start));
+      /* Ensure a function prototype scope exists in which sk_parameter
+         symbols can be accumulated. */
+      (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
+                       rp->type, (a_routine_ptr)NULL);
+      func_info->is_definition = TRUE;
+      func_info->scope_number = scope_stack_top().number;
+      for (k = 0, ptp = params; k<N; ++k, ptp = ptp->next) {
+        an_ifc_DeclSort_Parameter idsp, *idspp;
+        a_source_position         pos;
+        idspp = get_DeclSort_Parameter(&idsp);
+        check_assertion(idspp->sort == ifc_ParameterSort_Object);
+        source_position_from_locus(&pos, &idspp->locus);
+        a_const_char  *name = get_string_at_offset(idspp->name);
+        a_symbol_locator  sym_loc;
+        (void)find_symbol(name, strlen(name), &sym_loc);
+        check_assertion(ptp != NULL);
+        a_param_id_ptr  param_id;
+        add_to_param_id_list(&sym_loc, ptp->type, &pos,
+                             (a_storage_class)sc_auto,
+                             func_info, (a_source_sequence_entry_ptr)NULL,
+                             &param_id, ptp->is_pack_element);
+        param_id->declared_type = ptp->type;
+        param_id->param_num = ptp->param_num;
+        if (ptp->is_pack_element) {
+          param_id->is_pack_element = TRUE;
+          if (ptp->is_parameter_pack) {
+            param_id->is_parameter_pack = TRUE;
+          }  /* if */
+        }  /* if */
+      }  /* for */
+      func_info->prototype_scope_symbols =
+                         assoc_pointers_block_of(&scope_stack_top())->symbols;
+      pop_scope();
+    }  /* if */
+    /* Cache the mem-initializers if needed. */
+    // TODO
+    /* Cache the function body.  It appears that a single return statement is
+       represented directly rather than as a block containing the return
+       statement.  We therefore generate the braces here and inhibit them at
+       the next statement level by passing a TRUE is_func_body flag. */
+    cache_token(cache, tok_lbrace, &null_source_position);
+    cache_statement(cache, itfdp->body, /*is_func_body=*/TRUE);
+    cache_token(cache, tok_rbrace, &null_source_position);
+#if DEBUG
+    if (db_flag_is_set("ms_ifc_token_def")) {
+      fprintf(f_debug, "Function body cache:\n");
+      db_tokens(cache);
+      fprintf(f_debug, "\n---------------------\n");
+    }  /* if */
+#endif /* DEBUG */
+  } else {
+    unexpected_condition();
+  }  /* if */
+}  /* cache_function_body */
+
+
+a_boolean load_routine_definition_from_ifc_module(a_routine_ptr  rp)
+/*
+If the given routine has a definition in a currently-imported IFC module
+process that definition and return TRUE.
+*/
+{
+  a_boolean             result = FALSE;
+  an_ifc_function_body  ifb = ifc_function_bodies->get(rp);
+
+  if (ifb.ifc_module != NULL) {
+    a_func_info_block  func_info;
+    a_token_cache      def_cache;
+    a_decl_flag_set    flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED;
+    clear_token_cache(&def_cache, /*reuseable=*/FALSE);
+    clear_func_info(&func_info);
+    push_new_top_level_declaration();
+    ifb.ifc_module->cache_function_body(&def_cache, ifb.decl, rp, &func_info);
+    rescan_cached_tokens(&def_cache);
+    scan_function_body(rp, &func_info, flags);
+    if (curr_token == tok_rbrace) {
+      result = TRUE;
+      get_token();
+    }  /* if */
+    pop_scope();
+  }  /* if */
+  return result;
+}  /* load_routine_definition_from_ifc_module */
+
+
 /* FIXME: might be able to get rid of enumeration_type now that enums aren't
    deferred */
 void an_ifc_module::process_ifc_declaration(
@@ -3195,6 +3542,13 @@ constants for that type).
             init_dps(&dps, &idsfp->locus, idsfp->type, ifc_ObjectTraits_None,
                      ifc_MsvcTraits_None, idsfp->specifiers, idsfp->access,
                      (ifc_ExprIndex)0, &psss);
+            if (idsfp->traits & ifc_FunctionTraits_Immediate) {
+              dps.dso_flags |= DSO_CONSTEVAL;
+            } else if (idsfp->traits & ifc_FunctionTraits_Constexpr) {
+              dps.dso_flags |= DSO_CONSTEXPR;
+            } else if (idsfp->traits & ifc_FunctionTraits_Inline) {
+              dps.dso_flags |= DSO_INLINE;
+            }  /* if */
             if (mep->scope == NULL) {
               mep->scope = get_ifc_scope(idsfp->home_scope);
               scope_pushed = push_module_declaration_context(mep->scope);
@@ -3207,6 +3561,14 @@ constants for that type).
             rp = dps.sym->variant.routine.ptr;
             il_entity = (char *)rp;
             kind = iek_routine;
+            if (idsfp->properties & ifc_ReachableProperties_Initializer) {
+              /* A body is available: Record this availability in case it is
+                 needed. */
+              ifc_DeclIndex decl_idx = decl_index_of(
+                                                   mep->variant.ifc_partition,
+                                                   mep->file_offset);
+              record_pending_ifc_function_body(rp, decl_idx, this);
+            }  /* if */
           }  /* if */
         }
         break;
@@ -3452,7 +3814,7 @@ class_struct_union_case:
               read_partition_at_index(idstap->aliasee);
               itsfp = get_TypeSort_Forall(&itsf);
               source_position_from_locus(&pos, &idstap->locus);
-              /* A template alias; declare a typedef for this case. */
+              /* An alias template; declare a typedef for this case. */
               if (mep->scope == NULL) {
                 mep->scope = get_ifc_scope(idstap->home_scope);
                 scope_pushed = push_module_declaration_context(mep->scope);
@@ -10056,11 +10418,6 @@ Add the tokens corresponding to the given declaration (decl) to cache.
           case ifc_ParameterSort_Type:
             cache_type_param_introducer(cache, idspp->constraint, &pos);
             break;
-          case ifc_ParameterSort_Object:
-            /* FIXME: Currently unsupported. */
-            issue_unsupported_node_diag("ParameterSort::Object",
-                                        &error_position);
-            break;
           case ifc_ParameterSort_NonType:
             cache_type_first_pass(cache, idspp->type, &idspp->locus);
             need_second_pass = TRUE;
@@ -10082,6 +10439,10 @@ Add the tokens corresponding to the given declaration (decl) to cache.
               cache_token(cache, tok_typename, &pos);
             }  /* if */
             break;
+          case ifc_ParameterSort_Object:
+            /* This is a function parameter rather than a template parameter.
+               We should not run into those here. */
+            unexpected_condition();
           default_is_unexpected_str("Unexpected ParameterSort");
         }  /* switch */
         if (idspp->pack) {
@@ -10715,7 +11076,8 @@ expressions by the tuple_separator token (tok_comma by default).
         if (iescp->arguments != 0) {
 #if CHECKING
           ifc_ExprSort  arguments_tag = expr_tag(iescp->arguments);
-          check_assertion(arguments_tag == ifc_ExprSort_ExpressionList);
+          check_assertion(arguments_tag == ifc_ExprSort_ExpressionList ||
+                          arguments_tag == ifc_ExprSort_Dyad);
 #endif /* CHECKING */
           cache_expr(cache, iescp->arguments);
         } else {
@@ -10799,19 +11161,23 @@ expressions by the tuple_separator token (tok_comma by default).
         }  /* if */
         source_position_from_locus(&pos, &iesnp->new_keyword);
         cache_token(cache, tok_new, &pos);
-        /* iesnp->placement appears to always represent a parenthesized
-           expression list.  If the list is empty, this is not a placement-new
-           expression. */
+        if (iesnp->placement != 0) {
+          /* iesnp->placement appears to always represent a parenthesized
+             expression list.  If the list is empty, this is not a
+             placement-new expression. */
 #if CHECKING
-        ifc_ExprSort  placement_tag = expr_tag(iesnp->placement);
-        check_assertion(placement_tag == ifc_ExprSort_ExpressionList);
+          ifc_ExprSort  placement_tag = expr_tag(iesnp->placement);
+          check_assertion(placement_tag == ifc_ExprSort_ExpressionList);
 #endif /* CHECKING */
-        read_partition_at_index(iesnp->placement);
-        an_ifc_ExprSort_ExpressionList esel, *eselp;
-        eselp = get_ExprSort_ExpressionList(&esel);
-        if (eselp->contents != (ifc_ExprIndex)0) {
-          /* The list is not empty. */
-          cache_expr(cache, iesnp->placement);
+          read_partition_at_index(iesnp->placement);
+          an_ifc_ExprSort_ExpressionList esel, *eselp;
+          eselp = get_ExprSort_ExpressionList(&esel);
+          if (eselp->contents != (ifc_ExprIndex)0) {
+            /* The list is not empty. */
+            cache_expr(cache, iesnp->placement);
+          } else {
+            unexpected_condition();
+          }  /* if */
         }  /* if */
         cache_type(cache, iesnp->allocated_type, &iesnp->new_keyword);
         if (iesnp->initializer != (ifc_ExprIndex)0) {
@@ -15275,6 +15641,8 @@ for each compilation.
 #if DEBUG && EXPENSIVE_CHECKING
   debug_partition = NULL;
 #endif /* DEBUG && EXPENSIVE_CHECKING */
+  ifc_function_bodies = alloc_fe_of_type(an_ifc_function_body_map);
+  construct(ifc_function_bodies, /*mask_width=*/10);
 }  /* ifc_modules_init */
 
 /*lint -restore*/ /* FIXME: temporary */

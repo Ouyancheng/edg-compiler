@@ -2839,14 +2839,14 @@ appears.  Diagnostics may be emitted at the given position.
   a_boolean  is_local_class = FALSE;
   a_type_ptr  class_type = tag_sym->variant.class_struct_union.type;
 
-  if (depth_innermost_function_scope != NO_SCOPE_NUMBER ||
+  if (depth_innermost_function_scope != NO_SCOPE_DEPTH ||
       inside_local_class) {
     /* This declaration appears within a function or block scope, or else it
        is a nested class declaration within a local class.  In either case,
        it is a local class. */
     a_routine_ptr  rp = NULL;
     is_local_class = TRUE;
-    if (depth_innermost_function_scope != NO_SCOPE_NUMBER) {
+    if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
       rp = innermost_function_scope->variant.routine.ptr;
       rp->contains_local_class_type = TRUE;
     } else {

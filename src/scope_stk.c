@@ -5624,6 +5624,8 @@ Use pop_scope to pop the scope.
                         (an_object_lifetime_ptr)NULL,
                         (a_scope_ptr)NULL, (a_scope_pointers_block_ptr)NULL,
                         PS_NEW_INSTANTIATION_CONTEXT);
+  innermost_function_scope = NULL;
+  depth_innermost_function_scope = NO_SCOPE_DEPTH;
 }  /* push_new_top_level_declaration */
 
 

@@ -2623,6 +2623,10 @@ public:
                                a_type_ptr          enumeration_type) const;
   void complete_definition_of_module_class(a_module_entity_ptr mep)
                                                                 const OVERRIDE;
+  void cache_function_body(a_token_cache_ptr  cache,
+                           ifc_DeclIndex      decl_idx,
+                           a_routine_ptr      rp,
+                           a_func_info_block  *func_info) const;
 
 #if DEBUG
   void debug() const OVERRIDE;
@@ -2731,6 +2735,9 @@ private:
   void cache_expr(a_token_cache_ptr cache,
                   ifc_ExprIndex     expr,
                   a_token_kind      tuple_separator = tok_comma) const;
+  void cache_statement(a_token_cache_ptr  cache,
+                       ifc_StmtIndex      stmt_idx,
+                       a_boolean          is_func_body = FALSE) const;
   void cache_syntax(a_token_cache_ptr cache,
                     ifc_SyntaxIndex   syntax) const;
   void cache_chart(a_token_cache_ptr  cache,
@@ -2980,6 +2987,7 @@ private:
 };  /* an_ifc_module */
 /*lint -restore*/
 
+extern a_boolean load_routine_definition_from_ifc_module(a_routine_ptr  rp);
 
 /* Expected instantiations of an_ifc_module::str_ifc_associated_trait<T>: */
 template<>

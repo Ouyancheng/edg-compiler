@@ -1023,6 +1023,20 @@ Import the given module.  assoc_sym is the associated symbol for the module.
   }  /* if */
 }  /* import_module */
 
+a_boolean load_routine_definition_from_module(a_routine_ptr  rp)
+/*
+If the given routine has a definition available in an imported module, load and
+process that definition now, and return TRUE.  Otherwise, return FALSE.
+*/
+{
+  a_boolean  result = FALSE;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  result = load_routine_definition_from_ifc_module(rp);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return result;
+}  /* load_routine_definition_from_module */
+
 #if DEBUG
 
 void db_module(a_module_ptr mod)

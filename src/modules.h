@@ -216,6 +216,8 @@ extern void import_header_module(a_module_import_decl_ptr midp);
 extern void import_module(a_module_import_decl_ptr midp,
                           a_symbol_ptr             assoc_sym);
 
+extern a_boolean load_routine_definition_from_module(a_routine_ptr  rp);
+
 #if DEBUG
 extern void db_module(a_module_ptr mod);
 
