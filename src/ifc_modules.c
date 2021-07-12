@@ -12746,11 +12746,11 @@ template<an_ifc_partition_kind a_Partition_Kind, typename a_Trait_T>
 inline a_Trait_T* an_ifc_module::find_trait(ifc_DeclIndex decl,
                                             a_Trait_T     *storage) const
 /*
-Given a declaration index as a key to the associated trait table identified by
-a_Partition_Kind, find and return a pointer to the associated trait, or NULL if
-none is found.  a_Get_Fn is the getter function to get the trait from the
-table.  storage is the data structure that will be provided to a_Get_Fn, but
-cannot be relied upon to contain the result.
+Given a declaration index (decl) as a key to the associated trait table
+identified by a_Partition_Kind, find and return a pointer to the associated
+trait, or NULL if none is found.  storage is the data structure that will be
+used to store the retrieved trait in memory if required, but cannot be relied
+upon to contain the result.
 */
 {
   size_t num_traits = get_num_entries(a_Partition_Kind);
