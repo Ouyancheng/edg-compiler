@@ -4167,10 +4167,11 @@ class_struct_union_case:
             {
               /* Compute the DeclIndex of the current template, then process
                  the associated specializations. */
-              ifc_DeclIndex decl_idx = decl_index_of(
-                                                    mep->variant.ifc_partition,
-                                                    mep->file_offset);
-              process_template_specializations(decl_idx);
+              ifc_DeclIndex decl = decl_index_of(mep->variant.ifc_partition,
+                                                 mep->file_offset);
+              ifc_Sequence  seq = get_specialization_sequence_from_trait(decl);
+
+              process_scope_member_sequence(seq);
             }
           }  /* if */
         }
@@ -4868,14 +4869,18 @@ pointer to that entry or NULL if it could not be found.
 }  /* find_ifc_partition */
 
 
-void an_ifc_module::process_scope_member_sequence(ifc_Sequence seq) const
+template<typename a_Scope_Member_Consumer>
+inline void an_ifc_module::iter_scope_member_sequence(
+                                              ifc_Sequence            seq,
+                                              a_Scope_Member_Consumer consumer)
+                                                                          const
 /*
-Process a sequence of IFC scope member declarations.
+Iterate over a given scope member sequence (seq) passing an_ifc_Scope_Member
+pointer to the given consumer lambda for each element in the sequence.
 */
 {
   for (uint32_t idx = 0; idx < seq.cardinality; ++idx) {
     an_ifc_Scope_Member ism, *ismp;
-    a_module_entity_ptr dmep;
 
     /* Load the scope member. */
     read_partition_at_index(ifc_scope_member, seq.start + idx);
@@ -4886,51 +4891,27 @@ Process a sequence of IFC scope member declarations.
     if (decl_tag(ismp->index) != ifc_DeclSort_PartialSpecialization) {
       continue;
     }  /* if */
-    /* Get the associated IFC module entity pointer, and then use it to process
-       this scope member via process_ifc_declaration. */
-    dmep = get_ifc_module_entity_ptr(ismp->index);
-    process_ifc_declaration(dmep, /*defer=*/FALSE, (a_type_ptr)NULL);
+    /* Handle any specific processing in the consumer. */
+    consumer(ismp);
   }  /* for */
-}  /* process_scope_member_sequence */
+}
 
-
-void an_ifc_module::process_template_specializations(ifc_DeclIndex decl_idx)
-                                                                          const
+void an_ifc_module::process_scope_member_sequence(ifc_Sequence seq) const
 /*
-Process any specializations of the template represented by decl_idx.
+Process a sequence (seq) of IFC scope member declarations.
 */
 {
-  size_t num_trait_specializations = get_num_entries(ifc_trait_specialization);
-  /* Provide a value function for retrieving the trait specialization at the
-     given trait specialization partition index. */
-  auto value_lambda = [this](ptrdiff_t idx) {
-    an_ifc_Trait_Specialization its, *itsp;
-
-    read_partition_at_index(ifc_trait_specialization, idx);
-    itsp = get_Trait_Specialization(&its);
-    return itsp->decl;
+  /* Provide a consumer function that accepts a given scope member, and
+     processes the associated IFC declaration. */
+  auto decl_consumer = [this](an_ifc_Scope_Member *ismp) {
+    /* Get the associated IFC module entity pointer, and then use it to process
+       this scope member via process_ifc_declaration. */
+    a_module_entity_ptr dmep = get_ifc_module_entity_ptr(ismp->index);
+    process_ifc_declaration(dmep, /*defer=*/FALSE, (a_type_ptr)NULL);
   };
-  /* Get the partition index (if any) for decl_idx. */
-  ptrdiff_t partition_idx = bin_search(num_trait_specializations, decl_idx,
-                                       value_lambda);
-
-  if (partition_idx != -1) {
-    /* A trait specialization was found for decl_idx.  Load the trait
-       specialization (again) to retrieve the trait, then process the sequence
-       of specializations with process_scope_member_sequence.
-
-       Note that the implementation of bin_search at the time of writing does
-       not guarantee that the last read value is the one whose index is
-       returned.  Thus, we cannot (as an optimization) share a variable with
-       the value_lambda to prevent double reading (though this is unlikely to
-       ever represent a significant cost in terms of CPU time). */
-    an_ifc_Trait_Specialization its, *itsp;
-
-    read_partition_at_index(ifc_trait_specialization, partition_idx);
-    itsp = get_Trait_Specialization(&its);
-    process_scope_member_sequence(itsp->trait);
-  }  /* if */
-}  /* process_template_specializations */
+  /* Iterate over the sequence calling decl_consumer for each element. */
+  iter_scope_member_sequence(seq, decl_consumer);
+}  /* process_scope_member_sequence */
 
 
 void an_ifc_module::process_ifc_scope(ifc_ScopeIndex scope_index,
@@ -8445,6 +8426,22 @@ done:;
 }  /* cache_exception_spec */
 
 
+void an_ifc_module::cache_scope_member_sequence(a_token_cache_ptr cache,
+                                                ifc_Sequence      seq) const
+/*
+Cache a sequence (seq) of IFC scope member declarations into the cache.
+*/
+{
+  /* Provide a consumer function that accepts a given scope member, and
+     caches the associated IFC declaration into the cache. */
+  auto decl_consumer = [this, cache](an_ifc_Scope_Member *ismp) {
+    cache_decl(cache, ismp->index);
+  };
+  /* Iterate over the sequence calling decl_consumer for each element. */
+  iter_scope_member_sequence(seq, decl_consumer);
+}  /* cache_scope_member_sequence */
+
+
 static void cache_basic_specifiers(a_token_cache_ptr     cache,
                                    ifc_BasicSpecifiers   specifiers,
                                    a_source_position_ptr pos)
@@ -10652,6 +10649,12 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       { an_ifc_DeclSort_Template idst, *idstp;
         idstp = get_DeclSort_Template(&idst);
         cache_decl_template(cache, idstp);
+        {
+          /* Cache the associated specializations. */
+          ifc_Sequence seq = get_specialization_sequence_from_trait(decl);
+
+          cache_scope_member_sequence(cache, seq);
+        }
       }
       break;
     case ifc_DeclSort_PartialSpecialization:
@@ -12424,8 +12427,7 @@ its ifc_AttrIndex.
 
   if (partition_idx != -1) {
     /* A trait attribute was found for decl_idx.  Load the trait attribute
-       (again) to retrieve the trait, then processing the sequence of
-       specializations with process_scope_member_sequence.
+       (again) to retrieve the trait.
 
        Note that the implementation of bin_search at the time of writing does
        not guarantee that the last read value is the one whose index is
@@ -12797,6 +12799,27 @@ decl, or 0 if not found.
   }  /* if */
   return params;
 }  /* get_func_params_from_trait */
+
+
+ifc_Sequence an_ifc_module::get_specialization_sequence_from_trait(
+                                                            ifc_DeclIndex decl)
+                                                                          const
+/*
+Find and return the sequence of specializations corresponding to the template
+decl, or an empty sequence if not found.
+*/
+{
+  an_ifc_Trait_Specialization its, *itsp;
+  ifc_Sequence                result = {(ifc_Index)0, (ifc_Cardinality)0};
+
+  check_assertion(decl_tag(decl) == ifc_DeclSort_Template);
+  itsp = find_trait<ifc_trait_specialization>(decl, &its);
+  if (itsp != NULL) {
+    result = itsp->trait;
+  }  /* if */
+  return result;
+}  /* get_specialization_sequence_from_trait */
+
 
 /*
 FIXME: Eliminate all str_ifc_* functions, or replace with a version that

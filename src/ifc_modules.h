@@ -2657,8 +2657,12 @@ private:
                                                 const ifc_ModuleReference *ref)
                                                                          const;
   void import_referenced_modules() const;
+  template<typename a_Scope_Member_Consumer>
+  inline void iter_scope_member_sequence(ifc_Sequence            seq,
+                                         a_Scope_Member_Consumer consumer)
+                                                                         const;
   void process_scope_member_sequence(ifc_Sequence seq) const;
-  void process_template_specializations(ifc_DeclIndex home_scope) const;
+  void process_template_specializations(ifc_DeclIndex decl_idx) const;
   void process_ifc_scope(ifc_ScopeIndex scope_index,
                          a_scope_ptr    scope) const;
   size_t get_num_entries(an_ifc_partition_kind partition) const;
@@ -2710,6 +2714,8 @@ private:
   /* Queries. */
   a_boolean is_class_scope(ifc_DeclIndex scope) const;
   /* Token caching. */
+  void cache_scope_member_sequence(a_token_cache_ptr cache,
+                                   ifc_Sequence      seq) const;
   void cache_scope(a_token_cache_ptr  cache,
                    ifc_ScopeIndex     scope,
                    ifc_SourceLocation *locus) const;
@@ -2901,6 +2907,8 @@ private:
   inline a_Trait_T* find_trait(ifc_DeclIndex decl_index,
                                a_Trait_T     *storage) const;
   ifc_ChartIndex get_func_params_from_trait(ifc_DeclIndex decl) const;
+  ifc_Sequence get_specialization_sequence_from_trait(ifc_DeclIndex decl)
+                                                                         const;
   /* Stringizers. */
   void str_ifc_text_offset(ifc_TextOffset     offset,
                            a_str_control_block *scbp) const;
