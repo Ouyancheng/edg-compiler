@@ -1849,9 +1849,9 @@ Provide a generic printing interface for generic function diagnostics.
 
 
 #if EXPENSIVE_CHECKING
-template<typename a_value_fn_T>
-inline void validate_elements_in_order(ptrdiff_t    num_elements,
-                                       a_value_fn_T value_fn)
+template<typename a_Value_Fn>
+inline void validate_elements_in_order(ptrdiff_t  num_elements,
+                                       a_Value_Fn value_fn)
 /*
 Validate that the input container of num_elements elements is in order for a
 binary search.
@@ -1881,10 +1881,10 @@ binary search.
 #endif /* EXPENSIVE_CHECKING */
 
 
-template<typename T, typename a_value_fn_T>
-inline ptrdiff_t lower_bound(ptrdiff_t    num_elements,
-                             const T      &value,
-                             a_value_fn_T value_fn)
+template<typename T, typename a_Value_Fn>
+inline ptrdiff_t lower_bound(ptrdiff_t  num_elements,
+                             const T    &value,
+                             a_Value_Fn value_fn)
 /*
 Search for the first element in a container of num_elements elements that is
 not less than (i.e., greater or equal to) value using value_fn to retrieve
@@ -1976,10 +1976,10 @@ index of said element or -1 if no such element is found.
 }  /* array_lower_bound */
 
 
-template<typename T, typename a_value_fn_T>
-inline ptrdiff_t bin_search(ptrdiff_t    num_elements,
-                            const T      &value,
-                            a_value_fn_T value_fn)
+template<typename T, typename a_Value_Fn>
+inline ptrdiff_t bin_search(ptrdiff_t  num_elements,
+                            const T    &value,
+                            a_Value_Fn value_fn)
 /*
 Search for the first element in a container of num_elements elements that is
 equal to value using value_fn to retrieve values at a given index.  value_fn
