@@ -2897,11 +2897,9 @@ private:
   inline void read_partition_at_index(ifc_SyntaxIndex syntax) const;
   inline ifc_Index read_index_from_heap(an_ifc_partition_kind heap_partition,
                                         ifc_Index_type        index) const;
-  template<typename T, typename an_ifc_get_func>
-  T* find_trait(ifc_DeclIndex         decl_index,
-                an_ifc_partition_kind partition,
-                an_ifc_get_func       get_func,
-                T*                    storage) const;
+  template<an_ifc_partition_kind a_Partition_Kind, typename a_Trait_T>
+  inline a_Trait_T* find_trait(ifc_DeclIndex decl_index,
+                               a_Trait_T     *storage) const;
   ifc_ChartIndex get_func_params_from_trait(ifc_DeclIndex decl) const;
   /* Stringizers. */
   void str_ifc_text_offset(ifc_TextOffset     offset,
@@ -2980,6 +2978,8 @@ private:
 #endif /* EXPENSIVE_CHECKING */
 #endif /* DEBUG */
 
+  template<typename T>
+  inline T *get(T* storage, a_boolean fill_storage = FALSE) const = delete;
   /* Generate prefixes for the entity getters. */
   #define IFC_DECL_START(name) \
   inline concat(an_ifc_, name) * concat(get_, name) ( \

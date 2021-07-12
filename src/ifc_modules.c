@@ -460,6 +460,29 @@ ifc_map.h.  Make sure to use the pointer that is returned by these functions
 (and not the pointer that is passed as an argument).
 */
 
+/*
+Define a generic wrapper function that delegate to the corresponding "get_name"
+function for a given type "an_ifc_name".
+
+For example, when "name" is "foo", this routine effectively boils down to:
+
+  template<>
+  an_ifc_foo *an_ifc_module::get<an_ifc_foo>(an_ifc_foo *ptr,
+                                             a_boolean fill_storage) const
+  {
+    return get_foo(ptr, fill_storage);
+  }
+*/
+#define IFC_GENERIC_GET(name) \
+  template<> \
+  inline concat(an_ifc_, name) * an_ifc_module::get< \
+                                  concat(an_ifc_, name) >( \
+                                  concat(an_ifc_, name) *storage, \
+                /* Defaulted: */  a_boolean             fill_storage) const \
+  { \
+    return concat(get_, name)(storage, fill_storage); \
+  }
+
 #if USE_MMAP_FOR_MODULES
 
 /*
@@ -478,8 +501,8 @@ copy the data into *ptr.
 
 For example, when "name" is "foo", this routine effectively boils down to:
 
-  static an_ifc_foo *get_foo(an_ifc_foo *ptr,
-                             a_boolean  fill_storage) const
+  an_ifc_foo *an_ifc_module::get_foo(an_ifc_foo *ptr,
+                                     a_boolean  fill_storage) const
   {
     if (targ_little_endian == host_little_endian) {
       if (fill_storage) {
@@ -517,7 +540,8 @@ For example, when "name" is "foo", this routine effectively boils down to:
 #define IFC_DECL_END(name) \
     }  /* if */ \
     return ptr; \
-  }
+  } \
+  IFC_GENERIC_GET(name)
 
 /*
 The variant for when the endianness of the IFC entity is guaranteed to be
@@ -571,7 +595,8 @@ two fields, "field1" and "field2", whose types are "field1_type" and
     concat(GET_, type)(ptr->field, /*from_header=*/FALSE);
 #define IFC_DECL_END(name) \
     return ptr; \
-  }
+  } \
+  IFC_GENERIC_GET(name)
 
 /*
 The variant for when the endianness of the IFC entity is guaranteed to be
@@ -12715,45 +12740,43 @@ into that partition.
 }  /* read_index_from_heap */
 
 
-template<typename T, typename an_ifc_get_func>
-T* an_ifc_module::find_trait(ifc_DeclIndex         decl_index,
-                             an_ifc_partition_kind partition,
-                             an_ifc_get_func       get_func,
-                             T*                    storage) const
+template<an_ifc_partition_kind a_Partition_Kind, typename a_Trait_T>
+inline a_Trait_T* an_ifc_module::find_trait(ifc_DeclIndex decl,
+                                            a_Trait_T     *storage) const
 /*
 Given a declaration index as a key to the associated trait table identified by
-partition, find and return a pointer to the associated trait, or NULL if none
-is found.  get_func is the getter function to get the trait from the table.
-storage is the data structure that will be provided to get_func, but cannot be
-relied upon to contain the result.
+a_Partition_Kind, find and return a pointer to the associated trait, or NULL if
+none is found.  a_Get_Fn is the getter function to get the trait from the
+table.  storage is the data structure that will be provided to a_Get_Fn, but
+cannot be relied upon to contain the result.
 */
 {
-  T        *result = NULL;
-  uint32_t idx, min_idx, max_idx, num_entries;
+  size_t num_traits = get_num_entries(a_Partition_Kind);
+  /* Provide a value function for retrieving the trait at the given trait
+     partition index. */
+  auto value_lambda = [this](ptrdiff_t idx) {
+    a_Trait_T tmp_trait_storage, *tmp_trait_ptr;
 
-  if (partitions[partition].size == 0) goto done;
-  num_entries = get_num_entries(partition);
-  min_idx = 0;
-  max_idx = num_entries-1;
-  while (min_idx <= max_idx && max_idx < num_entries) {
-    T             *tmp;
-    ifc_DeclIndex decl;
-    idx = (min_idx + max_idx) / 2;
-    read_partition_at_index(partition, idx);
-    tmp = (this->*get_func)(storage, /*from_header=*/FALSE);
-    decl = tmp->decl;
-    if (decl == decl_index) {
-      result = tmp;
-      break;
-    } else if (decl < decl_index) {
-      min_idx = idx + 1;
-    } else /* decl > decl_index */ {
-      /* This may underflow, but that will be caught by the above
-         max_idx < num_entries check. */
-      max_idx = idx - 1;
-    }  /* if */
-  }  /* while */
-done:
+    read_partition_at_index(a_Partition_Kind, idx);
+    tmp_trait_ptr = get<a_Trait_T>(&tmp_trait_storage, /*from_header=*/FALSE);
+    return tmp_trait_ptr->decl;
+  };
+  /* Get the partition index (if any) for decl. */
+  ptrdiff_t partition_idx = bin_search(num_traits, decl, value_lambda);
+  a_Trait_T* result = NULL;
+
+  if (partition_idx != -1) {
+    /* A trait was found for decl.  Load the trait (again) to retrieve the
+       trait.
+
+       Note that the implementation of bin_search at the time of writing does
+       not guarantee that the last read value is the one whose index is
+       returned.  Thus, we cannot (as an optimization) share a variable with
+       the value_lambda to prevent double reading (though this is unlikely to
+       ever represent a significant cost in terms of CPU time). */
+    read_partition_at_index(a_Partition_Kind, partition_idx);
+    result = get<a_Trait_T>(storage, /*from_header=*/FALSE);
+  }  /* if */
   return result;
 }  /* find_trait */
 
@@ -12768,9 +12791,7 @@ decl, or 0 if not found.
   an_ifc_Trait_MsvcFuncParams itmfp, *itmfpp;
   ifc_ChartIndex              params = (ifc_ChartIndex)0;
 
-  itmfpp = find_trait(decl, ifc_msvc_trait_named_func_params,
-                      &an_ifc_module::get_Trait_MsvcFuncParams,
-                      &itmfp);
+  itmfpp = find_trait<ifc_msvc_trait_named_func_params>(decl, &itmfp);
   if (itmfpp != NULL) {
     params = itmfpp->params;
   }  /* if */

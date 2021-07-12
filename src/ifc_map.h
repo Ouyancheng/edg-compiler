@@ -202,7 +202,7 @@ IFC_DECL_START(DeclSort_Alias)
   IFC_DECL_FIELD(aliasee, TypeIndex)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
   IFC_DECL_FIELD(access, Access)
-IFC_DECL_END(DeclSort_TypeAlias)
+IFC_DECL_END(DeclSort_Alias)
 
 /* DeclSort::Temploid */
 IFC_DECL_START(DeclSort_Temploid)
@@ -1995,7 +1995,7 @@ IFC_DECL_START(Form_Spec)
      we're using primary_template to avoid keyword conflicts. */
   IFC_DECL_FIELD(primary_template, DeclIndex)
   IFC_DECL_FIELD(arguments, ExprIndex)
-IFC_DECL_END(Source_Line)
+IFC_DECL_END(Form_Spec)
 
 /* Source::Line */
 IFC_DECL_START(Source_Line)
