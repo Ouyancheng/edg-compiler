@@ -1023,7 +1023,7 @@ Import the given module.  assoc_sym is the associated symbol for the module.
   }  /* if */
 }  /* import_module */
 
-a_boolean load_routine_definition_from_module(a_routine_ptr  rp)
+a_boolean load_routine_definition_from_module(ARG_UNUSED a_routine_ptr  rp)
 /*
 If the given routine has a definition available in an imported module, load and
 process that definition now, and return TRUE.  Otherwise, return FALSE.
