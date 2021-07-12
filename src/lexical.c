@@ -23849,8 +23849,19 @@ formatting.
       (void)fputc('\n', f_debug);
       do_indent(&k);
     } else if (temp_text_buffer[k] == ';') {
-      /* Switch to a new line. */
-      fprintf(f_debug, ";\n");
+      /* Switch to a new line, unless followed by a '}' or ';'. */
+      a_boolean  add_new_line = true;
+      for (sizeof_t n = k+1; n<pos_in_temp_text_buffer; ++n) {
+        if (temp_text_buffer[n] == ' ') {
+          continue;
+        } else {
+          if (temp_text_buffer[n] == '}' || temp_text_buffer[n] == ';') {
+            add_new_line = false;
+          }  /* if */
+          break;
+        }  /* if */
+      }  /* for */
+      fprintf(f_debug, "%s", add_new_line ? ";\n" : ";");
       do_indent(&k);
     } else {
       /* Just put out the character. */

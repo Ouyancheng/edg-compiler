@@ -3117,17 +3117,18 @@ to be needed later on.
 }  /* record_pending_ifc_function_body */
 
 
-void an_ifc_module::cache_statement(a_token_cache_ptr  cache,
-                                    ifc_StmtIndex      stmt_idx,
-                  /* Defaulted: */  a_boolean          is_func_body) const
+void an_ifc_module::cache_statement(a_token_cache_ptr         cache,
+                                    ifc_StmtIndex             stmt_idx,
+                  /* Defaulted: */  a_cache_statement_option  options) const
 /*
 Add tokens corresponding to the statement at stmt_idx to the given cache.  If
-is_func_body is TRUE (it is FALSE by default), the function is being called
-for the top-level statement of a function: In the IFC representation that is
-not always compound statement (ifc_StmtSort_Block) and therefore the caller
-takes responsibility for generating braces in that case (i.e., when
-is_func_body is TRUE, this routine does not cache delimiting braces for a
-compound statement).
+options & cso_func_body is nonzero (it is zero by default), the function is
+being called for the top-level statement of a function: In the IFC
+representation that is not always compound statement (ifc_StmtSort_Block) and
+therefore the caller takes responsibility for generating braces in that case
+(i.e., when is_func_body is TRUE, this routine does not cache delimiting
+braces for a compound statement).  If options & cso_no_final_semicolon is
+nonzero, the a statement expression should not be terminated with a semicolon.
 */
 {
   a_source_position  pos;
@@ -3150,10 +3151,21 @@ compound statement).
       }
       break;
     case ifc_StmtSort_If:
-      { an_ifc_StmtSort_If issi;
-        get_StmtSort_If(&issi);
-        unexpected_condition_str("StmtSort::If"
-                                 " is not yet handled");
+      { an_ifc_StmtSort_If issi, *issip;
+        issip = get_StmtSort_If(&issi);
+        source_position_from_locus(&pos, &issip->locus);
+        cache_token(cache, tok_if, &pos);
+        if (issip->initialization != 0) {
+          cache_statement(cache, issip->initialization);
+        }  /* if */
+        cache_token(cache, tok_lparen, &pos);
+        cache_statement(cache, issip->condition, cso_no_final_semicolon);
+        cache_token(cache, tok_rparen, &pos);
+        cache_statement(cache, issip->consequence);
+        if (issip->alternative != 0) {
+          cache_token(cache, tok_else, &pos);
+          cache_statement(cache, issip->alternative);
+        }  /* if */
       }
       break;
     case ifc_StmtSort_For:
@@ -3171,17 +3183,21 @@ compound statement).
       }
       break;
     case ifc_StmtSort_While:
-      { an_ifc_StmtSort_While issw;
-        get_StmtSort_While(&issw);
-        unexpected_condition_str("StmtSort::While"
-                                 " is not yet handled");
+      { an_ifc_StmtSort_While issw, *isswp;
+        isswp = get_StmtSort_While(&issw);
+        source_position_from_locus(&pos, &isswp->locus);
+        cache_token(cache, tok_while, &pos);
+        cache_token(cache, tok_lparen, &pos);
+        cache_statement(cache, isswp->condition, cso_no_final_semicolon);
+        cache_token(cache, tok_rparen, &pos);
+        cache_statement(cache, isswp->body);
       }
       break;
     case ifc_StmtSort_Block:
       { an_ifc_StmtSort_Block issb, *issbp;
         issbp = get_StmtSort_Block(&issb);
         uint32_t  k, N = (uint32_t)issbp->cardinality;
-        if (!is_func_body) {
+        if (!(options & cso_func_body)) {
           cache_token(cache, tok_lbrace, &null_source_position);
         }  /* if */
         for (k = 0; k < N; ++k) {
@@ -3190,7 +3206,7 @@ compound statement).
           GET_StmtIndex(si, /*from_header=*/FALSE);
           cache_statement(cache, si);
         }  /* for */
-        if (!is_func_body) {
+        if (!(options & cso_func_body)) {
           cache_token(cache, tok_rbrace, &null_source_position);
         }  /* if */
       }
@@ -3224,17 +3240,20 @@ compound statement).
       }
       break;
     case ifc_StmtSort_Continue:
-      { an_ifc_StmtSort_Continue issc;
-        get_StmtSort_Continue(&issc);
-        unexpected_condition_str("StmtSort::Continue"
-                                 " is not yet handled");
+      { an_ifc_StmtSort_Continue issc, *isscp;
+        isscp = get_StmtSort_Continue(&issc);
+        source_position_from_locus(&pos, &isscp->locus);
+        cache_token(cache, tok_continue, &pos);
+        cache_token(cache, tok_semicolon, &pos);
       }
       break;
     case ifc_StmtSort_Expression:
-      { an_ifc_StmtSort_Expression isse;
-        get_StmtSort_Expression(&isse);
-        unexpected_condition_str("StmtSort::Expression"
-                                 " is not yet handled");
+      { an_ifc_StmtSort_Expression isse, *issep;
+        issep = get_StmtSort_Expression(&isse);
+        cache_expr(cache, issep->expr);
+        if (!(options & cso_no_final_semicolon)) {
+          cache_token(cache, tok_semicolon, &null_source_position);
+        }  /* if */
       }
       break;
     case ifc_StmtSort_Return:
@@ -3247,10 +3266,17 @@ compound statement).
       }
       break;
     case ifc_StmtSort_VariableDecl:
-      { an_ifc_StmtSort_VariableDecl issvd;
-        get_StmtSort_VariableDecl(&issvd);
-        unexpected_condition_str("StmtSort::VariableDecl"
-                                 " is not yet handled");
+      { an_ifc_StmtSort_VariableDecl  issvd, *issvdp;
+        issvdp = get_StmtSort_VariableDecl(&issvd);
+        read_partition_at_index(issvdp->decl);
+        an_ifc_DeclSort_Variable  idsv, *idsvp;
+        idsvp = get_DeclSort_Variable(&idsv);
+        cache_variable_decl(cache, issvdp->decl, /*is_class_member=*/FALSE,
+                            ifc_Access_None,
+                            idsvp->specifiers, idsvp->traits, idsvp->alignment,
+                            idsvp->type, idsvp->name, (ifc_TextOffset)0,
+                            (ifc_ExprIndex)0, issvdp->initializer,
+                            &idsvp->locus);
       }
       break;
     case ifc_StmtSort_Expansion:
@@ -3360,7 +3386,7 @@ loaded.
        statement.  We therefore generate the braces here and inhibit them at
        the next statement level by passing a TRUE is_func_body flag. */
     cache_token(cache, tok_lbrace, &null_source_position);
-    cache_statement(cache, itfdp->body, /*is_func_body=*/TRUE);
+    cache_statement(cache, itfdp->body, cso_func_body);
     cache_token(cache, tok_rbrace, &null_source_position);
 #if DEBUG
     if (db_flag_is_set("ms_ifc_token_def")) {
@@ -9904,13 +9930,16 @@ initializer expression.  locus is the source location for the declaration.
     cache_token(cache, tok_colon, &pos);
     cache_expr(cache, width);
   }  /* if */
+#if /*FIXME*/0
   /* FIXME: The initializer index sometimes has invalid values.  Treat all
      variables as uninitialized for now.  This will be a problem for constexpr,
      but is preferable to the alternative (aborting). */
   initializer = (ifc_ExprIndex)0;
+#endif /*FIXME*/
   if (initializer != 0) {
-    cache_token(cache, tok_assign, &pos);
+    cache_token(cache, tok_lparen, &pos);
     cache_expr(cache, initializer);
+    cache_token(cache, tok_rparen, &pos);
   }  /* if */
   cache_token(cache, tok_semicolon, &pos);
 }  /* cache_variable_decl */

@@ -2735,9 +2735,14 @@ private:
   void cache_expr(a_token_cache_ptr cache,
                   ifc_ExprIndex     expr,
                   a_token_kind      tuple_separator = tok_comma) const;
-  void cache_statement(a_token_cache_ptr  cache,
-                       ifc_StmtIndex      stmt_idx,
-                       a_boolean          is_func_body = FALSE) const;
+  enum a_cache_statement_option {
+    cso_none = 0x0,
+    cso_func_body = 0x1,
+    cso_no_final_semicolon = 0x2
+  };
+  void cache_statement(a_token_cache_ptr         cache,
+                       ifc_StmtIndex             stmt_idx,
+                       a_cache_statement_option  options = cso_none) const;
   void cache_syntax(a_token_cache_ptr cache,
                     ifc_SyntaxIndex   syntax) const;
   void cache_chart(a_token_cache_ptr  cache,
