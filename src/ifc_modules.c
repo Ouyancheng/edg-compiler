@@ -10420,6 +10420,11 @@ Add the tokens corresponding to the given attribute (attr) to cache.
         }  /* for */
       }
       break;
+    case ifc_AttrSort_Nothing:
+    case ifc_AttrSort_Last:
+      unexpected_condition();
+      break;
+
     default_is_unexpected_str("Unexpected AttrSort");
   }  /* switch */
 }  /* cache_attr */
