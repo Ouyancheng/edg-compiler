@@ -24592,6 +24592,14 @@ routine as actually referenced.
       if (!curr_routine->is_inline) instantiate = FALSE;
     }  /* if */
   }  /* if */
+  if (instantiate && routine->is_inline &&
+      !routine->defined && !routine->is_consteval) {
+    /* If an imported inline function is referenced in a context that would
+       require instantiation, it would also require being loaded from the
+       module file.  In the case of consteval functions, that can be postponed
+       until the constant-evaluator needs the function definition. */
+    (void)load_routine_definition_from_module(routine);
+  }  /* if */
   /* If the function is an instance of a function template, mark it as
      requiring an instantiation.  This is also done for extern inline functions
      when inline functions are instantiated using a mechanism like the template
