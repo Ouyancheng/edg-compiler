@@ -1,5 +1,22 @@
 Version 6.3
 
+7/13/21  [EDGcpfe/24512]
+Multiple translation units: dependent inheriting constructors
+
+When compiling multiple translation units, the front end could issue a
+spurious "had a different meaning" error for a class template containing a
+using-directive inheriting constructors of a dependent base class.  This is
+now fixed.  For example, the following code resulted in a spurious error
+when included in two different translation units:
+
+  template<typename _Tp> struct A { };
+  template<typename T, bool = A<T>::v> struct B { };
+  template<typename> struct C;
+  template<typename T, typename U> struct C<T U::*> : B<T U::*> {
+    using B<T U::*>::B;  // Previously a "had a different meaning" error
+  };
+
+
 7/8/21   [EDGcpfe/24497]
 GNU/Clang compatibility: Standard attributes with leading and trailing "__"
 

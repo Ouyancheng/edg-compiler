@@ -3536,12 +3536,11 @@ Return TRUE if the given using declarations refer to corresponding entities.
       /* If the qualifiers are not equivalent, there is no match. */
       result = FALSE;
     } else if (ud1->entity.kind == (a_byte_il_entry_kind)iek_base_class) {
-      /* Using-declarations that represent inherited constructors. */
+      /* Using-declarations that represent inherited constructors.  See if
+         the inherited constructor class types are the same. */
       check_assertion(ud1->is_inheriting_ctor && ud2->is_inheriting_ctor);
-      result = ((a_base_class_ptr)ud1->entity.ptr)->type ==
-                                                   ud1->qualifier.class_type &&
-               ((a_base_class_ptr)ud2->entity.ptr)->type ==
-                                                   ud2->qualifier.class_type;
+      result = (identical_types(((a_base_class_ptr)ud1->entity.ptr)->type,
+                                ((a_base_class_ptr)ud2->entity.ptr)->type));
     } else if (ud1->entity.kind == (a_byte_il_entry_kind)iek_type ||
                ud1->entity.kind == (a_byte_il_entry_kind)iek_routine ||
                ud1->entity.kind == (a_byte_il_entry_kind)iek_variable ||
