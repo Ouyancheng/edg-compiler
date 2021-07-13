@@ -10424,7 +10424,6 @@ Add the tokens corresponding to the given attribute (attr) to cache.
     case ifc_AttrSort_Last:
       unexpected_condition();
       break;
-
     default_is_unexpected_str("Unexpected AttrSort");
   }  /* switch */
 }  /* cache_attr */
@@ -10541,6 +10540,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
             /* This is a function parameter rather than a template parameter.
                We should not run into those here. */
             unexpected_condition();
+            break;
           default_is_unexpected_str("Unexpected ParameterSort");
         }  /* switch */
         if (idspp->pack) {
