@@ -3261,11 +3261,6 @@ nonzero, a statement expression should not be terminated with a semicolon.
         cache_token(cache, tok_rparen, &pos);
         cache_statement(cache, isssp->body);
       }
-      { an_ifc_StmtSort_Switch isss;
-        get_StmtSort_Switch(&isss);
-        unexpected_condition_str("StmtSort::Switch"
-                                 " is not yet handled");
-      }
       break;
     case ifc_StmtSort_DoWhile:
       { an_ifc_StmtSort_DoWhile issdw, *issdwp;
@@ -3278,11 +3273,6 @@ nonzero, a statement expression should not be terminated with a semicolon.
         cache_token(cache, tok_rparen, &pos);
         cache_statement(cache, issdwp->condition, cso_no_final_semicolon);
         cache_token(cache, tok_semicolon, &pos);
-      }
-      { an_ifc_StmtSort_DoWhile issdw;
-        get_StmtSort_DoWhile(&issdw);
-        unexpected_condition_str("StmtSort::DoWhile"
-                                 " is not yet handled");
       }
       break;
     case ifc_StmtSort_Default:
