@@ -4707,6 +4707,29 @@ Print information about the module entity pointer.
   }  /* if */
 }  /* db_mep */
 
+
+void an_ifc_module::db_locus(ifc_SourceLocation *locus) const
+/*
+Print the corresponding file and line number for the source location
+(for debugging purposes).
+*/
+{
+  a_const_char      *full_name, *diag_file_name;
+  a_line_number     line_number;
+  a_boolean         at_end_of_source;
+  a_source_position pos;
+
+  diag_file_name = "";
+  source_position_from_locus(&pos, locus);
+  if (pos.seq != 0) {
+    (void)conv_seq_to_file_and_line(pos.seq, &diag_file_name,
+                                    &full_name, &line_number,
+                                    &at_end_of_source);
+    (void)fprintf(f_debug, "%s: line %lu colmun %lu\n", full_name,
+                  (unsigned long) line_number, (unsigned long) pos.column);
+  }  /* if */
+}  /* db_locus */
+
 #endif /* DEBUG */
 
 a_boolean an_ifc_module::open_and_map_ifc_module_file(

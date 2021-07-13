@@ -2979,6 +2979,7 @@ private:
 
 #if DEBUG
   void db_ifc_file_header() const;
+  void db_locus(ifc_SourceLocation *locus) const;
 #if EXPENSIVE_CHECKING
   void f_db_get_byte(a_const_char *value_str,
                      void         *addr,
