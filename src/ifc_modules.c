@@ -10658,9 +10658,10 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       }
       break;
     case ifc_DeclSort_PartialSpecialization:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DeclSort::PartialSpecialization",
-                                  &error_position);
+      { an_ifc_DeclSort_PartialSpecialization idsps, *idspsp;
+        idspsp = get_DeclSort_PartialSpecialization(&idsps);
+        cache_decl_partial_specialization(cache, decl, idspsp);
+      }
       break;
     case ifc_DeclSort_ExplicitSpecialization:
       /* FIXME: Currently unsupported. */
