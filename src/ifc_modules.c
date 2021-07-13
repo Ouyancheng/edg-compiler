@@ -3153,7 +3153,7 @@ representation that is not always compound statement (ifc_StmtSort_Block) and
 therefore the caller takes responsibility for generating braces in that case
 (i.e., when is_func_body is TRUE, this routine does not cache delimiting
 braces for a compound statement).  If options & cso_no_final_semicolon is
-nonzero, the a statement expression should not be terminated with a semicolon.
+nonzero, a statement expression should not be terminated with a semicolon.
 */
 {
   a_source_position  pos;
@@ -3169,10 +3169,10 @@ nonzero, the a statement expression should not be terminated with a semicolon.
       }
       break;
     case ifc_StmtSort_Empty:
-      { an_ifc_StmtSort_Empty isse;
-        get_StmtSort_Empty(&isse);
-        unexpected_condition_str("StmtSort::Empty"
-                                 " is not yet handled");
+      { an_ifc_StmtSort_Empty isse, *issep;
+        issep = get_StmtSort_Empty(&isse);
+        source_position_from_locus(&pos, &issep->locus);
+        cache_token(cache, tok_semicolon, &pos);
       }
       break;
     case ifc_StmtSort_If:
@@ -3194,17 +3194,24 @@ nonzero, the a statement expression should not be terminated with a semicolon.
       }
       break;
     case ifc_StmtSort_For:
-      { an_ifc_StmtSort_For issf;
-        get_StmtSort_For(&issf);
-        unexpected_condition_str("StmtSort::For"
-                                 " is not yet handled");
+      { an_ifc_StmtSort_For issf, *issfp;
+        issfp = get_StmtSort_For(&issf);
+        source_position_from_locus(&pos, &issfp->locus);
+        cache_token(cache, tok_for, &pos);
+        cache_token(cache, tok_lparen, &pos);
+        cache_statement(cache, issfp->initialization);
+        cache_statement(cache, issfp->condition);
+        cache_statement(cache, issfp->continuation, cso_no_final_semicolon);
+        cache_token(cache, tok_rparen, &pos);
+        cache_statement(cache, issfp->body);
       }
       break;
     case ifc_StmtSort_Case:
-      { an_ifc_StmtSort_Case issc;
-        get_StmtSort_Case(&issc);
-        unexpected_condition_str("StmtSort::Case"
-                                 " is not yet handled");
+      { an_ifc_StmtSort_Case issc, *isscp;
+        isscp = get_StmtSort_Case(&issc);
+        source_position_from_locus(&pos, &isscp->locus);
+        cache_expr(cache, isscp->expr);
+        cache_token(cache, tok_colon, &pos);
       }
       break;
     case ifc_StmtSort_While:
@@ -3237,13 +3244,23 @@ nonzero, the a statement expression should not be terminated with a semicolon.
       }
       break;
     case ifc_StmtSort_Break:
-      { an_ifc_StmtSort_Break issb;
-        get_StmtSort_Break(&issb);
-        unexpected_condition_str("StmtSort::Break"
-                                 " is not yet handled");
+      { an_ifc_StmtSort_Break issb, *issbp;
+        issbp = get_StmtSort_Break(&issb);
+        source_position_from_locus(&pos, &issbp->locus);
+        cache_token(cache, tok_break, &pos);
+        cache_token(cache, tok_semicolon, &pos);
       }
       break;
     case ifc_StmtSort_Switch:
+      { an_ifc_StmtSort_Switch isss, *isssp;
+        isssp = get_StmtSort_Switch(&isss);
+        source_position_from_locus(&pos, &isssp->locus);
+        cache_token(cache, tok_switch, &pos);
+        cache_token(cache, tok_lparen, &pos);
+        cache_expr(cache, isssp->condition);
+        cache_token(cache, tok_rparen, &pos);
+        cache_statement(cache, isssp->body);
+      }
       { an_ifc_StmtSort_Switch isss;
         get_StmtSort_Switch(&isss);
         unexpected_condition_str("StmtSort::Switch"
@@ -3251,6 +3268,17 @@ nonzero, the a statement expression should not be terminated with a semicolon.
       }
       break;
     case ifc_StmtSort_DoWhile:
+      { an_ifc_StmtSort_DoWhile issdw, *issdwp;
+        issdwp = get_StmtSort_DoWhile(&issdw);
+        source_position_from_locus(&pos, &issdwp->locus);
+        cache_token(cache, tok_do, &pos);
+        cache_statement(cache, issdwp->body);
+        cache_token(cache, tok_while, &pos);
+        cache_token(cache, tok_lparen, &pos);
+        cache_token(cache, tok_rparen, &pos);
+        cache_statement(cache, issdwp->condition, cso_no_final_semicolon);
+        cache_token(cache, tok_semicolon, &pos);
+      }
       { an_ifc_StmtSort_DoWhile issdw;
         get_StmtSort_DoWhile(&issdw);
         unexpected_condition_str("StmtSort::DoWhile"
@@ -3258,10 +3286,11 @@ nonzero, the a statement expression should not be terminated with a semicolon.
       }
       break;
     case ifc_StmtSort_Default:
-      { an_ifc_StmtSort_Default issd;
-        get_StmtSort_Default(&issd);
-        unexpected_condition_str("StmtSort::Default"
-                                 " is not yet handled");
+      { an_ifc_StmtSort_Default issd, *issdp;
+        issdp = get_StmtSort_Default(&issd);
+        source_position_from_locus(&pos, &issdp->locus);
+        cache_token(cache, tok_default, &pos);
+        cache_token(cache, tok_colon, &pos);
       }
       break;
     case ifc_StmtSort_Continue:
