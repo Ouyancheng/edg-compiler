@@ -461,16 +461,16 @@ ifc_map.h.  Make sure to use the pointer that is returned by these functions
 */
 
 /*
-Define a generic wrapper function that delegate to the corresponding "get_name"
-function for a given type "an_ifc_name".
+Define a generic wrapper function that delegates to the corresponding
+"get_name" function for a given type "an_ifc_name".
 
 For example, when "name" is "foo", this routine effectively boils down to:
 
   template<>
-  an_ifc_foo *an_ifc_module::get<an_ifc_foo>(an_ifc_foo *ptr,
+  an_ifc_foo *an_ifc_module::get<an_ifc_foo>(an_ifc_foo *storage,
                                              a_boolean fill_storage) const
   {
-    return get_foo(ptr, fill_storage);
+    return get_foo(storage, fill_storage);
   }
 */
 #define IFC_GENERIC_GET(name) \
@@ -4926,7 +4926,7 @@ void an_ifc_module::process_scope_member_sequence(ifc_Sequence seq) const
 Process a sequence (seq) of IFC scope member declarations.
 */
 {
-  /* Provide a consumer function that accepts a given scope member, and
+  /* Provide a consumer function that accepts a given scope member and
      processes the associated IFC declaration. */
   auto decl_consumer = [this](an_ifc_Scope_Member *ismp) {
     /* Get the associated IFC module entity pointer, and then use it to process
@@ -8457,8 +8457,8 @@ void an_ifc_module::cache_scope_member_sequence(a_token_cache_ptr cache,
 Cache a sequence (seq) of IFC scope member declarations into the cache.
 */
 {
-  /* Provide a consumer function that accepts a given scope member, and
-     caches the associated IFC declaration into the cache. */
+  /* Provide a consumer function that accepts a given scope member and caches
+     the associated IFC declaration into the cache. */
   auto decl_consumer = [this, cache](an_ifc_Scope_Member *ismp) {
     cache_decl(cache, ismp->index);
   };
@@ -12776,7 +12776,7 @@ into that partition.
 
 
 template<an_ifc_partition_kind a_Partition_Kind, typename a_Trait_T>
-inline a_Trait_T* an_ifc_module::find_trait(ifc_DeclIndex decl,
+inline a_Trait_T *an_ifc_module::find_trait(ifc_DeclIndex decl,
                                             a_Trait_T     *storage) const
 /*
 Given a declaration index (decl) as a key to the associated trait table
@@ -12798,7 +12798,7 @@ upon to contain the result.
   };
   /* Get the partition index (if any) for decl. */
   ptrdiff_t partition_idx = bin_search(num_traits, decl, value_lambda);
-  a_Trait_T* result = NULL;
+  a_Trait_T *result = NULL;
 
   if (partition_idx != -1) {
     /* A trait was found for decl.  Load the trait (again) to retrieve the

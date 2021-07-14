@@ -2904,7 +2904,7 @@ private:
   inline ifc_Index read_index_from_heap(an_ifc_partition_kind heap_partition,
                                         ifc_Index_type        index) const;
   template<an_ifc_partition_kind a_Partition_Kind, typename a_Trait_T>
-  inline a_Trait_T* find_trait(ifc_DeclIndex decl_index,
+  inline a_Trait_T *find_trait(ifc_DeclIndex decl_index,
                                a_Trait_T     *storage) const;
   ifc_ChartIndex get_func_params_from_trait(ifc_DeclIndex decl) const;
   ifc_Sequence get_specialization_sequence_from_trait(ifc_DeclIndex decl)
@@ -2988,7 +2988,7 @@ private:
 #endif /* DEBUG */
 
   template<typename T>
-  inline T *get(T* storage, a_boolean fill_storage = FALSE) const = delete;
+  inline T *get(T *storage, a_boolean fill_storage = FALSE) const = delete;
   /* Generate prefixes for the entity getters. */
   #define IFC_DECL_START(name) \
   inline concat(an_ifc_, name) * concat(get_, name) ( \
