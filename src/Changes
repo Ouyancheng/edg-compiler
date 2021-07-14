@@ -1,5 +1,20 @@
 Version 6.3
 
+7/14/21  [EDGcpfe/18931,EDGcpfe/23843,EDGcpfe/24515]
+Failure to bind a no-throw function address from an overload set
+
+Consider:
+
+  int g(int);
+  int g() noexcept;
+  int (&rf)() = g;  // Previously an error.  Now okay.
+
+Previously, the front front end required g() to have a type identical to the
+type referred to by rf and thus this example was rejected because the exception
+specification on the source and destination types did not match.  That is now
+fixed and the example is now accepted.
+
+
 7/13/21  [EDGcpfe/24512]
 Multiple translation units: dependent inheriting constructors
 

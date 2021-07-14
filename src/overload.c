@@ -932,8 +932,14 @@ destination type (this comes up in a Microsoft-mode extension).
           routine_type = routine_symbol_type(sym);
           /* Note that the type qualifiers on both types have already been
              dropped. */
-          if (identical_types(routine_type, dest_underlying_type)) {
+          if (f_identical_types(routine_type, dest_underlying_type,
+                                ITF_IGNORE_TOP_LEVEL_NOEXCEPT)) {
             a_type_ptr	parent_class_if_nonstatic_member;
+            if (type_has_less_restrictive_exception_spec(
+                                        routine_type, dest_underlying_type)) {
+              /* Not a match. */
+              continue;
+            }  /* if */
             parent_class_if_nonstatic_member =
                     routine_type_is_nonstatic_member_function(routine_type) ?
                                                  sym_parent_class(sym) : NULL;
