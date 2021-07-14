@@ -3164,8 +3164,8 @@ nonzero, a statement expression should not be terminated with a semicolon.
     case ifc_StmtSort_VendorExtension:
       { an_ifc_StmtSort_VendorExtension issve;
         get_StmtSort_VendorExtension(&issve);
-        unexpected_condition_str("StmtSort::VendorExtension"
-                                 " is not yet handled");
+        issue_unsupported_node_diag("StmtSort::VendorExtension",
+                                    &error_position);
       }
       break;
     case ifc_StmtSort_Empty:
@@ -3326,15 +3326,13 @@ nonzero, a statement expression should not be terminated with a semicolon.
     case ifc_StmtSort_Expansion:
       { an_ifc_StmtSort_Expansion isse;
         get_StmtSort_Expansion(&isse);
-        unexpected_condition_str("StmtSort::Expansion"
-                                 " is not yet handled");
+        issue_unsupported_node_diag("StmtSort::Expansion", &error_position);
       }
       break;
     case ifc_StmtSort_SyntaxTree:
       { an_ifc_StmtSort_SyntaxTree issst;
         get_StmtSort_SyntaxTree(&issst);
-        unexpected_condition_str("StmtSort::SyntaxTree"
-                                 " is not yet handled");
+        issue_unsupported_node_diag("StmtSort::SyntaxTree", &error_position);
       }
       break;
     case ifc_StmtSort_Last:
@@ -3357,23 +3355,9 @@ process it.  As part of this processing, the parameter names of rp are also
 loaded.
 */
 {
-  size_t  num_defs = get_num_entries(ifc_trait_function_definition);
-
-  /* The following lambda returns the ifc_DeclIndex associated with the
-     function definition at position idx in the ifc_trait_function_definition
-     partition.  That is used to feed the call to bin_search below. */
-  auto    value_lambda = [this](ptrdiff_t idx) {
-    an_ifc_Trait_FunctionDefinition  itfd, *itfdp;
-    read_partition_at_index(ifc_trait_function_definition, idx);
-    itfdp = get_Trait_FunctionDefinition(&itfd);
-    return itfdp->decl;
-  };
-  /* Get the partition index (if any) for the given decl index (decl_idx). */
-  ptrdiff_t partition_idx = bin_search(num_defs, decl_idx, value_lambda);
-  if (partition_idx != -1) {
-    an_ifc_Trait_FunctionDefinition  itfd, *itfdp;
-    read_partition_at_index(ifc_trait_function_definition, partition_idx);
-    itfdp = get_Trait_FunctionDefinition(&itfd);
+  an_ifc_Trait_FunctionDefinition  itfd, *itfdp;
+  itfdp = find_trait<ifc_trait_function_definition>(decl_idx, &itfd);
+  if (itfdp != NULL) {
     /* Retrieve the parameter names. */
     check_assertion(type_is(rp->type, tk_routine));
     a_param_type_ptr  params = function_type_params(rp->type), ptp;
@@ -3387,8 +3371,6 @@ loaded.
       read_partition_at_index(tag, chart_value(itfdp->parameters));
       icsup = get_ChartSort_Unilevel(&icsu);
       ifc_Index_type  k, N = icsup->cardinality;
-      read_partition_at_index(make_decl_index(ifc_DeclSort_Parameter,
-                                              icsup->start));
       /* Ensure a function prototype scope exists in which sk_parameter
          symbols can be accumulated. */
       (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
@@ -3398,6 +3380,7 @@ loaded.
       for (k = 0, ptp = params; k<N; ++k, ptp = ptp->next) {
         an_ifc_DeclSort_Parameter idsp, *idspp;
         a_source_position         pos;
+        read_partition_at_index(ifc_DeclSort_Parameter, icsup->start+k);
         idspp = get_DeclSort_Parameter(&idsp);
         check_assertion(idspp->sort == ifc_ParameterSort_Object);
         source_position_from_locus(&pos, &idspp->locus);
@@ -11179,12 +11162,14 @@ expressions by the tuple_separator token (tok_comma by default).
         iescp = get_ExprSort_Call(&iesc);
         cache_expr(cache, iescp->operation);
         if (iescp->arguments != 0) {
-#if CHECKING
           ifc_ExprSort  arguments_tag = expr_tag(iescp->arguments);
-          check_assertion(arguments_tag == ifc_ExprSort_ExpressionList ||
-                          arguments_tag == ifc_ExprSort_Dyad);
-#endif /* CHECKING */
+          if (arguments_tag != ifc_ExprSort_ExpressionList) {
+            cache_token(cache, tok_lparen, &pos);
+          }  /* if */
           cache_expr(cache, iescp->arguments);
+          if (arguments_tag != ifc_ExprSort_ExpressionList) {
+            cache_token(cache, tok_lparen, &pos);
+          }  /* if */
         } else {
           /* Sometimes (but not always) an empty argument list appears to be
              represented using a null "arguments" field. */
