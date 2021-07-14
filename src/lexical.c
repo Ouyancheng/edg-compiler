@@ -23850,13 +23850,13 @@ formatting.
       do_indent(&k);
     } else if (temp_text_buffer[k] == ';') {
       /* Switch to a new line, unless followed by a '}' or ';'. */
-      a_boolean  add_new_line = true;
+      a_boolean  add_new_line = TRUE;
       for (sizeof_t n = k+1; n<pos_in_temp_text_buffer; ++n) {
         if (temp_text_buffer[n] == ' ') {
           continue;
         } else {
           if (temp_text_buffer[n] == '}' || temp_text_buffer[n] == ';') {
-            add_new_line = false;
+            add_new_line = FALSE;
           }  /* if */
           break;
         }  /* if */

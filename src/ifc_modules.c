@@ -3149,11 +3149,11 @@ void an_ifc_module::cache_statement(a_token_cache_ptr         cache,
 Add tokens corresponding to the statement at stmt_idx to the given cache.  If
 options & cso_func_body is nonzero (it is zero by default), the function is
 being called for the top-level statement of a function: In the IFC
-representation that is not always compound statement (ifc_StmtSort_Block) and
+representation that is not a always compound statement (ifc_StmtSort_Block) and
 therefore the caller takes responsibility for generating braces in that case
-(i.e., when is_func_body is TRUE, this routine does not cache delimiting
-braces for a compound statement).  If options & cso_no_final_semicolon is
-nonzero, a statement expression should not be terminated with a semicolon.
+(i.e., when options & cso_func_body is nonzero, this routine does not cache
+delimiting braces for a compound statement).  No terminating semicolon is added
+to the given cache if options & cso_no_final_semicolon is nonzero.
 */
 {
   a_source_position  pos;
@@ -3352,12 +3352,13 @@ decl_idx points to the IFC representation of rp: That representation was
 already loaded previously and found to be associated with a definition in
 an ifc_trait_function_definition partition.  Load that IFC partition now and
 process it.  As part of this processing, the parameter names of rp are also
-loaded.
+loaded and *func_info is updated accordingly.
 */
 {
   an_ifc_Trait_FunctionDefinition  itfd, *itfdp;
   itfdp = find_trait<ifc_trait_function_definition>(decl_idx, &itfd);
   if (itfdp != NULL) {
+    func_info->is_definition = TRUE;
     /* Retrieve the parameter names. */
     check_assertion(type_is(rp->type, tk_routine));
     a_param_type_ptr  params = function_type_params(rp->type), ptp;
@@ -3365,9 +3366,9 @@ loaded.
       /* Parameters are represented as a single-level IFC "chart" pointing to
          a sequence of ifc_DeclSort_Parameter entries of kind
          ifc_ParameterSort_Object. */
-      ifc_ChartSort  tag = chart_tag(itfdp->parameters);
+      an_ifc_ChartSort_Unilevel  icsu, *icsup;
+      ifc_ChartSort              tag = chart_tag(itfdp->parameters);
       check_assertion(tag == ifc_ChartSort_Unilevel);
-      an_ifc_ChartSort_Unilevel icsu, *icsup;
       read_partition_at_index(tag, chart_value(itfdp->parameters));
       icsup = get_ChartSort_Unilevel(&icsu);
       ifc_Index_type  k, N = icsup->cardinality;
@@ -3375,7 +3376,6 @@ loaded.
          symbols can be accumulated. */
       (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
                        rp->type, (a_routine_ptr)NULL);
-      func_info->is_definition = TRUE;
       func_info->scope_number = scope_stack_top().number;
       for (k = 0, ptp = params; k<N; ++k, ptp = ptp->next) {
         an_ifc_DeclSort_Parameter idsp, *idspp;
@@ -3384,7 +3384,7 @@ loaded.
         idspp = get_DeclSort_Parameter(&idsp);
         check_assertion(idspp->sort == ifc_ParameterSort_Object);
         source_position_from_locus(&pos, &idspp->locus);
-        a_const_char  *name = get_string_at_offset(idspp->name);
+        a_const_char      *name = get_string_at_offset(idspp->name);
         a_symbol_locator  sym_loc;
         (void)find_symbol(name, strlen(name), &sym_loc);
         check_assertion(ptp != NULL);
@@ -3407,11 +3407,11 @@ loaded.
       pop_scope();
     }  /* if */
     /* Cache the mem-initializers if needed. */
-    // TODO
+    // FIXME: TODO
     /* Cache the function body.  It appears that a single return statement is
        represented directly rather than as a block containing the return
        statement.  We therefore generate the braces here and inhibit them at
-       the next statement level by passing a TRUE is_func_body flag. */
+       the next statement level by passing the cso_func_body flag. */
     cache_token(cache, tok_lbrace, &null_source_position);
     cache_statement(cache, itfdp->body, cso_func_body);
     cache_token(cache, tok_rbrace, &null_source_position);
