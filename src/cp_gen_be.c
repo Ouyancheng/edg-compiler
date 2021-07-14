@@ -17958,10 +17958,12 @@ is the one associated with the template.
       }  /* if */
     }  /* if */
   }  /* if */
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   if (tp->kind == (a_template_kind)templk_function &&
       tp->prototype_instantiation.routine != NULL) {
     tp->prototype_instantiation.routine->has_been_defined = TRUE;
   }  /* if */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   if (tp->min_template_arguments != -1) {
     /* Update the canonical template to reflect the number of parameters
        without default arguments in this declaration (to prevent
@@ -22094,6 +22096,7 @@ handle_as_definition:
     /* This is a generated instance of a function template.  Determine
        whether to put out an explicit specialization for it. */
     is_generated_explicit_specialization = TRUE;
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     if (rout->assoc_template->prototype_instantiation.routine != NULL &&
         !rout->assoc_template->prototype_instantiation.routine->
                                                             has_been_defined) {
@@ -22101,6 +22104,7 @@ handle_as_definition:
          explicit specialization cannot be valid. */
       rout->suppress_explicit_specialization = TRUE;
     }  /* if */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     if (rout->suppress_explicit_specialization) {
       discard_declaration = TRUE;
     } else if (!special_kind_is(rout, sfk_deduction_guide) &&
