@@ -3149,7 +3149,7 @@ void an_ifc_module::cache_statement(a_token_cache_ptr         cache,
 Add tokens corresponding to the statement at stmt_idx to the given cache.  If
 options & cso_func_body is nonzero (it is zero by default), the function is
 being called for the top-level statement of a function: In the IFC
-representation that is not a always compound statement (ifc_StmtSort_Block) and
+representation that is not always a compound statement (ifc_StmtSort_Block) and
 therefore the caller takes responsibility for generating braces in that case
 (i.e., when options & cso_func_body is nonzero, this routine does not cache
 delimiting braces for a compound statement).  No terminating semicolon is added
