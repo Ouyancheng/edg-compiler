@@ -47,6 +47,7 @@ and parsing of them into tokens.
 #endif /* INCLUDE_COMMENTS_IN_ASM_FUNC_BODY */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #include "ms_metadata.h"
+#include "ifc_modules.h"
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* Conditionally open the "edg" namespace. */
@@ -15626,6 +15627,30 @@ so efficiency is not a prime concern.
   db_exit();
 }  /* unget_token */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
+
+a_boolean pending_ifc_func_body_next(a_symbol_ptr  rout_sym)
+/*
+A declaration for the given (member) function has just been parsed and the
+current token is the final semicolon.  If we're caching tokens and the next
+token is a "pending IFC function body" pseudo-token return TRUE and associate
+the given routine with that pending function body.
+*/
+{
+  a_boolean           result = FALSE;
+  a_cached_token_ptr  ctp = cached_token_rescan_list;
+
+  if (ctp != NULL && ctp->token == tok_pending_ifc_func_body) {
+    record_pending_ifc_function_body(
+                           rout_sym->variant.routine.ptr,
+                           (ifc_DeclIndex)ctp->variant.ifc_decl.index,
+                           (an_ifc_module*)ctp->variant.ifc_decl.module);
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* pending_ifc_func_body_next */
+
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 static a_symbol_ptr dtor_matches_base_class(a_type_ptr tp)
 /*
@@ -23277,6 +23302,10 @@ and < end_tsn are included in the string.
         ctp = ctp->variant.extracted_template.next_in_token_string;
         put_ch_to_temp_text_buffer(';');
       }  /* if */
+    } else if (teik_kind == (a_token_extra_info_kind)teik_ifc_decl) {
+      put_str_to_temp_text_buffer("// ");
+      add_token_to_string(ctp);
+      put_str_to_temp_text_buffer("\n");
     } else {
       /* A normal token (including, possibly, a pp-token). */
       if (ctp->token == (a_small_token_kind)tok_removed_template_body) {
@@ -23706,6 +23735,7 @@ Display a single cached token.
       case teik_extracted_body: s = "extracted_body"; break;
       case teik_asm_string:     s = "asm_string"; break;
       case teik_ud_lit:         s = "ud_lit"; break;
+      case teik_ifc_decl:       s = "ifc_decl"; break;
       default:                  unexpected_condition();
     }  /* switch */
     fprintf(f_debug, "  extra_info_kind: %s\n", s);
@@ -23821,14 +23851,19 @@ formatting.
                      for (sizeof_t i = 0; i<indent; ++i) {
                        (void)fputc(' ', f_debug);
                      }  /* for */
-                     /* Skip leading spaces in the text. */
-                     while (*k+1 < pos_in_temp_text_buffer &&
-                            temp_text_buffer[*k] == ' ') {
+                     /* Skip leading spaces in the text.  Note that since
+                        "++k" pf the loop below has not been evaluated yet, we
+                        start at k+1. */
+                     while (*k+2 < pos_in_temp_text_buffer &&
+                            temp_text_buffer[*k+1] == ' ') {
                        *k += 1;
                      }  /* while */
                    }; 
+  sizeof_t  k = saved_pos;
+  /* Skip leading spaces. */
+  while (temp_text_buffer[k] == ' ') ++k;
   /*lint --e{850} k modified in loop */
-  for (sizeof_t k = saved_pos; k<pos_in_temp_text_buffer; ++k) {
+  for (; k<pos_in_temp_text_buffer; ++k) {
     if (temp_text_buffer[k] == '{') {
       /* Switch to a new line and increase the indentation. */
       fprintf(f_debug, "{\n");
@@ -23862,6 +23897,9 @@ formatting.
         }  /* if */
       }  /* for */
       fprintf(f_debug, "%s", add_new_line ? ";\n" : ";");
+      do_indent(&k);
+    } else if (temp_text_buffer[k] == '\n') {
+      (void)fputc('\n', f_debug);
       do_indent(&k);
     } else {
       /* Just put out the character. */

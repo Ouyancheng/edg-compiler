@@ -312,6 +312,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
    (an_opname_kind)onk_none,          /* tok_cli_typeid */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_decltype_construct */
+   (an_opname_kind)onk_none,          /* tok_pending_ifc_func_body */
    (an_opname_kind)onk_none,          /* tok_unimplemented */
    (an_opname_kind)onk_subscript,     /* operator[] starts with tok_lbracket */
    (an_opname_kind)onk_none,          /* tok_rbracket */
@@ -2055,7 +2056,9 @@ enum a_token_extra_info_kind_tag {
   teik_extracted_body,  /* Extra information for an extracted template body. */
   teik_asm_string,	/* Extra information for a Microsoft asm block. */
   teik_insert_string,   /* Extra information for an inserted token string. */
-  teik_ud_lit           /* Extra information for a user-defined literal. */
+  teik_ud_lit,          /* Extra information for a user-defined literal. */
+  teik_ifc_decl         /* Extra information for a pseudo-token referring to
+                           a declaration stored in an IFC module. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_token_extra_info_kind;
@@ -2162,6 +2165,16 @@ typedef struct a_cached_token {
 			   find_literal_operator when repeating the operator
 			   lookup for a cached token. */
     } ud_lit;
+    /* When extra_info_kind == teik_ifc_decl: */
+    struct {
+      uint32_t	index;
+			/* The index in the IFC file of the declaration being
+			   referred to. */
+      const void
+		*module;
+			/* An opaque pointer to the IFC module (an_ifc_module)
+			   containing this declaration. */
+    } ifc_decl;
   } variant;
 } a_cached_token;
 
@@ -2556,6 +2569,8 @@ a_token_kind next_two_tokens(a_token_kind	first_token_must_be,
 
 /* Back up one token. */
 extern void unget_token(void);
+
+extern a_boolean pending_ifc_func_body_next(a_symbol_ptr  rout_sym);
 
 extern a_symbol_ptr coalesce_template_class_reference
 			(a_symbol_ptr		   template_symbol,

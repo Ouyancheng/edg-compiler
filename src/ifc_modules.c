@@ -3130,9 +3130,9 @@ static an_ifc_function_body_map
 			   needed. */
 
 		
-static void record_pending_ifc_function_body(a_routine_ptr        rp,
-                                             ifc_DeclIndex        decl_idx,
-                                             an_ifc_module const  *ifc_module)
+void record_pending_ifc_function_body(a_routine_ptr        rp,
+                                      ifc_DeclIndex        decl_idx,
+                                      an_ifc_module const  *ifc_module)
 /*
 Record the information needed to retrieve a definition for rp if it turns out
 to be needed later on.
@@ -3343,19 +3343,24 @@ to the given cache if options & cso_no_final_semicolon is nonzero.
 }  /* cache_statement */
 
 
-void an_ifc_module::cache_function_body(a_token_cache_ptr  cache,
-                                        ifc_DeclIndex      decl_idx,
-                                        a_routine_ptr      rp,
-                                        a_func_info_block  *func_info) const
+a_boolean an_ifc_module::cache_function_body(
+                                          a_token_cache_ptr  cache,
+                                          ifc_DeclIndex      decl_idx,
+                                          a_routine_ptr      rp,
+                                          a_func_info_block  *func_info) const
 /*
 decl_idx points to the IFC representation of rp: That representation was
 already loaded previously and found to be associated with a definition in
 an ifc_trait_function_definition partition.  Load that IFC partition now and
 process it.  As part of this processing, the parameter names of rp are also
-loaded and *func_info is updated accordingly.
+loaded and *func_info is updated accordingly.  Normally, TRUE is returned, but
+in some cases there is no definition present after all and FALSE is returned
+instead.
 */
 {
+  a_boolean                        result = TRUE;
   an_ifc_Trait_FunctionDefinition  itfd, *itfdp;
+
   itfdp = find_trait<ifc_trait_function_definition>(decl_idx, &itfd);
   if (itfdp != NULL) {
     func_info->is_definition = TRUE;
@@ -3371,13 +3376,19 @@ loaded and *func_info is updated accordingly.
       check_assertion(tag == ifc_ChartSort_Unilevel);
       read_partition_at_index(tag, chart_value(itfdp->parameters));
       icsup = get_ChartSort_Unilevel(&icsu);
-      ifc_Index_type  k, N = icsup->cardinality;
+      ifc_Index_type  k = 0, N = icsup->cardinality;
       /* Ensure a function prototype scope exists in which sk_parameter
          symbols can be accumulated. */
       (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
                        rp->type, (a_routine_ptr)NULL);
+      if (routine_type_is_nonstatic_member_function(rp->type)) {
+        /* IFC files appear to represent the "this" parameter as an ordinary
+           unnamed parameter.  Skip it here since the front end treats it
+           separately. */
+        k = 1;
+      }  /* if */
       func_info->scope_number = scope_stack_top().number;
-      for (k = 0, ptp = params; k<N; ++k, ptp = ptp->next) {
+      for (ptp = params; k<N; ++k, ptp = ptp->next) {
         an_ifc_DeclSort_Parameter idsp, *idspp;
         a_source_position         pos;
         read_partition_at_index(ifc_DeclSort_Parameter, icsup->start+k);
@@ -3386,6 +3397,7 @@ loaded and *func_info is updated accordingly.
         source_position_from_locus(&pos, &idspp->locus);
         a_const_char      *name = get_string_at_offset(idspp->name);
         a_symbol_locator  sym_loc;
+        clear_locator(&sym_loc, &pos);
         (void)find_symbol(name, strlen(name), &sym_loc);
         check_assertion(ptp != NULL);
         a_param_id_ptr  param_id;
@@ -3407,13 +3419,18 @@ loaded and *func_info is updated accordingly.
       pop_scope();
     }  /* if */
     /* Cache the mem-initializers if needed. */
-    // FIXME: TODO
+    if (itfdp->initializers != 0) {
+      cache_token(cache, tok_colon, &null_source_position);
+      cache_expr(cache, itfdp->initializers);
+    }  /* if */
     /* Cache the function body.  It appears that a single return statement is
        represented directly rather than as a block containing the return
        statement.  We therefore generate the braces here and inhibit them at
        the next statement level by passing the cso_func_body flag. */
     cache_token(cache, tok_lbrace, &null_source_position);
-    cache_statement(cache, itfdp->body, cso_func_body);
+    if (itfdp->body != 0) {
+      cache_statement(cache, itfdp->body, cso_func_body);
+    }  /* if */
     cache_token(cache, tok_rbrace, &null_source_position);
 #if DEBUG
     if (db_flag_is_set("ms_ifc_token_def")) {
@@ -3423,8 +3440,10 @@ loaded and *func_info is updated accordingly.
     }  /* if */
 #endif /* DEBUG */
   } else {
-    unexpected_condition();
+    /* Apparently, no body was recorded in the IFC file after all. */
+    result = FALSE;
   }  /* if */
+  return result;
 }  /* cache_function_body */
 
 
@@ -3441,15 +3460,20 @@ process that definition and return TRUE.
     a_func_info_block  func_info;
     a_token_cache      def_cache;
     a_decl_flag_set    flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED;
+    /* We are about to load the definition.  So the "pending definition" entry
+       can be dropped now. */
+    ifc_function_bodies->unmap(rp);
     clear_token_cache(&def_cache, /*reuseable=*/FALSE);
     clear_func_info(&func_info);
     push_new_top_level_declaration();
-    ifb.ifc_module->cache_function_body(&def_cache, ifb.decl, rp, &func_info);
-    rescan_cached_tokens(&def_cache);
-    scan_function_body(rp, &func_info, flags);
-    if (curr_token == tok_rbrace) {
-      result = TRUE;
-      get_token();
+    if (ifb.ifc_module->cache_function_body(&def_cache, ifb.decl,
+                                            rp, &func_info)) {
+      rescan_cached_tokens(&def_cache);
+      scan_function_body(rp, &func_info, flags);
+      if (curr_token == tok_rbrace) {
+        result = TRUE;
+        get_token();
+      }  /* if */
     }  /* if */
     pop_scope();
   }  /* if */
@@ -10753,6 +10777,15 @@ Add the tokens corresponding to the given declaration (decl) to cache.
                             idsmp->access, itsmp->convention, idsmp->traits,
                             itsmp->traits, target, idsmp->name, params,
                             itsmp->source, &itsmp->eh_spec, &idsmp->locus);
+        if (idsmp->properties & ifc_ReachableProperties_Initializer) {
+          /* A body is likely available: Record this availability using a
+             pseudo-token that will be translated when the declaration is
+             parsed. */
+          cache_token(cache, tok_pending_ifc_func_body, &null_source_position);
+          cache->last_token->extra_info_kind = teik_ifc_decl;
+          cache->last_token->variant.ifc_decl.index = decl;
+          cache->last_token->variant.ifc_decl.module = this;
+        }  /* if */
       }
       break;
     case ifc_DeclSort_Constructor:
@@ -10776,6 +10809,15 @@ Add the tokens corresponding to the given declaration (decl) to cache.
                             (ifc_FunctionTypeTraits)0, (ifc_TypeIndex)0,
                             idssp->name, params, itstp->source,
                             &itstp->eh_spec, &idscp->locus);
+        if (idscp->properties & ifc_ReachableProperties_Initializer) {
+          /* A body is likely available: Record this availability using a
+             pseudo-token that will be translated when the declaration is
+             parsed. */
+          cache_token(cache, tok_pending_ifc_func_body, &null_source_position);
+          cache->last_token->extra_info_kind = teik_ifc_decl;
+          cache->last_token->variant.ifc_decl.index = decl;
+          cache->last_token->variant.ifc_decl.module = this;
+        }  /* if */
       }
       break;
     case ifc_DeclSort_InheritedConstructor:
@@ -10802,6 +10844,15 @@ Add the tokens corresponding to the given declaration (decl) to cache.
                             (ifc_FunctionTypeTraits)0, (ifc_TypeIndex)0,
                             idssp->name, (ifc_ChartIndex)0, (ifc_TypeIndex)0,
                             &idsdp->eh_spec, &idsdp->locus);
+        if (idsdp->properties & ifc_ReachableProperties_Initializer) {
+          /* A body is likely available: Record this availability using a
+             pseudo-token that will be translated when the declaration is
+             parsed. */
+          cache_token(cache, tok_pending_ifc_func_body, &null_source_position);
+          cache->last_token->extra_info_kind = teik_ifc_decl;
+          cache->last_token->variant.ifc_decl.index = decl;
+          cache->last_token->variant.ifc_decl.module = this;
+        }  /* if */
       }
       break;
     case ifc_DeclSort_Reference:
@@ -10891,13 +10942,14 @@ Add the tokens corresponding to the given declaration (decl) to cache.
 }  /* cache_decl */
 
 
-void an_ifc_module::cache_expr(a_token_cache_ptr cache,
-                               ifc_ExprIndex     expr,
-             /* Defaulted: */  a_token_kind      tuple_separator) const
+void an_ifc_module::cache_expr(a_token_cache_ptr    cache,
+                               ifc_ExprIndex        expr,
+             /* Defaulted: */  a_cache_expr_option  options) const
 /*
-Add the tokens corresponding to the given expression (expr) to cache.  When
-caching a construct tagged as ifc_ExprSort_Tuple, separate the constituent
-expressions by the tuple_separator token (tok_comma by default).
+Add the tokens corresponding to the given expression (expr) to cache.
+If options & ceo_qualified_name is nonzero, separate tuple elements by '::'
+instead of ','.  If options & ceo_skip_assign is nonzero, only render the
+second operand of an assignment.
 */
 {
   ifc_ExprSort      tag = expr_tag(expr);
@@ -11004,7 +11056,7 @@ expressions by the tuple_separator token (tok_comma by default).
         if (iesqnp->typename_keyword.line != 0) {
           cache_token(cache, tok_typename, &pos);
         }  /* if */
-        cache_expr(cache, iesqnp->elements, /*separator=*/tok_colon_colon);
+        cache_expr(cache, iesqnp->elements, ceo_qualified_name);
       }
       break;
     case ifc_ExprSort_Path:
@@ -11077,17 +11129,27 @@ expressions by the tuple_separator token (tok_comma by default).
         opkind = get_operator_kind(iesdp->op);
         switch (opkind) {
           case opkind_basic:
-            cache_expr(cache, iesdp->arguments_0);
-            cache_operator(cache, iesdp->op, &iesdp->locus);
+            if ((options & ceo_skip_assign) == 0 ||
+                iesdp->op != ifc_DyadicOperator_Assign) {
+              cache_expr(cache, iesdp->arguments_0);
+              cache_operator(cache, iesdp->op, &iesdp->locus);
+            }  /* if */
             cache_expr(cache, iesdp->arguments_1);
             break;
           case opkind_func_like:
-            cache_operator(cache, iesdp->op, &iesdp->locus);
-            cache_token(cache, tok_lparen, &pos);
-            cache_expr(cache, iesdp->arguments_0);
-            cache_token(cache, tok_comma, &pos);
-            cache_expr(cache, iesdp->arguments_1);
-            cache_token(cache, tok_rparen, &pos);
+            if (iesdp->op == ifc_DyadicOperator_MsvcAlign) {
+              /* An expression like "this->i" is represented in IFC as
+                 "this->__MsvcAlign(4, i)".  That has no equivalent in the
+                 EDG IL.  So just cache the second argument. */
+              cache_expr(cache, iesdp->arguments_1);
+            } else {
+              cache_operator(cache, iesdp->op, &iesdp->locus);
+              cache_token(cache, tok_lparen, &pos);
+              cache_expr(cache, iesdp->arguments_0);
+              cache_token(cache, tok_comma, &pos);
+              cache_expr(cache, iesdp->arguments_1);
+              cache_token(cache, tok_rparen, &pos);
+            }  /* if */
             break;
           case opkind_cpp_cast:
             cache_operator(cache, iesdp->op, &iesdp->locus);
@@ -11180,13 +11242,31 @@ expressions by the tuple_separator token (tok_comma by default).
       }
       break;
     case ifc_ExprSort_MemberInitializer:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::MemberInitializer",
-                                  &error_position);
+      { an_ifc_ExprSort_MemberInitializer iesmi, *iesmip;
+        iesmip = get_ExprSort_MemberInitializer(&iesmi);
+        if (iesmip->member != 0) {
+          /* A nonstatic member initialization. */
+          source_position_from_locus(&pos, &iesmip->locus);
+          cache_identifier(cache, name_from_decl(iesmip->member), &pos);
+        } else if (iesmip->base != 0) {
+          /* A base subobject initialization. */
+          cache_type(cache, iesmip->base, &iesmip->locus);
+        } else {
+          /* A delegating constructor. */
+          issue_unsupported_node_diag("ExprSort::MemberInitializer",
+                                      &error_position);
+        }  /* if */
+        cache_token(cache, tok_lparen, &null_source_position);
+        cache_expr(cache, iesmip->initializer, ceo_skip_assign);
+        cache_token(cache, tok_rparen, &null_source_position);
+      }
       break;
     case ifc_ExprSort_MemberAccess:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::MemberAccess", &error_position);
+      { an_ifc_ExprSort_MemberAccess iesma, *iesmap;
+        iesmap = get_ExprSort_MemberAccess(&iesma);
+        source_position_from_locus(&pos, &iesmap->locus);
+        cache_identifier(cache, get_string_at_offset(iesmap->name), &pos);
+      }
       break;
     case ifc_ExprSort_InheritancePath:
       /* FIXME: Currently unsupported. */
@@ -11387,7 +11467,9 @@ expressions by the tuple_separator token (tok_comma by default).
                        (ifc_ExprIndex)read_index_from_heap(ifc_heap_expr,
                                                            iestp->start + idx);
           if (idx > 0) {
-            cache_token(cache, tuple_separator, &pos);
+            a_token_kind  sep = options & ceo_qualified_name ? tok_colon_colon
+                                                             : tok_comma;
+            cache_token(cache, sep, &pos);
           }  /* if */
           cache_expr(cache, eidx);
         }  /* for */

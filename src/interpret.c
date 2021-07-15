@@ -10453,7 +10453,11 @@ the body of the (constructor) function proper.
     goto done;
   }  /* if */
   if (!callee->defined) {
-    set_instance_required(symbol_for(callee), TRUE, SIR_CONSTANT_CONTEXT);
+    if (load_routine_definition_from_module(callee)) {
+      /* The definition was stored in a module file. */
+    } else {
+      set_instance_required(symbol_for(callee), TRUE, SIR_CONSTANT_CONTEXT);
+    }  /* if */
   }  /* if */
   if (callee->function_def_number == NULL_function_def_number) {
     info_with_pos_sym(ec_constexpr_function_undefined, pos,

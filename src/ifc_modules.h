@@ -2623,10 +2623,10 @@ public:
                                a_type_ptr          enumeration_type) const;
   void complete_definition_of_module_class(a_module_entity_ptr mep)
                                                                 const OVERRIDE;
-  void cache_function_body(a_token_cache_ptr  cache,
-                           ifc_DeclIndex      decl_idx,
-                           a_routine_ptr      rp,
-                           a_func_info_block  *func_info) const;
+  a_boolean cache_function_body(a_token_cache_ptr  cache,
+                                ifc_DeclIndex      decl_idx,
+                                a_routine_ptr      rp,
+                                a_func_info_block  *func_info) const;
 
 #if DEBUG
   void debug() const OVERRIDE;
@@ -2738,9 +2738,14 @@ private:
                            ifc_SourceLocation *locus) const;
   void cache_decl(a_token_cache_ptr  cache,
                   ifc_DeclIndex      decl) const;
-  void cache_expr(a_token_cache_ptr cache,
-                  ifc_ExprIndex     expr,
-                  a_token_kind      tuple_separator = tok_comma) const;
+  enum a_cache_expr_option {
+    ceo_none = 0x0,
+    ceo_qualified_name = 0x1,
+    ceo_skip_assign = 0x2
+  };
+  void cache_expr(a_token_cache_ptr    cache,
+                  ifc_ExprIndex        expr,
+                  a_cache_expr_option  options = ceo_none) const;
   enum a_cache_statement_option {
     cso_none = 0x0,
     cso_func_body = 0x1,
@@ -3052,6 +3057,10 @@ template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcDeclAttrs>(
                                              ifc_DeclIndex       decl_index,
                                              a_str_control_block *scbp) const;
+
+extern void record_pending_ifc_function_body(a_routine_ptr        rp,
+                                             ifc_DeclIndex        decl_idx,
+                                             an_ifc_module const  *ifc_module);
 
 extern void ifc_modules_one_time_init();
 

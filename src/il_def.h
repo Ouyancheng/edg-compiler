@@ -931,6 +931,11 @@ typedef enum /*a_token_kind*/ {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   tok_decltype_construct,   /* Used to represent a decltype(expr) construct
                                that has been coalesced. */
+  tok_pending_ifc_func_body,
+                            /* Generated when reading an IFC file to indicate
+                               that the declaration for a function also has
+                               an associated function body (elsewhere in the
+                               IFC file). */
   tok_unimplemented         /* Token used to indicate keywords that are not
                                yet implemented. */,
   tok_last_complex_token = tok_unimplemented,
@@ -1386,7 +1391,7 @@ EXTERN a_const_char
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "cli typeid",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-   "decltype construct", "unimplemented",
+   "decltype construct", "pending IFC body", "unimplemented",
    "[", "]", "(", ")", ".", "->", "++", "--", "&", "*", "+", "-",
    "~", "!", "/", "%", "<<", ">>", "<", ">", "<=", ">=", "==", "!=", "<=>",
    "^", "|", "&&", "||", "?", ":", "=", "*=", "/=", "%=",
