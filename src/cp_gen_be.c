@@ -3809,6 +3809,7 @@ argument list and to FALSE otherwise.
          (is_generated_explicit_specialization ||
           (in_friend_declaration &&
            curr_name_context->is_generated_explicit_class_specialization)) &&
+         rout->assoc_template != NULL &&
          rout->special_kind != (a_special_function_kind)sfk_constructor &&
          rout->special_kind != (a_special_function_kind)sfk_conversion &&
          !in_template_argument_list)) {
