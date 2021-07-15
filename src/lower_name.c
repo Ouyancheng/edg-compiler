@@ -11689,7 +11689,8 @@ a routine.
     check_assertion(kind == iek_routine);
     rp = (a_routine_ptr)scp;
     template_arg = rp->template_arg_list;
-    for (param = rp->type->variant.routine.extra_info->param_type_list;
+    a_type_ptr rp_type = skip_typerefs(rp->type);
+    for (param = rp_type->variant.routine.extra_info->param_type_list;
          param != NULL;
          param = param->next) {
       walk_parents(&param->type->source_corresp, iek_type, mark_entry,
