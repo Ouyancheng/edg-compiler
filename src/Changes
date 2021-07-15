@@ -1,5 +1,13 @@
 Version 6.3
 
+7/15/21  [EDGcpfe/24487]
+Disqualify inline variables as candidates for module ID
+
+When searching for a candidate for the module ID (used to ensure unique names),
+the front end had previously considered inline variables, but no longer
+does so.
+
+
 7/15/21  [EDGcpfe/24415]
 Segfault in mark_entry
 

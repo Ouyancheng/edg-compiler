@@ -30086,6 +30086,8 @@ be used, but there are exceptions.
           } else if (variable->is_template_variable) {
             /* Don't use template variables or static data members.  Some
                implementations may generate these in multiple files. */
+          } else if (variable->is_inline) {
+            /* An inline variable can appear in multiple translation units. */
 #if GNU_EXTENSIONS_ALLOWED
           } else if (variable->is_weak) {
             /* Weak variable definitions may appear in multiple translation
