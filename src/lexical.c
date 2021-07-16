@@ -23851,8 +23851,8 @@ formatting.
   /* Skip leading spaces. */
   while (temp_text_buffer[k] == ' ') ++k;
   /* A local lambda expression used in a subsequent loop whenever we want to
-     establish indentation after switch to a new line.  The lambda also moves
-     the given index to that of the next non-space character in
+     establish indentation after switching to a new line.  The lambda also
+     moves the given index to that of the next non-space character in
      temp_text_buffer (to avoid extraneous indentation). */
   auto do_indent = [&indent](sizeof_t  *k) {
                      for (sizeof_t i = 0; i<indent; ++i) {
