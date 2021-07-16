@@ -10008,9 +10008,9 @@ initializer expression.  locus is the source location for the declaration.
   initializer = (ifc_ExprIndex)0;
 #endif /*FIXME*/
   if (initializer != 0) {
-    cache_token(cache, tok_lparen, &pos);
+    cache_token(cache, tok_lbrace, &pos);
     cache_expr(cache, initializer);
-    cache_token(cache, tok_rparen, &pos);
+    cache_token(cache, tok_rbrace, &pos);
   }  /* if */
   cache_token(cache, tok_semicolon, &pos);
 }  /* cache_variable_decl */
@@ -10955,6 +10955,15 @@ second operand of an assignment.
   ifc_ExprSort      tag = expr_tag(expr);
   a_source_position pos;
 
+  if (tag == ifc_ExprSort_Empty) {
+    /* IFC files appear to contain "Empty" expressions with invalid indices.
+       Since we don't actually have to do anything with those expressions
+       per se, we skip them for now. */
+    size_t  num_entries = get_num_entries(ifc_expr_empty);
+    if (expr_value(expr) >= num_entries) {
+      goto done;
+    }  /* if */
+  }  /* if */
   read_partition_at_index(expr);
   switch (tag) {
     case ifc_ExprSort_VendorExtension:
@@ -11522,6 +11531,7 @@ second operand of an assignment.
       break;
     default_is_unexpected_str("Unknown ExprSort");
   }  /* switch */
+done:;
 }  /* cache_expr */
 
 
