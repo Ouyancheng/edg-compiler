@@ -2567,39 +2567,42 @@ struct an_ifc_module : public a_module_interface {
 			   the number of source files is known. */
 private:
 #if USE_MMAP_FOR_MEMORY_REGIONS
-  mutable unsigned char
+  unsigned char
 		*byte_buffer = NULL;
 			/* Pointer to the current position in the buffer
 			   used by get_byte, etc. */
-  mutable unsigned char
+  unsigned char
 		*buffer_end = NULL;
 			/* Pointer to the last byte of the buffer used by
 			   get_byte, etc. */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   a_const_char	*string_table = NULL;
 			/* The string table of the IFC file. */
-  mutable a_tmpl_decl_state_ptr
+  a_tmpl_decl_state_ptr
 		curr_templ_decl_state = NULL;
 			/* The current template declaration state, NULL if
 			   there is no template declaration being processed. */
-  mutable Ptr_map<a_module_ref_key, a_module_import_decl_ptr>
+  Ptr_map<a_module_ref_key, a_module_import_decl_ptr>
 		referenced_modules;
 			/* A map from a module reference to the corresponding
 			   import decl. */
-  mutable a_boolean
+  a_boolean
 		unhandled_node_diag_issued = FALSE;
 			/* Flag to indicate whether an unhandled node
 			   diagnostic has already been issued for this
 			   module. */
-  mutable a_boolean
+  a_boolean
 		suppress_default_arguments = FALSE;
 			/* Flag to indicate whether default arguments should be
 			   included when processing an entity in this module.
 			*/
+  Ptr_map<ifc_DeclIndex, a_symbol_ptr>
+		decl_map;
 
 public:
   an_ifc_module() : a_module_interface((a_module_kind)mk_ifc),
-                    referenced_modules(/*mask_width=*/4)
+                    referenced_modules(/*mask_width=*/4),
+                    decl_map(/*mask_width=*/8)
   {}
   VIRTUAL ~an_ifc_module() EDG_NOEXCEPT = default;
 
@@ -2620,13 +2623,12 @@ public:
                                                                          const;
   void process_ifc_declaration(a_module_entity_ptr mep,
                                a_boolean           defer,
-                               a_type_ptr          enumeration_type) const;
-  void complete_definition_of_module_class(a_module_entity_ptr mep)
-                                                                const OVERRIDE;
+                               a_type_ptr          enumeration_type);
+  void complete_definition_of_module_class(a_module_entity_ptr mep) OVERRIDE;
   a_boolean cache_function_body(a_token_cache_ptr  cache,
                                 ifc_DeclIndex      decl_idx,
                                 a_routine_ptr      rp,
-                                a_func_info_block  *func_info) const;
+                                a_func_info_block  *func_info);
 
 #if DEBUG
   void debug() const OVERRIDE;
@@ -2640,58 +2642,53 @@ private:
     ntk_namespace,
     ntk_empty_pack_expansion,
   };
-  inline void init_byte_buffer(size_t offset, size_t length) const;
+  inline void init_byte_buffer(size_t offset, size_t length);
   inline void get_bytes_from_buffer(void   *addr,
-                                    size_t length) const;
+                                    size_t length);
   inline void get_mismatched_endian_bytes(void   *entity,
-                                          size_t length) const;
+                                          size_t length);
   inline void get_bytes(void      *entity,
                         size_t    length,
-                        a_boolean header_bytes) const;
+                        a_boolean header_bytes);
   inline void issue_unsupported_node_diag(a_const_char      *node,
-                                          a_source_position *pos) const;
+                                          a_source_position *pos);
   a_boolean open_and_map_ifc_module_file(a_module_import_decl_ptr midp,
                                          a_boolean                issue_diag);
   static an_ifc_partition_map *find_ifc_partition(a_const_char *name);
   a_module_import_decl_ptr transitive_import_module(
-                                                const ifc_ModuleReference *ref)
-                                                                         const;
-  void import_referenced_modules() const;
+                                              const ifc_ModuleReference *ref);
+  void import_referenced_modules();
   template<typename a_Scope_Member_Consumer>
   inline void iter_scope_member_sequence(ifc_Sequence            seq,
-                                         a_Scope_Member_Consumer consumer)
-                                                                         const;
-  void process_scope_member_sequence(ifc_Sequence seq) const;
+                                         a_Scope_Member_Consumer consumer);
+  void process_scope_member_sequence(ifc_Sequence seq);
   void process_template_specializations(ifc_DeclIndex decl_idx) const;
   void process_ifc_scope(ifc_ScopeIndex scope_index,
-                         a_scope_ptr    scope) const;
+                         a_scope_ptr    scope);
   size_t get_num_entries(an_ifc_partition_kind partition) const;
   /* Module entity getters. */
   a_module_entity_ptr get_ifc_module_entity_ptr(
                                        an_ifc_partition_kind partition,
                                        ifc_Index_type        index) const;
   a_module_entity_ptr get_and_process_ifc_decl_from_other_module(
-                                          const an_ifc_DeclSort_Reference *ref)
-                                                                         const;
+                                        const an_ifc_DeclSort_Reference *ref);
   a_module_entity_ptr get_and_process_ifc_decl_from_other_module(
-                                                           ifc_DeclIndex index)
-                                                                         const;
-  a_scope_ptr get_ifc_scope(ifc_DeclIndex scope_index) const;
+                                                         ifc_DeclIndex index);
+  a_scope_ptr get_ifc_scope(ifc_DeclIndex scope_index);
   a_type_ptr type_for_type_index(ifc_TypeIndex   type_index,
-                                 a_non_type_kind *kind) const;
-  a_type_ptr type_for_template_id(an_ifc_ExprSort_TemplateId *templ_id) const;
-  a_template_arg_ptr template_arg_for_expr(a_template_parameter_ptr tmpl_param,
-                                           ifc_ExprIndex            expr_index)
-                                                                         const;
+                                 a_non_type_kind *kind);
+  a_type_ptr type_for_template_id(an_ifc_ExprSort_TemplateId *templ_id);
+  a_template_arg_ptr template_arg_for_expr(
+                                         a_template_parameter_ptr tmpl_param,
+                                         ifc_ExprIndex            expr_index);
   void source_position_from_locus(a_source_position  *pos,
-                                  ifc_SourceLocation *locus) const;
+                                  ifc_SourceLocation *locus);
   inline a_const_char *get_string_at_offset(ifc_TextOffset offset) const;
   a_const_char *string_from_name_index(ifc_NameIndex    name_index,
-                                       a_symbol_locator *loc) const;
-  a_const_char *name_from_decl(ifc_DeclIndex decl) const;
+                                       a_symbol_locator *loc);
+  a_const_char *name_from_decl(ifc_DeclIndex decl);
   a_const_char *name_from_other_module_decl(
-                                          const an_ifc_DeclSort_Reference *ref)
-                                                                         const;
+                                        const an_ifc_DeclSort_Reference *ref);
   void init_dps(a_decl_parse_state          *dps,
                 ifc_SourceLocation          *locus,
                 ifc_TypeIndex               type_index,
@@ -2700,44 +2697,43 @@ private:
                 ifc_BasicSpecifiers         specifiers,
                 ifc_Access                  access,
                 ifc_ExprIndex               alignment,
-                a_partial_scope_stack_state *psssp) const;
+                a_partial_scope_stack_state *psssp);
   void init_locator_from_name(ifc_NameIndex      name_index,
                               ifc_TextOffset     text_offset,
                               ifc_SourceLocation *locus,
-                              a_symbol_locator   *loc) const;
+                              a_symbol_locator   *loc);
   void unsigned_integer_for_expr_index(ifc_ExprIndex    expr_index,
-                                       an_integer_value *value) const;
+                                       an_integer_value *value);
   a_constant_ptr constant_for_expr_index(ifc_ExprIndex expr_index,
-                                         a_type_ptr    default_type) const;
-  a_constant_ptr constant_for_named_decl(an_ifc_ExprSort_NamedDecl *iesndp)
-                                                                         const;
+                                         a_type_ptr    default_type);
+  a_constant_ptr constant_for_named_decl(an_ifc_ExprSort_NamedDecl *iesndp);
   /* Queries. */
-  a_boolean is_class_scope(ifc_DeclIndex scope) const;
+  a_boolean is_class_scope(ifc_DeclIndex scope);
   /* Token caching. */
   void cache_scope_member_sequence(a_token_cache_ptr cache,
-                                   ifc_Sequence      seq) const;
+                                   ifc_Sequence      seq);
   void cache_scope(a_token_cache_ptr  cache,
                    ifc_ScopeIndex     scope,
-                   ifc_SourceLocation *locus) const;
+                   ifc_SourceLocation *locus);
   void cache_type_first_pass(a_token_cache_ptr  cache,
                              ifc_TypeIndex      type,
-                             ifc_SourceLocation *locus) const;
+                             ifc_SourceLocation *locus);
   void cache_type_second_pass(a_token_cache_ptr  cache,
                               ifc_TypeIndex      type,
-                              ifc_SourceLocation *locus) const;
+                              ifc_SourceLocation *locus);
   void cache_type(a_token_cache_ptr  cache,
                   ifc_TypeIndex      type,
-                  ifc_SourceLocation *locus) const;
+                  ifc_SourceLocation *locus);
   void cache_type_param_introducer(a_token_cache_ptr  cache,
                                    ifc_ExprIndex      constraint,
-                                   a_source_position  *pos) const;
-  void cache_attr(a_token_cache_ptr  cache, ifc_AttrIndex attr) const;
-  void cache_attrs(a_token_cache_ptr cache, ifc_DeclIndex decl_idx) const;
+                                   a_source_position  *pos);
+  void cache_attr(a_token_cache_ptr  cache, ifc_AttrIndex attr);
+  void cache_attrs(a_token_cache_ptr cache, ifc_DeclIndex decl_idx);
   void cache_template_head(a_token_cache_ptr  cache,
                            ifc_ChartIndex     chart_idx,
-                           ifc_SourceLocation *locus) const;
+                           ifc_SourceLocation *locus);
   void cache_decl(a_token_cache_ptr  cache,
-                  ifc_DeclIndex      decl) const;
+                  ifc_DeclIndex      decl);
   enum a_cache_expr_option {
     ceo_none = 0x0,
     ceo_qualified_name = 0x1,
@@ -2745,7 +2741,7 @@ private:
   };
   void cache_expr(a_token_cache_ptr    cache,
                   ifc_ExprIndex        expr,
-                  a_cache_expr_option  options = ceo_none) const;
+                  a_cache_expr_option  options = ceo_none);
   enum a_cache_statement_option {
     cso_none = 0x0,
     cso_func_body = 0x1,
@@ -2753,92 +2749,87 @@ private:
   };
   void cache_statement(a_token_cache_ptr         cache,
                        ifc_StmtIndex             stmt_idx,
-                       a_cache_statement_option  options = cso_none) const;
+                       a_cache_statement_option  options = cso_none);
   void cache_syntax(a_token_cache_ptr cache,
-                    ifc_SyntaxIndex   syntax) const;
+                    ifc_SyntaxIndex   syntax);
   void cache_chart(a_token_cache_ptr  cache,
                    ifc_ChartIndex     chart,
-                   ifc_SourceLocation *locus) const;
+                   ifc_SourceLocation *locus);
   void cache_operator(a_token_cache_ptr  cache,
                       ifc_Operator       op,
-                      ifc_SourceLocation *locus) const;
+                      ifc_SourceLocation *locus);
   void cache_operator(a_token_cache_ptr   cache,
                       ifc_NiladicOperator op,
-                      ifc_SourceLocation  *locus) const;
+                      ifc_SourceLocation  *locus);
   void cache_operator(a_token_cache_ptr   cache,
                       ifc_MonadicOperator op,
-                      ifc_SourceLocation  *locus) const;
+                      ifc_SourceLocation  *locus);
   void cache_operator(a_token_cache_ptr  cache,
                       ifc_DyadicOperator op,
-                      ifc_SourceLocation *locus) const;
+                      ifc_SourceLocation *locus);
   void cache_operator(a_token_cache_ptr   cache,
                       ifc_TriadicOperator op,
-                      ifc_SourceLocation  *locus) const;
+                      ifc_SourceLocation  *locus);
   void cache_operator(a_token_cache_ptr   cache,
                       ifc_StorageOperator op,
-                      ifc_SourceLocation  *locus) const;
+                      ifc_SourceLocation  *locus);
   void cache_operator(a_token_cache_ptr    cache,
                       ifc_VariadicOperator op,
-                      ifc_SourceLocation   *locus) const;
+                      ifc_SourceLocation   *locus);
   void cache_exception_spec(a_token_cache_ptr         cache,
                             ifc_NoexceptSpecification *eh_spec,
-                            a_source_position_ptr     pos) const;
+                            a_source_position_ptr     pos);
   uint32_t cache_sentence(a_token_cache_ptr cache,
                           ifc_SentenceIndex sentence,
                           uint32_t          offset = 0,
-                          a_boolean         look_for_stop_token = FALSE) const;
-  a_boolean sentence_is_deleted(ifc_SentenceIndex sentence) const;
+                          a_boolean         look_for_stop_token = FALSE);
+  a_boolean sentence_is_deleted(ifc_SentenceIndex sentence);
   void cache_word(a_token_cache_ptr cache,
-                  an_ifc_Word       *word) const;
+                  an_ifc_Word       *word);
   void cache_word(a_token_cache_ptr cache,
-                  ifc_NestableWord  *word) const;
+                  ifc_NestableWord  *word);
   void cache_source_directive(a_token_cache_ptr     cache,
                               ifc_SourceDirective   directive,
-                              ifc_SourceLocation    *locus) const;
+                              ifc_SourceLocation    *locus);
   void cache_source_punctuator(a_token_cache_ptr     cache,
                                ifc_SourcePunctuator  punctuator,
-                               ifc_SourceLocation    *locus) const;
+                               ifc_SourceLocation    *locus);
   void cache_source_literal(a_token_cache_ptr     cache,
                             ifc_SourceLiteral     literal,
                             ifc_Index             index,
-                            ifc_SourceLocation    *locus) const;
+                            ifc_SourceLocation    *locus);
   void cache_source_operator(a_token_cache_ptr     cache,
                              ifc_SourceOperator    op,
-                             ifc_SourceLocation    *locus) const;
+                             ifc_SourceLocation    *locus);
   void cache_source_keyword(a_token_cache_ptr     cache,
                             ifc_SourceKeyword     keyword,
-                            ifc_SourceLocation    *locus) const;
+                            ifc_SourceLocation    *locus);
   void cache_source_identifier(a_token_cache_ptr     cache,
                                ifc_SourceIdentifier  id,
                                ifc_Index             index,
-                               ifc_SourceLocation    *locus) const;
+                               ifc_SourceLocation    *locus);
   void cache_decl_class(a_token_cache_ptr     cache,
-                        an_ifc_DeclSort_Scope *decl) const;
+                        an_ifc_DeclSort_Scope *decl);
   uint32_t try_cache_class_attributes_from_body(
-                                               a_token_cache_ptr cache,
-                                               ifc_SentenceIndex body_sentence)
-                                                                         const;
+                                             a_token_cache_ptr cache,
+                                             ifc_SentenceIndex body_sentence);
   uint32_t cache_decl_template_declaration(
-                                        a_token_cache_ptr        cache,
-                                        an_ifc_DeclSort_Template *decl,
-                                        a_boolean                add_semicolon)
-                                                                         const;
+                                      a_token_cache_ptr        cache,
+                                      an_ifc_DeclSort_Template *decl,
+                                      a_boolean                add_semicolon);
   void cache_decl_template(a_token_cache_ptr        cache,
-                           an_ifc_DeclSort_Template *decl) const;
+                           an_ifc_DeclSort_Template *decl);
   void cache_specialization_simple_template_id(a_token_cache_ptr  cache,
                                                ifc_FormSpecIndex  form_idx,
-                                               ifc_SourceLocation *locus)
-                                                                         const;
+                                               ifc_SourceLocation *locus);
   void cache_decl_partial_specialization_declaration(
                                 a_token_cache_ptr                     cache,
                                 ifc_DeclIndex                         decl_idx,
-                                an_ifc_DeclSort_PartialSpecialization *decl)
-                                                                         const;
+                                an_ifc_DeclSort_PartialSpecialization *decl);
   void cache_decl_partial_specialization(
                                 a_token_cache_ptr                     cache,
                                 ifc_DeclIndex                         decl_idx,
-                                an_ifc_DeclSort_PartialSpecialization *decl)
-                                                                         const;
+                                an_ifc_DeclSort_PartialSpecialization *decl);
   void cache_variable_decl(a_token_cache_ptr   cache,
                            ifc_DeclIndex       decl_idx,
                            a_boolean           is_class_member,
@@ -2851,7 +2842,7 @@ private:
                            ifc_TextOffset      raw_name,
                            ifc_ExprIndex       width,
                            ifc_ExprIndex       initializer,
-                           ifc_SourceLocation  *locus) const;
+                           ifc_SourceLocation  *locus);
   void cache_function_decl(a_token_cache_ptr         cache,
                            a_boolean                 is_class_member,
                            a_boolean                 is_dtor,
@@ -2864,63 +2855,62 @@ private:
                            ifc_ChartIndex            params,
                            ifc_TypeIndex             param_types,
                            ifc_NoexceptSpecification *eh_spec,
-                           ifc_SourceLocation        *locus) const;
+                           ifc_SourceLocation        *locus);
   void cache_name(a_token_cache_ptr  cache,
                   ifc_NameIndex      name,
-                  ifc_SourceLocation *locus) const;
+                  ifc_SourceLocation *locus);
   void cache_name_from_decl(a_token_cache_ptr  cache,
                             ifc_DeclIndex      decl,
-                            ifc_SourceLocation *locus) const;
+                            ifc_SourceLocation *locus);
   /* Readers and reading helpers. */
   inline size_t file_offset_of(an_ifc_partition_kind partition,
                                ifc_Index_type        index) const;
   inline ifc_DeclIndex decl_index_of(an_ifc_partition_kind partition,
                                      size_t                file_offset) const;
-  inline ifc_AttrIndex attr_index_of(ifc_DeclIndex decl_idx) const;
+  inline ifc_AttrIndex attr_index_of(ifc_DeclIndex decl_idx);
   inline void read_partition_at_offset(an_ifc_partition_kind partition,
-                                       size_t                offset) const;
+                                       size_t                offset);
   inline void read_partition_at_index(an_ifc_partition_kind partition,
-                                      ifc_Index_type        index) const;
+                                      ifc_Index_type        index);
   inline void read_partition_at_index(ifc_AttrSort   attr_kind,
-                                      ifc_Index_type index) const;
-  inline void read_partition_at_index(ifc_AttrIndex type) const;
+                                      ifc_Index_type index);
+  inline void read_partition_at_index(ifc_AttrIndex type);
   inline void read_partition_at_index(ifc_TypeSort   attr_kind,
-                                      ifc_Index_type index) const;
-  inline void read_partition_at_index(ifc_TypeIndex type) const;
+                                      ifc_Index_type index);
+  inline void read_partition_at_index(ifc_TypeIndex type);
   inline void read_partition_at_index(ifc_ExprSort   expr_kind,
-                                      ifc_Index_type index) const;
-  inline void read_partition_at_index(ifc_ExprIndex expr) const;
+                                      ifc_Index_type index);
+  inline void read_partition_at_index(ifc_ExprIndex expr);
   inline void read_partition_at_index(ifc_StmtSort   stmt_kind,
-                                      ifc_Index_type index) const;
-  inline void read_partition_at_index(ifc_StmtIndex stmt) const;
+                                      ifc_Index_type index);
+  inline void read_partition_at_index(ifc_StmtIndex stmt);
   inline void read_partition_at_index(ifc_DeclSort   decl_kind,
-                                      ifc_Index_type index) const;
-  inline void read_partition_at_index(ifc_DeclIndex decl) const;
+                                      ifc_Index_type index);
+  inline void read_partition_at_index(ifc_DeclIndex decl);
   inline void read_partition_at_index(ifc_NameSort   name_kind,
-                                      ifc_Index_type index) const;
-  inline void read_partition_at_index(ifc_NameIndex name) const;
+                                      ifc_Index_type index);
+  inline void read_partition_at_index(ifc_NameIndex name);
   inline void read_partition_at_index(ifc_ChartSort  chart_kind,
-                                      ifc_Index_type index) const;
-  inline void read_partition_at_index(ifc_ChartIndex chart) const;
-  inline void read_partition_at_index(ifc_FormSpecIndex form_spec) const;
+                                      ifc_Index_type index);
+  inline void read_partition_at_index(ifc_ChartIndex chart);
+  inline void read_partition_at_index(ifc_FormSpecIndex form_spec);
   inline void read_partition_at_index(ifc_SyntaxSort syntax_kind,
-                                      ifc_Index_type index) const;
-  inline void read_partition_at_index(ifc_SyntaxIndex syntax) const;
+                                      ifc_Index_type index);
+  inline void read_partition_at_index(ifc_SyntaxIndex syntax);
   inline ifc_Index read_index_from_heap(an_ifc_partition_kind heap_partition,
-                                        ifc_Index_type        index) const;
+                                        ifc_Index_type        index);
   template<an_ifc_partition_kind a_Partition_Kind, typename a_Trait_T>
   inline a_Trait_T *find_trait(ifc_DeclIndex decl_index,
-                               a_Trait_T     *storage) const;
-  ifc_ChartIndex get_func_params_from_trait(ifc_DeclIndex decl) const;
-  ifc_Sequence get_specialization_sequence_from_trait(ifc_DeclIndex decl)
-                                                                         const;
+                               a_Trait_T     *storage);
+  ifc_ChartIndex get_func_params_from_trait(ifc_DeclIndex decl);
+  ifc_Sequence get_specialization_sequence_from_trait(ifc_DeclIndex decl);
   /* Stringizers. */
   void str_ifc_text_offset(ifc_TextOffset     offset,
                            a_str_control_block *scbp) const;
   void str_ifc_name_index(ifc_NameIndex       name_index,
-                          a_str_control_block *scbp) const;
+                          a_str_control_block *scbp);
   void str_ifc_class_name(ifc_DeclIndex       home_scope,
-                          a_str_control_block *scbp) const;
+                          a_str_control_block *scbp);
   void str_ifc_add_number(a_host_large_unsigned value,
                           a_str_control_block   *scbp) const;
 #if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
@@ -2947,44 +2937,44 @@ private:
                                a_boolean           prefix,
                                a_str_control_block *scbp) const;
   void str_ifc_expr_index(ifc_ExprIndex       expr_index,
-                          a_str_control_block *scbp) const;
+                          a_str_control_block *scbp);
   void str_ifc_scope_index(ifc_ScopeIndex      scope_index,
-                           a_str_control_block *scbp) const;
+                           a_str_control_block *scbp);
   void str_ifc_type_index_first_part(ifc_TypeIndex       type_index,
-                                     a_str_control_block *scbp) const;
+                                     a_str_control_block *scbp);
   void str_ifc_type_index_second_part(ifc_TypeIndex       type_index,
-                                      a_str_control_block *scbp) const;
+                                      a_str_control_block *scbp);
   void str_ifc_type_index(ifc_TypeIndex       type_index,
-                          a_str_control_block *scbp) const;
+                          a_str_control_block *scbp);
   void str_ifc_common_decl(ifc_SourceLocation  *locus,
                            ifc_Access          access,
                            ifc_BasicSpecifiers specifiers,
                            ifc_ObjectTraits    traits,
                            a_str_control_block *scbp) const;
   void str_ifc_class_definition(an_ifc_DeclSort_Scope *idssp,
-                                a_str_control_block   *scbp) const;
+                                a_str_control_block   *scbp);
   void str_ifc_declaration(ifc_DeclIndex       decl_index,
                            a_boolean           is_designated_type,
-                           a_str_control_block *scbp) const;
+                           a_str_control_block *scbp);
   void str_ifc_statement(ifc_StmtIndex       stmt_index,
-                         a_str_control_block *scbp) const;
+                         a_str_control_block *scbp);
   void str_ifc_string_literal(ifc_StringIndex     str_index,
-                              a_str_control_block *scbp) const;
+                              a_str_control_block *scbp);
   void str_ifc_chart(ifc_ChartIndex      chart_index,
-                     a_str_control_block *scbp) const;
+                     a_str_control_block *scbp);
   template<typename T>
   void str_ifc_associated_trait(ifc_DeclIndex       decl_index,
-                                a_str_control_block *scbp) const;
+                                a_str_control_block *scbp);
   void str_ifc_syntax_node(ifc_SyntaxIndex     syntax_index,
-                           a_str_control_block *scbp) const;
+                           a_str_control_block *scbp);
   void str_ifc_sentence(ifc_SentenceIndex   sentence_index,
-                        a_str_control_block *scbp) const;
+                        a_str_control_block *scbp);
   void str_ifc_word(ifc_WordIndex       word_index,
-                    a_str_control_block *scbp) const;
+                    a_str_control_block *scbp);
 
 #if DEBUG
   void db_ifc_file_header() const;
-  void db_locus(ifc_SourceLocation *locus) const;
+  void db_locus(ifc_SourceLocation *locus);
 #if EXPENSIVE_CHECKING
   void f_db_get_byte(a_const_char *value_str,
                      void         *addr,
@@ -2993,13 +2983,12 @@ private:
 #endif /* DEBUG */
 
   template<typename T>
-  inline T *get(T *storage, a_boolean fill_storage = FALSE) const = delete;
+  inline T *get(T *storage, a_boolean fill_storage = FALSE) = delete;
   /* Generate prefixes for the entity getters. */
   #define IFC_DECL_START(name) \
   inline concat(an_ifc_, name) * concat(get_, name) ( \
                                   concat(an_ifc_, name) *ptr, \
-                                  ARG_UNUSED a_boolean  fill_storage = FALSE) \
-                                                                         const;
+                                  ARG_UNUSED a_boolean  fill_storage = FALSE);
   #define IFC_DECL_FIELD(field, type) /**/
   #define IFC_DECL_END(name) /**/
   #include "ifc_map.h"
@@ -3012,55 +3001,55 @@ extern a_boolean load_routine_definition_from_ifc_module(a_routine_ptr  rp);
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Deprecated>(
                                              ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp) const;
+                                             a_str_control_block *scbp);
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Specialization>(
                                              ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp) const;
+                                             a_str_control_block *scbp);
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Friend>(
                                              ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp) const;
+                                             a_str_control_block *scbp);
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_FunctionDefinition>(
                                              ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp) const;
+                                             a_str_control_block *scbp);
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_AliasTemplate>(
                                              ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp) const;
+                                             a_str_control_block *scbp);
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_DeductionGuides>(
                                              ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp) const;
+                                             a_str_control_block *scbp);
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Requires>(
                                              ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp) const;
+                                             a_str_control_block *scbp);
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Attribute>(
                                              ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp) const;
+                                             a_str_control_block *scbp);
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcVendorTrait>(
                                              ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp) const;
+                                             a_str_control_block *scbp);
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcUuid>(
                                              ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp) const;
+                                             a_str_control_block *scbp);
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcFuncParams>(
                                              ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp) const;
+                                             a_str_control_block *scbp);
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcDeclAttrs>(
                                              ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp) const;
+                                             a_str_control_block *scbp);
 
-extern void record_pending_ifc_function_body(a_routine_ptr        rp,
-                                             ifc_DeclIndex        decl_idx,
-                                             an_ifc_module const  *ifc_module);
+extern void record_pending_ifc_function_body(a_routine_ptr  rp,
+                                             ifc_DeclIndex  decl_idx,
+                                             an_ifc_module  *ifc_module);
 
 extern void ifc_modules_one_time_init();
 

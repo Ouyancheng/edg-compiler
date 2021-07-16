@@ -1077,7 +1077,11 @@ NORETURN: specifies that a function will not return to its caller.
 /*lint -estring(823,FALLTHROUGH)*/
 #define FALLTHROUGH [[fallthrough]];
 #else /* !(__has_cpp_attribute(fallthrough) && ...) */
+#ifdef __GNUC__
+#define FALLTHROUGH __attribute__((fallthrough));
+#else /* !defined(__GNUC__) */
 #define FALLTHROUGH /*nothing*/
+#endif /* defined(__GNUC__) */
 #endif /* __has_cpp_attribute(fallthrough) && ... */
 
 #if __has_cpp_attribute(maybe_unused)

@@ -115,7 +115,7 @@ that returns an unsigned char.
 #if USE_MMAP_FOR_MEMORY_REGIONS
 
 inline void an_ifc_module::init_byte_buffer(size_t offset,
-                                            size_t length) const
+                                            size_t length)
 /*
 Initialize the state information used by "get_bytes", etc.  offset is the
 offset from the start of the memory mapped region to be read.  length is its
@@ -128,7 +128,7 @@ size, in bytes.
 
 
 inline void an_ifc_module::get_bytes_from_buffer(void   *entity,
-                                                 size_t length) const
+                                                 size_t length)
 /*
 Fetch a block of bytes from the IFC file, and check for reading past the end of
 the buffer.
@@ -153,11 +153,12 @@ Macro to fetch a single byte from the IFC file.
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
 
 inline void an_ifc_module::init_byte_buffer(size_t            offset,
-                                            ARG_UNUSED size_t length) const
+                                            ARG_UNUSED size_t length)
 /*
 Initialize the state information used by "get_bytes", etc.  offset is the
 offset from the start of the module file to be read.  length is its size, in
-bytes.
+bytes.  (This function is non-const even though if doesn't change any data
+member because it "logically" changes the state of this->f_module.)
 */
 {
   fseek(f_module, offset, SEEK_SET);
@@ -165,7 +166,7 @@ bytes.
 
 
 inline void an_ifc_module::get_bytes_from_buffer(void   *entity,
-                                                 size_t length) const
+                                                 size_t length)
 /*
 Fetch a block of bytes from the IFC file, and check for reading past the end of
 the buffer.
@@ -187,7 +188,7 @@ Macro to fetch a single byte.
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
 
 inline void an_ifc_module::get_mismatched_endian_bytes(void   *entity,
-                                                       size_t length) const
+                                                       size_t length)
 /*
 Get length bytes from the IFC file and convert them to the host byte order.
 This routine is used only when the host byte order does not match the byte
@@ -206,7 +207,7 @@ order for the entity being read.
 
 inline void an_ifc_module::get_bytes(void      *entity,
                                      size_t    length,
-                                     a_boolean header_bytes) const
+                                     a_boolean header_bytes)
 /*
 Get length bytes from the IFC file.  If there's an endian mismatch between
 what's being read and the host, convert the bytes to the host byte order.  If
@@ -478,7 +479,7 @@ For example, when "name" is "foo", this routine effectively boils down to:
   inline concat(an_ifc_, name) * an_ifc_module::get< \
                                   concat(an_ifc_, name) >( \
                                   concat(an_ifc_, name) *storage, \
-                /* Defaulted: */  a_boolean             fill_storage) const \
+                /* Defaulted: */  a_boolean             fill_storage) \
   { \
     return concat(get_, name)(storage, fill_storage); \
   }
@@ -521,7 +522,7 @@ For example, when "name" is "foo", this routine effectively boils down to:
 #define IFC_DECL_START(name) \
   inline concat(an_ifc_, name) * an_ifc_module::concat(get_, name) ( \
                                   concat(an_ifc_, name) *ptr, \
-                /* Defaulted: */  a_boolean             fill_storage) const \
+                /* Defaulted: */  a_boolean             fill_storage) \
   { \
     if ((a_boolean)(/*lint -e506*/ASSUME_LITTLE_ENDIAN_IFC_MODULES || \
                                     targ_little_endian) \
@@ -550,7 +551,7 @@ little-endian.
 #define IFC_LE_DECL_START(name) \
   inline concat(an_ifc_, name) * an_ifc_module::concat(get_, name) ( \
                                   concat(an_ifc_, name) *ptr, \
-                /* Defaulted: */  a_boolean             fill_storage) const \
+                /* Defaulted: */  a_boolean             fill_storage) \
   { \
     if (host_little_endian) { \
       check_assertion(byte_buffer + sizeof(concat(an_ifc_, name)) <= \
@@ -622,7 +623,6 @@ the comments there).
 
 inline void an_ifc_module::issue_unsupported_node_diag(a_const_char      *node,
                                                        a_source_position *pos)
-                                                                          const
 /*
 Issue a diagnostic that an unhandled node was encountered.  node is the textual
 representation of the problematic node.  pos is the source position associated
@@ -2899,7 +2899,6 @@ done:
 
 a_module_import_decl_ptr an_ifc_module::transitive_import_module(
                                                 const ifc_ModuleReference *ref)
-                                                                          const
 /*
 Given a module reference, import the referenced module.
 */
@@ -2937,7 +2936,7 @@ Given a module reference, import the referenced module.
 }  /* transitive_import_module */
 
 
-void an_ifc_module::import_referenced_modules() const
+void an_ifc_module::import_referenced_modules()
 /*
 Import all appropriate modules that have been referenced by this module.
 Modules that have been imported but not re-exported are not imported at this
@@ -3090,8 +3089,7 @@ an IFC module file.
 struct an_ifc_function_body {
   ifc_DeclIndex	decl;
 			/* The IFC "DeclIndex" of the routine. */
-  an_ifc_module const
-		*ifc_module;
+  an_ifc_module	*ifc_module;
 			/* The IFC module descriptor that this body is
 			   associated with. */
 };
@@ -3130,9 +3128,9 @@ static an_ifc_function_body_map
 			   needed. */
 
 		
-void record_pending_ifc_function_body(a_routine_ptr        rp,
-                                      ifc_DeclIndex        decl_idx,
-                                      an_ifc_module const  *ifc_module)
+void record_pending_ifc_function_body(a_routine_ptr  rp,
+                                      ifc_DeclIndex  decl_idx,
+                                      an_ifc_module  *ifc_module)
 /*
 Record the information needed to retrieve a definition for rp if it turns out
 to be needed later on.
@@ -3144,7 +3142,7 @@ to be needed later on.
 
 void an_ifc_module::cache_statement(a_token_cache_ptr         cache,
                                     ifc_StmtIndex             stmt_idx,
-                  /* Defaulted: */  a_cache_statement_option  options) const
+                  /* Defaulted: */  a_cache_statement_option  options)
 /*
 Add tokens corresponding to the statement at stmt_idx to the given cache.  If
 options & cso_func_body is nonzero (it is zero by default), the function is
@@ -3343,11 +3341,10 @@ to the given cache if options & cso_no_final_semicolon is nonzero.
 }  /* cache_statement */
 
 
-a_boolean an_ifc_module::cache_function_body(
-                                          a_token_cache_ptr  cache,
-                                          ifc_DeclIndex      decl_idx,
-                                          a_routine_ptr      rp,
-                                          a_func_info_block  *func_info) const
+a_boolean an_ifc_module::cache_function_body(a_token_cache_ptr  cache,
+                                             ifc_DeclIndex      decl_idx,
+                                             a_routine_ptr      rp,
+                                             a_func_info_block  *func_info)
 /*
 decl_idx points to the IFC representation of rp: That representation was
 already loaded previously and found to be associated with a definition in
@@ -3487,7 +3484,6 @@ void an_ifc_module::process_ifc_declaration(
                                           a_module_entity_ptr mep,
                                           a_boolean           defer,
                                           a_type_ptr          enumeration_type)
-                                                                          const
 
 /*
 Process the IFC module entity declaration specified by mep either by creating
@@ -4564,8 +4560,7 @@ unhandled:
 
 
 void an_ifc_module::complete_definition_of_module_class(
-                                                       a_module_entity_ptr mep)
-                                                                          const
+                                                      a_module_entity_ptr mep)
 /*
 Complete the definition of the class referred to by mep (if needed).
 */
@@ -4715,7 +4710,7 @@ Print information about the module entity pointer.
 }  /* db_mep */
 
 
-void an_ifc_module::db_locus(ifc_SourceLocation *locus) const
+void an_ifc_module::db_locus(ifc_SourceLocation *locus)
 /*
 Print the corresponding file and line number for the source location
 (for debugging purposes).
@@ -4922,7 +4917,6 @@ template<typename a_Scope_Member_Consumer>
 inline void an_ifc_module::iter_scope_member_sequence(
                                               ifc_Sequence            seq,
                                               a_Scope_Member_Consumer consumer)
-                                                                          const
 /*
 Iterate over a given scope member sequence (seq) passing an_ifc_Scope_Member
 pointer to the given consumer lambda for each element in the sequence.
@@ -4945,7 +4939,7 @@ pointer to the given consumer lambda for each element in the sequence.
   }  /* for */
 }
 
-void an_ifc_module::process_scope_member_sequence(ifc_Sequence seq) const
+void an_ifc_module::process_scope_member_sequence(ifc_Sequence seq)
 /*
 Process a sequence (seq) of IFC scope member declarations.
 */
@@ -4964,7 +4958,7 @@ Process a sequence (seq) of IFC scope member declarations.
 
 
 void an_ifc_module::process_ifc_scope(ifc_ScopeIndex scope_index,
-                                      a_scope_ptr    scope) const
+                                      a_scope_ptr    scope)
 /*
 Process the IFC scope specified by scope_index in the module file.  All items
 in the IFC scope will be members of scope and their definitions will be
@@ -5068,8 +5062,7 @@ and index from the provided index.
 
 
 a_module_entity_ptr an_ifc_module::get_and_process_ifc_decl_from_other_module(
-                                          const an_ifc_DeclSort_Reference *ref)
-                                                                          const
+                                         const an_ifc_DeclSort_Reference *ref)
 /*
 Given a DeclSort::Reference to another module, get and return the
 fully-processed entity from the referenced module.
@@ -5091,8 +5084,7 @@ fully-processed entity from the referenced module.
 
 
 a_module_entity_ptr an_ifc_module::get_and_process_ifc_decl_from_other_module(
-                                                           ifc_DeclIndex index)
-                                                                          const
+                                                          ifc_DeclIndex index)
 /*
 Given an index for a DeclSort::Reference, get and return the fully-processed
 entity from the referenced module.
@@ -5125,7 +5117,7 @@ scope associated with it, it will continue to not have an associated scope.
 }  /* ensure_type_has_scope */
 
 
-a_scope_ptr an_ifc_module::get_ifc_scope(ifc_DeclIndex scope_index) const
+a_scope_ptr an_ifc_module::get_ifc_scope(ifc_DeclIndex scope_index)
 /*
 Given a scope index find and return the associated scope.
 */
@@ -5184,7 +5176,7 @@ Convert the given IFC calling convention to the corresponding EDG one.
 
 
 a_type_ptr an_ifc_module::type_for_type_index(ifc_TypeIndex   type_index,
-                                              a_non_type_kind *kind) const
+                                              a_non_type_kind *kind)
 /*
 Return the type that corresponds to the specified TypeIndex.  If there is no
 corresponding type, set *kind to the appropriate non-type kind and return NULL.
@@ -5718,7 +5710,6 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
 a_template_arg_ptr an_ifc_module::template_arg_for_expr(
                                            a_template_parameter_ptr param,
                                            ifc_ExprIndex            expr_index)
-                                                                          const
 /*
 Given an IFC expression index, construct and return a corresponding template
 argument.
@@ -5825,8 +5816,7 @@ argument.
 
 
 a_type_ptr an_ifc_module::type_for_template_id(
-                                          an_ifc_ExprSort_TemplateId *templ_id)
-                                                                          const
+                                         an_ifc_ExprSort_TemplateId *templ_id)
 /*
 Returns the type that corresponds to the provided ExprSort::TemplateId in the
 module file.
@@ -5920,7 +5910,7 @@ module file.
 
 
 void an_ifc_module::source_position_from_locus(a_source_position  *pos,
-                                               ifc_SourceLocation *locus) const
+                                               ifc_SourceLocation *locus)
 /*
 Map the IFC locus source position information into the source position at pos.
 */
@@ -5964,8 +5954,8 @@ Map the IFC locus source position information into the source position at pos.
 
 
 a_const_char *an_ifc_module::string_from_name_index(
-                                                   ifc_NameIndex    name_index,
-                                                   a_symbol_locator *loc) const
+                                                  ifc_NameIndex    name_index,
+                                                  a_symbol_locator *loc)
 /*
 Return the string referenced by name_index.  The returned string may not be in
 the IL (it may be a pointer to an mmap'ed memory region or a pointer to a local
@@ -6088,7 +6078,7 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
 }  /* string_from_name_index */
 
 
-a_const_char *an_ifc_module::name_from_decl(ifc_DeclIndex decl) const
+a_const_char *an_ifc_module::name_from_decl(ifc_DeclIndex decl)
 /*
 Given a declaration, return the name associated with that declaration.
 */
@@ -6407,8 +6397,7 @@ Given a declaration, return the name associated with that declaration.
 
 
 a_const_char *an_ifc_module::name_from_other_module_decl(
-                                          const an_ifc_DeclSort_Reference *ref)
-                                                                          const
+                                         const an_ifc_DeclSort_Reference *ref)
 /*
 Given a DeclSort::Reference to another module, get and return the name of the
 referenced entity.
@@ -6433,7 +6422,7 @@ void an_ifc_module::init_dps(a_decl_parse_state          *dps,
                              ifc_BasicSpecifiers         specifiers,
                              ifc_Access                  access,
                              ifc_ExprIndex               alignment,
-                             a_partial_scope_stack_state *psssp) const
+                             a_partial_scope_stack_state *psssp)
 /*
 Map the IFC fields given by locus, type_index, alignment, traits, msvc_traits,
 specifiers, and access to internal values used in the front end and set those
@@ -6550,7 +6539,7 @@ this routine need to handle the case where dps->alignment is 0.
 void an_ifc_module::init_locator_from_name(ifc_NameIndex      name_index,
                                            ifc_TextOffset     text_offset,
                                            ifc_SourceLocation *locus,
-                                           a_symbol_locator   *loc) const
+                                           a_symbol_locator   *loc)
 /*
 Initialize the locator specified by *loc.  The name of the entity is either
 given by name_index or text_offset, whichever is non-zero.  The source position
@@ -6580,7 +6569,6 @@ FIXME: Not sure if we need source location here.
 void an_ifc_module::unsigned_integer_for_expr_index(
                                                    ifc_ExprIndex    expr_index,
                                                    an_integer_value *value)
-                                                                          const
 /*
 Returns in *value, the unsigned integer value represented by expr_index
 (which must be either a LiteralSort::Immediate or LiteralSort::Integer).
@@ -6621,7 +6609,6 @@ No casting is performed.
 a_constant_ptr an_ifc_module::constant_for_expr_index(
                                                     ifc_ExprIndex expr_index,
                                                     a_type_ptr    default_type)
-                                                                          const
 /*
 Returns a constant (allocated in the current IL memory region) with the value
 specified by expr_index.  Assumes the expression is constant.  If the
@@ -6753,7 +6740,7 @@ done:
 
 
 a_constant_ptr an_ifc_module::constant_for_named_decl(
-                                       an_ifc_ExprSort_NamedDecl *iesndp) const
+                                            an_ifc_ExprSort_NamedDecl *iesndp)
 /*
 Returns a constant (allocated in the current IL memory region) with the value
 corresponding to the provided named declaration.  Assumes the expression is
@@ -6796,7 +6783,7 @@ FIXME: what other types of named declarations can we get here?
 }
 
 
-a_boolean an_ifc_module::is_class_scope(ifc_DeclIndex scope) const
+a_boolean an_ifc_module::is_class_scope(ifc_DeclIndex scope)
 /*
 Return TRUE if the provided scope is a class/struct/union scope, FALSE
 otherwise.
@@ -7044,7 +7031,7 @@ access specifier.
 
 void an_ifc_module::cache_source_directive(a_token_cache_ptr   cache,
                                            ifc_SourceDirective directive,
-                                           ifc_SourceLocation  *locus) const
+                                           ifc_SourceLocation  *locus)
 /*
 Add tokens corresponding to directive to cache.  locus is the location of the
 Sentence containing directive.
@@ -7146,7 +7133,7 @@ Sentence containing directive.
 
 void an_ifc_module::cache_source_punctuator(a_token_cache_ptr    cache,
                                             ifc_SourcePunctuator punctuator,
-                                            ifc_SourceLocation   *locus) const
+                                            ifc_SourceLocation   *locus)
 /*
 Add tokens corresponding to punctuator to cache.  locus is the location of the
 Sentence containing punctuator.
@@ -7221,7 +7208,7 @@ Sentence containing punctuator.
 void an_ifc_module::cache_source_literal(a_token_cache_ptr  cache,
                                          ifc_SourceLiteral  literal,
                                          ifc_Index          index,
-                                         ifc_SourceLocation *locus) const
+                                         ifc_SourceLocation *locus)
 /*
 Add tokens corresponding to literal to cache.  index is the index into the IFC
 file for the additional information needed, depending on the kind of literal.
@@ -7332,7 +7319,7 @@ locus is the location of the Sentence containing literal.
 
 void an_ifc_module::cache_source_operator(a_token_cache_ptr  cache,
                                           ifc_SourceOperator op,
-                                          ifc_SourceLocation *locus) const
+                                          ifc_SourceLocation *locus)
 /*
 Add tokens corresponding to op to cache.  locus is the location of the Sentence
 containing op.
@@ -7472,7 +7459,7 @@ containing op.
 
 void an_ifc_module::cache_source_keyword(a_token_cache_ptr  cache,
                                          ifc_SourceKeyword  keyword,
-                                         ifc_SourceLocation *locus) const
+                                         ifc_SourceLocation *locus)
 /*
 Add tokens corresponding to keyword to cache.  locus is the location of the
 Sentence containing keyword.
@@ -8097,7 +8084,7 @@ Sentence containing keyword.
 void an_ifc_module::cache_source_identifier(a_token_cache_ptr    cache,
                                             ifc_SourceIdentifier id,
                                             ifc_Index            index,
-                                            ifc_SourceLocation   *locus) const
+                                            ifc_SourceLocation   *locus)
 /*
 Add tokens corresponding to id to cache.  index is the index into the IFC file
 for the additional information needed, depending on the kind of id.  locus is
@@ -8147,7 +8134,7 @@ the location of the Sentence containing id.
 
 
 void an_ifc_module::cache_word(a_token_cache_ptr cache,
-                               an_ifc_Word       *word) const
+                               an_ifc_Word       *word)
 /*
 Add token(s) corresponding to word to cache.
 */
@@ -8197,7 +8184,7 @@ word types allowing us to reuse Word routines for NestableWord.
 
 
 void an_ifc_module::cache_word(a_token_cache_ptr cache,
-                               ifc_NestableWord  *word) const
+                               ifc_NestableWord  *word)
 /*
 Add token(s) corresponding to word to cache.
 */
@@ -8212,7 +8199,6 @@ uint32_t an_ifc_module::cache_sentence(a_token_cache_ptr cache,
                                        ifc_SentenceIndex sentence,
                                        uint32_t          offset,
                                        a_boolean         look_for_stop_token)
-                                                                          const
 /*
 Given a SentenceIndex, populate cache with the corresponding tokens.  offset is
 the offset into the words to start caching.  If look_for_stop_token is TRUE
@@ -8247,7 +8233,7 @@ done:;
 }  /* cache_sentence */
 
 
-a_boolean an_ifc_module::sentence_is_deleted(ifc_SentenceIndex  sentence) const
+a_boolean an_ifc_module::sentence_is_deleted(ifc_SentenceIndex  sentence)
 /*
 Given a SentenceIndex, return TRUE if it represents the sequence "= delete".
 Otherwise, return FALSE.
@@ -8436,7 +8422,7 @@ the position of the calling convention.
 
 void an_ifc_module::cache_exception_spec(a_token_cache_ptr         cache,
                                          ifc_NoexceptSpecification *eh_spec,
-                                         a_source_position_ptr     pos) const
+                                         a_source_position_ptr     pos)
 /*
 Add the tokens corresponding to the given exception specification (eh_spec) to
 cache.  pos is the position of the exception specification.
@@ -8476,7 +8462,7 @@ done:;
 
 
 void an_ifc_module::cache_scope_member_sequence(a_token_cache_ptr cache,
-                                                ifc_Sequence      seq) const
+                                                ifc_Sequence      seq)
 /*
 Cache a sequence (seq) of IFC scope member declarations into the cache.
 */
@@ -8535,7 +8521,7 @@ qualifier(s).
 
 void an_ifc_module::cache_scope(a_token_cache_ptr  cache,
                                 ifc_ScopeIndex     scope,
-                                ifc_SourceLocation *locus) const
+                                ifc_SourceLocation *locus)
 /*
 For the given scope, cache tokens corresponding to the definition of the scope.
 locus is the location of the scope.
@@ -8562,7 +8548,7 @@ done:;
 
 void an_ifc_module::cache_type_first_pass(a_token_cache_ptr  cache,
                                           ifc_TypeIndex      type,
-                                          ifc_SourceLocation *locus) const
+                                          ifc_SourceLocation *locus)
 /*
 Add the tokens to cache corresponding to the portion of the given type that
 precedes an identifier.  locus is the source location of the entity referring
@@ -8925,7 +8911,7 @@ this is needed.
 
 void an_ifc_module::cache_type_second_pass(a_token_cache_ptr  cache,
                                            ifc_TypeIndex      type,
-                                           ifc_SourceLocation *locus) const
+                                           ifc_SourceLocation *locus)
 /*
 Add the tokens to cache corresponding to the portion of the given type that
 follows an identifier.  locus is the source location of the entity referring
@@ -9043,7 +9029,7 @@ this is needed.
 
 void an_ifc_module::cache_type(a_token_cache_ptr  cache,
                                ifc_TypeIndex      type,
-                               ifc_SourceLocation *locus) const
+                               ifc_SourceLocation *locus)
 /*
 Add the tokens to cache corresponding to the given type.  locus is the source
 location of the entity referring to the type.  This routine should only be
@@ -9060,7 +9046,7 @@ cache_type_second_pass should be used instead.
 
 void an_ifc_module::cache_chart(a_token_cache_ptr  cache,
                                 ifc_ChartIndex     chart,
-                                ifc_SourceLocation *locus) const
+                                ifc_SourceLocation *locus)
 /*
 Add the tokens corresponding to the given chart to cache.  The caller is
 expected to have already cached the "template" keyword if it's required. locus
@@ -9118,7 +9104,7 @@ is the location of the chart.
 
 void an_ifc_module::cache_operator(a_token_cache_ptr  cache,
                                    ifc_Operator       op,
-                                   ifc_SourceLocation *locus) const
+                                   ifc_SourceLocation *locus)
 /*
 Add the tokens corresponding to the given Operator to cache.  locus is the
 location of the operator.
@@ -9154,7 +9140,7 @@ location of the operator.
 /* Remove ARG_UNUSED as well. */
 void an_ifc_module::cache_operator(ARG_UNUSED a_token_cache_ptr cache,
                                    ifc_NiladicOperator          op,
-                                   ifc_SourceLocation           *locus) const
+                                   ifc_SourceLocation           *locus)
 /*
 Add the tokens corresponding to the given Niladic Operator to cache.  locus is
 the location of the operator.
@@ -9200,7 +9186,7 @@ the location of the operator.
 
 void an_ifc_module::cache_operator(a_token_cache_ptr   cache,
                                    ifc_MonadicOperator op,
-                                   ifc_SourceLocation  *locus) const
+                                   ifc_SourceLocation  *locus)
 /*
 Add the tokens corresponding to the given Monadic Operator to cache.  locus is
 the location of the operator.
@@ -9488,7 +9474,7 @@ the location of the operator.
 
 void an_ifc_module::cache_operator(a_token_cache_ptr  cache,
                                    ifc_DyadicOperator op,
-                                   ifc_SourceLocation *locus) const
+                                   ifc_SourceLocation *locus)
 /*
 Add the tokens corresponding to the given Dyadic Operator to cache.  locus is
 the location of the operator.
@@ -9822,7 +9808,7 @@ the location of the operator.
 
 void an_ifc_module::cache_operator(a_token_cache_ptr   cache,
                                    ifc_TriadicOperator op,
-                                   ifc_SourceLocation  *locus) const
+                                   ifc_SourceLocation  *locus)
 /*
 Add the tokens corresponding to the given Triadic Operator to cache.  locus is
 the location of the operator.
@@ -9858,7 +9844,7 @@ the location of the operator.
 /* Remove ARG_UNUSED as well. */
 void an_ifc_module::cache_operator(ARG_UNUSED a_token_cache_ptr cache,
                                    ifc_StorageOperator          op,
-                                   ifc_SourceLocation           *locus) const
+                                   ifc_SourceLocation           *locus)
 /*
 Add the tokens corresponding to the given Storage Operator to cache.  locus is
 the location of the operator.
@@ -9901,7 +9887,7 @@ the location of the operator.
 
 void an_ifc_module::cache_operator(a_token_cache_ptr    cache,
                                    ifc_VariadicOperator op,
-                                   ifc_SourceLocation   *locus) const
+                                   ifc_SourceLocation   *locus)
 /*
 Add the tokens corresponding to the given Variadic Operator to cache.  locus is
 the location of the operator.
@@ -9956,7 +9942,7 @@ void an_ifc_module::cache_variable_decl(a_token_cache_ptr   cache,
                                         ifc_TextOffset      raw_name,
                                         ifc_ExprIndex       width,
                                         ifc_ExprIndex       initializer,
-                                        ifc_SourceLocation  *locus) const
+                                        ifc_SourceLocation  *locus)
 /*
 Add the tokens corresponding to the given variable declaration (indexed in the
 IFC by decl_idx) to cache.  is_class_member is TRUE if this is a non-static
@@ -10029,7 +10015,7 @@ void an_ifc_module::cache_function_decl(
                                     ifc_ChartIndex            params,
                                     ifc_TypeIndex             param_types,
                                     ifc_NoexceptSpecification *eh_spec,
-                                    ifc_SourceLocation        *locus) const
+                                    ifc_SourceLocation        *locus)
 /*
 Add the tokens corresponding to the given function declaration to cache.
 is_class_member is TRUE if this is a non-static member of a class.  is_dtor is
@@ -10082,7 +10068,7 @@ declaration.
 
 
 void an_ifc_module::cache_decl_class(a_token_cache_ptr     cache,
-                                     an_ifc_DeclSort_Scope *decl) const
+                                     an_ifc_DeclSort_Scope *decl)
 /*
 Add the tokens corresponding to the given class declaration (decl) to cache.
 This will not cache the class name and type (class/struct/union).
@@ -10103,7 +10089,6 @@ This will not cache the class name and type (class/struct/union).
 uint32_t an_ifc_module::try_cache_class_attributes_from_body(
                                                a_token_cache_ptr cache,
                                                ifc_SentenceIndex body_sentence)
-                                                                          const
 /*
 MSVC puts attributes for class templates as part of the body_sentence.  This
 function caches those attributes independently (so that they can be placed
@@ -10131,7 +10116,6 @@ uint32_t an_ifc_module::cache_decl_template_declaration(
                                         a_token_cache_ptr        cache,
                                         an_ifc_DeclSort_Template *decl,
                                         a_boolean                add_semicolon)
-                                                                          const
 /*
 Add the tokens corresponding to the given template declaration (decl) to cache.
 If add_semicolon is TRUE, include the terminating semicolon that would be
@@ -10174,7 +10158,7 @@ if there is no offset/the offset is not needed.
 
 
 void an_ifc_module::cache_decl_template(a_token_cache_ptr        cache,
-                                        an_ifc_DeclSort_Template *decl) const
+                                        an_ifc_DeclSort_Template *decl)
 /*
 Add the tokens corresponding to the given template declaration (decl) to cache.
 */
@@ -10194,7 +10178,6 @@ void an_ifc_module::cache_specialization_simple_template_id(
                                                    a_token_cache_ptr  cache,
                                                    ifc_FormSpecIndex  form_idx,
                                                    ifc_SourceLocation *locus)
-                                                                         const
 /*
 Add the tokens for a specialization's simple-template-id via the
 specialization's form spec (form_idx) to the cache.  locus is the location of
@@ -10232,7 +10215,6 @@ void an_ifc_module::cache_decl_partial_specialization_declaration(
                                 a_token_cache_ptr                     cache,
                                 ifc_DeclIndex                         decl_idx,
                                 an_ifc_DeclSort_PartialSpecialization *decl)
-                                                                          const
 /*
 Add the tokens corresponding to the given partial specialization declaration
 (decl indexed in the IFC by decl_idx) to cache.
@@ -10313,7 +10295,6 @@ void an_ifc_module::cache_decl_partial_specialization(
                                 a_token_cache_ptr                     cache,
                                 ifc_DeclIndex                         decl_idx,
                                 an_ifc_DeclSort_PartialSpecialization *decl)
-                                                                          const
 /*
 Add the tokens corresponding to the given partial specialization declaration
 (decl indexed in the IFC by decl_idx) to cache.
@@ -10329,7 +10310,7 @@ Add the tokens corresponding to the given partial specialization declaration
 
 void an_ifc_module::cache_type_param_introducer(a_token_cache_ptr  cache,
                                                 ifc_ExprIndex      constraint,
-                                                a_source_position  *pos) const
+                                                a_source_position  *pos)
 /*
 constraint is zero for unconstrained parameters or refers to a concept-id
 expression otherwise.  In the former case, add a "typename" token to introduce
@@ -10347,7 +10328,7 @@ a template parameter, but in the latter case emit the concept-id.
 
 
 void an_ifc_module::cache_attr(a_token_cache_ptr cache,
-                               ifc_AttrIndex     attr) const
+                               ifc_AttrIndex     attr)
 /*
 Add the tokens corresponding to the given attribute (attr) to cache.
 */
@@ -10437,7 +10418,7 @@ Add the tokens corresponding to the given attribute (attr) to cache.
 
 
 void an_ifc_module::cache_attrs(a_token_cache_ptr cache,
-                                ifc_DeclIndex     decl_idx) const
+                                ifc_DeclIndex     decl_idx)
 /*
 Add the tokens corresponding to the attributes of the given declaration at
 decl_idx to the cache.
@@ -10453,7 +10434,7 @@ decl_idx to the cache.
 
 void an_ifc_module::cache_template_head(a_token_cache_ptr  cache,
                                         ifc_ChartIndex     chart_idx,
-                                        ifc_SourceLocation *locus) const
+                                        ifc_SourceLocation *locus)
 /*
 Add the tokens corresponding to the template head described by the given
 chart_idx to the cache.  locus is the location of the associated template or
@@ -10469,7 +10450,7 @@ specialization.
 
 
 void an_ifc_module::cache_decl(a_token_cache_ptr cache,
-                               ifc_DeclIndex     decl) const
+                               ifc_DeclIndex     decl)
 /*
 Add the tokens corresponding to the given declaration (decl) to cache.
 */
@@ -10944,7 +10925,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
 
 void an_ifc_module::cache_expr(a_token_cache_ptr    cache,
                                ifc_ExprIndex        expr,
-             /* Defaulted: */  a_cache_expr_option  options) const
+             /* Defaulted: */  a_cache_expr_option  options)
 /*
 Add the tokens corresponding to the given expression (expr) to cache.
 If options & ceo_qualified_name is nonzero, separate tuple elements by '::'
@@ -11538,7 +11519,7 @@ done:;
 /*lint -e2707*/ /* Remove when the routine returns to its caller. */
 /* Remove ARG_UNUSED as well. */
 void an_ifc_module::cache_syntax(ARG_UNUSED a_token_cache_ptr cache,
-                                 ifc_SyntaxIndex              syntax) const
+                                 ifc_SyntaxIndex              syntax)
 /*
 Add the tokens corresponding to the given syntax tree to cache.
 */
@@ -12372,7 +12353,7 @@ Add the tokens corresponding to the given syntax tree to cache.
 
 void an_ifc_module::cache_name(a_token_cache_ptr  cache,
                                ifc_NameIndex      name,
-                               ifc_SourceLocation *locus) const
+                               ifc_SourceLocation *locus)
 /*
 Add the tokens corresponding to the given name to cache.  locus is the location
 of the name.
@@ -12471,7 +12452,7 @@ cache_ident:
 
 void an_ifc_module::cache_name_from_decl(a_token_cache_ptr  cache,
                                          ifc_DeclIndex      decl,
-                                         ifc_SourceLocation *locus) const
+                                         ifc_SourceLocation *locus)
 /*
 Add the tokens corresponding to the given declaration's (decl) name to cache.
 locus is the location of the name use.
@@ -12527,7 +12508,7 @@ Return the ifc_DeclIndex derived from the partition kind and file offset.
 }  /* decl_index_of */
 
 
-ifc_AttrIndex an_ifc_module::attr_index_of(ifc_DeclIndex decl_idx) const
+ifc_AttrIndex an_ifc_module::attr_index_of(ifc_DeclIndex decl_idx)
 /*
 Search the ".msvc.trait.vendor-traits" partition for any attribute associated
 with a given ifc_DeclIndex (decl_idx).  If a matching attribute is found return
@@ -12572,7 +12553,6 @@ its ifc_AttrIndex.
 inline void an_ifc_module::read_partition_at_offset(
                                                an_ifc_partition_kind partition,
                                                size_t                offset)
-                                                                          const
 /*
 Set the read buffer to the provided offset for the given partition in
 preparation for a call to GET_byte, GET_short, etc.
@@ -12588,7 +12568,6 @@ preparation for a call to GET_byte, GET_short, etc.
 inline void an_ifc_module::read_partition_at_index(
                                                an_ifc_partition_kind partition,
                                                ifc_Index_type        index)
-                                                                          const
 /*
 Set the read buffer to the appropriate offset for an entity at the provided
 index into the given partition in preparation for a call to GET_byte,
@@ -12669,7 +12648,7 @@ sort_kind.
 
 
 inline void an_ifc_module::read_partition_at_index(ifc_AttrSort   attr_kind,
-                                                   ifc_Index_type index) const
+                                                   ifc_Index_type index)
 /*
 Overload wrapper for "read_partition_at_index" that converts an "ifc_AttrSort"
 kind into an "an_ifc_partition_kind" kind for convenience.
@@ -12679,7 +12658,7 @@ kind into an "an_ifc_partition_kind" kind for convenience.
 }  /* read_partition_at_index */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_AttrIndex attr) const
+inline void an_ifc_module::read_partition_at_index(ifc_AttrIndex attr)
 /*
 Overload wrapper for "read_partition_at_index" that converts an "ifc_AttrIndex"
 into its tag and index components for convenience.
@@ -12690,7 +12669,7 @@ into its tag and index components for convenience.
 
 
 inline void an_ifc_module::read_partition_at_index(ifc_TypeSort   type_kind,
-                                                   ifc_Index_type index) const
+                                                   ifc_Index_type index)
 /*
 Overload wrapper for "read_partition_at_index" that converts an "ifc_TypeSort"
 kind into an "an_ifc_partition_kind" kind for convenience.
@@ -12700,7 +12679,7 @@ kind into an "an_ifc_partition_kind" kind for convenience.
 }  /* read_partition_at_index */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_TypeIndex type) const
+inline void an_ifc_module::read_partition_at_index(ifc_TypeIndex type)
 /*
 Overload wrapper for "read_partition_at_index" that converts an "ifc_TypeIndex"
 into its tag and index components for convenience.
@@ -12711,7 +12690,7 @@ into its tag and index components for convenience.
 
 
 inline void an_ifc_module::read_partition_at_index(ifc_ExprSort   expr_kind,
-                                                   ifc_Index_type index) const
+                                                   ifc_Index_type index)
 /*
 Overload wrapper for "read_partition_at_index" that converts an "ifc_ExprSort"
 kind into an "an_ifc_partition_kind" kind for convenience.
@@ -12721,7 +12700,7 @@ kind into an "an_ifc_partition_kind" kind for convenience.
 }  /* read_partition_at_index */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_ExprIndex expr) const
+inline void an_ifc_module::read_partition_at_index(ifc_ExprIndex expr)
 /*
 Overload wrapper for "read_partition_at_index" that converts an "ifc_ExprIndex"
 into its tag and index components for convenience.
@@ -12732,7 +12711,7 @@ into its tag and index components for convenience.
 
 
 inline void an_ifc_module::read_partition_at_index(ifc_StmtSort   stmt_kind,
-                                                   ifc_Index_type index) const
+                                                   ifc_Index_type index)
 /*
 Overload wrapper for "read_partition_at_index" that converts an "ifc_StmtSort"
 kind into an "an_ifc_partition_kind" kind for convenience.
@@ -12742,7 +12721,7 @@ kind into an "an_ifc_partition_kind" kind for convenience.
 }  /* read_partition_at_index */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_StmtIndex stmt) const
+inline void an_ifc_module::read_partition_at_index(ifc_StmtIndex stmt)
 /*
 Overload wrapper for "read_partition_at_index" that converts an "ifc_StmtIndex"
 into its tag and index components for convenience.
@@ -12753,7 +12732,7 @@ into its tag and index components for convenience.
 
 
 inline void an_ifc_module::read_partition_at_index(ifc_DeclSort   decl_kind,
-                                                   ifc_Index_type index) const
+                                                   ifc_Index_type index)
 /*
 Overload wrapper for "read_partition_at_index" that converts an "ifc_DeclSort"
 kind into an "an_ifc_partition_kind" kind for convenience.
@@ -12763,7 +12742,7 @@ kind into an "an_ifc_partition_kind" kind for convenience.
 }  /* read_partition_at_index */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_DeclIndex decl) const
+inline void an_ifc_module::read_partition_at_index(ifc_DeclIndex decl)
 /*
 Overload wrapper for "read_partition_at_index" that converts an "ifc_DeclIndex"
 into its tag and index components for convenience.
@@ -12774,7 +12753,7 @@ into its tag and index components for convenience.
 
 
 inline void an_ifc_module::read_partition_at_index(ifc_NameSort   name_kind,
-                                                   ifc_Index_type index) const
+                                                   ifc_Index_type index)
 /*
 Overload wrapper for "read_partition_at_index" that converts an "ifc_NameSort"
 kind into an "an_ifc_partition_kind" kind for convenience.
@@ -12786,7 +12765,7 @@ kind into an "an_ifc_partition_kind" kind for convenience.
 }  /* read_partition_at_index */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_NameIndex name) const
+inline void an_ifc_module::read_partition_at_index(ifc_NameIndex name)
 /*
 Overload wrapper for "read_partition_at_index" that converts an "ifc_NameIndex"
 into its tag and index components for convenience.
@@ -12797,7 +12776,7 @@ into its tag and index components for convenience.
 
 
 inline void an_ifc_module::read_partition_at_index(ifc_ChartSort  chart_kind,
-                                                   ifc_Index_type index) const
+                                                   ifc_Index_type index)
 /*
 Overload wrapper for "read_partition_at_index" that converts an "ifc_ChartSort"
 kind into an "an_ifc_partition_kind" kind for convenience.
@@ -12807,7 +12786,7 @@ kind into an "an_ifc_partition_kind" kind for convenience.
 }  /* read_partition_at_index */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_ChartIndex chart) const
+inline void an_ifc_module::read_partition_at_index(ifc_ChartIndex chart)
 /*
 Overload wrapper for "read_partition_at_index" that converts an
 "ifc_ChartIndex" into its tag and index components for convenience.
@@ -12818,7 +12797,6 @@ Overload wrapper for "read_partition_at_index" that converts an
 
 
 inline void an_ifc_module::read_partition_at_index(ifc_FormSpecIndex form_spec)
-                                                                          const
 /*
 Overload wrapper for "read_partition_at_index" that converts an
 "ifc_FormSpecIndex" into its tag and index components for convenience.
@@ -12829,7 +12807,7 @@ Overload wrapper for "read_partition_at_index" that converts an
 
 
 inline void an_ifc_module::read_partition_at_index(ifc_SyntaxSort syntax_kind,
-                                                   ifc_Index_type index) const
+                                                   ifc_Index_type index)
 /*
 Overload wrapper for "read_partition_at_index" that converts an
 "ifc_SyntaxSort" kind into an "an_ifc_partition_kind" kind for convenience.
@@ -12841,7 +12819,7 @@ Overload wrapper for "read_partition_at_index" that converts an
 }  /* read_partition_at_index */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_SyntaxIndex syntax)const
+inline void an_ifc_module::read_partition_at_index(ifc_SyntaxIndex syntax)
 /*
 Overload wrapper for "read_partition_at_index" that converts an
 "ifc_SyntaxIndex" into its tag and index components for convenience.
@@ -12853,7 +12831,7 @@ Overload wrapper for "read_partition_at_index" that converts an
 
 inline ifc_Index an_ifc_module::read_index_from_heap(
                                           an_ifc_partition_kind heap_partition,
-                                          ifc_Index_type        index) const
+                                          ifc_Index_type        index)
 /*
 Read an ifc_Index from the heap indicated by heap_partition at the given index
 into that partition.
@@ -12869,7 +12847,7 @@ into that partition.
 
 template<an_ifc_partition_kind a_Partition_Kind, typename a_Trait_T>
 inline a_Trait_T *an_ifc_module::find_trait(ifc_DeclIndex decl,
-                                            a_Trait_T     *storage) const
+                                            a_Trait_T     *storage)
 /*
 Given a declaration index (decl) as a key to the associated trait table
 identified by a_Partition_Kind, find and return a pointer to the associated
@@ -12909,7 +12887,6 @@ upon to contain the result.
 
 
 ifc_ChartIndex an_ifc_module::get_func_params_from_trait(ifc_DeclIndex decl)
-                                                                          const
 /*
 Find and return the index to the named function parameters corresponding to
 decl, or 0 if not found.
@@ -12928,7 +12905,6 @@ decl, or 0 if not found.
 
 ifc_Sequence an_ifc_module::get_specialization_sequence_from_trait(
                                                             ifc_DeclIndex decl)
-                                                                          const
 /*
 Find and return the sequence of specializations corresponding to the template
 decl, or an empty sequence if not found.
@@ -12963,7 +12939,7 @@ Add the string at the specified offset to the output buffer.
 
 
 void an_ifc_module::str_ifc_name_index(ifc_NameIndex       name_index,
-                                       a_str_control_block *scbp) const
+                                       a_str_control_block *scbp)
 /*
 Add the string represented by name_index to the current output buffer.
 */
@@ -12975,7 +12951,7 @@ Add the string represented by name_index to the current output buffer.
 
 
 void an_ifc_module::str_ifc_class_name(ifc_DeclIndex       home_scope,
-                                       a_str_control_block *scbp) const
+                                       a_str_control_block *scbp)
 /*
 For constructors and destructors, add the name of the class specified
 by home_scope to the output buffer.
@@ -13290,7 +13266,7 @@ traits that prefix a function declaration, otherwise emit postfix traits.
 
 
 void an_ifc_module::str_ifc_expr_index(ifc_ExprIndex       expr_index,
-                                       a_str_control_block *scbp) const
+                                       a_str_control_block *scbp)
 /*
 Add a textual representation of the expression referenced by expr_index to
 the output buffer.
@@ -13679,7 +13655,7 @@ the output buffer.
 
 
 void an_ifc_module::str_ifc_scope_index(ifc_ScopeIndex      scope_index,
-                                        a_str_control_block *scbp) const
+                                        a_str_control_block *scbp)
 /*
 Append a textual representation of the specified scope_index to the current
 output buffer.
@@ -13709,7 +13685,6 @@ output buffer.
 void an_ifc_module::str_ifc_type_index_first_part(
                                                 ifc_TypeIndex       type_index,
                                                 a_str_control_block *scbp)
-                                                                          const
 /*
 Create a string representation for the specified type (first part).
 FIXME: more specific
@@ -14037,7 +14012,6 @@ FIXME: more specific
 void an_ifc_module::str_ifc_type_index_second_part(
                                                 ifc_TypeIndex       type_index,
                                                 a_str_control_block *scbp)
-                                                                          const
 /*
 Create a string representation for the specified type (second part).
 FIXME: more specific
@@ -14117,7 +14091,7 @@ FIXME: more specific
 
 
 void an_ifc_module::str_ifc_type_index(ifc_TypeIndex       type_index,
-                                       a_str_control_block *scbp) const
+                                       a_str_control_block *scbp)
 /*
 Add a textual representation of the specified type_index to the output buffer.
 */
@@ -14157,7 +14131,7 @@ output).
 
 
 void an_ifc_module::str_ifc_class_definition(an_ifc_DeclSort_Scope *idssp,
-                                             a_str_control_block   *scbp) const
+                                             a_str_control_block   *scbp)
 /*
 A utility routine to emit the textual representation of the class definition
 specified by *idssp.  This is a separate routine because the front end can
@@ -14184,7 +14158,7 @@ definitions (if any).
 
 void an_ifc_module::str_ifc_declaration(ifc_DeclIndex       decl_index,
                                         a_boolean           is_designated_type,
-                                        a_str_control_block *scbp) const
+                                        a_str_control_block *scbp)
 /*
 Generate a string for the specified declaration.
 FIXME: Perhaps have a "flags" argument rather than is_designated_type?
@@ -14559,7 +14533,6 @@ FIXME: Perhaps have a "flags" argument rather than is_designated_type?
 void an_ifc_module::str_ifc_statement(
                                      ifc_StmtIndex                  stmt_index,
                                      ARG_UNUSED a_str_control_block *scbp)
-                                                                          const
 /*
 Generate a string for the specified statement.
 */
@@ -14696,7 +14669,7 @@ Generate a string for the specified statement.
 
 
 void an_ifc_module::str_ifc_string_literal(ifc_StringIndex     str_index,
-                                           a_str_control_block *scbp) const
+                                           a_str_control_block *scbp)
 /*
 Generate a string for the specified string literal.
 */
@@ -14721,7 +14694,7 @@ Generate a string for the specified string literal.
 
 /*lint -e2707*/ /* Remove when the routine returns to its caller. */
 void an_ifc_module::str_ifc_chart(ifc_ChartIndex                 chart_index,
-                                  ARG_UNUSED a_str_control_block *scbp) const
+                                  ARG_UNUSED a_str_control_block *scbp)
 /*
 Generate a string for the specified chart.
 */
@@ -14761,7 +14734,6 @@ template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Deprecated>(
                                      ifc_DeclIndex                  decl_index,
                                      ARG_UNUSED a_str_control_block *scbp)
-                                                                          const
 /*
 Generate a string for the specified associated deprecation trait.
 */
@@ -14778,7 +14750,6 @@ template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Specialization>(
                                      ifc_DeclIndex                  decl_index,
                                      ARG_UNUSED a_str_control_block *scbp)
-                                                                          const
 /*
 Generate a string for the specified associated template specialization trait.
 */
@@ -14796,7 +14767,6 @@ template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Friend>(
                                      ifc_DeclIndex                  decl_index,
                                      ARG_UNUSED a_str_control_block *scbp)
-                                                                          const
 /*
 Generate a string for the specified associated class friend trait.
 */
@@ -14813,7 +14783,6 @@ template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_FunctionDefinition>(
                                      ifc_DeclIndex                  decl_index,
                                      ARG_UNUSED a_str_control_block *scbp)
-                                                                          const
 /*
 Generate a string for the specified associated constexpr function trait.
 */
@@ -14831,7 +14800,6 @@ template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_AliasTemplate>(
                                      ifc_DeclIndex                  decl_index,
                                      ARG_UNUSED a_str_control_block *scbp)
-                                                                          const
 /*
 Generate a string for the specified associated template alias trait.
 */
@@ -14848,7 +14816,6 @@ template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_DeductionGuides>(
                                      ifc_DeclIndex                  decl_index,
                                      ARG_UNUSED a_str_control_block *scbp)
-                                                                          const
 /*
 Generate a string for the specified associated deduction guides trait.
 */
@@ -14866,7 +14833,6 @@ template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Requires>(
                                      ifc_DeclIndex                  decl_index,
                                      ARG_UNUSED a_str_control_block *scbp)
-                                                                          const
 /*
 Generate a string for the specified associated requires trait.
 */
@@ -14883,7 +14849,6 @@ template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Attribute>(
                                      ifc_DeclIndex                  decl_index,
                                      ARG_UNUSED a_str_control_block *scbp)
-                                                                          const
 /*
 Generate a string for the specified associated template alias trait.
 */
@@ -14899,7 +14864,7 @@ Generate a string for the specified associated template alias trait.
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcVendorTrait>(
                                              ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp) const
+                                             a_str_control_block *scbp)
 /*
 Generate a string for the specified associated MSVC Vendor trait.
 */
@@ -14915,7 +14880,7 @@ Generate a string for the specified associated MSVC Vendor trait.
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcUuid>(
                                              ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp) const
+                                             a_str_control_block *scbp)
 /*
 Generate a string for the specified associated MSVC UUID trait.
 */
@@ -14934,7 +14899,7 @@ Generate a string for the specified associated MSVC UUID trait.
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcFuncParams>(
                                     ifc_DeclIndex                  decl_index,
-                                    ARG_UNUSED a_str_control_block *scbp) const
+                                    ARG_UNUSED a_str_control_block *scbp)
 /*
 Generate a string for the specified associated MSVC UUID trait.
 */
@@ -14951,7 +14916,7 @@ Generate a string for the specified associated MSVC UUID trait.
 template<>
 void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcDeclAttrs>(
                                     ifc_DeclIndex                  decl_index,
-                                    ARG_UNUSED a_str_control_block *scbp) const
+                                    ARG_UNUSED a_str_control_block *scbp)
 /*
 Generate a string for the specified associated MSVC UUID trait.
 */
@@ -14968,7 +14933,7 @@ Generate a string for the specified associated MSVC UUID trait.
 /*lint -e2707*/ /* Remove when the routine returns to its caller. */
 void an_ifc_module::str_ifc_syntax_node(
                                    ifc_SyntaxIndex                syntax_index,
-                                   ARG_UNUSED a_str_control_block *scbp) const
+                                   ARG_UNUSED a_str_control_block *scbp)
 /*
 Generate a string for the specified syntax tree node.
 */
@@ -15757,7 +15722,7 @@ Generate a string for the specified syntax tree node.
 /*lint -e2707*/ /* Remove when the routine returns to its caller. */
 void an_ifc_module::str_ifc_sentence(
                                 ifc_SentenceIndex               sentence_index,
-                                ARG_UNUSED a_str_control_block *scbp) const
+                                ARG_UNUSED a_str_control_block *scbp)
 /*
 Generate a string for the specified sentence.
 */
@@ -15772,7 +15737,7 @@ Generate a string for the specified sentence.
 
 /*lint -e2707*/ /* Remove when the routine returns to its caller. */
 void an_ifc_module::str_ifc_word(ifc_WordIndex                  word_index,
-                                 ARG_UNUSED a_str_control_block *scbp) const
+                                 ARG_UNUSED a_str_control_block *scbp)
 /*
 Generate a string for the specified word.
 */
