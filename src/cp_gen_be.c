@@ -22101,8 +22101,8 @@ handle_as_definition:
     if (rout->assoc_template->prototype_instantiation.routine != NULL &&
         !rout->assoc_template->prototype_instantiation.routine->
                                                             has_been_defined) {
-      /* The template declaration has not yet been declared, so the
-         explicit specialization cannot be valid. */
+      /* The template declaration has not yet been emitted, so the explicit
+         specialization cannot be valid. */
       rout->suppress_explicit_specialization = TRUE;
     }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
