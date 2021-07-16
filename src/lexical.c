@@ -23854,16 +23854,16 @@ formatting.
      establish indentation after switching to a new line.  The lambda also
      moves the given index to that of the next non-space character in
      temp_text_buffer (to avoid extraneous indentation). */
-  auto do_indent = [&indent](sizeof_t  *k) {
+  auto do_indent = [&indent](sizeof_t  *p_k) {
                      for (sizeof_t i = 0; i<indent; ++i) {
                        (void)fputc(' ', f_debug);
                      }  /* for */
                      /* Skip leading spaces in the text.  Note that since
                         "++k" of the for-loop below has not been evaluated
                         yet, we start at k+1. */
-                     while (*k+2 < pos_in_temp_text_buffer &&
-                            temp_text_buffer[*k+1] == ' ') {
-                       *k += 1;
+                     while (*p_k+2 < pos_in_temp_text_buffer &&
+                            temp_text_buffer[*p_k+1] == ' ') {
+                       *p_k += 1;
                      }  /* while */
                    }; 
   /*lint --e{850} k modified in loop */
