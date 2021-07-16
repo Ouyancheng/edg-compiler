@@ -23847,21 +23847,25 @@ formatting.
     }  /* if */
   }  /* if */
   add_token_cache_to_string(cache);
+  sizeof_t  k = saved_pos;
+  /* Skip leading spaces. */
+  while (temp_text_buffer[k] == ' ') ++k;
+  /* A local lambda expression used in a subsequent loop whenever we want to
+     establish indentation after switch to a new line.  The lambda also moves
+     the given index to that of the next non-space character in
+     temp_text_buffer (to avoid extraneous indentation). */
   auto do_indent = [&indent](sizeof_t  *k) {
                      for (sizeof_t i = 0; i<indent; ++i) {
                        (void)fputc(' ', f_debug);
                      }  /* for */
                      /* Skip leading spaces in the text.  Note that since
-                        "++k" pf the loop below has not been evaluated yet, we
-                        start at k+1. */
+                        "++k" of the for-loop below has not been evaluated
+                        yet, we start at k+1. */
                      while (*k+2 < pos_in_temp_text_buffer &&
                             temp_text_buffer[*k+1] == ' ') {
                        *k += 1;
                      }  /* while */
                    }; 
-  sizeof_t  k = saved_pos;
-  /* Skip leading spaces. */
-  while (temp_text_buffer[k] == ' ') ++k;
   /*lint --e{850} k modified in loop */
   for (; k<pos_in_temp_text_buffer; ++k) {
     if (temp_text_buffer[k] == '{') {

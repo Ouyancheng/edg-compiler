@@ -11138,7 +11138,7 @@ second operand of an assignment.
             break;
           case opkind_func_like:
             if (iesdp->op == ifc_DyadicOperator_MsvcAlign) {
-              /* An expression like "this->i" is represented in IFC as
+              /* An expression like "this->i" is represented in IFC files as
                  "this->__MsvcAlign(4, i)".  That has no equivalent in the
                  EDG IL.  So just cache the second argument. */
               cache_expr(cache, iesdp->arguments_1);
