@@ -580,7 +580,7 @@ two fields, "field1" and "field2", whose types are "field1_type" and
 "field2_type" respectively, the following is generated:
 
   static an_ifc_foo *get_foo(an_ifc_foo *ptr,
-                             a_boolean  fill_storage) const
+                             a_boolean  fill_storage)
   {
     GET_field1_type(ptr->field1);
     GET_field2_type(ptr->field2);
@@ -590,7 +590,7 @@ two fields, "field1" and "field2", whose types are "field1_type" and
 #define IFC_DECL_START(name) \
   inline concat(an_ifc_, name) * an_ifc_module::concat(get_, name) ( \
                                   concat(an_ifc_, name) *ptr, \
-                /* Defaulted: */  ARG_UNUSED a_boolean  fill_storage) const \
+                /* Defaulted: */  ARG_UNUSED a_boolean  fill_storage) \
   {
 #define IFC_DECL_FIELD(field, type) \
     concat(GET_, type)(ptr->field, /*from_header=*/FALSE);
