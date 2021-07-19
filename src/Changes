@@ -1,5 +1,26 @@
 Version 6.3
 
+7/19/21  [EDGcpfe/22810,EDGcpfe/24503]
+GNU compatibility: In-class direct-initialization of a static data member
+
+Consider:
+
+  struct S {
+    explicit constexpr S(int) {}
+  };
+  template<int> struct X {
+    static constexpr S s{1};  // Previously an error in GNU C++ mode.
+                              // Now okay.
+    void f() { S r = s; }
+  };
+  template struct X<42>;
+
+Previously, this triggered an error in GNU C++ modes claiming that the explicit
+S::S(int) constructor cannot be used, because the front end incorrectly treated
+"S{1}" as copy-list-initialization (when it is direct-list-initialization).
+That is now fixed.
+
+
 7/15/21  [EDGcpfe/24487]
 Disqualify inline variables as candidates for module ID
 

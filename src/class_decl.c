@@ -4107,6 +4107,7 @@ In C++17 mode, the initializer need not be a constant-expression.
     dps.type = dps.declared_type = var->type;
     if (var->has_direct_braced_initializer) {
       dps.has_direct_initializer = TRUE;
+      dps.init_state.direct_init = TRUE;
     }  /* if */
     if (cpp17_mode ||
         (gpp_mode && var->template_info != NULL &&
