@@ -2064,6 +2064,7 @@ process_option()
 #
 invoke_front_end()
 {
+  try_debug_driver "$command"
   discard_output=$1
   if [ $discard_output -ne 0 ] ; then
     eval `echo $command` >/dev/null 2>&1
@@ -2364,7 +2365,6 @@ fi
 #
 if [ -z "$cfiles" -a $source_file_name_optional -eq 1 ] ; then
   command=${CPFE}" "$feoptions" "$EDG_CPFE_DEFAULT_OPTIONS
-  try_debug_driver "$command"
   invoke_front_end 0  # Run front end and keep output
   status=$?
 fi
@@ -2498,7 +2498,6 @@ do
   if [ "$EDG_CPFE_OUTPUT_FILTER" != "" ] ; then
     command_output="  2>$output_tmp_file"
   fi
-  try_debug_driver "$command"
   if [ $pch_test_mode -eq 1 ] ; then
     # In PCH test mode, we immediately repeat the same compilation.
     # The first compilation should generate a PCH file, the second should
