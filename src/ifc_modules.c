@@ -4722,7 +4722,28 @@ Print the corresponding file and line number for the source location
   a_source_position pos;
 
   diag_file_name = "";
+  /* Save global information related to position before calling
+     source_position_from_locus. */
+#if DEBUG && EXPENSIVE_CHECKING
+  const an_ifc_partition *save_debug_partition = debug_partition;
+#endif /* DEBUG && EXPENSIVE_CHECKING */
+#if USE_MMAP_FOR_MEMORY_REGIONS
+  unsigned char *save_byte_buffer = byte_buffer;
+  unsigned char *save_buffer_end = buffer_end;
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+  long save_seek = ftell(f_module);
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   source_position_from_locus(&pos, locus);
+  /* Restore saved information. */
+#if DEBUG && EXPENSIVE_CHECKING
+  debug_partition = save_debug_partition;
+#endif /* DEBUG && EXPENSIVE_CHECKING */
+#if USE_MMAP_FOR_MEMORY_REGIONS
+  byte_buffer = save_byte_buffer;
+  buffer_end = save_buffer_end;
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+  (void)fseek(f_module, save_seek, SEEK_SET);
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
   if (pos.seq != 0) {
     (void)conv_seq_to_file_and_line(pos.seq, &diag_file_name,
                                     &full_name, &line_number,
