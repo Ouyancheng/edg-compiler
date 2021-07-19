@@ -127,7 +127,7 @@ struct a_module_interface {
 /* Module interface functions. */
   void set_name(a_const_char *module_name);
   VIRTUAL void complete_definition_of_module_class(a_module_entity_ptr mep)
-                                                                const ABSTRACT;
+                                                                      ABSTRACT;
 
 #if DEBUG
   VIRTUAL void debug() const ABSTRACT;
@@ -198,7 +198,7 @@ struct an_edg_module : public a_module_interface {
 
   NORETURN void complete_definition_of_module_class(
                                             ARG_UNUSED a_module_entity_ptr mep)
-                                                                 const OVERRIDE
+                                                                       OVERRIDE
     { unexpected_condition_str("Unimplemented"); }
 
 #if DEBUG

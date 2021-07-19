@@ -868,7 +868,6 @@ Set the name of this module to the provided module_name.
 
 void a_module_interface::complete_definition_of_module_class(
                                                        a_module_entity_ptr mep)
-                                                                          const
 /*
 Dispatch the complete_definition_of_module_class() call to the variant for the
 actual object.
