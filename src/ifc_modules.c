@@ -2739,7 +2739,7 @@ corresponding data structure for that partition.
 namespace {
 
 constexpr ifc_Version supported_major_version = (ifc_Version)0;
-constexpr ifc_Version supported_minor_version = (ifc_Version)32;
+constexpr ifc_Version supported_minor_version = (ifc_Version)33;
 
 inline a_boolean check_ifc_version(ifc_Version major,
                                    ifc_Version minor)
