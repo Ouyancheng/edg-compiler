@@ -8567,6 +8567,86 @@ done:;
 }  /* cache_scope */
 
 
+template<typename a_Name_Cache_Fn, typename a_Scope_Cache_Fn>
+inline void an_ifc_module::cache_scope_decl(a_token_cache_ptr  cache,
+                                            ifc_DeclIndex      decl_idx,
+                                            ifc_TypeIndex      type,
+                                            a_Name_Cache_Fn    cache_name_fn,
+                                            a_Scope_Cache_Fn   cache_scope_fn,
+                                            ifc_SourceLocation *locus)
+/*
+Cache the tokens corresponding to the given scope decl (indexed in the IFC by
+decl_idx).  type represents the IFC type representing the introducing keyword.
+cache_name_fn is a lambda accepting a_source_position_ptr interpretation of
+locus that's called to cache the name of the scope.  cache_scope_fn is a lambda
+accepting a_source_position_ptr interpretation of locus that's called to cache
+the scope's body (e.g., for a class the member-specification).  Finally, locus
+is the location of the given scope decl.  FIXME: Remove this version of
+cache_scope_decl once names can be cached properly for specializations using a
+NameIndex, and similarly the scope's body can be consistently cached via a
+ScopeIndex.
+*/
+{
+  a_source_position pos;
+
+  check_assertion(type_tag(type) == ifc_TypeSort_Fundamental);
+  source_position_from_locus(&pos, locus);
+  /* Cache the struct/class/union/namespace/__interface keyword. */
+  cache_type(cache, type, locus);
+  /* Cache any attributes. */
+  cache_attrs(cache, decl_idx);
+  /* Cache the name. */
+  cache_name_fn(&pos);
+  /* Cache the scope's body. e.g., for a class the member-specification. */
+  cache_scope_fn(&pos);
+}  /* cache_scope_decl */
+
+
+void an_ifc_module::cache_scope_decl(a_token_cache_ptr  cache,
+                                     ifc_DeclIndex      decl_idx,
+                                     ifc_TypeIndex      type,
+                                     ifc_NameIndex      name,
+                                     ifc_TypeIndex      base,
+                                     ifc_ScopeIndex     scope,
+                                     ifc_SourceLocation *locus)
+/*
+Cache the tokens corresponding to the given scope decl (indexed in the IFC by
+decl_idx).  type represents the IFC type representing the introducing keyword.
+name represents the name of the scope decl.  base represents any associated
+base classes and as such is only valid for a class declaration.  scope
+represents the declaration's body (e.g., for a class the member-specification).
+Finally, locus is the location of the given scope decl.
+*/
+{
+  auto cache_name_fn = [this, cache, name, locus](a_source_position_ptr pos) {
+    cache_name(cache, name, locus);
+  };
+  auto cache_scope_fn = [this, cache, base, type, scope, locus](
+                                                   a_source_position_ptr pos) {
+    /* If there are bases specified, cache the bases. */
+    if (base != 0) {
+      cache_token(cache, tok_colon, pos);
+      cache_type(cache, base, locus);
+    }  /* if */
+    cache_scope(cache, scope, locus);
+    {
+      /* Read the fundamental type so that we can determine if we're caching a
+         namespace. */
+      an_ifc_TypeSort_Fundamental itsf, *itsfp;
+
+      read_partition_at_index(type);
+      itsfp = get_TypeSort_Fundamental(&itsf);
+      /* If we aren't caching a namespace, add a semicolon. */
+      if (itsfp->basis != ifc_TypeBasis_Namespace) {
+        cache_token(cache, tok_semicolon, pos);
+      }  /* if */
+    }
+  };
+  cache_scope_decl(cache, decl_idx, type, cache_name_fn, cache_scope_fn,
+                   locus);
+}  /* cache_scope_decl */
+
+
 void an_ifc_module::cache_type_first_pass(a_token_cache_ptr  cache,
                                           ifc_TypeIndex      type,
                                           ifc_SourceLocation *locus)
@@ -9951,6 +10031,76 @@ the location of the operator.
 }  /* cache_operator */
 
 
+template<typename a_Name_Cache_Fn, typename an_Init_Cache_Fn>
+inline void an_ifc_module::cache_variable_decl(
+                                           a_token_cache_ptr   cache,
+                                           ifc_DeclIndex       decl_idx,
+                                           a_boolean           is_class_member,
+                                           ifc_Access          access,
+                                           ifc_BasicSpecifiers specifiers,
+                                           ifc_ObjectTraits    traits,
+                                           ifc_ExprIndex       alignment,
+                                           ifc_TypeIndex       type,
+                                           a_Name_Cache_Fn     cache_name_fn,
+                                           ifc_ExprIndex       width,
+                                           an_Init_Cache_Fn    cache_init_fn,
+                                           ifc_SourceLocation  *locus)
+/*
+Add the tokens corresponding to the given variable declaration (indexed in the
+IFC by decl_idx) to cache.  is_class_member is TRUE if this is a non-static
+data member of a class.  access, specifiers, traits, alignment, and type are
+values from the IFC file that describe the variable declaration.  cache_name_fn
+is a lambda accepting a_source_position_ptr interpretation of locus that's
+called to cache the name of the variable.  If width is not zero, this is a
+bitfield and width is its size.  cache_init_fn is a lambda accepting
+a_source_position_ptr interpretation of locus that's called to cache the
+variable initializer (if any).  locus is the source location for the
+declaration.
+*/
+{
+  a_source_position pos;
+  a_boolean         decl_in_class;
+
+  source_position_from_locus(&pos, locus);
+  decl_in_class = is_class_member || access != ifc_Access_None;
+  if (decl_in_class) {
+    cache_access(cache, access, /*cache_colon=*/TRUE, &pos);
+  }  /* if */
+  /* Cache tokens for MSVC "basic specifiers" (at the time of writing this
+     includes extern "C" and [[deprecated]]). */
+  /* FIXME: Because we cache attributes properly now, this can result in two
+     deprecated attributes. */
+  cache_basic_specifiers(cache, specifiers, &pos);
+  /* Cache any associated attributes. */
+  cache_attrs(cache, decl_idx);
+  if (!is_class_member && decl_in_class) {
+    /* This is a static data member. */
+    cache_token(cache, tok_static, &pos);
+  }  /* if */
+  /* Cache the alignment if specified. */
+  if (alignment != 0) {
+    cache_token(cache, tok_alignas, &pos);
+    cache_token(cache, tok_lparen, &pos);
+    cache_expr(cache, alignment);
+    cache_token(cache, tok_rparen, &pos);
+  }  /* if */
+  /* Cache the "object traits", roughly an MSVC subset of the
+     decl-specifier-seq. */
+  cache_object_traits(cache, traits, &pos);
+  /* Cache the name surrounded by the respective type qualifiers. */
+  cache_type_first_pass(cache, type, locus);
+  cache_name_fn(&pos);
+  cache_type_second_pass(cache, type, locus);
+  /* Cache the variable with if any. */
+  if (width != 0) {
+    cache_token(cache, tok_colon, &pos);
+    cache_expr(cache, width);
+  }  /* if */
+  /* Cache the initializer (if any). */
+  cache_init_fn(&pos);
+}  /* cache_variable_decl */
+
+
 void an_ifc_module::cache_variable_decl(a_token_cache_ptr   cache,
                                         ifc_DeclIndex       decl_idx,
                                         a_boolean           is_class_member,
@@ -9975,51 +10125,32 @@ the variable has an initializer then initializer is non-zero and refers to the
 initializer expression.  locus is the source location for the declaration.
 */
 {
-  a_source_position pos;
-  a_boolean         decl_in_class;
-
-  decl_in_class = is_class_member || access != ifc_Access_None;
-  source_position_from_locus(&pos, locus);
-  if (decl_in_class) {
-    cache_access(cache, access, /*cache_colon=*/TRUE, &pos);
-  }  /* if */
-  cache_basic_specifiers(cache, specifiers, &pos);
-  if (!is_class_member && decl_in_class) {
-    /* This is a static data member. */
-    cache_token(cache, tok_static, &pos);
-  }  /* if */
-  cache_attrs(cache, decl_idx);
-  if (alignment != 0) {
-    cache_token(cache, tok_alignas, &pos);
-    cache_token(cache, tok_lparen, &pos);
-    cache_expr(cache, alignment);
-    cache_token(cache, tok_rparen, &pos);
-  }  /* if */
-  cache_object_traits(cache, traits, &pos);
-  cache_type_first_pass(cache, type, locus);
-  if (name != 0) {
-    cache_name(cache, name, locus);
-  } else {
-    check_assertion(raw_name != 0);
-    cache_identifier(cache, get_string_at_offset(raw_name), &pos);
-  }  /* if */
-  cache_type_second_pass(cache, type, locus);
-  if (width != 0) {
-    cache_token(cache, tok_colon, &pos);
-    cache_expr(cache, width);
-  }  /* if */
+  auto cache_name_fn = [this, cache, name, raw_name, locus](
+                                                   a_source_position_ptr pos) {
+    if (name != 0) {
+      cache_name(cache, name, locus);
+    } else {
+      check_assertion(raw_name != 0);
+      cache_identifier(cache, get_string_at_offset(raw_name), pos);
+    }  /* if */
+  };
+  auto cache_init_fn = [this, cache, initializer](a_source_position_ptr pos) {
 #if /*FIXME*/0
-  /* FIXME: The initializer index sometimes has invalid values.  Treat all
-     variables as uninitialized for now.  This will be a problem for constexpr,
-     but is preferable to the alternative (aborting). */
-  initializer = (ifc_ExprIndex)0;
+    /* FIXME: The initializer index sometimes has invalid values.  Treat all
+       variables as uninitialized for now.  This will be a problem for
+       constexpr, but is preferable to the alternative (aborting). */
+    initializer = (ifc_ExprIndex)0;
 #endif /*FIXME*/
-  if (initializer != 0) {
-    cache_token(cache, tok_lbrace, &pos);
-    cache_expr(cache, initializer);
-    cache_token(cache, tok_rbrace, &pos);
-  }  /* if */
-  cache_token(cache, tok_semicolon, &pos);
+    if (initializer != 0) {
+      cache_token(cache, tok_lbrace, pos);
+      cache_expr(cache, initializer);
+      cache_token(cache, tok_rbrace, pos);
+    }  /* if */
+    cache_token(cache, tok_semicolon, pos);
+  };
+  cache_variable_decl(cache, decl_idx, is_class_member, access,
+                      specifiers, traits, alignment, type,
+                      cache_name_fn, width, cache_init_fn, locus);
 }  /* cache_variable_decl */
 
 
@@ -10232,7 +10363,7 @@ the specialization.
 }  /* cache_specialization_simple_template_id */
 
 
-void an_ifc_module::cache_decl_partial_specialization_declaration(
+void an_ifc_module::cache_decl_partial_specialization(
                                 a_token_cache_ptr                     cache,
                                 ifc_DeclIndex                         decl_idx,
                                 an_ifc_DeclSort_PartialSpecialization *decl)
@@ -10260,72 +10391,61 @@ Add the tokens corresponding to the given partial specialization declaration
 
           idssp = get_DeclSort_Scope(&idss);
 #if DEBUG
-          {
-            /* Validate the scope to ensure it's a class or struct as we
-               expect. */
-            an_ifc_TypeSort_Fundamental itsf, *itsfp;
-
-            check_assertion(type_tag(idssp->type) == ifc_TypeSort_Fundamental);
-            read_partition_at_index(ifc_type_fundamental,
-                                    type_value(idssp->type));
-            itsfp = get_TypeSort_Fundamental(&itsf);
-            switch (itsfp->basis) {
-              case ifc_TypeBasis_Class:
-              case ifc_TypeBasis_Struct:
-                break;
-              default:
-                unexpected_condition_str("Unexpected TypeSort");
-            }  /* switch */
-          }
+          validate_is_class_type(idssp->type);
 #endif /* DEBUG */
-          /* Cache the struct/class keyword. */
-          cache_type(cache, idssp->type, &decl->locus);
-          /* Cache the attributes of the class. */
-          cache_attrs(cache, decl_idx);
-          /* Cache the simple-template-id. */
-          cache_specialization_simple_template_id(cache, decl->form,
-                                                  &decl->locus);
+          {
+            auto cache_name_fn = [this, cache, decl, idssp](
+                                                   a_source_position_ptr pos) {
+              cache_specialization_simple_template_id(cache, decl->form,
+                                                      &idssp->locus);
+            };
+            auto cache_scope_fn = [this, cache, decl](
+                                                   a_source_position_ptr pos) {
+              if (decl->entity.body != 0) {
+                /* We have a body for this declaration, cache it. */
+                (void)cache_sentence(cache, decl->entity.body);
+              }  /* if */
+            };
+            cache_scope_decl(cache, decl_idx, idssp->type, cache_name_fn,
+                             cache_scope_fn, &idssp->locus);
+          }
         }
         break;
       case ifc_DeclSort_Variable:
         { /* We're reconstructing a variable. */
           an_ifc_DeclSort_Variable idsv, *idsvp;
+          ifc_Access               access = ifc_Access_None;
 
           idsvp = get_DeclSort_Variable(&idsv);
-          /* Cache the attributes of the variable. */
-          cache_attrs(cache, decl_idx);
-          /* Cache the tokens for the variable type that precede the
-             simple-template-id. */
-          cache_type_first_pass(cache, idsvp->type, &idsvp->locus);
-          /* Cache the simple-template-id. */
-          cache_specialization_simple_template_id(cache, decl->form,
-                                                  &decl->locus);
-          /* Cache the tokens for the variable type that follow the
-             simple-template-id (if any). */
-          cache_type_second_pass(cache, idsvp->type, &idsvp->locus);
+          {
+            auto cache_name_fn = [this, cache, decl, idsvp](
+                                                   a_source_position_ptr pos) {
+              cache_specialization_simple_template_id(cache, decl->form,
+                                                      &idsvp->locus);
+            };
+            auto cache_init_fn = [this, cache, decl](
+                                                   a_source_position_ptr pos) {
+              if (decl->entity.body != 0) {
+                /* We have a body for this declaration, cache it. */
+                (void)cache_sentence(cache, decl->entity.body);
+              }  /* if */
+            };
+
+            if (is_class_scope(idsvp->home_scope)) {
+              access = idsvp->access;
+            }  /* if */
+            cache_variable_decl(cache, decl_idx, /*is_class_member=*/FALSE,
+                                access, idsvp->specifiers, idsvp->traits,
+                                idsvp->alignment, idsvp->type, cache_name_fn,
+                                (ifc_ExprIndex)0, cache_init_fn,
+                                &idsvp->locus);
+          }
         }
         break;
       default:
         unexpected_condition_str("Unexpected DeclSort");
     }  /* switch */
   }
-}  /* cache_decl_partial_specialization_declaration */
-
-
-void an_ifc_module::cache_decl_partial_specialization(
-                                a_token_cache_ptr                     cache,
-                                ifc_DeclIndex                         decl_idx,
-                                an_ifc_DeclSort_PartialSpecialization *decl)
-/*
-Add the tokens corresponding to the given partial specialization declaration
-(decl indexed in the IFC by decl_idx) to cache.
-*/
-{
-  cache_decl_partial_specialization_declaration(cache, decl_idx, decl);
-  if (decl->entity.body != 0) {
-    /* We have a body for this declaration, cache it. */
-    (void)cache_sentence(cache, decl->entity.body);
-  }  /* if */
 }  /* cache_decl_partial_specialization */
 
 
@@ -10592,22 +10712,9 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       break;
     case ifc_DeclSort_Scope:
       { an_ifc_DeclSort_Scope idss, *idssp;
-        an_ifc_TypeSort_Fundamental itsf, *itsfp;
         idssp = get_DeclSort_Scope(&idss);
-        check_assertion(type_tag(idssp->type) == ifc_TypeSort_Fundamental);
-        read_partition_at_index(idssp->type);
-        itsfp = get_TypeSort_Fundamental(&itsf);
-        source_position_from_locus(&pos, &idssp->locus);
-        cache_type(cache, idssp->type, &idssp->locus);
-        cache_name(cache, idssp->name, &idssp->locus);
-        if (idssp->base != 0) {
-          cache_token(cache, tok_colon, &pos);
-          cache_type(cache, idssp->base, &idssp->locus);
-        }  /* if */
-        cache_scope(cache, idssp->initializer, &idssp->locus);
-        if (itsfp->basis != ifc_TypeBasis_Namespace) {
-          cache_token(cache, tok_semicolon, &pos);
-        }  /* if */
+        cache_scope_decl(cache, decl, idssp->type, idssp->name, idssp->base,
+                         idssp->initializer, &idssp->locus);
       }
       break;
     case ifc_DeclSort_Enumeration:
@@ -12941,6 +13048,27 @@ decl, or an empty sequence if not found.
   }  /* if */
   return result;
 }  /* get_specialization_sequence_from_trait */
+
+
+void an_ifc_module::validate_is_class_type(ifc_TypeIndex type)
+/*
+*/
+{
+  /* Validate the scope to ensure it's a class or struct as we
+     expect. */
+  an_ifc_TypeSort_Fundamental itsf, *itsfp;
+
+  check_assertion(type_tag(type) == ifc_TypeSort_Fundamental);
+  read_partition_at_index(type);
+  itsfp = get_TypeSort_Fundamental(&itsf);
+  switch (itsfp->basis) {
+    case ifc_TypeBasis_Class:
+    case ifc_TypeBasis_Struct:
+      break;
+    default:
+      unexpected_condition_str("Unexpected TypeSort");
+  }  /* switch */
+}  /* validate_is_class_type */
 
 
 /*

@@ -2715,6 +2715,20 @@ private:
   void cache_scope(a_token_cache_ptr  cache,
                    ifc_ScopeIndex     scope,
                    ifc_SourceLocation *locus);
+  template<typename a_Name_Cache_Fn, typename a_Scope_Cache_Fn>
+  inline void cache_scope_decl(a_token_cache_ptr  cache,
+                               ifc_DeclIndex      decl_idx,
+                               ifc_TypeIndex      type,
+                               a_Name_Cache_Fn    cache_name_fn,
+                               a_Scope_Cache_Fn   cache_scope_fn,
+                               ifc_SourceLocation *locus);
+  void cache_scope_decl(a_token_cache_ptr  cache,
+                        ifc_DeclIndex      decl_idx,
+                        ifc_TypeIndex      type,
+                        ifc_NameIndex      name,
+                        ifc_TypeIndex      base,
+                        ifc_ScopeIndex     scope,
+                        ifc_SourceLocation *locus);
   void cache_type_first_pass(a_token_cache_ptr  cache,
                              ifc_TypeIndex      type,
                              ifc_SourceLocation *locus);
@@ -2830,6 +2844,19 @@ private:
                                 a_token_cache_ptr                     cache,
                                 ifc_DeclIndex                         decl_idx,
                                 an_ifc_DeclSort_PartialSpecialization *decl);
+  template<typename a_Name_Cache_Fn, typename an_Init_Cache_Fn>
+  inline void cache_variable_decl(a_token_cache_ptr   cache,
+                                  ifc_DeclIndex       decl_idx,
+                                  a_boolean           is_class_member,
+                                  ifc_Access          access,
+                                  ifc_BasicSpecifiers specifiers,
+                                  ifc_ObjectTraits    traits,
+                                  ifc_ExprIndex       alignment,
+                                  ifc_TypeIndex       type,
+                                  a_Name_Cache_Fn     cache_name_fn,
+                                  ifc_ExprIndex       width,
+                                  an_Init_Cache_Fn    cache_init_fn,
+                                  ifc_SourceLocation  *locus);
   void cache_variable_decl(a_token_cache_ptr   cache,
                            ifc_DeclIndex       decl_idx,
                            a_boolean           is_class_member,
@@ -2904,6 +2931,9 @@ private:
                                a_Trait_T     *storage);
   ifc_ChartIndex get_func_params_from_trait(ifc_DeclIndex decl);
   ifc_Sequence get_specialization_sequence_from_trait(ifc_DeclIndex decl);
+#if DEBUG
+  void validate_is_class_type(ifc_TypeIndex type);
+#endif /* DEBUG */
   /* Stringizers. */
   void str_ifc_text_offset(ifc_TextOffset     offset,
                            a_str_control_block *scbp) const;
