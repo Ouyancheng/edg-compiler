@@ -240,7 +240,7 @@ IFC_DECL_END(DeclSort_PartialSpecialization)
 
 /* DeclSort::ExplicitSpecialization */
 IFC_DECL_START(DeclSort_ExplicitSpecialization)
-  IFC_DECL_FIELD(form, Index)
+  IFC_DECL_FIELD(form, FormSpecIndex)
   IFC_DECL_FIELD(decl, DeclIndex)
 IFC_DECL_END(DeclSort_ExplicitSpecialization)
 

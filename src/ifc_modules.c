@@ -3082,6 +3082,53 @@ containing the partial specialization declaration.
 }  /* parse_cached_partial_specialization */
 
 
+static a_template_ptr parse_cached_explicit_specialization(
+                                                  a_token_cache_ptr cache,
+                                                  a_scope_ptr       encl_scope)
+/*
+Parse the tokens corresponding to a explicit specialization declaration cache,
+and return the corresponding explicit specialization.  encl_scope is the scope
+containing the explicit specialization declaration.
+*/
+{
+  a_decl_parse_state dps;
+  a_tmpl_decl_state  decl_state;
+  a_token_kind       final_token = tok_semicolon;
+
+#if DEBUG
+  if (db_flag_is_set("ms_ifc_token_def")) {
+    pos_in_temp_text_buffer = 0;
+    add_token_cache_to_string(cache);
+    fprintf(stderr, "Reconstituted explicit specialization declaration:\n%s\n"
+                    "---------------------\n", temp_text_buffer);
+  }  /* if */
+#endif /* DEBUG */
+  rescan_cached_tokens(cache);
+  init_decl_parse_state(&dps);
+  init_templ_decl_state(&decl_state, &dps);
+  decl_state.pragmas_bound_to_template = extract_curr_construct_pragmas();
+  decl_state.starting_token_sequence_number = curr_token_sequence_number;
+  decl_state.final_token_ptr = &final_token;
+  decl_state.enclosing_scope = encl_scope;
+  template_or_specialization_declaration_full(&decl_state,
+                                              /*is_generic=*/FALSE,
+                                              /*orig_dps=*/NULL);
+  if (curr_token != final_token) {
+    expect_error();
+    flush_tokens_without_warning();
+  } else {
+    (void)get_token();
+    if (curr_token == tok_semicolon) {
+      /* Microsoft sometimes adds a semicolon after the final closing brace. */
+      (void)get_token();
+    }  /* if */
+  }  /* if */
+  check_assertion(curr_token == tok_end_of_source);
+  (void)get_token();
+  return decl_state.il_template_entry;
+}  /* parse_cached_explicit_specialization */
+
+
 /*
 A simple structure that can be used to locate the body of a function stored in
 an IFC module file.
@@ -4263,12 +4310,13 @@ class_struct_union_case:
               kind = iek_template;
             }  /* if */
             {
-              /* Compute the DeclIndex of the current template, then process
-                 the associated specializations. */
+              /* Compute the DeclIndex of the current template, and retrieve
+                 the sequence of specializations. */
               ifc_DeclIndex decl = decl_index_of(mep->variant.ifc_partition,
                                                  mep->file_offset);
               ifc_Sequence  seq = get_specialization_sequence_from_trait(decl);
 
+              /* Process the sequence of specializations. */
               process_scope_member_sequence(seq);
             }
           }  /* if */
@@ -4414,7 +4462,6 @@ class_struct_union_case:
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
-            a_token_cache cache;
             if (mep->scope == NULL) {
               mep->scope = get_ifc_scope(idspsp->home_scope);
               scope_pushed = push_module_declaration_context(mep->scope);
@@ -4422,6 +4469,7 @@ class_struct_union_case:
             /* FIXME: Is it feasible to detect ignorable redeclarations of
                partial specializations? */
             if (idspsp->entity.body != 0) {
+              a_token_cache cache;
               ifc_DeclIndex decl_idx = decl_index_of(
                                                     mep->variant.ifc_partition,
                                                     mep->file_offset);
@@ -4441,12 +4489,25 @@ class_struct_union_case:
         }
         break;
       case ifc_DeclSort_ExplicitSpecialization:
-        { an_ifc_DeclSort_ExplicitSpecialization idses;
-          get_DeclSort_ExplicitSpecialization(&idses);
-          /* FIXME: Need a proper source position here. */
-          error_position = null_source_position;
-          goto unhandled;
+        { an_ifc_DeclSort_ExplicitSpecialization idses, *idsesp;
+          idsesp = get_DeclSort_ExplicitSpecialization(&idses);
+          if (defer) {
+            defer_symbol_creation(mep, &loc);
+          } else {
+            a_token_cache cache;
+            ifc_DeclIndex decl_idx = decl_index_of(
+                                                   mep->variant.ifc_partition,
+                                                   mep->file_offset);
+            clear_token_cache(&cache, /*reuseable=*/FALSE);
+            cache_decl_explicit_specialization(&cache, decl_idx, idsesp);
+            terminate_token_cache(&cache);
+            il_entity = (char*)parse_cached_explicit_specialization(
+                                                                   &cache,
+                                                                   mep->scope);
+            kind = iek_template;
+          }
         }
+        break;
       case ifc_DeclSort_ExplicitInstantiation:
         { an_ifc_DeclSort_ExplicitInstantiation idsei;
           get_DeclSort_ExplicitInstantiation(&idsei);
@@ -5030,10 +5091,10 @@ pointer to the given consumer lambda for each element in the sequence.
     /* Load the scope member. */
     read_partition_at_index(ifc_scope_member, seq.start + idx);
     ismp = get_Scope_Member(&ism);
-    /* FIXME: We're temporarily limiting ourselves to partial specializations
-       as they are the only specialization we have an implementation for
-       currently. */
+    /* FIXME: We're temporarily excluding explicit instantiations as they are
+       not yet implemented yet. */
     if (decl_tag(ismp->index) != ifc_DeclSort_PartialSpecialization) {
+/*     if (decl_tag(ismp->index) == ifc_DeclSort_ExplicitInstantiation) { */
       continue;
     }  /* if */
     /* Handle any specific processing in the consumer. */
@@ -10334,6 +10395,8 @@ Add the tokens corresponding to the given class definition (decl) to cache.
 The cached tokens are suitable for parsing with scan_class_definition (i.e.,
 the first token is a colon introducing base classes or a left brace introducing
 the member declarations).
+FIXME: There's a relationship with cache_scope_decl here, but it's not entirely
+clear what that is yet.
 */
 {
   a_source_position pos;
@@ -10559,6 +10622,96 @@ Add the tokens corresponding to the given partial specialization declaration
 }  /* cache_decl_partial_specialization */
 
 
+void an_ifc_module::cache_decl_explicit_specialization(
+                               a_token_cache_ptr                      cache,
+                               ifc_DeclIndex                          decl_idx,
+                               an_ifc_DeclSort_ExplicitSpecialization *decl)
+/*
+Add the tokens corresponding to the given partial specialization declaration
+(decl indexed in the IFC by decl_idx) to cache.
+*/
+{
+  /* FIXME: We don't have good source location information here, so
+     template-head is reconstructed in decl tag case. */
+  {
+    /* Reconstruct the declaration. */
+    /* FIXME: Eventually this entire block should be replaceable by a
+       cache_decl call (due to problems in the IFC -- namely the templated decl
+       having a mangled NameSort Identifier name instead of a NameSort
+       Specialization -- this is not yet possible). */
+    ifc_DeclIndex templated_decl_idx = decl->decl;
+
+    /* Read the partition for the templated declaration. */
+    read_partition_at_index(templated_decl_idx);
+    switch (decl_tag(templated_decl_idx)) {
+      case ifc_DeclSort_Scope:
+        { /* We're reconstructing a class. */
+          an_ifc_DeclSort_Scope idss, *idssp;
+
+          idssp = get_DeclSort_Scope(&idss);
+          /* Reconstruct the template-head. */
+          cache_template_head(cache, (ifc_ChartIndex)0, &idssp->locus);
+#if DEBUG
+          validate_is_class_type(idssp->type);
+#endif /* DEBUG */
+          {
+            auto cache_name_fn = [this, cache, decl, idssp](
+                                                   a_source_position_ptr pos) {
+              cache_specialization_simple_template_id(cache, decl->form,
+                                                      &idssp->locus);
+            };
+            auto cache_scope_fn = [this, cache, idssp](
+                                                   a_source_position_ptr pos) {
+              /* If there are bases specified, cache the bases. */
+              if (idssp->base != 0) {
+                cache_token(cache, tok_colon, pos);
+                cache_type(cache, idssp->base, &idssp->locus);
+              }  /* if */
+              cache_scope(cache, idssp->initializer, &idssp->locus);
+              cache_token(cache, tok_semicolon, pos);
+            };
+            cache_scope_decl(cache, decl_idx, idssp->type, cache_name_fn,
+                             cache_scope_fn, &idssp->locus);
+          }
+        }
+        break;
+      case ifc_DeclSort_Variable:
+        { /* We're reconstructing a variable. */
+          an_ifc_DeclSort_Variable idsv, *idsvp;
+
+          idsvp = get_DeclSort_Variable(&idsv);
+          /* Reconstruct the template-head. */
+          cache_template_head(cache, (ifc_ChartIndex)0, &idsvp->locus);
+          {
+            auto cache_name_fn = [this, cache, decl, idsvp](
+                                                   a_source_position_ptr pos) {
+              cache_specialization_simple_template_id(cache, decl->form,
+                                                      &idsvp->locus);
+            };
+            auto cache_init_fn = [this, cache, idsvp](
+                                                   a_source_position_ptr pos) {
+              if (idsvp->initializer != 0) {
+                cache_token(cache, tok_lparen, pos);
+                cache_expr(cache, idsvp->initializer);
+                cache_token(cache, tok_rparen, pos);
+              }  /* if */
+              cache_token(cache, tok_semicolon, pos);
+            };
+            cache_variable_decl(cache, decl_idx, /*is_class_member=*/FALSE,
+                                /*access=*/ifc_Access_None, idsvp->specifiers,
+                                idsvp->traits, idsvp->alignment, idsvp->type,
+                                cache_name_fn, (ifc_ExprIndex)0, cache_init_fn,
+                                &idsvp->locus);
+          }
+        }
+        break;
+      default:
+        unexpected_condition_str("Unexpected DeclSort");
+    }  /* switch */
+  }
+}  /* cache_decl_explicit_specialization */
+
+
 void an_ifc_module::cache_type_param_introducer(a_token_cache_ptr  cache,
                                                 ifc_ExprIndex      constraint,
                                                 a_source_position  *pos)
@@ -10696,7 +10849,12 @@ specialization.
 
   source_position_from_locus(&pos, locus);
   cache_token(cache, tok_template, &pos);
-  cache_chart(cache, chart_idx, locus);
+  if (chart_idx == 0) {
+    cache_token(cache, tok_lt, &pos);
+    cache_token(cache, tok_gt, &pos);
+  } else {
+    cache_chart(cache, chart_idx, locus);
+  }
 }  /* cache_template_head */
 
 

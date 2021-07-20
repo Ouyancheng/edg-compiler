@@ -2852,6 +2852,10 @@ private:
                                 a_token_cache_ptr                     cache,
                                 ifc_DeclIndex                         decl_idx,
                                 an_ifc_DeclSort_PartialSpecialization *decl);
+  void cache_decl_explicit_specialization(
+                               a_token_cache_ptr                      cache,
+                               ifc_DeclIndex                          decl_idx,
+                               an_ifc_DeclSort_ExplicitSpecialization *decl);
   template<typename a_Name_Cache_Fn, typename an_Init_Cache_Fn>
   inline void cache_variable_decl(a_token_cache_ptr   cache,
                                   ifc_DeclIndex       decl_idx,
