@@ -866,6 +866,8 @@ Set the name of this module to the provided module_name.
 
 #if !USE_VIRTUAL_FUNCTIONS
 
+/* FIXME: temporary*/
+/*lint -esym(1762,*a_module_interface::complete_definition_of_module_class)*/
 void a_module_interface::complete_definition_of_module_class(
                                                        a_module_entity_ptr mep)
 /*
