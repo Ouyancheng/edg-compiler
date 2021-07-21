@@ -2835,21 +2835,7 @@ member declaration (allowed in Microsoft mode only).
            region. */
         ptp = make_param_type(param_id->type, &param_id->type_pos);
         ptp->declared_type = param_id->declared_type;
-        if (remove_qualifiers_from_param_types) {
-          /* Strip off top-level type qualifiers.  They are not part of the
-             type signature of a C++ function -- see 8.3.5 para 3.  We apply
-             this rule even for old-style parameter declarations. */
-          a_type_qualifier_set  qualifiers;
-
-          check_assertion(!C_mode());
-          qualifiers = get_type_qualifiers(ptp->type);
-          if (qualifiers != TQ_NONE) {
-            ptp->type = make_unqualified_type(ptp->type);
-            /* Record the top-level type qualifiers that were declared for
-               this parameter and then removed. */
-            ptp->qualifiers = qualifiers;
-          }  /* if */
-        }  /* if */
+        update_param_top_level_qualifiers(ptp);
         /* Now build the list of parameter types that is attached to the 
            routine type (needed for checking type compatibility -- see
            types_are_compatible). */

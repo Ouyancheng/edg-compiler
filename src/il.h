@@ -1071,6 +1071,7 @@ extern void set_arg_transfer_method_flag(a_param_type_ptr   ptp,
 
 extern a_param_type_ptr make_param_type(a_type_ptr         tp,
                                         a_source_position  *decl_pos);
+extern void update_param_top_level_qualifiers(a_param_type_ptr ptp);
 extern a_type_ptr make_routine_type(a_type_ptr        return_type,
                                     a_type_ptr        param1_type = NULL,
                                     a_type_ptr        param2_type = NULL,

@@ -9719,6 +9719,30 @@ to it.  *decl_position is used for issuing diagnostics.
 }  /* make_param_type */
 
 
+void update_param_top_level_qualifiers(a_param_type_ptr ptp)
+/*
+Given a parameter (ptp), update the top-level qualifiers of the parameter as
+needed.
+*/
+{
+  if (remove_qualifiers_from_param_types) {
+    /* Strip off top-level type qualifiers.  They are not part of the
+       type signature of a C++ function -- see 8.3.5 para 3.  We apply
+       this rule even for old-style parameter declarations. */
+    a_type_qualifier_set  qualifiers;
+
+    check_assertion(!C_mode());
+    qualifiers = get_type_qualifiers(ptp->type);
+    if (qualifiers != TQ_NONE) {
+      ptp->type = make_unqualified_type(ptp->type);
+      /* Record the top-level type qualifiers that were declared for
+          this parameter and then removed. */
+      ptp->qualifiers = qualifiers;
+    }  /* if */
+  }  /* if */
+}  /* update_param_top_level_qualifiers */
+
+
 a_type_ptr make_routine_type(a_type_ptr        return_type,
            /* Defaulted: */  a_type_ptr        param1_type,
                              a_type_ptr        param2_type,

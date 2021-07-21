@@ -5541,6 +5541,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
                   break;
                 }  /* if */
                 ptp = make_param_type(param_type, &null_source_position);
+                update_param_top_level_qualifiers(ptp);
                 ptp->param_num = i + 1;
                 *prev = ptp;
                 prev = &ptp->next;
@@ -5555,6 +5556,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
               } else {
                 rtsp->param_type_list = make_param_type(param_type,
                                                         &null_source_position);
+                update_param_top_level_qualifiers(rtsp->param_type_list);
               }  /* if */
             }  /* if */
           }  /* if */
@@ -8931,6 +8933,7 @@ this is needed.
     case ifc_TypeSort_Qualified:
       { an_ifc_TypeSort_Qualified itsq, *itsqp;
         itsqp = get_TypeSort_Qualified(&itsq);
+        cache_type_first_pass(cache, itsqp->unqualified, locus);
         if (itsqp->qualifiers & ifc_Qualifier_Const) {
           cache_token(cache, tok_const, &pos);
         }  /* if */
@@ -8940,7 +8943,6 @@ this is needed.
         if (itsqp->qualifiers & ifc_Qualifier_Restrict) {
           cache_token(cache, tok_restrict, &pos);
         }  /* if */
-        cache_type_first_pass(cache, itsqp->unqualified, locus);
       }
       break;
     case ifc_TypeSort_Base:
