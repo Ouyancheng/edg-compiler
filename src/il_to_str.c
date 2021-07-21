@@ -5062,7 +5062,10 @@ without a leading "&".  Do the output in the way described by octl.
          error situations and is useful for debug output. */
       check_assertion(!octl->gen_compilable_code);
       octl->output_str("<null parent scope>::", octl);
-    } else {
+    } else if (!use_microsoft_form()) {
+      /* MSVC has a bug causing it not to accept a qualified name for a
+         dependent conversion function, so we suppress the qualifier in
+         that case. */
       form_class_qualifier(parent_class_of(con),
                            /*for_ptr_to_data_member=*/FALSE, octl);
     }  /* if */

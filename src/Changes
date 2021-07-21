@@ -1,5 +1,30 @@
 Version 6.3
 
+7/20/21  [EDGcpfe/24351]
+C++-generating back end, Microsoft compatibility: dependent conversion
+operators
+
+MSVC has a bug that causes it to issue a spurious error when a reference to
+a dependent conversion operator uses an explicitly-qualified name.  The
+C++-generating back end previously put out such references, thus triggering
+the bug.  This has now been addressed by omitting the explicit qualifier
+for such references when msvc_is_generated_code_target is TRUE.  For
+example, with --microsoft_version=1928 --parse_templates:
+
+  template <typename T> struct S {
+    template <typename U> operator S<U>() noexcept;
+  };
+  struct A { };
+  template <typename T> void f() {
+    S<A> sa;
+    auto x = sa.operator S<T>();  // Previously generated as
+                                  // sa.::S<A>::operator S<T>()
+  }
+  void g() {
+    f<A>();
+  }
+
+
 7/19/21  [EDGcpfe/22810,EDGcpfe/24503]
 GNU compatibility: In-class direct-initialization of a static data member
 
