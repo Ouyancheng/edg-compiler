@@ -47373,6 +47373,8 @@ is TRUE if the expression is the immediate operand of an "&" operator.
               a_type_ptr      this_type;
               if (!variable_this_exists(&this_var, &this_type)) {
                 subst_fail(rcblock->error_detected);
+                make_error_operand(result);
+                copy_operand_position(&eriep->saved_operand, result);
               } else {
                 make_this_variable_operand(this_var, this_type,
                                            expr->compiler_generated,
@@ -47384,6 +47386,11 @@ is TRUE if the expression is the immediate operand of an "&" operator.
               make_locator_for_symbol(sym, &loc);
               clear_specific_symbol(loc);
               sym = normal_id_lookup(&loc, IDL_NO_OPTIONS);
+              if (sym == NULL) {
+                subst_fail(rcblock->error_detected);
+                make_error_operand(result);
+                copy_operand_position(&eriep->saved_operand, result);
+              }  /* if */
             }  /* if */
             depth_of_initial_lookup_scope =
                                           saved_depth_of_initial_lookup_scope;
