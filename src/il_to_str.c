@@ -5062,10 +5062,13 @@ without a leading "&".  Do the output in the way described by octl.
          error situations and is useful for debug output. */
       check_assertion(!octl->gen_compilable_code);
       octl->output_str("<null parent scope>::", octl);
-    } else if (!use_microsoft_form()) {
+    } else if (!use_microsoft_form() ||
+               constant->variant.template_param.is_qualified_name) {
       /* MSVC has a bug causing it not to accept a qualified name for a
-         dependent conversion function, so we suppress the qualifier in
-         that case. */
+         dependent conversion function in a member access expression, so we
+         suppress the qualifier in that case.  (Pointer-to-member
+         constants, where the qualified name is required, will have the
+         is_qualified_name flag set to TRUE.) */
       form_class_qualifier(parent_class_of(con),
                            /*for_ptr_to_data_member=*/FALSE, octl);
     }  /* if */
