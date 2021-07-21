@@ -351,7 +351,6 @@ Handle nested structures differently (and check for padding).
 #define GET_ChartIndex(x, from_header)         GET_int(x, from_header)
 #define GET_Column(x, from_header)             GET_int(x, from_header)
 #define GET_DeclIndex(x, from_header)          GET_int(x, from_header)
-#define GET_DelimiterSort(x, from_header)      GET_int(x, from_header)
 #define GET_EntitySize(x, from_header)         GET_int(x, from_header)
 #define GET_ExprIndex(x, from_header)          GET_int(x, from_header)
 #define GET_FormIndex(x, from_header)          GET_int(x, from_header)
@@ -393,6 +392,7 @@ Handle nested structures differently (and check for padding).
 #define GET_Associativity(x, from_header)      GET_byte(x, from_header)
 #define GET_BasicSpecifiers(x, from_header)    GET_byte(x, from_header)
 #define GET_CallingConvention(x, from_header)  GET_byte(x, from_header)
+#define GET_DelimiterSort(x, from_header)      GET_byte(x, from_header)
 #define GET_DestructorSort(x, from_header)     GET_byte(x, from_header)
 #define GET_ExpansionMode(x, from_header)      GET_byte(x, from_header)
 #define GET_FunctionTypeTraits(x, from_header) GET_byte(x, from_header)
@@ -3157,7 +3157,7 @@ to the given cache if options & cso_no_final_semicolon is nonzero.
   a_source_position  pos;
   ifc_StmtSort       tag = stmt_tag(stmt_idx);
 
-  read_partition_at_index(tag, stmt_value(stmt_idx));
+  read_partition_at_index(stmt_idx);
   switch (tag) {
     case ifc_StmtSort_VendorExtension:
       { an_ifc_StmtSort_VendorExtension issve;
@@ -3234,6 +3234,9 @@ to the given cache if options & cso_no_final_semicolon is nonzero.
           ifc_StmtIndex si;
           read_partition_at_index(ifc_heap_stmt, issbp->start+k);
           GET_StmtIndex(si, /*from_header=*/FALSE);
+          /* IFC files sometimes have a NULL statement in this list - don't
+             attempt to cache these. */
+          if (si == 0) continue;
           cache_statement(cache, si);
         }  /* for */
         if (!(options & cso_func_body)) {
@@ -3303,7 +3306,9 @@ to the given cache if options & cso_no_final_semicolon is nonzero.
         issrp = get_StmtSort_Return(&issr);
         source_position_from_locus(&pos, &issrp->locus);
         cache_token(cache, tok_return, &pos);
-        cache_expr(cache, issrp->expr);
+        if (issrp->expr != 0) {
+          cache_expr(cache, issrp->expr);
+        }  /* if */
         cache_token(cache, tok_semicolon, &null_source_position);
       }
       break;
@@ -10142,9 +10147,16 @@ initializer expression.  locus is the source location for the declaration.
     initializer = (ifc_ExprIndex)0;
 #endif /*FIXME*/
     if (initializer != 0) {
-      cache_token(cache, tok_lbrace, pos);
+      /* An initializer where the type is ExprSort::Tokens will have the braces
+         included as part of the token stream. */
+      a_boolean cache_braces = expr_tag(initializer) != ifc_ExprSort_Tokens;
+      if (cache_braces) {
+        cache_token(cache, tok_lbrace, pos);
+      }  /* if */
       cache_expr(cache, initializer);
-      cache_token(cache, tok_rbrace, pos);
+      if (cache_braces) {
+        cache_token(cache, tok_rbrace, pos);
+      }  /* if */
     }  /* if */
     cache_token(cache, tok_semicolon, pos);
   };
@@ -11064,15 +11076,6 @@ second operand of an assignment.
   ifc_ExprSort      tag = expr_tag(expr);
   a_source_position pos;
 
-  if (tag == ifc_ExprSort_Empty) {
-    /* IFC files appear to contain "Empty" expressions with invalid indices.
-       Since we don't actually have to do anything with those expressions
-       per se, we skip them for now. */
-    size_t  num_entries = get_num_entries(ifc_expr_empty);
-    if (expr_value(expr) >= num_entries) {
-      goto done;
-    }  /* if */
-  }  /* if */
   read_partition_at_index(expr);
   switch (tag) {
     case ifc_ExprSort_VendorExtension:
@@ -11197,7 +11200,9 @@ second operand of an assignment.
         an_operator_kind      opkind;
         auto                  cache_arg = [&, this] {
           cache_token(cache, tok_lparen, &pos);
-          cache_expr(cache, iesmp->argument);
+          if (iesmp->argument != 0) {
+            cache_expr(cache, iesmp->argument);
+          } /* if */
           cache_token(cache, tok_rparen, &pos);
         };  /* cache_arg */
 
@@ -11532,15 +11537,9 @@ second operand of an assignment.
                                   &error_position);
       break;
     case ifc_ExprSort_ProductTypeValue:
-      { an_ifc_ExprSort_ProductTypeValue iesptv, *iesptvp;
-        iesptvp = get_ExprSort_ProductTypeValue(&iesptv);
-        source_position_from_locus(&pos, &iesptvp->locus);
-        /* FIXME: This node seems to be for value-initialization of entities.
-           Are there any other cases that get here? */
-        cache_name_from_decl(cache, iesptvp->class_decl, &iesptvp->locus);
-        cache_token(cache, tok_lbrace, &pos);
-        cache_token(cache, tok_rbrace, &pos);
-      }
+      /* FIXME: Currently unsupported. */
+      issue_unsupported_node_diag("ExprSort::ProductTypeValue",
+                                  &error_position);
       break;
     case ifc_ExprSort_SumTypeValue:
       /* FIXME: Currently unsupported. */
@@ -11627,8 +11626,10 @@ second operand of an assignment.
       }
       break;
     case ifc_ExprSort_Tokens:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::Tokens", &error_position);
+      { an_ifc_ExprSort_Tokens iest, *iestp;
+        iestp = get_ExprSort_Tokens(&iest);
+        cache_sentence(cache, iestp->words);
+      }
       break;
     case ifc_ExprSort_AssignInitializer:
       /* FIXME: Currently unsupported. */
@@ -11640,7 +11641,6 @@ second operand of an assignment.
       break;
     default_is_unexpected_str("Unknown ExprSort");
   }  /* switch */
-done:;
 }  /* cache_expr */
 
 

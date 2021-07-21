@@ -59,7 +59,6 @@ enum ifc_Cardinality : uint32_t {};
 enum ifc_ChartIndex : ifc_Index_type {};
 enum ifc_Column : uint32_t {};
 enum ifc_DeclIndex : ifc_Index_type {};
-enum ifc_DelimiterSort : uint8_t;  /* Defined below. */
 enum ifc_EntitySize : uint32_t {};
 enum ifc_ExprIndex : ifc_Index_type {};
 enum ifc_FormIndex : ifc_Index_type {};
@@ -118,6 +117,7 @@ enum ifc_Architecture : uint8_t;  /* Defined below. */
 enum ifc_Associativity : uint8_t {};
 enum ifc_BasicSpecifiers : uint8_t;  /* Defined below. */
 enum ifc_CallingConvention : uint8_t;  /* Defined below. */
+enum ifc_DelimiterSort : ifc_Sort_type;  /* Defined below. */
 enum ifc_DestructorSort : ifc_Sort_type {};
 enum ifc_ExpansionMode : uint8_t;  /* Defined below. */
 enum ifc_FunctionTypeTraits : uint8_t;  /* Defined below. */
