@@ -2990,27 +2990,6 @@ location as the original.
 }  /* ifc_modules_pch_reset */
 
 
-namespace {
-/* An RAII object to temporarily enable microsoft extensions even if not
-   enabled otherwise.  This allows for MS specific IFC decls to be correctly
-   processed.
-*/
-class a_ms_extensions_parse {
-  a_boolean old_ms_extensions;
-  a_boolean old_ms_compat;
-public:
-  a_ms_extensions_parse() : old_ms_extensions(ms_extensions),
-                            old_ms_compat(ms_compat) {
-    ms_extensions = TRUE;
-    ms_compat = TRUE;
-  }
-  ~a_ms_extensions_parse() {
-    ms_compat = old_ms_compat;
-    ms_extensions = old_ms_extensions;
-  }
-};
-}  /* namespace */
-
 static a_template_ptr parse_cached_template(a_token_cache_ptr cache,
                                             a_scope_ptr       encl_scope)
 /*
@@ -3101,56 +3080,6 @@ containing the partial specialization declaration.
   (void)get_token();
   return decl_state.il_template_entry;
 }  /* parse_cached_partial_specialization */
-
-
-static a_template_ptr parse_cached_explicit_specialization(
-                                                  a_token_cache_ptr cache,
-                                                  a_scope_ptr       encl_scope)
-/*
-Parse the tokens corresponding to a explicit specialization declaration cache,
-and return the corresponding explicit specialization.  encl_scope is the scope
-containing the explicit specialization declaration.
-*/
-{
-  a_decl_parse_state dps;
-  a_tmpl_decl_state  decl_state;
-  a_token_kind       final_token = tok_semicolon;
-
-#if DEBUG
-  if (db_flag_is_set("ms_ifc_token_def")) {
-    pos_in_temp_text_buffer = 0;
-    add_token_cache_to_string(cache);
-    fprintf(stderr, "Reconstituted explicit specialization declaration:\n%s\n"
-                    "---------------------\n", temp_text_buffer);
-  }  /* if */
-#endif /* DEBUG */
-  rescan_cached_tokens(cache);
-  init_decl_parse_state(&dps);
-  init_templ_decl_state(&decl_state, &dps);
-  decl_state.pragmas_bound_to_template = extract_curr_construct_pragmas();
-  decl_state.starting_token_sequence_number = curr_token_sequence_number;
-  decl_state.final_token_ptr = &final_token;
-  decl_state.enclosing_scope = encl_scope;
-  {
-    a_ms_extensions_parse tmp_parse;
-    template_or_specialization_declaration_full(&decl_state,
-                                                /*is_generic=*/FALSE,
-                                                /*orig_dps=*/NULL);
-  }
-  if (curr_token != final_token) {
-    expect_error();
-    flush_tokens_without_warning();
-  } else {
-    (void)get_token();
-    if (curr_token == tok_semicolon) {
-      /* Microsoft sometimes adds a semicolon after the final closing brace. */
-      (void)get_token();
-    }  /* if */
-  }  /* if */
-  check_assertion(curr_token == tok_end_of_source);
-  (void)get_token();
-  return decl_state.il_template_entry;
-}  /* parse_cached_explicit_specialization */
 
 
 /*
@@ -4519,15 +4448,19 @@ class_struct_union_case:
             defer_symbol_creation(mep, &loc);
           } else {
             a_token_cache cache;
-            ifc_DeclIndex decl_idx = decl_index_of(
-                                                   mep->variant.ifc_partition,
+            ifc_DeclIndex decl_idx = decl_index_of(mep->variant.ifc_partition,
                                                    mep->file_offset);
+            if (mep->scope == NULL) {
+              mep->scope = get_ifc_home_scope(idsesp->decl);
+              scope_pushed = push_module_declaration_context(mep->scope);
+            }  /* if */
             clear_token_cache(&cache, /*reuseable=*/FALSE);
             cache_decl_explicit_specialization(&cache, decl_idx, idsesp);
             terminate_token_cache(&cache);
-            il_entity = (char*)parse_cached_explicit_specialization(
-                                                                   &cache,
-                                                                   mep->scope);
+            il_entity = (char*)parse_cached_explicit_specialization(&cache,
+                                                                    mep->scope,
+                                                                    idsesp,
+                                                                    decl_idx);
             kind = iek_template;
           }
         }
@@ -5117,8 +5050,7 @@ pointer to the given consumer lambda for each element in the sequence.
     ismp = get_Scope_Member(&ism);
     /* FIXME: We're temporarily excluding explicit instantiations as they are
        not yet implemented yet. */
-    if (decl_tag(ismp->index) != ifc_DeclSort_PartialSpecialization) {
-/*     if (decl_tag(ismp->index) == ifc_DeclSort_ExplicitInstantiation) { */
+    if (decl_tag(ismp->index) == ifc_DeclSort_ExplicitInstantiation) {
       continue;
     }  /* if */
     /* Handle any specific processing in the consumer. */
@@ -5333,6 +5265,43 @@ Given a scope index find and return the associated scope.
   }  /* if */
   return result;
 }  /* get_ifc_scope */
+
+
+ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(ifc_DeclIndex decl_index)
+/*
+Given a declaration's index find and return its home scope decl.
+*/
+{
+  ifc_DeclIndex result;
+
+  read_partition_at_index(decl_index);
+  switch (decl_tag(decl_index)) {
+    case ifc_DeclSort_Scope:
+      { an_ifc_DeclSort_Scope idss, *idssp;
+
+        idssp = get_DeclSort_Scope(&idss);
+        result = idssp->home_scope;
+      }
+      break;
+    case ifc_DeclSort_Variable:
+      { an_ifc_DeclSort_Variable idsv, *idsvp;
+
+        idsvp = get_DeclSort_Variable(&idsv);
+        result = idsvp->home_scope;
+      }
+      break;
+    case ifc_DeclSort_Function:
+      { an_ifc_DeclSort_Function idsf, *idsfp;
+
+        idsfp = get_DeclSort_Function(&idsf);
+        result = idsfp->home_scope;
+      }
+      break;
+    default:
+      unexpected_condition_str("Unexpected DeclSort");
+  }  /* switch */
+  return result;
+}  /* get_ifc_home_scope_decl */
 
 
 static a_calling_convention conv_calling_convention(
@@ -8762,10 +8731,11 @@ cache_name_fn is a lambda accepting a_source_position_ptr interpretation of
 locus that's called to cache the name of the scope.  cache_scope_fn is a lambda
 accepting a_source_position_ptr interpretation of locus that's called to cache
 the scope's body (e.g., for a class the member-specification).  Finally, locus
-is the location of the given scope decl.  FIXME: Remove this version of
-cache_scope_decl once names can be cached properly for specializations using a
-NameIndex, and similarly the scope's body can be consistently cached via a
-ScopeIndex.
+is the location of the given scope decl.
+
+FIXME: Remove this version of cache_scope_decl once names can be cached
+properly for specializations using a NameIndex, and similarly the scope's body
+can be consistently cached via a ScopeIndex.
 */
 {
   a_source_position pos;
@@ -10237,6 +10207,10 @@ bitfield and width is its size.  cache_init_fn is a lambda accepting
 a_source_position_ptr interpretation of locus that's called to cache the
 variable initializer (if any).  locus is the source location for the
 declaration.
+
+FIXME: Remove this version of cache_variable_decl once names can be cached
+properly for specializations using a NameIndex, and similarly the variable's
+initializer can be consistently cached via a ScopeIndex.
 */
 {
   a_source_position pos;
@@ -10347,6 +10321,76 @@ initializer expression.  locus is the source location for the declaration.
 }  /* cache_variable_decl */
 
 
+template<typename a_Name_Cache_Fn>
+inline void an_ifc_module::cache_function_decl(
+                                    a_token_cache_ptr         cache,
+                                    a_boolean                 is_class_member,
+                                    a_boolean                 is_dtor,
+                                    ifc_Access                access,
+                                    ifc_CallingConvention     calling_conv,
+                                    ifc_FunctionTraits        func_traits,
+                                    ifc_FunctionTypeTraits    func_type_traits,
+                                    ifc_TypeIndex             return_type,
+                                    a_Name_Cache_Fn           cache_name_fn,
+                                    ifc_ChartIndex            params,
+                                    ifc_TypeIndex             param_types,
+                                    ifc_NoexceptSpecification *eh_spec,
+                                    ifc_SourceLocation        *locus)
+/*
+Add the tokens corresponding to the given function declaration to cache.
+is_class_member is TRUE if this is a non-static member of a class.  is_dtor is
+TRUE if this is a destructor declaration.  access, calling_conv, func_traits,
+func_type_traits, and eh_spec are values from the IFC file that describe the
+function.  return_type is the return type of the function (0 if there is no
+return type, e.g., the function is a constructor or destructor).  cache_name_fn
+is a lambda accepting a_source_position_ptr interpretation of locus that's
+called to cache the name of the scope.  Both params and param_types are the
+parameter list (0 for both if there are no parameters).  If params is non-zero,
+param_types will be ignored as params will already contain the parameter types.
+locus is the position of the function declaration.
+
+FIXME: Remove this version of cache_function_decl once names can be cached
+properly for specializations using a NameIndex.
+*/
+{
+  a_source_position pos;
+  a_boolean         decl_in_class;
+
+  decl_in_class = is_class_member || access != ifc_Access_None;
+  source_position_from_locus(&pos, locus);
+  if (decl_in_class) {
+    cache_access(cache, access, /*cache_colon=*/TRUE, &pos);
+  }  /* if */
+  if (!is_class_member && decl_in_class) {
+    /* This is a static member function. */
+    cache_token(cache, tok_static, &pos);
+  }  /* if */
+  cache_func_traits(cache, func_traits, /*trailing=*/FALSE, &pos);
+  if (return_type != 0) {
+    cache_type(cache, return_type, locus);
+  }  /* if */
+  cache_calling_convention(cache, calling_conv, &pos);
+  if (is_dtor) {
+    cache_token(cache, tok_compl, &pos);
+  }  /* if */
+  cache_name_fn(&pos);
+  cache_token(cache, tok_lparen, &pos);
+  if (params != 0) {
+    /* The parameters have detailed information associated with them, use
+       that. */
+    cache_chart(cache, params, locus);
+  } else if (param_types != 0) {
+    /* The only information we have on the parameters are their types. */
+    cache_type(cache, param_types, locus);
+  }  /* if */
+  cache_token(cache, tok_rparen, &pos);
+  cache_func_type_traits(cache, func_type_traits, &pos);
+  cache_exception_spec(cache, eh_spec, &pos);
+  cache_func_traits(cache, func_traits, /*trailing=*/TRUE, &pos);
+  cache_token(cache, tok_semicolon, &pos);
+}  /* cache_function_decl */
+
+
 void an_ifc_module::cache_function_decl(
                                     a_token_cache_ptr         cache,
                                     a_boolean                 is_class_member,
@@ -10374,41 +10418,12 @@ contain the parameter types.  locus is the position of the function
 declaration.
 */
 {
-  a_source_position pos;
-  a_boolean         decl_in_class;
-
-  decl_in_class = is_class_member || access != ifc_Access_None;
-  source_position_from_locus(&pos, locus);
-  if (decl_in_class) {
-    cache_access(cache, access, /*cache_colon=*/TRUE, &pos);
-  }  /* if */
-  if (!is_class_member && decl_in_class) {
-    /* This is a static member function. */
-    cache_token(cache, tok_static, &pos);
-  }  /* if */
-  cache_func_traits(cache, func_traits, /*trailing=*/FALSE, &pos);
-  if (return_type != 0) {
-    cache_type(cache, return_type, locus);
-  }  /* if */
-  cache_calling_convention(cache, calling_conv, &pos);
-  if (is_dtor) {
-    cache_token(cache, tok_compl, &pos);
-  }  /* if */
-  cache_name(cache, name, locus);
-  cache_token(cache, tok_lparen, &pos);
-  if (params != 0) {
-    /* The parameters have detailed information associated with them, use
-       that. */
-    cache_chart(cache, params, locus);
-  } else if (param_types != 0) {
-    /* The only information we have on the parameters are their types. */
-    cache_type(cache, param_types, locus);
-  }  /* if */
-  cache_token(cache, tok_rparen, &pos);
-  cache_func_type_traits(cache, func_type_traits, &pos);
-  cache_exception_spec(cache, eh_spec, &pos);
-  cache_func_traits(cache, func_traits, /*trailing=*/TRUE, &pos);
-  cache_token(cache, tok_semicolon, &pos);
+  auto cache_name_fn = [this, cache, name, locus](a_source_position_ptr pos) {
+    cache_name(cache, name, locus);
+  };
+  cache_function_decl(cache, is_class_member, is_dtor, access, calling_conv,
+                      func_traits, func_type_traits, return_type,
+                      cache_name_fn, params, param_types, eh_spec, locus);
 }  /* cache_function_decl */
 
 
@@ -10590,7 +10605,7 @@ Add the tokens corresponding to the given partial specialization declaration
 #if DEBUG
           validate_is_class_type(idssp->type);
 #endif /* DEBUG */
-          {
+          { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idssp](
                                                    a_source_position_ptr pos) {
               cache_specialization_simple_template_id(cache, decl->form,
@@ -10611,10 +10626,9 @@ Add the tokens corresponding to the given partial specialization declaration
       case ifc_DeclSort_Variable:
         { /* We're reconstructing a variable. */
           an_ifc_DeclSort_Variable idsv, *idsvp;
-          ifc_Access               access = ifc_Access_None;
 
           idsvp = get_DeclSort_Variable(&idsv);
-          {
+          { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idsvp](
                                                    a_source_position_ptr pos) {
               cache_specialization_simple_template_id(cache, decl->form,
@@ -10627,6 +10641,7 @@ Add the tokens corresponding to the given partial specialization declaration
                 (void)cache_sentence(cache, decl->entity.body);
               }  /* if */
             };
+            ifc_Access access = ifc_Access_None;
 
             if (is_class_scope(idsvp->home_scope)) {
               access = idsvp->access;
@@ -10678,7 +10693,7 @@ Add the tokens corresponding to the given partial specialization declaration
 #if DEBUG
           validate_is_class_type(idssp->type);
 #endif /* DEBUG */
-          {
+          { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idssp](
                                                    a_source_position_ptr pos) {
               cache_specialization_simple_template_id(cache, decl->form,
@@ -10706,7 +10721,7 @@ Add the tokens corresponding to the given partial specialization declaration
           idsvp = get_DeclSort_Variable(&idsv);
           /* Reconstruct the template-head. */
           cache_template_head(cache, (ifc_ChartIndex)0, &idsvp->locus);
-          {
+          { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idsvp](
                                                    a_source_position_ptr pos) {
               cache_specialization_simple_template_id(cache, decl->form,
@@ -10721,11 +10736,50 @@ Add the tokens corresponding to the given partial specialization declaration
               }  /* if */
               cache_token(cache, tok_semicolon, pos);
             };
+            ifc_Access access = ifc_Access_None;
+
+            if (is_class_scope(idsvp->home_scope)) {
+              access = idsvp->access;
+            }  /* if */
             cache_variable_decl(cache, decl_idx, /*is_class_member=*/FALSE,
-                                /*access=*/ifc_Access_None, idsvp->specifiers,
-                                idsvp->traits, idsvp->alignment, idsvp->type,
-                                cache_name_fn, (ifc_ExprIndex)0, cache_init_fn,
+                                access, idsvp->specifiers, idsvp->traits,
+                                idsvp->alignment, idsvp->type, cache_name_fn,
+                                (ifc_ExprIndex)0, cache_init_fn,
                                 &idsvp->locus);
+          }
+        }
+        break;
+      case ifc_DeclSort_Function:
+        { /* We're reconstructing a function. */
+          an_ifc_DeclSort_Function idsf, *idsfp;
+
+          idsfp = get_DeclSort_Function(&idsf);
+          /* Reconstruct the template-head. */
+          cache_template_head(cache, (ifc_ChartIndex)0, &idsfp->locus);
+          { /* Reconstruct the templated declaration. */
+            auto cache_name_fn = [this, cache, decl, idsfp](
+                                                   a_source_position_ptr pos) {
+              cache_specialization_simple_template_id(cache, decl->form,
+                                                      &idsfp->locus);
+            };
+            an_ifc_TypeSort_Function itsf, *itsfp;
+            ifc_ChartIndex           params = (ifc_ChartIndex)0;
+            ifc_Access               access = ifc_Access_None;
+
+            check_assertion(type_tag(idsfp->type) == ifc_TypeSort_Function);
+            read_partition_at_index(idsfp->type);
+            itsfp = get_TypeSort_Function(&itsf);
+            if (itsfp->source != 0) {
+              params = get_func_params_from_trait(decl_idx);
+            }  /* if */
+            if (is_class_scope(idsfp->home_scope)) {
+              access = idsfp->access;
+            }  /* if */
+            cache_function_decl(cache, /*class_member=*/FALSE,
+                                /*is_dtor=*/FALSE, access, itsfp->convention,
+                                idsfp->traits, itsfp->traits, itsfp->target,
+                                cache_name_fn, params, itsfp->source,
+                                &itsfp->eh_spec, &idsfp->locus);
           }
         }
         break;
@@ -13406,6 +13460,121 @@ decl, or an empty sequence if not found.
   }  /* if */
   return result;
 }  /* get_specialization_sequence_from_trait */
+
+
+namespace {
+/* An RAII object to temporarily enable microsoft extensions even if not
+   enabled otherwise.  This allows for MS specific IFC decls to be correctly
+   processed.
+*/
+class a_ms_extensions_parse {
+  a_boolean old_ms_extensions;
+  a_boolean old_ms_compat;
+public:
+  a_ms_extensions_parse() : old_ms_extensions(ms_extensions),
+                            old_ms_compat(ms_compat) {
+    ms_extensions = TRUE;
+    ms_compat = TRUE;
+  }
+  ~a_ms_extensions_parse() {
+    ms_compat = old_ms_compat;
+    ms_extensions = old_ms_extensions;
+  }
+};  /* a_ms_extensions_parse */
+}  /* namespace */
+
+
+a_template_ptr an_ifc_module::parse_cached_explicit_specialization(
+                             a_token_cache_ptr                      cache,
+                             a_scope_ptr                            encl_scope,
+                             an_ifc_DeclSort_ExplicitSpecialization *decl,
+                             ifc_DeclIndex                          decl_idx)
+/*
+Parse the tokens corresponding to the given explicit specialization
+declaration's (decl, indexed in the IFC by decl_idx) cache, and return the
+corresponding explicit specialization.  encl_scope is the scope containing the
+explicit specialization declaration.
+*/
+{
+  a_decl_parse_state dps;
+  a_tmpl_decl_state  decl_state;
+  a_token_kind       final_token = tok_semicolon;
+
+#if DEBUG
+  if (db_flag_is_set("ms_ifc_token_def")) {
+    pos_in_temp_text_buffer = 0;
+    add_token_cache_to_string(cache);
+    fprintf(stderr, "Reconstituted explicit specialization declaration:\n%s\n"
+                    "---------------------\n", temp_text_buffer);
+  }  /* if */
+#endif /* DEBUG */
+  rescan_cached_tokens(cache);
+  init_decl_parse_state(&dps);
+  init_templ_decl_state(&decl_state, &dps);
+  decl_state.pragmas_bound_to_template = extract_curr_construct_pragmas();
+  decl_state.starting_token_sequence_number = curr_token_sequence_number;
+  decl_state.final_token_ptr = &final_token;
+  decl_state.enclosing_scope = encl_scope;
+  {
+    a_ms_extensions_parse tmp_parse;
+    template_or_specialization_declaration_full(&decl_state,
+                                                /*is_generic=*/FALSE,
+                                                /*orig_dps=*/NULL);
+  }
+  if (curr_token != final_token) {
+    expect_error();
+    flush_tokens_without_warning();
+  } else {
+    (void)get_token();
+    if (curr_token == tok_semicolon) {
+      /* Microsoft sometimes adds a semicolon after the final closing brace. */
+      (void)get_token();
+    }  /* if */
+  }  /* if */
+  check_assertion(curr_token == tok_end_of_source);
+  (void)get_token();
+  record_pending_explicit_specialization(&dps, decl);
+  return decl_state.il_template_entry;
+}  /* parse_cached_explicit_specialization */
+
+
+void an_ifc_module::record_pending_explicit_specialization(
+                               a_decl_parse_state                     *dps,
+                               an_ifc_DeclSort_ExplicitSpecialization *decl)
+/*
+Record the presence of a pending explicit specialization declaration's (decl)
+definition if any.  dps is the associated decl parse state from the parsing of
+the declaration of entity.
+*/
+{
+  ifc_DeclIndex templated_decl_idx = decl->decl;
+
+  /* Read the partition for the templated declaration. */
+  read_partition_at_index(templated_decl_idx);
+  switch (decl_tag(templated_decl_idx)) {
+  case ifc_DeclSort_Scope:
+    { /* We're reconstructing a class. */
+    }
+    break;
+  case ifc_DeclSort_Variable:
+    { /* We're reconstructing a variable. */
+    }
+    break;
+  case ifc_DeclSort_Function:
+    { /* We're reconstructing a function. */
+      a_routine_ptr            rp = dps->sym->variant.routine.ptr;
+      an_ifc_DeclSort_Function idsf, *idsfp;
+
+      idsfp = get_DeclSort_Function(&idsf);
+      if (idsfp->properties & ifc_ReachableProperties_Initializer) {
+        record_pending_ifc_function_body(rp, templated_decl_idx, this);
+      }  /* if */
+    }
+    break;
+  default:
+    unexpected_condition_str("Unexpected DeclSort");
+  }  /* switch */
+}  /* record_pending_explicit_specialization */
 
 #if DEBUG
 

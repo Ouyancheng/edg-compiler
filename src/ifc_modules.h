@@ -2683,6 +2683,10 @@ private:
   a_module_entity_ptr get_and_process_ifc_decl_from_other_module(
                                                          ifc_DeclIndex index);
   a_scope_ptr get_ifc_scope(ifc_DeclIndex scope_index);
+  ifc_DeclIndex get_ifc_home_scope_decl(ifc_DeclIndex decl_index);
+  inline a_scope_ptr get_ifc_home_scope(ifc_DeclIndex decl_index) {
+    return get_ifc_scope(get_ifc_home_scope_decl(decl_index));
+  }
   a_type_ptr type_for_type_index(ifc_TypeIndex   type_index,
                                  a_non_type_kind *kind);
   a_type_ptr type_for_template_id(an_ifc_ExprSort_TemplateId *templ_id);
@@ -2882,6 +2886,20 @@ private:
                            ifc_ExprIndex       width,
                            ifc_ExprIndex       initializer,
                            ifc_SourceLocation  *locus);
+  template<typename a_Name_Cache_Fn>
+  inline void cache_function_decl(a_token_cache_ptr         cache,
+                                  a_boolean                 is_class_member,
+                                  a_boolean                 is_dtor,
+                                  ifc_Access                access,
+                                  ifc_CallingConvention     calling_conv,
+                                  ifc_FunctionTraits        func_traits,
+                                  ifc_FunctionTypeTraits    func_type_traits,
+                                  ifc_TypeIndex             return_type,
+                                  a_Name_Cache_Fn           cache_name_fn,
+                                  ifc_ChartIndex            params,
+                                  ifc_TypeIndex             param_types,
+                                  ifc_NoexceptSpecification *eh_spec,
+                                  ifc_SourceLocation        *locus);
   void cache_function_decl(a_token_cache_ptr         cache,
                            a_boolean                 is_class_member,
                            a_boolean                 is_dtor,
@@ -2952,6 +2970,14 @@ private:
                                a_Trait_T     *storage);
   ifc_ChartIndex get_func_params_from_trait(ifc_DeclIndex decl);
   ifc_Sequence get_specialization_sequence_from_trait(ifc_DeclIndex decl);
+  a_template_ptr parse_cached_explicit_specialization(
+                             a_token_cache_ptr                      cache,
+                             a_scope_ptr                            encl_scope,
+                             an_ifc_DeclSort_ExplicitSpecialization *decl,
+                             ifc_DeclIndex                          decl_idx);
+  void record_pending_explicit_specialization(
+                              a_decl_parse_state                     *dps,
+                              an_ifc_DeclSort_ExplicitSpecialization *decl);
 #if DEBUG
   void validate_is_class_type(ifc_TypeIndex type);
 #endif /* DEBUG */
