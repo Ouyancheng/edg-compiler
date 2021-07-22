@@ -9726,17 +9726,17 @@ needed.
 */
 {
   if (remove_qualifiers_from_param_types) {
-    /* Strip off top-level type qualifiers.  They are not part of the
-       type signature of a C++ function -- see 8.3.5 para 3.  We apply
-       this rule even for old-style parameter declarations. */
+    /* Strip off top-level type qualifiers.  They are not part of the type
+       signature of a C++ function -- see [dcl.fct]p5.  We apply this rule even
+       for old-style parameter declarations. */
     a_type_qualifier_set  qualifiers;
 
     check_assertion(!C_mode());
     qualifiers = get_type_qualifiers(ptp->type);
     if (qualifiers != TQ_NONE) {
       ptp->type = make_unqualified_type(ptp->type);
-      /* Record the top-level type qualifiers that were declared for
-          this parameter and then removed. */
+      /* Record the top-level type qualifiers that were declared for this
+         parameter and then removed. */
       ptp->qualifiers = qualifiers;
     }  /* if */
   }  /* if */
