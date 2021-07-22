@@ -2362,6 +2362,33 @@ extern void decrement_variadic_rescans_for_reusable_cache(void);
 extern a_boolean same_string_ignoring_underscores(a_const_char *s1, 
                                                   a_const_char *s2);
 
+
+/*
+A structure meant to be used to record the current token at construction time
+and restore it at destruction time.  For example:
+
+	{
+	  a_curr_token_preserver  guard;
+	  ... create a token cache
+ 	  ... rescan the token cache consuming its tokens
+	}  // The destructor restore the current token recorded when "guard"
+           // was constructed.
+*/
+struct a_curr_token_preserver {
+  inline a_curr_token_preserver() {
+    clear_token_cache(&this->curr_token_cache, /*reusable=*/FALSE);
+    cache_curr_token(&this->curr_token_cache);
+  }  /* a_curr_token_preserver */
+  inline ~a_curr_token_preserver() {
+    /* Restore the stored "current token". */
+    f_rescan_cached_tokens(&this->curr_token_cache,
+                           /*discard_curr_token=*/TRUE);
+  }  /* ~a_curr_token_preserver */
+private:
+  a_token_cache  curr_token_cache;
+};
+
+
 /*
 Variables to flag whether extra token separators should be emitted in
 preprocessed (or raw listing) output to ensure that the output is correctly

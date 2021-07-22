@@ -3462,10 +3462,12 @@ process that definition and return TRUE.
     a_func_info_block  func_info;
     a_token_cache      def_cache;
     a_decl_flag_set    flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED;
+    a_curr_token_preserver
+                       guard;
     /* We are about to load the definition.  So the "pending definition" entry
        can be dropped now. */
     ifc_function_bodies->unmap(rp);
-    clear_token_cache(&def_cache, /*reuseable=*/FALSE);
+    clear_token_cache(&def_cache, /*reusable=*/FALSE);
     clear_func_info(&func_info);
     push_new_top_level_declaration();
     if (ifb.ifc_module->cache_function_body(&def_cache, ifb.decl,
@@ -3887,8 +3889,9 @@ class_struct_union_case:
               }  /* if */
             } else if (alias_tag == ifc_TypeSort_Forall) {
               an_ifc_TypeSort_Forall itsf, *itsfp;
-              a_token_cache          cache;
-              a_source_position      pos;
+              a_token_cache           cache;
+              a_source_position       pos;
+              a_curr_token_preserver  guard;
               read_partition_at_index(idstap->aliasee);
               itsfp = get_TypeSort_Forall(&itsf);
               source_position_from_locus(&pos, &idstap->locus);
@@ -3897,7 +3900,7 @@ class_struct_union_case:
                 mep->scope = get_ifc_scope(idstap->home_scope);
                 scope_pushed = push_module_declaration_context(mep->scope);
               }  /* if */
-              clear_token_cache(&cache, /*reuseable=*/FALSE);
+              clear_token_cache(&cache, /*reusable=*/FALSE);
               cache_token(&cache, tok_template, &pos);
               cache_chart(&cache, itsfp->chart, &idstap->locus);
               cache_token(&cache, tok_using, &pos);
@@ -4125,6 +4128,8 @@ class_struct_union_case:
             a_type_ptr      type;
             a_boolean       do_forward_decl;
             a_boolean       saved_suppress_default_arguments;
+            a_curr_token_preserver
+                            guard;
             if (mep->scope == NULL) {
               mep->scope = get_ifc_scope(idstp->home_scope);
               scope_pushed = push_module_declaration_context(mep->scope);
@@ -4165,7 +4170,7 @@ class_struct_union_case:
             }  /* if */
             if (do_forward_decl) {
               suppress_default_arguments = FALSE;
-              clear_token_cache(&cache, /*reuseable=*/FALSE);
+              clear_token_cache(&cache, /*reusable=*/FALSE);
               cache_decl_template_declaration(&cache, idstp,
                                               /*add_semicolon=*/TRUE);
               terminate_token_cache(&cache);
@@ -4184,7 +4189,7 @@ class_struct_union_case:
                 mep->entity.kind = kind;
               }  /* if */
               suppress_default_arguments = do_forward_decl;
-              clear_token_cache(&cache, /*reuseable=*/FALSE);
+              clear_token_cache(&cache, /*reusable=*/FALSE);
               cache_decl_template(&cache, idstp);
               terminate_token_cache(&cache);
               suppress_default_arguments = saved_suppress_default_arguments;
@@ -4356,7 +4361,7 @@ class_struct_union_case:
               /* There is a definition of the partial specialization.  Record
                  the resolution of the signature immediately so that the below
                  processing of the definition has access to it. */
-              clear_token_cache(&cache, /*reuseable=*/FALSE);
+              clear_token_cache(&cache, /*reusable=*/FALSE);
               cache_decl_partial_specialization(&cache, decl_idx, idspsp);
               terminate_token_cache(&cache);
               il_entity = (char*)parse_cached_partial_specialization(
@@ -4393,14 +4398,14 @@ class_struct_union_case:
             defer_symbol_creation(mep, &loc);
           } else {
             /* Create a definition for the concept and scan it. */
-            a_token_sequence_number  saved_tsn = curr_token_sequence_number;
-            a_token_cache            cache;
+            a_curr_token_preserver  guard;
+            a_token_cache           cache;
             if (mep->scope == NULL) {
               mep->scope = get_ifc_scope(idscp->home_scope);
             }  /* if */
             /* Activate the parent scope if needed. */
             a_boolean  must_pop = push_module_declaration_context(mep->scope);
-            clear_token_cache(&cache, /*reuseable=*/FALSE);
+            clear_token_cache(&cache, /*reusable=*/FALSE);
             /* Generate the template parameter list. */
             cache_token(&cache, tok_template, &null_source_position);
             cache_chart(&cache, idscp->chart, &idscp->locus);
@@ -4413,7 +4418,6 @@ class_struct_union_case:
             (void)parse_cached_template(&cache, mep->scope);
             /* Restore the original context. */
             pop_module_declaration_context(must_pop);
-            curr_token_sequence_number = saved_tsn;
           }  /* if */
         }
         break;
@@ -4607,10 +4611,11 @@ Complete the definition of the class referred to by mep (if needed).
                                                    non_local_class_fixup_depth;
     a_source_position        saved_error_position = error_position;
     a_boolean                scope_pushed = FALSE;
+    a_curr_token_preserver   guard;
 
     scope_pushed = push_module_declaration_context(mep->scope);
     source_position_from_locus(&error_position, &idssp->locus);
-    clear_token_cache(&cache, /*reuseable=*/FALSE);
+    clear_token_cache(&cache, /*reusable=*/FALSE);
     cache_decl_class(&cache, idssp);
     terminate_token_cache(&cache);
 #if DEBUG
@@ -5778,9 +5783,10 @@ argument.
       }
       break;
     case ifc_ExprSort_Read:
-      { an_ifc_ExprSort_Read iesr, *iesrp;
-        a_token_cache        cache;
-        a_source_position    pos;
+      { an_ifc_ExprSort_Read    iesr, *iesrp;
+        a_token_cache           cache;
+        a_source_position       pos;
+        a_curr_token_preserver  guard;
 
         iesrp = get_ExprSort_Read(&iesr);
         kind = tak_nontype;
@@ -5790,7 +5796,7 @@ argument.
         check_assertion(param->kind == (a_template_parameter_kind)tpk_nontype);
         type = param->variant.nontype.constant->type;
         source_position_from_locus(&pos, &iesrp->locus);
-        clear_token_cache(&cache, /*reuseable=*/FALSE);
+        clear_token_cache(&cache, /*reusable=*/FALSE);
         cache_expr(&cache, iesrp->address);
         /* FIXME: Do we need to handle iesrp->sort here? */
         terminate_token_cache(&cache);
@@ -5802,15 +5808,16 @@ argument.
       }
       break;
     case ifc_ExprSort_Monad:
-      { an_ifc_ExprSort_Monad iesm, *iesmp;
-        a_token_cache         cache;
-        a_source_position     pos;
+      { an_ifc_ExprSort_Monad   iesm, *iesmp;
+        a_token_cache           cache;
+        a_source_position       pos;
+        a_curr_token_preserver  guard;
 
         iesmp = get_ExprSort_Monad(&iesm);
         kind = tak_nontype;
         type = type_for_type_index(iesmp->type, /*kind=*/NULL);
         source_position_from_locus(&pos, &iesmp->locus);
-        clear_token_cache(&cache, /*reuseable=*/FALSE);
+        clear_token_cache(&cache, /*reusable=*/FALSE);
         cache_operator(&cache, iesmp->op, &iesmp->locus);
         cache_token(&cache, tok_lparen, &pos);
         cache_expr(&cache, iesmp->argument);
@@ -7224,9 +7231,8 @@ Sentence containing punctuator.
     case ifc_SourcePunctuator_MsvcAlignasEdictStart:
       break;
     case ifc_SourcePunctuator_MsvcDefaultInitStart:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SourcePunctuator::MsvcDefaultInitStart",
-                                  &error_position);
+      /* A marker to indicate the start of a default member initializer.  It
+         isn't needed in the source code. */
       break;
     default_is_unexpected_str("Unknown SourcePunctuator");
   }  /* switch */
@@ -8361,11 +8367,12 @@ position to use for the traits.
     if (traits & ifc_FunctionTraits_NoReturn) {
       cache_token(cache, tok_noreturn, pos);
     }  /* if */
-    if (traits & ifc_FunctionTraits_Inline) {
-      cache_token(cache, tok_inline, pos);
-    }  /* if */
-    if (traits & ifc_FunctionTraits_Constexpr) {
+    if (traits & ifc_FunctionTraits_Immediate) {
+      cache_token(cache, tok_consteval, pos);
+    } else if (traits & ifc_FunctionTraits_Constexpr) {
       cache_token(cache, tok_constexpr, pos);
+    } else if (traits & ifc_FunctionTraits_Inline) {
+      cache_token(cache, tok_inline, pos);
     }  /* if */
   }  /* if */
   if (traits & ifc_FunctionTraits_HiddenFriend) {

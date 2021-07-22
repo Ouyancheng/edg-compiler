@@ -11772,7 +11772,7 @@ position of the __if_exists or __if_not_exists token.
 static void cache_if_exists_tokens(a_token_cache_ptr    cache,
 				   ARG_UNUSED a_boolean	is_dependent)
 /*
-Cache then tokens between the braces of an __if_exists or __if_not_exists
+Cache the tokens between the braces of an __if_exists or __if_not_exists
 directive.
 */
 {
