@@ -194,8 +194,10 @@ Given an already open file pointer, determine what kind of module file is open
   if (fread(magic, (size_t)1, sizeof(magic), file) == sizeof(magic)) {
     if (magic_numbers_match(magic, edg_magic_numbers)) {
       kind = (a_module_kind)mk_edg;
+#if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (magic_numbers_match(magic, ifc_magic_numbers)) {
       kind = (a_module_kind)mk_ifc;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
   }  /* if */
   return kind;
@@ -219,9 +221,11 @@ Given a module kind, return a string for that kind for use in error messages.
     case mk_edg:
       str = error_text(ec_module_kind_edg);
       break;
+#if MICROSOFT_EXTENSIONS_ALLOWED
     case mk_ifc:
       str = error_text(ec_module_kind_ifc);
       break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case mk_any:
       str = error_text(ec_module_kind_any);
       break;
@@ -258,10 +262,12 @@ file_kind (which may range from remarks to catastrophic errors).
           file_kind != (a_module_kind)mk_header) {
         goto done;
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
       FALLTHROUGH
     case mk_ifc:
       /* Visual Studio skips files that don't appear to be IFCs. */
       severity = es_remark;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       break;
     case mk_none:
     case mk_header:
@@ -768,6 +774,10 @@ Dispatch the is_open() call to the variant for the actual object.
       result = ((an_ifc_module*)this)->is_open();
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case mk_header:
+    case mk_any:
+      unexpected_condition();
+      break;
     default_is_unexpected();
   }  /* switch */
   return result;
@@ -794,6 +804,10 @@ Dispatch the import() call to the variant for the actual object.
       result = ((an_ifc_module*)this)->import(midp);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case mk_header:
+    case mk_any:
+      unexpected_condition();
+      break;
     default_is_unexpected();
   }  /* switch */
   return result;
@@ -818,6 +832,10 @@ Dispatch the close() call to the variant for the actual object.
       ((an_ifc_module*)this)->close();
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case mk_header:
+    case mk_any:
+      unexpected_condition();
+      break;
     default_is_unexpected();
   }  /* switch */
 }  /* close */
@@ -841,6 +859,10 @@ Dispatch the pch_reset() call to the variant for the actual object.
       ((an_ifc_module*)this)->pch_reset(midp);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case mk_header:
+    case mk_any:
+      unexpected_condition();
+      break;
     default_is_unexpected();
   }  /* switch */
 }  /* pch_reset */
@@ -887,6 +909,10 @@ actual object.
       ((an_ifc_module*)this)->complete_definition_of_module_class(mep);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case mk_header:
+    case mk_any:
+      unexpected_condition();
+      break;
     default_is_unexpected();
   }  /* switch */
 }  /* complete_definition_of_module_class */
@@ -910,6 +936,10 @@ Dispatch the debug() call to the variant for the actual object.
       ((an_ifc_module*)this)->debug();
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case mk_header:
+    case mk_any:
+      unexpected_condition();
+      break;
     default_is_unexpected();
   }  /* switch */
 }  /* debug */
@@ -932,6 +962,10 @@ Dispatch the db_module_entity() call to the variant for the actual object.
       ((an_ifc_module*)this)->db_module_entity(mep);
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case mk_header:
+    case mk_any:
+      unexpected_condition();
+      break;
     default_is_unexpected();
   }  /* switch */
 }  /* db_module_entity */
