@@ -2367,12 +2367,12 @@ extern a_boolean same_string_ignoring_underscores(a_const_char *s1,
 A structure meant to be used to record the current token at construction time
 and restore it at destruction time.  For example:
 
-	{
-	  a_curr_token_preserver  guard;
-	  ... create a token cache
- 	  ... rescan the token cache consuming its tokens
-	}  // The destructor restore the current token recorded when "guard"
-           // was constructed.
+    {
+      a_curr_token_preserver  guard;
+      ... create a token cache
+      ... rescan the token cache consuming its tokens
+    }  // The destructor restores the current token recorded when "guard"
+       // was constructed.
 */
 struct a_curr_token_preserver {
   inline a_curr_token_preserver() {
@@ -2385,7 +2385,10 @@ struct a_curr_token_preserver {
                            /*discard_curr_token=*/TRUE);
   }  /* ~a_curr_token_preserver */
 private:
-  a_token_cache  curr_token_cache;
+  a_token_cache
+		curr_token_cache;
+			/* A cache to hold the "current token" at the time
+			   of construction. */
 };
 
 

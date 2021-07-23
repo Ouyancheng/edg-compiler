@@ -3888,7 +3888,7 @@ class_struct_union_case:
                 unexpected_condition();
               }  /* if */
             } else if (alias_tag == ifc_TypeSort_Forall) {
-              an_ifc_TypeSort_Forall itsf, *itsfp;
+              an_ifc_TypeSort_Forall  itsf, *itsfp;
               a_token_cache           cache;
               a_source_position       pos;
               a_curr_token_preserver  guard;
