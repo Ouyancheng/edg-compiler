@@ -198,16 +198,13 @@ typedef struct an_il_to_str_output_control_block {
 			   non-type template argument to see if it needs to
 			   be enclosed in parentheses. */
   an_expression_test_function_ptr
-	type_operator_expr_is_unusable;
-			/* Function that tests whether the expression
-			   operand of a type operator can appear in the
-			   current context.  If the call returns TRUE, the
-			   resulting type of the type operator will be put
-			   out instead of the type operator itself.  This
-			   is useful for the C++-generating back end, where
-			   a generated explicit specialization might
-			   otherwise refer to an as-yet-undefined type via
-			   the expression of a type operator. */
+	expr_is_unusable;
+			/* Function that tests whether an expression can
+			   appear in the current context.  If the call
+			   returns TRUE, the resulting type of a type
+			   operator will be put out instead of the type
+			   operator itself and the value of a constant will
+			   be used instead of its backing expression. */
   an_expression_modifier_ptr
 	skip_implicit_steps;
 			/* Function that steps over any expression nodes

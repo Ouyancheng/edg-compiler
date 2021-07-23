@@ -684,7 +684,7 @@ static void gen_prop_event_or_op_synth_call(
                           a_boolean                           is_virtual_call);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 static an_expr_node_ptr skip_implicit_steps(an_expr_node_ptr node);
-static a_boolean expr_uses_undefined_or_local_type(an_expr_node_ptr expr);
+static a_boolean expr_is_unusable(an_expr_node_ptr expr);
 /*
 Options for gen_general_declaration_using_type.
 */
@@ -4797,8 +4797,7 @@ are done in the il_to_str routines before this routine is called.
 #endif /* GNU_EXTENSIONS_ALLOWED */
                                                          ) {
           an_expr_node_ptr expr = decltype_arg(underlying_type);
-          if (expr != NULL &&
-              !expr_uses_undefined_or_local_type(expr)) {
+          if (expr != NULL && !expr_is_unusable(expr)) {
             /* This type operator is usable to refer to the type. */
             break;
           }  /* if */
@@ -9490,7 +9489,7 @@ is the one associated with the definition of the enum.
         write_tok_str(" = ");
         if (enum_con->kind == (a_constant_repr_kind)ck_integer) {
           if (enum_con->expr != NULL &&
-              !expr_uses_undefined_or_local_type(enum_con->expr)) {
+              !expr_is_unusable(enum_con->expr)) {
             /* Use the expression that appeared in the original source as
                the constant value. */
             gen_expr(enum_con->expr, /*need_parens=*/TRUE,
@@ -10738,39 +10737,46 @@ non-NULL has been, or is currently being, processed and should not be
 examined again.
 */
 
-static void check_for_member_of_undefined_or_local_class(
+static void check_for_unusable_entity(
                                     an_expr_node_ptr                    expr,
                                     an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 This routine is called by traverse_expr in a top-down traversal of an
 expression tree.  It stops the traversal and sets the result to TRUE when
-it finds a node referring to a member of a class that has not yet been
-defined or a local class or a local variable or constant.  In addition, as
-a special case, it checks for an attempt to use a reference as the object
-expression in a member function call if the generated code target is an
-older version of MSVC, since such expressions result in spurious errors
-when the generated code is compiled by those compilers.  It is used by
-suppress_invalid_explicit_specialization to detect references in exception
-specifications that would make the class containing such an exception
-specification invalid, by form_type to avoid putting out invalid type
-operator expressions, and by form_a_template_arg to avoid references to
-out-of-scope local variables.
+it finds a node that cannot be used in the current context, i.e., one that
+refers to an inaccessible member, to a member of a class that has not yet
+been defined or a local class, or to a local variable or constant.  In
+addition, as a special case, it checks for an attempt to use a reference as
+the object expression in a member function call if the generated code
+target is an older version of MSVC, since such expressions result in
+spurious errors when the generated code is compiled by those compilers.  It
+is used by suppress_invalid_explicit_specialization to detect references in
+exception specifications that would make the class containing such an
+exception specification invalid, by form_type to avoid putting out invalid
+type operator expressions, and by form_a_template_arg to avoid references
+to unusable variables and class members.
 */
 {
   a_source_correspondence_ptr scp = NULL;
+  an_il_entry_kind            kind = iek_none;
+  a_boolean                   for_all_scopes;
 
   switch (expr->kind) {
     case enk_variable:
       scp = &node_variable(expr)->source_corresp;
+      kind = iek_variable;
       break;
     case enk_routine:
       scp = &node_routine(expr)->source_corresp;
+      kind = iek_routine;
       break;
     case enk_field:
       scp = &node_field(expr)->source_corresp;
+      kind = iek_field;
       break;
     case enk_constant:
       scp = &node_constant(expr)->source_corresp;
+      kind = iek_constant;
       break;
     default:
       break;
@@ -10783,7 +10789,9 @@ out-of-scope local variables.
                                   scp_parent_class(scp),
                                   /*include_base_classes=*/FALSE,
                                   /*ignore_field_selection_contexts=*/TRUE)) ||
-         scp->is_local_to_function)) {
+         scp->is_local_to_function ||
+         !entity_name_is_accessible(scp, kind, /*ignore_context=*/FALSE,
+                                    &for_all_scopes))) {
       /* This node refers to a member of a not-yet-defined or local class,
          so an explicit specialization for the class in which this
          expression appears or a type operator containing this expression
@@ -10817,28 +10825,29 @@ out-of-scope local variables.
     tblock->result = TRUE;
     tblock->terminate = TRUE;
   }  /* if */
-}  /* check_for_member_of_undefined_or_local_class */
+}  /* check_for_unusable_entity */
 
 
-static a_boolean expr_uses_undefined_or_local_type(an_expr_node_ptr expr)
+static a_boolean expr_is_unusable(an_expr_node_ptr expr)
 /*
-Walk the tree rooted in expr looking for references to members of classes
-that haven't been defined yet and local classes and to local variables and
-constants.  In addition, older versions of MSVC issue a spurious error if
-the expression in a decltype is a member function call in which the object
-expression is a reference, so check for that also as a special case.
+Walk the tree rooted in expr looking for references to unusable entities:
+members of classes that haven't been defined yet and local classes,
+inaccessible class members, and local variables and constants.  In
+addition, older versions of MSVC issue a spurious error if the expression
+in a decltype is a member function call in which the object expression is a
+reference, so check for that also as a special case.
 */
 {
   an_expr_or_stmt_traversal_block tblock;
 
   clear_expr_or_stmt_traversal_block(&tblock);
-  tblock.process_expr = check_for_member_of_undefined_or_local_class;
+  tblock.process_expr = check_for_unusable_entity;
   tblock.process_non_dynamic_constants = TRUE;
   tblock.process_expressions_for_constants = TRUE;
   tblock.process_template_parameter_constants_and_expressions = TRUE;
   traverse_expr(expr, &tblock);
   return tblock.result;
-}  /* expr_uses_undefined_or_local_type */
+}  /* expr_is_unusable */
 
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 
@@ -11305,7 +11314,7 @@ instantiations are only permitted in namespace scope).
         a_constant_ptr   con = esp->variant.noexcept_arg;
         an_expr_node_ptr expr = con != NULL ? con->expr : NULL;
         if (expr != NULL) {
-          result = expr_uses_undefined_or_local_type(expr);
+          result = expr_is_unusable(expr);
         }  /* if */
       }  /* if */
     }  /* for */
@@ -23236,7 +23245,7 @@ Initialize for the C++/C-generating back end.
   }  /* if */
   octl.has_unprotected_gt_or_comma_operation =
                                          has_unprotected_gt_or_comma_operation;
-  octl.type_operator_expr_is_unusable = expr_uses_undefined_or_local_type;
+  octl.expr_is_unusable = expr_is_unusable;
   octl.skip_implicit_steps = skip_implicit_steps;
   octl.gen_compilable_code = TRUE;
   octl.gen_pcc_code = il_header.pcc_compatibility_mode;

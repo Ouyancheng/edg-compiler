@@ -1,5 +1,22 @@
 Version 6.3
 
+7/23/21  [EDGcpfe/24489]
+C++-generating back end: inaccessible static data member as template argument
+
+The changes for EDGcpfe/23723 (not in a release but sent to some customers
+as a patch) caused a regression in which the C++-generating back end could
+emit a template argument expression naming an inaccessible static data
+member.  This is now fixed.  For example, with --c++14:
+
+  template<typename, int> struct A { };
+  class B {
+    static constexpr int num = 0;  // private
+    template<typename T> using AT = A<T, num>;
+    AT<int> data;  // Instantiates A<int, 0>
+  };
+  A<int, 0> x;  // Previously generated as A<int, B::num>
+
+
 7/23/21  [EDGcpfe/24550]
 a_host_large_integer and a_host_large_unsigned
 

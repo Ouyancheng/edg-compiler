@@ -94,7 +94,7 @@ Clear an output control block to default values.
   octl->output_attributes         = NULL;
   octl->is_typedef_invisible      = NULL;
   octl->has_unprotected_gt_or_comma_operation = NULL;
-  octl->type_operator_expr_is_unusable = NULL;
+  octl->expr_is_unusable          = NULL;
   octl->skip_implicit_steps       = NULL;
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   octl->func_prototype_stack      = NULL;
@@ -533,8 +533,12 @@ Output the indicated template argument in the way described by octl.
               con->expr = expr;
             }  /* if */
           }  /* if */
-          if (expr != NULL && octl->type_operator_expr_is_unusable != NULL &&
-              octl->type_operator_expr_is_unusable(expr)) {
+          while (expr != NULL && is_constant_node(expr) &&
+                 constant_should_be_put_out_as_expr(node_constant(expr))) {
+            expr = node_constant(expr)->expr;
+          }  /* while */
+          if (expr != NULL && octl->expr_is_unusable != NULL &&
+              octl->expr_is_unusable(expr)) {
             /* The expression uses an undefined type or a local entity that
                is not visible.  Just use the constant value. */
             expr = NULL;
@@ -2496,8 +2500,8 @@ available or not portable).
            expression to make sense of things. */
         render = TRUE;
       } else if (octl->gen_compilable_code && expr != NULL &&
-                 (octl->type_operator_expr_is_unusable == NULL ||
-                  !octl->type_operator_expr_is_unusable(expr))) {
+                 (octl->expr_is_unusable == NULL ||
+                  !octl->expr_is_unusable(expr))) {
         /* We're generating compilable code, and the decltype or typeof is
            based on a usable expression.  Render it. */
         render = TRUE;
