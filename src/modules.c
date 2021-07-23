@@ -266,8 +266,8 @@ file_kind (which may range from remarks to catastrophic errors).
       FALLTHROUGH
     case mk_ifc:
       /* Visual Studio skips files that don't appear to be IFCs. */
-      severity = es_remark;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+      severity = es_remark;
       break;
     case mk_none:
     case mk_header:
