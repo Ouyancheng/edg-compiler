@@ -1425,6 +1425,12 @@ Host types used to manipulate integer values.
 typedef a_signed_integer_value a_host_large_integer;
 typedef an_integer_value a_host_large_unsigned;
 
+static_assert(sizeof(a_host_large_integer) >= sizeof(a_ptrdiff),
+              "a_host_large_integer too small");
+static_assert(sizeof(a_host_large_unsigned) >= sizeof(sizeof_t),
+              "a_host_large_unsigned too small");
+
+
 /*
 The printf formatting specifier to be used to print a host large integer.
 These default to the values used for integer values when an integer value
@@ -1467,7 +1473,7 @@ typedef unsigned short an_int_value_part;
 #define SIGN_BIT_INT_VALUE_PART 0x8000
 #define SIZEOF_INT_VALUE_PART (sizeof(an_int_value_part)) /* Okay to change. */
 #define BITS_IN_INT_VALUE_PART (SIZEOF_INT_VALUE_PART*CHAR_BIT)
-/* Large and efficient host integer, at least twice the size of
+/* Large and efficient host integer types, at least twice the size of
    an_int_value_part, used in doing computations on integer values.
    The idea is that any operation involving two an_int_value_part
    values can be done in a_host_large_integer without special coding
@@ -1476,12 +1482,13 @@ typedef unsigned short an_int_value_part;
    an_integer_value when INTEGER_VALUE_REPR_IS_A_HOST_INTEGER is
    FALSE.  Many operations can be done using these types, because
    most constant values are small.  When the values are too large,
-   alternate routines are used. */
-typedef long a_host_large_integer;
-typedef unsigned long a_host_large_unsigned;
-#define MAX_HOST_LARGE_INTEGER LONG_MAX
-#define MIN_HOST_LARGE_INTEGER LONG_MIN
-#define MAX_HOST_LARGE_UNSIGNED ULONG_MAX
+   alternate routines are used.  These types should also be at least
+   as large has the host ptrdiff_t type. */
+typedef a_ptrdiff a_host_large_integer;
+typedef sizeof_t a_host_large_unsigned;
+#define MAX_HOST_LARGE_INTEGER PTRDIFF_MAX
+#define MIN_HOST_LARGE_INTEGER PTRDIFF_MIN
+#define MAX_HOST_LARGE_UNSIGNED SiZE_MAX
 
 /* Define a macro that has the same value as TARG_CHAR_BIT.  This is done
    because TARG_CHAR_BIT cannot be used outside of targ_def.h (it gets

@@ -1,5 +1,28 @@
 Version 6.3
 
+7/23/21  [EDGcpfe/24550]
+a_host_large_integer and a_host_large_unsigned
+
+Previously, a_host_large_integer and a_host_large_unsigned were aliases for
+types long and unsigned long when INTEGER_VALUE_REPR_IS_A_HOST_INTEGER is
+configured to FALSE.  On some platforms (e.g., 64-bit Windows) that caused
+surprises because long is a 32-bit type but address arithmetic is done with
+64-bit values.  For example, it revealed bugs in the constexpr interpreter,
+which offsets host pointers with expressions involving a_host_large_integer:
+
+  constexpr bool always_true() {
+    int x[9] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+    int *p = sequence + 9;
+    return p[-2] != 42;
+  }
+  static_assert(always_true());
+
+In this example, the constant-evaluation of p[-2] could produce a corrupt host
+address in some configurations.  That is now fixed by having, respectively,
+a_host_large_integer and a_host_large_unsigned be aliases for ptrdiff_t and
+size_t when INTEGER_VALUE_REPR_IS_A_HOST_INTEGER is FALSE.
+
+
 7/20/21  [EDGcpfe/24351]
 C++-generating back end, Microsoft compatibility: dependent conversion
 operators
