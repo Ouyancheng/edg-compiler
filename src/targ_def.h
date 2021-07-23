@@ -1488,7 +1488,7 @@ typedef a_ptrdiff a_host_large_integer;
 typedef sizeof_t a_host_large_unsigned;
 #define MAX_HOST_LARGE_INTEGER PTRDIFF_MAX
 #define MIN_HOST_LARGE_INTEGER PTRDIFF_MIN
-#define MAX_HOST_LARGE_UNSIGNED SiZE_MAX
+#define MAX_HOST_LARGE_UNSIGNED SIZE_MAX
 
 /* Define a macro that has the same value as TARG_CHAR_BIT.  This is done
    because TARG_CHAR_BIT cannot be used outside of targ_def.h (it gets
