@@ -539,8 +539,8 @@ Output the indicated template argument in the way described by octl.
           }  /* while */
           if (expr != NULL && octl->expr_is_unusable != NULL &&
               octl->expr_is_unusable(expr)) {
-            /* The expression uses an undefined type or a local entity that
-               is not visible.  Just use the constant value. */
+            /* The expression uses an undefined, out-of-scope, or
+               inaccessible entity.  Just use the constant value. */
             expr = NULL;
             con->expr = NULL;
           }  /* if */
