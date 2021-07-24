@@ -1483,7 +1483,7 @@ typedef unsigned short an_int_value_part;
    FALSE.  Many operations can be done using these types, because
    most constant values are small.  When the values are too large,
    alternate routines are used.  These types should also be at least
-   as large has the host ptrdiff_t type. */
+   as large as the host ptrdiff_t type. */
 typedef a_ptrdiff a_host_large_integer;
 typedef sizeof_t a_host_large_unsigned;
 #define MAX_HOST_LARGE_INTEGER PTRDIFF_MAX

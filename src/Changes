@@ -29,7 +29,7 @@ which offsets host pointers with expressions involving a_host_large_integer:
 
   constexpr bool always_true() {
     int x[9] = {1, 2, 3, 4, 5, 6, 7, 8, 9};
-    int *p = sequence + 9;
+    int *p = x + 9;
     return p[-2] != 42;
   }
   static_assert(always_true());
