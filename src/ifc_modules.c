@@ -13058,6 +13058,7 @@ decl, or an empty sequence if not found.
   return result;
 }  /* get_specialization_sequence_from_trait */
 
+#if DEBUG
 
 void an_ifc_module::validate_is_class_type(ifc_TypeIndex type)
 /*
@@ -13079,6 +13080,7 @@ void an_ifc_module::validate_is_class_type(ifc_TypeIndex type)
   }  /* switch */
 }  /* validate_is_class_type */
 
+#endif /* DEBUG */
 
 /*
 FIXME: Eliminate all str_ifc_* functions, or replace with a version that
