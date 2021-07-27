@@ -1,5 +1,15 @@
 Version 6.3
 
+7/27/21  [EDGcpfe/24542]
+Abort during rescanning of enk_variable nodes
+
+The deduction of generic lambda invocations in local contexts can require the
+front end to "rescan" (i.e., substitute) enk_variable nodes.  Version 6.2 of
+the front end introduced a bug in this process that could lead to memory
+corruption and aborts for somewhat complex uses of generic lambda expressions.
+That is now fixed.
+
+
 7/27/21  [EDGcpfe/24379]
 Diagnostic for unused declarations in unnamed namespace members
 
