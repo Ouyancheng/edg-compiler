@@ -1,5 +1,27 @@
 Version 6.3
 
+7/27/21  [EDGcpfe/24379]
+Diagnostic for unused declarations in unnamed namespace members
+
+The front end issues diagnostics for unused unnamed namespace members
+because they are known to not be used elsewhere.   This processing was
+incorrectly applied to declarations such as local variables of unnamed
+namespace members, which had the effect of disabling the more extensive
+checking that would otherwise be done later (e.g., to suppress warnings
+on variable declarations with side-effects).  The special processing is
+now done only for namespace scope unnamed namespace members.  Other
+declarations are handled the same way as if there were in a named namespace.
+
+  template <typename T> struct A { A(T); };
+  namespace {
+    template <typename T> void f(T in) {
+       A<T> xxx(in);  // warning no longer issued on this declaration
+    }
+  }
+  struct B { };
+  int main() { f(B{}); }
+
+
 7/26/21  [EDGcpfe/24558]
 Error in subsumption algorithm
 

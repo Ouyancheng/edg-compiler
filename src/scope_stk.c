@@ -6185,7 +6185,8 @@ curr_routine points to the routine entry; otherwise, it is NULL.
       /* Variable or parameter. */
       var_ptr = sym->variant.variable.ptr;
       storage_class = var_ptr->storage_class;
-      anon_ns_mem = is_member_of_unnamed_namespace(&var_ptr->source_corresp);
+      anon_ns_mem = is_member_of_unnamed_namespace(&var_ptr->source_corresp) &&
+                    !sym->is_class_member && sym->parent.namespace_ptr != NULL;
       if (scope_kind == (a_scope_kind)sck_file &&
           var_ptr->used && var_ptr->is_inline &&
           (storage_class == (a_storage_class)sc_unspecified ||
