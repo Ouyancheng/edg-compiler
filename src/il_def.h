@@ -17089,6 +17089,9 @@ enum a_scope_kind_tag {
 			   class and/or namespaces that must be visible
 			   during the instantiation.  Used only in the front
 			   end. */
+  sck_module_decl_import,
+			/* Used during module importing immediately before
+			   the declaration to be imported. */
   sck_pragma,
 			/* Used while processing certain #pragma directives
 			   to affect the visibility of other scopes.  Used

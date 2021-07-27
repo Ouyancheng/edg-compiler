@@ -3857,7 +3857,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
               *declares_something = FALSE;
             } else {
               if (tag_sym->decl_scope !=
-                                      scope_stack[depth_scope_stack].number) {
+                                        scope_stack[decl_scope_level].number) {
                 /* The explicit specialization appears outside the scope of
                    the template.  Check whether that is valid. */ 
                 if (microsoft_mode && !tag_sym->is_class_member &&
@@ -4027,7 +4027,7 @@ defined.  Detailed position information is recorded in *decl_pos_block.
             /* This is a specialization whose effective scope has already
                been adjusted above.  Do not check is again. */
           } else if (!sym_is_namespace_member(tag_sym)) {
-            if (tag_sym->decl_scope != scope_stack[depth_scope_stack].number) {
+            if (tag_sym->decl_scope != scope_stack[decl_scope_level].number) {
               /* Unless a class is a namespace member or nested in another
                  class, it cannot be defined other than it the scope to which
                  it belongs. */

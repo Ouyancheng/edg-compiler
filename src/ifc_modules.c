@@ -4462,7 +4462,7 @@ class_struct_union_case:
                                                                     idsesp,
                                                                     decl_idx);
             kind = iek_template;
-          }
+          }  /* if */
         }
         break;
       case ifc_DeclSort_ExplicitInstantiation:

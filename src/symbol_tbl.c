@@ -4410,6 +4410,7 @@ created if needed.
     case sck_block:
     case sck_template_declaration:
     case sck_template_instantiation:
+    case sck_module_decl_import:
     case sck_pragma:
     case sck_condition:
     case sck_enum:

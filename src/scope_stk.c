@@ -127,6 +127,7 @@ Put out a scope kind name (for debugging).
     case sck_function_access:	     s = "function access";	     break;
     case sck_condition:              s = "condition";                break;
     case sck_instantiation_context:  s = "instantiation context";    break;
+    case sck_module_decl_import:     s = "module decl import";       break;
     case sck_enum:                   s = "enum";                     break;
     default:                         s = "***UNKNOWN SCOPE KIND***"; break;
   }  /* switch */
@@ -2579,7 +2580,8 @@ scopes.  In neither C or C++ is a pragma scope is treated as a real scope.
          (kind) != (a_scope_kind)sck_namespace_reactivation &&          \
          (kind) != (a_scope_kind)sck_instantiation_context &&		\
          (kind) != (a_scope_kind)sck_function_access &&			\
-         (kind) != (a_scope_kind)sck_template_instantiation)))
+         (kind) != (a_scope_kind)sck_template_instantiation &&          \
+         (kind) != (a_scope_kind)sck_module_decl_import)))
 
 
 static inline void expand_scope_stack_if_needed(void)
@@ -3287,6 +3289,7 @@ the scope being pushed.
         (kind == (a_scope_kind)sck_function &&
          !assoc_routine->is_lambda_body) ||
         kind == (a_scope_kind)sck_block ||
+        kind == (a_scope_kind)sck_module_decl_import ||
         (kind == (a_scope_kind)sck_template_instantiation &&
          (options & PS_MICROSOFT_SPECIALIZATION) == 0) ||
         (kind == (a_scope_kind)sck_class_struct_union &&
@@ -3561,7 +3564,8 @@ the scope being pushed.
         kind == (a_scope_kind)sck_pragma ||
         kind == (a_scope_kind)sck_func_prototype ||
         kind == (a_scope_kind)sck_class_struct_union ||
-        kind == (a_scope_kind)sck_class_reactivation) {
+        kind == (a_scope_kind)sck_class_reactivation ||
+        kind == (a_scope_kind)sck_module_decl_import) {
       /* These scopes do not nest properly from the point of view of object
          lifetimes, so break the object lifetime stack and then restore it
          in pop_scope. */
@@ -3795,6 +3799,9 @@ by the argument.  If needed, push the new scope(s) and return TRUE.
 
   check_assertion(scope != NULL);
   if (ssep->il_scope != scope) {
+    /* FIXME: This pushes an instantiation context, that's not an accurate
+       description in the scope stack of what's really happening.  In other
+       words, no instantiation is occurring here. */
     push_new_top_level_declaration();
     ssep = &scope_stack_top();
     ssep->inside_local_class = inside_local_class = FALSE;
@@ -3802,11 +3809,37 @@ by the argument.  If needed, push the new scope(s) and return TRUE.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     ssep->source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+    /* FIXME: There may be something further that needs done to fully handle
+       namespaces.  See push_instantiation_context "Push the namespace(s)
+       containing the definition of the template.". */
     if (scope_is(scope, sck_namespace)) {
       push_namespace_extension_scope(scope->variant.assoc_namespace);
+      decl_scope_level = depth_innermost_namespace_scope;
+    } else {
+      /* Update the decl_scope_level. */
+      decl_scope_level = DEPTH_OF_FILE_SCOPE;
     }  /* if */
+    /* FIXME: Do we need to reactive parents? */
+    {
+      /* We're doing several things with this new scope.
+
+         - We need to update object lifetime stack while storing the old.
+         - We need to carry the parent assoc_pointers_block forward.
+         - We set the il_scope as an optimization to prevent scope buildup.
+      */
+      ssep = &scope_stack_top();
+      (void)push_scope_full((a_scope_kind)sck_module_decl_import,
+                            NO_SCOPE_NUMBER, NULL, NULL, (a_namespace_ptr)NULL,
+                            (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                            (a_template_arg_ptr)NULL,
+                            (a_template_decl_info_ptr)NULL,
+                            (an_object_lifetime_ptr)NULL, (a_scope_ptr)NULL,
+                            ssep->assoc_pointers_block, PS_NO_OPTIONS);
+      /* Update the il_scope. */
+      ssep = &scope_stack_top();
+      ssep->il_scope = scope;
+    }
     push_lexical_state_stack();
-    decl_scope_level = depth_innermost_namespace_scope;
     result = TRUE;
   } else {
     ssep->module_load_context_count++;
@@ -3834,12 +3867,18 @@ push_module_declaration_context.
 {
   process_deferred_class_fixups_and_instantiations(/*for_instantiation=*/TRUE);
   if (scope_pushed) {
+    /* "Unwind" the scope stack removing the corresponding pushed scopes. */
+    /* Remove the lexical scope. */
     pop_lexical_state_stack();
+    /* Remove the sck_module_decl_import scope. */
+    pop_scope();
+    /* Remove the namespace extension scope if one exists. */
     if (scope_stack_top().kind == (a_scope_kind)sck_namespace_extension) {
       check_assertion(scope_stack_top().module_load_context_count == 1);
       pop_namespace_extension_scope();
     }  /* if */
     check_assertion(scope_stack_top().module_load_context_count == 1);
+    /* Finally remove the instantiation scope. */
     pop_scope();
   } else {
     a_scope_stack_entry_ptr ssep = &scope_stack_top();
@@ -4707,11 +4746,7 @@ is used for generic lambdas and is the scope containing the lambda.
     }  /* if */
     common_nsp = scope_stack[common_depth].assoc_namespace;
     if (common_nsp == definition_nsp) {
-      if (common_depth != depth_scope_stack) {
-        definition_depth = common_depth;
-      } else {
-        definition_depth = depth_scope_stack;
-      }  /* if */
+      definition_depth = common_depth;
     } else {
       /* Reactivate the scope from the common namespace scope through the
          parent namespace of the template. */
@@ -7363,7 +7398,8 @@ about the scope being popped.
   }  /* if */
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
   if (kind == (a_scope_kind)sck_namespace_extension ||
-      kind == (a_scope_kind)sck_namespace_reactivation) {
+      kind == (a_scope_kind)sck_namespace_reactivation ||
+      kind == (a_scope_kind)sck_module_decl_import) {
     /* Symbol processing is not done for namespace extension and
        reactivation scopes. */
   } else {
@@ -9234,7 +9270,8 @@ being popped.
                kind == (a_scope_kind)sck_func_prototype ||
                kind == (a_scope_kind)sck_template_instantiation ||
                kind == (a_scope_kind)sck_class_struct_union ||
-               kind == (a_scope_kind)sck_class_reactivation) {
+               kind == (a_scope_kind)sck_class_reactivation ||
+               kind == (a_scope_kind)sck_module_decl_import) {
       check_assertion_str2(curr_object_lifetime ==
                                    scope_stack[DEPTH_OF_FILE_SCOPE].
                                                    curr_scope_object_lifetime,

@@ -31889,7 +31889,7 @@ that follows.
     if (sym != NULL) {
       /* Specializations of namespace members can only occur within the
          namespace they belong to or a namespace that encloses it. */
-      if (sym->decl_scope != scope_stack[depth_scope_stack].number) {
+      if (sym->decl_scope != scope_stack[decl_scope_level].number) {
         a_boolean	err = FALSE;
         a_boolean	make_gpp_warning = FALSE;
         if (!sym_is_class_or_namespace_member(sym)) {
@@ -33253,11 +33253,11 @@ be used for a friend declaration will be determined later because it
 differs between function and nonfunction declarations.
 */
 {
-  a_scope_depth			depth = decl_scope_level;
+  a_scope_depth			depth;
   a_scope_stack_entry_ptr	ssep;
   a_boolean			err = FALSE;
 
-  ssep = &scope_stack_top();
+  ssep = &scope_stack[decl_scope_level];
   /* Skip past any template declaration scopes. */
   while (ssep->kind == (a_scope_kind)sck_template_declaration) {
     /* Skip to depth of the previous decl_scope_level. */
@@ -33786,7 +33786,7 @@ of the "auto" parameters.
 {
   a_decl_parse_state_ptr   dps = decl_state->decl_parse;
   a_def_arg_expr_fixup_ptr saved_curr_default_args = curr_default_args;
-  a_scope_depth            orig_depth = depth_scope_stack;
+  a_scope_depth            orig_depth = decl_scope_level;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   a_source_position        header_pos;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

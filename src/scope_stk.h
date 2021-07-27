@@ -2302,7 +2302,7 @@ extern a_boolean namespace_is_enclosed_by_scope(a_symbol_ptr             sym,
 Call namespace_is_enclosed_by_scope for the current scope.
 */
 #define namespace_is_enclosed_by_curr_scope(sym)                     \
-  (namespace_is_enclosed_by_scope((sym), &scope_stack[depth_scope_stack]))
+  (namespace_is_enclosed_by_scope((sym), &scope_stack[decl_scope_level]))
 
 extern a_boolean current_class_symbol_if_class_template(a_symbol_ptr *sym);
 
