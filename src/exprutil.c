@@ -24185,7 +24185,7 @@ then we produce
 	E1[3] = Y AND Y
 	E1[4] = Y AND Z
 
-E1 subsumes E2 if and only if each of the E1[k] subsume E2.
+E1 subsumes E2 if and only if each of the E1[k] subsumes E2.
 
 Let E2[k] be the set of all constraints obtained by considering all
 combinations of conjunctions (AND) in E2.  E.g., if
