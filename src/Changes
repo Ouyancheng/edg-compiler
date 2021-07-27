@@ -1,5 +1,18 @@
 Version 6.3
 
+7/27/21  [EDGcpfe/24372]
+GNU C++ compatibility: Injected class names
+
+Consider:
+
+  struct S {} *p = new S::S;
+
+This is normally invalid because "S::S" denotes the (implicitly-declared)
+constructors of S rather than the inject class name.  However, in GNU C++ mode,
+this was previously always accepted.  Now, that GNU-C++-mode behavior is
+limited to modes with gnu_version < 40500.
+
+
 7/27/21  [EDGcpfe/24542]
 Abort during rescanning of enk_variable nodes
 
