@@ -7448,7 +7448,7 @@ etc.).
       *output_flags |= DO_REAL_DECLARATOR_SCANNED;
       /* Process the name declared here. */
       scan_real_declarator_id(state, input_flags, output_flags, locator,
-                              is_constructor, is_static_constructor, 
+                              is_constructor, is_static_constructor,
                               is_destructor, is_finalizer,
                               &parenthesized_initializer_allowed,
                               &not_a_function_declarator,

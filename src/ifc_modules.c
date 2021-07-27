@@ -2990,6 +2990,27 @@ location as the original.
 }  /* ifc_modules_pch_reset */
 
 
+namespace {
+/* An RAII object to temporarily enable microsoft extensions even if not
+   enabled otherwise.  This allows for MS specific IFC decls to be correctly
+   processed.
+*/
+class a_ms_extensions_parse {
+  a_boolean old_ms_extensions;
+  a_boolean old_ms_compat;
+public:
+  a_ms_extensions_parse() : old_ms_extensions(ms_extensions),
+                            old_ms_compat(ms_compat) {
+    ms_extensions = TRUE;
+    ms_compat = TRUE;
+  }
+  ~a_ms_extensions_parse() {
+    ms_compat = old_ms_compat;
+    ms_extensions = old_ms_extensions;
+  }
+};
+}  /* namespace */
+
 static a_template_ptr parse_cached_template(a_token_cache_ptr cache,
                                             a_scope_ptr       encl_scope)
 /*
@@ -3110,9 +3131,12 @@ containing the explicit specialization declaration.
   decl_state.starting_token_sequence_number = curr_token_sequence_number;
   decl_state.final_token_ptr = &final_token;
   decl_state.enclosing_scope = encl_scope;
-  template_or_specialization_declaration_full(&decl_state,
-                                              /*is_generic=*/FALSE,
-                                              /*orig_dps=*/NULL);
+  {
+    a_ms_extensions_parse tmp_parse;
+    template_or_specialization_declaration_full(&decl_state,
+                                                /*is_generic=*/FALSE,
+                                                /*orig_dps=*/NULL);
+  }
   if (curr_token != final_token) {
     expect_error();
     flush_tokens_without_warning();
