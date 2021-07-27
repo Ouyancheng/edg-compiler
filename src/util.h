@@ -450,6 +450,7 @@ struct Dyn_array: private Allocator<an_Elem> {
   inline void insert(an_index i, const an_elem  &value);
   inline void insert(an_index i, an_elem  &&value);
   inline void remove(an_index i);
+  inline void clear();
   void reserve(a_size);
   void shrink_wrap();
   /* Interfaces to allow range-based for loop. */
@@ -724,6 +725,20 @@ one position down.
     destroy(arr_elems+k+1);
   }  /* for */
 }  /* Dyn_array::remove */
+
+
+template<typename an_Elem, template<typename> class Allocator>
+inline void Dyn_array<an_Elem, Allocator>::clear()
+/*
+Remove all the elements in the array.
+*/
+{
+  a_size   n = this->n_elems;
+
+  for (an_index k = 0; k<n; ++k) {
+    this->pop_back();
+  }  /* for */
+}  /* Dyn_array::clear */
 
 
 template<typename an_Elem, template<typename> class Allocator>

@@ -24172,7 +24172,7 @@ constrained as a constraint Z, each alternative (X and Y) has to be as
 constrainted as Z.
 
 Consider constraints E1 and E2 expressed through conjunctions (AND) and
-disjunctions (OR) or atomic constraints.  Let E1[k] be the set of all
+disjunctions (OR) of atomic constraints.  Let E1[k] be the set of all
 constraints obtained by considering all combinations of disjunctions (OR) in
 E1.  E.g., if
 
@@ -24185,7 +24185,7 @@ then we produce
 	E1[3] = Y AND Y
 	E1[4] = Y AND Z
 
-E1 subsumes E2 if and only if each of the E1[k] subsumes E2.
+E1 subsumes E2 if and only if each of the E1[k] subsume E2.
 
 Let E2[k] be the set of all constraints obtained by considering all
 combinations of conjunctions (AND) in E2.  E.g., if
@@ -24390,14 +24390,25 @@ indicates that this function processed the last disjunctive clause).
 {
   using an_array = Dyn_array<a_charted_constraint>;
   an_array   &array = chart->constraints_array;
-  int32_t    k = 0, len = (int32_t)array.length(), next_active = 0;
+  int32_t    k = 0, len = (int32_t)array.length(),
+             active_left = 0, inactive_right = len;
   a_boolean  flipping = TRUE;
 
+  /* The following loop does two things:
+       1) It flips flags on the CK_OR nodes thereby setting up the next
+          disjunctive clause, and 
+       2) it records the expressions ("atomic constraints") of the current
+          disjunctive clause of E1/chart1 in a map so they can be efficiently
+          looked up when comparing to the conjunctive clauses in the normal
+          form of E2/chart2.
+     Every time a CK_OR is encountered the range [active_left, inactive_right)
+     of "active entries" in the chart is adjusted depending whether the left
+     or right operand is selected by the current "flag" value. */
   while (k < len) {
     a_charted_constraint  *constraint = &array[k];
     switch (constraint->kind) {
       case CK_ATOMIC:
-        if (k >= next_active && !constraint->no_link()) {
+        if (k >= active_left && k < inactive_right && !constraint->no_link()) {
           /* Add the associated node to the expression map.  This relies on
              the fact that any node at position 0 would be one that appears
              directly in a requires clause (as opposed to through a concept)
@@ -24421,17 +24432,18 @@ indicates that this function processed the last disjunctive clause).
       case CK_OR:
         if (constraint->flag) {
           /* Select the right operand. */
-          next_active = constraint->link;
+          active_left = constraint->link;
           if (flipping) {
             /* Flip the "one" to a "zero" (and keep flipping until we run into
                "zero" that can be flipped to a "one"). */
             constraint->flag = FALSE;
             ++k;
           } else {
-            k = next_active;
+            k = active_left;
           }  /* if */
         } else {
           /* Select the left operand. */
+          inactive_right = constraint->link;
           ++k;
           if (flipping) {
             constraint->flag = TRUE;
@@ -24470,16 +24482,32 @@ conjunctive clause, and if the last clause was processed return TRUE.
 {
   using an_array = Dyn_array<a_charted_constraint>;
   an_array   &array = chart->constraints_array;
-  int32_t    k = 0, len = (int32_t)array.length(), next_active = 0;
+  int32_t    k = 0, len = (int32_t)array.length(),
+             active_left = 0, inactive_right = len;
   a_boolean  flipping = TRUE;
 
+  /* The following loop does two things:
+       1) It flips flags on the CK_AND nodes thereby setting up the next
+          conjunctive clause, and 
+       2) it checks that the current conjunctive clause is "covered" by a
+          disjunctive clause of E1/chart1 (the "covering terms" are recorded 
+          and with the caller responsible for checking that the template
+          parameter mappings are equivalent for those terms).
+     Every time a CK_AND is encountered the range [active_left, inactive_right)
+     of "active entries" in the chart is adjusted depending whether the left
+     or right operand is selected by the current "flag" value. */
   while (k < len) {
     a_charted_constraint  *constraint = &array[k];
     switch (constraint->kind) {
       case CK_ATOMIC:
-        if (k >= next_active) {
+        if (k >= active_left && k < inactive_right) {
           int32_t  idx = expr_map->get(constraint->expr);
           if (idx != 0) {
+            /* The active atomic constraint at idx in chart1 corresponds to
+               this active atomic constraint in chart2 (where chart1 describes
+               E1 and chart2 describes E2 in the outline above).  Keep checking
+               for matching constraints, but record that we should check the
+               mappings of these constraints after we find all matches. */
             map_checks->push_back(a_map_check_pair{ idx, k });
           }  /* if */
         }  /* if */
@@ -24493,17 +24521,18 @@ conjunctive clause, and if the last clause was processed return TRUE.
       case CK_AND:
         if (constraint->flag) {
           /* Select the right operand. */
-          next_active = constraint->link;
+          active_left = constraint->link;
           if (flipping) {
             /* Flip the "one" to a "zero" (and keep flipping until we run into
                "zero" that can be flipped to a "one"). */
             constraint->flag = FALSE;
             ++k;
           } else {
-            k = next_active;
+            k = active_left;
           }  /* if */
         } else {
           /* Select the left operand. */
+          inactive_right = constraint->link;
           ++k;
           if (flipping) {
             constraint->flag = TRUE;
@@ -24672,10 +24701,26 @@ Return FALSE otherwise.
        described above. */
     result = TRUE;
     for (;;) {
+      /* Loop through the disjunctive clauses of chart1.  E.g., if chart1
+         corresponds to constraint "(A && B) || (C && D)", then the first
+         time through we'll select "(A && B)" and the second time through
+         we'll select "(C && D)"; that means that the first time through
+         expr_map will contain the expressions underlying A and B, and the
+         second time through the expressions underlying C && D.  If chart1
+         instead corresponds to constraint "((A || B) && C) || D", we'll
+         consecutively activate the expressions underlying A&&C, B&&C, D, D
+         (which represents the -- admittedly inefficient -- disjunctive normal
+         form "(A && C) || (B && C) || D || D" of the constraint. */
       an_expr_chart_map  expr_map(/*mask_width=*/3);
       a_boolean          last_disj_clause =
                                 process_disjunctive_clause(chart1, &expr_map);
       for (;;) {
+        /* Loop through the conjunctive clauses of chart2.  E.g., if chart2
+           corresponds to constraint "(A || B) && C", the first time through
+           will select "(A || B)" and the second time through will select C.
+           map_checks will contain the matching constraint expressions, but
+           they only really match if their parameter mappings are
+           compatible. */
         a_map_check_list  map_checks(10);
         a_boolean         last_conj_clause = process_conjunctive_clause(
                                               chart2, &expr_map, &map_checks);

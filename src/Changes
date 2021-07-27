@@ -1,5 +1,25 @@
 Version 6.3
 
+7/26/21  [EDGcpfe/24558]
+Error in subsumption algorithm
+
+Consider:
+
+  template<typename T> concept A = true;
+  template<typename T> concept B = true;
+  template<typename T> concept C =  A<T> && B<T>;
+  template<typename T> struct S;
+  template<B T> struct S<T> {};  // (1)
+  template<C T> struct S<T> {};  // (2)
+  S<int> s;
+
+(2) is more specialized than (1) because constraint C<T> subsumes constraint
+B<T> and the reverse is not true.  However, an error in the algorithm
+determining subsumption caused "the reverse" also to be considered true, which
+in turn caused the front end to consider (1) and (2) ambiguous matches for
+S<int>.  That is now fixed.
+
+
 7/23/21  [EDGcpfe/24489]
 C++-generating back end: inaccessible static data member as template argument
 
