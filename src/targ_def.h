@@ -1540,10 +1540,10 @@ typedef struct an_integer_value {
 The printf formatting specifier to be used to print a host large integer.
 */
 #ifndef PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER
-#define PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER "%ld"  /* long */
+#define PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER "%td"  /* ptrdiff_t */
 #endif /* ifndef PRINTF_FORMAT_FOR_HOST_LARGE_INTEGER */
 #ifndef PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED
-#define PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED "%lu"  /* unsigned long */
+#define PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED "%zu"  /* size_t */
 #endif /* ifndef PRINTF_FORMAT_FOR_HOST_LARGE_UNSIGNED */
 
 #endif /* INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
