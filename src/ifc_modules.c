@@ -3136,8 +3136,7 @@ Record the information needed to retrieve a definition for rp if it turns out
 to be needed later on.
 */
 {
-  an_ifc_function_body  prev;
-  prev = ifc_function_bodies->map_or_replace(
+  (void)ifc_function_bodies->map_or_replace(
                             rp, an_ifc_function_body{ decl_idx, ifc_module });
 #if CHECKING
   // FIXME: We should check that rp is from a header unit.  That should be the
