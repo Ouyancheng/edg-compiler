@@ -87,6 +87,9 @@ extern void add_end_of_construct_source_sequence_entry(
                                                 char                   *ptr,
                                                 a_byte_il_entry_kind   kind);
 
+extern a_source_sequence_entry_ptr matching_end_of_construct(
+                                           a_source_sequence_entry_ptr  head);
+
 extern void insert_src_seq_list(a_source_sequence_entry_ptr  head,
                                 a_source_sequence_entry_ptr  tail,
                                 a_scope_depth                scope_depth,
@@ -134,6 +137,13 @@ extern void f_remove_from_src_seq_list(a_source_sequence_entry_ptr ssep,
 
 #define remove_from_src_seq_list(ssep)                                 \
   f_remove_from_src_seq_list((ssep), depth_scope_stack)
+
+#if GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
+
+extern void remove_src_seq_list(a_source_sequence_entry_ptr  head,
+                                a_source_sequence_entry_ptr  tail);
+
+#endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
 
 extern a_source_sequence_entry_ptr last_matching_source_sequence_entry(
                                                                char *entity);

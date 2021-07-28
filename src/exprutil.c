@@ -6606,6 +6606,27 @@ function).  In such cases, record a pending diagnostic if appropriate.
   return result;
 }  /* consteval_failure */
 
+#if GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
+
+static void eliminate_stmt_expr_sses_if_backing_expr_dropped(
+                                                        an_expr_node_ptr  expr,
+                                                        a_constant_ptr    con)
+/*
+expr is an expression that was folded to con.  If con dropped the backing
+expression (con->expr == NULL) eliminate any source sequence entries associated
+with GNU statement expressions in expr.
+*/
+{
+  if (expr_stack->statement_expression_seen &&
+      expr != NULL && con->expr == NULL) {
+    eliminate_statement_expr_src_seq_entries(expr);
+  }  /* if */
+}  /* eliminate_stmt_expr_sses_if_backing_expr_dropped */
+
+#else /* !(GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS) */
+#define eliminate_stmt_expr_sses_if_backing_expr_dropped(expr, con) \
+  /* Nothing */
+#endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
 
 static a_boolean expr_fold_constexpr_call(an_expr_node_ptr  call_expr,
                                           a_routine_ptr     *p_rout,
@@ -6653,6 +6674,7 @@ the call target).
     folded = interpret_constexpr_call(call_expr, is_consteval, result_con,
                                       diag_list);
     if (folded) {
+      eliminate_stmt_expr_sses_if_backing_expr_dropped(call_expr, result_con);
       make_constant_operand(result_con, result);
       result->position = call_expr->position;
       if (is_reference_type(result->type)) {
@@ -9854,6 +9876,8 @@ user-defined conversions.
               expr_stack->any_suppressed_error = saved_any_error;
             }  /* if */
           }  /* if */
+          eliminate_stmt_expr_sses_if_backing_expr_dropped(
+                                   operand->variant.constant.expr, local_con);
           make_constant_operand(local_con, operand);
           restore_operand_form_of_name_reference(operand, &orig_operand);
         }  /* if */

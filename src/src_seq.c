@@ -1358,6 +1358,27 @@ with: It considers all active scopes if needed.
   }  /* if */
 }  /* remove_src_seq_entry */
 
+#if GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
+
+void remove_src_seq_list(a_source_sequence_entry_ptr  head,
+                         a_source_sequence_entry_ptr  tail)
+/*
+Call remove_src_seq_entry for each entry in the consecutive entries from head
+to tail.
+*/
+{
+  a_source_sequence_entry_ptr  next_head = head->next;
+
+  for (;;) {
+    a_boolean  is_last = head == tail;
+    remove_src_seq_entry(head);
+    if (is_last) break;
+    head = next_head;
+    next_head = head->next;
+  }  /* for */
+}  /* remove_src_seq_list */
+
+#endif /* GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS */
 
 a_src_seq_secondary_decl_ptr make_source_sequence_secondary_decl(
                                             char               *ptr,
@@ -2529,7 +2550,7 @@ may do fixup on entities pointed to by source-sequence entries it removes.
 }  /* drop_tag_def_from_src_seq_list */
 
 
-static a_source_sequence_entry_ptr matching_end_of_construct(
+a_source_sequence_entry_ptr matching_end_of_construct(
                                             a_source_sequence_entry_ptr  head)
 /*
 The given source sequence entry is the first of a construct represented by a
@@ -2542,10 +2563,13 @@ entry representing that marker.
   for (;; ssep = ssep->next) {
     a_src_seq_end_of_construct_ptr  sseocp;
     check_assertion_str(ssep != NULL, "Missing end-of-construct marker");
-    sseocp =  ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr);
-    if (sseocp->entity.ptr == head->entity.ptr) {
-      /* We've found the end-of-construct marker. */
-      break;
+    if (ss_entry_kind(ssep) ==
+                             (an_il_entry_kind)iek_src_seq_end_of_construct) {
+      sseocp =  ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr);
+      if (sseocp->entity.ptr == head->entity.ptr) {
+        /* We've found the end-of-construct marker. */
+        break;
+      }  /* if */
     }  /* if */
   }  /* for */
   return ssep;
