@@ -2550,32 +2550,6 @@ may do fixup on entities pointed to by source-sequence entries it removes.
 }  /* drop_tag_def_from_src_seq_list */
 
 
-a_source_sequence_entry_ptr matching_end_of_construct(
-                                            a_source_sequence_entry_ptr  head)
-/*
-The given source sequence entry is the first of a construct represented by a
-sequence terminated by an end-of-construct marker.  Return the source sequence
-entry representing that marker.
-*/
-{
-  a_source_sequence_entry_ptr  ssep = head;
-
-  for (;; ssep = ssep->next) {
-    a_src_seq_end_of_construct_ptr  sseocp;
-    check_assertion_str(ssep != NULL, "Missing end-of-construct marker");
-    if (ss_entry_kind(ssep) ==
-                             (an_il_entry_kind)iek_src_seq_end_of_construct) {
-      sseocp =  ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr);
-      if (sseocp->entity.ptr == head->entity.ptr) {
-        /* We've found the end-of-construct marker. */
-        break;
-      }  /* if */
-    }  /* if */
-  }  /* for */
-  return ssep;
-}  /* matching_end_of_construct */
-
-
 /* Forward declarations. */
 static a_source_sequence_entry_ptr drop_decltype_from_src_seq_list(
                                             a_source_sequence_entry_ptr  ssep);
@@ -2797,6 +2771,32 @@ sequence entry that follows the entry or entries removed.
 }  /* drop_from_fs_src_seq_list */
 
 #endif /* MAINTAIN_NEEDED_FLAGS */
+
+a_source_sequence_entry_ptr matching_end_of_construct(
+                                            a_source_sequence_entry_ptr  head)
+/*
+The given source sequence entry is the first of a construct represented by a
+sequence terminated by an end-of-construct marker.  Return the source sequence
+entry representing that marker.
+*/
+{
+  a_source_sequence_entry_ptr  ssep = head;
+
+  for (;; ssep = ssep->next) {
+    a_src_seq_end_of_construct_ptr  sseocp;
+    check_assertion_str(ssep != NULL, "Missing end-of-construct marker");
+    if (ss_entry_kind(ssep) ==
+                             (an_il_entry_kind)iek_src_seq_end_of_construct) {
+      sseocp =  ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr);
+      if (sseocp->entity.ptr == head->entity.ptr) {
+        /* We've found the end-of-construct marker. */
+        break;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return ssep;
+}  /* matching_end_of_construct */
+
 
 static void promote_src_seq_sublists_to_file_scope_list(a_scope_ptr  sp)
 /*
