@@ -4421,7 +4421,7 @@ class_struct_union_case:
             cache_sentence(&cache, idscp->body);
             /* Terminate the definition cache and parse it. */
             terminate_token_cache(&cache);
-            il_entity = parse_cached_template(&cache, mep->scope);
+            il_entity = (char*)parse_cached_template(&cache, mep->scope);
             kind = iek_template;
             /* Restore the original context. */
             pop_module_declaration_context(must_pop);
