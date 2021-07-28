@@ -3503,7 +3503,8 @@ the appropriate IL entity, or, when defer is TRUE, mark the appropriate
 symbol header as having a deferred module entity (which will be lazily loaded
 if referenced).  When enumeration_type is non-NULL, it represents the
 enumeration type for the enumerator being defined (and is added to the list of
-constants for that type).
+constants for that type).  If defer is FALSE, *mep is updated to record the
+principal associated IL entity.
 */
 {
   ifc_DeclSort             tag;
@@ -4420,7 +4421,8 @@ class_struct_union_case:
             cache_sentence(&cache, idscp->body);
             /* Terminate the definition cache and parse it. */
             terminate_token_cache(&cache);
-            (void)parse_cached_template(&cache, mep->scope);
+            il_entity = parse_cached_template(&cache, mep->scope);
+            kind = iek_template;
             /* Restore the original context. */
             pop_module_declaration_context(must_pop);
           }  /* if */
