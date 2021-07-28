@@ -4621,7 +4621,7 @@ Complete the definition of the class referred to by mep (if needed).
     scope_pushed = push_module_declaration_context(mep->scope);
     source_position_from_locus(&error_position, &idssp->locus);
     clear_token_cache(&cache, /*reusable=*/FALSE);
-    cache_decl_class(&cache, idssp);
+    cache_class_definition(&cache, idssp);
     terminate_token_cache(&cache);
 #if DEBUG
     if (db_flag_is_set("ms_ifc_token_def")) {
@@ -8563,8 +8563,11 @@ void an_ifc_module::cache_scope(a_token_cache_ptr  cache,
                                 ifc_ScopeIndex     scope,
                                 ifc_SourceLocation *locus)
 /*
-For the given scope, cache tokens corresponding to the definition of the scope.
-locus is the location of the scope.
+For the given IFC scope (i.e., a class or namespace definition), cache tokens
+corresponding to the brace-enclosed declarations of the scope (including the
+braces).  Note that in the case of a class "scope" this does not include the
+base class specifiers list.  locus is the location of the scope.  A null IFC
+scope is handled by not caching any tokens.
 */
 {
   an_ifc_Scope_Descriptor isd, *isdp;
@@ -10172,7 +10175,12 @@ initializer expression.  locus is the source location for the declaration.
         cache_token(cache, tok_rbrace, pos);
       }  /* if */
     }  /* if */
-    cache_token(cache, tok_semicolon, pos);
+    if (cache->last_token->token != tok_semicolon) {
+      /* Add a terminating semicolon, unless one was already added (which can
+         happen when the initializer cached by cache_expr above is of kind
+         ifc_ExprSort_Tokens). */
+      cache_token(cache, tok_semicolon, pos);
+    }  /* if */
   };
   cache_variable_decl(cache, decl_idx, is_class_member, access,
                       specifiers, traits, alignment, type,
@@ -10245,11 +10253,13 @@ declaration.
 }  /* cache_function_decl */
 
 
-void an_ifc_module::cache_decl_class(a_token_cache_ptr     cache,
-                                     an_ifc_DeclSort_Scope *decl)
+void an_ifc_module::cache_class_definition(a_token_cache_ptr     cache,
+                                           an_ifc_DeclSort_Scope *decl)
 /*
-Add the tokens corresponding to the given class declaration (decl) to cache.
-This will not cache the class name and type (class/struct/union).
+Add the tokens corresponding to the given class definition (decl) to cache.
+The cached tokens are suitable for parsing with scan_class_definition (i.e.,
+the first token is a colon introducing base classes or a left brace introducing
+the member declarations).
 */
 {
   a_source_position pos;
@@ -10261,7 +10271,7 @@ This will not cache the class name and type (class/struct/union).
   }  /* if */
   cache_scope(cache, decl->initializer, &decl->locus);
   cache_token(cache, tok_semicolon, &pos);
-}  /* cache_decl_class */
+}  /* cache_class_definition */
 
 
 uint32_t an_ifc_module::try_cache_class_attributes_from_body(
