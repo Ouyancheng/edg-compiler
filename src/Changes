@@ -3,10 +3,10 @@ Version 6.3
 7/27/21  [EDGcpfe/23803]
 Source sequence entries and folded GNU statement expressions
 
-In configurations with IL_SHOULD_BE_WRITTEN_TO_FILE,GNU_EXTENSIONS_ALLOWED, and
-GENERATE_SOURCE_SEQUENCE_LISTS set to TRUE, the front end could abort with an
-IL write-read error when a GNU statement expression was eliminated from the IL
-due to folding.  For example:
+In configurations with IL_SHOULD_BE_WRITTEN_TO_FILE, GNU_EXTENSIONS_ALLOWED,
+and GENERATE_SOURCE_SEQUENCE_LISTS set to TRUE, the front end could abort with
+an IL write-read error when a GNU statement expression was eliminated from the
+IL due to folding.  For example:
 
   constexpr int f(int x) { return x; }
   int g() {

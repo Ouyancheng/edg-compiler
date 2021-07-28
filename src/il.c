@@ -24109,8 +24109,8 @@ Return whether expr contains a statement expression (a GNU extension).
 #if GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
 
 static void remove_statement_expr_src_seq_entries(
-                                   an_expr_node_ptr                    expr,
-                                   an_expr_or_stmt_traversal_block_ptr tblock)
+                        an_expr_node_ptr                               expr,
+                        ARG_UNUSED an_expr_or_stmt_traversal_block_ptr tblock)
 /*
 Called from traverse_expr to remove the source sequence entries associated
 with any statement expression.
@@ -24118,11 +24118,12 @@ with any statement expression.
 {
   if (expr->kind == (a_statement_kind)enk_statement) {
     a_source_sequence_entry_ptr
-                        head = expr->variant.statement->source_sequence_entry,
-                        tail = matching_end_of_construct(head);
-    remove_src_seq_list(head, tail);
+                        head = expr->variant.statement->source_sequence_entry;
+    if (head != NULL) {
+      remove_src_seq_list(head, matching_end_of_construct(head));
+    }  /* if */
   }  /* if */
-}  /* check_expr_for_statement_expression */
+}  /* remove_statement_expr_src_seq_entries */
 
 void eliminate_statement_expr_src_seq_entries(an_expr_node_ptr  expr)
 /*
