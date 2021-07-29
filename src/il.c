@@ -23291,10 +23291,15 @@ doing nothing should be suppressed.
     case enk_yield:
       has_side_effects = TRUE;
       break;
+    case enk_fold:
+      /* A generic representation of a fold-expression.  The generic nature
+         of this operation means that we do not know if it will produce a
+         side-effect after substitution.  Assume it will. */
+      has_side_effects = TRUE;
+      break;
     case enk_braced_init_list:
     case enk_type_operand:
     case enk_param_ref:
-    case enk_fold:
     case enk_requires:
     case enk_compound_req:
     case enk_nested_req:
