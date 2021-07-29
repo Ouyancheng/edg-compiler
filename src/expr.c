@@ -42437,52 +42437,50 @@ suspend point.
   }  /* if */
   utp = skip_typerefs(operand->type);
   if (is_immediate_class_type(utp)) {
-    an_operand *resume_selector;
-    an_operand *suspend_selector;
+    an_operand orig_operand;
     an_operand resume_operand;
     an_operand suspend_operand;
+    copy_operand(operand, &orig_operand);
     /* Call the await_ready, await_suspend, and await_resume member
        functions. */
     call_named_member_function(operand, "await_ready",
                                (a_template_arg_ptr)NULL,
                                (an_arg_list_elem_ptr)NULL,
-                               operand, &ready_call);
+                               &orig_operand, &ready_call);
     if (!is_constant_operand(&ready_call)) {
       /* We can't use the original operand because it's been incorporated
          into the await_ready call, so make a clone for use in the
          await_resume call. */
-      resume_selector = &resume_operand;
-      clone_operand(operand, resume_selector, /*vars_can_change=*/TRUE,
+      clone_operand(&orig_operand, &resume_operand, /*vars_can_change=*/TRUE,
                     &temp_init_used, /*treat_as_potential_prvalue=*/TRUE);
     } else {
       /* The await_ready call folded to a constant, so the original operand
          isn't yet in the IL; just use it directly for the await_resume
          call. */
-      resume_selector = operand;
+      copy_operand(&orig_operand, &resume_operand);
     }  /* if */
-    call_named_member_function(resume_selector, "await_resume",
+    call_named_member_function(&resume_operand, "await_resume",
                                (a_template_arg_ptr)NULL,
                                (an_arg_list_elem_ptr)NULL,
-                               resume_selector, &resume_call);
+                               &orig_operand, &resume_call);
     if (!is_constant_operand(&ready_call) ||
         !is_constant_operand(&resume_call)) {
       /* The original operand has been incorporated into one of the
          preceding calls, so clone it for use in the await_suspend call. */
-      suspend_selector = &suspend_operand;
-      clone_operand(operand, suspend_selector, /*vars_can_change=*/TRUE,
+      clone_operand(&orig_operand, &suspend_operand, /*vars_can_change=*/TRUE,
                     &temp_init_used, /*treat_as_potential_prvalue=*/TRUE);
     } else {
       /* Both preceding calls folded to constants, so the original operand
          is usable in the await_suspend call. */
-      suspend_selector = operand;
+      copy_operand(&orig_operand, &suspend_operand);
     }  /* if */
     /* await_suspend takes an argument that is the handle of the coroutine. */
     make_lvalue_variable_operand(cdp->handle, pos, pos, &var_operand,
                                  (a_ref_entry *)NULL);
     alep = alloc_arg_list_elem_for_operand(&var_operand);
-    call_named_member_function(suspend_selector, "await_suspend",
+    call_named_member_function(&suspend_operand, "await_suspend",
                                (a_template_arg_ptr)NULL, alep,
-                               suspend_selector, &suspend_call);
+                               &orig_operand, &suspend_call);
     free_arg_list(alep);
   } else {
     pos_stty_error(ec_await_operand_not_a_class, pos,
