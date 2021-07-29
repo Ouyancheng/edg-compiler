@@ -17,25 +17,6 @@ effects. That is now fixed (i.e., the warning is no longer emitted in these
 cases).
 
 
-7/29/21  [EDGcpfe/24519]
-Abort on failure to substitute an explicit call to a conversion function
-
-Consider:
-
-  struct S {
-    S(S const&) = default;
-    template<class R> requires (!requires(R r) { r.operator S(); })
-      S(R &&) {}
-  };
-  S g(S s) {
-    return s;  // Previously triggered an abort.
-  }
-
-Previously this triggered an abort (a null pointer indirection) in
-get_locator_for_rescanned_selection_second_operand (expr.c) during the
-substution of "r.operator S()" in the requires-expression.  That is now fixed.
-
-
 7/28/21  [EDGcpfe/23954,EDGcpfe/24560]
 Assertion failure in lower_reuse_value_expr with co_await expression
 
