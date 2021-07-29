@@ -8567,7 +8567,7 @@ void an_ifc_module::cache_scope(a_token_cache_ptr  cache,
 /*
 For the given IFC scope (i.e., a class or namespace definition), cache tokens
 corresponding to the brace-enclosed declarations of the scope (including the
-braces).  Note that in the case of a class "scope" this does not include the
+braces).  Note that in the case of a class scope this does not include the
 base class specifiers list.  locus is the location of the scope.  A null IFC
 scope is handled by not caching any tokens.
 */
