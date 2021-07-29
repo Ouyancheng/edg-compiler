@@ -1,5 +1,15 @@
 Version 6.3
 
+7/28/21  [EDGcpfe/23954,EDGcpfe/24560]
+Assertion failure in lower_reuse_value_expr with co_await expression
+
+Although coroutine constructs currently are not lowered, the intent is they
+should be usable in configurations that do lowering; they simply remain
+unchanged in the lowered IL.  In certain cases, however, the IL for a
+co_await expression could result in an assertion failure in
+lower_reuse_value_expr.  This is now fixed.
+
+
 7/27/21  [EDGcpfe/23803]
 Source sequence entries and folded GNU statement expressions
 
