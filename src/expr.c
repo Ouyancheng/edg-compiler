@@ -8409,7 +8409,7 @@ a left parenthesis in the source.
                                                          eriep,
                                                          &is_template_id,
                                                          &expl_templ_arg_list);
-        if (is_conversion_func && sym->is_unknown_function &&
+        if (is_conversion_func && sym != NULL && sym->is_unknown_function &&
             symbol_is(sym, sk_constant)) {
           a_constant_ptr  conv_con = sym->variant.constant;
           if (constant_is(conv_con, ck_template_param) &&
