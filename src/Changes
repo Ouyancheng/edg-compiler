@@ -117,7 +117,7 @@ namespace members, which had the effect of disabling the more extensive
 checking that would otherwise be done later (e.g., to suppress warnings
 on variable declarations with side-effects).  The special processing is
 now done only for namespace scope unnamed namespace members.  Other
-declarations are handled the same way as if there were in a named namespace.
+declarations are handled the same way as if they were in a named namespace.
 
   template <typename T> struct A { A(T); };
   namespace {
