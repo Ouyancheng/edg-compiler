@@ -108,16 +108,17 @@ That is now fixed.
 
 
 7/27/21  [EDGcpfe/24379]
-Diagnostic for unused declarations in unnamed namespace members
+Diagnostic for unused declarations in members of an unnamed namespace
 
-The front end issues diagnostics for unused unnamed namespace members
-because they are known to not be used elsewhere.   This processing was
-incorrectly applied to declarations such as local variables of unnamed
-namespace members, which had the effect of disabling the more extensive
-checking that would otherwise be done later (e.g., to suppress warnings
-on variable declarations with side-effects).  The special processing is
-now done only for namespace scope unnamed namespace members.  Other
-declarations are handled the same way as if they were in a named namespace.
+The front end issues diagnostics for unused members of an unnamed namespace
+(or a namespace nested within an unnamed namespace) because they are known
+to not be used elsewhere.  This processing was incorrectly applied to
+declarations such as local variables of members of an unnamed namespace,
+which had the effect of disabling the more extensive checking that would
+otherwise be done later (e.g., to suppress warnings on variable declarations
+with side-effects).  The special processing is now done only for namespace
+scope members of an unnamed namespace.  Other declarations are handled the
+same way as if they were in a named namespace.
 
   template <typename T> struct A { A(T); };
   namespace {
