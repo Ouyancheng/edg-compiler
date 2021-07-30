@@ -6058,11 +6058,26 @@ an unnamed namespace.
     } else if ((vp->used || var_sym->value_has_been_set) &&
                !vp->is_member_constant && !var_sym->defined) {
       an_error_severity severity = es_discretionary_error;
-      if (gnu_mode || microsoft_mode) {
+      if (microsoft_mode) {
         severity = es_warning;
+      } else if (gnu_mode) {
+        if (sdm_supp(var_sym) != NULL &&
+            sdm_supp(var_sym)->token_cache != NULL) {
+          /* In g++ and clang modes, the is_member_constant flag of a
+             static data member of a class template instance is only set
+             when its initializer is instantiated.  The presence of a token
+             cache for this static data member indicates that that did not
+             occur, so avoid issuing a diagnostic that might prove to be
+             erroneous if the initializer were instantiated. */
+          severity = es_none;
+        } else {
+          severity = es_warning;
+        }  /* if */
       }  /* if */
-      pos_sy_diagnostic(severity, ec_never_defined,
-                        &vp->source_corresp.decl_position, var_sym);
+      if (severity != es_none) {
+        pos_sy_diagnostic(severity, ec_never_defined,
+                          &vp->source_corresp.decl_position, var_sym);
+      }  /* if */
     }  /* if */
   }  /* if */
   /* Check if this variable was declared using a type with no linkage.  The

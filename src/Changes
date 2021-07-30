@@ -1,5 +1,24 @@
 Version 6.3
 
+7/29/21  [EDGcpfe/24473]
+Spurious warning for static data member of unnamed namespace class template
+
+In g++ and clang modes, the front end sometimes issued a spurious
+"referenced but not defined" warning for a static data member of an
+instance of a class template that is defined in an unnamed namespace.  This
+is now fixed.  For example, with --g++:
+
+  namespace {
+    template <typename T> struct S {
+      static const T m = 0;
+    };
+  }
+  int f(const int &v = S<int>::m) {  // Previously caused "referenced but not
+                                     // defined" warning for S<int>::m
+    return v;
+  }
+
+
 7/29/21  [EDGcpfe/24519]
 Abort on failure to substitute an explicit call to a conversion function
 
