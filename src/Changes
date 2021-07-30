@@ -1,5 +1,20 @@
 Version 6.3
 
+7/30/21  [EDGcpfe/24167]
+__has_unique_object_representations and incomplete template classes
+
+Consider:
+
+  template<typename> struct S { int i; };
+  static_assert(__has_unique_object_representations(S<int>));
+      // Now okay with MSVC and GCC, but not with Clang.
+
+Previously, the front end did not force the instantiation of a template class
+passed to the __has_unique_object_representations type trait helper (see also
+the entry for EDGcpfe/17964,EDGcpfe/17999), and thus the assertion check
+failed.  Now, that instantiation is forced, except in Clang mode.
+
+
 7/30/21  [EDGcpfe/24165]
 Empty expansion of throw-specification accidentally dropped in Microsoft mode
 

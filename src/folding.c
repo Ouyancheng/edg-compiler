@@ -8405,6 +8405,16 @@ architectures for which these assumptions are not valid.
 
   type = skip_typerefs(type);
   if (is_immediate_class_type(type)) {
+    if (!clang_mode) {
+      /* We're about the check trivial copyability, which can only be TRUE for
+         complete class types.  So perform an instantiation if needed.  Clang
+         appears not to do that (checked in version 12).  For example:
+             template<typename> struct S { int i; };
+             static_assert(__has_unique_object_representations(S<int>));
+                 // Okay with MSVC and GCC, but not with Clang.
+         Clang accepts the assertion if, e.g., "S<int> s;" precedes it. */
+      complete_type_is_needed(type);
+    }  /* if */
     if (!is_trivially_copyable_type(type)) {
       /* The result is false for a type that is not trivially copyable. */
       result = FALSE;
