@@ -11025,9 +11025,16 @@ definition of a member function of a class template.
       (void)check_exception_specification(type_ptr, sym,
                                     &func_info->throw_position,
                                     /*is_redecl=*/TRUE);
+      if (dps->is_definition) {
+        // FIXME UPdate decl cache here?
+      }  /* if */
       /* Merge type information from the two declarations. */
-      reconcile_routine_types(rout_ptr, type_ptr, /*preserve_rout_type=*/TRUE,
-                              /*preserve_type_ptr=*/FALSE, dps);
+      reconcile_routine_types(rout_ptr, type_ptr,
+                              /*preserve_rout_type=*/
+                                      (microsoft_mode || !dps->is_definition),
+                              /*preserve_type_ptr=*/
+                                     !(microsoft_mode || !dps->is_definition),
+                              dps);
       /* Merge the default template argument information. */
       (void)reconcile_template_param_lists(
                                 decl_state->decl_info->parameters,

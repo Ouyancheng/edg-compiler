@@ -1860,7 +1860,9 @@ actually declares a function, member function, or function template).
   if (esp != NULL) {
     check_assertion(!esp->indeterminate);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (ms_extensions && microsoft_version >= 1300 && esp != NULL) {
+    if (ms_extensions && microsoft_version >= 1300 && esp != NULL &&
+        !is_noexcept &&
+        esp->variant.exception_specification_type_list != NULL) {
       /* Some versions of Microsoft C++ treat any non-empty exception
          specification as "throw (...)". */
       esp->variant.exception_specification_type_list = NULL;

@@ -1,5 +1,20 @@
 Version 6.3
 
+7/30/21  [EDGcpfe/24165]
+Empty expansion of throw-specification accidentally dropped in Microsoft mode
+
+Consider:
+
+  template<typename... Ts> int f() throw(Ts...);
+  int (*pf)() throw() = f<>;  // Previously an error in Microsoft mode.
+                              // Now okay.
+
+Previously, the empty expansion of "throw(Ts...)" in Microsoft mode caused the
+whole throw-specification to be dropped instead of handled as "throw()".  That
+in turn caused an error about incompatible exception specifications to be
+emitted.  That is now fixed.
+
+
 7/30/21  [EDGcpfe/24375]
 Diagnostic for an attempt to explicitly specialize an alias template
 
