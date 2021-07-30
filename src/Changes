@@ -1,5 +1,18 @@
 Version 6.3
 
+7/30/21  [EDGcpfe/24375]
+Diagnostic for an attempt to explicitly specialize an alias template
+
+The diagnostic previously issued for an attempt to explicitly specialize an
+alias template was a somewhat cryptic "expected an identifier" designating
+the "using" keyword.  This has now been changed to a more descriptive
+message referring to the beginning of the declaration.  For example, with
+--c++14:
+
+  template<typename T> using U = void;
+  template<> using U<int> = int;  // Now a more informative error message
+
+
 7/29/21  [EDGcpfe/24473]
 Spurious warning for static data member of unnamed namespace class template
 

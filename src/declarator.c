@@ -6533,11 +6533,20 @@ declared entity is known to not be a function.
       /* Advance past the destructor. */
       (void)get_token();
     } else {
+      an_error_code error_code;
+      if (curr_token == tok_using && dps->is_explicit_specialization) {
+        /* Give a more descriptive message for an attempt to explicitly
+           specialize an alias template. */
+        error_code = ec_expl_spec_alias_template;
+        error_position = dps->start_pos;
+      } else {
+        error_code = ec_exp_identifier;
+      }  /* if */
       add_stop_token(tok_lparen);
       add_stop_token(tok_lbracket);
       set_to_error_locator(*locator);
       copy_source_position(pos_curr_token, locator->source_position);
-      syntax_error(ec_exp_identifier);
+      syntax_error(error_code);
       remove_stop_token(tok_lparen);
       remove_stop_token(tok_lbracket);
       *parenthesized_initializer_allowed = FALSE;
