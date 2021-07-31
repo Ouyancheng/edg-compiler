@@ -1344,9 +1344,12 @@ of lambda expressions.
   a_boolean                      is_function_try_block = FALSE;
   a_pack_alignment_state         saved_pack_alignment_state;
   a_source_position              body_pos;
+  a_source_position              lbrace_pos;
 
   db_enter(3, "scan_function_body");
   body_pos = pos_curr_token;
+  lbrace_pos = (curr_token == tok_lbrace) ? pos_curr_token
+                                          : null_source_position;
   if (rout_ptr->source_corresp.is_class_member) {
     class_type = parent_class_of(rout_ptr);
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -1896,8 +1899,10 @@ of lambda expressions.
       a_diag_list      diag_list;
       a_diagnostic_ptr dp = pos_start_error(ec_exp_rbrace, &pos_curr_token);
       clear_diag_list(&diag_list);
-      more_info_diagnostic(ec_matching_lbrace, &body_pos, &diag_list);
-      add_more_info_list(dp, &diag_list);
+      if (lbrace_pos.seq != 0) {
+        more_info_diagnostic(ec_matching_lbrace, &body_pos, &diag_list);
+        add_more_info_list(dp, &diag_list);
+      }  /* if */
       end_diagnostic(dp);
     }  /* if */
   }  /* if */
