@@ -60,6 +60,24 @@ pointer to the first character of the resulting null-terminated string.
 }  /* remove_digit_separators */
 
 
+static void trim_integer_value_to_kind(an_integer_value  *p_value,
+                                       an_integer_kind   kind)
+/*
+Mask off the bits on the left of the most-significant bit of *p_value assuming
+it represents an integer of the given kind.  That might mean that
+sign-extension might be needed later on.
+*/
+{
+  a_targ_size_t     size;
+  a_targ_alignment  alignment;
+  an_integer_value  mask;
+
+  get_integer_size_and_alignment(kind, &size, &alignment);
+  make_integer_value_mask(&mask, (int)(size*targ_char_bit));
+  and_integer_values(p_value, &mask);
+}  /* trim_integer_value_to_kind */
+
+
 void conv_integer_literal(int           radix,
                           an_error_code *err_code,
                           a_const_char  **err_pos)
@@ -400,18 +418,13 @@ pcc_kind_established:
       kind = isuffix_kind;
       /* If necessary, truncate the constant to the size specified. */
       if (!le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE, kind)) {
-        a_targ_size_t    size;
-        a_targ_alignment alignment;
-
         /* The constant doesn't fit in the integer kind. */
         /* Convert the character position into an error position. */
         conv_line_loc_to_source_pos(start_of_curr_token, &error_position);
         pos_warning(ec_integer_too_large, &error_position);
         /* Mask off any bits past the end of the integer. */
+        trim_integer_value_to_kind(&number, kind);
         do_sign_extension = int_kind_is_signed[kind];
-        get_integer_size_and_alignment(kind, &size, &alignment);
-        make_integer_value_mask(&mask, (int)(size*targ_char_bit));
-        and_integer_values(&number, &mask);
       }  /* if */
       goto kind_established;
     }  /* if */
@@ -425,6 +438,30 @@ pcc_kind_established:
         le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
                                      (an_integer_kind)ik_int)) {
       kind = (an_integer_kind)ik_int;
+      goto kind_established;
+    } else if (!has_u_suffix && microsoft_mode &&
+               (microsoft_version < 1924 ? TRUE :
+                microsoft_version < 1928 ? radix != 10 || ms_permissive
+                                         : radix != 10 ||
+                                           (ms_permissive && !cpp20_mode)) &&
+               le_max_integer_value_of_kind(
+                                          &number, /*is_signed=*/FALSE,
+                                          (an_integer_kind)ik_unsigned_int)) {
+      /* Earlier versions of MSVC appear to use "int" type even if the value
+         overflows into the "unsigned int" range.  MSVC 19.24 fixes that in
+         non-permissive modes, but only for decimal forms.  MSVC 19.28 also
+         fixes the decimal form handling in "c++latest" mode.  For example:
+             auto x = 0x80000000;
+             auto y = 2147483648;  // Decimal version of 0x80000000
+             static_assert(sizeof(x) == sizeof(int), "");  // (1)
+             static_assert(sizeof(y) == sizeof(int), "");  // (2)
+         (1) is always accepted by MSVC (as of 19.28).  (2) is usually accepted
+         except in non-permissive mode starting with MSVC 19.24, and in
+         "c++latest" mode starting with MSVC 19.28.  */
+      kind = (an_integer_kind)ik_int;
+      /* Mask off any bits past the end of the integer. */
+      trim_integer_value_to_kind(&number, kind);
+      do_sign_extension = TRUE;
       goto kind_established;
     } else if ((has_u_suffix || radix != 10) &&
                le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,

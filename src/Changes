@@ -1,5 +1,26 @@
 Version 6.3
 
+7/30/21  [EDGcpfe/24363]
+Type of decimal integer literals with nosuffix
+
+Consider:
+
+  constexpr auto x = 0x80000000;
+  constexpr auto y = 2147483648;  // Decimal version of 0x80000000
+  static_assert(sizeof(x) == sizeof(int), "");  // (1)
+  static_assert(x == -2147483648, "");          // (2)
+  static_assert(sizeof(y) == sizeof(int), "");  // (3)
+  static_assert(y == -2147483648, "");          // (4)
+
+assuming a 32-bit representation of type int.  Ordinarily, the type of x and y 
+cannot be int, because the initializer does not fit in that representation.
+Microsoft's compiler (MSVC), however, will always give x type int and thus
+satisfy assertions (1) and (2).  It will often also satisfy assertions (3) and
+(4), except starting with MSVC 19.24 when permissive mode is off, and starting
+with 19.28 when "c++latest" mode is enabled.  The front end now emulates these
+behaviors in its corresponding modes.
+
+
 7/30/21  [EDGcpfe/24167]
 __has_unique_object_representations and incomplete template classes
 
