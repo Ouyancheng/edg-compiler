@@ -38041,7 +38041,7 @@ and return a corresponding enk_compound_requirement node.
   result->type = void_type();
   result->position = pos_curr_token;
 
-  /* Skip the right brace. */
+  /* Skip the left brace. */
   (void)get_token();
   add_stop_token(tok_semicolon);
   add_stop_token(tok_rbrace);
@@ -38060,7 +38060,8 @@ and return a corresponding enk_compound_requirement node.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  (void)required_token(tok_rbrace, ec_exp_rbrace);
+  (void)required_token(tok_rbrace, ec_exp_rbrace, ec_matching_lbrace,
+                       &result->position);
   remove_stop_token(tok_rbrace);
   result->variant.compound_req.expr_and_constraint = expr;
 
@@ -38188,6 +38189,7 @@ Record the representation or the requires-expression in *result.
     /* This is the first time this requires-expression is encountered: Parse
        it. */
     a_decl_parse_state  dps;
+    a_source_position   lbrace_pos;
     add_stop_token(tok_rbrace);
     init_decl_parse_state(&dps);
     dps.for_requires_expr_params = TRUE;
@@ -38207,6 +38209,7 @@ Record the representation or the requires-expression in *result.
       switch_il_region(il_region);
       scope_stack_top().il_memory_region = il_region;
     }  /* if */
+    lbrace_pos = pos_curr_token;
     if (!required_token(tok_lbrace, ec_exp_lbrace)) {
       make_error_operand(result);
     } else {
@@ -38249,7 +38252,8 @@ done_with_requirements:
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       curr_construct_end_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-      (void)required_token(tok_rbrace, ec_exp_rbrace);
+      (void)required_token(tok_rbrace, ec_exp_rbrace, ec_matching_lbrace,
+                           &lbrace_pos);
       if (!is_template_dependent_context() &&
           !expr_stack->possible_rescan_context) {
         /* A non-dependent requires-expression is usually a "true" constant,

@@ -1,5 +1,19 @@
 Version 6.3
 
+7/30/21  [EDGcpfe/24376]
+More informative diagnostic for missing "}"
+
+Previously when the front end encountered a premature end of file when a
+closing right brace is required, it only reported that a "}" was expected.
+The front end has now been changed to indicate the opening left brace
+corresponding to the missing closing brace.  For example, the diagnostic
+for the following code now contains a note designating the "{" on the first
+line:
+
+  extern "C" {
+    int i;  // File ends here with no "}"
+
+
 7/30/21  [EDGcpfe/24363]
 Type of decimal integer literals with nosuffix
 

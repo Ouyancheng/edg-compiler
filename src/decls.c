@@ -13844,6 +13844,7 @@ specifier is restored.  dps describes the linkage-specification declaration.
      repeatedly.  If no brace follows, call declaration just once to pick
      up the rest of the current declaration. */
   if (curr_token == tok_lbrace) {
+    a_source_position lbrace_pos = pos_curr_token;
 #if GENERATE_SOURCE_SEQUENCE_LISTS && GENERATE_LINKAGE_SPEC_BLOCKS
     /* Add a source sequence entry to indicate the start of the block (with a
        matching end-of-construct entry to follow below). */
@@ -13885,7 +13886,12 @@ specifier is restored.  dps describes the linkage-specification declaration.
        but don't advance past it -- that is handled in translation_unit. */
     remove_stop_token(tok_rbrace);
     if (curr_token != tok_rbrace) {
-      pos_error(ec_exp_rbrace, &pos_curr_token);
+      a_diag_list      diag_list;
+      a_diagnostic_ptr dp = pos_start_error(ec_exp_rbrace, &pos_curr_token);
+      clear_diag_list(&diag_list);
+      more_info_diagnostic(ec_matching_lbrace, &lbrace_pos, &diag_list);
+      add_more_info_list(dp, &diag_list);
+      end_diagnostic(dp);
     } else {
       /* Advance past right brace.  If the current declaration is a top-level
          declaration, set a global flag to enable checking for a header
@@ -15566,6 +15572,7 @@ it's a definition and NULL otherwise).
     }  /* if */
   } else {
     /* Namespace definition. */
+    a_source_position lbrace_pos;
     if (ns_sym == NULL) {
       if (locator.symbol_header == symbol_for_namespace_std->header &&
           depth_scope_stack == DEPTH_OF_FILE_SCOPE &&
@@ -15719,6 +15726,7 @@ it's a definition and NULL otherwise).
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     attach_attributes(attributes, (char*)nsp, iek_namespace);
+    lbrace_pos = pos_curr_token;
     if (is_enclosing_namespace_specifier && curr_token == tok_identifier) {
       /* For a nested namespace definition (e.g., "namespace N1::N2..."),
          recurse to process the remaining namespace names. */
@@ -15761,7 +15769,8 @@ it's a definition and NULL otherwise).
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (is_enclosing_namespace_specifier) {
       /* Any pragmas are only processed at the bottom of the recursion. */
-    } else if (required_token_no_advance(tok_rbrace, ec_exp_rbrace)) {
+    } else if (required_token_no_advance(tok_rbrace, ec_exp_rbrace,
+                                         ec_matching_lbrace, &lbrace_pos)) {
       /* Closing right brace was found. */
       cannot_bind_to_curr_construct();
     } else {
@@ -19498,6 +19507,7 @@ An export declaration can take the following forms:
     }  /* if */
     if (block_export) {
       a_decl_sequence_number old_decl_seq_counter = decl_seq_counter;
+      a_source_position      lbrace_pos = pos_curr_token;
       /* Advance past the "{". */
       add_stop_token(tok_rbrace);
       (void)get_token();
@@ -19509,7 +19519,8 @@ An export declaration can take the following forms:
                     (a_param_id_ptr)NULL, (a_source_range *)NULL);
       }  /* while */
       remove_stop_token(tok_rbrace);
-      (void)required_token(tok_rbrace, ec_exp_rbrace);
+      (void)required_token(tok_rbrace, ec_exp_rbrace, ec_matching_lbrace,
+                           &lbrace_pos);
       if (decl_seq_counter == old_decl_seq_counter) {
         pos_error(ec_export_must_introduce_name, &export_pos);
       }  /* if */

@@ -15322,12 +15322,16 @@ The current token is the token after the "if" or "else" keyword.
 }  /* flush_if_or_else_statement */
 
 
-a_boolean required_token(a_token_kind  token,
-			 an_error_code error_code)
+a_boolean required_token(a_token_kind      token,
+			 an_error_code     error_code,
+      /* Defaulted: */   an_error_code     matching_code,
+                         a_source_position *matching_start_pos)
 /*
-The current token is required to be "token".  If it is, advance normally
-by calling get_token.  If not, issue the error message and call flush_tokens.
-In either case, return TRUE if the required token showed up.
+The current token is required to be "token".  If it is, advance normally by
+calling get_token.  If not, issue an error message and call flush_tokens.
+The error message is specified by error_code; if matching_start_pos is
+non-NULL, add matching_code to the diagnostic.  In either case, return TRUE
+if the required token showed up.
 */
 {
   a_boolean token_present;
@@ -15342,7 +15346,20 @@ In either case, return TRUE if the required token showed up.
        else in the stop tokens set. */
     add_stop_token(token);
     set_err_pos_to_curr_token();
-    syntax_error(error_code);
+    if (matching_start_pos != NULL) {
+      /* There's a matching starting delimiter.  Put out the error message
+         with the stating delimiter message note and flush tokens. */
+      a_diag_list      diag_list;
+      a_diagnostic_ptr dp = pos_start_error(error_code, &error_position);
+      clear_diag_list(&diag_list);
+      more_info_diagnostic(matching_code, matching_start_pos, &diag_list);
+      add_more_info_list(dp, &diag_list);
+      end_diagnostic(dp);
+      flush_tokens();
+    } else {
+      /* Report the error and flush tokens. */
+      syntax_error(error_code);
+    }  /* if */
     remove_stop_token(token);
     /* If the token did show up, take it now. */
     token_present = (curr_token == token);
@@ -15355,12 +15372,16 @@ In either case, return TRUE if the required token showed up.
 }  /* required_token */
 
 
-a_boolean required_token_no_advance(a_token_kind  token,
-                                    an_error_code error_code)
+a_boolean required_token_no_advance(a_token_kind      token,
+                                    an_error_code     error_code,
+                 /* Defaulted: */   an_error_code     matching_code,
+                                    a_source_position *matching_start_pos)
 /*
-The current token is required to be "token".  If it is not, issue the error
-message and call flush_tokens.  Do not advance past the token if it is
-found, but do return TRUE.
+The current token is required to be "token".  If it is not, issue an error
+message and call flush_tokens.  The error message is specified by
+error_code; if matching_start_pos is non-NULL, add matching_code to the
+diagnostic.  Do not advance past the token if it is found, but do return
+TRUE.
 */
 {
   a_boolean token_present;
@@ -15374,7 +15395,20 @@ found, but do return TRUE.
        else in the stop tokens set. */
     add_stop_token(token);
     set_err_pos_to_curr_token();
-    syntax_error(error_code);
+    if (matching_start_pos != NULL) {
+      /* There's a matching starting delimiter.  Put out the error message
+         with the stating delimiter message note and flush tokens. */
+      a_diag_list      diag_list;
+      a_diagnostic_ptr dp = pos_start_error(error_code, &error_position);
+      clear_diag_list(&diag_list);
+      more_info_diagnostic(matching_code, matching_start_pos, &diag_list);
+      add_more_info_list(dp, &diag_list);
+      end_diagnostic(dp);
+      flush_tokens();
+    } else {
+      /* Report the error and flush tokens. */
+      syntax_error(error_code);
+    }  /* if */
     remove_stop_token(token);
     /* If the token did show up, take it now. */
     token_present = (curr_token == token);

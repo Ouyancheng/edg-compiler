@@ -31958,6 +31958,7 @@ classes.
       end_deferral_of_access_checks();
     }  /* if */
   } else {
+    a_source_position lbrace_pos = pos_curr_token;
     /* Scan the structure or union definition. */
     /* Start a scope for the fields and other members.  Since the class type
        is allocated in the file scope memory region, all its members must also
@@ -32406,7 +32407,8 @@ next_declaration:
       decl_pos_block->specifiers_range.end = pos_curr_token;
     }  /* if */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    (void)required_token(tok_rbrace, ec_exp_rbrace);
+    (void)required_token(tok_rbrace, ec_exp_rbrace, ec_matching_lbrace,
+                         &lbrace_pos);
     if (gnu_mode && curr_token == tok_attribute) {
       an_attribute_ptr  attributes =
                             scan_gnu_attribute_groups(al_post_tag_definition);

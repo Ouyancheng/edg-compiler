@@ -7847,6 +7847,7 @@ is being parsed within the context of the __extension__ keyword.
   a_boolean                  saved_sses_disallowed =
                                            source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  a_source_position          lbrace_pos;
 
   db_enter (3, "compound_statement");
 
@@ -7968,6 +7969,7 @@ is being parsed within the context of the __extension__ keyword.
      check; when a compound statement is the body of a function, it's
      required. */
   add_stop_token(tok_rbrace);
+  lbrace_pos = pos_curr_token;
   (void)required_token(tok_lbrace, ec_exp_lbrace);
   /* This is the only place within a compound statement where C99 and C++11
      predefined pragmas are permitted. */
@@ -8195,7 +8197,8 @@ is being parsed within the context of the __extension__ keyword.
     /* The "}" is left for the caller (scan_function_body) to handle. */
   } else {
     /* Check for the closing "}". */
-    (void)required_token(tok_rbrace, ec_exp_rbrace);
+    (void)required_token(tok_rbrace, ec_exp_rbrace, ec_matching_lbrace,
+                         &lbrace_pos);
   }  /* if */
   remove_stop_token(tok_rbrace);
 #if DEBUG

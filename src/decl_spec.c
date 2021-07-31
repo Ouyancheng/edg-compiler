@@ -5330,6 +5330,7 @@ is updated to reflect relevant positions of this definition.
   an_enum_symbol_supplement_ptr
                      essp;
   a_boolean          is_enum_template_definition = FALSE;
+  a_source_position  lbrace_pos;
 
   explicit_base = integer_type_supp(enum_type)->base_type;
   /* Determine whether this is the definition of a member enum that can be
@@ -5398,6 +5399,7 @@ is updated to reflect relevant positions of this definition.
      allocated in the file scope memory region, all its components should
      also be.  Switch to the file scope memory region here at the start of
      the definition and switch back when we reach the right brace. */
+  lbrace_pos = pos_curr_token;
   (void)required_token(tok_lbrace, ec_exp_lbrace);
   if (is_scoped_enum) {
     enum_type->variant.integer.enum_info.assoc_scope = 
@@ -5865,7 +5867,8 @@ is updated to reflect relevant positions of this definition.
                             class_tssp->cache.decl_info);
   }  /* if */
   /* Check for and pass over the closing "}". */
-  (void)required_token(tok_rbrace, ec_exp_rbrace);
+  (void)required_token(tok_rbrace, ec_exp_rbrace, ec_matching_lbrace,
+                       &lbrace_pos);
   if (is_scoped_enum) pop_scope();
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode && curr_token == tok_attribute) {

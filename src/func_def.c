@@ -1893,7 +1893,12 @@ of lambda expressions.
        anything other than a right brace, it's because we should start parsing
        on this token. */
     if (curr_token != tok_rbrace) {
-      pos_error(ec_exp_rbrace, &pos_curr_token);
+      a_diag_list      diag_list;
+      a_diagnostic_ptr dp = pos_start_error(ec_exp_rbrace, &pos_curr_token);
+      clear_diag_list(&diag_list);
+      more_info_diagnostic(ec_matching_lbrace, &body_pos, &diag_list);
+      add_more_info_list(dp, &diag_list);
+      end_diagnostic(dp);
     }  /* if */
   }  /* if */
   pop_stop_token_stack();

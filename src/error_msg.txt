@@ -3275,6 +3275,7 @@ ec_module_directive_in_if;;"a \"module\" directive cannot appear within the scop
 ec_import_skipped;;"the import of %sq has been skipped"
 ec_bad_gro_on_alloc_fail;;"promise type %t must declare get_return_object_on_allocation_failure as a static member function requiring no arguments"
 ec_expl_spec_alias_template;;"an alias template cannot be explicitly specialized"
+ec_matching_lbrace;;"to match this \"{\""
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
