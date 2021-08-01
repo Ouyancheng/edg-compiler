@@ -15323,15 +15323,15 @@ The current token is the token after the "if" or "else" keyword.
 
 
 a_boolean required_token(a_token_kind      token,
-			 an_error_code     error_code,
+                         an_error_code     error_code,
       /* Defaulted: */   an_error_code     matching_code,
                          a_source_position *matching_start_pos)
 /*
 The current token is required to be "token".  If it is, advance normally by
 calling get_token.  If not, issue an error message and call flush_tokens.
-The error message is specified by error_code; if matching_start_pos is
-non-NULL, add matching_code to the diagnostic.  In either case, return TRUE
-if the required token showed up.
+The error message is specified by error_code; if matching_start_pos
+designates a valid source position, add matching_code to the diagnostic.
+In either case, return TRUE if the required token showed up.
 */
 {
   a_boolean token_present;
@@ -15346,7 +15346,7 @@ if the required token showed up.
        else in the stop tokens set. */
     add_stop_token(token);
     set_err_pos_to_curr_token();
-    if (matching_start_pos != NULL) {
+    if (matching_start_pos != NULL && matching_start_pos->seq != 0) {
       /* There's a matching starting delimiter.  Put out the error message
          with the stating delimiter message note and flush tokens. */
       a_diag_list      diag_list;
@@ -15379,9 +15379,9 @@ a_boolean required_token_no_advance(a_token_kind      token,
 /*
 The current token is required to be "token".  If it is not, issue an error
 message and call flush_tokens.  The error message is specified by
-error_code; if matching_start_pos is non-NULL, add matching_code to the
-diagnostic.  Do not advance past the token if it is found, but do return
-TRUE.
+error_code; if matching_start_pos designates a valid source position, add
+matching_code to the diagnostic.  Do not advance past the token if it is
+found, but do return TRUE.
 */
 {
   a_boolean token_present;
@@ -15395,7 +15395,7 @@ TRUE.
        else in the stop tokens set. */
     add_stop_token(token);
     set_err_pos_to_curr_token();
-    if (matching_start_pos != NULL) {
+    if (matching_start_pos != NULL && matching_start_pos->seq != 0) {
       /* There's a matching starting delimiter.  Put out the error message
          with the stating delimiter message note and flush tokens. */
       a_diag_list      diag_list;

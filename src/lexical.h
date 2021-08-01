@@ -2576,7 +2576,7 @@ extern void conv_line_loc_to_source_pos(a_const_char      *loc_in_line,
                                         a_source_position *position_var);
 /* Check for a specific token. */
 extern a_boolean required_token(a_token_kind      token,
-				an_error_code     error_code,
+                                an_error_code     error_code,
                                 an_error_code     matching_code = ec_no_error,
                                 a_source_position *matching_start_pos = NULL);
 extern a_boolean required_token_no_advance(

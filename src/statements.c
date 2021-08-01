@@ -7969,7 +7969,8 @@ is being parsed within the context of the __extension__ keyword.
      check; when a compound statement is the body of a function, it's
      required. */
   add_stop_token(tok_rbrace);
-  lbrace_pos = pos_curr_token;
+  lbrace_pos = (curr_token == tok_lbrace) ? pos_curr_token
+                                          : null_source_position;
   (void)required_token(tok_lbrace, ec_exp_lbrace);
   /* This is the only place within a compound statement where C99 and C++11
      predefined pragmas are permitted. */
