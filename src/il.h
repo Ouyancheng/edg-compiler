@@ -2796,6 +2796,9 @@ a_source_file_ptr conv_seq_to_file_and_line(a_seq_number  seq_number,
 
 extern a_source_file_ptr eff_primary_source_file(void);
 
+extern a_boolean same_source_file(a_source_position_ptr pos_1,
+                                  a_source_position_ptr pos_2);
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_cli_metadata_file_ptr map_assembly_index_to_cmfp(
                                              an_assembly_index assembly_index);

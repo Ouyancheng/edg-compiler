@@ -2995,6 +2995,11 @@ typedef struct a_source_correspondence {
 			/* If the current entity is a member of a function or
 			   block scope, this points to the entry representing
 			   the enclosing routine.  Otherwise, NULL. */
+  a_module_entity_ptr
+		module_entity;
+			/* If the current entity is a member of a module, this
+			   points to the module entity descriptor for the
+			   current entity.  Otherwise, NULL. */
   a_source_position
 		decl_position;
 			/* The source position at which this entity is

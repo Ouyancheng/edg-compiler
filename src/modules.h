@@ -138,6 +138,9 @@ struct a_module_interface {
 /* If in a module unit, the current module symbol. */
 EXTERN a_symbol_ptr    curr_module_sym;
 
+/* If processing a module declaration, the current module declaration. */
+EXTERN a_module_entity_ptr curr_module_entity;
+
 inline a_boolean magic_numbers_match(const a_byte magic[4],
                                      const a_byte expected[4])
 /*

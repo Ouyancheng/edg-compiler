@@ -18,6 +18,8 @@ ifc_modules.h -- Declarations relating to ifc_modules.c (having to do with
 #ifndef IFC_MODULES_H
 #define IFC_MODULES_H 1
 
+#if !STANDALONE_UTILITY_PROGRAM
+
 #include "util.h"
 
 /* Conditionally open the "edg" namespace. */
@@ -3095,6 +3097,8 @@ extern void db_mep(a_module_entity_ptr mep);
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #endif /* ifndef IFC_MODULES_H */
 

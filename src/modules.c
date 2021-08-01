@@ -1177,6 +1177,7 @@ for each compilation.
 */
 {
   curr_module_sym = NULL;
+  curr_module_entity = NULL;
   module_entity_hash_table = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   ifc_modules_init();

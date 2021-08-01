@@ -25,7 +25,7 @@ ifc_modules.c -- Microsoft-specific IFC module code
 #include "pch.h"
 #include "symbol_ref.h"
 
-#if MICROSOFT_EXTENSIONS_ALLOWED
+#if MICROSOFT_EXTENSIONS_ALLOWED && !STANDALONE_UTILITY_PROGRAM
 
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
@@ -3490,6 +3490,30 @@ process that definition and return TRUE.
 }  /* load_routine_definition_from_ifc_module */
 
 
+static inline a_boolean ifc_decl_is_ignorable_redecl(
+                                         a_symbol_locator      *loc,
+                                         a_scope_ptr           scope,
+                                         a_source_position_ptr pos,
+                                         an_il_entry_kind      expected_kind,
+                                         char                  **redecl_entity,
+                                         a_byte_il_entry_kind  *redecl_kind)
+{
+  a_boolean    result = FALSE;
+  a_symbol_ptr redecl_sym;
+
+  redecl_sym = check_module_symbol_redecl(loc->symbol_header, scope, pos,
+                                          expected_kind);
+  if (redecl_sym != NULL) {
+    /* This is a redeclaration of an existing symbol. */
+    an_il_entry_kind this_kind;
+    *redecl_entity = il_entry_for_symbol(redecl_sym, &this_kind);
+    *redecl_kind = this_kind;
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* ifc_decl_is_ignorable_redecl */
+
+
 /* FIXME: might be able to get rid of enumeration_type now that enums aren't
    deferred */
 void an_ifc_module::process_ifc_declaration(
@@ -3542,7 +3566,9 @@ principal associated IL entity.
   }  /* if */
 #endif /* DEBUG */
   if (!mep->imminent && mep->entity.ptr == NULL) {
-    a_source_position saved_error_position = error_position;
+    a_source_position   saved_error_position = error_position;
+    a_module_entity_ptr saved_mep = curr_module_entity;
+    curr_module_entity = mep;
     /* Prepare to read from the proper partition for this declaration. */
     read_partition_at_offset(mep->variant.ifc_partition, mep->file_offset);
     tag = (ifc_DeclSort)get_tag_from_partition(mep->variant.ifc_partition,
@@ -3578,15 +3604,20 @@ principal associated IL entity.
           } else {
             /* FIXME: lots more to do here. */
             a_variable_ptr vp;
+            if (mep->scope == NULL) {
+              mep->scope = get_ifc_scope(idsvp->home_scope);
+              scope_pushed = push_module_declaration_context(mep->scope);
+            }  /* if */
+            if (ifc_decl_is_ignorable_redecl(&loc, mep->scope, &error_position,
+                                             iek_variable, &il_entity,
+                                             &kind)) {
+              break;
+            }  /* if */
             init_dps(&dps, &idsvp->locus, idsvp->type, idsvp->traits,
                      ifc_MsvcTraits_None, idsvp->specifiers, idsvp->access,
                      idsvp->alignment, &psss);
             /* Since we're declaring a variable, a complete type is needed. */
             complete_type_is_needed(dps.type);
-            if (mep->scope == NULL) {
-              mep->scope = get_ifc_scope(idsvp->home_scope);
-              scope_pushed = push_module_declaration_context(mep->scope);
-            }  /* if */
             clear_decl_pos_block(&decl_pos_block);
             decl_variable(&loc, &dps, SRK_DEFINITION, &linkage_ptr, &ext_sym,
                           &decl_pos_block);
@@ -3625,6 +3656,14 @@ principal associated IL entity.
             /* FIXME: There's a chicken-and-egg problem here when the return
                type is deduced and requires access to the class scope (e.g.,
                returning a lambda declared within the function). */
+            if (mep->scope == NULL) {
+              mep->scope = get_ifc_scope(idsfp->home_scope);
+              scope_pushed = push_module_declaration_context(mep->scope);
+            }  /* if */
+            if (ifc_decl_is_ignorable_redecl(&loc, mep->scope, &error_position,
+                                             iek_routine, &il_entity, &kind)) {
+              break;
+            }  /* if */
             init_dps(&dps, &idsfp->locus, idsfp->type, ifc_ObjectTraits_None,
                      ifc_MsvcTraits_None, idsfp->specifiers, idsfp->access,
                      (ifc_ExprIndex)0, &psss);
@@ -3634,10 +3673,6 @@ principal associated IL entity.
               dps.dso_flags |= DSO_CONSTEXPR;
             } else if (idsfp->traits & ifc_FunctionTraits_Inline) {
               dps.dso_flags |= DSO_INLINE;
-            }  /* if */
-            if (mep->scope == NULL) {
-              mep->scope = get_ifc_scope(idsfp->home_scope);
-              scope_pushed = push_module_declaration_context(mep->scope);
             }  /* if */
             clear_func_info(&func_info);
             clear_decl_pos_block(&decl_pos_block);
@@ -3810,6 +3845,11 @@ class_struct_union_case:
                   /* Allocate the appropriate class type, but leave it as
                      incomplete.  The class will be completed during a call to
                      get_definition_of_class if it is referenced. */
+                  if (ifc_decl_is_ignorable_redecl(&loc, mep->scope,
+                                                   &error_position, iek_type,
+                                                   &il_entity, &kind)) {
+                    break;
+                  }  /* if */
                   class_type = alloc_type(type_kind);
                   ctsp = class_type_supp(class_type);
                   if (itsfp->basis == ifc_TypeBasis_Interface) {
@@ -3874,6 +3914,12 @@ class_struct_union_case:
                   mep->scope = get_ifc_scope(idstap->home_scope);
                   scope_pushed = push_module_declaration_context(mep->scope);
                 }  /* if */
+                if (ifc_decl_is_ignorable_redecl(&loc, mep->scope,
+                                                 &error_position,
+                                                 iek_type, &il_entity,
+                                                 &kind)) {
+                  break;
+                }  /* if */
                 init_dps(&dps, &idstap->locus, idstap->aliasee,
                          ifc_ObjectTraits_None, ifc_MsvcTraits_None,
                          idstap->specifiers, idstap->access, (ifc_ExprIndex)0,
@@ -3905,6 +3951,11 @@ class_struct_union_case:
               if (mep->scope == NULL) {
                 mep->scope = get_ifc_scope(idstap->home_scope);
                 scope_pushed = push_module_declaration_context(mep->scope);
+              }  /* if */
+              if (ifc_decl_is_ignorable_redecl(&loc, mep->scope,
+                                               &error_position, iek_template,
+                                               &il_entity, &kind)) {
+                break;
               }  /* if */
               clear_token_cache(&cache, /*reusable=*/FALSE);
               cache_token(&cache, tok_template, &pos);
@@ -3970,6 +4021,10 @@ class_struct_union_case:
             }  /* if */
             check_assertion(mep->scope != NULL);
             enum_scope = mep->scope;
+            if (ifc_decl_is_ignorable_redecl(&loc, enum_scope, &error_position,
+                                             iek_type, &il_entity, &kind)) {
+              break;
+            }  /* if */
             init_dps(&dps, &idsep->locus, idsep->base, ifc_ObjectTraits_None,
                      ifc_MsvcTraits_None, idsep->specifiers, idsep->access,
                      idsep->alignment, &psss);
@@ -4139,6 +4194,11 @@ class_struct_union_case:
             if (mep->scope == NULL) {
               mep->scope = get_ifc_scope(idstp->home_scope);
               scope_pushed = push_module_declaration_context(mep->scope);
+            }  /* if */
+            if (ifc_decl_is_ignorable_redecl(&loc, mep->scope, &error_position,
+                                             iek_template, &il_entity,
+                                             &kind)) {
+              break;
             }  /* if */
             /* It's possible for a template body to refer to itself (or to
                another entity that refers back to it) and trigger a recursive
@@ -4359,6 +4419,8 @@ class_struct_union_case:
               mep->scope = get_ifc_scope(idspsp->home_scope);
               scope_pushed = push_module_declaration_context(mep->scope);
             }  /* if */
+            /* FIXME: Is it feasible to detect ignorable redeclarations of
+               partial specializations? */
             if (idspsp->entity.body != 0) {
               ifc_DeclIndex decl_idx = decl_index_of(
                                                     mep->variant.ifc_partition,
@@ -4396,11 +4458,9 @@ class_struct_union_case:
         { an_ifc_DeclSort_Concept idsc, *idscp;
           idscp = get_DeclSort_Concept(&idsc);
           source_position_from_locus(&error_position, &idscp->locus);
+          init_locator_from_name((ifc_NameIndex)0, idscp->name,
+                                  &idscp->locus, &loc);
           if (defer) {
-            /* The concept isn't used yet.  For now, just register the
-               presence of the concept name in the symbol table. */
-            init_locator_from_name((ifc_NameIndex)0, idscp->name,
-                                   &idscp->locus, &loc);
             defer_symbol_creation(mep, &loc);
           } else {
             /* Create a definition for the concept and scan it. */
@@ -4408,9 +4468,14 @@ class_struct_union_case:
             a_token_cache           cache;
             if (mep->scope == NULL) {
               mep->scope = get_ifc_scope(idscp->home_scope);
+              scope_pushed = push_module_declaration_context(mep->scope);
+            }  /* if */
+            if (ifc_decl_is_ignorable_redecl(&loc, mep->scope, &error_position,
+                                             iek_template, &il_entity,
+                                             &kind)) {
+              break;
             }  /* if */
             /* Activate the parent scope if needed. */
-            a_boolean  must_pop = push_module_declaration_context(mep->scope);
             clear_token_cache(&cache, /*reusable=*/FALSE);
             /* Generate the template parameter list. */
             cache_token(&cache, tok_template, &null_source_position);
@@ -4423,8 +4488,6 @@ class_struct_union_case:
             terminate_token_cache(&cache);
             il_entity = (char*)parse_cached_template(&cache, mep->scope);
             kind = iek_template;
-            /* Restore the original context. */
-            pop_module_declaration_context(must_pop);
           }  /* if */
         }
         break;
@@ -4561,6 +4624,7 @@ unhandled:
         pop_module_declaration_context(scope_pushed);
       }  /* if */
     }  /* if */
+    curr_module_entity = saved_mep;
     error_position = saved_error_position;
   }  /* if */
   /* In some cases we may enter this routine without having a scope, but we
@@ -15991,7 +16055,7 @@ for each compilation.
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED && !STANDALONE_UTILITY_PROGRAM */
 
 /******************************************************************************
 *                                                             \  ___  /       *

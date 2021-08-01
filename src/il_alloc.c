@@ -183,7 +183,14 @@ static unsigned long
    field of an IL entry to default values. */
 static a_source_correspondence
 		def_source_corresp;
-#define set_default_source_corresp(sc) ((sc) = def_source_corresp)
+static inline void set_default_source_corresp(a_source_correspondence_ptr scp)
+/*
+Given a source correspondence, set it to the default.
+*/
+{
+  (*scp) = def_source_corresp;
+  scp->module_entity = curr_module_entity;
+}
 
 static int	file_scope_entry_prefix_size;
 			/* The size of the entry prefix for IL entries
@@ -931,7 +938,7 @@ associated variant fields to default values.
 {
   /* When changing this routine because the structure of a_constant
      has changed, be sure to change eq_constants as well. */
-  set_default_source_corresp(cp->source_corresp);
+  set_default_source_corresp(&cp->source_corresp);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   cp->end_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -2268,7 +2275,7 @@ Clear the indicated type entry, set the kind as given, and set the associated
 variant fields to default values.
 */
 {
-  set_default_source_corresp(pte->source_corresp);
+  set_default_source_corresp(&pte->source_corresp);
   pte->next = NULL;
   pte->based_types = NULL;
   pte->size = 0;
@@ -2553,7 +2560,7 @@ void clear_variable(a_variable_ptr vp)
 Clear the fields of the given variable to default values.
 */
 {
-  set_default_source_corresp(vp->source_corresp);
+  set_default_source_corresp(&vp->source_corresp);
   vp->next                        = NULL;
   vp->type                        = NULL;
   vp->variant.assoc_param_type    = NULL;
@@ -2778,7 +2785,7 @@ to it.
 #if DEBUG
   num_fields_allocated++;
 #endif /* DEBUG */
-  set_default_source_corresp(fp->source_corresp);
+  set_default_source_corresp(&fp->source_corresp);
   fp->next                 = NULL;
   fp->type                 = NULL;
   fp->offset               = 0;
@@ -2964,7 +2971,7 @@ to it.  The entry is allocated in the file scope memory region.
 #if DEBUG
   num_routines_allocated++;
 #endif /* DEBUG */
-  set_default_source_corresp(rp->source_corresp);
+  set_default_source_corresp(&rp->source_corresp);
   rp->next                        = NULL;
   rp->type                        = NULL;
   rp->function_def_number         = NULL_function_def_number;
@@ -3254,7 +3261,7 @@ to it.
 #if DEBUG
   num_asm_entries_allocated++;
 #endif /* DEBUG */
-  set_default_source_corresp(ap->source_corresp);
+  set_default_source_corresp(&ap->source_corresp);
   ap->next = NULL;
   ap->asm_string = NULL;
 #if GNU_EXTENSIONS_ALLOWED
@@ -3377,7 +3384,7 @@ to it.
 #if DEBUG
   num_labels_allocated++;
 #endif /* DEBUG */
-  set_default_source_corresp(lp->source_corresp);
+  set_default_source_corresp(&lp->source_corresp);
   lp->source_corresp.is_local_to_function = TRUE;
   lp->next = NULL;
   lp->reachable_by_fall_through = TRUE;
@@ -4544,7 +4551,7 @@ Initialize the namespace pointed to by nsp.  The namespace is an alias if
 is_alias is TRUE.
 */
 {
-  set_default_source_corresp(nsp->source_corresp);
+  set_default_source_corresp(&nsp->source_corresp);
   nsp->next = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   nsp->proxy_class = NULL;
@@ -5023,7 +5030,7 @@ initialize its fields, and return a pointer to it.
 #if DEBUG
   num_template_parameters_allocated++;
 #endif /* DEBUG */
-  set_default_source_corresp(tpp->source_corresp);
+  set_default_source_corresp(&tpp->source_corresp);
   tpp->next = NULL;
   tpp->kind = (a_template_parameter_kind)tpk_error;
   tpp->is_pack = FALSE;
@@ -5089,7 +5096,7 @@ fields, and return a pointer to it.
 #if DEBUG
   num_templates_allocated++;
 #endif /* DEBUG */
-  set_default_source_corresp(tp->source_corresp);
+  set_default_source_corresp(&tp->source_corresp);
   tp->next = NULL;
   tp->kind = (a_template_kind)templk_none;
   tp->is_exported = FALSE;
@@ -6126,6 +6133,7 @@ in il_alloc_init.)
   def_source_corresp.trans_unit_corresp = NULL;
   def_source_corresp.parent_scope = NULL;
   def_source_corresp.enclosing_routine = NULL;
+  def_source_corresp.module_entity = NULL;
   def_source_corresp.decl_position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   def_source_corresp.decl_pos_info = NULL;

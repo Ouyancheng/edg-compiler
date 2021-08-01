@@ -2594,6 +2594,7 @@ are considered the same.
   return !(str1 == str2);
 }  /* operator!= */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 /*
 A structure that wraps a path stored in a C-string to enable operations such
@@ -2638,6 +2639,7 @@ considered the same.
   return !(path1 == path2);
 }  /* operator!= */
 
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 /*
 This is declared in symbol_tbl.h.  To avoid potential circular references,
@@ -2655,6 +2657,7 @@ Ptr_map.
   return (uintptr_t)hash_source_string((a_void_ptr)str.ptr);
 }  /* hash_ptr */
 
+#if !STANDALONE_UTILITY_PROGRAM
 
 inline uintptr_t hash_ptr(const a_path_handle path)
 /*
@@ -2665,6 +2668,8 @@ Compute a hash for the given path.  The hash must be appropriate for Ptr_map.
 
   return (uintptr_t)hash_source_string((a_void_ptr)norm_path);
 }  /* hash_ptr */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
 
 
 /* Conditionally close the "edg" namespace. */

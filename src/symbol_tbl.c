@@ -7989,6 +7989,54 @@ where the module name started.
   return make_module_symbol(primary_sym, partition_sym, is_interface, pos);
 }  /* make_module_symbol */
 
+#if !STANDALONE_UTILITY_PROGRAM
+
+a_symbol_ptr check_module_symbol_redecl(a_symbol_header_ptr   sym_hdr,
+                                        a_scope_ptr           dest_scope,
+                                        a_source_position_ptr pos,
+                                        an_il_entry_kind      kind)
+/*
+Given the symbol header for a potential symbol of the given kind, check if
+there already exists a declaration of the symbol where one (or both) symbols
+arose from a module where the symbol was exported.  Return the existing
+conflicting symbol if so, NULL otherwise.  dest_scope is the expected scope for
+the potential symbol, and pos is the source position associated with the
+potential symbol.
+*/
+{
+  a_symbol_ptr      result = NULL;
+  a_boolean         one_comes_from_module = curr_module_entity != NULL;
+
+  for (a_symbol_ptr this_sym = sym_hdr->symbol; this_sym != NULL;
+       this_sym = this_sym->next) {
+    a_source_correspondence_ptr this_scp;
+    a_scope_ptr                 this_scope;
+    an_il_entry_kind            this_kind;
+
+    this_scp = source_corresp_entry_for_symbol(this_sym);
+    if (this_scp == NULL) continue;
+    if (this_scp->module_entity == NULL) {
+      this_scope = f_get_parent_scope_of(this_scp);
+    } else {
+      one_comes_from_module = TRUE;
+      this_scope = this_scp->module_entity->scope;
+    }  /* if */
+    if (!one_comes_from_module || this_scope != dest_scope) continue;
+    /* We have found a symbol with the same destination scope.  To determine
+       that these are the "same" entity, we now need to check what source file
+       they arose from, and whether they're the same kind of symbol. */
+    (void)il_entry_for_symbol(this_sym, &this_kind);
+    /* FIXME: Do we want to do a deeper check for the same kind of entity? */
+    if (kind == this_kind && same_source_file(pos, &this_sym->decl_position)) {
+      result = this_sym;
+      break;
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* check_module_symbol_redecl */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 void make_unnamed_virtual_function_locator(a_symbol_locator *loc)

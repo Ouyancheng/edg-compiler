@@ -4488,6 +4488,33 @@ seq_number.
   return proper_file;
 }  /* conv_seq_to_file_and_line */
 
+#if !STANDALONE_UTILITY_PROGRAM
+
+a_boolean same_source_file(a_source_position_ptr pos_1,
+                           a_source_position_ptr pos_2)
+/*
+Given two source positions, determine if they come from the same source file
+or not.  Return TRUE if so, FALSE otherwise.
+*/
+{
+  a_boolean     result = FALSE;
+  a_const_char  *file_name_1, *full_name_1, *file_name_2, *full_name_2;
+  a_line_number line_no;
+  a_boolean     eos;
+
+  (void)conv_seq_to_file_and_line(pos_1->seq, &file_name_1, &full_name_1,
+                                  &line_no, &eos);
+  (void)conv_seq_to_file_and_line(pos_2->seq, &file_name_2, &full_name_2,
+                                  &line_no, &eos);
+  if (full_name_1 != NULL && full_name_2 != NULL &&
+      a_path_handle{full_name_1} == full_name_2) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* same_source_file */
+
+#endif /* !STANDALONE_UTILITY_PROGRAM */
+
 #if DEBUG
 
 a_line_number db_line_for_seq(a_seq_number seq_number)
