@@ -5399,7 +5399,8 @@ is updated to reflect relevant positions of this definition.
      allocated in the file scope memory region, all its components should
      also be.  Switch to the file scope memory region here at the start of
      the definition and switch back when we reach the right brace. */
-  lbrace_pos = pos_curr_token;
+  lbrace_pos = (curr_token == tok_lbrace) ? pos_curr_token
+                                          : null_source_position;
   (void)required_token(tok_lbrace, ec_exp_lbrace);
   if (is_scoped_enum) {
     enum_type->variant.integer.enum_info.assoc_scope = 

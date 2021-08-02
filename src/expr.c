@@ -38209,7 +38209,8 @@ Record the representation or the requires-expression in *result.
       switch_il_region(il_region);
       scope_stack_top().il_memory_region = il_region;
     }  /* if */
-    lbrace_pos = pos_curr_token;
+    lbrace_pos = (curr_token == tok_lbrace) ? pos_curr_token
+                                            : null_source_position;
     if (!required_token(tok_lbrace, ec_exp_lbrace)) {
       make_error_operand(result);
     } else {

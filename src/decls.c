@@ -15726,7 +15726,8 @@ it's a definition and NULL otherwise).
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     attach_attributes(attributes, (char*)nsp, iek_namespace);
-    lbrace_pos = pos_curr_token;
+    lbrace_pos = (curr_token == tok_lbrace) ? pos_curr_token
+                                            : null_source_position;
     if (is_enclosing_namespace_specifier && curr_token == tok_identifier) {
       /* For a nested namespace definition (e.g., "namespace N1::N2..."),
          recurse to process the remaining namespace names. */
