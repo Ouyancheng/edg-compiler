@@ -8406,7 +8406,7 @@ architectures for which these assumptions are not valid.
   type = skip_typerefs(type);
   if (is_immediate_class_type(type)) {
     if (!clang_mode) {
-      /* We're about the check trivial copyability, which can only be TRUE for
+      /* We're about to check trivial copyability, which can only be TRUE for
          complete class types.  So perform an instantiation if needed.  Clang
          appears not to do that (checked in version 12).  For example:
              template<typename> struct S { int i; };
