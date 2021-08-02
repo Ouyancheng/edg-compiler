@@ -15,7 +15,7 @@ line:
 
 
 7/30/21  [EDGcpfe/24363]
-Type of decimal integer literals with nosuffix
+Type of decimal integer literals with no suffix
 
 Consider:
 
