@@ -5142,7 +5142,7 @@ fields, and return a pointer to it.
 #if DEBUG
   num_macros_allocated++;
 #endif /* DEBUG */
-  set_default_source_corresp(mp->source_corresp);
+  set_default_source_corresp(&mp->source_corresp);
   mp->next = NULL;
   mp->is_undef = FALSE;
   mp->is_command_line_definition = FALSE;
