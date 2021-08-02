@@ -1897,7 +1897,7 @@ of lambda expressions.
        on this token. */
     if (curr_token != tok_rbrace) {
       report_missing_closing_delimiter(ec_exp_rbrace, ec_matching_lbrace,
-                                       &body_pos);
+                                       &lbrace_pos);
     }  /* if */
   }  /* if */
   pop_stop_token_stack();
