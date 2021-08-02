@@ -15327,8 +15327,8 @@ void report_missing_closing_delimiter(an_error_code     msg,
                                       a_source_position *matching_pos)
 /*
 Issue an error using msg and error_position as the diagnostic and source
-position, and add a note for matching_msg at the position given by
-matching_pos.
+position.  If matching_pos designates a valid source location, add a note
+for matching_msg at the position given by matching_pos.
 */
 {
   a_diag_list       diag_list;
@@ -15343,16 +15343,18 @@ matching_pos.
     pos.column = pos.orig_column;
   }  /* if */
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-  clear_diag_list(&diag_list);
-  more_info_diagnostic(matching_msg, &pos, &diag_list);
+  if (pos.seq != 0) {
+    clear_diag_list(&diag_list);
+    more_info_diagnostic(matching_msg, &pos, &diag_list);
 #if FULLY_RESOLVED_MACRO_POSITIONS
-  if (matching_pos->seq != matching_pos->orig_seq) {
-    /* Add a note pointing to the macro invocation that generated the
-       opening delimiter. */
-    more_info_diagnostic(ec_macro_invocation, matching_pos, &diag_list);
-  }  /* if */
+    if (matching_pos->seq != matching_pos->orig_seq) {
+      /* Add a note pointing to the macro invocation that generated the
+         opening delimiter. */
+      more_info_diagnostic(ec_macro_invocation, matching_pos, &diag_list);
+    }  /* if */
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-  add_more_info_list(dp, &diag_list);
+    add_more_info_list(dp, &diag_list);
+  }  /* if */
   end_diagnostic(dp);
 }  /* report_missing_closing_delimiter */
 
@@ -15364,9 +15366,10 @@ a_boolean required_token(a_token_kind      token,
 /*
 The current token is required to be "token".  If it is, advance normally by
 calling get_token.  If not, issue an error message and call flush_tokens.
-The error message is specified by error_code; if matching_start_pos
-designates a valid source position, add matching_code to the diagnostic.
-In either case, return TRUE if the required token showed up.
+The error message is specified by error_code.  If matching_start_pos
+designates a valid source position, add matching_code with that position to
+the diagnostic.  In either case, return TRUE if the required token showed
+up.
 */
 {
   a_boolean token_present;
@@ -15381,7 +15384,7 @@ In either case, return TRUE if the required token showed up.
        else in the stop tokens set. */
     add_stop_token(token);
     set_err_pos_to_curr_token();
-    if (matching_start_pos != NULL && matching_start_pos->seq != 0) {
+    if (matching_start_pos != NULL) {
       /* There's a matching starting delimiter.  Put out the error message
          with the stating delimiter message note and flush tokens. */
       report_missing_closing_delimiter(error_code, matching_code,
@@ -15410,9 +15413,9 @@ a_boolean required_token_no_advance(a_token_kind      token,
 /*
 The current token is required to be "token".  If it is not, issue an error
 message and call flush_tokens.  The error message is specified by
-error_code; if matching_start_pos designates a valid source position, add
-matching_code to the diagnostic.  Do not advance past the token if it is
-found, but do return TRUE.
+error_code.  If matching_start_pos designates a valid source position, add
+matching_code with that position to the diagnostic.  Do not advance past
+the token if it is found, but do return TRUE.
 */
 {
   a_boolean token_present;
@@ -15426,7 +15429,7 @@ found, but do return TRUE.
        else in the stop tokens set. */
     add_stop_token(token);
     set_err_pos_to_curr_token();
-    if (matching_start_pos != NULL && matching_start_pos->seq != 0) {
+    if (matching_start_pos != NULL) {
       /* There's a matching starting delimiter.  Put out the error message
          with the stating delimiter message note and flush tokens. */
       report_missing_closing_delimiter(error_code, matching_code,
