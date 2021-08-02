@@ -3511,7 +3511,11 @@ the scope being pushed.
         source_sequence_entries_disallowed = FALSE;
       }  /* if */
     } else if (scope_stack[DEPTH_OF_FILE_SCOPE].
-                                    source_sequence_entries_disallowed) {
+                                    source_sequence_entries_disallowed &&
+               depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
+      /* In the absence of intervening instantiations, if source sequence
+         entries are disallowed at the file scope the global variable
+         should also indicate that. */
       check_assertion(source_sequence_entries_disallowed == TRUE);
     } else {
       /* If they are allowed at file scope, they may be permitted for a

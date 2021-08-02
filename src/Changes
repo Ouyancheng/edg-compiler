@@ -1,5 +1,20 @@
 Version 6.3
 
+8/2/21   [EDGcpfe/24416]
+Internal error when disambiguation causes instantiations
+
+In configurations that generate source sequence lists, an internal error
+could occur (in push_scope_full) if disambiguation of a file scope
+declaration causes certain kinds of other instantiations.  Now fixed.
+
+  template <typename T> using A = int;
+  template <typename T> struct B {
+    using X = int*;
+    template <typename U> using C = A<U>;
+  };
+  void f(typename B<int>::X);
+
+
 7/30/21  [EDGcpfe/24376]
 More informative diagnostic for missing "}"
 
