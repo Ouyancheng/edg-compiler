@@ -13879,12 +13879,8 @@ specifier is restored.  dps describes the linkage-specification declaration.
        but don't advance past it -- that is handled in translation_unit. */
     remove_stop_token(tok_rbrace);
     if (curr_token != tok_rbrace) {
-      a_diag_list      diag_list;
-      a_diagnostic_ptr dp = pos_start_error(ec_exp_rbrace, &pos_curr_token);
-      clear_diag_list(&diag_list);
-      more_info_diagnostic(ec_matching_lbrace, &lbrace_pos, &diag_list);
-      add_more_info_list(dp, &diag_list);
-      end_diagnostic(dp);
+      report_missing_closing_delimiter(ec_exp_rbrace, ec_matching_lbrace,
+                                       &lbrace_pos);
     } else {
       /* Advance past right brace.  If the current declaration is a top-level
          declaration, set a global flag to enable checking for a header

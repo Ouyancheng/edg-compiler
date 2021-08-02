@@ -2574,6 +2574,9 @@ extern a_boolean has_nested_source_line_modif(a_const_char *loc_in_line);
    number and column. */
 extern void conv_line_loc_to_source_pos(a_const_char      *loc_in_line,
                                         a_source_position *position_var);
+extern void report_missing_closing_delimiter(an_error_code     msg,
+                                             an_error_code     matching_msg,
+                                             a_source_position *matching_pos);
 /* Check for a specific token. */
 extern a_boolean required_token(a_token_kind      token,
                                 an_error_code     error_code,

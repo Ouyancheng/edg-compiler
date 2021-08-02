@@ -15322,6 +15322,41 @@ The current token is the token after the "if" or "else" keyword.
 }  /* flush_if_or_else_statement */
 
 
+void report_missing_closing_delimiter(an_error_code     msg,
+                                      an_error_code     matching_msg,
+                                      a_source_position *matching_pos)
+/*
+Issue an error using msg and error_position as the diagnostic and source
+position, and add a note for matching_msg at the position given by
+matching_pos.
+*/
+{
+  a_diag_list       diag_list;
+  a_diagnostic_ptr  dp = pos_start_error(msg, &error_position);
+  a_source_position pos = *matching_pos;
+
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  if (pos.seq != pos.orig_seq) {
+    /* The opening delimiter was contained in a macro expansion.  Adjust
+       the position to point to the original position of the delimiter. */
+    pos.seq = pos.orig_seq;
+    pos.column = pos.orig_column;
+  }  /* if */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+  clear_diag_list(&diag_list);
+  more_info_diagnostic(matching_msg, &pos, &diag_list);
+#if FULLY_RESOLVED_MACRO_POSITIONS
+  if (matching_pos->seq != matching_pos->orig_seq) {
+    /* Add a note pointing to the macro invocation that generated the
+       opening delimiter. */
+    more_info_diagnostic(ec_macro_invocation, matching_pos, &diag_list);
+  }  /* if */
+#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
+  add_more_info_list(dp, &diag_list);
+  end_diagnostic(dp);
+}  /* report_missing_closing_delimiter */
+
+
 a_boolean required_token(a_token_kind      token,
                          an_error_code     error_code,
       /* Defaulted: */   an_error_code     matching_code,
@@ -15349,12 +15384,8 @@ In either case, return TRUE if the required token showed up.
     if (matching_start_pos != NULL && matching_start_pos->seq != 0) {
       /* There's a matching starting delimiter.  Put out the error message
          with the stating delimiter message note and flush tokens. */
-      a_diag_list      diag_list;
-      a_diagnostic_ptr dp = pos_start_error(error_code, &error_position);
-      clear_diag_list(&diag_list);
-      more_info_diagnostic(matching_code, matching_start_pos, &diag_list);
-      add_more_info_list(dp, &diag_list);
-      end_diagnostic(dp);
+      report_missing_closing_delimiter(error_code, matching_code,
+                                       matching_start_pos);
       flush_tokens();
     } else {
       /* Report the error and flush tokens. */
@@ -15398,12 +15429,8 @@ found, but do return TRUE.
     if (matching_start_pos != NULL && matching_start_pos->seq != 0) {
       /* There's a matching starting delimiter.  Put out the error message
          with the stating delimiter message note and flush tokens. */
-      a_diag_list      diag_list;
-      a_diagnostic_ptr dp = pos_start_error(error_code, &error_position);
-      clear_diag_list(&diag_list);
-      more_info_diagnostic(matching_code, matching_start_pos, &diag_list);
-      add_more_info_list(dp, &diag_list);
-      end_diagnostic(dp);
+      report_missing_closing_delimiter(error_code, matching_code,
+                                       matching_start_pos);
       flush_tokens();
     } else {
       /* Report the error and flush tokens. */
