@@ -18850,7 +18850,7 @@ mode in-class specialization.
     } else {
       return_type = error_type();
     }  /* if */
-    if (templ_rout->defined) {
+    if (templ_sym->defined) {
       copy_param_cv_qualifiers_from_proto(skip_typerefs(templ_rout->type),
                                           rout_type);
     }  /* if */
