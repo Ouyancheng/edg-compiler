@@ -18529,7 +18529,7 @@ static void copy_param_cv_qualifiers_from_proto(a_type_ptr  src_rtp,
 /*
 src_type is the type of the prototype instantiation of a function template,
 and dst_rtp is the type of a real instantiation of the same template.  Copy
-the cv-qualifiers recorded for the parameters prototype instantiation to the
+the cv-qualifiers recorded for the parameters' prototype instantiation to the
 corresponding parameters of the real instantiation.  This is to handle cases
 like:
   template<typename T> int f(T);

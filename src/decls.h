@@ -801,12 +801,12 @@ typedef struct a_decl_parse_state {
   a_type_qualifier_set
 		qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
 			/* Top-level type qualifiers (but not function type
-                           qualifiers). */
+			   qualifiers). */
   a_type_qualifier_set
 		eff_top_level_cv_quals:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
 			/* Top-level const/volatile qualifiers that have a
 			   potential effect on the type.  For example, for a
-                           declaration "T const x" where T is "int const",
+			   declaration "T const x" where T is "int const",
 			   this is TQ_NONE since the top-level qualifier has
 			   no effect due to T already being const. */
   a_bit_field
