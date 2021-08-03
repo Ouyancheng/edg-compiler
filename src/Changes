@@ -1,5 +1,24 @@
 Version 6.3
 
+8/5/21   [EDGcpfe/24537]
+GNU compatibility: handling of #pragma GCC
+
+A change has been made to handle the "GCC" pragma as a next construct
+pragma (i.e., pbk_next_token) rather than an immediate token pragma
+(i.e., pbk_immediate) to handle a case like this (with --g++):
+
+  template<class T> struct A {
+    A();
+    int m;
+  };
+  #pragma GCC diagnostic push
+  template<class T> A<T>::A() : m(0) {}
+  #pragma GCC diagnostic pop
+
+Previously no IL was generated for the second #pragma which had caused
+diagnostic differences in code that followed.
+
+
 8/3/21   [EDGcpfe/24568]
 Assertion failure in diag_pragma/diagnostic_pragma
 
