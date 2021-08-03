@@ -1896,6 +1896,7 @@ of lambda expressions.
        anything other than a right brace, it's because we should start parsing
        on this token. */
     if (curr_token != tok_rbrace) {
+      error_position = pos_curr_token;
       report_missing_closing_delimiter(ec_exp_rbrace, ec_matching_lbrace,
                                        &lbrace_pos);
     }  /* if */
