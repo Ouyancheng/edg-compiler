@@ -7148,6 +7148,14 @@ check_typerefs:
                 identical = FALSE;
                 break;
               }  /* if */
+              if (microsoft_mode &&
+                  (list1->qualifiers & TQ_RESTRICT) !=
+                                          (list2->qualifiers & TQ_RESTRICT)) {
+                /* Microsoft considers top-level __restrict qualifiers to be
+                   part of the function type. */
+                identical = FALSE;
+                break;
+              }  /* if */
             }  /* for */
             if (identical) {
               /* The parameter lists are identical if they both ended

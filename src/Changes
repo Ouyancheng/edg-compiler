@@ -1,5 +1,23 @@
 Version 6.3
 
+8/3/21   [EDGcpfe/24520]
+Microsoft compatibility: __restrict parameters
+
+The front end previously ignored top-level __restrict qualifiers on parameter
+types when comparing function types.  Now, such qualifiers matter in Microsoft
+modes.  For example:
+
+  template<typename, typename>
+    struct is_same { static const bool value = false; };
+  template<typename T>
+    struct is_same<T,T> { static const bool value = true; };
+  using type = float *__restrict;
+  void g(type) {
+    static_assert(!is_same<decltype(g)*, void (*)(float*)>::value, "");
+      // Now accepted in Microsoft C++ modes.
+  }
+
+
 8/5/21   [EDGcpfe/24537]
 GNU compatibility: handling of #pragma GCC
 
