@@ -7943,7 +7943,7 @@ utp is a qualified type also issue an error and return an error type.
 }  /* make_c11_atomic_type */
 
 
-static a_boolean add_type_qualifiers(a_type_ptr            *type_ptr,
+static a_boolean add_type_qualifiers(a_type_ptr            *p_type_ptr,
                                      a_decl_parse_state    *state)
 /*
 Add the type qualifiers specified by state->qualifiers to the type specified
@@ -7955,13 +7955,14 @@ by *type_ptr.  This function is called from decl_specifiers only.
   a_type_qualifier_set  qualifiers = state->qualifiers;
 
   if (qualifiers != TQ_NONE) {
+    a_type_ptr  type_ptr = *p_type_ptr;
 #if UPC_EXTENSIONS_ALLOWED
     a_type_qualifier_set  new_upc_access = TQ_NONE, old_upc_access = TQ_NONE;
     if (upc_mode) {
       /* Retrieve the UPC strict/relax qualifiers for possible later
          checking. */
       new_upc_access = qualifiers & (TQ_UPC_RELAXED | TQ_UPC_STRICT);
-      old_upc_access = f_get_type_qualifiers(*type_ptr, /*top_level=*/FALSE) &
+      old_upc_access = f_get_type_qualifiers(type_ptr, /*top_level=*/FALSE) &
                                               (TQ_UPC_RELAXED | TQ_UPC_STRICT);
     }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
@@ -7970,22 +7971,22 @@ by *type_ptr.  This function is called from decl_specifiers only.
       a_named_address_space_id  new_nas =
                             named_address_space_from_qualifier_set(qualifiers);
       if (new_nas != 0) {
-        if (is_function_type(*type_ptr)) {
+        if (is_function_type(type_ptr)) {
           /* Function types cannot be qualified with named address spaces. */
           err = TRUE;
           pos_error(ec_named_address_space_on_function_type,
                     &state->qualifiers_pos);
           state->qualifiers = qualifiers = simple_qualifiers(qualifiers);
         } else {
-          a_type_ptr                type = *type_ptr;
+          a_type_ptr                tp = type_ptr;
           a_type_qualifier_set      old_quals;
           a_named_address_space_id  old_nas;
-          if (is_array_type(type)) {
+          if (is_array_type(tp)) {
             /* The qualifiers for an array type are actually applied to the
                underlying element type. */
-            type = underlying_array_element_type(type);
+            tp = underlying_array_element_type(tp);
           }  /* if */
-          old_quals = get_type_qualifiers(type);
+          old_quals = get_type_qualifiers(tp);
           old_nas = named_address_space_from_qualifier_set(old_quals);
           if (old_nas != 0) {
             /* Double qualification with a named address space.  If the address
@@ -8003,7 +8004,7 @@ by *type_ptr.  This function is called from decl_specifiers only.
       }  /* if */
     }  /* if */
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
-    if ((*type_ptr)->kind == (a_type_kind)tk_typeref) {
+    if (type_is(type_ptr, tk_typeref)) {
       if (C_dialect == C_dialect_cplusplus) {
         /* In C++ adding a qualifier to a typedef name that is already
            identically qualified is okay, so don't even bother checking for
@@ -8014,7 +8015,7 @@ by *type_ptr.  This function is called from decl_specifiers only.
            followed by a declarator creating a reference, the qualifier
            should be merged with any qualifiers of the type underlying the
            reference. */
-        if (is_reference_type(*type_ptr)) {
+        if (is_reference_type(type_ptr)) {
           /* "restrict" applies directly to reference types; other qualifiers
               do not. */
           state->unused_qualifiers = (qualifiers & ~TQ_RESTRICT) != TQ_NONE;
@@ -8033,7 +8034,7 @@ by *type_ptr.  This function is called from decl_specifiers only.
            as in "typedef int A[2][3]; const A a;", which makes "a" an
            array of array of const int. */
         if ((qualifiers &
-             f_get_type_qualifiers(*type_ptr, /*top_level=*/FALSE)) != 0) {
+                 f_get_type_qualifiers(type_ptr, /*top_level=*/FALSE)) != 0) {
           /* Duplication of type qualifier (probably because of a typedef
              that is already qualified).  In strict ANSI C89 mode issue an
              error or warning; otherwise, just issue a remark. */
@@ -8051,7 +8052,7 @@ by *type_ptr.  This function is called from decl_specifiers only.
        types (but not pointer-to-function-type), pointer-to-member types,
        and (in parameter declarations only) array types. */
     if ((qualifiers & TQ_RESTRICT) &&
-        !restrict_qualifier_is_allowed(*type_ptr, &state->restrict_pos)) {
+        !restrict_qualifier_is_allowed(type_ptr, &state->restrict_pos)) {
       /* Diagnostic has already been issued.  Just remove TQ_RESTRICT
          from the qualifier set. */
       qualifiers &= ~TQ_RESTRICT;
@@ -8060,7 +8061,7 @@ by *type_ptr.  This function is called from decl_specifiers only.
     /* If Clang nullability qualifiers are invalid, issue a diagnostic and
        ignore them. */
     if ((qualifiers & TQ_NULLABILITY) &&
-        !check_nullability_qualifiers(qualifiers, *type_ptr,
+        !check_nullability_qualifiers(qualifiers, type_ptr,
                                       &state->qualifiers_pos)) {
       qualifiers &= ~TQ_NULLABILITY;
       err = TRUE;
@@ -8072,7 +8073,7 @@ by *type_ptr.  This function is called from decl_specifiers only.
          undefined behavior (except that "restrict" is ill-formed; see above).
          We handle the C case as in C++: We ignore the qualifiers with a
          warning. */
-      if (is_function_type(*type_ptr)) {
+      if (is_function_type(type_ptr)) {
         if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH ||
             scope_stack[decl_scope_level].in_prototype_instantiation) {
           /* If we're not instantiating a template, applying a cv-qualifier
@@ -8101,7 +8102,7 @@ by *type_ptr.  This function is called from decl_specifiers only.
       /* Disallow strict or relaxed without shared. */
       if (new_upc_access != TQ_NONE && !(qualifiers & TQ_UPC_SHARED)) {
         /* Check whether shared was specified in the base type. */
-        if ((f_get_type_qualifiers(*type_ptr, /*top_level=*/FALSE) &
+        if ((f_get_type_qualifiers(type_ptr, /*top_level=*/FALSE) &
                                                          TQ_UPC_SHARED) == 0) {
           /* Issue an error and remove the offending qualifiers. */
           pos_error(ec_nonshared_strict_relaxed, &error_position);
@@ -8111,33 +8112,43 @@ by *type_ptr.  This function is called from decl_specifiers only.
       }  /* if */
       /* Disallow duplicate shared if the block sizes do not match. */
       if ((qualifiers & TQ_UPC_SHARED &
-           f_get_type_qualifiers(*type_ptr, /*top_level=*/FALSE)) != 0 &&
+           f_get_type_qualifiers(type_ptr, /*top_level=*/FALSE)) != 0 &&
           state->upc_block_size !=
-                        f_get_upc_block_size(*type_ptr, /*top_level=*/FALSE)) {
+                        f_get_upc_block_size(type_ptr, /*top_level=*/FALSE)) {
         pos_error(ec_mismatched_shared_block_size, &error_position);
         err = TRUE;
       }  /* if */
     }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
     if (qualifiers != TQ_NONE) {
-      if (is_unknown_type(*type_ptr)) {
-        *type_ptr = integer_type((an_integer_kind)ik_int);
+      if (is_unknown_type(type_ptr)) {
+        type_ptr = integer_type((an_integer_kind)ik_int);
       }  /* if */
       if (qualifiers & TQ_C11_ATOMIC) {
-        *type_ptr = make_c11_atomic_type(*type_ptr, &state->qualifiers_pos,
-                                         /*prev_quals_allowed=*/TRUE);
+        type_ptr = make_c11_atomic_type(type_ptr, &state->qualifiers_pos,
+                                        /*prev_quals_allowed=*/TRUE);
         qualifiers &= ~TQ_C11_ATOMIC;
+      }  /* if */
+      /* Identify top-level cv-qualifiers that have no effect. */
+      a_type_qualifier_set  existing_cv_quals = get_type_qualifiers(type_ptr) &
+                                                      (TQ_CONST | TQ_VOLATILE),
+                            eff_quals = qualifiers;
+      state->eff_top_level_cv_quals = qualifiers & (TQ_CONST | TQ_VOLATILE);
+      if (existing_cv_quals != TQ_NONE) {
+        state->eff_top_level_cv_quals &= ~existing_cv_quals;
+        eff_quals &= ~existing_cv_quals;
       }  /* if */
       /* Add the qualifiers if necessary.  make_qualified_type understands
          the strange array case too. */
-      *type_ptr = f_make_qualified_type(*type_ptr, qualifiers,
-                                        state->upc_block_size);
+      type_ptr = f_make_qualified_type(type_ptr, eff_quals,
+                                       state->upc_block_size);
     }  /* if */
     if (err) {
       /* Some qualifiers were dropped due to errors.  Ignore those from now
          on. */
       state->qualifiers = qualifiers;
     }  /* if */
+    *p_type_ptr = type_ptr;
   }  /* if */
   return !err;
 }  /* add_type_qualifiers */

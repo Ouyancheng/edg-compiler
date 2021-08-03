@@ -10996,7 +10996,7 @@ definition of a member function of a class template.
       /* Declaring a default argument on a function template redeclaration is
          nonstandard.  Issue at least a warning, and always an error if the
          template has already been instantiated. */
-      for (ptp = type_ptr->variant.routine.extra_info->param_type_list;
+      for (ptp = function_type_params(type_ptr);
            ptp != NULL;
            ptp = ptp->next) {
         if (ptp->has_default_arg) {
@@ -11037,6 +11037,19 @@ definition of a member function of a class template.
                                 /*checking_parent_params=*/FALSE,
                                 /*allow_missing_member_constraint=*/TRUE,
                                 es_discretionary_error);
+      if (dps->is_definition) {
+        /* The call to reconcile_routine_type preserved the type of the
+           original declaration.  That's important because for class members
+           the declaration cache has to be that original declaration (to, e.g.,
+           avoid difficulties scanning return types).  However, the qualifiers
+           on the parameters should be those of the definition.  That is
+           ensured here for the prototype instantiation. */
+        a_param_type_ptr  def_ptp = function_type_params(type_ptr);
+        ptp = function_type_params(rout_ptr->type);
+        for (; ptp != NULL; ptp = ptp->next, def_ptp = def_ptp->next) {
+          ptp->qualifiers = def_ptp->qualifiers;
+        }  /* for */
+      }  /* if */
       /* If appropriate, clear the is_invisible flag in the symbol and
          in the symbol representing its overload set. */
       if (sym->is_invisible && !idlb.is_friend_decl) {

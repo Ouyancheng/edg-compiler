@@ -18524,6 +18524,44 @@ class template.  For example, if the function were in a nested class of
 }  /* update_friend_info_for_specialization */
 
 
+static void copy_param_cv_qualifiers_from_proto(a_type_ptr  src_rtp,
+                                                a_type_ptr  dst_rtp)
+/*
+src_type is the type of the prototype instantiation of a function template,
+and dst_rtp is the type of a real instantiation of the same template.  Copy
+the cv-qualifiers recorded for the parameters prototype instantiation to the
+corresponding parameters of the real instantiation.  This is to handle cases
+like:
+  template<typename T> int f(T);
+  template<typename T> int f(T const p) {
+    p += 42;  // Should be an error.
+    return p;
+  }
+  int r = f<int>(0);
+Here the real instantiation is based on the first template declaration, but if
+we have seen a definition after that initial template declaration we need the
+parameter qualifiers of the definition.
+*/
+{
+  a_param_type_ptr  src_ptp = function_type_params(src_rtp),
+                    dst_ptp = function_type_params(dst_rtp);
+
+  for (; dst_ptp != NULL; dst_ptp = dst_ptp->next) {
+    while (src_ptp->param_num < dst_ptp->param_num) {
+      src_ptp = src_ptp->next;
+      if (src_ptp == NULL) {
+        expect_error();
+        goto done;
+      }  /* if */
+    }  /* if */
+    if (dst_ptp->param_num == src_ptp->param_num) {
+      dst_ptp->qualifiers |= (src_ptp->qualifiers & (TQ_CONST | TQ_VOLATILE));
+    }  /* if */
+  }  /* for */
+done:;
+}  /* copy_param_cv_qualifiers */
+
+
 static a_symbol_ptr make_template_function(
 			a_symbol_ptr		templ_sym,
 			a_template_arg_ptr	templ_arg_list,
@@ -18811,6 +18849,10 @@ mode in-class specialization.
       }  /* if */
     } else {
       return_type = error_type();
+    }  /* if */
+    if (templ_rout->defined) {
+      copy_param_cv_qualifiers_from_proto(skip_typerefs(templ_rout->type),
+                                          rout_type);
     }  /* if */
     sym = make_template_function_symbol(templ_sym, &templ_sym->decl_position,
                                         return_type);

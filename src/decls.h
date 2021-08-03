@@ -777,10 +777,6 @@ typedef struct a_decl_parse_state {
 			/* The token sequence number of the identifier
 			   in the declarator or NO_TOKEN_SEQUENCE_NUMBER
 			   if there is none. */
-  a_type_qualifier_set
-		qualifiers;
-			/* Top-level type qualifiers (but not function type
-                           qualifiers). */
   a_source_position
 		qualifiers_pos;
 			/* The position of the type qualifiers (except for
@@ -802,6 +798,17 @@ typedef struct a_decl_parse_state {
 		constexpr_pos;
 			/* The position of the "constexpr", "consteval", or
 			   "constinit" specifier (if any). */
+  a_type_qualifier_set
+		qualifiers:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
+			/* Top-level type qualifiers (but not function type
+                           qualifiers). */
+  a_type_qualifier_set
+		eff_top_level_cv_quals:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
+			/* Top-level const/volatile qualifiers that have a
+			   potential effect on the type.  For example, for a
+                           declaration "T const x" where T is "int const",
+			   this is TQ_NONE since the top-level qualifier has
+			   no effect due to T already being const. */
   a_bit_field
 		in_class_scope:1;
 			/* TRUE if the current declaration appears in class

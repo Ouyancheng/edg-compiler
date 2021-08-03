@@ -1,5 +1,21 @@
 Version 6.3
 
+8/2/21   [EDGcpfe/22040,EDGcpfe/22338,EDGcpfe/24390]
+Const/volatile qualification of function template parameters
+
+Consider:
+
+  template<typename T> int f(T);
+  template<typename T> int f(T const p) {
+    p += 42;  //  Now an error.  Previously erroneously accepted.
+    return p;
+  }
+
+Previously, the type of the parameter p was derived from the first declaration
+of the template (which is non-const) and thus the line p += 42 was erroneously
+accepted (even when the template is instantiated).  That is now fixed.
+
+
 8/2/21   [EDGcpfe/24416]
 Internal error when disambiguation causes instantiations
 

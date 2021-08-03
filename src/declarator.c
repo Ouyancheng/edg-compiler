@@ -3368,8 +3368,28 @@ an error if a default argument expression is encountered.
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
-        /* Check that the type is legal, and do required adjustments. */
         if (!C_mode()) {
+          if (state->is_template_rescan &&
+              param_state.eff_top_level_cv_quals != TQ_NONE) {
+            /* Drop the top-level cv-qualifiers when instantiating a definition
+               because those qualifiers might be from a non-defining
+               declaration.  For example:
+                 template<typename T> void f(T const);  // (1)
+                 template<typename T> void f(T) {}
+                 template void f(int);
+               Here, the rescan is based on (1), but we do not want to carry
+               the "const" into the function definition.  If the explicit
+               instantiation is
+                 template void f<int const>(int);
+               eff_top_level_cv_quals will be TQ_NONE and the const is
+               preserved. */
+            a_type_qualifier_set  tqs = get_type_qualifiers(param_state.type);
+            tqs &= ~param_state.eff_top_level_cv_quals;
+            param_state.type = make_qualified_type(
+                                        skip_typerefs(param_state.type), tqs);
+            param_state.declared_type = param_state.type;
+          }  /* if */
+          /* Check that the type is legal, and do required adjustments. */
           check_use_of_placeholder_type(&param_state);
         }  /* if */
         check_and_adjust_parameter_type(&param_state, &param_type_pos);
@@ -5785,6 +5805,8 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
       /* Check for invalid use of the restrict qualifier. */
       a_type_qualifier_set restrict_bit = (ptr_mods.qualifiers & TQ_RESTRICT);
       state->qualifiers = ptr_mods.qualifiers;
+      state->eff_top_level_cv_quals =
+                               ptr_mods.qualifiers & (TQ_CONST | TQ_VOLATILE);
       if (ptr_mods.qualifiers != restrict_bit) {
         state->qualifiers_pos = ptr_mods.qualifiers_pos;
       }  /* if */
