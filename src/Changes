@@ -1,5 +1,19 @@
 Version 6.3
 
+8/3/21   [EDGcpfe/24525]
+Internal error on substitution of static_cast involving default argument
+
+In some cases, rescanning an operand that was originally a non-dependent
+static_cast relying on a constructor with a default argument resulted in an
+internal error in make_cast_rescan_operands (exprutil.c).  For example:
+
+  struct X { X(int, int = 1); };
+  template<typename T> decltype(T{}, static_cast<X>(2)) f(T&&);
+  auto r = f(3);  // Previously triggered an abort.  Now okay.
+
+That is now fixed.
+
+
 8/3/21   [EDGcpfe/24520]
 Microsoft compatibility: __restrict parameters
 

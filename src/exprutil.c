@@ -5430,7 +5430,6 @@ dynamic init that underlies the cast, or NULL if there isn't one.
          Return the single argument expression via *operand and
          *bound_function_selector. */
       a_local_expr_options_set options = EOPT_OPERAND_OF_CAST;
-      check_assertion(op1->next == NULL);
       make_rescan_operand_full(op1, rcblock, options,
                                operand, bound_function_selector);
     }  /* if */
