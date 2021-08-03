@@ -7264,13 +7264,11 @@ as _Pragma that are not parsed except during instantiations).
                                               {kind, &pos, (int)error_number});
           }  /* if */
         } else {
-          /* Queue the information for the pragma. */
-          if (pragma_diag_list->length() > 0) {
-            /* Make sure the pragmas are ordered by sequence number. */
-            check_assertion(pragma_diag_list->back_elem().spos.seq <= pos.seq);
-          }  /* if */
-          /* Add the pragma to the list. */
-          pragma_diag_list->push_back({kind, &pos, (int)error_number});
+          /* Add the #pragma to the list.  #pragmas are generally encountered
+             only once, but in the case of deferred class fixups, may be
+             encountered more than once.  In that case duplicates are
+             discarded. */
+          (void)insert_into_pragma_diag_list({kind, &pos, (int)error_number});
         }  /* if */
       }  /* if */
     }  /* if */
@@ -7328,13 +7326,11 @@ parsed except during instantiations).
                               {(a_pragma_kind)pk_diagnostic, &pos_curr_token});
       }  /* if */
     } else {
-      if (pragma_diag_list->length() > 0) {
-        /* Make sure the pragmas are ordered by sequence number. */
-        check_assertion(
-                  pragma_diag_list->back_elem().spos.seq < pos_curr_token.seq);
-      }  /* if */
-      /* Add the pragma to the list. */
-      pragma_diag_list->push_back(
+      /* Add the #pragma to the list.  #pragmas are generally encountered
+         only once, but in the case of deferred class fixups, may be
+         encountered more than once.  In that case duplicates are
+         discarded. */
+      (void)insert_into_pragma_diag_list(
                               {(a_pragma_kind)pk_diagnostic, &pos_curr_token});
       ptr = &pragma_diag_list->back_elem();
     }  /* if */
