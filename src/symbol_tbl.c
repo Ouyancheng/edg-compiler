@@ -15080,9 +15080,14 @@ interface classes.
   /* Loop through the base classes. */
   for (; bcp != NULL; bcp = bcp->next) {
     /* When doing dependent name lookup certain base classes should be
-       ignored for unqualified lookups. */
+       ignored for unqualified lookups.  The test of microsoft_mode and
+       use_implicit_typename() causes the ignore_during_dependent_lookup
+       flag to be used for function bodies when parsing nonclass templates.
+       There is no "right" way to parse function bodies in permissive
+       Microsoft mode, so this is a heuristic to improve certain cases. */
     if ((do_dependent_name_processing ||
-         gpp_dependent_name_lookup) &&
+         gpp_dependent_name_lookup ||
+         (microsoft_mode && !use_implicit_typename())) &&
         !look_in_dependent_bases &&
         bcp->ignore_during_dependent_lookup) continue;
 #if MICROSOFT_EXTENSIONS_ALLOWED

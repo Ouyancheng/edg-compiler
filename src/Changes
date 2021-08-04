@@ -1,5 +1,23 @@
 Version 6.3
 
+8/4/21   [EDGcpfe/24442]
+Microsoft compatibility: spurious error when using --parse_templates
+
+In Microsoft mode, when parsing nonclass templates, a spurious error
+could occur when a name that is intended to name a class template
+refers to an injected class name of a dependent base class.  This occurs
+in permissive Microsoft mode because lookup does consider dependent
+base classes in that mode.  A change has been made to ignore dependent
+base classes for lookups within template function bodies.
+
+  template <typename> class A {};
+  template <typename T> struct B : A<T> {
+    B(): A<T>::A() {
+      A<T> a;
+    };
+  };
+
+
 8/3/21   [EDGcpfe/24525]
 Internal error on substitution of static_cast involving default argument
 
