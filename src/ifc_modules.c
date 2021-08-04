@@ -6731,7 +6731,7 @@ FIXME: what other expressions can we get here?
   switch (tag) {
     case ifc_ExprSort_Literal:
       { an_ifc_ExprSort_Literal iesl, *ieslp;
-        a_type_ptr              constant_type, stripped_type;
+        a_type_ptr              constant_type;
         ieslp = get_ExprSort_Literal(&iesl);
         if (ieslp->type == 0) {
           /* If the expression doesn't have its own type, use the default
@@ -6760,11 +6760,16 @@ FIXME: what other expressions can we get here?
                             (an_integer_kind)ik_unsigned_int);
               } else {
                 check_assertion(constant_type != NULL);
-                stripped_type = skip_typerefs(constant_type);
-                check_assertion(stripped_type->kind ==
+                if (is_void_star_type(constant_type)) {
+                  /* Pointer literal, nullptr constant. */
+                  set_unsigned_integer_constant(cp, value, ik_unsigned_int);
+                } else {
+                  a_type_ptr stripped_type = skip_typerefs(constant_type);
+                  check_assertion(stripped_type->kind ==
                                                       (a_type_kind)tk_integer);
-                set_unsigned_integer_constant(cp, value,
+                  set_unsigned_integer_constant(cp, value,
                                       stripped_type->variant.integer.int_kind);
+                }  /* if */
                 cp->type = constant_type;
               }  /* if */
             }
@@ -6986,6 +6991,9 @@ Add a tok_literal for lit_const to cache.  pos is the position of the literal.
     lit_kind = tok_char_constant;
   } else if (is_integral_type(lit_const->type)) {
     lit_kind = tok_int_constant;
+  } else if (is_void_star_type(lit_const->type)) {
+    /* Pointer literal, nullptr constant. */
+    lit_kind = tok_nullptr;
   } else {
     check_assertion(is_error_type(lit_const->type));
     lit_kind = tok_error;
