@@ -13562,13 +13562,18 @@ the declaration of entity.
     break;
   case ifc_DeclSort_Function:
     { /* We're reconstructing a function. */
-      a_routine_ptr            rp = dps->sym->variant.routine.ptr;
-      an_ifc_DeclSort_Function idsf, *idsfp;
+      /* FIXME: Ideally checking for a symbol is unnecessary.  In practice,
+         because we have code generation issues and we don't always create
+         something that can be parsed, this prevents crashes. */
+      if (dps->sym != NULL) {
+        a_routine_ptr            rp = dps->sym->variant.routine.ptr;
+        an_ifc_DeclSort_Function idsf, *idsfp;
 
-      idsfp = get_DeclSort_Function(&idsf);
-      if (idsfp->properties & ifc_ReachableProperties_Initializer) {
-        record_pending_ifc_function_body(rp, templated_decl_idx, this);
-      }  /* if */
+        idsfp = get_DeclSort_Function(&idsf);
+        if (idsfp->properties & ifc_ReachableProperties_Initializer) {
+          record_pending_ifc_function_body(rp, templated_decl_idx, this);
+        }  /* if */
+      }
     }
     break;
   default:
