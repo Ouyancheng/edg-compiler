@@ -405,11 +405,9 @@ static _locale_t
 
 #if !STANDALONE_UTILITY_PROGRAM
 #if EDG_WIN32
-#if CPPCLI_ENABLING_POSSIBLE
 static a_text_buffer_ptr
 		conv_utf8_buffer;
 			/* A text buffer used by conv_wide_to_utf8. */
-#endif /* CPPCLI_ENABLING_POSSIBLE */
 #endif /* EDG_WIN32 */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
@@ -1656,6 +1654,9 @@ file should be a binary file if binary_file is TRUE.
 {
 #define TEMP_NAME_BUFFER_SIZE 150
   char        buffer[TEMP_NAME_BUFFER_SIZE];
+#if EDG_WIN32 && UNICODE_SOURCE_ENABLED
+  wchar_t     *wide_temp_dir;
+#endif /* EDG_WIN32 && UNICODE_SOURCE_ENABLED */
   a_boolean   need_slash;
   sizeof_t    dir_len;
   FILE        *temp_file = NULL;
@@ -1665,6 +1666,20 @@ file should be a binary file if binary_file is TRUE.
   /* Get the value of the "TMPDIR" environment variable, the directory to
      be used for temporary files.  Get it only once (temp_dir is static). */
   if (temp_dir == NULL) {
+#if EDG_WIN32 && UNICODE_SOURCE_ENABLED
+#if __MICROSOFT_OS__
+    /* On a Microsoft OS, first use the TMP environment variable, if set. */
+    /* coverity[tainted_string_return_content] */ /* coverity[var_assign] */
+    wide_temp_dir = _wgetenv(L"TMP");
+#endif /* __MICROSOFT_OS__ */
+    /* coverity[tainted_string_return_content] */ /* coverity[var_assign] */
+    if (wide_temp_dir == NULL) wide_temp_dir = _wgetenv(L"TMPDIR");
+    if (wide_temp_dir != NULL && wcslen(wide_temp_dir) != 0) {
+      temp_dir = conv_wide_to_utf8(wide_temp_dir);
+    } else {
+      temp_dir = DEFAULT_TMPDIR;
+    }  /* if */
+#else /* !(EDG_WIN32 && UNICODE_SOURCE_ENABLED) */
 #if __MICROSOFT_OS__
     /* On a Microsoft OS, first use the TMP environment variable, if set. */
     /* coverity[tainted_string_return_content] */ /* coverity[var_assign] */
@@ -1673,6 +1688,7 @@ file should be a binary file if binary_file is TRUE.
     /* coverity[tainted_string_return_content] */ /* coverity[var_assign] */
     if (temp_dir == NULL) temp_dir = getenv("TMPDIR");
     if (temp_dir == NULL || strlen(temp_dir) == 0) temp_dir = DEFAULT_TMPDIR;
+#endif /* EDG_WIN32 && UNICODE_SOURCE_ENABLED */
   }  /* if */
   dir_len = strlen(temp_dir);
   /* See if a slash must be added to the directory name. */
@@ -5140,7 +5156,6 @@ so the result must be used before the buffer is reused.
   return result;
 }  /* win32_error_to_str */
 
-#if CPPCLI_ENABLING_POSSIBLE
 
 char *conv_wide_to_utf8(wchar_t *wide_str)
 /*
@@ -5185,6 +5200,7 @@ in a temporary buffer.
   return conv_utf8_buffer->buffer;
 }  /* conv_wide_to_utf8 */
 
+#if CPPCLI_ENABLING_POSSIBLE
 
 static void get_clr_runtime_directory(wchar_t  *dir_name, 
                                       sizeof_t *dir_name_size)

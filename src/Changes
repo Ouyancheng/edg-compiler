@@ -1,5 +1,17 @@
 Version 6.3
 
+8/4/21   [EDGcpfe/24042]
+Microsoft Windows compatibility: non-ASCII temporary directory name
+
+The temporary directory used by the front end can be specified using the
+TMPDIR (or, on Windows, TMP) environment variables.  Previously, the value
+of these environment variables was fetched using getenv, which assumes that
+the value is represented using ordinary characters.  This resulted in
+incorrect behavior on Windows when the directory name contains extended
+characters.  The front end now accommodates such names by using _wgetenv
+on Windows to fetch these values.
+
+
 8/4/21   [EDGcpfe/24442]
 Microsoft compatibility: spurious error when using --parse_templates
 
