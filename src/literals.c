@@ -439,18 +439,17 @@ pcc_kind_established:
                                      (an_integer_kind)ik_int)) {
       kind = (an_integer_kind)ik_int;
       goto kind_established;
-    } else if (!has_u_suffix && microsoft_mode &&
+    } else if (!has_u_suffix && microsoft_mode && radix == 10 &&
                (microsoft_version < 1924 ? TRUE :
-                microsoft_version < 1928 ? radix != 10 || ms_permissive
-                                         : radix != 10 ||
-                                           (ms_permissive && !cpp20_mode)) &&
+                microsoft_version < 1928 ? ms_permissive
+                                         : ms_permissive && !cpp20_mode) &&
                le_max_integer_value_of_kind(
                                           &number, /*is_signed=*/FALSE,
                                           (an_integer_kind)ik_unsigned_int)) {
       /* Earlier versions of MSVC appear to use "int" type even if the value
-         overflows into the "unsigned int" range.  MSVC 19.24 fixes that in
-         non-permissive modes, but only for decimal forms.  MSVC 19.28 also
-         fixes the decimal form handling in "c++latest" mode.  For example:
+         (in decimal form) overflows into the "unsigned int" range.  MSVC 19.24
+         fixes that in non-permissive modes.  MSVC 19.28 also fixes the decimal
+         form handling in "c++latest" mode.  For example:
              auto x = 0x80000000;
              auto y = 2147483648;  // Decimal version of 0x80000000
              static_assert(sizeof(x) == sizeof(int), "");  // (1)
