@@ -8,8 +8,8 @@ TMPDIR (or, on Windows, TMP) environment variables.  Previously, the value
 of these environment variables was fetched using getenv, which assumes that
 the value is represented using ordinary characters.  This resulted in
 incorrect behavior on Windows when the directory name contains extended
-characters.  The front end now accommodates such names by using _wgetenv
-on Windows to fetch these values.
+characters.  The front end now accommodates such names by using _wgetenv to
+fetch these values when EDG_WIN32 and UNICODE_SOURCE_SUPPORTED are both TRUE.
 
 
 8/4/21   [EDGcpfe/24442]
