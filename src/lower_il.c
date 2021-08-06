@@ -11354,7 +11354,7 @@ has already been lowered.
     make_zero_of_proper_type(expr->type, constant);
     null_constant_node = alloc_node_for_constant(constant);
     null_constant_node->position = expr->position;
-    overwrite_node(expr, src);
+    overwrite_node(expr, null_constant_node);
     goto done;
   }  /* if */
   /* Rewrite the dynamic cast as
