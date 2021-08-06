@@ -7257,7 +7257,8 @@ for use in generating cross-reference output describing this declaration.
       } else if (microsoft_mode && is_variable_def && linked_symbol->defined &&
                  decl_scope_level == depth_innermost_namespace_scope &&
                  dps->has_initializer &&
-                 dps->declared_storage_class == (a_storage_class)sc_extern &&
+                 (dps->declared_storage_class == (a_storage_class)sc_extern ||
+                  dps->is_linkage_spec_decl) &&
                  !type_has_nontrivial_destructor(dps->type) &&
                  orig_var->init_kind == (an_init_kind)initk_none) {
         /* This non-local variable was already defined, but without an

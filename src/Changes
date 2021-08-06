@@ -1,5 +1,22 @@
 Version 6.3
 
+8/6/21   [EDGcpfe/23004]
+Microsoft C++ compatibility: Duplicate definition of variables
+
+In Microsoft modes the front end already accepts (with a warning) the following
+nonstandard example (see the entry for EDGcpfe/15048):
+
+  int x;
+  extern int x = 3;  // Duplicate definition accepted with a warning in
+                     // Microsoft modes.
+
+Now, such cases are also accepted if the second declaration uses a linkage-
+specification:
+
+  int x;
+  extern "C++" int x = 3;  // Now also accepted in Microsoft C++ mode.
+
+
 8/6/21   [EDGcpfe/24590]
 Invalid lowering of dynamic_cast of constant null pointer
 
