@@ -16834,6 +16834,7 @@ where <typename-or-default> is either a type name or the keyword "default".
       /* "default" is a context-sensitive keyword in some Microsoft modes. */
       (void)check_context_sensitive_keyword(tok_default, "default");
     }  /* if */
+    type_pos = pos_curr_token;
     if (curr_token == tok_default) {
       /* The "default:" case. */
       if (default_seen) {
@@ -16852,7 +16853,6 @@ where <typename-or-default> is either a type name or the keyword "default".
       (void)get_token();
     } else {
       /* A specific type case.  Scan the type and verify its validity. */
-      type_pos = pos_curr_token;
       type_name(&type);
       if (is_error_type(type)) {
         err = TRUE;

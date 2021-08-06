@@ -1,5 +1,14 @@
 Version 6.3
 
+8/6/21   [EDGcpfe/24315]
+Position of default case in C11 _Generic construct
+
+The default case in a C11 _Generic construct is represented by an expression
+node of kind enk_type_operand with a null variant.type_operand.type pointer.
+Previously, the position field in those nodes was not correctly recorded.
+That is now fixed.
+
+
 8/4/21   [EDGcpfe/24042]
 Microsoft Windows compatibility: non-ASCII temporary directory name
 
