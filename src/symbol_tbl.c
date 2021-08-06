@@ -15869,6 +15869,7 @@ locator_for_curr_id.
   pip->declared_type = NULL;
   pip->type_pos = null_source_position;
   pip->storage_class = (a_storage_class)sc_unspecified;
+  pip->eff_top_level_cv_quals = TQ_NONE;
   pip->implicitly_declared = FALSE;
   pip->is_parameter_pack = FALSE;
   pip->is_pack_element = FALSE;

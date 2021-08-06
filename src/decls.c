@@ -166,6 +166,7 @@ be restored).
     dps->return_type_pos = null_source_position;
     dps->start_tsn = NO_TOKEN_SEQUENCE_NUMBER;
     dps->qualifiers = TQ_NONE;
+    dps->eff_top_level_cv_quals = TQ_NONE;
     dps->qualifiers_pos = null_source_position;
     dps->restrict_pos = null_source_position;
     dps->inline_pos = null_source_position;

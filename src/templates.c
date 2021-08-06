@@ -18553,13 +18553,13 @@ parameter qualifiers of the definition.
         expect_error();
         goto done;
       }  /* if */
-    }  /* if */
+    }  /* while */
     if (dst_ptp->param_num == src_ptp->param_num) {
       dst_ptp->qualifiers |= (src_ptp->qualifiers & (TQ_CONST | TQ_VOLATILE));
     }  /* if */
   }  /* for */
 done:;
-}  /* copy_param_cv_qualifiers */
+}  /* copy_param_cv_qualifiers_from_proto */
 
 
 static a_symbol_ptr make_template_function(

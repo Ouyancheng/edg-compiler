@@ -2881,7 +2881,6 @@ finalizer declaration, respectively.  If disallow_default_args is TRUE issue
 an error if a default argument expression is encountered.
 */
 {
-  a_param_type_ptr        ptp;
   a_storage_class         param_storage_class;
   a_type_ptr              tp;
   a_decl_flag_set         dso_flags;
@@ -2914,6 +2913,7 @@ an error if a default argument expression is encountered.
   a_boolean               is_typedef_decl =
                                   (di_flags & DI_IS_TYPEDEF_DECLARATION) != 0;
   a_boolean               is_friend_decl = (di_flags & DI_IS_FRIEND_DECL) != 0;
+  a_boolean               must_adjust_param_type_qualifiers = FALSE;
 
   db_enter(3, "function_declarator");
   copy_source_position(pos_curr_token, start_pos);
@@ -3132,6 +3132,7 @@ an error if a default argument expression is encountered.
                                          DSI_TYPE_SPECIFIER_ALLOWED |
                                          DSI_IS_PARAMETER |
                                          DSI_CHECK_FOR_DANGLING_TYPE_SPECIFIER;
+        a_param_type_ptr     ptp;
         a_type_qualifier_set param_qualifiers = TQ_NONE;
         a_boolean            is_pack_element;
         a_boolean	     is_non_initial_pack_element;
@@ -3369,26 +3370,6 @@ an error if a default argument expression is encountered.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         }  /* if */
         if (!C_mode()) {
-          if (state->is_template_rescan &&
-              param_state.eff_top_level_cv_quals != TQ_NONE) {
-            /* Drop the top-level cv-qualifiers when instantiating a definition
-               because those qualifiers might be from a non-defining
-               declaration.  For example:
-                 template<typename T> void f(T const);  // (1)
-                 template<typename T> void f(T) {}
-                 template void f(int);
-               Here, the rescan is based on (1), but we do not want to carry
-               the "const" into the function definition.  If the explicit
-               instantiation is
-                 template void f<int const>(int);
-               eff_top_level_cv_quals will be TQ_NONE and the const is
-               preserved. */
-            a_type_qualifier_set  tqs = get_type_qualifiers(param_state.type);
-            tqs &= ~param_state.eff_top_level_cv_quals;
-            param_state.type = make_qualified_type(
-                                        skip_typerefs(param_state.type), tqs);
-            param_state.declared_type = param_state.type;
-          }  /* if */
           /* Check that the type is legal, and do required adjustments. */
           check_use_of_placeholder_type(&param_state);
         }  /* if */
@@ -3565,6 +3546,14 @@ an error if a default argument expression is encountered.
           last_param_id->identifier_range =
                               local_decl_pos_block.identifier_range;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+          last_param_id->param_num = param_number;
+          if (param_state.eff_top_level_cv_quals != TQ_NONE) {
+            /* Record qualifiers that are not necessarily part of the function
+               type in template rescan cases. */
+            last_param_id->eff_top_level_cv_quals =
+                                           param_state.eff_top_level_cv_quals;
+            must_adjust_param_type_qualifiers = state->is_template_rescan;
+          }  /* if */
           last_param_id->param_num = param_number;
           if (ptp->is_pack_element) {
             last_param_id->is_pack_element = TRUE;
@@ -4231,6 +4220,32 @@ done:
   if (must_pop_function_prototype_scope) pop_scope();
   if (!is_top_level_declarator) {
     done_with_func_info(local_func_info_block); /*lint !e530*/
+  } else if (must_adjust_param_type_qualifiers) {
+    /* We are rescanning a function template declaration for substitution
+       purposes and we encountered a parameter with a top-level qualifier.
+       Now consider:
+         template<typename T> void f(T const);  // (1)
+         template<typename T> void f(T) {}
+         template void f(int);
+       Here, the rescan is based on (1), but we do not want to carry the
+       "const" into the function definition.  The qualifiers to drop are
+       recorded in a_param_id::eff_top_level_cv_quals.  Note that if the
+       explicit instantiation is
+         template void f<int const>(int);
+       a_param_id::eff_top_level_cv_quals will be TQ_NONE and the const will
+       be preserved.  This adjustment has to happen after trailing return
+       types and exception-specifications are scanned, because in those
+       contexts the cv-qualifiers do apply. */
+    a_param_id_ptr    pip = func_info->param_id_list;
+    a_param_type_ptr  ptp = extra_info->param_type_list;
+    for (; ptp != NULL; ptp = ptp->next) {
+      while (pip != NULL && pip->param_num < ptp->param_num) {
+        pip = pip->next;
+      }  /* while */
+      if (pip != NULL && pip->param_num == ptp->param_num) {
+        ptp->qualifiers &= ~pip->eff_top_level_cv_quals;
+      }  /* if */
+    }  /* for */
   }  /* if */
   copy_source_position(start_pos, error_position);
   state->function_declarator_seen = TRUE;

@@ -1665,6 +1665,13 @@ typedef struct a_param_id {
 			/* For a new- or old-style function parameter, this is
 			   the storage class to be associated with it when it
 			   is declared. */
+  a_type_qualifier_set
+		eff_top_level_cv_quals:NUM_BITS_FOR_TYPE_QUALIFIER_SET;
+			/* Top-level const/volatile qualifiers that have a
+			   potential effect on the type.  For example, for a
+			   declaration "T const x" where T is "int const",
+			   this is TQ_NONE since the top-level qualifier has
+			   no effect due to T already being const. */
   a_bit_field	implicitly_declared:1;
 			/* TRUE for an old-style parameter for which
 			   an explicit declaration is omitted. */
