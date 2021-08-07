@@ -3773,24 +3773,26 @@ treated as a hard error.  Testing for any overloading of the function
 templates is overkill but safe for avoiding this problem.
 */
 {
-  a_const_char   *fcn_name = unmangled_name_of(fcn_scp);
+  a_const_char   *fcn_name;
   a_template_ptr tp;
   a_boolean      matching_template_seen = FALSE;
   a_boolean      is_overloaded = FALSE;
   a_scope_ptr    sp = fcn_scp->parent_scope;
 
-  if (fcn_name != NULL && sp != NULL) {
-    for (tp = fcn_scp->parent_scope->templates; tp != NULL && !is_overloaded;
-         tp = tp->next) {
-      if (unmangled_name_of(&tp->source_corresp) != NULL &&
-          strcmp(unmangled_name_of(&tp->source_corresp), fcn_name) == 0) {
-        if (matching_template_seen) {
-          is_overloaded = TRUE;
-        }  /* if */
-        matching_template_seen = TRUE;
+  fcn_name = (unmangled_name_of(fcn_scp) != NULL) ? unmangled_name_of(fcn_scp)
+                                                  : "fcn";
+  for (tp = fcn_scp->parent_scope->templates; tp != NULL && !is_overloaded;
+       tp = tp->next) {
+    a_const_char *tpl_name = (unmangled_name_of(&tp->source_corresp) != NULL)
+                                       ? unmangled_name_of(&tp->source_corresp)
+                                       : "tpl";
+    if (strcmp(tpl_name, fcn_name) == 0) {
+      if (matching_template_seen) {
+        is_overloaded = TRUE;
       }  /* if */
-    }  /* for */
-  }  /* if */
+      matching_template_seen = TRUE;
+    }  /* if */
+  }  /* for */
   return is_overloaded;
 }  /* overloaded_templates */
 
