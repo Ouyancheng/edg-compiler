@@ -3779,7 +3779,7 @@ templates is overkill but safe for avoiding this problem.
   a_boolean      is_overloaded = FALSE;
   a_scope_ptr    sp = fcn_scp->parent_scope;
 
-  if (sp != NULL) {
+  if (fcn_name != NULL && sp != NULL) {
     for (tp = fcn_scp->parent_scope->templates; tp != NULL && !is_overloaded;
          tp = tp->next) {
       if (unmangled_name_of(&tp->source_corresp) != NULL &&
