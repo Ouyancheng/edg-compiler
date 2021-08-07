@@ -3777,7 +3777,6 @@ templates is overkill but safe for avoiding this problem.
   a_template_ptr tp;
   a_boolean      matching_template_seen = FALSE;
   a_boolean      is_overloaded = FALSE;
-  a_scope_ptr    sp = fcn_scp->parent_scope;
 
   fcn_name = (unmangled_name_of(fcn_scp) != NULL) ? unmangled_name_of(fcn_scp)
                                                   : "fcn";
