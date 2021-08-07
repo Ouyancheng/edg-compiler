@@ -3749,6 +3749,48 @@ a name.  Never generate a qualified name.
 }  /* gen_bare_name */
 
 
+static a_boolean overloaded_templates(a_source_correspondence *fcn_scp)
+/*
+Return TRUE if more than one function template in the scope containing the
+function designated by fcn_scp has that name. This is used to determine
+whether adding explicit template arguments to a generated explicit
+specialization is safe or not.  For example, consider:
+  template<typename T> struct A {
+    typedef typename T::type type;
+  };
+  template<typename> struct B {
+    typedef int type;
+  };
+  template<typename T> typename A<T>::type f(void*,T);
+  template<typename T> typename B<T>::type f(int,T);
+  template<> int f(int,int);
+Instantiation of A<int> by declaration matching to determine the template
+associated with the explicit specialization of f is invalid because A<int>
+attempts to form the invalid type int::type.  That is treated as a
+substitution failure (SFINAE) when no template argument is supplied, as in
+this example.  However, if the explicit substitution names f<int>, it is
+treated as a hard error.  Testing for any overloading of the function
+templates is overkill but safe for avoiding this problem.
+*/
+{
+  a_const_char   *fcn_name = unmangled_name_of(fcn_scp);
+  a_template_ptr tp;
+  a_boolean      matching_template_seen = FALSE;
+  a_boolean      is_overloaded = FALSE;
+
+  for (tp = fcn_scp->parent_scope->templates; tp != NULL && !is_overloaded;
+       tp = tp->next) {
+    if (strcmp(unmangled_name_of(&tp->source_corresp), fcn_name) == 0) {
+      if (matching_template_seen) {
+        is_overloaded = TRUE;
+      }  /* if */
+      matching_template_seen = TRUE;
+    }  /* if */
+  }  /* for */
+  return is_overloaded;
+}  /* overloaded_templates */
+
+
 static a_boolean name_has_template_arguments(
                                         a_source_correspondence *scp,
                                         an_il_entry_kind        entry_kind,
@@ -3806,6 +3848,11 @@ argument list and to FALSE otherwise.
     if (rout->expl_template_arg_list_used ||
         ((clang_is_generated_code_target ||
           msvc_is_generated_code_target) &&
+         /* This special treatment does not apply when there are overloaded
+            function templates matching the name of the generated explicit
+            specialization; see overloaded_templates() for a description of
+            the issue involved. */
+         !overloaded_templates(scp) &&
          (is_generated_explicit_specialization ||
           (in_friend_declaration &&
            curr_name_context->is_generated_explicit_class_specialization)) &&
