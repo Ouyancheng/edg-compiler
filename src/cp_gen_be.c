@@ -3853,18 +3853,18 @@ argument list and to FALSE otherwise.
     if (rout->expl_template_arg_list_used ||
         ((clang_is_generated_code_target ||
           msvc_is_generated_code_target) &&
-         /* This special treatment does not apply when there are overloaded
-            function templates matching the name of the generated explicit
-            specialization; see overloaded_templates() for a description of
-            the issue involved. */
-         !overloaded_templates(scp) &&
          (is_generated_explicit_specialization ||
           (in_friend_declaration &&
            curr_name_context->is_generated_explicit_class_specialization)) &&
          rout->assoc_template != NULL &&
          rout->special_kind != (a_special_function_kind)sfk_constructor &&
          rout->special_kind != (a_special_function_kind)sfk_conversion &&
-         !in_template_argument_list)) {
+         !in_template_argument_list &&
+         /* This special treatment does not apply when there are overloaded
+            function templates matching the name of the generated explicit
+            specialization; see overloaded_templates() for a description of
+            the issue involved. */
+         !overloaded_templates(scp))) {
       tap = rout->template_arg_list;
       result = TRUE;
       if (insert_space != NULL &&
