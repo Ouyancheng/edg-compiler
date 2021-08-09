@@ -1446,7 +1446,7 @@ EXTERN a_boolean
 EXTERN a_boolean
 		abbr_func_templates_enabled;
 			/* TRUE if C++20-style abbreviated function templates
-			   are enabled. */
+			   are enabled.  Also TRUE in some GNU C++ modes. */
 
 EXTERN a_boolean
 		lambdas_enabled;

@@ -5294,7 +5294,12 @@ before this routine is called.
       enable_decltype_in_base_specifier_and_mem_initializer = TRUE;
     }  /* if */
   }  /* if */
-  if (!cpp14_mode) {
+  if (cpp14_mode) {
+    if (gpp_version_is(>=40900)) {
+      abbr_func_templates_enabled = TRUE;
+    }  /* if */
+  } else {
+    /* Pre-C++14 mode. */
     if (lambdas_enabled) {
       /* GCC versions that support lambdas also support generalized lambda
          captures. */
