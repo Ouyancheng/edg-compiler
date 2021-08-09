@@ -1858,6 +1858,7 @@ is pushed regardless of any of the other factors.
   new_entry->paren_as_aggregate_init = FALSE;
   new_entry->expr_will_be_discarded = FALSE;
   new_entry->statement_expression_seen = FALSE;
+  new_entry->likely_not_evaluated = FALSE;
   new_entry->dynamic_init_dtor_fixup_list = NULL;
   new_entry->nested_construct_depth = 0;
   new_entry->lifetime = NULL;

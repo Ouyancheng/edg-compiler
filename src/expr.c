@@ -28578,7 +28578,7 @@ describe the location of the operator.
     op = which_binary_operator(operator_token, operation_type);
     /* Convert the operands to a common type. */
     change_binary_operand_types(operation_type, opnd1, opnd2, op);
-    if (funny_unsigned_comparison) {
+    if (funny_unsigned_comparison && !expr_stack->likely_not_evaluated) {
       /* Check for pointless comparisons of unsigned integers against 0,
          and give a warning.  The pointless cases are
            u >= 0    (always true)
@@ -30901,6 +30901,8 @@ and whether the operator appears at the top level of a requires clause.
   a_boolean             expr2_evaluated;
   a_boolean             saved_inside_conditional_expression =
                                      expr_stack->inside_conditional_expression;
+  a_boolean             saved_likely_not_evaluated =
+                                              expr_stack->likely_not_evaluated;
 
   db_enter(4, "scan_logical_operator");
 
@@ -30939,12 +30941,9 @@ and whether the operator appears at the top level of a requires clause.
        meaning.  Examine the first operand to see if it is a constant.
        If so, we can determine whether or not the second operand should be
        evaluated. */
-    if (C_dialect == C_dialect_cplusplus &&
-        is_class_struct_union_type(operand_1->type)) {
+    if (!C_mode() && is_class_struct_union_type(operand_1->type)) {
       /* The first operand is a class in C++ mode.  We cannot convert it to
-         an rvalue because a conversion function might be applied to it.
-         However, we lose nothing by not doing this -- we know the first
-         operand is not a constant. */
+         an rvalue because a conversion function might be applied to it. */
     } else {
       /* See if the first operand is a constant. */
       do_operand_transformations(operand_1, TOPT_NO_OPTIONS);
@@ -30970,6 +30969,32 @@ and whether the operator appears at the top level of a requires clause.
         }  /* if */
       }  /* if */
     }  /* if */
+  }  /* if */
+  if (!known_result && !saved_likely_not_evaluated &&
+      is_scalar_type(operand_1->type) &&
+      !expr_stack->possible_rescan_context) {
+    a_constant_ptr  con = NULL, temp_con = local_constant();
+    if (is_constant_operand(operand_1)) {
+      con = &operand_1->variant.constant;
+    } else if (is_expression_operand(operand_1) &&
+               fold_constexpr_expr(operand_1->variant.expression, temp_con,
+                                   /*is_constant_evaluated=*/FALSE,
+                                   /*force_prvalue=*/TRUE)) {
+      con = temp_con;
+    }  /* if */
+    if (con != NULL && constant_bool_value_known_at_compile_time(con)) {
+      operand_1_is_false = is_false_constant(con);
+      if (operator_token == tok_and_and && operand_1_is_false) {
+        /* 0 && something -- this nearly-always evaluates to a zero/false
+           value. */
+        expr_stack->likely_not_evaluated = TRUE;
+      } else if (operator_token == tok_or_or && !operand_1_is_false) {
+        /* non-zero || something -- this nearly-always evaluates to a value of
+           1/true. */
+        expr_stack->likely_not_evaluated = TRUE;
+      }  /* if */
+    }  /* if */
+    release_local_constant(&temp_con);
   }  /* if */
 
   if (rcblock == NULL) {
@@ -31166,6 +31191,9 @@ and whether the operator appears at the top level of a requires clause.
   } else {
     result->ruled_out_expr_kinds = (operand_1->ruled_out_expr_kinds |
                                     operand_2.ruled_out_expr_kinds);
+  }  /* if */
+  if (!saved_likely_not_evaluated) {
+    expr_stack->likely_not_evaluated = FALSE;
   }  /* if */
   db_exit();
 }  /* scan_logical_operator */

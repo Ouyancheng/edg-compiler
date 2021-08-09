@@ -1090,6 +1090,11 @@ typedef struct an_expr_stack_entry {
 		statement_expression_seen:1;
 			/* TRUE if a statement expression was seen in the
 			   current expression. */
+  a_bit_field	likely_not_evaluated:1;
+			/* TRUE while scanning an expression that is likely
+			   not evaluated.  In particular, this is TRUE when
+			   scanning X in "0 && X" or "1 || X" even when an
+			   overloaded operator && or || exists. */
   a_dynamic_init_dtor_fixup_ptr
 		dynamic_init_dtor_fixup_list;
 			/* List of dynamic init entries for which destructor
