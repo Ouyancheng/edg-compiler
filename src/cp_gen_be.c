@@ -3752,7 +3752,7 @@ a name.  Never generate a qualified name.
 static a_boolean overloaded_templates(a_source_correspondence *fcn_scp)
 /*
 Return TRUE if more than one function template in the scope containing the
-function designated by fcn_scp has that name. This is used to determine
+function designated by fcn_scp has that name.  This is used to determine
 whether adding explicit template arguments to a generated explicit
 specialization is safe or not.  For example, consider:
   template<typename T> struct A {
