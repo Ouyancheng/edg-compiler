@@ -20,10 +20,10 @@ specification:
 8/6/21   [EDGcpfe/24590]
 Invalid lowering of dynamic_cast of constant null pointer
 
-The change for EDGcpfe/23648 introduced a bug such that a dynamic_cast applied
-to a null pointer constant was lowered to the original null pointer value
-instead of a null pointer value of the type indicated by the dynamic_cast
-operation.  That is now fixed.
+The change for EDGcpfe/23648 (in version 6.2) introduced a bug such that a
+dynamic_cast applied to a null pointer constant was lowered to the original
+null pointer value instead of a null pointer value of the type indicated by
+the dynamic_cast operation.  That is now fixed.
 
 
 8/6/21   [EDGcpfe/24315]
