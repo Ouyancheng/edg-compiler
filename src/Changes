@@ -1,5 +1,22 @@
 Version 6.3
 
+8/10/21  [EDGcpfe/24043]
+Abort in set_src_seq_secondary_decl_fields on C++17 inline static data member
+
+When NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is configured to
+TRUE, the front end could abort in set_src_seq_secondary_decl_fields when
+processing the instantiation of an inline static member definition with a class
+scope.  For example:
+
+  struct S { template <class T> static inline T N = 100; };
+  int main() {
+    int i;
+    i = S::N<int>;  // Previously triggered an internal error.
+  }
+
+That is now fixed.
+
+
 8/10/21  [EDGcpfe/20909,EDGcpfe/24300,EDGcpfe/24540]
 Microsoft compatibility: Closure conversion functions
 
