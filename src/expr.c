@@ -30888,7 +30888,7 @@ and whether the operator appears at the top level of a requires clause.
                         operator_tok_seq_number;
   a_boolean             operand_1_is_false = FALSE;
   a_host_large_integer  local_result = 0;
-  a_boolean             known_result       = FALSE;
+  a_boolean             known_result = FALSE;
   a_token_kind          operator_token;
   a_type_ptr            result_type;
   a_boolean             processed = FALSE;
