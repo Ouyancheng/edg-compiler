@@ -7269,6 +7269,15 @@ for use in generating cross-reference output describing this declaration.
         pos_sy_warning(ec_already_defined, &locator->source_position,
                        linked_symbol);
         orig_var->storage_class = (a_storage_class)sc_extern;
+        storage_class = (a_storage_class)sc_extern;
+        idlb.linkage = idl_external;
+        linkage = idl_external;
+        if (dps->is_linkage_spec_decl) {
+          idlb.name_linkage_is_explicit = TRUE;
+          idlb.name_linkage =
+                           scope_stack[decl_scope_level].default_name_linkage;
+          orig_var->source_corresp.name_linkage = idlb.name_linkage;
+        }  /* if */
         linked_symbol->defined = FALSE;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         eliminate_variable_definition_source_sequence_entry(orig_var);

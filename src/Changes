@@ -1,5 +1,28 @@
 Version 6.3
 
+8/10/21  [EDGcpfe/24597]
+Microsoft C++ compatibility: Linkage of variables with duplicate definitions
+
+In Microsoft modes the front end accepts (with a warning) the following
+nonstandard example (see the entries for EDGcpfe/15048 and EDGcpfe/23004):
+
+  int const N;              // (1)
+  extern int const N = 42;  // (2) Accepted with a warning in Microsoft modes.
+
+In this example, the original definition (1) has internal linkage and the front
+end previously retained that linkage even after processing definition (2).
+Now, the definition of the variable is updated to be external.  This is, for
+example, revealed through the use of certain attributes.  If definition (2)
+above is replaced by:
+
+  extern __declspec(selectany) int const N = 42;  // Previously an error.
+                                                  // Now accepted
+
+the front end previously emitted an error because "selectany" doesn't apply to
+variables with internal linkage.  Now it is accepted since variable N is
+treated as having external linkage after processing the duplicate definition.
+
+
 8/10/21  [EDGcpfe/24596]
 auto parameters in explicit instantiations and specializations
 
