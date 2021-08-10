@@ -15346,6 +15346,24 @@ not_direct_binding_case:
                                     ec_no_error, &std_conversion)) {
         compatible = FALSE;
       }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+      if (microsoft_mode && type_is_lambda_closure(conv_funcs_class) &&
+          is_pointer_to_function_type(return_type)) {
+        /* Microsoft compilers create a set of lambda conversion functions for
+           different calling conventions.  Ordinarily, that would create an
+           ambiguity for something like:
+             auto p = +[]{};
+           but for the special case of a closure MSVC appears to ignore the
+           non-default/cdecl calling conventions. */
+        a_type_ptr  rtp = skip_typerefs(type_pointed_to(return_type));
+        a_calling_convention
+                    cconv = rout_type_supp(rtp)->calling_convention;
+        if (cconv != (a_calling_convention)cc_default &&
+            cconv != (a_calling_convention)cc_cdecl) {
+          compatible = FALSE;
+        }  /* if */
+      }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
     /* Give up on this function if it does not return a type we can use. */
     if (!compatible) goto reject_function;

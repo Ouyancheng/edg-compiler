@@ -1,5 +1,28 @@
 Version 6.3
 
+8/10/21  [EDGcpfe/20909,EDGcpfe/24300,EDGcpfe/24540]
+Microsoft compatibility: Closure conversion functions
+
+Consider in Microsoft mode:
+
+  auto p = +[]{};  // Previously an error in Microsoft mode.  Now okay.
+
+Microsoft-mode closure types can have multiple conversion functions to account
+for calling conventions.  Under ordinary overload resolution rules that makes
+the example above ambiguous.  The front end has now been updated to prefer the
+conversion function to a pointer-to-function type with __cdecl or "default"
+calling convention.  This preference is for closure types only.  The following
+example remains ambiguous:
+
+  using F1 = void (*)();
+  using F2 = void (__vectorcall *)();
+  struct S {
+    operator F1();
+    operator F2();
+  } s;
+  auto p = +s;  // Still ambiguous.
+
+
 8/10/21  [EDGcpfe/24597]
 Microsoft C++ compatibility: Linkage of variables with duplicate definitions
 
