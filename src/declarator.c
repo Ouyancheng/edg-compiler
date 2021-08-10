@@ -3163,6 +3163,8 @@ an error if a default argument expression is encountered.
         param_state.is_pack_element = is_pack_element;
         param_state.assoc_func_decl_state = state;
         param_state.auto_type_allowed = is_top_level_declarator &&
+                                        !state->is_explicit_specialization &&
+                                        !state->is_explicit_instantiation &&
                                         (abbr_func_templates_enabled ||
                                          (generic_lambdas_enabled &&
                                           state->is_lambda));

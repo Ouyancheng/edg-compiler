@@ -1,5 +1,18 @@
 Version 6.3
 
+8/10/21  [EDGcpfe/24596]
+auto parameters in explicit instantiations and specializations
+
+In C++20 mode, the front end previously failed to diagnose auto parameters in
+explicit instantiation directives and explicit specialization declarations.
+For example:
+
+  template<typename T> void g(T) {}
+  template void g(auto);  // Previously erroneously accepted.
+
+That is now fixed.
+
+
 8/9/21   [EDGcpfe/24526]
 Warnings about pointless unsigned integer comparisons
 
