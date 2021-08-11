@@ -15353,8 +15353,9 @@ not_direct_binding_case:
            different calling conventions.  Ordinarily, that would create an
            ambiguity for something like:
              auto p = +[]{};
-           but for the special case of a closure MSVC appears to ignore the
-           non-default/cdecl calling conventions. */
+           but for the special case of a closure MSVC appears to prefer the
+           default and cdecl calling conventions (effectively ignoring the
+           other conversion operators). */
         a_type_ptr  rtp = skip_typerefs(type_pointed_to(return_type));
         a_calling_convention
                     cconv = rout_type_supp(rtp)->calling_convention;
