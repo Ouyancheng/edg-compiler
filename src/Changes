@@ -17,8 +17,8 @@ Abort in set_src_seq_secondary_decl_fields on C++17 inline static data member
 
 When NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS is configured to
 TRUE, the front end could abort in set_src_seq_secondary_decl_fields when
-processing the instantiation of an inline static member definition with a class
-scope.  For example:
+processing the instantiation of an inline static member defined inside its
+class.  For example:
 
   struct S { template <class T> static inline T N = 100; };
   int main() {
