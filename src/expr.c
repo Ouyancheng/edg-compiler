@@ -30985,11 +30985,11 @@ and whether the operator appears at the top level of a requires clause.
     if (con != NULL && constant_bool_value_known_at_compile_time(con)) {
       operand_1_is_false = is_false_constant(con);
       if (operator_token == tok_and_and && operand_1_is_false) {
-        /* 0 && something -- this nearly-always evaluates to a zero/false
+        /* 0 && something -- this nearly always evaluates to a zero/false
            value. */
         expr_stack->likely_not_evaluated = TRUE;
       } else if (operator_token == tok_or_or && !operand_1_is_false) {
-        /* non-zero || something -- this nearly-always evaluates to a value of
+        /* non-zero || something -- this nearly always evaluates to a value of
            1/true. */
         expr_stack->likely_not_evaluated = TRUE;
       }  /* if */

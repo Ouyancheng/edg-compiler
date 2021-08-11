@@ -93,7 +93,7 @@ Warnings about pointless unsigned integer comparisons
 
 If u is an unsigned variable, the front end warns about comparisons like u<0
 that are pointless.  The front end also disables that warning in some cases
-of the form "Cond && u<0" where cond is a false-valued constant.  However, the
+of the form "cond && u<0" where cond is a false-valued constant.  However, the
 warning was still issued if any overloaded operator&& had been seen (since such
 an operator invocation wouldn't short-circuit the evaluation of the second
 operand if it were selected).  On balance, however, that exception was found
