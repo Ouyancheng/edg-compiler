@@ -1,5 +1,17 @@
 Version 6.3
 
+8/10/21  [EDGcpfe/24266]
+Constant-evaluation of address comparisons
+
+The constexpr interpreter previously sometimes misevaluated address comparisons
+of certain values with distinct types.  For example:
+
+  constexpr bool g(int *x, int const *y) { return x == y; }
+  static_assert(g(nullptr,nullptr), "");  // Previously failed.  Now okay.
+
+That is now fixed.
+
+
 8/10/21  [EDGcpfe/24043]
 Abort in set_src_seq_secondary_decl_fields on C++17 inline static data member
 

@@ -15577,9 +15577,12 @@ the value representation of the integer value.
                   }  /* if */
                 } else {
                   /* Two runtime data pointers. */
-                  if (eq_constants(ptr1->variant.addr_con,
-                                   ptr2->variant.addr_con)) {
-                    *(an_integer_value *)result_storage = one_int;
+                  int  cmp;
+                  if (compare_address_constants(ptr1->variant.addr_con,
+                                                ptr2->variant.addr_con,
+                                                &cmp)) {
+                    *(an_integer_value *)result_storage = cmp ? zero_int:
+                                                                one_int;
                   } else {
                     *(an_integer_value *)result_storage = zero_int;
                   }  /* if */
@@ -15682,11 +15685,14 @@ the value representation of the integer value.
                   }  /* if */
                 } else {
                   /* Two runtime data pointers. */
-                  if (!eq_constants(ptr1->variant.addr_con,
-                                    ptr2->variant.addr_con)) {
-                    *(an_integer_value *)result_storage = one_int;
+                  int  cmp;
+                  if (compare_address_constants(ptr1->variant.addr_con,
+                                                ptr2->variant.addr_con,
+                                                &cmp)) {
+                    *(an_integer_value *)result_storage = cmp ? one_int:
+                                                                zero_int;
                   } else {
-                    *(an_integer_value *)result_storage = zero_int;
+                    *(an_integer_value *)result_storage = one_int;
                   }  /* if */
                 }  /* if */
               } else {
