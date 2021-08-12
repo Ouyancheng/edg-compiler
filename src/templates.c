@@ -14204,13 +14204,15 @@ If there is an error in the copying, set *copy_error to TRUE.
         (is_class_template_symbol(template_sym) ||
          symbol_is(template_sym, sk_concept_template) ||
          symbol_is(template_sym, sk_variable_template)) &&
-        !(options & CTWS_PARTIAL_ARG_LIST_OKAY)) {
+        !((options & CTWS_PARTIAL_ARG_LIST_OKAY) != 0 &&
+          (options & CTWS_PRESERVE_DEDUCED_PACKS) != 0)) {
       /* This is an empty pack expansion for a template parameter with a
          default argument, or a missing template argument (which can occur
          following a use of a pack as an argument to a non-pack).  Get the
          default argument value.  Don't do this if we're doing a partial
-         substitution that allows additional deduction later on (since the
-         deduction may provide a non-default argument value). */
+         substitution that allows additional deduced elements in the pack
+         later on (since the deduction may provide a non-default argument
+         value). */
       a_templ_arg_kind		arg_kind;
       arg_kind = templ_arg_kind_for_symbol_kind(tpp->param_symbol->kind);
       tap = alloc_template_arg(arg_kind);

@@ -1,5 +1,27 @@
 Version 6.3
 
+8/12/21  [EDGcpfe/24599]
+Spurious error due to failure to account for default template arguments
+
+Consider:
+
+  template<typename, typename = int> struct X {};
+  template<typename T> T f(T*);
+  template<typename ... Ts> using F = decltype(f<Ts...>(nullptr));
+  template<typename... Ts> struct S {
+    template<template<typename...> class TT = X,
+             F<TT<Ts>...>* = nullptr>
+      S() {}
+  };
+  S<float> sf;  // Previously an error.  Now okay.
+
+Previously, this failed to substitute the default constructor of S<float>
+because the substitution of TT<Ts> with TT = <X> and Ts = <float> (producing
+X<float>) did not correctly account for the default template argument of X.
+That is now fixed.  This was a regression introduced in version 4.11 by the
+changes for EDGcpfe/16587.
+
+
 8/10/21  [EDGcpfe/24266]
 Constant-evaluation of address comparisons
 
