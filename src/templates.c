@@ -14581,12 +14581,13 @@ static a_type_ptr copy_template_alias_reference_with_substitution(
 			a_boolean			*copy_error,
 			a_ctws_state_ptr		ctws_state)
 /*
-Copy, with substitution, the template argument list from orig_type, which
-is an instance of an alias template.  template_sym is the template on
-which the alias is based.  In most cases this only does substitution on the
-argument list and returns the original type.  In some cases (for special
-internal aliases) a new type is created and returned.  In such cases, the
-new type may not be a typeref.
+Copy, with substitution, the template argument list from orig_type, which is
+an instance of an alias template.  template_sym is the template on which the
+alias is based.  In most cases this only does substitution on the argument
+list and returns the original type.  In some cases (for special internal
+aliases) a new type is created and returned.  In such cases, the new type may
+not be a typeref.  This function also checks that any constraints on the alias
+template are satisfied (if not, *copy_error is set to TRUE).
 */
 {
   a_template_arg_ptr			tap;
@@ -14624,6 +14625,9 @@ new type may not be a typeref.
          the template. */
       result_type = instantiate_type_pack_element(new_list);
       new_list = NULL;
+    } else if (!check_template_constraints(template_sym, new_list,
+                                           /*diagnose=*/FALSE)) {
+      *copy_error = TRUE;
     }  /* if */
   }  /* if */
   if (new_list != NULL) free_template_arg_list(new_list);
@@ -15761,7 +15765,8 @@ a pointer over a reference type or creating an array of references.
               if (tssp == NULL ||
                   tssp->variant.class_template.has_alias_params_not_in_type ||
                   ((options & (CTWS_IS_PARTIAL_ORDER_CHECK |
-                               CTWS_IS_PARTIAL_SPECIALIZATION_CHECK)) != 0)) {
+                               CTWS_IS_PARTIAL_SPECIALIZATION_CHECK)) != 0) ||
+                  template_has_constraints(ttsp->assoc_template)) {
                 type = copy_template_alias_reference_with_substitution(
                               template_sym, type, templ_arg_list,
                               templ_param_list, source_pos, options,

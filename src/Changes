@@ -1,5 +1,19 @@
 Version 6.3
 
+8/12/21  [EDGcpfe/24600]
+Constraints on alias templates
+
+The front end sometimes failed to check constraints on alias templates during
+substitution.  For example:
+
+  template<typename T> requires false using A = T;
+  template<typename T> A<T> f(T);
+  template<typename T> int f(T);
+  int r = f(42);  // Previously ambiguous.  Now okay/
+
+That is now fixed.
+
+
 8/12/21  [EDGcpfe/24599]
 Spurious error due to failure to account for default template arguments
 
