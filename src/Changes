@@ -1,5 +1,28 @@
 Version 6.3
 
+8/13/21  [EDGcpfe/21800,EDGcpfe/22042,EDGcpfe/22818,EDGcpfe/24405]
+GNU compatibility: Braced initializers and vector expressions
+
+Consider (in GNU C++11 modes):
+
+  typedef float V __attribute__((__vector_size__(16)));
+  struct S { operator V(); };
+  V av[1] = { S() };  // (1) Previously an error.  Now okay.
+  V v = { av[0] };    // (2) Previously an error.  Now okay.
+
+Previously, the front end did not consider user-defined conversions when
+attempting to initialize an aggregate element of vector type directly (instead
+of initializing each element of the vector).  For line (1), this resulted in
+an error because expression S() was matched with the element type (float) of
+the vector.  That is now fixed.
+
+Also, previously, a top-level braced initializer for a vector was always
+assumed to be an aggregate initializer (i.e., initializing the elements of the
+destination vector one by one).  This caused line (2) to be rejected.  Now,
+the special case where the braced initializer encloses a single element of the
+destination vector type is handled specially and line (2) is thus accepted.
+
+
 8/12/21  [EDGcpfe/24527]
 C++-generating back end: members of class templates as nontype arguments
 

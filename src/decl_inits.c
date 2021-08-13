@@ -4404,6 +4404,29 @@ variable initialization.
 }  /* process_simple_init_component */
 
 
+static a_boolean is_singleton_match(an_init_component  *icp,
+                                    a_type_ptr         dtype)
+/*
+Return TRUE if icp is a C++11 braced component enclosing a single expression
+component, and that expression's type is reference related to dtype (or it is
+a template-dependent type).
+*/
+{
+  a_boolean  special_singleton = FALSE;
+
+  if (cpp11_mode && is_braced_init_component(icp)) {
+    an_init_component_ptr  list = icp->variant.braced.list;
+    if (list != NULL && is_last_elem(list) && is_expression_component(list)) {
+      a_type_ptr  etp = operand_of_arg_list_elem(list)->type;
+      special_singleton = (is_prototype_instantiation_context() &&
+                           is_or_contains_template_param(etp)) ||
+                          are_reference_related(dtype, etp);
+    }  /* if */
+  }  /* if */
+  return special_singleton;
+}  /* is_singleton_match */
+
+
 static void braced_initializer(a_type_ptr          dtype,
                                an_init_component   *rescan_aggr,
                                an_init_state       *is,
@@ -4519,9 +4542,15 @@ initializer, already copied and substituted.
       break;
 #if GNU_VECTOR_TYPES_ALLOWED
     case tk_vector:
-      /* A GNU vector type. */
-      is_aggregate = TRUE;
-      aggr_init_vector(&icp, dtype, is, diag_pos, &is->init_con);
+      /* A GNU vector type.  As with the class type case below this is usually
+         an aggregate initialization case, but there is a special "singleton"
+         case as well. */
+      if (is_singleton_match(icp, dtype)) {
+        convert_initializer(icp, dtype, is_var_init, fill_in_dtor, is);
+      } else {
+        is_aggregate = TRUE;
+        aggr_init_vector(&icp, dtype, is, diag_pos, &is->init_con);
+      }  /* if */
       break;
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
     case tk_class:
@@ -4557,18 +4586,7 @@ initializer, already copied and substituted.
              An exception occurs in C++11 mode when initializing with a
              singleton list whose only element initializes the whole
              destination object. */
-          a_boolean  special_singleton = FALSE;
-          if (cpp11_mode && is_braced_init_component(icp)) {
-            an_init_component_ptr  list = icp->variant.braced.list;
-            if (list != NULL && is_last_elem(list) &&
-                is_expression_component(list)) {
-              a_type_ptr  etp = operand_of_arg_list_elem(list)->type;
-              special_singleton = (is_prototype_instantiation_context() &&
-                                   is_or_contains_template_param(etp)) ||
-                                  are_reference_related(dtype, etp);
-            }  /* if */
-          }  /* if */
-          if (special_singleton) {
+          if (is_singleton_match(icp, dtype)) {
             convert_initializer(icp, dtype, is_var_init, fill_in_dtor, is);
           } else {
             is_aggregate = TRUE;

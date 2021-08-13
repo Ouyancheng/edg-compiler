@@ -49302,6 +49302,21 @@ element of vector type dest_type (as a whole; not just an element of it).
   if (C_mode()) {
     result = types_are_compatible_ignoring_qualifiers(operand->type,
                                                       dest_type);
+  } else if (is_class_struct_union_type(operand->type)) {
+    a_conv_descr  conversion;
+    a_boolean     ambiguous = FALSE;
+    result = conversion_from_class_possible(
+                                       operand, dest_type,
+                                       (a_builtin_type_kind_set)BTK_NONE,
+                                       /*need_lvalue_result=*/FALSE,
+                                       /*is_copy_initialization=*/FALSE,
+                                       /*orig_is_copy_initialization=*/FALSE,
+                                       /*ref_binding_type=*/NULL,
+                                       /*is_direct_binding=*/FALSE,
+                                       CCO_DEFAULT,
+                                       &conversion,
+                                       &ambiguous,
+                                       (a_candidate_function_ptr *)NULL);
   } else {
     a_conv_descr   conversion;
     a_boolean      is_constant = is_constant_operand(operand);
