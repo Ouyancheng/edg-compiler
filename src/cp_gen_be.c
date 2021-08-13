@@ -5504,6 +5504,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
                                      options & (GN_PARENS_IF_GLOBAL_QUALIFIER |
                                                 GN_SUPPRESS_TEMPLATE_KEYWORD |
                                                 GN_DECLARATION);
+        a_boolean              qualifier_suppressed = FALSE;
         if ((options & GN_DECLARATION) && !(options & GN_QUALIFIER) &&
             !(options & GN_FRIEND_DECL)) {
           /* Except in friend declarations, the "template" keyword is not
@@ -5584,13 +5585,28 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
                  member. */
               qualifier = accessible_qualifier(qualifier);
             }  /* if */
-            (void)gen_class_qualifier(qualifier, qualifier_options,
-                                      need_closing_paren);
+            if (gcc_is_generated_code_target &&
+                octl.processing_nontype_template_argument &&
+                qualifier->
+                       variant.class_struct_union.is_prototype_instantiation &&
+                class_is_in_name_context_stack(
+                                   qualifier,
+                                   /*include_base_classes=*/FALSE,
+                                   /*ignore_field_selection_contexts=*/TRUE)) {
+              /* g++ has a bug that results in spurious errors if a
+                 non-type template argument appearing in a class template
+                 definition is qualified by the class template's
+                 template-id. */
+              qualifier_suppressed = TRUE;
+            } else {
+              (void)gen_class_qualifier(qualifier, qualifier_options,
+                                        need_closing_paren);
+            }  /* if */
           }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-        used_qualified_name = TRUE;
+        used_qualified_name = !qualifier_suppressed;
       }  /* if */
       if (used_qualified_name || curr_name_context->field_selection_context) {
         if ((class_type->variant.class_struct_union.is_nonreal_class ||
