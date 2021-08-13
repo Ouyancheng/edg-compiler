@@ -11213,7 +11213,16 @@ second operand of an assignment.
       { an_ifc_ExprSort_NamedDecl iesnd, *iesndp;
         iesndp = get_ExprSort_NamedDecl(&iesnd);
         source_position_from_locus(&pos, &iesndp->locus);
-        cache_name_from_decl(cache, iesndp->resolution, &iesndp->locus);
+        if (suppress_automatic_name_qualification) {
+          /* We are contextually forbidden from qualifying this name.
+
+             This can happen when building an unqualified-id within a dependent
+             context. */
+          cache_name_from_decl(cache, iesndp->resolution, &iesndp->locus);
+        } else {
+          cache_qualified_name_from_decl(cache, iesndp->resolution,
+                                         &iesndp->locus);
+        }  /* if */
       }
       break;
     case ifc_ExprSort_UnresolvedId:
@@ -11227,7 +11236,9 @@ second operand of an assignment.
       { an_ifc_ExprSort_TemplateId iestid, *iestidp;
         iestidp = get_ExprSort_TemplateId(&iestid);
         source_position_from_locus(&pos, &iestidp->locus);
+        suppress_automatic_name_qualification = TRUE;
         cache_expr(cache, iestidp->primary);
+        suppress_automatic_name_qualification = FALSE;
         cache_token(cache, tok_lt, &pos);
         if (iestidp->arguments != 0) {
           cache_expr(cache, iestidp->arguments);
@@ -11247,7 +11258,9 @@ second operand of an assignment.
            the first element of the ExprSort::Tuple will refer to the empty
            string that precedes the first "::". */
         if (iesuip->resolution != 0) {
+          suppress_automatic_name_qualification = TRUE;
           cache_expr(cache, iesuip->resolution);
+          suppress_automatic_name_qualification = FALSE;
         } else if (iesuip->name != 0) {
           cache_name(cache, iesuip->name, &iesuip->locus);
         }  /* if */
@@ -12674,6 +12687,71 @@ cache_ident:
     default_is_unexpected();
   }  /* switch */
 }  /* cache_name */
+
+
+void an_ifc_module::cache_scope_as_nested_name_specifier(
+                                                   a_token_cache_ptr     cache,
+                                                   a_scope_ptr           scope,
+                                                   a_source_position_ptr pos)
+/*
+Add the tokens to cache representing a nested-name-specifier for scope.  pos is
+the position of the qualified-id this nested-name-specifier is part of.
+*/
+{
+  if (scope != NULL) {
+    {
+      /* Generate any parent scope's qualifiers. */
+      a_scope_ptr parent = scope->parent;
+
+      /* A parent scope was found, recurse. */
+      cache_scope_as_nested_name_specifier(cache, parent, pos);
+    }
+    {
+      /* Generate the current scope's qualifier. */
+      if (scope->kind == (a_scope_kind)sck_class_struct_union) {
+        a_type_ptr type_ptr = scope->variant.assoc_type;
+        check_assertion(type_ptr != NULL);
+        cache_identifier(cache, type_ptr->source_corresp.name, pos);
+        cache_token(cache, tok_colon_colon, pos);
+      } else if (scope->kind == (a_scope_kind)sck_namespace) {
+        a_namespace_ptr namespace_ptr = scope->variant.assoc_namespace;
+        cache_identifier(cache, namespace_ptr->source_corresp.name, pos);
+        cache_token(cache, tok_colon_colon, pos);
+      }  /* if */
+    }
+  }  /* if */
+}  /* cache_scope_as_nested_name_specifier */
+
+
+void an_ifc_module::cache_nested_name_specifier_from_decl(
+                                                   a_token_cache_ptr     cache,
+                                                   ifc_DeclIndex         decl,
+                                                   a_source_position_ptr pos)
+/*
+Add the tokens corresponding to the given declaration's (decl)
+nested-name-specifier to cache.  pos is the position of the qualified-id this
+nested-name-specifier is part of.
+*/
+{
+  a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl);
+  cache_scope_as_nested_name_specifier(cache, mep->scope, pos);
+}  /* cache_nested_name_specifier_from_decl */
+
+
+void an_ifc_module::cache_qualified_name_from_decl(a_token_cache_ptr  cache,
+                                                   ifc_DeclIndex      decl,
+                                                   ifc_SourceLocation *locus)
+/*
+Add the tokens corresponding to the given declaration's (decl) qualified-id to
+cache.  locus is the location of the name use.
+*/
+{
+  a_source_position pos;
+
+  source_position_from_locus(&pos, locus);
+  cache_nested_name_specifier_from_decl(cache, decl, &pos);
+  cache_identifier(cache, name_from_decl(decl), &pos);
+}  /* cache_qualified_name_from_decl */
 
 
 void an_ifc_module::cache_name_from_decl(a_token_cache_ptr  cache,

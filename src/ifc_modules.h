@@ -2598,6 +2598,12 @@ private:
 			/* Flag to indicate whether default arguments should be
 			   included when processing an entity in this module.
 			*/
+  a_boolean
+		suppress_automatic_name_qualification = FALSE;
+			/* Flag to indicate ExprSort_NameDecl should not be
+			   interpreted as concrete declarations that should be
+			   qualified.
+			*/
   Ptr_map<ifc_DeclIndex, a_symbol_ptr>
 		decl_map;
 
@@ -2888,6 +2894,15 @@ private:
   void cache_name(a_token_cache_ptr  cache,
                   ifc_NameIndex      name,
                   ifc_SourceLocation *locus);
+  void cache_scope_as_nested_name_specifier(a_token_cache_ptr     cache,
+                                            a_scope_ptr           scope,
+                                            a_source_position_ptr pos);
+  void cache_nested_name_specifier_from_decl(a_token_cache_ptr     cache,
+                                             ifc_DeclIndex         decl,
+                                             a_source_position_ptr pos);
+  void cache_qualified_name_from_decl(a_token_cache_ptr  cache,
+                                      ifc_DeclIndex      decl,
+                                      ifc_SourceLocation *locus);
   void cache_name_from_decl(a_token_cache_ptr  cache,
                             ifc_DeclIndex      decl,
                             ifc_SourceLocation *locus);
