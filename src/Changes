@@ -1,5 +1,28 @@
 Version 6.3
 
+8/12/21  [EDGcpfe/24527]
+C++-generating back end: members of class templates as nontype arguments
+
+In configurations in which class template definitions are generated from
+the prototype instantiation IL, the C++-generating back end put out a
+non-type template argument naming a member of the current class template
+using a qualified name.  In some cases, a bug in g++ resulted in a spurious
+error complaining about using "this" in a constant expression when
+compiling generated code containing such a qualified name.  This has now
+been addressed by suppressing the qualification in such cases when
+gcc_is_generated_code_target is TRUE.  For example, with
+--gnu_version=90100 --c++17:
+
+  template<auto &, int> auto f1();
+  template<typename T> struct N {
+    static void S(typename T::t m) { }
+    void f2() {
+      f1<S, int>();  // Previously generated using "N<T>::S", triggering
+                     // the spurious g++ error
+    }
+  };
+
+
 8/12/21  [EDGcpfe/24600]
 Constraints on alias templates
 
