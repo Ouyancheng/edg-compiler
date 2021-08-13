@@ -25479,7 +25479,13 @@ non-NULL (it's NULL by default), update *diag_list accordingly.
   a_template_param_ptr
                       params = sym->variant.template_info->cache.decl_info
                                                          ->parameters;
+  a_boolean           saved_in_concept_rescan =
+                                          scope_stack_top().in_concept_rescan;
 
+  /* Record that we're rescanning a concept.  This limits the substitution
+     to the concept parameters, instead of picking up enclosing template
+     parameters from the context that triggered the concept-id substitution. */
+  scope_stack_top().in_concept_rescan = TRUE;
   /* Substitute the concept-id arguments. */
   first_arg = alloc_template_arg((a_templ_arg_kind)tak_type);
   first_arg->variant.type = type;
@@ -25501,6 +25507,7 @@ non-NULL (it's NULL by default), update *diag_list accordingly.
     /* Evaluate the constraint. */
     result = constraint_satisfied(expr, new_args, params, diag_list);
   }  /* if */
+  scope_stack_top().in_concept_rescan = saved_in_concept_rescan;
   return result;
 }  /* check_type_constraint */
 
