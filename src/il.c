@@ -22479,6 +22479,35 @@ pointer.
 }  /* base_class_selection_expr */
 
 
+an_expr_node_ptr base_class_rvalue_expr(an_expr_node_ptr node,
+                                        a_base_class_ptr bcp)
+/*
+Create and return an expression node that selects the base class indicated
+from the rvalue represented by node.  The base class need not be an immediate
+base class.  The result is a class rvalue.
+*/
+{
+  if (!is_error_node(node) && !is_error_type(node->type)) {
+    a_derivation_step_ptr dsp;
+    a_type_qualifier_set  qualifiers;
+    a_type_ptr            tp;
+    check_assertion(!is_glvalue_node(node));
+    tp = node->type;
+    qualifiers = get_type_qualifiers(tp);
+    /* Add a base class cast for each step in the derivation. */
+    for (dsp = cast_derivation_path_of(bcp);
+         dsp != NULL;
+         dsp = dsp->next) {
+      tp = make_qualified_type(dsp->base_class->type, qualifiers);
+      node = make_operator_node((an_expr_operator_kind)eok_base_class_cast,
+                                tp, node);
+      node->compiler_generated = TRUE;
+    }  /* for */
+  }  /* if */
+  return node;
+}  /* base_class_rvalue_expr */
+
+
 static void examine_constant_for_side_effect(
                                     a_constant_ptr                      con,
                                     an_expr_or_stmt_traversal_block_ptr tblock)

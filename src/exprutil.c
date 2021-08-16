@@ -6195,8 +6195,10 @@ return FALSE.
 */
 {
   a_boolean               is_constant = FALSE;
-  a_type_ptr              return_type;
-  an_expr_node_ptr        call_node, rout_node, src_node, value_node;
+  a_type_ptr              return_type, func_parent;
+  an_expr_node_ptr        call_node, rout_node, src_node, value_node,
+                          last_src_node;
+  a_base_class_ptr        conv_func_bcp;
   a_diag_list             diag_list;
   a_memory_region_number  region_to_switch_back_to;
 
@@ -6208,11 +6210,10 @@ return FALSE.
   call_node = alloc_expr_node((an_expr_node_kind)enk_operation);
   rout_node = alloc_expr_node((an_expr_node_kind)enk_routine);
   src_node = alloc_expr_node((an_expr_node_kind)enk_constant);
-  rout_node->next = src_node;
+  last_src_node = src_node;
   value_node = alloc_expr_node((an_expr_node_kind)enk_operation);
   switch_back_to_original_region(region_to_switch_back_to);
   if (is_constant_operand(source_operand)) {
-    src_node->kind = (an_expr_node_kind)enk_constant;
     src_node->is_lvalue = FALSE;
     src_node->is_xvalue = FALSE;
     src_node->variant.constant.ptr = &source_operand->variant.constant;
@@ -6223,8 +6224,14 @@ return FALSE.
   } else {
     goto done;
   }  /* if */
+  func_parent = parent_class_of(conv_func);
+  conv_func_bcp = find_base_class_of(src_node->type, func_parent);
+  if (conv_func_bcp != NULL) {
+    src_node = base_class_rvalue_expr(src_node, conv_func_bcp);
+  }  /* if */
   rout_node->variant.routine.ptr = conv_func;
   rout_node->type = conv_func->type;
+  rout_node->next = src_node;
   return_type = skip_typerefs(conv_func->type)->variant.routine.return_type;
   if (is_any_reference_type(return_type)) {
     set_node_operator(call_node, (an_expr_operator_kind)eok_dot_member_call,
@@ -6245,7 +6252,17 @@ return FALSE.
 done:
   reclaim_node_if_possible(call_node);
   reclaim_node_if_possible(rout_node);
-  reclaim_node_if_possible(src_node);
+  for (;;) {
+    an_expr_node_ptr  node = src_node;
+    a_boolean         is_last_node = TRUE;
+    if (src_node != last_src_node &&
+        node_is_operator(src_node, eok_base_class_cast)) {
+      src_node = src_node->variant.operation.operands;
+      is_last_node = FALSE;
+    }  /* if */
+    reclaim_node_if_possible(node);
+    if (is_last_node) break;
+  }  /* for */
   reclaim_node_if_possible(value_node);
   return is_constant;
 }  /* constant_conv_function_result */

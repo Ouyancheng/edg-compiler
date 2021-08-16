@@ -1,5 +1,27 @@
 Version 6.3
 
+8/16/21  [EDGcpfe/18083]
+Contextually converted constant expressions and inherited conversion functions
+
+Consider:
+
+  struct B {
+    int b = 1, c;
+    constexpr B(int x) : c() {}
+    constexpr operator int() { return b+c; }
+  };
+  struct D : B {
+    constexpr D(int x) : B(x) { }
+  };
+  char arr[D(1)];  // Previously an error.  Now okay.
+
+The expression D(1) is "contextually converted" to the size_t type and that
+process has to produce a constant.  Previously, the front end did not correctly
+handle inherited conversion operators (like D::operator int() in that example
+above) in that process.  As a result, the front emitted spurious errors on the
+example above (and other similar examples).  That is now fixed.
+
+
 8/13/21  [EDGcpfe/21800,EDGcpfe/22042,EDGcpfe/22818,EDGcpfe/24405]
 GNU compatibility: Braced initializers and vector expressions
 
