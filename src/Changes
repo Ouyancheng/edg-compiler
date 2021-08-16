@@ -11,7 +11,7 @@ Consider (in GNU C++11 modes):
   V v = { av[0] };    // (2) Previously an error.  Now okay.
 
 Previously, the front end did not consider user-defined conversions when
-attempting to initialize an aggregate element of vector type directly (instead
+attempting to initialize an aggregate element of vector type itself (instead
 of initializing each element of the vector).  For line (1), this resulted in
 an error because expression S() was matched with the element type (float) of
 the vector.  That is now fixed.

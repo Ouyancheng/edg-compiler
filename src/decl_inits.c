@@ -4408,7 +4408,7 @@ static a_boolean is_singleton_match(an_init_component  *icp,
                                     a_type_ptr         dtype)
 /*
 Return TRUE if icp is a C++11 braced component enclosing a single expression
-component, and that expression's type is reference related to dtype (or it is
+component, and that expression's type is reference-related to dtype (or it is
 a template-dependent type).
 */
 {
