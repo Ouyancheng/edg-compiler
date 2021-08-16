@@ -24467,7 +24467,11 @@ indicates that this function processed the last disjunctive clause).
           }  /* if */
         } else {
           /* Select the left operand. */
-          inactive_right = constraint->link;
+          if (k >= active_left) {
+            /* This CK_OR entry is currently active: Select the left
+               operand by deactivating the right subtree. */
+            inactive_right = constraint->link;
+          }  /* if */
           ++k;
           if (flipping) {
             constraint->flag = TRUE;
@@ -24555,8 +24559,11 @@ conjunctive clause, and if the last clause was processed return TRUE.
             k = active_left;
           }  /* if */
         } else {
-          /* Select the left operand. */
-          inactive_right = constraint->link;
+          if (k >= active_left) {
+            /* This CK_AND entry is currently active: Select the left
+               operand by deactivating the right subtree. */
+            inactive_right = constraint->link;
+          }  /* if */
           ++k;
           if (flipping) {
             constraint->flag = TRUE;
