@@ -3785,6 +3785,10 @@ principal associated IL entity.
                   defer_symbol_creation(mep, &loc);
                 } else {
                   /* FIXME: lots missing. */
+                  /* FIXME: This should probably call
+                     push/pop_module_declaration_context on itself, rather than
+                     managing the namespace scopes through an alternative code
+                     path. */
                   check_assertion((idssp->traits & ifc_ScopeTraits_Unnamed)
                                   == 0);
                   ns_sym = curr_scope_id_lookup(&loc, IDL_NO_OPTIONS);
@@ -3825,13 +3829,15 @@ principal associated IL entity.
                                                    /*namespace_pushed=*/TRUE);
                     }  /* if */
                   }  /* if */
+                  /* Forward assign the module entity pointer's information
+                     so we can self-reference. */
+                  mep->entity.ptr = il_entity = (char *)nsp;
+                  mep->entity.kind = kind = iek_namespace;
                   /* Process declarations in the namespace scope (which makes
                      their symbols available but not their definitions). */
                   process_ifc_scope(idssp->initializer,
                                     nsp->variant.assoc_scope);
                   pop_namespace_scope();
-                  il_entity = (char *)nsp;
-                  kind = iek_namespace;
                 }  /* if */
               }
               break;
