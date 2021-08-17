@@ -2990,6 +2990,51 @@ location as the original.
 }  /* ifc_modules_pch_reset */
 
 
+static void prepare_cached_template_parse(a_token_cache_ptr      cache,
+                                          a_scope_ptr            encl_scope,
+                                          a_decl_parse_state_ptr dps,
+                                          a_tmpl_decl_state_ptr  decl_state,
+                                          a_token_kind           *final_token)
+/*
+Prepare parsing of a cached template or template specialization declaration.
+cache represents the cache to be parsed.  encl_scope is the scope containing
+the declaration to be parsed.  dps is a pointer to the storage for the
+associated decl parse state.  decl_state is a pointer to the storage for the
+associated template decl state.  Finally, final_token is a pointer to the
+associated storage for the final token seen during parsing.
+*/
+{
+  rescan_cached_tokens(cache);
+  init_decl_parse_state(dps);
+  init_templ_decl_state(decl_state, dps);
+  decl_state->pragmas_bound_to_template = extract_curr_construct_pragmas();
+  decl_state->starting_token_sequence_number = curr_token_sequence_number;
+  decl_state->final_token_ptr = final_token;
+  decl_state->enclosing_scope = encl_scope;
+}  /* prepare_cached_template_parse */
+
+
+static void finish_cached_template_parse(a_token_kind *final_token)
+/*
+Finish parsing of a cached template or template specialization declaration.
+final_token is a pointer to expected final token of the parse.
+*/
+{
+  if (curr_token != *final_token) {
+    expect_error();
+    flush_tokens_without_warning();
+  } else {
+    (void)get_token();
+    if (curr_token == tok_semicolon) {
+      /* Microsoft sometimes adds a semicolon after the final closing brace. */
+      (void)get_token();
+    }  /* if */
+  }  /* if */
+  check_assertion(curr_token == tok_end_of_source);
+  (void)get_token();
+}  /* finish_cached_template_parse */
+
+
 static a_template_ptr parse_cached_template(a_token_cache_ptr cache,
                                             a_scope_ptr       encl_scope)
 /*
@@ -3009,28 +3054,12 @@ declaration.
     fprintf(f_debug, "\n---------------------\n");
   }  /* if */
 #endif /* DEBUG */
-  rescan_cached_tokens(cache);
-  init_decl_parse_state(&dps);
-  init_templ_decl_state(&decl_state, &dps);
-  decl_state.pragmas_bound_to_template = extract_curr_construct_pragmas();
-  decl_state.starting_token_sequence_number = curr_token_sequence_number;
-  decl_state.final_token_ptr = &final_token;
-  decl_state.enclosing_scope = encl_scope;
+  prepare_cached_template_parse(cache, encl_scope,
+                                &dps, &decl_state, &final_token);
   template_or_specialization_declaration_full(&decl_state,
                                               /*is_generic=*/FALSE,
                                               /*orig_dps=*/NULL);
-  if (curr_token != final_token) {
-    expect_error();
-    flush_tokens_without_warning();
-  } else {
-    (void)get_token();
-    if (curr_token == tok_semicolon) {
-      /* Microsoft sometimes adds a semicolon after the final closing brace. */
-      (void)get_token();
-    }  /* if */
-  }  /* if */
-  check_assertion(curr_token == tok_end_of_source);
-  (void)get_token();
+  finish_cached_template_parse(&final_token);
   return decl_state.il_template_entry;
 }  /* parse_cached_template */
 
@@ -3056,28 +3085,12 @@ containing the partial specialization declaration.
                     "---------------------\n", temp_text_buffer);
   }  /* if */
 #endif /* DEBUG */
-  rescan_cached_tokens(cache);
-  init_decl_parse_state(&dps);
-  init_templ_decl_state(&decl_state, &dps);
-  decl_state.pragmas_bound_to_template = extract_curr_construct_pragmas();
-  decl_state.starting_token_sequence_number = curr_token_sequence_number;
-  decl_state.final_token_ptr = &final_token;
-  decl_state.enclosing_scope = encl_scope;
+  prepare_cached_template_parse(cache, encl_scope,
+                                &dps, &decl_state, &final_token);
   template_or_specialization_declaration_full(&decl_state,
                                               /*is_generic=*/FALSE,
                                               /*orig_dps=*/NULL);
-  if (curr_token != final_token) {
-    expect_error();
-    flush_tokens_without_warning();
-  } else {
-    (void)get_token();
-    if (curr_token == tok_semicolon) {
-      /* Microsoft sometimes adds a semicolon after the final closing brace. */
-      (void)get_token();
-    }  /* if */
-  }  /* if */
-  check_assertion(curr_token == tok_end_of_source);
-  (void)get_token();
+  finish_cached_template_parse(&final_token);
   return decl_state.il_template_entry;
 }  /* parse_cached_partial_specialization */
 
@@ -13508,31 +13521,15 @@ explicit specialization declaration.
                     "---------------------\n", temp_text_buffer);
   }  /* if */
 #endif /* DEBUG */
-  rescan_cached_tokens(cache);
-  init_decl_parse_state(&dps);
-  init_templ_decl_state(&decl_state, &dps);
-  decl_state.pragmas_bound_to_template = extract_curr_construct_pragmas();
-  decl_state.starting_token_sequence_number = curr_token_sequence_number;
-  decl_state.final_token_ptr = &final_token;
-  decl_state.enclosing_scope = encl_scope;
+  prepare_cached_template_parse(cache, encl_scope,
+                                &dps, &decl_state, &final_token);
   {
     a_ms_extensions_parse tmp_parse;
     template_or_specialization_declaration_full(&decl_state,
                                                 /*is_generic=*/FALSE,
                                                 /*orig_dps=*/NULL);
   }
-  if (curr_token != final_token) {
-    expect_error();
-    flush_tokens_without_warning();
-  } else {
-    (void)get_token();
-    if (curr_token == tok_semicolon) {
-      /* Microsoft sometimes adds a semicolon after the final closing brace. */
-      (void)get_token();
-    }  /* if */
-  }  /* if */
-  check_assertion(curr_token == tok_end_of_source);
-  (void)get_token();
+  finish_cached_template_parse(&final_token);
   record_pending_explicit_specialization(&dps, decl);
   return decl_state.il_template_entry;
 }  /* parse_cached_explicit_specialization */
