@@ -4196,7 +4196,7 @@ defaulted.
       in_template_argument_list = TRUE;
       form_template_args(tap, &octl);
       in_template_argument_list = saved_in_template_argument_list;
-      if (argp != NULL) {
+      if (argp != NULL && prev_argp != NULL) {
         /* Restore the full argument list. */
         prev_argp->next = argp;
       }  /* if */
