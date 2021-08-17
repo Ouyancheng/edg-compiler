@@ -4142,12 +4142,13 @@ defaulted.
         }  /* if */
       }  /* if */
     } else if (entry_kind == iek_routine &&
-               !((clang_is_generated_code_target ||
-                  msvc_is_generated_code_target) &&
-                 (is_generated_explicit_specialization ||
-                  (in_friend_declaration &&
-                   curr_name_context->
-                               is_generated_explicit_class_specialization)))) {
+               (!((clang_is_generated_code_target ||
+                   msvc_is_generated_code_target) &&
+                  (is_generated_explicit_specialization ||
+                   (in_friend_declaration &&
+                    curr_name_context->
+                               is_generated_explicit_class_specialization))) ||
+                ((a_routine_ptr)scp)->expl_template_arg_list_used)) {
       /* Only put out function template arguments if they were explicitly
          specified anywhere in the translation unit.  Clang and MSVC have
          bugs that sometimes require putting out explicit template
@@ -4167,7 +4168,10 @@ defaulted.
            prev_argp designating the last explicitly-specified argument. */
         if (prev_argp != NULL) {
           prev_argp->next = NULL;
-        } else {
+        } else if (!clang_is_generated_code_target &&
+                   !msvc_is_generated_code_target) {
+          /* Use the entire argument list when generating code for MSVC or
+             clang. */
           num_arguments = 0;
         }  /* if */
       }  /* if */
