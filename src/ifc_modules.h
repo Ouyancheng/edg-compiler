@@ -2667,8 +2667,8 @@ private:
                                               const ifc_ModuleReference *ref);
   void import_referenced_modules();
   template<typename a_Scope_Member_Consumer>
-  inline void iter_scope_member_sequence(ifc_Sequence            seq,
-                                         a_Scope_Member_Consumer consumer);
+  inline void traverse_scope_member_sequence(ifc_Sequence            seq,
+                                             a_Scope_Member_Consumer consumer);
   void process_scope_member_sequence(ifc_Sequence seq);
   void process_template_specializations(ifc_DeclIndex decl_idx) const;
   void process_ifc_scope(ifc_ScopeIndex scope_index,

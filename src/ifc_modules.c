@@ -5047,7 +5047,7 @@ pointer to that entry or NULL if it could not be found.
 
 
 template<typename a_Scope_Member_Consumer>
-inline void an_ifc_module::iter_scope_member_sequence(
+inline void an_ifc_module::traverse_scope_member_sequence(
                                               ifc_Sequence            seq,
                                               a_Scope_Member_Consumer consumer)
 /*
@@ -5069,7 +5069,7 @@ pointer to the given consumer lambda for each element in the sequence.
     /* Handle any specific processing in the consumer. */
     consumer(ismp);
   }  /* for */
-}
+}  /* traverse_scope_member_sequence */
 
 void an_ifc_module::process_scope_member_sequence(ifc_Sequence seq)
 /*
@@ -5085,7 +5085,7 @@ Process a sequence (seq) of IFC scope member declarations.
     process_ifc_declaration(dmep, /*defer=*/FALSE, (a_type_ptr)NULL);
   };
   /* Iterate over the sequence calling decl_consumer for each element. */
-  iter_scope_member_sequence(seq, decl_consumer);
+  traverse_scope_member_sequence(seq, decl_consumer);
 }  /* process_scope_member_sequence */
 
 
@@ -8654,7 +8654,7 @@ Cache a sequence (seq) of IFC scope member declarations into the cache.
     cache_decl(cache, ismp->index);
   };
   /* Iterate over the sequence calling decl_consumer for each element. */
-  iter_scope_member_sequence(seq, decl_consumer);
+  traverse_scope_member_sequence(seq, decl_consumer);
 }  /* cache_scope_member_sequence */
 
 
