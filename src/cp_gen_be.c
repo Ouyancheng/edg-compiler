@@ -10872,8 +10872,11 @@ to unusable variables and class members.
       tblock->terminate = TRUE;
     } else if (!scp->is_class_member && scp->is_local_to_function) {
       a_scope_ptr sp = NULL;
-      if (scp->enclosing_routine != NULL &&
-          scp->enclosing_routine->function_def_number !=
+      if (scp->parent_scope != NULL &&
+          scp->parent_scope->kind == (a_scope_kind)sck_block) {
+        sp = scp->parent_scope;
+      } else if (scp->enclosing_routine != NULL &&
+                 scp->enclosing_routine->function_def_number !=
                                                     NULL_function_def_number) {
         sp = scope_for_routine(scp->enclosing_routine);
       }  /* if */

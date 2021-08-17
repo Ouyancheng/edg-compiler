@@ -1,5 +1,28 @@
 Version 6.3
 
+8/17/21  [EDGcpfe/24607]
+C++-generating back end: Out-of-scope variable used in template argument
+
+The changes for EDGcpfe/22003,EDGcpfe/23814 (not in a release but sent to
+some customers as a patch) introduced a regression that caused the
+C++-generating back end to put out some non-type template arguments using
+a variable that is not in scope at that point.  This is now fixed.  For
+example, with --g++:
+
+  template<bool> struct A {
+    static void g();
+  };
+  struct B {
+    void h(char* a) {
+      if (a != 0) {
+        constexpr bool b = false;
+        A<b>::g();
+      }
+      A<false>::g();  // Previously generated as "A<b>::g()"
+    }
+  };
+
+
 8/16/21  [EDGcpfe/18083]
 Contextually converted constant expressions and inherited conversion functions
 
