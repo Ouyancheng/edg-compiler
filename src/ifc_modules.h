@@ -2687,6 +2687,7 @@ private:
   inline a_scope_ptr get_ifc_home_scope(ifc_DeclIndex decl_index) {
     return get_ifc_scope(get_ifc_home_scope_decl(decl_index));
   }
+  ifc_Access get_ifc_access(ifc_DeclIndex decl_index);
   a_type_ptr type_for_type_index(ifc_TypeIndex   type_index,
                                  a_non_type_kind *kind);
   a_type_ptr type_for_template_id(an_ifc_ExprSort_TemplateId *templ_id);
@@ -2755,9 +2756,9 @@ private:
                                    a_source_position  *pos);
   void cache_attr(a_token_cache_ptr  cache, ifc_AttrIndex attr);
   void cache_attrs(a_token_cache_ptr cache, ifc_DeclIndex decl_idx);
-  void cache_template_head(a_token_cache_ptr  cache,
-                           ifc_ChartIndex     chart_idx,
-                           ifc_SourceLocation *locus);
+  void cache_template_head(a_token_cache_ptr     cache,
+                           ifc_ChartIndex        chart_idx,
+                           a_source_position_ptr pos);
   void cache_decl(a_token_cache_ptr  cache,
                   ifc_DeclIndex      decl);
   enum a_cache_expr_option {
@@ -2778,6 +2779,9 @@ private:
                        a_cache_statement_option  options = cso_none);
   void cache_syntax(a_token_cache_ptr cache,
                     ifc_SyntaxIndex   syntax);
+  void cache_chart(a_token_cache_ptr     cache,
+                   ifc_ChartIndex        chart,
+                   a_source_position_ptr pos);
   void cache_chart(a_token_cache_ptr  cache,
                    ifc_ChartIndex     chart,
                    ifc_SourceLocation *locus);
@@ -2865,6 +2869,7 @@ private:
                                   ifc_DeclIndex       decl_idx,
                                   a_boolean           is_class_member,
                                   ifc_Access          access,
+                                  a_boolean           cache_access_spec,
                                   ifc_BasicSpecifiers specifiers,
                                   ifc_ObjectTraits    traits,
                                   ifc_ExprIndex       alignment,
@@ -2891,6 +2896,7 @@ private:
                                   a_boolean                 is_class_member,
                                   a_boolean                 is_dtor,
                                   ifc_Access                access,
+                                  a_boolean                 cache_access_spec,
                                   ifc_CallingConvention     calling_conv,
                                   ifc_FunctionTraits        func_traits,
                                   ifc_FunctionTypeTraits    func_type_traits,

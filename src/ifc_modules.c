@@ -5316,12 +5316,95 @@ Given a declaration's index find and return its home scope decl.
         result = idsfp->home_scope;
       }
       break;
+    case ifc_DeclSort_Method:
+      { an_ifc_DeclSort_Method idsm, *idsmp;
+
+        idsmp = get_DeclSort_Method(&idsm);
+        result = idsmp->home_scope;
+      }
+      break;
+    case ifc_DeclSort_Constructor:
+      { an_ifc_DeclSort_Constructor idsc, *idscp;
+
+        idscp = get_DeclSort_Constructor(&idsc);
+        result = idscp->home_scope;
+      }
+      break;
+    case ifc_DeclSort_InheritedConstructor:
+      { an_ifc_DeclSort_InheritedConstructor idsic, *idsicp;
+
+        idsicp = get_DeclSort_InheritedConstructor(&idsic);
+        result = idsicp->home_scope;
+      }
+      break;
     default:
       unexpected_condition_str("Unexpected DeclSort");
   }  /* switch */
   return result;
 }  /* get_ifc_home_scope_decl */
 
+
+ifc_Access an_ifc_module::get_ifc_access(ifc_DeclIndex decl_index)
+/*
+Given a declaration's index find and return its access information or none if
+the declaration is not in a scope that uses access specifiers.
+*/
+{
+  ifc_Access result = ifc_Access_None;
+
+  /* Check if the home scope of the given declaration is a class scope.  If it
+     is, read the access level of the declaration. */
+  if (is_class_scope(get_ifc_home_scope_decl(decl_index))) {
+    read_partition_at_index(decl_index);
+    switch (decl_tag(decl_index)) {
+      case ifc_DeclSort_Scope:
+        { an_ifc_DeclSort_Scope idss, *idssp;
+
+          idssp = get_DeclSort_Scope(&idss);
+          result = idssp->access;
+        }
+        break;
+      case ifc_DeclSort_Variable:
+        { an_ifc_DeclSort_Variable idsv, *idsvp;
+
+          idsvp = get_DeclSort_Variable(&idsv);
+          result = idsvp->access;
+        }
+        break;
+      case ifc_DeclSort_Function:
+        { an_ifc_DeclSort_Function idsf, *idsfp;
+
+          idsfp = get_DeclSort_Function(&idsf);
+          result = idsfp->access;
+        }
+        break;
+      case ifc_DeclSort_Method:
+        { an_ifc_DeclSort_Method idsm, *idsmp;
+
+          idsmp = get_DeclSort_Method(&idsm);
+          result = idsmp->access;
+        }
+        break;
+      case ifc_DeclSort_Constructor:
+        { an_ifc_DeclSort_Constructor idsc, *idscp;
+
+          idscp = get_DeclSort_Constructor(&idsc);
+          result = idscp->access;
+        }
+        break;
+      case ifc_DeclSort_InheritedConstructor:
+        { an_ifc_DeclSort_InheritedConstructor idsic, *idsicp;
+
+          idsicp = get_DeclSort_InheritedConstructor(&idsic);
+          result = idsicp->access;
+        }
+        break;
+      default:
+        unexpected_condition_str("Unexpected DeclSort");
+    }  /* switch */
+  }  /* if */
+  return result;
+}  /* get_ifc_access */
 
 static a_calling_convention conv_calling_convention(
                                               ifc_CallingConvention convention)
@@ -9315,21 +9398,19 @@ cache_type_second_pass should be used instead.
 }  /* cache_type */
 
 
-void an_ifc_module::cache_chart(a_token_cache_ptr  cache,
-                                ifc_ChartIndex     chart,
-                                ifc_SourceLocation *locus)
+void an_ifc_module::cache_chart(a_token_cache_ptr     cache,
+                                ifc_ChartIndex        chart,
+                                a_source_position_ptr pos)
 /*
 Add the tokens corresponding to the given chart to cache.  The caller is
-expected to have already cached the "template" keyword if it's required. locus
-is the location of the chart.
+expected to have already cached the "template" keyword if it's required. pos
+is the position of the chart.
 */
 {
   ifc_ChartSort     tag = chart_tag(chart);
   ifc_ExprIndex     constraint = (ifc_ExprIndex)0;
-  a_source_position pos;
 
-  source_position_from_locus(&pos, locus);
-  cache_token(cache, tok_lt, &pos);
+  cache_token(cache, tok_lt, pos);
   read_partition_at_index(chart);
   switch (tag) {
     case ifc_ChartSort_None:
@@ -9340,7 +9421,7 @@ is the location of the chart.
         icsup = get_ChartSort_Unilevel(&icsu);
         constraint = icsup->constraint;
         for (ifc_Index_type idx = 0; idx < icsup->cardinality; ++idx) {
-          if (idx > 0) cache_token(cache, tok_comma, &pos);
+          if (idx > 0) cache_token(cache, tok_comma, pos);
           cache_decl(cache,
                      make_decl_index(ifc_DeclSort_Parameter,
                                      icsup->start + idx));
@@ -9351,7 +9432,7 @@ is the location of the chart.
       { an_ifc_ChartSort_Multilevel icsm, *icsmp;
         icsmp = get_ChartSort_Multilevel(&icsm);
         for (ifc_Index_type idx = 0; idx < icsmp->cardinality; ++idx) {
-          if (idx > 0) cache_token(cache, tok_comma, &pos);
+          if (idx > 0) cache_token(cache, tok_comma, pos);
           /* FIXME: Is this correct? */
           cache_decl(cache,
                      make_decl_index(ifc_DeclSort_Temploid,
@@ -9365,11 +9446,27 @@ is the location of the chart.
       break;
     default_is_unexpected_str("Unexpected ChartSort");
   }  /* switch */
-  cache_token(cache, tok_gt, &pos);
+  cache_token(cache, tok_gt, pos);
   if (constraint != (ifc_ExprIndex)0) {
     /* The template parameter list is followed by a requires-clause. */
     cache_expr(cache, constraint);
   }  /* if */
+}  /* cache_chart */
+
+
+void an_ifc_module::cache_chart(a_token_cache_ptr  cache,
+                                ifc_ChartIndex     chart,
+                                ifc_SourceLocation *locus)
+/*
+Add the tokens corresponding to the given chart to cache.  The caller is
+expected to have already cached the "template" keyword if it's required. locus
+is the location of the chart.
+*/
+{
+  a_source_position pos;
+
+  source_position_from_locus(&pos, locus);
+  cache_chart(cache, chart, &pos);
 }  /* cache_chart */
 
 
@@ -10203,29 +10300,31 @@ the location of the operator.
 
 template<typename a_Name_Cache_Fn, typename an_Init_Cache_Fn>
 inline void an_ifc_module::cache_variable_decl(
-                                           a_token_cache_ptr   cache,
-                                           ifc_DeclIndex       decl_idx,
-                                           a_boolean           is_class_member,
-                                           ifc_Access          access,
-                                           ifc_BasicSpecifiers specifiers,
-                                           ifc_ObjectTraits    traits,
-                                           ifc_ExprIndex       alignment,
-                                           ifc_TypeIndex       type,
-                                           a_Name_Cache_Fn     cache_name_fn,
-                                           ifc_ExprIndex       width,
-                                           an_Init_Cache_Fn    cache_init_fn,
-                                           ifc_SourceLocation  *locus)
+                                         a_token_cache_ptr   cache,
+                                         ifc_DeclIndex       decl_idx,
+                                         a_boolean           is_class_member,
+                                         ifc_Access          access,
+                                         a_boolean           cache_access_spec,
+                                         ifc_BasicSpecifiers specifiers,
+                                         ifc_ObjectTraits    traits,
+                                         ifc_ExprIndex       alignment,
+                                         ifc_TypeIndex       type,
+                                         a_Name_Cache_Fn     cache_name_fn,
+                                         ifc_ExprIndex       width,
+                                         an_Init_Cache_Fn    cache_init_fn,
+                                         ifc_SourceLocation  *locus)
 /*
 Add the tokens corresponding to the given variable declaration (indexed in the
 IFC by decl_idx) to cache.  is_class_member is TRUE if this is a non-static
 data member of a class.  access, specifiers, traits, alignment, and type are
-values from the IFC file that describe the variable declaration.  cache_name_fn
-is a lambda accepting a_source_position_ptr interpretation of locus that's
-called to cache the name of the variable.  If width is not zero, this is a
-bitfield and width is its size.  cache_init_fn is a lambda accepting
-a_source_position_ptr interpretation of locus that's called to cache the
-variable initializer (if any).  locus is the source location for the
-declaration.
+values from the IFC file that describe the variable declaration.
+cache_access_spec is TRUE if the access specifier caching was not handled by
+the caller.  cache_name_fn is a lambda accepting a_source_position_ptr
+interpretation of locus that's called to cache the name of the variable.  If
+width is not zero, this is a bitfield and width is its size.  cache_init_fn is
+a lambda accepting a_source_position_ptr interpretation of locus that's called
+to cache the variable initializer (if any).  locus is the source location for
+the declaration.
 
 FIXME: Remove this version of cache_variable_decl once names can be cached
 properly for specializations using a NameIndex, and similarly the variable's
@@ -10237,7 +10336,7 @@ initializer can be consistently cached via a ScopeIndex.
 
   source_position_from_locus(&pos, locus);
   decl_in_class = is_class_member || access != ifc_Access_None;
-  if (decl_in_class) {
+  if (decl_in_class && cache_access_spec) {
     cache_access(cache, access, /*cache_colon=*/TRUE, &pos);
   }  /* if */
   /* Cache tokens for MSVC "basic specifiers" (at the time of writing this
@@ -10335,38 +10434,41 @@ initializer expression.  locus is the source location for the declaration.
     }  /* if */
   };
   cache_variable_decl(cache, decl_idx, is_class_member, access,
-                      specifiers, traits, alignment, type,
-                      cache_name_fn, width, cache_init_fn, locus);
+                      /*cache_access_spec=*/TRUE, specifiers, traits,
+                      alignment, type, cache_name_fn, width,
+                      cache_init_fn, locus);
 }  /* cache_variable_decl */
 
 
 template<typename a_Name_Cache_Fn>
 inline void an_ifc_module::cache_function_decl(
-                                    a_token_cache_ptr         cache,
-                                    a_boolean                 is_class_member,
-                                    a_boolean                 is_dtor,
-                                    ifc_Access                access,
-                                    ifc_CallingConvention     calling_conv,
-                                    ifc_FunctionTraits        func_traits,
-                                    ifc_FunctionTypeTraits    func_type_traits,
-                                    ifc_TypeIndex             return_type,
-                                    a_Name_Cache_Fn           cache_name_fn,
-                                    ifc_ChartIndex            params,
-                                    ifc_TypeIndex             param_types,
-                                    ifc_NoexceptSpecification *eh_spec,
-                                    ifc_SourceLocation        *locus)
+                                   a_token_cache_ptr         cache,
+                                   a_boolean                 is_class_member,
+                                   a_boolean                 is_dtor,
+                                   ifc_Access                access,
+                                   a_boolean                 cache_access_spec,
+                                   ifc_CallingConvention     calling_conv,
+                                   ifc_FunctionTraits        func_traits,
+                                   ifc_FunctionTypeTraits    func_type_traits,
+                                   ifc_TypeIndex             return_type,
+                                   a_Name_Cache_Fn           cache_name_fn,
+                                   ifc_ChartIndex            params,
+                                   ifc_TypeIndex             param_types,
+                                   ifc_NoexceptSpecification *eh_spec,
+                                   ifc_SourceLocation        *locus)
 /*
 Add the tokens corresponding to the given function declaration to cache.
 is_class_member is TRUE if this is a non-static member of a class.  is_dtor is
 TRUE if this is a destructor declaration.  access, calling_conv, func_traits,
 func_type_traits, and eh_spec are values from the IFC file that describe the
-function.  return_type is the return type of the function (0 if there is no
-return type, e.g., the function is a constructor or destructor).  cache_name_fn
-is a lambda accepting a_source_position_ptr interpretation of locus that's
-called to cache the name of the scope.  Both params and param_types are the
-parameter list (0 for both if there are no parameters).  If params is non-zero,
-param_types will be ignored as params will already contain the parameter types.
-locus is the position of the function declaration.
+function.  cache_access_spec is TRUE if the access specifier caching was not
+handled by the caller.  return_type is the return type of the function (0 if
+there is no return type, e.g., the function is a constructor or destructor).
+cache_name_fn is a lambda accepting a_source_position_ptr interpretation of
+locus that's called to cache the name of the scope.  Both params and
+param_types are the parameter list (0 for both if there are no parameters).  If
+params is non-zero, param_types will be ignored as params will already contain
+the parameter types.  locus is the position of the function declaration.
 
 FIXME: Remove this version of cache_function_decl once names can be cached
 properly for specializations using a NameIndex.
@@ -10377,7 +10479,7 @@ properly for specializations using a NameIndex.
 
   decl_in_class = is_class_member || access != ifc_Access_None;
   source_position_from_locus(&pos, locus);
-  if (decl_in_class) {
+  if (decl_in_class && cache_access_spec) {
     cache_access(cache, access, /*cache_colon=*/TRUE, &pos);
   }  /* if */
   if (!is_class_member && decl_in_class) {
@@ -10440,9 +10542,10 @@ declaration.
   auto cache_name_fn = [this, cache, name, locus](a_source_position_ptr pos) {
     cache_name(cache, name, locus);
   };
-  cache_function_decl(cache, is_class_member, is_dtor, access, calling_conv,
-                      func_traits, func_type_traits, return_type,
-                      cache_name_fn, params, param_types, eh_spec, locus);
+  cache_function_decl(cache, is_class_member, is_dtor, access,
+                      /*cache_access_spec=*/TRUE, calling_conv, func_traits,
+                      func_type_traits, return_type, cache_name_fn,
+                      params, param_types, eh_spec, locus);
 }  /* cache_function_decl */
 
 
@@ -10509,10 +10612,18 @@ if there is no offset/the offset is not needed.
 {
   a_type_ptr        type;
   a_non_type_kind   kind;
+  a_source_position pos;
   uint32_t          offset = 0;
 
+  source_position_from_locus(&pos, &decl->locus);
+  /* Attempt to cache the access specifier if one is specified. */
+  /* FIXME: As of IFC 0.32, decl is not always present. */
+  if (decl->entity.decl != 0) {
+    cache_access(cache, get_ifc_access(decl->entity.decl),
+                 /*cache_colon=*/TRUE, &pos);
+  }  /* if */
   /* Reconstruct the template-head. */
-  cache_template_head(cache, decl->chart, &decl->locus);
+  cache_template_head(cache, decl->chart, &pos);
   /* FIXME: Handle attributes. */
   type = type_for_type_index(decl->type, &kind);
   check_assertion(type != NULL);
@@ -10526,14 +10637,12 @@ if there is no offset/the offset is not needed.
     cache_name(cache, decl->name, &decl->locus);
   } else {
     /* Function or variable template. */
-    /* FIXME: Cache the entity corresponding to decl->entity.index instead.
+    /* FIXME: Cache the entity corresponding to decl->entity.decl instead.
        Currently this may be missing information, so use the soon-to-be-removed
        entity.head instead. */
     cache_sentence(cache, decl->entity.head);
   }  /* if */
   if (add_semicolon) {
-    a_source_position pos;
-    source_position_from_locus(&pos, &decl->locus);
     cache_token(cache, tok_semicolon, &pos);
   }  /* if */
   return offset;
@@ -10603,15 +10712,21 @@ Add the tokens corresponding to the given partial specialization declaration
 (decl indexed in the IFC by decl_idx) to cache.
 */
 {
+  ifc_DeclIndex     templated_decl_idx = decl->entity.decl;
+  a_source_position pos;
+
+  source_position_from_locus(&pos, &decl->locus);
+  /* Attempt to cache the access specifier if one is specified. */
+  cache_access(cache, get_ifc_access(templated_decl_idx),
+               /*cache_colon=*/TRUE, &pos);
   /* Reconstruct the template-head. */
-  cache_template_head(cache, decl->chart, &decl->locus);
+  cache_template_head(cache, decl->chart, &pos);
   {
     /* Reconstruct the declaration. */
     /* FIXME: Eventually this entire block should be replaceable by a
        cache_decl call (due to problems in the IFC -- namely the templated decl
        having a mangled NameSort Identifier name instead of a NameSort
        Specialization -- this is not yet possible). */
-    ifc_DeclIndex templated_decl_idx = decl->entity.decl;
 
     /* Read the partition for the templated declaration. */
     read_partition_at_index(templated_decl_idx);
@@ -10660,13 +10775,12 @@ Add the tokens corresponding to the given partial specialization declaration
                 (void)cache_sentence(cache, decl->entity.body);
               }  /* if */
             };
-            ifc_Access access = ifc_Access_None;
 
-            if (is_class_scope(idsvp->home_scope)) {
-              access = idsvp->access;
-            }  /* if */
+            /* We've already cached the access specifier above, suppress
+               cache_variable_decl's access specifier caching. */
             cache_variable_decl(cache, decl_idx, /*is_class_member=*/FALSE,
-                                access, idsvp->specifiers, idsvp->traits,
+                                idsvp->access, /*cache_access_spec=*/FALSE,
+                                idsvp->specifiers, idsvp->traits,
                                 idsvp->alignment, idsvp->type, cache_name_fn,
                                 (ifc_ExprIndex)0, cache_init_fn,
                                 &idsvp->locus);
@@ -10705,10 +10819,15 @@ Add the tokens corresponding to the given partial specialization declaration
       case ifc_DeclSort_Scope:
         { /* We're reconstructing a class. */
           an_ifc_DeclSort_Scope idss, *idssp;
+          a_source_position     pos;
 
           idssp = get_DeclSort_Scope(&idss);
+          source_position_from_locus(&pos, &idssp->locus);
+          /* Attempt to cache the access specifier if one is specified. */
+          cache_access(cache, get_ifc_access(templated_decl_idx),
+                       /*cache_colon=*/TRUE, &pos);
           /* Reconstruct the template-head. */
-          cache_template_head(cache, (ifc_ChartIndex)0, &idssp->locus);
+          cache_template_head(cache, (ifc_ChartIndex)0, &pos);
 #if DEBUG
           validate_is_class_type(idssp->type);
 #endif /* DEBUG */
@@ -10736,10 +10855,15 @@ Add the tokens corresponding to the given partial specialization declaration
       case ifc_DeclSort_Variable:
         { /* We're reconstructing a variable. */
           an_ifc_DeclSort_Variable idsv, *idsvp;
+          a_source_position        pos;
 
           idsvp = get_DeclSort_Variable(&idsv);
+          source_position_from_locus(&pos, &idsvp->locus);
+          /* Attempt to cache the access specifier if one is specified. */
+          cache_access(cache, get_ifc_access(templated_decl_idx),
+                       /*cache_colon=*/TRUE, &pos);
           /* Reconstruct the template-head. */
-          cache_template_head(cache, (ifc_ChartIndex)0, &idsvp->locus);
+          cache_template_head(cache, (ifc_ChartIndex)0, &pos);
           { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idsvp](
                                                    a_source_position_ptr pos) {
@@ -10755,13 +10879,13 @@ Add the tokens corresponding to the given partial specialization declaration
               }  /* if */
               cache_token(cache, tok_semicolon, pos);
             };
-            ifc_Access access = ifc_Access_None;
 
-            if (is_class_scope(idsvp->home_scope)) {
-              access = idsvp->access;
-            }  /* if */
-            cache_variable_decl(cache, decl_idx, /*is_class_member=*/FALSE,
-                                access, idsvp->specifiers, idsvp->traits,
+            /* We've already cached the access specifier above, suppress
+               cache_variable_decl's access specifier caching. */
+            cache_variable_decl(cache, decl_idx,
+                                is_class_scope(idsvp->home_scope),
+                                idsvp->access, /*cache_access_spec=*/FALSE,
+                                idsvp->specifiers, idsvp->traits,
                                 idsvp->alignment, idsvp->type, cache_name_fn,
                                 (ifc_ExprIndex)0, cache_init_fn,
                                 &idsvp->locus);
@@ -10771,10 +10895,15 @@ Add the tokens corresponding to the given partial specialization declaration
       case ifc_DeclSort_Function:
         { /* We're reconstructing a function. */
           an_ifc_DeclSort_Function idsf, *idsfp;
+          a_source_position        pos;
 
           idsfp = get_DeclSort_Function(&idsf);
+          source_position_from_locus(&pos, &idsfp->locus);
+          /* Attempt to cache the access specifier if one is specified. */
+          cache_access(cache, get_ifc_access(templated_decl_idx),
+                       /*cache_colon=*/TRUE, &pos);
           /* Reconstruct the template-head. */
-          cache_template_head(cache, (ifc_ChartIndex)0, &idsfp->locus);
+          cache_template_head(cache, (ifc_ChartIndex)0, &pos);
           { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idsfp](
                                                    a_source_position_ptr pos) {
@@ -10783,7 +10912,6 @@ Add the tokens corresponding to the given partial specialization declaration
             };
             an_ifc_TypeSort_Function itsf, *itsfp;
             ifc_ChartIndex           params = (ifc_ChartIndex)0;
-            ifc_Access               access = ifc_Access_None;
 
             check_assertion(type_tag(idsfp->type) == ifc_TypeSort_Function);
             read_partition_at_index(idsfp->type);
@@ -10791,12 +10919,11 @@ Add the tokens corresponding to the given partial specialization declaration
             if (itsfp->source != 0) {
               params = get_func_params_from_trait(decl_idx);
             }  /* if */
-            if (is_class_scope(idsfp->home_scope)) {
-              access = idsfp->access;
-            }  /* if */
-            cache_function_decl(cache, /*class_member=*/FALSE,
-                                /*is_dtor=*/FALSE, access, itsfp->convention,
-                                idsfp->traits, itsfp->traits, itsfp->target,
+            cache_function_decl(cache, is_class_scope(idsfp->home_scope),
+                                /*is_dtor=*/FALSE, idsfp->access,
+                                /*cache_access_spec=*/FALSE,
+                                itsfp->convention, idsfp->traits,
+                                itsfp->traits, itsfp->target,
                                 cache_name_fn, params, itsfp->source,
                                 &itsfp->eh_spec, &idsfp->locus);
           }
@@ -10933,24 +11060,21 @@ decl_idx to the cache.
 }  /* cache_attrs */
 
 
-void an_ifc_module::cache_template_head(a_token_cache_ptr  cache,
-                                        ifc_ChartIndex     chart_idx,
-                                        ifc_SourceLocation *locus)
+void an_ifc_module::cache_template_head(a_token_cache_ptr     cache,
+                                        ifc_ChartIndex        chart_idx,
+                                        a_source_position_ptr pos)
 /*
 Add the tokens corresponding to the template head described by the given
-chart_idx to the cache.  locus is the location of the associated template or
+chart_idx to the cache.  pos is the position of the associated template or
 specialization.
 */
 {
-  a_source_position pos;
-
-  source_position_from_locus(&pos, locus);
-  cache_token(cache, tok_template, &pos);
+  cache_token(cache, tok_template, pos);
   if (chart_idx == 0) {
-    cache_token(cache, tok_lt, &pos);
-    cache_token(cache, tok_gt, &pos);
+    cache_token(cache, tok_lt, pos);
+    cache_token(cache, tok_gt, pos);
   } else {
-    cache_chart(cache, chart_idx, locus);
+    cache_chart(cache, chart_idx, pos);
   }
 }  /* cache_template_head */
 
@@ -11192,9 +11316,10 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       }
       break;
     case ifc_DeclSort_ExplicitSpecialization:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DeclSort::ExplicitSpecialization",
-                                  &error_position);
+      { an_ifc_DeclSort_ExplicitSpecialization idses, *idsesp;
+        idsesp = get_DeclSort_ExplicitSpecialization(&idses);
+        cache_decl_explicit_specialization(cache, decl, idsesp);
+      }
       break;
     case ifc_DeclSort_ExplicitInstantiation:
       /* FIXME: Currently unsupported. */
