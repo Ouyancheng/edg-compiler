@@ -3819,7 +3819,7 @@ by the argument.  If needed, push the new scope(s) and return TRUE.
       /* Update the decl_scope_level. */
       decl_scope_level = DEPTH_OF_FILE_SCOPE;
     }  /* if */
-    /* FIXME: Do we need to reactive parents? */
+    /* FIXME: Do we need to reactivate parents? */
     {
       /* We're doing several things with this new scope.
 

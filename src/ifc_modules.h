@@ -2602,8 +2602,7 @@ private:
 		suppress_automatic_name_qualification = FALSE;
 			/* Flag to indicate ExprSort_NameDecl should not be
 			   interpreted as concrete declarations that should be
-			   qualified.
-			*/
+			   qualified. */
   Ptr_map<ifc_DeclIndex, a_symbol_ptr>
 		decl_map;
 

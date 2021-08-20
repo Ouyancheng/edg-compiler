@@ -4958,8 +4958,6 @@ An internal representation of an IFC partition name used to facilitate binary
 search of the partition map.
 */
 struct an_ifc_partition_name {
-  a_const_char *name;
-
   bool operator<(const an_ifc_partition_name& other) const
   {
     return strcmp(name, other.name) < 0;
@@ -4969,6 +4967,8 @@ struct an_ifc_partition_name {
   {
     return strcmp(name, other.name) == 0;
   } /* operator== */
+
+  a_const_char *name;
 };  /* an_ifc_partition_name */
 }  /* namespace */
 
@@ -5068,7 +5068,7 @@ pointer to the given consumer lambda for each element in the sequence.
     read_partition_at_index(ifc_scope_member, seq.start + idx);
     ismp = get_Scope_Member(&ism);
     /* FIXME: We're temporarily excluding explicit instantiations as they are
-       not yet implemented yet. */
+       not yet implemented. */
     if (decl_tag(ismp->index) == ifc_DeclSort_ExplicitInstantiation) {
       continue;
     }  /* if */
@@ -6911,7 +6911,8 @@ FIXME: what other expressions can we get here?
               cp = alloc_constant(ck_integer);
               if (ieslp->type == 0 && constant_type == NULL) {
                 /* FIXME: not sure why the type is zero in some cases. */
-                set_unsigned_integer_constant(cp,
+                set_unsigned_integer_constant(
+                            cp,
                             (a_host_large_unsigned)literal_index(ieslp->value),
                             (an_integer_kind)ik_unsigned_int);
               } else {
@@ -6923,7 +6924,8 @@ FIXME: what other expressions can we get here?
                   a_type_ptr stripped_type = skip_typerefs(constant_type);
                   check_assertion(stripped_type->kind ==
                                                       (a_type_kind)tk_integer);
-                  set_unsigned_integer_constant(cp, value,
+                  set_unsigned_integer_constant(
+                                      cp, value,
                                       stripped_type->variant.integer.int_kind);
                 }  /* if */
                 cp->type = constant_type;
@@ -10799,12 +10801,13 @@ void an_ifc_module::cache_decl_explicit_specialization(
                                ifc_DeclIndex                          decl_idx,
                                an_ifc_DeclSort_ExplicitSpecialization *decl)
 /*
-Add the tokens corresponding to the given partial specialization declaration
+Add the tokens corresponding to the given explicit specialization declaration
 (decl indexed in the IFC by decl_idx) to cache.
 */
 {
-  /* FIXME: We don't have good source location information here, so
-     template-head is reconstructed in decl tag case. */
+  /* FIXME: We don't have good source location information here, so the access
+     specifiers and template-head are reconstructed in relevant decl tag
+     case. */
   {
     /* Reconstruct the declaration. */
     /* FIXME: Eventually this entire block should be replaceable by a
@@ -11075,7 +11078,7 @@ specialization.
     cache_token(cache, tok_gt, pos);
   } else {
     cache_chart(cache, chart_idx, pos);
-  }
+  }  /* if */
 }  /* cache_template_head */
 
 
@@ -13079,26 +13082,19 @@ the position of the qualified-id this nested-name-specifier is part of.
 */
 {
   if (scope != NULL) {
-    {
-      /* Generate any parent scope's qualifiers. */
-      a_scope_ptr parent = scope->parent;
-
-      /* A parent scope was found, recurse. */
-      cache_scope_as_nested_name_specifier(cache, parent, pos);
-    }
-    {
-      /* Generate the current scope's qualifier. */
-      if (scope->kind == (a_scope_kind)sck_class_struct_union) {
-        a_type_ptr type_ptr = scope->variant.assoc_type;
-        check_assertion(type_ptr != NULL);
-        cache_identifier(cache, type_ptr->source_corresp.name, pos);
-        cache_token(cache, tok_colon_colon, pos);
-      } else if (scope->kind == (a_scope_kind)sck_namespace) {
-        a_namespace_ptr namespace_ptr = scope->variant.assoc_namespace;
-        cache_identifier(cache, namespace_ptr->source_corresp.name, pos);
-        cache_token(cache, tok_colon_colon, pos);
-      }  /* if */
-    }
+    /* Attempt to generate any parent scope's qualifiers. */
+    cache_scope_as_nested_name_specifier(cache, scope->parent, pos);
+    /* Generate the current scope's qualifier. */
+    if (scope->kind == (a_scope_kind)sck_class_struct_union) {
+      a_type_ptr type_ptr = scope->variant.assoc_type;
+      check_assertion(type_ptr != NULL);
+      cache_identifier(cache, type_ptr->source_corresp.name, pos);
+      cache_token(cache, tok_colon_colon, pos);
+    } else if (scope->kind == (a_scope_kind)sck_namespace) {
+      a_namespace_ptr namespace_ptr = scope->variant.assoc_namespace;
+      cache_identifier(cache, namespace_ptr->source_corresp.name, pos);
+      cache_token(cache, tok_colon_colon, pos);
+    }  /* if */
   }  /* if */
 }  /* cache_scope_as_nested_name_specifier */
 
@@ -13611,10 +13607,7 @@ namespace {
    enabled otherwise.  This allows for MS specific IFC decls to be correctly
    processed.
 */
-class a_ms_extensions_parse {
-  a_boolean old_ms_extensions;
-  a_boolean old_ms_compat;
-public:
+struct a_ms_extensions_parse {
   a_ms_extensions_parse() : old_ms_extensions(ms_extensions),
                             old_ms_compat(ms_compat) {
     ms_extensions = TRUE;
@@ -13624,6 +13617,9 @@ public:
     ms_compat = old_ms_compat;
     ms_extensions = old_ms_extensions;
   }
+private:
+  a_boolean old_ms_extensions;
+  a_boolean old_ms_compat;
 };  /* a_ms_extensions_parse */
 }  /* namespace */
 
@@ -13672,7 +13668,7 @@ void an_ifc_module::record_pending_explicit_specialization(
 /*
 Record the presence of a pending explicit specialization declaration's (decl)
 definition if any.  dps is the associated decl parse state from the parsing of
-the declaration of entity.
+the declaration of the entity.
 */
 {
   ifc_DeclIndex templated_decl_idx = decl->decl;
@@ -13682,10 +13678,12 @@ the declaration of entity.
   switch (decl_tag(templated_decl_idx)) {
   case ifc_DeclSort_Scope:
     { /* We're reconstructing a class. */
+      /* FIXME: We should be handling classes definitions lazily here. */
     }
     break;
   case ifc_DeclSort_Variable:
     { /* We're reconstructing a variable. */
+      /* FIXME: We should be handling variable initializers lazily here. */
     }
     break;
   case ifc_DeclSort_Function:
@@ -13713,10 +13711,9 @@ the declaration of entity.
 
 void an_ifc_module::validate_is_class_type(ifc_TypeIndex type)
 /*
+Validate that the given type is a fundamental type representing a class.
 */
 {
-  /* Validate the scope to ensure it's a class or struct as we
-     expect. */
   an_ifc_TypeSort_Fundamental itsf, *itsfp;
 
   check_assertion(type_tag(type) == ifc_TypeSort_Fundamental);
