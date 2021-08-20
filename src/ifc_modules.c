@@ -10741,12 +10741,12 @@ Add the tokens corresponding to the given partial specialization declaration
 #endif /* DEBUG */
           { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idssp](
-                                                   a_source_position_ptr pos) {
+                                              a_source_position_ptr decl_pos) {
               cache_specialization_simple_template_id(cache, decl->form,
                                                       &idssp->locus);
             };
             auto cache_scope_fn = [this, cache, decl](
-                                                   a_source_position_ptr pos) {
+                                              a_source_position_ptr decl_pos) {
               if (decl->entity.body != 0) {
                 /* We have a body for this declaration, cache it. */
                 (void)cache_sentence(cache, decl->entity.body);
@@ -10764,12 +10764,12 @@ Add the tokens corresponding to the given partial specialization declaration
           idsvp = get_DeclSort_Variable(&idsv);
           { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idsvp](
-                                                   a_source_position_ptr pos) {
+                                              a_source_position_ptr decl_pos) {
               cache_specialization_simple_template_id(cache, decl->form,
                                                       &idsvp->locus);
             };
             auto cache_init_fn = [this, cache, decl](
-                                                   a_source_position_ptr pos) {
+                                              a_source_position_ptr decl_pos) {
               if (decl->entity.body != 0) {
                 /* We have a body for this declaration, cache it. */
                 (void)cache_sentence(cache, decl->entity.body);
@@ -10833,19 +10833,19 @@ Add the tokens corresponding to the given partial specialization declaration
 #endif /* DEBUG */
           { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idssp](
-                                                   a_source_position_ptr pos) {
+                                              a_source_position_ptr decl_pos) {
               cache_specialization_simple_template_id(cache, decl->form,
                                                       &idssp->locus);
             };
             auto cache_scope_fn = [this, cache, idssp](
-                                                   a_source_position_ptr pos) {
+                                              a_source_position_ptr decl_pos) {
               /* If there are bases specified, cache the bases. */
               if (idssp->base != 0) {
-                cache_token(cache, tok_colon, pos);
+                cache_token(cache, tok_colon, decl_pos);
                 cache_type(cache, idssp->base, &idssp->locus);
               }  /* if */
               cache_scope(cache, idssp->initializer, &idssp->locus);
-              cache_token(cache, tok_semicolon, pos);
+              cache_token(cache, tok_semicolon, decl_pos);
             };
             cache_scope_decl(cache, decl_idx, idssp->type, cache_name_fn,
                              cache_scope_fn, &idssp->locus);
@@ -10866,18 +10866,18 @@ Add the tokens corresponding to the given partial specialization declaration
           cache_template_head(cache, (ifc_ChartIndex)0, &pos);
           { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idsvp](
-                                                   a_source_position_ptr pos) {
+                                              a_source_position_ptr decl_pos) {
               cache_specialization_simple_template_id(cache, decl->form,
                                                       &idsvp->locus);
             };
             auto cache_init_fn = [this, cache, idsvp](
-                                                   a_source_position_ptr pos) {
+                                              a_source_position_ptr decl_pos) {
               if (idsvp->initializer != 0) {
-                cache_token(cache, tok_lparen, pos);
+                cache_token(cache, tok_lparen, decl_pos);
                 cache_expr(cache, idsvp->initializer);
-                cache_token(cache, tok_rparen, pos);
+                cache_token(cache, tok_rparen, decl_pos);
               }  /* if */
-              cache_token(cache, tok_semicolon, pos);
+              cache_token(cache, tok_semicolon, decl_pos);
             };
 
             /* We've already cached the access specifier above, suppress
@@ -10906,7 +10906,7 @@ Add the tokens corresponding to the given partial specialization declaration
           cache_template_head(cache, (ifc_ChartIndex)0, &pos);
           { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idsfp](
-                                                   a_source_position_ptr pos) {
+                                              a_source_position_ptr decl_pos) {
               cache_specialization_simple_template_id(cache, decl->form,
                                                       &idsfp->locus);
             };
