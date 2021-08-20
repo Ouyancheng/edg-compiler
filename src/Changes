@@ -1,5 +1,28 @@
 Version 6.3
 
+8/20/21  [EDGcpfe/24189]
+Multiple translation units: default member initializers in class templates
+
+When compiling multiple translation units, the front end could abort with a
+failed assertion in prepare_for_trans_unit_copy if a class template has a
+non-static data member with a default member initializer and the template
+is not instantiated in the primary translation unit but is instantiated in
+a secondary translation unit.  This is now fixed.  For example, with
+--c++11, the front end aborted if both translation units contain the
+declarations
+
+  template<typename> struct A {
+    int i = 0;
+  };
+  template<typename> struct B {
+    A<int> ai;
+  };
+
+and the second translation unit additionally contains the declaration
+
+  B<int> bi;
+
+
 8/17/21  [EDGcpfe/24607]
 C++-generating back end: Out-of-scope variable used in template argument
 

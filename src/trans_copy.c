@@ -1377,8 +1377,17 @@ to the secondary translation unit.
           a_field_ptr corresp_field = (a_field_ptr)canonical_il_entry_of(fp);
           merge_entity_details(&fp->source_corresp,
                                &corresp_field->source_corresp);
-          check_assertion(corresp_field->initializer != NULL ||
-                          fp->initializer == NULL);
+          if (corresp_field->initializer == NULL && fp->initializer != NULL) {
+            /* This can occur if a class template is instantiated in the
+               secondary TU but not in the primary. */
+            check_assertion(class_type->
+                                 variant.class_struct_union.is_template_class);
+            /* Copy the dynamic initializer to the canonical field. */
+            corresp_field->initializer =
+               (a_dynamic_init_ptr)primary_il_entry_of((char *)fp->initializer,
+                                                       iek_dynamic_init);
+            copy_entry((char *)fp->initializer, iek_dynamic_init);
+          }  /* if */
         }  /* for */
       }  /* if */
       /* Now that we've transferred any information we needed from the
