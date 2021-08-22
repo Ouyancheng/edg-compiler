@@ -1378,15 +1378,24 @@ to the secondary translation unit.
           merge_entity_details(&fp->source_corresp,
                                &corresp_field->source_corresp);
           if (corresp_field->initializer == NULL && fp->initializer != NULL) {
+            a_boolean saved_is_primary = is_primary_translation_unit;
             /* This can occur if a class template is instantiated in the
                secondary TU but not in the primary. */
             check_assertion(class_type->
                                  variant.class_struct_union.is_template_class);
-            /* Copy the dynamic initializer to the canonical field. */
-            corresp_field->initializer =
-               (a_dynamic_init_ptr)primary_il_entry_of((char *)fp->initializer,
-                                                       iek_dynamic_init);
-            copy_entry((char *)fp->initializer, iek_dynamic_init);
+            if (!is_primary_translation_unit) {
+              /* Set up so that the copy of the dynamic initializer
+                 (including things it points to) will be in the primary
+                 TU. */
+              is_primary_translation_unit = TRUE;
+              compute_il_prefix_size();
+            }  /* if */
+            corresp_field->initializer = copy_dynamic_init(fp->initializer,
+                                                           CE_NO_OPTIONS);
+            if (!saved_is_primary) {
+              is_primary_translation_unit = FALSE;
+              compute_il_prefix_size();
+            }  /* if */
           }  /* if */
         }  /* for */
       }  /* if */
