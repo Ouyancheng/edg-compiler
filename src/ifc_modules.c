@@ -5346,7 +5346,7 @@ Given a declaration's index find and return its home scope decl.
 
 ifc_Access an_ifc_module::get_ifc_access(ifc_DeclIndex decl_index)
 /*
-Given a declaration's index find and return its access information or none if
+Given a declaration's index, find and return its access information or none if
 the declaration is not in a scope that uses access specifiers.
 */
 {
@@ -5405,6 +5405,7 @@ the declaration is not in a scope that uses access specifiers.
   }  /* if */
   return result;
 }  /* get_ifc_access */
+
 
 static a_calling_convention conv_calling_convention(
                                               ifc_CallingConvention convention)
@@ -9405,7 +9406,7 @@ void an_ifc_module::cache_chart(a_token_cache_ptr     cache,
                                 a_source_position_ptr pos)
 /*
 Add the tokens corresponding to the given chart to cache.  The caller is
-expected to have already cached the "template" keyword if it's required. pos
+expected to have already cached the "template" keyword if it's required.  pos
 is the position of the chart.
 */
 {
@@ -9461,7 +9462,7 @@ void an_ifc_module::cache_chart(a_token_cache_ptr  cache,
                                 ifc_SourceLocation *locus)
 /*
 Add the tokens corresponding to the given chart to cache.  The caller is
-expected to have already cached the "template" keyword if it's required. locus
+expected to have already cached the "template" keyword if it's required.  locus
 is the location of the chart.
 */
 {
@@ -13607,20 +13608,20 @@ namespace {
    enabled otherwise.  This allows for MS specific IFC decls to be correctly
    processed.
 */
-struct a_ms_extensions_parse {
-  a_ms_extensions_parse() : old_ms_extensions(ms_extensions),
+struct an_ms_extensions_parse {
+  an_ms_extensions_parse() : old_ms_extensions(ms_extensions),
                             old_ms_compat(ms_compat) {
     ms_extensions = TRUE;
     ms_compat = TRUE;
   }
-  ~a_ms_extensions_parse() {
+  ~an_ms_extensions_parse() {
     ms_compat = old_ms_compat;
     ms_extensions = old_ms_extensions;
   }
 private:
   a_boolean old_ms_extensions;
   a_boolean old_ms_compat;
-};  /* a_ms_extensions_parse */
+};  /* an_ms_extensions_parse */
 }  /* namespace */
 
 
@@ -13651,7 +13652,7 @@ explicit specialization declaration.
   prepare_cached_template_parse(cache, encl_scope,
                                 &dps, &decl_state, &final_token);
   {
-    a_ms_extensions_parse tmp_parse;
+    an_ms_extensions_parse tmp_parse;
     template_or_specialization_declaration_full(&decl_state,
                                                 /*is_generic=*/FALSE,
                                                 /*orig_dps=*/NULL);
