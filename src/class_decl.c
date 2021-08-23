@@ -15224,20 +15224,6 @@ implicitly declared member functions.
   db_enter(3, "decl_member_function");
   is_static_member = decl_state->storage_class == (a_storage_class)sc_static;
   if (!is_static_member && (decl_state->dso_flags & DSO_CONSTEXPR) != 0) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-    if (ms_extensions && decl_info->is_constructor &&
-        (decl_state->decl_modifiers.flags & DM_DLLIMPORT) != 0) {
-      /* We currently ignore "constexpr" on dllimport constructors because a
-         constexpr dllimport constructor may be difficult to implement for a
-         back end (because a virtual function table entry may need to be
-         folded). */
-      if (decl_state->constexpr_pos.seq != 0) {
-        pos_warning(ec_constexpr_ignored_on_microsoft_nonstatic_member,
-                    &decl_state->constexpr_pos);
-      }  /* if */
-    } else
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    /* Do not insert code here. */
     if (!decl_info->is_constructor && constexpr_implies_const) {
       adjust_constexpr_member_type_if_needed(decl_state);
     }  /* if */
@@ -22072,16 +22058,18 @@ skip the base class portion of the check.
        field initializer or the type has a constexpr default constructor, and
        (c) every direct base class has an unambiguous constexpr default
        constructor.  In Microsoft mode, the generated default constructor of a
-       dllimport class is not "constexpr" either.  Don't attempt to check this
-       for nonreal classes because it is not always meaningful and the
-       downstream code cannot always handle such classes. */
+       dllimport class with virtual functions is not "constexpr" either.  Don't
+       attempt to check this for nonreal classes because it is not always
+       meaningful and the downstream code cannot always handle such classes. */
     if (!class_type->variant.class_struct_union.is_nonreal_class &&
         fields_initialized_for_constexpr_constructor(class_type,
                                                      limited_check) &&
         (!check_bases ||
          bases_initialized_for_constexpr_constructor(class_type))
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        && !(class_type_supp(class_type)->decl_modifiers & DM_DLLIMPORT)
+        && !((class_type_supp(class_type)->decl_modifiers & DM_DLLIMPORT) &&
+             class_type->variant.class_struct_union
+                           .any_virtual_functions_including_in_base_classes)
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
                                                                             ) {
       result = TRUE;

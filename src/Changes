@@ -1,5 +1,21 @@
 Version 6.3
 
+8/23/21  [EDGcpfe/23250,EDGcpfe/24616]
+Microsoft C++ compatibility: dllimport classes and constexpr constructors
+
+Consider in Microsoft C++ mode:
+
+  struct __declspec(dllimport) X {
+    constexpr X() = default;  // Previously an error.  Now okay.
+  };
+  constexpr X x{};
+
+Previously, this resulted in an error because a statically initialized variable
+of type X could be difficult to implement if X has virtual functions (see also
+the entry for EDGcpfe/15237).  Now, the error is only issued if the class whose
+defaulted constructor is marked "constexpr" has virtual member functions.
+
+
 8/23/21  [EDGcpfe/24630]
 Substitution of in-class static data members in constraints
 
