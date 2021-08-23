@@ -13610,7 +13610,7 @@ namespace {
 */
 struct an_ms_extensions_parse {
   an_ms_extensions_parse() : old_ms_extensions(ms_extensions),
-                            old_ms_compat(ms_compat) {
+                             old_ms_compat(ms_compat) {
     ms_extensions = TRUE;
     ms_compat = TRUE;
   }
