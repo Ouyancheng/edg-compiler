@@ -123,7 +123,7 @@ substitution.  For example:
   template<typename T> requires false using A = T;
   template<typename T> A<T> f(T);
   template<typename T> int f(T);
-  int r = f(42);  // Previously ambiguous.  Now okay/
+  int r = f(42);  // Previously ambiguous.  Now okay.
 
 That is now fixed.
 
