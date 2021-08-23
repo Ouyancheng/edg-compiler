@@ -3714,14 +3714,18 @@ Return TRUE if one is found.
         rdp->severity == severity &&
         rdp->error_pos.seq == error_pos->seq &&
         rdp->error_pos.column == error_pos->column) {
-      a_scope_number curr_scope = scope_stack_top().number;
+      a_scope_stack_entry_ptr  ssep = &scope_stack_top();
+      a_scope_number           curr_scope = ssep->number;
       found = TRUE;
       /* Check whether a given diagnostic is suppressed a large number of
          times from the same scope.  This is used to prevent an infinite
          loop if there is an error recovery problem.  If the same diagnostic
          is issued many times, discontinue the suppression so that the error
-         limit will be reached. */
-      if (rdp->scope_of_prev_check == curr_scope) {
+         limit will be reached.  Suppress this test for template instantiation
+         scopes because their number gets reused so the references may not
+         be from the same instantiation. */
+      if (rdp->scope_of_prev_check == curr_scope &&
+          !scope_is(ssep, sck_template_instantiation)) {
         if (++(rdp->number_of_times_suppressed) > error_limit) found = FALSE;
       } else {
         /* A different scope.  Reset the count. */

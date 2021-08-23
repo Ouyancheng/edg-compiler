@@ -1,5 +1,14 @@
 Version 6.3
 
+8/23/21  [EDGcpfe/23804]
+Incorrect handling of --error_limit in some complex template cases
+
+The front end suppresses diagnostics during a real instantiation if the
+diagnostic had already been issued during a prototype instantiation.
+That processing could produce some unexpected results in some complex
+cases when using the --error_limit option.  Now fixed.
+
+
 8/20/21  [EDGcpfe/24189]
 Multiple translation units: default member initializers in class templates
 
