@@ -13690,6 +13690,12 @@ if an error occurred.
          substituted "A<T>" does not contain a B. */
       subst_fail(*copy_error);
       var = NULL;
+    } else if (symbol_is(sym, sk_static_data_member)) {
+      /* A<T>::B is a variable.  Return it below. */
+      result_var = variable_for_symbol(sym);
+      /* A<T>::B is not a variable template, so no additional substitution is
+         needed below. */
+      var = NULL;
     } else if (symbol_is(sym, sk_variable_template)) {
       /* A<T>::B is a variable template as expected: Substitute it below. */
       var = variable_for_symbol(sym);

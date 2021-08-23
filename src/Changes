@@ -1,5 +1,23 @@
 Version 6.3
 
+8/23/21  [EDGcpfe/24630]
+Substitution of in-class static data members in constraints
+
+Consider:
+
+  template<unsigned N> struct V {
+    constexpr static unsigned L = N;
+    void f() requires (L >= 1) {}
+  };
+  void g(V<1> v) {
+    v.f();  // Previously an error.  Now okay.
+  }
+
+Previously, this failed spuriously because the substitution of L in the
+requires-clause was not handled correctly (it caused a spurious substitution
+failure).  That is now fixed.
+
+
 8/23/21  [EDGcpfe/23804]
 Incorrect handling of --error_limit in some complex template cases
 

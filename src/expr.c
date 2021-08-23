@@ -47390,8 +47390,8 @@ is TRUE if the expression is the immediate operand of an "&" operator.
       { a_variable_ptr  var = expr->variant.variable.ptr;
         /* For a variable template, find the instance based on the
            substituted arguments. */
-        if (var->is_nonreal && !var->is_prototype_instantiation) {
-          a_boolean            copy_error = FALSE;
+        if (var->is_nonreal) {
+          a_boolean  copy_error = FALSE;
           var = copy_template_variable_with_substitution(
                           var, rcblock->template_arg_list,
                           rcblock->template_param_list,
