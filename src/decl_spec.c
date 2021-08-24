@@ -12251,6 +12251,7 @@ finalizer_name:
             qualifiers == TQ_CONST && basic_type == bt_bool) {
           pos_warning(ec_is_signed_no_longer_a_keyword, &pos_curr_token);
           curr_token = tok_identifier;
+          clear_locator(&locator_for_curr_id, &pos_curr_token);
           set_keyword_visibility("__is_signed", /*is_visible=*/FALSE,
                                  &locator_for_curr_id);
         }  /* if */
