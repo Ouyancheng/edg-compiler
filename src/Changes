@@ -1,5 +1,24 @@
 Version 6.3
 
+8/24/21  [EDGcpfe/24217,EDGcpfe/24632]
+Internal error on substitution of default friend operator
+
+Consider in C++20 mode:
+
+  template<typename T> requires requires(const T& x) { x == x; }
+    void g();
+  template<typename> struct X {
+    friend bool operator==(X const&, X const&) = default;
+  };
+  int main() {
+    g<X<int>>();
+  }
+
+Previously this aborted in form_exception_specification_for_generated_function
+(class_decl.c) because that function erroneously assumed that only class
+members can be defaulted.  This is now fixed.
+
+
 8/24/21  [EDGcpfe/24537]
 GNU compatibility: "GCC" pragmas
 

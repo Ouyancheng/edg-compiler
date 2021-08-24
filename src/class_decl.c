@@ -12646,6 +12646,7 @@ static void ensure_all_field_initializers_scanned(a_type_ptr  class_type);
 
 static void update_generated_exception_spec_for_fields(
                                                   a_routine_ptr  rp,
+                                                  a_type_ptr     class_type,
                                                   a_field_ptr    fp,
                                                   a_boolean      *p_throw_any)
 /*
@@ -12655,12 +12656,13 @@ processing the given list of nonstatic data members ("fields") would throw an
 exception.  Similarly, it updates the exception specification of rp->type to
 reflect those fields.  This process may trigger diagnostics (which will be
 associated with the declaration position of rp).  When dealing with anonymous
-unions, this function may call itself recursively.
+unions, this function may call itself recursively.  class_type is the class
+associated with rp (usually its parent class, but for generated C++20
+comparisons rp may just be a friend of class_type).
 */
 {
   a_special_function_kind  sfkind = rp->special_kind;
-  a_type_ptr               rout_type = rp->type,
-                           class_type = parent_class_of(rp);
+  a_type_ptr               rout_type = rp->type;
   a_param_type_ptr         params = function_type_params(rout_type),
                            first_param = rp->is_inheriting_ctor ? NULL
                                                                 : params;
@@ -12676,7 +12678,8 @@ unions, this function may call itself recursively.
         !(ms_version_is(<1929) && !rp->compiler_generated)) {
       a_field_ptr  variants = fp->type->variant.class_struct_union.field_list;
       if (variants != NULL) {
-        update_generated_exception_spec_for_fields(rp, variants, p_throw_any);
+        update_generated_exception_spec_for_fields(
+                                       rp, class_type, variants, p_throw_any);
       }  /* if */
     }  /* if */
     if (field_sym != NULL && field_sym->is_error) {
@@ -12768,8 +12771,7 @@ enabled.
 */
 {
   a_special_function_kind  sfkind = rp->special_kind;
-  a_type_ptr               rout_type = rp->type,
-                           class_type = parent_class_of(rp);
+  a_type_ptr               rout_type = rp->type, class_type;
   a_routine_type_supplement_ptr
                            rtsp = rout_type->variant.routine.extra_info;
   a_base_class_ptr         bcp;
@@ -12780,7 +12782,7 @@ enabled.
   a_param_type_ptr         first_param;
   a_source_position        *pos = &rp->source_corresp.decl_position;
 
-  check_assertion(C_dialect == C_dialect_cplusplus && exceptions_enabled);
+  check_assertion(!C_mode() && exceptions_enabled);
   check_assertion(rtsp->exception_specification == NULL);
   if (rp->is_inheriting_ctor) {
     first_param = NULL;
@@ -12791,6 +12793,18 @@ enabled.
   } else {
     first_param = rtsp->param_type_list;
     generating_base_type = NULL;
+  }  /* if */
+  if (rp->source_corresp.is_class_member) {
+    class_type = parent_class_of(rp);
+  } else {
+    /* Presumably a friend comparison operator in C++20 mode. */
+    check_assertion_or_expect_error(spaceship_enabled);
+    check_assertion(first_param != NULL);
+    class_type = skip_typerefs(first_param->type);
+    if (type_is(class_type, tk_pointer)) {
+      class_type = skip_typerefs(class_type->variant.pointer.type);
+    }  /* if */
+    check_assertion(is_immediate_class_type(class_type));
   }  /* if */
   /* Go through the direct base classes looking for matching special
      functions, and merge the exception specifications. */
@@ -12824,7 +12838,8 @@ enabled.
   }  /* for */
   if (!throw_any) {
     update_generated_exception_spec_for_fields(
-           rp, class_type->variant.class_struct_union.field_list, &throw_any);
+               rp, class_type,
+               class_type->variant.class_struct_union.field_list, &throw_any);
   }  /* if */
   if (!throw_any && rtsp->exception_specification == NULL) {
     rtsp->exception_specification = alloc_exception_specification();
