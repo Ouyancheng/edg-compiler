@@ -21785,6 +21785,7 @@ If type is the type of a subobject, context is the type of its parent object.
   }  /* if */
   type = skip_typerefs(type);
   if (is_immediate_class_type(type)) {
+    check_if_constexpr_generated_default_constructor(type);
     default_ctor = select_default_constructor_full(
                                                type, &error_position, context,
                                                /*declarative_context=*/TRUE,

@@ -1,5 +1,22 @@
 Version 6.3
 
+8/24/21  [EDGcpfe/22722,EDGcpfe/24336,EDGcpfe/24639]
+Generated constexpr constructor incorrectly treated as non-constexpr
+
+Consider:
+
+  template<typename> struct B { bool b = false; };
+  struct S  {
+    constexpr S() = default;  // Previously an error.  Now okay.
+    B<int> bi;
+  };
+
+Previously, the generated default constructor of B was treated as non-constexpr
+when checking the validity of the "constexpr" specifier on the constructor of S
+(this problem was in part triggered by the presence of a default member
+initializer in B).  That is now fixed.
+
+
 8/24/21  [EDGcpfe/24217,EDGcpfe/24632]
 Internal error on substitution of default friend operator
 
