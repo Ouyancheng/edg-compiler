@@ -2802,6 +2802,7 @@ The position of the pragma ID is returned in id_position;
     pkdp = pragma_kind_descriptions;
     while (pkdp != NULL) {
       if (curr_id_matches_pragma_id(pkdp->kind)) {
+#if GNU_EXTENSIONS_ALLOWED
         /* We found a match.  If we're processing a GCC pragma, see if we
            should treat it as an immediate pragma or a next_token pragma
            based on the token that follows "GCC". */
@@ -2819,6 +2820,7 @@ The position of the pragma ID is returned in id_position;
             check_assertion(pkdp->kind == (a_pragma_kind)pk_gcc_next_token);
           }  /* if */
         }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         break;
       }  /* if */
       pkdp = pkdp->next;
