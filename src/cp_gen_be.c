@@ -1851,7 +1851,11 @@ templ, add the corresponding instance typedef to the table as well.
         }  /* for */
       }  /* if */
     }  /* if */
-    if (typedef_to_add != NULL) {
+    if (typedef_to_add != NULL &&
+        !(typedef_to_add->variant.typeref.is_nonreal &&
+          !typedef_to_add->variant.typeref.is_prototype_instantiation)) {
+      /* Add the typedef to the hash table unless it is nonreal, which
+         should never be used as a replacement type. */
       add_typedef_to(accessible_typedef_hash_table, typedef_to_add);
       under_type = skip_typerefs(typedef_to_add->variant.typeref.type);
       if (is_immediate_class_type(under_type)) {
