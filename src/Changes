@@ -1,5 +1,28 @@
 Version 6.3
 
+8/24/21  [EDGcpfe/24537]
+GNU compatibility: "GCC" pragmas
+
+"GCC" pragmas (i.e., pk_gcc) had been treated as immediate pragmas (i.e.,
+pbk_immediate), but that led to problems in a case like this:
+
+  template<class T> struct A {
+     A();
+      int m;
+  };
+  #pragma GCC diagnostic push
+  template<class T> A<T>::A() : m(0) {}
+  #pragma GCC diagnostic pop
+
+Here, the token caching mechanism used when parsing the template definition of
+A<T>::A() caused the second pragma to be ignored.
+
+A change has been made to separate "GCC" pragmas into both immediate
+pragmas (now pk_gcc_immediate) and "next token" pragmas (now pk_gcc_next_token)
+with all "GCC diagnostic" pragmas being classified as pk_gcc_next_token,
+allowing them to be acted upon properly.
+
+
 8/23/21  [EDGcpfe/23250,EDGcpfe/24616]
 Microsoft C++ compatibility: dllimport classes and constexpr constructors
 

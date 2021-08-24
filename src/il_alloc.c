@@ -4479,7 +4479,8 @@ in the current IL memory region.
       break;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-    case pk_gcc:
+    case pk_gcc_immediate:
+    case pk_gcc_next_token:
       clear_gcc_pragma_descr(&pp->variant.gcc);
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */

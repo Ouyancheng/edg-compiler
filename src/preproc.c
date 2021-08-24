@@ -2801,7 +2801,26 @@ The position of the pragma ID is returned in id_position;
        this code will need to be modified. */
     pkdp = pragma_kind_descriptions;
     while (pkdp != NULL) {
-      if (curr_id_matches_pragma_id(pkdp->kind)) break;
+      if (curr_id_matches_pragma_id(pkdp->kind)) {
+        /* We found a match.  If we're processing a GCC pragma, see if we
+           should treat it as an immediate pragma or a next_token pragma
+           based on the token that follows "GCC". */
+        if (pkdp->kind == (a_pragma_kind)pk_gcc_immediate) {
+          /* We want to look ahead to see if "diagnostic" is next, but
+             being that we're in a preprocessing directive, next_token
+             does not work and even skip_white_space requires saving and
+             restoring the value of start_of_curr_token. */
+          a_const_char *save_start_of_curr_token = start_of_curr_token;
+          skip_white_space();
+          start_of_curr_token = save_start_of_curr_token;
+          if (strncmp(curr_char_loc, "diagnostic", 10U) == 0) {
+            /* Treat all "GCC diagnostic" pragmas as next_token. */
+            pkdp = pkdp->next;
+            check_assertion(pkdp->kind == (a_pragma_kind)pk_gcc_next_token);
+          }  /* if */
+        }  /* if */
+        break;
+      }  /* if */
       pkdp = pkdp->next;
     }  /* while */
 #if INCLUDE_UNRECOGNIZED_PRAGMAS_IN_IL
@@ -2858,7 +2877,7 @@ Scan and process a #pragma directive.
     }  /* if */
 #if GNU_EXTENSIONS_ALLOWED
     if (pkdp != NULL &&
-        pkdp->kind == (a_pragma_kind)pk_gcc &&
+        pkdp->kind == (a_pragma_kind)pk_gcc_immediate &&
         curr_id_is("GCC")) {
       /* Look for a "GCC system_header" pragma. */
       a_const_char *ptr = &start_of_curr_token[3];

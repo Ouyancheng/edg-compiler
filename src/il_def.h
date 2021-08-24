@@ -6104,7 +6104,8 @@ enum a_pragma_kind_tag {
   pk_disable_ldscope,
 #endif /* SUN_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-  pk_gcc,
+  pk_gcc_immediate,     /* GCC pragmas (handled immediately). */
+  pk_gcc_next_token,    /* GCC pragmas (handled as next token). */
 #endif /* GNU_EXTENSIONS_ALLOWED */
   pk_diag_suppress,
   pk_diag_remark,
@@ -6212,7 +6213,8 @@ EXTERN a_const_char *pragma_ids[(int)pk_last + 1]
 /* pk_disable_ldscope */        "disable_ldscope",
 #endif /* SUN_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
-/* pk_gcc */			"GCC",
+/* pk_gcc_immediate */		"GCC",
+/* pk_gcc_next_token */		"GCC",
 #endif /* GNU_EXTENSIONS_ALLOWED */
 /* pk_diag_suppress */		"diag_suppress",
 /* pk_diag_remark */		"diag_remark",

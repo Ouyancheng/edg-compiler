@@ -373,7 +373,8 @@ possible.
       ppp->variant.lint_varargs_count = 0;
       break;
 #if GNU_EXTENSIONS_ALLOWED
-    case pk_gcc:
+    case pk_gcc_immediate:
+    case pk_gcc_next_token:
       clear_gcc_pragma_descr(&ppp->variant.gcc);
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -1973,8 +1974,27 @@ Initialize the pragma description table.
 #endif /* SUN_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
   if (gnu_mode && gnu_version >= 40200) {
+    /* "GCC" pragmas are handled by pk_gcc_next_token or pk_gcc_immediate
+       depending on the specific variety of "GCC" pragma.  Currently
+       "GCC diagnostic" pragmas are pk_gcc_next_token and all others are
+       pk_gcc_immediate.  Note that the order of these next two calls is
+       important (look_up_pragma_id relies on it). */
+    (void)add_next_token_pragma_kind_description
+		((a_pragma_kind)pk_gcc_next_token,
+                 fn_for_function(gcc_pragma),
+                 /*is_pseudo_pragma=*/FALSE,
+                 /*global=*/FALSE,
+                 /*automatically_include_in_il=*/FALSE,
+                 /*record_pragma_text=*/TRUE,
+                 /*expand_macros=*/FALSE,
+                 /*processing_C_code=*/FALSE,
+                 /*fetch_pp_tokens=*/FALSE,
+		 /*ignore_in_back_end=*/FALSE,
+		 /*il_info_is_complete=*/TRUE,
+		 /*read_string_as_header_name=*/FALSE,
+                 es_error);
     (void)add_immediate_pragma_kind_description
-		((a_pragma_kind)pk_gcc,
+		((a_pragma_kind)pk_gcc_immediate,
                  fn_for_function(gcc_pragma),
                  /*global=*/FALSE,
                  /*automatically_include_in_il=*/FALSE,
