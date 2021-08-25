@@ -22132,7 +22132,8 @@ issue an error if it is not actually constexpr.
       /* A defaulted constructor cannot be constexpr if it wouldn't have been
          constexpr by default.  For template instantiations, the constexpr is
          silently dropped.  Other cases are errors. */
-      if (!ctor_rp->is_template_function || ctor_rp->is_specialized) {
+      if ((!ctor_rp->is_template_function || ctor_rp->is_specialized) &&
+          ctor_rp->is_declared_constexpr) {
         pos_error(ec_defaulted_default_ctor_cannot_be_constexpr,
                   &ctor->decl_position);
       }  /* if */
