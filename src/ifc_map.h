@@ -246,7 +246,7 @@ IFC_DECL_END(DeclSort_ExplicitSpecialization)
 
 /* DeclSort::ExplicitInstantiation */
 IFC_DECL_START(DeclSort_ExplicitInstantiation)
-  IFC_DECL_FIELD(form, Index)
+  IFC_DECL_FIELD(form, FormSpecIndex)
   IFC_DECL_FIELD(decl, DeclIndex)
 IFC_DECL_END(DeclSort_ExplicitInstantiation)
 

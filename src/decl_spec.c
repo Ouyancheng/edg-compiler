@@ -3590,6 +3590,9 @@ defined.  Detailed position information is recorded in *decl_pos_block.
       }  /* if */
     }  /* if */
     if (tag_sym != NULL) {
+      /* Store the symbol on the decl parse state so that we can retrieve
+         the associated IL entity for modules. */
+      dps->sym = tag_sym;
       /* Check for tag mismatch.  This can only happen when an instance of a
          class template is being referenced in an elaborated type specifier
          or in some GNU C++ and Cfront cases. */

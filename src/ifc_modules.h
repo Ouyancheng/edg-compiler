@@ -2681,6 +2681,7 @@ private:
                                         const an_ifc_DeclSort_Reference *ref);
   a_module_entity_ptr get_and_process_ifc_decl_from_other_module(
                                                          ifc_DeclIndex index);
+  ifc_SourceLocation get_ifc_locus(ifc_DeclIndex decl_index);
   a_scope_ptr get_ifc_scope(ifc_DeclIndex scope_index);
   ifc_DeclIndex get_ifc_home_scope_decl(ifc_DeclIndex decl_index);
   inline a_scope_ptr get_ifc_home_scope(ifc_DeclIndex decl_index) {
@@ -2848,9 +2849,9 @@ private:
                                       a_boolean                add_semicolon);
   void cache_decl_template(a_token_cache_ptr        cache,
                            an_ifc_DeclSort_Template *decl);
-  void cache_specialization_simple_template_id(a_token_cache_ptr  cache,
-                                               ifc_FormSpecIndex  form_idx,
-                                               ifc_SourceLocation *locus);
+  void cache_simple_template_id(a_token_cache_ptr  cache,
+                                ifc_FormSpecIndex  form_idx,
+                                ifc_SourceLocation *locus);
   void cache_decl_partial_specialization_declaration(
                                 a_token_cache_ptr                     cache,
                                 ifc_DeclIndex                         decl_idx,
@@ -2863,6 +2864,10 @@ private:
                                a_token_cache_ptr                      cache,
                                ifc_DeclIndex                          decl_idx,
                                an_ifc_DeclSort_ExplicitSpecialization *decl);
+  void cache_decl_explicit_instantiation(
+                                a_token_cache_ptr                     cache,
+                                ifc_DeclIndex                         decl_idx,
+                                an_ifc_DeclSort_ExplicitInstantiation *decl);
   template<typename a_Name_Cache_Fn, typename an_Init_Cache_Fn>
   inline void cache_variable_decl(a_token_cache_ptr   cache,
                                   ifc_DeclIndex       decl_idx,
@@ -2981,8 +2986,11 @@ private:
                              an_ifc_DeclSort_ExplicitSpecialization *decl,
                              ifc_DeclIndex                          decl_idx);
   void record_pending_explicit_specialization(
-                              a_decl_parse_state                     *dps,
-                              an_ifc_DeclSort_ExplicitSpecialization *decl);
+                                 a_decl_parse_state                     *dps,
+                                 an_ifc_DeclSort_ExplicitSpecialization *decl);
+  char *parse_cached_explicit_instantiation(a_token_cache_ptr    cache,
+                                            ifc_DeclIndex        decl_idx,
+                                            a_byte_il_entry_kind *kind);
 #if DEBUG
   void validate_is_class_type(ifc_TypeIndex type);
 #endif /* DEBUG */

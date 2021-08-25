@@ -4497,6 +4497,25 @@ class_struct_union_case:
         }
         break;
       case ifc_DeclSort_ExplicitInstantiation:
+        { an_ifc_DeclSort_ExplicitInstantiation idsei, *idseip;
+          idseip = get_DeclSort_ExplicitInstantiation(&idsei);
+          if (defer) {
+            defer_symbol_creation(mep, &loc);
+          } else {
+            a_token_cache cache;
+            ifc_DeclIndex decl_idx = decl_index_of(mep->variant.ifc_partition,
+                                                   mep->file_offset);
+            if (mep->scope == NULL) {
+              mep->scope = get_ifc_home_scope(idseip->decl);
+              scope_pushed = push_module_declaration_context(mep->scope);
+            }  /* if */
+            clear_token_cache(&cache, /*reuseable=*/FALSE);
+            cache_decl_explicit_instantiation(&cache, decl_idx, idseip);
+            terminate_token_cache(&cache);
+            il_entity = parse_cached_explicit_instantiation(&cache, decl_idx,
+                                                            &kind);
+          }  /* if */
+        }
         { an_ifc_DeclSort_ExplicitInstantiation idsei;
           get_DeclSort_ExplicitInstantiation(&idsei);
           /* FIXME: Need a proper source position here. */
@@ -5079,11 +5098,6 @@ pointer to the given consumer lambda for each element in the sequence.
     /* Load the scope member. */
     read_partition_at_index(ifc_scope_member, seq.start + idx);
     ismp = get_Scope_Member(&ism);
-    /* FIXME: We're temporarily excluding explicit instantiations as they are
-       not yet implemented. */
-    if (decl_tag(ismp->index) == ifc_DeclSort_ExplicitInstantiation) {
-      continue;
-    }  /* if */
     /* Handle any specific processing in the consumer. */
     consumer(ismp);
   }  /* for */
@@ -5265,6 +5279,74 @@ scope associated with it, it will continue to not have an associated scope.
     }  /* if */
   }  /* if */
 }  /* ensure_type_has_scope */
+
+
+ifc_SourceLocation an_ifc_module::get_ifc_locus(ifc_DeclIndex decl_index)
+/*
+Given a declaration's index find and return its locus.
+*/
+{
+  ifc_SourceLocation result;
+
+  read_partition_at_index(decl_index);
+  switch (decl_tag(decl_index)) {
+    case ifc_DeclSort_Scope:
+      { an_ifc_DeclSort_Scope idss, *idssp;
+
+        idssp = get_DeclSort_Scope(&idss);
+        result = idssp->locus;
+      }
+      break;
+    case ifc_DeclSort_Variable:
+      { an_ifc_DeclSort_Variable idsv, *idsvp;
+
+        idsvp = get_DeclSort_Variable(&idsv);
+        result = idsvp->locus;
+      }
+      break;
+    case ifc_DeclSort_Function:
+      { an_ifc_DeclSort_Function idsf, *idsfp;
+
+        idsfp = get_DeclSort_Function(&idsf);
+        result = idsfp->locus;
+      }
+      break;
+    case ifc_DeclSort_Method:
+      { an_ifc_DeclSort_Method idsm, *idsmp;
+
+        idsmp = get_DeclSort_Method(&idsm);
+        result = idsmp->locus;
+      }
+      break;
+    case ifc_DeclSort_Constructor:
+      { an_ifc_DeclSort_Constructor idsc, *idscp;
+
+        idscp = get_DeclSort_Constructor(&idsc);
+        result = idscp->locus;
+      }
+      break;
+    case ifc_DeclSort_InheritedConstructor:
+      { an_ifc_DeclSort_InheritedConstructor idsic, *idsicp;
+
+        idsicp = get_DeclSort_InheritedConstructor(&idsic);
+        result = idsicp->locus;
+      }
+      break;
+    case ifc_DeclSort_ExplicitInstantiation:
+      { an_ifc_DeclSort_ExplicitInstantiation idsei, *idseip;
+
+        idseip = get_DeclSort_ExplicitInstantiation(&idsei);
+        /* An explicit instantiation doesn't hold any source location
+           information of its own currently.  Recurse on the associated
+           declaration. */
+        result = get_ifc_locus(idseip->decl);
+      }
+      break;
+    default:
+      unexpected_condition_str("Unexpected DeclSort");
+  }  /* switch */
+  return result;
+}  /* get_ifc_locus */
 
 
 a_scope_ptr an_ifc_module::get_ifc_scope(ifc_DeclIndex scope_index)
@@ -10681,14 +10763,12 @@ Add the tokens corresponding to the given template declaration (decl) to cache.
 }  /* cache_decl_template */
 
 
-void an_ifc_module::cache_specialization_simple_template_id(
-                                                   a_token_cache_ptr  cache,
-                                                   ifc_FormSpecIndex  form_idx,
-                                                   ifc_SourceLocation *locus)
+void an_ifc_module::cache_simple_template_id(a_token_cache_ptr  cache,
+                                             ifc_FormSpecIndex  form_idx,
+                                             ifc_SourceLocation *locus)
 /*
-Add the tokens for a specialization's simple-template-id via the
-specialization's form spec (form_idx) to the cache.  locus is the location of
-the specialization.
+Add the tokens for a simple-template-id via the associated form spec (form_idx)
+to the cache.  locus is the location of the simple-template-id.
 */
 {
   /* FIXME: At the time of writing the name used by the templated
@@ -10715,7 +10795,7 @@ the specialization.
     cache_expr(cache, ifsp->arguments);
     cache_token(cache, tok_gt, &pos);
   }
-}  /* cache_specialization_simple_template_id */
+}  /* cache_simple_template_id */
 
 
 void an_ifc_module::cache_decl_partial_specialization(
@@ -10757,8 +10837,7 @@ Add the tokens corresponding to the given partial specialization declaration
           { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idssp](
                                               a_source_position_ptr decl_pos) {
-              cache_specialization_simple_template_id(cache, decl->form,
-                                                      &idssp->locus);
+              cache_simple_template_id(cache, decl->form, &idssp->locus);
             };
             auto cache_scope_fn = [this, cache, decl](
                                               a_source_position_ptr decl_pos) {
@@ -10780,8 +10859,7 @@ Add the tokens corresponding to the given partial specialization declaration
           { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idsvp](
                                               a_source_position_ptr decl_pos) {
-              cache_specialization_simple_template_id(cache, decl->form,
-                                                      &idsvp->locus);
+              cache_simple_template_id(cache, decl->form, &idsvp->locus);
             };
             auto cache_init_fn = [this, cache, decl](
                                               a_source_position_ptr decl_pos) {
@@ -10818,16 +10896,22 @@ Add the tokens corresponding to the given explicit specialization declaration
 (decl indexed in the IFC by decl_idx) to cache.
 */
 {
-  /* FIXME: We don't have good source location information here, so the access
-     specifiers and template-head are reconstructed in relevant decl tag
-     case. */
+  ifc_DeclIndex      templated_decl_idx = decl->decl;
+  ifc_SourceLocation decl_locus = get_ifc_locus(templated_decl_idx);
+  a_source_position  pos;
+
+  source_position_from_locus(&pos, &decl_locus);
+  /* Attempt to cache the access specifier if one is specified. */
+  cache_access(cache, get_ifc_access(templated_decl_idx),
+               /*cache_colon=*/TRUE, &pos);
+  /* Reconstruct the template-head. */
+  cache_template_head(cache, (ifc_ChartIndex)0, &pos);
   {
     /* Reconstruct the declaration. */
     /* FIXME: Eventually this entire block should be replaceable by a
        cache_decl call (due to problems in the IFC -- namely the templated decl
        having a mangled NameSort Identifier name instead of a NameSort
        Specialization -- this is not yet possible). */
-    ifc_DeclIndex templated_decl_idx = decl->decl;
 
     /* Read the partition for the templated declaration. */
     read_partition_at_index(templated_decl_idx);
@@ -10835,23 +10919,15 @@ Add the tokens corresponding to the given explicit specialization declaration
       case ifc_DeclSort_Scope:
         { /* We're reconstructing a class. */
           an_ifc_DeclSort_Scope idss, *idssp;
-          a_source_position     pos;
 
           idssp = get_DeclSort_Scope(&idss);
-          source_position_from_locus(&pos, &idssp->locus);
-          /* Attempt to cache the access specifier if one is specified. */
-          cache_access(cache, get_ifc_access(templated_decl_idx),
-                       /*cache_colon=*/TRUE, &pos);
-          /* Reconstruct the template-head. */
-          cache_template_head(cache, (ifc_ChartIndex)0, &pos);
 #if DEBUG
           validate_is_class_type(idssp->type);
 #endif /* DEBUG */
           { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idssp](
                                               a_source_position_ptr decl_pos) {
-              cache_specialization_simple_template_id(cache, decl->form,
-                                                      &idssp->locus);
+              cache_simple_template_id(cache, decl->form, &idssp->locus);
             };
             auto cache_scope_fn = [this, cache, idssp](
                                               a_source_position_ptr decl_pos) {
@@ -10871,20 +10947,12 @@ Add the tokens corresponding to the given explicit specialization declaration
       case ifc_DeclSort_Variable:
         { /* We're reconstructing a variable. */
           an_ifc_DeclSort_Variable idsv, *idsvp;
-          a_source_position        pos;
 
           idsvp = get_DeclSort_Variable(&idsv);
-          source_position_from_locus(&pos, &idsvp->locus);
-          /* Attempt to cache the access specifier if one is specified. */
-          cache_access(cache, get_ifc_access(templated_decl_idx),
-                       /*cache_colon=*/TRUE, &pos);
-          /* Reconstruct the template-head. */
-          cache_template_head(cache, (ifc_ChartIndex)0, &pos);
           { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idsvp](
                                               a_source_position_ptr decl_pos) {
-              cache_specialization_simple_template_id(cache, decl->form,
-                                                      &idsvp->locus);
+              cache_simple_template_id(cache, decl->form, &idsvp->locus);
             };
             auto cache_init_fn = [this, cache, idsvp](
                                               a_source_position_ptr decl_pos) {
@@ -10911,20 +10979,12 @@ Add the tokens corresponding to the given explicit specialization declaration
       case ifc_DeclSort_Function:
         { /* We're reconstructing a function. */
           an_ifc_DeclSort_Function idsf, *idsfp;
-          a_source_position        pos;
 
           idsfp = get_DeclSort_Function(&idsf);
-          source_position_from_locus(&pos, &idsfp->locus);
-          /* Attempt to cache the access specifier if one is specified. */
-          cache_access(cache, get_ifc_access(templated_decl_idx),
-                       /*cache_colon=*/TRUE, &pos);
-          /* Reconstruct the template-head. */
-          cache_template_head(cache, (ifc_ChartIndex)0, &pos);
           { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idsfp](
                                               a_source_position_ptr decl_pos) {
-              cache_specialization_simple_template_id(cache, decl->form,
-                                                      &idsfp->locus);
+              cache_simple_template_id(cache, decl->form, &idsfp->locus);
             };
             an_ifc_TypeSort_Function itsf, *itsfp;
             ifc_ChartIndex           params = (ifc_ChartIndex)0;
@@ -10950,6 +11010,120 @@ Add the tokens corresponding to the given explicit specialization declaration
     }  /* switch */
   }
 }  /* cache_decl_explicit_specialization */
+
+
+void an_ifc_module::cache_decl_explicit_instantiation(
+                                a_token_cache_ptr                     cache,
+                                ifc_DeclIndex                         decl_idx,
+                                an_ifc_DeclSort_ExplicitInstantiation *decl)
+/*
+Add the tokens corresponding to the given explicit instantiation declaration
+(decl indexed in the IFC by decl_idx) to cache.
+*/
+{
+  ifc_DeclIndex      templated_decl_idx = decl->decl;
+  ifc_SourceLocation decl_locus = get_ifc_locus(templated_decl_idx);
+  a_source_position  pos;
+
+  source_position_from_locus(&pos, &decl_locus);
+  /* Attempt to cache the access specifier if one is specified. */
+  cache_access(cache, get_ifc_access(templated_decl_idx),
+               /*cache_colon=*/TRUE, &pos);
+  /* Cache the template keyword. */
+  cache_token(cache, tok_template, &pos);
+  {
+    /* Reconstruct the declaration. */
+    /* FIXME: Eventually this entire block should be replaceable by a
+       cache_decl call (due to problems in the IFC -- namely the templated decl
+       having a mangled NameSort Identifier name instead of a NameSort
+       Specialization -- this is not yet possible). */
+
+    /* Read the partition for the templated declaration. */
+    read_partition_at_index(templated_decl_idx);
+    switch (decl_tag(templated_decl_idx)) {
+      case ifc_DeclSort_Scope:
+        { /* We're reconstructing a class. */
+          an_ifc_DeclSort_Scope idss, *idssp;
+
+          idssp = get_DeclSort_Scope(&idss);
+#if DEBUG
+          validate_is_class_type(idssp->type);
+#endif /* DEBUG */
+          { /* Reconstruct the templated declaration. */
+            auto cache_name_fn = [this, cache, decl, idssp](
+                                              a_source_position_ptr decl_pos) {
+              cache_simple_template_id(cache, decl->form, &idssp->locus);
+            };
+            auto cache_scope_fn = [this, cache, idssp](
+                                              a_source_position_ptr decl_pos) {
+              cache_token(cache, tok_semicolon, decl_pos);
+            };
+            cache_scope_decl(cache, decl_idx, idssp->type, cache_name_fn,
+                             cache_scope_fn, &idssp->locus);
+          }
+        }
+        break;
+      case ifc_DeclSort_Variable:
+        { /* We're reconstructing a variable. */
+          an_ifc_DeclSort_Variable idsv, *idsvp;
+
+          idsvp = get_DeclSort_Variable(&idsv);
+          { /* Reconstruct the templated declaration. */
+            auto cache_name_fn = [this, cache, decl, idsvp](
+                                              a_source_position_ptr decl_pos) {
+              cache_simple_template_id(cache, decl->form, &idsvp->locus);
+            };
+            auto cache_init_fn = [this, cache, idsvp](
+                                              a_source_position_ptr decl_pos) {
+              cache_token(cache, tok_semicolon, decl_pos);
+            };
+
+            /* We've already cached the access specifier above, suppress
+               cache_variable_decl's access specifier caching. */
+            cache_variable_decl(cache, decl_idx,
+                                is_class_scope(idsvp->home_scope),
+                                idsvp->access, /*cache_access_spec=*/FALSE,
+                                idsvp->specifiers, idsvp->traits,
+                                idsvp->alignment, idsvp->type, cache_name_fn,
+                                (ifc_ExprIndex)0, cache_init_fn,
+                                &idsvp->locus);
+          }
+        }
+        break;
+      case ifc_DeclSort_Function:
+        { /* We're reconstructing a function. */
+          an_ifc_DeclSort_Function idsf, *idsfp;
+
+          idsfp = get_DeclSort_Function(&idsf);
+          { /* Reconstruct the templated declaration. */
+            auto cache_name_fn = [this, cache, decl, idsfp](
+                                              a_source_position_ptr decl_pos) {
+              cache_simple_template_id(cache, decl->form, &idsfp->locus);
+            };
+            an_ifc_TypeSort_Function itsf, *itsfp;
+            ifc_ChartIndex           params = (ifc_ChartIndex)0;
+
+            check_assertion(type_tag(idsfp->type) == ifc_TypeSort_Function);
+            read_partition_at_index(idsfp->type);
+            itsfp = get_TypeSort_Function(&itsf);
+            if (itsfp->source != 0) {
+              params = get_func_params_from_trait(decl_idx);
+            }  /* if */
+            cache_function_decl(cache, is_class_scope(idsfp->home_scope),
+                                /*is_dtor=*/FALSE, idsfp->access,
+                                /*cache_access_spec=*/FALSE,
+                                itsfp->convention, idsfp->traits,
+                                itsfp->traits, itsfp->target,
+                                cache_name_fn, params, itsfp->source,
+                                &itsfp->eh_spec, &idsfp->locus);
+          }
+        }
+        break;
+      default:
+        unexpected_condition_str("Unexpected DeclSort");
+    }  /* switch */
+  }
+}  /* cache_decl_explicit_instantiation */
 
 
 void an_ifc_module::cache_type_param_introducer(a_token_cache_ptr  cache,
@@ -11338,9 +11512,10 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       }
       break;
     case ifc_DeclSort_ExplicitInstantiation:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("DeclSort::ExplicitInstantiation",
-                                  &error_position);
+      { an_ifc_DeclSort_ExplicitInstantiation idsei, *idseip;
+        idseip = get_DeclSort_ExplicitInstantiation(&idsei);
+        cache_decl_explicit_instantiation(cache, decl, idseip);
+      }
       break;
     case ifc_DeclSort_Concept:
       /* FIXME: Currently unsupported. */
@@ -13719,6 +13894,77 @@ the declaration of the entity.
     unexpected_condition_str("Unexpected DeclSort");
   }  /* switch */
 }  /* record_pending_explicit_specialization */
+
+
+static char *get_il_entity(a_symbol_ptr sym, a_byte_il_entry_kind *kind)
+/*
+Return the associated IL entity and update kind with the associated entity kind
+for the given symbol (sym).
+FIXME: This should likely be extracted as a general function for symbols.
+*/
+{
+  char *il_entity;
+
+  switch (sym->kind) {
+  case sk_class_or_struct_tag:
+    {
+      il_entity = (char*)sym->variant.class_struct_union.type;
+      *kind = iek_type;
+    }
+    break;
+  case sk_routine:
+    {
+      il_entity = (char*)sym->variant.routine.ptr;
+      *kind = iek_routine;
+    }
+    break;
+  case sk_variable:
+    {
+      il_entity = (char*)sym->variant.variable.ptr;
+      *kind = iek_variable;
+    }
+    break;
+  default:
+    unexpected_condition_str("Unexpected DeclSort");
+  }  /* switch */
+  return il_entity;
+}  /* get_il_entity */
+
+
+char *an_ifc_module::parse_cached_explicit_instantiation(
+                                                 a_token_cache_ptr    cache,
+                                                 ifc_DeclIndex        decl_idx,
+                                                 a_byte_il_entry_kind *kind)
+/*
+Parse the tokens corresponding to the given explicit instantiation
+declaration's (indexed in the IFC by decl_idx) cache.  Return a pointer to the
+corresponding explicitly instantiated entity and update kind with the
+associated entity kind.
+*/
+{
+  a_decl_parse_state dps;
+  a_token_kind       final_token = tok_semicolon;
+  ifc_SourceLocation template_locus = get_ifc_locus(decl_idx);
+  a_source_position  template_kw_pos;
+
+#if DEBUG
+  if (db_flag_is_set("ms_ifc_token_def")) {
+    pos_in_temp_text_buffer = 0;
+    add_token_cache_to_string(cache);
+    fprintf(stderr, "Reconstituted explicit instantiation declaration:\n%s\n"
+                    "---------------------\n", temp_text_buffer);
+  }  /* if */
+#endif /* DEBUG */
+  rescan_cached_tokens(cache);
+  source_position_from_locus(&template_kw_pos, &template_locus);
+  {
+    an_ms_extensions_parse      tmp_parse;
+    a_template_decl_options_set options = TDO_NO_OPTIONS;
+    explicit_instantiation(&dps, options, &template_kw_pos);
+  }
+  finish_cached_template_parse(&final_token);
+  return get_il_entity(dps.sym, kind);
+}  /* parse_cached_explicit_instantiation */
 
 #if DEBUG
 

@@ -39272,9 +39272,10 @@ processing.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
 static
-void instantiation_directive(a_pragma_kind	kind,
- 			     a_boolean		is_pragma,
-			     a_source_position	*start_pos)
+void instantiation_directive(a_decl_parse_state_ptr dps,
+                             a_pragma_kind          kind,
+                             a_boolean              is_pragma,
+                             a_source_position      *start_pos)
 /*
 Processes explicit instantiation requests and those instantiation pragmas
 that use the same syntax as the explicit instantiation request.
@@ -39307,7 +39308,6 @@ instantiation.
 {
   a_symbol_locator             locator;
   a_decl_flag_set              dsi_flags, di_flags;
-  a_decl_parse_state           state;
   a_symbol_ptr                 new_sym;
   a_symbol_ptr                 sym;
   a_token_kind                 end_of_statement_token;
@@ -39320,10 +39320,10 @@ instantiation.
   a_boolean                    accept_static = FALSE, accept_extern = FALSE;
 
   db_enter(3, "instantiation_directive");
-  init_decl_parse_state(&state);
-  state.is_explicit_instantiation = TRUE;
-  state.trailing_return_type_allowed = trailing_return_types_enabled;
-  state.start_pos = *start_pos;
+  init_decl_parse_state(dps);
+  dps->is_explicit_instantiation = TRUE;
+  dps->trailing_return_type_allowed = trailing_return_types_enabled;
+  dps->start_pos = *start_pos;
   if (!is_pragma) {
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     ssep = add_empty_source_sequence_entry();
@@ -39363,7 +39363,7 @@ instantiation.
         decl_pos_block.identifier_range.start = *start_pos;
         decl_pos_block.identifier_range.end = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        make_instantiation_directive(kind, &state, sym, ssep, &decl_pos_block);
+        make_instantiation_directive(kind, dps, sym, ssep, &decl_pos_block);
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else if (sym != NULL && !sym->is_error) {
@@ -39378,7 +39378,7 @@ instantiation.
     goto final_check;
   }  /* if */
   /* First scan any prefix GNU attributes. */
-  state.prefix_attributes = scan_gnu_attribute_groups(al_prefix);
+  dps->prefix_attributes = scan_gnu_attribute_groups(al_prefix);
   /* Next, scan decl-specifiers. */
   clear_decl_pos_block(&decl_pos_block);
   dsi_flags = DSI_EMPTY_DECL_SPECIFIERS_ALLOWED | DSI_TYPE_SPECIFIER_ALLOWED |
@@ -39390,25 +39390,25 @@ instantiation.
     /* Recognize GNU attributes while scanning the decl-specifiers. */
     dsi_flags |= DSI_GNU_ATTRIBUTES_ALLOWED;
   }  /* if */
-  decl_specifiers(dsi_flags, &state, &decl_pos_block);
+  decl_specifiers(dsi_flags, dps, &decl_pos_block);
 #if MICROSOFT_EXTENSIONS_ALLOWED && DECL_MODIFIERS_IN_USE
-  if (ms_extensions && (state.decl_modifiers.flags & DM_DLLIMPORT) != 0) {
+  if (ms_extensions && (dps->decl_modifiers.flags & DM_DLLIMPORT) != 0) {
     /* Microsoft compilers treat __declspec(dllimport) in an explicit
        instantiation directive as if the directive was "extern template";
        i.e., a "do not instantiate" directive. */
     kind = (a_pragma_kind)pk_do_not_instantiate;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED && DECL_MODIFIERS_IN_USE */
-  if (is_error_type(state.type) && !is_declarator_start()) {
+  if (is_error_type(dps->type) && !is_declarator_start()) {
     /* Error of some sort. */
     set_to_error_locator(locator);
   } else if (curr_token == end_of_statement_token &&
-             (state.dso_flags & DSO_ELABORATED_TYPE_SPECIFIER)) {
+             (dps->dso_flags & DSO_ELABORATED_TYPE_SPECIFIER)) {
     /* The argument is something like class A<int> -- instantiate all the
        members of the class.  Note that this also permits the class to
        be a nested class within a template class. */
-    check_pending_qualifiers_used(&state);
-    sym = symbol_for(state.type);
+    check_pending_qualifiers_used(dps);
+    sym = symbol_for(dps->type);
     check_assertion(sym != NULL);
     if (is_template_instance_class_symbol(sym) &&
         (!is_template_instance_specific_def_symbol(sym) ||
@@ -39423,13 +39423,13 @@ instantiation.
                                        // instantiated.
              S<int> s;  // Okay.
       */
-      state.type->variant.class_struct_union.is_specialized = FALSE;
+      dps->type->variant.class_struct_union.is_specialized = FALSE;
       update_instantiation_flags_for_class(sym, kind, start_pos, is_pragma,
                                            /*top_level=*/TRUE,
                                            /*is_dll_directive=*/FALSE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (!is_pragma) {
-        make_instantiation_directive(kind, &state, sym, ssep, &decl_pos_block);
+        make_instantiation_directive(kind, dps, sym, ssep, &decl_pos_block);
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     } else {
@@ -39442,7 +39442,7 @@ instantiation.
       }  /* if */
     }  /* if */
 #if SUN_EXTENSIONS_ALLOWED
-    if (sun_mode && (state.decl_modifiers.flags & DM_ANY_SUN_LINK_SCOPE)) {
+    if (sun_mode && (dps->decl_modifiers.flags & DM_ANY_SUN_LINK_SCOPE)) {
       pos_error(ec_invalid_link_scope, &error_position);
     }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
@@ -39450,27 +39450,27 @@ instantiation.
   } else {
     if (kind == (a_pragma_kind)pk_inline_template) {
       /* "inline template" can only be used with a class instantiation. */
-      pos_error(ec_inline_not_allowed, &state.start_pos);
+      pos_error(ec_inline_not_allowed, &dps->start_pos);
     }  /* if */
     clear_func_info(&func_info);
     di_flags = DI_REAL_DECLARATOR_ALLOWED |
                DI_QUALIFIED_NAME_ALLOWED |
                DI_IS_EXPLICIT_INSTANTIATION |
                DI_OPERATOR_NAME_ALLOWED;
-    if (!(state.dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) &&
-        state.qualifiers == TQ_NONE) {
+    if (!(dps->dso_flags & DSO_HAS_EXPLICIT_TYPE_SPECIFIER) &&
+        dps->qualifiers == TQ_NONE) {
       di_flags |= DI_NO_TYPE_SPECIFIERS;
     }  /* if */
-    declarator(di_flags, &state, (a_type_ptr)NULL, &locator, &func_info,
+    declarator(di_flags, dps, (a_type_ptr)NULL, &locator, &func_info,
                &decl_pos_block);
-    if (state.id_attributes != NULL) {
-      diagnose_std_attribute_on_explicit_instantiation(state.id_attributes);
+    if (dps->id_attributes != NULL) {
+      diagnose_std_attribute_on_explicit_instantiation(dps->id_attributes);
     }  /* if */
     record_param_id_list_declarations(&func_info);
     /* Issue diagnostic on an incomplete-type in an exception specification. */
     report_exception_spec_errors(&func_info);
     done_with_func_info(func_info);
-    remove_declarator_sse(&state, depth_scope_stack);
+    remove_declarator_sse(dps, depth_scope_stack);
   }  /* if */
   /* The Microsoft compiler (versions 1300 and earlier) silently ignores
      cases in which no matching template is found for an explicit
@@ -39492,13 +39492,13 @@ instantiation.
        will not have been removed. */
     sym = locator.specific_symbol;
   }  /* if */
-  check_for_declaration_errors(&state, &locator);
+  check_for_declaration_errors(dps, &locator);
   if (sym == NULL) {
     /* No symbol was found.  If the declarator has a function type
        then say that the name is undefined.  If it was not a function
        type then say it is an invalid pragma argument. */
     if (is_error_locator(locator) ||
-        (state.type != NULL && !is_function_type(state.type))) {
+        (dps->type != NULL && !is_function_type(dps->type))) {
       pos_error(ec_invalid_instantiation_argument, start_pos);
     } else {
       pos_st_diagnostic(severity_if_not_found, ec_not_a_template_name,
@@ -39526,13 +39526,13 @@ instantiation.
       /* A variable template or static data member of a class template.
          Set the instantiation flags. */
       a_template_instance_ptr tip;
-      state.sym = sym;
+      dps->sym = sym;
       tip = template_instance_for_symbol(sym);
       if (tip != NULL) {
         a_variable_ptr  var;
         a_boolean	err = FALSE;
         var = variable_for_symbol(sym);
-        if (!types_are_redecl_compatible(state.type, var->type)) {
+        if (!types_are_redecl_compatible(dps->type, var->type)) {
           an_error_severity	severity = es_error;
           if (microsoft_mode) {
             severity = es_warning;
@@ -39550,7 +39550,7 @@ instantiation.
                                      /*top_level=*/TRUE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
           if (!is_pragma) {
-            make_instantiation_directive(kind, &state, sym, ssep,
+            make_instantiation_directive(kind, dps, sym, ssep,
                                          &decl_pos_block);
           }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -39563,7 +39563,7 @@ instantiation.
     } else if (!is_function_or_template_symbol(sym)) {
       /* Not a function symbol -- issue an error. */
       pos_error(ec_invalid_instantiation_argument, start_pos);
-    } else if (!is_function_type(state.type)) {
+    } else if (!is_function_type(dps->type)) {
       /* The symbol represents a function but the type is not a routine
          type.  This can occur if a declaration contains the name of a
          function but the declaration is not a function declarator. */
@@ -39577,7 +39577,7 @@ instantiation.
          accepted with a warning or a remark. */
       a_boolean  is_new_template_instance;
       new_sym = find_matching_template_instance(
-                                   sym, &state, &locator,
+                                   sym, dps, &locator,
                                    /*in_class_specialization=*/FALSE,
                                    /*prefer_template=*/TRUE,
                                    /*check_only=*/FALSE,
@@ -39585,12 +39585,12 @@ instantiation.
                                    severity_if_not_found,
                                    &is_new_template_instance);
       if (new_sym != NULL) {
-        state.sym = new_sym;
+        dps->sym = new_sym;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (ms_extensions) {
           if (new_sym->kind == (a_symbol_kind)sk_member_function &&
               new_sym->variant.routine.ptr->template_arg_list == NULL &&
-              (state.decl_modifiers.flags & DM_DLLFLAGS) == 0) {
+              (dps->decl_modifiers.flags & DM_DLLFLAGS) == 0) {
             /* For ordinary member functions of class templates (i.e., not for
                instances of member function templates), if no DLL interface was
                specified explicitly, the DLL interface declared in the template
@@ -39598,7 +39598,7 @@ instantiation.
                "dllimport". */
             a_decl_modifier  dllflags =
                     new_sym->variant.routine.ptr->decl_modifiers & DM_DLLFLAGS;
-            state.decl_modifiers.flags |= dllflags;
+            dps->decl_modifiers.flags |= dllflags;
             if ((dllflags & DM_DLLIMPORT) != 0) {
               kind = (a_pragma_kind)pk_do_not_instantiate;
               if (microsoft_bugs && !is_pragma) {
@@ -39618,25 +39618,25 @@ instantiation.
         /* If a throw specification was mentioned in the instantiation
            directive, check that it matches up with that of the instantiated
            routine. */
-        if (state.type->variant.routine.extra_info->exception_specification !=
+        if (dps->type->variant.routine.extra_info->exception_specification !=
                                                                        NULL) {
           instantiate_exception_spec_if_needed(new_sym);
-          (void)check_exception_specification(state.type, new_sym,
+          (void)check_exception_specification(dps->type, new_sym,
                                               &func_info.throw_position,
                                               /*is_redecl=*/TRUE);
         }  /* if */
         /* Apply any attributes if appropriate. */
-        attach_decl_attributes(&state, /*primary_decl=*/FALSE);
+        attach_decl_attributes(dps, /*primary_decl=*/FALSE);
         /* Some additional modifiers may apply in Microsoft mode (that
            includes the dllimport/dllexport attributes, which are not
            handled by the call to attach_decl_attributes above). */
         update_routine_decl_modifiers(
-                          new_sym->variant.routine.ptr, &state.decl_modifiers,
+                          new_sym->variant.routine.ptr, &dps->decl_modifiers,
                           &locator.source_position, /*is_redecl=*/FALSE,
                           (kind != (a_pragma_kind)pk_do_not_instantiate),
                           (a_boolean)new_sym->variant.routine.ptr->is_inline);
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
-        if (state.type->variant.routine.extra_info->calling_convention !=
+        if (dps->type->variant.routine.extra_info->calling_convention !=
                                            (a_calling_convention)cc_default &&
             (symbol_is(sym, sk_function_template) ||
              (symbol_is(sym, sk_member_function) &&
@@ -39644,22 +39644,22 @@ instantiation.
           /* find_matching_template_instance ignores calling conventions, but
              an explicit instantiation (unlike an explicit specialization)
              must match the calling convention of its template.  (Note:
-             state.type must be used rather than the type of new_sym, since
+             dps->type must be used rather than the type of new_sym, since
              the latter's calling convention may have been implicitly
              modified.) */
           a_template_symbol_supplement_ptr
                                    tssp = template_supplement_for_symbol(sym);
           if (tssp != NULL &&
               !calling_conventions_are_compatible(
-                          tssp->variant.function.routine->type, state.type)) {
+                          tssp->variant.function.routine->type, dps->type)) {
             pos_error(ec_conflicting_calling_conventions,
-                      &state.specifiers_pos);
+                      &dps->specifiers_pos);
           }  /* if */
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
         if (!is_pragma) {
-          make_instantiation_directive(kind, &state, new_sym, ssep,
+          make_instantiation_directive(kind, dps, new_sym, ssep,
                                        &decl_pos_block);
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -39669,21 +39669,21 @@ instantiation.
     }  /* if */
   }  /* if */
 final_check:;
-  if (state.declared_storage_class != (a_storage_class)sc_unspecified) {
+  if (dps->declared_storage_class != (a_storage_class)sc_unspecified) {
     /* GNU C++ only accepts storage class specifiers on function template
        specializations. */
-    a_storage_class  storage_class = state.declared_storage_class;
+    a_storage_class  storage_class = dps->declared_storage_class;
     check_assertion(gpp_mode);
     if ((accept_extern && storage_class == (a_storage_class)sc_extern) ||
         (accept_static && storage_class == (a_storage_class)sc_static)) {
-      pos_warning(ec_storage_specifier_ignored, &state.storage_class_pos);
+      pos_warning(ec_storage_specifier_ignored, &dps->storage_class_pos);
     } else {
       pos_error((storage_class == (a_storage_class)sc_typedef) ?
                   ec_typedef_not_allowed : ec_storage_class_not_allowed,
-                &state.storage_class_pos);
+                &dps->storage_class_pos);
     }  /* if */
   }  /* if */
-  run_end_of_parse_actions(&state, /*more_declarators=*/FALSE);
+  run_end_of_parse_actions(dps, /*more_declarators=*/FALSE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (!is_pragma) {
     if (ssep != NULL && ssep->entity.kind == (a_byte_il_entry_kind)iek_none) {
@@ -39820,10 +39820,12 @@ assumed if the return type is omitted.
     (void)get_token();
   } else if (is_decl_start(IDS_REAL_DECLARATOR_ALLOWED) ||
              is_declarator_start()) {
+    a_decl_parse_state dps;
+
     /* This is a declaration-style instantiation pragma, the syntax of
        which is the same as the explicit instantiation directive.  Call
        the explicit instantiation routine to do the processing. */
-    instantiation_directive(pragma_kind, /*is_pragma=*/TRUE, &start_pos);
+    instantiation_directive(&dps, pragma_kind, /*is_pragma=*/TRUE, &start_pos);
   } else {
     /* Not an identifier or a declaration. */
     pos_error(ec_invalid_instantiation_argument, &error_position);
@@ -39839,9 +39841,9 @@ done:
 }  /* instantiation_pragma */
 
 
-static void explicit_instantiation(
-			a_template_decl_options_set	options,
-			a_source_position_ptr		directive_start_pos)
+void explicit_instantiation(a_decl_parse_state_ptr      dps,
+                            a_template_decl_options_set options,
+                            a_source_position_ptr       directive_start_pos)
 /*
 Process an explicit instantiation directive.  Most of the processing is
 done by instantiation_directive.  This routine makes sure that the current
@@ -39884,7 +39886,7 @@ directive_start_pos points to the beginning of the directive (e.g., for
     /* The instantiation mode is set to "none" while the pragma processing is
        performed to ensure that no other instantiations are implicitly
        requested as a consequence of scanning the pragma. */
-    a_pragma_kind	pragma_kind;
+    a_pragma_kind      pragma_kind;
     instantiation_mode = tim_none;
     if (extern_template) {
       /* In some modes the "extern" keyword may be used in an explicit
@@ -39900,7 +39902,7 @@ directive_start_pos points to the beginning of the directive (e.g., for
     }  /* if */
     /* Note that the "template" keyword is bypassed in the subroutine. */
     begin_deferral_of_access_checks();
-    instantiation_directive(pragma_kind, /*is_pragma=*/FALSE,
+    instantiation_directive(dps, pragma_kind, /*is_pragma=*/FALSE,
                             directive_start_pos);
     discard_deferred_access_checks();
     end_deferral_of_access_checks();
@@ -40013,13 +40015,15 @@ directive_start_pos points to the beginning of the directive or declaration
       ssep->name_linkage_is_explicit = saved_name_linkage_is_explicit;
     }  /* if */
   } else {
+    a_decl_parse_state dps;
+
     /* There is no template parameter list, this must be an explicit
        instantiation. */
     if (export_present) {
       /* An explicit instantiation cannot be exported. */
       pos_error(ec_export_on_instantiation, &export_pos);
     }  /* if */
-    explicit_instantiation(options, directive_start_pos);
+    explicit_instantiation(&dps, options, directive_start_pos);
   }  /* if */
   db_exit();
 }  /* template_directive_or_declaration */

@@ -598,6 +598,11 @@ extern void template_or_specialization_declaration_full(
                                            a_boolean           is_generic,
                                            a_decl_parse_state  *orig_dps);
 
+extern void explicit_instantiation(
+                              a_decl_parse_state_ptr      dps,
+                              a_template_decl_options_set options,
+                              a_source_position_ptr       directive_start_pos);
+
 extern a_symbol_ptr find_template_class(
 			     a_symbol_ptr        class_template_sym,
                              a_template_arg_ptr  *new_list,
