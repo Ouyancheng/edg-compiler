@@ -5594,6 +5594,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
               qualifier = accessible_qualifier(qualifier);
             }  /* if */
             if (gcc_is_generated_code_target &&
+                !scp->member_of_unknown_base &&
                 octl.processing_nontype_template_argument &&
                 qualifier->
                        variant.class_struct_union.is_prototype_instantiation &&
@@ -5604,7 +5605,8 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
               /* g++ has a bug that results in spurious errors if a
                  non-type template argument appearing in a class template
                  definition is qualified by the class template's
-                 template-id. */
+                 template-id.  (The qualifier is necessary for a member of
+                 an unknown base, however.) */
               qualifier_suppressed = TRUE;
             } else {
               (void)gen_class_qualifier(qualifier, qualifier_options,
