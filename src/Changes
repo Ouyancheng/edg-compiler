@@ -1,5 +1,26 @@
 Version 6.3
 
+8/25/21  [EDGcpfe/24626]
+Derived-to-base rvalue reference conversion of prvalue
+
+Consider:
+
+  template<typename T> struct B {
+    constexpr auto f() && {
+        return static_cast<T&&>(*this);  // (1)
+    }
+  };
+  struct D : B<D> {};
+  constexpr auto trim_back = D{}.f();
+
+This previously failed because the interpreter complained about the cast in
+line (1) attempting to cast to D&& from an object whose complete dynamic type
+is B.  That turned out to be caused by the representation of that cast not
+reflecting the reference-casting nature of the operation (both the source and
+the cast node were prvalues).  That is now fixed: Both the source and cast node
+are now marked as xvalues.
+
+
 8/24/21  [EDGcpfe/24412,EDGcpfe/24602]
 Handling of __is_signed in Clang modes
 

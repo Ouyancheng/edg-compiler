@@ -8426,11 +8426,15 @@ appropriately and error_detected can be NULL.
                                                         orig_type);
       }  /* if */
       { an_expr_node_ptr curr_node = *p_node;
-        an_expr_node_ptr new_node =
-                           *p_node = 
-                              make_operator_node(
+        an_expr_node_ptr new_node;
+        if (!pointer_case && !is_glvalue_node(curr_node)) {
+          curr_node = glvalue_from_class_prvalue_node(curr_node,
+                                                      /*is_xvalue=*/TRUE);
+        }  /* if */
+        new_node = make_operator_node(
                                    (an_expr_operator_kind)eok_base_class_cast,
                                    qual_curr_type, curr_node);
+        *p_node = new_node;
         copy_node_value_category(curr_node, new_node);
         if (is_implicit_cast) {
           new_node->compiler_generated = TRUE;
