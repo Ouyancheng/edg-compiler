@@ -22133,7 +22133,7 @@ issue an error if it is not actually constexpr.
          constexpr by default.  For template instantiations, the constexpr is
          silently dropped.  Other cases are errors. */
       if ((!ctor_rp->is_template_function || ctor_rp->is_specialized) &&
-          ctor_rp->is_declared_constexpr) {
+          (ctor_rp->is_declared_constexpr | ctor_rp->is_consteval)) {
         pos_error(ec_defaulted_default_ctor_cannot_be_constexpr,
                   &ctor->decl_position);
       }  /* if */
