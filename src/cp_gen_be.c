@@ -6622,6 +6622,17 @@ compound literal.
   check_assertion(dip == NULL || dip->is_compound_literal);
 #endif /* GNU_EXTENSIONS_ALLOWED */
   if (literal_con != NULL) {
+    if (literal_con->expr != NULL) {
+      an_expr_node_ptr expr = skip_parens(literal_con->expr);
+      if (is_constant_node(expr) && node_constant(expr)->is_compound_literal) {
+        /* In configurations with PARENS_IN_IL set to TRUE, the compound
+           literal constant can have a backing expression including another
+           compound literal constant in order to preserve the parentheses.
+           Avoid an erroneous duplicate cast resulting from processing both
+           this and the backing expression's compound literal constants. */
+        literal_con = node_constant(expr);
+      }  /* if */
+    }  /* if */
     literal_type = literal_con->type;
   } else if (dip->kind == (a_dynamic_init_kind)dik_constant ||
              dip->kind == (a_dynamic_init_kind)dik_nonconstant_aggregate) {
