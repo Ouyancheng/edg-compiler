@@ -34062,9 +34062,10 @@ function template with a leading nontype template parameter.
     sym = sym->variant.overloaded_function.symbols;
   }  /* if */
   for (; sym != NULL; sym = (is_list ? sym->next : NULL)) {
-    if (symbol_is(sym, sk_function_template)) {
+    a_symbol_ptr  fund_sym = fundamental_symbol_of(sym);
+    if (symbol_is(fund_sym, sk_function_template)) {
       a_template_decl_info_ptr  tdip;
-      tdip = sym->variant.template_info->cache.decl_info;
+      tdip = fund_sym->variant.template_info->cache.decl_info;
       check_assertion(tdip != NULL);
       if (tdip->parameters != NULL &&
           symbol_is(tdip->parameters->param_symbol, sk_constant)) {

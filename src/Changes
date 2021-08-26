@@ -1,5 +1,13 @@
 Version 6.3
 
+8/26/21  [EDGcpfe/24609]
+Structured binding fails to see inherited get<> template
+
+In some cases, the front end's structured binding mechanism failed to take
+inherited get<> members into account; this could result in spurious errors.
+That is now fixed.
+
+
 8/26/21  [EDGcpfe/24623]
 Abbreviated out-of-class member function template definitions
 
