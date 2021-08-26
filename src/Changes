@@ -1,5 +1,26 @@
 Version 6.3
 
+8/26/21  [EDGcpfe/24158]
+C++-generating back end: parenthesized compound literals
+
+In configurations that set PARENS_IN_IL to TRUE, the C++-generating back
+could put out a parenthesized compound literal incorrectly, using duplicate
+casts to the literal type.  In some cases, the generated code could not be
+compiled successfully.  This is now fixed.  For example, with --gcc:
+
+  struct I {
+    int i;
+  };
+  struct S {
+    struct I* ip;
+  };
+  static struct S s[1] = {
+    ((struct I[1]){})  // Previously generated as
+                       // (((struct I [1])(((struct I [1]){})))),
+                       // erroneously casting to an array type.
+  };
+
+
 8/26/21  [EDGcpfe/15587,EDGcpfe/23976]
 Microsoft C++ compatibility: Exception specifications
 
