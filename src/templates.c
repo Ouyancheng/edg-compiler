@@ -17881,6 +17881,98 @@ type that is created.  */
 }  /* verify_routine_type_matches_template */
 
 
+static void create_template_decl(a_tmpl_decl_state_ptr	decl_state,
+                                 a_source_position_ptr	template_pos)
+/*
+Allocate a template decl entry and fill in its fields.  template_pos is
+the position of the "template" keyword in the declaration, and can be
+null_source_position for a synthesized template declaration (e.g., for
+a generated declaration for an inheriting constructor template).
+*/
+{
+  a_template_decl_ptr	tdp;
+  tdp = alloc_template_decl();
+  tdp->scope = scope_stack_top().il_scope;
+  tdp->template_pos = *template_pos;
+  tdp->parent = decl_state->template_decl;
+  decl_state->template_decl = tdp;
+  if (decl_state->decl_info != NULL) {
+    /* The decl_info field can be NULL for full specializations. */
+    decl_state->decl_info->template_decl = tdp;
+  }  /* if */
+}  /* create_template_decl */
+
+
+static void set_up_template_decl(a_tmpl_decl_state         *state,
+                                 a_source_position         *template_pos,
+                                 a_template_decl_info_ptr  *p_templ_decl_info)
+/*
+Set up a level of parameterization for the template declaration associated
+with state.  Traditionally, this corresponds to a "template< param-list >"
+construct (in which case *template_pos is the position of the "template"
+keyword), but in C++20 it can also correspond to an abbreviated function
+template (implied by "auto" function parameters; in that case, *template_pos
+is a null source position).  Create and record in *state an entry of type
+a_template_decl_info to represent this parameterization.  The caller sets
+*p_templ_decl_info to the "enclosing" a_template_decl_info entry, and this
+routine sets it to the newly created entry.
+*/
+{
+  a_template_decl_info_ptr  info;
+
+  /* Create a template declaration information entry for this declaration.
+     A pointer to this entry will be stored in the template cache entries
+     that contain tokens from this declaration. */
+  info = alloc_template_decl_info();
+  state->decl_info = info;
+  info->enclosing_scope = state->enclosing_scope;
+  /* If there are multiple template parameter clauses in a single declaration,
+     create a link to the template parameter list declaration that preceded
+     the current one. */
+  info->enclosing_template_decl = *p_templ_decl_info;
+  /* Record the default name linkage at the point of declaration. */
+  info->name_linkage = scope_stack[depth_scope_stack].default_name_linkage;
+  /* Push a new scope for the template parameters. */
+  push_template_declaration_scope_full(
+                      info, NO_SCOPE_NUMBER, state->is_template_template_param,
+                      state->is_template_template_param_rescan);
+  check_assertion(!state->is_full_specialization);
+  state->number_of_template_decl_scopes += 1;
+  create_template_decl(state, template_pos);
+  /* Save a pointer to the template declaration information in the
+     scope stack entry. */
+  scope_stack_top().tmpl_decl_state = state;
+  info->declaration_scope = scope_stack[decl_scope_level].number;
+  *p_templ_decl_info = info;
+}  /* set_up_template_decl */
+
+
+static a_template_nesting_depth num_template_levels_of(a_type_ptr  class_type)
+/*
+Return the number of template parameterization levels for the given class type.
+For a nontemplate class, that is zero.  For a nested class it can be
+arbitrarily large.  For example:
+  template<typename T> struct S {
+    template<typename U> struct N {
+      struct NN {};
+    };
+  };
+For S<T>::N<U>::NN this function returns 2.  For S<T> it returns 1.
+*/
+{
+  a_template_nesting_depth  result = 0;
+
+  do {
+    a_template_ptr  templ = class_type_supp(class_type)->assoc_template;
+    if (templ->kind == (a_template_kind)templk_class) {
+      result += 1;
+    }  /* if */
+    class_type = parent_class_or_null(class_type);
+  } while (class_type != NULL);
+  return result;
+}  /* num_template_levels_of */
+
+
 static void add_implicit_templ_params_for_auto_func_params(
                                              a_tmpl_decl_state   *templ_state,
                                              a_decl_parse_state  *dps);
@@ -17888,7 +17980,8 @@ static void add_implicit_templ_params_for_auto_func_params(
 void prepare_to_reparse_func_template_declarator_with_auto_params(
                                     a_token_sequence_number  reparse_tsn,
                                     a_decl_parse_callback    *reparse_actions,
-                                    a_func_info_block        *func_info)
+                                    a_func_info_block        *func_info,
+                                    a_symbol_locator         *locator)
 /*
 Some "auto" function parameters were encountered while parsing a function
 declarator for a function template.  Those imply additional template
@@ -17896,9 +17989,9 @@ parameters: Declare those template parameters now, and prepare to re-parse the
 declarator so that the "auto" specifiers will be mapped to the new template
 parameters.  reparse_tsn is the token sequence number of the first token of
 the declarator.  reparse_actions is the last end-of-parse action recorded
-before the prior parsing of the declarator and func_info is the function
+before the prior parsing of the declarator.  func_info is the function
 information block that was used during that parsing (and is about to be reused
-during the re-parsing).
+during the re-parsing) and locator describes the associated declarator-id.
 */
 {
   a_tmpl_decl_state   *tmpl_state;
@@ -17906,6 +17999,38 @@ during the re-parsing).
   a_token_cache       reparse_cache;
 
   tmpl_state = scope_stack[depth_template_declaration_scope].tmpl_decl_state;
+  if (locator->is_class_member) {
+    /* Presumably this is an out-of-class member definition.  That may mean
+       that an additional template declaration scope must be pushed.  E.g.:
+           template<typename T> struct S {
+             void f1(auto);
+             template<typename> void f2(auto);
+           };
+           template<typename T> void S<T>::f1(auto) {}
+           template<typename T> template<typename> void S<T>::f2(auto) {}
+       Note how for S<T>::f1 an implicit parameterization level must be
+       created, whereas for S<T>::f2 we just add a parameter to the existing
+       innermost template declaration scope. */
+    if (num_template_levels_of(locator->parent.class_type) ==
+                                                  tmpl_state->nesting_depth) {
+      a_template_decl_info_ptr  template_decl_info = NULL, enclosing_info;
+      a_symbol_ptr              templ_member_class_sym =
+                                     scope_stack_top().templ_member_class_sym;
+      /* The value of templ_member_class_sym (which was recorded during
+         prescanning, should be associated with the member template, not the
+         class template.  It is used be lexical processing to decide whether
+         to treat S<T> above as the prototype instantiation or a nonreal
+         instantiation. */
+      scope_stack_top().templ_member_class_sym = NULL;
+      enclosing_info = tmpl_state->decl_info;
+      tmpl_state->number_of_template_param_clauses += 1;
+      set_up_template_decl(tmpl_state, &null_source_position,
+                           &template_decl_info);
+      scope_stack_top().templ_member_class_sym = templ_member_class_sym;
+      template_decl_info->enclosing_template_decl = enclosing_info;
+      tmpl_state->nesting_depth += 1;
+    }  /* if */
+  }  /* if */
   dps = tmpl_state->decl_parse;
   add_implicit_templ_params_for_auto_func_params(tmpl_state, dps);
   /* Clear the declaration parse state associated with the declarator.
@@ -18071,7 +18196,7 @@ reparse_declarator:
            parameters.  Generate those template parameters now and prepare to
            repeat the declarator parsing. */
         prepare_to_reparse_func_template_declarator_with_auto_params(
-                                     reparse_tsn, reparse_actions, func_info);
+                            reparse_tsn, reparse_actions, func_info, locator);
         goto reparse_declarator;
       }  /* if */
       check_for_declaration_errors(state, locator);
@@ -29699,28 +29824,6 @@ parameter list to be copied to tdp.
 }  /* complete_template_decl */
 
 
-static void create_template_decl(a_tmpl_decl_state_ptr	decl_state,
-                                 a_source_position_ptr	template_pos)
-/*
-Allocate a template decl entry and fill in its fields.  template_pos is
-the position of the "template" keyword in the declaration, and can be
-null_source_position for a synthesized template declaration (e.g., for
-a generated declaration for an inheriting constructor template).
-*/
-{
-  a_template_decl_ptr	tdp;
-  tdp = alloc_template_decl();
-  tdp->scope = scope_stack_top().il_scope;
-  tdp->template_pos = *template_pos;
-  tdp->parent = decl_state->template_decl;
-  decl_state->template_decl = tdp;
-  if (decl_state->decl_info != NULL) {
-    /* The decl_info field can be NULL for full specializations. */
-    decl_state->decl_info->template_decl = tdp;
-  }  /* if */
-}  /* create_template_decl */
-
-
 static a_template_param_ptr implicit_templ_param_for_auto_func_param(
                                    a_tmpl_decl_state             *templ_state,
                                    an_expr_node_ptr              constraint,
@@ -29812,50 +29915,6 @@ in a abbreviated function template or a generic lambda).
     free_auto_param_descriptions(dps);
   }  /* if */
 }  /* add_implicit_templ_params_for_auto_func_params */
-
-
-static void set_up_template_decl(a_tmpl_decl_state         *state,
-                                 a_source_position         *template_pos,
-                                 a_template_decl_info_ptr  *p_templ_decl_info)
-/*
-Set up a level of parameterization for the template declaration associated
-with state.  Traditionally, this corresponds to a "template< param-list >"
-construct (in which case *template_pos is the position of the "template"
-keyword), but in C++20 it can also correspond to an abbreviated function
-template (implied by "auto" function parameters; in that case, *template_pos
-is a null source position).  Create and record in *state an entry of type
-a_template_decl_info to represent this parameterization.  The caller sets
-*p_templ_decl_info to the "enclosing" a_template_decl_info entry, and this
-routine sets it to the newly created entry.
-*/
-{
-  a_template_decl_info_ptr  info;
-
-  /* Create a template declaration information entry for this declaration.
-     A pointer to this entry will be stored in the template cache entries
-     that contain tokens from this declaration. */
-  info = alloc_template_decl_info();
-  state->decl_info = info;
-  info->enclosing_scope = state->enclosing_scope;
-  /* If there are multiple template parameter clauses in a single declaration,
-     create a link to the template parameter list declaration that preceded
-     the current one. */
-  info->enclosing_template_decl = *p_templ_decl_info;
-  /* Record the default name linkage at the point of declaration. */
-  info->name_linkage = scope_stack[depth_scope_stack].default_name_linkage;
-  /* Push a new scope for the template parameters. */
-  push_template_declaration_scope_full(
-                      info, NO_SCOPE_NUMBER, state->is_template_template_param,
-                      state->is_template_template_param_rescan);
-  check_assertion(!state->is_full_specialization);
-  state->number_of_template_decl_scopes += 1;
-  create_template_decl(state, template_pos);
-  /* Save a pointer to the template declaration information in the
-     scope stack entry. */
-  scope_stack_top().tmpl_decl_state = state;
-  info->declaration_scope = scope_stack[decl_scope_level].number;
-  *p_templ_decl_info = info;
-}  /* set_up_template_decl */
 
 
 static void scan_template_param_clauses(

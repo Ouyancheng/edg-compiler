@@ -1101,7 +1101,8 @@ extern a_boolean is_template_friend_decl(void);
 extern void prepare_to_reparse_func_template_declarator_with_auto_params(
                                     a_token_sequence_number  reparse_tsn,
                                     a_decl_parse_callback    *reparse_actions,
-                                    a_func_info_block        *func_info);
+                                    a_func_info_block        *func_info,
+                                    a_symbol_locator         *locator);
 
 extern void reparse_abbr_func_template(a_decl_parse_state  *orig_dps,
 			               a_token_kind        *final_token);

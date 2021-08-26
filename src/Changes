@@ -1,5 +1,20 @@
 Version 6.3
 
+8/26/21  [EDGcpfe/24623]
+Abbreviated out-of-class member function template definitions
+
+Consider:
+
+  template<typename T> struct S {
+    void f(auto);
+  };
+  template<types T> void S<T>::f(auto) {}  // Previously an error.  Now okay.
+
+Previously, the process to implicitly add a level of template parameterization
+for the out-of-class definition of S<T>::f did not work correctly, resulting in
+a spurious error.  That is now fixed.
+
+
 8/25/21  [EDGcpfe/24626]
 Derived-to-base rvalue reference conversion of prvalue
 

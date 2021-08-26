@@ -28818,7 +28818,7 @@ reparse_declarator:
            parameters.  Generate those template parameters now and prepare to
            repeat the declarator parsing. */
         prepare_to_reparse_func_template_declarator_with_auto_params(
-                                     reparse_tsn, reparse_actions, func_info);
+                            reparse_tsn, reparse_actions, func_info, locator);
         goto reparse_declarator;
       }  /* if */
       remove_stop_token(tok_lbrace);
