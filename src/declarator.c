@@ -2707,18 +2707,14 @@ this is a helper function.
        class types. */
     pos_error(ec_managed_member_exception_spec, &func_info->throw_position);
     esp = NULL;
-  } else if ((microsoft_bugs && microsoft_version <= 1200) ||
-             (ms_extensions && microsoft_version >= 1300 && esp != NULL &&
-              !esp->is_noexcept &&
-              !((esp->variant.exception_specification_type_list == NULL &&
-                 !esp->throw_any) ||
-                (rtsp->routine_name_linkage ==
-                                         (a_name_linkage_kind)nlk_external &&
-                 esp->throw_any)))) {
+  } else if ((microsoft_bugs && microsoft_version < 1300) ||
+             (ms_extensions && esp != NULL &&
+              !esp->is_noexcept && !esp->throw_any &&
+              esp->variant.exception_specification_type_list != NULL)) {
     /* Early Microsoft compilers ignored exception specifications entirely.
        Newer versions ignore all exception specifications except "throw()"
-       (which is treated in a nonstandard way) and "throw(...)" applied to
-       extern "C" functions (a nonstandard extension). */
+       (which is treated in a nonstandard way), noexcept, and "throw(...)" (a
+       nonstandard extension). */
   } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */

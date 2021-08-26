@@ -1493,8 +1493,11 @@ Issue an appropriate diagnostic at the given position.
                        source_pos, overrider, overridden);
   } else {
     /* Early Microsoft compilers didn't diagnose this (and in fact, they didn't
-       do much with exception specifications at all). */
-    pos_sy2_diagnostic(((ms_extensions && microsoft_version < 1929) ||
+       do much with exception specifications at all).  MSVC 19.29 started
+       issuing errors when /std:c++17 is specified (characterized in the front
+       end by std_version == 201403). */
+    pos_sy2_diagnostic(((ms_extensions && 
+                         (microsoft_version < 1929 || std_version < 201403)) ||
                         !exceptions_enabled) ?
                                           es_warning : es_discretionary_error,
                        ec_exception_spec_override_incompat,
