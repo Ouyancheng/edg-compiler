@@ -18017,8 +18017,8 @@ during the re-parsing) and locator describes the associated declarator-id.
       a_symbol_ptr              templ_member_class_sym =
                                      scope_stack_top().templ_member_class_sym;
       /* The value of templ_member_class_sym (which was recorded during
-         prescanning, should be associated with the member template, not the
-         class template.  It is used be lexical processing to decide whether
+         prescanning), should be associated with the member template, not the
+         class template.  It is used by lexical processing to decide whether
          to treat S<T> above as the prototype instantiation or a nonreal
          instantiation. */
       scope_stack_top().templ_member_class_sym = NULL;
