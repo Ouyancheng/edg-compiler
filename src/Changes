@@ -1,5 +1,17 @@
 Version 6.3
 
+8/27/21  [EDGcpfe/24650]
+GNU compatibility: __VA_OPT__
+
+Beginning with version 8.1.0, gcc accepts the __VA_OPT__ preprocessor
+operator (see EDGcpfe/20002) in both C and C++ without regard for the
+language version.  The front end has now been changed to do the same in the
+relevant emulation modes.  For example, with --gnu_version=80100 --c++11:
+
+  #define M(x,...) x __VA_OPT__(,) __VA_ARGS__
+  M(a,b)   // Now produces "a , b"
+
+
 8/26/21  [EDGcpfe/24158]
 C++-generating back end: parenthesized compound literals
 

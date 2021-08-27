@@ -4934,6 +4934,12 @@ This function is also called in clang mode.
       float80_enabled = FALSE;
       float128_enabled = FALSE;
     }  /* if */
+    if (gnu_version >= 80000)  {
+      /* Beginning with version 8.1.0, the __VA_OPT__ preprocessor operator
+         (a C++20 feature) is accepted by gcc in both C and C++ modes in
+         all standard versions. */
+      va_opt_enabled = TRUE;
+    }  /* if */
   }  /* if */
 }  /* check_and_set_gnu_mode_options */
 
