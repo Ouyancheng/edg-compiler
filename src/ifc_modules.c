@@ -11119,6 +11119,66 @@ Add the tokens corresponding to the given explicit instantiation declaration
           }
         }
         break;
+      case ifc_DeclSort_Method:
+        { /* We're reconstructing a method. */
+          an_ifc_DeclSort_Method idsm, *idsmp;
+
+          idsmp = get_DeclSort_Method(&idsm);
+          check_assertion(is_class_scope(idsmp->home_scope));
+          { /* Reconstruct the templated declaration. */
+            auto cache_name_fn = [this, cache, decl, idsmp](
+                                              a_source_position_ptr decl_pos) {
+              cache_simple_template_id(cache, decl->form, &idsmp->locus);
+            };
+            an_ifc_TypeSort_Method itsm, *itsmp;
+            ifc_ChartIndex         params = (ifc_ChartIndex)0;
+
+            check_assertion(type_tag(idsmp->type) == ifc_TypeSort_Method);
+            read_partition_at_index(idsmp->type);
+            itsmp = get_TypeSort_Method(&itsm);
+            if (itsmp->source != 0) {
+              params = get_func_params_from_trait(decl_idx);
+            }  /* if */
+            cache_function_decl(cache, /*class_member=*/TRUE,
+                                /*is_dtor=*/FALSE, idsmp->access,
+                                /*cache_access_spec=*/FALSE,
+                                itsmp->convention, idsmp->traits,
+                                itsmp->traits, itsmp->target,
+                                cache_name_fn, params, itsmp->source,
+                                &itsmp->eh_spec, &idsmp->locus);
+          }
+        }
+        break;
+      case ifc_DeclSort_Constructor:
+        { /* We're reconstructing a constructor. */
+          an_ifc_DeclSort_Constructor idsc, *idscp;
+
+          idscp = get_DeclSort_Constructor(&idsc);
+          check_assertion(is_class_scope(idscp->home_scope));
+          { /* Reconstruct the templated declaration. */
+            auto cache_name_fn = [this, cache, decl, idscp](
+                                              a_source_position_ptr decl_pos) {
+              cache_simple_template_id(cache, decl->form, &idscp->locus);
+            };
+            an_ifc_TypeSort_Tor itst, *itstp;
+            ifc_ChartIndex      params = (ifc_ChartIndex)0;
+
+            check_assertion(type_tag(idscp->type) == ifc_TypeSort_Tor);
+            read_partition_at_index(idscp->type);
+            itstp = get_TypeSort_Tor(&itst);
+            if (itstp->source != 0) {
+              params = get_func_params_from_trait(decl_idx);
+            }  /* if */
+            cache_function_decl(cache, /*class_member=*/TRUE,
+                                /*is_dtor=*/FALSE, idscp->access,
+                                /*cache_access_spec=*/FALSE,
+                                itstp->convention, idscp->traits,
+                                (ifc_FunctionTypeTraits)0, (ifc_TypeIndex)0,
+                                cache_name_fn, params, itstp->source,
+                                &itstp->eh_spec, &idscp->locus);
+          }
+        }
+        break;
       default:
         unexpected_condition_str("Unexpected DeclSort");
     }  /* switch */
@@ -11493,6 +11553,8 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         cache_decl_template(cache, idstp);
         {
           /* Cache the associated specializations. */
+          /* FIXME: This doesn't work for explicit instantiations of member
+             functions. */
           ifc_Sequence seq = get_specialization_sequence_from_trait(decl);
 
           cache_scope_member_sequence(cache, seq);
@@ -13913,6 +13975,7 @@ FIXME: This should likely be extracted as a general function for symbols.
     }
     break;
   case sk_routine:
+  case sk_member_function:
     {
       il_entity = (char*)sym->variant.routine.ptr;
       *kind = iek_routine;
