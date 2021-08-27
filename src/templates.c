@@ -17999,6 +17999,15 @@ during the re-parsing) and locator describes the associated declarator-id.
   a_token_cache       reparse_cache;
 
   tmpl_state = scope_stack[depth_template_declaration_scope].tmpl_decl_state;
+  dps = tmpl_state->decl_parse;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  if (dps->source_sequence_entry != NULL) {
+    /* Discard any previously-recorded source sequence entries.  A new one will
+       be recorded when the declarator is re-parsed. */
+    remove_from_src_seq_list(dps->source_sequence_entry);
+    dps->source_sequence_entry = NULL;
+  }  /* if */
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (locator->is_class_member) {
     /* Presumably this is an out-of-class member definition.  That may mean
        that an additional template declaration scope must be pushed.  E.g.:
@@ -18031,20 +18040,11 @@ during the re-parsing) and locator describes the associated declarator-id.
       tmpl_state->nesting_depth += 1;
     }  /* if */
   }  /* if */
-  dps = tmpl_state->decl_parse;
   add_implicit_templ_params_for_auto_func_params(tmpl_state, dps);
   /* Clear the declaration parse state associated with the declarator.
      This is most easily done by pretending we are about to scan a
      secondary declarator. */
   discard_end_of_parse_actions(dps, /*until_action=*/reparse_actions);
-#if GENERATE_SOURCE_SEQUENCE_LISTS
-  if (dps->source_sequence_entry != NULL) {
-    /* Discard any previously-recorded source sequence entries.  A new one will
-       be recorded when the declarator is re-parsed. */
-    remove_from_src_seq_list(dps->source_sequence_entry);
-    dps->source_sequence_entry = NULL;
-  }  /* if */
-#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   start_secondary_declarator(dps);
   dps->secondary_declarator = FALSE;
   dps->is_abbr_func_template = TRUE;
