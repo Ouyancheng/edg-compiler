@@ -1,5 +1,25 @@
 Version 6.3
 
+8/30/21  [EDGcpfe/24655]
+Microsoft compatibility: Rvalue-reference qualifiers
+
+Consider:
+
+  struct S {
+    void f() &&;
+  };
+  S g();
+  void h() {
+    g().f();  // Previously an error in Microsoft modes.  Now okay.
+  }
+
+The call g().f() previously resulted in a spurious error about f() not being
+applicable to lvalues.  This was a consequence of the front end emulating a
+Microsoft behavior that permits assigning to and taking the address of certain
+class rvalues (e.g., the expression &g() is valid in the context above).  This
+is now fixed.
+
+
 8/27/21  [EDGcpfe/24650]
 GNU compatibility: __VA_OPT__
 

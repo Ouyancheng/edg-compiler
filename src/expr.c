@@ -8775,9 +8775,10 @@ case).
                deliberately excluded here because MSVC++ does this trick
                only with non-member calls.  (Checked in MSVC++ 7.1.) */ 
             if (op == (an_expr_operator_kind)eok_call) {
-              if (symbol_supplement_for_class(orig_class_struct_union_type)->
-                                                                is_cpp03_POD) {
-                revert_microsoft_rvalue_to_lvalue_if_possible(operand_1);
+              if (symbol_supplement_for_class(orig_class_struct_union_type)
+                                                             ->is_cpp03_POD) {
+                revert_class_prvalue_to_glvalue_if_possible(
+                             operand_1, /*xvalue=*/rvalue_references_enabled);
               }  /* if */
             } else if (op == (an_expr_operator_kind)eok_question) {
               /* A selection from a class rvalue "?" is also considered
@@ -11091,7 +11092,8 @@ error indication in *rcblock).
              set the operand position below. */
           operator_position = expr->position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-        } else if (is_an_lvalue(&operand)) {
+        } else if (is_an_lvalue(&operand) ||
+                   (microsoft_bugs && is_an_xvalue(&operand))) {
           if (C_dialect == C_dialect_pcc && is_array_type(operand.type)) {
             /* In pcc mode "&array" is the same as "array" implicitly converted
                to a pointer.  It has type "pointer-to-array-element" rather

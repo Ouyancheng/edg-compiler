@@ -12998,12 +12998,13 @@ we rewrite it as an lvalue.
 }  /* change_nonreal_member_constant_operand_to_lvalue */
 
 
-static void revert_class_prvalue_to_lvalue_if_possible(an_operand *operand)
+void revert_class_prvalue_to_glvalue_if_possible(an_operand *operand,
+                               /* Defaulted: */  a_boolean  xvalue)
 /*
-If the given operand is a class prvalue, try to change it back to
-an lvalue.  This is used in GNU and Microsoft modes, which believe
-that some class prvalues can be used as lvalues (e.g., a function call
-returning a class by value).
+If the given operand is a class prvalue, try to change it back to a glvalue.
+This is used in GNU and Microsoft modes, which believe that some class prvalues
+can be used as glvalues (e.g., a function call returning a class by value).
+xvalue (which defaults to FALSE) is TRUE if the glvalue should be an xvalue.
 */
 {
   if (!C_mode() &&
@@ -13047,10 +13048,10 @@ returning a class by value).
     }  /* if */
     if (revertible) {
       /* Change the rvalue back into an lvalue. */
-      conv_class_prvalue_operand_to_lvalue(operand);
+      conv_class_prvalue_operand_to_glvalue(operand, xvalue);
     }  /* if */
   }  /* if */
-}  /* revert_class_prvalue_to_lvalue_if_possible */
+}  /* revert_class_prvalue_to_glvalue_if_possible */
 
 
 void revert_gcc_rvalue_to_lvalue_if_possible_full(
@@ -13140,7 +13141,7 @@ when gnu_version would ordinarily indicate they should not be.
         texpr->next = NULL;
         /* Turn the first operand, the class object, into an lvalue. */
         make_expression_operand(texpr, &class_operand);
-        revert_class_prvalue_to_lvalue_if_possible(&class_operand);
+        revert_class_prvalue_to_glvalue_if_possible(&class_operand);
         if (is_an_lvalue(&class_operand)) {
           orig_operand = *operand;
           check_assertion(is_expression_operand(&class_operand));
@@ -13158,7 +13159,7 @@ when gnu_version would ordinarily indicate they should not be.
                  is_class_struct_union_type(operand->type)) {
         /* A function call returning a class value can be treated as
            an lvalue. */
-        revert_class_prvalue_to_lvalue_if_possible(operand);
+        revert_class_prvalue_to_glvalue_if_possible(operand);
       } else if (gcc_mode && gnu_version < 40000 && is_variable_node(expr)) {
         /* In some unusual cases, like optimizing "(1 ? a : a)" to
            simply "a", we may have to turn a variable back into an
@@ -13258,7 +13259,7 @@ return class rvalues.
 {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (microsoft_mode && !C_mode()) {
-    revert_class_prvalue_to_lvalue_if_possible(operand);
+    revert_class_prvalue_to_glvalue_if_possible(operand);
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* revert_microsoft_rvalue_to_lvalue_if_possible */
@@ -19658,8 +19659,7 @@ in the source (and *operator_position gives its position).
         require_true_enable_if_condition(rtp, &operand->position);
       }  /* if */
 #if CHECKING
-    } else if (is_an_lvalue(operand) ||
-               (reference_case && is_an_xvalue(operand)) ||
+    } else if (is_a_glvalue(operand) ||
                (is_builtin_addressof && is_template_dependent_context())) {
       /* Okay. */
     } else {

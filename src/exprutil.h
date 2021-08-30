@@ -2273,6 +2273,10 @@ void change_template_param_constant_operand_to_lvalue(an_operand *operand);
 extern
 void change_nonreal_member_constant_operand_to_lvalue(an_operand *operand);
 
+extern
+void revert_class_prvalue_to_glvalue_if_possible(an_operand *operand,
+                                                 a_boolean  xvalue = FALSE);
+
 extern void revert_gcc_rvalue_to_lvalue_if_possible_full(
                                               an_operand *operand,
                                               a_boolean  ignore_casts,
