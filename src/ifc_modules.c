@@ -5442,7 +5442,9 @@ Given a declaration's index find and return its home scope decl.
       { an_ifc_DeclSort_PartialSpecialization idsps, *idspsp;
 
         idspsp = get_DeclSort_PartialSpecialization(&idsps);
-        result = idspsp->home_scope;
+        /* A partial specialization has direct scoping information however,
+           it's not correct.  Recurse on the associated declaration. */
+        result = get_ifc_home_scope_decl(idspsp->entity.decl);
       }
       break;
     case ifc_DeclSort_ExplicitSpecialization:
