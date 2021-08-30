@@ -2724,6 +2724,7 @@ private:
   a_boolean is_class_scope(ifc_DeclIndex scope);
   /* Token caching. */
   void cache_scope_member_sequence(a_token_cache_ptr cache,
+                                   ifc_DeclIndex     scope_decl,
                                    ifc_Sequence      seq);
   void cache_scope(a_token_cache_ptr  cache,
                    ifc_ScopeIndex     scope,

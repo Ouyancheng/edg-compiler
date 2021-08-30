@@ -39855,7 +39855,7 @@ directive_start_pos points to the beginning of the directive (e.g., for
 {
   a_template_instantiation_mode
 	 			saved_instantiation_mode = instantiation_mode;
-  a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
+  a_scope_stack_entry_ptr	ssep = &scope_stack[decl_scope_level];
   a_boolean			extern_template = (options & TDO_EXTERN) != 0;
   a_boolean			inline_template = (options & TDO_INLINE) != 0;
   a_boolean			discard = FALSE;

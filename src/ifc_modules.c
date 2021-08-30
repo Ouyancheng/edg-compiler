@@ -5431,6 +5431,38 @@ Given a declaration's index find and return its home scope decl.
         result = idsicp->home_scope;
       }
       break;
+    case ifc_DeclSort_Template:
+      { an_ifc_DeclSort_Template idst, *idstp;
+
+        idstp = get_DeclSort_Template(&idst);
+        result = idstp->home_scope;
+      }
+      break;
+    case ifc_DeclSort_PartialSpecialization:
+      { an_ifc_DeclSort_PartialSpecialization idsps, *idspsp;
+
+        idspsp = get_DeclSort_PartialSpecialization(&idsps);
+        result = idspsp->home_scope;
+      }
+      break;
+    case ifc_DeclSort_ExplicitSpecialization:
+      { an_ifc_DeclSort_ExplicitSpecialization idses, *idsesp;
+
+        idsesp = get_DeclSort_ExplicitSpecialization(&idses);
+        /* An explicit specialization doesn't have any direct scoping
+           information.  Recurse on the associated declaration. */
+        result = get_ifc_home_scope_decl(idsesp->decl);
+      }
+      break;
+    case ifc_DeclSort_ExplicitInstantiation:
+      { an_ifc_DeclSort_ExplicitInstantiation idsei, *idseip;
+
+        idseip = get_DeclSort_ExplicitInstantiation(&idsei);
+        /* An explicit instantiation doesn't have any direct scoping
+           information.  Recurse on the associated declaration. */
+        result = get_ifc_home_scope_decl(idseip->decl);
+      }
+      break;
     default:
       unexpected_condition_str("Unexpected DeclSort");
   }  /* switch */
@@ -8829,6 +8861,7 @@ done:;
 
 
 void an_ifc_module::cache_scope_member_sequence(a_token_cache_ptr cache,
+                                                ifc_DeclIndex     scope_decl,
                                                 ifc_Sequence      seq)
 /*
 Cache a sequence (seq) of IFC scope member declarations into the cache.
@@ -8836,8 +8869,13 @@ Cache a sequence (seq) of IFC scope member declarations into the cache.
 {
   /* Provide a consumer function that accepts a given scope member and caches
      the associated IFC declaration into the cache. */
-  auto decl_consumer = [this, cache](an_ifc_Scope_Member *ismp) {
-    cache_decl(cache, ismp->index);
+  auto decl_consumer = [this, cache, scope_decl](an_ifc_Scope_Member *ismp) {
+    /* FIXME: We need to queue declarations in a different scope for later
+       caching.  e.g., the status quo doesn't work for explicit instantiations
+       of member functions. */
+    if (get_ifc_home_scope_decl(ismp->index) == scope_decl) {
+      cache_decl(cache, ismp->index);
+    }  /* if */
   };
   /* Iterate over the sequence calling decl_consumer for each element. */
   traverse_scope_member_sequence(seq, decl_consumer);
@@ -11553,11 +11591,10 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         cache_decl_template(cache, idstp);
         {
           /* Cache the associated specializations. */
-          /* FIXME: This doesn't work for explicit instantiations of member
-             functions. */
           ifc_Sequence seq = get_specialization_sequence_from_trait(decl);
 
-          cache_scope_member_sequence(cache, seq);
+          cache_scope_member_sequence(cache, get_ifc_home_scope_decl(decl),
+                                      seq);
         }
       }
       break;
@@ -13965,31 +14002,33 @@ for the given symbol (sym).
 FIXME: This should likely be extracted as a general function for symbols.
 */
 {
-  char *il_entity;
+  char *il_entity = NULL;
 
-  switch (sym->kind) {
-  case sk_class_or_struct_tag:
-    {
-      il_entity = (char*)sym->variant.class_struct_union.type;
-      *kind = iek_type;
-    }
-    break;
-  case sk_routine:
-  case sk_member_function:
-    {
-      il_entity = (char*)sym->variant.routine.ptr;
-      *kind = iek_routine;
-    }
-    break;
-  case sk_variable:
-    {
-      il_entity = (char*)sym->variant.variable.ptr;
-      *kind = iek_variable;
-    }
-    break;
-  default:
-    unexpected_condition_str("Unexpected DeclSort");
-  }  /* switch */
+  if (sym != NULL) {
+    switch (sym->kind) {
+    case sk_class_or_struct_tag:
+      {
+        il_entity = (char*)sym->variant.class_struct_union.type;
+        *kind = iek_type;
+      }
+      break;
+    case sk_routine:
+    case sk_member_function:
+      {
+        il_entity = (char*)sym->variant.routine.ptr;
+        *kind = iek_routine;
+      }
+      break;
+    case sk_variable:
+      {
+        il_entity = (char*)sym->variant.variable.ptr;
+        *kind = iek_variable;
+      }
+      break;
+    default:
+      unexpected_condition_str("Unexpected DeclSort");
+    }  /* switch */
+  }  /* if */
   return il_entity;
 }  /* get_il_entity */
 
