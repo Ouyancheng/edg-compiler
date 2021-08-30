@@ -23875,11 +23875,6 @@ expression-traversal routines.  Set tblock->result to TRUE if so.
         if (rout != NULL && !is_non_throwing_routine(rout)) might_throw = TRUE;
       }
       break;
-    case enk_lambda:
-      /* Assume conservatively that a lambda might throw.  We don't
-         currently have a way to walk the statements of a lambda. */
-      might_throw = TRUE;
-      break;
     case enk_throw:
       might_throw = TRUE;
       break;
@@ -23918,6 +23913,7 @@ expression-traversal routines.  Set tblock->result to TRUE if so.
     case enk_constant:
     case enk_variable:
     case enk_temp_init:
+    case enk_lambda:
     case enk_condition:
     case enk_param_ref:
     case enk_braced_init_list:

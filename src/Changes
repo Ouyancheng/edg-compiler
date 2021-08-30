@@ -1,5 +1,18 @@
 Version 6.3
 
+8/30/21  [EDGcpfe/15597,EDGcpfe/24644]
+Incorrect handling of lambda expressions in noexcept queries
+
+Consider:
+
+  static_assert(noexcept([]() { return 0; }));  // Previously failed.
+                                                // Now okay.
+
+The front end previously failed this assertion because it erroneously treated
+all lambda expression (which represent a class type initialization) as
+potentially throwing an exception.  That is now fixed.
+
+
 8/30/21  [EDGcpfe/24655]
 Microsoft compatibility: Rvalue-reference qualifiers
 
