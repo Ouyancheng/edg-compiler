@@ -1,5 +1,24 @@
 Version 6.3
 
+8/30/21  [EDGcpfe/19736,EDGcpfe/24652]
+Incorrect conversion classification when taking the address of an overload set
+
+Consider:
+
+  using F = void();
+  int g(int const&, F* const&);                          // (1)
+  template<typename U1, typename U2> int g(U1&&, U2&&);  // (2)
+  template <typename T> void f();
+  int r =  g(1, &f<int>);  // Previously an error.  Now okay.
+
+Previously, the front end issued an overload resolution ambiguity error on this
+example because it (correctly) identified that the first argument (literal 1)
+better matches declaration (2), but incorrectly decided that the second
+argument (&f<int>) was a better match for (1) than for (2).  In fact, both (1)
+and (2) are equivalent matches for &f<int>.  That is now fixed and candidate
+(2) is selected for the call to g. 
+
+
 8/30/21  [EDGcpfe/15597,EDGcpfe/24644]
 Incorrect handling of lambda expressions in noexcept queries
 

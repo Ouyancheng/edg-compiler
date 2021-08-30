@@ -805,6 +805,7 @@ destination type (this comes up in a Microsoft-mode extension).
 {
   a_boolean        is_ptr = FALSE, is_ref = FALSE, is_ptr_to_member = FALSE;
   a_boolean        is_ref_to_const = FALSE, is_rvalue_ref = FALSE;
+  a_boolean        is_ref_to_ptr = FALSE;
   a_boolean        is_void = FALSE;
   a_boolean        sym_is_list, need_templates_pass;
   a_boolean        dest_type_has_type_qualifiers = FALSE;
@@ -840,7 +841,7 @@ destination type (this comes up in a Microsoft-mode extension).
     is_rvalue_ref = is_rvalue_reference_type(dest_type);
     dest_underlying_type = type_pointed_to(dest_type);
     is_ref_to_const = is_const_qualified_type(dest_underlying_type);
-    if (is_ref_to_const && std_conv != NULL &&
+    if (((is_ref_to_const && std_conv != NULL) || is_rvalue_ref) &&
         is_pointer_type(dest_underlying_type)) {
       /* Something like:
              template <typename U> void f(U);
@@ -850,6 +851,7 @@ destination type (this comes up in a Microsoft-mode extension).
          I.e., we're not converting to a reference-to-function, but to a
          pointer-to-function. */
       dest_underlying_type = type_pointed_to(dest_underlying_type);
+      is_ref_to_ptr = TRUE;
     }  /* if */
   } else if (is_ptr_to_member_type(dest_type)) {
     dest_class = pm_class_type(dest_type);
@@ -902,7 +904,7 @@ destination type (this comes up in a Microsoft-mode extension).
          pointer to member (e.g., &A::f), so an lvalue reference can't bind
          directly to it.  need_templates_pass is left FALSE to suppress the
          template loop as well. */
-    } else if (is_rvalue_ref && !is_cast &&
+    } else if (is_rvalue_ref && !is_cast && !is_ref_to_ptr &&
                (rvalue_ref_can_be_bound_to_function_lvalue() !=
                                                           source_is_lvalue)) {
       /* Similar case for rvalue references -- they can't bind to an rvalue
