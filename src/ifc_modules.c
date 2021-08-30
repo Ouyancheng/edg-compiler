@@ -4516,12 +4516,7 @@ class_struct_union_case:
                                                             &kind);
           }  /* if */
         }
-        { an_ifc_DeclSort_ExplicitInstantiation idsei;
-          get_DeclSort_ExplicitInstantiation(&idsei);
-          /* FIXME: Need a proper source position here. */
-          error_position = null_source_position;
-          goto unhandled;
-        }
+        break;
       case ifc_DeclSort_Concept:
         { an_ifc_DeclSort_Concept idsc, *idscp;
           idscp = get_DeclSort_Concept(&idsc);
