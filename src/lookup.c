@@ -252,7 +252,9 @@ invalidating any saved pointers into the scope stack.  Any such pointers will
 need to be reset after a call to this routine.
 */
 {
-  if (scope != NULL &&
+  /* Lazy loading may need to be selectively disabled + re-enabled at times -
+     ensure that we only lazy load when lazy loading is enabled. */
+  if (lazy_symbols_may_be_visible && scope != NULL &&
       locator->symbol_header->deferred_module_entities != NULL) {
     if (scope_is(scope, sck_file) ||
         scope_is(scope, sck_namespace)) {

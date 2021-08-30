@@ -3791,7 +3791,10 @@ principal associated IL entity.
                      path. */
                   check_assertion((idssp->traits & ifc_ScopeTraits_Unnamed)
                                   == 0);
-                  ns_sym = curr_scope_id_lookup(&loc, IDL_NO_OPTIONS);
+                  { Var_saver<a_boolean>
+                          lazy_load_saver(&lazy_symbols_may_be_visible, FALSE);
+                    ns_sym = curr_scope_id_lookup(&loc, IDL_NO_OPTIONS);
+                  }
                   if (ns_sym != NULL) {
                     if (ns_sym->kind == (a_symbol_kind)sk_namespace &&
                         !ns_sym->variant.namespace_info.ptr->
@@ -4151,6 +4154,10 @@ class_struct_union_case:
               check_assertion(enumeration_type != NULL);
               enum_type = enumeration_type;
             }  /* if */
+            if (ifc_decl_is_ignorable_redecl(&loc, mep->scope, &error_position,
+                                             iek_constant, &il_entity, &kind)){
+              break;
+            }  /* if */
             enum_con = constant_for_expr_index(idsep->initializer,
                                                enum_type);
             enum_con->type = enum_type;
@@ -4238,7 +4245,12 @@ class_struct_union_case:
             if (do_forward_decl) {
               /* It's possible that this entity has already been declared, in
                  which case a forward declaration isn't needed and can cause
-                 problems (e.g., with default arguments being re-declared). */
+                 problems (e.g., with default arguments being re-declared).
+                 Don't allow lazy loading of symbols while doing this check, as
+                 otherwise a duplicate symbol from another module may start
+                 being processed as a result. */
+              Var_saver<a_boolean>
+                          lazy_load_saver(&lazy_symbols_may_be_visible, FALSE);
               a_symbol_ptr sym = curr_scope_id_lookup(&loc, IDL_NO_OPTIONS);
               if (sym != NULL) {
                 do_forward_decl = FALSE;

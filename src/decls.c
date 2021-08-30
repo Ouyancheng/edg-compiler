@@ -3882,6 +3882,8 @@ information in the specified id-linkage block.
   a_storage_class  local_storage_class = idlbp->storage_class;
   a_boolean        is_template_instance = FALSE;
   a_boolean        const_variable = FALSE;
+  Var_saver<a_boolean>
+                   lazy_load_saver(&lazy_symbols_may_be_visible, FALSE);
 
   db_enter(3, "id_linkage");
   check_assertion(local_storage_class != (a_storage_class)sc_typedef);

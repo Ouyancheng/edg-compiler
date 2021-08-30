@@ -2672,6 +2672,38 @@ Compute a hash for the given path.  The hash must be appropriate for Ptr_map.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 
+template<typename a_Var_type>
+struct Var_saver {
+  /* A generic utility for saving and automatically restoring the original
+     value of a variable (global or otherwise) whose value is temporarily being
+     changed. */
+  inline Var_saver(a_Var_type *var_to_save, const a_Var_type &new_value = {});
+  inline ~Var_saver();
+  inline void set_new_value(const a_Var_type &new_value) {
+    *saved_var = new_value;
+  }  /* set_new_value */
+private:
+  a_Var_type	*saved_var;
+  a_Var_type	saved_value;
+};  /* Var_saver */
+
+
+template<typename a_Var_type>
+Var_saver<a_Var_type>::Var_saver(a_Var_type *var_to_save,
+                                 const a_Var_type &new_value)
+  : saved_var(var_to_save), saved_value(*var_to_save)
+{
+  set_new_value(new_value);
+}  /* Var_saver::Var_saver */
+
+
+template<typename a_Var_type>
+Var_saver<a_Var_type>::~Var_saver()
+{
+  *saved_var = saved_value;
+}  /* Var_saver::~Var_saver */
+
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 

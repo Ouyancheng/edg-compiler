@@ -8007,9 +8007,11 @@ potential symbol.
 {
   a_symbol_ptr      result = NULL;
   a_boolean         one_comes_from_module = curr_module_entity != NULL;
+  a_boolean         first_pass = TRUE;
+  a_symbol_ptr      this_sym = sym_hdr->symbol;
 
-  for (a_symbol_ptr this_sym = sym_hdr->symbol; this_sym != NULL;
-       this_sym = this_sym->next) {
+redo:
+  for (; this_sym != NULL; this_sym = this_sym->next) {
     a_source_correspondence_ptr this_scp;
     a_scope_ptr                 this_scope;
     an_il_entry_kind            this_kind;
@@ -8033,6 +8035,13 @@ potential symbol.
       break;
     }  /* if */
   }  /* for */
+  if (first_pass && result == NULL) {
+    /* If we didn't find the symbol in the active symbol list, check the
+       inactive symbols. */
+    this_sym = sym_hdr->inactive_symbols;
+    first_pass = FALSE;
+    goto redo;
+  }  /* if */
   return result;
 }  /* check_module_symbol_redecl */
 
