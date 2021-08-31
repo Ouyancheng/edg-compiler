@@ -23119,7 +23119,8 @@ delegate.
        points to the template declaration scope.  We must also temporarily
        disable lazy loading of a duplicate symbol during this lookup. */
     a_scope_depth        saved_decl_scope_level;
-    Var_saver<a_boolean> lazy_var_saver(&lazy_symbols_may_be_visible, FALSE);
+    Value_saver<a_boolean, lazy_symbols_may_be_visible>
+                         lazy_var_saver(FALSE);
     saved_decl_scope_level = decl_scope_level;
     decl_scope_level = decl_state->orig_decl_level;
     sym = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
@@ -24353,7 +24354,8 @@ declaration of a partial specialization declared outside of its class.
          points to the template declaration scope.  We must also temporarily
          disable lazy loading of a duplicate symbol during this lookup. */
       a_scope_depth        saved_decl_scope_level = decl_scope_level;
-      Var_saver<a_boolean> lazy_var_saver(&lazy_symbols_may_be_visible, FALSE);
+      Value_saver<a_boolean, lazy_symbols_may_be_visible>
+                           lazy_var_saver(FALSE);
       decl_scope_level = decl_state->orig_decl_level;
       sym = curr_scope_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
       decl_scope_level = saved_decl_scope_level;
@@ -30314,7 +30316,8 @@ alias
          points to the template declaration scope.  We must also temporarily
          disable lazy loading of a duplicate symbol during this lookup. */
       a_scope_depth        saved_decl_scope_level;
-      Var_saver<a_boolean> lazy_var_saver(&lazy_symbols_may_be_visible, FALSE);
+      Value_saver<a_boolean, lazy_symbols_may_be_visible>
+                           lazy_var_saver(FALSE);
       saved_decl_scope_level = decl_scope_level;
       decl_scope_level = decl_state->orig_decl_level;
       sym = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
@@ -33727,7 +33730,8 @@ following a template parameter clause.  Parse and record the concept.
   } else {
     /* Look up the identifier. */
     a_scope_depth        saved_decl_scope_level = decl_scope_level;
-    Var_saver<a_boolean> lazy_load_saver(&lazy_symbols_may_be_visible, FALSE);
+    Value_saver<a_boolean, lazy_symbols_may_be_visible>
+                         lazy_load_saver(FALSE);
     /* Look up the symbol in the current scope.  To do this we must
        temporarily change the decl_scope_level to the effective level for this
        declaration because decl_scope_level currently points to the template

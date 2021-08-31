@@ -3791,8 +3791,8 @@ principal associated IL entity.
                      path. */
                   check_assertion((idssp->traits & ifc_ScopeTraits_Unnamed)
                                   == 0);
-                  { Var_saver<a_boolean>
-                          lazy_load_saver(&lazy_symbols_may_be_visible, FALSE);
+                  { Value_saver<a_boolean, lazy_symbols_may_be_visible>
+                                                        lazy_load_saver(FALSE);
                     ns_sym = curr_scope_id_lookup(&loc, IDL_NO_OPTIONS);
                   }
                   if (ns_sym != NULL) {
@@ -4249,8 +4249,8 @@ class_struct_union_case:
                  Don't allow lazy loading of symbols while doing this check, as
                  otherwise a duplicate symbol from another module may start
                  being processed as a result. */
-              Var_saver<a_boolean>
-                          lazy_load_saver(&lazy_symbols_may_be_visible, FALSE);
+              Value_saver<a_boolean, lazy_symbols_may_be_visible>
+                           lazy_load_saver(FALSE);
               a_symbol_ptr sym = curr_scope_id_lookup(&loc, IDL_NO_OPTIONS);
               if (sym != NULL) {
                 do_forward_decl = FALSE;
