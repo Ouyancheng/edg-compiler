@@ -7262,9 +7262,11 @@ accepts the case where the first operand is a C++/CLI handle.
     } else if (is_an_lvalue(operand_1)) {
       /* lvalue.field produces an lvalue result. */
       result_is_a_glvalue = TRUE;
-    } else if (is_an_xvalue(operand_1) || selection_from_prvalue_is_xvalue) {
+    } else if ((is_an_xvalue(operand_1) || selection_from_prvalue_is_xvalue) &&
+               !(microsoft_bugs && !is_class_struct_union_type(field->type))) {
       /* xvalue.field produces an xvalue result.  In C++14, the same is true
-         for prvalue.field (through the resolution of Core issue 616). */
+         for prvalue.field (through the resolution of Core issue 616).  MSVC
+         doesn't seem to apply that rule if the field is not of class type. */
       result_is_a_glvalue = TRUE;
       result_is_an_xvalue = TRUE;
     } else { 
