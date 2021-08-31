@@ -1,5 +1,23 @@
 Version 6.3
 
+8/30/21  [EDGcpfe/24666]
+Failure to fold concept-id referring to static data member in GNU C++20 modes
+
+Consider:
+
+  template<typename> struct X {
+    static const bool Val = false;
+  };
+  template<typename T> concept C = X<T>::Val;
+  static_assert(!C<int>);  // Previously an error in GNU C++20 mode.  Now okay.
+
+In GNU C++ mode, in-class static data member initializers are typically
+instantiated on demand.  The logic to evaluate concept-id values, however, did
+not force the instantiation of X<int>::Val in this case, however, and as a
+result a spurious error was emitted claiming that X<T>::Val is a run-time value
+for T = int.  That is now fixed.
+
+
 8/30/21  [EDGcpfe/19736,EDGcpfe/24652]
 Incorrect conversion classification when taking the address of an overload set
 

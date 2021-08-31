@@ -25332,20 +25332,31 @@ p_fatal and p_copy_error are NULL by default.
         result = FALSE;
         more_info_diagnostic(ec_nonbool_atomic_constraint,
                              &constraint->position, diag_list);
-      } else if (interpret_expr(expr, /*is_constant_evaluated=*/TRUE,
-                                /*force_prvalue=*/TRUE, cp, diag_list)) {
-        result = !is_false_constant(cp);
-        if (!result) {
-          more_info_diagnostic(ec_atomic_constraint_false,
-                               &constraint->position, diag_list);
-        }  /* if */
       } else {
-        /* The failure to produce a constant value is not a SFINAE-like
-           error. */
-        *p_fatal = TRUE;
-        more_info_diagnostic(ec_atomic_constraint_evaluation_failed,
-                             &expr->position, diag_list);
-        result = FALSE;
+        if (is_glvalue_node(expr)) {
+          /* Just setting force_prvalue in the call to interpret_expr below is
+             not sufficient because creating a prvalue may trigger some
+             needed instantiations.  So we explicitly do the conversion
+             first. */
+          expr = conv_glvalue_expr_to_prvalue(expr, (a_boolean *)NULL,
+                                              (a_constant_ptr *)NULL,
+                                              (a_source_position*)NULL);
+        }  /* if */
+        if (interpret_expr(expr, /*is_constant_evaluated=*/TRUE,
+                           /*force_prvalue=*/TRUE, cp, diag_list)) {
+          result = !is_false_constant(cp);
+          if (!result) {
+            more_info_diagnostic(ec_atomic_constraint_false,
+                                 &constraint->position, diag_list);
+          }  /* if */
+        } else {
+          /* The failure to produce a constant value is not a SFINAE-like
+             error. */
+          *p_fatal = TRUE;
+          more_info_diagnostic(ec_atomic_constraint_evaluation_failed,
+                               &expr->position, diag_list);
+          result = FALSE;
+        }  /* if */
       }  /* if */
       release_local_constant(&cp);
     } else {
