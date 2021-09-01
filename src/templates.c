@@ -23118,13 +23118,11 @@ delegate.
        level for this declaration because decl_scope_level currently
        points to the template declaration scope.  We must also temporarily
        disable lazy loading of a duplicate symbol during this lookup. */
-    a_scope_depth        saved_decl_scope_level;
+    Value_saver<a_scope_depth, decl_scope_level>
+                         decl_scope_saver(decl_state->orig_decl_level);
     Value_saver<a_boolean, lazy_symbols_may_be_visible>
                          lazy_var_saver(FALSE);
-    saved_decl_scope_level = decl_scope_level;
-    decl_scope_level = decl_state->orig_decl_level;
     sym = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
-    decl_scope_level = saved_decl_scope_level;
   }  /* if */
   if (sym != NULL) {
     /* If a delegate is generated from an assembly (metadata) file, it was
@@ -24353,12 +24351,11 @@ declaration of a partial specialization declared outside of its class.
          level for this declaration because decl_scope_level currently
          points to the template declaration scope.  We must also temporarily
          disable lazy loading of a duplicate symbol during this lookup. */
-      a_scope_depth        saved_decl_scope_level = decl_scope_level;
+      Value_saver<a_scope_depth, decl_scope_level>
+                           decl_scope_saver(decl_state->orig_decl_level);
       Value_saver<a_boolean, lazy_symbols_may_be_visible>
                            lazy_var_saver(FALSE);
-      decl_scope_level = decl_state->orig_decl_level;
       sym = curr_scope_id_lookup(&locator_for_curr_id, IDL_NO_OPTIONS);
-      decl_scope_level = saved_decl_scope_level;
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     decl_state->decl_pos_block.identifier_range.end = end_pos_curr_token;
@@ -30315,13 +30312,11 @@ alias
          level for this declaration because decl_scope_level currently
          points to the template declaration scope.  We must also temporarily
          disable lazy loading of a duplicate symbol during this lookup. */
-      a_scope_depth        saved_decl_scope_level;
+      Value_saver<a_scope_depth, decl_scope_level>
+                           decl_scope_saver(decl_state->orig_decl_level);
       Value_saver<a_boolean, lazy_symbols_may_be_visible>
                            lazy_var_saver(FALSE);
-      saved_decl_scope_level = decl_scope_level;
-      decl_scope_level = decl_state->orig_decl_level;
       sym = curr_scope_id_lookup(&locator, IDL_NO_OPTIONS);
-      decl_scope_level = saved_decl_scope_level;
     }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     decl_state->decl_pos_block.identifier_range.start = pos_curr_token;
@@ -33729,7 +33724,8 @@ following a template parameter clause.  Parse and record the concept.
     set_to_error_locator(loc);
   } else {
     /* Look up the identifier. */
-    a_scope_depth        saved_decl_scope_level = decl_scope_level;
+    Value_saver<a_scope_depth, decl_scope_level>
+                         decl_scope_saver(decl_state->orig_decl_level);
     Value_saver<a_boolean, lazy_symbols_may_be_visible>
                          lazy_load_saver(FALSE);
     /* Look up the symbol in the current scope.  To do this we must
@@ -33738,14 +33734,12 @@ following a template parameter clause.  Parse and record the concept.
        declaration scope.  We must also temporarily disable lazy loading of
        symbols to prevent lazy loading of a duplicate symbol during this
        lookup. */
-    decl_scope_level = decl_state->orig_decl_level;
     sym = curr_scope_id_lookup(&loc, IDL_NO_OPTIONS);
     if (sym != NULL &&
         sym->decl_scope == scope_stack[decl_scope_level].number) {
       pos_sy_error(ec_invalid_concept_redecl, &loc.source_position, sym);
       set_to_error_locator(loc);
     }  /* if */
-    decl_scope_level = saved_decl_scope_level;
   }  /* if */
   (void)required_token_no_advance(tok_assign, ec_exp_assign);
   if (curr_token == tok_assign) (void)get_token();

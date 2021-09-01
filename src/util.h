@@ -2675,8 +2675,7 @@ Compute a hash for the given path.  The hash must be appropriate for Ptr_map.
 template<typename a_Var_type, a_Var_type &saved_var>
 struct Value_saver {
   /* A generic utility for saving and automatically restoring the original
-     value of a variable (global or otherwise) whose value is temporarily being
-     changed. */
+     value of a global variable whose value is temporarily being changed. */
   inline Value_saver(const a_Var_type &new_value = {});
   inline ~Value_saver();
   inline void set_new_value(const a_Var_type &new_value) {
