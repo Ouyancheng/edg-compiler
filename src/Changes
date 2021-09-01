@@ -9,7 +9,7 @@ processing a nonreal variable resulting from an instantiation in a
 secondary translation unit.  This is now fixed.
 
 
-8/30/21  [EDGcpfe/24666]
+8/30/21  [EDGcpfe/24653,EDGcpfe/24666]
 Failure to fold concept-id referring to static data member in GNU C++20 modes
 
 Consider:
