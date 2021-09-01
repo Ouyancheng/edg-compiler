@@ -1493,7 +1493,7 @@ to the secondary translation unit.
        variable != NULL;
        variable = variable->next) {
     if (trans_unit_corresp_of(variable) == NULL &&
-        variable->is_nonreal && ! variable->is_prototype_instantiation) {
+        variable->is_nonreal && !variable->is_prototype_instantiation) {
       /* Nonreal variables can be introduced during template instantiations
          in a secondary translation unit and thus will not have been
          processed for correspondences earlier.  Since each nonreal
