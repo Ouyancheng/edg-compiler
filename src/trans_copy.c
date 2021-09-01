@@ -1503,7 +1503,7 @@ to the secondary translation unit.
          the likely assertion failure that would result. */
     } else {
       check_correspondences(&variable->source_corresp, iek_variable);
-    }  /* if *.
+    }  /* if */
     keep_on_list = TRUE;
     /* If we're supposed to copy only generated templates, other variables
        are made external (if necessary) and their definitions are
