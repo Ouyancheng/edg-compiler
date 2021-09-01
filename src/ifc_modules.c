@@ -4447,7 +4447,7 @@ class_struct_union_case:
             defer_symbol_creation(mep, &loc);
           } else {
             if (mep->scope == NULL) {
-              mep->scope = get_ifc_scope(idspsp->home_scope);
+              mep->scope = get_ifc_home_scope(idspsp->entity.decl);
               scope_pushed = push_module_declaration_context(mep->scope);
             }  /* if */
             /* FIXME: Is it feasible to detect ignorable redeclarations of
