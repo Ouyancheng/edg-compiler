@@ -1492,7 +1492,18 @@ to the secondary translation unit.
   for (variable = scope->variables;
        variable != NULL;
        variable = variable->next) {
-    check_correspondences(&variable->source_corresp, iek_variable);
+    if (trans_unit_corresp_of(variable) == NULL &&
+        variable->is_nonreal && ! variable->is_prototype_instantiation) {
+      /* Nonreal variables can be introduced during template instantiations
+         in a secondary translation unit and thus will not have been
+         processed for correspondences earlier.  Since each nonreal
+         nonprototype instance of a templated variable is considered to be
+         a distinct entry not corresponding to any other entry, we can
+         avoid checking the correspondence of such nonreal variables and
+         the likely assertion failure that would result. */
+    } else {
+      check_correspondences(&variable->source_corresp, iek_variable);
+    }  /* if *.
     keep_on_list = TRUE;
     /* If we're supposed to copy only generated templates, other variables
        are made external (if necessary) and their definitions are

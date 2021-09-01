@@ -1,5 +1,14 @@
 Version 6.3
 
+8/31/21  [EDGcpfe/23469]
+Multiple translation units: nonreal variables in secondary translation units
+
+In configurations with CHECKING set to TRUE, compiling multiple translation
+units could result in an assertion failure in check_correspondences,
+processing a nonreal variable resulting from an instantiation in a
+secondary translation unit.  This is now fixed.
+
+
 8/30/21  [EDGcpfe/24666]
 Failure to fold concept-id referring to static data member in GNU C++20 modes
 
