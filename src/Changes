@@ -1,5 +1,14 @@
 Version 6.3
 
+9/1/21   [EDGcpfe/24588]
+Performance issue with VLAs in some configurations
+
+In some cases when VLA support is enabled and backing expressions are
+recorded, there could be a performance issue with arrays that have very
+complex bound expressions as a result of complex expansions from template
+instantiations.  Now fixed.
+
+
 8/31/21  [EDGcpfe/23469]
 Multiple translation units: nonreal variables in secondary translation units
 

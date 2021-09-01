@@ -4702,7 +4702,7 @@ constant.
             /* Do not copy the backing expression from the bound constant
                if it results from invoking a lambda expression, as the
                lambda may have references to local variables. */
-          } else {
+          } else if (depth_innermost_function_scope != NO_SCOPE_DEPTH) {
             /* Preserve the bound expression, which will not have been
                copied if it refers to local variables, and ensure that it
                can be referenced from the file-scope type entry.  Note that
