@@ -25335,9 +25335,9 @@ p_fatal and p_copy_error are NULL by default.
       } else {
         if (is_glvalue_node(expr)) {
           /* Just setting force_prvalue in the call to interpret_expr below is
-             not sufficient because creating a prvalue may trigger some
-             needed instantiations.  So we explicitly do the conversion
-             first. */
+             not sufficient because creating a prvalue may require some
+             instantiations not triggered by the call to interpret_expr.  So
+             we explicitly do the conversion first. */
           expr = conv_glvalue_expr_to_prvalue(expr, (a_boolean *)NULL,
                                               (a_constant_ptr *)NULL,
                                               (a_source_position*)NULL);
