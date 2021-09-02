@@ -4289,17 +4289,24 @@ class_struct_union_case:
               cache_decl_template(&cache, idstp);
               terminate_token_cache(&cache);
               suppress_default_arguments = saved_suppress_default_arguments;
-              il_entity = (char*)parse_cached_template(&cache, mep->scope);
-              kind = iek_template;
+              /* Forward assign the module entity pointer's information so this
+                 entity can be resolved properly when processing
+                 specializations and explicit instantiations. */
+              mep->entity.ptr = il_entity = (char*)parse_cached_template(
+                                                                   &cache,
+                                                                   mep->scope);
+              mep->entity.kind = kind = iek_template;
             }  /* if */
             {
               /* Compute the DeclIndex of the current template, and retrieve
-                 the sequence of specializations. */
+                 the sequence of specializations and explicit
+                 instantiations. */
               ifc_DeclIndex decl = decl_index_of(mep->variant.ifc_partition,
                                                  mep->file_offset);
               ifc_Sequence  seq = get_specialization_sequence_from_trait(decl);
 
-              /* Process the sequence of specializations. */
+              /* Process the sequence of specializations and explicit
+                 instantiations. */
               process_scope_member_sequence(seq);
             }
           }  /* if */
