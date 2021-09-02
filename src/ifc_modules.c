@@ -3079,10 +3079,9 @@ containing the partial specialization declaration.
 
 #if DEBUG
   if (db_flag_is_set("ms_ifc_token_def")) {
-    pos_in_temp_text_buffer = 0;
-    add_token_cache_to_string(cache);
-    fprintf(stderr, "Reconstituted partial specialization declaration:\n%s\n"
-                    "---------------------\n", temp_text_buffer);
+    fprintf(f_debug, "Reconstituted partial specialization declaration:\n");
+    db_tokens(cache);
+    fprintf(f_debug, "\n---------------------\n");
   }  /* if */
 #endif /* DEBUG */
   prepare_cached_template_parse(cache, encl_scope,
@@ -5437,7 +5436,7 @@ Given a declaration's index find and return its home scope decl.
       { an_ifc_DeclSort_PartialSpecialization idsps, *idspsp;
 
         idspsp = get_DeclSort_PartialSpecialization(&idsps);
-        /* A partial specialization has direct scoping information however,
+        /* A partial specialization has direct scoping information; however,
            it's not correct.  Recurse on the associated declaration. */
         result = get_ifc_home_scope_decl(idspsp->entity.decl);
       }
@@ -8862,13 +8861,16 @@ void an_ifc_module::cache_scope_member_sequence(a_token_cache_ptr cache,
                                                 ifc_Sequence      seq)
 /*
 Cache a sequence (seq) of IFC scope member declarations into the cache.
+scope_decl specifies the current home scope declaration being processed prior
+to this call -- so that we can determine if caching of a given declaration in
+(seq) can be performed in the current scope or should be deferred.
 */
 {
   /* Provide a consumer function that accepts a given scope member and caches
      the associated IFC declaration into the cache. */
   auto decl_consumer = [this, cache, scope_decl](an_ifc_Scope_Member *ismp) {
     /* FIXME: We need to queue declarations in a different scope for later
-       caching.  e.g., the status quo doesn't work for explicit instantiations
+       caching.  E.g., the status quo doesn't work for explicit instantiations
        of member functions. */
     if (get_ifc_home_scope_decl(ismp->index) == scope_decl) {
       cache_decl(cache, ismp->index);
@@ -13926,10 +13928,9 @@ explicit specialization declaration.
 
 #if DEBUG
   if (db_flag_is_set("ms_ifc_token_def")) {
-    pos_in_temp_text_buffer = 0;
-    add_token_cache_to_string(cache);
-    fprintf(stderr, "Reconstituted explicit specialization declaration:\n%s\n"
-                    "---------------------\n", temp_text_buffer);
+    fprintf(f_debug, "Reconstituted explicit specialization declaration:\n");
+    db_tokens(cache);
+    fprintf(f_debug, "\n---------------------\n");
   }  /* if */
 #endif /* DEBUG */
   prepare_cached_template_parse(cache, encl_scope,
@@ -14037,7 +14038,7 @@ char *an_ifc_module::parse_cached_explicit_instantiation(
 /*
 Parse the tokens corresponding to the given explicit instantiation
 declaration's (indexed in the IFC by decl_idx) cache.  Return a pointer to the
-corresponding explicitly instantiated entity and update kind with the
+corresponding explicitly-instantiated entity and update kind with the
 associated entity kind.
 */
 {
@@ -14048,10 +14049,9 @@ associated entity kind.
 
 #if DEBUG
   if (db_flag_is_set("ms_ifc_token_def")) {
-    pos_in_temp_text_buffer = 0;
-    add_token_cache_to_string(cache);
-    fprintf(stderr, "Reconstituted explicit instantiation declaration:\n%s\n"
-                    "---------------------\n", temp_text_buffer);
+    fprintf(f_debug, "Reconstituted explicit instantiation declaration:\n");
+    db_tokens(cache);
+    fprintf(f_debug, "\n---------------------\n");
   }  /* if */
 #endif /* DEBUG */
   rescan_cached_tokens(cache);
