@@ -3023,6 +3023,13 @@ final_token is a pointer to expected final token of the parse.
   if (curr_token != *final_token) {
     expect_error();
     flush_tokens_without_warning();
+    /* If the flush finished because we hit the final token, the final token
+       will still be present.  Consume said token so that we presumably
+       move on to the end of source. */
+    /* FIXME: Is this right? */
+    if (curr_token == *final_token) {
+      (void)get_token();
+    }  /* if */
   } else {
     (void)get_token();
     if (curr_token == tok_semicolon) {
