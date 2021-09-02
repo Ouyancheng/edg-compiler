@@ -52458,7 +52458,7 @@ deals with accessibility checks in default arguments (see the entry of 4/2/09).
 
 
 1/19/15  [EDGcpfe/15706]
-Do not emit vtable as a result of explicitly instantiated decider function
+Do not emit vtable as a result of explicitly-instantiated decider function
 
 The front end emitted a vtable when a decider function was explicitly
 instantiated.  Other compilers (g++, clang, Microsoft) don't do this,
