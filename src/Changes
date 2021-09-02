@@ -1,5 +1,16 @@
 Version 6.3
 
+9/1/21   [EDGcpfe/24143]
+Invalid substitution of template-id results in bad IL
+
+In some fairly complex cases, the substitution of a template-id representing a
+specialization of a nonreal variable template could cause the front end to
+produce bad IL instead of failing substitution.  That in turn was likely to
+result in an internal error during further processing (e.g., when attempting
+to emit a diagnostic that names the variable template specialization).  This
+problem manifested itself in uses of recent Boost libraries and is now fixed.
+
+
 9/1/21   [EDGcpfe/24588]
 Performance issue with VLAs in some configurations
 
