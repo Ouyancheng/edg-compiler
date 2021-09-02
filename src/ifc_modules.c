@@ -13325,15 +13325,9 @@ of the name.
       }
     case ifc_NameSort_Conversion:
       { an_ifc_NameSort_Conversion insc, *inscp;
-        a_type_ptr                 target_type;
-        a_const_char               *tp_name;
         inscp = get_NameSort_Conversion(&insc);
-        target_type = type_for_type_index(inscp->target, /*kind=*/NULL);
-        /* Note that inscp->encoded contains the mangled name of the
-           conversion function, so use the name from the type instead. */
-        tp_name = get_type_name(target_type);
         cache_token(cache, tok_operator, &pos);
-        cache_tokens_from_string(tp_name, cache, &pos);
+        cache_type(cache, inscp->target, locus);
       }
       break;
     case ifc_NameSort_Literal:
