@@ -44,6 +44,23 @@ using Enable_if = typename Enable_if_helper<cond, a_Thing>::a_thing;
 
 
 /*
+Is_same<A, B> is invalid (causing deduction failure) if A is not the
+same type as B.
+Otherwise, it produces A.
+*/
+template<typename a_Type_A, typename a_Type_B>
+struct Is_same_helper;
+
+template<typename a_Type_A>
+struct Is_same_helper<a_Type_A, a_Type_A> {
+  typedef a_Type_A a_type;
+};  /* Is_same_helper<a_type_A, a_type_A> */
+
+template<typename a_Type_A, typename a_Type_B>
+using Is_same = typename Is_same_helper<a_Type_A, a_Type_B>::a_type;
+
+
+/*
 Remove_ref<T> produces T if T is not a reference type, or the type underlying
 the reference type otherwise.
 */

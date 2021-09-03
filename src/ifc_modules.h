@@ -2681,12 +2681,68 @@ private:
                                         const an_ifc_DeclSort_Reference *ref);
   a_module_entity_ptr get_and_process_ifc_decl_from_other_module(
                                                          ifc_DeclIndex index);
+  ifc_NameIndex get_ifc_name_from_primary_template(
+                                                 ifc_FormSpecIndex form_index);
+  /* Value retrieval visitors. */
+  template<typename a_Result_T, typename a_Derived_T>
+  struct Decl_value_visitor;
+  struct decl_name_visitor;
+  struct decl_locus_visitor;
+  struct decl_home_scope_decl_visitor;
+  struct decl_access_visitor;
+  /* IFC NameIndex readers. */
+  template<typename an_ifc_DeclSort_T>
+  inline ifc_NameIndex get_ifc_name(an_ifc_DeclSort_T *decl, char)
+    { unexpected_condition_str("Name resolution unknown"); }
+  template<typename an_ifc_DeclSort_T>
+  inline auto get_ifc_name(an_ifc_DeclSort_T *decl, int)
+                              -> Is_same<decltype(decl->name), ifc_NameIndex> 
+    { return decl->name; }
+  template<typename an_ifc_DeclSort_T>
+  inline ifc_NameIndex get_ifc_name(an_ifc_DeclSort_T *decl)
+    { return get_ifc_name(decl, 0); }
+  ifc_NameIndex get_ifc_name(ifc_DeclIndex decl_index);
+  /* IFC SourceLocation readers. */
+  template<typename an_ifc_DeclSort_T>
+  inline ifc_SourceLocation get_ifc_locus(an_ifc_DeclSort_T *decl, char)
+    { unexpected_condition_str("Locus resolution unknown"); }
+  template<typename an_ifc_DeclSort_T>
+  inline auto get_ifc_locus(an_ifc_DeclSort_T *decl, int)
+                        -> Is_same<decltype(decl->locus), ifc_SourceLocation>
+    { return decl->locus; }
+  template<typename an_ifc_DeclSort_T>
+  inline ifc_SourceLocation get_ifc_locus(an_ifc_DeclSort_T *decl)
+    { return get_ifc_locus(decl, 0); }
   ifc_SourceLocation get_ifc_locus(ifc_DeclIndex decl_index);
-  a_scope_ptr get_ifc_scope(ifc_DeclIndex scope_index);
+  /* IFC Home Scope Decl readers. */
+  template<typename an_ifc_DeclSort_T>
+  inline ifc_DeclIndex get_ifc_home_scope_decl(an_ifc_DeclSort_T *decl, char)
+    { unexpected_condition_str("Home scope decl resolution unknown"); }
+  template<typename an_ifc_DeclSort_T>
+  inline auto get_ifc_home_scope_decl(an_ifc_DeclSort_T *decl, int)
+                        -> Is_same<decltype(decl->home_scope), ifc_DeclIndex>
+    { return decl->home_scope; }
+  template<typename an_ifc_DeclSort_T>
+  inline ifc_DeclIndex get_ifc_home_scope_decl(an_ifc_DeclSort_T *decl)
+    { return get_ifc_home_scope_decl(decl, 0); }
   ifc_DeclIndex get_ifc_home_scope_decl(ifc_DeclIndex decl_index);
-  inline a_scope_ptr get_ifc_home_scope(ifc_DeclIndex decl_index) {
-    return get_ifc_scope(get_ifc_home_scope_decl(decl_index));
-  }
+  /* IFC Scope readers. */
+  a_scope_ptr get_ifc_scope(ifc_DeclIndex scope_index);
+  template<typename an_ifc_DeclSort_T>
+  inline a_scope_ptr get_ifc_home_scope(an_ifc_DeclSort_T *decl)
+    { return get_ifc_scope(get_ifc_home_scope_decl(decl)); }
+  inline a_scope_ptr get_ifc_home_scope(ifc_DeclIndex decl_index)
+    { return get_ifc_scope(get_ifc_home_scope_decl(decl_index)); }
+  /* IFC Access readers. */
+  template<typename an_ifc_DeclSort_T>
+  inline ifc_Access get_ifc_access(an_ifc_DeclSort_T *decl, char)
+    { unexpected_condition_str("Access resolution unknown"); }
+  template<typename an_ifc_DeclSort_T>
+  inline auto get_ifc_access(an_ifc_DeclSort_T *decl, int)
+                                -> Is_same<decltype(decl->access), ifc_Access>;
+  template<typename an_ifc_DeclSort_T>
+  inline ifc_Access get_ifc_access(an_ifc_DeclSort_T *decl)
+    { return get_ifc_access(decl, 0); }
   ifc_Access get_ifc_access(ifc_DeclIndex decl_index);
   a_type_ptr type_for_type_index(ifc_TypeIndex   type_index,
                                  a_non_type_kind *kind);
@@ -2715,6 +2771,12 @@ private:
                               ifc_TextOffset     text_offset,
                               ifc_SourceLocation *locus,
                               a_symbol_locator   *loc);
+  template<typename an_ifc_DeclSort_T>
+  inline void init_decl_locator(an_ifc_DeclSort_T *decl,
+                                a_symbol_locator  *loc);
+  template<typename an_ifc_DeclSort_T>
+  inline a_boolean lazy_init_module_scope(an_ifc_DeclSort_T   *decl,
+                                          a_module_entity_ptr mep);
   void unsigned_integer_for_expr_index(ifc_ExprIndex    expr_index,
                                        an_integer_value *value);
   a_constant_ptr constant_for_expr_index(ifc_ExprIndex expr_index,
@@ -2944,6 +3006,7 @@ private:
                                ifc_Index_type        index) const;
   inline ifc_DeclIndex decl_index_of(an_ifc_partition_kind partition,
                                      size_t                file_offset) const;
+  inline ifc_DeclIndex decl_index_of(a_module_entity_ptr mep) const;
   inline ifc_AttrIndex attr_index_of(ifc_DeclIndex decl_idx);
   inline void read_partition_at_offset(an_ifc_partition_kind partition,
                                        size_t                offset);
@@ -2984,14 +3047,14 @@ private:
   a_template_ptr parse_cached_explicit_specialization(
                              a_token_cache_ptr                      cache,
                              a_scope_ptr                            encl_scope,
-                             an_ifc_DeclSort_ExplicitSpecialization *decl,
-                             ifc_DeclIndex                          decl_idx);
+                             an_ifc_DeclSort_ExplicitSpecialization *decl);
   void record_pending_explicit_specialization(
                                  a_decl_parse_state                     *dps,
                                  an_ifc_DeclSort_ExplicitSpecialization *decl);
-  char *parse_cached_explicit_instantiation(a_token_cache_ptr    cache,
-                                            ifc_DeclIndex        decl_idx,
-                                            a_byte_il_entry_kind *kind);
+  char *parse_cached_explicit_instantiation(
+                                  a_token_cache_ptr                     cache,
+                                  an_ifc_DeclSort_ExplicitInstantiation *decl,
+                                  a_byte_il_entry_kind                  *kind);
 #if DEBUG
   void validate_is_class_type(ifc_TypeIndex type);
 #endif /* DEBUG */
@@ -3087,6 +3150,36 @@ private:
 /*lint -restore*/
 
 extern a_boolean load_routine_definition_from_ifc_module(a_routine_ptr  rp);
+
+/* Explicit instantiations of an_ifc_module::get_ifc_name. */
+template<>
+ifc_NameIndex an_ifc_module::get_ifc_name(
+                                  an_ifc_DeclSort_PartialSpecialization *decl);
+template<>
+ifc_NameIndex an_ifc_module::get_ifc_name(
+                                 an_ifc_DeclSort_ExplicitSpecialization *decl);
+template<>
+ifc_NameIndex an_ifc_module::get_ifc_name(
+                                  an_ifc_DeclSort_ExplicitInstantiation *decl);
+
+/* Explicit instantiations of an_ifc_module::get_ifc_locus. */
+template<>
+ifc_SourceLocation an_ifc_module::get_ifc_locus(
+                                 an_ifc_DeclSort_ExplicitSpecialization *decl);
+template<>
+ifc_SourceLocation an_ifc_module::get_ifc_locus(
+                                  an_ifc_DeclSort_ExplicitInstantiation *decl);
+
+/* Explicit instantiations of an_ifc_module::get_ifc_home_scope_decl. */
+template<>
+ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(
+                                  an_ifc_DeclSort_PartialSpecialization *decl);
+template<>
+ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(
+                                 an_ifc_DeclSort_ExplicitSpecialization *decl);
+template<>
+ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(
+                                  an_ifc_DeclSort_ExplicitInstantiation *decl);
 
 /* Expected instantiations of an_ifc_module::str_ifc_associated_trait<T>: */
 template<>

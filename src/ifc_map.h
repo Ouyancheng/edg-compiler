@@ -31,6 +31,9 @@ end of this file).  In addition, if behavior differs when the entity in
 question is known to be stored in a little-endian formet, IFC_LE_DECL_XXX
 variants must also be defined.  If these variants are not defined, the regular
 version is used.
+
+The caller may also optionally define special handling of IFC DeclSorts by
+defining IFC_DECL_DECLSORT_START and IFC_DECL_DECLSORT_END.
 */
 #ifndef IFC_DECL_START
 #error IFC_DECL_START not defined
@@ -55,6 +58,14 @@ version is used.
 #ifndef IFC_LE_DECL_END
 #define IFC_LE_DECL_END(name) IFC_DECL_END(name)
 #endif /* ifndef IFC_LE_DECL_END */
+
+#ifndef IFC_DECL_DECLSORT_START
+#define IFC_DECL_DECLSORT_START(name) IFC_DECL_START(concat(DeclSort_, name))
+#endif /* ifndef IFC_DECL_DECLSORT_START */
+
+#ifndef IFC_DECL_DECLSORT_END
+#define IFC_DECL_DECLSORT_END(name) IFC_DECL_END(concat(DeclSort_, name))
+#endif /* ifndef IFC_DECL_DECLSORT_END */
 
 /* File_Header */
 IFC_LE_DECL_START(File_Header)
@@ -108,7 +119,7 @@ IFC_DECL_START(DeclSort_Enumerator)
 IFC_DECL_END(DeclSort_Enumerator)
 
 /* DeclSort::Variable */
-IFC_DECL_START(DeclSort_Variable)
+IFC_DECL_DECLSORT_START(Variable)
   IFC_DECL_FIELD(name, NameIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
@@ -119,10 +130,10 @@ IFC_DECL_START(DeclSort_Variable)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
   IFC_DECL_FIELD(access, Access)
   IFC_DECL_FIELD(properties, ReachableProperties)
-IFC_DECL_END(DeclSort_Variable)
+IFC_DECL_DECLSORT_END(Variable)
 
 /* DeclSort::Parameter */
-IFC_DECL_START(DeclSort_Parameter)
+IFC_DECL_DECLSORT_START(Parameter)
   IFC_DECL_FIELD(name, TextOffset)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
@@ -133,10 +144,10 @@ IFC_DECL_START(DeclSort_Parameter)
   IFC_DECL_FIELD(sort, ParameterSort)
   IFC_DECL_FIELD(properties, ReachableProperties)
   IFC_DECL_FIELD(pack, bool)
-IFC_DECL_END(DeclSort_Parameter)
+IFC_DECL_DECLSORT_END(Parameter)
 
 /* DeclSort::Field */
-IFC_DECL_START(DeclSort_Field)
+IFC_DECL_DECLSORT_START(Field)
   IFC_DECL_FIELD(name, TextOffset)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
@@ -147,10 +158,10 @@ IFC_DECL_START(DeclSort_Field)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
   IFC_DECL_FIELD(access, Access)
   IFC_DECL_FIELD(properties, ReachableProperties)
-IFC_DECL_END(DeclSort_Field)
+IFC_DECL_DECLSORT_END(Field)
 
 /* DeclSort::Bitfield */
-IFC_DECL_START(DeclSort_Bitfield)
+IFC_DECL_DECLSORT_START(Bitfield)
   IFC_DECL_FIELD(name, TextOffset)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
@@ -161,10 +172,10 @@ IFC_DECL_START(DeclSort_Bitfield)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
   IFC_DECL_FIELD(access, Access)
   IFC_DECL_FIELD(properties, ReachableProperties)
-IFC_DECL_END(DeclSort_Bitfield)
+IFC_DECL_DECLSORT_END(Bitfield)
 
 /* DeclSort::Scope */
-IFC_DECL_START(DeclSort_Scope)
+IFC_DECL_DECLSORT_START(Scope)
   IFC_DECL_FIELD(name, NameIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
@@ -177,10 +188,10 @@ IFC_DECL_START(DeclSort_Scope)
   IFC_DECL_FIELD(traits, ScopeTraits)
   IFC_DECL_FIELD(access, Access)
   IFC_DECL_FIELD(properties, ReachableProperties)
-IFC_DECL_END(DeclSort_Scope)
+IFC_DECL_DECLSORT_END(Scope)
 
 /* DeclSort::Enumeration */
-IFC_DECL_START(DeclSort_Enumeration)
+IFC_DECL_DECLSORT_START(Enumeration)
   IFC_DECL_FIELD(name, TextOffset)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
@@ -191,10 +202,10 @@ IFC_DECL_START(DeclSort_Enumeration)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
   IFC_DECL_FIELD(access, Access)
   IFC_DECL_FIELD(properties, ReachableProperties)
-IFC_DECL_END(DeclSort_Enumeration)
+IFC_DECL_DECLSORT_END(Enumeration)
 
 /* DeclSort::Alias */
-IFC_DECL_START(DeclSort_Alias)
+IFC_DECL_DECLSORT_START(Alias)
   IFC_DECL_FIELD(name, TextOffset)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
@@ -202,17 +213,17 @@ IFC_DECL_START(DeclSort_Alias)
   IFC_DECL_FIELD(aliasee, TypeIndex)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
   IFC_DECL_FIELD(access, Access)
-IFC_DECL_END(DeclSort_Alias)
+IFC_DECL_DECLSORT_END(Alias)
 
 /* DeclSort::Temploid */
-IFC_DECL_START(DeclSort_Temploid)
+IFC_DECL_DECLSORT_START(Temploid)
   IFC_DECL_FIELD(entity, ParameterizedEntity)
   IFC_DECL_FIELD(chart, ChartIndex)
   IFC_DECL_FIELD(properties, ReachableProperties)
-IFC_DECL_END(DeclSort_Temploid)
+IFC_DECL_DECLSORT_END(Temploid)
 
 /* DeclSort::Template */
-IFC_DECL_START(DeclSort_Template)
+IFC_DECL_DECLSORT_START(Template)
   IFC_DECL_FIELD(name, NameIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(home_scope, DeclIndex)
@@ -223,10 +234,10 @@ IFC_DECL_START(DeclSort_Template)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
   IFC_DECL_FIELD(access, Access)
   IFC_DECL_FIELD(properties, ReachableProperties)
-IFC_DECL_END(DeclSort_Template)
+IFC_DECL_DECLSORT_END(Template)
 
 /* DeclSort::PartialSpecialization */
-IFC_DECL_START(DeclSort_PartialSpecialization)
+IFC_DECL_DECLSORT_START(PartialSpecialization)
   IFC_DECL_FIELD(name, NameIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(home_scope, DeclIndex)
@@ -236,22 +247,22 @@ IFC_DECL_START(DeclSort_PartialSpecialization)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
   IFC_DECL_FIELD(access, Access)
   IFC_DECL_FIELD(properties, ReachableProperties)
-IFC_DECL_END(DeclSort_PartialSpecialization)
+IFC_DECL_DECLSORT_END(PartialSpecialization)
 
 /* DeclSort::ExplicitSpecialization */
-IFC_DECL_START(DeclSort_ExplicitSpecialization)
+IFC_DECL_DECLSORT_START(ExplicitSpecialization)
   IFC_DECL_FIELD(form, FormSpecIndex)
   IFC_DECL_FIELD(decl, DeclIndex)
-IFC_DECL_END(DeclSort_ExplicitSpecialization)
+IFC_DECL_DECLSORT_END(ExplicitSpecialization)
 
 /* DeclSort::ExplicitInstantiation */
-IFC_DECL_START(DeclSort_ExplicitInstantiation)
+IFC_DECL_DECLSORT_START(ExplicitInstantiation)
   IFC_DECL_FIELD(form, FormSpecIndex)
   IFC_DECL_FIELD(decl, DeclIndex)
-IFC_DECL_END(DeclSort_ExplicitInstantiation)
+IFC_DECL_DECLSORT_END(ExplicitInstantiation)
 
 /* DeclSort::Concept */
-IFC_DECL_START(DeclSort_Concept)
+IFC_DECL_DECLSORT_START(Concept)
   IFC_DECL_FIELD(name, TextOffset)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(home_scope, DeclIndex)
@@ -263,10 +274,10 @@ IFC_DECL_START(DeclSort_Concept)
   IFC_DECL_FIELD(__pad__, u16)
   IFC_DECL_FIELD(head, SentenceIndex)
   IFC_DECL_FIELD(body, SentenceIndex)
-IFC_DECL_END(DeclSort_Concept)
+IFC_DECL_DECLSORT_END(Concept)
 
 /* DeclSort::Function */
-IFC_DECL_START(DeclSort_Function)
+IFC_DECL_DECLSORT_START(Function)
   IFC_DECL_FIELD(name, NameIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
@@ -276,10 +287,10 @@ IFC_DECL_START(DeclSort_Function)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
   IFC_DECL_FIELD(access, Access)
   IFC_DECL_FIELD(properties, ReachableProperties)
-IFC_DECL_END(DeclSort_Function)
+IFC_DECL_DECLSORT_END(Function)
 
 /* DeclSort::Method */
-IFC_DECL_START(DeclSort_Method)
+IFC_DECL_DECLSORT_START(Method)
   IFC_DECL_FIELD(name, NameIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
@@ -289,10 +300,10 @@ IFC_DECL_START(DeclSort_Method)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
   IFC_DECL_FIELD(access, Access)
   IFC_DECL_FIELD(properties, ReachableProperties)
-IFC_DECL_END(DeclSort_Method)
+IFC_DECL_DECLSORT_END(Method)
 
 /* DeclSort::Constructor */
-IFC_DECL_START(DeclSort_Constructor)
+IFC_DECL_DECLSORT_START(Constructor)
   IFC_DECL_FIELD(name, TextOffset)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
@@ -302,10 +313,10 @@ IFC_DECL_START(DeclSort_Constructor)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
   IFC_DECL_FIELD(access, Access)
   IFC_DECL_FIELD(properties, ReachableProperties)
-IFC_DECL_END(DeclSort_Constructor)
+IFC_DECL_DECLSORT_END(Constructor)
 
 /* DeclSort::InheritedConstructor */
-IFC_DECL_START(DeclSort_InheritedConstructor)
+IFC_DECL_DECLSORT_START(InheritedConstructor)
   IFC_DECL_FIELD(name, TextOffset)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
@@ -315,10 +326,10 @@ IFC_DECL_START(DeclSort_InheritedConstructor)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
   IFC_DECL_FIELD(access, Access)
   IFC_DECL_FIELD(base_ctor, DeclIndex)
-IFC_DECL_END(DeclSort_InheritedConstructor)
+IFC_DECL_DECLSORT_END(InheritedConstructor)
 
 /* DeclSort::Destructor */
-IFC_DECL_START(DeclSort_Destructor)
+IFC_DECL_DECLSORT_START(Destructor)
   IFC_DECL_FIELD(name, TextOffset)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(home_scope, DeclIndex)
@@ -328,16 +339,16 @@ IFC_DECL_START(DeclSort_Destructor)
   IFC_DECL_FIELD(access, Access)
   IFC_DECL_FIELD(convention, CallingConvention)
   IFC_DECL_FIELD(properties, ReachableProperties)
-IFC_DECL_END(DeclSort_Destructor)
+IFC_DECL_DECLSORT_END(Destructor)
 
 /* DeclSort::Reference */
-IFC_DECL_START(DeclSort_Reference)
+IFC_DECL_DECLSORT_START(Reference)
   IFC_DECL_FIELD(unit, ModuleReference)
   IFC_DECL_FIELD(local_index, DeclIndex)
-IFC_DECL_END(DeclSort_Reference)
+IFC_DECL_DECLSORT_END(Reference)
 
 /* DeclSort::UsingDeclaration */
-IFC_DECL_START(DeclSort_UsingDeclaration)
+IFC_DECL_DECLSORT_START(UsingDeclaration)
   /* The IFC spec says this is a NameIndex, however, the contents of the IFC
      files indicate it's a TextOffset. */
   IFC_DECL_FIELD(name, TextOffset)
@@ -349,25 +360,25 @@ IFC_DECL_START(DeclSort_UsingDeclaration)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
   IFC_DECL_FIELD(access, Access)
   IFC_DECL_FIELD(hidden, bool)
-IFC_DECL_END(DeclSort_UsingDeclaration)
+IFC_DECL_DECLSORT_END(UsingDeclaration)
 
 /* DeclSort::UsingDirective */
-IFC_DECL_START(DeclSort_UsingDirective)
-IFC_DECL_END(DeclSort_UsingDirective)
+IFC_DECL_DECLSORT_START(UsingDirective)
+IFC_DECL_DECLSORT_END(UsingDirective)
 
 /* DeclSort::Friend */
-IFC_DECL_START(DeclSort_Friend)
+IFC_DECL_DECLSORT_START(Friend)
   IFC_DECL_FIELD(entity, ExprIndex)
-IFC_DECL_END(DeclSort_Friend)
+IFC_DECL_DECLSORT_END(Friend)
 
 /* DeclSort::Expansion */
-IFC_DECL_START(DeclSort_Expansion)
+IFC_DECL_DECLSORT_START(Expansion)
   IFC_DECL_FIELD(operand, DeclIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
-IFC_DECL_END(DeclSort_Expansion)
+IFC_DECL_DECLSORT_END(Expansion)
 
 /* DeclSort::DeductionGuide */
-IFC_DECL_START(DeclSort_DeductionGuide)
+IFC_DECL_DECLSORT_START(DeductionGuide)
   IFC_DECL_FIELD(name, NameIndex)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(home_scope, DeclIndex)
@@ -375,46 +386,46 @@ IFC_DECL_START(DeclSort_DeductionGuide)
   IFC_DECL_FIELD(target, ExprIndex)
   IFC_DECL_FIELD(traits, GuideTraits)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
-IFC_DECL_END(DeclSort_DeductionGuide)
+IFC_DECL_DECLSORT_END(DeductionGuide)
 
 /* DeclSort::Barren */
-IFC_DECL_START(DeclSort_Barren)
-IFC_DECL_END(DeclSort_Barren)
+IFC_DECL_DECLSORT_START(Barren)
+IFC_DECL_DECLSORT_END(Barren)
 
 /* DeclSort::Tuple */
-IFC_DECL_START(DeclSort_Tuple)
+IFC_DECL_DECLSORT_START(Tuple)
   IFC_DECL_FIELD(start, Index)
   IFC_DECL_FIELD(cardinality, Cardinality)
-IFC_DECL_END(DeclSort_Tuple)
+IFC_DECL_DECLSORT_END(Tuple)
 
 /* DeclSort::SyntaxTree */
-IFC_DECL_START(DeclSort_SyntaxTree)
-IFC_DECL_END(DeclSort_SyntaxTree)
+IFC_DECL_DECLSORT_START(SyntaxTree)
+IFC_DECL_DECLSORT_END(SyntaxTree)
 
 /* DeclSort::Intrinsic */
-IFC_DECL_START(DeclSort_Intrinsic)
+IFC_DECL_DECLSORT_START(Intrinsic)
   IFC_DECL_FIELD(name, TextOffset)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(home_scope, DeclIndex)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
   IFC_DECL_FIELD(access, Access)
-IFC_DECL_END(DeclSort_Intrinsic)
+IFC_DECL_DECLSORT_END(Intrinsic)
 
 /* DeclSort::Property */
-IFC_DECL_START(DeclSort_Property)
+IFC_DECL_DECLSORT_START(Property)
   IFC_DECL_FIELD(member, DeclIndex)
   IFC_DECL_FIELD(getter, TextOffset)
   IFC_DECL_FIELD(setter, TextOffset)
-IFC_DECL_END(DeclSort_Property)
+IFC_DECL_DECLSORT_END(Property)
 
 /* DeclSort::OutputSegment */
-IFC_DECL_START(DeclSort_OutputSegment)
+IFC_DECL_DECLSORT_START(OutputSegment)
   IFC_DECL_FIELD(name, TextOffset)
   IFC_DECL_FIELD(ID, TextOffset)
   IFC_DECL_FIELD(traits, SegmentTraits)
   IFC_DECL_FIELD(type, SegmentType)
-IFC_DECL_END(DeclSort_OutputSegment)
+IFC_DECL_DECLSORT_END(OutputSegment)
 
 /* TypeSort::VendorExtension */
 IFC_DECL_START(TypeSort_VendorExtension)
@@ -2111,6 +2122,8 @@ IFC_DECL_END(Word)
 #undef IFC_LE_DECL_START
 #undef IFC_LE_DECL_FIELD
 #undef IFC_LE_DECL_END
+#undef IFC_DECL_DECLSORT_START
+#undef IFC_DECL_DECLSORT_END
 
 
 /******************************************************************************
