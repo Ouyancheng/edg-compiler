@@ -1318,7 +1318,7 @@ That is now fixed.
 
 
 6/23/21  [EDGcpfe/23999]
-Incorrect handling of __builtin_LINE, etc. in default arguments
+Incorrect handling of __builtin_LINE, etc., in default arguments
 
 Consider:
 
