@@ -3752,53 +3752,133 @@ a name.  Never generate a qualified name.
   }  /* if */
 }  /* gen_bare_name */
 
-
-static a_boolean overloaded_templates(a_source_correspondence *fcn_scp)
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+static a_boolean i_args_needed_for_compiler_bugs(a_routine_ptr rout)
 /*
-Return TRUE if more than one function template in the scope containing the
-function designated by fcn_scp has that name.  This is used to determine
-whether adding explicit template arguments to a generated explicit
-specialization is safe or not.  For example, consider:
-  template<typename T> struct A {
-    typedef typename T::type type;
-  };
-  template<typename> struct B {
-    typedef int type;
-  };
-  template<typename T> typename A<T>::type f(void*,T);
-  template<typename T> typename B<T>::type f(int,T);
-  template<> int f(int,int);
-Instantiation of A<int> by declaration matching to determine the template
-associated with the explicit specialization of f is invalid because A<int>
-attempts to form the invalid type int::type.  That is treated as a
-substitution failure (SFINAE) when no template argument is supplied, as in
-this example.  However, if the explicit substitution names f<int>, it is
-treated as a hard error.  Testing for any overloading of the function
-templates is overkill but safe for avoiding this problem.
+Clang and MSVC have bugs that sometimes prevent them from correctly
+associating an explicit specialization with its corresponding function
+template if the declaration of the specialization relies on template
+argument deduction.  These bugs do not occur if the explicit specialization
+specifies the template arguments explicitly.  However, there are a number
+of cases in which explicit template arguments are not permitted in an
+explicit specialization.  Return TRUE if rout is a generated explicit
+specialization for which an explicit template argument list should be put
+out.
+
+This function is intended to be called only via its interface routine
+args_needed_for_compiler_bugs, which caches the result and screens out
+unnecessary calls for efficiency.
 */
 {
-  a_const_char   *fcn_name;
-  a_template_ptr tp;
-  a_boolean      matching_template_seen = FALSE;
-  a_boolean      is_overloaded = FALSE;
+  a_boolean result = FALSE;
+  a_template_parameter_ptr tpp;
 
-  fcn_name = (unmangled_name_of(fcn_scp) != NULL) ? unmangled_name_of(fcn_scp)
-                                                  : "fcn";
-  for (tp = fcn_scp->parent_scope->templates; tp != NULL && !is_overloaded;
-       tp = tp->next) {
-    a_const_char *tpl_name = (unmangled_name_of(&tp->source_corresp) != NULL)
+  if ((is_generated_explicit_specialization ||
+       (in_friend_declaration &&
+        curr_name_context->is_generated_explicit_class_specialization)) &&
+      !in_template_argument_list &&
+      rout->assoc_template != NULL &&
+      (clang_is_generated_code_target || gcc_is_generated_code_target) &&
+      rout->special_kind != (a_special_function_kind)sfk_constructor &&
+      rout->special_kind != (a_special_function_kind)sfk_conversion) {
+    result = TRUE;
+  }  /* if */
+  if (result) {
+    /* rout looks like a candidate for an explicit template argument list.
+       Now check for special cases that would disqualify it. */
+    for (tpp = rout->assoc_template->template_decl->param_list;
+         result && tpp != NULL; tpp = tpp->next) {
+      if (tpp->is_pack && tpp->next != NULL) {
+        /* The template has a non-final parameter pack.  An explicit
+           template argument list cannot be used because there would be no
+           way to tell which is the last template argument for this pack
+           end and which is for the next template parameter. */
+        result = FALSE;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  if (result) {
+    /* In some cases, explicit template arguments cannot be used if the
+       function template is overloaded.  For example, consider:
+         template<typename T> struct A {
+           typedef typename T::type type;
+         };
+         template<typename> struct B {
+           typedef int type;
+         };
+         template<typename T> typename A<T>::type f(void*,T);
+         template<typename T> typename B<T>::type f(int,T);
+         template<> int f(int,int);
+       Instantiation of A<int> by declaration matching to determine the
+       template associated with the explicit specialization of f is invalid
+       because A<int> attempts to form the invalid type int::type.  That is
+       treated as a substitution failure (SFINAE) when no template argument
+       is supplied, as in this example.  However, if the explicit
+       substitution names f<int>, it is treated as a hard error.  Testing
+       for any overloading of the function templates is overkill but safe
+       for avoiding this problem. */
+    a_const_char   *fcn_name;
+    a_template_ptr tp;
+    a_boolean      matching_template_seen = FALSE;
+    a_boolean      is_overloaded = FALSE;
+
+    fcn_name = has_name_before_mangling(rout)
+                                     ? unmangled_name_of(&rout->source_corresp)
+                                     : "fcn";
+    for (tp = rout->source_corresp.parent_scope->templates;
+         result && tp != NULL; tp = tp->next) {
+      a_const_char *tpl_name = has_name_before_mangling(tp)
                                        ? unmangled_name_of(&tp->source_corresp)
                                        : "tpl";
-    if (strcmp(tpl_name, fcn_name) == 0) {
-      if (matching_template_seen) {
-        is_overloaded = TRUE;
+      if (strcmp(tpl_name, fcn_name) == 0) {
+        if (matching_template_seen) {
+          /* The template is overloaded, so it's best not to use an
+             explicit template argument list. */
+          result = FALSE;
+        }  /* if */
+        matching_template_seen = TRUE;
       }  /* if */
-      matching_template_seen = TRUE;
-    }  /* if */
-  }  /* for */
-  return is_overloaded;
-}  /* overloaded_templates */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* i_args_needed_for_compiler_bugs */
 
+
+static inline a_boolean args_needed_for_compiler_bugs(a_routine_ptr rout)
+/*
+Interface routine for i_args_needed_for_compiler bugs.  It caches the
+result in rout->template_args_required and avoids calling the routine if
+the result is already known.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (!(clang_is_generated_code_target || msvc_is_generated_code_target)) {
+    /* Other compilers do not have bugs requiring explicit template
+       arguments on explicit specializations. */
+  } else if (rout->need_for_template_args_determined) {
+    /* Reuse the result of a previous call for this routine. */
+    result = rout->template_args_required;
+  } else {
+    result = i_args_needed_for_compiler_bugs(rout);
+    rout->template_args_required = result;
+    rout->need_for_template_args_determined = TRUE;
+  }  /* if */
+  return result;
+}  /* args_needed_for_compiler_bugs */
+
+#else /* !NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+
+static inline a_boolean args_needed_for_compiler_bugs(a_routine_ptr)
+/*
+If there are no generated explicit instantiations, no added template
+argument lists are required.
+*/
+{
+  return FALSE;
+}  /* args_needed_for_compiler_bugs */
+
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 static a_boolean name_has_template_arguments(
                                         a_source_correspondence *scp,
@@ -3849,26 +3929,10 @@ argument list and to FALSE otherwise.
     /* Check for template arguments on a routine, but put them out only if
        explicit template arguments (e.g., f<int>) were used with the name
        at some point in the program or on a generated explicit
-       specialization in clang or Microsoft code; the latter case works
-       around bugs in those compilers that can result in spurious errors if
-       the template arguments are omitted in an explicit specialization
-       declaration. */
+       specialization if needed to work around certain compiler bugs. */
     a_routine_ptr rout = (a_routine_ptr)scp;
     if (rout->expl_template_arg_list_used ||
-        ((clang_is_generated_code_target ||
-          msvc_is_generated_code_target) &&
-         (is_generated_explicit_specialization ||
-          (in_friend_declaration &&
-           curr_name_context->is_generated_explicit_class_specialization)) &&
-         rout->assoc_template != NULL &&
-         rout->special_kind != (a_special_function_kind)sfk_constructor &&
-         rout->special_kind != (a_special_function_kind)sfk_conversion &&
-         !in_template_argument_list &&
-         /* This special treatment does not apply when there are overloaded
-            function templates matching the name of the generated explicit
-            specialization; see overloaded_templates() for a description of
-            the issue involved. */
-         !overloaded_templates(scp))) {
+        args_needed_for_compiler_bugs(rout)) {
       tap = rout->template_arg_list;
       result = TRUE;
       if (insert_space != NULL &&
@@ -4146,21 +4210,10 @@ defaulted.
         }  /* if */
       }  /* if */
     } else if (entry_kind == iek_routine &&
-               (!((clang_is_generated_code_target ||
-                   msvc_is_generated_code_target) &&
-                  (is_generated_explicit_specialization ||
-                   (in_friend_declaration &&
-                    curr_name_context->
-                               is_generated_explicit_class_specialization))) ||
-                ((a_routine_ptr)scp)->expl_template_arg_list_used)) {
-      /* Only put out function template arguments if they were explicitly
-         specified anywhere in the translation unit.  Clang and MSVC have
-         bugs that sometimes require putting out explicit template
-         arguments for an explicit specialization declaration rather than
-         relying on template argument deduction from the function
-         parameters, so we always put out template arguments for generated
-         explicit specialization declarations when one of those compilers
-         is the target. */
+               ((a_routine_ptr)scp)->expl_template_arg_list_used &&
+               !args_needed_for_compiler_bugs((a_routine_ptr)scp)) {
+      /* Put out function template arguments if they were explicitly
+         specified anywhere in the translation unit. */
       begin_template_arg_list_traversal_simple(tap, &argp);
       for (; argp != NULL && argp->explicitly_specified;
            advance_to_next_template_arg_simple(&argp)) {
@@ -4172,23 +4225,10 @@ defaulted.
            prev_argp designating the last explicitly-specified argument. */
         if (prev_argp != NULL) {
           prev_argp->next = NULL;
-        } else if (!clang_is_generated_code_target &&
-                   !msvc_is_generated_code_target) {
-          /* Use the entire argument list when generating code for MSVC or
-             clang. */
+        } else {
           num_arguments = 0;
         }  /* if */
       }  /* if */
-    }  /* if */
-    if (entry_kind == iek_routine && clang_is_generated_code_target &&
-        (is_generated_explicit_specialization ||
-         (in_friend_declaration &&
-          curr_name_context->is_generated_explicit_class_specialization)) &&
-        ((a_routine_ptr)scp)->special_kind ==
-                                    (a_special_function_kind)sfk_constructor) {
-      /* Clang does not permit template arguments on out-of-class
-         constructor declarations. */
-      goto end_of_routine;
     }  /* if */
     if (insert_space) write_space();
     /* Put out the template argument list, e.g., "<int, float>". */

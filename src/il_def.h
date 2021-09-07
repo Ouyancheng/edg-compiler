@@ -11928,6 +11928,24 @@ typedef struct a_routine {
 			   would be invalid for some reason.  Set by both
 			   the front end and the C++-generating back end,
 			   as required. */
+  a_bit_field	need_for_template_args_determined:1;
+			/* Some compilers have bugs that require explicit
+			   template argument lists to be put out for some
+			   explicit specializations to be matched with the
+			   correct template; however, there are also cases
+			   in which explicit template arguments cannot
+			   appear.  The function
+			   args_needed_for_compiler_bugs does the requisite
+			   analysis.  A TRUE value of this flag indicates
+			   that the template_args_required flag below
+			   reflects the result of that analysis and the
+			   function need not be called again. */
+  a_bit_field	template_args_required:1;
+			/* TRUE if explicit template arguments should be
+			   put out when putting out a declaration for a
+			   generated explicit specialization for this
+			   routine.  This flag is only valid when
+			   need_for_template_args_determined is TRUE. */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* BACK_END_IS_CP_GEN_BE */
   a_bit_field	definition_for_inlining_only:1;
