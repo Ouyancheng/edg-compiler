@@ -3820,7 +3820,6 @@ unnecessary calls for efficiency.
     a_const_char   *fcn_name;
     a_template_ptr tp;
     a_boolean      matching_template_seen = FALSE;
-    a_boolean      is_overloaded = FALSE;
 
     fcn_name = has_name_before_mangling(rout)
                                      ? unmangled_name_of(&rout->source_corresp)
