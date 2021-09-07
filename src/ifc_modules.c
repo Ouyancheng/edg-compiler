@@ -4448,11 +4448,12 @@ class_struct_union_case:
           idspsp = get_DeclSort_PartialSpecialization(&idsps);
           init_decl_locator(idspsp, &loc);
           if (defer) {
+            lazy_init_module_scope(idspsp, mep);
             defer_symbol_creation(mep, &loc);
           } else {
             ifc_DeclIndex decl_idx = decl_index_of(mep);
 
-            lazy_init_module_scope(idspsp, mep);
+            scope_pushed = lazy_push_module_scope(idspsp, mep);
             /* FIXME: Is it feasible to detect ignorable redeclarations of
                partial specializations? */
             if (idspsp->entity.body != 0) {
@@ -4477,11 +4478,13 @@ class_struct_union_case:
           idsesp = get_DeclSort_ExplicitSpecialization(&idses);
           init_decl_locator(idsesp, &loc);
           if (defer) {
+            lazy_init_module_scope(idsesp, mep);
             defer_symbol_creation(mep, &loc);
           } else {
             a_token_cache cache;
             ifc_DeclIndex decl_idx = decl_index_of(mep);
-            lazy_init_module_scope(idsesp, mep);
+
+            scope_pushed = lazy_push_module_scope(idsesp, mep);
             clear_token_cache(&cache, /*reuseable=*/FALSE);
             cache_decl_explicit_specialization(&cache, decl_idx, idsesp);
             terminate_token_cache(&cache);
@@ -4497,11 +4500,13 @@ class_struct_union_case:
           idseip = get_DeclSort_ExplicitInstantiation(&idsei);
           init_decl_locator(idseip, &loc);
           if (defer) {
+            lazy_init_module_scope(idseip, mep);
             defer_symbol_creation(mep, &loc);
           } else {
             a_token_cache cache;
             ifc_DeclIndex decl_idx = decl_index_of(mep);
-            lazy_init_module_scope(idseip, mep);
+
+            scope_pushed = lazy_push_module_scope(idseip, mep);
             clear_token_cache(&cache, /*reuseable=*/FALSE);
             cache_decl_explicit_instantiation(&cache, decl_idx, idseip);
             terminate_token_cache(&cache);
@@ -7058,13 +7063,31 @@ inline a_boolean an_ifc_module::lazy_init_module_scope(
                                                      an_ifc_DeclSort_T   *decl,
                                                      a_module_entity_ptr mep)
 /*
+If the given module entity pointer's scope is not yet set, set the scope.
+Return true if a scope was set.
+*/
+{
+  a_boolean scope_initialized = FALSE;
+  if (mep->scope == NULL) {
+    mep->scope = get_ifc_home_scope(decl);
+    scope_initialized = TRUE;
+  }  /* if */
+  return scope_initialized;
+} /* lazy_init_module_scope */
+
+
+template<typename an_ifc_DeclSort_T>
+inline a_boolean an_ifc_module::lazy_push_module_scope(
+                                                     an_ifc_DeclSort_T   *decl,
+                                                     a_module_entity_ptr mep)
+/*
 If the given module entity pointer's scope is not yet set, set the scope and
 push the module declaration context.  Return true if a scope was pushed.
 */
 {
+  a_boolean scope_initialized = lazy_init_module_scope(decl, mep);
   a_boolean scope_pushed = FALSE;
-  if (mep->scope == NULL) {
-    mep->scope = get_ifc_home_scope(decl);
+  if (scope_initialized) {
     scope_pushed = push_module_declaration_context(mep->scope);
   }  /* if */
   return scope_pushed;

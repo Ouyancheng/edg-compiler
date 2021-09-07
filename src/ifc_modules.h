@@ -2777,6 +2777,9 @@ private:
   template<typename an_ifc_DeclSort_T>
   inline a_boolean lazy_init_module_scope(an_ifc_DeclSort_T   *decl,
                                           a_module_entity_ptr mep);
+  template<typename an_ifc_DeclSort_T>
+  inline a_boolean lazy_push_module_scope(an_ifc_DeclSort_T   *decl,
+                                          a_module_entity_ptr mep);
   void unsigned_integer_for_expr_index(ifc_ExprIndex    expr_index,
                                        an_integer_value *value);
   a_constant_ptr constant_for_expr_index(ifc_ExprIndex expr_index,
