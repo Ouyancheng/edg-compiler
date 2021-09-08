@@ -3778,7 +3778,7 @@ unnecessary calls for efficiency.
         curr_name_context->is_generated_explicit_class_specialization)) &&
       !in_template_argument_list &&
       rout->assoc_template != NULL &&
-      (clang_is_generated_code_target || gcc_is_generated_code_target) &&
+      (clang_is_generated_code_target || msvc_is_generated_code_target) &&
       rout->special_kind != (a_special_function_kind)sfk_constructor &&
       rout->special_kind != (a_special_function_kind)sfk_conversion) {
     result = TRUE;
