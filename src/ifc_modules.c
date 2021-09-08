@@ -3679,10 +3679,6 @@ principal associated IL entity.
               mep->scope = get_ifc_scope(idsfp->home_scope);
               scope_pushed = push_module_declaration_context(mep->scope);
             }  /* if */
-            if (ifc_decl_is_ignorable_redecl(&loc, mep->scope, &error_position,
-                                             iek_routine, &il_entity, &kind)) {
-              break;
-            }  /* if */
             init_dps(&dps, &idsfp->locus, idsfp->type, ifc_ObjectTraits_None,
                      ifc_MsvcTraits_None, idsfp->specifiers, idsfp->access,
                      (ifc_ExprIndex)0, &psss);
