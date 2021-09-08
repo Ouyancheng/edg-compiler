@@ -4448,8 +4448,7 @@ class_struct_union_case:
           idspsp = get_DeclSort_PartialSpecialization(&idsps);
           init_decl_locator(idspsp, &loc);
           if (defer) {
-            lazy_init_module_scope(idspsp, mep);
-            defer_symbol_creation(mep, &loc);
+            unexpected_condition_str("Unexpected deferral.");
           } else {
             ifc_DeclIndex decl_idx = decl_index_of(mep);
 
@@ -4478,8 +4477,7 @@ class_struct_union_case:
           idsesp = get_DeclSort_ExplicitSpecialization(&idses);
           init_decl_locator(idsesp, &loc);
           if (defer) {
-            lazy_init_module_scope(idsesp, mep);
-            defer_symbol_creation(mep, &loc);
+            unexpected_condition_str("Unexpected deferral.");
           } else {
             a_token_cache cache;
             ifc_DeclIndex decl_idx = decl_index_of(mep);
@@ -4500,8 +4498,7 @@ class_struct_union_case:
           idseip = get_DeclSort_ExplicitInstantiation(&idsei);
           init_decl_locator(idseip, &loc);
           if (defer) {
-            lazy_init_module_scope(idseip, mep);
-            defer_symbol_creation(mep, &loc);
+            unexpected_condition_str("Unexpected deferral.");
           } else {
             a_token_cache cache;
             ifc_DeclIndex decl_idx = decl_index_of(mep);
