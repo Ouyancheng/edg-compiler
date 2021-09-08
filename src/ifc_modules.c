@@ -5590,8 +5590,8 @@ template<typename an_ifc_DeclSort_T>
 inline auto an_ifc_module::get_ifc_access(an_ifc_DeclSort_T *decl, int)
                                  -> Is_same<decltype(decl->access), ifc_Access>
 /*
-Check if the home scope of the declaration represented at decl is a class scope.
-If it is, return the access level of the declaration.
+Check if the home scope of the declaration represented at decl is a class
+scope.  If it is, return the access level of the declaration.
 */
 {
   ifc_Access result = ifc_Access_None;
