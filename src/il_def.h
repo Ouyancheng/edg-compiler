@@ -11942,7 +11942,7 @@ typedef struct a_routine {
 			   function need not be called again. */
   a_bit_field	template_args_required:1;
 			/* TRUE if explicit template arguments should be
-			   put out when putting out a declaration for a
+			   included when putting out a declaration for a
 			   generated explicit specialization for this
 			   routine.  This flag is only valid when
 			   need_for_template_args_determined is TRUE. */

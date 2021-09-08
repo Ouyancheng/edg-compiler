@@ -3753,6 +3753,7 @@ a name.  Never generate a qualified name.
 }  /* gen_bare_name */
 
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+
 static a_boolean i_args_needed_for_compiler_bugs(a_routine_ptr rout)
 /*
 Clang and MSVC have bugs that sometimes prevent them from correctly
@@ -3770,7 +3771,7 @@ args_needed_for_compiler_bugs, which caches the result and screens out
 unnecessary calls for efficiency.
 */
 {
-  a_boolean result = FALSE;
+  a_boolean                result = FALSE;
   a_template_parameter_ptr tpp;
 
   if ((is_generated_explicit_specialization ||
@@ -4212,7 +4213,12 @@ defaulted.
                ((a_routine_ptr)scp)->expl_template_arg_list_used &&
                !args_needed_for_compiler_bugs((a_routine_ptr)scp)) {
       /* Put out function template arguments if they were explicitly
-         specified anywhere in the translation unit. */
+         specified anywhere in the translation unit.  The exclusion for
+         template arguments needed to work around compiler bugs ensures
+         that the complete template argument list will be used for the
+         declaration of a generated explicit specialization, even if a
+         shorter list appeared in a reference to the instance at some point
+         in the original source. */
       begin_template_arg_list_traversal_simple(tap, &argp);
       for (; argp != NULL && argp->explicitly_specified;
            advance_to_next_template_arg_simple(&argp)) {
