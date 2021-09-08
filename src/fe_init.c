@@ -755,10 +755,6 @@ modes.
                 "__is_trivially_copyable");
   enter_keyword((a_token_kind)tok_is_literal_type, "__is_literal_type");
   if (clang_mode) {
-    /* Note that some of the type trait names that clang uses conflict with
-       identifiers used in some of the GNU headers; clang treats those
-       identifiers as special cases (and the front end tries to emulate
-       that). */
     enter_keyword((a_token_kind)tok_is_array, "__is_array");
     enter_keyword((a_token_kind)tok_array_rank, "__array_rank");
     enter_keyword((a_token_kind)tok_array_extent, "__array_extent");
@@ -782,8 +778,9 @@ modes.
     enter_keyword((a_token_kind)tok_is_rvalue_reference,
                   "__is_rvalue_reference");
     enter_keyword((a_token_kind)tok_is_scalar, "__is_scalar");
-    enter_keyword((a_token_kind)tok_is_signed, "__is_signed");
     enter_keyword((a_token_kind)tok_is_unsigned, "__is_unsigned");
+    /* Note: tok_is_signed is handled in a context-sensitive way in expr.c
+             because some GCC headers use it as an ordinary identifier. */
     enter_keyword((a_token_kind)tok_is_void, "__is_void");
     enter_keyword((a_token_kind)tok_is_volatile, "__is_volatile");
     enter_keyword((a_token_kind)tok_is_same_as, "__is_same_as");

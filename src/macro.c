@@ -7064,11 +7064,12 @@ end_arg_expansion:;
           (builtin_function_or_keyword_is_enabled(builtin_name) ||
            (clangcpp_version_is(>=30900) &&
             (strcmp(builtin_name, "__type_pack_element") == 0 ||
+             strcmp(builtin_name, "__is_signed") == 0 ||
              strcmp(builtin_name, "__make_integer_seq") == 0)))) {
-        /* Note: __type_pack_element and __make_integer_seq are handled as
-           special cases here because they're not technically builtin functions
-           (in the sense that they're not in the table of builtin functions,
-           but are implemented by the front end). */
+        /* Note: __type_pack_element, __is_signed, and __make_integer_seq are
+           handled as special cases here because they're not technically
+           builtin functions (in the sense that they're not in the table of
+           builtin functions, but are implemented by the front end). */
         strcpy(repl_text, "1");
       } else {
         strcpy(repl_text, "0");

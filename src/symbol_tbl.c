@@ -18096,6 +18096,10 @@ static a_const_char* intrinsic_names[] = {
   "construct_at",
   "destroy_at",
   "__report_constexpr_value",
+  "__is_signed",
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  "safe_cast",
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   "main"
 };
 

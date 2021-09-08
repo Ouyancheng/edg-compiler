@@ -38944,18 +38944,34 @@ repeat_switch:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       goto handle_identifier;
     case tok_identifier:
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (microsoft_mode) {
-        if (cli_or_cx_enabled &&
-            locator_for_curr_id.symbol_header == safe_cast_symbol_header) {
-          /* safe_cast is a keyword in C++/CLI if it doesn't mean anything
-             else here. */
-          if (turn_safe_cast_into_keyword_if_appropriate()) {
-            goto handle_safe_cast;
+      { a_symbol_header  *hdr = locator_for_curr_id.symbol_header;
+        if (hdr != NULL && hdr->has_intrinsic_name) {
+          /* This is an identifier that might have to be treated specially. */
+          if (strcmp(hdr->identifier, "__is_signed") == 0 &&
+              clangcpp_version_is(>=100000) &&
+              hdr->inactive_symbols == NULL && hdr->symbol == NULL) {
+            /* __is_signed is not treated as a keyword by default because some
+               GCC headers use it as a plain identifier.  If no such identifier
+               has been declared yet (i.e., there is no associated symbol)
+               assume it introduces an intrinsic __is_signed(<type>)
+               construct. */
+            curr_token = tok_is_signed;
+            scan_unary_type_trait_helper((a_rescan_control_block *)NULL,
+                                         &local_result);
+            break;
           }  /* if */
-        }  /* if */
-      }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+          if (microsoft_mode && cli_or_cx_enabled &&
+              hdr == safe_cast_symbol_header) {
+            /* safe_cast is a keyword in C++/CLI if it doesn't mean anything
+               else here. */
+            if (turn_safe_cast_into_keyword_if_appropriate()) {
+              goto handle_safe_cast;
+            }  /* if */
+          }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        }  /* if */
+      }
 handle_identifier:
       { a_boolean okay_after_typename;
         /* Watch out for something like "S::*". */

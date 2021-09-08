@@ -12245,20 +12245,6 @@ finalizer_name:
       case tok_export:
         pos_error(ec_export_not_allowed, &pos_curr_token);
         break;
-      case tok_is_signed:
-        /* __is_signed is a keyword. However, some GCC headers use it as a
-           declarator-id declaring a member "static bool const __is_signed".
-           If we encounter something along those lines, make the keyword
-           invisible. */
-        if (state->declared_storage_class == (a_storage_class)sc_static &&
-            qualifiers == TQ_CONST && basic_type == bt_bool) {
-          pos_warning(ec_is_signed_no_longer_a_keyword, &pos_curr_token);
-          curr_token = tok_identifier;
-          clear_locator(&locator_for_curr_id, &pos_curr_token);
-          set_keyword_visibility("__is_signed", /*is_visible=*/FALSE,
-                                 &locator_for_curr_id);
-        }  /* if */
-        goto something_unexpected;
       case tok_compl:
 destructor_name:
         if (!C_mode() && is_member_decl) {
