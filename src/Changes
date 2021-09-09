@@ -1,5 +1,13 @@
 Version 6.3
 
+9/9/21   [EDGcpfe/24689]
+Modules and precompiled headers
+
+The front end previously could abort in various ways when a compilation
+uses a precompiled header containing an import directive.  This is now
+fixed.
+
+
 9/8/21   [EDGcpfe/24412,EDGcpfe/24602]
 Handling of __is_signed in Clang modes
 
