@@ -590,7 +590,7 @@ Import the module file specified in the module-import-declaration.
   check_assertion(midp->module_info->full_name != NULL);
   switch (midp->module_info->kind) {
     case mk_edg:
-      iface = alloc_fe_of_type(an_ifc_module);
+      iface = alloc_fe_of_type(an_edg_module);
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case mk_ifc:
