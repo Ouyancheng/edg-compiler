@@ -780,7 +780,7 @@ modes.
     enter_keyword((a_token_kind)tok_is_scalar, "__is_scalar");
     enter_keyword((a_token_kind)tok_is_unsigned, "__is_unsigned");
     /* Note: tok_is_signed is handled in a context-sensitive way in expr.c
-             because some GCC headers use it as an ordinary identifier. */
+       because some GCC headers use it as an ordinary identifier. */
     enter_keyword((a_token_kind)tok_is_void, "__is_void");
     enter_keyword((a_token_kind)tok_is_volatile, "__is_volatile");
     enter_keyword((a_token_kind)tok_is_same_as, "__is_same_as");

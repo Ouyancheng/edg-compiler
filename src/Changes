@@ -15,9 +15,7 @@ In Clang mode, the identifier __is_signed was previously treated as a keyword
 until it appears as a declarator immediately following decl-specifiers that
 include "static", "bool", and "const" (see the entry for EDGcpfe/12122, etc.).
 However, this processing introduced a bug causing "__is_signed" to sometimes be
-treated as a qualified identifier even when it was not actually qualified, and
-it didn't work correctly if a subsequent use of the __is_signed token was
-already cached by the time the use as an ordinary declarator was processed.
+treated as a qualified identifier even when it was not actually qualified.
 For example:
 
   template<typename> struct E {
@@ -28,9 +26,11 @@ For example:
     static const bool __is_signed = (T)(-1) < 0;  // Previously an error in
   };                                              // Clang mode.  Now okay.
 
-To avoid those problems, "__is_signed" is now treated as an identifier (not a
-keyword) by default and it is contextually turned into a keyword if it appears
-in an expression context when no name "__is_signed" has been declared.
+Additional spurious errors could also occur when an token spelled "__is_signed"
+occurred more than once in the same template.  To avoid those problems,
+"__is_signed" is now treated as an identifier (not a keyword) by default and it
+is contextually turned into a keyword if it appears in an expression context
+when no name "__is_signed" has been declared.
 
 
 9/7/21   [EDGcpfe/24677]
