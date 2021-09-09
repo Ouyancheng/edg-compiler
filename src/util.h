@@ -340,6 +340,31 @@ objects.
 }  /* FE_allocator::dealloc */
 
 
+template<typename an_Object, typename ...an_Arg_pack>
+inline an_Object *new_fe(an_Arg_pack ...args)
+/*
+Allocate in front-end memory and construct an object of type an_Object with
+the constructor arguments specified by args.  Return a pointer to the object.
+*/
+{
+  an_Object  *p = FE_allocator<an_Object>::alloc(1).start;
+  construct(p, fwd<an_Arg_pack>(args)...);
+  return p;
+}  /* new_fe */
+
+
+template<typename an_Object>
+inline void delete_fe(an_Object *p)
+/*
+Destroy and delete an object of type an_Object that was allocated in front end
+memory.
+*/
+{
+  destroy(p);
+  FE_allocator<an_Object>::dealloc(Allocation<an_Object>{p, 1});
+}  /* delete_fe */
+
+
 template<typename an_Elem>
 struct General_allocator {
   /* A general allocator for general memory (i.e., as allocated by
