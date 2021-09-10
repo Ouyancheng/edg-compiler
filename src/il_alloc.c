@@ -1197,6 +1197,7 @@ in the file scope memory region.
   ptp->is_cli_param_array = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ptp->move_ctor_or_assign_parameter = FALSE;
+  ptp->copy_or_move_ctor_parameter = FALSE;
   ptp->is_requires_expr_param = FALSE;
   ptp->param_num = 0;
   ptp->default_arg_expr = NULL;

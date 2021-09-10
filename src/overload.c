@@ -22580,7 +22580,8 @@ must be considered.  Only used in C++.  This is copy-initialization.
     }  /* if */
   }  /* if */
   /* See if the conversion is possible. */
-  if (ref_conv_context & CCO_DIRECT_INITIALIZATION) {
+  if (ref_conv_context & (CCO_DIRECT_INITIALIZATION |
+                          CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS)) {
     conv_context |= CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS;
   }  /* if */
   if (conversion_usable_or_possible(source_operand, dest_type, 
@@ -26615,6 +26616,12 @@ to be acceptable (as far as overload resolution checks that), and
     }  /* if */
     if (!adjusted_for_ref_to_non_const) {
       /* Normal case. */
+      if (formal_param->copy_or_move_ctor_parameter) {
+        /* Initializing the first parameter of a copy/move constructor (which
+           is a reference parameter) does consider explicit conversion
+           functions.  See core issue 899. */
+        conv_context |= CCO_ALLOW_EXPLICIT_CONV_FUNCTIONS;
+      }  /* if */
       prep_initializer_operand(source_operand, param_type,
 #if GNU_EXTENSIONS_ALLOWED
                                &is_transparent,

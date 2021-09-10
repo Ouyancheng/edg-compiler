@@ -14677,19 +14677,34 @@ set; otherwise, it is NULL.
 }  /* update_class_for_special_member */
 
 
-static void mark_special_move_parameters(a_routine_ptr  rp)
+static void mark_special_parameters(a_routine_ptr  rp)
 /*
 If the given routine is a move constructor or a move assignment operator,
 set the move_ctor_or_assign_parameter flag of its first parameter to TRUE.
+Similarly, if the given routine is a copy or move constructor, set the
+copy_or_move_ctor_parameter flags of its first parameter to TRUE.
 */
 {
-  if (routine_is_move_constructor(rp) ||
-      routine_is_move_assignment_operator(rp)) {
+  if (special_kind_is(rp, sfk_constructor)) {
+    a_type_qualifier_set  tqs;
+    if (routine_is_move_constructor(rp)) {
+      a_type_ptr  rtp;
+      ensure_underlying_function_type_is_modifiable(&rp->type, &rtp);
+      function_type_params(rtp)->move_ctor_or_assign_parameter = TRUE;
+      function_type_params(rtp)->copy_or_move_ctor_parameter = TRUE;
+    } else if (is_copy_constructor_type(rp->type, parent_class_of(rp), &tqs,
+                                        /*include_move_ctors=*/FALSE,
+                                        /*is_declarative_context=*/TRUE)) {
+      a_type_ptr  rtp;
+      ensure_underlying_function_type_is_modifiable(&rp->type, &rtp);
+      function_type_params(rtp)->copy_or_move_ctor_parameter = TRUE;
+    }  /* if */
+  } else if (routine_is_move_assignment_operator(rp)) {
     a_type_ptr  rtp;
     ensure_underlying_function_type_is_modifiable(&rp->type, &rtp);
     function_type_params(rtp)->move_ctor_or_assign_parameter = TRUE;
   }  /* if */
-}  /* mark_special_move_parameters */
+}  /* mark_special_parameters */
 
 
 static a_boolean is_implicitly_callable_conversion_function_full(
@@ -16069,7 +16084,7 @@ implicitly declared member functions.
         special_sym = repr_sym;
         /* Also ensure that the representative routine is marked if
            necessary. */
-        mark_special_move_parameters(repr_sym->variant.routine.ptr);
+        mark_special_parameters(repr_sym->variant.routine.ptr);
         if (!special_kind_is(rtn, sfk_constructor) &&
             !special_kind_is(rtn, sfk_destructor) &&
             !compiler_generated) {
@@ -16082,7 +16097,7 @@ implicitly declared member functions.
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
       update_class_for_special_member(class_state, special_sym, decl_info,
                                       overload_sym);
-      mark_special_move_parameters(rtn);
+      mark_special_parameters(rtn);
     }  /* if */
 #if GNU_FUNCTION_MULTIVERSIONING
     if (requires_gnu_target_attr &&

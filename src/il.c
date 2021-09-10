@@ -14760,8 +14760,7 @@ is NULL, no value is returned for that.  ctor_rout must be a constructor.
 {
   a_boolean is_cctor;
 
-  check_assertion(ctor_rout->special_kind ==
-                                  (a_special_function_kind)sfk_constructor);
+  check_assertion(special_kind_is(ctor_rout, sfk_constructor));
   if (class_of_which_a_member == NULL) {
     class_of_which_a_member = parent_class_of(ctor_rout);
   }  /* if */

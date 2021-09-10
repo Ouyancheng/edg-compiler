@@ -1560,6 +1560,9 @@ Display a_param_type entry.
   if (ptr->move_ctor_or_assign_parameter) {
     disp_boolean("move_ctor_or_assign_parameter", TRUE);
   }  /* if */
+  if (ptr->copy_or_move_ctor_parameter) {
+    disp_boolean("copy_or_move_ctor_parameter", TRUE);
+  }  /* if */
   if (ptr->attributes != NULL) {
     disp_ptr("attributes", (char *)ptr->attributes, iek_attribute);
   }  /* if */

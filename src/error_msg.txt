@@ -3277,6 +3277,7 @@ ec_bad_gro_on_alloc_fail;;"promise type %t must declare get_return_object_on_all
 ec_expl_spec_alias_template;;"an alias template cannot be explicitly specialized"
 ec_matching_lbrace;;"to match this \"{\""
 ec_macro_invocation;;"in this macro invocation"
+ec_call_with_unusable_argument_conversion;;"call requires an ambiguous argument conversion"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

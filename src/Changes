@@ -1,5 +1,35 @@
 Version 6.3
 
+9/10/21  [EDGcpfe/24690]
+NUM_BITS_FOR_CHARACTER_KIND
+
+The front end assumes that NUM_BITS_FOR_CHARACTER_KIND is at least 3 (to encode
+at least 5 different character kinds), but previously it did not enforce that
+configuration constraint.  Now a preprocessor error is triggered if the
+configured value is too small.
+
+
+9/10/21  [EDGcpfe/24690]
+Failure to consider explicit conversion operators in copy/move context
+
+Consider:
+
+  struct X {
+    template<typename T> operator T();
+    template<typename T, typename = int> explicit operator T();
+  };
+  struct S {
+    S(S const&);
+    S(S&&);
+  };
+  S s(X{});  // Previously accepted.  Now an ambiguity error.
+
+Previously, the front end incorrectly ignored the explicit conversion operator
+template of X when resolving the initializer of s.  Now, that explicit operator
+is considered, causing the initialization to be ambiguous (an error message is
+emitted).
+
+
 9/9/21   [EDGcpfe/24689]
 Modules and precompiled headers
 

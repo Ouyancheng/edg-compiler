@@ -4217,6 +4217,9 @@ enum a_character_kind_tag {
 #ifndef NUM_BITS_FOR_CHARACTER_KIND
 #define NUM_BITS_FOR_CHARACTER_KIND 3
 #endif /* ifndef NUM_BITS_FOR_CHARACTER_KIND */
+#if NUM_BITS_FOR_CHARACTER_KIND < 3
+ #error -- NUM_BITS_FOR_CHARACTER_KIND cannot be less than 3
+#endif /* NUM_BITS_FOR_CHARACTER_KIND < 3 */
 
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_character_kind;
@@ -5877,6 +5880,9 @@ typedef struct a_param_type {
   a_bit_field	move_ctor_or_assign_parameter:1;
 			/* TRUE if this is the first parameter of a move
 			   constructor or a move assignment operator. */
+  a_bit_field	copy_or_move_ctor_parameter:1;
+			/* TRUE if this is the first parameter of a copy or
+			   move constructor. */
   a_bit_field	is_requires_expr_param:1;
 			/* TRUE if this is a parameter for a requires-
 			   expression. */
