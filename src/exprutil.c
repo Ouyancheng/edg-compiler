@@ -18718,8 +18718,9 @@ whether the call was folded or not.
         }  /* if */
 #endif /* GNU_EXTENSIONS_ALLOWED */
         if (is_gnu_builtin_function(rp) &&
-            !is_prototype_instantiation_context() &&
-            is_foldable_gnu_builtin_function(rp, (a_boolean *)NULL)) {
+            is_foldable_gnu_builtin_function(rp, (a_boolean *)NULL) &&
+            (!is_prototype_instantiation_context() ||
+             !operand_is_instantiation_dependent(result))) {
           /* Some __builtin_xxx functions act as constant-expressions. */
           call_folded_to_constant = fold_gnu_call_if_possible(
                                                   result, function_call_node);
