@@ -5675,7 +5675,6 @@ in the current memory region.
 }  /* alloc_lambda_capture */
 
 
-
 an_il_entity_list_entry_ptr alloc_il_entity_list_entry(void)
 /*
 Allocate an entry for a list of arbitrary IL entries, and return a pointer to

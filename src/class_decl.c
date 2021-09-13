@@ -2333,21 +2333,26 @@ TRUE.
         new_lcp = add_lambda_capture(lambda, vp, (a_field_ptr)NULL,
                                      /*is_implicit=*/TRUE, by_ref, pos,
                                      &no_impl_capture);
-        /* Return the first of any added captures. */
-        if (lcp == NULL) lcp = new_lcp;
-        if (no_impl_capture) {
-          err_code = (vp != NULL && vp->is_this_parameter) ?
-                          ec_not_captured_this_in_lambda :
-                          ec_no_implicit_capture_on_enclosing_lambda;
-        }  /* if */
-        /* If this is a parameter pack expansion, check if more parameter
-           variables are in the expansion. */
-        if (param_num != 0) {
-          vp = vp->next;
-          if (vp != NULL &&
-              vp->variant.assoc_param_type->param_num == param_num) {
-            /* The next parameter is part of the same expansion. */
-            continue;
+        if (no_impl_capture && vp != NULL && vp->constant_valued &&
+            rvalue_only != NULL) {
+          *rvalue_only = TRUE;
+        } else {
+          /* Return the first of any added captures. */
+          if (lcp == NULL) lcp = new_lcp;
+          if (no_impl_capture) {
+            err_code = (vp != NULL && vp->is_this_parameter) ?
+                            ec_not_captured_this_in_lambda :
+                            ec_no_implicit_capture_on_enclosing_lambda;
+          }  /* if */
+          /* If this is a parameter pack expansion, check if more parameter
+             variables are in the expansion. */
+          if (param_num != 0) {
+            vp = vp->next;
+            if (vp != NULL &&
+                vp->variant.assoc_param_type->param_num == param_num) {
+              /* The next parameter is part of the same expansion. */
+              continue;
+            }  /* if */
           }  /* if */
         }  /* if */
         break;
