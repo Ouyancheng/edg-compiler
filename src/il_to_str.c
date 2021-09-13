@@ -5511,8 +5511,15 @@ on every expression.
                   (an_il_entry_kind)iek_variable, octl);
         break;
       case enk_routine:
-        form_name(&node_routine(expr)->source_corresp,
-                  (an_il_entry_kind)iek_routine, octl);
+        { a_routine_ptr  rp = node_routine(expr);
+          if (rp == NULL) {
+            check_assertion(!octl->gen_compilable_code);
+            octl->output_str("<NULL routine>", octl);
+          } else {
+            form_name(&rp->source_corresp, (an_il_entry_kind)iek_routine,
+                      octl);
+          }  /* if */
+        }
         break;
       case enk_field:
         form_name(&node_field(expr)->source_corresp,
