@@ -259,7 +259,7 @@ Consider:
     }
   };
   struct D : B<D> {};
-  constexpr auto trim_back = D{}.f();
+  constexpr auto r = D{}.f();
 
 This previously failed because the interpreter complained about the cast in
 line (1) attempting to cast to D&& from an object whose complete dynamic type
