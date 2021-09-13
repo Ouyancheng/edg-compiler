@@ -1,5 +1,20 @@
 Version 6.3
 
+9/14/21  [EDGcpfe/24695]
+IL write-read error on pseudo-destructor node
+
+Consider:
+
+  using INT = int;
+  void g() {
+    int i;
+    decltype(i.~INT()) *p;
+  }
+
+In configurations with IL_SHOULD_BE_WRITTEN_TO_FILE this previously triggered
+an IL write-read error.  That is now fixed.
+
+
 9/14/21  [EDGcpfe/23619]
 Lambda using constant-valued variable not capturable due to an enclosing lambda
 

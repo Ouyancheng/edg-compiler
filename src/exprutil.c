@@ -5868,14 +5868,17 @@ that extra work.
         a_type_ptr dtor_name_type;
         dtor_name_type = operand->name_reference.variant.destructor_type;
         if (dtor_name_type != NULL && has_name(dtor_name_type)) {
-          an_expr_node_ptr  vacuous_dtor_node =
-                              alloc_expr_node((an_expr_node_kind)enk_routine);
+          an_expr_node_ptr        vacuous_dtor_node;
+          a_memory_region_number  region_to_switch_back_to;
+          switch_to_scope_region(depth_scope_stack, &region_to_switch_back_to);
+          vacuous_dtor_node = alloc_expr_node((an_expr_node_kind)enk_routine);
           vacuous_dtor_node->type = void_type();
           vacuous_dtor_node->variant.routine.name_reference =
                 find_allocated_name_reference(&dtor_name_type->source_corresp,
                                               &operand->name_reference);
           check_assertion(node->variant.operation.operands != NULL);
           node->variant.operation.operands->next = vacuous_dtor_node;
+          switch_back_to_original_region(region_to_switch_back_to);
         }  /* if */
       }  /* if */
     }  /* if */
