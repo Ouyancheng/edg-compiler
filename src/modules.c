@@ -1148,9 +1148,10 @@ translation units.
   for (midp = il_header.imported_modules; midp != NULL; midp = midp->next) {
     if (midp->module_info->module_interface != NULL) {
       midp->module_info->module_interface->close();
+      delete_fe<a_module_interface>(midp->module_info->module_interface);
+      midp->module_info->module_interface = NULL;
     }  /* if */
   }  /* for */
-  il_header.imported_modules = NULL;
 }  /* modules_wrapup */
 
 
