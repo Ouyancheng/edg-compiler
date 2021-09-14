@@ -1145,6 +1145,10 @@ part of a declarator is found, may_be_decl is set to FALSE.
       /* Cache and bypass any pointer to member operators. */
       /* Keywords allowed in declarators in Microsoft mode, e.g., __cdecl. */
       get_token_and_coalesce_if_identifier(flags);
+      if (std_attribute_tokens_next()) {
+        /* C++11 permits attributes after the pointer/reference operator. */
+        prescan_std_attribute(flags);
+      }  /* if */
     } else {
       /* No more ptr-operators. */
       break;

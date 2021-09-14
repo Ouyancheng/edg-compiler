@@ -1,5 +1,21 @@
 Version 6.3
 
+9/14/21  [EDGcpfe/24521]
+Incorrect disambiguation of pointer-to-member declaration with attributes
+
+Consider:
+
+  struct S {};
+  void g() {
+    int (S::*pm [[]]);  // Previously an error.  Now okay.
+  }
+
+The front end's "expression vs. declaration" disambiguation parser previously
+did not handle attributes following the "*" in a pointer-to-member declarator
+construct.  That caused the statement in the example above to be parsed as an
+expression, which in turn resulted in spurious errors.  That is now fixed.
+
+
 9/14/21  [EDGcpfe/24695]
 IL write-read error on pseudo-destructor node
 
