@@ -5261,7 +5261,7 @@ FIXME: This method should be removed in the future and used sparingly, as it's
 effectively a hack to retrieve a non-mangled name from the primary template.
 
 At the time of writing the name used by the templated declaration is mangled
-due to a MSVC bug, as a result we must extract the name from the primary
+due to a bug in MSVC, as a result we must extract the name from the primary
 template's declaration.
 */
 {
@@ -5277,7 +5277,7 @@ template's declaration.
 
 
 /* A CRT (curiously recursive template) visitor class for dispatching to a
-   visit function which should be "overridden" by implementing derived
+   visit function that should be "overridden" by implementing derived
    classes. */
 /* FIXME: Upon moving to C++14 this class and its derivatives can be replaced
    by a lambda based dispatch function template.  C++11 does not provide the
@@ -5406,10 +5406,10 @@ inline ifc_NameIndex an_ifc_module::get_ifc_name(
 Return the name of the declaration represented at decl.
 */
 {
-  /* FIXME: Both the name held by a partial specialization, and the name
+  /* FIXME: Both the name held by a partial specialization and the name
      held by the associated declaration are mangled.  Thus, we can't use
      the name on the partial specialization, or recurse to get the name
-     from the specialized entity. Pull the name from the primary
+     from the specialized entity.  Pull the name from the primary
      template. */
   return get_ifc_name_from_primary_template(decl->form);
 }  /* get_ifc_name<an_ifc_DeclSort_PartialSpecialization> */
@@ -5449,6 +5449,7 @@ Return the name of the declaration represented at decl.
 */
 {
   decl_name_visitor name_visitor(this);
+
   return name_visitor.visit_index(decl_index);
 }  /* get_ifc_name */
 
@@ -5485,6 +5486,7 @@ Return the locus of the declaration represented at decl.
 */
 {
   decl_locus_visitor locus_visitor(this);
+
   return locus_visitor.visit_index(decl_index);
 }  /* get_ifc_locus */
 
@@ -5534,6 +5536,7 @@ Given a declaration's index find and return its home scope decl.
 */
 {
   decl_home_scope_decl_visitor home_scope_decl_visitor(this);
+
   return home_scope_decl_visitor.visit_index(decl_index);
 }  /* get_ifc_home_scope_decl */
 
@@ -7050,6 +7053,7 @@ decl.
 {
   ifc_NameIndex      name = get_ifc_name(decl);
   ifc_SourceLocation locus = get_ifc_locus(decl);
+
   source_position_from_locus(&error_position, &locus);
   init_locator_from_name(name, (ifc_TextOffset)0, &locus, loc);
 }  /* init_decl_locator */
@@ -7061,10 +7065,11 @@ inline a_boolean an_ifc_module::lazy_init_module_scope(
                                                      a_module_entity_ptr mep)
 /*
 If the given module entity pointer's scope is not yet set, set the scope.
-Return true if a scope was set.
+Return TRUE if a scope was set.
 */
 {
   a_boolean scope_initialized = FALSE;
+
   if (mep->scope == NULL) {
     mep->scope = get_ifc_home_scope(decl);
     scope_initialized = TRUE;
@@ -7079,11 +7084,12 @@ inline a_boolean an_ifc_module::lazy_push_module_scope(
                                                      a_module_entity_ptr mep)
 /*
 If the given module entity pointer's scope is not yet set, set the scope and
-push the module declaration context.  Return true if a scope was pushed.
+push the module declaration context.  Return TRUE if a scope was pushed.
 */
 {
   a_boolean scope_initialized = lazy_init_module_scope(decl, mep);
   a_boolean scope_pushed = FALSE;
+
   if (scope_initialized) {
     scope_pushed = push_module_declaration_context(mep->scope);
   }  /* if */
@@ -14054,9 +14060,9 @@ a_template_ptr an_ifc_module::parse_cached_explicit_specialization(
                              an_ifc_DeclSort_ExplicitSpecialization *decl)
 /*
 Parse the tokens corresponding to the given explicit specialization
-declaration's (decl) cache, and return the
-corresponding explicit specialization.  encl_scope is the scope containing the
-explicit specialization declaration.
+declaration's (decl) cache, and return the corresponding explicit
+specialization.  encl_scope is the scope containing the explicit specialization
+declaration.
 */
 {
   a_decl_parse_state dps;
@@ -14174,9 +14180,8 @@ char *an_ifc_module::parse_cached_explicit_instantiation(
                                    a_byte_il_entry_kind                  *kind)
 /*
 Parse the tokens corresponding to the given explicit instantiation
-declaration's (decl) cache.  Return a pointer to the
-corresponding explicitly-instantiated entity and update kind with the
-associated entity kind.
+declaration's (decl) cache.  Return a pointer to the corresponding
+explicitly-instantiated entity and update kind with the associated entity kind.
 */
 {
   a_decl_parse_state dps;
