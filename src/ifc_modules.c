@@ -3004,6 +3004,7 @@ associated template decl state.  Finally, final_token is a pointer to the
 associated storage for the final token seen during parsing.
 */
 {
+  push_stop_token_stack();
   rescan_cached_tokens(cache);
   init_decl_parse_state(dps);
   init_templ_decl_state(decl_state, dps);
@@ -3020,23 +3021,10 @@ Finish parsing of a cached template or template specialization declaration.
 final_token is a pointer to expected final token of the parse.
 */
 {
-  if (curr_token != *final_token) {
-    expect_error();
-    flush_tokens_without_warning();
-    /* If the flush finished because we hit the final token, the final token
-       will still be present.  Consume said token so that we presumably
-       move on to the end of source. */
-    /* FIXME: Is this right? */
-    if (curr_token == *final_token) {
-      (void)get_token();
-    }  /* if */
-  } else {
-    (void)get_token();
-    if (curr_token == tok_semicolon) {
-      /* Microsoft sometimes adds a semicolon after the final closing brace. */
-      (void)get_token();
-    }  /* if */
-  }  /* if */
+  /* FIXME: Reintegrate the final token concept. */
+  clear_stop_tokens();
+  flush_tokens_without_warning();
+  pop_stop_token_stack();
   check_assertion(curr_token == tok_end_of_source);
   (void)get_token();
 }  /* finish_cached_template_parse */
@@ -5632,6 +5620,7 @@ can currently be qualified.
   switch (decl_tag(decl_index)) {
     case ifc_DeclSort_Parameter:
     case ifc_DeclSort_Reference:
+    case ifc_DeclSort_Enumerator:
       /* This declaration can never have its name qualified. */
       result = FALSE;
       break;
@@ -14222,6 +14211,7 @@ explicitly-instantiated entity and update kind with the associated entity kind.
     fprintf(f_debug, "\n---------------------\n");
   }  /* if */
 #endif /* DEBUG */
+  push_stop_token_stack();
   rescan_cached_tokens(cache);
   source_position_from_locus(&template_kw_pos, &template_locus);
   {

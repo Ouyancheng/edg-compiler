@@ -109,14 +109,14 @@ IFC_DECL_START(DeclSort_VendorExtension)
 IFC_DECL_END(DeclSort_VendorExtension)
 
 /* DeclSort::Enumerator */
-IFC_DECL_START(DeclSort_Enumerator)
+IFC_DECL_DECLSORT_START(Enumerator)
   IFC_DECL_FIELD(name, TextOffset)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
   IFC_DECL_FIELD(initializer, ExprIndex)
   IFC_DECL_FIELD(specifiers, BasicSpecifiers)
   IFC_DECL_FIELD(access, Access)
-IFC_DECL_END(DeclSort_Enumerator)
+IFC_DECL_DECLSORT_END(Enumerator)
 
 /* DeclSort::Variable */
 IFC_DECL_DECLSORT_START(Variable)

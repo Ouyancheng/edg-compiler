@@ -15092,7 +15092,7 @@ this using-directive.
   udp->is_using_directive = TRUE;
   udp->compiler_generated = compiler_generated;
   udp->inline_namespace = inline_namespace;
-  ssep = &scope_stack[depth_scope_stack];
+  ssep = &scope_stack[decl_scope_level];
   if (inline_namespace) {
     /* For inline namespaces, add the using-directive to the inline namespace
        list of the enclosing namespace. */
