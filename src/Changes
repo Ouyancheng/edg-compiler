@@ -1,5 +1,21 @@
 Version 6.3
 
+9/14/21  [EDGcpfe/24696]
+GNU C++20 compatibility: Friend templates and requires expressions
+
+Consider:
+
+  template<typename> requires true struct X {
+    template<typename> friend struct X;
+  };
+  X<int> x;  // Now okay in GNU C++20 mode.
+
+Ordinarily, this example is invalid because the friend template does not have a
+requires-clause that is compatible with the original (enclosing) declaration of
+struct X.  GCC, however, accepts this particular case and the front end now
+follows suit in corresponding GNU C++ modes.
+
+
 9/14/21  [EDGcpfe/24521]
 Incorrect disambiguation of pointer-to-member declaration with attributes
 

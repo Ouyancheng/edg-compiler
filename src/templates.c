@@ -23867,7 +23867,8 @@ redeclaration) and any redeclaration error should be suppressed.
          list).  For member templates, default arguments are only allowed on
          the initial declaration (in the class). */
       a_boolean default_allowed = !sym->is_class_member ||
-                                  decl_state->class_declared_in != NULL;
+                                  decl_state->class_declared_in != NULL,
+                check_requires_clause = TRUE;
       if (!default_allowed && sym->is_class_member) {
         a_type_ptr parent_class = sym_parent_class(sym);
         if (!parent_class->variant.class_struct_union.is_template_class ||
@@ -23878,8 +23879,19 @@ redeclaration) and any redeclaration error should be suppressed.
           default_allowed = TRUE;
         }  /* if */
       }  /* if */
-      (void)check_requires_redecl(tssp->cache.decl_info, decl_state->decl_info,
-                                  loc, sym);
+      if (gpp_version_is(any_version) && decl_state->is_template_friend) {
+        a_scope_depth  d = scope_stack_top().previous_scope;
+        for (; d > DEPTH_OF_FILE_SCOPE; d = scope_stack[d].previous_scope) {
+          if (scope_is(&scope_stack[d], sck_template_instantiation) &&
+              scope_stack[d].template_sym == sym) {
+            check_requires_clause = FALSE;
+          }  /* if */
+        }  /* for */
+      }  /* if */
+      if (check_requires_clause) {
+        (void)check_requires_redecl(tssp->cache.decl_info,
+                                    decl_state->decl_info, loc, sym);
+      }  /* if */
       if (microsoft_bugs && microsoft_version < 1310 && sym->defined) {
         /* The Microsoft compiler (prior to version 7.1) does not check the
            parameter list of a template that is redeclared after it has been
