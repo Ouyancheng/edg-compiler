@@ -5624,6 +5624,24 @@ can currently be qualified.
       /* This declaration can never have its name qualified. */
       result = FALSE;
       break;
+    case ifc_DeclSort_Method:
+    case ifc_DeclSort_Constructor:
+    case ifc_DeclSort_Destructor:
+    case ifc_DeclSort_Field:
+    case ifc_DeclSort_Bitfield:
+    case ifc_DeclSort_Property:
+      { /* These entities can only exist in a class and class definitions are
+         currently handled by scanning a token representation of the class.
+         Verify the enclosing class is enclosed in a scope and not a free or
+         member function.  These functions both prevent the class from being
+         qualified, and break processing of get_ifc_home_scope (which we use
+         for caching the qualifier). */
+        ifc_DeclIndex enclosing_class = get_ifc_home_scope_decl(decl_index);
+        ifc_DeclIndex class_enclosing_context =
+                                      get_ifc_home_scope_decl(enclosing_class);
+        result = decl_tag(class_enclosing_context) == ifc_DeclSort_Scope;
+      }
+      break;
     default:
       /* Assume the name can be qualified. */
       break;
