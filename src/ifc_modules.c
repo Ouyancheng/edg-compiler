@@ -9430,7 +9430,17 @@ this is needed.
     case ifc_TypeSort_Designated:
       { an_ifc_TypeSort_Designated itsd, *itsdp;
         itsdp = get_TypeSort_Designated(&itsd);
-        cache_name_from_decl(cache, itsdp->decl, locus);
+        if (is_name_qualifiable(itsdp->decl)) {
+          cache_qualified_name_from_decl(cache, itsdp->decl, locus);
+        } else {
+          /* We are contextually forbidden from qualifying this name or the
+             declaration type otherwise is considered to never appear
+             with a qualified name.
+
+             This can happen when building an unqualified-id within a dependent
+             context. */
+          cache_name_from_decl(cache, itsdp->decl, locus);
+        }  /* if */
       }
       break;
     case ifc_TypeSort_Tor:
