@@ -3786,6 +3786,31 @@ a file that contains metadata).
     fprintf(f_debug, "file = \"%s\", seq = %lu\n", file_name,
             (unsigned long)seq_number);
   }  /* if */
+#if EXPENSIVE_CHECKING
+  {
+    a_seq_number_lookup_entry_ptr snlep = il_header.seq_number_lookup_entries;
+
+    /* Find the latest sequence number lookup entry, if any. */
+    while (snlep != NULL && snlep->next != NULL) {
+      snlep = snlep->next;
+    }  /* for */
+    if (is_implicit_include) {
+      /* Validate that implicit includes are only performed on fully sequenced
+         files, then mark the file as reopened. */
+      check_assertion(snlep != NULL);
+      check_assertion(snlep->source_file->is_fully_sequenced);
+      snlep->source_file->is_fully_sequenced = FALSE;
+    }  /* if */
+    if (seq_number != 1 && snlep->last != MAX_SEQ_NUMBER) {
+      a_boolean is_fully_sequenced = snlep->source_file->is_fully_sequenced;
+      uint32_t expected_sequence_offset = is_fully_sequenced ? 2 : 1;
+
+      /* There is a previous lookup entry.  Check to make sure it ends, before
+         this file starts (factoring in end of file sequence skips). */
+      check_assertion(snlep->last == seq_number - expected_sequence_offset);
+    }  /* if */
+  }
+#endif /* EXPENSIVE_CHECKING */
 #endif /* DEBUG */
   /* Allocate the new file block. */
   *new_file = sfp = alloc_source_file();
@@ -4023,6 +4048,7 @@ by recording that the last sequence number contained therein is seq_number.
   reset_seq_cache();
   /* Update the current sequence number lookup entry with the ending sequence
      number. */
+  check_assertion(curr_seq_number_lookup_entry->first <= seq_number);
   curr_seq_number_lookup_entry->last = seq_number;
   db_exit();
 }  /* record_end_of_source_file */
