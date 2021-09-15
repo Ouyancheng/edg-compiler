@@ -6422,6 +6422,9 @@ at the next level down.
   }  /* if */
 #endif /* DEBUG */
   if (is_eof_char(getc_curr_input_stream())) {
+    /* This input stack pop is at the end of the file.  Increment the sequence
+       number to mark this. */
+    curr_seq_number = ++seq_number_last_read;
 #if EXPENSIVE_CHECKING && DEBUG
     curr_ise->assoc_il_file->is_fully_sequenced = TRUE;
 #endif /* EXPENSIVE_CHECKING && DEBUG */
