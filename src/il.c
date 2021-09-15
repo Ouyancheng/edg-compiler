@@ -3891,12 +3891,18 @@ that are associated with the source file, then resumes the previous file.  The
 initial source position for the file is returned in *starting_seq_num.
 */
 {
+  a_boolean         is_implicit_include = curr_ise == NULL;
   a_source_file_ptr parent_file, new_file;
 
   check_assertion(curr_seq_number_lookup_entry != NULL &&
                   max_line_number >= 1);
   parent_file = curr_seq_number_lookup_entry->source_file;
   check_assertion(parent_file != NULL);
+  if (is_implicit_include) {
+    /* Decrement the sequence number when starting an implicitly included
+       file so that we reuse the old end-of-source position. */
+    seq_number_last_read--;
+  }  /* if */
   /* Record the new source file.  Specify an unknown line number to suppress
      line number information in any diagnostics. */
   record_start_of_source_file(parent_file,
@@ -3910,7 +3916,7 @@ initial source position for the file is returned in *starting_seq_num.
                               /*is_system_include=*/FALSE, /* presumably */
                               /*is_preinclude=*/FALSE,
                               /*preinclude_macros_only=*/FALSE,
-                              /*is_implicit_include=*/FALSE,
+                              is_implicit_include,
                               /*from_system_include_dir=*/FALSE,
                               /*is_assembly_file=*/FALSE);
   new_file->assoc_module = mod;
