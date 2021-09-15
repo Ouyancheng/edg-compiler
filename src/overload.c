@@ -8787,14 +8787,21 @@ its candidate function entry.  Otherwise, return NULL.
 {
   a_candidate_function_ptr cfp, best_cfp = NULL;
   an_arg_match_level       worst_match, best_worst_match = aml_none;
+  a_boolean                best_worst_is_reversed = FALSE;
 
   for (cfp = candidates; cfp != NULL; cfp = cfp->next) {
     worst_match = worst_arg_match_level_for_candidate_arg(cfp);
-    if ((int)worst_match < (int)best_worst_match) {
+    if ((int)worst_match < (int)best_worst_match ||
+        (best_worst_is_reversed && !cfp->supplemental_reversed_candidate &&
+         (int)worst_match == (int)best_worst_match)) {
       /* A new best function. */
       best_cfp = cfp;
       best_worst_match = worst_match;
-    } else if ((int)worst_match > (int)best_worst_match) {
+      best_worst_is_reversed = cfp->supplemental_reversed_candidate;
+    } else if ((int)worst_match > (int)best_worst_match ||
+               ((int)worst_match == (int)best_worst_match &&
+                !best_worst_is_reversed &&
+                !cfp->supplemental_reversed_candidate)) {
       /* The worst match for this candidate is worse than the best
          worst match we've seen previously, so ignore it. */
     } else {

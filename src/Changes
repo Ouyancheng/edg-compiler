@@ -1,5 +1,32 @@
 Version 6.3
 
+9/15/21  [EDGcpfe/24682,EDGcpfe/24703]
+GNU C++20 compatibility: Comparison disambiguation
+
+Consider:
+
+  struct S {
+    S();
+    operator int() const;
+  } s;
+  bool operator==(S const&, char const*);  // (1)
+  bool operator==(char const*, S const&);  // (2)
+  auto r = (s == 0);  // Previously ambiguous in C++20 modes.  Now accepted
+                      // in GNU C++20 mode.
+
+For the expression "s == 0" there are three "==" candidates in C++20 mode:
+declaration (1), declaration (2) with reversed arguments, and the built-in
+equality operator.  The built-in candidate is a better match for the second
+operand ("0") while it's a worse match for the first (which requires a user-
+defined conversion).  That makes that expression invalid.  It is also invalid
+in C++17 since that just drops declaration (2) from the candidate set.
+However, GCC accepts the case in both C++17 and C++20 modes.  We already
+emulated GNU C++17 mode by discarding the built-in candidate on the grounds
+that the "worst" conversion it involves (a user-defined conversion) is worse
+than any conversion needed for the other candidates.  Now, that tie-breaker
+has been tweaked to also discard the reversed candidate in this case.
+
+
 9/15/21  [EDGcpfe/24706]
 Abort during instantiation of requires-expressions
 
