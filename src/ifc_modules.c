@@ -5621,6 +5621,33 @@ the declaration is not in a scope that uses access specifiers.
 }  /* get_ifc_access */
 
 
+a_boolean an_ifc_module::is_name_qualifiable(ifc_DeclIndex decl_index)
+/*
+Given a declaration's index, return true if the declaration name
+can currently be qualified.
+*/
+{
+  a_boolean result = TRUE;
+
+  switch (decl_tag(decl_index)) {
+    case ifc_DeclSort_Parameter:
+    case ifc_DeclSort_Reference:
+      /* This declaration can never have its name qualified. */
+      result = FALSE;
+      break;
+    default:
+      /* Assume the name can be qualified. */
+      break;
+  }  /* switch */
+  /* If name qualification is globally suppressed, this declaration's name
+     cannot be qualified. */
+  if (suppress_automatic_name_qualification) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_name_qualifiable */
+
+
 static a_calling_convention conv_calling_convention(
                                               ifc_CallingConvention convention)
 /*
@@ -12021,15 +12048,17 @@ second operand of an assignment.
       { an_ifc_ExprSort_NamedDecl iesnd, *iesndp;
         iesndp = get_ExprSort_NamedDecl(&iesnd);
         source_position_from_locus(&pos, &iesndp->locus);
-        if (suppress_automatic_name_qualification) {
-          /* We are contextually forbidden from qualifying this name.
+        if (is_name_qualifiable(iesndp->resolution)) {
+          cache_qualified_name_from_decl(cache, iesndp->resolution,
+                                         &iesndp->locus);
+        } else {
+          /* We are contextually forbidden from qualifying this name or the
+             declaration type otherwise is considered to never appear
+             with a qualified name.
 
              This can happen when building an unqualified-id within a dependent
              context. */
           cache_name_from_decl(cache, iesndp->resolution, &iesndp->locus);
-        } else {
-          cache_qualified_name_from_decl(cache, iesndp->resolution,
-                                         &iesndp->locus);
         }  /* if */
       }
       break;
@@ -12044,9 +12073,7 @@ second operand of an assignment.
       { an_ifc_ExprSort_TemplateId iestid, *iestidp;
         iestidp = get_ExprSort_TemplateId(&iestid);
         source_position_from_locus(&pos, &iestidp->locus);
-        suppress_automatic_name_qualification = TRUE;
         cache_expr(cache, iestidp->primary);
-        suppress_automatic_name_qualification = FALSE;
         cache_token(cache, tok_lt, &pos);
         if (iestidp->arguments != 0) {
           cache_expr(cache, iestidp->arguments);
@@ -13528,8 +13555,7 @@ nested-name-specifier to cache.  pos is the position of the qualified-id this
 nested-name-specifier is part of.
 */
 {
-  a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl);
-  cache_scope_as_nested_name_specifier(cache, mep->scope, pos);
+  cache_scope_as_nested_name_specifier(cache, get_ifc_home_scope(decl), pos);
 }  /* cache_nested_name_specifier_from_decl */
 
 

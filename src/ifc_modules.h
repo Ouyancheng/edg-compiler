@@ -2744,6 +2744,7 @@ private:
   inline ifc_Access get_ifc_access(an_ifc_DeclSort_T *decl)
     { return get_ifc_access(decl, 0); }
   ifc_Access get_ifc_access(ifc_DeclIndex decl_index);
+  a_boolean is_name_qualifiable(ifc_DeclIndex decl_index);
   a_type_ptr type_for_type_index(ifc_TypeIndex   type_index,
                                  a_non_type_kind *kind);
   a_type_ptr type_for_template_id(an_ifc_ExprSort_TemplateId *templ_id);
