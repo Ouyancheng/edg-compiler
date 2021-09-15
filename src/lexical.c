@@ -15248,8 +15248,10 @@ to skip tokens for some purpose other than error recovery.
   }  /* while */
   set_err_pos_to_curr_token();
   /* If the flushing threw away more than just a little bit, put out
-     a diagnostic to tell the user where the parsing recovered. */
-  if (!suppress_warning &&
+     a diagnostic to tell the user where the parsing recovered.  If
+     the flush finished because it hit end of source, skip the warning,
+     as it isn't helpful. */
+  if (!suppress_warning && curr_token != tok_end_of_source &&
       pos_curr_token.seq - start_pos.seq > 2) {
     pos_warning(ec_end_of_flush, &error_position);
   }  /* if */
