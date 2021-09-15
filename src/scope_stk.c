@@ -8027,6 +8027,11 @@ discarded right after they have been generated.
   if (routine->is_trivial_default_constructor && !routine->is_defaulted) {
     /* Discard implicit trivial default constructors. */
     discard = TRUE;
+  } else if (routine->is_prototype_instantiation) {
+    /* Do not discard prototype instantiations because they might contain
+       expressions (like requires-expressions) that must be substituted in
+       corresponding real instantiations. */
+    discard = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (ms_extensions && (routine->decl_modifiers & DM_DLLIMPORT) &&
              !routine->is_inline) {
@@ -8040,11 +8045,6 @@ discarded right after they have been generated.
     /* Routines that are or contain generic lambdas may need to have their
        scopes reactivated for instantiations. */
     discard = FALSE;
-  } else if (routine->is_prototype_instantiation &&
-             !all_template_info_in_il) {
-    /* This is a prototype instantiation, and we're not keeping prototype
-       instantiations in the IL. */
-    discard = TRUE;
   } else if (is_nontemplate_routine_from_exported_trans_unit(routine)) {
     /* This is a non-template or a specialization in a secondary translation
        unit that is being compiled only for its exported templates.

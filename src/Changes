@@ -1,5 +1,14 @@
 Version 6.3
 
+9/15/21  [EDGcpfe/24706]
+Abort during instantiation of requires-expressions
+
+In some configurations instantiating a function template containing a requires-
+expression could lead to memory corruption and aborts because the corresponding
+prototype instantiation of the function template was discarded too early.  That
+is now fixed.
+
+
 9/14/21  [EDGcpfe/24696]
 GNU C++20 compatibility: Friend templates and requires expressions
 
