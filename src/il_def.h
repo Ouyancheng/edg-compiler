@@ -274,6 +274,11 @@ typedef struct a_seq_number_lookup_entry {
   a_source_file_ptr
 		source_file;
 			/* The source file containing this sequence number. */ 
+#if EXPENSIVE_CHECKING && DEBUG
+  a_bit_field	is_marked_for_recycle:1;
+			/* TRUE if this sequence number lookup entry is
+			   expected to be recycled. */
+#endif /* EXPENSIVE_CHECKING && DEBUG */
 } a_seq_number_lookup_entry;
 
 

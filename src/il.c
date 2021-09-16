@@ -3697,6 +3697,13 @@ is used.
 #endif /* DEBUG */
   if (curr_seq_number_lookup_entry != NULL &&
       curr_seq_number_lookup_entry->first == seq_number) {
+#if EXPENSIVE_CHECKING && DEBUG
+    /* Verify that the sequence number lookup entry we're trying to reuse
+       either comes from a file that was never finished, or has been explicitly
+       marked as recyclable. */
+    check_assertion(curr_seq_number_lookup_entry->last == MAX_SEQ_NUMBER ||
+                    curr_seq_number_lookup_entry->is_marked_for_recycle);
+#endif /* EXPENSIVE_CHECKING && DEBUG */
     /* The previously created entry turns out not to be needed.  Reuse
        that entry instead of adding a new one. */
     snlep = curr_seq_number_lookup_entry;
@@ -4067,8 +4074,12 @@ by recording that the last sequence number contained therein is seq_number.
   reset_seq_cache();
   /* Update the current sequence number lookup entry with the ending sequence
      number. */
-  check_assertion(curr_seq_number_lookup_entry->first <= seq_number);
   curr_seq_number_lookup_entry->last = seq_number;
+#if EXPENSIVE_CHECKING && DEBUG
+  if (curr_seq_number_lookup_entry->first > seq_number) {
+    curr_seq_number_lookup_entry->is_marked_for_recycle = TRUE;
+  }  /* if */
+#endif /* EXPENSIVE_CHECKING && DEBUG */
   db_exit();
 }  /* record_end_of_source_file */
 

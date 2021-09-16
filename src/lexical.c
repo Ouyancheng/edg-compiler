@@ -6421,11 +6421,6 @@ at the next level down.
     db_include_guard_info();
   }  /* if */
 #endif /* DEBUG */
-  if (is_eof_char(getc_curr_input_stream())) {
-    /* This input stack pop is at the end of the file.  Increment the sequence
-       number to mark this. */
-    curr_seq_number = ++seq_number_last_read;
-  }  /* if */
   /* First, discard any entries that were cloned for the purpose of
      tracking #line directives; the processing below applies to the actual
      source file. */
@@ -24620,6 +24615,15 @@ done to determine whether a precompiled header may be used.
   check_assertion(curr_translation_unit != NULL);
   curr_translation_unit->is_partially_sequenced = FALSE;
   curr_translation_unit->is_fully_sequenced = FALSE;
+  {
+    a_seq_number_lookup_entry_ptr snlep = il_header.seq_number_lookup_entries;
+
+    /* Mark all active sequence number lookup entries as recyclable. */
+    while (snlep != NULL) {
+      snlep->is_marked_for_recycle = TRUE;
+      snlep = snlep->next;
+    }  /* while */
+  }
 #endif /* EXPENSIVE_CHECKING && DEBUG */
 }  /* lexical_reset */
 

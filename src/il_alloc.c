@@ -5342,6 +5342,9 @@ a pointer to it.
   snlep->next = NULL;
   snlep->source_file = NULL;
 #if DEBUG
+#if EXPENSIVE_CHECKING
+  snlep->is_marked_for_recycle = FALSE;
+#endif /* EXPENSIVE_CHECKING */
   num_seq_number_lookup_entries_allocated++;
 #endif /* DEBUG */
   return snlep;
