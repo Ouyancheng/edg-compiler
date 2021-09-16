@@ -244,16 +244,6 @@ typedef struct a_source_file {
 			   last_seq_number) and this sequence number is used
 			   for all tokens scanned from the file. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if EXPENSIVE_CHECKING && DEBUG
-  a_bit_field	is_fully_sequenced:1;
-			/* TRUE if the source file has been fully sequenced.
-			   Used by expensive checks to validate sequence
-			   numbers.  This value generally speaking, only
-			   becomes TRUE one.  However, in the case of implicit
-			   includes (for delayed template instantiations) files
-			   may have their sequences expanded, in which case
-			   this value is expected to revert to FALSE. */
-#endif /* EXPENSIVE_CHECKING && DEBUG */
 } a_source_file;
 
 /*

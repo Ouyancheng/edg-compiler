@@ -3793,22 +3793,35 @@ a file that contains metadata).
     /* Find the latest sequence number lookup entry, if any. */
     while (snlep != NULL && snlep->next != NULL) {
       snlep = snlep->next;
-    }  /* for */
+    }  /* while */
     if (is_implicit_include) {
       /* Validate that implicit includes are only performed on fully sequenced
-         files, then mark the file as reopened. */
-      check_assertion(snlep != NULL);
-      check_assertion(snlep->source_file->is_fully_sequenced);
-      snlep->source_file->is_fully_sequenced = FALSE;
+         translation units, then mark the translation unit as reopened. */
+      check_assertion(curr_translation_unit->is_fully_sequenced);
+      curr_translation_unit->is_fully_sequenced = FALSE;
     }  /* if */
+    /* By this point the current translation unit should either have already
+       been an open translation unit, or it should have been reopened by
+       an implicit include.  All other cases are contract violations. */
+    check_assertion(!curr_translation_unit->is_fully_sequenced);
+    /* If the sequence number is one this is a brand new sequence either from a
+       fresh compilation or a lexical reset.  If the last sequence number
+       encountered is MAX_SEQ_NUMBER it will be updated by this function.  In
+       either case, we can not perform any meaningful checks about the
+       sequencing. */
     if (seq_number != 1 && snlep->last != MAX_SEQ_NUMBER) {
-      a_boolean is_fully_sequenced = snlep->source_file->is_fully_sequenced;
-      uint32_t expected_sequence_offset = is_fully_sequenced ? 2 : 1;
+      a_boolean is_new_translation_unit =
+                                !curr_translation_unit->is_partially_sequenced;
+      uint32_t expected_sequence_offset = is_new_translation_unit ? 2 : 1;
 
-      /* There is a previous lookup entry.  Check to make sure it ends, before
-         this file starts (factoring in end of file sequence skips). */
+      /* There is a previous lookup entry that we can meaningfully examine.
+         Check to make sure it ends before this file starts (factoring in the
+         sequence skip between new translation units). */
       check_assertion(snlep->last == seq_number - expected_sequence_offset);
     }  /* if */
+    /* Mark the translation unit as partially sequenced so reentering this
+       function ensures no unintended sequence skips. */
+    curr_translation_unit->is_partially_sequenced = TRUE;
   }
 #endif /* EXPENSIVE_CHECKING */
 #endif /* DEBUG */

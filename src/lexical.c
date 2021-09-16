@@ -6361,8 +6361,8 @@ directive.
 
 #if EXPENSIVE_CHECKING && DEBUG
   /* Check to make sure we don't attempt to create a sibling from a fully
-     sequenced source file. */
-  check_assertion(!old_file->is_fully_sequenced);
+     sequenced translation unit. */
+  check_assertion(!curr_translation_unit->is_fully_sequenced);
 #endif /* EXPENSIVE_CHECKING && DEBUG */
   /* Copy all the data from the cloned input file, updating as necessary. */
   *new_file = *old_file;
@@ -6425,9 +6425,6 @@ at the next level down.
     /* This input stack pop is at the end of the file.  Increment the sequence
        number to mark this. */
     curr_seq_number = ++seq_number_last_read;
-#if EXPENSIVE_CHECKING && DEBUG
-    curr_ise->assoc_il_file->is_fully_sequenced = TRUE;
-#endif /* EXPENSIVE_CHECKING && DEBUG */
   }  /* if */
   /* First, discard any entries that were cloned for the purpose of
      tracking #line directives; the processing below applies to the actual
@@ -6464,9 +6461,6 @@ at the next level down.
      entry for that. */
   if (curr_ise->assoc_actual_il_file != curr_ise->assoc_il_file) {
     record_end_of_source_file(curr_ise->assoc_il_file, seq_number_last_read);
-#if EXPENSIVE_CHECKING && DEBUG
-    curr_ise->assoc_il_file->is_fully_sequenced = TRUE;
-#endif /* EXPENSIVE_CHECKING && DEBUG */
   }  /* if */
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
   if (depth_input_stack == 0) {
@@ -7520,17 +7514,7 @@ literals in C++11.
   no_modifs_to_curr_source_line = (source_line_modif_list == NULL);
   if (after_end_of_all_source) {
 #if EXPENSIVE_CHECKING && DEBUG
-    {
-      /* Find the current source file and mark that we should be done
-         sequencing it. */
-      a_source_file_ptr curr_file = il_header.primary_source_file;
-
-      check_assertion(curr_file != NULL);
-      while (curr_file->next != NULL) {
-        curr_file = curr_file->next;
-      }  /* for */
-      curr_file->is_fully_sequenced = TRUE;
-    }
+    curr_translation_unit->is_fully_sequenced = TRUE;
 #endif /* EXPENSIVE_CHECKING && DEBUG */
     /* End of all source.  Go end the line with a line-end sequence and
        return. */
@@ -24632,6 +24616,11 @@ done to determine whether a precompiled header may be used.
   offset_of_nonsplice_backslash = 0;
   (void)memzero((char *)source_line_modif_hash_table,
                 sizeof(source_line_modif_hash_table));
+#if EXPENSIVE_CHECKING && DEBUG
+  check_assertion(curr_translation_unit != NULL);
+  curr_translation_unit->is_partially_sequenced = FALSE;
+  curr_translation_unit->is_fully_sequenced = FALSE;
+#endif /* EXPENSIVE_CHECKING && DEBUG */
 }  /* lexical_reset */
 
 

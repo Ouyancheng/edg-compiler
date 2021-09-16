@@ -634,9 +634,6 @@ Allocate a source file entry, initialize it, and return a pointer to it.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   sfp->is_assembly_file = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-#if EXPENSIVE_CHECKING && DEBUG
-  sfp->is_fully_sequenced = FALSE;
-#endif /* EXPENSIVE_CHECKING && DEBUG */
 
   return sfp;
 }  /* alloc_source_file */

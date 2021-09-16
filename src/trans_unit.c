@@ -632,6 +632,10 @@ a pointer to the entry created.
 #if NEED_NAME_MANGLING
   tup->individuated_namespace = NULL;
 #endif /* NEED_NAME_MANGLING */
+#if EXPENSIVE_CHECKING && DEBUG
+  tup->is_partially_sequenced = FALSE;
+  tup->is_fully_sequenced = FALSE;
+#endif /* EXPENSIVE_CHECKING && DEBUG */
   /* Translation unit fields that are maintained by the mechanism that
      saves and restores translation unit variables.  They point to whichever
      copy of the information is currently active (either the global variable

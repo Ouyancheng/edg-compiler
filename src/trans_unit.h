@@ -127,6 +127,27 @@ typedef struct a_translation_unit {
 			/* A dummy namespace used during mangling for the
 			   individuation of entities. */
 #endif /* NEED_NAME_MANGLING */
+#if EXPENSIVE_CHECKING && DEBUG
+  a_bit_field	is_partially_sequenced:1;
+			/* TRUE if sequencing has started on this translation
+			   unit.  Used by expensive checks to validate sequence
+			   numbers.  This value generally speaking, only
+			   becomes TRUE once (during the first call to
+			   record_start_of_source_file).  However, in the case
+			   of a lexical reset (for cases like PCH processing),
+			   this value is expected to revert to FALSE. */
+  a_bit_field	is_fully_sequenced:1;
+			/* TRUE if the translation unit has been fully
+			   sequenced.  Used by expensive checks to validate
+			   sequence numbers.  This value generally speaking,
+			   only becomes TRUE once (when sequencing concludes).
+			   However, in the case of implicit includes (for
+			   delayed template instantiations) translation units
+			   may have their sequences expanded, in which case
+			   this value is expected to revert to FALSE.
+			   Additionally, similarly to is_partially_sequenced
+			   lexical resets revert this value to FALSE. */
+#endif /* EXPENSIVE_CHECKING && DEBUG */
 } a_translation_unit;
 
 
