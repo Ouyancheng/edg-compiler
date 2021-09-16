@@ -4108,6 +4108,34 @@ Display the sequence number information associated with a source file.
 #endif /* DEBUG */
 
 
+static a_source_file_ptr find_file_for_seq(a_seq_number seq_number)
+/*
+Convert a sequence number into the containing primary source file.
+*/
+{
+  a_source_file_ptr  curr_file;
+
+  /* Find the top-level file for this sequence number. */
+  curr_file = il_header.primary_source_file;
+  check_assertion(curr_file != NULL);
+  check_assertion(seq_number >= curr_file->first_seq_number);
+  while (seq_number-1 > curr_file->last_seq_number) {
+    curr_file = curr_file->next;
+#if CHECKING
+    if (curr_file == NULL) {
+#if DEBUG
+      if (debug_level > 0) {
+        fprintf(f_debug, "seq number = %lu\n", (unsigned long)seq_number);
+      }  /* if */
+#endif /* DEBUG */
+      internal_error("find_file_for_seq: bad seq number");
+    }  /* if */
+#endif /* CHECKING */
+  }  /* while */
+  return curr_file;
+}  /* find_file_for_seq */
+
+
 a_source_file_ptr primary_source_file_for_seq(a_seq_number	seq_number)
 /*
 Find the primary source file within which the sequence number seq_number
@@ -4116,16 +4144,11 @@ falls and return a pointer to it.
 {
   a_source_file_ptr	curr_file;
 
-  curr_file = il_header.primary_source_file;
-  if (seq_number == 0 || curr_file == NULL) {
+  if (seq_number == 0 || il_header.primary_source_file == NULL) {
     /* Unknown position or no files. */
     curr_file = NULL;
   } else {
-    /* Find the top-level file for this sequence number. */
-    check_assertion(seq_number >= curr_file->first_seq_number);
-    while (seq_number-1 > curr_file->last_seq_number) {
-      curr_file = curr_file->next;
-    }  /* while */
+    curr_file = find_file_for_seq(seq_number);
   }  /* if */
   return curr_file;
 }  /* primary_source_file_for_seq */
@@ -4279,6 +4302,30 @@ lookup table.
 }  /* find_seq_in_lookup_table */
 
 
+static a_boolean is_at_end_of_translation_unit_file(
+                                             a_source_file_ptr trans_unit_file,
+                                             a_seq_number      seq_number)
+/*
+Return TRUE if the given sequence number represents the end of the given
+translation unit file.
+*/
+{
+  return seq_number-1 == trans_unit_file->last_seq_number;
+}  /* is_at_end_of_translation_unit_file */
+
+
+a_boolean is_at_end_of_translation_unit(a_seq_number seq_number)
+/*
+Return TRUE if the given sequence number represents the end of its respective
+translation unit file.
+*/
+{
+  a_source_file_ptr trans_unit_file = primary_source_file_for_seq(seq_number);
+  return trans_unit_file != NULL &&
+               is_at_end_of_translation_unit_file(trans_unit_file, seq_number);
+}  /* is_at_end_of_translation_unit */
+
+
 static a_source_file_ptr find_seq_in_source_files(
 					a_seq_number	seq_number,
 					a_line_number	*line_number,
@@ -4295,7 +4342,7 @@ provided should there be need to respect line directives.  This routine uses
 the source file structure to do the conversion.
 */
 {
-  a_source_file_ptr	curr_file;
+  a_source_file_ptr	curr_file = find_file_for_seq(seq_number);
   a_source_file_ptr	child_file;
   a_source_file_ptr	grandchild_file;
   a_source_file_ptr	phys_curr_file = NULL;
@@ -4305,23 +4352,7 @@ the source file structure to do the conversion.
   unsigned long		lines_in_children;
   long			line_offset;
 
-  /* Find the top-level file for this sequence number. */
-  curr_file = il_header.primary_source_file;
-  check_assertion(seq_number >= curr_file->first_seq_number);
-  while (seq_number-1 > curr_file->last_seq_number) {
-    curr_file = curr_file->next;
-#if CHECKING
-    if (curr_file == NULL) {
-#if DEBUG
-      if (debug_level > 0) {
-        fprintf(f_debug, "seq number = %lu\n", (unsigned long)seq_number);
-      }  /* if */
-#endif /* DEBUG */
-      internal_error("find_seq_in_source_files: bad seq number");
-    }  /* if */
-#endif /* CHECKING */
-  }  /* while */
-  if (seq_number-1 == curr_file->last_seq_number) {
+  if (is_at_end_of_translation_unit_file(curr_file, seq_number)) {
     /* At end of source.  Use the last line of the primary source file. */
     *at_end_of_source = TRUE;
     seq_number--;

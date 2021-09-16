@@ -2786,6 +2786,7 @@ extern void record_resumption_of_source_file(a_source_file_ptr	curr_file,
 extern void record_end_of_source_file(a_source_file_ptr curr_file,
 			              a_seq_number      seq_number);
 extern a_source_file_ptr primary_source_file_for_seq(a_seq_number seq_number);
+extern a_boolean is_at_end_of_translation_unit(a_seq_number seq_number);
 extern a_source_file_ptr source_file_for_seq(a_seq_number   seq_number,
                                              a_line_number  *line_number,
                                              a_boolean      *at_end_of_source,
