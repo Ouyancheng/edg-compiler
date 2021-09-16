@@ -5620,9 +5620,16 @@ can currently be qualified.
   switch (decl_tag(decl_index)) {
     case ifc_DeclSort_Parameter:
     case ifc_DeclSort_Reference:
-    case ifc_DeclSort_Enumerator:
       /* This declaration can never have its name qualified. */
       result = FALSE;
+      break;
+    case ifc_DeclSort_Enumerator:
+      {
+        /* FIXME: This is a hack to work around crashing when an enumerator's
+           home scope isn't loaded. */
+        a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl_index);
+        result = mep->scope != NULL;
+      }
       break;
     case ifc_DeclSort_Method:
     case ifc_DeclSort_Constructor:
@@ -13562,7 +13569,12 @@ nested-name-specifier to cache.  pos is the position of the qualified-id this
 nested-name-specifier is part of.
 */
 {
-  cache_scope_as_nested_name_specifier(cache, get_ifc_home_scope(decl), pos);
+  a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl);
+  if (mep->scope == NULL) {
+    /* Load the module entity pointer scope if not already processed. */
+    mep->scope = get_ifc_home_scope(decl);
+  }  /* if */
+  cache_scope_as_nested_name_specifier(cache, mep->scope, pos);
 }  /* cache_nested_name_specifier_from_decl */
 
 
