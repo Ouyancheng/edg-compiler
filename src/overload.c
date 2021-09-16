@@ -8801,7 +8801,7 @@ its candidate function entry.  Otherwise, return NULL.
     } else if ((int)worst_match > (int)best_worst_match ||
                ((int)worst_match == (int)best_worst_match &&
                 !best_worst_is_reversed &&
-                !cfp->supplemental_reversed_candidate)) {
+                cfp->supplemental_reversed_candidate)) {
       /* The worst match for this candidate is worse than the best
          worst match we've seen previously, so ignore it. */
     } else {
