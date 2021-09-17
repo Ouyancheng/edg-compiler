@@ -1,4 +1,17 @@
-Version 6.3
+Version .3
+
+9/17/21  [EDGcpfe/24687]
+Microsoft compatibility: __declspec(thread) and dynamic initialization
+
+In Microsoft modes, the front end previously never allowed a __declspec(thread)
+to have non-constant initialization.  For example:
+
+  struct S { ~S(); };
+  __declspec(thread) S s;  // Previously always an error.  Now okay in
+                           // Microsoft mode with microsoft_version >= 1900.
+
+Now that constraint has been lifted when microsoft_version >= 1900.
+
 
 9/17/21  [EDGcpfe/24683]
 IL write-read error on some local requires-expressions

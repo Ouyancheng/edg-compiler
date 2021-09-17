@@ -17038,14 +17038,15 @@ declaration modifiers recorded in *dps.
 {
 #if MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   if (var_ptr->decl_modifiers & DM_THREAD) {
-    /* A thread-local variable usually requires static (i.e., constant)
-       initialization, but GCC 4.8 and later allows dynamic initialization
-       for local static variables in C++ mode. */
+    /* A thread-local variable used to require static (i.e., constant)
+       initialization, but GCC 4.8 and later as well as recent versions of
+       MSVC allow dynamic initialization for local static variables in C++
+       mode. */
     an_init_kind        init_kind;
     an_initializer_ptr  init;
     get_variable_initializer(var_ptr, (a_scope_ptr)NULL, &init_kind, &init);
     if (init_kind == (an_init_kind)initk_dynamic &&
-        !(gpp_mode && !clang_mode && gnu_version >= 40800 &&
+        !((gpp_version_is(>= 40800) || ms_version_is(>=1900)) &&
           var_ptr->source_corresp.is_local_to_function)) {
       pos_error(ec_bad_init_for_thread_local, &dps->declarator_pos);
     }  /* if */
