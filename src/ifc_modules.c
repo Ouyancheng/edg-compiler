@@ -4685,6 +4685,28 @@ unhandled:
 }  /* process_ifc_declaration */
 
 
+namespace {
+/* An RAII object to temporarily enable microsoft extensions even if not
+   enabled otherwise.  This allows for MS specific IFC decls to be correctly
+   processed.
+*/
+struct an_ms_extensions_parse {
+  an_ms_extensions_parse() : old_ms_extensions(ms_extensions),
+                             old_ms_compat(ms_compat) {
+    ms_extensions = TRUE;
+    ms_compat = TRUE;
+  }
+  ~an_ms_extensions_parse() {
+    ms_compat = old_ms_compat;
+    ms_extensions = old_ms_extensions;
+  }
+private:
+  a_boolean old_ms_extensions;
+  a_boolean old_ms_compat;
+};  /* an_ms_extensions_parse */
+}  /* namespace */
+
+
 void an_ifc_module::complete_definition_of_module_class(
                                                       a_module_entity_ptr mep)
 /*
@@ -4762,16 +4784,19 @@ Complete the definition of the class referred to by mep (if needed).
        the class. */
     scope_stack_top().default_name_linkage =
                                        class_type->source_corresp.name_linkage;
-    (void)scan_class_definition(class_type, (a_decl_parse_state*)NULL,
-                                depth_innermost_namespace_scope,
-                                /*is_partial=*/FALSE,
-                                /*is_local_class=*/FALSE,
-                                /*delayed_nested_class_def=*/
+    {
+      an_ms_extensions_parse tmp_parse;
+      (void)scan_class_definition(class_type, (a_decl_parse_state*)NULL,
+                                  depth_innermost_namespace_scope,
+                                  /*is_partial=*/FALSE,
+                                  /*is_local_class=*/FALSE,
+                                  /*delayed_nested_class_def=*/
                                     class_type->source_corresp.is_class_member,
-                                /*is_template_instantiation=*/FALSE,
-                                /*is_template_specialization=*/FALSE,
-                                (a_template_ptr)NULL,
-                                (a_decl_pos_block_ptr)NULL);
+                                  /*is_template_instantiation=*/FALSE,
+                                  /*is_template_specialization=*/FALSE,
+                                  (a_template_ptr)NULL,
+                                  (a_decl_pos_block_ptr)NULL);
+    }
     process_deferred_class_fixups_and_instantiations(
                                                    /*for_instantiation=*/TRUE);
     {
@@ -14108,28 +14133,6 @@ decl, or an empty sequence if not found.
   }  /* if */
   return result;
 }  /* get_specialization_sequence_from_trait */
-
-
-namespace {
-/* An RAII object to temporarily enable microsoft extensions even if not
-   enabled otherwise.  This allows for MS specific IFC decls to be correctly
-   processed.
-*/
-struct an_ms_extensions_parse {
-  an_ms_extensions_parse() : old_ms_extensions(ms_extensions),
-                             old_ms_compat(ms_compat) {
-    ms_extensions = TRUE;
-    ms_compat = TRUE;
-  }
-  ~an_ms_extensions_parse() {
-    ms_compat = old_ms_compat;
-    ms_extensions = old_ms_extensions;
-  }
-private:
-  a_boolean old_ms_extensions;
-  a_boolean old_ms_compat;
-};  /* an_ms_extensions_parse */
-}  /* namespace */
 
 
 a_template_ptr an_ifc_module::parse_cached_explicit_specialization(
