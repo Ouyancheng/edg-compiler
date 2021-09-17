@@ -1,5 +1,20 @@
 Version 6.3
 
+9/17/21  [EDGcpfe/23503,EDGcpfe/24030,EDGcpfe/24710]
+Abort on array new-expressions in Clang mode with Microsoft extensions
+
+Microsoft mode handles array new-expressions specially (such a new-expression
+might use a non-array operator new in Microsoft mode).  The front end's support
+for Clang mode with Microsoft extensions treated that behavior inconsistently,
+which resulted in internal errors.  For example:
+
+  void g() {
+    new char[1];  // Previously aborted with --clang --ms_extensions.
+  }               // Now okay.
+
+That is now fixed.
+
+
 9/15/21  [EDGcpfe/24682,EDGcpfe/24703]
 GNU C++20 compatibility: Comparison disambiguation
 

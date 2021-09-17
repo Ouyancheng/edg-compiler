@@ -20914,8 +20914,7 @@ Return the matching operator "new" symbol, if found.
     /* Use the global "operator new" or "operator new[]". */
     nps->operator_new_symbol = opname_function_symbol(opname_kind);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    if (microsoft_mode &&
-        microsoft_version < 1300 &&
+    if (ms_extensions && microsoft_version < 1300 &&
         nps->operator_new_symbol == NULL) {
       /* In Microsoft mode, if no array new is found, search for a
          non-array operator new.  Note that there is no predeclared
@@ -20927,8 +20926,7 @@ Return the matching operator "new" symbol, if found.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  if (microsoft_mode &&
-      microsoft_version >= 1300 &&
+  if (ms_extensions && microsoft_version >= 1300 &&
       opname_kind == (an_opname_kind)onk_array_new) {
     /* As of MSVC++ 7.0, if no array operator new[] is found, try
        looking for a non-array operator new.  Do a tentative match
