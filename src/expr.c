@@ -38314,10 +38314,10 @@ done_with_requirements:
     /* Pop the function-prototype scope that was pushed earlier. */
     check_assertion(scope_is(&scope_stack_top(), sck_func_prototype));
     if (il_region != file_scope_region_number) {
-      if (params != NULL) {
-        possibly_add_orphaned_file_scope_il_entry((char*)params,
-                                                  iek_param_type);
-      }  /* if */
+      a_param_type_ptr  ptp;
+      for (ptp = params; ptp != NULL; ptp = ptp->next) {
+        possibly_add_orphaned_file_scope_il_entry((char*)ptp, iek_param_type);
+      }  /* for */
       switch_il_region(il_region);
     }  /* if */
     pop_scope();
