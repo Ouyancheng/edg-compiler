@@ -17046,8 +17046,9 @@ declaration modifiers recorded in *dps.
     an_initializer_ptr  init;
     get_variable_initializer(var_ptr, (a_scope_ptr)NULL, &init_kind, &init);
     if (init_kind == (an_init_kind)initk_dynamic &&
-        !((gpp_version_is(>= 40800) || ms_version_is(>=1900)) &&
-          var_ptr->source_corresp.is_local_to_function)) {
+        !((gpp_version_is(>= 40800) &&
+           var_ptr->source_corresp.is_local_to_function) ||
+          ms_version_is(>=1900))) {
       pos_error(ec_bad_init_for_thread_local, &dps->declarator_pos);
     }  /* if */
   }  /* if */
