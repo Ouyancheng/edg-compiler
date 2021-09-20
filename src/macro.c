@@ -9036,6 +9036,9 @@ process_va_opt:
                 pending_op_tok = tok_last;
               }  /* if */
             }  /* if */
+            /* Make sure the argument passed to the ellipsis is expanded,
+               even if __VA_ARGS__ is not used in the definition. */
+            last_param->need_expanded_form = TRUE;
           }  /* if */
         } else {
           /* Any other tokens -- not special, just put into macro buffer
