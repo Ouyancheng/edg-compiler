@@ -34,7 +34,7 @@ such macro arguments.  This is now fixed.  For example, with --c++20:
                     // the argument to M was not treated as empty
 
 
-9/17/21  [EDGcpfe/24687]
+9/17/21  [EDGcpfe/18907,EDGcpfe/24687]
 Microsoft compatibility: __declspec(thread) and dynamic initialization
 
 In Microsoft modes, the front end previously never allowed a __declspec(thread)
