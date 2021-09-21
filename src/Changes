@@ -1,5 +1,24 @@
 Version 6.3
 
+9/20/21  [EDGcpfe/24713]
+C++-generating back end: definition of user-defined conversion operators
+
+In some configurations, the C++-generating back end failed to use the
+necessary qualification for the type named in a user-defined conversion
+operator definition appearing outside its class.  This is now fixed.  For
+example:
+
+  struct A { };
+  struct B {
+    typedef int A;
+    operator ::A();
+  };
+  B::operator ::A() {  // previously generated as "operator A", incorrectly
+                       // referring to B::A instead of ::A
+    return ::A();
+  }
+
+
 9/20/21  [EDGcpfe/24715]
 __VA_OPT__ and expansion of macro arguments
 

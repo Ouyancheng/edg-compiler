@@ -3569,6 +3569,9 @@ etc.)
   a_type_ptr type;
   a_boolean  saved_suppress_parens = octl.suppress_ptr_to_data_member_parens;
 
+  /* Push the class scope context so that the type name will be
+     appropriately qualified if necessary. */
+  push_name_context(rout->source_corresp.parent_scope);
   write_tok_str("operator");
   write_space();
   type = rout->type;
@@ -3579,6 +3582,7 @@ etc.)
   octl.suppress_ptr_to_data_member_parens = TRUE;
   gen_type(type);
   octl.suppress_ptr_to_data_member_parens = saved_suppress_parens;
+  pop_name_context();
 }  /* gen_conversion_function_name */
 
 
