@@ -5690,6 +5690,80 @@ If no symbol is found in the specified namespace, NULL is returned.
   return result_sym;
 }  /* qualified_using_directive_lookup */
 
+namespace {
+
+struct a_namespace_lookup_options_set {
+  a_namespace_lookup_options_set(an_id_lookup_options_set options)
+    : must_be_class_or_namespace(
+                              (options & IDL_MUST_BE_CLASS_OR_NAMESPACE) != 0),
+      must_be_tag((options & IDL_MUST_BE_TAG) != 0),
+      must_be_class((options & IDL_MUST_BE_CLASS) != 0),
+      is_linkage_or_friend_lookup(
+                    (options & (IDL_LINKAGE_LOOKUP | IDL_FRIEND_LOOKUP)) != 0),
+      is_linkage_lookup((options & IDL_LINKAGE_LOOKUP) != 0),
+      is_declarator_lookup((options & IDL_IS_DECLARATOR) != 0),
+      is_friend_lookup((options & IDL_FRIEND_LOOKUP) != 0),
+      direct_namespace_members_only(
+                           (options & IDL_DIRECT_NAMESPACE_MEMBERS_ONLY) != 0),
+      check_decl_seq((options & IDL_SUPPRESS_DECL_SEQ_CHECK) == 0 &&
+                     !is_linkage_or_friend_lookup),
+      decl_seq_number(get_effective_decl_seq())
+  {}
+
+  inline a_boolean accepts(a_namespace_ptr ns_ptr,
+                           a_symbol_ptr    sym,
+                           a_symbol_ptr    fund_sym);
+
+  a_boolean must_be_class_or_namespace;
+  a_boolean must_be_tag;
+  a_boolean must_be_class;
+  a_boolean is_linkage_or_friend_lookup;
+  a_boolean is_linkage_lookup;
+  a_boolean is_declarator_lookup;
+  a_boolean is_friend_lookup;
+  a_boolean direct_namespace_members_only;
+  a_boolean check_decl_seq;
+  a_decl_sequence_number decl_seq_number;
+};  /* a_namespace_lookup_options_set */
+
+
+inline a_boolean a_namespace_lookup_options_set::accepts(
+                                                      a_namespace_ptr ns_ptr,
+                                                      a_symbol_ptr    sym,
+                                                      a_symbol_ptr    fund_sym)
+/*
+Returns TRUE if sym and its accompanying fundamental symbol (fund_sym) are
+acceptable symbols in the namespace ns_ptr given the current lookup options.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (fund_sym->is_invisible && !is_linkage_or_friend_lookup &&
+      !is_declarator_lookup) {
+    result = FALSE;
+  } else if ((sym)->is_class_member) {
+    result = FALSE;
+  } else if (sym_parent_namespace_or_null((sym)) != ns_ptr) {
+    /* Note that same_entities must not be used for this test. */
+    result = FALSE;
+  } else if (must_be_class_or_namespace &&
+             !symbol_may_precede_qualifier(fund_sym)) {
+    result = FALSE;
+  } else if (must_be_class && !is_class_or_class_proxy_symbol(fund_sym)) {
+    result = FALSE;
+  } else if (must_be_tag &&
+             !is_tag_or_tag_proxy_symbol(fund_sym, is_friend_lookup)) {
+    result = FALSE;
+  } else if (check_decl_seq && !(decl_seq_number == NO_DECL_SEQUENCE_NUMBER ||
+                                 decl_seq_number >= (sym)->decl_seq)) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* accepts */
+
+
+}  /* namespace */
+
 
 static a_symbol_ptr lookup_in_namespace(
 		a_symbol_locator		*locator,
@@ -5722,47 +5796,14 @@ inline namespaces.
   a_symbol_ptr	tag_symbol = NULL;
   a_symbol_ptr	type_tag_symbol = NULL;
   a_symbol_ptr	namespace_symbol = NULL;
-  a_boolean   	must_be_class_or_namespace
-                            = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE) != 0;
-  a_boolean    	must_be_tag = (options & IDL_MUST_BE_TAG) != 0;
-  a_boolean    	must_be_class = (options & IDL_MUST_BE_CLASS) != 0;
-  a_boolean	is_linkage_or_friend_lookup =
-                    (options & (IDL_LINKAGE_LOOKUP | IDL_FRIEND_LOOKUP)) != 0;
-  a_boolean	is_linkage_lookup =
-                         ((options & IDL_LINKAGE_LOOKUP) != 0);
-  a_boolean	is_declarator_lookup = (options & IDL_IS_DECLARATOR) != 0;
-  a_boolean	direct_namespace_members_only = 
-                         (options & IDL_DIRECT_NAMESPACE_MEMBERS_ONLY) != 0;
-  a_boolean	check_decl_seq =
-                               (options & IDL_SUPPRESS_DECL_SEQ_CHECK) == 0 &&
-                               !is_linkage_or_friend_lookup;
-  a_decl_sequence_number
-		decl_seq_number = NO_DECL_SEQUENCE_NUMBER;
+  a_namespace_lookup_options_set
+                ns_lookup_opts(options);
   a_namespace_symbol_supplement_ptr
 		nssp;
-
-/* Local macro that tests whether or not a symbol is acceptable. */
-#define is_acceptable_symbol(sym, fund_sym)                           \
-  ((!(fund_sym->is_invisible) || is_linkage_or_friend_lookup ||	      \
-    is_declarator_lookup) &&					      \
-   (!(sym)->is_class_member) &&                                       \
-   /* Note that same_entities must not be used for this test. */      \
-   sym_parent_namespace_or_null((sym)) == ns_ptr &&                   \
-   (!must_be_class_or_namespace ||				      \
-    symbol_may_precede_qualifier(fund_sym)) &&     		      \
-   (!must_be_class ||				     		      \
-    is_class_or_class_proxy_symbol(fund_sym)) &&      		      \
-   (!must_be_tag ||						      \
-    is_tag_or_tag_proxy_symbol(fund_sym,			      \
-                               (options & IDL_FRIEND_LOOKUP) != 0)) && \
-   (!check_decl_seq ||						      \
-    (decl_seq_number == NO_DECL_SEQUENCE_NUMBER ||	              \
-     decl_seq_number >= (sym)->decl_seq)))
 
   db_enter(4, "lookup_in_namespace");
   check_assertion(ns_ptr != NULL);
   /* Get the declaration sequence number to be used for this lookup. */
-  decl_seq_number = get_effective_decl_seq();
   nssp = symbol_supplement_for_namespace(ns_ptr);
   load_lazy_symbols_if_needed(ns_ptr->variant.assoc_scope, locator);
   /* Search for a symbol in the lookup table for the namespace. */
@@ -5771,7 +5812,7 @@ inline namespaces.
        sym != NULL;
        sym = sym->next_in_lookup_table) {
     a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-    if (is_acceptable_symbol(sym, fund_sym)) {
+    if (ns_lookup_opts.accepts(ns_ptr, sym, fund_sym)) {
       /* Found an acceptable symbol. */
       /* When looking for a tag symbol, both tags and typedefs may match
          the "acceptable" test.  The tag should be preferred over the
@@ -5779,7 +5820,7 @@ inline namespaces.
          when not doing a "must be tag" lookup, both tags and non-tags
          will match the test.  A non-tag should be preferred over the tag,
          so if we find a tag we must keep looking. */
-      if (!must_be_tag) {
+      if (!ns_lookup_opts.must_be_tag) {
         /* A normal lookup. */
         if (is_tag_symbol(fund_sym)) {
           check_assertion_or_expect_error(tag_symbol == NULL ||
@@ -5824,9 +5865,9 @@ inline namespaces.
       sym = namespace_symbol;
     }  /* if */
   }  /* if */
-  if ((!is_linkage_lookup ||
+  if ((!ns_lookup_opts.is_linkage_lookup ||
        (options & IDL_TREAT_AS_TEMPLATE_ID) != 0) &&
-      !direct_namespace_members_only) {
+      !ns_lookup_opts.direct_namespace_members_only) {
      /* If the symbol was not found in this namespace, look in namespaces
         visible because of an inline namespace.  Skip this process for a
         linkage lookup.  A linkage lookup should only find names that are
@@ -5852,8 +5893,9 @@ inline namespaces.
       }  /* if */
     }  /* if */
   }  /* if */
-  if (sym == NULL && !is_linkage_or_friend_lookup &&
-      !inline_namespace_lookup && !direct_namespace_members_only) {
+  if (sym == NULL && !ns_lookup_opts.is_linkage_or_friend_lookup &&
+      !inline_namespace_lookup &&
+      !ns_lookup_opts.direct_namespace_members_only) {
      /* If the symbol was not found in this namespace, look in namespaces
         visible because of using directives.  Skip this process for a
         linkage lookup.  A linkage or friend lookup should only find names
@@ -5866,7 +5908,6 @@ inline namespaces.
   }  /* if */
   db_exit();
   return sym;
-#undef is_acceptable_symbol
 }  /* lookup_in_namespace */
 
 
