@@ -13,7 +13,7 @@ example:
     typedef int A;
     operator ::A();
   };
-  B::operator ::A() {  // previously generated as "operator A", incorrectly
+  B::operator ::A() {  // Previously generated as "operator A", incorrectly
                        // referring to B::A instead of ::A
     return ::A();
   }
