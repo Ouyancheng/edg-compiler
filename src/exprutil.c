@@ -1588,9 +1588,9 @@ given routine may be instantiated.
                                       expr_stack->template_deduction_context);
     } else if (!is_template_dependent_context()) {
       a_symbol_ptr  assoc_sym = symbol_for(routine);
-     if (assoc_sym != NULL) {
-       instantiate_exception_spec_if_needed(assoc_sym);
-     }  /* if */
+      if (assoc_sym != NULL) {
+        instantiate_exception_spec_if_needed(assoc_sym);
+      }  /* if */
     }  /* if */
   }  /* if */
 }  /* if_evaluating_mark_routine_referenced */
