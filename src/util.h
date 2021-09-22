@@ -455,6 +455,18 @@ general memory.
 }  /* delete_general */
 
 
+/*
+The Ptr_map template
+====================
+The Dyn_array<E, A> template defined below implements a dynamic array construct
+not unlike std::vector<E, A>.  E is the element type and A the allocator type
+(which defaults to the front end memory allocator).
+
+The most common std::vector operators are also applicable to Dyn_array.  Things
+like operator[], push_back, begin(), end(), etc. work as expected (which, e.g.,
+means that the C++11 range-based for-statement works for Dyn_array also).
+*/
+
 /*lint -esym(1510,*Dyn_array)*/
 template<typename an_Elem, template<typename> class Allocator = FE_allocator>
 struct Dyn_array: private Allocator<an_Elem> {
@@ -2076,6 +2088,43 @@ such element is found.
   return bin_search(num_elements, value, read_array_element_at);
 }  /* array_bin_search */
 
+
+/*
+The Ptr_map template
+====================
+The Ptr_map<K, V, A> template defined below is a flat hash-based map of keys of
+type K to values of type V, using A as an allocator.  It is called Ptr_map
+because it works well to map non-null pointers, but the only notable key-type
+requirement is that K{} (i.e., the default-constructed value of K) not be used
+as a key value.  So mapping nonzero integers works very well, also, as do other
+types for which the default- constructed value is never a valid key (the
+default-constructed value is used to denote "empty" slots in the table).
+
+Ptr_map uses unqualified calls to "hash_ptr" to compute hash values.  For keys
+that aren't native pointers or integers, add an overloaded function that covers
+that key type.  The function should return type uintptr_t.
+
+New (key, value) pairs can be added with the map(...) member and a value
+associated with a given key can be retrieved with get(k).  If the hash of a
+key is already known, variants map_with_hash(...) and get_with_hash(...) are
+available.  Removing a key is achieved by calling the unmap(...) member.
+
+This is not a multi-map: Client code has to ensure that specific keys are not
+matched twice.  An existing key can have its associated value replaced by
+invoking the members replace(...) or replace_with_hash(...).  If it is not
+known whether a key is present in the map, the members map_or_replace(...) and
+map_or_replace_with_hash(...) will efficiently map the key if it is not yet
+present or replace the associated value if it is present.
+
+This implementation limits the load factor to 0.5.  That makes for efficient
+lookups in most cases, but can be wasteful of storage.  It is therefore best
+to keep the (key, value) size small.  In some cases, it may therefore be
+useful to have the key and/or value be a handle to the associated data instead
+of the data itself.
+
+Ptr_map does not currently provide an interface to traverse all the elements
+in the map.
+*/
 
 inline uintptr_t hash_ptr(void  *ptr)
 /*
