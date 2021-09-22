@@ -1624,9 +1624,9 @@ depth to determine the namespace.  If sym or scp is NULL, ignore the entity.
   a_scope_stack_entry_ptr  ssep;
 
   if (nsp == NULL) {
-    if (depth_scope_stack > DEPTH_OF_FILE_SCOPE &&
-        depth_scope_stack <= depth_innermost_namespace_scope) {
-      ssep = &scope_stack[depth_scope_stack];
+    if (decl_scope_level > DEPTH_OF_FILE_SCOPE &&
+        decl_scope_level <= depth_innermost_namespace_scope) {
+      ssep = &scope_stack[decl_scope_level];
       check_assertion_str(ssep->il_scope != NULL &&
                           ssep->il_scope->kind == (a_scope_kind)sck_namespace,
                           "set_namespace_membership: unexpected scope kind");
