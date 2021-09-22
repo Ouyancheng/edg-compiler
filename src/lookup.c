@@ -264,6 +264,50 @@ need to be reset after a call to this routine.
 }  /* load_lazy_symbols_if_needed */
 
 
+namespace {
+
+struct a_scope_id_lookup_options_set {
+  a_scope_id_lookup_options_set(an_id_lookup_options_set options)
+    : must_be_tag((options & IDL_MUST_BE_TAG) != 0),
+      projection_allowed((options & IDL_PROJ_SYMBOL_ALLOWED) != 0)
+  {}
+
+  inline a_boolean accepts(a_name_space_kind required_name_space_kind,
+                           a_symbol_ptr      sym,
+                           a_symbol_ptr      fund_sym);
+
+  a_boolean must_be_tag;
+  a_boolean projection_allowed;
+};  /* a_scope_id_lookup_options_set */
+
+
+inline a_boolean a_scope_id_lookup_options_set::accepts(
+                                    a_name_space_kind required_name_space_kind,
+                                    a_symbol_ptr      sym,
+                                    a_symbol_ptr      fund_sym)
+/*
+Returns TRUE if sym and its accompanying fundamental symbol (fund_sym) are
+acceptable symbols in the namespace ns_ptr given the current lookup options.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (must_be_tag && !is_tag_symbol(fund_sym)) {
+    result = FALSE;
+  } else if (name_space_for_symbol_kind[(int)sym->kind] !=
+                                                    required_name_space_kind) {
+    result = FALSE;
+  } else if (!projection_allowed && sym->kind ==
+                                                (a_symbol_kind)sk_projection) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* accepts */
+
+
+}  /* namespace */
+
+
 a_symbol_ptr curr_scope_id_lookup(a_symbol_locator         *locator,
                                   an_id_lookup_options_set options)
 /*
@@ -276,27 +320,15 @@ IDL_PROJ_SYMBOL_ALLOWED is specified in options.
 {
   a_symbol_ptr			sym;
   a_scope_number		scope_number;
-  a_boolean			must_be_tag = (options & IDL_MUST_BE_TAG) != 0;
-  a_boolean			projection_allowed =
-                                      (options & IDL_PROJ_SYMBOL_ALLOWED) != 0;
+  a_scope_id_lookup_options_set scope_lookup_opts(options);
   a_scope_stack_entry_ptr	ssep;
   a_name_space_kind		required_name_space_kind = nsk_other;
 
-/* Local macro that tests whether or not a symbol is acceptable. */
-#define is_acceptable_symbol(sym, fund_sym)                             \
-   ((!must_be_tag || is_tag_symbol(fund_sym)) &&			\
-    (name_space_for_symbol_kind[(int)sym->kind] ==			\
-                                           required_name_space_kind) && \
-    (projection_allowed || sym->kind != (a_symbol_kind)sk_projection))
-
-  check_assertion_str2((options & ~(IDL_MUST_BE_TAG |
-                                    IDL_MUST_BE_CLASS |
-                                    IDL_PROJ_SYMBOL_ALLOWED |
-                                    IDL_HIDDEN_NAME_LOOKUP)) == 0,
-                       "curr_scope_id_lookup:", "invalid_option");
   /* In C mode, a "must be tag" lookup only considers symbols in the tag
      name space kind. */
-  if (C_mode() && must_be_tag) required_name_space_kind = nsk_tag;
+  if (C_mode() && scope_lookup_opts.must_be_tag) {
+    required_name_space_kind = nsk_tag;
+  }  /* if */
   sym = locator->specific_symbol;
   if (is_error_locator(*locator)) {
     /* The locator is an error locator, so return NULL (i.e., no symbol
@@ -305,7 +337,8 @@ IDL_PROJ_SYMBOL_ALLOWED is specified in options.
   } else if (sym != NULL) {
 #if CHECKING
     a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-    check_assertion(is_acceptable_symbol(sym, fund_sym));
+    check_assertion(scope_lookup_opts.accepts(required_name_space_kind, sym,
+                                              fund_sym));
 #endif /* CHECKING */
     /* The locator is for a specific symbol, so return the symbol for it. */
   } else {
@@ -321,7 +354,7 @@ IDL_PROJ_SYMBOL_ALLOWED is specified in options.
     for (; sym != NULL; sym = sym->next) {
       a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
       if (sym->decl_scope == scope_number &&
-          is_acceptable_symbol(sym, fund_sym)) {
+          scope_lookup_opts.accepts(required_name_space_kind, sym, fund_sym)) {
          /* Found it. */
          break;
       }  /* if */
@@ -339,7 +372,8 @@ IDL_PROJ_SYMBOL_ALLOWED is specified in options.
            sym != NULL;
            sym = sym->next_in_lookup_table) {
         a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-        if (is_acceptable_symbol(sym, fund_sym)) {
+        if (scope_lookup_opts.accepts(required_name_space_kind, sym,
+                                      fund_sym)) {
           /* Found an acceptable symbol. */
           /* If the symbol is a tag symbol, there's the possibility that
              there is a non-type symbol in the same scope later in the list
@@ -374,7 +408,6 @@ IDL_PROJ_SYMBOL_ALLOWED is specified in options.
      projection symbol. */
   if (sym != NULL) reduce_projection_symbol_to_fundamental_symbol(sym);
   return sym;
-#undef is_acceptable_symbol
 }  /* curr_scope_id_lookup */
 
 
