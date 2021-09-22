@@ -4742,6 +4742,7 @@ Complete the definition of the class referred to by mep (if needed).
       fprintf(f_debug, "\n---------------------\n");
     }  /* if */
 #endif /* DEBUG */
+    push_stop_token_stack();
     rescan_cached_tokens(&cache);
     tdip = alloc_template_decl_info();
     set_template_decl_info_for_class_definition(tdip, class_type);
@@ -4773,12 +4774,12 @@ Complete the definition of the class referred to by mep (if needed).
                                 (a_decl_pos_block_ptr)NULL);
     process_deferred_class_fixups_and_instantiations(
                                                    /*for_instantiation=*/TRUE);
-    if (curr_token != tok_semicolon) {
-      expect_error();
+    {
+      /* FIXME: Reintegrate the final token concept. */
+      clear_stop_tokens();
       flush_tokens_without_warning();
-    } else {
-      (void)get_token();
-    }  /* if */
+      pop_stop_token_stack();
+    }
     check_assertion(curr_token == tok_end_of_source);
     (void)get_token();
     check_assertion(!class_type->incomplete);
