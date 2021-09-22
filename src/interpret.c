@@ -1023,6 +1023,7 @@ static unsigned long
 			/* The number of interpreter states that have been
 			   initialized but not released. */
 
+#define active_alloc_seq(ips)  ((ips)->storage_stack.alloc_seq_number)
 
 #define cost_exceeded(ips)                                                   \
   (++(ips)->cost > max_cost_constexpr_call)
@@ -4471,6 +4472,7 @@ static a_boolean do_constexpr_ctor(an_interpreter_state  *ips,
                                    a_source_position     *pos,
                                    a_byte                *result_storage,
                                    a_byte                *complete_object,
+                                   an_alloc_seq_number   alloc_seq,
                                    a_constexpr_address   *implied_src);
 
 
@@ -4486,7 +4488,8 @@ static a_boolean do_constexpr_dynamic_init(
                                       a_dynamic_init_ptr    dip,
                                       a_source_position     *pos,
                                       a_byte                *result_storage,
-                                      a_byte                *complete_object);
+                                      a_byte                *complete_object,
+                                      an_alloc_seq_number   alloc_seq);
 
 
 static a_boolean perform_destructions(an_interpreter_state  *ips)
@@ -4935,7 +4938,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                       } else {
                         result = do_constexpr_dynamic_init(
                                                      ips, dip, &ips->position,
-                                                     var_bytes, var_bytes);
+                                                     var_bytes, var_bytes, 0);
                       }  /* if */
                     } else {
                       an_init_kind    init_kind;
@@ -4951,7 +4954,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                         } else {
                           result = do_constexpr_dynamic_init(
                                                      ips, dip, &ips->position,
-                                                     var_bytes, var_bytes);
+                                                     var_bytes, var_bytes, 0);
                         }  /* if */
                       } else {
                         /* In GNU C++ mode, the initializer may not be
@@ -5139,7 +5142,8 @@ formats as necessary.  Return FALSE if the constant is an error constant.
       {
         result = do_constexpr_dynamic_init(ips, con->variant.dynamic_init.ptr,
                                            &con->source_corresp.decl_position,
-                                           value, complete_object);
+                                           value, complete_object,
+                                           active_alloc_seq(ips));
       }
       break;
     case ck_string:
@@ -5545,7 +5549,8 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           if (!do_constexpr_dynamic_init(
                                       ips, elem_con->variant.dynamic_init.ptr,
                                       &elem_con->source_corresp.decl_position,
-                                      value, complete_object)) {
+                                      value, complete_object,
+                                      active_alloc_seq(ips))) {
             do_constexpr_fail(result);
           }  /* if */
         } else {
@@ -5787,13 +5792,14 @@ static a_boolean do_array_constructor_copy(
                                        a_dynamic_init_ptr    dip,
                                        a_source_position     *pos,
                                        a_byte                *result_storage,
-                                       a_byte                *complete_object)
+                                       a_byte                *complete_object,
+                                       an_alloc_seq_number   alloc_seq)
 /*
 The given dik_constructor dynamic initialization entry has its is_array_copy
 flag set to TRUE.  Perform the array copy it represents (to storage indicated
-by result_storage, part of the complete object represented by complete_object).
-Return TRUE is successful.  Otherwise, return FALSE and update *ips
-accordingly.
+by result_storage, part of the complete object represented by complete_object;
+the storage lifetime is represented by alloc_seq).  Return TRUE is successful.
+Otherwise, return FALSE and update *ips accordingly.
 */
 {   
   a_boolean            result = TRUE, clear_lvalue = FALSE;
@@ -5855,7 +5861,7 @@ accordingly.
     }  /* if */
     for (k = 0; k<length; ++k) {
       if (!do_constexpr_ctor(ips, &dip_copy, pos, result_storage+k*elem_size,
-                             complete_object, src_addr)) {
+                             complete_object, alloc_seq, src_addr)) {
         do_constexpr_fail(result);
         goto done;
       } else {
@@ -5884,9 +5890,12 @@ static a_boolean do_constexpr_dynamic_init(
                                         a_dynamic_init_ptr    dip,
                                         a_source_position     *pos,
                                         a_byte                *result_storage,
-                                        a_byte                *complete_object)
+                                        a_byte                *complete_object,
+                                        an_alloc_seq_number   alloc_seq)
 /*
-Evaluate the given dynamic initialization for the given storage.
+Evaluate the given dynamic initialization for the storage described by
+result_storage, complete_object, and alloc_seq.  ips is the interpreter state
+and pos the default position for diagnostics.
 */
 {
   a_boolean  result = FALSE;
@@ -5914,10 +5923,11 @@ Evaluate the given dynamic initialization for the given storage.
     case dik_constructor:
       if (dip->variant.constructor.is_array_copy) {
         result = do_array_constructor_copy(ips, dip, pos, result_storage,
-                                           complete_object);
+                                           complete_object, alloc_seq);
       } else {
         result = do_constexpr_ctor(ips, dip, pos, result_storage,
-                                   complete_object, /*implied_src=*/NULL);
+                                   complete_object, alloc_seq,
+                                   /*implied_src=*/NULL);
       }  /* if */
       break;
     case dik_bitwise_copy:
@@ -6061,7 +6071,8 @@ otherwise, this routine will look up that storage in ips->map.
          is_const_qualified_type(vp->type))) {
       ips->is_constant_evaluated = TRUE;
     }  /* if */
-    if (do_constexpr_dynamic_init(ips, dip, pos, storage, storage)) {
+    if (do_constexpr_dynamic_init(ips, dip, pos, storage, storage,
+                                  active_alloc_seq(ips))) {
       if (!is_immediate_class_type(tp) && !type_is(tp, tk_array)) {
         mark_complete_object_initialized(storage);
       }  /* if */
@@ -6596,7 +6607,8 @@ Interpret the given range-based for-statement.
   for (k = 1; k<4; ++k) {
     dip = vp[k]->initializer.dynamic;
     if (!do_constexpr_dynamic_init(ips, dip, &stmt->position,
-                                   var_storage[k], var_storage[k])) {
+                                   var_storage[k], var_storage[k],
+                                   active_alloc_seq(ips))) {
       do_constexpr_fail(result);
       break;
     }  /* if */
@@ -6644,8 +6656,10 @@ Interpret the given range-based for-statement.
         get_int_val_from(expr_value, tp, bool_val, ovfl);
         if (!ovfl && bool_val) {
           /* Initialize the iterator variable: */
-          if (!do_constexpr_dynamic_init(ips, dip, &stmt->position,
-                                         var_storage[0], var_storage[0])) {
+          if (!do_constexpr_dynamic_init(
+                                       ips, dip, &stmt->position,
+                                       var_storage[0], var_storage[0],
+                                       active_alloc_seq(ips))) {
             do_constexpr_fail(result);
             break;
           }  /* if */
@@ -7094,8 +7108,10 @@ successfully interpreted, FALSE otherwise.
             tp = skip_typerefs(fn_type->variant.routine.return_type);
             init_subobject_to_zero(ips, result_storage, tp, complete_obj);
           } else {
-            result = do_constexpr_dynamic_init(ips, dip, &stmt->position, 
-                                               result_storage, complete_obj);
+            result = do_constexpr_dynamic_init(
+                                         ips, dip, &stmt->position, 
+                                         result_storage, complete_obj,
+                                         active_alloc_seq(ips));
           }  /* if */
         } else {
           /* Return without a value. */
@@ -7142,8 +7158,10 @@ done_with_return_statement:
             tp = skip_typerefs(frame->variant.expr->type);
             init_subobject_to_zero(ips, result_storage, tp, complete_obj);
           } else {
-            result = do_constexpr_dynamic_init(ips, dip, &stmt->position, 
-                                               result_storage, complete_obj);
+            result = do_constexpr_dynamic_init(
+                                         ips, dip, &stmt->position, 
+                                         result_storage, complete_obj,
+                                         active_alloc_seq(ips));
           }  /* if */
         }  /* if */
       }
@@ -9714,7 +9732,7 @@ by this_bytes.
     /* Store the address of the class in *this_bytes. */
     clear_address(this_bytes, class_bytes);
     ((a_constexpr_address *)this_bytes)->alloc_seq_number =
-                                    ips->storage_stack.alloc_seq_number;
+                                                        active_alloc_seq(ips);
   }  /* if */
   mark_complete_object_initialized(this_bytes);
 done:
@@ -10424,14 +10442,16 @@ static a_boolean do_constexpr_ctor(an_interpreter_state  *ips,
                                    a_source_position     *pos,
                                    a_byte                *result_storage,
                                    a_byte                *complete_object,
+                                   an_alloc_seq_number   alloc_seq,
                                    a_constexpr_address   *implied_src)
 /*
 Interpret the constructor call represented by the given dynamic initialization
 entry.  Return TRUE if no error occurred; otherwise, return FALSE and update
 *ips accordingly.  pos is the position of the call.  The object is constructed
 at the location indicated by result_storage, which is within the given complete
-object.  If implied_src is non-NULL, this is a copy/move constructor invocation
-and the source object is stored at the location indicated by implied_src.
+object whose allocation sequence number is alloc_seq.  If implied_src is
+non-NULL, this is a copy/move constructor invocation and the source object is
+stored at the location indicated by implied_src.
 
 This is similar to do_constexpr_call, but the call has a different
 representation, and mem-initializers must be interpreted prior to interpreting
@@ -10647,7 +10667,7 @@ the body of the (constructor) function proper.
       alloc_complete_object(ips, with_postfix_bytes, this_type, this_bytes);
       clear_address(this_bytes, result_storage);
       ((a_constexpr_address *)this_bytes)->complete_object = complete_object;
-      ((a_constexpr_address *)this_bytes)->alloc_seq_number = alloc_seq_number;
+      ((a_constexpr_address *)this_bytes)->alloc_seq_number = alloc_seq;
       mark_complete_object_initialized(this_bytes);
       postfix = (a_var_postfix*)(this_bytes+this_n_bytes);
       postfix->alloc_seq_number = alloc_seq_number;
@@ -10738,7 +10758,8 @@ the body of the (constructor) function proper.
         mark_complete_class_object_if_needed(tp, result_storage+offset);
       } else if (ctor_init->kind == (a_constructor_init_kind)cik_delegation) {
         result = do_constexpr_dynamic_init(ips, ctor_init->initializer, pos,
-                                           result_storage, complete_object);
+                                           result_storage, complete_object,
+                                           alloc_seq);
         break;
       } else {
         a_base_class_ptr  bcp = ctor_init->variant.base_class;
@@ -10796,7 +10817,7 @@ the body of the (constructor) function proper.
             if (!do_constexpr_ctor(ips, sub_dip,
                                    &callee->source_corresp.decl_position,
                                    result_storage+offset, complete_object,
-                                   &adjusted_src_addr)) {
+                                   alloc_seq, &adjusted_src_addr)) {
               do_constexpr_fail(result);
               break;
             } else {
@@ -10822,7 +10843,8 @@ the body of the (constructor) function proper.
           if (!do_constexpr_dynamic_init(
                                     ips, sub_dip,
                                     &callee->source_corresp.decl_position,
-                                    result_storage+offset, complete_object)) {
+                                    result_storage+offset, complete_object,
+                                    alloc_seq)) {
             do_constexpr_fail(result);
             break;
           } else {
@@ -12123,7 +12145,8 @@ is within the given complete_object.
           init_subobject_to_zero(ips, dst_bytes, ftp, complete_object);
         } else {
           if (do_constexpr_dynamic_init(ips, sub_dip, pos,
-                                         dst_bytes, complete_object)) {
+                                        dst_bytes, complete_object,
+                                        active_alloc_seq(ips))) {
             mark_subobject_initialized(dst_bytes, complete_object);
           } else {
             result = FALSE;
@@ -12166,7 +12189,8 @@ is within the given complete_object.
           }  /* if */
         } else {
           if (do_constexpr_dynamic_init(ips, sub_dip, pos,
-                                        dst_bytes, complete_object)) {
+                                        dst_bytes, complete_object,
+                                        active_alloc_seq(ips))) {
             mark_subobject_initialized(dst_bytes, complete_object);
             mark_complete_class_object_if_needed(fp->type, dst_bytes);
           } else {
@@ -12262,7 +12286,8 @@ is within the given complete_object.
             }  /* if */
           } else if (dyn_init_is(sub_dip, dik_constructor)) {
             if (!do_constexpr_ctor(ips, sub_dip, pos, dst_bytes,
-                                   complete_object, &var_addr)) {
+                                   complete_object, active_alloc_seq(ips),
+                                   &var_addr)) {
               do_constexpr_fail(result);
             }  /* if */
           } else if (dyn_init_is(sub_dip, dik_expression)) {
@@ -13171,7 +13196,8 @@ Evaluate the given new-expression.
       if (dyn_init_is(dip, dik_zero)) {
         init_subobject_to_zero(ips, elem, elem_type, complete_obj);
       } else if (!do_constexpr_dynamic_init(ips, dip, &expr->position, elem,
-                                            complete_obj)) {
+                                            complete_obj,
+                                            cap->alloc_seq_number)) {
         result = FALSE;
         break;
       }  /* if */
@@ -18206,11 +18232,13 @@ the value representation of the integer value.
           tmp_bytes = result_storage;
           tmp_complete_obj = complete_object;
           temp_lifetime = TRUE;
+          alloc_seq_number = ips->storage_stack.alloc_seq_number;
         }  /* if */
         if (dyn_init_is(dip, dik_zero)) {
           init_subobject_to_zero(ips, tmp_bytes, tp, tmp_complete_obj);
         } else if (!do_constexpr_dynamic_init(
-                    ips, dip, &expr->position, tmp_bytes, tmp_complete_obj)) {
+                       ips, dip, &expr->position, tmp_bytes, tmp_complete_obj,
+                       alloc_seq_number)) {
           do_constexpr_fail(result);
         }  /* if */
         if (expr->is_lvalue || expr->is_xvalue) {
@@ -18295,8 +18323,8 @@ the value representation of the integer value.
 #endif /* GNU_EXTENSIONS_ALLOWED */
     case enk_initializer:
       if (!do_constexpr_dynamic_init(ips, expr->variant.initializer.dyn_init,
-                                     &expr->position,
-                                     result_storage, complete_object)) {
+                                     &expr->position, result_storage,
+                                     complete_object, active_alloc_seq(ips))) {
         result = FALSE;
       }  /* if */
       break;
@@ -19579,7 +19607,7 @@ if the caller has determined that reinterpret_cast expressions can be folded
       init_subobject_to_zero(&ips, result_storage, result_type,
                              result_storage);
     } else if (!do_constexpr_dynamic_init(&ips, dip, pos, result_storage,
-                                          result_storage)) {
+                                          result_storage, 1)) {
       if (ips.input_error) {
         /* Interpretation failed due to an error node in the IL.  Continue
            with an error constant, but treat interpretation as successful. */
@@ -19736,7 +19764,7 @@ position associated with the call.
       ips.permit_address_of_local_temporary = TRUE;
     }  /* if */
     alloc_complete_object(&ips, n_bytes, result_type, result_storage);
-    if (!do_constexpr_ctor(&ips, dip, pos, result_storage, result_storage,
+    if (!do_constexpr_ctor(&ips, dip, pos, result_storage, result_storage, 1,
                            /*implied_src=*/NULL)) {
       if (ips.input_error) {
         /* Interpretation failed due to an error node in the IL.  Continue

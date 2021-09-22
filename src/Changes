@@ -1,5 +1,30 @@
 Version 6.3
 
+9/22/21  [EDGcpfe/24211]
+Self-referencing constant-expressions
+
+Consider:
+
+  struct S {
+    int i;
+    constexpr S(): i{} {}
+  };
+  struct X {
+    constexpr X(): p(&u.i) {}
+    S u;
+    int *p;
+  };
+  struct Y: X {
+    constexpr Y() {}
+  };
+  constexpr Y y;  // Previously an error.  Now okay.
+
+A bug in the interpreter's management of storage lifetime causes some cases
+like these that produce a constant result with an internal address constant
+that refers to the result itself to mistakenly be diagnosed as non-constant.
+That is now fixed.
+
+
 9/20/21  [EDGcpfe/24713]
 C++-generating back end: definition of user-defined conversion operators
 
