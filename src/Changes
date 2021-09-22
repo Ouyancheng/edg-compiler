@@ -1,5 +1,21 @@
 Version 6.3
 
+9/22/21  [EDGcpfe/24214,EDGcpfe/24471]
+Logical operators folded despite dependent second operand
+
+Consider:
+
+  template<bool> struct E {};
+  template<bool B>
+    using AU = typename E<B>::undef;
+  template<bool F(int)>
+    auto f() -> AU<0 && F({})>;  // Previously an error.  Now okay.
+
+The front end previously folded the expression "0 && F({})" despite F being a
+template parameter.  That in turn, cause AU<false> to be instantiated early,
+which in turn triggered a spurious error.  That is now fixed.
+
+
 9/22/21  [EDGcpfe/24211]
 Self-referencing constant-expressions
 

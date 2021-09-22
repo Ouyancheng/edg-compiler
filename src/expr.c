@@ -31163,6 +31163,16 @@ and whether the operator appears at the top level of a requires clause.
       op = which_binary_operator(operator_token, result_type);
       do_binary_operation(op, operand_1, &operand_2, result_type, result,
                           &operator_position, operator_tok_seq_number);
+      if (is_expression_operand(result) && is_template_dependent_context() &&
+          operand_is_instantiation_dependent(&operand_2)) {
+        /* In template-dependent contexts, something like "0 && F(x)" where
+           F is a nontype template parameter will not have been folded here.
+           However, downstream components may attempt to fold the operation,
+           into a nondependent result, which in turn may cause instantiations
+           to occur too early.  By setting the do_not_interprete flag, the
+           over-eager folding will not happen. */
+        result->variant.expression->do_not_interpret = TRUE;
+      }  /* if */
     } else {
       /* Reduce the expression to a constant.  The first operand is
          constant and dictates the result, and the second operand is
