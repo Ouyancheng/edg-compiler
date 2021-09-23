@@ -274,7 +274,7 @@ struct a_scope_id_lookup_options_set {
 
   inline a_boolean accepts(a_name_space_kind required_name_space_kind,
                            a_symbol_ptr      sym,
-                           a_symbol_ptr      fund_sym);
+                           a_symbol_ptr      fund_sym) const;
 
   a_boolean must_be_tag;
   a_boolean projection_allowed;
@@ -284,7 +284,7 @@ struct a_scope_id_lookup_options_set {
 inline a_boolean a_scope_id_lookup_options_set::accepts(
                                     a_name_space_kind required_name_space_kind,
                                     a_symbol_ptr      sym,
-                                    a_symbol_ptr      fund_sym)
+                                    a_symbol_ptr      fund_sym) const
 /*
 Returns TRUE if sym and its accompanying fundamental symbol (fund_sym) are
 acceptable symbols in the namespace ns_ptr given the current lookup options.
@@ -5745,7 +5745,7 @@ struct a_namespace_lookup_options_set {
 
   inline a_boolean accepts(a_namespace_ptr ns_ptr,
                            a_symbol_ptr    sym,
-                           a_symbol_ptr    fund_sym);
+                           a_symbol_ptr    fund_sym) const;
 
   a_boolean must_be_class_or_namespace;
   a_boolean must_be_tag;
@@ -5764,6 +5764,7 @@ inline a_boolean a_namespace_lookup_options_set::accepts(
                                                       a_namespace_ptr ns_ptr,
                                                       a_symbol_ptr    sym,
                                                       a_symbol_ptr    fund_sym)
+                                                                          const
 /*
 Returns TRUE if sym and its accompanying fundamental symbol (fund_sym) are
 acceptable symbols in the namespace ns_ptr given the current lookup options.
