@@ -2733,6 +2733,7 @@ private:
     { return get_ifc_scope(get_ifc_home_scope_decl(decl)); }
   inline a_scope_ptr get_ifc_home_scope(ifc_DeclIndex decl_index)
     { return get_ifc_scope(get_ifc_home_scope_decl(decl_index)); }
+  a_boolean is_home_scope_readable(ifc_DeclIndex decl_index);
   /* IFC Access readers. */
   template<typename an_ifc_DeclSort_T>
   inline ifc_Access get_ifc_access(an_ifc_DeclSort_T *decl, char)

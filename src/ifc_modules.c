@@ -5580,6 +5580,23 @@ Given a scope index find and return the associated scope.
 }  /* get_ifc_scope */
 
 
+a_boolean an_ifc_module::is_home_scope_readable(ifc_DeclIndex decl_index)
+/*
+Returns TRUE if the home scope of the declaration (indexed by decl_index) is
+loaded and may contain all or part of its associated inner declarations.
+*/
+{
+  a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl_index);
+  a_scope_ptr home_scope = mep->scope;
+  /* FIXME: We're currently unable to retroactively retrieve a home scope
+     for enumerators. Avoid a crash. */
+  if (home_scope == NULL && decl_tag(decl_index) != ifc_DeclSort_Enumerator) {
+    home_scope = get_ifc_home_scope(decl_index);
+  }  /* if */
+  return home_scope != NULL && !home_scope->is_placeholder_scope;
+}  /* is_home_scope_readable */
+
+
 template<typename an_ifc_DeclSort_T>
 inline auto an_ifc_module::get_ifc_access(an_ifc_DeclSort_T *decl, int)
                                  -> Is_same<decltype(decl->access), ifc_Access>
@@ -6890,7 +6907,12 @@ Given a declaration, return the name associated with that declaration.
     default_is_unexpected_str("Unexpected DeclSort");
   }  /* switch */
   check_assertion(result != NULL);
-  if (gmf_decl) {
+  /* FIXME: We're dodging an issue where the declaration (decl) is part of some
+     enclosing class that we're currently trying to cache by checking to see if
+     the home scope is "readable".  This likely means the answer to the below
+     FIXME is that, no we do not want this check here.  However, for the moment
+     the "check" remains useful and prevents some regressions. */
+  if (gmf_decl && is_home_scope_readable(decl)) {
     a_symbol_locator loc;
     /* FIXME: Do we want to have this check here, or should we always load the
        module's version of the declaration and rely on visibility rules to sort
