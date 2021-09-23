@@ -456,15 +456,15 @@ general memory.
 
 
 /*
-The Ptr_map template
-====================
+The Dyn_array template
+======================
 The Dyn_array<E, A> template defined below implements a dynamic array construct
 not unlike std::vector<E, A>.  E is the element type and A the allocator type
 (which defaults to the front end memory allocator).
 
 The most common std::vector operators are also applicable to Dyn_array.  Things
-like operator[], push_back, begin(), end(), etc. work as expected (which, e.g.,
-means that the C++11 range-based for-statement works for Dyn_array also).
+like operator[], push_back, begin(), end(), etc., work as expected (which,
+e.g., means that the C++11 range-based for-statement works for Dyn_array also).
 */
 
 /*lint -esym(1510,*Dyn_array)*/
@@ -2097,7 +2097,7 @@ type K to values of type V, using A as an allocator.  It is called Ptr_map
 because it works well to map non-null pointers, but the only notable key-type
 requirement is that K{} (i.e., the default-constructed value of K) not be used
 as a key value.  So mapping nonzero integers works very well, also, as do other
-types for which the default- constructed value is never a valid key (the
+types for which the default-constructed value is never a valid key (the
 default-constructed value is used to denote "empty" slots in the table).
 
 Ptr_map uses unqualified calls to "hash_ptr" to compute hash values.  For keys
