@@ -1,5 +1,24 @@
 Version 6.3
 
+9/23/21  [EDGcpfe/24721]
+Constexpr dynamic_cast during construction
+
+In some cases, the constexpr interpreter did not correctly handle dynamic_cast
+during the construction of a subobject.
+
+  struct L { virtual void fl(); };
+  struct B: L {};
+  struct R { virtual void fr(); };
+  struct C: L, R { L *c = dynamic_cast<L*>(static_cast<R*>(this)); };
+  struct D: B, C { }; 
+  constexpr D d{}; 
+  static_assert(d.c == (C*)&d);  // Previously failed.  Now okay.
+
+Previously this failed because the dynamic_cast was treated as ambiguous even
+though L is not an ambiguous base of *this during the construction of C.  That
+is now fixed.
+
+
 9/22/21  [EDGcpfe/24214,EDGcpfe/24471]
 Logical operators folded despite dependent second operand
 

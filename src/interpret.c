@@ -12910,7 +12910,14 @@ represented by an entry of type a_constant (ck_address or ck_integer).
              ambiguous. */
           goto done;
         }  /* if */
-        bcp = *(a_base_class_ptr*)result_addr->address;
+        if (is_initialized(result_addr)) {
+          bcp = *(a_base_class_ptr*)result_addr->address;
+        } else {
+          /* The next derived subobject is not constructed yet (e.g., because
+             we're still evaluating its constructor).  Do not search further
+             down. */
+          bcp = NULL;
+        }  /* if */
       }  /* while */
       if (type_is(tp, tk_void)) {
         /* result_addr now points to the most-derived object, which is exactly
