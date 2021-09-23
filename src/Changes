@@ -12,7 +12,7 @@ Consider:
     auto f() -> AU<0 && F({})>;  // Previously an error.  Now okay.
 
 The front end previously folded the expression "0 && F({})" despite F being a
-template parameter.  That in turn, cause AU<false> to be instantiated early,
+template parameter.  That in turn, caused AU<false> to be instantiated early,
 which in turn triggered a spurious error.  That is now fixed.
 
 
