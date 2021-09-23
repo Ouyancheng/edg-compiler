@@ -6656,10 +6656,9 @@ Interpret the given range-based for-statement.
         get_int_val_from(expr_value, tp, bool_val, ovfl);
         if (!ovfl && bool_val) {
           /* Initialize the iterator variable: */
-          if (!do_constexpr_dynamic_init(
-                                       ips, dip, &stmt->position,
-                                       var_storage[0], var_storage[0],
-                                       active_alloc_seq(ips))) {
+          if (!do_constexpr_dynamic_init(ips, dip, &stmt->position,
+                                         var_storage[0], var_storage[0],
+                                         active_alloc_seq(ips))) {
             do_constexpr_fail(result);
             break;
           }  /* if */
@@ -7108,10 +7107,9 @@ successfully interpreted, FALSE otherwise.
             tp = skip_typerefs(fn_type->variant.routine.return_type);
             init_subobject_to_zero(ips, result_storage, tp, complete_obj);
           } else {
-            result = do_constexpr_dynamic_init(
-                                         ips, dip, &stmt->position, 
-                                         result_storage, complete_obj,
-                                         active_alloc_seq(ips));
+            result = do_constexpr_dynamic_init(ips, dip, &stmt->position, 
+                                               result_storage, complete_obj,
+                                               active_alloc_seq(ips));
           }  /* if */
         } else {
           /* Return without a value. */
@@ -7158,10 +7156,9 @@ done_with_return_statement:
             tp = skip_typerefs(frame->variant.expr->type);
             init_subobject_to_zero(ips, result_storage, tp, complete_obj);
           } else {
-            result = do_constexpr_dynamic_init(
-                                         ips, dip, &stmt->position, 
-                                         result_storage, complete_obj,
-                                         active_alloc_seq(ips));
+            result = do_constexpr_dynamic_init(ips, dip, &stmt->position, 
+                                               result_storage, complete_obj,
+                                               active_alloc_seq(ips));
           }  /* if */
         }  /* if */
       }
@@ -10841,10 +10838,10 @@ the body of the (constructor) function proper.
                                prev_this_bytes);
           }  /* if */
           if (!do_constexpr_dynamic_init(
-                                    ips, sub_dip,
-                                    &callee->source_corresp.decl_position,
-                                    result_storage+offset, complete_object,
-                                    alloc_seq)) {
+                                       ips, sub_dip,
+                                       &callee->source_corresp.decl_position,
+                                       result_storage+offset, complete_object,
+                                       alloc_seq)) {
             do_constexpr_fail(result);
             break;
           } else {

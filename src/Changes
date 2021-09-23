@@ -35,7 +35,7 @@ Consider:
   };
   constexpr Y y;  // Previously an error.  Now okay.
 
-A bug in the interpreter's management of storage lifetime causes some cases
+A bug in the interpreter's management of storage lifetime caused some cases
 like these that produce a constant result with an internal address constant
 that refers to the result itself to mistakenly be diagnosed as non-constant.
 That is now fixed.
