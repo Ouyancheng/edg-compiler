@@ -9313,15 +9313,25 @@ following position.
     if (gnu_imaginary_literals_allowed &&
         (ch == 'i' || ch == 'I' || ch == 'j' || ch == 'J') &&
         !is_id_char[*(curr_char_loc+1)-CHAR_MIN]) {
-      /* A GNU imaginary literal of integral type (e.g., "12i").  We do not
-         generally support imaginary integer literals, but for decimal
-         integers without any other suffix we issue a discretionary error
-         and proceed as if it were a "_Complex double" literal. */
-      if (!fetch_pp_tokens) {
-        diagnostic_at_line_pos(es_discretionary_error,
-                               ec_complex_integral_type, curr_char_loc);
+      if (prefer_udl_over_imag_suffix) {
+        /* g++ and clang treat something like 5i as a user-defined literal
+           if a literal operator with that suffix has been declared and as
+           an imaginary literal otherwise.  We'll try this as a ud-suffix
+           first and come back here if the lookup fails. */
+        potential_ud_suffix = TRUE;
+        tentative_udl_lookup = TRUE;
+      } else {
+        /* A GNU imaginary literal of integral type (e.g., "12i").  We do not
+           generally support imaginary integer literals, but for decimal
+           integers without any other suffix we issue a discretionary error
+           and proceed as if it were a "_Complex double" literal. */
+int_imaginary_suffix:
+        if (!fetch_pp_tokens) {
+          diagnostic_at_line_pos(es_discretionary_error,
+                                 ec_complex_integral_type, curr_char_loc);
+        }  /* if */
+        goto end_float_accum;
       }  /* if */
-      goto end_float_accum;
     }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     /* Definitely a decimal integer. */
@@ -9856,32 +9866,80 @@ fixed_point_suffix:
                                                     ud_lit_type_for_curr_token,
                                                     /*from_cache=*/FALSE,
                                                     (a_diagnostic_ptr)NULL);
-      if (ud_lit_op_sym_for_curr_token == NULL && id_len <= 2 &&
+      if (ud_lit_op_sym_for_curr_token == NULL && id_len <= 4 &&
           prefer_udl_over_imag_suffix) {
         /* g++ and clang treat something like 0.5il as a user-defined
            literal if the corresponding literal operator has been declared
            and an imaginary literal otherwise.  We've just determined that
            there's no literal operator for the suffix.  Check to see if the
            canonical id is one of the imaginary literal suffixes and, if so,
-           go back and rescan the number as an imaginary literal. */
+           go back and treat the number as an imaginary literal. */
         a_boolean    is_imaginary_suffix = FALSE;
-        char         other_ch = 0;
+        a_const_char *rest = NULL;
         if (strchr("IiJj", canonical_id[0]) != NULL) {
           is_imaginary_suffix = TRUE;
-          if (id_len == 2) {
-            other_ch = canonical_id[1];
+          if (id_len > 1) {
+            rest = canonical_id + 1;
           }  /* if */
-        } else if (id_len == 2 && strchr("IiJj", canonical_id[1]) != NULL) {
+        } else if (id_len > 1 &&
+                   strchr("IiJj", canonical_id[id_len - 1]) != NULL) {
           is_imaginary_suffix = TRUE;
-          other_ch = canonical_id[0];
+          rest = canonical_id;
         }  /* if */
-        if (other_ch != 0) {
-          if (strchr("FfLlWwQq", other_ch) == NULL ||
-              (!float80_enabled && (other_ch == 'W' || other_ch == 'w')) ||
-              (!float128_enabled && (other_ch == 'Q' || other_ch == 'q'))) {
-            /* The second character is not one that can be combined with
-               'i' to designate an imaginary literal. */
-            is_imaginary_suffix = FALSE;
+        if (is_imaginary_suffix && id_len > 1) {
+          if (kind == k_float) {
+            /* There can be at most one other character in the suffix, and,
+               if present, it must be one of the permissible floating point
+               suffixes. */
+            if (id_len > 2 ||
+                strchr("FfLlWwQq", *rest) == NULL ||
+                (!float80_enabled && (*rest == 'W' || *rest == 'w')) ||
+                (!float128_enabled && (*rest == 'Q' || *rest == 'q'))) {
+              /* The remainder of the suffix is not compatible with use of
+                 'i' or 'j' to designate an imaginary literal. */
+              is_imaginary_suffix = FALSE;
+            }  /* if */
+          } else {
+            /* Check that the rest of the suffix satisfies the grammar for
+               integer-suffix. */
+            switch (*rest) {
+              case 'Z':
+              case 'z':
+                /* "Z" or "ZU" are permitted. */
+                if (id_len > 3 || (rest[1] != 'U' && rest[1] != 'u')) {
+                  is_imaginary_suffix = FALSE;
+                }  /* if */
+                break;
+              case 'U':
+              case 'u':
+                /* "U", "UZ", "UL", or "ULL" are permitted. */
+                if (id_len >= 3) {
+                  if (rest[1] == 'Z' || rest[1] == 'z') {
+                    is_imaginary_suffix = (id_len == 3);
+                  } else if (rest[1] == 'L' || rest[1] == 'l') {
+                    is_imaginary_suffix = (id_len == 3 ||
+                                           rest[2] == rest[1]);
+                  } else {
+                    is_imaginary_suffix = FALSE;
+                  }  /* if */
+                }  /* if */
+                break;
+              case 'L':
+              case 'l':
+                /* "L", "LL", "LU", or "LLU" are permitted. */
+                if (id_len == 3) {
+                  is_imaginary_suffix = (rest[1] == 'U' || rest[1] == 'u' ||
+                                         rest[1] == rest[0]);
+                } else {
+                  is_imaginary_suffix = (rest[1] == rest[0] &&
+                                         (rest[2] == 'U' || rest[2] == 'u'));
+                }  /* if */
+                break;
+              default:
+                /* Other characters cannot begin an integer-suffix. */
+                is_imaginary_suffix = FALSE;
+                break;
+            }  /* switch */
           }  /* if */
         }  /* if */
         if (is_imaginary_suffix) {
@@ -9891,7 +9949,13 @@ fixed_point_suffix:
           ch = *curr_char_loc;
           possible_start_of_ud_suffix = NULL;
           potential_ud_suffix = FALSE;
-          goto end_float_accum;
+          if (kind == k_float) {
+            goto end_float_accum;
+#if C99_IL_EXTENSIONS_SUPPORTED
+          } else {
+            goto int_imaginary_suffix;
+#endif /* C99_IL_EXTENSIONS_SUPPORTED */
+          }  /* if */
         }  /* if */
       }  /* if */
       if (err_code != ec_no_error &&
