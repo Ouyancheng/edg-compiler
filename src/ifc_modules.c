@@ -12201,8 +12201,15 @@ second operand of an assignment.
     case ifc_ExprSort_Path:
       { an_ifc_ExprSort_Path iesp, *iespp;
         iespp = get_ExprSort_Path(&iesp);
-        cache_expr(cache, iespp->scope);
-        cache_token(cache, tok_colon_colon, &null_source_position);
+        if (!suppress_automatic_name_qualification) {
+          /* FIXME: This shouldn't be possible.  We've been told not to qualify
+             names, and got a qualified name.  Note that this variable is
+             normally used only for EDG automatic name qualification, though
+             this branch was written because an ifc_ExprSort_UnqualifiedId
+             pointed us here leading to double name qualification. */
+          cache_expr(cache, iespp->scope);
+          cache_token(cache, tok_colon_colon, &null_source_position);
+        }  /* if */
         cache_expr(cache, iespp->member);
       }
       break;
