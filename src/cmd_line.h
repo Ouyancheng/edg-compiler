@@ -2702,12 +2702,10 @@ EXTERN a_boolean
 			   the change introduced as a defect report by C++
 			   Committee document P0929R2. */
 
-#if C99_IL_EXTENSIONS_SUPPORTED
 EXTERN a_boolean
 		gnu_imaginary_literals_allowed;
 			/* TRUE if imaginary literals (e.g., "1.0i") are
 			   allowed in the current mode. */
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

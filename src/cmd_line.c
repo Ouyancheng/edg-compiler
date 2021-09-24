@@ -12741,9 +12741,7 @@ variables declared in cmd_line.h.
   lazy_symbols_may_be_visible = FALSE;
   skip_module_imports = FALSE;
   skip_module_version_check = FALSE;
-#if C99_IL_EXTENSIONS_SUPPORTED
   gnu_imaginary_literals_allowed = FALSE;
-#endif /* C99_IL_EXTENSIONS_SUPPORTED */
 }  /* cmd_line_static_var_init */
 
 

@@ -9331,21 +9331,34 @@ following position.
         potential_ud_suffix = TRUE;
         tentative_udl_lookup = TRUE;
       } else {
-        /* A GNU imaginary literal of integral type (e.g., "12i").  We do not
-           generally support imaginary integer literals, but for decimal
-           integers without any other suffix we issue a discretionary error
-           and proceed as if it were a "_Complex double" literal. */
 int_imaginary_suffix:
-        char saved_ch = *++end_of_curr_token;
+        /* A GNU imaginary literal of integral type (e.g., "12i").  We do
+           not generally support imaginary integer literals, but for
+           decimal integers with an imaginary suffix we issue a
+           discretionary error and proceed as if it were a "_Complex
+           double" literal.  curr_char_loc points to the first (or only)
+           character of the suffix. */
+        char saved_ch;
         if (!fetch_pp_tokens) {
           diagnostic_at_line_pos(es_discretionary_error,
                                  ec_complex_integral_type, curr_char_loc);
         }  /* if */
+        /* Include the first character of the suffix in the token and
+           replace it with 'i' (in case the suffix contained integer-suffix
+           characters, e.g., "0ulli") and convert the token to a complex
+           double value. */
+        end_of_curr_token = curr_char_loc;
+        saved_ch = *end_of_curr_token;
         *(char *)end_of_curr_token = 'i';
         conv_float_literal(kind == k_hex, &err_code, &start_of_curr_token);
         ctoken = tok_float_constant;
+        /* Restore the original character in the suffix and include the
+           entire suffix in the token.  Set up to continue the scan
+           following the entire suffix. */
         *(char *)end_of_curr_token = saved_ch;
-        end_of_curr_token += id_len - 1;
+        if (id_len != 0) {
+          end_of_curr_token += id_len - 1;
+        }  /* if */
         curr_char_loc = end_of_curr_token + 1;
         goto done;
       }  /* if */
