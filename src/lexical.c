@@ -9156,6 +9156,7 @@ the kind of token.
                                        user_defined_literals_enabled &&
                                        (clang_mode || gnu_version_is(>=80100));
   a_boolean     tentative_udl_lookup = FALSE;
+  sizeof_t     id_len = 0;
 
 /*
 Macro to skip over an optional C++14 digit separator (apostrophe).  Reports
@@ -9267,11 +9268,20 @@ following position.
          imaginary integer literals, but for "0i" we issue a discretionary
          error and proceed as if it were a "_Complex double" literal. */
       ++curr_char_loc;
-      if (!fetch_pp_tokens) {
-        diagnostic_at_line_pos(es_discretionary_error,
-                               ec_complex_integral_type, curr_char_loc);
+      if (prefer_udl_over_imag_suffix) {
+        /* g++ and clang treat something like 5i as a user-defined literal
+           if a literal operator with that suffix has been declared and as
+           an imaginary literal otherwise.  We'll try this as a ud-suffix
+           first and come back here if the lookup fails. */
+        potential_ud_suffix = TRUE;
+        tentative_udl_lookup = TRUE;
+      } else {
+        if (!fetch_pp_tokens) {
+          diagnostic_at_line_pos(es_discretionary_error,
+                                 ec_complex_integral_type, curr_char_loc);
+        }  /* if */
+        goto end_float_accum;
       }  /* if */
-      goto end_float_accum;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
     } else {
       /* Octal or floating point.  Accumulate digits.  Digits 8 and 9
@@ -9326,11 +9336,18 @@ following position.
            integers without any other suffix we issue a discretionary error
            and proceed as if it were a "_Complex double" literal. */
 int_imaginary_suffix:
+        char saved_ch = *++end_of_curr_token;
         if (!fetch_pp_tokens) {
           diagnostic_at_line_pos(es_discretionary_error,
                                  ec_complex_integral_type, curr_char_loc);
         }  /* if */
-        goto end_float_accum;
+        *(char *)end_of_curr_token = 'i';
+        conv_float_literal(kind == k_hex, &err_code, &start_of_curr_token);
+        ctoken = tok_float_constant;
+        *(char *)end_of_curr_token = saved_ch;
+        end_of_curr_token += id_len - 1;
+        curr_char_loc = end_of_curr_token + 1;
+        goto done;
       }  /* if */
     }  /* if */
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
@@ -9834,7 +9851,6 @@ fixed_point_suffix:
          err_code == ec_integer_too_large)) {
       /* A syntactically-correct user-defined literal was seen. */
       a_const_char *canonical_id;
-      sizeof_t     id_len;
       id_len = (sizeof_t)(curr_char_loc - end_of_curr_token - 1);
       canonical_id = make_canonical_identifier(end_of_curr_token + 1, &id_len,
                                                /*force_ucn=*/FALSE);
@@ -9867,7 +9883,7 @@ fixed_point_suffix:
                                                     /*from_cache=*/FALSE,
                                                     (a_diagnostic_ptr)NULL);
       if (ud_lit_op_sym_for_curr_token == NULL && id_len <= 4 &&
-          prefer_udl_over_imag_suffix) {
+          gnu_imaginary_literals_allowed && prefer_udl_over_imag_suffix) {
         /* g++ and clang treat something like 0.5il as a user-defined
            literal if the corresponding literal operator has been declared
            and an imaginary literal otherwise.  We've just determined that
