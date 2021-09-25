@@ -5890,10 +5890,7 @@ put out nothing.
           name_has_template_arguments(&class_type->source_corresp, iek_type,
                                       (a_template_arg_ptr *)NULL,
                                       /*insert_space=*/(a_boolean *)NULL) &&
-          nqp->previous_qualifier != NULL &&
-          nqp->previous_qualifier->is_class &&
-          is_template_param_or_nonreal_class_type(nqp->previous_qualifier->
-                                                       qualifier.class_type)) {
+          nqp->previous_qualifier != NULL) {
         /* This qualifier is a dependent template-id and must be prefixed
            with the "template" keyword. */
         write_tok_str("template ");
