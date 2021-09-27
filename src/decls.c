@@ -2765,6 +2765,7 @@ declaration of this symbol.
   a_symbol_ptr  sym;
 
   db_enter(4, "enter_local_symbol");
+  check_assertion(scope_level >= 0);
   if (scope_stack[scope_level].kind == (a_scope_kind)sck_func_prototype) {
     if (kind == (a_symbol_kind)sk_variable) {
       /* A variable declared in a function prototype scope is the result of
