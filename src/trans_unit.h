@@ -131,7 +131,7 @@ typedef struct a_translation_unit {
   a_bit_field	is_partially_sequenced:1;
 			/* TRUE if sequencing has started on this translation
 			   unit.  Used by expensive checks to validate sequence
-			   numbers.  This value generally speaking, only
+			   numbers.  Generally speaking, this value only
 			   becomes TRUE once (during the first call to
 			   record_start_of_source_file).  However, in the case
 			   of a lexical reset (for cases like PCH processing),
@@ -139,7 +139,7 @@ typedef struct a_translation_unit {
   a_bit_field	is_fully_sequenced:1;
 			/* TRUE if the translation unit has been fully
 			   sequenced.  Used by expensive checks to validate
-			   sequence numbers.  This value generally speaking,
+			   sequence numbers.  Generally speaking, this value
 			   only becomes TRUE once (when sequencing concludes).
 			   However, in the case of implicit includes (for
 			   delayed template instantiations) translation units

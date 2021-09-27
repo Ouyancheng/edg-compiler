@@ -3814,7 +3814,7 @@ a file that contains metadata).
     /* If the sequence number is one this is a brand new sequence either from a
        fresh compilation or a lexical reset.  If the last sequence number
        encountered is MAX_SEQ_NUMBER it will be updated by this function.  In
-       either case, we can not perform any meaningful checks about the
+       either case, we cannot perform any meaningful checks about the
        sequencing. */
     if (seq_number != 1 && snlep->last != MAX_SEQ_NUMBER) {
       a_boolean is_new_translation_unit =
