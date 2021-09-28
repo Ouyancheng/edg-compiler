@@ -9156,7 +9156,7 @@ the kind of token.
                                        user_defined_literals_enabled &&
                                        (clang_mode || gnu_version_is(>=80100));
   a_boolean     tentative_udl_lookup = FALSE;
-  sizeof_t     id_len = 0;
+  sizeof_t      id_len = 0;
 
 /*
 Macro to skip over an optional C++14 digit separator (apostrophe).  Reports
@@ -9400,7 +9400,7 @@ int_imaginary_suffix:
                            ec_nonstd_long_long, start_of_curr_token);
   }  /* if */
 #endif /* LONG_LONG_ALLOWED */
-  if (ms_extensions && l_suffix_seen == 0 &&
+  if (ms_extensions && !gnu_mode && l_suffix_seen == 0 &&
       (*curr_char_loc == 'i' || *curr_char_loc == 'I') &&
       isdigit((unsigned char)curr_char_loc[1])) {
     /* The Microsoft compiler allows a suffix like "i32" indicating a
@@ -9899,21 +9899,43 @@ fixed_point_suffix:
           gnu_imaginary_literals_allowed && prefer_udl_over_imag_suffix) {
         /* g++ and clang treat something like 0.5il as a user-defined
            literal if the corresponding literal operator has been declared
-           and an imaginary literal otherwise.  We've just determined that
+           and an imaginary literal otherwise.  With -fms-extensions, clang
+           has a similar treatment for something like UI32 as a UDL or as a
+           Microsoft-style integer type suffix.  We've just determined that
            there's no literal operator for the suffix.  Check to see if the
-           canonical id is one of the imaginary literal suffixes and, if so,
-           go back and treat the number as an imaginary literal. */
-        a_boolean    is_imaginary_suffix = FALSE;
+           canonical id is one of the permitted literal suffixes and, if
+           so, go back and handle the number appropriately. */
         a_const_char *rest = NULL;
-        if (strchr("IiJj", canonical_id[0]) != NULL) {
-          is_imaginary_suffix = TRUE;
-          if (id_len > 1) {
+        a_boolean    is_imaginary_suffix = FALSE;
+        a_boolean    is_ms_type_suffix = FALSE;
+        if (clang_mode && ms_extensions && kind != k_float &&
+            strchr("IiUu", canonical_id[0]) != NULL) {
+          sizeof_t  num_chars;
+          if (canonical_id[0] == 'I' || canonical_id[0] == 'i') {
             rest = canonical_id + 1;
+            num_chars = id_len - 1;
+          } else if (canonical_id[1] == 'I' || canonical_id[1] == 'i') {
+            rest = canonical_id + 2;
+            num_chars = id_len - 2;
           }  /* if */
-        } else if (id_len > 1 &&
-                   strchr("IiJj", canonical_id[id_len - 1]) != NULL) {
-          is_imaginary_suffix = TRUE;
-          rest = canonical_id;
+          is_ms_type_suffix = (rest != NULL &&
+                               ((num_chars == 1 && rest[0] == '8') ||
+                                (num_chars == 2 &&
+                                 ((rest[0] == '1' && rest[1] == '6') ||
+                                  (rest[0] == '3' && rest[1] == '2') ||
+                                  (rest[0] == '6' && rest[1] == '4')))));
+        }  /* if */
+        if (!is_ms_type_suffix) {
+          if (strchr("IiJj", canonical_id[0]) != NULL) {
+            is_imaginary_suffix = TRUE;
+            if (id_len > 1) {
+              rest = canonical_id + 1;
+            }  /* if */
+          } else if (id_len > 1 &&
+                     strchr("IiJj", canonical_id[id_len - 1]) != NULL) {
+            is_imaginary_suffix = TRUE;
+            rest = canonical_id;
+          }  /* if */
         }  /* if */
         if (is_imaginary_suffix && id_len > 1) {
           if (kind == k_float) {
@@ -9971,14 +9993,14 @@ fixed_point_suffix:
             }  /* switch */
           }  /* if */
         }  /* if */
-        if (is_imaginary_suffix) {
+        if (is_imaginary_suffix || is_ms_type_suffix) {
           /* Rescan the suffix. */
           prefer_udl_over_imag_suffix = FALSE;
           curr_char_loc = end_of_curr_token + 1;
           ch = *curr_char_loc;
           possible_start_of_ud_suffix = NULL;
           potential_ud_suffix = FALSE;
-          if (kind == k_float) {
+          if (kind == k_float || is_ms_type_suffix) {
             goto end_float_accum;
 #if C99_IL_EXTENSIONS_SUPPORTED
           } else {
