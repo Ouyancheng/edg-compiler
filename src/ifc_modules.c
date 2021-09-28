@@ -5680,20 +5680,8 @@ can currently be qualified.
     case ifc_DeclSort_Field:
     case ifc_DeclSort_Bitfield:
     case ifc_DeclSort_Property:
-      { /* These entities can only exist in a class.
-
-           Return TRUE if the class where this entity is declared, is itself
-           declared in a class or a namespace scope.
-
-           Return FALSE if the class where this entity is declared, is itself
-           declared in a free or member function body.
-
-           This determination is made as in the latter (i.e., FALSE) case the
-           declaring class both cannot be qualified from the perspective of the
-           language, and because attempting to generate a qualifier breaks the
-           processing of get_ifc_home_scope for the entity indexed by
-           decl_index (which we use for determining and caching the
-           qualifier). */
+      { /* These entities can only exist in a class. Return FALSE if that class
+           is a local class, otherwise return TRUE. */
         ifc_DeclIndex declaring_class = get_ifc_home_scope_decl(decl_index);
         ifc_DeclIndex declaring_class_scope =
                                       get_ifc_home_scope_decl(declaring_class);
