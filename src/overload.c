@@ -1807,6 +1807,7 @@ types.
 static void add_function_template_to_candidate_functions_list(
                           a_symbol_ptr             function_symbol,
                           a_symbol_ptr             overloaded_function_symbol,
+                          a_type_ptr               specific_type,
                           a_boolean                expl_template_arg_list_used,
                           a_template_arg_ptr       template_arg_list,
                           an_arg_match_summary_ptr arg_matches,
@@ -1814,12 +1815,12 @@ static void add_function_template_to_candidate_functions_list(
 /*
 Add the function template identified by function_symbol to the front of the
 candidate_functions list.  overloaded_function_symbol is the corresponding
-overloaded symbol; it may be NULL if not applicable.  If
-template_arg_list is non-NULL, it gives a list of explicit template
-arguments.  Some part of the argument list was explicitly specified if
-expl_template_arg_list_used is TRUE.  arg_matches gives information
-about how well the actual arguments we have match the function's
-formal parameters.
+overloaded symbol; it may be NULL if not applicable.  If specific_type is
+non-NULL, it is the associated deduced function type.  If template_arg_list is
+non-NULL, it gives a list of explicit template arguments.  Some part of the
+argument list was explicitly specified if expl_template_arg_list_used is TRUE.
+arg_matches gives information about how well the actual arguments match the
+function's formal parameters.
 */
 {
   a_candidate_function_ptr candidate;
@@ -1834,6 +1835,7 @@ formal parameters.
   candidate->is_function_template = TRUE;
   candidate->expl_template_arg_list_used = expl_template_arg_list_used;
   candidate->template_arg_list = template_arg_list;
+  candidate->specific_type = specific_type;
   candidate->arg_matches = arg_matches;
   candidate->next = *candidate_functions;
   *candidate_functions = candidate;
@@ -6247,7 +6249,7 @@ accept_function:
     add_function_template_to_candidate_functions_list(
                                              proj_function_symbol,
                                              overloaded_function_symbol,
-                                             is_template_id,
+                                             routine_type, is_template_id,
                                              local_template_arg_list,
                                              arg_match_list,
                                              candidate_functions);
@@ -8270,12 +8272,16 @@ C++ mode only, to handle the following case:
   if (csym1 != NULL && csym2 != NULL &&
       is_class_member_using_decl_symbol(csym1) !=
                                   is_class_member_using_decl_symbol(csym2)) {
-
-    a_symbol_ptr   sym1 = fundamental_symbol_of(csym1);
-    a_symbol_ptr   sym2 = fundamental_symbol_of(csym2);
-    a_routine_ptr  rp1 = func_sym_routine(sym1), rp2 = func_sym_routine(sym2);
-    if (param_types_are_compatible(rp1->type, rp2->type,
-                                   TCF_IGNORE_THIS_CLASS_TYPE)) {
+    /* The candidates are ordered only if the parameter types are compatible.
+       For templates, use the deduced type if gnu_version >= 70000. */
+    a_type_ptr  rtp1 = cfp1->specific_type, rtp2 = cfp2->specific_type;
+    if (rtp1 == NULL || gpp_version_is(<70000)) {
+      rtp1 = func_sym_routine(fundamental_symbol_of(csym1))->type;
+    }  /* if */
+    if (rtp2 == NULL || gpp_version_is(<70000)) {
+      rtp2 = func_sym_routine(fundamental_symbol_of(csym2))->type;
+    }  /* if */
+    if (param_types_are_compatible(rtp1, rtp2, TCF_IGNORE_THIS_CLASS_TYPE)) {
       if (is_class_member_using_decl_symbol(csym2)) {
         result = +1;
       } else {
@@ -15432,7 +15438,7 @@ accept_function:
     if (function_template_case) {
       add_function_template_to_candidate_functions_list(
                                          conversion_symbol,
-                                         (a_symbol_ptr)NULL,
+                                         (a_symbol_ptr)NULL, (a_type_ptr)NULL,
                                          /*expl_template_arg_list_used=*/FALSE,
                                          template_arg_list,
                                          this_match_ptr,
@@ -27774,7 +27780,7 @@ traversal_start:
         /* The symbol is a function template. */
         add_function_template_to_candidate_functions_list(
                                          sym,
-                                         overloaded_sym,
+                                         overloaded_sym, routine_type,
                                          /*expl_template_arg_list_used=*/FALSE,
                                          template_arg_list,
                                          arg_match,
@@ -28038,7 +28044,7 @@ traversal_start:
         /* The symbol is a function template. */
         add_function_template_to_candidate_functions_list(
                                          sym,
-                                         overloaded_sym,
+                                         overloaded_sym, routine_type,
                                          /*expl_template_arg_list_used=*/FALSE,
                                          template_arg_list,
                                          selector_match,

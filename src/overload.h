@@ -442,7 +442,9 @@ typedef struct a_candidate_function {
   a_type_ptr	specific_type;
 			/* For a built-in operator with an operand pattern
 			   including corresponding types (e.g., pointer types),
-			   this indicates the specific type. */
+			   this indicates the specific type.  For a function
+			   template candidate, this indicates the deduced type
+			   (if available). */
   an_arg_match_summary_ptr
 		arg_matches;
 			/* List of entries describing how well each actual
