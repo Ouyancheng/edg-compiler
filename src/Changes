@@ -1,5 +1,21 @@
 Version 6.3
 
+9/28/21  [EDGcpfe/17877,EDGcpfe/24408]
+Tokens introducing expressions
+
+The front end's list of tokens that can introduce an expression previously
+missed several entries.  This could lead to spurious errors.  For example:
+
+  struct S {
+    static const bool value = __is_trivially_constructible(int);
+  };                           // Previously an error.  Now okay.
+
+This is now fixed.  The affected tokens are __assume, __builtin_addressof,
+__builtin_offsetof, co_await, co_yield, __is_assignable, __is_destructible,
+__is_nothrow_assignable, __is_nothrow_destructible,  __is_trivially_assignable,
+__is_trivially_constructible, __is_trivially_destructible, and __noop.
+
+
 9/23/21  [EDGcpfe/24721]
 Constexpr dynamic_cast during construction
 

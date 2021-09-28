@@ -33425,6 +33425,8 @@ Return TRUE if the indicated token is one that could start an expression.
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_uuidof:
+    case tok_assume:
+    case tok_noop:
     case tok_microsoft_Lprefix:
     case tok_microsoft_lprefix:
     case tok_microsoft_Uprefix:
@@ -33469,6 +33471,13 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_has_nothrow_move_assign:
     case tok_is_constructible:
     case tok_is_nothrow_constructible:
+    case tok_is_trivially_constructible:
+    case tok_is_destructible:
+    case tok_is_nothrow_destructible:
+    case tok_is_trivially_destructible:
+    case tok_is_assignable:
+    case tok_is_nothrow_assignable:
+    case tok_is_trivially_assignable:
     case tok_is_final:
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_has_finalizer:
@@ -33520,6 +33529,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_builtin_bit_cast:
     case tok_builtin_is_layout_compatible:
     case tok_builtin_is_pointer_interconvertible_base_of:
+    case tok_builtin_addressof:
     case tok_requires:
     case tok_array_rank:
     case tok_array_extent:
@@ -33543,6 +33553,8 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_is_unsigned:
     case tok_is_void:
     case tok_is_volatile:
+    case tok_coroutine_yield:
+    case tok_coroutine_await:
       is_expr_start = TRUE;
       break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
