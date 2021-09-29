@@ -15,10 +15,11 @@ relevant emulation modes.  For example, with --clang_version=120000 --c:
 9/28/21  [EDGcpfe/24725]
 Spurious GNU-mode ambiguity on member overloaded with using-declaration
 
-The changes for EDGcpfe/21627 introduced a regression in some GNU C++ modes in
-situations where a member template is overloaded with a member projected by a
-using-declaration when the originating base is a template class and the derived
-class is not.  This resulted in spurious ambiguity errors.  For example:
+The changes for EDGcpfe/21627 introduced a regression (in version 6.0) in some
+GNU C++ modes in situations where a member template is overloaded with a member
+projected by a using-declaration when the originating base is a template class
+and the derived class is not.  This resulted in spurious ambiguity errors.
+For example:
 
   template<typename> struct B {
     template<typename T> void f(T);
