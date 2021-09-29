@@ -9272,7 +9272,8 @@ following position.
         /* g++ and clang treat something like 5i as a user-defined literal
            if a literal operator with that suffix has been declared and as
            an imaginary literal otherwise.  We'll try this as a ud-suffix
-           first and come back here if the lookup fails. */
+           first and rescan it as an imaginary suffix if the lookup
+           fails. */
         potential_ud_suffix = TRUE;
         tentative_udl_lookup = TRUE;
       } else {
