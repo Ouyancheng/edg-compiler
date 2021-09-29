@@ -4436,7 +4436,7 @@ class_struct_union_case:
           idspsp = get_DeclSort_PartialSpecialization(&idsps);
           init_decl_locator(idspsp, &loc);
           if (defer) {
-            unexpected_condition_str("Unexpected deferral.");
+            defer_symbol_creation(mep, &loc);
           } else {
             ifc_DeclIndex decl_idx = decl_index_of(mep);
 
@@ -4465,7 +4465,7 @@ class_struct_union_case:
           idsesp = get_DeclSort_ExplicitSpecialization(&idses);
           init_decl_locator(idsesp, &loc);
           if (defer) {
-            unexpected_condition_str("Unexpected deferral.");
+            defer_symbol_creation(mep, &loc);
           } else {
             a_token_cache cache;
             ifc_DeclIndex decl_idx = decl_index_of(mep);
