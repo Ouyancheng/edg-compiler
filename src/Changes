@@ -1,5 +1,24 @@
 Version 6.3
 
+9/29/21  [EDGcpfe/24732]
+Spurious not-a-constant error in template-dependent context
+
+Consider:
+
+  struct S {
+    constexpr char operator[](int) const { return 0; }
+  };
+  template<typename T> struct X {
+    static constexpr S x = T(); 
+    static_assert (x[0] != 1, "");  // Previously an error. Now okay.
+  };
+
+The front end previously treated the expression "x[0] != 1" as not template-
+dependent, and consequently required it to produce a constant result.  However,
+constant-evaluation of that result failed (resulting in a spurious error) since
+the value of x is template-dependent.  That is now fixed.
+
+
 9/28/21  [EDGcpfe/24712]
 Clang compatibility: __VA_OPT__ in C mode
 

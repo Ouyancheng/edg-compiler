@@ -15188,12 +15188,18 @@ e.g., if the source operand is an lvalue.
       }  /* if */
       /* Certain kinds of casts are known not to create a new object.
          For others that might create a class object, use an enk_temp_init
-         form. */
+         form.  GCC allows casts to incomplete class types in unevaluated
+         expressions that appear in dependent contexts, and if the types
+         involved are nondependent the resulting construct is also treated as
+         nondependent: Use a cast operation instead of an enk_temp_init node
+         for those cases, since an enk_temp_init node would be treated as
+         instantiation-dependent. */
       if (source_form == csf_const_cast ||
           source_form == csf_reinterpret_cast ||
           source_form == csf_dynamic_cast ||
           !is_class_struct_union_type(dest_type) ||
-          is_reference_cast) {
+          is_reference_cast ||
+          (gpp_mode && !clang_mode && !expr_stack->potentially_evaluated)) {
         /* Render the cast as a cast operator. */
         an_expr_operator_kind op;
         if (source_form == csf_dynamic_cast) {
@@ -15216,7 +15222,7 @@ e.g., if the source operand is an lvalue.
           mark_as_reference_cast(expr, orig_dest_type);
           expr->is_lvalue = TRUE;
           /* The expression will be changed to an xvalue below. */
-         }  /* if */
+        }  /* if */
       } else {
         /* Cast to a class type.  Use an enk_temp_init/dik_constructor. */
         a_dynamic_init_ptr dip;

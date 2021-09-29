@@ -24309,8 +24309,9 @@ function template, this function traverses the variable's initializer to see
 if it is instantiation-dependent.
 */
 {
-  if (vp->source_corresp.enclosing_routine != NULL &&
-      vp->source_corresp.enclosing_routine->is_prototype_instantiation) {
+  if (vp->is_prototype_instantiation ||
+      (vp->source_corresp.enclosing_routine != NULL &&
+       vp->source_corresp.enclosing_routine->is_prototype_instantiation)) {
     an_init_kind        init_kind, saved_init_kind = vp->init_kind;
     an_initializer_ptr  initializer;
     get_variable_initializer(vp, (a_scope_ptr)NULL, &init_kind, &initializer);
@@ -24408,6 +24409,24 @@ instantiation-dependent.
 }  /* examine_expr_for_instantiation_dependence */
 
 
+static void examine_dyn_init_for_instantiation_dependence(
+                         a_dynamic_init_ptr                             dip,
+                         ARG_UNUSED an_expr_or_stmt_traversal_block_ptr tblock)
+/*
+Check if the given dynamic initializer is instantiation-dependent.  Called
+indirectly by expr_is_instantiation_dependent.
+*/
+{
+  if (dyn_init_is(dip, dik_constructor)) {
+    if (dip->variant.constructor.ptr == NULL) {
+      /* An unknown constructor only occurs when it is template-dependent. */
+      tblock->result = TRUE;
+      tblock->terminate = TRUE;
+    }  /* if */
+  }  /* if */
+}  /* examine_dyn_init_for_instantiation_dependence */
+
+
 a_boolean expr_is_instantiation_dependent(an_expr_node_ptr expr)
 /*
 Return TRUE if expr is instantiation-dependent.  This includes type-dependent
@@ -24424,6 +24443,8 @@ value-dependent.
     clear_expr_or_stmt_traversal_block(&tblock);
     tblock.process_expr = examine_expr_for_instantiation_dependence;
     tblock.process_constant = examine_constant_for_instantiation_dependence;
+    tblock.process_dynamic_init =
+                                examine_dyn_init_for_instantiation_dependence;
     tblock.process_type = examine_type_for_instantiation_dependence;
     tblock.process_non_dynamic_constants = TRUE;
     traverse_expr(expr, &tblock);
