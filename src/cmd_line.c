@@ -4923,6 +4923,10 @@ This function is also called in clang mode.
     if (clang_version < 30900) {
       float128_enabled = FALSE;
     }  /* if */
+    if (clang_version >= 120000) {
+      /* As of clang 12.0.0, __VA_OPT__ is supported in both C and C++. */
+      va_opt_enabled = TRUE;
+    }  /* if */
   } else {
 #if USE_LAZY_INITIALIZATION_FOR_THREAD_LOCAL_VARIABLES
     /* GNU produces wrappers only for dynamically-initialized thread_local

@@ -1,5 +1,17 @@
 Version 6.3
 
+9/28/21  [EDGcpfe/24712]
+Clang compatibility: __VA_OPT__ in C mode
+
+Beginning with version 12.0.0, clang accepts the __VA_OPT__ preprocessor
+operator (see EDGcpfe/20002) in both C and C++ without regard for the
+language version.  The front end has now been changed to do the same in the
+relevant emulation modes.  For example, with --clang_version=120000 --c:
+
+  #define M(x,...) x __VA_OPT__(,) __VA_ARGS__
+  M(a,b)   // Now produces "a , b"
+
+
 9/28/21  [EDGcpfe/24725]
 Spurious GNU-mode ambiguity on member overloaded with using-declaration
 
