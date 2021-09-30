@@ -1,5 +1,18 @@
 Version 6.3
 
+9/30/21  [EDGcpfe/24729]
+GNU compatibility: attributes to the "malloc" argument
+
+The front end now supports arguments to the GNU "malloc" attribute
+(used in some later GNU header files).  For example (with --g++):
+
+  void foo(void *);
+  void bar(void *);
+  void *f(void) __attribute((malloc));
+  void *g(void) __attribute((malloc(foo)));
+  void *h(void) __attribute((malloc(bar,1)));
+
+
 9/29/21  [EDGcpfe/24732]
 Spurious not-a-constant error in template-dependent context
 

@@ -294,7 +294,7 @@ static an_attr_descr known_attr_table[] = {
   { "init_priority", "(ci)", "g+", ak_init_priority },
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   { "internal_linkage", "", "lx{clang}(40000-)", ak_internal_linkage },
-  { "malloc", "", "gx", ak_malloc },
+  { "malloc", "?(n?,ci)", "gx", ak_malloc },
   { "may_alias", "", "gx(30300-)", ak_may_alias },
   { "mode", "(n)", "gx", ak_mode },
   { "no_instrument_function", "", "gx", ak_no_instrument_function },
