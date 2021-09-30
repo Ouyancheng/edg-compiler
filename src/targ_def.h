@@ -2165,7 +2165,7 @@ Float types:
 #define TARG_ALIGNOF_FLOAT80 16
 			/* Default value, used to initialize global variable
 			   targ_alignof_float80. */
-#endif /* !defined(TARG_ALIGNOF_FLOAT128) */
+#endif /* !defined(TARG_ALIGNOF_FLOAT80) */
 
 #ifndef TARG_SIZEOF_FLOAT128
 #define TARG_SIZEOF_FLOAT128 16
