@@ -8779,7 +8779,14 @@ to FALSE and the reason for the failure is recorded in *ips.
         interpreted = TRUE;
         /* Evaluate the first argument instead of the call.  (The second
            argument -- and third for __builtin_expect_with_probability -- are
-           ignored.) */
+           ignored.)  */
+        if (ips->curr_call_frame == NULL && !ips->is_constant_evaluated) {
+          /* Do not fold the invocation if it is at the top level, since a
+             back end will want to see the intrinsic invocation to decide
+             branch prediction hints. */
+          do_constexpr_fail(*p_result);
+          break;
+        }  /* if */
         if (args == NULL || args->next == NULL ||
             (callee->variant.builtin_function_kind ==
                          (a_builtin_function_kind)bfk_expect_with_probability ?

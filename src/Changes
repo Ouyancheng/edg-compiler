@@ -1,5 +1,26 @@
 Version 6.3
 
+10/1/21  [EDGcpfe/24738]
+Folding of __builtin_expect and __builtin_expect_with_probability
+
+Consider in GNU C++14 mode:
+
+  extern int a;
+  extern int b;
+  void g() {
+    if (__builtin_expect_with_probability(&a + 1 != &b, 1, 0.0001)) {
+      __builtin_unreachable();
+    }
+    // ...
+  }
+
+The invocation of __builtin_expect_with_probability was previously folded by
+the front end, which made the hint intended by the intrinsic invisible to back
+ends.  Now such invocations are no longer folded, unless a constant result is
+required or the invocation is part of the constant-evaluation of an enclosing
+invocation.
+
+
 10/1/21  [EDGcpfe/24734]
 GNU statement expressions in C++11 constexpr functions
 
