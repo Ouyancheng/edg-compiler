@@ -31354,6 +31354,7 @@ Scan a top-level expression that appears as an argument in an attribute.
                   /*suppress_object_lifetime=*/TRUE);
   /* Scan the expression. */
   scan_expr(&operand, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
+  eliminate_unusual_operand_kinds(&operand);
   result = make_node_from_operand(&operand);
   result = wrap_up_full_expression(result);
   pop_expr_stack();

@@ -294,7 +294,7 @@ static an_attr_descr known_attr_table[] = {
   { "init_priority", "(ci)", "g+", ak_init_priority },
 #endif /* GNU_INIT_PRIORITY_ATTRIBUTE_ALLOWED */
   { "internal_linkage", "", "lx{clang}(40000-)", ak_internal_linkage },
-  { "malloc", "?(n?,ci)", "gx", ak_malloc },
+  { "malloc", "?(X?,ci)", "gx", ak_malloc },
   { "may_alias", "", "gx(30300-)", ak_may_alias },
   { "mode", "(n)", "gx", ak_mode },
   { "no_instrument_function", "", "gx", ak_no_instrument_function },
@@ -6350,6 +6350,19 @@ and return the entity.
 {
   check_assertion(entity_kind == iek_routine);
   ((a_routine_ptr)entity)->allocates_memory = TRUE;
+  an_attribute_arg_ptr  aap = ap->arguments;
+  if (aap != NULL) {
+    /* If one (or more) argument(s) are specified, make sure the first one
+       is a routine (or a cast of a routine). */
+    check_assertion(aap->kind == (an_attribute_arg_kind)aak_expression);
+    an_expr_node_ptr expr = aap->variant.expr;
+    if (!is_routine_node(expr) &&
+        !(is_operation_node(expr) &&
+          node_operator_is(expr, eok_cast) &&
+          is_routine_node(expr->variant.operation.operands))) {
+      pos_error(ec_bad_malloc_attribute, &aap->position);
+    }  /* if */
+  }  /* if */
   return entity;
 }  /* apply_malloc_attr */
 
