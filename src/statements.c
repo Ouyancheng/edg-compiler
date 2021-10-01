@@ -1964,7 +1964,8 @@ body of a constexpr function or constructor.
   dps.marked_as_gnu_extension = marked_as_gnu_extension;
   scan_nonmember_declaration(&dps, (a_source_range *)NULL);
   if (p_okay_in_constexpr_body != NULL) {
-    if (!relaxed_constexpr_enabled) {
+    if (!relaxed_constexpr_enabled &&
+        !struct_stmt_stack_top().inside_statement_expr) {
       *p_okay_in_constexpr_body = dps.decl_okay_in_constexpr_body;
     } else {
       a_boolean  decl_okay_in_constexpr_body = TRUE;
@@ -7467,6 +7468,12 @@ this statement was preceded by the GNU keyword __extension__.
   db_enter(3, "statement");
 
 rescan_statement:
+  if (constexpr_enabled && struct_stmt_stack_top().inside_statement_expr) {
+    /* Although only a return-statement is allowed in the body of a C++11
+       constexpr function, other GCC and Clang accept other statements within
+       a statement expression that appears in that return-statement. */
+    can_appear_in_constexpr_body = TRUE;
+  }  /* if */
   if (struct_stmt_stack_top().p_start_pos == NULL) {
     /* Record the start of the statement for add_statement: This takes into
        account leading attributes or GNU __extension__ keywords (which are

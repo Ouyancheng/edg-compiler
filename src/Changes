@@ -1,5 +1,20 @@
 Version 6.3
 
+10/1/21  [EDGcpfe/24734]
+GNU statement expressions in C++11 constexpr functions
+
+Consider in GNU or Clang C++11 mode:
+
+  constexpr int f() {
+    return ({ int x = 1; x; });  // Previously an error.  Now okay.
+  }
+
+C++11 only permits a single return statement in a constexpr function.  However,
+the front end incorrectly also included statements embedded in GNU statement
+expressions within that return statement when enforcing that constraint.  That
+caused this example to be treated as an error.  That is now fixed.
+
+
 10/1/21  [EDGcpfe/24412,EDGcpfe/24602]
 Handling of __is_signed in Clang modes
 
