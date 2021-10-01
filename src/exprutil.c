@@ -15199,7 +15199,8 @@ e.g., if the source operand is an lvalue.
           source_form == csf_dynamic_cast ||
           !is_class_struct_union_type(dest_type) ||
           is_reference_cast ||
-          (gpp_mode && !clang_mode && !expr_stack->potentially_evaluated)) {
+          (gpp_mode && !clang_mode && !expr_stack->potentially_evaluated &&
+           is_incomplete_type(dest_type))) {
         /* Render the cast as a cast operator. */
         an_expr_operator_kind op;
         if (source_form == csf_dynamic_cast) {
