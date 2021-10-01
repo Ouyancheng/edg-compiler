@@ -38820,6 +38820,31 @@ int-constant, or to an error operand if n >= n_internal_opnds.
 }  /* scan_internal_operand */
 
 
+static a_boolean parenthesized_type_name_next(void)
+/*
+Return TRUE if the tokens following the current token are ( <type-id> ).
+*/
+{
+  a_boolean      result = FALSE;
+  a_token_cache  cache;
+
+  clear_token_cache(&cache, /*reusable=*/FALSE);
+  cache_curr_token(&cache);
+  (void)get_token();
+  if (curr_token == tok_lparen) {
+    cache_curr_token(&cache);
+    (void)get_token();
+    if (is_decl_not_expr(DFS_IS_SIZEOF |
+                         DFS_ABSTRACT_DECLARATOR_ALLOWED |
+                         DFS_SINGLE_TYPE_REQUIRED)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  rescan_cached_tokens(&cache);
+  return result;
+}  /* parenthesized_type_name_next */
+
+
 static void scan_expr_full(an_operand               *result,
                            an_operand               *bound_function_selector,
                            int                      prec_level,
@@ -38968,9 +38993,8 @@ repeat_switch:
       { a_symbol_header  *hdr = locator_for_curr_id.symbol_header;
         if (hdr != NULL && hdr->has_intrinsic_name) {
           /* This is an identifier that might have to be treated specially. */
-          if (strcmp(hdr->identifier, "__is_signed") == 0 &&
-              clangcpp_version_is(>=100000) &&
-              hdr->inactive_symbols == NULL && hdr->symbol == NULL) {
+          if (clang_mode && strcmp(hdr->identifier, "__is_signed") == 0 &&
+              parenthesized_type_name_next()) {
             /* __is_signed is not treated as a keyword by default because some
                GCC headers use it as a plain identifier.  If no such identifier
                has been declared yet (i.e., there is no associated symbol)

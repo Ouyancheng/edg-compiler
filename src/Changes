@@ -1,5 +1,30 @@
 Version 6.3
 
+10/1/21  [EDGcpfe/24412,EDGcpfe/24602]
+Handling of __is_signed in Clang modes
+
+In Clang mode, the identifier __is_signed was previously treated as a keyword
+until it appears as a declarator immediately following decl-specifiers that
+include "static", "bool", and "const" (see the entry for EDGcpfe/12122, etc.).
+However, this processing introduced a bug causing "__is_signed" to sometimes be
+treated as a qualified identifier even when it was not actually qualified.
+For example:
+
+  template<typename> struct E {
+    enum { e = 1 };
+  };
+  template<typename T> struct S {
+    static_assert(E<T>::e, "");
+    static const bool __is_signed = (T)(-1) < 0;  // Previously an error in
+  };                                              // Clang mode.  Now okay.
+
+Additional spurious errors could also occur when an token spelled "__is_signed"
+occurred more than once in the same template.  To avoid those problems,
+"__is_signed" is now treated as an identifier (not a keyword) by default and it
+is contextually turned into a keyword if it appears in an expression context
+followed by a parenthesized type name.
+
+
 9/30/21  [EDGcpfe/24729]
 GNU compatibility: attributes to the "malloc" argument
 
@@ -356,31 +381,6 @@ Modules and precompiled headers
 The front end previously could abort in various ways when a compilation
 uses a precompiled header containing an import directive.  This is now
 fixed.
-
-
-9/8/21   [EDGcpfe/24412,EDGcpfe/24602]
-Handling of __is_signed in Clang modes
-
-In Clang mode, the identifier __is_signed was previously treated as a keyword
-until it appears as a declarator immediately following decl-specifiers that
-include "static", "bool", and "const" (see the entry for EDGcpfe/12122, etc.).
-However, this processing introduced a bug causing "__is_signed" to sometimes be
-treated as a qualified identifier even when it was not actually qualified.
-For example:
-
-  template<typename> struct E {
-    enum { e = 1 };
-  };
-  template<typename T> struct S {
-    static_assert(E<T>::e, "");
-    static const bool __is_signed = (T)(-1) < 0;  // Previously an error in
-  };                                              // Clang mode.  Now okay.
-
-Additional spurious errors could also occur when an token spelled "__is_signed"
-occurred more than once in the same template.  To avoid those problems,
-"__is_signed" is now treated as an identifier (not a keyword) by default and it
-is contextually turned into a keyword if it appears in an expression context
-when no name "__is_signed" has been declared.
 
 
 9/7/21   [EDGcpfe/24677]
