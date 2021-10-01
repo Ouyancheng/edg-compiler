@@ -3499,16 +3499,25 @@ process that definition and return TRUE.
 
 static inline a_boolean ifc_decl_is_ignorable_redecl(
                                          a_symbol_locator      *loc,
-                                         a_scope_ptr           scope,
+                                         a_module_entity_ptr   mep,
                                          a_source_position_ptr pos,
                                          an_il_entry_kind      expected_kind,
                                          char                  **redecl_entity,
                                          a_byte_il_entry_kind  *redecl_kind)
+/*
+An entity described in a compiled module file is considered for loading into
+the IL.  loc describes the name of that entity, mep its location and early
+characterization in the compiled module file, pos the position in the
+source file that was compiled, and expected_kind the kind of IL entity that
+this appears to be.  If the entity appears to redeclare an existing IL entity,
+return TRUE and set *redecl_entity and *redecl_kind to describe the entity
+already in the IL.
+*/
 {
   a_boolean    result = FALSE;
   a_symbol_ptr redecl_sym;
 
-  redecl_sym = check_module_symbol_redecl(loc->symbol_header, scope, pos,
+  redecl_sym = check_module_symbol_redecl(loc->symbol_header, mep, pos,
                                           expected_kind);
   if (redecl_sym != NULL) {
     /* This is a redeclaration of an existing symbol. */
@@ -3611,11 +3620,14 @@ principal associated IL entity.
           } else {
             /* FIXME: lots more to do here. */
             a_variable_ptr vp;
+            if (is_from_gmf(idsvp->specifiers)) {
+              mep->global_module = TRUE;
+            }  /* if */
             if (mep->scope == NULL) {
               mep->scope = get_ifc_scope(idsvp->home_scope);
               scope_pushed = push_module_declaration_context(mep->scope);
             }  /* if */
-            if (ifc_decl_is_ignorable_redecl(&loc, mep->scope, &error_position,
+            if (ifc_decl_is_ignorable_redecl(&loc, mep, &error_position,
                                              iek_variable, &il_entity,
                                              &kind)) {
               break;
@@ -3739,6 +3751,9 @@ principal associated IL entity.
           check_assertion(idssp->name != 0);
           init_locator_from_name(idssp->name, (ifc_TextOffset)0, &idssp->locus,
                                  &loc);
+          if (is_from_gmf(idssp->specifiers)) {
+            mep->global_module = TRUE;
+          }  /* if */
           if (mep->scope == NULL) {
             mep->scope = get_ifc_scope(idssp->home_scope);
             scope_pushed = push_module_declaration_context(mep->scope);
@@ -3855,7 +3870,7 @@ class_struct_union_case:
                   /* Allocate the appropriate class type, but leave it as
                      incomplete.  The class will be completed during a call to
                      get_definition_of_class if it is referenced. */
-                  if (ifc_decl_is_ignorable_redecl(&loc, mep->scope,
+                  if (ifc_decl_is_ignorable_redecl(&loc, mep,
                                                    &error_position, iek_type,
                                                    &il_entity, &kind)) {
                     break;
@@ -3866,9 +3881,10 @@ class_struct_union_case:
                     class_type->variant.class_struct_union.is_interface = TRUE;
                     class_type->variant.class_struct_union.abstract = TRUE;
                   }  /* if */
-                  tag_sym= enter_local_symbol(tag_kind, &loc,
-                                              mep->scope->depth_in_scope_stack,
-                                              /*suppress_redecl_error=*/FALSE);
+                  tag_sym = enter_local_symbol(
+                                             tag_kind, &loc,
+                                             mep->scope->depth_in_scope_stack,
+                                             /*suppress_redecl_error=*/TRUE);
                   tag_sym->variant.class_struct_union.type = class_type;
                   set_source_corresp(&(class_type->source_corresp), tag_sym);
                   /* Set parent class or namespace pointers, if appropriate,
@@ -3912,6 +3928,9 @@ class_struct_union_case:
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
+            if (is_from_gmf(idstap->specifiers)) {
+              mep->global_module = TRUE;
+            }  /* if */
             ifc_TypeSort alias_tag = type_tag(idstap->type);
             if (alias_tag == ifc_TypeSort_Fundamental) {
               an_ifc_TypeSort_Fundamental itsf, *itsfp;
@@ -3924,8 +3943,7 @@ class_struct_union_case:
                   mep->scope = get_ifc_scope(idstap->home_scope);
                   scope_pushed = push_module_declaration_context(mep->scope);
                 }  /* if */
-                if (ifc_decl_is_ignorable_redecl(&loc, mep->scope,
-                                                 &error_position,
+                if (ifc_decl_is_ignorable_redecl(&loc, mep, &error_position,
                                                  iek_type, &il_entity,
                                                  &kind)) {
                   break;
@@ -3962,9 +3980,9 @@ class_struct_union_case:
                 mep->scope = get_ifc_scope(idstap->home_scope);
                 scope_pushed = push_module_declaration_context(mep->scope);
               }  /* if */
-              if (ifc_decl_is_ignorable_redecl(&loc, mep->scope,
-                                               &error_position, iek_template,
-                                               &il_entity, &kind)) {
+              if (ifc_decl_is_ignorable_redecl(
+                                           &loc, mep, &error_position,
+                                           iek_template, &il_entity, &kind)) {
                 break;
               }  /* if */
               clear_token_cache(&cache, /*reusable=*/FALSE);
@@ -3993,6 +4011,9 @@ class_struct_union_case:
           idsep = get_DeclSort_Enumeration(&idse);
           source_position_from_locus(&error_position, &idsep->locus);
           check_assertion(type_tag(idsep->type) == ifc_TypeSort_Fundamental);
+          if (is_from_gmf(idsep->specifiers)) {
+            mep->global_module = TRUE;
+          }  /* if */
           /* See if this is a scoped enumeration or not. */
           read_partition_at_index(ifc_type_fundamental,
                                   type_value(idsep->type));
@@ -4031,7 +4052,7 @@ class_struct_union_case:
             }  /* if */
             check_assertion(mep->scope != NULL);
             enum_scope = mep->scope;
-            if (ifc_decl_is_ignorable_redecl(&loc, enum_scope, &error_position,
+            if (ifc_decl_is_ignorable_redecl(&loc, mep, &error_position,
                                              iek_type, &il_entity, &kind)) {
               break;
             }  /* if */
@@ -4134,6 +4155,9 @@ class_struct_union_case:
             a_symbol_ptr   enum_con_sym;
             a_constant_ptr enum_con;
             a_type_ptr     enum_type;
+            if (is_from_gmf(idsep->specifiers)) {
+              mep->global_module = TRUE;
+            }  /* if */
             check_assertion(mep->scope != NULL);
             if (mep->scope->kind == (a_scope_kind)sck_enum) {
               /* This is an enumerator for a scoped enum. */
@@ -4142,7 +4166,7 @@ class_struct_union_case:
               check_assertion(enumeration_type != NULL);
               enum_type = enumeration_type;
             }  /* if */
-            if (ifc_decl_is_ignorable_redecl(&loc, mep->scope, &error_position,
+            if (ifc_decl_is_ignorable_redecl(&loc, mep, &error_position,
                                              iek_constant, &il_entity, &kind)){
               break;
             }  /* if */
@@ -4205,11 +4229,14 @@ class_struct_union_case:
             a_boolean       saved_suppress_default_arguments;
             a_curr_token_preserver
                             guard;
+            if (is_from_gmf(idstp->specifiers)) {
+              mep->global_module = TRUE;
+            }  /* if */
             if (mep->scope == NULL) {
               mep->scope = get_ifc_scope(idstp->home_scope);
               scope_pushed = push_module_declaration_context(mep->scope);
             }  /* if */
-            if (ifc_decl_is_ignorable_redecl(&loc, mep->scope, &error_position,
+            if (ifc_decl_is_ignorable_redecl(&loc, mep, &error_position,
                                              iek_template, &il_entity,
                                              &kind)) {
               break;
@@ -4512,11 +4539,14 @@ class_struct_union_case:
             /* Create a definition for the concept and scan it. */
             a_curr_token_preserver  guard;
             a_token_cache           cache;
+            if (is_from_gmf(idscp->specifiers)) {
+              mep->global_module = TRUE;
+            }  /* if */
             if (mep->scope == NULL) {
               mep->scope = get_ifc_scope(idscp->home_scope);
               scope_pushed = push_module_declaration_context(mep->scope);
             }  /* if */
-            if (ifc_decl_is_ignorable_redecl(&loc, mep->scope, &error_position,
+            if (ifc_decl_is_ignorable_redecl(&loc, mep, &error_position,
                                              iek_template, &il_entity,
                                              &kind)) {
               break;

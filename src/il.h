@@ -299,7 +299,7 @@ Strip parentheses off an expression and return the underlying expression.
 Macro to access the parent_scope field of an IL entry.
 */
 #define parent_scope_of(ptr)                                                \
-  ((ptr)->source_corresp.parent_scope)
+  (((a_source_correspondence*)(ptr))->parent_scope)
 
 /*
 Macro that returns whether a parent scope was recorded for the given IL entry.
@@ -321,9 +321,9 @@ Macro to get the parent scope of an IL entry.  This differs from the macro
 memory whose parent scope is in function scope memory.
 */
 #define get_parent_scope_of(ptr)                                            \
-  ((ptr)->source_corresp.parent_via_local_scope_ref ?                       \
-                            f_get_parent_scope_of(&(ptr)->source_corresp)   \
-                          : parent_scope_of(ptr))
+  (((a_source_correspondence*)(ptr))->parent_via_local_scope_ref ?          \
+                     f_get_parent_scope_of((a_source_correspondence*)(ptr)) \
+                   : parent_scope_of(ptr))
 
 /*
 Macro that returns TRUE if an IL entry represents a scoped enumerator.

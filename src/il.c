@@ -3943,7 +3943,15 @@ initial source position for the file is returned in *starting_seq_num.
   set_position_to(*starting_seq_num, seq_number_last_read + 1, SP_COL_UNKNOWN);
   seq_number_last_read += max_line_number + 1;
   record_end_of_source_file(new_file, seq_number_last_read);
-  if (curr_ise != NULL) {
+  if (is_implicit_include) {
+    /* Emulate the end of source logic that would normally be handled by
+       read_logical_source_line when finishing an implicit include -- as we
+       don't actually read any source lines here. */
+    curr_seq_number = ++seq_number_last_read;
+#if EXPENSIVE_CHECKING && DEBUG
+    curr_translation_unit->is_fully_sequenced = TRUE;
+#endif /* EXPENSIVE_CHECKING && DEBUG */
+  } else {
     /* Resume the previous file where we left off. */
     record_resumption_of_source_file(parent_file,
                                      seq_number_last_read + 1,

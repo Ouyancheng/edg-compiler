@@ -7993,16 +7993,15 @@ where the module name started.
 #if !STANDALONE_UTILITY_PROGRAM
 
 a_symbol_ptr check_module_symbol_redecl(a_symbol_header_ptr   sym_hdr,
-                                        a_scope_ptr           dest_scope,
+                                        a_module_entity_ptr   mep,
                                         a_source_position_ptr pos,
                                         an_il_entry_kind      kind)
 /*
-Given the symbol header for a potential symbol of the given kind, check if
-there already exists a declaration of the symbol where one (or both) symbols
-arose from a module where the symbol was exported.  Return the existing
-conflicting symbol if so, NULL otherwise.  dest_scope is the expected scope for
-the potential symbol, and pos is the source position associated with the
-potential symbol.
+Given the symbol header for a potential symbol of the given kind being loaded
+from a module file, check if there already exists a declaration of the symbol.
+Return the existing symbol if so, NULL otherwise.  mep is the handle to the
+description of the potential symbol in the module file and pos is the source
+position associated with the potential symbol.
 */
 {
   a_symbol_ptr      result = NULL;
@@ -8012,26 +8011,55 @@ potential symbol.
 
 redo:
   for (; this_sym != NULL; this_sym = this_sym->next) {
+    char                        *entity_ptr;
     a_source_correspondence_ptr this_scp;
     a_scope_ptr                 this_scope;
     an_il_entry_kind            this_kind;
 
-    this_scp = source_corresp_entry_for_symbol(this_sym);
+    entity_ptr = il_entry_for_symbol_null_okay(this_sym, &this_kind);
+    if (entity_ptr == NULL || this_kind != kind) {
+      /* The symbol is not for an IL entity (e.g., it's a macro in a
+         configuration that doesn't record macros in the IL) or it's not the
+         right kind of entity. */
+      continue;
+    }  /* if */
+    this_scp = source_corresp_for_il_entry(entity_ptr, this_kind);
     if (this_scp == NULL) continue;
     if (this_scp->module_entity == NULL) {
-      this_scope = f_get_parent_scope_of(this_scp);
+      /* The new declaration comes from parsing source code. */
+      this_scope = get_parent_scope_of(this_scp);
     } else {
+      /* The new declaration comes from a compiled module file. */
       one_comes_from_module = TRUE;
       this_scope = this_scp->module_entity->scope;
     }  /* if */
-    if (!one_comes_from_module || this_scope != dest_scope) continue;
-    /* We have found a symbol with the same destination scope.  To determine
-       that these are the "same" entity, we now need to check what source file
-       they arose from, and whether they're the same kind of symbol. */
-    (void)il_entry_for_symbol(this_sym, &this_kind);
-    /* FIXME: Do we want to do a deeper check for the same kind of entity? */
-    if (kind == this_kind && same_source_file(pos, &this_sym->decl_position)) {
+    if (one_comes_from_module && this_scope == mep->scope) {
+      /* We have found a symbol with the same name, kind, and scope, and we
+         know it is not an overloadable symbol.  Assume it is a
+         redeclaration. */
       result = this_sym;
+      if (mep->module_info->resolved_header != NULL || mep->global_module) {
+        /* The new entity is from a header unit (and thus the "global" module).
+           A source-level matching declaration is okay, unless the source is
+           itself a named module. */
+        if (this_scp->module_entity != NULL &&
+            !(this_scp->module_entity->global_module ||
+              this_scp->module_entity->module_info->resolved_header != NULL)) {
+          pos_sy_diagnostic(es_discretionary_error,
+                            ec_global_module_source_conflict, &error_position,
+                            this_sym);
+        }  /* if */
+      } else if (same_source_file(pos, &this_sym->decl_position)) {
+        /* The new entity is from a named module, but is likely compiled from
+           the same source code "text" as the existing declaration.  This is
+           not valid, but accept it with a warning. */
+        pos_stsy_warning(ec_named_module_source_conflict, &error_position,
+                         mep->module_info->name, this_sym);
+      } else {
+        pos_stsy_diagnostic(es_discretionary_error,
+                            ec_named_module_source_conflict, &error_position,
+                            mep->module_info->name, this_sym);
+      }  /* if */
       break;
     }  /* if */
   }  /* for */

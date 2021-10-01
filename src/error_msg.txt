@@ -3278,6 +3278,8 @@ ec_expl_spec_alias_template;;"an alias template cannot be explicitly specialized
 ec_matching_lbrace;;"to match this \"{\""
 ec_macro_invocation;;"in this macro invocation"
 ec_call_with_unusable_argument_conversion;;"call requires an ambiguous argument conversion"
+ec_named_module_source_conflict;;"declaration owned by module %s conflicts with %nd"
+ec_global_module_source_conflict;;"declaration owned by global module conflicts with %nd owned by a named module"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
