@@ -62,7 +62,7 @@ followed by a parenthesized type name.
 
 
 9/30/21  [EDGcpfe/24729]
-GNU compatibility: attributes to the "malloc" argument
+GNU compatibility: arguments to the "malloc" attribute
 
 The front end now supports arguments to the GNU "malloc" attribute
 (used in some later GNU header files).  For example (with --g++):
