@@ -54,8 +54,8 @@ For example:
     static const bool __is_signed = (T)(-1) < 0;  // Previously an error in
   };                                              // Clang mode.  Now okay.
 
-Additional spurious errors could also occur when an token spelled "__is_signed"
-occurred more than once in the same template.  To avoid those problems,
+Additional spurious errors could also occur when a token spelled "__is_signed"
+appeared more than once in the same template.  To avoid those problems,
 "__is_signed" is now treated as an identifier (not a keyword) by default and it
 is contextually turned into a keyword if it appears in an expression context
 followed by a parenthesized type name.
