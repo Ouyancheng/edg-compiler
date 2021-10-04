@@ -2994,10 +2994,18 @@ extern void lexical_trans_unit_wrapup(void);
 extern void lexical_cleanup(void);
 #endif /* MAKE_FRONT_END_CALLABLE */
 
-/* Flush until the tok_end_of_source terminating a token cache is found. */
-#define flush_past_token_cache_terminator()			\
+/* Flush until the tok_end_of_source terminating a token cache is found, but
+   do not go past it. */
+#define flush_to_token_cache_terminator()			\
   {								\
     while (curr_token != tok_end_of_source) (void)get_token();	\
+  }
+
+/* Flush until the tok_end_of_source terminating a token cache is found and
+   fetch the next token. */
+#define flush_past_token_cache_terminator()			\
+  {								\
+    flush_to_token_cache_terminator()				\
     /* Advance past the end-of-source token. */			\
     (void)get_token();						\
   }

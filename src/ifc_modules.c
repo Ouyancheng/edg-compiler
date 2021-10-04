@@ -24,6 +24,7 @@ ifc_modules.c -- Microsoft-specific IFC module code
 #include "literals.h"
 #include "pch.h"
 #include "symbol_ref.h"
+#include "macro.h"
 
 #if MICROSOFT_EXTENSIONS_ALLOWED && !STANDALONE_UTILITY_PROGRAM
 
@@ -2775,7 +2776,7 @@ been confirmed to exist and the path stored in midp.
   if (open_and_map_ifc_module_file(midp, /*issue_diag=*/TRUE)) {
     result = TRUE;
     assoc_module_info = mod;
-    set_name(mod->name);
+    set_name(mod->name, is_header_unit());
     /* Read the IFC file header (which starts after the magic number). */
     init_byte_buffer(4, f_size - 4);
     get_File_Header(&header, /*fill_storage=*/TRUE);
@@ -2891,6 +2892,9 @@ been confirmed to exist and the path stored in midp.
     lazy_symbols_may_be_visible = TRUE;
     /* Process all declarations in the global scope. */
     process_ifc_scope(header.global_scope, il_header.primary_scope);
+    if (is_header_unit()) {
+      export_ifc_macros();
+    }  /* if */
   }  /* if */
 done:
   return result;
@@ -2954,6 +2958,85 @@ this module.
     }  /* for */
   }  /* if */
 }  /* import_referenced_modules */
+
+
+void an_ifc_module::define_ifc_macro(ifc_MacroIndex macro)
+/*
+Given an IFC macro, process that macro definition.  Note that this function
+assumes variables such as "in_preprocessing_directive", "curr_source_line", and
+all related variables have been set appropriately by the calling function (see
+export_ifc_macros), to avoid constantly setting and re-setting the values of
+these variables.  Similarly, curr_token is assumed to be either ignorable or
+already saved for restoration.
+*/
+{
+  a_token_cache      cache;
+
+  read_partition_at_index(macro);
+  clear_token_cache(&cache, /*reuseable=*/FALSE);
+  cache_macro(&cache, macro);
+  check_assertion(cache.first_token != NULL &&
+                  cache.first_token->token == tok_identifier);
+  /* Create an equivalent define directive so that we can leave the processing
+     to proc_define. */
+  pos_in_temp_text_buffer = 0;
+  add_token_cache_to_string(&cache);
+  put_ch_to_temp_text_buffer(LE_ESCAPE);
+  put_ch_to_temp_text_buffer(LE_NEWLINE);
+  put_ch_to_temp_text_buffer(LE_ESCAPE);
+  put_ch_to_temp_text_buffer(LE_END_OF_LINE);
+  curr_char_loc = curr_source_line = start_of_curr_token = temp_text_buffer;
+  len_of_curr_token =
+           cache.first_token->variant.locator.symbol_header->identifier_length;
+  after_end_of_curr_source_line = temp_text_buffer + pos_in_temp_text_buffer;
+  logical_char_info_entries_used = 0;
+  copy_source_position(cache.first_token->source_position, pos_curr_token);
+  (void)proc_define();
+  if (curr_token != tok_newline) {
+    expect_error();
+  }  /* if */
+}  /* define_ifc_macro */
+
+
+void an_ifc_module::export_ifc_macros()
+/*
+Export all macro definitions in this module (presumably a header unit).
+*/
+{
+  Value_saver<a_source_position, pos_curr_token> pos_curr_token_saver;
+  Value_saver<a_boolean, expand_macros>          expand_macros_saver(FALSE);
+  Value_saver<a_boolean, in_preprocessing_directive>
+                                                 ppd_saver(TRUE);
+  Value_saver<a_boolean, fetch_pp_tokens>        pp_tok_saver(TRUE);
+  Value_saver<a_boolean, scanning_module_macro>  scanning_macro_saver(TRUE);
+  Value_saver<a_const_char*, curr_source_line>   curr_source_saver;
+  Value_saver<a_const_char*, after_end_of_curr_source_line>
+                                                 end_curr_source_saver;
+  Value_saver<a_const_char*, curr_char_loc>      curr_char_saver;
+  a_token_cache                                  cache;
+
+  /* Save the current token to restore later so that it's not lost. */
+  clear_token_cache(&cache, /*reusable=*/FALSE);
+  cache_curr_token(&cache);
+  /* The IFC files split macros up into two forms - object-like and
+     function-like.  Both need to be processed. */
+  if (partitions[ifc_macro_obj_like].size > 0) {
+    uint32_t n_macros = partitions[ifc_macro_obj_like].size /
+                                     partitions[ifc_macro_obj_like].entry_size;
+    for (uint32_t idx = 0; idx < n_macros; ++idx) {
+      define_ifc_macro(make_macro_index(ifc_MacroSort_ObjectLike, idx));
+    }  /* for */
+  }  /* if */
+  if (partitions[ifc_macro_func_like].size > 0) {
+    uint32_t n_macros = partitions[ifc_macro_func_like].size /
+                                    partitions[ifc_macro_func_like].entry_size;
+    for (uint32_t idx = 0; idx < n_macros; ++idx) {
+      define_ifc_macro(make_macro_index(ifc_MacroSort_FunctionLike, idx));
+    }  /* for */
+  }  /* if */
+  /* Restore the current token. */
+  f_rescan_cached_tokens(&cache, /*discard_curr_token=*/TRUE);
+}  /* export_ifc_macros */
 
 
 void an_ifc_module::close()
@@ -7654,6 +7737,23 @@ Add the pragma given by kind to cache.  pos is the position of the pragma.
   cache->pragma_count++;
 #endif /* DEBUG */
 }  /* cache_pragma */
+
+
+static void cache_pp_token(a_token_cache_ptr     cache,
+                           a_const_char          *text,
+                           a_targ_size_t         len,
+                           a_source_position_ptr pos)
+/*
+Add the preprocessor token contained in text with the given length to cache.
+pos is the position of the preprocessor token.
+*/
+{
+  check_assertion(text != NULL);
+  cache_token(cache, tok_identifier, pos);
+  cache->last_token->extra_info_kind =(a_token_extra_info_kind)teik_pp_token;
+  cache->last_token->variant.pp_token_descr.token_start = (char*)text;
+  cache->last_token->variant.pp_token_descr.token_end = (char*)text + len;
+}  /* cache_pp_token */
 
 
 static void cache_access(a_token_cache_ptr     cache,
@@ -13703,6 +13803,206 @@ locus is the location of the name use.
 }  /* cache_name_from_decl */
 
 
+void an_ifc_module::cache_macro(a_token_cache_ptr cache,
+                                ifc_MacroIndex    macro)
+/*
+Add the tokens corresponding to the given macro's definition to cache.
+*/
+{
+  ifc_MacroSort     tag = macro_tag(macro);
+  a_source_position pos;
+
+  read_partition_at_index(macro);
+  switch (tag) {
+    case ifc_MacroSort_ObjectLike:
+      { an_ifc_MacroSort_ObjectLike imsol, *imsolp;
+        imsolp = get_MacroSort_ObjectLike(&imsol);
+        source_position_from_locus(&pos, &imsolp->locus);
+        cache_identifier(cache, get_string_at_offset(imsolp->name), &pos);
+        cache_form(cache, imsolp->body);
+      }
+      break;
+    case ifc_MacroSort_FunctionLike:
+      { an_ifc_MacroSort_FunctionLike imsfl, *imsflp;
+        imsflp = get_MacroSort_FunctionLike(&imsfl);
+        source_position_from_locus(&pos, &imsflp->locus);
+        cache_identifier(cache, get_string_at_offset(imsflp->name), &pos);
+        cache_token(cache, tok_lparen, &pos);
+        if (func_macro_is_variadic(imsflp)) {
+          cache_token(cache, tok_ellipsis, &pos);
+        } else {
+          check_assertion(imsflp->parameters != 0);
+          cache_form(cache, imsflp->parameters, /*is_parameter_form=*/TRUE);
+        }  /* if */
+        cache_token(cache, tok_rparen, &pos);
+        cache_form(cache, imsflp->body);
+      }
+      break;
+    case ifc_MacroSort_Last:
+      unexpected_condition();
+      break;
+    default_is_unexpected_str("Unexpected MacroSort");
+  }  /* switch */
+}  /* cache_macro */
+
+
+void an_ifc_module::cache_form(a_token_cache_ptr cache,
+                               ifc_FormIndex     form,
+                               a_boolean         is_parameter_form)
+/*
+Add tokens corresponding to the given preprocessing "form" to cache.  If this
+is for a function-like macro's parameters then is_parameter_form is TRUE,
+otherwise is_parameter_form is FALSE.
+
+FIXME: Many of these see non-identifiers cached as identifiers due to the
+raw-text spelling.
+*/
+{
+  ifc_FormSort       tag = form_tag(form);
+  a_source_position  pos;
+  ifc_SourceLocation *locus;
+  ifc_TextOffset     spelling;
+
+  read_partition_at_index(form);
+  switch (tag) {
+    case ifc_FormSort_Identifier:
+      { an_ifc_FormSort_Identifier ifsi, *ifsip;
+        ifsip = get_FormSort_Identifier(&ifsi);
+        source_position_from_locus(&pos, &ifsip->locus);
+        cache_identifier(cache, get_string_at_offset(ifsip->spelling), &pos);
+      }
+      break;
+    case ifc_FormSort_Number:
+      { an_ifc_FormSort_Number ifsn, *ifsnp;
+        ifsnp = get_FormSort_Number(&ifsn);
+        locus = &ifsnp->locus;
+        spelling = ifsnp->spelling;
+        goto cache_spelling;
+      }
+      /*break;*/
+    case ifc_FormSort_Character:
+      { an_ifc_FormSort_Character ifsc, *ifscp;
+        ifscp = get_FormSort_Character(&ifsc);
+        locus = &ifscp->locus;
+        spelling = ifscp->spelling;
+        goto cache_spelling;
+      }
+      /*break;*/
+    case ifc_FormSort_String:
+      { an_ifc_FormSort_String ifss, *ifssp;
+        ifssp = get_FormSort_String(&ifss);
+        locus = &ifssp->locus;
+        spelling = ifssp->spelling;
+        goto cache_spelling;
+      }
+      /*break;*/
+    case ifc_FormSort_Operator:
+      { an_ifc_FormSort_Operator ifso, *ifsop;
+        ifsop = get_FormSort_Operator(&ifso);
+        locus = &ifsop->locus;
+        spelling = ifsop->spelling;
+        goto cache_spelling;
+      }
+      /*break;*/
+    case ifc_FormSort_Keyword:
+      { an_ifc_FormSort_Keyword ifsk, *ifskp;
+        ifskp = get_FormSort_Keyword(&ifsk);
+        locus = &ifskp->locus;
+        spelling = ifskp->spelling;
+        goto cache_spelling;
+      }
+      /*break;*/
+    case ifc_FormSort_Parameter:
+      { an_ifc_FormSort_Parameter ifsp, *ifspp;
+        ifspp = get_FormSort_Parameter(&ifsp);
+        locus = &ifspp->locus;
+        spelling = ifspp->spelling;
+        goto cache_spelling;
+      }
+      /*break;*/
+    case ifc_FormSort_Header:
+      { an_ifc_FormSort_Header ifsh, *ifshp;
+        ifshp = get_FormSort_Header(&ifsh);
+        locus = &ifshp->locus;
+        spelling = ifshp->spelling;
+        goto cache_spelling;
+      }
+      break;
+    case ifc_FormSort_Junk:
+      { an_ifc_FormSort_Junk ifsj, *ifsjp;
+        ifsjp = get_FormSort_Junk(&ifsj);
+        source_position_from_locus(&pos, &ifsjp->locus);
+        locus = &ifsjp->locus;
+        spelling = ifsjp->spelling;
+cache_spelling:
+        { a_const_char *str = get_string_at_offset(spelling);
+          source_position_from_locus(&pos, locus);
+          cache_pp_token(cache, str, strlen(str), &pos);
+        }
+      }
+      break;
+    case ifc_FormSort_Whitespace:
+      /* Nothing to do here. */
+      break;
+    case ifc_FormSort_Stringize:
+      { an_ifc_FormSort_Stringize ifss, *ifssp;
+        ifssp = get_FormSort_Stringize(&ifss);
+        source_position_from_locus(&pos, &ifssp->locus);
+        cache_pp_token(cache, "#", /*len=*/1, &pos);
+        cache_form(cache, ifssp->operand);
+      }
+      break;
+    case ifc_FormSort_Catenate:
+      { an_ifc_FormSort_Catenate ifsc, *ifscp;
+        ifscp = get_FormSort_Catenate(&ifsc);
+        source_position_from_locus(&pos, &ifscp->locus);
+        cache_form(cache, ifscp->first);
+        cache_pp_token(cache, "##", /*len=*/2, &pos);
+        cache_form(cache, ifscp->second);
+      }
+      break;
+    case ifc_FormSort_Pragma:
+      { an_ifc_FormSort_Pragma ifsp, *ifspp;
+        ifspp = get_FormSort_Pragma(&ifsp);
+        source_position_from_locus(&pos, &ifspp->locus);
+        cache_pp_token(cache, "_Pragma", /*len=*/7, &pos);
+        cache_token(cache, tok_lparen, &pos);
+        cache_form(cache, ifspp->operand);
+        cache_token(cache, tok_rparen, &pos);
+      }
+      break;
+    case ifc_FormSort_Parenthesized:
+      { an_ifc_FormSort_Parenthesized ifsp, *ifspp;
+        ifspp = get_FormSort_Parenthesized(&ifsp);
+        source_position_from_locus(&pos, &ifspp->locus);
+        cache_token(cache, tok_lparen, &pos);
+        cache_form(cache, ifspp->operand);
+        cache_token(cache, tok_rparen, &pos);
+      }
+      break;
+    case ifc_FormSort_Tuple:
+      { an_ifc_FormSort_Tuple ifst, *ifstp;
+        ifstp = get_FormSort_Tuple(&ifst);
+        for (uint32_t idx = 0; idx < ifstp->cardinality; ++idx) {
+          ifc_FormIndex tform =
+                       (ifc_FormIndex)read_index_from_heap(ifc_heap_pp,
+                                                           ifstp->start + idx);
+          if (is_parameter_form && idx > 0) {
+            /* FIXME: Find a proper source position for this. */
+            cache_token(cache, tok_comma, &null_source_position);
+          }  /* if */
+          cache_form(cache, tform);
+        }  /* for */
+      }
+      break;
+    case ifc_FormSort_Last:
+      unexpected_condition();
+      break;
+    default_is_unexpected_str("Unexpected FormSort");
+  }  /* switch */
+}  /* cache_form */
+
+
 inline size_t an_ifc_module::file_offset_of(an_ifc_partition_kind partition,
                                             ifc_Index_type        index) const
 /*
@@ -14075,6 +14375,50 @@ Overload wrapper for "read_partition_at_index" that converts an
 */
 {
   read_partition_at_index(syntax_tag(syntax), syntax_value(syntax));
+}  /* read_partition_at_index */
+
+
+inline void an_ifc_module::read_partition_at_index(ifc_MacroSort  macro_kind,
+                                                   ifc_Index_type index)
+/*
+Overload wrapper for "read_partition_at_index" that converts an
+"ifc_MacroSort" kind into an "an_ifc_partition_kind" kind for convenience.
+*/
+{
+  read_partition_at_index((an_ifc_partition_kind)(ifc_macro_start+ macro_kind),
+                          index);
+}  /* read_partition_at_index */
+
+
+inline void an_ifc_module::read_partition_at_index(ifc_MacroIndex macro)
+/*
+Overload wrapper for "read_partition_at_index" that converts an
+"ifc_MacroIndex" into its tag and index components for convenience.
+*/
+{
+  read_partition_at_index(macro_tag(macro), macro_index(macro));
+}  /* read_partition_at_index */
+
+
+inline void an_ifc_module::read_partition_at_index(ifc_FormSort   form_kind,
+                                                   ifc_Index_type index)
+/*
+Overload wrapper for "read_partition_at_index" that converts an
+"ifc_FormSort" kind into an "an_ifc_partition_kind" kind for convenience.
+*/
+{
+  read_partition_at_index((an_ifc_partition_kind)(ifc_form_start + form_kind),
+                          index);
+}  /* read_partition_at_index */
+
+
+inline void an_ifc_module::read_partition_at_index(ifc_FormIndex form)
+/*
+Overload wrapper for "read_partition_at_index" that converts an
+"ifc_FormIndex" into its tag and index components for convenience.
+*/
+{
+  read_partition_at_index(form_tag(form), form_index(form));
 }  /* read_partition_at_index */
 
 

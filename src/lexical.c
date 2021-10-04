@@ -23114,6 +23114,52 @@ incrementing pos_in_temp_text_buffer accordingly.
 }  /* add_whitespace_to_string */
 
 
+static inline a_boolean preceding_space_needed(a_token_kind token)
+/*
+Given a token that's about to be added to a string (see add_token_to_string
+below), determine whether or not a preceding space should be added.  No space
+is needed when this is the first token being added, or for tokens that are
+considered punctuation (e.g., commas, semicolons, parentheses, etc.), or when
+following opening parentheses/braces/brackets.
+*/
+{
+  a_boolean result = TRUE;
+
+  switch (token) {
+    case tok_comma:
+    case tok_semicolon:
+    case tok_lparen:
+    case tok_rparen:
+    case tok_lbrace:
+    case tok_rbrace:
+    case tok_lbracket:
+    case tok_rbracket:
+    case tok_ellipsis:
+      result = FALSE;
+      break;
+    default:
+      ;/* result = TRUE; */
+  }  /* switch */
+  if (result) {
+    if (pos_in_temp_text_buffer == 0) {
+      result = FALSE;
+    } else {
+      char ch = temp_text_buffer[pos_in_temp_text_buffer-1];
+      switch (ch) {
+        case '(':
+        case '[':
+        case '{':
+          result = FALSE;
+          break;
+        default:
+          ;/* result = TRUE; */
+      }  /* switch */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* preceding_space_needed */
+
+
 static void add_token_to_string(a_cached_token_ptr ctp)
 /*
 Copy characters representing the token specified by ctp into
@@ -23131,10 +23177,7 @@ of characters added.
        a space (in most cases) to separate the tokens.  (Note: the line for
        the current token may be less than curr_seq when a macro expansion
        occurs.  Treat the token as being on the current line.) */
-    if (token == tok_comma || token == tok_semicolon ||
-        pos_in_temp_text_buffer == 0) {
-      /* No space is needed before a comma or semicolon -- or if this is
-         the very first token of the declaration. */
+    if (!preceding_space_needed(token)) {
       column_incr = 0;
     } else {
       check_assertion(pos_in_temp_text_buffer > 0 ||
@@ -23439,6 +23482,11 @@ and < end_tsn are included in the string.
     for (; ctp != NULL; ctp = ctp->next) {
       if (ctp->token_sequence_number >= start_tsn) break;
     }  /* for */
+  }  /* if */
+  /* Reset curr_seq to the first token's sequence to prevent spurious line
+     breaks from being added. */
+  if (ctp != NULL) {
+    curr_seq = ctp->source_position.seq;
   }  /* if */
   /*lint --e{850} ctp modified in loop */
   for (; ctp != NULL; ctp = ctp->next) {

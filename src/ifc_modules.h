@@ -1640,11 +1640,17 @@ enum ifc_PragmaSort : ifc_Sort_type {
 /* Macros used to access MacroIndex::tag and MacroIndex::index. */
 #define macro_tag(macro) ((ifc_MacroSort)((macro) & 0x00000001))
 #define macro_index(macro) ((ifc_Index)((macro) >> 1))
+#define make_macro_index(tag, idx) \
+  ((ifc_MacroIndex)(((idx) << 1) | ((tag) & 0x00000001)))
+#define get_func_macro_arity(ptr) ((ptr)->arity_variadic & 0x7FFFFFFF)
+#define func_macro_is_variadic(ptr) (((ptr)->arity_variadic & 0x80000000) >>31)
 
 /* Enumeration for MacroSort (i.e., kinds of macros). */
 enum ifc_MacroSort : ifc_Sort_type {
   ifc_MacroSort_ObjectLike,
   ifc_MacroSort_FunctionLike,
+  /* Must be last. */
+  ifc_MacroSort_Last
 };
 
 /* Macros used to access FormIndex::tag and FormIndex::index. */
@@ -2085,8 +2091,10 @@ enum an_ifc_partition_kind : uint32_t {
                                            ifc_SyntaxSort_UsingEnumDeclaration,
   ifc_syntax_end = ifc_syntax_start + (ifc_SyntaxSort_Last-1),
   /* Group all MacroIndex::Tag partitions together. */
-  ifc_macro_obj_like,
-  ifc_macro_func_like,
+  ifc_macro_start,
+  ifc_macro_obj_like = ifc_macro_start + ifc_MacroSort_ObjectLike,
+  ifc_macro_func_like = ifc_macro_start + ifc_MacroSort_FunctionLike,
+  ifc_macro_end = ifc_macro_start + (ifc_MacroSort_Last - 1),
   /* Group all FormIndex::Tag partitions together. */
   ifc_form_start,
   ifc_form_ident = ifc_form_start + ifc_FormSort_Identifier,
@@ -2665,6 +2673,8 @@ private:
   a_module_import_decl_ptr transitive_import_module(
                                               const ifc_ModuleReference *ref);
   void import_referenced_modules();
+  void define_ifc_macro(ifc_MacroIndex macro);
+  void export_ifc_macros();
   template<typename a_Scope_Member_Consumer>
   inline void traverse_scope_member_sequence(ifc_Sequence            seq,
                                              a_Scope_Member_Consumer consumer);
@@ -3006,6 +3016,11 @@ private:
   void cache_name_from_decl(a_token_cache_ptr  cache,
                             ifc_DeclIndex      decl,
                             ifc_SourceLocation *locus);
+  void cache_macro(a_token_cache_ptr cache,
+                   ifc_MacroIndex    macro);
+  void cache_form(a_token_cache_ptr cache,
+                  ifc_FormIndex     form,
+                  a_boolean         is_parameter_form = FALSE);
   /* Readers and reading helpers. */
   inline size_t file_offset_of(an_ifc_partition_kind partition,
                                ifc_Index_type        index) const;
@@ -3042,6 +3057,12 @@ private:
   inline void read_partition_at_index(ifc_SyntaxSort syntax_kind,
                                       ifc_Index_type index);
   inline void read_partition_at_index(ifc_SyntaxIndex syntax);
+  inline void read_partition_at_index(ifc_MacroSort  macro_kind,
+                                      ifc_Index_type index);
+  inline void read_partition_at_index(ifc_MacroIndex macro);
+  inline void read_partition_at_index(ifc_FormSort   form_kind,
+                                      ifc_Index_type index);
+  inline void read_partition_at_index(ifc_FormIndex form);
   inline ifc_Index read_index_from_heap(an_ifc_partition_kind heap_partition,
                                         ifc_Index_type        index);
   template<an_ifc_partition_kind a_Partition_Kind, typename a_Trait_T>

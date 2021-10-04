@@ -94,6 +94,11 @@ EXTERN a_boolean
 			/* TRUE if the token about to be scanned is the
 			   macro name in a #define directive. */
 
+EXTERN a_boolean
+		scanning_module_macro;
+			/* TRUE if the macro about to be scanned comes from a
+			   module (e.g., from a header unit). */
+
 #if MACRO_INVOCATION_TREE_IN_IL
 extern void copy_macro_invocation_tree_to_il(void);
 #endif /* MACRO_INVOCATION_TREE_IN_IL */

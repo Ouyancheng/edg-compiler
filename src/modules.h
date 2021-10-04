@@ -121,6 +121,10 @@ struct a_module_interface {
 
 /* State query functions. */
   VIRTUAL a_boolean is_open() const ABSTRACT;
+  inline a_boolean is_header_unit() const {
+    return (assoc_module_info != NULL &&
+            assoc_module_info->resolved_header != NULL);
+  }  /* is_header_unit */
 
 /* Disk interface functions. */
   VIRTUAL a_boolean import(a_module_import_decl_ptr midp) ABSTRACT;
@@ -128,7 +132,8 @@ struct a_module_interface {
   VIRTUAL void pch_reset(a_module_import_decl_ptr midp) ABSTRACT;
 
 /* Module interface functions. */
-  void set_name(a_const_char *module_name);
+  void set_name(a_const_char *module_name,
+                a_boolean    header_unit);
   VIRTUAL void complete_definition_of_module_class(a_module_entity_ptr mep)
                                                                       ABSTRACT;
 

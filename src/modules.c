@@ -870,20 +870,31 @@ Dispatch the pch_reset() call to the variant for the actual object.
 
 #endif /* !USE_VIRTUAL_FUNCTIONS */
 
-void a_module_interface::set_name(a_const_char *module_name)
+void a_module_interface::set_name(a_const_char *module_name,
+                                  a_boolean    header_unit)
 /*
-Set the name of this module to the provided module_name.
+Set the name of this module to the provided module_name.  If header_unit is
+TRUE, module_name is the path to the header file (not the header unit BMI, if
+it exists).
 */
 {
   a_const_char *name;
 
-  name = get_module_primary_name(module_name);
-  primary_name = copy_string_to_region(file_scope_region_number, name);
-  name = get_module_partition_name(module_name);
-  if (name[0] != '\0') {
-    partition_name = copy_string_to_region(file_scope_region_number, name);
+  if (header_unit) {
+    /* This convention is purely arbitrary but matches how MSVC encodes the
+       primary/partition names for header units. */
+    primary_name = NULL;
+    partition_name = copy_string_to_region(file_scope_region_number,
+                                           module_name);
   } else {
-    partition_name = NULL;
+    name = get_module_primary_name(module_name);
+    primary_name = copy_string_to_region(file_scope_region_number, name);
+    name = get_module_partition_name(module_name);
+    if (name[0] != '\0') {
+      partition_name = copy_string_to_region(file_scope_region_number, name);
+    } else {
+      partition_name = NULL;
+    }  /* if */
   }  /* if */
 }  /* set_name */
 

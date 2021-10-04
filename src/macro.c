@@ -8506,10 +8506,17 @@ Scan and process a #define directive.
   register_pointer_variable(start_of_va_opt_text, start_of_va_opt_text_reg);
 
   db_enter(3, "proc_define");
+  if (scanning_module_macro) {
+    /* The call to get_token() below will overwrite the module position,
+       assumed to be stored in pos_curr_token.  Save this in start_pos now. */
+    copy_source_position(pos_curr_token, start_pos);
+  }  /* if */
   scanning_macro_name = TRUE;
   (void)get_token();
   scanning_macro_name = FALSE;
-  copy_source_position(pos_curr_token, start_pos);
+  if (!scanning_module_macro) {
+    copy_source_position(pos_curr_token, start_pos);
+  }  /* if */
   if (curr_token != tok_identifier) {
     /* Expected an identifier. */
     pos_error(ec_exp_identifier, &error_position);
@@ -9226,6 +9233,14 @@ process_va_opt:
             severity = es_error;
           } else if (strict_ansi_mode) {
             severity = strict_ansi_error_severity;
+          } else if (scanning_module_macro && microsoft_mode) {
+            /* FIXME: Due to the way Microsoft encodes macros in IFC files,
+               it's very common to get here despite the macro redefinition
+               largely being benign (i.e., whitespace differences only).
+               Reduce the severity to a remark to avoid spamming this warning,
+               even though it risks suppressing a warning for a true definition
+               mismatch. */
+            severity = es_remark;
           } else {
             severity = es_warning;
           }  /* if */
@@ -11917,6 +11932,7 @@ after this function.
   time_macro_symbol = NULL;
   base_file_macro_symbol = NULL;
   scanning_macro_name = FALSE;
+  scanning_module_macro = FALSE;
   macro_arg_list = NULL;
   end_of_macro_arg_list = NULL;
   stdc_macro_symbol = NULL;
