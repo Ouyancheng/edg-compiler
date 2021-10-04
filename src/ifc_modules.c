@@ -4236,7 +4236,11 @@ class_struct_union_case:
               mep->scope = get_ifc_scope(idstp->home_scope);
               scope_pushed = push_module_declaration_context(mep->scope);
             }  /* if */
-            if (ifc_decl_is_ignorable_redecl(&loc, mep, &error_position,
+            type = type_for_type_index(idstp->type, &nt_kind);
+            /* Do not call ifc_decl_is_ignorable_redecl here for function
+               templates since they can be overloaded. */
+            if (!type_is(type, tk_routine) &&
+                ifc_decl_is_ignorable_redecl(&loc, mep, &error_position,
                                              iek_template, &il_entity,
                                              &kind)) {
               break;
@@ -4253,7 +4257,6 @@ class_struct_union_case:
                without re-parsing the declaration.  The routines in templates.c
                might need refactoring to accommodate that.
             */
-            type = type_for_type_index(idstp->type, &nt_kind);
             do_forward_decl = (type != type_of_unknown_templ_param_nontype ||
                                idstp->entity.body == 0);
             saved_suppress_default_arguments = suppress_default_arguments;
