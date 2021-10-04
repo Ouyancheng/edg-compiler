@@ -7605,6 +7605,9 @@ static void cache_literal(a_token_cache_ptr     cache,
                           a_source_position_ptr pos)
 /*
 Add a tok_literal for lit_const to cache.  pos is the position of the literal.
+Do not use this for boolean literals, string literals, or user-defined
+literals (see cache_bool_literal, cache_string_literal, and cache_ud_literal
+for those).
 */
 {
   a_token_kind lit_kind;
@@ -7631,6 +7634,20 @@ Add a tok_literal for lit_const to cache.  pos is the position of the literal.
   cache->last_token->variant.constant = alloc_cached_constant();
   copy_constant(lit_const, cache->last_token->variant.constant);
 }  /* cache_literal */
+
+
+static void cache_bool_literal(a_token_cache_ptr     cache,
+                               a_boolean             value,
+                               a_source_position_ptr pos)
+/*
+Cache a "true" or "false" token, depending on value.
+*/
+{
+  cache_token(cache, value ? tok_true : tok_false, pos);
+  cache->last_token->extra_info_kind = (a_token_extra_info_kind)teik_constant;
+  cache->last_token->variant.constant = alloc_cached_constant();
+  make_bool_constant_value(value, cache->last_token->variant.constant);
+}  /* cache_bool_literal */
 
 
 static void cache_string_literal(a_token_cache_ptr     cache,
@@ -8333,7 +8350,7 @@ Sentence containing keyword.
       cache_token(cache, tok_extern, &pos);
       break;
     case ifc_SourceKeyword_False:
-      cache_token(cache, tok_false, &pos);
+      cache_bool_literal(cache, FALSE, &pos);
       break;
     case ifc_SourceKeyword_Float:
       cache_token(cache, tok_float, &pos);
@@ -8445,7 +8462,7 @@ Sentence containing keyword.
       cache_token(cache, tok_throw, &pos);
       break;
     case ifc_SourceKeyword_True:
-      cache_token(cache, tok_true, &pos);
+      cache_bool_literal(cache, TRUE, &pos);
       break;
     case ifc_SourceKeyword_Try:
       cache_token(cache, tok_try, &pos);
