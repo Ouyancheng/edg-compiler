@@ -7470,8 +7470,8 @@ this statement was preceded by the GNU keyword __extension__.
 rescan_statement:
   if (constexpr_enabled && struct_stmt_stack_top().inside_statement_expr) {
     /* Although only a return-statement is allowed in the body of a C++11
-       constexpr function, other GCC and Clang accept other statements within
-       a statement expression that appears in that return-statement. */
+       constexpr function, GCC and Clang accept other statements within a
+       statement expression that appears in that return-statement. */
     can_appear_in_constexpr_body = TRUE;
   }  /* if */
   if (struct_stmt_stack_top().p_start_pos == NULL) {
