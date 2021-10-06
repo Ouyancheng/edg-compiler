@@ -2780,6 +2780,9 @@ private:
 template<typename a_Var_type, a_Var_type &saved_var>
 inline Value_saver<a_Var_type, saved_var>::Value_saver()
   : saved_value(saved_var)
+/*
+Save the value of saved_var, but otherwise leave saved_var unchanged.
+*/
 {
 }  /* Value_saver::Value_saver */
 
@@ -2788,6 +2791,9 @@ template<typename a_Var_type, a_Var_type &saved_var>
 inline Value_saver<a_Var_type, saved_var>::Value_saver(
                                                    const a_Var_type &new_value)
   : saved_value(saved_var)
+/*
+Save the value of saved_var and update it to new_value.
+*/
 {
   saved_var = new_value;
 }  /* Value_saver::Value_saver */
@@ -2795,6 +2801,9 @@ inline Value_saver<a_Var_type, saved_var>::Value_saver(
 
 template<typename a_Var_type, a_Var_type &saved_var>
 inline Value_saver<a_Var_type, saved_var>::~Value_saver()
+/*
+Restore the original value of saved_var.
+*/
 {
   saved_var = saved_value;
 }  /* Value_saver::~Value_saver */
