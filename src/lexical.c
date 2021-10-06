@@ -23107,8 +23107,10 @@ incrementing pos_in_temp_text_buffer accordingly.
     for (; column_incr > 0; --column_incr) {
       put_ch_to_temp_text_buffer(' ');
     }  /* for */
-  } else if (seq_incr > 0 || column_incr > 0) {
-    /* Not keeping original spacing, so just put out one space. */
+  } else if (!scanning_module_macro && (seq_incr > 0 || column_incr > 0)) {
+    /* Not keeping original spacing, so just put out one space, unless this is
+       a macro definition coming from a module, in which case whitespace will
+       be explicitly added.*/
     put_ch_to_temp_text_buffer(' ');
   }  /* if */
 }  /* add_whitespace_to_string */
@@ -23117,10 +23119,7 @@ incrementing pos_in_temp_text_buffer accordingly.
 static inline a_boolean preceding_space_needed(a_token_kind token)
 /*
 Given a token that's about to be added to a string (see add_token_to_string
-below), determine whether or not a preceding space should be added.  No space
-is needed when this is the first token being added, or for tokens that are
-considered punctuation (e.g., commas, semicolons, parentheses, etc.), or when
-following opening parentheses/braces/brackets.
+below), determine whether or not a preceding space should be added.
 */
 {
   a_boolean result = TRUE;
@@ -23128,13 +23127,6 @@ following opening parentheses/braces/brackets.
   switch (token) {
     case tok_comma:
     case tok_semicolon:
-    case tok_lparen:
-    case tok_rparen:
-    case tok_lbrace:
-    case tok_rbrace:
-    case tok_lbracket:
-    case tok_rbracket:
-    case tok_ellipsis:
       result = FALSE;
       break;
     default:
@@ -23143,17 +23135,6 @@ following opening parentheses/braces/brackets.
   if (result) {
     if (pos_in_temp_text_buffer == 0) {
       result = FALSE;
-    } else {
-      char ch = temp_text_buffer[pos_in_temp_text_buffer-1];
-      switch (ch) {
-        case '(':
-        case '[':
-        case '{':
-          result = FALSE;
-          break;
-        default:
-          ;/* result = TRUE; */
-      }  /* switch */
     }  /* if */
   }  /* if */
   return result;
@@ -23482,11 +23463,6 @@ and < end_tsn are included in the string.
     for (; ctp != NULL; ctp = ctp->next) {
       if (ctp->token_sequence_number >= start_tsn) break;
     }  /* for */
-  }  /* if */
-  /* Reset curr_seq to the first token's sequence to prevent spurious line
-     breaks from being added. */
-  if (ctp != NULL) {
-    curr_seq = ctp->source_position.seq;
   }  /* if */
   /*lint --e{850} ctp modified in loop */
   for (; ctp != NULL; ctp = ctp->next) {

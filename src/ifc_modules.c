@@ -2979,7 +2979,9 @@ already saved for restoration.
                   cache.first_token->token == tok_identifier);
   /* Create an equivalent define directive so that we can leave the processing
      to proc_define. */
-  pos_in_temp_text_buffer = 0;
+  copy_source_position(cache.first_token->source_position, pos_curr_token);
+  init_token_string(&pos_curr_token, /*keep_spacing=*/FALSE,
+                    /*suppress_identifier_wrapping=*/TRUE);
   add_token_cache_to_string(&cache);
   put_ch_to_temp_text_buffer(LE_ESCAPE);
   put_ch_to_temp_text_buffer(LE_NEWLINE);
@@ -2990,7 +2992,6 @@ already saved for restoration.
            cache.first_token->variant.locator.symbol_header->identifier_length;
   after_end_of_curr_source_line = temp_text_buffer + pos_in_temp_text_buffer;
   logical_char_info_entries_used = 0;
-  copy_source_position(cache.first_token->source_position, pos_curr_token);
   (void)proc_define();
   if (curr_token != tok_newline) {
     expect_error();
@@ -13840,6 +13841,9 @@ Add the tokens corresponding to the given macro's definition to cache.
         imsolp = get_MacroSort_ObjectLike(&imsol);
         source_position_from_locus(&pos, &imsolp->locus);
         cache_identifier(cache, get_string_at_offset(imsolp->name), &pos);
+        /* Ensure there's a space between the macro identifier and the macro
+           body. */
+        cache_pp_token(cache, " ", 1, &pos);
         cache_form(cache, imsolp->body);
       }
       break;
@@ -13856,6 +13860,9 @@ Add the tokens corresponding to the given macro's definition to cache.
           cache_form(cache, imsflp->parameters, /*is_parameter_form=*/TRUE);
         }  /* if */
         cache_token(cache, tok_rparen, &pos);
+        /* Ensure there's a space between the macro parameter list and the
+           macro body. */
+        cache_pp_token(cache, " ", 1, &pos);
         cache_form(cache, imsflp->body);
       }
       break;
@@ -13963,7 +13970,13 @@ cache_spelling:
       }
       break;
     case ifc_FormSort_Whitespace:
-      /* Nothing to do here. */
+      { an_ifc_FormSort_Whitespace ifsw, *ifswp;
+        ifswp = get_FormSort_Whitespace(&ifsw);
+        source_position_from_locus(&pos, &ifswp->locus);
+        /* FIXME: Ideally the whitespace information will contain the amount
+           and kind of whitespace, and we'd cache that. */
+        cache_pp_token(cache, " ", 1, &pos);
+      }
       break;
     case ifc_FormSort_Stringize:
       { an_ifc_FormSort_Stringize ifss, *ifssp;
@@ -14008,9 +14021,17 @@ cache_spelling:
           ifc_FormIndex tform =
                        (ifc_FormIndex)read_index_from_heap(ifc_heap_pp,
                                                            ifstp->start + idx);
-          if (is_parameter_form && idx > 0) {
-            /* FIXME: Find a proper source position for this. */
-            cache_token(cache, tok_comma, &null_source_position);
+          if (idx > 0) {
+            /* FIXME: Find a proper source position for these. */
+            if (is_parameter_form) {
+              cache_token(cache, tok_comma, &null_source_position);
+            } else {
+              /* FIXME: Currently IFC macros do not have whitespace encoded,
+                 so add our own to ensure entities do not bleed together.
+                 This is not always the correct thing to do, but there are
+                 fewer issues than with not doing this at all. */
+              cache_pp_token(cache, " ", 1, &null_source_position);
+            }  /* if */
           }  /* if */
           cache_form(cache, tform);
         }  /* for */
