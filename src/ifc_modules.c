@@ -3007,17 +3007,21 @@ Export all macro definitions in this module (presumably a header unit).
   Value_saver<a_boolean, expand_macros>          expand_macros_saver(FALSE);
   Value_saver<a_boolean, in_preprocessing_directive>
                                                  ppd_saver(TRUE);
-  Value_saver<a_boolean, fetch_pp_tokens>        pp_tok_saver(TRUE);
+  /* Do not set this yet - cache_curr_token below may make the incorrect choice
+     if this is set to TRUE prior to calling it. */
+  Value_saver<a_boolean, fetch_pp_tokens>        pp_tok_saver;
   Value_saver<a_boolean, scanning_module_macro>  scanning_macro_saver(TRUE);
-  Value_saver<a_const_char*, curr_source_line>   curr_source_saver;
+  Value_saver<a_const_char*, curr_source_line>   curr_source_saver(NULL);
   Value_saver<a_const_char*, after_end_of_curr_source_line>
-                                                 end_curr_source_saver;
-  Value_saver<a_const_char*, curr_char_loc>      curr_char_saver;
+                                                 end_curr_source_saver(NULL);
+  Value_saver<a_const_char*, curr_char_loc>      curr_char_saver(NULL);
   a_token_cache                                  cache;
 
   /* Save the current token to restore later so that it's not lost. */
   clear_token_cache(&cache, /*reusable=*/FALSE);
   cache_curr_token(&cache);
+  /* Now that we've cached curr_token, it's safe to set fetch_pp_tokens. */
+  fetch_pp_tokens = TRUE;
   /* The IFC files split macros up into two forms - object-like and
      function-like.  Both need to be processed. */
   if (partitions[ifc_macro_obj_like].size > 0) {
@@ -13944,7 +13948,7 @@ raw-text spelling.
         spelling = ifshp->spelling;
         goto cache_spelling;
       }
-      break;
+      /*break;*/
     case ifc_FormSort_Junk:
       { an_ifc_FormSort_Junk ifsj, *ifsjp;
         ifsjp = get_FormSort_Junk(&ifsj);

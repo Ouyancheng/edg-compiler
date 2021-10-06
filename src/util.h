@@ -2767,11 +2767,9 @@ template<typename a_Var_type, a_Var_type &saved_var>
 struct Value_saver {
   /* A generic utility for saving and automatically restoring the original
      value of a global variable whose value is temporarily being changed. */
-  inline Value_saver(const a_Var_type &new_value = {});
+  inline Value_saver();
+  inline Value_saver(const a_Var_type &new_value);
   inline ~Value_saver();
-  inline void set_new_value(const a_Var_type &new_value) {
-    saved_var = new_value;
-  }  /* set_new_value */
 private:
   a_Var_type	saved_value;
 			/* Original value of the saved variable, to be restored
@@ -2780,11 +2778,18 @@ private:
 
 
 template<typename a_Var_type, a_Var_type &saved_var>
+inline Value_saver<a_Var_type, saved_var>::Value_saver()
+  : saved_value(saved_var)
+{
+}  /* Value_saver::Value_saver */
+
+
+template<typename a_Var_type, a_Var_type &saved_var>
 inline Value_saver<a_Var_type, saved_var>::Value_saver(
                                                    const a_Var_type &new_value)
   : saved_value(saved_var)
 {
-  set_new_value(new_value);
+  saved_var = new_value;
 }  /* Value_saver::Value_saver */
 
 
