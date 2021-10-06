@@ -1445,8 +1445,8 @@ template-dependent context or a member of a class).
              (is_inclass_member_function_decl ||
               is_template_dependent_context() ||
               is_nonspecialized_instantiation_context()) &&
-              !is_microsoft_in_class_specialization_context() &&
-              !is_local_decl) {
+             !is_microsoft_in_class_specialization_context() &&
+             !is_local_decl) {
     /* For top-level declarators in template-dependent contexts, just cache
        the specifier argument for now.  Also create a corresponding template
        cache segment to extract the tokens later on.  Microsoft in-class
