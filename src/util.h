@@ -459,8 +459,8 @@ general memory.
 The Dyn_array template
 ======================
 The Dyn_array<E, A> template defined below implements a dynamic array construct
-not unlike std::vector<E, A>.  E is the element type and A the allocator type
-(which defaults to the front end memory allocator).
+not unlike std::vector<E, A>.  E is the element type and A is the allocator
+type (which defaults to the front end memory allocator).
 
 The most common std::vector operators are also applicable to Dyn_array.  Things
 like operator[], push_back, begin(), end(), etc., work as expected (which,
