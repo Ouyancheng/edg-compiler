@@ -2677,7 +2677,9 @@ private:
   inline void traverse_scope_member_sequence(ifc_Sequence            seq,
                                              a_Scope_Member_Consumer consumer);
   void process_scope_member_sequence(ifc_Sequence seq);
-  void process_template_specializations(ifc_DeclIndex decl_idx) const;
+  void lock_dependent_specializations(a_symbol_locator *locator,
+                                      a_boolean        locked);
+  void process_deferred_template_symbols(a_symbol_locator *locator);
   void process_ifc_scope(ifc_ScopeIndex scope_index,
                          a_scope_ptr    scope);
   size_t get_num_entries(an_ifc_partition_kind partition) const;

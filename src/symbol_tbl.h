@@ -4277,6 +4277,10 @@ typedef struct a_symbol_header {
 			/* A list of entities defined in module files whose
 			   definitions have been deferred because there has
 			   been no reference to them. */
+  a_module_entity_ptr
+		last_deferred_module_entity;
+			/* The last element of deferred_module_entities,
+                           for quick append operations. */
   union {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* When is_cli_operator is TRUE: */
