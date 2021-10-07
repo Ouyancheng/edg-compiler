@@ -4357,12 +4357,15 @@ typedef struct a_constant {
 			   constant's original type. */
   an_expr_node_ptr
                 expr;
-                        /* If the constant is not just a literal this points
-                           to an expression node representing that constant.
-                           Otherwise, NULL.  (Note that for some implicitly
-			   converted constants, this field is NULL and the
-			   conversion's original type is recorded in
-			   orig_type instead.) */
+			/* If the constant is not just a literal this points
+			   to an expression node representing that constant.
+			   Otherwise, NULL.  If memory region constraints do
+			   not permit direct pointing, this is NULL and
+			   local_expr_ref is TRUE: The backing expression can
+			   then be retrieved using find_local_expr_node.
+			   (Note that for some implicitly-converted constants,
+			   this field is NULL and the conversion's original
+			   type is recorded in orig_type instead.) */
   an_expr_rescan_info_entry_ptr
 		rescan_info;
 			/* For constants (particularly for nontype template

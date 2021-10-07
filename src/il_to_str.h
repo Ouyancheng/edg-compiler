@@ -492,7 +492,8 @@ extern void form_pm_constant(
    form of name reference, so the expression should be used in that
    case. */
 #define constant_should_be_put_out_as_expr(constant)                      \
-  ((constant)->expr != NULL && !(constant)->is_named_constant_definition)
+  (((constant)->expr != NULL || constant->local_expr_ref) &&              \
+   !(constant)->is_named_constant_definition)
 
 extern void form_uuidof_reference(a_constant_ptr                        con,
                                   an_il_to_str_output_control_block_ptr octl);

@@ -1,5 +1,27 @@
 Version 6.3
 
+10/7/21  [EDGcpfe/24697]
+Representation of operand of alignas
+
+Consider:
+
+  void g() {
+    constexpr auto N = alignof(int);
+    alignas(N) char buf[sizeof(int)];
+    (void)buf;
+  }
+
+Previously, the representation of the operand of alignas(N) was a constant
+representing the integer value of N, with no backing expression recording that
+that value was obtained from the expression "N".  As a consequence, the C++-
+generating back end rendered the alignas construct as "alignas(4U)" or similar
+(depending on the actual value of N).  This limitation was due to the alignas
+representation being stored in file-scope memory while the operand expression
+is stored in function scope memory.  Now, in such situations, the backing
+expression is recorded indirectly using the a_local_expr_node mechanism, which
+in turn allows the C++-generating back end to render the original expression.
+
+
 10/1/21  [EDGcpfe/24738]
 Folding of __builtin_expect and __builtin_expect_with_probability
 

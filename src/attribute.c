@@ -1694,6 +1694,7 @@ Otherwise, return a pointer to the argument's representation.
     pos_error(ec_exp_int_constant, &arg_pos);
     err = TRUE;
   } else {
+    an_expr_node_ptr        expr = constant->expr;
     a_memory_region_number  region_to_switch_back_to;
     aap = alloc_attribute_arg();
     aap->kind = (an_attribute_arg_kind)aak_constant;
@@ -1706,6 +1707,14 @@ Otherwise, return a pointer to the argument's representation.
        memory region. */
     switch_to_file_scope_region(&region_to_switch_back_to);
     aap->variant.constant = alloc_shareable_constant(constant);
+    if (expr != NULL && aap->variant.constant->expr == NULL &&
+        innermost_function_scope != NULL) {
+      /* The backing expression got dropped because of a memory region issue.
+         Refer to it indirectly instead. */
+      make_local_expr_node_ref(
+                       expr, (a_local_expr_node_ref_kind)lerk_constant_expr,
+                       (char*)aap->variant.constant, innermost_function_scope);
+    }  /* if */
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
   if (err) {

@@ -496,43 +496,19 @@ Output the indicated template argument in the way described by octl.
           check_assertion(!octl->gen_compilable_code);
           octl->output_str("<expression>", octl);
         } else {
-          a_boolean        need_parens;
+          a_boolean        need_parens, saved_local_expr_ref;
           an_expr_node_ptr expr;
           an_expr_node_ptr saved_expr;
           check_assertion(con != NULL);
           saved_expr = con->expr;
+          saved_local_expr_ref = con->local_expr_ref;
           if (octl->suppress_expr_in_nontype_arg) {
             /* We should just put out the constant value, not the backing
                expression. */
             con->expr = NULL;
+            con->local_expr_ref = FALSE;
           }  /* if */
-          expr = con->expr;
-          if (expr == NULL &&
-              con->kind == (a_constant_repr_kind)ck_template_param &&
-              con->variant.template_param.kind ==
-                             (a_template_param_constant_kind)tpck_expression) {
-            expr = expr_node_from_tpck_expression(con);
-          }  /* if */
-          if (expr == NULL && con->local_expr_ref) {
-            /* The expression involves entities local to a function and
-               thus must be accessed via a local expr ref. */
-            a_scope_ptr sp;
-            if (con->source_corresp.enclosing_routine != NULL &&
-                con->source_corresp.enclosing_routine->function_def_number !=
-                                                    NULL_function_def_number) {
-              sp = scope_for_routine_or_null(con->
-                                             source_corresp.enclosing_routine);
-            } else {
-              sp = innermost_function_scope;
-            }  /* if */
-            if (sp != NULL) {
-              expr = find_local_expr_node_in_scope(
-                                (char *)con,
-                                (a_local_expr_node_ref_kind)lerk_constant_expr,
-                                sp);
-              con->expr = expr;
-            }  /* if */
-          }  /* if */
+          expr = expr_node_from_constant(con);
           while (expr != NULL && is_constant_node(expr) &&
                  constant_should_be_put_out_as_expr(node_constant(expr))) {
             expr = node_constant(expr)->expr;
@@ -543,6 +519,7 @@ Output the indicated template argument in the way described by octl.
                inaccessible entity.  Just use the constant value. */
             expr = NULL;
             con->expr = NULL;
+            con->local_expr_ref = FALSE;
           }  /* if */
           if (expr != NULL && octl->skip_implicit_steps != NULL) {
             expr = octl->skip_implicit_steps(expr);
@@ -581,6 +558,7 @@ Output the indicated template argument in the way described by octl.
             con->implicit_cast = saved_implicit_cast;
           }  /* if */
           con->expr = saved_expr;
+          con->local_expr_ref = saved_local_expr_ref;
 #if BACK_END_IS_CP_GEN_BE
           if (octl->gen_compilable_code) {
             /* We only want to generate an expression, rather than a
@@ -5703,6 +5681,7 @@ precedence confusion.  Do the output in the way described by octl.
   a_constant_ptr       equiv_constant;
   a_boolean            cast_already_put_out = FALSE;
   a_boolean            is_undefined_opaque_enum = FALSE;
+  an_expr_node_ptr     expr;
 
   orig_type = constant->type;
   /* Watch out for constants (like ck_init_repeat) that have no type. */
@@ -5723,10 +5702,11 @@ precedence confusion.  Do the output in the way described by octl.
 #endif /* CHECKING */
   } else if (constant_should_be_put_out_as_expr(constant) &&
              !octl->c_generating_back_end &&
-             octl->output_expression != NULL) {
+             octl->output_expression != NULL &&
+             (expr = expr_node_from_constant(constant)) != NULL) {
     /* An expression was recorded for this constant.  Output that expression
        rather than the folded constant. */
-    octl->output_expression(constant->expr, !need_parens);
+    octl->output_expression(expr, !need_parens);
     goto done;
   } else {
     con_type = skip_typerefs(orig_type);
@@ -6353,7 +6333,7 @@ precedence confusion.  Do the output in the way described by octl.
         case tpck_noexcept:
           octl->output_str("noexcept(", octl);
 do_sizeof_cases:
-          { an_expr_node_ptr  expr = generic_sizeof_arg_expr(constant);
+          { expr = generic_sizeof_arg_expr(constant);
             if (expr != NULL) {
               a_boolean parens_needed = FALSE;
               if (is_constant_node(expr)) {
