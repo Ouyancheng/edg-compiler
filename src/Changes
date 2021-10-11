@@ -1,5 +1,12 @@
 Version 6.3
 
+10/11/21 [EDGcpfe/24753]
+Clang compatibility: add builtin function signatures for clang 13.0.0
+
+The signatures for builtin functions have been updated to include those for
+version 13.0.0 of clang.
+
+
 10/7/21  [EDGcpfe/24697]
 Representation of operand of alignas
 
