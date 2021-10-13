@@ -14021,6 +14021,16 @@ typedef struct an_expr_node {
 			/* TRUE for an enk_concept_id node that represents a
 			   type constraint (i.e., its first template argument
 			   is implicit). */ 
+  a_bit_field
+		pending_capture:1;
+			/* TRUE for an enk_variable node that should
+			   potentially be rewritten as a field selection
+			   because the variable being referred to must be
+			   captured.  This cannot be decided when the node is
+			   created because constant-valued variables used as
+			   prvalues only don't need to be captured, and we
+			   don't know that it is used as a prvalue until
+			   later. */
   a_source_position
 		position;
 			/* When kind == enk_operation, the position at which
@@ -16939,12 +16949,23 @@ typedef struct a_lambda_capture {
 			/* The initializer specified on the init-capture. */
   } captured;
   union {
-    /* When is_init_capture is FALSE: */
+    /* When is_init_capture is FALSE and field_pending is FALSE: */
     a_field_ptr	source_closure_field;
 			/* If the variable being captured is reachable only
 			   because it's captured by an intervening lambda,
 			   this gives the field of the closure class that
-			   should be the source of the current capture. */
+			   should be the source of the current capture.
+			   (If the field has not been created yet,
+			   source_capture is recorded instead.) */
+    /* When is_init_capture is FALSE and field_pending is TRUE: */
+    a_lambda_capture_ptr
+		source_capture;
+			/* If the variable being considered for capture is
+			   reachable only because it's captured by an
+			   intervening lambda, and no closure_field has been
+			   created for that enclosing capture, this points to
+			   the enclosing capture description instead.  (For
+			   use by the front end only.) */
     /* When is_init_capture is TRUE: */
     struct a_decl_parse_state
     		*init_capture_dps;
@@ -17016,6 +17037,20 @@ typedef struct a_lambda_capture {
 		parenthesized_init:1;
 			/* TRUE if init-capture is TRUE and the initializer
 			   was a parenthesized initializer in the source. */
+  a_bit_field
+		field_pending:1;
+			/* TRUE if an implicit capture has been created because
+			   a variable was referenced, but the associated field
+			   hasn't been created yet (because it's possible that
+			   the variable is constant-valued and only used as a
+			   prvalue; so no true capture was needed).  TRUE only
+			   in the front end. */
+  a_bit_field
+		const_capture:1;
+			/* TRUE if the capture is through a non-mutable lambda
+			   expression (either the current lambda expression or
+			   an enclosing one).  Always FALSE if is_init_capture
+			   is TRUE. */
   a_source_position
 		position;
 			/* The source position of the name of the captured

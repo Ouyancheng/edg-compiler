@@ -20061,10 +20061,14 @@ other cases, FALSE is returned and the source operand is left unchanged.
 
   if ((conv_context & CCO_MOVE_OPTIMIZATION_ALLOWED) &&
       rvalue_references_enabled &&
+      is_expression_operand(source_operand) &&
+      !source_operand->variant.expression->pending_capture &&
       (operand_is_lvalue_for_variable(source_operand, &var) ||
        (cpp20_mode &&
         operand_is_lvalue_for_rref_variable(source_operand, &var)))) {
-    /* The move constructor optimization might apply here.  Check further. */
+    /* The move constructor optimization might apply here.  Check further.
+       (Note that we exclude cases that involve captured variables, since
+       those will be rewritten.) */
     a_boolean initializing_return_value =
                            (conv_context & CCO_INITIALIZING_RETURN_VALUE) != 0;
     if (variable_eligible_for_copy_optimization(var,

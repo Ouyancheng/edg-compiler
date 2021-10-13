@@ -1,5 +1,25 @@
 Version 6.3
 
+10/13/21 [EDGcpfe/24716]
+Lambda captures
+
+The mechanism used by the front end to handle lambda captures has been reworked
+to avoid implicit captures of constant-valued variables when only the constant
+value of those variables is needed.  For example:
+
+  int f() {
+    constexpr int N = 42;
+    auto L = [&](){ return N; };  // N is no longer captured.
+    return L();
+  }
+
+Previously, the front end captured the constexpr variable N as soon as the
+identifier N was encountered in the return expression.  Now, the decision about
+whether to capture N (and create a corresponding field in the closure) is
+delayed slightly and ultimately discarded because N is a constant-valued
+variable only used as a prvalue.
+
+
 10/11/21 [EDGcpfe/24753]
 Clang compatibility: add builtin function signatures for clang 13.0.0
 

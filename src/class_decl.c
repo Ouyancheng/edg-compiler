@@ -1802,9 +1802,9 @@ static a_field_ptr decl_nonstatic_data_member(
                                      a_scope_depth           decl_scope_depth);
 
 
-static a_lambda_capture_ptr find_lambda_capture(a_lambda_ptr    lambda,
-                                                a_variable_ptr  vp,
-                                                a_field_ptr     fp)
+a_lambda_capture_ptr find_lambda_capture(a_lambda_ptr    lambda,
+                                         a_variable_ptr  vp,
+                                         a_field_ptr     fp)
 /*
 If the indicated lambda already has a capture entry for the indicated variable
 or field (i.e., init-capture), return a pointer it.  Otherwise, return NULL.
@@ -2084,8 +2084,72 @@ capture described by lcp.  Return the field entry.
   source_sequence_entries_disallowed =
                                      saved_source_sequence_entries_disallowed;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
+  if (lcp->is_implicit && lcp->next != NULL) {
+    /* It is possible that implicit lambda capture entries are created in an
+       order that is distinct for the order of the corresponding fields.
+       However, other parts of the front end (particularly, the function
+       make_initializer_for_lambda) expect the list of captures to correspond
+       to the list of fields.  Adjust the order now. */
+    a_lambda_capture_ptr  last_lcp_with_field = NULL, lcp2,
+                          *p_lcp = &lambda->capture_list;
+    while (*p_lcp != lcp) p_lcp = &(*p_lcp)->next;
+    for (lcp2 = (*p_lcp)->next; lcp2 != NULL; lcp2 = lcp2->next) {
+      if (!lcp2->field_pending) last_lcp_with_field = lcp2;
+    }  /* for */
+    if (last_lcp_with_field != NULL) {
+      *p_lcp = lcp->next;
+      lcp->next = last_lcp_with_field->next;
+      last_lcp_with_field->next = lcp;
+    }  /* if */
+  }  /* if */
   return fp;
 }  /* make_field_for_lambda_capture */
+
+
+static a_lambda_ptr enclosing_lambda_of(a_lambda_ptr  lambda)
+/*
+The caller has determined that the given lambda (which is still on the scope
+stack) is enclosed by another lambda.  Return that other lambda.
+*/
+{
+  a_scope_depth  d;
+
+  d = class_type_supp(lambda->closure_class)->assoc_scope
+                                            ->depth_in_scope_stack;
+  do {
+    d = scope_stack[d-1].depth_innermost_function_scope;
+  } while ((lambda = get_lambda_for_scope_depth(d)) == NULL);
+  return lambda;
+}  /* enclosing_lambda_of */
+
+
+a_field_ptr field_for_lambda_capture(a_lambda_ptr          lambda,
+                                     a_lambda_capture_ptr  lcp)
+/*
+Return the field holding the capture represented by lcp of the given lambda.
+If needed, declare that field and any corresponding fields in enclosing
+lambdas.
+*/
+{
+  a_field_ptr           result = lcp->closure_field;
+
+  if (result == NULL) {
+    if (!lcp->is_init_capture) {
+      /* If this is a capture that captures another capture, ensure that the
+         enclosing capture has an associated field. */
+      check_assertion(lcp->field_pending);
+      a_lambda_capture_ptr  source_lcp = lcp->capture_info.source_capture;
+      if (source_lcp != NULL) {
+        lcp->capture_info.source_closure_field =
+            field_for_lambda_capture(enclosing_lambda_of(lambda), source_lcp);
+      }  /* if */
+    }  /* if */
+    lcp->field_pending = FALSE;
+    lcp->closure_field = make_field_for_lambda_capture(lambda, lcp);
+    result = lcp->closure_field;
+  }  /* if */
+  return result;
+}  /* field_for_lambda_capture */
 
 
 static a_lambda_capture_ptr alloc_capture_for_lambda(a_lambda_ptr  lambda)
@@ -2128,7 +2192,7 @@ being done.
 {
   a_lambda_capture_ptr   lcp;
   a_memory_region_number region_to_switch_back_to = curr_il_region_number;
-  a_field_ptr            source_field = NULL;
+  a_lambda_capture_ptr   enclosing_lcp = NULL;
 
   check_assertion(!((vp != NULL) && (fp != NULL)));
   /* See if there is a lambda around the current one, which must capture the
@@ -2137,7 +2201,6 @@ being done.
     a_scope_depth        enclosing_depth;
     a_boolean            enclosing_is_implicit = TRUE;
     a_boolean            enclosing_by_reference;
-    a_lambda_capture_ptr enclosing_lcp = NULL;
     enclosing_depth = scope_depth_for_capture(vp, depth, &enclosing_lambda);
     if (enclosing_lambda != NULL) {
       /* There is an enclosing lambda, so generate a capture at that level
@@ -2162,12 +2225,6 @@ being done.
                                              enclosing_by_reference,
                                              pos, no_impl_capture);
       }  /* if */
-      if (enclosing_lcp != NULL) {
-        /* The capture at this level copies from the closure field at the
-           next level up. */
-        source_field = enclosing_lcp->closure_field;
-        check_assertion(source_field != NULL);
-      }  /* if */
     } else if (fp != NULL) {
       /* We're capturing an init-capture.  If we didn't find the enclosing
          lambda (e.g., because of an intermediate non-closure class scope),
@@ -2185,12 +2242,15 @@ being done.
                                          file_scope_region_number :
                                          scope_stack[depth].il_memory_region);
   lcp = alloc_capture_for_lambda(lambda);
-  /* Note that lcp->captured.variable is set even when source_field is
+  /* Note that lcp->captured.variable is set even when enclosing_lcp is
      non-NULL.  That's for the convenience of the front end.  The field will
      be cleared soon after it's been used to generate the capture copy code. */
   lcp->captured.variable = vp;
-  lcp->capture_info.source_closure_field = source_field;
-  if (vp == NULL && fp == NULL && !*no_impl_capture && source_field == NULL) {
+  lcp->field_pending = TRUE;
+  if (enclosing_lcp != NULL) {
+    lcp->capture_info.source_capture = enclosing_lcp;
+  }  /* if */
+  if (vp == NULL && fp == NULL && !*no_impl_capture && enclosing_lcp == NULL) {
     lcp->is_param_ref_capture = TRUE;
   }  /* if */
   lcp->capture_by_reference = by_reference;
@@ -2205,7 +2265,21 @@ being done.
          capture "this" and not "*this". */
       lcp->capture_by_reference = TRUE;
     }  /* if */
-    lcp->closure_field = make_field_for_lambda_capture(lambda, lcp);
+    if (vp != NULL && vp->constant_valued) {
+      /* Do not commit to creating the capture field yet, because if the
+         variable is constant-valued and only used as a prvalue, no capture
+         should be done. */
+    } else {
+      lcp->closure_field = field_for_lambda_capture(lambda, lcp);
+    }  /* if */
+  }  /* if */
+  if (!by_reference &&
+      ((!lambda->is_mutable && is_implicit) ||
+       (enclosing_lcp != NULL && enclosing_lcp->const_capture))) {
+    /* An implicit by-copy capture in a non-mutable lambda is not mutable.
+       If an enclosing lambda capture made the capture not mutable, then that
+       also applied to the nested lambdas. */
+    lcp->const_capture = TRUE;
   }  /* if */
   /* Restore the original memory region. */
   switch_back_to_original_region(region_to_switch_back_to);
@@ -33077,7 +33151,10 @@ associated closure type.
   a_lambda_capture_ptr  lcp;
 
   for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
-    lcp->closure_field = make_field_for_lambda_capture(lambda, lcp);
+    if (!lambda->is_mutable && !lcp->capture_by_reference) {
+      lcp->const_capture = TRUE;
+    }  /* if */
+    lcp->closure_field = field_for_lambda_capture(lambda, lcp);
   }  /* for */
 }  /* decl_lambda_capture_fields */
 
@@ -33928,6 +34005,18 @@ For example:
   pop_stop_token_stack();
   /* Restore default argument fixups. */
   curr_default_args = saved_curr_default_args;
+  /* Remove unneeded captures. */
+  if (lambda != NULL) {
+    a_lambda_capture_ptr  *p_lcp = &lambda->capture_list;
+    while (*p_lcp != NULL) {
+      if ((*p_lcp)->field_pending) {
+        /* No capture was actually required.  Drop this capture. */
+        *p_lcp = (*p_lcp)->next;
+      } else {
+        p_lcp = &(*p_lcp)->next;
+      }  /* if */
+    }  /* while */
+  } /* if */
   return lambda;
 }  /* scan_lambda */
 

@@ -5770,19 +5770,64 @@ and return a pointer to it.
 }  /* alloc_node_for_constant_operand */
 
 
-static an_expr_node_ptr extract_node_from_operand(an_operand *operand)
+void rewrite_captured_variable_access(an_operand  *opnd)
 /*
-Extract an expression from an operand.  If the operand contains a
-constant, allocate a constant node and copy the constant value to it.
-If the operand is an error operand, create an error node.  If the
-operand is an expression, return the expression node.  This routine
-does not preserve information from the operand as extra information
-added to the expression and should be used when the expression is
-either (a) going to be simply tested or traversed for some property,
-and not saved, or (b) going to be immediately put back into
-an_operand, with the original operand information restored via a call
-to restore_operand_details.  Otherwise, use make_node_from_operand
-instead.
+The given operand is an enk_variable expression operand (potentially with some
+cast-like operations on top) for a local variable outside of an enclosing
+lambda.  Rewrite the expression in terms of the corresponding closure field
+selection.
+*/
+{
+  an_expr_node_ptr  node = opnd->variant.expression;
+
+  if (is_error_node(node) || is_error_type(node->type)) {
+    /* Leave the node unchanged. */
+  } else {
+    a_lambda_ptr          lambda = get_current_lambda();
+    a_lambda_capture_ptr  lcp;
+    a_field_ptr           closure_field;
+    an_expr_node_ptr      sel_expr, vnode = node;
+    a_boolean             is_lvalue = node->is_lvalue,
+                          is_xvalue = node->is_xvalue;
+    while (!is_variable_node(vnode)) {
+      check_assertion(vnode->compiler_generated);
+      vnode = vnode->variant.operation.operands;
+    }  /* if */
+    lcp = find_lambda_capture(lambda, node_variable(vnode), (a_field*)NULL);
+    closure_field = field_for_lambda_capture(lambda, lcp);
+    sel_expr = make_selection_for_captured_variable(lcp, /*is_lvalue=*/TRUE);
+    set_expr_position(sel_expr, &node->position, &node->expr_range.end,
+                      &node->position);
+    if (is_any_reference_type(closure_field->type)) {
+      an_operand  sel_opnd;
+      make_glvalue_expression_operand(sel_expr, &sel_opnd);
+      add_reference_indirection(&sel_opnd);
+      sel_expr = make_node_from_operand(&sel_opnd);
+    }  /* if */
+    *node = *sel_expr;
+    node->is_lvalue = is_lvalue;
+    node->is_xvalue = is_xvalue;
+    opnd->type = node->type;
+  }  /* if */
+}  /* rewrite_captured_variable_access */
+
+
+static an_expr_node_ptr extract_node_from_operand(
+                                                an_operand *operand,
+                                                a_boolean  no_rewrite = FALSE)
+/*
+Extract an expression from an operand.  If the operand contains a constant,
+allocate a constant node and copy the constant value to it.  If the operand is
+an error operand, create an error node.  If the operand is an expression,
+return the expression node.  This routine does not preserve information from
+the operand as extra information added to the expression and should be used
+when the expression is either (a) going to be simply tested or traversed for
+some property, and not saved, or (b) going to be immediately put back into
+an_operand, with the original operand information restored via a call to
+restore_operand_details.  Otherwise, use make_node_from_operand instead.  By
+default, this rewrites enk_variable nodes that refer to potentially-captured
+variables as selections of the corresponding closure field (when applicable).  
+If no_rewrite is TRUE (default is FALSE), that rewrite doesn't happen.
 */
 {
   an_expr_node_ptr node = NULL;
@@ -5796,6 +5841,9 @@ instead.
     case ok_expression:
       /* Just return the node in the operand. */
       node = operand->variant.expression;
+      if (node->pending_capture && !no_rewrite) {
+        rewrite_captured_variable_access(operand);
+      }  /* if */
       break;
     case ok_constant:
       /* Create a constant node and copy the constant in the operand to the
@@ -5814,16 +5862,19 @@ instead.
 }  /* extract_node_from_operand */
 
 
-an_expr_node_ptr make_node_from_operand(an_operand *operand)
+an_expr_node_ptr make_node_from_operand(an_operand *operand,
+                      /* Defaulted: */  a_boolean  no_rewrite)
 /*
-Return an expression node to represent the given operand, creating one
-if necessary.  Extra information that is in the an_operand entry is
-in some cases preserved as extra information attached to the expression
-node; see extract_node_from_operand for an alternative that does not do
-that extra work.
+Return an expression node to represent the given operand, creating one if
+necessary.  Extra information that is in the an_operand entry is in some cases
+preserved as extra information attached to the expression node; see
+extract_node_from_operand for an alternative that does not do that extra work.
+By default, this rewrites enk_variable nodes that refer to potentially-captured
+variables as selections of the corresponding closure field (when applicable).  
+If no_rewrite is TRUE (default is FALSE), that rewrite doesn't happen.
 */
 {
-  an_expr_node_ptr node = extract_node_from_operand(operand);
+  an_expr_node_ptr node = extract_node_from_operand(operand, no_rewrite);
 
   if (operand->name_reference_set) {
     if (is_routine_node(node)) {
@@ -13902,7 +13953,8 @@ pointer value.
 
   if (is_an_lvalue(operand) && !operand->is_dummy_lvalue) {
     a_constant_ptr   con = local_constant();
-    an_expr_node_ptr expr = extract_node_from_operand(operand);
+    an_expr_node_ptr expr = extract_node_from_operand(operand,
+                                                      /*no_rewrite=*/TRUE);
     if (constant_glvalue_address(expr, con, /*address_escapes=*/FALSE)) {
       if (is_null_pointer_value(con)) {
         is_null = TRUE;
@@ -21821,8 +21873,6 @@ cases so we don't do it here.
     } else {
       using_lvalue(operand);
       check_assertion(is_expression_operand(operand));
-      node = make_node_from_operand(operand);
-      check_assertion(is_glvalue_node(node));
       if (gcc_mode && gcc_const_variables_allowed) {
         /* GCC allows const variables to be used in constant expressions in
            some C-mode cases, although often only with -O1.  Since the front
@@ -21855,6 +21905,8 @@ cases so we don't do it here.
           con_value->null_pointer_constant_ruled_out = TRUE;
         }  /* if */
       }  /* if */
+      node = make_node_from_operand(operand, /*no_rewrite=*/TRUE);
+      check_assertion(is_glvalue_node(node));
       if (!constant_case) {
         /* Convert the expression to a prvalue. */
         node = conv_glvalue_expr_to_prvalue(node, &constant_case, &con_value,
@@ -22152,8 +22204,17 @@ current mode -- just do it.
     need_expr = TRUE;
   }  /* if */
   if (need_expr) {
-    /* Make an expression for the decayed pointer. */
-    expr = conv_array_expr_to_pointer(expr);
+    /* Make an expression for the decayed pointer.  Note that the call to
+       make_node_from_operand above may already have caused the decay (e.g.,
+       if it triggered the rewrite of a captured variable). */
+    if (is_array_type(expr->type)) {
+      expr = conv_array_expr_to_pointer(expr);
+    } else {
+      check_assertion(is_pointer_type(expr->type) ||
+                      is_or_contains_error_type(expr->type));
+      expr->is_lvalue = FALSE;
+      expr->is_xvalue = FALSE;
+    }  /* if */
     /* Save it as either the overall result or as the backing expression
        for a constant result. */
     if (need_expr_for_constant) {

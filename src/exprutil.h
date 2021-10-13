@@ -2644,7 +2644,10 @@ extern an_init_component_ptr rescan_init_component(
 
 extern an_expr_node_ptr alloc_node_for_constant_operand(an_operand *operand);
 
-extern an_expr_node_ptr make_node_from_operand(an_operand *operand);
+extern void rewrite_captured_variable_access(an_operand *opnd);
+
+extern an_expr_node_ptr make_node_from_operand(an_operand *operand,
+                                               a_boolean  no_rewrite = FALSE);
 
 extern
 an_expr_node_ptr make_node_from_operand_for_expr_list(an_operand *operand);

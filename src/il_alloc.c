@@ -3730,6 +3730,7 @@ its kind to the indicated kind.
   node->do_not_interpret = FALSE;
   node->compiler_generated = FALSE;
   node->is_type_constraint = FALSE;
+  node->pending_capture = FALSE;
   node->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   node->expr_range = null_source_range; 
@@ -5670,6 +5671,8 @@ in the current memory region.
   entry->is_pack_element = FALSE;
   entry->direct_init = FALSE;
   entry->parenthesized_init = FALSE;
+  entry->field_pending = FALSE;
+  entry->const_capture = FALSE;
   entry->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   entry->end_position = null_source_position;

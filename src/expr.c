@@ -35760,23 +35760,32 @@ variable:
                                                &rvalue_only, &add_const)) {
             /* Error. */
           } else if (lambda_capture != NULL) {
-            /* This is a local variable referenced via a lambda capture.
-               Use "closure_this->closure_field" in place of the variable. */
-            an_expr_node_ptr sel_expr =
-                      make_selection_for_captured_variable(lambda_capture,
-                                                           /*is_lvalue=*/TRUE);
-            /* This is a compiler-generated expression and therefore the later
-               call to set_operand_expr_position_if_expr will not record source
-               positions in the underlying expression node.  We record it here
-               because that position information is potentially useful to
-               IL consumers. */
-            set_expr_position(sel_expr, &start_position, &end_position,
-                              &start_position);
-            make_glvalue_expression_operand(sel_expr, result);
-            if (is_any_reference_type(lambda_capture->closure_field->type)) {
-              add_reference_indirection(result);
+            /* A seemingly-captured variable, but it may end up not being
+               captured after all if it is a constant-valued variable that is
+               only used as a prvalue.  For now, record it as an lvalue
+               variable operand and adjust its constness if the capture
+               involves a non-mutable lambda. */
+            make_lvalue_variable_operand(var_ptr,
+                                         &start_position,
+                                         end_position_or_null(&end_position),
+                                         result, rep);
+            check_assertion(is_expression_operand(result));
+            if (lambda_capture->const_capture &&
+                !is_function_type(result->type)) {
+              result->type = make_qualified_type(result->type, TQ_CONST);
+              result->variant.expression->type =
+              make_qualified_type(result->variant.expression->type, TQ_CONST);
             }  /* if */
-            okay_for_integral_const_expr = FALSE;
+            result->variant.expression->pending_capture = TRUE;
+            if (is_variably_modified_type(result->type)) {
+              /* Capturing a variable-length array is not well supported at
+                 this time.  It really should capture a pointer to the array
+                 an its length separately.  Until a framework is put in place
+                 to handle that, trigger the capture-rewrite immediately to
+                 avoid the variably-modified type leaking into a context where
+                 find_vla_dimension doesn't work. */
+              rewrite_captured_variable_access(result);
+            }  /* if */
           } else if (!C_mode() &&
                      curr_expr_kind_is(ek_integral_constant) &&
                      curr_expr_kind_is_traditional_const() &&

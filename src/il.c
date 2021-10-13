@@ -2651,6 +2651,7 @@ Dump debug information on a dynamic initialization entry of kind dik_lambda.
       }
     } else {
       db_constant(field_con);
+      fputs("\n", f_debug);
     }  /* if */
   }  /* for */
 }  /* db_lambda_initializer */
