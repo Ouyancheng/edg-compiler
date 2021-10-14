@@ -8715,8 +8715,15 @@ be lowered as soon as a module id becomes available (and TRUE is returned).
         a_type_ptr class_type = sp->variant.assoc_type;
         if (class_type->source_corresp.is_local_to_function) {
           /* Functions containing local class with delayed routine. */
-          enclosing_routine_for_local_type(class_type)->
-                                    lowering_delayed_on_nested_function = TRUE;
+          a_routine_ptr  enclosing_rp = 
+                         enclosing_routine_for_local_type_or_null(class_type);
+          if (enclosing_rp != NULL) {
+            enclosing_rp->lowering_delayed_on_nested_function = TRUE;
+          } else {
+            /* This can occur with certain severe lambda errors. */
+            expect_error();
+            break;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* for */

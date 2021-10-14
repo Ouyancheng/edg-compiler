@@ -3281,6 +3281,8 @@ ec_call_with_unusable_argument_conversion;;"call requires an ambiguous argument 
 ec_named_module_source_conflict;;"declaration owned by module %s conflicts with %nd"
 ec_global_module_source_conflict;;"declaration owned by global module conflicts with %nd owned by a named module"
 ec_bad_malloc_attribute;;"the first argument to a \"malloc\" attribute must be a function"
+ec_cannot_capture_var;;"cannot capture %nod"
+ec_cannot_capture_this;;"cannot capture \"this\""
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

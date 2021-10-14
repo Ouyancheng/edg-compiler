@@ -2109,7 +2109,8 @@ capture described by lcp.  Return the field entry.
 static a_lambda_ptr enclosing_lambda_of(a_lambda_ptr  lambda)
 /*
 The caller has determined that the given lambda (which is still on the scope
-stack) is enclosed by another lambda.  Return that other lambda.
+stack) is enclosed by another lambda.  Return that other lambda or NULL in
+severe error cases.
 */
 {
   a_scope_depth  d;
@@ -2118,6 +2119,12 @@ stack) is enclosed by another lambda.  Return that other lambda.
                                             ->depth_in_scope_stack;
   do {
     d = scope_stack[d-1].depth_innermost_function_scope;
+    if (scope_stack[d].assoc_routine == NULL ||
+        !scope_stack[d].assoc_routine->is_lambda_body) {
+      lambda = NULL;
+      expect_error();
+      break;
+    }  /* if */
   } while ((lambda = get_lambda_for_scope_depth(d)) == NULL);
   return lambda;
 }  /* enclosing_lambda_of */
@@ -2140,8 +2147,14 @@ lambdas.
       check_assertion(lcp->field_pending);
       a_lambda_capture_ptr  source_lcp = lcp->capture_info.source_capture;
       if (source_lcp != NULL) {
-        lcp->capture_info.source_closure_field =
-            field_for_lambda_capture(enclosing_lambda_of(lambda), source_lcp);
+        a_lambda_ptr  source_lambda = enclosing_lambda_of(lambda);
+        if (source_lambda == NULL) {
+          expect_error();
+          lcp->capture_info.source_closure_field = NULL;
+        } else {
+          lcp->capture_info.source_closure_field =
+                          field_for_lambda_capture(source_lambda, source_lcp);
+        }  /* if */
       }  /* if */
     }  /* if */
     lcp->field_pending = FALSE;
@@ -2173,6 +2186,31 @@ Also, append it to the captures list of the given lambda.
   }  /* if */
   return lcp;
 }  /* alloc_capture_for_lambda */
+
+
+static void compute_const_capture_flag(a_lambda_ptr          lambda,
+                                       a_lambda_capture_ptr  lcp)
+/*
+Compute the const_capture flag for the given capture entry of the given lambda.
+This must be called before the associated closure field has been declared, but
+after any enclosing capture (lcp->capture_info.source_capture) has been
+determined.
+*/
+{
+  check_assertion(lcp->field_pending);
+  if (lcp->capture_by_reference) {
+    /* A by-reference capture is non-mutable if it captures a non-mutable
+       enclosing capture. */
+    if (lcp->capture_info.source_capture != NULL &&
+        lcp->capture_info.source_capture->const_capture) {
+      lcp->const_capture = TRUE;
+    }  /* if */
+  } else if (!lambda->is_mutable) {
+    /* A by-copy capture is non-mutable if the associated lambda is
+       non-mutable. */
+    lcp->const_capture = TRUE;
+  }  /* if */
+}  /* compute_const_capture_flag */
 
 
 static a_lambda_capture_ptr r_add_lambda_capture(
@@ -2257,6 +2295,7 @@ being done.
   lcp->is_implicit = is_implicit;
   lcp->position = *pos;
   if (is_implicit) {
+    compute_const_capture_flag(lambda, lcp);
     /* For implicit captures, create the capture field now.  For explicit
        captures this was done when the capture was specified. */
     if ((vp != NULL && vp->is_this_parameter) ||
@@ -2272,14 +2311,6 @@ being done.
     } else {
       lcp->closure_field = field_for_lambda_capture(lambda, lcp);
     }  /* if */
-  }  /* if */
-  if (!by_reference &&
-      ((!lambda->is_mutable && is_implicit) ||
-       (enclosing_lcp != NULL && enclosing_lcp->const_capture))) {
-    /* An implicit by-copy capture in a non-mutable lambda is not mutable.
-       If an enclosing lambda capture made the capture not mutable, then that
-       also applied to the nested lambdas. */
-    lcp->const_capture = TRUE;
   }  /* if */
   /* Restore the original memory region. */
   switch_back_to_original_region(region_to_switch_back_to);
@@ -2375,8 +2406,10 @@ TRUE.
   lcp = find_lambda_capture(lambda, vp, (a_field_ptr)NULL);
   if (lcp == NULL) {
     /* No existing capture.  See if one can be created. */
-    an_error_code err_code = ec_no_error;
-    a_boolean     by_ref = lambda->default_is_by_reference;
+    an_error_code  err_code = ec_no_error;
+    a_boolean      by_ref = lambda->default_is_by_reference;
+    a_routine_ptr  rp = current_routine_entry();
+    check_assertion(rp != NULL && rp->is_lambda_body);
     if (vp != NULL &&
         !check_var_for_lambda_capture(vp, /*implicit=*/TRUE, by_ref,
                                       &err_code)) {
@@ -2391,6 +2424,15 @@ TRUE.
         err_code = (vp != NULL && vp->is_this_parameter) ?
                         ec_not_captured_this_in_lambda :
                         ec_not_captured_local_var_in_lambda;
+      }  /* if */
+    } else if (rp->is_template_function && !rp->is_prototype_instantiation) {
+      /* Something went very wrong: We're attempting to capture during the
+         real instantiation of a generic lambda, but all captures should have
+         been determined during the prototype instantiation. */
+      if (vp != NULL) {
+        pos_sy_error(ec_cannot_capture_var, pos, symbol_for(vp));
+      } else {
+        pos_error(ec_cannot_capture_this, pos);
       }  /* if */
     } else {
       /* The variable (or reference to "this") is valid.  Add a new capture
@@ -32778,9 +32820,10 @@ issue an error at the given position and return TRUE.  Otherwise, return FALSE.
     } else {
       /* Presumably a (direct or indirect) capture of an init-capture. */
       a_field_ptr  source_field = lcp->capture_info.source_closure_field;
-      check_assertion(source_field != NULL);
-      if (symbol_for(source_field) != NULL &&
-          symbol_for(source_field)->header == sym_hdr) {
+      if (source_field == NULL) {
+        expect_error();
+      } else if (symbol_for(source_field) != NULL &&
+                 symbol_for(source_field)->header == sym_hdr) {
         break;
       }  /* if */
     }  /* if */
@@ -33144,15 +33187,15 @@ capture_processed:
 
 static void decl_lambda_capture_fields(a_lambda_ptr  lambda)
 /*
-Declare the fields corresponding to the "captures" of the given lambda in its
-associated closure type.
+Declare the fields corresponding to the non-implicit "captures" of the given
+lambda in its associated closure type.
 */
 {
   a_lambda_capture_ptr  lcp;
 
   for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
-    if (!lambda->is_mutable && !lcp->capture_by_reference) {
-      lcp->const_capture = TRUE;
+    if (!lcp->is_init_capture) {
+      compute_const_capture_flag(lambda, lcp);
     }  /* if */
     lcp->closure_field = field_for_lambda_capture(lambda, lcp);
   }  /* for */
