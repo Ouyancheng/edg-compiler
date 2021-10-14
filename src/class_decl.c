@@ -2086,7 +2086,7 @@ capture described by lcp.  Return the field entry.
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (lcp->is_implicit && lcp->next != NULL) {
     /* It is possible that implicit lambda capture entries are created in an
-       order that is distinct for the order of the corresponding fields.
+       order that is distinct from the order of the corresponding fields.
        However, other parts of the front end (particularly, the function
        make_initializer_for_lambda) expect the list of captures to correspond
        to the list of fields.  Adjust the order now. */
