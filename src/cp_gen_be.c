@@ -1654,6 +1654,14 @@ typedef struct a_typedef_hash_entry {
 			   time this entry was created.  The entry cannot
 			   be used if the typedef is local to a function
 			   and we are now outside the function. */
+  a_template_arg_ptr
+		template_arg;
+			/* If the current entry represents a non-real
+                           typeref that is not a prototype instantiation,
+                           this gives the template argument in which the
+                           typeref was substituted for its underlying
+                           type, if any.  See find_typedef_in for an
+                           explanation of its use. */
 } a_typedef_hash_entry;
 
 /*
@@ -1716,6 +1724,7 @@ Add type (which must be a typedef) to hash_table.
   /* Set the bucket entry to point to the specified typedef. */
   hash_table[bucket].type = type;
   hash_table[bucket].fcn_scope = innermost_function_scope;
+  hash_table[bucket].template_arg = NULL;
 }  /* add_typedef_to */
 
 
@@ -1728,6 +1737,7 @@ otherwise, return NULL.
 */
 {
   a_type_ptr               result = NULL;
+  a_typedef_hash_entry_ptr result_entry = NULL;
   a_typedef_hash_entry_ptr entry;
   a_hash_value             bucket;
 
@@ -1785,7 +1795,34 @@ otherwise, return NULL.
         result = entry->type;
       }  /* if */
     }  /* if */
+    if (result != NULL) {
+      result_entry = entry;
+    }  /* if */
   }  /* for */
+  if (result != NULL &&
+      result->variant.typeref.is_nonreal &&
+      !result->variant.typeref.is_prototype_instantiation) {
+    /* Under some obscure circumstances, a nonreal typeref can appear in
+       one of its template arguments.  If the typeref has already been used
+       in the current stack of template arguments, do not use it lest it
+       result in unbounded recursion when the type is put out. */
+    if (result_entry->template_arg != NULL) {
+      a_template_arg_ptr tap;
+      for (tap = octl.curr_template_arg; result != NULL && tap != NULL;
+           tap = tap->parent_arg) {
+        if (tap == result_entry->template_arg) {
+          /* The typeref was already used in this template argument
+             stack. */
+          result = NULL;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+    if (result != NULL) {
+      /* Record that this typeref was used in the current template
+         argument. */
+      result_entry->template_arg = octl.curr_template_arg;
+    }  /* if */
+  }  /* if */
   return result;
 }  /* find_typedef_in */
 
@@ -1851,11 +1888,7 @@ templ, add the corresponding instance typedef to the table as well.
         }  /* for */
       }  /* if */
     }  /* if */
-    if (typedef_to_add != NULL &&
-        !(typedef_to_add->variant.typeref.is_nonreal &&
-          !typedef_to_add->variant.typeref.is_prototype_instantiation)) {
-      /* Add the typedef to the hash table unless it is nonreal, which
-         should never be used as a replacement type. */
+    if (typedef_to_add != NULL) {
       add_typedef_to(accessible_typedef_hash_table, typedef_to_add);
       under_type = skip_typerefs(typedef_to_add->variant.typeref.type);
       if (is_immediate_class_type(under_type)) {

@@ -99,6 +99,9 @@ Clear an output control block to default values.
 #if BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE
   octl->func_prototype_stack      = NULL;
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+#if BACK_END_IS_CP_GEN_BE
+  octl->curr_template_arg         = NULL;
+#endif /* BACK_END_IS_CP_GEN_BE */
   octl->gen_compilable_code       = FALSE;
   octl->gen_pcc_code              = FALSE;
   octl->suppress_typedefs         = FALSE;
@@ -600,6 +603,7 @@ indicates that template arguments should be suppressed, nothing is put out.
 #if BACK_END_IS_CP_GEN_BE
     an_output_name_reference_function_ptr saved_output_name_reference =
                                                    octl->output_name_reference;
+    a_template_arg_ptr                    parent_arg = octl->curr_template_arg;
     if (octl->gen_compilable_code) {
       /* Name references in template arguments are captured from the first
          use of the instance.  If that use was nested inside a class or
@@ -625,6 +629,10 @@ indicates that template arguments should be suppressed, nothing is put out.
     begin_template_arg_list_traversal_simple(tap, &tap);
     if (tap != NULL) {
       for (;;) {
+#if BACK_END_IS_CP_GEN_BE
+        tap->parent_arg = parent_arg;
+        octl->curr_template_arg = tap;
+#endif /* BACK_END_IS_CP_GEN_BE */
         form_a_template_arg(tap, octl);
         advance_to_next_template_arg_simple(&tap);
         /* Stop after the last argument. */
@@ -643,6 +651,7 @@ indicates that template arguments should be suppressed, nothing is put out.
     }  /* if */
 #if BACK_END_IS_CP_GEN_BE
     octl->output_name_reference = saved_output_name_reference;
+    octl->curr_template_arg = parent_arg;
 #endif /* BACK_END_IS_CP_GEN_BE */
     octl->processing_nontype_template_argument = saved_nontype_tpl_arg;
   }  /* if */

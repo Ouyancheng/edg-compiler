@@ -1378,6 +1378,9 @@ allocated.
       break;
   }  /* switch */
   tap->arg_operand = NULL;
+#if BACK_END_IS_CP_GEN_BE
+  tap->parent_arg = NULL;
+#endif /* BACK_END_IS_CP_GEN_BE */
   return tap;
 }  /* alloc_template_arg */
 

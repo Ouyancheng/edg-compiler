@@ -7202,6 +7202,16 @@ typedef struct a_template_arg {
 			   the front end proper.  Used only in the same
 			   cases as the "constant" field above, i.e., for
 			   nontype parameters. */
+#if BACK_END_IS_CP_GEN_BE
+  a_template_arg_ptr
+		parent_arg;
+			/* The template argument within which this template
+			   argument appears, if any.  Set by
+			   form_template_args and used by the
+			   C++-generating back end to prevent unbounded
+			   recursion when substituting non-real typedefs
+			   for their underlying types. */
+#endif /* BACK_END_IS_CP_GEN_BE */
 } a_template_arg;
 
 

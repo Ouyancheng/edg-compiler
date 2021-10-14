@@ -218,6 +218,15 @@ typedef struct an_il_to_str_output_control_block {
 			   This is used to identify the parameter referred to
 			   by an enk_param_ref node. */
 #endif /* BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE */
+#if BACK_END_IS_CP_GEN_BE
+  a_template_arg_ptr
+	curr_template_arg;
+			/* If non-NULL, the current template argument that
+			   is being put our.  Set by form_template_args and
+			   used by the C++-generating back end to prevent
+			   unbounded recursion when substituting non-real
+			   typedefs for their underlying types. */
+#endif /* BACK_END_IS_CP_GEN_BE */
   a_byte_boolean
 	gen_compilable_code;
 			/* TRUE if the generated string is intended to be

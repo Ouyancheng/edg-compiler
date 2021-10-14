@@ -1,5 +1,23 @@
 Version 6.3
 
+10/14/21 [EDGcpfe/24701]
+C++-generating back end: alias templates with dependent type-ids
+
+In some cases in which the type-id of an alias template involves a
+dependent alias template specialization, the C++-generating back end used
+the underlying type of the alias template specialization instead of the
+alias template specialization itself, which could result in generated code
+that could not be compiled.  This is now fixed.  For example,
+
+  template <class...> struct a;
+  template <int I> struct b {
+    using c = void;
+  };
+  template <class... Ts> using d = b<sizeof...(Ts)>;
+  // The following was previously generated as "b<sizeof...(a<Ts>)>::c":
+  template <class... Ts> using e = typename d<a<Ts>...>::c;
+
+
 10/13/21 [EDGcpfe/24716]
 Lambda captures
 
