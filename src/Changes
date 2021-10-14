@@ -34,8 +34,8 @@ value of those variables is needed.  For example:
 Previously, the front end captured the constexpr variable N as soon as the
 identifier N was encountered in the return expression.  Now, the decision about
 whether to capture N (and create a corresponding field in the closure) is
-delayed slightly and ultimately discarded because N is a constant-valued
-variable only used as a prvalue.
+delayed slightly and ultimately that decision is negative: N is not captured
+because it is a constant-valued variable only used as a prvalue.
 
 
 10/11/21 [EDGcpfe/24753]

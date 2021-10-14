@@ -35780,7 +35780,7 @@ variable:
             if (is_variably_modified_type(result->type)) {
               /* Capturing a variable-length array is not well supported at
                  this time.  It really should capture a pointer to the array
-                 an its length separately.  Until a framework is put in place
+                 and its length separately.  Until a framework is put in place
                  to handle that, trigger the capture-rewrite immediately to
                  avoid the variably-modified type leaking into a context where
                  find_vla_dimension doesn't work. */
