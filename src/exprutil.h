@@ -475,6 +475,15 @@ typedef struct an_operand {
 			   a C++/CLI context where it's okay to take the
 			   address of a member of a managed class. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  a_bit_field	pending_capture:1;
+			/* TRUE for an enk_variable expression that should
+			   potentially be rewritten as a field selection
+			   because the variable being referred to must be
+			   captured.  This cannot be decided when the node is
+			   created because constant-valued variables used as
+			   prvalues only don't need to be captured, and we
+			   don't know that it is used as a prvalue until
+			   later. */
   a_name_reference
 		name_reference;
 			/* Records the form of reference to a name, for

@@ -3733,7 +3733,6 @@ its kind to the indicated kind.
   node->do_not_interpret = FALSE;
   node->compiler_generated = FALSE;
   node->is_type_constraint = FALSE;
-  node->pending_capture = FALSE;
   node->position = null_source_position;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   node->expr_range = null_source_range; 

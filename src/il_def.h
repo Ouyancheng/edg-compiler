@@ -14031,16 +14031,6 @@ typedef struct an_expr_node {
 			/* TRUE for an enk_concept_id node that represents a
 			   type constraint (i.e., its first template argument
 			   is implicit). */ 
-  a_bit_field
-		pending_capture:1;
-			/* TRUE for an enk_variable node that should
-			   potentially be rewritten as a field selection
-			   because the variable being referred to must be
-			   captured.  This cannot be decided when the node is
-			   created because constant-valued variables used as
-			   prvalues only don't need to be captured, and we
-			   don't know that it is used as a prvalue until
-			   later. */
   a_source_position
 		position;
 			/* When kind == enk_operation, the position at which

@@ -35776,7 +35776,7 @@ variable:
               result->variant.expression->type =
               make_qualified_type(result->variant.expression->type, TQ_CONST);
             }  /* if */
-            result->variant.expression->pending_capture = TRUE;
+            result->pending_capture = TRUE;
             if (is_variably_modified_type(result->type)) {
               /* Capturing a variable-length array is not well supported at
                  this time.  It really should capture a pointer to the array

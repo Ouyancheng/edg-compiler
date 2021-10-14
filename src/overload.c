@@ -20062,7 +20062,7 @@ other cases, FALSE is returned and the source operand is left unchanged.
   if ((conv_context & CCO_MOVE_OPTIMIZATION_ALLOWED) &&
       rvalue_references_enabled &&
       is_expression_operand(source_operand) &&
-      !source_operand->variant.expression->pending_capture &&
+      !source_operand->pending_capture &&
       (operand_is_lvalue_for_variable(source_operand, &var) ||
        (cpp20_mode &&
         operand_is_lvalue_for_rref_variable(source_operand, &var)))) {

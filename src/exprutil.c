@@ -3390,6 +3390,7 @@ values.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   operand->allow_addr_of_managed_member = FALSE;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  operand->pending_capture = FALSE;
   operand->name_reference = null_name_reference;
   operand->ruled_out_expr_kinds = ROEK_NONE;
   operand->position = null_source_position;
@@ -5789,6 +5790,7 @@ selection.
     an_expr_node_ptr      sel_expr, vnode = node;
     a_boolean             is_lvalue = node->is_lvalue,
                           is_xvalue = node->is_xvalue;
+    opnd->pending_capture = FALSE;
     while (!is_variable_node(vnode)) {
       check_assertion(vnode->compiler_generated);
       vnode = vnode->variant.operation.operands;
@@ -5839,11 +5841,13 @@ If no_rewrite is TRUE (default is FALSE), that rewrite doesn't happen.
       node->position = operand->position;
       break;
     case ok_expression:
-      /* Just return the node in the operand. */
-      node = operand->variant.expression;
-      if (node->pending_capture && !no_rewrite) {
+      /* Just return the node in the operand.  However, if the expression
+         represents a captured variable, rewrite it as a closure field
+         selection. */
+      if (operand->pending_capture && !no_rewrite) {
         rewrite_captured_variable_access(operand);
       }  /* if */
+      node = operand->variant.expression;
       break;
     case ok_constant:
       /* Create a constant node and copy the constant in the operand to the
@@ -21837,15 +21841,20 @@ cases so we don't do it here.
 #endif /* CHECKING */
     /* Save the operand's type and source position*/
     orig_operand = *operand;
-    /* Change simple "reference" references to "use" references. */
-    /* Note that what we want to avoid here is changing "modified" references
-       to "use" references, as would happen for references surviving
-       from an lvalue-returning assignment. */
-    change_some_ref_kinds(operand->ref_entries_list, SRK_REFERENCE, SRK_USE);
-    /* Change the kind in the reference entry for a subscripted array from an
-       address-taken entry to a simple "use" reference. */
-    change_some_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN,
-                          SRK_USE);
+    if (!operand->pending_capture) {
+      /* Change simple "reference" references to "use" references.  However, do
+         not do that for captured operands since the use in a lambda isn't
+         "immediate" and could result in a spurious used-before-set warning
+         otherwise. */
+      /* Note that what we want to avoid here is changing "modified" references
+         to "use" references, as would happen for references surviving
+         from an lvalue-returning assignment. */
+      change_some_ref_kinds(operand->ref_entries_list, SRK_REFERENCE, SRK_USE);
+      /* Change the kind in the reference entry for a subscripted array from an
+         address-taken entry to a simple "use" reference. */
+      change_some_ref_kinds(operand->ref_entries_list, SRK_ADDRESS_TAKEN,
+                            SRK_USE);
+    }  /* if */
     /* Instantiate the type if it is a template. */
     complete_type_is_needed(unqual_operand_type);
     if (is_error_operand(operand)) {
@@ -21871,6 +21880,7 @@ cases so we don't do it here.
          allow conversion if requested. */
       operand->state = (an_operand_state)os_prvalue;
     } else {
+      a_boolean  pending_capture = operand->pending_capture;
       using_lvalue(operand);
       check_assertion(is_expression_operand(operand));
       if (gcc_mode && gcc_const_variables_allowed) {
@@ -21938,6 +21948,7 @@ cases so we don't do it here.
         /* Normal case: not constant-valued, not a constant expression. */
         node->volatile_fetch = volatile_fetch;
         make_expression_operand(node, operand);
+        if (pending_capture) operand->pending_capture = TRUE;
         if (expr_stack->fold_prvalue_if_possible) {
           /* Fold the expression if possible.  This is not just an optimization
              because it may determine if underlying variables are "used": If
