@@ -2426,11 +2426,17 @@ TRUE.
                         ec_not_captured_local_var_in_lambda;
       }  /* if */
     } else if (rp->is_template_function && !rp->is_prototype_instantiation) {
-      /* Something went very wrong: We're attempting to capture during the
-         real instantiation of a generic lambda, but all captures should have
-         been determined during the prototype instantiation. */
+      /* We're attempting to capture during the real instantiation of a
+         generic lambda, but all captures should have been determined during
+         the prototype instantiation.  A valid program can get here if there
+         is a capture default, but the variable is constant-valued and only
+         used as a prvalue.  Otherwise, this is an error. */
       if (vp != NULL) {
-        pos_sy_error(ec_cannot_capture_var, pos, symbol_for(vp));
+        if (vp->constant_valued && rvalue_only != NULL) {
+          *rvalue_only = TRUE;
+        } else {
+          pos_sy_error(ec_cannot_capture_var, pos, symbol_for(vp));
+        }  /* if */
       } else {
         pos_error(ec_cannot_capture_this, pos);
       }  /* if */
