@@ -1657,11 +1657,11 @@ typedef struct a_typedef_hash_entry {
   a_template_arg_ptr
 		template_arg;
 			/* If the current entry represents a non-real
-                           typeref that is not a prototype instantiation,
-                           this gives the template argument in which the
-                           typeref was substituted for its underlying
-                           type, if any.  See find_typedef_in for an
-                           explanation of its use. */
+			   typeref that is not a prototype instantiation,
+			   this gives the template argument in which the
+			   typeref was substituted for its underlying
+			   type, if any.  See find_typedef_in for an
+			   explanation of its use. */
 } a_typedef_hash_entry;
 
 /*

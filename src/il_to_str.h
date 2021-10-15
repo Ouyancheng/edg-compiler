@@ -222,7 +222,7 @@ typedef struct an_il_to_str_output_control_block {
   a_template_arg_ptr
 	curr_template_arg;
 			/* If non-NULL, the current template argument that
-			   is being put our.  Set by form_template_args and
+			   is being put out.  Set by form_template_args and
 			   used by the C++-generating back end to prevent
 			   unbounded recursion when substituting non-real
 			   typedefs for their underlying types. */

@@ -14,7 +14,7 @@ that could not be compiled.  This is now fixed.  For example,
     using c = void;
   };
   template <class... Ts> using d = b<sizeof...(Ts)>;
-  // The following was previously generated as "b<sizeof...(a<Ts>)>::c":
+  // Previously put out using b<sizeof...(a<Ts>)>::c instead of d<a<Ts>...>::c:
   template <class... Ts> using e = typename d<a<Ts>...>::c;
 
 
