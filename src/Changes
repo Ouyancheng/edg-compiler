@@ -1,5 +1,16 @@
 Version 6.3
 
+10/15/21 [EDGcpfe/24565,EDGcpfe/24751]
+Abort due to error node passed to lowering on some GNU-mode C++ constexpr cases
+
+In some relatively complex cases involving the late instantiation of a GNU C++
+static data member specialization triggered by constant-evaluation
+(specifically, by a call to instantiate_member_constant in the interpreter)
+the front end silently produced an error constant that was integrated into the
+final IL tree.  In configurations that do IL lowering, this later triggered an
+internal error.  That is now fixed.
+
+
 10/15/21 [EDGcpfe/24740]
 C++-generating back end: explicit specializations of constexpr function
 templates

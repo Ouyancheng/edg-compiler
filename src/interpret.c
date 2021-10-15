@@ -4652,7 +4652,7 @@ vp represents a variable that is expected to have a constant value, but with
 no recorded initializer.  This can occur in GNU C++ mode with static data
 members of class templates, whose initializers are instantiated on demand.  If
 this is such a case, perform that instantiation and return the constant.
-Otherwise, return an error constant.
+Otherwise, return NULL.
 */
 {
   a_constant_ptr  result = NULL;
@@ -4663,9 +4663,6 @@ Otherwise, return an error constant.
     if (vp->init_kind == (an_init_kind)initk_static) {
       result = vp->initializer.constant;
     }  /* if */
-  }  /* if */
-  if (result == NULL) {
-    result = alloc_error_constant();
   }  /* if */
   return result;
 }  /* instantiate_member_constant */
@@ -4961,6 +4958,10 @@ formats as necessary.  Return FALSE if the constant is an error constant.
                            instantiated yet. */
                         if (gpp_mode && vp->is_template_variable) {
                           cp = instantiate_member_constant(vp);
+                          if (cp == NULL) {
+                            do_constexpr_fail(result);
+                            break;
+                          }  /* if */
                         }  /* if */
                         if (cp == NULL) {
                           /* We may get here if a variable's initializer
