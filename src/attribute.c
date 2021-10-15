@@ -10043,6 +10043,7 @@ attributes.
 #endif /* DEBUG */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
       pch_saved_var_array_elem(asm_name_map),
+      pch_saved_var_array_elem(gnu_abi_tag_attribute_seen),
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED || REDEFINE_EXTNAME_PRAGMA_ENABLED
       pch_saved_var_array_elem(alias_fixup_list),
@@ -10058,7 +10059,6 @@ attributes.
 #if USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING
       pch_saved_var_array_elem(mv_builtins_loaded),
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING */
-      pch_saved_var_array_elem(gnu_abi_tag_attribute_seen),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
