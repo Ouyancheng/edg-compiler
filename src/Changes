@@ -1,5 +1,38 @@
 Version 6.3
 
+10/15/21 [EDGcpfe/24740]
+C++-generating back end: explicit specializations of constexpr function
+templates
+
+As noted in the description of the change for EDGcpfe/20871, implicit
+instantiations of constexpr function templates are not required to satisfy
+the requirements for a constexpr function, but explicit specializations
+must do so.  In configurations with
+NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS set to TRUE, the
+C++-generating back end addressed that issue by suppressing the "constexpr"
+specifier on a generated explicit specialization if that template instance
+was never successfully interpreted during the compilation (which would have
+guaranteed that the explicit instantiation is a valid constexpr function).
+However, that resulted in erroneous code in some cases where an instance of
+a constexpr function template is called from another constexpr function but
+neither function is called in a constant context.  For example, with
+--c++11:
+
+  template<typename T> constexpr bool f(const T &v) {
+    return (v == 0.0);
+  }
+  constexpr float g(const float a, const float b) {
+    return f(a) ? a : ((a <= b) ? a : b);
+  }
+
+Here, the generated explicit specialization of f<float> was previously
+declared without the "constexpr" specifier because f<float> is never called
+in a constant context.  As a result, the definition of g was ill-formed
+because it contained an unconditional call to the non-constexpr function
+f<float> and thus could never be called in a constant context.  The
+generated code now preserves the "constexpr" specifier in such cases.
+
+
 10/15/21 [EDGcpfe/24768]
 Constant-evaluation of empty run-time object
 

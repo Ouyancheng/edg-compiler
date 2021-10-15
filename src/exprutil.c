@@ -6616,6 +6616,18 @@ details of why folding failed.  Return TRUE if an error was issued.
       }  /* if */
     }  /* if */
   }  /* if */
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  if (!err && routine != NULL && routine->is_template_function &&
+      !routine->is_specialized && routine->is_declared_constexpr &&
+      innermost_function_scope != NULL &&
+      current_routine_entry()->is_constexpr &&
+      (!current_routine_entry()->is_template_function ||\
+       current_routine_entry()->is_specialized)) {
+    /* Record the fact that this instance of a constexpr function template
+       was called from a constexpr function. */
+    routine->called_from_constexpr_function = TRUE;
+  }  /* if */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   return err;
 }  /* call_did_not_fold_to_constant */
 

@@ -3756,6 +3756,9 @@ Display the indicated routine.
   if (ptr->evaluated_in_interpreter) {
     disp_boolean("evaluated_in_interpreter", TRUE);
   }  /* if */
+  if (ptr->called_from_constexpr_function) {
+    disp_boolean("called_from_constexpr_function", TRUE);
+  }  /* if */
   if (ptr->suppress_explicit_specialization) {
     disp_boolean("suppress_explicit_specialization", TRUE);
   }  /* if */

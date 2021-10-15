@@ -11946,6 +11946,15 @@ typedef struct a_routine {
 			   interpreter.  This is useful to decide whether it
 			   is safe to declare as "constexpr" an implicit
 			   instance rendered as an explicit specialization. */
+  a_bit_field	called_from_constexpr_function:1;
+			/* TRUE for an instance of a constexpr function
+			   template that is called from a constexpr
+			   function.  This is used to ensure that the
+			   "constexpr" specifier is not omitted (because
+			   evaluated_in_interpreter is FALSE) from an
+			   explicit specialization when omitting it would
+			   make the calling constexpr function
+			   ill-formed. */
   a_bit_field	suppress_explicit_specialization:1;
 			/* TRUE if this is an instance of a function
 			   template and a generated explicit specialization

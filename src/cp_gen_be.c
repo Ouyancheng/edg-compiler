@@ -22726,10 +22726,18 @@ handle_as_definition:
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       if (rout->is_template_function && !rout->is_prototype_instantiation &&
-          !rout->is_specialized && !rout->evaluated_in_interpreter) {
-        /* No call to this function was ever successfully evaluated in the
-           interpreter.  It is therefore not guaranteed that declaring the
-           specialization "constexpr" will result in valid code. */
+          !rout->is_specialized && !rout->evaluated_in_interpreter &&
+          !rout->called_from_constexpr_function) {
+        /* If no call to this function was ever successfully evaluated in
+           the interpreter, it is not guaranteed that declaring the
+           specialization "constexpr" will result in valid code; implicit
+           instantiations need not satisfy the requirements for constexpr
+           functions, but explicit specializations do.  However, if another
+           constexpr function contains a call to this one, even if it was
+           never called in a constant context, we should emit the
+           "constexpr" specifier to avoid making the calling constexpr
+           function ill-formed by virtue of a call to a non-constexpr
+           function. */
         write_constexpr = FALSE;
       }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
