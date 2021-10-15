@@ -1,5 +1,26 @@
 Version 6.3
 
+10/15/21 [EDGcpfe/24768]
+Constant-evaluation of empty run-time object
+
+Consider:
+
+  struct E {} e;
+  constexpr void f(E) {}
+  constexpr bool g(E const &e) {
+    f(e);
+    return true;
+  }
+  static_assert(g(e), "");  // Previously an error.  Now okay.
+
+Previously, the call g(e) did not evaluate to a constant expression because
+initializing the parameter of f(E) with the value of the run-time variable e
+was not considered constant.  However, e is an empty class type with trivial
+copy semantics, and there is therefore no actual access to run-time storage.
+The interpreter now takes that into account, allowing this example to be
+accepted.
+
+
 10/15/21 [EDGcpfe/24767]
 PCH and mangling of "abi_tag" attributes
 

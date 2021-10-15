@@ -11766,6 +11766,12 @@ location expects a value of type tp).  Otherwise, return FALSE.
         }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else if (is_immediate_class_type(tp) &&
+               tp->variant.class_struct_union.is_empty_class &&
+               is_trivially_copy_constructible_type(tp)) {
+      /* An empty class type object with trivial copy semantics is considered
+         "constant". */
+      init_subobject_to_zero(ips, result_storage, tp, complete_object);
     } else {
       result = FALSE;
     }  /* if */
