@@ -1,5 +1,36 @@
 Version 6.3
 
+10/15/21 [EDGcpfe/24767]
+PCH and mangling of "abi_tag" attributes
+
+The GNU-specific "abi_tag" attribute (see the Changes entry for EDGcpfe/15897)
+is used to annotate the mangling of certain objects.  However, those
+annotations were omitted when using a precompiled header (PCH) file.  For
+example (with --gnu_version 800000 --pch):
+
+  // File: test.cpp
+  #include "mystring"
+  std::string foo() {
+    std::string s;
+    return s;
+  }
+
+  // File: mystring
+  namespace std {
+    inline namespace __cxx11 __attribute__((__abi_tag__ ("cxx11"))) { }
+  }
+  namespace std {
+    namespace __cxx11 {
+      struct string {};
+    }
+  }
+
+When using the IA-64 ABI, the mangled name for "foo" is "_Z3fooB5cxx11v" but
+when using a PCH file "_Z3foov" had been generated.  With this change,
+"_Z3fooB5cxx11v" is used in both cases.  This change also affects the
+Cfront ABI mangling.
+
+
 10/14/21 [EDGcpfe/24701]
 C++-generating back end: alias templates with dependent type-ids
 

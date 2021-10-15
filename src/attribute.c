@@ -10058,6 +10058,7 @@ attributes.
 #if USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING
       pch_saved_var_array_elem(mv_builtins_loaded),
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING && DO_IL_LOWERING */
+      pch_saved_var_array_elem(gnu_abi_tag_attribute_seen),
       pch_saved_var_array_terminating_elem()
     };
     register_pch_saved_variables(saved_vars);
