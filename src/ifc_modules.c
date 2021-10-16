@@ -4475,20 +4475,6 @@ class_struct_union_case:
                                                   &loc, param_type,
                                                   curr_templ_decl_state);
               break;
-            case ifc_ParameterSort_Placeholder:
-              /* FIXME: Currently unsupported. */
-              issue_unsupported_node_diag("ParameterSort::Placeholder",
-                                          &error_position);
-              param = make_nontype_template_param(idspp->level,
-                                                  idspp->position,
-                                                  /*is_unnamed=*/FALSE,
-                                                  idspp->pack,
-                                                  /*is_pack_element=*/FALSE,
-                                                  /*is_non_initial=*/FALSE,
-                                                  /*is_pack_expansion=*/FALSE,
-                                                  &loc, error_type(),
-                                                  curr_templ_decl_state);
-              break;
             case ifc_ParameterSort_Template:
               /* FIXME: Currently unsupported. */
               issue_unsupported_node_diag("ParameterSort::Template",
@@ -9772,8 +9758,12 @@ this is needed.
       }
       break;
     case ifc_TypeSort_Forall:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("TypeSort::Forall", &error_position);
+      { an_ifc_TypeSort_Forall itsfa, *itsfap;
+        itsfap = get_TypeSort_Forall(&itsfa);
+        /* FIXME: Is this correct, or do we need to inspect itsfap->subject to
+           determine whether we should be caching this as a template head? */
+        cache_template_head(cache, itsfap->chart, &pos);
+      }
       break;
     case ifc_TypeSort_Unaligned:
       /* FIXME: Currently unsupported. */
@@ -11813,9 +11803,6 @@ Add the tokens corresponding to the given declaration (decl) to cache.
             cache_type_first_pass(cache, idspp->type, &idspp->locus);
             need_second_pass = TRUE;
             break;
-          case ifc_ParameterSort_Placeholder:
-            cache_token(cache, tok_auto, &pos);
-            break;
           case ifc_ParameterSort_Template:
             if (idspp->type != 0) {
               cache_type(cache, idspp->type, &idspp->locus);
@@ -11827,8 +11814,8 @@ Add the tokens corresponding to the given declaration (decl) to cache.
               cache_token(cache, tok_typename, &pos);
               cache_token(cache, tok_ellipsis, &pos);
               cache_token(cache, tok_gt, &pos);
-              cache_token(cache, tok_typename, &pos);
             }  /* if */
+            cache_token(cache, tok_typename, &pos);
             break;
           case ifc_ParameterSort_Object:
             /* This is a function parameter rather than a template parameter.

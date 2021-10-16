@@ -477,8 +477,6 @@ enum ifc_ParameterSort : ifc_Sort_type {
   ifc_ParameterSort_Object,           /* Function parameter. */
   ifc_ParameterSort_Type,             /* Type template parameter. */
   ifc_ParameterSort_NonType,          /* Non-type template parameter. */
-  /* The IFC spec is missing this, and it's scheduled for removal. */
-  ifc_ParameterSort_Placeholder,      /* "auto" template parameter. */
   ifc_ParameterSort_Template,         /* Template template parameter. */
 };
 
