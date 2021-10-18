@@ -11733,7 +11733,8 @@ static a_boolean get_value_from_address_constant(
 /*
 If addr_con is the address of a constant, copy the constant value into the
 interpreter storage designated by result_storage and complete_object (that
-location expects a value of type tp).  Otherwise, return FALSE.
+location expects a value of type tp); return TRUE if successful.  Otherwise,
+return FALSE.
 */
 {
   a_boolean  result;
@@ -11773,6 +11774,7 @@ location expects a value of type tp).  Otherwise, return FALSE.
       /* An empty class type object with trivial copy semantics is considered
          "constant". */
       init_subobject_to_zero(ips, result_storage, tp, complete_object);
+      result = TRUE;
     } else {
       result = FALSE;
     }  /* if */
@@ -11811,7 +11813,7 @@ conversion to an rvalue is forced externally.
       info_with_pos(ec_constexpr_access_to_runtime_storage,
                     &expr->position, ips);
     } else {
-      result = TRUE;     
+      result = TRUE;
     }  /* if */
   } else if (!in_live_set(&ips->live_set, cap->alloc_seq_number)) {
     /* An attempt to access storage that has expired. */
