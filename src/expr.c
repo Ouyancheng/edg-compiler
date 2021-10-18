@@ -24548,8 +24548,9 @@ indicates which.
                                               /*is_implicit_cast=*/FALSE,
                                               reinterpret_semantics);
             }  /* if */
-            if ((microsoft_mode || gpp_mode ||clang_mode) &&
+            if ((microsoft_mode || gpp_mode || clang_mode) &&
                 is_template_dependent_context() &&
+                !scope_stack_top().is_rescan &&
                 curr_expr_kind_is_const() &&
                 is_expression_operand(operand)) {
               /* Other compilers are more relaxed in generic contexts: Some
