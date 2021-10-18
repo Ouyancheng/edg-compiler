@@ -12226,8 +12226,7 @@ second operand of an assignment.
                                   &error_position);
       break;
     case ifc_ExprSort_Empty:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::Empty", &error_position);
+      /* Nothing to cache here - literally an empty expression. */
       break;
     case ifc_ExprSort_Literal:
       { an_ifc_ExprSort_Literal iesl, *ieslp;
