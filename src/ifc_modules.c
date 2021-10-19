@@ -655,6 +655,37 @@ the IFC file are NULL-terminated.
 }  /* get_string_at_offset */
 
 
+static a_const_char* make_ifc_temporary_unique_id(ifc_UniqueID id)
+/*
+Given a unique ID associated with a temporary, return a string that is the
+identifier for that temporary.  The string must be used before any further
+changes to temp_text_buffer occur, otherwise the result may be wiped out.
+Note: This routine should not interfere with any string that's in the process
+of being constructed in temp_text_buffer.
+*/
+{
+  Value_saver<sizeof_t, pos_in_temp_text_buffer> pos_saver;
+  uint32_t                                       raw_id = id;
+  a_const_char                                   *result;
+
+  /* Index to where the string will be added to the text buffer. */
+  result = temp_text_buffer + pos_in_temp_text_buffer;
+  put_str_to_temp_text_buffer("__ifc_temp_");
+  /* Similar to itoa, except puts characters directly to the temp text buffer,
+     which will ensure enough space exists.  This will actually put out the
+     value in reverse - which is incorrect for a true itoa, but sufficient for
+     the purposes of creating a unique ID. */
+  while (raw_id >= 10) {
+    put_ch_to_temp_text_buffer((raw_id % 10) + '0');
+    raw_id /= 10;
+  }  /* while */
+  check_assertion(raw_id >= 0 && raw_id < 10);
+  put_ch_to_temp_text_buffer(raw_id + '0');
+  put_ch_to_temp_text_buffer('\0');
+  return result;
+}  /* make_ifc_temporary_unique_id */
+
+
 static a_const_char *str_for_decl_tag(ifc_DeclSort tag)
 /*
 Return a string with the name that corresponds to the DeclSort tag.
@@ -12414,12 +12445,19 @@ second operand of an assignment.
         opkind = get_operator_kind(iesdp->op);
         switch (opkind) {
           case opkind_basic:
+            if (iesdp->op == ifc_DyadicOperator_Comma) {
+              cache_token(cache, tok_lparen, &pos);
+            }  /* if */
             if ((options & ceo_skip_assign) == 0 ||
                 iesdp->op != ifc_DyadicOperator_Assign) {
-              cache_expr(cache, iesdp->arguments_0);
+              cache_expr(cache, iesdp->arguments_0,
+                         ceo_possible_temporary_decl);
               cache_operator(cache, iesdp->op, &iesdp->locus);
             }  /* if */
             cache_expr(cache, iesdp->arguments_1);
+            if (iesdp->op == ifc_DyadicOperator_Comma) {
+              cache_token(cache, tok_rparen, &pos);
+            }  /* if */
             break;
           case opkind_func_like:
             if (iesdp->op == ifc_DyadicOperator_MsvcAlign) {
@@ -12501,12 +12539,19 @@ second operand of an assignment.
       issue_unsupported_node_diag("ExprSort::String", &error_position);
       break;
     case ifc_ExprSort_Temporary:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::Temporary", &error_position);
+      { an_ifc_ExprSort_Temporary iest, *iestp;
+        iestp = get_ExprSort_Temporary(&iest);
+        source_position_from_locus(&pos, &iestp->locus);
+        if ((options & ceo_possible_temporary_decl) != 0) {
+          cache_type(cache, iestp->type, &iestp->locus);
+        }  /* if */
+        cache_identifier(cache, make_ifc_temporary_unique_id(iestp->id), &pos);
+      }
       break;
     case ifc_ExprSort_Call:
       { an_ifc_ExprSort_Call iesc, *iescp;
         iescp = get_ExprSort_Call(&iesc);
+        source_position_from_locus(&pos, &iescp->locus);
         cache_expr(cache, iescp->operation);
         if (iescp->arguments != 0) {
           ifc_ExprSort  arguments_tag = expr_tag(iescp->arguments);
@@ -12515,7 +12560,7 @@ second operand of an assignment.
           }  /* if */
           cache_expr(cache, iescp->arguments);
           if (arguments_tag != ifc_ExprSort_ExpressionList) {
-            cache_token(cache, tok_lparen, &pos);
+            cache_token(cache, tok_rparen, &pos);
           }  /* if */
         } else {
           /* Sometimes (but not always) an empty argument list appears to be
@@ -12564,8 +12609,46 @@ second operand of an assignment.
                                   &error_position);
       break;
     case ifc_ExprSort_Cast:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::Cast", &error_position);
+      { an_ifc_ExprSort_Cast iesc, *iescp;
+        iescp = get_ExprSort_Cast(&iesc);
+        source_position_from_locus(&pos, &iescp->locus);
+        switch (iescp->op) {
+          case ifc_DyadicOperator_ExplicitConversion:
+            cache_type(cache, (ifc_TypeIndex)iescp->target, &iescp->locus);
+            cache_expr(cache, iescp->source);
+            break;
+          case ifc_DyadicOperator_Pretend:
+            cache_token(cache, tok_lparen, &pos);
+            cache_type(cache, (ifc_TypeIndex)iescp->target, &iescp->locus);
+            cache_token(cache, tok_rparen, &pos);
+            cache_expr(cache, iescp->source);
+            break;
+          case ifc_DyadicOperator_ReinterpretCast:
+            cache_token(cache, tok_reinterpret_cast, &pos);
+            goto common_cast;
+          case ifc_DyadicOperator_StaticCast:
+            cache_token(cache, tok_static_cast, &pos);
+            goto common_cast;
+          case ifc_DyadicOperator_ConstCast:
+            cache_token(cache, tok_const_cast, &pos);
+            goto common_cast;
+          case ifc_DyadicOperator_DynamicCast:
+            cache_token(cache, tok_dynamic_cast, &pos);
+common_cast:
+            cache_token(cache, tok_lt, &pos);
+            cache_type(cache, (ifc_TypeIndex)iescp->target, &iescp->locus);
+            cache_token(cache, tok_gt, &pos);
+            cache_token(cache, tok_lparen, &pos);
+            cache_expr(cache, iescp->source);
+            cache_token(cache, tok_rparen, &pos);
+            break;
+          default:
+            cache_type(cache, (ifc_TypeIndex)iescp->target, &iescp->locus);
+            cache_expr(cache, iescp->source);
+            unexpected_condition_str("Unexpected DyadicOperator "
+                                     "for ExprSort::Cast");
+        }  /* switch */
+      }
       break;
     case ifc_ExprSort_Condition:
       /* FIXME: Currently unsupported. */

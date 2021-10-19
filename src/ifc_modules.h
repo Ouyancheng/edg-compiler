@@ -2838,9 +2838,10 @@ private:
   void cache_decl(a_token_cache_ptr  cache,
                   ifc_DeclIndex      decl);
   enum a_cache_expr_option {
-    ceo_none = 0x0,
-    ceo_qualified_name = 0x1,
-    ceo_skip_assign = 0x2
+    ceo_none                                              = 0x0,
+    ceo_qualified_name                                    = 0x1 << 0,
+    ceo_skip_assign                                       = 0x1 << 1,
+    ceo_possible_temporary_decl                           = 0x1 << 2,
   };
   void cache_expr(a_token_cache_ptr    cache,
                   ifc_ExprIndex        expr,
