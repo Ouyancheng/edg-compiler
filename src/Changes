@@ -68,8 +68,10 @@ Here, the generated explicit specialization of f<float> was previously
 declared without the "constexpr" specifier because f<float> is never called
 in a constant context.  As a result, the definition of g was ill-formed
 because it contained an unconditional call to the non-constexpr function
-f<float> and thus could never be called in a constant context.  The
-generated code now preserves the "constexpr" specifier in such cases.
+f<float> and thus could never be called in a constant context.  To avoid
+this type of problem, the C++-generating back end now suppresses generated
+explicit specializations of constexpr function templates when the
+corresponding instance was not successfully interpreted during compilation.
 
 
 10/15/21 [EDGcpfe/24768]

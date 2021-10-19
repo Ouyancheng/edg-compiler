@@ -3098,8 +3098,6 @@ to it.  The entry is allocated in the file scope memory region.
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   rp->has_been_defined            = FALSE;
   rp->evaluated_in_interpreter    = FALSE;
-  rp->called_from_constexpr_function
-                                  = FALSE;
   rp->suppress_explicit_specialization
                                   = FALSE;
   rp->need_for_template_args_determined

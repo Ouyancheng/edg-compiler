@@ -11280,6 +11280,24 @@ instantiations are only permitted in namespace scope).
        its template. */
     result = TRUE;
   }  /* if */
+  if (!result && kind == iek_routine &&
+      ((a_routine_ptr)scp)->is_template_function &&
+      !((a_routine_ptr)scp)->is_prototype_instantiation &&
+      !((a_routine_ptr)scp)->is_specialized &&
+      ((a_routine_ptr)scp)->is_constexpr &&
+      !((a_routine_ptr)scp)->is_defaulted &&
+      !((a_routine_ptr)scp)->is_deleted &&
+      !((a_routine_ptr)scp)->evaluated_in_interpreter) {
+    /* The template for this function was declared constexpr, but the
+       instance was never successfully interpreted.  Although it is
+       permissible for an implicit instantiation of a function template to
+       violate the requirements for a constexpr function, that is not the
+       case for an explicit specialization.  If the instance has never been
+       successfully interpreted, we cannot tell whether an explicit
+       specialization would satisfy the constexpr requirements, so it is
+       safest to suppress it. */
+    result = TRUE;
+  }  /* if */
   if (!result && kind == iek_type &&
       !microsoft_dialect_is_generated_code_target) {
     a_type_ptr tp = (a_type_ptr)scp;
@@ -22271,7 +22289,8 @@ handle_as_definition:
        defined and the definition must be suppressed. */
     discard_declaration = TRUE;
   }  /* if */
-  if (!discard_declaration && !friend_decl &&
+  if (!discard_declaration &&
+      !(friend_decl && curr_name_context_is_a_class()) &&
       rout->template_arg_list != NULL && !rout->is_specialized &&
       !rout->is_prototype_instantiation) {
     /* This is a generated instance of a function template.  Determine
@@ -22726,18 +22745,10 @@ handle_as_definition:
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
       if (rout->is_template_function && !rout->is_prototype_instantiation &&
-          !rout->is_specialized && !rout->evaluated_in_interpreter &&
-          !rout->called_from_constexpr_function) {
-        /* If no call to this function was ever successfully evaluated in
-           the interpreter, it is not guaranteed that declaring the
-           specialization "constexpr" will result in valid code; implicit
-           instantiations need not satisfy the requirements for constexpr
-           functions, but explicit specializations do.  However, if another
-           constexpr function contains a call to this one, even if it was
-           never called in a constant context, we should emit the
-           "constexpr" specifier to avoid making the calling constexpr
-           function ill-formed by virtue of a call to a non-constexpr
-           function. */
+          !rout->is_specialized && !rout->evaluated_in_interpreter) {
+        /* No call to this function was ever successfully evaluated in the
+           interpreter.  It is therefore not guaranteed that declaring the
+           specialization "constexpr" will result in valid code. */
         write_constexpr = FALSE;
       }  /* if */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
