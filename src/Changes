@@ -101,7 +101,7 @@ PCH and mangling of "abi_tag" attributes
 The GNU-specific "abi_tag" attribute (see the Changes entry for EDGcpfe/15897)
 is used to annotate the mangling of certain objects.  However, those
 annotations were omitted when using a precompiled header (PCH) file.  For
-example (with --gnu_version 800000 --pch):
+example (with --gnu_version 80000 --pch):
 
   // File: test.cpp
   #include "mystring"
