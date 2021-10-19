@@ -11280,6 +11280,7 @@ instantiations are only permitted in namespace scope).
        its template. */
     result = TRUE;
   }  /* if */
+#if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
   if (!result && kind == iek_routine &&
       ((a_routine_ptr)scp)->is_template_function &&
       !((a_routine_ptr)scp)->is_prototype_instantiation &&
@@ -11298,6 +11299,7 @@ instantiations are only permitted in namespace scope).
        safest to suppress it. */
     result = TRUE;
   }  /* if */
+#endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   if (!result && kind == iek_type &&
       !microsoft_dialect_is_generated_code_target) {
     a_type_ptr tp = (a_type_ptr)scp;
