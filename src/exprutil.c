@@ -15763,6 +15763,9 @@ it happens in prototype instantiations.  op is the operator to be used.
        make an lvalue for the member instead of the previous assumption
        that it is a constant. */
     change_nonreal_member_constant_operand_to_lvalue(operand);
+    if (is_a_prvalue(operand) && is_template_param_constant_operand(operand)) {
+      change_template_param_constant_operand_to_lvalue(operand);
+    }  /* if */
   }  /* if */
   if (curr_expr_kind_is_const()) {
     if (address_of_case) {

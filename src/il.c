@@ -20404,7 +20404,7 @@ lookup options.
           }  /* if */
         } else {
           /* The expression node is not an lvalue. */
-          check_assertion(is_error_node(expr_copy));
+          subst_fail(*copy_error);
         }  /* if */
       }  /* if */
     } else {

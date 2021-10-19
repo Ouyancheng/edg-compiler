@@ -1,5 +1,21 @@
 Version 6.3
 
+10/19/21 [EDGcpfe/22220]
+Spurious type category error in dependent nontype template argument
+
+Consider:
+
+  template<typename T> struct W {};
+  struct I;
+  int const i = -1;
+  inline int const& g(W<I>) { return i; };
+  template<typename T, int const* = &g(W<T>())> struct S {};
+    // Previously an error.  Now okay.
+
+Previously, the front end emitted an error on &g(W<T>()) claiming that the
+call to g did not produce an lvalue.  That is now fixed.
+
+
 10/15/21 [EDGcpfe/24788]
 Spurious substitution failure on cast
 

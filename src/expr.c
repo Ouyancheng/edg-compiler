@@ -46759,6 +46759,12 @@ memory region).  Do various error checks.
                          (char*)constant, innermost_function_scope);
       }  /* if */
     }  /* if */
+    if (!is_constant_operand(operand)) {
+      an_operand        orig_operand;
+      copy_operand(operand, &orig_operand);
+      make_constant_operand(constant, operand);
+      restore_operand_details(operand, &orig_operand);
+    }  /* if */
   }  /* if */
   break_constant_source_corresp(constant);
   if (cpp11_mode && !(microsoft_mode && ms_permissive) &&
