@@ -7461,18 +7461,13 @@ FIXME: what other expressions can we get here?
       break;
     case ifc_ExprSort_ProductTypeValue:
       { an_ifc_ExprSort_ProductTypeValue iesptv, *iesptvp;
-        a_module_entity_ptr              mep;
         a_type_ptr                       tp;
         a_boolean                        is_constant = FALSE;
         a_dynamic_init_ptr               dip = NULL;
         an_expr_stack_entry              expr_stack_entry;
 
         iesptvp = get_ExprSort_ProductTypeValue(&iesptv);
-        mep = get_ifc_module_entity_ptr(iesptvp->class_decl);
-        process_ifc_declaration(mep, /*defer=*/FALSE,
-                                /*enumeration_type=*/NULL);
-        check_assertion(mep->entity.kind == (an_il_entry_kind)iek_type);
-        tp = (a_type_ptr)mep->entity.ptr;
+        tp = type_for_type_index(iesptvp->class_decl, /*kind=*/NULL);
         complete_type_is_needed(tp);
         /* FIXME: Are there any other ways to get here? */
         push_expr_stack(ek_init_constant, &expr_stack_entry,
