@@ -1,5 +1,21 @@
 Version 6.3
 
+10/20/21 [EDGcpfe/24771]
+Incorrect handling of invalid substitution for auto&
+
+Consider:
+
+  template<auto&> int g();                             // (1)
+  template<E...> constexpr bool g() { return true; }   // (2)
+  enum E { e };
+  static_assert(g<e>());  // Previously an error.  Now okay.
+
+Previously, the front end did not fail deduction for candidate (1) despite it
+requiring (invalid) binding of an lvalue reference to a prvalue.  After (1) was
+selected, the front end then issued an error about the binding being invalid.
+Now, candidate (1) fails deduction and candidate (2) is selected instead.
+
+
 10/19/21 [EDGcpfe/22220]
 Spurious type category error in dependent nontype template argument
 
