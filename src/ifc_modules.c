@@ -679,7 +679,7 @@ of being constructed in temp_text_buffer.
     put_ch_to_temp_text_buffer((raw_id % 10) + '0');
     raw_id /= 10;
   }  /* while */
-  check_assertion(raw_id >= 0 && raw_id < 10);
+  check_assertion(raw_id < 10);
   put_ch_to_temp_text_buffer(raw_id + '0');
   put_ch_to_temp_text_buffer('\0');
   return result;
