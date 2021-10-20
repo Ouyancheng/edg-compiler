@@ -5,9 +5,9 @@ Incorrect handling of invalid substitution for auto&
 
 Consider:
 
+  enum E { e };
   template<auto&> int g();                             // (1)
   template<E...> constexpr bool g() { return true; }   // (2)
-  enum E { e };
   static_assert(g<e>());  // Previously an error.  Now okay.
 
 Previously, the front end did not fail deduction for candidate (1) despite it
