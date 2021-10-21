@@ -1,5 +1,26 @@
 Version 6.3
 
+10/21/21 [EDGcpfe/24343,EDGcpfe/24663]
+Subsumption checking
+
+A bug was found in the algorithm computing C++20 constraint subsumption.  For
+example:
+
+  template<typename T> struct X {};
+  template<typename T> concept A = true;
+  template<typename T> concept B = A<X<T>>;
+  template<typename T> concept C = B<T>;
+  template<typename T> concept D = C<T> && true;
+  template<typename T> struct S;
+  template<typename T> requires C<T> struct S<T> { };
+  template<typename T> requires D<T> struct S<T> { };
+  S<int> s;  // Previously an ambiguity error.  Now okay.
+
+Previously, the front end could not decide between the two partial
+specializations of S when instantiating S<int> because it failed to see that
+D<T> subsumes C<T>.  That is now fixed.
+
+
 10/21/21 [EDGcpfe/24719]
 C++-generating back end: namespace-qualified dependent template-ids
 

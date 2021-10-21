@@ -24398,6 +24398,9 @@ struct a_charted_constraint {
 			   to compare mappings.
 			   For CK_AND and CK_OR entries, the index of the
 			   second constraint operand. */
+  int32_t	parent_op;
+			/* The index of the parent CK_AND or CK_OR entry (or
+			   -1 if none). */
   inline a_boolean no_link() const { return this->link == (1<<30)-1; }
 			/* Convenience function to test the absence of a
 			   parent entry. */
@@ -24604,6 +24607,122 @@ struct a_map_check_pair {
 
 using a_map_check_list = Dyn_array<a_map_check_pair>;
 
+static int32_t first_conjunctive_clause_term(
+                            Dyn_array<a_charted_constraint>  *p_array,
+                            int32_t                          len,
+                            int32_t                          curr_idx)
+/*
+The *p_array (of length len) is the array representing a flattened constraint
+whose conjunctive clauses (E2[k] in the outline above) we are traversing.  Each
+such clause contains one or more ORed terms.  Identify the first such term in
+the subtree rooted at curr_idx.  I.e., return the index of the ATOMIC node
+selected by the "flag" values of AND nodes when always selecting the left
+subtree of OR nodes.
+*/
+{
+  Dyn_array<a_charted_constraint>  &array = *p_array;
+
+  for (;;) {
+    a_charted_constraint  *constraint = &array[curr_idx];
+    switch (constraint->kind) {
+      case CK_ATOMIC:
+        goto done;
+      case CK_CONCEPT:
+      case CK_OR:
+        /* Skip to the next node (which for CK_CONCEPT is the unique child
+           node and for CK_OR is the left child node). */
+        ++curr_idx;
+        break;
+      case CK_AND:
+        if (constraint->flag) {
+          /* Select the right child. */
+          curr_idx = (int32_t)constraint->link;
+        } else {
+          /* Select the left child. */
+          ++curr_idx;
+        }  /* if */
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+  }  /* for */
+done:
+  return curr_idx;
+}  /* first_conjunctive_clause_term */
+
+
+static int32_t next_conjunctive_clause_term(
+                            Dyn_array<a_charted_constraint>  *p_array,
+                            int32_t                          len,
+                            int32_t                          curr_idx,
+                            a_boolean                        *p_flipping)
+/*
+The *p_array (of length len) is the array representing a flattened constraint
+whose conjunctive clauses (E2[k] in the outline above) we are traversing.  Each
+such clause contains one or more ORed terms and curr_idx is the current term
+(a CK_ATOMIC entry).  Return the index of the next term in the clause or -1 if
+there is none.
+
+If *p_flipping is TRUE, this routine will attempt to "flip" the "flag" fields
+in AND nodes as needed to prepare for the next conjunctive clause.
+*/
+{
+  Dyn_array<a_charted_constraint>  &array = *p_array;
+  int32_t                          prev_k = curr_idx,
+                                   k = array[curr_idx].parent_op;
+
+  while (k != -1) {
+    a_charted_constraint  *constraint = &array[k];
+    switch (constraint->kind) {
+      case CK_OR:
+        if (prev_k == k+1) {
+          /* We're returning from the left child.  The next term is the first
+             term of the right subtree. */
+          int32_t  right_subtree = (int32_t)constraint->link;
+          prev_k = k;
+          if (*p_flipping) {
+            /* Consider (A & B) || (C & D).  If we get here if *p_flipping
+               still TRUE, it means the terms A & B have both been traversed
+               (that AND had its flag already set and the current term is B).
+               If the next term is C, we have to reset the AND flags for the
+               (A & B) subtree so that after we have produced the B || C
+               clause, we will restart from the A term to produce the A || C
+               and B || D clauses.  If the next term is D, that "reset" work is
+               wasted, but we have no cheap way to detect that (and it's not
+               that much work in the bigger picture of OR nodes).  Note that
+               the "subtree" to clear goes from k+1 (or prev_k) to
+               constraint->link-1. */
+            while (++k < right_subtree) {
+              if (constraint->kind == CK_AND) constraint->flag = FALSE;
+            }  /* while */
+          }  /* if */
+          k = first_conjunctive_clause_term(p_array, len, right_subtree);
+          goto done;
+        } else {
+          /* We're returning from the right child and are thus done with this
+             OR node.  Continue with the parent operation to see if there are
+             more OR nodes. */
+          prev_k = k;
+          k = constraint->parent_op;
+        }  /* if */
+        break;
+      case CK_AND:
+        if (!constraint->flag && *p_flipping) {
+          constraint->flag = TRUE;
+          *p_flipping = FALSE;
+        }  /* if */
+        prev_k = k;
+        k = array[k].parent_op;
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+  }  /* while */
+done:
+  return k;
+}  /* next_conjunctive_clause_term */
+
+
 static a_boolean process_conjunctive_clause(a_constraint_chart  *chart,
                                             an_expr_chart_map   *expr_map,
                                             a_map_check_list    *map_checks)
@@ -24618,74 +24737,64 @@ conjunctive clause, and if the last clause was processed return TRUE.
 {
   using an_array = Dyn_array<a_charted_constraint>;
   an_array   &array = chart->constraints_array;
-  int32_t    k = 0, len = (int32_t)array.length(),
-             active_left = 0, inactive_right = len;
+  int32_t    k = 0, len = (int32_t)array.length();
   a_boolean  flipping = TRUE;
 
-  /* The following loop does two things:
-       1) It flips flags on the CK_AND nodes thereby setting up the next
-          conjunctive clause, and 
-       2) it checks that the current conjunctive clause is "covered" by a
-          disjunctive clause of E1/chart1 (the "covering terms" are recorded 
-          and with the caller responsible for checking that the template
-          parameter mappings are equivalent for those terms).
-     Every time a CK_AND is encountered the range [active_left, inactive_right)
-     of "active entries" in the chart is adjusted depending whether the left
-     or right operand is selected by the current "flag" value. */
-  while (k < len) {
+  /* array (i.e., chart->constraints_array) contains a flattened representation
+     of the constraint expression with concept-ids (which are skipped through
+     in this process), AND/OR nodes, and atomic constraints (which must be
+     matched).  During this process, the AND nodes contain a flag that is FALSE
+     if the "left" operand is active and TRUE if the "right" operand is active.
+     At first all the flags are FALSE, which corresponds to a particular
+     conjunctive clause.  The loop below will either flip one such flag from
+     FALSE to TRUE and set flipping to FALSE, or it will leave flipping set to
+     TRUE, which means we reached the last conjunctive clause.  This flipping
+     is done in next_conjunctive_clause_term.  If there are OR nodes, the
+     flags in the left operand may also be reset to FALSE when all the terms
+     in that left operand have been processed.
+
+     For example, consider the constraint expression (A & B & C) | D.  The
+     initial state can be denoted as follows using prefix notation (i.e., the
+     flattened representation):
+           | (&0 (&0 A B) C) D
+     Here &0 represents AND nodes with flag set to FALSE.  The call to
+     first_conjunctive_clause_term returns 3 (the position of the A term).
+     The first call to next_conjunctive_clause_term returns 6 (term B) and
+     changes the state to
+           | (&0 (&1 A B) C) D
+     (&1 is an AND node with a TRUE flag) and sets flipping to FALSE.  The next
+     call to next_conjunctive_clause_term returns -1, indicating that there are
+     no more terms.  Thus the loop produced the terms A | D.  Since flipping
+     is FALSE at the end of this process, the are more clauses.
+
+     At the next call of this function, first_conjunctive_clause_term returns 4
+     (the position of the B term) and a similar process to the loop produces
+     the terms B | D and flipping == FALSE, with the state as follows:
+           | (&1 (&1 A B) C) D
+     Finally, the next third call of this function produces the terms C | D,
+     but this time flipping comes out TRUE, which indicates that we produced
+     the last conjunctive clause.  Note that the state now looks like:
+           | (&0 (&0 A B) C) D
+     Since no AND nodes switched from &0 to &1, flipping is indeed TRUE.
+     However, some AND nodes switched from &1 to &0: This is wasted work in
+     this particular case, but if the right operand of the OR node were more
+     complex it would be needed to iterate through the various possible
+     combinations. */
+  k = first_conjunctive_clause_term(&array, len, 0);
+  do {
     a_charted_constraint  *constraint = &array[k];
-    switch (constraint->kind) {
-      case CK_ATOMIC:
-        if (k >= active_left && k < inactive_right) {
-          int32_t  idx = expr_map->get(constraint->expr);
-          if (idx != 0) {
-            /* The active atomic constraint at idx in chart1 corresponds to
-               this active atomic constraint in chart2 (where chart1 describes
-               E1 and chart2 describes E2 in the outline above).  Keep checking
-               for matching constraints, but record that we should check the
-               mappings of these constraints after we find all matches. */
-            map_checks->push_back(a_map_check_pair{ idx, k });
-          }  /* if */
-        }  /* if */
-        ++k;
-        break;
-      case CK_CONCEPT:
-      case CK_OR:
-        /* Nothing to do. */
-        ++k;
-        break;
-      case CK_AND:
-        if (constraint->flag) {
-          /* Select the right operand. */
-          active_left = constraint->link;
-          if (flipping) {
-            /* Flip the "one" to a "zero" (and keep flipping until we run into
-               "zero" that can be flipped to a "one"). */
-            constraint->flag = FALSE;
-            ++k;
-          } else {
-            k = active_left;
-          }  /* if */
-        } else {
-          if (k >= active_left) {
-            /* This CK_AND entry is currently active: Select the left
-               operand by deactivating the right subtree. */
-            inactive_right = constraint->link;
-          }  /* if */
-          ++k;
-          if (flipping) {
-            constraint->flag = TRUE;
-            /* We found a "zero": Stop flipping flags. */
-            flipping = FALSE;
-          }  /* if */
-        }  /* if */
-        break;
-      default:
-        unexpected_condition();
-    }  /* switch */
-  }  /* while */
-  /* If we're still flipping flags at this stage, we've turned "111..." into
-     "000..." and thus the last conjunctive clause was produced. */
+    check_assertion(constraint->kind == CK_ATOMIC);
+    int32_t  idx = expr_map->get(constraint->expr);
+    if (idx != 0) {
+      /* The active atomic constraint at idx in chart1 corresponds to
+         this active atomic constraint in chart2 (where chart1 describes
+         E1 and chart2 describes E2 in the outline above).  Keep checking
+         for matching constraints, but record that we should check the
+         mappings of these constraints after we find all matches. */
+      map_checks->push_back(a_map_check_pair{ idx, k });
+    }  /* if */
+    k = next_conjunctive_clause_term(&array, len, k, &flipping);
+  } while (k != -1);
   return flipping;
 }  /* process_conjunctive_clause */
 
@@ -24765,6 +24874,7 @@ parameter mapping.
   an_array   &array1 = chart1->constraints_array,
              &array2 = chart2->constraints_array;
 
+  push_instantiation_scope_for_rescan((a_symbol_ptr)NULL);
   for (a_map_check_pair &p: *map_checks) {
     int32_t             idx1 = p.idx1, idx2 = p.idx2, orig_idx1 = idx1;
     a_template_arg_ptr  args1, args2;
@@ -24788,6 +24898,7 @@ parameter mapping.
       break;
     }  /* if */
   }  /* for */
+  pop_instantiation_scope_for_rescan();
   return result;
 }  /* incompatible_mappings */
 
@@ -24808,6 +24919,10 @@ Return FALSE otherwise.
     an_array  &array1 = chart1->constraints_array,
               &array2 = chart2->constraints_array;
     int32_t   k, len;
+#if DEBUG
+    unsigned long long int
+              outer = 0, inner = 0, total = 0, max_total = 1000;
+#endif /* DEBUG */
     /* Clear the CK_OR flags in chart1 and the CK_AND flags in chart2.
        Also initialize the "next" fields for the atomic expressions. */
     len = (int32_t)array1.length();
@@ -24853,6 +24968,9 @@ Return FALSE otherwise.
       an_expr_chart_map  expr_map(/*mask_width=*/3);
       a_boolean          last_disj_clause =
                                 process_disjunctive_clause(chart1, &expr_map);
+#if DEBUG
+      outer += 1;
+#endif /* DEBUG */
       for (;;) {
         /* Loop through the conjunctive clauses of chart2.  E.g., if chart2
            corresponds to constraint "(A || B) && C", the first time through
@@ -24863,6 +24981,16 @@ Return FALSE otherwise.
         a_map_check_list  map_checks(10);
         a_boolean         last_conj_clause = process_conjunctive_clause(
                                               chart2, &expr_map, &map_checks);
+#if DEBUG
+        inner += 1;
+        total += map_checks.length();
+        if (total >= max_total) {
+          fprintf(f_debug, "### LONG SS TEST:"
+                           " outer = %llu, inner = %llu, total = %llu\n",
+                  outer, inner, total);
+          max_total += 1000;
+        }  /* if */
+#endif /* DEBUG */
         if (map_checks.length() == 0) {
           /* No matching atomic constraints were found. */
           result = FALSE;
@@ -24884,18 +25012,21 @@ done:
 static void chart_constraint(an_expr_node_ptr    expr,
                              a_constraint_chart  *chart,
                              int32_t             parent_idx,
+                             int32_t             parent_op,
                              a_boolean           *not_subsumable,
                              a_boolean           *not_subsuming)
 /*
 Perform a recursive prefix traversal of the given (constraint) expression and
 chart its significant nodes (concept-ids, conjunctions, disjunctions, and
 atomic constraints) into *chart.  parent_idx is the index of the last
-concept-id traversed prior to expr (-1 if there was none).  not_subsumable is
-set to TRUE if an atomic constraint is encountered with parent_idx == -1, or
-if a disjunction is encountered where both alternatives recursively produced
-a not_subsumable == TRUE result.  not_subsuming is set to FALSE if a concept
-use is encountered with parent_idx == -1 or if a conjunction is encountered
-where both alternatives recursively set not_subsuming to FALSE.
+concept-id traversed prior to expr (-1 if there was none).  parent_op is the
+index of the last OR or AND node traversed prior to expr (-1 if there was
+none).  not_subsumable is set to TRUE if an atomic constraint is encountered
+with parent_idx == -1, or if a disjunction is encountered where both
+alternatives recursively produced a not_subsumable == TRUE result.
+not_subsuming is set to FALSE if a concept use is encountered with
+parent_idx == -1 or if a conjunction is encountered where both alternatives
+recursively set not_subsuming to FALSE.
 */
 {
   Dyn_array<a_charted_constraint>  &array = chart->constraints_array;
@@ -24903,7 +25034,7 @@ where both alternatives recursively set not_subsuming to FALSE.
   if (node_is(expr, enk_concept_id)) {
     int32_t  new_parent_idx = (int32_t)array.length();
     array.push_back(a_charted_constraint{ CK_CONCEPT, (uint32_t)parent_idx,
-                                          { (uint32_t)0 }, expr });
+                                          parent_op, { (uint32_t)0 }, expr });
     array[new_parent_idx].remapped_args = nullptr;
     if (parent_idx == -1) {
       /* A concept at the top level creates a potential for subsuming another
@@ -24925,17 +25056,18 @@ where both alternatives recursively set not_subsuming to FALSE.
     }  /* if */
     chart_constraint(expr->variant.concept_id.concept_template
                          ->prototype_instantiation.constraint,
-                     chart, new_parent_idx, not_subsumable, not_subsuming);
+                     chart, new_parent_idx, parent_op,
+                     not_subsumable, not_subsuming);
   } else if (is_operation_node(expr) && node_operator_is(expr, eok_land)) {
     int32_t    idx = (int32_t)array.length();
     a_boolean  left_not_subsuming = TRUE, right_not_subsuming = TRUE;
     array.push_back(a_charted_constraint{ CK_AND, (uint32_t)parent_idx,
-                                          { (uint32_t)0 }, expr });
+                                          parent_op, { (uint32_t)0 }, expr });
     an_expr_node_ptr  opnds = expr->variant.operation.operands;
-    chart_constraint(opnds, chart, parent_idx,
+    chart_constraint(opnds, chart, parent_idx, idx,
                      not_subsumable, &left_not_subsuming);
     array[idx].link = (int32_t)array.length();
-    chart_constraint(opnds->next, chart, parent_idx,
+    chart_constraint(opnds->next, chart, parent_idx, idx,
                      not_subsumable, &right_not_subsuming);
     if (!left_not_subsuming && !right_not_subsuming) {
       *not_subsuming = FALSE;
@@ -24944,12 +25076,12 @@ where both alternatives recursively set not_subsuming to FALSE.
     int32_t   idx = (int32_t)array.length();
     a_boolean  left_not_subsumable = FALSE, right_not_subsumable = FALSE;
     array.push_back(a_charted_constraint{ CK_OR, (uint32_t)parent_idx,
-                                          { (uint32_t)0 }, expr });
+                                          parent_op, { (uint32_t)0 }, expr });
     an_expr_node_ptr  opnds = expr->variant.operation.operands;
-    chart_constraint(opnds, chart, parent_idx,
+    chart_constraint(opnds, chart, parent_idx, idx,
                      &left_not_subsumable, not_subsuming);
     array[idx].link = (uint32_t)array.length();
-    chart_constraint(opnds->next, chart, parent_idx,
+    chart_constraint(opnds->next, chart, parent_idx, idx,
                      &right_not_subsumable, not_subsuming);
     if (left_not_subsumable && right_not_subsumable) {
       *not_subsumable = TRUE;
@@ -24957,7 +25089,7 @@ where both alternatives recursively set not_subsuming to FALSE.
   } else {
     /* An atomic constraint. */
     array.push_back(a_charted_constraint{ CK_ATOMIC, (uint32_t)parent_idx,
-                                          { (uint32_t)0 }, expr });
+                                          parent_op, { (uint32_t)0 }, expr });
     if (parent_idx == -1) *not_subsumable = TRUE;
   }  /* if */
 }  /* chart_constraint */
@@ -25041,15 +25173,18 @@ generate that chart.
       result = alloc_fe_of_type(a_constraint_chart);
       construct(result, 2*n_constraints);
       Dyn_array<a_charted_constraint>  &array = result->constraints_array;
+      int32_t  prev_AND_pos = -1;
       for (auto k = 0; k<n_constraints; ++k) {
         int32_t  pos = -1;
         if (k != n_constraints-1) {
           /* If this is not the last constraint, "and" it with the next one. */
           pos = (int32_t)array.length();
           array.push_back(
-                 a_charted_constraint{CK_AND, (uint32_t)0, { FALSE }, NULL });
+                 a_charted_constraint{CK_AND, (uint32_t)0, prev_AND_pos,
+                                      { FALSE }, NULL });
+          prev_AND_pos = pos;
         }  /* if */
-        chart_constraint(constraints[k], result, -1,
+        chart_constraint(constraints[k], result, -1, pos,
                          &not_subsumable, &not_subsuming);
         if (pos != -1) {
           /* This constraint is ANDed with the next.  Update the "link" field
