@@ -1,5 +1,25 @@
 Version 6.3
 
+10/21/21 [EDGcpfe/24719]
+C++-generating back end: namespace-qualified dependent template-ids
+
+In configurations with DEFAULT_RECORD_FORM_OF_NAME_REFERENCE set to TRUE,
+the C++-generating back end failed to add the "template" keyword in a
+dependent namespace-qualified template-id.  This is now fixed.  For
+example, with --c++14:
+
+  template <typename... Ts> class A {};
+  namespace N {
+  template <typename D, int I> struct B { };
+  }
+  template <typename... Ts> struct C {
+    template <int I> A<int> get() {
+      // Previously omitted "template" in the generated code:
+      return (*this).N::template B<A<int>, I>::get();
+    }
+  };
+
+
 10/20/21 [EDGcpfe/24771]
 Incorrect handling of invalid substitution for auto&
 
