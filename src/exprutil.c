@@ -24514,92 +24514,6 @@ template void an_expr_chart_map::db_ptrs() const;
 #endif /* DEBUG */
 
 
-static a_boolean process_disjunctive_clause(a_constraint_chart  *chart,
-                                            an_expr_chart_map   *expr_map)
-/*
-Record the ANDed atomic constraints in the current disjunctive clause (E1[k]
-in the outline above) in expr_map, and update the flags for the next clause.
-Return TRUE if the next clause is the one with all flags cleared (which
-indicates that this function processed the last disjunctive clause).
-*/
-{
-  Dyn_array<a_charted_constraint>  &array = chart->constraints_array;
-  int32_t                          k = 0, len = (int32_t)array.length(),
-                                   active_left = 0, inactive_right = len;
-  a_boolean                        flipping = TRUE;
-
-  /* The following loop does two things:
-       1) It flips flags on the CK_OR nodes thereby setting up the next
-          disjunctive clause, and 
-       2) it records the expressions ("atomic constraints") of the current
-          disjunctive clause of E1/chart1 in a map so they can be efficiently
-          looked up when comparing to the conjunctive clauses in the normal
-          form of E2/chart2.
-     Every time a CK_OR is encountered the range [active_left, inactive_right)
-     of "active entries" in the chart is adjusted depending whether the left
-     or right operand is selected by the current "flag" value. */
-  while (k < len) {
-    a_charted_constraint  *constraint = &array[k];
-    switch (constraint->kind) {
-      case CK_ATOMIC:
-        if (k >= active_left && k < inactive_right && !constraint->no_link()) {
-          /* Add the associated node to the expression map.  This relies on
-             the fact that any node at position 0 would be one that appears
-             directly in a requires clause (as opposed to through a concept)
-             and therefore cannot be repeated (and thus need not be recorded).
-             I.e., map_or_replace only returns 0 if the map does not already
-             contain the expression. */
-          int32_t prev_k = expr_map->map_or_replace(constraint->expr, k);
-          if (prev_k != 0) {
-            a_charted_constraint  *prev_constraint = &array[prev_k];
-            constraint->next = prev_constraint->next;
-            prev_constraint->next = k;
-          }  /* if */
-        }  /* if */
-        ++k;
-        break;
-      case CK_CONCEPT:
-      case CK_AND:
-        /* Nothing to do. */
-        ++k;
-        break;
-      case CK_OR:
-        if (constraint->flag) {
-          /* Select the right operand. */
-          active_left = constraint->link;
-          if (flipping) {
-            /* Flip the "one" to a "zero" (and keep flipping until we run into
-               "zero" that can be flipped to a "one"). */
-            constraint->flag = FALSE;
-            ++k;
-          } else {
-            k = active_left;
-          }  /* if */
-        } else {
-          /* Select the left operand. */
-          if (k >= active_left) {
-            /* This CK_OR entry is currently active: Select the left
-               operand by deactivating the right subtree. */
-            inactive_right = constraint->link;
-          }  /* if */
-          ++k;
-          if (flipping) {
-            constraint->flag = TRUE;
-            /* We found a "zero": Stop flipping flags. */
-            flipping = FALSE;
-          }  /* if */
-        }  /* if */
-        break;
-      default:
-        unexpected_condition();
-    }  /* switch */
-  }  /* while */
-  /* If we're still flipping flags at this stage, we've turned "111..." into
-     "000..." and thus the last disjunctive clause was produced. */
-  return flipping;
-}  /* process_disjunctive_clause */
-
-
 struct a_map_check_pair {
   int32_t	idx1, idx2;
 };
@@ -24677,20 +24591,21 @@ in AND nodes as needed to prepare for the next conjunctive clause.
      node during the next clause traversal. */
   while (k != -1) {
     a_charted_constraint  *constraint = &array[k];
+    int32_t               right_subtree;
     switch (constraint->kind) {
       case CK_OR:
-        if (prev_k == k+1) {
+        right_subtree = (int32_t)constraint->link;
+        if (prev_k < right_subtree) {
           /* We're returning from the left child.  The next term is the first
              term of the right subtree. */
-          int32_t  right_subtree = (int32_t)constraint->link;
           prev_k = k;
           if (*p_flipping) {
-            /* Consider (A & B) || (C & D).  If we get here if *p_flipping
+            /* Consider (A & B) || (C & D).  If we get here when *p_flipping
                still TRUE, it means the terms A & B have both been traversed
                (that AND had its flag already set and the current term is B).
                If the next term is C, we have to reset the AND flags for the
                (A & B) subtree so that after we have produced the B || C
-               clause, we will restart from the A term to produce the A || C
+               clause, we will restart from the A term to produce the A || D
                and B || D clauses.  If the next term is D, that "reset" work is
                wasted, but we have no cheap way to detect that (and it's not
                that much work in the bigger picture of OR nodes).  Note that
@@ -24712,6 +24627,8 @@ in AND nodes as needed to prepare for the next conjunctive clause.
         break;
       case CK_AND:
         if (!constraint->flag && *p_flipping) {
+          /* We previously selected the left subtree.  When forming the next
+             clause, we'll select the right subtree. */
           constraint->flag = TRUE;
           *p_flipping = FALSE;
         }  /* if */
@@ -24801,6 +24718,170 @@ conjunctive clause, and if the last clause was processed return TRUE.
   } while (k != -1);
   return flipping;
 }  /* process_conjunctive_clause */
+
+
+static int32_t first_disjunctive_clause_term(
+                                    Dyn_array<a_charted_constraint>  *p_array,
+                                    int32_t                          curr_idx)
+/*
+*p_array is an array representing a flattened constraint whose disjunctive
+clauses (E1[k] in the outline above) we are traversing.  Each such clause
+contains one or more ANDed terms.  Identify the first such term in the subtree
+rooted at curr_idx.  I.e., return the index of the atomic constraint selected
+by the "flag" values of OR nodes when always selecting the left subtree of AND
+nodes.
+*/
+{
+  Dyn_array<a_charted_constraint>  &array = *p_array;
+
+  for (;;) {
+    a_charted_constraint  *constraint = &array[curr_idx];
+    switch (constraint->kind) {
+      case CK_ATOMIC:
+        goto done;
+      case CK_CONCEPT:
+      case CK_AND:
+        /* Skip to the next node (which for CK_CONCEPT is the unique child
+           node and for CK_AND is the left child node). */
+        ++curr_idx;
+        break;
+      case CK_OR:
+        if (constraint->flag) {
+          /* Select the right child. */
+          curr_idx = (int32_t)constraint->link;
+        } else {
+          /* Select the left child. */
+          ++curr_idx;
+        }  /* if */
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+  }  /* for */
+done:
+  return curr_idx;
+}  /* first_disjunctive_clause_term */
+
+
+static int32_t next_disjunctive_clause_term(
+                                 Dyn_array<a_charted_constraint>  *p_array,
+                                 int32_t                          curr_idx,
+                                 a_boolean                        *p_flipping)
+/*
+*p_array is an array representing a flattened constraint whose disjunctive
+clauses (E1[k] in the outline above) we are traversing.  Each such clause
+contains one or more ANDed terms and curr_idx is the current term (a CK_ATOMIC
+entry).  Return the index of the next term in the clause or -1 if there is
+none.
+
+If *p_flipping is TRUE, this routine will attempt to "flip" the "flag" fields
+in AND OR as needed to prepare for the next conjunctive clause.
+*/
+{
+  Dyn_array<a_charted_constraint>  &array = *p_array;
+  int32_t                          prev_k = curr_idx,
+                                   k = array[curr_idx].parent_op;
+
+  /* The "next term" is always in the right subtree of an AND node.  The
+     algorithm here is to walk up the tree until we reach an AND node from a
+     left subtree (if there is none, we're done and return -1), and then
+     return the left-most node in the corresponding right subtree.  While
+     walking up to the (potential) AND node, the first FALSE-flagged OR node
+     is "flipped" to TRUE so that the next term will be selected for that OR
+     node during the next clause traversal. */
+  while (k != -1) {
+    a_charted_constraint  *constraint = &array[k];
+    int32_t               right_subtree;
+    switch (constraint->kind) {
+      case CK_AND:
+        right_subtree = (int32_t)constraint->link;
+        if (prev_k < right_subtree) {
+          /* We're returning from the left child.  The next term is the first
+             term of the right subtree. */
+          prev_k = k;
+          if (*p_flipping) {
+            /* Consider (A || B) & (C || D).  If we get here with *p_flipping
+               still TRUE, it means the terms A || B have both been traversed
+               (that OR had its flag already set and the current term is B).
+               If the next term is C, we have to reset the OR flags for the
+               (A || B) subtree so that after we have produced the B & C
+               clause, we will restart from the A term to produce the A & D
+               and B & D clauses.  If the next term is D, that "reset" work is
+               wasted, but we have no cheap way to detect that (and it's not
+               that much work in the bigger picture).  Note that the "subtree"
+               to clear goes from k+1 (or prev_k) to constraint->link-1. */
+            while (++k < right_subtree) {
+              if (constraint->kind == CK_OR) constraint->flag = FALSE;
+            }  /* while */
+          }  /* if */
+          k = first_disjunctive_clause_term(p_array, right_subtree);
+          goto done;
+        } else {
+          /* We're returning from the right child and are thus done with this
+             AND node.  Continue with the parent operation to see if there are
+             more AND nodes. */
+          prev_k = k;
+          k = constraint->parent_op;
+        }  /* if */
+        break;
+      case CK_OR:
+        if (!constraint->flag && *p_flipping) {
+          /* We previously selected the left subtree.  When forming the next
+             clause, we'll select the right subtree. */
+          constraint->flag = TRUE;
+          *p_flipping = FALSE;
+        }  /* if */
+        prev_k = k;
+        k = array[k].parent_op;
+        break;
+      default:
+        unexpected_condition();
+    }  /* switch */
+  }  /* while */
+done:
+  return k;
+}  /* next_disjunctive_clause_term */
+
+
+static a_boolean process_disjunctive_clause(a_constraint_chart  *chart,
+                                            an_expr_chart_map   *expr_map)
+/*
+Record the ANDed atomic constraints in the current disjunctive clause (E1[k]
+in the outline above) in expr_map, and update the flags (in OR nodes) for the
+next clause.  Return TRUE if the last clause was processed.
+*/
+{
+  Dyn_array<a_charted_constraint>  &array = chart->constraints_array;
+  int32_t                          k = 0;
+  a_boolean                        flipping = TRUE;
+
+  /* The following loop does two things:
+       1) It flips flags on the CK_OR nodes thereby setting up the next
+          disjunctive clause, and 
+       2) it records the expressions ("atomic constraints") of the current
+          disjunctive clause of E1/chart1 in a map so they can be efficiently
+          looked up when comparing to the conjunctive clauses in the normal
+          form of E2/chart2.
+    The iteration over all disjunctive clauses is the exact complement of the
+    process in process_conjunctive_clause: See that function for an overview
+    of that process. */
+  k = first_disjunctive_clause_term(&array, 0);
+  do {
+    a_charted_constraint  *constraint = &array[k];
+    check_assertion(constraint->kind == CK_ATOMIC);
+    int32_t prev_k = expr_map->map_or_replace(constraint->expr, k);
+    if (prev_k != 0) {
+      /* This particular atomic constraint appears more than once among the
+         terms (possibly with different template parameter mappings).  Link
+         the terms in a circular list. */
+      a_charted_constraint  *prev_constraint = &array[prev_k];
+      constraint->next = prev_constraint->next;
+      prev_constraint->next = k;
+    }  /* if */
+    k = next_disjunctive_clause_term(&array, k, &flipping);
+  } while (k != -1);
+  return flipping;
+}  /* process_disjunctive_clause */
 
 
 static a_template_arg_ptr get_remapped_args(a_constraint_chart  *chart,
