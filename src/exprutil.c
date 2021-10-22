@@ -24523,11 +24523,10 @@ Return TRUE if the next clause is the one with all flags cleared (which
 indicates that this function processed the last disjunctive clause).
 */
 {
-  using an_array = Dyn_array<a_charted_constraint>;
-  an_array   &array = chart->constraints_array;
-  int32_t    k = 0, len = (int32_t)array.length(),
-             active_left = 0, inactive_right = len;
-  a_boolean  flipping = TRUE;
+  Dyn_array<a_charted_constraint>  &array = chart->constraints_array;
+  int32_t                          k = 0, len = (int32_t)array.length(),
+                                   active_left = 0, inactive_right = len;
+  a_boolean                        flipping = TRUE;
 
   /* The following loop does two things:
        1) It flips flags on the CK_OR nodes thereby setting up the next
@@ -24763,21 +24762,22 @@ conjunctive clause, and if the last clause was processed return TRUE.
            | (&0 (&0 A B) C) D
      Here &0 represents AND nodes with flag set to FALSE.  The call to
      first_conjunctive_clause_term returns 3 (the position of the A term).
-     The first call to next_conjunctive_clause_term returns 6 (term B) and
+     The first call to next_conjunctive_clause_term returns 6 (term D) and
      changes the state to
            | (&0 (&1 A B) C) D
      (&1 is an AND node with a TRUE flag) and sets flipping to FALSE.  The next
      call to next_conjunctive_clause_term returns -1, indicating that there are
      no more terms.  Thus the loop produced the terms A | D.  Since flipping
-     is FALSE at the end of this process, the are more clauses.
+     is FALSE at the end of this process, there are more clauses.
 
      At the next call of this function, first_conjunctive_clause_term returns 4
-     (the position of the B term) and a similar process to the loop produces
-     the terms B | D and flipping == FALSE, with the state as follows:
+     (the position of the B term) and a similar process to the loop described
+     above produces the terms B | D and flipping == FALSE, with the state as
+     follows:
            | (&1 (&1 A B) C) D
-     Finally, the next third call of this function produces the terms C | D,
-     but this time flipping comes out TRUE, which indicates that we produced
-     the last conjunctive clause.  Note that the state now looks like:
+     Finally, the third call of this function produces the terms C | D, but
+     this time flipping comes out TRUE, which indicates that we produced the
+     last conjunctive clause.  Note that the state now looks like:
            | (&0 (&0 A B) C) D
      Since no AND nodes switched from &0 to &1, flipping is indeed TRUE.
      However, some AND nodes switched from &1 to &0: This is wasted work in
@@ -24810,11 +24810,10 @@ Return remapped concept-id arguments for the concept-id constraint at the
 given index in the given constraint chart.
 */
 {
-  using an_array = Dyn_array<a_charted_constraint>;
-  an_array              &array = chart->constraints_array;
-  a_charted_constraint  *constraint = &array[idx],
-                        *parent_constraint;
-  a_template_arg_ptr    result = constraint->remapped_args;
+  Dyn_array<a_charted_constraint>  &array = chart->constraints_array;
+  a_charted_constraint             *constraint = &array[idx],
+                                   *parent_constraint;
+  a_template_arg_ptr               result = constraint->remapped_args;
 
   if (result == NULL) {
     an_expr_node_ptr      concept_id = constraint->expr, parent_concept_id;
@@ -24873,10 +24872,9 @@ e2 such that none of the corresponding entries in chart1 has an equivalent
 parameter mapping.
 */
 {
-  using an_array = Dyn_array<a_charted_constraint>;
-  a_boolean  result = FALSE;
-  an_array   &array1 = chart1->constraints_array,
-             &array2 = chart2->constraints_array;
+  a_boolean                        result = FALSE;
+  Dyn_array<a_charted_constraint>  &array1 = chart1->constraints_array,
+                                   &array2 = chart2->constraints_array;
 
   push_instantiation_scope_for_rescan((a_symbol_ptr)NULL);
   for (a_map_check_pair &p: *map_checks) {
@@ -24919,14 +24917,9 @@ Return FALSE otherwise.
   if (chart2->not_subsumable) {
     result = FALSE;
   } else {
-    using an_array = Dyn_array<a_charted_constraint>;
-    an_array  &array1 = chart1->constraints_array,
-              &array2 = chart2->constraints_array;
-    int32_t   k, len;
-#if DEBUG
-    unsigned long long int
-              outer = 0, inner = 0, total = 0, max_total = 1000;
-#endif /* DEBUG */
+    Dyn_array<a_charted_constraint>  &array1 = chart1->constraints_array,
+                                     &array2 = chart2->constraints_array;
+    int32_t                          k, len;
     /* Clear the CK_OR flags in chart1 and the CK_AND flags in chart2.
        Also initialize the "next" fields for the atomic expressions. */
     len = (int32_t)array1.length();
@@ -24972,9 +24965,6 @@ Return FALSE otherwise.
       an_expr_chart_map  expr_map(/*mask_width=*/3);
       a_boolean          last_disj_clause =
                                 process_disjunctive_clause(chart1, &expr_map);
-#if DEBUG
-      outer += 1;
-#endif /* DEBUG */
       for (;;) {
         /* Loop through the conjunctive clauses of chart2.  E.g., if chart2
            corresponds to constraint "(A || B) && C", the first time through
@@ -24985,16 +24975,6 @@ Return FALSE otherwise.
         a_map_check_list  map_checks(10);
         a_boolean         last_conj_clause = process_conjunctive_clause(
                                               chart2, &expr_map, &map_checks);
-#if DEBUG
-        inner += 1;
-        total += map_checks.length();
-        if (total >= max_total) {
-          fprintf(f_debug, "### LONG SS TEST:"
-                           " outer = %llu, inner = %llu, total = %llu\n",
-                  outer, inner, total);
-          max_total += 1000;
-        }  /* if */
-#endif /* DEBUG */
         if (map_checks.length() == 0) {
           /* No matching atomic constraints were found. */
           result = FALSE;
