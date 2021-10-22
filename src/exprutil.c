@@ -24608,16 +24608,15 @@ struct a_map_check_pair {
 using a_map_check_list = Dyn_array<a_map_check_pair>;
 
 static int32_t first_conjunctive_clause_term(
-                            Dyn_array<a_charted_constraint>  *p_array,
-                            int32_t                          len,
-                            int32_t                          curr_idx)
+                                    Dyn_array<a_charted_constraint>  *p_array,
+                                    int32_t                          curr_idx)
 /*
-The *p_array (of length len) is the array representing a flattened constraint
-whose conjunctive clauses (E2[k] in the outline above) we are traversing.  Each
-such clause contains one or more ORed terms.  Identify the first such term in
-the subtree rooted at curr_idx.  I.e., return the index of the ATOMIC node
-selected by the "flag" values of AND nodes when always selecting the left
-subtree of OR nodes.
+*p_array is an array representing a flattened constraint whose conjunctive
+clauses (E2[k] in the outline above) we are traversing.  Each such clause
+contains one or more ORed terms.  Identify the first such term in the subtree
+rooted at curr_idx.  I.e., return the index of the atomic constraint selected
+by the "flag" values of AND nodes when always selecting the left subtree of OR
+nodes.
 */
 {
   Dyn_array<a_charted_constraint>  &array = *p_array;
@@ -24652,16 +24651,15 @@ done:
 
 
 static int32_t next_conjunctive_clause_term(
-                            Dyn_array<a_charted_constraint>  *p_array,
-                            int32_t                          len,
-                            int32_t                          curr_idx,
-                            a_boolean                        *p_flipping)
+                                 Dyn_array<a_charted_constraint>  *p_array,
+                                 int32_t                          curr_idx,
+                                 a_boolean                        *p_flipping)
 /*
-The *p_array (of length len) is the array representing a flattened constraint
-whose conjunctive clauses (E2[k] in the outline above) we are traversing.  Each
-such clause contains one or more ORed terms and curr_idx is the current term
-(a CK_ATOMIC entry).  Return the index of the next term in the clause or -1 if
-there is none.
+*p_array is an array representing a flattened constraint whose conjunctive
+clauses (E2[k] in the outline above) we are traversing.  Each such clause
+contains one or more ORed terms and curr_idx is the current term (a CK_ATOMIC
+entry).  Return the index of the next term in the clause or -1 if there is
+none.
 
 If *p_flipping is TRUE, this routine will attempt to "flip" the "flag" fields
 in AND nodes as needed to prepare for the next conjunctive clause.
@@ -24671,6 +24669,13 @@ in AND nodes as needed to prepare for the next conjunctive clause.
   int32_t                          prev_k = curr_idx,
                                    k = array[curr_idx].parent_op;
 
+  /* The "next term" is always in the right subtree of an OR node.  The
+     algorithm here is to walk up the tree until we reach an OR node from a
+     left subtree (if there is none, we're done and return -1), and then
+     return the left-most node in the corresponding right subtree.  While
+     walking up to the (potential) OR node, the first FALSE-flagged AND node
+     is "flipped" to TRUE so that the next term will be selected for that AND
+     node during the next clause traversal. */
   while (k != -1) {
     a_charted_constraint  *constraint = &array[k];
     switch (constraint->kind) {
@@ -24696,7 +24701,7 @@ in AND nodes as needed to prepare for the next conjunctive clause.
               if (constraint->kind == CK_AND) constraint->flag = FALSE;
             }  /* while */
           }  /* if */
-          k = first_conjunctive_clause_term(p_array, len, right_subtree);
+          k = first_conjunctive_clause_term(p_array, right_subtree);
           goto done;
         } else {
           /* We're returning from the right child and are thus done with this
@@ -24735,10 +24740,9 @@ conjunctive clause.  Also update the flags in the CK_AND entries for the next
 conjunctive clause, and if the last clause was processed return TRUE.
 */
 {
-  using an_array = Dyn_array<a_charted_constraint>;
-  an_array   &array = chart->constraints_array;
-  int32_t    k = 0, len = (int32_t)array.length();
-  a_boolean  flipping = TRUE;
+  Dyn_array<a_charted_constraint>  &array = chart->constraints_array;
+  int32_t                          k = 0;
+  a_boolean                        flipping = TRUE;
 
   /* array (i.e., chart->constraints_array) contains a flattened representation
      of the constraint expression with concept-ids (which are skipped through
@@ -24780,7 +24784,7 @@ conjunctive clause, and if the last clause was processed return TRUE.
      this particular case, but if the right operand of the OR node were more
      complex it would be needed to iterate through the various possible
      combinations. */
-  k = first_conjunctive_clause_term(&array, len, 0);
+  k = first_conjunctive_clause_term(&array, 0);
   do {
     a_charted_constraint  *constraint = &array[k];
     check_assertion(constraint->kind == CK_ATOMIC);
@@ -24793,7 +24797,7 @@ conjunctive clause, and if the last clause was processed return TRUE.
          mappings of these constraints after we find all matches. */
       map_checks->push_back(a_map_check_pair{ idx, k });
     }  /* if */
-    k = next_conjunctive_clause_term(&array, len, k, &flipping);
+    k = next_conjunctive_clause_term(&array, k, &flipping);
   } while (k != -1);
   return flipping;
 }  /* process_conjunctive_clause */
