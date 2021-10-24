@@ -24704,8 +24704,9 @@ conjunctive clause, and if the last clause was processed return TRUE.
   k = first_conjunctive_clause_term(&array, 0);
   do {
     a_charted_constraint  *constraint = &array[k];
+    int32_t               idx;
     check_assertion(constraint->kind == CK_ATOMIC);
-    int32_t  idx = expr_map->get(constraint->expr);
+    idx = expr_map->get(constraint->expr);
     if (idx != 0) {
       /* The active atomic constraint at idx in chart1 corresponds to
          this active atomic constraint in chart2 (where chart1 describes
@@ -24775,7 +24776,7 @@ entry).  Return the index of the next term in the clause or -1 if there is
 none.
 
 If *p_flipping is TRUE, this routine will attempt to "flip" the "flag" fields
-in AND OR as needed to prepare for the next conjunctive clause.
+in OR nodes as needed to prepare for the next conjunctive clause.
 */
 {
   Dyn_array<a_charted_constraint>  &array = *p_array;
@@ -24868,8 +24869,9 @@ next clause.  Return TRUE if the last clause was processed.
   k = first_disjunctive_clause_term(&array, 0);
   do {
     a_charted_constraint  *constraint = &array[k];
+    int32_t               prev_k;
     check_assertion(constraint->kind == CK_ATOMIC);
-    int32_t prev_k = expr_map->map_or_replace(constraint->expr, k);
+    prev_k = expr_map->map_or_replace(constraint->expr, k);
     if (prev_k != 0) {
       /* This particular atomic constraint appears more than once among the
          terms (possibly with different template parameter mappings).  Link
