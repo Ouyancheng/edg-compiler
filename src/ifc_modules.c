@@ -6727,11 +6727,10 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
         }
         break;
       case ifc_NameSort_Template:
-        { an_ifc_NameSort_Template inst;
-          get_NameSort_Template(&inst);
-          /* FIXME: Currently unsupported. */
-          issue_unsupported_node_diag("NameSort::Template", &error_position);
-          result = "<error-name>";
+        { an_ifc_NameSort_Template inst, *instp;
+          instp = get_NameSort_Template(&inst);
+          prefix = "template ";
+          result = string_from_name_index(instp->name, loc);
         }
         break;
       case ifc_NameSort_Specialization:
@@ -13746,10 +13745,10 @@ of the name.
         goto cache_ident;
       }
     case ifc_NameSort_Template:
-      { an_ifc_NameSort_Template inst;
-        get_NameSort_Template(&inst);
-        /* FIXME: Currently unsupported. */
-        issue_unsupported_node_diag("NameSort::Template", &error_position);
+      { an_ifc_NameSort_Template inst, *instp;
+        instp = get_NameSort_Template(&inst);
+        cache_token(cache, tok_template, &pos);
+        cache_name(cache, instp->name, locus);
       }
       break;
     case ifc_NameSort_Specialization:
