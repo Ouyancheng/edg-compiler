@@ -1308,7 +1308,7 @@ ellipsis parameter).
     pos_error(ec_coroutine_with_ellipsis_parameter,
               &rp->source_corresp.decl_position);
   }  /* if */
-  if (rp->is_constexpr) {
+  if (rp->is_declared_constexpr || rp->is_consteval) {
     pos_error(ec_no_constexpr_coroutine, &rp->source_corresp.decl_position);
   }  /* if */
 }  /* wrap_up_coroutine */
