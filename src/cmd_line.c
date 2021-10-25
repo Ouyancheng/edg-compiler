@@ -1643,6 +1643,13 @@ Initialize the option information table.
                          /*arg_required=*/FALSE, pchek_command_line);
   add_option_description(optk_colors, "no_colors", '\0', /*value=*/FALSE,
                          /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_keep_restrict_in_signatures,
+                         "keep_restrict_in_signatures", '\0', /*value=*/TRUE,
+                         /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_keep_restrict_in_signatures,
+                         "no_keep_restrict_in_signatures", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -3390,6 +3397,7 @@ process.
   nonstandard_qualifier_deduction = FALSE;  /* Not really needed. */
   warning_on_for_init_difference = FALSE;
   remove_qualifiers_from_param_types = FALSE;
+  keep_restrict_in_signatures = TRUE;
   impl_conv_between_c_and_cpp_function_ptrs_allowed = FALSE;
   extern_inline_allowed = FALSE;
   operator_overloading_on_enums_enabled = FALSE;  /* Not really needed. */
@@ -11250,6 +11258,9 @@ enable_microsoft_mode:
         break;
       case optk_colors:
         colorize_diagnostics = opt_value;
+        break;
+      case optk_keep_restrict_in_signatures:
+        keep_restrict_in_signatures = opt_value;
         break;
       default:
         /* It should not be possible to get here. */

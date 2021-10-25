@@ -943,9 +943,15 @@ EXTERN int	targ_flt128_max_exp;
 
 EXTERN a_boolean
 		remove_qualifiers_from_param_types;
-			/* True when type qualifiers should be removed from
+			/* TRUE when type qualifiers should be removed from
 			   function parameter types (e.g., a "const int"
 			   parameter is seen simply as "int"). */
+
+EXTERN a_boolean
+		keep_restrict_in_signatures;
+			/* TRUE if the "restrict" (or "__restrict") qualifier
+			   should be kept in function parameter types even
+			   when remove_qualifiers_from_param_types is TRUE. */
 
 EXTERN a_boolean
 		c_and_cpp_function_types_are_distinct;

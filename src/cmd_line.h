@@ -355,6 +355,7 @@ typedef enum /*an_option_kind*/ {
   optk_modules,
   optk_concepts,
   optk_colors,
+  optk_keep_restrict_in_signatures,
   optk_last		/* Must be last. */
 } an_option_kind;
 

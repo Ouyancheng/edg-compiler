@@ -15376,6 +15376,10 @@ parameters.
               /* The C11 _Atomic qualifier should not be discarded. */
               tp = make_qualified_type(tp, TQ_C11_ATOMIC);
             }  /* if */
+            if ((param_qualifiers & TQ_RESTRICT) != 0 &&
+                keep_restrict_in_signatures) {
+              tp = make_qualified_type(tp, TQ_RESTRICT);
+            }  /* if */
           }  /* if */
         }  /* if */
         if (is_invalid_parameter_type(tp)) {

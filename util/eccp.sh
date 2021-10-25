@@ -765,6 +765,7 @@ check_abbreviation()
 --instantiate
 --instantiation_dir
 --keep_gen_c
+--keep_restrict_in_signatures
 --lambdas
 --late_tiebreaker
 --library_directory

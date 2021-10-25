@@ -1,5 +1,29 @@
 Version 6.3
 
+10/25/21 [EDGcpfe/24520]
+Microsoft compatibility: __restrict parameters
+
+The front end previously ignored top-level __restrict qualifiers on parameter
+types when comparing function types.  Now, such qualifiers matter in Microsoft
+modes.  For example:
+
+  template<typename, typename>
+    struct is_same { static const bool value = false; };
+  template<typename T>
+    struct is_same<T,T> { static const bool value = true; };
+  using type = float *__restrict;
+  void g(type) {
+    static_assert(!is_same<decltype(g)*, void (*)(float*)>::value, "");
+      // Now accepted in Microsoft C++ modes.
+  }
+
+Furthermore, a new command-line option --keep_restrict_in_signatures causes the
+front end to keep the restrict qualifier in a_param_type::type even when
+remove_qualifiers_from_param_types is TRUE (this causes the restrict qualifier
+to be incorporated in the mangled name, which matches the behavior of the
+Microsoft compiler).
+
+
 10/21/21 [EDGcpfe/24343,EDGcpfe/24663]
 Subsumption checking
 
@@ -1334,24 +1358,6 @@ internal error in make_cast_rescan_operands (exprutil.c).  For example:
   auto r = f(3);  // Previously triggered an abort.  Now okay.
 
 That is now fixed.
-
-
-8/3/21   [EDGcpfe/24520]
-Microsoft compatibility: __restrict parameters
-
-The front end previously ignored top-level __restrict qualifiers on parameter
-types when comparing function types.  Now, such qualifiers matter in Microsoft
-modes.  For example:
-
-  template<typename, typename>
-    struct is_same { static const bool value = false; };
-  template<typename T>
-    struct is_same<T,T> { static const bool value = true; };
-  using type = float *__restrict;
-  void g(type) {
-    static_assert(!is_same<decltype(g)*, void (*)(float*)>::value, "");
-      // Now accepted in Microsoft C++ modes.
-  }
 
 
 8/3/21   [EDGcpfe/24568]

@@ -1377,7 +1377,7 @@ comma_required is TRUE (it is defaulted to FALSE) output ", " first.
         qualifiers &= ~TQ_VOLATILE;
         if (qualifiers != TQ_NONE) fputs(" ", f_debug);
       }  /* if */
-      if (qualifiers & TQ_RESTRICT) {
+      if ((qualifiers & TQ_RESTRICT) && !keep_restrict_in_signatures) {
         fputs("restrict", f_debug);
       }  /* if */
       fputs("] ", f_debug);
@@ -9858,6 +9858,9 @@ needed.
     qualifiers = get_type_qualifiers(ptp->type);
     if (qualifiers != TQ_NONE) {
       ptp->type = make_unqualified_type(ptp->type);
+      if ((qualifiers & TQ_RESTRICT) && keep_restrict_in_signatures) {
+        ptp->type = make_qualified_type(ptp->type, TQ_RESTRICT);
+      }  /* if */
       /* Record the top-level type qualifiers that were declared for this
          parameter and then removed. */
       ptp->qualifiers = qualifiers;
