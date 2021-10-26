@@ -3082,77 +3082,9 @@ private:
                                   a_byte_il_entry_kind                  *kind);
 #if DEBUG
   void validate_is_class_type(ifc_TypeIndex type);
-#endif /* DEBUG */
-  /* Stringizers. */
-  void str_ifc_text_offset(ifc_TextOffset     offset,
-                           a_str_control_block *scbp) const;
-  void str_ifc_name_index(ifc_NameIndex       name_index,
-                          a_str_control_block *scbp);
-  void str_ifc_class_name(ifc_DeclIndex       home_scope,
-                          a_str_control_block *scbp);
-  void str_ifc_add_number(a_host_large_unsigned value,
-                          a_str_control_block   *scbp) const;
-#if !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER
-  void str_ifc_add_number(an_integer_value    &value,
-                          a_str_control_block *scbp) const;
-#endif /* !INTEGER_VALUE_REPR_IS_A_HOST_INTEGER */
-  void str_ifc_source_location(ifc_SourceLocation  *locus,
-                               a_str_control_block *scbp) const;
-  void str_ifc_access(ifc_Access          access,
-                      a_str_control_block *scbp) const;
-  void str_ifc_qualifiers(ifc_Qualifiers      qualifiers,
-                          a_str_control_block *scbp) const;
-  void str_ifc_basic_specifiers(ifc_BasicSpecifiers specifiers,
-                                a_str_control_block *scbp) const;
-  void str_ifc_object_traits(ifc_ObjectTraits    traits,
-                             a_str_control_block *scbp) const;
-  void str_ifc_msvc_traits(ifc_MsvcTraits      traits,
-                           a_str_control_block *scbp) const;
-  void str_ifc_function_type_traits(ifc_FunctionTypeTraits traits,
-                                    a_str_control_block    *scbp) const;
-  void str_ifc_noexcept_specification(ifc_NoexceptSpecification *eh_spec,
-                                      a_str_control_block       *scbp) const;
-  void str_ifc_function_traits(ifc_FunctionTraits  traits,
-                               a_boolean           prefix,
-                               a_str_control_block *scbp) const;
-  void str_ifc_expr_index(ifc_ExprIndex       expr_index,
-                          a_str_control_block *scbp);
-  void str_ifc_scope_index(ifc_ScopeIndex      scope_index,
-                           a_str_control_block *scbp);
-  void str_ifc_type_index_first_part(ifc_TypeIndex       type_index,
-                                     a_str_control_block *scbp);
-  void str_ifc_type_index_second_part(ifc_TypeIndex       type_index,
-                                      a_str_control_block *scbp);
-  void str_ifc_type_index(ifc_TypeIndex       type_index,
-                          a_str_control_block *scbp);
-  void str_ifc_common_decl(ifc_SourceLocation  *locus,
-                           ifc_Access          access,
-                           ifc_BasicSpecifiers specifiers,
-                           ifc_ObjectTraits    traits,
-                           a_str_control_block *scbp) const;
-  void str_ifc_class_definition(an_ifc_DeclSort_Scope *idssp,
-                                a_str_control_block   *scbp);
-  void str_ifc_declaration(ifc_DeclIndex       decl_index,
-                           a_boolean           is_designated_type,
-                           a_str_control_block *scbp);
-  void str_ifc_statement(ifc_StmtIndex       stmt_index,
-                         a_str_control_block *scbp);
-  void str_ifc_string_literal(ifc_StringIndex     str_index,
-                              a_str_control_block *scbp);
-  void str_ifc_chart(ifc_ChartIndex      chart_index,
-                     a_str_control_block *scbp);
-  template<typename T>
-  void str_ifc_associated_trait(ifc_DeclIndex       decl_index,
-                                a_str_control_block *scbp);
-  void str_ifc_syntax_node(ifc_SyntaxIndex     syntax_index,
-                           a_str_control_block *scbp);
-  void str_ifc_sentence(ifc_SentenceIndex   sentence_index,
-                        a_str_control_block *scbp);
-  void str_ifc_word(ifc_WordIndex       word_index,
-                    a_str_control_block *scbp);
-
-#if DEBUG
   void db_ifc_file_header() const;
+  void db_ifc_scope(ifc_ScopeIndex scope);
+  void db_ifc_declaration(ifc_DeclIndex decl);
   void db_locus(ifc_SourceLocation *locus);
 #if EXPENSIVE_CHECKING
   void f_db_get_byte(a_const_char *value_str,
@@ -3205,56 +3137,6 @@ ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(
 template<>
 ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(
                                   an_ifc_DeclSort_ExplicitInstantiation *decl);
-
-/* Explicit specializations of an_ifc_module::str_ifc_associated_trait<T>: */
-template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Deprecated>(
-                                             ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp);
-template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Specialization>(
-                                             ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp);
-template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Friend>(
-                                             ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp);
-template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_FunctionDefinition>(
-                                             ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp);
-template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_AliasTemplate>(
-                                             ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp);
-template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_DeductionGuides>(
-                                             ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp);
-template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Requires>(
-                                             ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp);
-template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_Attribute>(
-                                             ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp);
-template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcVendorTrait>(
-                                             ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp);
-template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcUuid>(
-                                             ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp);
-template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcFuncParams>(
-                                             ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp);
-template<>
-void an_ifc_module::str_ifc_associated_trait<an_ifc_Trait_MsvcDeclAttrs>(
-                                             ifc_DeclIndex       decl_index,
-                                             a_str_control_block *scbp);
 
 extern void record_pending_ifc_function_body(a_routine_ptr  rp,
                                              ifc_DeclIndex  decl_idx,
