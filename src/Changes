@@ -21,7 +21,8 @@ Furthermore, a new command-line option --keep_restrict_in_signatures causes the
 front end to keep the restrict qualifier in a_param_type::type even when
 remove_qualifiers_from_param_types is TRUE (this causes the restrict qualifier
 to be incorporated in the mangled name, which matches the behavior of the
-Microsoft compiler).
+Microsoft compiler).  A --no_keep_restrict_in_signatures option is also
+available.
 
 
 10/21/21 [EDGcpfe/24343,EDGcpfe/24663]

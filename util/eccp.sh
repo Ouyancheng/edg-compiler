@@ -881,6 +881,7 @@ check_abbreviation()
 --no_implicit_noexcept
 --no_implicit_typename
 --no_inlining
+--no_keep_restrict_in_signatures
 --no_lambdas
 --no_line_commands
 --no_long_preserving_rules
@@ -1696,6 +1697,8 @@ process_option()
          --no_relaxed_abstract_checking | \
          --colors | \
          --no_colors | \
+         --keep_restrict_in_signatures | \
+         --no_keep_restrict_in_signatures | \
          --concepts | \
          --no_concepts | \
          --force_vtbl | \
