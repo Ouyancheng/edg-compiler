@@ -1,5 +1,21 @@
 Version 6.3
 
+10/25/21 [EDGcpfe/24490]
+GCC and Clang compatibility: Range of integer literals
+
+When 128-bit integer types are enabled (i.e., when INT128_EXTENSIONS_ALLOWED is
+configured to TRUE), the front end previously sometimes assigned those types to
+very large integer literals.  For example:
+
+  auto r = 0x10000000000000000;  // Previously r had type __int128.
+
+However, Clang and GCC never assign a 128-bit type to an integer literal.  GCC
+issues a warning on the case above and gives the literal type int.  Clang
+emits an error and continues with type unsigned long long for the literal.  The
+front end now emulates those behaviors in its respective emulation modes (with
+a discretionary error in Clang mode).
+
+
 10/25/21 [EDGcpfe/24520]
 Microsoft compatibility: __restrict parameters
 

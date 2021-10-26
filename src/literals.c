@@ -528,6 +528,17 @@ ll_check:
 #if INT128_EXTENSIONS_ALLOWED
     if (int128_extensions_enabled) {
       /* 128-bit integers are supported. */
+      if (clang_mode || gnu_mode) {
+        /* Although Clang and GCC accept types like __int128, they do not
+           allow literals of those types.  Clang appears to fall back to
+           unsigned long long (after issuing an error), whereas GCC falls back
+           to int (after issuing a warning. */
+        pos_diagnostic(clang_mode ? es_discretionary_error : es_warning,
+                       ec_integer_too_large, &error_position);
+        kind = clang_mode ? (an_integer_kind)ik_unsigned_long_long
+                          : (an_integer_kind)ik_int;
+        goto kind_established;
+      }  /* if */
       if (!has_u_suffix &&
           le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
                                        (an_integer_kind)ik_int128)) {
