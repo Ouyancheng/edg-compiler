@@ -2008,8 +2008,18 @@ body of a constexpr function or constructor.
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (*sssep->p_declared_entities != NULL) {
-    sp->variant.decl.entities = *sssep->p_declared_entities;
+    an_il_entity_list_entry_ptr  ielep = *sssep->p_declared_entities;
     sssep->p_declared_entities = NULL;
+    sp->variant.decl.entities = ielep;
+    for (; ielep != NULL; ielep = ielep->next) {
+      if (ielep->entity.kind == (a_byte_il_entry_kind)iek_variable) {
+        a_variable_ptr  vp = (a_variable_ptr)ielep->entity.ptr;
+        if (var_has_static_or_thread_storage_duration(vp)) {
+          sp->variant.decl.has_static_or_thread_variable = TRUE;
+          break;
+        }  /* if */
+      }  /* if */
+    }  /* for */
   }  /* if */
   sssep->record_declared_entities = FALSE;
 }  /* decl_statement */
@@ -7402,9 +7412,10 @@ it is followed by a colon.)
          the current scope.  It's needed to handle backwards gotos to
          the current label. */
       reset_curr_block_object_lifetime(label->exec_stmt);
-      /* Don't allow labels in C++14 constexpr functions (also disqualifies
-         a lambda from being considered constexpr). */
-      if (relaxed_constexpr_enabled) {
+      if (!cpp23_mode && relaxed_constexpr_enabled) {
+        /* Prior to C++23, allow labels were not allowed in C++14 constexpr
+           functions (they disqualified a lambda from being considered
+           constexpr). */
         a_routine_ptr  rp = innermost_function_scope->variant.routine.ptr;
         if (rp->is_declared_constexpr || rp->is_consteval) {
           pos_error(ec_label_in_constexpr_function,
@@ -7619,7 +7630,7 @@ rescan_statement:
     case tok_goto:
       /* Goto statement. */
       goto_statement();
-      can_appear_in_constexpr_body = FALSE;
+      if (!cpp23_mode) can_appear_in_constexpr_body = FALSE;
       break;
     case tok_continue:
       /* Continue statement. */

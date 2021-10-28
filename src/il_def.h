@@ -10894,6 +10894,11 @@ typedef struct a_variable {
 			/* TRUE if this is a C++20 "template parameter object";
 			   i.e., a constexpr variable backing a template
 			   argument of class type. */
+  a_bit_field
+		compiler_generated:1;
+			/* TRUE if this is a compiler-generated variable
+			   (currently only set for the variables create for
+			   __func__ and similar tokens). */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any.
 			   When init_kind == initk_function_local (local
@@ -15689,6 +15694,10 @@ typedef struct a_statement {
 			   container variable but not the associated bindings
 			   (the bindings are on a separate list pointed to by
 			   the container variable entry). */
+      a_bit_field
+		has_static_or_thread_variable:1;
+			/* TRUE if one of the entities being declared is a
+			   static or thread-local variable. */
     } decl;
     /* When kind == stmk_set_vla_size: */
     a_vla_dimension_ptr

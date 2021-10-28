@@ -2571,9 +2571,13 @@ the function non-constexpr in that case).
 {
   a_routine_ptr  rp = innermost_function_scope->variant.routine.ptr;
 
-  /* Variables in C++14-style constexpr function declarations must have
-     automatic storage duration, a literal type, and be initialized. */
-  if (var_has_static_or_thread_storage_duration(vp)) {
+  /* Prior to C++23, variables in C++14-style constexpr function declarations
+     must have automatic storage duration, a literal type, and be
+     initialized. */
+  if (cpp23_mode) {
+    /* No constraints to check at declaration time.  Instead, the interpreter
+       is responsible for catching attempts to evaluate invalid cases. */
+  } else if (var_has_static_or_thread_storage_duration(vp)) {
     if (rp->is_declared_constexpr || rp->is_consteval) {
       pos_error(ec_nonautomatic_var_in_constexpr_function, pos);
     }  /* if */

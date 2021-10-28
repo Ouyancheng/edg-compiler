@@ -1,5 +1,28 @@
 Version 6.3
 
+10/28/21 [EDGcpfe/24780]
+C++23: More relaxed constexpr function definitions
+
+In C++23 mode, constexpr function definitions can not contain goto statements,
+label declarations, and variables of static or thread storage duration or of
+nonliteral type.  A constant-evaluation cannot, however, evaluate such a
+construct.  For example:
+
+  constexpr int f(int p) {
+    if (p == 1) {
+      return 42;
+    } else {
+      static int x = 42;  // No longer an outright error in C++23.
+      return 41;
+    }
+  }
+  static_assert(f(1) != 0);  // Okay in C++23.
+  static_assert(f(2) != 0);  // Still an error in C++23.
+
+This feature was added to the working paper for the next standard by the
+standardization committee's paper P2242R3.
+
+
 10/28/21 [EDGcpfe/24805]
 Alternative tokens
 

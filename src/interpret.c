@@ -6316,14 +6316,13 @@ be called for the local static variables associated with constructs like
     get_stack_bytes(ips, vp, var_bytes);
     if (var_bytes == NULL) {
       a_type_ptr  tp = vp->type;
-      if (!is_const_qualified_type(tp) ||
+      if (!vp->compiler_generated ||
+          !is_const_qualified_type(tp) ||
           is_volatile_qualified_type(tp) ||
           vp->init_kind != (an_init_kind)initk_static ||
           vp->initializer.constant == NULL) {
-        info_with_pos(ec_constexpr_access_to_runtime_storage,
-                      &vp->source_corresp.decl_position, ips);
-        do_constexpr_fail(result);
-        break;
+        /* This is not a static variable of interest. */
+        continue;
       }  /* if */
       tp = skip_typerefs(tp);
       alloc_static_object(ips, tp, var_bytes, &result);
@@ -7266,7 +7265,12 @@ done_with_return_statement:
       break;
     case stmk_decl:
       /* Nothing to do; variables are allocated when the scope is opened and
-         initialized through stmk_init statements. */
+         initialized through stmk_init statements.  However, static-storage
+         variables should not be permitted. */
+      if (stmt->variant.decl.has_static_or_thread_variable) {
+        info_with_pos(ec_constexpr_local_static, &stmt->position, ips);
+        do_constexpr_fail(result);
+      }  /* if */
       break;
     case stmk_empty:
       /* Nothing to do. */

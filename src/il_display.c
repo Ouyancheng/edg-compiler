@@ -2953,6 +2953,9 @@ Display the indicated variable.
   if (ptr->is_template_param_object) {
     disp_boolean("is_template_param_object", TRUE);
   }  /* if */
+  if (ptr->compiler_generated) {
+    disp_boolean("compiler_generated", TRUE);
+  }  /* if */
   disp_initializer(ptr->init_kind, &ptr->initializer,
                    ptr->is_member_constant);
   if (ptr->entities_defined_in_initializer != NULL) {
@@ -5419,6 +5422,9 @@ do_label:
       /* "Decl" pseudo-statement. */
       (void)printf("stmk_decl\n");
       disp_entity_list("entities", ptr->variant.decl.entities);
+      if (ptr->variant.decl.has_static_or_thread_variable) {
+        disp_boolean("decl.has_static_or_thread_variable", TRUE);
+      }  /* if */
       break;
     case stmk_set_vla_size:
       (void)printf("stmk_set_vla_size\n");

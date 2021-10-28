@@ -37267,6 +37267,7 @@ which of the various keywords was used.
     }  /* if */
     name_var = make_variable(var_type, (a_storage_class)sc_static,
                              depth_innermost_function_scope);
+    name_var->compiler_generated = TRUE;
 #if BACK_END_IS_CP_GEN_BE
     /* The name of the variable is the token name, e.g., __FUNCTION__.
        Therefore references to the variable will look like the original

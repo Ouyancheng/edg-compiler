@@ -2621,6 +2621,7 @@ Clear the fields of the given variable to default values.
   vp->is_thread_local             = FALSE;
   vp->extends_lifetime            = FALSE;
   vp->is_template_param_object    = FALSE;
+  vp->compiler_generated          = FALSE;
   vp->init_kind                   = (an_init_kind)initk_none;
   /* One of the variant fields, chosen arbitrarily, is initialized. */
   vp->initializer.constant        = NULL;
@@ -4231,6 +4232,7 @@ fields to default values.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     case stmk_decl:
       sp->variant.decl.entities = NULL;
+      sp->variant.decl.has_static_or_thread_variable = FALSE;
       break;
     case stmk_set_vla_size:
       sp->variant.vla_dimension = NULL;

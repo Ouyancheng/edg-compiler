@@ -3287,6 +3287,7 @@ ec_already_in_consteval_context;;"already in consteval context"
 ec_if_consteval_requires_braced_dependent_statement;;"\"if consteval\" and \"if not consteval\" require braced dependent statements"
 ec_if_consteval_in_nonconstexpr_function;;"\"if consteval\" and \"if not consteval\" are meaningless in a non-constexpr function"
 ec_branch_into_if_consteval;;"transfer of control into the an \"if consteval\" or \"if not consteval\" statement is not allowed"
+ec_constexpr_local_static;;"constant-evaluation cannot go through the declaration of a variable with static or thread storage duration"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
