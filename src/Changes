@@ -25,6 +25,9 @@ For example:
   }
   static_assert(g(42) == 42);
 
+This feature was added to the working paper for the next standard by the
+standardization committee's paper P1938R3.
+
 
 10/28/21 [EDGcpfe/24800]
 C++23 mode
