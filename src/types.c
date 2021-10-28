@@ -15665,11 +15665,14 @@ template parameter specified by tparam_type or is a type tree
 containing such a reference to the type.  If deduced_only is TRUE, nondeduced
 contexts are excluded from the check.  exclude_parents is TRUE if, when
 deduced_only is FALSE, parent types should be excluded from the check
-(parents are never checked when deduced_only is TRUE).
+(parents are never checked when deduced_only is TRUE).  Type aliases are
+skipped over (i.e., the template arguments of alias template instances are
+not examined).
 */
 {
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                TTT_PARAM_TYPES |
+                                               TTT_SKIP_TYPEDEFS |
                                                TTT_NONREAL_TEMPLATE_ARGS |
                                                TTT_CLI_GENERIC_PARAMETERS);
   
@@ -15708,12 +15711,14 @@ that is an instance of the template template parameter specified
 by tparam_template.  If deduced_only is TRUE, nondeduced contexts are
 excluded from the check.  exclude_parents is TRUE if, when deduced_only
 is FALSE, parent types should be excluded from the check (parents are
-never checked when deduced_only is TRUE).
+never checked when deduced_only is TRUE).  Type aliases are skipped over
+(i.e., the template arguments of alias template instances are not examined).
 */
 {
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                TTT_PARAM_TYPES |
-                                               TTT_NONREAL_TEMPLATE_ARGS);
+                                               TTT_NONREAL_TEMPLATE_ARGS |
+                                               TTT_SKIP_TYPEDEFS);
 
   /* When including non-deduced contexts, also include parent classes. */
   if (deduced_only) {
@@ -15728,9 +15733,9 @@ never checked when deduced_only is TRUE).
     ttt_flags |= TTT_PARENT_CLASSES;
   }  /* if */
   add_implicit_ttt_flags(&ttt_flags);
-  return (traverse_type_tree(type_ptr,
-          ttt_contains_specific_template_template_param,
-          ttt_flags));
+  return traverse_type_tree(type_ptr,
+                            ttt_contains_specific_template_template_param,
+                            ttt_flags);
 }  /* type_contains_specific_template_template_param */
 
 
@@ -15744,12 +15749,15 @@ Return TRUE if the template parameter constant pointed to by cp is involved
 in the type tree represented by tp.  If deduced_only is TRUE, nondeduced
 contexts are excluded from the check.  exclude_parents is TRUE if, when
 deduced_only is FALSE, parent types should be excluded from the check
-(parents are never checked when deduced_only is TRUE).
+(parents are never checked when deduced_only is TRUE).  Type aliases are
+skipped over (i.e., the template arguments of alias template instances are
+not examined).
 */
 {
   a_type_tree_traversal_flag_set  ttt_flags = (TTT_RETURN_TYPE |
                                                TTT_PARAM_TYPES |
-                                               TTT_NONREAL_TEMPLATE_ARGS);
+                                               TTT_NONREAL_TEMPLATE_ARGS |
+                                               TTT_SKIP_TYPEDEFS);
 
   /* When including non-deduced contexts, also include parent classes. */
   if (deduced_only) {
@@ -15770,8 +15778,8 @@ deduced_only is FALSE, parent types should be excluded from the check
     ttt_flags |= TTT_PARENT_CLASSES;
   }  /* if */
   add_implicit_ttt_flags(&ttt_flags);
-  return (traverse_type_tree(tp, ttt_contains_template_param_constant,
-                             ttt_flags));
+  return traverse_type_tree(tp, ttt_contains_template_param_constant,
+                            ttt_flags);
 }  /* type_contains_specific_template_param_constant */
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS

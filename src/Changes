@@ -1,5 +1,15 @@
 Version 6.3
 
+10/28/21 [EDGcpfe/24777]
+Compilation cost of prototype instantiation of complex alias templates
+
+In some complex situations, the function alias_prototype_instantiation could
+spend excessive time establishing which of the template parameters are actually
+used in the aliased type (via function template_param_used_in_type).  For
+cases where this was observed, that cost has now been reduced to produce near-
+instantaneous compilation times.
+ 
+
 10/28/21 [EDGcpfe/24780]
 C++23: More relaxed constexpr function definitions
 
