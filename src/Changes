@@ -1,6 +1,6 @@
 Version 6.3
 
-10/25/21 [EDGcpfe/24773]
+10/28/21 [EDGcpfe/24773]
 C++23: if consteval/if not consteval
 
 In C++23 mode, the front end now accepts the "if consteval" and "if not
@@ -18,7 +18,7 @@ For example:
   static_assert(g(42) == 42);
 
 
-10/25/21 [EDGcpfe/24800]
+10/28/21 [EDGcpfe/24800]
 C++23 mode
 
 The front end now accepts a new "--c++23" command-line option (as does the
