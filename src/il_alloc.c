@@ -4103,8 +4103,10 @@ fields to default values.
       /* No variant fields. */
       break;
     case stmk_if:
+    case stmk_if_consteval:
+    case stmk_if_not_consteval:
       sp->variant.if_stmt.then_statement =
-          sp->variant.if_stmt.else_statement = NULL;
+      sp->variant.if_stmt.else_statement = NULL;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       sp->variant.if_stmt.else_position = null_source_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */

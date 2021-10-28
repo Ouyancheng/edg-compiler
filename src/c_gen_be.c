@@ -9860,6 +9860,8 @@ Generate C for a statement.
          depending on how the IL has been lowered up until this point. */
       dump_expression(statement->expr);
       break;
+    case stmk_if_consteval:
+    case stmk_if_not_consteval:
     default:
       unexpected_condition_str("dump_statement: bad statement kind");
   }  /* switch */

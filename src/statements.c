@@ -571,6 +571,7 @@ to it.
       cfdp->variant.block.is_statement_expr = FALSE;
       cfdp->variant.block.is_within_goto_protected_block = FALSE;
       cfdp->variant.block.is_constexpr_if = FALSE;
+      cfdp->variant.block.is_if_consteval_branch = FALSE;
       break;
     case cfdk_init:
       cfdp->variant.init.statement = NULL;
@@ -725,7 +726,8 @@ static a_boolean check_for_branch_into_goto_protected_block(
                                       a_control_flow_descr_ptr  goto_cfdp)
 /*
 Check for an attempt to branch into a try block, a catch clause (an
-exception handler), a C++/CLI finally clause, or a GNU statement expression.
+exception handler), a constexpr if (C++17), an "if consteval"/"if not
+consteval" statement, a C++/CLI finally clause, or a GNU statement expression.
 Either label_cfdp points to a label entry and goto_cfdp to a goto entry, or
 else label_cfdp points to a case label entry and goto_cfdp is NULL (in which
 case we need to find the switch with which the case label is associated).  If
@@ -745,6 +747,7 @@ an error is found, issue the diagnostic and return TRUE.
            !cfdp->variant.block.is_finally_block &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
            !cfdp->variant.block.is_constexpr_if &&
+           !cfdp->variant.block.is_if_consteval_branch &&
            !cfdp->variant.block.is_statement_expr) {
       cfdp = cfdp->parent;
       check_assertion(cfdp != NULL);
@@ -788,6 +791,8 @@ an error is found, issue the diagnostic and return TRUE.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       } else if (cfdp->variant.block.is_constexpr_if) {
         err_code = ec_branch_into_constexpr_if;
+      } else if (cfdp->variant.block.is_if_consteval_branch) {
+        err_code = ec_branch_into_if_consteval;
       } else {
         unexpected_condition_str(
              "check_for_branch_into_goto_protected_block: unknown block kind");
@@ -1547,6 +1552,8 @@ should be set to TRUE.
     ssp = sssep->statement;
     switch(ssp->kind) {
       case stmk_if:
+      case stmk_if_consteval:
+      case stmk_if_not_consteval:
         if (sssep->in_else_of_if) {
           head_ptr = &ssp->variant.if_stmt.else_statement;
         } else {
@@ -2941,6 +2948,15 @@ statement is the top block of a GNU statement expression ({ ... }).
              try block statement. */
           cfdp->variant.block.is_try_block = TRUE;
           cfdp->variant.block.is_within_goto_protected_block = TRUE;
+        } else if (sssep[-1].kind == (a_struct_stmt_kind)ssk_if &&
+                   (sssep[-1].statement->kind ==
+                                   (a_statement_kind)stmk_if_consteval ||
+                    sssep[-1].statement->kind ==
+                                   (a_statement_kind)stmk_if_not_consteval)) {
+          /* This block represents a compound statement immediately within an
+             "if consteval" or "if not "consteval" statement. */
+          cfdp->variant.block.is_within_goto_protected_block = TRUE;
+          cfdp->variant.block.is_if_consteval_branch = TRUE;
         } else if (sssep[-1].kind == (a_struct_stmt_kind)ssk_constexpr_if) {
           /* This block represents the compound statement immediately within a
              constexpr if. */
@@ -3255,7 +3271,7 @@ a structured statement has ended.
                        &sssep->fallthrough_statement->position);
       }  /* if */
     } else if (kind == ssk_if && sp->variant.if_stmt.else_statement == NULL &&
-               !is_true_constant_expr(sp->expr)) {
+               (sp->expr == NULL || !is_true_constant_expr(sp->expr))) {
       /* If without an else, except "if (1) ...".  If the initial statement
          can be reached, the end can be reached. */
       merge_reachability(&sssep->start_reachable, &sssep->end_reachable);
@@ -4043,39 +4059,58 @@ static void if_statement(void)
 Scan an "if" statement (with or without else) and add it to the current
 statement sequence.  The syntax is:
 
+
         if constexpr   ( condition ) statement
                     opt
         if constexpr   ( condition ) statement else statement
                     opt
-
+        if !    consteval statement
+            opt
+        if !    consteval statement else statement
+            opt
 */
 {
-  a_statement_ptr		sp;
-  a_boolean			is_condition_decl = FALSE;
-  a_statement_kind		kind;
-  a_struct_stmt_kind		ssk_kind;
-  a_boolean			is_constexpr_if;
-  a_constexpr_if_ptr		cip = NULL;
-  a_constexpr_if_cache_info	local_cici;
-  a_constexpr_if_cache_info_ptr	cicip_to_create = NULL;
-  a_constexpr_if_cache_info_ptr	cicip_to_use = NULL;
-  a_token_sequence_number	start_tsn;
-  a_source_position		expr_pos;
+  a_statement_ptr            sp;
+  a_boolean                  is_condition_decl = FALSE;
+  a_statement_kind           kind;
+  a_struct_stmt_kind         ssk_kind;
+  a_boolean                  is_constexpr_if = FALSE, is_if_consteval = FALSE;
+  a_constexpr_if_ptr         cip = NULL;
+  a_constexpr_if_cache_info  local_cici,
+                             *cicip_to_create = NULL, *cicip_to_use = NULL;
+  a_token_sequence_number    start_tsn;
+  a_source_position          expr_pos;
 
   db_enter(3, "if_statement");
 
   check_for_unreachable_code();
   /* Push a scope in C99 mode. */
   if (c99_mode) push_statement_scope();
-  /* Check for a C++17 "if constexpr" statement. */
-  if (constexpr_if_enabled && next_token() == tok_constexpr) {
-    kind = (a_statement_kind)stmk_constexpr_if;
-    ssk_kind = ssk_constexpr_if;
-    is_constexpr_if = TRUE;
-  } else {
+  /* Check for a C++17 "if constexpr" or a C++23 "if consteval"/"if not
+     consteval" statement. */
+  if (constexpr_if_enabled || if_consteval_enabled) {
+    a_token_kind  next_tok = next_token();
+    if (constexpr_if_enabled && next_tok == tok_constexpr) {
+      kind = (a_statement_kind)stmk_constexpr_if;
+      ssk_kind = ssk_constexpr_if;
+      is_constexpr_if = TRUE;
+    } else if (if_consteval_enabled && next_tok == tok_consteval) {
+      kind = (a_statement_kind)stmk_if_consteval;
+      ssk_kind = ssk_if;
+      is_if_consteval = TRUE;
+    } else if (if_consteval_enabled && next_tok == tok_not) {
+      a_token_kind  next_next_tok;
+      if (next_two_tokens(tok_not, &next_next_tok) == tok_not &&
+          next_next_tok == tok_consteval) {
+        kind = (a_statement_kind)stmk_if_not_consteval;
+        ssk_kind = ssk_if;
+        is_if_consteval = TRUE;
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!is_constexpr_if && !is_if_consteval) {
     kind = (a_statement_kind)stmk_if;
     ssk_kind = ssk_if;
-    is_constexpr_if = FALSE;
   }  /* if */
   /* Allocate the statement. */
   sp = add_statement(kind);
@@ -4102,80 +4137,87 @@ statement sequence.  The syntax is:
     sssep->scope_stack_in_discarded_statement_state =
                                       scope_stack_top().in_discarded_statement;
     cip = sp->variant.constexpr_if;
+  } else if (is_if_consteval) {
+    expr_pos = pos_curr_token;
+    if (curr_token == tok_not) (void)get_token();
+    (void)get_token();
   }  /* if */
-  /* Check for and skip the opening parenthesis. */
-  (void)required_token(tok_lparen, ec_exp_lparen);
-  add_stop_token(tok_rparen);
-  expr_pos = pos_curr_token;
-  /* Scan the condition, which in C++ may be a condition declaration, and in
-     C++17 may include a leading initialization statement. */
-  scan_condition(sp, &is_condition_decl);
-  if (is_constexpr_if) {
-    /* A constexpr if.  Attempt to fold the condition.  In the case of a
-       condition declaration, we can just fold the underlying (generated)
-       expression: The interpreter will load any constexpr variables as
-       needed.  Similarly, a C++17-style initialization statement needs no
-       special treatment: The interpreter will load constant-valued variables
-       as needed. */
-    an_expr_node_ptr               condition_expr;
-    a_struct_stmt_stack_entry_ptr  sssep;
-    a_boolean                      value_known, expr_is_true = FALSE;
-    a_constant_ptr                 folded_con = local_constant();
-    a_diag_list                    diag_list;
-    if (is_condition_decl) {
-      condition_expr = sp->expr->variant.condition->expr;
-    } else {
-      condition_expr = sp->expr;
-    }  /* if */
-    clear_diag_list(&diag_list);
-    if (interpret_expr(condition_expr, /*is_constexpr_evaluated=*/TRUE,
-                       /*force_prvalue=*/TRUE, folded_con, &diag_list)) {
-      value_known = TRUE;
-      if (!is_error_constant(folded_con) && !is_false_constant(folded_con)) {
-        expr_is_true = TRUE;
+  if (!is_if_consteval) {
+    /* Check for and skip the opening parenthesis. */
+    (void)required_token(tok_lparen, ec_exp_lparen);
+    add_stop_token(tok_rparen);
+    expr_pos = pos_curr_token;
+    /* Scan the condition, which in C++ may be a condition declaration, and in
+       C++17 may include a leading initialization statement. */
+    scan_condition(sp, &is_condition_decl);
+    if (is_constexpr_if) {
+      /* A constexpr if.  Attempt to fold the condition.  In the case of a
+         condition declaration, we can just fold the underlying (generated)
+         expression: The interpreter will load any constexpr variables as
+         needed.  Similarly, a C++17-style initialization statement needs no
+         special treatment: The interpreter will load constant-valued variables
+         as needed. */
+      an_expr_node_ptr               condition_expr;
+      a_struct_stmt_stack_entry_ptr  sssep;
+      a_boolean                      value_known, expr_is_true = FALSE;
+      a_constant_ptr                 folded_con = local_constant();
+      a_diag_list                    diag_list;
+      if (is_condition_decl) {
+        condition_expr = sp->expr->variant.condition->expr;
+      } else {
+        condition_expr = sp->expr;
       }  /* if */
-    } else {
-      value_known = FALSE;
-      if (!is_template_dependent_context() && expr_error_should_be_issued()) {
-        a_diagnostic_ptr  dp;
-        dp = pos_start_error(ec_expr_not_constant, &expr_pos);
-        add_more_info_list(dp, &diag_list);
-        end_diagnostic(dp);
+      clear_diag_list(&diag_list);
+      if (interpret_expr(condition_expr, /*is_constexpr_evaluated=*/TRUE,
+                         /*force_prvalue=*/TRUE, folded_con, &diag_list)) {
+        value_known = TRUE;
+        if (!is_error_constant(folded_con) && !is_false_constant(folded_con)) {
+          expr_is_true = TRUE;
+        }  /* if */
+      } else {
+        value_known = FALSE;
+        if (!is_template_dependent_context() &&
+            expr_error_should_be_issued()) {
+          a_diagnostic_ptr  dp;
+          dp = pos_start_error(ec_expr_not_constant, &expr_pos);
+          add_more_info_list(dp, &diag_list);
+          end_diagnostic(dp);
+        }  /* if */
       }  /* if */
-    }  /* if */
-    discard_more_info_list(&diag_list);
-    release_local_constant(&folded_con);
-    sssep = &struct_stmt_stack[depth_stmt_stack];
-    if (is_template_dependent_context()) {
-      sssep->dependent_constexpr_if = TRUE;
-      /* Clear the local entry used to record the cache positions for dependent
-         constexpr ifs.  A copy will be made when this is added to the
-         hash table. */
-      cicip_to_create = &local_cici;
-      clear_constexpr_if_cache_info(cicip_to_create);
-      cicip_to_create->token_cache = get_token_cache_being_scanned();
-    } else {
-      check_assertion_or_expect_error(value_known);
-      if (is_real_instantiation_context()) {
-        /* Look for template cache information saved during function template
-           prototype instantiation.  Save information about the token cache
-           currently being scanned. */
-        cicip_to_use = check_constexpr_if_cache_hash_table(start_tsn);
-        check_assertion(cicip_to_use == NULL ||
-                        cicip_to_use->ending_handle->token_sequence_number >
+      discard_more_info_list(&diag_list);
+      release_local_constant(&folded_con);
+      sssep = &struct_stmt_stack[depth_stmt_stack];
+      if (is_template_dependent_context()) {
+        sssep->dependent_constexpr_if = TRUE;
+        /* Clear the local entry used to record the cache positions for
+           dependent constexpr ifs.  A copy will be made when this is added to
+           the hash table. */
+        cicip_to_create = &local_cici;
+        clear_constexpr_if_cache_info(cicip_to_create);
+        cicip_to_create->token_cache = get_token_cache_being_scanned();
+      } else {
+        check_assertion_or_expect_error(value_known);
+        if (is_real_instantiation_context()) {
+          /* Look for template cache information saved during function template
+             prototype instantiation.  Save information about the token cache
+             currently being scanned. */
+          cicip_to_use = check_constexpr_if_cache_hash_table(start_tsn);
+          check_assertion(cicip_to_use == NULL ||
+                          cicip_to_use->ending_handle->token_sequence_number >
                                                    curr_token_sequence_number);
+        }  /* if */
+        cip->value_known = value_known;
+        cip->value = expr_is_true;
       }  /* if */
-      cip->value_known = value_known;
-      cip->value = expr_is_true;
+      /* Set the discarded flag to the appropriate value for the "then"
+         statement. */
+      set_in_discarded_statement_flag(!sssep->dependent_constexpr_if &&
+                                      !expr_is_true);
     }  /* if */
-    /* Set the discarded flag to the appropriate value for the "then"
-       statement. */
-    set_in_discarded_statement_flag(!sssep->dependent_constexpr_if &&
-                                    !expr_is_true);
+    /* Check for and skip the closing parenthesis. */
+    (void)required_token(tok_rparen, ec_exp_rparen);
+    remove_stop_token(tok_rparen);
   }  /* if */
-  /* Check for and skip the closing parenthesis. */
-  (void)required_token(tok_rparen, ec_exp_rparen);
-  remove_stop_token(tok_rparen);
   /* Scan the "then" statement.  If it is an empty statement not followed by
      an "else" clause, issue a remark. */
   if (curr_token == tok_semicolon && next_token() != tok_else) {
@@ -4189,8 +4231,27 @@ statement sequence.  The syntax is:
     /* We were able to skip directly to the "else" token of a constexpr if. */
     empty_statement();
   } else {
+    a_boolean  saved_in_consteval_context =
+                                       scope_stack_top().in_consteval_context;
     add_stop_token(tok_else);
+    if (is_if_consteval) {
+      if (scope_stack_top().in_consteval_context) {
+        pos_warning(ec_already_in_consteval_context, &expr_pos);
+      } else {
+        a_routine_ptr  rp = current_routine_entry();
+        if (!rp->is_constexpr) {
+          pos_warning(ec_if_consteval_in_nonconstexpr_function, &expr_pos);
+        }  /* if */
+      }  /* if */
+      scope_stack_top().in_consteval_context =
+                                  kind == (a_statement_kind)stmk_if_consteval;
+      if (curr_token != tok_lbrace) {
+        pos_error(ec_if_consteval_requires_braced_dependent_statement,
+                  &pos_curr_token);
+      }  /* if */
+    }  /* if */
     dependent_statement_of_if();
+    scope_stack_top().in_consteval_context = saved_in_consteval_context;
     remove_stop_token(tok_else);
   }  /* if */
   /* Scan "else" and another statement if they appear. */
@@ -4209,8 +4270,13 @@ statement sequence.  The syntax is:
       cicip_to_create->else_handle = curr_cached_token_handle;
     }  /* if */
     (void)get_token();
-    /* Issue a remark if the "else" statement is an empty statement. */
-    if (curr_token == tok_semicolon) {
+    if (is_if_consteval) {
+      if (curr_token != tok_lbrace) {
+        pos_error(ec_if_consteval_requires_braced_dependent_statement,
+                  &pos_curr_token);
+      }  /* if */
+    } else if (curr_token == tok_semicolon) {
+      /* Issue a remark if the "else" statement is an empty statement. */
       pos_remark(ec_empty_else_statement, &error_position);
     }  /* if */
     /* We don't try to reuse the sssep value from above in case the stack
@@ -4230,8 +4296,13 @@ statement sequence.  The syntax is:
       /* We were able to skip directly to the final token of a constexpr if. */
       empty_statement();
     } else {
+      a_boolean  saved_in_consteval_context =
+                                       scope_stack_top().in_consteval_context;
+      scope_stack_top().in_consteval_context =
+                              kind == (a_statement_kind)stmk_if_not_consteval;
       start_stmt_clause(sssep);
       dependent_statement_of_if();
+      scope_stack_top().in_consteval_context = saved_in_consteval_context;
     }  /* if */
     /* There should always be a non-NULL else-statement pointer. */
     check_assertion_str((is_constexpr_if

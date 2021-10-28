@@ -2792,6 +2792,8 @@ Dump a statement kind, for debug purposes.
     case stmk_empty:            s = "empty";             break;
     case stmk_expr:             s = "expr";              break;
     case stmk_if:               s = "if";                break;
+    case stmk_if_consteval:     s = "if consteval";      break;
+    case stmk_if_not_consteval: s = "if not consteval";  break;
     case stmk_constexpr_if:     s = "constexpr if";      break;
     case stmk_while:            s = "while";             break;
     case stmk_goto:             s = "goto";              break;
@@ -2997,15 +2999,17 @@ the dump (this one counts as the first).
                             how_deep-1);
           break;
         case stmk_if:
+        case stmk_if_consteval:
+        case stmk_if_not_consteval:
         case stmk_constexpr_if:
           {
             a_statement_ptr then_statement, else_statement;
-            if (sp->kind == (a_statement_kind)stmk_if) {
-              then_statement = sp->variant.if_stmt.then_statement;
-              else_statement = sp->variant.if_stmt.else_statement;
-            } else {
-              then_statement = sp->variant.constexpr_if->then_statement;
-              else_statement = sp->variant.constexpr_if->else_statement;
+            if (sp->kind == (a_statement_kind)stmk_constexpr_if) {
+               then_statement = sp->variant.constexpr_if->then_statement;
+               else_statement = sp->variant.constexpr_if->else_statement;
+             } else {
+               then_statement = sp->variant.if_stmt.then_statement;
+               else_statement = sp->variant.if_stmt.else_statement;
             }  /* if */
             if (how_deep > 1) {
               if (then_statement == NULL) {
@@ -24990,6 +24994,8 @@ Copy a statement entry from "from" to "to".
   /* Patch up subordinate parent pointers and similar "back" pointers. */
   switch (to->kind) {
     case stmk_if:
+    case stmk_if_consteval:
+    case stmk_if_not_consteval:
       /* Update the "then" and "else" (if present) branch parents. */
       to->variant.if_stmt.then_statement->parent = to;
       if (to->variant.if_stmt.else_statement != NULL) {

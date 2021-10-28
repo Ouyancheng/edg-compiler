@@ -3641,7 +3641,11 @@ as specified in the control block.
       traverse_expr(statement->expr, tblock);
       break;
     case stmk_if:
-      traverse_expr(statement->expr, tblock);
+    case stmk_if_consteval:
+    case stmk_if_not_consteval:
+      if (statement->expr != NULL) {
+        traverse_expr(statement->expr, tblock);
+      }  /* if */
       if (tblock->terminate) goto end_of_routine;
       if (statement->variant.if_stmt.then_statement != NULL) {
         traverse_statement(statement->variant.if_stmt.then_statement, tblock);

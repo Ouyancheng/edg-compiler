@@ -2498,6 +2498,12 @@ by the C++20 standard or later C++ standards.
 */
 #define cpp20_mode (!C_mode() && std_version >= 202002)
 
+/*
+Macro that is TRUE when the front end should accept language features defined
+by the C++23 standard or later C++ standards.
+*/
+#define cpp23_mode (!C_mode() && std_version >= 202300)
+
 EXTERN a_boolean
 		right_shift_can_be_angle_brackets;
 			/* When TRUE, treat right shift (">>") tokens as

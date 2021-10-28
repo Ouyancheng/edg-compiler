@@ -1468,6 +1468,9 @@ of lambda expressions.
   /* Push the name scope for the routine body. */
   scope_ptr = push_scope((a_scope_kind)sck_function, scope_number,
                          (a_type_ptr)NULL, rout_ptr);
+  if (rout_ptr->is_consteval) {
+    scope_stack_top().in_consteval_context = TRUE;
+  }  /* if */
   if (func_info->lambda != NULL) {
     a_symbol_ptr  call_op_sym;
     if (func_info->lambda != NULL) {

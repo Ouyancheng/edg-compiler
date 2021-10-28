@@ -2164,6 +2164,8 @@ do_set_proper_definition_needed_flag:
             /* No additional pointers. */
             break;
           case stmk_if:
+          case stmk_if_consteval:
+          case stmk_if_not_consteval:
             walk_ptr(eptr->variant.if_stmt.then_statement, a_statement_ptr,
                      iek_statement);
             walk_ptr(eptr->variant.if_stmt.else_statement, a_statement_ptr,

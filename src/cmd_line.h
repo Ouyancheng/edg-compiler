@@ -342,6 +342,7 @@ typedef enum /*an_option_kind*/ {
   optk_exc_spec_in_func_type,
   optk_aligned_new,
   optk_cpp20_mode,
+  optk_cpp23_mode,
   optk_ms_std_preproc,
   optk_char8_t,
   optk_relaxed_abstract_checking,
@@ -1716,6 +1717,10 @@ EXTERN a_boolean
 EXTERN a_boolean
 		constexpr_if_enabled;
 			/* TRUE if C++17 "if constexpr" is enabled. */
+
+EXTERN a_boolean
+		if_consteval_enabled;
+			/* TRUE if C++23 "if consteval" is enabled. */
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED

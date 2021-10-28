@@ -5261,7 +5261,13 @@ Display the indicated statement.
       }  /* if */
       break;
     case stmk_if:
-      (void)printf("stmk_if\n");
+    case stmk_if_consteval:
+    case stmk_if_not_consteval:
+      (void)printf(
+          ptr->kind == (a_statement_kind)stmk_if ? "stmk_if\n" :
+          ptr->kind == (a_statement_kind)stmk_if_consteval ?
+                                                   "stmk_if_consteval\n"
+                                                 : "stmk_if_not_consteval\n");
       disp_ptr("expr", (char *)ptr->expr, iek_expr_node);
       disp_ptr("then_statement", (char *)ptr->variant.if_stmt.then_statement,
                iek_statement);

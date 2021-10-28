@@ -19355,17 +19355,25 @@ one that yields the value) of a statement expression.
       break;
     case stmk_if:
     case stmk_constexpr_if:
+    case stmk_if_consteval:
+    case stmk_if_not_consteval:
       {
         a_statement_ptr then_statement, else_statement;
         a_const_char	*stmt_start;
-        if (kind == (a_statement_kind)stmk_if) {
-          then_statement = statement->variant.if_stmt.then_statement;
-          else_statement = statement->variant.if_stmt.else_statement;
-          stmt_start = "if (";
-        } else {
+        if (kind == (a_statement_kind)stmk_constexpr_if) {
           then_statement = statement->variant.constexpr_if->then_statement;
           else_statement = statement->variant.constexpr_if->else_statement;
           stmt_start = "if constexpr (";
+        } else
+          then_statement = statement->variant.if_stmt.then_statement;
+          else_statement = statement->variant.if_stmt.else_statement;
+          if (kind == (a_statement_kind)stmk_if_consteval) {
+            stmt_start = "if (";
+          } else if (kind == (a_statement_kind)stmk_if_consteval) {
+            stmt_start = "if consteval";
+          } else {
+            stmt_start = "if !consteval";
+          }  /* if */
         }  /* if */
         /* "if" statement: generate "if (expr) statement" or
                                     "if (expr) statement else statement". */
@@ -19378,8 +19386,11 @@ one that yields the value) of a statement expression.
         }  /* if */
 #endif /* ADD_BRACES_TO_AVOID_DANGLING_ELSE_IN_GENERATED_C */
         write_tok_str(stmt_start);
-        gen_condition(statement);
-        write_tok_ch(')');
+        if (kind != (a_statement_kind)stmk_if_consteval &&
+            kind != (a_statement_kind)stmk_if_not_consteval) {
+           gen_condition(statement);
+           write_tok_ch(')');
+         }  /* if */
         write_space();
         /* Generate the "then" part. */
         gen_statement(then_statement);

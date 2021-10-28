@@ -3283,6 +3283,10 @@ ec_global_module_source_conflict;;"declaration owned by global module conflicts 
 ec_bad_malloc_attribute;;"the first argument to a \"malloc\" attribute must be a function"
 ec_cannot_capture_var;;"cannot capture %nod"
 ec_cannot_capture_this;;"cannot capture \"this\""
+ec_already_in_consteval_context;;"already in consteval context"
+ec_if_consteval_requires_braced_dependent_statement;;"\"if consteval\" and \"if not consteval\" require braced dependent statements"
+ec_if_consteval_in_nonconstexpr_function;;"\"if consteval\" and \"if not consteval\" are meaningless in a non-constexpr function"
+ec_branch_into_if_consteval;;"transfer of control into the an \"if consteval\" or \"if not consteval\" statement is not allowed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -2886,9 +2886,10 @@ the scope being pushed.
         kind == (a_scope_kind)sck_class_struct_union ||
         kind == (a_scope_kind)sck_class_reactivation) {
       /* If we are entering a class context or a lambda, don't inherit the
-         discarded statement context. */
+         discarded statement context, nor the "if consteval" context. */
     } else {
       ssep->in_discarded_statement = (ssep-1)->in_discarded_statement;
+      ssep->in_consteval_context = (ssep-1)->in_consteval_context;
     }  /* if */
   }  /* if */
   ssep->is_rescan = (options & PS_IS_RESCAN) != 0;

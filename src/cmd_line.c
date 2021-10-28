@@ -1443,6 +1443,8 @@ Initialize the option information table.
                          /*arg_required=*/FALSE, pchek_command_line);
   add_option_description(optk_cpp20_mode, "c++20", '\0', /*value=*/TRUE,
                          /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_cpp23_mode, "c++23", '\0', /*value=*/TRUE,
+                         /*arg_required=*/FALSE, pchek_command_line);
 #endif /* CPP11_IL_EXTENSIONS_SUPPORTED */
   add_option_description(optk_list_macros, "list_macros", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE, pchek_none);
@@ -2342,7 +2344,8 @@ is specified.
       option_kind_used[(int)optk_cpp11_mode] ||
       option_kind_used[(int)optk_cpp14_mode] ||
       option_kind_used[(int)optk_cpp17_mode] ||
-      option_kind_used[(int)optk_cpp20_mode]) {
+      option_kind_used[(int)optk_cpp20_mode] ||
+      option_kind_used[(int)optk_cpp23_mode]) {
     /* C++ mode was enabled by a command line option. */
     result = TRUE;
   }  /* if */
@@ -3960,6 +3963,9 @@ default mode (e.g., exception handling).
         }  /* if */
         export_keyword_enabled = FALSE;
         floating_point_template_parameters_allowed = TRUE;
+        if (cpp23_mode) {
+          if_consteval_enabled = TRUE;
+        }  /* if */
       }  /* if */
     }  /* if */
   }  /* if */
@@ -11054,16 +11060,21 @@ enable_microsoft_mode:
         /* Enable or disable __is_union, __has_virtual_destructor, etc. */
         type_traits_helpers_enabled = opt_value;
         break;
-      case optk_cpp17_mode:
-        /* Enable C++ features added as part of C++17. */
-        std_version = 201703;
+      case optk_cpp23_mode:
+        /* Enable C++ features added as part of C++23.  The value used for
+           std_version below is just a placeholder until the official value
+           (and standard name) is known. */
+        std_version = 202300;
         set_C_dialect(C_dialect_cplusplus);
         break;
       case optk_cpp20_mode:
-        /* Enable C++ features added as part of C++20.  The value used for
-           std_version below is just a placeholder until the official value
-           (and standard name) is known. */
+        /* Enable C++ features added as part of C++20. */
         std_version = 202002;
+        set_C_dialect(C_dialect_cplusplus);
+        break;
+      case optk_cpp17_mode:
+        /* Enable C++ features added as part of C++17. */
+        std_version = 201703;
         set_C_dialect(C_dialect_cplusplus);
         break;
       case optk_cpp14_mode:
@@ -12421,6 +12432,7 @@ variables declared in cmd_line.h.
   enumerator_attributes_enabled = FALSE;
   variable_templates_enabled = FALSE;
   constexpr_if_enabled = FALSE;
+  if_consteval_enabled = FALSE;
   alignas_enabled = FALSE;
   alignof_enabled = FALSE;
   pragma_pack_enabled = TRUE;

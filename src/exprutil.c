@@ -1842,7 +1842,9 @@ is pushed regardless of any of the other factors.
   new_entry->traditional_const_expr_required = FALSE;
   new_entry->in_noexcept_operand_expression = FALSE;
   new_entry->suppress_constexpr_call_folding = FALSE;
-  new_entry->consteval_call_need_not_fold = FALSE;
+  new_entry->consteval_call_need_not_fold =
+                      (depth_scope_stack != NO_SCOPE_DEPTH) ? 
+                               scope_stack_top().in_consteval_context : FALSE;
   new_entry->consteval_function_designator_seen = FALSE;
   new_entry->allow_call_with_incomplete_return_type = FALSE;
   new_entry->allow_array_decay_in_constant_expr = FALSE;
@@ -6636,8 +6638,9 @@ function).  In such cases, record a pending diagnostic if appropriate.
 {
   a_boolean  result;
 
-  if (!(expr_stack != NULL && expr_stack->is_default_arg_expression &&
-        expr_stack->consteval_call_need_not_fold) &&
+  if (!(expr_stack != NULL &&
+        (expr_stack->is_default_arg_expression ||
+         expr_stack->consteval_call_need_not_fold)) &&
       (innermost_function_scope == NULL ||
        !current_routine_entry()->is_consteval)) {
     if (expr_stack != NULL && expr_stack->in_call_argument) {

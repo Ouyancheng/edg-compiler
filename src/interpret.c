@@ -6955,36 +6955,52 @@ successfully interpreted, FALSE otherwise.
       break;
     case stmk_if:
     case stmk_constexpr_if:
+    case stmk_if_consteval:
+    case stmk_if_not_consteval:
       {
         a_boolean             has_cond_var;
         a_host_large_integer  bool_val;
         a_statement_ptr       then_statement, else_statement;
-        if (stmt->kind == (a_statement_kind)stmk_if) {
-          then_statement = stmt->variant.if_stmt.then_statement;
-          else_statement = stmt->variant.if_stmt.else_statement;
-        } else {
+        if (stmt->kind == (a_statement_kind)stmk_constexpr_if) {
           then_statement = stmt->variant.constexpr_if->then_statement;
           else_statement = stmt->variant.constexpr_if->else_statement;
+        } else {
+          then_statement = stmt->variant.if_stmt.then_statement;
+          else_statement = stmt->variant.if_stmt.else_statement;
         }  /* if */
         expr = stmt->expr;
-        /* Check if we have to allocate a condition variable. */
-        has_cond_var = node_is(expr, enk_condition);
-        if (has_cond_var &&
-            !do_constexpr_condition_alloc(ips, expr, &saved_stack)) {
-          do_constexpr_fail(result);
-          break;
+        if (expr == NULL) {
+          /* "if consteval ..." or "if not consteval". */
+          if (!ips->is_constant_evaluated) {
+            do_constexpr_fail(result);
+          } else {
+            bool_val = stmt->kind == (a_statement_kind)stmk_if_consteval;
+          }  /* if */
+          has_cond_var = FALSE;
+        } else {
+          /* Check if we have to allocate a condition variable. */
+          has_cond_var = (expr->kind == (an_expr_node_kind)enk_condition);
+          if (has_cond_var &&
+              !do_constexpr_condition_alloc(ips, expr, &saved_stack)) {
+            do_constexpr_fail(result);
+            break;
+          }  /* if */
+          /* The type of the test expression is known to be bool. */
+          tp = skip_typerefs(expr->type);
+          n_bytes = value_bytes_for_type(ips, tp, &result);
+          alloc_complete_object(ips, n_bytes, tp, expr_value);
+          if (do_constexpr_condition(has_cond_var, ips, expr, tp,
+                                     expr_value)) {
+            /* Evaluation of the test expression succeeded.  Get its value to
+               see which dependent statement should be executed. */
+            get_int_val_from(expr_value, tp, bool_val, ovfl);
+            if (ovfl) bool_val = TRUE;
+          } else {
+            result = FALSE;
+          }  /* if */
         }  /* if */
-        /* The type of the test expression is known to be bool. */
-        tp = skip_typerefs(expr->type);
-        n_bytes = value_bytes_for_type(ips, tp, &result);
-        alloc_complete_object(ips, n_bytes, tp, expr_value);
-        result = do_constexpr_condition(has_cond_var, ips, expr, tp,
-                                        expr_value);
         if (result) {
-          /* Evaluation of the test expression succeeded.  Get its value to
-             see which dependent statement should be executed. */
-          get_int_val_from(expr_value, tp, bool_val, ovfl);
-          if (ovfl || bool_val) {
+          if (bool_val) {
             /* Execute the "then" statement. */
             result = do_constexpr_statement(ips, then_statement);
           } else if (else_statement != NULL) {

@@ -183,6 +183,11 @@ typedef struct a_control_flow_descr {
 			/* TRUE if this block is the top level block of
 			   the "then" or "else" of a C++17 constexpr if
 			   statement. */
+      a_bit_field
+		is_if_consteval_branch:1;
+			/* TRUE if this block is the top level block of a
+			   dependent statement in an "if consteval" or an
+			   "if not consteval" statement. */
     } block;
     /* When kind == cfdk_init: */
     struct {

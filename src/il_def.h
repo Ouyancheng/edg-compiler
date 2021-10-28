@@ -14692,6 +14692,10 @@ enum a_statement_kind_tag {
   stmk_expr,		/* Evaluate expression, throw away its value. */
   stmk_if,		/* if-then-else. */
   stmk_constexpr_if,	/* C++17 constexpr if-then-else. */
+  stmk_if_consteval,	/* C++23 "if consteval" statement. */
+  stmk_if_not_consteval,
+			/* C++23 "if not consteval" (or "if !consteval")
+			   statement. */
   stmk_while,		/* Loop, test at top. */
   stmk_goto,		/* Goto. */
   stmk_label,		/* Code label. */
@@ -15501,7 +15505,7 @@ typedef struct a_statement {
     /* Likewise when kind == stmk_upc_notify, stmk_upc_wait, stmk_upc_barrier,
        or stmk_upc_fence. */
 #endif /* UPC_EXTENSIONS_ALLOWED */
-    /* When kind == stmk_if: */
+    /* When kind == stmk_if, stmk_if_consteval, or stmk_if_not_consteval: */
     struct {
       a_statement_ptr
                 then_statement,

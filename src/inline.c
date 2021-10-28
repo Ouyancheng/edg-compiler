@@ -1329,13 +1329,21 @@ This is useful in cases where iterative inlining can create huge routines.
         }  /* if */
         goto cannot_inline_ever;
       case stmk_if:
-        /* "if" statement. */
+        /* "if", "if consteval", or "if not consteval" statement. */
         /* See if the tested expression is known.  If so, the "if" can be
-           reduced to the "then" or "else" statement. */
+           reduced to the "then" or "else" statement.  An "if consteval" can
+           always be reduced to the "else" statement since the "then" branch
+           is only taken in constant evaluation (i.e., before inlining).
+           Similarly, "if not consteval" can be reduced to the "then" branch.
+        */
         result_is_then = result_is_else = FALSE;
         check_assertion(stmt_expr != NULL);
-        if (is_constant_node(stmt_expr) &&
-            constant_bool_value_known_at_compile_time(
+        if (statement->kind == (a_statement_kind)stmk_if_not_consteval) {
+          result_is_then = TRUE;
+        } else if (statement->kind == (a_statement_kind)stmk_if_consteval) {
+          result_is_else = TRUE;
+        } else if (is_constant_node(stmt_expr) &&
+                   constant_bool_value_known_at_compile_time(
                                                   node_constant(stmt_expr))) {
           if (is_false_constant(node_constant(stmt_expr))) {
             result_is_else = TRUE;

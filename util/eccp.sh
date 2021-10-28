@@ -671,6 +671,7 @@ check_abbreviation()
 --c++14
 --c++17
 --c++20
+--c++23
 --c++11_sfinae
 --c++11_sfinae_ignore_access
 --c++03
@@ -1428,6 +1429,7 @@ process_option()
          --c++14 | \
          --c++17 | \
          --c++20 | \
+         --c++23 | \
          --c89 | \
          --c99 | \
          --c11 | \
@@ -1716,7 +1718,8 @@ process_option()
           ;;
         -b | --c++ | \
 	--c++03 | --c++0x | --no_c++0x | --c++11 | --no_c++11 | --c++14 | \
-	--c++17 | --c++20 | --cfront_2.1 | --cfront_3.0 | --g++ | --no_g++)
+	--c++17 | --c++20 | --c++23 | --cfront_2.1 | --cfront_3.0 | \
+	--g++ | --no_g++)
           c_mode=0
           ;;
 	--no_preproc_only)

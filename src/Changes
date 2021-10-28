@@ -1,5 +1,36 @@
 Version 6.3
 
+10/25/21 [EDGcpfe/24773]
+C++23: if consteval/if not consteval
+
+In C++23 mode, the front end now accepts the "if consteval" and "if not
+consteval" constructs (the latter can also be written "if !consteval").
+For example:
+
+  consteval int f(int i) { return i; }
+  constexpr int g(int i) {
+    if consteval {
+      return f(i);  // Not an error even though i is not a constant
+                    // expression because this is a consteval context.
+    }
+    return 0;
+  }
+  static_assert(g(42) == 42);
+
+
+10/25/21 [EDGcpfe/24800]
+C++23 mode
+
+The front end now accepts a new "--c++23" command-line option (as does the
+eccp.sh script).  This option will enable features for the standard under
+development (which is expected to be completed in 2023).  For now, it sets
+the value of the global variable std_version to 202300 and the value of the
+predefined __cplusplus macro to 202300L; those values will eventually be
+updated to match the official __cplusplus value when the forthcoming standard
+is approved.  A new macro cpp23_mode is also available in the front end to
+test whether it runs in C++23 mode.
+
+
 10/25/21 [EDGcpfe/24490]
 GCC and Clang compatibility: Range of integer literals
 

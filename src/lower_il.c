@@ -19045,6 +19045,61 @@ Lower the dependent statements of the indicated "if" statement.
 }  /* lower_if_dependent_statements */
 
 
+static void lower_if_consteval(a_statement_ptr statement)
+/*
+Lower the given "if consteval" or "if not consteval" statement.  For "if
+consteval", the "then" branch is only needed during constant evaluation and
+thus the statement can be replaced by its "else" branch.  For "if not
+consteval", it's the other way around.
+*/
+{
+  a_statement_ptr  kept_stmt, dropped_stmt;
+
+  if (statement->kind == (a_statement_kind)stmk_if_consteval) {
+    /* "if consteval ...": Keep the "else" statement (or produce an empty
+       statement if there is no "else" statement). */
+    kept_stmt = statement->variant.if_stmt.else_statement;
+    dropped_stmt = statement->variant.if_stmt.then_statement;
+    if (kept_stmt != NULL) {
+      copy_statement(kept_stmt, statement);
+      lower_statement(statement);
+    } else {
+      set_statement_kind(statement, (a_statement_kind)stmk_empty);
+    }  /* if */
+  } else {
+    /* "if not consteval ...": Keep the "then" statement. */
+    kept_stmt = statement->variant.if_stmt.then_statement;
+    dropped_stmt = statement->variant.if_stmt.else_statement;
+    copy_statement(kept_stmt, statement);
+    lower_statement(statement);
+  }  /* if */
+  if (kept_stmt != NULL && kept_stmt->has_associated_pragma) {
+    /* Relink the pragma for the kept statement to its new location. */
+    a_pragma_ptr assoc_pragma, prev_assoc_pragma = NULL;
+    while ((assoc_pragma = find_assoc_pragma((char *)kept_stmt,
+                                             curr_context->scope,
+                                             (a_type_ptr)NULL,
+                                             prev_assoc_pragma)) != NULL) {
+      /* Relink the pragma to the copy of the new statement. */
+      assoc_pragma->entity.ptr = (char *)statement;
+      prev_assoc_pragma = assoc_pragma;
+    }  /* while */
+    statement->has_associated_pragma = TRUE;
+  }  /* if */
+  if (dropped_stmt != NULL && dropped_stmt->has_associated_pragma) {
+    /* Drop the pragmas associated with the dropped statement. */
+    a_pragma_ptr  *p_pragma = &curr_context->scope->pragmas;
+    while (*p_pragma != NULL) {
+      if ((*p_pragma)->entity.ptr == (char*)dropped_stmt) {
+        *p_pragma = (*p_pragma)->next;
+      } else {
+        p_pragma = &(*p_pragma)->next;
+      }  /* if */
+    }  /* while */
+  }  /* if */
+}  /* lower_if_consteval */
+
+
 static void make_init_statements_for_entity_list(
                                       an_il_entity_list_entry_ptr ielep,
                                       an_insert_location          *insert_loc)
@@ -19108,6 +19163,9 @@ statements don't contain an enk_condition).
       /* Lower the dependent statement(s). */
       if (statement_kind == (a_statement_kind)stmk_if) {
         lower_if_dependent_statements(statement);
+      } else if (statement_kind == (a_statement_kind)stmk_if_consteval ||
+                 statement_kind == (a_statement_kind)stmk_if_not_consteval) {
+        lower_if_consteval(statement);
       } else if (statement_kind == (a_statement_kind)stmk_constexpr_if) {
         lower_constexpr_if(statement);
       } else if (statement_kind == (a_statement_kind)stmk_while) {
@@ -19950,6 +20008,8 @@ Do IL lowering of the indicated statement and everything under it.
         lower_return_statement(statement);
         break;
       case stmk_if:
+      case stmk_if_consteval:
+      case stmk_if_not_consteval:
       case stmk_while:
       case stmk_constexpr_if:
         lower_condition(statement);
