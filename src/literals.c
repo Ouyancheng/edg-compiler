@@ -532,7 +532,7 @@ ll_check:
         /* Although Clang and GCC accept types like __int128, they do not
            allow literals of those types.  Clang appears to fall back to
            unsigned long long (after issuing an error), whereas GCC falls back
-           to int (after issuing a warning. */
+           to int (after issuing a warning). */
         pos_diagnostic(clang_mode ? es_discretionary_error : es_warning,
                        ec_integer_too_large, &error_position);
         kind = clang_mode ? (an_integer_kind)ik_unsigned_long_long
