@@ -19364,7 +19364,7 @@ one that yields the value) of a statement expression.
           then_statement = statement->variant.constexpr_if->then_statement;
           else_statement = statement->variant.constexpr_if->else_statement;
           stmt_start = "if constexpr (";
-        } else
+        } else {
           then_statement = statement->variant.if_stmt.then_statement;
           else_statement = statement->variant.if_stmt.else_statement;
           if (kind == (a_statement_kind)stmk_if_consteval) {
