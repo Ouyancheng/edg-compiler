@@ -11251,9 +11251,13 @@ command line -D options.
         }  /* if */
       }  /* for */
       /* __cpp_constexpr must be handled specially, as it will have different
-         values depending on whether C++11, C++14, C++17, or C++20 constexpr
-         features are supported. */
-      if (cpp20_mode) {
+         values depending on whether C++11, C++14, C++17, C++20, or C++23
+         constexpr features are supported. */
+      if (cpp23_mode) {
+        (void)enter_predef_macro("202103L", "__cpp_constexpr",
+                                 /*cannot_be_redefined=*/TRUE,
+                                 /*ref_suppresses_pch_file=*/FALSE);
+      } else if (cpp20_mode) {
         (void)enter_predef_macro("201907L", "__cpp_constexpr",
                                  /*cannot_be_redefined=*/TRUE,
                                  /*ref_suppresses_pch_file=*/FALSE);
