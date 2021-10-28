@@ -3710,6 +3710,10 @@ disable some pre-C++11 standard features that are not always enabled in
 default mode (e.g., exception handling).
 */
 {
+  if (!(option_kind_used[(int)optk_alternative_tokens])) {
+    /* Enable alternative tokens by default in C++11 mode. */
+    alternative_tokens_allowed = TRUE;
+  }  /* if */
   if (!option_kind_used[(int)optk_exception_handling]) {
     /* Enable exceptions by default in C++11 mode. */
     exceptions_enabled = value;
