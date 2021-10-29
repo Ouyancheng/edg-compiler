@@ -19367,7 +19367,7 @@ one that yields the value) of a statement expression.
         } else {
           then_statement = statement->variant.if_stmt.then_statement;
           else_statement = statement->variant.if_stmt.else_statement;
-          if (kind == (a_statement_kind)stmk_if_consteval) {
+          if (kind == (a_statement_kind)stmk_if) {
             stmt_start = "if (";
           } else if (kind == (a_statement_kind)stmk_if_consteval) {
             stmt_start = "if consteval";

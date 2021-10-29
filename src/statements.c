@@ -4067,12 +4067,14 @@ value at the start of the evaluation of the constexpr if was FALSE.
 static void if_statement(void)
 /*
 Scan an "if" statement (with or without else) and add it to the current
-statement sequence.  The syntax is:
+statement sequence.  This function also handles a number of C++ variants:
+"if constexpr (...) ...", "if consteval ...", and "if not consteval ..."
+(where "not" can also be "!", since the two are equivalent tokens).
+The syntax is:
 
-
-        if constexpr   ( condition ) statement
+        if constexpr    ( condition ) statement
                     opt
-        if constexpr   ( condition ) statement else statement
+        if constexpr    ( condition ) statement else statement
                     opt
         if !    consteval statement
             opt

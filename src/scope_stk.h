@@ -1050,9 +1050,10 @@ typedef struct a_scope_stack_entry {
 			   it from being considered constexpr). */
   a_bit_field	in_consteval_context:1;
 			/* TRUE if this is a local scope in the "then" branch
-			   of an "if consteval" statement or in a consteval
-			   function.  FALSE within local class scopes appearing
-			   in such contexts. */
+			   of an "if consteval" statement, the "else" branch
+			   of an "if not consteval" statement, or in a
+			   consteval function.  FALSE within local class scopes
+			   appearing in such contexts. */
   a_bit_field	make_access_errors_warnings:1;
 			/* Turn access errors into warnings while this flag
 			   is set. */
