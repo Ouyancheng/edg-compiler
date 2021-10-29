@@ -10897,7 +10897,7 @@ typedef struct a_variable {
   a_bit_field
 		compiler_generated:1;
 			/* TRUE if this is a compiler-generated variable
-			   (currently only set for the variables create for
+			   (currently only set for the variables created for
 			   __func__ and similar tokens). */
   an_init_kind	init_kind;
 			/* Kind of initialization, if any.

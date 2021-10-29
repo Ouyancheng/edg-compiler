@@ -13,7 +13,7 @@ instantaneous compilation times.
 10/28/21 [EDGcpfe/24780]
 C++23: More relaxed constexpr function definitions
 
-In C++23 mode, constexpr function definitions can not contain goto statements,
+In C++23 mode, constexpr function definitions can now contain goto statements,
 label declarations, and variables of static or thread storage duration or of
 nonliteral type.  A constant-evaluation cannot, however, evaluate such a
 construct.  For example:
