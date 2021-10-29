@@ -3113,11 +3113,23 @@ that context.
   if (is_operation_node(node)) {
     if (node->variant.operation.is_consteval_call) {
       if (expr_error_should_be_issued()) {
-        a_diag_list    diag_list;
-        a_routine_ptr  rp = get_constexpr_callee(node, &diag_list);
+        a_diag_list     diag_list;
+        a_routine_ptr   rp = get_constexpr_callee(node, &diag_list);
+        a_constant_ptr  con = local_constant();
         check_assertion(rp != NULL);
-        pos_sy_error(ec_consteval_call_nonconstant, &node->position,
-                     symbol_for(rp));
+        if (interpret_constexpr_call(node, /*is_constant_evaluated=*/TRUE,
+                                     con, &diag_list)) {
+          /* We know this evaluation failed before.  It should not succeed
+             now. */
+          unexpected_condition();
+        } else {
+          a_diagnostic_ptr  dp;
+          dp = pos_sy_start_error(ec_consteval_call_nonconstant,
+                                  &node->position, symbol_for(rp));
+          add_more_info_list(dp, &diag_list);
+          end_diagnostic(dp);
+        }  /* if */
+        release_local_constant(&con);
       }  /* if */
       tblock->terminate = TRUE;
     }  /* if */
