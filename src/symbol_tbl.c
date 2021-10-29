@@ -5019,9 +5019,15 @@ severity to be used for the diagnostic when TRUE is returned.
        scopes, always issue an error at the innermost template declaration
        scope. */
     starting_depth = depth_template_declaration_scope;
-    *severity = es_error;
   }  /* if */
-  if (gpp_mode && !clang_mode && symbol_is(sym, sk_parameter)) {
+  if (clang_mode) {
+    if (!scope_stack[depth_scope_stack].template_param_decl_scope) {
+      /* Clang appears to silently accept something like: 
+            template<typename T> T T(T) {}
+         We emulate that but issue a warning. */
+      *severity = es_warning;
+    }  /* if */
+  } else if (gpp_mode && !clang_mode && symbol_is(sym, sk_parameter)) {
     /* In g++ mode, reduce the severity to a warning for a redeclaration
        that is a parameter name. */
     *severity = es_warning;

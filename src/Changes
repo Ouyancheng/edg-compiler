@@ -1,5 +1,15 @@
 Version 6.3
 
+10/29/21 [EDGcpfe/24808]
+Shadowing of template parameters
+
+The front end now accepts, with a warning, declarations like:
+
+  template<typename T> T T(T) {}
+
+in Clang C++ mode.
+
+
 10/28/21 [EDGcpfe/24777]
 Compilation cost of prototype instantiation of complex alias templates
 
