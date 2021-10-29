@@ -38,7 +38,8 @@ Alternative tokens
 
 The front end now accepts alternative tokens (digraphs like "<:" and
 alternative operator spellings like "bit_and") by default in C++11 mode.  This
-new behavior can be disabled with the --alternative_tokens command-line option.
+new behavior can be disabled with the --no_alternative_tokens command-line
+option.
 
 
 10/28/21 [EDGcpfe/24773]
