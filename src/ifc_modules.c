@@ -8727,28 +8727,18 @@ Sentence containing keyword.
       cache_token(cache, tok_builtin_bit_cast, &pos);
       break;
     case ifc_SourceKeyword_MsvcBuiltinIsLayoutCompatible:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag(
-                                "SourceKeyword::MsvcBuiltinIsLayoutCompatible",
-                                &error_position);
+      cache_token(cache, tok_builtin_is_layout_compatible, &pos);
       break;
     case ifc_SourceKeyword_MsvcBuiltinIsPointerInterconvertibleBaseOf:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag(
-                   "SourceKeyword::MsvcBuiltinIsPointerInterconvertibleBaseOf",
-                   &error_position);
+      cache_token(cache, tok_builtin_is_pointer_interconvertible_base_of,&pos);
       break;
     case ifc_SourceKeyword_MsvcBuiltinIsPointerInterconvertibleWithClass:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag(
-                "SourceKeyword::MsvcBuiltinIsPointerInterconvertibleWithClass",
-                &error_position);
+      cache_identifier(cache,
+                       "__builtin_is_pointer_interconvertible_with_class",
+                       &pos);
       break;
     case ifc_SourceKeyword_MsvcBuiltinIsCorrespondingMember:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag(
-                             "SourceKeyword::MsvcBuiltinIsCorrespondingMember",
-                             &error_position);
+      cache_identifier(cache, "__builtin_is_corresponding_member", &pos);
       break;
     case ifc_SourceKeyword_MsvcIsRefClass:
       cache_token(cache, tok_is_ref_class, &pos);
