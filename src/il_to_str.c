@@ -3533,6 +3533,42 @@ precedence confusion.  Do the output in the way described by octl.
   if (integer_type_constant) {
     ikind = con_type->variant.integer.int_kind;
     signed_constant = int_kind_is_signed[(int)ikind];
+    if ((ikind == ik_int128 || ikind == ik_unsigned_int128) &&
+        octl->gen_compilable_code) {
+      /* Clang and GCC do not permit 128-bit integer literals.  So the
+         alternative is to render a large 128-bit value X of type T as
+         ((T)X_ms << 64 | (T)X_ls) where _ms and _ls indicate the most and
+         least significant halves of the value representation. */
+      an_integer_value  val, zero, mask;
+      octl->output_str("(", octl);
+      need_cast_close_paren = TRUE;
+      form_cast(constant->type, octl);
+      set_integer_value(&zero, (a_host_large_integer)0);
+      set_integer_value(&val, constant->variant.integer_value);
+      shift_right_integer_value(&val, 64, signed_constant,
+                                /*sign_extend=*/TRUE);
+      if (cmp_integer_values(&val, signed_constant, &zero, signed_constant)
+                                                                       != 0) {
+        /* The upper 64 bits are nonzero. */
+        octl->output_str(str_for_integer_value(&val, signed_constant,
+                                               constant->non_arithmetic,
+                                               sizeof(an_integer_value)),
+                         octl);
+        octl->output_str("<<64 + ", octl);
+        form_cast(constant->type, octl);
+      }  /* if */
+      set_integer_value(&val, constant->variant.integer_value);
+      set_integer_value(&mask, (a_host_large_unsigned)0);
+      complement_integer_value(&mask);
+      shift_left_integer_value(&mask, 64, &err);
+      complement_integer_value(&mask);
+      and_integer_values(&val, &mask);
+      octl->output_str(str_for_integer_value(&val, signed_constant,
+                                             constant->non_arithmetic,
+                                             sizeof(an_integer_value)),
+                       octl);
+      goto close_paren_if_needed;
+    }  /* if */
   } else {
     /* Treat null pointer constants as signed since it doesn't change the
        meaning and looks nicer. */
@@ -3643,9 +3679,7 @@ precedence confusion.  Do the output in the way described by octl.
     octl->output_str("*THREADS)", octl);
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
-#if GNU_EXTENSIONS_ALLOWED
 close_paren_if_needed:
-#endif /* GNU_EXTENSIONS_ALLOWED */
   output_optional_close_paren(need_cast_close_paren, octl);
   release_local_constant(&local_con);
 }  /* form_integer_constant */
