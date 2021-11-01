@@ -1996,26 +1996,14 @@ name lookup, a symbol header with a matching, non-NULL deferred_module_entities
 field is encountered, an IL entity and symbol are created at that time.
 */
 {
-  check_assertion(!mep->imminent);
   /* FIXME: Checking for being on the list every time this is called can get
      expensive.  Perhaps add a flag to mep itself to indicate whether it's
      already been added to the deferred list?  Another consideration: Is it
      possible to get here for an entity that's already been completed? */
   if (!already_on_deferred_list(mep, loc)) {
     check_assertion(loc->symbol_header != NULL);
-    if (loc->symbol_header->last_deferred_module_entity == NULL) {
-      /* This is the first deferred module entity encountered.  Initialize the
-         deferred module entity list. */
-      loc->symbol_header->last_deferred_module_entity = mep;
-      loc->symbol_header->deferred_module_entities = mep;
-    } else {
-      /* Append to the end of the deferred module entities list by hoping
-         directly to the last member. */
-      check_assertion(
-                loc->symbol_header->last_deferred_module_entity->next == NULL);
-      loc->symbol_header->last_deferred_module_entity->next = mep;
-      loc->symbol_header->last_deferred_module_entity = mep;
-    }
+    mep->next = loc->symbol_header->deferred_module_entities;
+    loc->symbol_header->deferred_module_entities = mep;
 #if DEBUG
     if (db_flag_is_set("ms_symbols")) {
       (void)fprintf(f_debug, "Defer symbol creation for %s",
@@ -4387,14 +4375,12 @@ class_struct_union_case:
               cache_decl_template(&cache, idstp);
               terminate_token_cache(&cache);
               suppress_default_arguments = saved_suppress_default_arguments;
-              lock_dependent_specializations(&loc, /*locked=*/TRUE);
               /* Forward assign the module entity pointer's information so this
                  entity can be resolved properly when processing
                  specializations and explicit instantiations. */
               mep->entity.ptr = il_entity = (char*)parse_cached_template(
                                                                    &cache,
                                                                    mep->scope);
-              lock_dependent_specializations(&loc, /*locked=*/FALSE);
               mep->entity.kind = kind = iek_template;
             }  /* if */
             {
@@ -4537,7 +4523,6 @@ class_struct_union_case:
           } else {
             ifc_DeclIndex decl_idx = decl_index_of(mep);
 
-            process_deferred_template_symbols(&loc);
             scope_pushed = lazy_push_module_scope(idspsp, mep);
             /* FIXME: Is it feasible to detect ignorable redeclarations of
                partial specializations? */
@@ -4568,7 +4553,6 @@ class_struct_union_case:
             a_token_cache cache;
             ifc_DeclIndex decl_idx = decl_index_of(mep);
 
-            process_deferred_template_symbols(&loc);
             scope_pushed = lazy_push_module_scope(idsesp, mep);
             clear_token_cache(&cache, /*reuseable=*/FALSE);
             cache_decl_explicit_specialization(&cache, decl_idx, idsesp);
@@ -4585,12 +4569,11 @@ class_struct_union_case:
           idseip = get_DeclSort_ExplicitInstantiation(&idsei);
           init_decl_locator(idseip, &loc);
           if (defer) {
-            defer_symbol_creation(mep, &loc);
+            unexpected_condition_str("Unexpected deferral.");
           } else {
             a_token_cache cache;
             ifc_DeclIndex decl_idx = decl_index_of(mep);
 
-            process_deferred_template_symbols(&loc);
             scope_pushed = lazy_push_module_scope(idseip, mep);
             clear_token_cache(&cache, /*reuseable=*/FALSE);
             cache_decl_explicit_instantiation(&cache, decl_idx, idseip);
@@ -5203,57 +5186,6 @@ Process a sequence (seq) of IFC scope member declarations.
   };
   /* Iterate over the sequence calling decl_consumer for each element. */
   traverse_scope_member_sequence(seq, decl_consumer);
-}  /* process_scope_member_sequence */
-
-
-
-void an_ifc_module::lock_dependent_specializations(a_symbol_locator *locator,
-                                                   a_boolean        locked)
-/*
-*/
-{
-  auto is_template_derived_fn = [this](a_module_entity_ptr mep) -> a_boolean {
-    ifc_DeclIndex decl_idx = decl_index_of(mep);
-    a_boolean     result;
-
-    switch (decl_tag(decl_idx)) {
-      case ifc_DeclSort_PartialSpecialization:
-      case ifc_DeclSort_ExplicitSpecialization:
-      case ifc_DeclSort_ExplicitInstantiation:
-        result = TRUE;
-        break;
-      default:
-        result = FALSE;
-        break;
-    }  /* switch*/
-    return result;
-  };
-  auto lock_mep = [locked](a_module_entity_ptr mep) {
-    mep->dependent = locked;
-  };
-  process_symbol_header</*remove=*/FALSE>(locator->symbol_header,
-                                          is_template_derived_fn,
-                                          lock_mep);
-}  /* lock_dependent_specializations */
-
-
-void an_ifc_module::process_deferred_template_symbols(
-                                                     a_symbol_locator *locator)
-/*
-Process associated templates for the given template.
-*/
-{
-  auto is_template_fn = [this](a_module_entity_ptr mep) -> a_boolean {
-    ifc_DeclIndex decl_idx = decl_index_of(mep);
-    return decl_tag(decl_idx) == ifc_DeclSort_Template;
-  };
-  auto process_mep_fn = [](a_module_entity_ptr mep) {
-    process_module_entity(mep);
-  };
-
-  process_symbol_header</*remove=*/TRUE>(locator->symbol_header,
-                                         is_template_fn,
-                                         process_mep_fn);
 }  /* process_scope_member_sequence */
 
 
@@ -7099,18 +7031,14 @@ Given a declaration, return the name associated with that declaration.
          the module scope, so we need to ensure that we've added these names to
          the lazily-loaded symbols list. */
       a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl);
-      /* Only add non-imminent module entity pointers, as imminent module
-         entities are already being processed. */
-      if (!mep->imminent) {
-        if (gmf_decl_type != 0) {
-          a_type_ptr tp = type_for_type_index(gmf_decl_type, /*kind=*/NULL);
-          ensure_type_has_scope(tp);
-          mep->scope = get_assoc_scope_of_il_entry((char*)tp, iek_type);
-        } else {
-          mep->scope = get_ifc_scope(gmf_decl_scope);
-        }  /* if */
-        defer_symbol_creation(mep, &loc);
+      if (gmf_decl_type != 0) {
+        a_type_ptr tp = type_for_type_index(gmf_decl_type, /*kind=*/NULL);
+        ensure_type_has_scope(tp);
+        mep->scope = get_assoc_scope_of_il_entry((char*)tp, iek_type);
+      } else {
+        mep->scope = get_ifc_scope(gmf_decl_scope);
       }  /* if */
+      defer_symbol_creation(mep, &loc);
     }  /* if */
   }  /* if */
   return result;

@@ -55,9 +55,6 @@ struct a_module_entity {
 			   entity should be treated as not defined, but it can
 			   be removed from any lazy symbol lists as its
 			   definition is also no longer deferred. */
-  a_bit_field	dependent:1;
-			/* TRUE if the entity is dependent on current
-			   processing of another entity. */
   a_bit_field	global_module:1;
 			/* TRUE if this is an entity owned by the "global
 			   module". */
@@ -173,38 +170,6 @@ extern a_boolean find_module_file(a_module_ptr  mod,
                                   a_module_kind kind);
 
 extern void import_module_file(a_module_import_decl_ptr midp);
-
-extern void process_module_entity(a_module_entity_ptr mep);
-
-template<a_boolean remove, typename a_Predicate_Fn, typename a_Consumer>
-inline void process_symbol_header(a_symbol_header *sym_hdr,
-                                  a_Predicate_Fn  predicate_fn,
-                                  a_Consumer      consumer_fn)
-/*
-*/
-{
-  a_module_entity_ptr mep, *mepp = &(sym_hdr->deferred_module_entities);
-  a_module_entity_ptr last_kept_mep = NULL;
-
-  while (*mepp != NULL) {
-    if (predicate_fn(*mepp)) {
-      /* Remove the entry from the queue (so it's not recursively processed)
-         but don't free it until it's been processed. */
-      mep = *mepp;
-      consumer_fn(mep);
-      if (remove) {
-        *mepp = mep->next;
-      } else {
-        mepp = &(*mepp)->next;
-      }  /* if */
-    } else {
-      last_kept_mep = *mepp;
-      mepp = &(*mepp)->next;
-    }  /* if */
-  }  /* for */
-  sym_hdr->last_deferred_module_entity = last_kept_mep;
-}  /* process_symbol_header */
-
 
 extern void define_names_from_scope(a_scope_ptr     scope,
                                     a_symbol_header *sym_hdr);

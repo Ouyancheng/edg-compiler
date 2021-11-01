@@ -1941,7 +1941,6 @@ Allocate a new symbol header, and return a pointer to it.
   ptr->saved_macro_stack = NULL;
   ptr->hash_value        = 0;
   ptr->deferred_module_entities = NULL;
-  ptr->last_deferred_module_entity = NULL;
   ptr->variant.opname    = (an_opname_kind)onk_none;
   ptr->is_unnamed        = FALSE;
   ptr->has_intrinsic_name = FALSE;

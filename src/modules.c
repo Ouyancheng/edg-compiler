@@ -608,24 +608,6 @@ Import the module file specified in the module-import-declaration.
 }  /* import_module_file */
 
 
-void process_module_entity(a_module_entity_ptr mep)
-/*
-*/
-{
-  switch (mep->module_info->kind) {
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  case mk_ifc:
-    ((an_ifc_module*)mep->module_info->module_interface)->
-               process_ifc_declaration(mep, /*defer=*/FALSE, (a_type_ptr)NULL);
-    break;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  case mk_edg:
-  default:
-    unexpected_condition();
-  }  /* switch */
-}  /* process_module_entity */
-
-
 void define_names_from_scope(a_scope_ptr     scope,
                              a_symbol_header *sym_hdr)
 /*
@@ -635,17 +617,40 @@ entries for this symbol header and process declarations for any that match the
 scope.
 */
 {
-  a_boolean scope_pushed = push_module_declaration_context(scope);
-  auto      is_curr_scope_fn = [scope](a_module_entity_ptr mep) -> a_boolean {
-    return mep->scope == scope && !mep->dependent;
-  };
-  auto      process_mep_fn = [](a_module_entity_ptr mep) {
-    process_module_entity(mep);
-  };
+  a_boolean           scope_pushed = FALSE;
+  a_module_entity_ptr mep, *mepp = &(sym_hdr->deferred_module_entities);
 
   check_assertion(sym_hdr->deferred_module_entities != NULL);
-  process_symbol_header</*remove=*/TRUE>(sym_hdr, is_curr_scope_fn,
-                                         process_mep_fn);
+  scope_pushed = push_module_declaration_context(scope);
+  while (*mepp != NULL) {
+    if ((*mepp)->scope == scope) {
+#if DEBUG
+      if (db_flag_is_set("ms_symbols")) {
+        (void)fprintf(f_debug, "Loading symbol %s in ",
+                      sym_hdr->identifier);
+        db_scope(scope);
+        (void)fprintf(f_debug, "\n");
+      }  /* if */
+#endif /* DEBUG */
+      /* Remove the entry from the queue (so it's not recursively processed)
+         but don't free it until it's been processed. */
+      mep = *mepp;
+      *mepp = mep->next;
+      switch (mep->module_info->kind) {
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        case mk_ifc:
+          ((an_ifc_module*)mep->module_info->module_interface)->
+            process_ifc_declaration(mep, /*defer=*/FALSE, (a_type_ptr)NULL);
+          break;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        case mk_edg:
+        default:
+          unexpected_condition();
+      }  /* switch */
+    } else {
+      mepp = &(*mepp)->next;
+    }  /* if */
+  }  /* for */
   pop_module_declaration_context(scope_pushed);
 }  /* define_names_from_scope */
 
@@ -740,7 +745,6 @@ the specified module.
     (*p)->entity.kind = (a_byte_il_entry_kind)iek_none;
     (*p)->file_offset = file_offset;
     (*p)->imminent = FALSE;
-    (*p)->dependent = FALSE;
     (*p)->global_module = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     (*p)->variant.ifc_partition = ifc_none;
