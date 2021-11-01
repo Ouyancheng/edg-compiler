@@ -3533,6 +3533,7 @@ precedence confusion.  Do the output in the way described by octl.
   if (integer_type_constant) {
     ikind = con_type->variant.integer.int_kind;
     signed_constant = int_kind_is_signed[(int)ikind];
+#if INT128_EXTENSIONS_ALLOWED
     if ((ikind == ik_int128 || ikind == ik_unsigned_int128) &&
         octl->gen_compilable_code) {
       /* Clang and GCC do not permit 128-bit integer literals.  So the
@@ -3569,6 +3570,7 @@ precedence confusion.  Do the output in the way described by octl.
                        octl);
       goto close_paren_if_needed;
     }  /* if */
+#endif /* INT128_EXTENSIONS_ALLOWED */
   } else {
     /* Treat null pointer constants as signed since it doesn't change the
        meaning and looks nicer. */
