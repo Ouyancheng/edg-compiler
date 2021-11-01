@@ -5019,6 +5019,7 @@ severity to be used for the diagnostic when TRUE is returned.
        scopes, always issue an error at the innermost template declaration
        scope. */
     starting_depth = depth_template_declaration_scope;
+    *severity = es_error;
   }  /* if */
   if (clang_mode) {
     if (!scope_stack[depth_scope_stack].template_param_decl_scope) {
@@ -5027,9 +5028,9 @@ severity to be used for the diagnostic when TRUE is returned.
          We emulate that but issue a warning. */
       *severity = es_warning;
     }  /* if */
-  } else if (gpp_mode && !clang_mode && symbol_is(sym, sk_parameter)) {
-    /* In g++ mode, reduce the severity to a warning for a redeclaration
-       that is a parameter name. */
+  } else if (gpp_mode && symbol_is(sym, sk_parameter)) {
+    /* In g++ mode (but not Clang mode), reduce the severity to a warning for
+       a redeclaration that is a parameter name. */
     *severity = es_warning;
   }  /* if */
   for (ssep = scope_stack_entry_for(starting_depth);
