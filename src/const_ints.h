@@ -198,6 +198,11 @@ extern a_boolean is_max_value_for_integer_kind(a_constant      *con,
 
 extern int bits_required_to_represent_integer_constant(a_constant *cp);
 
+extern char *str_for_integer_value(an_integer_value *p_value,
+                                   a_boolean        is_signed,
+                                   a_boolean        non_arithmetic,
+                                   a_targ_size_t    size);
+
 extern char *str_for_integer_value(an_integer_value *value);
 
 extern char *str_for_integer_constant(a_constant *cp);
