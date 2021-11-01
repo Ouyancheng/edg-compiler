@@ -3681,7 +3681,9 @@ precedence confusion.  Do the output in the way described by octl.
     octl->output_str("*THREADS)", octl);
   }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
+#if INT128_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED
 close_paren_if_needed:
+#endif /* INT128_EXTENSIONS_ALLOWED || GNU_EXTENSIONS_ALLOWED */
   output_optional_close_paren(need_cast_close_paren, octl);
   release_local_constant(&local_con);
 }  /* form_integer_constant */
