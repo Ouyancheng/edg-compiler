@@ -2704,7 +2704,7 @@ private:
     { unexpected_condition_str("Name resolution unknown"); }
   template<typename an_ifc_DeclSort_T>
   inline auto get_ifc_name(an_ifc_DeclSort_T *decl, int)
-                              -> Is_same<decltype(decl->name), ifc_NameIndex> 
+                                -> Is_same<decltype(decl->name), ifc_NameIndex>
     { return decl->name; }
   template<typename an_ifc_DeclSort_T>
   inline ifc_NameIndex get_ifc_name(an_ifc_DeclSort_T *decl)
@@ -2716,7 +2716,7 @@ private:
     { unexpected_condition_str("Locus resolution unknown"); }
   template<typename an_ifc_DeclSort_T>
   inline auto get_ifc_locus(an_ifc_DeclSort_T *decl, int)
-                        -> Is_same<decltype(decl->locus), ifc_SourceLocation>
+                          -> Is_same<decltype(decl->locus), ifc_SourceLocation>
     { return decl->locus; }
   template<typename an_ifc_DeclSort_T>
   inline ifc_SourceLocation get_ifc_locus(an_ifc_DeclSort_T *decl)
@@ -2728,7 +2728,7 @@ private:
     { unexpected_condition_str("Home scope decl resolution unknown"); }
   template<typename an_ifc_DeclSort_T>
   inline auto get_ifc_home_scope_decl(an_ifc_DeclSort_T *decl, int)
-                        -> Is_same<decltype(decl->home_scope), ifc_DeclIndex>
+                          -> Is_same<decltype(decl->home_scope), ifc_DeclIndex>
     { return decl->home_scope; }
   template<typename an_ifc_DeclSort_T>
   inline ifc_DeclIndex get_ifc_home_scope_decl(an_ifc_DeclSort_T *decl)
@@ -3128,6 +3128,9 @@ ifc_SourceLocation an_ifc_module::get_ifc_locus(
                                   an_ifc_DeclSort_ExplicitInstantiation *decl);
 
 /* Explicit specializations of an_ifc_module::get_ifc_home_scope_decl. */
+template<>
+ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(
+                                            an_ifc_DeclSort_Constructor *decl);
 template<>
 ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(
                                   an_ifc_DeclSort_PartialSpecialization *decl);

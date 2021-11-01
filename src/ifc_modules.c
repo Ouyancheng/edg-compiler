@@ -5571,6 +5571,30 @@ Return the locus of the declaration represented at decl.
 
 template<>
 inline ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(
+                                             an_ifc_DeclSort_Constructor *decl)
+/*
+Return the home scope of the declaration represented at decl.
+*/
+{
+  ifc_DeclIndex result = decl->home_scope;
+
+  /* As of IFC 0.33+ IFC Constructors use the explicit specialization instead
+     of the templated entity as their home scope.  This resolves this
+     incompatibility by translating the explicit specialization to templated
+     entity as represented in IFC 0.33. */
+  if (decl_tag(result) == ifc_DeclSort_ExplicitSpecialization) {
+    an_ifc_DeclSort_ExplicitSpecialization idses, *idsesp;
+
+    read_partition_at_index(result);
+    idsesp = get_DeclSort_ExplicitSpecialization(&idses);
+    result = idsesp->decl;
+  }  /* if */
+  return result;
+}  /* get_ifc_home_scope_decl<an_ifc_DeclSort_Cosntructor> */
+
+
+template<>
+inline ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(
                                    an_ifc_DeclSort_PartialSpecialization *decl)
 /*
 Return the home scope of the declaration represented at decl.
@@ -11997,11 +12021,13 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       { an_ifc_DeclSort_Constructor idsc, *idscp;
         an_ifc_TypeSort_Tor         itst, *itstp;
         an_ifc_DeclSort_Scope       idss, *idssp;
+        ifc_DeclIndex               home_scope;
         ifc_ChartIndex              params = (ifc_ChartIndex)0;
 
         idscp = get_DeclSort_Constructor(&idsc);
-        check_assertion(decl_tag(idscp->home_scope) == ifc_DeclSort_Scope);
-        read_partition_at_index(idscp->home_scope);
+        home_scope = get_ifc_home_scope_decl(idscp);
+        check_assertion(decl_tag(home_scope) == ifc_DeclSort_Scope);
+        read_partition_at_index(home_scope);
         idssp = get_DeclSort_Scope(&idss);
         check_assertion(type_tag(idscp->type) == ifc_TypeSort_Tor);
         read_partition_at_index(idscp->type);
