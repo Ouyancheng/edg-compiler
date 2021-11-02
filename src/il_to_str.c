@@ -3555,7 +3555,7 @@ precedence confusion.  Do the output in the way described by octl.
                                                constant->non_arithmetic,
                                                sizeof(an_integer_value)),
                          octl);
-        octl->output_str("<<64 + ", octl);
+        octl->output_str("<<64 | ", octl);
         form_cast(constant->type, octl);
       }  /* if */
       set_integer_value(&val, constant->variant.integer_value);
