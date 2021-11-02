@@ -22178,7 +22178,7 @@ expression, and return the result in *result (or an error indication in
       /* The "new" routine is not applicable for "gcnew". */
       && !nps.is_gcnew
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-     ) {
+                      ) {
     an_arg_list_elem_ptr  sizeof_alep;
     sizeof_alep = get_new_allocation_size_arg(&nps);
     nps.alignment_alep = get_new_alignment_arg(&nps);
