@@ -2981,6 +2981,7 @@ private:
                                   ifc_CallingConvention     calling_conv,
                                   ifc_FunctionTraits        func_traits,
                                   ifc_FunctionTypeTraits    func_type_traits,
+                                  ifc_MsvcTraits            vendor_traits,
                                   ifc_TypeIndex             return_type,
                                   a_Name_Cache_Fn           cache_name_fn,
                                   ifc_ChartIndex            params,
@@ -2994,6 +2995,7 @@ private:
                            ifc_CallingConvention     calling_conv,
                            ifc_FunctionTraits        func_traits,
                            ifc_FunctionTypeTraits    func_type_traits,
+                           ifc_MsvcTraits            vendor_traits,
                            ifc_TypeIndex             return_type,
                            ifc_NameIndex             name,
                            ifc_ChartIndex            params,
@@ -3068,6 +3070,7 @@ private:
   inline a_Trait_T *find_trait(ifc_DeclIndex decl_index,
                                a_Trait_T     *storage);
   ifc_ChartIndex get_func_params_from_trait(ifc_DeclIndex decl);
+  ifc_MsvcTraits get_vendor_traits(ifc_DeclIndex decl);
   ifc_Sequence get_specialization_sequence_from_trait(ifc_DeclIndex decl);
   a_template_ptr parse_cached_explicit_specialization(
                              a_token_cache_ptr                      cache,

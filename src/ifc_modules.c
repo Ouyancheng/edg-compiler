@@ -9028,8 +9028,102 @@ position to use for the traits.
 }  /* cache_object_traits */
 
 
+static void cache_vendor_traits(a_token_cache_ptr     cache,
+                                ifc_MsvcTraits        traits,
+                                a_boolean             trailing,
+                                a_source_position_ptr pos)
+/*
+Add tokens according to the provided vendor traits encoded to cache.  If
+trailing is TRUE, cache the traits that follow a declaration.  Otherwise, cache
+the traits that precede a declaration.  pos is the position to use for the
+traits.
+*/
+{
+  auto cache_declspec_fn = [&](a_const_char *str) {
+    cache_token(cache, tok_declspec, pos);
+    cache_token(cache, tok_lparen, pos);
+    cache_identifier(cache, str, pos);
+    cache_token(cache, tok_rparen, pos);
+  };  /* cache_declspec_fn */
+
+  if (trailing) {
+    /* Nothing currently to do here. */
+  } else {
+    if (traits & ifc_MsvcTraits_ForceInline) {
+      cache_token(cache, tok_forceinline, pos);
+    }  /* if */
+    if (traits & ifc_MsvcTraits_Naked) {
+      cache_declspec_fn("naked");
+    }  /* if */
+    if (traits & ifc_MsvcTraits_NoAlias) {
+      cache_declspec_fn("noalias");
+    }  /* if */
+    if (traits & ifc_MsvcTraits_NoInline) {
+      cache_declspec_fn("noinline");
+    }  /* if */
+    if (traits & ifc_MsvcTraits_Restrict) {
+      cache_declspec_fn("restrict");
+    }  /* if */
+    if (traits & ifc_MsvcTraits_SafeBuffers) {
+      cache_declspec_fn("safebuffers");
+    }  /* if */
+    if (traits & ifc_MsvcTraits_DllExport) {
+      cache_declspec_fn("dllexport");
+    }  /* if */
+    if (traits & ifc_MsvcTraits_DllImport) {
+      cache_declspec_fn("dllimport");
+    }  /* if */
+    if (traits & ifc_MsvcTraits_Novtable) {
+      cache_declspec_fn("novtable");
+    }  /* if */
+    if (traits & ifc_MsvcTraits_Process) {
+      cache_declspec_fn("process");
+    }  /* if */
+    if (traits & ifc_MsvcTraits_SelectAny) {
+      cache_declspec_fn("selectany");
+    }  /* if */
+  }  /* if */
+  if (traits & ifc_MsvcTraits_CodeSegment) {
+    /* FIXME: Currently unsupported. */
+    pos_st_diagnostic(unhandled_ifc_node_severity,
+                      ec_module_file_contains_unsupported_constructs,
+                      &error_position, "MsvcTraits::CodeSegment");
+  }  /* if */
+  if (traits & ifc_MsvcTraits_IntrinsicType) {
+    /* FIXME: Currently unsupported. */
+    pos_st_diagnostic(unhandled_ifc_node_severity,
+                      ec_module_file_contains_unsupported_constructs,
+                      &error_position, "MsvcTraits::IntrinsicType");
+  }  /* if */
+  if (traits & ifc_MsvcTraits_EmptyBases) {
+    /* FIXME: Currently unsupported. */
+    pos_st_diagnostic(unhandled_ifc_node_severity,
+                      ec_module_file_contains_unsupported_constructs,
+                      &error_position, "MsvcTraits::EmptyBases");
+  }  /* if */
+  if (traits & ifc_MsvcTraits_Allocate) {
+    /* FIXME: Currently unsupported. */
+    pos_st_diagnostic(unhandled_ifc_node_severity,
+                      ec_module_file_contains_unsupported_constructs,
+                      &error_position, "MsvcTraits::Allocate");
+  }  /* if */
+  if (traits & ifc_MsvcTraits_Comdat) {
+    /* FIXME: Currently unsupported. */
+    pos_st_diagnostic(unhandled_ifc_node_severity,
+                      ec_module_file_contains_unsupported_constructs,
+                      &error_position, "MsvcTraits::Comdat");
+  }  /* if */
+  if (traits & ifc_MsvcTraits_Uuid) {
+    /* FIXME: Currently unsupported. */
+    pos_st_diagnostic(unhandled_ifc_node_severity,
+                      ec_module_file_contains_unsupported_constructs,
+                      &error_position, "MsvcTraits::Uuid");
+  }  /* if */
+}
+
 static void cache_func_traits(a_token_cache_ptr     cache,
                               ifc_FunctionTraits    traits,
+                              ifc_MsvcTraits        vendor_traits,
                               a_boolean             trailing,
                               a_source_position_ptr pos)
 /*
@@ -9039,6 +9133,7 @@ Otherwise, cache the traits that precede a function declaration.  pos is the
 position to use for the traits.
 */
 {
+  cache_vendor_traits(cache, vendor_traits, trailing, pos);
   if (trailing) {
     if (traits & ifc_FunctionTraits_PureVirtual) {
       a_constant_ptr cp = alloc_cached_constant();
@@ -9083,12 +9178,6 @@ position to use for the traits.
     pos_st_diagnostic(unhandled_ifc_node_severity,
                       ec_module_file_contains_unsupported_constructs,
                       &error_position, "FunctionTraits::Constrained");
-  }  /* if */
-  if (traits & ifc_FunctionTraits_Vendor) {
-    /* FIXME: Handle MSVC-specific traits. */
-    pos_st_diagnostic(unhandled_ifc_node_severity,
-                      ec_module_file_contains_unsupported_constructs,
-                      &error_position, "FunctionTraits::Vendor");
   }  /* if */
 }  /* cache_func_traits */
 
@@ -10935,6 +11024,7 @@ inline void an_ifc_module::cache_function_decl(
                                    ifc_CallingConvention     calling_conv,
                                    ifc_FunctionTraits        func_traits,
                                    ifc_FunctionTypeTraits    func_type_traits,
+                                   ifc_MsvcTraits            vendor_traits,
                                    ifc_TypeIndex             return_type,
                                    a_Name_Cache_Fn           cache_name_fn,
                                    ifc_ChartIndex            params,
@@ -10971,7 +11061,8 @@ properly for specializations using a NameIndex.
     /* This is a static member function. */
     cache_token(cache, tok_static, &pos);
   }  /* if */
-  cache_func_traits(cache, func_traits, /*trailing=*/FALSE, &pos);
+  cache_func_traits(cache, func_traits, vendor_traits, /*trailing=*/FALSE,
+                    &pos);
   if (return_type != 0) {
     cache_type(cache, return_type, locus);
   }  /* if */
@@ -10992,7 +11083,8 @@ properly for specializations using a NameIndex.
   cache_token(cache, tok_rparen, &pos);
   cache_func_type_traits(cache, func_type_traits, &pos);
   cache_exception_spec(cache, eh_spec, &pos);
-  cache_func_traits(cache, func_traits, /*trailing=*/TRUE, &pos);
+  cache_func_traits(cache, func_traits, vendor_traits, /*trailing=*/TRUE,
+                    &pos);
   cache_token(cache, tok_semicolon, &pos);
 }  /* cache_function_decl */
 
@@ -11005,6 +11097,7 @@ void an_ifc_module::cache_function_decl(
                                     ifc_CallingConvention     calling_conv,
                                     ifc_FunctionTraits        func_traits,
                                     ifc_FunctionTypeTraits    func_type_traits,
+                                    ifc_MsvcTraits            vendor_traits,
                                     ifc_TypeIndex             return_type,
                                     ifc_NameIndex             name,
                                     ifc_ChartIndex            params,
@@ -11029,8 +11122,8 @@ declaration.
   };
   cache_function_decl(cache, is_class_member, is_dtor, access,
                       /*cache_access_spec=*/TRUE, calling_conv, func_traits,
-                      func_type_traits, return_type, cache_name_fn,
-                      params, param_types, eh_spec, locus);
+                      func_type_traits, vendor_traits, return_type,
+                      cache_name_fn, params, param_types, eh_spec, locus);
 }  /* cache_function_decl */
 
 
@@ -11360,6 +11453,7 @@ Add the tokens corresponding to the given explicit specialization declaration
       case ifc_DeclSort_Function:
         { /* We're reconstructing a function. */
           an_ifc_DeclSort_Function idsf, *idsfp;
+          ifc_MsvcTraits           vendor_traits;
 
           idsfp = get_DeclSort_Function(&idsf);
           { /* Reconstruct the templated declaration. */
@@ -11376,11 +11470,12 @@ Add the tokens corresponding to the given explicit specialization declaration
             if (itsfp->source != 0) {
               params = get_func_params_from_trait(decl_idx);
             }  /* if */
+            vendor_traits = get_vendor_traits(decl_idx);
             cache_function_decl(cache, is_class_scope(idsfp->home_scope),
                                 /*is_dtor=*/FALSE, idsfp->access,
                                 /*cache_access_spec=*/FALSE,
                                 itsfp->convention, idsfp->traits,
-                                itsfp->traits, itsfp->target,
+                                itsfp->traits, vendor_traits, itsfp->target,
                                 cache_name_fn, params, itsfp->source,
                                 &itsfp->eh_spec, &idsfp->locus);
           }
@@ -11474,6 +11569,7 @@ Add the tokens corresponding to the given explicit instantiation declaration
       case ifc_DeclSort_Function:
         { /* We're reconstructing a function. */
           an_ifc_DeclSort_Function idsf, *idsfp;
+          ifc_MsvcTraits           vendor_traits;
 
           idsfp = get_DeclSort_Function(&idsf);
           { /* Reconstruct the templated declaration. */
@@ -11490,11 +11586,12 @@ Add the tokens corresponding to the given explicit instantiation declaration
             if (itsfp->source != 0) {
               params = get_func_params_from_trait(decl_idx);
             }  /* if */
+            vendor_traits = get_vendor_traits(decl_idx);
             cache_function_decl(cache, is_class_scope(idsfp->home_scope),
                                 /*is_dtor=*/FALSE, idsfp->access,
                                 /*cache_access_spec=*/FALSE,
                                 itsfp->convention, idsfp->traits,
-                                itsfp->traits, itsfp->target,
+                                itsfp->traits, vendor_traits, itsfp->target,
                                 cache_name_fn, params, itsfp->source,
                                 &itsfp->eh_spec, &idsfp->locus);
           }
@@ -11503,6 +11600,7 @@ Add the tokens corresponding to the given explicit instantiation declaration
       case ifc_DeclSort_Method:
         { /* We're reconstructing a method. */
           an_ifc_DeclSort_Method idsm, *idsmp;
+          ifc_MsvcTraits         vendor_traits;
 
           idsmp = get_DeclSort_Method(&idsm);
           check_assertion(is_class_scope(idsmp->home_scope));
@@ -11520,11 +11618,12 @@ Add the tokens corresponding to the given explicit instantiation declaration
             if (itsmp->source != 0) {
               params = get_func_params_from_trait(decl_idx);
             }  /* if */
+            vendor_traits = get_vendor_traits(decl_idx);
             cache_function_decl(cache, /*class_member=*/TRUE,
                                 /*is_dtor=*/FALSE, idsmp->access,
                                 /*cache_access_spec=*/FALSE,
                                 itsmp->convention, idsmp->traits,
-                                itsmp->traits, itsmp->target,
+                                itsmp->traits, vendor_traits, itsmp->target,
                                 cache_name_fn, params, itsmp->source,
                                 &itsmp->eh_spec, &idsmp->locus);
           }
@@ -11533,6 +11632,7 @@ Add the tokens corresponding to the given explicit instantiation declaration
       case ifc_DeclSort_Constructor:
         { /* We're reconstructing a constructor. */
           an_ifc_DeclSort_Constructor idsc, *idscp;
+          ifc_MsvcTraits              vendor_traits;
 
           idscp = get_DeclSort_Constructor(&idsc);
           check_assertion(is_class_scope(idscp->home_scope));
@@ -11550,13 +11650,14 @@ Add the tokens corresponding to the given explicit instantiation declaration
             if (itstp->source != 0) {
               params = get_func_params_from_trait(decl_idx);
             }  /* if */
+            vendor_traits = get_vendor_traits(decl_idx);
             cache_function_decl(cache, /*class_member=*/TRUE,
                                 /*is_dtor=*/FALSE, idscp->access,
                                 /*cache_access_spec=*/FALSE,
                                 itstp->convention, idscp->traits,
-                                (ifc_FunctionTypeTraits)0, (ifc_TypeIndex)0,
-                                cache_name_fn, params, itstp->source,
-                                &itstp->eh_spec, &idscp->locus);
+                                (ifc_FunctionTypeTraits)0, vendor_traits,
+                                (ifc_TypeIndex)0, cache_name_fn, params,
+                                itstp->source, &itstp->eh_spec, &idscp->locus);
           }
         }
         break;
@@ -11965,6 +12066,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         an_ifc_TypeSort_Function itsf, *itsfp;
         ifc_ChartIndex           params = (ifc_ChartIndex)0;
         ifc_Access               access = ifc_Access_None;
+        ifc_MsvcTraits           vendor_traits;
 
         idsfp = get_DeclSort_Function(&idsf);
         check_assertion(type_tag(idsfp->type) == ifc_TypeSort_Function);
@@ -11976,10 +12078,12 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         if (is_class_scope(idsfp->home_scope)) {
           access = idsfp->access;
         }  /* if */
+        vendor_traits = get_vendor_traits(decl);
         cache_function_decl(cache, /*class_member=*/FALSE, /*is_dtor=*/FALSE,
                             access, itsfp->convention, idsfp->traits,
-                            itsfp->traits, itsfp->target, idsfp->name, params,
-                            itsfp->source, &itsfp->eh_spec, &idsfp->locus);
+                            itsfp->traits, vendor_traits, itsfp->target,
+                            idsfp->name, params, itsfp->source,
+                            &itsfp->eh_spec, &idsfp->locus);
       }
       break;
     case ifc_DeclSort_Method:
@@ -11987,6 +12091,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         an_ifc_TypeSort_Method itsm, *itsmp;
         ifc_ChartIndex         params = (ifc_ChartIndex)0;
         ifc_TypeIndex          target = (ifc_TypeIndex)0;
+        ifc_MsvcTraits         vendor_traits;
 
         idsmp = get_DeclSort_Method(&idsm);
         check_assertion(type_tag(idsmp->type) == ifc_TypeSort_Method);
@@ -12002,10 +12107,12 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         if (itsmp->source != 0) {
           params = get_func_params_from_trait(decl);
         }  /* if */
+        vendor_traits = get_vendor_traits(decl);
         cache_function_decl(cache, /*class_member=*/TRUE, /*is_dtor=*/FALSE,
                             idsmp->access, itsmp->convention, idsmp->traits,
-                            itsmp->traits, target, idsmp->name, params,
-                            itsmp->source, &itsmp->eh_spec, &idsmp->locus);
+                            itsmp->traits, vendor_traits, target, idsmp->name,
+                            params, itsmp->source, &itsmp->eh_spec,
+                            &idsmp->locus);
         if (idsmp->properties & ifc_ReachableProperties_Initializer) {
           /* A body is likely available: Record this availability using a
              pseudo-token that will be translated when the declaration is
@@ -12023,6 +12130,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         an_ifc_DeclSort_Scope       idss, *idssp;
         ifc_DeclIndex               home_scope;
         ifc_ChartIndex              params = (ifc_ChartIndex)0;
+        ifc_MsvcTraits              vendor_traits;
 
         idscp = get_DeclSort_Constructor(&idsc);
         home_scope = get_ifc_home_scope_decl(idscp);
@@ -12035,11 +12143,12 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         if (itstp->source != 0) {
           params = get_func_params_from_trait(decl);
         }  /* if */
+        vendor_traits = get_vendor_traits(decl);
         cache_function_decl(cache, /*class_member=*/TRUE, /*is_dtor=*/FALSE,
                             idscp->access, itstp->convention, idscp->traits,
-                            (ifc_FunctionTypeTraits)0, (ifc_TypeIndex)0,
-                            idssp->name, params, itstp->source,
-                            &itstp->eh_spec, &idscp->locus);
+                            (ifc_FunctionTypeTraits)0, vendor_traits,
+                            (ifc_TypeIndex)0, idssp->name, params,
+                            itstp->source, &itstp->eh_spec, &idscp->locus);
         if (idscp->properties & ifc_ReachableProperties_Initializer) {
           /* A body is likely available: Record this availability using a
              pseudo-token that will be translated when the declaration is
@@ -12065,16 +12174,18 @@ Add the tokens corresponding to the given declaration (decl) to cache.
     case ifc_DeclSort_Destructor:
       { an_ifc_DeclSort_Destructor idsd, *idsdp;
         an_ifc_DeclSort_Scope      idss, *idssp;
+        ifc_MsvcTraits             vendor_traits;
 
         idsdp = get_DeclSort_Destructor(&idsd);
         check_assertion(decl_tag(idsdp->home_scope) == ifc_DeclSort_Scope);
         read_partition_at_index(idsdp->home_scope);
         idssp = get_DeclSort_Scope(&idss);
+        vendor_traits = get_vendor_traits(decl);
         cache_function_decl(cache, /*class_member=*/TRUE, /*is_dtor=*/TRUE,
                             idsdp->access, idsdp->convention, idsdp->traits,
-                            (ifc_FunctionTypeTraits)0, (ifc_TypeIndex)0,
-                            idssp->name, (ifc_ChartIndex)0, (ifc_TypeIndex)0,
-                            &idsdp->eh_spec, &idsdp->locus);
+                            (ifc_FunctionTypeTraits)0, vendor_traits,
+                            (ifc_TypeIndex)0, idssp->name, (ifc_ChartIndex)0,
+                            (ifc_TypeIndex)0, &idsdp->eh_spec, &idsdp->locus);
         if (idsdp->properties & ifc_ReachableProperties_Initializer) {
           /* A body is likely available: Record this availability using a
              pseudo-token that will be translated when the declaration is
@@ -14541,6 +14652,23 @@ decl, or 0 if not found.
   }  /* if */
   return params;
 }  /* get_func_params_from_trait */
+
+
+ifc_MsvcTraits an_ifc_module::get_vendor_traits(ifc_DeclIndex decl)
+/*
+Find and return the associated vendor traits corresponding to the given decl.
+If not found, return the appropriate trait to indicate "none".
+*/
+{
+  ifc_MsvcTraits               result = ifc_MsvcTraits_None;
+  an_ifc_Trait_MsvcVendorTrait itmvt, *itmvtp;
+
+  itmvtp = find_trait<ifc_msvc_trait_vendor_traits>(decl, &itmvt);
+  if (itmvtp != NULL) {
+    result = itmvtp->trait;
+  }  /* if */
+  return result;
+}  /* get_vendor_traits */
 
 
 ifc_Sequence an_ifc_module::get_specialization_sequence_from_trait(
