@@ -9033,10 +9033,9 @@ static void cache_vendor_traits(a_token_cache_ptr     cache,
                                 a_boolean             trailing,
                                 a_source_position_ptr pos)
 /*
-Add tokens according to the provided vendor traits encoded to cache.  If
-trailing is TRUE, cache the traits that follow a declaration.  Otherwise, cache
-the traits that precede a declaration.  pos is the position to use for the
-traits.
+Add tokens according to the provided vendor traits to cache.  If trailing is
+TRUE, cache the traits that follow a declaration.  Otherwise, cache the traits
+that precede a declaration.  pos is the position to use for the traits.
 */
 {
   auto cache_declspec_fn = [&](a_const_char *str) {
@@ -9119,7 +9118,8 @@ traits.
                       ec_module_file_contains_unsupported_constructs,
                       &error_position, "MsvcTraits::Uuid");
   }  /* if */
-}
+}  /* cache_vendor_traits */
+
 
 static void cache_func_traits(a_token_cache_ptr     cache,
                               ifc_FunctionTraits    traits,
