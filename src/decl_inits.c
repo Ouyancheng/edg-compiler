@@ -5443,7 +5443,8 @@ returned set to TRUE.
       pos_error(C_mode() ? ec_auto_type_brace_initialization_not_allowed
                          : ec_auto_brace_initialization_not_allowed,
                 &error_position);
-      vp->type = vp_type = error_type();
+      vp_type = error_type();
+      if (vp != NULL) vp->type = vp_type;
       invalidate_type(dps);
       dps->has_deduced_type = FALSE;
       dps->auto_type_specifier_seen = FALSE;
