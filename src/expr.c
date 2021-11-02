@@ -26081,7 +26081,9 @@ already been consumed.
         check_assertion(dip != NULL);
       }  /* if */
       if (is_void_type(expr_type)) {
-        set_expr_result_not_used(last_stmt->expr);
+        if (last_stmt->expr != NULL) {
+          set_expr_result_not_used(last_stmt->expr);
+        }  /* if */
       } else {
         if (is_variably_modified_type(expr_type)) {
           /* Do not allow a statement expression to have a variably-modified
