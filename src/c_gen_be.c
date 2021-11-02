@@ -8029,6 +8029,7 @@ block with state information for the processing.
              ignored. */
           if (!*gen_assignments) {
             start_initializer_constants(icbp);
+            /* coverity[var_deref_model] */
             dump_designator(elem_con);
           }  /* if */
           if (type->kind == (a_type_kind)tk_array) {
