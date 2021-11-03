@@ -1081,7 +1081,15 @@ NORETURN: specifies that a function will not return to its caller.
 #endif /* __has_cpp_attribute(fallthrough) && ... */
 
 #if __has_cpp_attribute(maybe_unused)
+#if __clang__
+/*
+Clang warns about [[maybe_unused]] in pre-C++17 modes. However, it supports the
+[[gnu::unused]] attribute in C++11 mode.
+*/
+#define ARG_UNUSED [[gnu::unused]]
+#else /* !__clang__ */
 #define ARG_UNUSED [[maybe_unused]]
+#endif /* __clang__ */
 #else /* !(__has_cpp_attribute(maybe_unused)) */
 #define ARG_UNUSED /*nothing*/
 #endif /* __has_cpp_attribute(maybe_unused) */
