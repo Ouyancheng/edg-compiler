@@ -2722,7 +2722,6 @@ corresponding data structure for that partition.
 #endif /* CHECKING */
 
 namespace {
-
 constexpr ifc_Version supported_major_version = (ifc_Version)0;
 constexpr ifc_Version supported_minor_version = (ifc_Version)33;
 
@@ -2740,7 +2739,6 @@ otherwise.
   }  /* if */
   return result;
 }  /* check_ifc_version */
-
 }  /* namespace */
 
 
@@ -3156,52 +3154,32 @@ containing the partial specialization declaration.
 }  /* parse_cached_partial_specialization */
 
 
+namespace {
 /*
 A simple structure that can be used to locate the body of a function stored in
 an IFC module file.
 */
 struct an_ifc_function_body {
-  ifc_DeclIndex	decl;
-			/* The IFC "DeclIndex" of the routine. */
-  an_ifc_module	*ifc_module;
-			/* The IFC module descriptor that this body is
-			   associated with. */
+  ifc_DeclIndex decl;
+                        /* The IFC "DeclIndex" of the routine. */
+  an_ifc_module *ifc_module;
+                        /* The IFC module descriptor that this body is
+                           associated with. */
 };
 
+using an_ifc_function_body_map = Ptr_map<a_routine_ptr, an_ifc_function_body>;
+                        /* The type of a map that associates IFC function
+                           bodies with IL routine entries. */
 
-static inline a_boolean operator==(an_ifc_function_body  ifb1,
-                                   an_ifc_function_body  ifb2)
-/*
-Return whether the two given an_ifc_function_body entries are equal.
-*/
-{
-  return ifb1.decl == ifb2.decl &&
-         ifb1.ifc_module == ifb2.ifc_module;
-}  /* operator== */
-
-
-static inline a_boolean operator!=(an_ifc_function_body  ifb1,
-                                   an_ifc_function_body  ifb2)
-/*
-Return whether the two given an_ifc_function_body entries are different.
-*/
-{
-  return !(ifb1 == ifb2);
-}  /* operator!= */
+an_ifc_function_body_map
+                *ifc_function_bodies;
+                        /* A map from IL routine entry pointers to entries of
+                           type an_ifc_function_body that can be used to
+                           retrieve the definition of a function body when
+                           needed. */
+}  /* namespace */
 
 
-using an_ifc_function_body_map = Ptr_map<a_routine_ptr, an_ifc_function_body>; 
-			/* The type of a map that associates IFC function
-			   bodies with IL routine entries. */
-
-static an_ifc_function_body_map
-		*ifc_function_bodies;
-			/* A map from IL routine entry pointers to entries of
-			   type an_ifc_function_body that can be used to
-			   retrieve the definition of a function body when
-			   needed. */
-
-		
 void record_pending_ifc_function_body(a_routine_ptr  rp,
                                       ifc_DeclIndex  decl_idx,
                                       an_ifc_module  *ifc_module)
