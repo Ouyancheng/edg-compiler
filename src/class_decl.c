@@ -14911,7 +14911,9 @@ Microsoft C++/CLI static reverse conversion function.
 */
 {
   a_boolean                      is_implicitly_callable = TRUE;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean                      is_static = FALSE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_type_ptr                     class_type, ret_type;
   a_routine_type_supplement_ptr  rtsp;
 
@@ -14944,7 +14946,9 @@ Microsoft C++/CLI static reverse conversion function.
                       has_explicit_this_parameter(rout_type));
 #endif /* CHECKING */
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
     is_static = TRUE;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
   if (class_type == NULL) {
     /* This can happen in error cases. */
