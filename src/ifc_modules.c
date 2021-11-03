@@ -5557,9 +5557,9 @@ Return the home scope of the declaration represented at decl.
   ifc_DeclIndex result = decl->home_scope;
 
   /* As of IFC 0.33+ IFC Constructors use the explicit specialization instead
-     of the templated entity as their home scope.  This resolves this
-     incompatibility by translating the explicit specialization to templated
-     entity as represented in IFC 0.33. */
+     of the templated entity as their home scope.  This incompatibility is
+     resolved by translating the explicit specialization to the corresponding
+     templated entity as represented in IFC 0.33. */
   if (decl_tag(result) == ifc_DeclSort_ExplicitSpecialization) {
     an_ifc_DeclSort_ExplicitSpecialization idses, *idsesp;
 
