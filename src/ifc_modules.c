@@ -11508,8 +11508,7 @@ Add the tokens corresponding to the given explicit instantiation declaration
                                               a_source_position_ptr decl_pos) {
               cache_simple_template_id(cache, decl->form, &idssp->locus);
             };
-            auto cache_scope_fn = [this, cache, idssp](
-                                              a_source_position_ptr decl_pos) {
+            auto cache_scope_fn = [cache](a_source_position_ptr decl_pos) {
               cache_token(cache, tok_semicolon, decl_pos);
             };
             cache_scope_decl(cache, decl_idx, idssp->type, cache_name_fn,
@@ -11527,8 +11526,7 @@ Add the tokens corresponding to the given explicit instantiation declaration
                                               a_source_position_ptr decl_pos) {
               cache_simple_template_id(cache, decl->form, &idsvp->locus);
             };
-            auto cache_init_fn = [this, cache, idsvp](
-                                              a_source_position_ptr decl_pos) {
+            auto cache_init_fn = [cache](a_source_position_ptr decl_pos) {
               cache_token(cache, tok_semicolon, decl_pos);
             };
 
