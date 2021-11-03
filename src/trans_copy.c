@@ -212,7 +212,8 @@ in the current IL walk.
         set_entry_needs_copy_flag(ptr);
 #if DEBUG
         if (db_trace("trans_copy", ptr, kind)) {
-          fprintf(f_debug, "assigned addr for copy to primary at %p:\n", copy);
+          fprintf(f_debug, "assigned addr for copy to primary at %p:\n",
+                  (a_void_ptr)copy);
           db_entity_info(ptr, kind);
         }  /* if */
 #endif /* DEBUG */
@@ -463,7 +464,7 @@ and remap the pointers in the copy.
     }  /* if */
 #if DEBUG
     if (db_trace("trans_copy", ptr, kind)) {
-      fprintf(f_debug, "copying from secondary to %p:\n", copy);
+      fprintf(f_debug, "copying from secondary to %p:\n", (a_void_ptr)copy);
       db_entity_info(ptr, kind);
     }  /* if */
 #endif /* DEBUG */
@@ -985,7 +986,8 @@ is called.
     set_entry_needs_copy_flag(ptr);
 #if DEBUG
     if (db_trace("trans_copy", ptr, kind)) {
-      fprintf(f_debug, "assigned addr for copy in secondary at %p:\n", copy);
+      fprintf(f_debug, "assigned addr for copy in secondary at %p:\n",
+              (a_void_ptr)copy);
       db_entity_info(ptr, kind);
     }  /* if */
 #endif /* DEBUG */

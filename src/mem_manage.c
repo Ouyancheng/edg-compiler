@@ -236,7 +236,7 @@ allocation and generates a catastrophic error.
   adjust_record_of_total_allocation((long)size);
   if (db_flag_is_set("malloc") || debug_level >= 5) {
     fprintf(f_debug, "malloc_with_check: allocating %lu at %p, total = %lu\n",
-                     (unsigned long)size, ptr,
+                     (unsigned long)size, (a_void_ptr)ptr,
                      (unsigned long)total_mem_allocated);
   }  /* if */
 #endif /* DEBUG */
@@ -2030,7 +2030,8 @@ Display the IL entry prefix of the given IL entry.
 #endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
 #if ORPHAN_PROCESSING_NEEDED
     if (il_entry_prefix_of(entry).file_scope) {
-      fprintf(f_debug, "\norphan ptr = %p ", fs_orphan_pointer_of(entry));
+      fprintf(f_debug, "\norphan ptr = %p ",
+              (a_void_ptr)fs_orphan_pointer_of(entry));
     }  /* if */
 #endif /* ORPHAN_PROCESSING_NEEDED */
   }  /* if */

@@ -1392,7 +1392,7 @@ Output some information about a data map's contents
       fprintf(f_debug, "(empty)\n");
     } else {
       fprintf(f_debug, "h = %2u  %p\n",
-              (a_map_index)hash_ptr(ptr) & mask, ptr);
+              (a_map_index)hash_ptr(ptr) & mask, (a_void_ptr)ptr);
     }  /* if */
   }  /* for */
 }  /* db_data_map */
@@ -3806,7 +3806,7 @@ Output the given interpreter address.  Indent the output with the given number
 of whitespace characters.
 */
 {
-  (void)fprintf(f_debug, "address %p:\n", cap->address);
+  (void)fprintf(f_debug, "address %p:\n", (a_void_ptr)cap->address);
   db_indent(indent+2);
   db_address_flags(cap->flags);
   (void)fprintf(f_debug, "\n");

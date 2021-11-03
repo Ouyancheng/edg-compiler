@@ -550,7 +550,7 @@ information, such as its address and translation unit.
                        db_name_str((a_source_correspondence *)entry, kind));
     }  /* if */
     fprintf(f_debug, "\n");
-    fprintf(f_debug, "address = %p", entry);
+    fprintf(f_debug, "address = %p", (a_void_ptr)entry);
     fprintf(f_debug, ", in %s trans unit", in_secondary_trans_unit(entry) ?
                                                "secondary" : "primary");
     fprintf(f_debug, ", in %s scope", in_file_scope(entry) ?
@@ -587,15 +587,16 @@ information, such as its address and translation unit.
       if (tucp != NULL) {
         /* Display the correspondence information. */
         fprintf(f_debug, "corresp = %p, canonical = %p, primary = %p\n",
-                (void *)tucp, tucp->canonical, tucp->primary);
+                (a_void_ptr)tucp, (a_void_ptr)tucp->canonical,
+                (a_void_ptr)tucp->primary);
       }  /* if */
       if (in_secondary_trans_unit(entry) && in_file_scope(entry)) {
         copy_addr = trans_unit_copy_address_of(entry);
-        fprintf(f_debug, "copy address = %p", copy_addr);
+        fprintf(f_debug, "copy address = %p", (a_void_ptr)copy_addr);
         /* Check for a second level copy address. */
         if (copy_addr != NULL && in_secondary_trans_unit(copy_addr)) {
           copy_addr = trans_unit_copy_address_of(copy_addr);
-          fprintf(f_debug, ", %p", copy_addr);
+          fprintf(f_debug, ", %p", (a_void_ptr)copy_addr);
         }  /* if */
         fprintf(f_debug, "\n");
       }  /* if */
@@ -25550,13 +25551,13 @@ about it).
   } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope) {
     db_scope((a_scope_ptr)olp->entity.ptr);
   } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_expr_node) {
-    fprintf(f_debug, "expr-node@%p:", olp->entity.ptr);
+    fprintf(f_debug, "expr-node@%p:", (a_void_ptr)olp->entity.ptr);
     db_expr_summary((an_expr_node_ptr)(olp->entity.ptr));
   } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_none) {
     fputs("<unbound>", f_debug);
   } else {
     fprintf(f_debug, "%s@%p", il_entry_kind_names[(int)olp->entity.kind],
-                              olp->entity.ptr);
+                              (a_void_ptr)olp->entity.ptr);
   }  /* if */
   fputc(']', f_debug);
 }  /* db_object_lifetime_name */

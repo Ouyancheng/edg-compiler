@@ -163,7 +163,7 @@ kind entry_kind.
     is_file_scope_entry = in_file_scope(entry_ptr);
     if (displaying_file_scope_il && !is_file_scope_entry) {
       /* Reference from file scope to non-file scope pointer. */
-      (void)printf("**NON FILE SCOPE PTR** (%p)", entry_ptr);
+      (void)printf("**NON FILE SCOPE PTR** (%p)", (a_void_ptr)entry_ptr);
     } else {
       (void)printf(is_file_scope_entry ? "file-scope" : "func-scope");
       /* Print the entry kind. */

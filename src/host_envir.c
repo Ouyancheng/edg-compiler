@@ -3554,7 +3554,7 @@ page size.
       if (db_flag_is_set("mmap") || debug_level >= 4) {
         fprintf(f_debug,
                 "map_file_region: allocated %lu bytes of mmap memory at %p\n",
-                (unsigned long)incremental_size, addr);
+                (unsigned long)incremental_size, (a_void_ptr)addr);
 #if USE_FIXED_ADDRESS_FOR_MMAP
         fprintf(f_debug, "  requested address was: %p\n", map_address);
 #endif /* USE_FIXED_ADDRESS_FOR_MMAP */
