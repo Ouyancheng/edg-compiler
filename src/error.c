@@ -3301,6 +3301,40 @@ a source location of an error (that is typically not on a #pragma line).
   return result;
 }  /* pragma_diag_list_lower_bound */
 
+
+static an_error_severity get_severity_from_pragma(
+                                                 a_pragma_diag_elem *ptr,
+                                                 an_error_code      error_code)
+/*
+Determine the error severity represented by the given pragma diag element using
+the given error code's default severity when the pragma represents the default
+severity.
+*/
+{
+  an_error_severity severity;
+
+  switch (ptr->kind) {
+  case pk_diag_suppress:
+    severity = es_none;
+    break;
+  case pk_diag_remark:
+    severity = es_remark;
+    break;
+  case pk_diag_warning:
+    severity = es_warning;
+    break;
+  case pk_diag_error:
+    severity = es_discretionary_error;
+    break;
+  case pk_diag_default:
+    severity = error_codes[(int)error_code].default_severity;
+    break;
+  default:
+    unexpected_condition();
+  }  /* switch */
+  return severity;
+}
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 static void check_for_overridden_severity(an_error_code     error_code,
@@ -3316,10 +3350,11 @@ determine what "diagnostic pragmas" are in effect at the given location
 in the source.
 */
 {
-  an_error_severity new_severity;
-  a_boolean         found = FALSE;
-
   if ((int)*severity <= (int)es_discretionary_error) {
+    /* Default the new severity to the current severity for the error code. */
+    an_error_severity new_severity =
+                                 error_codes[(int)error_code].current_severity;
+
 #if !STANDALONE_UTILITY_PROGRAM
     /* Do a quick check to see if the severity of this error code has ever been
        changed by a pragma (avoids a longer search process in most cases). */
@@ -3355,7 +3390,7 @@ in the source.
            if there is any pk_diag* pragma that refers to the error code at
            hand.  If we find a "diagnostic pop", skip to the corresponding
            "diagnostic push". */
-        while (!found) {
+        while (TRUE) {
           check_assertion(ptr >= pragma_diag_list->begin() &&
                           ptr <= pragma_diag_list->end());
           if (ptr->kind == (a_pragma_kind)pk_diagnostic) {
@@ -3365,8 +3400,8 @@ in the source.
               continue;
             }  /* if */
           } else if (ptr->variant.error_number == (int)error_code) {
-            /* This is relevant. */
-            found = TRUE;
+            /* Update the severity according to this pragma. */
+            new_severity = get_severity_from_pragma(ptr, error_code);
             break;
           }  /* if */
           if (ptr == pragma_diag_list->begin()) {
@@ -3376,26 +3411,8 @@ in the source.
           ptr--;
         }  /* while */
       }  /* if */
-      if (found) {
-        /* Update the severity according to this pragma. */
-        switch (ptr->kind) {
-          case pk_diag_suppress: new_severity = es_none;                break;
-          case pk_diag_remark:   new_severity = es_remark;              break;
-          case pk_diag_warning:  new_severity = es_warning;             break;
-          case pk_diag_error:    new_severity = es_discretionary_error; break;
-          case pk_diag_default:
-            new_severity = error_codes[(int)error_code].default_severity;
-            break;
-          default:
-            unexpected_condition();
-        }  /* switch */
-      }  /* if */
     }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
-    if (!found) {
-      /* Use the current severity for the error code. */
-      new_severity = error_codes[(int)error_code].current_severity;
-    }  /* if */
     if (new_severity != es_default) *severity = new_severity;
   }  /* if */
 }  /* check_for_overridden_severity */
