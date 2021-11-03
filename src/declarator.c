@@ -2446,17 +2446,21 @@ this is a helper function.
   }  /* if */
   if (state->is_lambda) {
     /* Lambdas don't allow a cv-qualifier here, but they are "const" by
-       default.  "mutable", however, is allowed here, and means the lambda is
-       non-const.  "constexpr" is also permitted to declare the call
-       operator as constexpr. */
-    a_boolean done_with_quals;
-    a_boolean mutable_seen = FALSE;
+       default.  "mutable", however, is allowed here (unless there is an
+       explicit "this" parameter), and means the lambda is non-const.
+       "constexpr" and "consteval" are also permitted and apply to the call
+       operator. */
+    a_boolean  done_with_quals, mutable_seen = FALSE;
     this_class = parent_type;
     do {
       done_with_quals = TRUE;
       if (curr_token == tok_mutable) {
         mutable_seen = TRUE;
-        if (func_info->lambda != NULL) {
+        if (has_explicit_this_parameter(rout_type)) {
+          /* Lambdas with an explicit "this" parameter cannot be "mutable". */
+          pos_error(ec_mutable_qualifier_on_explicit_this_lambda,
+                    &error_position);
+        } else if (func_info->lambda != NULL) {
           func_info->lambda->is_mutable = TRUE;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
           func_info->lambda->mutable_position = pos_curr_token;
@@ -2670,7 +2674,7 @@ this is a helper function.
      class type are encoded separately.  E.g. in
         typedef void CF() const;
      this_class == NULL but qualifiers != TQ_NONE. */
-  if (this_class != NULL) {
+  if (this_class != NULL && !has_explicit_this_parameter(rout_type)) {
     rtsp->this_class = skip_typerefs(this_class);
     rtsp->has_this_param = TRUE;
   }  /* if */
@@ -3179,6 +3183,10 @@ an error if a default argument expression is encountered.
         /* Scan the specifiers of a parameter-declaration. */
         decl_specifiers(dsi_flags, &param_state, &local_decl_pos_block);
         dso_flags = param_state.dso_flags;
+        if (param_state.is_explicit_this) {
+          /* An explicit "this" parameter makes a member function "static". */
+          is_nonstatic_member = FALSE;
+        }  /* if */
         param_storage_class = param_state.declared_storage_class;
         dangling_type_specifier =
                                (dso_flags & DSO_DANGLING_TYPE_SPECIFIER) != 0;
@@ -3437,6 +3445,11 @@ an error if a default argument expression is encountered.
         ptp = make_param_type(param_state.type, &param_type_pos);
         ptp->declared_type = param_state.declared_type;
         ptp->qualifiers = param_qualifiers;
+        if (param_state.is_explicit_this) {
+          /* If the parameter is the explicit object ("this") parameter, mark
+             it as such. */
+          ptp->is_explicit_this = TRUE;
+        }  /* if */
         if (param_state.has_pack_ellipsis && is_template_dependent_context() &&
             !is_pack_element) {
           /* This looks like the declaration of a function parameter pack.

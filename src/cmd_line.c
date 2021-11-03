@@ -3969,6 +3969,7 @@ default mode (e.g., exception handling).
         floating_point_template_parameters_allowed = TRUE;
         if (cpp23_mode) {
           if_consteval_enabled = TRUE;
+          explicit_this_param_enabled = TRUE;
         }  /* if */
       }  /* if */
     }  /* if */

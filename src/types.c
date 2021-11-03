@@ -7462,6 +7462,20 @@ TCF_RECORD_DIRECT_CALLING_CONVENTION_DIFFS).
       }  /* if */
       list2_prototyped = FALSE;
     }  /* if */
+    if ((flags & TCF_MEMBER_REDECL_CHECK) != 0) {
+      a_boolean  expl_this_1 = list1 != NULL && list1->is_explicit_this,
+                 expl_this_2 = list2 != NULL && list2->is_explicit_this;
+      if (expl_this_1 != expl_this_2) {
+        /* When looking for member redeclaration conflicts, ignore the explicit
+           "this" parameter while comparing with an ordinary member function
+           declaration. */
+        if (expl_this_1) {
+          list1 = list1->next;
+        } else {
+          list2 = list2->next;
+        }  /* if */
+      }  /* if */
+    }  /* if */
     /* Compare the types of the parameters on the two lists. */
     for (; list1 != NULL && list2 != NULL;
          list1 = list1->next, list2 = list2->next) {
@@ -17194,6 +17208,7 @@ conventions of Microsoft's bit-field allocation scheme.
   }  /* if */
   return compat;
 }  /* compatible_ms_bit_field_container_types */
+
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

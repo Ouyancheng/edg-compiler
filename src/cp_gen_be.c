@@ -8899,6 +8899,10 @@ for_ctor is TRUE, this is the parameter list of a constructor.
   }  /* if */
   for (;;) {
     gen_attributes(param->attributes, al_prefix, /*primary_only=*/FALSE);
+    if (param->is_explicit_this) {
+      /* An explicit "this" parameter (C++23). */
+      write_tok_str("this ");
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (param->is_cli_param_array) write_tok_str("... ");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -22674,6 +22678,11 @@ handle_as_definition:
       write_tok_str("extern \"C++\" ");
       storage_class = (a_storage_class)sc_unspecified;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    } else if (has_explicit_this_parameter(unqual_rout_type)) {
+      /* A member function declaration with an explicit "this" parameter is a
+         "static" member function, but is declared without the "static"
+         keyword. */
+      storage_class = (a_storage_class)sc_unspecified;
     }  /* if */
     /* Attributes should appear after extern "..." but before storage class
        specifiers. */

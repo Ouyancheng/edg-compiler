@@ -5894,6 +5894,9 @@ typedef struct a_param_type {
   a_bit_field	is_requires_expr_param:1;
 			/* TRUE if this is a parameter for a requires-
 			   expression. */
+  a_bit_field   is_explicit_this:1;
+			/* TRUE if this is an explicit object parameter
+			   for a member function */
   uint32_t	param_num;
 			/* The ordinal position of the parameter (1, 2, ...).
 			   In the instantiation of a variadic template, this

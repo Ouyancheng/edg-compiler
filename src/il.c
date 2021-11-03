@@ -21924,6 +21924,7 @@ not for implementation of "&" in the source code.
 */
 {
   an_expr_node_ptr  node = var_lvalue_expr(var);
+
 #if LOWER_VARIABLE_LENGTH_ARRAYS
   if (il_lowering_underway && vla_enabled && is_vla_type(var->type)) {
     /* Add a pointer-to to the type of the VLA enk_variable node.

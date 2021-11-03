@@ -2979,6 +2979,13 @@ copy-initialization).
     db_display_overload_level();
     fprintf(f_debug, "Entering determine_arg_match_level, param_type = ");
     db_abbreviated_type(param_type);
+    if (arg_operand) {
+      fprintf(f_debug, ", arg_operand->type = ");
+      db_abbreviated_type(arg_operand->type);
+    } else if (arg_type) {
+      fprintf(f_debug, ", arg_type = ");
+      db_abbreviated_type(arg_type);
+    }  /* if */
     fprintf(f_debug, "\n");
   }  /* if */
 #endif /* DEBUG */
@@ -4058,19 +4065,20 @@ be used for routine_type.
 }  /* selector_match_with_this_param */
 
 
-a_type_ptr implicit_object_parameter_type(a_type_ptr   routine_type,
-                                          a_symbol_ptr proj_function_symbol,
-                                          a_boolean    is_conv_func)
+a_type_ptr object_parameter_type(a_type_ptr   routine_type,
+                                 a_symbol_ptr proj_function_symbol,
+                                 a_boolean    is_conv_func)
 /*
-Return the effective object parameter type (a reference type) that
-should be used in overload resolution to match the selector object on
-a call of the function with the indicated type and symbol (possibly a
-projection symbol).  See the definition of "implicit object parameter"
-in [over.match.funcs] of the C++ standard.  is_conv_func is TRUE if
-the function is a conversion function.  Return NULL if the function
-does not have a "this" parameter.  proj_function_symbol can be NULL
-if it is known that the routine "this" class does not need to be
-adjusted.
+Return the object parameter type (usually a reference type, unless routine_type
+is an explicit-this routine type with a first parameter of non-reference type)
+that should be used in overload resolution to match the selector object on a
+call of the function with the indicated type and symbol (possibly a projection
+symbol).  See the definitions of "implicit object parameter"
+([over.match.funcs]) and "explicit object parameter" ([dcl.fct], starting in
+C++23) in the C++ standard.  is_conv_func is TRUE if the function is a
+conversion function.  Return NULL if the function does not have a "this"
+parameter.  proj_function_symbol can be NULL if it is known that the routine
+"this" class does not need to be adjusted.
 */
 {
   a_type_ptr                    impl_obj_param_type, class_type;
@@ -4115,9 +4123,13 @@ adjusted.
       impl_obj_param_type = make_qualified_type(impl_obj_param_type,
                                                 rtsp->this_qualifiers);
     }  /* if */
-  }  /* if */
+  } else if (has_explicit_this_parameter(routine_type)) {
+    /* For functions with explicit an "this" parameter, the "implicit object
+       parameter" is really the "explicit object parameter". */
+    impl_obj_param_type = rtsp->param_type_list->type;
+  } /* if */
   return impl_obj_param_type;
-}  /* implicit_object_parameter_type */
+}  /* object_parameter_type */
 
 
 static void check_template_arg_type_qualifiers(a_type_ptr *arg_type,
@@ -5551,6 +5563,8 @@ in a new-expression).
   a_boolean                enum_param_still_needed = FALSE;
   a_boolean                check_arg_count_mismatch = TRUE;
   a_boolean                rescan_pushed = FALSE;
+  a_boolean                allocated_this_param = FALSE;
+  an_operand               dummy_operand;
 
   *discarded_because_post_decl = FALSE;
   if (expr_stack != NULL && expr_stack->any_suppressed_error) {
@@ -5562,6 +5576,42 @@ in a new-expression).
 #if DEBUG
   n_viability_checks += 1;
 #endif /* DEBUG */
+  if (routine_type == NULL) {
+    function_symbol = fundamental_symbol_of(proj_function_symbol);
+    routine_type = func_sym_routine(function_symbol)->type;
+  }  /* if */
+  if (has_explicit_this_parameter(routine_type)) {
+    /* If this is a function with an explicit "this" parameter, we need to add
+       the selector onto the parameter list. */
+    if (have_selector) {
+      if (bound_function_selector == NULL) {
+        /* Temporarily create a dummy argument. */
+        make_dummy_lvalue_operand(type_pointed_to(implicit_selector_type),
+                                  &dummy_operand);
+        bound_function_selector = &dummy_operand;
+      }  /* if */
+      an_arg_list_elem_ptr this_object = alloc_arg_list_elem_for_operand(
+                                                     bound_function_selector);
+      this_object->next = arg_list;
+      arg_list = this_object;
+      allocated_this_param = TRUE;
+      /* We've consumed the selector at this point. */
+      have_selector = FALSE;
+      if (is_pointer_type(this_object->variant.expr.arg_op->operand.type)) {
+        this_object->variant.expr.arg_op->operand.type =
+          type_pointed_to(this_object->variant.expr.arg_op->operand.type);
+      }  /* if */
+#if DEBUG
+      if (debug_level >= 4 || db_flag_is_set("overload")) {
+        db_display_overload_level();
+        fprintf(f_debug, "determine_function_viability: consume selector for"
+                         " explicit \"this\" of type ");
+        db_abbreviated_type(this_object->variant.expr.arg_op->operand.type);
+        fprintf(f_debug, "\n");
+      }  /* if */
+#endif /* DEBUG */
+    }  /* if */
+  }  /* if */
   if (proj_function_symbol != NULL) {
     /* Normal case: a known function. */
     a_boolean invisible_because_explicit;
@@ -6173,9 +6223,9 @@ next_argument:
         /* Determine the effective parameter type for "this". */
         a_type_ptr this_param_type;
         check_assertion(proj_function_symbol != NULL); /* For Coverity */
-        this_param_type=implicit_object_parameter_type(routine_type,
-                                                       proj_function_symbol,
-                                                       /*is_conv_func=*/FALSE);
+        this_param_type = object_parameter_type(routine_type,
+                                                proj_function_symbol,
+                                                /*is_conv_func=*/FALSE);
         check_assertion(this_param_type != NULL);
         if (implicit_selector_type != NULL) {
           /* The selector is an implicit "this->".  See how well it
@@ -6304,6 +6354,13 @@ reject_function:
   /* Free any template argument list built for it. */
   free_template_arg_list(local_template_arg_list);
 end_of_routine:
+  /* Free the explicit "this" parameter if one was added. */
+  if (allocated_this_param) {
+    an_arg_list_elem_ptr this_object = arg_list;
+    arg_list = arg_list->next;
+    this_object->next = NULL;
+    free_init_component_list(this_object);
+  }  /* if */
   if (rescan_pushed) {
     pop_instantiation_scope_for_rescan();
   }  /* if */
@@ -6456,6 +6513,11 @@ context of the conversion.
          a selector. */
       routine_type = function_or_template_symbol_type(proj_function_symbol);
       if (routine_type_is_nonstatic_member_function(routine_type)) {
+        some_function_needs_selector = TRUE;
+      } else if (has_explicit_this_parameter(routine_type) &&
+                 innermost_function_scope != NULL &&
+                 routine_type_is_nonstatic_member_function(
+                                             current_routine_entry()->type)) {
         some_function_needs_selector = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (cli_or_cx_enabled &&
@@ -6885,7 +6947,7 @@ hide-by-sig lookup.
         an_arg_match_summary
                  match;
         a_type_ptr this_param_type =
-                   implicit_object_parameter_type(routine_type,
+                            object_parameter_type(routine_type,
                                                   surrogate_function_conv_sym,
                                                   /*is_conv_func=*/TRUE);
         if (this_param_type == NULL) {
@@ -12074,6 +12136,19 @@ allow_lambda_this is TRUE.
 }  /* this_exists_for_member_access */
 
 
+static bool in_explicit_this_lambda()
+/*
+We're currently inside a lambda body. Return TRUE if this lambda takes an
+explicit "this" parameter
+*/
+{
+  check_assertion(current_routine_entry()->is_lambda_body);
+
+  return has_explicit_this_parameter(
+                         innermost_function_scope->variant.routine.ptr->type);
+}  /* in_explicit_this_lambda */
+
+
 a_variable_ptr this_variable_for_lambda_closure(void)
 /*
 We're currently inside a lambda body.  Return a pointer to the "this" variable
@@ -12081,15 +12156,53 @@ for the lambda closure class, which is used among other things to access the
 fields that contain the captures of local variables.
 */
 {
-  a_variable_ptr this_var;
+  a_variable_ptr  this_var;
+  a_type_ptr      routine_type;
 
-  check_assertion(innermost_function_scope != NULL &&
-                  innermost_function_scope->variant.routine.ptr->
-                                                               is_lambda_body);
-  this_var = innermost_function_scope->variant.routine.this_param_variable;
-  check_assertion(this_var != NULL && this_var->is_this_parameter);
+  check_assertion(current_routine_entry()->is_lambda_body);
+  routine_type = skip_typerefs(
+                         innermost_function_scope->variant.routine.ptr->type);
+  if (has_explicit_this_parameter(routine_type)) {
+    /* A lambda with an explicit "this" parameter, which is the first entry on
+       the ordinary parameter variables list. */
+    this_var = innermost_function_scope->variant.routine.parameters;
+    /* We have to make a variable for the explicit "this" parameter. */
+    check_assertion(this_var != NULL);
+  } else {
+    /* A normal lambda: Use the implicit this. */
+    this_var = innermost_function_scope->variant.routine.this_param_variable;
+    check_assertion(this_var != NULL && this_var->is_this_parameter);
+  }
   return this_var;
 }  /* this_variable_for_lambda_closure */
+
+
+an_expr_node_ptr this_expr_node_for_lambda_closure(void)
+/*
+We are currently inside a lambda body. If the lambda has an explicit "this"
+parameter, return an lvalue expression for that parameter.  Otherwise, return
+the usual "this" rvalue expression.
+*/
+{
+  if (in_explicit_this_lambda()) {
+    a_variable_ptr     first_param =
+                         innermost_function_scope->variant.routine.parameters;
+    a_source_position  *start_pos, *end_pos = NULL;
+    an_operand         opnd;
+    check_assertion(first_param != NULL);
+    start_pos = &pos_curr_token;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+    end_pos = &end_pos_curr_token;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+    make_lvalue_variable_operand(first_param, start_pos, end_pos,
+                                 &opnd, (a_ref_entry_ptr)NULL);
+    take_address_of_lvalue(&opnd, start_pos);
+    return make_node_from_operand(&opnd);
+  } else {
+    a_variable_ptr this_var = this_variable_for_lambda_closure();
+    return var_rvalue_expr(this_var);
+  }  /* if */
+}  /* this_expr_node_for_lambda_closure */
 
 
 an_expr_node_ptr make_selection_for_captured_variable(
@@ -12101,12 +12214,11 @@ lambda_capture describes the variable.  The selection is an lvalue selection
 if is_lvalue is TRUE.
 */
 {
-  a_variable_ptr   this_var = this_variable_for_lambda_closure();
-  an_expr_node_ptr lambda_this = var_rvalue_expr(this_var);
-  a_field_ptr      closure_field = lambda_capture->closure_field;
-  an_expr_node_ptr sel_expr;
+  an_expr_node_ptr  lambda_expr = this_expr_node_for_lambda_closure();
+  a_field_ptr       closure_field = lambda_capture->closure_field;
+  an_expr_node_ptr  sel_expr;
 
-  sel_expr = field_lvalue_selection_expr(lambda_this, closure_field);
+  sel_expr = field_lvalue_selection_expr(lambda_expr, closure_field);
   if (!lambda_capture->is_init_capture &&
       ((lambda_capture->captured.variable != NULL &&
         lambda_capture->captured.variable->is_this_parameter) ||
@@ -14282,7 +14394,7 @@ a_boolean select_and_prepare_to_call_overloaded_function(
                            a_template_arg_ptr      template_arg_list,
                            a_boolean               have_selector,
                            an_operand              *bound_function_selector,
-                           an_arg_list_elem_ptr    arg_list,
+                           an_arg_list_elem_ptr    *arg_list,
                            a_boolean               do_arg_dep_lookup,
                            a_boolean               use_pure_arg_dep_lookup,
                            a_boolean               use_std_for_arg_dep_lookup,
@@ -14381,7 +14493,7 @@ arg_list is not freed by this routine.
                                        template_arg_list,
                                        have_selector,
                                        bound_function_selector,
-                                       arg_list,
+                                       *arg_list,
                                        (an_arg_list_elem *)NULL,
                                        CCO_DEFAULT,
                                        do_arg_dep_lookup,
@@ -14466,12 +14578,64 @@ arg_list is not freed by this routine.
     okay = TRUE;
   } else if (function_symbol != NULL) {
     /* There was no error, i.e., a best function was chosen. */
+    a_boolean  has_explicit_this;
     base_function_symbol = fundamental_symbol_of(function_symbol);
     routine = base_function_symbol->variant.routine.ptr;
     routine_type = skip_typerefs(routine->type);
     /* Do the things that would have been done to the symbol but weren't
        because the specific symbol was not known, and build an operand
        for the function. */
+    has_explicit_this = has_explicit_this_parameter(routine_type);
+    if (!have_selector && has_explicit_this) {
+      /* Check if we are in a position to add an implicit "this->" selector for
+         an explicit "this" parameter. */
+      bool            make_this_pointer = FALSE;
+      a_variable_ptr  this_var;
+      a_type_ptr      this_type;
+      if (variable_this_exists(&this_var, &this_type)) {
+        a_type_ptr this_class = skip_typerefs(type_pointed_to(this_type));
+        a_type_ptr member_class = sym_parent_class(overloaded_function_symbol);
+        if (same_entities(this_class, member_class)) {
+          /* We are selecting a member of the type of "*this" proper (no base
+             class cast needed). */
+          make_this_pointer = TRUE;
+        } else {
+          /* Check if the selected member is in a base class of the type of
+             "*this". */
+          a_base_class_ptr  bcp = find_base_class_of(this_class, member_class);
+          make_this_pointer = (bcp != NULL) || is_template_dependent_context();
+        }  /* if */
+      } else {
+        pos_error(ec_explicit_this_needs_this, call_position);
+        goto done;
+      }  /* if */
+      if (make_this_pointer &&
+          make_this_pointer_operand(function_symbol,
+                                    overloaded_function_symbol, call_position,
+                                    FALSE, bound_function_selector)) {
+        bound_function_selector->selector_is_object_pointer = TRUE;
+        have_selector = TRUE;
+      } else {
+        bound_function_selector = NULL;
+      }  /* if */
+    }  /* if */
+    if (have_selector && has_explicit_this) {
+      /* The selected function has an explicit "this" parameter and we have a
+         selector: Move the selector over to be the first ordinary argument. */
+      if (bound_function_selector->selector_is_object_pointer) {
+        if (is_an_lvalue(bound_function_selector)) {
+          modifying_lvalue(bound_function_selector, /*value_used=*/FALSE);
+        } else if (is_an_rvalue(bound_function_selector)) {
+          conv_object_pointer_to_lvalue(bound_function_selector);
+        }  /* if */
+      }  /* if */
+      an_arg_list_elem_ptr  this_object = alloc_arg_list_elem_for_operand(
+                                                     bound_function_selector);
+      this_object->next = *arg_list;
+      *arg_list = this_object;
+      /* The selector is treated as an ordinary argument from this point. */
+      have_selector = FALSE;
+    }  /* if */
     make_resolved_overloaded_function_operand(function_symbol,
                                               overloaded_function_symbol,
                                               orig_function_operand,
@@ -14526,7 +14690,7 @@ arg_list is not freed by this routine.
                                               routine_type,
                                               have_selector,
                                               bound_function_selector,
-                                              arg_list,
+                                              *arg_list,
                                               arg_match_list,
                                               arg_expr_list);
   } else {
@@ -14544,7 +14708,7 @@ arg_list is not freed by this routine.
     if (closing_paren_position != NULL) {
       arg_block.closing_paren_position = *closing_paren_position;
     }  /* if */
-    process_call_argument_list(arg_list, &arg_block);
+    process_call_argument_list(*arg_list, &arg_block);
     *arg_expr_list = arg_block.argument_head;
     okay = !arg_block.args_will_be_discarded;
   }  /* if */
@@ -15393,9 +15557,9 @@ not_direct_binding_case:
        However, we must also see whether or not it can be called for this
        argument (i.e., are the type qualifiers okay), and how good the
        match is. */
-    eff_this_param_type= implicit_object_parameter_type(conv_routine_type,
-                                                        conversion_symbol,
-                                                        /*is_conv_func=*/TRUE);
+    eff_this_param_type = object_parameter_type(conv_routine_type,
+                                                conversion_symbol,
+                                                /*is_conv_func=*/TRUE);
     if (eff_this_param_type == NULL) {
       /* C++/CLI has static conversion functions.   For those, match the
          argument against the first parameter. */
@@ -20780,10 +20944,11 @@ is used only in C++ mode.
                                                 operand->type,
                                                 /*honor_virtual=*/TRUE);
   if (!routine_type_is_nonstatic_member_function(routine_type)) {
-    /* C++/CLI allows static conversion functions.  The operand is used as
-       the first argument of the call. */
-    a_param_type_ptr ptp = function_type_params(routine_type);
-    check_assertion(cli_or_cx_enabled && ptp != NULL && ptp->next == NULL);
+    /* Static conversion functions are allowed in either C++/CLI mode or if
+       the conversion function has an explicit "this" parameter. */
+    a_param_type_ptr  ptp = function_type_params(routine_type);
+    check_assertion(ptp != NULL && ptp->next == NULL &&
+                    (cli_or_cx_enabled || ptp->is_explicit_this));
     prep_argument_operand(operand, ptp,
                           (a_conv_descr *)NULL,
                           ec_incompatible_param);
@@ -28025,9 +28190,9 @@ traversal_start:
         goto reject_function;
       }  /* if */
       /* See if the destination type matches as a selector. */
-      this_param_type = implicit_object_parameter_type(routine_type,
-                                                       overloaded_sym,
-                                                       /*is_conv_func=*/FALSE);
+      this_param_type = object_parameter_type(routine_type,
+                                              overloaded_sym,
+                                              /*is_conv_func=*/FALSE);
       check_assertion(this_param_type != NULL);
       selector_type = make_qualified_type(class_type, dest_cv_qualifiers);
       make_dummy_lvalue_operand(selector_type, &selector);

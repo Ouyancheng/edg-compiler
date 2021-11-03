@@ -1208,6 +1208,9 @@ typedef struct a_decl_parse_state {
 			/* TRUE if background caching was started (and not
 			   ended) for this declaration even though it does not
 			   start with a "template" token. */
+  a_bit_field   is_explicit_this:1;
+			/* TRUE if this is a member function with an explicit
+			   "this" parameter. */
   an_init_state
 		init_state;
 			/* Information about the initializer (if any)

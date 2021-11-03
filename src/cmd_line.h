@@ -610,6 +610,11 @@ EXTERN a_boolean
 			   member function types. */
 
 EXTERN a_boolean
+		explicit_this_param_enabled;
+			/* TRUE if explicitly declaring a "this" parameter is
+			   enabled (a C++23 feature). */
+
+EXTERN a_boolean
 		delegating_constructors_enabled;
 			/* TRUE if delegating constructors (a C++11 feature)
 			   are accepted. */

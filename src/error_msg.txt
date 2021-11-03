@@ -3288,6 +3288,12 @@ ec_if_consteval_requires_braced_dependent_statement;;"\"if consteval\" and \"if 
 ec_if_consteval_in_nonconstexpr_function;;"\"if consteval\" and \"if not consteval\" are meaningless in a non-constexpr function"
 ec_branch_into_if_consteval;;"transfer of control into an \"if consteval\" or \"if not consteval\" statement is not allowed"
 ec_constexpr_local_static;;"constant-evaluation cannot go through the declaration of a variable with static or thread storage duration"
+ec_mutable_qualifier_on_explicit_this_lambda;;"the mutable qualifier is not allowed on a lambda with an explicit \"this\" parameter"
+ec_static_with_explicit_this;;"a member function declared with \"static\" cannot have an explicit \"this\" parameter"
+ec_explicit_this_param_must_be_first;;"an explicit \"this\" parameter must be the first declared parameter"
+ec_bad_this;;"\"this\" is not allowed here"
+ec_explicit_this_defaulted_comparison;;"a comparison function with explicit \"this\" cannot be defaulted"
+ec_explicit_this_needs_this;;"an explicit \"this\" function requires a selector operand"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

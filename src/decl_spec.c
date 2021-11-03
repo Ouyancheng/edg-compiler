@@ -8275,6 +8275,8 @@ typedef unsigned long a_decl_specifiers_set;
 			/* "thread_local/_Thread_local" was scanned. */
 #define DS_NORETURN (a_decl_specifiers_set)(0x4000)
 			/* "_Noreturn" was scanned. */
+#define DS_THIS (a_decl_specifiers_set)(0x8000)
+			/* "this" was scanned. */
 
 
 static void report_bad_type_name(a_decl_flag_set  input_flags)
@@ -10958,6 +10960,31 @@ storage_class_specifier:
                                             ec_consteval_virtual_combination,
                       &pos_curr_token);
             *output_flags &= ~(a_decl_flag_set)DSO_CONSTEXPR;
+          }  /* if */
+        }  /* if */
+        break;
+      case tok_this:
+        if (!explicit_this_param_enabled) {
+          /* If explicit "this" parameters are not enabled, this is not a
+             decl-specifier. */
+          goto something_unexpected;
+        } else if (!is_parameter) {
+          /* The decl-specifier "this" may only appear in a function parameter
+             declaration. */
+          pos_error(ec_bad_this, &error_position);
+          err = TRUE;
+        } else if (decl_specifiers_seen & DS_THIS) {
+          pos_warning(ec_dupl_decl_specifier, &error_position);
+        } else {
+          a_routine_type_supplement_ptr
+                          rtsp = rout_type_supp(scope_stack_top().assoc_type);
+          /* "this" may only appear on the first parameter. */
+          if (rtsp->param_type_list != nullptr) {
+            pos_error(ec_explicit_this_param_must_be_first, &error_position);
+            err = TRUE;
+          } else {
+            decl_specifiers_seen |= DS_THIS;
+            state->is_explicit_this = TRUE;
           }  /* if */
         }  /* if */
         break;

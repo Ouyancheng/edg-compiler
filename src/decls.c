@@ -319,6 +319,7 @@ be restored).
   dps->pending_trailing_requires_clause = FALSE;
   dps->ineligible = FALSE;
   dps->is_abbr_func_template = FALSE;
+  dps->is_explicit_this = FALSE;
   clear_init_state(&dps->init_state);
   dps->id_attributes = NULL;
   dps->asm_name = NULL;
@@ -2057,8 +2058,12 @@ new fields are set properly.
         }  /* if */
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-    } else if (rtsp->param_type_list != NULL || rtsp->has_ellipsis) {
-      /* Any parameter is too many for a (standard) conversion function. */
+    } else if (rtsp->has_ellipsis ||
+               (rtsp->param_type_list != NULL &&
+                (!rtsp->param_type_list->is_explicit_this ||
+                 rtsp->param_type_list->next != NULL))) {
+      /* The only parameter permitted on a (standard) conversion operator is
+         an explicit "this" parameter. */
       pos_error(ec_too_many_args_for_conversion, &locator->source_position);
       err = TRUE;
     }  /* if */

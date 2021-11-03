@@ -10997,7 +10997,7 @@ When templates_only is TRUE, only function templates members are considered.
     a_template_param_ptr              other_templ_param_list;
     a_routine_ptr                     routine;
     a_symbol_ptr                      fund_sym = sym;
-    a_type_compat_flags_set           tcf_flags = TCF_NO_FLAGS;
+    a_type_compat_flags_set           tcf_flags = TCF_MEMBER_REDECL_CHECK;
     if (new_may_be_implicitly_const) {
       /* We may have added an implicit qualifier in a previous iteration of
          this loop.  Restore the original type for this iteration. */
@@ -12313,6 +12313,18 @@ pointed to by cssp.
 }  /* add_to_conversion_list */
 
 
+static bool routine_type_takes_object_param(a_type_ptr  routine_type)
+/*
+Return TRUE if a routine type is either the type of a nonstatic member
+function or a static member function with an explicit this parameter.
+*/
+{
+  routine_type = skip_typerefs(routine_type);
+  return rout_type_supp(routine_type)->has_this_param ||
+         has_explicit_this_parameter(routine_type);
+}  /* routine_type_takes_object_param */
+
+
 void set_mixed_static_nonstatic_flag(a_symbol_ptr  overload_sym)
 /*
 overload_sym is an sk_overloaded_function symbol representing a set of
@@ -12361,10 +12373,10 @@ the first two need be checked.)
         tp2 = NULL;
       }  /* if */
       if (tp1 != NULL && tp2 != NULL &&
-          routine_type_is_nonstatic_member_function(tp1) !=
-                              routine_type_is_nonstatic_member_function(tp2)) {
-        overload_sym->
-           variant.overloaded_function.mixed_static_nonstatic = TRUE;
+          routine_type_takes_object_param(tp1) !=
+                                       routine_type_takes_object_param(tp2)) {
+        overload_sym->variant.overloaded_function
+                             .mixed_static_nonstatic = TRUE;
       }  /* if */
     }  /* if */
   } else if (sym2 == NULL) {
@@ -12395,6 +12407,52 @@ types; otherwise, return FALSE.
 }  /* compatible_functions_with_c_linkage */
 
 
+static a_type_ptr obj_param_type_for_sym(a_symbol_ptr  sym,
+                                         a_type_ptr    *p_rtp)
+/*
+Return the object parameter type for the given symbol and set *p_rtp to the
+routine type for that symbol.
+*/
+{
+  a_symbol_ptr  fund_sym = fundamental_symbol_of(sym);
+  a_type_ptr    rtp = skip_typerefs(routine_symbol_type(fund_sym));
+
+  *p_rtp = rtp;
+  return object_parameter_type(rtp, sym,
+                               is_conversion_function_symbol(fund_sym));
+}  /* obj_param_type_for_sym */
+
+
+static a_boolean object_params_correspond(a_symbol_ptr  sym1,
+                                          a_symbol_ptr  sym2)
+/*
+sym1 and sym2 are member functions.  Return TRUE if their object parameters
+"correspond".
+*/
+{
+  a_type_ptr  rtp1, rtp2,
+              tp1 = obj_param_type_for_sym(sym1, &rtp1),
+              tp2 = obj_param_type_for_sym(sym2, &rtp2);
+  a_boolean   has_expl_this1 = has_explicit_this_parameter(rtp1),
+              has_expl_this2 = has_explicit_this_parameter(rtp2);
+
+  /* From P0847R7, [basic.scope.scope]:
+       Two non-static member functions have corresponding object parameters if:
+         - exactly one is an implicit object member function with no
+           ref-qualifier and the types of their object parameters ([dcl.fct]),
+           after removing top-level references, are the same, or
+         - their object parameters have the same type.
+  */
+  if (has_expl_this1 != has_expl_this2 &&
+      (has_expl_this1 ? rout_type_supp(rtp2)->ref_qualifiers == TQ_NONE
+                      : rout_type_supp(rtp1)->ref_qualifiers == TQ_NONE)) {
+    if (is_any_reference_type(tp1)) tp1 = type_pointed_to(tp1);
+    if (is_any_reference_type(tp2)) tp2 = type_pointed_to(tp2);
+  }  /* if */
+  return identical_types(tp1, tp2);
+}  /* object_params_correspond */
+
+
 static a_boolean types_of_decl_and_using_decl_conflict(a_symbol_ptr  decl_sym,
                                                        a_symbol_ptr  using_sym,
                                                        a_boolean     *err)
@@ -12417,10 +12475,11 @@ a diagnostic should be issued by the caller.
   *err = FALSE;
   /* First compare param types and, if appropriate, implicit-this-param
      types. */
-  if (param_types_are_compatible(tp1, tp2, TCF_NO_FLAGS) &&
+  if (param_types_are_compatible(tp1, tp2, TCF_MEMBER_REDECL_CHECK) &&
       (!is_class_member ||
        this_param_types_correspond(tp1, tp2, /*check_as_conversion=*/FALSE,
-                                   /*check_as_operands=*/FALSE))) {
+                                   /*check_as_operands=*/FALSE) ||
+       object_params_correspond(decl_sym, using_sym))) {
     /* They are compatible so far. */
     a_routine_type_supplement_ptr
            rtsp1 = tp1->variant.routine.extra_info,
@@ -13983,8 +14042,13 @@ the position of the "= default" construct.
                     ((is_member && ptp->next == NULL) ||
                      (!is_member && ptp->next != NULL &&
                                                     ptp->next->next == NULL)));
-    if (!is_member && identical_types(ptp->type, ptp->next->type) &&
-        identical_types(class_type, ptp->type)) {
+    if (has_explicit_this_parameter(rtp)) {
+      /* A comparison operator with an explicit "this" parameter cannot be
+         defaulted. */
+      pos_error(ec_explicit_this_defaulted_comparison, def_pos);
+      err = TRUE;
+    } else if (!is_member && identical_types(ptp->type, ptp->next->type) &&
+               identical_types(class_type, ptp->type)) {
       /* A defaulted friend comparison operator can have two parameters of
          the type of the containing class.  Otherwise, each parameter must
          be a reference to the const-qualified containing class. */
@@ -14847,9 +14911,7 @@ Microsoft C++/CLI static reverse conversion function.
 */
 {
   a_boolean                      is_implicitly_callable = TRUE;
-#if MICROSOFT_EXTENSIONS_ALLOWED
   a_boolean                      is_static = FALSE;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   a_type_ptr                     class_type, ret_type;
   a_routine_type_supplement_ptr  rtsp;
 
@@ -14859,29 +14921,31 @@ Microsoft C++/CLI static reverse conversion function.
   ret_type = f_skip_typerefs(return_type_of(rout_type));
   rtsp = rout_type->variant.routine.extra_info;
   class_type = rtsp->this_class;
-#if MICROSOFT_EXTENSIONS_ALLOWED
-  if (cli_or_cx_enabled && class_type == NULL &&
-      rtsp->param_type_list != NULL) {
-    /* A C++/CLI managed class type can contain a "static conversion function".
-       Use the explicit parameter instead of a "this" parameter. */
+  if (class_type == NULL && rtsp->param_type_list != NULL &&
+      (cli_or_cx_enabled || has_explicit_this_parameter(rout_type))) {
+    /* A "static conversion function" can exist either in a C++/CLI managed
+       class type or in a function with an explicit "this" parameter.  Use the
+       explicit parameter instead of an implicit "this" parameter. */
     class_type = rtsp->param_type_list->type;
     if (is_any_reference_type(class_type)) {
       class_type = type_pointed_to(class_type);
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
     if (is_handle_type(class_type)) {
       class_type = type_pointed_to(class_type);
     }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     class_type = skip_typerefs(class_type);
     if (is_error_type(class_type)) {
       class_type = NULL;
 #if CHECKING
     } else if (!is_reverse_fn) {
-      check_assertion(is_immediate_managed_class_type(class_type));
+      check_assertion(is_immediate_managed_class_type(class_type) ||
+                      has_explicit_this_parameter(rout_type));
 #endif /* CHECKING */
     }  /* if */
     is_static = TRUE;
   }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   if (class_type == NULL) {
     /* This can happen in error cases. */
     expect_error();
@@ -15375,14 +15439,21 @@ implicitly declared member functions.
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_property_or_event_descr_ptr pdp = class_state->property_or_event_descr;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  a_boolean                     is_static_member;
+  a_boolean                     is_static_member, has_static,
+                                has_explicit_this;
 #if GNU_FUNCTION_MULTIVERSIONING
   a_boolean                     requires_gnu_target_attr = FALSE;
   a_symbol_ptr                  repr_sym = NULL;
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
 
   db_enter(3, "decl_member_function");
-  is_static_member = decl_state->storage_class == (a_storage_class)sc_static;
+  has_static = decl_state->storage_class == (a_storage_class)sc_static;
+  has_explicit_this = has_explicit_this_parameter(decl_state->type);
+  is_static_member = has_static || has_explicit_this;
+  if (has_static && has_explicit_this) {
+    pos_diagnostic(es_discretionary_error, ec_static_with_explicit_this,
+                   &decl_state->specifiers_pos);
+  }  /* if */
   if (!is_static_member && (decl_state->dso_flags & DSO_CONSTEXPR) != 0) {
     if (!decl_info->is_constructor && constexpr_implies_const) {
       adjust_constexpr_member_type_if_needed(decl_state);
@@ -16674,11 +16745,19 @@ decl_member_function, which handles in-class member function declarations.)
   a_symbol_ptr                      other_sym, overload_sym = NULL;
   a_class_symbol_supplement_ptr     cssp;
   a_scope_depth                     effective_decl_level;
-  a_boolean                         is_static_member;
+  a_boolean                         is_static_member, has_static,
+                                    has_explicit_this;
 
   db_enter(3, "decl_member_function_template");
   check_assertion(scope_is(&scope_stack_top(), sck_template_declaration));
-  is_static_member = dps->storage_class == (a_storage_class)sc_static;
+
+  has_static = dps->storage_class == (a_storage_class)sc_static;
+  has_explicit_this = has_explicit_this_parameter(dps->type);
+  is_static_member = has_static || has_explicit_this;
+  if (has_static && has_explicit_this) {
+    pos_diagnostic(es_discretionary_error, ec_static_with_explicit_this,
+                   &dps->specifiers_pos);
+  }  /* if */
   dps->is_definition = func_info->is_definition;
   if (!is_error_locator(*locator)) {
     if (locator->is_udl_operator_name) {

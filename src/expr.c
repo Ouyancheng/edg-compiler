@@ -6748,14 +6748,19 @@ are expected to be NULL in that case.
         unknown_dependent_function = TRUE;
       }  /* if */
     }  /* if */
-    if (!C_mode() && routine != NULL &&
-        (routine->trailing_requires_clause != NULL ||
-         (routine_type != NULL &&
-          skip_typerefs(routine_type)->variant.routine.extra_info
-                                     ->has_enable_if_attribute))) {
+    if (C_mode() || routine == NULL) {
+      /* Nothing to do. */
+    } else if (routine->trailing_requires_clause != NULL ||
+               (routine_type != NULL &&
+                skip_typerefs(routine_type)->variant.routine.extra_info
+                                           ->has_enable_if_attribute)) {
       /* Force the use of overload resolution if constraints have to be
          checked.  This is true both for C++20 trailing requires clauses and
          for enable_if attributes. */
+      overloaded_function_case = TRUE;
+      overloaded_function_symbol = symbol_for(routine);
+    } else if (routine_type != NULL &&
+               has_explicit_this_parameter(routine_type)) {
       overloaded_function_case = TRUE;
       overloaded_function_symbol = symbol_for(routine);
     }  /* if */
@@ -6864,7 +6869,7 @@ are expected to be NULL in that case.
                                           operand->bound_function ||
                                                      try_surrogate_functions,
                                           bound_function_selector,
-                                          arg_list,
+                                          &arg_list,
                                           do_arg_dep_lookup,
                                           /*use_pure_arg_dep_lookup=*/FALSE,
                                           /*use_std_for_arg_dep_lookup=*/FALSE,
@@ -6917,10 +6922,9 @@ are expected to be NULL in that case.
          Note that if a base class cast was required, it has already been
          done during the function binding, so the differences at this
          point (other than for error cases) are const/non-const differences. */
-      a_type_ptr this_param_type = 
-                        implicit_object_parameter_type(routine_type,
-                                                       (a_symbol *)NULL,
-                                                       /*is_conv_func=*/FALSE);
+      a_type_ptr  this_param_type = object_parameter_type(
+                                               routine_type, (a_symbol *)NULL,
+                                               /*is_conv_func=*/FALSE);
       selector_match_with_this_param(bound_function_selector,
                                      routine,
                                      routine_type,
@@ -9126,6 +9130,11 @@ make_proxy_type_if_needed:
                member_sym->variant.routine.ptr->is_deleted) {
       subst_fail(rcblock->error_detected);
       rep = NULL;
+    } else if (is_simple_function_symbol(member_sym) &&
+               has_explicit_this_parameter(
+                            skip_typerefs(routine_symbol_type(member_sym)))) {
+      rep = NULL;
+      force_indefinite_function = TRUE;
     } else {
       rep = ref_entry(member_sym, &member_position);
     }  /* if */
@@ -35968,12 +35977,10 @@ normal_function:
               rep = NULL;
               break;
             } else {
-              a_variable_ptr    this_var;
               an_expr_node_ptr  this_var_node;
               /* Create a "this" operand explicitly (the ordinary path ignores
                  closure types). */
-              this_var = this_variable_for_lambda_closure();
-              this_var_node = var_rvalue_expr(this_var);
+              this_var_node = this_expr_node_for_lambda_closure();
               this_var_node->position = pos_curr_token;
               make_expression_operand(this_var_node, &this_pointer_operand);
               this_operand_set = TRUE;
@@ -42144,7 +42151,7 @@ for-each (otherwise it's a range-based-for).
                                       (a_template_arg_ptr)NULL,
                                       /*have_selector=*/TRUE,
                                       bound_function_selector,
-                                      arg_list,
+                                      &arg_list,
                                       /*do_arg_dep_lookup=*/FALSE,
                                       /*use_pure_arg_dep_lookup=*/FALSE,
                                       /*use_std_for_arg_dep_lookup=*/FALSE,
@@ -44061,7 +44068,7 @@ This function is largely based on check_range_based_for_default_case.
                                   (a_template_arg_ptr)NULL,
                                   /*have_selector=*/FALSE,
                                   (an_operand *)NULL,
-                                  arg_list,
+                                  &arg_list,
                                   /*do_arg_dep_lookup=*/FALSE,
                                   /*use_pure_arg_dep_lookup=*/FALSE,
                                   /*use_std_for_arg_dep_lookup=*/FALSE,

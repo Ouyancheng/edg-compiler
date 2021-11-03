@@ -727,10 +727,10 @@ extern void selector_match_with_this_param(
                                a_type_ptr           routine_type,
                                a_type_ptr           this_param_type,
                                an_arg_match_summary *arg_summary);
-extern
-a_type_ptr implicit_object_parameter_type(a_type_ptr   routine_type,
-                                          a_symbol_ptr proj_function_symbol,
-                                          a_boolean    is_conv_func);
+
+extern a_type_ptr object_parameter_type(a_type_ptr   routine_type,
+                                        a_symbol_ptr proj_function_symbol,
+                                        a_boolean    is_conv_func);
 
 extern
 a_boolean is_template_dependent_indefinite_function(an_operand *operand);
@@ -822,6 +822,8 @@ extern a_boolean this_exists_for_member_access(a_symbol_ptr member_sym,
 
 extern a_variable_ptr this_variable_for_lambda_closure(void);
 
+extern an_expr_node_ptr this_expr_node_for_lambda_closure(void);
+
 extern an_expr_node_ptr make_selection_for_captured_variable(
                                               a_lambda_capture *lambda_capture,
                                               a_boolean        is_lvalue);
@@ -869,7 +871,7 @@ extern a_boolean select_and_prepare_to_call_overloaded_function(
                            a_template_arg_ptr      template_arg_list,
                            a_boolean               have_selector,
                            an_operand              *bound_function_selector,
-                           an_arg_list_elem_ptr    arg_list,
+                           an_arg_list_elem_ptr    *arg_list,
                            a_boolean               do_arg_dep_lookup,
                            a_boolean               use_pure_arg_dep_lookup,
                            a_boolean               use_std_for_arg_dep_lookup,

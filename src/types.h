@@ -1048,7 +1048,10 @@ Bit flags for calls of f_types_are_compatible et al.
 #define TCF_IGNORE_TOP_LEVEL_NOEXCEPT 0x100000
 			/* TRUE if a top-level exception specifier should be
 			   ignored while comparing the types. */
-#define TCF_LAST TCF_IGNORE_TOP_LEVEL_NOEXCEPT
+#define TCF_MEMBER_REDECL_CHECK 0x200000
+			/* TRUE when comparing routine types to check for
+			   member redeclaration conflicts. */
+#define TCF_LAST TCF_MEMBER_REDECL_CHECK
 			/* Last bit in the bit vector that is in use. */
 #define TCF_NO_FLAGS 0x0
 typedef int a_type_compat_flags_set;
@@ -1819,6 +1822,17 @@ extern a_boolean compatible_ms_bit_field_container_types(a_type_ptr tp1,
 extern a_targ_alignment check_explicit_enum_alignment(
                                               a_type_ptr       type,
                                               a_targ_alignment base_alignment);
+
+inline a_boolean has_explicit_this_parameter(a_type_ptr  rtp)
+/*
+Return TRUE if the given routine type represents the type of a function with
+an explicit "this" parameter.
+*/
+{
+  a_param_type_ptr  ptp = function_type_params(rtp);
+
+  return ptp != NULL && ptp->is_explicit_this;
+}  /* has_explicit_this_parameter */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

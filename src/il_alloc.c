@@ -1199,6 +1199,7 @@ in the file scope memory region.
   ptp->move_ctor_or_assign_parameter = FALSE;
   ptp->copy_or_move_ctor_parameter = FALSE;
   ptp->is_requires_expr_param = FALSE;
+  ptp->is_explicit_this = FALSE;
   ptp->param_num = 0;
   ptp->default_arg_expr = NULL;
   ptp->orig_param_type_for_unevaluated_default_arg_expr = NULL;
