@@ -1,5 +1,19 @@
 Version 6.3
 
+11/3/21  [EDGcpfe/24750]
+C++-generating back end, clang compatibility: __int128
+
+When clang is the generated code target, the C++-generating back end
+previously put out the name of the 128-bit integer type using the built-in
+typedef name "__int128_t".  This resulted in uncompilable code for the
+unsigned and explicitly-signed variants, since "signed" and "unsigned"
+cannot be applied to a typedef name.  This is now fixed, and the
+C++-generating back end now uses the name "__int128" in all variants of the
+128-bit integer type.  For example, with --c++14 --clang_version=120000:
+
+  signed __int128 i;  // Previously generated as "signed __int128_t"
+
+
 10/29/21 [EDGcpfe/24808]
 Shadowing of template parameters
 
