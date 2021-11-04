@@ -101,7 +101,7 @@ Display the reason that the runtime is aborting execution.
 #if !DISPLAY_ABORT_DESCRIPTION
 /*ARGSUSED*/ /* err_code is only used when displaying abort descriptions. */
 #endif /* !DISPLAY_ABORT_DESCRIPTION */
-EXTERN_C void __abort_execution(an_error_code	err_code)
+EXTERN_C NORETURN void __abort_execution(an_error_code	err_code)
 /*
 */
 {
