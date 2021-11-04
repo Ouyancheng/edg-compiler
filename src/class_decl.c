@@ -12433,23 +12433,30 @@ sym1 and sym2 are member functions.  Return TRUE if their object parameters
   a_type_ptr  rtp1, rtp2,
               tp1 = obj_param_type_for_sym(sym1, &rtp1),
               tp2 = obj_param_type_for_sym(sym2, &rtp2);
-  a_boolean   has_expl_this1 = has_explicit_this_parameter(rtp1),
-              has_expl_this2 = has_explicit_this_parameter(rtp2);
+  a_boolean   result;
 
-  /* From P0847R7, [basic.scope.scope]:
+  if (tp1 == NULL || tp2 == NULL) {
+    /* At least one member has no object parameter. */
+    result = tp1 == tp2;
+  } else {
+    /* From P0847R7, [basic.scope.scope]:
        Two non-static member functions have corresponding object parameters if:
          - exactly one is an implicit object member function with no
            ref-qualifier and the types of their object parameters ([dcl.fct]),
            after removing top-level references, are the same, or
          - their object parameters have the same type.
-  */
-  if (has_expl_this1 != has_expl_this2 &&
-      (has_expl_this1 ? rout_type_supp(rtp2)->ref_qualifiers == TQ_NONE
-                      : rout_type_supp(rtp1)->ref_qualifiers == TQ_NONE)) {
-    if (is_any_reference_type(tp1)) tp1 = type_pointed_to(tp1);
-    if (is_any_reference_type(tp2)) tp2 = type_pointed_to(tp2);
+    */
+    a_boolean   has_expl_this1 = has_explicit_this_parameter(rtp1),
+                has_expl_this2 = has_explicit_this_parameter(rtp2);
+    if (has_expl_this1 != has_expl_this2 &&
+        (has_expl_this1 ? rout_type_supp(rtp2)->ref_qualifiers == TQ_NONE
+                        : rout_type_supp(rtp1)->ref_qualifiers == TQ_NONE)) {
+      if (is_any_reference_type(tp1)) tp1 = type_pointed_to(tp1);
+      if (is_any_reference_type(tp2)) tp2 = type_pointed_to(tp2);
+    }  /* if */
+    result = identical_types(tp1, tp2);
   }  /* if */
-  return identical_types(tp1, tp2);
+  return result;
 }  /* object_params_correspond */
 
 
