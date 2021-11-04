@@ -24525,8 +24525,8 @@ using an_expr_chart_map = Ptr_map<an_expr_node_ptr, int32_t>;
 #if DEBUG
 
 /*
-Explicitly instantiate "an_expr_chart_map"'s db_ptrs function. Note that
-grammatically, the type alias an_expr_chart_map cannot be used here.
+Explicitly instantiate "an_expr_chart_map"'s db_ptrs function.  Note that,
+grammatically the type alias an_expr_chart_map cannot be used here.
 */
 template void Ptr_map<an_expr_node_ptr, int32_t>::db_ptrs() const;
 
