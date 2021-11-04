@@ -1,13 +1,5 @@
 Version 6.3
 
-11/4/21 [EDGcpfe/24816]
-Incomplete signature for std::terminate
-
-std::terminate (and some other internal functions) have had their function
-signatures changed to indicate that they do not throw and use the [[noreturn]]
-attribute when available.
-
-
 -------------------------------------------------------------------------------
 Version 6.2, February 10, 2021
 

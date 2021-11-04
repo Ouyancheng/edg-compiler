@@ -46,7 +46,7 @@ typedef enum /* an_error_code */ {
   ec_last
 } an_error_code;
 
-EXTERN_C NORETURN void __abort_execution(an_error_code err_code);
+EXTERN_C void __abort_execution(an_error_code err_code);
 
 #endif /* ERROR_H */
 

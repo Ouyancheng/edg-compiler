@@ -50,7 +50,7 @@ namespace std {
 #endif /* ifdef __EDG_RUNTIME_USES_NAMESPACES */
 
 
-NORETURN void terminate() THROW_NOTHING()
+void terminate()
 /*
 The default terminate routine.
 */
@@ -94,7 +94,7 @@ Return a pointer to the terminate routine currently installed.
 }  /* get_terminate */
 
 
-NORETURN void unexpected() THROW_NOTHING()
+void unexpected()
 /*
 The default unexpected routine.  This routine calls terminate.
 */
