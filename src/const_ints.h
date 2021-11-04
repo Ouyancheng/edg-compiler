@@ -62,9 +62,11 @@ BEGIN_EDG_NAMESPACE
   (*(intval) = (an_integer_value)(value))
 
 
-/* Extract a host large integer *val from an_integer_value *intval. */
+/* Extract a host large integer *val from an_integer_value *intval.  (The
+   "(void)is_signed" as the left operand of a comma is there only to silence
+   compiler warnings about unused variables that otherwise pop up.) */
 #define conv_integer_value_to_host_large_integer(intval, is_signed, val, err) \
-  (*(val) = *(a_host_large_integer *)(intval), *(err) = FALSE)
+  ((void)is_signed, *(val) = *(a_host_large_integer *)(intval), *(err) = FALSE)
 
 
 /* Logical OR two integer values.  The result is returned in the first
