@@ -6051,6 +6051,12 @@ otherwise, this routine will look up that storage in ips->map.
   a_dynamic_init_ptr     dip = vp->initializer.dynamic;
   a_type_ptr             tp = skip_typerefs(vp->type);
 
+  if (dip == NULL) {
+    /* This can happen in error cases. */
+    ips->input_error = TRUE;
+    do_constexpr_fail(result);
+    goto done;
+  }  /* if */
   save_storage_stack(ips, saved_stack_for_full_expr);
   if (vp->extends_lifetime) {
     /* Start a new stack for temporaries in this expression, but keep a
@@ -6092,6 +6098,7 @@ otherwise, this routine will look up that storage in ips->map.
   if (result && dip->destructor != NULL) {
     result = register_destruction(ips, dip, storage, storage, pos);
   }  /* if */
+done:
   return result;
 }  /* do_constexpr_init_variable */
 
