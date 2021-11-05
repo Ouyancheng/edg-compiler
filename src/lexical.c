@@ -5746,8 +5746,6 @@ is TRUE, and search_path is empty.
     /* A file was not found.  Reset the name_found to make sure it is not
        used by the caller. */
     *name_found = NULL;
-    clear_open_file_result(open_result);
-    open_result->flags = OFR_NOT_FOUND;
   }  /* if */
   return file_found;
 }  /* search_for_input_file */
@@ -5932,6 +5930,7 @@ a catastrophic error is not issued, FALSE is returned.
   *dir_entry = NULL;
   *unicode_source_kind = usk_none;
   search_path = NULL;
+  clear_open_file_result(&open_result);
   if (use_search_path) {
     /* Determine the list of directories to be searched when opening
        the file. */
