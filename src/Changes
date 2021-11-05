@@ -1,5 +1,13 @@
 Version 6.3
 
+11/5/21  [EDGcpfe/24831]
+Uninitialized data used when displaying error message
+
+When a file cannot be opened the reason given for not being able to open the
+file had been based on uninitialized data in some cases, resulting in incorrect
+or incomplete diagnostics.
+
+
 11/3/21  [EDGcpfe/24781]
 C++23: Explicit-this member functions
 
