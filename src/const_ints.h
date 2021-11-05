@@ -64,9 +64,15 @@ BEGIN_EDG_NAMESPACE
 
 /* Extract a host large integer *val from an_integer_value *intval.  (The
    "(void)is_signed" as the left operand of a comma is there only to silence
-   compiler warnings about unused variables that otherwise pop up.) */
+   compiler warnings about unused variables that otherwise pop up.  Lint, on
+   the other hand, warns about that useless expression instead.) */
+#if defined(_lint)
+#define conv_integer_value_to_host_large_integer(intval, is_signed, val, err) \
+  (*(val) = *(a_host_large_integer *)(intval), *(err) = FALSE)
+#else /* !defined(_lint) */
 #define conv_integer_value_to_host_large_integer(intval, is_signed, val, err) \
   ((void)is_signed, *(val) = *(a_host_large_integer *)(intval), *(err) = FALSE)
+#endif /* defined(_lint) */
 
 
 /* Logical OR two integer values.  The result is returned in the first
