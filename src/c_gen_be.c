@@ -9541,6 +9541,18 @@ Generate C for a statement.
         }  /* if */
       }
       break;
+    case stmk_if_consteval:
+      /* Only dump the "else" statement (if there is one), since we are
+         generating "run time" code. */
+      if (statement->variant.if_stmt.else_statement != NULL) {
+        dump_statement(statement->variant.if_stmt.else_statement);
+      }  /* if */
+      break;
+    case stmk_if_not_consteval:
+      /* Only dump the "then" statement, since we are generating "run time"
+         code. */
+      dump_statement(statement->variant.if_stmt.then_statement);
+      break;
     case stmk_while:
       write_tok_str("while ");
       dump_boolean_controlling_expression(statement->expr);
@@ -9861,8 +9873,6 @@ Generate C for a statement.
          depending on how the IL has been lowered up until this point. */
       dump_expression(statement->expr);
       break;
-    case stmk_if_consteval:
-    case stmk_if_not_consteval:
     default:
       unexpected_condition_str("dump_statement: bad statement kind");
   }  /* switch */
