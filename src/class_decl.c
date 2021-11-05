@@ -12320,6 +12320,7 @@ function or a static member function with an explicit this parameter.
 */
 {
   routine_type = skip_typerefs(routine_type);
+  check_assertion(type_is(routine_type, tk_routine));
   return rout_type_supp(routine_type)->has_this_param ||
          has_explicit_this_parameter(routine_type);
 }  /* routine_type_takes_object_param */
@@ -15459,7 +15460,8 @@ implicitly declared member functions.
 
   db_enter(3, "decl_member_function");
   has_static = decl_state->storage_class == (a_storage_class)sc_static;
-  has_explicit_this = has_explicit_this_parameter(decl_state->type);
+  has_explicit_this = has_explicit_this_parameter(
+                                             skip_typerefs(decl_state->type));
   is_static_member = has_static || has_explicit_this;
   if (has_static && has_explicit_this) {
     pos_diagnostic(es_discretionary_error, ec_static_with_explicit_this,
@@ -16763,7 +16765,7 @@ decl_member_function, which handles in-class member function declarations.)
   check_assertion(scope_is(&scope_stack_top(), sck_template_declaration));
 
   has_static = dps->storage_class == (a_storage_class)sc_static;
-  has_explicit_this = has_explicit_this_parameter(dps->type);
+  has_explicit_this = has_explicit_this_parameter(skip_typerefs(dps->type));
   is_static_member = has_static || has_explicit_this;
   if (has_static && has_explicit_this) {
     pos_diagnostic(es_discretionary_error, ec_static_with_explicit_this,

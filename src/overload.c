@@ -12138,12 +12138,11 @@ allow_lambda_this is TRUE.
 
 static bool in_explicit_this_lambda()
 /*
-We're currently inside a lambda body. Return TRUE if this lambda takes an
-explicit "this" parameter
+We're currently inside a lambda body.  Return TRUE if this lambda takes an
+explicit "this" parameter.
 */
 {
   check_assertion(current_routine_entry()->is_lambda_body);
-
   return has_explicit_this_parameter(
                          innermost_function_scope->variant.routine.ptr->type);
 }  /* in_explicit_this_lambda */
@@ -12179,7 +12178,7 @@ fields that contain the captures of local variables.
 
 an_expr_node_ptr this_expr_node_for_lambda_closure(void)
 /*
-We are currently inside a lambda body. If the lambda has an explicit "this"
+We are currently inside a lambda body.  If the lambda has an explicit "this"
 parameter, return an lvalue expression for that parameter.  Otherwise, return
 the usual "this" rvalue expression.
 */

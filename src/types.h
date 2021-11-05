@@ -1829,8 +1829,10 @@ Return TRUE if the given routine type represents the type of a function with
 an explicit "this" parameter.
 */
 {
-  a_param_type_ptr  ptp = function_type_params(rtp);
+  a_param_type_ptr  ptp;
 
+  check_assertion(type_is(rtp, tk_routine));
+  ptp = function_type_params(rtp);
   return ptp != NULL && ptp->is_explicit_this;
 }  /* has_explicit_this_parameter */
 
