@@ -6760,7 +6760,7 @@ are expected to be NULL in that case.
       overloaded_function_case = TRUE;
       overloaded_function_symbol = symbol_for(routine);
     } else if (routine_type != NULL &&
-               has_explicit_this_parameter(routine_type)) {
+               has_explicit_this_parameter(skip_typerefs(routine_type))) {
       overloaded_function_case = TRUE;
       overloaded_function_symbol = symbol_for(routine);
     }  /* if */
