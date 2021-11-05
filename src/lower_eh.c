@@ -4926,7 +4926,11 @@ statement if necessary.
   /* See if the routine has a throw specification. */
   tsp = routine_type->variant.routine.extra_info->exception_specification;
   check_assertion(tsp == NULL || !tsp->indeterminate);
-  if (tsp != NULL && !tsp->throw_any) {
+  if (building_runtime) {
+    /* In the case where we're building the runtime library, don't take
+       action on the exception specification (if any).  That's to prevent
+       problems when the runtime library explicitly calls std::terminate(). */
+  } else if (tsp != NULL && !tsp->throw_any) {
     /* The routine has an exception specification that the runtime library
        needs to know about.  (A null pointer means the function can throw
        anything.)  The noexcept(false) case is treated similarly (as is
