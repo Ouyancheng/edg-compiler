@@ -1,5 +1,26 @@
 Version 6.3
 
+11/5/21  [EDGcpfe/22130,EDGcpfe/24225]
+Spurious constant-evaluation errors on some aggregate copy operations
+
+Consider:
+
+  struct X {
+    constexpr X(int i): i(i) {}
+    constexpr X(X const &x): i(x.i) {}
+    int i;
+  };
+  struct S {
+    X m[1];
+  };
+  constexpr X x{1};
+  constexpr S s{x};
+  constexpr S c = s;  // Previously an error.  Now okay.
+
+Previously, the front end failed to evaluate the copy constructor of the
+aggregate type S for the initialization of c.  That is now fixed.
+
+
 11/5/21  [EDGcpfe/24831]
 Uninitialized data used when displaying error message
 

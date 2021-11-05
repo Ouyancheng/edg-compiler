@@ -4484,12 +4484,13 @@ static a_boolean do_constexpr_dtor(an_interpreter_state  *ips,
                                    a_boolean             nonvirtual = FALSE);
 
 static a_boolean do_constexpr_dynamic_init(
-                                      an_interpreter_state  *ips,
-                                      a_dynamic_init_ptr    dip,
-                                      a_source_position     *pos,
-                                      a_byte                *result_storage,
-                                      a_byte                *complete_object,
-                                      an_alloc_seq_number   alloc_seq);
+                                   an_interpreter_state  *ips,
+                                   a_dynamic_init_ptr    dip,
+                                   a_source_position     *pos,
+                                   a_byte                *result_storage,
+                                   a_byte                *complete_object,
+                                   an_alloc_seq_number   alloc_seq,
+                                   a_constexpr_address   *implied_src = NULL);
 
 
 static a_boolean perform_destructions(an_interpreter_state  *ips)
@@ -4747,32 +4748,54 @@ set *p_dbcp to the direct base class for the last step of the derivation path
 }  /* compute_interpreter_base_offset */
 
 
+static a_boolean extract_value_from_constant(
+                                    an_interpreter_state  *ips,
+                                    a_constant_ptr        con,
+                                    a_byte                *value,
+                                    a_byte                *complete_object,
+                                    a_constexpr_address   *implied_src = NULL);
+
+static inline a_boolean copy_val_from_constant(
+                                   an_interpreter_state  *ips,
+                                   a_constant_ptr        con,
+                                   a_byte                *value,
+                                   a_byte                *complete_object,
+                                   a_constexpr_address   *implied_src = NULL)
 /*
-Macro to set result_storage from the value of the specified constant.
-Duplicates some cases from extract_value_from_constant for performance
-reasons.
+Set *value from the value of the specified constant.  Duplicates some cases
+from extract_value_from_constant for performance reasons.  See
+extract_value_from_constant for the meaning of the parameters.
 */
-#define copy_val_from_constant(ips, con, result_storage, complete_object)     \
-  (                                                                           \
-    ((con)->kind == (a_constant_repr_kind)ck_integer &&                       \
-     !(con)->implicit_cast) ?                                                 \
-      (*(an_integer_value *)(result_storage) = (con)->variant.integer_value,  \
-       TRUE):                                                                 \
-    ((con)->kind == (a_constant_repr_kind)ck_float) ?                         \
-      ((*fp_value(result_storage) = (con)->variant.float_value), TRUE) :      \
-    /* else */                                                                \
-      extract_value_from_constant(ips, con, result_storage, complete_object)  \
-  )  /* copy_val_from_constant */
+{
+  a_boolean  result;
+
+  if (constant_is(con, ck_integer) && !con->implicit_cast) {
+    *(an_integer_value *)value = con->variant.integer_value;
+    result = TRUE;
+  } else if (constant_is(con, ck_float)) {
+    *fp_value(value) = (con)->variant.float_value;
+    result = TRUE;
+  } else {
+    result = extract_value_from_constant(ips, con,
+                                         value, complete_object,
+                                         implied_src);
+  }  /* if */
+  return result;
+}  /* copy_val_from_constant */
 
 
 static a_boolean extract_value_from_constant(
-                                       an_interpreter_state  *ips,
-                                       a_constant_ptr        con,
-                                       a_byte                *value,
-                                       a_byte                *complete_object)
+                                    an_interpreter_state  *ips,
+                                    a_constant_ptr        con,
+                                    a_byte                *value,
+                                    a_byte                *complete_object,
+                  /* Defaulted: */  a_constexpr_address   *implied_src)
 /*
 Copy the value of con into the interpreter storage at value, converting
-formats as necessary.  Return FALSE if the constant is an error constant.
+formats as necessary.  Return FALSE if the constant is an error constant.  If
+implied_src is non-NULL, this is being invoked from the evaluation of a copy
+or move constructor and the source object is stored at the location indicated
+by implied_src.
 */
 {
   a_boolean  result = TRUE;
@@ -5144,7 +5167,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
         result = do_constexpr_dynamic_init(ips, con->variant.dynamic_init.ptr,
                                            &con->source_corresp.decl_position,
                                            value, complete_object,
-                                           active_alloc_seq(ips));
+                                           active_alloc_seq(ips), implied_src);
       }
       break;
     case ck_string:
@@ -5212,7 +5235,8 @@ formats as necessary.  Return FALSE if the constant is an error constant.
     case ck_aggregate:
       {
         a_type_ptr  tp = skip_typerefs(con->type);
-        if (tp->kind == (a_type_kind)tk_array) {
+        a_byte      *saved_implied_src_address;
+        if (type_is(tp, tk_array)) {
           a_targ_size_t   n_elems, k, repeat;
           a_byte_count    elem_size;
           a_constant_ptr  elem_con;
@@ -5225,6 +5249,9 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             /* Designated initializers might leave "holes" in the destination
                object, but those should be zero-initialized. */
             init_subobject_to_zero(ips, value, tp, complete_object);
+          }  /* if */
+          if (implied_src != NULL) {
+            saved_implied_src_address = implied_src->address;
           }  /* if */
           elem_con = con->variant.aggregate.first_constant;
           for (k = 0; k<n_elems;) {
@@ -5242,7 +5269,7 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             } else {
               mark_complete_class_object_if_needed(etp, value);
               if (!copy_val_from_constant(
-                                     ips, elem_con, value, complete_object)) {
+                        ips, elem_con, value, complete_object, implied_src)) {
                 do_constexpr_fail(result);
                 break;
               } else if (constant_is(elem_con, ck_string) &&
@@ -5262,7 +5289,11 @@ formats as necessary.  Return FALSE if the constant is an error constant.
             }  /* if */
             k += repeat;
             value += repeat*elem_size;
+            if (implied_src != NULL) implied_src->address += repeat*elem_size;
           }  /* for */
+          if (implied_src != NULL) {
+            implied_src->address = saved_implied_src_address;
+          }  /* if */
         } else if (tp->kind == (a_type_kind)tk_struct ||
                    tp->kind == (a_type_kind)tk_class) {
           a_field_ptr       fp = tp->variant.class_struct_union.field_list;
@@ -5558,20 +5589,28 @@ formats as necessary.  Return FALSE if the constant is an error constant.
           a_type_ptr      etp = skip_typerefs(elem_con->type);
           a_targ_size_t   n_elems, k;
           a_byte_count    elem_size;
+          a_byte          *saved_implied_src_address;
           n_elems = con->variant.init_repeat.count;
           elem_size = value_bytes_for_type(ips, etp, &result);
           if (!result) break;
+          if (implied_src != NULL) {
+            saved_implied_src_address = implied_src->address;
+          }  /* if */
           for (k = 0; k<n_elems;) {
             mark_complete_class_object_if_needed(etp, value);
             if (!copy_val_from_constant(ips, elem_con, value,
-                                        complete_object)) {
+                                        complete_object, implied_src)) {
               do_constexpr_fail(result);
               break;
             }  /* if */
             mark_subobject_initialized(value, complete_object);
             k  += 1;
             value += elem_size;
+            if (implied_src != NULL) implied_src->address += elem_size;
           }  /* for */
+          if (implied_src != NULL) {
+            implied_src->address = saved_implied_src_address;
+          }  /* if */
         }  /* if */
       }
       break;
@@ -5892,11 +5931,15 @@ static a_boolean do_constexpr_dynamic_init(
                                         a_source_position     *pos,
                                         a_byte                *result_storage,
                                         a_byte                *complete_object,
-                                        an_alloc_seq_number   alloc_seq)
+                                        an_alloc_seq_number   alloc_seq,
+                      /* Defaulted: */  a_constexpr_address   *implied_src)
 /*
 Evaluate the given dynamic initialization for the storage described by
 result_storage, complete_object, and alloc_seq.  ips is the interpreter state
-and pos the default position for diagnostics.
+and pos the default position for diagnostics.  pos is the default position for
+diagnostics.  If implied_src is non-NULL, this is being invoked from the
+evaluation of a copy or move constructor and the source object is stored at
+the location indicated by implied_src.
 */
 {
   a_boolean  result = FALSE;
@@ -5905,7 +5948,8 @@ and pos the default position for diagnostics.
     case dik_constant:
     case dik_nonconstant_aggregate:
       result = copy_val_from_constant(ips, dip->variant.constant.ptr,
-                                      result_storage, complete_object);
+                                      result_storage, complete_object,
+                                      implied_src);
       break;
     case dik_lambda:
       if (constexpr_lambdas_enabled) {
@@ -5927,8 +5971,7 @@ and pos the default position for diagnostics.
                                            complete_object, alloc_seq);
       } else {
         result = do_constexpr_ctor(ips, dip, pos, result_storage,
-                                   complete_object, alloc_seq,
-                                   /*implied_src=*/NULL);
+                                   complete_object, alloc_seq, implied_src);
       }  /* if */
       break;
     case dik_bitwise_copy:
@@ -10594,7 +10637,8 @@ the body of the (constructor) function proper.
     /* The "+1" below is to account for the "this" pointer (handled later). */
     p_arg_ptr = (a_byte**)arg_ptrs+1;
     arg_size = (a_byte_count*)arg_sizes;
-    if (implied_src != NULL) {
+    if (implied_src != NULL &&
+        dip->variant.constructor.is_copy_constructor_with_implied_source) {
       /* The first non-this argument is implicit (i.e., not represented in
          the IL).  Since it always corresponds to the reference parameter of
          a copy/move constructor, we know it is a constexpr address. */
@@ -10865,7 +10909,15 @@ the body of the (constructor) function proper.
           init_subobject_to_zero(ips, result_storage+offset, tp,
                                  complete_object);
         } else {
-          a_byte  *prev_this_bytes = NULL;
+          a_byte               *prev_this_bytes = NULL;
+          a_constexpr_address  *src_addr = NULL;
+          if (dyn_init_is(sub_dip, dik_nonconstant_aggregate) &&
+              n_params == 2 && callee->compiler_generated) {
+            /* Implicit copies might rely on an "implied source"
+               representation.  Pass the current source object address down
+               in case it is needed. */
+            src_addr = (a_constexpr_address*)((a_byte**)arg_ptrs)[1];
+          }  /* if */
           if (record_param_ref) {
             /* Associate the "this" pointer value (arbitrarily) with
                &ips->curr_call_frame. */
@@ -10876,7 +10928,7 @@ the body of the (constructor) function proper.
                                        ips, sub_dip,
                                        &callee->source_corresp.decl_position,
                                        result_storage+offset, complete_object,
-                                       alloc_seq)) {
+                                       alloc_seq, src_addr)) {
             do_constexpr_fail(result);
             break;
           } else {

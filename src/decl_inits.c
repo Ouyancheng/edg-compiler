@@ -1661,6 +1661,8 @@ The count can be zero.
   a_constant_ptr  result; 
 
   result = alloc_constant((a_constant_repr_kind)ck_init_repeat);
+  result->source_corresp.decl_position =
+                                       elem_con->source_corresp.decl_position;
   result->variant.init_repeat.count = count;
   result->variant.init_repeat.constant = elem_con;
   return result;
@@ -6456,10 +6458,12 @@ arrays are treated as one-dimensional arrays.
   /* Create the new ck_dynamic_init constant representing the constructor
      call. */
   dynamic_init_con = alloc_constant((a_constant_repr_kind)ck_dynamic_init);
+  dynamic_init_con->source_corresp.decl_position = error_position;
   dynamic_init_con->variant.dynamic_init.ptr = ctor_dip;
   dynamic_init_con->type = elem_type;
   /* Create a ck_aggregate constant and point *new_dip to it. */
   aggr_con = alloc_constant((a_constant_repr_kind)ck_aggregate);
+  aggr_con->source_corresp.decl_position = error_position;
   aggr_con->type = array_type;
   new_dip->variant.constant.ptr = aggr_con;
   /* Set it to point to a newly created ck_init_repeat constant. */
