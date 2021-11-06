@@ -1617,6 +1617,7 @@ Return the kind of operator described by op.
       break;
     case ifc_MonadicOperator_PostIncrement:
     case ifc_MonadicOperator_PostDecrement:
+    case ifc_MonadicOperator_Expand:
       kind = opkind_post;
       break;
     case ifc_MonadicOperator_New:
@@ -1636,7 +1637,6 @@ Return the kind of operator described by op.
     case ifc_MonadicOperator_Typeid:
     case ifc_MonadicOperator_Noexcept:
     case ifc_MonadicOperator_Requires:
-    case ifc_MonadicOperator_Expand:
     case ifc_MonadicOperator_Read:
     case ifc_MonadicOperator_Materialize:
     case ifc_MonadicOperator_PseudoDtorCall:
@@ -10217,9 +10217,7 @@ the location of the operator.
                                   &error_position);
       break;
     case ifc_MonadicOperator_Expand:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("MonadicOperator::Expand",
-                                  &error_position);
+      cache_token(cache, tok_ellipsis, &pos);
       break;
     case ifc_MonadicOperator_Read:
       /* FIXME: Currently unsupported. */
