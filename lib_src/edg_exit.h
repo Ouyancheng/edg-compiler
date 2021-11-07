@@ -24,7 +24,7 @@ Exit processing declarations.
 
 */
 
-extern void __edg_exit(int val);
+NORETURN extern void __edg_exit(int val);
 
 
 /******************************************************************************

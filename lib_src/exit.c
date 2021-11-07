@@ -35,7 +35,7 @@ of exit being declared.
 #include "edg_exit.h"
 
 
-extern "C++" void exit(int val)
+extern "C++" NORETURN void exit(int val)
 /*
 This routine just provides a means of transferring control to our own
 version of exit which will do some processing and then call the system
