@@ -85,7 +85,8 @@ typedef a_byte	a_byte_boolean;
 #define TRUE 1
 
 /*
-Most supported C++ compilers support [[noreturn]], but not all GCC versions.
+Most supported C++ compilers support [[noreturn]], but not all GCC versions,
+nor Visual Studio versions.
 */
 #ifdef __GNUC__
 #if __has_cpp_attribute(noreturn)
@@ -94,7 +95,11 @@ Most supported C++ compilers support [[noreturn]], but not all GCC versions.
 #define NORETURN __attribute__((noreturn))
 #endif /* __has_cpp_attribute(noreturn) */
 #else /* !defined(__GNUC__) */
+#ifdef _WIN32
+#define NORETURN __declspec(noreturn)
+#else /* !defined(_WIN32) */
 #define NORETURN [[noreturn]]
+#endif /* defined(_WIN32) */
 #endif /* defined(__GNUC__) */
 
 #endif /* BASICS_H */
