@@ -5580,7 +5580,7 @@ in a new-expression).
     function_symbol = fundamental_symbol_of(proj_function_symbol);
     routine_type = func_sym_routine(function_symbol)->type;
   }  /* if */
-  if (has_explicit_this_parameter(routine_type)) {
+  if (has_explicit_this_parameter(skip_typerefs(routine_type))) {
     /* If this is a function with an explicit "this" parameter, we need to add
        the selector onto the parameter list. */
     if (have_selector) {
