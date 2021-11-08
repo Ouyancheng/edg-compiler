@@ -137,8 +137,8 @@ static a_size_to_ptr_map
 #if DEBUG
 
 /*
-Explicitly instantiate "a_size_to_ptr_map"'s db_ptrs function.  Note that,
-grammatically the type alias a_size_to_ptr_map cannot be used here.
+Explicitly instantiate "a_size_to_ptr_map"'s db_ptrs function. Note that
+grammatically, the type alias a_size_to_ptr_map cannot be used here.
 */
 template void Ptr_map<sizeof_t, a_dyn_array_of_void_ptrs_ptr,
                       General_allocator>::db_ptrs() const;
