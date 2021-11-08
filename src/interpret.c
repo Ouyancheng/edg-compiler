@@ -5589,7 +5589,7 @@ by implied_src.
           a_type_ptr      etp = skip_typerefs(elem_con->type);
           a_targ_size_t   n_elems, k;
           a_byte_count    elem_size;
-          a_byte          *saved_implied_src_address;
+          a_byte          *saved_implied_src_address = NULL;
           n_elems = con->variant.init_repeat.count;
           elem_size = value_bytes_for_type(ips, etp, &result);
           if (!result) break;
@@ -5936,10 +5936,9 @@ static a_boolean do_constexpr_dynamic_init(
 /*
 Evaluate the given dynamic initialization for the storage described by
 result_storage, complete_object, and alloc_seq.  ips is the interpreter state
-and pos the default position for diagnostics.  pos is the default position for
-diagnostics.  If implied_src is non-NULL, this is being invoked from the
-evaluation of a copy or move constructor and the source object is stored at
-the location indicated by implied_src.
+and pos the default position for diagnostics.  If implied_src is non-NULL,
+this is being invoked from the evaluation of a copy or move constructor and
+the source object is stored at the location indicated by implied_src.
 */
 {
   a_boolean  result = FALSE;
