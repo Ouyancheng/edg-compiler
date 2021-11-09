@@ -5457,6 +5457,18 @@ struct an_ifc_module::decl_access_visitor
 
 template<>
 inline ifc_NameIndex an_ifc_module::get_ifc_name(
+                                             an_ifc_DeclSort_Constructor *decl)
+/*
+Return the name of the declaration represented at decl.
+*/
+{
+  /* Constructors are named by their enclosing scope. */
+  return get_ifc_name(decl->home_scope);
+}  /* get_ifc_name<an_ifc_DeclSort_Constructor> */
+
+
+template<>
+inline ifc_NameIndex an_ifc_module::get_ifc_name(
                                    an_ifc_DeclSort_PartialSpecialization *decl)
 /*
 Return the name of the declaration represented at decl.
@@ -5545,30 +5557,6 @@ Return the locus of the declaration represented at decl.
 
   return locus_visitor.visit_index(decl_index);
 }  /* get_ifc_locus */
-
-
-template<>
-inline ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(
-                                             an_ifc_DeclSort_Constructor *decl)
-/*
-Return the home scope of the declaration represented at decl.
-*/
-{
-  ifc_DeclIndex result = decl->home_scope;
-
-  /* As of IFC 0.33+ IFC Constructors use the explicit specialization instead
-     of the templated entity as their home scope.  This incompatibility is
-     resolved by translating the explicit specialization to the corresponding
-     templated entity as represented in IFC 0.33. */
-  if (decl_tag(result) == ifc_DeclSort_ExplicitSpecialization) {
-    an_ifc_DeclSort_ExplicitSpecialization idses, *idsesp;
-
-    read_partition_at_index(result);
-    idsesp = get_DeclSort_ExplicitSpecialization(&idses);
-    result = idsesp->decl;
-  }  /* if */
-  return result;
-}  /* get_ifc_home_scope_decl<an_ifc_DeclSort_Cosntructor> */
 
 
 template<>
@@ -12101,16 +12089,10 @@ Add the tokens corresponding to the given declaration (decl) to cache.
     case ifc_DeclSort_Constructor:
       { an_ifc_DeclSort_Constructor idsc, *idscp;
         an_ifc_TypeSort_Tor         itst, *itstp;
-        an_ifc_DeclSort_Scope       idss, *idssp;
-        ifc_DeclIndex               home_scope;
         ifc_ChartIndex              params = (ifc_ChartIndex)0;
         ifc_MsvcTraits              vendor_traits;
 
         idscp = get_DeclSort_Constructor(&idsc);
-        home_scope = get_ifc_home_scope_decl(idscp);
-        check_assertion(decl_tag(home_scope) == ifc_DeclSort_Scope);
-        read_partition_at_index(home_scope);
-        idssp = get_DeclSort_Scope(&idss);
         check_assertion(type_tag(idscp->type) == ifc_TypeSort_Tor);
         read_partition_at_index(idscp->type);
         itstp = get_TypeSort_Tor(&itst);
@@ -12121,7 +12103,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         cache_function_decl(cache, /*class_member=*/TRUE, /*is_dtor=*/FALSE,
                             idscp->access, itstp->convention, idscp->traits,
                             (ifc_FunctionTypeTraits)0, vendor_traits,
-                            (ifc_TypeIndex)0, idssp->name, params,
+                            (ifc_TypeIndex)0, get_ifc_name(idscp), params,
                             itstp->source, &itstp->eh_spec, &idscp->locus);
         if (idscp->properties & ifc_ReachableProperties_Initializer) {
           /* A body is likely available: Record this availability using a

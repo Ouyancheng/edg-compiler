@@ -3113,6 +3113,8 @@ extern a_boolean load_routine_definition_from_ifc_module(a_routine_ptr  rp);
 
 /* Explicit specializations of an_ifc_module::get_ifc_name. */
 template<>
+ifc_NameIndex an_ifc_module::get_ifc_name(an_ifc_DeclSort_Constructor *decl);
+template<>
 ifc_NameIndex an_ifc_module::get_ifc_name(
                                   an_ifc_DeclSort_PartialSpecialization *decl);
 template<>
@@ -3131,9 +3133,6 @@ ifc_SourceLocation an_ifc_module::get_ifc_locus(
                                   an_ifc_DeclSort_ExplicitInstantiation *decl);
 
 /* Explicit specializations of an_ifc_module::get_ifc_home_scope_decl. */
-template<>
-ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(
-                                            an_ifc_DeclSort_Constructor *decl);
 template<>
 ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(
                                   an_ifc_DeclSort_PartialSpecialization *decl);
