@@ -37,7 +37,8 @@ extern "C" void exit(int);
    exit. */
 extern "C" void __eh_exit_processing(void);
 
-NORETURN void __edg_exit(int val)
+/* NORETURN (but generates warnings in some configurations). */
+void __edg_exit(int val)
 /*
 Do any wrapup processing required by the runtime including any
 exception handling processing that must be done.  Then call the
@@ -52,9 +53,6 @@ system exit routine to complete the exit processing.
      calling __call_dtors more than once. */
   __call_dtors();
   exit(val);
-  /* Not all system headers have exit() marked as "noreturn", so suppress
-     any warning that might be generated. */
-#pragma diag_suppress noreturn_function_does_return
 }
 
 
