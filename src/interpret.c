@@ -5235,7 +5235,7 @@ by implied_src.
     case ck_aggregate:
       {
         a_type_ptr  tp = skip_typerefs(con->type);
-        a_byte      *saved_implied_src_address;
+        a_byte      *saved_implied_src_address = NULL;
         if (type_is(tp, tk_array)) {
           a_targ_size_t   n_elems, k, repeat;
           a_byte_count    elem_size;
