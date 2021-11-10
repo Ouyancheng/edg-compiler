@@ -35707,11 +35707,7 @@ if rescan_is_template_id is TRUE, and return the result in *operand
                dependent qualified name preceded by a unary "&" operator,
                record that presence in the constant representation (so it
                can be rendered later, if needed). */
-            a_constant_ptr  con = sym_ptr->variant.constant;
-            if (constant_is(con, ck_template_param) &&
-                con->variant.template_param.is_qualified_name) {
-              con->variant.template_param.has_address_of = TRUE;
-            }  /* if */
+            set_has_address_of_flag_if_needed(sym_ptr->variant.constant, TRUE);
           }  /* if */
           make_sym_constant_operand(sym_ptr, result);
           set_operand_id_details_from_locator(result, &locator);
@@ -36266,6 +36262,13 @@ overloaded_function:
                                                     (a_boolean)locator.
                                                              is_qualified_name,
                                                     result);
+            if ((local_options & EOPT_OPERAND_OF_ADDRESS_OF) != 0 &&
+                is_constant_operand(result)) {
+              /* Record the presence of a unary "&" operator in the constant
+                 representation (so it can be rendered later, if needed). */
+              set_has_address_of_flag_if_needed(
+                                             &result->variant.constant, TRUE);
+            }  /* if */
             change_template_param_constant_operand_to_lvalue(result);
           }  /* if */
           break;

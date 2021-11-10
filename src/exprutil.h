@@ -2723,6 +2723,9 @@ extern void make_unknown_dependent_function_operand(
                                           a_boolean          is_qualified_name,
                                           an_operand         *operand);
 
+extern void set_has_address_of_flag_if_needed(a_constant_ptr  con,
+                                              a_boolean       flag_value);
+
 extern void conv_indefinite_function_to_unknown_dependent_function(
                                                    an_operand *operand,
                                                    a_boolean  force_to_rvalue);

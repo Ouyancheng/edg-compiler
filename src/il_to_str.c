@@ -5066,10 +5066,10 @@ void form_unknown_function_constant(
                              a_constant_ptr                        constant,
                              an_il_to_str_output_control_block_ptr octl)
 /*
-Output the name indicated by a ck_template_param/tpck_unknown_function
-or .../tpck_template_ref constant.  Note that while the constant represents
-the address of the unknown function, this routine puts out just the name,
-without a leading "&".  Do the output in the way described by octl.
+Output the name indicated by a ck_template_param/tpck_unknown_function or
+.../tpck_template_ref constant, possibly prefixed by the address-of operator
+(if the underlying tpck_unknown_function entry indicates that that operator
+appeared in the source).  Do the output in the way described by octl.
 */
 {
   a_boolean      is_template = FALSE;
@@ -5083,6 +5083,9 @@ without a leading "&".  Do the output in the way described by octl.
   }  /* if */
   check_assertion(con->variant.template_param.kind ==
                         (a_template_param_constant_kind)tpck_unknown_function);
+  if (con->variant.template_param.has_address_of) {
+    octl->output_str("&", octl);
+  }  /* if */
   if (con->variant.template_param.variant.unknown_function.
                                                      conversion_type != NULL) {
     /* The associated function is a conversion function.  Generate
@@ -6307,9 +6310,6 @@ precedence confusion.  Do the output in the way described by octl.
           /* Address of an unknown function, or of an unknown function template
              with an explicit template argument list. */
           if (need_parens) octl->output_str("(", octl);
-          if (constant->variant.template_param.has_address_of) {
-            octl->output_str("&", octl);
-          }  /* if */
           form_unknown_function_constant(constant, octl);
           if (need_parens) octl->output_str(")", octl);
           break;

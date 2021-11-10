@@ -9477,6 +9477,7 @@ is_qualified_name is TRUE if the source form used a qualified name.
 */
 {
   a_symbol_ptr unk_sym = find_unknown_function_symbol(sym, is_qualified_name);
+
   if (!is_template_id) {
     /* The symbol is a constant whose value is the "address" of the
        unknown function. */
@@ -9506,6 +9507,35 @@ is_qualified_name is TRUE if the source form used a qualified name.
 }  /* make_unknown_dependent_function_operand */
 
 
+void set_has_address_of_flag_if_needed(a_constant_ptr  con,
+                                       a_boolean       flag_value)
+/*
+The caller has determined that con represents a dependent name with a preceding
+"address of" operator (&).  Set the flag representing the presence of that
+operator in the underlying tpck_unknown_function entry to flag_value (unless
+there were errors that caused that entry not to be present).  The flag might
+be set to FALSE after first being set to TRUE if an eok_address_of node is
+later explicitly added on top of a node pointing to the constant.
+*/
+{
+  if (symbol_for(con) != NULL) {
+    /* con may be pointing to the constant variant of an_operand.  Use the
+       associated IL entry instead. */
+    con = symbol_for(con)->variant.constant;
+  }  /* if */
+  if (constant_is(con, ck_template_param) &&
+      tpck_is(con, tpck_template_ref)) {
+    /* A tpck_template_ref might appear on top of the tpck_unknown_function
+       entry to specify template arguments: Skip it. */
+    con = con->variant.template_param.variant.template_ref.con;
+  }  /* if */
+  if (constant_is(con, ck_template_param) &&
+      tpck_is(con, tpck_unknown_function)) {
+    con->variant.template_param.has_address_of = flag_value;
+  }  /* if */
+}  /* set_has_address_of_flag_if_needed */
+
+
 void conv_indefinite_function_to_unknown_dependent_function(
                                                     an_operand *operand,
                                                     a_boolean  force_to_rvalue)
@@ -9530,6 +9560,12 @@ known.
                                           (a_boolean)operand->
                                                              is_qualified_name,
                                           operand);
+  if (orig_operand.is_address_of_id_expression &&
+      is_constant_operand(operand)) {
+    /* Record the presence of a unary "&" operator in the constant
+       representation (so it can be rendered later, if needed). */
+    set_has_address_of_flag_if_needed(&operand->variant.constant, TRUE);
+  }  /* if */
   restore_operand_details(operand, &orig_operand);
   restore_operand_id_details(operand, &orig_operand);
   if (!force_to_rvalue && was_lvalue) {
@@ -22496,17 +22532,17 @@ by an "&" operator and *ampersand_position gives its position.
                                /*address_escapes=*/!will_call)) {
     /* The address is constant and a constant is preferred in the current
        context. */
-    if (cpp11_sfinae_enabled &&
-        constant->kind == (a_constant_repr_kind)ck_template_param &&
+    if (cpp11_sfinae_enabled && constant_is(constant, ck_template_param) &&
         ampersand_position != NULL) {
       /* In a dependent context with an explicit "&", stay in expression form
          because that provides more information for rescanning. */
       need_expr = TRUE;
       template_constant = TRUE;
+      set_has_address_of_flag_if_needed(constant, FALSE);
     } else {
       make_constant_operand(constant, operand);
       need_expr = (curr_expr_kind_is_one_in_which_const_exprs_are_recorded() &&
-                   constant->kind != (a_constant_repr_kind)ck_template_param);
+                   !constant_is(constant, ck_template_param));
       need_expr_for_constant = need_expr;
     }  /* if */
   } else if (curr_expr_kind_is_traditional_const() && !will_call) {
