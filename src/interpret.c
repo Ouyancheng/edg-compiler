@@ -2770,10 +2770,10 @@ redo:
     case tk_class:
     case tk_struct:
       get_mapped_byte_count(&persistent_map, tp, result);
-#if DEBUG
-      check_assertion(ips != NULL);
-#endif /* DEBUG */
       if (result == 0) {
+#if DEBUG
+        check_assertion(ips != NULL);
+#endif /* DEBUG */
         if (tp->variant.class_struct_union.is_nonreal_class &&
             has_dependent_layout(tp)) {
           /* A nonreal class type.  Normally, we should not attempt to handle
@@ -2808,6 +2808,9 @@ redo:
         }  /* if */
       } else if (result > MAX_CONSTEXPR_TYPE_SIZE) {
         a_source_position  *pos = &tp->source_corresp.decl_position;
+#if DEBUG
+        check_assertion(ips != NULL);
+#endif /* DEBUG */
         info_with_pos_type(ec_constexpr_incomplete_type, pos, tp, ips);
         do_constexpr_fail(*p_result);
       }  /* if */
@@ -10916,6 +10919,7 @@ the body of the (constructor) function proper.
                representation.  Pass the current source object address down
                in case it is needed. */
             src_addr = (a_constexpr_address*)((a_byte**)arg_ptrs)[1];
+            src_addr->address += offset;
           }  /* if */
           if (record_param_ref) {
             /* Associate the "this" pointer value (arbitrarily) with
@@ -10933,6 +10937,7 @@ the body of the (constructor) function proper.
           } else {
             mark_subobject_initialized(result_storage+offset, complete_object);
           }  /* if */
+          if (src_addr != NULL) src_addr->address -= offset;
           if (record_param_ref) {
             if (prev_this_bytes == NULL) {
               unmap_ptr(&ips->map, &ips->curr_call_frame);
