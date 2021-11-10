@@ -4876,6 +4876,10 @@ typedef struct a_constant {
 			/* For tpck_unknown_function, TRUE if a qualified
 			   name was used in the source code. */
       a_bit_field
+		has_address_of:1;
+			/* TRUE if this represents a source construct of the
+			   form &T::f rather than just T::f. */
+      a_bit_field
 		is_pack:1;
 			/* TRUE if this is a template parameter pack. */
       a_bit_field

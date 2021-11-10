@@ -751,6 +751,7 @@ ck_template_param constant.
                     "set_template_param_constant_kind: not ck_template_param");
   cp->variant.template_param.kind = kind;
   cp->variant.template_param.is_qualified_name = FALSE;
+  cp->variant.template_param.has_address_of = FALSE;
   cp->variant.template_param.is_pack = FALSE;
   cp->variant.template_param
              .has_generic_cast_for_nontype_template_param = FALSE;

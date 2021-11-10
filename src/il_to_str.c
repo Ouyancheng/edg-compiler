@@ -6307,6 +6307,9 @@ precedence confusion.  Do the output in the way described by octl.
           /* Address of an unknown function, or of an unknown function template
              with an explicit template argument list. */
           if (need_parens) octl->output_str("(", octl);
+          if (constant->variant.template_param.has_address_of) {
+            octl->output_str("&", octl);
+          }  /* if */
           form_unknown_function_constant(constant, octl);
           if (need_parens) octl->output_str(")", octl);
           break;

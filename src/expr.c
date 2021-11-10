@@ -35702,6 +35702,17 @@ if rescan_is_template_id is TRUE, and return the result in *operand
       switch (sym_ptr->kind) {
         case sk_constant:
           /* Constant (e.g., an enum constant).  Make a constant operand. */
+          if (local_options & EOPT_OPERAND_OF_ADDRESS_OF) {
+            /* If the constant is a ck_template_param entry representing a
+               dependent qualified name preceded by a unary "&" operator,
+               record that presence in the constant representation (so it
+               can be rendered later, if needed). */
+            a_constant_ptr  con = sym_ptr->variant.constant;
+            if (constant_is(con, ck_template_param) &&
+                con->variant.template_param.is_qualified_name) {
+              con->variant.template_param.has_address_of = TRUE;
+            }  /* if */
+          }  /* if */
           make_sym_constant_operand(sym_ptr, result);
           set_operand_id_details_from_locator(result, &locator);
           if (curr_expr_kind_is(ek_integral_constant) &&

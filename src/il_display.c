@@ -1039,6 +1039,9 @@ Display a ck_template_param constant.
       if (ptr->variant.template_param.is_qualified_name) {
         disp_boolean("is_qualified_name", TRUE);
       }  /* if */
+      if (ptr->variant.template_param.has_address_of) {
+        disp_boolean("has_address_of", TRUE);
+      }  /* if */
       { a_type_ptr conversion_type =
           ptr->variant.template_param.variant.unknown_function.conversion_type;
         if (conversion_type != NULL) {
@@ -1112,6 +1115,12 @@ do_sizeof_cases:
       break;
     case tpck_template_ref:
       (void)printf("tpck_template_ref\n");
+      if (ptr->variant.template_param.is_qualified_name) {
+        disp_boolean("is_qualified_name", TRUE);
+      }  /* if */
+      if (ptr->variant.template_param.has_address_of) {
+        disp_boolean("has_address_of", TRUE);
+      }  /* if */
       disp_ptr("con",
                (char *)ptr->variant.template_param.variant.template_ref.con,
                iek_constant);
