@@ -5469,6 +5469,18 @@ Return the name of the declaration represented at decl.
 
 template<>
 inline ifc_NameIndex an_ifc_module::get_ifc_name(
+                                              an_ifc_DeclSort_Destructor *decl)
+/*
+Return the name of the declaration represented at decl.
+*/
+{
+  /* Destructors are named by their enclosing scope. */
+  return get_ifc_name(decl->home_scope);
+}  /* get_ifc_name<an_ifc_DeclSort_Destructor> */
+
+
+template<>
+inline ifc_NameIndex an_ifc_module::get_ifc_name(
                                    an_ifc_DeclSort_PartialSpecialization *decl)
 /*
 Return the name of the declaration represented at decl.
@@ -12129,19 +12141,16 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       break;
     case ifc_DeclSort_Destructor:
       { an_ifc_DeclSort_Destructor idsd, *idsdp;
-        an_ifc_DeclSort_Scope      idss, *idssp;
         ifc_MsvcTraits             vendor_traits;
 
         idsdp = get_DeclSort_Destructor(&idsd);
-        check_assertion(decl_tag(idsdp->home_scope) == ifc_DeclSort_Scope);
-        read_partition_at_index(idsdp->home_scope);
-        idssp = get_DeclSort_Scope(&idss);
         vendor_traits = get_vendor_traits(decl);
         cache_function_decl(cache, /*class_member=*/TRUE, /*is_dtor=*/TRUE,
                             idsdp->access, idsdp->convention, idsdp->traits,
                             (ifc_FunctionTypeTraits)0, vendor_traits,
-                            (ifc_TypeIndex)0, idssp->name, (ifc_ChartIndex)0,
-                            (ifc_TypeIndex)0, &idsdp->eh_spec, &idsdp->locus);
+                            (ifc_TypeIndex)0, get_ifc_name(idsdp),
+                            (ifc_ChartIndex)0, (ifc_TypeIndex)0,
+                            &idsdp->eh_spec, &idsdp->locus);
         if (idsdp->properties & ifc_ReachableProperties_Initializer) {
           /* A body is likely available: Record this availability using a
              pseudo-token that will be translated when the declaration is

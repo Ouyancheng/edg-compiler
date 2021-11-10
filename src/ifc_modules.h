@@ -3115,6 +3115,8 @@ extern a_boolean load_routine_definition_from_ifc_module(a_routine_ptr  rp);
 template<>
 ifc_NameIndex an_ifc_module::get_ifc_name(an_ifc_DeclSort_Constructor *decl);
 template<>
+ifc_NameIndex an_ifc_module::get_ifc_name(an_ifc_DeclSort_Destructor *decl);
+template<>
 ifc_NameIndex an_ifc_module::get_ifc_name(
                                   an_ifc_DeclSort_PartialSpecialization *decl);
 template<>
