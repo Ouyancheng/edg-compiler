@@ -19751,6 +19751,18 @@ if the caller has determined that reinterpret_cast expressions can be folded
       } else if (dip->destructor != NULL &&
                  !do_constexpr_dtor(&ips, dip->destructor, pos,
                                     result_storage, result_storage)) {
+        if (dip->variable != NULL && dip->variable->declared_constinit &&
+            ips.dyn_allocations == NULL && !dyn_init_is(dip, dik_constant) &&
+            !dyn_init_is(dip, dik_zero) && !dyn_init_is(dip, dik_none)) {
+          /* A constinit variable with nonconstant destruction is acceptable:
+             A dynamic initializer entry is still required in that case, but
+             we must ensure that it represents constant initialization (i.e.,
+             a dik_constant entry). */
+          dip->kind = (a_dynamic_init_kind)dik_constant;
+          dip->variant.constant.ptr = alloc_unshared_constant(result_con);
+          dip->variant.constant.lambda = NULL;
+          dip->variant.constant.non_constant = FALSE;
+        }  /* if */
         result = FALSE;
       } else if (ips.dyn_allocations != NULL) {
         /* Leftover dynamic allocations are always invalid in this case. */

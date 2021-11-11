@@ -5813,7 +5813,8 @@ returned set to TRUE.
         }  /* if */
       } else {
         if (dps->init_state.initializer_must_be_constant ||
-            is_consteval_init || vp->declared_constinit) {
+            is_consteval_init ||
+            (vp->declared_constinit && !dyn_init_is(init_dip, dik_constant))) {
           /* A constant was required: Issue a diagnostic. */
           a_diagnostic_ptr  dp;
           dp = pos_start_error(ec_expr_not_constant, &pos_first_token);

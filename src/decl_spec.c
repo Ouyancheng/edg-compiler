@@ -9969,7 +9969,10 @@ Otherwise, mark the associated variable as having been declared with
       an_init_kind        init_kind;
       an_initializer_ptr  initializer;
       get_variable_initializer(vp, (a_scope*)NULL, &init_kind, &initializer);
-      if (init_kind == (an_init_kind)initk_dynamic) {
+      if (init_kind == (an_init_kind)initk_dynamic &&
+          !dyn_init_is(initializer->dynamic, dik_constant) &&
+          !dyn_init_is(initializer->dynamic, dik_zero) &&
+          !dyn_init_is(initializer->dynamic, dik_none)) {
         pos_error(ec_constinit_variable_has_dynamic_init, &dps->constexpr_pos);
         vp->declared_constinit = FALSE;
       } else {
