@@ -8249,11 +8249,15 @@ the IL associated with the entity that was bound to the pragma.
   an_il_entry_kind kind;
 
   if (sym_ptr != NULL) {
+#if DEBUG
     db_sym(sym_ptr);
+#endif /* DEBUG */
     entry_ptr = il_entry_for_symbol_null_okay(sym_ptr, &kind);
   }  /* if */
   if (stmt_ptr != NULL) {
+#if DEBUG
     db_statement(stmt_ptr);
+#endif /* DEBUG */
     entry_ptr = (char*)stmt_ptr;
     kind = (an_il_entry_kind)iek_statement;
   }  /* if */
