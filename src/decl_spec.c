@@ -4544,8 +4544,8 @@ defined.  Detailed position information is recorded in *decl_pos_block.
       }  /* if */
     }  /* if */
     attach_tag_attributes(attributes_to_attach, class_type, dps,
-                          is_class_definition, curr_token == tok_semicolon,
-                          ignore_gnu_attributes);
+                          (is_class_definition || definition_removed),
+                          curr_token == tok_semicolon, ignore_gnu_attributes);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* The call to attach_tag_attributes does not directly apply DLL
        attributes.  Instead, the call to update_extended_decl_info_for_class
