@@ -4877,8 +4877,15 @@ typedef struct a_constant {
 			   name was used in the source code. */
       a_bit_field
 		has_address_of:1;
-			/* TRUE if this represents a source construct of the
-			   form &T::f rather than just T::f. */
+			/* For tpck_unknown_function, TRUE if this
+			   represents a source construct of the form &T::f
+			   rather than just T::f.  (Note that for a
+			   tpck_template_ref constant, the controlling flag
+			   appears in the associated tpck_unknown_function
+			   constant, i.e.,
+			   variant.template_param.variant.template_ref.con,
+			   and not directly in the tpck_template_ref
+			   constant.) */
       a_bit_field
 		is_pack:1;
 			/* TRUE if this is a template parameter pack. */

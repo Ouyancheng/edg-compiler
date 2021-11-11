@@ -5535,9 +5535,7 @@ on every expression.
                            ->kind == (a_constant_repr_kind)ck_template_param &&
                      (tpck_is(con, tpck_unknown_function) ||
                       tpck_is(con, tpck_template_ref))) {
-            if (template_con_is_ampersand_operand(con)) {
-              octl->output_str("&", octl);
-            }  /* if */
+            octl->output_str("&", octl);
             form_unknown_function_constant(con, octl);
           } else {
             octl->output_str("<expression>", octl);
