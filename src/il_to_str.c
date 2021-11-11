@@ -5067,25 +5067,20 @@ void form_unknown_function_constant(
                              an_il_to_str_output_control_block_ptr octl)
 /*
 Output the name indicated by a ck_template_param/tpck_unknown_function or
-.../tpck_template_ref constant, possibly prefixed by the address-of operator
-(if the underlying tpck_unknown_function entry indicates that that operator
-appeared in the source).  Do the output in the way described by octl.
+.../tpck_template_ref constant.  Note that while the constant may represent
+the address of the templated entity, whether to put out the "&" operator is
+decided by the caller.  Do the output in the way described by octl.
 */
 {
   a_boolean      is_template = FALSE;
   a_constant_ptr con = constant;
 
-  check_assertion(constant->kind == (a_constant_repr_kind)ck_template_param);
-  if (constant->variant.template_param.kind ==
-                           (a_template_param_constant_kind)tpck_template_ref) {
+  check_assertion(constant_is(con, ck_template_param));
+  if (tpck_is(con, tpck_template_ref)) {
     is_template = TRUE;
     con = constant->variant.template_param.variant.template_ref.con;
   }  /* if */
-  check_assertion(con->variant.template_param.kind ==
-                        (a_template_param_constant_kind)tpck_unknown_function);
-  if (con->variant.template_param.has_address_of) {
-    octl->output_str("&", octl);
-  }  /* if */
+  check_assertion(tpck_is(con, tpck_unknown_function));
   if (con->variant.template_param.variant.unknown_function.
                                                      conversion_type != NULL) {
     /* The associated function is a conversion function.  Generate
@@ -5385,6 +5380,22 @@ for debug output).
 }  /* form_dynamic_init */
 
 
+static inline a_boolean template_con_is_ampersand_operand(a_constant_ptr cp)
+/*
+Return TRUE if the specified constant (either a tpck_unknown_function or a
+tpck_template_ref template parameter constant) is the operand of an "&"
+operator.
+*/
+{
+  check_assertion(constant_is(cp, ck_template_param));
+  if (tpck_is(cp, tpck_template_ref)) {
+    cp = cp->variant.template_param.variant.template_ref.con;
+  }  /* if */
+  check_assertion(tpck_is(cp, tpck_unknown_function));
+  return cp->variant.template_param.has_address_of;
+}  /* template_con_is_ampersand_operand */
+
+
 static void form_expression(an_expr_node_ptr                      expr,
                             an_il_to_str_output_control_block_ptr octl)
 /*
@@ -5522,11 +5533,11 @@ on every expression.
                      is_constant_node(operand->variant.operation.operands) &&
                      (con = node_constant(operand->variant.operation.operands))
                            ->kind == (a_constant_repr_kind)ck_template_param &&
-                     (con->variant.template_param.kind ==
-                       (a_template_param_constant_kind)tpck_unknown_function ||
-                      con->variant.template_param.kind ==
-                       (a_template_param_constant_kind)tpck_template_ref)) {
-            octl->output_str("&", octl);
+                     (tpck_is(con, tpck_unknown_function) ||
+                      tpck_is(con, tpck_template_ref))) {
+            if (template_con_is_ampersand_operand(con)) {
+              octl->output_str("&", octl);
+            }  /* if */
             form_unknown_function_constant(con, octl);
           } else {
             octl->output_str("<expression>", octl);
@@ -6310,6 +6321,9 @@ precedence confusion.  Do the output in the way described by octl.
           /* Address of an unknown function, or of an unknown function template
              with an explicit template argument list. */
           if (need_parens) octl->output_str("(", octl);
+          if (template_con_is_ampersand_operand(constant)) {
+            octl->output_str("&", octl);
+          }  /* if */
           form_unknown_function_constant(constant, octl);
           if (need_parens) octl->output_str(")", octl);
           break;
