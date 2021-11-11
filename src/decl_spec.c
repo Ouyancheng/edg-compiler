@@ -8124,7 +8124,10 @@ by *type_ptr.  This function is called from decl_specifiers only.
     }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
     if (qualifiers != TQ_NONE) {
-      if (is_unknown_type(type_ptr)) {
+      if (is_unknown_type(type_ptr) && state->auto_type == NULL) {
+        /* An "unknown type" is an indication that no type was specified,
+           except that in GNU C mode it can represent __auto_type.  If no
+           type was specified, default to "int". */
         type_ptr = integer_type((an_integer_kind)ik_int);
       }  /* if */
       if (qualifiers & TQ_C11_ATOMIC) {

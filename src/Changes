@@ -1,5 +1,18 @@
 Version 6.3
 
+11/11/21 [EDGcpfe/24809]
+GNU C __auto_type and cv-qualifiers
+
+The front end issued a spurious error when the GNU C __auto_type specifier is
+combined with cv qualifiers.  For example (in some GNU C modes):
+
+  void g(int i) {
+    __auto_type const x = i;  // Previously a spurious error.  Now okay.
+  }
+
+This is now fixed.
+
+
 11/11/21 [EDGcpfe/24840]
 Nonconstant destruction and constinit variables
 
