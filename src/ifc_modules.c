@@ -10180,9 +10180,8 @@ the location of the operator.
       cache_token(cache, tok_sizeof, &pos);
       break;
     case ifc_MonadicOperator_Cardinality:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("MonadicOperator::Cardinality",
-                                  &error_position);
+      cache_token(cache, tok_sizeof, &pos);
+      cache_token(cache, tok_ellipsis, &pos);
       break;
     case ifc_MonadicOperator_Typeid:
       cache_token(cache, tok_typeid, &pos);
@@ -10212,9 +10211,9 @@ the location of the operator.
       cache_token(cache, tok_delete, &pos);
       break;
     case ifc_MonadicOperator_DeleteArray:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("MonadicOperator::DeleteArray",
-                                  &error_position);
+      cache_token(cache, tok_delete, &pos);
+      cache_token(cache, tok_lbracket, &pos);
+      cache_token(cache, tok_rbracket, &pos);
       break;
     case ifc_MonadicOperator_Expand:
       cache_token(cache, tok_ellipsis, &pos);
