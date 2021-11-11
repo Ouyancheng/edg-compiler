@@ -34881,23 +34881,30 @@ static a_boolean var_is_copy_captured(a_lambda_ptr    lambda,
 Return TRUE if the given variable is captured "by copy" by the given lambda.
 */
 {
-  a_boolean             result = FALSE;
-  a_lambda_capture_ptr  lcp;
+  a_boolean  result = FALSE;
 
-  for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
-    if (!lcp->is_init_capture && lcp->captured.variable == var) {
-      break;
-    }  /* if */
-  }  /* for */
-  if (lcp != NULL) {
-    /* Explicit capture. */
-    if (!lcp->capture_by_reference) {
-      result = TRUE;
-    }  /* if */
-  } else {
-    /* Check for implicit capture. */
-    if (lambda->has_capture_default && !lambda->default_is_by_reference) {
-      result = TRUE;
+  if (var->source_corresp.is_local_to_function) {
+    a_lambda_capture_ptr  lcp;
+    for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
+      if (!lcp->is_init_capture && lcp->captured.variable == var) {
+        break;
+      }  /* if */
+    }  /* for */
+    if (lcp != NULL) {
+      /* Explicit capture. */
+      if (!lcp->capture_by_reference) {
+        result = TRUE;
+      }  /* if */
+    } else {
+      /* Check for implicit capture. */
+      if (var->source_corresp.parent_scope != NULL &&
+          var->source_corresp.parent_scope->depth_in_scope_stack <
+                                             depth_innermost_function_scope) {
+        /* The variable is declared outside the lambda. */
+        if (lambda->has_capture_default && !lambda->default_is_by_reference) {
+          result = TRUE;
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   return result;
