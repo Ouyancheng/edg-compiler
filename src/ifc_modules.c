@@ -7397,7 +7397,12 @@ FIXME: what other expressions can we get here?
         an_expr_stack_entry              expr_stack_entry;
 
         iesptvp = get_ExprSort_ProductTypeValue(&iesptv);
-        tp = type_for_type_index(iesptvp->class_decl, /*kind=*/NULL);
+        /* FIXME: Is it safe to use the specified expression type here, or
+           should we try to use the type declared by the referenced class
+           declaration -- referenced in the IFC's class field for
+           ProductTypeValue? Is there a time when there would be a significant
+           distinction between the two types? */
+        tp = type_for_type_index(iesptvp->type, /*kind=*/NULL);
         complete_type_is_needed(tp);
         /* FIXME: Are there any other ways to get here? */
         push_expr_stack(ek_init_constant, &expr_stack_entry,
