@@ -7940,9 +7940,18 @@ check_typerefs:
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               type_1->variant.pointer.is_rvalue_reference ==
                                  type_2->variant.pointer.is_rvalue_reference) {
-            compat = f_types_are_compatible_full(type_1->variant.pointer.type,
-                                                 type_2->variant.pointer.type,
-                                                 flags, diffs)
+            a_type_ptr  tpt1 = type_1->variant.pointer.type,
+                        tpt2 = type_2->variant.pointer.type;
+            if (is_impl_conv && exc_spec_in_func_type &&
+                !type_is(skip_typerefs(tpt1), tk_routine)) {
+              /* Implicit conversion of pointers to function (at the top
+                 level) only requires that the exception specification not be
+                 tightened.  However, for other pointers (like a pointer to a
+                 pointer to a function), the exception specifications must
+                 match exactly. */
+              flags |= TCF_STRICT_EXCEPTION_SPEC;
+            }  /* if */
+            compat = f_types_are_compatible_full(tpt1, tpt2, flags, diffs)
 #ifdef pointer_types_have_same_repr
                      && pointer_types_have_same_repr(type_1, type_2)
 #endif /* ifdef pointer_types_have_same_repr */
@@ -8088,7 +8097,8 @@ check_typerefs:
                    all other cases, the specifications have to match. */
                 (ignore_noexcept ||
                  (!type_has_less_restrictive_exception_spec(type_1, type_2) &&
-                   (is_impl_conv ||
+                   ((is_impl_conv && exc_spec_in_func_type &&
+                     !(flags & TCF_STRICT_EXCEPTION_SPEC)) ||
                     !type_has_less_restrictive_exception_spec(type_2,
                                                               type_1)))) &&
                 (!check_enable_if_attr ||
@@ -8740,8 +8750,12 @@ value of the expression they are equivalent.
         }  /* if */
       } else {
         /* For other types, the underlying types must be the same. */
-        same = types_are_compatible_for_impl_conversion(
-                                                      source_type, dest_type);
+        same = (source_type == dest_type) ||
+               f_types_are_compatible(source_type, dest_type,
+                                      TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
+                                      TCF_IGNORE_TYPE_QUALIFIERS |
+                                      TCF_IMPLICIT_CONVERSION |
+                                      TCF_STRICT_EXCEPTION_SPEC);
         break;
       }  /* if */
     }  /* if */
@@ -9340,6 +9354,7 @@ weird Microsoft-mode handling of the __unaligned and __restrict qualifiers).
                                      source_type, dest_type,
                                      TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
                                      TCF_IMPLICIT_CONVERSION |
+                                     TCF_STRICT_EXCEPTION_SPEC |
                                      TCF_IGNORE_TYPE_QUALIFIERS);
         }  /* if */
         break;
@@ -9836,6 +9851,13 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
     /* Get the type pointed to and drop type qualifiers and typedefs. */
     source_type_pointed_to = type_pointed_to(source_type);
     unqual_source_type_pointed_to = skip_typerefs(source_type_pointed_to);
+    if (!type_is(skip_typerefs(source_type_pointed_to), tk_routine)) {
+      /* Implicit conversion of pointers to function (at the top level) only
+         requires that the exception specification not be tightened.  However,
+         for other pointers (like a pointer to a pointer to a function), the
+         exception specifications must match exactly. */
+      tcf |= TCF_STRICT_EXCEPTION_SPEC;
+    }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (is_prohibited_interior_ptr_conversion(source_type, dest_type)) {
       /* Conversion from an interior_ptr to a non-interior_ptr is not

@@ -1,5 +1,20 @@
 Version 6.3
 
+11/12/21 [EDGcpfe/24811]
+
+Consider in C++17 mode (where exception specifications are part of the function
+type):
+
+  void (*p)() noexcept;
+  void (**pp)() = &p;  // Previously accepted.  Now an error.
+
+Previously, this was accepted because the exception specification of pp is not
+more restrictive than that of &p.  However, that rule only applied to pointer-
+to-function and reference-to-function conversions.  For pointer-to-pointer-to-
+function types, the underlying exception specifications must match.  That is
+now enforced, and thus the example above now results in an error.
+
+
 11/11/21 [EDGcpfe/24793]
 C++-generating back end: dependent template-ids naming variable templates
 

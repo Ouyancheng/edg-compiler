@@ -13722,6 +13722,9 @@ the value representation of the integer value.
            requires the second operand to be evaluated first or expr is an
            operator that sometimes does not evaluate its first operand. */
         if (node_operator_is(expr, eok_comma) ||
+#if MICROSOFT_EXTENSIONS_ALLOWED
+            node_operator_is(expr, eok_assume) ||
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             node_operator_is(expr, eok_dot_static) ||
             node_operator_is(expr, eok_points_to_static)) {
           /* To avoid spurious warnings from certain tools. */

@@ -1051,7 +1051,12 @@ Bit flags for calls of f_types_are_compatible et al.
 #define TCF_MEMBER_REDECL_CHECK 0x200000
 			/* TRUE when comparing routine types to check for
 			   member redeclaration conflicts. */
-#define TCF_LAST TCF_MEMBER_REDECL_CHECK
+#define TCF_STRICT_EXCEPTION_SPEC 0x400000
+			/* TRUE if exception specifications on routine types
+			   should match exactly (when exception specifications
+			   are part of routine types).  Requires that the flag
+			   ICF_IMPLICIT_CONVERSION also be TRUE. */
+#define TCF_LAST TCF_STRICT_EXCEPTION_SPEC
 			/* Last bit in the bit vector that is in use. */
 #define TCF_NO_FLAGS 0x0
 typedef int a_type_compat_flags_set;
