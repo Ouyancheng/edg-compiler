@@ -14257,6 +14257,198 @@ inline a_boolean an_ifc_module::validate_partition_position(
 }  /* validate_partition_position */
 
 
+/* ... */
+struct an_ifc_module::Partition_element_validator {
+  Partition_element_validator(an_ifc_module *ifc_mod_val)
+    : ifc_mod(ifc_mod_val)
+    {}
+
+  /* Field validators. */
+  template<typename a_Type>
+  inline void validate(a_Type val)
+    {}
+  template<typename T>
+  inline void visit(an_ifc_partition_position pos) = delete;
+  void visit_position(an_ifc_partition_position pos);
+private:
+  an_ifc_module *ifc_mod;
+};  /* Decl_value_visitor */
+
+
+template<>
+inline void an_ifc_module::Partition_element_validator::validate(
+                                                 an_ifc_partition_position val)
+/*
+*/
+{
+  if (ifc_mod->validate_partition_position(val)) {
+    visit_position(val);
+  } else {
+    check_assertion(false);
+  }  /* if */
+}  /* validate<an_ifc_partition_position> */
+
+
+template<>
+inline void an_ifc_module::Partition_element_validator::validate(
+                                                             ifc_AttrIndex val)
+/*
+*/
+{
+  validate(an_ifc_partition_position(ifc_mod, val));
+}  /* validate<ifc_AttrIndex> */
+
+
+template<>
+inline void an_ifc_module::Partition_element_validator::validate(
+                                                             ifc_TypeIndex val)
+/*
+*/
+{
+  validate(an_ifc_partition_position(ifc_mod, val));
+}  /* validate<ifc_TypeIndex> */
+
+
+template<>
+inline void an_ifc_module::Partition_element_validator::validate(
+                                                             ifc_ExprIndex val)
+/*
+*/
+{
+  validate(an_ifc_partition_position(ifc_mod, val));
+}  /* validate<ifc_ExprIndex> */
+
+
+template<>
+inline void an_ifc_module::Partition_element_validator::validate(
+                                                             ifc_StmtIndex val)
+/*
+*/
+{
+  validate(an_ifc_partition_position(ifc_mod, val));
+}  /* validate<ifc_StmtIndex> */
+
+
+template<>
+inline void an_ifc_module::Partition_element_validator::validate(
+                                                             ifc_DeclIndex val)
+/*
+*/
+{
+  validate(an_ifc_partition_position(ifc_mod, val));
+}  /* validate<ifc_DeclIndex> */
+
+
+template<>
+inline void an_ifc_module::Partition_element_validator::validate(
+                                                             ifc_NameIndex val)
+/*
+*/
+{
+  validate(an_ifc_partition_position(ifc_mod, val));
+}  /* validate<ifc_NameIndex> */
+
+
+template<>
+inline void an_ifc_module::Partition_element_validator::validate(
+                                                            ifc_ChartIndex val)
+/*
+*/
+{
+  validate(an_ifc_partition_position(ifc_mod, val));
+}  /* validate<ifc_ChartIndex> */
+
+
+template<>
+inline void an_ifc_module::Partition_element_validator::validate(
+                                                         ifc_FormSpecIndex val)
+/*
+*/
+{
+  validate(an_ifc_partition_position(ifc_mod, val));
+}  /* validate<ifc_FormSpecIndex> */
+
+
+template<>
+inline void an_ifc_module::Partition_element_validator::validate(
+                                                           ifc_SyntaxIndex val)
+/*
+*/
+{
+  validate(an_ifc_partition_position(ifc_mod, val));
+}  /* validate<ifc_SyntaxIndex> */
+
+
+template<>
+inline void an_ifc_module::Partition_element_validator::validate(
+                                                            ifc_MacroIndex val)
+/*
+*/
+{
+  validate(an_ifc_partition_position(ifc_mod, val));
+}  /* validate<ifc_MacroIndex> */
+
+
+template<>
+inline void an_ifc_module::Partition_element_validator::validate(
+                                                             ifc_FormIndex val)
+/*
+*/
+{
+  validate(an_ifc_partition_position(ifc_mod, val));
+}  /* validate<ifc_FormIndex> */
+
+
+#define IFC_DECL_START(name) \
+template<> \
+inline void an_ifc_module::Partition_element_validator::visit< \
+                        concat(an_ifc_, name)>(an_ifc_partition_position pos) \
+{ \
+  concat(an_ifc_, name) mem; \
+  ARG_UNUSED concat(an_ifc_, name) *memp; \
+  memp = ifc_mod->get<concat(an_ifc_, name)>(&mem);
+#define IFC_DECL_FIELD(name, type) \
+  validate<concat(ifc_, type)>({memp->name});
+#define IFC_DECL_END(name) \
+}  /* visit<concat(an_ifc_, name)> */
+
+/*lint -e451 included more than once. */
+#include "ifc_map.h"
+/*lint +e451*/
+
+void an_ifc_module::Partition_element_validator::visit_position(
+                                                 an_ifc_partition_position pos)
+{
+  switch (pos.partition) {
+    case ifc_decl_vendor_extension:
+      visit<an_ifc_DeclSort_VendorExtension>(pos);
+      break;
+    case ifc_decl_template:
+      visit<an_ifc_DeclSort_Template>(pos);
+      break;
+    default:
+      break;
+  } /* switch */
+}  /* visit_position */
+
+
+inline a_boolean an_ifc_module::validate_partition_element(
+                                                 an_ifc_partition_position pos)
+{
+  a_boolean result = TRUE;
+
+#ifndef EXPENSIVE_CHECKING
+  if (!pos.trusted) {
+#endif /* !EXPENSIVE_CHECKING */
+    Partition_element_validator validator(this);
+    validator.visit_position(pos);
+#ifndef EXPENSIVE_CHECKING
+  }
+#endif /* !EXPENSIVE_CHECKING */
+  return result;
+}  /* validate_partition_element */
+
+
 inline a_boolean an_ifc_module::read_partition_element(
                                                  an_ifc_partition_position pos)
 /*
@@ -14264,7 +14456,7 @@ inline a_boolean an_ifc_module::read_partition_element(
 */
 {
   a_boolean result = FALSE;
-  if (validate_partition_position(pos)) {
+  if (validate_partition_position(pos) && validate_partition_element(pos)) {
     result = TRUE;
 #if DEBUG && EXPENSIVE_CHECKING
     debug_partition = &partitions[pos.partition];
@@ -14283,7 +14475,7 @@ inline void an_ifc_module::read_prechecked_partition_element(
 */
 {
   /* FIXME: Change this so it can actually check something is prechecked. */
-  check_assertion(validate_partition_position(pos));
+  check_assertion(validate_partition_element(pos));
 #if DEBUG && EXPENSIVE_CHECKING
   debug_partition = &partitions[pos.partition];
 #endif /* DEBUG && EXPENSIVE_CHECKING */

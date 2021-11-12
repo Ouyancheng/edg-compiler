@@ -59,7 +59,6 @@ struct Is_same_helper<a_Type_A, a_Type_A> {
 template<typename a_Type_A, typename a_Type_B>
 using Is_same = typename Is_same_helper<a_Type_A, a_Type_B>::a_type;
 
-
 /*
 Remove_ref<T> produces T if T is not a reference type, or the type underlying
 the reference type otherwise.
