@@ -9,7 +9,7 @@ type):
   void (**pp)() = &p;  // Previously accepted.  Now an error.
 
 Previously, this was accepted because the exception specification of pp is not
-more restrictive than that of &p.  However, that rule only applied to pointer-
+more restrictive than that of &p.  However, that rule only applies to pointer-
 to-function and reference-to-function conversions.  For pointer-to-pointer-to-
 function types, the underlying exception specifications must match.  That is
 now enforced, and thus the example above now results in an error.
