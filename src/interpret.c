@@ -7009,7 +7009,8 @@ successfully interpreted, FALSE otherwise.
     case stmk_if_consteval:
     case stmk_if_not_consteval:
       {
-        a_boolean             has_cond_var;
+        a_boolean             has_cond_var,
+                              saved_allow_consteval_routine_node = FALSE;
         a_host_large_integer  bool_val;
         a_statement_ptr       then_statement, else_statement;
         if (stmt->kind == (a_statement_kind)stmk_constexpr_if) {
@@ -7025,7 +7026,14 @@ successfully interpreted, FALSE otherwise.
           if (!ips->is_constant_evaluated) {
             do_constexpr_fail(result);
           } else {
-            bool_val = stmt->kind == (a_statement_kind)stmk_if_consteval;
+            if (stmt->kind == (a_statement_kind)stmk_if_consteval) {
+              bool_val = 1;
+              saved_allow_consteval_routine_node =
+                                            ips->allow_consteval_routine_node;
+              ips->allow_consteval_routine_node = TRUE;
+            } else {
+              bool_val = 0;
+            }  /* if */
           }  /* if */
           has_cond_var = FALSE;
         } else {
@@ -7061,6 +7069,9 @@ successfully interpreted, FALSE otherwise.
         if (has_cond_var) {
           do_constexpr_condition_cleanup(ips, expr);
           do_constexpr_condition_dealloc(ips, expr, &saved_stack, &result);
+        } else if (expr == NULL) {
+          ips->allow_consteval_routine_node =
+                                           saved_allow_consteval_routine_node;
         }  /* if */
       }
       break;
