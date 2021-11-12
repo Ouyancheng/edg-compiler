@@ -55,6 +55,13 @@ struct a_module_entity {
 			   entity should be treated as not defined, but it can
 			   be removed from any lazy symbol lists as its
 			   definition is also no longer deferred. */
+  a_bit_field	format_validated:1;
+			/* TRUE if the associated file offset has been
+			   validated and contains valid information for
+			   the respective module format. */
+  a_bit_field	invalid:1;
+			/* TRUE if the associated entity cannot not be
+			   constructed from the module for any reason. */
   a_bit_field	global_module:1;
 			/* TRUE if this is an entity owned by the "global
 			   module". */

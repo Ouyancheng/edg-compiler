@@ -2847,7 +2847,7 @@ been confirmed to exist and the path stored in midp.
         for (size_t idx = 0, num_src_lines = get_num_entries(ifc_src_line);
              idx < num_src_lines; idx++) {
           an_ifc_Source_Line   isl, *islp;
-          read_partition_at_index(ifc_src_line, idx);
+          read_prechecked_partition_element(ifc_src_line, idx);
           islp = get_Source_Line(&isl);
           size_t file_index = name_value(islp->file);
           check_assertion(name_tag(islp->file) == ifc_NameSort_SourceFile &&
@@ -2927,7 +2927,7 @@ this module.
 {
   if (partitions[ifc_module_exported].name != NULL) {
     auto num_modules = get_num_entries(ifc_module_exported);
-    read_partition_at_index(ifc_module_exported, 0);
+    read_prechecked_partition_element(ifc_module_exported, 0);
     for (decltype(num_modules) idx = 0; idx < num_modules; ++idx) {
       ifc_ModuleReference imr;
       GET_ModuleReference(imr, /*from_header=*/FALSE);
@@ -2949,7 +2949,7 @@ already saved for restoration.
 {
   a_token_cache      cache;
 
-  read_partition_at_index(macro);
+  read_prechecked_partition_element(macro);
   clear_token_cache(&cache, /*reuseable=*/FALSE);
   cache_macro(&cache, macro);
   check_assertion(cache.first_token != NULL &&
@@ -3214,7 +3214,7 @@ to the given cache if options & cso_no_final_semicolon is nonzero.
   a_source_position  pos;
   ifc_StmtSort       tag = stmt_tag(stmt_idx);
 
-  read_partition_at_index(stmt_idx);
+  read_prechecked_partition_element(stmt_idx);
   switch (tag) {
     case ifc_StmtSort_VendorExtension:
       { an_ifc_StmtSort_VendorExtension issve;
@@ -3289,7 +3289,7 @@ to the given cache if options & cso_no_final_semicolon is nonzero.
         }  /* if */
         for (k = 0; k < N; ++k) {
           ifc_StmtIndex si;
-          read_partition_at_index(ifc_heap_stmt, issbp->start+k);
+          read_prechecked_partition_element(ifc_heap_stmt, issbp->start+k);
           GET_StmtIndex(si, /*from_header=*/FALSE);
           /* IFC files sometimes have a NULL statement in this list - don't
              attempt to cache these. */
@@ -3372,7 +3372,7 @@ to the given cache if options & cso_no_final_semicolon is nonzero.
     case ifc_StmtSort_VariableDecl:
       { an_ifc_StmtSort_VariableDecl  issvd, *issvdp;
         issvdp = get_StmtSort_VariableDecl(&issvd);
-        read_partition_at_index(issvdp->decl);
+        read_prechecked_partition_element(issvdp->decl);
         an_ifc_DeclSort_Variable  idsv, *idsvp;
         idsvp = get_DeclSort_Variable(&idsv);
         cache_variable_decl(cache, issvdp->decl, /*is_class_member=*/FALSE,
@@ -3433,7 +3433,7 @@ instead.
       an_ifc_ChartSort_Unilevel  icsu, *icsup;
       ifc_ChartSort              tag = chart_tag(itfdp->parameters);
       check_assertion(tag == ifc_ChartSort_Unilevel);
-      read_partition_at_index(tag, chart_value(itfdp->parameters));
+      read_prechecked_partition_element(tag, chart_value(itfdp->parameters));
       icsup = get_ChartSort_Unilevel(&icsu);
       ifc_Index_type  k = 0, N = icsup->cardinality;
       /* Ensure a function prototype scope exists in which sk_parameter
@@ -3450,7 +3450,8 @@ instead.
       for (ptp = params; k<N; ++k, ptp = ptp->next) {
         an_ifc_DeclSort_Parameter idsp, *idspp;
         a_source_position         pos;
-        read_partition_at_index(ifc_DeclSort_Parameter, icsup->start+k);
+        read_prechecked_partition_element(ifc_DeclSort_Parameter,
+                                          icsup->start+k);
         idspp = get_DeclSort_Parameter(&idsp);
         check_assertion(idspp->sort == ifc_ParameterSort_Object);
         source_position_from_locus(&pos, &idspp->locus);
@@ -3631,7 +3632,13 @@ principal associated IL entity.
     a_module_entity_ptr saved_mep = curr_module_entity;
     curr_module_entity = mep;
     /* Prepare to read from the proper partition for this declaration. */
-    read_partition_at_offset(mep->variant.ifc_partition, mep->file_offset);
+    if (!read_partition_element(mep)) {
+      goto invalid;
+    }  /* if */
+    /* The IFC information for this module entity was determine to be compliant
+       with our understanding of the format.  Mark this status so we can
+       optimize out future checks. */
+    mep->format_validated = TRUE;
     tag = (ifc_DeclSort)get_tag_from_partition(mep->variant.ifc_partition,
                                                ifc_decl_start);
     if (!defer) {
@@ -3821,7 +3828,7 @@ principal associated IL entity.
           /* Look at the "type" to determine whether we have a namespace or
              not. */
           check_assertion(type_tag(idssp->type) == ifc_TypeSort_Fundamental);
-          read_partition_at_index(ifc_type_fundamental,
+          read_prechecked_partition_element(ifc_type_fundamental,
                                   type_value(idssp->type));
           itsfp = get_TypeSort_Fundamental(&itsf);
           switch (itsfp->basis) {
@@ -3980,7 +3987,7 @@ class_struct_union_case:
             if (alias_tag == ifc_TypeSort_Fundamental) {
               an_ifc_TypeSort_Fundamental itsf, *itsfp;
               /* Read the type to see what kind it is. */
-              read_partition_at_index(idstap->type);
+              read_prechecked_partition_element(idstap->type);
               itsfp = get_TypeSort_Fundamental(&itsf);
               if (itsfp->basis == ifc_TypeBasis_Typename) {
                 /* A type alias; declare a typedef for this case. */
@@ -4017,7 +4024,7 @@ class_struct_union_case:
               a_token_cache           cache;
               a_source_position       pos;
               a_curr_token_preserver  guard;
-              read_partition_at_index(idstap->aliasee);
+              read_prechecked_partition_element(idstap->aliasee);
               itsfp = get_TypeSort_Forall(&itsf);
               source_position_from_locus(&pos, &idstap->locus);
               /* An alias template; declare a typedef for this case. */
@@ -4060,7 +4067,7 @@ class_struct_union_case:
             mep->global_module = TRUE;
           }  /* if */
           /* See if this is a scoped enumeration or not. */
-          read_partition_at_index(ifc_type_fundamental,
+          read_prechecked_partition_element(ifc_type_fundamental,
                                   type_value(idsep->type));
           itsfp = get_TypeSort_Fundamental(&itsf);
           if (itsfp->basis == ifc_TypeBasis_Enum) {
@@ -4720,6 +4727,10 @@ unhandled:
         break;
       default_is_unexpected_str("Unexpected DeclSort");
     }  /* switch */
+    goto cleanup;
+invalid:
+    mep->invalid = TRUE;
+cleanup:
     if (!defer) {
       /* Record the IL entity. */
       mep->entity.ptr = il_entity;
@@ -4783,7 +4794,7 @@ Complete the definition of the class referred to by mep (if needed).
 
   check_assertion(mep->entity.kind == (an_il_entry_kind)iek_type &&
                   class_type != NULL);
-  read_partition_at_offset(mep->variant.ifc_partition, mep->file_offset);
+  read_prechecked_partition_element(mep);
   idssp = get_DeclSort_Scope(&idss);
   if (class_type->incomplete && idssp->initializer != 0) {
     a_template_decl_info_ptr tdip;
@@ -5142,7 +5153,7 @@ pointer to the given consumer lambda for each element in the sequence.
     an_ifc_Scope_Member ism, *ismp;
 
     /* Load the scope member. */
-    read_partition_at_index(ifc_scope_member, seq.start + idx);
+    read_prechecked_partition_element(ifc_scope_member, seq.start + idx);
     ismp = get_Scope_Member(&ism);
     /* Handle any specific processing in the consumer. */
     consumer(ismp);
@@ -5186,12 +5197,12 @@ deferred until they are referenced.
   if (scope_index != 0) {
     scope_pushed = push_module_declaration_context(scope);
     /* Scope indices are 1-based, so subtract one. */
-    read_partition_at_index(ifc_scope_desc, scope_index - 1);
+    read_prechecked_partition_element(ifc_scope_desc, scope_index - 1);
     isdp = get_Scope_Descriptor(&isd);
     for (i = 0; i < isdp->cardinality; i++) {
       /* Re-enable access to scope.member partition (it changes during the
          loop). */
-      read_partition_at_index(ifc_scope_member, isdp->start + i);
+      read_prechecked_partition_element(ifc_scope_member, isdp->start + i);
       ismp = get_Scope_Member(&ism);
       dmep = get_ifc_module_entity_ptr(ismp->index);
       dmep->scope = scope;
@@ -5228,10 +5239,11 @@ has just been created, the partition is set according to the partition supplied
 by the caller.
 */
 {
-  a_module_entity_ptr mep;
+  an_ifc_partition_position partition_pos(this, partition, index);
+  a_module_entity_ptr       mep;
 
-  mep = get_module_entity_ptr(assoc_module_info,
-                              file_offset_of(partition, index));
+  /* FIXME: Handle error case, formatting. */
+  mep = get_module_entity_ptr(assoc_module_info, partition_pos.file_offset);
   if (mep->variant.ifc_partition == ifc_none) {
     mep->variant.ifc_partition = partition;
   } else {
@@ -5302,7 +5314,7 @@ entity from the referenced module.
 {
   an_ifc_DeclSort_Reference idsr, *idsrp;
 
-  read_partition_at_index(index);
+  read_prechecked_partition_element(index);
   idsrp = get_DeclSort_Reference(&idsr);
   return get_and_process_ifc_decl_from_other_module(idsrp);
 }  /* get_and_process_ifc_decl_from_other_module */
@@ -5325,7 +5337,7 @@ template's declaration.
 
   /* Load the specialization form to figure out what the primary
      template's declaration is. */
-  read_partition_at_index(form_index);
+  read_prechecked_partition_element(form_index);
   ifsp = get_Form_Spec(&ifs);
   /* Retrieve the name through the primary template. */
   return get_ifc_name(ifsp->primary_template);
@@ -5365,7 +5377,7 @@ declaration's index.  Return the associated result.
 {
   a_Result_T result;
 
-  ifc_mod->read_partition_at_index(decl_index);
+  ifc_mod->read_prechecked_partition_element(decl_index);
   switch (decl_tag(decl_index)) {
 #define IFC_DECL_DECLSORT_START(name) \
     case concat(ifc_DeclSort_, name): \
@@ -5814,7 +5826,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
     result = (a_type_ptr)mep->entity.ptr;
   } else {
     /* Prepare to read from the proper partition for this type. */
-    read_partition_at_offset(mep->variant.ifc_partition, mep->file_offset);
+    read_prechecked_partition_element(mep);
     tag = (ifc_TypeSort)get_tag_from_partition(mep->variant.ifc_partition,
                                                ifc_type_start);
     switch (tag) {
@@ -6116,12 +6128,12 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
 
             if (type_tag(itsfp->source) == ifc_TypeSort_Tuple) {
               /* A list of parameters. */
-              read_partition_at_index(ifc_type_tuple,
+              read_prechecked_partition_element(ifc_type_tuple,
                                       type_value(itsfp->source));
               itstp = get_TypeSort_Tuple(&itst);
               for (i = 0; i < itstp->cardinality; i++) {
                 ifc_TypeIndex ti;
-                read_partition_at_index(ifc_heap_type,
+                read_prechecked_partition_element(ifc_heap_type,
                                         itstp->start + i);
                 GET_TypeIndex(ti, /*from_header=*/FALSE);
                 param_type = type_for_type_index(ti, &non_type_kind);
@@ -6182,7 +6194,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
               /* FIXME: Is this correct, or are we expected to try to resolve
                  the type in the case of template parameters? */
               { an_ifc_DeclSort_Parameter idsp, *idspp;
-                read_partition_at_index(itsdp->decl);
+                read_prechecked_partition_element(itsdp->decl);
                 idspp = get_DeclSort_Parameter(&idsp);
                 result = type_for_type_index(idspp->type, /*kind=*/NULL);
               }
@@ -6253,7 +6265,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
           ifc_ExprSort etag;
           itssp = get_TypeSort_Syntactic(&itss);
           etag = expr_tag(itssp->expr);
-          read_partition_at_index(itssp->expr);
+          read_prechecked_partition_element(itssp->expr);
           switch (etag) {
             case ifc_ExprSort_TemplateId:
               { an_ifc_ExprSort_TemplateId iestid, *iestidp;
@@ -6345,7 +6357,7 @@ argument.
   a_constant_ptr     cp;
   ifc_ExprSort       tag = expr_tag(expr_index);
 
-  read_partition_at_index(expr_index);
+  read_prechecked_partition_element(expr_index);
   switch (tag) {
     case ifc_ExprSort_Type:
       { an_ifc_ExprSort_Type iest, *iestp;
@@ -6460,7 +6472,7 @@ module file.
                      iesnd, *iesndp;
 
   source_position_from_locus(&pos, &templ_id->locus);
-  read_partition_at_index(templ_id->primary);
+  read_prechecked_partition_element(templ_id->primary);
   check_assertion(expr_tag(templ_id->primary) == ifc_ExprSort_NamedDecl);
   iesndp = get_ExprSort_NamedDecl(&iesnd);
   if (iesndp->type != 0) {
@@ -6474,7 +6486,7 @@ module file.
     tmpl = (a_template_ptr)mep->entity.ptr;
   }  /* if */
   if (templ_id->arguments != 0) {
-    read_partition_at_index(templ_id->arguments);
+    read_prechecked_partition_element(templ_id->arguments);
     check_assertion(tmpl != NULL);
     param_list = tmpl->template_decl->param_list;
     if (arg_tag == ifc_ExprSort_Tuple) {
@@ -6543,7 +6555,7 @@ Map the IFC locus source position information into the source position at pos.
 {
   an_ifc_Source_Line   isl, *islp;
 
-  read_partition_at_index(ifc_src_line, locus->line);
+  read_prechecked_partition_element(ifc_src_line, locus->line);
   islp = get_Source_Line(&isl);
   check_assertion(name_tag(islp->file) == ifc_NameSort_SourceFile);
   if (islp->line == 0 && name_value(islp->file) == 0) {
@@ -6596,7 +6608,7 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
     /* NameSort::Identifiers just refer to the string table. */
     result = get_string_at_offset((ifc_TextOffset)name_value(name_index));
   } else {
-    read_partition_at_index(name_index);
+    read_prechecked_partition_element(name_index);
     switch (tag) {
       case ifc_NameSort_SourceFile:
         { an_ifc_NameSort_SourceFile inssf, *inssfp;
@@ -6714,7 +6726,7 @@ Given a declaration, return the name associated with that declaration.
   ifc_DeclIndex  gmf_decl_scope = (ifc_DeclIndex)0;
   ifc_TypeIndex  gmf_decl_type = (ifc_TypeIndex)0;
 
-  read_partition_at_index(decl);
+  read_prechecked_partition_element(decl);
   switch (tag) {
     case ifc_DeclSort_VendorExtension:
       issue_unsupported_node_diag("DeclSort::VendorExtension",
@@ -7264,7 +7276,7 @@ No casting is performed.
 
   /* Prepare to read from the proper partition for this expression. */
   check_assertion(expr_tag(expr_index) == ifc_ExprSort_Literal);
-  read_partition_at_index(expr_index);
+  read_prechecked_partition_element(expr_index);
   ieslp = get_ExprSort_Literal(&iesl);
   switch (literal_tag(ieslp->value)) {
     case ifc_LiteralSort_Immediate:
@@ -7274,7 +7286,7 @@ No casting is performed.
       break;
     case ifc_LiteralSort_Integer:
       /* An integer larger than 30 bits. */
-      read_partition_at_index(ifc_const_i64,
+      read_prechecked_partition_element(ifc_const_i64,
                               literal_index(ieslp->value));
       GET_64bit_int(raw_val, /*from_header=*/FALSE);
       if (!conv_bytes_to_integer_value(value, raw_val,
@@ -7305,7 +7317,7 @@ FIXME: what other expressions can we get here?
   a_constant_ptr            cp = NULL;
 
   /* Prepare to read from the proper partition for this expression. */
-  read_partition_at_index(expr_index);
+  read_prechecked_partition_element(expr_index);
   switch (tag) {
     case ifc_ExprSort_Literal:
       { an_ifc_ExprSort_Literal iesl, *ieslp;
@@ -7361,7 +7373,7 @@ FIXME: what other expressions can we get here?
 
               cp = alloc_constant(ck_float);
               cp->type = float_type(fk_double);
-              read_partition_at_index(ifc_const_f64,
+              read_prechecked_partition_element(ifc_const_f64,
                                       literal_index(ieslp->value));
               GET_64bit_int(value, /*from_header=*/FALSE);
               /* FIXME: Find a better way to convert the fp value. */
@@ -7445,7 +7457,7 @@ FIXME: what other types of named declarations can we get here?
   a_type_ptr     type;
 
   type = type_for_type_index(iesndp->type, /*kind=*/NULL);
-  read_partition_at_index(iesndp->resolution);
+  read_prechecked_partition_element(iesndp->resolution);
   switch (tag) {
     case ifc_DeclSort_Enumerator:
       { an_ifc_DeclSort_Enumerator idse, *idsep;
@@ -7485,10 +7497,10 @@ otherwise.
   if (decl_tag(scope) == ifc_DeclSort_Scope) {
     an_ifc_DeclSort_Scope       idss, *idssp;
     an_ifc_TypeSort_Fundamental itsf, *itsfp;
-    read_partition_at_index(scope);
+    read_prechecked_partition_element(scope);
     idssp = get_DeclSort_Scope(&idss);
     check_assertion(type_tag(idssp->type) == ifc_TypeSort_Fundamental);
-    read_partition_at_index(idssp->type);
+    read_prechecked_partition_element(idssp->type);
     itsfp = get_TypeSort_Fundamental(&itsf);
     switch (itsfp->basis) {
       case ifc_TypeBasis_Class:
@@ -7959,7 +7971,7 @@ locus is the location of the Sentence containing literal.
         an_ifc_String_Literal str_lit, *p_lit;
         a_character_kind      kind;
 
-        read_partition_at_index(ifc_const_str, str_value(str));
+        read_prechecked_partition_element(ifc_const_str, str_value(str));
         p_lit = get_String_Literal(&str_lit);
         switch (sort) {
           case ifc_StringSort_Ordinary:
@@ -8034,7 +8046,7 @@ locus is the location of the Sentence containing literal.
         an_ifc_ExprSort_NamedDecl iesnd, *iesndp;
         check_assertion(expr_tag(index) == ifc_ExprSort_NamedDecl);
         source_position_from_locus(&pos, locus);
-        read_partition_at_index((ifc_ExprIndex)index);
+        read_prechecked_partition_element((ifc_ExprIndex)index);
         iesndp = get_ExprSort_NamedDecl(&iesnd);
         cache_name_from_decl(cache, iesndp->resolution, &iesndp->locus);
       }
@@ -8930,11 +8942,11 @@ return the index of that token.  Otherwise the return value is meaningless.
   if (sentence == 0) {
     goto done;
   }  /* if */
-  read_partition_at_index(ifc_sentence, sentence-1);
+  read_prechecked_partition_element(ifc_sentence, sentence-1);
   isp = get_Sentence(&is);
   for (; idx < isp->cardinality; ++idx) {
     an_ifc_Word iw, *iwp;
-    read_partition_at_index(ifc_word, isp->start + idx);
+    read_prechecked_partition_element(ifc_word, isp->start + idx);
     iwp = get_Word(&iw);
     ctp = cache->last_token;
     cache_word(cache, iwp);
@@ -8962,11 +8974,11 @@ Otherwise, return FALSE.
   if (sentence == 0) {
     goto done;
   }  /* if */
-  read_partition_at_index(ifc_sentence, sentence-1);
+  read_prechecked_partition_element(ifc_sentence, sentence-1);
   isp = get_Sentence(&is);
   for (uint32_t k = 0; k < isp->cardinality; ++k) {
     an_ifc_Word iw, *iwp;
-    read_partition_at_index(ifc_word, isp->start + k);
+    read_prechecked_partition_element(ifc_word, isp->start + k);
     iwp = get_Word(&iw);
     if (iwp->sort == ifc_WordSort_Directive ||
         (iwp->sort == ifc_WordSort_Punctuator &&
@@ -9351,12 +9363,12 @@ scope is handled by not caching any tokens.
 
   if (scope == 0) goto done;
   source_position_from_locus(&pos, locus);
-  read_partition_at_index(ifc_scope_desc, scope - 1);
+  read_prechecked_partition_element(ifc_scope_desc, scope - 1);
   isdp = get_Scope_Descriptor(&isd);
   cache_token(cache, tok_lbrace, &pos);
   for (ifc_Index_type idx = 0; idx < isdp->cardinality; ++idx) {
     an_ifc_Scope_Member ism, *ismp;
-    read_partition_at_index(ifc_scope_member, isdp->start + idx);
+    read_prechecked_partition_element(ifc_scope_member, isdp->start + idx);
     ismp = get_Scope_Member(&ism);
     cache_decl(cache, ismp->index);
   }  /* for */
@@ -9433,7 +9445,7 @@ Finally, locus is the location of the given scope decl.
          namespace. */
       an_ifc_TypeSort_Fundamental itsf, *itsfp;
 
-      read_partition_at_index(type);
+      read_prechecked_partition_element(type);
       itsfp = get_TypeSort_Fundamental(&itsf);
       /* If we aren't caching a namespace, add a semicolon. */
       if (itsfp->basis != ifc_TypeBasis_Namespace) {
@@ -9468,7 +9480,7 @@ this is needed.
   a_source_position pos;
 
   source_position_from_locus(&pos, locus);
-  read_partition_at_index(type);
+  read_prechecked_partition_element(type);
   switch (tag) {
     case ifc_TypeSort_VendorExtension:
       issue_unsupported_node_diag("TypeSort::VendorExtension",
@@ -9678,7 +9690,7 @@ this is needed.
         itsptmp = get_TypeSort_PointerToMember(&itsptm);
         if (type_tag(itsptmp->member) == ifc_TypeSort_Method) {
           an_ifc_TypeSort_Method itsm, *itsmp;
-          read_partition_at_index(itsptmp->member);
+          read_prechecked_partition_element(itsptmp->member);
           itsmp = get_TypeSort_Method(&itsm);
           cache_type(cache, itsmp->target, locus);
           cache_token(cache, tok_lparen, &pos);
@@ -9787,7 +9799,7 @@ this is needed.
         itstp = get_TypeSort_Tuple(&itst);
         for (i = 0; i < itstp->cardinality; ++i) {
           ifc_TypeIndex ti;
-          read_partition_at_index(ifc_heap_type,
+          read_prechecked_partition_element(ifc_heap_type,
                                   itstp->start + i);
           GET_TypeIndex(ti, /*from_header=*/FALSE);
           cache_type(cache, ti, locus);
@@ -9845,7 +9857,7 @@ this is needed.
   a_source_position pos;
 
   source_position_from_locus(&pos, locus);
-  read_partition_at_index(type);
+  read_prechecked_partition_element(type);
   switch (tag) {
     case ifc_TypeSort_VendorExtension:
       issue_unsupported_node_diag("TypeSort::VendorExtension",
@@ -9867,7 +9879,7 @@ this is needed.
         itsptmp = get_TypeSort_PointerToMember(&itsptm);
         if (type_tag(itsptmp->member) == ifc_TypeSort_Method) {
           an_ifc_TypeSort_Method itsm, *itsmp;
-          read_partition_at_index(itsptmp->member);
+          read_prechecked_partition_element(itsptmp->member);
           itsmp = get_TypeSort_Method(&itsm);
           cache_token(cache, tok_rparen, &pos);
           cache_token(cache, tok_lparen, &pos);
@@ -9971,7 +9983,7 @@ is the position of the chart.
   ifc_ExprIndex     constraint = (ifc_ExprIndex)0;
 
   cache_token(cache, tok_lt, pos);
-  read_partition_at_index(chart);
+  read_prechecked_partition_element(chart);
   switch (tag) {
     case ifc_ChartSort_None:
       /* No arguments to the template (i.e., specialization). */
@@ -11239,7 +11251,7 @@ to the cache.  locus is the location of the simple-template-id.
 
   /* Load the specialization form to figure out what the primary
      template's declaration is. */
-  read_partition_at_index(form_idx);
+  read_prechecked_partition_element(form_idx);
   ifsp = get_Form_Spec(&ifs);
   /* Reconstruct the template-name. */
   cache_name(cache, get_ifc_name_from_primary_template(form_idx), locus);
@@ -11281,7 +11293,7 @@ Add the tokens corresponding to the given partial specialization declaration
        Specialization -- this is not yet possible). */
 
     /* Read the partition for the templated declaration. */
-    read_partition_at_index(templated_decl_idx);
+    read_prechecked_partition_element(templated_decl_idx);
     switch (decl_tag(templated_decl_idx)) {
       case ifc_DeclSort_Scope:
         { /* We're reconstructing a class. */
@@ -11371,7 +11383,7 @@ Add the tokens corresponding to the given explicit specialization declaration
        Specialization -- this is not yet possible). */
 
     /* Read the partition for the templated declaration. */
-    read_partition_at_index(templated_decl_idx);
+    read_prechecked_partition_element(templated_decl_idx);
     switch (decl_tag(templated_decl_idx)) {
       case ifc_DeclSort_Scope:
         { /* We're reconstructing a class. */
@@ -11448,7 +11460,7 @@ Add the tokens corresponding to the given explicit specialization declaration
             ifc_ChartIndex           params = (ifc_ChartIndex)0;
 
             check_assertion(type_tag(idsfp->type) == ifc_TypeSort_Function);
-            read_partition_at_index(idsfp->type);
+            read_prechecked_partition_element(idsfp->type);
             itsfp = get_TypeSort_Function(&itsf);
             if (itsfp->source != 0) {
               params = get_func_params_from_trait(decl_idx);
@@ -11498,7 +11510,7 @@ Add the tokens corresponding to the given explicit instantiation declaration
        Specialization -- this is not yet possible). */
 
     /* Read the partition for the templated declaration. */
-    read_partition_at_index(templated_decl_idx);
+    read_prechecked_partition_element(templated_decl_idx);
     switch (decl_tag(templated_decl_idx)) {
       case ifc_DeclSort_Scope:
         { /* We're reconstructing a class. */
@@ -11562,7 +11574,7 @@ Add the tokens corresponding to the given explicit instantiation declaration
             ifc_ChartIndex           params = (ifc_ChartIndex)0;
 
             check_assertion(type_tag(idsfp->type) == ifc_TypeSort_Function);
-            read_partition_at_index(idsfp->type);
+            read_prechecked_partition_element(idsfp->type);
             itsfp = get_TypeSort_Function(&itsf);
             if (itsfp->source != 0) {
               params = get_func_params_from_trait(decl_idx);
@@ -11594,7 +11606,7 @@ Add the tokens corresponding to the given explicit instantiation declaration
             ifc_ChartIndex         params = (ifc_ChartIndex)0;
 
             check_assertion(type_tag(idsmp->type) == ifc_TypeSort_Method);
-            read_partition_at_index(idsmp->type);
+            read_prechecked_partition_element(idsmp->type);
             itsmp = get_TypeSort_Method(&itsm);
             if (itsmp->source != 0) {
               params = get_func_params_from_trait(decl_idx);
@@ -11626,7 +11638,7 @@ Add the tokens corresponding to the given explicit instantiation declaration
             ifc_ChartIndex      params = (ifc_ChartIndex)0;
 
             check_assertion(type_tag(idscp->type) == ifc_TypeSort_Tor);
-            read_partition_at_index(idscp->type);
+            read_prechecked_partition_element(idscp->type);
             itstp = get_TypeSort_Tor(&itst);
             if (itstp->source != 0) {
               params = get_func_params_from_trait(decl_idx);
@@ -11677,7 +11689,7 @@ Add the tokens corresponding to the given attribute (attr) to cache.
   ifc_AttrSort      tag = attr_tag(attr);
   a_source_position pos;
 
-  read_partition_at_index(attr);
+  read_prechecked_partition_element(attr);
   switch (tag) {
     case ifc_AttrSort_Basic:
       { an_ifc_AttrSort_Basic iasb, *iasbp;
@@ -11801,7 +11813,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
   ifc_DeclSort      tag = decl_tag(decl);
   a_source_position pos;
 
-  read_partition_at_index(decl);
+  read_prechecked_partition_element(decl);
   switch (tag) {
     case ifc_DeclSort_VendorExtension:
       issue_unsupported_node_diag("DeclSort::VendorExtension",
@@ -11921,7 +11933,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         an_ifc_TypeSort_Fundamental itsf, *itsfp;
         idsep = get_DeclSort_Enumeration(&idse);
         check_assertion(type_tag(idsep->type) == ifc_TypeSort_Fundamental);
-        read_partition_at_index(idsep->type);
+        read_prechecked_partition_element(idsep->type);
         itsfp = get_TypeSort_Fundamental(&itsf);
         source_position_from_locus(&pos, &idsep->locus);
         if (is_class_scope(idsep->home_scope)) {
@@ -11975,7 +11987,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         cache_access(cache, idsap->access, /*cache_colon=*/TRUE, &pos);
         if (alias_tag == ifc_TypeSort_Fundamental) {
           an_ifc_TypeSort_Fundamental itsf, *itsfp;
-          read_partition_at_index(idsap->type);
+          read_prechecked_partition_element(idsap->type);
           itsfp = get_TypeSort_Fundamental(&itsf);
           if (itsfp->basis == ifc_TypeBasis_Typename) {
             cache_token(cache, tok_using, &pos);
@@ -11989,7 +12001,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         } else if (alias_tag == ifc_TypeSort_Forall) {
           an_ifc_TypeSort_Forall itsf, *itsfp;
           check_assertion(type_tag(idsap->aliasee) == ifc_TypeSort_Forall);
-          read_partition_at_index(idsap->aliasee);
+          read_prechecked_partition_element(idsap->aliasee);
           itsfp = get_TypeSort_Forall(&itsf);
           cache_token(cache, tok_template, &pos);
           cache_chart(cache, itsfp->chart, &idsap->locus);
@@ -12051,7 +12063,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
 
         idsfp = get_DeclSort_Function(&idsf);
         check_assertion(type_tag(idsfp->type) == ifc_TypeSort_Function);
-        read_partition_at_index(idsfp->type);
+        read_prechecked_partition_element(idsfp->type);
         itsfp = get_TypeSort_Function(&itsf);
         if (itsfp->source != 0) {
           params = get_func_params_from_trait(decl);
@@ -12076,7 +12088,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
 
         idsmp = get_DeclSort_Method(&idsm);
         check_assertion(type_tag(idsmp->type) == ifc_TypeSort_Method);
-        read_partition_at_index(idsmp->type);
+        read_prechecked_partition_element(idsmp->type);
         itsmp = get_TypeSort_Method(&itsm);
         check_assertion(idsmp->access != ifc_Access_None);
         if (name_tag(idsmp->name) == ifc_NameSort_Conversion) {
@@ -12113,7 +12125,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
 
         idscp = get_DeclSort_Constructor(&idsc);
         check_assertion(type_tag(idscp->type) == ifc_TypeSort_Tor);
-        read_partition_at_index(idscp->type);
+        read_prechecked_partition_element(idscp->type);
         itstp = get_TypeSort_Tor(&itst);
         if (itstp->source != 0) {
           params = get_func_params_from_trait(decl);
@@ -12269,7 +12281,7 @@ second operand of an assignment.
   ifc_ExprSort      tag = expr_tag(expr);
   a_source_position pos;
 
-  read_partition_at_index(expr);
+  read_prechecked_partition_element(expr);
   switch (tag) {
     case ifc_ExprSort_VendorExtension:
       issue_unsupported_node_diag("ExprSort::VendorExtension",
@@ -12726,7 +12738,7 @@ common_cast:
           ifc_ExprSort  placement_tag = expr_tag(iesnp->placement);
           check_assertion(placement_tag == ifc_ExprSort_ExpressionList);
 #endif /* CHECKING */
-          read_partition_at_index(iesnp->placement);
+          read_prechecked_partition_element(iesnp->placement);
           an_ifc_ExprSort_ExpressionList esel, *eselp;
           eselp = get_ExprSort_ExpressionList(&esel);
           if (eselp->contents != (ifc_ExprIndex)0) {
@@ -12919,7 +12931,7 @@ Add the tokens corresponding to the given syntax tree to cache.
   ifc_SyntaxSort    tag = syntax_tag(syntax);
   a_source_position pos;
 
-  read_partition_at_index(syntax);
+  read_prechecked_partition_element(syntax);
   switch (tag) {
     case ifc_SyntaxSort_VendorExtension:
       issue_unsupported_node_diag("SyntaxSort::VendorExtension",
@@ -13686,7 +13698,7 @@ Add the tokens corresponding to the given syntax tree to cache.
         uint32_t  k, N = (uint32_t)isstp->cardinality;
         for (k = 0; k<N; ++k) {
           ifc_SyntaxIndex si;
-          read_partition_at_index(ifc_heap_syn, isstp->start+k);
+          read_prechecked_partition_element(ifc_heap_syn, isstp->start+k);
           GET_SyntaxIndex(si, /*from_header=*/FALSE);
           cache_syntax(cache, si);
         }  /* for */
@@ -13757,7 +13769,9 @@ of the name.
   a_boolean         interpret_name_as_tokens = FALSE;
 
   source_position_from_locus(&pos, locus);
-  read_partition_at_index(name);
+  if (tag != ifc_NameSort_Identifier) {
+    read_prechecked_partition_element(name);
+  }  /* if */
   switch (tag) {
     case ifc_NameSort_Identifier:
       /* NameSort::Identifiers just refer to the string table. */
@@ -13922,7 +13936,7 @@ Add the tokens corresponding to the given macro's definition to cache.
   ifc_MacroSort     tag = macro_tag(macro);
   a_source_position pos;
 
-  read_partition_at_index(macro);
+  read_prechecked_partition_element(macro);
   switch (tag) {
     case ifc_MacroSort_ObjectLike:
       { an_ifc_MacroSort_ObjectLike imsol, *imsolp;
@@ -13979,7 +13993,7 @@ raw-text spelling.
   ifc_SourceLocation *locus;
   ifc_TextOffset     spelling;
 
-  read_partition_at_index(form);
+  read_prechecked_partition_element(form);
   switch (tag) {
     case ifc_FormSort_Identifier:
       { an_ifc_FormSort_Identifier ifsi, *ifsip;
@@ -14133,26 +14147,6 @@ cache_spelling:
 }  /* cache_form */
 
 
-inline size_t an_ifc_module::file_offset_of(an_ifc_partition_kind partition,
-                                            ifc_Index_type        index) const
-/*
-Return the IFC file offset of the specified index into the given partition
-of the module.  This value is used as a key to uniquely identify the IFC entity
-(and is purposely not kept as a pointer because the underlying address space is
-typically memory-mapped and could change during PCH file processing).
-*/
-{
-  size_t part_offset = index * partitions[partition].entry_size;
-
-#if EXPENSIVE_CHECKING
-  check_assertion(partitions[partition].offset != 0 &&
-                  partitions[partition].size != 0 &&
-                  partitions[partition].size > part_offset);
-#endif /* EXPENSIVE_CHECKING */
-  return partitions[partition].offset + part_offset;
-}  /* file_offset_of */
-
-
 inline ifc_DeclIndex an_ifc_module::decl_index_of(
                                              an_ifc_partition_kind partition,
                                              size_t                file_offset)
@@ -14200,7 +14194,7 @@ its ifc_AttrIndex.
   auto value_lambda = [this](ptrdiff_t idx) {
     an_ifc_Trait_MsvcDeclAttrs ita, *itap;
 
-    read_partition_at_index(ifc_msvc_trait_decl_attrs, idx);
+    read_prechecked_partition_element(ifc_msvc_trait_decl_attrs, idx);
     itap = get_Trait_MsvcDeclAttrs(&ita);
     return itap->decl;
   };
@@ -14221,7 +14215,8 @@ its ifc_AttrIndex.
        ever represent a significant cost in terms of CPU time). */
     an_ifc_Trait_MsvcDeclAttrs ita, *itap;
 
-    read_partition_at_index(ifc_msvc_trait_decl_attrs, partition_idx);
+    read_prechecked_partition_element(ifc_msvc_trait_decl_attrs,
+                                      partition_idx);
     itap = get_Trait_MsvcDeclAttrs(&ita);
     attr_idx = itap->trait;
   }  /* if */
@@ -14229,32 +14224,71 @@ its ifc_AttrIndex.
 }  /* attr_index_of */
 
 
-inline void an_ifc_module::read_partition_at_offset(
-                                               an_ifc_partition_kind partition,
-                                               size_t                offset)
+inline a_boolean an_ifc_module::validate_partition_position(
+                                                 an_ifc_partition_position pos)
+{
+  a_boolean result = TRUE;
+
+#ifndef EXPENSIVE_CHECKING
+  if (!pos.trusted) {
+#endif /* !EXPENSIVE_CHECKING */
+    an_ifc_partition *partition = &partitions[pos.partition];
+
+    if (partition->size == 0) {
+      /* Check that anything is stored in the requested partition. */
+      result = FALSE;
+    } else if (pos.file_offset < partition->offset) {
+      /* Check that this position follows the requested partition. */
+      result = FALSE;
+    } else {
+      size_t relative_offset = pos.file_offset - partition->offset;
+      if ((relative_offset + partition->entry_size) > partition->size) {
+        /* Check that the relative offset is within the partition. */
+        result = FALSE;
+      } else if ((relative_offset % partition->entry_size) != 0) {
+        /* Check that the relative offset is at a given position. */
+        result = FALSE;
+      }  /* if */
+    }  /* if */
+#ifndef EXPENSIVE_CHECKING
+  }
+#endif /* !EXPENSIVE_CHECKING */
+  return result;
+}  /* validate_partition_position */
+
+
+inline a_boolean an_ifc_module::read_partition_element(
+                                                 an_ifc_partition_position pos)
 /*
-Set the read buffer to the provided offset for the given partition in
-preparation for a call to GET_byte, GET_short, etc.
+
 */
 {
+  a_boolean result = FALSE;
+  if (validate_partition_position(pos)) {
+    result = TRUE;
 #if DEBUG && EXPENSIVE_CHECKING
-  debug_partition = &partitions[partition];
+    debug_partition = &partitions[pos.partition];
 #endif /* DEBUG && EXPENSIVE_CHECKING */
-  init_byte_buffer(offset, partitions[partition].size);
-}  /* read_partition_at_offset */
+    init_byte_buffer(pos.file_offset, partitions[pos.partition].size);
+  }  /* if */
+  /* FIXME: Emit diagnostic here if false, or perhaps leave to caller? */
+  return result;
+}  /* read_partition_element */
 
 
-inline void an_ifc_module::read_partition_at_index(
-                                               an_ifc_partition_kind partition,
-                                               ifc_Index_type        index)
+inline void an_ifc_module::read_prechecked_partition_element(
+                                                 an_ifc_partition_position pos)
 /*
-Set the read buffer to the appropriate offset for an entity at the provided
-index into the given partition in preparation for a call to GET_byte,
-GET_short, etc.
+
 */
 {
-  read_partition_at_offset(partition, file_offset_of(partition, index));
-}  /* read_partition_at_index */
+  /* FIXME: Change this so it can actually check something is prechecked. */
+  check_assertion(validate_partition_position(pos));
+#if DEBUG && EXPENSIVE_CHECKING
+  debug_partition = &partitions[pos.partition];
+#endif /* DEBUG && EXPENSIVE_CHECKING */
+  init_byte_buffer(pos.file_offset, partitions[pos.partition].size);
+}  /* read_prechecked_partition_element */
 
 
 namespace {
@@ -14326,230 +14360,301 @@ sort_kind.
 }  /* namespace */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_AttrSort   attr_kind,
-                                                   ifc_Index_type index)
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                      const an_ifc_module *mod,
+                                                      a_module_entity_ptr mep)
+  : an_ifc_partition_position(mep->variant.ifc_partition, mep->file_offset,
+                              /*trusted_val=*/mep->format_validated)
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                          const an_ifc_module   *mod,
+                                          an_ifc_partition_kind partition_kind,
+                                          ifc_Index_type        index)
+  : an_ifc_partition_position(partition_kind,
+                              mod->partitions[partition_kind].offset + (index *
+                                   mod->partitions[partition_kind].entry_size),
+                              /*trusted_val=*/FALSE)
 /*
-Overload wrapper for "read_partition_at_index" that converts an "ifc_AttrSort"
-kind into an "an_ifc_partition_kind" kind for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts given partition
+kind and index into a ifc partition position's partition kind and file offset.
 */
 {
-  read_partition_at_index(get_partition_kind(attr_kind), index);
-}  /* read_partition_at_index */
+} /* an_ifc_partition_position */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_AttrIndex attr)
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                 const an_ifc_module *mod,
+                                                 ifc_AttrSort        attr_kind,
+                                                 ifc_Index_type      index)
+  : an_ifc_partition_position(mod, get_partition_kind(attr_kind), index)
 /*
-Overload wrapper for "read_partition_at_index" that converts an "ifc_AttrIndex"
-into its tag and index components for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts an
+"ifc_AttrSort" kind into an "an_ifc_partition_kind" kind for convenience.
 */
 {
-  read_partition_at_index(attr_tag(attr), attr_value(attr));
-}  /* read_partition_at_index */
+} /* an_ifc_partition_position */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_TypeSort   type_kind,
-                                                   ifc_Index_type index)
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                      const an_ifc_module *mod,
+                                                      ifc_AttrIndex       attr)
+  : an_ifc_partition_position(mod, attr_tag(attr), attr_value(attr))
 /*
-Overload wrapper for "read_partition_at_index" that converts an "ifc_TypeSort"
-kind into an "an_ifc_partition_kind" kind for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts an
+"ifc_AttrIndex" into its tag and index components for convenience.
 */
 {
-  read_partition_at_index(get_partition_kind(type_kind), index);
-}  /* read_partition_at_index */
+} /* an_ifc_partition_position */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_TypeIndex type)
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                 const an_ifc_module *mod,
+                                                 ifc_TypeSort        type_kind,
+                                                 ifc_Index_type      index)
+  : an_ifc_partition_position(mod, get_partition_kind(type_kind), index)
 /*
-Overload wrapper for "read_partition_at_index" that converts an "ifc_TypeIndex"
-into its tag and index components for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts an
+"ifc_TypeSort" kind into an "an_ifc_partition_kind" kind for convenience.
 */
 {
-  read_partition_at_index(type_tag(type), type_value(type));
-}  /* read_partition_at_index */
+} /* an_ifc_partition_position */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_ExprSort   expr_kind,
-                                                   ifc_Index_type index)
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                      const an_ifc_module *mod,
+                                                      ifc_TypeIndex       type)
+  : an_ifc_partition_position(mod, type_tag(type), type_value(type))
 /*
-Overload wrapper for "read_partition_at_index" that converts an "ifc_ExprSort"
-kind into an "an_ifc_partition_kind" kind for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts an
+"ifc_TypeIndex" into its tag and index components for convenience.
 */
 {
-  read_partition_at_index(get_partition_kind(expr_kind), index);
-}  /* read_partition_at_index */
+} /* an_ifc_partition_position */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_ExprIndex expr)
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                 const an_ifc_module *mod,
+                                                 ifc_ExprSort        expr_kind,
+                                                 ifc_Index_type      index)
+  : an_ifc_partition_position(mod, get_partition_kind(expr_kind), index)
 /*
-Overload wrapper for "read_partition_at_index" that converts an "ifc_ExprIndex"
-into its tag and index components for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts an
+"ifc_ExprSort" kind into an "an_ifc_partition_kind" kind for convenience.
 */
 {
-  read_partition_at_index(expr_tag(expr), expr_value(expr));
-}  /* read_partition_at_index */
+} /* an_ifc_partition_position */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_StmtSort   stmt_kind,
-                                                   ifc_Index_type index)
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                      const an_ifc_module *mod,
+                                                      ifc_ExprIndex       expr)
+  : an_ifc_partition_position(mod, expr_tag(expr), expr_value(expr))
 /*
-Overload wrapper for "read_partition_at_index" that converts an "ifc_StmtSort"
-kind into an "an_ifc_partition_kind" kind for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts an
+"ifc_ExprIndex" into its tag and index components for convenience.
 */
 {
-  read_partition_at_index(get_partition_kind(stmt_kind), index);
-}  /* read_partition_at_index */
+} /* an_ifc_partition_position */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_StmtIndex stmt)
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                 const an_ifc_module *mod,
+                                                 ifc_StmtSort        stmt_kind,
+                                                 ifc_Index_type      index)
+  : an_ifc_partition_position(mod, get_partition_kind(stmt_kind), index)
 /*
-Overload wrapper for "read_partition_at_index" that converts an "ifc_StmtIndex"
-into its tag and index components for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts an
+"ifc_StmtSort" kind into an "an_ifc_partition_kind" kind for convenience.
 */
 {
-  read_partition_at_index(stmt_tag(stmt), stmt_value(stmt));
-}  /* read_partition_at_index */
+} /* an_ifc_partition_position */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_DeclSort   decl_kind,
-                                                   ifc_Index_type index)
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                      const an_ifc_module *mod,
+                                                      ifc_StmtIndex       stmt)
+  : an_ifc_partition_position(mod, stmt_tag(stmt), stmt_value(stmt))
 /*
-Overload wrapper for "read_partition_at_index" that converts an "ifc_DeclSort"
-kind into an "an_ifc_partition_kind" kind for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts an
+"ifc_StmtIndex" into its tag and index components for convenience.
 */
 {
-  read_partition_at_index(get_partition_kind(decl_kind), index);
-}  /* read_partition_at_index */
+} /* an_ifc_partition_position */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_DeclIndex decl)
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                 const an_ifc_module *mod,
+                                                 ifc_DeclSort        decl_kind,
+                                                 ifc_Index_type      index)
+  : an_ifc_partition_position(mod, get_partition_kind(decl_kind), index)
 /*
-Overload wrapper for "read_partition_at_index" that converts an "ifc_DeclIndex"
-into its tag and index components for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts an
+"ifc_DeclSort" kind into an "an_ifc_partition_kind" kind for convenience.
 */
 {
-  read_partition_at_index(decl_tag(decl), decl_value(decl));
-}  /* read_partition_at_index */
+} /* an_ifc_partition_position */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_NameSort   name_kind,
-                                                   ifc_Index_type index)
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                      const an_ifc_module *mod,
+                                                      ifc_DeclIndex       decl)
+  : an_ifc_partition_position(mod, decl_tag(decl), decl_value(decl))
 /*
-Overload wrapper for "read_partition_at_index" that converts an "ifc_NameSort"
-kind into an "an_ifc_partition_kind" kind for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts an
+"ifc_DeclIndex" into its tag and index components for convenience.
 */
 {
-  if (name_kind != ifc_NameSort_Identifier) {
-    read_partition_at_index(get_partition_kind(name_kind), index);
-  }  /* if */
-}  /* read_partition_at_index */
+} /* an_ifc_partition_position */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_NameIndex name)
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                 const an_ifc_module *mod,
+                                                 ifc_NameSort        name_kind,
+                                                 ifc_Index_type      index)
+  : an_ifc_partition_position(mod, get_partition_kind(name_kind), index)
 /*
-Overload wrapper for "read_partition_at_index" that converts an "ifc_NameIndex"
-into its tag and index components for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts an
+"ifc_NameSort" kind into an "an_ifc_partition_kind" kind for convenience.
 */
 {
-  read_partition_at_index(name_tag(name), name_value(name));
-}  /* read_partition_at_index */
+  /* FIXME: Handle this check some other way.  This NameSort case is very
+     special, there's not a corresponding partition that needs read, when
+     NameSort is Identifier the string table is read from directly. */
+  check_assertion(name_kind != ifc_NameSort_Identifier);
+} /* an_ifc_partition_position */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_ChartSort  chart_kind,
-                                                   ifc_Index_type index)
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                      const an_ifc_module *mod,
+                                                      ifc_NameIndex       name)
+  : an_ifc_partition_position(mod, name_tag(name), name_value(name))
 /*
-Overload wrapper for "read_partition_at_index" that converts an "ifc_ChartSort"
-kind into an "an_ifc_partition_kind" kind for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts an
+"ifc_NameIndex" into its tag and index components for convenience.
 */
 {
-  read_partition_at_index(get_partition_kind(chart_kind), index);
-}  /* read_partition_at_index */
+} /* an_ifc_partition_position */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_ChartIndex chart)
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                const an_ifc_module *mod,
+                                                ifc_ChartSort       chart_kind,
+                                                ifc_Index_type      index)
+  : an_ifc_partition_position(mod, get_partition_kind(chart_kind), index)
 /*
-Overload wrapper for "read_partition_at_index" that converts an
+Overload wrapper for "an_ifc_partition_position" that converts an
+"ifc_ChartSort" kind into an "an_ifc_partition_kind" kind for convenience.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                     const an_ifc_module *mod,
+                                                     ifc_ChartIndex      chart)
+  : an_ifc_partition_position(mod, chart_tag(chart), chart_value(chart))
+/*
+Overload wrapper for "an_ifc_partition_position" that converts an
 "ifc_ChartIndex" into its tag and index components for convenience.
 */
 {
-  read_partition_at_index(chart_tag(chart), chart_value(chart));
-}  /* read_partition_at_index */
+} /* an_ifc_partition_position */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_FormSpecIndex form_spec)
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                 const an_ifc_module *mod,
+                                                 ifc_FormSpecIndex   form_spec)
+  : an_ifc_partition_position(mod, ifc_form_spec, form_spec)
 /*
-Overload wrapper for "read_partition_at_index" that converts an
+Overload wrapper for "an_ifc_partition_position" that converts an
 "ifc_FormSpecIndex" into its tag and index components for convenience.
 */
 {
-  read_partition_at_index(ifc_form_spec, form_spec);
-}  /* read_partition_at_index */
+} /* an_ifc_partition_position */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_SyntaxSort syntax_kind,
-                                                   ifc_Index_type index)
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                               const an_ifc_module *mod,
+                                               ifc_SyntaxSort      syntax_kind,
+                                               ifc_Index_type      index)
+  : an_ifc_partition_position(mod, (an_ifc_partition_kind)(ifc_syntax_start +
+                                                                  syntax_kind),
+                              index)
 /*
-Overload wrapper for "read_partition_at_index" that converts an
+Overload wrapper for "an_ifc_partition_position" that converts an
 "ifc_SyntaxSort" kind into an "an_ifc_partition_kind" kind for convenience.
 */
 {
-  read_partition_at_index((an_ifc_partition_kind)(ifc_syntax_start +
-                                                                  syntax_kind),
-                          index);
-}  /* read_partition_at_index */
+} /* an_ifc_partition_position */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_SyntaxIndex syntax)
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                    const an_ifc_module *mod,
+                                                    ifc_SyntaxIndex     syntax)
+  : an_ifc_partition_position(mod, syntax_tag(syntax), syntax_value(syntax))
 /*
-Overload wrapper for "read_partition_at_index" that converts an
+Overload wrapper for "an_ifc_partition_position" that converts an
 "ifc_SyntaxIndex" into its tag and index components for convenience.
 */
 {
-  read_partition_at_index(syntax_tag(syntax), syntax_value(syntax));
-}  /* read_partition_at_index */
+} /* an_ifc_partition_position */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_MacroSort  macro_kind,
-                                                   ifc_Index_type index)
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                const an_ifc_module *mod,
+                                                ifc_MacroSort       macro_kind,
+                                                ifc_Index_type      index)
+  : an_ifc_partition_position(mod, (an_ifc_partition_kind)(ifc_macro_start +
+                                                                   macro_kind),
+                              index)
 /*
-Overload wrapper for "read_partition_at_index" that converts an
+Overload wrapper for "an_ifc_partition_position" that converts an
 "ifc_MacroSort" kind into an "an_ifc_partition_kind" kind for convenience.
 */
 {
-  read_partition_at_index((an_ifc_partition_kind)(ifc_macro_start+ macro_kind),
-                          index);
-}  /* read_partition_at_index */
+} /* an_ifc_partition_position */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_MacroIndex macro)
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                     const an_ifc_module *mod,
+                                                     ifc_MacroIndex      macro)
+  : an_ifc_partition_position(mod, macro_tag(macro), macro_index(macro))
 /*
-Overload wrapper for "read_partition_at_index" that converts an
+Overload wrapper for "an_ifc_partition_position" that converts an
 "ifc_MacroIndex" into its tag and index components for convenience.
 */
 {
-  read_partition_at_index(macro_tag(macro), macro_index(macro));
-}  /* read_partition_at_index */
+} /* an_ifc_partition_position */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_FormSort   form_kind,
-                                                   ifc_Index_type index)
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                 const an_ifc_module *mod,
+                                                 ifc_FormSort        form_kind,
+                                                 ifc_Index_type      index)
+  : an_ifc_partition_position(mod, (an_ifc_partition_kind)(ifc_form_start +
+                                                                    form_kind),
+                              index)
 /*
-Overload wrapper for "read_partition_at_index" that converts an
+Overload wrapper for "an_ifc_partition_position" that converts an
 "ifc_FormSort" kind into an "an_ifc_partition_kind" kind for convenience.
 */
 {
-  read_partition_at_index((an_ifc_partition_kind)(ifc_form_start + form_kind),
-                          index);
-}  /* read_partition_at_index */
+} /* an_ifc_partition_position */
 
 
-inline void an_ifc_module::read_partition_at_index(ifc_FormIndex form)
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                      const an_ifc_module *mod,
+                                                      ifc_FormIndex       form)
+  : an_ifc_partition_position(mod, form_tag(form), form_index(form))
 /*
-Overload wrapper for "read_partition_at_index" that converts an
+Overload wrapper for "an_ifc_partition_position" that converts an
 "ifc_FormIndex" into its tag and index components for convenience.
 */
 {
-  read_partition_at_index(form_tag(form), form_index(form));
-}  /* read_partition_at_index */
+} /* an_ifc_partition_position */
 
 
 inline ifc_Index an_ifc_module::read_index_from_heap(
@@ -14562,7 +14667,7 @@ into that partition.
 {
   ifc_Index result;
 
-  read_partition_at_index(heap_partition, index);
+  read_prechecked_partition_element(heap_partition, index);
   GET_Index(result, /*from_header=*/FALSE);
   return result;
 }  /* read_index_from_heap */
@@ -14585,7 +14690,7 @@ upon to contain the result.
   auto value_lambda = [this](ptrdiff_t idx) {
     a_Trait_T tmp_trait_storage, *tmp_trait_ptr;
 
-    read_partition_at_index(a_Partition_Kind, idx);
+    read_prechecked_partition_element(a_Partition_Kind, idx);
     tmp_trait_ptr = get<a_Trait_T>(&tmp_trait_storage, /*from_header=*/FALSE);
     return tmp_trait_ptr->decl;
   };
@@ -14602,7 +14707,7 @@ upon to contain the result.
        returned.  Thus, we cannot (as an optimization) share a variable with
        the value_lambda to prevent double reading (though this is unlikely to
        ever represent a significant cost in terms of CPU time). */
-    read_partition_at_index(a_Partition_Kind, partition_idx);
+    read_prechecked_partition_element(a_Partition_Kind, partition_idx);
     result = get<a_Trait_T>(storage, /*from_header=*/FALSE);
   }  /* if */
   return result;
@@ -14710,7 +14815,7 @@ the declaration of the entity.
   ifc_DeclIndex templated_decl_idx = decl->decl;
 
   /* Read the partition for the templated declaration. */
-  read_partition_at_index(templated_decl_idx);
+  read_prechecked_partition_element(templated_decl_idx);
   switch (decl_tag(templated_decl_idx)) {
   case ifc_DeclSort_Scope:
     { /* We're reconstructing a class. */
@@ -14826,7 +14931,7 @@ Validate that the given type is a fundamental type representing a class.
   an_ifc_TypeSort_Fundamental itsf, *itsfp;
 
   check_assertion(type_tag(type) == ifc_TypeSort_Fundamental);
-  read_partition_at_index(type);
+  read_prechecked_partition_element(type);
   itsfp = get_TypeSort_Fundamental(&itsf);
   switch (itsfp->basis) {
     case ifc_TypeBasis_Class:
@@ -14876,12 +14981,12 @@ Display the contents of the specified scope.
      is nothing further to do. */
   if (scope != 0) {
     /* Scope indices are 1-based, so subtract one. */
-    read_partition_at_index(ifc_scope_desc, scope - 1);
+    read_prechecked_partition_element(ifc_scope_desc, scope - 1);
     isdp = get_Scope_Descriptor(&isd);
     for (i = 0; i < isdp->cardinality; i++) {
       /* Re-enable access to scope.member partition (it changes during the
          loop). */
-      read_partition_at_index(ifc_scope_member, isdp->start + i);
+      read_prechecked_partition_element(ifc_scope_member, isdp->start + i);
       ismp = get_Scope_Member(&ism);
       db_ifc_declaration(ismp->index);
     }  /* for */
