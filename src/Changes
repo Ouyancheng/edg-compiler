@@ -1,5 +1,22 @@
 Version 6.3
 
+11/12/21 [EDGcpfe/20067,EDGcpfe/22198,EDGcpfe/24846]
+Internal error in copy_tokens_from_cache on static data member template
+
+Consider:
+
+  namespace N {}
+  struct S {
+    template<typename T>
+      static constexpr bool N = N::undefined<int, T>;
+  };      // Previously an internal error.  Now an ordinary error.
+
+This code is invalid because it refers to the nonexistent name N::undefined.
+Previously, however, examples like this one caused the front end to abort (in
+C++11 mode) with an internal error in copy_tokens_from_cache due to poor error
+recovery.  That is now fixed.
+
+
 11/12/21 [EDGcpfe/24811]
 
 Consider in C++17 mode (where exception specifications are part of the function

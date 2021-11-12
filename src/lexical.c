@@ -1942,32 +1942,34 @@ If include_last_token is TRUE, last_tsn is included in the cache.
      points to the cache entry that follows it (which may be a pragma entry
      the precedes the next token). */
   first_ctp_to_copy = src_cache->first_token;
-  for (ctp = src_cache->first_token; ctp != NULL; ctp = ctp->next) {
-    if (ctp->token_sequence_number == first_tsn) break;
-    if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_pragma) {
-      /* The token sequence looks something like:
+  if (first_tsn != NO_TOKEN_SEQUENCE_NUMBER) {
+    for (ctp = src_cache->first_token; ctp != NULL; ctp = ctp->next) {
+      if (ctp->token_sequence_number == first_tsn) break;
+      if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_pragma) {
+        /* The token sequence looks something like:
 		 pragma-n0 token-n1 pragma-n2 token-n3 token-n4
-         where token-n3 is the first token to be copied.  We also want to
-         copy any pragmas that precede token-n3 to the destination cache.
-         When we break out of the loop first_ctp_to_copy will point to
-         pragma-n2. */
-      first_ctp_to_copy = ctp->next;
-    }  /* if */
-  }  /* for */
-  check_assertion_str(ctp != NULL || first_tsn == NO_TOKEN_SEQUENCE_NUMBER,
-                      "copy_tokens_from_cache: first_tsn missing");
+           where token-n3 is the first token to be copied.  We also want to
+           copy any pragmas that precede token-n3 to the destination cache.
+           When we break out of the loop first_ctp_to_copy will point to
+           pragma-n2. */
+        first_ctp_to_copy = ctp->next;
+      }  /* if */
+    }  /* for */
+    check_assertion_or_expect_error_str(
+                    ctp != NULL, "copy_tokens_from_cache: first_tsn missing");
+  }  /* if */
   last_ctp_to_copy = ctp;
-  for (; ctp != NULL; ctp = ctp->next) {
-    /* Stop when we find the specified token, or if we reach an end of
-       source token marking the end of the cache. */
-    if (ctp->ending_token_sequence_number >= last_tsn ||
-        (a_token_kind)ctp->token == tok_end_of_source) break;
-    last_ctp_to_copy = ctp->next;
-  }  /* for */
-  check_assertion_or_expect_error_str2(ctp != NULL ||
-                                       last_tsn == NO_TOKEN_SEQUENCE_NUMBER,
-                                       "copy_tokens_from_cache:",
-                                       "last_tsn missing");
+  if (last_tsn != NO_TOKEN_SEQUENCE_NUMBER) {
+    for (; ctp != NULL; ctp = ctp->next) {
+      /* Stop when we find the specified token, or if we reach an end of
+         source token marking the end of the cache. */
+      if (ctp->ending_token_sequence_number >= last_tsn ||
+          (a_token_kind)ctp->token == tok_end_of_source) break;
+      last_ctp_to_copy = ctp->next;
+    }  /* for */
+    check_assertion_or_expect_error_str(
+                     ctp != NULL, "copy_tokens_from_cache: last_tsn missing");
+  }  /* if */
   /* The final token sequence number will be greater than last_tsn if the
      token referred to by last_tsn is the second ">" of a ">>" that was
      split into two tokens.  The code below will copy the ">>" and the copied
