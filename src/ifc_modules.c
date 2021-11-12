@@ -6179,10 +6179,13 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
               check_assertion(result != NULL && dmep->entity.kind == iek_type);
               break;
             case ifc_DeclSort_Parameter:
-              /* FIXME: Currently unsupported. */
-              issue_unsupported_node_diag("DeclSort::Parameter",
-                                          &error_position);
-              result = error_type();
+              /* FIXME: Is this correct, or are we expected to try to resolve
+                 the type in the case of template parameters? */
+              { an_ifc_DeclSort_Parameter idsp, *idspp;
+                read_partition_at_index(itsdp->decl);
+                idspp = get_DeclSort_Parameter(&idsp);
+                result = type_for_type_index(idspp->type, /*kind=*/NULL);
+              }
               break;
             default:
               unexpected_condition_str("Unexpected DeclSort for "
