@@ -1,5 +1,12 @@
 Version 6.3
 
+11/12/21 [EDGcpfe/24828]
+GNU C++20 compatibility: if consteval
+
+GCC 12.x will apparently accept "if consteval" in C++20 mode with a warning.
+The front end now emulates that behavior when gnu_version >= 120000.
+
+
 11/12/21 [EDGcpfe/20067,EDGcpfe/22198,EDGcpfe/24846]
 Internal error in copy_tokens_from_cache on static data member template
 

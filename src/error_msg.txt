@@ -3294,6 +3294,7 @@ ec_explicit_this_param_must_be_first;;"an explicit \"this\" parameter must be th
 ec_bad_this;;"\"this\" is not allowed here"
 ec_explicit_this_defaulted_comparison;;"a comparison function with explicit \"this\" cannot be defaulted"
 ec_explicit_this_needs_this;;"an explicit \"this\" function requires a selector operand"
+ec_if_consteval_nonstandard;;"\"if consteval\" and \"if not consteval\" are not standard in this mode"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

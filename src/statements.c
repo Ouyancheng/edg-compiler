@@ -4106,14 +4106,26 @@ The syntax is:
       kind = (a_statement_kind)stmk_constexpr_if;
       ssk_kind = ssk_constexpr_if;
       is_constexpr_if = TRUE;
-    } else if (if_consteval_enabled && next_tok == tok_consteval) {
+    } else if ((if_consteval_enabled ||
+                (gpp_version_is(>=120000) && cpp20_mode)) &&
+               next_tok == tok_consteval) {
+      if (!if_consteval_enabled) {
+        /* GCC accepts "if consteval" with a warning in C++20 mode. */
+        pos_warning(ec_if_consteval_nonstandard, &pos_curr_token);
+      }  /* if */
       kind = (a_statement_kind)stmk_if_consteval;
       ssk_kind = ssk_if;
       is_if_consteval = TRUE;
-    } else if (if_consteval_enabled && next_tok == tok_not) {
+    } else if ((if_consteval_enabled ||
+                (gpp_version_is(>=120000) && cpp20_mode)) &&
+               next_tok == tok_not) {
       a_token_kind  next_next_tok;
       if (next_two_tokens(tok_not, &next_next_tok) == tok_not &&
           next_next_tok == tok_consteval) {
+        if (!if_consteval_enabled) {
+          /* GCC accepts "if consteval" with a warning in C++20 mode. */
+          pos_warning(ec_if_consteval_nonstandard, &pos_curr_token);
+        }  /* if */
         kind = (a_statement_kind)stmk_if_not_consteval;
         ssk_kind = ssk_if;
         is_if_consteval = TRUE;
