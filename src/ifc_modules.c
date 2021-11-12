@@ -14345,7 +14345,9 @@ inline void an_ifc_module::Partition_element_validator::validate(
 /*
 */
 {
-  validate(an_ifc_partition_position(ifc_mod, val));
+  if (name_tag(val) != ifc_NameSort_Identifier) {
+    validate(an_ifc_partition_position(ifc_mod, val));
+  }  /* if */
 }  /* validate<ifc_NameIndex> */
 
 
@@ -14418,16 +14420,904 @@ inline void an_ifc_module::Partition_element_validator::visit< \
 
 void an_ifc_module::Partition_element_validator::visit_position(
                                                  an_ifc_partition_position pos)
+/*
+*/
 {
   switch (pos.partition) {
+    /* DeclIndex::tag partitions together. */
     case ifc_decl_vendor_extension:
       visit<an_ifc_DeclSort_VendorExtension>(pos);
+      break;
+    case ifc_decl_enumerator:
+      visit<an_ifc_DeclSort_Enumerator>(pos);
+      break;
+    case ifc_decl_variable:
+      visit<an_ifc_DeclSort_Variable>(pos);
+      break;
+    case ifc_decl_parameter:
+      visit<an_ifc_DeclSort_Parameter>(pos);
+      break;
+    case ifc_decl_field:
+      visit<an_ifc_DeclSort_Field>(pos);
+      break;
+    case ifc_decl_bitfield:
+      visit<an_ifc_DeclSort_Bitfield>(pos);
+      break;
+    case ifc_decl_scope:
+      visit<an_ifc_DeclSort_Scope>(pos);
+      break;
+    case ifc_decl_enumeration:
+      visit<an_ifc_DeclSort_Enumeration>(pos);
+      break;
+    case ifc_decl_alias:
+      visit<an_ifc_DeclSort_Alias>(pos);
+      break;
+    case ifc_decl_temploid:
+      visit<an_ifc_DeclSort_Temploid>(pos);
       break;
     case ifc_decl_template:
       visit<an_ifc_DeclSort_Template>(pos);
       break;
-    default:
+    case ifc_decl_partial_specialization:
+      visit<an_ifc_DeclSort_PartialSpecialization>(pos);
       break;
+    case ifc_decl_explicit_specialization:
+      visit<an_ifc_DeclSort_ExplicitSpecialization>(pos);
+      break;
+    case ifc_decl_explicit_instantiation:
+      visit<an_ifc_DeclSort_ExplicitInstantiation>(pos);
+      break;
+    case ifc_decl_concept:
+      visit<an_ifc_DeclSort_Concept>(pos);
+      break;
+    case ifc_decl_function:
+      visit<an_ifc_DeclSort_Function>(pos);
+      break;
+    case ifc_decl_method:
+      visit<an_ifc_DeclSort_Method>(pos);
+      break;
+    case ifc_decl_constructor:
+      visit<an_ifc_DeclSort_Constructor>(pos);
+      break;
+    case ifc_decl_inh_ctor:
+      visit<an_ifc_DeclSort_InheritedConstructor>(pos);
+      break;
+    case ifc_decl_destructor:
+      visit<an_ifc_DeclSort_Destructor>(pos);
+      break;
+    case ifc_decl_reference:
+      visit<an_ifc_DeclSort_Reference>(pos);
+      break;
+    case ifc_decl_using_declaration:
+      visit<an_ifc_DeclSort_UsingDeclaration>(pos);
+      break;
+    case ifc_decl_using_directive:
+      visit<an_ifc_DeclSort_UsingDirective>(pos);
+      break;
+    case ifc_decl_friend:
+      visit<an_ifc_DeclSort_Friend>(pos);
+      break;
+    case ifc_decl_expansion:
+      visit<an_ifc_DeclSort_Expansion>(pos);
+      break;
+    case ifc_decl_deduction_guide:
+      visit<an_ifc_DeclSort_DeductionGuide>(pos);
+      break;
+    case ifc_decl_barren:
+      visit<an_ifc_DeclSort_Barren>(pos);
+      break;
+    case ifc_decl_tuple:
+      visit<an_ifc_DeclSort_Tuple>(pos);
+      break;
+    case ifc_decl_syntax_tree:
+      visit<an_ifc_DeclSort_SyntaxTree>(pos);
+      break;
+    case ifc_decl_intrinsic:
+      visit<an_ifc_DeclSort_Intrinsic>(pos);
+      break;
+    case ifc_decl_property:
+      visit<an_ifc_DeclSort_Property>(pos);
+      break;
+    case ifc_decl_segment:
+      visit<an_ifc_DeclSort_OutputSegment>(pos);
+      break;
+    /* Group all TypeIndex::tag partitions together. */
+    case ifc_type_vendor_extension:
+      visit<an_ifc_TypeSort_VendorExtension>(pos);
+      break;
+    case ifc_type_fundamental:
+      visit<an_ifc_TypeSort_Fundamental>(pos);
+      break;
+    case ifc_type_designated:
+      visit<an_ifc_TypeSort_Designated>(pos);
+      break;
+    case ifc_type_tor:
+      visit<an_ifc_TypeSort_Tor>(pos);
+      break;
+    case ifc_type_syntactic:
+      visit<an_ifc_TypeSort_Syntactic>(pos);
+      break;
+    case ifc_type_expansion:
+      visit<an_ifc_TypeSort_Expansion>(pos);
+      break;
+    case ifc_type_pointer:
+      visit<an_ifc_TypeSort_Pointer>(pos);
+      break;
+    case ifc_type_pointer_to_member:
+      visit<an_ifc_TypeSort_PointerToMember>(pos);
+      break;
+    case ifc_type_lvalue_reference:
+      visit<an_ifc_TypeSort_LvalueReference>(pos);
+      break;
+    case ifc_type_rvalue_reference:
+      visit<an_ifc_TypeSort_RvalueReference>(pos);
+      break;
+    case ifc_type_function:
+      visit<an_ifc_TypeSort_Function>(pos);
+      break;
+    case ifc_type_method:
+      visit<an_ifc_TypeSort_Method>(pos);
+      break;
+    case ifc_type_array:
+      visit<an_ifc_TypeSort_Array>(pos);
+      break;
+    case ifc_type_typename:
+      visit<an_ifc_TypeSort_Typename>(pos);
+      break;
+    case ifc_type_qualified:
+      visit<an_ifc_TypeSort_Qualified>(pos);
+      break;
+    case ifc_type_base:
+      visit<an_ifc_TypeSort_Base>(pos);
+      break;
+    case ifc_type_decltype:
+      visit<an_ifc_TypeSort_Decltype>(pos);
+      break;
+    case ifc_type_placeholder:
+      visit<an_ifc_TypeSort_Placeholder>(pos);
+      break;
+    case ifc_type_tuple:
+      visit<an_ifc_TypeSort_Tuple>(pos);
+      break;
+    case ifc_type_forall:
+      visit<an_ifc_TypeSort_Forall>(pos);
+      break;
+    case ifc_type_unaligned:
+      visit<an_ifc_TypeSort_Unaligned>(pos);
+      break;
+    case ifc_type_syntax_tree:
+      visit<an_ifc_TypeSort_SyntaxTree>(pos);
+      break;
+    /* Group all NameIndex::tag partitions together. */
+    case ifc_name_operator:
+      visit<an_ifc_NameSort_Operator>(pos);
+      break;
+    case ifc_name_conversion:
+      visit<an_ifc_NameSort_Conversion>(pos);
+      break;
+    case ifc_name_literal:
+      visit<an_ifc_NameSort_Literal>(pos);
+      break;
+    case ifc_name_template:
+      visit<an_ifc_NameSort_Template>(pos);
+      break;
+    case ifc_name_specialization:
+      visit<an_ifc_NameSort_Specialization>(pos);
+      break;
+    case ifc_name_source_file:
+      visit<an_ifc_NameSort_SourceFile>(pos);
+      break;
+    case ifc_name_guide:
+      visit<an_ifc_NameSort_Guide>(pos);
+      break;
+    /* Group all ExprIndex::tag partitions together. */
+    case ifc_expr_vendor_extension:
+      visit<an_ifc_ExprSort_VendorExtension>(pos);
+      break;
+    case ifc_expr_empty:
+      visit<an_ifc_ExprSort_Empty>(pos);
+      break;
+    case ifc_expr_literal:
+      visit<an_ifc_ExprSort_Literal>(pos);
+      break;
+    case ifc_expr_lambda:
+      visit<an_ifc_ExprSort_Lambda>(pos);
+      break;
+    case ifc_expr_type:
+      visit<an_ifc_ExprSort_Type>(pos);
+      break;
+    case ifc_expr_decl:
+      visit<an_ifc_ExprSort_NamedDecl>(pos);
+      break;
+    case ifc_expr_unresolved_id:
+      visit<an_ifc_ExprSort_UnresolvedId>(pos);
+      break;
+    case ifc_expr_template_id:
+      visit<an_ifc_ExprSort_TemplateId>(pos);
+      break;
+    case ifc_expr_unqualified_id:
+      visit<an_ifc_ExprSort_UnqualifiedId>(pos);
+      break;
+    case ifc_expr_simple_identifier:
+      visit<an_ifc_ExprSort_SimpleIdentifier>(pos);
+      break;
+    case ifc_expr_pointer:
+      visit<an_ifc_ExprSort_Pointer>(pos);
+      break;
+    case ifc_expr_qualified_name:
+      visit<an_ifc_ExprSort_QualifiedName>(pos);
+      break;
+    case ifc_expr_path:
+      visit<an_ifc_ExprSort_Path>(pos);
+      break;
+    case ifc_expr_read:
+      visit<an_ifc_ExprSort_Read>(pos);
+      break;
+    case ifc_expr_monad:
+      visit<an_ifc_ExprSort_Monad>(pos);
+      break;
+    case ifc_expr_dyad:
+      visit<an_ifc_ExprSort_Dyad>(pos);
+      break;
+    case ifc_expr_triad:
+      visit<an_ifc_ExprSort_Triad>(pos);
+      break;
+    case ifc_expr_string:
+      visit<an_ifc_ExprSort_String>(pos);
+      break;
+    case ifc_expr_temporary:
+      visit<an_ifc_ExprSort_Temporary>(pos);
+      break;
+    case ifc_expr_call:
+      visit<an_ifc_ExprSort_Call>(pos);
+      break;
+    case ifc_expr_member_initializer:
+      visit<an_ifc_ExprSort_MemberInitializer>(pos);
+      break;
+    case ifc_expr_member_access:
+      visit<an_ifc_ExprSort_MemberAccess>(pos);
+      break;
+    case ifc_expr_inheritance_path:
+      visit<an_ifc_ExprSort_InheritancePath>(pos);
+      break;
+    case ifc_expr_initializer_list:
+      visit<an_ifc_ExprSort_InitializerList>(pos);
+      break;
+    case ifc_expr_cast:
+      visit<an_ifc_ExprSort_Cast>(pos);
+      break;
+    case ifc_expr_condition:
+      visit<an_ifc_ExprSort_Condition>(pos);
+      break;
+    case ifc_expr_expression_list:
+      visit<an_ifc_ExprSort_ExpressionList>(pos);
+      break;
+    case ifc_expr_sizeof_type:
+      visit<an_ifc_ExprSort_SizeofType>(pos);
+      break;
+    case ifc_expr_alignof_type:
+      visit<an_ifc_ExprSort_Alignof>(pos);
+      break;
+    case ifc_expr_new:
+      visit<an_ifc_ExprSort_New>(pos);
+      break;
+    case ifc_expr_delete:
+      visit<an_ifc_ExprSort_Delete>(pos);
+      break;
+    case ifc_expr_typeid:
+      visit<an_ifc_ExprSort_Typeid>(pos);
+      break;
+    case ifc_expr_destructor_call:
+      visit<an_ifc_ExprSort_DestructorCall>(pos);
+      break;
+    case ifc_expr_syntax_tree:
+      visit<an_ifc_ExprSort_SyntaxTree>(pos);
+      break;
+    case ifc_expr_function_string:
+      visit<an_ifc_ExprSort_FunctionString>(pos);
+      break;
+    case ifc_expr_compound_string:
+      visit<an_ifc_ExprSort_CompoundString>(pos);
+      break;
+    case ifc_expr_string_sequence:
+      visit<an_ifc_ExprSort_StringSequence>(pos);
+      break;
+    case ifc_expr_initializer:
+      visit<an_ifc_ExprSort_Initializer>(pos);
+      break;
+    case ifc_expr_requires:
+      visit<an_ifc_ExprSort_Requires>(pos);
+      break;
+    case ifc_expr_unaryfold:
+      visit<an_ifc_ExprSort_UnaryFold>(pos);
+      break;
+    case ifc_expr_binaryfold:
+      visit<an_ifc_ExprSort_BinaryFold>(pos);
+      break;
+    case ifc_expr_hierarchy_conversion:
+      visit<an_ifc_ExprSort_HierarchyConversion>(pos);
+      break;
+    case ifc_expr_product:
+      visit<an_ifc_ExprSort_ProductTypeValue>(pos);
+      break;
+    case ifc_expr_sum:
+      visit<an_ifc_ExprSort_SumTypeValue>(pos);
+      break;
+    case ifc_expr_subobject:
+      visit<an_ifc_ExprSort_SubobjectValue>(pos);
+      break;
+    case ifc_expr_array:
+      visit<an_ifc_ExprSort_ArrayValue>(pos);
+      break;
+    case ifc_expr_dynamic_dispatch:
+      visit<an_ifc_ExprSort_DynamicDispatch>(pos);
+      break;
+    case ifc_expr_virtual_function:
+      visit<an_ifc_ExprSort_VirtualFunctionConversion>(pos);
+      break;
+    case ifc_expr_placeholder:
+      visit<an_ifc_ExprSort_Placeholder>(pos);
+      break;
+    case ifc_expr_expansion:
+      visit<an_ifc_ExprSort_Expansion>(pos);
+      break;
+    case ifc_expr_generic:
+      visit<an_ifc_ExprSort_Generic>(pos);
+      break;
+    case ifc_expr_tuple:
+      visit<an_ifc_ExprSort_Tuple>(pos);
+      break;
+    case ifc_expr_nullptr:
+      visit<an_ifc_ExprSort_Nullptr>(pos);
+      break;
+    case ifc_expr_this:
+      visit<an_ifc_ExprSort_This>(pos);
+      break;
+    case ifc_expr_template_reference:
+      visit<an_ifc_ExprSort_TemplateReference>(pos);
+      break;
+    case ifc_expr_push_state:
+      visit<an_ifc_ExprSort_PushState>(pos);
+      break;
+    case ifc_expr_type_trait:
+      visit<an_ifc_ExprSort_TypeTraitIntrinsic>(pos);
+      break;
+    case ifc_expr_des_init:
+      visit<an_ifc_ExprSort_DesignatedInitializer>(pos);
+      break;
+    case ifc_expr_packed_template_arguments:
+      visit<an_ifc_ExprSort_PackedTemplateArguments>(pos);
+      break;
+    case ifc_expr_tokens:
+      visit<an_ifc_ExprSort_Tokens>(pos);
+      break;
+    case ifc_expr_assign_initializer:
+      visit<an_ifc_ExprSort_AssignInitializer>(pos);
+      break;
+    /* Group all StmtIndex::Tag partitions together. */
+    case ifc_stmt_vendor_extension:
+      visit<an_ifc_StmtSort_VendorExtension>(pos);
+      break;
+    case ifc_stmt_empty:
+      visit<an_ifc_StmtSort_Empty>(pos);
+      break;
+    case ifc_stmt_if:
+      visit<an_ifc_StmtSort_If>(pos);
+      break;
+    case ifc_stmt_for:
+      visit<an_ifc_StmtSort_For>(pos);
+      break;
+    case ifc_stmt_case:
+      visit<an_ifc_StmtSort_Case>(pos);
+      break;
+    case ifc_stmt_while:
+      visit<an_ifc_StmtSort_While>(pos);
+      break;
+    case ifc_stmt_block:
+      visit<an_ifc_StmtSort_Block>(pos);
+      break;
+    case ifc_stmt_break:
+      visit<an_ifc_StmtSort_Break>(pos);
+      break;
+    case ifc_stmt_switch:
+      visit<an_ifc_StmtSort_Switch>(pos);
+      break;
+    case ifc_stmt_do_while:
+      visit<an_ifc_StmtSort_DoWhile>(pos);
+      break;
+    case ifc_stmt_default:
+      visit<an_ifc_StmtSort_Default>(pos);
+      break;
+    case ifc_stmt_continue:
+      visit<an_ifc_StmtSort_Continue>(pos);
+      break;
+    case ifc_stmt_expression:
+      visit<an_ifc_StmtSort_Expression>(pos);
+      break;
+    case ifc_stmt_return:
+      visit<an_ifc_StmtSort_Return>(pos);
+      break;
+    case ifc_stmt_variable:
+      visit<an_ifc_StmtSort_VariableDecl>(pos);
+      break;
+    case ifc_stmt_expansion:
+      visit<an_ifc_StmtSort_Expansion>(pos);
+      break;
+    case ifc_stmt_syntax_tree:
+      visit<an_ifc_StmtSort_SyntaxTree>(pos);
+      break;
+    /* Group all ChartIndex::Tag partitions together. */
+    case ifc_chart_none:
+      visit<an_ifc_ChartSort_None>(pos);
+      break;
+    case ifc_chart_unilevel:
+      visit<an_ifc_ChartSort_Unilevel>(pos);
+      break;
+    case ifc_chart_multilevel:
+      visit<an_ifc_ChartSort_Multilevel>(pos);
+      break;
+    /* Group all AttrIndex::Tag partitions together. */
+    case ifc_attr_nothing:
+      visit<an_ifc_AttrSort_Nothing>(pos);
+      break;
+    case ifc_attr_basic:
+      visit<an_ifc_AttrSort_Basic>(pos);
+      break;
+    case ifc_attr_scoped:
+      visit<an_ifc_AttrSort_Scoped>(pos);
+      break;
+    case ifc_attr_labeled:
+      visit<an_ifc_AttrSort_Labeled>(pos);
+      break;
+    case ifc_attr_called:
+      visit<an_ifc_AttrSort_Called>(pos);
+      break;
+    case ifc_attr_expanded:
+      visit<an_ifc_AttrSort_Expanded>(pos);
+      break;
+    case ifc_attr_factored:
+      visit<an_ifc_AttrSort_Factored>(pos);
+      break;
+    case ifc_attr_elaborated:
+      visit<an_ifc_AttrSort_Elaborated>(pos);
+      break;
+    case ifc_attr_tuple:
+      visit<an_ifc_AttrSort_Tuple>(pos);
+      break;
+    /* Group all SyntaxIndex::Tag partitions together. */
+    case ifc_syntax_vendor_extension:
+      visit<an_ifc_SyntaxSort_VendorExtension>(pos);
+      break;
+    case ifc_syntax_simple_type_specifier:
+      visit<an_ifc_SyntaxSort_SimpleTypeSpecifier>(pos);
+      break;
+    case ifc_syntax_decltype_specifier:
+      visit<an_ifc_SyntaxSort_DecltypeSpecifier>(pos);
+      break;
+    case ifc_syntax_placeholder_type_specifier:
+      visit<an_ifc_SyntaxSort_PlaceholderTypeSpecifier>(pos);
+      break;
+    case ifc_syntax_type_specifier_seq:
+      visit<an_ifc_SyntaxSort_TypeSpecifierSeq>(pos);
+      break;
+    case ifc_syntax_decl_specifier_seq:
+      visit<an_ifc_SyntaxSort_DeclSpecifierSeq>(pos);
+      break;
+    case ifc_syntax_virtual_specifier_seq:
+      visit<an_ifc_SyntaxSort_VirtualSpecifierSeq>(pos);
+      break;
+    case ifc_syntax_noexcept_specification:
+      visit<an_ifc_SyntaxSort_NoexceptSpecification>(pos);
+      break;
+    case ifc_syntax_explicit_specifier:
+      visit<an_ifc_SyntaxSort_ExplicitSpecifier>(pos);
+      break;
+    case ifc_syntax_enum_specifier:
+      visit<an_ifc_SyntaxSort_EnumSpecifier>(pos);
+      break;
+    case ifc_syntax_enumerator_definition:
+      visit<an_ifc_SyntaxSort_EnumeratorDefinition>(pos);
+      break;
+    case ifc_syntax_class_specifier:
+      visit<an_ifc_SyntaxSort_ClassSpecifier>(pos);
+      break;
+    case ifc_syntax_member_specification:
+      visit<an_ifc_SyntaxSort_MemberSpecification>(pos);
+      break;
+    case ifc_syntax_member_declaration:
+      visit<an_ifc_SyntaxSort_MemberDeclaration>(pos);
+      break;
+    case ifc_syntax_member_declarator:
+      visit<an_ifc_SyntaxSort_MemberDeclarator>(pos);
+      break;
+    case ifc_syntax_access_specifier:
+      visit<an_ifc_SyntaxSort_AccessSpecifier>(pos);
+      break;
+    case ifc_syntax_base_specifier_list:
+      visit<an_ifc_SyntaxSort_BaseSpecifierList>(pos);
+      break;
+    case ifc_syntax_base_specifier:
+      visit<an_ifc_SyntaxSort_BaseSpecifier>(pos);
+      break;
+    case ifc_syntax_type_id:
+      visit<an_ifc_SyntaxSort_TypeId>(pos);
+      break;
+    case ifc_syntax_trailing_return_type:
+      visit<an_ifc_SyntaxSort_TrailingReturnType>(pos);
+      break;
+    case ifc_syntax_declarator:
+      visit<an_ifc_SyntaxSort_Declarator>(pos);
+      break;
+    case ifc_syntax_pointer_declarator:
+      visit<an_ifc_SyntaxSort_PointerDeclarator>(pos);
+      break;
+    case ifc_syntax_array_declarator:
+      visit<an_ifc_SyntaxSort_ArrayDeclarator>(pos);
+      break;
+    case ifc_syntax_function_declarator:
+      visit<an_ifc_SyntaxSort_FunctionDeclarator>(pos);
+      break;
+    case ifc_syntax_array_or_function_declarator:
+      visit<an_ifc_SyntaxSort_ArrayOrFunctionDeclarator>(pos);
+      break;
+    case ifc_syntax_parameter_declarator:
+      visit<an_ifc_SyntaxSort_ParameterDeclarator>(pos);
+      break;
+    case ifc_syntax_init_declarator:
+      visit<an_ifc_SyntaxSort_InitDeclarator>(pos);
+      break;
+    case ifc_syntax_new_declarator:
+      visit<an_ifc_SyntaxSort_NewDeclarator>(pos);
+      break;
+    case ifc_syntax_simple_declaration:
+      visit<an_ifc_SyntaxSort_SimpleDeclaration>(pos);
+      break;
+    case ifc_syntax_exception_declaration:
+      visit<an_ifc_SyntaxSort_ExceptionDeclaration>(pos);
+      break;
+    case ifc_syntax_condition_declaration:
+      visit<an_ifc_SyntaxSort_ConditionDeclaration>(pos);
+      break;
+    case ifc_syntax_static_assert_declaration:
+      visit<an_ifc_SyntaxSort_StaticAssertDeclaration>(pos);
+      break;
+    case ifc_syntax_alias_declaration:
+      visit<an_ifc_SyntaxSort_AliasDeclaration>(pos);
+      break;
+    case ifc_syntax_concept_definition:
+      visit<an_ifc_SyntaxSort_ConceptDefinition>(pos);
+      break;
+    case ifc_syntax_compound_statement:
+      visit<an_ifc_SyntaxSort_CompoundStatement>(pos);
+      break;
+    case ifc_syntax_return_statement:
+      visit<an_ifc_SyntaxSort_ReturnStatement>(pos);
+      break;
+    case ifc_syntax_if_statement:
+      visit<an_ifc_SyntaxSort_IfStatement>(pos);
+      break;
+    case ifc_syntax_while_statement:
+      visit<an_ifc_SyntaxSort_WhileStatement>(pos);
+      break;
+    case ifc_syntax_do_statement:
+      visit<an_ifc_SyntaxSort_DoWhileStatement>(pos);
+      break;
+    case ifc_syntax_for_statement:
+      visit<an_ifc_SyntaxSort_ForStatement>(pos);
+      break;
+    case ifc_syntax_init_statement:
+      visit<an_ifc_SyntaxSort_InitStatement>(pos);
+      break;
+    case ifc_syntax_range_based_for_statement:
+      visit<an_ifc_SyntaxSort_RangeBasedForStatement>(pos);
+      break;
+    case ifc_syntax_for_range_declaration:
+      visit<an_ifc_SyntaxSort_ForRangeDeclaration>(pos);
+      break;
+    case ifc_syntax_labeled_statement:
+      visit<an_ifc_SyntaxSort_LabeledStatement>(pos);
+      break;
+    case ifc_syntax_break_statement:
+      visit<an_ifc_SyntaxSort_BreakStatement>(pos);
+      break;
+    case ifc_syntax_continue_statement:
+      visit<an_ifc_SyntaxSort_ContinueStatement>(pos);
+      break;
+    case ifc_syntax_switch_statement:
+      visit<an_ifc_SyntaxSort_SwitchStatement>(pos);
+      break;
+    case ifc_syntax_goto_statement:
+      visit<an_ifc_SyntaxSort_GotoStatement>(pos);
+      break;
+    case ifc_syntax_declaration_statement:
+      visit<an_ifc_SyntaxSort_DeclarationStatement>(pos);
+      break;
+    case ifc_syntax_expression_statement:
+      visit<an_ifc_SyntaxSort_ExpressionStatement>(pos);
+      break;
+    case ifc_syntax_try_block:
+      visit<an_ifc_SyntaxSort_TryBlock>(pos);
+      break;
+    case ifc_syntax_handler:
+      visit<an_ifc_SyntaxSort_Handler>(pos);
+      break;
+    case ifc_syntax_handler_seq:
+      visit<an_ifc_SyntaxSort_HandlerSeq>(pos);
+      break;
+    case ifc_syntax_function_try_block:
+      visit<an_ifc_SyntaxSort_FunctionTryBlock>(pos);
+      break;
+    case ifc_syntax_type_id_list_element:
+      visit<an_ifc_SyntaxSort_TypeIdListElement>(pos);
+      break;
+    case ifc_syntax_dynamic_exception_spec:
+      visit<an_ifc_SyntaxSort_DynamicExceptionSpec>(pos);
+      break;
+    case ifc_syntax_statement_seq:
+      visit<an_ifc_SyntaxSort_StatementSeq>(pos);
+      break;
+    case ifc_syntax_function_body:
+      visit<an_ifc_SyntaxSort_FunctionBody>(pos);
+      break;
+    case ifc_syntax_expression:
+      visit<an_ifc_SyntaxSort_Expression>(pos);
+      break;
+    case ifc_syntax_function_definition:
+      visit<an_ifc_SyntaxSort_FunctionDefinition>(pos);
+      break;
+    case ifc_syntax_member_function_declaration:
+      visit<an_ifc_SyntaxSort_MemberFunctionDeclaration>(pos);
+      break;
+    case ifc_syntax_template_declaration:
+      visit<an_ifc_SyntaxSort_TemplateDeclaration>(pos);
+      break;
+    case ifc_syntax_requires_clause:
+      visit<an_ifc_SyntaxSort_RequiresClause>(pos);
+      break;
+    case ifc_syntax_simple_requirement:
+      visit<an_ifc_SyntaxSort_SimpleRequirement>(pos);
+      break;
+    case ifc_syntax_type_requirement:
+      visit<an_ifc_SyntaxSort_TypeRequirement>(pos);
+      break;
+    case ifc_syntax_compound_requirement:
+      visit<an_ifc_SyntaxSort_CompoundRequirement>(pos);
+      break;
+    case ifc_syntax_nested_requirement:
+      visit<an_ifc_SyntaxSort_NestedRequirement>(pos);
+      break;
+    case ifc_syntax_requirement_body:
+      visit<an_ifc_SyntaxSort_RequirementBody>(pos);
+      break;
+    case ifc_syntax_type_template_parameter:
+      visit<an_ifc_SyntaxSort_TypeTemplateParameter>(pos);
+      break;
+    case ifc_syntax_template_template_parameter:
+      visit<an_ifc_SyntaxSort_TemplateTemplateParameter>(pos);
+      break;
+    case ifc_syntax_type_template_argument:
+      visit<an_ifc_SyntaxSort_TypeTemplateArgument>(pos);
+      break;
+    case ifc_syntax_non_type_template_argument:
+      visit<an_ifc_SyntaxSort_NonTypeTemplateArgument>(pos);
+      break;
+    case ifc_syntax_template_parameter_list:
+      visit<an_ifc_SyntaxSort_TemplateParameterList>(pos);
+      break;
+    case ifc_syntax_template_argument_list:
+      visit<an_ifc_SyntaxSort_TemplateArgumentList>(pos);
+      break;
+    case ifc_syntax_template_id:
+      visit<an_ifc_SyntaxSort_TemplateId>(pos);
+      break;
+    case ifc_syntax_mem_initializer:
+      visit<an_ifc_SyntaxSort_MemInitializer>(pos);
+      break;
+    case ifc_syntax_ctor_initializer:
+      visit<an_ifc_SyntaxSort_CtorInitializer>(pos);
+      break;
+    case ifc_syntax_lambda_introducer:
+      visit<an_ifc_SyntaxSort_LambdaIntroducer>(pos);
+      break;
+    case ifc_syntax_lambda_declarator:
+      visit<an_ifc_SyntaxSort_LambdaDeclarator>(pos);
+      break;
+    case ifc_syntax_capture_default:
+      visit<an_ifc_SyntaxSort_CaptureDefault>(pos);
+      break;
+    case ifc_syntax_simple_capture:
+      visit<an_ifc_SyntaxSort_SimpleCapture>(pos);
+      break;
+    case ifc_syntax_init_capture:
+      visit<an_ifc_SyntaxSort_InitCapture>(pos);
+      break;
+    case ifc_syntax_this_capture:
+      visit<an_ifc_SyntaxSort_ThisCapture>(pos);
+      break;
+    case ifc_syntax_attributed_statement:
+      visit<an_ifc_SyntaxSort_AttributedStatement>(pos);
+      break;
+    case ifc_syntax_attributed_declaration:
+      visit<an_ifc_SyntaxSort_AttributedDeclaration>(pos);
+      break;
+    case ifc_syntax_attribute_specifier_seq:
+      visit<an_ifc_SyntaxSort_AttributeSpecifierSeq>(pos);
+      break;
+    case ifc_syntax_attribute_specifier:
+      visit<an_ifc_SyntaxSort_AttributeSpecifier>(pos);
+      break;
+    case ifc_syntax_attribute_using_prefix:
+      visit<an_ifc_SyntaxSort_AttributeUsingPrefix>(pos);
+      break;
+    case ifc_syntax_attribute:
+      visit<an_ifc_SyntaxSort_Attribute>(pos);
+      break;
+    case ifc_syntax_attribute_argument_clause:
+      visit<an_ifc_SyntaxSort_AttributeArgumentClause>(pos);
+      break;
+    case ifc_syntax_alignas:
+      visit<an_ifc_SyntaxSort_Alignas>(pos);
+      break;
+    case ifc_syntax_using_declaration:
+      visit<an_ifc_SyntaxSort_UsingDeclaration>(pos);
+      break;
+    case ifc_syntax_using_declarator:
+      visit<an_ifc_SyntaxSort_UsingDeclarator>(pos);
+      break;
+    case ifc_syntax_using_directive:
+      visit<an_ifc_SyntaxSort_UsingDirective>(pos);
+      break;
+    case ifc_syntax_array_index:
+      visit<an_ifc_SyntaxSort_ArrayIndex>(pos);
+      break;
+    case ifc_syntax_seh_try:
+      visit<an_ifc_SyntaxSort_SEHTry>(pos);
+      break;
+    case ifc_syntax_seh_except:
+      visit<an_ifc_SyntaxSort_SEHExcept>(pos);
+      break;
+    case ifc_syntax_seh_finally:
+      visit<an_ifc_SyntaxSort_SEHFinally>(pos);
+      break;
+    case ifc_syntax_seh_leave:
+      visit<an_ifc_SyntaxSort_SEHLeave>(pos);
+      break;
+    case ifc_syntax_type_trait_intrinsic:
+      visit<an_ifc_SyntaxSort_TypeTraitIntrinsic>(pos);
+      break;
+    case ifc_syntax_tuple:
+      visit<an_ifc_SyntaxSort_Tuple>(pos);
+      break;
+    case ifc_syntax_asm_statement:
+      visit<an_ifc_SyntaxSort_AsmStatement>(pos);
+      break;
+    case ifc_syntax_namespace_alias_definition:
+      visit<an_ifc_SyntaxSort_NamespaceAliasDefinition>(pos);
+      break;
+    case ifc_syntax_super:
+      visit<an_ifc_SyntaxSort_Super>(pos);
+      break;
+    case ifc_syntax_unary_fold_expression:
+      visit<an_ifc_SyntaxSort_UnaryFoldExpression>(pos);
+      break;
+    case ifc_syntax_binary_fold_expression:
+      visit<an_ifc_SyntaxSort_BinaryFoldExpression>(pos);
+      break;
+    case ifc_syntax_empty_statement:
+      visit<an_ifc_SyntaxSort_EmptyStatement>(pos);
+      break;
+    case ifc_syntax_structured_binding_declaration:
+      visit<an_ifc_SyntaxSort_StructuredBindingDeclaration>(pos);
+      break;
+    case ifc_syntax_structured_binding_identifier:
+      visit<an_ifc_SyntaxSort_StructuredBindingIdentifier>(pos);
+      break;
+    case ifc_syntax_using_enum_decl:
+      visit<an_ifc_SyntaxSort_UsingEnumDeclaration>(pos);
+      break;
+    /* Group all MacroIndex::Tag partitions together. */
+    case ifc_macro_obj_like:
+      visit<an_ifc_MacroSort_ObjectLike>(pos);
+      break;
+    case ifc_macro_func_like:
+      visit<an_ifc_MacroSort_FunctionLike>(pos);
+      break;
+    /* Group all FormIndex::Tag partitions together. */
+    case ifc_form_ident:
+      visit<an_ifc_FormSort_Identifier>(pos);
+      break;
+    case ifc_form_number:
+      visit<an_ifc_FormSort_Number>(pos);
+      break;
+    case ifc_form_char:
+      visit<an_ifc_FormSort_Character>(pos);
+      break;
+    case ifc_form_string:
+      visit<an_ifc_FormSort_String>(pos);
+      break;
+    case ifc_form_operator:
+      visit<an_ifc_FormSort_Operator>(pos);
+      break;
+    case ifc_form_keyword:
+      visit<an_ifc_FormSort_Keyword>(pos);
+      break;
+    case ifc_form_whitespace:
+      visit<an_ifc_FormSort_Whitespace>(pos);
+      break;
+    case ifc_form_param:
+      visit<an_ifc_FormSort_Parameter>(pos);
+      break;
+    case ifc_form_stringize:
+      visit<an_ifc_FormSort_Stringize>(pos);
+      break;
+    case ifc_form_catenate:
+      visit<an_ifc_FormSort_Catenate>(pos);
+      break;
+    case ifc_form_pragma:
+      visit<an_ifc_FormSort_Pragma>(pos);
+      break;
+    case ifc_form_header:
+      visit<an_ifc_FormSort_Header>(pos);
+      break;
+    case ifc_form_parenthesized:
+      visit<an_ifc_FormSort_Parenthesized>(pos);
+      break;
+    case ifc_form_tuple:
+      visit<an_ifc_FormSort_Tuple>(pos);
+      break;
+    case ifc_form_junk:
+      visit<an_ifc_FormSort_Junk>(pos);
+      break;
+    /* EDG utility partitions these should never be seen here. */
+    case ifc_none:
+    case ifc_last:
+    /* Currently unvalidated. */
+    case ifc_cmd_line:
+    case ifc_const_f64:
+    case ifc_const_i64:
+    case ifc_const_str:
+    case ifc_form_spec:
+    case ifc_heap_attr:
+    case ifc_heap_chart:
+    case ifc_heap_decl:
+    case ifc_heap_expr:
+    case ifc_heap_form:
+    case ifc_heap_pp:
+    case ifc_heap_stmt:
+    case ifc_heap_syn:
+    case ifc_heap_type:
+    case ifc_msvc_trait_code_segment:
+    case ifc_msvc_trait_codegen_expr_trees:
+    case ifc_msvc_trait_decl_attrs:
+    case ifc_msvc_trait_entity_init_locus:
+    case ifc_msvc_trait_impl_pragmas:
+    case ifc_msvc_trait_named_func_params:
+    case ifc_msvc_trait_spec_encodings:
+    case ifc_msvc_trait_suppressed_warnings:
+    case ifc_msvc_trait_templ_templ_param_classes:
+    case ifc_msvc_trait_uuid:
+    case ifc_msvc_trait_vendor_traits:
+    case ifc_module_exported:
+    case ifc_module_imported:
+    case ifc_pragma_state:
+    case ifc_pragma_vendorext:
+    case ifc_scope_desc:
+    case ifc_scope_member:
+    case ifc_sentence:
+    case ifc_src_line:
+    case ifc_trait_alias_template:
+    case ifc_trait_attribute:
+    case ifc_trait_deduction_guides:
+    case ifc_trait_deprecated:
+    case ifc_trait_friend:
+    case ifc_trait_function_definition:
+    case ifc_trait_requires:
+    case ifc_trait_specialization:
+    case ifc_word:
+    case ifc_name_identifier:
+      break;
+    default:
+      unexpected_condition_str("Unexpected an_ifc_partition_kind");
   } /* switch */
 }  /* visit_position */
 
