@@ -41,7 +41,7 @@ fixed.
 GNU C __auto_type and cv-qualifiers
 
 The front end issued a spurious error when the GNU C __auto_type specifier is
-combined with cv qualifiers.  For example (in some GNU C modes):
+combined with cv-qualifiers.  For example (in some GNU C modes):
 
   void g(int i) {
     __auto_type const x = i;  // Previously a spurious error.  Now okay.
