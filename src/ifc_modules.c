@@ -15346,6 +15346,7 @@ inline a_boolean an_ifc_module::validate_partition_element(
 {
   a_boolean result = TRUE;
 
+#if 0
 #ifndef EXPENSIVE_CHECKING
   if (!pos.trusted) {
 #endif /* !EXPENSIVE_CHECKING */
@@ -15355,6 +15356,7 @@ inline a_boolean an_ifc_module::validate_partition_element(
 #ifndef EXPENSIVE_CHECKING
   }
 #endif /* !EXPENSIVE_CHECKING */
+#endif /* 0 */
   return result;
 }  /* validate_partition_element */
 
