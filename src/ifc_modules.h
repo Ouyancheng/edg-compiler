@@ -2154,6 +2154,7 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_trait_requires,
   ifc_trait_specialization,
   ifc_word,
+  ifc_invalid_partition, /* Represents an error state. */
   ifc_last
 };  /* an_ifc_partition_kind */
 /*lint -restore*/
@@ -2520,6 +2521,7 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   /* No special partition - name identifiers use the string table. */
   { NULL,                              ifc_name_identifier },
   { NULL,                              ifc_none },
+  { NULL,                              ifc_invalid_partition },
   { NULL,                              ifc_last } /* Must be last. */
 }
 #endif /* VAR_INITIALIZERS */
@@ -3103,6 +3105,7 @@ private:
   inline a_boolean validate_partition_position(an_ifc_partition_position pos);
   struct Partition_element_validator;
   inline a_boolean validate_partition_element(an_ifc_partition_position pos);
+  inline void read_unchecked_partition_element(an_ifc_partition_position pos);
   inline a_boolean read_partition_element(an_ifc_partition_position pos);
   template<typename... Args>
   inline a_boolean read_partition_element(Args&&... args)

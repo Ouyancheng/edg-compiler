@@ -3633,6 +3633,7 @@ principal associated IL entity.
     curr_module_entity = mep;
     /* Prepare to read from the proper partition for this declaration. */
     if (!read_partition_element(mep)) {
+      skip_pop = TRUE;
       goto invalid;
     }  /* if */
     /* The IFC information for this module entity was determine to be compliant
@@ -5115,7 +5116,7 @@ pointer to that entry or NULL if it could not be found.
 {
   /* The number of partitions is adjusted to remove any nameless partition map
      entries. */
-  uint32_t num_partitions = ifc_last - 3;
+  uint32_t num_partitions = ifc_last - 4;
   /* Create a wrapped version of partition_name for comparisons. */
   an_ifc_partition_name partition_name{name};
   /* Provide a value function for retrieving the wrapped partition name at the
@@ -14259,14 +14260,17 @@ inline a_boolean an_ifc_module::validate_partition_position(
 
 /* ... */
 struct an_ifc_module::Partition_element_validator {
+  a_boolean invalid;
+
   Partition_element_validator(an_ifc_module *ifc_mod_val)
-    : ifc_mod(ifc_mod_val)
+    : invalid(false), ifc_mod(ifc_mod_val)
     {}
 
   /* Field validators. */
   template<typename a_Type>
   inline void validate(a_Type val)
     {}
+  inline void invalid_partition(an_ifc_partition_position pos);
   template<typename T>
   inline void visit(an_ifc_partition_position pos) = delete;
   void visit_position(an_ifc_partition_position pos);
@@ -14284,7 +14288,7 @@ inline void an_ifc_module::Partition_element_validator::validate(
   if (ifc_mod->validate_partition_position(val)) {
     visit_position(val);
   } else {
-    check_assertion(false);
+    invalid = true;
   }  /* if */
 }  /* validate<an_ifc_partition_position> */
 
@@ -14401,6 +14405,16 @@ inline void an_ifc_module::Partition_element_validator::validate(
 }  /* validate<ifc_FormIndex> */
 
 
+inline void an_ifc_module::Partition_element_validator::invalid_partition(
+                                                 an_ifc_partition_position pos)
+/*
+*/
+{
+  /* FIXME: Report partition decode error. */
+  invalid = true;
+}  /* invalid_partition */
+
+
 #define IFC_DECL_START(name) \
 template<> \
 inline void an_ifc_module::Partition_element_validator::visit< \
@@ -14408,6 +14422,7 @@ inline void an_ifc_module::Partition_element_validator::visit< \
 { \
   concat(an_ifc_, name) mem; \
   ARG_UNUSED concat(an_ifc_, name) *memp; \
+  ifc_mod->read_unchecked_partition_element(pos); \
   memp = ifc_mod->get<concat(an_ifc_, name)>(&mem);
 #define IFC_DECL_FIELD(name, type) \
   validate<concat(ifc_, type)>({memp->name});
@@ -14424,6 +14439,9 @@ void an_ifc_module::Partition_element_validator::visit_position(
 */
 {
   switch (pos.partition) {
+    case ifc_invalid_partition:
+      invalid_partition(pos);
+      break;
     /* DeclIndex::tag partitions together. */
     case ifc_decl_vendor_extension:
       visit<an_ifc_DeclSort_VendorExtension>(pos);
@@ -14588,7 +14606,8 @@ void an_ifc_module::Partition_element_validator::visit_position(
     case ifc_type_syntax_tree:
       visit<an_ifc_TypeSort_SyntaxTree>(pos);
       break;
-    /* Group all NameIndex::tag partitions together. */
+    /* Group all NameIndex::tag partitions together (excluding identifier at
+       least for now, it's a special case). */
     case ifc_name_operator:
       visit<an_ifc_NameSort_Operator>(pos);
       break;
@@ -15331,12 +15350,26 @@ inline a_boolean an_ifc_module::validate_partition_element(
   if (!pos.trusted) {
 #endif /* !EXPENSIVE_CHECKING */
     Partition_element_validator validator(this);
-    validator.visit_position(pos);
+    validator.validate(pos);
+    result = !validator.invalid;
 #ifndef EXPENSIVE_CHECKING
   }
 #endif /* !EXPENSIVE_CHECKING */
   return result;
 }  /* validate_partition_element */
+
+
+inline void an_ifc_module::read_unchecked_partition_element(
+                                                 an_ifc_partition_position pos)
+/*
+
+*/
+{
+#if DEBUG && EXPENSIVE_CHECKING
+  debug_partition = &partitions[pos.partition];
+#endif /* DEBUG && EXPENSIVE_CHECKING */
+  init_byte_buffer(pos.file_offset, partitions[pos.partition].size);
+}  /* read_unchecked_partition_element */
 
 
 inline a_boolean an_ifc_module::read_partition_element(
@@ -15346,12 +15379,9 @@ inline a_boolean an_ifc_module::read_partition_element(
 */
 {
   a_boolean result = FALSE;
-  if (validate_partition_position(pos) && validate_partition_element(pos)) {
+  if (validate_partition_element(pos)) {
     result = TRUE;
-#if DEBUG && EXPENSIVE_CHECKING
-    debug_partition = &partitions[pos.partition];
-#endif /* DEBUG && EXPENSIVE_CHECKING */
-    init_byte_buffer(pos.file_offset, partitions[pos.partition].size);
+    read_unchecked_partition_element(pos);
   }  /* if */
   /* FIXME: Emit diagnostic here if false, or perhaps leave to caller? */
   return result;
@@ -15430,13 +15460,16 @@ template<typename T>
 inline an_ifc_partition_kind get_partition_kind(T sort_kind)
 /*
 Return the corresponding an_ifc_partition_kind for a given ifc_Sort_type value
-sort_kind.
+sort_kind or the ifc_invalid_partition if the sort kind could not be mapped to
+a valid partition.
 */
 {
   an_ifc_partition_kind_range kind_range = get_partition_kind_range<T>();
   an_ifc_partition_kind kind =
                          (an_ifc_partition_kind)(kind_range.start + sort_kind);
-  check_assertion(kind <= kind_range.end);
+  if (kind > kind_range.end) {
+    kind = ifc_invalid_partition;
+  }  /* if */
   return kind;
 }  /* get_partition_kind */
 }  /* namespace */
