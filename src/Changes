@@ -1,5 +1,23 @@
 Version 6.3
 
+11/11/21 [EDGcpfe/24793]
+C++-generating back end: dependent template-ids naming variable templates
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end incorrectly
+inserted an "&" when forming a dependent template-id naming a static data
+member template.  This is now fixed.  For example, with --c++14:
+
+  template<bool> struct A { };
+  template<typename T> struct B {
+    template<typename U> static const bool b = sizeof(T) < sizeof(U);
+  };
+  template<typename T> struct C {
+    using x = A<B<T>::template b<T>>;  // Previously generated as
+                                       // A<&B<T>::template b<T>>
+  };
+
+
 11/11/21 [EDGcpfe/24815]
 Lambda expressions and decltype
 
