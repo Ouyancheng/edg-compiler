@@ -14425,7 +14425,7 @@ inline void an_ifc_module::Partition_element_validator::visit< \
   ifc_mod->read_unchecked_partition_element(pos); \
   memp = ifc_mod->get<concat(an_ifc_, name)>(&mem);
 #define IFC_DECL_FIELD(name, type) \
-  validate<concat(ifc_, type)>({memp->name});
+  validate<concat(ifc_, type)>(memp->name);
 #define IFC_DECL_END(name) \
 }  /* visit<concat(an_ifc_, name)> */
 
