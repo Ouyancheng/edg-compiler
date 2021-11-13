@@ -2708,12 +2708,13 @@ corresponding data structure for that partition.
       break;
     case ifc_none:
     case ifc_last:
+    case ifc_invalid_partition:
       unexpected_condition();
       break;
     default_is_unexpected();
   }  /* switch */
 #undef CHECK_SIZE
-}
+}  /* validate_partition_size */
 
 #else /* !CHECKING */
 
