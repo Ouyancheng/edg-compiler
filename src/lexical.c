@@ -1942,8 +1942,9 @@ If include_last_token is TRUE, last_tsn is included in the cache.
      points to the cache entry that follows it (which may be a pragma entry
      the precedes the next token). */
   first_ctp_to_copy = src_cache->first_token;
+  ctp = first_ctp_to_copy;
   if (first_tsn != NO_TOKEN_SEQUENCE_NUMBER) {
-    for (ctp = src_cache->first_token; ctp != NULL; ctp = ctp->next) {
+    for (; ctp != NULL; ctp = ctp->next) {
       if (ctp->token_sequence_number == first_tsn) break;
       if (ctp->extra_info_kind != (a_token_extra_info_kind)teik_pragma) {
         /* The token sequence looks something like:
