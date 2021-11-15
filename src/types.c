@@ -8683,8 +8683,10 @@ array type, by the (C99 standard-conforming) logic that for the right
 value of the expression they are equivalent.
 */
 {
-  a_boolean   same;
-  a_boolean   qualifiers_added = FALSE;
+  a_boolean  same;
+  a_boolean  qualifiers_added = FALSE;
+  a_type_compat_flags_set
+             extra_flags = TCF_NO_FLAGS;
 
   for (same = TRUE; same == TRUE;) {
     a_type_qualifier_set dest_type_qualifiers;
@@ -8755,10 +8757,15 @@ value of the expression they are equivalent.
                                       TCF_ERROR_TYPE_COMPATIBLE_WITH_ANYTHING |
                                       TCF_IGNORE_TYPE_QUALIFIERS |
                                       TCF_IMPLICIT_CONVERSION |
-                                      TCF_STRICT_EXCEPTION_SPEC);
+                                      extra_flags);
         break;
       }  /* if */
     }  /* if */
+    /* If there is more than one level of pointers/pointer-to-members on top a
+       function type, then those function types' exception specifications have
+       to match exactly (with a simple pointer-to-function, the conversion is
+       only constraint to not tighten the exception specification). */
+    extra_flags = TCF_STRICT_EXCEPTION_SPEC;
   }  /* for */
   /* If there were any qualifiers added, set the flag specified by the
      caller. */
