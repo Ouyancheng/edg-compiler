@@ -11682,10 +11682,32 @@ a template parameter, but in the latter case emit the concept-id.
 }  /* cache_type_param_introducer */
 
 
-void an_ifc_module::cache_attr(a_token_cache_ptr cache,
-                               ifc_AttrIndex     attr)
+template<typename a_Cache_fn>
+static inline void cache_attr_fn(a_token_cache_ptr     cache,
+                                 a_Cache_fn            cache_fn,
+                                 a_source_position_ptr pos)
 /*
-Add the tokens corresponding to the given attribute (attr) to cache.
+Helper function for cache_attr to avoid code duplication for the brackets.
+Add tokens for the the leading and trailing attribute brackets to cache and
+call the provided cache_fn to cache the actual attribute, in the appropriate
+places.  pos is the position to use for the brackets.
+*/
+{
+  cache_token(cache, tok_lbracket, pos);
+  cache_token(cache, tok_lbracket, pos);
+  cache_fn();
+  cache_token(cache, tok_rbracket, pos);
+  cache_token(cache, tok_rbracket, pos);
+}  /* cache_attr_fn */
+
+
+void an_ifc_module::cache_attr(a_token_cache_ptr cache,
+                               ifc_AttrIndex     attr,
+                               a_boolean         cache_brackets)
+/*
+Add the tokens corresponding to the given attribute (attr) to cache.  If
+cache_brackets is TRUE, include the attribute brackets.  Otherwise, the caller
+is responsible for ensuring that the brackets are cached appropriately.
 */
 {
   ifc_AttrSort      tag = attr_tag(attr);
@@ -11693,53 +11715,127 @@ Add the tokens corresponding to the given attribute (attr) to cache.
 
   read_prechecked_partition_element(attr);
   switch (tag) {
+    case ifc_AttrSort_Nothing:
+      if (cache_brackets) {
+        /* FIXME: Is there a way to get a position for this? */
+        pos = null_source_position;
+        cache_attr_fn(cache, [](){}, &pos);
+      }  /* if */
+      break;
     case ifc_AttrSort_Basic:
       { an_ifc_AttrSort_Basic iasb, *iasbp;
         iasbp = get_AttrSort_Basic(&iasb);
         source_position_from_locus(&pos, &iasbp->word.locus);
-        /* Add the beginning "[[". */
-        cache_token(cache, tok_lbracket, &pos);
-        cache_token(cache, tok_lbracket, &pos);
-        /* Add the text represented by word.  This is generally
-           an identifier, e.g., "deprecated". */
-        cache_word(cache, &iasbp->word);
-        /* Add the ending "]]". */
-        cache_token(cache, tok_rbracket, &pos);
-        cache_token(cache, tok_rbracket, &pos);
+        auto cache_fn = [cache, iasbp, this]() {
+          cache_word(cache, &iasbp->word);
+        };
+        if (cache_brackets) {
+          cache_attr_fn(cache, cache_fn, &pos);
+        } else {
+          cache_fn();
+        }  /* if */
       }
       break;
     case ifc_AttrSort_Scoped:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("AttrSort::Scoped",
-                                  &error_position);
+      { an_ifc_AttrSort_Scoped iass, *iassp;
+        iassp = get_AttrSort_Scoped(&iass);
+        source_position_from_locus(&pos, &iassp->scope.locus);
+        auto cache_fn = [cache, iassp, &pos, this]() {
+          cache_word(cache, &iassp->scope);
+          cache_token(cache, tok_colon_colon, &pos);
+          cache_word(cache, &iassp->member);
+        };
+        if (cache_brackets) {
+          cache_attr_fn(cache, cache_fn, &pos);
+        } else {
+          cache_fn();
+        }  /* if */
+      }
       break;
     case ifc_AttrSort_Labeled:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("AttrSort::Labeled",
-                                  &error_position);
+      { an_ifc_AttrSort_Labeled iasl, *iaslp;
+        iaslp = get_AttrSort_Labeled(&iasl);
+        source_position_from_locus(&pos, &iaslp->label.locus);
+        auto cache_fn = [cache, iaslp, &pos, this]() {
+          cache_word(cache, &iaslp->label);
+          cache_token(cache, tok_colon, &pos);
+          cache_attr(cache, iaslp->attribute, /*cache_brackets=*/FALSE);
+        };
+        if (cache_brackets) {
+          cache_attr_fn(cache, cache_fn, &pos);
+        } else {
+          cache_fn();
+        }  /* if */
+      }
       break;
     case ifc_AttrSort_Called:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("AttrSort::Called",
-                                  &error_position);
+      { an_ifc_AttrSort_Called iasc, *iascp;
+        iascp = get_AttrSort_Called(&iasc);
+        /* FIXME: Find a way to get a proper position for this. */
+        pos = null_source_position;
+        auto cache_fn = [cache, iascp, &pos, this]() {
+          cache_attr(cache, iascp->function, /*cache_brackets=*/FALSE);
+          cache_token(cache, tok_lparen, &pos);
+          cache_attr(cache, iascp->arguments, /*cache_brackets=*/FALSE);
+          cache_token(cache, tok_rparen, &pos);
+        };
+        if (cache_brackets) {
+          cache_attr_fn(cache, cache_fn, &pos);
+        } else {
+          cache_fn();
+        }  /* if */
+      }
       break;
     case ifc_AttrSort_Expanded:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("AttrSort::Expanded",
-                                  &error_position);
+      { an_ifc_AttrSort_Expanded iase, *iasep;
+        iasep = get_AttrSort_Expanded(&iase);
+        /* FIXME: Find a way to get a proper position for this. */
+        pos = null_source_position;
+        auto cache_fn = [cache, iasep, &pos, this]() {
+          cache_attr(cache, iasep->operand, /*cache_brackets=*/FALSE);
+          cache_token(cache, tok_ellipsis, &pos);
+        };
+        if (cache_brackets) {
+          cache_attr_fn(cache, cache_fn, &pos);
+        } else {
+          cache_fn();
+        }  /* if */
+      }
       break;
     case ifc_AttrSort_Factored:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("AttrSort::Factored",
-                                  &error_position);
+      { an_ifc_AttrSort_Factored iasf, *iasfp;
+        iasfp = get_AttrSort_Factored(&iasf);
+        source_position_from_locus(&pos, &iasfp->factor.locus);
+        auto cache_fn = [cache, iasfp, &pos, this]() {
+          cache_token(cache, tok_using, &pos);
+          cache_word(cache, &iasfp->factor);
+          cache_token(cache, tok_colon, &pos);
+          cache_attr(cache, iasfp->terms, /*cache_brackets=*/FALSE);
+        };
+        if (cache_brackets) {
+          cache_attr_fn(cache, cache_fn, &pos);
+        } else {
+          cache_fn();
+        }  /* if */
+      }
       break;
     case ifc_AttrSort_Elaborated:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("AttrSort::Elaborated",
-                                  &error_position);
+      { an_ifc_AttrSort_Elaborated iase, *iasep;
+        iasep = get_AttrSort_Elaborated(&iase);
+        /* FIXME: Find a way to get a proper position for this. */
+        pos = null_source_position;
+        auto cache_fn = [cache, iasep, &pos, this]() {
+          cache_expr(cache, iasep->expression);
+        };
+        if (cache_brackets) {
+          cache_attr_fn(cache, cache_fn, &pos);
+        } else {
+          cache_fn();
+        }  /* if */
+      }
       break;
     case ifc_AttrSort_Tuple:
-      /* The IFC specification states:
+      /* FIXME: The IFC specification states:
 
            An AttrIndex reference with tag AttrSort::Tuple denotes a sequence
            of comma-separated attributes.
@@ -11759,11 +11855,10 @@ Add the tokens corresponding to the given attribute (attr) to cache.
           ifc_AttrIndex attr_idx =
                        (ifc_AttrIndex)read_index_from_heap(ifc_heap_attr,
                                                            iastp->start + idx);
-          cache_attr(cache, attr_idx);
+          cache_attr(cache, attr_idx, /*cache_brackets=*/TRUE);
         }  /* for */
       }
       break;
-    case ifc_AttrSort_Nothing:
     case ifc_AttrSort_Last:
       unexpected_condition();
       break;
@@ -11782,7 +11877,7 @@ decl_idx to the cache.
   ifc_AttrIndex attr_idx = attr_index_of(decl_idx);
 
   if (attr_idx != 0) {
-    cache_attr(cache, attr_idx);
+    cache_attr(cache, attr_idx, /*cache_brackets=*/TRUE);
   }  /* if */
 }  /* cache_attrs */
 

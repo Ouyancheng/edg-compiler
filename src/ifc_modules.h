@@ -2905,8 +2905,11 @@ private:
   void cache_type_param_introducer(a_token_cache_ptr  cache,
                                    ifc_ExprIndex      constraint,
                                    a_source_position  *pos);
-  void cache_attr(a_token_cache_ptr  cache, ifc_AttrIndex attr);
-  void cache_attrs(a_token_cache_ptr cache, ifc_DeclIndex decl_idx);
+  void cache_attr(a_token_cache_ptr  cache,
+                  ifc_AttrIndex      attr,
+                  a_boolean          cache_brackets);
+  void cache_attrs(a_token_cache_ptr cache,
+                   ifc_DeclIndex     decl_idx);
   void cache_template_head(a_token_cache_ptr     cache,
                            ifc_ChartIndex        chart_idx,
                            a_source_position_ptr pos);

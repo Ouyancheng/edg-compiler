@@ -1207,10 +1207,14 @@ IFC_DECL_END(AttrSort_Basic)
 
 /* AttrSort::Scoped */
 IFC_DECL_START(AttrSort_Scoped)
+  IFC_DECL_FIELD(scope, NestableWord)
+  IFC_DECL_FIELD(member, NestableWord)
 IFC_DECL_END(AttrSort_Scoped)
 
 /* AttrSort::Labeled */
 IFC_DECL_START(AttrSort_Labeled)
+  IFC_DECL_FIELD(label, NestableWord)
+  IFC_DECL_FIELD(attribute, AttrIndex)
 IFC_DECL_END(AttrSort_Labeled)
 
 /* AttrSort::Called */
@@ -1226,6 +1230,8 @@ IFC_DECL_END(AttrSort_Expanded)
 
 /* AttrSort::Factored */
 IFC_DECL_START(AttrSort_Factored)
+  IFC_DECL_FIELD(factor, NestableWord)
+  IFC_DECL_FIELD(terms, AttrIndex)
 IFC_DECL_END(AttrSort_Factored)
 
 /* AttrSort::Elaborated */
