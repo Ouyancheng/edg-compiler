@@ -2271,6 +2271,35 @@ extern
 a_cached_token_ptr build_cached_token(a_token_kind	      kind,
                                       a_token_sequence_number sequence_number,
                                       a_source_position	      *position);
+
+inline void cache_token(a_token_cache_ptr     cache,
+                        a_token_kind          tok,
+                        a_source_position_ptr pos)
+/*
+Add tok to cache.  pos is the position of the token.
+*/
+{
+  a_cached_token_ptr      ctp;
+  a_token_sequence_number seq = NO_TOKEN_SEQUENCE_NUMBER;
+
+  if (tok != tok_error) {
+    assign_curr_token_sequence_number();
+    seq = curr_token_sequence_number;
+    last_token_sequence_number_of_token = seq;
+  }  /* if */
+  ctp = build_cached_token(tok, seq, pos);
+  if (cache->first_token == NULL) {
+    cache->first_token = ctp;
+  } else {
+    cache->last_token->next = ctp;
+  }  /* if */
+  cache->last_token = ctp;
+#if DEBUG
+  cache->token_count++;
+#endif /* DEBUG */
+}  /* cache_token */
+
+
 #if DEBUG
 extern void add_to_pragmas_in_reuseable_cache_count(unsigned long count);
 #else /* !DEBUG */

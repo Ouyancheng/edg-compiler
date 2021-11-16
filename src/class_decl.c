@@ -32285,8 +32285,7 @@ classes.
          partial bodies first by rescanning their tokens. */
       a_token_cache             final_body_cache;
       a_partial_class_body_ptr  curr_partial_body;
-      clear_token_cache(&final_body_cache,
-                        /*reusable=*/FALSE);
+      clear_token_cache(&final_body_cache, /*reusable=*/FALSE);
       for (curr_partial_body = ctsp->partial_class_bodies;
            curr_partial_body != NULL;
            curr_partial_body = curr_partial_body->next) {
@@ -33367,6 +33366,23 @@ proper.
     if (scope_stack_top().is_generic_lambda) {
       lambda->is_generic = TRUE;
     }  /* if */
+  }  /* if */
+  if (curr_token != tok_lparen && curr_token != tok_lbrace &&
+      (cpp23_mode || gpp_version_is(>= 110000) ||
+       clang_version_is(>=130000))) {
+    /* In C++23 mode, empty parameter-parentheses can be omitted while still
+       specifying something like "mutable" or a trailing return type.  We
+       implement this by inserting () in the token stream.  (Recent versions
+       of Clang and GCC accept this with a warning in all language modes that
+       accept lambda expressions). */
+    a_token_cache  cache;
+    if (!cpp23_mode) {
+      pos_warning(ec_lambda_without_parameters_nonstandard, &pos_curr_token);
+    }  /* if */
+    clear_token_cache(&cache, /*reusable=*/FALSE);
+    cache_token(&cache, tok_lparen, &pos_curr_token);
+    cache_token(&cache, tok_rparen, &pos_curr_token);
+    rescan_cached_tokens(&cache);
   }  /* if */
   if (curr_token == tok_lparen) {
     add_stop_token(tok_lbrace);

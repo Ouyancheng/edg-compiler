@@ -1,5 +1,24 @@
 Version 6.3
 
+11/16/21 [EDGcpfe/23965]
+C++23: Lambda declarators
+
+Prior to C++23, a lambda could omit its "lambda declarator" altogether, and
+that would be equivalent to that declarator being "()" without any additional
+specifiers or trailing return types.  So:
+
+  auto lm1 = []{};                      // Okay: Equivalent to "[](){}".
+  auto lm2 = []()->int { return 42; };  // Okay.
+  auto lm3 = []->int { return 42; };    // Previously always an error.  Now
+                                        // accepted in C++23 mode, meaning
+                                        // "[]()->int { return 42; }".
+
+In C++23, that rule was relaxed by the standardization committee's paper
+P1102R2, which specifies that if the parenthesized parameter clause is omitted
+it is as if "()" appeared in that syntactic location instead.  The front end
+now implements that behavior in C++23 mode.
+
+
 11/12/21 [EDGcpfe/24828]
 GNU C++20 compatibility: if consteval
 
