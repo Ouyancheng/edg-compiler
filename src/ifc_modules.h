@@ -2532,12 +2532,27 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
 An internal representation of an IFC partition.
 */
 struct an_ifc_partition {
-  a_const_char	*name;	/* The name of the partition in the IFC file. */
-  size_t	offset;	/* An offset from the beginning of the file to the
-			   start of the partition. */
-  uint32_t	size;	/* The number of bytes in the partition. */
-  uint32_t	entry_size;
-			/* The size of an entry in the partition. */
+  a_const_char  *name;  /* The name of the partition in the IFC file. */
+  size_t        offset; /* An offset from the beginning of the file to the
+                           start of the partition. */
+  uint32_t      size;   /* The number of bytes in the partition. */
+  uint32_t      entry_size;
+                        /* The size of an entry in the partition. */
+  uint32_t      *format_validated;
+                        /* An array of bits for checking IFC format validation.
+
+                           The lower 16 bits of each "block" (uint32_t) are
+                           used to represented whether validation was performed
+                           (1 is TRUE, 0 is FALSE).  The higher 16 bits are
+                           used to represent whether the validated element was
+                           invalid (1 is TRUE, 0 is FALSE).
+
+                           This approach is taken to optimize both for space
+                           (as only two bits are used for) and memory locality
+                           (as the validated and invalid flags are always
+                           contained within the same 32-bit integer).  Invalid
+                           is represented as the TRUE state to reduce the
+                           number of writes in the "happy path." */
 };  /* an_ifc_partition */
 
 
@@ -2577,13 +2592,13 @@ struct an_ifc_module : public a_module_interface {
 			   the number of source files is known. */
 private:
   /*
-  An internal representation of an IFC partition element position.
+  An internal short lifetime representation of an IFC partition element
+  position.
   */
   struct an_ifc_partition_position {
     an_ifc_partition_kind
                   partition;
     size_t        file_offset;
-    unsigned      trusted : 1;
     inline an_ifc_partition_position(const an_ifc_module *mod,
                                      a_module_entity_ptr mep);
     inline an_ifc_partition_position(const an_ifc_module   *mod,
@@ -2625,6 +2640,8 @@ private:
     inline an_ifc_partition_position(const an_ifc_module *mod,
                                      ifc_ChartIndex      chart);
     inline an_ifc_partition_position(const an_ifc_module *mod,
+                                     ifc_LineIndex       line);
+    inline an_ifc_partition_position(const an_ifc_module *mod,
                                      ifc_FormSpecIndex   form_spec);
     inline an_ifc_partition_position(const an_ifc_module *mod,
                                      ifc_SyntaxSort      syntax_kind,
@@ -2643,10 +2660,8 @@ private:
                                      ifc_FormIndex       form);
   private:
     an_ifc_partition_position(an_ifc_partition_kind partition_val,
-                              size_t                file_offset_val,
-                              a_boolean             trusted_val)
-      : partition(partition_val), file_offset(file_offset_val),
-        trusted(trusted_val)
+                              size_t                file_offset_val)
+      : partition(partition_val), file_offset(file_offset_val)
       {}
   };  /* an_ifc_partition_position */
 #if USE_MMAP_FOR_MEMORY_REGIONS
@@ -3105,10 +3120,24 @@ private:
                                      size_t                file_offset) const;
   inline ifc_DeclIndex decl_index_of(a_module_entity_ptr mep) const;
   inline ifc_AttrIndex attr_index_of(ifc_DeclIndex decl_idx);
+  inline size_t to_relative_offset(an_ifc_partition_position pos) const;
+  inline uint32_t to_partition_index(an_ifc_partition_position pos) const;
+  inline a_boolean has_been_validated(an_ifc_partition_position pos) const;
+  inline void mark_validated(an_ifc_partition_position pos);
+  inline a_boolean was_previously_marked_invalid(an_ifc_partition_position pos)
+                                                                         const;
+  inline void mark_invalid(an_ifc_partition_position pos);
   inline a_boolean validate_partition_position(an_ifc_partition_position pos);
   struct Partition_element_validator;
-  inline a_boolean validate_partition_element(an_ifc_partition_position pos);
+  inline a_boolean validate_partition_element(
+                                        an_ifc_partition_position pos,
+                                        a_boolean                 recursively);
   inline void read_unchecked_partition_element(an_ifc_partition_position pos);
+  inline a_boolean read_partition_element_shallow(an_ifc_partition_position pos);
+  template<typename... Args>
+  inline a_boolean read_partition_element_shallow(Args&&... args)
+    { return read_partition_element_shallow(an_ifc_partition_position(this,
+                                                                      args...)); }
   inline a_boolean read_partition_element(an_ifc_partition_position pos);
   template<typename... Args>
   inline a_boolean read_partition_element(Args&&... args)

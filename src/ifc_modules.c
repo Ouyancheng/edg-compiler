@@ -2736,6 +2736,19 @@ otherwise.
   }  /* if */
   return result;
 }  /* check_ifc_version */
+
+
+inline uint32_t *alloc_validation_bit_array(uint32_t num_elements)
+/*
+Allocate an array of validation bits.
+*/
+{
+  size_t size = (1 + (num_elements / 16)) * sizeof(uint32_t);
+  uint32_t *validation_bits = (uint32_t *)alloc_fe(size);
+
+  memzero((char *)validation_bits, size);
+  return validation_bits;
+}  /* allocate_validation_bit_array */
 }  /* namespace */
 
 
@@ -2817,6 +2830,8 @@ been confirmed to exist and the path stored in midp.
         pp->size = ifc_pp->cardinality * ifc_pp->entry_size;
         pp->entry_size = ifc_pp->entry_size;
         validate_partition_size(pp, map_ptr->kind);
+        pp->format_validated = alloc_validation_bit_array(pp->size /
+                                                          pp->entry_size);
       }  /* if */
     }  /* for */
     (void)fseek(f_module, 0L, SEEK_SET);
@@ -2844,7 +2859,8 @@ been confirmed to exist and the path stored in midp.
         for (size_t idx = 0, num_src_lines = get_num_entries(ifc_src_line);
              idx < num_src_lines; idx++) {
           an_ifc_Source_Line   isl, *islp;
-          read_prechecked_partition_element(ifc_src_line, idx);
+          /* FIXME: Handle partition read failure. */
+          read_partition_element(ifc_src_line, idx);
           islp = get_Source_Line(&isl);
           size_t file_index = name_value(islp->file);
           check_assertion(name_tag(islp->file) == ifc_NameSort_SourceFile &&
@@ -3628,15 +3644,14 @@ principal associated IL entity.
     a_source_position   saved_error_position = error_position;
     a_module_entity_ptr saved_mep = curr_module_entity;
     curr_module_entity = mep;
-    /* Prepare to read from the proper partition for this declaration. */
+    /* Read from the proper partition for this declaration.
+
+       FIXME: If this is a deferred operation only perform shallow
+       validation. */
     if (!read_partition_element(mep)) {
       skip_pop = TRUE;
       goto invalid;
     }  /* if */
-    /* The IFC information for this module entity was determine to be compliant
-       with our understanding of the format.  Mark this status so we can
-       optimize out future checks. */
-    mep->format_validated = TRUE;
     tag = (ifc_DeclSort)get_tag_from_partition(mep->variant.ifc_partition,
                                                ifc_decl_start);
     if (!defer) {
@@ -5184,7 +5199,6 @@ in the IFC scope will be members of scope and their definitions will be
 deferred until they are referenced.
 */
 {
-  an_ifc_Scope_Descriptor isd, *isdp;
   an_ifc_Scope_Member     ism, *ismp;
   unsigned int            i;
   a_boolean               scope_pushed;
@@ -5195,18 +5209,24 @@ deferred until they are referenced.
   if (scope_index != 0) {
     scope_pushed = push_module_declaration_context(scope);
     /* Scope indices are 1-based, so subtract one. */
-    read_prechecked_partition_element(ifc_scope_desc, scope_index - 1);
-    isdp = get_Scope_Descriptor(&isd);
-    for (i = 0; i < isdp->cardinality; i++) {
-      /* Re-enable access to scope.member partition (it changes during the
-         loop). */
-      read_prechecked_partition_element(ifc_scope_member, isdp->start + i);
-      ismp = get_Scope_Member(&ism);
-      dmep = get_ifc_module_entity_ptr(ismp->index);
-      dmep->scope = scope;
-      process_ifc_declaration(dmep, /*defer=*/TRUE, (a_type_ptr)NULL);
-    }  /* for */
-    pop_module_declaration_context(scope_pushed);
+    if (read_partition_element_shallow(ifc_scope_desc, scope_index - 1)) {
+      an_ifc_Scope_Descriptor isd, *isdp;
+
+      isdp = get_Scope_Descriptor(&isd);
+      for (i = 0; i < isdp->cardinality; i++) {
+        /* Re-enable access to scope.member partition (it changes during the
+           loop). */
+        if (read_partition_element_shallow(ifc_scope_member,
+                                           isdp->start + i)) {
+
+          ismp = get_Scope_Member(&ism);
+          dmep = get_ifc_module_entity_ptr(ismp->index);
+          dmep->scope = scope;
+          process_ifc_declaration(dmep, /*defer=*/TRUE, (a_type_ptr)NULL);
+        }  /* if */
+      }  /* for */
+      pop_module_declaration_context(scope_pushed);
+    }  /* if */
   }  /* if */
 }  /* process_ifc_scope */
 
@@ -14292,181 +14312,382 @@ its ifc_AttrIndex.
 inline a_boolean an_ifc_module::validate_partition_position(
                                                  an_ifc_partition_position pos)
 {
-  a_boolean result = TRUE;
+  a_boolean        result = TRUE;
+  an_ifc_partition *partition = &partitions[pos.partition];
 
-#ifndef EXPENSIVE_CHECKING
-  if (!pos.trusted) {
-#endif /* !EXPENSIVE_CHECKING */
-    an_ifc_partition *partition = &partitions[pos.partition];
-
-    if (partition->size == 0) {
-      /* Check that anything is stored in the requested partition. */
+  if (partition->size == 0) {
+    /* Check that anything is stored in the requested partition. */
+    result = FALSE;
+  } else if (pos.file_offset < partition->offset) {
+    /* Check that this position follows the requested partition. */
+    result = FALSE;
+  } else {
+    size_t relative_offset = pos.file_offset - partition->offset;
+    if ((relative_offset + partition->entry_size) > partition->size) {
+      /* Check that the relative offset is within the partition. */
       result = FALSE;
-    } else if (pos.file_offset < partition->offset) {
-      /* Check that this position follows the requested partition. */
+    } else if ((relative_offset % partition->entry_size) != 0) {
+      /* Check that the relative offset is at a given position. */
       result = FALSE;
-    } else {
-      size_t relative_offset = pos.file_offset - partition->offset;
-      if ((relative_offset + partition->entry_size) > partition->size) {
-        /* Check that the relative offset is within the partition. */
-        result = FALSE;
-      } else if ((relative_offset % partition->entry_size) != 0) {
-        /* Check that the relative offset is at a given position. */
-        result = FALSE;
-      }  /* if */
     }  /* if */
-#ifndef EXPENSIVE_CHECKING
-  }
-#endif /* !EXPENSIVE_CHECKING */
+  }  /* if */
   return result;
 }  /* validate_partition_position */
-
 
 /* ... */
 struct an_ifc_module::Partition_element_validator {
   a_boolean invalid;
 
-  Partition_element_validator(an_ifc_module *ifc_mod_val)
-    : invalid(false), ifc_mod(ifc_mod_val)
+  Partition_element_validator(an_ifc_module *ifc_mod_val,
+                              a_boolean recursively_val)
+    : invalid(false), ifc_mod(ifc_mod_val), recursively(recursively_val),
+      tail(nullptr)
     {}
 
-  /* Field validators. */
-  template<typename a_Type>
-  inline void validate(a_Type val)
-    {}
+  void validate(an_ifc_partition_position pos)
+    { validate(pos, ""); }
+private:
+  struct Validation_stage;
+  /* Error handling functions. */
+  inline void mark_invalid();
+  inline void add_backtrace(a_diagnostic_ptr diag_ptr) const;
   inline void invalid_partition(an_ifc_partition_position pos);
+  inline void undefined_partition(an_ifc_partition_position pos);
+  inline void invalid_position(an_ifc_partition_position pos);
+  /* Validation functions. */
+  inline void validate(an_ifc_partition_position pos, const char *field_name);
+  template<typename a_Type>
+  void check(a_Type val, const char *field_name)
+    {}
+  /* Visitor functions to traverse the IFC. */
   template<typename T>
   inline void visit(an_ifc_partition_position pos) = delete;
   void visit_position(an_ifc_partition_position pos);
-private:
   an_ifc_module *ifc_mod;
+  a_boolean     recursively;
+  Validation_stage
+                *tail;
 };  /* Decl_value_visitor */
 
 
-template<>
+/* A structure that's responsible making the stack stored state related to the
+   current "validate" call and all parents accessible.  This allows the call
+   stack to be traversed (to retrieve information about the requester) without
+   storing this information in a side stack/duplicating the objects of interest
+   in side state.
+
+   A pointer to the current position, the field name referencing said position
+   and the position validity are made accessible via this system.
+
+   The tail pointer is used to enter this information and points to the top of
+   the validation stack.  It's maintained by storing the tail pointers current
+   value (prev), then updating the tail pointer to point to the current
+   validation stage.  When destroyed the tail pointer is restored to its
+   previous state. */
+struct an_ifc_module::Partition_element_validator::Validation_stage {
+  Validation_stage          **tail_ptr;
+  Validation_stage          *prev;
+  an_ifc_partition_position *pos;
+  const char                *field_name;
+  a_boolean                 invalid;
+
+  Validation_stage(Validation_stage          **tail_ptr_val,
+                   an_ifc_partition_position *pos_val,
+                   const char                *field_name_val)
+    : tail_ptr(tail_ptr_val), prev(*tail_ptr_val), pos(pos_val),
+      field_name(field_name_val), invalid(FALSE)
+    { *tail_ptr = this; }
+  ~Validation_stage()
+    { *tail_ptr = prev; }
+};  /* Validation_stage */
+
+
 inline void an_ifc_module::Partition_element_validator::validate(
-                                                 an_ifc_partition_position val)
-/*
-*/
+                                         an_ifc_partition_position pos,
+                                         const char                *field_name)
+/* */
 {
-  if (ifc_mod->validate_partition_position(val)) {
-    visit_position(val);
+  Validation_stage stage(&tail, &pos, field_name);
+
+  /* First check to see if the given position is a real element that needs
+     validation (i.e., check the position itself). */
+  if (pos.partition == ifc_invalid_partition) {
+    /* The partition is invalid, no processing can be done at this position. */
+    invalid_partition(pos);
+  } else if (ifc_mod->partitions[pos.partition].name == NULL) {
+    /* The partition is undefined, no processing can be done at this
+       position. */
+    undefined_partition(pos);
+  } else if (!ifc_mod->validate_partition_position(pos)) {
+    /* The position is invalid, no processing can be done at this position. */
+    invalid_position(pos);
   } else {
-    invalid = true;
+    /* This is a sane position, the validation cache can now be consulted
+       to see if this address has been previously checked. */
+    if (ifc_mod->has_been_validated(pos)) {
+      /* This element was previously validated, use its previous state. */
+      if (ifc_mod->was_previously_marked_invalid(pos)) {
+        mark_invalid();
+      }  /* if */
+    } else {
+      /* This element was not previously validated.  There are two cases where
+         validation is performed here with different implications.
+
+         If doing recursive validation, this position will be fully validated,
+         and can be cached with both valid and invalid status.
+
+         If doing only top level (non-recursive/shallow) validation, the
+         position will only be marked valid if it was determined to be invalid
+         -- as without checking its dependencies we can't possibly know if
+         it's valid, only that it's invalid. */
+      if (recursively) {
+        /* Handle first case (recursive validation). */
+        /* Mark the element validated before doing validation if this is a
+           recursive validation to prevent infinite recursion when the
+           traversal self references. */
+        ifc_mod->mark_validated(pos);
+        visit_position(pos);
+        if (stage.invalid) {
+          ifc_mod->mark_invalid(pos);
+        }  /* if */
+      } else if (tail->prev == nullptr) {
+        /* Handle second case (top level validation). */
+        visit_position(pos);
+        if (stage.invalid) {
+          ifc_mod->mark_validated(pos);
+          ifc_mod->mark_invalid(pos);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } /* if */
+}  /* validate */
+
+template<>
+inline void an_ifc_module::Partition_element_validator::check(
+                                         an_ifc_partition_position val,
+                                         const char                *field_name)
+/*
+Check the validity of the given partition position by recursing.
+*/
+{
+  validate(val, field_name);
+}  /* check<an_ifc_partition_position> */
+
+
+template<>
+inline void an_ifc_module::Partition_element_validator::check(
+                                                     ifc_AttrIndex val,
+                                                     const char    *field_name)
+/*
+*/
+{
+  if (val != 0) {
+    check(an_ifc_partition_position(ifc_mod, val), field_name);
   }  /* if */
-}  /* validate<an_ifc_partition_position> */
+}  /* check<ifc_AttrIndex> */
 
 
 template<>
-inline void an_ifc_module::Partition_element_validator::validate(
-                                                             ifc_AttrIndex val)
+inline void an_ifc_module::Partition_element_validator::check(
+                                                     ifc_TypeIndex val,
+                                                     const char    *field_name)
 /*
 */
 {
-  validate(an_ifc_partition_position(ifc_mod, val));
-}  /* validate<ifc_AttrIndex> */
-
-
-template<>
-inline void an_ifc_module::Partition_element_validator::validate(
-                                                             ifc_TypeIndex val)
-/*
-*/
-{
-  validate(an_ifc_partition_position(ifc_mod, val));
-}  /* validate<ifc_TypeIndex> */
-
-
-template<>
-inline void an_ifc_module::Partition_element_validator::validate(
-                                                             ifc_ExprIndex val)
-/*
-*/
-{
-  validate(an_ifc_partition_position(ifc_mod, val));
-}  /* validate<ifc_ExprIndex> */
-
-
-template<>
-inline void an_ifc_module::Partition_element_validator::validate(
-                                                             ifc_StmtIndex val)
-/*
-*/
-{
-  validate(an_ifc_partition_position(ifc_mod, val));
-}  /* validate<ifc_StmtIndex> */
-
-
-template<>
-inline void an_ifc_module::Partition_element_validator::validate(
-                                                             ifc_DeclIndex val)
-/*
-*/
-{
-  validate(an_ifc_partition_position(ifc_mod, val));
-}  /* validate<ifc_DeclIndex> */
-
-
-template<>
-inline void an_ifc_module::Partition_element_validator::validate(
-                                                             ifc_NameIndex val)
-/*
-*/
-{
-  if (name_tag(val) != ifc_NameSort_Identifier) {
-    validate(an_ifc_partition_position(ifc_mod, val));
+  if (val != 0) {
+    check(an_ifc_partition_position(ifc_mod, val), field_name);
   }  /* if */
-}  /* validate<ifc_NameIndex> */
+}  /* check<ifc_TypeIndex> */
 
 
 template<>
-inline void an_ifc_module::Partition_element_validator::validate(
-                                                            ifc_ChartIndex val)
+inline void an_ifc_module::Partition_element_validator::check(
+                                                     ifc_ExprIndex val,
+                                                     const char    *field_name)
 /*
 */
 {
-  validate(an_ifc_partition_position(ifc_mod, val));
-}  /* validate<ifc_ChartIndex> */
+  if (val != 0) {
+    check(an_ifc_partition_position(ifc_mod, val), field_name);
+  }  /* if */
+}  /* check<ifc_ExprIndex> */
 
 
 template<>
-inline void an_ifc_module::Partition_element_validator::validate(
-                                                         ifc_FormSpecIndex val)
+inline void an_ifc_module::Partition_element_validator::check(
+                                                     ifc_StmtIndex val,
+                                                     const char    *field_name)
 /*
 */
 {
-  validate(an_ifc_partition_position(ifc_mod, val));
-}  /* validate<ifc_FormSpecIndex> */
+  if (val != 0) {
+    check(an_ifc_partition_position(ifc_mod, val), field_name);
+  }  /* if */
+}  /* check<ifc_StmtIndex> */
 
 
 template<>
-inline void an_ifc_module::Partition_element_validator::validate(
-                                                           ifc_SyntaxIndex val)
+inline void an_ifc_module::Partition_element_validator::check(
+                                                     ifc_DeclIndex val,
+                                                     const char    *field_name)
 /*
 */
 {
-  validate(an_ifc_partition_position(ifc_mod, val));
-}  /* validate<ifc_SyntaxIndex> */
+  if (val != 0) {
+    check(an_ifc_partition_position(ifc_mod, val), field_name);
+  }  /* if */
+}  /* check<ifc_DeclIndex> */
 
 
 template<>
-inline void an_ifc_module::Partition_element_validator::validate(
-                                                            ifc_MacroIndex val)
+inline void an_ifc_module::Partition_element_validator::check(
+                                                     ifc_NameIndex val,
+                                                     const char    *field_name)
 /*
 */
 {
-  validate(an_ifc_partition_position(ifc_mod, val));
-}  /* validate<ifc_MacroIndex> */
+  if (val != 0) {
+    if (name_tag(val) != ifc_NameSort_Identifier) {
+      check(an_ifc_partition_position(ifc_mod, val), field_name);
+    }  /* if */
+  }  /* if */
+}  /* check<ifc_NameIndex> */
 
 
 template<>
-inline void an_ifc_module::Partition_element_validator::validate(
-                                                             ifc_FormIndex val)
+inline void an_ifc_module::Partition_element_validator::check(
+                                                    ifc_ChartIndex val,
+                                                    const char     *field_name)
 /*
 */
 {
-  validate(an_ifc_partition_position(ifc_mod, val));
-}  /* validate<ifc_FormIndex> */
+  if (val != 0) {
+    check(an_ifc_partition_position(ifc_mod, val), field_name);
+  }  /* if */
+}  /* check<ifc_ChartIndex> */
+
+
+template<>
+inline void an_ifc_module::Partition_element_validator::check(
+                                                 ifc_FormSpecIndex val,
+                                                 const char        *field_name)
+/*
+*/
+{
+  if (val != 0) {
+    check(an_ifc_partition_position(ifc_mod, val), field_name);
+  }  /* if */
+}  /* check<ifc_FormSpecIndex> */
+
+
+template<>
+inline void an_ifc_module::Partition_element_validator::check(
+                                                   ifc_SyntaxIndex val,
+                                                   const char      *field_name)
+/*
+*/
+{
+  if (val != 0) {
+    check(an_ifc_partition_position(ifc_mod, val), field_name);
+  }  /* if */
+}  /* check<ifc_SyntaxIndex> */
+
+
+template<>
+inline void an_ifc_module::Partition_element_validator::check(
+                                                    ifc_MacroIndex val,
+                                                    const char     *field_name)
+/*
+*/
+{
+  if (val != 0) {
+    check(an_ifc_partition_position(ifc_mod, val), field_name);
+  }  /* if */
+}  /* check<ifc_MacroIndex> */
+
+
+template<>
+inline void an_ifc_module::Partition_element_validator::check(
+                                                     ifc_FormIndex val,
+                                                     const char    *field_name)
+/*
+*/
+{
+  if (val != 0) {
+    check(an_ifc_partition_position(ifc_mod, val), field_name);
+  }  /* if */
+}  /* check<ifc_FormIndex> */
+
+
+template<>
+inline void an_ifc_module::Partition_element_validator::check(
+                                                ifc_SourceLocation val,
+                                                const char         *field_name)
+/*
+*/
+{
+  if (val.line != 0) {
+    check(an_ifc_partition_position(ifc_mod, val.line), field_name);
+  }  /* if */
+}  /* check<ifc_SourceLocation> */
+
+
+inline void an_ifc_module::Partition_element_validator::mark_invalid()
+/*
+Marks the top level element invalid.  Additionally, any validation stages
+between the current element and the top level element are marked as invalid --
+as those elements depend on this element, and thus are invalid as well.
+*/
+{
+  Validation_stage *cur = tail;
+
+  while (cur != nullptr) {
+    /* If something already marked parents invalid, stop to prevent duplicated
+       effort. */
+    if (cur->invalid) {
+      break;
+    }  /* if */
+    /* Mark this stage and all parents as invalid. */
+    cur->invalid = TRUE;
+    /* Move down the stack. */
+    cur = cur->prev;
+  }  /* while */
+  invalid = true;
+}  /* mark_invalid */
+
+
+inline void an_ifc_module::Partition_element_validator::add_backtrace(
+                                                     a_diagnostic_ptr diag_ptr)
+                                                                          const
+/*
+*/
+{
+  Validation_stage *cur = tail;
+  a_boolean        deepest_element = TRUE;
+
+  while (cur != nullptr) {
+    an_ifc_partition_position *pos = cur->pos;
+    a_const_char              *field_name = cur->field_name;
+    size_t                    rel_offset = ifc_mod->to_relative_offset(*pos);
+
+    /* Add this partition position request to the diagnostic. */
+    if (!deepest_element) {
+      size_t part_index = ifc_mod->to_partition_index(*pos);
+
+      st_num3_add_diag_info(diag_ptr, ec_invalid_ifc_position_backtrace_pos,
+                            ifc_mod->partitions[pos->partition].name,
+                            part_index, pos->file_offset, rel_offset);
+    } else {
+      deepest_element = FALSE;
+    }  /* if */
+    if (field_name[0] != '\0') {
+      str_add_diag_info(diag_ptr, ec_invalid_ifc_position_backtrace_field,
+                        field_name);
+    }  /* if */
+    /* Move down the stack. */
+    cur = cur->prev;
+  }  /* while */
+}  /* add_backtrace */
 
 
 inline void an_ifc_module::Partition_element_validator::invalid_partition(
@@ -14474,8 +14695,74 @@ inline void an_ifc_module::Partition_element_validator::invalid_partition(
 /*
 */
 {
-  /* FIXME: Report partition decode error. */
-  invalid = true;
+  a_diagnostic_ptr diag_ptr;
+
+  /* FIXME: Use a better source position. */
+  diag_ptr = pos_start_error(ec_invalid_ifc_partition, &null_source_position);
+  add_backtrace(diag_ptr);
+  end_diagnostic(diag_ptr);
+  mark_invalid();
+}  /* invalid_partition */
+
+
+inline void an_ifc_module::Partition_element_validator::undefined_partition(
+                                                 an_ifc_partition_position pos)
+/*
+*/
+{
+  for (uint32_t index = 0; index < (uint32_t)ifc_last; ++index) {
+    an_ifc_partition_map *map_entry = &ifc_partition_map[index];
+    if (map_entry->kind == pos.partition) {
+      a_diagnostic_ptr diag_ptr;
+
+      /* FIXME: Use a better source position. */
+      diag_ptr = pos_st_start_error(ec_undefined_ifc_partition,
+                                    &null_source_position, map_entry->name);
+      add_backtrace(diag_ptr);
+      end_diagnostic(diag_ptr);
+      mark_invalid();
+      goto found;
+    }  /* if */
+  }
+  /* Assert that we found the requested partition. */
+  /* FIXME: Handle cases where we didn't find the requested partition. */
+  check_assertion(false);
+found:
+  ;
+}  /* invalid_partition */
+
+
+inline void an_ifc_module::Partition_element_validator::invalid_position(
+                                                 an_ifc_partition_position pos)
+/*
+*/
+{
+  an_ifc_partition *partition = &ifc_mod->partitions[pos.partition];
+  size_t           relative_offset = ifc_mod->to_relative_offset(pos);
+  an_error_code    error_code = ec_no_error;
+  /* FIXME: Use a better source position. */
+  if (partition->size == 0) {
+    error_code = ec_invalid_empty_ifc_position;
+  } else if (pos.file_offset < partition->offset) {
+    error_code = ec_invalid_preceding_ifc_position;
+  } else {
+    if ((relative_offset + partition->entry_size) > partition->size) {
+      error_code = ec_invalid_overflowing_ifc_position;
+    } else if ((relative_offset % partition->entry_size) != 0) {
+      error_code = ec_invalid_misaligned_ifc_position;
+    }  /* if */
+  }  /* if */
+  check_assertion(error_code != ec_no_error);
+  {
+    a_diagnostic_ptr diag_ptr;
+
+    diag_ptr = pos_st_num2_start_error(error_code, &null_source_position,
+                                       ifc_mod->partitions[pos.partition].name,
+                                       pos.file_offset, relative_offset);
+    add_backtrace(diag_ptr);
+    end_diagnostic(diag_ptr);
+    mark_invalid();
+  }
 }  /* invalid_partition */
 
 
@@ -14489,7 +14776,7 @@ inline void an_ifc_module::Partition_element_validator::visit< \
   ifc_mod->read_unchecked_partition_element(pos); \
   memp = ifc_mod->get<concat(an_ifc_, name)>(&mem);
 #define IFC_DECL_FIELD(name, type) \
-  validate<concat(ifc_, type)>(memp->name);
+  check<concat(ifc_, type)>(memp->name, #name);
 #define IFC_DECL_END(name) \
 }  /* visit<concat(an_ifc_, name)> */
 
@@ -14504,8 +14791,7 @@ void an_ifc_module::Partition_element_validator::visit_position(
 {
   switch (pos.partition) {
     case ifc_invalid_partition:
-      invalid_partition(pos);
-      break;
+      check_assertion(false);
     /* DeclIndex::tag partitions together. */
     case ifc_decl_vendor_extension:
       visit<an_ifc_DeclSort_VendorExtension>(pos);
@@ -15351,15 +15637,7 @@ void an_ifc_module::Partition_element_validator::visit_position(
     case ifc_form_junk:
       visit<an_ifc_FormSort_Junk>(pos);
       break;
-    /* EDG utility partitions these should never be seen here. */
-    case ifc_none:
-    case ifc_last:
-    /* Currently unvalidated. */
-    case ifc_cmd_line:
-    case ifc_const_f64:
-    case ifc_const_i64:
-    case ifc_const_str:
-    case ifc_form_spec:
+    /* Group heaps together. */
     case ifc_heap_attr:
     case ifc_heap_chart:
     case ifc_heap_decl:
@@ -15369,6 +15647,21 @@ void an_ifc_module::Partition_element_validator::visit_position(
     case ifc_heap_stmt:
     case ifc_heap_syn:
     case ifc_heap_type:
+      /* FIXME: Actually validate these. */
+      break;
+    /* No grouping, but validated. */
+    case ifc_src_line:
+      visit<an_ifc_Source_Line>(pos);
+      break;
+    /* EDG utility partitions these should never be seen here. */
+    case ifc_none:
+    case ifc_last:
+    /* Currently unvalidated. */
+    case ifc_cmd_line:
+    case ifc_const_f64:
+    case ifc_const_i64:
+    case ifc_const_str:
+    case ifc_form_spec:
     case ifc_msvc_trait_code_segment:
     case ifc_msvc_trait_codegen_expr_trees:
     case ifc_msvc_trait_decl_attrs:
@@ -15387,7 +15680,6 @@ void an_ifc_module::Partition_element_validator::visit_position(
     case ifc_scope_desc:
     case ifc_scope_member:
     case ifc_sentence:
-    case ifc_src_line:
     case ifc_trait_alias_template:
     case ifc_trait_attribute:
     case ifc_trait_deduction_guides:
@@ -15399,29 +15691,23 @@ void an_ifc_module::Partition_element_validator::visit_position(
     case ifc_word:
     case ifc_name_identifier:
       break;
-    default:
-      unexpected_condition_str("Unexpected an_ifc_partition_kind");
+    default_is_unexpected();
   } /* switch */
 }  /* visit_position */
 
 
 inline a_boolean an_ifc_module::validate_partition_element(
-                                                 an_ifc_partition_position pos)
+                                         an_ifc_partition_position pos,
+                                         a_boolean                 recursively)
+/*
+Returns TRUE if the given partition position refers to a valid partition
+element.  If recursively is TRUE checking is applied to subelements, and the
+result is cached.
+*/
 {
-  a_boolean result = TRUE;
-
-#if 0
-#ifndef EXPENSIVE_CHECKING
-  if (!pos.trusted) {
-#endif /* !EXPENSIVE_CHECKING */
-    Partition_element_validator validator(this);
-    validator.validate(pos);
-    result = !validator.invalid;
-#ifndef EXPENSIVE_CHECKING
-  }
-#endif /* !EXPENSIVE_CHECKING */
-#endif /* 0 */
-  return result;
+  Partition_element_validator validator(this, recursively);
+  validator.validate(pos);
+  return !validator.invalid;
 }  /* validate_partition_element */
 
 
@@ -15438,6 +15724,22 @@ inline void an_ifc_module::read_unchecked_partition_element(
 }  /* read_unchecked_partition_element */
 
 
+inline a_boolean an_ifc_module::read_partition_element_shallow(
+                                                 an_ifc_partition_position pos)
+/*
+
+*/
+{
+  a_boolean result = FALSE;
+  if (validate_partition_element(pos, /*recursively=*/FALSE)) {
+    result = TRUE;
+    read_unchecked_partition_element(pos);
+  }  /* if */
+  /* FIXME: Emit diagnostic here if false, or perhaps leave to caller? */
+  return result;
+}  /* read_partition_element_shallow */
+
+
 inline a_boolean an_ifc_module::read_partition_element(
                                                  an_ifc_partition_position pos)
 /*
@@ -15445,7 +15747,7 @@ inline a_boolean an_ifc_module::read_partition_element(
 */
 {
   a_boolean result = FALSE;
-  if (validate_partition_element(pos)) {
+  if (validate_partition_element(pos, /*recursively=*/TRUE)) {
     result = TRUE;
     read_unchecked_partition_element(pos);
   }  /* if */
@@ -15460,8 +15762,9 @@ inline void an_ifc_module::read_prechecked_partition_element(
 
 */
 {
-  /* FIXME: Change this so it can actually check something is prechecked. */
-  check_assertion(validate_partition_element(pos));
+  check_assertion(validate_partition_position(pos));
+  /* FIXME: We can't validate enough to enforce the precheck semantic yet. */
+  /* check_assertion(has_been_validated(pos)); */
 #if DEBUG && EXPENSIVE_CHECKING
   debug_partition = &partitions[pos.partition];
 #endif /* DEBUG && EXPENSIVE_CHECKING */
@@ -15544,8 +15847,7 @@ a valid partition.
 inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                       const an_ifc_module *mod,
                                                       a_module_entity_ptr mep)
-  : an_ifc_partition_position(mep->variant.ifc_partition, mep->file_offset,
-                              /*trusted_val=*/mep->format_validated)
+  : an_ifc_partition_position(mep->variant.ifc_partition, mep->file_offset)
 {
 } /* an_ifc_partition_position */
 
@@ -15556,8 +15858,7 @@ inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                           ifc_Index_type        index)
   : an_ifc_partition_position(partition_kind,
                               mod->partitions[partition_kind].offset + (index *
-                                   mod->partitions[partition_kind].entry_size),
-                              /*trusted_val=*/FALSE)
+                                   mod->partitions[partition_kind].entry_size))
 /*
 Overload wrapper for "an_ifc_partition_position" that converts given partition
 kind and index into a ifc partition position's partition kind and file offset.
@@ -15747,6 +16048,18 @@ Overload wrapper for "an_ifc_partition_position" that converts an
 
 inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                  const an_ifc_module *mod,
+                                                 ifc_LineIndex       line)
+  : an_ifc_partition_position(mod, ifc_src_line, line)
+/*
+Overload wrapper for "an_ifc_partition_position" that converts an
+"ifc_LineIndex" into its tag and index components for convenience.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                 const an_ifc_module *mod,
                                                  ifc_FormSpecIndex   form_spec)
   : an_ifc_partition_position(mod, ifc_form_spec, form_spec)
 /*
@@ -15836,6 +16149,95 @@ Overload wrapper for "an_ifc_partition_position" that converts an
 */
 {
 } /* an_ifc_partition_position */
+
+
+inline size_t an_ifc_module::to_relative_offset(an_ifc_partition_position pos)
+                                                                          const
+/*
+Return the relative index into the partition.
+*/
+{
+  const an_ifc_partition *partition = &partitions[pos.partition];
+
+  return pos.file_offset - partition->offset;
+}  /* to_relative_offset */
+
+
+inline uint32_t an_ifc_module::to_partition_index(
+                                                 an_ifc_partition_position pos)
+                                                                          const
+/*
+Return the position as an index into the partition.
+*/
+{
+  const an_ifc_partition *partition = &partitions[pos.partition];
+  size_t                 relative_offset = to_relative_offset(pos);
+
+  return relative_offset / partition->entry_size;
+}  /* to_partition_index */
+
+
+inline a_boolean an_ifc_module::has_been_validated(
+                                                 an_ifc_partition_position pos)
+                                                                          const
+/*
+Return TRUE if this position has already been validated.
+*/
+{
+  uint32_t index = to_partition_index(pos);
+  size_t   block = index / 16;
+  size_t   bit_index = index % 16;
+  unsigned bit_mask = 0x1 << bit_index;
+
+  return partitions[pos.partition].format_validated[block] & bit_mask;
+}  /* has_been_validated */
+
+
+inline void an_ifc_module::mark_validated(an_ifc_partition_position pos)
+/*
+Mark the given position as having been validated.
+*/
+{
+  uint32_t index = to_partition_index(pos);
+  size_t   block = index / 16;
+  size_t   bit = index % 16;
+  unsigned bit_mask = 0x1 << bit;
+
+  partitions[pos.partition].format_validated[block] |= bit_mask;
+}  /* an_ifc_partition_position */
+
+
+inline a_boolean an_ifc_module::was_previously_marked_invalid(
+                                                 an_ifc_partition_position pos)
+                                                                          const
+/*
+Return TRUE if this position was invalid when previously validated.
+*/
+{
+  check_assertion(has_been_validated(pos));
+  {
+    uint32_t index = to_partition_index(pos);
+    size_t   block = index / 16;
+    size_t   bit_index = index % 16;
+    unsigned bit_mask = 0x1 << 16 << bit_index;
+
+    return partitions[pos.partition].format_validated[block] & bit_mask;
+  }
+}  /* has_been_validated */
+
+
+inline void an_ifc_module::mark_invalid(an_ifc_partition_position pos)
+/*
+Mark the given position as having been validated.
+*/
+{
+  uint32_t index = to_partition_index(pos);
+  size_t   block = index / 16;
+  size_t   bit = index % 16;
+  unsigned bit_mask = 0x1 << 16 << bit;
+
+  partitions[pos.partition].format_validated[block] |= bit_mask;
+}  /* an_ifc_partition_position */
 
 
 inline ifc_Index an_ifc_module::read_index_from_heap(
