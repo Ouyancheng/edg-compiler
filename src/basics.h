@@ -1091,7 +1091,11 @@ Clang warns about [[maybe_unused]] in pre-C++17 modes. However, it supports the
 #define ARG_UNUSED [[maybe_unused]]
 #endif /* __clang__ */
 #else /* !(__has_cpp_attribute(maybe_unused)) */
+#ifdef __GNUC__
+#define ARG_UNUSED __attribute__((unused))
+#else /* !defined __GNUC__ */
 #define ARG_UNUSED /*nothing*/
+#endif /* defined __GNUC__ */
 #endif /* __has_cpp_attribute(maybe_unused) */
 
 /*
