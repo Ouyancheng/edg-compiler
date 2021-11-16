@@ -8764,7 +8764,7 @@ value of the expression they are equivalent.
     /* If there is more than one level of pointers/pointer-to-members on top a
        function type, then those function types' exception specifications have
        to match exactly (with a simple pointer-to-function, the conversion is
-       only constraint to not tighten the exception specification). */
+       only constrained to not tighten the exception specification). */
     extra_flags = TCF_STRICT_EXCEPTION_SPEC;
   }  /* for */
   /* If there were any qualifiers added, set the flag specified by the
@@ -9858,6 +9858,19 @@ operators), 3.3.15 (?: operator), and 3.3.16.1 (simple assignment).
     /* Get the type pointed to and drop type qualifiers and typedefs. */
     source_type_pointed_to = type_pointed_to(source_type);
     unqual_source_type_pointed_to = skip_typerefs(source_type_pointed_to);
+    if (exc_spec_in_func_type &&
+        type_is(unqual_source_type_pointed_to, tk_routine) &&
+        type_is(unqual_dest_type_pointed_to, tk_routine) &&
+        (type_has_less_restrictive_exception_spec(
+                unqual_source_type_pointed_to, unqual_dest_type_pointed_to) ||
+         ((conv_context & CCO_EXPLICIT_CAST) &&
+          type_has_less_restrictive_exception_spec(
+              unqual_dest_type_pointed_to, unqual_source_type_pointed_to)))) {
+      /* For a pointer-to-function type, exception specifications do not have
+         to match exactly.  We verified that the exception specification is
+         convertible, so ignore it in what follows. */
+      tcf |= TCF_IGNORE_TOP_LEVEL_NOEXCEPT;
+    }  /* if */
     if (!type_is(skip_typerefs(source_type_pointed_to), tk_routine)) {
       /* Implicit conversion of pointers to function (at the top level) only
          requires that the exception specification not be tightened.  However,
