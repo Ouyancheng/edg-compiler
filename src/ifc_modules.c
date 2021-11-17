@@ -15740,6 +15740,17 @@ inline a_boolean an_ifc_module::read_partition_element_shallow(
 }  /* read_partition_element_shallow */
 
 
+template<typename... Args>
+inline a_boolean an_ifc_module::read_partition_element_shallow(Args&&... args)
+/*
+
+*/
+{
+  an_ifc_partition_position pos(this, args...);
+  return read_partition_element_shallow(pos);
+}  /* read_partition_element_shallow */
+
+
 inline a_boolean an_ifc_module::read_partition_element(
                                                  an_ifc_partition_position pos)
 /*
@@ -15756,6 +15767,18 @@ inline a_boolean an_ifc_module::read_partition_element(
 }  /* read_partition_element */
 
 
+template<typename... Args>
+inline a_boolean an_ifc_module::read_partition_element(Args&&... args)
+/*
+
+*/
+{
+  an_ifc_partition_position pos(this, args...);
+
+  return read_partition_element(pos);
+}  /* read_partition_element */
+
+
 inline void an_ifc_module::read_prechecked_partition_element(
                                                  an_ifc_partition_position pos)
 /*
@@ -15769,6 +15792,18 @@ inline void an_ifc_module::read_prechecked_partition_element(
   debug_partition = &partitions[pos.partition];
 #endif /* DEBUG && EXPENSIVE_CHECKING */
   init_byte_buffer(pos.file_offset, partitions[pos.partition].size);
+}  /* read_prechecked_partition_element */
+
+
+template<typename... Args>
+inline void an_ifc_module::read_prechecked_partition_element(Args&&... args)
+/*
+
+*/
+{
+  an_ifc_partition_position pos(this, args...);
+
+  read_prechecked_partition_element(pos);
 }  /* read_prechecked_partition_element */
 
 

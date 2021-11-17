@@ -3133,21 +3133,16 @@ private:
                                         an_ifc_partition_position pos,
                                         a_boolean                 recursively);
   inline void read_unchecked_partition_element(an_ifc_partition_position pos);
-  inline a_boolean read_partition_element_shallow(an_ifc_partition_position pos);
+  inline a_boolean read_partition_element_shallow(
+                                                an_ifc_partition_position pos);
   template<typename... Args>
-  inline a_boolean read_partition_element_shallow(Args&&... args)
-    { return read_partition_element_shallow(an_ifc_partition_position(this,
-                                                                      args...)); }
+  inline a_boolean read_partition_element_shallow(Args&&... args);
   inline a_boolean read_partition_element(an_ifc_partition_position pos);
   template<typename... Args>
-  inline a_boolean read_partition_element(Args&&... args)
-    { return read_partition_element(an_ifc_partition_position(this,
-                                                              args...)); }
+  inline a_boolean read_partition_element(Args&&... args);
   inline void read_prechecked_partition_element(an_ifc_partition_position pos);
   template<typename... Args>
-  inline void read_prechecked_partition_element(Args&&... args)
-    { read_prechecked_partition_element(an_ifc_partition_position(this,
-                                                                  args...)); }
+  inline void read_prechecked_partition_element(Args&&... args);
   inline ifc_Index read_index_from_heap(an_ifc_partition_kind heap_partition,
                                         ifc_Index_type        index);
   template<an_ifc_partition_kind a_Partition_Kind, typename a_Trait_T>
