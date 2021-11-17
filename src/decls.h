@@ -1211,6 +1211,9 @@ typedef struct a_decl_parse_state {
   a_bit_field   is_explicit_this:1;
 			/* TRUE if this is a member function with an explicit
 			   "this" parameter. */
+  a_bit_field   lambda_with_omitted_parameters:1;
+			/* TRUE when a lambda declarator appeared but omitted
+			   the parenthesized parameter list. */
   an_init_state
 		init_state;
 			/* Information about the initializer (if any)

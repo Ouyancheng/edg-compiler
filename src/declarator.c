@@ -8485,6 +8485,9 @@ reparse_declarator:
   }  /* if */
   dps->type = func_type;
   if (curr_token == tok_requires && !dps->is_trailing_return_type) {
+    if (dps->lambda_with_omitted_parameters) {
+      pos_error(ec_lambda_without_parameters_requires_clause, &pos_curr_token);
+    }  /* if */
     scan_trailing_requires_clause(dps, func_info, &loc);
   }  /* if */
 }  /* scan_lambda_declarator */

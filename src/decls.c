@@ -320,6 +320,7 @@ be restored).
   dps->ineligible = FALSE;
   dps->is_abbr_func_template = FALSE;
   dps->is_explicit_this = FALSE;
+  dps->lambda_with_omitted_parameters = FALSE;
   clear_init_state(&dps->init_state);
   dps->id_attributes = NULL;
   dps->asm_name = NULL;

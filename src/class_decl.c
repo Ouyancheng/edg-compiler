@@ -33383,6 +33383,7 @@ proper.
     cache_token(&cache, tok_lparen, &pos_curr_token);
     cache_token(&cache, tok_rparen, &pos_curr_token);
     rescan_cached_tokens(&cache);
+    dps->lambda_with_omitted_parameters = TRUE;
   }  /* if */
   if (curr_token == tok_lparen) {
     add_stop_token(tok_lbrace);
