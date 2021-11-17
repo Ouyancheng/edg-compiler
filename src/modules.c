@@ -668,7 +668,7 @@ contained in the module that provided the class.
   a_boolean                     scope_pushed = FALSE;
 
   check_assertion(mep != NULL);
-  if (!class_type->definition_pending) {
+  if (!class_type->definition_pending && !mep->invalid) {
     class_type->definition_pending = TRUE;
     scope_pushed = push_module_declaration_context(mep->scope);
     mep->module_info->module_interface->
