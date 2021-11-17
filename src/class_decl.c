@@ -33360,12 +33360,19 @@ proper.
   dps->declarator_start_pos = dps->declarator_pos = pos_curr_token;
   dps->is_lambda = TRUE;
   dps->first_decl = TRUE;
+  /* Check for explicit lambda template parameters (a C++20 feature). */
   if (curr_token == tok_lt && generic_lambdas_enabled &&
       lambda_template_param_list_enabled) {
     scan_lambda_template_param_list(templ_state, dps);
     if (scope_stack_top().is_generic_lambda) {
       lambda->is_generic = TRUE;
     }  /* if */
+  }  /* if */
+  /* Check for the presence of attributes. */
+  if (std_attribute_tokens_next() ||
+      (gnu_version_is(>=100000) && curr_token == tok_attribute)) {
+    pos_warning(ec_nonstandard_lambda_attributes, &pos_curr_token);
+    dps->prefix_attributes = scan_attributes(al_prefix);
   }  /* if */
   if (curr_token != tok_lparen && curr_token != tok_lbrace &&
       (cpp23_mode || gpp_version_is(>= 110000) ||

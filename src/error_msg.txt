@@ -3305,6 +3305,7 @@ ec_invalid_overflowing_ifc_position;;"file position %d1 (relative position %d2) 
 ec_invalid_misaligned_ifc_position;;"file position %d1 (relative position %d2) requested for partition %sq - which is misaligned with its partitions elements"
 ec_invalid_ifc_position_backtrace_field;;"from subfield %sq"
 ec_invalid_ifc_position_backtrace_pos;;"from partition %sq element %d1 (file position %d2, relative position %d3)"
+ec_nonstandard_lambda_attributes;;"lambda attributes are nonstandard here"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
