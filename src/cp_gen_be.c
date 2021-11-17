@@ -10932,6 +10932,7 @@ to unusable variables and class members.
   a_source_correspondence_ptr scp = NULL;
   an_il_entry_kind            kind = iek_none;
   a_boolean                   for_all_scopes;
+  a_boolean                   is_lambda_call_operator = FALSE;
 
   switch (expr->kind) {
     case enk_variable:
@@ -10941,6 +10942,13 @@ to unusable variables and class members.
     case enk_routine:
       scp = &node_routine(expr)->source_corresp;
       kind = iek_routine;
+      if (scp->is_class_member &&
+          class_type_supp(scp_parent_class(scp))->is_lambda_closure_class) {
+        /* The call operator of a lambda closure class is usable anywhere
+           the lambda can be referenced, even if the lambda is local to a
+           function. */
+        is_lambda_call_operator = TRUE;
+      }  /* if */
       break;
     case enk_field:
       scp = &node_field(expr)->source_corresp;
@@ -10961,7 +10969,7 @@ to unusable variables and class members.
                                   scp_parent_class(scp),
                                   /*include_base_classes=*/FALSE,
                                   /*ignore_field_selection_contexts=*/TRUE)) ||
-         scp->is_local_to_function ||
+         (scp->is_local_to_function && !is_lambda_call_operator) ||
          !entity_name_is_accessible(scp, kind, /*ignore_context=*/FALSE,
                                     &for_all_scopes))) {
       /* This node refers to a member of a not-yet-defined or local class,
@@ -15567,6 +15575,7 @@ Render code for the given lambda.
     /* Pop the name context for the closure class. */
     pop_name_context();
   }  /* if */
+  lambda->closure_class->has_been_defined = TRUE;
 }  /* gen_lambda */
 
 

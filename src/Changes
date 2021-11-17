@@ -1,5 +1,22 @@
 Version 6.3
 
+11/17/21 [EDGcpfe/24859]
+C++-generating back end: type operators involving local lambdas
+
+The changes for EDGcpfe/23814,EDGcpfe/24260 (not in a release but
+distributed to some customers as a patch) caused the C++-generating back
+end to generate certain cases of type operators involving lambda
+expressions as references to undefined classes with temporary names (of the
+form __T12345678) instead of the original type operator.  This is now
+fixed.  For example, with --c++17:
+
+  void f() {
+    auto l = []() { return []() {}; };
+    using T = decltype(l());  // Previously generated as "class __T12345678"
+    int i = sizeof(T);        // Previously an error due to incomplete type
+  }
+
+
 11/16/21 [EDGcpfe/23965]
 C++23: Lambda declarators
 
