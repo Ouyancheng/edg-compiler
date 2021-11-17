@@ -14489,7 +14489,20 @@ inline void an_ifc_module::Partition_element_validator::check(
 
 template<>
 inline void an_ifc_module::Partition_element_validator::check(
-                                                     ifc_TypeIndex val,
+                                                    ifc_ChartIndex val,
+                                                    const char     *field_name)
+/*
+*/
+{
+  if (val != 0) {
+    check(an_ifc_partition_position(ifc_mod, val), field_name);
+  }  /* if */
+}  /* check<ifc_ChartIndex> */
+
+
+template<>
+inline void an_ifc_module::Partition_element_validator::check(
+                                                     ifc_DeclIndex val,
                                                      const char    *field_name)
 /*
 */
@@ -14497,7 +14510,7 @@ inline void an_ifc_module::Partition_element_validator::check(
   if (val != 0) {
     check(an_ifc_partition_position(ifc_mod, val), field_name);
   }  /* if */
-}  /* check<ifc_TypeIndex> */
+}  /* check<ifc_DeclIndex> */
 
 
 template<>
@@ -14515,7 +14528,7 @@ inline void an_ifc_module::Partition_element_validator::check(
 
 template<>
 inline void an_ifc_module::Partition_element_validator::check(
-                                                     ifc_StmtIndex val,
+                                                     ifc_FormIndex val,
                                                      const char    *field_name)
 /*
 */
@@ -14523,12 +14536,25 @@ inline void an_ifc_module::Partition_element_validator::check(
   if (val != 0) {
     check(an_ifc_partition_position(ifc_mod, val), field_name);
   }  /* if */
-}  /* check<ifc_StmtIndex> */
+}  /* check<ifc_FormIndex> */
 
 
 template<>
 inline void an_ifc_module::Partition_element_validator::check(
-                                                     ifc_DeclIndex val,
+                                                 ifc_FormSpecIndex val,
+                                                 const char        *field_name)
+/*
+*/
+{
+  if (val != 0) {
+    check(an_ifc_partition_position(ifc_mod, val), field_name);
+  }  /* if */
+}  /* check<ifc_FormSpecIndex> */
+
+
+template<>
+inline void an_ifc_module::Partition_element_validator::check(
+                                                     ifc_LineIndex val,
                                                      const char    *field_name)
 /*
 */
@@ -14536,7 +14562,20 @@ inline void an_ifc_module::Partition_element_validator::check(
   if (val != 0) {
     check(an_ifc_partition_position(ifc_mod, val), field_name);
   }  /* if */
-}  /* check<ifc_DeclIndex> */
+}  /* check<ifc_LineIndex> */
+
+
+template<>
+inline void an_ifc_module::Partition_element_validator::check(
+                                                    ifc_MacroIndex val,
+                                                    const char     *field_name)
+/*
+*/
+{
+  if (val != 0) {
+    check(an_ifc_partition_position(ifc_mod, val), field_name);
+  }  /* if */
+}  /* check<ifc_MacroIndex> */
 
 
 template<>
@@ -14556,7 +14595,7 @@ inline void an_ifc_module::Partition_element_validator::check(
 
 template<>
 inline void an_ifc_module::Partition_element_validator::check(
-                                                    ifc_ChartIndex val,
+                                                    ifc_ScopeIndex val,
                                                     const char     *field_name)
 /*
 */
@@ -14564,20 +14603,33 @@ inline void an_ifc_module::Partition_element_validator::check(
   if (val != 0) {
     check(an_ifc_partition_position(ifc_mod, val), field_name);
   }  /* if */
-}  /* check<ifc_ChartIndex> */
+}  /* check<ifc_ScopeIndex> */
 
 
 template<>
 inline void an_ifc_module::Partition_element_validator::check(
-                                                 ifc_FormSpecIndex val,
-                                                 const char        *field_name)
+                                                ifc_SourceLocation val,
+                                                const char         *field_name)
+/*
+*/
+{
+  if (val.line != 0) {
+    check(an_ifc_partition_position(ifc_mod, val.line), field_name);
+  }  /* if */
+}  /* check<ifc_SourceLocation> */
+
+
+template<>
+inline void an_ifc_module::Partition_element_validator::check(
+                                                     ifc_StmtIndex val,
+                                                     const char    *field_name)
 /*
 */
 {
   if (val != 0) {
     check(an_ifc_partition_position(ifc_mod, val), field_name);
   }  /* if */
-}  /* check<ifc_FormSpecIndex> */
+}  /* check<ifc_StmtIndex> */
 
 
 template<>
@@ -14595,20 +14647,7 @@ inline void an_ifc_module::Partition_element_validator::check(
 
 template<>
 inline void an_ifc_module::Partition_element_validator::check(
-                                                    ifc_MacroIndex val,
-                                                    const char     *field_name)
-/*
-*/
-{
-  if (val != 0) {
-    check(an_ifc_partition_position(ifc_mod, val), field_name);
-  }  /* if */
-}  /* check<ifc_MacroIndex> */
-
-
-template<>
-inline void an_ifc_module::Partition_element_validator::check(
-                                                     ifc_FormIndex val,
+                                                     ifc_TypeIndex val,
                                                      const char    *field_name)
 /*
 */
@@ -14616,20 +14655,7 @@ inline void an_ifc_module::Partition_element_validator::check(
   if (val != 0) {
     check(an_ifc_partition_position(ifc_mod, val), field_name);
   }  /* if */
-}  /* check<ifc_FormIndex> */
-
-
-template<>
-inline void an_ifc_module::Partition_element_validator::check(
-                                                ifc_SourceLocation val,
-                                                const char         *field_name)
-/*
-*/
-{
-  if (val.line != 0) {
-    check(an_ifc_partition_position(ifc_mod, val.line), field_name);
-  }  /* if */
-}  /* check<ifc_SourceLocation> */
+}  /* check<ifc_TypeIndex> */
 
 
 inline void an_ifc_module::Partition_element_validator::mark_invalid()
@@ -15928,13 +15954,38 @@ Overload wrapper for "an_ifc_partition_position" that converts an
 
 
 inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                 const an_ifc_module *mod,
-                                                 ifc_TypeSort        type_kind,
-                                                 ifc_Index_type      index)
-  : an_ifc_partition_position(mod, get_partition_kind(type_kind), index)
+                                                const an_ifc_module *mod,
+                                                ifc_ChartSort       chart_kind,
+                                                ifc_Index_type      index)
+  : an_ifc_partition_position(mod, get_partition_kind(chart_kind), index)
 /*
 Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_TypeSort" kind into an "an_ifc_partition_kind" kind for convenience.
+"ifc_ChartSort" kind into an "an_ifc_partition_kind" kind for convenience.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                     const an_ifc_module *mod,
+                                                     ifc_ChartIndex      chart)
+  : an_ifc_partition_position(mod, chart_tag(chart), chart_value(chart))
+/*
+Overload wrapper for "an_ifc_partition_position" that converts an
+"ifc_ChartIndex" into its tag and index components for convenience.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                 const an_ifc_module *mod,
+                                                 ifc_DeclSort        decl_kind,
+                                                 ifc_Index_type      index)
+  : an_ifc_partition_position(mod, get_partition_kind(decl_kind), index)
+/*
+Overload wrapper for "an_ifc_partition_position" that converts an
+"ifc_DeclSort" kind into an "an_ifc_partition_kind" kind for convenience.
 */
 {
 } /* an_ifc_partition_position */
@@ -15942,11 +15993,11 @@ Overload wrapper for "an_ifc_partition_position" that converts an
 
 inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                       const an_ifc_module *mod,
-                                                      ifc_TypeIndex       type)
-  : an_ifc_partition_position(mod, type_tag(type), type_value(type))
+                                                      ifc_DeclIndex       decl)
+  : an_ifc_partition_position(mod, decl_tag(decl), decl_value(decl))
 /*
 Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_TypeIndex" into its tag and index components for convenience.
+"ifc_DeclIndex" into its tag and index components for convenience.
 */
 {
 } /* an_ifc_partition_position */
@@ -15979,12 +16030,14 @@ Overload wrapper for "an_ifc_partition_position" that converts an
 
 inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                  const an_ifc_module *mod,
-                                                 ifc_StmtSort        stmt_kind,
+                                                 ifc_FormSort        form_kind,
                                                  ifc_Index_type      index)
-  : an_ifc_partition_position(mod, get_partition_kind(stmt_kind), index)
+  : an_ifc_partition_position(mod, (an_ifc_partition_kind)(ifc_form_start +
+                                                                    form_kind),
+                              index)
 /*
 Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_StmtSort" kind into an "an_ifc_partition_kind" kind for convenience.
+"ifc_FormSort" kind into an "an_ifc_partition_kind" kind for convenience.
 */
 {
 } /* an_ifc_partition_position */
@@ -15992,11 +16045,11 @@ Overload wrapper for "an_ifc_partition_position" that converts an
 
 inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                       const an_ifc_module *mod,
-                                                      ifc_StmtIndex       stmt)
-  : an_ifc_partition_position(mod, stmt_tag(stmt), stmt_value(stmt))
+                                                      ifc_FormIndex       form)
+  : an_ifc_partition_position(mod, form_tag(form), form_index(form))
 /*
 Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_StmtIndex" into its tag and index components for convenience.
+"ifc_FormIndex" into its tag and index components for convenience.
 */
 {
 } /* an_ifc_partition_position */
@@ -16004,24 +16057,50 @@ Overload wrapper for "an_ifc_partition_position" that converts an
 
 inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                  const an_ifc_module *mod,
-                                                 ifc_DeclSort        decl_kind,
-                                                 ifc_Index_type      index)
-  : an_ifc_partition_position(mod, get_partition_kind(decl_kind), index)
+                                                 ifc_FormSpecIndex   form_spec)
+  : an_ifc_partition_position(mod, ifc_form_spec, form_spec)
 /*
 Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_DeclSort" kind into an "an_ifc_partition_kind" kind for convenience.
+"ifc_FormSpecIndex" into its tag and index components for convenience.
 */
 {
 } /* an_ifc_partition_position */
 
 
 inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                      const an_ifc_module *mod,
-                                                      ifc_DeclIndex       decl)
-  : an_ifc_partition_position(mod, decl_tag(decl), decl_value(decl))
+                                                 const an_ifc_module *mod,
+                                                 ifc_LineIndex       line)
+  : an_ifc_partition_position(mod, ifc_src_line, line)
 /*
 Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_DeclIndex" into its tag and index components for convenience.
+"ifc_LineIndex" into its tag and index components for convenience.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                const an_ifc_module *mod,
+                                                ifc_MacroSort       macro_kind,
+                                                ifc_Index_type      index)
+  : an_ifc_partition_position(mod, (an_ifc_partition_kind)(ifc_macro_start +
+                                                                   macro_kind),
+                              index)
+/*
+Overload wrapper for "an_ifc_partition_position" that converts an
+"ifc_MacroSort" kind into an "an_ifc_partition_kind" kind for convenience.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                     const an_ifc_module *mod,
+                                                     ifc_MacroIndex      macro)
+  : an_ifc_partition_position(mod, macro_tag(macro), macro_index(macro))
+/*
+Overload wrapper for "an_ifc_partition_position" that converts an
+"ifc_MacroIndex" into its tag and index components for convenience.
 */
 {
 } /* an_ifc_partition_position */
@@ -16057,25 +16136,12 @@ Overload wrapper for "an_ifc_partition_position" that converts an
 
 
 inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                const an_ifc_module *mod,
-                                                ifc_ChartSort       chart_kind,
-                                                ifc_Index_type      index)
-  : an_ifc_partition_position(mod, get_partition_kind(chart_kind), index)
-/*
-Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_ChartSort" kind into an "an_ifc_partition_kind" kind for convenience.
-*/
-{
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                      const an_ifc_module *mod,
-                                                     ifc_ChartIndex      chart)
-  : an_ifc_partition_position(mod, chart_tag(chart), chart_value(chart))
+                                                     ifc_ScopeIndex      scope)
+  : an_ifc_partition_position(mod, ifc_scope_desc, scope - 1)
 /*
 Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_ChartIndex" into its tag and index components for convenience.
+"ifc_ScopeIndex" into its tag and index components for convenience.
 */
 {
 } /* an_ifc_partition_position */
@@ -16083,23 +16149,24 @@ Overload wrapper for "an_ifc_partition_position" that converts an
 
 inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                  const an_ifc_module *mod,
-                                                 ifc_LineIndex       line)
-  : an_ifc_partition_position(mod, ifc_src_line, line)
+                                                 ifc_StmtSort        stmt_kind,
+                                                 ifc_Index_type      index)
+  : an_ifc_partition_position(mod, get_partition_kind(stmt_kind), index)
 /*
 Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_LineIndex" into its tag and index components for convenience.
+"ifc_StmtSort" kind into an "an_ifc_partition_kind" kind for convenience.
 */
 {
 } /* an_ifc_partition_position */
 
 
 inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                 const an_ifc_module *mod,
-                                                 ifc_FormSpecIndex   form_spec)
-  : an_ifc_partition_position(mod, ifc_form_spec, form_spec)
+                                                      const an_ifc_module *mod,
+                                                      ifc_StmtIndex       stmt)
+  : an_ifc_partition_position(mod, stmt_tag(stmt), stmt_value(stmt))
 /*
 Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_FormSpecIndex" into its tag and index components for convenience.
+"ifc_StmtIndex" into its tag and index components for convenience.
 */
 {
 } /* an_ifc_partition_position */
@@ -16133,42 +16200,13 @@ Overload wrapper for "an_ifc_partition_position" that converts an
 
 
 inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                const an_ifc_module *mod,
-                                                ifc_MacroSort       macro_kind,
-                                                ifc_Index_type      index)
-  : an_ifc_partition_position(mod, (an_ifc_partition_kind)(ifc_macro_start +
-                                                                   macro_kind),
-                              index)
-/*
-Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_MacroSort" kind into an "an_ifc_partition_kind" kind for convenience.
-*/
-{
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                     const an_ifc_module *mod,
-                                                     ifc_MacroIndex      macro)
-  : an_ifc_partition_position(mod, macro_tag(macro), macro_index(macro))
-/*
-Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_MacroIndex" into its tag and index components for convenience.
-*/
-{
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                  const an_ifc_module *mod,
-                                                 ifc_FormSort        form_kind,
+                                                 ifc_TypeSort        type_kind,
                                                  ifc_Index_type      index)
-  : an_ifc_partition_position(mod, (an_ifc_partition_kind)(ifc_form_start +
-                                                                    form_kind),
-                              index)
+  : an_ifc_partition_position(mod, get_partition_kind(type_kind), index)
 /*
 Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_FormSort" kind into an "an_ifc_partition_kind" kind for convenience.
+"ifc_TypeSort" kind into an "an_ifc_partition_kind" kind for convenience.
 */
 {
 } /* an_ifc_partition_position */
@@ -16176,11 +16214,11 @@ Overload wrapper for "an_ifc_partition_position" that converts an
 
 inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                       const an_ifc_module *mod,
-                                                      ifc_FormIndex       form)
-  : an_ifc_partition_position(mod, form_tag(form), form_index(form))
+                                                      ifc_TypeIndex       type)
+  : an_ifc_partition_position(mod, type_tag(type), type_value(type))
 /*
 Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_FormIndex" into its tag and index components for convenience.
+"ifc_TypeIndex" into its tag and index components for convenience.
 */
 {
 } /* an_ifc_partition_position */
