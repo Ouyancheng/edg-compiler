@@ -14357,11 +14357,16 @@ private:
   /* Validation functions. */
   inline void validate(an_ifc_partition_position pos, const char *field_name);
   template<typename a_Type>
-  void check(a_Type val, const char *field_name)
+  inline void check(a_Type val, const char *field_name)
     {}
   /* Visitor functions to traverse the IFC. */
   template<typename T>
-  inline void visit(an_ifc_partition_position pos) = delete;
+  inline void def_visit_members(T *element) = delete;
+  template<typename T>
+  inline void def_visit(an_ifc_partition_position pos) = delete;
+  template<typename T>
+  inline void visit(an_ifc_partition_position pos)
+    { def_visit<T>(pos); }
   void visit_position(an_ifc_partition_position pos);
   an_ifc_module *ifc_mod;
   a_boolean     recursively;
@@ -14755,7 +14760,7 @@ inline void an_ifc_module::Partition_element_validator::undefined_partition(
   check_assertion(false);
 found:
   ;
-}  /* invalid_partition */
+}  /* undefined_partition */
 
 
 inline void an_ifc_module::Partition_element_validator::invalid_position(
@@ -14789,26 +14794,91 @@ inline void an_ifc_module::Partition_element_validator::invalid_position(
     end_diagnostic(diag_ptr);
     mark_invalid();
   }
-}  /* invalid_partition */
+}  /* invalid_position */
 
+/* Automatically generate a specialization for visiting the members of
+   an IFC module partition element. */
 
 #define IFC_DECL_START(name) \
 template<> \
-inline void an_ifc_module::Partition_element_validator::visit< \
-                        concat(an_ifc_, name)>(an_ifc_partition_position pos) \
-{ \
-  concat(an_ifc_, name) mem; \
-  ARG_UNUSED concat(an_ifc_, name) *memp; \
-  ifc_mod->read_unchecked_partition_element(pos); \
-  memp = ifc_mod->get<concat(an_ifc_, name)>(&mem);
+inline void an_ifc_module::Partition_element_validator::def_visit_members< \
+                        concat(an_ifc_, name)>(concat(an_ifc_, name) *memp) \
+{
 #define IFC_DECL_FIELD(name, type) \
   check<concat(ifc_, type)>(memp->name, #name);
 #define IFC_DECL_END(name) \
-}  /* visit<concat(an_ifc_, name)> */
+}  /* def_visit_members<concat(an_ifc_, name)> */
 
 /*lint -e451 included more than once. */
 #include "ifc_map.h"
 /*lint +e451*/
+
+
+/* Automatically generate a specialization for visiting an IFC module partition
+   element and visiting its members with the automatically generated member
+   validation function. */
+
+#define IFC_DECL_START(name) \
+template<> \
+inline void an_ifc_module::Partition_element_validator::def_visit< \
+                        concat(an_ifc_, name)>(an_ifc_partition_position pos) \
+{ \
+  concat(an_ifc_, name) mem, *memp; \
+  ifc_mod->read_unchecked_partition_element(pos); \
+  memp = ifc_mod->get<concat(an_ifc_, name)>(&mem); \
+  def_visit_members(memp);
+/* Disable generation from the following macros by defining them to nothing. */
+#define IFC_DECL_FIELD(field, type)
+/* Generate the end of the function. */
+#define IFC_DECL_END(name) \
+}  /* def_visit<concat(an_ifc_, name)> */
+
+/*lint -e451 included more than once. */
+#include "ifc_map.h"
+/*lint +e451*/
+
+
+/* Declare and define manual overrides that should be used in place of the
+   automatically generated validation visit functions. */
+
+template<>
+inline void an_ifc_module::Partition_element_validator::visit<
+                      an_ifc_DeclSort_Reference>(an_ifc_partition_position pos)
+/*
+Visit and validate an IFC reference partition element.
+
+FIXME: This partition element represents a reference to a declaration of
+another module.  While the caller potentially depends on this, for now, treat
+the reference itself as implicitly trusted to avoid the complexity.  Treating
+this as a no-op implies that the function ordering the import of the external
+declaration (if any) is responsible for validation, which may be the right
+decision.
+*/
+{
+}  /* visit<an_ifc_Reference> */
+
+
+template<>
+inline void an_ifc_module::Partition_element_validator::visit<
+                        an_ifc_Scope_Descriptor>(an_ifc_partition_position pos)
+/*
+*/
+{
+  an_ifc_Scope_Descriptor isd, *isdp;
+
+  ifc_mod->read_unchecked_partition_element(pos);
+  isdp = ifc_mod->get<an_ifc_Scope_Descriptor>(&isd);
+  /* Perform the normal validation. */
+  def_visit_members(isdp);
+  /* Visit all associated elements. */
+  for (ifc_Index_type idx = 0; idx < isdp->cardinality; ++idx) {
+    an_ifc_partition_position referenced_pos(ifc_mod, ifc_scope_member,
+                                             isdp->start + idx);
+
+    visit_position(referenced_pos);
+  }  /* for */
+}  /* visit<an_ifc_Scope> */
+
 
 void an_ifc_module::Partition_element_validator::visit_position(
                                                  an_ifc_partition_position pos)
@@ -15663,6 +15733,13 @@ void an_ifc_module::Partition_element_validator::visit_position(
     case ifc_form_junk:
       visit<an_ifc_FormSort_Junk>(pos);
       break;
+    /* Group scope sequences together. */
+    case ifc_scope_desc:
+      visit<an_ifc_Scope_Descriptor>(pos);
+      break;
+    case ifc_scope_member:
+      visit<an_ifc_Scope_Member>(pos);
+      break;
     /* Group heaps together. */
     case ifc_heap_attr:
     case ifc_heap_chart:
@@ -15703,8 +15780,6 @@ void an_ifc_module::Partition_element_validator::visit_position(
     case ifc_module_imported:
     case ifc_pragma_state:
     case ifc_pragma_vendorext:
-    case ifc_scope_desc:
-    case ifc_scope_member:
     case ifc_sentence:
     case ifc_trait_alias_template:
     case ifc_trait_attribute:
