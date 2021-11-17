@@ -33371,7 +33371,9 @@ proper.
   /* Check for the presence of attributes. */
   if (std_attribute_tokens_next() ||
       (gnu_version_is(>=100000) && curr_token == tok_attribute)) {
-    pos_warning(ec_nonstandard_lambda_attributes, &pos_curr_token);
+    pos_diagnostic(strict_ansi_mode ? es_discretionary_error
+                                    : es_warning,
+                   ec_nonstandard_lambda_attributes, &pos_curr_token);
     dps->prefix_attributes = scan_attributes(al_prefix);
   }  /* if */
   if (curr_token != tok_lparen && curr_token != tok_lbrace &&
