@@ -16254,7 +16254,7 @@ Return TRUE if this position was invalid when previously validated.
     uint32_t index = to_partition_index(pos);
     size_t   block = index / 16;
     size_t   bit_index = index % 16;
-    unsigned bit_mask = 0x1 << 16 << bit_index;
+    unsigned bit_mask = (0x1 << 16) << bit_index;
 
     return partitions[pos.partition].format_validated[block] & bit_mask;
   }
@@ -16269,7 +16269,7 @@ Mark the given position as having been validated.
   uint32_t index = to_partition_index(pos);
   size_t   block = index / 16;
   size_t   bit = index % 16;
-  unsigned bit_mask = 0x1 << 16 << bit;
+  unsigned bit_mask = (0x1 << 16) << bit;
 
   partitions[pos.partition].format_validated[block] |= bit_mask;
 }  /* an_ifc_partition_position */
