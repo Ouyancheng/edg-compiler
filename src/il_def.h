@@ -12785,7 +12785,9 @@ enum an_expr_node_kind_tag {
 			   of a function type.  For example, in the function
 			   declaration "auto f(X a)->decltype(*a)" the use
 			   of "a" in the decltype construct is represented
-			   with an enk_param_ref node. */
+			   with an enk_param_ref node.  Also used to represent
+			   "this" in some contexts that don't have a "this"
+			   variable. */
   enk_braced_init_list,	/* A C++11 brace-enclosed initializer list. */
   enk_c11_generic,	/* Used to represent a C11 _Generic expression
 			   selection. */

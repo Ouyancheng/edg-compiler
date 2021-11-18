@@ -12238,6 +12238,29 @@ if is_lvalue is TRUE.
 }  /* make_selection_for_captured_variable */
 
 
+static void make_abstract_this_operand(an_operand         *opnd,
+                                       a_type_ptr         this_type,
+                                       a_source_position  *pos,
+                                       a_boolean          compiler_generated)
+/*
+In some contexts there is no "this" variable, but "this" can nonetheless be
+used (explicit or implicit).  Create in *opnd a special enk_param_ref
+expression operand of "this_type" to represents such a use of "this".  pos is
+the source position of that use.  compiler_generated is TRUE if the use was
+implicit (i.e., not appearing explicitly in the source).
+*/
+{
+  an_expr_node_ptr  node = alloc_expr_node((an_expr_node_kind)enk_param_ref);
+
+  node->type = this_type;
+  node->variant.param_ref.param_num = 0;
+  node->variant.param_ref.levels_up = 0;
+  node->position = *pos;
+  node->compiler_generated = compiler_generated;
+  make_expression_operand(node, opnd);
+}  /* make_abstract_this_operand */
+
+
 void make_this_variable_operand(a_variable_ptr               this_var,
                                 a_type_ptr                   this_type,
                                 ARG_UNUSED a_boolean         is_implicit,
@@ -12270,6 +12293,12 @@ that case, and this_type is used for the type.
       node = make_selection_for_captured_variable(lambda_capture,
                                                   /*is_lvalue=*/FALSE);
       make_expression_operand(node, result);
+    } else if (!curr_expr_is_potentially_evaluated()) {
+      /* Something like "[]{ sizeof(f()); }" where f() is a nonstatic member
+         function: "this" doesn't need to be captured in unevaluated contexts,
+         and thus we don't have an expression for "this".  Use an enk_param_ref
+         entry instead. */
+      make_abstract_this_operand(result, this_type, position, is_implicit);
     } else {
       /* "this" cannot be captured. */
       expr_pos_error(ec_not_captured_this_in_lambda, position);
@@ -12280,12 +12309,7 @@ that case, and this_type is used for the type.
        late-specified return type, or "this" in a nonstatic data member
        initializer.  There is no variable yet, so use an enk_param_ref
        with a parameter number of zero. */
-    node = alloc_expr_node((an_expr_node_kind)enk_param_ref);
-    node->type = this_type;
-    node->variant.param_ref.param_num = 0;
-    node->variant.param_ref.levels_up = 0;
-    node->position = *position;
-    make_expression_operand(node, result);
+    make_abstract_this_operand(result, this_type, position, is_implicit);
     /* Call variable_this_exists_full again to possibly record a check
        for an error later.  We already know it returns TRUE. */
     if (!variable_this_exists_full((a_variable_ptr *)NULL, (a_type_ptr *)NULL,
