@@ -24,7 +24,7 @@ C++-generating back end: type operators involving local lambdas
 
 The changes for EDGcpfe/23814,EDGcpfe/24260 (not in a release but
 distributed to some customers as a patch) caused the C++-generating back
-end to generate certain cases of type operators involving lambda
+end to generate certain cases of type operators involving local lambda
 expressions as references to undefined classes with temporary names (of the
 form __T12345678) instead of the original type operator.  This is now
 fixed.  For example, with --c++17:
