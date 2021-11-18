@@ -14309,578 +14309,25 @@ its ifc_AttrIndex.
 }  /* attr_index_of */
 
 
-inline a_boolean an_ifc_module::validate_partition_position(
-                                                 an_ifc_partition_position pos)
-{
-  a_boolean        result = TRUE;
-  an_ifc_partition *partition = &partitions[pos.partition];
-
-  if (partition->size == 0) {
-    /* Check that anything is stored in the requested partition. */
-    result = FALSE;
-  } else if (pos.file_offset < partition->offset) {
-    /* Check that this position follows the requested partition. */
-    result = FALSE;
-  } else {
-    size_t relative_offset = pos.file_offset - partition->offset;
-    if ((relative_offset + partition->entry_size) > partition->size) {
-      /* Check that the relative offset is within the partition. */
-      result = FALSE;
-    } else if ((relative_offset % partition->entry_size) != 0) {
-      /* Check that the relative offset is at a given position. */
-      result = FALSE;
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* validate_partition_position */
-
-/* ... */
-struct an_ifc_module::Partition_element_validator {
-  a_boolean invalid;
-
-  Partition_element_validator(an_ifc_module *ifc_mod_val,
-                              a_boolean recursively_val)
-    : invalid(false), ifc_mod(ifc_mod_val), recursively(recursively_val),
-      tail(nullptr)
+/* A CRT (curiously recursive template) visitor class for dispatching to a
+   visit function that should be "overridden" by implementing derived
+   classes. */
+template<typename a_Derived_T>
+struct an_ifc_module::Element_visitor {
+  Element_visitor()
     {}
 
-  void validate(an_ifc_partition_position pos)
-    { validate(pos, ""); }
-private:
-  struct Validation_stage;
-  /* Error handling functions. */
-  inline void mark_invalid();
-  inline void add_backtrace(a_diagnostic_ptr diag_ptr) const;
-  inline void invalid_partition(an_ifc_partition_position pos);
-  inline void undefined_partition(an_ifc_partition_position pos);
-  inline void invalid_position(an_ifc_partition_position pos);
-  /* Validation functions. */
-  inline void validate(an_ifc_partition_position pos, const char *field_name);
-  template<typename a_Type>
-  inline void check(a_Type val, const char *field_name)
-    {}
-  /* Visitor functions to traverse the IFC. */
   template<typename T>
-  inline void def_visit_members(T *element) = delete;
-  template<typename T>
-  inline void def_visit(an_ifc_partition_position pos) = delete;
-  template<typename T>
-  inline void visit(an_ifc_partition_position pos)
-    { def_visit<T>(pos); }
+  inline void visit(an_ifc_partition_position pos) = delete;
   void visit_position(an_ifc_partition_position pos);
-  an_ifc_module *ifc_mod;
-  a_boolean     recursively;
-  Validation_stage
-                *tail;
-};  /* Decl_value_visitor */
+protected:
+  inline auto getDerived() -> a_Derived_T *
+    { return static_cast<a_Derived_T*>(this); }
+};  /* Element_visitor */
 
 
-/* A structure that's responsible making the stack stored state related to the
-   current "validate" call and all parents accessible.  This allows the call
-   stack to be traversed (to retrieve information about the requester) without
-   storing this information in a side stack/duplicating the objects of interest
-   in side state.
-
-   A pointer to the current position, the field name referencing said position
-   and the position validity are made accessible via this system.
-
-   The tail pointer is used to enter this information and points to the top of
-   the validation stack.  It's maintained by storing the tail pointers current
-   value (prev), then updating the tail pointer to point to the current
-   validation stage.  When destroyed the tail pointer is restored to its
-   previous state. */
-struct an_ifc_module::Partition_element_validator::Validation_stage {
-  Validation_stage          **tail_ptr;
-  Validation_stage          *prev;
-  an_ifc_partition_position *pos;
-  const char                *field_name;
-  a_boolean                 invalid;
-
-  Validation_stage(Validation_stage          **tail_ptr_val,
-                   an_ifc_partition_position *pos_val,
-                   const char                *field_name_val)
-    : tail_ptr(tail_ptr_val), prev(*tail_ptr_val), pos(pos_val),
-      field_name(field_name_val), invalid(FALSE)
-    { *tail_ptr = this; }
-  ~Validation_stage()
-    { *tail_ptr = prev; }
-};  /* Validation_stage */
-
-
-inline void an_ifc_module::Partition_element_validator::validate(
-                                         an_ifc_partition_position pos,
-                                         const char                *field_name)
-/* */
-{
-  Validation_stage stage(&tail, &pos, field_name);
-
-  /* First check to see if the given position is a real element that needs
-     validation (i.e., check the position itself). */
-  if (pos.partition == ifc_invalid_partition) {
-    /* The partition is invalid, no processing can be done at this position. */
-    invalid_partition(pos);
-  } else if (ifc_mod->partitions[pos.partition].name == NULL) {
-    /* The partition is undefined, no processing can be done at this
-       position. */
-    undefined_partition(pos);
-  } else if (!ifc_mod->validate_partition_position(pos)) {
-    /* The position is invalid, no processing can be done at this position. */
-    invalid_position(pos);
-  } else {
-    /* This is a sane position, the validation cache can now be consulted
-       to see if this address has been previously checked. */
-    if (ifc_mod->has_been_validated(pos)) {
-      /* This element was previously validated, use its previous state. */
-      if (ifc_mod->was_previously_marked_invalid(pos)) {
-        mark_invalid();
-      }  /* if */
-    } else {
-      /* This element was not previously validated.  There are two cases where
-         validation is performed here with different implications.
-
-         If doing recursive validation, this position will be fully validated,
-         and can be cached with both valid and invalid status.
-
-         If doing only top level (non-recursive/shallow) validation, the
-         position will only be marked valid if it was determined to be invalid
-         -- as without checking its dependencies we can't possibly know if
-         it's valid, only that it's invalid. */
-      if (recursively) {
-        /* Handle first case (recursive validation). */
-        /* Mark the element validated before doing validation if this is a
-           recursive validation to prevent infinite recursion when the
-           traversal self references. */
-        ifc_mod->mark_validated(pos);
-        visit_position(pos);
-        if (stage.invalid) {
-          ifc_mod->mark_invalid(pos);
-        }  /* if */
-      } else if (tail->prev == nullptr) {
-        /* Handle second case (top level validation). */
-        visit_position(pos);
-        if (stage.invalid) {
-          ifc_mod->mark_validated(pos);
-          ifc_mod->mark_invalid(pos);
-        }  /* if */
-      }  /* if */
-    }  /* if */
-  } /* if */
-}  /* validate */
-
-template<>
-inline void an_ifc_module::Partition_element_validator::check(
-                                         an_ifc_partition_position val,
-                                         const char                *field_name)
-/*
-Check the validity of the given partition position by recursing.
-*/
-{
-  validate(val, field_name);
-}  /* check<an_ifc_partition_position> */
-
-
-template<>
-inline void an_ifc_module::Partition_element_validator::check(
-                                                     ifc_AttrIndex val,
-                                                     const char    *field_name)
-/*
-*/
-{
-  if (val != 0) {
-    check(an_ifc_partition_position(ifc_mod, val), field_name);
-  }  /* if */
-}  /* check<ifc_AttrIndex> */
-
-
-template<>
-inline void an_ifc_module::Partition_element_validator::check(
-                                                    ifc_ChartIndex val,
-                                                    const char     *field_name)
-/*
-*/
-{
-  if (val != 0) {
-    check(an_ifc_partition_position(ifc_mod, val), field_name);
-  }  /* if */
-}  /* check<ifc_ChartIndex> */
-
-
-template<>
-inline void an_ifc_module::Partition_element_validator::check(
-                                                     ifc_DeclIndex val,
-                                                     const char    *field_name)
-/*
-*/
-{
-  if (val != 0) {
-    check(an_ifc_partition_position(ifc_mod, val), field_name);
-  }  /* if */
-}  /* check<ifc_DeclIndex> */
-
-
-template<>
-inline void an_ifc_module::Partition_element_validator::check(
-                                                     ifc_ExprIndex val,
-                                                     const char    *field_name)
-/*
-*/
-{
-  if (val != 0) {
-    check(an_ifc_partition_position(ifc_mod, val), field_name);
-  }  /* if */
-}  /* check<ifc_ExprIndex> */
-
-
-template<>
-inline void an_ifc_module::Partition_element_validator::check(
-                                                     ifc_FormIndex val,
-                                                     const char    *field_name)
-/*
-*/
-{
-  if (val != 0) {
-    check(an_ifc_partition_position(ifc_mod, val), field_name);
-  }  /* if */
-}  /* check<ifc_FormIndex> */
-
-
-template<>
-inline void an_ifc_module::Partition_element_validator::check(
-                                                 ifc_FormSpecIndex val,
-                                                 const char        *field_name)
-/*
-*/
-{
-  if (val != 0) {
-    check(an_ifc_partition_position(ifc_mod, val), field_name);
-  }  /* if */
-}  /* check<ifc_FormSpecIndex> */
-
-
-template<>
-inline void an_ifc_module::Partition_element_validator::check(
-                                                     ifc_LineIndex val,
-                                                     const char    *field_name)
-/*
-*/
-{
-  if (val != 0) {
-    check(an_ifc_partition_position(ifc_mod, val), field_name);
-  }  /* if */
-}  /* check<ifc_LineIndex> */
-
-
-template<>
-inline void an_ifc_module::Partition_element_validator::check(
-                                                    ifc_MacroIndex val,
-                                                    const char     *field_name)
-/*
-*/
-{
-  if (val != 0) {
-    check(an_ifc_partition_position(ifc_mod, val), field_name);
-  }  /* if */
-}  /* check<ifc_MacroIndex> */
-
-
-template<>
-inline void an_ifc_module::Partition_element_validator::check(
-                                                     ifc_NameIndex val,
-                                                     const char    *field_name)
-/*
-*/
-{
-  if (val != 0) {
-    if (name_tag(val) != ifc_NameSort_Identifier) {
-      check(an_ifc_partition_position(ifc_mod, val), field_name);
-    }  /* if */
-  }  /* if */
-}  /* check<ifc_NameIndex> */
-
-
-template<>
-inline void an_ifc_module::Partition_element_validator::check(
-                                                    ifc_ScopeIndex val,
-                                                    const char     *field_name)
-/*
-*/
-{
-  if (val != 0) {
-    check(an_ifc_partition_position(ifc_mod, val), field_name);
-  }  /* if */
-}  /* check<ifc_ScopeIndex> */
-
-
-template<>
-inline void an_ifc_module::Partition_element_validator::check(
-                                                ifc_SourceLocation val,
-                                                const char         *field_name)
-/*
-*/
-{
-  if (val.line != 0) {
-    check(an_ifc_partition_position(ifc_mod, val.line), field_name);
-  }  /* if */
-}  /* check<ifc_SourceLocation> */
-
-
-template<>
-inline void an_ifc_module::Partition_element_validator::check(
-                                                     ifc_StmtIndex val,
-                                                     const char    *field_name)
-/*
-*/
-{
-  if (val != 0) {
-    check(an_ifc_partition_position(ifc_mod, val), field_name);
-  }  /* if */
-}  /* check<ifc_StmtIndex> */
-
-
-template<>
-inline void an_ifc_module::Partition_element_validator::check(
-                                                   ifc_SyntaxIndex val,
-                                                   const char      *field_name)
-/*
-*/
-{
-  if (val != 0) {
-    check(an_ifc_partition_position(ifc_mod, val), field_name);
-  }  /* if */
-}  /* check<ifc_SyntaxIndex> */
-
-
-template<>
-inline void an_ifc_module::Partition_element_validator::check(
-                                                     ifc_TypeIndex val,
-                                                     const char    *field_name)
-/*
-*/
-{
-  if (val != 0) {
-    check(an_ifc_partition_position(ifc_mod, val), field_name);
-  }  /* if */
-}  /* check<ifc_TypeIndex> */
-
-
-inline void an_ifc_module::Partition_element_validator::mark_invalid()
-/*
-Marks the top level element invalid.  Additionally, any validation stages
-between the current element and the top level element are marked as invalid --
-as those elements depend on this element, and thus are invalid as well.
-*/
-{
-  Validation_stage *cur = tail;
-
-  while (cur != nullptr) {
-    /* If something already marked parents invalid, stop to prevent duplicated
-       effort. */
-    if (cur->invalid) {
-      break;
-    }  /* if */
-    /* Mark this stage and all parents as invalid. */
-    cur->invalid = TRUE;
-    /* Move down the stack. */
-    cur = cur->prev;
-  }  /* while */
-  invalid = true;
-}  /* mark_invalid */
-
-
-inline void an_ifc_module::Partition_element_validator::add_backtrace(
-                                                     a_diagnostic_ptr diag_ptr)
-                                                                          const
-/*
-*/
-{
-  Validation_stage *cur = tail;
-  a_boolean        deepest_element = TRUE;
-
-  while (cur != nullptr) {
-    an_ifc_partition_position *pos = cur->pos;
-    a_const_char              *field_name = cur->field_name;
-    size_t                    rel_offset = ifc_mod->to_relative_offset(*pos);
-
-    /* Add this partition position request to the diagnostic. */
-    if (!deepest_element) {
-      size_t part_index = ifc_mod->to_partition_index(*pos);
-
-      st_num3_add_diag_info(diag_ptr, ec_invalid_ifc_position_backtrace_pos,
-                            ifc_mod->partitions[pos->partition].name,
-                            part_index, pos->file_offset, rel_offset);
-    } else {
-      deepest_element = FALSE;
-    }  /* if */
-    if (field_name[0] != '\0') {
-      str_add_diag_info(diag_ptr, ec_invalid_ifc_position_backtrace_field,
-                        field_name);
-    }  /* if */
-    /* Move down the stack. */
-    cur = cur->prev;
-  }  /* while */
-}  /* add_backtrace */
-
-
-inline void an_ifc_module::Partition_element_validator::invalid_partition(
-                                                 an_ifc_partition_position pos)
-/*
-*/
-{
-  a_diagnostic_ptr diag_ptr;
-
-  /* FIXME: Use a better source position. */
-  diag_ptr = pos_start_error(ec_invalid_ifc_partition, &null_source_position);
-  add_backtrace(diag_ptr);
-  end_diagnostic(diag_ptr);
-  mark_invalid();
-}  /* invalid_partition */
-
-
-inline void an_ifc_module::Partition_element_validator::undefined_partition(
-                                                 an_ifc_partition_position pos)
-/*
-*/
-{
-  for (uint32_t index = 0; index < (uint32_t)ifc_last; ++index) {
-    an_ifc_partition_map *map_entry = &ifc_partition_map[index];
-    if (map_entry->kind == pos.partition) {
-      a_diagnostic_ptr diag_ptr;
-
-      /* FIXME: Use a better source position. */
-      diag_ptr = pos_st_start_error(ec_undefined_ifc_partition,
-                                    &null_source_position, map_entry->name);
-      add_backtrace(diag_ptr);
-      end_diagnostic(diag_ptr);
-      mark_invalid();
-      goto found;
-    }  /* if */
-  }
-  /* Assert that we found the requested partition. */
-  /* FIXME: Handle cases where we didn't find the requested partition. */
-  check_assertion(false);
-found:
-  ;
-}  /* undefined_partition */
-
-
-inline void an_ifc_module::Partition_element_validator::invalid_position(
-                                                 an_ifc_partition_position pos)
-/*
-*/
-{
-  an_ifc_partition *partition = &ifc_mod->partitions[pos.partition];
-  size_t           relative_offset = ifc_mod->to_relative_offset(pos);
-  an_error_code    error_code = ec_no_error;
-  /* FIXME: Use a better source position. */
-  if (partition->size == 0) {
-    error_code = ec_invalid_empty_ifc_position;
-  } else if (pos.file_offset < partition->offset) {
-    error_code = ec_invalid_preceding_ifc_position;
-  } else {
-    if ((relative_offset + partition->entry_size) > partition->size) {
-      error_code = ec_invalid_overflowing_ifc_position;
-    } else if ((relative_offset % partition->entry_size) != 0) {
-      error_code = ec_invalid_misaligned_ifc_position;
-    }  /* if */
-  }  /* if */
-  check_assertion(error_code != ec_no_error);
-  {
-    a_diagnostic_ptr diag_ptr;
-
-    diag_ptr = pos_st_num2_start_error(error_code, &null_source_position,
-                                       ifc_mod->partitions[pos.partition].name,
-                                       pos.file_offset, relative_offset);
-    add_backtrace(diag_ptr);
-    end_diagnostic(diag_ptr);
-    mark_invalid();
-  }
-}  /* invalid_position */
-
-/* Automatically generate a specialization for visiting the members of
-   an IFC module partition element. */
-
-#define IFC_DECL_START(name) \
-template<> \
-inline void an_ifc_module::Partition_element_validator::def_visit_members< \
-                        concat(an_ifc_, name)>(concat(an_ifc_, name) *memp) \
-{
-#define IFC_DECL_FIELD(name, type) \
-  check<concat(ifc_, type)>(memp->name, #name);
-#define IFC_DECL_END(name) \
-}  /* def_visit_members<concat(an_ifc_, name)> */
-
-/*lint -e451 included more than once. */
-#include "ifc_map.h"
-/*lint +e451*/
-
-
-/* Automatically generate a specialization for visiting an IFC module partition
-   element and visiting its members with the automatically generated member
-   validation function. */
-
-#define IFC_DECL_START(name) \
-template<> \
-inline void an_ifc_module::Partition_element_validator::def_visit< \
-                        concat(an_ifc_, name)>(an_ifc_partition_position pos) \
-{ \
-  concat(an_ifc_, name) mem, *memp; \
-  ifc_mod->read_unchecked_partition_element(pos); \
-  memp = ifc_mod->get<concat(an_ifc_, name)>(&mem); \
-  def_visit_members(memp);
-/* Disable generation from the following macros by defining them to nothing. */
-#define IFC_DECL_FIELD(field, type)
-/* Generate the end of the function. */
-#define IFC_DECL_END(name) \
-}  /* def_visit<concat(an_ifc_, name)> */
-
-/*lint -e451 included more than once. */
-#include "ifc_map.h"
-/*lint +e451*/
-
-
-/* Declare and define manual overrides that should be used in place of the
-   automatically generated validation visit functions. */
-
-template<>
-inline void an_ifc_module::Partition_element_validator::visit<
-                      an_ifc_DeclSort_Reference>(an_ifc_partition_position pos)
-/*
-Visit and validate an IFC reference partition element.
-
-FIXME: This partition element represents a reference to a declaration of
-another module.  While the caller potentially depends on this, for now, treat
-the reference itself as implicitly trusted to avoid the complexity.  Treating
-this as a no-op implies that the function ordering the import of the external
-declaration (if any) is responsible for validation, which may be the right
-decision.
-*/
-{
-}  /* visit<an_ifc_Reference> */
-
-
-template<>
-inline void an_ifc_module::Partition_element_validator::visit<
-                        an_ifc_Scope_Descriptor>(an_ifc_partition_position pos)
-/*
-*/
-{
-  an_ifc_Scope_Descriptor isd, *isdp;
-
-  ifc_mod->read_unchecked_partition_element(pos);
-  isdp = ifc_mod->get<an_ifc_Scope_Descriptor>(&isd);
-  /* Perform the normal validation. */
-  def_visit_members(isdp);
-  /* Visit all associated elements. */
-  for (ifc_Index_type idx = 0; idx < isdp->cardinality; ++idx) {
-    an_ifc_partition_position referenced_pos(ifc_mod, ifc_scope_member,
-                                             isdp->start + idx);
-
-    visit_position(referenced_pos);
-  }  /* for */
-}  /* visit<an_ifc_Scope> */
-
-
-void an_ifc_module::Partition_element_validator::visit_position(
+template<typename a_Derived_T>
+void an_ifc_module::Element_visitor<a_Derived_T>::visit_position(
                                                  an_ifc_partition_position pos)
 /*
 */
@@ -14890,855 +14337,884 @@ void an_ifc_module::Partition_element_validator::visit_position(
       check_assertion(false);
     /* DeclIndex::tag partitions together. */
     case ifc_decl_vendor_extension:
-      visit<an_ifc_DeclSort_VendorExtension>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_VendorExtension>(pos);
       break;
     case ifc_decl_enumerator:
-      visit<an_ifc_DeclSort_Enumerator>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_Enumerator>(pos);
       break;
     case ifc_decl_variable:
-      visit<an_ifc_DeclSort_Variable>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_Variable>(pos);
       break;
     case ifc_decl_parameter:
-      visit<an_ifc_DeclSort_Parameter>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_Parameter>(pos);
       break;
     case ifc_decl_field:
-      visit<an_ifc_DeclSort_Field>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_Field>(pos);
       break;
     case ifc_decl_bitfield:
-      visit<an_ifc_DeclSort_Bitfield>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_Bitfield>(pos);
       break;
     case ifc_decl_scope:
-      visit<an_ifc_DeclSort_Scope>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_Scope>(pos);
       break;
     case ifc_decl_enumeration:
-      visit<an_ifc_DeclSort_Enumeration>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_Enumeration>(pos);
       break;
     case ifc_decl_alias:
-      visit<an_ifc_DeclSort_Alias>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_Alias>(pos);
       break;
     case ifc_decl_temploid:
-      visit<an_ifc_DeclSort_Temploid>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_Temploid>(pos);
       break;
     case ifc_decl_template:
-      visit<an_ifc_DeclSort_Template>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_Template>(pos);
       break;
     case ifc_decl_partial_specialization:
-      visit<an_ifc_DeclSort_PartialSpecialization>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_PartialSpecialization>(pos);
       break;
     case ifc_decl_explicit_specialization:
-      visit<an_ifc_DeclSort_ExplicitSpecialization>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_ExplicitSpecialization>(
+                                                                          pos);
       break;
     case ifc_decl_explicit_instantiation:
-      visit<an_ifc_DeclSort_ExplicitInstantiation>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_ExplicitInstantiation>(pos);
       break;
     case ifc_decl_concept:
-      visit<an_ifc_DeclSort_Concept>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_Concept>(pos);
       break;
     case ifc_decl_function:
-      visit<an_ifc_DeclSort_Function>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_Function>(pos);
       break;
     case ifc_decl_method:
-      visit<an_ifc_DeclSort_Method>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_Method>(pos);
       break;
     case ifc_decl_constructor:
-      visit<an_ifc_DeclSort_Constructor>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_Constructor>(pos);
       break;
     case ifc_decl_inh_ctor:
-      visit<an_ifc_DeclSort_InheritedConstructor>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_InheritedConstructor>(pos);
       break;
     case ifc_decl_destructor:
-      visit<an_ifc_DeclSort_Destructor>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_Destructor>(pos);
       break;
     case ifc_decl_reference:
-      visit<an_ifc_DeclSort_Reference>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_Reference>(pos);
       break;
     case ifc_decl_using_declaration:
-      visit<an_ifc_DeclSort_UsingDeclaration>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_UsingDeclaration>(pos);
       break;
     case ifc_decl_using_directive:
-      visit<an_ifc_DeclSort_UsingDirective>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_UsingDirective>(pos);
       break;
     case ifc_decl_friend:
-      visit<an_ifc_DeclSort_Friend>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_Friend>(pos);
       break;
     case ifc_decl_expansion:
-      visit<an_ifc_DeclSort_Expansion>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_Expansion>(pos);
       break;
     case ifc_decl_deduction_guide:
-      visit<an_ifc_DeclSort_DeductionGuide>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_DeductionGuide>(pos);
       break;
     case ifc_decl_barren:
-      visit<an_ifc_DeclSort_Barren>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_Barren>(pos);
       break;
     case ifc_decl_tuple:
-      visit<an_ifc_DeclSort_Tuple>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_Tuple>(pos);
       break;
     case ifc_decl_syntax_tree:
-      visit<an_ifc_DeclSort_SyntaxTree>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_SyntaxTree>(pos);
       break;
     case ifc_decl_intrinsic:
-      visit<an_ifc_DeclSort_Intrinsic>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_Intrinsic>(pos);
       break;
     case ifc_decl_property:
-      visit<an_ifc_DeclSort_Property>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_Property>(pos);
       break;
     case ifc_decl_segment:
-      visit<an_ifc_DeclSort_OutputSegment>(pos);
+      getDerived()->template visit<an_ifc_DeclSort_OutputSegment>(pos);
       break;
     /* Group all TypeIndex::tag partitions together. */
     case ifc_type_vendor_extension:
-      visit<an_ifc_TypeSort_VendorExtension>(pos);
+      getDerived()->template visit<an_ifc_TypeSort_VendorExtension>(pos);
       break;
     case ifc_type_fundamental:
-      visit<an_ifc_TypeSort_Fundamental>(pos);
+      getDerived()->template visit<an_ifc_TypeSort_Fundamental>(pos);
       break;
     case ifc_type_designated:
-      visit<an_ifc_TypeSort_Designated>(pos);
+      getDerived()->template visit<an_ifc_TypeSort_Designated>(pos);
       break;
     case ifc_type_tor:
-      visit<an_ifc_TypeSort_Tor>(pos);
+      getDerived()->template visit<an_ifc_TypeSort_Tor>(pos);
       break;
     case ifc_type_syntactic:
-      visit<an_ifc_TypeSort_Syntactic>(pos);
+      getDerived()->template visit<an_ifc_TypeSort_Syntactic>(pos);
       break;
     case ifc_type_expansion:
-      visit<an_ifc_TypeSort_Expansion>(pos);
+      getDerived()->template visit<an_ifc_TypeSort_Expansion>(pos);
       break;
     case ifc_type_pointer:
-      visit<an_ifc_TypeSort_Pointer>(pos);
+      getDerived()->template visit<an_ifc_TypeSort_Pointer>(pos);
       break;
     case ifc_type_pointer_to_member:
-      visit<an_ifc_TypeSort_PointerToMember>(pos);
+      getDerived()->template visit<an_ifc_TypeSort_PointerToMember>(pos);
       break;
     case ifc_type_lvalue_reference:
-      visit<an_ifc_TypeSort_LvalueReference>(pos);
+      getDerived()->template visit<an_ifc_TypeSort_LvalueReference>(pos);
       break;
     case ifc_type_rvalue_reference:
-      visit<an_ifc_TypeSort_RvalueReference>(pos);
+      getDerived()->template visit<an_ifc_TypeSort_RvalueReference>(pos);
       break;
     case ifc_type_function:
-      visit<an_ifc_TypeSort_Function>(pos);
+      getDerived()->template visit<an_ifc_TypeSort_Function>(pos);
       break;
     case ifc_type_method:
-      visit<an_ifc_TypeSort_Method>(pos);
+      getDerived()->template visit<an_ifc_TypeSort_Method>(pos);
       break;
     case ifc_type_array:
-      visit<an_ifc_TypeSort_Array>(pos);
+      getDerived()->template visit<an_ifc_TypeSort_Array>(pos);
       break;
     case ifc_type_typename:
-      visit<an_ifc_TypeSort_Typename>(pos);
+      getDerived()->template visit<an_ifc_TypeSort_Typename>(pos);
       break;
     case ifc_type_qualified:
-      visit<an_ifc_TypeSort_Qualified>(pos);
+      getDerived()->template visit<an_ifc_TypeSort_Qualified>(pos);
       break;
     case ifc_type_base:
-      visit<an_ifc_TypeSort_Base>(pos);
+      getDerived()->template visit<an_ifc_TypeSort_Base>(pos);
       break;
     case ifc_type_decltype:
-      visit<an_ifc_TypeSort_Decltype>(pos);
+      getDerived()->template visit<an_ifc_TypeSort_Decltype>(pos);
       break;
     case ifc_type_placeholder:
-      visit<an_ifc_TypeSort_Placeholder>(pos);
+      getDerived()->template visit<an_ifc_TypeSort_Placeholder>(pos);
       break;
     case ifc_type_tuple:
-      visit<an_ifc_TypeSort_Tuple>(pos);
+      getDerived()->template visit<an_ifc_TypeSort_Tuple>(pos);
       break;
     case ifc_type_forall:
-      visit<an_ifc_TypeSort_Forall>(pos);
+      getDerived()->template visit<an_ifc_TypeSort_Forall>(pos);
       break;
     case ifc_type_unaligned:
-      visit<an_ifc_TypeSort_Unaligned>(pos);
+      getDerived()->template visit<an_ifc_TypeSort_Unaligned>(pos);
       break;
     case ifc_type_syntax_tree:
-      visit<an_ifc_TypeSort_SyntaxTree>(pos);
+      getDerived()->template visit<an_ifc_TypeSort_SyntaxTree>(pos);
       break;
     /* Group all NameIndex::tag partitions together (excluding identifier at
        least for now, it's a special case). */
     case ifc_name_operator:
-      visit<an_ifc_NameSort_Operator>(pos);
+      getDerived()->template visit<an_ifc_NameSort_Operator>(pos);
       break;
     case ifc_name_conversion:
-      visit<an_ifc_NameSort_Conversion>(pos);
+      getDerived()->template visit<an_ifc_NameSort_Conversion>(pos);
       break;
     case ifc_name_literal:
-      visit<an_ifc_NameSort_Literal>(pos);
+      getDerived()->template visit<an_ifc_NameSort_Literal>(pos);
       break;
     case ifc_name_template:
-      visit<an_ifc_NameSort_Template>(pos);
+      getDerived()->template visit<an_ifc_NameSort_Template>(pos);
       break;
     case ifc_name_specialization:
-      visit<an_ifc_NameSort_Specialization>(pos);
+      getDerived()->template visit<an_ifc_NameSort_Specialization>(pos);
       break;
     case ifc_name_source_file:
-      visit<an_ifc_NameSort_SourceFile>(pos);
+      getDerived()->template visit<an_ifc_NameSort_SourceFile>(pos);
       break;
     case ifc_name_guide:
-      visit<an_ifc_NameSort_Guide>(pos);
+      getDerived()->template visit<an_ifc_NameSort_Guide>(pos);
       break;
     /* Group all ExprIndex::tag partitions together. */
     case ifc_expr_vendor_extension:
-      visit<an_ifc_ExprSort_VendorExtension>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_VendorExtension>(pos);
       break;
     case ifc_expr_empty:
-      visit<an_ifc_ExprSort_Empty>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_Empty>(pos);
       break;
     case ifc_expr_literal:
-      visit<an_ifc_ExprSort_Literal>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_Literal>(pos);
       break;
     case ifc_expr_lambda:
-      visit<an_ifc_ExprSort_Lambda>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_Lambda>(pos);
       break;
     case ifc_expr_type:
-      visit<an_ifc_ExprSort_Type>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_Type>(pos);
       break;
     case ifc_expr_decl:
-      visit<an_ifc_ExprSort_NamedDecl>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_NamedDecl>(pos);
       break;
     case ifc_expr_unresolved_id:
-      visit<an_ifc_ExprSort_UnresolvedId>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_UnresolvedId>(pos);
       break;
     case ifc_expr_template_id:
-      visit<an_ifc_ExprSort_TemplateId>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_TemplateId>(pos);
       break;
     case ifc_expr_unqualified_id:
-      visit<an_ifc_ExprSort_UnqualifiedId>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_UnqualifiedId>(pos);
       break;
     case ifc_expr_simple_identifier:
-      visit<an_ifc_ExprSort_SimpleIdentifier>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_SimpleIdentifier>(pos);
       break;
     case ifc_expr_pointer:
-      visit<an_ifc_ExprSort_Pointer>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_Pointer>(pos);
       break;
     case ifc_expr_qualified_name:
-      visit<an_ifc_ExprSort_QualifiedName>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_QualifiedName>(pos);
       break;
     case ifc_expr_path:
-      visit<an_ifc_ExprSort_Path>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_Path>(pos);
       break;
     case ifc_expr_read:
-      visit<an_ifc_ExprSort_Read>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_Read>(pos);
       break;
     case ifc_expr_monad:
-      visit<an_ifc_ExprSort_Monad>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_Monad>(pos);
       break;
     case ifc_expr_dyad:
-      visit<an_ifc_ExprSort_Dyad>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_Dyad>(pos);
       break;
     case ifc_expr_triad:
-      visit<an_ifc_ExprSort_Triad>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_Triad>(pos);
       break;
     case ifc_expr_string:
-      visit<an_ifc_ExprSort_String>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_String>(pos);
       break;
     case ifc_expr_temporary:
-      visit<an_ifc_ExprSort_Temporary>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_Temporary>(pos);
       break;
     case ifc_expr_call:
-      visit<an_ifc_ExprSort_Call>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_Call>(pos);
       break;
     case ifc_expr_member_initializer:
-      visit<an_ifc_ExprSort_MemberInitializer>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_MemberInitializer>(pos);
       break;
     case ifc_expr_member_access:
-      visit<an_ifc_ExprSort_MemberAccess>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_MemberAccess>(pos);
       break;
     case ifc_expr_inheritance_path:
-      visit<an_ifc_ExprSort_InheritancePath>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_InheritancePath>(pos);
       break;
     case ifc_expr_initializer_list:
-      visit<an_ifc_ExprSort_InitializerList>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_InitializerList>(pos);
       break;
     case ifc_expr_cast:
-      visit<an_ifc_ExprSort_Cast>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_Cast>(pos);
       break;
     case ifc_expr_condition:
-      visit<an_ifc_ExprSort_Condition>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_Condition>(pos);
       break;
     case ifc_expr_expression_list:
-      visit<an_ifc_ExprSort_ExpressionList>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_ExpressionList>(pos);
       break;
     case ifc_expr_sizeof_type:
-      visit<an_ifc_ExprSort_SizeofType>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_SizeofType>(pos);
       break;
     case ifc_expr_alignof_type:
-      visit<an_ifc_ExprSort_Alignof>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_Alignof>(pos);
       break;
     case ifc_expr_new:
-      visit<an_ifc_ExprSort_New>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_New>(pos);
       break;
     case ifc_expr_delete:
-      visit<an_ifc_ExprSort_Delete>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_Delete>(pos);
       break;
     case ifc_expr_typeid:
-      visit<an_ifc_ExprSort_Typeid>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_Typeid>(pos);
       break;
     case ifc_expr_destructor_call:
-      visit<an_ifc_ExprSort_DestructorCall>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_DestructorCall>(pos);
       break;
     case ifc_expr_syntax_tree:
-      visit<an_ifc_ExprSort_SyntaxTree>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_SyntaxTree>(pos);
       break;
     case ifc_expr_function_string:
-      visit<an_ifc_ExprSort_FunctionString>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_FunctionString>(pos);
       break;
     case ifc_expr_compound_string:
-      visit<an_ifc_ExprSort_CompoundString>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_CompoundString>(pos);
       break;
     case ifc_expr_string_sequence:
-      visit<an_ifc_ExprSort_StringSequence>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_StringSequence>(pos);
       break;
     case ifc_expr_initializer:
-      visit<an_ifc_ExprSort_Initializer>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_Initializer>(pos);
       break;
     case ifc_expr_requires:
-      visit<an_ifc_ExprSort_Requires>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_Requires>(pos);
       break;
     case ifc_expr_unaryfold:
-      visit<an_ifc_ExprSort_UnaryFold>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_UnaryFold>(pos);
       break;
     case ifc_expr_binaryfold:
-      visit<an_ifc_ExprSort_BinaryFold>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_BinaryFold>(pos);
       break;
     case ifc_expr_hierarchy_conversion:
-      visit<an_ifc_ExprSort_HierarchyConversion>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_HierarchyConversion>(pos);
       break;
     case ifc_expr_product:
-      visit<an_ifc_ExprSort_ProductTypeValue>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_ProductTypeValue>(pos);
       break;
     case ifc_expr_sum:
-      visit<an_ifc_ExprSort_SumTypeValue>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_SumTypeValue>(pos);
       break;
     case ifc_expr_subobject:
-      visit<an_ifc_ExprSort_SubobjectValue>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_SubobjectValue>(pos);
       break;
     case ifc_expr_array:
-      visit<an_ifc_ExprSort_ArrayValue>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_ArrayValue>(pos);
       break;
     case ifc_expr_dynamic_dispatch:
-      visit<an_ifc_ExprSort_DynamicDispatch>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_DynamicDispatch>(pos);
       break;
     case ifc_expr_virtual_function:
-      visit<an_ifc_ExprSort_VirtualFunctionConversion>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_VirtualFunctionConversion>(
+                                                                          pos);
       break;
     case ifc_expr_placeholder:
-      visit<an_ifc_ExprSort_Placeholder>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_Placeholder>(pos);
       break;
     case ifc_expr_expansion:
-      visit<an_ifc_ExprSort_Expansion>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_Expansion>(pos);
       break;
     case ifc_expr_generic:
-      visit<an_ifc_ExprSort_Generic>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_Generic>(pos);
       break;
     case ifc_expr_tuple:
-      visit<an_ifc_ExprSort_Tuple>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_Tuple>(pos);
       break;
     case ifc_expr_nullptr:
-      visit<an_ifc_ExprSort_Nullptr>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_Nullptr>(pos);
       break;
     case ifc_expr_this:
-      visit<an_ifc_ExprSort_This>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_This>(pos);
       break;
     case ifc_expr_template_reference:
-      visit<an_ifc_ExprSort_TemplateReference>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_TemplateReference>(pos);
       break;
     case ifc_expr_push_state:
-      visit<an_ifc_ExprSort_PushState>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_PushState>(pos);
       break;
     case ifc_expr_type_trait:
-      visit<an_ifc_ExprSort_TypeTraitIntrinsic>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_TypeTraitIntrinsic>(pos);
       break;
     case ifc_expr_des_init:
-      visit<an_ifc_ExprSort_DesignatedInitializer>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_DesignatedInitializer>(pos);
       break;
     case ifc_expr_packed_template_arguments:
-      visit<an_ifc_ExprSort_PackedTemplateArguments>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_PackedTemplateArguments>(
+                                                                          pos);
       break;
     case ifc_expr_tokens:
-      visit<an_ifc_ExprSort_Tokens>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_Tokens>(pos);
       break;
     case ifc_expr_assign_initializer:
-      visit<an_ifc_ExprSort_AssignInitializer>(pos);
+      getDerived()->template visit<an_ifc_ExprSort_AssignInitializer>(pos);
       break;
     /* Group all StmtIndex::Tag partitions together. */
     case ifc_stmt_vendor_extension:
-      visit<an_ifc_StmtSort_VendorExtension>(pos);
+      getDerived()->template visit<an_ifc_StmtSort_VendorExtension>(pos);
       break;
     case ifc_stmt_empty:
-      visit<an_ifc_StmtSort_Empty>(pos);
+      getDerived()->template visit<an_ifc_StmtSort_Empty>(pos);
       break;
     case ifc_stmt_if:
-      visit<an_ifc_StmtSort_If>(pos);
+      getDerived()->template visit<an_ifc_StmtSort_If>(pos);
       break;
     case ifc_stmt_for:
-      visit<an_ifc_StmtSort_For>(pos);
+      getDerived()->template visit<an_ifc_StmtSort_For>(pos);
       break;
     case ifc_stmt_case:
-      visit<an_ifc_StmtSort_Case>(pos);
+      getDerived()->template visit<an_ifc_StmtSort_Case>(pos);
       break;
     case ifc_stmt_while:
-      visit<an_ifc_StmtSort_While>(pos);
+      getDerived()->template visit<an_ifc_StmtSort_While>(pos);
       break;
     case ifc_stmt_block:
-      visit<an_ifc_StmtSort_Block>(pos);
+      getDerived()->template visit<an_ifc_StmtSort_Block>(pos);
       break;
     case ifc_stmt_break:
-      visit<an_ifc_StmtSort_Break>(pos);
+      getDerived()->template visit<an_ifc_StmtSort_Break>(pos);
       break;
     case ifc_stmt_switch:
-      visit<an_ifc_StmtSort_Switch>(pos);
+      getDerived()->template visit<an_ifc_StmtSort_Switch>(pos);
       break;
     case ifc_stmt_do_while:
-      visit<an_ifc_StmtSort_DoWhile>(pos);
+      getDerived()->template visit<an_ifc_StmtSort_DoWhile>(pos);
       break;
     case ifc_stmt_default:
-      visit<an_ifc_StmtSort_Default>(pos);
+      getDerived()->template visit<an_ifc_StmtSort_Default>(pos);
       break;
     case ifc_stmt_continue:
-      visit<an_ifc_StmtSort_Continue>(pos);
+      getDerived()->template visit<an_ifc_StmtSort_Continue>(pos);
       break;
     case ifc_stmt_expression:
-      visit<an_ifc_StmtSort_Expression>(pos);
+      getDerived()->template visit<an_ifc_StmtSort_Expression>(pos);
       break;
     case ifc_stmt_return:
-      visit<an_ifc_StmtSort_Return>(pos);
+      getDerived()->template visit<an_ifc_StmtSort_Return>(pos);
       break;
     case ifc_stmt_variable:
-      visit<an_ifc_StmtSort_VariableDecl>(pos);
+      getDerived()->template visit<an_ifc_StmtSort_VariableDecl>(pos);
       break;
     case ifc_stmt_expansion:
-      visit<an_ifc_StmtSort_Expansion>(pos);
+      getDerived()->template visit<an_ifc_StmtSort_Expansion>(pos);
       break;
     case ifc_stmt_syntax_tree:
-      visit<an_ifc_StmtSort_SyntaxTree>(pos);
+      getDerived()->template visit<an_ifc_StmtSort_SyntaxTree>(pos);
       break;
     /* Group all ChartIndex::Tag partitions together. */
     case ifc_chart_none:
-      visit<an_ifc_ChartSort_None>(pos);
+      getDerived()->template visit<an_ifc_ChartSort_None>(pos);
       break;
     case ifc_chart_unilevel:
-      visit<an_ifc_ChartSort_Unilevel>(pos);
+      getDerived()->template visit<an_ifc_ChartSort_Unilevel>(pos);
       break;
     case ifc_chart_multilevel:
-      visit<an_ifc_ChartSort_Multilevel>(pos);
+      getDerived()->template visit<an_ifc_ChartSort_Multilevel>(pos);
       break;
     /* Group all AttrIndex::Tag partitions together. */
     case ifc_attr_nothing:
-      visit<an_ifc_AttrSort_Nothing>(pos);
+      getDerived()->template visit<an_ifc_AttrSort_Nothing>(pos);
       break;
     case ifc_attr_basic:
-      visit<an_ifc_AttrSort_Basic>(pos);
+      getDerived()->template visit<an_ifc_AttrSort_Basic>(pos);
       break;
     case ifc_attr_scoped:
-      visit<an_ifc_AttrSort_Scoped>(pos);
+      getDerived()->template visit<an_ifc_AttrSort_Scoped>(pos);
       break;
     case ifc_attr_labeled:
-      visit<an_ifc_AttrSort_Labeled>(pos);
+      getDerived()->template visit<an_ifc_AttrSort_Labeled>(pos);
       break;
     case ifc_attr_called:
-      visit<an_ifc_AttrSort_Called>(pos);
+      getDerived()->template visit<an_ifc_AttrSort_Called>(pos);
       break;
     case ifc_attr_expanded:
-      visit<an_ifc_AttrSort_Expanded>(pos);
+      getDerived()->template visit<an_ifc_AttrSort_Expanded>(pos);
       break;
     case ifc_attr_factored:
-      visit<an_ifc_AttrSort_Factored>(pos);
+      getDerived()->template visit<an_ifc_AttrSort_Factored>(pos);
       break;
     case ifc_attr_elaborated:
-      visit<an_ifc_AttrSort_Elaborated>(pos);
+      getDerived()->template visit<an_ifc_AttrSort_Elaborated>(pos);
       break;
     case ifc_attr_tuple:
-      visit<an_ifc_AttrSort_Tuple>(pos);
+      getDerived()->template visit<an_ifc_AttrSort_Tuple>(pos);
       break;
     /* Group all SyntaxIndex::Tag partitions together. */
     case ifc_syntax_vendor_extension:
-      visit<an_ifc_SyntaxSort_VendorExtension>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_VendorExtension>(pos);
       break;
     case ifc_syntax_simple_type_specifier:
-      visit<an_ifc_SyntaxSort_SimpleTypeSpecifier>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_SimpleTypeSpecifier>(pos);
       break;
     case ifc_syntax_decltype_specifier:
-      visit<an_ifc_SyntaxSort_DecltypeSpecifier>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_DecltypeSpecifier>(pos);
       break;
     case ifc_syntax_placeholder_type_specifier:
-      visit<an_ifc_SyntaxSort_PlaceholderTypeSpecifier>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_PlaceholderTypeSpecifier>(
+                                                                          pos);
       break;
     case ifc_syntax_type_specifier_seq:
-      visit<an_ifc_SyntaxSort_TypeSpecifierSeq>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_TypeSpecifierSeq>(pos);
       break;
     case ifc_syntax_decl_specifier_seq:
-      visit<an_ifc_SyntaxSort_DeclSpecifierSeq>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_DeclSpecifierSeq>(pos);
       break;
     case ifc_syntax_virtual_specifier_seq:
-      visit<an_ifc_SyntaxSort_VirtualSpecifierSeq>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_VirtualSpecifierSeq>(pos);
       break;
     case ifc_syntax_noexcept_specification:
-      visit<an_ifc_SyntaxSort_NoexceptSpecification>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_NoexceptSpecification>(
+                                                                          pos);
       break;
     case ifc_syntax_explicit_specifier:
-      visit<an_ifc_SyntaxSort_ExplicitSpecifier>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_ExplicitSpecifier>(pos);
       break;
     case ifc_syntax_enum_specifier:
-      visit<an_ifc_SyntaxSort_EnumSpecifier>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_EnumSpecifier>(pos);
       break;
     case ifc_syntax_enumerator_definition:
-      visit<an_ifc_SyntaxSort_EnumeratorDefinition>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_EnumeratorDefinition>(
+                                                                          pos);
       break;
     case ifc_syntax_class_specifier:
-      visit<an_ifc_SyntaxSort_ClassSpecifier>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_ClassSpecifier>(pos);
       break;
     case ifc_syntax_member_specification:
-      visit<an_ifc_SyntaxSort_MemberSpecification>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_MemberSpecification>(pos);
       break;
     case ifc_syntax_member_declaration:
-      visit<an_ifc_SyntaxSort_MemberDeclaration>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_MemberDeclaration>(pos);
       break;
     case ifc_syntax_member_declarator:
-      visit<an_ifc_SyntaxSort_MemberDeclarator>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_MemberDeclarator>(pos);
       break;
     case ifc_syntax_access_specifier:
-      visit<an_ifc_SyntaxSort_AccessSpecifier>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_AccessSpecifier>(pos);
       break;
     case ifc_syntax_base_specifier_list:
-      visit<an_ifc_SyntaxSort_BaseSpecifierList>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_BaseSpecifierList>(pos);
       break;
     case ifc_syntax_base_specifier:
-      visit<an_ifc_SyntaxSort_BaseSpecifier>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_BaseSpecifier>(pos);
       break;
     case ifc_syntax_type_id:
-      visit<an_ifc_SyntaxSort_TypeId>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_TypeId>(pos);
       break;
     case ifc_syntax_trailing_return_type:
-      visit<an_ifc_SyntaxSort_TrailingReturnType>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_TrailingReturnType>(pos);
       break;
     case ifc_syntax_declarator:
-      visit<an_ifc_SyntaxSort_Declarator>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_Declarator>(pos);
       break;
     case ifc_syntax_pointer_declarator:
-      visit<an_ifc_SyntaxSort_PointerDeclarator>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_PointerDeclarator>(pos);
       break;
     case ifc_syntax_array_declarator:
-      visit<an_ifc_SyntaxSort_ArrayDeclarator>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_ArrayDeclarator>(pos);
       break;
     case ifc_syntax_function_declarator:
-      visit<an_ifc_SyntaxSort_FunctionDeclarator>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_FunctionDeclarator>(pos);
       break;
     case ifc_syntax_array_or_function_declarator:
-      visit<an_ifc_SyntaxSort_ArrayOrFunctionDeclarator>(pos);
+      getDerived()->template visit<
+                             an_ifc_SyntaxSort_ArrayOrFunctionDeclarator>(pos);
       break;
     case ifc_syntax_parameter_declarator:
-      visit<an_ifc_SyntaxSort_ParameterDeclarator>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_ParameterDeclarator>(pos);
       break;
     case ifc_syntax_init_declarator:
-      visit<an_ifc_SyntaxSort_InitDeclarator>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_InitDeclarator>(pos);
       break;
     case ifc_syntax_new_declarator:
-      visit<an_ifc_SyntaxSort_NewDeclarator>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_NewDeclarator>(pos);
       break;
     case ifc_syntax_simple_declaration:
-      visit<an_ifc_SyntaxSort_SimpleDeclaration>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_SimpleDeclaration>(pos);
       break;
     case ifc_syntax_exception_declaration:
-      visit<an_ifc_SyntaxSort_ExceptionDeclaration>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_ExceptionDeclaration>(
+                                                                          pos);
       break;
     case ifc_syntax_condition_declaration:
-      visit<an_ifc_SyntaxSort_ConditionDeclaration>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_ConditionDeclaration>(
+                                                                          pos);
       break;
     case ifc_syntax_static_assert_declaration:
-      visit<an_ifc_SyntaxSort_StaticAssertDeclaration>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_StaticAssertDeclaration>(
+                                                                          pos);
       break;
     case ifc_syntax_alias_declaration:
-      visit<an_ifc_SyntaxSort_AliasDeclaration>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_AliasDeclaration>(pos);
       break;
     case ifc_syntax_concept_definition:
-      visit<an_ifc_SyntaxSort_ConceptDefinition>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_ConceptDefinition>(pos);
       break;
     case ifc_syntax_compound_statement:
-      visit<an_ifc_SyntaxSort_CompoundStatement>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_CompoundStatement>(pos);
       break;
     case ifc_syntax_return_statement:
-      visit<an_ifc_SyntaxSort_ReturnStatement>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_ReturnStatement>(pos);
       break;
     case ifc_syntax_if_statement:
-      visit<an_ifc_SyntaxSort_IfStatement>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_IfStatement>(pos);
       break;
     case ifc_syntax_while_statement:
-      visit<an_ifc_SyntaxSort_WhileStatement>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_WhileStatement>(pos);
       break;
     case ifc_syntax_do_statement:
-      visit<an_ifc_SyntaxSort_DoWhileStatement>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_DoWhileStatement>(pos);
       break;
     case ifc_syntax_for_statement:
-      visit<an_ifc_SyntaxSort_ForStatement>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_ForStatement>(pos);
       break;
     case ifc_syntax_init_statement:
-      visit<an_ifc_SyntaxSort_InitStatement>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_InitStatement>(pos);
       break;
     case ifc_syntax_range_based_for_statement:
-      visit<an_ifc_SyntaxSort_RangeBasedForStatement>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_RangeBasedForStatement>(
+                                                                          pos);
       break;
     case ifc_syntax_for_range_declaration:
-      visit<an_ifc_SyntaxSort_ForRangeDeclaration>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_ForRangeDeclaration>(pos);
       break;
     case ifc_syntax_labeled_statement:
-      visit<an_ifc_SyntaxSort_LabeledStatement>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_LabeledStatement>(pos);
       break;
     case ifc_syntax_break_statement:
-      visit<an_ifc_SyntaxSort_BreakStatement>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_BreakStatement>(pos);
       break;
     case ifc_syntax_continue_statement:
-      visit<an_ifc_SyntaxSort_ContinueStatement>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_ContinueStatement>(pos);
       break;
     case ifc_syntax_switch_statement:
-      visit<an_ifc_SyntaxSort_SwitchStatement>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_SwitchStatement>(pos);
       break;
     case ifc_syntax_goto_statement:
-      visit<an_ifc_SyntaxSort_GotoStatement>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_GotoStatement>(pos);
       break;
     case ifc_syntax_declaration_statement:
-      visit<an_ifc_SyntaxSort_DeclarationStatement>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_DeclarationStatement>(
+                                                                          pos);
       break;
     case ifc_syntax_expression_statement:
-      visit<an_ifc_SyntaxSort_ExpressionStatement>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_ExpressionStatement>(pos);
       break;
     case ifc_syntax_try_block:
-      visit<an_ifc_SyntaxSort_TryBlock>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_TryBlock>(pos);
       break;
     case ifc_syntax_handler:
-      visit<an_ifc_SyntaxSort_Handler>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_Handler>(pos);
       break;
     case ifc_syntax_handler_seq:
-      visit<an_ifc_SyntaxSort_HandlerSeq>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_HandlerSeq>(pos);
       break;
     case ifc_syntax_function_try_block:
-      visit<an_ifc_SyntaxSort_FunctionTryBlock>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_FunctionTryBlock>(pos);
       break;
     case ifc_syntax_type_id_list_element:
-      visit<an_ifc_SyntaxSort_TypeIdListElement>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_TypeIdListElement>(pos);
       break;
     case ifc_syntax_dynamic_exception_spec:
-      visit<an_ifc_SyntaxSort_DynamicExceptionSpec>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_DynamicExceptionSpec>(
+                                                                          pos);
       break;
     case ifc_syntax_statement_seq:
-      visit<an_ifc_SyntaxSort_StatementSeq>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_StatementSeq>(pos);
       break;
     case ifc_syntax_function_body:
-      visit<an_ifc_SyntaxSort_FunctionBody>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_FunctionBody>(pos);
       break;
     case ifc_syntax_expression:
-      visit<an_ifc_SyntaxSort_Expression>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_Expression>(pos);
       break;
     case ifc_syntax_function_definition:
-      visit<an_ifc_SyntaxSort_FunctionDefinition>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_FunctionDefinition>(pos);
       break;
     case ifc_syntax_member_function_declaration:
-      visit<an_ifc_SyntaxSort_MemberFunctionDeclaration>(pos);
+      getDerived()->template visit<
+                             an_ifc_SyntaxSort_MemberFunctionDeclaration>(pos);
       break;
     case ifc_syntax_template_declaration:
-      visit<an_ifc_SyntaxSort_TemplateDeclaration>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_TemplateDeclaration>(pos);
       break;
     case ifc_syntax_requires_clause:
-      visit<an_ifc_SyntaxSort_RequiresClause>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_RequiresClause>(pos);
       break;
     case ifc_syntax_simple_requirement:
-      visit<an_ifc_SyntaxSort_SimpleRequirement>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_SimpleRequirement>(pos);
       break;
     case ifc_syntax_type_requirement:
-      visit<an_ifc_SyntaxSort_TypeRequirement>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_TypeRequirement>(pos);
       break;
     case ifc_syntax_compound_requirement:
-      visit<an_ifc_SyntaxSort_CompoundRequirement>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_CompoundRequirement>(pos);
       break;
     case ifc_syntax_nested_requirement:
-      visit<an_ifc_SyntaxSort_NestedRequirement>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_NestedRequirement>(pos);
       break;
     case ifc_syntax_requirement_body:
-      visit<an_ifc_SyntaxSort_RequirementBody>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_RequirementBody>(pos);
       break;
     case ifc_syntax_type_template_parameter:
-      visit<an_ifc_SyntaxSort_TypeTemplateParameter>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_TypeTemplateParameter>(
+                                                                          pos);
       break;
     case ifc_syntax_template_template_parameter:
-      visit<an_ifc_SyntaxSort_TemplateTemplateParameter>(pos);
+      getDerived()->template visit<
+                             an_ifc_SyntaxSort_TemplateTemplateParameter>(pos);
       break;
     case ifc_syntax_type_template_argument:
-      visit<an_ifc_SyntaxSort_TypeTemplateArgument>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_TypeTemplateArgument>(
+                                                                          pos);
       break;
     case ifc_syntax_non_type_template_argument:
-      visit<an_ifc_SyntaxSort_NonTypeTemplateArgument>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_NonTypeTemplateArgument>(
+                                                                          pos);
       break;
     case ifc_syntax_template_parameter_list:
-      visit<an_ifc_SyntaxSort_TemplateParameterList>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_TemplateParameterList>(
+                                                                          pos);
       break;
     case ifc_syntax_template_argument_list:
-      visit<an_ifc_SyntaxSort_TemplateArgumentList>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_TemplateArgumentList>(
+                                                                          pos);
       break;
     case ifc_syntax_template_id:
-      visit<an_ifc_SyntaxSort_TemplateId>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_TemplateId>(pos);
       break;
     case ifc_syntax_mem_initializer:
-      visit<an_ifc_SyntaxSort_MemInitializer>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_MemInitializer>(pos);
       break;
     case ifc_syntax_ctor_initializer:
-      visit<an_ifc_SyntaxSort_CtorInitializer>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_CtorInitializer>(pos);
       break;
     case ifc_syntax_lambda_introducer:
-      visit<an_ifc_SyntaxSort_LambdaIntroducer>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_LambdaIntroducer>(pos);
       break;
     case ifc_syntax_lambda_declarator:
-      visit<an_ifc_SyntaxSort_LambdaDeclarator>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_LambdaDeclarator>(pos);
       break;
     case ifc_syntax_capture_default:
-      visit<an_ifc_SyntaxSort_CaptureDefault>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_CaptureDefault>(pos);
       break;
     case ifc_syntax_simple_capture:
-      visit<an_ifc_SyntaxSort_SimpleCapture>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_SimpleCapture>(pos);
       break;
     case ifc_syntax_init_capture:
-      visit<an_ifc_SyntaxSort_InitCapture>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_InitCapture>(pos);
       break;
     case ifc_syntax_this_capture:
-      visit<an_ifc_SyntaxSort_ThisCapture>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_ThisCapture>(pos);
       break;
     case ifc_syntax_attributed_statement:
-      visit<an_ifc_SyntaxSort_AttributedStatement>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_AttributedStatement>(pos);
       break;
     case ifc_syntax_attributed_declaration:
-      visit<an_ifc_SyntaxSort_AttributedDeclaration>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_AttributedDeclaration>(
+                                                                          pos);
       break;
     case ifc_syntax_attribute_specifier_seq:
-      visit<an_ifc_SyntaxSort_AttributeSpecifierSeq>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_AttributeSpecifierSeq>(
+                                                                          pos);
       break;
     case ifc_syntax_attribute_specifier:
-      visit<an_ifc_SyntaxSort_AttributeSpecifier>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_AttributeSpecifier>(pos);
       break;
     case ifc_syntax_attribute_using_prefix:
-      visit<an_ifc_SyntaxSort_AttributeUsingPrefix>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_AttributeUsingPrefix>(
+                                                                          pos);
       break;
     case ifc_syntax_attribute:
-      visit<an_ifc_SyntaxSort_Attribute>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_Attribute>(pos);
       break;
     case ifc_syntax_attribute_argument_clause:
-      visit<an_ifc_SyntaxSort_AttributeArgumentClause>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_AttributeArgumentClause>(
+                                                                          pos);
       break;
     case ifc_syntax_alignas:
-      visit<an_ifc_SyntaxSort_Alignas>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_Alignas>(pos);
       break;
     case ifc_syntax_using_declaration:
-      visit<an_ifc_SyntaxSort_UsingDeclaration>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_UsingDeclaration>(pos);
       break;
     case ifc_syntax_using_declarator:
-      visit<an_ifc_SyntaxSort_UsingDeclarator>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_UsingDeclarator>(pos);
       break;
     case ifc_syntax_using_directive:
-      visit<an_ifc_SyntaxSort_UsingDirective>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_UsingDirective>(pos);
       break;
     case ifc_syntax_array_index:
-      visit<an_ifc_SyntaxSort_ArrayIndex>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_ArrayIndex>(pos);
       break;
     case ifc_syntax_seh_try:
-      visit<an_ifc_SyntaxSort_SEHTry>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_SEHTry>(pos);
       break;
     case ifc_syntax_seh_except:
-      visit<an_ifc_SyntaxSort_SEHExcept>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_SEHExcept>(pos);
       break;
     case ifc_syntax_seh_finally:
-      visit<an_ifc_SyntaxSort_SEHFinally>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_SEHFinally>(pos);
       break;
     case ifc_syntax_seh_leave:
-      visit<an_ifc_SyntaxSort_SEHLeave>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_SEHLeave>(pos);
       break;
     case ifc_syntax_type_trait_intrinsic:
-      visit<an_ifc_SyntaxSort_TypeTraitIntrinsic>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_TypeTraitIntrinsic>(pos);
       break;
     case ifc_syntax_tuple:
-      visit<an_ifc_SyntaxSort_Tuple>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_Tuple>(pos);
       break;
     case ifc_syntax_asm_statement:
-      visit<an_ifc_SyntaxSort_AsmStatement>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_AsmStatement>(pos);
       break;
     case ifc_syntax_namespace_alias_definition:
-      visit<an_ifc_SyntaxSort_NamespaceAliasDefinition>(pos);
+      getDerived()->template visit<
+                              an_ifc_SyntaxSort_NamespaceAliasDefinition>(pos);
       break;
     case ifc_syntax_super:
-      visit<an_ifc_SyntaxSort_Super>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_Super>(pos);
       break;
     case ifc_syntax_unary_fold_expression:
-      visit<an_ifc_SyntaxSort_UnaryFoldExpression>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_UnaryFoldExpression>(pos);
       break;
     case ifc_syntax_binary_fold_expression:
-      visit<an_ifc_SyntaxSort_BinaryFoldExpression>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_BinaryFoldExpression>(
+                                                                          pos);
       break;
     case ifc_syntax_empty_statement:
-      visit<an_ifc_SyntaxSort_EmptyStatement>(pos);
+      getDerived()->template visit<an_ifc_SyntaxSort_EmptyStatement>(pos);
       break;
     case ifc_syntax_structured_binding_declaration:
-      visit<an_ifc_SyntaxSort_StructuredBindingDeclaration>(pos);
+      getDerived()->template visit<
+                          an_ifc_SyntaxSort_StructuredBindingDeclaration>(pos);
       break;
     case ifc_syntax_structured_binding_identifier:
-      visit<an_ifc_SyntaxSort_StructuredBindingIdentifier>(pos);
+      getDerived()->template visit<
+                           an_ifc_SyntaxSort_StructuredBindingIdentifier>(pos);
       break;
     case ifc_syntax_using_enum_decl:
-      visit<an_ifc_SyntaxSort_UsingEnumDeclaration>(pos);
+      getDerived()->template visit<
+                                  an_ifc_SyntaxSort_UsingEnumDeclaration>(pos);
       break;
     /* Group all MacroIndex::Tag partitions together. */
     case ifc_macro_obj_like:
-      visit<an_ifc_MacroSort_ObjectLike>(pos);
+      getDerived()->template visit<an_ifc_MacroSort_ObjectLike>(pos);
       break;
     case ifc_macro_func_like:
-      visit<an_ifc_MacroSort_FunctionLike>(pos);
+      getDerived()->template visit<an_ifc_MacroSort_FunctionLike>(pos);
       break;
     /* Group all FormIndex::Tag partitions together. */
     case ifc_form_ident:
-      visit<an_ifc_FormSort_Identifier>(pos);
+      getDerived()->template visit<an_ifc_FormSort_Identifier>(pos);
       break;
     case ifc_form_number:
-      visit<an_ifc_FormSort_Number>(pos);
+      getDerived()->template visit<an_ifc_FormSort_Number>(pos);
       break;
     case ifc_form_char:
-      visit<an_ifc_FormSort_Character>(pos);
+      getDerived()->template visit<an_ifc_FormSort_Character>(pos);
       break;
     case ifc_form_string:
-      visit<an_ifc_FormSort_String>(pos);
+      getDerived()->template visit<an_ifc_FormSort_String>(pos);
       break;
     case ifc_form_operator:
-      visit<an_ifc_FormSort_Operator>(pos);
+      getDerived()->template visit<an_ifc_FormSort_Operator>(pos);
       break;
     case ifc_form_keyword:
-      visit<an_ifc_FormSort_Keyword>(pos);
+      getDerived()->template visit<an_ifc_FormSort_Keyword>(pos);
       break;
     case ifc_form_whitespace:
-      visit<an_ifc_FormSort_Whitespace>(pos);
+      getDerived()->template visit<an_ifc_FormSort_Whitespace>(pos);
       break;
     case ifc_form_param:
-      visit<an_ifc_FormSort_Parameter>(pos);
+      getDerived()->template visit<an_ifc_FormSort_Parameter>(pos);
       break;
     case ifc_form_stringize:
-      visit<an_ifc_FormSort_Stringize>(pos);
+      getDerived()->template visit<an_ifc_FormSort_Stringize>(pos);
       break;
     case ifc_form_catenate:
-      visit<an_ifc_FormSort_Catenate>(pos);
+      getDerived()->template visit<an_ifc_FormSort_Catenate>(pos);
       break;
     case ifc_form_pragma:
-      visit<an_ifc_FormSort_Pragma>(pos);
+      getDerived()->template visit<an_ifc_FormSort_Pragma>(pos);
       break;
     case ifc_form_header:
-      visit<an_ifc_FormSort_Header>(pos);
+      getDerived()->template visit<an_ifc_FormSort_Header>(pos);
       break;
     case ifc_form_parenthesized:
-      visit<an_ifc_FormSort_Parenthesized>(pos);
+      getDerived()->template visit<an_ifc_FormSort_Parenthesized>(pos);
       break;
     case ifc_form_tuple:
-      visit<an_ifc_FormSort_Tuple>(pos);
+      getDerived()->template visit<an_ifc_FormSort_Tuple>(pos);
       break;
     case ifc_form_junk:
-      visit<an_ifc_FormSort_Junk>(pos);
+      getDerived()->template visit<an_ifc_FormSort_Junk>(pos);
       break;
     /* Group scope sequences together. */
     case ifc_scope_desc:
-      visit<an_ifc_Scope_Descriptor>(pos);
+      getDerived()->template visit<an_ifc_Scope_Descriptor>(pos);
       break;
     case ifc_scope_member:
-      visit<an_ifc_Scope_Member>(pos);
+      getDerived()->template visit<an_ifc_Scope_Member>(pos);
       break;
     /* Group heaps together. */
     case ifc_heap_attr:
@@ -15754,7 +15230,7 @@ void an_ifc_module::Partition_element_validator::visit_position(
       break;
     /* No grouping, but validated. */
     case ifc_src_line:
-      visit<an_ifc_Source_Line>(pos);
+      getDerived()->template visit<an_ifc_Source_Line>(pos);
       break;
     /* EDG utility partitions these should never be seen here. */
     case ifc_none:
@@ -15796,6 +15272,1073 @@ void an_ifc_module::Partition_element_validator::visit_position(
   } /* switch */
 }  /* visit_position */
 
+/*
+The Type_generalizer forms a system for converting various field's values to
+more generic types (e.g. AttrIndex -> an_ifc_partition_positions), then
+forwarding those an_ifc_partition_positions to a Element_field_visitor
+derivative.
+
+This allows Element_field_visitor derivatives to share significant portions of
+their dispatch code (e.g., each derivative can share index -> position
+conversion logic and have one "position" based visit function rather than many
+index type based visit functions).
+
+Ideally, this would be a template class with a template function "accept"
+that's explicitly specialized.  However, C++ does not allow the visit function
+to be explicitly specialized within a template class.
+
+To work around this, the argument type is included in the class template and
+the correct specialization of the function is provided via partial
+specialization of the class.  Thus, an arbitrary visitor can still be provided
+-- without type erasure -- while allowing the "accept" function to be
+specialized on its argument type.
+
+To reduce verbosity of the implementation, a base class Type_generalizer_base
+is provided which abstracts the common details of the class -- constructors,
+members, and common functions.
+
+Calls to the visitor should be made through the base class
+(Type_generalizer_base)'s visit function rather than directly.  This allows
+implementing classes to easily grant access to their visit functions even if
+private by friending the base class.
+
+Implementing visitors may override default conversion functionality by creating
+an explicit specialization for their class.
+*/
+
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer_base {
+  Type_generalizer_base(an_ifc_module *ifc_mod_val,
+                        a_Visitor     *visitor_val)
+    : ifc_mod(ifc_mod_val), visitor(visitor_val)
+    {}
+protected:
+  /* Common internal logic and fields for specializations implementing
+     conversions. */
+  template<typename... Args>
+  inline an_ifc_partition_position convert_to_pos(Args&&... args) const
+    { return an_ifc_partition_position(ifc_mod, args...); }
+  template<typename... Args>
+  inline void visit(Args&&... args) const
+    { visitor->visit(args...); }
+  an_ifc_module *ifc_mod;
+  a_Visitor *visitor;
+};  /* Type_generalizer_base */
+
+/* The unspecialized default converter for argument types that don't have
+   conversion rules.  This converter merely forwards to the provided
+   visitor. */
+template<typename a_Converted_Type, typename a_Visitor>
+struct an_ifc_module::Type_generalizer
+                                    : public Type_generalizer_base<a_Visitor> {
+  using base = Type_generalizer_base<a_Visitor>;
+  using base::base;
+
+  inline void apply(a_Converted_Type val, a_const_char *field_name) const
+    { base::visit(val, field_name); }
+};  /* Type_generalizer */
+
+/* A specialization of Type_generalizer that converts "ifc_AttrIndex" visitor
+   calls to "an_ifc_partition_position" visitor calls. */
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_AttrIndex, a_Visitor>
+                                           : Type_generalizer_base<a_Visitor> {
+  using base = Type_generalizer_base<a_Visitor>;
+  using base::base;
+
+  inline void apply(ifc_AttrIndex val, a_const_char *field_name) const;
+};  /* Type_generalizer<ifc_AttrIndex> */
+
+
+template<typename a_Visitor>
+inline void
+an_ifc_module::Type_generalizer<ifc_AttrIndex, a_Visitor>::apply(
+                                                     ifc_AttrIndex val,
+                                                     a_const_char  *field_name)
+                                                                          const
+/*
+If val is set to a valid index this function converts the index to a partition
+position, and calls the visitor with the converted index.
+*/
+{
+  if (val != 0) {
+    base::visit(base::convert_to_pos(val), field_name);
+  }  /* if */
+}  /* apply<ifc_AttrIndex> */
+
+
+/* A specialization of Type_generalizer that converts "ifc_ChartIndex" visitor
+   calls to "an_ifc_partition_position" visitor calls. */
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_ChartIndex, a_Visitor>
+                                           : Type_generalizer_base<a_Visitor> {
+  using base = Type_generalizer_base<a_Visitor>;
+  using base::base;
+
+  inline void apply(ifc_ChartIndex val, a_const_char *field_name) const;
+};  /* Type_generalizer<ifc_ChartIndex> */
+
+
+template<typename a_Visitor>
+inline void
+an_ifc_module::Type_generalizer<ifc_ChartIndex, a_Visitor>::apply(
+                                                    ifc_ChartIndex val,
+                                                    a_const_char   *field_name)
+                                                                          const
+/*
+If val is set to a valid index this function converts the index to a partition
+position, and calls the visitor with the converted index.
+*/
+{
+  if (val != 0) {
+    base::visit(base::convert_to_pos(val), field_name);
+  }  /* if */
+}  /* apply<ifc_ChartIndex> */
+
+
+/* A specialization of Type_generalizer that converts "ifc_DeclIndex" visitor
+   calls to "an_ifc_partition_position" visitor calls. */
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_DeclIndex, a_Visitor>
+                                           : Type_generalizer_base<a_Visitor> {
+  using base = Type_generalizer_base<a_Visitor>;
+  using base::base;
+
+  inline void apply(ifc_DeclIndex val, a_const_char *field_name) const;
+};  /* Type_generalizer<ifc_DeclIndex> */
+
+
+template<typename a_Visitor>
+inline void
+an_ifc_module::Type_generalizer<ifc_DeclIndex, a_Visitor>::apply(
+                                                     ifc_DeclIndex val,
+                                                     a_const_char  *field_name)
+                                                                          const
+/*
+If val is set to a valid index this function converts the index to a partition
+position, and calls the visitor with the converted index.
+*/
+{
+  if (val != 0) {
+    base::visit(base::convert_to_pos(val), field_name);
+  }  /* if */
+}  /* apply<ifc_DeclIndex> */
+
+
+/* A specialization of Type_generalizer that converts "ifc_ExprIndex" visitor
+   calls to "an_ifc_partition_position" visitor calls. */
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_ExprIndex, a_Visitor>
+                                           : Type_generalizer_base<a_Visitor> {
+  using base = Type_generalizer_base<a_Visitor>;
+  using base::base;
+
+  inline void apply(ifc_ExprIndex val, a_const_char *field_name) const;
+};  /* Type_generalizer<ifc_ExprIndex> */
+
+
+template<typename a_Visitor>
+inline void
+an_ifc_module::Type_generalizer<ifc_ExprIndex, a_Visitor>::apply(
+                                                     ifc_ExprIndex val,
+                                                     a_const_char  *field_name)
+                                                                          const
+/*
+If val is set to a valid index this function converts the index to a partition
+position, and calls the visitor with the converted index.
+*/
+{
+  if (val != 0) {
+    base::visit(base::convert_to_pos(val), field_name);
+  }  /* if */
+}  /* apply<ifc_ExprIndex> */
+
+
+/* A specialization of Type_generalizer that converts "ifc_FormIndex" visitor
+   calls to "an_ifc_partition_position" visitor calls. */
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_FormIndex, a_Visitor>
+                                           : Type_generalizer_base<a_Visitor> {
+  using base = Type_generalizer_base<a_Visitor>;
+  using base::base;
+
+  inline void apply(ifc_FormIndex val, a_const_char *field_name) const;
+};  /* Type_generalizer<ifc_FormIndex> */
+
+
+template<typename a_Visitor>
+inline void
+an_ifc_module::Type_generalizer<ifc_FormIndex, a_Visitor>::apply(
+                                                     ifc_FormIndex val,
+                                                     a_const_char  *field_name)
+                                                                          const
+/*
+If val is set to a valid index this function converts the index to a partition
+position, and calls the visitor with the converted index.
+*/
+{
+  if (val != 0) {
+    base::visit(base::convert_to_pos(val), field_name);
+  }  /* if */
+}  /* apply<ifc_FormIndex> */
+
+
+/* A specialization of Type_generalizer that converts "ifc_FormSpecIndex"
+   visitor calls to "an_ifc_partition_position" visitor calls. */
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_FormSpecIndex, a_Visitor>
+                                           : Type_generalizer_base<a_Visitor> {
+  using base = Type_generalizer_base<a_Visitor>;
+  using base::base;
+
+  inline void apply(ifc_FormSpecIndex val, a_const_char *field_name) const;
+};  /* Type_generalizer<ifc_FormSpecIndex> */
+
+
+template<typename a_Visitor>
+inline void
+an_ifc_module::Type_generalizer<ifc_FormSpecIndex, a_Visitor>::apply(
+                                                 ifc_FormSpecIndex val,
+                                                 a_const_char      *field_name)
+                                                                          const
+/*
+If val is set to a valid index this function converts the index to a partition
+position, and calls the visitor with the converted index.
+*/
+{
+  if (val != 0) {
+    base::visit(base::convert_to_pos(val), field_name);
+  }  /* if */
+}  /* apply<ifc_FormSpecIndex> */
+
+
+/* A specialization of Type_generalizer that converts "ifc_LineIndex" visitor
+   calls to "an_ifc_partition_position" visitor calls. */
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_LineIndex, a_Visitor>
+                                           : Type_generalizer_base<a_Visitor> {
+  using base = Type_generalizer_base<a_Visitor>;
+  using base::base;
+
+  inline void apply(ifc_LineIndex val, a_const_char *field_name) const;
+};  /* Type_generalizer<ifc_LineIndex> */
+
+
+template<typename a_Visitor>
+inline void
+an_ifc_module::Type_generalizer<ifc_LineIndex, a_Visitor>::apply(
+                                                     ifc_LineIndex val,
+                                                     a_const_char  *field_name)
+                                                                          const
+/*
+If val is set to a valid index this function converts the index to a partition
+position, and calls the visitor with the converted index.
+*/
+{
+  if (val != 0) {
+    base::visit(base::convert_to_pos(val), field_name);
+  }  /* if */
+}  /* apply<ifc_LineIndex> */
+
+
+/* A specialization of Type_generalizer that converts "ifc_MacroIndex" visitor
+   calls to "an_ifc_partition_position" visitor calls. */
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_MacroIndex, a_Visitor>
+                                           : Type_generalizer_base<a_Visitor> {
+  using base = Type_generalizer_base<a_Visitor>;
+  using base::base;
+
+  inline void apply(ifc_MacroIndex val, a_const_char *field_name) const;
+};  /* Type_generalizer<ifc_MacroIndex> */
+
+
+template<typename a_Visitor>
+inline void
+an_ifc_module::Type_generalizer<ifc_MacroIndex, a_Visitor>::apply(
+                                                    ifc_MacroIndex val,
+                                                    a_const_char   *field_name)
+                                                                          const
+/*
+If val is set to a valid index this function converts the index to a partition
+position, and calls the visitor with the converted index.
+*/
+{
+  if (val != 0) {
+    base::visit(base::convert_to_pos(val), field_name);
+  }  /* if */
+}  /* apply<ifc_MacroIndex> */
+
+
+/* A specialization of Type_generalizer that converts "ifc_NameIndex" visitor
+   calls to "an_ifc_partition_position" visitor calls. */
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_NameIndex, a_Visitor>
+                                           : Type_generalizer_base<a_Visitor> {
+  using base = Type_generalizer_base<a_Visitor>;
+  using base::base;
+
+  inline void apply(ifc_NameIndex val, a_const_char *field_name) const;
+};  /* Type_generalizer<ifc_NameIndex> */
+
+
+template<typename a_Visitor>
+inline void
+an_ifc_module::Type_generalizer<ifc_NameIndex, a_Visitor>::apply(
+                                                     ifc_NameIndex val,
+                                                     a_const_char  *field_name)
+                                                                          const
+/*
+If val is set to a valid index this function converts the index to a partition
+position, and calls the visitor with the converted index.
+*/
+{
+  if (val != 0) {
+    if (name_tag(val) != ifc_NameSort_Identifier) {
+      base::visit(base::convert_to_pos(val), field_name);
+    }  /* if */
+  }  /* if */
+}  /* apply<ifc_NameIndex> */
+
+
+/* A specialization of Type_generalizer that converts "ifc_ScopeIndex" visitor
+   calls to "an_ifc_partition_position" visitor calls. */
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_ScopeIndex, a_Visitor>
+                                           : Type_generalizer_base<a_Visitor> {
+  using base = Type_generalizer_base<a_Visitor>;
+  using base::base;
+
+  inline void apply(ifc_ScopeIndex val, a_const_char *field_name) const;
+};  /* Type_generalizer<ifc_ScopeIndex> */
+
+
+template<typename a_Visitor>
+inline void
+an_ifc_module::Type_generalizer<ifc_ScopeIndex, a_Visitor>::apply(
+                                                    ifc_ScopeIndex val,
+                                                    a_const_char   *field_name)
+                                                                          const
+/*
+If val is set to a valid index this function converts the index to a partition
+position, and calls the visitor with the converted index.
+*/
+{
+  if (val != 0) {
+    base::visit(base::convert_to_pos(val), field_name);
+  }  /* if */
+}  /* apply<ifc_ScopeIndex> */
+
+
+/* A specialization of Type_generalizer that converts "ifc_SourceLocation"
+   visitor calls to "an_ifc_partition_position" visitor calls. */
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_SourceLocation, a_Visitor>
+                                           : Type_generalizer_base<a_Visitor> {
+  using base = Type_generalizer_base<a_Visitor>;
+  using base::base;
+
+  inline void apply(ifc_SourceLocation val, a_const_char *field_name) const;
+};  /* Type_generalizer<ifc_SourceLocation> */
+
+
+template<typename a_Visitor>
+inline void
+an_ifc_module::Type_generalizer<ifc_SourceLocation, a_Visitor>::apply(
+                                                ifc_SourceLocation val,
+                                                a_const_char       *field_name)
+                                                                          const
+/*
+If val is set to a source location with a valid line index this function
+converts the index to a partition position, and calls the visitor with the
+converted index.
+*/
+{
+  if (val.line != 0) {
+    base::visit(base::convert_to_pos(val.line), field_name);
+  }  /* if */
+}  /* apply<ifc_SourceLocation> */
+
+
+/* A specialization of Type_generalizer that converts "ifc_StmtIndex" visitor
+   calls to "an_ifc_partition_position" visitor calls. */
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_StmtIndex, a_Visitor>
+                                           : Type_generalizer_base<a_Visitor> {
+  using base = Type_generalizer_base<a_Visitor>;
+  using base::base;
+
+  inline void apply(ifc_StmtIndex val, a_const_char *field_name) const;
+};  /* Type_generalizer<ifc_StmtIndex> */
+
+
+template<typename a_Visitor>
+inline void
+an_ifc_module::Type_generalizer<ifc_StmtIndex, a_Visitor>::apply(
+                                                     ifc_StmtIndex val,
+                                                     a_const_char  *field_name)
+                                                                          const
+/*
+If val is set to a valid index this function converts the index to a partition
+position, and calls the visitor with the converted index.
+*/
+{
+  if (val != 0) {
+    base::visit(base::convert_to_pos(val), field_name);
+  }  /* if */
+}  /* apply<ifc_StmtIndex> */
+
+
+/* A specialization of Type_generalizer that converts "ifc_SyntaxIndex" visitor
+   calls to "an_ifc_partition_position" visitor calls. */
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_SyntaxIndex, a_Visitor>
+                                           : Type_generalizer_base<a_Visitor> {
+  using base = Type_generalizer_base<a_Visitor>;
+  using base::base;
+
+  inline void apply(ifc_SyntaxIndex val, a_const_char *field_name) const;
+};  /* Type_generalizer<ifc_SyntaxIndex> */
+
+
+template<typename a_Visitor>
+inline void
+an_ifc_module::Type_generalizer<ifc_SyntaxIndex, a_Visitor>::apply(
+                                                   ifc_SyntaxIndex val,
+                                                   a_const_char    *field_name)
+                                                                          const
+/*
+If val is set to a valid index this function converts the index to a
+partition position, and calls the visitor with the converted index.
+*/
+{
+  if (val != 0) {
+    base::visit(base::convert_to_pos(val), field_name);
+  }  /* if */
+}  /* apply<ifc_SyntaxIndex> */
+
+
+/* A specialization of Type_generalizer that converts "ifc_TypeIndex" visitor
+   calls to "an_ifc_partition_position" visitor calls. */
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_TypeIndex, a_Visitor>
+                                           : Type_generalizer_base<a_Visitor> {
+  using base = Type_generalizer_base<a_Visitor>;
+  using base::base;
+
+  inline void apply(ifc_TypeIndex val, a_const_char *field_name) const;
+};  /* Type_generalizer<ifc_TypeIndex> */
+
+
+template<typename a_Visitor>
+inline void
+an_ifc_module::Type_generalizer<ifc_TypeIndex, a_Visitor>::apply(
+                                                     ifc_TypeIndex val,
+                                                     a_const_char  *field_name)
+                                                                          const
+/*
+If val is set to a valid index this function converts the index to a
+partition position, and calls the visitor with the converted index.
+*/
+{
+  if (val != 0) {
+    base::visit(base::convert_to_pos(val), field_name);
+  }  /* if */
+}  /* apply<ifc_TypeIndex> */
+
+
+/* A CRT (curiously recursive template) visitor class for dispatching to a
+   visit function that should be "overridden" by implementing derived
+   classes. */
+template<typename a_Derived_T>
+struct an_ifc_module::Element_field_visitor {
+  Element_field_visitor(an_ifc_module *ifc_mod_val)
+    : ifc_mod(ifc_mod_val)
+    {}
+
+#define IFC_DECL_START(name) \
+  inline void visit_element(concat(an_ifc_, name) *memp);
+/* Disable generation from the following macros by defining them to nothing. */
+#define IFC_DECL_FIELD(name, type)
+#define IFC_DECL_END(name)
+
+/*lint -e451 included more than once. */
+#include "ifc_map.h"
+/*lint +e451*/
+protected:
+  template<typename a_Type>
+  inline void visit(a_Type val, a_const_char *field_name) = delete;
+  inline auto getDerived() -> a_Derived_T *
+    { return static_cast<a_Derived_T*>(this); }
+  an_ifc_module *ifc_mod;
+};  /* Element_field_visitor */
+
+/* Automatically generate a specialization for visiting the members of
+   an IFC module partition element. */
+
+#define IFC_DECL_START(name) \
+template<typename a_Derived_T> \
+inline void \
+an_ifc_module::Element_field_visitor<a_Derived_T>::visit_element( \
+                                                 concat(an_ifc_, name) *memp) \
+{
+#define IFC_DECL_FIELD(name, type) \
+  { \
+    using a_Field_Type = concat(ifc_, type); \
+    Type_generalizer<a_Field_Type, a_Derived_T> gen(ifc_mod, getDerived()); \
+    gen.apply(memp->name, #name); \
+  }
+#define IFC_DECL_END(name) \
+}  /* def_visit_members<concat(an_ifc_, name)> */
+
+/*lint -e451 included more than once. */
+#include "ifc_map.h"
+/*lint +e451*/
+
+/* ... */
+struct an_ifc_module::Element_field_validation_state_clearer
+       : public Element_field_visitor<Element_field_validation_state_clearer> {
+  inline Element_field_validation_state_clearer(
+                          Element_validation_state_clearer *state_clearer_val);
+
+  template<typename a_Type>
+  inline void visit(a_Type val, const char *field_name)
+    {}
+private:
+  Element_validation_state_clearer *state_clearer;
+};  /* Element_field_validation_state_clearer */
+
+
+template<>
+inline void
+an_ifc_module::Element_field_validation_state_clearer::visit(
+                                        an_ifc_partition_position val,
+                                        const char                *field_name);
+
+
+inline a_boolean an_ifc_module::validate_partition_position(
+                                                 an_ifc_partition_position pos)
+{
+  a_boolean        result = TRUE;
+  an_ifc_partition *partition = &partitions[pos.partition];
+
+  if (partition->size == 0) {
+    /* Check that anything is stored in the requested partition. */
+    result = FALSE;
+  } else if (pos.file_offset < partition->offset) {
+    /* Check that this position follows the requested partition. */
+    result = FALSE;
+  } else {
+    size_t relative_offset = pos.file_offset - partition->offset;
+    if ((relative_offset + partition->entry_size) > partition->size) {
+      /* Check that the relative offset is within the partition. */
+      result = FALSE;
+    } else if ((relative_offset % partition->entry_size) != 0) {
+      /* Check that the relative offset is at a given position. */
+      result = FALSE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* validate_partition_position */
+
+
+/* ... */
+struct an_ifc_module::Element_validation_state_clearer
+                   : public Element_visitor<Element_validation_state_clearer> {
+  Element_validation_state_clearer(an_ifc_module *ifc_mod_val)
+    : ifc_mod(ifc_mod_val), field_visitor(this)
+    {}
+  void reset(an_ifc_partition_position pos)
+    { reset(pos, ""); }
+private:
+  friend Element_visitor<Element_validation_state_clearer>;
+  friend Element_field_validation_state_clearer;
+  /* State reset functions. */
+  inline void reset(an_ifc_partition_position pos, a_const_char *field_name);
+  /* Visitor functions to traverse the IFC. */
+  template<typename T>
+  inline void def_visit(an_ifc_partition_position pos) = delete;
+  template<typename T>
+  inline void visit(an_ifc_partition_position pos)
+    { def_visit<T>(pos); }
+  an_ifc_module *ifc_mod;
+  Element_field_validation_state_clearer
+                field_visitor;
+};  /* Partition_element_validity_resetor */
+
+/* Complete the Element_field_validation_state_clearer now that the
+   Element_validation_state_clearer is a complete type. */
+
+/* FIXME: How do we want to format this?  Is there a nice proposal for a
+   shorter name? */
+inline
+an_ifc_module::Element_field_validation_state_clearer::
+                                        Element_field_validation_state_clearer(
+                 Element_validation_state_clearer *state_clearer_val)
+  : Element_field_visitor(state_clearer_val->ifc_mod),
+    state_clearer(state_clearer_val)
+{
+}  /* Element_field_validation_state_clearer */
+
+
+template<>
+inline void
+an_ifc_module::Element_field_validation_state_clearer::visit(
+                                         an_ifc_partition_position val,
+                                         a_const_char              *field_name)
+/*
+Clear the validation status for the given partition element position by
+recursing.
+*/
+{
+  state_clearer->reset(val);
+}  /* visit */
+
+
+inline void
+an_ifc_module::Element_validation_state_clearer::reset(
+                                         an_ifc_partition_position pos,
+                                         a_const_char              *field_name)
+/*
+Clear the validation status for the given partition element position by
+recursing.
+*/
+{
+  if (ifc_mod->validate_partition_position(pos)) {
+    /* This is a sane position, the validation cache can now be consulted
+       to see if this address has been previously checked. */
+    if (ifc_mod->has_been_validated(pos)) {
+      /* This element was previously validated, reset it and any children. */
+      ifc_mod->reset_validation_state(pos);
+      visit_position(pos);
+    } /* if */
+  } /* if */
+}  /* visit */
+
+
+/* Automatically generate a specialization for visiting an IFC module partition
+   element and visiting its members with the automatically generated member
+   validation function. */
+
+#define IFC_DECL_START(name) \
+template<> \
+inline void \
+an_ifc_module::Element_validation_state_clearer::def_visit< \
+                        concat(an_ifc_, name)>(an_ifc_partition_position pos) \
+{ \
+  concat(an_ifc_, name) mem, *memp; \
+  ifc_mod->read_unchecked_partition_element(pos); \
+  memp = ifc_mod->get<concat(an_ifc_, name)>(&mem); \
+  field_visitor.visit_element(memp);
+/* Disable generation from the following macros by defining them to nothing. */
+#define IFC_DECL_FIELD(field, type)
+/* Generate the end of the function. */
+#define IFC_DECL_END(name) \
+}  /* def_visit<concat(an_ifc_, name)> */
+
+/*lint -e451 included more than once. */
+#include "ifc_map.h"
+/*lint +e451*/
+
+
+/* ... */
+struct an_ifc_module::Element_field_validator
+                      : public Element_field_visitor<Element_field_validator> {
+  inline Element_field_validator(Element_validator *validator_val);
+private:
+  template<typename a_Type>
+  inline void visit(a_Type val, const char *field_name)
+    {}
+  friend Type_generalizer_base<Element_field_validator>;
+  Element_validator *validator;
+};  /* Element_field_validator */
+
+
+template<>
+inline void an_ifc_module::Element_field_validator::visit(
+                                        an_ifc_partition_position val,
+                                        const char                *field_name);
+
+
+/* ... */
+struct an_ifc_module::Element_validator
+                                  : public Element_visitor<Element_validator> {
+  a_boolean invalid;
+
+  Element_validator(an_ifc_module *ifc_mod_val,
+                    a_boolean     recursively_val)
+    : invalid(false), ifc_mod(ifc_mod_val), field_visitor(this),
+      recursively(recursively_val), tail(nullptr), emit_diagnostics(TRUE)
+    {}
+
+  void validate(an_ifc_partition_position pos)
+    { validate(pos, ""); }
+private:
+  friend Element_visitor<Element_validator>;
+  friend Element_field_validator;
+  struct Validation_stage;
+  /* Error handling functions. */
+  inline void mark_invalid();
+  inline void add_backtrace(a_diagnostic_ptr diag_ptr) const;
+  inline void invalid_partition(an_ifc_partition_position pos);
+  inline void undefined_partition(an_ifc_partition_position pos);
+  inline void invalid_position(an_ifc_partition_position pos);
+  /* Validation functions. */
+  inline void validate(an_ifc_partition_position pos, const char *field_name);
+  /* Visitor functions to traverse the IFC. */
+  template<typename T>
+  inline void def_visit(an_ifc_partition_position pos) = delete;
+  template<typename T>
+  inline void visit(an_ifc_partition_position pos)
+    { def_visit<T>(pos); }
+  an_ifc_module *ifc_mod;
+  Element_field_validator
+                field_visitor;
+  a_boolean     recursively;
+  Validation_stage
+                *tail;
+  a_boolean     emit_diagnostics;
+};  /* Decl_value_visitor */
+
+
+/* A structure that's responsible making the stack stored state related to the
+   current "validate" call and all parents accessible.  This allows the call
+   stack to be traversed (to retrieve information about the requester) without
+   storing this information in a side stack/duplicating the objects of interest
+   in side state.
+
+   A pointer to the current position, the field name referencing said position
+   and the position validity are made accessible via this system.
+
+   The tail pointer is used to enter this information and points to the top of
+   the validation stack.  It's maintained by storing the tail pointers current
+   value (prev), then updating the tail pointer to point to the current
+   validation stage.  When destroyed the tail pointer is restored to its
+   previous state. */
+struct an_ifc_module::Element_validator::Validation_stage {
+  Validation_stage          **tail_ptr;
+  Validation_stage          *prev;
+  an_ifc_partition_position *pos;
+  const char                *field_name;
+  a_boolean                 invalid;
+
+  Validation_stage(Validation_stage          **tail_ptr_val,
+                   an_ifc_partition_position *pos_val,
+                   const char                *field_name_val)
+    : tail_ptr(tail_ptr_val), prev(*tail_ptr_val), pos(pos_val),
+      field_name(field_name_val), invalid(FALSE)
+    { *tail_ptr = this; }
+  ~Validation_stage()
+    { *tail_ptr = prev; }
+};  /* Validation_stage */
+
+
+/* Complete the Element_field_validator now that the
+   Element_validator is a complete type. */
+
+inline
+an_ifc_module::Element_field_validator::Element_field_validator(
+                                              Element_validator *validator_val)
+  : Element_field_visitor(validator_val->ifc_mod), validator(validator_val)
+{
+}  /* Element_field_validator */
+
+
+template<>
+inline void an_ifc_module::Element_field_validator::visit(
+                                         an_ifc_partition_position val,
+                                         const char                *field_name)
+/*
+Check the validity of the given partition element position by recursing.
+*/
+{
+  validator->validate(val, field_name);
+}  /* visit<an_ifc_partition_position> */
+
+
+inline void an_ifc_module::Element_validator::validate(
+                                         an_ifc_partition_position pos,
+                                         const char                *field_name)
+/* */
+{
+  Validation_stage stage(&tail, &pos, field_name);
+
+  /* First check to see if the given position is a real element that needs
+     validation (i.e., check the position itself). */
+  if (pos.partition == ifc_invalid_partition) {
+    /* The partition is invalid, no processing can be done at this position. */
+    invalid_partition(pos);
+  } else if (ifc_mod->partitions[pos.partition].name == NULL) {
+    /* The partition is undefined, no processing can be done at this
+       position. */
+    undefined_partition(pos);
+  } else if (!ifc_mod->validate_partition_position(pos)) {
+    /* The position is invalid, no processing can be done at this position. */
+    invalid_position(pos);
+  } else {
+    /* This is a sane position, the validation cache can now be consulted
+       to see if this address has been previously checked. */
+    if (ifc_mod->has_been_validated(pos)) {
+      /* This element was previously validated, use its previous state. */
+      if (ifc_mod->is_marked_invalid(pos)) {
+        mark_invalid();
+      }  /* if */
+    } else {
+      /* This element was not previously validated.  There are two cases where
+         validation is performed here with different implications.
+
+         If doing recursive validation, this position will be fully validated,
+         and can be cached with both valid and invalid status.
+
+         If doing only top level (non-recursive/shallow) validation, the
+         position will only be marked valid if it was determined to be invalid
+         -- as without checking its dependencies we can't possibly know if
+         it's valid, only that it's invalid. */
+      if (recursively) {
+        /* Handle first case (recursive validation). */
+        /* Mark the element validated before doing validation if this is a
+           recursive validation to prevent infinite recursion when the
+           traversal self references.
+
+           Note that this means references back to this partition element
+           implicitly trust its validity, so if it ends up being invalid, we
+           must clear everything that's potentially been validated as part of
+           this operation, then retraverse everything with the correct
+           validity.  This is slow but it happens only in the non-happy path so
+           it's acceptable. */
+        ifc_mod->mark_validated(pos);
+        visit_position(pos);
+        if (stage.invalid) {
+          Element_validation_state_clearer state_clearer(ifc_mod);
+
+          /* Reset the state. */
+          state_clearer.reset(pos);
+          /* Mark the position as validated and invalid. */
+          ifc_mod->mark_validated(pos);
+          ifc_mod->mark_invalid(pos);
+          /* Traverse again without diagnostics.  Any errors found have already
+             been reported, this is just about fixing validation status if
+             there was a self reference to this partition element -- which was
+             originally assumed valid and is now invalid. */
+          emit_diagnostics = FALSE;
+          visit_position(pos);
+          emit_diagnostics = TRUE;
+        }  /* if */
+      } else if (tail->prev == nullptr) {
+        /* Handle second case (top level validation). */
+        visit_position(pos);
+        if (stage.invalid) {
+          ifc_mod->mark_validated(pos);
+          ifc_mod->mark_invalid(pos);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  } /* if */
+}  /* validate */
+
+
+inline void an_ifc_module::Element_validator::mark_invalid()
+/*
+Marks the top level element invalid.  Additionally, any validation stages
+between the current element and the top level element are marked as invalid --
+as those elements depend on this element, and thus are invalid as well.
+*/
+{
+  Validation_stage *cur = tail;
+
+  while (cur != nullptr) {
+    /* If something already marked parents invalid, stop to prevent duplicated
+       effort. */
+    if (cur->invalid) {
+      break;
+    }  /* if */
+    /* Mark this stage and all parents as invalid. */
+    cur->invalid = TRUE;
+    /* Move down the stack. */
+    cur = cur->prev;
+  }  /* while */
+  invalid = true;
+}  /* mark_invalid */
+
+
+inline void an_ifc_module::Element_validator::add_backtrace(
+                                                     a_diagnostic_ptr diag_ptr)
+                                                                          const
+/*
+*/
+{
+  Validation_stage *cur = tail;
+  a_boolean        deepest_element = TRUE;
+
+  while (cur != nullptr) {
+    an_ifc_partition_position *pos = cur->pos;
+    a_const_char              *field_name = cur->field_name;
+    size_t                    rel_offset = ifc_mod->to_relative_offset(*pos);
+
+    /* Add this partition position request to the diagnostic. */
+    if (!deepest_element) {
+      size_t part_index = ifc_mod->to_partition_index(*pos);
+
+      st_num3_add_diag_info(diag_ptr, ec_invalid_ifc_position_backtrace_pos,
+                            ifc_mod->partitions[pos->partition].name,
+                            part_index, pos->file_offset, rel_offset);
+    } else {
+      deepest_element = FALSE;
+    }  /* if */
+    if (field_name[0] != '\0') {
+      str_add_diag_info(diag_ptr, ec_invalid_ifc_position_backtrace_field,
+                        field_name);
+    }  /* if */
+    /* Move down the stack. */
+    cur = cur->prev;
+  }  /* while */
+}  /* add_backtrace */
+
+
+inline void an_ifc_module::Element_validator::invalid_partition(
+                                                 an_ifc_partition_position pos)
+/*
+*/
+{
+  if (emit_diagnostics) {
+    a_diagnostic_ptr diag_ptr;
+
+    /* FIXME: Use a better source position. */
+    diag_ptr = pos_start_error(ec_invalid_ifc_partition,
+                               &null_source_position);
+    add_backtrace(diag_ptr);
+    end_diagnostic(diag_ptr);
+  }  /* if */
+  mark_invalid();
+}  /* invalid_partition */
+
+
+inline void an_ifc_module::Element_validator::undefined_partition(
+                                                 an_ifc_partition_position pos)
+/*
+*/
+{
+  for (uint32_t index = 0; index < (uint32_t)ifc_last; ++index) {
+    an_ifc_partition_map *map_entry = &ifc_partition_map[index];
+    if (map_entry->kind == pos.partition) {
+      if (emit_diagnostics) {
+        a_diagnostic_ptr diag_ptr;
+
+        /* FIXME: Use a better source position. */
+        diag_ptr = pos_st_start_error(ec_undefined_ifc_partition,
+                                      &null_source_position, map_entry->name);
+        add_backtrace(diag_ptr);
+        end_diagnostic(diag_ptr);
+      }  /* if */
+      mark_invalid();
+      goto found;
+    }  /* if */
+  }
+  /* Assert that we found the requested partition. */
+  /* FIXME: Handle cases where we didn't find the requested partition. */
+  check_assertion(false);
+found:
+  ;
+}  /* undefined_partition */
+
+
+inline void an_ifc_module::Element_validator::invalid_position(
+                                                 an_ifc_partition_position pos)
+/*
+*/
+{
+  an_ifc_partition *partition = &ifc_mod->partitions[pos.partition];
+  size_t           relative_offset = ifc_mod->to_relative_offset(pos);
+  an_error_code    error_code = ec_no_error;
+  /* FIXME: Use a better source position. */
+  if (partition->size == 0) {
+    error_code = ec_invalid_empty_ifc_position;
+  } else if (pos.file_offset < partition->offset) {
+    error_code = ec_invalid_preceding_ifc_position;
+  } else {
+    if ((relative_offset + partition->entry_size) > partition->size) {
+      error_code = ec_invalid_overflowing_ifc_position;
+    } else if ((relative_offset % partition->entry_size) != 0) {
+      error_code = ec_invalid_misaligned_ifc_position;
+    }  /* if */
+  }  /* if */
+  check_assertion(error_code != ec_no_error);
+  if (emit_diagnostics) {
+    a_diagnostic_ptr diag_ptr;
+
+    diag_ptr = pos_st_num2_start_error(error_code, &null_source_position,
+                                       ifc_mod->partitions[pos.partition].name,
+                                       pos.file_offset, relative_offset);
+    add_backtrace(diag_ptr);
+    end_diagnostic(diag_ptr);
+  }  /* if */
+  mark_invalid();
+}  /* invalid_position */
+
+/* Automatically generate a specialization for visiting an IFC module partition
+   element and visiting its members with the automatically generated member
+   validation function. */
+
+#define IFC_DECL_START(name) \
+template<> \
+inline void an_ifc_module::Element_validator::def_visit< \
+                        concat(an_ifc_, name)>(an_ifc_partition_position pos) \
+{ \
+  concat(an_ifc_, name) mem, *memp; \
+  ifc_mod->read_unchecked_partition_element(pos); \
+  memp = ifc_mod->get<concat(an_ifc_, name)>(&mem); \
+  field_visitor.visit_element(memp);
+/* Disable generation from the following macros by defining them to nothing. */
+#define IFC_DECL_FIELD(field, type)
+/* Generate the end of the function. */
+#define IFC_DECL_END(name) \
+}  /* def_visit<concat(an_ifc_, name)> */
+
+/*lint -e451 included more than once. */
+#include "ifc_map.h"
+/*lint +e451*/
+
+/* Declare and define manual overrides that should be used in place of the
+   automatically generated validation visit functions. */
+
+template<>
+inline void an_ifc_module::Element_validator::visit<
+                      an_ifc_DeclSort_Reference>(an_ifc_partition_position pos)
+/*
+Visit and validate an IFC reference partition element.
+
+FIXME: This partition element represents a reference to a declaration of
+another module.  While the caller potentially depends on this, for now, treat
+the reference itself as implicitly trusted to avoid the complexity.  Treating
+this as a no-op implies that the function ordering the import of the external
+declaration (if any) is responsible for validation, which may be the right
+decision.
+*/
+{
+}  /* visit<an_ifc_Reference> */
+
+
+template<>
+inline void an_ifc_module::Element_validator::visit<
+                        an_ifc_Scope_Descriptor>(an_ifc_partition_position pos)
+/*
+*/
+{
+  an_ifc_Scope_Descriptor isd, *isdp;
+
+  ifc_mod->read_unchecked_partition_element(pos);
+  isdp = ifc_mod->get<an_ifc_Scope_Descriptor>(&isd);
+  /* Perform the normal validation. */
+  field_visitor.visit_element(isdp);
+  /* Visit all associated elements. */
+  for (ifc_Index_type idx = 0; idx < isdp->cardinality; ++idx) {
+    an_ifc_partition_position referenced_pos(ifc_mod, ifc_scope_member,
+                                             isdp->start + idx);
+
+    visit_position(referenced_pos);
+  }  /* for */
+}  /* visit<an_ifc_Scope> */
+
 
 inline a_boolean an_ifc_module::validate_partition_element(
                                          an_ifc_partition_position pos,
@@ -15806,7 +16349,7 @@ element.  If recursively is TRUE checking is applied to subelements, and the
 result is cached.
 */
 {
-  Partition_element_validator validator(this, recursively);
+  Element_validator validator(this, recursively);
   validator.validate(pos);
   return !validator.invalid;
 }  /* validate_partition_element */
@@ -16355,11 +16898,12 @@ Mark the given position as having been validated.
 }  /* an_ifc_partition_position */
 
 
-inline a_boolean an_ifc_module::was_previously_marked_invalid(
+inline a_boolean an_ifc_module::is_marked_invalid(
                                                  an_ifc_partition_position pos)
                                                                           const
 /*
-Return TRUE if this position was invalid when previously validated.
+Return TRUE if this position was invalid when previously validated.  This is
+only a valid operation if has_been_validated returns TRUE.
 */
 {
   check_assertion(has_been_validated(pos));
@@ -16376,15 +16920,53 @@ Return TRUE if this position was invalid when previously validated.
 
 inline void an_ifc_module::mark_invalid(an_ifc_partition_position pos)
 /*
-Mark the given position as having been validated.
+Mark the given position as having been validated.  This is only a valid
+operation if has_been_validated returns TRUE.
 */
 {
+  check_assertion(has_been_validated(pos));
+  {
+    uint32_t index = to_partition_index(pos);
+    size_t   block = index / 16;
+    size_t   bit = index % 16;
+    unsigned bit_mask = (0x1 << 16) << bit;
+
+    partitions[pos.partition].format_validated[block] |= bit_mask;
+  }
+}  /* an_ifc_partition_position */
+
+
+inline void an_ifc_module::reset_validation_state(
+                                                 an_ifc_partition_position pos)
+/*
+Mark the given position's validation state bits as unvalidated and valid (its
+initial state).
+*/
+{
+  /* Setup a bit inverted bit mask that can be used to negate the validation
+     bits if set.  Operationally this creates a 32 bit mask of two 16 bit
+     partitions:
+
+       0000 0000 0000 0001 - 0000 0000 0000 0001
+
+     Shifts the bits into the correct bit positions:
+
+       0000 0000 0000 0100 - 0000 0000 0000 0100
+
+     This then represents the TRUE state for both validated and invalid.  It's
+     then inverted:
+
+       1111 1111 1111 1011 - 1111 1111 1111 1011
+
+     Then an bit-and operation is used producing the effect that bits related
+     to this position are zeroed while others are kept.
+  */
   uint32_t index = to_partition_index(pos);
   size_t   block = index / 16;
   size_t   bit = index % 16;
-  unsigned bit_mask = (0x1 << 16) << bit;
+  unsigned bit_mask = ~(((0x1 << 16) | 0x1) << bit);
 
-  partitions[pos.partition].format_validated[block] |= bit_mask;
+  partitions[pos.partition].format_validated[block] &= bit_mask;
 }  /* an_ifc_partition_position */
 
 

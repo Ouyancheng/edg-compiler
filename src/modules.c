@@ -745,6 +745,7 @@ the specified module.
     (*p)->entity.kind = (a_byte_il_entry_kind)iek_none;
     (*p)->file_offset = file_offset;
     (*p)->imminent = FALSE;
+    (*p)->invalid = FALSE;
     (*p)->global_module = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     (*p)->variant.ifc_partition = ifc_none;

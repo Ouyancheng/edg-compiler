@@ -3118,24 +3118,37 @@ private:
   void cache_form(a_token_cache_ptr cache,
                   ifc_FormIndex     form,
                   a_boolean         is_parameter_form = FALSE);
-  /* Readers and reading helpers. */
+  /* Index helpers. */
   inline ifc_DeclIndex decl_index_of(an_ifc_partition_kind partition,
                                      size_t                file_offset) const;
   inline ifc_DeclIndex decl_index_of(a_module_entity_ptr mep) const;
   inline ifc_AttrIndex attr_index_of(ifc_DeclIndex decl_idx);
+  /* IFC validation. */
   inline size_t to_relative_offset(an_ifc_partition_position pos) const;
   inline uint32_t to_partition_index(an_ifc_partition_position pos) const;
   inline a_boolean has_been_validated(an_ifc_partition_position pos) const;
   inline void mark_validated(an_ifc_partition_position pos);
-  inline a_boolean was_previously_marked_invalid(an_ifc_partition_position pos)
-                                                                         const;
+  inline a_boolean is_marked_invalid(an_ifc_partition_position pos) const;
   inline void mark_invalid(an_ifc_partition_position pos);
+  inline void reset_validation_state(an_ifc_partition_position pos);
+  template<typename a_Derived_T>
+  struct Element_visitor;
+  template<typename a_Visitor>
+  struct Type_generalizer_base;
+  template<typename a_Converted_Type, typename a_Visitor>
+  struct Type_generalizer;
+  template<typename a_Derived_T>
+  struct Element_field_visitor;
+  struct Element_field_validation_state_clearer;
   inline a_boolean validate_partition_position(an_ifc_partition_position pos);
-  struct Partition_element_validator;
+  struct Element_validation_state_clearer;
+  struct Element_field_validator;
+  struct Element_validator;
   inline a_boolean validate_partition_element(
                                         an_ifc_partition_position pos,
                                         a_boolean                 recursively);
   inline void read_unchecked_partition_element(an_ifc_partition_position pos);
+  /* Low level readers. */
   inline a_boolean read_partition_element_shallow(
                                                 an_ifc_partition_position pos);
   template<typename... Args>
