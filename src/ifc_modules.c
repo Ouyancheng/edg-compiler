@@ -11812,7 +11812,7 @@ is responsible for ensuring that the brackets are cached appropriately.
         iasep = get_AttrSort_Elaborated(&iase);
         /* FIXME: Find a way to get a proper position for this. */
         pos = null_source_position;
-        auto cache_fn = [cache, iasep, &pos, this]() {
+        auto cache_fn = [cache, iasep, this]() {
           cache_expr(cache, iasep->expression);
         };
         if (cache_brackets) {
