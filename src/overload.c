@@ -12264,7 +12264,8 @@ that case, and this_type is used for the type.
        used. */
     a_lambda_capture *lambda_capture =
                                lambda_capture_for_variable(this_var, position,
-                                                           (a_boolean*)NULL);
+                                                           (a_boolean*)NULL,
+                                                           /*no_diag=*/TRUE);
     if (lambda_capture != NULL) {
       node = make_selection_for_captured_variable(lambda_capture,
                                                   /*is_lvalue=*/FALSE);
@@ -14568,8 +14569,8 @@ arg_list is not freed by this routine.
         if (variable_this_exists(&this_var, &this_type)) {
           /* A side-effect of calling lambda_capture_for_variable is that the
              indicated variable ("this" in this case) is captured. */
-          (void)lambda_capture_for_variable(this_var, call_position,
-                                            (a_boolean*)NULL);
+          (void)lambda_capture_for_variable(
+                 this_var, call_position, (a_boolean*)NULL, /*no_diag=*/TRUE);
         }  /* if */
       }  /* if */
     }  /* if */

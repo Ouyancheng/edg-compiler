@@ -245,7 +245,8 @@ extern a_field_ptr field_for_lambda_capture(a_lambda_ptr          lambda,
 extern a_lambda_capture_ptr lambda_capture_for_variable(
                                           a_variable_ptr         vp,
                                           a_source_position_ptr  pos,
-                                          a_boolean              *rvalue_only);
+                                          a_boolean              *rvalue_only,
+                                          a_boolean              no_diag);
 
 extern a_lambda_capture_ptr lambda_capture_for_init_capture(
                                                    a_field_ptr            fp,

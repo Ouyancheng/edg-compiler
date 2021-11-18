@@ -1,5 +1,24 @@
 Version 6.3
 
+11/17/21 [EDGcpfe/24263,EDGcpfe/24726]
+Lambdas, capturing "this", and calls to mixed static/nonstatic overload sets
+
+Consider (in C++14 mode):
+
+  struct S {
+    void f();
+    template<typename T> static void f(T);
+    void g() {
+      auto x = [](auto p) { f(p); }; // Previously an error.  Now okay.
+    }
+  };
+
+Previously, the front end required "this" to be captured in the lambda because
+the dependent call f(p) selects a candidate from an overload set that includes
+a nonstatic member.  That is now fixed and the example is now accepted as long
+as the selected member is a static member.
+
+
 11/17/21 [EDGcpfe/24859]
 C++-generating back end: type operators involving local lambdas
 
