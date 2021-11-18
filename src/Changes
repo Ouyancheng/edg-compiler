@@ -1,5 +1,24 @@
 Version 6.3
 
+11/18/21 [EDGcpfe/24476,EDGcpfe/24548]
+Nested capture of "this" in default member initializer
+
+Consider:
+
+  struct S {
+    int f();
+    int arr[1]{
+      [this]{
+        return [this]{ return f(); }();  // Previously a spurious error.
+      }()                                // Now okay.
+    };
+  };
+
+The front end previously complained that the call to f() (equivalent to
+this->f()) is invalid, mistakenly suggesting "this" is not captured.  That
+is now fixed.
+
+
 11/18/21 [EDGcpfe/19293]
 Use of "this" in evaluated context in non-capturing lambda
 

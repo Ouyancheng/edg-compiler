@@ -1841,7 +1841,10 @@ or field (i.e., init-capture), return a pointer it.  Otherwise, return NULL.
     /* A "this" capture in a context that has no "this" variable (e.g., a
        field initializer). */
     for (lcp = lambda->capture_list; lcp != NULL; lcp = lcp->next) {
-      if (lcp->is_param_ref_capture) {
+      if (lcp->is_param_ref_capture ||
+          (!lcp->is_init_capture && !lcp->field_pending &&
+           lcp->capture_info.source_closure_field != NULL &&
+           lcp->capture_info.source_closure_field->is_captured_this)) {
         break;
       }  /* if */
     }  /* if */
@@ -2288,7 +2291,8 @@ being done.
   if (enclosing_lcp != NULL) {
     lcp->capture_info.source_capture = enclosing_lcp;
   }  /* if */
-  if (vp == NULL && fp == NULL && !*no_impl_capture && enclosing_lcp == NULL) {
+  if (vp == NULL && fp == NULL && !*no_impl_capture &&
+      (enclosing_lcp == NULL)) {
     lcp->is_param_ref_capture = TRUE;
   }  /* if */
   lcp->capture_by_reference = by_reference;
