@@ -35058,7 +35058,7 @@ a capture).
         } else {
           /* See if the variable has been or can be captured now. */
           *lambda_capture = lambda_capture_for_variable(
-                                 var, ref_pos, rvalue_only, /*nodiag=*/FALSE);
+                                var, ref_pos, rvalue_only, /*no_diag=*/FALSE);
           if (*lambda_capture == NULL) {
             if (*rvalue_only) {
               /* We couldn't capture the variable, but we don't need to if we

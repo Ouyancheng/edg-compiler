@@ -2392,10 +2392,10 @@ create a corresponding lambda capture entry and return a pointer to that.  pos
 is the source position of the variable reference.  If there is no existing
 capture entry, an implicit capture will be created if the lambda allows it and
 if the variable is appropriate to be captured.  If no capture can be found or
-created, issue an error (unless no_diag is TRUE) and return NULL if rvalue_only
-is NULL or if vp is not constant-valued (and set *rvalue_only to FALSE).  If
-rvalue_only is non-NULL and no capture can be found or created, return NULL and
-set *rvalue_only to TRUE.
+created return NULL and:
+  - if rvalue_only and vp are non-NULL and vp is a constant-valued variable,
+    set *rvalue_only to TRUE;
+  - otherwise, if no_diag is FALSE, issue an error.
 */
 {
   a_lambda_ptr          lambda = get_current_lambda();
