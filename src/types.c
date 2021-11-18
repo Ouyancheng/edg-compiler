@@ -6701,8 +6701,17 @@ type supplements are not equivalent.
                  FALSE;
 
       } else {
-        result = !eq_constants(esp1->variant.noexcept_arg,
-	                       esp2->variant.noexcept_arg);
+        a_constant_ptr  cp1 = esp1->variant.noexcept_arg,
+                        cp2 = esp2->variant.noexcept_arg;
+        if (constant_bool_value_known_at_compile_time(cp1) &&
+            constant_bool_value_known_at_compile_time(cp2)) {
+          /* If the constant is nondependent, we don't care how its boolean
+             value is expressed. */
+          result = is_false_constant(cp1) != is_false_constant(cp2);
+        } else {
+          result = !eq_constants(esp1->variant.noexcept_arg,
+	                         esp2->variant.noexcept_arg);
+        }  /* if */
       }  /* if */
     } else if (esp1->throw_any && esp2->throw_any &&
                (esp1->is_noexcept || esp2->is_noexcept)) {

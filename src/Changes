@@ -1,5 +1,20 @@
 Version 6.3
 
+11/18/21 [EDGcpfe/24836]
+Spurious failure to match noexcept specifier of function template parameter
+
+Consider (in C++17 mode):
+
+  bool const B = 0;
+  template<int N>  void f(void (&f)() noexcept(N + B));
+  template<> void f<0>(void (&)() noexcept(0+B));  // Previously a spurious
+                                                   // error.  Now okay.
+
+Previously, the front end failed to match the explicit specialization f<0> to
+its template because it failed to match the noexcept specifiers of the
+parameter types.  That is now fixed.
+
+
 11/18/21 [EDGcpfe/24476,EDGcpfe/24548]
 Nested capture of "this" in default member initializer
 
