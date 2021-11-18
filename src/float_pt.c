@@ -1074,11 +1074,12 @@ underflow.  If the conversion can be done, return the result in "result".
 
 #endif /* !USE_DOUBLE_FOR_HOST_FP_VALUE */
 #if HOST_FP_VALUE_IS_128BIT
+#if !USE_SOFTFLOAT
 
 static inline void zero_unused_bits_in_long_double(long double *ldbl)
 /*
-If the configuration is such that long double has unused bits, zero those
-so that a reliable hash can be computed from the resulting value.
+If the configuration is such that the host long double format has unused bits,
+zero those so that a reliable hash can be computed from the resulting value.
 */
 {
   if (targ_ldbl_mant_dig == 64) {
@@ -1086,10 +1087,11 @@ so that a reliable hash can be computed from the resulting value.
        (that's 6 unused bytes in a 64-bit config and 2 bytes in a 32-bit
        config). */
     char *unused = (char *)ldbl + (host_little_endian ? 10 : 0);
-    memzero(unused, targ_sizeof_long_double - 10U);
+    memzero(unused, sizeof(*ldbl) - 10U);
   }  /* if */
 }  /* zero_unused_bits_in_long_double */
 
+#endif /* !USE_SOFTFLOAT */
 
 static void conv_host_fp_to_long_double(a_host_fp_value         val,
                                         a_boolean               *err,

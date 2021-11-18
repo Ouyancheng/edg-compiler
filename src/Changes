@@ -1,5 +1,13 @@
 Version 6.3
 
+11/18/21 [EDGcpfe/24676]
+Use of uninitialized bits when creating floating-point hash value
+
+The change made for EDGcpfe/21041,EDGcpfe/22138 was incomplete and would leave
+some unused bits in a floating-point value uninitialized in some configurations
+leading to an fp_hash value that was not deterministic.
+
+
 11/17/21 [EDGcpfe/24263,EDGcpfe/24726]
 Lambdas, capturing "this", and calls to mixed static/nonstatic overload sets
 
