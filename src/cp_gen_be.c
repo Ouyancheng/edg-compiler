@@ -10942,7 +10942,7 @@ to unusable variables and class members.
     case enk_routine:
       scp = &node_routine(expr)->source_corresp;
       kind = iek_routine;
-      if (scp->is_class_member &&
+      if (scp != NULL && scp->is_class_member &&
           class_type_supp(scp_parent_class(scp))->is_lambda_closure_class) {
         /* The call operator of a lambda closure class is usable anywhere
            the lambda can be referenced, even if the lambda is local to a
