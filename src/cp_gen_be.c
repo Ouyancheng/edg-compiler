@@ -10932,7 +10932,7 @@ to unusable variables and class members.
   a_source_correspondence_ptr scp = NULL;
   an_il_entry_kind            kind = iek_none;
   a_boolean                   for_all_scopes;
-  a_boolean                   is_lambda_call_operator = FALSE;
+  a_boolean                   is_local_lambda_in_scope = FALSE;
 
   switch (expr->kind) {
     case enk_variable:
@@ -10942,12 +10942,25 @@ to unusable variables and class members.
     case enk_routine:
       scp = &node_routine(expr)->source_corresp;
       kind = iek_routine;
-      if (scp != NULL && scp->is_class_member &&
-          class_type_supp(scp_parent_class(scp))->is_lambda_closure_class) {
-        /* The call operator of a lambda closure class is usable anywhere
-           the lambda can be referenced, even if the lambda is local to a
-           function. */
-        is_lambda_call_operator = TRUE;
+      if (scp != NULL && scp->is_class_member && scp->is_local_to_function &&
+          class_type_supp(scp_parent_class(scp))->is_lambda_closure_class &&
+          innermost_function_scope != NULL &&
+          innermost_function_scope->variant.routine.ptr ==
+                     scp_parent_class(scp)->source_corresp.enclosing_routine) {
+        /* This is the call operator of a local lambda appearing in the
+           current function.  Check to see if it is actually in scope. */
+        a_type_ptr         closure_type = scp_parent_class(scp);
+        for (a_name_context_ptr ncp = curr_name_context;
+             !is_local_lambda_in_scope && ncp != NULL; ncp = ncp->next) {
+          for (a_type_ptr tp = ncp->assoc_scope->types;
+               !is_local_lambda_in_scope && tp != NULL; tp = tp->next) {
+            if (tp == closure_type) {
+              /* The closure type is in scope and its call operator can be
+                 referenced. */
+              is_local_lambda_in_scope = TRUE;
+            }  /* if */
+          }  /* for */
+        }  /* for */
       }  /* if */
       break;
     case enk_field:
@@ -10969,7 +10982,7 @@ to unusable variables and class members.
                                   scp_parent_class(scp),
                                   /*include_base_classes=*/FALSE,
                                   /*ignore_field_selection_contexts=*/TRUE)) ||
-         (scp->is_local_to_function && !is_lambda_call_operator) ||
+         (scp->is_local_to_function && !is_local_lambda_in_scope) ||
          !entity_name_is_accessible(scp, kind, /*ignore_context=*/FALSE,
                                     &for_all_scopes))) {
       /* This node refers to a member of a not-yet-defined or local class,
