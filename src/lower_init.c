@@ -11706,6 +11706,7 @@ arrays with class elements.
        space for the runtime prefix used to keep track of the array
        size. */
     { an_expr_node_ptr size_node_next = size_node->next;
+#if !IA64_ABI
       if (ndsp->aligned_version) {
         /* Use the requested alignment as the size of the prefix so that
            the alignment of the actual object, offset by that amount from
@@ -11714,7 +11715,10 @@ arrays with class elements.
                                               /*vars_can_change=*/FALSE);
         prefix_size_node = add_cast_if_necessary(prefix_size_node,
                                                  size_node->type);
-      } else {
+      } else
+#endif /* !IA64_ABI */
+      /* Do not insert code here. */
+      {
         /* Use the actual size needed for the runtime prefix. */
         prefix_size_node = get_prefix_size_node(elem_type, new_routine);
       }  /* if */

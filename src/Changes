@@ -1,5 +1,24 @@
 Version 6.3
 
+11/19/21 [EDGcpfe/24850]
+IA-64 ABI: Incorrect use of a "cookie" in overaligned array allocation
+
+In the IA-64 ABI configuration, a "cookie" is sometimes allocated to store
+the number of elements in a dynamically-allocated array.  In some cases
+(involving overaligned types with trivial destructors) this cookie was being
+inadvertently added to the allocation and not accounted for on the deallocation
+resulting in undefined behavior.  For example (with --c++17):
+
+  struct alignas(64) A {
+    int x{0};
+  };
+  int main() {
+    A* a = new A[2];
+    delete[] a; // Undefined behavior in IA-64 configs at runtime previously
+    return 0;
+  }
+
+
 11/18/21 [EDGcpfe/24836]
 Spurious failure to match noexcept specifier of function template parameter
 
