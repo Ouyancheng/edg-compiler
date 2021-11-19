@@ -16318,28 +16318,6 @@ decision.
 }  /* visit<an_ifc_Reference> */
 
 
-template<>
-inline void an_ifc_module::Element_validator::visit<
-                        an_ifc_Scope_Descriptor>(an_ifc_partition_position pos)
-/*
-*/
-{
-  an_ifc_Scope_Descriptor isd, *isdp;
-
-  ifc_mod->read_unchecked_partition_element(pos);
-  isdp = ifc_mod->get<an_ifc_Scope_Descriptor>(&isd);
-  /* Perform the normal validation. */
-  field_visitor.visit_element(isdp);
-  /* Visit all associated elements. */
-  for (ifc_Index_type idx = 0; idx < isdp->cardinality; ++idx) {
-    an_ifc_partition_position referenced_pos(ifc_mod, ifc_scope_member,
-                                             isdp->start + idx);
-
-    visit_position(referenced_pos);
-  }  /* for */
-}  /* visit<an_ifc_Scope> */
-
-
 inline a_boolean an_ifc_module::validate_partition_element(
                                          an_ifc_partition_position pos,
                                          a_boolean                 recursively)
