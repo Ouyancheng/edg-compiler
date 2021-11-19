@@ -12330,11 +12330,12 @@ in the standard is perhaps accidental.
     match = TRUE;
   } else {
     /* Check the exception specification. */
+    a_constant_ptr	t_cp = t_esp->variant.noexcept_arg;
     if (deduction_from_exc_spec_allowed &&
-        (flags & MTT_ALLOW_STRICTER_NOEXCEPT) == 0) {
+        (flags & MTT_ALLOW_STRICTER_NOEXCEPT) == 0 &&
+        !constant_bool_value_known_at_compile_time(t_cp)) {
       /* Some compilers allow deduction from the noexcept flag of a function
          type.  Do this deduction, if needed. */
-      a_constant_ptr	t_cp = t_esp->variant.noexcept_arg;
       a_constant_ptr	cp;
       a_boolean		cp_is_local = FALSE;
       if (esp != NULL && esp->variant.noexcept_arg != NULL) {

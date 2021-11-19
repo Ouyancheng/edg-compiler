@@ -6707,7 +6707,7 @@ type supplements are not equivalent.
             constant_bool_value_known_at_compile_time(cp2)) {
           /* If the constant is nondependent, we don't care how its boolean
              value is expressed. */
-          result = is_false_constant(cp1) != is_false_constant(cp2);
+          result = esp1->throw_any != esp2->throw_any;
         } else {
           result = !eq_constants(esp1->variant.noexcept_arg,
 	                         esp2->variant.noexcept_arg);
