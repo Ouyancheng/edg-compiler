@@ -1,5 +1,19 @@
 Version 6.3
 
+11/19/21 [EDGcpfe/24865]
+Spurious error on requires-expression in prototype instantiation
+
+Consider:
+
+  template<typename T> concept C = sizeof(T) < 100;
+  template<typename T> auto f() {
+    static_assert(requires { requires C<typename T::Type>; });
+  }  // Previously an error.  Now okay.
+
+The front end previously issued an error attempting to evaluate the dependent
+requires-expression and not finding a constant result.  That is now fixed.
+
+
 11/19/21 [EDGcpfe/24850]
 IA-64 ABI: Incorrect use of a "cookie" in overaligned array allocation
 

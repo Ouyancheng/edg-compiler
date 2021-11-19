@@ -18454,10 +18454,19 @@ the value representation of the integer value.
       break;
     case enk_requires:
       { a_subst_pairs_array  no_subst_pairs;
-        if (requires_expr_satisfied(expr, no_subst_pairs)) {
-          *(an_integer_value *)result_storage = one_int;
+        if (is_template_dependent_context() && !scope_stack_top().is_rescan &&
+            expr_is_instantiation_dependent(expr)) {
+          /* We may get here when evaluating constant-expressions in dependent
+             contexts.  Calling requires_expr_satisfied on a dependent
+             requires expression can trigger a hard error and should thus not
+             be attempted here. */
+          do_constexpr_fail(result);
         } else {
-          *(an_integer_value *)result_storage = zero_int;
+          if (requires_expr_satisfied(expr, no_subst_pairs)) {
+            *(an_integer_value *)result_storage = one_int;
+          } else {
+            *(an_integer_value *)result_storage = zero_int;
+          }  /* if */
         }  /* if */
       }
       break;
