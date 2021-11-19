@@ -3206,6 +3206,36 @@ private:
 
 extern a_boolean load_routine_definition_from_ifc_module(a_routine_ptr  rp);
 
+/* Partial specializations of an_ifc_mdoule::Type_generalizer_base. */
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_AttrIndex, a_Visitor>;
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_ChartIndex, a_Visitor>;
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_DeclIndex, a_Visitor>;
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_ExprIndex, a_Visitor>;
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_FormIndex, a_Visitor>;
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_FormSpecIndex, a_Visitor>;
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_LineIndex, a_Visitor>;
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_MacroIndex, a_Visitor>;
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_NameIndex, a_Visitor>;
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_ScopeIndex, a_Visitor>;
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_SourceLocation, a_Visitor>;
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_StmtIndex, a_Visitor>;
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_SyntaxIndex, a_Visitor>;
+template<typename a_Visitor>
+struct an_ifc_module::Type_generalizer<ifc_TypeIndex, a_Visitor>;
+
 /* Explicit specializations of an_ifc_module::get_ifc_name. */
 template<>
 ifc_NameIndex an_ifc_module::get_ifc_name(an_ifc_DeclSort_Constructor *decl);
