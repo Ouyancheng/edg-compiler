@@ -3206,10 +3206,10 @@ private:
 
 extern a_boolean load_routine_definition_from_ifc_module(a_routine_ptr  rp);
 
-/* FIXME: These forward declarations should be removed after our multi-TU build
-   is corrected to build without these forward declarations present.  These are
-   not part of the original design, and negatively impact (i.e., break) the
-   MSVC build. */
+/* FIXME: These forward declarations of Type_generalizer partial
+   specializations should be removed after our multi-TU build is corrected to
+   build without these forward declarations present.  These are not part of the
+   original design, and negatively impact (i.e., break) the MSVC build. */
 #ifdef __EDG__
 
 /* Partial specializations of an_ifc_mdoule::Type_generalizer_base. */
