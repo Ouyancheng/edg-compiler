@@ -68,6 +68,83 @@ Overload_priority<N - 1>.
 
 Callers should use the highest Overload_priority<N> object to allow resolution
 of all represented priorities.
+
+Overload_priority can be used to guide overload resolution when multiple
+candidates have otherwise equivalent overload resolution priority.  This is
+useful particularly when SFINE is being used to enable or disable one or more
+candidates during overload resolution.
+
+As an example, consider one or more function templates that have conditionally
+conflicting overloading resolutions:
+
+  // I want this to be called as fallback logic.
+  // All things equal, this is the least important candidate.
+  template<typename a_Type>
+  auto foo(a_Type value) -> Foo;
+
+  // I want this to be called when value has a member "m1" of type Bar.
+  // All things equal, this is a more important candidate.
+  template<typename a_Type>
+  auto foo(a_Type value) -> Is_same<value.m1, Bar>;
+
+  // I want this to be called when value has a member "m2" of type Bar.
+  // All things equal, this is the most important candidate.
+  template<typename a_Type>
+  auto foo(a_Type value) -> Is_same<value.m2, Bar>;
+
+These functions as written have an undecidable overload resolution when
+instantiated with "a_Type" that has a member "m1" and/or "m2" of type "Bar".
+Overload_priority can be used to resolve this and apply the intended candidate
+resolution.
+
+An example rewrite of the above functions using Overload_priority:
+
+  // I want this to be called as fallback logic.
+  // All things equal, this is the least important candidate.
+  template<typename a_Type>
+  auto foo(a_Type value, Overload_priority<0>) -> Foo;
+
+  // I want this to be called when value has a member "m1" of type Bar.
+  // All things equal, this is a more important candidate.
+  template<typename a_Type>
+  auto foo(a_Type value, Overload_priority<1>) -> Is_same<value.m1, Bar>;
+
+  // I want this to be called when value has a member "m2" of type Bar.
+  // All things equal, this is the most important candidate.
+  template<typename a_Type>
+  auto foo(a_Type value, Overload_priority<2>) -> Is_same<value.m2, Bar>;
+
+This is typically accompanied by a new higher level function that abstracts
+away the details of the overload resolution from the caller.
+
+An example higher level function for the previous declared function templates:
+
+  template<typename a_Type>
+  auto foo(a_Type value) -> auto
+    { return foo(value, Overload_priority<2>())); }
+
+Thus, creating the following API:
+
+   struct Baz1 {
+   };
+   foo(Baz1()); // Calls the first function template.
+
+   struct Baz2 {
+     Bar m1;
+   };
+   foo(Baz2(...)); // Calls the second function template.
+
+   struct Baz3 {
+     Bar m2;
+   };
+   foo(Baz3(...)); // Calls the third function template.
+
+   struct Baz4 {
+     Bar m1;
+     Bar m2;
+   };
+   foo(Baz4(...)); // Calls the third function template.
+
 */
 template<int a_Depth>
 struct Overload_priority : Overload_priority<a_Depth - 1> {
