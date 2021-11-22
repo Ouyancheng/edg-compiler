@@ -2859,8 +2859,11 @@ been confirmed to exist and the path stored in midp.
         for (size_t idx = 0, num_src_lines = get_num_entries(ifc_src_line);
              idx < num_src_lines; idx++) {
           an_ifc_Source_Line   isl, *islp;
-          /* FIXME: Handle partition read failure. */
-          read_partition_element(ifc_src_line, idx);
+
+          if (!read_partition_element(ifc_src_line, idx)) {
+            result = FALSE;
+            goto done;
+          }  /* if */
           islp = get_Source_Line(&isl);
           size_t file_index = name_value(islp->file);
           check_assertion(name_tag(islp->file) == ifc_NameSort_SourceFile &&
@@ -3644,14 +3647,24 @@ principal associated IL entity.
     a_source_position   saved_error_position = error_position;
     a_module_entity_ptr saved_mep = curr_module_entity;
     curr_module_entity = mep;
-    /* Read from the proper partition for this declaration.
+    /* Read from the proper partition for this declaration. */
+    {
+      a_boolean read_result;
 
-       FIXME: If this is a deferred operation only perform shallow
-       validation. */
-    if (!read_partition_element(mep)) {
-      skip_pop = TRUE;
-      goto invalid;
-    }  /* if */
+      /* Perform a shallow read if this is a deferral (to minimize validation
+         operations for entities that may never be used), otherwise do a full
+         read for entity processing. */
+      if (defer) {
+        read_result = read_partition_element_shallow(mep);
+      } else {
+        read_result = read_partition_element(mep);
+      }  /* if */
+      /* If the read failed, immediately skip to an invalid state. */
+      if (!read_result) {
+        skip_pop = TRUE;
+        goto invalid;
+      }  /* if */
+    }
     tag = (ifc_DeclSort)get_tag_from_partition(mep->variant.ifc_partition,
                                                ifc_decl_start);
     if (!defer) {
@@ -3677,9 +3690,9 @@ principal associated IL entity.
       case ifc_DeclSort_Variable:
         { an_ifc_DeclSort_Variable idsv, *idsvp;
           idsvp = get_DeclSort_Variable(&idsv);
-          source_position_from_locus(&error_position, &idsvp->locus);
-          init_locator_from_name(idsvp->name, (ifc_TextOffset)0, &idsvp->locus,
-                                 &loc);
+          if (!init_decl_locator_via_name(idsvp, &loc)) {
+            goto invalid;
+          }  /* if */
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
@@ -3729,9 +3742,9 @@ principal associated IL entity.
           a_type_ptr               old_type;
           an_ifc_DeclSort_Function idsf, *idsfp;
           idsfp = get_DeclSort_Function(&idsf);
-          source_position_from_locus(&error_position, &idsfp->locus);
-          init_locator_from_name(idsfp->name, (ifc_TextOffset)0, &idsfp->locus,
-                                 &loc);
+          if (!init_decl_locator_via_name(idsfp, &loc)) {
+            goto invalid;
+          }  /* if */
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
@@ -3778,9 +3791,9 @@ principal associated IL entity.
           a_routine_ptr            rp;
           an_ifc_DeclSort_Intrinsic idsi, *idsip;
           idsip = get_DeclSort_Intrinsic(&idsi);
-          source_position_from_locus(&error_position, &idsip->locus);
-          init_locator_from_name((ifc_NameIndex)0, idsip->name, &idsip->locus,
-                                 &loc);
+          if (!init_decl_locator_via_text(idsip, &loc)) {
+            goto invalid;
+          }  /* if */
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
@@ -3811,11 +3824,12 @@ principal associated IL entity.
           a_symbol_kind               tag_kind;
 
           idssp = get_DeclSort_Scope(&idss);
-          source_position_from_locus(&error_position, &idssp->locus);
+          if (!init_decl_locator_via_name(idssp, &loc)) {
+            goto invalid;
+          }  /* if */
           /* Should be no unnamed namespaces or types. */
+          /* FIXME: This should be a soft failure. */
           check_assertion(idssp->name != 0);
-          init_locator_from_name(idssp->name, (ifc_TextOffset)0, &idssp->locus,
-                                 &loc);
           if (is_from_gmf(idssp->specifiers)) {
             mep->global_module = TRUE;
           }  /* if */
@@ -3838,11 +3852,13 @@ principal associated IL entity.
             kind = iek_type;
             break;
           }  /* if */
+          if (!read_partition_element(idssp->type)) {
+            goto invalid;
+          }  /* if */
           /* Look at the "type" to determine whether we have a namespace or
              not. */
+          /* FIXME: This should be a soft failure. */
           check_assertion(type_tag(idssp->type) == ifc_TypeSort_Fundamental);
-          read_prechecked_partition_element(ifc_type_fundamental,
-                                  type_value(idssp->type));
           itsfp = get_TypeSort_Fundamental(&itsf);
           switch (itsfp->basis) {
             case ifc_TypeBasis_Namespace:
@@ -3987,9 +4003,9 @@ class_struct_union_case:
       case ifc_DeclSort_Alias:
         { an_ifc_DeclSort_Alias idsta, *idstap;
           idstap = get_DeclSort_Alias(&idsta);
-          source_position_from_locus(&error_position, &idstap->locus);
-          init_locator_from_name((ifc_NameIndex)0, idstap->name,
-                                 &idstap->locus, &loc);
+          if (!init_decl_locator_via_text(idstap, &loc)) {
+            goto invalid;
+          }  /* if */
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
@@ -4074,14 +4090,20 @@ class_struct_union_case:
           a_boolean                   is_scoped_enum = FALSE;
           a_scope_ptr                 enum_scope;
           idsep = get_DeclSort_Enumeration(&idse);
-          source_position_from_locus(&error_position, &idsep->locus);
+          /* FIXME: This does a lot of stuff even when deferred. */
+          if (!source_position_from_locus(&error_position, &idsep->locus)) {
+            goto invalid;
+          }  /* if */
+          /* FIXME: This should be a soft failure. */
           check_assertion(type_tag(idsep->type) == ifc_TypeSort_Fundamental);
           if (is_from_gmf(idsep->specifiers)) {
             mep->global_module = TRUE;
           }  /* if */
           /* See if this is a scoped enumeration or not. */
-          read_prechecked_partition_element(ifc_type_fundamental,
-                                  type_value(idsep->type));
+          if (!read_partition_element(ifc_type_fundamental,
+                                      type_value(idsep->type))) {
+            goto invalid;
+          }  /* if */
           itsfp = get_TypeSort_Fundamental(&itsf);
           if (itsfp->basis == ifc_TypeBasis_Enum) {
             /* A classic enumeration.  Don't bother to defer in this case
@@ -4102,9 +4124,11 @@ class_struct_union_case:
           } else {
             unexpected_condition();
           }  /* if */
+          if (!init_locator_from_name(idsep->name, &idsep->locus, &loc)) {
+            goto invalid;
+          }  /* if */
+          /* FIXME: This should be a soft failure. */
           check_assertion(idsep->name != 0);
-          init_locator_from_name((ifc_NameIndex)0, idsep->name, &idsep->locus,
-                                 &loc);
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
@@ -4210,10 +4234,11 @@ class_struct_union_case:
       case ifc_DeclSort_Enumerator:
         { an_ifc_DeclSort_Enumerator idse, *idsep;
           idsep = get_DeclSort_Enumerator(&idse);
-          source_position_from_locus(&error_position, &idsep->locus);
+          if (!init_decl_locator_via_text(idsep, &loc)) {
+            goto invalid;
+          }  /* if */
+          /* FIXME: This should be a soft failure. */
           check_assertion(idsep->name != 0);
-          init_locator_from_name((ifc_NameIndex)0, idsep->name, &idsep->locus,
-                                 &loc);
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
@@ -4280,10 +4305,11 @@ class_struct_union_case:
       case ifc_DeclSort_Template:
         { an_ifc_DeclSort_Template idst, *idstp;
           idstp = get_DeclSort_Template(&idst);
-          source_position_from_locus(&error_position, &idstp->locus);
+          if (!init_decl_locator_via_name(idstp, &loc)) {
+            goto invalid;
+          }  /* if */
+          /* FIXME: This should be a soft failure. */
           check_assertion(idstp->name != 0);
-          init_locator_from_name(idstp->name, (ifc_TextOffset)0, &idstp->locus,
-                                 &loc);
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
@@ -4402,10 +4428,11 @@ class_struct_union_case:
           a_template_parameter_ptr  il_param = NULL;
 
           idspp = get_DeclSort_Parameter(&idsp);
-          source_position_from_locus(&error_position, &idspp->locus);
+          if (!init_decl_locator_via_text(idspp, &loc)) {
+            goto invalid;
+          }  /* if */
+          /* FIXME: This should be a soft failure. */
           check_assertion(idspp->name != 0);
-          init_locator_from_name((ifc_NameIndex)0, idspp->name, &idspp->locus,
-                                 &loc);
           /* FIXME: constraint_expr = expr_for_expr_index(idspp->constraint);*/
           /* FIXME: init_expr = expr_for_expr_index(idspp->initializer); */
           if (idspp->pack) {
@@ -4515,7 +4542,9 @@ class_struct_union_case:
       case ifc_DeclSort_PartialSpecialization:
         { an_ifc_DeclSort_PartialSpecialization idsps, *idspsp;
           idspsp = get_DeclSort_PartialSpecialization(&idsps);
-          init_decl_locator(idspsp, &loc);
+          if (!init_decl_locator_via_name(idspsp, &loc)) {
+            goto invalid;
+          }  /* if */
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
@@ -4544,7 +4573,9 @@ class_struct_union_case:
       case ifc_DeclSort_ExplicitSpecialization:
         { an_ifc_DeclSort_ExplicitSpecialization idses, *idsesp;
           idsesp = get_DeclSort_ExplicitSpecialization(&idses);
-          init_decl_locator(idsesp, &loc);
+          if (!init_decl_locator_via_name(idsesp, &loc)) {
+            goto invalid;
+          }  /* if */
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
@@ -4565,7 +4596,9 @@ class_struct_union_case:
       case ifc_DeclSort_ExplicitInstantiation:
         { an_ifc_DeclSort_ExplicitInstantiation idsei, *idseip;
           idseip = get_DeclSort_ExplicitInstantiation(&idsei);
-          init_decl_locator(idseip, &loc);
+          if (!init_decl_locator_via_name(idseip, &loc)) {
+            goto invalid;
+          }  /* if */
           if (defer) {
             unexpected_condition_str("Unexpected deferral.");
           } else {
@@ -4584,9 +4617,9 @@ class_struct_union_case:
       case ifc_DeclSort_Concept:
         { an_ifc_DeclSort_Concept idsc, *idscp;
           idscp = get_DeclSort_Concept(&idsc);
-          source_position_from_locus(&error_position, &idscp->locus);
-          init_locator_from_name((ifc_NameIndex)0, idscp->name,
-                                  &idscp->locus, &loc);
+          if (!init_decl_locator_via_text(idscp, &loc)) {
+            goto invalid;
+          }  /* if */
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
@@ -4638,11 +4671,14 @@ class_struct_union_case:
         { an_ifc_DeclSort_UsingDeclaration idsud, *idsudp;
           idsudp = get_DeclSort_UsingDeclaration(&idsud);
           if (defer) {
-            init_locator_from_name((ifc_NameIndex)0, idsudp->name,
-                                   &idsudp->locus, &loc);
+            if (!init_locator_from_name(idsudp->name, &idsudp->locus, &loc)) {
+              goto invalid;
+            }  /* if */
             defer_symbol_creation(mep, &loc);
           } else {
-            source_position_from_locus(&error_position, &idsudp->locus);
+            if (!source_position_from_locus(&error_position, &idsudp->locus)) {
+              goto invalid;
+            }  /* if */
             if (decl_tag(idsudp->resolution) == ifc_DeclSort_Tuple) {
               /* FIXME: Not sure what this is. */
               goto unhandled;
@@ -5719,7 +5755,8 @@ loaded and may contain all or part of its associated inner declarations.
 
 
 template<typename an_ifc_DeclSort_T>
-inline auto an_ifc_module::get_ifc_access(an_ifc_DeclSort_T *decl, int)
+inline auto an_ifc_module::get_ifc_access(an_ifc_DeclSort_T *decl,
+                                          Overload_priority<1>)
                                  -> Is_same<decltype(decl->access), ifc_Access>
 /*
 Check if the home scope of the declaration represented at decl is a class
@@ -6565,15 +6602,20 @@ module file.
 }  /* type_for_template_id */
 
 
-void an_ifc_module::source_position_from_locus(a_source_position  *pos,
-                                               ifc_SourceLocation *locus)
+a_boolean an_ifc_module::source_position_from_locus(a_source_position  *pos,
+                                                    ifc_SourceLocation *locus)
 /*
 Map the IFC locus source position information into the source position at pos.
+Return TRUE if processing succeeded, otherwise return FALSE.
 */
 {
+  a_boolean            result = TRUE;
   an_ifc_Source_Line   isl, *islp;
 
-  read_prechecked_partition_element(ifc_src_line, locus->line);
+  if (!read_partition_element(ifc_src_line, locus->line)) {
+    result = FALSE;
+    goto done;
+  }  /* if */
   islp = get_Source_Line(&isl);
   check_assertion(name_tag(islp->file) == ifc_NameSort_SourceFile);
   if (islp->line == 0 && name_value(islp->file) == 0) {
@@ -6606,6 +6648,8 @@ Map the IFC locus source position information into the source position at pos.
     pos->orig_column = pos->column;
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
   }  /* if */
+done:
+  return result;
 }  /* source_position_from_locus */
 
 
@@ -7196,50 +7240,129 @@ this routine need to handle the case where dps->alignment is 0.
 }  /* init_dps */
 
 
-void an_ifc_module::init_locator_from_name(ifc_NameIndex      name_index,
-                                           ifc_TextOffset     text_offset,
-                                           ifc_SourceLocation *locus,
-                                           a_symbol_locator   *loc)
+a_boolean an_ifc_module::get_textual_name(ifc_NameIndex    name_index,
+                                          a_symbol_locator *loc,
+                                          a_const_char     **name_result)
 /*
-Initialize the locator specified by *loc.  The name of the entity is either
+Store the textual name representation for the given name index and location in
+the name result.  Returns TRUE if this operation completed successfully, FALSE
+otherwise.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (name_tag(name_index) == ifc_NameSort_Identifier) {
+    result = get_textual_name((ifc_TextOffset)name_value(name_index), loc,
+                              name_result);
+  } else if (validate_partition_element(name_index)) {
+    *name_result = string_from_name_index(name_index, loc);
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* get_textual_name */
+
+
+a_boolean an_ifc_module::get_textual_name(ifc_TextOffset   text_offset,
+                                          a_symbol_locator *loc,
+                                          a_const_char     **name_result)
+/*
+Store the textual name representation for the given textual offset and location
+in the name result.  Returns TRUE if this operation completed successfully,
+FALSE otherwise.
+*/
+{
+  *name_result = get_string_at_offset(text_offset);
+  return TRUE;
+}  /* get_textual_name */
+
+
+template<typename an_Index_Type>
+a_boolean an_ifc_module::init_locator_from_name(an_Index_Type      index,
+                                                ifc_SourceLocation *locus,
+                                                a_symbol_locator   *loc)
+/*
+Initialize the locator specified by loc.  The name of the entity is either
 given by name_index or text_offset, whichever is non-zero.  The source position
-is given by locus.
+is given by locus.  Return TRUE if processing succeeded, otherwise return
+FALSE.
 FIXME: Not sure if we need source location here.
 */
 {
+  a_boolean         result = TRUE;
   a_source_position pos;
   a_const_char      *name;
 
-  source_position_from_locus(&pos, locus);
-  clear_locator(loc, &pos);
-  if (name_index != 0) {
-    name = string_from_name_index(name_index, loc);
-  } else {
-    name = get_string_at_offset(text_offset);
+  if (!source_position_from_locus(&pos, locus)) {
+    goto invalid;
   }  /* if */
+  clear_locator(loc, &pos);
+  if (!get_textual_name(index, loc, &name)) {
+    goto invalid;
+  }
   if (!loc->is_operator_name &&
       !loc->is_conversion_name &&
       !loc->is_udl_operator_name) {
     /* Find the symbol (if not a special case). */
     (void)find_symbol(name, (sizeof_t)strlen(name), loc);
   }  /* if */
+  goto done;
+invalid:
+  result = FALSE;
+done:
+  return result;
 }  /* init_locator_from_name */
 
 
-template<typename an_ifc_DeclSort_T>
-inline void an_ifc_module::init_decl_locator(an_ifc_DeclSort_T *decl,
-                                             a_symbol_locator  *loc)
+template<typename an_Index_Type>
+inline a_boolean an_ifc_module::init_decl_locator(an_Index_Type      index,
+                                                  ifc_SourceLocation locus,
+                                                  a_symbol_locator   *loc)
 /*
-Initialize the locator specified by *loc for the declaration represented at
-decl.
+Initialize the locator specified by loc for the declaration named at
+index and positioned at locus.
+*/
+{
+  a_boolean          result = TRUE;
+
+  if (!source_position_from_locus(&error_position, &locus)) {
+    result = FALSE;
+  } else if (!init_locator_from_name(index, &locus, loc)) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* init_decl_locator */
+
+
+template<typename an_ifc_DeclSort_T>
+inline a_boolean an_ifc_module::init_decl_locator_via_name(
+                                                       an_ifc_DeclSort_T *decl,
+                                                       a_symbol_locator  *loc)
+/*
+Initialize the locator specified by loc for the declaration represented at
+decl using a NameIndex derived declaration name.
 */
 {
   ifc_NameIndex      name = get_ifc_name(decl);
   ifc_SourceLocation locus = get_ifc_locus(decl);
 
-  source_position_from_locus(&error_position, &locus);
-  init_locator_from_name(name, (ifc_TextOffset)0, &locus, loc);
-}  /* init_decl_locator */
+  return init_decl_locator(name, locus, loc);
+}  /* init_decl_locator_via_name */
+
+
+template<typename an_ifc_DeclSort_T>
+inline a_boolean an_ifc_module::init_decl_locator_via_text(
+                                                       an_ifc_DeclSort_T *decl,
+                                                       a_symbol_locator  *loc)
+/*
+Initialize the locator specified by loc for the declaration represented at
+decl using a TextOffset derived declaration name.
+*/
+{
+  ifc_TextOffset     name = decl->name;
+  ifc_SourceLocation locus = get_ifc_locus(decl);
+
+  return init_decl_locator(name, locus, loc);
+}  /* init_decl_locator_via_text */
 
 
 template<typename an_ifc_DeclSort_T>
@@ -14333,6 +14456,8 @@ template<typename a_Derived_T>
 void an_ifc_module::Element_visitor<a_Derived_T>::visit_position(
                                                  an_ifc_partition_position pos)
 /*
+Dispatch to the visit function designated to handle the partition element of
+the position's partition kind.
 */
 {
   switch (pos.partition) {
@@ -16321,18 +16446,53 @@ decision.
 }  /* visit<an_ifc_Reference> */
 
 
-inline a_boolean an_ifc_module::validate_partition_element(
-                                         an_ifc_partition_position pos,
-                                         a_boolean                 recursively)
+inline a_boolean an_ifc_module::validate_partition_element_shallow(
+                                                 an_ifc_partition_position pos)
 /*
-Returns TRUE if the given partition position refers to a valid partition
-element.  If recursively is TRUE checking is applied to subelements, and the
-result is cached.
+Perform non-recursive validation checks on the given partition position.
+Return TRUE if determined to be `valid, FALSE otherwise.
+
+See Element_validator for more details about non-recursive and recursive
+validation.
 */
 {
-  Element_validator validator(this, recursively);
+  Element_validator validator(this, /*recursively=*/FALSE);
+
   validator.validate(pos);
   return !validator.invalid;
+}  /* validate_partition_element */
+
+
+inline a_boolean an_ifc_module::validate_partition_element(
+                                                 an_ifc_partition_position pos)
+/*
+Perform recursive validation checks on the given partition position.  Returns
+TRUE if determined to be valid, FALSE otherwise.
+
+See Element_validator for more details about non-recursive and recursive
+validation.
+*/
+{
+  Element_validator validator(this, /*recursively=*/TRUE);
+
+  validator.validate(pos);
+  return !validator.invalid;
+}  /* validate_partition_element */
+
+
+template<typename... Args>
+inline a_boolean an_ifc_module::validate_partition_element(Args&&... args)
+/*
+Perform recursive validation checks on the constructed partition position.
+Returns TRUE if determined to be valid, FALSE otherwise.
+
+See Element_validator for more details about non-recursive and recursive
+validation.
+*/
+{
+  an_ifc_partition_position pos(this, args...);
+
+  return validate_partition_element(pos);
 }  /* validate_partition_element */
 
 
@@ -16356,7 +16516,7 @@ inline a_boolean an_ifc_module::read_partition_element_shallow(
 */
 {
   a_boolean result = FALSE;
-  if (validate_partition_element(pos, /*recursively=*/FALSE)) {
+  if (validate_partition_element_shallow(pos)) {
     result = TRUE;
     read_unchecked_partition_element(pos);
   }  /* if */
@@ -16372,6 +16532,7 @@ inline a_boolean an_ifc_module::read_partition_element_shallow(Args&&... args)
 */
 {
   an_ifc_partition_position pos(this, args...);
+
   return read_partition_element_shallow(pos);
 }  /* read_partition_element_shallow */
 
@@ -16383,11 +16544,11 @@ inline a_boolean an_ifc_module::read_partition_element(
 */
 {
   a_boolean result = FALSE;
-  if (validate_partition_element(pos, /*recursively=*/TRUE)) {
+
+  if (validate_partition_element(pos)) {
     result = TRUE;
     read_unchecked_partition_element(pos);
   }  /* if */
-  /* FIXME: Emit diagnostic here if false, or perhaps leave to caller? */
   return result;
 }  /* read_partition_element */
 

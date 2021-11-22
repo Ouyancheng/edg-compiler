@@ -59,6 +59,25 @@ struct Is_same_helper<a_Type_A, a_Type_A> {
 template<typename a_Type_A, typename a_Type_B>
 using Is_same = typename Is_same_helper<a_Type_A, a_Type_B>::a_type;
 
+
+/*
+Overload_priority is a helper type for controlling overload priority by using
+nested parent types to provide a gradient of conversions (priorities).  This
+results in Overload_priority<N> having a higher priority than
+Overload_priority<N - 1>.
+
+Callers should use the highest Overload_priority<N> object to allow resolution
+of all represented priorities.
+*/
+template<int a_Depth>
+struct Overload_priority : Overload_priority<a_Depth - 1> {
+};  /* Overload_priority */
+
+template<>
+struct Overload_priority<0> {
+};  /* Overload_priority<0> */
+
+
 /*
 Remove_ref<T> produces T if T is not a reference type, or the type underlying
 the reference type otherwise.
