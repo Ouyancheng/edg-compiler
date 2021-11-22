@@ -6710,7 +6710,7 @@ type supplements are not equivalent.
           result = esp1->throw_any != esp2->throw_any;
         } else {
           result = !eq_constants(esp1->variant.noexcept_arg,
-	                         esp2->variant.noexcept_arg);
+                                 esp2->variant.noexcept_arg);
         }  /* if */
       }  /* if */
     } else if (esp1->throw_any && esp2->throw_any &&
