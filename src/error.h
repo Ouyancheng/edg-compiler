@@ -432,12 +432,13 @@ extern void pos_stsy_diagnostic(an_error_severity  error_severity,
                                 a_source_position  *error_pos,
                                 a_const_char       *error_string,
                                 struct a_symbol    *symbol);
-extern a_diagnostic_ptr pos_st_num2_start_error(
-                                               an_error_code     error_code,
-                                               a_source_position *error_pos,
-                                               a_const_char      *error_string,
-                                               int32_t           num1,
-                                               int32_t           num2);
+extern a_diagnostic_ptr pos_st2_num2_start_error(
+                                              an_error_code     error_code,
+                                              a_source_position *error_pos,
+                                              a_const_char      *error_string1,
+                                              a_const_char      *error_string2,
+                                              int32_t           num1,
+                                              int32_t           num2);
 extern void pos_st_num2_diagnostic(an_error_severity error_severity,
                                    an_error_code     error_code,
                                    a_source_position *error_pos,
@@ -653,6 +654,10 @@ extern a_diagnostic_ptr pos_start_error(an_error_code     error_code,
 extern a_diagnostic_ptr pos_st_start_error(an_error_code     error_code,
                                            a_source_position *error_pos,
                                            a_const_char      *error_string);
+extern a_diagnostic_ptr pos_st2_start_error(an_error_code     error_code,
+                                            a_source_position *error_pos,
+                                            a_const_char      *error_string1,
+                                            a_const_char      *error_string2);
 extern a_diagnostic_ptr pos_ty_start_error(an_error_code     error_code,
                                            a_source_position *error_pos,
                                            struct a_type     *type);

@@ -16384,8 +16384,9 @@ inline void an_ifc_module::Element_validator::invalid_partition(
     a_diagnostic_ptr diag_ptr;
 
     /* FIXME: Use a better source position. */
-    diag_ptr = pos_start_error(ec_invalid_ifc_partition,
-                               &null_source_position);
+    diag_ptr = pos_st_start_error(ec_invalid_ifc_partition,
+                                  &null_source_position,
+                                  ifc_mod->assoc_module_info->name);
     add_backtrace(diag_ptr);
     end_diagnostic(diag_ptr);
   }  /* if */
@@ -16405,8 +16406,10 @@ inline void an_ifc_module::Element_validator::undefined_partition(
         a_diagnostic_ptr diag_ptr;
 
         /* FIXME: Use a better source position. */
-        diag_ptr = pos_st_start_error(ec_undefined_ifc_partition,
-                                      &null_source_position, map_entry->name);
+        diag_ptr = pos_st2_start_error(ec_undefined_ifc_partition,
+                                       &null_source_position,
+                                       ifc_mod->assoc_module_info->name,
+                                       map_entry->name);
         add_backtrace(diag_ptr);
         end_diagnostic(diag_ptr);
       }  /* if */
@@ -16446,7 +16449,9 @@ inline void an_ifc_module::Element_validator::invalid_position(
   if (emit_diagnostics) {
     a_diagnostic_ptr diag_ptr;
 
-    diag_ptr = pos_st_num2_start_error(error_code, &null_source_position,
+    diag_ptr = pos_st2_num2_start_error(
+                                       error_code, &null_source_position,
+                                       ifc_mod->assoc_module_info->name,
                                        ifc_mod->partitions[pos.partition].name,
                                        pos.file_offset, relative_offset);
     add_backtrace(diag_ptr);

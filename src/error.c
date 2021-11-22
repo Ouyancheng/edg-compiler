@@ -5869,21 +5869,23 @@ at the indicated position.
 }  /* pos_stsy_diagnostic */
 
 
-a_diagnostic_ptr pos_st_num2_start_error(an_error_code     error_code,
-                                         a_source_position *error_pos,
-                                         a_const_char      *error_string,
-                                         int32_t           num1,
-                                         int32_t           num2)
+a_diagnostic_ptr pos_st2_num2_start_error(an_error_code     error_code,
+                                          a_source_position *error_pos,
+                                          a_const_char      *error_string1,
+                                          a_const_char      *error_string2,
+                                          int32_t           num1,
+                                          int32_t           num2)
 /*
 Begin a multiple message error with the specified error code, source position,
-string fill-in, and numbers.  Return a pointer to the diagnostic entry that
+string fill-ins, and numbers.  Return a pointer to the diagnostic entry that
 will be passed in for the subsequent messages.
 */
 {
   a_diagnostic_ptr dp;
 
   dp = create_primary_diagnostic(error_code, error_pos, es_error);
-  add_string_fill_in(dp, error_string);
+  add_string_fill_in(dp, error_string1);
+  add_string_fill_in(dp, error_string2);
   add_number_fill_in(dp, num1);
   add_number_fill_in(dp, num2);
   return dp;
@@ -6728,6 +6730,25 @@ that will be passed in for the subsequent messages.
 
   dp = create_primary_diagnostic(error_code, error_pos, es_error);
   add_string_fill_in(dp, error_string);
+  return dp;
+}  /* pos_st_start_error */
+
+
+a_diagnostic_ptr pos_st2_start_error(an_error_code     error_code,
+                                     a_source_position *error_pos,
+                                     a_const_char      *error_string1,
+                                     a_const_char      *error_string2)
+/*
+Begin a multiple message error with the specified error code, source
+position and string fill-ins.  Return a pointer to the diagnostic entry
+that will be passed in for the subsequent messages.
+*/
+{
+  a_diagnostic_ptr	dp;
+
+  dp = create_primary_diagnostic(error_code, error_pos, es_error);
+  add_string_fill_in(dp, error_string1);
+  add_string_fill_in(dp, error_string2);
   return dp;
 }  /* pos_st_start_error */
 
