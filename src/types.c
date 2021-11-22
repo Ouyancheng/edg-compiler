@@ -6698,8 +6698,7 @@ type supplements are not equivalent.
                                is_false_constant(esp1->variant.noexcept_arg) :
                  esp2->variant.noexcept_arg != NULL ?
                                is_false_constant(esp2->variant.noexcept_arg) :
-                 FALSE;
-
+                               FALSE;
       } else {
         a_constant_ptr  cp1 = esp1->variant.noexcept_arg,
                         cp2 = esp2->variant.noexcept_arg;
