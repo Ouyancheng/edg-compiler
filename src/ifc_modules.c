@@ -40,8 +40,9 @@ the duration of this file.
 /*lint -save -e1714*/ /* FIXME: temporarily disable "not referenced" */
 
 static a_text_buffer_ptr
-		operator_text_buffer;
-			/* A text buffer used to prefix operator names. */
+               file_name_buffer;
+                       /* A text buffer used to for processing file names from
+                          the IFC. */
 
 an_error_severity
 		unhandled_ifc_node_severity = es_remark;
@@ -6632,8 +6633,10 @@ Return TRUE if processing succeeded, otherwise return FALSE.
          order that entities are used, but the full tree of source file
          references isn't available in the IFC file. */
       a_const_char *file_name;
+      reset_text_buffer(file_name_buffer);
       file_name = string_from_name_index(islp->file,
-                                         (a_symbol_locator *)NULL);
+                                         (a_symbol_locator *)NULL,
+                                         &file_name_buffer);
       file_name = copy_string_to_region(FILE_SCOPE_REGION_NUMBER, file_name);
       record_inclusion_of_module_source_file(file_name, pos, assoc_module_info,
                                              msnmp->max_line_number);
@@ -6654,18 +6657,52 @@ done:
 
 
 a_const_char *an_ifc_module::string_from_name_index(
-                                                  ifc_NameIndex    name_index,
-                                                  a_symbol_locator *loc)
+                                                  ifc_NameIndex     name_index,
+                                                  a_symbol_locator  *loc)
 /*
-Return the string referenced by name_index.  The returned string may not be in
-the IL (it may be a pointer to an mmap'ed memory region or a pointer to a local
-static buffer), so the caller should copy it if necessary.  If non-NULL, fields
-(like is_operator_name) in *loc are updated accordingly.
+Return the string referenced by name_index.  The returned string is guaranteed
+to be in long lived memory (either via pointing to IL, a constant, the memory
+mapping if enabled, or in the worst case an allocated pointer).  If non-NULL,
+fields (like is_operator_name) in *loc are updated accordingly.
+*/
+{
+  /* Do not provide a buffer, forcing one to be dynamically allocated if
+     necessary.  Note that this will "leak" the buffer until the buffer list is
+     cleaned up. */
+  /* FIXME: Ideally there'd be some sort of "pool" of buffers that can be
+     recycled to handle common allocation profiles. */
+  a_text_buffer_ptr result_buffer = NULL;
+  return string_from_name_index(name_index, loc, &result_buffer);
+}  /* string_from_name_index */
+
+
+a_const_char *an_ifc_module::string_from_name_index(
+                                              ifc_NameIndex     name_index,
+                                              a_symbol_locator  *loc,
+                                              a_text_buffer_ptr *result_buffer)
+/*
+Return the string referenced by name_index.  The result buffer should point to
+a pointer to a text buffer.  If this pointer is NULL and a buffer is required,
+the pointer will be set to the address of a new text buffer.  If this pointer
+is non-null and a buffer is required, the referenced text buffer is required to
+be empty and it will be used for storage.  If non-NULL, fields (like
+is_operator_name) in *loc are updated accordingly.
 */
 {
   a_const_char         *result = NULL, *prefix = NULL;
   ifc_NameSort         tag = name_tag(name_index);
+  a_boolean            requires_buffer;
 
+  {
+    /* Initial buffer management logic.  If the module is memory mapped,
+       default to directly pointing to the pointer in that memory.
+       Otherwise, default to requiring a buffer. */
+#if USE_MMAP_FOR_MEMORY_REGIONS
+    requires_buffer = FALSE;
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+    requires_buffer = TRUE;
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+  }
   if (tag == ifc_NameSort_Identifier) {
     /* NameSort::Identifiers just refer to the string table. */
     result = get_string_at_offset((ifc_TextOffset)name_value(name_index));
@@ -6688,6 +6725,7 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
             result = loc->symbol_header->identifier;
           } else {
             prefix = "operator";
+            requires_buffer = TRUE;
             result = get_string_at_offset(insop->encoded);
           }  /* if */
         }
@@ -6697,6 +6735,7 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
           a_type_ptr                 target_type;
           inscp = get_NameSort_Conversion(&insc);
           prefix = "operator ";
+          requires_buffer = TRUE;
           target_type = type_for_type_index(inscp->target, /*kind=*/NULL);
           /* Note that inscp->encoded contains the mangled name of the
              conversion function, so use the name from the type instead. */
@@ -6725,9 +6764,13 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
             /* FIXME: set this? */
             loc->is_udl_operator_name = TRUE;
             result = loc->symbol_header->identifier;
+            /* Never require a buffer, one was already created one for the
+               locator memory, and there is no prefix. */
+            requires_buffer = FALSE;
           } else {
             /* Microsoft doesn't use a space after the "operator" string. */
             prefix = "operator";
+            requires_buffer = TRUE;
           }  /* if */
         }
         break;
@@ -6735,6 +6778,7 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
         { an_ifc_NameSort_Template inst, *instp;
           instp = get_NameSort_Template(&inst);
           prefix = "template ";
+          requires_buffer = TRUE;
           result = string_from_name_index(instp->name, loc);
         }
         break;
@@ -6745,6 +6789,8 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
           issue_unsupported_node_diag("NameSort::Specialization",
                                       &error_position);
           result = "<error-name>";
+          /* String literals have static duration, no buffer required. */
+          requires_buffer = FALSE;
         }
         break;
       case ifc_NameSort_Guide:
@@ -6753,6 +6799,8 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
           /* FIXME: Currently unsupported. */
           issue_unsupported_node_diag("NameSort::Guide", &error_position);
           result = "<error-name>";
+          /* String literals have static duration, no buffer required. */
+          requires_buffer = FALSE;
         }
         break;
       case ifc_NameSort_Identifier:
@@ -6761,18 +6809,22 @@ static buffer), so the caller should copy it if necessary.  If non-NULL, fields
         break;
       default_is_unexpected();
     }  /* switch */
+    check_assertion(prefix == NULL || requires_buffer);
   }  /* if */
-  if (operator_text_buffer == NULL) {
-    operator_text_buffer = alloc_text_buffer(20);
+  if (requires_buffer) {
+    /* Check to see if a result buffer was passed that should be used.  If none
+       was given, allocate a new buffer. */
+    if (*result_buffer == NULL) {
+      *result_buffer = alloc_text_buffer(20);
+    }  /* if */
+    check_assertion((*result_buffer)->size == 0);
+    /* Compose the string. */
+    add_string_to_text_buffer(*result_buffer, prefix);
+    add_string_to_text_buffer(*result_buffer, result);
+    add_char_to_text_buffer(*result_buffer, '\0');
+    /* Update the result. */
+    result = (*result_buffer)->buffer;
   }  /* if */
-  reset_text_buffer(operator_text_buffer);
-  /* If a prefix was specified, add it now. */
-  if (prefix != NULL) {
-    add_string_to_text_buffer(operator_text_buffer, prefix);
-  }  /* if */
-  add_string_to_text_buffer(operator_text_buffer, result);
-  add_char_to_text_buffer(operator_text_buffer, '\0');
-  result = operator_text_buffer->buffer;
   return result;
 }  /* string_from_name_index */
 
@@ -17468,7 +17520,10 @@ void ifc_modules_one_time_init(void)
 Do one-time initialization of static variables defined in this file.
 */
 {
-  operator_text_buffer = NULL;
+  /* Allocate a buffer for processing source file names.  These can get fairly
+     long and this is shared across all module processing so be generous with
+     the initial allocation. */
+  file_name_buffer = alloc_text_buffer(200);
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
       pch_saved_var_array_elem(lazy_symbols_may_be_visible),

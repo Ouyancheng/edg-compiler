@@ -2861,8 +2861,11 @@ private:
   a_boolean source_position_from_locus(a_source_position  *pos,
                                        ifc_SourceLocation *locus);
   inline a_const_char *get_string_at_offset(ifc_TextOffset offset) const;
-  a_const_char *string_from_name_index(ifc_NameIndex    name_index,
-                                       a_symbol_locator *loc);
+  a_const_char *string_from_name_index(ifc_NameIndex     name_index,
+                                       a_symbol_locator  *loc);
+  a_const_char *string_from_name_index(ifc_NameIndex     name_index,
+                                       a_symbol_locator  *loc,
+                                       a_text_buffer_ptr *result_buffer);
   a_const_char *name_from_decl(ifc_DeclIndex decl);
   a_const_char *name_from_other_module_decl(
                                         const an_ifc_DeclSort_Reference *ref);
