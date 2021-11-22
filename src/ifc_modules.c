@@ -11851,7 +11851,7 @@ static inline void cache_attr_fn(a_token_cache_ptr     cache,
                                  a_source_position_ptr pos)
 /*
 Helper function for cache_attr to avoid code duplication for the brackets.
-Add tokens for the the leading and trailing attribute brackets to cache and
+Add tokens for the leading and trailing attribute brackets to cache and
 call the provided cache_fn to cache the actual attribute, in the appropriate
 places.  pos is the position to use for the brackets.
 */
