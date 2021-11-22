@@ -1672,6 +1672,8 @@ IFC_DECL_END(SyntaxSort_SimpleRequirement)
 
 /* SyntaxSort::TypeRequirement */
 IFC_DECL_START(SyntaxSort_TypeRequirement)
+  IFC_DECL_FIELD(type, ExprIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(SyntaxSort_TypeRequirement)
 
 /* SyntaxSort::CompoundRequirement */
