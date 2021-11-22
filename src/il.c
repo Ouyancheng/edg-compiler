@@ -19179,9 +19179,10 @@ options is a set of substitution options.
       }
       break;
     case enk_requires:
-      if (template_arg_list_is_dependent(template_arg_list)) {
+      if (template_arg_list_is_dependent(template_arg_list) &&
+          !(options & CTWS_DEDUCTION_GUIDE)) {
         /* Don't attempt to substitute requires-expressions with dependent
-           parameter lists. */
+           parameter lists (unless we are synthesizing a deduction guide). */
         subst_fail(*copy_error);
       } else {
         /* If we're substituting as part of rescanning an expression, start
