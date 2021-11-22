@@ -4272,7 +4272,8 @@ it is always NULL.
          reference collapsing rules).  A "forwarding reference" is an rvalue
          reference to a function template parameter (with no cv-qualifiers)
          that was not synthesized from a class template parameter for a
-         generated deduction guide. */
+         generated deduction guide.  Note that something like A<T>&& where
+         A<T> is an alias for T is permitted. */
       arg_operand = NULL;
       arg_type = make_reference_type(arg_type);
     } else if (gpp_mode &&

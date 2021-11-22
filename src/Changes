@@ -1,5 +1,21 @@
 Version 6.3
 
+11/22/21 [EDGcpfe/24864]
+Matching a forwarding reference expressed with an alias template
+
+Consider:
+
+  template<typename T> using X = T;
+  template<typename T> void f(X<T>&&) {}
+  template void f(int&);  // Previously a spurious error.  Now okay.
+
+Previously, this elicited an error because the type matching algorithm for
+declarative cases like this did not account for the possibility of the
+template parameter being placed under an alias template.  That is now fixed.
+(Note that the similar cases involving template argument deduction from a call
+expression already handled this correctly.)
+
+
 11/19/21 [EDGcpfe/24865]
 Spurious error on requires-expression in prototype instantiation
 
