@@ -3206,6 +3206,12 @@ private:
 
 extern a_boolean load_routine_definition_from_ifc_module(a_routine_ptr  rp);
 
+/* FIXME: These forward declarations should be removed after our multi-TU build
+   is corrected to build without these forward declarations present.  These are
+   not part of the original design, and negatively impact (i.e., break) the
+   MSVC build. */
+#ifdef __EDG__
+
 /* Partial specializations of an_ifc_mdoule::Type_generalizer_base. */
 template<typename a_Visitor>
 struct an_ifc_module::Type_generalizer<ifc_AttrIndex, a_Visitor>;
@@ -3235,6 +3241,8 @@ template<typename a_Visitor>
 struct an_ifc_module::Type_generalizer<ifc_SyntaxIndex, a_Visitor>;
 template<typename a_Visitor>
 struct an_ifc_module::Type_generalizer<ifc_TypeIndex, a_Visitor>;
+
+#endif /* __EDG__ */
 
 /* Explicit specializations of an_ifc_module::get_ifc_name. */
 template<>
