@@ -15835,7 +15835,7 @@ inline a_boolean an_ifc_module::validate_partition_position(
 
 
 /* An implementation of Element_visitor with the visit function "overridden" to
-   perform reseting of the validation cache for the element. */
+   perform resetting of the validation cache for the element. */
 struct an_ifc_module::Element_validation_state_clearer
                    : public Element_visitor<Element_validation_state_clearer> {
   Element_validation_state_clearer(an_ifc_module *ifc_mod_val)
