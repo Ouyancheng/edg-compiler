@@ -114,10 +114,8 @@ An example rewrite of the above functions using Overload_priority:
   template<typename a_Type>
   auto foo(a_Type value, Overload_priority<2>) -> Is_same<value.m2, Bar>;
 
-This is typically accompanied by a new higher level function that abstracts
-away the details of the overload resolution from the caller.
-
-An example higher level function for the previous declared function templates:
+An API that relies on Overload_priority will typically be wrapped behind an
+interface that makes that aspect invisible. For example:
 
   template<typename a_Type>
   auto foo(a_Type value) -> auto

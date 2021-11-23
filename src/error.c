@@ -5889,7 +5889,7 @@ will be passed in for the subsequent messages.
   add_number_fill_in(dp, num1);
   add_number_fill_in(dp, num2);
   return dp;
-}  /* pos_st_num2_start_error */
+}  /* pos_st2_num2_start_error */
 
 
 void pos_st_num2_diagnostic(an_error_severity error_severity,
@@ -5931,7 +5931,7 @@ numbers) to primary_dp.
   add_number_fill_in(dp, num1);
   add_number_fill_in(dp, num2);
   add_number_fill_in(dp, num3);
-}  /* st_num2_add_diag_info */
+}  /* st_num3_add_diag_info */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
@@ -6750,7 +6750,7 @@ that will be passed in for the subsequent messages.
   add_string_fill_in(dp, error_string1);
   add_string_fill_in(dp, error_string2);
   return dp;
-}  /* pos_st_start_error */
+}  /* pos_st2_start_error */
 
 
 a_diagnostic_ptr pos_ty_start_error(an_error_code     error_code,

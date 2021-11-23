@@ -2741,9 +2741,13 @@ otherwise.
 
 inline uint32_t *alloc_validation_bit_array(uint32_t num_elements)
 /*
-Allocate an array of validation bits.
+Allocate an array of validation bits.  The number of elements is the
+number of elements to be validated.  Each element will use two bits.
 */
 {
+  /* Over allocate by one integer as this simplifies the logic and is necessary
+     in the vast majority of cases (where num_elements is not evenly divisible
+     by 16) anyways. */
   size_t size = (1 + (num_elements / 16)) * sizeof(uint32_t);
   uint32_t *validation_bits = (uint32_t *)alloc_fe(size);
 
@@ -6694,9 +6698,10 @@ is_operator_name) in *loc are updated accordingly.
   a_boolean            requires_buffer;
 
   {
-    /* Initial buffer management logic.  If the module is memory mapped,
-       default to directly pointing to the pointer in that memory.
-       Otherwise, default to requiring a buffer. */
+    /* Initialize the default for buffer management logic.
+
+       If the module is memory mapped, default to directly pointing to the
+       pointer in that memory.  Otherwise, default to requiring a buffer. */
 #if USE_MMAP_FOR_MEMORY_REGIONS
     requires_buffer = FALSE;
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
@@ -6809,6 +6814,7 @@ is_operator_name) in *loc are updated accordingly.
         break;
       default_is_unexpected();
     }  /* switch */
+    /* Ensure prefixes are processed with a buffer. */
     check_assertion(prefix == NULL || requires_buffer);
   }  /* if */
   if (requires_buffer) {
@@ -6817,6 +6823,8 @@ is_operator_name) in *loc are updated accordingly.
     if (*result_buffer == NULL) {
       *result_buffer = alloc_text_buffer(20);
     }  /* if */
+    /* Ensure the caller of this function fulfilled the contract and the buffer
+       is reset. */
     check_assertion((*result_buffer)->size == 0);
     /* Compose the string. */
     add_string_to_text_buffer(*result_buffer, prefix);
@@ -7374,7 +7382,7 @@ Initialize the locator specified by loc for the declaration named at
 index and positioned at locus.
 */
 {
-  a_boolean          result = TRUE;
+  a_boolean result = TRUE;
 
   if (!source_position_from_locus(&error_position, &locus)) {
     result = FALSE;
@@ -7410,6 +7418,8 @@ Initialize the locator specified by loc for the declaration represented at
 decl using a TextOffset derived declaration name.
 */
 {
+  /* Type check the name field ensuring it is a TextOffset by assigning it to
+     an appropriately typed variable. */
   ifc_TextOffset     name = decl->name;
   ifc_SourceLocation locus = get_ifc_locus(decl);
 
@@ -15463,15 +15473,16 @@ their dispatch code (e.g., each derivative can share index -> position
 conversion logic and have one "position" based visit function rather than many
 index type based visit functions).
 
-Ideally, this would be a template class with a template function "accept"
-that's explicitly specialized.  However, C++ does not allow the visit function
-to be explicitly specialized within a template class.
+Ideally, these would be explicitly specialized visit functions on
+Element_field_visitor.  However, C++ does not allow the visit function to be
+explicitly specialized within a template class, thus Element_field_visitor
+couldn't be a visitor.
 
-To work around this, the argument type is included in the class template and
-the correct specialization of the function is provided via partial
-specialization of the class.  Thus, an arbitrary visitor can still be provided
--- without type erasure -- while allowing the "accept" function to be
-specialized on its argument type.
+To work around this the visitor's conversions are extracted.  The argument type
+is included in the class template and the correct specialization of the
+function is provided via partial specialization of the class.  Thus, an
+arbitrary visitor can still be provided -- without type erasure -- while
+allowing the "accept" function to be specialized on its argument type.
 
 To reduce verbosity of the implementation, a base class Type_generalizer_base
 is provided which abstracts the common details of the class -- constructors,
@@ -15927,9 +15938,10 @@ partition position, and calls the visitor with the converted index.
 }  /* apply<ifc_TypeIndex> */
 
 
-/* A CRT (curiously recursive template) visitor class for dispatching to a
-   visit function that should be "overridden" by implementing derived
-   classes. */
+/* A CRT (curiously recursive template) visitor class used to visit fields of a
+   partition element with generalized field types via the Type_generalizer.
+   Usage should be implemented by implementing a derived class with a
+   "overridden" visit functions. */
 template<typename a_Derived_T>
 struct an_ifc_module::Element_field_visitor {
   Element_field_visitor(an_ifc_module *ifc_mod_val)
@@ -15975,7 +15987,10 @@ an_ifc_module::Element_field_visitor<a_Derived_T>::visit_element( \
 #include "ifc_map.h"
 /*lint +e451*/
 
-/* ... */
+/* An implementation of Element_field_visitor with the visit function
+   "overridden" to a no op for most field types, and to call
+   Element_validation_state_clearer's reset function for types converted to IFC
+   position types by the Type_generalizer. */
 struct an_ifc_module::Element_field_validation_state_clearer
        : public Element_field_visitor<Element_field_validation_state_clearer> {
   inline Element_field_validation_state_clearer(
@@ -17044,7 +17059,8 @@ Overload wrapper for "an_ifc_partition_position" that converts an
 inline size_t an_ifc_module::to_relative_offset(an_ifc_partition_position pos)
                                                                           const
 /*
-Return the relative index into the partition.
+Return the relative offset of the position from the start of its associated
+partition.
 */
 {
   const an_ifc_partition *partition = &partitions[pos.partition];
@@ -17071,9 +17087,23 @@ inline a_boolean an_ifc_module::has_been_validated(
                                                  an_ifc_partition_position pos)
                                                                           const
 /*
-Return TRUE if this position has already been validated.
+Return TRUE if this the element at this position has already been validated.
 */
 {
+  /* Setup a bit mask that can be used to check the validated status of a
+     position's element.  Operationally, this creates a 32 bit mask working on
+     the lower 16 bits:
+
+       0000 0000 0000 0000 - 0000 0000 0000 0001
+
+     Shifts the bit into the correct bit positions:
+
+       0000 0000 0000 0000 - 0000 0000 0000 0100
+
+     This then represents true state for this position's validated bit.
+
+     Then a bit-and operation is used, checking if said validated bit was
+     set. */
   uint32_t index = to_partition_index(pos);
   size_t   block = index / 16;
   size_t   bit_index = index % 16;
@@ -17085,28 +17115,56 @@ Return TRUE if this position has already been validated.
 
 inline void an_ifc_module::mark_validated(an_ifc_partition_position pos)
 /*
-Mark the given position as having been validated.
+Mark the element at the given position as having been validated.
 */
 {
+  /* Setup a bit mask that can be used to mark a position's element as
+     validated.  Operationally, this creates a 32 bit mask working on the lower
+     16 bits:
+
+       0000 0000 0000 0000 - 0000 0000 0000 0001
+
+     Shifts the bit into the correct bit positions:
+
+       0000 0000 0000 0000 - 0000 0000 0000 0100
+
+     This then represents true state for this position's validated bit.
+
+     Then a bit-or assignment operation is used, setting said validated bit
+     while leaving the others untouched. */
   uint32_t index = to_partition_index(pos);
   size_t   block = index / 16;
   size_t   bit = index % 16;
   unsigned bit_mask = 0x1 << bit;
 
   partitions[pos.partition].format_validated[block] |= bit_mask;
-}  /* an_ifc_partition_position */
+}  /* mark_validated */
 
 
 inline a_boolean an_ifc_module::is_marked_invalid(
                                                  an_ifc_partition_position pos)
                                                                           const
 /*
-Return TRUE if this position was invalid when previously validated.  This is
-only a valid operation if has_been_validated returns TRUE.
+Return TRUE if the element at this position was invalid when previously
+validated.  This is only a valid operation if has_been_validated returns TRUE.
 */
 {
   check_assertion(has_been_validated(pos));
   {
+    /* Setup a bit mask that can be used to check the invalid status of a
+       position's element.  Operationally, this creates a 32 bit mask working
+       on the higher 16 bits:
+
+         0000 0000 0000 0001 - 0000 0000 0000 0000
+
+       Shifts the bit into the correct bit positions:
+
+         0000 0000 0000 0100 - 0000 0000 0000 0000
+
+       This then represents true state for this position's invalid bit.
+
+       Then a bit-and operation is used, checking if said invalid bit was
+       set. */
     uint32_t index = to_partition_index(pos);
     size_t   block = index / 16;
     size_t   bit_index = index % 16;
@@ -17114,17 +17172,31 @@ only a valid operation if has_been_validated returns TRUE.
 
     return partitions[pos.partition].format_validated[block] & bit_mask;
   }
-}  /* has_been_validated */
+}  /* is_marked_invalid */
 
 
 inline void an_ifc_module::mark_invalid(an_ifc_partition_position pos)
 /*
-Mark the given position as having been validated.  This is only a valid
-operation if has_been_validated returns TRUE.
+Mark the element at the given position as having been validated.  This is only
+a valid operation if has_been_validated returns TRUE.
 */
 {
   check_assertion(has_been_validated(pos));
   {
+    /* Setup a bit mask that can be used to mark a position's element as
+       invalid.  Operationally, this creates a 32 bit mask working on the
+       higher 16 bits:
+
+         0000 0000 0000 0001 - 0000 0000 0000 0000
+
+       Shifts the bit into the correct bit positions:
+
+         0000 0000 0000 0100 - 0000 0000 0000 0000
+
+       This then represents true state for this position's invalid bit.
+
+       Then a bit-or assignment operation is used, setting said invalid bit
+       while leaving the others untouched. */
     uint32_t index = to_partition_index(pos);
     size_t   block = index / 16;
     size_t   bit = index % 16;
@@ -17132,19 +17204,20 @@ operation if has_been_validated returns TRUE.
 
     partitions[pos.partition].format_validated[block] |= bit_mask;
   }
-}  /* an_ifc_partition_position */
+}  /* mark_invalid */
 
 
 inline void an_ifc_module::reset_validation_state(
                                                  an_ifc_partition_position pos)
 /*
-Mark the given position's validation state bits as unvalidated and valid (its
-initial state).
+Reset the element at the given position's validation state bits.  This results
+in the element's validation statuses (i.e., validated and invalid) being reset
+to their original pre-validation -- FALSE -- states.
 */
 {
-  /* Setup a bit inverted bit mask that can be used to negate the validation
-     bits if set.  Operationally this creates a 32 bit mask of two 16 bit
-     partitions:
+  /* Setup a bit inverted bit mask that can be used to reset the validation
+     bits of a position's element.  Operationally, this creates a 32 bit mask
+     of two 16 bit partitions:
 
        0000 0000 0000 0001 - 0000 0000 0000 0001
 
@@ -17152,21 +17225,20 @@ initial state).
 
        0000 0000 0000 0100 - 0000 0000 0000 0100
 
-     This then represents the TRUE state for both validated and invalid.  It's
-     then inverted:
+     This then represents the TRUE state for this position's validated and
+     invalid bits.  The bits are then inverted:
 
        1111 1111 1111 1011 - 1111 1111 1111 1011
 
-     Then an bit-and operation is used producing the effect that bits related
-     to this position are zeroed while others are kept.
-  */
+     Then a bit-and assignment operation is used, clearing said validated and
+     invalid bits while leaving the others untouched. */
   uint32_t index = to_partition_index(pos);
   size_t   block = index / 16;
   size_t   bit = index % 16;
   unsigned bit_mask = ~(((0x1 << 16) | 0x1) << bit);
 
   partitions[pos.partition].format_validated[block] &= bit_mask;
-}  /* an_ifc_partition_position */
+}  /* reset_validation_state */
 
 
 inline ifc_Index an_ifc_module::read_index_from_heap(
@@ -17526,8 +17598,8 @@ Do one-time initialization of static variables defined in this file.
 */
 {
   /* Allocate a buffer for processing source file names.  These can get fairly
-     long and this is shared across all module processing so be generous with
-     the initial allocation. */
+     long and this is shared across all IFC module processing so be generous
+     with the initial allocation. */
   file_name_buffer = alloc_text_buffer(200);
   if (precompiled_header_processing_required) {
     static a_pch_saved_variable saved_vars[] = {
