@@ -11121,6 +11121,7 @@ is_or_uses_unnameable_class_type.
     if (is_immediate_class_type(type) &&
         unmangled_name_of(&type->source_corresp) == NULL) {
       if (class_type_supp(type)->is_lambda_closure_class &&
+          type->has_been_defined &&
           ((type->source_corresp.parent_scope != NULL &&
             scope_is_in_name_context_stack(
                                          type->source_corresp.parent_scope)) ||
