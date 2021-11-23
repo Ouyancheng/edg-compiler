@@ -16072,9 +16072,10 @@ inline void an_ifc_module::Element_validator::validate(
   } else if (!ifc_mod->validate_partition_position(pos)) {
     /* The position is invalid, no processing can be done at this position. */
     invalid_position(pos);
-  } else {
-    /* This is a sane position, the validation cache can now be consulted
-       to see if this address has been previously checked. */
+  } else if (recursively || tail->prev == nullptr) {
+    /* This is a sane position and deeper validation has been requested.  The
+       validation cache can now be consulted to see if this address has been
+       previously checked. */
     if (ifc_mod->has_been_validated(pos)) {
       /* This element was previously validated, use its previous state. */
       if (ifc_mod->is_marked_invalid(pos)) {
@@ -16106,6 +16107,8 @@ inline void an_ifc_module::Element_validator::validate(
         ifc_mod->mark_validated(pos);
         visit_position(pos);
         if (stage.invalid) {
+          /* Note a call to mark_invalid has already been performed as part of
+             marking the stage invalid.  A further call would be redundant. */
           Element_validation_state_clearer state_clearer(ifc_mod);
 
           /* Reset the state. */
@@ -16124,10 +16127,6 @@ inline void an_ifc_module::Element_validator::validate(
       } else if (tail->prev == nullptr) {
         /* Handle second case (top level validation). */
         visit_position(pos);
-        if (stage.invalid) {
-          ifc_mod->mark_validated(pos);
-          ifc_mod->mark_invalid(pos);
-        }  /* if */
       }  /* if */
     }  /* if */
   } /* if */
