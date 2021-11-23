@@ -10910,18 +10910,20 @@ examined again.
 */
 
 
-static a_boolean local_closure_is_in_scope(a_type_ptr closure)
+static a_boolean closure_is_in_scope(a_type_ptr closure)
 /*
-Return TRUE if closure (a local lambda closure class) is visible in the
-current scope.
+Return TRUE if closure (a lambda closure class) is visible in the current
+scope.
 */
 {
   a_boolean result = FALSE;
 
   check_assertion(is_immediate_class_type(closure) &&
-                  class_type_supp(closure)->is_lambda_closure_class &&
-                  closure->source_corresp.parent_scope == NULL);
-  if (innermost_function_scope != NULL &&
+                  class_type_supp(closure)->is_lambda_closure_class);
+  if (closure->source_corresp.parent_scope != NULL) {
+    result = scope_is_in_name_context_stack(
+                                         closure->source_corresp.parent_scope);
+  } else if (innermost_function_scope != NULL &&
       innermost_function_scope->variant.routine.ptr ==
                                    closure->source_corresp.enclosing_routine) {
     /* The lambda belongs to the current function.  Now check to see if it
@@ -10936,7 +10938,7 @@ current scope.
     }  /* for */
   }  /* if */
   return result;
-}  /* local_closure_is_in_scope */
+}  /* closure_is_in_scope */
 
 
 static void check_for_unusable_entity(
@@ -10974,7 +10976,7 @@ to unusable variables and class members.
       kind = iek_routine;
       if (scp != NULL && scp->is_class_member && scp->is_local_to_function &&
           class_type_supp(scp_parent_class(scp))->is_lambda_closure_class &&
-          local_closure_is_in_scope(scp_parent_class(scp))) {
+          closure_is_in_scope(scp_parent_class(scp))) {
         /* This is the call operator of a local lambda appearing in the
            current function.  The closure type is in scope and its call
            operator can be referenced. */
@@ -11121,12 +11123,7 @@ is_or_uses_unnameable_class_type.
     if (is_immediate_class_type(type) &&
         unmangled_name_of(&type->source_corresp) == NULL) {
       if (class_type_supp(type)->is_lambda_closure_class &&
-          type->has_been_defined &&
-          ((type->source_corresp.parent_scope != NULL &&
-            scope_is_in_name_context_stack(
-                                         type->source_corresp.parent_scope)) ||
-           (type->source_corresp.is_local_to_function &&
-            local_closure_is_in_scope(type)))) {
+          type->has_been_defined && closure_is_in_scope(type)) {
         /* Lambdas are generated with a temporary name typedef, which will
            be usable if the lambda is in scope. */
       } else {
