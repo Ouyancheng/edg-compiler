@@ -5414,8 +5414,8 @@ struct an_ifc_module::Decl_value_visitor {
   Decl_value_visitor(an_ifc_module *ifc_mod_val) : ifc_mod(ifc_mod_val)
     {}
 
-  template<typename T>
-  inline auto visit(T *decl) -> a_Result_T = delete;
+  template<typename an_ifc_DeclSort_T>
+  inline auto visit(an_ifc_DeclSort_T *decl) -> a_Result_T = delete;
   auto visit_index(ifc_DeclIndex decl_index) -> a_Result_T;
 protected:
   inline auto getDerived() -> a_Derived_T *
@@ -5470,8 +5470,8 @@ struct an_ifc_module::decl_name_visitor
                                              an_ifc_module::decl_name_visitor>;
   using base::base;
 
-  template<typename T>
-  inline auto visit(T *decl) -> ifc_NameIndex
+  template<typename an_ifc_DeclSort_T>
+  inline auto visit(an_ifc_DeclSort_T *decl) -> ifc_NameIndex
     { return ifc_mod->get_ifc_name(decl); }
 };  /* decl_name_visitor */
 
@@ -5486,8 +5486,8 @@ struct an_ifc_module::decl_locus_visitor
                                             an_ifc_module::decl_locus_visitor>;
   using base::base;
 
-  template<typename T>
-  inline auto visit(T *decl) -> ifc_SourceLocation
+  template<typename an_ifc_DeclSort_T>
+  inline auto visit(an_ifc_DeclSort_T *decl) -> ifc_SourceLocation
     { return ifc_mod->get_ifc_locus(decl); }
 };  /* decl_locus_visitor */
 
@@ -5503,8 +5503,8 @@ struct an_ifc_module::decl_home_scope_decl_visitor
                                   an_ifc_module::decl_home_scope_decl_visitor>;
   using base::base;
 
-  template<typename T>
-  inline auto visit(T *decl) -> ifc_DeclIndex
+  template<typename an_ifc_DeclSort_T>
+  inline auto visit(an_ifc_DeclSort_T *decl) -> ifc_DeclIndex
     { return ifc_mod->get_ifc_home_scope_decl(decl); }
 };  /* decl_home_scope_decl_visitor */
 
@@ -5520,8 +5520,8 @@ struct an_ifc_module::decl_access_visitor
                                            an_ifc_module::decl_access_visitor>;
   using base::base;
 
-  template<typename T>
-  inline auto visit(T *decl) -> ifc_Access
+  template<typename an_ifc_DeclSort_T>
+  inline auto visit(an_ifc_DeclSort_T *decl) -> ifc_Access
     { return ifc_mod->get_ifc_access(decl); }
 };  /* decl_access_visitor */
 
@@ -14505,7 +14505,7 @@ struct an_ifc_module::Element_visitor {
   Element_visitor()
     {}
 
-  template<typename T>
+  template<typename an_ifc_Element_Type>
   inline void visit(an_ifc_partition_position pos) = delete;
   void visit_position(an_ifc_partition_position pos);
 protected:
@@ -15496,13 +15496,13 @@ protected:
   template<typename a_Type>
   inline void visit(a_Type val, a_const_char *field_name) = delete;
   /* General conversion function that forwards to the derived visitor class.
-     This function is selected as a fallback if no conversion function is
+     This function is selected as a fallback if no conversion visit function is
      declared below. */
   template<typename a_Type>
   inline void visit_pre_conversion(a_Type val, a_const_char *field_name)
     { getDerived()->visit(val, field_name); }
-  /* Conversion functions which reduce their argument to an element
-     position. */
+  /* Specialized conversion visit functions which reduce their argument to an
+     element position. */
   inline void visit_pre_conversion(ifc_AttrIndex val,
                                    a_const_char  *field_name);
   inline void visit_pre_conversion(ifc_ChartIndex val,
@@ -15796,18 +15796,16 @@ struct an_ifc_module::Element_field_validation_state_clearer
 
 private:
   friend Element_field_visitor<Element_field_validation_state_clearer>;
+  /* General no op visit function.  This function is selected as a fallback if
+     no other reset visit function is declared below. */
   template<typename a_Type>
   inline void visit(a_Type val, const char *field_name)
     {}
+  /* Specialized visit functions. */
+  inline void visit(an_ifc_partition_position val,
+                    const char                *field_name);
   Element_validation_state_clearer *state_clearer;
 };  /* Element_field_validation_state_clearer */
-
-
-template<>
-inline void
-an_ifc_module::Element_field_validation_state_clearer::visit(
-                                        an_ifc_partition_position val,
-                                        const char                *field_name);
 
 
 inline a_boolean an_ifc_module::validate_partition_position(
@@ -15836,7 +15834,8 @@ inline a_boolean an_ifc_module::validate_partition_position(
 }  /* validate_partition_position */
 
 
-/* ... */
+/* An implementation of Element_visitor with the visit function "overridden" to
+   perform reseting of the validation cache for the element. */
 struct an_ifc_module::Element_validation_state_clearer
                    : public Element_visitor<Element_validation_state_clearer> {
   Element_validation_state_clearer(an_ifc_module *ifc_mod_val)
@@ -15849,12 +15848,15 @@ private:
   friend Element_field_validation_state_clearer;
   /* State reset functions. */
   inline void reset(an_ifc_partition_position pos, a_const_char *field_name);
-  /* Visitor functions to traverse the IFC. */
-  template<typename T>
+  /* Function template specialized by code generation from the IFC map. */
+  template<typename an_ifc_Element_Type>
   inline void def_visit(an_ifc_partition_position pos) = delete;
-  template<typename T>
+  /* General visit function that by default calls the respective def_visit
+     explicit function specialization.  This function can be explicitly
+     specialized to override the default behavior for its respective type. */
+  template<typename an_ifc_Element_Type>
   inline void visit(an_ifc_partition_position pos)
-    { def_visit<T>(pos); }
+    { def_visit<an_ifc_Element_Type>(pos); }
   an_ifc_module *ifc_mod;
   Element_field_validation_state_clearer
                 field_visitor;
@@ -15875,7 +15877,6 @@ an_ifc_module::Element_field_validation_state_clearer::
 }  /* Element_field_validation_state_clearer */
 
 
-template<>
 inline void
 an_ifc_module::Element_field_validation_state_clearer::visit(
                                          an_ifc_partition_position val,
@@ -15944,20 +15945,19 @@ struct an_ifc_module::Element_field_validator
   inline Element_field_validator(Element_validator *validator_val);
 private:
   friend Element_field_visitor<Element_field_validator>;
+  /* General no op visit function.  This function is selected as a
+     fallback if no other validation visit function is declared below. */
   template<typename a_Type>
   inline void visit(a_Type val, const char *field_name)
     {}
+  /* Specialized visit functions. */
+  inline void visit(an_ifc_partition_position val,
+                    const char                *field_name);
   Element_validator *validator;
 };  /* Element_field_validator */
 
-
-template<>
-inline void an_ifc_module::Element_field_validator::visit(
-                                        an_ifc_partition_position val,
-                                        const char                *field_name);
-
-
-/* ... */
+/* An implementation of Element_visitor with the visit function "overridden" to
+   perform validation on the element. */
 struct an_ifc_module::Element_validator
                                   : public Element_visitor<Element_validator> {
   a_boolean invalid;
@@ -15982,12 +15982,15 @@ private:
   inline void invalid_position(an_ifc_partition_position pos);
   /* Validation functions. */
   inline void validate(an_ifc_partition_position pos, const char *field_name);
-  /* Visitor functions to traverse the IFC. */
-  template<typename T>
+  /* Function template specialized by code generation from the IFC map. */
+  template<typename an_ifc_Element_Type>
   inline void def_visit(an_ifc_partition_position pos) = delete;
-  template<typename T>
+  /* General visit function that by default calls the respective def_visit
+     explicit function specialization.  This function can be explicitly
+     specialized to override the default behavior for its respective type. */
+  template<typename an_ifc_Element_Type>
   inline void visit(an_ifc_partition_position pos)
-    { def_visit<T>(pos); }
+    { def_visit<an_ifc_Element_Type>(pos); }
   an_ifc_module *ifc_mod;
   Element_field_validator
                 field_visitor;
@@ -16041,7 +16044,6 @@ an_ifc_module::Element_field_validator::Element_field_validator(
 }  /* Element_field_validator */
 
 
-template<>
 inline void an_ifc_module::Element_field_validator::visit(
                                          an_ifc_partition_position val,
                                          const char                *field_name)
@@ -16050,14 +16052,41 @@ Check the validity of the given partition element position by recursing.
 */
 {
   validator->validate(val, field_name);
-}  /* visit<an_ifc_partition_position> */
+}  /* visit */
 
 
 inline void an_ifc_module::Element_validator::validate(
                                          an_ifc_partition_position pos,
                                          const char                *field_name)
-/* */
+/*
+Validate the given position.  This functions always checks to see if the
+specified position is a valid position.  If the position is determined to be a
+valid position, it will then perform additional checks depending on context.
+
+When this is a recursive validation it will validate the element's fields.
+This follows ifc_IndexType derived (and similar) fields of the element at the
+given position recursively until it's covered all index types.  Index types
+which provide access to a set of elements (e.g. ScopeIndex) are validated.
+However, the members of their set are not validated.  Results of this
+validation are cached with the module to prevent excessive tree walking across
+this and other Element_validator uses.
+
+When this is a top level (the first position checked) non-recursive validation
+it will validate the element's fields. This follows ifc_IndexType derived (and
+similar) fields of the element at the given position up to one level down.
+Thus, checking that the given position is a valid position, and that the
+element contains fields that pass initial validation.  Results of this
+validation are not cached.
+
+When this is not a recursive validation or a top level non-recursive
+validation, only the initial position validity is validated.  This case only
+occurs as a sub-step of non-recursive validation.
+
+Any validation failures will result in a call to the element validator's
+mark_invalid function.
+*/
 {
+  /* Expose the current validation call stack as a validation stack. */
   Validation_stage stage(&tail, &pos, field_name);
 
   /* First check to see if the given position is a real element that needs
@@ -16161,6 +16190,8 @@ inline void an_ifc_module::Element_validator::add_backtrace(
                                                      a_diagnostic_ptr diag_ptr)
                                                                           const
 /*
+Add information about the validation stack to the given diagnostic pointer to
+produce a more detailed contextual diagnostic.
 */
 {
   Validation_stage *cur = tail;
@@ -16194,6 +16225,8 @@ inline void an_ifc_module::Element_validator::add_backtrace(
 inline void an_ifc_module::Element_validator::invalid_partition(
                                                  an_ifc_partition_position pos)
 /*
+Handle failure and if enabled, diagnostics for an encountered invalid
+partition.
 */
 {
   if (emit_diagnostics) {
@@ -16213,10 +16246,13 @@ inline void an_ifc_module::Element_validator::invalid_partition(
 inline void an_ifc_module::Element_validator::undefined_partition(
                                                  an_ifc_partition_position pos)
 /*
+Handle failure and if enabled, diagnostics for an encountered undefined
+partition.
 */
 {
   for (uint32_t index = 0; index < (uint32_t)ifc_last; ++index) {
     an_ifc_partition_map *map_entry = &ifc_partition_map[index];
+
     if (map_entry->kind == pos.partition) {
       if (emit_diagnostics) {
         a_diagnostic_ptr diag_ptr;
@@ -16244,12 +16280,14 @@ found:
 inline void an_ifc_module::Element_validator::invalid_position(
                                                  an_ifc_partition_position pos)
 /*
+Handle failure and if enabled, diagnostics for an encountered invalid
+partition position.
 */
 {
   an_ifc_partition *partition = &ifc_mod->partitions[pos.partition];
   size_t           relative_offset = ifc_mod->to_relative_offset(pos);
   an_error_code    error_code = ec_no_error;
-  /* FIXME: Use a better source position. */
+
   if (partition->size == 0) {
     error_code = ec_invalid_empty_ifc_position;
   } else if (pos.file_offset < partition->offset) {
@@ -16265,6 +16303,7 @@ inline void an_ifc_module::Element_validator::invalid_position(
   if (emit_diagnostics) {
     a_diagnostic_ptr diag_ptr;
 
+    /* FIXME: Use a better source position. */
     diag_ptr = pos_st2_num2_start_error(
                                        error_code, &null_source_position,
                                        ifc_mod->assoc_module_info->name,
@@ -16323,10 +16362,10 @@ inline a_boolean an_ifc_module::validate_partition_element_shallow(
                                                  an_ifc_partition_position pos)
 /*
 Perform non-recursive validation checks on the given partition position.
-Return TRUE if determined to be `valid, FALSE otherwise.
+Return TRUE if determined to be valid, FALSE otherwise.
 
-See Element_validator for more details about non-recursive and recursive
-validation.
+See Element_validator's position validation function for more details about
+non-recursive and recursive validation.
 */
 {
   Element_validator validator(this, /*recursively=*/FALSE);
@@ -16342,8 +16381,8 @@ inline a_boolean an_ifc_module::validate_partition_element(
 Perform recursive validation checks on the given partition position.  Returns
 TRUE if determined to be valid, FALSE otherwise.
 
-See Element_validator for more details about non-recursive and recursive
-validation.
+See Element_validator's position validation function for more details about
+non-recursive and recursive validation.
 */
 {
   Element_validator validator(this, /*recursively=*/TRUE);
@@ -16359,8 +16398,8 @@ inline a_boolean an_ifc_module::validate_partition_element(Args&&... args)
 Perform recursive validation checks on the constructed partition position.
 Returns TRUE if determined to be valid, FALSE otherwise.
 
-See Element_validator for more details about non-recursive and recursive
-validation.
+See Element_validator's position validation function for more details about
+non-recursive and recursive validation.
 */
 {
   an_ifc_partition_position pos(this, args...);
@@ -16372,7 +16411,7 @@ validation.
 inline void an_ifc_module::read_unchecked_partition_element(
                                                  an_ifc_partition_position pos)
 /*
-
+Initialize the byte buffer for the given partition position without validation.
 */
 {
 #if DEBUG && EXPENSIVE_CHECKING
@@ -16385,7 +16424,12 @@ inline void an_ifc_module::read_unchecked_partition_element(
 inline a_boolean an_ifc_module::read_partition_element_shallow(
                                                  an_ifc_partition_position pos)
 /*
+Perform non-recursive validation checks on the given partition position.  If
+validation success initialize the byte buffer for the given partition.  Return
+TRUE if determined to be valid, FALSE otherwise.
 
+See Element_validator's position validation function for more details about
+non-recursive and recursive validation.
 */
 {
   a_boolean result = FALSE;
@@ -16401,7 +16445,12 @@ inline a_boolean an_ifc_module::read_partition_element_shallow(
 template<typename... Args>
 inline a_boolean an_ifc_module::read_partition_element_shallow(Args&&... args)
 /*
+Perform non-recursive validation checks on the constructed partition position.
+If validation success initialize the byte buffer for the given partition.
+Return TRUE if determined to be valid, FALSE otherwise.
 
+See Element_validator's position validation function for more details about
+non-recursive and recursive validation.
 */
 {
   an_ifc_partition_position pos(this, args...);
@@ -16413,7 +16462,12 @@ inline a_boolean an_ifc_module::read_partition_element_shallow(Args&&... args)
 inline a_boolean an_ifc_module::read_partition_element(
                                                  an_ifc_partition_position pos)
 /*
+Perform recursive validation checks on the given partition position.  If
+validation success initialize the byte buffer for the given partition.  Return
+TRUE if determined to be valid, FALSE otherwise.
 
+See Element_validator's position validation function for more details about
+non-recursive and recursive validation.
 */
 {
   a_boolean result = FALSE;
@@ -16429,7 +16483,12 @@ inline a_boolean an_ifc_module::read_partition_element(
 template<typename... Args>
 inline a_boolean an_ifc_module::read_partition_element(Args&&... args)
 /*
+Perform recursive validation checks on the constructed partition position.  If
+validation success initialize the byte buffer for the given partition.  Return
+TRUE if determined to be valid, FALSE otherwise.
 
+See Element_validator's position validation function for more details about
+non-recursive and recursive validation.
 */
 {
   an_ifc_partition_position pos(this, args...);
@@ -16441,7 +16500,10 @@ inline a_boolean an_ifc_module::read_partition_element(Args&&... args)
 inline void an_ifc_module::read_prechecked_partition_element(
                                                  an_ifc_partition_position pos)
 /*
-
+With the knowledge that the given position has been previously validated by a
+call to validate_partition_element (or indirectly via a call to
+read_partition_element), initialize the byte buffer for the given partition
+without further validation.
 */
 {
   check_assertion(validate_partition_position(pos));
@@ -16457,7 +16519,10 @@ inline void an_ifc_module::read_prechecked_partition_element(
 template<typename... Args>
 inline void an_ifc_module::read_prechecked_partition_element(Args&&... args)
 /*
-
+With the knowledge that the constructed position has been previously validated
+by a call to validate_partition_element (or indirectly via a call to
+read_partition_element), initialize the byte buffer for the given partition
+without further validation.
 */
 {
   an_ifc_partition_position pos(this, args...);
@@ -16479,7 +16544,7 @@ struct an_ifc_partition_kind_range {
 Declare a deleted function that must be specialized via the below macro to
 return the correct an_ifc_partition_kind_range based on a type T.
 */
-template<typename T>
+template<typename an_ifc_Partition_Kind>
 inline an_ifc_partition_kind_range get_partition_kind_range() = delete;
 
 
@@ -16519,15 +16584,17 @@ DEF_KIND_RANGE(Chart, chart)
 /* Undefine the macro to prevent unintended usage. */
 #undef DEF_KIND_RANGE
 
-template<typename T>
-inline an_ifc_partition_kind get_partition_kind(T sort_kind)
+template<typename an_ifc_Partition_Kind>
+inline an_ifc_partition_kind get_partition_kind(
+                                               an_ifc_Partition_Kind sort_kind)
 /*
 Return the corresponding an_ifc_partition_kind for a given ifc_Sort_type value
 sort_kind or the ifc_invalid_partition if the sort kind could not be mapped to
 a valid partition.
 */
 {
-  an_ifc_partition_kind_range kind_range = get_partition_kind_range<T>();
+  an_ifc_partition_kind_range kind_range =
+                             get_partition_kind_range<an_ifc_Partition_Kind>();
   an_ifc_partition_kind kind =
                          (an_ifc_partition_kind)(kind_range.start + sort_kind);
   if (kind > kind_range.end) {
