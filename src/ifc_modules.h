@@ -3154,10 +3154,6 @@ private:
   inline void reset_validation_state(an_ifc_partition_position pos);
   template<typename a_Derived_T>
   struct Element_visitor;
-  template<typename a_Visitor>
-  struct Type_generalizer_base;
-  template<typename a_Converted_Type, typename a_Visitor>
-  struct Type_generalizer;
   template<typename a_Derived_T>
   struct Element_field_visitor;
   struct Element_field_validation_state_clearer;
@@ -3229,44 +3225,6 @@ private:
 /*lint -restore*/
 
 extern a_boolean load_routine_definition_from_ifc_module(a_routine_ptr  rp);
-
-/* FIXME: These forward declarations of Type_generalizer partial
-   specializations should be removed after our multi-TU build is corrected to
-   build without these forward declarations present.  These are not part of the
-   original design, and negatively impact (i.e., break) the MSVC build. */
-#ifdef __EDG__
-
-/* Partial specializations of an_ifc_mdoule::Type_generalizer_base. */
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_AttrIndex, a_Visitor>;
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_ChartIndex, a_Visitor>;
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_DeclIndex, a_Visitor>;
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_ExprIndex, a_Visitor>;
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_FormIndex, a_Visitor>;
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_FormSpecIndex, a_Visitor>;
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_LineIndex, a_Visitor>;
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_MacroIndex, a_Visitor>;
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_NameIndex, a_Visitor>;
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_ScopeIndex, a_Visitor>;
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_SourceLocation, a_Visitor>;
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_StmtIndex, a_Visitor>;
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_SyntaxIndex, a_Visitor>;
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_TypeIndex, a_Visitor>;
-
-#endif /* __EDG__ */
 
 /* Explicit specializations of an_ifc_module::get_ifc_name. */
 template<>

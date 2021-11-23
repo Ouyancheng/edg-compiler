@@ -15462,486 +15462,21 @@ the position's partition kind.
   } /* switch */
 }  /* visit_position */
 
-/*
-The Type_generalizer forms a system for converting various field's values to
-more generic types (e.g. AttrIndex -> an_ifc_partition_positions), then
-forwarding those an_ifc_partition_positions to a Element_field_visitor
-derivative.
-
-This allows Element_field_visitor derivatives to share significant portions of
-their dispatch code (e.g., each derivative can share index -> position
-conversion logic and have one "position" based visit function rather than many
-index type based visit functions).
-
-Ideally, these would be explicitly specialized visit functions on
-Element_field_visitor.  However, C++ does not allow the visit function to be
-explicitly specialized within a template class, thus Element_field_visitor
-couldn't be a visitor.
-
-To work around this the visitor's conversions are extracted.  The argument type
-is included in the class template and the correct specialization of the
-function is provided via partial specialization of the class.  Thus, an
-arbitrary visitor can still be provided -- without type erasure -- while
-allowing the "accept" function to be specialized on its argument type.
-
-To reduce verbosity of the implementation, a base class Type_generalizer_base
-is provided which abstracts the common details of the class -- constructors,
-members, and common functions.
-
-Calls to the visitor should be made through the base class
-(Type_generalizer_base)'s visit function rather than directly.  This allows
-implementing classes to easily grant access to their visit functions even if
-private by friending the base class.
-
-Implementing visitors may override default conversion functionality by creating
-an explicit specialization for their class.
-*/
-
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer_base {
-  Type_generalizer_base(an_ifc_module *ifc_mod_val,
-                        a_Visitor     *visitor_val)
-    : ifc_mod(ifc_mod_val), visitor(visitor_val)
-    {}
-protected:
-  /* Common internal logic and fields for specializations implementing
-     conversions. */
-  template<typename... Args>
-  inline an_ifc_partition_position convert_to_pos(Args&&... args) const
-    { return an_ifc_partition_position(ifc_mod, args...); }
-  template<typename... Args>
-  inline void visit(Args&&... args) const
-    { visitor->visit(args...); }
-  an_ifc_module *ifc_mod;
-  a_Visitor *visitor;
-};  /* Type_generalizer_base */
-
-/* The unspecialized default converter for argument types that don't have
-   conversion rules.  This converter merely forwards to the provided
-   visitor. */
-template<typename a_Converted_Type, typename a_Visitor>
-struct an_ifc_module::Type_generalizer
-                                    : public Type_generalizer_base<a_Visitor> {
-  using base = Type_generalizer_base<a_Visitor>;
-  using base::base;
-
-  inline void apply(a_Converted_Type val, a_const_char *field_name) const
-    { base::visit(val, field_name); }
-};  /* Type_generalizer */
-
-/* A specialization of Type_generalizer that converts "ifc_AttrIndex" visitor
-   calls to "an_ifc_partition_position" visitor calls. */
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_AttrIndex, a_Visitor>
-                                           : Type_generalizer_base<a_Visitor> {
-  using base = Type_generalizer_base<a_Visitor>;
-  using base::base;
-
-  inline void apply(ifc_AttrIndex val, a_const_char *field_name) const;
-};  /* Type_generalizer<ifc_AttrIndex> */
-
-
-template<typename a_Visitor>
-inline void
-an_ifc_module::Type_generalizer<ifc_AttrIndex, a_Visitor>::apply(
-                                                     ifc_AttrIndex val,
-                                                     a_const_char  *field_name)
-                                                                          const
-/*
-If val is set to a valid index this function converts the index to a partition
-position, and calls the visitor with the converted index.
-*/
-{
-  if (val != 0) {
-    base::visit(base::convert_to_pos(val), field_name);
-  }  /* if */
-}  /* apply<ifc_AttrIndex> */
-
-
-/* A specialization of Type_generalizer that converts "ifc_ChartIndex" visitor
-   calls to "an_ifc_partition_position" visitor calls. */
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_ChartIndex, a_Visitor>
-                                           : Type_generalizer_base<a_Visitor> {
-  using base = Type_generalizer_base<a_Visitor>;
-  using base::base;
-
-  inline void apply(ifc_ChartIndex val, a_const_char *field_name) const;
-};  /* Type_generalizer<ifc_ChartIndex> */
-
-
-template<typename a_Visitor>
-inline void
-an_ifc_module::Type_generalizer<ifc_ChartIndex, a_Visitor>::apply(
-                                                    ifc_ChartIndex val,
-                                                    a_const_char   *field_name)
-                                                                          const
-/*
-If val is set to a valid index this function converts the index to a partition
-position, and calls the visitor with the converted index.
-*/
-{
-  if (val != 0) {
-    base::visit(base::convert_to_pos(val), field_name);
-  }  /* if */
-}  /* apply<ifc_ChartIndex> */
-
-
-/* A specialization of Type_generalizer that converts "ifc_DeclIndex" visitor
-   calls to "an_ifc_partition_position" visitor calls. */
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_DeclIndex, a_Visitor>
-                                           : Type_generalizer_base<a_Visitor> {
-  using base = Type_generalizer_base<a_Visitor>;
-  using base::base;
-
-  inline void apply(ifc_DeclIndex val, a_const_char *field_name) const;
-};  /* Type_generalizer<ifc_DeclIndex> */
-
-
-template<typename a_Visitor>
-inline void
-an_ifc_module::Type_generalizer<ifc_DeclIndex, a_Visitor>::apply(
-                                                     ifc_DeclIndex val,
-                                                     a_const_char  *field_name)
-                                                                          const
-/*
-If val is set to a valid index this function converts the index to a partition
-position, and calls the visitor with the converted index.
-*/
-{
-  if (val != 0) {
-    base::visit(base::convert_to_pos(val), field_name);
-  }  /* if */
-}  /* apply<ifc_DeclIndex> */
-
-
-/* A specialization of Type_generalizer that converts "ifc_ExprIndex" visitor
-   calls to "an_ifc_partition_position" visitor calls. */
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_ExprIndex, a_Visitor>
-                                           : Type_generalizer_base<a_Visitor> {
-  using base = Type_generalizer_base<a_Visitor>;
-  using base::base;
-
-  inline void apply(ifc_ExprIndex val, a_const_char *field_name) const;
-};  /* Type_generalizer<ifc_ExprIndex> */
-
-
-template<typename a_Visitor>
-inline void
-an_ifc_module::Type_generalizer<ifc_ExprIndex, a_Visitor>::apply(
-                                                     ifc_ExprIndex val,
-                                                     a_const_char  *field_name)
-                                                                          const
-/*
-If val is set to a valid index this function converts the index to a partition
-position, and calls the visitor with the converted index.
-*/
-{
-  if (val != 0) {
-    base::visit(base::convert_to_pos(val), field_name);
-  }  /* if */
-}  /* apply<ifc_ExprIndex> */
-
-
-/* A specialization of Type_generalizer that converts "ifc_FormIndex" visitor
-   calls to "an_ifc_partition_position" visitor calls. */
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_FormIndex, a_Visitor>
-                                           : Type_generalizer_base<a_Visitor> {
-  using base = Type_generalizer_base<a_Visitor>;
-  using base::base;
-
-  inline void apply(ifc_FormIndex val, a_const_char *field_name) const;
-};  /* Type_generalizer<ifc_FormIndex> */
-
-
-template<typename a_Visitor>
-inline void
-an_ifc_module::Type_generalizer<ifc_FormIndex, a_Visitor>::apply(
-                                                     ifc_FormIndex val,
-                                                     a_const_char  *field_name)
-                                                                          const
-/*
-If val is set to a valid index this function converts the index to a partition
-position, and calls the visitor with the converted index.
-*/
-{
-  if (val != 0) {
-    base::visit(base::convert_to_pos(val), field_name);
-  }  /* if */
-}  /* apply<ifc_FormIndex> */
-
-
-/* A specialization of Type_generalizer that converts "ifc_FormSpecIndex"
-   visitor calls to "an_ifc_partition_position" visitor calls. */
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_FormSpecIndex, a_Visitor>
-                                           : Type_generalizer_base<a_Visitor> {
-  using base = Type_generalizer_base<a_Visitor>;
-  using base::base;
-
-  inline void apply(ifc_FormSpecIndex val, a_const_char *field_name) const;
-};  /* Type_generalizer<ifc_FormSpecIndex> */
-
-
-template<typename a_Visitor>
-inline void
-an_ifc_module::Type_generalizer<ifc_FormSpecIndex, a_Visitor>::apply(
-                                                 ifc_FormSpecIndex val,
-                                                 a_const_char      *field_name)
-                                                                          const
-/*
-If val is set to a valid index this function converts the index to a partition
-position, and calls the visitor with the converted index.
-*/
-{
-  if (val != 0) {
-    base::visit(base::convert_to_pos(val), field_name);
-  }  /* if */
-}  /* apply<ifc_FormSpecIndex> */
-
-
-/* A specialization of Type_generalizer that converts "ifc_LineIndex" visitor
-   calls to "an_ifc_partition_position" visitor calls. */
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_LineIndex, a_Visitor>
-                                           : Type_generalizer_base<a_Visitor> {
-  using base = Type_generalizer_base<a_Visitor>;
-  using base::base;
-
-  inline void apply(ifc_LineIndex val, a_const_char *field_name) const;
-};  /* Type_generalizer<ifc_LineIndex> */
-
-
-template<typename a_Visitor>
-inline void
-an_ifc_module::Type_generalizer<ifc_LineIndex, a_Visitor>::apply(
-                                                     ifc_LineIndex val,
-                                                     a_const_char  *field_name)
-                                                                          const
-/*
-If val is set to a valid index this function converts the index to a partition
-position, and calls the visitor with the converted index.
-*/
-{
-  if (val != 0) {
-    base::visit(base::convert_to_pos(val), field_name);
-  }  /* if */
-}  /* apply<ifc_LineIndex> */
-
-
-/* A specialization of Type_generalizer that converts "ifc_MacroIndex" visitor
-   calls to "an_ifc_partition_position" visitor calls. */
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_MacroIndex, a_Visitor>
-                                           : Type_generalizer_base<a_Visitor> {
-  using base = Type_generalizer_base<a_Visitor>;
-  using base::base;
-
-  inline void apply(ifc_MacroIndex val, a_const_char *field_name) const;
-};  /* Type_generalizer<ifc_MacroIndex> */
-
-
-template<typename a_Visitor>
-inline void
-an_ifc_module::Type_generalizer<ifc_MacroIndex, a_Visitor>::apply(
-                                                    ifc_MacroIndex val,
-                                                    a_const_char   *field_name)
-                                                                          const
-/*
-If val is set to a valid index this function converts the index to a partition
-position, and calls the visitor with the converted index.
-*/
-{
-  if (val != 0) {
-    base::visit(base::convert_to_pos(val), field_name);
-  }  /* if */
-}  /* apply<ifc_MacroIndex> */
-
-
-/* A specialization of Type_generalizer that converts "ifc_NameIndex" visitor
-   calls to "an_ifc_partition_position" visitor calls. */
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_NameIndex, a_Visitor>
-                                           : Type_generalizer_base<a_Visitor> {
-  using base = Type_generalizer_base<a_Visitor>;
-  using base::base;
-
-  inline void apply(ifc_NameIndex val, a_const_char *field_name) const;
-};  /* Type_generalizer<ifc_NameIndex> */
-
-
-template<typename a_Visitor>
-inline void
-an_ifc_module::Type_generalizer<ifc_NameIndex, a_Visitor>::apply(
-                                                     ifc_NameIndex val,
-                                                     a_const_char  *field_name)
-                                                                          const
-/*
-If val is set to a valid index this function converts the index to a partition
-position, and calls the visitor with the converted index.
-*/
-{
-  if (val != 0) {
-    if (name_tag(val) != ifc_NameSort_Identifier) {
-      base::visit(base::convert_to_pos(val), field_name);
-    }  /* if */
-  }  /* if */
-}  /* apply<ifc_NameIndex> */
-
-
-/* A specialization of Type_generalizer that converts "ifc_ScopeIndex" visitor
-   calls to "an_ifc_partition_position" visitor calls. */
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_ScopeIndex, a_Visitor>
-                                           : Type_generalizer_base<a_Visitor> {
-  using base = Type_generalizer_base<a_Visitor>;
-  using base::base;
-
-  inline void apply(ifc_ScopeIndex val, a_const_char *field_name) const;
-};  /* Type_generalizer<ifc_ScopeIndex> */
-
-
-template<typename a_Visitor>
-inline void
-an_ifc_module::Type_generalizer<ifc_ScopeIndex, a_Visitor>::apply(
-                                                    ifc_ScopeIndex val,
-                                                    a_const_char   *field_name)
-                                                                          const
-/*
-If val is set to a valid index this function converts the index to a partition
-position, and calls the visitor with the converted index.
-*/
-{
-  if (val != 0) {
-    base::visit(base::convert_to_pos(val), field_name);
-  }  /* if */
-}  /* apply<ifc_ScopeIndex> */
-
-
-/* A specialization of Type_generalizer that converts "ifc_SourceLocation"
-   visitor calls to "an_ifc_partition_position" visitor calls. */
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_SourceLocation, a_Visitor>
-                                           : Type_generalizer_base<a_Visitor> {
-  using base = Type_generalizer_base<a_Visitor>;
-  using base::base;
-
-  inline void apply(ifc_SourceLocation val, a_const_char *field_name) const;
-};  /* Type_generalizer<ifc_SourceLocation> */
-
-
-template<typename a_Visitor>
-inline void
-an_ifc_module::Type_generalizer<ifc_SourceLocation, a_Visitor>::apply(
-                                                ifc_SourceLocation val,
-                                                a_const_char       *field_name)
-                                                                          const
-/*
-If val is set to a source location with a valid line index this function
-converts the index to a partition position, and calls the visitor with the
-converted index.
-*/
-{
-  if (val.line != 0) {
-    base::visit(base::convert_to_pos(val.line), field_name);
-  }  /* if */
-}  /* apply<ifc_SourceLocation> */
-
-
-/* A specialization of Type_generalizer that converts "ifc_StmtIndex" visitor
-   calls to "an_ifc_partition_position" visitor calls. */
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_StmtIndex, a_Visitor>
-                                           : Type_generalizer_base<a_Visitor> {
-  using base = Type_generalizer_base<a_Visitor>;
-  using base::base;
-
-  inline void apply(ifc_StmtIndex val, a_const_char *field_name) const;
-};  /* Type_generalizer<ifc_StmtIndex> */
-
-
-template<typename a_Visitor>
-inline void
-an_ifc_module::Type_generalizer<ifc_StmtIndex, a_Visitor>::apply(
-                                                     ifc_StmtIndex val,
-                                                     a_const_char  *field_name)
-                                                                          const
-/*
-If val is set to a valid index this function converts the index to a partition
-position, and calls the visitor with the converted index.
-*/
-{
-  if (val != 0) {
-    base::visit(base::convert_to_pos(val), field_name);
-  }  /* if */
-}  /* apply<ifc_StmtIndex> */
-
-
-/* A specialization of Type_generalizer that converts "ifc_SyntaxIndex" visitor
-   calls to "an_ifc_partition_position" visitor calls. */
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_SyntaxIndex, a_Visitor>
-                                           : Type_generalizer_base<a_Visitor> {
-  using base = Type_generalizer_base<a_Visitor>;
-  using base::base;
-
-  inline void apply(ifc_SyntaxIndex val, a_const_char *field_name) const;
-};  /* Type_generalizer<ifc_SyntaxIndex> */
-
-
-template<typename a_Visitor>
-inline void
-an_ifc_module::Type_generalizer<ifc_SyntaxIndex, a_Visitor>::apply(
-                                                   ifc_SyntaxIndex val,
-                                                   a_const_char    *field_name)
-                                                                          const
-/*
-If val is set to a valid index this function converts the index to a
-partition position, and calls the visitor with the converted index.
-*/
-{
-  if (val != 0) {
-    base::visit(base::convert_to_pos(val), field_name);
-  }  /* if */
-}  /* apply<ifc_SyntaxIndex> */
-
-
-/* A specialization of Type_generalizer that converts "ifc_TypeIndex" visitor
-   calls to "an_ifc_partition_position" visitor calls. */
-template<typename a_Visitor>
-struct an_ifc_module::Type_generalizer<ifc_TypeIndex, a_Visitor>
-                                           : Type_generalizer_base<a_Visitor> {
-  using base = Type_generalizer_base<a_Visitor>;
-  using base::base;
-
-  inline void apply(ifc_TypeIndex val, a_const_char *field_name) const;
-};  /* Type_generalizer<ifc_TypeIndex> */
-
-
-template<typename a_Visitor>
-inline void
-an_ifc_module::Type_generalizer<ifc_TypeIndex, a_Visitor>::apply(
-                                                     ifc_TypeIndex val,
-                                                     a_const_char  *field_name)
-                                                                          const
-/*
-If val is set to a valid index this function converts the index to a
-partition position, and calls the visitor with the converted index.
-*/
-{
-  if (val != 0) {
-    base::visit(base::convert_to_pos(val), field_name);
-  }  /* if */
-}  /* apply<ifc_TypeIndex> */
-
 
 /* A CRT (curiously recursive template) visitor class used to visit fields of a
-   partition element with generalized field types via the Type_generalizer.
-   Usage should be implemented by implementing a derived class with a
-   "overridden" visit functions. */
+   partition element that generalizes field types for easier visitor
+   implementation.
+
+   Derived classes should implement their visitors with an "overridden" visit
+   function accessible to the instantiated Element_field_visitor.
+
+   Derived classes may also choose to implement or replace their own field type
+   conversion rules by "overriding" the visit_pre_conversion function.
+
+   Visitation is started by calling one of the visit_element functions.  The
+   visit_element function will call the derived visit_pre_conversion on all
+   elements.  The visit_pre_conversion functions then apply any relevant
+   conversions before calling the respective derived visit function. */
 template<typename a_Derived_T>
 struct an_ifc_module::Element_field_visitor {
   Element_field_visitor(an_ifc_module *ifc_mod_val)
@@ -15960,6 +15495,46 @@ struct an_ifc_module::Element_field_visitor {
 protected:
   template<typename a_Type>
   inline void visit(a_Type val, a_const_char *field_name) = delete;
+  /* General conversion function that forwards to the derived visitor class.
+     This function is selected as a fallback if no conversion function is
+     declared below. */
+  template<typename a_Type>
+  inline void visit_pre_conversion(a_Type val, a_const_char *field_name)
+    { getDerived()->visit(val, field_name); }
+  /* Conversion functions which reduce their argument to an element
+     position. */
+  inline void visit_pre_conversion(ifc_AttrIndex val,
+                                   a_const_char  *field_name);
+  inline void visit_pre_conversion(ifc_ChartIndex val,
+                                   a_const_char   *field_name);
+  inline void visit_pre_conversion(ifc_DeclIndex val,
+                                   a_const_char  *field_name);
+  inline void visit_pre_conversion(ifc_ExprIndex val,
+                                   a_const_char  *field_name);
+  inline void visit_pre_conversion(ifc_FormIndex val,
+                                   a_const_char  *field_name);
+  inline void visit_pre_conversion(ifc_FormSpecIndex val,
+                                   a_const_char      *field_name);
+  inline void visit_pre_conversion(ifc_LineIndex val,
+                                   a_const_char  *field_name);
+  inline void visit_pre_conversion(ifc_MacroIndex val,
+                                   a_const_char   *field_name);
+  inline void visit_pre_conversion(ifc_NameIndex val,
+                                   a_const_char  *field_name);
+  inline void visit_pre_conversion(ifc_ScopeIndex val,
+                                   a_const_char   *field_name);
+  inline void visit_pre_conversion(ifc_SourceLocation val,
+                                   a_const_char       *field_name);
+  inline void visit_pre_conversion(ifc_StmtIndex val,
+                                   a_const_char  *field_name);
+  inline void visit_pre_conversion(ifc_SyntaxIndex val,
+                                   a_const_char    *field_name);
+  inline void visit_pre_conversion(ifc_TypeIndex val,
+                                   a_const_char  *field_name);
+  /* Utility functions */
+  template<typename... Args>
+  inline an_ifc_partition_position convert_to_pos(Args&&... args) const
+    { return an_ifc_partition_position(ifc_mod, args...); }
   inline auto getDerived() -> a_Derived_T *
     { return static_cast<a_Derived_T*>(this); }
   an_ifc_module *ifc_mod;
@@ -15975,11 +15550,7 @@ an_ifc_module::Element_field_visitor<a_Derived_T>::visit_element( \
                                                  concat(an_ifc_, name) *memp) \
 {
 #define IFC_DECL_FIELD(name, type) \
-  { \
-    using a_Field_Type = concat(ifc_, type); \
-    Type_generalizer<a_Field_Type, a_Derived_T> gen(ifc_mod, getDerived()); \
-    gen.apply(memp->name, #name); \
-  }
+  getDerived()->visit_pre_conversion(memp->name, #name);
 #define IFC_DECL_END(name) \
 }  /* def_visit_members<concat(an_ifc_, name)> */
 
@@ -15987,19 +15558,247 @@ an_ifc_module::Element_field_visitor<a_Derived_T>::visit_element( \
 #include "ifc_map.h"
 /*lint +e451*/
 
+template<typename a_Derived_T>
+inline void
+an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
+                                                     ifc_AttrIndex val,
+                                                     a_const_char  *field_name)
+/*
+If val is set to a valid index this function converts the index to a partition
+position, and calls the visitor with the converted index.
+*/
+{
+  if (val != 0) {
+    getDerived()->visit(convert_to_pos(val), field_name);
+  }  /* if */
+}  /* visit_pre_conversion */
+
+
+template<typename a_Derived_T>
+inline void
+an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
+                                                    ifc_ChartIndex val,
+                                                    a_const_char   *field_name)
+/*
+If val is set to a valid index this function converts the index to a partition
+position, and calls the visitor with the converted index.
+*/
+{
+  if (val != 0) {
+    getDerived()->visit(convert_to_pos(val), field_name);
+  }  /* if */
+}  /* visit_pre_conversion */
+
+
+template<typename a_Derived_T>
+inline void
+an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
+                                                     ifc_DeclIndex val,
+                                                     a_const_char  *field_name)
+/*
+If val is set to a valid index this function converts the index to a partition
+position, and calls the visitor with the converted index.
+*/
+{
+  if (val != 0) {
+    getDerived()->visit(convert_to_pos(val), field_name);
+  }  /* if */
+}  /* visit_pre_conversion */
+
+
+template<typename a_Derived_T>
+inline void
+an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
+                                                     ifc_ExprIndex val,
+                                                     a_const_char  *field_name)
+/*
+If val is set to a valid index this function converts the index to a partition
+position, and calls the visitor with the converted index.
+*/
+{
+  if (val != 0) {
+    getDerived()->visit(convert_to_pos(val), field_name);
+  }  /* if */
+}  /* visit_pre_conversion */
+
+
+template<typename a_Derived_T>
+inline void
+an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
+                                                     ifc_FormIndex val,
+                                                     a_const_char  *field_name)
+/*
+If val is set to a valid index this function converts the index to a partition
+position, and calls the visitor with the converted index.
+*/
+{
+  if (val != 0) {
+    getDerived()->visit(convert_to_pos(val), field_name);
+  }  /* if */
+}  /* visit_pre_conversion */
+
+
+template<typename a_Derived_T>
+inline void
+an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
+                                                 ifc_FormSpecIndex val,
+                                                 a_const_char      *field_name)
+/*
+If val is set to a valid index this function converts the index to a partition
+position, and calls the visitor with the converted index.
+*/
+{
+  if (val != 0) {
+    getDerived()->visit(convert_to_pos(val), field_name);
+  }  /* if */
+}  /* visit_pre_conversion */
+
+
+template<typename a_Derived_T>
+inline void
+an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
+                                                     ifc_LineIndex val,
+                                                     a_const_char  *field_name)
+/*
+If val is set to a valid index this function converts the index to a partition
+position, and calls the visitor with the converted index.
+*/
+{
+  if (val != 0) {
+    getDerived()->visit(convert_to_pos(val), field_name);
+  }  /* if */
+}  /* visit_pre_conversion */
+
+
+template<typename a_Derived_T>
+inline void
+an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
+                                                    ifc_MacroIndex val,
+                                                    a_const_char   *field_name)
+/*
+If val is set to a valid index this function converts the index to a partition
+position, and calls the visitor with the converted index.
+*/
+{
+  if (val != 0) {
+    getDerived()->visit(convert_to_pos(val), field_name);
+  }  /* if */
+}  /* visit_pre_conversion */
+
+
+template<typename a_Derived_T>
+inline void
+an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
+                                                     ifc_NameIndex val,
+                                                     a_const_char  *field_name)
+/*
+If val is set to a valid index this function converts the index to a partition
+position, and calls the visitor with the converted index.
+*/
+{
+  if (val != 0) {
+    if (name_tag(val) != ifc_NameSort_Identifier) {
+      getDerived()->visit(convert_to_pos(val), field_name);
+    }  /* if */
+  }  /* if */
+}  /* visit_pre_conversion */
+
+
+template<typename a_Derived_T>
+inline void
+an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
+                                                    ifc_ScopeIndex val,
+                                                    a_const_char   *field_name)
+/*
+If val is set to a valid index this function converts the index to a partition
+position, and calls the visitor with the converted index.
+*/
+{
+  if (val != 0) {
+    getDerived()->visit(convert_to_pos(val), field_name);
+  }  /* if */
+}  /* visit_pre_conversion */
+
+
+template<typename a_Derived_T>
+inline void
+an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
+                                                ifc_SourceLocation val,
+                                                a_const_char       *field_name)
+/*
+If val is set to a source location with a valid line index this function
+converts the index to a partition position, and calls the visitor with the
+converted index.
+*/
+{
+  if (val.line != 0) {
+    getDerived()->visit(convert_to_pos(val.line), field_name);
+  }  /* if */
+}  /* visit_pre_conversion */
+
+
+template<typename a_Derived_T>
+inline void
+an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
+                                                     ifc_StmtIndex val,
+                                                     a_const_char  *field_name)
+/*
+If val is set to a valid index this function converts the index to a partition
+position, and calls the visitor with the converted index.
+*/
+{
+  if (val != 0) {
+    getDerived()->visit(convert_to_pos(val), field_name);
+  }  /* if */
+}  /* visit_pre_conversion */
+
+
+template<typename a_Derived_T>
+inline void
+an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
+                                                   ifc_SyntaxIndex val,
+                                                   a_const_char    *field_name)
+/*
+If val is set to a valid index this function converts the index to a
+partition position, and calls the visitor with the converted index.
+*/
+{
+  if (val != 0) {
+    getDerived()->visit(convert_to_pos(val), field_name);
+  }  /* if */
+}  /* visit_pre_conversion */
+
+
+template<typename a_Derived_T>
+inline void
+an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
+                                                     ifc_TypeIndex val,
+                                                     a_const_char  *field_name)
+/*
+If val is set to a valid index this function converts the index to a
+partition position, and calls the visitor with the converted index.
+*/
+{
+  if (val != 0) {
+    getDerived()->visit(convert_to_pos(val), field_name);
+  }  /* if */
+}  /* visit_pre_conversion */
+
+
 /* An implementation of Element_field_visitor with the visit function
-   "overridden" to a no op for most field types, and to call
-   Element_validation_state_clearer's reset function for types converted to IFC
-   position types by the Type_generalizer. */
+   "overridden" to call Element_validation_state_clearer's reset function on
+   all fields converted to ifc_partition_positions (all other visit functions
+   are no ops). */
 struct an_ifc_module::Element_field_validation_state_clearer
        : public Element_field_visitor<Element_field_validation_state_clearer> {
   inline Element_field_validation_state_clearer(
                           Element_validation_state_clearer *state_clearer_val);
 
+private:
+  friend Element_field_visitor<Element_field_validation_state_clearer>;
   template<typename a_Type>
   inline void visit(a_Type val, const char *field_name)
     {}
-private:
   Element_validation_state_clearer *state_clearer;
 };  /* Element_field_validation_state_clearer */
 
@@ -16136,15 +15935,18 @@ an_ifc_module::Element_validation_state_clearer::def_visit< \
 /*lint +e451*/
 
 
-/* ... */
+/* An implementation of Element_field_visitor with the visit function
+   "overridden" to call Element_validator's validate function on all fields
+   converted to ifc_partition_positions (all other visit functions are no
+   ops). */
 struct an_ifc_module::Element_field_validator
                       : public Element_field_visitor<Element_field_validator> {
   inline Element_field_validator(Element_validator *validator_val);
 private:
+  friend Element_field_visitor<Element_field_validator>;
   template<typename a_Type>
   inline void visit(a_Type val, const char *field_name)
     {}
-  friend Type_generalizer_base<Element_field_validator>;
   Element_validator *validator;
 };  /* Element_field_validator */
 
