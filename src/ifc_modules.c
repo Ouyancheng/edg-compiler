@@ -6827,7 +6827,9 @@ is_operator_name) in *loc are updated accordingly.
        is reset. */
     check_assertion((*result_buffer)->size == 0);
     /* Compose the string. */
-    add_string_to_text_buffer(*result_buffer, prefix);
+    if (prefix != NULL) {
+      add_string_to_text_buffer(*result_buffer, prefix);
+    }  /* if */
     add_string_to_text_buffer(*result_buffer, result);
     add_char_to_text_buffer(*result_buffer, '\0');
     /* Update the result. */
