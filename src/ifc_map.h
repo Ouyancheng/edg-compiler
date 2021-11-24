@@ -1668,6 +1668,8 @@ IFC_DECL_END(SyntaxSort_RequiresClause)
 
 /* SyntaxSort::SimpleRequirement */
 IFC_DECL_START(SyntaxSort_SimpleRequirement)
+  IFC_DECL_FIELD(condition, ExprIndex)
+  IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(SyntaxSort_SimpleRequirement)
 
 /* SyntaxSort::TypeRequirement */

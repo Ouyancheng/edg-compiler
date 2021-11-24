@@ -13706,9 +13706,12 @@ Add the tokens corresponding to the given syntax tree to cache.
       }
       break;
     case ifc_SyntaxSort_SimpleRequirement:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("SyntaxSort::SimpleRequirement",
-                                  &error_position);
+      { an_ifc_SyntaxSort_SimpleRequirement isssr, *isssrp;
+        isssrp = get_SyntaxSort_SimpleRequirement(&isssr);
+        source_position_from_locus(&pos, &isssrp->locus);
+        cache_expr(cache, isssrp->condition);
+        cache_token(cache, tok_semicolon, &pos);
+      }
       break;
     case ifc_SyntaxSort_TypeRequirement:
       { an_ifc_SyntaxSort_TypeRequirement isstr, *isstrp;
