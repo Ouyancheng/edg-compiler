@@ -10899,17 +10899,6 @@ flags on the classes found on an earlier call.
 }  /* gen_typedefs_for_template_classes_in_specialization_arg_list */
 
 
-/*
-Definitions related to prevention of unbounded loops and recursion while
-scanning the types associated with a generated explicit specialization to
-determine whether it would be invalid.  Whenever a class type is
-encountered during the scan, a type scan record is allocated and it and the
-type are linked to each other.  A type whose scan record pointer is
-non-NULL has been, or is currently being, processed and should not be
-examined again.
-*/
-
-
 static a_boolean closure_is_in_scope(a_type_ptr closure)
 /*
 Return TRUE if closure (a lambda closure class) is visible in the current
@@ -10924,7 +10913,7 @@ scope.
     result = scope_is_in_name_context_stack(
                                          closure->source_corresp.parent_scope);
   } else if (innermost_function_scope != NULL &&
-      innermost_function_scope->variant.routine.ptr ==
+             innermost_function_scope->variant.routine.ptr ==
                                    closure->source_corresp.enclosing_routine) {
     /* The lambda belongs to the current function.  Now check to see if it
        is visible in the current scope. */
@@ -10940,6 +10929,16 @@ scope.
   return result;
 }  /* closure_is_in_scope */
 
+
+/*
+Definitions related to prevention of unbounded loops and recursion while
+scanning the types associated with a generated explicit specialization to
+determine whether it would be invalid.  Whenever a class type is
+encountered during the scan, a type scan record is allocated and it and the
+type are linked to each other.  A type whose scan record pointer is
+non-NULL has been, or is currently being, processed and should not be
+examined again.
+*/
 
 static void check_for_unusable_entity(
                                     an_expr_node_ptr                    expr,
