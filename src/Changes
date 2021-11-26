@@ -1,5 +1,21 @@
 Version 6.3
 
+11/26/21 [EDGcpfe/24848]
+Incorrect end position for integral constant in-class field initializers
+
+The front end would provide incorrect end-position information for in-class
+field initializers when that initializer is an integral constant.  For example:
+
+  int foo();
+  class C
+  {
+    int l = 10;    // Previously incorrect end position
+    int m = foo(); // Already correct end position
+  };
+
+This is now fixed.
+
+
 11/22/21 [EDGcpfe/24864]
 Matching a forwarding reference expressed with an alias template
 

@@ -39312,6 +39312,9 @@ handle_identifier:
         const_for_curr_token.from_undefined_preproc_id = FALSE;
       }  /* if */
       make_constant_operand(&const_for_curr_token, &local_result);
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+      curr_construct_end_position = local_result.end_position;
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       if (any_cfront_mode() && const_for_curr_token.is_simple_zero) {
         /* Cfront accepts only a simple 0 as a null pointer constant.
            Keep track of that. */
