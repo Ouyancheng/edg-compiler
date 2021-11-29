@@ -3188,6 +3188,7 @@ struct an_ifc_function_body {
                            associated with. */
 };
 
+
 using an_ifc_function_body_map = Ptr_map<a_routine_ptr, an_ifc_function_body>;
                         /* The type of a map that associates IFC function
                            bodies with IL routine entries. */
@@ -5474,6 +5475,7 @@ struct an_ifc_module::decl_name_visitor
     { return ifc_mod->get_ifc_name(decl); }
 };  /* decl_name_visitor */
 
+
 /* An implementation of Decl_value_visitor with the visit function "overridden"
    to facilitate retrieval of a declaration's locus. */
 struct an_ifc_module::decl_locus_visitor
@@ -5489,6 +5491,7 @@ struct an_ifc_module::decl_locus_visitor
   inline auto visit(an_ifc_DeclSort_T *decl) -> ifc_SourceLocation
     { return ifc_mod->get_ifc_locus(decl); }
 };  /* decl_locus_visitor */
+
 
 /* An implementation of Decl_value_visitor with the visit function "overridden"
    to facilitate retrieval of a declaration's home scope decl. */
@@ -5506,6 +5509,7 @@ struct an_ifc_module::decl_home_scope_decl_visitor
   inline auto visit(an_ifc_DeclSort_T *decl) -> ifc_DeclIndex
     { return ifc_mod->get_ifc_home_scope_decl(decl); }
 };  /* decl_home_scope_decl_visitor */
+
 
 /* An implementation of Decl_value_visitor with the visit function "overridden"
    to facilitate retrieval of a declaration's access. */
@@ -15542,6 +15546,7 @@ protected:
   an_ifc_module *ifc_mod;
 };  /* Element_field_visitor */
 
+
 /* Automatically generate a specialization for visiting the members of
    an IFC module partition element. */
 
@@ -15864,6 +15869,7 @@ private:
                 field_visitor;
 };  /* Element_validation_state_clearer */
 
+
 /* Complete the Element_field_validation_state_clearer now that the
    Element_validation_state_clearer is a complete type. */
 
@@ -15960,6 +15966,7 @@ private:
                     const char                *field_name);
   Element_validator *validator;
 };  /* Element_field_validator */
+
 
 /* An implementation of Element_visitor with the visit function "overridden" to
    perform validation on the element. */
@@ -16547,6 +16554,7 @@ struct an_ifc_partition_kind_range {
   an_ifc_partition_kind start;
   an_ifc_partition_kind end;
 };  /* an_ifc_partition_kind_range */
+
 
 /*
 Declare a deleted function that must be specialized via the below macro to
