@@ -1,5 +1,15 @@
 Version 6.3
 
+11/29/21 [EDGcpfe/24026]
+Coroutines: Missing lifetime information and inverted conditional logic
+
+The front-end's generated body for a coroutine was not associating the lifetime
+object with the final_suspend label (similarly with any generated goto
+statements for that label).  In addition, the logic for checking the initial
+suspend state unfortunately had inverted the conditional check for re-throwing
+exceptions from the construction of the coroutine frame.  This is now fixed.
+
+
 11/29/21 [EDGcpfe/24179]
 Copy-elision on result of user-defined conversion
 

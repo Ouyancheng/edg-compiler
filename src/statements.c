@@ -4933,14 +4933,17 @@ try/catch block.  Return the created block.
   a_statement_ptr stmt;
 
   block->variant.block.extra_info->assoc_scope = scope_stack_top().il_scope;
-  /* Create the if (initial-await-resume-called) throw; statement. */
+  /* Create the if (!initial-await-resume-called) throw; statement. */
   stmt = alloc_statement((a_statement_kind)stmk_if);
   *handler_stmt = stmt;
   handler_stmt = &stmt->next;
   stmt->parent = block;
-  stmt->expr = var_lvalue_expr(cr_desc->init_await_resume);
+  stmt->expr = alloc_expr_node((an_expr_node_kind)enk_operation);
+  set_node_operator(stmt->expr, eok_not, boolean_result_type(),
+                    /*is_lvalue=*/FALSE,
+                    var_rvalue_expr(cr_desc->init_await_resume));
   stmt->variant.if_stmt.then_statement =
-                        alloc_statement((a_statement_kind)stmk_expr);
+                                  alloc_statement((a_statement_kind)stmk_expr);
   stmt = stmt->variant.if_stmt.then_statement;
   stmt->expr = alloc_expr_node((an_expr_node_kind)enk_throw);
   stmt->expr->type = void_type();

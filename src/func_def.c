@@ -1192,11 +1192,12 @@ do nothing and return stmt.
 }  /* add_coroutine_expr_statement */
 
 
-static a_statement_ptr add_coroutine_label(a_statement_ptr stmt,
-                                           a_label_ptr     label)
+static a_statement_ptr add_coroutine_label(a_statement_ptr        stmt,
+                                           a_label_ptr            label,
+                                           an_object_lifetime_ptr lifetime)
 /*
-Add a label statement for label to stmt and return that stmt.  If label is
-NULL, do nothing and return stmt.
+Add a label statement for label to stmt, set its lifetime to the provided
+lifetime, and return that stmt.  If label is NULL, do nothing and return stmt.
 */
 {
   if (label != NULL) {
@@ -1204,6 +1205,7 @@ NULL, do nothing and return stmt.
     stmt->next->parent = stmt->parent;
     stmt = stmt->next;
     stmt->variant.label.ptr = label;
+    stmt->variant.label.lifetime = lifetime;
     label->exec_stmt = stmt;
   }  /* if */
   return stmt;
@@ -1279,7 +1281,7 @@ in the correct place.
     sp->lifetime->child_lifetime = func_lifetime;
   }  /* if */
   /* Finally, add the final_suspend label and call to p.final_suspend() */
-  stmt = add_coroutine_label(stmt, cr_desc->final_suspend_label);
+  stmt = add_coroutine_label(stmt, cr_desc->final_suspend_label, sp->lifetime);
   stmt = add_coroutine_expr_statement(stmt, cr_desc->final_suspend_call);
   cr_desc->body_generated = TRUE;
 }  /* generate_coroutine_body */
