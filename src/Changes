@@ -1,5 +1,30 @@
 Version 6.3
 
+11/29/21 [EDGcpfe/24179]
+Copy-elision on result of user-defined conversion
+
+Consider:
+
+  template<typename T> auto v() noexcept -> T&&;
+  template<typename S, typename D> struct Q {
+    template<typename T> static void f(T) noexcept;
+    decltype(f<D>(v<S>())) *p;
+  };
+  class N {
+    N(N const &) {}  // Private.
+  };
+  struct X {
+    operator N() const;
+  };
+  auto r = Q<X&, N>{};  // Previously an error.  Now okay.
+
+Previously, the substitution of f<D>(v<S>()) (with S = X& and D = N) failed
+because the front end failed to elide the copy constructor in binding the
+parameter of f<D> (of type N, in this case) to the result of the user-defined
+conversion of v<S>() (an lvalue of type X, in this case) to an rvalue of type
+N.  That is now fixed.
+
+
 11/26/21 [EDGcpfe/24848]
 Incorrect end position for integral constant in-class field initializers
 

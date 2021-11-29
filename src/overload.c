@@ -2398,7 +2398,13 @@ is not already accounted for in the conversion.
 
   arg_summary->match_level = aml_user_conversion;
   arg_summary->conversion = *conversion;
-  if (param_is_reference && !conv_accounts_for_ref) {
+  if (!param_is_reference) {
+    if (mandatory_copy_elision && is_immediate_class_type(param_type) &&
+        identical_types_ignoring_qualifiers(
+                     param_type, return_type_of(conversion->routine->type))) {
+      arg_summary->conversion.should_elide_ctor = TRUE;
+    }  /* if */
+  } else if (!conv_accounts_for_ref) {
     adjust_std_conversion_for_reference_binding(&arg_summary->conversion.std);
   }  /* if */
   if (param_is_reference && !conversion->unusable &&
@@ -26763,7 +26769,8 @@ to be acceptable (as far as overload resolution checks that), and
   /* If the parameter is a template class, make sure it is instantiated so
      we know if a copy constructor should be used. */
   complete_type_is_needed(param_type);
-  if (formal_param->passed_via_copy_constructor) {
+  if (formal_param->passed_via_copy_constructor &&
+      !(conversion != NULL && conversion->should_elide_ctor)) {
     /* Argument is initialized by a copy constructor. */
     prep_arg_passed_via_copy_constructor(source_operand, param_type,
                                          conversion, err_code);
