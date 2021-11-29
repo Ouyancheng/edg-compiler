@@ -1153,6 +1153,7 @@ diagnostics.
   } else {
     a_targ_size_t      ecount, icount = 0;
     a_boolean          no_bound = FALSE, saved_pack_expansion_handled = FALSE;
+    a_boolean          saved_error_on_narrowing, saved_warning_on_narrowing;
     a_boolean          braced = is_braced_init_component(icp);
     a_type_ptr         etype;
     ecount = num_vector_elements(vtype);
@@ -1193,6 +1194,14 @@ diagnostics.
         is->init_error = TRUE;
       }  /* if */
     }  /* if */
+    saved_error_on_narrowing = is->error_on_narrowing;
+    saved_warning_on_narrowing = is->warning_on_narrowing;
+    if (gpp_mode && !clang_mode && !scope_stack_top().is_rescan &&
+        !is->no_diagnostics && is->error_on_narrowing) {
+      /* GCC appears to only warn about narrowing in this context. */
+      is->error_on_narrowing = FALSE;
+      is->warning_on_narrowing = FALSE;
+    }  /* if */
     while (icp != NULL && (no_bound || icount < ecount)) {
       a_constant_ptr  elem_con;
       aggr_init_element(&icp, etype, is, diag_pos, &elem_con);
@@ -1206,7 +1215,7 @@ diagnostics.
       } else {
         ++icount;
       }  /* if */
-    }  /* if */
+    }  /* while */
     if (no_bound) {
       /* The number of elements in the initializer isn't really known: Don't
          attempt related checks. */
@@ -1218,6 +1227,8 @@ diagnostics.
         (*init_con)->is_partially_initialized = TRUE;
       }  /* if */
     }  /* if */
+    is->error_on_narrowing = saved_error_on_narrowing;
+    is->warning_on_narrowing = saved_warning_on_narrowing;
     if (braced) {
       /* The caller should move on to the component that follows the braced
          list (if any). */
