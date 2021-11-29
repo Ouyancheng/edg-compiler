@@ -41,8 +41,8 @@ the duration of this file.
 
 static a_text_buffer_ptr
                file_name_buffer;
-                       /* A text buffer used to for processing file names from
-                          the IFC. */
+                       /* A text buffer used for processing file names from the
+                          IFC. */
 
 an_error_severity
 		unhandled_ifc_node_severity = es_remark;
@@ -2741,8 +2741,8 @@ otherwise.
 
 inline uint32_t *alloc_validation_bit_array(uint32_t num_elements)
 /*
-Allocate an array of validation bits.  The number of elements is the
-number of elements to be validated.  Each element will use two bits.
+Allocate an array of bits for validating num_elements elements, with two bits
+for each element.
 */
 {
   /* Over allocate by one integer as this simplifies the logic and is necessary
@@ -5445,10 +5445,9 @@ declaration's index.  Return the associated result.
         result = getDerived()->visit(memp); \
       } \
       break;
-/* Disable generation from the following macros by defining them to nothing. */
-#define IFC_DECL_START(name)
-#define IFC_DECL_FIELD(field, type)
-#define IFC_DECL_END(name)
+#define IFC_DECL_START(name) /* nothing */
+#define IFC_DECL_FIELD(field, type) /* nothing */
+#define IFC_DECL_END(name) /* nothing */
 /*lint -e451 included more than once. */
 #include "ifc_map.h"
 /*lint +e451*/
@@ -6189,7 +6188,7 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
             if (type_tag(itsfp->source) == ifc_TypeSort_Tuple) {
               /* A list of parameters. */
               read_prechecked_partition_element(ifc_type_tuple,
-                                      type_value(itsfp->source));
+                                                type_value(itsfp->source));
               itstp = get_TypeSort_Tuple(&itst);
               for (i = 0; i < itstp->cardinality; i++) {
                 ifc_TypeIndex ti;
@@ -6665,7 +6664,7 @@ a_const_char *an_ifc_module::string_from_name_index(
                                                   a_symbol_locator  *loc)
 /*
 Return the string referenced by name_index.  The returned string is guaranteed
-to be in long lived memory (either via pointing to IL, a constant, the memory
+to be in long-lived memory (either via pointing to IL, a constant, the memory
 mapping if enabled, or in the worst case an allocated pointer).  If non-NULL,
 fields (like is_operator_name) in *loc are updated accordingly.
 */
@@ -6685,7 +6684,7 @@ a_const_char *an_ifc_module::string_from_name_index(
                                               a_symbol_locator  *loc,
                                               a_text_buffer_ptr *result_buffer)
 /*
-Return the string referenced by name_index.  The result buffer should point to
+Return the string referenced by name_index.  The result_buffer should point to
 a pointer to a text buffer.  If this pointer is NULL and a buffer is required,
 the pointer will be set to the address of a new text buffer.  If this pointer
 is non-null and a buffer is required, the referenced text buffer is required to
@@ -6769,8 +6768,8 @@ is_operator_name) in *loc are updated accordingly.
             /* FIXME: set this? */
             loc->is_udl_operator_name = TRUE;
             result = loc->symbol_header->identifier;
-            /* Never require a buffer, one was already created one for the
-               locator memory, and there is no prefix. */
+            /* Never require a buffer, one was already created for the locator
+               memory, and there is no prefix. */
             requires_buffer = FALSE;
           } else {
             /* Microsoft doesn't use a space after the "operator" string. */
@@ -7307,7 +7306,7 @@ a_boolean an_ifc_module::get_textual_name(ifc_NameIndex    name_index,
                                           a_const_char     **name_result)
 /*
 Store the textual name representation for the given name index and location in
-the name result.  Returns TRUE if this operation completed successfully, FALSE
+the name result.  Return TRUE if this operation completed successfully, FALSE
 otherwise.
 */
 {
@@ -7329,7 +7328,7 @@ a_boolean an_ifc_module::get_textual_name(ifc_TextOffset   text_offset,
                                           a_const_char     **name_result)
 /*
 Store the textual name representation for the given textual offset and location
-in the name result.  Returns TRUE if this operation completed successfully,
+in the name result.  Return TRUE if this operation completed successfully,
 FALSE otherwise.
 */
 {
@@ -7343,34 +7342,31 @@ a_boolean an_ifc_module::init_locator_from_name(an_Index_Type      index,
                                                 ifc_SourceLocation *locus,
                                                 a_symbol_locator   *loc)
 /*
-Initialize the locator specified by loc.  The name of the entity is either
-given by name_index or text_offset, whichever is non-zero.  The source position
-is given by locus.  Return TRUE if processing succeeded, otherwise return
-FALSE.
+Initialize the locator specified by loc.  The name of the entity is the textual
+name associated with the given index.  The source position is given by locus.
+Return TRUE if the given arguments were valid (resulting in an update to the
+locator), otherwise return FALSE.
+
 FIXME: Not sure if we need source location here.
 */
 {
-  a_boolean         result = TRUE;
+  a_boolean         result = FALSE;
   a_source_position pos;
   a_const_char      *name;
 
-  if (!source_position_from_locus(&pos, locus)) {
-    goto invalid;
+  if (source_position_from_locus(&pos, locus) &&
+      get_textual_name(index, loc, &name)) {
+    /* The position (pos) and name were successfully retrieved. */
+    result = TRUE;
+    /* Update the locator. */
+    clear_locator(loc, &pos);
+    if (!loc->is_operator_name &&
+        !loc->is_conversion_name &&
+        !loc->is_udl_operator_name) {
+      /* Find the symbol (if not a special case). */
+      (void)find_symbol(name, (sizeof_t)strlen(name), loc);
+    }  /* if */
   }  /* if */
-  clear_locator(loc, &pos);
-  if (!get_textual_name(index, loc, &name)) {
-    goto invalid;
-  }
-  if (!loc->is_operator_name &&
-      !loc->is_conversion_name &&
-      !loc->is_udl_operator_name) {
-    /* Find the symbol (if not a special case). */
-    (void)find_symbol(name, (sizeof_t)strlen(name), loc);
-  }  /* if */
-  goto done;
-invalid:
-  result = FALSE;
-done:
   return result;
 }  /* init_locator_from_name */
 
@@ -7492,7 +7488,7 @@ No casting is performed.
     case ifc_LiteralSort_Integer:
       /* An integer larger than 30 bits. */
       read_prechecked_partition_element(ifc_const_i64,
-                              literal_index(ieslp->value));
+                                        literal_index(ieslp->value));
       GET_64bit_int(raw_val, /*from_header=*/FALSE);
       if (!conv_bytes_to_integer_value(value, raw_val,
                                        sizeof(raw_val))) {
@@ -7579,7 +7575,7 @@ FIXME: what other expressions can we get here?
               cp = alloc_constant(ck_float);
               cp->type = float_type(fk_double);
               read_prechecked_partition_element(ifc_const_f64,
-                                      literal_index(ieslp->value));
+                                                literal_index(ieslp->value));
               GET_64bit_int(value, /*from_header=*/FALSE);
               /* FIXME: Find a better way to convert the fp value. */
               sprintf(buf, "%f", value);
@@ -9977,7 +9973,7 @@ this is needed.
         for (i = 0; i < itstp->cardinality; ++i) {
           ifc_TypeIndex ti;
           read_prechecked_partition_element(ifc_heap_type,
-                                  itstp->start + i);
+                                            itstp->start + i);
           GET_TypeIndex(ti, /*from_header=*/FALSE);
           cache_type(cache, ti, locus);
           if (i+1 < itstp->cardinality) {
@@ -14529,7 +14525,7 @@ the position's partition kind.
 {
   switch (pos.partition) {
     case ifc_invalid_partition:
-      check_assertion(false);
+      unexpected_condition_str("ifc_invalid_partition visited");
     /* DeclIndex::tag partitions together. */
     case ifc_decl_vendor_extension:
       getDerived()->template visit<an_ifc_DeclSort_VendorExtension>(pos);
@@ -15421,16 +15417,18 @@ the position's partition kind.
     case ifc_heap_stmt:
     case ifc_heap_syn:
     case ifc_heap_type:
-      /* FIXME: Actually validate these. */
+      /* FIXME: Actually visit these. */
       break;
-    /* No grouping, but validated. */
+    /* No grouping, but visited. */
     case ifc_src_line:
       getDerived()->template visit<an_ifc_Source_Line>(pos);
       break;
-    /* EDG utility partitions these should never be seen here. */
+    /* EDG utility partitions.  These should never be seen here.  Diagnose
+       these as unknown partitions if we reach this point at runtime. */
     case ifc_none:
     case ifc_last:
-    /* Currently unvalidated. */
+      unexpected_condition_str("unknown partition visited");
+    /* Currently unvisited. */
     case ifc_cmd_line:
     case ifc_const_f64:
     case ifc_const_i64:
@@ -15490,9 +15488,8 @@ struct an_ifc_module::Element_field_visitor {
 
 #define IFC_DECL_START(name) \
   inline void visit_element(concat(an_ifc_, name) *memp);
-/* Disable generation from the following macros by defining them to nothing. */
-#define IFC_DECL_FIELD(name, type)
-#define IFC_DECL_END(name)
+#define IFC_DECL_FIELD(name, type) /* nothing */
+#define IFC_DECL_END(name) /* nothing */
 
 /*lint -e451 included more than once. */
 #include "ifc_map.h"
@@ -15506,7 +15503,7 @@ protected:
   template<typename a_Type>
   inline void visit_pre_conversion(a_Type val, a_const_char *field_name)
     { getDerived()->visit(val, field_name); }
-  /* Specialized conversion visit functions which reduce their argument to an
+  /* Specialized conversion visit functions that reduce their argument to an
      element position. */
   inline void visit_pre_conversion(ifc_AttrIndex val,
                                    a_const_char  *field_name);
@@ -15569,8 +15566,8 @@ an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
                                                      ifc_AttrIndex val,
                                                      a_const_char  *field_name)
 /*
-If val is set to a valid index this function converts the index to a partition
-position, and calls the visitor with the converted index.
+If val is set to a valid index, this function converts the index to a partition
+position and calls the visitor with the converted index.
 */
 {
   if (val != 0) {
@@ -15585,8 +15582,8 @@ an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
                                                     ifc_ChartIndex val,
                                                     a_const_char   *field_name)
 /*
-If val is set to a valid index this function converts the index to a partition
-position, and calls the visitor with the converted index.
+If val is set to a valid index, this function converts the index to a partition
+position and calls the visitor with the converted index.
 */
 {
   if (val != 0) {
@@ -15601,8 +15598,8 @@ an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
                                                      ifc_DeclIndex val,
                                                      a_const_char  *field_name)
 /*
-If val is set to a valid index this function converts the index to a partition
-position, and calls the visitor with the converted index.
+If val is set to a valid index, this function converts the index to a partition
+position and calls the visitor with the converted index.
 */
 {
   if (val != 0) {
@@ -15617,8 +15614,8 @@ an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
                                                      ifc_ExprIndex val,
                                                      a_const_char  *field_name)
 /*
-If val is set to a valid index this function converts the index to a partition
-position, and calls the visitor with the converted index.
+If val is set to a valid index, this function converts the index to a partition
+position and calls the visitor with the converted index.
 */
 {
   if (val != 0) {
@@ -15633,8 +15630,8 @@ an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
                                                      ifc_FormIndex val,
                                                      a_const_char  *field_name)
 /*
-If val is set to a valid index this function converts the index to a partition
-position, and calls the visitor with the converted index.
+If val is set to a valid index, this function converts the index to a partition
+position and calls the visitor with the converted index.
 */
 {
   if (val != 0) {
@@ -15649,8 +15646,8 @@ an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
                                                  ifc_FormSpecIndex val,
                                                  a_const_char      *field_name)
 /*
-If val is set to a valid index this function converts the index to a partition
-position, and calls the visitor with the converted index.
+If val is set to a valid index, this function converts the index to a partition
+position and calls the visitor with the converted index.
 */
 {
   if (val != 0) {
@@ -15665,8 +15662,8 @@ an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
                                                      ifc_LineIndex val,
                                                      a_const_char  *field_name)
 /*
-If val is set to a valid index this function converts the index to a partition
-position, and calls the visitor with the converted index.
+If val is set to a valid index, this function converts the index to a partition
+position and calls the visitor with the converted index.
 */
 {
   if (val != 0) {
@@ -15681,8 +15678,8 @@ an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
                                                     ifc_MacroIndex val,
                                                     a_const_char   *field_name)
 /*
-If val is set to a valid index this function converts the index to a partition
-position, and calls the visitor with the converted index.
+If val is set to a valid index, this function converts the index to a partition
+position and calls the visitor with the converted index.
 */
 {
   if (val != 0) {
@@ -15697,8 +15694,8 @@ an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
                                                      ifc_NameIndex val,
                                                      a_const_char  *field_name)
 /*
-If val is set to a valid index this function converts the index to a partition
-position, and calls the visitor with the converted index.
+If val is set to a valid index, this function converts the index to a partition
+position and calls the visitor with the converted index.
 */
 {
   if (val != 0) {
@@ -15715,8 +15712,8 @@ an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
                                                     ifc_ScopeIndex val,
                                                     a_const_char   *field_name)
 /*
-If val is set to a valid index this function converts the index to a partition
-position, and calls the visitor with the converted index.
+If val is set to a valid index, this function converts the index to a partition
+position and calls the visitor with the converted index.
 */
 {
   if (val != 0) {
@@ -15731,8 +15728,8 @@ an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
                                                 ifc_SourceLocation val,
                                                 a_const_char       *field_name)
 /*
-If val is set to a source location with a valid line index this function
-converts the index to a partition position, and calls the visitor with the
+If val is set to a source location with a valid line index, this function
+converts the index to a partition position and calls the visitor with the
 converted index.
 */
 {
@@ -15748,8 +15745,8 @@ an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
                                                      ifc_StmtIndex val,
                                                      a_const_char  *field_name)
 /*
-If val is set to a valid index this function converts the index to a partition
-position, and calls the visitor with the converted index.
+If val is set to a valid index, this function converts the index to a partition
+position and calls the visitor with the converted index.
 */
 {
   if (val != 0) {
@@ -15764,8 +15761,8 @@ an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
                                                    ifc_SyntaxIndex val,
                                                    a_const_char    *field_name)
 /*
-If val is set to a valid index this function converts the index to a
-partition position, and calls the visitor with the converted index.
+If val is set to a valid index, this function converts the index to a partition
+position and calls the visitor with the converted index.
 */
 {
   if (val != 0) {
@@ -15780,8 +15777,8 @@ an_ifc_module::Element_field_visitor<a_Derived_T>::visit_pre_conversion(
                                                      ifc_TypeIndex val,
                                                      a_const_char  *field_name)
 /*
-If val is set to a valid index this function converts the index to a
-partition position, and calls the visitor with the converted index.
+If val is set to a valid index, this function converts the index to a partition
+position and calls the visitor with the converted index.
 */
 {
   if (val != 0) {
@@ -15865,7 +15862,7 @@ private:
   an_ifc_module *ifc_mod;
   Element_field_validation_state_clearer
                 field_visitor;
-};  /* Partition_element_validity_resetor */
+};  /* Element_validation_state_clearer */
 
 /* Complete the Element_field_validation_state_clearer now that the
    Element_validation_state_clearer is a complete type. */
@@ -15878,6 +15875,10 @@ an_ifc_module::Element_field_validation_state_clearer::
                  Element_validation_state_clearer *state_clearer_val)
   : Element_field_visitor(state_clearer_val->ifc_mod),
     state_clearer(state_clearer_val)
+/*
+Construct an Element_field_validation_state_clearer that delegates to the given
+state clearer for validation state resets of referenced partition elements.
+*/
 {
 }  /* Element_field_validation_state_clearer */
 
@@ -15887,7 +15888,7 @@ an_ifc_module::Element_field_validation_state_clearer::visit(
                                          an_ifc_partition_position val,
                                          a_const_char              *field_name)
 /*
-Clear the validation status for the given partition element position by
+Reset the validation state for the given partition element position by
 recursing.
 */
 {
@@ -15900,7 +15901,7 @@ an_ifc_module::Element_validation_state_clearer::reset(
                                          an_ifc_partition_position pos,
                                          a_const_char              *field_name)
 /*
-Clear the validation status for the given partition element position by
+Reset the validation state for the given partition element position by
 recursing.
 */
 {
@@ -15930,8 +15931,7 @@ an_ifc_module::Element_validation_state_clearer::def_visit< \
   ifc_mod->read_unchecked_partition_element(pos); \
   memp = ifc_mod->get<concat(an_ifc_, name)>(&mem); \
   field_visitor.visit_element(memp);
-/* Disable generation from the following macros by defining them to nothing. */
-#define IFC_DECL_FIELD(field, type)
+#define IFC_DECL_FIELD(field, type) /* nothing */
 /* Generate the end of the function. */
 #define IFC_DECL_END(name) \
 }  /* def_visit<concat(an_ifc_, name)> */
@@ -16006,17 +16006,17 @@ private:
 };  /* Decl_value_visitor */
 
 
-/* A structure that's responsible making the stack stored state related to the
-   current "validate" call and all parents accessible.  This allows the call
-   stack to be traversed (to retrieve information about the requester) without
-   storing this information in a side stack/duplicating the objects of interest
-   in side state.
+/* A structure that's responsible for making the stack stored state related to
+   the current "validate" call and all parents accessible.  This allows the
+   call stack to be traversed (to retrieve information about the requester)
+   without storing or duplicating this information in a dynamically allocated
+   stack.
 
-   A pointer to the current position, the field name referencing said position
+   A pointer to the current position, the field name referencing said position,
    and the position validity are made accessible via this system.
 
    The tail pointer is used to enter this information and points to the top of
-   the validation stack.  It's maintained by storing the tail pointers current
+   the validation stack.  It's maintained by storing the tail pointer's current
    value (prev), then updating the tail pointer to point to the current
    validation stage.  When destroyed the tail pointer is restored to its
    previous state. */
@@ -16045,6 +16045,10 @@ inline
 an_ifc_module::Element_field_validator::Element_field_validator(
                                               Element_validator *validator_val)
   : Element_field_visitor(validator_val->ifc_mod), validator(validator_val)
+/*
+Construct an Element_field_validator that delegates to the given validator for
+validation of referenced partition elements.
+*/
 {
 }  /* Element_field_validator */
 
@@ -16064,24 +16068,24 @@ inline void an_ifc_module::Element_validator::validate(
                                          an_ifc_partition_position pos,
                                          const char                *field_name)
 /*
-Validate the given position.  This functions always checks to see if the
+Validate the given position.  This function always checks to see if the
 specified position is a valid position.  If the position is determined to be a
 valid position, it will then perform additional checks depending on context.
 
 When this is a recursive validation it will validate the element's fields.
 This follows ifc_IndexType derived (and similar) fields of the element at the
 given position recursively until it's covered all index types.  Index types
-which provide access to a set of elements (e.g. ScopeIndex) are validated.
+that provide access to a set of elements (e.g. ScopeIndex) are validated.
 However, the members of their set are not validated.  Results of this
 validation are cached with the module to prevent excessive tree walking across
 this and other Element_validator uses.
 
 When this is a top level (the first position checked) non-recursive validation
 it will validate the element's fields. This follows ifc_IndexType derived (and
-similar) fields of the element at the given position up to one level down.
-Thus, checking that the given position is a valid position, and that the
-element contains fields that pass initial validation.  Results of this
-validation are not cached.
+similar) fields of the element at the given position up to one level down.  It
+thus, checks that the given position is a valid position, and that the element
+contains fields that pass initial validation.  Results of this validation are
+not cached.
 
 When this is not a recursive validation or a top level non-recursive
 validation, only the initial position validity is validated.  This case only
@@ -16151,8 +16155,8 @@ mark_invalid function.
           ifc_mod->mark_validated(pos);
           ifc_mod->mark_invalid(pos);
           /* Traverse again without diagnostics.  Any errors found have already
-             been reported, this is just about fixing validation status if
-             there was a self reference to this partition element -- which was
+             been reported, this is just about fixing validation state if there
+             was a self reference to this partition element -- which was
              originally assumed valid and is now invalid. */
           emit_diagnostics = FALSE;
           visit_position(pos);
@@ -16230,7 +16234,7 @@ produce a more detailed contextual diagnostic.
 inline void an_ifc_module::Element_validator::invalid_partition(
                                                  an_ifc_partition_position pos)
 /*
-Handle failure and if enabled, diagnostics for an encountered invalid
+Handle failure and, if enabled, diagnostics for an encountered invalid
 partition.
 */
 {
@@ -16251,7 +16255,7 @@ partition.
 inline void an_ifc_module::Element_validator::undefined_partition(
                                                  an_ifc_partition_position pos)
 /*
-Handle failure and if enabled, diagnostics for an encountered undefined
+Handle failure and, if enabled, diagnostics for an encountered undefined
 partition.
 */
 {
@@ -16276,7 +16280,7 @@ partition.
   }
   /* Assert that we found the requested partition. */
   /* FIXME: Handle cases where we didn't find the requested partition. */
-  check_assertion(false);
+  unexpected_condition_str("undefined_partition: partition not found");
 found:
   ;
 }  /* undefined_partition */
@@ -16285,7 +16289,7 @@ found:
 inline void an_ifc_module::Element_validator::invalid_position(
                                                  an_ifc_partition_position pos)
 /*
-Handle failure and if enabled, diagnostics for an encountered invalid
+Handle failure and, if enabled, diagnostics for an encountered invalid
 partition position.
 */
 {
@@ -16333,8 +16337,7 @@ inline void an_ifc_module::Element_validator::def_visit< \
   ifc_mod->read_unchecked_partition_element(pos); \
   memp = ifc_mod->get<concat(an_ifc_, name)>(&mem); \
   field_visitor.visit_element(memp);
-/* Disable generation from the following macros by defining them to nothing. */
-#define IFC_DECL_FIELD(field, type)
+#define IFC_DECL_FIELD(field, type) /* nothing */
 /* Generate the end of the function. */
 #define IFC_DECL_END(name) \
 }  /* def_visit<concat(an_ifc_, name)> */
@@ -16400,8 +16403,8 @@ non-recursive and recursive validation.
 template<typename... Args>
 inline a_boolean an_ifc_module::validate_partition_element(Args&&... args)
 /*
-Perform recursive validation checks on the constructed partition position.
-Returns TRUE if determined to be valid, FALSE otherwise.
+Perform recursive validation checks on the partition position constructed from
+args.  Returns TRUE if determined to be valid, FALSE otherwise.
 
 See Element_validator's position validation function for more details about
 non-recursive and recursive validation.
@@ -16450,9 +16453,9 @@ non-recursive and recursive validation.
 template<typename... Args>
 inline a_boolean an_ifc_module::read_partition_element_shallow(Args&&... args)
 /*
-Perform non-recursive validation checks on the constructed partition position.
-If validation success initialize the byte buffer for the given partition.
-Return TRUE if determined to be valid, FALSE otherwise.
+Perform non-recursive validation checks on the partition position constructed
+from args.  If validation succeeds initialize the byte buffer for the given
+partition.  Return TRUE if determined to be valid, FALSE otherwise.
 
 See Element_validator's position validation function for more details about
 non-recursive and recursive validation.
@@ -16488,9 +16491,9 @@ non-recursive and recursive validation.
 template<typename... Args>
 inline a_boolean an_ifc_module::read_partition_element(Args&&... args)
 /*
-Perform recursive validation checks on the constructed partition position.  If
-validation success initialize the byte buffer for the given partition.  Return
-TRUE if determined to be valid, FALSE otherwise.
+Perform recursive validation checks on the partition position constructed from
+args.  If validation succeeds initialize the byte buffer for the given
+partition.  Return TRUE if determined to be valid, FALSE otherwise.
 
 See Element_validator's position validation function for more details about
 non-recursive and recursive validation.
@@ -16524,10 +16527,10 @@ without further validation.
 template<typename... Args>
 inline void an_ifc_module::read_prechecked_partition_element(Args&&... args)
 /*
-With the knowledge that the constructed position has been previously validated
-by a call to validate_partition_element (or indirectly via a call to
-read_partition_element), initialize the byte buffer for the given partition
-without further validation.
+With the knowledge that the partition position position constructed from args
+has been previously validated by a call to validate_partition_element (or
+indirectly via a call to read_partition_element), initialize the byte buffer
+for the given partition without further validation.
 */
 {
   an_ifc_partition_position pos(this, args...);
@@ -16594,8 +16597,8 @@ inline an_ifc_partition_kind get_partition_kind(
                                                an_ifc_Partition_Kind sort_kind)
 /*
 Return the corresponding an_ifc_partition_kind for a given ifc_Sort_type value
-sort_kind or the ifc_invalid_partition if the sort kind could not be mapped to
-a valid partition.
+sort_kind or ifc_invalid_partition if the sort kind could not be mapped to a
+valid partition.
 */
 {
   an_ifc_partition_kind_range kind_range =
@@ -16614,6 +16617,11 @@ inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                       const an_ifc_module *mod,
                                                       a_module_entity_ptr mep)
   : an_ifc_partition_position(mep->variant.ifc_partition, mep->file_offset)
+/*
+Overload wrapper for "an_ifc_partition_position" that converts the given module
+entity pointer into an ifc partition position's partition kind and file offset
+in the given module.
+*/
 {
 } /* an_ifc_partition_position */
 
@@ -16626,8 +16634,9 @@ inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                               mod->partitions[partition_kind].offset + (index *
                                    mod->partitions[partition_kind].entry_size))
 /*
-Overload wrapper for "an_ifc_partition_position" that converts given partition
-kind and index into a ifc partition position's partition kind and file offset.
+Overload wrapper for "an_ifc_partition_position" that converts the given
+partition kind and index into an ifc partition position's partition kind and
+file offset in the given module.
 */
 {
 } /* an_ifc_partition_position */
@@ -16639,8 +16648,9 @@ inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                  ifc_Index_type      index)
   : an_ifc_partition_position(mod, get_partition_kind(attr_kind), index)
 /*
-Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_AttrSort" kind into an "an_ifc_partition_kind" kind for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_AttrSort" and index into an ifc partition position's partition kind and
+file offset in the given module.
 */
 {
 } /* an_ifc_partition_position */
@@ -16651,8 +16661,9 @@ inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                       ifc_AttrIndex       attr)
   : an_ifc_partition_position(mod, attr_tag(attr), attr_value(attr))
 /*
-Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_AttrIndex" into its tag and index components for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_AttrIndex" into an ifc partition position's partition kind and file offset
+in the given module.
 */
 {
 } /* an_ifc_partition_position */
@@ -16664,8 +16675,9 @@ inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                 ifc_Index_type      index)
   : an_ifc_partition_position(mod, get_partition_kind(chart_kind), index)
 /*
-Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_ChartSort" kind into an "an_ifc_partition_kind" kind for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_ChartSort" and index into an ifc partition position's partition kind and
+file offset in the given module.
 */
 {
 } /* an_ifc_partition_position */
@@ -16676,8 +16688,9 @@ inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                      ifc_ChartIndex      chart)
   : an_ifc_partition_position(mod, chart_tag(chart), chart_value(chart))
 /*
-Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_ChartIndex" into its tag and index components for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_ChartIndex" into an ifc partition position's partition kind and file
+offset in the given module.
 */
 {
 } /* an_ifc_partition_position */
@@ -16689,8 +16702,9 @@ inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                  ifc_Index_type      index)
   : an_ifc_partition_position(mod, get_partition_kind(decl_kind), index)
 /*
-Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_DeclSort" kind into an "an_ifc_partition_kind" kind for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_DeclSort" and index into an ifc partition position's partition kind and
+file offset in the given module.
 */
 {
 } /* an_ifc_partition_position */
@@ -16701,8 +16715,9 @@ inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                       ifc_DeclIndex       decl)
   : an_ifc_partition_position(mod, decl_tag(decl), decl_value(decl))
 /*
-Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_DeclIndex" into its tag and index components for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_DeclIndex" into an ifc partition position's partition kind and file offset
+in the given module.
 */
 {
 } /* an_ifc_partition_position */
@@ -16714,8 +16729,9 @@ inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                  ifc_Index_type      index)
   : an_ifc_partition_position(mod, get_partition_kind(expr_kind), index)
 /*
-Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_ExprSort" kind into an "an_ifc_partition_kind" kind for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_ExprSort" and index into an ifc partition position's partition kind and
+file offset in the given module.
 */
 {
 } /* an_ifc_partition_position */
@@ -16726,8 +16742,9 @@ inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                       ifc_ExprIndex       expr)
   : an_ifc_partition_position(mod, expr_tag(expr), expr_value(expr))
 /*
-Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_ExprIndex" into its tag and index components for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_ExprIndex" into an ifc partition position's partition kind and file offset
+in the given module.
 */
 {
 } /* an_ifc_partition_position */
@@ -16741,8 +16758,9 @@ inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                                     form_kind),
                               index)
 /*
-Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_FormSort" kind into an "an_ifc_partition_kind" kind for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_FormSort" and index into an ifc partition position's partition kind and
+file offset in the given module.
 */
 {
 } /* an_ifc_partition_position */
@@ -16753,8 +16771,9 @@ inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                       ifc_FormIndex       form)
   : an_ifc_partition_position(mod, form_tag(form), form_index(form))
 /*
-Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_FormIndex" into its tag and index components for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_FormIndex" into an ifc partition position's partition kind and file offset
+in the given module.
 */
 {
 } /* an_ifc_partition_position */
@@ -16765,8 +16784,9 @@ inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                  ifc_FormSpecIndex   form_spec)
   : an_ifc_partition_position(mod, ifc_form_spec, form_spec)
 /*
-Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_FormSpecIndex" into its tag and index components for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_FormSpecIndex" into an ifc partition position's partition kind and file
+offset in the given module.
 */
 {
 } /* an_ifc_partition_position */
@@ -16777,8 +16797,9 @@ inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                  ifc_LineIndex       line)
   : an_ifc_partition_position(mod, ifc_src_line, line)
 /*
-Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_LineIndex" into its tag and index components for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_LineIndex" into an ifc partition position's partition kind and file offset
+in the given module.
 */
 {
 } /* an_ifc_partition_position */
@@ -16792,8 +16813,9 @@ inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                                    macro_kind),
                               index)
 /*
-Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_MacroSort" kind into an "an_ifc_partition_kind" kind for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_MacroSort" and index into an ifc partition position's partition kind and
+file offset in the given module.
 */
 {
 } /* an_ifc_partition_position */
@@ -16804,8 +16826,9 @@ inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                      ifc_MacroIndex      macro)
   : an_ifc_partition_position(mod, macro_tag(macro), macro_index(macro))
 /*
-Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_MacroIndex" into its tag and index components for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_MacroIndex" into an ifc partition position's partition kind and file
+offset in the given module.
 */
 {
 } /* an_ifc_partition_position */
@@ -16817,8 +16840,9 @@ inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                  ifc_Index_type      index)
   : an_ifc_partition_position(mod, get_partition_kind(name_kind), index)
 /*
-Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_NameSort" kind into an "an_ifc_partition_kind" kind for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_NameSort" and index into an ifc partition position's partition kind and
+file offset in the given module.
 */
 {
   /* FIXME: Handle this check some other way.  This NameSort case is very
@@ -16833,8 +16857,9 @@ inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                       ifc_NameIndex       name)
   : an_ifc_partition_position(mod, name_tag(name), name_value(name))
 /*
-Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_NameIndex" into its tag and index components for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_NameIndex" into an ifc partition position's partition kind and file offset
+in the given module.
 */
 {
 } /* an_ifc_partition_position */
@@ -16845,8 +16870,9 @@ inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                      ifc_ScopeIndex      scope)
   : an_ifc_partition_position(mod, ifc_scope_desc, scope - 1)
 /*
-Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_ScopeIndex" into its tag and index components for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_ScopeIndex" into an ifc partition position's partition kind and file
+offset in the given module.
 */
 {
 } /* an_ifc_partition_position */
@@ -16858,8 +16884,9 @@ inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                  ifc_Index_type      index)
   : an_ifc_partition_position(mod, get_partition_kind(stmt_kind), index)
 /*
-Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_StmtSort" kind into an "an_ifc_partition_kind" kind for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_StmtSort" and index into an ifc partition position's partition kind and
+file offset in the given module.
 */
 {
 } /* an_ifc_partition_position */
@@ -16870,8 +16897,9 @@ inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                       ifc_StmtIndex       stmt)
   : an_ifc_partition_position(mod, stmt_tag(stmt), stmt_value(stmt))
 /*
-Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_StmtIndex" into its tag and index components for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_StmtIndex" into an ifc partition position's partition kind and file offset
+in the given module.
 */
 {
 } /* an_ifc_partition_position */
@@ -16885,8 +16913,9 @@ inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                                   syntax_kind),
                               index)
 /*
-Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_SyntaxSort" kind into an "an_ifc_partition_kind" kind for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_SyntaxSort" and index into an ifc partition position's partition kind and
+file offset in the given module.
 */
 {
 } /* an_ifc_partition_position */
@@ -16897,8 +16926,9 @@ inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                     ifc_SyntaxIndex     syntax)
   : an_ifc_partition_position(mod, syntax_tag(syntax), syntax_value(syntax))
 /*
-Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_SyntaxIndex" into its tag and index components for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_SyntaxIndex" into an ifc partition position's partition kind and file
+offset in the given module.
 */
 {
 } /* an_ifc_partition_position */
@@ -16910,8 +16940,9 @@ inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                  ifc_Index_type      index)
   : an_ifc_partition_position(mod, get_partition_kind(type_kind), index)
 /*
-Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_TypeSort" kind into an "an_ifc_partition_kind" kind for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_TypeSort" and index into an ifc partition position's partition kind and
+file offset in the given module.
 */
 {
 } /* an_ifc_partition_position */
@@ -16922,8 +16953,9 @@ inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
                                                       ifc_TypeIndex       type)
   : an_ifc_partition_position(mod, type_tag(type), type_value(type))
 /*
-Overload wrapper for "an_ifc_partition_position" that converts an
-"ifc_TypeIndex" into its tag and index components for convenience.
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_TypeIndex" into an ifc partition position's partition kind and file offset
+in the given module.
 */
 {
 } /* an_ifc_partition_position */
@@ -16973,7 +17005,7 @@ Return TRUE if this the element at this position has already been validated.
 
        0000 0000 0000 0000 - 0000 0000 0000 0100
 
-     This then represents true state for this position's validated bit.
+     This then represents the true state for this position's validated bit.
 
      Then a bit-and operation is used, checking if said validated bit was
      set. */
@@ -17001,7 +17033,7 @@ Mark the element at the given position as having been validated.
 
        0000 0000 0000 0000 - 0000 0000 0000 0100
 
-     This then represents true state for this position's validated bit.
+     This then represents the true state for this position's validated bit.
 
      Then a bit-or assignment operation is used, setting said validated bit
      while leaving the others untouched. */
@@ -17034,7 +17066,7 @@ validated.  This is only a valid operation if has_been_validated returns TRUE.
 
          0000 0000 0000 0100 - 0000 0000 0000 0000
 
-       This then represents true state for this position's invalid bit.
+       This then represents the true state for this position's invalid bit.
 
        Then a bit-and operation is used, checking if said invalid bit was
        set. */
@@ -17066,7 +17098,7 @@ a valid operation if has_been_validated returns TRUE.
 
          0000 0000 0000 0100 - 0000 0000 0000 0000
 
-       This then represents true state for this position's invalid bit.
+       This then represents the true state for this position's invalid bit.
 
        Then a bit-or assignment operation is used, setting said invalid bit
        while leaving the others untouched. */
@@ -17083,9 +17115,9 @@ a valid operation if has_been_validated returns TRUE.
 inline void an_ifc_module::reset_validation_state(
                                                  an_ifc_partition_position pos)
 /*
-Reset the element at the given position's validation state bits.  This results
-in the element's validation statuses (i.e., validated and invalid) being reset
-to their original pre-validation -- FALSE -- states.
+Reset the validation state bits for the element at the given position.  This
+results in the element's validation state bits (i.e., validated and invalid)
+being reset to their original pre-validation -- FALSE -- states.
 */
 {
   /* Setup a bit inverted bit mask that can be used to reset the validation

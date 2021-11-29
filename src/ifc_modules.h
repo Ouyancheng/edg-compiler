@@ -2548,11 +2548,12 @@ struct an_ifc_partition {
                            invalid (1 is TRUE, 0 is FALSE).
 
                            This approach is taken to optimize both for space
-                           (as only two bits are used for) and memory locality
-                           (as the validated and invalid flags are always
-                           contained within the same 32-bit integer).  Invalid
-                           is represented as the TRUE state to reduce the
-                           number of writes in the "happy path." */
+                           (as only two bits are used for each element) and
+                           memory locality (as the validated and invalid flags
+                           are always contained within the same 32-bit
+                           integer).  Invalid is represented as the TRUE state
+                           to reduce the number of writes in the "happy
+                           path." */
 };  /* an_ifc_partition */
 
 

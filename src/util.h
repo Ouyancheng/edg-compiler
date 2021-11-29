@@ -71,7 +71,7 @@ of all represented priorities.
 
 Overload_priority can be used to guide overload resolution when multiple
 candidates have otherwise equivalent overload resolution priority.  This is
-useful particularly when SFINE is being used to enable or disable one or more
+useful particularly when SFINAE is being used to enable or disable one or more
 candidates during overload resolution.
 
 As an example, consider one or more function templates that have conditionally

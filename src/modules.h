@@ -56,8 +56,8 @@ struct a_module_entity {
 			   be removed from any lazy symbol lists as its
 			   definition is also no longer deferred. */
   a_bit_field	invalid:1;
-			/* TRUE if the associated entity cannot not be
-			   constructed from the module for any reason. */
+			/* TRUE if the associated entity cannot be constructed
+			   from the module for any reason. */
   a_bit_field	global_module:1;
 			/* TRUE if this is an entity owned by the "global
 			   module". */
