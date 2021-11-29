@@ -1,5 +1,19 @@
 Version 6.3
 
+11/29/21 [EDGcpfe/24734]
+Spurious failure to evaluate GNU C++11 constexpr statement expression
+
+Consider, in GNU C++11 mode with gnu_version >= 50100:
+
+  constexpr int g() {
+    return __extension__ ({ unsigned y = 1; y; });
+  }
+  constexpr int r = g();  // Previously an error.  Now okay.
+
+Previously, this failed evaluation because the front end did not permit GNU
+statement expressions for pre-C++14 constant-evaluation.  That is now fixed.
+
+
 11/29/21 [EDGcpfe/24179]
 Copy-elision on result of user-defined conversion
 

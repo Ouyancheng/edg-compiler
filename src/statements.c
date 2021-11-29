@@ -1973,23 +1973,12 @@ body of a constexpr function or constructor.
   if (p_okay_in_constexpr_body != NULL) {
     if (!relaxed_constexpr_enabled &&
         !struct_stmt_stack_top().inside_statement_expr) {
+      /* In C++11-style constexpr, the declaration might have made the function
+         non-constexpr.  However, those limitations don't apply within GNU
+         statement expressions. */
       *p_okay_in_constexpr_body = dps.decl_okay_in_constexpr_body;
     } else {
-      a_boolean  decl_okay_in_constexpr_body = TRUE;
-      /* C++14 permits just about any declaration, except definitions of
-         variables with one or more of the following attributes:
-           - a non-literal type
-           - thread or static storage duration
-           - no explicit or implicit initializer
-      */
-      if (dps.sym != NULL && symbol_is(dps.sym, sk_variable)) {
-        a_variable_ptr  var = dps.sym->variant.variable.ptr;
-        if (var->init_kind == (an_init_kind)initk_none ||
-            var_has_static_or_thread_storage_duration(var) ||
-            !is_literal_type(var->type)) {
-        }  /* if */
-      }  /* if */
-      *p_okay_in_constexpr_body = decl_okay_in_constexpr_body;
+      *p_okay_in_constexpr_body = TRUE;
     }  /* if */
   }  /* if */
   /* Re-load sssep since the call to scan_nonmember_declaration may have
