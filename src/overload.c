@@ -2400,6 +2400,7 @@ is not already accounted for in the conversion.
   arg_summary->conversion = *conversion;
   if (!param_is_reference) {
     if (mandatory_copy_elision && is_immediate_class_type(param_type) &&
+        !conversion->unusable &&
         identical_types_ignoring_qualifiers(
                      param_type, return_type_of(conversion->routine->type))) {
       arg_summary->conversion.should_elide_ctor = TRUE;
