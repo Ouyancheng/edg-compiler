@@ -7348,8 +7348,9 @@ a_boolean an_ifc_module::init_locator_from_name(an_Index_Type      index,
 /*
 Initialize the locator specified by loc.  The name of the entity is the textual
 name associated with the given index.  The source position is given by locus.
-Return TRUE if the given arguments were valid (resulting in an update to the
-locator), otherwise return FALSE.
+Return TRUE if initialization was completed and the locator is usable (i.e.,
+the given index and locus were valid for locator initialization), otherwise
+return FALSE.
 
 FIXME: Not sure if we need source location here.
 */
@@ -7358,17 +7359,17 @@ FIXME: Not sure if we need source location here.
   a_source_position pos;
   a_const_char      *name;
 
-  if (source_position_from_locus(&pos, locus) &&
-      get_textual_name(index, loc, &name)) {
-    /* The position (pos) and name were successfully retrieved. */
-    result = TRUE;
-    /* Update the locator. */
+  if (source_position_from_locus(&pos, locus)) {
     clear_locator(loc, &pos);
-    if (!loc->is_operator_name &&
-        !loc->is_conversion_name &&
-        !loc->is_udl_operator_name) {
-      /* Find the symbol (if not a special case). */
-      (void)find_symbol(name, (sizeof_t)strlen(name), loc);
+    if (get_textual_name(index, loc, &name)) {
+      if (!loc->is_operator_name &&
+          !loc->is_conversion_name &&
+          !loc->is_udl_operator_name) {
+        /* Find the symbol (if not a special case). */
+        (void)find_symbol(name, (sizeof_t)strlen(name), loc);
+      }  /* if */
+      /* Initialization was completed successfully. */
+      result = TRUE;
     }  /* if */
   }  /* if */
   return result;
