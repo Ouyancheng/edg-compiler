@@ -24282,6 +24282,31 @@ with any statement expression.
     a_source_sequence_entry_ptr
                         head = expr->variant.statement->source_sequence_entry;
     if (head != NULL) {
+      /* Remove the statement expression's block scope from its parent's scopes
+         list, since otherwise IL traversal will find the source sequence
+         entries even though they were removed from the main list. */
+      a_statement_ptr  stmt = expr->variant.statement;
+      a_block_ptr      block = stmt->variant.block.extra_info;
+      a_scope_ptr      scope = block->assoc_scope,
+                       parent = scope != NULL ? scope->parent : NULL;
+      if (parent != NULL) {
+        a_scope_ptr  *p_sp = &parent->scopes;
+        if (*p_sp == NULL && parent->depth_in_scope_stack != NO_SCOPE_DEPTH) {
+          /* In most cases, the scopes list is still pointed to by the scope
+             stack instead of by the IL scope entry. */
+          p_sp = &scope_stack[parent->depth_in_scope_stack].first_scope;
+        }  /* if */
+        while (*p_sp != NULL) {
+          if (*p_sp == scope) {
+            *p_sp = scope->next;
+            break;
+          } else {
+            p_sp = &(*p_sp)->next;
+          }  /* if */
+        }  /* while */
+      }  /* if */
+      /* Remove the list of source sequence entries spanning this statement
+         expression. */
       remove_src_seq_list(head, matching_end_of_construct(head));
     }  /* if */
   }  /* if */
@@ -24291,7 +24316,8 @@ void eliminate_statement_expr_src_seq_entries(an_expr_node_ptr  expr)
 /*
 Traverse expr for GNU statement expressions (which are about to be dropped
 from the IL) and eliminate any source sequence entries associated with the
-statements they point to.
+statements they point to.  This function also removes the block scope
+associated with the statement expression from its parent's scopes list.
 */
 {
   an_expr_or_stmt_traversal_block tblock;
