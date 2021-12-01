@@ -2166,49 +2166,112 @@ Macro that initializes a lookup state variable.
 #define clear_lookup_state(state) ((state) = cleared_lookup_state)
 
 
-/* Macro used by normal_id_lookup and do_using_directive_lookup that tests
-   whether or not a symbol is acceptable. */
-/* symbol_may_precede_qualifier checks for a symbol that is a class,
-   class template, namespace, or template type parameter. */
-/*lint -emacro(506,is_acceptable_symbol)*/
-#define is_acceptable_symbol(sym, fund_sym, lookup_state, invisible_okay)    \
-  ((name_space_for_symbol_kind[(int)sym->kind] ==			     \
-                                  (lookup_state).required_name_space_kind) && \
-   ((!(fund_sym->is_invisible) && (!sym->is_invisible)) ||		\
-    invisible_okay ||                                                   \
-    /* g++ versions >= 50000 make the function template symbol visible	\
-       for parsing purposes, but it is ignored by overload		\
-       resolution. */							\
-    (gpp_version_is(>= 50000) &&					\
-     symbol_is_or_contains_function_template(fund_sym)) ||		\
-   (lookup_state).is_linkage_lookup ||					\
-    (lookup_state).is_friend_lookup) &&					\
-   /* Alias symbols can have the ignore_in_decl_scope flag set.  When	\
-      this is set, ignore the symbol if it is the template associated	\
-      with the innermost instantiation scope. */			\
-   (!fund_sym->ignore_in_decl_scope ||					\
-    ssep == NULL ||							\
-    depth_innermost_instantiation_scope == NO_SCOPE_DEPTH ||		\
-    scope_stack[depth_innermost_instantiation_scope].template_sym	\
-                                                            == NULL ||	\
-    scope_stack[depth_innermost_instantiation_scope].template_sym	\
-                                                       != fund_sym) &&	\
-   (!(lookup_state).must_be_class_or_namespace ||			\
-    symbol_may_precede_qualifier(fund_sym)) &&                          \
-   (!(lookup_state).must_be_tag ||				        \
-    is_tag_or_tag_proxy_symbol(						\
-       fund_sym, ((lookup_state).is_friend_lookup))) &&			\
-   (!(lookup_state).must_be_class ||					\
-    is_class_or_class_proxy_symbol(fund_sym)) && 			\
-   (!(lookup_state).must_be_namespace ||				\
-    is_namespace_symbol(fund_sym)) &&					\
-   (!((lookup_state).is_linkage_lookup ||				\
-      (lookup_state).is_friend_lookup)  ||				\
-    !(lookup_state).treat_as_template_id ||				\
-    symbol_is(fund_sym, sk_class_template)) &&				\
-   (!(lookup_state).check_decl_seq ||					\
-    ((lookup_state).decl_seq == NO_DECL_SEQUENCE_NUMBER ||		\
-     (lookup_state).decl_seq >= (sym)->decl_seq)))
+static inline a_boolean is_acceptable_invisible_symbol(
+                                               a_symbol_ptr       fund_sym,
+                                               a_lookup_state_ptr lookup_state)
+/*
+Function used by is_acceptable_symbol to determine if an invisible symbol
+has an exceptional rule that allows it to be accepted.  Return TRUE if the
+symbol should be accepted despite being invisible, FALSE otherwise.
+*/
+{
+  a_boolean result = FALSE;
+
+  /* g++ versions >= 50000 make the function template symbol visible
+     for parsing purposes, but it is ignored by overload
+     resolution. */
+  if (gpp_version_is(>= 50000) &&
+      symbol_is_or_contains_function_template(fund_sym)) {
+    result = TRUE;
+  } else if (lookup_state->is_linkage_lookup) {
+    result = TRUE;
+  } else if (lookup_state->is_friend_lookup) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_acceptable_invisible_symbol */
+
+
+static inline a_boolean is_acceptable_template_alias_symbol(
+                                              a_symbol_ptr            fund_sym,
+                                              a_scope_stack_entry_ptr ssep)
+/*
+Function used by is_acceptable_symbol to determine if an alias symbol should be
+accepted because it isn't the template associated associated with the innermost
+instantiation scope.  Return TRUE if the symbol should be accepted, FALSE
+otherwise.
+*/
+{
+  a_boolean result = FALSE;
+
+  /* Check for disqualifying conditions that prove the symbol isn't the
+     template associated with the innermost instantiation scope. */
+  if (ssep == NULL) {
+    result = TRUE;
+  } else if (depth_innermost_instantiation_scope == NO_SCOPE_DEPTH) {
+    result = TRUE;
+  } else if (scope_stack[depth_innermost_instantiation_scope].template_sym
+                                                                     == NULL) {
+    result = TRUE;
+  } else if (scope_stack[depth_innermost_instantiation_scope].template_sym
+                                                                 != fund_sym) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_acceptable_template_alias_symbol */
+
+
+static inline a_boolean is_acceptable_symbol(
+                                        a_symbol_ptr            sym,
+                                        a_symbol_ptr            fund_sym,
+                                        a_lookup_state_ptr      lookup_state,
+                                        a_scope_stack_entry_ptr ssep,
+                                        a_boolean               invisible_okay)
+/*
+Function used by normal_id_lookup and do_using_directive_lookup that tests
+whether or not a symbol is acceptable.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (name_space_for_symbol_kind[(int)sym->kind] !=
+                                      lookup_state->required_name_space_kind) {
+    result = FALSE;
+  } else if (!invisible_okay &&
+             (fund_sym->is_invisible || sym->is_invisible) &&
+             !is_acceptable_invisible_symbol(fund_sym, lookup_state)) {
+    result = FALSE;
+  } else if (fund_sym->ignore_in_decl_scope &&
+             !is_acceptable_template_alias_symbol(fund_sym, ssep)) {
+    result = FALSE;
+  } else if (lookup_state->must_be_class_or_namespace &&
+             /* symbol_may_precede_qualifier checks for a symbol that is a
+                class, class template, namespace, or template type
+                parameter. */
+             !symbol_may_precede_qualifier(fund_sym)) {
+    result = FALSE;
+  } else if (lookup_state->must_be_tag &&
+             !is_tag_or_tag_proxy_symbol(fund_sym,
+                                         lookup_state->is_friend_lookup)) {
+    result = FALSE;
+  } else if (lookup_state->must_be_class &&
+             !is_class_or_class_proxy_symbol(fund_sym)) {
+    result = FALSE;
+  } else if (lookup_state->must_be_namespace &&
+             !is_namespace_symbol(fund_sym)) {
+    result = FALSE;
+  } else if ((lookup_state->is_linkage_lookup ||
+              lookup_state->is_friend_lookup) &&
+             lookup_state->treat_as_template_id &&
+             !symbol_is(fund_sym, sk_class_template)) {
+    result = FALSE;
+  } else if (lookup_state->check_decl_seq &&
+             lookup_state->decl_seq != NO_DECL_SEQUENCE_NUMBER &&
+             lookup_state->decl_seq < sym->decl_seq) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_acceptable_symbol */
 
 
 a_boolean sym_matches_lookup_options(a_symbol_ptr		sym,
@@ -2427,7 +2490,7 @@ of the lookup is returned to the caller.
       a_boolean			any_errors = FALSE;
       /* Ignore symbols that do not match the lookup requirements. */
       fund_sym = fundamental_symbol_of(new_sym);
-      if (!is_acceptable_symbol(new_sym, fund_sym, *lookup_state,
+      if (!is_acceptable_symbol(new_sym, fund_sym, lookup_state, ssep,
                                 /*invisible_okay=*/FALSE)) {
         continue;
       }  /* if */
@@ -2558,7 +2621,7 @@ routine.
 #define is_acceptable_active_symbol(sym, fund_sym)                           \
   (name_space_for_symbol_kind[(int)sym->kind] ==			     \
                                    lookup_state->required_name_space_kind && \
-   is_acceptable_symbol(sym, fund_sym, *lookup_state,			     \
+   is_acceptable_symbol(sym, fund_sym, lookup_state, ssep,                  \
                         /*invisible_okay=*/FALSE))
 
   /* The decl_seq check should not be done on function parameters in certain
@@ -2793,7 +2856,7 @@ routine.
           if (sym->decl_scope == ssep->number &&
               sym->header == locator->symbol_header) {
             a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-            if (is_acceptable_symbol(sym, fund_sym, *lookup_state,
+            if (is_acceptable_symbol(sym, fund_sym, lookup_state, ssep,
                                      /*invisible_okay=*/FALSE)) {
               /* Found a symbol. */
               /* If this is a template parameter symbol that should not
@@ -2957,7 +3020,7 @@ that do normal id lookup processing.
       if (bcp->direct && is_cli_interface_type(bcp->type)) {
         a_symbol_ptr	base_sym = symbol_for(bcp->type);
         if (base_sym->header == locator->symbol_header &&
-            is_acceptable_symbol(base_sym, base_sym, *lookup_state,
+            is_acceptable_symbol(base_sym, base_sym, lookup_state, ssep,
                                  /*invisble_okay=*/FALSE)) {
           sym = base_sym;
           goto end_lookup;
@@ -2996,7 +3059,7 @@ that do normal id lookup processing.
       a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
       /* An invisible projection symbol can be returned by g++ mode
          lookups. */
-      if (!is_acceptable_symbol(sym, fund_sym, *lookup_state,
+      if (!is_acceptable_symbol(sym, fund_sym, lookup_state, ssep,
                                 /*invisible_okay=*/TRUE)) {
         sym = NULL;
       } else if (microsoft_bugs) {
@@ -4071,7 +4134,7 @@ after a call to this routine.
           sym = NULL;
           break;
         }  /* if */
-        if (is_acceptable_symbol(sym, fund_sym, lookup_state,
+        if (is_acceptable_symbol(sym, fund_sym, &lookup_state, ssep,
                                  /*invisible_okay=*/FALSE)) {
           /* We found a matching symbol.  If this is a type symbol found
              by a must-be-tag lookup, keep searching for a "real" tag in
@@ -4205,7 +4268,7 @@ after a call to this routine.
           if (allow_anachronisms) sym = find_nested_type_symbol(locator);
           if (sym != NULL) {
             a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-            if (is_acceptable_symbol(sym, fund_sym, lookup_state,
+            if (is_acceptable_symbol(sym, fund_sym, &lookup_state, ssep,
                                      /*invisible_okay=*/FALSE)) {
               locator->is_semivisible_nested_type = TRUE;
             } else {
@@ -4344,9 +4407,6 @@ after a call to this routine.
   return sym;
 }  /* normal_id_lookup */
 
-/* Undefine the macro used by normal_id_lookup and do_using_directive_lookup
-   to determine whether a symbol is acceptable. */
-#undef is_acceptable_symbol
 
 a_symbol_ptr curr_tag_symbol(a_symbol_locator  *locator,
                              a_symbol_kind     tag_kind,
