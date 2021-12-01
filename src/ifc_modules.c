@@ -16388,7 +16388,7 @@ non-recursive and recursive validation.
 
   validator.validate(pos);
   return !validator.invalid;
-}  /* validate_partition_element */
+}  /* validate_partition_element_shallow */
 
 
 inline a_boolean an_ifc_module::validate_partition_element(
