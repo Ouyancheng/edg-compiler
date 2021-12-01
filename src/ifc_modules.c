@@ -6688,12 +6688,12 @@ a_const_char *an_ifc_module::string_from_name_index(
                                               a_symbol_locator  *loc,
                                               a_text_buffer_ptr *result_buffer)
 /*
-Return the string referenced by name_index.  The result_buffer should point to
-a pointer to a text buffer.  If this pointer is NULL and a buffer is required,
-the pointer will be set to the address of a new text buffer.  If this pointer
-is non-null and a buffer is required, the referenced text buffer is required to
-be empty and it will be used for storage.  If non-NULL, fields (like
-is_operator_name) in *loc are updated accordingly.
+Return the string referenced by name_index.  The pointer to which result_buffer
+points may be NULL.  If so, and if a buffer is required, *result_buffer will be
+set to the address of a new text buffer; otherwise, if it is not NULL and a
+buffer is required, the referenced text buffer must be empty and will be used
+for storage.  If non-NULL, fields (like is_operator_name) in *loc are updated
+accordingly.
 */
 {
   a_const_char         *result = NULL, *prefix = NULL;
@@ -16091,7 +16091,7 @@ this and other Element_validator uses.
 When this is a top level (the first position checked) non-recursive validation
 it will validate the element's fields. This follows ifc_IndexType derived (and
 similar) fields of the element at the given position up to one level down.  It
-thus, checks that the given position is a valid position, and that the element
+thus checks that the given position is a valid position, and that the element
 contains fields that pass initial validation.  Results of this validation are
 not cached.
 
@@ -16412,7 +16412,7 @@ template<typename... Args>
 inline a_boolean an_ifc_module::validate_partition_element(Args&&... args)
 /*
 Perform recursive validation checks on the partition position constructed from
-args.  Returns TRUE if determined to be valid, FALSE otherwise.
+args.  Return TRUE if determined to be valid, FALSE otherwise.
 
 See Element_validator's position validation function for more details about
 non-recursive and recursive validation.
