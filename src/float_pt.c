@@ -448,8 +448,8 @@ C99 macro isfinite are not available.
        is only used when the host floating point value is long double, so we
        can assume that a property of a host floating point value applies to
        a long double value too. */
-    p += data_size_of_host_fp_value;
-    exponent = (p[-1] << CHAR_BIT) | p[-2];
+    p += data_size_of_host_fp_value - (sizeof(unsigned char) * 2);
+    exponent = (p[1] << CHAR_BIT) | p[0];
   } else {
     /* Big-endian host. */
     exponent = (p[0] << CHAR_BIT) | p[1];
