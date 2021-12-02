@@ -2103,7 +2103,10 @@ as <unnamed>).
 
   if (length == 0) length = strlen(string);
   new_string = alloc_primary_file_scope_il((sizeof_t)(length + 1));
-  (void)strncpy(new_string, string, size_t_arg(length));
+  /* Verify the memcpy operation isn't going to go past the end of the
+     string. */
+  check_assertion(length <= strlen(string));
+  memcpy(new_string, string, size_t_arg(length));
   /* Terminate the string. */
   new_string[length] = '\0';
   hdr_ptr->identifier = new_string;
