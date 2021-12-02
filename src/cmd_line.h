@@ -357,6 +357,9 @@ typedef enum /*an_option_kind*/ {
   optk_concepts,
   optk_colors,
   optk_keep_restrict_in_signatures,
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+  optk_check_unicode_security,
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -2717,6 +2720,15 @@ EXTERN a_boolean
 		gnu_imaginary_literals_allowed;
 			/* TRUE if imaginary literals (e.g., "1.0i") are
 			   allowed in the current mode. */
+
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+EXTERN a_boolean
+		check_unicode_security;
+			/* TRUE if UTF-encoded Unicode source should be
+			   checked for security vulnerabilities as
+			   described in
+			   www.trojansource.codes/trojan-source.pdf. */
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);

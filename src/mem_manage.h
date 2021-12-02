@@ -506,6 +506,10 @@ enum a_function_number_tag {
   fn_compare_token_sequence_xref,
   fn_hash_module_entity,
   fn_compare_for_module_entity,
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+  fn_hash_id_representation,
+  fn_id_representations_match,
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
   fn_last
 };
 /* Define as "a_byte" to explicitly control storage size. */

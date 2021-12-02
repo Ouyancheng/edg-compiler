@@ -2418,6 +2418,20 @@ to Latin-1.
 #endif /* UNICODE_SOURCE_SUPPORTED */
 
 /*
+Flag that is TRUE if facilities for detecting Unicode source vulnerabilities
+(as described in www.trojansource.codes/trojan-source.pdf) should be
+included.  It is enabled by default if Unicode support is enabled and
+cannot be enabled if Unicode is not supported.
+*/
+#ifndef UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+#define UNICODE_VULNERABILITY_DETECTION_SUPPORTED UNICODE_SOURCE_SUPPORTED
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED && !UNICODE_SOURCE_SUPPORTED
+ #error -- UNICODE_VULNERABILITY_DETECTION_SUPPORTED requires \
+           UNICODE_SOURCE_SUPPORTED
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED && ... */
+
+/*
 Flag that is TRUE if multibyte characters are supported in source code,
 specifically in comments, string literals, character constants, and
 identifiers.  This applies to both C and C++ mode.  See also

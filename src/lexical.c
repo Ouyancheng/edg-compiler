@@ -13480,6 +13480,278 @@ check_for_newline:
   return token != tok_error;
 }  /* is_module_pp_directive */
 
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+
+/*
+Facilities for detecting and reporting confusable identifiers, i.e.,
+distinct identifiers whose graphical representations may be
+indistinguishable but that are actually spelled using different Unicode
+characters.
+*/
+
+#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
+extern "C" {
+#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
+
+static int compare_confusable(const void *chp,
+                              const void *elemp)
+/*
+Return <0, 0, or >0 depending on whether the (int) Unicode code point
+pointed to by chp is less than, equal to, or greater than the src_char of
+the a_confusable_map_elem entry pointed to by elemp.
+*/
+{
+  return *(int *)chp - ((a_confusable_map_elem_ptr)elemp)->src_char;
+}  /* compare_confusable */
+
+#if BSEARCH_QSORT_FUNCTION_IS_EXTERN_C
+}  /* extern "C" */
+#endif /* BSEARCH_QSORT_FUNCTION_IS_EXTERN_C */
+
+
+static a_confusable_map_elem_ptr confusable_char(unsigned long ch)
+/*
+If ch is the src_char in an entry in confusable_map, return a pointer to
+that entry; otherwise, return NULL.
+*/
+{
+  void *elem;
+  int  val = (int)ch;
+
+  elem = bsearch(&val, confusable_map, num_confusable_characters,
+                 sizeof(a_confusable_map_elem), compare_confusable);
+  return (a_confusable_map_elem_ptr)elem;
+}  /* confusable_char */
+
+
+/*
+A structure recording the representation of a single identifier, intended
+for insertion into a hash table containing all identifiers in the
+translation unit.
+*/
+typedef struct an_id_representation *an_id_representation_ptr;
+struct an_id_representation {
+  an_id_representation_ptr
+		next_confusable;
+			/* When confusable identifiers are seen, all their
+			   distinct representations are linked via the
+			   next_confusable field, with the most recent
+			   spelling being the one kept in the hash table.
+			   This chain permits each confusable spelling to
+			   be reported only on its first occurrence. */
+  sizeof_t	src_spelling_idx;
+			/* The offset within src_spellings->buffer of the
+			   null-terminated UTF-8 representation of the
+			   identifier's spelling in the source. */
+  sizeof_t	prototyped_spelling_idx;
+			/* If this identifier is confusable with another,
+			   this is the offset within
+			   prototyped_spellings->buffer of the
+			   null-terminated UTF-8 representation of the
+			   identifier's spelling, replacing any confusable
+			   characters with their prototypes, as described
+			   in unicode.org/reports/tr39, "Unicode Security
+			   Mechanisms", section 4.  If there are no
+			   confusable characters in the spelling, this has
+			   the value (sizeof_t)(-1) and the prototyped
+			   spelling is the same as the source spelling.
+			   Two confusable identifiers will have the same
+			   prototyped spelling and different source
+			   spellings. */
+  a_source_position
+		pos_first_occurrence;
+			/* The position of the first occurrence of the
+			   identifier. */
+  a_hash_value	hash_code;
+			/* The hash code for prototyped_spelling, recorded
+			   here so that it need be calculated only once,
+			   when the identifier is scanned.  The
+			   hash_id_representation function simply returns
+			   this value and does not recompute it. */
+};  /* an_id_representation */
+
+static a_hash_table_ptr
+		id_representation_map;
+			/* Hash table containing an_id_representation
+			   entries for all identifiers encountered in the
+			   current translation unit. */
+static a_text_buffer_ptr
+		src_spellings;
+			/* Storage for the source spellings of all
+			   an_id_representation entries. */
+static a_text_buffer_ptr
+		prototyped_spellings;
+			/* Storage for the prototyped spellings of all
+			   an_id_representation entries for which the
+			   prototyped spelling differs from the source
+			   spelling. */
+
+
+a_hash_value hash_id_representation(a_void_ptr key)
+/*
+Return the hash code for a given an_id_representation entry, pointed to by
+key.  For efficiency, the hash value is computed only once and stored in
+the hash_code field of the entry.
+*/
+{
+  return ((an_id_representation_ptr)key)->hash_code;
+}  /* hash_id_representation */
+
+
+a_boolean id_representations_match(a_void_ptr entry_ptr,
+                                   a_void_ptr key_ptr)
+/*
+Given two an_id_representation entries, entry_ptr and key_ptr, return TRUE
+if their prototyped spellings are the same (thus representing either the
+same identifier, if their source spellings are the same, or confusable
+identifiers if their source spellings differ) and FALSE otherwise.
+*/
+{
+  a_const_char *entry_spelling;
+  a_const_char *key_spelling;
+  an_id_representation_ptr entry = (an_id_representation_ptr)entry_ptr;
+  an_id_representation_ptr key = (an_id_representation_ptr)key_ptr;
+  
+  entry_spelling = (entry->prototyped_spelling_idx == (sizeof_t)(-1))
+              ? src_spellings->buffer + entry->src_spelling_idx
+              : prototyped_spellings->buffer + entry-> prototyped_spelling_idx;
+  key_spelling = (key->prototyped_spelling_idx == (sizeof_t)(-1))
+                  ? src_spellings->buffer + key->src_spelling_idx
+                 : prototyped_spellings->buffer + key->prototyped_spelling_idx;
+  return strcmp(entry_spelling, key_spelling) == 0;
+}  /* id_representations_match */
+
+
+static void check_for_confusable_id(void)
+/*
+This function is called immediately after an identifier is scanned, with
+the identifier's spelling in the range from start_of_curr_token through
+end_of_curr_token.  It finds or creates an entry in id_representation_map
+and issues a warning on the first occurrence of an identifier that is
+confusable with one already in the hash table.
+*/
+{
+  an_id_representation     curr_id_repr;
+  a_const_char             *curr_ch = start_of_curr_token;
+  a_boolean                confusable_seen = FALSE;
+  a_hash_data_ptr          *hash_data;
+  an_id_representation_ptr new_id_rep;
+/*
+Update the hash code in curr_id_repr with the character ch.  This uses the
+same hashing algorithm found in hash_source_string.
+*/
+#define UPDATE_HASH(ch) \
+  curr_id_repr.hash_code += (curr_id_repr.hash_code << 5) + ch
+
+  check_assertion(multibyte_chars_in_source_enabled &&
+                  curr_file_unicode_source_kind != usk_none);
+  mbc_scan_init();
+  if (id_representation_map == NULL) {
+    /* Create the hash table and storage for identifiers. */
+    id_representation_map =
+                   alloc_hash_table(FRONT_END_REGION_NUMBER, 65536,
+                                    fn_for_function(hash_id_representation),
+                                    fn_for_function(id_representations_match));
+    src_spellings = alloc_text_buffer(65536);
+    prototyped_spellings = alloc_text_buffer(8192);
+  }  /* if */
+  /* Create an identifier representation entry for the current identifier. */
+  curr_id_repr.src_spelling_idx = src_spellings->size;
+  curr_id_repr.prototyped_spelling_idx = prototyped_spellings->size;
+  curr_id_repr.pos_first_occurrence = pos_curr_token;
+  curr_id_repr.hash_code = 0;
+  while (curr_ch <= end_of_curr_token) {
+    unsigned long ch;
+    a_boolean     err;
+    int           numch =
+                     mbc_to_wide_char(curr_ch, &ch, &err, /*is_native=*/FALSE);
+    if (ch <= 0x7f) {
+      /* A single-byte character in UTF-8. */
+      add_char_to_text_buffer(src_spellings, (char)ch);
+      add_char_to_text_buffer(prototyped_spellings, (char)ch);
+      UPDATE_HASH(ch);
+    } else {
+      /* A non-ASCII/Latin-1 character.  Convert it to UTF-8, save it, and
+         see if it is confusable. */
+      int                       utf_len;
+      int                       i;
+      char                      arr[4];
+      a_confusable_map_elem_ptr cmep = confusable_char(ch);
+      utf_len = unicode_to_utf8(ch, arr);
+      add_to_text_buffer(src_spellings, arr, utf_len);
+      if (cmep == NULL) {
+        /* Not a confusable character.  Add the UTF-8 bytes to the
+           prototyped string and update the hash code. */
+        for (i = 0; i < utf_len; ++i) {
+          add_char_to_text_buffer(prototyped_spellings, arr[i]);
+          UPDATE_HASH(arr[i]);
+        }  /* for */
+      } else {
+        /* This character is confusable with another.  Add the prototyped
+           spelling of the character to the prototyped string and update
+           the hash code. */
+        confusable_seen = TRUE;
+        for (i = 0; i < MAX_PROTOTYPE_LENGTH && cmep->prototype[i] != 0; ++i) {
+          utf_len = unicode_to_utf8(cmep->prototype[i], arr);
+          for (int j = 0; j < utf_len; ++j) {
+            add_char_to_text_buffer(prototyped_spellings, arr[j]);
+            UPDATE_HASH(arr[j]);
+          }  /* for */
+        }  /* for */
+      }  /* if */
+    }  /* if */
+    curr_ch += numch;
+  }  /* while */
+  add_char_to_text_buffer(src_spellings, '\0');
+  if (!confusable_seen) {
+    /* The source and prototyped spellings are the same.  Update the
+       current identifier representation to use the source spelling for
+       comparison and remove the redundant string from the
+       prototyped spellings buffer. */
+    prototyped_spellings->size = curr_id_repr.prototyped_spelling_idx;
+    curr_id_repr.prototyped_spelling_idx = (sizeof_t)(-1);
+  } else {
+    add_char_to_text_buffer(prototyped_spellings, '\0');
+  }  /* if */
+  hash_data = hash_find(id_representation_map, &curr_id_repr, /*create=*/TRUE);
+  if (*hash_data == NULL) {
+    /* This is the first occurrence of this identifier.  Update the hash
+       table entry to point to the identifier representation. */
+    new_id_rep = alloc_fe_of_type(an_id_representation);
+    *new_id_rep = curr_id_repr;
+    new_id_rep->next_confusable = NULL;
+    *hash_data = (a_hash_data_ptr)new_id_rep;
+  } else {
+    /* There was at least one other identifier with the same prototyped
+       spelling.  We need to find out if this is the same identifier or one
+       that is confusable.  Scan through the linked list of confusable
+       representations to see if this identifier is already there. */
+    an_id_representation_ptr irp;
+    a_boolean                id_exists = FALSE;
+    a_const_char             *this_cp =
+                         src_spellings->buffer + curr_id_repr.src_spelling_idx;
+    for (irp = (an_id_representation_ptr)*hash_data;
+         !id_exists && irp != NULL; irp = irp->next_confusable) {
+      a_const_char *cp = src_spellings->buffer + irp->src_spelling_idx;
+      id_exists = strcmp(this_cp, cp) == 0;
+    }  /* for */
+    if (!id_exists) {
+      /* This is a new identifier that is confusable with an earlier
+         identifier.  Add it to the list of confusables and issue a
+         warning. */
+      irp = (an_id_representation_ptr)*hash_data;
+      new_id_rep = alloc_fe_of_type(an_id_representation);
+      *new_id_rep = curr_id_repr;
+      new_id_rep->next_confusable = irp;
+      *hash_data = (a_hash_data_ptr)new_id_rep;
+      pos2_diagnostic(es_warning, ec_confusable_identifier, &pos_curr_token,
+                      &irp->pos_first_occurrence);
+    }  /* if */
+  }  /* if */
+#undef UPDATE_HASH
+}  /* check_for_confusable_id */
+
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 
 a_token_kind get_token(void)
 /*
@@ -14299,6 +14571,13 @@ id_scan:
         }  /* if */
       } while (continue_scan);
       end_of_curr_token = curr_char_loc - 1;
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+      if (check_unicode_security &&
+          multibyte_chars_in_source_enabled &&
+          curr_file_unicode_source_kind != usk_none) {
+        check_for_confusable_id();
+      }  /* if */
+#endif  /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
       /* Clear the symbol locator for the current identifier.  This is done 
          even if the identifier is not looked up in the symbol table. */
       clear_locator(&locator_for_curr_id, &pos_curr_token);

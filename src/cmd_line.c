@@ -1652,6 +1652,14 @@ Initialize the option information table.
                          "no_keep_restrict_in_signatures", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+  add_option_description(optk_check_unicode_security,
+                         "check_unicode_security", '\0', /*value=*/TRUE,
+                         /*arg_required=*/FALSE, pchek_command_line);
+  add_option_description(optk_check_unicode_security,
+                         "no_check_unicode_security", '\0', /*value=*/FALSE,
+                         /*arg_required=*/FALSE, pchek_command_line);
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 }  /* initialize_option_descriptions */
 
 
@@ -9477,6 +9485,11 @@ file.
 #else /* !defined(UNICODE_SOURCE_SUPPORTED) */
   comment_undefined_macro_name(UNICODE_SOURCE_SUPPORTED);
 #endif /* defined(UNICODE_SOURCE_SUPPORTED) */
+#if defined(UNICODE_VULNERABILITY_DETECTION_SUPPORTED)
+  define_numeric_valued_macro(UNICODE_VULNERABILITY_DETECTION_SUPPORTED);
+#else /* !defined(UNICODE_VULNERABILITY_DETECTION_SUPPORTED) */
+  comment_undefined_macro_name(UNICODE_VULNERABILITY_DETECTION_SUPPORTED);
+#endif /* defined(UNICODE_VULNERABILITY_DETECTION_SUPPORTED) */
 #if defined(UNIQUE_FILE_IDENTIFIER_AVAILABLE)
   define_numeric_valued_macro(UNIQUE_FILE_IDENTIFIER_AVAILABLE);
 #else /* !defined(UNIQUE_FILE_IDENTIFIER_AVAILABLE) */
@@ -11278,6 +11291,11 @@ enable_microsoft_mode:
       case optk_keep_restrict_in_signatures:
         keep_restrict_in_signatures = opt_value;
         break;
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+      case optk_check_unicode_security:
+        check_unicode_security = opt_value;
+        break;
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */        
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -12774,6 +12792,9 @@ variables declared in cmd_line.h.
   skip_module_imports = FALSE;
   skip_module_version_check = FALSE;
   gnu_imaginary_literals_allowed = FALSE;
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+  check_unicode_security = FALSE;
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 }  /* cmd_line_static_var_init */
 
 
