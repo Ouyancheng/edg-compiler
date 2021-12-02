@@ -7054,7 +7054,7 @@ Also, these non-standard expressions (EDG-specific) are demangled:
         case 'R': unary = FALSE; left = FALSE; break;
         default:
           bad_mangled_name(dctl);
-          break;
+          goto bad_name;
       }  /* switch */
       ptr += 2;
       op_str = get_operator_name(ptr, &num_operands, &length, &close_str,
@@ -7355,6 +7355,7 @@ Also, these non-standard expressions (EDG-specific) are demangled:
     /* Assume it's an <unresolved-name>. */
     ptr = demangle_unresolved_name(ptr, dctl);
   }  /* if */
+bad_name:
   return ptr;
 }  /* demangle_expression */
 
