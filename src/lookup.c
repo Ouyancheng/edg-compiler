@@ -2237,8 +2237,8 @@ whether or not a symbol is acceptable.
   if (name_space_for_symbol_kind[(int)sym->kind] !=
                                       lookup_state->required_name_space_kind) {
     result = FALSE;
-  } else if (!invisible_okay &&
-             (fund_sym->is_invisible || sym->is_invisible) &&
+  } else if ((fund_sym->is_invisible || sym->is_invisible) &&
+             !invisible_okay &&
              !is_acceptable_invisible_symbol(fund_sym, lookup_state)) {
     result = FALSE;
   } else if (fund_sym->ignore_in_decl_scope &&
