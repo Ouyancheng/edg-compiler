@@ -3705,9 +3705,14 @@ IA-64 ABI, the routines called are different.
 #else /* IA64_ABI */
   an_expr_node_ptr assign_node = NULL, arg_entity_node = entity_node;
   an_expr_node_ptr assign_elem_size_node;
+  /* Use a local copy of targ_ia64_abi_use_variant_array_cookies to help GCC's
+     optimizer when considering the lifetime of assign_elem_size_node. */
+  a_boolean        targ_use_var_arr_cookies
+                                     = targ_ia64_abi_use_variant_array_cookies;
+
   if (prefix_size_node != NULL) {
     an_expr_node_ptr cookie_ptr_node, cookie_value_node;
-    if (targ_ia64_abi_use_variant_array_cookies) {
+    if (targ_use_var_arr_cookies) {
       /* Generate code to set the array element size field in the variant
          array cookie.  The variant cookie is a struct containing two size_t
          fields, in the order element_size, element_count.  The normal
@@ -3763,7 +3768,7 @@ IA-64 ABI, the routines called are different.
                                 (a_routine_ptr)NULL, (a_routine_ptr)NULL,
                                 zero_storage);
   if (prefix_size_node != NULL) {
-    if (targ_ia64_abi_use_variant_array_cookies) {
+    if (targ_use_var_arr_cookies) {
       assign_node = make_comma_node(assign_elem_size_node, assign_node);
     }  /* if */
     call_node = make_comma_node(assign_node, call_node);
