@@ -5027,7 +5027,7 @@ The syntax is:
 */
 {
   long               num = 1, level = -1;
-  char               buffer[50];
+  char               buffer[51];
   a_cv_qualifier_set cv_quals;
 
   /* Advance past the "f". */
@@ -5073,6 +5073,9 @@ The syntax is:
     if (level == -1) {
       (void)sprintf(buffer, "%ld", num);
     } else {
+      /* The buffer must be at least 51 characters to hold the maximum of 2
+         longs (20-digit), 11 fixed characters, 1 optional character "s", and
+         the null character for string termination. */
       (void)sprintf(buffer, "%ld[up %ld level%s]", num, level,
                             level > 1 ? "s" : "");
     }  /* if */
