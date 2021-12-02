@@ -905,7 +905,7 @@ the specifiers and declarator that formed the new type.
   a_boolean               array_of_incomp_class_or_enum = FALSE;
   a_boolean               is_member_function_typedef = FALSE;
   a_type_ptr              mft_class_type, mft_rout_type;
-  a_symbol_ptr            mft_sym;
+  a_symbol_ptr            mft_sym = NULL;
 
   db_enter(3, "add_to_derived_type_list");
 #if DEBUG
