@@ -10583,19 +10583,20 @@ the call (and can be NULL in cases where maintain_sequencing is FALSE).
     param = unlowered_param_type_list_full(called_rout_type, called_rout);
   }  /* if */
   if (maintain_sequencing) {
-    /* Sequencing is only needed if there are two or more invariant args. */
-    a_host_large_integer invariant_args = 0;
+    /* Sequencing is only needed if there are two or more arguments whose
+       value can change (i.e., are not invariant). */
+    a_host_large_integer mutable_args = 0;
     for (expr = expr_list; expr != NULL; expr = expr->next) {
-      if (invariant_args == 0 && expr->next == NULL) {
-        /* No need to check last argument if there are no previous invariant
+      if (mutable_args == 0 && expr->next == NULL) {
+        /* No need to check last argument if there are no previous mutable
            arguments. */
         break;
       } else if (!is_invariant_expr(expr, /*vars_can_change=*/TRUE,
                                     /*treat_as_potential_prvalue=*/FALSE)) {
-        if (++invariant_args == 2) break;
+        if (++mutable_args == 2) break;
       }  /* if */
     }  /* for */
-    maintain_sequencing = (invariant_args == 2);
+    maintain_sequencing = (mutable_args == 2);
   }  /* if */
   /* Track the current parameter type as we go through the list. */
   for (expr = expr_list; expr != NULL; expr = expr->next) {
@@ -10606,17 +10607,24 @@ the call (and can be NULL in cases where maintain_sequencing is FALSE).
     }  /* if */
     if (param != NULL) {
       /* Prototyped parameter. */
-      if (param->passed_via_copy_constructor &&
-          param->qualifiers != TQ_NONE) {
-        /* Argument passed via a copy constructor to a cv-qualified parameter.
-           The argument is a pointer, but it doesn't have the right qualifiers.
-           "void f(const A)" becomes "void f(A)" because of a C++ language
-           rule (in most modes); that will be lowered to "void f(const A*)",
-           but the lowering hasn't been done yet.  The argument has type
-           "A*", and needs to be cast to "const A*". */
-        an_expr_node_ptr expr_copy = copy_node(expr);
-        change_to_cast(expr, expr_copy, 
-                       type_of_cctor_param_after_adding_indirection(param));
+      if (param->passed_via_copy_constructor) {
+        if (!expr->is_lvalue && is_class_struct_union_type(expr->type)) {
+          /* Replace a class rvalue argument with a pointer to the
+             argument. */
+          overwrite_node(expr,
+                         rvalue_pointer_for_class_rvalue(copy_node(expr)));
+        }  /* if */
+        if (param->qualifiers != TQ_NONE) {
+          /* Argument passed via a copy constructor to a cv-qualified
+             parameter.  The argument is a pointer, but it doesn't have the
+             right qualifiers.  "void f(const A)" becomes "void f(A)" because
+             of a C++ language rule (in most modes); that will be lowered to
+             "void f(const A*)", but the lowering hasn't been done yet.  The
+             argument has type "A*", and needs to be cast to "const A*". */
+          an_expr_node_ptr expr_copy = copy_node(expr);
+          change_to_cast(expr, expr_copy,
+                         type_of_cctor_param_after_adding_indirection(param));
+        }  /* if */
       }  /* if */
       if (make_all_functions_unprototyped) {
         /* Do default argument promotions on any arguments that need it,
