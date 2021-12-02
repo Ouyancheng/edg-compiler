@@ -4346,7 +4346,7 @@ after a call to this routine.
 	     class of the same name can be used. */
           if (sym != NULL) {
             a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-            if (!is_acceptable_symbol(sym, fund_sym, lookup_state,
+            if (!is_acceptable_symbol(sym, fund_sym, &lookup_state, ssep,
                                       /*invisible_okay=*/FALSE)) {
               sym = NULL;
             }  /* if */
