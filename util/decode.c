@@ -8498,23 +8498,23 @@ and "user_buffer_size" is set to the new size.
 {
 #define TEMP_BUFFER_SIZE 256
   int		result_status = CXA_DEMANGLE_SUCCESS;
-  char		temp_buffer[TEMP_BUFFER_SIZE];
-  char		*buf_to_use = NULL;
-  a_boolean	temp_buffer_used = FALSE;
-  sizeof_t	buf_size = 0;
+  char		*result_buffer;
 
   if (user_buffer != NULL && user_buffer_size == NULL) {
     /* A buffer was provided but its size is not specified. */
     result_status = CXA_DEMANGLE_INVALID_ARGUMENTS;
+    result_buffer = NULL;
   } else {
     /* Demangle the name. */
+    char	temp_buffer[TEMP_BUFFER_SIZE];
+    char	*buf_to_use = NULL;
+    sizeof_t	buf_size = 0;
     a_boolean	err;
     a_boolean	buffer_overflow_err;
     sizeof_t	required_buffer_size;
     /* If no buffer was provided by the caller, try using temp_buffer. */
     if (user_buffer == NULL) {
       buf_to_use = temp_buffer;
-      temp_buffer_used = TRUE;
       buf_size = TEMP_BUFFER_SIZE;
     } else {
       buf_to_use = user_buffer;
@@ -8525,17 +8525,16 @@ and "user_buffer_size" is set to the new size.
                         &buffer_overflow_err, &required_buffer_size);
       if (buffer_overflow_err) {
         /* The buffer was too small.  Allocate a new buffer. */
-        if (temp_buffer_used || buf_to_use == user_buffer) {
+        if (buf_to_use == temp_buffer || buf_to_use == user_buffer) {
           /* We previously used a local buffer or we used the buffer
              supplied by the user.  Allocate a new one.  Note that we
              don't free the user buffer yet because an error might still
              occur and we can only provide the new buffer address in cases
              where we return successfully. */
           buf_to_use = (char*)malloc((true_size_t)required_buffer_size);
-          temp_buffer_used = FALSE;
         } else {
           /* We are using a user-buffer.  Reallocate that buffer. */
-          buf_to_use = (char*)realloc(buf_to_use, 
+          buf_to_use = (char*)realloc(buf_to_use,
                                       (true_size_t)required_buffer_size);
         }  /* if */
         buf_size = required_buffer_size;
@@ -8550,42 +8549,47 @@ and "user_buffer_size" is set to the new size.
       /* Continue looping until decode_identifier succeeds.  If an error
          was detected, terminate the loop. */
     } while (err && result_status == CXA_DEMANGLE_SUCCESS);
-    if (result_status == CXA_DEMANGLE_SUCCESS && temp_buffer_used) {
+    /* Replace the temporary buffer if used successfully. */
+    if (result_status == CXA_DEMANGLE_SUCCESS && buf_to_use == temp_buffer) {
       /* The temporary buffer was used.  Copy the result to a dynamically
          allocated buffer. */
-      true_size_t	size;
-      size = strlen(temp_buffer) + 1;
+      true_size_t size = strlen(temp_buffer) + 1;
+
       buf_to_use = (char*)malloc(size);
       if (buf_to_use == NULL) {
+        /* The operation had an allocation failure. */
         result_status = CXA_DEMANGLE_ALLOC_FAILURE;
       } else {
         (void)strcpy(buf_to_use, temp_buffer);
       }  /* if */
     }  /* if */
+    /* Cleanup any now unused buffers. */
+    if (result_status == CXA_DEMANGLE_SUCCESS) {
+      /* If the buffer being returned is not the buffer supplied by the
+         user, free the user buffer. */
+      if (user_buffer != NULL && buf_to_use != user_buffer) {
+        free(user_buffer);
+        /* Update the size parameter passed in. */
+        if (user_buffer_size != NULL) {
+          *user_buffer_size = buf_size;
+        }  /* if */
+      }  /* if */
+    } else {
+      /* If the buffer being used was allocated above, free it now. */
+      if (buf_to_use != temp_buffer && buf_to_use != user_buffer) {
+        free(buf_to_use);
+      }  /* if */
+    } /* if */
+    /* Determine the final result. */
+    if (result_status == CXA_DEMANGLE_SUCCESS) {
+      result_buffer = buf_to_use;
+    } else {
+      result_buffer = NULL;
+    }  /* if */
   }  /* if */
   /* Return the status to the caller. */
   if (status != NULL) *status = result_status;
-  /* Return NULL if there was an error. */
-  if (result_status != CXA_DEMANGLE_SUCCESS) {
-    /* If the buffer being used was allocated above, free it now. */
-    if (!temp_buffer_used &&
-        user_buffer != NULL && buf_to_use != user_buffer) {
-       free(buf_to_use);
-    }  /* if */
-    buf_to_use = NULL;
-  } else {
-    /* The demangling was successful. */
-    /* If the buffer being returned is not the buffer supplied by the
-       user, free the user buffer. */
-    if (user_buffer != NULL && buf_to_use != user_buffer) {
-      free(user_buffer);
-      /* Update the size parameter passed in. */
-      if (user_buffer_size != NULL) {
-        *user_buffer_size = buf_size;
-      }  /* if */
-    }  /* if */
-  }  /* if */
-  return buf_to_use;
+  return result_buffer;
 #undef TEMP_BUFFER_SIZE
 }  /* __cxa_demangle */
 
