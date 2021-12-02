@@ -162,8 +162,6 @@ typedef struct a_pl_symbol {
 			   as references to the primary entry. */
   char		*name;
 			/* Name of the symbol. */
-  int		name_length;
-			/* Number of characters in the name. */
   a_byte_boolean
 		referenced;
 			/* The symbol has been referenced by an object file
@@ -1004,7 +1002,6 @@ Allocate a symbol, initialize it, and return a pointer to it.
     psp = (a_pl_symbol_ptr)pl_malloc_with_check(sizeof(a_pl_symbol));
   }  /* if */
   psp->name = NULL;
-  psp->name_length = 0;
   psp->next = NULL;
   psp->next_in_symbol_table = NULL;
   psp->next_in_request_file = NULL;
@@ -1109,22 +1106,6 @@ to the copy.
   strcpy(dest, source);
   return dest;
 }  /* pl_copy_string */
-
-
-static char *pl_copy_string_with_length(a_const_char *source,
-                                        int          length)
-/*
-Allocate space for a copy of the string and make a copy.  Return a pointer
-to the copy.  Use length as the length of the string to be copied.
-*/
-{
-  char	*dest;
-  dest = (char *)malloc(size_t_arg(length + 1));
-  strncpy(dest, source, length);
-  /* Add a null terminator. */
-  dest[length] = '\0';
-  return dest;
-}  /* pl_copy_string_with_length */
 
 
 static a_boolean pl_is_explicit_specialization(char	 *name)
@@ -2021,7 +2002,6 @@ call.
   a_pl_symbol_ptr	       prev_sym_ptr;
   a_pl_symbol_ptr              sym_ptr    = NULL;
   int                          bucket_number;
-  int			       length;
   a_boolean		       is_new = FALSE;
 
   /* If the symbol pointer passed from the caller already contains a pointer
@@ -2031,8 +2011,6 @@ call.
     sym_ptr = other_sym->global_sym;
     goto symbol_found;
   }  /* if */
-  /* Compute the string length. */
-  length = (int)strlen(name);
   hash_value = hash_value_for_name(name);
   /* Look in the symbol bucket saving the position in case this symbol needs
      to be added. */
@@ -2040,8 +2018,7 @@ call.
   if ((sym_ptr = pl_symbol_table[bucket_number]) != NULL) {
     prev_sym_ptr = NULL;
     do {
-      if (length == sym_ptr->name_length &&
-          strncmp(name, sym_ptr->name, length) == 0) {
+      if (strcmp(name, sym_ptr->name) == 0) {
         /* We have a match. */
         /* Relink the symbol header at the front of the list of headers,
            so that frequently-used headers will be found quickly. */
@@ -2068,8 +2045,7 @@ call.
        symbol table. */
     sym_ptr->next = pl_symbol_table[bucket_number];
     pl_symbol_table[bucket_number] = sym_ptr;
-    sym_ptr->name = pl_copy_string_with_length(name, length);
-    sym_ptr->name_length = length;
+    sym_ptr->name = pl_copy_string(name);
     if (pl_is_explicit_specialization(sym_ptr->name)) {
       /* This name is an explicit specialization.  Add it to a list
          of specializations. */
