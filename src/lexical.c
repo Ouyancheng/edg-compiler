@@ -8557,7 +8557,8 @@ source text (end of token, start of expansion, end of expansion).
 {
   char               ch;
   int                kind_skipped;
-  a_const_char       *comment_start_loc, *saved_curr_char_loc;
+  a_const_char       *comment_start_loc = NULL;
+  a_const_char       *saved_curr_char_loc;
   a_boolean          comment_pos_determined;
   a_source_position  comment_start_pos;
   a_const_char       *delete_from;
@@ -8566,7 +8567,7 @@ source text (end of token, start of expansion, end of expansion).
                      slmp;
   a_boolean          delete_only_for_comment = FALSE;
 #if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
-  a_boolean          suspicious_unicode;
+  a_boolean          suspicious_unicode = FALSE;
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 
 /* Macro used later to test if comments must be deleted.  Except for the
