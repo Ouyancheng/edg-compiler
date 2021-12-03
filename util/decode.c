@@ -8497,7 +8497,6 @@ and "user_buffer_size" is set to the new size.
 */
 {
 #define TEMP_BUFFER_SIZE 256
-BEGIN_DISABLE_GCC_OPTIMIZATION_WARNING("-Wreturn-local-addr")
   int		result_status = CXA_DEMANGLE_SUCCESS;
   char		*result_buffer;
 
@@ -8590,8 +8589,11 @@ BEGIN_DISABLE_GCC_OPTIMIZATION_WARNING("-Wreturn-local-addr")
   }  /* if */
   /* Return the status to the caller. */
   if (status != NULL) *status = result_status;
+  /* Disable spurious GCC warning about returning temp_buffer at the -O3
+     optimization level. */
+BEGIN_DISABLE_GCC_WARNING_RET_LOCAL_ADDR
   return result_buffer;
-END_DISABLE_GCC_OPTIMIZATION_WARNING /* -Wreturn-local-addr */
+END_DISABLE_GCC_WARNING_RET_LOCAL_ADDR
 #undef TEMP_BUFFER_SIZE
 }  /* __cxa_demangle */
 

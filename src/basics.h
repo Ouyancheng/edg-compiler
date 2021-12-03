@@ -1118,20 +1118,50 @@ Define a utility for composing _Pragma string literals.
 #define AS_PRAGMA(...) _Pragma(#__VA_ARGS__)
 
 /*
-At higher optimization levels GCC sometimes emits spurious warnings.  These
-macros can be used to disable them locally for builds with optimizations
-enabled (presumed based on the definition of NDEBUG).
+GCC sometimes emits spurious warnings (particularly at high optimization
+levels).  SUPPRESS_BAD_GNU_WARNINGS (on by default for GCC builds) controls
+global suppression of these warnings.
 */
-#if defined(__GNUC__) && !defined(__clang__) && NDEBUG
-#define BEGIN_DISABLE_GCC_OPTIMIZATION_WARNING(warning) \
+#ifndef SUPPRESS_BAD_GNU_WARNINGS
+#if defined(__GNUC__) && !defined(__clang__)
+#define SUPPRESS_BAD_GNU_WARNINGS 1
+#else  /* !(defined(__GNUC__) && !defined(__clang__)) */
+#define SUPPRESS_BAD_GNU_WARNINGS 0
+#endif /* defined(__GNUC__) && !defined(__clang__) */
+#endif /* !defined(SUPPRESS_BAD_GNU_WARNINGS) */
+
+/* Define base macros for silencing GCC warnings.  These do not check GCC
+   versions and shouldn't be used directly. */
+#if SUPPRESS_BAD_GNU_WARNINGS
+#define BEGIN_DISABLE_GCC_WARNING(warning) \
   _Pragma("GCC diagnostic push") \
   AS_PRAGMA(GCC diagnostic ignored warning)
-#define END_DISABLE_GCC_OPTIMIZATION_WARNING \
+#define END_DISABLE_GCC_WARNING \
   _Pragma("GCC diagnostic pop")
-#else /* !(defined(__GNUC__) && !defined(__clang__) && NDEBUG) */
-#define BEGIN_DISABLE_GCC_OPTIMIZATION_WARNING(warning) /* nothing */
-#define END_DISABLE_GCC_OPTIMIZATION_WARNING /* nothing */
-#endif /* defined(__GNUC__) && !defined(__clang__) && NDEBUG */
+#else  /* !SUPPRESS_BAD_GNU_WARNINGS */
+#define BEGIN_DISABLE_GCC_WARNING(warning) /* nothing */
+#define END_DISABLE_GCC_WARNING /* nothing */
+#endif /* SUPPRESS_BAD_GNU_WARNINGS */
+/* Define a macro for -Wstringop-overflow (added in GCC 7.1). */
+#if __GNUC__ > 7 || (__GNUC__ == 7 && __GNUC_MINOR__ >= 1)
+#define BEGIN_DISABLE_GCC_WARNING_STR_OVERFLOW \
+  BEGIN_DISABLE_GCC_WARNING("-Wstringop-overflow")
+#define END_DISABLE_GCC_WARNING_STR_OVERFLOW \
+  END_DISABLE_GCC_WARNING
+#else  /* !(__GNUC__ > 7 || (__GNUC__ == 7 && __GNUC_MINOR__ >= 1)) */
+#define BEGIN_DISABLE_GCC_WARNING_STR_OVERFLOW /* nothing */
+#define END_DISABLE_GCC_WARNING_STR_OVERFLOW /* nothing */
+#endif /* __GNUC__ > 7 || (__GNUC__ == 7 && __GNUC_MINOR__ >= 1) */
+/* Define a macro for -Wreturn-local-addr (added in GCC 4.8). */
+#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 8)
+#define BEGIN_DISABLE_GCC_WARNING_RET_LOCAL_ADDR \
+  BEGIN_DISABLE_GCC_WARNING("-Wreturn-local-addr")
+#define END_DISABLE_GCC_WARNING_RET_LOCAL_ADDR \
+  END_DISABLE_GCC_WARNING
+#else  /* !(__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 8)) */
+#define BEGIN_DISABLE_GCC_WARNING_RET_LOCAL_ADDR /* nothing */
+#define END_DISABLE_GCC_WARNING_RET_LOCAL_ADDR /* nothing */
+#endif /* __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 8) */
 
 /*
 Some coding standards require a default label in switches even if it's

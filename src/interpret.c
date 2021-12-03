@@ -5027,9 +5027,11 @@ by implied_src.
                     /* A class value with a mutable member cannot be fully
                        loaded and thus is not completely initialized. */
                   } else {
-BEGIN_DISABLE_GCC_OPTIMIZATION_WARNING("-Wstringop-overflow")
+                    /* Disable spurious GCC warning about writing one byte to a
+                       zero sized region at the -O3 optimization level. */
+BEGIN_DISABLE_GCC_WARNING_STR_OVERFLOW
                       mark_complete_object_initialized(var_bytes);
-END_DISABLE_GCC_OPTIMIZATION_WARNING /* -Wstringop-overflow */
+END_DISABLE_GCC_WARNING_STR_OVERFLOW
                   }  /* if */
                   if (!no_reverse_map) {
                     /* Set up a reverse mapping so we can re-create a variable
