@@ -8390,6 +8390,155 @@ except the first, create an entry in the logical character info table.
 
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+
+/*
+Facilities for detecting and reporting suspicious uses of Unicode
+bidirectional and zero-width control characters.
+*/
+
+/*
+A structure for recording unterminated bidirectional control characters,
+which can be nested.
+*/
+typedef struct a_pending_bidi_control *a_pending_bidi_control_ptr;
+struct a_pending_bidi_control {
+  a_pending_bidi_control_ptr
+		next;	/* Points to the control character in whose group
+			   the current character appears, or to the next
+			   entry on the available list. */
+  unsigned long	start_ch;
+			/* The bidirectional control character to which
+			   this entry refers. */
+};  /* a_pending_bidi_control */
+
+static a_pending_bidi_control_ptr
+		pending_bidi_controls;
+			/* The top of a stack (linked on the "next" field)
+			   of not-yet-terminated bidirectional control
+			   characters. */
+
+static a_pending_bidi_control_ptr
+		avail_pending_bidi_controls;
+			/* List (linked on the "next" field) of
+			   bidirectional control character entries that are
+			   available for reuse. */
+
+static void push_bidi_control(unsigned long ch)
+/*
+Push a new or reused bidirectional control character entry on the stack of
+pending characters, with ch as the starting character.
+*/
+{
+  a_pending_bidi_control_ptr pbcp;
+
+  if (avail_pending_bidi_controls != NULL) {
+    pbcp = avail_pending_bidi_controls;
+    avail_pending_bidi_controls = pbcp->next;
+  } else {
+    pbcp = alloc_fe_of_type(a_pending_bidi_control);
+  }  /* if */
+  pbcp->start_ch = ch;
+  pbcp->next = pending_bidi_controls;
+  pending_bidi_controls = pbcp;
+}  /* push_bidi_control */
+
+
+static void pop_bidi_control(a_boolean flush)
+/*
+Move one (or, if flush is TRUE, every) bidirectional control character
+entry from the stack to the list of available entries.
+*/
+{
+  a_pending_bidi_control_ptr next;
+
+  while (pending_bidi_controls != NULL) {
+    next = pending_bidi_controls->next;
+    pending_bidi_controls->next = avail_pending_bidi_controls;
+    avail_pending_bidi_controls = pending_bidi_controls;
+    pending_bidi_controls = next;
+    if (!flush) {
+      break;
+    }  /* if */
+  }  /* while */
+}  /* pop_bidi_control */
+
+
+static a_boolean check_for_suspicious_control(unsigned  long ch,
+                                              a_boolean flag_zero_width)
+/*
+ch is a Unicode code point.  If it is a bidirectional control code, return
+TRUE if it violates the stacking rules for such codes.  In addition, if
+flag_zero_width is TRUE, return TRUE if ch is a zero-width character.
+Otherwise, return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  switch (ch) {
+    case 0x202a: /* LRE */
+    case 0x202b: /* RLE */
+    case 0x202d: /* LRO */
+    case 0x202e: /* RLO */
+    case 0x2066: /* LRI */
+    case 0x2067: /* RLI */
+    case 0x2068: /* FSI */
+      /* These codes start regions. */
+      push_bidi_control(ch);
+      break;
+    case 0x202c: /* PDF */
+      /* Ends an LRE/REL/LRO/LRO region. */
+      if (pending_bidi_controls == NULL) {
+        /* The stack is empty and cannot be popped. */
+        result = TRUE;
+      } else if (pending_bidi_controls->start_ch != 0x202a /* LRE */ &&
+                 pending_bidi_controls->start_ch != 0x202b /* RLE */ &&
+                 pending_bidi_controls->start_ch != 0x202d /* LRO */ &&
+                 pending_bidi_controls->start_ch != 0x202e /* RLO */) {
+        /* The pop does not match the top of the stack.  Empty it and flag
+           an error. */
+        pop_bidi_control(/*flush=*/TRUE);
+        result = TRUE;
+      } else {
+        pop_bidi_control(/*flush=*/FALSE);
+      }  /* if */
+      break;
+    case 0x2069: /* PDI */
+      /* Ends an LRI/RLI/FSI region. */
+      if (pending_bidi_controls == NULL) {
+        /* The stack is empty and cannot be popped. */
+        result = TRUE;
+      } else if (pending_bidi_controls->start_ch != 0x2066 /* LRI */ &&
+                 pending_bidi_controls->start_ch != 0x2067 /* RLI */ &&
+                 pending_bidi_controls->start_ch != 0x2068 /* FSI */) {
+        /* The pop does not match the top of the stack.  Empty it and flag
+           an error. */
+        pop_bidi_control(/*flush=*/TRUE);
+        result = TRUE;
+      } else {
+        pop_bidi_control(/*flush=*/FALSE);
+      }  /* if */
+      break;
+    case 0x200b: /* ZWSP */
+    case 0x200c: /* ZWNJ */
+    case 0x200d: /* ZWJ */
+    case 0x2060: /* WJ */
+    case 0xfeff: /* ZWNBSP */
+      /* Zero-width (invisible) characters.  These can cause strings to
+         unobviously compare unequal. */
+      if (flag_zero_width) {
+        result = TRUE;
+      }  /* if */
+      break;
+    default:
+      /* No action required. */
+      break;
+  }  /* switch */
+  return result;
+}  /* check_for_suspicious_control */
+
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
+
 void skip_white_space(void)
 /*
 Skip over any white space in the input.  White space includes blanks,
@@ -8416,6 +8565,9 @@ source text (end of token, start of expansion, end of expansion).
   a_source_line_modif_ptr
                      slmp;
   a_boolean          delete_only_for_comment = FALSE;
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+  a_boolean          suspicious_unicode;
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 
 /* Macro used later to test if comments must be deleted.  Except for the
    keep_comments_in_pp_output switch, this is basically a time optimization --
@@ -8829,6 +8981,9 @@ white_space_loop:
         }  /* if */
       } else {
 normal_comment:
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+        suspicious_unicode = FALSE;
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
         /* C-style comment. */
         /* Save the position of the start of the comment.  Do not determine
            the source position yet (it may be costly, and it's only needed
@@ -8939,8 +9094,24 @@ normal_comment:
             if (mbc_enabled && char_may_begin_multibyte_sequence(ch)) {
               /* Advance to the next character, dealing with multibyte
                  characters. */
-              int mbc_len = f_mbc_length(p_ch, (a_boolean *)NULL,
-                                         /*is_native=*/FALSE);
+              int mbc_len;
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+              if (check_unicode_security &&
+                  curr_file_unicode_source_kind != usk_none) {
+                unsigned long uni_ch;
+                a_boolean     uni_err;
+                mbc_len = mbc_to_wide_char(p_ch, &uni_ch, &uni_err,
+                                           /*is_native=*/FALSE);
+                if (!uni_err && uni_ch > 0x2000 &&
+                    check_for_suspicious_control(uni_ch,
+                                                 /*flag_zero_width=*/FALSE)) {
+                  suspicious_unicode = TRUE;
+                }  /* if */
+              } else
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
+              /* Do not insert code here. */
+              mbc_len = f_mbc_length(p_ch, (a_boolean *)NULL,
+                                     /*is_native=*/FALSE);
               /* Increment curr_char_loc by mbc_len and create any logical
                  character index entries. */
               incr_char_loc_for_multibyte_char(p_ch, mbc_len);
@@ -9059,6 +9230,15 @@ normal_comment:
 #if MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED
             /* Initialize for scanning multibyte characters in the comment. */
             mbc_scan_init_if_multibyte_chars_in_source_enabled();
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+            if (check_unicode_security &&
+                curr_file_unicode_source_kind != usk_none) {
+              /* Only the last line of a comment needs to be considered
+                 when determining suspicious bidirectional controls. */
+              suspicious_unicode = FALSE;
+              pop_bidi_control(/*flush=*/TRUE);
+            }  /* if */
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
           }   /* if */
         }  /* for */
@@ -9092,6 +9272,19 @@ normal_comment:
         }  /* if */
 end_of_comment:;
       }  /* if */
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+      if (check_unicode_security &&
+          multibyte_chars_in_source_enabled &&
+          curr_file_unicode_source_kind != usk_none &&
+          (pending_bidi_controls != NULL || suspicious_unicode)) {
+        /* We either had an unterminated bidirectional control or the
+           bidirectional nesting rules were violated.  Warn about it and
+           empty the stack in preparation for the next comment or string. */
+        warning_at_line_pos(ec_suspicious_comment_formatting,
+                            comment_start_loc);
+        pop_bidi_control(/*flush=*/TRUE);
+      }  /* if */
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
       /* Remember that a comment was skipped in white space.  Note that
          this must be done after the test of kind_skipped above. */
       kind_skipped |= WHITE_SPACE_COMMENTS;
@@ -10675,6 +10868,10 @@ messages.
   int                    delim_len_adjustment = 0;
   a_boolean              is_raw_string;
   a_boolean              is_string_literal;
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+  a_boolean              suspicious_unicode = FALSE;
+  a_const_char           *string_start_loc = curr_char_loc;
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 
   nchars = 0;
   is_raw_string = (literal_kind & SCLK_RAW_STRING_LITERAL) != 0;
@@ -10850,17 +11047,31 @@ messages.
       if (multibyte_chars_in_source_enabled) {
         /* Advance to the next character, dealing with multibyte characters. */
         a_boolean err = FALSE;
+        int       numch;
+#if EDG_WIN32 || UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+        unsigned long wc;
+#endif /* EDG_WIN32 || UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+        if (check_unicode_security &&
+            curr_file_unicode_source_kind != usk_none) {
+          numch = mbc_to_wide_char(curr_char_loc, &wc, &err,
+                                   /*is_native=*/FALSE);
+          if (!err && wc > 0x2000 &&
+              check_for_suspicious_control(wc, /*flag_zero_width=*/TRUE)) {
+            suspicious_unicode = TRUE;
+          }  /* if */
+        } else
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
+        /* Do not insert code here. */
 #if !EDG_WIN32
-        int       numch = lex_mbc_length(curr_char_loc, &err);
+        numch = lex_mbc_length(curr_char_loc, &err);
 #else /* EDG_WIN32 */
         /* Windows has a bug that can cause the length returned by
            lex_mbc_length_simple to differ from what is returned by
            lex_mbc_to_wide_char.  The length computed here must match the
            value computed by conv_string_literal, so on Windows we use
            lex_mbc_to_wide_char here. */
-        unsigned long wc;
-        int           numch = lex_mbc_to_wide_char(curr_char_loc,
-                                                   &wc, &err);
+        numch = lex_mbc_to_wide_char(curr_char_loc, &wc, &err);
 #endif /* !EDG_WIN32 */
         /* Increment curr_char_loc by numch and create any logical
            character index entries. */
@@ -10922,6 +11133,23 @@ messages.
   }  /* while */
 return_point:
   end_of_curr_token = curr_char_loc;
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+  if (check_unicode_security &&
+      multibyte_chars_in_source_enabled &&
+      curr_file_unicode_source_kind != usk_none) {
+    if (!unterminated &&
+        (pending_bidi_controls != NULL || suspicious_unicode)) {
+      /* This is the last (or only) line of the string, and we either had
+         an unterminated bidirectional control or the bidirectional
+         nesting rules were violated.  (Only the last line of a multi-line
+         string need be considered for suspicious formatting.)  Issue a
+         warning. */
+      warning_at_line_pos(ec_suspicious_string_formatting,
+                          string_start_loc);
+    }  /* if */
+    pop_bidi_control(/*flush=*/TRUE);
+  }  /* if */
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
   if (unterminated) {
     end_of_curr_token--;
     *num_chars += nchars;
@@ -13679,7 +13907,12 @@ same hashing algorithm found in hash_source_string.
       a_confusable_map_elem_ptr cmep = confusable_char(ch);
       utf_len = unicode_to_utf8(ch, arr);
       add_to_text_buffer(src_spellings, arr, utf_len);
-      if (cmep == NULL) {
+      if (ch >= 0x200b && ch <= 0x200d) {
+        /* This is a Unicode zero-width character.  Since it is invisible,
+           it makes the identifier confusable but should not be added to
+           the prototyped string. */
+        confusable_seen = TRUE;
+      } else if (cmep == NULL) {
         /* Not a confusable character.  Add the UTF-8 bytes to the
            prototyped string and update the hash code. */
         for (i = 0; i < utf_len; ++i) {
