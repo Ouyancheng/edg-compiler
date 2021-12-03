@@ -2415,6 +2415,31 @@ in the scope in which the using-directives apply.
 }  /* is_symbol_visible_for_gpp_using_dir */
 
 
+static inline a_boolean is_acceptable_active_symbol(
+                                        a_symbol_ptr            sym,
+                                        a_symbol_ptr            fund_sym,
+                                        a_lookup_state_ptr      lookup_state,
+                                        a_scope_stack_entry_ptr ssep,
+                                        a_boolean               invisible_okay)
+/*
+Function used by active_scope_lookup that tests whether or not a symbol on the
+active list is acceptable.  Return TRUE if the symbol is in the proper name
+space, FALSE otherwise.
+*/
+{
+  a_name_space_kind ns_kind = name_space_for_symbol_kind[(int)sym->kind];
+  a_boolean         result = TRUE;
+
+  if (ns_kind != lookup_state->required_name_space_kind) {
+    result = FALSE;
+  } else if (!is_acceptable_symbol(sym, fund_sym, lookup_state, ssep,
+                                   /*invisible_okay=*/FALSE)) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_acceptable_active_symbol */
+
+
 static a_symbol_ptr do_using_directive_lookup
                               (a_scope_stack_entry_ptr	ssep,
                                a_symbol_ptr		sym_from_scope,
@@ -2616,14 +2641,6 @@ routine.
   a_boolean               saved_check_decl_seq;
   a_scope_stack_entry_ptr ssep = scope_stack_entry_for(scope_depth);
 
-/* Local macro that tests whether or not a symbol on the active list
-   is acceptable.  See if the symbol is in the proper name space. */
-#define is_acceptable_active_symbol(sym, fund_sym)                           \
-  (name_space_for_symbol_kind[(int)sym->kind] ==			     \
-                                   lookup_state->required_name_space_kind && \
-   is_acceptable_symbol(sym, fund_sym, lookup_state, ssep,                  \
-                        /*invisible_okay=*/FALSE))
-
   /* The decl_seq check should not be done on function parameters in certain
      noexcept contexts. */
   saved_check_decl_seq = lookup_state->check_decl_seq;
@@ -2655,7 +2672,8 @@ routine.
           type_tag_symbol->decl_scope != active_sym->decl_scope) {
         break;
       }  /* if */
-      if (is_acceptable_active_symbol(active_sym, fund_sym)) {
+      if (is_acceptable_active_symbol(active_sym, fund_sym, lookup_state,
+                                      ssep, /*invisible_okay=*/FALSE)) {
         /* We found a matching symbol.  If this is a type symbol found
            by a must-be-tag lookup, keep searching for a "real" tag in
            the same scope. */
@@ -2711,7 +2729,6 @@ routine.
   }  /* if */
   lookup_state->check_decl_seq = saved_check_decl_seq;
   return sym;
-#undef is_acceptable_active_symbol
 }  /* active_scope_lookup */
 
 
