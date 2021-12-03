@@ -14805,13 +14805,6 @@ id_scan:
         }  /* if */
       } while (continue_scan);
       end_of_curr_token = curr_char_loc - 1;
-#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
-      if (check_unicode_security &&
-          multibyte_chars_in_source_enabled &&
-          curr_file_unicode_source_kind != usk_none) {
-        check_for_confusable_id();
-      }  /* if */
-#endif  /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
       /* Clear the symbol locator for the current identifier.  This is done 
          even if the identifier is not looked up in the symbol table. */
       clear_locator(&locator_for_curr_id, &pos_curr_token);
@@ -14836,6 +14829,13 @@ id_scan:
           !expand_macros && !caching_pragma_tokens) {
         /* Raw preprocessing tokens wanted, so do not look up the
            identifier. */
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+        if (check_unicode_security &&
+            multibyte_chars_in_source_enabled &&
+            curr_file_unicode_source_kind != usk_none) {
+          check_for_confusable_id();
+        }  /* if */
+#endif  /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
       } else {
         /* If variadic macros are allowed, '__VA_ARGS__' should appear only
            in the replacement list of such macros, and similarly for
@@ -14853,6 +14853,15 @@ id_scan:
         }  /* if */
         sym_hdr = find_symbol_header(id_ptr, id_length,
                                      &locator_for_curr_id);
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+        if (check_unicode_security &&
+            multibyte_chars_in_source_enabled &&
+            curr_file_unicode_source_kind != usk_none &&
+            !sym_hdr->id_added_to_map) {
+          check_for_confusable_id();
+          sym_hdr->id_added_to_map = TRUE;
+        }  /* if */
+#endif  /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 #if BUILTIN_FUNCTIONS_ENABLED
         if (builtin_needs_to_be_loaded(sym_hdr) &&
             !fetch_pp_tokens &&

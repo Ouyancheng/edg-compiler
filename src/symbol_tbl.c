@@ -1957,6 +1957,9 @@ Allocate a new symbol header, and return a pointer to it.
   ptr->any_decl_in_file_or_namespace_scope = FALSE;
 #endif /* RECORD_HIDDEN_NAMES_IN_IL */
   ptr->any_function_referenced_in_dependent_call = FALSE;
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+  ptr->id_added_to_map = FALSE;
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 #if BUILTIN_FUNCTIONS_ENABLED
   ptr->is_builtin_function = FALSE;
   ptr->builtin_has_been_loaded = FALSE;
