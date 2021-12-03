@@ -1122,21 +1122,16 @@ At higher optimization levels GCC sometimes emits spurious warnings.  These
 macros can be used to disable them locally for builds with optimizations
 enabled (presumed based on the definition of NDEBUG).
 */
-#ifdef __GNUC__
-#if NDEBUG
+#if defined(__GNUC__) && !defined(__clang__) && NDEBUG
 #define BEGIN_DISABLE_GCC_OPTIMIZATION_WARNING(warning) \
   _Pragma("GCC diagnostic push") \
   AS_PRAGMA(GCC diagnostic ignored warning)
 #define END_DISABLE_GCC_OPTIMIZATION_WARNING \
   _Pragma("GCC diagnostic pop")
-#else /* !NDEBUG */
+#else /* !(defined(__GNUC__) && !defined(__clang__) && NDEBUG) */
 #define BEGIN_DISABLE_GCC_OPTIMIZATION_WARNING(warning) /* nothing */
 #define END_DISABLE_GCC_OPTIMIZATION_WARNING /* nothing */
-#endif /* NDEBUG */
-#else /* !defined(__GNUC__) */
-#define BEGIN_DISABLE_GCC_OPTIMIZATION_WARNING(warning) /* nothing */
-#define END_DISABLE_GCC_OPTIMIZATION_WARNING /* nothing */
-#endif /* defined(__GNUC__) */
+#endif /* defined(__GNUC__) && !defined(__clang__) && NDEBUG */
 
 /*
 Some coding standards require a default label in switches even if it's
