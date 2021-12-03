@@ -1736,21 +1736,21 @@ Each object file points to a linked list of symbols that are referenced
 or defined in that object file.
 */
 {
-  a_boolean any_lines_read = FALSE;
+  char			*input_file_name = NULL;
+  char			*obj_file_name = NULL;
+  a_boolean		is_archive = FALSE;
+  a_pl_object_file_ptr	objects_tail = NULL;
+  a_pl_object_file_ptr	pofp = NULL;
+  a_pl_input_file_ptr	pifp = NULL;
+  a_boolean		any_lines_read = FALSE;
 
   while (pl_read_input_line(f_command_output)) {
-    char                 *input_file_name = NULL;
-    char                 *obj_file_name = NULL;
-    a_boolean            is_archive = FALSE;
-    a_pl_input_file_ptr  pifp;
-    a_pl_object_file_ptr pofp = NULL;
-    a_pl_object_file_ptr objects_tail;
-    char                 *name1;
-    char                 *name2;
-    char                 type;
-    char                 *symbol_name;
-    a_pl_symbol_ptr      psp;
-    a_boolean            process_line;
+    char		*name1;
+    char		*name2;
+    char		type;
+    char		*symbol_name;
+    a_pl_symbol_ptr	psp;
+    a_boolean		process_line;
 #if DEBUG
     if (pl_debug_level >= 4) {
       fprintf(stderr, "%s\n", pl_input_line);
