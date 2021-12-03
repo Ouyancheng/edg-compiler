@@ -8497,6 +8497,7 @@ and "user_buffer_size" is set to the new size.
 */
 {
 #define TEMP_BUFFER_SIZE 256
+BEGIN_DISABLE_GCC_OPTIMIZATION_WARNING("-Wreturn-local-addr")
   int		result_status = CXA_DEMANGLE_SUCCESS;
   char		*result_buffer;
 
@@ -8590,6 +8591,7 @@ and "user_buffer_size" is set to the new size.
   /* Return the status to the caller. */
   if (status != NULL) *status = result_status;
   return result_buffer;
+END_DISABLE_GCC_OPTIMIZATION_WARNING /* -Wreturn-local-addr */
 #undef TEMP_BUFFER_SIZE
 }  /* __cxa_demangle */
 

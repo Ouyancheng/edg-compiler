@@ -317,6 +317,7 @@ The complete object flag values.
 #define COMPLETE_OBJ_INITIALIZED ((a_byte)0x01)
 #define COMPLETE_OBJ_DYN_ALLOC   ((a_byte)0x02)
 
+
 #define set_complete_obj_flag(obj, flag)                                     \
   (*((a_byte*)obj-sizeof(a_type_ptr)-1) |= flag)
 
@@ -325,6 +326,7 @@ The complete object flag values.
 
 #define complete_obj_flag(obj, flag)                                         \
   ((*((a_byte*)(obj)-sizeof(a_type_ptr)-1) & flag) != 0)
+
 
 /*
 Structure describing a destruction to be performed.  A storage stack state
@@ -5025,7 +5027,9 @@ by implied_src.
                     /* A class value with a mutable member cannot be fully
                        loaded and thus is not completely initialized. */
                   } else {
-                    mark_complete_object_initialized(var_bytes);
+BEGIN_DISABLE_GCC_OPTIMIZATION_WARNING("-Wstringop-overflow")
+                      mark_complete_object_initialized(var_bytes);
+END_DISABLE_GCC_OPTIMIZATION_WARNING /* -Wstringop-overflow */
                   }  /* if */
                   if (!no_reverse_map) {
                     /* Set up a reverse mapping so we can re-create a variable

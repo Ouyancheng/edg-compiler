@@ -1113,6 +1113,32 @@ Most supported C++ compilers support [[noreturn]], but not all GCC versions.
 #endif /* defined(_lint) */
 
 /*
+Define a utility for composing _Pragma string literals.
+*/
+#define AS_PRAGMA(...) _Pragma(#__VA_ARGS__)
+
+/*
+At higher optimization levels GCC sometimes emits spurious warnings.  These
+macros can be used to disable them locally for builds with optimizations
+enabled (presumed based on the definition of NDEBUG).
+*/
+#ifdef __GNUC__
+#if NDEBUG
+#define BEGIN_DISABLE_GCC_OPTIMIZATION_WARNING(warning) \
+  _Pragma("GCC diagnostic push") \
+  AS_PRAGMA(GCC diagnostic ignored warning)
+#define END_DISABLE_GCC_OPTIMIZATION_WARNING \
+  _Pragma("GCC diagnostic pop")
+#else /* !NDEBUG */
+#define BEGIN_DISABLE_GCC_OPTIMIZATION_WARNING(warning) /* nothing */
+#define END_DISABLE_GCC_OPTIMIZATION_WARNING /* nothing */
+#endif /* NDEBUG */
+#else /* !defined(__GNUC__) */
+#define BEGIN_DISABLE_GCC_OPTIMIZATION_WARNING(warning) /* nothing */
+#define END_DISABLE_GCC_OPTIMIZATION_WARNING /* nothing */
+#endif /* defined(__GNUC__) */
+
+/*
 Some coding standards require a default label in switches even if it's
 unreachable, while others prefer to leave this off to allow the compiler to
 catch when the case labels are not exhaustive.  A TRUE value for
