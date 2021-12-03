@@ -3306,7 +3306,7 @@ ec_invalid_misaligned_ifc_position;;"module %sq1 file position %d1 (relative pos
 ec_invalid_ifc_position_backtrace_field;;"from subfield %sq"
 ec_invalid_ifc_position_backtrace_pos;;"from partition %sq element %d1 (file position %d2, relative position %d3)"
 ec_nonstandard_lambda_attributes;;"lambda attributes are nonstandard here"
-ec_confusable_identifier;;"this identifier could be confused with one appearing %p"
+ec_confusable_identifier;;"identifier %sq could be confused with a visually-similar one appearing %p"
 ec_suspicious_comment_formatting;;"this comment contains suspicious Unicode formatting control characters"
 ec_suspicious_string_formatting;;"this string contains Unicode formatting control characters that could result in unexpected runtime behavior"
 ###############################################################################

@@ -403,6 +403,11 @@ extern void pos2_diagnostic(an_error_severity  error_severity,
                             an_error_code      error_code,
                             a_source_position  *error_pos,
                             a_source_position  *other_pos);
+extern void pos2_st_diagnostic(an_error_severity  error_severity,
+                              an_error_code      error_code,
+                              a_source_position  *error_pos,
+                              a_source_position  *other_pos,
+                              a_const_char       *error_string);
 extern void pos2_sy_diagnostic(an_error_severity  error_severity,
                                an_error_code      error_code,
                                a_source_position  *error_pos,

@@ -5725,6 +5725,25 @@ is also provided.
 }  /* pos2_diagnostic */
 
 
+void pos2_st_diagnostic(an_error_severity  error_severity,
+                        an_error_code      error_code,
+                        a_source_position  *error_pos,
+                        a_source_position  *other_pos,
+                        a_const_char       *error_string)
+/*
+Report the indicated diagnostic (with the indicated string fill-in) at the
+indicated position.  A second position is also provided.
+*/
+{
+  general_diagnostic(error_severity, error_code, error_pos,
+                     error_string, (a_const_char*)NULL,
+                     (a_symbol_ptr)NULL, (a_symbol_ptr)NULL,
+                     (a_type_ptr)NULL, (a_type_ptr)NULL,
+                     (a_template_arg_ptr)NULL, (a_template_arg_ptr)NULL,
+                     other_pos, (a_diag_list_ptr)NULL);
+}  /* pos2_st_diagnostic */
+
+
 void pos2_sy_diagnostic(an_error_severity  error_severity,
                         an_error_code      error_code,
                         a_source_position  *error_pos,

@@ -10871,7 +10871,10 @@ messages.
   a_boolean              is_string_literal;
 #if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
   a_boolean              suspicious_unicode = FALSE;
-  a_const_char           *string_start_loc = curr_char_loc;
+  a_const_char           *string_start_loc = 
+                                            (curr_char_loc[-1] == quoting_char)
+                                                            ? curr_char_loc - 1
+                                                            : curr_char_loc;
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 
   nchars = 0;
@@ -13978,8 +13981,8 @@ same hashing algorithm found in hash_source_string.
       *new_id_rep = curr_id_repr;
       new_id_rep->next_confusable = irp;
       *hash_data = (a_hash_data_ptr)new_id_rep;
-      pos2_diagnostic(es_warning, ec_confusable_identifier, &pos_curr_token,
-                      &irp->pos_first_occurrence);
+      pos2_st_diagnostic(es_warning, ec_confusable_identifier, &pos_curr_token,
+                         &irp->pos_first_occurrence, this_cp);
     }  /* if */
   }  /* if */
 #undef UPDATE_HASH
