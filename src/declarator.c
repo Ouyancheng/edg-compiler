@@ -5494,9 +5494,6 @@ Microsoft extended decl modifiers are also scanned, but they are ignored
     }  /* if */
     /* Exit the loop if there is not another pointer declarator. */
     if (!another_pointer_declarator) break;
-    /* Any qualifiers that were previously considered "top level" turned out
-       not to be at the top level after all. */
-    state->eff_top_level_cv_quals = TQ_NONE;
     set_err_pos_to_curr_token();
 #if MICROSOFT_EXTENSIONS_ALLOWED || NEAR_AND_FAR_ALLOWED
     if (pending_ptr_mods.qualifiers != TQ_NONE) {
