@@ -25396,6 +25396,13 @@ of the front end.
   octl.gen_compilable_code = TRUE;
   next_preinclude_file = NULL;
   processing_macro_preincludes = FALSE;
+#if UNICODE_VULNERABILITY_CHECKING_SUPPORTED
+  pending_bidi_controls = NULL;
+  avail_pending_bidi_controls = NULL;
+  id_representation_map = NULL;
+  src_spellings = NULL;
+  prototyped_spellings = NULL;
+#endif /* UNICODE_VULNERABILITY_CHECKING_SUPPORTED */
 #if DEBUG
   num_orig_line_modifs_allocated = 0;
   num_source_line_modifs_allocated = 0;
