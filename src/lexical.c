@@ -14067,6 +14067,9 @@ to speed in some cases.
   a_const_char  *id_ptr;
   a_string_or_char_literal_kind
                 lit_kind;
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+  a_boolean     id_contains_ucn = FALSE;
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 
   if (any_initial_get_token_tests_needed &&
       !fetching_tokens_from_insert_string()) {
@@ -14783,6 +14786,9 @@ id_scan:
               universal_character_names_allowed) {
             continue_scan = TRUE;
             id_contains_ucn_or_multibyte_char = TRUE;
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+            id_contains_ucn = TRUE;
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
             (void)scan_universal_character(&curr_char_loc,
 			                   /*is_identifier=*/TRUE,
 					   /*is_identifier_start=*/
@@ -14859,7 +14865,9 @@ id_scan:
             curr_file_unicode_source_kind != usk_none &&
             !sym_hdr->id_added_to_map) {
           check_for_confusable_id();
-          sym_hdr->id_added_to_map = TRUE;
+          if (!id_contains_ucn) {
+            sym_hdr->id_added_to_map = TRUE;
+          }  /* if */
         }  /* if */
 #endif  /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 #if BUILTIN_FUNCTIONS_ENABLED
