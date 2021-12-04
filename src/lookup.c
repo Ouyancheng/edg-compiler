@@ -5724,6 +5724,26 @@ Microsoft __super keyword.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static inline a_boolean is_acceptable_enum_symbol(a_symbol_ptr sym,
+                                                  a_type_ptr   enum_type)
+/*
+Return TRUE if the given symbol is a constant with matching enum type, FALSE
+otherwise.
+*/
+{
+  a_boolean result = TRUE;
+
+  /* Check for disqualifying conditions that prove the symbol isn't required
+     enum symbol. */
+  if (sym->kind != (a_symbol_kind)sk_constant) {
+    result = FALSE;
+  } else if (!same_entities(sym->variant.constant->type, enum_type)) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_acceptable_enum_symbol */
+
+
 a_symbol_ptr enum_qualified_id_lookup(a_symbol_locator		*locator,
 				      a_type_ptr		enum_type)
 /*
@@ -5738,11 +5758,6 @@ is found is returned, or NULL if no matching symbol is found.
   a_symbol_ptr			enum_sym;
   a_constant_ptr		cp = NULL;
   an_enum_symbol_supplement_ptr	essp;
-
-/* Local macro that tests whether or not a symbol is acceptable. */
-#define is_acceptable_symbol(sym)                                     \
-  ((sym)->kind == (a_symbol_kind)sk_constant &&			      \
-   same_entities((sym)->variant.constant->type, enum_type))
 
   db_enter(4, "enum_qualified_id_lookup");
   /* Remove any typedefs on the enum type. */
@@ -5768,7 +5783,7 @@ is found is returned, or NULL if no matching symbol is found.
        criteria.  This check is suppressed if the do_not_clear_specific_symbol
        flag is set, which usually indicates that the symbol is a coalesced
        template reference. */
-    check_assertion(is_acceptable_symbol(sym) ||
+    check_assertion(is_acceptable_enum_symbol(sym, enum_type) ||
                     locator->do_not_clear_specific_symbol);
   } else {
     /* Look for the constant on the list of constants for the enum type. */
@@ -5798,7 +5813,6 @@ is found is returned, or NULL if no matching symbol is found.
 #endif /* DEBUG */
   db_exit();
   return sym;
-#undef is_acceptable_symbol
 }  /* enum_qualified_id_lookup */
 
 
