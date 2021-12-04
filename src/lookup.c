@@ -4765,7 +4765,9 @@ struct a_class_qualified_lookup_options_set {
       is_field_selection_operand(
                               (options & IDL_IS_FIELD_SELECTION_OPERAND) != 0),
       is_using_declaration((options & IDL_USING_DECLARATION) != 0),
+#if MICROSOFT_EXTENSIONS_ALLOWED
       is_static_decl((options & IDL_IS_STATIC_DECL) != 0),
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       is_direct_class_members_only(
                                (options & IDL_DIRECT_CLASS_MEMBERS_ONLY) != 0),
       is_member_of_direct_base((options & IDL_MEMBER_OF_UNKNOWN_BASE) != 0),
@@ -4793,7 +4795,9 @@ struct a_class_qualified_lookup_options_set {
   const a_boolean is_friend_lookup;
   const a_boolean is_field_selection_operand;
   const a_boolean is_using_declaration;
+#if MICROSOFT_EXTENSIONS_ALLOWED
   const a_boolean is_static_decl;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   const a_boolean is_direct_class_members_only;
   const a_boolean is_member_of_direct_base;
   const a_boolean is_expr_context;
