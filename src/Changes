@@ -18,8 +18,7 @@ UNICODE_SOURCE_SUPPORTED is TRUE and must be FALSE otherwise) controls
 whether this capability is included.  Checking only applies to UTF-encoded
 Unicode source and header files and is controlled by the global variable
 check_unicode_security, which defaults to FALSE and can be explicitly set
-via the --[no_]check_unicode_security command-line option.  Checking adds a
-small amount of overhead, typically about 1%, to compilation time.
+via the --[no_]check_unicode_security command-line option.
 
 
 11/29/21 [EDGcpfe/24026]
