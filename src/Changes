@@ -1,5 +1,27 @@
 Version 6.3
 
+12/3/21  [EDGcpfe/24810,EDGcpfe/24829]
+Unicode source code vulnerabilities
+
+As described in paper www.trojansource.codes/trojan-source.pdf, C and C++
+Unicode-based source code is vulnerable to several exploits, including:
+  - use of bidirectional formatting codes in comments and strings
+  - use of zero-width characters in strings
+  - use of homoglyphs - distinct characters whose visual appearance is
+    identical - in identifiers
+  - use of zero-width characters in identifiers
+In all these cases, malicious code can be visually disguised to appear
+innocuous.  The front can now detect and warn about the Unicode constructs
+employed in these exploits.  The new configuration macro
+UNICODE_VULNERABILITY_CHECKING_SUPPORTED (which defaults to TRUE if
+UNICODE_SOURCE_SUPPORTED is TRUE and must be FALSE otherwise) controls
+whether this capability is included.  Checking only applies to UTF-encoded
+Unicode source files and is controlled by the global variable
+check_unicode_security, which defaults to FALSE and can be explicitly set
+via the --[no_]check_unicode_security command-line option.  Checking adds a
+small amount of overhead, typically about 1%, to compilation time.
+
+
 11/29/21 [EDGcpfe/24026]
 Coroutines: Missing lifetime information and inverted conditional logic
 
