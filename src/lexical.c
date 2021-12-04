@@ -20542,11 +20542,13 @@ we are scanning a C++/CLI typeid of the form X::typeid.
       class_fund_sym = class_qualified_id_lookup(&locator_for_curr_id,
                                                  class_type,
                                                  IDL_NO_OPTIONS);
-      class_sym = locator_for_curr_id.specific_symbol;
-      sym = select_dual_lookup_symbol(class_type, normal_fund_sym, normal_sym,
-                                      class_fund_sym, class_sym,
-                                      follows_template,
-                                      might_be_template, prefer_class_member);
+      if (class_fund_sym != NULL) {
+        class_sym = locator_for_curr_id.specific_symbol;
+        sym = select_dual_lookup_symbol(class_type, normal_fund_sym,
+                                        normal_sym, class_fund_sym, class_sym,
+                                        follows_template, might_be_template,
+                                        prefer_class_member);
+      }  /* if */
     } else {
       sym = normal_fund_sym;
     }  /* if */
