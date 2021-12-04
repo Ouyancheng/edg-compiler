@@ -276,8 +276,8 @@ struct a_scope_id_lookup_options_set {
                            a_symbol_ptr      sym,
                            a_symbol_ptr      fund_sym) const;
 
-  a_boolean must_be_tag;
-  a_boolean projection_allowed;
+  const a_boolean must_be_tag;
+  const a_boolean projection_allowed;
 };  /* a_scope_id_lookup_options_set */
 
 
@@ -304,9 +304,7 @@ acceptable symbols in the namespace ns_ptr given the current lookup options.
   return result;
 }  /* accepts */
 
-
 }  /* namespace */
-
 
 a_symbol_ptr curr_scope_id_lookup(a_symbol_locator         *locator,
                                   an_id_lookup_options_set options)
@@ -4746,6 +4744,205 @@ an attempt to declare a member of the same name as the parent class.)
 }  /* check_for_inheriting_constructor_decl */
 
 
+namespace {
+
+struct a_class_qualified_lookup_options_set {
+  a_class_qualified_lookup_options_set(an_id_lookup_options_set options)
+    : must_be_class_or_namespace(
+                              (options & IDL_MUST_BE_CLASS_OR_NAMESPACE) != 0),
+      /* g++ ignores non-types for typename lookups. */
+      must_be_tag((options & IDL_MUST_BE_TAG) != 0 ||
+                  (gpp_version_is(any_version) &&
+                   (options & IDL_TYPENAME_LOOKUP) != 0)),
+      must_be_class((options & IDL_MUST_BE_CLASS) != 0),
+      is_declarator((options & IDL_IS_DECLARATOR) != 0),
+      is_do_not_add_to_nonreal(
+                             (options & IDL_DO_NOT_ADD_TO_NONREAL_CLASS) != 0),
+      is_prototype_not_nonreal((options & IDL_USE_PROTOTYPE_NOT_NONREAL) != 0),
+      is_hidden_name_lookup((options & IDL_HIDDEN_NAME_LOOKUP) != 0),
+      is_do_not_create_proj_sym((options & IDL_DO_NOT_CREATE_PROJ_SYM) != 0),
+      is_friend_lookup((options & IDL_FRIEND_LOOKUP) != 0),
+      is_field_selection_operand(
+                              (options & IDL_IS_FIELD_SELECTION_OPERAND) != 0),
+      is_using_declaration((options & IDL_USING_DECLARATION) != 0),
+      is_static_decl((options & IDL_IS_STATIC_DECL) != 0),
+      is_direct_class_members_only(
+                               (options & IDL_DIRECT_CLASS_MEMBERS_ONLY) != 0),
+      is_member_of_direct_base((options & IDL_MEMBER_OF_UNKNOWN_BASE) != 0),
+      is_expr_context((options & IDL_IS_EXPR_CONTEXT) != 0),
+      is_typename_lookup((options & IDL_TYPENAME_LOOKUP) != 0),
+      is_tenative_type_lookup((options & IDL_TENTATIVE_TYPE_LOOKUP) != 0),
+      is_tenative_template_lookup(
+                               (options & IDL_TENTATIVE_TEMPLATE_LOOKUP) != 0),
+      are_proxy_members_template_ids((options & IDL_TREAT_AS_TEMPLATE_ID) != 0)
+  {}
+
+  inline a_boolean accepts(a_type_ptr   class_type_ptr,
+                           a_symbol_ptr sym,
+                           a_symbol_ptr fund_sym) const;
+
+  a_boolean is_prototype_instantiation_lookup = FALSE;
+  const a_boolean must_be_class_or_namespace;
+  const a_boolean must_be_tag;
+  const a_boolean must_be_class;
+  const a_boolean is_declarator;
+  const a_boolean is_do_not_add_to_nonreal;
+  const a_boolean is_prototype_not_nonreal;
+  const a_boolean is_hidden_name_lookup;
+  const a_boolean is_do_not_create_proj_sym;
+  const a_boolean is_friend_lookup;
+  const a_boolean is_field_selection_operand;
+  const a_boolean is_using_declaration;
+  const a_boolean is_static_decl;
+  const a_boolean is_direct_class_members_only;
+  const a_boolean is_member_of_direct_base;
+  const a_boolean is_expr_context;
+  const a_boolean is_typename_lookup;
+  const a_boolean is_tenative_type_lookup;
+  const a_boolean is_tenative_template_lookup;
+  const a_boolean are_proxy_members_template_ids;
+private:
+  inline a_boolean is_valid_gnu_injected_symbol(a_symbol_ptr fund_sym) const;
+  inline a_boolean is_valid_injected_symbol(a_type_ptr   class_type_ptr,
+                                            a_symbol_ptr fund_sym) const;
+  inline a_boolean is_tag(a_symbol_ptr fund_sym) const;
+};  /* a_namespace_lookup_options_set */
+
+
+inline a_boolean a_class_qualified_lookup_options_set::accepts(
+                                                   a_type_ptr   class_type_ptr,
+                                                   a_symbol_ptr sym,
+                                                   a_symbol_ptr fund_sym) const
+/*
+Return TRUE if sym and its accompanying fundamental symbol (fund_sym) are
+acceptable symbols in the class specified by class_type_ptr given the current
+lookup options.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!sym->is_class_member) {
+    result = FALSE;
+  } else if (is_injected_class_symbol(sym) &&
+             !is_valid_injected_symbol(class_type_ptr, fund_sym)) {
+    result = FALSE;
+  } else if (sym_parent_class(sym) != class_type_ptr) {
+    /* Note that same_entities must not be used for this test. */
+    result = FALSE;
+  } else if (must_be_class_or_namespace &&
+             !symbol_may_precede_qualifier(fund_sym)) {
+    result = FALSE;
+  } else if (must_be_class &&
+             !is_class_or_class_proxy_symbol(fund_sym)) {
+    result = FALSE;
+  } else if (must_be_tag && !is_tag(fund_sym)) {
+    result = FALSE;
+  } else if (sym->is_invisible && sym->kind != (a_symbol_kind)sk_projection &&
+             !sym->qualified_lookup) {
+    /* Ignore invisible symbols except for invisible projection symbols
+       and class member symbols marked as visible to qualified lookup. */
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* accepts */
+
+
+inline a_boolean
+a_class_qualified_lookup_options_set::is_valid_gnu_injected_symbol(
+                                                         a_symbol_ptr fund_sym)
+                                                                          const
+/*
+Return TRUE if the given injected fundamental symbol is an acceptable symbol in
+g++ mode, otherwise return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  /* Injected class names are not accepted in g++ mode in prototype
+     instantiation contexts to avoid a problem with names like A<T>::A<T>. */
+  if (!is_prototype_instantiation_lookup && !is_using_declaration) {
+    /* Starting with g++ 3.4, injected class names are returned in fewer
+       contexts.  We emulate this by returning them only for tentative type
+       lookup, typename lookups, and lookups in expression contexts.
+
+       In g++ 4.5 emulation mode, tentative template/type lookups are excluded
+       from returning the injected class name.  In Microsoft mode an injected
+       class name is also allowed in typename lookups. */
+    if (is_expr_context) {
+      result = TRUE;
+    } else if (gnu_version < 30400) {
+      result = TRUE;
+    } else if (gnu_version < 40500 &&
+               (is_tenative_type_lookup || is_tenative_template_lookup)) {
+      result = TRUE;
+    } else if (are_proxy_members_template_ids &&
+               is_injected_template_symbol(fund_sym)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_valid_gnu_injected_symbol */
+
+
+inline a_boolean
+a_class_qualified_lookup_options_set::is_valid_injected_symbol(
+                                                   a_type_ptr   class_type_ptr,
+                                                   a_symbol_ptr fund_sym) const
+/*
+Return TRUE if the given injected fundamental symbol is an acceptable symbol,
+otherwise return FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  /* An injected class name symbol is only acceptable when the injected symbol
+     does not point to the class in which the lookup is being done; otherwise,
+     that symbol is rejected and (typically) the constructor symbol will be
+     returned later.  An injected class name is accepted when doing a
+     class-or-namespace or tag lookup, because such a lookup could never find
+     the constructor.  An injected class name is also accepted in g++ mode
+     under some circumstance. */
+  if (is_using_declaration && inheriting_constructors_enabled) {
+    result = TRUE;
+  } else if ((gpp_mode || microsoft_mode) && is_typename_lookup) {
+    result = TRUE;
+  } else if (gpp_mode && is_valid_gnu_injected_symbol(fund_sym)) {
+    result = TRUE;
+  } else if (is_field_selection_operand) {
+    result = TRUE;
+  } else if (must_be_class_or_namespace) {
+    result = TRUE;
+  } else if (must_be_class) {
+    result = TRUE;
+  } else if (must_be_tag) {
+    result = TRUE;
+  } else if (!same_entities(class_type_ptr, fund_sym->variant.type.ptr)) {
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* is_valid_injected_symbol */
+
+
+inline a_boolean a_class_qualified_lookup_options_set::is_tag(
+                                                         a_symbol_ptr fund_sym)
+                                                                          const
+/*
+Return TRUE if the given symbol is a tag or should be considered a tag for the
+purposes of emulating a bug, FALSE otherwise.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (is_tag_or_tag_proxy_symbol(fund_sym, is_friend_lookup)) {
+    result = TRUE;
+  } else if (microsoft_bugs && fund_sym->kind == (a_symbol_kind)sk_type) {
+    result = TRUE;
+  }
+  return result;
+}  /* is_tag */
+
+}  /* namespace */
+
 a_symbol_ptr class_qualified_id_lookup(a_symbol_locator         *locator,
                                        a_type_ptr               class_type,
                                        an_id_lookup_options_set options)
@@ -4762,79 +4959,16 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
 {
   a_symbol_ptr sym, tag_symbol, class_symbol;
   a_symbol_ptr type_tag_symbol;
-  a_boolean    must_be_class_or_namespace =
-                              (options & IDL_MUST_BE_CLASS_OR_NAMESPACE) != 0;
-  /* g++ ignores non-types for typename lookups. */
-  a_boolean    must_be_tag = (options & IDL_MUST_BE_TAG) != 0 ||
-                              (gpp_version_is(any_version) &&
-                               (options & IDL_TYPENAME_LOOKUP) != 0);
-  a_boolean    must_be_class = (options & IDL_MUST_BE_CLASS) != 0;
-  a_boolean    is_field_selection_operand =
-                              (options & IDL_IS_FIELD_SELECTION_OPERAND) != 0;
-  a_boolean    is_using_declaration = (options & IDL_USING_DECLARATION) != 0;
   a_class_symbol_supplement_ptr
                cssp;
   a_symbol_ptr insert_sym;
   a_boolean    add_to_active_list;
   a_boolean    is_proxy_or_nonreal_class_lookup = FALSE;
   a_boolean    any_nonreal_base_classes = FALSE;
-  a_boolean    direct_class_members_only =
-                               (options & IDL_DIRECT_CLASS_MEMBERS_ONLY) != 0;
   a_boolean    dependent_conversion_operator = FALSE;
-  a_boolean    is_prototype_instantiation_lookup = FALSE;
-  a_boolean    is_typename_lookup = (options & IDL_TYPENAME_LOOKUP) != 0;
   a_type_ptr   orig_class_type = class_type;
-
-/* Local macro that tests whether or not a symbol is acceptable.  An
-   injected class name symbol is only acceptable when the injected symbol
-   does not point to the class in which the lookup is being done;
-   otherwise, that symbol is rejected and (typically) the constructor
-   symbol will be returned later.  An injected class name is accepted
-   when doing a class-or-namespace or tag lookup, because such a lookup
-   could never find the constructor.  An injected class name is also
-   accepted in g++ mode, but not in prototype instantiation contexts to
-   avoid a problem with names like A<T>::A<T>.  Starting with g++ 3.4,
-   injected class names are returned in fewer contexts.  We emulate this
-   by returning them only for tentative type lookup, typename lookups,
-   and lookups in expression contexts.  In g++ 4.5 emulation mode,
-   tentative template/type lookups are excluded from returning the injected
-   class name.  In Microsoft mode an injected class name is also allowed
-   in typename lookups.
-*/
-#define is_acceptable_symbol(sym, fund_sym)                           \
-  ((sym)->is_class_member &&					      \
-   (!is_injected_class_symbol(sym) ||				      \
-    (is_using_declaration && inheriting_constructors_enabled) ||      \
-    ((gpp_mode || microsoft_mode) && is_typename_lookup) ||           \
-    (gpp_mode &&						      \
-     !is_prototype_instantiation_lookup &&			      \
-     !is_using_declaration &&					      \
-       (gnu_version < 30400 ||               			      \
-        (options & IDL_IS_EXPR_CONTEXT) != 0 ||			      \
-        (gnu_version < 40500  &&				      \
-         ((options & IDL_TENTATIVE_TYPE_LOOKUP) != 0 ||	              \
-          (options & IDL_TENTATIVE_TEMPLATE_LOOKUP) != 0)) ||	      \
-        (((options & IDL_TREAT_AS_TEMPLATE_ID) != 0) &&		      \
-         is_injected_template_symbol(fund_sym)))) ||		      \
-    is_field_selection_operand ||				      \
-    must_be_class_or_namespace ||				      \
-    must_be_class ||						      \
-    must_be_tag ||						      \
-    !same_entities(class_type, (fund_sym)->variant.type.ptr)) &&      \
-   /* Note that same_entities must not be used for this test. */      \
-   sym_parent_class(sym) == class_type &&                             \
-   (!must_be_class_or_namespace ||				      \
-    symbol_may_precede_qualifier(fund_sym)) &&	     		      \
-   (!must_be_class ||						      \
-    is_class_or_class_proxy_symbol(fund_sym)) &&     		      \
-   (!must_be_tag ||                                                   \
-    is_tag_or_tag_proxy_symbol(fund_sym,			      \
-                               (options & IDL_FRIEND_LOOKUP) != 0) || \
-    (microsoft_bugs && fund_sym->kind == (a_symbol_kind)sk_type)) &&  \
-   /* Ignore invisible symbols except for invisible projection symbols */  \
-   /* and class member symbols marked as visible to qualified lookup. */   \
-   (!(sym)->is_invisible || (sym)->kind == (a_symbol_kind)sk_projection || \
-     (sym)->qualified_lookup))
+  a_class_qualified_lookup_options_set
+               cls_lookup_opts(options);
 
   db_enter(4, "class_qualified_id_lookup");
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -4845,8 +4979,9 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
     goto end_lookup;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  if (is_using_declaration &&
-      !must_be_tag && !must_be_class_or_namespace) {
+  if (cls_lookup_opts.is_using_declaration &&
+      !cls_lookup_opts.must_be_tag &&
+      !cls_lookup_opts.must_be_class_or_namespace) {
     /* Check for a using-declaration of the form "using T::T", which
        is an inheriting constructor declaration. */
     sym = check_for_inheriting_constructor_decl(locator, class_type);
@@ -4854,7 +4989,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
   }  /* if */
   /* Remove any typedef on the class type. */
   class_type = skip_typerefs_not_dependent_decltypes(class_type);
-  if ((options & IDL_IS_DECLARATOR) != 0) {
+  if (cls_lookup_opts.is_declarator) {
     /* If this is a template parameter that represents a nested class of
        a class template, use the original nested type in its place. */
     class_type = orig_nested_type_if_nonreal_nested_type(class_type);
@@ -4904,10 +5039,10 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
         /* A prototype instantiation, or a class defined as part of a
            prototype instantiation (e.g., a local class defined in the
            prototype instantiation of a function template). */
-        is_prototype_instantiation_lookup = TRUE;
+        cls_lookup_opts.is_prototype_instantiation_lookup = TRUE;
       } else if (!class_type->variant.class_struct_union.
                                             is_ms_instantiated_nonreal_class ||
-                 (options & IDL_MEMBER_OF_UNKNOWN_BASE) != 0) {
+                 cls_lookup_opts.is_member_of_direct_base) {
         /* Another kind of nonreal class.  The proxy/nonreal lookup is not
            done for Microsoft instantiated nonreal classes, but an additional
            lookup may be done for these classes below if the initial lookup
@@ -4923,7 +5058,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
      conversion operator name in an expression context.  When looking for
      such names, the ordinary lookup is suppressed causing an unknown
      function symbol to be created later. */
-  if (locator->is_conversion_name && (options & IDL_IS_EXPR_CONTEXT) != 0) {
+  if (locator->is_conversion_name && cls_lookup_opts.is_expr_context) {
     dependent_conversion_operator =
            is_template_dependent_type(locator->variant.conversion_result_type);
   }  /* if */
@@ -4941,7 +5076,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
        template reference. */
 #if CHECKING
     a_symbol_ptr  fund_sym = fundamental_symbol_of(sym);
-    check_assertion(is_acceptable_symbol(sym, fund_sym) ||
+    check_assertion(cls_lookup_opts.accepts(class_type, sym, fund_sym) ||
                     locator->do_not_clear_specific_symbol);
 #endif /* CHECKING */
   } else {
@@ -4957,8 +5092,14 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
         sym = cssp->assignment_operator;
         /* Ignore the operator= symbol if it does not meet the lookup
            criteria. */
-        if (sym != NULL && !is_acceptable_symbol(sym, sym)) sym = NULL;
-        if (sym != NULL) goto end_lookup; else goto bypass_normal_search;
+        if (sym != NULL && !cls_lookup_opts.accepts(class_type, sym, sym)) {
+          sym = NULL;
+        }  /* if */
+        if (sym != NULL) {
+          goto end_lookup;
+        } else {
+          goto bypass_normal_search;
+        }  /* if */
       }  /* if */
       /* First, search the list of inactive symbols.  These are class
          members for classes that are no longer active.  Or, in C,
@@ -4970,7 +5111,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
            sym != NULL;
            sym = sym->next_in_lookup_table) {
         a_symbol_ptr  fund_sym = fundamental_symbol_of(sym);
-        if (is_acceptable_symbol(sym, fund_sym)) {
+        if (cls_lookup_opts.accepts(class_type, sym, fund_sym)) {
           /* Found an acceptable symbol. */
           if (is_proxy_or_nonreal_class_lookup &&
               !acceptable_nonreal_class_member_symbol(sym, options, locator)) {
@@ -4984,7 +5125,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
             /* The symbol is a projection symbol in a derived class that points
                to a nonreal member of a base class.  Ignore this symbol
                if it does not match the kind required by the lookup. */
-          } else if (direct_class_members_only &&
+          } else if (cls_lookup_opts.is_direct_class_members_only &&
                      sym->kind == (a_symbol_kind)sk_projection &&
                      !sym->variant.projection.is_using_decl) {
             /* This is a projection symbol not created by a using-declaration.
@@ -4998,7 +5139,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
                both tags and non-tags will match the test.  A non-tag
                should be preferred over the tag, so if we find a tag we
                must keep looking. */
-            if (!must_be_tag) {
+           if (!cls_lookup_opts.must_be_tag) {
               /* A normal lookup. */
               if (is_tag_symbol(fund_sym)) {
                 if (tag_symbol != NULL &&
@@ -5048,14 +5189,15 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
       /* We reached the end of the list.  If there is a tag symbol, or
          type tag symbol saved within the loop, use it. */
       if (type_tag_symbol != NULL) {
-        if (microsoft_bugs && must_be_tag && !direct_class_members_only) {
-          /* MSVC++ allows an elaborated-type-specifier with a qualified-id
-             to refer to a typedef for a tagged type.  Return the symbol
-             for the tagged type.  (If direct_class_members_only is TRUE,
-             the typeref should not be skipped since that may result in a
-             nonmember type.)  In some cases (such as g++ typename lookup)
-             the underlying type might not have a symbol.  In that case
-             use the original symbol. */
+        if (microsoft_bugs && cls_lookup_opts.must_be_tag &&
+            !cls_lookup_opts.is_direct_class_members_only) {
+          /* MSVC++ allows an elaborated-type-specifier with a qualified-id to
+             refer to a typedef for a tagged type.  Return the symbol for the
+             tagged type.  (If cls_lookup_opts.is_direct_class_members_only is
+             TRUE, the typeref should not be skipped since that may result in a
+             nonmember type.)  In some cases (such as g++ typename lookup) the
+             underlying type might not have a symbol.  In that case use the
+             original symbol. */
           sym = (a_symbol_ptr)skip_typerefs(type_tag_symbol->
                                   variant.type.ptr)->source_corresp.assoc_info;
           if (sym == NULL) sym = type_tag_symbol;
@@ -5070,7 +5212,7 @@ symbol pointer is returned.  This routine is used in both C and C++ mode.
     }  /* if */
 bypass_normal_search:
     if (is_proxy_or_nonreal_class_lookup &&
-        !(options & IDL_DO_NOT_ADD_TO_NONREAL_CLASS)) {
+        !cls_lookup_opts.is_do_not_add_to_nonreal) {
       /* When looking up a name in a proxy or nonreal class, the name is
          always found.  If we did not find the name in the search
          above then we must create a symbol now. */
@@ -5086,7 +5228,7 @@ bypass_normal_search:
         /* Looking up the class name within itself.  Return the constructor if
            there is one. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        if ((options & IDL_IS_STATIC_DECL) != 0) {
+        if (cls_lookup_opts.is_static_decl) {
           sym = cssp->static_constructor;
         } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5131,9 +5273,9 @@ bypass_normal_search:
         goto end_lookup;
       }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-      if (sym == NULL && !direct_class_members_only &&
+      if (sym == NULL && !cls_lookup_opts.is_direct_class_members_only &&
           locator->is_conversion_name &&
-          (options & IDL_USING_DECLARATION) == 0) {
+          !cls_lookup_opts.is_using_declaration) {
         /* We still haven't found a symbol, we are looking for a conversion
            function,  and this class has conversion function templates.
            See if any of the templates match the type desired.  This
@@ -5143,24 +5285,25 @@ bypass_normal_search:
         sym = look_up_conversion_template_instance(locator, class_type);
         if (sym != NULL) goto end_lookup;
       }  /* if */
-      if (!direct_class_members_only && !locator->is_destructor_name) {
+      if (!cls_lookup_opts.is_direct_class_members_only &&
+          !locator->is_destructor_name) {
         /* The name was not found.  Try looking for a member symbol that can
            be projected into the class.  When doing a "direct class members
            only" lookup, projection symbols are not created and conversion
-	   template instances are not found.  Destructors are not inherited,
+           template instances are not found.  Destructors are not inherited,
            so don't attempt to look for a destructor name. */
         a_boolean	use_nonreal_in_curr_class = FALSE;
         determine_projected_symbol_insert_location(locator,
                                                    class_type,
                                                    &add_to_active_list,
                                                    &insert_sym);
-        if ((options & IDL_DO_NOT_ADD_TO_NONREAL_CLASS) == 0 &&
-            ((options & IDL_IS_DECLARATOR) == 0 ||
-             ((options & IDL_FRIEND_LOOKUP) != 0 &&
+        if (!cls_lookup_opts.is_do_not_add_to_nonreal &&
+            (!cls_lookup_opts.is_declarator ||
+             (cls_lookup_opts.is_friend_lookup &&
               (gpp_mode || ms_extensions))) &&
             (cssp->any_nonreal_base_classes ||
              (gpp_mode || ms_extensions)) &&
-            is_prototype_instantiation_lookup) {
+            cls_lookup_opts.is_prototype_instantiation_lookup) {
           /* If a nonreal member needs to be created, create it as a member of
              the class in which the lookup is being done.  See the comment
              below where create_proxy_of_nonreal_class_member is called for
@@ -5173,8 +5316,8 @@ bypass_normal_search:
                             !treat_as_cli_class_for_lookup(class_type),
                             /*tentative_type_lookup=*/FALSE,
                             /*tentative_template_lookup=*/FALSE,
-                            (options & IDL_HIDDEN_NAME_LOOKUP) != 0 ||
-                            (options & IDL_DO_NOT_CREATE_PROJ_SYM) != 0 ||
+                            cls_lookup_opts.is_hidden_name_lookup ||
+                            cls_lookup_opts.is_do_not_create_proj_sym ||
                             cssp->any_nonreal_base_classes,
                             add_to_active_list, insert_sym, &sym,
                             /*can_create_nonreal=*/FALSE);
@@ -5193,7 +5336,7 @@ bypass_normal_search:
              a friend declaration in a prototype instantiation is allowed
              to refer to a non-existent member of the prototype
              instantiation. */
-          check_assertion(is_prototype_instantiation_lookup);
+          check_assertion(cls_lookup_opts.is_prototype_instantiation_lookup);
           sym = create_proxy_or_nonreal_class_member(
                                           class_type,
                                           options | IDL_MEMBER_OF_UNKNOWN_BASE,
@@ -5203,7 +5346,7 @@ bypass_normal_search:
     }  /* if */
 end_lookup:
     if (sym == NULL && microsoft_mode &&
-        (options & IDL_USING_DECLARATION) != 0 &&
+        cls_lookup_opts.is_using_declaration &&
         class_type->variant.class_struct_union.
                                             is_ms_instantiated_nonreal_class) {
       /* The initial lookup failed and this is a Microsoft instantiated nonreal
@@ -5214,7 +5357,7 @@ end_lookup:
     if (sym != NULL) {
       /* Unless the prototype symbol was explicitly requested, check for an
          associated nonreal type symbol. */
-      if ((options & IDL_USE_PROTOTYPE_NOT_NONREAL) == 0) {
+      if (!cls_lookup_opts.is_prototype_not_nonreal) {
         a_symbol_ptr	possible_nonreal_sym;
         possible_nonreal_sym = nonreal_type_if_nested_prototype_type(sym);
         if (possible_nonreal_sym != sym) {
@@ -5241,7 +5384,7 @@ end_lookup:
       locator->symbol_header->identifier != NULL &&
       strncmp(locator->symbol_header->identifier,
               "__abi_" , sizeof("__abi_")-1) == 0 &&
-      !direct_class_members_only) {
+      !cls_lookup_opts.is_direct_class_members_only) {
     /* In C++/CX mode, fake up a symbol for __abi_* locators in C++/CX
        types. */
     sym = make_and_enter_abi_member_function_symbol(locator, class_type);
@@ -5256,7 +5399,6 @@ end_lookup:
 #endif /* DEBUG */
   db_exit();
   return sym;
-#undef is_acceptable_symbol
 }  /* class_qualified_id_lookup */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -5824,15 +5966,15 @@ struct a_namespace_lookup_options_set {
                            a_symbol_ptr    sym,
                            a_symbol_ptr    fund_sym) const;
 
-  a_boolean must_be_class_or_namespace;
-  a_boolean must_be_tag;
-  a_boolean must_be_class;
-  a_boolean is_linkage_or_friend_lookup;
-  a_boolean is_linkage_lookup;
-  a_boolean is_declarator_lookup;
-  a_boolean is_friend_lookup;
-  a_boolean direct_namespace_members_only;
-  a_boolean check_decl_seq;
+  const a_boolean must_be_class_or_namespace;
+  const a_boolean must_be_tag;
+  const a_boolean must_be_class;
+  const a_boolean is_linkage_or_friend_lookup;
+  const a_boolean is_linkage_lookup;
+  const a_boolean is_declarator_lookup;
+  const a_boolean is_friend_lookup;
+  const a_boolean direct_namespace_members_only;
+  const a_boolean check_decl_seq;
   a_decl_sequence_number decl_seq_number;
 };  /* a_namespace_lookup_options_set */
 
@@ -5843,7 +5985,7 @@ inline a_boolean a_namespace_lookup_options_set::accepts(
                                                       a_symbol_ptr    fund_sym)
                                                                           const
 /*
-Returns TRUE if sym and its accompanying fundamental symbol (fund_sym) are
+Return TRUE if sym and its accompanying fundamental symbol (fund_sym) are
 acceptable symbols in the namespace ns_ptr given the current lookup options.
 */
 {
@@ -5872,9 +6014,7 @@ acceptable symbols in the namespace ns_ptr given the current lookup options.
   return result;
 }  /* accepts */
 
-
 }  /* namespace */
-
 
 static a_symbol_ptr lookup_in_namespace(
 		a_symbol_locator		*locator,
