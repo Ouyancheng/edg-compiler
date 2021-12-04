@@ -263,7 +263,6 @@ need to be reset after a call to this routine.
   }  /* if */
 }  /* load_lazy_symbols_if_needed */
 
-
 namespace {
 
 struct a_scope_id_lookup_options_set {
@@ -287,7 +286,8 @@ inline a_boolean a_scope_id_lookup_options_set::accepts(
                                     a_symbol_ptr      fund_sym) const
 /*
 Returns TRUE if sym and its accompanying fundamental symbol (fund_sym) are
-acceptable symbols in the namespace ns_ptr given the current lookup options.
+acceptable symbols for the given required name space kind, and the current
+lookup options.
 */
 {
   a_boolean result = TRUE;
@@ -4806,7 +4806,7 @@ private:
   inline a_boolean is_valid_injected_symbol(a_type_ptr   class_type_ptr,
                                             a_symbol_ptr fund_sym) const;
   inline a_boolean is_tag(a_symbol_ptr fund_sym) const;
-};  /* a_namespace_lookup_options_set */
+};  /* a_class_qualified_lookup_options_set */
 
 
 inline a_boolean a_class_qualified_lookup_options_set::accepts(
@@ -5989,7 +5989,8 @@ struct a_namespace_lookup_options_set {
   const a_boolean is_friend_lookup;
   const a_boolean direct_namespace_members_only;
   const a_boolean check_decl_seq;
-  a_decl_sequence_number decl_seq_number;
+  const a_decl_sequence_number
+                  decl_seq_number;
 };  /* a_namespace_lookup_options_set */
 
 
@@ -6008,7 +6009,7 @@ acceptable symbols in the namespace ns_ptr given the current lookup options.
   if (fund_sym->is_invisible && !is_linkage_or_friend_lookup &&
       !is_declarator_lookup) {
     result = FALSE;
-  } else if ((sym)->is_class_member) {
+  } else if (sym->is_class_member) {
     result = FALSE;
   } else if (sym_parent_namespace_or_null((sym)) != ns_ptr) {
     /* Note that same_entities must not be used for this test. */
