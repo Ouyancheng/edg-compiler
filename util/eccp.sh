@@ -683,6 +683,7 @@ check_abbreviation()
 --cfront_3.0
 --char8_t
 --check_concatenations
+--check_unicode_security
 --clang
 --clang_version
 --class_name_injection
@@ -841,6 +842,7 @@ check_abbreviation()
 --no_c++cx
 --no_char8_t
 --no_check_concatenations
+--no_check_unicode_security
 --no_clang
 --no_class_name_injection
 --no_code_gen
@@ -1705,7 +1707,9 @@ process_option()
          --no_concepts | \
          --force_vtbl | \
          --utf8_char_literals | \
-         --no_utf8_char_literals)
+         --no_utf8_char_literals | \
+         --check_unicode_security | \
+         --no_check_unicode_security)
 #     Options that require additional processing
       case $arg in
         -m | --c | --c89 | --c99 | --no_c99 | --c11 | --c18 | --c17 | \
