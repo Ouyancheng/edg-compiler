@@ -6247,6 +6247,80 @@ namespace.  This routine is used only in C++ mode.
 }  /* namespace_qualified_id_lookup */
 
 
+namespace {
+
+struct a_file_scope_id_lookup_options_set {
+  a_file_scope_id_lookup_options_set(an_id_lookup_options_set options)
+    : must_be_class_or_namespace(
+                              (options & IDL_MUST_BE_CLASS_OR_NAMESPACE) != 0),
+      must_be_tag((options & IDL_MUST_BE_TAG) != 0),
+      must_be_class((options & IDL_MUST_BE_CLASS) != 0),
+      is_friend_lookup((options & IDL_FRIEND_LOOKUP) != 0),
+      is_linkage_lookup((options & IDL_LINKAGE_LOOKUP) != 0),
+      is_direct_namespace_members_only(
+                           (options & IDL_DIRECT_NAMESPACE_MEMBERS_ONLY) != 0),
+      check_decl_seq((options & IDL_SUPPRESS_DECL_SEQ_CHECK) == 0 &&
+                     !is_linkage_lookup && !is_friend_lookup),
+      are_proxy_members_template_ids(
+                                    (options & IDL_TREAT_AS_TEMPLATE_ID) != 0),
+      decl_seq_number(get_effective_decl_seq())
+  {}
+
+  inline a_boolean accepts(a_scope_ptr  file_scope_ptr,
+                           a_symbol_ptr sym,
+                           a_symbol_ptr fund_sym) const;
+
+  const a_boolean must_be_class_or_namespace;
+  const a_boolean must_be_tag;
+  const a_boolean must_be_class;
+  const a_boolean is_friend_lookup;
+  const a_boolean is_linkage_lookup;
+  const a_boolean is_direct_namespace_members_only;
+  const a_boolean check_decl_seq;
+  const a_boolean are_proxy_members_template_ids;
+  const a_decl_sequence_number
+                  decl_seq_number;
+};  /* a_file_scope_id_lookup_options_set */
+
+
+inline a_boolean a_file_scope_id_lookup_options_set::accepts(
+                                                a_scope_ptr  file_scope_ptr,
+                                                a_symbol_ptr sym,
+                                                a_symbol_ptr fund_sym) const
+/*
+Returns TRUE if sym and its accompanying fundamental symbol (fund_sym) are
+acceptable symbols for the given file scope, and the current lookup options.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (fund_sym->is_invisible && !(is_linkage_lookup || is_friend_lookup)) {
+    result = FALSE;
+  } else if (sym->decl_scope != file_scope_ptr->number) {
+    result = FALSE;
+  } else if (name_space_for_symbol_kind[(int)sym->kind] != nsk_other) {
+    /* The name space test is needed when searching the file scope so that
+       macro symbols are not found. */
+    result = FALSE;
+  } else if (must_be_class_or_namespace &&
+             !symbol_may_precede_qualifier(fund_sym)) {
+    /* symbol_may_precede_qualifier checks for a symbol that is a class, class
+       template, namespace, or template type parameter. */
+    result = FALSE;
+  } else if (must_be_class && !is_class_or_class_proxy_symbol(fund_sym)) {
+    result = FALSE;
+  } else if (must_be_tag &&
+             !is_tag_or_cplusplus_type_symbol(fund_sym, is_friend_lookup)) {
+    result = FALSE;
+  } else if (check_decl_seq && !(decl_seq_number == NO_DECL_SEQUENCE_NUMBER ||
+                                 decl_seq_number >= (sym)->decl_seq)) {
+    result = FALSE;
+  }
+  return result;
+}  /* accepts */
+
+}  /* namespace */
+
 a_symbol_ptr file_scope_id_lookup(
 			a_scope_ptr			file_scope_to_use,
 			a_symbol_locator		*locator,
@@ -6270,47 +6344,12 @@ file scope.
 */
 {
   a_symbol_ptr  sym;
-  a_boolean     must_be_class_or_namespace
-                                  = (options & IDL_MUST_BE_CLASS_OR_NAMESPACE);
-  a_boolean     must_be_tag = (options & IDL_MUST_BE_TAG) != 0;
-  a_boolean     must_be_class = (options & IDL_MUST_BE_CLASS) != 0;
   a_symbol_ptr	synth_sym = NULL;
   a_boolean	any_errors = FALSE;
-  a_boolean	is_friend_lookup = (options & IDL_FRIEND_LOOKUP) != 0;
-  a_boolean	is_linkage_lookup = (options & IDL_LINKAGE_LOOKUP) != 0;
-  a_boolean	direct_namespace_members_only = 
-                         (options & IDL_DIRECT_NAMESPACE_MEMBERS_ONLY) != 0;
-  a_boolean	check_decl_seq =
-                               (options & IDL_SUPPRESS_DECL_SEQ_CHECK) == 0 &&
-                               !is_linkage_lookup && !is_friend_lookup;
-  a_decl_sequence_number
-		decl_seq_number = NO_DECL_SEQUENCE_NUMBER;
-  a_scope_number
-		scope_number_to_use = file_scope_to_use->number;
-
-/* Local macro that tests whether or not a symbol is acceptable. */
-/* symbol_may_precede_qualifier checks for a symbol that is a class,
-   class template, namespace, or template type parameter.  The name
-   space test is needed when searching the file scope so that macro symbols
-   are not found. */
-#define is_acceptable_symbol(sym, fund_sym)                           \
-  ((!(fund_sym->is_invisible) || is_linkage_lookup || is_friend_lookup) && \
-   (sym)->decl_scope == scope_number_to_use &&                          \
-   (name_space_for_symbol_kind[(int)sym->kind] == nsk_other) &&       \
-   (!must_be_class_or_namespace ||				      \
-    symbol_may_precede_qualifier(fund_sym)) && 			      \
-   (!must_be_class ||				      		      \
-    is_class_or_class_proxy_symbol(fund_sym)) &&      		      \
-   (!must_be_tag ||						      \
-    is_tag_or_cplusplus_type_symbol(fund_sym,			      \
-                                    (options & IDL_FRIEND_LOOKUP) != 0)) && \
-   (!check_decl_seq ||						      \
-    (decl_seq_number == NO_DECL_SEQUENCE_NUMBER ||	              \
-     decl_seq_number >= (sym)->decl_seq)))
+  a_file_scope_id_lookup_options_set
+                file_scope_lookup_opts(options);
 
   db_enter(4, "file_scope_id_lookup");
-  /* Get the declaration sequence number to be used for this lookup. */
-  decl_seq_number = get_effective_decl_seq();
   if ((sym = locator->specific_symbol) != NULL) {
     /* There is an existing specific symbol. */
   } else {
@@ -6332,11 +6371,12 @@ file scope.
         sym = NULL;
         break;
       }  /* if */
-      if (is_acceptable_symbol(sym, fund_sym)) {
+      if (file_scope_lookup_opts.accepts(file_scope_to_use, sym, fund_sym)) {
         /* We found a matching symbol.  If this is a type symbol found
            by a must-be-tag lookup, keep searching for a "real" tag in
            the same scope. */
-        if (must_be_tag && sym->kind == (a_symbol_kind)sk_type) {
+        if (file_scope_lookup_opts.must_be_tag &&
+            sym->kind == (a_symbol_kind)sk_type) {
           check_assertion_or_expect_error(type_tag_symbol == NULL);
           type_tag_symbol = sym;
         } else {
@@ -6350,16 +6390,19 @@ file scope.
     if (sym == NULL && type_tag_symbol != NULL) sym = type_tag_symbol;
     /* If no symbol was found, continue the search in the lookup table. */
     if (sym == NULL) {
-      a_symbol_ptr	tag_symbol = NULL;
+      a_symbol_ptr   tag_symbol = NULL;
+      a_scope_number scope_number = file_scope_to_use->number;
+      a_translation_unit_ptr
+                     trans_unit = get_trans_unit_for_scope(scope_number);
+
       type_tag_symbol = NULL;
       for (sym = find_symbol_list_in_table(
-                               &get_trans_unit_for_scope(scope_number_to_use)->
-                                                     file_scope_pointers_block,
-                                locator->symbol_header);
+                                        &trans_unit->file_scope_pointers_block,
+                                        locator->symbol_header);
            sym != NULL;
            sym = sym->next_in_lookup_table) {
-        a_symbol_ptr	fund_sym = fundamental_symbol_of(sym);
-        if (is_acceptable_symbol(sym, fund_sym)) {
+        a_symbol_ptr fund_sym = fundamental_symbol_of(sym);
+        if (file_scope_lookup_opts.accepts(file_scope_to_use, sym, fund_sym)) {
           /* Found an acceptable symbol. */
           /* When looking for a tag symbol, both tags and typedefs may match
              the "acceptable" test.  The tag should be preferred over the
@@ -6367,7 +6410,7 @@ file scope.
              when not doing a "must be tag" lookup, both tags and non-tags
              will match the test.  A non-tag should be preferred over the tag,
              so if we find a tag we must keep looking. */
-          if (!must_be_tag) {
+          if (!file_scope_lookup_opts.must_be_tag) {
             /* A normal lookup. */
             if (is_tag_symbol(fund_sym)) {
               check_assertion_or_expect_error(tag_symbol == NULL);
@@ -6399,9 +6442,9 @@ file scope.
         }  /* if */
       }  /* if */
     }  /* if */
-    if ((!is_linkage_lookup ||
-         (options & IDL_TREAT_AS_TEMPLATE_ID) != 0) &&
-        !direct_namespace_members_only) {
+    if ((!file_scope_lookup_opts.is_linkage_lookup ||
+         file_scope_lookup_opts.are_proxy_members_template_ids) &&
+        !file_scope_lookup_opts.is_direct_namespace_members_only) {
        /* If the symbol was not found in this namespace, look in namespaces
           visible because of an inline namespace.  Skip this process for a
           linkage lookup.  A linkage lookup should only find names that are
@@ -6428,8 +6471,9 @@ file scope.
       }  /* if */
     }  /* if */
     if (sym == NULL &&
-        !is_linkage_lookup && !is_friend_lookup &&
-        !direct_namespace_members_only) {
+        !file_scope_lookup_opts.is_linkage_lookup &&
+        !file_scope_lookup_opts.is_friend_lookup &&
+        !file_scope_lookup_opts.is_direct_namespace_members_only) {
        /* If the symbol was not found in this namespace, look in namespaces
           visible because of using directives.  Skip this process for a
           linkage lookup.  A linkage or friend lookup should only find names
@@ -6455,7 +6499,6 @@ file scope.
   if (sym != NULL) reduce_projection_symbol_to_fundamental_symbol(sym);
   db_exit();
   return sym;
-#undef is_acceptable_symbol
 }  /* file_scope_id_lookup */
 
 
