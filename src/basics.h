@@ -1123,11 +1123,11 @@ levels).  SUPPRESS_BAD_GNU_WARNINGS (on by default for GCC builds) controls
 global suppression of these warnings.
 */
 #ifndef SUPPRESS_BAD_GNU_WARNINGS
-#if defined(__GNUC__) && !defined(__clang__)
+#if defined(__GNUC__) && !defined(__clang__) && !defined(__EDG__)
 #define SUPPRESS_BAD_GNU_WARNINGS 1
-#else  /* !(defined(__GNUC__) && !defined(__clang__)) */
+#else  /* !(defined(__GNUC__) && !defined(__clang__) && !defined(__EDG__)) */
 #define SUPPRESS_BAD_GNU_WARNINGS 0
-#endif /* defined(__GNUC__) && !defined(__clang__) */
+#endif /* defined(__GNUC__) && !defined(__clang__) && !defined(__EDG__) */
 #endif /* !defined(SUPPRESS_BAD_GNU_WARNINGS) */
 
 /* Define base macros for silencing GCC warnings.  These do not check GCC
