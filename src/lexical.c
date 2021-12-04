@@ -9281,6 +9281,7 @@ end_of_comment:;
         /* We either had an unterminated bidirectional control or the
            bidirectional nesting rules were violated.  Warn about it and
            empty the stack in preparation for the next comment or string. */
+        /* coverity[var_deref_model] */
         warning_at_line_pos(ec_suspicious_comment_formatting,
                             comment_start_loc);
         pop_bidi_control(/*flush=*/TRUE);
