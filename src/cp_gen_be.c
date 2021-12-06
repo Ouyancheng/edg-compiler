@@ -5676,7 +5676,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
               qualifier = accessible_qualifier(qualifier);
             }  /* if */
             if (entry_kind != iek_type && gcc_is_generated_code_target &&
-                !scp->member_of_unknown_base &&
+                !scp->member_of_unknown_base && !force_qualified_name &&
                 octl.processing_nontype_template_argument &&
                 qualifier->
                        variant.class_struct_union.is_prototype_instantiation &&
