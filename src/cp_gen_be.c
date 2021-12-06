@@ -2563,10 +2563,10 @@ names is not public, set *for_all_scopes to FALSE.
     if (kind == iek_type &&
         ((a_type_ptr)scp)->kind == (a_type_kind)tk_typeref &&
         typeref_is_type_operator((a_type_ptr)scp)) {
-      /* Rather than trying to deal with all the complexities of expression
-         operands of type operators, for safety's sake we treat all type
-         operators as inaccessible. */
-      is_accessible = FALSE;
+      an_expr_node_ptr opnd = decltype_arg((a_type_ptr)scp);
+      if (opnd != NULL && !expr_is_unusable(opnd)) {
+        is_accessible = TRUE;
+      }  /* if */
     } else if (scp->access == (an_access_specifier)as_public) {
       /* Either a public class member or a non-member. */
       is_accessible = TRUE;
