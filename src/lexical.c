@@ -8464,8 +8464,8 @@ entry from the stack to the list of available entries.
 }  /* pop_bidi_control */
 
 
-static a_boolean check_for_suspicious_control(unsigned  long ch,
-                                              a_boolean flag_zero_width)
+static a_boolean check_for_suspicious_control(unsigned long ch,
+                                              a_boolean     flag_zero_width)
 /*
 ch is a Unicode code point.  If it is a bidirectional control code, return
 TRUE if it violates the stacking rules for such codes.  In addition, if
@@ -13777,8 +13777,8 @@ struct an_id_representation {
 			   null-terminated UTF-8 representation of the
 			   identifier's spelling in the source. */
   sizeof_t	prototyped_spelling_idx;
-			/* If this identifier is confusable with another,
-			   this is the offset within
+			/* If this identifier contains confusable
+			   characters, this is the offset within
 			   prototyped_spellings->buffer of the
 			   null-terminated UTF-8 representation of the
 			   identifier's spelling, replacing any confusable
@@ -13846,10 +13846,10 @@ identifiers if their source spellings differ) and FALSE otherwise.
   an_id_representation_ptr key = (an_id_representation_ptr)key_ptr;
   
   entry_spelling = (entry->prototyped_spelling_idx == (sizeof_t)(-1))
-              ? src_spellings->buffer + entry->src_spelling_idx
-              : prototyped_spellings->buffer + entry-> prototyped_spelling_idx;
+               ? src_spellings->buffer + entry->src_spelling_idx
+               : prototyped_spellings->buffer + entry->prototyped_spelling_idx;
   key_spelling = (key->prototyped_spelling_idx == (sizeof_t)(-1))
-                  ? src_spellings->buffer + key->src_spelling_idx
+                 ? src_spellings->buffer + key->src_spelling_idx
                  : prototyped_spellings->buffer + key->prototyped_spelling_idx;
   return strcmp(entry_spelling, key_spelling) == 0;
 }  /* id_representations_match */
@@ -13869,11 +13869,12 @@ confusable with one already in the hash table.
   a_boolean                confusable_seen = FALSE;
   a_hash_data_ptr          *hash_data;
   an_id_representation_ptr new_id_rep;
+
 /*
-Update the hash code in curr_id_repr with the character ch.  This uses the
-same hashing algorithm found in hash_source_string.
+Local macro to update the hash code in curr_id_repr with the character ch.
+This uses the same hashing algorithm found in hash_source_string.
 */
-#define UPDATE_HASH(ch) \
+#define update_hash(ch) \
   curr_id_repr.hash_code += (curr_id_repr.hash_code << 5) + ch
 
   check_assertion(multibyte_chars_in_source_enabled &&
@@ -13899,17 +13900,18 @@ same hashing algorithm found in hash_source_string.
     int           numch =
                      mbc_to_wide_char(curr_ch, &ch, &err, /*is_native=*/FALSE);
     if (ch <= 0x7f) {
-      /* A single-byte character in UTF-8. */
+      /* An ASCII character, which is a single-byte character in UTF-8. */
       add_char_to_text_buffer(src_spellings, (char)ch);
       add_char_to_text_buffer(prototyped_spellings, (char)ch);
-      UPDATE_HASH(ch);
+      update_hash(ch);
     } else {
-      /* A non-ASCII/Latin-1 character.  Convert it to UTF-8, save it, and
-         see if it is confusable. */
+      /* An extended character.  Convert it to UTF-8, save it, and see if
+         it is confusable. */
       int                       utf_len;
       int                       i;
       char                      arr[4];
       a_confusable_map_elem_ptr cmep = confusable_char(ch);
+
       utf_len = unicode_to_utf8(ch, arr);
       add_to_text_buffer(src_spellings, arr, utf_len);
       if (ch >= 0x200b && ch <= 0x200d) {
@@ -13922,7 +13924,7 @@ same hashing algorithm found in hash_source_string.
            prototyped string and update the hash code. */
         for (i = 0; i < utf_len; ++i) {
           add_char_to_text_buffer(prototyped_spellings, arr[i]);
-          UPDATE_HASH(arr[i]);
+          update_hash(arr[i]);
         }  /* for */
       } else {
         /* This character is confusable with another.  Add the prototyped
@@ -13933,7 +13935,7 @@ same hashing algorithm found in hash_source_string.
           utf_len = unicode_to_utf8(cmep->prototype[i], arr);
           for (int j = 0; j < utf_len; ++j) {
             add_char_to_text_buffer(prototyped_spellings, arr[j]);
-            UPDATE_HASH(arr[j]);
+            update_hash(arr[j]);
           }  /* for */
         }  /* for */
       }  /* if */
@@ -13986,7 +13988,7 @@ same hashing algorithm found in hash_source_string.
                          &irp->pos_first_occurrence, this_cp);
     }  /* if */
   }  /* if */
-#undef UPDATE_HASH
+#undef update_hash
 }  /* check_for_confusable_id */
 
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
@@ -14868,8 +14870,16 @@ id_scan:
             multibyte_chars_in_source_enabled &&
             curr_file_unicode_source_kind != usk_none &&
             !sym_hdr->id_added_to_map) {
+          /* For speed, we only check for confusable identifiers once and
+             record the fact that the check has been performed using the
+             id_added_to_map flag in the identifier's symbol header. */
           check_for_confusable_id();
           if (!id_contains_ucn) {
+            /* Exploits involving confusable identifiers rely on the
+               similar graphical appearance of extended characters, so we
+               do not suppress future checks for this identifier if this
+               instance was written using UCNs, which could be used to
+               obfuscate the confusable characters. */
             sym_hdr->id_added_to_map = TRUE;
           }  /* if */
         }  /* if */
