@@ -2120,15 +2120,24 @@ severe error cases.
 
   d = class_type_supp(lambda->closure_class)->assoc_scope
                                             ->depth_in_scope_stack;
-  do {
-    d = scope_stack[d-1].depth_innermost_function_scope;
-    if (scope_stack[d].assoc_routine == NULL ||
-        !scope_stack[d].assoc_routine->is_lambda_body) {
-      lambda = NULL;
-      expect_error();
-      break;
-    }  /* if */
-  } while ((lambda = get_lambda_for_scope_depth(d)) == NULL);
+  if (d > depth_scope_stack || d == NO_SCOPE_DEPTH ||
+      !scope_is(&scope_stack[d], sck_class_struct_union) ||
+      scope_stack[d].assoc_type != lambda->closure_class) {
+    /* Something went wrong and the closure class is not on the scope stack.
+       This can happen with severe syntax errors. */
+    lambda = NULL;
+    expect_error();
+  } else {
+    do {
+      d = scope_stack[d-1].depth_innermost_function_scope;
+      if (scope_stack[d].assoc_routine == NULL ||
+          !scope_stack[d].assoc_routine->is_lambda_body) {
+        lambda = NULL;
+        expect_error();
+        break;
+      }  /* if */
+    } while ((lambda = get_lambda_for_scope_depth(d)) == NULL);
+  }  /* if */
   return lambda;
 }  /* enclosing_lambda_of */
 
