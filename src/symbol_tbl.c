@@ -9951,6 +9951,7 @@ a nonstatic member function, P1 is the type of this.)
   cdp->promise = make_variable(promise_type, (a_storage_class)sc_auto,
                                NO_SCOPE_DEPTH);
   cdp->promise->source_corresp.decl_position=rp->source_corresp.decl_position;
+  cdp->promise->source_corresp.is_local_to_function = TRUE;
   { an_error_code err_code;
     /* Create a placeholder variable for the coroutine "handle". */
     handle_type = instantiate_coroutine_class_template_with_one_type(
@@ -9963,12 +9964,14 @@ a nonstatic member function, P1 is the type of this.)
     cdp->handle = make_variable(handle_type, (a_storage_class)sc_auto,
                                 NO_SCOPE_DEPTH);
     cdp->handle->source_corresp.decl_position=rp->source_corresp.decl_position;
+    cdp->handle->source_corresp.is_local_to_function = TRUE;
   }
   /* Create a placeholder variable for "init-await-resume-called". */
   cdp->init_await_resume = make_variable(bool_type(), (a_storage_class)sc_auto,
                                          NO_SCOPE_DEPTH);
   cdp->init_await_resume->source_corresp.decl_position =
                                               rp->source_corresp.decl_position;
+  cdp->init_await_resume->source_corresp.is_local_to_function = TRUE;
   cdp->init_await_resume->init_kind = (an_init_kind)initk_zero;
   if (is_error_type(promise_type) || is_error_type(handle_type)) {
     expect_error();

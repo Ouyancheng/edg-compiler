@@ -1,5 +1,15 @@
 Version 6.3
 
+12/6/21  [EDGcpfe/24739]
+Coroutines: Coroutine frame variables with unset 'is_local_to_function' field
+
+The front-end's generation of the variables for a coroutine frame (e.g., the
+'promise' variable or the copied coroutine parameters) failed to set the
+'is_local_to_function' field in their source correspondences.  This could lead
+to the incorrect impression that these were global variables, and has now been
+fixed.
+
+
 12/3/21  [EDGcpfe/24810,EDGcpfe/24829]
 Unicode source code vulnerabilities
 

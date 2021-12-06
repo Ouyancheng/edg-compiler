@@ -1018,12 +1018,13 @@ the provided param_var.  Use pos as the position of this generated variable.
        back end to produce valid code without needing to perform hijinks to
        get back to the original parameter name. */
     copy_var->source_corresp.name = param_var->source_corresp.name;
+    copy_var->source_corresp.assoc_info = (char*)copy_sym;
     copy_var->source_corresp.enclosing_routine =
                                    param_var->source_corresp.enclosing_routine;
     copy_var->source_corresp.referenced = param_var->source_corresp.referenced;
+    copy_var->source_corresp.is_local_to_function = TRUE;
     copy_var->is_this_parameter = param_var->is_this_parameter;
     copy_var->is_parameter = param_var->is_parameter;
-    copy_var->source_corresp.assoc_info = (char*)copy_sym;
     copy_var->next = param_var->next;
     copy_sym->variant.variable.ptr = copy_var;
     dps.sym = copy_sym;
