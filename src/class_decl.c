@@ -2130,7 +2130,8 @@ severe error cases.
   } else {
     do {
       d = scope_stack[d-1].depth_innermost_function_scope;
-      if (scope_stack[d].assoc_routine == NULL ||
+      if (d == NO_SCOPE_DEPTH ||
+          scope_stack[d].assoc_routine == NULL ||
           !scope_stack[d].assoc_routine->is_lambda_body) {
         lambda = NULL;
         expect_error();
