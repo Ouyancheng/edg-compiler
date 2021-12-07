@@ -2779,10 +2779,14 @@ private:
   a_module_entity_ptr get_ifc_module_entity_ptr(
                                        an_ifc_partition_kind partition,
                                        ifc_Index_type        index) const;
+  a_module_entity_ptr get_ifc_decl_from_other_module(
+                                         const an_ifc_DeclSort_Reference *ref);
+  a_module_entity_ptr get_ifc_decl_from_other_module(ifc_DeclIndex index);
+  void process_ifc_decl_from_other_module(a_module_entity_ptr dmep);
   a_module_entity_ptr get_and_process_ifc_decl_from_other_module(
-                                        const an_ifc_DeclSort_Reference *ref);
+                                         const an_ifc_DeclSort_Reference *ref);
   a_module_entity_ptr get_and_process_ifc_decl_from_other_module(
-                                                         ifc_DeclIndex index);
+                                                          ifc_DeclIndex index);
   ifc_NameIndex get_ifc_name_from_primary_template(
                                                  ifc_FormSpecIndex form_index);
   /* Value retrieval visitors. */
@@ -2837,8 +2841,7 @@ private:
   template<typename an_ifc_DeclSort_T>
   inline a_scope_ptr get_ifc_home_scope(an_ifc_DeclSort_T *decl)
     { return get_ifc_scope(get_ifc_home_scope_decl(decl)); }
-  inline a_scope_ptr get_ifc_home_scope(ifc_DeclIndex decl_index)
-    { return get_ifc_scope(get_ifc_home_scope_decl(decl_index)); }
+  inline a_scope_ptr get_ifc_home_scope(ifc_DeclIndex decl_index);
   a_boolean is_home_scope_readable(ifc_DeclIndex decl_index);
   /* IFC Access readers. */
   template<typename an_ifc_DeclSort_T>
@@ -3229,37 +3232,44 @@ extern a_boolean load_routine_definition_from_ifc_module(a_routine_ptr  rp);
 
 /* Explicit specializations of an_ifc_module::get_ifc_name. */
 template<>
-ifc_NameIndex an_ifc_module::get_ifc_name(an_ifc_DeclSort_Constructor *decl);
+inline ifc_NameIndex an_ifc_module::get_ifc_name(
+                                            an_ifc_DeclSort_Constructor *decl);
 template<>
-ifc_NameIndex an_ifc_module::get_ifc_name(an_ifc_DeclSort_Destructor *decl);
+inline ifc_NameIndex an_ifc_module::get_ifc_name(
+                                             an_ifc_DeclSort_Destructor *decl);
 template<>
-ifc_NameIndex an_ifc_module::get_ifc_name(
+inline ifc_NameIndex an_ifc_module::get_ifc_name(
                                   an_ifc_DeclSort_PartialSpecialization *decl);
 template<>
-ifc_NameIndex an_ifc_module::get_ifc_name(
+inline ifc_NameIndex an_ifc_module::get_ifc_name(
                                  an_ifc_DeclSort_ExplicitSpecialization *decl);
 template<>
-ifc_NameIndex an_ifc_module::get_ifc_name(
+inline ifc_NameIndex an_ifc_module::get_ifc_name(
                                   an_ifc_DeclSort_ExplicitInstantiation *decl);
 
 /* Explicit specializations of an_ifc_module::get_ifc_locus. */
 template<>
-ifc_SourceLocation an_ifc_module::get_ifc_locus(
+inline ifc_SourceLocation an_ifc_module::get_ifc_locus(
                                  an_ifc_DeclSort_ExplicitSpecialization *decl);
 template<>
-ifc_SourceLocation an_ifc_module::get_ifc_locus(
+inline ifc_SourceLocation an_ifc_module::get_ifc_locus(
                                   an_ifc_DeclSort_ExplicitInstantiation *decl);
 
 /* Explicit specializations of an_ifc_module::get_ifc_home_scope_decl. */
 template<>
-ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(
+inline ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(
                                   an_ifc_DeclSort_PartialSpecialization *decl);
 template<>
-ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(
+inline ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(
                                  an_ifc_DeclSort_ExplicitSpecialization *decl);
 template<>
-ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(
+inline ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(
                                   an_ifc_DeclSort_ExplicitInstantiation *decl);
+
+/* Explicit specializations of an_ifc_module::get_ifc_home_scope. */
+template<>
+inline a_scope_ptr an_ifc_module::get_ifc_home_scope(
+                                              an_ifc_DeclSort_Reference *decl);
 
 extern void record_pending_ifc_function_body(a_routine_ptr  rp,
                                              ifc_DeclIndex  decl_idx,

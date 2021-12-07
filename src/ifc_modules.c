@@ -3628,6 +3628,9 @@ principal associated IL entity.
   a_boolean                scope_pushed = FALSE;
   a_boolean                skip_pop = FALSE;
 
+  /* Ensure the module entity is being processed by the corresponding module
+     interface. */
+  check_assertion(mep->module_info->module_interface == this);
 #if EXPENSIVE_CHECKING
   /* When this flag is set, eagerly load all entities in a module.  Entities
      are typically lazily loaded (i.e., only when needed) and eagerly loading
@@ -5343,14 +5346,13 @@ and index from the provided index.
 }  /* get_ifc_module_entity_ptr */
 
 
-a_module_entity_ptr an_ifc_module::get_and_process_ifc_decl_from_other_module(
-                                         const an_ifc_DeclSort_Reference *ref)
+a_module_entity_ptr an_ifc_module::get_ifc_decl_from_other_module(
+                                          const an_ifc_DeclSort_Reference *ref)
 /*
-Given a DeclSort::Reference to another module, get and return the
-fully-processed entity from the referenced module.
+Given a DeclSort::Reference to another module, get and return the unprocessed
+entity from the referenced module.
 */
 {
-  a_module_entity_ptr       dmep;
   a_module_import_decl_ptr  midp;
   an_ifc_module             *iface;
 
@@ -5358,25 +5360,93 @@ fully-processed entity from the referenced module.
   check_assertion(midp != NULL);
   iface = (an_ifc_module*)midp->module_info->module_interface;
   check_assertion(iface != NULL);
-  dmep = iface->get_ifc_module_entity_ptr(ref->local_index);
-  iface->process_ifc_declaration(dmep, /*defer=*/FALSE,
-                                 /*enumeration_type=*/NULL);
+  return iface->get_ifc_module_entity_ptr(ref->local_index);
+}  /* get_ifc_decl_from_other_module */
+
+
+a_module_entity_ptr an_ifc_module::get_ifc_decl_from_other_module(
+                                                           ifc_DeclIndex index)
+/*
+Given an index for a DeclSort::Reference, get and return the unprocessed entity
+from the referenced module.
+*/
+{
+  an_ifc_DeclSort_Reference idsr, *idsrp;
+
+  check_assertion(decl_tag(index) == ifc_DeclSort_Reference);
+  read_prechecked_partition_element(index);
+  idsrp = get_DeclSort_Reference(&idsr);
+  return get_ifc_decl_from_other_module(idsrp);
+}  /* get_ifc_decl_from_other_module */
+
+
+static an_ifc_module *get_as_an_ifc_module(a_module_interface_ptr interface)
+/*
+Reinterpret the given module interface pointer as an ifc module pointer with
+additional checks for debug modes.  Return the reinterpreted pointer.
+*/
+{
+#if USE_VIRTUAL_FUNCTIONS
+  check_assertion(dynamic_cast<an_ifc_module>(interface) != NULL);
+#else /* !USE_VIRTUAL_FUNCTIONS */
+  check_assertion(interface->mod_kind == mk_ifc);
+#endif /* USE_VIRTUAL_FUNCTIONS */
+  return (an_ifc_module*)interface;
+}  /* get_as_an_ifc_module */
+
+
+static an_ifc_module *get_assoc_ifc_module(a_module_entity_ptr mep)
+/*
+Return the associated module interface for the given module entity pointer as
+an ifc module.
+*/
+{
+  a_module_interface *interface = mep->module_info->module_interface;
+
+  return get_as_an_ifc_module(interface);
+}  /* get_assoc_ifc_module */
+
+
+void an_ifc_module::process_ifc_decl_from_other_module(
+                                                      a_module_entity_ptr dmep)
+/*
+Given a module entity pointer for a different IFC module, fully process the
+associated entity from the referenced module.
+*/
+{
+  an_ifc_module *mod = get_assoc_ifc_module(dmep);
+
+  check_assertion(mod != this);
+  mod->process_ifc_declaration(dmep, /*defer=*/FALSE,
+                               /*enumeration_type=*/NULL);
+}  /* process_ifc_decl_from_other_module */
+
+
+a_module_entity_ptr an_ifc_module::get_and_process_ifc_decl_from_other_module(
+                                          const an_ifc_DeclSort_Reference *ref)
+/*
+Given a DeclSort::Reference to another module, get and return the
+fully-processed entity from the referenced module.
+*/
+{
+  a_module_entity_ptr dmep = get_ifc_decl_from_other_module(ref);
+
+  process_ifc_decl_from_other_module(dmep);
   return dmep;
 }  /* get_and_process_ifc_decl_from_other_module */
 
 
 a_module_entity_ptr an_ifc_module::get_and_process_ifc_decl_from_other_module(
-                                                          ifc_DeclIndex index)
+                                                           ifc_DeclIndex index)
 /*
 Given an index for a DeclSort::Reference, get and return the fully-processed
 entity from the referenced module.
 */
 {
-  an_ifc_DeclSort_Reference idsr, *idsrp;
+  a_module_entity_ptr dmep = get_ifc_decl_from_other_module(index);
 
-  read_prechecked_partition_element(index);
-  idsrp = get_DeclSort_Reference(&idsr);
-  return get_and_process_ifc_decl_from_other_module(idsrp);
+  process_ifc_decl_from_other_module(dmep);
+  return dmep;
 }  /* get_and_process_ifc_decl_from_other_module */
 
 
@@ -5745,6 +5815,50 @@ Given a scope index find and return the associated scope.
 }  /* get_ifc_scope */
 
 
+template<>
+inline a_scope_ptr an_ifc_module::get_ifc_home_scope(
+                                               an_ifc_DeclSort_Reference *decl)
+/*
+Return the associated scope for the given reference to a foreign IFC
+declaration.
+*/
+{
+  /* References are a special case where we need to delegate to a foreign
+     module.  This is not a safe operation when working with IFC Index types
+     (as the module association is lost) so this special case is handled at a
+     higher level (get_ifc_home_scope vs get_ifc_home_scope_decl) where module
+     association isn't relevant. */
+  a_module_entity_ptr dmep = get_ifc_decl_from_other_module(decl);
+  an_ifc_module       *mod = get_assoc_ifc_module(dmep);
+
+  /* Get the scope from the referenced module. */
+  return mod->get_ifc_home_scope(mod->decl_index_of(dmep));
+}  /* get_ifc_home_scope<an_ifc_DeclSort_Reference> */
+
+
+inline a_scope_ptr an_ifc_module::get_ifc_home_scope(ifc_DeclIndex decl_index)
+/*
+Return the associated scope for the given declaration index.
+*/
+{
+  a_scope_ptr result;
+
+  /* Handle the reference special case.  See
+     get_ifc_home_scope<an_ifc_DeclSort_Reference> for more information. */
+  if (decl_tag(decl_index) == ifc_DeclSort_Reference) {
+    an_ifc_DeclSort_Reference idsr, *idsrp;
+
+    read_prechecked_partition_element(decl_index);
+    idsrp = get_DeclSort_Reference(&idsr);
+    /* Delegate to the reference specialization. */
+    result = get_ifc_home_scope(idsrp);
+  } else {
+    result = get_ifc_scope(get_ifc_home_scope_decl(decl_index));
+  }  /* if */
+  return result;
+}  /* get_ifc_home_scope */
+
+
 a_boolean an_ifc_module::is_home_scope_readable(ifc_DeclIndex decl_index)
 /*
 Returns TRUE if the home scope of the declaration (indexed by decl_index) is
@@ -5803,7 +5917,6 @@ can currently be qualified.
 
   switch (decl_tag(decl_index)) {
     case ifc_DeclSort_Parameter:
-    case ifc_DeclSort_Reference:
       /* This declaration can never have its name qualified. */
       result = FALSE;
       break;
@@ -5827,6 +5940,17 @@ can currently be qualified.
         ifc_DeclIndex declaring_class_scope =
                                       get_ifc_home_scope_decl(declaring_class);
         result = decl_tag(declaring_class_scope) == ifc_DeclSort_Scope;
+      }
+      break;
+    case ifc_DeclSort_Reference:
+      {
+        /* This declaration is an indirect reference to an imported
+           declaration.  We must consider the import declaration by querying
+           the associated foreign module. */
+        a_module_entity_ptr dmep = get_ifc_decl_from_other_module(decl_index);
+        an_ifc_module       *mod = get_assoc_ifc_module(dmep);
+
+        result = mod->is_name_qualifiable(mod->decl_index_of(dmep));
       }
       break;
     default:
