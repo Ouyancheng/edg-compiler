@@ -265,11 +265,12 @@ need to be reset after a call to this routine.
 
 namespace {
 
+/*
+An internal class for representing flags for a scope id lookup, and testing
+acceptance of symbols.
+*/
 struct a_scope_id_lookup_options_set {
-  a_scope_id_lookup_options_set(an_id_lookup_options_set options)
-    : must_be_tag((options & IDL_MUST_BE_TAG) != 0),
-      projection_allowed((options & IDL_PROJ_SYMBOL_ALLOWED) != 0)
-  {}
+  a_scope_id_lookup_options_set(an_id_lookup_options_set options);
 
   inline a_boolean accepts(a_name_space_kind required_name_space_kind,
                            a_symbol_ptr      sym,
@@ -279,15 +280,29 @@ struct a_scope_id_lookup_options_set {
   const a_boolean projection_allowed;
 };  /* a_scope_id_lookup_options_set */
 
+a_scope_id_lookup_options_set::a_scope_id_lookup_options_set(
+                                              an_id_lookup_options_set options)
+  : must_be_tag((options & IDL_MUST_BE_TAG) != 0),
+    projection_allowed((options & IDL_PROJ_SYMBOL_ALLOWED) != 0)
+/*
+Construct a scope id lookup options set from the given id lookup options set.
+*/
+{
+  check_assertion_str2((options & ~(IDL_MUST_BE_TAG |
+                                    IDL_MUST_BE_CLASS |
+                                    IDL_PROJ_SYMBOL_ALLOWED |
+                                    IDL_HIDDEN_NAME_LOOKUP)) == 0,
+                       "curr_scope_id_lookup:", "invalid_option");
+}  /* a_scope_id_lookup_options_set */
+
 
 inline a_boolean a_scope_id_lookup_options_set::accepts(
                                     a_name_space_kind required_name_space_kind,
                                     a_symbol_ptr      sym,
                                     a_symbol_ptr      fund_sym) const
 /*
-Returns TRUE if sym and its accompanying fundamental symbol (fund_sym) are
-acceptable symbols for the given required name space kind, and the current
-lookup options.
+Return TRUE if sym and its accompanying fundamental symbol are acceptable
+symbols for the given required name space kind and the current lookup options.
 */
 {
   a_boolean result = TRUE;
@@ -316,11 +331,11 @@ must a tag.  Projection symbols are only considered in the lookup if
 IDL_PROJ_SYMBOL_ALLOWED is specified in options.
 */
 {
-  a_symbol_ptr			sym;
-  a_scope_number		scope_number;
+  a_symbol_ptr                  sym;
+  a_scope_number                scope_number;
   a_scope_id_lookup_options_set scope_lookup_opts(options);
-  a_scope_stack_entry_ptr	ssep;
-  a_name_space_kind		required_name_space_kind = nsk_other;
+  a_scope_stack_entry_ptr       ssep;
+  a_name_space_kind             required_name_space_kind = nsk_other;
 
   /* In C mode, a "must be tag" lookup only considers symbols in the tag
      name space kind. */
@@ -855,7 +870,7 @@ type if the lookup is a "must be class or namespace", "must be tag" or
 also force the member to be a type when doing a "tentative type" lookup
 (but not if the name being looked up is something that could not be
 a typename, like a destructor).
-  
+
 Implicit typename mode is used to compile code that was not written
 using "typename".  If the symbol is not considered to be a class
 template or a type, then it is created as a constant.
@@ -1362,16 +1377,15 @@ a_boolean symbols_are_lookup_equivalent(
 			a_boolean			merge_c_funcs,
 			an_id_lookup_options_set	options)
 /*
-Returns TRUE if sym1 is the same as sym2 or if sym1 and sym2 point
-to the same IL entities.  The latter check is used, for example, to
-determine whether two symbols from different namespaces point to
-the same underlying extern "C" variable or function.  Two such symbols
-that appear in the same using-directive lookup set are considered to
-represent the same entity, so one of the two symbols is arbitrarily
-selected.  sym1 and sym2 must have been reduced to their fundamental
-symbols by the caller.  merge_c_funcs is TRUE if extern "C" functions
-should be treated as equivalent in GNU and Microsoft C++ modes.  options
-specifies the options being used for the lookup.
+Return TRUE if sym1 is the same as sym2 or if sym1 and sym2 point to the same
+IL entities.  The latter check is used, for example, to determine whether two
+symbols from different namespaces point to the same underlying extern "C"
+variable or function.  Two such symbols that appear in the same using-directive
+lookup set are considered to represent the same entity, so one of the two
+symbols is arbitrarily selected.  sym1 and sym2 must have been reduced to their
+fundamental symbols by the caller.  merge_c_funcs is TRUE if extern "C"
+functions should be treated as equivalent in GNU and Microsoft C++ modes.
+options specifies the options being used for the lookup.
 */
 {
   a_boolean	result = FALSE;
@@ -1625,13 +1639,12 @@ namespace" lookup is done.
 static a_boolean symbols_from_same_scope(a_symbol_ptr curr_sym,
                                          a_symbol_ptr new_sym)
 /*
-Returns TRUE if the two symbols are from the same scope.  curr_sym
-represents a lookup set that has been constructed and new_sym is
-a normal symbol (not a synthesized projection symbol) that is being
-considered as an alternative to curr_sym because of the 1.5 namespace
-rule for struct names.  When curr_sym points to a set of overloaded
-functions, the overload set must be inspected to see if all of the
-members of the set are from the same scope.
+Return TRUE if the two symbols are from the same scope.  curr_sym represents a
+lookup set that has been constructed and new_sym is a normal symbol (not a
+synthesized projection symbol) that is being considered as an alternative to
+curr_sym because of the 1.5 namespace rule for struct names.  When curr_sym
+points to a set of overloaded functions, the overload set must be inspected to
+see if all of the members of the set are from the same scope.
 */
 {
   a_boolean		result = TRUE;
@@ -2175,9 +2188,8 @@ symbol should be accepted despite being invisible, FALSE otherwise.
 {
   a_boolean result = FALSE;
 
-  /* g++ versions >= 50000 make the function template symbol visible
-     for parsing purposes, but it is ignored by overload
-     resolution. */
+  /* g++ versions >= 50000 make the function template symbol visible for
+     parsing purposes, but it is ignored by overload resolution. */
   if (gpp_version_is(>= 50000) &&
       symbol_is_or_contains_function_template(fund_sym)) {
     result = TRUE;
@@ -4746,6 +4758,10 @@ an attempt to declare a member of the same name as the parent class.)
 
 namespace {
 
+/*
+An internal class for representing flags for a class qualified id lookup, and
+testing acceptance of symbols.
+*/
 struct a_class_qualified_lookup_options_set {
   a_class_qualified_lookup_options_set(an_id_lookup_options_set options)
     : must_be_class_or_namespace(
@@ -4818,9 +4834,9 @@ inline a_boolean a_class_qualified_lookup_options_set::accepts(
                                                    a_symbol_ptr sym,
                                                    a_symbol_ptr fund_sym) const
 /*
-Return TRUE if sym and its accompanying fundamental symbol (fund_sym) are
-acceptable symbols in the class specified by class_type_ptr given the current
-lookup options.
+Return TRUE if sym and its accompanying fundamental symbol are acceptable
+symbols in the class specified by class_type_ptr given the current lookup
+options.
 */
 {
   a_boolean result = TRUE;
@@ -5962,6 +5978,10 @@ If no symbol is found in the specified namespace, NULL is returned.
 
 namespace {
 
+/*
+An internal class for representing flags for a namespace lookup, and testing
+acceptance of symbols.
+*/
 struct a_namespace_lookup_options_set {
   a_namespace_lookup_options_set(an_id_lookup_options_set options)
     : must_be_class_or_namespace(
@@ -6004,8 +6024,8 @@ inline a_boolean a_namespace_lookup_options_set::accepts(
                                                       a_symbol_ptr    fund_sym)
                                                                           const
 /*
-Return TRUE if sym and its accompanying fundamental symbol (fund_sym) are
-acceptable symbols in the namespace ns_ptr given the current lookup options.
+Return TRUE if sym and its accompanying fundamental symbol are acceptable
+symbols in the namespace ns_ptr given the current lookup options.
 */
 {
   a_boolean result = TRUE;
@@ -6253,6 +6273,10 @@ namespace.  This routine is used only in C++ mode.
 
 namespace {
 
+/*
+An internal class for representing flags for a file scope id lookup, and
+testing acceptance of symbols.
+*/
 struct a_file_scope_id_lookup_options_set {
   a_file_scope_id_lookup_options_set(an_id_lookup_options_set options)
     : must_be_class_or_namespace(
@@ -6292,8 +6316,8 @@ inline a_boolean a_file_scope_id_lookup_options_set::accepts(
                                                 a_symbol_ptr sym,
                                                 a_symbol_ptr fund_sym) const
 /*
-Returns TRUE if sym and its accompanying fundamental symbol (fund_sym) are
-acceptable symbols for the given file scope, and the current lookup options.
+Return TRUE if sym and its accompanying fundamental symbol are acceptable
+symbols for the given file scope and the current lookup options.
 */
 {
   a_boolean result = TRUE;
@@ -6348,8 +6372,8 @@ file scope.
 */
 {
   a_symbol_ptr  sym;
-  a_symbol_ptr	synth_sym = NULL;
-  a_boolean	any_errors = FALSE;
+  a_symbol_ptr  synth_sym = NULL;
+  a_boolean     any_errors = FALSE;
   a_file_scope_id_lookup_options_set
                 file_scope_lookup_opts(options);
 
