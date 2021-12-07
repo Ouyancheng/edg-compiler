@@ -11842,7 +11842,8 @@ possibility.
            whether a trailing requires clause might need substitution when
            the function is referenced. */
         a_routine_ptr  rp = sym->variant.routine.ptr;
-        if (rp->defined_in_friend_decl && !func_info->is_deleted) {
+        if (rp->defined_in_friend_decl &&
+            !func_info->is_deleted && !func_info->is_defaulted) {
           sym->variant.routine.ptr->routine_fixup = curr_routine_fixup;
           sym->variant.routine.pending_trailing_requires_clause =
                                       state->pending_trailing_requires_clause;
