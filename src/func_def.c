@@ -645,7 +645,10 @@ associated with a variadic parameter, but not the initial one.
     if (remove_qualifiers_from_param_types) {
       /* If top-level qualifiers were stripped off the param-type type,
          restore them in the parameter variable's type. */
-      tp = make_qualified_type(tp, ptp->qualifiers);
+      ptp->qualifiers |= param_id->eff_top_level_cv_quals;
+      if (ptp->qualifiers != TQ_NONE) {
+        tp = make_qualified_type(tp, ptp->qualifiers);
+      }  /* if */
     }  /* if */
   } else {
     /* In cases other than template instantiations, use the param-id type,
