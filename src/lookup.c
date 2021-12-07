@@ -270,7 +270,7 @@ An internal class for representing flags for a scope id lookup, and testing
 acceptance of symbols.
 */
 struct a_scope_id_lookup_options_set {
-  a_scope_id_lookup_options_set(an_id_lookup_options_set options);
+  inline a_scope_id_lookup_options_set(an_id_lookup_options_set options);
 
   inline a_boolean accepts(a_name_space_kind required_name_space_kind,
                            a_symbol_ptr      sym,
@@ -280,7 +280,7 @@ struct a_scope_id_lookup_options_set {
   const a_boolean projection_allowed;
 };  /* a_scope_id_lookup_options_set */
 
-a_scope_id_lookup_options_set::a_scope_id_lookup_options_set(
+inline a_scope_id_lookup_options_set::a_scope_id_lookup_options_set(
                                               an_id_lookup_options_set options)
   : must_be_tag((options & IDL_MUST_BE_TAG) != 0),
     projection_allowed((options & IDL_PROJ_SYMBOL_ALLOWED) != 0)
