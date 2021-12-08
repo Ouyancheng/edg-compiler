@@ -636,9 +636,9 @@ Note: This routine should not interfere with any string that's in the process
 of being constructed in temp_text_buffer.
 */
 {
-  Value_saver<sizeof_t, pos_in_temp_text_buffer> pos_saver;
-  uint32_t                                       raw_id = id;
-  a_const_char                                   *result;
+  Value_saver<sizeof_t> pos_saver(&pos_in_temp_text_buffer);
+  uint32_t              raw_id = id;
+  a_const_char          *result;
 
   /* Index to where the string will be added to the text buffer. */
   result = temp_text_buffer + pos_in_temp_text_buffer;
@@ -3002,19 +3002,24 @@ void an_ifc_module::export_ifc_macros()
 Export all macro definitions in this module (presumably a header unit).
 */
 {
-  Value_saver<a_source_position, pos_curr_token> pos_curr_token_saver;
-  Value_saver<a_boolean, expand_macros>          expand_macros_saver(FALSE);
-  Value_saver<a_boolean, in_preprocessing_directive>
-                                                 ppd_saver(TRUE);
+  Value_saver<a_source_position> pos_curr_token_saver(&pos_curr_token);
+  Value_saver<a_boolean>         expand_macros_saver(&expand_macros,
+                                                     /*new_value=*/FALSE);
+  Value_saver<a_boolean>         ppd_saver(&in_preprocessing_directive,
+                                           /*new_value=*/TRUE);
   /* Do not set this yet - cache_curr_token below may make the incorrect choice
      if this is set to TRUE prior to calling it. */
-  Value_saver<a_boolean, fetch_pp_tokens>        pp_tok_saver;
-  Value_saver<a_boolean, scanning_module_macro>  scanning_macro_saver(TRUE);
-  Value_saver<a_const_char*, curr_source_line>   curr_source_saver(NULL);
-  Value_saver<a_const_char*, after_end_of_curr_source_line>
-                                                 end_curr_source_saver(NULL);
-  Value_saver<a_const_char*, curr_char_loc>      curr_char_saver(NULL);
-  a_token_cache                                  cache;
+  Value_saver<a_boolean>         pp_tok_saver(&fetch_pp_tokens);
+  Value_saver<a_boolean>         scanning_macro_saver(&scanning_module_macro,
+                                                      /*new_value=*/TRUE);
+  Value_saver<a_const_char*>     curr_source_saver(&curr_source_line,
+                                                   /*new_value=*/NULL);
+  Value_saver<a_const_char*>     end_curr_source_saver(
+                                                &after_end_of_curr_source_line,
+                                                /*new_value=*/NULL);
+  Value_saver<a_const_char*>     curr_char_saver(&curr_char_loc,
+                                                 /*new_value=*/NULL);
+  a_token_cache                  cache;
 
   /* Save the current token to restore later so that it's not lost. */
   clear_token_cache(&cache, /*reusable=*/FALSE);
@@ -3884,8 +3889,9 @@ principal associated IL entity.
                      path. */
                   check_assertion((idssp->traits & ifc_ScopeTraits_Unnamed)
                                   == 0);
-                  { Value_saver<a_boolean, lazy_symbols_may_be_visible>
-                                                        lazy_load_saver(FALSE);
+                  { Value_saver<a_boolean> lazy_load_saver(
+                                                  &lazy_symbols_may_be_visible,
+                                                  /*new_value=*/FALSE);
                     ns_sym = curr_scope_id_lookup(&loc, IDL_NO_OPTIONS);
                   }
                   if (ns_sym != NULL) {
@@ -4367,8 +4373,9 @@ class_struct_union_case:
                  Don't allow lazy loading of symbols while doing this check, as
                  otherwise a duplicate symbol from another module may start
                  being processed as a result. */
-              Value_saver<a_boolean, lazy_symbols_may_be_visible>
-                           lazy_load_saver(FALSE);
+              Value_saver<a_boolean> lazy_load_saver(
+                                                  &lazy_symbols_may_be_visible,
+                                                  /*new_value=*/FALSE);
               a_symbol_ptr sym = curr_scope_id_lookup(&loc, IDL_NO_OPTIONS);
               if (sym != NULL) {
                 do_forward_decl = FALSE;
