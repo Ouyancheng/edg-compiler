@@ -4599,12 +4599,6 @@ preprocessor directives are handled by is_module_pp_directive.
       header_stop_no_longer_pending();
     }  /* if */
   }  /* if */
-  if (first_pp_directive.seq == SP_LINE_UNKNOWN) {
-    /* Keep track of the position of the first preprocessing directive we see
-       (it may have a bearing on whether or not the translation unit can be
-       a module and helps with diagnostics in such cases). */
-    copy_source_position(save_error_position, first_pp_directive);
-  }  /* if */
   db_exit();
 }  /* pp_directive */
 
@@ -4831,7 +4825,6 @@ every translation unit.
 #if GNU_EXTENSIONS_ALLOWED
   gcc_pragma_options_stack = NULL;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-  first_pp_directive = null_source_position;
 }  /* preproc_trans_unit_init */
 
 

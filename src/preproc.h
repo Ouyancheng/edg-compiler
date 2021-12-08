@@ -132,11 +132,7 @@ EXTERN a_boolean
 			   interpretation of white space, makes newline
 			   a token, disables recognition of keywords,
 			   and enables "#" and "##" as tokens. */
-EXTERN a_source_position
-		first_pp_directive;
-			/* The source position of the first preprocessor
-			   directive in the translation unit (used to provide
-			   a diagnostic in some module cases). */
+
 EXTERN a_boolean
 		suppress_keyword_recognition;
 			/* TRUE if keywords should not be recognized even

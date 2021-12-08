@@ -21520,25 +21520,6 @@ are encountered.
       }  /* if */
     }  /* if */
   } else {
-    if (modules_enabled) {
-      if (curr_token == tok_module ||
-          (curr_token == tok_export_keyword && next_token() == tok_module)) {
-        /* This appears to be a module-unit (or something that is trying to
-           be a module-unit). */
-        if (first_pp_directive.seq != SP_LINE_UNKNOWN && !microsoft_mode) {
-          /* No preprocessing directive can precede the global module
-             fragment.  Microsoft does not diagnose this currently. */
-          a_diag_list       diag_list;
-          a_diagnostic_ptr  dp;
-          clear_diag_list(&diag_list);
-          dp = pos_start_error(ec_pp_directive_before_module, &pos_curr_token);
-          more_info_diagnostic(ec_pp_directive_here, &first_pp_directive,
-                               &diag_list);
-          add_more_info_list(dp, &diag_list);
-          end_diagnostic(dp);
-        }  /* if */
-      }  /* if */
-    }  /* if */
     while (curr_token != tok_end_of_source) {
       /* A C99 or C++11 predefined pragma in the file scope must appear
          between top-level declarations. */
@@ -21550,7 +21531,7 @@ are encountered.
                   /*is_top_level_declaration=*/TRUE,
                   /*marked_as_gnu_extension=*/FALSE,
                   (a_param_id_ptr)NULL, (a_source_range *)NULL);
-    }  /* while */
+    } /* while */
   }  /* if */
   check_assertion_str2(!header_stop_position_pending, "translation_unit:",
                        "header stop position not found");

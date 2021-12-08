@@ -29,7 +29,7 @@ enum a_tu_decl_stage {
   tud_none,			/* No declarations of any kind have been seen
 				   for this translation unit. */
   tud_basic_tu,			/* The translation unit doesn't fall into any
-				   of the categories below. */
+				   of the below categories. */
 /* Module units */
   tud_global_module_fgmt,	/* The translation unit is in the global module
 				   fragment stage. */
