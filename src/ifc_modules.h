@@ -2703,6 +2703,11 @@ private:
 			/* Flag to indicate ExprSort_NameDecl should not be
 			   interpreted as concrete declarations that should be
 			   qualified. */
+  a_boolean
+		suppress_automatic_namespace_qualification = FALSE;
+			/* Flag to indicate the namespace portion of the
+			   current nested name specifier has already been
+			   cached and must not be recached. */
   Ptr_map<ifc_DeclIndex, a_symbol_ptr>
 		decl_map;
 
@@ -2958,6 +2963,8 @@ private:
                            a_source_position_ptr pos);
   void cache_decl(a_token_cache_ptr  cache,
                   ifc_DeclIndex      decl);
+  inline void update_name_qualification_suppression(
+                                                  an_ifc_ExprSort_Path *iespp);
   enum a_cache_expr_option {
     ceo_none                                              = 0x0,
     ceo_qualified_name                                    = 0x1 << 0,
@@ -3126,6 +3133,8 @@ private:
   void cache_name(a_token_cache_ptr  cache,
                   ifc_NameIndex      name,
                   ifc_SourceLocation *locus);
+  inline a_boolean should_cache_nested_name_specifier_for_scope(
+                                                            a_scope_ptr scope);
   void cache_scope_as_nested_name_specifier(a_token_cache_ptr     cache,
                                             a_scope_ptr           scope,
                                             a_source_position_ptr pos);

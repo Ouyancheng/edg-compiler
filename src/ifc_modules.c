@@ -12672,6 +12672,48 @@ Add the tokens corresponding to the given declaration (decl) to cache.
 }  /* cache_decl */
 
 
+inline void an_ifc_module::update_name_qualification_suppression(
+                                                   an_ifc_ExprSort_Path *iespp)
+/*
+An internal method for setting any necessary automatic nested name specifier
+qualification suppression flags based on the given path.
+
+As part of the contract for this function, the caller is responsible for
+restoring previous state of the potentially affected suppression flags.
+Currently this includes the variable(s):
+suppress_automatic_namespace_qualification.
+*/
+{
+  if (expr_tag(iespp->scope) == ifc_ExprSort_NamedDecl) {
+    an_ifc_ExprSort_NamedDecl iesnd, *iesndp;
+
+    read_prechecked_partition_element(iespp->scope);
+    iesndp = get_ExprSort_NamedDecl(&iesnd);
+    if (decl_tag(iesndp->resolution) == ifc_DeclSort_Scope) {
+      an_ifc_DeclSort_Scope idss, *idssp;
+
+      read_prechecked_partition_element(iesndp->resolution);
+      idssp = get_DeclSort_Scope(&idss);
+      {
+        an_ifc_TypeSort_Fundamental itsf, *itsfp;
+
+        read_prechecked_partition_element(idssp->type);
+        itsfp = get_TypeSort_Fundamental(&itsf);
+        switch (itsfp->basis) {
+        case ifc_TypeBasis_Namespace:
+          /* This path already contains its namespace qualification, suppress
+             automatic namespace qualification. */
+          suppress_automatic_namespace_qualification = TRUE;
+          break;
+        default:
+          break;
+        }  /* switch */
+      }
+    }  /* if */
+  }  /* if */
+}  /* suppress_automatic_qualification */
+
+
 void an_ifc_module::cache_expr(a_token_cache_ptr    cache,
                                ifc_ExprIndex        expr,
              /* Defaulted: */  a_cache_expr_option  options)
@@ -12768,9 +12810,11 @@ second operand of an assignment.
            the first element of the ExprSort::Tuple will refer to the empty
            string that precedes the first "::". */
         if (iesuip->resolution != 0) {
-          suppress_automatic_name_qualification = TRUE;
+          Value_saver<a_boolean> suppression(
+                                        &suppress_automatic_name_qualification,
+                                        /*new_value=*/TRUE);
+
           cache_expr(cache, iesuip->resolution);
-          suppress_automatic_name_qualification = FALSE;
         } else if (iesuip->name != 0) {
           cache_name(cache, iesuip->name, &iesuip->locus);
         }  /* if */
@@ -12802,16 +12846,19 @@ second operand of an assignment.
       }
       break;
     case ifc_ExprSort_Path:
-      { an_ifc_ExprSort_Path iesp, *iespp;
+      { Value_saver<a_boolean> suppression(
+                                  &suppress_automatic_namespace_qualification);
+        an_ifc_ExprSort_Path   iesp, *iespp;
+
         iespp = get_ExprSort_Path(&iesp);
         if (!suppress_automatic_name_qualification) {
-          /* FIXME: This shouldn't be possible.  We've been told not to qualify
-             names, and got a qualified name.  Note that this variable is
-             normally used only for EDG automatic name qualification, though
-             this branch was written because an ifc_ExprSort_UnqualifiedId
-             pointed us here leading to double name qualification. */
+          /* FIXME: It shouldn't be possible to enter this switch case when
+             processing an ifc_ExprSort_UnqualifiedId (i.e., when
+             suppress_automatic_name_qualification is TRUE).  That implies an
+             unqualified id contains a qualifier. */
           cache_expr(cache, iespp->scope);
           cache_token(cache, tok_colon_colon, &null_source_position);
+          update_name_qualification_suppression(iespp);
         }  /* if */
         cache_expr(cache, iespp->member);
       }
@@ -14260,6 +14307,26 @@ cache_ident:
 }  /* cache_name */
 
 
+inline a_boolean an_ifc_module::should_cache_nested_name_specifier_for_scope(
+                                                             a_scope_ptr scope)
+/*
+This function tests to see if the given scope and its parents should be cached
+as part of the currently nested name specifier currently being cached.  Return
+TRUE if the scope and its parents should be cached, FALSE otherwise.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (scope == NULL) {
+    result = FALSE;
+  } else if (scope->kind == (a_scope_kind)sck_namespace &&
+             suppress_automatic_namespace_qualification) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* should_cache_nested_name_specifier_for_scope */
+
+
 void an_ifc_module::cache_scope_as_nested_name_specifier(
                                                    a_token_cache_ptr     cache,
                                                    a_scope_ptr           scope,
@@ -14269,7 +14336,7 @@ Add the tokens to cache representing a nested-name-specifier for scope.  pos is
 the position of the qualified-id this nested-name-specifier is part of.
 */
 {
-  if (scope != NULL) {
+  if (should_cache_nested_name_specifier_for_scope(scope)) {
     /* Attempt to generate any parent scope's qualifiers. */
     cache_scope_as_nested_name_specifier(cache, scope->parent, pos);
     /* Generate the current scope's qualifier. */
