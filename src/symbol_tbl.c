@@ -8051,7 +8051,13 @@ redo:
          know it is not an overloadable symbol.  Assume it is a
          redeclaration. */
       result = this_sym;
-      if (mep->module_info->resolved_header != NULL || mep->global_module) {
+      if (this_sym->decl_position.seq == 0 &&
+          symbol_is(this_sym, sk_type) &&
+          type_is_typedef(this_sym->variant.type.ptr)) {
+        /* Predeclared typedef types can be redefined.  Don't issue diagnostics
+           about them here. */
+      } else if (mep->module_info->resolved_header != NULL ||
+                 mep->global_module) {
         /* The new entity is from a header unit (and thus the "global" module).
            A source-level matching declaration is okay, unless the source is
            itself a named module. */
