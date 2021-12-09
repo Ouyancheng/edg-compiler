@@ -1081,15 +1081,15 @@ NORETURN: specifies that a function will not return to its caller.
 #endif /* __has_cpp_attribute(fallthrough) && ... */
 
 #if __has_cpp_attribute(maybe_unused)
-#if __clang__
+#if defined(__clang__) && __clang__
 /*
 Clang warns about [[maybe_unused]] in pre-C++17 modes. However, it supports the
 [[gnu::unused]] attribute in C++11 mode.
 */
 #define ARG_UNUSED [[gnu::unused]]
-#else /* !__clang__ */
+#else /* !defined(__clang__) && __clang__ */
 #define ARG_UNUSED [[maybe_unused]]
-#endif /* __clang__ */
+#endif /* defined(__clang__) && __clang__ */
 #else /* !(__has_cpp_attribute(maybe_unused)) */
 #ifdef __GNUC__
 #define ARG_UNUSED __attribute__((unused))
@@ -1143,25 +1143,27 @@ global suppression of these warnings.
 #define END_DISABLE_GCC_WARNING /* nothing */
 #endif /* SUPPRESS_BAD_GNU_WARNINGS */
 /* Define a macro for -Wstringop-overflow (added in GCC 7.1). */
-#if __GNUC__ > 7 || (__GNUC__ == 7 && __GNUC_MINOR__ >= 1)
+#if defined(__GNUC__) && \
+    (__GNUC__ > 7 || (__GNUC__ == 7 && __GNUC_MINOR__ >= 1))
 #define BEGIN_DISABLE_GCC_WARNING_STR_OVERFLOW \
   BEGIN_DISABLE_GCC_WARNING("-Wstringop-overflow")
 #define END_DISABLE_GCC_WARNING_STR_OVERFLOW \
   END_DISABLE_GCC_WARNING
-#else  /* !(__GNUC__ > 7 || (__GNUC__ == 7 && __GNUC_MINOR__ >= 1)) */
+#else  /* !(defined(__GNUC__) && __GNUC__ > 7 || (__GNUC__ == 7 && ...)) */
 #define BEGIN_DISABLE_GCC_WARNING_STR_OVERFLOW /* nothing */
 #define END_DISABLE_GCC_WARNING_STR_OVERFLOW /* nothing */
-#endif /* __GNUC__ > 7 || (__GNUC__ == 7 && __GNUC_MINOR__ >= 1) */
+#endif /* defined(__GNUC__) && __GNUC__ > 7 || (__GNUC__ == 7 && ...) */
 /* Define a macro for -Wreturn-local-addr (added in GCC 4.8). */
-#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 8)
+#if defined(__GNUC__) && \
+    (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 8))
 #define BEGIN_DISABLE_GCC_WARNING_RET_LOCAL_ADDR \
   BEGIN_DISABLE_GCC_WARNING("-Wreturn-local-addr")
 #define END_DISABLE_GCC_WARNING_RET_LOCAL_ADDR \
   END_DISABLE_GCC_WARNING
-#else  /* !(__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 8)) */
+#else  /* !(defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && ...))) */
 #define BEGIN_DISABLE_GCC_WARNING_RET_LOCAL_ADDR /* nothing */
 #define END_DISABLE_GCC_WARNING_RET_LOCAL_ADDR /* nothing */
-#endif /* __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 8) */
+#endif /* defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && ...)) */
 
 /*
 Some coding standards require a default label in switches even if it's

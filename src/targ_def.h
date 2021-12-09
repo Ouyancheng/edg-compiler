@@ -5102,6 +5102,8 @@ stack.
 #endif /* ifndef TARG_VAR_HANDLE_INT_KIND */
 #endif /* GENERATE_EH_TABLES */
 
+#else /* !DO_IL_LOWERING */
+#define GENERATE_EH_TABLES FALSE
 #endif /* DO_IL_LOWERING */
 
 /*

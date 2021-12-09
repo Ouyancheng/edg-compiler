@@ -2201,6 +2201,7 @@ switches before this point.
     (SUN_IS_GENERATED_CODE_TARGET ||                \
      (BACK_END_IS_CP_GEN_BE &&                      \
       CP_GEN_BE_TARGET_MATCHES_SOURCE_DIALECT &&    \
+      defined(SUN_EXTENSIONS_ALLOWED) &&            \
       SUN_EXTENSIONS_ALLOWED)) &&                   \
     !(defined(__SUNPRO_CC) || defined(__SUNPRO_C))
 #define SUN_TARGET_VERSION_NUMBER 0x530

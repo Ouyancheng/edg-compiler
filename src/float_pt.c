@@ -50,6 +50,7 @@ extern "C" double strtod(char *, char **);
 #if TARG_HAS_IEEE_FLOATING_POINT
 /* Define is_NaN and is_finite.  They must work on an argument of type
    a_host_fp_value (typically double or long double). */
+#define NEED_EDG_ISNAN 0
 #if USE_SOFTFLOAT
 /* SoftFloat does not provide routines to detect NaN or infinities. */
 #define is_NaN(x) (do_softfloat_is_nan(x))
@@ -112,6 +113,7 @@ extern "C" int finite(double x);
 #else /* !__linux__ */
 #if USE_FLOAT128_FOR_HOST_FP_VALUE && defined(__CYGWIN__)
 /* Cygwin does not have a __float128 version of isnan, so provide our own. */
+#undef NEED_EDG_ISNAN
 #define NEED_EDG_ISNAN 1
 #define is_NaN(x) (edg_isnan((x)))
 #else  /* !(USE_FLOAT128_FOR_HOST_FP_VALUE && defined(__CYGWIN__)) */
@@ -163,8 +165,6 @@ diagnostics.
 #undef is_finite /*lint !e750*/
 #undef is_NaN /*lint !e750*/
 #undef NEED_HOST_FP_VALUE_IS_FINITE  /*lint !e750*/
-#undef NEED_EDG_ISNAN  /*lint !e750*/
-#define NEED_EDG_ISNAN 0
 #define is_finite(x) lint_is_finite((long double)x)
 #define is_NaN(x) lint_is_NaN((long double)x)
 static a_boolean lint_is_finite(long double x) /*lint !e528*/
