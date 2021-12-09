@@ -5394,7 +5394,7 @@ additional checks for debug modes.  Return the reinterpreted pointer.
 */
 {
 #if USE_VIRTUAL_FUNCTIONS
-  check_assertion(dynamic_cast<an_ifc_module>(interface) != NULL);
+  check_assertion(dynamic_cast<an_ifc_module*>(interface) != NULL);
 #else /* !USE_VIRTUAL_FUNCTIONS */
   check_assertion(interface->mod_kind == mk_ifc);
 #endif /* USE_VIRTUAL_FUNCTIONS */
