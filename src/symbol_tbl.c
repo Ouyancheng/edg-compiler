@@ -2094,21 +2094,17 @@ static void set_identifier_for_symbol_header(
 					sizeof_t		length,
 					a_boolean		is_unnamed)
 /*
-Make a copy of the specified string, whose length is specified by "length"
-in the primary file scope memory region.  If length is 0, strlen is used to
-determine the length.  Set the symbol header specified by hdr_ptr to use
-the resulting string and length.  is_unnamed is TRUE if the header is for
-an unnamed entity (in which case the string is a placeholder value such
-as <unnamed>).
+Make a copy of the specified string, whose length is specified by "length" in
+the primary file scope memory region.  The specified length must be greater
+than zero.  Set the symbol header specified by hdr_ptr to use the resulting
+string and length.  is_unnamed is TRUE if the header is for an unnamed entity
+(in which case the string is a placeholder value such as <unnamed>).
 */
 {
   char		*new_string;
 
-  if (length == 0) length = strlen(string);
+  check_assertion(length >= 1);
   new_string = alloc_primary_file_scope_il((sizeof_t)(length + 1));
-  /* Verify the memcpy operation isn't going to go past the end of the
-     string. */
-  check_assertion(length <= strlen(string));
   memcpy(new_string, string, size_t_arg(length));
   /* Terminate the string. */
   new_string[length] = '\0';
