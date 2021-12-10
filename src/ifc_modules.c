@@ -2861,7 +2861,7 @@ been confirmed to exist and the path stored in midp.
            used (if needed) to increment the source sequence when the module is
            referenced to effectively reserve those source sequence numbers for
            the file. */
-        for (size_t idx = 0, num_src_lines = get_num_entries(ifc_src_line);
+        for (uint32_t idx = 0, num_src_lines = get_num_entries(ifc_src_line);
              idx < num_src_lines; idx++) {
           an_ifc_Source_Line   isl, *islp;
 
@@ -5283,12 +5283,12 @@ deferred until they are referenced.
 }  /* process_ifc_scope */
 
 
-size_t an_ifc_module::get_num_entries(an_ifc_partition_kind partition) const
+uint32_t an_ifc_module::get_num_entries(an_ifc_partition_kind partition) const
 /*
 Return the number of entries in a given partition.
 */
 {
-  size_t num_entries = 0;
+  uint32_t num_entries = 0;
 
   /* If there is an entry size defined, calculate the number of entries. */
   if (partitions[partition].entry_size != 0) {
@@ -14671,7 +14671,8 @@ its ifc_AttrIndex.
   auto value_lambda = [this](ptrdiff_t idx) {
     an_ifc_Trait_MsvcDeclAttrs ita, *itap;
 
-    read_prechecked_partition_element(ifc_msvc_trait_decl_attrs, idx);
+    read_prechecked_partition_element(ifc_msvc_trait_decl_attrs,
+                                      (ifc_Index_type)idx);
     itap = get_Trait_MsvcDeclAttrs(&ita);
     return itap->decl;
   };
@@ -16415,11 +16416,11 @@ produce a more detailed contextual diagnostic.
   while (cur != nullptr) {
     an_ifc_partition_position *pos = cur->pos;
     a_const_char              *field_name = cur->field_name;
-    size_t                    rel_offset = ifc_mod->to_relative_offset(*pos);
+    uint32_t                  rel_offset = ifc_mod->to_relative_offset(*pos);
 
     /* Add this partition position request to the diagnostic. */
     if (!deepest_element) {
-      size_t part_index = ifc_mod->to_partition_index(*pos);
+      uint32_t part_index = ifc_mod->to_partition_index(*pos);
 
       st_num3_add_diag_info(diag_ptr, ec_invalid_ifc_position_backtrace_pos,
                             ifc_mod->partitions[pos->partition].name,
@@ -17189,7 +17190,7 @@ Return the position as an index into the partition.
 */
 {
   const an_ifc_partition *partition = &partitions[pos.partition];
-  size_t                 relative_offset = to_relative_offset(pos);
+  uint32_t               relative_offset = to_relative_offset(pos);
 
   return relative_offset / partition->entry_size;
 }  /* to_partition_index */

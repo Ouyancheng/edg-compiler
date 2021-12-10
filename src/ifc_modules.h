@@ -2779,7 +2779,7 @@ private:
   void process_template_specializations(ifc_DeclIndex decl_idx) const;
   void process_ifc_scope(ifc_ScopeIndex scope_index,
                          a_scope_ptr    scope);
-  size_t get_num_entries(an_ifc_partition_kind partition) const;
+  uint32_t get_num_entries(an_ifc_partition_kind partition) const;
   /* Module entity getters. */
   a_module_entity_ptr get_ifc_module_entity_ptr(
                                        an_ifc_partition_kind partition,
