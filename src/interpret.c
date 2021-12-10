@@ -13346,16 +13346,18 @@ Evaluate the given delete-expression.
   a_constexpr_address          *cap;
   a_constexpr_allocation       *allocation;
 
-  if (!ips->is_constant_evaluated || !constexpr_dynamic_alloc_enabled) {
+  if (!ips->is_constant_evaluated || !constexpr_dynamic_alloc_enabled ||
+      !type_is(ptr_tp, tk_pointer)) {
     /* Don't attempt to evaluate a delete-expression if a constant result is
        not needed, because the corresponding new-expression would not have
-       been evaluated anyway. */
+       been evaluated anyway.  In some situations the expression type may not
+       actually be a pointer (e.g., in templates it might be an unknown
+       type). */
     do_constexpr_fail(result);
     info_with_pos(ec_constexpr_expression_cannot_be_interpreted,
                   &expr->position, ips);
     goto done;
   }  /* if */
-  check_assertion(type_is(ptr_tp, tk_pointer));
   opnd_n_bytes = expr_result_size(ips, ptr_expr, ptr_tp, &result);
   if (!result) goto done;
   alloc_complete_object(ips, opnd_n_bytes, ptr_tp, ptr_bytes);

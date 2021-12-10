@@ -47538,6 +47538,14 @@ is TRUE if the expression is the immediate operand of an "&" operator.
                                                 depth_of_initial_lookup_scope;
             while (!scope_is(&scope_stack[depth_of_initial_lookup_scope--],
                              sck_instantiation_context)) {
+              if (depth_of_initial_lookup_scope == NO_SCOPE_DEPTH) {
+                /* There is no instantiation context.  That can happen in
+                   severe error cases. */
+                expect_error();
+                depth_of_initial_lookup_scope =
+                                          saved_depth_of_initial_lookup_scope;
+                break;
+              }  /* if */
             }  /* while */
             if (var->is_this_parameter) {
               a_variable_ptr  this_var;
