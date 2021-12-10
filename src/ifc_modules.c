@@ -16416,15 +16416,17 @@ produce a more detailed contextual diagnostic.
   while (cur != nullptr) {
     an_ifc_partition_position *pos = cur->pos;
     a_const_char              *field_name = cur->field_name;
-    uint32_t                  rel_offset = ifc_mod->to_relative_offset(*pos);
+    size_t                    rel_offset = ifc_mod->to_relative_offset(*pos);
 
     /* Add this partition position request to the diagnostic. */
     if (!deepest_element) {
       uint32_t part_index = ifc_mod->to_partition_index(*pos);
 
+      /* FIXME: Migrate to allowing diagnostics with size_t. */
       st_num3_add_diag_info(diag_ptr, ec_invalid_ifc_position_backtrace_pos,
                             ifc_mod->partitions[pos->partition].name,
-                            part_index, pos->file_offset, rel_offset);
+                            part_index, (uint32_t)pos->file_offset,
+                            (uint32_t)rel_offset);
     } else {
       deepest_element = FALSE;
     }  /* if */
@@ -17190,7 +17192,7 @@ Return the position as an index into the partition.
 */
 {
   const an_ifc_partition *partition = &partitions[pos.partition];
-  uint32_t               relative_offset = to_relative_offset(pos);
+  size_t                 relative_offset = to_relative_offset(pos);
 
   return relative_offset / partition->entry_size;
 }  /* to_partition_index */
