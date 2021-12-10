@@ -17408,7 +17408,8 @@ upon to contain the result.
        returned.  Thus, we cannot (as an optimization) share a variable with
        the value_lambda to prevent double reading (though this is unlikely to
        ever represent a significant cost in terms of CPU time). */
-    read_prechecked_partition_element(a_Partition_Kind, partition_idx);
+    read_prechecked_partition_element(a_Partition_Kind,
+                                      (ifc_Index_type)partition_idx);
     result = get<a_Trait_T>(storage, /*from_header=*/FALSE);
   }  /* if */
   return result;
