@@ -17391,7 +17391,7 @@ upon to contain the result.
   auto value_lambda = [this](ptrdiff_t idx) {
     a_Trait_T tmp_trait_storage, *tmp_trait_ptr;
 
-    read_prechecked_partition_element(a_Partition_Kind, idx);
+    read_prechecked_partition_element(a_Partition_Kind, (ifc_Index_type)idx);
     tmp_trait_ptr = get<a_Trait_T>(&tmp_trait_storage, /*from_header=*/FALSE);
     return tmp_trait_ptr->decl;
   };
