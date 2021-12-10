@@ -6135,7 +6135,8 @@ together here).
                                              (a_constant_repr_kind)ck_integer);
             a_boolean ovflo = FALSE;
             unsigned long count =
-                      unsigned_value_of_integer_constant(repeated_con, &ovflo);
+                (unsigned long)unsigned_value_of_integer_constant(repeated_con,
+                                                                  &ovflo);
             add_mangling_for_array_element(element + count, mctl);
             check_assertion(!ovflo);
           }  /* if */
