@@ -14694,7 +14694,7 @@ its ifc_AttrIndex.
     an_ifc_Trait_MsvcDeclAttrs ita, *itap;
 
     read_prechecked_partition_element(ifc_msvc_trait_decl_attrs,
-                                      partition_idx);
+                                      (ifc_Index_type)partition_idx);
     itap = get_Trait_MsvcDeclAttrs(&ita);
     attr_idx = itap->trait;
   }  /* if */
@@ -16425,8 +16425,8 @@ produce a more detailed contextual diagnostic.
       /* FIXME: Migrate to allowing diagnostics with size_t. */
       st_num3_add_diag_info(diag_ptr, ec_invalid_ifc_position_backtrace_pos,
                             ifc_mod->partitions[pos->partition].name,
-                            part_index, (uint32_t)pos->file_offset,
-                            (uint32_t)rel_offset);
+                            part_index, (int32_t)pos->file_offset,
+                            (int32_t)rel_offset);
     } else {
       deepest_element = FALSE;
     }  /* if */
@@ -16522,11 +16522,13 @@ partition position.
     a_diagnostic_ptr diag_ptr;
 
     /* FIXME: Use a better source position. */
+    /* FIXME: Migrate to allowing diagnostics with size_t. */
     diag_ptr = pos_st2_num2_start_error(
                                        error_code, &null_source_position,
                                        ifc_mod->assoc_module_info->name,
                                        ifc_mod->partitions[pos.partition].name,
-                                       pos.file_offset, relative_offset);
+                                       (int32_t)pos.file_offset,
+                                       (int32_t)relative_offset);
     add_backtrace(diag_ptr);
     end_diagnostic(diag_ptr);
   }  /* if */
@@ -17194,7 +17196,7 @@ Return the position as an index into the partition.
   const an_ifc_partition *partition = &partitions[pos.partition];
   size_t                 relative_offset = to_relative_offset(pos);
 
-  return relative_offset / partition->entry_size;
+  return (uint32_t)(relative_offset / partition->entry_size);
 }  /* to_partition_index */
 
 
