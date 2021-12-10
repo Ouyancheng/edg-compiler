@@ -4481,6 +4481,11 @@ static a_feature_support feature_support_list[] = {
     "201806L" },
   { "",
     0,
+    &explicit_this_param_enabled,
+    "__cpp_explicit_this_parameter",
+    "202110L" },
+  { "",
+    0,
     &fold_expressions_enabled,
     "__cpp_fold_expressions",
     "201603L" },
@@ -4494,6 +4499,11 @@ static a_feature_support feature_support_list[] = {
     &hex_floating_point_constants_allowed,
     "__cpp_hex_float",
     "201603L" },
+  { "",
+    0,
+    &if_consteval_enabled,
+    "__cpp_if_consteval",
+    "202106L" },
   { "",
     0,
     &constexpr_if_enabled,
@@ -11254,7 +11264,7 @@ command line -D options.
          values depending on whether C++11, C++14, C++17, C++20, or C++23
          constexpr features are supported. */
       if (cpp23_mode) {
-        (void)enter_predef_macro("202103L", "__cpp_constexpr",
+        (void)enter_predef_macro("202110L", "__cpp_constexpr",
                                  /*cannot_be_redefined=*/TRUE,
                                  /*ref_suppresses_pch_file=*/FALSE);
       } else if (cpp20_mode) {
