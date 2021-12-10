@@ -1071,7 +1071,7 @@ already exists.
                                           ec_template_information);
   }  /* if */
   if (!automatic_instantiation_mode ||
-      !any_instantiations_required() || total_errors != 0) {
+      !any_instantiations_required() || is_at_least_one_error()) {
     /* If there were no instantiations, delete any old version of the
        template information file.  The file is also deleted if any
        errors occurred during this compilation. */
@@ -1158,7 +1158,7 @@ have already existed.
     close_output_file_with_error_handling(&f_exported_template,
                                           ec_exported_template);
   }  /* if */
-  if (!exported_template_file_opened || total_errors != 0 ||
+  if (!exported_template_file_opened || is_at_least_one_error() ||
       remove_exported_template_file) {
     /* If there were no entries written to the exported template file,
        delete any old version of the file.  The file is also deleted if any
@@ -1730,7 +1730,7 @@ is the token sequence number to be used as the identifier for this template.
         }  /* for */
       }  /* if */
     }  /* if */
-    check_assertion_str2(sym != NULL || total_errors != 0,
+    check_assertion_str2(sym != NULL || is_at_least_one_error(),
                          "find_class_template_member:",
                          "no corresponding template");
     /* The symbol can be NULL in some error cases. */
@@ -3924,7 +3924,7 @@ determine the partial order among matching partial specializations.
   prototype_tap = template_arg_list_for_symbol(prototype_sym);
   if (matches_template_arg_list(instance_tap, prototype_tap, ps_arg_list,
                                 templ_param_list, MTT_PARTIAL_SPEC) &&
-      (total_errors == 0 ||
+      (!is_at_least_one_error() ||
        !template_arg_list_involves_error_entity(*ps_arg_list)) &&
       (for_ordering ||
        check_template_constraints(template_sym, *ps_arg_list,
@@ -4701,7 +4701,7 @@ Instantiate the C++/CLI generic delegate specified by class_type.
     if (body_cache->tokens.first_token == NULL) {
       /* The template definition is missing.  This should only occur in error
          cases.  Leave the type incomplete. */
-      check_assertion(total_errors != 0);
+      check_assertion(is_at_least_one_error());
     } else if (tssp->pending_instantiations >= max_pending_instantiations) {
       /* This instantiation occurs within the context of other instantiations
          of the same template.  When the number of such instantiations
@@ -6824,7 +6824,7 @@ supplement already associated with ft_symbol.
     }  /* if */
     check_assertion_str2(!((sym == NULL ||
                             sym->kind != (a_symbol_kind)sk_function_template)
-                           && total_errors == 0),
+                           && !is_at_least_one_error()),
                          "find_function_template_member:",
                          "no corresponding template");
     if (sym == NULL) {
@@ -7109,7 +7109,7 @@ cases).
        mode (e.g., because the declaration was thought to be a typedef). 
        Construct an error version of the declared type from that of the
        template. */
-      check_assertion(total_errors != 0);
+      check_assertion(is_at_least_one_error());
       tip->declared_type = create_error_routine_type(
                 tssp->variant.function.routine,
                 rout_sym->is_class_member ? sym_parent_class(rout_sym) : NULL);
@@ -9930,7 +9930,7 @@ error type is used.
     if (body_cache->tokens.first_token == NULL) {
       /* The template definition is missing.  This should only occur in error
          cases. */
-      check_assertion(total_errors != 0);
+      check_assertion(is_at_least_one_error());
       type->variant.typeref.type = error_type();
     } else if (tssp_of_prototype->variant.class_template.alias_uses_own_type) {
       /* The alias template uses its own type in the definition.  An error
@@ -10166,7 +10166,7 @@ template.
     if (body_cache->tokens.first_token == NULL) {
       /* The template definition is missing.  This should only occur in error
          cases. */
-      check_assertion(total_errors != 0);
+      check_assertion(is_at_least_one_error());
     } else {
       a_decl_parse_state	dps;
       a_push_scope_options_set	ps_options = PS_DEDUCTION_CONTEXT;
@@ -17320,7 +17320,7 @@ instantiated.
   }  /* for */
   /* We should always find the corresponding parameter of the template,
      unless some error occurred earlier. */
-  check_assertion(daefp != NULL || total_errors != 0);
+  check_assertion(daefp != NULL || is_at_least_one_error());
   if (daefp != NULL && daefp->param_type->default_being_instantiated) {
     /* This default argument instantiation of the prototype instantiation is
        still in progress.  Don't attempt another instantiation. */
@@ -17479,7 +17479,7 @@ is needed for a call.
         /* There is a mismatch in the number of default arguments between
            the template and the instance.  This should only occur as the
            result of some other error. */
-        check_assertion(total_errors != 0);
+        check_assertion(is_at_least_one_error());
         break;
       }  /* if */
       check_assertion(templ_ptp->param_num == ptp->param_num);
@@ -17508,7 +17508,7 @@ is needed for a call.
            there may be extra fixup entries, an empty expansions of a parameter
            pack can also result in the instantiated list being shorter than the
            generically parsed lists. */
-        check_assertion(daefp == NULL || total_errors != 0 ||
+        check_assertion(daefp == NULL || is_at_least_one_error() ||
                         (templ_ptp != NULL && templ_ptp->is_parameter_pack));
 #endif /* CHECKING */
       } else if (ptp->param_num > templ_ptp->param_num) {
@@ -17870,7 +17870,7 @@ type that is created.  */
       if (substituted_type == NULL) {
         /* Substitution has failed for some reason.  The instantiation should
            have run into a similar error. */
-        check_assertion(total_errors != 0);
+        check_assertion(is_at_least_one_error());
       } else if (!f_types_are_compatible(
                                     substituted_type, type,
                                     TCF_CHECKING_DEDUCTION_RESULT |
@@ -20114,7 +20114,7 @@ found_sym:
   }  /* if */
 #if CHECKING
   if ((sym == NULL || sym->kind != (a_symbol_kind)sk_member_function) &&
-      total_errors == 0) {
+      !is_at_least_one_error()) {
     internal_error("find_member_function_template: no corresponding template");
   }  /* if */
 #endif /* CHECKING */
@@ -20282,7 +20282,7 @@ instance to the definitions list for the template.
       }  /* for */
     }  /* if */
   }  /* if */
-  check_assertion_str2(sym != NULL || total_errors != 0,
+  check_assertion_str2(sym != NULL || is_at_least_one_error(),
                        "find_variable_member_template:",
                        "no corresponding template");
   if (sym != NULL) {
@@ -20390,7 +20390,7 @@ this routine has no effect.
           }  /* if */
         }  /* if */
       }  /* for */
-      check_assertion_str2(proto_sym != NULL || total_errors != 0,
+      check_assertion_str2(proto_sym != NULL || is_at_least_one_error(),
                            "find_alias_member:",
                            "no corresponding template");
       if (proto_sym != NULL) {
@@ -20467,9 +20467,9 @@ Note that if parent_class is not an instantiation, this routine has no effect.
         }  /* if */
       }  /* for */
       check_assertion_or_expect_error_str2(
-                                        proto_sym != NULL || total_errors != 0,
-                                        "find_enum_member:",
-                                        "no corresponding template");
+                                  proto_sym != NULL || is_at_least_one_error(),
+                                  "find_enum_member:",
+                                  "no corresponding template");
       if (proto_sym != NULL) {
         essp->template_sym = proto_sym;
       }  /* if */
@@ -22001,14 +22001,14 @@ initially used when processing the declaration of a partial specialization.
         /* Don't add the type to the type list in error cases.  This is done
            to prevent what might be an erroneous local type from being added
            to a non-local list. */
-        check_assertion(total_errors != 0);
+        check_assertion(is_at_least_one_error());
       } else if (sym->is_class_member &&
                  scope_is_null_or_placeholder(
                         class_type_supp(sym_parent_class(sym))->assoc_scope)) {
         /* An error occurred earlier resulting in an invalid parent class
            (one that is incomplete and not in the process of being defined). */
         decl_state->decl_scope_err = TRUE;
-        check_assertion(total_errors != 0);
+        check_assertion(is_at_least_one_error());
       } else {
         add_to_types_list(prototype_type, NO_SCOPE_DEPTH);
       }  /* if */
@@ -27648,7 +27648,7 @@ set, and its source sequence entry, if any, has been put out.)
         default:
           /* There must have been an error.  Do the check because we don't
              want an incomplete IL entry to be handed to the back end. */
-          check_assertion(total_errors > 0);
+          check_assertion(is_at_least_one_error());
           err = TRUE;
       }  /* switch */
       if (!err || sym->is_error) {
@@ -27827,14 +27827,14 @@ Create the variable entry variable template specified by template_sym.
       /* Don't add the type to the type list in error cases.  This is done
          to prevent what might be an erroneous local type from being added
          to a non-local list. */
-      check_assertion(total_errors != 0);
+      check_assertion(is_at_least_one_error());
     } else if (template_sym->is_class_member &&
                scope_is_null_or_placeholder(class_type_supp(
                                sym_parent_class(template_sym))->assoc_scope)) {
       /* An error occurred earlier resulting in an invalid parent class
          (one that is incomplete and not in the process of being defined). */
       decl_state->decl_scope_err = TRUE;
-      check_assertion(total_errors != 0);
+      check_assertion(is_at_least_one_error());
     } else {
       add_to_variables_list(var, decl_state->effective_decl_level);
     }  /* if */
@@ -34488,7 +34488,7 @@ specified by "tip" depend on a template parameter.
   }  /* if */
   check_assertion_str2((!template_arg_list_is_dependent(arg_list) &&
                         !is_prototype_instantiation) ||
-                       total_errors != 0,
+                       is_at_least_one_error(),
                        "check_for_nonreal_instance:",
                        "nonreal instance on instantiation required list");
 }  /* check_for_nonreal_instance */
@@ -35051,7 +35051,7 @@ Return TRUE if a translation unit was pushed, FALSE if not.
   check_assertion(etfp != NULL);
   if (etfp->translation_unit == NULL) {
     /* The translation unit has not been loaded yet.  Load it now. */
-    if (total_errors == 0) {
+    if (!is_at_least_one_error()) {
       /* Don't load a new translation unit if any errors have occurred. */
       load_exported_template_file(etfp);
       push_trans_unit = TRUE;
@@ -35261,7 +35261,7 @@ data member specified by tip.
   if (tip->exported_template_file != NULL) {
     /* Find the corresponding template instance in the translation unit
        containing the template definition. */
-    if (total_errors == 0) {
+    if (!is_at_least_one_error()) {
       tip = find_corresponding_instance(tip);
     } else {
       /* Suppress the instantiation of exported templates once an error
@@ -35789,7 +35789,7 @@ otherwise they are removed.
        create one if one did not already exist.  This preserves the
        instantiation list if, for example, there were errors during the
        compilation. */
-    if (total_errors == 0) {
+    if (!is_at_least_one_error()) {
       create_or_remove_instantiation_request_file();
     }  /* if */
     /* The template information file (if being used) and the exported
@@ -37471,8 +37471,8 @@ be processed.
     }  /* if */
 #endif /*  ONE_INSTANTIATION_PER_OBJECT */
   }  /* for */
-  if (any_instantiated_entities_added_to_request_file && total_errors == 0 &&
-      generate_template_files()) {
+  if (any_instantiated_entities_added_to_request_file &&
+      !is_at_least_one_error() && generate_template_files()) {
     /* This translation unit "adopted" some instantiations that were known
        not to be defined elsewhere.  Don't write the updated file if any
        errors occurred. */
@@ -37716,7 +37716,7 @@ translation units.
 {
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
   /* Don't attempt to mangle names in the presence of errors. */
-  if (total_errors == 0) {
+  if (!is_at_least_one_error()) {
     a_master_instance_ptr		mip;
     /* Make sure that names have been created for all master instances
        for non-specialized entities.  This is done now because the point

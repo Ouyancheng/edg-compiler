@@ -98,7 +98,8 @@ correspondence errors due to errors in one translation unit.
 */
 static unsigned long corresp_errors;
 
-#define any_noncorresp_errors() ((total_errors - corresp_errors) != 0)
+#define any_noncorresp_errors()                                       \
+ ((diagnostic_counters.total.errors - corresp_errors) != 0)
 
 /*
 Whenever the canonical entry of a correspondence set changes from an entry
@@ -825,7 +826,7 @@ entity to NULL.  Return the address of that pointer.
          that the canonical entry wasn't a match after all.  This only
          occurs when there is a non-canonical corresponding entry in
          the primary translation unit. */
-      check_assertion(total_errors != 0);
+      check_assertion(is_at_least_one_error());
       change_canonical_entry(*tcp, (*tcp)->primary);
     }  /* if */
     free_trans_unit_corresp(*tcp);
@@ -927,7 +928,7 @@ header file was included in two translation units), use the message associated
 with same_src_error; otherwise, use distinct_src_error.
 */
 {
-  unsigned long  saved_total_errors = total_errors;
+  unsigned long  saved_total_errors = diagnostic_counters.total.errors;
   a_symbol_ptr   sym = (a_symbol_ptr)((a_source_correspondence_ptr)entity1)
                                                                   ->assoc_info;
   a_source_position_ptr
@@ -978,7 +979,7 @@ with same_src_error; otherwise, use distinct_src_error.
                                   &sym->decl_position);
     }  /* if */
   }  /* if */
-  corresp_errors += (total_errors - saved_total_errors);
+  corresp_errors += (diagnostic_counters.total.errors - saved_total_errors);
 }  /* report_corresp_error */
 
 
@@ -5307,7 +5308,7 @@ Otherwise, return FALSE.
     /* Nonmember closure types never correspond to other closure types.
        (Member closure types are already handled above along with other
        member types.) */
-  } else if (total_errors != 0) {
+  } else if (is_at_least_one_error()) {
     /* If correspondence errors already occurred, an attempt to compare
        the structure of type_1 and type_2 may end up being meaningless. */
   } else if (C_mode()) {
@@ -5326,7 +5327,7 @@ Otherwise, return FALSE.
     a_boolean  visited = (trans_unit_corresp_of(type_1) != NULL);
     clear_type_correspondence(type_1, /*visited=*/FALSE);
     result = make_type_correspond(type_1, type_2, &visited);
-    if (!result && !visited && total_errors == 0) {
+    if (!result && !visited && !is_at_least_one_error()) {
       /* Undo any correspondences established earlier.  This requires two
          steps: One to detach the entities from each other, and a second
          one to delete the correspondence entry altogether. */
@@ -7579,7 +7580,8 @@ corresponding instance, or NULL if no corresponding instance is found.
     /* Entities in the primary translation unit may not get a correspondence
        entry.  Some error situations also leave entries without
        correspondence entries.  Create one now. */
-    check_assertion(!in_secondary_trans_unit(entry) || total_errors != 0);
+    check_assertion(!in_secondary_trans_unit(entry) ||
+                    is_at_least_one_error());
     set_no_trans_unit_corresp(il_kind, entry);
     corresp_ptr = trans_unit_corresp_of_unknown_entry(entry);
   }  /* if */
@@ -7870,7 +7872,8 @@ NULL if none is found.
     /* Entities in the primary translation unit may not get a correspondence
        entry.  Some error situations also leave entries without
        correspondence entries.  Create one now. */
-    check_assertion(!in_secondary_trans_unit(il_entry) || total_errors != 0);
+    check_assertion(!in_secondary_trans_unit(il_entry) ||
+                    is_at_least_one_error());
     set_no_trans_unit_corresp(il_kind, il_entry);
     corresp_ptr = trans_unit_corresp_of_unknown_entry(il_entry);
   }  /* if */

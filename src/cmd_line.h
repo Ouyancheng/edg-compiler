@@ -2384,6 +2384,12 @@ EXTERN a_boolean
 #endif /* EXPENSIVE_CHECKING */
 
 EXTERN a_boolean
+		display_module_import_diagnostics;
+			/* TRUE if diagnostics encountered during the importing
+			   of a module should be suppressed or printed
+			   immediately. */
+
+EXTERN a_boolean
 		use_nonstd_partial_ordering;
 			/* TRUE if the incorrect variant of partial ordering
 			   present in versions through 3.10 should be used. */

@@ -25,10 +25,15 @@ error.h -- Declarations related to error reporting.
 #include "host_envir.h"
 #endif /* ifndef HOST_ENVIR_H */
 
-/* 
+/*
 Include the file that defines the enumeration an_error_code.
 */
 #include "err_codes.h"
+
+/* General utility components for headers. */
+#ifndef EDG_HEADER_UTIL_H
+#include "header_util.h"
+#endif /* ifndef EDG_HEADER_UTIL_H */
 
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
@@ -96,13 +101,121 @@ EXTERN a_source_position
 		error_position;
 
 /*
-Count of remarks, warnings, errors, and catastrophic errors detected so far.
+A class used to represent counts of remark, warning, error, and catastrophic
+error diagnostics.
 */
-EXTERN unsigned long
-		total_remarks,
-		total_warnings,
-		total_errors,
-		total_catastrophes;
+struct a_diagnostic_counter {
+  unsigned long remarks;
+  unsigned long warnings;
+  unsigned long errors;
+  unsigned long catastrophes;
+
+  a_diagnostic_counter()
+    : remarks(0), warnings(0), errors(0), catastrophes(0)
+    {}
+
+  unsigned long all_error_types() const
+    { return errors + catastrophes; }
+};  /* a_diagnostic_counter */
+
+typedef struct a_diagnostic_counter *a_diagnostic_counter_ptr;
+
+/*
+A class used to represent all diagnostic counters associated with a given
+compilation.
+*/
+struct a_diagnostic_counter_set {
+  a_diagnostic_counter
+                total;
+                        /* A diagnostic counter aggregating all diagnostic
+                           counts. */
+  a_diagnostic_counter
+                suppressed;
+                        /* A diagnostic counter aggregating all suppressed
+                           diagnostic counts. */
+  a_diagnostic_counter_ptr
+                local;
+                        /* A pointer to a temporary diagnostic counter
+                           aggregating all diagnostics counts (reported and
+                           suppressed) while its set. */
+
+  a_diagnostic_counter_set()
+    : total(), suppressed(), local(NULL)
+    {}
+};  /* a_diagnostic_counter_set */
+
+
+EXTERN a_diagnostic_counter_set
+                diagnostic_counters;
+                        /* The global set of active diagnostic counters. */
+
+EXTERN a_boolean
+                globally_suppress_diagnostics;
+                        /* TRUE if encountered diagnostics should not be
+                           reported or counted in the global counters.
+                           Suppressed diagnostics can still be observed by
+                           setting the diagnostic_counter.  Typically,
+                           management of diagnostic_counter and
+                           suppress_diagnostics should be performed by the
+                           class a_diagnostic_suppression. */
+
+/*
+A class used to temporarily suppress diagnostics, and record counts of
+suppressed diagnostics in the given diagnostic counter.
+*/
+struct a_diagnostic_suppression {
+  inline a_diagnostic_suppression(
+                                a_diagnostic_counter_ptr counter,
+                                a_boolean                suppress_diagnostics);
+private:
+  Value_saver<a_diagnostic_counter_ptr>
+                prev_counter;
+                        /* The previous "local" diagnostic counter. */
+  Value_saver<a_boolean>
+                prev_suppression;
+                        /* The previous "globally_suppress_diagnostics"
+                           state. */
+};  /* a_diagnostic_suppression */
+
+
+inline a_diagnostic_suppression::a_diagnostic_suppression(
+                                 a_diagnostic_counter_ptr counter,
+                                 a_boolean                suppress_diagnostics)
+  : prev_counter(&diagnostic_counters.local),
+    prev_suppression(&globally_suppress_diagnostics)
+/*
+Begin a new diagnostic suppression scope managed by the associated class
+instance lifetime.  Upon construction if diagnostic suppression is requested
+(via a TRUE suppress_diagnostics value), set the provided counter as the
+"local" diagnostic counter, and enable diagnostics suppression.  If diagnostic
+suppression was not requested, construction is a no op.  Upon destruction the
+previous values will always be restored.
+*/
+{
+  if (suppress_diagnostics) {
+    diagnostic_counters.local = counter;
+    globally_suppress_diagnostics = TRUE;
+  }  /* if */
+}  /* a_diagnostic_suppression */
+
+
+inline a_boolean is_at_least_one_error()
+/*
+This function is defined for easily checking if there was at least one error.
+*/
+{
+  return diagnostic_counters.total.errors > 0;
+}  /* is_at_least_one_error */
+
+
+inline a_boolean is_at_least_one_warning()
+/*
+This function is defined for easily checking if there was at least one warning.
+*/
+{
+  return diagnostic_counters.total.warnings > 0;
+}  /* is_at_least_one_error */
+
 
 EXTERN an_error_severity
 		error_threshold;
@@ -217,14 +330,14 @@ extern void check_expected_errors(void);
    a back end is invoked (more specifically: when check_expected_errors is
    called). */
 #define check_assertion_or_expect_error(test)                                \
-  if (/*lint --e(774)*/!(test) && total_errors == 0) {                       \
+  if (/*lint --e(774)*/!(test) && !is_at_least_one_error()) {                \
     record_expected_error(__FILE__, __LINE__, __EDG_func__, (char *)NULL,    \
                           (char *)NULL);                                     \
   }
 /* Same as check_assertion_or_expect_error, but only check for errors (no
    other condition). */
 #define expect_error()                                                       \
-  if (total_errors == 0) {                                                   \
+  if (!is_at_least_one_error()) {                                            \
     record_expected_error(__FILE__, __LINE__, __EDG_func__, (char *)NULL,    \
                           (char *)NULL);                                     \
   }
@@ -241,12 +354,12 @@ extern void check_expected_errors(void);
   if (!(test))                                                   \
     assertion_failed(__FILE__, __LINE__, __EDG_func__, string, (char *)NULL)
 #define check_assertion_or_expect_error_str(test, string)                    \
-  if (/*lint --e(774)*/!(test) && total_errors == 0) {                       \
+  if (/*lint --e(774)*/!(test) && !is_at_least_one_error()) {                \
     record_expected_error(__FILE__, __LINE__, __EDG_func__, string,          \
                           (char *)NULL);\
   }
 #define expect_error_str(string)                                             \
-  if (total_errors == 0) {                                                   \
+  if (!is_at_least_one_error()) {                                            \
     record_expected_error(__FILE__, __LINE__, __EDG_func__, string,          \
                           (char *)NULL);\
   }
@@ -259,11 +372,11 @@ extern void check_expected_errors(void);
   if (!(test))                                                \
     assertion_failed(__FILE__, __LINE__, __EDG_func__, string1, string2)
 #define check_assertion_or_expect_error_str2(test, string1, string2)         \
-  if (/*lint --e(774)*/!(test) && total_errors == 0) {                       \
+  if (/*lint --e(774)*/!(test) && !is_at_least_one_error()) {                \
     record_expected_error(__FILE__, __LINE__, __EDG_func__, string1, string2);\
   }
 #define expect_error_str2(string1, string2)                                  \
-  if (total_errors == 0) {                                                   \
+  if (!is_at_least_one_error()) {                                            \
     record_expected_error(__FILE__, __LINE__, __EDG_func__, string1, string2);\
   }
 #define unexpected_condition_str2(string1, string2) 			\
@@ -395,6 +508,11 @@ extern void pos_ty2_diagnostic(an_error_severity  error_severity,
                                struct a_type      *type1,
                                struct a_type      *type2);
 #if !STANDALONE_UTILITY_PROGRAM
+extern void st2_num_diagnostic(an_error_severity error_severity,
+                               an_error_code     error_code,
+                               a_const_char      *error_string1,
+                               a_const_char      *error_string2,
+                               int32_t           num);
 extern void pos_sy_diagnostic(an_error_severity  error_severity,
                               an_error_code      error_code,
                               a_source_position  *error_pos,

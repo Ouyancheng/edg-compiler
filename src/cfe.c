@@ -121,7 +121,7 @@ MAKE_FRONT_END_CALLABLE is TRUE.
     /* Run the back end if required. */
 #ifndef CALL_BACK_END_EVEN_WITH_ERRORS
     /* Do not run the back end if there were errors. */
-    if (total_errors != 0) suppress_back_end = TRUE;
+    if (is_at_least_one_error()) suppress_back_end = TRUE;
 #endif /* ifndef CALL_BACK_END_EVEN_WITH_ERRORS */
     if (!suppress_back_end) {
 #if USING_KAI_INLINER
@@ -154,9 +154,9 @@ MAKE_FRONT_END_CALLABLE is TRUE.
     /* Determine the most severe diagnostic encountered.  Catastrophic
        errors do not get here and therefore need not be checked for.
        Remarks don't count. */
-    if (total_errors != 0) {
+    if (is_at_least_one_error()) {
       diagnostic_level = es_error;
-    } else if (total_warnings != 0) {
+    } else if (is_at_least_one_warning()) {
       diagnostic_level = es_warning;
     } else {
       diagnostic_level = es_none;

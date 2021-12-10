@@ -2243,6 +2243,7 @@ static a_flag_name
 #if EXPENSIVE_CHECKING
   { "eager_load_modules", &eager_load_modules },
 #endif /* EXPENSIVE_CHECKING */
+  { "display_module_import_diagnostics", &display_module_import_diagnostics },
 #if IA64_ABI
   { "emulate_gnu_abi_bugs", &emulate_gnu_abi_bugs },
   { "emulate_unsafe_gnu_abi_bugs", &emulate_unsafe_gnu_abi_bugs },
@@ -12596,6 +12597,7 @@ variables declared in cmd_line.h.
   export_keyword_enabled = TRUE;
   suppress_inline_corresp_check = FALSE;
   allow_anon_types_in_anon_unions = FALSE;
+  display_module_import_diagnostics = FALSE;
   use_nonstd_partial_ordering = FALSE;
   no_checking_pragmas = FALSE;
 #if DEBUG

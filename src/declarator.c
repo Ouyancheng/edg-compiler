@@ -3250,7 +3250,7 @@ an error if a default argument expression is encountered.
               if (param_state.decl_specifiers_error) {
                 /* An error already occurred during the call to
                    decl_specifiers.  Don't issue another one. */
-                check_assertion(total_errors != 0);
+                check_assertion(is_at_least_one_error());
               } else if (!c99_mode && !cpp11_mode) {
                 an_error_severity  sev = es_warning;
                 if (qualified_void) {
@@ -6262,7 +6262,7 @@ declared entity is known to not be a function.
           /* We can get here with a declaration like "int X::f();" where X
              is not found or ambiguous.  An error will already have been
              issued, so no additional diagnostic should be emitted here. */
-          check_assertion(total_errors != 0);
+          check_assertion(is_at_least_one_error());
         } else if (((ssep->kind == (a_scope_kind)sck_namespace ||
                      ssep->kind == (a_scope_kind)sck_namespace_extension) &&
                     ssep->il_scope->variant.assoc_namespace ==
@@ -6354,7 +6354,7 @@ declared entity is known to not be a function.
       /* See if the name is a qualified name, like "A::x" or "::j". */
       if (err) {
         /* The locator will be set to an error locator below. */
-        check_assertion(total_errors != 0);
+        check_assertion(is_at_least_one_error());
       } else if (locator_for_curr_id.is_qualified_name) {
         a_type_ptr	tp;
         tp = qualifier_class_type(locator_for_curr_id);

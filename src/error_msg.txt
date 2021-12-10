@@ -3309,6 +3309,10 @@ ec_nonstandard_lambda_attributes;;"lambda attributes are nonstandard here"
 ec_confusable_identifier;;"identifier %sq could be confused with a visually-similar one appearing %p"
 ec_suspicious_comment_formatting;;"this comment contains suspicious Unicode formatting control characters"
 ec_suspicious_string_formatting;;"this string contains Unicode formatting control characters that could result in unexpected runtime behavior"
+ec_suppressed_module_single_diag;;"%d1 suppressed %s1 was encountered while processing module %sq2"
+ec_suppressed_module_plural_diag;;"%d1 suppressed %s1 were encountered while processing module %sq2"
+ec_including;INTERNAL;"including"
+ec_suppressed;INTERNAL;"suppressed"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

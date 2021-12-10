@@ -6607,7 +6607,7 @@ is TRUE.
   if (expr == NULL) goto done;
   switch (expr->kind) {
     case enk_error:
-      check_assertion(total_errors != 0);
+      check_assertion(is_at_least_one_error());
       add_to_mangled_name('?', mctl);
       break;
     case enk_constant:
@@ -7284,7 +7284,7 @@ in a default argument of a function.
         /* The lambda was recorded as appearing in a default argument, but the
            function whose default argument it is was not recorded.  This can
            happen in severe error cases. */
-        check_assertion(total_errors != 0);
+        check_assertion(is_at_least_one_error());
       }  /* if */
     }  /* if */
   }  /* if */
@@ -7386,7 +7386,7 @@ returned and mctl->lacking_module_id is set to TRUE.
     call_operator_type = call_operator_function_type_for_lambda(type);
     check_assertion(symbol_supplement_for_class(type) != NULL);
     discriminator = symbol_supplement_for_class(type)->discriminator;
-    check_assertion(discriminator != 0 || total_errors != 0);
+    check_assertion(discriminator != 0 || is_at_least_one_error());
     if (mangle_as_lambda_in_default_argument(type)) {
       /* A lambda used in a default argument is given a name with the
          following format:
@@ -8124,7 +8124,7 @@ was added to the Itanium ABI in 2009 to make discriminators unambiguous:
 {
 #if ABI_COMPATIBILITY_VERSION >= 401
   /* Make sure the discriminator has been computed. */
-  check_assertion(discriminator != 0 || total_errors != 0);
+  check_assertion(discriminator != 0 || is_at_least_one_error());
 #else /* ABI_COMPATIBILITY_VERSION < 401 */
   /* When emulating older ABI versions, this routine may be called for
      an entity whose discriminator is zero, indicating that no discriminator
@@ -9804,7 +9804,7 @@ specified type.  Substitutions are not allocated for <builtin-type>s
 
   switch (type->kind) {
     case tk_error:
-      check_assertion(total_errors != 0);
+      check_assertion(is_at_least_one_error());
       FALLTHROUGH
     case tk_void:
     case tk_float:
@@ -9957,7 +9957,7 @@ as needed.
   a_boolean    saved_force_dependent_array_mangling;
 #endif /* IA64_ABI */
 
-  if (total_errors != 0) {
+  if (is_at_least_one_error()) {
     /* When there are errors in the front end, some of the data structures
        may contain incomplete information, so simply give this type a
        bogus encoding. */
@@ -10134,7 +10134,7 @@ top_of_loop:
       case tk_unknown:
         /* This might come up in mangling names for template instantiation
            after errors have been detected. */
-        check_assertion(total_errors != 0);
+        check_assertion(is_at_least_one_error());
         s = "?";
         break;
       case tk_void:
@@ -12148,7 +12148,7 @@ names are generated at a different time (see mangled_resolver_name).
       /* Shouldn't happen (but does in some configurations when there are
          errors).  Mangled name doesn't really matter in this case, so don't
          emit anything. */
-      check_assertion(total_errors != 0);
+      check_assertion(is_at_least_one_error());
     } else if (has_exactly_one_target_specific_routine(
                               grsp->mv_info.targeted_version.representative)) {
       /* No suffix is added if there is only a single target-specific
@@ -12983,7 +12983,7 @@ to the mangled name.
         add_local_name_suffix(sym->variant.variable.discriminator,
                               scp->enclosing_routine, mctl);
       } else {
-        check_assertion(total_errors != 0);
+        check_assertion(is_at_least_one_error());
       }  /* if */
     }  /* if */
 #endif /* ABI_COMPATIBILITY_VERSION >= 520 */

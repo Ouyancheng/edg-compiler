@@ -1852,22 +1852,63 @@ Only write the signoff if there ARE errors, and if we are supposed to.
 */
 {
 #if WRITE_SIGNOFF_MESSAGE && !STANDALONE_UTILITY_PROGRAM
-  if (total_errors + total_catastrophes > 0) {
-    if (total_errors > 0) {
-      fprintf(f_error, "%lu %s", total_errors,
-              error_text(total_errors != 1 ? ec_wrapup_errors
-                                           : ec_wrapup_error));
-      if (total_catastrophes > 0) {
-        fprintf(f_error, " %s ", error_text(ec_and));
+  a_diagnostic_counter diags_total = diagnostic_counters.total;
+
+  if (diags_total.all_error_types() > 0) {
+    a_diagnostic_counter diags_suppressed = diagnostic_counters.suppressed;
+    unsigned             total_diags_reported = diags_total.all_error_types() -
+                                            diags_suppressed.all_error_types();
+
+    /* Generate the "X errors and Y catastrophic errors" portion of the
+       diagnostic.  Only generate this if there were reported diagnostics;
+       otherwise, simplify the message to only include the suppressed
+       diagnostics portion. */
+    if (total_diags_reported > 0) {
+      if (diags_total.errors > 0) {
+        fprintf(f_error, "%lu %s", diags_total.errors,
+                error_text(diags_total.errors != 1 ? ec_wrapup_errors
+                                                   : ec_wrapup_error));
+        if (diags_total.catastrophes > 0) {
+          fprintf(f_error, " %s ", error_text(ec_and));
+        }  /* if */
       }  /* if */
-    }  /* if */
-    if (total_catastrophes > 0) {
-      fprintf(f_error, "%lu %s", total_catastrophes,
-              error_text(total_catastrophes != 1
+      if (diags_total.catastrophes > 0) {
+        fprintf(f_error, "%lu %s", diags_total.catastrophes,
+                error_text(diags_total.catastrophes != 1
                                               ? ec_wrapup_catastrophic_errors
                                               : ec_wrapup_catastrophic_error));
+      }  /* if */
     }  /* if */
+    /* Generate the "(including K suppressed errors and N suppressed
+       catastrophic errors)" or (when all diagnostics encountered were
+       suppressed) the simplified "K suppressed errors and N suppressed
+       catastrophic errors" portion of the message. */
+    if (diags_suppressed.all_error_types() > 0) {
+      if (total_diags_reported > 0) {
+        fprintf(f_error, " (%s ", error_text(ec_including));
+      }  /* if */
+      if (diags_total.errors > 0) {
+        fprintf(f_error, "%lu %s %s", diags_suppressed.errors,
+                error_text(ec_suppressed),
+                error_text(diags_suppressed.errors != 1 ? ec_wrapup_errors
+                                                        : ec_wrapup_error));
+        if (diags_total.catastrophes > 0) {
+          fprintf(f_error, " %s ", error_text(ec_and));
+        }  /* if */
+      }  /* if */
+      if (diags_total.catastrophes > 0) {
+        fprintf(f_error, "%lu %s %s", diags_total.catastrophes,
+                error_text(ec_suppressed),
+                error_text(diags_suppressed.catastrophes != 1
+                                              ? ec_wrapup_catastrophic_errors
+                                              : ec_wrapup_catastrophic_error));
+      }  /* if */
+      if (total_diags_reported > 0) {
+        fputs(")", f_error);
+      }  /* if */
+    }
     fputs(" ", f_error);
+    /* Generate the "in the compilation of 'Z'." portion of the diagnostic. */
     if (primary_source_file_name != NULL &&
         strlen(primary_source_file_name) != 0 &&
         strcmp(primary_source_file_name, FILE_NAME_FOR_STDIN) != 0) {

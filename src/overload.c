@@ -9095,7 +9095,7 @@ template argument list), or to the original type if no update is required.
           }  /* if */
         }  /* for */
 #if CHECKING
-        check_assertion(processed_any || total_errors != 0);
+        check_assertion(processed_any || is_at_least_one_error());
 #endif /* CHECKING */
         goto done;
       }  /* if */
@@ -11677,7 +11677,7 @@ the case where the left operand is a C++/CLI handle.
           if (expr_stack->suppress_diagnostics) {
             record_suppressed_error();
           } else {
-            check_assertion(total_errors != 0);
+            check_assertion(is_at_least_one_error());
           }  /* if */
         } else {
           /* Cast the left operand to the proper type.  In Microsoft bugs

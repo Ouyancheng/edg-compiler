@@ -3632,6 +3632,8 @@ principal associated IL entity.
   a_byte_il_entry_kind     kind = iek_none;
   a_boolean                scope_pushed = FALSE;
   a_boolean                skip_pop = FALSE;
+  a_diagnostic_suppression diag_suppress(&this->suppressed_diagnostics,
+                                         !display_module_import_diagnostics);
 
   /* Ensure the module entity is being processed by the corresponding module
      interface. */
@@ -4853,9 +4855,11 @@ void an_ifc_module::complete_definition_of_module_class(
 Complete the definition of the class referred to by mep (if needed).
 */
 {
-  a_type_ptr            class_type = (a_type_ptr)mep->entity.ptr;
-  an_ifc_DeclSort_Scope idss, *idssp;
-  a_token_cache         cache;
+  a_diagnostic_suppression diag_suppress(&this->suppressed_diagnostics,
+                                         !display_module_import_diagnostics);
+  a_type_ptr               class_type = (a_type_ptr)mep->entity.ptr;
+  an_ifc_DeclSort_Scope    idss, *idssp;
+  a_token_cache            cache;
 
   check_assertion(mep->entity.kind == (an_il_entry_kind)iek_type &&
                   class_type != NULL);

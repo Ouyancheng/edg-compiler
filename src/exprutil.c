@@ -3284,7 +3284,7 @@ popped.
   if (expr_stack->lifetime != NULL &&
       !is_useless_object_lifetime(expr_stack->lifetime)) {
     /* An object lifetime with a constant result -- surprising. */
-    check_assertion(total_errors != 0 ||
+    check_assertion(is_at_least_one_error() ||
                     expr_stack->any_suppressed_error ||
                     constant->kind == (a_constant_repr_kind)ck_template_param);
     discard_curr_expr_object_lifetime();
@@ -3316,7 +3316,7 @@ This should only happen when there are errors.
   an_object_lifetime_ptr lifetime = expr_stack->lifetime;
 
   if (lifetime != NULL && lifetime->destructions != NULL) {
-    check_assertion(total_errors != 0);
+    check_assertion(is_at_least_one_error());
     discard_curr_expr_object_lifetime();
   }  /* if */
 }  /* discard_constant_expr_object_lifetime */

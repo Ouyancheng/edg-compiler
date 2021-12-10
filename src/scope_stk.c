@@ -7385,7 +7385,7 @@ about the scope being popped.
     }  /* if */
   }  /* if */
 #if RECORD_HIDDEN_NAMES_IN_IL
-  if (!C_mode() && total_errors == 0 && is_primary_translation_unit) {
+  if (!C_mode() && !is_at_least_one_error() && is_primary_translation_unit) {
     if (kind == (a_scope_kind)sck_function ||
         kind == (a_scope_kind)sck_block ||
         (kind == (a_scope_kind)sck_file && is_namespace_wrapup)) {
@@ -7471,7 +7471,7 @@ about the scope being popped.
         end_of_scope_symbol_check(sym, kind, curr_routine);
 #if RECORD_HIDDEN_NAMES_IN_IL
 #if CHECKING
-        if (!C_mode() && total_errors == 0) {
+        if (!C_mode() && !is_at_least_one_error()) {
           if (!sym->is_error &&
               sym->kind != (a_symbol_kind)sk_undefined &&
               sym->kind != (a_symbol_kind)sk_macro) {
@@ -8994,7 +8994,7 @@ set correctly.
     if (sp == parent_scope_of(tp) ||
         (parent_scope_of(tp) == NULL && in_file_scope(tp) &&
                                         !in_file_scope(sp)) ||
-         (parent_scope_of(tp) == NULL && total_errors != 0)) {
+         (parent_scope_of(tp) == NULL && is_at_least_one_error())) {
       /* Normal cases. */
     } else {
       /* The file scope may contain lowered entities whose parent scope still
@@ -9021,7 +9021,7 @@ set correctly.
   for (; np != NULL; np = np->next) {
     check_assertion(parent_scope_of(np) == sp ||
                     (sp->kind == (a_scope_kind)sck_func_prototype &&
-                     total_errors != 0));
+                     is_at_least_one_error()));
   }  /* for */
   /* Labels: */
   for (; lp != NULL; lp = lp->next) {
@@ -9185,7 +9185,7 @@ being popped.
     check_for_unclosed_if_exists_blocks();
   }  /* if */
 #endif /* GENERATE_MICROSOFT_IF_EXISTS_ENTRIES */
-  if (ssep->curr_construct_pragmas != NULL && total_errors != 0) {
+  if (ssep->curr_construct_pragmas != NULL && is_at_least_one_error()) {
     /* There should be no items remaining on the list.  If any errors
        occurred, the list items may be a result of the errors.  Discard
        the items on the list.  If no errors have been issued, an internal
@@ -11423,7 +11423,8 @@ lengths) *err is set to TRUE, FALSE otherwise.
         /* In some error cases the variable might not have a symbol.  Treat
            this as an empty pack (except that elements_for_pack is not
            changed). */
-        check_assertion((vp == NULL) == (sym == NULL) || total_errors != 0);
+        check_assertion((vp == NULL) == (sym == NULL) ||
+                        is_at_least_one_error());
         if (sym != NULL) {
           new_prp->curr_argument.variable = vp;
           new_prp->primary_pack_symbol = symbol_for(vp);
@@ -11450,7 +11451,8 @@ lengths) *err is set to TRUE, FALSE otherwise.
           sym = NULL;
           not_found = TRUE;
         }  /* if */
-        check_assertion((fp == NULL) == (sym == NULL) || total_errors != 0);
+        check_assertion((fp == NULL) == (sym == NULL) ||
+                        is_at_least_one_error());
         if (sym != NULL) {
           new_prp->curr_argument.field = fp;
           new_prp->primary_pack_symbol = sym;

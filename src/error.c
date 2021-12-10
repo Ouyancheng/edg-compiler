@@ -2820,6 +2820,146 @@ SP_COL_UNKNOWN, the column number is also added.
 }  /* add_position_prefix */
 
 
+static an_error_severity determine_reported_severity(a_diagnostic_ptr dp)
+/*
+Determine the appropriate severity string for the given diagnostic pointer.
+*/
+{
+  an_error_severity reported_severity;
+  reported_severity = dp->severity;
+  if ((int)reported_severity < (int)es_error &&
+      (int)reported_severity >= (int)error_promotion_threshold) {
+    reported_severity = es_discretionary_error;
+  }  /* if */
+  return reported_severity;
+}  /* determine_reported_severity */
+
+
+static an_error_code determine_severity_code(
+                                  an_error_severity reported_severity,
+                                  a_boolean         capitalize_severity,
+                                  a_boolean         local_display_error_number)
+/*
+Determine the appropriate severity error code for the given diagnostic pointer
+factoring in the capitalization requested.  Additionally, consider whether or
+not the error number should be displayed for this diagnostic.
+*/
+{
+  an_error_code severity_code;
+
+  switch (reported_severity) {
+    case es_more_info:
+      severity_code = capitalize_severity ? ec_More_Info : ec_more_info;
+      break;
+    case es_remark:
+      severity_code = capitalize_severity ? ec_Remark : ec_remark;
+      break;
+    case es_warning:
+      severity_code = capitalize_severity ? ec_Warning : ec_warning;
+      break;
+    case es_command_line_warning:
+      severity_code = capitalize_severity ? ec_Command_line_warning
+                                          : ec_command_line_warning;
+      break;
+    case es_error:
+    case es_discretionary_error:
+      if (local_display_error_number ||
+          ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES) { /*lint !e506 !e774*/
+        severity_code = capitalize_severity ? ec_Error : ec_error;
+      } else {
+        severity_code = ec_no_error;
+      }  /* if */
+      break;
+    case es_catastrophe:
+      severity_code = capitalize_severity ? ec_Catastrophic_error
+                                          : ec_catastrophic_error;
+      break;
+    case es_command_line_error:
+      severity_code = capitalize_severity ? ec_Command_line_error
+                                          : ec_command_line_error;
+      break;
+    case es_internal_error:
+      severity_code = capitalize_severity ? ec_Internal_error
+                                          : ec_internal_error;
+      break;
+    case es_none:
+    default:
+      severity_code = ec_error;
+      unexpected_condition_str("determine_severity_code: bad severity");
+  }  /* switch */
+  return severity_code;
+}  /* determine_severity_code */
+
+
+static a_diagnostic_annotation_kind determine_diagnostic_annotation_kind(
+                                           an_error_severity reported_severity)
+/*
+Determine the appropriate diagnostic annotation kind for the given reported
+severity.
+*/
+{
+  a_diagnostic_annotation_kind annotation_kind;
+
+  switch (reported_severity) {
+    case es_more_info:
+      annotation_kind = da_note;
+      break;
+    case es_remark:
+      annotation_kind = da_note;
+      break;
+    case es_warning:
+    case es_command_line_warning:
+      annotation_kind = da_warning;
+      break;
+    case es_error:
+    case es_discretionary_error:
+    case es_catastrophe:
+    case es_command_line_error:
+    case es_internal_error:
+      annotation_kind = da_error;
+      break;
+    case es_none:
+    default:
+      unexpected_condition_str(
+                         "determine_diagnostic_annotation_kind: bad severity");
+  }  /* switch */
+  return annotation_kind;
+}  /* determine_diagnostic_annotation_kind */
+
+
+static void update_diagnostic_counter(
+                                    an_error_severity        reported_severity,
+                                    a_diagnostic_counter_ptr counter)
+/*
+Update the given counter based on the reported severity.
+*/
+{
+  switch (reported_severity) {
+    case es_more_info:
+      break;
+    case es_remark:
+      ++(counter->remarks);
+      break;
+    case es_warning:
+    case es_command_line_warning:
+      ++(counter->warnings);
+      break;
+    case es_error:
+    case es_discretionary_error:
+      ++(counter->errors);
+      break;
+    case es_catastrophe:
+    case es_command_line_error:
+    case es_internal_error:
+      ++(counter->catastrophes);
+      break;
+    case es_none:
+    default:
+      unexpected_condition_str("update_diagnostic_counter: bad severity");
+  }  /* switch */
+}  /* update_diagnostic_counter */
+
+
 static void add_primary_prefix(a_diagnostic_ptr	dp)
 /*
 Write the source position (file name and line number) and severity to the
@@ -2829,14 +2969,14 @@ the source files.   If the actual source line is not available, the column
 number is added into the output.
 */
 {
-  a_const_char			*error_text_string;
-  a_boolean			capitalize_severity;
-  a_boolean			column_needed;
-  a_boolean			local_display_error_number;
-  an_error_code			severity_code;
-  an_error_severity		effective_severity;
-  a_source_info_for_pos_ptr	sifpp = &dp->diag_header_source_info;
-  a_source_position		*pos = &dp->diag_header_pos;
+  a_const_char                  *error_text_string;
+  a_boolean                     capitalize_severity;
+  a_boolean                     column_needed;
+  a_boolean                     local_display_error_number;
+  an_error_code                 severity_code;
+  an_error_severity             reported_severity;
+  a_source_info_for_pos_ptr     sifpp = &dp->diag_header_source_info;
+  a_source_position             *pos = &dp->diag_header_pos;
 
 #if STANDALONE_UTILITY_PROGRAM
   local_display_error_number = FALSE;
@@ -2845,7 +2985,7 @@ number is added into the output.
      diagnostic.  Internal errors don't have error numbers.  If the
      caller passes the value ec_no_error, the error number display is
      suppressed. */
-  local_display_error_number = display_error_number && 
+  local_display_error_number = display_error_number &&
                                dp->error_code != ec_no_error;
 #endif /* STANDALONE_UTILITY_PROGRAM */
   capitalize_severity = FALSE;
@@ -2906,68 +3046,15 @@ number is added into the output.
       add_string_to_text_buffer(prefix_buffer, ": ");
     }  /* if */
   }  /* if */
-  /* Determine the appropriate severity string, and also count this
-     diagnostic against the total for the severity. */
-  effective_severity = dp->severity;
-  if ((int)effective_severity < (int)es_error &&
-      (int)effective_severity >= (int)error_promotion_threshold) {
-    effective_severity = es_discretionary_error;
-  }  /* if */
-  /* Assume the most used case below and change as needed. */
-  a_diagnostic_annotation_kind annotation_kind = da_error;
-  switch (effective_severity) {
-    case es_more_info:
-      severity_code = capitalize_severity ? ec_More_Info : ec_more_info;
-      annotation_kind = da_note;
-      break;
-    case es_remark:
-      severity_code = capitalize_severity ? ec_Remark : ec_remark;
-      total_remarks++;
-      annotation_kind = da_note;
-      break;
-    case es_warning:
-      severity_code = capitalize_severity ? ec_Warning : ec_warning;
-      total_warnings++;
-      annotation_kind = da_warning;
-      break;
-    case es_command_line_warning:
-      severity_code = capitalize_severity ? ec_Command_line_warning
-                                          : ec_command_line_warning;
-      total_warnings++;
-      annotation_kind = da_warning;
-      break;
-    case es_discretionary_error:
-    case es_error:
-      if (local_display_error_number ||
-          ERROR_SEVERITY_EXPLICIT_IN_ERROR_MESSAGES) { /*lint !e506 !e774*/
-        severity_code = capitalize_severity ? ec_Error : ec_error;
-      } else {
-        severity_code = ec_no_error;
-      }  /* if */
-      total_errors++;
-      break;
-    case es_catastrophe:
-      severity_code = capitalize_severity ? ec_Catastrophic_error
-                                          : ec_catastrophic_error;
-      total_catastrophes++;
-      break;
-    case es_command_line_error:
-      severity_code = capitalize_severity ? ec_Command_line_error
-                                          : ec_command_line_error;
-      total_catastrophes++;
-      break;
-    case es_internal_error:
-      severity_code = capitalize_severity ? ec_Internal_error
-                                          : ec_internal_error;
-      total_catastrophes++;
-      break;
-    case es_none:
-    default:
-      severity_code = ec_error;
-      unexpected_condition_str("add_primary_prefix: bad severity");
-  }  /* switch */
+  reported_severity = determine_reported_severity(dp);
+  severity_code = determine_severity_code(reported_severity,
+                                          capitalize_severity,
+                                          local_display_error_number);
   if (severity_code != ec_no_error) {
+    a_diagnostic_annotation_kind annotation_kind;
+
     error_text_string = error_text(severity_code);
+    annotation_kind = determine_diagnostic_annotation_kind(reported_severity);
     annotate_diagnostic(prefix_buffer, annotation_kind);
     add_string_to_text_buffer(prefix_buffer, error_text_string);
     annotate_diagnostic(prefix_buffer, da_reset);
@@ -3217,7 +3304,7 @@ abort the compilation with the information recorded in the first call to
 expected_error.
 */
 {
-  if (expected_error_record.filename != NULL && total_errors == 0) {
+  if (expected_error_record.filename != NULL && !is_at_least_one_error()) {
     assertion_failed(expected_error_record.filename,
                      expected_error_record.line_number,
                      expected_error_record.function,
@@ -4367,10 +4454,12 @@ diagnostic specified by dp.  For example, some error severities cause
 the program to be terminated, as does reaching the error limit.
 */
 {
+  unsigned long total_all_errors = diagnostic_counters.total.all_error_types();
+
 #if IL_SHOULD_BE_WRITTEN_TO_FILE && !STANDALONE_UTILITY_PROGRAM
   /* If there are any errors, suppress generation of the intermediate
      language file. */
-  if (total_errors + total_catastrophes > 0) cancel_il_file();
+  if (total_all_errors > 0) cancel_il_file();
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && !STANDALONE_UTILITY_PROGRAM */
   /* Terminate the compilation for the more serious severities. */
   if (dp->severity == es_catastrophe ||
@@ -4383,8 +4472,9 @@ the program to be terminated, as does reaching the error limit.
     term_compilation(dp->severity);
   }  /* if */
   /* Terminate the compilation if the error limit has been reached.  Note
-     that remarks and warnings are never counted. */
-  if (total_errors + total_catastrophes >= error_limit) {
+     that remarks and warnings are never counted.  Additionally, note
+     only reported errors are counted. */
+  if (total_all_errors >= error_limit) {
 #if !USING_DRIVER
     fprintf(f_error, "%s\n", error_text(ec_error_limit_reached));
 #endif /* !USING_DRIVER */
@@ -5033,6 +5123,28 @@ The message is formatted into text strings and is output.
                 !diagnostic_already_issued_for_prototype(dp);
   }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
+  if (diag_should_be_issued) {
+    an_error_severity reported_severity = determine_reported_severity(dp);
+
+    /* Update the total diagnostics counter. */
+    update_diagnostic_counter(reported_severity, &diagnostic_counters.total);
+    if (globally_suppress_diagnostics) {
+      diag_should_be_issued = FALSE;
+      /* Update the suppressed diagnostics counter. */
+      update_diagnostic_counter(reported_severity,
+                                &diagnostic_counters.suppressed);
+    }  /* if */
+  }  /* if */
+  /* If a diagnostic counter was set, update it now (this does not depend
+     on whether or not the diagnostic should be issued). */
+  if (diagnostic_counters.local != NULL) {
+    an_error_severity reported_severity = determine_reported_severity(dp);
+
+    /* FIXME: check dp->kind == primary (probably). */
+    if (reported_severity != es_none) {
+      update_diagnostic_counter(reported_severity, diagnostic_counters.local);
+    }  /* if */
+  }  /* if */
   if (diag_should_be_issued) {
     /* Set up for use of the il_to_str routines. */
     set_up_output_control_block();
@@ -5688,6 +5800,28 @@ indicated position.
 }  /* pos_ty2_diagnostic */
 
 #if !STANDALONE_UTILITY_PROGRAM
+
+void st2_num_diagnostic(an_error_severity error_severity,
+                        an_error_code     error_code,
+                        a_const_char      *error_string1,
+                        a_const_char      *error_string2,
+                        int32_t           num)
+/*
+Report the indicated diagnostic (with the indicated string and number fill-ins)
+as an positionless diagnostic.
+*/
+{
+  a_diagnostic_ptr dp;
+
+  dp = create_primary_diagnostic(error_code,
+                                 /*error_pos=*/&null_source_position,
+                                 error_severity);
+  add_string_fill_in(dp, error_string1);
+  add_string_fill_in(dp, error_string2);
+  add_number_fill_in(dp, num);
+  wrap_up_diagnostic(dp);
+}  /* st_num_diagnostic */
+
 
 void pos_sy_diagnostic(an_error_severity  error_severity,
                        an_error_code      error_code,
@@ -7538,7 +7672,8 @@ line processing is done.
   strict_ansi_discretionary_severity = es_warning;
   /* These are initialized here and also during per-compilation
      initialization. */
-  total_remarks = total_warnings = total_errors = total_catastrophes = 0;
+  diagnostic_counters = {};
+  globally_suppress_diagnostics = FALSE;
   anachronism_error_severity
 #if DEFAULT_ALLOW_ANACHRONISMS
                              = es_warning;
@@ -7623,7 +7758,8 @@ Perform any initializations necessary for error.c functions at the beginning
 of each compilation.
 */
 {
-  total_remarks = total_warnings = total_errors = total_catastrophes = 0;
+  diagnostic_counters = {};
+  globally_suppress_diagnostics = FALSE;
   avail_diagnostics = NULL;
   avail_diag_fill_ins = NULL;
   diagnostic_indent = 0;

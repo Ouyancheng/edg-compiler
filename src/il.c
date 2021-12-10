@@ -10187,7 +10187,7 @@ correspondence.  The entity must have an associated symbol.
                       "trans_unit_for_source_corresp: no assoc symbol");
   if (sym->decl_scope == NO_SCOPE_NUMBER) {
     /* There must be some previous error. */
-    check_assertion(total_errors != 0);
+    check_assertion(is_at_least_one_error());
     /* Pick an arbitrary translation unit, primary or secondary as
        appropriate. */
     if (in_secondary_trans_unit(scp)) {
@@ -14095,7 +14095,7 @@ more than the given number of parameter entries.
           new_ptp->default_arg_expr =
                          duplicate_default_arg_expr(ptp->default_arg_expr);
         } else {
-          check_assertion(total_errors != 0);
+          check_assertion(is_at_least_one_error());
         }  /* if */
       } else {
         /* The default argument should not be copied. */
@@ -14365,7 +14365,7 @@ from_type to to_type.  This should be called only in C++ mode.
           to_ptp->default_arg_expr =
                         duplicate_default_arg_expr(from_ptp->default_arg_expr);
         } else {
-          check_assertion(total_errors != 0 ||
+          check_assertion(is_at_least_one_error() ||
                           compare_expressions(from_ptp->default_arg_expr,
                                               to_ptp->default_arg_expr,
                                               CC_NO_OPTIONS));
@@ -24903,7 +24903,7 @@ related to "needed" flags.
   if (!rout->defined) {
 #if GNU_EXTENSIONS_ALLOWED && !LOWER_IFUNC
     /* An ifunc shouldn't have a definition (unless lowering gives it one). */
-    check_assertion(!rout->is_ifunc || total_errors != 0);
+    check_assertion(!rout->is_ifunc || is_at_least_one_error());
 #endif /* GNU_EXTENSIONS_ALLOWED && !LOWER_IFUNC */
     rout->defined = TRUE;
 #if MAINTAIN_NEEDED_FLAGS
@@ -28826,7 +28826,7 @@ needed_flag_bit_number plus bit_offset.
        pointers from the primary IL to the secondary IL because the
        copy process was suppressed due to errors).  When it does,
        ignore the call. */
-    check_assertion(total_errors != 0);
+    check_assertion(is_at_least_one_error());
   } else {
     /* Loop through the list of entries to find the one containing the
        bit we want to test. */

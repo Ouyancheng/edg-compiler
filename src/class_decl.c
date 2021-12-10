@@ -6480,7 +6480,7 @@ dependent on the use of the C++11 attributes "base_check" and "hiding".)
          explicit overriders may have an unknown overridden base. */
       check_assertion(orep->override_count == orep->virtual_function_count ||
                       is_prototype_instantiation_symbol(tag_sym) ||
-                      total_errors > 0);
+                      is_at_least_one_error());
       /* Okay -- no diagnostic, even if there were additional nonoverriding
          declarations of the same name. */
     }  /* if */
@@ -8968,7 +8968,7 @@ information).
     } else {
       /* If we did not find a matching base class there must have been an
          earlier error. */
-      check_assertion(total_errors != 0);
+      check_assertion(is_at_least_one_error());
     }  /* if */
   }  /* if */
 }  /* mark_base_dependent_if_needed */
@@ -25892,7 +25892,8 @@ are:   A<T> for A<int>, A<T>::B for A<int>::B, and A<T>::B::C for A<int>::B::C.
           }  /* if */
         }  /* for */
       }  /* if */
-      check_assertion(corresp_prototype_tag_sym != NULL || total_errors != 0);
+      check_assertion(corresp_prototype_tag_sym != NULL ||
+                      is_at_least_one_error());
     }  /* if */
   } else {
     /* curr_sym is not a nested class.  If it has a template symbol it may be
@@ -26495,7 +26496,7 @@ routine.
                                (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
         sssdp->autonomous_tag_decl = TRUE;
       } else {
-        check_assertion(total_errors > 0);
+        check_assertion(is_at_least_one_error());
       }  /* if */
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -30037,7 +30038,7 @@ that is provided if this is a member template declaration.
            consisted solely of an unnamed bit field length, the locator is
            set to an error locator even though there could not possibly be
            a declarator-parsing error.) */
-        check_assertion(total_errors != 0);
+        check_assertion(is_at_least_one_error());
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (dps->has_cli_literal_keyword) {
         /* C++/CLI literal field */
@@ -33683,7 +33684,7 @@ NULL in such cases.
   } else {
     /* Severe errors prevented the creation of a call operator.  Don't return
        a lambda. */
-    check_assertion(total_errors != 0);
+    check_assertion(is_at_least_one_error());
     *p_lambda = NULL;
   }  /* if */
 }  /* finish_lambda_routine_processing */

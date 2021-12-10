@@ -17426,7 +17426,7 @@ of a_constant entries.
     pos_error(ec_exp_int_constant, &bound_pos);
   }  /* if */
   if (err) {
-    check_assertion(total_errors != 0);
+    check_assertion(is_at_least_one_error());
     args = alloc_template_arg((a_templ_arg_kind)tak_nontype);
     args->variant.constant = bound;
   }  /* if */

@@ -13614,7 +13614,7 @@ init_stmt is the stmk_init statement.
   check_assertion(vp->init_kind == (an_init_kind)initk_dynamic &&
                   init_stmt != NULL &&
                   init_stmt->kind == (a_statement_kind)stmk_init);
-  if (!suppress_il_lowering && total_errors == 0) {
+  if (!suppress_il_lowering && !is_at_least_one_error()) {
     set_var_init_pos_descr(vp, &ipd);
     set_insert_location(init_stmt, &insert_location);
     lower_dynamic_init(vp->initializer.dynamic, &ipd,

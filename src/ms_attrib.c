@@ -1664,7 +1664,7 @@ is set to TRUE.  Note that "err" is not TRUE for an unexpected token kind.
     if (is_error_constant(&const_for_curr_token)) {
       /* We encountered a misformed string literal.  An error should
          have been issued already. */
-      check_assertion(total_errors != 0);
+      check_assertion(is_at_least_one_error());
       *err = TRUE;
     } else {
       src = const_for_curr_token.variant.string.value;
@@ -1732,7 +1732,7 @@ TRUE.  Note that "err" is not TRUE for an unexpected token kind.
     if (is_error_constant(&const_for_curr_token)) {
       /* We encountered a misformed string literal.  An error should
          have been issued already. */
-      check_assertion(total_errors != 0);
+      check_assertion(is_at_least_one_error());
       *err = TRUE;
       set_error_constant(constant);
       result = constant;

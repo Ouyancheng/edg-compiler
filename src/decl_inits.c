@@ -3629,7 +3629,7 @@ issued if no more specific position is available.
         if (is->no_diagnostics) {
           check_assertion(is->init_error);
         } else {
-          check_assertion(total_errors != 0);
+          check_assertion(is_at_least_one_error());
         }  /* if */
       }  /* if */
     } else if (is->elided_braces_disallowed) {
@@ -5679,7 +5679,7 @@ returned set to TRUE.
                Set the number of elements to "1" to avoid a second diagnostic
                about creating a variable of incomplete type. */
             check_assertion(is_or_contains_error_type(init_con->type) &&
-                            total_errors != 0);
+                            is_at_least_one_error());
             init_err = TRUE;
             num_elems = 1;
           } else {

@@ -3903,7 +3903,7 @@ information in the specified id-linkage block.
      being defined) outside their parent class: */
   check_assertion(idlbp->locator->specific_symbol == NULL ||
                   !idlbp->locator->specific_symbol->is_class_member ||
-                  microsoft_mode || total_errors != 0);
+                  microsoft_mode || is_at_least_one_error());
   is_function = idlbp->func_info != NULL;
   is_object = !is_function;
   if (is_error_locator(*idlbp->locator)) {
@@ -4657,7 +4657,7 @@ created; the caller must set it.
     /* In pcc mode, functions and extern variables are always effectively
        declared at the file scope level.  So if we get here in pcc mode, we
        must have encountered two incompatible declarations of the same name. */
-    check_assertion(C_dialect != C_dialect_pcc || total_errors != 0);
+    check_assertion(C_dialect != C_dialect_pcc || is_at_least_one_error());
     if (ext_sym->kind == (a_symbol_kind)sk_extern_variable) {
       scp = &esdp->variant.variable->source_corresp;
     } else {
@@ -5210,7 +5210,7 @@ any diagnostics.
     flags &= (a_decl_modifier)~DM_THREAD;
   }  /* if */
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
-  check_assertion(flags == 0 || total_errors != 0);
+  check_assertion(flags == 0 || is_at_least_one_error());
 }  /* update_routine_decl_modifiers */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -5253,7 +5253,7 @@ position. */
          DLL interface. */
       if (var->source_corresp.name_linkage == (a_name_linkage_kind)nlk_none) {
         /* An error should already have been issued for local variables. */
-        check_assertion(total_errors != 0);
+        check_assertion(is_at_least_one_error());
         goto done;
       } else if (var->source_corresp.name_linkage ==
                                           (a_name_linkage_kind)nlk_internal) {
@@ -7423,7 +7423,7 @@ for use in generating cross-reference output describing this declaration.
       if (!is_local_scope_kind(scope_stack_top().kind)) {
         /* The variable will be allocated in file scope after all.
            (This should only occur in error situations.) */
-        check_assertion(total_errors != 0);
+        check_assertion(is_at_least_one_error());
         alloc_at_file_scope = TRUE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (mscpp_version_is(>= 1310) &&
@@ -7760,7 +7760,7 @@ for use in generating cross-reference output describing this declaration.
         /* We can get here with a namespace scope declaration of the form
              void (*pf)(int[*][*]);
            Some (unlikely) error situations can also cause us to get here. */
-        check_assertion(total_errors > 0 || !is_vla_type(type_ptr));
+        check_assertion(is_at_least_one_error() || !is_vla_type(type_ptr));
       } else {
         a_statement_ptr vla_stmt;
 
@@ -7773,7 +7773,7 @@ for use in generating cross-reference output describing this declaration.
         if (is_vla_type(type_ptr)) {
           if (!is_variable_def) {
             /* Must be an error. */
-            check_assertion(total_errors > 0);
+            check_assertion(is_at_least_one_error());
           } else {
             /* Memory for this variable will also have to be allocated.  Mark
                the variable as a variable length array that requires allocation
@@ -7873,7 +7873,7 @@ type entry if appropriate, otherwise using the indicated declared_type.
                          scp_parent_class(&routine_ptr->source_corresp)->
                               variant.class_struct_union.
                                                  is_in_class_specialization) ||
-                        (total_errors !=  0),
+                        is_at_least_one_error(),
                        "set_routine_declared_type: declared type already set");
     declared_type = routine_ptr->declared_type;
     routine_ptr->declared_type = NULL;
@@ -10220,7 +10220,7 @@ skip_overloading:;
     } else {
       /* Unless there's an error there cannot be two "main" functions. */
       check_assertion_str(il_header.main_routine == routine_ptr ||
-                            total_errors > 0,
+                          is_at_least_one_error(),
                           "decl_routine: main redeclared");
     }  /* if */
   }  /* if */
@@ -11296,7 +11296,7 @@ definition of a member function of a class template.
           /* The member was defined with "= default;" or "= delete;", but
              some error caused it not to be treated as a valid definition.
              Don't issue another error. */
-          check_assertion(total_errors != 0);
+          check_assertion(is_at_least_one_error());
         } else {
           pos_sy_error(ec_member_function_redecl_outside_class,
                        &locator->source_position, sym);
@@ -14206,7 +14206,7 @@ a normal try.
              declaration of the copy constructor was suppressed because of
              an inability to generate its definition. */
           check_assertion(cctor != NULL || bitwise_copy ||
-                          total_errors != 0 ||
+                          is_at_least_one_error() ||
                           (allow_suppressed_ctor &&
                            skip_typerefs(state.type)
                                         ->variant.class_struct_union
@@ -15849,7 +15849,7 @@ it's a definition and NULL otherwise).
      repeated namespace alias, the extended position information is recorded
      in the associated secondary source sequence entry (if available). */
   if (nsp == NULL) {
-    check_assertion(total_errors != 0);
+    check_assertion(is_at_least_one_error());
   } else if (namespace_ssep == NULL) {
     /* No source sequence entry was recorded.  Only record position information
        if none was recorded before.  Predeclared namespaces may not yet have a
@@ -15874,7 +15874,7 @@ it's a definition and NULL otherwise).
                                                                  decl_pos_info;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   } else {
-    check_assertion(total_errors != 0);
+    check_assertion(is_at_least_one_error());
   }  /* if */
   if (decl_pos_info != NULL) {
     decl_pos_info->specifiers_range.start = namespace_pos;
@@ -17623,7 +17623,7 @@ proceed after the call.
         *final_token = tok_rbrace;
         check_assertion(curr_token == tok_rbrace ||
                         curr_token == tok_end_of_source ||
-                        total_errors != 0);
+                        is_at_least_one_error());
       }  /* if */
       end_of_decl_action = eoda_skip_final_token;
       goto done;
@@ -17723,7 +17723,7 @@ proceed after the call.
          type of those VLAs is then "as if" they had been declared with "[*]".
          (Had this been a definition, we would have kept a record of the
          expressions through a call to process_vla_parameters.) */
-      check_assertion(C_mode() || total_errors != 0);
+      check_assertion(C_mode() || is_at_least_one_error());
       free_vla_fixup_list(func_info->vla_fixup_list);
       func_info->vla_fixup_list = NULL;
     }  /* if */

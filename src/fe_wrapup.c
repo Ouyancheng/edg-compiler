@@ -124,6 +124,8 @@ are instantiated.
     check_class_linkage();
   }  /* if */
 
+  modules_check_for_suppressed_errors();
+
   /* Pop and repush the file scope.  This is done to move the symbols from
      the active list to the inactive list. */
   pop_scope();
@@ -394,7 +396,7 @@ Do the needed-flag processing for the current translation unit
 mark external entities and the things they reference as "needed".
 */
 {
-  if (total_errors == 0) {
+  if (!is_at_least_one_error()) {
 #if MAINTAIN_NEEDED_FLAGS
     /* Set the "needed" flag in defined variables with external linkage --
        both in the file scope and in each of the namespace scopes. */
@@ -435,7 +437,7 @@ Do the needed-flag keep-in-il processing for the current translation unit
 #if MAINTAIN_NEEDED_FLAGS
   a_scope_ptr il_scope = curr_translation_unit->primary_scope;
 
-  if (total_errors == 0) {
+  if (!is_at_least_one_error()) {
     /* Set the "keep_in_il" flag for all file-scope IL entries that must
        be kept to maintain the integrity of the IL. */
     end_of_file_scope_needed_flags_phase = TRUE;
@@ -456,8 +458,8 @@ Do removal of unneeded IL entities for the current translation unit
   a_scope_ptr il_scope = curr_translation_unit->primary_scope;
 
   /* Don't bother pruning the IL of unneeded entries if errors were seen. */
-  if (total_errors != 0) okay_to_eliminate_unneeded_il_entries = FALSE;
-  if (!C_mode() && total_errors == 0) {
+  if (is_at_least_one_error()) okay_to_eliminate_unneeded_il_entries = FALSE;
+  if (!C_mode() && !is_at_least_one_error()) {
     /* Reset the instantiation_required flag on any entities that aren't
        needed so the prelinker doesn't try to instantiate them. */
     clear_instantiation_required_on_unneeded_entities(il_scope);
@@ -493,7 +495,7 @@ flag processing and unneeded IL removal for secondary translation units.
      unit IL is all intermingled.  You can't remove entities in one
      secondary translation unit until you have accounted for references
      from all other secondary translation units. */
-  if (total_errors == 0) {
+  if (!is_at_least_one_error()) {
     /* Sweep the primary translation unit IL tree and look for any
        pointers to entities in secondary translation units that it uses,
        and mark those entities as needed. */
@@ -593,7 +595,7 @@ already been copied over.
     check_for_done_with_all_function_memory_regions();
 #if AUTOMATIC_TEMPLATE_INSTANTIATION
     if (!C_mode()) {
-      if (total_errors == 0) {
+      if (!is_at_least_one_error()) {
         /* Set the IL flags used to pass automatic instantiation information to
            the link-time instantiation processor.  The timing of this call is
            important.  It must follow the call to
@@ -703,7 +705,7 @@ Complete the file scope of each of the translation units.
      This must be done before the lowering of the primary IL.
      In trans_unit_test mode, we don't check for duplicate definitions,
      so we can't do the copy. */
-  if (total_errors == 0 && !trans_unit_test_mode &&
+  if (!is_at_least_one_error() && !trans_unit_test_mode &&
 #if DO_IL_LOWERING
       !suppress_il_lowering &&
 #endif /* DO_IL_LOWERING */
@@ -793,7 +795,7 @@ and before the back end (if any) is executed.
   wrap_up_file_scopes();
 
 #if NEED_IL_DISPLAY
-  if (il_display && total_errors == 0) {
+  if (il_display && !is_at_least_one_error()) {
     /* Display the IL. */
     do_il_display((char *)NULL);
   }  /* if */

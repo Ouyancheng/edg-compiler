@@ -36466,7 +36466,7 @@ type_identifier_case:
                     is_alias_in_template_decl_context() ||
                     (scope_stack_top().in_nonreal_instantiation &&
                      !scope_stack_top().is_rescan)) {
-                  if (total_errors != 0 &&
+                  if (is_at_least_one_error() &&
                       template_arg_list_involves_error_entity(tap)) {
                     make_error_operand(result);
                     result->position = node->position;
@@ -47113,7 +47113,7 @@ are NULL by default.
       prep_generic_nontype_template_argument(&result);
     } else {
       /* Error recovery. */
-      check_assertion(total_errors != 0);
+      check_assertion(is_at_least_one_error());
       eliminate_unusual_operand_kinds(&result);
     }  /* if */
     extract_constant_from_operand(&result, constant);
@@ -48271,7 +48271,7 @@ a enclosing expression).
   a_type_ptr                    orig_expr_type = expr->type;
 
   check_assertion(!rcblock->error_detected);
-  if (total_errors != 0 &&
+  if (is_at_least_one_error() &&
       template_arg_list_involves_error_entity(rcblock->template_arg_list)) {
     /* Do not spend resources substituting a template argument list containing
        error entities. */
@@ -48748,7 +48748,7 @@ function or template.
   an_expr_stack_entry         expr_stack_entry;
   a_boolean                   nontype_template_arg = FALSE;
 
-  if (total_errors != 0 && expr_contains_error(expr)) {
+  if (is_at_least_one_error() != 0 && expr_contains_error(expr)) {
     /* Don't attempt to substitute an expression containing errors, since it
        may lack the needed rescanning info. */
     subst_fail(rcblock->error_detected);

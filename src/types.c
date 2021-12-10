@@ -6261,10 +6261,10 @@ be customized if additional linkage kinds are added to a_name_linkage_kind
   /* Normally we should have valid name linkage kinds, but in error situations
      we may have nlk_none. */
   check_assertion_str2((is_name_linkage_kind_for_rout_type(nlk1) ||
-                        (total_errors > 0 &&
+                        (is_at_least_one_error() &&
                          nlk1 == (a_name_linkage_kind)nlk_none)) &&
                        (is_name_linkage_kind_for_rout_type(nlk2) ||
-                        (total_errors > 0 &&
+                        (is_at_least_one_error() &&
                          nlk2 == (a_name_linkage_kind)nlk_none)),
                        "routine_linkages_are_compatible:",
                        "unexpected linkage for routine type");

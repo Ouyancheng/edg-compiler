@@ -930,6 +930,47 @@ actual object.
   }  /* switch */
 }  /* complete_definition_of_module_class */
 
+
+void a_module_interface::report_suppressed_diagnostics() const
+/*
+*/
+{
+  unsigned long errors = suppressed_diagnostics.errors;
+  unsigned long catastrophes = suppressed_diagnostics.catastrophes;
+  unsigned long warnings = suppressed_diagnostics.warnings;
+
+  if (errors > 0) {
+    a_boolean plural = errors > 1;
+
+    st2_num_diagnostic(es_error,
+                       (plural ? ec_suppressed_module_plural_diag
+                               : ec_suppressed_module_single_diag),
+                       (plural ? "errors" : "error"),
+                       assoc_module_info->name,
+                       errors);
+  }  /* if */
+  if (catastrophes > 0) {
+    a_boolean plural = catastrophes > 1;
+
+    st2_num_diagnostic(es_error,
+                       (plural ? ec_suppressed_module_plural_diag
+                               : ec_suppressed_module_single_diag),
+                       (plural ? "catastrophes" : "catastrophe"),
+                       assoc_module_info->name,
+                       errors);
+  }  /* if */
+  if (warnings > 0) {
+    a_boolean plural = warnings > 1;
+
+    st2_num_diagnostic(es_warning,
+                       (plural ? ec_suppressed_module_plural_diag
+                               : ec_suppressed_module_single_diag),
+                       (plural ? "warnings" : "warning"),
+                       assoc_module_info->name,
+                       warnings);
+  }  /* if */
+}  /* report_suppressed_diagnostics */
+
 #if DEBUG
 
 void a_module_interface::debug() const
@@ -1132,8 +1173,28 @@ had been opened at the time the PCH file was created.
   a_module_import_decl_ptr midp;
 
   for (midp = il_header.imported_modules; midp != NULL; midp = midp->next) {
-    if (midp->module_info->module_interface != NULL) {
-      midp->module_info->module_interface->pch_reset(midp);
+    a_module_interface_ptr iface = midp->module_info->module_interface;
+
+    if (iface != NULL) {
+      iface->pch_reset(midp);
+    }  /* if */
+  }  /* for */
+}  /* modules_pch_reset */
+
+
+void modules_check_for_suppressed_errors(void)
+/*
+Called after the translation unit has otherwise been processed to check
+for suppressed errors while processing the module.
+*/
+{
+  a_module_import_decl_ptr midp;
+
+  for (midp = il_header.imported_modules; midp != NULL; midp = midp->next) {
+    a_module_interface_ptr iface = midp->module_info->module_interface;
+
+    if (iface != NULL) {
+      iface->report_suppressed_diagnostics();
     }  /* if */
   }  /* for */
 }  /* modules_pch_reset */

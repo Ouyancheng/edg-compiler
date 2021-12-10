@@ -1643,7 +1643,7 @@ write out the precompiled header file.
   } else if (macro_depth != 0 || pp_if_stack_depth != -1) {
     /* Nor if we are in the midst of a macro definition or a #if construct. */
     db_cannot_generate_reason("in a macro or #if");
-  } else if (total_errors > 0) {
+  } else if (is_at_least_one_error()) {
     /* Nor if there have been errors. */
     db_cannot_generate_reason("there have been errors");
   } else if (scope_stack[DEPTH_OF_FILE_SCOPE].name_linkage_is_explicit) {

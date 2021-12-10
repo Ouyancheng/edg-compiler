@@ -730,7 +730,7 @@ otherwise return FALSE.
       }  /* while */
     }  /* if */
   } else {
-    if (list_start != NULL && total_errors != 0) {
+    if (list_start != NULL && is_at_least_one_error()) {
       /* There should be no items remaining on the list.  If any errors
          occurred, the list items may be a result of the errors.  Discard
          the items on the list.  If no errors have been issued, an internal

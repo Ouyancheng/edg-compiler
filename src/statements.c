@@ -2246,7 +2246,7 @@ by traversing the control-flow list backwards from *start to *end.
                  actual "last statement", it could also trigger additional
                  (spurious) errors about the type of the last statement.  So
                  we don't create the deallocation node in such cases. */
-              check_assertion(total_errors != 0);
+              check_assertion(is_at_least_one_error());
             } else {
               dealloc_stmt = create_vla_deallocation_stmt(
                                                  cfdp->variant.init.variable);

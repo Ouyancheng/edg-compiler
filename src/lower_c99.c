@@ -49,7 +49,7 @@ for non-C99 dialects and even for plain C89).
 {
   a_boolean  result;
 
-  if (suppress_il_lowering || total_errors != 0) {
+  if (suppress_il_lowering || is_at_least_one_error()) {
     result = FALSE;
   } else if (c99_mode || gcc_mode || microsoft_mode ||
              compound_literals_allowed || vla_enabled || designators_allowed ||

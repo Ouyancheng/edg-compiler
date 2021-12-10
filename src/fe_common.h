@@ -28,6 +28,7 @@ incorporated:
     extasm.h
     float_pt.h
     floating.h
+    header_util.h
     host_envir.h
     il.h
     il_def.h
@@ -44,6 +45,7 @@ incorporated:
     types.h
     targ_def.h
     target.h
+    util.h
     version.h
 
 */

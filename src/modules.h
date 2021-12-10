@@ -113,6 +113,11 @@ struct a_module_interface {
 			   mapping process on Windows. */
 #endif /* EDG_WIN32 */
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+  a_diagnostic_counter
+		suppressed_diagnostics = {};
+			/* A diagnostic counter storing the counts of any
+			   diagnostics that were suppressed while processing
+			   this module. */
 
   a_module_interface() = delete;
   a_module_interface(a_module_kind iface_kind)
@@ -139,7 +144,7 @@ struct a_module_interface {
                 a_boolean    header_unit);
   VIRTUAL void complete_definition_of_module_class(a_module_entity_ptr mep)
                                                                       ABSTRACT;
-
+  void report_suppressed_diagnostics() const;
 #if DEBUG
   VIRTUAL void debug() const ABSTRACT;
   VIRTUAL void db_module_entity(a_module_entity_ptr mep) const ABSTRACT;
@@ -239,6 +244,8 @@ extern void db_module_entity(a_module_entity_ptr mep);
 #endif /* DEBUG */
 
 extern void modules_pch_reset(void);
+
+extern void modules_check_for_suppressed_errors(void);
 
 #if MAKE_FRONT_END_CALLABLE
 extern void modules_cleanup(void);

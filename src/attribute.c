@@ -4704,8 +4704,8 @@ parameters in the given declaration.  (This function is set up as an
 end-of-declaration callback when applying a carries_dependency attribute to
 a parameter.  So we know that the declaration involved a function declarator.)
 */
-{ 
-  if (total_errors != 0 && is_or_contains_error_type(dps->type)) {
+{
+  if (is_at_least_one_error() && is_or_contains_error_type(dps->type)) {
     /* Nothing to check. */
   } else if (dps->declared_type->kind != (a_type_kind)tk_routine ||
              dps->storage_class == (a_storage_class)sc_typedef) {

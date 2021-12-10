@@ -85,7 +85,7 @@ Comments in asm functions are saved along with the normal tokens.
       } else {
         /* We can get here in severe error situations that caused tokens to be
            prematurely cached. */
-        check_assertion(total_errors != 0);
+        check_assertion(is_at_least_one_error());
       }  /* if */
       break;
     }  /* if */
@@ -99,7 +99,7 @@ Comments in asm functions are saved along with the normal tokens.
     } else {
       /* We can get here in severe error situations that caused tokens to be
          prematurely cached. */
-      check_assertion(total_errors != 0);
+      check_assertion(is_at_least_one_error());
     }  /* if */
     /* Advance to the next token. */
     (void)get_token();
@@ -726,7 +726,7 @@ associated with a variadic parameter, but not the initial one.
          generated, but some template-related syntax errors may cause us to
          lose track of the fact that we're in a template context. */
       check_assertion(param_id->source_sequence_entry != NULL ||
-                      total_errors > 0);
+                      is_at_least_one_error());
     }  /* if */
 #endif /* CHECKING */
     update_source_sequence_list((char *)vp, (an_il_entry_kind)iek_variable,
@@ -1673,7 +1673,7 @@ of lambda expressions.
          variadic templates that are instantiated on empty parameter packs. */
 #if CHECKING
       if (param_id == NULL) {
-        check_assertion(total_errors != 0);
+        check_assertion(is_at_least_one_error());
       } else if (param_id->is_parameter_pack) {
         /* A variadic function can have a function parameter pack that ends
            up having no elements. */
@@ -1728,7 +1728,7 @@ of lambda expressions.
         param_id != NULL && !param_id->is_parameter_pack) {
       /* Something went wrong while parsing the template, which caused us to
          miscount the number of parameters. */
-      check_assertion(total_errors != 0);
+      check_assertion(is_at_least_one_error());
     }  /* if */
     if (vla_enabled && C_mode()) {
       /* Some additional transformations and checks may be needed for
@@ -1801,7 +1801,7 @@ of lambda expressions.
       is_function_try_block = TRUE;
     }  /* if */
 #if CHECKING
-    if (total_errors == 0) {
+    if (!is_at_least_one_error()) {
       /* Except where there are invalid declarations, the flags in the types
          should be consistent with the special function kinds. */
       check_assertion((a_boolean)rtsp->assoc_routine_is_ctor ==
@@ -3299,7 +3299,7 @@ operator routine or do bitwise assignment.
         if (is_const_qualified_type(tp) || is_any_reference_type(tp)) {
           /* The error has already been issued for const and ref members.
              Don't bother trying to do the copy. */
-          check_assertion(total_errors > 0);
+          check_assertion(is_at_least_one_error());
           continue;
         }  /* if */
         /* If this is an array, we need the element type. */

@@ -2986,7 +2986,7 @@ therefore will not be copied.
   a_scope_ptr            top_scope;
 
   db_enter(1, "copy_secondary_trans_unit_IL_to_primary");
-  check_assertion(total_errors == 0 && !trans_unit_test_mode);
+  check_assertion(!is_at_least_one_error() && !trans_unit_test_mode);
 #if CHECKING
   /* This code doesn't handle source sequence lists, so the result won't
      work with the C++-generating back end. */

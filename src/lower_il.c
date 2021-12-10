@@ -439,7 +439,7 @@ but this routine does not indicate that.
 {
   a_boolean needed = (C_dialect == C_dialect_cplusplus &&
                       !suppress_il_lowering &&
-                      total_errors == 0);
+                      !is_at_least_one_error());
   return needed;
 }  /* il_lowering_needed */
 

@@ -155,7 +155,7 @@ string that is returned.
   } else if (is_error_constant(&const_for_curr_token)) {
     /* We encountered a misformed string literal.  An error should
        have been issued already. */
-    check_assertion(total_errors != 0);
+    check_assertion(is_at_least_one_error());
   } else {
     if (!convert_GUID_string_literal(&const_for_curr_token, &result)) {
       pos_error(ec_bad_uuid_string, &error_position);
