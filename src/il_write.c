@@ -152,8 +152,13 @@ triggering an internal error.
   (void)fprintf(f_debug, 
                 "IL info: entry kind =%3ld (%s), \n",
                 (long)entry_kind, il_entry_kind_names[(int)entry_kind]);
+#if defined(_WIN64)
+  /* Avoid data loss in casting the pointer to unsigned long. */
+  (void)fprintf(f_debug, "         entry_ptr = 0x%p\n", entry_ptr);
+#else /* !defined(_WIN64) */
   (void)fprintf(f_debug, "         entry_ptr = 0x%lx\n",
                 (unsigned long)entry_ptr);
+#endif /* defined(_WIN64) */
   (void)fprintf(f_debug, "         memory region = %4ld\n",
                 (long)trace_region_being_written);
 }  /* display_il_entry_kind_and_ptr */

@@ -198,7 +198,12 @@ kind entry_kind.
       }
 #else /* !(ALTERNATE_IL_FILE_FORMAT && STANDALONE_IL_DISPLAY) */
       /* Use pointer address. */
+#if defined(_WIN64)
+      /* Avoid data loss in casting to unsigned long. */
+      (void)printf("@%p", entry_ptr);
+#else /* !defined(_WIN64) */
       (void)printf("@%lx", (unsigned long)entry_ptr);
+#endif /* defined(_WIN64) */
 #endif /* !(ALTERNATE_IL_FILE_FORMAT && STANDALONE_IL_DISPLAY) */
     }  /* if */
   }  /* if */
