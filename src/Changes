@@ -1,3 +1,23 @@
+Version 6.4
+
+12/13/21 [EDGcpfe/24920]
+Microsoft compatibility: control-Z and end-of-file
+
+In text mode input on Windows, the control-Z character 0x1a is treated as
+an end-of-file marker.  However, in program source, MSVC recognizes the
+character as representing the end of a file only if it appears where a
+token is expected; within comments and literals, it has no special meaning.
+When configured with READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS set to TRUE,
+however, the front end always treated that character as an end-of-file
+marker, regardless of the context.  This has now been fixed.  For example,
+with ^Z representing the 0x1a character, the front end in that
+configuration previously reported that the comment was not closed at the
+end of the file but now compiles the file without error:
+
+  /* The character ^Z is not an end-of-file marker inside a comment. */
+
+
+-------------------------------------------------------------------------------
 Version 6.3, December 13, 2021
 
 12/6/21  [EDGcpfe/24739]

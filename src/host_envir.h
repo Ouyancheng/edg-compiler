@@ -1850,13 +1850,7 @@ position when it's at the beginning of a set of zero-length lines
 /*
 Test a character to see if it is an end-of-file character.
 */
-#if !READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS
 #define is_eof_char(ch) ((ch) == EOF)
-#else /* READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
-/* On MS-DOS when reading source files in binary mode, a control-Z
-   acts as an EOF. */
-#define is_eof_char(ch) ((ch) == EOF || (ch) == CONTROL_Z)
-#endif /* !READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
 
 /*
 Flag that is TRUE to indicate that carriage return characters at the ends

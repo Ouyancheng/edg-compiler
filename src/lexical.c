@@ -8638,6 +8638,9 @@ white_space_loop:
         curr_char_loc += LE_ESCAPE_LEN;
       } else if (ch == LE_END_OF_LINE || ch == LE_END_OF_INSERTION) {
         /* End of source line or end of macro insertion. */
+#if READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS
+end_of_current_line:
+#endif /* READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
 #if MICROSOFT_EXTENSIONS_ALLOWED
         if (scanning_for_whitespace_keyword &&
             (ch == LE_END_OF_INSERTION || do_preprocessing_only)) {
@@ -9291,6 +9294,17 @@ end_of_comment:;
          this must be done after the test of kind_skipped above. */
       kind_skipped |= WHITE_SPACE_COMMENTS;
       goto white_space_loop;
+#if READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS
+    case CONTROL_Z:
+      if (microsoft_mode) {
+        /* In this mode, a ctrl-Z (0x1a) appearing where a token start is
+           expected is treated as an end-of-file marker. */
+        eof_read_on_curr_input_stream = TRUE;
+        ch = LE_END_OF_LINE;
+        goto end_of_current_line;
+      }  /* if */
+      FALLTHROUGH
+#endif /* READ_SOURCE_IN_BINARY_MODE_FOR_MSDOS */
     default:
       /* For all non-white-space characters, do nothing and return. */
       ;
