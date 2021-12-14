@@ -1,5 +1,14 @@
 Version 6.4
 
+12/14/21 [EDGcpfe/24922]
+Assertion failure when macro arguments are omitted
+
+In configurations with FULLY_RESOLVED_MACRO_POSITIONS set to TRUE, with
+certain complex macros the front end could abort with a failed assertion in
+macro_invocation when a macro invocation provides fewer arguments than
+required by the macro being invoked.  This is now fixed.
+
+
 12/13/21 [EDGcpfe/24920]
 Microsoft compatibility: control-Z and end-of-file
 

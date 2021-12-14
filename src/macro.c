@@ -6831,8 +6831,11 @@ end_arg_expansion:;
                                          NO_PARENT_MACRO_INVOCATION);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
             src_loc += map->raw_len;
-            if (map->next != NULL) {
-              /* Add a comma to separate this argument from the next. */
+            if (map->next != NULL &&
+                (map->next->raw_len > 0 || map->next->is_empty_arg)) {
+              /* Add a comma to separate this argument from the next (but
+                 not if the next argument is actually omitted and not just
+                 empty). */
               *src_loc++ = ',';
 #if FULLY_RESOLVED_MACRO_POSITIONS
               check_assertion(map->comma_pos.seq != 0);
