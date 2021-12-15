@@ -12597,6 +12597,9 @@ variables declared in cmd_line.h.
   export_keyword_enabled = TRUE;
   suppress_inline_corresp_check = FALSE;
   allow_anon_types_in_anon_unions = FALSE;
+#if EXPENSIVE_CHECKING
+  eager_load_modules = FALSE;
+#endif /* EXPENSIVE_CHECKING */
   display_module_import_diagnostics = FALSE;
   use_nonstd_partial_ordering = FALSE;
   no_checking_pragmas = FALSE;
