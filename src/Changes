@@ -1,5 +1,26 @@
 Version 6.4
 
+12/16/21 [EDGcpfe/24193]
+Storage class and COMDAT grouping of lambda alternative entry point
+
+The implicit conversion operator created for a lambda that doesn't capture
+any local variables (see the Changes entry for EDGcpfe/10612) was not being
+given the same storage class as the lambda call operator that it referred to.
+Additionally, in configurations that do lowering and use the IA-64 ABI,
+the conversion operator routine was not being placed in the same COMDAT group
+as the call operator.  Both of those are now fixed.  For example:
+
+  struct A {
+    void (*m_fun)(void*);
+    void mf () {
+      m_fun = [](auto){};
+    }
+  };
+  void f(A *p) {
+    p->mf();
+  }
+
+
 12/14/21 [EDGcpfe/24922]
 Assertion failure when macro arguments are omitted
 

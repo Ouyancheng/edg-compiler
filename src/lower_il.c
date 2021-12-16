@@ -10178,13 +10178,18 @@ not include the function scope memory region, if any.
     if (routine->is_template_function &&
         !routine->is_specialized &&
         routine->storage_class == (a_storage_class)sc_unspecified &&
-        !routine->use_comdat && !routine->suppress_inline_body) {
+        ((!routine->use_comdat && !routine->suppress_inline_body) ||
+         (routine->special_kind ==
+                             (a_special_function_kind)sfk_lambda_entry_point &&
+          routine->variant.lambda_call_operator != NULL &&
+          routine->variant.lambda_call_operator->use_comdat))) {
       /* A defined non-inline template goes into a COMDAT group.
          Note that this is done even when the prelinker is used.  If we
          have the COMDAT feature, it's good to be able to ignore
          multiple copies if, say, -tused is specified in two
          compilations and that creates two instances of a template
-         function. */
+         function.  Place a lambda entry point in the COMDAT group
+         if its associated lambda call operator is in the COMDAT group. */
       put_routine_into_comdat_group(routine);
     }  /* if */
 #endif /* IA64_ABI */
