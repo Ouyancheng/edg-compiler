@@ -129,10 +129,6 @@ struct a_module_interface {
 
 /* State query functions. */
   VIRTUAL a_boolean is_open() const ABSTRACT;
-  inline a_boolean is_header_unit() const {
-    return (assoc_module_info != NULL &&
-            assoc_module_info->resolved_header != NULL);
-  }  /* is_header_unit */
 
 /* Disk interface functions. */
   VIRTUAL a_boolean import(a_module_import_decl_ptr midp) ABSTRACT;
@@ -168,6 +164,16 @@ Return true if the provided magic numbers match their expected magic numbers.
          magic[2] == expected[2] &&
          magic[3] == expected[3];
 }  /* magic_numbers_match */
+
+
+inline a_boolean is_header_unit(a_module_ptr mod)
+/*
+Return TRUE if the provided module is a header unit, FALSE otherwise.
+*/
+{
+  return (mod != NULL &&
+          (mod->kind == mk_header || mod->resolved_header != NULL));
+}  /* is_header_unit */
 
 extern a_boolean check_module_has_interface_dependency(
                                            a_symbol_ptr          module_sym,

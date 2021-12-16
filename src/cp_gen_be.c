@@ -18911,11 +18911,11 @@ Generate a module import directive.
   set_output_position(&midp->position);
   /* Write out the import declaration. */
   write_tok_str("import ");
-  if (midp->module_info->kind == (a_module_kind)mk_header) {
+  if (is_header_unit(midp->module_info)) {
     write_tok_ch(midp->module_info->is_sys_include ? '<' : '"');
   }  /* if */
   write_tok_str(midp->module_info->name);
-  if (midp->module_info->kind == (a_module_kind)mk_header) {
+  if (is_header_unit(midp->module_info)) {
     write_tok_str(midp->module_info->is_sys_include ? "> " : "\" ");
   }  /* if */
   gen_attributes(midp->attributes, al_module, /*primary_only=*/FALSE);

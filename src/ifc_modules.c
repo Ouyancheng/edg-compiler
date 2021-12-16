@@ -2773,7 +2773,7 @@ been confirmed to exist and the path stored in midp.
   if (open_and_map_ifc_module_file(midp, /*issue_diag=*/TRUE)) {
     result = TRUE;
     assoc_module_info = mod;
-    set_name(mod->name, is_header_unit());
+    set_name(mod->name, is_header_unit(mod));
     /* Read the IFC file header (which starts after the magic number). */
     init_byte_buffer(4, f_size - 4);
     get_File_Header(&header, /*fill_storage=*/TRUE);
@@ -2890,7 +2890,7 @@ been confirmed to exist and the path stored in midp.
     lazy_symbols_may_be_visible = TRUE;
     /* Process all declarations in the global scope. */
     process_ifc_scope(header.global_scope, il_header.primary_scope);
-    if (is_header_unit()) {
+    if (is_header_unit(mod)) {
       export_ifc_macros();
     }  /* if */
   }  /* if */
