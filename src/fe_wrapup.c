@@ -105,7 +105,6 @@ are instantiated.
 */
 {
   db_enter(1, "translation_unit_wrapup");
-
 #if CHECKING
   /* Check that the stop token array elements all made it back to zero.
      (Every add_stop_token is supposed to have a corresponding
@@ -115,7 +114,6 @@ are instantiated.
   check_all_stop_token_entries_are_reset(
                                    curr_stop_token_stack_entry->stop_tokens);
 #endif /* CHECKING */
-
   if (!do_preprocessing_only && any_cfront_mode()) {
     /* Determine whether any classes defined in this file require external
        linkage, and if so do the appropriate fixup.  No such fixup is
@@ -123,20 +121,17 @@ are instantiated.
        are already external, when appropriate. */
     check_class_linkage();
   }  /* if */
-
+  /* Check for suppressed errors in imported modules. */
   modules_check_for_suppressed_errors();
-
   /* Pop and repush the file scope.  This is done to move the symbols from
      the active list to the inactive list. */
   pop_scope();
   push_file_scope(/*is_reactivation=*/TRUE);
-
   /* Establish any IL correspondences (for primary translation units this
      doesn't involve actual work, but sets some state flags). */
   if (!do_preprocessing_only) {
     set_trans_unit_correspondences();
   }  /* if */
-
 #if MODULE_ID_NEEDED
   /* Make sure the module id is generated for this translation unit if it
      hasn't been generated already.  If this is the first time make_module_id
@@ -151,7 +146,6 @@ are instantiated.
   lower_functions_waiting_for_module_id();
 #endif /* !STANDALONE_UTILITY_PROGRAM && DO_IL_LOWERING */
 #endif /* MODULE_ID_NEEDED */
-
   if (!C_mode() && !is_primary_translation_unit && !do_preprocessing_only) {
     /* Check for the presence of a master instance established in a prior
        translation unit. */
