@@ -1709,6 +1709,29 @@ the newly created token.
   return ctp;
 }  /* build_cached_token */
 
+
+void cache_resolved_type_token(a_token_cache_ptr     cache,
+                               a_type_ptr            type,
+                               a_source_position_ptr pos)
+/*
+Add a token representing the given resolved type to the cache.  The type will
+be internally preserved via a decltype construct token.  pos is the position of
+the token.
+*/
+{
+  /* Cache the decltype token */
+  cache_token(cache, tok_decltype_construct, pos);
+  {
+    /* Add the extra data to store the type. */
+    a_cached_token *tok = cache->last_token;
+
+    tok->extra_info_kind = teik_identifier;
+    tok->variant.locator = cleared_locator;
+    tok->variant.locator.variant.decltype_type = type;
+    tok->variant.locator.source_position = *pos;
+  }
+}  /* cache_resolved_type_token */
+
 #if DEBUG
 
 void add_to_pragmas_in_reuseable_cache_count(unsigned long count)

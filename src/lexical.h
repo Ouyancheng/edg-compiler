@@ -2300,6 +2300,10 @@ Add tok to cache.  pos is the position of the token.
 }  /* cache_token */
 
 
+extern void cache_resolved_type_token(a_token_cache_ptr     cache,
+                                      a_type_ptr            type,
+                                      a_source_position_ptr pos);
+
 #if DEBUG
 extern void add_to_pragmas_in_reuseable_cache_count(unsigned long count);
 #else /* !DEBUG */

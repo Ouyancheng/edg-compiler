@@ -9888,7 +9888,7 @@ this is needed.
             break;
           case ifc_TypeBasis_Nullptr:
             check_assertion(itsfp->precision == ifc_TypePrecision_Default);
-            cache_token(cache, tok_nullptr, &pos);
+            cache_resolved_type_token(cache, standard_nullptr_type(), &pos);
             break;
           case ifc_TypeBasis_Ellipsis:
             check_assertion(itsfp->precision == ifc_TypePrecision_Default);
