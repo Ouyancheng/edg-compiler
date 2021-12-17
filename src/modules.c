@@ -1014,7 +1014,7 @@ processing of the imported module entities for this module.
                                : ec_suppressed_module_single_diag),
                        (plural ? "catastrophes" : "catastrophe"),
                        assoc_module_info->name,
-                       errors);
+                       catastrophes);
   }  /* if */
   if (warnings > 0) {
     a_boolean plural = warnings > 1;
