@@ -137,7 +137,7 @@ struct a_diagnostic_counter_set {
                 local;
                         /* A pointer to a temporary diagnostic counter
                            aggregating all diagnostics counts (reported and
-                           suppressed) while its set. */
+                           suppressed) while it's set. */
 
   a_diagnostic_counter_set()
     : total(), suppressed(), local(NULL)
@@ -156,11 +156,11 @@ EXTERN a_boolean
                            Suppressed diagnostics can still be observed by
                            setting the diagnostic_counter.  Typically,
                            management of diagnostic_counter and
-                           suppress_diagnostics should be performed by the
-                           class a_diagnostic_suppression. */
+                           globally_suppress_diagnostics should be performed by
+                           the class a_diagnostic_suppression. */
 
 /*
-A class used to temporarily suppress diagnostics, and record counts of
+A class used to temporarily suppress diagnostics and record counts of
 suppressed diagnostics in the given diagnostic counter.
 */
 struct a_diagnostic_suppression {
@@ -508,11 +508,10 @@ extern void pos_ty2_diagnostic(an_error_severity  error_severity,
                                struct a_type      *type1,
                                struct a_type      *type2);
 #if !STANDALONE_UTILITY_PROGRAM
-extern void st2_num_diagnostic(an_error_severity error_severity,
-                               an_error_code     error_code,
-                               a_const_char      *error_string1,
-                               a_const_char      *error_string2,
-                               int32_t           num);
+extern void st_num_diagnostic(an_error_severity error_severity,
+                              an_error_code     error_code,
+                              a_const_char      *error_string,
+                              int32_t           num);
 extern void pos_sy_diagnostic(an_error_severity  error_severity,
                               an_error_code      error_code,
                               a_source_position  *error_pos,

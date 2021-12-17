@@ -1538,8 +1538,9 @@ EXTERN a_boolean
 EXTERN a_boolean
 		display_module_import_diagnostics;
 			/* TRUE if diagnostics encountered during the importing
-			   of a module entity should be suppressed or printed
-			   immediately. */
+			   of a module entity should be printed immediately;
+			   otherwise, such diagnostics will be suppressed and
+			   only the number of diagnostics will be reported. */
 
 EXTERN a_boolean
 		tu_is_module_interface;

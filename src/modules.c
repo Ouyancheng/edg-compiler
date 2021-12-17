@@ -999,32 +999,29 @@ processing of the imported module entities for this module.
   if (errors > 0) {
     a_boolean plural = errors > 1;
 
-    st2_num_diagnostic(es_error,
-                       (plural ? ec_suppressed_module_plural_diag
-                               : ec_suppressed_module_single_diag),
-                       (plural ? "errors" : "error"),
-                       assoc_module_info->name,
-                       errors);
+    st_num_diagnostic(es_error,
+                      (plural ? ec_suppressed_module_errors_diag
+                              : ec_suppressed_module_error_diag),
+                      assoc_module_info->name,
+                      errors);
   }  /* if */
   if (catastrophes > 0) {
     a_boolean plural = catastrophes > 1;
 
-    st2_num_diagnostic(es_error,
-                       (plural ? ec_suppressed_module_plural_diag
-                               : ec_suppressed_module_single_diag),
-                       (plural ? "catastrophes" : "catastrophe"),
-                       assoc_module_info->name,
-                       catastrophes);
+    st_num_diagnostic(es_catastrophe,
+                      (plural ? ec_suppressed_module_catastrophes_diag
+                              : ec_suppressed_module_catastrophe_diag),
+                      assoc_module_info->name,
+                      catastrophes);
   }  /* if */
   if (warnings > 0) {
     a_boolean plural = warnings > 1;
 
-    st2_num_diagnostic(es_warning,
-                       (plural ? ec_suppressed_module_plural_diag
-                               : ec_suppressed_module_single_diag),
-                       (plural ? "warnings" : "warning"),
-                       assoc_module_info->name,
-                       warnings);
+    st_num_diagnostic(es_warning,
+                      (plural ? ec_suppressed_module_warnings_diag
+                              : ec_suppressed_module_warning_diag),
+                      assoc_module_info->name,
+                      warnings);
   }  /* if */
 }  /* report_suppressed_diagnostics */
 

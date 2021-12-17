@@ -4472,8 +4472,7 @@ the program to be terminated, as does reaching the error limit.
     term_compilation(dp->severity);
   }  /* if */
   /* Terminate the compilation if the error limit has been reached.  Note
-     that remarks and warnings are never counted.  Additionally, note
-     only reported errors are counted. */
+     that remarks and warnings are never counted. */
   if (total_all_errors >= error_limit) {
 #if !USING_DRIVER
     fprintf(f_error, "%s\n", error_text(ec_error_limit_reached));
@@ -5801,11 +5800,10 @@ indicated position.
 
 #if !STANDALONE_UTILITY_PROGRAM
 
-void st2_num_diagnostic(an_error_severity error_severity,
-                        an_error_code     error_code,
-                        a_const_char      *error_string1,
-                        a_const_char      *error_string2,
-                        int32_t           num)
+void st_num_diagnostic(an_error_severity error_severity,
+                       an_error_code     error_code,
+                       a_const_char      *error_string,
+                       int32_t           num)
 /*
 Report the indicated diagnostic (with the indicated string and number fill-ins)
 as an positionless diagnostic.
@@ -5816,8 +5814,7 @@ as an positionless diagnostic.
   dp = create_primary_diagnostic(error_code,
                                  /*error_pos=*/&null_source_position,
                                  error_severity);
-  add_string_fill_in(dp, error_string1);
-  add_string_fill_in(dp, error_string2);
+  add_string_fill_in(dp, error_string);
   add_number_fill_in(dp, num);
   wrap_up_diagnostic(dp);
 }  /* st_num_diagnostic */
