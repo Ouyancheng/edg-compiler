@@ -299,7 +299,7 @@ options.
 */
 #ifndef DEFAULT_MODULE_IMPORT_DIAG_ENABLED
 #define DEFAULT_MODULE_IMPORT_DIAG_ENABLED FALSE
-#endif /* ifndef DEFAULT_MODULES_ENABLED */
+#endif /* ifndef DEFAULT_MODULE_IMPORT_DIAG_ENABLED */
 
 /*
 Flag that is TRUE if, in C++, an "inline" function is allowed to have
