@@ -1056,6 +1056,14 @@ Initialize the option information table.
   add_option_description(optk_modules, "no_modules", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_module_import_diagnostics,
+                         "module_import_diagnostics",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_module_import_diagnostics,
+                         "no_module_import_diagnostics",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #if COMPOUND_LITERAL_ENABLING_POSSIBLE
   add_option_description(optk_compound_literals,
                          "compound_literals",
@@ -2243,7 +2251,6 @@ static a_flag_name
 #if EXPENSIVE_CHECKING
   { "eager_load_modules", &eager_load_modules },
 #endif /* EXPENSIVE_CHECKING */
-  { "display_module_import_diagnostics", &display_module_import_diagnostics },
 #if IA64_ABI
   { "emulate_gnu_abi_bugs", &emulate_gnu_abi_bugs },
   { "emulate_unsafe_gnu_abi_bugs", &emulate_unsafe_gnu_abi_bugs },
@@ -6770,6 +6777,11 @@ file.
 #else /* !defined(DEFAULT_MODULES_ENABLED) */
   comment_undefined_macro_name(DEFAULT_MODULES_ENABLED);
 #endif /* defined(DEFAULT_MODULES_ENABLED) */
+#if defined(DEFAULT_MODULE_IMPORT_DIAG_ENABLED)
+  define_numeric_valued_macro(DEFAULT_MODULE_IMPORT_DIAG_ENABLED);
+#else /* !defined(DEFAULT_MODULE_IMPORT_DIAG_ENABLED) */
+  comment_undefined_macro_name(DEFAULT_MODULE_IMPORT_DIAG_ENABLED);
+#endif /* defined(DEFAULT_MODULE_IMPORT_DIAG_ENABLED) */
 #if defined(DEFAULT_MS_PERMISSIVE)
   define_numeric_valued_macro(DEFAULT_MS_PERMISSIVE);
 #else /* !defined(DEFAULT_MS_PERMISSIVE) */
@@ -10155,6 +10167,11 @@ Process the arguments on the command line that invoked the compiler.
           export_keyword_enabled = FALSE;
         }  /* if */
         break;
+      case optk_module_import_diagnostics:
+        /* Enable or disable the display of diagnostics issued during module
+           import operations. */
+        display_module_import_diagnostics = opt_value;
+        break;
       case optk_preinclude:
       case optk_preinclude_macros:
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -12600,7 +12617,6 @@ variables declared in cmd_line.h.
 #if EXPENSIVE_CHECKING
   eager_load_modules = FALSE;
 #endif /* EXPENSIVE_CHECKING */
-  display_module_import_diagnostics = FALSE;
   use_nonstd_partial_ordering = FALSE;
   no_checking_pragmas = FALSE;
 #if DEBUG
@@ -12790,6 +12806,7 @@ variables declared in cmd_line.h.
   init_statement_allowed_in_range_based_for = FALSE;
   relaxed_abstract_checking = FALSE;
   modules_enabled = FALSE;
+  display_module_import_diagnostics = DEFAULT_MODULE_IMPORT_DIAG_ENABLED;
   module_keywords_enabled = FALSE;
   tu_is_module_interface = FALSE;
   import_includes_from_header_map = FALSE;

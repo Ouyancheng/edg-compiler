@@ -788,6 +788,8 @@ check_abbreviation()
 --mmap_address
 --module_init
 --modules
+--module_import_diagnostics
+--no_module_import_diagnostics
 --modules_directory
 --ms_await
 --ms_await_strict
@@ -1451,6 +1453,8 @@ process_option()
 	 --microsoft_16 | \
          --modules | \
          --no_modules | \
+         --module_import_diagnostics | \
+         --no_module_import_diagnostics | \
          --ms_await | \
          --ms_await_strict | \
          --ms_c++14 | \

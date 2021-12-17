@@ -291,6 +291,17 @@ modified by the "--modules" or "--no_modules" command-line options.
 #endif /* ifndef DEFAULT_MODULES_ENABLED */
 
 /*
+Flag that is TRUE if diagnostics emitted while importing C++20 module entities
+should be emitted by default.  This is the default value of the variable
+display_module_import_diagnostics, which can be modified by the
+"--module_import_diagnostics" or "--no_module_import_diagnostics" command-line
+options.
+*/
+#ifndef DEFAULT_MODULE_IMPORT_DIAG_ENABLED
+#define DEFAULT_MODULE_IMPORT_DIAG_ENABLED FALSE
+#endif /* ifndef DEFAULT_MODULES_ENABLED */
+
+/*
 Flag that is TRUE if, in C++, an "inline" function is allowed to have
 external linkage.  It is the default value for global variable
 extern_inline_allowed, which can be modified by the "--extern_inline" and

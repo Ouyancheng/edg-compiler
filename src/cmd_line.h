@@ -354,6 +354,7 @@ typedef enum /*an_option_kind*/ {
   optk_ms_mod_interface,
   optk_ms_mod_translate_include,
   optk_modules,
+  optk_module_import_diagnostics,
   optk_concepts,
   optk_colors,
   optk_keep_restrict_in_signatures,
@@ -1535,6 +1536,12 @@ EXTERN a_boolean
 			   imported. */
 
 EXTERN a_boolean
+		display_module_import_diagnostics;
+			/* TRUE if diagnostics encountered during the importing
+			   of a module entity should be suppressed or printed
+			   immediately. */
+
+EXTERN a_boolean
 		tu_is_module_interface;
 			/* TRUE if module declarations should be treated as if
 			   they were exported.  This is ignored unless a module
@@ -2201,6 +2208,7 @@ EXTERN a_const_char
 		*import_dir_name;
 			/* The name of the directory in which files should be
 			   sought for the Microsoft #import directive. */
+
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if GENERATE_MICROSOFT_IF_EXISTS_ENTRIES
@@ -2382,12 +2390,6 @@ EXTERN a_boolean
 			   (as opposed to imported on demand).  Note this
 			   feature is not supported in production builds. */
 #endif /* EXPENSIVE_CHECKING */
-
-EXTERN a_boolean
-		display_module_import_diagnostics;
-			/* TRUE if diagnostics encountered during the importing
-			   of a module should be suppressed or printed
-			   immediately. */
 
 EXTERN a_boolean
 		use_nonstd_partial_ordering;
