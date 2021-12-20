@@ -644,8 +644,13 @@ associated with a variadic parameter, but not the initial one.
     tp = ptp->type;
     if (remove_qualifiers_from_param_types) {
       /* If top-level qualifiers were stripped off the param-type type,
-         restore them in the parameter variable's type. */
-      ptp->qualifiers |= param_id->eff_top_level_cv_quals;
+         restore them in the parameter variable's type (unless the top-level
+         qualifiers were on an array type, because in that case the qualifier
+         is no longer "top level" after array type decay). */
+      if (param_id->eff_top_level_cv_quals != TQ_NONE &&
+          !is_array_type(ptp->declared_type)) {
+        ptp->qualifiers |= param_id->eff_top_level_cv_quals;
+      }  /* if */
       if (ptp->qualifiers != TQ_NONE) {
         tp = make_qualified_type(tp, ptp->qualifiers);
       }  /* if */

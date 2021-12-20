@@ -1,5 +1,24 @@
 Version 6.4
 
+12/20/21 [EDGcpfe/24927]
+Spurious error on const-qualified array-type parameter in template
+
+Consider:
+
+  template<typename T> void f(int v, T const* const arr[]) {
+    arr += v;
+  }
+  int main() {
+    float const *x[12];
+    f<float>(3, x);
+  }
+
+Version 6.3 introduced a regression causing this example to be rejected with a
+spurious error about the parameter arr not being modifiable (the regression was
+introduced by the changes for EDGcpfe/22040,EDGcpfe/22338,EDGcpfe/24390).  That
+is now fixed.
+
+
 12/16/21 [EDGcpfe/24193]
 Storage class and COMDAT grouping of lambda alternative entry point
 
