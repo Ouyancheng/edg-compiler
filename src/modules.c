@@ -993,7 +993,6 @@ processing of the imported module entities for this module.
 */
 {
   unsigned long errors = suppressed_diagnostics.errors;
-  unsigned long catastrophes = suppressed_diagnostics.catastrophes;
   unsigned long warnings = suppressed_diagnostics.warnings;
 
   if (errors > 0) {
@@ -1004,15 +1003,6 @@ processing of the imported module entities for this module.
                               : ec_suppressed_module_error_diag),
                       assoc_module_info->name,
                       errors);
-  }  /* if */
-  if (catastrophes > 0) {
-    a_boolean plural = catastrophes > 1;
-
-    st_num_diagnostic(es_catastrophe,
-                      (plural ? ec_suppressed_module_catastrophes_diag
-                              : ec_suppressed_module_catastrophe_diag),
-                      assoc_module_info->name,
-                      catastrophes);
   }  /* if */
   if (warnings > 0) {
     a_boolean plural = warnings > 1;

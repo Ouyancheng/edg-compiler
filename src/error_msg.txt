@@ -3313,8 +3313,6 @@ ec_suppressed_module_warning_diag;;"%d1 suppressed warning was encountered while
 ec_suppressed_module_warnings_diag;;"%d1 suppressed warnings were encountered while processing module %sq1"
 ec_suppressed_module_error_diag;;"%d1 suppressed error was encountered while processing module %sq1"
 ec_suppressed_module_errors_diag;;"%d1 suppressed errors were encountered while processing module %sq1"
-ec_suppressed_module_catastrophe_diag;;"%d1 suppressed catastrophe was encountered while processing module %sq1"
-ec_suppressed_module_catastrophes_diag;;"%d1 suppressed catastrophes were encountered while processing module %sq1"
 ec_including;INTERNAL;"including"
 ec_suppressed;INTERNAL;"suppressed"
 ###############################################################################

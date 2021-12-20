@@ -1879,11 +1879,12 @@ Only write the signoff if there ARE errors, and if we are supposed to.
                                               : ec_wrapup_catastrophic_error));
       }  /* if */
     }  /* if */
-    /* Generate the "(including K suppressed errors and N suppressed
-       catastrophic errors)" or (when all diagnostics encountered were
-       suppressed) the simplified "K suppressed errors and N suppressed
-       catastrophic errors" portion of the message. */
+    /* Generate the "(including K suppressed errors)" or (when all diagnostics
+       encountered were suppressed) the simplified "K suppressed errors"
+       portion of the message. */
     if (diags_suppressed.all_error_types() > 0) {
+      /* Catastrophes should never be suppressed. */
+      check_assertion(diags_suppressed.catastrophes == 0);
       if (total_diags_reported > 0) {
         fprintf(f_error, " (%s ", error_text(ec_including));
       }  /* if */
@@ -1892,16 +1893,6 @@ Only write the signoff if there ARE errors, and if we are supposed to.
                 error_text(ec_suppressed),
                 error_text(diags_suppressed.errors != 1 ? ec_wrapup_errors
                                                         : ec_wrapup_error));
-        if (diags_total.catastrophes > 0) {
-          fprintf(f_error, " %s ", error_text(ec_and));
-        }  /* if */
-      }  /* if */
-      if (diags_total.catastrophes > 0) {
-        fprintf(f_error, "%lu %s %s", diags_total.catastrophes,
-                error_text(ec_suppressed),
-                error_text(diags_suppressed.catastrophes != 1
-                                              ? ec_wrapup_catastrophic_errors
-                                              : ec_wrapup_catastrophic_error));
       }  /* if */
       if (total_diags_reported > 0) {
         fputs(")", f_error);

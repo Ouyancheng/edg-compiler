@@ -4447,6 +4447,27 @@ that might be required.
 }  /* construct_message */
 
 
+static a_boolean is_catastrophic_error_severity(an_error_severity severity)
+/*
+Return TRUE if the given error severity would result in a catastrophic error;
+otherwise, return FALSE.
+*/
+{
+  a_boolean result;
+
+  switch (severity) {
+  case es_catastrophe:
+  case es_command_line_error:
+  case es_internal_error:
+    result = TRUE;
+    break;
+  default:
+    result = FALSE;
+  }  /* switch */
+  return result;
+}  /* is_catastrophic_error_severity */
+
+
 static void end_of_diagnostic_actions(a_diagnostic_ptr	dp)
 /*
 Do any actions that should be performed as a consequence of issuing the
@@ -4462,9 +4483,7 @@ the program to be terminated, as does reaching the error limit.
   if (total_all_errors > 0) cancel_il_file();
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE && !STANDALONE_UTILITY_PROGRAM */
   /* Terminate the compilation for the more serious severities. */
-  if (dp->severity == es_catastrophe ||
-      dp->severity == es_command_line_error ||
-      dp->severity == es_internal_error) {
+  if (is_catastrophic_error_severity(dp->severity)) {
     /* Force out the last line of the raw listing file. */
 #if !STANDALONE_UTILITY_PROGRAM
     finish_raw_listing_file();
@@ -5102,7 +5121,6 @@ The message is formatted into text strings and is output.
 */
 {
   a_boolean diag_should_be_issued;
-  a_boolean diag_was_suppressed = FALSE;
 
 #if !STANDALONE_UTILITY_PROGRAM
   /* For safety, make sure we don't use any information cached by
@@ -5128,22 +5146,20 @@ The message is formatted into text strings and is output.
 
     /* Update the total diagnostics counter. */
     update_diagnostic_counter(reported_severity, &diagnostic_counters.total);
-    if (globally_suppress_diagnostics) {
+    /* Suppress all error types other than those that would result in
+       catastrophic errors when diagnostics are suppressed.  This is done as
+       suppressing a catastrophic error suppresses the associated early
+       termination, which can be unsafe. */
+    if (globally_suppress_diagnostics &&
+        !is_catastrophic_error_severity(reported_severity)) {
       diag_should_be_issued = FALSE;
-      diag_was_suppressed = TRUE;
       /* Update the suppressed diagnostics counter. */
       update_diagnostic_counter(reported_severity,
                                 &diagnostic_counters.suppressed);
     }  /* if */
-  }  /* if */
-  /* If this diagnostic is going to be issued, or would have been issued, check
-     for a local diagnostic counter.  If said diagnostic counter was set,
-     update it now. */
-  if ((diag_should_be_issued || diag_was_suppressed) &&
-      diagnostic_counters.local != NULL) {
-    an_error_severity reported_severity = determine_reported_severity(dp);
-
-    if (reported_severity != es_none) {
+    /* Check for a local diagnostic counter.  If said diagnostic counter was
+       set, update it now. */
+    if (diagnostic_counters.local != NULL) {
       update_diagnostic_counter(reported_severity, diagnostic_counters.local);
     }  /* if */
   }  /* if */
