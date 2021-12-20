@@ -5806,7 +5806,7 @@ void st_num_diagnostic(an_error_severity error_severity,
                        int32_t           num)
 /*
 Report the indicated diagnostic (with the indicated string and number fill-ins)
-as an positionless diagnostic.
+as a positionless diagnostic.
 */
 {
   a_diagnostic_ptr dp;
