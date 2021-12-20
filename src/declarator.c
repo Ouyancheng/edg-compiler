@@ -3482,6 +3482,22 @@ an error if a default argument expression is encountered.
                top-level declaration. */
             ptp->is_parameter_pack =
                                    !state->param_with_only_enclosing_pack_refs;
+          } else if (param_state.has_pack_ellipsis &&
+                     scope_stack_top().in_nonreal_instantiation &&
+                     !scope_stack_top().is_rescan) {
+            /* In nonreal instantiations (other than rescan contexts), we also
+               may need to record that a pack element is a pack in itself.
+               For example:
+                 template<typename> struct B { ... };
+                 template<typename R, typename ... Ps> struct X {
+                   template<typename> using A = B<R(Ps...)>;
+                   template<typename F>
+                     X(F&&) noexcept(A<F>::template f<F>()) {}
+                 };
+               Here, scanning the noexcept argument will substitute A<F>, which
+               must produce B<R(Ps...)> and not just B<R(Ps)>.
+            */
+            ptp->is_parameter_pack = TRUE;
           }  /* if */
           if (is_pack_element &&
               scope_is(&scope_stack_top()-1, sck_template_instantiation)) {
