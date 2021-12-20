@@ -5101,7 +5101,8 @@ This routine is called when a diagnostic has been completely constructed.
 The message is formatted into text strings and is output.
 */
 {
-  a_boolean	diag_should_be_issued;
+  a_boolean diag_should_be_issued;
+  a_boolean diag_was_suppressed = FALSE;
 
 #if !STANDALONE_UTILITY_PROGRAM
   /* For safety, make sure we don't use any information cached by
@@ -5129,17 +5130,19 @@ The message is formatted into text strings and is output.
     update_diagnostic_counter(reported_severity, &diagnostic_counters.total);
     if (globally_suppress_diagnostics) {
       diag_should_be_issued = FALSE;
+      diag_was_suppressed = TRUE;
       /* Update the suppressed diagnostics counter. */
       update_diagnostic_counter(reported_severity,
                                 &diagnostic_counters.suppressed);
     }  /* if */
   }  /* if */
-  /* If a diagnostic counter was set, update it now (this does not depend
-     on whether or not the diagnostic should be issued). */
-  if (diagnostic_counters.local != NULL) {
+  /* If this diagnostic is going to be issued, or would have been issued, check
+     for a local diagnostic counter.  If said diagnostic counter was set,
+     update it now. */
+  if ((diag_should_be_issued || diag_was_suppressed) &&
+      diagnostic_counters.local != NULL) {
     an_error_severity reported_severity = determine_reported_severity(dp);
 
-    /* FIXME: check dp->kind == primary (probably). */
     if (reported_severity != es_none) {
       update_diagnostic_counter(reported_severity, diagnostic_counters.local);
     }  /* if */
