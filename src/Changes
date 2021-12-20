@@ -71,8 +71,8 @@ Unicode-based source code is vulnerable to several exploits, including:
     identical - in identifiers
   - use of zero-width characters in identifiers
 In all these cases, malicious code can be visually disguised to appear
-innocuous.  The front can now detect and warn about the Unicode constructs
-employed in these exploits.  The new configuration macro
+innocuous.  The front end can now detect and warn about the Unicode
+constructs employed in these exploits.  The new configuration macro
 UNICODE_VULNERABILITY_CHECKING_SUPPORTED (which defaults to TRUE if
 UNICODE_SOURCE_SUPPORTED is TRUE and must be FALSE otherwise) controls
 whether this capability is included.  Checking only applies to UTF-encoded
