@@ -2630,7 +2630,9 @@ instantiated.
        may be deduced from the lambda's instantiated definition). */
     static_entry_pt->type->variant.routine.return_type = return_type;
     static_entry_pt->variant.lambda_call_operator = call_op;
-    static_entry_pt->storage_class = call_op->storage_class;
+    if (call_op != NULL) {
+      static_entry_pt->storage_class = call_op->storage_class;
+    }  /* if */
   }  /* if */
   return static_entry_pt;
 }  /* get_lambda_static_entry_point */
