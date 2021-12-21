@@ -3488,7 +3488,7 @@ an error if a default argument expression is encountered.
             /* In nonreal instantiations (other than rescan contexts), we also
                may need to record that a pack element is a pack in itself.
                For example:
-                 template<typename> struct B { ... };
+                 template<typename> struct B;
                  template<typename R, typename ... Ps> struct X {
                    template<typename> using A = B<R(Ps...)>;
                    template<typename F>

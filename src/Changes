@@ -1,5 +1,26 @@
 Version 6.4
 
+12/21/21 [EDGcpfe/24938]
+Pack expansion in nonreal instantiation of alias template
+
+Consider:
+
+  template<typename> struct B;
+  template<typename R, typename ... Ps> struct X {
+    template<typename> using A = B<R(Ps...)>;
+    template<typename F>
+      X(F&&) noexcept(A<F>::template f<F>()) {}
+  };
+
+During the prototype instantiation of X, the front end performs a nonreal
+instantiation of A<F> in the noexcept operand and the resulting type is
+recorded as the qualifier in "A<F>::template f<F>".  Previously, that nonreal
+instantiation failed to represent the pack expansion of Ps in the definition
+of A, which in turn caused the C++-generating back end to render the noexcept
+operand as "B<R(Ps)>::template f<F>()" (which is invalid).  That is now fixed:
+The operand is now rendered as "B<R(Ps...)>::template f<F>()".
+
+
 12/20/21 [EDGcpfe/24927]
 Spurious error on const-qualified array-type parameter in template
 
