@@ -5146,10 +5146,9 @@ The message is formatted into text strings and is output.
 
     /* Update the total diagnostics counter. */
     update_diagnostic_counter(reported_severity, &diagnostic_counters.total);
-    /* Suppress all error types other than those that would result in
-       catastrophic errors when diagnostics are suppressed.  This is done as
-       suppressing a catastrophic error suppresses the associated early
-       termination, which can be unsafe. */
+    /* When diagnostics are suppressed, suppress all non-catastrophic error
+       types.  Catastrophic error types are excluded from suppression as they
+       require early termination. */
     if (globally_suppress_diagnostics &&
         !is_catastrophic_error_severity(reported_severity)) {
       diag_should_be_issued = FALSE;
