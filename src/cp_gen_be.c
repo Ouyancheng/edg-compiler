@@ -15694,9 +15694,9 @@ operations in one of its operands to be parenthesized at that level.
 }  /* check_for_unprotected_gt_or_comma_operation */
 
 
-static a_boolean has_unprotected_gt_or_comma_operation(a_constant_ptr con)
+static a_boolean has_unprotected_gt_or_comma_operation(an_expr_node_ptr expr)
 /*
-Return TRUE if the code generated for con will have a ">" or "," operator
+Return TRUE if the code generated for expr will have a ">" or "," operator
 that is not enclosed in parentheses.  This is used to ensure that a
 template argument list will not be prematurely terminated by a ">"
 operator or a template argument by a ",".
@@ -15711,7 +15711,7 @@ operator or a template argument by a ",".
   /* The scan must consider dependent expressions as well, in cases
      where prototype instantiations are included in the IL. */
   tblock.process_template_parameter_constants_and_expressions = TRUE;
-  traverse_constant(con, &tblock);
+  traverse_expr(expr, &tblock);
   return tblock.result;
 }  /* has_unprotected_gt_or_comma_operation */
 
@@ -17848,9 +17848,11 @@ parameter lists). */
       form_type_second_part_simple(cp->type, /*under_lhs_declarator=*/FALSE,
                                    &octl);
       if (param->variant.nontype.default_arg_constant != NULL) {
-        a_constant_ptr  dac = param->variant.nontype.default_arg_constant;
-        a_boolean       need_parens =
-                                    has_unprotected_gt_or_comma_operation(dac);
+        a_constant_ptr   dac = param->variant.nontype.default_arg_constant;
+        an_expr_node_ptr expr = expr_node_from_constant(dac);
+        a_boolean        need_parens = (expr != NULL)
+                                  ? has_unprotected_gt_or_comma_operation(expr)
+                                  : FALSE;
         write_tok_str(" = ");
         if (is_any_reference_type(cp->type)) {
           form_lvalue_address_constant(dac, need_parens, &octl);

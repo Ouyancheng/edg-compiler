@@ -1,5 +1,22 @@
 Version 6.4
 
+12/21/21 [EDGcpfe/24936]
+C++-generating back end: parentheses in a non-type template argument
+
+The changes for EDGcpfe/24697 (in version 6.3) caused a regression in the
+output of the C++-generating back end for expressions in a non-type
+template argument appearing in a local scope.  Previously such expressions
+were folded to a constant value; after the change, the original expression
+was used.  However, the generated code failed to add parentheses when needed
+to prevent a "," or ">" operator from being interpreted as the end of the
+argument or argument list.  This is now fixed.  For example:
+
+  template<int I> struct S { };
+  void f() {
+    S<(4 > 1)> s1;  // S< 1 > in 6.2, S< 4 > 1 > in 6.3, now S<( 4 > 1)>
+  }
+
+
 12/21/21 [EDGcpfe/24938]
 Pack expansion in nonreal instantiation of alias template
 

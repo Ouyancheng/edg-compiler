@@ -536,7 +536,7 @@ Output the indicated template argument in the way described by octl.
              parentheses are used in that context.) */
           need_parens = octl->gen_compilable_code &&
                         (octl->has_unprotected_gt_or_comma_operation == NULL ||
-                         octl->has_unprotected_gt_or_comma_operation(con) ||
+                         octl->has_unprotected_gt_or_comma_operation(expr) ||
                          (tap->is_pack &&
                           (expr == NULL ||
                            (!node_is(expr, enk_temp_init) &&

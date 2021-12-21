@@ -68,8 +68,6 @@ typedef void an_output_attributes_function(
                            an_attribute_location  syntactic_location,
                            a_boolean              primary_only);
 typedef an_output_attributes_function *an_output_attributes_function_ptr;
-typedef a_boolean a_constant_test_function(a_constant_ptr con);
-typedef a_constant_test_function *a_constant_test_function_ptr;
 typedef a_boolean an_expression_test_function(an_expr_node_ptr expr);
 typedef an_expression_test_function *an_expression_test_function_ptr;
 typedef an_expr_node_ptr an_expression_modifier(an_expr_node_ptr expr);
@@ -190,11 +188,11 @@ typedef struct an_il_to_str_output_control_block {
 			   suppress_typedefs, below) are always done.  This
 			   pointer is non-NULL if additional tests are
 			   needed. */
-  a_constant_test_function_ptr
+  an_expression_test_function_ptr
 	has_unprotected_gt_or_comma_operation;
 			/* Function that tests whether a ">" or "," will
 			   appear outside parentheses in the text put out
-			   for a given constant.  This is used to test a
+			   for a given expression.  This is used to test a
 			   non-type template argument to see if it needs to
 			   be enclosed in parentheses. */
   an_expression_test_function_ptr
