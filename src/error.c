@@ -5140,6 +5140,19 @@ The message is formatted into text strings and is output.
     diag_should_be_issued =
                 !diagnostic_already_issued_for_prototype(dp);
   }  /* if */
+  if (diag_should_be_issued) {
+    /* Check to see if this error occurred while scanning a command-line macro
+       definition.  If so, ignore the original error and issue a general error
+       indicating that the macro definition is invalid. */
+    if (curr_cmd_line_or_predef_macro_def != NULL &&
+        !processing_predefined_macro &&
+        dp->error_code != ec_bad_cmd_line_macro) {
+      str_command_line_error(ec_bad_cmd_line_macro,
+                             curr_cmd_line_or_predef_macro_def);
+      /* This is unreachable, str_command_line_error will terminate
+         compilation. */
+    }  /* if */
+  }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
   if (diag_should_be_issued) {
     an_error_severity reported_severity = determine_reported_severity(dp);
@@ -5171,17 +5184,6 @@ The message is formatted into text strings and is output.
     }  /* if */
     /* Start at the beginning of the buffer. */
     reset_text_buffer(write_diagnostic_buffer);
-#if !STANDALONE_UTILITY_PROGRAM
-    if (curr_cmd_line_or_predef_macro_def != NULL &&
-        !processing_predefined_macro &&
-        dp->error_code != ec_bad_cmd_line_macro) {
-      /* An error occurred while scanning a command-line macro definition.
-         Ignore the original error and issue a general error indicating
-         that the macro definition is invalid. */
-      str_command_line_error(ec_bad_cmd_line_macro,
-                             curr_cmd_line_or_predef_macro_def);
-    }  /* if */
-#endif /* !STANDALONE_UTILITY_PROGRAM */
     if (dp->severity == es_catastrophe) {
       /* Make sure that if one catastrophic error leads to another, we abort
          the compilation instead of looping. */
