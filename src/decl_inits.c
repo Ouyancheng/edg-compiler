@@ -1200,7 +1200,7 @@ diagnostics.
         !is->no_diagnostics && is->error_on_narrowing) {
       /* GCC appears to only warn about narrowing in this context. */
       is->error_on_narrowing = FALSE;
-      is->warning_on_narrowing = FALSE;
+      is->warning_on_narrowing = TRUE;
     }  /* if */
     while (icp != NULL && (no_bound || icount < ecount)) {
       a_constant_ptr  elem_con;

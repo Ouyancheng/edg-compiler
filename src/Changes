@@ -1,5 +1,14 @@
 Version 6.4
 
+12/21/21 [EDGcpfe/24921]
+GCC compatibility: Warning on narrowing
+
+The changes for EDGcpfe/24213 reduced the severity of some narrowing errors to
+just narrowing warnings in some GCC-mode cases.  In some cases, however, no
+diagnostic was issued at all: A tweak has been made to issue a warning in those
+cases as well.
+
+
 12/21/21 [EDGcpfe/24936]
 C++-generating back end: parentheses in a non-type template argument
 
