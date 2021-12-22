@@ -3601,18 +3601,41 @@ etc.)
 {
   a_type_ptr type;
   a_boolean  saved_suppress_parens = octl.suppress_ptr_to_data_member_parens;
+  a_boolean  for_all_scopes = FALSE;
 
-  /* Push the class scope context so that the type name will be
-     appropriately qualified if necessary. */
-  push_name_context(rout->source_corresp.parent_scope);
   write_tok_str("operator");
   write_space();
   type = rout->type;
   type = skip_typerefs(type);
   type = type->variant.routine.return_type;
+  if (!entity_name_is_accessible(&type->source_corresp, iek_type,
+                                 /*ignore_context=*/FALSE, &for_all_scopes)) {
+    /* The type with which the operator was defined is inaccessible.  If
+       it's a typedef, see if the underlying type can be used. */
+    a_type_ptr resolved_type = type;
+    while (type_is(resolved_type, tk_typeref) &&
+           typeref_is_typedef(resolved_type)) {
+      resolved_type = type->variant.typeref.type;
+    }  /* while */
+    if (resolved_type != type && has_name_before_mangling(resolved_type)) {
+      /* The underlying type is accessible; use it. */
+      type = resolved_type;
+    } else {
+      /* Still not accessible.  Look for an accessible typedef that can be
+         used in the name. */
+      a_source_correspondence_ptr scp = &resolved_type->source_corresp;
+      replace_inaccessible_type_with_accessible_typedef(
+                                                  &scp,
+                                                  /*force_replacement=*/FALSE);
+      type = (a_type_ptr)scp;
+    }  /* if */
+  }  /* if */
   /* Parentheses are not allowed in the conversion-declarator of a
      conversion-type-id. */
   octl.suppress_ptr_to_data_member_parens = TRUE;
+  /* Push the class scope context so that the type name will be
+     appropriately qualified if necessary. */
+  push_name_context(rout->source_corresp.parent_scope);
   gen_type(type);
   octl.suppress_ptr_to_data_member_parens = saved_suppress_parens;
   pop_name_context();

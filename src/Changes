@@ -1,5 +1,33 @@
 Version 6.4
 
+12/21/21 [EDGcpfe/24937]
+C++-generating back end: inaccessible conversion type-ids
+
+The changes for EDGcpfe/24713 (in version 6.3) caused a regression in some
+cases in which a conversion function is declared in its class using an
+inaccessible name and then invoked using the function call syntax.
+Previously, the C++-generating back end used an accessible synonym for the
+inaccessible type name in the generated code.  After the change, the call
+was generated using the inaccessible type name with which the conversion
+function was declared.  This is now fixed, and an accessible name is once
+again used in such calls.  For example:
+
+  template <typename> struct A;
+  template <typename T> struct B {
+  private:
+    typedef T type;
+  public:
+    operator type();
+  };
+  template <> struct A<char> : B<char> {};
+  void f() {
+    typedef char c;
+    A<c> ac;
+    ac.operator c();  // Generated in version 6.3 as "operator type()", now
+                      // once again as "operator char()"
+  }
+
+
 12/21/21 [EDGcpfe/24921]
 GCC compatibility: Warning on narrowing
 
