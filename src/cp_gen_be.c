@@ -15726,16 +15726,20 @@ operator or a template argument by a ",".
 */
 {
   an_expr_or_stmt_traversal_block tblock;
+  a_boolean                       result = FALSE;
 
-  clear_expr_or_stmt_traversal_block(&tblock);
-  tblock.process_expr = check_for_unprotected_gt_or_comma_operation;
-  tblock.process_non_dynamic_constants = TRUE;
-  tblock.process_expressions_for_constants = TRUE;
-  /* The scan must consider dependent expressions as well, in cases
-     where prototype instantiations are included in the IL. */
-  tblock.process_template_parameter_constants_and_expressions = TRUE;
-  traverse_expr(expr, &tblock);
-  return tblock.result;
+  if (expr != NULL) {
+    clear_expr_or_stmt_traversal_block(&tblock);
+    tblock.process_expr = check_for_unprotected_gt_or_comma_operation;
+    tblock.process_non_dynamic_constants = TRUE;
+    tblock.process_expressions_for_constants = TRUE;
+    /* The scan must consider dependent expressions as well, in cases
+       where prototype instantiations are included in the IL. */
+    tblock.process_template_parameter_constants_and_expressions = TRUE;
+    traverse_expr(expr, &tblock);
+    result = tblock.result;
+  }  /* if */
+  return result;
 }  /* has_unprotected_gt_or_comma_operation */
 
 #if GNU_EXTENSIONS_ALLOWED
