@@ -4348,6 +4348,39 @@ not passed explicitly.
 }  /* gen_template_arguments */
 
 
+static a_boolean dtor_name_needs_template_args(a_type_ptr tp)
+/*
+g++ has a bug that requires including a template argument list in a
+dependent destructor name if the destructor is not a member of the current
+instantiation.  This function checks for such a destructor (tp is the class
+of which the destructor is a member) and returns TRUE if a template
+argument list is required.
+*/
+{
+  a_boolean result = FALSE;
+
+  check_assertion(is_immediate_class_type(tp));
+  if (tp->variant.class_struct_union.is_template_class &&
+      tp->variant.class_struct_union.is_nonreal_class &&
+      !tp->variant.class_struct_union.is_prototype_instantiation) {
+    a_template_ptr class_tpl = class_type_supp(tp)->assoc_template;
+    /* Check to see if a class instantiated from the same template is in
+       the name context stack.  If so, and that class is not the same as
+       the destructor's class, the template argument list is required. */
+    for (a_name_context_ptr ncp = curr_name_context;
+         !result && ncp != NULL; ncp = ncp->next) {
+      if (ncp->class_type != NULL &&
+          ncp->class_type->variant.class_struct_union.is_template_class &&
+          class_type_supp(ncp->class_type)->assoc_template == class_tpl &&
+          ncp->class_type != tp) {
+        result = TRUE;
+      }  /* if */
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* dtor_name_needs_template_args */
+
+
 static void gen_unqualified_name(a_source_correspondence *scp,
                                  an_il_entry_kind        entry_kind)
 /*
@@ -4379,10 +4412,7 @@ entity is a template class, add the template arguments.
              is in the name context stack as other than a field selection
              context. */
           a_type_ptr parent_class = scp_parent_class(scp);
-          if (!class_is_in_name_context_stack(
-                                   parent_class,
-                                   /*include_base_classes=*/FALSE,
-                                   /*ignore_field_selection_contexts=*/TRUE)) {
+          if (dtor_name_needs_template_args(scp_parent_class(scp))) {
             /* g++ has a bug that causes it to report an error for a
                dependent destructor name that is not a member of the
                current instantiation if it does not have a template

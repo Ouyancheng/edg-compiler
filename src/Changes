@@ -1,5 +1,25 @@
 Version 6.4
 
+12/22/21 [EDGcpfe/24939]
+C++-generating back end: dependent destructor calls
+
+In order to work around a bug in g++, the C++-generating back end
+previously added the template arguments of the class type to the name of a
+dependent destructor being invoked; see EDGcpfe/14675.  However, g++ only
+requires/accepts the template arguments when the destructor is named in a
+class template instance that is different from that of the destructor's
+class but both are instances of the same class template.  The C++-generating
+back end has now been changed to emit a template argument list only when it
+is actually needed.  For example:
+
+  namespace N {
+  template <typename> struct S { };
+  }
+  template <typename T> void f(N::S<T> s) {
+    s.~S();  // Previously generated as "s.~S<T>()"
+  }
+
+
 12/22/21 [EDGcpfe/24915]
 Internal error in unlink_src_seq_entries after error on static data member
 
