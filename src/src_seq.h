@@ -138,6 +138,8 @@ extern void f_remove_from_src_seq_list(a_source_sequence_entry_ptr ssep,
 #define remove_from_src_seq_list(ssep)                                 \
   f_remove_from_src_seq_list((ssep), depth_scope_stack)
 
+extern void remove_src_seq_entry(a_source_sequence_entry_ptr  ssep);
+
 #if GNU_EXTENSIONS_ALLOWED && GENERATE_SOURCE_SEQUENCE_LISTS
 
 extern void remove_src_seq_list(a_source_sequence_entry_ptr  head,

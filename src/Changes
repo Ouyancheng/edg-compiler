@@ -1,5 +1,14 @@
 Version 6.4
 
+12/22/21 [EDGcpfe/24915]
+Internal error in unlink_src_seq_entries after error on static data member
+
+in configurations with generate_source_sequence_lists set to true, the front
+end sometimes aborted with an internal error in unlink_src_seq_entries after
+an error was encountered during the processing of the declaration of a static
+data member.  That is now fixed.
+
+
 12/21/21 [EDGcpfe/24937]
 C++-generating back end: inaccessible conversion type-ids
 

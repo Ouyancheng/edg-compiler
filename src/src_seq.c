@@ -1291,7 +1291,7 @@ fixup_function_scope_source_sequence_list has been called.)
 }  /* f_remove_from_src_seq_list */
 
 
-static void remove_src_seq_entry(a_source_sequence_entry_ptr  ssep)
+void remove_src_seq_entry(a_source_sequence_entry_ptr  ssep)
 /*
 The given source sequence entry must be removed from the list it is on.
 This routine makes no assumption as to which scope that list is associated

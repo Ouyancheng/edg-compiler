@@ -18463,7 +18463,7 @@ template declaration and is NULL otherwise.
     if (ssep != NULL) {
       /* The template entry already has a source sequence entry.  Discard it
          because record_symbol_declaration will record a new one. */
-      f_remove_from_src_seq_list(ssep, depth_scope_stack-1);
+      remove_src_seq_entry(ssep);
       templ->source_corresp.source_sequence_entry = NULL;
     }  /* if */
   }  /* if */
