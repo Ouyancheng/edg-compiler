@@ -23,7 +23,7 @@ is actually needed.  For example:
 12/22/21 [EDGcpfe/24915]
 Internal error in unlink_src_seq_entries after error on static data member
 
-in configurations with generate_source_sequence_lists set to true, the front
+In configurations with GENERATE_SOURCE_SEQUENCE_LISTS set to TRUE, the front
 end sometimes aborted with an internal error in unlink_src_seq_entries after
 an error was encountered during the processing of the declaration of a static
 data member.  That is now fixed.
