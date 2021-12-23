@@ -1476,18 +1476,21 @@ When debugging code is not being generated the macro expands to nothing.
 #define decr_tokens_in_cache(cache)  /* */
 #endif /* DEBUG */
 
+
+static void add_cached_token_to_cache(a_cached_token_ptr ctp,
+                                      a_token_cache      *cache)
 /*
 Add the cached token pointed to by ctp to the end of the token cache
-pointed to by cache.  
+pointed to by cache.
 */
-#define add_cached_token_to_cache(ctp, cache)                         \
-{ if (cache->first_token == NULL) {                                   \
-    cache->first_token = ctp;                                         \
-  } else {                                                            \
-    cache->last_token->next = ctp;                                    \
-  }  /* if */                                                         \
-  cache->last_token = ctp;                                            \
-  incr_tokens_in_cache(cache);					      \
+{
+  if (cache->first_token == NULL) {
+    cache->first_token = ctp;
+  } else {
+    cache->last_token->next = ctp;
+  }  /* if */
+  cache->last_token = ctp;
+  incr_tokens_in_cache(cache);
 }  /* add_cached_token_to_cache */
 
 
