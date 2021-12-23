@@ -2103,7 +2103,7 @@ typedef struct a_cached_token {
 			   a non-reusable one, this still refers to the
 			   entry in the reusable cache. */
   union {
-    /* When extra_info_kind == teik_normal, no variant fields. */
+    /* When extra_info_kind == teik_none, no variant fields. */
     /* When extra_info_kind == teik_identifier: */
     a_symbol_locator
 		locator;
