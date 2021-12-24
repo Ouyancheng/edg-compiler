@@ -1411,6 +1411,21 @@ NULL if there is none.
 }  /* innermost_enclosing_namespace */
 
 
+static a_type_ptr innermost_enclosing_class(void)
+/*
+Return a pointer to the innermost class in the name context stack or NULL
+if there is none.
+*/
+{
+  a_name_context_ptr ncp = curr_name_context;
+
+  while (ncp != NULL && ncp->class_type == NULL) {
+    ncp = ncp->next;
+  }  /* while */
+  return (ncp != NULL) ? ncp->class_type : NULL;
+}  /* innermost_enclosing_class */
+
+
 static a_boolean class_is_in_name_context_stack(
                                    a_type_ptr class_type,
                                    a_boolean  include_base_classes,
@@ -5733,15 +5748,13 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
                 octl.processing_nontype_template_argument &&
                 qualifier->
                        variant.class_struct_union.is_prototype_instantiation &&
-                class_is_in_name_context_stack(
-                                   qualifier,
-                                   /*include_base_classes=*/FALSE,
-                                   /*ignore_field_selection_contexts=*/TRUE)) {
+                innermost_enclosing_class() == qualifier) {
               /* g++ has a bug that results in spurious errors if a
-                 non-type template argument appearing in a class template
-                 definition is qualified by the class template's
+                 non-type template argument appearing directly in a class
+                 template definition is qualified by the class template's
                  template-id.  (The qualifier is necessary for a member of
-                 an unknown base, however.) */
+                 an unknown base or nested class or class template,
+                 however.) */
               qualifier_suppressed = TRUE;
             } else {
               (void)gen_class_qualifier(qualifier, qualifier_options,

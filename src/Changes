@@ -1,5 +1,30 @@
 Version 6.4
 
+12/23/21 [EDGcpfe/24954]
+C++-generating back end: members of class templates as nontype arguments
+
+As noted in the entry for EDGcpfe/24527 (in version 6.3), g++ has a bug
+that results in spurious errors when a member of a class template used as a
+nontype template argument is referenced using a qualified name.  To work
+around that bug, the C++-generating back end was changed to avoid name
+qualification in such contexts.  However, this change was overly broad; g++
+appears to have difficulty only if the member is referred to directly
+inside its own class, and the change caused a regression, suppressing
+necessary name qualification in certain cases.  For example, with --g++
+--c++17:
+
+template<int> struct A { };
+template<typename> struct B {
+  template<typename> struct C;
+  static constexpr int i = 0;
+};
+template<typename T> template<typename U> struct B<T>::C {
+  A<B<T>::i> i;   // Previously generated as "A<i>", which is an error
+                  // because of both referencing and declaring the name "i"
+};
+B<int>::C<int> bici;
+
+
 12/22/21 [EDGcpfe/24939]
 C++-generating back end: dependent destructor calls
 
