@@ -5753,8 +5753,8 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
                  non-type template argument appearing directly in a class
                  template definition is qualified by the class template's
                  template-id.  (The qualifier is necessary for a member of
-                 an unknown base or nested class or class template,
-                 however.) */
+                 an unknown base and may be needed for a member of a
+                 containing class or class template, however.) */
               qualifier_suppressed = TRUE;
             } else {
               (void)gen_class_qualifier(qualifier, qualifier_options,
