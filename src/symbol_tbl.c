@@ -17535,7 +17535,8 @@ mode.
     curr_char_loc++;
     /* Scan the characters that make up the string literal. */
     if (!accum_quoted_string(&num_chars, /*is_header_name=*/FALSE,
-                            SCLK_ORDINARY_STRING_LITERAL, '"', NULL, -1)) {
+                            SCLK_ORDINARY_STRING_LITERAL, '"', NULL, -1,
+                            start_of_curr_token)) {
       a_const_char	*err_char_pos;
       an_error_code	err_code;
       /* Convert the string literal into a string constant. */

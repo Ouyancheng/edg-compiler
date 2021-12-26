@@ -10849,6 +10849,7 @@ a_boolean accum_quoted_string(
                   char                          quoting_char,
                   a_const_char                  *start_of_raw_string_delimiter,
                   int                           raw_string_delimiter_len,
+                  ARG_UNUSED a_const_char       *string_start_loc,
 /* Defaulted: */  an_orig_line_modif_ptr        last_olmp)
 /*
 Scan a quoted construct, i.e., a character constant or a string literal.
@@ -10866,7 +10867,10 @@ C++11 raw string, and the terminating '"' must be preceded by the same
 string (of that length) to which start_of_raw_string_delimiter points,
 preceded by a right parenthesis; *num_chars will not include the length of
 this trailing delimiter sequence.  If raw_string_delimiter_len is < 0,
-start_of_raw_string_delimiter is not used.  If non-NULL, last_olmp points
+start_of_raw_string_delimiter is not used.  string_start_loc points to the
+initial character of the literal, including any prefix, for diagnostic
+purposes (used only for reporting Unicode source vulnerabilities).  If it
+is NULL, curr_char_loc will be used.  If last_olmp is not NULL, it points
 to the last original line modification processed by this routine during a
 series of calls for multi-line string literals; if NULL (the default
 value), this routine will scan the list of original line modifications from
@@ -10886,10 +10890,6 @@ messages.
   a_boolean              is_string_literal;
 #if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
   a_boolean              suspicious_unicode = FALSE;
-  a_const_char           *string_start_loc = 
-                                            (curr_char_loc[-1] == quoting_char)
-                                                            ? curr_char_loc - 1
-                                                            : curr_char_loc;
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 
   nchars = 0;
@@ -10898,6 +10898,11 @@ messages.
   is_string_literal = (literal_kind & SCLK_STRING_LITERAL) != 0;
   check_assertion(!(is_raw_string && !is_string_literal));
   literal_kind = literal_encoding_prefix(literal_kind);
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+  if (string_start_loc == NULL) {
+    string_start_loc = curr_char_loc;
+  }  /* if */
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
   if (is_raw_string && orig_line_modif_list != NULL) {
     /* This is a raw string literal, potentially including trigraphs and
        line splices that will be reversed.  Set up to account for those
@@ -11219,7 +11224,7 @@ kind or tok_error.  The token can be a normal or wide character constant.
   a_character_kind  character_kind = (a_character_kind)ck_last;
   unsigned long     num_chars = 0;
   an_error_code     err_code = ec_no_error;
-  a_const_char      *err_pos;
+  a_const_char      *err_pos = curr_char_loc;
   a_source_position start_pos;
 
   check_assertion((lit_kind & SCLK_STRING_LITERAL) == 0);
@@ -11246,7 +11251,7 @@ kind or tok_error.  The token can be a normal or wide character constant.
   }  /* switch */
   curr_char_loc += offset_to_start_of_literal_value(lit_kind); /*lint !e679*/
   if (accum_quoted_string(&num_chars, /*is_header_name=*/FALSE, lit_kind,
-                          '\'', NULL, -1)) {
+                          '\'', NULL, -1, err_pos)) {
     /* Error, character constant is unclosed. */
     /* Similar error for other strange cases of incomplete strings, which
        can come up with preprocessing. */
@@ -11333,6 +11338,7 @@ kind or tok_error.  The token can be a normal or wide character constant.
 static a_boolean scan_multiline_string(
                   unsigned long                 *num_chars,
                   a_string_or_char_literal_kind literal_kind,
+                  a_const_char                  *string_start_loc,
                   a_const_char                  *start_of_raw_string_delimiter,
                   int                           raw_string_delimiter_len)
 /*
@@ -11340,13 +11346,15 @@ Process the second and subsequent lines of a multi-line string.  Return
 TRUE if the string turns out to be well-formed, FALSE otherwise.
 literal_kind indicates the kind of literal (wide, raw, etc.) being scanned.
 The number of characters scanned (a conservative estimate in the case of
-UTF-8, char16_t, and wide literals) is added to *num_chars.  If
-raw_string_delimiter_len is >= 0, the string being scanned is a C++11 raw
-string, and the terminating '"' must be preceded by the same string (of
-that length) to which start_of_raw_string_delimiter points, preceded by a
-right parenthesis; *num_chars will not include the length of this trailing
-delimiter sequence.  If raw_string_delimiter_len is < 0,
-start_of_raw_string_delimiter is not used.
+UTF-8, char16_t, and wide literals) is added to *num_chars.
+string_start_loc is points to the first character of the literal, including
+any prefix, for diagnostic purposes.  If raw_string_delimiter_len is >= 0,
+the string being scanned is a C++11 raw string, and the terminating '"'
+must be preceded by the same string (of that length) to which
+start_of_raw_string_delimiter points, preceded by a right parenthesis;
+*num_chars will not include the length of this trailing delimiter sequence.
+If raw_string_delimiter_len is < 0, start_of_raw_string_delimiter is not
+used.
 */
 {
   an_orig_line_modif_ptr     olmp;
@@ -11379,7 +11387,8 @@ start_of_raw_string_delimiter is not used.
     curr_char_loc -= 2;
     if (!accum_quoted_string(num_chars, /*is_header_name=*/FALSE,
                              literal_kind, '"', delim_ptr,
-                             raw_string_delimiter_len, prev_olmp)) {
+                             raw_string_delimiter_len, string_start_loc,
+                             prev_olmp)) {
       /* End of string, done. */
       result = TRUE;
       break;
@@ -11522,13 +11531,17 @@ opening quotation mark; on exit, it points after the closing quote.
   a_pointer_registration     start_of_raw_string_delimiter_reg;
   a_const_char               *start_of_string_value;
   a_pointer_registration     start_of_string_value_reg;
+  a_const_char               *str_start_loc;
+  a_pointer_registration     str_start_loc_reg;
   a_pointer_registration_ptr save_registered_pointers = registered_pointers;
 
   register_pointer_variable(start_of_raw_string_delimiter,
                             start_of_raw_string_delimiter_reg);
   register_pointer_variable(start_of_string_value, start_of_string_value_reg);
+  register_pointer_variable(str_start_loc, str_start_loc_reg);
   check_assertion(lit_kind & SCLK_STRING_LITERAL);
   start_of_string_value = curr_char_loc;
+  str_start_loc = curr_char_loc - offset_to_start_of_literal_value(lit_kind);
   if (lit_kind & SCLK_RAW_STRING_LITERAL) {
     /* The literal appears to be a raw string.  Scan the delimiter and
        save its location and length for later use. */
@@ -11549,7 +11562,7 @@ opening quotation mark; on exit, it points after the closing quote.
   unterminated = accum_quoted_string(&num_chars, /*is_header_name=*/FALSE,
                                      lit_kind, '"',
                                      start_of_raw_string_delimiter,
-                                     raw_string_delimiter_len);
+                                     raw_string_delimiter_len, str_start_loc);
   if (unterminated && curr_cmd_line_or_predef_macro_def == NULL &&
       (raw_string_delimiter_len >= 0
 #if GNU_EXTENSIONS_ALLOWED
@@ -11559,6 +11572,7 @@ opening quotation mark; on exit, it points after the closing quote.
     /* Raw string literals, as well as gcc and g++ versions prior to 3.3,
        permit a string literal to extend over multiple lines. */
     unterminated = !scan_multiline_string(&num_chars, lit_kind,
+                                          str_start_loc,
                                           start_of_raw_string_delimiter,
                                           raw_string_delimiter_len);
   }  /* if */
@@ -11635,7 +11649,7 @@ Scan a header name token, return the token kind or tok_error.
   check_assertion(quoting_char == '"' || quoting_char == '>');
   if (accum_quoted_string(&num_chars, /*is_header_name=*/TRUE,
                           SCLK_ORDINARY_STRING_LITERAL, quoting_char, NULL,
-                          -1)) {
+                          -1, curr_char_loc - 1)) {
     /* Error, header name is unclosed. */
     ctoken = tok_error;
     err_code_for_error_token = ec_unclosed_string;
@@ -24870,7 +24884,8 @@ host-target conversions are performed.
     curr_char_loc++;
     num_chars = 0;
     if (accum_quoted_string(&num_chars, /*is_header_name=*/FALSE,
-                            SCLK_ORDINARY_STRING_LITERAL, '"', NULL, -1)) {
+                            SCLK_ORDINARY_STRING_LITERAL, '"', NULL, -1,
+                            curr_char_loc - 1)) {
       unexpected_condition();
     }  /* if */
     /* Convert it to internal form. */

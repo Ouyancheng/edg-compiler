@@ -2750,6 +2750,7 @@ extern a_boolean accum_quoted_string(
                   char                          quoting_char,
                   a_const_char                  *start_of_raw_string_delimiter,
                   int                           raw_string_delimiter_len,
+                  a_const_char                  *string_start_loc,
                   an_orig_line_modif_ptr        last_olmp = NULL);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
