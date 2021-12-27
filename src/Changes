@@ -4,9 +4,9 @@ Version 6.4
 Array bound underflow in accum_quoted_string
 
 The changes for EDGcpfe/24810,EDGcpfe/24829 (in version 6.3) resulted in
-accum_quoted_character reading the character immediately preceding the
-start of an array when processing the string result of __FUNCTION__ and
-related constructs.  This has now been fixed.
+accum_quoted_string reading the character immediately preceding the start
+of an array when processing the string result of __FUNCTION__ and related
+constructs.  This has now been fixed.
 
 
 12/23/21 [EDGcpfe/24954]
