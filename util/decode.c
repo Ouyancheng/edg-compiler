@@ -4365,7 +4365,7 @@ typedef enum a_substitution_kind {
 			/* A <template-template-param>. */
 } a_substitution_kind;
 
-typedef struct a_substitution {
+typedef struct a_substitution_location {
   a_const_char	*start;	/* First character of the encoding of the entity. */
   a_substitution_kind
 		kind;	/* Kind of entity. */
@@ -4385,9 +4385,9 @@ typedef struct a_substitution {
 			   (so that value can be used on subsequent
 			   demanglings of that substitution string).  Ignored
 			   for other substitution kinds. */
-} a_substitution;
+} a_substitution_location;
 
-static a_substitution
+static a_substitution_location
 		*substitutions = NULL;
 			/* A dynamically allocated array.  substitutions[n]
 			   gives the meaning of the substitution numbered
@@ -4550,17 +4550,18 @@ the type when it is used as a substitution).
   /* Do not record anything if we are suppressing recording of substitutions.
      One case in which that is true is when an error has been detected. */
   if (!dctl->suppress_substitution_recording) {
-    unsigned long  number = num_substitutions++;
-    a_substitution *subp;
+    unsigned long           number = num_substitutions++;
+    a_substitution_location *subp;
     if (num_substitutions > allocated_substitutions) {
       /* Need to allocate or extend the substitutions array. */
       true_size_t new_size;
       allocated_substitutions += 500;
-      new_size = allocated_substitutions*sizeof(a_substitution);
+      new_size = allocated_substitutions*sizeof(a_substitution_location);
       if (substitutions == NULL) {
-        substitutions = (a_substitution*)malloc(new_size);
+        substitutions = (a_substitution_location*)malloc(new_size);
       } else {
-        substitutions = (a_substitution*)realloc(substitutions, new_size);
+        substitutions = (a_substitution_location*)realloc(substitutions,
+                                                          new_size);
       }  /* if */
       if (substitutions == NULL) {
         bad_mangled_name(dctl);
@@ -4661,8 +4662,8 @@ type the substitution represents).
     if (last_component_name != NULL) *last_component_name = last_name;
   } else {
     /* Not a predefined substitution.  Convert the base-36 sequence number. */
-    uint32_t        number = 0;
-    a_substitution *subp;
+    uint32_t                number = 0;
+    a_substitution_location *subp;
     a_const_char   *p;
     ptr++;
     if (ch2 != '_') {

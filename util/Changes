@@ -1,3 +1,13 @@
+Version 6.4
+
+1/3/22   [EDGcpfe/24962]
+Rename a_substitution struct
+
+In some cases, the a_substitution struct in decode.c could conflict with a
+similarly named struct in lower_name.c.  To avoid such a collision the one
+in decode.c has now been renamed a_substitution_location.
+
+
 Version 6.3, December 13, 2021
 
 4/5/21   [EDGcpfe/24035]
