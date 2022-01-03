@@ -6299,7 +6299,13 @@ return FALSE.
   func_parent = parent_class_of(conv_func);
   conv_func_bcp = find_base_class_of(src_node->type, func_parent);
   if (conv_func_bcp != NULL) {
-    src_node = base_class_rvalue_expr(src_node, conv_func_bcp);
+    if (is_glvalue_node(src_node)) {
+      src_node = add_address_of_to_node(src_node);
+      src_node = base_class_selection_expr(src_node, conv_func_bcp);
+      src_node = add_indirection_to_node(src_node);
+    } else {
+      src_node = base_class_rvalue_expr(src_node, conv_func_bcp);
+    }  /* if */
   }  /* if */
   rout_node->variant.routine.ptr = conv_func;
   rout_node->type = conv_func->type;
