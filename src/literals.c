@@ -439,34 +439,45 @@ pcc_kind_established:
                                      (an_integer_kind)ik_int)) {
       kind = (an_integer_kind)ik_int;
       goto kind_established;
-    } else if (!has_u_suffix && microsoft_mode && radix == 10 &&
-               (microsoft_version < 1924 ? TRUE :
-                microsoft_version < 1928 ? ms_permissive
-                                         : ms_permissive && !cpp20_mode) &&
-               le_max_integer_value_of_kind(
-                                          &number, /*is_signed=*/FALSE,
-                                          (an_integer_kind)ik_unsigned_int)) {
-      /* Earlier versions of MSVC appear to use "int" type even if the value
-         (in decimal form) overflows into the "unsigned int" range.  MSVC 19.24
-         fixes that in non-permissive modes.  MSVC 19.28 also fixes the decimal
-         form handling in "c++latest" mode.  For example:
-             auto x = 0x80000000;
-             auto y = 2147483648;  // Decimal version of 0x80000000
-             static_assert(sizeof(x) == sizeof(int), "");  // (1)
-             static_assert(sizeof(y) == sizeof(int), "");  // (2)
-         (1) is always accepted by MSVC (as of 19.28).  (2) is usually accepted
-         except in non-permissive mode starting with MSVC 19.24, and in
-         "c++latest" mode starting with MSVC 19.28.  */
-      kind = (an_integer_kind)ik_int;
-      /* Mask off any bits past the end of the integer. */
-      trim_integer_value_to_kind(&number, kind);
-      do_sign_extension = TRUE;
-      goto kind_established;
     } else if ((has_u_suffix || radix != 10) &&
                le_max_integer_value_of_kind(&number, /*is_signed=*/FALSE,
                                            (an_integer_kind)ik_unsigned_int)) {
       kind = (an_integer_kind)ik_unsigned_int;
       goto kind_established;
+#if LONG_LONG_ALLOWED
+    } else if (!has_u_suffix && microsoft_mode && radix == 10 &&
+               (microsoft_version < 1924 ? TRUE :
+                microsoft_version < 1928 ? ms_permissive
+                                         : ms_permissive && !cpp20_mode) &&
+               targ_sizeof_long == targ_sizeof_int && long_long_is_standard &&
+               targ_sizeof_long < targ_sizeof_long_long &&
+               le_max_integer_value_of_kind(
+                                          &number, /*is_signed=*/FALSE,
+                                          (an_integer_kind)ik_unsigned_long)) {
+      /* Ordinarily, literals in this category (unsuffixed decimal, fitting in
+         unsigned long but not signed long) have type long long (see, e.g.,
+         [lex.icon]/3 in N4901).  However, earlier versions of MSVC appear to
+         use the unsigned long type instead.  MSVC 19.24 fixes that in non-
+         permissive modes.  MSVC 19.28 also fixes it in "c++latest" mode.
+         For example:
+           template<typename T1, typename T2> struct is_same;
+           template<typename T> struct is_same<T, T> { enum { value = 1 }; };
+           constexpr auto x = 0x80000000;
+           static_assert(is_same<decltype(x), unsigned const>::value, "");
+           constexpr auto y = 2147483648;
+           static_assert(is_same<decltype(y), unsigned long const>::value, "");
+           constexpr auto z = 4294967296;
+           static_assert(is_same<decltype(z), const long long>::value, "");
+         The first and third assertions are standard and always accepted by
+         MSVC (as of 19.30).  The second is nonstandard and is usually accepted
+         except in non-permissive mode starting with MSVC 19.24, and in
+         "c++latest" mode starting with MSVC 19.28.  (In the Microsoft ABI,
+         long and int always have the same size (32 bits) and are always
+         smaller than long long.  We don't emulate this behavior in Microsoft
+         modes paired with ABIs when long is larger than int. */
+      kind = (an_integer_kind)ik_unsigned_long;
+      goto kind_established;
+#endif /* LONG_LONG_ALLOWED */
     }  /* if */
 l_check:
     if (!has_u_suffix &&
