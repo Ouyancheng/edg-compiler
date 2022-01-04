@@ -59,6 +59,7 @@ pointer to the first character of the resulting null-terminated string.
   return token_buffer->buffer;
 }  /* remove_digit_separators */
 
+#if MICROSOFT_EXTENSIONS_ALLOWED
 
 static void trim_integer_value_to_kind(an_integer_value  *p_value,
                                        an_integer_kind   kind)
@@ -77,6 +78,7 @@ sign-extension might be needed later on.
   and_integer_values(p_value, &mask);
 }  /* trim_integer_value_to_kind */
 
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 void conv_integer_literal(int           radix,
                           an_error_code *err_code,
