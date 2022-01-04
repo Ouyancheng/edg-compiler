@@ -22,7 +22,7 @@ with an internal error in base_class_rvalue_expr (il.c).  For example:
   static_assert(D::f<d>());  // Previously triggered an abort.  Now okay.
 
 In this example, the problem occurred while overload resolution checked whether
-the template argument d can be conversion to the type E of the corresponding
+the template argument d can be converted to the type E of the corresponding
 template parameter: That requires tentatively converting a class lvalue as a
 constant using an inherited conversion function, which the front end did not
 handle correctly.  That problem is now fixed.
