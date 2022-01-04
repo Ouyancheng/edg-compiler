@@ -2779,8 +2779,6 @@ tokens therein and clear the cache.
     /* This cache was marked as reusable but is now being discarded.
        Update the count of reusable cached tokens. */
     if (cache->is_reusable) {
-      /* Reset the flag just to be neat. */
-      cache->is_reusable = FALSE;
       num_cached_tokens_in_reusable_caches -= cache->token_count;
       num_pragmas_in_reusable_caches -= cache->pragma_count;
     }  /* if */

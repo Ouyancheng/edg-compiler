@@ -1,5 +1,14 @@
 Version 6.4
 
+1/4/22   [EDGcpfe/24945]
+Internal error in rescan_reusable_cache
+
+In some configurations with DEBUG set to TRUE, the reusable token cache for a
+function template declaration could accidentally be marked as "not reusable".
+That in turn could then cause an assertion failure in rescan_reusable_cache.
+That is now fixed.
+
+
 1/4/22   [EDGcpfe/24965]
 Type of decimal integer literals with no suffix
 
