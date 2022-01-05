@@ -8129,9 +8129,10 @@ expression node and interpreter state.
                 &call_node->variant.operation.operands->next->next->position,
                 ips);
   } else if (gpp_mode && !clang_mode &&
+             addr1->address == addr2->address &&
              addr1->complete_object == addr2->complete_object) {
     /* GCC appears to return 0 in cases where the two pointers refer to the
-       same object. */
+       same object (regardless of the number of bytes to compare). */
     goto return_result;
   } else if (!type_is(tp, tk_void)) {
     /* String or character array comparison. */
