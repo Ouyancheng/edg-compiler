@@ -909,7 +909,7 @@ token that either (a) is not visible in the source (like an end-of-source
 token), or (b) has a large number of distinct forms (like identifiers,
 numbers, etc.).
 */
-typedef enum /*a_token_kind*/ {
+enum a_token_kind_tag {
   /* Complex tokens: */
   tok_error                 /* Error token. */,
   tok_identifier,
@@ -1372,7 +1372,8 @@ typedef enum /*a_token_kind*/ {
   tok_is_volatile,
   /* Place-holder for last position in enumeration. */
   tok_last
-} a_token_kind;
+};
+typedef a_token_kind_tag a_token_kind;
 
 /*
 Define the type to be used as a more compact representation of a_token_kind.
