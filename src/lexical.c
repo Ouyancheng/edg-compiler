@@ -23517,7 +23517,6 @@ those tokens).  Macros are not expanded.
   /* Add the end of line escape. */
   add_char_to_text_buffer(buffer, LE_ESCAPE);
   add_char_to_text_buffer(buffer, LE_END_OF_LINE);
-
   /* Save the current token position. */
   save_curr_char_loc = curr_char_loc;
   save_treat_newline_as_token = treat_newline_as_token;
@@ -23527,7 +23526,8 @@ those tokens).  Macros are not expanded.
   save_after_end_of_curr_source_line = after_end_of_curr_source_line;
   save_caching_tokens = caching_tokens;
   save_expand_macros = expand_macros;
-
+  /* Create a new lexical state for processing of the buffer. */
+  push_lexical_state_stack();
   /* Reset the information used by get_token to fetch the tokens from
      the string in the text buffer. */
   treat_newline_as_token = TRUE;
@@ -23541,11 +23541,9 @@ those tokens).  Macros are not expanded.
   /* Push a marker into the cached token rescan list indicating that
      tokens should be fetched from the insert string. */
   push_string_insert_cache_entry();
-
   /* Cache the current token so it can be restored when we're done. */
   clear_token_cache(&curr_token_cache, /*reusable=*/FALSE);
   cache_curr_token(&curr_token_cache);
-
   /* Fetch tokens from the buffer.  Stop on a newline. */
   for (;;) {
     /* All of the tokens should have begin and end positions as specified by
@@ -23557,7 +23555,6 @@ those tokens).  Macros are not expanded.
     if (get_token() == tok_newline) break;
     cache_curr_token(cache);
   }  /* for */
-
   /* Restore the original position from which tokens are being fetched. */
   curr_char_loc = save_curr_char_loc;
   after_end_of_curr_source_line = save_after_end_of_curr_source_line;
@@ -23571,7 +23568,6 @@ those tokens).  Macros are not expanded.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   end_pos_curr_token = save_end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-
   /* Resume fetching tokens from the previous source. */
   pop_string_insert_cache_entry();
   /* Get the next token from the normal input stream.  This is needed because
@@ -23580,6 +23576,8 @@ those tokens).  Macros are not expanded.
   /* If the string is inserted before the current token, rescan the current
      token. */
   rescan_cached_tokens(&curr_token_cache);
+  /* Return to the original lexical state. */
+  pop_lexical_state_stack();
   /* Drop any local pointer registrations. */
   registered_pointers = save_registered_pointers;
 }  /* cache_tokens_from_string */
