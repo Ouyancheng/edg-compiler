@@ -1,5 +1,21 @@
 Version 6.4
 
+1/10/11  [EDGcpfe/24953]
+Explicit-this member functions
+
+The changes for EDGcpfe/24781 (for version 6.3) introduced explicit-this member
+functions.  A number of bugs were found in that implementation:
+  - a diagnostic was missing for virtual functions declared with an explicit
+    "this" parameter,
+  - a diagnostic was missing for attempting to form the address of an
+    explicit-this member without using "&" or without using a qualified
+    name, and
+  - an indirect call was sometimes treated as a direct call to an
+    explicit-this member if folding recovered the callee of the indirect
+    call.
+Those issues are now fixed.
+
+
 1/5/22   [EDGcpfe/24966]
 Incorrect value for __builtin_memcmp during interpretation in GNU mode
 

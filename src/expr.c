@@ -6733,9 +6733,22 @@ are expected to be NULL in that case.
         orig_routine_type = operand->orig_routine_type;
 #endif /* OPTIMIZE_VIRTUAL_FUNCTION_CALLS */
         routine_type = type_pointed_to(operand->type);
-        /* If we can tell which routine is being called, set routine to
-           the routine entry.  Otherwise, leave it NULL. */
         routine = routine_from_function_operand(operand);
+        if (!operand->is_id_expression && is_constant_operand(operand)) {
+          /* Constant-folding can sometimes recover the actual callee from a
+             what looks like an indirect call.  For example, in C++23 mode:
+               struct S {
+                 void f(this S const&);
+                 void g() {
+                   constexpr auto cfp = &S::f;
+                   f();
+                   cfp(); // Should be an error, unlike "f()".
+                 }
+               };
+             Constant-folding recovers the callee for the call cfp(), but
+             that doesn't mean it should be treated like a direct call. */
+          routine = NULL;
+        }  /* if */
       }  /* if */
       if (!C_mode() &&
           is_template_dependent_context() &&

@@ -22501,6 +22501,17 @@ by an "&" operator and *ampersand_position gives its position.
       if (rout->is_consteval) {
         check_address_of_consteval_function(rout);
       }  /* if */
+      if (operand->is_id_expression && 
+          (!operand->is_qualified_name || ampersand_position == NULL) &&
+          has_explicit_this_parameter(rtp)) {
+        if (ampersand_position == NULL) {
+          pos_error(ec_implicit_address_of_explicit_this_function,
+                    &operand->position);
+        } else {
+          pos_error(ec_address_of_unqualified_explicit_this_function,
+                    ampersand_position);
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED

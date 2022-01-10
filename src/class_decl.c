@@ -15479,9 +15479,13 @@ implicitly declared member functions.
   has_explicit_this = has_explicit_this_parameter(
                                              skip_typerefs(decl_state->type));
   is_static_member = has_static || has_explicit_this;
-  if (has_static && has_explicit_this) {
-    pos_diagnostic(es_discretionary_error, ec_static_with_explicit_this,
-                   &decl_state->specifiers_pos);
+  if (has_explicit_this) {
+    if (has_static) {
+      pos_diagnostic(es_discretionary_error, ec_static_with_explicit_this,
+                     &decl_state->specifiers_pos);
+    } else if (decl_state->dso_flags & DSO_VIRTUAL) {
+      pos_error(ec_virtual_with_explicit_this, &decl_state->virtual_pos);
+    }  /* if */
   }  /* if */
   if (!is_static_member && (decl_state->dso_flags & DSO_CONSTEXPR) != 0) {
     if (!decl_info->is_constructor && constexpr_implies_const) {

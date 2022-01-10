@@ -3315,6 +3315,9 @@ ec_suppressed_module_error_diag;;"%d1 suppressed error was encountered while pro
 ec_suppressed_module_errors_diag;;"%d1 suppressed errors were encountered while processing module %sq1"
 ec_including;INTERNAL;"including"
 ec_suppressed;INTERNAL;"suppressed"
+ec_virtual_with_explicit_this;;"a virtual member function cannot have an explicit \"this\" parameter"
+ec_address_of_unqualified_explicit_this_function;;"taking the address of an explicit \"this\" function requires a qualified name"
+ec_implicit_address_of_explicit_this_function;;"forming the address of an explicit \"this\" function requires the \"&\" operator"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

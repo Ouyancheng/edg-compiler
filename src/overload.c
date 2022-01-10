@@ -14497,7 +14497,7 @@ arg_list is not freed by this routine.
   a_boolean                okay = FALSE;
   an_arg_match_summary_ptr arg_match_list;
   a_symbol_ptr             function_symbol, base_function_symbol;
-  a_boolean                single_function;
+  a_boolean                single_function = FALSE;
   a_routine_ptr            routine = NULL;
   a_type_ptr               routine_type = NULL;
   a_symbol_ptr             surrogate_function_conv_sym = NULL;
@@ -14534,7 +14534,8 @@ arg_list is not freed by this routine.
                                        ovl_context,
                                        call_position,
                                        paren_tok_seq_number,
-                                       &single_function,
+                                       function_operand->is_id_expression ?
+                                                      &single_function : NULL,
                                        (a_boolean *)NULL,
                                        &unknown_dependent_function,
                                        found_through_adl,
