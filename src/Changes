@@ -95,7 +95,7 @@ constant using an inherited conversion function, which the front end did not
 handle correctly.  That problem is now fixed.
 
 
-12/26/21 [EDGcpfe//24952]
+12/26/21 [EDGcpfe/24952]
 Array bound underflow in accum_quoted_string
 
 The changes for EDGcpfe/24810,EDGcpfe/24829 (in version 6.3) resulted in
