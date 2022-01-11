@@ -1,5 +1,21 @@
 Version 6.4
 
+1/10/11  [EDGcpfe/24923,EDGcpfe/24968]
+Abort in num_template_levels_of
+
+The changes for EDGcpfe/24623 in version 6.3 introduced a regression causing
+the front end to trigger an abort in number_template_levels_of on certain
+abbreviated out-of-class member template definitions.  For example:
+
+  struct S {
+    template<int> void f(auto x);
+  };
+  template<int> void S::f(auto x) {}  // Previously aborted in C++20 mode.
+                                      // Now okay.
+
+That is now fixed.
+
+
 1/10/11  [EDGcpfe/24953]
 Explicit-this member functions
 

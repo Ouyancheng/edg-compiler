@@ -17974,7 +17974,7 @@ For S<T>::N<U>::NN this function returns 2.  For S<T> it returns 1.
 
   do {
     a_template_ptr  templ = class_type_supp(class_type)->assoc_template;
-    if (templ->kind == (a_template_kind)templk_class) {
+    if (templ != NULL && templ->kind == (a_template_kind)templk_class) {
       result += 1;
     }  /* if */
     class_type = parent_class_or_null(class_type);
