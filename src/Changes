@@ -1,6 +1,6 @@
 Version 6.4
 
-1/10/11  [EDGcpfe/24923,EDGcpfe/24968]
+1/10/22  [EDGcpfe/24923,EDGcpfe/24968]
 Abort in num_template_levels_of
 
 The changes for EDGcpfe/24623 in version 6.3 introduced a regression causing
