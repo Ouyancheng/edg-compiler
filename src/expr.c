@@ -18894,15 +18894,15 @@ indication in *rcblock).
   } else {
     /* Normal, non-rescan, processing. */
     an_expr_stack_entry     expr_stack_entry;
-    push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
-                    /*force_object_lifetime=*/FALSE,
-                    /*suppress_object_lifetime=*/FALSE);
-    /* Save the position of the __INTADDR__ keyword. */
     start_position = pos_curr_token;
     /* Check for and pass over the left parenthesis. */
     (void)get_token();
     (void)required_token(tok_lparen, ec_exp_lparen);
     add_matching_stop_token(tok_rparen);
+    push_expr_stack((an_expression_kind)ek_normal, &expr_stack_entry,
+                    /*force_object_lifetime=*/FALSE,
+                    /*suppress_object_lifetime=*/FALSE);
+    /* Save the position of the __INTADDR__ keyword. */
     /* Scan the address expression. */
     scan_expr(&operand, PREC_LOWEST, EOPT_NO_OPTIONS);
     do_operand_transformations(&operand, TOPT_NO_OPTIONS);
