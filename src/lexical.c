@@ -1171,6 +1171,11 @@ static unsigned long
 		num_reusable_cache_entries_allocated,
 		num_compares_in_source_line_modif_hash_table,
 		num_token_caches_allocated,
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+		num_id_representations_allocated,
+		num_spelling_storage_buffers_allocated,
+ 		spelling_storage_buffer_space,
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 		num_lookups_in_source_line_modif_hash_table;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -13810,6 +13815,99 @@ that entry; otherwise, return NULL.
 
 
 /*
+Facilities providing storage for the spellings of identifiers.  The storage
+is allocated in front end memory and is aggregated into large chunks to
+reduce the number of allocation calls.
+*/
+
+/*
+The nominal size of a chunk of memory.  If a single spelling exceeds this
+size, a larger chunk will be allocated to accommodate it.
+*/
+#define SPELLING_STORAGE_BUFFER_SIZE 65000
+
+/*
+The structure of a single chunk of memory, part of a linked list of such
+chunks.
+*/
+typedef struct a_spelling_storage_buffer *a_spelling_storage_buffer_ptr;
+struct a_spelling_storage_buffer {
+  a_spelling_storage_buffer_ptr
+		next;	/* Pointer to the next buffer on the list of all
+			   spelling storage buffers. */
+  sizeof_t	allocated_size;
+			/* The capacity of the buffer.  Normally, this will
+			   be SPELLING_STORAGE_BUFFER_SIZE, but it will be
+			   larger if needed to accommodate a single
+			   spelling that will not fit into that size. */
+  sizeof_t	next_available;
+			/* The index at which the next spelling will be
+			   added to the buffer if there is sufficient room
+			   for it. */
+  char		*buffer;
+			/* Storage (allocated in front end memory) for the
+			   spellings. */
+};  /* a_spelling_storage_buffer */
+
+/*
+The start and end of the linked list of chunks of memory.
+*/
+static a_spelling_storage_buffer_ptr spelling_storage_buffer_head;
+static a_spelling_storage_buffer_ptr spelling_storage_buffer_tail;
+
+static a_spelling_storage_buffer_ptr alloc_spelling_storage_buffer(
+                                                                 sizeof_t size)
+/*
+Allocate and initialize a new spelling storage buffer with storage
+sufficient to hold a string of the indicated size and add it to the list of
+buffers.
+*/
+{
+  a_spelling_storage_buffer_ptr new_ssbp =
+                                   alloc_fe_of_type(a_spelling_storage_buffer);
+
+  new_ssbp->next = NULL;
+  new_ssbp->allocated_size = (size > SPELLING_STORAGE_BUFFER_SIZE)
+                                                ? size
+                                                : SPELLING_STORAGE_BUFFER_SIZE;
+#if DEBUG
+  ++num_spelling_storage_buffers_allocated;
+  spelling_storage_buffer_space += new_ssbp->allocated_size;
+#endif /* DEBUG */
+  new_ssbp->next_available = 0;
+  new_ssbp->buffer = alloc_fe(new_ssbp->allocated_size);
+  if (spelling_storage_buffer_tail != NULL) {
+    spelling_storage_buffer_tail->next = new_ssbp;
+  } else {
+    spelling_storage_buffer_head = new_ssbp;
+  }  /* if */
+  spelling_storage_buffer_tail = new_ssbp;
+  return new_ssbp;
+}  /* alloc_spelling_storage_buffer */
+
+
+static a_const_char *add_spelling_to_buffer(a_const_char *spelling,
+                                            sizeof_t     len)
+/*
+Add the indicated spelling (of length len) to a spelling buffer and return
+a pointer to the start of the spelling in the buffer.
+*/
+{
+  a_spelling_storage_buffer_ptr ssbp = spelling_storage_buffer_tail;
+  char                          *spelling_in_buffer;
+
+  if (ssbp == NULL ||
+      len > ssbp->allocated_size - ssbp->next_available) {
+    ssbp = alloc_spelling_storage_buffer(len);
+  }  /* if */
+  spelling_in_buffer = ssbp->buffer + ssbp->next_available;
+  ssbp->next_available += len;
+  memcpy(spelling_in_buffer, spelling, len);
+  return spelling_in_buffer;
+}  /* add_spelling_to_buffer */
+
+
+/*
 A structure recording the representation of a single identifier, intended
 for insertion into a hash table containing all identifiers in the
 translation unit.
@@ -13824,25 +13922,22 @@ struct an_id_representation {
 			   spelling being the one kept in the hash table.
 			   This chain permits each confusable spelling to
 			   be reported only on its first occurrence. */
-  sizeof_t	src_spelling_idx;
-			/* The offset within src_spellings->buffer of the
-			   null-terminated UTF-8 representation of the
+  a_const_char	*src_spelling;
+			/* The null-terminated UTF-8 representation of the
 			   identifier's spelling in the source. */
-  sizeof_t	prototyped_spelling_idx;
+  a_const_char	*prototyped_spelling;
 			/* If this identifier contains confusable
-			   characters, this is the offset within
-			   prototyped_spellings->buffer of the
-			   null-terminated UTF-8 representation of the
-			   identifier's spelling, replacing any confusable
-			   characters with their prototypes, as described
-			   in unicode.org/reports/tr39, "Unicode Security
+			   characters, this is the null-terminated UTF-8
+			   representation of the identifier's spelling,
+			   replacing any confusable characters with their
+			   prototypes, as described in
+			   unicode.org/reports/tr39, "Unicode Security
 			   Mechanisms", section 4.  If there are no
-			   confusable characters in the spelling, this has
-			   the value (sizeof_t)(-1) and the prototyped
-			   spelling is the same as the source spelling.
-			   Two confusable identifiers will have the same
-			   prototyped spelling and different source
-			   spellings. */
+			   confusable characters in the spelling, this
+			   points to the same string as the source
+			   spelling.  Two confusable identifiers will have
+			   the same prototyped spelling and different
+			   source spellings. */
   a_source_position
 		pos_first_occurrence;
 			/* The position of the first occurrence of the
@@ -13861,15 +13956,13 @@ static a_hash_table_ptr
 			   entries for all identifiers encountered in the
 			   current translation unit. */
 static a_text_buffer_ptr
-		src_spellings;
-			/* Storage for the source spellings of all
-			   an_id_representation entries. */
+		src_spelling;
+			/* Text buffer for accumulating the source
+			   spelling of an identifier. */
 static a_text_buffer_ptr
-		prototyped_spellings;
-			/* Storage for the prototyped spellings of all
-			   an_id_representation entries for which the
-			   prototyped spelling differs from the source
-			   spelling. */
+		prototyped_spelling;
+			/* Text buffer for accumulating the prototyped
+			   spelling of an identifier. */
 
 
 a_hash_value hash_id_representation(a_void_ptr key)
@@ -13892,18 +13985,10 @@ same identifier, if their source spellings are the same, or confusable
 identifiers if their source spellings differ) and FALSE otherwise.
 */
 {
-  a_const_char *entry_spelling;
-  a_const_char *key_spelling;
   an_id_representation_ptr entry = (an_id_representation_ptr)entry_ptr;
   an_id_representation_ptr key = (an_id_representation_ptr)key_ptr;
   
-  entry_spelling = (entry->prototyped_spelling_idx == (sizeof_t)(-1))
-               ? src_spellings->buffer + entry->src_spelling_idx
-               : prototyped_spellings->buffer + entry->prototyped_spelling_idx;
-  key_spelling = (key->prototyped_spelling_idx == (sizeof_t)(-1))
-                 ? src_spellings->buffer + key->src_spelling_idx
-                 : prototyped_spellings->buffer + key->prototyped_spelling_idx;
-  return strcmp(entry_spelling, key_spelling) == 0;
+  return strcmp(entry->prototyped_spelling, key->prototyped_spelling) == 0;
 }  /* id_representations_match */
 
 
@@ -13929,8 +14014,12 @@ This uses the same hashing algorithm found in hash_source_string.
 #define update_hash(ch) \
   curr_id_repr.hash_code += (curr_id_repr.hash_code << 5) + ch
 
-  check_assertion(multibyte_chars_in_source_enabled &&
-                  curr_file_unicode_source_kind != usk_none);
+  check_assertion(multibyte_chars_in_source_enabled);
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+  /* We can't reliably compare native multibyte character glyphs with
+     Unicode glyphs. */
+  check_assertion(curr_file_unicode_source_kind != usk_none);
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
   mbc_scan_init();
   if (id_representation_map == NULL) {
     /* Create the hash table and storage for identifiers. */
@@ -13938,12 +14027,13 @@ This uses the same hashing algorithm found in hash_source_string.
                    alloc_hash_table(FRONT_END_REGION_NUMBER, 65536,
                                     fn_for_function(hash_id_representation),
                                     fn_for_function(id_representations_match));
-    src_spellings = alloc_text_buffer(65536);
-    prototyped_spellings = alloc_text_buffer(8192);
+    src_spelling = alloc_text_buffer(256);
+    prototyped_spelling = alloc_text_buffer(256);
+  } else {
+    reset_text_buffer(src_spelling);
+    reset_text_buffer(prototyped_spelling);
   }  /* if */
   /* Create an identifier representation entry for the current identifier. */
-  curr_id_repr.src_spelling_idx = src_spellings->size;
-  curr_id_repr.prototyped_spelling_idx = prototyped_spellings->size;
   curr_id_repr.pos_first_occurrence = pos_curr_token;
   curr_id_repr.hash_code = 0;
   while (curr_ch <= end_of_curr_token) {
@@ -13953,8 +14043,8 @@ This uses the same hashing algorithm found in hash_source_string.
                      mbc_to_wide_char(curr_ch, &ch, &err, /*is_native=*/FALSE);
     if (ch <= 0x7f) {
       /* An ASCII character, which is a single-byte character in UTF-8. */
-      add_char_to_text_buffer(src_spellings, (char)ch);
-      add_char_to_text_buffer(prototyped_spellings, (char)ch);
+      add_char_to_text_buffer(src_spelling, (char)ch);
+      add_char_to_text_buffer(prototyped_spelling, (char)ch);
       update_hash(ch);
     } else {
       /* An extended character.  Convert it to UTF-8, save it, and see if
@@ -13965,7 +14055,7 @@ This uses the same hashing algorithm found in hash_source_string.
       a_confusable_map_elem_ptr cmep = confusable_char(ch);
 
       utf_len = unicode_to_utf8(ch, arr);
-      add_to_text_buffer(src_spellings, arr, utf_len);
+      add_to_text_buffer(src_spelling, arr, utf_len);
       if (ch >= 0x200b && ch <= 0x200d) {
         /* This is a Unicode zero-width character.  Since it is invisible,
            it makes the identifier confusable but should not be added to
@@ -13975,7 +14065,7 @@ This uses the same hashing algorithm found in hash_source_string.
         /* Not a confusable character.  Add the UTF-8 bytes to the
            prototyped string and update the hash code. */
         for (i = 0; i < utf_len; ++i) {
-          add_char_to_text_buffer(prototyped_spellings, arr[i]);
+          add_char_to_text_buffer(prototyped_spelling, arr[i]);
           update_hash(arr[i]);
         }  /* for */
       } else {
@@ -13986,7 +14076,7 @@ This uses the same hashing algorithm found in hash_source_string.
         for (i = 0; i < MAX_PROTOTYPE_LENGTH && cmep->prototype[i] != 0; ++i) {
           utf_len = unicode_to_utf8(cmep->prototype[i], arr);
           for (int j = 0; j < utf_len; ++j) {
-            add_char_to_text_buffer(prototyped_spellings, arr[j]);
+            add_char_to_text_buffer(prototyped_spelling, arr[j]);
             update_hash(arr[j]);
           }  /* for */
         }  /* for */
@@ -13994,22 +14084,30 @@ This uses the same hashing algorithm found in hash_source_string.
     }  /* if */
     curr_ch += numch;
   }  /* while */
-  add_char_to_text_buffer(src_spellings, '\0');
+  add_char_to_text_buffer(src_spelling, '\0');
+  curr_id_repr.src_spelling = add_spelling_to_buffer(src_spelling->buffer,
+                                                     src_spelling->size);
   if (!confusable_seen) {
-    /* The source and prototyped spellings are the same.  Update the
-       current identifier representation to use the source spelling for
-       comparison and remove the redundant string from the
-       prototyped spellings buffer. */
-    prototyped_spellings->size = curr_id_repr.prototyped_spelling_idx;
-    curr_id_repr.prototyped_spelling_idx = (sizeof_t)(-1);
+    /* The source and prototyped spellings are the same.  Set the current
+       identifier representation to use the source spelling for
+       comparison. */
+    curr_id_repr.prototyped_spelling = curr_id_repr.src_spelling;
   } else {
-    add_char_to_text_buffer(prototyped_spellings, '\0');
+    /* Copy the prototyped spelling into the buffer and set the current
+       identifier representation to use that string for comparison. */
+    add_char_to_text_buffer(prototyped_spelling, '\0');
+    curr_id_repr.prototyped_spelling = 
+                            add_spelling_to_buffer(prototyped_spelling->buffer,
+                                                   prototyped_spelling->size);
   }  /* if */
   hash_data = hash_find(id_representation_map, &curr_id_repr, /*create=*/TRUE);
   if (*hash_data == NULL) {
     /* This is the first occurrence of this identifier.  Update the hash
        table entry to point to the identifier representation. */
     new_id_rep = alloc_fe_of_type(an_id_representation);
+#if DEBUG
+    ++num_id_representations_allocated;
+#endif /* DEBUG */
     *new_id_rep = curr_id_repr;
     new_id_rep->next_confusable = NULL;
     *hash_data = (a_hash_data_ptr)new_id_rep;
@@ -14020,12 +14118,10 @@ This uses the same hashing algorithm found in hash_source_string.
        representations to see if this identifier is already there. */
     an_id_representation_ptr irp;
     a_boolean                id_exists = FALSE;
-    a_const_char             *this_cp =
-                         src_spellings->buffer + curr_id_repr.src_spelling_idx;
+    a_const_char             *this_cp = curr_id_repr.src_spelling;
     for (irp = (an_id_representation_ptr)*hash_data;
          !id_exists && irp != NULL; irp = irp->next_confusable) {
-      a_const_char *cp = src_spellings->buffer + irp->src_spelling_idx;
-      id_exists = strcmp(this_cp, cp) == 0;
+      id_exists = strcmp(this_cp, irp->src_spelling) == 0;
     }  /* for */
     if (!id_exists) {
       /* This is a new identifier that is confusable with an earlier
@@ -14895,8 +14991,19 @@ id_scan:
            identifier. */
 #if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
         if (check_unicode_security &&
-            multibyte_chars_in_source_enabled &&
-            curr_file_unicode_source_kind != usk_none) {
+            multibyte_chars_in_source_enabled
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+            /* In this configuration, non-UTF-encoded files can contain
+               native multibyte characters, whose glyphs we cannot reliably
+               compare with those of Unicode code points, so we only
+               process ASCII-only identifiers.  (Non-UTF-encoded files with
+               NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE set to FALSE
+               are encoded as Latin-1, so characters > 0x7f have
+               corresponding Unicode code points and can be compared.) */
+            && (curr_file_unicode_source_kind != usk_none ||
+                !id_contains_ucn_or_multibyte_char)
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
+                                                   ) {
           check_for_confusable_id();
         }  /* if */
 #endif  /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
@@ -14920,7 +15027,12 @@ id_scan:
 #if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
         if (check_unicode_security &&
             multibyte_chars_in_source_enabled &&
-            curr_file_unicode_source_kind != usk_none &&
+#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
+            /* See the comment above regarding the exclusion of
+               non-UTF-encoded files. */
+            (curr_file_unicode_source_kind != usk_none ||
+             !id_contain_ucn_or_multibyte_char) &&
+#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
             !sym_hdr->id_added_to_map) {
           /* For speed, we only check for confusable identifiers once and
              record the fact that the check has been performed using the
@@ -24819,6 +24931,17 @@ Display and return the amount of space used for various lexical tables.
                       (double)num_lookups_in_source_line_modif_hash_table, "");
   }  /* if */
 
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+  db_space_used("id representations",num_id_representations_allocated,
+                an_id_representation);
+  db_space_used("spelling storage buffers",
+                num_spelling_storage_buffers_allocated,
+                a_spelling_storage_buffer);
+  db_space_used_other("spelling buffer storage",
+                      spelling_storage_buffer_space, "");
+  grand_total += spelling_storage_buffer_space;
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
+
   db_space_used_total();
 
   return (grand_total);
@@ -25241,6 +25364,11 @@ are handled in lexical_init.)
 #if MICROSOFT_EXTENSIONS_ALLOWED
       pch_saved_var_array_elem(whitespace_keywords),
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+      pch_saved_var_array_elem(id_representation_map),
+      pch_saved_var_array_elem(spelling_storage_buffer_head),
+      pch_saved_var_array_elem(spelling_storage_buffer_tail),
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 #if DEBUG
       pch_saved_var_array_elem(num_orig_line_modifs_allocated),
       pch_saved_var_array_elem(num_source_line_modifs_allocated),
@@ -25463,8 +25591,8 @@ of the front end.
   pending_bidi_controls = NULL;
   avail_pending_bidi_controls = NULL;
   id_representation_map = NULL;
-  src_spellings = NULL;
-  prototyped_spellings = NULL;
+  src_spelling = NULL;
+  prototyped_spelling = NULL;
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 #if DEBUG
   num_orig_line_modifs_allocated = 0;
@@ -25485,6 +25613,11 @@ of the front end.
   cached_pp_token_string_space = 0;
   num_compares_in_source_line_modif_hash_table = 0;
   num_lookups_in_source_line_modif_hash_table = 0;
+#if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
+  num_id_representations_allocated = 0;
+  num_spelling_storage_buffers_allocated = 0;
+  spelling_storage_buffer_space = 0;
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 #endif /* DEBUG */
 #if CHECKING
   /* Make sure the UCN table is properly formed.  Each element of the

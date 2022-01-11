@@ -1,5 +1,13 @@
 Version 6.4
 
+1/11/22  [EDGcpfe/24935]
+Unicode source vulnerability checking and precompiled headers
+
+Using the Unicode source vulnerability checking feature described in
+EDGcpfe/24810,EDGcpfe/24829 with a precompiled header could result in
+aborts or other problems.  This is now fixed.
+
+
 1/11/22  [EDGcpfe/24959]
 Spurious parsing error in __INTADDR__ construct
 
