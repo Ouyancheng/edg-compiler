@@ -5,7 +5,11 @@ Unicode source vulnerability checking and precompiled headers
 
 Using the Unicode source vulnerability checking feature described in
 EDGcpfe/24810,EDGcpfe/24829 with a precompiled header could result in
-aborts or other problems.  This is now fixed.
+aborts or other problems.  This is now fixed.  In addition, the processing
+of identifiers was originally performed only on UTF-encoded files; this is
+now extended to ASCII-encoded identifiers regardless of the file encoding,
+in order to detect confusable spellings of identifiers declared in system
+headers and the like.
 
 
 1/11/22  [EDGcpfe/24959]
