@@ -4,7 +4,7 @@ Version 6.4
 Abort in num_template_levels_of
 
 The changes for EDGcpfe/24623 in version 6.3 introduced a regression causing
-the front end to trigger an abort in number_template_levels_of on certain
+the front end to trigger an abort in num_template_levels_of on certain
 abbreviated out-of-class member template definitions.  For example:
 
   struct S {
