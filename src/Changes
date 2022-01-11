@@ -16,7 +16,7 @@ abbreviated out-of-class member template definitions.  For example:
 That is now fixed.
 
 
-1/10/11  [EDGcpfe/24953]
+1/10/22  [EDGcpfe/24953]
 Explicit-this member functions
 
 The changes for EDGcpfe/24781 (for version 6.3) introduced explicit-this member
