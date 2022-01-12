@@ -14015,11 +14015,6 @@ This uses the same hashing algorithm found in hash_source_string.
   curr_id_repr.hash_code += (curr_id_repr.hash_code << 5) + ch
 
   check_assertion(multibyte_chars_in_source_enabled);
-#if NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
-  /* We can't reliably compare native multibyte character glyphs with
-     Unicode glyphs. */
-  check_assertion(curr_file_unicode_source_kind != usk_none);
-#endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
   mbc_scan_init();
   if (id_representation_map == NULL) {
     /* Create the hash table and storage for identifiers. */
