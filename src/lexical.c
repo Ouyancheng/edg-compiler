@@ -15026,7 +15026,7 @@ id_scan:
             /* See the comment above regarding the exclusion of
                non-UTF-encoded files. */
             (curr_file_unicode_source_kind != usk_none ||
-             !id_contain_ucn_or_multibyte_char) &&
+             !id_contains_ucn_or_multibyte_char) &&
 #endif /* NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE */
             !sym_hdr->id_added_to_map) {
           /* For speed, we only check for confusable identifiers once and
