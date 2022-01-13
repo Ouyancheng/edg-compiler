@@ -463,6 +463,10 @@ extern a_boolean builtin_function_or_keyword_is_enabled(a_const_char *name);
 extern a_boolean builtin_needs_to_be_loaded_in_secondary_translation_unit
                                                     (a_symbol_header *sym_hdr);
 
+#if GNU_EXTENSIONS_ALLOWED
+extern a_boolean has_secondary_builtin(a_symbol_header *sym_hdr);
+#endif /* GNU_EXTENSIONS_ALLOWED */
+
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 extern a_type_ptr get_default_va_list_type(void);

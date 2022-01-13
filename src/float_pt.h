@@ -244,6 +244,11 @@ extern int fp_compare(a_float_kind            kind,
                       an_internal_float_value *float_value_2,
                       a_boolean               *unordered);
 
+extern void fp_ceil(a_float_kind            kind,
+                    an_internal_float_value *value,
+                    an_internal_float_value *result,
+                    a_boolean               *err);
+
 #if C99_IL_EXTENSIONS_SUPPORTED
 extern void cx_add(a_float_kind              kind,
                    an_internal_complex_value *value_1,

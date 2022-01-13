@@ -8602,6 +8602,30 @@ to FALSE and the reason for the failure is recorded in *ips.
       }
       break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+    case bfk_ceil:
+    case bfk_ceilf:
+    case bfk_ceill:
+      /* Compute "ceiling" of the argument. */
+      {
+        interpreted = TRUE;
+        if (args == NULL || args->next != NULL) {
+          unexpected_condition();
+        } else {
+          a_type_ptr    tp = skip_typerefs(args->type);
+          a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
+          if (!*p_result) break;
+          check_assertion(is_real_floating_type(tp));
+          alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
+          if (do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
+            fp_ceil(tp->variant.float_kind, fp_value(arg1_bytes),
+                    fp_value(result_storage), &err);
+            if (err) do_constexpr_fail(*p_result);
+          } else {
+            do_constexpr_fail(*p_result);
+          }  /* if */
+        }  /* if */
+      }
+      break;
     case bfk_ffs:
     case bfk_ffsl:
     case bfk_clz:
