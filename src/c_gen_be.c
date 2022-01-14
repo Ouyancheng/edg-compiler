@@ -10691,20 +10691,18 @@ if this routine has a body (dump nothing if it has no body).
 #endif /* SGIC */
 #if BUILTIN_FUNCTIONS_ENABLED
   } else if (is_gnu_builtin_function(rout) &&
-             rout->source_corresp.attributes == NULL &&
-             !((rout->source_corresp.decl_position.seq != 0)
+             rout->source_corresp.attributes == NULL
 #if C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX && GNU_EXTENSIONS_ALLOWED
              /* When complex types are lowered, builtin functions using
                 complex types are incompatible with the lowered types and
                 thus must be declared as ordinary functions if they are
                 used. */
-              || (entity_needed_in_generated_code(rout) &&
+             && !(entity_needed_in_generated_code(rout) &&
                   type_has_lowered_complex_type(rout->type))
 #endif /* C99_IL_EXTENSIONS_SUPPORTED && LOWER_COMPLEX && GNU_EXTENSIONS_... */
-                                                            )) {
-    /* GNU-style builtin functions should generally not be declared or
-       defined, but emit a declaration if there was a declaration in the
-       source code. */
+             ) {
+    /* GNU-style builtin functions should otherwise not be declared or
+       defined. */
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 #if ASM_FUNCTION_ALLOWED
   } else if (!dump_defn && storage_class == (a_storage_class)sc_asm) {

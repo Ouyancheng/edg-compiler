@@ -15,21 +15,6 @@ is now fixed.  For example, with --c++17:
   inline int S::i = {};
 
 
-1/13/22  [EDGcpfe/18558]
-GNU compatibility: folding of __builtin_ceil and secondary builtins
-
-A change has been made to fold calls to __builtin_ceil as well as allow
-constexpr compilation of such calls.  Also, a change was made to allow
-"secondary" builtins to be used as aliases for their primary builtin
-counterparts (e.g., ceil as a secondary builtin for __builtin_ceil) when GNU
-allows that.  For example, with --g++:
-
-  extern "C" double ceil(double);
-  const char N = ceil(3.1);
-  int a[N];
-  static_assert(N == 4.0);
-
-
 1/11/22  [EDGcpfe/24935]
 Unicode source vulnerability checking and precompiled headers
 

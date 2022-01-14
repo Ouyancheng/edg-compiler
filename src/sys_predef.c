@@ -299,7 +299,7 @@ a list of characters representing restrictions (or NULL if there are no
 restrictions).
 */
 {
-  a_boolean     result, has_secondary, legacy_enable_secondary = FALSE;
+  a_boolean     result, has_secondary;
   a_const_char  *p = condition, *res_ptr;
   unsigned long version;
 
@@ -344,17 +344,6 @@ restrictions).
         /* A range specification follows (note that the version range is
            inspected even if result is FALSE because the pointer needs to
            be updated to point past the version range). */
-        if (has_secondary && gnu_version_is(<40500) &&
-            strncmp(&p[1], "40500", 5) == 0) {
-          /* Note that it appears that versions prior to GNU 4.5.0 have
-             "secondary" builtins enabled, but they don't report as such (at
-             least the tools used to create the tables only seem to report
-             such secondary entries beginning with 4.5.0) so assume that any
-             builtin whose primary is enabled in the current GNU mode also has
-             its secondary builtin enabled when the version in the table is
-             "40500" and gnu_version < 40500. */
-          legacy_enable_secondary = TRUE;
-        }  /* if */
         result = builtin_matches_version_range(version, &p) && result;
       }  /* if */
       if (*p == '[') {
@@ -381,9 +370,6 @@ restrictions).
       unexpected_condition();
     }  /* if */
   }  /* while */
-  if (legacy_enable_secondary && *primary_enabled) {
-    *secondary_enabled = TRUE;
-  }  /* if */
 }  /* builtin_condition_enabled */
 
 
@@ -423,23 +409,6 @@ present in the condition (indicating that a secondary declaration is allowed).
   return result;
 }  /* builtin_enabled */
 
-#if GNU_EXTENSIONS_ALLOWED
-
-a_boolean has_secondary_builtin(a_symbol_header *sym_hdr)
-/*
-Returns TRUE if the builtin referenced by sym_hdr (which must not be a
-user builtin) has a "secondary" entry (i.e., "strlen" is a secondary builtin
-for "__builtin_strlen" in some modes).
-*/
-{
-  check_assertion(sym_hdr->is_builtin_function &&
-                  !sym_hdr->is_user_builtin_function);
-  return builtin_enabled(
-                     builtin_table[sym_hdr->builtin_function_index].cond_index,
-                     NULL, /*is_secondary=*/TRUE);
-}  /* has_secondary_builtin */
-
-#endif /* GNU_EXTENSIONS_ALLOWED */
 
 static a_boolean builtin_restrictions_met(a_symbol_header *sym_hdr,
                                           a_boolean       issue_error)
@@ -768,9 +737,7 @@ the builtin function's type.
     }  /* if */
     /* Also see if there's a non-prefixed version that should be added.  These
        seem to only be used by GCC in C mode to give diagnostics when
-       redeclaring a library function.  See also check_implicit_routine_alias
-       where (in C++ mode) an alias may be created from a secondary builtin
-       to the primary. */
+       redeclaring a library function. */
     if (C_mode() && strncmp(name, "__builtin_", 10) == 0) {
       name = &builtin_name[10];
       if ((is_user_builtin_function || name[0] == '_') &&

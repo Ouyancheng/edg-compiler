@@ -9843,9 +9843,6 @@ pseudo_call can be NULL if that information is not needed.
       case bfk_bswap16:
       case bfk_bswap32:
       case bfk_bswap64:
-      case bfk_ceil:
-      case bfk_ceilf:
-      case bfk_ceill:
         result = TRUE;
         break;
       case bfk_assume_aligned:
@@ -10523,30 +10520,6 @@ the folding mechanism is used as a way to validate argument values.
         }
         break;
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
-      case bfk_ceil:
-      case bfk_ceilf:
-      case bfk_ceill:
-        /* Compute the ceiling of the given argument. */
-        { a_constant_ptr con;
-          if (args != NULL && args2 == NULL &&
-              is_constant_node(args) &&
-              constant_is((con = node_constant(args)), ck_float) &&
-              is_real_floating_type(con->type) &&
-              is_real_floating_type(result_type)) {
-            a_boolean    err = FALSE;
-            a_type_ptr   float_tp = skip_typerefs(result_type);
-            copy_constant(con, result);
-            /* Probably no type difference between the parameter type and
-               the result type, but change it just in case. */
-            result->type = float_tp;
-            fp_ceil(float_tp->variant.float_kind,
-                    &con->variant.float_value,
-                    &result->variant.float_value,
-                    &err);
-            if (!err) folded = TRUE;
-          }  /* if */
-        }
-        break;
       case bfk_atomic_always_lock_free:
         if (args == NULL || !is_constant_node(args)) {
           /* __atomic_always_lock_free's first argument must be a
