@@ -1,5 +1,20 @@
 Version 6.4
 
+1/13/22  [EDGcpfe/24990]
+C++-generating back end: inline static data members
+
+In cases where a static data member is defined outside the class as an
+inline variable, the C++-generating back end incorrectly put out the
+"inline" specifier in both the in-class declaration and the out-of-class
+definition, resulting in two definitions of the static data member.  This
+is now fixed.  For example, with --c++17:
+
+  struct S {
+    static int i;  // Previously generated with the "inline" specifier
+  };
+  inline int S::i = {};
+
+
 1/13/22  [EDGcpfe/18558]
 GNU compatibility: folding of __builtin_ceil and secondary builtins
 

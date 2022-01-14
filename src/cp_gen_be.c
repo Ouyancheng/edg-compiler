@@ -21322,13 +21322,10 @@ this one is such a continuation.
       write_tok_str((!gpp_mode || cpp20_mode) ? "constinit " : "__constinit ");
     }  /* if */
     if (var->is_inline &&
-        !(in_class_decl_no_init && (is_const_qualified_type(var_type) ||
-                                    is_reference_type(var_type)))) {
-      /* If this is the in-class declaration of a static data member and no
-         in-class initializer was supplied, putting the "inline" specifier
-         on it would make it a definition and require an initializer if it
-         has a const-qualified or reference type, so we suppress the
-         specifier in that case. */
+        (!in_class_decl_no_init || is_definition)) {
+      /* If this is a declaration of a static data member, we suppress the
+         "inline" specifier on the in-class declaration unless it is the
+         defining declaration. */
       write_tok_str("inline ");
     }  /* if */
     if (var->is_thread_local) {
