@@ -3453,6 +3453,60 @@ values:
   return cmp;
 }  /* fp_compare */
 
+
+void fp_ceil(a_float_kind            kind,
+             an_internal_float_value *value,
+             an_internal_float_value *result,
+             a_boolean               *err)
+/*
+Compute the "ceiling" (the least integer greater than or equal to *value)
+and return a floating-point representation of that integer in *result.
+Both *value and *result have "kind" floating type.  *err is set to TRUE if an
+error is detected (and is set to FALSE otherwise).
+*/
+{
+  a_boolean    depends_on_fp_mode = FALSE;
+
+  *err = FALSE;
+  if (fp_is_zero_constant(kind, value)
+#if TARG_HAS_IEEE_FLOATING_POINT
+      || fp_is_nan(value, kind)
+      || fp_is_infinity(value, kind)
+#endif /* TARG_HAS_IEEE_FLOATING_POINT */
+                                    ) {
+    /* For zeros, NaNs, and infinities, the result is the same as the input. */
+    *result = *value;
+  } else {
+    /* Truncate to an integer value. */
+    a_host_large_integer    int_value;
+    an_internal_float_value truncated_value;
+    a_boolean               unordered;
+    fp_to_host_large_integer(kind, value, &int_value, err,
+                             &depends_on_fp_mode);
+    if (depends_on_fp_mode) *err = TRUE;
+    /* Convert back to a floating-point value. */
+    fp_host_large_integer_to_float(kind, int_value, &truncated_value, err);
+    if (fp_compare(kind, value, &truncated_value, &unordered) == 0) {
+      /* The round-trip comparison was equal (so there must not be a decimal
+         fraction portion) so the result is the same as the input. */
+      *result = *value;
+      if (unordered) *err = TRUE;
+    } else {
+      if (int_value > 0) {
+        /* Add one to the integer value (if it won't overflow). */
+        if (int_value == MAX_HOST_LARGE_INTEGER) {
+          *err = TRUE;
+        } else {
+          int_value++;
+        }  /* if */
+      }  /* if */
+      /* Convert the integer value back to a float. */
+      fp_host_large_integer_to_float(kind, int_value, result, err);
+    }  /* if */
+  }  /* if */
+}  /* fp_ceil */
+
+
 #if !STANDALONE_UTILITY_PROGRAM
 #if C99_IL_EXTENSIONS_SUPPORTED
 

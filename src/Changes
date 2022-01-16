@@ -1,5 +1,18 @@
 Version 6.4
 
+1/16/22  [EDGcpfe/24997]
+GNU compatibility: folding of __builtin_ceil/ceilf/ceill
+
+A change has been made to fold calls to __builtin_ceil, __builtin_ceilf and
+__builtin_ceill as well as allow constexpr compilation of such calls.  For
+example, with --g++:
+
+  extern "C" double ceil(double);
+  const char N = ceil(3.1);
+  int a[N];
+  static_assert(N == 4.0);
+
+
 1/13/22  [EDGcpfe/24990]
 C++-generating back end: inline static data members
 

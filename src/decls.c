@@ -8273,22 +8273,31 @@ use of).
                /* Exclude routines with "alias" or "weakref" attributes. */
                find_decl_attribute(ak_alias, dps) == NULL &&
                find_decl_attribute(ak_weakref, dps) == NULL) {
-      a_const_char *name = NULL;
-      if (strcmp(rp->source_corresp.name, "strlen") == 0) {
-        name = "__builtin_strlen";
-      } else if (strcmp(rp->source_corresp.name, "abs") == 0) {
-        name = "__builtin_abs";
-      }  /* if */
-      if (name != NULL) {
+      sizeof_t name_len = strlen(rp->source_corresp.name);
+      if ((name_len == 6 && strcmp(rp->source_corresp.name, "strlen") == 0) ||
+          (name_len == 3 && strcmp(rp->source_corresp.name, "abs") == 0) ||
+          (name_len == 4 && strcmp(rp->source_corresp.name, "ceil") == 0)) {
+        /* Note that currently only certain GNU builtins are eligible to
+           be aliases.  A more general mechanism to include all "secondary"
+           builtins appears to be too lenient.  Also, the check above covers
+           the "family" of builtins (e.g., checking for "ceil" covers "ceilf"
+           and "ceill" as well). */
+        name_len += 10;
+        ensure_temp_text_buffer_space(name_len + 1);
+        strcpy(temp_text_buffer, "__builtin_");
+        strcpy(&temp_text_buffer[10], rp->source_corresp.name);
         a_symbol_locator  loc;
         a_symbol_ptr bsym = NULL;
-        bsym = find_symbol(name, (sizeof_t)strlen(name), &loc);
+        bsym = find_symbol(temp_text_buffer, name_len, &loc);
         if (bsym == NULL) {
           /* If no matching symbol was found, it's possible that the underlying
              builtin has not been loaded yet, so load it and redo the
              lookup. */
           load_matching_builtin_function(loc.symbol_header);
-          bsym = find_symbol(name, (sizeof_t)strlen(name), &loc);
+          /* temp_text_buffer might have been overwritten, so use the name
+             information in loc instead. */
+          bsym = find_symbol(loc.symbol_header->identifier,
+                             loc.symbol_header->identifier_length, &loc);
         }  /* if */
         if (bsym != NULL) {
           for (; bsym != NULL; bsym = bsym->next) {
