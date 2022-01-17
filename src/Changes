@@ -1,5 +1,21 @@
 Version 6.4
 
+1/17/22  [EDGcpfe/24971]
+Abort in corresponding_param_type on deduction guide declaration
+
+Consider:
+
+  template<typename> struct S {
+    S(int i = 0) {}
+  };
+  S(int i = 0) -> S<int>;  // Previously aborted.  Now okay.
+
+The default argument on the deduction guide previously led the front end to an
+abort (caused by a null pointer indirection) in corresponding_param_type (in
+class_decl.c) in configurations with GENERATE_SOURCE_SEQUENCE_LISTS set to
+TRUE.  That is now fixed.
+
+
 1/16/22  [EDGcpfe/24997]
 GNU compatibility: folding of __builtin_ceil/ceilf/ceill
 
