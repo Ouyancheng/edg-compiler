@@ -442,8 +442,8 @@ the entry pointed to by dps->routine_fixup.
       }  /* for */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
       if (!source_sequence_entries_disallowed &&
-          rp->type != func_info->declared_type/* &&
-          func_info->declared_type != NULL*/) {
+          rp->type != func_info->declared_type &&
+          func_info->declared_type != NULL) {
         /* If the declared type is going to be recorded in the IL, copy the
            default arguments to it. */
         a_param_type_ptr  declared_ptp =
