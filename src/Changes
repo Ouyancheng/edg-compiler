@@ -19,8 +19,8 @@ TRUE.  That is now fixed.
 1/16/22  [EDGcpfe/24997]
 GNU compatibility: folding of __builtin_ceil/ceilf/ceill
 
-A change has been made to fold calls to __builtin_ceil, __builtin_ceilf and
-__builtin_ceill as well as allow constexpr compilation of such calls.  For
+A change has been made to fold calls to __builtin_ceil, __builtin_ceilf, and
+__builtin_ceill and to allow constexpr compilation of such calls.  For
 example, with --g++:
 
   extern "C" double ceil(double);
