@@ -1,5 +1,24 @@
 Version 6.4
 
+1/18/22  [EDGcpfe/25003]
+Abort on attempt to constant-evaluate a defaulted default constructor
+
+Consider:
+
+  struct A { A(); };
+  A::A() = default;
+  struct B { A a; };
+  B b;
+
+The definition of b requires the front end to attempt to constant-evaluate the
+default constructor of B, and thus the defaulted default constructor of A.
+Previously, the front end incorrectly marked the latter default constructor as
+constexpr, and in some configurations that later resulted in an internal error
+in scope_for_routine (il.c).  This regression, introduced in version 6.3 by the
+changes for EDGcpfe/22722,EDGcpfe/24336,EDGcpfe/24639, is now fixed (the
+constructor is no longer implicitly marked as constexpr).
+
+
 1/18/22  [EDGcpfe/24992]
 Bad "packed" struct layout in C modes
 

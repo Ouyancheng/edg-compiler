@@ -22382,7 +22382,8 @@ issue an error if it is not actually constexpr.
     is_constexpr = default_ctor_can_be_constexpr(ctor_rp, class_type,
                                                  /*check_bases=*/TRUE);
     if (is_constexpr) {
-      if (ctor_rp->compiler_generated || ctor_rp->is_defaulted) {
+      if (ctor_rp->compiler_generated ||
+          (ctor_rp->is_defaulted && !ctor_rp->defined_outside_of_parent)) {
         ctor_rp->is_constexpr = TRUE;
         cssp->has_constexpr_nonstatic_member_function = TRUE;
       }  /* if */
