@@ -439,7 +439,8 @@ enum a_name_linkage_kind_tag {
   nlk_cplusplus_external,
 			/* C++ external linkage, as for an extern in C++.
 			   Implies name mangling if that technique is used. */
-  nlk_external,		/* External linkage, as for an external routine. */
+  nlk_external,		/* External linkage, as for an external routine
+                           (i.e., "extern C"). */
   nlk_last_standard = nlk_external,
 #ifdef CUSTOM_NAME_LINKAGE_KINDS
   /* An implementation can add additional linkage kinds by defining this

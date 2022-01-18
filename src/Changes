@@ -1,5 +1,19 @@
 Version 6.4
 
+1/18/22  [EDGcpfe/24234]
+GNU/Clang compatibility: linkage of extern "C" functions in unnamed namespaces
+
+The changes for EDGcpfe/18674 (in version 6.1) changed the name linkage for
+extern "C" functions in unnamed namespaces to internal linkage rather than
+external.  That is consistent with the standard, but it appears that GNU
+and clang give such entities external linkage so a change has been made to
+use external linkage when emulating GNU and clang.  For example (with --c++14):
+
+  namespace {
+    extern "C" void f(void) { } // now external linkage in GNU and clang modes
+  }
+
+
 1/17/22  [EDGcpfe/24971]
 Abort in corresponding_param_type on deduction guide declaration
 
