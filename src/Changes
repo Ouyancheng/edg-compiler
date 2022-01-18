@@ -1,5 +1,13 @@
 Version 6.4
 
+1/18/22  [EDGcpfe/24992]
+Bad "packed" struct layout in C modes
+
+The changes for EDGcpfe/24023 in version 6.3 introduced a regression in the
+layout of certain C-mode "packed" struct types in certain configurations.
+That is now fixed.
+
+
 1/18/22  [EDGcpfe/24234]
 GNU/Clang compatibility: linkage of extern "C" functions in unnamed namespaces
 

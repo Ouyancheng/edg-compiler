@@ -778,7 +778,7 @@ only).
   }  /* if */
   class_type = skip_typerefs(class_type);
 #if GNU_EXTENSIONS_ALLOWED
-  if ((gpp_version_is(>= 30400) || clang_version_is(any_version)) && 
+  if ((gpp_version_is(>= 30400) || clangcpp_version_is(any_version)) && 
       !field->is_packed &&
       class_type->variant.class_struct_union.max_member_alignment > 0 &&
       class_type->variant.class_struct_union.max_member_alignment
