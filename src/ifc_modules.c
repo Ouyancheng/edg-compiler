@@ -7203,9 +7203,11 @@ Return TRUE if processing succeeded, otherwise return FALSE.
   }  /* if */
   islp = get_Source_Line(&isl);
   check_assertion(name_tag(islp->file) == ifc_NameSort_SourceFile);
-  if (islp->line == 0 && name_value(islp->file) == 0) {
-    /* Visual Studio uses this to indicate that the entity doesn't have
-       a source location (e.g., builtins), so use a null position. */
+  if (islp->line == 0) {
+    /* IFC LineNumbers start at one, a line number of zero means the source
+       line isn't known.  As the front end (at the time of writing) doesn't
+       support source locations for a file without a line, resolve all cases of
+       this to null source position. */
     *pos = null_source_position;
   } else {
     /* See if this file has been used before. */
