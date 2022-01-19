@@ -380,6 +380,7 @@ Handle nested structures differently (and check for padding).
 #define GET_ReachableProperties(x, from_header)GET_byte(x, from_header)
 #define GET_ReadConversionSort(x, from_header) GET_byte(x, from_header)
 #define GET_ScopeTraits(x, from_header)        GET_byte(x, from_header)
+#define GET_SpecializationSort(x, from_header) GET_byte(x, from_header)
 #define GET_SyntaxSort(x, from_header)         GET_byte(x, from_header)
 #define GET_TypeBasis(x, from_header)          GET_byte(x, from_header)
 #define GET_TypePrecision(x, from_header)      GET_byte(x, from_header)
@@ -679,10 +680,7 @@ Return a string with the name that corresponds to the DeclSort tag.
     case ifc_DeclSort_Template:         result = "Template"; break;
     case ifc_DeclSort_PartialSpecialization:
                                        result = "PartialSpecialization"; break;
-    case ifc_DeclSort_ExplicitSpecialization:
-                                       result = "ExplicitSpecialization";break;
-    case ifc_DeclSort_ExplicitInstantiation:
-                                       result = "ExplicitInstantiation"; break;
+    case ifc_DeclSort_Specialization:   result = "Specialization";break;
     case ifc_DeclSort_Concept:          result = "Concept"; break;
     case ifc_DeclSort_Function:         result = "Function"; break;
     case ifc_DeclSort_Method:           result = "Method"; break;
@@ -702,7 +700,11 @@ Return a string with the name that corresponds to the DeclSort tag.
     case ifc_DeclSort_Intrinsic:        result = "Intrinsic"; break;
     case ifc_DeclSort_Property:         result = "Property"; break;
     case ifc_DeclSort_OutputSegment:    result = "OutputSegment"; break;
-    case ifc_DeclSort_Last:             unexpected_condition(); break;
+    /* Unused DeclSorts */
+    case ifc_DeclSort_UnusedSort0:
+    case ifc_DeclSort_Last:
+      unexpected_condition();
+      break;
     default_is_unexpected();
   }  /* switch */
   return result;
@@ -820,6 +822,8 @@ Return a stringized version of the given operator.
       op_str = monadic_op_str("Materialize"); break;
     case ifc_MonadicOperator_PseudoDtorCall:
       op_str = monadic_op_str("PseudoDtorCall"); break;
+    case ifc_MonadicOperator_LookupGlobally:
+      op_str = monadic_op_str("LookupGlobally"); break;
     case ifc_MonadicOperator_MsvcAssume:
       op_str = monadic_op_str("MsvcAssume"); break;
     case ifc_MonadicOperator_MsvcAlignof:
@@ -904,6 +908,8 @@ Return a stringized version of the given operator.
       op_str = monadic_op_str("MsvcHasUserDestructor"); break;
     case ifc_MonadicOperator_MsvcConfusedExpand:
       op_str = monadic_op_str("MsvcConfusedExpand"); break;
+    case ifc_MonadicOperator_MsvcConfusedDependentSizeof:
+      op_str = monadic_op_str("MsvcConfusedDependentSizeof"); break;
     default_is_unexpected_str("Unexpected MonadicOperator");
   }  /* switch */
   return op_str;
@@ -1267,6 +1273,7 @@ Map an IFC MonadicOperator to an_opname_kind.
     case ifc_MonadicOperator_Read:
     case ifc_MonadicOperator_Materialize:
     case ifc_MonadicOperator_PseudoDtorCall:
+    case ifc_MonadicOperator_LookupGlobally:
     case ifc_MonadicOperator_MsvcAssume:
     case ifc_MonadicOperator_MsvcAlignof:
     case ifc_MonadicOperator_MsvcUuidof:
@@ -1309,6 +1316,7 @@ Map an IFC MonadicOperator to an_opname_kind.
     case ifc_MonadicOperator_MsvcHasAssign:
     case ifc_MonadicOperator_MsvcHasUserDestructor:
     case ifc_MonadicOperator_MsvcConfusedExpand:
+    case ifc_MonadicOperator_MsvcConfusedDependentSizeof:
       pos_st_diagnostic(es_discretionary_error,
                         ec_ifc_no_corresponding_operator, &error_position,
                         str_for_ifc_operator(monadic_op));
@@ -1610,6 +1618,10 @@ Return the kind of operator described by op.
     case ifc_MonadicOperator_CoReturn:
     case ifc_MonadicOperator_Yield:
     case ifc_MonadicOperator_Throw:
+    case ifc_MonadicOperator_LookupGlobally:
+    case ifc_MonadicOperator_New:
+    case ifc_MonadicOperator_Delete:
+    case ifc_MonadicOperator_DeleteArray:
       kind = opkind_basic;
       break;
     case ifc_MonadicOperator_PostIncrement:
@@ -1617,9 +1629,6 @@ Return the kind of operator described by op.
     case ifc_MonadicOperator_Expand:
       kind = opkind_post;
       break;
-    case ifc_MonadicOperator_New:
-    case ifc_MonadicOperator_Delete:
-    case ifc_MonadicOperator_DeleteArray:
     case ifc_MonadicOperator_Paren:
     case ifc_MonadicOperator_Brace:
       kind = opkind_other;
@@ -1678,6 +1687,7 @@ Return the kind of operator described by op.
     case ifc_MonadicOperator_MsvcHasCopy:
     case ifc_MonadicOperator_MsvcHasAssign:
     case ifc_MonadicOperator_MsvcHasUserDestructor:
+    case ifc_MonadicOperator_MsvcConfusedDependentSizeof:
       kind = opkind_func_like;
       break;
     case ifc_MonadicOperator_MsvcConfusedExpand:
@@ -2110,10 +2120,8 @@ corresponding data structure for that partition.
       CHECK_SIZE(DeclSort_Template);
     case ifc_decl_partial_specialization:
       CHECK_SIZE(DeclSort_PartialSpecialization);
-    case ifc_decl_explicit_specialization:
-      CHECK_SIZE(DeclSort_ExplicitSpecialization);
-    case ifc_decl_explicit_instantiation:
-      CHECK_SIZE(DeclSort_ExplicitInstantiation);
+    case ifc_decl_specialization:
+      CHECK_SIZE(DeclSort_Specialization);
     case ifc_decl_concept:
       CHECK_SIZE(DeclSort_Concept);
     case ifc_decl_function:
@@ -2268,10 +2276,6 @@ corresponding data structure for that partition.
       CHECK_SIZE(ExprSort_SizeofType);
     case ifc_expr_alignof_type:
       CHECK_SIZE(ExprSort_Alignof);
-    case ifc_expr_new:
-      CHECK_SIZE(ExprSort_New);
-    case ifc_expr_delete:
-      CHECK_SIZE(ExprSort_Delete);
     case ifc_expr_typeid:
       CHECK_SIZE(ExprSort_Typeid);
     case ifc_expr_destructor_call:
@@ -2721,7 +2725,7 @@ corresponding data structure for that partition.
 
 namespace {
 constexpr ifc_Version supported_major_version = (ifc_Version)0;
-constexpr ifc_Version supported_minor_version = (ifc_Version)33;
+constexpr ifc_Version supported_minor_version = (ifc_Version)41;
 
 inline a_boolean check_ifc_version(ifc_Version major,
                                    ifc_Version minor)
@@ -3406,7 +3410,8 @@ to the given cache if options & cso_no_final_semicolon is nonzero.
                             ifc_Access_None,
                             idsvp->specifiers, idsvp->traits, idsvp->alignment,
                             idsvp->type, idsvp->name, (ifc_TextOffset)0,
-                            (ifc_ExprIndex)0, issvdp->initializer,
+                            (ifc_ExprIndex)0,
+                            /*issvdp->initializer*/(ifc_ExprIndex)0,
                             &idsvp->locus);
       }
       break;
@@ -3718,7 +3723,7 @@ principal associated IL entity.
               mep->global_module = TRUE;
             }  /* if */
             if (mep->scope == NULL) {
-              mep->scope = get_ifc_scope(idsvp->home_scope);
+              mep->scope = get_ifc_home_scope(idsvp);
               scope_pushed = push_module_declaration_context(mep->scope);
             }  /* if */
             if (ifc_decl_is_ignorable_redecl(&loc, mep, &error_position,
@@ -3770,7 +3775,7 @@ principal associated IL entity.
                type is deduced and requires access to the class scope (e.g.,
                returning a lambda declared within the function). */
             if (mep->scope == NULL) {
-              mep->scope = get_ifc_scope(idsfp->home_scope);
+              mep->scope = get_ifc_home_scope(idsfp);
               scope_pushed = push_module_declaration_context(mep->scope);
             }  /* if */
             init_dps(&dps, &idsfp->locus, idsfp->type, ifc_ObjectTraits_None,
@@ -3850,7 +3855,7 @@ principal associated IL entity.
             mep->global_module = TRUE;
           }  /* if */
           if (mep->scope == NULL) {
-            mep->scope = get_ifc_scope(idssp->home_scope);
+            mep->scope = get_ifc_home_scope(idssp);
             scope_pushed = push_module_declaration_context(mep->scope);
           }  /* if */
           if (scope_is(mep->scope, sck_class_struct_union)) {
@@ -4038,7 +4043,7 @@ class_struct_union_case:
               if (itsfp->basis == ifc_TypeBasis_Typename) {
                 /* A type alias; declare a typedef for this case. */
                 if (mep->scope == NULL) {
-                  mep->scope = get_ifc_scope(idstap->home_scope);
+                  mep->scope = get_ifc_home_scope(idstap);
                   scope_pushed = push_module_declaration_context(mep->scope);
                 }  /* if */
                 if (ifc_decl_is_ignorable_redecl(&loc, mep, &error_position,
@@ -4075,7 +4080,7 @@ class_struct_union_case:
               source_position_from_locus(&pos, &idstap->locus);
               /* An alias template; declare a typedef for this case. */
               if (mep->scope == NULL) {
-                mep->scope = get_ifc_scope(idstap->home_scope);
+                mep->scope = get_ifc_home_scope(idstap);
                 scope_pushed = push_module_declaration_context(mep->scope);
               }  /* if */
               if (ifc_decl_is_ignorable_redecl(
@@ -4153,7 +4158,7 @@ class_struct_union_case:
             a_symbol_ptr tag_sym;
             check_assertion(idsep->base != 0);
             if (mep->scope == NULL) {
-              mep->scope = get_ifc_scope(idsep->home_scope);
+              mep->scope = get_ifc_home_scope(idsep);
               scope_pushed = push_module_declaration_context(mep->scope);
             }  /* if */
             check_assertion(mep->scope != NULL);
@@ -4341,7 +4346,7 @@ class_struct_union_case:
               mep->global_module = TRUE;
             }  /* if */
             if (mep->scope == NULL) {
-              mep->scope = get_ifc_scope(idstp->home_scope);
+              mep->scope = get_ifc_home_scope(idstp);
               scope_pushed = push_module_declaration_context(mep->scope);
             }  /* if */
             type = type_for_type_index(idstp->type, &nt_kind);
@@ -4444,6 +4449,7 @@ class_struct_union_case:
           a_type_ptr                param_type;
           a_template_param_ptr      param = NULL, *next_param;
           a_template_parameter_ptr  il_param = NULL;
+          a_boolean                 is_pack = FALSE;
 
           idspp = get_DeclSort_Parameter(&idsp);
           if (!init_decl_locator_via_text(idspp, &loc)) {
@@ -4453,8 +4459,9 @@ class_struct_union_case:
           check_assertion(idspp->name != 0);
           /* FIXME: constraint_expr = expr_for_expr_index(idspp->constraint);*/
           /* FIXME: init_expr = expr_for_expr_index(idspp->initializer); */
-          if (idspp->pack) {
+          if (type_tag(idspp->type) == ifc_TypeSort_Expansion) {
             /* FIXME: Currently unsupported. */
+            is_pack = TRUE;
             issue_unsupported_node_diag("DeclSort::Parameter packs",
                                         &error_position);
           }  /* if */
@@ -4468,7 +4475,7 @@ class_struct_union_case:
               param = make_nontype_template_param(idspp->level,
                                                   idspp->position,
                                                   /*is_unnamed=*/FALSE,
-                                                  idspp->pack,
+                                                  is_pack,
                                                   /*is_pack_element=*/FALSE,
                                                   /*is_non_initial=*/FALSE,
                                                   /*is_pack_expansion=*/FALSE,
@@ -4478,7 +4485,7 @@ class_struct_union_case:
             case ifc_ParameterSort_Type:
               /* FIXME: Handle unnamed parameters properly */
               param = decl_type_template_param(idspp->position, &loc,
-                                               /*is_named=*/TRUE, idspp->pack,
+                                               /*is_named=*/TRUE, is_pack,
                                                /*constraint=*/NULL,
                                                curr_templ_decl_state,
                                                &curr_templ_decl_state->
@@ -4490,7 +4497,7 @@ class_struct_union_case:
               param = make_nontype_template_param(idspp->level,
                                                   idspp->position,
                                                   /*is_unnamed=*/FALSE,
-                                                  idspp->pack,
+                                                  is_pack,
                                                   /*is_pack_element=*/FALSE,
                                                   /*is_non_initial=*/FALSE,
                                                   /*is_pack_expansion*/FALSE,
@@ -4504,7 +4511,7 @@ class_struct_union_case:
               param = make_nontype_template_param(idspp->level,
                                                   idspp->position,
                                                   /*is_unnamed=*/FALSE,
-                                                  idspp->pack,
+                                                  is_pack,
                                                   /*is_pack_element=*/FALSE,
                                                   /*is_non_initial=*/FALSE,
                                                   /*is_pack_expansion=*/FALSE,
@@ -4588,47 +4595,40 @@ class_struct_union_case:
           }  /* if */
         }
         break;
-      case ifc_DeclSort_ExplicitSpecialization:
-        { an_ifc_DeclSort_ExplicitSpecialization idses, *idsesp;
-          idsesp = get_DeclSort_ExplicitSpecialization(&idses);
-          if (!init_decl_locator_via_name(idsesp, &loc)) {
+      case ifc_DeclSort_Specialization:
+        { an_ifc_DeclSort_Specialization idss, *idssp;
+          a_boolean                      is_instantiation = FALSE;
+          idssp = get_DeclSort_Specialization(&idss);
+          if (idssp->sort == ifc_SpecializationSort_Instantiation) {
+            is_instantiation = TRUE;
+          }  /* if */
+          if (!init_decl_locator_via_name(idssp, &loc)) {
             goto invalid;
           }  /* if */
           if (defer) {
-            defer_symbol_creation(mep, &loc);
+            if (is_instantiation) {
+              unexpected_condition_str("Unexpected deferral.");
+            } else {
+              defer_symbol_creation(mep, &loc);
+            }  /* if */
           } else {
             a_token_cache cache;
             ifc_DeclIndex decl_idx = decl_index_of(mep);
 
-            scope_pushed = lazy_push_module_scope(idsesp, mep);
+            scope_pushed = lazy_push_module_scope(idssp, mep);
             clear_token_cache(&cache, /*reuseable=*/FALSE);
-            cache_decl_explicit_specialization(&cache, decl_idx, idsesp);
+            cache_decl_specialization(&cache, decl_idx, idssp);
             terminate_token_cache(&cache);
-            il_entity = (char*)parse_cached_explicit_specialization(&cache,
+            if (is_instantiation) {
+              il_entity = parse_cached_explicit_instantiation(&cache, idssp,
+                                                              &kind);
+            } else {
+              il_entity =
+                        (char*)parse_cached_explicit_specialization(&cache,
                                                                     mep->scope,
-                                                                    idsesp);
+                                                                    idssp);
+            }  /* if */
             kind = iek_template;
-          }  /* if */
-        }
-        break;
-      case ifc_DeclSort_ExplicitInstantiation:
-        { an_ifc_DeclSort_ExplicitInstantiation idsei, *idseip;
-          idseip = get_DeclSort_ExplicitInstantiation(&idsei);
-          if (!init_decl_locator_via_name(idseip, &loc)) {
-            goto invalid;
-          }  /* if */
-          if (defer) {
-            unexpected_condition_str("Unexpected deferral.");
-          } else {
-            a_token_cache cache;
-            ifc_DeclIndex decl_idx = decl_index_of(mep);
-
-            scope_pushed = lazy_push_module_scope(idseip, mep);
-            clear_token_cache(&cache, /*reuseable=*/FALSE);
-            cache_decl_explicit_instantiation(&cache, decl_idx, idseip);
-            terminate_token_cache(&cache);
-            il_entity = parse_cached_explicit_instantiation(&cache, idseip,
-                                                            &kind);
           }  /* if */
         }
         break;
@@ -4648,7 +4648,7 @@ class_struct_union_case:
               mep->global_module = TRUE;
             }  /* if */
             if (mep->scope == NULL) {
-              mep->scope = get_ifc_scope(idscp->home_scope);
+              mep->scope = get_ifc_home_scope(idscp);
               scope_pushed = push_module_declaration_context(mep->scope);
             }  /* if */
             if (ifc_decl_is_ignorable_redecl(&loc, mep, &error_position,
@@ -4789,6 +4789,7 @@ unhandled:
           kind = iek_type;
         }
         break;
+      case ifc_DeclSort_UnusedSort0:
       case ifc_DeclSort_Last:
         unexpected_condition();
         break;
@@ -5155,10 +5156,11 @@ nameless partitions are at the end of the partition map and that all nameless
 partitions are omitted from the search.
 */
 {
-  uint32_t num_partitions = ifc_last + 1;
   uint32_t num_nameless_partitions = 0;
 
-  for (uint32_t i = 0; i < num_partitions; ++i) {
+  check_assertion(sizeof(ifc_partition_map) / sizeof(an_ifc_partition_map) ==
+                                                           num_ifc_partitions);
+  for (uint32_t i = 0; i < num_ifc_partitions; ++i) {
     if (map_ptr->name == NULL) {
       ++num_nameless_partitions;
     } else {
@@ -5170,7 +5172,7 @@ partitions are omitted from the search.
     ++map_ptr;
   }  /* for */
   /* Verify that we're skipping the correct number of nameless partitions. */
-  check_assertion(num_partitions ==
+  check_assertion(num_ifc_partitions ==
                   num_nameless_partitions + num_searchable_partitions);
 }  /* validate_ifc_partition_map */
 #endif /* EXPENSIVE_CHECKING */
@@ -5184,7 +5186,7 @@ pointer to that entry or NULL if it could not be found.
 {
   /* The number of partitions is adjusted to remove any nameless partition map
      entries. */
-  uint32_t num_partitions = ifc_last - 4;
+  uint32_t num_partitions = num_ifc_partitions;
   /* Create a wrapped version of partition_name for comparisons. */
   an_ifc_partition_name partition_name{name};
   /* Provide a value function for retrieving the wrapped partition name at the
@@ -5618,7 +5620,7 @@ Return the name of the declaration represented at decl.
 */
 {
   /* Constructors are named by their enclosing scope. */
-  return get_ifc_name(decl->home_scope);
+  return get_ifc_name(get_ifc_home_scope_decl(decl));
 }  /* get_ifc_name<an_ifc_DeclSort_Constructor> */
 
 
@@ -5630,7 +5632,7 @@ Return the name of the declaration represented at decl.
 */
 {
   /* Destructors are named by their enclosing scope. */
-  return get_ifc_name(decl->home_scope);
+  return get_ifc_name(get_ifc_home_scope_decl(decl));
 }  /* get_ifc_name<an_ifc_DeclSort_Destructor> */
 
 
@@ -5652,30 +5654,16 @@ Return the name of the declaration represented at decl.
 
 template<>
 inline ifc_NameIndex an_ifc_module::get_ifc_name(
-                                  an_ifc_DeclSort_ExplicitSpecialization *decl)
+                                          an_ifc_DeclSort_Specialization *decl)
 /*
 Return the name of the declaration represented at decl.
 */
 {
-  /* FIXME: An explicit specialization doesn't hold any name information of its
-     own currently, and the name held by the associated declaration is mangled
-     so we can't recurse on it.  Pull the name from the primary template. */
+  /* FIXME: A specialization doesn't hold any name information of its own
+     currently, and the name held by the associated declaration is mangled so
+     we can't recurse on it.  Pull the name from the primary template. */
   return get_ifc_name_from_primary_template(decl->form);
-}  /* get_ifc_name<an_ifc_DeclSort_ExplicitSpecialization> */
-
-
-template<>
-inline ifc_NameIndex an_ifc_module::get_ifc_name(
-                                   an_ifc_DeclSort_ExplicitInstantiation *decl)
-/*
-Return the name of the declaration represented at decl.
-*/
-{
-  /* FIXME: An explicit instantiation doesn't hold any name information of its
-     own currently, and the name held by the associated declaration is mangled
-     so we can't recurse on it.  Pull the name from the primary template. */
-  return get_ifc_name_from_primary_template(decl->form);
-}  /* get_ifc_name<an_ifc_DeclSort_ExplicitInstantiation> */
+}  /* get_ifc_name<an_ifc_DeclSort_Specialization> */
 
 
 ifc_NameIndex an_ifc_module::get_ifc_name(ifc_DeclIndex decl_index)
@@ -5691,28 +5679,15 @@ Return the name of the declaration represented at decl.
 
 template<>
 inline ifc_SourceLocation an_ifc_module::get_ifc_locus(
-                                  an_ifc_DeclSort_ExplicitSpecialization *decl)
+                                          an_ifc_DeclSort_Specialization *decl)
 /*
 Return the locus of the declaration represented at decl.
 */
 {
-  /* An explicit specialization doesn't hold any source location information of
-     its own currently.  Recurse on the associated declaration. */
+  /* A specialization doesn't hold any source location information of its own
+     currently.  Recurse on the associated declaration. */
   return get_ifc_locus(decl->decl);
-}  /* get_ifc_locus<an_ifc_DeclSort_ExplicitSpecialization> */
-
-
-template<>
-inline ifc_SourceLocation an_ifc_module::get_ifc_locus(
-                                   an_ifc_DeclSort_ExplicitInstantiation *decl)
-/*
-Return the locus of the declaration represented at decl.
-*/
-{
-  /* An explicit instantiation doesn't hold any source location information of
-     its own currently.  Recurse on the associated declaration. */
-  return get_ifc_locus(decl->decl);
-}  /* get_ifc_locus<an_ifc_DeclSort_ExplicitInstantiation> */
+}  /* get_ifc_locus<an_ifc_DeclSort_Specialization> */
 
 
 ifc_SourceLocation an_ifc_module::get_ifc_locus(ifc_DeclIndex decl_index)
@@ -5726,6 +5701,27 @@ Return the locus of the declaration represented at decl.
 }  /* get_ifc_locus */
 
 
+inline ifc_DeclIndex an_ifc_module::skip_scope_abstractions(ifc_DeclIndex decl)
+/*
+As of IFC 0.41, which introduced DeclSort::Specialization, some home scopes
+point to the specialization declaration, rather than the associated
+DeclSort::Scope.  Return the proper DeclIndex (which may be the original decl
+if there are no intervening abstractions).
+*/
+{
+  ifc_DeclIndex result = decl;
+
+  if (decl_tag(result) == ifc_DeclSort_Specialization) {
+    an_ifc_DeclSort_Specialization idss, *idssp;
+    read_partition_element(result);
+    idssp = get_DeclSort_Specialization(&idss);
+    result = idssp->decl;
+    check_assertion(decl_tag(result) == ifc_DeclSort_Scope);
+  }  /* if */
+  return result;
+}  /* skip_scope_abstractions */
+
+
 template<>
 inline ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(
                                    an_ifc_DeclSort_PartialSpecialization *decl)
@@ -5735,34 +5731,21 @@ Return the home scope of the declaration represented at decl.
 {
   /* A partial specialization has direct scoping information; however, it's not
      correct.  Recurse on the associated declaration. */
-  return get_ifc_home_scope_decl(decl->entity.decl);
+  return skip_scope_abstractions(get_ifc_home_scope_decl(decl->entity.decl));
 }  /* get_ifc_home_scope_decl<an_ifc_DeclSort_PartialSpecialization> */
 
 
 template<>
 inline ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(
-                                  an_ifc_DeclSort_ExplicitSpecialization *decl)
+                                          an_ifc_DeclSort_Specialization *decl)
 /*
 Return the home scope of the declaration represented at decl.
 */
 {
-  /* An explicit specialization doesn't have any direct scoping information.
-     Recurse on the associated declaration. */
-  return get_ifc_home_scope_decl(decl->decl);
-}  /* get_ifc_home_scope_decl<an_ifc_DeclSort_ExplicitSpecialization> */
-
-
-template<>
-inline ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(
-                                   an_ifc_DeclSort_ExplicitInstantiation *decl)
-/*
-Return the home scope of the declaration represented at decl.
-*/
-{
-  /* An explicit instantiation doesn't have any direct scoping information.
-     Recurse on the associated declaration. */
-  return get_ifc_home_scope_decl(decl->decl);
-}  /* get_ifc_home_scope_decl<an_ifc_DeclSort_ExplicitInstantiation> */
+  /* A specialization doesn't have any direct scoping information. Recurse on
+     the associated declaration. */
+  return skip_scope_abstractions(get_ifc_home_scope_decl(decl->decl));
+}  /* get_ifc_home_scope_decl<an_ifc_DeclSort_Specialization> */
 
 
 ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(ifc_DeclIndex decl_index)
@@ -6619,7 +6602,7 @@ argument.
         type = type_for_type_index(iesmp->type, /*kind=*/NULL);
         source_position_from_locus(&pos, &iesmp->locus);
         clear_token_cache(&cache, /*reusable=*/FALSE);
-        cache_operator(&cache, iesmp->op, &iesmp->locus);
+        cache_operator(&cache, iesmp->assoc, &iesmp->locus);
         cache_token(&cache, tok_lparen, &pos);
         cache_expr(&cache, iesmp->argument);
         cache_token(&cache, tok_rparen, &pos);
@@ -7010,7 +6993,7 @@ Given a declaration, return the name associated with that declaration.
         result = string_from_name_index(idsvp->name, /*loc=*/NULL);
         if (is_from_gmf(idsvp->specifiers)) {
           gmf_decl = TRUE;
-          gmf_decl_scope = idsvp->home_scope;
+          gmf_decl_scope = get_ifc_home_scope_decl(idsvp);
         }  /* if */
       }
       break;
@@ -7026,7 +7009,7 @@ Given a declaration, return the name associated with that declaration.
         result = get_string_at_offset(idsfp->name);
         if (is_from_gmf(idsfp->specifiers)) {
           gmf_decl = TRUE;
-          gmf_decl_scope = idsfp->home_scope;
+          gmf_decl_scope = get_ifc_home_scope_decl(idsfp);
         }  /* if */
       }
       break;
@@ -7036,7 +7019,7 @@ Given a declaration, return the name associated with that declaration.
         result = get_string_at_offset(idsbp->name);
         if (is_from_gmf(idsbp->specifiers)) {
           gmf_decl = TRUE;
-          gmf_decl_scope = idsbp->home_scope;
+          gmf_decl_scope = get_ifc_home_scope_decl(idsbp);
         }  /* if */
       }
       break;
@@ -7046,7 +7029,7 @@ Given a declaration, return the name associated with that declaration.
         result = string_from_name_index(idssp->name, /*loc=*/NULL);
         if (is_from_gmf(idssp->specifiers)) {
           gmf_decl = TRUE;
-          gmf_decl_scope = idssp->home_scope;
+          gmf_decl_scope = get_ifc_home_scope_decl(idssp);
         }  /* if */
       }
       break;
@@ -7056,7 +7039,7 @@ Given a declaration, return the name associated with that declaration.
         result = get_string_at_offset(idsep->name);
         if (is_from_gmf(idsep->specifiers)) {
           gmf_decl = TRUE;
-          gmf_decl_scope = idsep->home_scope;
+          gmf_decl_scope = get_ifc_home_scope_decl(idsep);
         }  /* if */
       }
       break;
@@ -7066,7 +7049,7 @@ Given a declaration, return the name associated with that declaration.
         result = get_string_at_offset(idsap->name);
         if (is_from_gmf(idsap->specifiers)) {
           gmf_decl = TRUE;
-          gmf_decl_scope = idsap->home_scope;
+          gmf_decl_scope = get_ifc_home_scope_decl(idsap);
         }  /* if */
       }
       break;
@@ -7079,7 +7062,7 @@ Given a declaration, return the name associated with that declaration.
         result = string_from_name_index(idstp->name, /*loc=*/NULL);
         if (is_from_gmf(idstp->specifiers)) {
           gmf_decl = TRUE;
-          gmf_decl_scope = idstp->home_scope;
+          gmf_decl_scope = get_ifc_home_scope_decl(idstp);
         }  /* if */
       }
       break;
@@ -7089,22 +7072,16 @@ Given a declaration, return the name associated with that declaration.
         result = string_from_name_index(idspsp->name, /*loc=*/NULL);
         if (is_from_gmf(idspsp->specifiers)) {
           gmf_decl = TRUE;
-          gmf_decl_scope = idspsp->home_scope;
+          gmf_decl_scope = get_ifc_home_scope_decl(idspsp);
         }  /* if */
       }
       break;
-    case ifc_DeclSort_ExplicitSpecialization:
-      { an_ifc_DeclSort_ExplicitSpecialization idses, *idsesp;
-        idsesp = get_DeclSort_ExplicitSpecialization(&idses);
-        /* FIXME: Is this reachable? */
-        result = name_from_decl(idsesp->decl);
-      }
-      break;
-    case ifc_DeclSort_ExplicitInstantiation:
-      { an_ifc_DeclSort_ExplicitInstantiation idsei, *idseip;
-        idseip = get_DeclSort_ExplicitInstantiation(&idsei);
-        /* FIXME: Is this reachable? */
-        result = name_from_decl(idseip->decl);
+    case ifc_DeclSort_Specialization:
+      { an_ifc_DeclSort_Specialization idss, *idssp;
+        idssp = get_DeclSort_Specialization(&idss);
+        /* FIXME: Can this be generally applied to all of these DeclSorts? */
+        result = string_from_name_index(get_ifc_name(idssp->decl),
+                                        /*loc=*/NULL);
       }
       break;
     case ifc_DeclSort_Concept:
@@ -7113,7 +7090,7 @@ Given a declaration, return the name associated with that declaration.
         result = get_string_at_offset(idscp->name);
         if (is_from_gmf(idscp->specifiers)) {
           gmf_decl = TRUE;
-          gmf_decl_scope = idscp->home_scope;
+          gmf_decl_scope = get_ifc_home_scope_decl(idscp);
         }  /* if */
       }
       break;
@@ -7123,7 +7100,7 @@ Given a declaration, return the name associated with that declaration.
         result = string_from_name_index(idsfp->name, /*loc=*/NULL);
         if (is_from_gmf(idsfp->specifiers)) {
           gmf_decl = TRUE;
-          gmf_decl_scope = idsfp->home_scope;
+          gmf_decl_scope = get_ifc_home_scope_decl(idsfp);
         }  /* if */
       }
       break;
@@ -7133,37 +7110,43 @@ Given a declaration, return the name associated with that declaration.
         result = string_from_name_index(idsmp->name, /*loc=*/NULL);
         if (is_from_gmf(idsmp->specifiers)) {
           gmf_decl = TRUE;
-          gmf_decl_scope = idsmp->home_scope;
+          gmf_decl_scope = get_ifc_home_scope_decl(idsmp);
         }  /* if */
       }
       break;
     case ifc_DeclSort_Constructor:
       { an_ifc_DeclSort_Constructor idsc, *idscp;
+        ifc_DeclIndex               home_scope;
         idscp = get_DeclSort_Constructor(&idsc);
-        result = name_from_decl(idscp->home_scope);
+        home_scope = get_ifc_home_scope_decl(idscp);
+        result = name_from_decl(home_scope);
         if (is_from_gmf(idscp->specifiers)) {
           gmf_decl = TRUE;
-          gmf_decl_scope = idscp->home_scope;
+          gmf_decl_scope = home_scope;
         }  /* if */
       }
       break;
     case ifc_DeclSort_InheritedConstructor:
       { an_ifc_DeclSort_InheritedConstructor idsic, *idsicp;
+        ifc_DeclIndex                        home_scope;
         idsicp = get_DeclSort_InheritedConstructor(&idsic);
-        result = name_from_decl(idsicp->home_scope);
+        home_scope = get_ifc_home_scope_decl(idsicp);
+        result = name_from_decl(home_scope);
         if (is_from_gmf(idsicp->specifiers)) {
           gmf_decl = TRUE;
-          gmf_decl_scope = idsicp->home_scope;
+          gmf_decl_scope = home_scope;
         }  /* if */
       }
       break;
     case ifc_DeclSort_Destructor:
       { an_ifc_DeclSort_Destructor idsd, *idsdp;
+        ifc_DeclIndex              home_scope;
         idsdp = get_DeclSort_Destructor(&idsd);
-        result = name_from_decl(idsdp->home_scope);
+        home_scope = get_ifc_home_scope_decl(idsdp);
+        result = name_from_decl(home_scope);
         if (is_from_gmf(idsdp->specifiers)) {
           gmf_decl = TRUE;
-          gmf_decl_scope = idsdp->home_scope;
+          gmf_decl_scope = home_scope;
         }  /* if */
       }
       break;
@@ -7179,7 +7162,7 @@ Given a declaration, return the name associated with that declaration.
         result = get_string_at_offset(idsudp->name);
         if (is_from_gmf(idsudp->specifiers)) {
           gmf_decl = TRUE;
-          gmf_decl_scope = idsudp->home_scope;
+          gmf_decl_scope = get_ifc_home_scope_decl(idsudp);
         }  /* if */
       }
       break;
@@ -7213,7 +7196,7 @@ Given a declaration, return the name associated with that declaration.
                                     &error_position);
         if (is_from_gmf(idsdgp->specifiers)) {
           gmf_decl = TRUE;
-          gmf_decl_scope = idsdgp->home_scope;
+          gmf_decl_scope = get_ifc_home_scope_decl(idsdgp);
         }  /* if */
       }
       break;
@@ -7248,7 +7231,7 @@ Given a declaration, return the name associated with that declaration.
         result = get_string_at_offset(idsip->name);
         if (is_from_gmf(idsip->specifiers)) {
           gmf_decl = TRUE;
-          gmf_decl_scope = idsip->home_scope;
+          gmf_decl_scope = get_ifc_home_scope_decl(idsip);
         }  /* if */
       }
       break;
@@ -7264,6 +7247,7 @@ Given a declaration, return the name associated with that declaration.
         result = get_string_at_offset(idsosp->name);
       }
       break;
+    case ifc_DeclSort_UnusedSort0:
     case ifc_DeclSort_Last:
       unexpected_condition();
       break;
@@ -8356,12 +8340,28 @@ locus is the location of the Sentence containing literal.
       break;
     case ifc_SourceLiteral_MsvcBinding:
       {
-        an_ifc_ExprSort_NamedDecl iesnd, *iesndp;
-        check_assertion(expr_tag(index) == ifc_ExprSort_NamedDecl);
         source_position_from_locus(&pos, locus);
         read_prechecked_partition_element((ifc_ExprIndex)index);
-        iesndp = get_ExprSort_NamedDecl(&iesnd);
-        cache_name_from_decl(cache, iesndp->resolution, &iesndp->locus);
+        switch(expr_tag(index)) {
+          case ifc_ExprSort_NamedDecl:
+            { an_ifc_ExprSort_NamedDecl iesnd, *iesndp;
+              iesndp = get_ExprSort_NamedDecl(&iesnd);
+              cache_name_from_decl(cache, iesndp->resolution, &iesndp->locus);
+            }
+            break;
+          case ifc_ExprSort_UnresolvedId:
+            { an_ifc_ExprSort_UnresolvedId iesui, *iesuip;
+              iesuip = get_ExprSort_UnresolvedId(&iesui);
+              cache_identifier(cache,
+                               string_from_name_index(iesuip->name,
+                                                      /*loc=*/NULL),
+                               &pos);
+            }
+            break;
+          default:
+            unexpected_condition_str("Unexpected ExprSort for "
+                                     "SourceLiteral::MsvcBinding");
+        }  /* switch */
       }
       break;
     default_is_unexpected_str("Unknown SourceLiteral");
@@ -10593,6 +10593,9 @@ the location of the operator.
     case ifc_MonadicOperator_MsvcIsEmpty:
       cache_token(cache, tok_is_empty, &pos);
       break;
+    case ifc_MonadicOperator_LookupGlobally:
+      cache_token(cache, tok_colon_colon, &pos);
+      break;
     case ifc_MonadicOperator_MsvcIsTriviallyCopyConstructible:
       /* FIXME: Currently unsupported. */
       issue_unsupported_node_diag(
@@ -10716,6 +10719,9 @@ the location of the operator.
       unexpected_condition();
     case ifc_MonadicOperator_MsvcConfusedExpand:
       cache_token(cache, tok_ellipsis, &pos);
+      break;
+    case ifc_MonadicOperator_MsvcConfusedDependentSizeof:
+      cache_token(cache, tok_sizeof, &pos);
       break;
     default_is_unexpected_str("Unexpected MonadicOperator");
   }  /* switch */
@@ -11669,25 +11675,36 @@ Add the tokens corresponding to the given partial specialization declaration
 }  /* cache_decl_partial_specialization */
 
 
-void an_ifc_module::cache_decl_explicit_specialization(
-                               a_token_cache_ptr                      cache,
-                               ifc_DeclIndex                          decl_idx,
-                               an_ifc_DeclSort_ExplicitSpecialization *decl)
+void an_ifc_module::cache_decl_specialization(
+                                       a_token_cache_ptr              cache,
+                                       ifc_DeclIndex                  decl_idx,
+                                       an_ifc_DeclSort_Specialization *decl)
 /*
-Add the tokens corresponding to the given explicit specialization declaration
-(decl indexed in the IFC by decl_idx) to cache.
+Add the tokens corresponding to the given specialization declaration (decl
+indexed in the IFC by decl_idx) to cache.
 */
 {
   ifc_DeclIndex      templated_decl_idx = decl->decl;
   ifc_SourceLocation decl_locus = get_ifc_locus(templated_decl_idx);
   a_source_position  pos;
+  a_boolean          is_instantiation;
 
+  if (decl->sort == ifc_SpecializationSort_Instantiation) {
+    is_instantiation = TRUE;
+  } else {
+    is_instantiation = FALSE;
+  }  /* if */
   source_position_from_locus(&pos, &decl_locus);
   /* Attempt to cache the access specifier if one is specified. */
   cache_access(cache, get_ifc_access(templated_decl_idx),
                /*cache_colon=*/TRUE, &pos);
-  /* Reconstruct the template-head. */
-  cache_template_head(cache, (ifc_ChartIndex)0, &pos);
+  if (is_instantiation) {
+    /* Cache the template keyword. */
+    cache_token(cache, tok_template, &pos);
+  } else {
+    /* Reconstruct the template-head. */
+    cache_template_head(cache, (ifc_ChartIndex)0, &pos);
+  }  /* if */
   {
     /* Reconstruct the declaration. */
     /* FIXME: Eventually this entire block should be replaceable by a
@@ -11711,7 +11728,7 @@ Add the tokens corresponding to the given explicit specialization declaration
                                               a_source_position_ptr decl_pos) {
               cache_simple_template_id(cache, decl->form, &idssp->locus);
             };
-            auto cache_scope_fn = [this, cache, idssp](
+            auto cache_spec_scope_fn = [this, cache, idssp](
                                               a_source_position_ptr decl_pos) {
               /* If there are bases specified, cache the bases. */
               if (idssp->base != 0) {
@@ -11721,8 +11738,16 @@ Add the tokens corresponding to the given explicit specialization declaration
               cache_scope(cache, idssp->initializer, &idssp->locus);
               cache_token(cache, tok_semicolon, decl_pos);
             };
-            cache_scope_decl(cache, decl_idx, idssp->type, cache_name_fn,
-                             cache_scope_fn, &idssp->locus);
+            auto cache_inst_scope_fn = [cache](a_source_position_ptr decl_pos){
+              cache_token(cache, tok_semicolon, decl_pos);
+            };
+            if (is_instantiation) {
+              cache_scope_decl(cache, decl_idx, idssp->type, cache_name_fn,
+                               cache_inst_scope_fn, &idssp->locus);
+            } else {
+              cache_scope_decl(cache, decl_idx, idssp->type, cache_name_fn,
+                               cache_spec_scope_fn, &idssp->locus);
+            }  /* if */
           }
         }
         break;
@@ -11736,7 +11761,7 @@ Add the tokens corresponding to the given explicit specialization declaration
                                               a_source_position_ptr decl_pos) {
               cache_simple_template_id(cache, decl->form, &idsvp->locus);
             };
-            auto cache_init_fn = [this, cache, idsvp](
+            auto cache_spec_init_fn = [this, cache, idsvp](
                                               a_source_position_ptr decl_pos) {
               if (idsvp->initializer != 0) {
                 cache_token(cache, tok_lparen, decl_pos);
@@ -11745,16 +11770,29 @@ Add the tokens corresponding to the given explicit specialization declaration
               }  /* if */
               cache_token(cache, tok_semicolon, decl_pos);
             };
+            auto cache_inst_init_fn = [cache](a_source_position_ptr decl_pos) {
+              cache_token(cache, tok_semicolon, decl_pos);
+            };
 
             /* We've already cached the access specifier above, suppress
                cache_variable_decl's access specifier caching. */
-            cache_variable_decl(cache, decl_idx,
-                                is_class_scope(idsvp->home_scope),
-                                idsvp->access, /*cache_access_spec=*/FALSE,
-                                idsvp->specifiers, idsvp->traits,
-                                idsvp->alignment, idsvp->type, cache_name_fn,
-                                (ifc_ExprIndex)0, cache_init_fn,
-                                &idsvp->locus);
+            if (is_instantiation) {
+              cache_variable_decl(cache, decl_idx, is_class_scope(
+                                               get_ifc_home_scope_decl(idsvp)),
+                                  idsvp->access, /*cache_access_spec=*/FALSE,
+                                  idsvp->specifiers, idsvp->traits,
+                                  idsvp->alignment, idsvp->type, cache_name_fn,
+                                  (ifc_ExprIndex)0, cache_inst_init_fn,
+                                  &idsvp->locus);
+            } else {
+              cache_variable_decl(cache, decl_idx, is_class_scope(
+                                               get_ifc_home_scope_decl(idsvp)),
+                                  idsvp->access, /*cache_access_spec=*/FALSE,
+                                  idsvp->specifiers, idsvp->traits,
+                                  idsvp->alignment, idsvp->type, cache_name_fn,
+                                  (ifc_ExprIndex)0, cache_spec_init_fn,
+                                  &idsvp->locus);
+            }  /* if */
           }
         }
         break;
@@ -11779,121 +11817,8 @@ Add the tokens corresponding to the given explicit specialization declaration
               params = get_func_params_from_trait(decl_idx);
             }  /* if */
             vendor_traits = get_vendor_traits(decl_idx);
-            cache_function_decl(cache, is_class_scope(idsfp->home_scope),
-                                /*is_dtor=*/FALSE, idsfp->access,
-                                /*cache_access_spec=*/FALSE,
-                                itsfp->convention, idsfp->traits,
-                                itsfp->traits, vendor_traits, itsfp->target,
-                                cache_name_fn, params, itsfp->source,
-                                &itsfp->eh_spec, &idsfp->locus);
-          }
-        }
-        break;
-      default:
-        unexpected_condition_str("Unexpected DeclSort");
-    }  /* switch */
-  }
-}  /* cache_decl_explicit_specialization */
-
-
-void an_ifc_module::cache_decl_explicit_instantiation(
-                                a_token_cache_ptr                     cache,
-                                ifc_DeclIndex                         decl_idx,
-                                an_ifc_DeclSort_ExplicitInstantiation *decl)
-/*
-Add the tokens corresponding to the given explicit instantiation declaration
-(decl indexed in the IFC by decl_idx) to cache.
-*/
-{
-  ifc_DeclIndex      templated_decl_idx = decl->decl;
-  ifc_SourceLocation decl_locus = get_ifc_locus(templated_decl_idx);
-  a_source_position  pos;
-
-  source_position_from_locus(&pos, &decl_locus);
-  /* Attempt to cache the access specifier if one is specified. */
-  cache_access(cache, get_ifc_access(templated_decl_idx),
-               /*cache_colon=*/TRUE, &pos);
-  /* Cache the template keyword. */
-  cache_token(cache, tok_template, &pos);
-  {
-    /* Reconstruct the declaration. */
-    /* FIXME: Eventually this entire block should be replaceable by a
-       cache_decl call (due to problems in the IFC -- namely the templated decl
-       having a mangled NameSort Identifier name instead of a NameSort
-       Specialization -- this is not yet possible). */
-
-    /* Read the partition for the templated declaration. */
-    read_prechecked_partition_element(templated_decl_idx);
-    switch (decl_tag(templated_decl_idx)) {
-      case ifc_DeclSort_Scope:
-        { /* We're reconstructing a class. */
-          an_ifc_DeclSort_Scope idss, *idssp;
-
-          idssp = get_DeclSort_Scope(&idss);
-#if DEBUG
-          validate_is_class_type(idssp->type);
-#endif /* DEBUG */
-          { /* Reconstruct the templated declaration. */
-            auto cache_name_fn = [this, cache, decl, idssp](
-                                              a_source_position_ptr decl_pos) {
-              cache_simple_template_id(cache, decl->form, &idssp->locus);
-            };
-            auto cache_scope_fn = [cache](a_source_position_ptr decl_pos) {
-              cache_token(cache, tok_semicolon, decl_pos);
-            };
-            cache_scope_decl(cache, decl_idx, idssp->type, cache_name_fn,
-                             cache_scope_fn, &idssp->locus);
-          }
-        }
-        break;
-      case ifc_DeclSort_Variable:
-        { /* We're reconstructing a variable. */
-          an_ifc_DeclSort_Variable idsv, *idsvp;
-
-          idsvp = get_DeclSort_Variable(&idsv);
-          { /* Reconstruct the templated declaration. */
-            auto cache_name_fn = [this, cache, decl, idsvp](
-                                              a_source_position_ptr decl_pos) {
-              cache_simple_template_id(cache, decl->form, &idsvp->locus);
-            };
-            auto cache_init_fn = [cache](a_source_position_ptr decl_pos) {
-              cache_token(cache, tok_semicolon, decl_pos);
-            };
-
-            /* We've already cached the access specifier above, suppress
-               cache_variable_decl's access specifier caching. */
-            cache_variable_decl(cache, decl_idx,
-                                is_class_scope(idsvp->home_scope),
-                                idsvp->access, /*cache_access_spec=*/FALSE,
-                                idsvp->specifiers, idsvp->traits,
-                                idsvp->alignment, idsvp->type, cache_name_fn,
-                                (ifc_ExprIndex)0, cache_init_fn,
-                                &idsvp->locus);
-          }
-        }
-        break;
-      case ifc_DeclSort_Function:
-        { /* We're reconstructing a function. */
-          an_ifc_DeclSort_Function idsf, *idsfp;
-          ifc_MsvcTraits           vendor_traits;
-
-          idsfp = get_DeclSort_Function(&idsf);
-          { /* Reconstruct the templated declaration. */
-            auto cache_name_fn = [this, cache, decl, idsfp](
-                                              a_source_position_ptr decl_pos) {
-              cache_simple_template_id(cache, decl->form, &idsfp->locus);
-            };
-            an_ifc_TypeSort_Function itsf, *itsfp;
-            ifc_ChartIndex           params = (ifc_ChartIndex)0;
-
-            check_assertion(type_tag(idsfp->type) == ifc_TypeSort_Function);
-            read_prechecked_partition_element(idsfp->type);
-            itsfp = get_TypeSort_Function(&itsf);
-            if (itsfp->source != 0) {
-              params = get_func_params_from_trait(decl_idx);
-            }  /* if */
-            vendor_traits = get_vendor_traits(decl_idx);
-            cache_function_decl(cache, is_class_scope(idsfp->home_scope),
+            cache_function_decl(cache,
+                                is_class_scope(get_ifc_home_scope_decl(idsfp)),
                                 /*is_dtor=*/FALSE, idsfp->access,
                                 /*cache_access_spec=*/FALSE,
                                 itsfp->convention, idsfp->traits,
@@ -11908,8 +11833,9 @@ Add the tokens corresponding to the given explicit instantiation declaration
           an_ifc_DeclSort_Method idsm, *idsmp;
           ifc_MsvcTraits         vendor_traits;
 
+          check_assertion(is_instantiation);
           idsmp = get_DeclSort_Method(&idsm);
-          check_assertion(is_class_scope(idsmp->home_scope));
+          check_assertion(is_class_scope(get_ifc_home_scope_decl(idsmp)));
           { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idsmp](
                                               a_source_position_ptr decl_pos) {
@@ -11940,8 +11866,9 @@ Add the tokens corresponding to the given explicit instantiation declaration
           an_ifc_DeclSort_Constructor idsc, *idscp;
           ifc_MsvcTraits              vendor_traits;
 
+          check_assertion(is_instantiation);
           idscp = get_DeclSort_Constructor(&idsc);
-          check_assertion(is_class_scope(idscp->home_scope));
+          check_assertion(is_class_scope(get_ifc_home_scope_decl(idscp)));
           { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idscp](
                                               a_source_position_ptr decl_pos) {
@@ -11971,7 +11898,7 @@ Add the tokens corresponding to the given explicit instantiation declaration
         unexpected_condition_str("Unexpected DeclSort");
     }  /* switch */
   }
-}  /* cache_decl_explicit_instantiation */
+}  /* cache_decl_specialization */
 
 
 void an_ifc_module::cache_type_param_introducer(a_token_cache_ptr  cache,
@@ -12247,7 +12174,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
 
         idsvp = get_DeclSort_Variable(&idsv);
         source_position_from_locus(&pos, &idsvp->locus);
-        if (is_class_scope(idsvp->home_scope)) {
+        if (is_class_scope(get_ifc_home_scope_decl(idsvp))) {
           access = idsvp->access;
         }  /* if */
         cache_variable_decl(cache, decl, /*is_class_member=*/FALSE, access,
@@ -12291,7 +12218,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
             break;
           default_is_unexpected_str("Unexpected ParameterSort");
         }  /* switch */
-        if (idspp->pack) {
+        if (type_tag(idspp->type) == ifc_TypeSort_Expansion) {
           cache_token(cache, tok_ellipsis, &pos);
         }  /* if */
         if (idspp->name != 0) {
@@ -12344,7 +12271,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         read_prechecked_partition_element(idsep->type);
         itsfp = get_TypeSort_Fundamental(&itsf);
         source_position_from_locus(&pos, &idsep->locus);
-        if (is_class_scope(idsep->home_scope)) {
+        if (is_class_scope(get_ifc_home_scope_decl(idsep))) {
           cache_access(cache, idsep->access, /*cache_colon=*/TRUE, &pos);
         }  /* if */
         cache_basic_specifiers(cache, idsep->specifiers, &pos);
@@ -12446,16 +12373,10 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         cache_decl_partial_specialization(cache, decl, idspsp);
       }
       break;
-    case ifc_DeclSort_ExplicitSpecialization:
-      { an_ifc_DeclSort_ExplicitSpecialization idses, *idsesp;
-        idsesp = get_DeclSort_ExplicitSpecialization(&idses);
-        cache_decl_explicit_specialization(cache, decl, idsesp);
-      }
-      break;
-    case ifc_DeclSort_ExplicitInstantiation:
-      { an_ifc_DeclSort_ExplicitInstantiation idsei, *idseip;
-        idseip = get_DeclSort_ExplicitInstantiation(&idsei);
-        cache_decl_explicit_instantiation(cache, decl, idseip);
+    case ifc_DeclSort_Specialization:
+      { an_ifc_DeclSort_Specialization idss, *idssp;
+        idssp = get_DeclSort_Specialization(&idss);
+        cache_decl_specialization(cache, decl, idssp);
       }
       break;
     case ifc_DeclSort_Concept:
@@ -12476,7 +12397,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         if (itsfp->source != 0) {
           params = get_func_params_from_trait(decl);
         }  /* if */
-        if (is_class_scope(idsfp->home_scope)) {
+        if (is_class_scope(get_ifc_home_scope_decl(idsfp))) {
           access = idsfp->access;
         }  /* if */
         vendor_traits = get_vendor_traits(decl);
@@ -12668,6 +12589,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       /* FIXME: Currently unsupported. */
       issue_unsupported_node_diag("DeclSort::OutputSegment", &error_position);
       break;
+    case ifc_DeclSort_UnusedSort0:
     case ifc_DeclSort_Last:
       unexpected_condition();
       break;
@@ -12887,23 +12809,23 @@ second operand of an assignment.
 
         iesmp = get_ExprSort_Monad(&iesm);
         source_position_from_locus(&pos, &iesmp->locus);
-        opkind = get_operator_kind(iesmp->op);
+        opkind = get_operator_kind(iesmp->assoc);
         switch (opkind) {
           case opkind_basic:
           case opkind_func_like:
-            cache_operator(cache, iesmp->op, &iesmp->locus);
+            cache_operator(cache, iesmp->assoc, &iesmp->locus);
             cache_arg();
             break;
           case opkind_post:
             cache_arg();
-            cache_operator(cache, iesmp->op, &iesmp->locus);
+            cache_operator(cache, iesmp->assoc, &iesmp->locus);
             break;
           case opkind_other:
             { a_token_kind ltok, rtok;
-              if (iesmp->op == ifc_MonadicOperator_Paren) {
+              if (iesmp->assoc == ifc_MonadicOperator_Paren) {
                 ltok = tok_lparen;
                 rtok = tok_rparen;
-              } else if (iesmp->op == ifc_MonadicOperator_Brace) {
+              } else if (iesmp->assoc == ifc_MonadicOperator_Brace) {
                 ltok = tok_lbrace;
                 rtok = tok_rbrace;
               } else {
@@ -12928,31 +12850,31 @@ second operand of an assignment.
 
         iesdp = get_ExprSort_Dyad(&iesd);
         source_position_from_locus(&pos, &iesdp->locus);
-        opkind = get_operator_kind(iesdp->op);
+        opkind = get_operator_kind(iesdp->assoc);
         switch (opkind) {
           case opkind_basic:
-            if (iesdp->op == ifc_DyadicOperator_Comma) {
+            if (iesdp->assoc == ifc_DyadicOperator_Comma) {
               cache_token(cache, tok_lparen, &pos);
             }  /* if */
             if ((options & ceo_skip_assign) == 0 ||
-                iesdp->op != ifc_DyadicOperator_Assign) {
+                iesdp->assoc != ifc_DyadicOperator_Assign) {
               cache_expr(cache, iesdp->arguments_0,
                          ceo_possible_temporary_decl);
-              cache_operator(cache, iesdp->op, &iesdp->locus);
+              cache_operator(cache, iesdp->assoc, &iesdp->locus);
             }  /* if */
             cache_expr(cache, iesdp->arguments_1);
-            if (iesdp->op == ifc_DyadicOperator_Comma) {
+            if (iesdp->assoc == ifc_DyadicOperator_Comma) {
               cache_token(cache, tok_rparen, &pos);
             }  /* if */
             break;
           case opkind_func_like:
-            if (iesdp->op == ifc_DyadicOperator_MsvcAlign) {
+            if (iesdp->assoc == ifc_DyadicOperator_MsvcAlign) {
               /* An expression like "this->i" is represented in IFC files as
                  "this->__MsvcAlign(4, i)".  That has no equivalent in the
                  EDG IL.  So just cache the second argument. */
               cache_expr(cache, iesdp->arguments_1);
             } else {
-              cache_operator(cache, iesdp->op, &iesdp->locus);
+              cache_operator(cache, iesdp->assoc, &iesdp->locus);
               cache_token(cache, tok_lparen, &pos);
               cache_expr(cache, iesdp->arguments_0);
               cache_token(cache, tok_comma, &pos);
@@ -12961,7 +12883,7 @@ second operand of an assignment.
             }  /* if */
             break;
           case opkind_cpp_cast:
-            cache_operator(cache, iesdp->op, &iesdp->locus);
+            cache_operator(cache, iesdp->assoc, &iesdp->locus);
             FALLTHROUGH
           case opkind_c_cast:
             if (opkind == opkind_c_cast) {
@@ -12991,11 +12913,11 @@ second operand of an assignment.
       { an_ifc_ExprSort_Triad iest, *iestp;
         iestp = get_ExprSort_Triad(&iest);
         source_position_from_locus(&pos, &iestp->locus);
-        switch (iestp->op) {
+        switch (iestp->assoc) {
           case ifc_TriadicOperator_Choice:
             {
               cache_expr(cache, iestp->arguments_0);
-              cache_operator(cache, iestp->op, &iestp->locus);
+              cache_operator(cache, iestp->assoc, &iestp->locus);
               cache_expr(cache, iestp->arguments_1);
               cache_token(cache, tok_colon, &pos);
               cache_expr(cache, iestp->arguments_2);
@@ -13003,7 +12925,7 @@ second operand of an assignment.
             break;
           case ifc_TriadicOperator_ConstructAt:
             {
-              cache_operator(cache, iestp->op, &iestp->locus);
+              cache_operator(cache, iestp->assoc, &iestp->locus);
               cache_token(cache, tok_lparen, &pos);
               cache_expr(cache, iestp->arguments_0);
               cache_token(cache, tok_rparen, &pos);
@@ -13176,43 +13098,6 @@ common_cast:
       /* FIXME: Currently unsupported. */
       issue_unsupported_node_diag("ExprSort::Alignof", &error_position);
       break;
-    case ifc_ExprSort_New:
-      { an_ifc_ExprSort_New  iesn, *iesnp;
-        iesnp = get_ExprSort_New(&iesn);
-        if (iesnp->double_colon.line != 0) {
-          source_position_from_locus(&pos, &iesnp->double_colon);
-          cache_token(cache, tok_colon_colon, &pos);
-        }  /* if */
-        source_position_from_locus(&pos, &iesnp->new_keyword);
-        cache_token(cache, tok_new, &pos);
-        if (iesnp->placement != 0) {
-          /* iesnp->placement appears to always represent a parenthesized
-             expression list.  If the list is empty, this is not a
-             placement-new expression. */
-#if CHECKING
-          ifc_ExprSort  placement_tag = expr_tag(iesnp->placement);
-          check_assertion(placement_tag == ifc_ExprSort_ExpressionList);
-#endif /* CHECKING */
-          read_prechecked_partition_element(iesnp->placement);
-          an_ifc_ExprSort_ExpressionList esel, *eselp;
-          eselp = get_ExprSort_ExpressionList(&esel);
-          if (eselp->contents != (ifc_ExprIndex)0) {
-            /* The list is not empty. */
-            cache_expr(cache, iesnp->placement);
-          } else {
-            unexpected_condition();
-          }  /* if */
-        }  /* if */
-        cache_type(cache, iesnp->allocated_type, &iesnp->new_keyword);
-        if (iesnp->initializer != (ifc_ExprIndex)0) {
-          cache_expr(cache, iesnp->initializer);
-        }  /* if */
-      }
-      break;
-    case ifc_ExprSort_Delete:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::Delete", &error_position);
-      break;
     case ifc_ExprSort_Typeid:
       /* FIXME: Currently unsupported. */
       issue_unsupported_node_diag("ExprSort::Typeid", &error_position);
@@ -13367,6 +13252,8 @@ common_cast:
       issue_unsupported_node_diag("ExprSort::AssignInitializer",
                                   &error_position);
       break;
+    case ifc_ExprSort_UnusedSort0:
+    case ifc_ExprSort_UnusedSort1:
     case ifc_ExprSort_Last:
       unexpected_condition();
       break;
@@ -14771,12 +14658,8 @@ the position's partition kind.
     case ifc_decl_partial_specialization:
       getDerived()->template visit<an_ifc_DeclSort_PartialSpecialization>(pos);
       break;
-    case ifc_decl_explicit_specialization:
-      getDerived()->template visit<an_ifc_DeclSort_ExplicitSpecialization>(
-                                                                          pos);
-      break;
-    case ifc_decl_explicit_instantiation:
-      getDerived()->template visit<an_ifc_DeclSort_ExplicitInstantiation>(pos);
+    case ifc_decl_specialization:
+      getDerived()->template visit<an_ifc_DeclSort_Specialization>(pos);
       break;
     case ifc_decl_concept:
       getDerived()->template visit<an_ifc_DeclSort_Concept>(pos);
@@ -15009,12 +14892,6 @@ the position's partition kind.
       break;
     case ifc_expr_alignof_type:
       getDerived()->template visit<an_ifc_ExprSort_Alignof>(pos);
-      break;
-    case ifc_expr_new:
-      getDerived()->template visit<an_ifc_ExprSort_New>(pos);
-      break;
-    case ifc_expr_delete:
-      getDerived()->template visit<an_ifc_ExprSort_Delete>(pos);
       break;
     case ifc_expr_typeid:
       getDerived()->template visit<an_ifc_ExprSort_Typeid>(pos);
@@ -16472,7 +16349,7 @@ Handle failure and, if enabled, diagnostics for an encountered undefined
 partition.
 */
 {
-  for (uint32_t index = 0; index < (uint32_t)ifc_last; ++index) {
+  for (uint32_t index = 0; index < num_ifc_partitions; ++index) {
     an_ifc_partition_map *map_entry = &ifc_partition_map[index];
 
     if (map_entry->kind == pos.partition) {
@@ -17474,9 +17351,9 @@ decl, or an empty sequence if not found.
 
 
 a_template_ptr an_ifc_module::parse_cached_explicit_specialization(
-                             a_token_cache_ptr                      cache,
-                             a_scope_ptr                            encl_scope,
-                             an_ifc_DeclSort_ExplicitSpecialization *decl)
+                                     a_token_cache_ptr              cache,
+                                     a_scope_ptr                    encl_scope,
+                                     an_ifc_DeclSort_Specialization *decl)
 /*
 Parse the tokens corresponding to the given explicit specialization
 declaration's (decl) cache, and return the corresponding explicit
@@ -17495,6 +17372,7 @@ declaration.
     fprintf(f_debug, "\n---------------------\n");
   }  /* if */
 #endif /* DEBUG */
+  check_assertion(decl->sort == ifc_SpecializationSort_Explicit);
   prepare_cached_template_parse(cache, encl_scope,
                                 &dps, &decl_state, &final_token);
   {
@@ -17510,8 +17388,8 @@ declaration.
 
 
 void an_ifc_module::record_pending_explicit_specialization(
-                               a_decl_parse_state                     *dps,
-                               an_ifc_DeclSort_ExplicitSpecialization *decl)
+                                          a_decl_parse_state             *dps,
+                                          an_ifc_DeclSort_Specialization *decl)
 /*
 Record the presence of a pending explicit specialization declaration's (decl)
 definition if any.  dps is the associated decl parse state from the parsing of
@@ -17520,6 +17398,7 @@ the declaration of the entity.
 {
   ifc_DeclIndex templated_decl_idx = decl->decl;
 
+  check_assertion(decl->sort == ifc_SpecializationSort_Explicit);
   /* Read the partition for the templated declaration. */
   read_prechecked_partition_element(templated_decl_idx);
   switch (decl_tag(templated_decl_idx)) {
@@ -17594,9 +17473,9 @@ FIXME: This should likely be extracted as a general function for symbols.
 
 
 char *an_ifc_module::parse_cached_explicit_instantiation(
-                                   a_token_cache_ptr                     cache,
-                                   an_ifc_DeclSort_ExplicitInstantiation *decl,
-                                   a_byte_il_entry_kind                  *kind)
+                                          a_token_cache_ptr              cache,
+                                          an_ifc_DeclSort_Specialization *decl,
+                                          a_byte_il_entry_kind           *kind)
 /*
 Parse the tokens corresponding to the given explicit instantiation
 declaration's (decl) cache.  Return a pointer to the corresponding
@@ -17615,6 +17494,7 @@ explicitly-instantiated entity and update kind with the associated entity kind.
     fprintf(f_debug, "\n---------------------\n");
   }  /* if */
 #endif /* DEBUG */
+  check_assertion(decl->sort == ifc_SpecializationSort_Instantiation);
   push_stop_token_stack();
   rescan_cached_tokens(cache);
   source_position_from_locus(&template_kw_pos, &template_locus);

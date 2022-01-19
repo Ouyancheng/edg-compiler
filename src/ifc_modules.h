@@ -133,6 +133,7 @@ enum ifc_Qualifiers : uint8_t;  /* Defined below. */
 enum ifc_ReachableProperties : uint8_t;  /* Defined below. */
 enum ifc_ReadConversionSort : ifc_Sort_type;  /* Defined below. */
 enum ifc_ScopeTraits : uint8_t;  /* Defined below. */
+enum ifc_SpecializationSort : ifc_Sort_type; /* Defined below. */
 enum ifc_SyntaxSort : ifc_Sort_type;  /* Defined below. */
 enum ifc_TypeBasis : uint8_t;  /* Defined below. */
 enum ifc_TypePrecision : uint8_t;  /* Defined below. */
@@ -457,6 +458,7 @@ enum ifc_ScopeTraits : uint8_t {
   ifc_ScopeTraits_ClosureType   = 1 << 3,
   ifc_ScopeTraits_Vendor        = 1 << 7,
 };
+
 /*lint -restore*/
 
 /* Macros used to access UnitIndex::tag and UnitIndex::value. */
@@ -584,8 +586,8 @@ enum ifc_ExprSort : ifc_Sort_type {
   ifc_ExprSort_ExpressionList,
   ifc_ExprSort_SizeofType,
   ifc_ExprSort_Alignof,
-  ifc_ExprSort_New,
-  ifc_ExprSort_Delete,
+  ifc_ExprSort_UnusedSort0,
+  ifc_ExprSort_UnusedSort1,
   ifc_ExprSort_Typeid,
   ifc_ExprSort_DestructorCall,
   ifc_ExprSort_SyntaxTree,
@@ -716,8 +718,8 @@ enum ifc_DeclSort : ifc_Sort_type {
   ifc_DeclSort_Temploid,
   ifc_DeclSort_Template,
   ifc_DeclSort_PartialSpecialization,
-  ifc_DeclSort_ExplicitSpecialization,
-  ifc_DeclSort_ExplicitInstantiation,
+  ifc_DeclSort_Specialization,
+  ifc_DeclSort_UnusedSort0,
   ifc_DeclSort_Concept,
   ifc_DeclSort_Function,
   ifc_DeclSort_Method,
@@ -738,6 +740,13 @@ enum ifc_DeclSort : ifc_Sort_type {
   ifc_DeclSort_OutputSegment,
   /* Must be last. */
   ifc_DeclSort_Last
+};
+
+/* Enumeration for SpecializationSort */
+enum ifc_SpecializationSort : ifc_Sort_type {
+  ifc_SpecializationSort_Implicit,
+  ifc_SpecializationSort_Explicit,
+  ifc_SpecializationSort_Instantiation,
 };
 
 /* Macros used to access NameIndex::tag and NameIndex::value. */
@@ -831,6 +840,7 @@ enum ifc_MonadicOperator : ifc_Operator_type {
   ifc_MonadicOperator_Read,
   ifc_MonadicOperator_Materialize,
   ifc_MonadicOperator_PseudoDtorCall,
+  ifc_MonadicOperator_LookupGlobally,
   /* MSVC-specific. */
   ifc_MonadicOperator_Msvc = 0x400,
   ifc_MonadicOperator_MsvcAssume,
@@ -876,6 +886,7 @@ enum ifc_MonadicOperator : ifc_Operator_type {
   ifc_MonadicOperator_MsvcHasUserDestructor,
   ifc_MonadicOperator_MsvcConfusion = 0xFE0,
   ifc_MonadicOperator_MsvcConfusedExpand,
+  ifc_MonadicOperator_MsvcConfusedDependentSizeof,
 };
 
 /* Enumeration of dyadic operators (operators accepting two arguments). */
@@ -1727,10 +1738,7 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_decl_template = ifc_decl_start + ifc_DeclSort_Template,
   ifc_decl_partial_specialization = ifc_decl_start +
                                             ifc_DeclSort_PartialSpecialization,
-  ifc_decl_explicit_specialization = ifc_decl_start +
-                                           ifc_DeclSort_ExplicitSpecialization,
-  ifc_decl_explicit_instantiation = ifc_decl_start +
-                                            ifc_DeclSort_ExplicitInstantiation,
+  ifc_decl_specialization = ifc_decl_start + ifc_DeclSort_Specialization,
   ifc_decl_concept = ifc_decl_start + ifc_DeclSort_Concept,
   ifc_decl_function = ifc_decl_start + ifc_DeclSort_Function,
   ifc_decl_method = ifc_decl_start + ifc_DeclSort_Method,
@@ -1818,8 +1826,6 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_expr_expression_list = ifc_expr_start + ifc_ExprSort_ExpressionList,
   ifc_expr_sizeof_type = ifc_expr_start + ifc_ExprSort_SizeofType,
   ifc_expr_alignof_type = ifc_expr_start + ifc_ExprSort_Alignof,
-  ifc_expr_new = ifc_expr_start + ifc_ExprSort_New,
-  ifc_expr_delete = ifc_expr_start + ifc_ExprSort_Delete,
   ifc_expr_typeid = ifc_expr_start + ifc_ExprSort_Typeid,
   ifc_expr_destructor_call = ifc_expr_start + ifc_ExprSort_DestructorCall,
   ifc_expr_syntax_tree = ifc_expr_start + ifc_ExprSort_SyntaxTree,
@@ -2157,6 +2163,12 @@ enum an_ifc_partition_kind : uint32_t {
   ifc_invalid_partition, /* Represents an error state. */
   ifc_last
 };  /* an_ifc_partition_kind */
+
+/*
+The number of real partitions that we can expect to see.  This is an offset
+from ifc_last, which accounts for placeholder Sorts (e.g.,
+ifc_DeclSort_UnusedSort0) as well as non-real partitions (e.g., ifc_last). */
+constexpr uint32_t num_ifc_partitions = ifc_last - 7;
 /*lint -restore*/
 
 
@@ -2172,7 +2184,7 @@ struct an_ifc_partition_map {
 };  /* an_ifc_partition_map */
 
 /*lint -save -e641*/
-EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
+EXTERN an_ifc_partition_map ifc_partition_map[num_ifc_partitions]
 #if VAR_INITIALIZERS
 = {
   /* Not mentioned in spec.  Found in IFC files. */
@@ -2224,8 +2236,6 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "decl.enum",                       ifc_decl_enumeration },
   { "decl.enumerator",                 ifc_decl_enumerator },
   { "decl.expansion",                  ifc_decl_expansion },
-  { "decl.explicit-instantiation",     ifc_decl_explicit_instantiation },
-  { "decl.explicit-specialization",    ifc_decl_explicit_specialization },
   { "decl.field",                      ifc_decl_field },
   { "decl.friend",                     ifc_decl_friend },
   { "decl.function",                   ifc_decl_function },
@@ -2238,6 +2248,7 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "decl.reference",                  ifc_decl_reference },
   { "decl.scope",                      ifc_decl_scope },
   { "decl.segment",                    ifc_decl_segment },
+  { "decl.specialization",             ifc_decl_specialization },
   { "decl.syntax-tree",                ifc_decl_syntax_tree },
   { "decl.template",                   ifc_decl_template },
   { "decl.temploid",                   ifc_decl_temploid },
@@ -2256,7 +2267,6 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "expr.compound-string",            ifc_expr_compound_string },
   { "expr.condition",                  ifc_expr_condition },
   { "expr.decl",                       ifc_expr_decl },
-  { "expr.delete",                     ifc_expr_delete },
   { "expr.designated-init",            ifc_expr_des_init },
   { "expr.destructor-call",            ifc_expr_destructor_call },
   { "expr.dyad",                       ifc_expr_dyad },
@@ -2275,7 +2285,6 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "expr.member-access",              ifc_expr_member_access },
   { "expr.member-initializer",         ifc_expr_member_initializer },
   { "expr.monad",                      ifc_expr_monad },
-  { "expr.new",                        ifc_expr_new },
   { "expr.nullptr",                    ifc_expr_nullptr },
   { "expr.packed-template-arguments",  ifc_expr_packed_template_arguments },
   { "expr.path",                       ifc_expr_path },
@@ -2518,11 +2527,6 @@ EXTERN an_ifc_partition_map ifc_partition_map[(int)ifc_last+1]
   { "type.typename",                   ifc_type_typename },
   { "type.unaligned",                  ifc_type_unaligned },
   { "type.vendor-extension",           ifc_type_vendor_extension },
-  /* No special partition - name identifiers use the string table. */
-  { NULL,                              ifc_name_identifier },
-  { NULL,                              ifc_none },
-  { NULL,                              ifc_invalid_partition },
-  { NULL,                              ifc_last } /* Must be last. */
 }
 #endif /* VAR_INITIALIZERS */
  ;
@@ -2584,7 +2588,10 @@ struct an_ifc_module : public a_module_interface {
   an_ifc_partition
 		partitions[(int)ifc_last+1] = {};
 			/* Information about each of the IFC partitions that
-			   could exist in a module file. */
+			   could exist in a module file.  Note that this must
+			   allow for indexing via partition enumerators, which
+			   may have gaps, and so ifc_last must be used here
+			   instead of num_ifc_partitions. */
   a_module_sequence_number_mapping
 		*sequence_numbers = NULL;
 			/* A mapping of sequence numbers for the module,
@@ -2828,6 +2835,7 @@ private:
     { return get_ifc_locus(decl, Overload_priority<1>()); }
   ifc_SourceLocation get_ifc_locus(ifc_DeclIndex decl_index);
   /* IFC Home Scope Decl readers. */
+  inline ifc_DeclIndex skip_scope_abstractions(ifc_DeclIndex decl);
   template<typename an_ifc_DeclSort_T>
   inline ifc_DeclIndex get_ifc_home_scope_decl(an_ifc_DeclSort_T *decl,
                                                Overload_priority<0>)
@@ -2836,7 +2844,7 @@ private:
   inline auto get_ifc_home_scope_decl(an_ifc_DeclSort_T *decl,
                                       Overload_priority<1>)
                           -> Is_same<decltype(decl->home_scope), ifc_DeclIndex>
-    { return decl->home_scope; }
+    { return skip_scope_abstractions(decl->home_scope); }
   template<typename an_ifc_DeclSort_T>
   inline ifc_DeclIndex get_ifc_home_scope_decl(an_ifc_DeclSort_T *decl)
     { return get_ifc_home_scope_decl(decl, Overload_priority<1>()); }
@@ -3065,14 +3073,10 @@ private:
                                 a_token_cache_ptr                     cache,
                                 ifc_DeclIndex                         decl_idx,
                                 an_ifc_DeclSort_PartialSpecialization *decl);
-  void cache_decl_explicit_specialization(
-                               a_token_cache_ptr                      cache,
-                               ifc_DeclIndex                          decl_idx,
-                               an_ifc_DeclSort_ExplicitSpecialization *decl);
-  void cache_decl_explicit_instantiation(
-                                a_token_cache_ptr                     cache,
-                                ifc_DeclIndex                         decl_idx,
-                                an_ifc_DeclSort_ExplicitInstantiation *decl);
+  void cache_decl_specialization(
+                               a_token_cache_ptr              cache,
+                               ifc_DeclIndex                  decl_idx,
+                               an_ifc_DeclSort_Specialization *decl);
   template<typename a_Name_Cache_Fn, typename an_Init_Cache_Fn>
   inline void cache_variable_decl(a_token_cache_ptr   cache,
                                   ifc_DeclIndex       decl_idx,
@@ -3201,16 +3205,16 @@ private:
   ifc_MsvcTraits get_vendor_traits(ifc_DeclIndex decl);
   ifc_Sequence get_specialization_sequence_from_trait(ifc_DeclIndex decl);
   a_template_ptr parse_cached_explicit_specialization(
-                             a_token_cache_ptr                      cache,
-                             a_scope_ptr                            encl_scope,
-                             an_ifc_DeclSort_ExplicitSpecialization *decl);
+                             a_token_cache_ptr              cache,
+                             a_scope_ptr                    encl_scope,
+                             an_ifc_DeclSort_Specialization *decl);
   void record_pending_explicit_specialization(
-                                 a_decl_parse_state                     *dps,
-                                 an_ifc_DeclSort_ExplicitSpecialization *decl);
+                                 a_decl_parse_state             *dps,
+                                 an_ifc_DeclSort_Specialization *decl);
   char *parse_cached_explicit_instantiation(
-                                  a_token_cache_ptr                     cache,
-                                  an_ifc_DeclSort_ExplicitInstantiation *decl,
-                                  a_byte_il_entry_kind                  *kind);
+                                  a_token_cache_ptr              cache,
+                                  an_ifc_DeclSort_Specialization *decl,
+                                  a_byte_il_entry_kind           *kind);
 #if DEBUG
   void validate_is_class_type(ifc_TypeIndex type);
   void db_ifc_file_header() const;
@@ -3251,18 +3255,12 @@ inline ifc_NameIndex an_ifc_module::get_ifc_name(
                                   an_ifc_DeclSort_PartialSpecialization *decl);
 template<>
 inline ifc_NameIndex an_ifc_module::get_ifc_name(
-                                 an_ifc_DeclSort_ExplicitSpecialization *decl);
-template<>
-inline ifc_NameIndex an_ifc_module::get_ifc_name(
-                                  an_ifc_DeclSort_ExplicitInstantiation *decl);
+                                         an_ifc_DeclSort_Specialization *decl);
 
 /* Explicit specializations of an_ifc_module::get_ifc_locus. */
 template<>
 inline ifc_SourceLocation an_ifc_module::get_ifc_locus(
-                                 an_ifc_DeclSort_ExplicitSpecialization *decl);
-template<>
-inline ifc_SourceLocation an_ifc_module::get_ifc_locus(
-                                  an_ifc_DeclSort_ExplicitInstantiation *decl);
+                                         an_ifc_DeclSort_Specialization *decl);
 
 /* Explicit specializations of an_ifc_module::get_ifc_home_scope_decl. */
 template<>
@@ -3270,10 +3268,7 @@ inline ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(
                                   an_ifc_DeclSort_PartialSpecialization *decl);
 template<>
 inline ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(
-                                 an_ifc_DeclSort_ExplicitSpecialization *decl);
-template<>
-inline ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(
-                                  an_ifc_DeclSort_ExplicitInstantiation *decl);
+                                         an_ifc_DeclSort_Specialization *decl);
 
 /* Explicit specializations of an_ifc_module::get_ifc_home_scope. */
 template<>

@@ -143,7 +143,6 @@ IFC_DECL_DECLSORT_START(Parameter)
   IFC_DECL_FIELD(position, ParameterPosition)
   IFC_DECL_FIELD(sort, ParameterSort)
   IFC_DECL_FIELD(properties, ReachableProperties)
-  IFC_DECL_FIELD(pack, bool)
 IFC_DECL_DECLSORT_END(Parameter)
 
 /* DeclSort::Field */
@@ -249,17 +248,15 @@ IFC_DECL_DECLSORT_START(PartialSpecialization)
   IFC_DECL_FIELD(properties, ReachableProperties)
 IFC_DECL_DECLSORT_END(PartialSpecialization)
 
-/* DeclSort::ExplicitSpecialization */
-IFC_DECL_DECLSORT_START(ExplicitSpecialization)
+/* DeclSort::Specialization */
+IFC_DECL_DECLSORT_START(Specialization)
   IFC_DECL_FIELD(form, FormSpecIndex)
   IFC_DECL_FIELD(decl, DeclIndex)
-IFC_DECL_DECLSORT_END(ExplicitSpecialization)
+  IFC_DECL_FIELD(sort, SpecializationSort)
+IFC_DECL_DECLSORT_END(Specialization)
 
-/* DeclSort::ExplicitInstantiation */
-IFC_DECL_DECLSORT_START(ExplicitInstantiation)
-  IFC_DECL_FIELD(form, FormSpecIndex)
-  IFC_DECL_FIELD(decl, DeclIndex)
-IFC_DECL_DECLSORT_END(ExplicitInstantiation)
+/* DeclSort::UnusedSort0 */
+/* No associated structure. */
 
 /* DeclSort::Concept */
 IFC_DECL_DECLSORT_START(Concept)
@@ -654,7 +651,10 @@ IFC_DECL_END(StmtSort_Return)
 /* StmtSort::VariableDecl */
 IFC_DECL_START(StmtSort_VariableDecl)
   IFC_DECL_FIELD(decl, DeclIndex)
-  IFC_DECL_FIELD(initializer, ExprIndex)
+  /* The size of this structure is 12 bytes in IFC 0.41, but the structure
+     according to the spec has 16 bytes.  Removing the initializer field seems
+     to result in correct behavior. */
+  /*IFC_DECL_FIELD(initializer, ExprIndex)*/
   IFC_DECL_FIELD(locus, SourceLocation)
 IFC_DECL_END(StmtSort_VariableDecl)
 
@@ -771,29 +771,32 @@ IFC_DECL_END(ExprSort_Read)
 IFC_DECL_START(ExprSort_Monad)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(impl, DeclIndex)
   IFC_DECL_FIELD(argument, ExprIndex)
-  IFC_DECL_FIELD(op, MonadicOperator)
+  IFC_DECL_FIELD(assoc, MonadicOperator)
 IFC_DECL_END(ExprSort_Monad)
 
 /* ExprSort::Dyad */
 IFC_DECL_START(ExprSort_Dyad)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(impl, DeclIndex)
   /* IFC_DECL_FIELD(arguments[2], ExprIndex)  needs to be rewritten: */
   IFC_DECL_FIELD(arguments_0, ExprIndex)
   IFC_DECL_FIELD(arguments_1, ExprIndex)
-  IFC_DECL_FIELD(op, DyadicOperator)
+  IFC_DECL_FIELD(assoc, DyadicOperator)
 IFC_DECL_END(ExprSort_Dyad)
 
 /* ExprSort::Triad */
 IFC_DECL_START(ExprSort_Triad)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
+  IFC_DECL_FIELD(impl, DeclIndex)
   /* IFC_DECL_FIELD(arguments[3], ExprIndex)  needs to be rewritten: */
   IFC_DECL_FIELD(arguments_0, ExprIndex)
   IFC_DECL_FIELD(arguments_1, ExprIndex)
   IFC_DECL_FIELD(arguments_2, ExprIndex)
-  IFC_DECL_FIELD(op, TriadicOperator)
+  IFC_DECL_FIELD(assoc, TriadicOperator)
 IFC_DECL_END(ExprSort_Triad)
 
 /* ExprSort::String */
@@ -889,21 +892,11 @@ IFC_DECL_START(ExprSort_Alignof)
   IFC_DECL_FIELD(operand, SyntaxIndex)
 IFC_DECL_END(ExprSort_Alignof)
 
-/* ExprSort::New */
-IFC_DECL_START(ExprSort_New)
-  IFC_DECL_FIELD(double_colon, SourceLocation)
-  IFC_DECL_FIELD(new_keyword, SourceLocation)
-  IFC_DECL_FIELD(allocated_type, TypeIndex)
-  IFC_DECL_FIELD(placement, ExprIndex)
-  IFC_DECL_FIELD(initializer, ExprIndex)
-IFC_DECL_END(ExprSort_New)
+/* ExprSort::UnusedSort0 */
+/* No associated structure. */
 
-/* ExprSort::Delete */
-IFC_DECL_START(ExprSort_Delete)
-  IFC_DECL_FIELD(double_colon, SourceLocation)
-  IFC_DECL_FIELD(delete_keyword, SourceLocation)
-  IFC_DECL_FIELD(address, ExprIndex)
-IFC_DECL_END(ExprSort_Delete)
+/* ExprSort::UnusedSort1 */
+/* No associated structure. */
 
 /* ExprSort::Typeid */
 IFC_DECL_START(ExprSort_Typeid)
