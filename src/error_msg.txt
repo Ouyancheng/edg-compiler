@@ -3318,6 +3318,7 @@ ec_suppressed;INTERNAL;"suppressed"
 ec_virtual_with_explicit_this;;"a virtual member function cannot have an explicit \"this\" parameter"
 ec_address_of_unqualified_explicit_this_function;;"taking the address of an explicit \"this\" function requires a qualified name"
 ec_implicit_address_of_explicit_this_function;;"forming the address of an explicit \"this\" function requires the \"&\" operator"
+ec_string_literal_cannot_initialize_flexible_array_member;;"a string literal cannot be used to initialize a flexible array member"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

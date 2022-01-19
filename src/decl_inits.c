@@ -2945,17 +2945,27 @@ and return FALSE.  Otherwise, return TRUE.
        cases. */
     a_type_ptr  etype = underlying_array_element_type(fp->type);
     etype = skip_typerefs(etype);
-    if (!C_mode() && is_immediate_class_type(etype)) {
-      a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(etype);
-      if (has_nontrivial_destructor(cssp)) {
-        /* Microsoft C++ allows the aggregate initialization of flexible array
-           members only if they do not have nontrivial destructors.  GCC
-           behaves the same way starting with version 6.1. */
+    if (!C_mode()) {
+      /* Microsoft C++ allows the aggregate initialization of flexible array
+         members only if they do not have nontrivial destructors.  GCC behaves
+         the same way starting with version 6.1 (except that it doesn't allow
+         string literals for the array initialization). */
+      a_constant_ptr  cp;
+      if (is_immediate_class_type(etype) &&
+          has_nontrivial_destructor(class_symbol_supp(symbol_for(etype)))) {
         result = FALSE;
         if (is->no_diagnostics) {
           is->init_error = TRUE;
         } else {
           pos_error(ec_cannot_initialize_destructible_flexible_array,
+                    init_component_pos(icp));
+        }  /* if */
+      } else if (gpp_mode && is_string_literal_component(icp, &cp)) {
+        result = FALSE;
+        if (is->no_diagnostics) {
+          is->init_error = TRUE;
+        } else {
+          pos_error(ec_string_literal_cannot_initialize_flexible_array_member,
                     init_component_pos(icp));
         }  /* if */
       }  /* if */
