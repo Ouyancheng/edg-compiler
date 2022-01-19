@@ -5369,7 +5369,8 @@ void an_ifc_module::debug() const
 Print debug information for an IFC module
 */
 {
-  (void)fprintf(f_debug, "kind: mk_ifc\n");
+  (void)fprintf(f_debug, ", kind: mk_ifc, version: %u.%u\n",
+                header.major_version, header.minor_version);
 }  /* debug */
 
 
