@@ -2939,14 +2939,18 @@ and return FALSE.  Otherwise, return TRUE.
       icp->variant.braced.list == NULL) {
     /* GCC appears to always permit a "{}" initializer for a flexible array
        member. */
-  } else if (microsoft_mode || (gcc_mode && is->static_lifetime_init)) {
+  } else if (microsoft_mode || (gcc_mode && is->static_lifetime_init) ||
+             gpp_version_is(>=60000)) {
+    /* MSVC and GCC allow initializers for flexible array members in some
+       cases. */
     a_type_ptr  etype = underlying_array_element_type(fp->type);
     etype = skip_typerefs(etype);
     if (!C_mode() && is_immediate_class_type(etype)) {
       a_class_symbol_supplement_ptr  cssp = symbol_supplement_for_class(etype);
       if (has_nontrivial_destructor(cssp)) {
         /* Microsoft C++ allows the aggregate initialization of flexible array
-           members only if they do not have nontrivial destructors. */
+           members only if they do not have nontrivial destructors.  GCC
+           behaves the same way starting with version 6.1. */
         result = FALSE;
         if (is->no_diagnostics) {
           is->init_error = TRUE;
