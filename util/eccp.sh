@@ -1715,7 +1715,7 @@ process_option()
          --utf8_char_literals | \
          --no_utf8_char_literals | \
          --check_unicode_security | \
-         --no_check_unicode_security
+         --no_check_unicode_security | \
          --old_id_chars | \
          --no_old_id_chars)
 #     Options that require additional processing
