@@ -916,6 +916,7 @@ check_abbreviation()
 --no_nonstd_qualifier_deduction
 --no_nonstd_using_decl
 --no_nullptr
+--no_old_id_chars
 --no_old_specializations
 --no_parse_templates
 --no_pch_messages
@@ -967,6 +968,7 @@ check_abbreviation()
 --nullptr
 --old_c
 --old_for_init
+--old_id_chars
 --old_ii_format
 --old_line_commands
 --old_specializations
@@ -1713,7 +1715,9 @@ process_option()
          --utf8_char_literals | \
          --no_utf8_char_literals | \
          --check_unicode_security | \
-         --no_check_unicode_security)
+         --no_check_unicode_security
+         --old_id_chars | \
+         --no_old_id_chars)
 #     Options that require additional processing
       case $arg in
         -m | --c | --c89 | --c99 | --no_c99 | --c11 | --c18 | --c17 | \
