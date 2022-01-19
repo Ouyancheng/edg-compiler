@@ -1668,6 +1668,12 @@ Initialize the option information table.
                          "no_check_unicode_security", '\0', /*value=*/FALSE,
                          /*arg_required=*/FALSE, pchek_command_line);
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
+  add_option_description(optk_old_id_chars, "old_id_chars", '\0',
+                         /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_old_id_chars, "no_old_id_chars", '\0',
+                         /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 }  /* initialize_option_descriptions */
 
 
@@ -11313,7 +11319,10 @@ enable_microsoft_mode:
       case optk_check_unicode_security:
         check_unicode_security = opt_value;
         break;
-#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */        
+#endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
+      case optk_old_id_chars:
+        old_id_chars = opt_value;
+        break;
       default:
         /* It should not be possible to get here. */
         unexpected_condition();
@@ -12817,6 +12826,7 @@ variables declared in cmd_line.h.
 #if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
   check_unicode_security = FALSE;
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
+  old_id_chars = FALSE;
 }  /* cmd_line_static_var_init */
 
 

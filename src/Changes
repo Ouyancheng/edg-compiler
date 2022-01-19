@@ -1,5 +1,22 @@
 Version 6.4
 
+1/19/22  [EDGcpfe/24774]
+C++23: Unicode-based identifier syntax
+
+WG21 document P1949R7, which was adopted by the C++ Standard Committee for
+C++23 and as a Defect Report against previous C++ standards, uses the
+definitions of the XID_Start and XID_Continue categories from Unicode
+Standard Annex #44 to specify which extended characters can validly appear
+in an identifier.  The front end has now been changed to use these Unicode
+categories by default in all C++ modes; the classification used when
+scanning identifiers can be explicitly specified via the
+--[no_]old_id_chars command-line option.  For example, the following was
+previously accepted with --c++11 --strict but now results in an error
+unless --old_id_chars is specified:
+
+  int a\u200cb;  // Unicode ZWNJ is no longer a valid identifier character
+
+
 1/18/22  [EDGcpfe/24494]
 GNU C++ compatibility: Initializers for flexible array members
 

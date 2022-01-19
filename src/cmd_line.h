@@ -361,6 +361,7 @@ typedef enum /*an_option_kind*/ {
 #if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
   optk_check_unicode_security,
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
+  optk_old_id_chars,
   optk_last		/* Must be last. */
 } an_option_kind;
 
@@ -2738,6 +2739,17 @@ EXTERN a_boolean
 			   described in
 			   www.trojansource.codes/trojan-source.pdf. */
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
+
+EXTERN a_boolean
+		old_id_chars;
+			/* FALSE if valid C++ identifier characters should
+			   be determined as specified in Unicode Standard
+			   Annex #44, which was adopted for C++23 and as a
+			   Defect Report against earlier C++ Standards via
+			   WG21 document P1949R7.  A TRUE value indicates
+			   that the classification of identifier characters
+			   in C++ should reflect earlier C++ Standards.
+			   Currently ignored for C identifiers. */
 
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
