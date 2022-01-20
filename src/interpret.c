@@ -12330,7 +12330,7 @@ is within the given complete_object.
                                         dst_bytes, complete_object,
                                         active_alloc_seq(ips))) {
             mark_subobject_initialized(dst_bytes, complete_object);
-            mark_complete_class_object_if_needed(fp->type, dst_bytes);
+            mark_complete_class_object_if_needed(ftp, dst_bytes);
           } else {
             result = FALSE;
           }  /* if */
@@ -12417,7 +12417,7 @@ is within the given complete_object.
           }  /* if */
           if (dyn_init_is(sub_dip, dik_bitwise_copy)) {
             check_assertion(sub_dip->variant.bitwise_copy.source == NULL);
-            if (!constexpr_copy_object(ips, fp->type, pos,
+            if (!constexpr_copy_object(ips, ftp, pos,
                                        var_storage, var_addr.complete_object,
                                        dst_bytes, complete_object)) {
               do_constexpr_fail(result);
@@ -12445,7 +12445,7 @@ is within the given complete_object.
           }  /* if */
           if (result) {
             mark_subobject_initialized(dst_bytes, complete_object);
-            mark_complete_class_object_if_needed(fp->type, dst_bytes);
+            mark_complete_class_object_if_needed(ftp, dst_bytes);
           }  /* if */
         }  /* if */
       }  /* if */
