@@ -3512,11 +3512,22 @@ setting is used, and to set various unmentioned settings as needed.
 #else /* !DEFAULT_C99_MODE */
     std_version = 199000;
 #endif /* DEFAULT_C99_MODE */
-    /* GCC 5.0 defaults to C11 mode in its C mode (but not to C++11 mode in
-       its C++ mode). */
-    if (gcc_mode && gnu_version >= 50000 &&
-        !c_mode_specified()) {
-      std_version = 201112;
+    if (!c_mode_specified() && gcc_mode) {
+      /* Set the version of C based on the version of GNU/clang being
+         emulated. */
+      if (clang_mode) {
+        if (clang_version >= 110000) {
+          std_version = 201710;
+        } else if (clang_version >= 30600) {
+          std_version = 201112;
+        }  /* if */
+      } else {
+        if (gnu_version >= 80000) {
+          std_version = 201710;
+        } else if (gnu_version >= 50000) {
+          std_version = 201112;
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
   if (option_kind_used[(int)optk_cplusplus_anachronisms]) {

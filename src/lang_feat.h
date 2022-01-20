@@ -1849,7 +1849,9 @@ command line options.
 /*
 Flag that is TRUE if, in ANSI C mode, support for the C99 standard is
 provided.  This is the default value for the global flag C99_mode, the
-value of which may be modified using command line options.
+value of which may be modified using command line options.  Note that
+in GNU and clang emulation modes this default value will be overridden
+by a value based on the version of GNU/clang being emulated.
 */
 #ifndef DEFAULT_C99_MODE
 #define DEFAULT_C99_MODE FALSE

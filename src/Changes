@@ -1,5 +1,15 @@
 Version 6.4
 
+1/20/22  [EDGcpfe/25016]
+GNU/Clang compatibility: default C standard
+
+A change has been made set the default C standard based on the version of
+GNU/clang being emulated.  When clang is emulated, C17 is selected when
+clang_version >= 110000 and C11 is selected when clang_version >= 30600.
+When GNU is emulated, C17 is selected when gnu_version >= 80000 and C11
+is selected when gnu_version >= 50000.
+
+
 1/19/22  [EDGcpfe/24774]
 C++23: Unicode-based identifier syntax
 
