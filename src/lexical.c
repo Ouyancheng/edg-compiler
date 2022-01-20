@@ -26975,7 +26975,7 @@ of the front end.
   spelling_storage_buffer_space = 0;
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 #endif /* DEBUG */
-#if CHECKING
+#if EXPENSIVE_CHECKING
   /* Make sure the UCN table is properly formed.  Each element of the
      array must be a start-end range where the ending value is greater
      than the starting value, and the starting value is greater than the
@@ -26991,6 +26991,8 @@ of the front end.
       last_end = p->end;
     }  /* for */
   }
+#endif /* EXPENSIVE_CHECKING */
+#if CHECKING
 #if !DO_NOT_ASSUME_QUESTION_IS_LARGER_THAN_END_OF_LINE
   /* The source input routines assume that '?' > '\n' and '\r' to improve
      performance.  Although that's true in practice, the assumption is not
