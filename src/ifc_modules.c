@@ -5612,6 +5612,18 @@ struct an_ifc_module::decl_access_visitor
 };  /* decl_access_visitor */
 
 
+static a_boolean is_home_scope_specialization_wrapper(ifc_DeclIndex decl)
+/*
+As of IFC 0.41, which introduced DeclSort::Specialization, some home scopes
+point to the specialization declaration, rather than the associated
+DeclSort::Scope.  Return TRUE if the given DeclIndex represents a
+specialization and should be unwrapped; otherwise, return FALSE.
+*/
+{
+  return decl_tag(decl) == ifc_DeclSort_Specialization;
+}  /* is_specialization_wrapper */
+
+
 template<>
 inline ifc_NameIndex an_ifc_module::get_ifc_name(
                                              an_ifc_DeclSort_Constructor *decl)
@@ -5619,8 +5631,20 @@ inline ifc_NameIndex an_ifc_module::get_ifc_name(
 Return the name of the declaration represented at decl.
 */
 {
-  /* Constructors are named by their enclosing scope. */
-  return get_ifc_name(get_ifc_home_scope_decl(decl));
+  ifc_NameIndex result;
+
+  /* Constructors are named by their enclosing scope.  Specializations require
+     special handling as the name of the associated templated entity is
+     corrupted at the time of writing in all IFCs.  get_ifc_home_scope calls
+     remove specialization information and return the templated entity
+     instead. Thus, if the enclosing scope is a specialization, intercept and
+     handle it directly here. */
+  if (is_home_scope_specialization_wrapper(decl->home_scope)) {
+    result = get_ifc_name(decl->home_scope);
+  } else {
+    result = get_ifc_name(get_ifc_home_scope_decl(decl));
+  }  /* if */
+  return result;
 }  /* get_ifc_name<an_ifc_DeclSort_Constructor> */
 
 
@@ -5631,8 +5655,20 @@ inline ifc_NameIndex an_ifc_module::get_ifc_name(
 Return the name of the declaration represented at decl.
 */
 {
-  /* Destructors are named by their enclosing scope. */
-  return get_ifc_name(get_ifc_home_scope_decl(decl));
+  ifc_NameIndex result;
+
+  /* Destructors are named by their enclosing scope.  Specializations require
+     special handling as the name of the associated templated entity is
+     corrupted at the time of writing in all IFCs.  get_ifc_home_scope calls
+     remove specialization information and return the templated entity
+     instead. Thus, if the enclosing scope is a specialization, intercept and
+     handle it directly here. */
+  if (is_home_scope_specialization_wrapper(decl->home_scope)) {
+    result = get_ifc_name(decl->home_scope);
+  } else {
+    result = get_ifc_name(get_ifc_home_scope_decl(decl));
+  }  /* if */
+  return result;
 }  /* get_ifc_name<an_ifc_DeclSort_Destructor> */
 
 
@@ -5711,7 +5747,7 @@ if there are no intervening abstractions).
 {
   ifc_DeclIndex result = decl;
 
-  if (decl_tag(result) == ifc_DeclSort_Specialization) {
+  if (is_home_scope_specialization_wrapper(decl)) {
     an_ifc_DeclSort_Specialization idss, *idssp;
     read_partition_element(result);
     idssp = get_DeclSort_Specialization(&idss);
