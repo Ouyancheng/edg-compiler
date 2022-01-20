@@ -19803,9 +19803,11 @@ next_integer_pack_element:
          template declaration, except in Microsoft mode where the error
          is downgraded to a warning. */
       if (!any_default_args || microsoft_mode) {
-        if (microsoft_mode && caching_tokens) {
-          /* Silently ignore this while caching tokens.  If the token cache
-             is used, an error will be issued then. */
+        if (microsoft_mode &&
+            (caching_tokens || in_ms_nonreal_class_instantiation())) {
+          /* Silently ignore this while caching tokens or performing Microsoft
+             "nonreal instantiations".  If the token cache is used, an error
+             will be issued then. */
         } else {
           sym_error(ec_too_few_template_args, templ_sym_for_default);
         }  /* if */
