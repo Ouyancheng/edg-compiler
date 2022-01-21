@@ -2835,7 +2835,7 @@ private:
     { return get_ifc_locus(decl, Overload_priority<1>()); }
   ifc_SourceLocation get_ifc_locus(ifc_DeclIndex decl_index);
   /* IFC Home Scope Decl readers. */
-  inline ifc_DeclIndex skip_scope_abstractions(ifc_DeclIndex decl);
+  ifc_DeclIndex skip_scope_abstractions(ifc_DeclIndex decl);
   template<typename an_ifc_DeclSort_T>
   inline ifc_DeclIndex get_ifc_home_scope_decl(an_ifc_DeclSort_T *decl,
                                                Overload_priority<0>)
