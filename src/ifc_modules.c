@@ -5636,9 +5636,9 @@ Return the name of the declaration represented at decl.
   /* Constructors are named by their enclosing scope.  Specializations require
      special handling as the name of the associated templated entity is
      corrupted at the time of writing in all IFCs.  get_ifc_home_scope calls
-     remove specialization information and return the templated entity
-     instead. Thus, if the enclosing scope is a specialization, intercept and
-     handle it directly here. */
+     remove specialization information and return the templated entity instead.
+     Thus, if the enclosing scope is a specialization, intercept and handle it
+     directly here. */
   if (is_home_scope_specialization_wrapper(decl->home_scope)) {
     result = get_ifc_name(decl->home_scope);
   } else {
@@ -5660,9 +5660,9 @@ Return the name of the declaration represented at decl.
   /* Destructors are named by their enclosing scope.  Specializations require
      special handling as the name of the associated templated entity is
      corrupted at the time of writing in all IFCs.  get_ifc_home_scope calls
-     remove specialization information and return the templated entity
-     instead. Thus, if the enclosing scope is a specialization, intercept and
-     handle it directly here. */
+     remove specialization information and return the templated entity instead.
+     Thus, if the enclosing scope is a specialization, intercept and handle it
+     directly here. */
   if (is_home_scope_specialization_wrapper(decl->home_scope)) {
     result = get_ifc_name(decl->home_scope);
   } else {
