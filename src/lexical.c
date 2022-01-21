@@ -19043,7 +19043,8 @@ If p_err is non-NULL, set *p_err to TRUE if an error is detected.
         sym = coalesce_and_lookup_generalized_identifier(
                                  GID_TEMPLATE_ARGS_OPTIONAL, ilm_normal, &err);
       }  /* if */
-      if (sym != NULL && is_class_template_symbol(sym)) {
+      if (sym != NULL && is_class_template_symbol(sym) &&
+          !locator_for_curr_id.is_template_id) {
         arg_kind = (a_templ_arg_kind)tak_template;
       } else {
         is_type_param = is_decl_not_expr(DFS_ABSTRACT_DECLARATOR_ALLOWED |

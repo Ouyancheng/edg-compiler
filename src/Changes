@@ -1,5 +1,23 @@
 Version 6.4
 
+1/21/21  [EDGcpfe/24901]
+C++-generating back end: Template-id with dependent qualifier
+
+Consider:
+
+  template<int> auto g();
+  template<typename T> struct S {
+    template<auto V> int f() {
+      return g<T::template Z<V>>();
+    }
+  };
+
+Previously, the C++-generating back end rendered "T::template Z<V>" as
+"T::template Z" (dropping the template arguments).  That was due to the IL
+recorded for the prototype instantiation of that expression missing the
+representation of the template argument.  That is now fixed.
+
+
 1/20/21  [EDGcpfe/25009]
 Constant-evaluation of capturing lambda expressions
 
