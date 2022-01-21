@@ -28,7 +28,7 @@ version 6.3 of the front end increased the likelihood of this bug manifesting.
 This is now fixed.
 
 
-1/20/21  [EDGcpfe/20663,EDGcpfe/24933]
+1/20/22  [EDGcpfe/20663,EDGcpfe/24933]
 Spurious error in nonreal using declaration in Microsoft mode
 
 Consider:
