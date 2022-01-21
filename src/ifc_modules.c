@@ -1009,6 +1009,226 @@ in the given module.
 } /* an_ifc_partition_position */
 
 
+namespace {
+/*
+An encapsulated representation of an IFC node.
+*/
+template<typename an_ifc_Node_type>
+struct an_ifc_Node {
+  an_ifc_Node()
+    : storing_value(FALSE), node_ptr(NULL)
+    {}
+  an_ifc_Node(an_ifc_Node_type *node_ptr_val)
+    : storing_value(FALSE), node_ptr(node_ptr_val)
+    { check_assertion(node_ptr_val != NULL); }
+  an_ifc_Node(an_ifc_Node_type node_val)
+    : storing_value(TRUE), node(node_val)
+    {}
+#if DEBUG
+  /* A default state is provided for forward declaration.  This struct
+     shouldn't remain "uninitialized." */
+  ~an_ifc_Node()
+    { check_assertion(storing_value || node_ptr != NULL); }
+#endif /* DEBUG */
+
+  inline const an_ifc_Node_type *operator->() const;
+private:
+  a_boolean storing_value;
+  union {
+    an_ifc_Node_type *node_ptr;
+    an_ifc_Node_type node;
+  };
+};  /* an_ifc_Node */
+
+
+template<typename an_ifc_Node_type>
+inline const an_ifc_Node_type *an_ifc_Node<an_ifc_Node_type>::operator->()
+                                                                          const
+/*
+This function provides access to the underlying IFC node's fields by returning
+a pointer to the associated IFC node type (regardless of whether the field is
+stored as part of this object or a pointer to a memory mapping).
+*/
+{
+  const an_ifc_Node_type *result;
+
+  if (storing_value) {
+    /* The value is stored as part of this object, "node" is the correct
+       resolution. */
+    result = &node;
+  } else {
+    /* Check that this isn't an "uninitialized" forward declaration that's
+       being accessed. */
+    check_assertion(node_ptr != NULL);
+    /* The value is not stored as part of this object, "node_ptr" is the
+       correct resolution. */
+    result = node_ptr;
+  }  /* if */
+  return result;
+}  /* operator-> */
+}  /* namespace */
+
+
+template<typename an_ifc_Node_type>
+static an_ifc_Node<an_ifc_Node_type> construct_node_from_module(
+                                                            an_ifc_module *mod)
+/*
+Using the previously initialized and validated module source buffer, initialize
+and return a new IFC node of the given type.
+
+Direct use of this function is discouraged, prefer one of the other consturct_
+functions that build upon this call.
+*/
+{
+  an_ifc_Node<an_ifc_Node_type> result;
+  an_ifc_Node_type              nts, *ntsp;
+
+  ntsp = mod->get<an_ifc_Node_type>(&nts);
+#if USE_MMAP_FOR_MEMORY_REGIONS
+  check_assertion(ntsp != &nts);
+  /* The storage wasn't used, use the pointer. */
+  result = an_ifc_Node<an_ifc_Node_type>(ntsp);
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+  check_assertion(ntsp == &nts);
+  /* The storage was used, copy it. */
+  result = an_ifc_Node<an_ifc_Node_type>(nts);
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+  return result;
+}  /* construct_node_from_module */
+
+
+template<typename an_ifc_Node_type>
+static void construct_node(
+                        Opt<an_ifc_Node<an_ifc_Node_type>> *result,
+                        an_ifc_module                      *mod,
+                        an_ifc_partition_position          pos)
+/*
+Perform a recursively validated read of the given module's IFC node of type
+an_ifc_Node_type at the given partition position.  If successfully read the
+given optional will be updated to contain the requested IFC node.
+
+See Element_validator's position validation function for more details about
+non-recursive and recursive validation.
+*/
+{
+  if (mod->read_partition_element(pos)) {
+    *result = construct_node_from_module<an_ifc_Node_type>(mod);
+  }  /* if */
+}  /* construct_node */
+
+
+template<typename an_ifc_Node_type, typename... Args>
+static void construct_node(Opt<an_ifc_Node<an_ifc_Node_type>> *result,
+                           an_ifc_module                      *mod,
+                           Args&&...                          args)
+/*
+Perform a recursively validated read of the given module's IFC node of type
+an_ifc_Node_type at the partition position constructed from args.  If
+successfully read the given optional will be updated to contain the requested
+IFC node.
+
+See Element_validator's position validation function for more details about
+non-recursive and recursive validation.
+*/
+{
+  an_ifc_partition_position pos(mod, args...);
+
+  construct_node<an_ifc_Node_type>(result, mod, pos);
+}  /* construct_node */
+
+
+template<typename an_ifc_Node_type>
+static void construct_node_shallow(
+                        Opt<an_ifc_Node<an_ifc_Node_type>> *result,
+                        an_ifc_module                      *mod,
+                        an_ifc_partition_position          pos)
+/*
+Perform a non-recursively validated read of the given module's IFC node of type
+an_ifc_Node_type at the given partition position.  If successfully read the
+given optional will be updated to contain the requested IFC node.
+
+See Element_validator's position validation function for more details about
+non-recursive and recursive validation.
+*/
+{
+  if (mod->read_partition_element_shallow(pos)) {
+    *result = construct_node_from_module<an_ifc_Node_type>(mod);
+  }  /* if */
+}  /* construct_node_shallow */
+
+
+template<typename an_ifc_Node_type, typename... Args>
+static void construct_node_shallow(Opt<an_ifc_Node<an_ifc_Node_type>> *result,
+                                   an_ifc_module                      *mod,
+                                   Args&&...                          args)
+/*
+Perform a non-recursively validated read of the given module's IFC node of type
+an_ifc_Node_type at the partition position constructed from args.  If
+successfully read the given optional will be updated to contain the requested
+IFC node.
+
+See Element_validator's position validation function for more details about
+non-recursive and recursive validation.
+*/
+{
+  an_ifc_partition_position pos(mod, args...);
+
+  return construct_node_shallow<an_ifc_Node_type>(mod, pos);
+}  /* construct_node_shallow */
+
+
+template<typename an_ifc_Node_type>
+static void construct_node_prechecked(
+                             an_ifc_Node<an_ifc_Node_type> *result,
+                             an_ifc_module                 *mod,
+                             an_ifc_partition_position     pos)
+/*
+With the knowledge that the given position has been previously validated by a
+call to validate_partition_element (or indirectly via a call to
+read_partition_element), perform a read of the given module's IFC node of type
+an_ifc_Node_type at the given partition position.  The given result pointer
+will be updated to contain the requested IFC node.
+*/
+{
+  mod->read_prechecked_partition_element(pos);
+  *result = construct_node_from_module<an_ifc_Node_type>(mod);
+}  /* construct_node_prechecked */
+
+
+template<typename an_ifc_Node_type, typename... Args>
+static void construct_node_prechecked(an_ifc_Node<an_ifc_Node_type> *result,
+                                      an_ifc_module                 *mod,
+                                      Args&&...                     args)
+/*
+With the knowledge that the given position has been previously validated by a
+call to validate_partition_element (or indirectly via a call to
+read_partition_element), perform a read of the given module's IFC node of type
+an_ifc_Node_type at the partition position constructed from args.  The given
+result pointer will be updated to contain the requested IFC node.
+*/
+{
+  an_ifc_partition_position pos(mod, args...);
+
+  return construct_node_prechecked<an_ifc_Node_type>(result, mod, pos);
+}  /* construct_node_prechecked */
+
+
+template<typename an_ifc_Node_type>
+static void construct_node_unchecked(
+                             an_ifc_Node<an_ifc_Node_type> *result,
+                             an_ifc_module                 *mod,
+                             an_ifc_partition_position     pos)
+/*
+Perform a read of the given module's IFC node of type an_ifc_Node_type at the
+given partition position, without validation or validation enforcement.  The
+given result pointer will be updated to contain the requested IFC node.
+*/
+{
+  mod->read_unchecked_partition_element(pos);
+  *result = construct_node_from_module<an_ifc_Node_type>(mod);
+}  /* construct_node_unchecked */
+
+
 /*
 Utility to return a "tag" given a partition (an_ifc_partition_kind) value
 and the starting partition for the particular case (e.g., ifc_type_start
@@ -17074,7 +17294,8 @@ non-recursive and recursive validation.
 inline void an_ifc_module::read_unchecked_partition_element(
                                                  an_ifc_partition_position pos)
 /*
-Initialize the byte buffer for the given partition position without validation.
+Initialize the byte buffer for the given partition position, without validation
+or validation enforcement.
 */
 {
 #if DEBUG && EXPENSIVE_CHECKING
