@@ -36,7 +36,8 @@ private:
                 saved_var;
                         /* A pointer to the variable where the saved value
                            should be restored upon destruction. */
-  a_Var_type    saved_value;
+  a_Var_type
+                saved_value;
                         /* The value captured during construction to be
                            restored upon destruction. */
 };  /* Value_saver */
@@ -75,6 +76,215 @@ Restore the variable given during construction to its saved state.
 {
   *saved_var = saved_value;
 }  /* Value_saver::~Value_saver */
+
+
+/*
+An implementation of an "optional" type.  This type allows representing
+a value that may or may not be present and is thus "optional."
+
+Before dereferencing to retrieve the value, consuming code should check that
+the optional has a stored value (via either "is_empty" or "has_value" calls).
+*/
+template<typename a_Value_type>
+struct Opt {
+  Opt() : storing_value(FALSE)
+    {}
+  Opt(const a_Value_type &value)
+    : storing_value(TRUE), stored_value(value)
+    {}
+  Opt(a_Value_type &&value)
+    : storing_value(TRUE), stored_value(static_cast<a_Value_type &&>(value))
+    {}
+  inline Opt(const Opt<a_Value_type> &other);
+  inline Opt(Opt<a_Value_type> &&other);
+  inline ~Opt();
+  a_boolean has_value() const
+    { return storing_value; }
+  /* Value retrieval functions. */
+  inline const a_Value_type* operator->() const;
+  inline const a_Value_type& operator*() const;
+  /* Value update functions. */
+  inline Opt<a_Value_type>& operator=(const a_Value_type &value);
+  inline Opt<a_Value_type>& operator=(a_Value_type &&value);
+  inline Opt<a_Value_type>& operator=(const Opt<a_Value_type> &other);
+  inline Opt<a_Value_type>& operator=(Opt<a_Value_type> &&other);
+  inline void clear();
+private:
+  a_boolean
+                storing_value;
+                        /* TRUE if there is a value stored, FALSE otherwise. */
+  union {
+    a_Value_type
+                stored_value;
+                        /* The value stored.  Represented as a union so the
+                           value can be uninitialized, and construction
+                           destruction is manually managed. */
+  };
+};
+
+
+template<typename a_Value_type>
+inline Opt<a_Value_type>::Opt(const Opt<a_Value_type> &other)
+  : storing_value(other.storing_value)
+/*
+Copy construct an optional from another optional.
+*/
+{
+  /* A value was stored, copy it. */
+  if (storing_value) {
+    ::new (&stored_value) a_Value_type(other.stored_value);
+  }  /* if */
+}  /* Opt */
+
+
+template<typename a_Value_type>
+inline Opt<a_Value_type>::Opt(Opt<a_Value_type> &&other)
+  : storing_value(other.storing_value)
+/*
+Move construct an optional from another optional.
+*/
+{
+  /* A value was stored, move it. */
+  if (storing_value) {
+    ::new (&stored_value) a_Value_type(
+                             static_cast<a_Value_type &&>(other.stored_value));
+  }  /* if */
+}  /* Opt */
+
+
+template<typename a_Value_type>
+inline Opt<a_Value_type>::~Opt()
+/*
+Destruct an optional invoking the destructor for the stored value if there is
+one.
+*/
+{
+  /* A value was stored, make sure its destructor is invoked. */
+  if (storing_value) {
+    stored_value.~a_Value_type();
+  }  /* if */
+}  /* ~Opt */
+
+
+template<typename a_Value_type>
+inline const a_Value_type* Opt<a_Value_type>::operator->() const
+/*
+This function is only valid when the Opt is not empty.  The stored
+value is returned.
+*/
+{
+  /* FIXME: We don't have a way to assert from this header. */
+  /* check_assertion(!empty); */
+ return &stored_value;
+}  /* operator-> */
+
+
+template<typename a_Value_type>
+inline const a_Value_type& Opt<a_Value_type>::operator*() const
+/*
+This function is only valid when the Opt is not empty.  The stored
+value is returned.
+*/
+{
+  /* FIXME: We don't have a way to assert from this header. */
+  /* check_assertion(!empty); */
+  return stored_value;
+}  /* operator* */
+
+
+template<typename a_Value_type>
+inline Opt<a_Value_type>& Opt<a_Value_type>::operator=(
+                                                     const a_Value_type &value)
+/*
+Store the given value as the new stored value via a copy.  The updated optional
+is returned.
+*/
+{
+  /* If a value was stored previously, use the value type's normal copy
+     assignment operator; otherwise, use placement new to initialize the memory
+     and update the storage flag. */
+  if (storing_value) {
+    stored_value = value;
+  } else {
+    storing_value = TRUE;
+    ::new (&stored_value) a_Value_type(value);
+  }  /* if */
+  return *this;
+}  /* operator= */
+
+
+template<typename a_Value_type>
+inline Opt<a_Value_type>& Opt<a_Value_type>::operator=(a_Value_type &&value)
+/*
+Store the given value as the new stored value via a move.  The updated optional
+is returned.
+*/
+{
+  /* If a value was stored previously, use the value type's normal move
+     assignment operator; otherwise, use placement new to initialize the memory
+     and update the storage flag. */
+  if (storing_value) {
+    stored_value = static_cast<a_Value_type &&>(value);
+  } else {
+    storing_value = TRUE;
+    ::new (&stored_value) a_Value_type(static_cast<a_Value_type &&>(value));
+  }  /* if */
+  return *this;
+}  /* operator= */
+
+
+template<typename a_Value_type>
+inline Opt<a_Value_type>& Opt<a_Value_type>::operator=(
+                                                const Opt<a_Value_type> &other)
+/*
+Store the given value as the new stored value via a copy.  The updated optional
+is returned.
+*/
+{
+  /* If the copied optional has a value, invoke this optional's copy assignment
+     operator with the value to be stored, to copy the value; otherwise, invoke
+     clear to remove any current value. */
+  if (other.storing_value) {
+    *this = other.stored_value;
+  } else {
+    this->clear();
+  }  /* if */
+  return *this;
+}  /* operator= */
+
+
+template<typename a_Value_type>
+inline Opt<a_Value_type>& Opt<a_Value_type>::operator=(
+                                                     Opt<a_Value_type> &&other)
+/*
+Store the given value as the new stored value via a copy.  The updated optional
+is returned.
+*/
+{
+  /* If the copied optional has a value, invoke this optional's move assignment
+     operator with the value to be stored, to move the value; otherwise, invoke
+     clear to remove any current value. */
+  if (other.storing_value) {
+    *this = static_cast<a_Value_type &&>(other.stored_value);
+  } else {
+    this->clear();
+  }  /* if */
+  return *this;
+}  /* operator= */
+
+
+template<typename a_Value_type>
+inline void Opt<a_Value_type>::clear()
+/*
+Reset the optional to an empty state.
+*/
+{
+  /* A value was stored, make sure its destructor is invoked. */
+  if (storing_value) {
+    stored_value.~a_Value_type();
+  }  /* if */
+  storing_value = FALSE;
+}  /* clear */
 
 
 /* Conditionally close the "edg" namespace. */
