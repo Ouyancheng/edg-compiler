@@ -1,5 +1,14 @@
 Version 6.4
 
+1/21/22  [EDGcpfe/25004]
+IA-64 ABI demangling issue
+
+IA-64 ABI mangled names that contain a two-character substitution followed by a
+name that begins with "_I" had been improperly demangled.  For example,
+_ZSt9_Is_slash had been demangled as "std(_Is_slash)" and is now properly
+demangled as "std::_Is_slash".
+
+
 1/3/22   [EDGcpfe/24962]
 Rename a_substitution struct
 

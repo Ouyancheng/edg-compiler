@@ -7840,7 +7840,8 @@ as a prefix to specify a module id for an externalized name.
     if (*ptr == 'S' && ptr[1] != '\0' &&
         (ptr[2] == 'I' ||
          (ptr[2] == '_' && ptr[3] == 'I') ||
-         (ptr[2] != '\0' && ptr[3] == '_' && ptr[4] == 'I'))) {
+         (ptr[2] != '\0' && !isdigit((unsigned char)ptr[2]) &&
+          ptr[3] == '_' && ptr[4] == 'I'))) {
       /* <substitution> in <unscoped-template-name>, because it's
          followed by the "I" beginning a <template-args>.  Note that the
          test above covers both standard substitutions (one character after
