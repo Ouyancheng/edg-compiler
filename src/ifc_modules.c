@@ -1229,6 +1229,56 @@ given result pointer will be updated to contain the requested IFC node.
 }  /* construct_node_unchecked */
 
 
+template<an_ifc_partition_kind a_Partition_Kind, typename a_Trait_T>
+static void find_trait(Opt<an_ifc_Node<a_Trait_T>> *result,
+                       an_ifc_module               *mod,
+                       ifc_DeclIndex               decl)
+/*
+Given the module to search and an associated declaration index (decl) as a key
+to the associated trait table identified by a_Partition_Kind, find and return
+the associated trait as an optional.  If the returned optional is empty the
+trait either wasn't found (because it doesn't exist, or a diagnosed validation
+error occurred).
+*/
+{
+  /* If this check fails, the validator needs additional validation to prevent
+     a required IFC field from being 0 (i.e., "NULL"), or there's a logic
+     bug. */
+  check_assertion(decl != 0);
+  {
+    size_t    num_traits = mod->get_num_entries(a_Partition_Kind);
+    /* Provide a value function for retrieving the trait at the given trait
+       partition index. */
+    auto      value_lambda = [mod](ptrdiff_t idx) {
+      an_ifc_partition_position pos(mod, a_Partition_Kind,
+                                    (ifc_Index_type)idx);
+      an_ifc_Node<a_Trait_T>    trait;
+
+      /* As the binary search used by this value is only doing comparisons (not
+         attempting to operate on the returned DeclIndex) and the result will
+         be fully validated anyways, to improve performance construct the node
+         unchecked. */
+      construct_node_unchecked(&trait, mod, pos);
+      return trait->decl;
+    };
+    /* Get the partition index (if any) for decl. */
+    ptrdiff_t partition_idx = bin_search(num_traits, decl, value_lambda);
+
+    if (partition_idx != -1) {
+      /* A trait was found for decl.  Load the trait (again) to retrieve the
+         trait.
+
+         Note that the implementation of bin_search at the time of writing does
+         not guarantee that the last read value is the one whose index is
+         returned.  Thus, we cannot (as an optimization) share a variable with
+         the value_lambda to prevent double reading (though this is unlikely to
+         ever represent a significant cost in terms of CPU time). */
+      construct_node(result, mod, a_Partition_Kind, partition_idx);
+    } /* if */
+  }
+}  /* find_trait */
+
+
 /*
 Utility to return a "tag" given a partition (an_ifc_partition_kind) value
 and the starting partition for the particular case (e.g., ifc_type_start
@@ -3994,6 +4044,227 @@ to the given cache if options & cso_no_final_semicolon is nonzero.
 }  /* cache_statement */
 
 
+static a_diagnostic_ptr start_rp_diag(
+                                   a_routine_ptr     rp,
+                                   an_error_severity error_severity = es_error)
+/*
+Start a new IFC validation diagnostic for the given routine pointer's
+associated function definition, with the given error severity.
+*/
+{
+  return pos_st_start_diagnostic(error_severity,
+                                 ec_ifc_bad_function_definition,
+                                 &rp->source_corresp.decl_position,
+                                 rp->source_corresp.name);
+}  /* start_rp_diag */
+
+
+static a_boolean should_perform_implicit_this_correction(
+                                            a_routine_ptr    rp,
+                                            unsigned         chart_param_count,
+                                            a_param_type_ptr params)
+/*
+Check to see if the given routine pointer needs to have an implicit this
+parameter dropped to be processed correctly (with respect to the current
+parameter counts so if this bug is resolved we don't emit hard errors).  IFC
+files appear to regularly misrepresent the "this" parameter as an ordinary
+unnamed parameter.  Skip the implicit this parameter and issue a warning.
+*/
+{
+  /* FIXME: Note that count_list_elements can be "expensive" if the function
+     has many parameters.  This is considered acceptable for ease of
+     implementation since this code is presumed to be temporary pending the
+     removal of the implicit this parameter. */
+  return routine_type_is_nonstatic_member_function(rp->type) &&
+         (chart_param_count - 1 == count_list_elements(params));
+}  /* should_perform_implicit_this_correction */
+
+
+static void add_bad_parameter_count_info(a_diagnostic_ptr diag_ptr,
+                                         unsigned         chart_param_count,
+                                         unsigned         type_param_count)
+/*
+Add the corresponding diagnostic to the diagnostic pointer for mismatched IFC
+parameter counts between the IFC chart's parameter count and the type's
+parameter count.
+*/
+{
+  an_error_code error_code;
+
+  /* Make sure this is a diagnostic that needs issued. */
+  check_assertion(chart_param_count != type_param_count);
+  if (chart_param_count != 1 && type_param_count != 1) {
+    error_code = ec_ifc_bad_function_param_counts_multi_multi;
+  } else if (chart_param_count != 1) {
+    error_code = ec_ifc_bad_function_param_counts_multi_single;
+  } else {
+    error_code = ec_ifc_bad_function_param_counts_single_multi;
+  }  /* if */
+  num2_add_diag_info(diag_ptr, error_code, chart_param_count,
+                     type_param_count);
+}  /* add_bad_parameter_count_info */
+
+
+static a_boolean check_parameter_counts(a_routine_ptr    rp,
+                                        unsigned         chart_param_count,
+                                        a_param_type_ptr params)
+/*
+Check for a mismatch between the number of parameters declared by the IFC
+parameter chart and the number of parameters declared by the type.  Return TRUE
+if parameter counts match, return FALSE otherwise.
+*/
+{
+  a_boolean result = TRUE;
+  unsigned  type_param_count = count_list_elements(params);
+
+  if (should_perform_implicit_this_correction(rp, chart_param_count, params)) {
+    a_diagnostic_ptr diag_ptr = start_rp_diag(rp, es_warning);
+
+    add_bad_parameter_count_info(diag_ptr, chart_param_count,
+                                 type_param_count);
+    /* The actual adjustment will be performed when the parameters are added to
+       the function info (see "should_perform_implicit_this_correction" in
+       "add_function_def_parameters"), but the issue is reported here for ease
+       of implementation. */
+    add_diag_info(diag_ptr, ec_ifc_bad_function_param_implicit_this);
+    end_diagnostic(diag_ptr);
+  } else if (chart_param_count != type_param_count) {
+    a_diagnostic_ptr diag_ptr = start_rp_diag(rp);
+
+    add_bad_parameter_count_info(diag_ptr, chart_param_count,
+                                 type_param_count);
+    end_diagnostic(diag_ptr);
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* check_parameter_counts */
+
+
+static void add_function_def_parameter(
+                             an_ifc_module                          *mod,
+                             an_ifc_Node<an_ifc_DeclSort_Parameter> idsp,
+                             a_param_type_ptr                       ptp,
+                             a_func_info_block                      *func_info)
+/*
+Add the given IFC parameter, using the associated module and associated
+parameter type pointer, to the given function info.
+*/
+{
+  a_source_position pos;
+
+  check_assertion(idsp->sort == ifc_ParameterSort_Object);
+  mod->source_position_from_locus(&pos, &idsp->locus);
+  {
+    a_const_char      *name = mod->get_string_at_offset(idsp->name);
+    a_symbol_locator  sym_loc;
+
+    clear_locator(&sym_loc, &pos);
+    (void)find_symbol(name, strlen(name), &sym_loc);
+    {
+      a_param_id_ptr  param_id;
+
+      add_to_param_id_list(&sym_loc, ptp->type, &pos,
+                           (a_storage_class)sc_auto,
+                           func_info,
+                           (a_source_sequence_entry_ptr)NULL,
+                           &param_id, ptp->is_pack_element);
+      param_id->declared_type = ptp->type;
+      param_id->param_num = ptp->param_num;
+      if (ptp->is_pack_element) {
+        param_id->is_pack_element = TRUE;
+        if (ptp->is_parameter_pack) {
+          param_id->is_parameter_pack = TRUE;
+        }  /* if */
+      }  /* if */
+    }
+  }
+}  /* add_function_def_parameter */
+
+
+static a_boolean add_function_def_parameters(
+                       an_ifc_module                                *mod,
+                       an_ifc_Node<an_ifc_Trait_FunctionDefinition> itfd,
+                       a_routine_ptr                                rp,
+                       a_func_info_block                            *func_info)
+/*
+Add the parameters, for the given IFC function definition, associated module,
+and associated routine pointer, to the given function info.  Return TRUE if all
+parameters are added successfully, return FALSE otherwise.
+*/
+{
+  a_boolean        result = TRUE;
+  ifc_ChartSort    tag = chart_tag(itfd->parameters);
+  a_param_type_ptr params = function_type_params(rp->type);
+
+  /* Parameters are represented as a single-level IFC "chart" pointing to a
+     sequence of ifc_DeclSort_Parameter entries of kind
+     ifc_ParameterSort_Object.  Check for the parameter chart. */
+  if (tag == ifc_ChartSort_Unilevel) {
+    Opt<an_ifc_Node<an_ifc_ChartSort_Unilevel>> opt_icsul;
+
+    construct_node(&opt_icsul, mod, ifc_ChartSort_Unilevel,
+                   chart_value(itfd->parameters));
+    /* Read the uni level chart of parameters. */
+    if (!opt_icsul.has_value()) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+    {
+      an_ifc_Node<an_ifc_ChartSort_Unilevel> icsul = *opt_icsul;
+      unsigned                               num_params = icsul->cardinality;
+
+      if (!check_parameter_counts(rp, num_params, params)) {
+        result = FALSE;
+        goto done;
+      }  /* if */
+      {
+        ifc_Index_type   idx = 0;
+        a_param_type_ptr ptp = params;
+
+        /* Ensure a function prototype scope exists in which sk_parameter
+           symbols can be accumulated. */
+        (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
+                         rp->type, (a_routine_ptr)NULL);
+        if (should_perform_implicit_this_correction(rp, num_params, ptp)) {
+          idx = 1;
+        }  /* if */
+        func_info->scope_number = scope_stack_top().number;
+        for (ptp = params; idx < num_params; ++idx, ptp = ptp->next) {
+          Opt<an_ifc_Node<an_ifc_DeclSort_Parameter>> opt_idsp;
+
+          construct_node(&opt_idsp, mod, ifc_DeclSort_Parameter,
+                         icsul->start + idx);
+          if (opt_idsp.has_value()) {
+            add_function_def_parameter(mod, *opt_idsp, ptp, func_info);
+          } else {
+            result = FALSE;
+            goto done;
+          }  /* if */
+        }  /* for */
+        func_info->prototype_scope_symbols =
+                          assoc_pointers_block_of(&scope_stack_top())->symbols;
+        pop_scope();
+      }
+    }
+  } else if (tag == ifc_ChartSort_None) {
+    /* The associated chart is empty, verify the type information also isn't
+       specifying parameters. */
+    if (!check_parameter_counts(rp, 0, params)) {
+      result = FALSE;
+    }  /* if */
+  } else {
+    /* The associated chart index was set, but it wasn't a uni level chart. */
+    a_diagnostic_ptr diag_ptr = start_rp_diag(rp);
+
+    add_diag_info(diag_ptr, ec_ifc_bad_function_param_wrong_chart);
+    end_diagnostic(diag_ptr);
+    result = FALSE;
+  }  /* if */
+done:
+  return result;
+}  /* add_function_def_parameters */
+
+
 a_boolean an_ifc_module::cache_function_body(a_token_cache_ptr  cache,
                                              ifc_DeclIndex      decl_idx,
                                              a_routine_ptr      rp,
@@ -4008,79 +4279,33 @@ in some cases there is no definition present after all and FALSE is returned
 instead.
 */
 {
-  a_boolean                        result = TRUE;
-  an_ifc_Trait_FunctionDefinition  itfd, *itfdp;
+  a_boolean                                         result = TRUE;
+  Opt<an_ifc_Node<an_ifc_Trait_FunctionDefinition>> opt_itfd;
 
-  itfdp = find_trait<ifc_trait_function_definition>(decl_idx, &itfd);
-  if (itfdp != NULL) {
+  check_assertion(type_is(rp->type, tk_routine));
+  find_trait<ifc_trait_function_definition>(&opt_itfd, this, decl_idx);
+  if (opt_itfd.has_value()) {
+    an_ifc_Node<an_ifc_Trait_FunctionDefinition> itfd = *opt_itfd;
+
+    /* A definition exists, mark that. */
     func_info->is_definition = TRUE;
-    /* Retrieve the parameter names. */
-    check_assertion(type_is(rp->type, tk_routine));
-    a_param_type_ptr  params = function_type_params(rp->type), ptp;
-    if (params != NULL) {
-      /* Parameters are represented as a single-level IFC "chart" pointing to
-         a sequence of ifc_DeclSort_Parameter entries of kind
-         ifc_ParameterSort_Object. */
-      an_ifc_ChartSort_Unilevel  icsu, *icsup;
-      ifc_ChartSort              tag = chart_tag(itfdp->parameters);
-      check_assertion(tag == ifc_ChartSort_Unilevel);
-      read_prechecked_partition_element(tag, chart_value(itfdp->parameters));
-      icsup = get_ChartSort_Unilevel(&icsu);
-      ifc_Index_type  k = 0, N = icsup->cardinality;
-      /* Ensure a function prototype scope exists in which sk_parameter
-         symbols can be accumulated. */
-      (void)push_scope((a_scope_kind)sck_func_prototype, NO_SCOPE_NUMBER,
-                       rp->type, (a_routine_ptr)NULL);
-      if (routine_type_is_nonstatic_member_function(rp->type)) {
-        /* IFC files appear to represent the "this" parameter as an ordinary
-           unnamed parameter.  Skip it here since the front end treats it
-           separately. */
-        k = 1;
-      }  /* if */
-      func_info->scope_number = scope_stack_top().number;
-      for (ptp = params; k<N; ++k, ptp = ptp->next) {
-        an_ifc_DeclSort_Parameter idsp, *idspp;
-        a_source_position         pos;
-        read_prechecked_partition_element(ifc_DeclSort_Parameter,
-                                          icsup->start+k);
-        idspp = get_DeclSort_Parameter(&idsp);
-        check_assertion(idspp->sort == ifc_ParameterSort_Object);
-        source_position_from_locus(&pos, &idspp->locus);
-        a_const_char      *name = get_string_at_offset(idspp->name);
-        a_symbol_locator  sym_loc;
-        clear_locator(&sym_loc, &pos);
-        (void)find_symbol(name, strlen(name), &sym_loc);
-        check_assertion(ptp != NULL);
-        a_param_id_ptr  param_id;
-        add_to_param_id_list(&sym_loc, ptp->type, &pos,
-                             (a_storage_class)sc_auto,
-                             func_info, (a_source_sequence_entry_ptr)NULL,
-                             &param_id, ptp->is_pack_element);
-        param_id->declared_type = ptp->type;
-        param_id->param_num = ptp->param_num;
-        if (ptp->is_pack_element) {
-          param_id->is_pack_element = TRUE;
-          if (ptp->is_parameter_pack) {
-            param_id->is_parameter_pack = TRUE;
-          }  /* if */
-        }  /* if */
-      }  /* for */
-      func_info->prototype_scope_symbols =
-                         assoc_pointers_block_of(&scope_stack_top())->symbols;
-      pop_scope();
+    /* Add the parameters to the function info. */
+    if (!add_function_def_parameters(this, itfd, rp, func_info)) {
+      result = FALSE;
+      goto done;
     }  /* if */
     /* Cache the mem-initializers if needed. */
-    if (itfdp->initializers != 0) {
+    if (itfd->initializers != 0) {
       cache_token(cache, tok_colon, &null_source_position);
-      cache_expr(cache, itfdp->initializers);
+      cache_expr(cache, itfd->initializers);
     }  /* if */
     /* Cache the function body.  It appears that a single return statement is
        represented directly rather than as a block containing the return
        statement.  We therefore generate the braces here and inhibit them at
        the next statement level by passing the cso_func_body flag. */
     cache_token(cache, tok_lbrace, &null_source_position);
-    if (itfdp->body != 0) {
-      cache_statement(cache, itfdp->body, cso_func_body);
+    if (itfd->body != 0) {
+      cache_statement(cache, itfd->body, cso_func_body);
     }  /* if */
     cache_token(cache, tok_rbrace, &null_source_position);
 #if DEBUG
@@ -4094,6 +4319,7 @@ instead.
     /* Apparently, no body was recorded in the IFC file after all. */
     result = FALSE;
   }  /* if */
+done:
   return result;
 }  /* cache_function_body */
 
@@ -4119,8 +4345,8 @@ process that definition and return TRUE.
     clear_token_cache(&def_cache, /*reusable=*/FALSE);
     clear_func_info(&func_info);
     push_new_top_level_declaration();
-    if (ifb.ifc_module->cache_function_body(&def_cache, ifb.decl,
-                                            rp, &func_info)) {
+    if (ifb.ifc_module->cache_function_body(&def_cache, ifb.decl, rp,
+                                            &func_info)) {
       rescan_cached_tokens(&def_cache);
       scan_function_body(rp, &func_info, flags);
       if (curr_token == tok_rbrace) {
@@ -7509,8 +7735,9 @@ module file.
 }  /* type_for_template_id */
 
 
-a_boolean an_ifc_module::source_position_from_locus(a_source_position  *pos,
-                                                    ifc_SourceLocation *locus)
+a_boolean an_ifc_module::source_position_from_locus(
+                                               a_source_position        *pos,
+                                               const ifc_SourceLocation *locus)
 /*
 Map the IFC locus source position information into the source position at pos.
 Return TRUE if processing succeeded, otherwise return FALSE.
@@ -17616,60 +17843,18 @@ into that partition.
 }  /* read_index_from_heap */
 
 
-template<an_ifc_partition_kind a_Partition_Kind, typename a_Trait_T>
-inline a_Trait_T *an_ifc_module::find_trait(ifc_DeclIndex decl,
-                                            a_Trait_T     *storage)
-/*
-Given a declaration index (decl) as a key to the associated trait table
-identified by a_Partition_Kind, find and return a pointer to the associated
-trait, or NULL if none is found.  storage is the data structure that will be
-used to store the retrieved trait in memory if required, but cannot be relied
-upon to contain the result.
-*/
-{
-  size_t num_traits = get_num_entries(a_Partition_Kind);
-  /* Provide a value function for retrieving the trait at the given trait
-     partition index. */
-  auto value_lambda = [this](ptrdiff_t idx) {
-    a_Trait_T tmp_trait_storage, *tmp_trait_ptr;
-
-    read_prechecked_partition_element(a_Partition_Kind, (ifc_Index_type)idx);
-    tmp_trait_ptr = get<a_Trait_T>(&tmp_trait_storage, /*from_header=*/FALSE);
-    return tmp_trait_ptr->decl;
-  };
-  /* Get the partition index (if any) for decl. */
-  ptrdiff_t partition_idx = bin_search(num_traits, decl, value_lambda);
-  a_Trait_T *result = NULL;
-
-  if (partition_idx != -1) {
-    /* A trait was found for decl.  Load the trait (again) to retrieve the
-       trait.
-
-       Note that the implementation of bin_search at the time of writing does
-       not guarantee that the last read value is the one whose index is
-       returned.  Thus, we cannot (as an optimization) share a variable with
-       the value_lambda to prevent double reading (though this is unlikely to
-       ever represent a significant cost in terms of CPU time). */
-    read_prechecked_partition_element(a_Partition_Kind,
-                                      (ifc_Index_type)partition_idx);
-    result = get<a_Trait_T>(storage, /*from_header=*/FALSE);
-  }  /* if */
-  return result;
-}  /* find_trait */
-
-
 ifc_ChartIndex an_ifc_module::get_func_params_from_trait(ifc_DeclIndex decl)
 /*
 Find and return the index to the named function parameters corresponding to
 decl, or 0 if not found.
 */
 {
-  an_ifc_Trait_MsvcFuncParams itmfp, *itmfpp;
-  ifc_ChartIndex              params = (ifc_ChartIndex)0;
+  ifc_ChartIndex                                params = (ifc_ChartIndex)0;
+  Opt<an_ifc_Node<an_ifc_Trait_MsvcFuncParams>> opt_itmfp;
 
-  itmfpp = find_trait<ifc_msvc_trait_named_func_params>(decl, &itmfp);
-  if (itmfpp != NULL) {
-    params = itmfpp->params;
+  find_trait<ifc_msvc_trait_named_func_params>(&opt_itmfp, this, decl);
+  if (opt_itmfp.has_value()) {
+    params = (*opt_itmfp)->params;
   }  /* if */
   return params;
 }  /* get_func_params_from_trait */
@@ -17681,12 +17866,13 @@ Find and return the associated vendor traits corresponding to the given decl.
 If not found, return the appropriate trait to indicate "none".
 */
 {
-  ifc_MsvcTraits               result = ifc_MsvcTraits_None;
-  an_ifc_Trait_MsvcVendorTrait itmvt, *itmvtp;
+  ifc_MsvcTraits                                 result = ifc_MsvcTraits_None;
+  Opt<an_ifc_Node<an_ifc_Trait_MsvcVendorTrait>> opt_itmvt;
 
-  itmvtp = find_trait<ifc_msvc_trait_vendor_traits>(decl, &itmvt);
-  if (itmvtp != NULL) {
-    result = itmvtp->trait;
+
+  find_trait<ifc_msvc_trait_vendor_traits>(&opt_itmvt, this, decl);
+  if (opt_itmvt.has_value()) {
+    result = (*opt_itmvt)->trait;
   }  /* if */
   return result;
 }  /* get_vendor_traits */
@@ -17699,13 +17885,14 @@ Find and return the sequence of specializations corresponding to the template
 decl, or an empty sequence if not found.
 */
 {
-  an_ifc_Trait_Specialization its, *itsp;
-  ifc_Sequence                result = {(ifc_Index)0, (ifc_Cardinality)0};
+  ifc_Sequence                                  result = {(ifc_Index)0,
+                                                          (ifc_Cardinality)0};
+  Opt<an_ifc_Node<an_ifc_Trait_Specialization>> opt_its;
 
   check_assertion(decl_tag(decl) == ifc_DeclSort_Template);
-  itsp = find_trait<ifc_trait_specialization>(decl, &its);
-  if (itsp != NULL) {
-    result = itsp->trait;
+  find_trait<ifc_trait_specialization>(&opt_its, this, decl);
+  if (opt_its.has_value()) {
+    result = (*opt_its)->trait;
   }  /* if */
   return result;
 }  /* get_specialization_sequence_from_trait */

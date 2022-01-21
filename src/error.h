@@ -567,6 +567,10 @@ extern void pos_st_num2_diagnostic(an_error_severity error_severity,
                                    a_const_char      *error_string,
                                    int32_t           num1,
                                    int32_t           num2);
+extern void num2_add_diag_info(a_diagnostic_ptr primary_dp,
+                               an_error_code    error_code,
+                               int32_t          num1,
+                               int32_t          num2);
 extern void st_num3_add_diag_info(a_diagnostic_ptr primary_dp,
                                   an_error_code    error_code,
                                   a_const_char     *error_string,
@@ -655,10 +659,10 @@ extern void pos_st2_error(an_error_code     error_code,
                           a_const_char      *error_string1,
                           a_const_char      *error_string2);
 extern void pos_st2_diagnostic(an_error_severity error_severity,
-                          an_error_code     error_code,
-                          a_source_position *error_pos,
-                          a_const_char      *error_string1,
-                          a_const_char      *error_string2);
+                               an_error_code     error_code,
+                               a_source_position *error_pos,
+                               a_const_char      *error_string1,
+                               a_const_char      *error_string2);
 extern void pos_opt_ty2_diagnostic(an_error_severity sev,
                                    an_error_code     error_code,
                                    a_source_position *error_pos,
@@ -760,6 +764,11 @@ NORETURN extern void str_errno_catastrophe(an_error_code error_code,
 extern a_diagnostic_ptr pos_start_diagnostic(an_error_severity  error_severity,
                                              an_error_code      error_code,
                                              a_source_position  *error_pos);
+extern a_diagnostic_ptr pos_st_start_diagnostic(
+                                              an_error_severity error_severity,
+                                              an_error_code     error_code,
+                                              a_source_position *error_pos,
+                                              a_const_char      *error_string);
 extern a_diagnostic_ptr pos_st2_start_diagnostic(
                                              an_error_severity error_severity,
                                              an_error_code     error_code,

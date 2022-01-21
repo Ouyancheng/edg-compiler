@@ -6103,6 +6103,23 @@ numbers) to primary_dp.
   add_number_fill_in(dp, num3);
 }  /* st_num3_add_diag_info */
 
+
+void num2_add_diag_info(a_diagnostic_ptr primary_dp,
+                        an_error_code    error_code,
+                        int32_t          num1,
+                        int32_t          num2)
+/*
+Add the specified diagnostic message (with the indicated fill-in numbers) to
+primary_dp.
+*/
+{
+  a_diagnostic_ptr dp;
+
+  dp = create_sub_message(primary_dp, error_code);
+  add_number_fill_in(dp, num1);
+  add_number_fill_in(dp, num2);
+}  /* st_num3_add_diag_info */
+
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 static
@@ -6835,6 +6852,24 @@ will be passed in for the subsequent messages.
   dp = create_primary_diagnostic(error_code, error_pos, error_severity);
   return dp;
 }  /* pos_start_diagnostic */
+
+
+a_diagnostic_ptr pos_st_start_diagnostic(an_error_severity error_severity,
+                                         an_error_code     error_code,
+                                         a_source_position *error_pos,
+                                         a_const_char      *error_string)
+/*
+Begin a multiple message diagnostic with the specified severity, error code,
+source position and indicated fill-in string.  Return a pointer to the
+diagnostic entry that will be passed in for the subsequent messages.
+*/
+{
+  a_diagnostic_ptr	dp;
+
+  dp = create_primary_diagnostic(error_code, error_pos, error_severity);
+  add_string_fill_in(dp, error_string);
+  return dp;
+}  /* pos_st_start_diagnostic */
 
 
 a_diagnostic_ptr pos_st2_start_diagnostic(an_error_severity error_severity,

@@ -2757,8 +2757,6 @@ public:
   void debug() const OVERRIDE;
   void db_module_entity(a_module_entity_ptr mep) const OVERRIDE;
 #endif /* DEBUG */
-
-private:
   enum a_non_type_kind : uint8_t {
     ntk_none,
     ntk_ellipsis,
@@ -2882,8 +2880,8 @@ private:
   a_template_arg_ptr template_arg_for_expr(
                                          a_template_parameter_ptr tmpl_param,
                                          ifc_ExprIndex            expr_index);
-  a_boolean source_position_from_locus(a_source_position  *pos,
-                                       ifc_SourceLocation *locus);
+  a_boolean source_position_from_locus(a_source_position        *pos,
+                                       const ifc_SourceLocation *locus);
   inline a_const_char *get_string_at_offset(ifc_TextOffset offset) const;
   a_const_char *string_from_name_index(ifc_NameIndex     name_index,
                                        a_symbol_locator  *loc);
@@ -3205,9 +3203,6 @@ private:
   inline void read_prechecked_partition_element(Args&&... args);
   inline ifc_Index read_index_from_heap(an_ifc_partition_kind heap_partition,
                                         ifc_Index_type        index);
-  template<an_ifc_partition_kind a_Partition_Kind, typename a_Trait_T>
-  inline a_Trait_T *find_trait(ifc_DeclIndex decl_index,
-                               a_Trait_T     *storage);
   ifc_ChartIndex get_func_params_from_trait(ifc_DeclIndex decl);
   ifc_MsvcTraits get_vendor_traits(ifc_DeclIndex decl);
   ifc_Sequence get_specialization_sequence_from_trait(ifc_DeclIndex decl);
