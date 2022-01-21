@@ -20,9 +20,9 @@ Consider:
   };
   template<typename T, typename U> struct D: public B<P, T, U> {};
 
-Previously, this produced a spurious in Microsoft C++11 modes, complaining that
-there were too few template arguments in "X<Ts...>".  This is now fixed.  (The
-error occurred during the so-called nonreal instantiation of B<P, T, U>, a
+Previously, this produced a spurious error in Microsoft C++11 mode, complaining
+that there were too few template arguments in "X<Ts...>".  This is now fixed.
+(The error occurred during the so-called nonreal instantiation of B<P, T, U>, a
 process unique to Microsoft modes, and during which type information is often
 imprecise.)
 
