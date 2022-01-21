@@ -312,19 +312,7 @@ typedef struct a_new_parse_state {
 #if NULL_POINTER_IS_ZERO
 #define clear_new_parse_state_ptrs(nps)
 #else /* !NULL_POINTER_IS_ZERO */
-static void clear_new_parse_state_ptrs(a_new_parse_state *nps);
-#endif /* NULL_POINTER_IS_ZERO */
 
-/*
-Macro to initialize the "new parsing state" pointed to by the argument.
-*/
-#define clear_new_parse_state(nps) {                                         \
-  memzero((char*)(nps), sizeof(a_new_parse_state));                          \
-  clear_new_parse_state_ptrs(nps);                                           \
-}  /* clear_new_parse_state */
-
-
-#if !NULL_POINTER_IS_ZERO
 static void clear_new_parse_state_ptrs(a_new_parse_state *nps)
 /*
 Set all pointers in the "new" parse state to NULL.
@@ -357,7 +345,49 @@ Set all pointers in the "new" parse state to NULL.
   nps->cli_array_new_init_args = NULL;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* clear_new_parse_state_ptrs */
-#endif /* !NULL_POINTER_IS_ZERO */
+
+#endif /* NULL_POINTER_IS_ZERO */
+
+/*
+Macro to initialize the "new parsing state" pointed to by the argument.
+*/
+#define clear_new_parse_state(nps) {                                         \
+  memzero((char*)(nps), sizeof(a_new_parse_state));                          \
+  clear_new_parse_state_ptrs(nps);                                           \
+}  /* clear_new_parse_state */
+
+
+static a_scope_ptr curr_function_scope(void)
+/*
+Return the current function scope.  This is usually innermost_function_scope,
+but within the signature of a lambda, it is the function enclosing the lambda.
+*/
+{
+  a_scope_ptr              result = innermost_function_scope;
+  a_scope_stack_entry_ptr  ssep = &scope_stack_top();
+
+  while (result == NULL && ssep->inside_local_class) {
+    /* We're in a local class: Check if it is a closure.  We may have to
+       repeat this if lambda expressions are nested. */
+    if (scope_is(ssep, sck_func_prototype)) ssep -= 1;
+    if (scope_is(ssep, sck_class_struct_union) ||
+        scope_is(ssep, sck_class_reactivation)) {
+      a_type_ptr class_type = ssep->assoc_type;
+      if (class_type_supp(class_type)->is_lambda_closure_class) {
+        ssep -= 1;
+        if (ssep->depth_innermost_function_scope != NO_SCOPE_DEPTH) {
+          result = scope_stack[ssep->depth_innermost_function_scope].il_scope;
+        } /* if */
+      } else {
+        break;
+      }  /* if */
+    } else {
+      break;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* curr_function_scope */
+
 
 static void set_deduced_return_type(a_type_ptr        return_type,
                                     a_source_position *err_pos,
@@ -37085,8 +37115,9 @@ text buffer so the caller should copy it quickly.
 */
 {
   a_const_char  *name_str = NULL;
+  a_scope_ptr   function_scope = curr_function_scope();
 
-  if (innermost_function_scope == NULL) {
+  if (function_scope == NULL) {
     /* Not in a function. */
     if (include_quote) {
       name_str = "\"";
@@ -37094,7 +37125,7 @@ text buffer so the caller should copy it quickly.
       name_str = "";
     }  /* if */
   } else {
-    a_routine_ptr rp = innermost_function_scope->variant.routine.ptr;
+    a_routine_ptr rp = function_scope->variant.routine.ptr;
     pos_in_temp_text_buffer = 0;
     switch (token) {
       case tok_func_name:
@@ -37164,14 +37195,15 @@ __PRETTY_FUNCTION__).  If do_concat is TRUE, do concatenation of any
 subsequent string literals.
 */
 {
-  a_const_char  *name_str = NULL;
-  a_const_char  *saved_curr_char_loc = curr_char_loc;
+  a_const_char  *name_str = NULL,
+                *saved_curr_char_loc = curr_char_loc;
+  a_scope_ptr   function_scope = curr_function_scope();
 
   /* Set up name_str to point to a string suitable for processing by
      scan_string_literal - that is, beginning with the first character
      after the (assumed) leading quote and ending with the closing
      quote. */
-  if (innermost_function_scope == NULL) {
+  if (function_scope == NULL) {
     /* We are outside of a function.  This is allowed in GNU mode.
        The name is empty. */
     if (!gnu_mode) {
@@ -37212,11 +37244,12 @@ which of the various keywords was used.
   a_token_kind             func_name_token = curr_token;
   a_const_char             *token_spelling =
                              spelling_for_function_name_token(func_name_token);
+  a_scope_ptr              function_scope = curr_function_scope();
 
   /* Decide whether this keyword is equivalent to a string literal
      or a static variable. */
   is_string = token_is_function_name_string_literal(func_name_token);
-  if (innermost_function_scope == NULL) {
+  if (function_scope == NULL) {
     /* We are outside of a function.  This is allowed in GNU mode.
        The name is empty. */
     if (!gnu_mode) {
@@ -37239,7 +37272,8 @@ which of the various keywords was used.
   }  /* if */
   if (!is_string) {
     /* We want a variable. */
-    a_scope_stack_entry_ptr ssep= &scope_stack[depth_innermost_function_scope];
+    a_scope_stack_entry_ptr ssep;
+    ssep = &scope_stack[function_scope->depth_in_scope_stack];
     /* Allocate an associated generated entity block for this function
        the first time it is needed. */
     gen_entity_block = ssep->generated_entities;
@@ -37309,7 +37343,7 @@ which of the various keywords was used.
       var_type = make_qualified_type(name_string->type, TQ_CONST);
     }  /* if */
     name_var = make_variable(var_type, (a_storage_class)sc_static,
-                             depth_innermost_function_scope);
+                             function_scope->depth_in_scope_stack);
     name_var->compiler_generated = TRUE;
 #if BACK_END_IS_CP_GEN_BE
     /* The name of the variable is the token name, e.g., __FUNCTION__.

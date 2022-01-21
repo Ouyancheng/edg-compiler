@@ -1,5 +1,18 @@
 Version 6.4
 
+1/21/22  [EDGcpfe/24924]
+Use of __func__ (and similar) in lambda expressions
+
+Consider:
+
+  auto g() { return [&](const char* s = __func__){ return s; }(); }
+        // Previously an error.  Now okay.
+
+Previously, this elicited an error because the front end did not treat __func__
+as appearing in the function scope of g().  That is now fixed.  (Other similar
+identifiers, like __FUNCTION__, are handled similarly.)
+
+
 1/21/22  [EDGcpfe/24901]
 C++-generating back end: Template-id with dependent qualifier
 
