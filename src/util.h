@@ -2874,6 +2874,20 @@ Compute a hash for the given path.  The hash must be appropriate for Ptr_map.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+template<typename a_Linked_list_type>
+inline unsigned count_list_elements(a_Linked_list_type list_head)
+/*
+Given the head of a linked list, traverse the list and return the number of
+elements in the list.
+*/
+{
+  unsigned count = 0;
+
+  for (a_Linked_list_type el = list_head; el != NULL; el = el->next) {
+    ++count;
+  }  /* if */
+  return count;
+}  /* count_list_elements */
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
