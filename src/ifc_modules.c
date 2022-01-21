@@ -661,7 +661,7 @@ valid partition.
 }  /* namespace */
 
 
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+inline an_ifc_partition_position::an_ifc_partition_position(
                                                       const an_ifc_module *mod,
                                                       a_module_entity_ptr mep)
   : an_ifc_partition_position(mep->variant.ifc_partition, mep->file_offset)
@@ -674,7 +674,7 @@ in the given module.
 } /* an_ifc_partition_position */
 
 
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+inline an_ifc_partition_position::an_ifc_partition_position(
                                           const an_ifc_module   *mod,
                                           an_ifc_partition_kind partition_kind,
                                           ifc_Index_type        index)
@@ -690,7 +690,7 @@ file offset in the given module.
 } /* an_ifc_partition_position */
 
 
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+inline an_ifc_partition_position::an_ifc_partition_position(
                                                  const an_ifc_module *mod,
                                                  ifc_AttrSort        attr_kind,
                                                  ifc_Index_type      index)
@@ -704,7 +704,7 @@ file offset in the given module.
 } /* an_ifc_partition_position */
 
 
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+inline an_ifc_partition_position::an_ifc_partition_position(
                                                       const an_ifc_module *mod,
                                                       ifc_AttrIndex       attr)
   : an_ifc_partition_position(mod, attr_tag(attr), attr_value(attr))
@@ -717,7 +717,7 @@ in the given module.
 } /* an_ifc_partition_position */
 
 
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+inline an_ifc_partition_position::an_ifc_partition_position(
                                                 const an_ifc_module *mod,
                                                 ifc_ChartSort       chart_kind,
                                                 ifc_Index_type      index)
@@ -731,7 +731,7 @@ file offset in the given module.
 } /* an_ifc_partition_position */
 
 
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+inline an_ifc_partition_position::an_ifc_partition_position(
                                                      const an_ifc_module *mod,
                                                      ifc_ChartIndex      chart)
   : an_ifc_partition_position(mod, chart_tag(chart), chart_value(chart))
@@ -744,7 +744,7 @@ offset in the given module.
 } /* an_ifc_partition_position */
 
 
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+inline an_ifc_partition_position::an_ifc_partition_position(
                                                  const an_ifc_module *mod,
                                                  ifc_DeclSort        decl_kind,
                                                  ifc_Index_type      index)
@@ -758,7 +758,7 @@ file offset in the given module.
 } /* an_ifc_partition_position */
 
 
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+inline an_ifc_partition_position::an_ifc_partition_position(
                                                       const an_ifc_module *mod,
                                                       ifc_DeclIndex       decl)
   : an_ifc_partition_position(mod, decl_tag(decl), decl_value(decl))
@@ -771,7 +771,7 @@ in the given module.
 } /* an_ifc_partition_position */
 
 
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+inline an_ifc_partition_position::an_ifc_partition_position(
                                                  const an_ifc_module *mod,
                                                  ifc_ExprSort        expr_kind,
                                                  ifc_Index_type      index)
@@ -785,7 +785,7 @@ file offset in the given module.
 } /* an_ifc_partition_position */
 
 
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+inline an_ifc_partition_position::an_ifc_partition_position(
                                                       const an_ifc_module *mod,
                                                       ifc_ExprIndex       expr)
   : an_ifc_partition_position(mod, expr_tag(expr), expr_value(expr))
@@ -798,7 +798,7 @@ in the given module.
 } /* an_ifc_partition_position */
 
 
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+inline an_ifc_partition_position::an_ifc_partition_position(
                                                  const an_ifc_module *mod,
                                                  ifc_FormSort        form_kind,
                                                  ifc_Index_type      index)
@@ -814,7 +814,7 @@ file offset in the given module.
 } /* an_ifc_partition_position */
 
 
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+inline an_ifc_partition_position::an_ifc_partition_position(
                                                       const an_ifc_module *mod,
                                                       ifc_FormIndex       form)
   : an_ifc_partition_position(mod, form_tag(form), form_index(form))
@@ -827,7 +827,7 @@ in the given module.
 } /* an_ifc_partition_position */
 
 
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+inline an_ifc_partition_position::an_ifc_partition_position(
                                                  const an_ifc_module *mod,
                                                  ifc_FormSpecIndex   form_spec)
   : an_ifc_partition_position(mod, ifc_form_spec, form_spec)
@@ -840,7 +840,7 @@ offset in the given module.
 } /* an_ifc_partition_position */
 
 
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+inline an_ifc_partition_position::an_ifc_partition_position(
                                                  const an_ifc_module *mod,
                                                  ifc_LineIndex       line)
   : an_ifc_partition_position(mod, ifc_src_line, line)
@@ -853,7 +853,7 @@ in the given module.
 } /* an_ifc_partition_position */
 
 
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+inline an_ifc_partition_position::an_ifc_partition_position(
                                                 const an_ifc_module *mod,
                                                 ifc_MacroSort       macro_kind,
                                                 ifc_Index_type      index)
@@ -869,7 +869,7 @@ file offset in the given module.
 } /* an_ifc_partition_position */
 
 
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+inline an_ifc_partition_position::an_ifc_partition_position(
                                                      const an_ifc_module *mod,
                                                      ifc_MacroIndex      macro)
   : an_ifc_partition_position(mod, macro_tag(macro), macro_index(macro))
@@ -882,7 +882,7 @@ offset in the given module.
 } /* an_ifc_partition_position */
 
 
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+inline an_ifc_partition_position::an_ifc_partition_position(
                                                  const an_ifc_module *mod,
                                                  ifc_NameSort        name_kind,
                                                  ifc_Index_type      index)
@@ -900,7 +900,7 @@ file offset in the given module.
 } /* an_ifc_partition_position */
 
 
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+inline an_ifc_partition_position::an_ifc_partition_position(
                                                       const an_ifc_module *mod,
                                                       ifc_NameIndex       name)
   : an_ifc_partition_position(mod, name_tag(name), name_value(name))
@@ -913,7 +913,7 @@ in the given module.
 } /* an_ifc_partition_position */
 
 
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+inline an_ifc_partition_position::an_ifc_partition_position(
                                                      const an_ifc_module *mod,
                                                      ifc_ScopeIndex      scope)
   : an_ifc_partition_position(mod, ifc_scope_desc, scope - 1)
@@ -926,7 +926,7 @@ offset in the given module.
 } /* an_ifc_partition_position */
 
 
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+inline an_ifc_partition_position::an_ifc_partition_position(
                                                  const an_ifc_module *mod,
                                                  ifc_StmtSort        stmt_kind,
                                                  ifc_Index_type      index)
@@ -940,7 +940,7 @@ file offset in the given module.
 } /* an_ifc_partition_position */
 
 
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+inline an_ifc_partition_position::an_ifc_partition_position(
                                                       const an_ifc_module *mod,
                                                       ifc_StmtIndex       stmt)
   : an_ifc_partition_position(mod, stmt_tag(stmt), stmt_value(stmt))
@@ -953,7 +953,7 @@ in the given module.
 } /* an_ifc_partition_position */
 
 
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+inline an_ifc_partition_position::an_ifc_partition_position(
                                                const an_ifc_module *mod,
                                                ifc_SyntaxSort      syntax_kind,
                                                ifc_Index_type      index)
@@ -969,7 +969,7 @@ file offset in the given module.
 } /* an_ifc_partition_position */
 
 
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+inline an_ifc_partition_position::an_ifc_partition_position(
                                                     const an_ifc_module *mod,
                                                     ifc_SyntaxIndex     syntax)
   : an_ifc_partition_position(mod, syntax_tag(syntax), syntax_value(syntax))
@@ -982,7 +982,7 @@ offset in the given module.
 } /* an_ifc_partition_position */
 
 
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+inline an_ifc_partition_position::an_ifc_partition_position(
                                                  const an_ifc_module *mod,
                                                  ifc_TypeSort        type_kind,
                                                  ifc_Index_type      index)
@@ -996,7 +996,7 @@ file offset in the given module.
 } /* an_ifc_partition_position */
 
 
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+inline an_ifc_partition_position::an_ifc_partition_position(
                                                       const an_ifc_module *mod,
                                                       ifc_TypeIndex       type)
   : an_ifc_partition_position(mod, type_tag(type), type_value(type))

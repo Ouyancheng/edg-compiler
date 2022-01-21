@@ -2563,6 +2563,86 @@ struct an_ifc_partition {
 
 struct a_str_control_block;
 struct a_partial_scope_stack_state;
+struct an_ifc_module;
+
+/*
+An internal short lifetime representation of an IFC partition element
+position.
+*/
+struct an_ifc_partition_position {
+  an_ifc_partition_kind
+                partition;
+  size_t        file_offset;
+  inline an_ifc_partition_position(const an_ifc_module *mod,
+                                   a_module_entity_ptr mep);
+  /* Index based utility constructors. */
+  inline an_ifc_partition_position(const an_ifc_module   *mod,
+                                   an_ifc_partition_kind partition_kind,
+                                   ifc_Index_type        index);
+  inline an_ifc_partition_position(const an_ifc_module *mod,
+                                   ifc_AttrSort        attr_kind,
+                                   ifc_Index_type      index);
+  inline an_ifc_partition_position(const an_ifc_module *mod,
+                                   ifc_AttrIndex       attr);
+  inline an_ifc_partition_position(const an_ifc_module *mod,
+                                   ifc_ChartSort       chart_kind,
+                                   ifc_Index_type      index);
+  inline an_ifc_partition_position(const an_ifc_module *mod,
+                                   ifc_ChartIndex      chart);
+  inline an_ifc_partition_position(const an_ifc_module *mod,
+                                   ifc_DeclSort        decl_kind,
+                                   ifc_Index_type      index);
+  inline an_ifc_partition_position(const an_ifc_module *mod,
+                                   ifc_DeclIndex       decl);
+  inline an_ifc_partition_position(const an_ifc_module *mod,
+                                   ifc_ExprSort        expr_kind,
+                                   ifc_Index_type      index);
+  inline an_ifc_partition_position(const an_ifc_module *mod,
+                                   ifc_ExprIndex       expr);
+  inline an_ifc_partition_position(const an_ifc_module *mod,
+                                   ifc_FormSort        form_kind,
+                                   ifc_Index_type      index);
+  inline an_ifc_partition_position(const an_ifc_module *mod,
+                                   ifc_FormIndex       form);
+  inline an_ifc_partition_position(const an_ifc_module *mod,
+                                   ifc_FormSpecIndex   form_spec);
+  inline an_ifc_partition_position(const an_ifc_module *mod,
+                                   ifc_MacroSort       macro_kind,
+                                   ifc_Index_type      index);
+  inline an_ifc_partition_position(const an_ifc_module *mod,
+                                   ifc_LineIndex       line);
+  inline an_ifc_partition_position(const an_ifc_module *mod,
+                                   ifc_MacroIndex      macro);
+  inline an_ifc_partition_position(const an_ifc_module *mod,
+                                   ifc_NameSort        name_kind,
+                                   ifc_Index_type      index);
+  inline an_ifc_partition_position(const an_ifc_module *mod,
+                                   ifc_NameIndex       name);
+  inline an_ifc_partition_position(const an_ifc_module *mod,
+                                   ifc_ScopeIndex      scope);
+  inline an_ifc_partition_position(const an_ifc_module *mod,
+                                   ifc_StmtSort        stmt_kind,
+                                   ifc_Index_type      index);
+  inline an_ifc_partition_position(const an_ifc_module *mod,
+                                   ifc_StmtIndex       stmt);
+  inline an_ifc_partition_position(const an_ifc_module *mod,
+                                   ifc_SyntaxSort      syntax_kind,
+                                   ifc_Index_type      index);
+  inline an_ifc_partition_position(const an_ifc_module *mod,
+                                   ifc_SyntaxIndex     syntax);
+  inline an_ifc_partition_position(const an_ifc_module *mod,
+                                   ifc_TypeSort        type_kind,
+                                   ifc_Index_type      index);
+  inline an_ifc_partition_position(const an_ifc_module *mod,
+                                   ifc_TypeIndex       type);
+private:
+  an_ifc_partition_position(an_ifc_partition_kind partition_val,
+                            size_t                file_offset_val)
+    : partition(partition_val), file_offset(file_offset_val)
+    {}
+};  /* an_ifc_partition_position */
+
+
 /*
 Information specific to an IFC module.
 */
@@ -2599,82 +2679,6 @@ struct an_ifc_module : public a_module_interface {
 			   Dynamically allocated (in front end memory) once
 			   the number of source files is known. */
 private:
-  /*
-  An internal short lifetime representation of an IFC partition element
-  position.
-  */
-  struct an_ifc_partition_position {
-    an_ifc_partition_kind
-                  partition;
-    size_t        file_offset;
-    inline an_ifc_partition_position(const an_ifc_module *mod,
-                                     a_module_entity_ptr mep);
-    /* Index based utility constructors. */
-    inline an_ifc_partition_position(const an_ifc_module   *mod,
-                                     an_ifc_partition_kind partition_kind,
-                                     ifc_Index_type        index);
-    inline an_ifc_partition_position(const an_ifc_module *mod,
-                                     ifc_AttrSort        attr_kind,
-                                     ifc_Index_type      index);
-    inline an_ifc_partition_position(const an_ifc_module *mod,
-                                     ifc_AttrIndex       attr);
-    inline an_ifc_partition_position(const an_ifc_module *mod,
-                                     ifc_ChartSort       chart_kind,
-                                     ifc_Index_type      index);
-    inline an_ifc_partition_position(const an_ifc_module *mod,
-                                     ifc_ChartIndex      chart);
-    inline an_ifc_partition_position(const an_ifc_module *mod,
-                                     ifc_DeclSort        decl_kind,
-                                     ifc_Index_type      index);
-    inline an_ifc_partition_position(const an_ifc_module *mod,
-                                     ifc_DeclIndex       decl);
-    inline an_ifc_partition_position(const an_ifc_module *mod,
-                                     ifc_ExprSort        expr_kind,
-                                     ifc_Index_type      index);
-    inline an_ifc_partition_position(const an_ifc_module *mod,
-                                     ifc_ExprIndex       expr);
-    inline an_ifc_partition_position(const an_ifc_module *mod,
-                                     ifc_FormSort        form_kind,
-                                     ifc_Index_type      index);
-    inline an_ifc_partition_position(const an_ifc_module *mod,
-                                     ifc_FormIndex       form);
-    inline an_ifc_partition_position(const an_ifc_module *mod,
-                                     ifc_FormSpecIndex   form_spec);
-    inline an_ifc_partition_position(const an_ifc_module *mod,
-                                     ifc_MacroSort       macro_kind,
-                                     ifc_Index_type      index);
-    inline an_ifc_partition_position(const an_ifc_module *mod,
-                                     ifc_LineIndex       line);
-    inline an_ifc_partition_position(const an_ifc_module *mod,
-                                     ifc_MacroIndex      macro);
-    inline an_ifc_partition_position(const an_ifc_module *mod,
-                                     ifc_NameSort        name_kind,
-                                     ifc_Index_type      index);
-    inline an_ifc_partition_position(const an_ifc_module *mod,
-                                     ifc_NameIndex       name);
-    inline an_ifc_partition_position(const an_ifc_module *mod,
-                                     ifc_ScopeIndex      scope);
-    inline an_ifc_partition_position(const an_ifc_module *mod,
-                                     ifc_StmtSort        stmt_kind,
-                                     ifc_Index_type      index);
-    inline an_ifc_partition_position(const an_ifc_module *mod,
-                                     ifc_StmtIndex       stmt);
-    inline an_ifc_partition_position(const an_ifc_module *mod,
-                                     ifc_SyntaxSort      syntax_kind,
-                                     ifc_Index_type      index);
-    inline an_ifc_partition_position(const an_ifc_module *mod,
-                                     ifc_SyntaxIndex     syntax);
-    inline an_ifc_partition_position(const an_ifc_module *mod,
-                                     ifc_TypeSort        type_kind,
-                                     ifc_Index_type      index);
-    inline an_ifc_partition_position(const an_ifc_module *mod,
-                                     ifc_TypeIndex       type);
-  private:
-    an_ifc_partition_position(an_ifc_partition_kind partition_val,
-                              size_t                file_offset_val)
-      : partition(partition_val), file_offset(file_offset_val)
-      {}
-  };  /* an_ifc_partition_position */
 #if USE_MMAP_FOR_MEMORY_REGIONS
   unsigned char
 		*byte_buffer = NULL;
