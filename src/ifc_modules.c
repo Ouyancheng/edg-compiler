@@ -586,6 +586,429 @@ little-endian.
 #include "ifc_map.h"
 /*lint +e451*/
 
+namespace {
+/*
+Stores an exclusive range from start to end of an_ifc_partition_kinds.
+*/
+struct an_ifc_partition_kind_range {
+  an_ifc_partition_kind start;
+  an_ifc_partition_kind end;
+};  /* an_ifc_partition_kind_range */
+
+
+/*
+Declare a deleted function that must be specialized via the below macro to
+return the correct an_ifc_partition_kind_range based on a type T.
+*/
+template<typename an_ifc_Partition_Kind>
+inline an_ifc_partition_kind_range get_partition_kind_range() = delete;
+
+
+/*
+Generate a specialization that returns the exclusive range within the
+ifc_partition_kind where a given ifc_SortKind resides.  As this
+transformation is defined both by names in camel and snake case, accept
+both forms of the name.
+
+For example, when SortNameCamel is "Type" and SortNameSnake is "type", the
+following is generated:
+
+  template<>
+  inline an_ifc_partition_kind_range get_partition_kind_range<ifc_TypeSort>()
+  {
+    return {ifc_type_start, ifc_type_end};
+  }
+*/
+#define DEF_KIND_RANGE(SortNameCamel, SortNameSnake) \
+  template<> \
+  inline an_ifc_partition_kind_range get_partition_kind_range< \
+                                            ifc_ ## SortNameCamel ## Sort >() \
+  { \
+    return {ifc_ ## SortNameSnake ## _start, ifc_ ## SortNameSnake ## _end}; \
+  }
+
+
+/* Define the used ranges */
+DEF_KIND_RANGE(Attr, attr)
+DEF_KIND_RANGE(Type, type)
+DEF_KIND_RANGE(Expr, expr)
+DEF_KIND_RANGE(Stmt, stmt)
+DEF_KIND_RANGE(Decl, decl)
+DEF_KIND_RANGE(Name, name)
+DEF_KIND_RANGE(Chart, chart)
+
+/* Undefine the macro to prevent unintended usage. */
+#undef DEF_KIND_RANGE
+
+template<typename an_ifc_Partition_Kind>
+inline an_ifc_partition_kind get_partition_kind(
+                                               an_ifc_Partition_Kind sort_kind)
+/*
+Return the corresponding an_ifc_partition_kind for a given ifc_Sort_type value
+sort_kind or ifc_invalid_partition if the sort kind could not be mapped to a
+valid partition.
+*/
+{
+  an_ifc_partition_kind_range kind_range =
+                             get_partition_kind_range<an_ifc_Partition_Kind>();
+  an_ifc_partition_kind kind =
+                         (an_ifc_partition_kind)(kind_range.start + sort_kind);
+  if (kind > kind_range.end) {
+    kind = ifc_invalid_partition;
+  }  /* if */
+  return kind;
+}  /* get_partition_kind */
+}  /* namespace */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                      const an_ifc_module *mod,
+                                                      a_module_entity_ptr mep)
+  : an_ifc_partition_position(mep->variant.ifc_partition, mep->file_offset)
+/*
+Overload wrapper for "an_ifc_partition_position" that converts the given module
+entity pointer into an ifc partition position's partition kind and file offset
+in the given module.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                          const an_ifc_module   *mod,
+                                          an_ifc_partition_kind partition_kind,
+                                          ifc_Index_type        index)
+  : an_ifc_partition_position(partition_kind,
+                              mod->partitions[partition_kind].offset + (index *
+                                   mod->partitions[partition_kind].entry_size))
+/*
+Overload wrapper for "an_ifc_partition_position" that converts the given
+partition kind and index into an ifc partition position's partition kind and
+file offset in the given module.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                 const an_ifc_module *mod,
+                                                 ifc_AttrSort        attr_kind,
+                                                 ifc_Index_type      index)
+  : an_ifc_partition_position(mod, get_partition_kind(attr_kind), index)
+/*
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_AttrSort" and index into an ifc partition position's partition kind and
+file offset in the given module.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                      const an_ifc_module *mod,
+                                                      ifc_AttrIndex       attr)
+  : an_ifc_partition_position(mod, attr_tag(attr), attr_value(attr))
+/*
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_AttrIndex" into an ifc partition position's partition kind and file offset
+in the given module.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                const an_ifc_module *mod,
+                                                ifc_ChartSort       chart_kind,
+                                                ifc_Index_type      index)
+  : an_ifc_partition_position(mod, get_partition_kind(chart_kind), index)
+/*
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_ChartSort" and index into an ifc partition position's partition kind and
+file offset in the given module.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                     const an_ifc_module *mod,
+                                                     ifc_ChartIndex      chart)
+  : an_ifc_partition_position(mod, chart_tag(chart), chart_value(chart))
+/*
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_ChartIndex" into an ifc partition position's partition kind and file
+offset in the given module.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                 const an_ifc_module *mod,
+                                                 ifc_DeclSort        decl_kind,
+                                                 ifc_Index_type      index)
+  : an_ifc_partition_position(mod, get_partition_kind(decl_kind), index)
+/*
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_DeclSort" and index into an ifc partition position's partition kind and
+file offset in the given module.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                      const an_ifc_module *mod,
+                                                      ifc_DeclIndex       decl)
+  : an_ifc_partition_position(mod, decl_tag(decl), decl_value(decl))
+/*
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_DeclIndex" into an ifc partition position's partition kind and file offset
+in the given module.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                 const an_ifc_module *mod,
+                                                 ifc_ExprSort        expr_kind,
+                                                 ifc_Index_type      index)
+  : an_ifc_partition_position(mod, get_partition_kind(expr_kind), index)
+/*
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_ExprSort" and index into an ifc partition position's partition kind and
+file offset in the given module.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                      const an_ifc_module *mod,
+                                                      ifc_ExprIndex       expr)
+  : an_ifc_partition_position(mod, expr_tag(expr), expr_value(expr))
+/*
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_ExprIndex" into an ifc partition position's partition kind and file offset
+in the given module.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                 const an_ifc_module *mod,
+                                                 ifc_FormSort        form_kind,
+                                                 ifc_Index_type      index)
+  : an_ifc_partition_position(mod, (an_ifc_partition_kind)(ifc_form_start +
+                                                                    form_kind),
+                              index)
+/*
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_FormSort" and index into an ifc partition position's partition kind and
+file offset in the given module.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                      const an_ifc_module *mod,
+                                                      ifc_FormIndex       form)
+  : an_ifc_partition_position(mod, form_tag(form), form_index(form))
+/*
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_FormIndex" into an ifc partition position's partition kind and file offset
+in the given module.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                 const an_ifc_module *mod,
+                                                 ifc_FormSpecIndex   form_spec)
+  : an_ifc_partition_position(mod, ifc_form_spec, form_spec)
+/*
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_FormSpecIndex" into an ifc partition position's partition kind and file
+offset in the given module.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                 const an_ifc_module *mod,
+                                                 ifc_LineIndex       line)
+  : an_ifc_partition_position(mod, ifc_src_line, line)
+/*
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_LineIndex" into an ifc partition position's partition kind and file offset
+in the given module.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                const an_ifc_module *mod,
+                                                ifc_MacroSort       macro_kind,
+                                                ifc_Index_type      index)
+  : an_ifc_partition_position(mod, (an_ifc_partition_kind)(ifc_macro_start +
+                                                                   macro_kind),
+                              index)
+/*
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_MacroSort" and index into an ifc partition position's partition kind and
+file offset in the given module.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                     const an_ifc_module *mod,
+                                                     ifc_MacroIndex      macro)
+  : an_ifc_partition_position(mod, macro_tag(macro), macro_index(macro))
+/*
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_MacroIndex" into an ifc partition position's partition kind and file
+offset in the given module.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                 const an_ifc_module *mod,
+                                                 ifc_NameSort        name_kind,
+                                                 ifc_Index_type      index)
+  : an_ifc_partition_position(mod, get_partition_kind(name_kind), index)
+/*
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_NameSort" and index into an ifc partition position's partition kind and
+file offset in the given module.
+*/
+{
+  /* FIXME: Handle this check some other way.  This NameSort case is very
+     special, there's not a corresponding partition that needs read, when
+     NameSort is Identifier the string table is read from directly. */
+  check_assertion(name_kind != ifc_NameSort_Identifier);
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                      const an_ifc_module *mod,
+                                                      ifc_NameIndex       name)
+  : an_ifc_partition_position(mod, name_tag(name), name_value(name))
+/*
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_NameIndex" into an ifc partition position's partition kind and file offset
+in the given module.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                     const an_ifc_module *mod,
+                                                     ifc_ScopeIndex      scope)
+  : an_ifc_partition_position(mod, ifc_scope_desc, scope - 1)
+/*
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_ScopeIndex" into an ifc partition position's partition kind and file
+offset in the given module.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                 const an_ifc_module *mod,
+                                                 ifc_StmtSort        stmt_kind,
+                                                 ifc_Index_type      index)
+  : an_ifc_partition_position(mod, get_partition_kind(stmt_kind), index)
+/*
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_StmtSort" and index into an ifc partition position's partition kind and
+file offset in the given module.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                      const an_ifc_module *mod,
+                                                      ifc_StmtIndex       stmt)
+  : an_ifc_partition_position(mod, stmt_tag(stmt), stmt_value(stmt))
+/*
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_StmtIndex" into an ifc partition position's partition kind and file offset
+in the given module.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                               const an_ifc_module *mod,
+                                               ifc_SyntaxSort      syntax_kind,
+                                               ifc_Index_type      index)
+  : an_ifc_partition_position(mod, (an_ifc_partition_kind)(ifc_syntax_start +
+                                                                  syntax_kind),
+                              index)
+/*
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_SyntaxSort" and index into an ifc partition position's partition kind and
+file offset in the given module.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                    const an_ifc_module *mod,
+                                                    ifc_SyntaxIndex     syntax)
+  : an_ifc_partition_position(mod, syntax_tag(syntax), syntax_value(syntax))
+/*
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_SyntaxIndex" into an ifc partition position's partition kind and file
+offset in the given module.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                 const an_ifc_module *mod,
+                                                 ifc_TypeSort        type_kind,
+                                                 ifc_Index_type      index)
+  : an_ifc_partition_position(mod, get_partition_kind(type_kind), index)
+/*
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_TypeSort" and index into an ifc partition position's partition kind and
+file offset in the given module.
+*/
+{
+} /* an_ifc_partition_position */
+
+
+inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
+                                                      const an_ifc_module *mod,
+                                                      ifc_TypeIndex       type)
+  : an_ifc_partition_position(mod, type_tag(type), type_value(type))
+/*
+Overload wrapper for "an_ifc_partition_position" that converts the given
+"ifc_TypeIndex" into an ifc partition position's partition kind and file offset
+in the given module.
+*/
+{
+} /* an_ifc_partition_position */
+
+
 /*
 Utility to return a "tag" given a partition (an_ifc_partition_kind) value
 and the starting partition for the particular case (e.g., ifc_type_start
@@ -16665,429 +17088,6 @@ for the given partition without further validation.
 
   read_prechecked_partition_element(pos);
 }  /* read_prechecked_partition_element */
-
-
-namespace {
-/*
-Stores an exclusive range from start to end of an_ifc_partition_kinds.
-*/
-struct an_ifc_partition_kind_range {
-  an_ifc_partition_kind start;
-  an_ifc_partition_kind end;
-};  /* an_ifc_partition_kind_range */
-
-
-/*
-Declare a deleted function that must be specialized via the below macro to
-return the correct an_ifc_partition_kind_range based on a type T.
-*/
-template<typename an_ifc_Partition_Kind>
-inline an_ifc_partition_kind_range get_partition_kind_range() = delete;
-
-
-/*
-Generate a specialization that returns the exclusive range within the
-ifc_partition_kind where a given ifc_SortKind resides.  As this
-transformation is defined both by names in camel and snake case, accept
-both forms of the name.
-
-For example, when SortNameCamel is "Type" and SortNameSnake is "type", the
-following is generated:
-
-  template<>
-  inline an_ifc_partition_kind_range get_partition_kind_range<ifc_TypeSort>()
-  {
-    return {ifc_type_start, ifc_type_end};
-  }
-*/
-#define DEF_KIND_RANGE(SortNameCamel, SortNameSnake) \
-  template<> \
-  inline an_ifc_partition_kind_range get_partition_kind_range< \
-                                            ifc_ ## SortNameCamel ## Sort >() \
-  { \
-    return {ifc_ ## SortNameSnake ## _start, ifc_ ## SortNameSnake ## _end}; \
-  }
-
-
-/* Define the used ranges */
-DEF_KIND_RANGE(Attr, attr)
-DEF_KIND_RANGE(Type, type)
-DEF_KIND_RANGE(Expr, expr)
-DEF_KIND_RANGE(Stmt, stmt)
-DEF_KIND_RANGE(Decl, decl)
-DEF_KIND_RANGE(Name, name)
-DEF_KIND_RANGE(Chart, chart)
-
-/* Undefine the macro to prevent unintended usage. */
-#undef DEF_KIND_RANGE
-
-template<typename an_ifc_Partition_Kind>
-inline an_ifc_partition_kind get_partition_kind(
-                                               an_ifc_Partition_Kind sort_kind)
-/*
-Return the corresponding an_ifc_partition_kind for a given ifc_Sort_type value
-sort_kind or ifc_invalid_partition if the sort kind could not be mapped to a
-valid partition.
-*/
-{
-  an_ifc_partition_kind_range kind_range =
-                             get_partition_kind_range<an_ifc_Partition_Kind>();
-  an_ifc_partition_kind kind =
-                         (an_ifc_partition_kind)(kind_range.start + sort_kind);
-  if (kind > kind_range.end) {
-    kind = ifc_invalid_partition;
-  }  /* if */
-  return kind;
-}  /* get_partition_kind */
-}  /* namespace */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                      const an_ifc_module *mod,
-                                                      a_module_entity_ptr mep)
-  : an_ifc_partition_position(mep->variant.ifc_partition, mep->file_offset)
-/*
-Overload wrapper for "an_ifc_partition_position" that converts the given module
-entity pointer into an ifc partition position's partition kind and file offset
-in the given module.
-*/
-{
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                          const an_ifc_module   *mod,
-                                          an_ifc_partition_kind partition_kind,
-                                          ifc_Index_type        index)
-  : an_ifc_partition_position(partition_kind,
-                              mod->partitions[partition_kind].offset + (index *
-                                   mod->partitions[partition_kind].entry_size))
-/*
-Overload wrapper for "an_ifc_partition_position" that converts the given
-partition kind and index into an ifc partition position's partition kind and
-file offset in the given module.
-*/
-{
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                 const an_ifc_module *mod,
-                                                 ifc_AttrSort        attr_kind,
-                                                 ifc_Index_type      index)
-  : an_ifc_partition_position(mod, get_partition_kind(attr_kind), index)
-/*
-Overload wrapper for "an_ifc_partition_position" that converts the given
-"ifc_AttrSort" and index into an ifc partition position's partition kind and
-file offset in the given module.
-*/
-{
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                      const an_ifc_module *mod,
-                                                      ifc_AttrIndex       attr)
-  : an_ifc_partition_position(mod, attr_tag(attr), attr_value(attr))
-/*
-Overload wrapper for "an_ifc_partition_position" that converts the given
-"ifc_AttrIndex" into an ifc partition position's partition kind and file offset
-in the given module.
-*/
-{
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                const an_ifc_module *mod,
-                                                ifc_ChartSort       chart_kind,
-                                                ifc_Index_type      index)
-  : an_ifc_partition_position(mod, get_partition_kind(chart_kind), index)
-/*
-Overload wrapper for "an_ifc_partition_position" that converts the given
-"ifc_ChartSort" and index into an ifc partition position's partition kind and
-file offset in the given module.
-*/
-{
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                     const an_ifc_module *mod,
-                                                     ifc_ChartIndex      chart)
-  : an_ifc_partition_position(mod, chart_tag(chart), chart_value(chart))
-/*
-Overload wrapper for "an_ifc_partition_position" that converts the given
-"ifc_ChartIndex" into an ifc partition position's partition kind and file
-offset in the given module.
-*/
-{
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                 const an_ifc_module *mod,
-                                                 ifc_DeclSort        decl_kind,
-                                                 ifc_Index_type      index)
-  : an_ifc_partition_position(mod, get_partition_kind(decl_kind), index)
-/*
-Overload wrapper for "an_ifc_partition_position" that converts the given
-"ifc_DeclSort" and index into an ifc partition position's partition kind and
-file offset in the given module.
-*/
-{
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                      const an_ifc_module *mod,
-                                                      ifc_DeclIndex       decl)
-  : an_ifc_partition_position(mod, decl_tag(decl), decl_value(decl))
-/*
-Overload wrapper for "an_ifc_partition_position" that converts the given
-"ifc_DeclIndex" into an ifc partition position's partition kind and file offset
-in the given module.
-*/
-{
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                 const an_ifc_module *mod,
-                                                 ifc_ExprSort        expr_kind,
-                                                 ifc_Index_type      index)
-  : an_ifc_partition_position(mod, get_partition_kind(expr_kind), index)
-/*
-Overload wrapper for "an_ifc_partition_position" that converts the given
-"ifc_ExprSort" and index into an ifc partition position's partition kind and
-file offset in the given module.
-*/
-{
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                      const an_ifc_module *mod,
-                                                      ifc_ExprIndex       expr)
-  : an_ifc_partition_position(mod, expr_tag(expr), expr_value(expr))
-/*
-Overload wrapper for "an_ifc_partition_position" that converts the given
-"ifc_ExprIndex" into an ifc partition position's partition kind and file offset
-in the given module.
-*/
-{
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                 const an_ifc_module *mod,
-                                                 ifc_FormSort        form_kind,
-                                                 ifc_Index_type      index)
-  : an_ifc_partition_position(mod, (an_ifc_partition_kind)(ifc_form_start +
-                                                                    form_kind),
-                              index)
-/*
-Overload wrapper for "an_ifc_partition_position" that converts the given
-"ifc_FormSort" and index into an ifc partition position's partition kind and
-file offset in the given module.
-*/
-{
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                      const an_ifc_module *mod,
-                                                      ifc_FormIndex       form)
-  : an_ifc_partition_position(mod, form_tag(form), form_index(form))
-/*
-Overload wrapper for "an_ifc_partition_position" that converts the given
-"ifc_FormIndex" into an ifc partition position's partition kind and file offset
-in the given module.
-*/
-{
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                 const an_ifc_module *mod,
-                                                 ifc_FormSpecIndex   form_spec)
-  : an_ifc_partition_position(mod, ifc_form_spec, form_spec)
-/*
-Overload wrapper for "an_ifc_partition_position" that converts the given
-"ifc_FormSpecIndex" into an ifc partition position's partition kind and file
-offset in the given module.
-*/
-{
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                 const an_ifc_module *mod,
-                                                 ifc_LineIndex       line)
-  : an_ifc_partition_position(mod, ifc_src_line, line)
-/*
-Overload wrapper for "an_ifc_partition_position" that converts the given
-"ifc_LineIndex" into an ifc partition position's partition kind and file offset
-in the given module.
-*/
-{
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                const an_ifc_module *mod,
-                                                ifc_MacroSort       macro_kind,
-                                                ifc_Index_type      index)
-  : an_ifc_partition_position(mod, (an_ifc_partition_kind)(ifc_macro_start +
-                                                                   macro_kind),
-                              index)
-/*
-Overload wrapper for "an_ifc_partition_position" that converts the given
-"ifc_MacroSort" and index into an ifc partition position's partition kind and
-file offset in the given module.
-*/
-{
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                     const an_ifc_module *mod,
-                                                     ifc_MacroIndex      macro)
-  : an_ifc_partition_position(mod, macro_tag(macro), macro_index(macro))
-/*
-Overload wrapper for "an_ifc_partition_position" that converts the given
-"ifc_MacroIndex" into an ifc partition position's partition kind and file
-offset in the given module.
-*/
-{
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                 const an_ifc_module *mod,
-                                                 ifc_NameSort        name_kind,
-                                                 ifc_Index_type      index)
-  : an_ifc_partition_position(mod, get_partition_kind(name_kind), index)
-/*
-Overload wrapper for "an_ifc_partition_position" that converts the given
-"ifc_NameSort" and index into an ifc partition position's partition kind and
-file offset in the given module.
-*/
-{
-  /* FIXME: Handle this check some other way.  This NameSort case is very
-     special, there's not a corresponding partition that needs read, when
-     NameSort is Identifier the string table is read from directly. */
-  check_assertion(name_kind != ifc_NameSort_Identifier);
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                      const an_ifc_module *mod,
-                                                      ifc_NameIndex       name)
-  : an_ifc_partition_position(mod, name_tag(name), name_value(name))
-/*
-Overload wrapper for "an_ifc_partition_position" that converts the given
-"ifc_NameIndex" into an ifc partition position's partition kind and file offset
-in the given module.
-*/
-{
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                     const an_ifc_module *mod,
-                                                     ifc_ScopeIndex      scope)
-  : an_ifc_partition_position(mod, ifc_scope_desc, scope - 1)
-/*
-Overload wrapper for "an_ifc_partition_position" that converts the given
-"ifc_ScopeIndex" into an ifc partition position's partition kind and file
-offset in the given module.
-*/
-{
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                 const an_ifc_module *mod,
-                                                 ifc_StmtSort        stmt_kind,
-                                                 ifc_Index_type      index)
-  : an_ifc_partition_position(mod, get_partition_kind(stmt_kind), index)
-/*
-Overload wrapper for "an_ifc_partition_position" that converts the given
-"ifc_StmtSort" and index into an ifc partition position's partition kind and
-file offset in the given module.
-*/
-{
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                      const an_ifc_module *mod,
-                                                      ifc_StmtIndex       stmt)
-  : an_ifc_partition_position(mod, stmt_tag(stmt), stmt_value(stmt))
-/*
-Overload wrapper for "an_ifc_partition_position" that converts the given
-"ifc_StmtIndex" into an ifc partition position's partition kind and file offset
-in the given module.
-*/
-{
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                               const an_ifc_module *mod,
-                                               ifc_SyntaxSort      syntax_kind,
-                                               ifc_Index_type      index)
-  : an_ifc_partition_position(mod, (an_ifc_partition_kind)(ifc_syntax_start +
-                                                                  syntax_kind),
-                              index)
-/*
-Overload wrapper for "an_ifc_partition_position" that converts the given
-"ifc_SyntaxSort" and index into an ifc partition position's partition kind and
-file offset in the given module.
-*/
-{
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                    const an_ifc_module *mod,
-                                                    ifc_SyntaxIndex     syntax)
-  : an_ifc_partition_position(mod, syntax_tag(syntax), syntax_value(syntax))
-/*
-Overload wrapper for "an_ifc_partition_position" that converts the given
-"ifc_SyntaxIndex" into an ifc partition position's partition kind and file
-offset in the given module.
-*/
-{
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                 const an_ifc_module *mod,
-                                                 ifc_TypeSort        type_kind,
-                                                 ifc_Index_type      index)
-  : an_ifc_partition_position(mod, get_partition_kind(type_kind), index)
-/*
-Overload wrapper for "an_ifc_partition_position" that converts the given
-"ifc_TypeSort" and index into an ifc partition position's partition kind and
-file offset in the given module.
-*/
-{
-} /* an_ifc_partition_position */
-
-
-inline an_ifc_module::an_ifc_partition_position::an_ifc_partition_position(
-                                                      const an_ifc_module *mod,
-                                                      ifc_TypeIndex       type)
-  : an_ifc_partition_position(mod, type_tag(type), type_value(type))
-/*
-Overload wrapper for "an_ifc_partition_position" that converts the given
-"ifc_TypeIndex" into an ifc partition position's partition kind and file offset
-in the given module.
-*/
-{
-} /* an_ifc_partition_position */
 
 
 inline size_t an_ifc_module::to_relative_offset(an_ifc_partition_position pos)
