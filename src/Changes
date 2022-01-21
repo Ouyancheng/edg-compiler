@@ -4,9 +4,10 @@ Version 6.4
 Constant-evaluation of capturing lambda expressions
 
 The implementation of constant-evaluation of lambda expressions contained a bug
-that triggered invalid results in some cases where a capture variable is
-declared with a typedef type.  Some changes made in version 6.3 of the front
-end increased the likelihood of this bug manifesting.  This is now fixed.
+that triggered invalid results in some cases where a captured variable is
+declared with a typedef type or a cv-qualified type.  Some changes made in
+version 6.3 of the front end increased the likelihood of this bug manifesting.
+This is now fixed.
 
 
 1/20/21  [EDGcpfe/20663,EDGcpfe/24933]
