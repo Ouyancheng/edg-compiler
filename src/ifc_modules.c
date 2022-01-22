@@ -5737,7 +5737,7 @@ Return the locus of the declaration represented at decl.
 }  /* get_ifc_locus */
 
 
-inline ifc_DeclIndex an_ifc_module::skip_scope_abstractions(ifc_DeclIndex decl)
+ifc_DeclIndex an_ifc_module::skip_scope_abstractions(ifc_DeclIndex decl)
 /*
 As of IFC 0.41, which introduced DeclSort::Specialization, some home scopes
 point to the specialization declaration, rather than the associated
