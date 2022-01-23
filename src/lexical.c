@@ -25295,6 +25295,7 @@ of characters added.
           /* The literal is associated with a raw literal operator, so the
              constant contains the spelling of the literal. */
           use_token_spelling = TRUE;
+          constant = ctp->variant.ud_lit.spelling_con;
         }  /* if */
       }  /* if */
       if (use_token_spelling) {
