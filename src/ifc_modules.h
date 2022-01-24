@@ -40,6 +40,30 @@ module file.
 constexpr a_byte ifc_magic_numbers[] = { 0x54, 0x51, 0x45, 0x1A };
 }  /* namespace */
 
+struct an_ifc_module;
+
+/*
+A small wrapper template that binds an index with its associated module.  This
+is used for queries where the resulting index might be in a referenced module.
+*/
+template<typename an_Index_Type>
+struct an_ifc_Ref {
+  an_ifc_module *mod;
+                        /* The associated module containing the referenced
+                           index. */
+  an_Index_Type index;
+                        /* The referenced index. */
+
+  an_ifc_Ref(an_ifc_module *mod_val, an_Index_Type index_val)
+    : mod(mod_val), index(index_val)
+    {}
+
+  a_boolean operator==(const an_ifc_Ref<an_Index_Type> &other) const
+    { return this->mod == other.mod && this->index == other.index; }
+  a_boolean operator!=(const an_ifc_Ref<an_Index_Type> &other) const
+    { return !(this == other); }
+};  /* an_ifc_Ref */
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 /* These types are described by the IFC document. */
@@ -749,9 +773,17 @@ enum ifc_SpecializationSort : ifc_Sort_type {
   ifc_SpecializationSort_Instantiation,
 };
 
-/* Macros used to access NameIndex::tag and NameIndex::value. */
-#define name_tag(name) ((ifc_NameSort)((name) & 0x00000007))
-#define name_value(name) ((ifc_Index)((name) >> 3))
+/* Functions used to access NameIndex::tag and NameIndex::value. */
+inline ifc_NameSort name_tag(ifc_NameIndex name_index)
+  { return (ifc_NameSort)(name_index & 0x00000007); }
+inline ifc_Index name_value(ifc_NameIndex name_index)
+  { return (ifc_Index)(name_index >> 3); }
+inline ifc_NameSort name_tag(an_ifc_Ref<ifc_NameIndex> name_ref)
+  { return name_tag(name_ref.index); }
+
+/* Functions used to create NameIndex. */
+inline ifc_NameIndex to_name_index(ifc_NameSort sort, ifc_Index index)
+  { return (ifc_NameIndex)((index << 3) | sort); }
 
 /* Enumeration for NameSort (i.e., types of names). */
 enum ifc_NameSort : ifc_Sort_type {
@@ -2563,7 +2595,6 @@ struct an_ifc_partition {
 
 struct a_str_control_block;
 struct a_partial_scope_stack_state;
-struct an_ifc_module;
 
 /*
 An internal short lifetime representation of an IFC partition element
@@ -2804,8 +2835,6 @@ public:
                                          const an_ifc_DeclSort_Reference *ref);
   a_module_entity_ptr get_and_process_ifc_decl_from_other_module(
                                                           ifc_DeclIndex index);
-  ifc_NameIndex get_ifc_name_from_primary_template(
-                                                 ifc_FormSpecIndex form_index);
   /* Value retrieval visitors. */
   template<typename a_Result_T, typename a_Derived_T>
   struct Decl_value_visitor;
@@ -2823,9 +2852,12 @@ public:
                                 -> Is_same<decltype(decl->name), ifc_NameIndex>
     { return decl->name; }
   template<typename an_ifc_DeclSort_T>
-  inline ifc_NameIndex get_ifc_name(an_ifc_DeclSort_T *decl)
-    { return get_ifc_name(decl, Overload_priority<1>()); }
-  ifc_NameIndex get_ifc_name(ifc_DeclIndex decl_index);
+  inline auto get_ifc_name(an_ifc_DeclSort_T *decl, Overload_priority<1>)
+                -> Is_same<decltype(decl->name), ifc_TextOffset, ifc_NameIndex>
+    { return to_name_index(ifc_NameSort_Identifier, (ifc_Index)decl->name); }
+  template<typename an_ifc_DeclSort_T>
+  inline Opt<an_ifc_Ref<ifc_NameIndex>> get_ifc_name(an_ifc_DeclSort_T *decl);
+  Opt<an_ifc_Ref<ifc_NameIndex>> get_ifc_name(ifc_DeclIndex decl_index);
   /* IFC SourceLocation readers. */
   template<typename an_ifc_DeclSort_T>
   inline ifc_SourceLocation get_ifc_locus(an_ifc_DeclSort_T *decl,
@@ -2900,26 +2932,17 @@ public:
                 ifc_Access                  access,
                 ifc_ExprIndex               alignment,
                 a_partial_scope_stack_state *psssp);
-  a_boolean get_textual_name(ifc_NameIndex    name_index,
-                             a_symbol_locator *loc,
-                             a_const_char     **name_result);
-  a_boolean get_textual_name(ifc_TextOffset   text_offset,
-                             a_symbol_locator *loc,
-                             a_const_char     **name_result);
   template<typename an_Index_Type>
-  a_boolean init_locator_from_name(an_Index_Type      index,
-                                   ifc_SourceLocation *locus,
-                                   a_symbol_locator   *loc);
+  a_boolean init_locator_from_name(an_ifc_Ref<an_Index_Type> ref,
+                                   ifc_SourceLocation        *locus,
+                                   a_symbol_locator          *loc);
   template<typename an_Index_Type>
-  inline a_boolean init_decl_locator(an_Index_Type      index,
-                                     ifc_SourceLocation locus,
-                                     a_symbol_locator   *loc);
+  inline a_boolean init_decl_locator(an_ifc_Ref<an_Index_Type> ref,
+                                     ifc_SourceLocation        locus,
+                                     a_symbol_locator          *loc);
   template<typename an_ifc_DeclSort_T>
-  inline a_boolean init_decl_locator_via_name(an_ifc_DeclSort_T *decl,
-                                              a_symbol_locator  *loc);
-  template<typename an_ifc_DeclSort_T>
-  inline a_boolean init_decl_locator_via_text(an_ifc_DeclSort_T *decl,
-                                              a_symbol_locator  *loc);
+  inline a_boolean init_decl_locator(an_ifc_DeclSort_T *decl,
+                                     a_symbol_locator  *loc);
   template<typename an_ifc_DeclSort_T>
   inline a_boolean lazy_init_module_scope(an_ifc_DeclSort_T   *decl,
                                           a_module_entity_ptr mep);
@@ -3139,6 +3162,20 @@ public:
                            ifc_TypeIndex             param_types,
                            ifc_NoexceptSpecification *eh_spec,
                            ifc_SourceLocation        *locus);
+  void cache_function_decl(a_token_cache_ptr         cache,
+                           a_boolean                 is_class_member,
+                           a_boolean                 is_dtor,
+                           ifc_Access                access,
+                           ifc_CallingConvention     calling_conv,
+                           ifc_FunctionTraits        func_traits,
+                           ifc_FunctionTypeTraits    func_type_traits,
+                           ifc_MsvcTraits            vendor_traits,
+                           ifc_TypeIndex             return_type,
+                           an_ifc_Ref<ifc_NameIndex> name,
+                           ifc_ChartIndex            params,
+                           ifc_TypeIndex             param_types,
+                           ifc_NoexceptSpecification *eh_spec,
+                           ifc_SourceLocation        *locus);
   void cache_name(a_token_cache_ptr  cache,
                   ifc_NameIndex      name,
                   ifc_SourceLocation *locus);
@@ -3247,17 +3284,20 @@ extern a_boolean load_routine_definition_from_ifc_module(a_routine_ptr  rp);
 
 /* Explicit specializations of an_ifc_module::get_ifc_name. */
 template<>
-inline ifc_NameIndex an_ifc_module::get_ifc_name(
+inline Opt<an_ifc_Ref<ifc_NameIndex>> an_ifc_module::get_ifc_name(
                                             an_ifc_DeclSort_Constructor *decl);
 template<>
-inline ifc_NameIndex an_ifc_module::get_ifc_name(
+inline Opt<an_ifc_Ref<ifc_NameIndex>> an_ifc_module::get_ifc_name(
                                              an_ifc_DeclSort_Destructor *decl);
 template<>
-inline ifc_NameIndex an_ifc_module::get_ifc_name(
+inline Opt<an_ifc_Ref<ifc_NameIndex>> an_ifc_module::get_ifc_name(
                                   an_ifc_DeclSort_PartialSpecialization *decl);
 template<>
-inline ifc_NameIndex an_ifc_module::get_ifc_name(
+inline Opt<an_ifc_Ref<ifc_NameIndex>> an_ifc_module::get_ifc_name(
                                          an_ifc_DeclSort_Specialization *decl);
+template<>
+inline Opt<an_ifc_Ref<ifc_NameIndex>> an_ifc_module::get_ifc_name(
+                                              an_ifc_DeclSort_Reference *decl);
 
 /* Explicit specializations of an_ifc_module::get_ifc_locus. */
 template<>

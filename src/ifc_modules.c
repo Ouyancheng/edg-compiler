@@ -74,6 +74,10 @@ static void cache_identifier(a_token_cache_ptr     cache,
                              a_const_char          *name,
                              a_source_position_ptr pos);
 
+template<typename an_Index_Type>
+static a_boolean validate_partition_element(an_ifc_Ref<an_Index_Type> ref);
+
+
 NORETURN static unsigned char buffer_overrun(void)
 /*
 This routine is called if a memory buffer (which represents a portion of
@@ -1320,6 +1324,18 @@ error occurred).
 }  /* find_trait */
 
 
+static void cache_name(a_token_cache_ptr         cache,
+                       an_ifc_Ref<ifc_NameIndex> name_ref,
+                       ifc_SourceLocation        *locus)
+/*
+Add the tokens corresponding to the given name to cache.  locus is the location
+of the name.
+*/
+{
+  name_ref.mod->cache_name(cache, name_ref.index, locus);
+}  /* cache_name */
+
+
 /*
 Utility to return a "tag" given a partition (an_ifc_partition_kind) value
 and the starting partition for the particular case (e.g., ifc_type_start
@@ -1346,6 +1362,16 @@ with the diagnostic.
   pos_st_diagnostic(unhandled_ifc_node_severity, ec_unhandled_ifc_construct,
                     pos, node);
 }  /* issue_unsupported_node_diag */
+
+
+static a_const_char *get_string_at_offset(an_ifc_Ref<ifc_TextOffset> offset)
+/*
+Return a pointer to the IFC string table for a given TextOffset.  Strings in
+the IFC file are NULL-terminated.
+*/
+{
+  return offset.mod->get_string_at_offset(offset.index);
+}  /* get_string_at_offset */
 
 
 inline a_const_char *an_ifc_module::get_string_at_offset(ifc_TextOffset offset)
@@ -4544,7 +4570,7 @@ principal associated IL entity.
       case ifc_DeclSort_Variable:
         { an_ifc_DeclSort_Variable idsv, *idsvp;
           idsvp = get_DeclSort_Variable(&idsv);
-          if (!init_decl_locator_via_name(idsvp, &loc)) {
+          if (!init_decl_locator(idsvp, &loc)) {
             goto invalid;
           }  /* if */
           if (defer) {
@@ -4596,7 +4622,7 @@ principal associated IL entity.
           a_type_ptr               old_type;
           an_ifc_DeclSort_Function idsf, *idsfp;
           idsfp = get_DeclSort_Function(&idsf);
-          if (!init_decl_locator_via_name(idsfp, &loc)) {
+          if (!init_decl_locator(idsfp, &loc)) {
             goto invalid;
           }  /* if */
           if (defer) {
@@ -4645,7 +4671,7 @@ principal associated IL entity.
           a_routine_ptr            rp;
           an_ifc_DeclSort_Intrinsic idsi, *idsip;
           idsip = get_DeclSort_Intrinsic(&idsi);
-          if (!init_decl_locator_via_text(idsip, &loc)) {
+          if (!init_decl_locator(idsip, &loc)) {
             goto invalid;
           }  /* if */
           if (defer) {
@@ -4678,7 +4704,7 @@ principal associated IL entity.
           a_symbol_kind               tag_kind;
 
           idssp = get_DeclSort_Scope(&idss);
-          if (!init_decl_locator_via_name(idssp, &loc)) {
+          if (!init_decl_locator(idssp, &loc)) {
             goto invalid;
           }  /* if */
           /* Should be no unnamed namespaces or types. */
@@ -4858,7 +4884,7 @@ class_struct_union_case:
       case ifc_DeclSort_Alias:
         { an_ifc_DeclSort_Alias idsta, *idstap;
           idstap = get_DeclSort_Alias(&idsta);
-          if (!init_decl_locator_via_text(idstap, &loc)) {
+          if (!init_decl_locator(idstap, &loc)) {
             goto invalid;
           }  /* if */
           if (defer) {
@@ -4940,10 +4966,12 @@ class_struct_union_case:
         }
         break;
       case ifc_DeclSort_Enumeration:
-        { an_ifc_DeclSort_Enumeration idse, *idsep;
-          an_ifc_TypeSort_Fundamental itsf, *itsfp;
-          a_boolean                   is_scoped_enum = FALSE;
-          a_scope_ptr                 enum_scope;
+        { an_ifc_DeclSort_Enumeration    idse, *idsep;
+          an_ifc_TypeSort_Fundamental    itsf, *itsfp;
+          a_boolean                      is_scoped_enum = FALSE;
+          a_scope_ptr                    enum_scope;
+          Opt<an_ifc_Ref<ifc_NameIndex>> opt_idsep_name_ref;
+
           idsep = get_DeclSort_Enumeration(&idse);
           /* FIXME: This does a lot of stuff even when deferred. */
           if (!source_position_from_locus(&error_position, &idsep->locus)) {
@@ -4979,7 +5007,12 @@ class_struct_union_case:
           } else {
             unexpected_condition();
           }  /* if */
-          if (!init_locator_from_name(idsep->name, &idsep->locus, &loc)) {
+          opt_idsep_name_ref = get_ifc_name(idsep);
+          if (!opt_idsep_name_ref.has_value()) {
+            goto invalid;
+          }  /* if */
+          if (!init_locator_from_name(*opt_idsep_name_ref, &idsep->locus,
+                                      &loc)) {
             goto invalid;
           }  /* if */
           /* FIXME: This should be a soft failure. */
@@ -5089,7 +5122,7 @@ class_struct_union_case:
       case ifc_DeclSort_Enumerator:
         { an_ifc_DeclSort_Enumerator idse, *idsep;
           idsep = get_DeclSort_Enumerator(&idse);
-          if (!init_decl_locator_via_text(idsep, &loc)) {
+          if (!init_decl_locator(idsep, &loc)) {
             goto invalid;
           }  /* if */
           /* FIXME: This should be a soft failure. */
@@ -5160,7 +5193,7 @@ class_struct_union_case:
       case ifc_DeclSort_Template:
         { an_ifc_DeclSort_Template idst, *idstp;
           idstp = get_DeclSort_Template(&idst);
-          if (!init_decl_locator_via_name(idstp, &loc)) {
+          if (!init_decl_locator(idstp, &loc)) {
             goto invalid;
           }  /* if */
           /* FIXME: This should be a soft failure. */
@@ -5335,7 +5368,7 @@ class_struct_union_case:
           a_boolean                 is_pack = FALSE;
 
           idspp = get_DeclSort_Parameter(&idsp);
-          if (!init_decl_locator_via_text(idspp, &loc)) {
+          if (!init_decl_locator(idspp, &loc)) {
             goto invalid;
           }  /* if */
           /* FIXME: This should be a soft failure. */
@@ -5450,7 +5483,7 @@ class_struct_union_case:
       case ifc_DeclSort_PartialSpecialization:
         { an_ifc_DeclSort_PartialSpecialization idsps, *idspsp;
           idspsp = get_DeclSort_PartialSpecialization(&idsps);
-          if (!init_decl_locator_via_name(idspsp, &loc)) {
+          if (!init_decl_locator(idspsp, &loc)) {
             goto invalid;
           }  /* if */
           if (defer) {
@@ -5493,7 +5526,7 @@ class_struct_union_case:
           if (idssp->sort == ifc_SpecializationSort_Instantiation) {
             is_instantiation = TRUE;
           }  /* if */
-          if (!init_decl_locator_via_name(idssp, &loc)) {
+          if (!init_decl_locator(idssp, &loc)) {
             goto invalid;
           }  /* if */
           if (defer) {
@@ -5526,7 +5559,7 @@ class_struct_union_case:
       case ifc_DeclSort_Concept:
         { an_ifc_DeclSort_Concept idsc, *idscp;
           idscp = get_DeclSort_Concept(&idsc);
-          if (!init_decl_locator_via_text(idscp, &loc)) {
+          if (!init_decl_locator(idscp, &loc)) {
             goto invalid;
           }  /* if */
           if (defer) {
@@ -5580,7 +5613,13 @@ class_struct_union_case:
         { an_ifc_DeclSort_UsingDeclaration idsud, *idsudp;
           idsudp = get_DeclSort_UsingDeclaration(&idsud);
           if (defer) {
-            if (!init_locator_from_name(idsudp->name, &idsudp->locus, &loc)) {
+            Opt<an_ifc_Ref<ifc_NameIndex>> opt_name_ref;
+
+            opt_name_ref = get_ifc_name(idsudp);
+            if (!opt_name_ref.has_value()) {
+              goto invalid;
+            }  /* if */
+            if (!init_locator_from_name(*opt_name_ref, &idsudp->locus, &loc)) {
               goto invalid;
             }  /* if */
             defer_symbol_creation(mep, &loc);
@@ -6482,10 +6521,12 @@ entity from the referenced module.
 }  /* get_and_process_ifc_decl_from_other_module */
 
 
-ifc_NameIndex an_ifc_module::get_ifc_name_from_primary_template(
+static Opt<an_ifc_Ref<ifc_NameIndex>> get_ifc_name_from_primary_template(
+                                                  an_ifc_module     *mod,
                                                   ifc_FormSpecIndex form_index)
 /*
-Given a form spec index find and return the associated name.
+Given a form spec index for the given ifc module, find and return the
+associated name.
 
 FIXME: This method should be removed in the future and used sparingly, as it's
 effectively a hack to retrieve a non-mangled name from the primary template.
@@ -6495,15 +6536,20 @@ due to a bug in MSVC, as a result we must extract the name from the primary
 template's declaration.
 */
 {
-  an_ifc_Form_Spec ifs, *ifsp;
+  Opt<an_ifc_Node<an_ifc_Form_Spec>> opt_ifs;
+  Opt<an_ifc_Ref<ifc_NameIndex>>     result;
 
-  /* Load the specialization form to figure out what the primary
-     template's declaration is. */
-  read_prechecked_partition_element(form_index);
-  ifsp = get_Form_Spec(&ifs);
-  /* Retrieve the name through the primary template. */
-  return get_ifc_name(ifsp->primary_template);
-}  /* get_ifc_name */
+  /* Load the specialization form to figure out what the primary template's
+     declaration is. */
+  construct_node(&opt_ifs, mod, form_index);
+  if (opt_ifs.has_value()) {
+    an_ifc_Node<an_ifc_Form_Spec> ifs = *opt_ifs;
+
+    /* Retrieve the name through the primary template. */
+    result = mod->get_ifc_name(ifs->primary_template);
+  }  /* if */
+  return result;
+}  /* get_ifc_name_from_primary_template */
 
 
 /* A CRT (curiously recursive template) visitor class for dispatching to a
@@ -6564,16 +6610,16 @@ declaration's index.  Return the associated result.
 /* An implementation of Decl_value_visitor with the visit function "overridden"
    to facilitate retrieval of a declaration's name. */
 struct an_ifc_module::decl_name_visitor
-  : public an_ifc_module::Decl_value_visitor<ifc_NameIndex,
+  : public an_ifc_module::Decl_value_visitor<Opt<an_ifc_Ref<ifc_NameIndex>>,
                                              an_ifc_module::decl_name_visitor>
 {
   using base = an_ifc_module::Decl_value_visitor<
-                                             ifc_NameIndex,
+                                             Opt<an_ifc_Ref<ifc_NameIndex>>,
                                              an_ifc_module::decl_name_visitor>;
   using base::base;
 
   template<typename an_ifc_DeclSort_T>
-  inline auto visit(an_ifc_DeclSort_T *decl) -> ifc_NameIndex
+  inline auto visit(an_ifc_DeclSort_T *decl) -> Opt<an_ifc_Ref<ifc_NameIndex>>
     { return ifc_mod->get_ifc_name(decl); }
 };  /* decl_name_visitor */
 
@@ -6644,13 +6690,13 @@ specialization and should be unwrapped; otherwise, return FALSE.
 
 
 template<>
-inline ifc_NameIndex an_ifc_module::get_ifc_name(
+inline Opt<an_ifc_Ref<ifc_NameIndex>> an_ifc_module::get_ifc_name(
                                              an_ifc_DeclSort_Constructor *decl)
 /*
 Return the name of the declaration represented at decl.
 */
 {
-  ifc_NameIndex result;
+  Opt<an_ifc_Ref<ifc_NameIndex>> result;
 
   /* Constructors are named by their enclosing scope.  Specializations require
      special handling as the name of the associated templated entity is
@@ -6668,13 +6714,13 @@ Return the name of the declaration represented at decl.
 
 
 template<>
-inline ifc_NameIndex an_ifc_module::get_ifc_name(
+inline Opt<an_ifc_Ref<ifc_NameIndex>> an_ifc_module::get_ifc_name(
                                               an_ifc_DeclSort_Destructor *decl)
 /*
 Return the name of the declaration represented at decl.
 */
 {
-  ifc_NameIndex result;
+  Opt<an_ifc_Ref<ifc_NameIndex>> result;
 
   /* Destructors are named by their enclosing scope.  Specializations require
      special handling as the name of the associated templated entity is
@@ -6692,7 +6738,7 @@ Return the name of the declaration represented at decl.
 
 
 template<>
-inline ifc_NameIndex an_ifc_module::get_ifc_name(
+inline Opt<an_ifc_Ref<ifc_NameIndex>> an_ifc_module::get_ifc_name(
                                    an_ifc_DeclSort_PartialSpecialization *decl)
 /*
 Return the name of the declaration represented at decl.
@@ -6703,12 +6749,12 @@ Return the name of the declaration represented at decl.
      the name on the partial specialization, or recurse to get the name
      from the specialized entity.  Pull the name from the primary
      template. */
-  return get_ifc_name_from_primary_template(decl->form);
+  return get_ifc_name_from_primary_template(this, decl->form);
 }  /* get_ifc_name<an_ifc_DeclSort_PartialSpecialization> */
 
 
 template<>
-inline ifc_NameIndex an_ifc_module::get_ifc_name(
+inline Opt<an_ifc_Ref<ifc_NameIndex>> an_ifc_module::get_ifc_name(
                                           an_ifc_DeclSort_Specialization *decl)
 /*
 Return the name of the declaration represented at decl.
@@ -6717,11 +6763,42 @@ Return the name of the declaration represented at decl.
   /* FIXME: A specialization doesn't hold any name information of its own
      currently, and the name held by the associated declaration is mangled so
      we can't recurse on it.  Pull the name from the primary template. */
-  return get_ifc_name_from_primary_template(decl->form);
+  return get_ifc_name_from_primary_template(this, decl->form);
 }  /* get_ifc_name<an_ifc_DeclSort_Specialization> */
 
 
-ifc_NameIndex an_ifc_module::get_ifc_name(ifc_DeclIndex decl_index)
+template<>
+inline Opt<an_ifc_Ref<ifc_NameIndex>> an_ifc_module::get_ifc_name(
+                                               an_ifc_DeclSort_Reference *decl)
+/*
+Return the name of the declaration represented at decl.
+*/
+{
+  /* References are a special case where we need to delegate to a foreign
+     module. */
+  a_module_entity_ptr dmep = get_ifc_decl_from_other_module(decl);
+  an_ifc_module       *mod = get_assoc_ifc_module(dmep);
+
+  /* Get the name from the referenced module. */
+  return mod->get_ifc_name(mod->decl_index_of(dmep));
+}  /* get_ifc_name<an_ifc_DeclSort_Reference> */
+
+
+template<typename an_ifc_DeclSort_T>
+inline Opt<an_ifc_Ref<ifc_NameIndex>> an_ifc_module::get_ifc_name(
+                                                       an_ifc_DeclSort_T *decl)
+{
+  ifc_NameIndex raw_index = get_ifc_name(decl, Overload_priority<1>());
+
+  {
+    an_ifc_Ref<ifc_NameIndex> index(this, raw_index);
+
+    return Opt<an_ifc_Ref<ifc_NameIndex>>(index);
+  }
+}  /* get_ifc_name */
+
+Opt<an_ifc_Ref<ifc_NameIndex>> an_ifc_module::get_ifc_name(
+                                                      ifc_DeclIndex decl_index)
 /*
 Return the name of the declaration represented at decl.
 */
@@ -7839,6 +7916,20 @@ done:
 }  /* source_position_from_locus */
 
 
+static a_const_char *string_from_name_ref(
+                                      const an_ifc_Ref<ifc_NameIndex> name_ref,
+                                      a_symbol_locator                *loc)
+/*
+Return the string referenced by name_ref.  The returned string is guaranteed to
+be in long-lived memory (either via pointing to IL, a constant, the memory
+mapping if enabled, or in the worst case an allocated pointer).  If non-NULL,
+fields (like is_operator_name) in *loc are updated accordingly.
+*/
+{
+  return name_ref.mod->string_from_name_index(name_ref.index, loc);
+}  /* string_from_name_ref */
+
+
 a_const_char *an_ifc_module::string_from_name_index(
                                                   ifc_NameIndex     name_index,
                                                   a_symbol_locator  *loc)
@@ -8137,9 +8228,16 @@ Given a declaration, return the name associated with that declaration.
     case ifc_DeclSort_Specialization:
       { an_ifc_DeclSort_Specialization idss, *idssp;
         idssp = get_DeclSort_Specialization(&idss);
+
         /* FIXME: Can this be generally applied to all of these DeclSorts? */
-        result = string_from_name_index(get_ifc_name(idssp->decl),
-                                        /*loc=*/NULL);
+        {
+          Opt<an_ifc_Ref<ifc_NameIndex>> opt_name_ref;
+
+          opt_name_ref = get_ifc_name(idssp->decl);
+          /* FIXME: This should be a soft failure. */
+          check_assertion(opt_name_ref.has_value());
+          result = string_from_name_ref(*opt_name_ref, /*loc=*/NULL);
+        }
       }
       break;
     case ifc_DeclSort_Concept:
@@ -8482,52 +8580,62 @@ this routine need to handle the case where dps->alignment is 0.
 }  /* init_dps */
 
 
-a_boolean an_ifc_module::get_textual_name(ifc_NameIndex    name_index,
-                                          a_symbol_locator *loc,
-                                          a_const_char     **name_result)
-/*
-Store the textual name representation for the given name index and location in
-the name result.  Return TRUE if this operation completed successfully, FALSE
-otherwise.
-*/
-{
-  a_boolean result = FALSE;
-
-  if (name_tag(name_index) == ifc_NameSort_Identifier) {
-    result = get_textual_name((ifc_TextOffset)name_value(name_index), loc,
-                              name_result);
-  } else if (validate_partition_element(name_index)) {
-    *name_result = string_from_name_index(name_index, loc);
-    result = TRUE;
-  }  /* if */
-  return result;
-}  /* get_textual_name */
-
-
-a_boolean an_ifc_module::get_textual_name(ifc_TextOffset   text_offset,
-                                          a_symbol_locator *loc,
-                                          a_const_char     **name_result)
+static a_boolean get_textual_name(an_ifc_Ref<ifc_TextOffset> text_offset,
+                                  a_symbol_locator           *loc,
+                                  a_const_char               **name_result)
 /*
 Store the textual name representation for the given textual offset and location
 in the name result.  Return TRUE if this operation completed successfully,
 FALSE otherwise.
 */
 {
-  *name_result = get_string_at_offset(text_offset);
+  *name_result = ::get_string_at_offset(text_offset);
   return TRUE;
 }  /* get_textual_name */
 
 
+static a_boolean get_textual_name(an_ifc_Ref<ifc_NameIndex> name_ref,
+                                  a_symbol_locator          *loc,
+                                  a_const_char              **name_result)
+/*
+Store the textual name representation for the given name reference and location
+in the name result.  Return TRUE if this operation completed successfully,
+FALSE otherwise.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (name_tag(name_ref) == ifc_NameSort_Identifier) {
+    /* Convert the name ref into a text offset. */
+    ifc_NameIndex  index = name_ref.index;
+    ifc_TextOffset converted_index = (ifc_TextOffset)name_value(index);
+
+    {
+      /* Create a ref for the text offset in the corresponding module, then
+         retrieve the name. */
+      an_ifc_Ref<ifc_TextOffset> text_offset(name_ref.mod, converted_index);
+
+      result = get_textual_name(text_offset, loc, name_result);
+    }
+  } else if (::validate_partition_element(name_ref)) {
+    *name_result = string_from_name_ref(name_ref, loc);
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* get_textual_name */
+
+
 template<typename an_Index_Type>
-a_boolean an_ifc_module::init_locator_from_name(an_Index_Type      index,
-                                                ifc_SourceLocation *locus,
-                                                a_symbol_locator   *loc)
+a_boolean an_ifc_module::init_locator_from_name(
+                                              an_ifc_Ref<an_Index_Type> ref,
+                                              ifc_SourceLocation        *locus,
+                                              a_symbol_locator          *loc)
 /*
 Initialize the locator specified by loc.  The name of the entity is the textual
-name associated with the given index.  The source position is given by locus.
-Return TRUE if initialization was completed and the locator is usable (i.e.,
-the given index and locus were valid for locator initialization), otherwise
-return FALSE.
+name associated with the given reference.  The source position is given by
+locus.  Return TRUE if initialization was completed and the locator is usable
+(i.e., the given reference and locus were valid for locator initialization),
+otherwise return FALSE.
 
 FIXME: Not sure if we need source location here.
 */
@@ -8538,7 +8646,7 @@ FIXME: Not sure if we need source location here.
 
   if (source_position_from_locus(&pos, locus)) {
     clear_locator(loc, &pos);
-    if (get_textual_name(index, loc, &name)) {
+    if (get_textual_name(ref, loc, &name)) {
       if (!loc->is_operator_name &&
           !loc->is_conversion_name &&
           !loc->is_udl_operator_name) {
@@ -8554,19 +8662,21 @@ FIXME: Not sure if we need source location here.
 
 
 template<typename an_Index_Type>
-inline a_boolean an_ifc_module::init_decl_locator(an_Index_Type      index,
-                                                  ifc_SourceLocation locus,
-                                                  a_symbol_locator   *loc)
+inline a_boolean an_ifc_module::init_decl_locator(
+                                               an_ifc_Ref<an_Index_Type> ref,
+                                               ifc_SourceLocation        locus,
+                                               a_symbol_locator          *loc)
 /*
-Initialize the locator specified by loc for the declaration named at
-index and positioned at locus.
+Initialize the locator specified by loc for the declaration named by ref and
+positioned at locus.  Return TRUE if processing succeeded, otherwise return
+FALSE.
 */
 {
   a_boolean result = TRUE;
 
   if (!source_position_from_locus(&error_position, &locus)) {
     result = FALSE;
-  } else if (!init_locator_from_name(index, &locus, loc)) {
+  } else if (!init_locator_from_name(ref, &locus, loc)) {
     result = FALSE;
   }  /* if */
   return result;
@@ -8574,37 +8684,25 @@ index and positioned at locus.
 
 
 template<typename an_ifc_DeclSort_T>
-inline a_boolean an_ifc_module::init_decl_locator_via_name(
-                                                       an_ifc_DeclSort_T *decl,
-                                                       a_symbol_locator  *loc)
+inline a_boolean an_ifc_module::init_decl_locator(an_ifc_DeclSort_T *decl,
+                                                  a_symbol_locator  *loc)
 /*
-Initialize the locator specified by loc for the declaration represented at
-decl using a NameIndex derived declaration name.
+Initialize the locator specified by loc for the declaration represented at decl
+using a NameIndex derived declaration name.  Return TRUE if processing
+succeeded, otherwise return FALSE.
 */
 {
-  ifc_NameIndex      name = get_ifc_name(decl);
-  ifc_SourceLocation locus = get_ifc_locus(decl);
+  Opt<an_ifc_Ref<ifc_NameIndex>> opt_name_ref;
+  ifc_SourceLocation             locus;
+  a_boolean                      result = FALSE;
 
-  return init_decl_locator(name, locus, loc);
-}  /* init_decl_locator_via_name */
-
-
-template<typename an_ifc_DeclSort_T>
-inline a_boolean an_ifc_module::init_decl_locator_via_text(
-                                                       an_ifc_DeclSort_T *decl,
-                                                       a_symbol_locator  *loc)
-/*
-Initialize the locator specified by loc for the declaration represented at
-decl using a TextOffset derived declaration name.
-*/
-{
-  /* Type check the name field ensuring it is a TextOffset by assigning it to
-     an appropriately typed variable. */
-  ifc_TextOffset     name = decl->name;
-  ifc_SourceLocation locus = get_ifc_locus(decl);
-
-  return init_decl_locator(name, locus, loc);
-}  /* init_decl_locator_via_text */
+  opt_name_ref = get_ifc_name(decl);
+  if (opt_name_ref.has_value()) {
+    locus = get_ifc_locus(decl);
+    result = init_decl_locator(*opt_name_ref, locus, loc);
+  }  /* if */
+  return result;
+}  /* init_decl_locator */
 
 
 template<typename an_ifc_DeclSort_T>
@@ -12499,6 +12597,44 @@ declaration.
 }  /* cache_function_decl */
 
 
+void an_ifc_module::cache_function_decl(
+                                    a_token_cache_ptr         cache,
+                                    a_boolean                 is_class_member,
+                                    a_boolean                 is_dtor,
+                                    ifc_Access                access,
+                                    ifc_CallingConvention     calling_conv,
+                                    ifc_FunctionTraits        func_traits,
+                                    ifc_FunctionTypeTraits    func_type_traits,
+                                    ifc_MsvcTraits            vendor_traits,
+                                    ifc_TypeIndex             return_type,
+                                    an_ifc_Ref<ifc_NameIndex> name,
+                                    ifc_ChartIndex            params,
+                                    ifc_TypeIndex             param_types,
+                                    ifc_NoexceptSpecification *eh_spec,
+                                    ifc_SourceLocation        *locus)
+/*
+Add the tokens corresponding to the given function declaration to cache.
+is_class_member is TRUE if this is a non-static member of a class.  is_dtor is
+TRUE if this is a destructor declaration.  access, calling_conv, func_traits,
+func_type_traits, eh_spec, and name are values from the IFC file that describe
+the function.  return_type is the return type of the function (0 if there is no
+return type, e.g., the function is a constructor or destructor).  Both params
+and param_types are the parameter list (0 for both if there are no parameters).
+If params is non-zero, param_types will be ignored as params will already
+contain the parameter types.  locus is the position of the function
+declaration.
+*/
+{
+  auto cache_name_fn = [this, cache, name, locus](a_source_position_ptr pos) {
+    ::cache_name(cache, name, locus);
+  };
+  cache_function_decl(cache, is_class_member, is_dtor, access,
+                      /*cache_access_spec=*/TRUE, calling_conv, func_traits,
+                      func_type_traits, vendor_traits, return_type,
+                      cache_name_fn, params, param_types, eh_spec, locus);
+}  /* cache_function_decl */
+
+
 void an_ifc_module::cache_class_definition(a_token_cache_ptr     cache,
                                            an_ifc_DeclSort_Scope *decl)
 /*
@@ -12631,7 +12767,14 @@ to the cache.  locus is the location of the simple-template-id.
   read_prechecked_partition_element(form_idx);
   ifsp = get_Form_Spec(&ifs);
   /* Reconstruct the template-name. */
-  cache_name(cache, get_ifc_name_from_primary_template(form_idx), locus);
+  {
+    Opt<an_ifc_Ref<ifc_NameIndex>> opt_name_ref;
+
+    opt_name_ref = get_ifc_name_from_primary_template(this, form_idx);
+    /* FIXME: This should be a soft failure. */
+    check_assertion(opt_name_ref.has_value());
+    ::cache_name(cache, *opt_name_ref, locus);
+  }
   /* Reconstruct the template-argument-list and enclosing angle
      brackets. */
   {
@@ -13505,10 +13648,11 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       }
       break;
     case ifc_DeclSort_Constructor:
-      { an_ifc_DeclSort_Constructor idsc, *idscp;
-        an_ifc_TypeSort_Tor         itst, *itstp;
-        ifc_ChartIndex              params = (ifc_ChartIndex)0;
-        ifc_MsvcTraits              vendor_traits;
+      { an_ifc_DeclSort_Constructor    idsc, *idscp;
+        an_ifc_TypeSort_Tor            itst, *itstp;
+        ifc_ChartIndex                 params = (ifc_ChartIndex)0;
+        ifc_MsvcTraits                 vendor_traits;
+        Opt<an_ifc_Ref<ifc_NameIndex>> opt_name_ref;
 
         idscp = get_DeclSort_Constructor(&idsc);
         check_assertion(type_tag(idscp->type) == ifc_TypeSort_Tor);
@@ -13518,10 +13662,13 @@ Add the tokens corresponding to the given declaration (decl) to cache.
           params = get_func_params_from_trait(decl);
         }  /* if */
         vendor_traits = get_vendor_traits(decl);
+        opt_name_ref = get_ifc_name(idscp);
+        /* FIXME: This should be a soft failure. */
+        check_assertion(opt_name_ref.has_value());
         cache_function_decl(cache, /*class_member=*/TRUE, /*is_dtor=*/FALSE,
                             idscp->access, itstp->convention, idscp->traits,
                             (ifc_FunctionTypeTraits)0, vendor_traits,
-                            (ifc_TypeIndex)0, get_ifc_name(idscp), params,
+                            (ifc_TypeIndex)0, *opt_name_ref, params,
                             itstp->source, &itstp->eh_spec, &idscp->locus);
         if (idscp->properties & ifc_ReachableProperties_Initializer) {
           /* A body is likely available: Record this availability using a
@@ -13546,17 +13693,20 @@ Add the tokens corresponding to the given declaration (decl) to cache.
       }
       break;
     case ifc_DeclSort_Destructor:
-      { an_ifc_DeclSort_Destructor idsd, *idsdp;
-        ifc_MsvcTraits             vendor_traits;
+      { an_ifc_DeclSort_Destructor     idsd, *idsdp;
+        ifc_MsvcTraits                 vendor_traits;
+        Opt<an_ifc_Ref<ifc_NameIndex>> opt_name_ref;
 
         idsdp = get_DeclSort_Destructor(&idsd);
         vendor_traits = get_vendor_traits(decl);
+        opt_name_ref = get_ifc_name(idsdp);
+        /* FIXME: This should be a soft failure. */
+        check_assertion(opt_name_ref.has_value());
         cache_function_decl(cache, /*class_member=*/TRUE, /*is_dtor=*/TRUE,
                             idsdp->access, idsdp->convention, idsdp->traits,
                             (ifc_FunctionTypeTraits)0, vendor_traits,
-                            (ifc_TypeIndex)0, get_ifc_name(idsdp),
-                            (ifc_ChartIndex)0, (ifc_TypeIndex)0,
-                            &idsdp->eh_spec, &idsdp->locus);
+                            (ifc_TypeIndex)0, *opt_name_ref, (ifc_ChartIndex)0,
+                            (ifc_TypeIndex)0, &idsdp->eh_spec, &idsdp->locus);
         if (idsdp->properties & ifc_ReachableProperties_Initializer) {
           /* A body is likely available: Record this availability using a
              pseudo-token that will be translated when the declaration is
@@ -17531,6 +17681,20 @@ non-recursive and recursive validation.
   validator.validate(pos);
   return !validator.invalid;
 }  /* validate_partition_element_shallow */
+
+
+template<typename an_Index_Type>
+static a_boolean validate_partition_element(an_ifc_Ref<an_Index_Type> ref)
+/*
+Perform recursive validation checks on the partition position corresponding to
+the given reference.  Returns TRUE if determined to be valid, FALSE otherwise.
+
+See Element_validator's position validation function for more details about
+non-recursive and recursive validation.
+*/
+{
+  return ref.mod->validate_partition_element(ref.index);
+}  /* validate_partition_element */
 
 
 inline a_boolean an_ifc_module::validate_partition_element(
