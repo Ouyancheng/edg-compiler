@@ -3181,6 +3181,26 @@ for each element.
   memzero((char *)validation_bits, size);
   return validation_bits;
 }  /* allocate_validation_bit_array */
+
+
+inline void emit_unsupported_ifc_version_diagnostic(
+                                           a_module_import_decl_ptr midp,
+                                           an_ifc_module            *mod_iface,
+                                           an_error_severity        severity)
+/*
+Emit a diagnostic of the given severity, indicating that the given module
+import and its associated module interface, is backed by an unsupported version
+of the IFC.
+*/
+{
+  a_module_ptr mod = midp->module_info;
+
+  check_assertion(mod == mod_iface->assoc_module_info);
+  pos_st_num2_diagnostic(es_warning, ec_unsupported_ifc_file_version,
+                         &midp->module_name_position, mod->full_name,
+                         mod_iface->header.major_version,
+                         mod_iface->header.minor_version);
+}  /* emit_unsupported_ifc_version_diagnostic */
 }  /* namespace */
 
 
@@ -3204,14 +3224,17 @@ been confirmed to exist and the path stored in midp.
     /* Read the IFC file header (which starts after the magic number). */
     init_byte_buffer(4, f_size - 4);
     get_File_Header(&header, /*fill_storage=*/TRUE);
-    if (!skip_module_version_check &&
-        !check_ifc_version(header.major_version, header.minor_version)) {
-      result = FALSE;
-      pos_st_num2_diagnostic(es_catastrophe, ec_unsupported_ifc_file_version,
-                             &midp->module_name_position, mod->full_name,
-                             header.major_version, header.minor_version);
-      close();
-      goto done;
+    if (!check_ifc_version(header.major_version, header.minor_version)) {
+      if (skip_module_version_check) {
+        emit_unsupported_ifc_version_diagnostic(midp, /*mod_iface=*/this,
+                                                /*severity=*/es_warning);
+      } else {
+        emit_unsupported_ifc_version_diagnostic(midp, /*mod_iface=*/this,
+                                                /*severity=*/es_catastrophe);
+        result = FALSE;
+        close();
+        goto done;
+      }  /* if */
     }  /* if */
     /* FIXME: The checksum is not yet checked. */
 #if USE_MMAP_FOR_MEMORY_REGIONS
