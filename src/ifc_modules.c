@@ -3196,7 +3196,7 @@ of the IFC.
   a_module_ptr mod = midp->module_info;
 
   check_assertion(mod == mod_iface->assoc_module_info);
-  pos_st_num2_diagnostic(es_warning, ec_unsupported_ifc_file_version,
+  pos_st_num2_diagnostic(severity, ec_unsupported_ifc_file_version,
                          &midp->module_name_position, mod->full_name,
                          mod_iface->header.major_version,
                          mod_iface->header.minor_version);
