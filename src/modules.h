@@ -49,12 +49,16 @@ struct a_module_entity {
 			   issues (should the underlying module file be mapped
 			   to a different address). */
   a_bit_field	imminent:1;
-			/* When entity.ptr is NULL, this is TRUE if the
-			   definition of the entity has not been completed but
-			   is expected shortly.  This typically means that the
-			   entity should be treated as not defined, but it can
-			   be removed from any lazy symbol lists as its
-			   definition is also no longer deferred. */
+			/* This flag is typically set to TRUE when deferred
+			   processing starts; i.e., when the creation of an
+			   actual associated IL entity is imminent.  This is
+			   used to avoid unbounded recursion.  The flag is
+			   also set to TRUE for IFC partial specializations
+			   that are deferred,  That causes the main entity
+			   loading mechanism to skip partial specializations;
+			   instead, those entries a processed explicitly
+			   immediately after the associated primary template
+			   has been processed. */
   a_bit_field	invalid:1;
 			/* TRUE if the associated entity cannot be constructed
 			   from the module for any reason. */

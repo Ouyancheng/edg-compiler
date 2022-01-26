@@ -5078,6 +5078,11 @@ class_struct_union_case:
             /* Specify "make_last" as TRUE, because we want partial
                specializations to appear after their primary templates. */
             defer_symbol_creation(mep, &loc, /*make_last=*/TRUE);
+            /* Mark the entry as "imminent" so that it will not be processed
+               when all the other deferred entries on the associated list are
+               handled.  Instead, the partial specializations will be handled
+               explicitly immediately after the primary template has been
+               processed (see the ifc_DeclSort_Template). */
             mep->imminent = TRUE;
           } else {
             ifc_DeclIndex decl_idx = decl_index_of(mep);
