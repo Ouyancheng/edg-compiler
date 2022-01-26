@@ -2415,7 +2415,8 @@ return FALSE.
 
 
 static void defer_symbol_creation(a_module_entity_ptr mep,
-                                  a_symbol_locator    *loc)
+                                  a_symbol_locator    *loc,
+                                  a_boolean           make_last = FALSE)
 /*
 Defer the creation of the module entity specified by mep.  A "lazy loading"
 mechanism is used to create symbols only for entities that are referenced.  As
@@ -2424,6 +2425,8 @@ specified by the locator information in *loc), rather than creating a symbol
 for the entity, the module entity is queued on the symbol header.  If, during
 name lookup, a symbol header with a matching, non-NULL deferred_module_entities
 field is encountered, an IL entity and symbol are created at that time.
+If make_last is FALSE (the default), the module entity entry is added at the
+front of the queue; otherwise, it is added that the end.
 */
 {
   /* FIXME: Checking for being on the list every time this is called can get
@@ -2431,9 +2434,14 @@ field is encountered, an IL entity and symbol are created at that time.
      already been added to the deferred list?  Another consideration: Is it
      possible to get here for an entity that's already been completed? */
   if (!already_on_deferred_list(mep, loc)) {
-    check_assertion(loc->symbol_header != NULL);
-    mep->next = loc->symbol_header->deferred_module_entities;
-    loc->symbol_header->deferred_module_entities = mep;
+    a_symbol_header_ptr  hdr = loc->symbol_header;
+    check_assertion(hdr != NULL);
+    if (!make_last) {
+      mep->next = hdr->deferred_module_entities;
+      hdr->deferred_module_entities = mep;
+    } else {
+      *get_last_simple_list_link(&hdr->deferred_module_entities) = mep;
+    }  /* if */
 #if DEBUG
     if (db_flag_is_set("ms_symbols")) {
       (void)fprintf(f_debug, "Defer symbol creation for %s",
@@ -4788,6 +4796,9 @@ class_struct_union_case:
             a_boolean       saved_suppress_default_arguments;
             a_curr_token_preserver
                             guard;
+            a_module_entity_ptr
+                            other_decls = NULL, end_other_decls = NULL,
+                            partial_specs = NULL;
             if (is_from_gmf(idstp->specifiers)) {
               mep->global_module = TRUE;
             }  /* if */
@@ -4796,13 +4807,41 @@ class_struct_union_case:
               scope_pushed = push_module_declaration_context(mep->scope);
             }  /* if */
             type = type_for_type_index(idstp->type, &nt_kind);
-            /* Do not call ifc_decl_is_ignorable_redecl here for function
-               templates since they can be overloaded. */
-            if (!type_is(type, tk_routine) &&
-                ifc_decl_is_ignorable_redecl(&loc, mep, &error_position,
-                                             iek_template, &il_entity,
-                                             &kind)) {
-              break;
+            if (!type_is(type, tk_routine)) {
+              /* Do not call ifc_decl_is_ignorable_redecl here for function
+                 templates since they can be overloaded. */
+              if (ifc_decl_is_ignorable_redecl(&loc, mep, &error_position,
+                                               iek_template, &il_entity,
+                                               &kind)) {
+                break;
+              }  /* if */
+              /* There may be other declarations of this same template from
+                 other modules.  Temporarily remove these because declaration
+                 processing will look for a redeclaration and trigger a second
+                 nested processing of the template otherwise.  Also separate
+                 out partial specializations: They shouldn't be processed
+                 until we're done with the primary template. */
+              a_module_entity_ptr  *p_mep = &mep->next, next_mep;
+              while (*p_mep != NULL) {
+                next_mep = *p_mep;
+                if (next_mep->scope == mep->scope) {
+                  if (next_mep->variant.ifc_partition == ifc_decl_template) {
+                    *p_mep = next_mep->next;
+                    next_mep->next = other_decls;
+                    other_decls = next_mep;
+                    if (end_other_decls == NULL) end_other_decls = next_mep;
+                  } else if (next_mep->variant.ifc_partition ==
+                                            ifc_decl_partial_specialization) {
+                    *p_mep = next_mep->next;
+                    next_mep->next = partial_specs;
+                    partial_specs = next_mep;
+                  } else {
+                    p_mep = &next_mep->next;
+                  }  /* if */
+                } else {
+                  p_mep = &next_mep->next;
+                }  /* if */
+              }  /* while */
             }  /* if */
             /* It's possible for a template body to refer to itself (or to
                another entity that refers back to it) and trigger a recursive
@@ -4876,6 +4915,14 @@ class_struct_union_case:
                                                                    mep->scope);
               mep->entity.kind = kind = iek_template;
             }  /* if */
+            if (other_decls != NULL) {
+              /* Restore the module entity list representing other declarations
+                 of this template or its partial specializations. FIXME: Only
+                 do this if the template that was just processed was not a 
+                 definition? */
+              end_other_decls->next = mep->next;
+              mep->next = other_decls;
+            }  /* if */
             {
               /* Compute the DeclIndex of the current template, and retrieve
                  the sequence of specializations and explicit
@@ -4887,6 +4934,17 @@ class_struct_union_case:
                  instantiations. */
               process_scope_member_sequence(seq);
             }
+            /* Now process the partial specializations. */
+            while (partial_specs != NULL) {
+              a_module_entity_ptr ps_mep = partial_specs;
+              an_ifc_module       *itf = (an_ifc_module*)
+                                        ps_mep->module_info->module_interface;
+              partial_specs = ps_mep->next;
+              ps_mep->next = NULL;
+              ps_mep->imminent = FALSE;
+              itf->process_ifc_declaration(ps_mep, /*defer=*/FALSE,
+                                           enumeration_type);
+            }  /* while */
           }  /* if */
         }
         break;
@@ -5017,7 +5075,10 @@ class_struct_union_case:
             goto invalid;
           }  /* if */
           if (defer) {
-            defer_symbol_creation(mep, &loc);
+            /* Specify "make_last" as TRUE, because we want partial
+               specializations to appear after their primary templates. */
+            defer_symbol_creation(mep, &loc, /*make_last=*/TRUE);
+            mep->imminent = TRUE;
           } else {
             ifc_DeclIndex decl_idx = decl_index_of(mep);
 

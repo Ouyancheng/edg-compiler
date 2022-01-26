@@ -2179,9 +2179,7 @@ then return NULL.
 */
 {
   if (attributes != NULL) {
-    while (*attributes != NULL) {
-      attributes = &(*attributes)->next;
-    }  /* while */
+    attributes = get_last_simple_list_link(attributes);
   }  /* if */
   return attributes;
 }  /* f_last_attribute_link */

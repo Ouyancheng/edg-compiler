@@ -318,6 +318,21 @@ of the list.  list can be NULL.
 }  /* reverse_simple_list */
 
 
+template<typename a_List_elem>
+a_List_elem** get_last_simple_list_link(a_List_elem  **p_list)
+/*
+p_list is non-NULL and *p_list points to a possibly empty singly-linked list,
+whose elements are connected through accessible "next" pointer fields.  Return
+a pointer to the last such "next" field (or p_list itself if there are none).
+*/
+{
+  while (*p_list != NULL) {
+    p_list = &(*p_list)->next;
+  }  /* while */
+  return p_list;
+}  /* get_last_simple_list_link */
+
+
 /*lint -e{1537}*/
 template<typename a_Ptr>
 struct Ptr_with_flag {
