@@ -1011,7 +1011,27 @@ in the given module.
 
 namespace {
 /*
-An encapsulated representation of an IFC node.
+An encapsulated representation of an IFC node.  This encapsulation abstracts
+away the exact location of the underlying IFC node.
+
+Construction should be performed by the "construct_node" function or a similar
+"construct_node_XXX" function which uses an appropriately reduced level of
+validation.
+
+As an example, to retrieve a fully validated node at position "pos" in module
+"mod" of IFC node type "foo":
+
+  Opt<an_ifc_Node<Foo>> opt_foo;
+
+  construct_node(&opt_foo, mod, pos);
+
+Similarly, to retrieve a node at position "pos" in module "mod", where the node
+is known to be previously validated, of IFC node type "foo":
+
+  an_ifc_Node<Foo> foo;
+
+  construct_node_prechecked(&foo, mod, pos);
+
 */
 template<typename an_ifc_Node_type>
 struct an_ifc_Node {
@@ -1034,9 +1054,20 @@ struct an_ifc_Node {
   inline const an_ifc_Node_type *operator->() const;
 private:
   a_boolean storing_value;
+                        /* TRUE when the underlying IFC node is stored as a
+                           member and should be obtained from the "node" data
+                           member.  FALSE when the underlying IFC node is
+                           stored at a different address and should be obtained
+                           from the "node_ptr" data member. */
   union {
-    an_ifc_Node_type *node_ptr;
-    an_ifc_Node_type node;
+    an_ifc_Node_type
+                 node;
+                        /* When "storing_value" is TRUE this data member holds
+                           the underlying IFC node. */
+    an_ifc_Node_type
+                 *node_ptr;
+                        /* When "storing_value" is FALSE this is the pointer
+                           used to obtain the underlying IFC node. */
   };
 };  /* an_ifc_Node */
 
