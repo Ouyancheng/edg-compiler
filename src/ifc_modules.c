@@ -1115,15 +1115,25 @@ functions that build upon this call.
   an_ifc_Node_type              nts, *ntsp;
 
   ntsp = mod->get<an_ifc_Node_type>(&nts);
+  /* When memory mapping is enabled and the endianness of the IFC and the host
+     match, the front end can directly refer to portions of the IFC.
+     Otherwise, the front end must fall back to copying the bytes locally with
+     the correct endianness.
+
+     If the front end is not using memory mapping, the front end must always
+     create a copy of the bytes locally. */
 #if USE_MMAP_FOR_MEMORY_REGIONS
-  check_assertion(ntsp != &nts);
-  /* The storage wasn't used, use the pointer. */
-  result = an_ifc_Node<an_ifc_Node_type>(ntsp);
+  if (ntsp != &nts) {
+    /* The storage wasn't used, use the pointer. */
+    result = an_ifc_Node<an_ifc_Node_type>(ntsp);
+  } else {
 #else /* !USE_MMAP_FOR_MEMORY_REGIONS */
-  check_assertion(ntsp == &nts);
-  /* The storage was used, copy it. */
-  result = an_ifc_Node<an_ifc_Node_type>(nts);
+  {
+    check_assertion(ntsp == &nts);
 #endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+    /* The storage was used, copy it. */
+    result = an_ifc_Node<an_ifc_Node_type>(nts);
+  }
   return result;
 }  /* construct_node_from_module */
 
