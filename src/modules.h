@@ -56,7 +56,7 @@ struct a_module_entity {
 			   also set to TRUE for IFC partial specializations
 			   that are deferred,  That causes the main entity
 			   loading mechanism to skip partial specializations;
-			   instead, those entries a processed explicitly
+			   instead, those entries are processed explicitly
 			   immediately after the associated primary template
 			   has been processed. */
   a_bit_field	invalid:1;

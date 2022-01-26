@@ -2426,7 +2426,7 @@ for the entity, the module entity is queued on the symbol header.  If, during
 name lookup, a symbol header with a matching, non-NULL deferred_module_entities
 field is encountered, an IL entity and symbol are created at that time.
 If make_last is FALSE (the default), the module entity entry is added at the
-front of the queue; otherwise, it is added that the end.
+front of the queue; otherwise, it is added at the end.
 */
 {
   /* FIXME: Checking for being on the list every time this is called can get
@@ -5082,7 +5082,7 @@ class_struct_union_case:
                when all the other deferred entries on the associated list are
                handled.  Instead, the partial specializations will be handled
                explicitly immediately after the primary template has been
-               processed (see the ifc_DeclSort_Template). */
+               processed (see the ifc_DeclSort_Template case above). */
             mep->imminent = TRUE;
           } else {
             ifc_DeclIndex decl_idx = decl_index_of(mep);
