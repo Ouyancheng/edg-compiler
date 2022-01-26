@@ -2771,6 +2771,9 @@ private:
                         a_boolean header_bytes);
   inline void issue_unsupported_node_diag(a_const_char      *node,
                                           a_source_position *pos);
+  void init_string_table_and_header();
+  a_boolean initialize_members_from_ifc_module_file(
+                                                a_module_import_decl_ptr midp);
   a_boolean open_and_map_ifc_module_file(a_module_import_decl_ptr midp,
                                          a_boolean                issue_diag);
   static an_ifc_partition_map *find_ifc_partition(a_const_char *name);

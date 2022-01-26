@@ -2468,19 +2468,7 @@ otherwise.
   mod.full_name = module_file;
   if (open_and_map_ifc_module_file(&mid, /*issue_diag=*/FALSE)) {
     a_C_str_handle this_name;
-    /* Read the IFC file header (which starts after the magic number). */
-    init_byte_buffer(4, f_size - 4);
-    get_File_Header(&header, /*fill_storage=*/TRUE);
-#if USE_MMAP_FOR_MEMORY_REGIONS
-    string_table = (a_const_char*)mmap_addr + header.string_table_bytes;
-#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
-    string_table = alloc_il(header.string_table_size);
-    fseek(f_module, header.string_table_bytes, SEEK_SET);
-    if (fread((void*)string_table, 1, header.string_table_size, f_module) !=
-                                                    header.string_table_size) {
-      unexpected_condition_str("Failed to load the IFC module string table");
-    }  /* if */
-#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+    init_string_table_and_header();
     switch (unit_tag(header.unit)) {
       case ifc_UnitSort_Source:
       case ifc_UnitSort_Header:
@@ -3219,123 +3207,16 @@ been confirmed to exist and the path stored in midp.
 */
 {
   a_module_ptr mod = midp->module_info;
-  unsigned int i;
   a_boolean    result = FALSE;
 
   check_assertion(midp->module_info->kind == (a_module_kind)mk_ifc);
   check_assertion(mod->name != NULL && mod->full_name != NULL);
   check_assertion(mod->module_interface == this);
   if (open_and_map_ifc_module_file(midp, /*issue_diag=*/TRUE)) {
-    result = TRUE;
-    assoc_module_info = mod;
-    set_name(mod->name, is_header_unit(mod));
-    /* Read the IFC file header (which starts after the magic number). */
-    init_byte_buffer(4, f_size - 4);
-    get_File_Header(&header, /*fill_storage=*/TRUE);
-    if (!check_ifc_version(header.major_version, header.minor_version)) {
-      if (skip_module_version_check) {
-        emit_unsupported_ifc_version_diagnostic(midp, /*mod_iface=*/this,
-                                                /*severity=*/es_warning);
-      } else {
-        emit_unsupported_ifc_version_diagnostic(midp, /*mod_iface=*/this,
-                                                /*severity=*/es_catastrophe);
-        result = FALSE;
-        close();
-        goto done;
-      }  /* if */
-    }  /* if */
-    /* FIXME: The checksum is not yet checked. */
-#if USE_MMAP_FOR_MEMORY_REGIONS
-    string_table = (a_const_char*)mmap_addr + header.string_table_bytes;
-#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
-    string_table = alloc_il(header.string_table_size);
-    fseek(f_module, header.string_table_bytes, SEEK_SET);
-    if (fread((void*)string_table, 1, header.string_table_size, f_module) !=
-                                                    header.string_table_size) {
-      unexpected_condition_str("Failed to load the IFC module string table");
-    }  /* if */
-#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
-    /* Prepare to read the partitions (by "seeking" to the IFC Table of
-       Contents). */
-    init_byte_buffer(header.toc, f_size - (size_t)header.toc);
-#if DEBUG
-    if (db_flag_is_set("ifc_modules")) {
-      db_module(mod);
-    }  /* if */
-#endif /* DEBUG */
-    for (i = 0; i < (unsigned int)header.partition_count; i++) {
-      an_ifc_Partition     partition, *ifc_pp;
-      an_ifc_partition     *pp;
-      a_const_char         *name_str;
-      an_ifc_partition_map *map_ptr;
-
-      /* Read information about the partition. */
-      ifc_pp = get_Partition(&partition);
-      name_str = get_string_at_offset(ifc_pp->name);
-#if DEBUG
-      if (db_flag_is_set("ifc_modules")) {
-        (void)fprintf(f_debug,
-            "partition %u \"%s\" offset 0x%08x cardinality %u entry_size %u\n",
-            i, name_str, ifc_pp->offset, ifc_pp->cardinality,
-            ifc_pp->entry_size);
-      }  /* if */
-#endif /* DEBUG */
-      check_assertion(ifc_pp->cardinality != 0 && ifc_pp->offset != 0);
-      map_ptr = find_ifc_partition(name_str);
-      if (map_ptr == NULL) {
-        str_warning(ec_unknown_ifc_partition, name_str);
-      } else {
-        check_assertion_str(map_ptr->kind != ifc_last,
-                            "no mapping for IFC partition");
-        pp = &partitions[map_ptr->kind];
-        pp->name = map_ptr->name;
-        pp->offset = ifc_pp->offset;
-        pp->size = ifc_pp->cardinality * ifc_pp->entry_size;
-        pp->entry_size = ifc_pp->entry_size;
-        validate_partition_size(pp, map_ptr->kind);
-        pp->format_validated = alloc_validation_bit_array(pp->size /
-                                                          pp->entry_size);
-      }  /* if */
-    }  /* for */
-    (void)fseek(f_module, 0L, SEEK_SET);
-    if (partitions[ifc_name_source_file].name != NULL) {
-      /* Allocate an array to map source locations to sequence numbers for each
-         file referenced by the module.  No information about the sequence
-         numbers is recorded yet (we do that only if the source file is later
-         referenced). */
-      an_ifc_partition *nsf_pp = &partitions[ifc_name_source_file];
-      check_assertion(nsf_pp->entry_size != 0);
-      size_t num_files = nsf_pp->size / nsf_pp->entry_size;
-      size_t size = num_files * sizeof(a_module_sequence_number_mapping);
-      sequence_numbers = (a_module_sequence_number_mapping *)alloc_fe(size);
-      memzero((char *)sequence_numbers, size);
-      if (partitions[ifc_src_line].name != NULL) {
-        check_assertion(partitions[ifc_src_line].entry_size != 0);
-        /* As a (hopefully) temporary measure, for each file referenced in
-           the module, we need to determine the largest line number that will
-           be seen in that file (we don't actually need the last line number in
-           the file, just the largest one that will be seen in the source
-           location, though the last number would do).  This number will be
-           used (if needed) to increment the source sequence when the module is
-           referenced to effectively reserve those source sequence numbers for
-           the file. */
-        for (uint32_t idx = 0, num_src_lines = get_num_entries(ifc_src_line);
-             idx < num_src_lines; idx++) {
-          an_ifc_Source_Line   isl, *islp;
-
-          if (!read_partition_element(ifc_src_line, idx)) {
-            result = FALSE;
-            goto done;
-          }  /* if */
-          islp = get_Source_Line(&isl);
-          size_t file_index = name_value(islp->file);
-          check_assertion(name_tag(islp->file) == ifc_NameSort_SourceFile &&
-                          file_index < num_files);
-          if (islp->line > sequence_numbers[file_index].max_line_number) {
-            sequence_numbers[file_index].max_line_number = islp->line;
-          }  /* if */
-        }  /* for */
-      }  /* if */
+    result = initialize_members_from_ifc_module_file(midp);
+    if (!result) {
+      close();
+      goto done;
     }  /* if */
     import_referenced_modules();
 #if DEBUG
@@ -3534,6 +3415,10 @@ location as the original.
   if (!open_and_map_ifc_module_file(midp, /*issue_diag=*/TRUE)) {
     /* This shouldn't happen (the PCH processing checks the existence and
        modification time of module files). */
+    unexpected_condition();
+  }  /* if */
+  if (!initialize_members_from_ifc_module_file(midp)) {
+    /* This shouldn't happen (the original initialization succeeded). */
     unexpected_condition();
   }  /* if */
 }  /* ifc_modules_pch_reset */
@@ -5543,6 +5428,133 @@ Print the corresponding file and line number for the source location
 }  /* db_locus */
 
 #endif /* DEBUG */
+
+void an_ifc_module::init_string_table_and_header()
+{
+  /* Read the IFC file header (which starts after the magic number). */
+  init_byte_buffer(4, f_size - 4);
+  get_File_Header(&header, /*fill_storage=*/TRUE);
+  /* FIXME: The checksum is not yet checked. */
+#if USE_MMAP_FOR_MEMORY_REGIONS
+  string_table = (a_const_char*)mmap_addr + header.string_table_bytes;
+#else /* !USE_MMAP_FOR_MEMORY_REGIONS */
+  string_table = alloc_il(header.string_table_size);
+  fseek(f_module, header.string_table_bytes, SEEK_SET);
+  if (fread((void*)string_table, 1, header.string_table_size, f_module) !=
+                                                  header.string_table_size) {
+    unexpected_condition_str("Failed to load the IFC module string table");
+  }  /* if */
+#endif /* USE_MMAP_FOR_MEMORY_REGIONS */
+}  /* init_string_table_and_header */
+
+
+a_boolean an_ifc_module::initialize_members_from_ifc_module_file(
+                                                 a_module_import_decl_ptr midp)
+{
+  unsigned int i;
+  a_module_ptr mod = midp->module_info;
+  a_boolean    result = TRUE;
+
+  assoc_module_info = mod;
+  set_name(mod->name, is_header_unit(mod));
+  init_string_table_and_header();
+  if (!check_ifc_version(header.major_version, header.minor_version)) {
+    if (skip_module_version_check) {
+      emit_unsupported_ifc_version_diagnostic(midp, /*mod_iface=*/this,
+                                              /*severity=*/es_warning);
+    } else {
+      emit_unsupported_ifc_version_diagnostic(midp, /*mod_iface=*/this,
+                                              /*severity=*/es_catastrophe);
+      result = FALSE;
+      goto done;
+    }  /* if */
+  }  /* if */
+  /* Prepare to read the partitions (by "seeking" to the IFC Table of
+     Contents). */
+  init_byte_buffer(header.toc, f_size - (size_t)header.toc);
+#if DEBUG
+  if (db_flag_is_set("ifc_modules")) {
+    db_module(mod);
+  }  /* if */
+#endif /* DEBUG */
+  for (i = 0; i < (unsigned int)header.partition_count; i++) {
+    an_ifc_Partition     partition, *ifc_pp;
+    an_ifc_partition     *pp;
+    a_const_char         *name_str;
+    an_ifc_partition_map *map_ptr;
+
+    /* Read information about the partition. */
+    ifc_pp = get_Partition(&partition);
+    name_str = get_string_at_offset(ifc_pp->name);
+#if DEBUG
+    if (db_flag_is_set("ifc_modules")) {
+      (void)fprintf(
+            f_debug,
+            "partition %u \"%s\" offset 0x%08x cardinality %u entry_size %u\n",
+            i, name_str, ifc_pp->offset, ifc_pp->cardinality,
+            ifc_pp->entry_size);
+    }  /* if */
+#endif /* DEBUG */
+    check_assertion(ifc_pp->cardinality != 0 && ifc_pp->offset != 0);
+    map_ptr = find_ifc_partition(name_str);
+    if (map_ptr == NULL) {
+      str_warning(ec_unknown_ifc_partition, name_str);
+    } else {
+      check_assertion_str(map_ptr->kind != ifc_last,
+                          "no mapping for IFC partition");
+      pp = &partitions[map_ptr->kind];
+      pp->name = map_ptr->name;
+      pp->offset = ifc_pp->offset;
+      pp->size = ifc_pp->cardinality * ifc_pp->entry_size;
+      pp->entry_size = ifc_pp->entry_size;
+      validate_partition_size(pp, map_ptr->kind);
+      pp->format_validated = alloc_validation_bit_array(pp->size /
+                                                        pp->entry_size);
+    }  /* if */
+  }  /* for */
+  (void)fseek(f_module, 0L, SEEK_SET);
+  if (partitions[ifc_name_source_file].name != NULL) {
+    /* Allocate an array to map source locations to sequence numbers for each
+       file referenced by the module.  No information about the sequence
+       numbers is recorded yet (we do that only if the source file is later
+       referenced). */
+    an_ifc_partition *nsf_pp = &partitions[ifc_name_source_file];
+    check_assertion(nsf_pp->entry_size != 0);
+    size_t num_files = nsf_pp->size / nsf_pp->entry_size;
+    size_t size = num_files * sizeof(a_module_sequence_number_mapping);
+    sequence_numbers = (a_module_sequence_number_mapping *)alloc_fe(size);
+    memzero((char *)sequence_numbers, size);
+    if (partitions[ifc_src_line].name != NULL) {
+      check_assertion(partitions[ifc_src_line].entry_size != 0);
+      /* As a (hopefully) temporary measure, for each file referenced in the
+         module, we need to determine the largest line number that will be seen
+         in that file (we don't actually need the last line number in the file,
+         just the largest one that will be seen in the source location, though
+         the last number would do).  This number will be used (if needed) to
+         increment the source sequence when the module is referenced to
+         effectively reserve those source sequence numbers for the file. */
+      for (uint32_t idx = 0, num_src_lines = get_num_entries(ifc_src_line);
+           idx < num_src_lines; idx++) {
+        an_ifc_Source_Line   isl, *islp;
+
+        if (!read_partition_element(ifc_src_line, idx)) {
+          result = FALSE;
+          goto done;
+        }  /* if */
+        islp = get_Source_Line(&isl);
+        size_t file_index = name_value(islp->file);
+        check_assertion(name_tag(islp->file) == ifc_NameSort_SourceFile &&
+                        file_index < num_files);
+        if (islp->line > sequence_numbers[file_index].max_line_number) {
+          sequence_numbers[file_index].max_line_number = islp->line;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+done:
+  return result;
+}  /* initialize_members_from_ifc_module_file */
+
 
 a_boolean an_ifc_module::open_and_map_ifc_module_file(
                                            a_module_import_decl_ptr midp,
