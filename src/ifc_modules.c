@@ -7211,6 +7211,18 @@ can currently be qualified.
         result = mep->scope != NULL;
       }
       break;
+    case ifc_DeclSort_Scope:
+      {
+        /* Nested scopes should never be qualified. */
+        an_ifc_Ref<ifc_DeclIndex>      decl_ref(this, decl_index);
+        Opt<an_ifc_Ref<ifc_DeclIndex>> opt_home_scope;
+
+        opt_home_scope = ::get_ifc_home_scope_decl(decl_ref);
+        if (opt_home_scope.has_value()) {
+          result = !is_class_scope(*opt_home_scope);
+        }  /* if */
+      }
+      break;
     case ifc_DeclSort_Method:
     case ifc_DeclSort_Constructor:
     case ifc_DeclSort_Destructor:
