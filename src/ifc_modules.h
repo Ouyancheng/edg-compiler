@@ -2872,7 +2872,6 @@ public:
     { return get_ifc_locus(decl, Overload_priority<1>()); }
   ifc_SourceLocation get_ifc_locus(ifc_DeclIndex decl_index);
   /* IFC Home Scope Decl readers. */
-  ifc_DeclIndex skip_scope_abstractions(ifc_DeclIndex decl);
   template<typename an_ifc_DeclSort_T>
   inline ifc_DeclIndex get_ifc_home_scope_decl(an_ifc_DeclSort_T *decl,
                                                Overload_priority<0>)
@@ -2881,16 +2880,16 @@ public:
   inline auto get_ifc_home_scope_decl(an_ifc_DeclSort_T *decl,
                                       Overload_priority<1>)
                           -> Is_same<decltype(decl->home_scope), ifc_DeclIndex>
-    { return skip_scope_abstractions(decl->home_scope); }
+    { return decl->home_scope; }
   template<typename an_ifc_DeclSort_T>
-  inline ifc_DeclIndex get_ifc_home_scope_decl(an_ifc_DeclSort_T *decl)
-    { return get_ifc_home_scope_decl(decl, Overload_priority<1>()); }
-  ifc_DeclIndex get_ifc_home_scope_decl(ifc_DeclIndex decl_index);
+  inline Opt<an_ifc_Ref<ifc_DeclIndex>> get_ifc_home_scope_decl(
+                                                      an_ifc_DeclSort_T *decl);
+  Opt<an_ifc_Ref<ifc_DeclIndex>> get_ifc_home_scope_decl(
+                                                     ifc_DeclIndex decl_index);
   /* IFC Scope readers. */
   a_scope_ptr get_ifc_scope(ifc_DeclIndex scope_index);
   template<typename an_ifc_DeclSort_T>
-  inline a_scope_ptr get_ifc_home_scope(an_ifc_DeclSort_T *decl)
-    { return get_ifc_scope(get_ifc_home_scope_decl(decl)); }
+  inline a_scope_ptr get_ifc_home_scope(an_ifc_DeclSort_T *decl);
   inline a_scope_ptr get_ifc_home_scope(ifc_DeclIndex decl_index);
   a_boolean is_home_scope_readable(ifc_DeclIndex decl_index);
   /* IFC Access readers. */
@@ -2900,11 +2899,11 @@ public:
     { unexpected_condition_str("Access resolution unknown"); }
   template<typename an_ifc_DeclSort_T>
   inline auto get_ifc_access(an_ifc_DeclSort_T *decl, Overload_priority<1>)
-                                -> Is_same<decltype(decl->access), ifc_Access>;
+                                 -> Is_same<decltype(decl->access), ifc_Access>
+    { return decl->access; }
   template<typename an_ifc_DeclSort_T>
-  inline ifc_Access get_ifc_access(an_ifc_DeclSort_T *decl)
-    { return get_ifc_access(decl, Overload_priority<1>()); }
-  ifc_Access get_ifc_access(ifc_DeclIndex decl_index);
+  inline Opt<ifc_Access> get_ifc_access(an_ifc_DeclSort_T *decl);
+  Opt<ifc_Access> get_ifc_access(ifc_DeclIndex decl_index);
   a_boolean is_name_qualifiable(ifc_DeclIndex decl_index);
   a_type_ptr type_for_type_index(ifc_TypeIndex   type_index,
                                  a_non_type_kind *kind);
@@ -2920,9 +2919,7 @@ public:
   a_const_char *string_from_name_index(ifc_NameIndex     name_index,
                                        a_symbol_locator  *loc,
                                        a_text_buffer_ptr *result_buffer);
-  a_const_char *name_from_decl(ifc_DeclIndex decl);
-  a_const_char *name_from_other_module_decl(
-                                        const an_ifc_DeclSort_Reference *ref);
+  a_const_char *name_from_local_decl(ifc_DeclIndex decl);
   void init_dps(a_decl_parse_state          *dps,
                 ifc_SourceLocation          *locus,
                 ifc_TypeIndex               type_index,
@@ -2954,12 +2951,10 @@ public:
   a_constant_ptr constant_for_expr_index(ifc_ExprIndex expr_index,
                                          a_type_ptr    default_type);
   a_constant_ptr constant_for_named_decl(an_ifc_ExprSort_NamedDecl *iesndp);
-  /* Queries. */
-  a_boolean is_class_scope(ifc_DeclIndex scope);
   /* Token caching. */
-  void cache_scope_member_sequence(a_token_cache_ptr cache,
-                                   ifc_DeclIndex     scope_decl,
-                                   ifc_Sequence      seq);
+  void cache_scope_member_sequence(a_token_cache_ptr         cache,
+                                   an_ifc_Ref<ifc_DeclIndex> scope_decl,
+                                   ifc_Sequence              seq);
   void cache_scope(a_token_cache_ptr  cache,
                    ifc_ScopeIndex     scope,
                    ifc_SourceLocation *locus);
@@ -3306,16 +3301,16 @@ inline ifc_SourceLocation an_ifc_module::get_ifc_locus(
 
 /* Explicit specializations of an_ifc_module::get_ifc_home_scope_decl. */
 template<>
-inline ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(
+inline Opt<an_ifc_Ref<ifc_DeclIndex>> an_ifc_module::get_ifc_home_scope_decl(
                                   an_ifc_DeclSort_PartialSpecialization *decl);
 template<>
-inline ifc_DeclIndex an_ifc_module::get_ifc_home_scope_decl(
+inline Opt<an_ifc_Ref<ifc_DeclIndex>> an_ifc_module::get_ifc_home_scope_decl(
                                          an_ifc_DeclSort_Specialization *decl);
+template<>
+inline Opt<an_ifc_Ref<ifc_DeclIndex>> an_ifc_module::get_ifc_home_scope_decl(
+                                              an_ifc_DeclSort_Reference *decl);
 
 /* Explicit specializations of an_ifc_module::get_ifc_home_scope. */
-template<>
-inline a_scope_ptr an_ifc_module::get_ifc_home_scope(
-                                              an_ifc_DeclSort_Reference *decl);
 
 extern void record_pending_ifc_function_body(a_routine_ptr  rp,
                                              ifc_DeclIndex  decl_idx,
