@@ -3325,6 +3325,7 @@ ec_ifc_bad_function_param_wrong_chart;;"a UniLevel IFC chart wasn't used to spec
 ec_ifc_bad_function_param_counts_multi_multi;;"%d1 parameters were specified by the IFC parameter definition chart while %d2 parameters were specified by the IFC declaration"
 ec_ifc_bad_function_param_counts_single_multi;;"%d1 parameter was specified by the IFC parameter definition chart while %d2 parameters were specified by the IFC declaration"
 ec_ifc_bad_function_param_counts_multi_single;;"%d1 parameters were specified by the IFC parameter definition chart while %d2 parameter was specified by the IFC declaration"
+ec_ifc_missing_function_definition;;"The IFC representation of the definition of function %sq is missing"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

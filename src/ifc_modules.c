@@ -4390,7 +4390,9 @@ instead.
     }  /* if */
 #endif /* DEBUG */
   } else {
-    /* Apparently, no body was recorded in the IFC file after all. */
+    /* The IFC told us there would be a definition but none was written. */
+    pos_st_error(ec_ifc_missing_function_definition,
+                 &rp->source_corresp.decl_position, rp->source_corresp.name);
     result = FALSE;
   }  /* if */
 done:
@@ -4473,7 +4475,6 @@ void an_ifc_module::process_ifc_declaration(
                                           a_module_entity_ptr mep,
                                           a_boolean           defer,
                                           a_type_ptr          enumeration_type)
-
 /*
 Process the IFC module entity declaration specified by mep either by creating
 the appropriate IL entity, or, when defer is TRUE, mark the appropriate
@@ -10630,9 +10631,9 @@ position to use for the traits.
       cache_token(cache, tok_consteval, pos);
     } else if (traits & ifc_FunctionTraits_Constexpr) {
       cache_token(cache, tok_constexpr, pos);
-    } else if (traits & ifc_FunctionTraits_Inline) {
-      cache_token(cache, tok_inline, pos);
     }  /* if */
+    /* ifc_FunctionTraits_Inline is intentionally ignored as no IFC function
+       should be treated as inline. */
   }  /* if */
   if (traits & ifc_FunctionTraits_HiddenFriend) {
     /* FIXME: Currently unsupported. */
@@ -13340,6 +13341,22 @@ specialization.
 }  /* cache_template_head */
 
 
+template<typename an_ifc_DeclSort_T>
+static a_boolean has_function_definition(an_ifc_DeclSort_T *decl)
+/*
+Returns TRUE if the given function-like IFC declaration node has
+a definition; otherwise, returns FALSE.
+*/
+{
+  /* For the IFC to provide a function definition, the function must be
+     constexpr and the definition must be exported (marked by the presence of a
+     reachable initializer property). */
+  return decl->properties & ifc_ReachableProperties_Initializer &&
+         (decl->traits & ifc_FunctionTraits_Constexpr ||
+          decl->traits & ifc_FunctionTraits_Immediate);
+}  /* has_initializer */
+
+
 void an_ifc_module::cache_decl(a_token_cache_ptr cache,
                                ifc_DeclIndex     decl)
 /*
@@ -13670,7 +13687,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
                             (ifc_FunctionTypeTraits)0, vendor_traits,
                             (ifc_TypeIndex)0, *opt_name_ref, params,
                             itstp->source, &itstp->eh_spec, &idscp->locus);
-        if (idscp->properties & ifc_ReachableProperties_Initializer) {
+        if (has_function_definition(idscp)) {
           /* A body is likely available: Record this availability using a
              pseudo-token that will be translated when the declaration is
              parsed. */
@@ -13707,7 +13724,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
                             (ifc_FunctionTypeTraits)0, vendor_traits,
                             (ifc_TypeIndex)0, *opt_name_ref, (ifc_ChartIndex)0,
                             (ifc_TypeIndex)0, &idsdp->eh_spec, &idsdp->locus);
-        if (idsdp->properties & ifc_ReachableProperties_Initializer) {
+        if (has_function_definition(idsdp)) {
           /* A body is likely available: Record this availability using a
              pseudo-token that will be translated when the declaration is
              parsed. */
