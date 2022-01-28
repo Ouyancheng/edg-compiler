@@ -7149,7 +7149,12 @@ scope.  If it is, return the access level of the declaration.
   Opt<ifc_Access>                result;
 
   if (opt_scope_ref.has_value() && is_class_scope(*opt_scope_ref)) {
-    result = get_ifc_access(decl, Overload_priority<1>());
+    ifc_Access raw_result = get_ifc_access(decl, Overload_priority<1>());
+
+    /* Always represent no access as an empty optional. */
+    if (raw_result != ifc_Access_None) {
+      result = raw_result;
+    }  /* if */
   }  /* if */
   return result;
 }  /* get_ifc_access */
