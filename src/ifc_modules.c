@@ -7099,7 +7099,7 @@ Return the associated scope for the given declaration.
     a_scope_ptr result = NULL;
 
     if (opt_decl_ref.has_value()) {
-      result = ::get_ifc_scope(*opt_decl_ref);
+      result = EDG_PREFIX::get_ifc_scope(*opt_decl_ref);
     }  /* if */
     return result;
   }
@@ -7118,7 +7118,7 @@ Return the associated scope for the given declaration index.
     a_scope_ptr result = NULL;
 
     if (opt_decl_ref.has_value()) {
-      result = ::get_ifc_scope(*opt_decl_ref);
+      result = EDG_PREFIX::get_ifc_scope(*opt_decl_ref);
     }  /* if */
     return result;
   }
@@ -7189,12 +7189,12 @@ A" in "namespace B", this function returns the IFC declaration index of
 {
   Opt<an_ifc_Ref<ifc_DeclIndex>> opt_declaring_class;
 
-  opt_declaring_class = ::get_ifc_home_scope_decl(decl_ref);
+  opt_declaring_class = EDG_PREFIX::get_ifc_home_scope_decl(decl_ref);
   {
     Opt<an_ifc_Ref<ifc_DeclIndex>> result;
 
     if (opt_declaring_class.has_value()) {
-      result = ::get_ifc_home_scope_decl(*opt_declaring_class);
+      result = EDG_PREFIX::get_ifc_home_scope_decl(*opt_declaring_class);
     }  /* if */
     return result;
   }
@@ -7228,7 +7228,7 @@ can currently be qualified.
         an_ifc_Ref<ifc_DeclIndex>      decl_ref(this, decl_index);
         Opt<an_ifc_Ref<ifc_DeclIndex>> opt_home_scope;
 
-        opt_home_scope = ::get_ifc_home_scope_decl(decl_ref);
+        opt_home_scope = EDG_PREFIX::get_ifc_home_scope_decl(decl_ref);
         if (opt_home_scope.has_value()) {
           result = !is_class_scope(*opt_home_scope);
         }  /* if */
@@ -8651,9 +8651,10 @@ Given a declaration, return the name associated with that declaration.
         a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl);
 
         if (gmf_decl_scope.has_value()) {
-          mep->scope = ::get_ifc_scope(*gmf_decl_scope);
+          mep->scope = EDG_PREFIX::get_ifc_scope(*gmf_decl_scope);
         } else {
-          a_type_ptr tp = ::type_for_type_index(*gmf_decl_type, /*kind=*/NULL);
+          a_type_ptr tp = EDG_PREFIX::type_for_type_index(*gmf_decl_type,
+                                                          /*kind=*/NULL);
           ensure_type_has_scope(tp);
           mep->scope = get_assoc_scope_of_il_entry((char*)tp, iek_type);
         }  /* if */
