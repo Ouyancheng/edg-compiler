@@ -31,6 +31,12 @@ ifc_modules.c -- Microsoft-specific IFC module code
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+#if USE_EDG_NAMESPACE
+#define EDG_PREFIX edg
+#else /* !USE_EDG_NAMESPACE */
+#define EDG_PREFIX /* nothing */
+#endif /* USE_EDG_NAMESPACE */
+
 /*
 The methods used by this file to access the contents of IFC modules (using
 macro names) are not always lint-friendly, so disable some lint messages for
@@ -8790,7 +8796,7 @@ in the name result.  Return TRUE if this operation completed successfully,
 FALSE otherwise.
 */
 {
-  *name_result = ::get_string_at_offset(text_offset);
+  *name_result = EDG_PREFIX::get_string_at_offset(text_offset);
   return TRUE;
 }  /* get_textual_name */
 
@@ -12799,7 +12805,7 @@ declaration.
 */
 {
   auto cache_name_fn = [this, cache, name, locus](a_source_position_ptr pos) {
-    ::cache_name(cache, name, locus);
+    EDG_PREFIX::cache_name(cache, name, locus);
   };
   cache_function_decl(cache, is_class_member, is_dtor, access,
                       /*cache_access_spec=*/TRUE, calling_conv, func_traits,
@@ -12949,7 +12955,7 @@ to the cache.  locus is the location of the simple-template-id.
     opt_name_ref = get_ifc_name_from_primary_template(this, form_idx);
     /* FIXME: This should be a soft failure. */
     check_assertion(opt_name_ref.has_value());
-    ::cache_name(cache, *opt_name_ref, locus);
+    EDG_PREFIX::cache_name(cache, *opt_name_ref, locus);
   }
   /* Reconstruct the template-argument-list and enclosing angle
      brackets. */
