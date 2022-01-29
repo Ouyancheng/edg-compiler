@@ -8825,7 +8825,7 @@ FALSE otherwise.
 
       result = get_textual_name(text_offset, loc, name_result);
     }
-  } else if (::validate_partition_element(name_ref)) {
+  } else if (EDG_PREFIX::validate_partition_element(name_ref)) {
     *name_result = string_from_name_ref(name_ref, loc);
     result = TRUE;
   }  /* if */
