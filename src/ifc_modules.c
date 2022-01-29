@@ -8653,10 +8653,14 @@ Given a declaration, return the name associated with that declaration.
         if (gmf_decl_scope.has_value()) {
           mep->scope = EDG_PREFIX::get_ifc_scope(*gmf_decl_scope);
         } else {
+          /* Disable spurious GCC warning about uninitialized usage of
+             gmf_decl_type. */
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
           a_type_ptr tp = EDG_PREFIX::type_for_type_index(*gmf_decl_type,
                                                           /*kind=*/NULL);
           ensure_type_has_scope(tp);
           mep->scope = get_assoc_scope_of_il_entry((char*)tp, iek_type);
+END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
         }  /* if */
         defer_symbol_creation(mep, &loc);
       }  /* if */
