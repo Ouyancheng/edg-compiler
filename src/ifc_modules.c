@@ -4141,13 +4141,16 @@ if parameter counts match, return FALSE otherwise.
 
 
 static void add_function_def_parameter(
-                             an_ifc_module                          *mod,
-                             an_ifc_Node<an_ifc_DeclSort_Parameter> idsp,
-                             a_param_type_ptr                       ptp,
-                             a_func_info_block                      *func_info)
+                         an_ifc_module                          *mod,
+                         an_ifc_Node<an_ifc_DeclSort_Parameter> idsp,
+                         a_param_type_ptr                       ptp,
+                         a_func_info_block                      *func_info,
+                         a_param_id_ptr                         *last_param_id)
 /*
 Add the given IFC parameter, using the associated module and associated
-parameter type pointer, to the given function info.
+parameter type pointer, to the given function info.  last_param_id is a pointer
+to the pointer for the latest addition to the parameter list, if said list is
+empty, the pointed to pointer should be NULL.
 */
 {
   a_source_position pos;
@@ -4161,21 +4164,23 @@ parameter type pointer, to the given function info.
     clear_locator(&sym_loc, &pos);
     (void)find_symbol(name, strlen(name), &sym_loc);
     {
-      a_param_id_ptr  param_id;
-
       add_to_param_id_list(&sym_loc, ptp->type, &pos,
                            (a_storage_class)sc_auto,
                            func_info,
                            (a_source_sequence_entry_ptr)NULL,
-                           &param_id, ptp->is_pack_element);
-      param_id->declared_type = ptp->type;
-      param_id->param_num = ptp->param_num;
-      if (ptp->is_pack_element) {
-        param_id->is_pack_element = TRUE;
-        if (ptp->is_parameter_pack) {
-          param_id->is_parameter_pack = TRUE;
+                           last_param_id, ptp->is_pack_element);
+      {
+        a_param_id_ptr new_param_id = *last_param_id;
+
+        new_param_id->declared_type = ptp->type;
+        new_param_id->param_num = ptp->param_num;
+        if (ptp->is_pack_element) {
+          new_param_id->is_pack_element = TRUE;
+          if (ptp->is_parameter_pack) {
+            new_param_id->is_parameter_pack = TRUE;
+          }  /* if */
         }  /* if */
-      }  /* if */
+      }
     }
   }
 }  /* add_function_def_parameter */
@@ -4220,6 +4225,7 @@ parameters are added successfully, return FALSE otherwise.
       {
         ifc_Index_type   idx = 0;
         a_param_type_ptr ptp = params;
+        a_param_id_ptr   last_param_id = nullptr;
 
         /* Ensure a function prototype scope exists in which sk_parameter
            symbols can be accumulated. */
@@ -4235,7 +4241,8 @@ parameters are added successfully, return FALSE otherwise.
           construct_node(&opt_idsp, mod, ifc_DeclSort_Parameter,
                          icsul->start + idx);
           if (opt_idsp.has_value()) {
-            add_function_def_parameter(mod, *opt_idsp, ptp, func_info);
+            add_function_def_parameter(mod, *opt_idsp, ptp, func_info,
+                                       &last_param_id);
           } else {
             result = FALSE;
             goto done;
