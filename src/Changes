@@ -1,5 +1,19 @@
 Version 6.4
 
+1/31/22  [EDGcpfe/22685,EDGcpfe/23919,EDGcpfe/24378,EDGcpfe/24409]
+Spurious pack expansion error on nested alias template with empty expansion
+
+A spurious "pack expansion does not make use of any argument pack" error
+could be issued if a variadic class template contained an alias template
+definition that made use of an empty pack expansion of the enclosing
+class template.  Now fixed.
+
+  template <typename T, T... I> struct A {
+    template <T N> using B = A<T, I..., N>;
+  };
+  A<int> a;
+
+
 1/22/22  [EDGcpfe/25025]
 Assertion failure with raw literal operator in a template
 

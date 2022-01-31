@@ -6285,6 +6285,12 @@ symbol found by the lookup is semantically valid.
 #define is_class_template_but_not_alias_symbol(sym)			\
   (((sym)->kind == (a_symbol_kind)sk_class_template) &&			\
    !(sym)->variant.template_info->variant.class_template.is_alias_template)
+
+/* Return TRUE if the symbol is an alias template symbol. */
+#define is_alias_template_symbol(sym)			\
+  (((sym)->kind == (a_symbol_kind)sk_class_template) &&			\
+   (sym)->variant.template_info->variant.class_template.is_alias_template)
+
 /*
 Return TRUE if the symbol is a class template, but not a C++/CLI generic.
 */

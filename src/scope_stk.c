@@ -11973,6 +11973,38 @@ Return TRUE if we are within the prototype instantiation of a generic lambda.
 }  /* in_generic_lambda_in_prototype_instantiation */
 
 
+a_boolean is_alias_prototype_in_real_instantiation(void)
+/*
+Return TRUE if we are within the prototype instantiation of an alias
+template within a real instantiation of a class.
+*/
+{
+  a_boolean			result = FALSE;
+
+  if (!is_prototype_instantiation_context()) {
+    /* We are not in a prototype instantiation context of any kind. */
+  } else {
+    a_scope_stack_entry_ptr ssep;
+    a_symbol_ptr            sym;
+    ssep = scope_stack_entry_for(depth_innermost_instantiation_scope);
+    sym = ssep->template_sym;
+    if (is_alias_template_symbol(sym)) {
+      /* The innermost instantiation is of an alias template.  See if
+         we are in a real instantiation. */
+      for (ssep = previous_scope_of(ssep); ssep != NULL;
+           ssep = previous_scope_of(ssep)) {
+        /* Look for an enclosing real instantiation scope. */
+        if (scope_is(ssep, sck_template_instantiation)) {
+          result = !ssep->in_prototype_instantiation;
+          break;
+        }  /* if */
+      }  /* for */
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* is_alias_prototype_in_real_instantiation */
+
+
 static a_boolean is_pack_instantiation_context(
 				a_pack_expansion_descr_ptr	*p_pedp)
 /*
@@ -12003,6 +12035,9 @@ that *p_pedp is set even when FALSE is returned.
       result = TRUE;
     } else if (pedp->uses_only_enclosing_packs &&
                is_real_instantiation_context()) {
+      result = TRUE;
+    } else if (pedp->uses_only_enclosing_packs &&
+               is_alias_prototype_in_real_instantiation()) {
       result = TRUE;
     } else if (pedp->uses_any_enclosing_packs &&
                in_generic_lambda_in_real_instantiation()) {
