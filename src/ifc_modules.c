@@ -13576,8 +13576,8 @@ specialization.
 template<typename an_ifc_DeclSort_T>
 static a_boolean has_function_definition(an_ifc_DeclSort_T *decl)
 /*
-Returns TRUE if the given function-like IFC declaration node has
-a definition; otherwise, returns FALSE.
+Return TRUE if the given function-like IFC declaration node has a definition;
+otherwise, return FALSE.
 */
 {
   /* For the IFC to provide a function definition, the function must be
