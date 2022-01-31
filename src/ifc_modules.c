@@ -6139,9 +6139,9 @@ a_boolean an_ifc_module::open_and_map_ifc_module_file(
                                            a_boolean                issue_diag)
 /*
 Open the module file and map it into the process' address space.  Note that
-this is also used after restoring from a PCH file.  Returns TRUE if the
-module file was successfully opened and FALSE (with an error message if
-issue_diag == TRUE) otherwise.
+this is also used after restoring from a PCH file.  Return TRUE if the module
+file was successfully opened and FALSE (with an error message if issue_diag ==
+TRUE) otherwise.
 */
 {
   a_module_ptr  mod = midp->module_info;
@@ -7127,7 +7127,7 @@ Return the associated scope for the given declaration index.
 
 a_boolean an_ifc_module::is_home_scope_readable(ifc_DeclIndex decl_index)
 /*
-Returns TRUE if the home scope of the declaration (indexed by decl_index) is
+Return TRUE if the home scope of the declaration (indexed by decl_index) is
 loaded and may contain all or part of its associated inner declarations.
 */
 {
@@ -10774,8 +10774,8 @@ static void cache_func_traits(a_token_cache_ptr     cache,
                               a_boolean             trailing,
                               a_source_position_ptr pos)
 /*
-Add the tokens corresponding to the given function traits to cache.  If
-trailing is TRUE then cache the traits that follow a function declaration.
+Add the tokens corresponding to the given function and vendor traits to cache.
+If trailing is TRUE then cache the traits that follow a function declaration.
 Otherwise, cache the traits that precede a function declaration.  pos is the
 position to use for the traits.
 */
@@ -12689,15 +12689,16 @@ inline void an_ifc_module::cache_function_decl(
 Add the tokens corresponding to the given function declaration to cache.
 is_class_member is TRUE if this is a non-static member of a class.  is_dtor is
 TRUE if this is a destructor declaration.  access, calling_conv, func_traits,
-func_type_traits, and eh_spec are values from the IFC file that describe the
-function.  cache_access_spec is TRUE if the access specifier caching was not
-handled by the caller.  return_type is the return type of the function (0 if
-there is no return type, e.g., the function is a constructor or destructor).
-cache_name_fn is a lambda accepting a_source_position_ptr interpretation of
-locus that's called to cache the name of the scope.  Both params and
-param_types are the parameter list (0 for both if there are no parameters).  If
-params is non-zero, param_types will be ignored as params will already contain
-the parameter types.  locus is the position of the function declaration.
+func_type_traits, vendor_traits, and eh_spec are values from the IFC file that
+describe the function.  cache_access_spec is TRUE if the access specifier
+caching was not handled by the caller.  return_type is the return type of the
+function (0 if there is no return type, e.g., the function is a constructor or
+destructor).  cache_name_fn is a lambda accepting a_source_position_ptr
+interpretation of locus that's called to cache the name of the scope.  Both
+params and param_types are the parameter list (0 for both if there are no
+parameters).  If params is non-zero, param_types will be ignored as params will
+already contain the parameter types.  locus is the position of the function
+declaration.
 
 FIXME: Remove this version of cache_function_decl once names can be cached
 properly for specializations using a NameIndex.
@@ -12762,12 +12763,12 @@ void an_ifc_module::cache_function_decl(
 Add the tokens corresponding to the given function declaration to cache.
 is_class_member is TRUE if this is a non-static member of a class.  is_dtor is
 TRUE if this is a destructor declaration.  access, calling_conv, func_traits,
-func_type_traits, eh_spec, and name are values from the IFC file that describe
-the function.  return_type is the return type of the function (0 if there is no
-return type, e.g., the function is a constructor or destructor).  Both params
-and param_types are the parameter list (0 for both if there are no parameters).
-If params is non-zero, param_types will be ignored as params will already
-contain the parameter types.  locus is the position of the function
+func_type_traits, vendor_traits, eh_spec, and name are values from the IFC file
+that describe the function.  return_type is the return type of the function (0
+if there is no return type, e.g., the function is a constructor or destructor).
+Both params and param_types are the parameter list (0 for both if there are no
+parameters).  If params is non-zero, param_types will be ignored as params will
+already contain the parameter types.  locus is the position of the function
 declaration.
 */
 {
@@ -12800,12 +12801,12 @@ void an_ifc_module::cache_function_decl(
 Add the tokens corresponding to the given function declaration to cache.
 is_class_member is TRUE if this is a non-static member of a class.  is_dtor is
 TRUE if this is a destructor declaration.  access, calling_conv, func_traits,
-func_type_traits, eh_spec, and name are values from the IFC file that describe
-the function.  return_type is the return type of the function (0 if there is no
-return type, e.g., the function is a constructor or destructor).  Both params
-and param_types are the parameter list (0 for both if there are no parameters).
-If params is non-zero, param_types will be ignored as params will already
-contain the parameter types.  locus is the position of the function
+func_type_traits, vendor_traits, eh_spec, and name are values from the IFC file
+that describe the function.  return_type is the return type of the function (0
+if there is no return type, e.g., the function is a constructor or destructor).
+Both params and param_types are the parameter list (0 for both if there are no
+parameters).  If params is non-zero, param_types will be ignored as params will
+already contain the parameter types.  locus is the position of the function
 declaration.
 */
 {
@@ -17959,7 +17960,7 @@ template<typename an_Index_Type>
 static a_boolean validate_partition_element(an_ifc_Ref<an_Index_Type> ref)
 /*
 Perform recursive validation checks on the partition position corresponding to
-the given reference.  Returns TRUE if determined to be valid, FALSE otherwise.
+the given reference.  Return TRUE if determined to be valid, FALSE otherwise.
 
 See Element_validator's position validation function for more details about
 non-recursive and recursive validation.

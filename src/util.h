@@ -51,7 +51,7 @@ using Enable_if = typename Enable_if_helper<cond, a_Thing>::a_thing;
 Is_same<A, B, C> is invalid (causing deduction failure) if A is not the same
 type as B.  Otherwise, it produces C.
 
-By default, C is defaulted to be equal to type A.
+By default, C is the same type as A.
 */
 template<typename a_Type_A, typename a_Type_B, typename a_Ret_type>
 struct Is_same_helper;
