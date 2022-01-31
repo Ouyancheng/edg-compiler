@@ -6739,16 +6739,13 @@ Return the name of the enclosing scope of the declaration represented at decl.
   Opt<an_ifc_Ref<ifc_DeclIndex>> opt_scope;
 
   opt_scope = mod->get_ifc_home_scope_decl(decl);
-  {
-    Opt<an_ifc_Ref<ifc_NameIndex>> result;
+  Opt<an_ifc_Ref<ifc_NameIndex>> result;
+  if (opt_scope.has_value()) {
+    an_ifc_Ref<ifc_DeclIndex> scope_ref = *opt_scope;
 
-    if (opt_scope.has_value()) {
-      an_ifc_Ref<ifc_DeclIndex> scope_ref = *opt_scope;
-
-      result = scope_ref.mod->get_ifc_name(scope_ref.index);
-    }  /* if */
-    return result;
-  }
+    result = scope_ref.mod->get_ifc_name(scope_ref.index);
+  }  /* if */
+  return result;
 }  /* get_ifc_name_from_scope */
 
 
@@ -6934,9 +6931,9 @@ Return the home scope of the declaration represented at decl.
   /* A partial specialization has direct scoping information; however, it's not
      correct.  Recurse on the associated declaration. */
   Opt<an_ifc_Ref<ifc_DeclIndex>> opt_assoc_decl;
-  Opt<an_ifc_Ref<ifc_DeclIndex>> result;
 
   opt_assoc_decl = get_ifc_home_scope_decl(decl->entity.decl);
+  Opt<an_ifc_Ref<ifc_DeclIndex>> result;
   if (opt_assoc_decl.has_value()) {
     result = skip_scope_abstractions(*opt_assoc_decl);
   }  /* if */
@@ -6954,9 +6951,9 @@ Return the home scope of the declaration represented at decl.
   /* A specialization doesn't have any direct scoping information. Recurse on
      the associated declaration. */
   Opt<an_ifc_Ref<ifc_DeclIndex>> opt_assoc_decl;
-  Opt<an_ifc_Ref<ifc_DeclIndex>> result;
 
   opt_assoc_decl = get_ifc_home_scope_decl(decl->decl);
+  Opt<an_ifc_Ref<ifc_DeclIndex>> result;
   if (opt_assoc_decl.has_value()) {
     result = skip_scope_abstractions(*opt_assoc_decl);
   }  /* if */
@@ -6988,14 +6985,9 @@ inline Opt<an_ifc_Ref<ifc_DeclIndex>> an_ifc_module::get_ifc_home_scope_decl(
 Return the home scope of the declaration represented at decl.
 */
 {
-  ifc_DeclIndex raw_index = get_ifc_home_scope_decl(decl,
-                                                    Overload_priority<1>());
+  ifc_DeclIndex index = get_ifc_home_scope_decl(decl, Overload_priority<1>());
 
-  {
-    an_ifc_Ref<ifc_DeclIndex> index(this, raw_index);
-
-    return skip_scope_abstractions(index);
-  }
+  return skip_scope_abstractions(an_ifc_Ref<ifc_DeclIndex>(this, index));
 }  /* get_ifc_home_scope_decl */
 
 
@@ -7089,14 +7081,11 @@ Return the associated scope for the given declaration.
   Opt<an_ifc_Ref<ifc_DeclIndex>> opt_decl_ref;
 
   opt_decl_ref = get_ifc_home_scope_decl(decl);
-  {
-    a_scope_ptr result = NULL;
-
-    if (opt_decl_ref.has_value()) {
-      result = EDG_PREFIX::get_ifc_scope(*opt_decl_ref);
-    }  /* if */
-    return result;
-  }
+  a_scope_ptr result = NULL;
+  if (opt_decl_ref.has_value()) {
+    result = EDG_PREFIX::get_ifc_scope(*opt_decl_ref);
+  }  /* if */
+  return result;
 }  /* get_ifc_home_scope */
 
 
@@ -7108,14 +7097,11 @@ Return the associated scope for the given declaration index.
   Opt<an_ifc_Ref<ifc_DeclIndex>> opt_decl_ref;
 
   opt_decl_ref = get_ifc_home_scope_decl(decl_index);
-  {
-    a_scope_ptr result = NULL;
-
-    if (opt_decl_ref.has_value()) {
-      result = EDG_PREFIX::get_ifc_scope(*opt_decl_ref);
-    }  /* if */
-    return result;
-  }
+  a_scope_ptr result = NULL;
+  if (opt_decl_ref.has_value()) {
+    result = EDG_PREFIX::get_ifc_scope(*opt_decl_ref);
+  }  /* if */
+  return result;
 }  /* get_ifc_home_scope */
 
 
@@ -7184,14 +7170,11 @@ A" in "namespace B", this function returns the IFC declaration index of
   Opt<an_ifc_Ref<ifc_DeclIndex>> opt_declaring_class;
 
   opt_declaring_class = EDG_PREFIX::get_ifc_home_scope_decl(decl_ref);
-  {
-    Opt<an_ifc_Ref<ifc_DeclIndex>> result;
-
-    if (opt_declaring_class.has_value()) {
-      result = EDG_PREFIX::get_ifc_home_scope_decl(*opt_declaring_class);
-    }  /* if */
-    return result;
-  }
+  Opt<an_ifc_Ref<ifc_DeclIndex>> result;
+  if (opt_declaring_class.has_value()) {
+    result = EDG_PREFIX::get_ifc_home_scope_decl(*opt_declaring_class);
+  }  /* if */
+  return result;
 }  /* get_declaring_class_scope_decl */
 
 
