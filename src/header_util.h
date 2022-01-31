@@ -83,7 +83,7 @@ An implementation of an "optional" type.  This type allows representing
 a value that may or may not be present and is thus "optional."
 
 Before dereferencing to retrieve the value, consuming code should check that
-the optional has a stored value (via either "is_empty" or "has_value" calls).
+the optional has a stored value (via a call to "has_value").
 */
 template<typename a_Value_type>
 struct Opt {
@@ -175,7 +175,7 @@ value is returned.
 {
   /* FIXME: We don't have a way to assert from this header. */
   /* check_assertion(!empty); */
- return &stored_value;
+  return &stored_value;
 }  /* operator-> */
 
 

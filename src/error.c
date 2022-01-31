@@ -6118,7 +6118,7 @@ primary_dp.
   dp = create_sub_message(primary_dp, error_code);
   add_number_fill_in(dp, num1);
   add_number_fill_in(dp, num2);
-}  /* st_num3_add_diag_info */
+}  /* num2_add_diag_info */
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 

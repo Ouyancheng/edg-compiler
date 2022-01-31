@@ -1288,8 +1288,8 @@ static void find_trait(Opt<an_ifc_Node<a_Trait_T>> *result,
 Given the module to search and an associated declaration index (decl) as a key
 to the associated trait table identified by a_Partition_Kind, find and return
 the associated trait as an optional.  If the returned optional is empty the
-trait either wasn't found (because it doesn't exist, or a diagnosed validation
-error occurred).
+trait either wasn't found (because it doesn't exist), or a diagnosed validation
+error occurred.
 */
 {
   /* If this check fails, the validator needs additional validation to prevent
@@ -4260,7 +4260,7 @@ static void add_function_def_parameter(
 /*
 Add the given IFC parameter, using the associated module and associated
 parameter type pointer, to the given function info.  last_param_id is a pointer
-to the pointer for the latest addition to the parameter list, if said list is
+to the pointer for the latest addition to the parameter list; if said list is
 empty, the pointed to pointer should be NULL.
 */
 {
@@ -4269,30 +4269,24 @@ empty, the pointed to pointer should be NULL.
   check_assertion(idsp->sort == ifc_ParameterSort_Object);
   mod->source_position_from_locus(&pos, &idsp->locus);
   {
-    a_const_char      *name = mod->get_string_at_offset(idsp->name);
-    a_symbol_locator  sym_loc;
+    a_const_char     *name = mod->get_string_at_offset(idsp->name);
+    a_symbol_locator sym_loc;
 
     clear_locator(&sym_loc, &pos);
     (void)find_symbol(name, strlen(name), &sym_loc);
-    {
-      add_to_param_id_list(&sym_loc, ptp->type, &pos,
-                           (a_storage_class)sc_auto,
-                           func_info,
-                           (a_source_sequence_entry_ptr)NULL,
-                           last_param_id, ptp->is_pack_element);
-      {
-        a_param_id_ptr new_param_id = *last_param_id;
-
-        new_param_id->declared_type = ptp->type;
-        new_param_id->param_num = ptp->param_num;
-        if (ptp->is_pack_element) {
-          new_param_id->is_pack_element = TRUE;
-          if (ptp->is_parameter_pack) {
-            new_param_id->is_parameter_pack = TRUE;
-          }  /* if */
-        }  /* if */
-      }
-    }
+    add_to_param_id_list(&sym_loc, ptp->type, &pos, (a_storage_class)sc_auto,
+                         func_info, (a_source_sequence_entry_ptr)NULL,
+                         last_param_id, ptp->is_pack_element);
+    /* Merge the parameter with the corresponding type information. */
+    a_param_id_ptr new_param_id = *last_param_id;
+    new_param_id->declared_type = ptp->type;
+    new_param_id->param_num = ptp->param_num;
+    if (ptp->is_pack_element) {
+      new_param_id->is_pack_element = TRUE;
+      if (ptp->is_parameter_pack) {
+        new_param_id->is_parameter_pack = TRUE;
+      }  /* if */
+    }  /* if */
   }
 }  /* add_function_def_parameter */
 
@@ -4312,7 +4306,7 @@ parameters are added successfully, return FALSE otherwise.
   ifc_ChartSort    tag = chart_tag(itfd->parameters);
   a_param_type_ptr params = function_type_params(rp->type);
 
-  /* Parameters are represented as a single-level IFC "chart" pointing to a
+  /* Parameters are represented as a uni-level IFC "chart" pointing to a
      sequence of ifc_DeclSort_Parameter entries of kind
      ifc_ParameterSort_Object.  Check for the parameter chart. */
   if (tag == ifc_ChartSort_Unilevel) {
@@ -4320,7 +4314,7 @@ parameters are added successfully, return FALSE otherwise.
 
     construct_node(&opt_icsul, mod, ifc_ChartSort_Unilevel,
                    chart_value(itfd->parameters));
-    /* Read the uni level chart of parameters. */
+    /* Read the uni-level chart of parameters. */
     if (!opt_icsul.has_value()) {
       result = FALSE;
       goto done;
@@ -4371,7 +4365,7 @@ parameters are added successfully, return FALSE otherwise.
       result = FALSE;
     }  /* if */
   } else {
-    /* The associated chart index was set, but it wasn't a uni level chart. */
+    /* The associated chart index was set, but it wasn't a uni-level chart. */
     a_diagnostic_ptr diag_ptr = start_rp_diag(rp);
 
     add_diag_info(diag_ptr, ec_ifc_bad_function_param_wrong_chart);
@@ -18353,7 +18347,6 @@ If not found, return the appropriate trait to indicate "none".
 {
   ifc_MsvcTraits                                 result = ifc_MsvcTraits_None;
   Opt<an_ifc_Node<an_ifc_Trait_MsvcVendorTrait>> opt_itmvt;
-
 
   find_trait<ifc_msvc_trait_vendor_traits>(&opt_itmvt, this, decl);
   if (opt_itmvt.has_value()) {
