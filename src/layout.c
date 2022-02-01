@@ -1525,11 +1525,12 @@ bugs).
     offset -= atype_offset;
     /* Check fields of atype. */
     for (; 
-         field != NULL 
+         !result &&
+         (field != NULL 
 #if IA64_ABI
-                       && field->offset_is_set
+                        && field->offset_is_set
 #endif /* IA64_ABI */
-                                              ; 
+                                               );
          field = field->next) {
       a_type_ptr    field_type;
       a_targ_size_t elt, num_array_elts = 1, field_offset;
@@ -2695,7 +2696,10 @@ there's no overflow TRUE is returned.
             }  /* if */
           }  /* if */
           if (!offset_determined &&
-              save_byte_offset <= lob->curr_base_extent) {
+              (save_byte_offset <= lob->curr_base_extent ||
+               is_empty_field_for_layout_purposes(field))) {
+            /* When laying out base subobject or fields with
+               [[no_unique_address]], make sure a unique address is given. */
             while (subobject_conflict(lob->class_type, field_type,
                                       save_byte_offset,
                                       /*consider_bases=*/TRUE,
