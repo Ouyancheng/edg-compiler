@@ -31,12 +31,6 @@ ifc_modules.c -- Microsoft-specific IFC module code
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
-#if USE_EDG_NAMESPACE
-#define EDG_PREFIX edg
-#else /* !USE_EDG_NAMESPACE */
-#define EDG_PREFIX /* nothing */
-#endif /* USE_EDG_NAMESPACE */
-
 /*
 The methods used by this file to access the contents of IFC modules (using
 macro names) are not always lint-friendly, so disable some lint messages for
