@@ -8629,11 +8629,16 @@ Given a declaration, return the name associated with that declaration.
 
         if (gmf_decl_scope.has_value()) {
           mep->scope = EDG_PREFIX::get_ifc_scope(*gmf_decl_scope);
-        } else {
+        } else if (gmf_decl_type.has_value()) {
           a_type_ptr tp = EDG_PREFIX::type_for_type_index(*gmf_decl_type,
                                                           /*kind=*/NULL);
           ensure_type_has_scope(tp);
           mep->scope = get_assoc_scope_of_il_entry((char*)tp, iek_type);
+        } else {
+          /* This branch should never be reachable.  An "else if" condition is
+             used in place of an "else" to prevent a spurious GCC compiler
+             warning that can't be suppressed locally. */
+          unexpected_condition();
         }  /* if */
         defer_symbol_creation(mep, &loc);
       }  /* if */
