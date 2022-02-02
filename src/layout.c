@@ -1442,6 +1442,8 @@ bugs).
   a_boolean     result = FALSE;
   a_targ_size_t atype_offset;
 
+  etype = skip_typerefs(etype);
+  atype = skip_typerefs(atype);
   check_assertion(is_empty_class_type(etype));
 #if IA64_ABI
   /* If atype contains no empty class subobject, the result will remain
