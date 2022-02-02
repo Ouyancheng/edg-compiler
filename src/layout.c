@@ -2698,7 +2698,7 @@ there's no overflow TRUE is returned.
           if (!offset_determined &&
               (save_byte_offset <= lob->curr_base_extent ||
                is_empty_field_for_layout_purposes(field))) {
-            /* When laying out base subobject or fields with
+            /* When laying out base subobjects or fields with
                [[no_unique_address]], make sure a unique address is given. */
             while (subobject_conflict(lob->class_type, field_type,
                                       save_byte_offset,
