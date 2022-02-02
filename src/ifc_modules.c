@@ -1370,7 +1370,11 @@ Add the tokens corresponding to the given name to cache.  locus is the location
 of the name.
 */
 {
+  /* Disable spurious GCC warning about uninitialized usage of opt_name_ref
+     (when this function is called by cache_simple_template_id). */
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
   name_ref.mod->cache_name(cache, name_ref.index, locus);
+END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 }  /* cache_name */
 
 
@@ -7287,7 +7291,11 @@ no corresponding type, set *kind to the appropriate non-type kind and return
 NULL.
 */
 {
+  /* Disable spurious GCC warning about uninitialized usage of gmf_decl_type
+     (when this function is called by name_from_local_decl). */
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
   return type_ref.mod->type_for_type_index(type_ref.index, kind);
+END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 }  /* type_for_type_index */
 
 
@@ -8623,16 +8631,11 @@ Given a declaration, return the name associated with that declaration.
 
         if (gmf_decl_scope.has_value()) {
           mep->scope = EDG_PREFIX::get_ifc_scope(*gmf_decl_scope);
-        } else if (gmf_decl_type.has_value()) {
+        } else {
           a_type_ptr tp = EDG_PREFIX::type_for_type_index(*gmf_decl_type,
                                                           /*kind=*/NULL);
           ensure_type_has_scope(tp);
           mep->scope = get_assoc_scope_of_il_entry((char*)tp, iek_type);
-        } else {
-          /* This branch should never be reachable.  An "else if" condition is
-             used in place of an "else" to prevent a spurious GCC compiler
-             warning that can't be suppressed locally. */
-          unexpected_condition();
         }  /* if */
         defer_symbol_creation(mep, &loc);
       }  /* if */
@@ -13172,6 +13175,9 @@ indexed in the IFC by decl_idx) to cache.
               opt_scope_ref = get_ifc_home_scope_decl(idsvp);
               /* FIXME: This should be a soft failure. */
               check_assertion(opt_scope_ref.has_value());
+              /* Disable spurious GCC warning about uninitialized usage of
+                 opt_scope_ref). */
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
               if (is_instantiation) {
                 cache_variable_decl(cache, decl_idx,
                                     is_class_scope(*opt_scope_ref),
@@ -13189,6 +13195,7 @@ indexed in the IFC by decl_idx) to cache.
                                     cache_name_fn, (ifc_ExprIndex)0,
                                     cache_spec_init_fn, &idsvp->locus);
               }  /* if */
+END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
             }
           }
         }
@@ -13220,6 +13227,9 @@ indexed in the IFC by decl_idx) to cache.
               opt_scope_ref = get_ifc_home_scope_decl(idsfp);
               /* FIXME: This should be a soft failure. */
               check_assertion(opt_scope_ref.has_value());
+              /* Disable spurious GCC warning about uninitialized usage of
+                 opt_scope_ref. */
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
               cache_function_decl(cache, is_class_scope(*opt_scope_ref),
                                   /*is_dtor=*/FALSE, idsfp->access,
                                   /*cache_access_spec=*/FALSE,
@@ -13227,6 +13237,7 @@ indexed in the IFC by decl_idx) to cache.
                                   itsfp->traits, vendor_traits, itsfp->target,
                                   cache_name_fn, params, itsfp->source,
                                   &itsfp->eh_spec, &idsfp->locus);
+END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
             }
           }
         }

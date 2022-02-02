@@ -1166,6 +1166,17 @@ global suppression of these warnings.
 #define BEGIN_DISABLE_GCC_WARNING_RET_LOCAL_ADDR /* nothing */
 #define END_DISABLE_GCC_WARNING_RET_LOCAL_ADDR /* nothing */
 #endif /* defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && ...)) */
+/* Define a macro for -Wmaybe-unitialized (added in GCC 4.7). */
+#if defined(__GNUC__) && \
+    (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 7))
+#define BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED \
+  BEGIN_DISABLE_GCC_WARNING("-Wmaybe-uninitialized")
+#define END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED \
+  END_DISABLE_GCC_WARNING
+#else  /* !(defined(__GNUC__) && __GNUC__ > 4 || (__GNUC__ == 4 && ...)) */
+#define BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED /* nothing */
+#define END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED /* nothing */
+#endif /* defined(__GNUC__) && __GNUC__ > 4 || (__GNUC__ == 4 && ...) */
 
 /*
 Some coding standards require a default label in switches even if it's
