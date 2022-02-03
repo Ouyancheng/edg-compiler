@@ -1804,6 +1804,17 @@ otherwise, return NULL.
           /* The reference is within the scope of the parent class. */
           result = entry->type;
         }  /* if */
+      } else if (type_is(type,tk_typeref) && typeref_is_typedef(type) &&
+                 type->source_corresp.is_class_member &&
+                 parent_class_of(type)->
+                       variant.class_struct_union.is_prototype_instantiation &&
+                 type_is(skip_typerefs(type), tk_template_param) &&
+                 parent_class_of(type) != parent_class) {
+        /* The type is a typedef member of a prototype instantiation with a
+           dependent underlying type, which can only match a typedef member
+           of the same prototype instantiation, and the typedef for this
+           entry is not a member of that prototype instantiation, so the
+           types do not match. */
       } else {
         /* The typedef is not a member of a prototype instantiation, so it
            can be used. */
@@ -5727,7 +5738,7 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
                  type referred to by an alias template specialization.  For
                  example:
                    template<typename ...Ts> using d = b<sizeof...(Ts)>;
-                   template<typename ...Ts> using e = typename<d<a<Ts>...>::c;
+                   template<typename ...Ts> using e = typename d<a<Ts>...>::c;
                  Using the underlying type of d<a<Ts>...> in the second
                  declaration would give typename b<sizeof...(a<Ts>)>, which
                  is invalid, so the alias template specialization must be
