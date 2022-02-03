@@ -1,5 +1,17 @@
 Version 6.4
 
+2/2/22   [EDGcpfe/24970]
+C++-generating back end: qualifier using member typedef of class template
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, some complex template code could result in
+incorrect generated code for qualified names appearing in a class template
+definition.  In particular, a qualified name in a class template definition
+in which the qualifier is a dependent typedef member of that class template
+could be put out using a specialization of an unrelated alias template
+in place of the original typedef name.  This is now fixed.
+
+
 2/2/22   [EDGcpfe/24724]
 Use of [[no_unique_address]] fields with type aliases caused undefined behavior
 
