@@ -6734,10 +6734,10 @@ static Opt<an_ifc_Ref<ifc_NameIndex>> get_ifc_name_from_scope(
 Return the name of the enclosing scope of the declaration represented at decl.
 */
 {
-  Opt<an_ifc_Ref<ifc_DeclIndex>> opt_scope;
-
-  opt_scope = mod->get_ifc_home_scope_decl(decl);
+  Opt<an_ifc_Ref<ifc_DeclIndex>> opt_scope =
+                                            mod->get_ifc_home_scope_decl(decl);
   Opt<an_ifc_Ref<ifc_NameIndex>> result;
+
   if (opt_scope.has_value()) {
     an_ifc_Ref<ifc_DeclIndex> scope_ref = *opt_scope;
 
@@ -6928,10 +6928,10 @@ Return the home scope of the declaration represented at decl.
 {
   /* A partial specialization has direct scoping information; however, it's not
      correct.  Recurse on the associated declaration. */
-  Opt<an_ifc_Ref<ifc_DeclIndex>> opt_assoc_decl;
-
-  opt_assoc_decl = get_ifc_home_scope_decl(decl->entity.decl);
+  Opt<an_ifc_Ref<ifc_DeclIndex>> opt_assoc_decl =
+                                    get_ifc_home_scope_decl(decl->entity.decl);
   Opt<an_ifc_Ref<ifc_DeclIndex>> result;
+
   if (opt_assoc_decl.has_value()) {
     result = skip_scope_abstractions(*opt_assoc_decl);
   }  /* if */
@@ -6948,10 +6948,10 @@ Return the home scope of the declaration represented at decl.
 {
   /* A specialization doesn't have any direct scoping information. Recurse on
      the associated declaration. */
-  Opt<an_ifc_Ref<ifc_DeclIndex>> opt_assoc_decl;
-
-  opt_assoc_decl = get_ifc_home_scope_decl(decl->decl);
+  Opt<an_ifc_Ref<ifc_DeclIndex>> opt_assoc_decl =
+                                           get_ifc_home_scope_decl(decl->decl);
   Opt<an_ifc_Ref<ifc_DeclIndex>> result;
+
   if (opt_assoc_decl.has_value()) {
     result = skip_scope_abstractions(*opt_assoc_decl);
   }  /* if */
@@ -7092,10 +7092,10 @@ inline a_scope_ptr an_ifc_module::get_ifc_home_scope(ifc_DeclIndex decl_index)
 Return the associated scope for the given declaration index.
 */
 {
-  Opt<an_ifc_Ref<ifc_DeclIndex>> opt_decl_ref;
-
-  opt_decl_ref = get_ifc_home_scope_decl(decl_index);
+  Opt<an_ifc_Ref<ifc_DeclIndex>> opt_decl_ref =
+                                           get_ifc_home_scope_decl(decl_index);
   a_scope_ptr result = NULL;
+
   if (opt_decl_ref.has_value()) {
     result = EDG_PREFIX::get_ifc_scope(*opt_decl_ref);
   }  /* if */
@@ -7165,10 +7165,10 @@ A" in "namespace B", this function returns the IFC declaration index of
 "namespace B".
 */
 {
-  Opt<an_ifc_Ref<ifc_DeclIndex>> opt_declaring_class;
-
-  opt_declaring_class = EDG_PREFIX::get_ifc_home_scope_decl(decl_ref);
+  Opt<an_ifc_Ref<ifc_DeclIndex>> opt_declaring_class =
+                                 EDG_PREFIX::get_ifc_home_scope_decl(decl_ref);
   Opt<an_ifc_Ref<ifc_DeclIndex>> result;
+
   if (opt_declaring_class.has_value()) {
     result = EDG_PREFIX::get_ifc_home_scope_decl(*opt_declaring_class);
   }  /* if */
