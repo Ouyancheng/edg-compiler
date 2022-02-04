@@ -5754,18 +5754,21 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
                  member. */
               qualifier = accessible_qualifier(qualifier);
             }  /* if */
-            if (entry_kind != iek_type && gcc_is_generated_code_target &&
-                !scp->member_of_unknown_base && !force_qualified_name &&
-                octl.processing_nontype_template_argument &&
+            if (gcc_is_generated_code_target && !scp->member_of_unknown_base &&
+                !force_qualified_name &&
                 qualifier->
                        variant.class_struct_union.is_prototype_instantiation &&
-                innermost_enclosing_class() == qualifier) {
+                innermost_enclosing_class() == qualifier &&
+                ((entry_kind != iek_type &&
+                  octl.processing_nontype_template_argument) ||
+                 (options & GN_BASE_SPECIFIER) != 0)) {
               /* g++ has a bug that results in spurious errors if a
-                 non-type template argument appearing directly in a class
-                 template definition is qualified by the class template's
-                 template-id.  (The qualifier is necessary for a member of
-                 an unknown base and may be needed for a member of a
-                 containing class or class template, however.) */
+                 non-type template argument or base class specifier
+                 appearing directly in a class template definition is
+                 qualified by the class template's template-id.  (The
+                 qualifier is necessary for a member of an unknown base and
+                 may be needed for a member of a containing class or class
+                 template, however.) */
               qualifier_suppressed = TRUE;
             } else {
               (void)gen_class_qualifier(qualifier, qualifier_options,
