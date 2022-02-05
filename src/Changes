@@ -7,9 +7,11 @@ As described for EDGcpfe/24527, g++ has a bug that causes it to emit
 spurious errors in some cases when the name of a class template appears as
 a qualifier in a qualified name inside that class template.  In addition to
 the case given in that entry, the bug also applies when the qualified name
-is used as a base class specifier.  This is now fixed, and the qualifier is
-omitted in such cases when gcc_is_generated_code_target is TRUE.  For
-example:
+is used as a base class specifier.  The C++-generating back end previously
+produced such names for a nested class whose base is also a member of the
+same class template, triggering the bug.  This is now fixed, and the
+qualifier is omitted in such cases when gcc_is_generated_code_target is
+TRUE.  For example:
 
   template <typename T> class foo {
     template<typename U, bool test> class bar;
