@@ -1,5 +1,22 @@
 Version 6.4
 
+2/7/22   [EDGcpfe/19699,EDGcpfe/20389,EDGcpfe/20877,EDGcpfe/21467,
+          EDGcpfe/21670,EDGcpfe/22964,EDGcpfe/24627,EDGcpfe/24742]
+Spurious warnings on some uses of constexpr if
+
+When using the C++17 constexpr if feature, a spurious warning (missing return
+statement at end of non-void function) had been given on cases like the
+following (with --c++17 -tused):
+
+  template <typename T> int f(T t) {
+    if constexpr (false)
+      return 1;
+    else
+      return 0;
+  }
+  int x = f(0);
+
+
 2/4/22   [EDGcpfe/24980]
 C++-generating back end: members of class templates as base class specifiers
 

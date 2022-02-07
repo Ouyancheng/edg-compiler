@@ -121,24 +121,6 @@ static unsigned long
 		num_control_flow_descrs_allocated;
 #endif /* DEBUG */
 
-/*
-Set var to indicate that the associated code is reachable.
-*/
-#define set_reachable(var)                                            \
-{ (var).reachable = TRUE;                                             \
-  (var).reachable_considering_hints = TRUE;                           \
-  (var).suppress_unreachable_warning = FALSE;                         \
-}  /* set_reachable */
-
-/*
-Set var to indicate that the associated code is unreachable.
-*/
-#define set_unreachable(var)                                          \
-{ (var).reachable = FALSE;                                            \
-  (var).reachable_considering_hints = FALSE;                          \
-  (var).suppress_unreachable_warning = FALSE;                         \
-}  /* set_unreachable */
-
 
 /*
 Declarations needed because of forward references:
@@ -4243,6 +4225,8 @@ The syntax is:
                                     cicip_to_use->else_handle)) {
     /* We were able to skip directly to the "else" token of a constexpr if. */
     empty_statement();
+    /* Restore reachability information from previous scan. */
+    curr_reachability = cicip_to_use->if_clause_reachability;
   } else {
     a_boolean  saved_in_consteval_context =
                                        scope_stack_top().in_consteval_context;
@@ -4266,6 +4250,10 @@ The syntax is:
     dependent_statement_of_if();
     scope_stack_top().in_consteval_context = saved_in_consteval_context;
     remove_stop_token(tok_else);
+    if (cicip_to_create != NULL) {
+      /* Save reachability for later use in real instantiations. */
+      cicip_to_create->if_clause_reachability = curr_reachability;
+    }  /* if */
   }  /* if */
   /* Scan "else" and another statement if they appear. */
   if (curr_token == tok_else) {
@@ -4308,6 +4296,8 @@ The syntax is:
                                       cicip_to_use->ending_handle)) {
       /* We were able to skip directly to the final token of a constexpr if. */
       empty_statement();
+      /* Restore reachability information from previous scan. */
+      curr_reachability = cicip_to_use->else_clause_reachability;
     } else {
       a_boolean  saved_in_consteval_context =
                                        scope_stack_top().in_consteval_context;
@@ -4316,6 +4306,10 @@ The syntax is:
       start_stmt_clause(sssep);
       dependent_statement_of_if();
       scope_stack_top().in_consteval_context = saved_in_consteval_context;
+      if (cicip_to_create != NULL) {
+        /* Save reachability for later use in real instantiations. */
+        cicip_to_create->else_clause_reachability = curr_reachability;
+      }  /* if */
     }  /* if */
     /* There should always be a non-NULL else-statement pointer. */
     check_assertion_str((is_constexpr_if
