@@ -4100,10 +4100,15 @@ after a call to this routine.
     if (C_mode() && lookup_state.must_be_tag) {
       lookup_state.required_name_space_kind = nsk_tag;
     }  /* if */
-    if (gpp_version_is(<100000) && lookup_state.inclass_exception_spec) {
-      /* exception_spec_decl_seq is used in g++ mode to limit visibility
-         of names used in exception specification to those previously
-         declared in a class. */
+    if (lookup_state.inclass_exception_spec &&
+        (gpp_version_is(<100000) ||
+         (clang_mode &&
+          seq_is_in_system_header(locator->source_position.seq))))  {
+      /* exception_spec_decl_seq is used in some g++ modes to limit visibility
+         of names used in exception specification to those previously declared
+         in a class.  Clang appears to emulate that behavior in system headers
+         (presumably to be able to consume certain GNU standard library
+         headers). */
       lookup_state.decl_seq = scope_stack_top().exception_spec_decl_seq;
     }  /* if */
     lookup_state.options = options;
