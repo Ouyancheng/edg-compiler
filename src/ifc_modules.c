@@ -18690,7 +18690,10 @@ explicitly-instantiated entity and update kind with the associated entity kind.
     an_ms_extensions_parse      tmp_parse;
     a_template_decl_options_set options = TDO_EXTERN;
     /* An explicit instantiation in a module means that the module clients can
-       handle the equivalent of an "extern template" directive. */
+       handle the equivalent of an "extern template" directive.  However, when
+       importing a header unit (which should behave more like a #include) the
+       explicit instantiation directive should just that. */
+    if (is_header_unit(this->assoc_module_info)) options = TDO_NO_OPTIONS;
     explicit_instantiation(&dps, options, &template_kw_pos);
   }
   finish_cached_template_parse(&final_token);
