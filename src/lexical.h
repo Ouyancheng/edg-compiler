@@ -255,6 +255,9 @@ typedef enum /* an_identifier_lookup_mode */ {
 typedef struct a_token_cache {
   /* Data structure used to hold a token cache, i.e., some number of
      tokens that are being saved for later rescanning. */
+
+  inline a_boolean is_empty() const
+    { return this->first_token == NULL; }
   a_token_cache_ptr
 		next;
 			/* Pointer to the next entry on the available list
@@ -2408,15 +2411,21 @@ and restore it at destruction time.  For example:
        // was constructed.
 */
 struct a_curr_token_preserver {
-  inline a_curr_token_preserver() {
-    clear_token_cache(&this->curr_token_cache, /*reusable=*/FALSE);
-    cache_curr_token(&this->curr_token_cache);
-  }  /* a_curr_token_preserver */
-  inline ~a_curr_token_preserver() {
-    /* Restore the stored "current token". */
-    f_rescan_cached_tokens(&this->curr_token_cache,
-                           /*discard_curr_token=*/TRUE);
-  }  /* ~a_curr_token_preserver */
+  inline a_curr_token_preserver()
+    {
+      clear_token_cache(&this->curr_token_cache, /*reusable=*/FALSE);
+      if (curr_token != tok_end_of_source) {
+        cache_curr_token(&this->curr_token_cache);
+      }  /* if */
+    }  /* a_curr_token_preserver */
+  inline ~a_curr_token_preserver()
+    {
+      if (!this->curr_token_cache.is_empty()) {
+        /* Restore the stored "current token". */
+        f_rescan_cached_tokens(&this->curr_token_cache,
+                               /*discard_curr_token=*/TRUE);
+      }  /* if */
+    }  /* ~a_curr_token_preserver */
 private:
   a_token_cache
 		curr_token_cache;

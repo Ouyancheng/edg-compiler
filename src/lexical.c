@@ -26126,21 +26126,30 @@ Display the contents of the given token cache as text, with some simple-minded
 formatting.
 */
 {
-  sizeof_t            saved_pos = pos_in_temp_text_buffer, indent = 0;
-  a_cached_token_ptr  ctp = cache->first_token;
+  sizeof_t                 saved_pos = pos_in_temp_text_buffer, indent = 0;
+  a_cached_token_ptr       ctp = cache->first_token;
+  a_token_sequence_number  first_tsn = 0, last_tsn = 0;
 
   /* If any of the tokens in the cache has an associated position, output a
      description of that position first. */
   for (; ctp != NULL; ctp = ctp->next) {
+    if (ctp == cache->first_token) {
+      first_tsn = ctp->token_sequence_number;
+    }  /* if */
+    last_tsn = ctp->token_sequence_number;
     if (ctp->source_position.seq != 0) {
       if (ctp != cache->first_token) {
         fprintf(f_debug, "(approx.) ");
       }  /* if */
       db_source_position(&ctp->source_position);
-      fprintf(f_debug, " (seq = %ld)\n", (long)ctp->source_position.seq);
+      fprintf(f_debug, " (seq = %ld) ", (long)ctp->source_position.seq);
       break;
     }  /* if */
+  }  /* for */
+  for (; ctp != NULL; ctp = ctp->next) {
+    last_tsn = ctp->token_sequence_number;
   }  /* if */
+  fprintf(f_debug, "[tsn: %ld - %ld]\n", (long)first_tsn, (long)last_tsn);
   add_token_cache_to_string(cache);
   sizeof_t  k = saved_pos;
   /* Skip leading spaces. */

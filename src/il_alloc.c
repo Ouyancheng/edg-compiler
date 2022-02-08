@@ -183,14 +183,23 @@ static unsigned long
    field of an IL entry to default values. */
 static a_source_correspondence
 		def_source_corresp;
+
+
 static inline void set_default_source_corresp(a_source_correspondence_ptr scp)
 /*
-Given a source correspondence, set it to the default.
+Clear the given source correspondence value, and transfer the value of
+curr_module_entity to it.
 */
 {
   (*scp) = def_source_corresp;
+  /* Transfer the value of curr_module_entity to the source correspondence.
+     Make sure that curr_module_entity is cleared to avoid accidentally
+     associating other IL entries (e.g., created during instantiations) with
+     the same module entity. */
   scp->module_entity = curr_module_entity;
-}
+  curr_module_entity = NULL;
+}  /* set_default_source_corresp */
+
 
 static int	file_scope_entry_prefix_size;
 			/* The size of the entry prefix for IL entries

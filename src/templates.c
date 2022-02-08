@@ -4894,11 +4894,16 @@ be completed here.
   a_template_symbol_supplement_ptr  tssp_of_prototype;
   a_class_symbol_supplement_ptr     cssp;
   a_template_arg_ptr                template_arg_list;
-  a_boolean			    is_class_member;
+  a_boolean                         is_class_member;
   a_push_scope_options_set          ps_options = PS_NO_OPTIONS;
   a_boolean                         is_nonreal_instantiation = FALSE;
+  Value_saver<a_module_entity_ptr>  mep_saver(&curr_module_entity);
+
 
   db_enter(3, "f_instantiate_template_class");
+  /* Any members loaded during this instantiation should not be associated
+     with the current module entity (if any). */
+  curr_module_entity = NULL;
 #if CHECKING
   if (!is_class_struct_union_type(class_type)) {
     internal_error("f_instantiate_template_class: not a class");
@@ -4914,15 +4919,27 @@ be completed here.
   template_sym = template_symbol_for_class_symbol(instance_sym);
   tssp = template_sym == NULL ? NULL
                               : template_supplement_for_symbol(template_sym);
+  if (template_sym != NULL) {
+    if (!template_sym->defined &&
+        tssp->il_template_entry != NULL &&
+        tssp->il_template_entry->source_corresp.module_entity != NULL) {
+      /* A declaration but not a definition was loaded from a module file.
+         Attempt to load the definition (and any specializations). */
+      load_template_definition_from_module(tssp->il_template_entry);
+      /* It is possible that loading the template definition also triggered
+         the instantiation of this class.  If that is the case, we are all
+         done. */
+      if (!class_type->incomplete) goto done;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  /* If class_type is based on a C++/CLI generic, make sure the generic
-     definition has been loaded from metadata, if needed. */
-  if (cli_or_cx_enabled && template_sym != NULL &&
-      class_type->variant.class_struct_union.is_generic_instance &&
-      !class_type->variant.class_struct_union.is_generic_definition) {
-    get_definition_of_generic_if_needed(template_sym);
-  }  /* if */
+    } else if (cli_or_cx_enabled &&
+               class_type->variant.class_struct_union.is_generic_instance &&
+               !class_type->variant.class_struct_union.is_generic_definition) {
+      /* If class_type is based on a C++/CLI generic, make sure the generic
+         definition has been loaded from metadata, if needed. */
+      get_definition_of_generic_if_needed(template_sym);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    }  /* if */
+  }  /* if */
   if (template_sym == NULL ||
       is_cli_generic_class_definition_symbol(instance_sym)) {
     /* Not a class based on a class template or the class that is generated
@@ -5413,6 +5430,7 @@ be completed here.
     gcc_pragma_options_stack = save_gcc_pragma_options_stack;
 #endif /* GNU_EXTENSIONS_ALLOWED */
   }  /* if */
+done:
   db_exit();
 }  /* f_instantiate_template_class */
 
@@ -5424,11 +5442,17 @@ array whose underlying element type is such a class, instantiate it.
 Otherwise, do nothing.
 */
 {
-  if (is_array_type(tp)) {
+  tp = skip_typerefs(tp);
+  if (type_is(tp, tk_array)) {
     tp = underlying_array_element_type(tp);
-    if (tp == NULL || !is_incomplete_type(tp)) goto done;
+    if (tp == NULL) {
+      goto done;
+    } else {
+      tp = skip_typerefs(tp);
+      if (!tp->incomplete) goto done;
+    }  /* if */
   }  /* if */
-  if (is_class_struct_union_type(tp)) f_instantiate_template_class(tp);
+  if (is_immediate_class_type(tp)) f_instantiate_template_class(tp);
 done:;
 }  /* check_for_uninstantiated_template_class */
 
@@ -7002,6 +7026,15 @@ cases).
   rout_sym = tip->instance_sym;
   template_sym = tip->template_sym;
   tssp = template_supplement_for_symbol(template_sym);
+  if (!template_sym->defined &&
+      tssp->il_template_entry != NULL &&
+      tssp->il_template_entry->source_corresp.module_entity != NULL) {
+    /* A declaration but not a definition was loaded from a module file.
+       Attempt to load the definition (and any specializations). */
+    // FIXME: Is this code still needed now that it is also done in
+    //        should_be_instantiated?
+    load_template_definition_from_module(tssp->il_template_entry);
+  }  /* if */
   func_info_ptr = func_info_for_template(tssp);
   /* The already instantiated flag is set even if certain error conditions
      exist (such as runaway instantiation), to prevent the compiler from
@@ -7361,7 +7394,15 @@ expression context) rather than a declaration.
   var_sym = tip->instance_sym;
   is_var_templ_instance = symbol_is(var_sym, sk_variable);
   template_sym = tip->template_sym;
+  tssp = template_supplement_for_symbol(template_sym);
   if (is_var_templ_instance) {
+    if (!template_sym->defined &&
+        tssp->il_template_entry != NULL &&
+        tssp->il_template_entry->source_corresp.module_entity != NULL) {
+      /* A declaration but not a definition was loaded from a module file.
+         Attempt to load the definition (and any specializations). */
+      load_template_definition_from_module(tssp->il_template_entry);
+    }  /* if */
     template_sym = check_variable_template_partial_specializations(tip);
     tssp = template_supplement_for_symbol(template_sym);
     /* For variable templates, get the information about the prototype
@@ -7371,7 +7412,6 @@ expression context) rather than a declaration.
                      template_supplement_for_symbol(template_sym_of_prototype);
   } else {
     template_sym_of_prototype = template_sym;
-    tssp = template_supplement_for_symbol(template_sym);
     tssp_of_prototype = tssp;
     ps_options |= PS_IGNORE_CLASS_CONTEXT;
   }  /* if */
@@ -34781,6 +34821,13 @@ template entities.
       specialization_defined = specialized && tip->instance_sym->defined;
       template_sym = tip->template_sym;
       tssp = template_supplement_for_symbol(template_sym);
+      if (!template_sym->defined &&
+          tssp->il_template_entry != NULL &&
+          tssp->il_template_entry->source_corresp.module_entity != NULL) {
+        /* A declaration but not a definition was loaded from a module file.
+           Attempt to load the definition (and any specializations). */
+        load_template_definition_from_module(tssp->il_template_entry);
+      }  /* if */
       template_def = cache_for_template(tssp)->tokens.first_token != NULL ||
                      exported_definition_is_available(tip) ||
                      rp->is_deleted || rp->is_defaulted;
@@ -34940,6 +34987,14 @@ this overrides an "extern template" directive.
     rp = tip->instance_sym->variant.routine.ptr;
     specialized = rp->is_specialized;
     template_def = cache_for_template(tssp)->tokens.first_token != NULL;
+    if (!template_def && tssp->il_template_entry != NULL &&
+        tssp->il_template_entry->source_corresp.module_entity != NULL &&
+        tssp->il_template_entry->source_corresp.module_entity
+                               ->has_definition) {
+      /* A declaration but not a definition was loaded from a module file, but
+         a definition is available if needed. */
+      template_def = TRUE;
+    }  /* if */
     if (!template_def && !specialized && export_template_allowed) {
       /* When exported templates are being used, look for an exported
          definition of this template */
@@ -39892,13 +39947,19 @@ directive_start_pos points to the beginning of the directive (e.g., for
       ssep->kind != (a_scope_kind)sck_namespace &&
       ssep->kind != (a_scope_kind)sck_namespace_extension) {
     an_error_severity	severity = es_error;
-    /* The Microsoft compiler allows an explicit instantiation in
-       class scope. */
-    if (microsoft_mode && microsoft_version < 1600 &&
-        ssep->kind == (a_scope_kind)sck_class_struct_union) {
-      severity = es_warning;
+    /* Some versions of the Microsoft compiler allows an explicit instantiation
+       in class scope.  They can also appear in code rendered from IFC
+       files. */
+    if (microsoft_mode && scope_is(ssep, sck_class_struct_union)) {
+      if (scope_stack_top().module_load_context_count != 0) {
+        severity = es_none;
+      } else if (microsoft_version < 1600) {
+        severity = es_warning;
+      }  /* if */
     }  /* if */
-    diagnostic(severity, ec_explicit_instantiation_not_in_namespace_scope);
+    if (severity != es_none) {
+      diagnostic(severity, ec_explicit_instantiation_not_in_namespace_scope);
+    }  /* if */
     /* If a Microsoft class-scope "extern template" is present, ignore it
        if we are in prototype instantiation. */
     discard = severity == es_error ||

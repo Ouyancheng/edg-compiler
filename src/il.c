@@ -10063,6 +10063,13 @@ entry.  pos is used to establish the type entry's position information.
     type->source_corresp.is_class_member =
                        tssp->il_template_entry->source_corresp.is_class_member;
   }  /* if */
+  /* If the template originates from a module, ensure its definition is loaded
+     if available. */
+  if (!class_template->defined &&
+      tssp->il_template_entry != NULL &&
+      tssp->il_template_entry->source_corresp.module_entity != NULL) {
+    load_template_definition_from_module(tssp->il_template_entry);
+  }  /* if */
   return type;
 }  /* make_class_template_placeholder */
 

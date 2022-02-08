@@ -635,6 +635,13 @@ scope.
       /* Remove the entry from the queue (so it's not recursively processed)
          but don't free it until it's been processed. */
       mep = *mepp;
+      if (mep->imminent) {
+        /* If the entry is marked as being processed, skip it.  (Usually,
+           such entries have already been removed from the list, but partial
+           specializations are marked early and processed later.) */
+        mepp = &(*mepp)->next;
+        continue;
+      }  /* if */
       *mepp = mep->next;
       switch (mep->module_info->kind) {
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -747,6 +754,7 @@ the specified module.
     (*p)->imminent = FALSE;
     (*p)->invalid = FALSE;
     (*p)->global_module = FALSE;
+    (*p)->has_definition = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     (*p)->variant.ifc_partition = ifc_none;
 #endif /* MICROSOFT_EXTENSIONS_ALLWED */
@@ -1101,6 +1109,7 @@ Import the given module.  assoc_sym is the associated symbol for the module.
   }  /* if */
 }  /* import_module */
 
+
 a_boolean load_routine_definition_from_module(ARG_UNUSED a_routine_ptr  rp)
 /*
 If the given routine has a definition available in an imported module, load and
@@ -1114,6 +1123,22 @@ process that definition now, and return TRUE.  Otherwise, return FALSE.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   return result;
 }  /* load_routine_definition_from_module */
+
+
+a_boolean load_template_definition_from_module(
+                                             ARG_UNUSED a_template_ptr  templ)
+/*
+If the given template has a definition available in an imported module, load
+and process that definition now, and return TRUE.  Otherwise, return FALSE.
+*/
+{
+  a_boolean  result = FALSE;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  result = load_template_definition_from_ifc_module(templ);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return result;
+}  /* load_template_definition_from_module */
 
 #if DEBUG
 

@@ -44,6 +44,10 @@ static a_text_buffer_ptr
                        /* A text buffer used for processing file names from the
                           IFC. */
 
+static a_boolean
+		caching_ifc_class_scope =  FALSE;
+			/* TRUE while caching an IFC class scope. */
+
 an_error_severity
 		unhandled_ifc_node_severity = es_remark;
 			/* The error severity to use for individually reported
@@ -3926,6 +3930,7 @@ an_ifc_function_body_map
                            type an_ifc_function_body that can be used to
                            retrieve the definition of a function body when
                            needed. */
+
 }  /* namespace */
 
 
@@ -4470,6 +4475,180 @@ process that definition and return TRUE.
   }  /* if */
   return result;
 }  /* load_routine_definition_from_ifc_module */
+
+
+static void extract_matching_template_module_entities(
+                                        a_module_entity_ptr  templ_mep,
+                                        a_module_entity_ptr  *p_mep,
+                                        a_module_entity_ptr  *p_templates,
+                                        a_module_entity_ptr  *p_end_templates,
+                                        a_module_entity_ptr  *p_partial_specs)
+/*
+*p_mep points to a possibly empty list of module entities that doesn't contain
+templ_mep, but that shares its name.  Extract from the list all the templates
+with a matching scope and set *p_templates to point to the list of extracted
+templates and *p_end_templates to the last element on that list (or NULL if
+none).  If p_partial_specs is non-NULL, also extract all the partial
+specializations and set *p_partial_specs to point to those.
+*/
+{
+  a_module_entity_ptr  other_decls = NULL, end_other_decls = NULL,
+                       partial_specs = NULL;
+
+  while (*p_mep != NULL) {
+    a_module_entity_ptr  mep = *p_mep;
+    /* Traverse the list of pending module entities, and select the one whose
+       scope matches that of *mep. */
+    if (mep->scope == templ_mep->scope) {
+      if (mep->variant.ifc_partition == ifc_decl_template) {
+        /* A template: Move it to the other_decls list. */
+        *p_mep = mep->next;
+        mep->next = other_decls;
+        other_decls = mep;
+        if (end_other_decls == NULL) end_other_decls = mep;
+      } else if (mep->variant.ifc_partition ==
+                                            ifc_decl_partial_specialization &&
+                 p_partial_specs != NULL) {
+        /* A partial specialization: Move it to the partial_specs list. */
+        *p_mep = mep->next;
+        mep->next = partial_specs;
+        partial_specs = mep;
+      } else {
+        /* Anything else: Leave it on the list of pending module entities. */
+        p_mep = &mep->next;
+      }  /* if */
+    } else {
+      /* An entity from a different scope: Leave it on the list of pending
+         module entities. */
+      p_mep = &mep->next;
+    }  /* if */
+  }  /* while */
+  *p_templates = other_decls;
+  *p_end_templates = end_other_decls;
+  if (p_partial_specs != NULL) *p_partial_specs = partial_specs;
+}  /* extract_matching_template_module_entities */
+
+
+a_boolean an_ifc_module::process_template_definition(
+                                   a_module_entity_ptr       mep,
+                                   an_ifc_DeclSort_Template  *idstp,
+                                   a_boolean                 already_declared,
+                                   a_boolean                 is_func_template)
+/*
+The given module entity pointer describes a template that has been declared
+but not yet defined.  idstp points to its IFC description structure. However,
+its definition, its explicit specializations, and/or partial specializations
+may still be stored in the IFC module.  Load those elements into the IL
+(presumably, to enable instantiation).  is_func_template is TRUE if this is
+called for a function template.
+*/
+{
+  a_boolean                 result = FALSE;
+  a_module_entity_ptr       other_decls = NULL, end_other_decls = NULL,
+                            partial_specs = NULL;
+  an_ifc_module             *ifc_mod = (an_ifc_module*)mep->module_info
+                                                          ->module_interface;
+
+  check_assertion(ifc_mod != NULL);
+  if (!is_func_template) {
+    /* There may be other declarations of this same template from other
+       modules.  Temporarily remove these because declaration processing will
+       look for a redeclaration and trigger a second nested processing of the
+       template otherwise.  Also separate out partial specializations: They
+       must be processed now since they can affect which template should be
+       instantiated. */
+    extract_matching_template_module_entities(mep, &mep->next,
+                                              &other_decls, &end_other_decls,
+                                              &partial_specs);
+  }  /* if */
+  if (idstp->entity.body != 0 &&
+      idstp->properties & ifc_ReachableProperties_Initializer) {
+    /* The template has a reachable definition (IFC files sometimes include
+       definitions even when they are not reachable): Load it. */
+    a_token_cache  cache;
+    a_boolean      saved_suppress_default_arguments =
+                                          ifc_mod->suppress_default_arguments;
+    ifc_mod->suppress_default_arguments = already_declared;
+    clear_token_cache(&cache, /*reusable=*/FALSE);
+    ifc_mod->cache_decl_template(&cache, idstp);
+    terminate_token_cache(&cache);
+    ifc_mod->suppress_default_arguments = saved_suppress_default_arguments;
+    mep->entity.ptr = (char*)parse_cached_template(&cache, mep->scope);
+    mep->entity.kind = iek_template;
+    result = TRUE;
+  }  /* if */
+  if (other_decls != NULL) {
+    /* Restore the module entity list representing other declarations of this
+       template or its partial specializations.
+       FIXME: Only do this if the template that was just processed was not a 
+       definition? */
+    end_other_decls->next = mep->next;
+    mep->next = other_decls;
+  }  /* if */
+  /* Compute the DeclIndex of the current template and retrieve the sequence
+     of explicit specializations and instantiations. */
+  ifc_DeclIndex decl = ifc_mod->decl_index_of(mep);
+  ifc_Sequence  seq = ifc_mod->get_specialization_sequence_from_trait(decl);
+  if (seq.cardinality != 0) {
+    /* Process the sequence of explicit specializations and explicit
+       instantiations. */
+    ifc_mod->process_scope_member_sequence(seq);
+    result = TRUE;
+  }  /* if */
+  /* Now process the partial specializations. */
+  while (partial_specs != NULL) {
+    a_module_entity_ptr ps_mep = partial_specs;
+    an_ifc_module       *itf = (an_ifc_module*)
+                                        ps_mep->module_info->module_interface;
+    partial_specs = ps_mep->next;
+    ps_mep->next = NULL;
+    ps_mep->imminent = FALSE;
+    itf->process_ifc_declaration(ps_mep, /*defer=*/FALSE, (a_type_ptr)NULL);
+    result = TRUE;
+  }  /* while */
+  return result;
+}  /* process_template_definition */
+
+
+a_boolean load_template_definition_from_ifc_module(a_template_ptr  templ)
+/*
+The given template entry represents a template that was loaded from an IFC
+module, but its definition hasn't been loaded yet.  Load the definition now.
+*/
+{
+  a_boolean            result = FALSE;
+  a_module_entity_ptr  mep = templ->source_corresp.module_entity;
+
+  check_assertion(mep != NULL);
+  if (mep->variant.ifc_partition != ifc_decl_template) {
+    /* This should never happen.  If it does, the most likely culprit is that
+       curr_module_entity was not correctly saved/cleared/restored around the
+       context that created the templ entry. */
+    unexpected_condition();
+  } else {
+    an_ifc_module  *ifc_mod = (an_ifc_module*)mep->module_info
+                                                 ->module_interface;
+    if (ifc_mod->read_partition_element(mep)) {
+      a_source_position         saved_error_position = error_position;
+      a_module_entity_ptr       saved_mep = curr_module_entity;
+      an_ifc_DeclSort_Template  idst, *idstp;
+      a_curr_token_preserver    guard;
+      a_boolean                 scope_pushed;
+      curr_module_entity = mep;
+      scope_pushed = push_module_declaration_context(mep->scope);
+      idstp = ifc_mod->get_DeclSort_Template(&idst);
+      result = an_ifc_module::process_template_definition(
+                             templ->source_corresp.module_entity,
+                             idstp,
+                             /*already_declared=*/TRUE,
+                             templ->kind == (a_template_kind)templk_function);
+      pop_module_declaration_context(scope_pushed);
+      curr_module_entity = saved_mep;
+      error_position = saved_error_position;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* load_template_definition_from_ifc_module */
 
 
 static inline a_boolean ifc_decl_is_ignorable_redecl(
@@ -5238,16 +5417,16 @@ class_struct_union_case:
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
-            a_token_cache cache;
-            a_non_type_kind nt_kind;
-            a_type_ptr      type;
-            a_boolean       do_forward_decl;
-            a_boolean       saved_suppress_default_arguments;
-            a_curr_token_preserver
-                            guard;
-            a_module_entity_ptr
-                            other_decls = NULL, end_other_decls = NULL,
-                            partial_specs = NULL;
+            a_token_cache           cache;
+            a_non_type_kind         nt_kind;
+            a_type_ptr              type;
+            a_boolean               do_forward_decl, delay_definition = FALSE;
+            a_boolean               saved_suppress_default_arguments;
+            a_module_entity_ptr     other_decls = NULL, end_other_decls = NULL;
+            a_curr_token_preserver  guard;
+            if (idstp->properties & ifc_ReachableProperties_Initializer) {
+              mep->has_definition = TRUE;
+            }  /* if */
             if (is_from_gmf(idstp->specifiers)) {
               mep->global_module = TRUE;
             }  /* if */
@@ -5267,30 +5446,10 @@ class_struct_union_case:
               /* There may be other declarations of this same template from
                  other modules.  Temporarily remove these because declaration
                  processing will look for a redeclaration and trigger a second
-                 nested processing of the template otherwise.  Also separate
-                 out partial specializations: They shouldn't be processed
-                 until we're done with the primary template. */
-              a_module_entity_ptr  *p_mep = &mep->next, next_mep;
-              while (*p_mep != NULL) {
-                next_mep = *p_mep;
-                if (next_mep->scope == mep->scope) {
-                  if (next_mep->variant.ifc_partition == ifc_decl_template) {
-                    *p_mep = next_mep->next;
-                    next_mep->next = other_decls;
-                    other_decls = next_mep;
-                    if (end_other_decls == NULL) end_other_decls = next_mep;
-                  } else if (next_mep->variant.ifc_partition ==
-                                            ifc_decl_partial_specialization) {
-                    *p_mep = next_mep->next;
-                    next_mep->next = partial_specs;
-                    partial_specs = next_mep;
-                  } else {
-                    p_mep = &next_mep->next;
-                  }  /* if */
-                } else {
-                  p_mep = &next_mep->next;
-                }  /* if */
-              }  /* while */
+                 nested processing of the template otherwise. */
+              extract_matching_template_module_entities(
+                              mep, &mep->next, &other_decls, &end_other_decls,
+                              (a_module_entity**)NULL);
             }  /* if */
             /* It's possible for a template body to refer to itself (or to
                another entity that refers back to it) and trigger a recursive
@@ -5307,29 +5466,14 @@ class_struct_union_case:
             do_forward_decl = (type != type_of_unknown_templ_param_nontype ||
                                idstp->entity.body == 0);
             saved_suppress_default_arguments = suppress_default_arguments;
-            if (do_forward_decl) {
-              /* It's possible that this entity has already been declared, in
-                 which case a forward declaration isn't needed and can cause
-                 problems (e.g., with default arguments being re-declared).
-                 Don't allow lazy loading of symbols while doing this check, as
-                 otherwise a duplicate symbol from another module may start
-                 being processed as a result. */
-              Value_saver<a_boolean> lazy_load_saver(
-                                                  &lazy_symbols_may_be_visible,
-                                                  /*new_value=*/FALSE);
-              a_symbol_ptr sym = curr_scope_id_lookup(&loc, IDL_NO_OPTIONS);
-              if (sym != NULL) {
-                do_forward_decl = FALSE;
-              } else if (idstp->entity.body != 0 &&
-                         sentence_is_deleted(idstp->entity.body)) {
-                /* If this is an "= delete" definition, do not issue a
-                   "forward declaration" (i.e., without "= delete") since that
-                   would be invalid.  Such definitions will have the
-                   "Initializer" property set.  Variable templates can also
-                   have that property, but they do not need "forward
-                   declarations" either. */
-                do_forward_decl = FALSE;
-              }  /* if */
+            if (do_forward_decl && idstp->entity.body != 0 &&
+                sentence_is_deleted(idstp->entity.body)) {
+              /* If this is an "= delete" definition, do not issue a "forward
+                 declaration" (i.e., without "= delete") since that would be
+                 invalid.  Such definitions will have the "Initializer"
+                 property set.  Variable templates can also have that property,
+                 but they do not need "forward declarations" either. */
+              do_forward_decl = FALSE;
             }  /* if */
             if (do_forward_decl) {
               suppress_default_arguments = FALSE;
@@ -5340,8 +5484,20 @@ class_struct_union_case:
               suppress_default_arguments = saved_suppress_default_arguments;
               il_entity = (char*)parse_cached_template(&cache, mep->scope);
               kind = iek_template;
+              if (is_file_or_namespace_scope(mep->scope)) {
+                /* For namespace-scope entities, delay the definition until
+                   it is actually needed.  FIXME: It would be good to also
+                   delay the definition of member templates, but that is
+                   currently more difficult to do. */
+                delay_definition = TRUE;
+              }  /* if */
             }  /* if */
-            if (idstp->entity.body != 0) {
+            if (delay_definition) {
+              /* There is a definition of the template, but we delay its
+                 processing until it's really needed (i.e., the template is
+                 instantiated). */
+              check_assertion(il_entity != NULL);
+            } else {
               /* There is a definition of the template.  Record the resolution
                  of the signature immediately so that the below processing
                  of the definition has access to it.  If we provided a forward
@@ -5351,18 +5507,8 @@ class_struct_union_case:
                 mep->entity.ptr = il_entity;
                 mep->entity.kind = kind;
               }  /* if */
-              suppress_default_arguments = do_forward_decl;
-              clear_token_cache(&cache, /*reusable=*/FALSE);
-              cache_decl_template(&cache, idstp);
-              terminate_token_cache(&cache);
-              suppress_default_arguments = saved_suppress_default_arguments;
-              /* Forward assign the module entity pointer's information so this
-                 entity can be resolved properly when processing
-                 specializations and explicit instantiations. */
-              mep->entity.ptr = il_entity = (char*)parse_cached_template(
-                                                                   &cache,
-                                                                   mep->scope);
-              mep->entity.kind = kind = iek_template;
+              process_template_definition(mep, idstp, do_forward_decl,
+                                          type_is(type, tk_routine));
             }  /* if */
             if (other_decls != NULL) {
               /* Restore the module entity list representing other declarations
@@ -5372,28 +5518,6 @@ class_struct_union_case:
               end_other_decls->next = mep->next;
               mep->next = other_decls;
             }  /* if */
-            {
-              /* Compute the DeclIndex of the current template, and retrieve
-                 the sequence of specializations and explicit
-                 instantiations. */
-              ifc_DeclIndex decl = decl_index_of(mep);
-              ifc_Sequence  seq = get_specialization_sequence_from_trait(decl);
-
-              /* Process the sequence of specializations and explicit
-                 instantiations. */
-              process_scope_member_sequence(seq);
-            }
-            /* Now process the partial specializations. */
-            while (partial_specs != NULL) {
-              a_module_entity_ptr ps_mep = partial_specs;
-              an_ifc_module       *itf = (an_ifc_module*)
-                                        ps_mep->module_info->module_interface;
-              partial_specs = ps_mep->next;
-              ps_mep->next = NULL;
-              ps_mep->imminent = FALSE;
-              itf->process_ifc_declaration(ps_mep, /*defer=*/FALSE,
-                                           enumeration_type);
-            }  /* while */
           }  /* if */
         }
         break;
@@ -5531,7 +5655,7 @@ class_struct_union_case:
                when all the other deferred entries on the associated list are
                handled.  Instead, the partial specializations will be handled
                explicitly immediately after the primary template has been
-               processed (see the ifc_DeclSort_Template case above). */
+               processed (see process_template_definition). */
             mep->imminent = TRUE;
           } else {
             ifc_DeclIndex decl_idx = decl_index_of(mep);
@@ -5561,6 +5685,15 @@ class_struct_union_case:
           a_boolean                      is_instantiation = FALSE;
           idssp = get_DeclSort_Specialization(&idss);
           if (idssp->sort == ifc_SpecializationSort_Instantiation) {
+            if (scope_is(&scope_stack_top(), sck_class_struct_union)) {
+              /* FIXME Explicit instantiations of member templates are
+                 recorded as part of the enclosing class definition, but
+                 explicit instantiations cannot appear in class scope.
+                 For now, just skip those.  Eventually, we should either
+                 delay them until we're in namespace scope, or accept such
+                 constructs in code generated from modules. */
+              break;
+            }  /* if */
             is_instantiation = TRUE;
           }  /* if */
           if (!init_decl_locator(idssp, &loc)) {
@@ -7309,7 +7442,10 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
   a_type_ptr          result = NULL;
   a_module_entity_ptr mep = get_ifc_module_entity_ptr(type_index);
   ifc_TypeSort        tag;
+  Value_saver<a_module_entity_ptr>
+                      mep_saver(&curr_module_entity);
 
+  curr_module_entity = NULL;
   if (kind != NULL) {
     *kind = ntk_none;
   }  /* if */
@@ -8983,7 +9119,10 @@ FIXME: what other expressions can we get here?
 {
   ifc_ExprSort              tag = expr_tag(expr_index);
   a_constant_ptr            cp = NULL;
+  Value_saver<a_module_entity_ptr>
+                            mep_saver(&curr_module_entity);
 
+  curr_module_entity = NULL;
   /* Prepare to read from the proper partition for this expression. */
   read_prechecked_partition_element(expr_index);
   switch (tag) {
@@ -9151,7 +9290,7 @@ FIXME: what other types of named declarations can we get here?
       unexpected_condition_str("Unexpected DeclSort for ExprSort::NamedDecl");
   }  /* switch */
   return cp;
-}
+}  /* constant_for_named_decl */
 
 
 static void cache_identifier(a_token_cache_ptr     cache,
@@ -12806,8 +12945,10 @@ FIXME: There's a relationship with cache_scope_decl here, but it's not entirely
 clear what that is yet.
 */
 {
-  a_source_position pos;
+  a_source_position       pos;
+  Value_saver<a_boolean>  saved(&caching_ifc_class_scope);
 
+  caching_ifc_class_scope = TRUE;
   source_position_from_locus(&pos, &decl->locus);
   if (decl->base != 0) {
     cache_token(cache, tok_colon, &pos);
@@ -13077,12 +13218,22 @@ indexed in the IFC by decl_idx) to cache.
   a_source_position  pos;
   a_boolean          is_instantiation;
 
+  source_position_from_locus(&pos, &decl_locus);
   if (decl->sort == ifc_SpecializationSort_Instantiation) {
+    if (caching_ifc_class_scope) {
+      /* FIXME Explicit instantiations of member templates are
+         recorded as part of the enclosing class definition, but
+         explicit instantiations cannot appear in class scope.
+         For now, just skip those.  Eventually, we should either
+         delay them until we're in namespace scope, or accept such
+         constructs in code generated from modules. */
+      cache_token(cache, tok_semicolon, &pos);
+      goto done;
+    }  /* if */
     is_instantiation = TRUE;
   } else {
     is_instantiation = FALSE;
   }  /* if */
-  source_position_from_locus(&pos, &decl_locus);
   {
     /* Attempt to cache the access specifier if one is specified. */
     Opt<ifc_Access> opt_access = get_ifc_access(templated_decl_idx);
@@ -13092,7 +13243,9 @@ indexed in the IFC by decl_idx) to cache.
     }  /* if */
   }
   if (is_instantiation) {
-    /* Cache the template keyword. */
+    /* If an explicit instantiation appeared in a module definition, that
+       instantiation need not be done in client code (other than for inlining
+       or constant-evaluation purposes). */
     cache_token(cache, tok_template, &pos);
   } else {
     /* Reconstruct the template-head. */
@@ -13316,6 +13469,7 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
         unexpected_condition_str("Unexpected DeclSort");
     }  /* switch */
   }
+done:;
 }  /* cache_decl_specialization */
 
 
@@ -13570,7 +13724,7 @@ otherwise, return FALSE.
   return decl->properties & ifc_ReachableProperties_Initializer &&
          (decl->traits & ifc_FunctionTraits_Constexpr ||
           decl->traits & ifc_FunctionTraits_Immediate);
-}  /* has_initializer */
+}  /* has_function_definition */
 
 
 void an_ifc_module::cache_decl(a_token_cache_ptr cache,
@@ -14100,6 +14254,29 @@ suppress_automatic_namespace_qualification.
 }  /* suppress_automatic_qualification */
 
 
+static void cache_args_with_parens(a_token_cache_ptr  cache,
+                                   an_ifc_module      *ifc_mod,
+                                   ifc_ExprIndex      args,  
+                                   a_source_position  *pos)
+/*
+Record tokens for the IFC expression described by args in the given cache and
+enclose them with parentheses.  If args is an IFC ExpressionList, be sure to
+avoid double parentheses.  ifc_mod points to the associated IFC module reader
+and pos is the associated source position.
+*/
+{
+  ifc_ExprSort  arguments_tag = expr_tag(args);
+
+  if (arguments_tag != ifc_ExprSort_ExpressionList) {
+    cache_token(cache, tok_lparen, pos);
+  }  /* if */
+  ifc_mod->cache_expr(cache, args);
+  if (arguments_tag != ifc_ExprSort_ExpressionList) {
+    cache_token(cache, tok_rparen, pos);
+  }  /* if */
+}  /* cache_args_with_parens */
+
+
 void an_ifc_module::cache_expr(a_token_cache_ptr    cache,
                                ifc_ExprIndex        expr,
              /* Defaulted: */  a_cache_expr_option  options)
@@ -14274,7 +14451,12 @@ second operand of an assignment.
           case opkind_basic:
           case opkind_func_like:
             cache_operator(cache, iesmp->assoc, &iesmp->locus);
-            cache_arg();
+            if (iesmp->assoc == ifc_MonadicOperator_LookupGlobally) {
+              /* Do not produce parentheses after a "::". */
+              cache_expr(cache, iesmp->argument);
+            } else {
+              cache_arg();
+            }  /* if */
             break;
           case opkind_post:
             cache_arg();
@@ -14391,9 +14573,7 @@ second operand of an assignment.
               cache_token(cache, tok_rparen, &pos);
               cache_expr(cache, iestp->arguments_1);
               if (iestp->arguments_2 != 0) {
-                cache_token(cache, tok_lparen, &pos);
-                cache_expr(cache, iestp->arguments_2);
-                cache_token(cache, tok_rparen, &pos);
+                cache_args_with_parens(cache, this, iestp->arguments_2, &pos);
               }  /* if */
             }
             break;
@@ -14422,14 +14602,7 @@ second operand of an assignment.
         source_position_from_locus(&pos, &iescp->locus);
         cache_expr(cache, iescp->operation);
         if (iescp->arguments != 0) {
-          ifc_ExprSort  arguments_tag = expr_tag(iescp->arguments);
-          if (arguments_tag != ifc_ExprSort_ExpressionList) {
-            cache_token(cache, tok_lparen, &pos);
-          }  /* if */
-          cache_expr(cache, iescp->arguments);
-          if (arguments_tag != ifc_ExprSort_ExpressionList) {
-            cache_token(cache, tok_rparen, &pos);
-          }  /* if */
+          cache_args_with_parens(cache, this, iescp->arguments, &pos);
         } else {
           /* Sometimes (but not always) an empty argument list appears to be
              represented using a null "arguments" field. */
@@ -18515,7 +18688,9 @@ explicitly-instantiated entity and update kind with the associated entity kind.
   source_position_from_locus(&template_kw_pos, &template_locus);
   {
     an_ms_extensions_parse      tmp_parse;
-    a_template_decl_options_set options = TDO_NO_OPTIONS;
+    a_template_decl_options_set options = TDO_EXTERN;
+    /* An explicit instantiation in a module means that the module clients can
+       handle the equivalent of an "extern template" directive. */
     explicit_instantiation(&dps, options, &template_kw_pos);
   }
   finish_cached_template_parse(&final_token);

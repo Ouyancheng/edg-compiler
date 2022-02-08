@@ -2783,6 +2783,11 @@ public:
                                 ifc_DeclIndex      decl_idx,
                                 a_routine_ptr      rp,
                                 a_func_info_block  *func_info);
+  static a_boolean process_template_definition(
+                                   a_module_entity_ptr       mep,
+                                   an_ifc_DeclSort_Template  *idstp,
+                                   a_boolean                 already_declared,
+                                   a_boolean                 is_func_template);
 
 #if DEBUG
   void debug() const OVERRIDE;
@@ -3276,6 +3281,10 @@ public:
 /*lint -restore*/
 
 extern a_boolean load_routine_definition_from_ifc_module(a_routine_ptr  rp);
+
+extern
+a_boolean load_template_definition_from_ifc_module(a_template_ptr  templ);
+
 
 /* Explicit specializations of an_ifc_module::get_ifc_name. */
 template<>

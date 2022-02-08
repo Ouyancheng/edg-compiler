@@ -65,6 +65,9 @@ struct a_module_entity {
   a_bit_field	global_module:1;
 			/* TRUE if this is an entity owned by the "global
 			   module". */
+  a_bit_field	has_definition:1;
+  			/* TRUE if the presence of a definition ("body") has
+			   been recorded. */
   union {
 #if MICROSOFT_EXTENSIONS_ALLOWED
     an_ifc_partition_kind
@@ -154,7 +157,13 @@ struct a_module_interface {
 /* If in a module unit, the current module symbol. */
 EXTERN a_symbol_ptr    curr_module_sym;
 
-/* If processing a module declaration, the current module declaration. */
+/*
+When processing a module entity, this points to a description of the entity in
+the ("binary") module file until the IL entry associated with the entity is
+created and made to point to the description.  (Be sure to save/clear/restore
+this variable in contexts that may trigger the creation of new IL entries
+before the actual module entity is represented.
+*/
 EXTERN a_module_entity_ptr curr_module_entity;
 
 inline a_boolean magic_numbers_match(const a_byte magic[4],
@@ -246,6 +255,8 @@ extern void import_module(a_module_import_decl_ptr midp,
                           a_symbol_ptr             assoc_sym);
 
 extern a_boolean load_routine_definition_from_module(a_routine_ptr  rp);
+
+extern a_boolean load_template_definition_from_module(a_template_ptr  templ);
 
 #if DEBUG
 extern void db_module(a_module_ptr mod);

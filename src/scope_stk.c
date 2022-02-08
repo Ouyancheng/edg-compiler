@@ -3253,7 +3253,8 @@ the scope being pushed.
   }  /* if */
   /* Set the default language linkage for the current scope. */
   if (C_dialect == C_dialect_cplusplus) {
-    if (kind == (a_scope_kind)sck_file) {
+    if (kind == (a_scope_kind)sck_file ||
+        kind == (a_scope_kind)sck_module_decl_import) {
       /* File scope has extern "C++" linkage by default. */
       ssep->default_name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
       ssep->name_linkage_is_explicit = FALSE;
