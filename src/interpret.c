@@ -13645,6 +13645,42 @@ done:
 
 #endif /* GNU_VECTOR_TYPES_ALLOWED */
 
+static a_boolean reinterpret_runtime_address(a_byte      *addr_opnd,
+                                             a_type_ptr  dtype)
+/*
+addr_opnd points to an entry of type a_constexpr_address and is the operand of
+a reinterpret_cast operation with the given destination type.  Return TRUE if
+the constant type can be reinterpreted to this type and perform the
+transformation of the type accordingly.
+*/
+{
+  a_boolean  result = FALSE;
+
+  if (is_runtime_data_address(addr_opnd)) {
+    a_constexpr_address  *cap = (a_constexpr_address*)addr_opnd;
+    a_constant_ptr       con = cap->variant.addr_con, next_con = con->next;
+    an_error_code        err_code;
+    a_boolean            did_not_fold;
+    type_change_constant_full(con, dtype,
+                              /*is_implicit_cast=*/FALSE,
+                              /*constant_context=*/TRUE,
+                              /*evaluated_context=*/TRUE,
+                              /*fold_constant_addr_exprs=*/TRUE,
+                              /*is_cli_attr_arg_expression=*/FALSE,
+                              /*check_cast_access=*/FALSE,
+                              /*check_ambiguity=*/FALSE,
+                              /*is_reinterpret_cast=*/TRUE,
+                              /*maintain_expression=*/FALSE,
+                              &did_not_fold, &err_code, &null_source_position);
+    /* Restore the "next" pointer, which may have been cleared by the call to
+       type_change_constant_full. */
+    con->next = next_con;
+    result = !did_not_fold && err_code == ec_no_error;
+  }  /* if */
+  return result;
+}  /* reinterpret_runtime_address */
+
+
 /*lint -efunc(2704,*do_constexpr_expression)*/
 static a_boolean do_constexpr_expression(
                                        an_interpreter_state  *ips,
@@ -13898,10 +13934,21 @@ the value representation of the integer value.
                 if (expr->variant.operation.is_reinterpret_cast ||
                     expr->variant.operation.is_reinterpret_like_cast ||
                     (type_is(utp2, tk_void) && !type_is(utp1, tk_void))) {
-                  info_with_pos_type2(ec_constexpr_invalid_type_conversion,
-                                      &expr->position, opnd1_type, tp, ips);
-                  do_constexpr_fail(result);
-                  break;
+                  /* Usually an error, but in some cases we permit reinterpret-
+                     casting a run-time address (because that sometimes allows
+                     dynamic initialization to become static). */
+                  if (ips->allow_reinterpret_cast &&
+                      (expr->variant.operation.is_reinterpret_cast ||
+                       expr->variant.operation.is_reinterpret_like_cast) &&
+		      reinterpret_runtime_address(opnd1_value, tp)) {
+                    *(a_constexpr_address*)result_storage =
+                                           *(a_constexpr_address*)opnd1_value;
+                  } else {
+                    info_with_pos_type2(ec_constexpr_invalid_type_conversion,
+                                        &expr->position, opnd1_type, tp, ips);
+                    do_constexpr_fail(result);
+                    break;
+                  }  /* if */
                 }  /* if */
                 *(a_constexpr_address*)result_storage =
                                            *(a_constexpr_address*)opnd1_value;

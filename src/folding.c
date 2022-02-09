@@ -1514,7 +1514,7 @@ type.
        a null pointer value. */
     if (!fold_constant_addr_exprs && !is_null_pointer_value(old_constant)) {
       *did_not_fold = TRUE;
-    } else if (constexpr_enabled && !microsoft_mode &&
+    } else if (constexpr_enabled && !microsoft_mode && expr_stack != NULL &&
                (int)expr_stack->expression_kind <= (int)ek_template_arg) {
       /* reinterpret_cast is not permitted in constant-expression contexts.
          Avoid folding such casts, so that the interpreter can easily
