@@ -4225,8 +4225,11 @@ The syntax is:
                                     cicip_to_use->else_handle)) {
     /* We were able to skip directly to the "else" token of a constexpr if. */
     empty_statement();
-    /* Restore reachability information from previous scan. */
-    curr_reachability = cicip_to_use->if_clause_reachability;
+    /* Restore reachability information from previous scan (but only if the
+       code we're executing is currently reachable). */
+    if (curr_reachability.reachable) {
+      curr_reachability = cicip_to_use->if_clause_reachability;
+    }  /* if */
   } else {
     a_boolean  saved_in_consteval_context =
                                        scope_stack_top().in_consteval_context;
@@ -4296,8 +4299,11 @@ The syntax is:
                                       cicip_to_use->ending_handle)) {
       /* We were able to skip directly to the final token of a constexpr if. */
       empty_statement();
-      /* Restore reachability information from previous scan. */
-      curr_reachability = cicip_to_use->else_clause_reachability;
+      /* Restore reachability information from previous scan (but only if the
+         code we're executing is currently reachable). */
+      if (curr_reachability.reachable) {
+        curr_reachability = cicip_to_use->else_clause_reachability;
+      }  /* if */
     } else {
       a_boolean  saved_in_consteval_context =
                                        scope_stack_top().in_consteval_context;
