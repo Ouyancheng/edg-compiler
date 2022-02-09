@@ -4007,6 +4007,37 @@ for the accessor; otherwise return NULL.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
+static a_boolean clang_pair_swap_hack_criterion(a_symbol_locator  *locator)
+/*
+Some versions of GCC have a bug for unqualified name lookup in exception
+specifications.  Clang emulates that bug specifically for the name "swap"
+appearing in the exception specification of a member of std::pair.  Return
+TRUE if the current context is std::pair and locator is for "swap".
+*/
+{
+  a_boolean  result = FALSE;
+
+  auto  name_is = [](a_symbol_header_ptr  hdr, a_const_char  *name) {
+                    return hdr != NULL && hdr->identifier != NULL &&
+                           strcmp(hdr->identifier, name) == 0;
+                  };
+  if (name_is(locator->symbol_header, "swap")) {
+    a_scope_stack_entry  *ssep = &scope_stack_top();
+    if (scope_is(ssep, sck_func_prototype) &&
+        scope_is(ssep-1, sck_class_reactivation) &&
+        scope_is(ssep-2, sck_template_instantiation) &&
+        name_is(ssep[-2].template_sym->header, "pair") &&
+        symbol_for_namespace_std != NULL &&
+        is_member_of_namespace(ssep[-2].template_sym,
+                               symbol_for_namespace_std) &&
+        seq_is_in_system_header(locator->source_position.seq)) {
+      result = TRUE;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* clang_pair_swap_hack_criterion */
+
+
 a_symbol_ptr normal_id_lookup(a_symbol_locator         *locator,
                               an_id_lookup_options_set options)
 /*
@@ -4102,8 +4133,8 @@ after a call to this routine.
     }  /* if */
     if (lookup_state.inclass_exception_spec &&
         (gpp_version_is(<100000) ||
-         (clang_mode &&
-          seq_is_in_system_header(locator->source_position.seq))))  {
+         (clang_mode && clang_pair_swap_hack_criterion(locator)))) {
+
       /* exception_spec_decl_seq is used in some g++ modes to limit visibility
          of names used in exception specification to those previously declared
          in a class.  Clang appears to emulate that behavior in system headers

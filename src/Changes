@@ -29,8 +29,9 @@ Clang C++ compatibility: Unqualified name lookup in noexcept-specifiers
 
 In some GNU C++ modes, the front emulates a GCC bug relating to the lookup of
 names in noexcept-specifiers (see the Changes entry for EDGcpfe/22861).  Clang
-appears to emulate that behavior in system headers and the front end now also
-matches that Clang behavior in Clang modes.
+appears to emulate that behavior specifically for the lookup of the identifier
+"swap" in the context of std::pair appearing in a system header: The front end 
+now also matches that Clang behavior in Clang modes.
 
 
 2/7/22   [EDGcpfe/19699,EDGcpfe/20389,EDGcpfe/20877,EDGcpfe/21467,
