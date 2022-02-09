@@ -11503,6 +11503,7 @@ this is needed.
       { an_ifc_TypeSort_Expansion itse, *itsep;
         itsep = get_TypeSort_Expansion(&itse);
         cache_type_first_pass(cache, itsep->pack, locus);
+        cache_token(cache, tok_ellipsis, &pos);
       }
       break;
     case ifc_TypeSort_Pointer:
@@ -11769,7 +11770,6 @@ this is needed.
       { an_ifc_TypeSort_Expansion itse, *itsep;
         itsep = get_TypeSort_Expansion(&itse);
         cache_type_second_pass(cache, itsep->pack, locus);
-        cache_token(cache, tok_ellipsis, &pos);
       }
       break;
     case ifc_TypeSort_Fundamental:
@@ -13543,11 +13543,14 @@ done:;
 
 void an_ifc_module::cache_type_param_introducer(a_token_cache_ptr  cache,
                                                 ifc_ExprIndex      constraint,
+                                                a_boolean          is_pack,
                                                 a_source_position  *pos)
 /*
-constraint is zero for unconstrained parameters or refers to a concept-id
-expression otherwise.  In the former case, add a "typename" token to introduce
-a template parameter, but in the latter case emit the concept-id.
+cache is the token cache to update.  constraint is zero for unconstrained
+parameters or refers to a concept-id expression otherwise.  In the former case,
+add a "typename" token to introduce a template parameter, but in the latter
+case emit the concept-id.  is_pack is TRUE if the type introducer represents a
+parameter pack, FALSE otherwise.
 */
 {
   if (constraint == (ifc_ExprIndex)0) {
@@ -13556,6 +13559,9 @@ a template parameter, but in the latter case emit the concept-id.
     cache_token(cache, tok_typename, pos);
   } else {
     cache_expr(cache, constraint);
+  }  /* if */
+  if (is_pack) {
+    cache_token(cache, tok_ellipsis, pos);
   }  /* if */
 }  /* cache_type_param_introducer */
 
@@ -13853,7 +13859,12 @@ Add the tokens corresponding to the given declaration (decl) to cache.
         source_position_from_locus(&pos, &idspp->locus);
         switch (idspp->sort) {
           case ifc_ParameterSort_Type:
-            cache_type_param_introducer(cache, idspp->constraint, &pos);
+            { a_boolean is_pack = type_tag(idspp->type) ==
+                                                        ifc_TypeSort_Expansion;
+
+              cache_type_param_introducer(cache, idspp->constraint, is_pack,
+                                          &pos);
+            }
             break;
           case ifc_ParameterSort_NonType:
             cache_type_first_pass(cache, idspp->type, &idspp->locus);
@@ -13880,9 +13891,6 @@ Add the tokens corresponding to the given declaration (decl) to cache.
             break;
           default_is_unexpected_str("Unexpected ParameterSort");
         }  /* switch */
-        if (type_tag(idspp->type) == ifc_TypeSort_Expansion) {
-          cache_token(cache, tok_ellipsis, &pos);
-        }  /* if */
         if (idspp->name != 0) {
           cache_identifier(cache, get_string_at_offset(idspp->name), &pos);
         }  /* if */

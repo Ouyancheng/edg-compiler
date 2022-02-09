@@ -2988,6 +2988,7 @@ public:
                   ifc_SourceLocation *locus);
   void cache_type_param_introducer(a_token_cache_ptr  cache,
                                    ifc_ExprIndex      constraint,
+                                   a_boolean          is_pack,
                                    a_source_position  *pos);
   void cache_attr(a_token_cache_ptr  cache,
                   ifc_AttrIndex      attr,
