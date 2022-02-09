@@ -22469,7 +22469,7 @@ handle_as_definition:
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
     if (rout->suppress_explicit_specialization) {
       discard_declaration = TRUE;
-    } else if (!special_kind_is(rout, sfk_deduction_guide) &&
+    } else if (special_kind_is(rout, sfk_deduction_guide) ||
                suppress_invalid_explicit_specialization(&rout->source_corresp,
                                                         iek_routine,
                                                         rout->
