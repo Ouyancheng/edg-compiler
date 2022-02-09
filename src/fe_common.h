@@ -60,6 +60,9 @@ incorporated:
 #include "basic_hdrs.h"
 #endif /* ifndef BASIC_HDRS_H */
 
+/* Assertion checking. */
+#include "checking.h"
+
 /* Errors.  error.h also pulls in err_codes.h. */
 #include "error.h"
 

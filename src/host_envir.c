@@ -1990,6 +1990,22 @@ severe diagnostic issued in this compilation.  This routine does not return.
 }  /* exit_compilation */
 
 
+#if !CHECKING
+
+
+NORETURN void exit_unrecoverable_compilation()
+/*
+Exit the compilation with an internal error if an unreachable condition is
+encountered.  This routine does not return.
+*/
+{
+  exit_compilation(es_internal_error);
+}  /* exit_unrecoverable_compilation */
+
+
+#endif /* !CHECKING */
+
+
 NORETURN void term_compilation(an_error_severity severity)
 /*
 Terminate the compilation.  This is always called as the last thing in the

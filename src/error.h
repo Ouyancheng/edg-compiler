@@ -302,12 +302,6 @@ EXTERN a_boolean
 
 /*lint -sem(internal_error, r_no)*/
 NORETURN extern void internal_error(a_const_char *error_message);
-/*lint -sem(assertion_failed, r_no)*/
-NORETURN extern void assertion_failed(a_const_char *filename,
-                                      int          line_number,
-                                      a_const_char *function,
-                                      a_const_char *string1,
-                                      a_const_char *string2);
 
 extern void record_expected_error(a_const_char *filename,
                                   int          line_number,
@@ -316,15 +310,6 @@ extern void record_expected_error(a_const_char *filename,
                                   a_const_char *string2);
 
 extern void check_expected_errors(void);
-
-/* Macro to test an assertion and generate an internal error if
-   the condition is not TRUE.  The macro expands to nothing when checking
-   code is not being used. */
-/*lint -emacro(774 506, check_assertion)*/
-#define check_assertion(test)						\
-  (((test)) ? (void)0 :				                        \
-    assertion_failed(__FILE__, __LINE__, __EDG_func__,			\
-                     (char *)NULL, (char *)NULL))
 
 /* Macro to test an assertion or ensure that errors will be issued before
    a back end is invoked (more specifically: when check_expected_errors is
@@ -341,18 +326,6 @@ extern void check_expected_errors(void);
     record_expected_error(__FILE__, __LINE__, __EDG_func__, (char *)NULL,    \
                           (char *)NULL);                                     \
   }
-/* Macro that generates an assertion failed internal error.  Intended to
-   be used in the else clause of an if statement or the default case of a
-   switch statement that is not intended to be reached. */
-#define unexpected_condition()						\
-  assertion_failed(__FILE__, __LINE__, __EDG_func__, (char *)NULL,      \
-                   (char *)NULL)
-/* Macros that are the same as above except that a string describing the
-   assertion is provided. */
-/*lint -emacro(774 506, check_assertion_str)*/
-#define check_assertion_str(test, string)                        \
-  if (!(test))                                                   \
-    assertion_failed(__FILE__, __LINE__, __EDG_func__, string, (char *)NULL)
 #define check_assertion_or_expect_error_str(test, string)                    \
   if (/*lint --e(774)*/!(test) && !is_at_least_one_error()) {                \
     record_expected_error(__FILE__, __LINE__, __EDG_func__, string,          \
@@ -363,8 +336,6 @@ extern void check_expected_errors(void);
     record_expected_error(__FILE__, __LINE__, __EDG_func__, string,          \
                           (char *)NULL);\
   }
-#define unexpected_condition_str(string)  				\
-  assertion_failed(__FILE__, __LINE__, __EDG_func__, string, (char *)NULL)
 /* Macros that are the same as above except that two strings are provided.
    this is simply done to make it easier to use long strings as arguments. */
 /*lint -emacro(774 506, check_assertion_str2)*/
@@ -379,22 +350,12 @@ extern void check_expected_errors(void);
   if (!is_at_least_one_error()) {                                            \
     record_expected_error(__FILE__, __LINE__, __EDG_func__, string1, string2);\
   }
-#define unexpected_condition_str2(string1, string2) 			\
-  assertion_failed(__FILE__, __LINE__, __EDG_func__, string1, string2)
 #else /* !CHECKING */
-/* check_assertion must produce a void result. */
-#define check_assertion(test) ((void)0)
-#define check_assertion_str(test, string) /* Nothing */
-#define check_assertion_str2(test, string1, string2) /* Nothing */
 #define check_assertion_or_expect_error(test) /* Nothing */
 #define check_assertion_or_expect_error_str(test, string) /* Nothing */
 #define check_assertion_or_expect_error_str2(test, string1, string2) /* */
 #define expect_error() /* Nothing */
 #define expect_error_str(string) /* Nothing */
-#define unexpected_condition() exit_compilation(es_internal_error)
-#define unexpected_condition_str(string) exit_compilation(es_internal_error)
-#define unexpected_condition_str2(string1, string2) \
-  exit_compilation(es_internal_error)
 #endif /* CHECKING */
 /* Macros that can be used in place of default labels for switch statements
    where it should not be possible to reach the default case (e.g., exhaustive
