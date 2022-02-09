@@ -30816,6 +30816,7 @@ of:
   switch (tok) {
     case tok_int_constant:
     case tok_char_constant:
+    case tok_aggr_constant:
     case tok_true:
     case tok_false:
 #if TARG_HAS_IEEE_FLOATING_POINT
@@ -33446,6 +33447,7 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_ud_literal:
     case tok_int_constant:
     case tok_char_constant:
+    case tok_aggr_constant:
     case tok_true:
     case tok_false:
     case tok_plus_plus:
@@ -39344,6 +39346,7 @@ handle_identifier:
       break;
     case tok_int_constant:
     case tok_char_constant:
+    case tok_aggr_constant:
     case tok_true:
     case tok_false:
       if (const_for_curr_token.from_undefined_preproc_id) {

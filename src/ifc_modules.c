@@ -4716,6 +4716,7 @@ principal associated IL entity.
   a_boolean                skip_pop = FALSE;
   a_diagnostic_suppression diag_suppress(&this->suppressed_diagnostics,
                                          !display_module_import_diagnostics);
+  Value_saver<a_boolean>   checking_pragma_saver(&no_checking_pragmas, TRUE);
 
   /* Ensure the module entity is being processed by the corresponding module
      interface. */
@@ -4794,8 +4795,7 @@ principal associated IL entity.
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
-            /* FIXME: lots more to do here. */
-            a_variable_ptr vp;
+            a_token_cache  cache;
             if (is_from_gmf(idsvp->specifiers)) {
               mep->global_module = TRUE;
             }  /* if */
@@ -4811,26 +4811,26 @@ principal associated IL entity.
             init_dps(&dps, &idsvp->locus, idsvp->type, idsvp->traits,
                      ifc_MsvcTraits_None, idsvp->specifiers, idsvp->access,
                      idsvp->alignment, &psss);
-            /* Since we're declaring a variable, a complete type is needed. */
-            complete_type_is_needed(dps.type);
-            clear_decl_pos_block(&decl_pos_block);
-            decl_variable(&loc, &dps, SRK_DEFINITION, &linkage_ptr, &ext_sym,
-                          &decl_pos_block);
-            vp = dps.sym->variant.variable.ptr;
-            if (idsvp->initializer != 0) {
-              /* Variable has an initializer. */
-              /* FIXME: for now, assume it's a static constant initialization,
-                 but lots more to do here. */
-              a_constant_ptr cp = constant_for_expr_index(idsvp->initializer,
-                                                          vp->type);
-              vp->initializer.constant = cp;
-              vp->init_kind = (an_init_kind)initk_static;
+            /* Naming aside, setting this is required to allow the inline
+               keyword on variable declarations. */
+            dps.function_definition_allowed = TRUE;
+            clear_token_cache(&cache, /*reusable=*/FALSE);
+            cache_decl(&cache, decl_index_of(mep));
+            terminate_token_cache(&cache);
+#if DEBUG
+            if (db_flag_is_set("ms_ifc_token_def")) {
+              fprintf(f_debug, "Reconstituted variable declaration:\n");
+              db_tokens(&cache);
+              fprintf(f_debug, "\n---------------------\n");
             }  /* if */
-            if (dps.alignment != 0) {
-              vp->alignment = dps.alignment;
-            }  /* if */
-            restore_partial_scope_stack_if_necessary(&psss);
-            il_entity = (char *)vp;
+#endif /* DEBUG */
+            rescan_cached_tokens(&cache);
+            scan_nonmember_declaration(&dps, /*a_source_range=*/NULL);
+            check_assertion(curr_token == tok_end_of_source);
+            (void)get_token();
+            check_assertion(dps.sym != NULL &&
+                            symbol_is(dps.sym, sk_variable));
+            il_entity = (char *)dps.sym->variant.variable.ptr;
             kind = iek_variable;
           }  /* if */
         }
@@ -8822,6 +8822,9 @@ this routine need to handle the case where dps->alignment is 0.
     if (traits & ifc_ObjectTraits_ThreadLocal) {
       dps->dso_flags |= DSO_THREAD_LOCAL;
     }  /* if */
+    if (traits & ifc_ObjectTraits_Inline) {
+      dps->dso_flags |= DSO_INLINE;
+    }  /* if */
     if (msvc_traits & ifc_MsvcTraits_Comdat) {
       unexpected_condition(); /* FIXME */
     }  /* if */
@@ -9213,34 +9216,68 @@ FIXME: what other expressions can we get here?
     case ifc_ExprSort_ProductTypeValue:
       { an_ifc_ExprSort_ProductTypeValue iesptv, *iesptvp;
         a_type_ptr                       tp;
-        a_boolean                        is_constant = FALSE;
-        a_dynamic_init_ptr               dip = NULL;
-        an_expr_stack_entry              expr_stack_entry;
-
         iesptvp = get_ExprSort_ProductTypeValue(&iesptv);
-        /* FIXME: Is it safe to use the specified expression type here, or
-           should we try to use the type declared by the referenced class
-           declaration -- referenced in the IFC's class field for
-           ProductTypeValue? Is there a time when there would be a significant
-           distinction between the two types? */
         tp = type_for_type_index(iesptvp->type, /*kind=*/NULL);
         complete_type_is_needed(tp);
-        /* FIXME: Are there any other ways to get here? */
-        push_expr_stack(ek_init_constant, &expr_stack_entry,
-                        /*force_object_lifetime=*/FALSE,
-                        /*suppress_object_lifetime=*/FALSE);
-        value_initialization(tp, /*copy_init_context=*/FALSE,
-                             /*generate_il=*/TRUE, &error_position,
-                             /*ctor_called=*/NULL, &is_constant, &dip, &cp,
-                             /*is=*/NULL, /*error_detected=*/NULL);
-        pop_expr_stack();
-        check_assertion(is_constant);
+        cp = alloc_constant(ck_aggregate);
+        cp->type = tp;
+        if (iesptvp->base_subobjects != 0) {
+          a_constant_ptr sub_con =
+                              constant_for_expr_index(iesptvp->base_subobjects,
+                                                      /*default_type=*/NULL);
+          add_constant_to_aggregate(sub_con, cp, NULL, NULL);
+        }  /* if */
+        if (iesptvp->members != 0) {
+          a_constant_ptr mem_con =
+                                constant_for_expr_index(iesptvp->members,
+                                                        /*default_type=*/NULL);
+          add_constant_to_aggregate(mem_con, cp, NULL, NULL);
+        }  /* if */
+      }
+      break;
+    case ifc_ExprSort_SubobjectValue:
+      { an_ifc_ExprSort_SubobjectValue iessv, *iessvp;
+        iessvp = get_ExprSort_SubobjectValue(&iessv);
+        cp = constant_for_expr_index(iessvp->value, default_type);
       }
       break;
     case ifc_ExprSort_NamedDecl:
       { an_ifc_ExprSort_NamedDecl iesnd, *iesndp;
         iesndp = get_ExprSort_NamedDecl(&iesnd);
         cp = constant_for_named_decl(iesndp);
+      }
+      break;
+    case ifc_ExprSort_Tuple:
+      { an_ifc_ExprSort_Tuple iest, *iestp;
+        a_constant_ptr        *next_cp = &cp;
+        iestp = get_ExprSort_Tuple(&iest);
+        for (uint32_t idx = 0; idx < iestp->cardinality; ++idx) {
+          ifc_ExprIndex sub_expr;
+          read_prechecked_partition_element(ifc_heap_expr, iestp->start + idx);
+          GET_ExprIndex(sub_expr, /*from_header=*/FALSE);
+          *next_cp = constant_for_expr_index(sub_expr, /*default_type=*/NULL);
+          next_cp = &(*next_cp)->next;
+        }  /* for */
+      }
+      break;
+    case ifc_ExprSort_Dyad:
+      { an_ifc_ExprSort_Dyad iesd, *iesdp;
+        a_token_cache        cache;
+        a_decl_parse_state   dps;
+        a_type_ptr           tp;
+
+        iesdp = get_ExprSort_Dyad(&iesd);
+        init_decl_parse_state(&dps);
+        clear_token_cache(&cache, /*reusable=*/FALSE);
+        cp = alloc_constant(ck_error);
+        tp = type_for_type_index(iesdp->type, /*kind=*/NULL);
+        complete_type_is_needed(tp);
+        cache_expr(&cache, expr_index);
+        terminate_token_cache(&cache);
+        rescan_cached_tokens(&cache);
+        scan_constant_initializer_expression(tp, &dps, cp);
+        check_assertion(curr_token == tok_end_of_source);
+        (void)get_token();
       }
       break;
     default:
@@ -9436,6 +9473,21 @@ of the literal.
                                                      /*from_cache=*/FALSE,
                                                      (a_diagnostic_ptr)NULL);
 }  /* cache_ud_literal */
+
+
+static void cache_aggr_constant(a_token_cache_ptr     cache,
+                                a_constant_ptr        cp,
+                                a_source_position_ptr pos)
+/*
+Add a tok_aggr_constant token with the provided constant to cache.  pos is the
+position of the constant.
+*/
+{
+  cache_token(cache, tok_aggr_constant, pos);
+  cache->last_token->extra_info_kind = (a_token_extra_info_kind)teik_constant;
+  cache->last_token->variant.constant = alloc_cached_constant();
+  copy_constant(cp, cache->last_token->variant.constant);
+}  /* cache_aggr_constant */
 
 
 static void cache_pragma(a_token_cache_ptr     cache,
@@ -9715,42 +9767,7 @@ locus is the location of the Sentence containing literal.
       break;
     case ifc_SourceLiteral_String:
     case ifc_SourceLiteral_DefinedString:
-      { ifc_StringIndex       str = (ifc_StringIndex)index;
-        ifc_StringSort        sort = str_tag(str);
-        an_ifc_String_Literal str_lit, *p_lit;
-        a_character_kind      kind;
-
-        read_prechecked_partition_element(ifc_const_str, str_value(str));
-        p_lit = get_String_Literal(&str_lit);
-        switch (sort) {
-          case ifc_StringSort_Ordinary:
-            kind = (a_character_kind)chk_char;
-            break;
-          case ifc_StringSort_UTF8:
-            kind = (a_character_kind)chk_char8_t;
-            break;
-          case ifc_StringSort_Char16:
-            kind = (a_character_kind)chk_char16_t;
-            break;
-          case ifc_StringSort_Char32:
-            kind = (a_character_kind)chk_char32_t;
-            break;
-          case ifc_StringSort_Wide:
-            kind = (a_character_kind)chk_wchar_t;
-            break;
-          default_is_unexpected_str("Unexpected StringSort");
-        }  /* switch */
-        if (p_lit->suffix == 0) {
-          check_assertion(literal == ifc_SourceLiteral_String);
-          cache_string_literal(cache, kind, get_string_at_offset(p_lit->start),
-                               p_lit->length, &pos);
-        } else {
-          check_assertion(literal == ifc_SourceLiteral_DefinedString);
-          cache_ud_literal(cache, kind, get_string_at_offset(p_lit->start),
-                           p_lit->length, get_string_at_offset(p_lit->suffix),
-                           &pos);
-        }  /* if */
-      }
+      cache_string(cache, (ifc_StringIndex)index, locus);
       break;
     case ifc_SourceLiteral_Msvc:
       break;
@@ -10627,6 +10644,51 @@ the location of the Sentence containing id.
 }  /* cache_source_identifier */
 
 
+void an_ifc_module::cache_string(a_token_cache_ptr  cache,
+                                 ifc_StringIndex    string,
+                                 ifc_SourceLocation *locus)
+/*
+Add a string literal (with the appropriate character kind) corresponding to
+string to cache.  locus is the location of the string.
+*/
+{
+  ifc_StringSort        sort = str_tag(string);
+  an_ifc_String_Literal str_lit, *p_lit;
+  a_source_position     pos;
+  a_character_kind      kind;
+
+  source_position_from_locus(&pos, locus);
+  read_prechecked_partition_element(ifc_const_str, str_value(string));
+  p_lit = get_String_Literal(&str_lit);
+  switch (sort) {
+    case ifc_StringSort_Ordinary:
+      kind = (a_character_kind)chk_char;
+      break;
+    case ifc_StringSort_UTF8:
+      kind = (a_character_kind)chk_char8_t;
+      break;
+    case ifc_StringSort_Char16:
+      kind = (a_character_kind)chk_char16_t;
+      break;
+    case ifc_StringSort_Char32:
+      kind = (a_character_kind)chk_char32_t;
+      break;
+    case ifc_StringSort_Wide:
+      kind = (a_character_kind)chk_wchar_t;
+      break;
+    default_is_unexpected_str("Unexpected StringSort");
+  }  /* switch */
+  if (p_lit->suffix == 0) {
+    cache_string_literal(cache, kind, get_string_at_offset(p_lit->start),
+                         p_lit->length, &pos);
+  } else {
+    cache_ud_literal(cache, kind, get_string_at_offset(p_lit->start),
+                     p_lit->length, get_string_at_offset(p_lit->suffix),
+                     &pos);
+  }  /* if */
+}  /* cache_string */
+
+
 void an_ifc_module::cache_word(a_token_cache_ptr cache,
                                an_ifc_Word       *word)
 /*
@@ -11018,10 +11080,10 @@ cache.  pos is the position of the exception specification.
   cache_token(cache, tok_lparen, pos);
   switch (eh_spec->sort) {
     case ifc_NoexceptSort_False:
-      cache_token(cache, tok_false, pos);
+      cache_bool_literal(cache, false, pos);
       break;
     case ifc_NoexceptSort_True:
-      cache_token(cache, tok_true, pos);
+      cache_bool_literal(cache, true, pos);
       break;
     case ifc_NoexceptSort_Expression:
       cache_sentence(cache, eh_spec->words);
@@ -11477,14 +11539,14 @@ this is needed.
     case ifc_TypeSort_LvalueReference:
       { an_ifc_TypeSort_LvalueReference itslr, *itslrp;
         itslrp = get_TypeSort_LvalueReference(&itslr);
-        cache_type(cache, itslrp->referee, locus);
+        cache_type_first_pass(cache, itslrp->referee, locus);
         cache_token(cache, tok_ampersand, &pos);
       }
       break;
     case ifc_TypeSort_RvalueReference:
       { an_ifc_TypeSort_RvalueReference itsrr, *itsrrp;
         itsrrp = get_TypeSort_RvalueReference(&itsrr);
-        cache_type(cache, itsrrp->referee, locus);
+        cache_type_first_pass(cache, itsrrp->referee, locus);
         cache_token(cache, tok_and_and, &pos);
       }
       break;
@@ -11661,6 +11723,18 @@ this is needed.
         }  /* if */
       }
       break;
+    case ifc_TypeSort_LvalueReference:
+      { an_ifc_TypeSort_LvalueReference itslr, *itslrp;
+        itslrp = get_TypeSort_LvalueReference(&itslr);
+        cache_type_second_pass(cache, itslrp->referee, locus);
+      }
+      break;
+    case ifc_TypeSort_RvalueReference:
+      { an_ifc_TypeSort_RvalueReference itsrr, *itsrrp;
+        itsrrp = get_TypeSort_RvalueReference(&itsrr);
+        cache_type_second_pass(cache, itsrrp->referee, locus);
+      }
+      break;
     case ifc_TypeSort_Function:
       { an_ifc_TypeSort_Function itsf, *itsfp;
         itsfp = get_TypeSort_Function(&itsf);
@@ -11701,8 +11775,6 @@ this is needed.
     case ifc_TypeSort_Fundamental:
     case ifc_TypeSort_Designated:
     case ifc_TypeSort_Syntactic:
-    case ifc_TypeSort_LvalueReference:
-    case ifc_TypeSort_RvalueReference:
     case ifc_TypeSort_Method:
     case ifc_TypeSort_Typename:
     case ifc_TypeSort_Base:
@@ -12752,12 +12824,6 @@ initializer expression.  locus is the source location for the declaration.
     }  /* if */
   };
   auto cache_init_fn = [this, cache, initializer](a_source_position_ptr pos) {
-#if /*FIXME*/0
-    /* FIXME: The initializer index sometimes has invalid values.  Treat all
-       variables as uninitialized for now.  This will be a problem for
-       constexpr, but is preferable to the alternative (aborting). */
-    initializer = (ifc_ExprIndex)0;
-#endif /*FIXME*/
     if (initializer != 0) {
       /* An initializer where the type is ExprSort::Tokens will have the braces
          included as part of the token stream. */
@@ -14585,8 +14651,10 @@ second operand of an assignment.
       }
       break;
     case ifc_ExprSort_String:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::String", &error_position);
+      { an_ifc_ExprSort_String iess, *iessp;
+        iessp = get_ExprSort_String(&iess);
+        cache_string(cache, iessp->string_index, &iessp->locus);
+      }
       break;
     case ifc_ExprSort_Temporary:
       { an_ifc_ExprSort_Temporary iest, *iestp;
@@ -14790,9 +14858,15 @@ common_cast:
                                   &error_position);
       break;
     case ifc_ExprSort_ProductTypeValue:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::ProductTypeValue",
-                                  &error_position);
+      { an_ifc_ExprSort_ProductTypeValue iesptv, *iesptvp;
+        a_type_ptr                       tp;
+        a_constant_ptr                   cp;
+        iesptvp = get_ExprSort_ProductTypeValue(&iesptv);
+        source_position_from_locus(&pos, &iesptvp->locus);
+        tp = type_for_type_index(iesptvp->type, /*kind=*/NULL);
+        cp = constant_for_expr_index(expr, tp);
+        cache_aggr_constant(cache, cp, &pos);
+      }
       break;
     case ifc_ExprSort_SumTypeValue:
       /* FIXME: Currently unsupported. */
@@ -14854,9 +14928,20 @@ common_cast:
       issue_unsupported_node_diag("ExprSort::This", &error_position);
       break;
     case ifc_ExprSort_TemplateReference:
-      /* FIXME: Currently unsupported. */
-      issue_unsupported_node_diag("ExprSort::TemplateReference",
-                                  &error_position);
+      { an_ifc_ExprSort_TemplateReference iestr, *iestrp;
+        iestrp = get_ExprSort_TemplateReference(&iestr);
+        source_position_from_locus(&pos, &iestrp->locus);
+        cache_type(cache, iestrp->scope, &iestrp->locus);
+        cache_token(cache, tok_colon_colon, &pos);
+        cache_identifier(cache, string_from_name_index(iestrp->member_name,
+                                                       /*loc=*/NULL),
+                         &pos);
+        if (iestrp->arguments != 0) {
+          cache_token(cache, tok_lt, &pos);
+          cache_expr(cache, iestrp->arguments);
+          cache_token(cache, tok_gt, &pos);
+        }  /* if */
+      }
       break;
     case ifc_ExprSort_PushState:
       /* FIXME: Currently unsupported. */
@@ -15868,7 +15953,8 @@ the position of the qualified-id this nested-name-specifier is part of.
     /* Attempt to generate any parent scope's qualifiers. */
     cache_scope_as_nested_name_specifier(cache, scope->parent, pos);
     /* Generate the current scope's qualifier. */
-    if (scope->kind == (a_scope_kind)sck_class_struct_union) {
+    if (scope_is(scope, sck_class_struct_union) ||
+        scope_is(scope, sck_enum)) {
       a_type_ptr type_ptr = scope->variant.assoc_type;
       check_assertion(type_ptr != NULL);
       cache_identifier(cache, type_ptr->source_corresp.name, pos);

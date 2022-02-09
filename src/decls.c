@@ -13962,7 +13962,7 @@ specifier is restored.  dps describes the linkage-specification declaration.
       declaration(dps->function_definition_allowed,
                   dps->is_old_style_param_decl, dps->is_top_level_declaration,
                   /*marked_as_gnu_extension=*/FALSE, (a_param_id_ptr)NULL,
-                  &linkage_spec_range);
+                  &linkage_spec_range, dps);
       scope_stack_top().decl_parse_state = saved_dps;
       /* pop_name_linkage will already have been called in declaration
          (before advancing past the end of the declaration, because there
@@ -21439,41 +21439,47 @@ return_point:
 }  /* scan_nonmember_declaration */
 
 
-void declaration(a_boolean       function_definition_allowed,
-                 a_boolean       is_old_style_param_decl,
-                 a_boolean       is_top_level_declaration,
-                 a_boolean       marked_as_gnu_extension,
-                 a_param_id_ptr  param_id_list,
-                 a_source_range  *linkage_spec_range_ptr)
+void declaration(a_boolean              function_definition_allowed,
+                 a_boolean              is_old_style_param_decl,
+                 a_boolean              is_top_level_declaration,
+                 a_boolean              marked_as_gnu_extension,
+                 a_param_id_ptr         param_id_list,
+                 a_source_range         *linkage_spec_range_ptr,
+                 a_decl_parse_state_ptr dps)
 /*
 Wrapper function for scan_nonmember_declaration that sets up a declaration
-parse state with fields described by the corresponding given parameters.
+parse state with fields described by the corresponding given parameters.  If
+dps is non-NULL, use it instead of a locally stored copy.
 */
 {
-  a_decl_parse_state  dps;
+  a_decl_parse_state  local_dps, *pdps = &local_dps;
 
   db_enter(3, "declaration");
-  /* Initialize a structure tracking the state of declaration processing. */
-  init_decl_parse_state(&dps);
-  dps.function_definition_allowed = function_definition_allowed;
-  dps.is_top_level_declaration = is_top_level_declaration;
-  dps.marked_as_gnu_extension = marked_as_gnu_extension;
+  if (dps == NULL) {
+    /* Initialize a structure tracking the state of declaration processing. */
+    init_decl_parse_state(pdps);
+  } else {
+    pdps = dps;
+  }  /* if */
+  pdps->function_definition_allowed = function_definition_allowed;
+  pdps->is_top_level_declaration = is_top_level_declaration;
+  pdps->marked_as_gnu_extension = marked_as_gnu_extension;
   if (is_old_style_param_decl) {
-    dps.is_old_style_param_decl = TRUE;
-    dps.variant.param_id_list = param_id_list;
+    pdps->is_old_style_param_decl = TRUE;
+    pdps->variant.param_id_list = param_id_list;
   }  /* if */
   if (is_top_level_declaration &&
       depth_innermost_namespace_scope == depth_scope_stack) {
     /* decl-specifiers of namespace scope declarations are an implicit
        type context in C++20. */
-    dps.is_implicit_type_context = TRUE;
+    pdps->is_implicit_type_context = TRUE;
   }  /* if */
-  scan_nonmember_declaration(&dps, linkage_spec_range_ptr);
-  if (dps.sym != NULL &&
+  scan_nonmember_declaration(pdps, linkage_spec_range_ptr);
+  if (pdps->sym != NULL &&
       scope_stack_top().exporting_decl &&
-      source_corresp_entry_for_symbol(dps.sym)->name_linkage ==
+      source_corresp_entry_for_symbol(pdps->sym)->name_linkage ==
                                            (a_name_linkage_kind)nlk_internal) {
-    pos_error(ec_export_internal_linkage, &dps.declarator_pos);
+    pos_error(ec_export_internal_linkage, &pdps->declarator_pos);
   }  /* if */
   db_exit();
   return;

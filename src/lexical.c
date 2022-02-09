@@ -68,8 +68,9 @@ Return TRUE if tok is a token kind that is a literal constant.
 */
 #define is_literal_constant_token(tok)                                \
   (tok == tok_float_constant || tok == tok_int_constant ||            \
-   tok == tok_char_constant  || tok == tok_string_literal ||	      \
-   tok == tok_false          || tok == tok_true ||                   \
+   tok == tok_char_constant  || tok == tok_string_literal ||          \
+   tok == tok_false          || tok == tok_true ||                    \
+   tok == tok_aggr_constant  ||                                       \
    is_microsoft_tok_uuid(tok))
 
 
@@ -25265,6 +25266,7 @@ of characters added.
              token == tok_float_constant ||
              token == tok_string_literal ||
              token == tok_char_constant ||
+             token == tok_aggr_constant ||
              token == tok_ud_literal ||
              is_microsoft_tok_uuid(token)) {
     a_constant_ptr	constant;

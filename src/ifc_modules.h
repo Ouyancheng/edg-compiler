@@ -3079,6 +3079,9 @@ public:
                                ifc_SourceIdentifier  id,
                                ifc_Index             index,
                                ifc_SourceLocation    *locus);
+  void cache_string(a_token_cache_ptr  cache,
+                    ifc_StringIndex    string,
+                    ifc_SourceLocation *locus);
   void cache_class_definition(a_token_cache_ptr     cache,
                               an_ifc_DeclSort_Scope *decl);
   uint32_t try_cache_class_attributes_from_body(

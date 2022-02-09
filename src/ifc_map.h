@@ -991,9 +991,7 @@ IFC_DECL_END(ExprSort_HierarchyConversion)
 IFC_DECL_START(ExprSort_ProductTypeValue)
   IFC_DECL_FIELD(locus, SourceLocation)
   IFC_DECL_FIELD(type, TypeIndex)
-/* The IFC spec has this as a DeclIndex, however, as of IFC 0.33, this seems to
-   have changed to a TypeIndex. */
-  IFC_DECL_FIELD(class_decl, TypeIndex)
+  IFC_DECL_FIELD(structure, TypeIndex)
   IFC_DECL_FIELD(members, ExprIndex)
   IFC_DECL_FIELD(base_subobjects, ExprIndex)
 IFC_DECL_END(ExprSort_ProductTypeValue)
@@ -1009,6 +1007,7 @@ IFC_DECL_END(ExprSort_SumTypeValue)
 
 /* ExprSort::SubobjectValue */
 IFC_DECL_START(ExprSort_SubobjectValue)
+  IFC_DECL_FIELD(value, ExprIndex)
 IFC_DECL_END(ExprSort_SubobjectValue)
 
 /* ExprSort::ArrayValue */

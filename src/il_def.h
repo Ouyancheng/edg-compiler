@@ -919,6 +919,8 @@ enum a_token_kind_tag {
   tok_fixed_point_constant,
   tok_int_constant,
   tok_char_constant,
+  tok_aggr_constant,        /* Cannot come directly from source, but modules
+                               may produce such a thing. */
   tok_string_literal,
   tok_ud_literal,
   tok_last_literal_token_kind = tok_ud_literal,
@@ -1392,7 +1394,8 @@ EXTERN a_const_char
 		*token_names[(int)tok_last+1]
 #if VAR_INITIALIZERS
 = {"error", "identifier", "float constant", "fixed-point constant",
-   "int constant", "char constant", "string literal", "user-defined literal",
+   "int constant", "char constant", "aggregate constant",
+   "string literal", "user-defined literal",
    "end of source", "newline", "header name", "pp number", "digit sequence",
    "cpp quote", "ptr to member", "removed expr", "removed template body",
 #if MICROSOFT_EXTENSIONS_ALLOWED
