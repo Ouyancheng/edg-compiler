@@ -39947,7 +39947,7 @@ directive_start_pos points to the beginning of the directive (e.g., for
       ssep->kind != (a_scope_kind)sck_namespace &&
       ssep->kind != (a_scope_kind)sck_namespace_extension) {
     an_error_severity	severity = es_error;
-    /* Some versions of the Microsoft compiler allows an explicit instantiation
+    /* Some versions of the Microsoft compiler allow an explicit instantiation
        in class scope.  They can also appear in code rendered from IFC
        files. */
     if (microsoft_mode && scope_is(ssep, sck_class_struct_union)) {

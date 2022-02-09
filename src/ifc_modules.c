@@ -4484,8 +4484,8 @@ static void extract_matching_template_module_entities(
                                         a_module_entity_ptr  *p_end_templates,
                                         a_module_entity_ptr  *p_partial_specs)
 /*
-*p_mep points to a possibly empty list of module entities that doesn't contain
-templ_mep, but that shares its name.  Extract from the list all the templates
+*p_mep points to a possibly empty list of module entities that don't include
+templ_mep, but that share its name.  Extract from the list all the templates
 with a matching scope and set *p_templates to point to the list of extracted
 templates and *p_end_templates to the last element on that list (or NULL if
 none).  If p_partial_specs is non-NULL, also extract all the partial
@@ -4497,8 +4497,9 @@ specializations and set *p_partial_specs to point to those.
 
   while (*p_mep != NULL) {
     a_module_entity_ptr  mep = *p_mep;
-    /* Traverse the list of pending module entities, and select the one whose
-       scope matches that of *mep. */
+    /* Traverse the list of pending module entities, and select the ones whose
+       scope matches that of *templ_mep.  Among those, process templates and
+       partial specializations. */
     if (mep->scope == templ_mep->scope) {
       if (mep->variant.ifc_partition == ifc_decl_template) {
         /* A template: Move it to the other_decls list. */
@@ -4535,12 +4536,13 @@ a_boolean an_ifc_module::process_template_definition(
                                    a_boolean                 already_declared,
                                    a_boolean                 is_func_template)
 /*
-The given module entity pointer describes a template that has been declared
-but not yet defined.  idstp points to its IFC description structure. However,
-its definition, its explicit specializations, and/or partial specializations
-may still be stored in the IFC module.  Load those elements into the IL
-(presumably, to enable instantiation).  is_func_template is TRUE if this is
-called for a function template.
+The given module entity pointer describes a template stored in an IFC module
+file.  If already_declared is TRUE, a declaration has previously been
+processed.  However, its definition, its explicit specializations, and/or
+partial specializations may still be stored in the IFC module.  Load those
+elements into the IL (usually, to enable instantiation).  is_func_template
+is TRUE if this is called for a function template.  idstp points to the
+template's IFC description structure.
 */
 {
   a_boolean                 result = FALSE;
@@ -18692,7 +18694,8 @@ explicitly-instantiated entity and update kind with the associated entity kind.
     /* An explicit instantiation in a module means that the module clients can
        handle the equivalent of an "extern template" directive.  However, when
        importing a header unit (which should behave more like a #include) the
-       explicit instantiation directive should just that. */
+       explicit instantiation directive should remain an ordinary instantiation
+       directive. */
     if (is_header_unit(this->assoc_module_info)) options = TDO_NO_OPTIONS;
     explicit_instantiation(&dps, options, &template_kw_pos);
   }

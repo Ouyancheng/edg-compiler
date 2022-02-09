@@ -162,7 +162,7 @@ When processing a module entity, this points to a description of the entity in
 the ("binary") module file until the IL entry associated with the entity is
 created and made to point to the description.  (Be sure to save/clear/restore
 this variable in contexts that may trigger the creation of new IL entries
-before the actual module entity is represented.
+before the actual module entity is represented.)
 */
 EXTERN a_module_entity_ptr curr_module_entity;
 
