@@ -1,5 +1,29 @@
 Version 6.4
 
+2/9/22   [EDGcpfe/25034]
+Microsoft compatibility: Temporary elision
+
+Consider:
+
+  struct X {};
+  struct S {
+    S(S const&) = delete;  // (1)
+    S(X&);                 // (2)
+    void g() {
+      S(X{});              // (3) Previously an error.  Now okay.
+    }
+  };
+
+In Microsoft C++ mode, the front end previously treated the expression in line
+(3) as an invocation of the constructor in line (1) applied to the implicit
+conversion of X{} to S via a call to the constructor in line (2).  Since the
+constructor in line (1) is deleted, this resulted in an error.  Now, the call
+to the constructor in line (1) is elided and the example is accepted (with
+warnings since the example relies on the nonstandard behavior of binding an
+rvalue to a reference to non-const X).  That matches the behavior of the
+Microsoft compiler.
+
+
 2/9/22   [EDGcpfe/25028]
 Abort on constant-evaluation of default constructor call
 

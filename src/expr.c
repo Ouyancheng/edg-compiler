@@ -3731,25 +3731,25 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
         dip->is_explicit_cast = FALSE;
         handle_elided_copy_constructor(source_type, routine, source_pos);
         optimized = TRUE;
-      } else if (!microsoft_bugs && 
-                 (conv_routine = arg_match->conversion.routine) != NULL &&
-                 ((conv_routine->special_kind ==
-                                    (a_special_function_kind)sfk_constructor &&
+      } else if ((conv_routine = arg_match->conversion.routine) != NULL &&
+                 (!microsoft_bugs ||
+                  special_kind_is(conv_routine, sfk_constructor)) && 
+                 ((special_kind_is(conv_routine, sfk_constructor) &&
                    f_same_entities(parent_class_of(conv_routine),
                                    class_type)) ||
-                  (conv_routine->special_kind ==
-                                    (a_special_function_kind)sfk_conversion &&
+                  (special_kind_is(conv_routine, sfk_conversion) &&
                    ((conv_rout_type = f_skip_typerefs(conv_routine->type)),
-                    f_same_entities(f_skip_typerefs(conv_rout_type->
+                    f_same_entities(skip_typerefs(conv_rout_type->
                                                   variant.routine.return_type),
                                     class_type) &&
-                    conv_rout_type->variant.routine.extra_info->
-                                              value_returned_by_cctor)))) {
+                    rout_type_supp(conv_rout_type)
+                                                ->value_returned_by_cctor)))) {
         /* The argument will be a temporary of the right type after the
            user-defined conversion indicated for the argument is applied,
            and elision can be done on that. */
-        /* MSVC++ doesn't do this optimization, at least not in 7.1 and 8.0
-           beta. */
+        /* MSVC++ doesn't do this optimization if the user-defined conversion
+           calls a conversion operator (as opposed to a constructor), at least
+           not in 7.1 and 8.0 beta. */
         is_temp_after_conv = TRUE;
         arg_match->conversion.class_object_adjustment_required = FALSE;
         optimized = TRUE;
