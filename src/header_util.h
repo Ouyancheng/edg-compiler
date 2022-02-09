@@ -83,7 +83,9 @@ An implementation of an "optional" type.  This type allows representing
 a value that may or may not be present and is thus "optional."
 
 Before dereferencing to retrieve the value, consuming code should check that
-the optional has a stored value (via a call to "has_value").
+the optional has a stored value (via a call to "has_value").  In debug modes,
+this contract is strictly enforced to ensure that the calling logic doesn't
+accidentally forget a check.
 */
 template<typename a_Value_type>
 struct Opt {
@@ -98,8 +100,7 @@ struct Opt {
   inline Opt(const Opt<a_Value_type> &other);
   inline Opt(Opt<a_Value_type> &&other);
   inline ~Opt();
-  a_boolean has_value() const
-    { return storing_value; }
+  a_boolean has_value() const;
   /* Value retrieval functions. */
   inline const a_Value_type* operator->() const;
   inline const a_Value_type& operator*() const;
@@ -120,6 +121,12 @@ private:
                            value can be uninitialized, and construction
                            destruction is manually managed. */
   };
+#if DEBUG
+  a_boolean
+                value_presence_checked = FALSE;
+                        /* TRUE if there was a call to has_value for this
+                           instance of Opt, FALSE otherwise. */
+#endif /* DEBUG */
 };
 
 
@@ -167,14 +174,31 @@ one.
 
 
 template<typename a_Value_type>
+inline a_boolean Opt<a_Value_type>::has_value() const
+/*
+Return TRUE if this optional is storing a value, otherwise return FALSE.
+*/
+{
+#if DEBUG
+  /* In debug builds break constness to record that the presence of a value was
+     checked for before being accessed. */
+  const_cast<Opt<a_Value_type>*>(this)->value_presence_checked = TRUE;
+#endif /* DEBUG */
+  return storing_value;
+}  /* ~Opt */
+
+
+template<typename a_Value_type>
 inline const a_Value_type* Opt<a_Value_type>::operator->() const
 /*
 This function is only valid when the Opt is not empty.  The stored
 value is returned.
 */
 {
-  /* FIXME: We don't have a way to assert from this header. */
-  /* check_assertion(!empty); */
+  /* Check that the caller previously checked for a value. */
+  check_assertion_str(value_presence_checked, "missing call to has_value");
+  /* Check that a value is present. */
+  check_assertion_str(storing_value, "the optional was empty");
   return &stored_value;
 }  /* operator-> */
 
@@ -186,8 +210,10 @@ This function is only valid when the Opt is not empty.  The stored
 value is returned.
 */
 {
-  /* FIXME: We don't have a way to assert from this header. */
-  /* check_assertion(!empty); */
+  /* Check that the caller previously checked for a value. */
+  check_assertion_str(value_presence_checked, "missing call to has_value");
+  /* Check that a value is present. */
+  check_assertion_str(storing_value, "the optional was empty");
   return stored_value;
 }  /* operator* */
 
@@ -249,6 +275,11 @@ is returned.
   } else {
     this->clear();
   }  /* if */
+#if DEBUG
+  /* Reset the "checked" status as the value has been updated by an operation
+     where the previous answer to has_value may have changed. */
+  value_presence_checked = FALSE;
+#endif /* DEBUG */
   return *this;
 }  /* operator= */
 
@@ -269,6 +300,11 @@ is returned.
   } else {
     this->clear();
   }  /* if */
+#if DEBUG
+  /* Reset the "checked" status as the value has been updated by an operation
+     where the previous answer to has_value may have changed. */
+  value_presence_checked = FALSE;
+#endif /* DEBUG */
   return *this;
 }  /* operator= */
 
@@ -284,6 +320,11 @@ Reset the optional to an empty state.
     stored_value.~a_Value_type();
   }  /* if */
   storing_value = FALSE;
+#if DEBUG
+  /* Reset the "checked" status as the value has been updated by an operation
+     where the previous answer to has_value may have changed. */
+  value_presence_checked = FALSE;
+#endif /* DEBUG */
 }  /* clear */
 
 
