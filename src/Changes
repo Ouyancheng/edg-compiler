@@ -1,5 +1,28 @@
 Version 6.4
 
+2/9/22   [EDGcpfe/25028]
+Abort on constant-evaluation of default constructor call
+
+Consider:
+
+  struct V {
+    constexpr V(): i(0) {}
+    constexpr V(const V &v): i(v.i) {}
+    int i;
+  };
+  struct C { V v; };
+  struct X { C c[2]; };
+  X g() {
+    X x;  // Previously triggered an abort.  Now okay.
+    return x;
+  }
+
+While attempting to constant-evaluate default construction of the local
+variable, the front end triggered an abort due to a null-pointer indirection.
+That regression, introduced by the changes for EDGcpfe/22130,EDGcpfe/24225 in
+version 6.3, is now fixed.
+
+
 2/9/22   [EDGcpfe/25050]
 Static initialization and reinterpret_cast
 
