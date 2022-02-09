@@ -12926,7 +12926,7 @@ already contain the parameter types.  locus is the position of the function
 declaration.
 */
 {
-  auto cache_name_fn = [this, cache, name, locus](a_source_position_ptr pos) {
+  auto cache_name_fn = [cache, name, locus](a_source_position_ptr pos) {
     EDG_PREFIX::cache_name(cache, name, locus);
   };
   cache_function_decl(cache, is_class_member, is_dtor, access,
