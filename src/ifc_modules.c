@@ -11644,9 +11644,8 @@ this is needed.
     case ifc_TypeSort_Forall:
       { an_ifc_TypeSort_Forall itsfa, *itsfap;
         itsfap = get_TypeSort_Forall(&itsfa);
-        /* FIXME: Is this correct, or do we need to inspect itsfap->subject to
-           determine whether we should be caching this as a template head? */
         cache_template_head(cache, itsfap->chart, &pos);
+        cache_type(cache, itsfap->subject, locus);
       }
       break;
     case ifc_TypeSort_Unaligned:
@@ -13881,8 +13880,8 @@ Add the tokens corresponding to the given declaration (decl) to cache.
               cache_token(cache, tok_typename, &pos);
               cache_token(cache, tok_ellipsis, &pos);
               cache_token(cache, tok_gt, &pos);
+              cache_token(cache, tok_typename, &pos);
             }  /* if */
-            cache_token(cache, tok_typename, &pos);
             break;
           case ifc_ParameterSort_Object:
             /* This is a function parameter rather than a template parameter.
