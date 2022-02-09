@@ -4529,8 +4529,12 @@ if no qualifier is actually put out).  options gives a set of options for
 gen_name.  See gen_name for the meaning of need_closing_paren.
 */
 {
-  a_type_ptr actual_type_used;
+  a_type_ptr  actual_type_used;
+  a_boolean   saved_suppress_template_args = octl.suppress_template_args;
 
+  /* The flag octl.suppress_template_args applies to the qualified name itself,
+     not the qualifier. */
+  octl.suppress_template_args = FALSE;
   /* Ignore anonymous union levels. */
   while (is_immediate_class_type(class_type) &&
          (class_type_supp(class_type)->anonymous_union_kind ==
@@ -4638,6 +4642,7 @@ gen_name.  See gen_name for the meaning of need_closing_paren.
     }  /* if */
     write_tok_str("::");
   }  /* if */
+  octl.suppress_template_args = saved_suppress_template_args;
   return actual_type_used;
 }  /* gen_class_qualifier */
 
@@ -22404,7 +22409,8 @@ handle_as_definition:
         suppress_inline_kwd = TRUE;
       }  /* if */
       if (rout->is_template_function && rout->is_prototype_instantiation &&
-          curr_name_context_is_a_class() && rout->assoc_template != NULL) {
+          curr_name_context_is_a_class() && rout->assoc_template != NULL &&
+          !special_kind_is(rout, sfk_deduction_guide)) {
         /* There is no definition in the IL for the prototype instantiation
            of the function (presumably because prototype instantiations
            were deferred and the function was never instantiated), so it
