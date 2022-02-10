@@ -15401,6 +15401,9 @@ parameters.
                                          templ_param_list, source_pos,
                                          options, copy_error,
                                          ctws_state);
+        if (microsoft_mode && (ptp->qualifiers & TQ_RESTRICT)) {
+          tp = make_qualified_type(tp, TQ_RESTRICT);
+        }  /* if */
       }  /* if */
       declared_type = tp;
       if (tp != ptype) {
@@ -15989,6 +15992,9 @@ a pointer over a reference type or creating an array of references.
             tp = copy_type_with_substitution(ptype, templ_arg_list,
                                              templ_param_list, source_pos,
                                              options, copy_error, ctws_state);
+            if (microsoft_mode && (ptp->qualifiers & TQ_RESTRICT)) {
+              tp = make_qualified_type(tp, TQ_RESTRICT);
+            }  /* if */
           }  /* if */
           if (tp != ptype || tp == NULL) {
             /* A substitution was made, so a new routine type will be required.
