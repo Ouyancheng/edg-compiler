@@ -4138,6 +4138,7 @@ after a call to this routine.
       /* exception_spec_decl_seq is used in some g++ modes to limit visibility
          of names used in exception specification to those previously declared
          in a class.  Clang appears to emulate that behavior in system headers
+         for the identifier "swap" appearing in the std::pair implementation
          (presumably to be able to consume certain GNU standard library
          headers). */
       lookup_state.decl_seq = scope_stack_top().exception_spec_decl_seq;
