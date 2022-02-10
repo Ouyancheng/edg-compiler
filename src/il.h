@@ -3555,42 +3555,6 @@ When called a second time it restores the list to its original state.
     (list) = reverse_simple_list((list));                                     \
   }  /* if */
 
-/*
-Indication of whether or not code is reachable from the code immediately
-preceding.
-*/
-typedef struct a_reachability_summary {
-  a_boolean	reachable;
-			/* Code is reachable, as determined by the front
-			   end. */
-  a_boolean	reachable_considering_hints;
-			/* Code is reachable, as determined by the front
-			   end and modified by user hints in the code. */
-  a_boolean	suppress_unreachable_warning;
-			/* In an unreachable code section, suppress the
-			   warning about unreachable code (because it has
-			   already been issued, or because of a lint-style
-			   comment). */
-} a_reachability_summary;
-
-/*
-Set var to indicate that the associated code is reachable.
-*/
-#define set_reachable(var)                                            \
-{ (var).reachable = TRUE;                                             \
-  (var).reachable_considering_hints = TRUE;                           \
-  (var).suppress_unreachable_warning = FALSE;                         \
-}  /* set_reachable */
-
-/*
-Set var to indicate that the associated code is unreachable.
-*/
-#define set_unreachable(var)                                          \
-{ (var).reachable = FALSE;                                            \
-  (var).reachable_considering_hints = FALSE;                          \
-  (var).suppress_unreachable_warning = FALSE;                         \
-}  /* set_unreachable */
-
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 

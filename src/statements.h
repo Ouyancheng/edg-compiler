@@ -28,6 +28,25 @@ statements.h -- Declarations relating to statements.c (having to do with
 /* Conditionally open the "edg" namespace. */
 BEGIN_EDG_NAMESPACE
 
+/*
+Indication of whether or not code is reachable from the code immediately
+preceding.
+*/
+typedef struct a_reachability_summary {
+  a_boolean	reachable;
+			/* Code is reachable, as determined by the front
+			   end. */
+  a_boolean	reachable_considering_hints;
+			/* Code is reachable, as determined by the front
+			   end and modified by user hints in the code. */
+  a_boolean	suppress_unreachable_warning;
+			/* In an unreachable code section, suppress the
+			   warning about unreachable code (because it has
+			   already been issued, or because of a lint-style
+			   comment). */
+} a_reachability_summary;
+
+
 typedef struct a_control_flow_descr *a_control_flow_descr_ptr;
 /*
 a_control_flow_descr is an entry used in tracking gotos, labels, and

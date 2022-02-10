@@ -121,6 +121,24 @@ static unsigned long
 		num_control_flow_descrs_allocated;
 #endif /* DEBUG */
 
+/*
+Set var to indicate that the associated code is reachable.
+*/
+#define set_reachable(var)                                            \
+{ (var).reachable = TRUE;                                             \
+  (var).reachable_considering_hints = TRUE;                           \
+  (var).suppress_unreachable_warning = FALSE;                         \
+}  /* set_reachable */
+
+/*
+Set var to indicate that the associated code is unreachable.
+*/
+#define set_unreachable(var)                                          \
+{ (var).reachable = FALSE;                                            \
+  (var).reachable_considering_hints = FALSE;                          \
+  (var).suppress_unreachable_warning = FALSE;                         \
+}  /* set_unreachable */
+
 
 /*
 Declarations needed because of forward references:
@@ -4063,6 +4081,7 @@ The syntax is:
                              *cicip_to_create = NULL, *cicip_to_use = NULL;
   a_token_sequence_number    start_tsn;
   a_source_position          expr_pos;
+  a_reachability_summary     saved_reachability = curr_reachability;
 
   db_enter(3, "if_statement");
 
@@ -4225,11 +4244,6 @@ The syntax is:
                                     cicip_to_use->else_handle)) {
     /* We were able to skip directly to the "else" token of a constexpr if. */
     empty_statement();
-    /* Restore reachability information from previous scan (but only if the
-       code we're executing is currently reachable). */
-    if (curr_reachability.reachable) {
-      curr_reachability = cicip_to_use->if_clause_reachability;
-    }  /* if */
   } else {
     a_boolean  saved_in_consteval_context =
                                        scope_stack_top().in_consteval_context;
@@ -4252,11 +4266,12 @@ The syntax is:
     }  /* if */
     dependent_statement_of_if();
     scope_stack_top().in_consteval_context = saved_in_consteval_context;
-    remove_stop_token(tok_else);
-    if (cicip_to_create != NULL) {
-      /* Save reachability for later use in real instantiations. */
-      cicip_to_create->if_clause_reachability = curr_reachability;
+    if (is_constexpr_if && !scope_stack_top().in_discarded_statement) {
+      /* The reachability of the constexpr if should be the reachability of
+         the non-discarded branch (the "if" branch in this case). */
+      saved_reachability = curr_reachability;
     }  /* if */
+    remove_stop_token(tok_else);
   }  /* if */
   /* Scan "else" and another statement if they appear. */
   if (curr_token == tok_else) {
@@ -4299,11 +4314,6 @@ The syntax is:
                                       cicip_to_use->ending_handle)) {
       /* We were able to skip directly to the final token of a constexpr if. */
       empty_statement();
-      /* Restore reachability information from previous scan (but only if the
-         code we're executing is currently reachable). */
-      if (curr_reachability.reachable) {
-        curr_reachability = cicip_to_use->else_clause_reachability;
-      }  /* if */
     } else {
       a_boolean  saved_in_consteval_context =
                                        scope_stack_top().in_consteval_context;
@@ -4312,9 +4322,10 @@ The syntax is:
       start_stmt_clause(sssep);
       dependent_statement_of_if();
       scope_stack_top().in_consteval_context = saved_in_consteval_context;
-      if (cicip_to_create != NULL) {
-        /* Save reachability for later use in real instantiations. */
-        cicip_to_create->else_clause_reachability = curr_reachability;
+      if (is_constexpr_if && !scope_stack_top().in_discarded_statement) {
+        /* The reachability of the constexpr if should be the reachability of
+           the non-discarded branch (the "else" branch in this case). */
+        saved_reachability = curr_reachability;
       }  /* if */
     }  /* if */
     /* There should always be a non-NULL else-statement pointer. */
@@ -4343,6 +4354,11 @@ The syntax is:
   }  /* if */
   /* Pop the structured statement stack. */
   pop_stmt_stack();
+  if (is_constexpr_if && !is_template_dependent_context()) {
+    /* After an "if constexpr" statement, the reachability is the same as the
+       reachability at the end of the non-discarded branch. */
+    curr_reachability = saved_reachability;
+  }  /* if */
   /* If a label appeared in the context of the statement that was just
      terminated, it may be appropriate to push a new object lifetime for
      the scope being resumed. */

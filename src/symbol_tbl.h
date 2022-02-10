@@ -2000,13 +2000,6 @@ typedef struct a_constexpr_if_cache_info {
 		ending_handle;
 			/* The cached token handle of the closing brace of
 			   constexpr if. */
-  a_reachability_summary
-		if_clause_reachability,
-		else_clause_reachability;
-			/* During the initial scan of the constexpr if the
-			   reachability at the end of the if and else clauses
-			   are captured here so that when the if/else is
-			   later skipped the reachability can be restored. */
 } a_constexpr_if_cache_info;
 
 

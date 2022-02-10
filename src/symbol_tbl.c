@@ -3266,8 +3266,6 @@ Initialize the fields of a constexpr if cache information entry.
   cicip->token_cache = NULL;
   cicip->else_handle = NO_CACHED_TOKEN_HANDLE;
   cicip->ending_handle = NO_CACHED_TOKEN_HANDLE;
-  set_unreachable(cicip->if_clause_reachability);
-  set_unreachable(cicip->else_clause_reachability);
 }  /* clear_constexpr_if_cache_info */
 
 
