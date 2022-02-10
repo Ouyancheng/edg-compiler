@@ -13958,11 +13958,15 @@ specifier is restored.  dps describes the linkage-specification declaration.
          defined and not just declared," and of the example following it,
          where without the braces the variable is not defined. */
       a_decl_parse_state  *saved_dps = scope_stack_top().decl_parse_state;
+      a_decl_parse_state  local_dps;
+      init_decl_parse_state(&local_dps);
       scope_stack_top().decl_parse_state = dps;
       declaration(dps->function_definition_allowed,
                   dps->is_old_style_param_decl, dps->is_top_level_declaration,
                   /*marked_as_gnu_extension=*/FALSE, (a_param_id_ptr)NULL,
-                  &linkage_spec_range, dps);
+                  &linkage_spec_range, &local_dps);
+      check_assertion(dps->sym == NULL);
+      dps->sym = local_dps.sym;
       scope_stack_top().decl_parse_state = saved_dps;
       /* pop_name_linkage will already have been called in declaration
          (before advancing past the end of the declaration, because there
