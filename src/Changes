@@ -57,14 +57,15 @@ Consider:
   C *p = reinterpret_cast<C*>(x);  // Previously dynamic initialization in
                                    // C++11 mode.  Now static initialization.
 
-In C++11 (and later), the evaluation of a reinterpret_cast causes an expression
-not to be a so-called "core constant expression".  Hence, the initializer of p
-is not a constant expression and thus p has "dynamic initialization" according
-to the standard.  However, implementations are permitted to implement this
-initialization as a static ("constant") initialization, and many
-implementations do.  The front end now handles this reinterpret_cast specially
-in this context to produce a constant initializer even in C++11 (and later)
-modes.  (See also the changes for EDGcpfe/22057, which handle a related case.)
+In C++11 (and later), the evaluation of a reinterpret_cast causes an
+expression not to be a so-called "core constant expression".  Hence, the
+initializer of p is not a constant expression and thus p has "dynamic
+initialization" according to the standard.  However, implementations are
+permitted to implement this initialization as a static ("constant")
+initialization, and many implementations do.  The front end now handles this
+reinterpret_cast specially in this context to produce a constant initializer
+even in C++11 (and later) modes.  (See also the changes for EDGcpfe/22057,
+which handle a related case.)
 
 
 2/8/22   [EDGcpfe/25052]
