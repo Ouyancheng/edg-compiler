@@ -16057,7 +16057,7 @@ none).
     /* Create a using-decl entry to represent this declaration in
        the IL. */
     a_using_decl_ptr  udp = make_using_decl(fund_sym, &decl_pos,
-                                            depth_scope_stack);
+                                            decl_scope_level);
     /* Record the namespace (or class) that was actually specified in the
        qualified name in the source.  Nonmember using-declarations generally
        refer to nonmember entities, but in Microsoft bugs mode a nonmember
@@ -16096,7 +16096,7 @@ none).
     new_sym = enter_namespace_projection_symbol(fund_sym,
                                                 /*is_using_decl=*/TRUE,
                                                 &locator,
-                                                depth_scope_stack,
+                                                decl_scope_level,
                                                 suppress_redecl_error);
     /* If is_list is TRUE, there will be overloading on the next
        iteration of this loop. */
@@ -16126,7 +16126,7 @@ none).
     /* Add a new symbol to the overload set. */
     new_sym = make_namespace_projection_symbol(fund_sym,
                                                &locator.source_position,
-                                               depth_scope_stack);
+                                               decl_scope_level);
     overload_sym = add_symbol_to_overload_list(new_sym, overload_sym,
                                                /*use_namespace=*/FALSE,
                                                (a_namespace_ptr)NULL);
