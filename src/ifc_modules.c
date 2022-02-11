@@ -1052,12 +1052,12 @@ struct an_ifc_Node {
   an_ifc_Node(an_ifc_Node_type node_val)
     : storing_value(TRUE), node(node_val)
     {}
-#if DEBUG
+#if CHECKING
   /* A default state is provided for forward declaration.  This struct
      shouldn't remain "uninitialized." */
   ~an_ifc_Node()
     { check_assertion(storing_value || node_ptr != NULL); }
-#endif /* DEBUG */
+#endif /* CHECKING */
 
   inline const an_ifc_Node_type *operator->() const;
 private:
@@ -13196,9 +13196,9 @@ Add the tokens corresponding to the given partial specialization declaration
           an_ifc_DeclSort_Scope idss, *idssp;
 
           idssp = get_DeclSort_Scope(&idss);
-#if DEBUG
+#if CHECKING
           validate_is_class_type(idssp->type);
-#endif /* DEBUG */
+#endif /* CHECKING */
           { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idssp](
                                               a_source_position_ptr decl_pos) {
@@ -13251,7 +13251,7 @@ Add the tokens corresponding to the given partial specialization declaration
   }
 }  /* cache_decl_partial_specialization */
 
-#if DEBUG
+#if CHECKING
 
 template<typename an_ifc_DeclSort_T>
 static void assert_in_class_scope(an_ifc_module     *mod,
@@ -13269,7 +13269,7 @@ appears within a class scope.
   check_assertion(is_class_scope(*opt_home_scope));
 }  /* assert_in_class_scope */
 
-#endif /* DEBUG */
+#endif /* CHECKING */
 
 void an_ifc_module::cache_decl_specialization(
                                        a_token_cache_ptr              cache,
@@ -13333,9 +13333,9 @@ indexed in the IFC by decl_idx) to cache.
           an_ifc_DeclSort_Scope idss, *idssp;
 
           idssp = get_DeclSort_Scope(&idss);
-#if DEBUG
+#if CHECKING
           validate_is_class_type(idssp->type);
-#endif /* DEBUG */
+#endif /* CHECKING */
           { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idssp](
                                               a_source_position_ptr decl_pos) {
@@ -13469,9 +13469,9 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 
           check_assertion(is_instantiation);
           idsmp = get_DeclSort_Method(&idsm);
-#if DEBUG
+#if CHECKING
           assert_in_class_scope(this, idsmp);
-#endif /* DEBUG */
+#endif /* CHECKING */
           { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idsmp](
                                               a_source_position_ptr decl_pos) {
@@ -13504,9 +13504,9 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 
           check_assertion(is_instantiation);
           idscp = get_DeclSort_Constructor(&idsc);
-#if DEBUG
+#if CHECKING
           assert_in_class_scope(this, idscp);
-#endif /* DEBUG */
+#endif /* CHECKING */
           { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idscp](
                                               a_source_position_ptr decl_pos) {
@@ -18796,7 +18796,7 @@ explicitly-instantiated entity and update kind with the associated entity kind.
   return get_il_entity(dps.sym, kind);
 }  /* parse_cached_explicit_instantiation */
 
-#if DEBUG
+#if CHECKING
 
 void an_ifc_module::validate_is_class_type(ifc_TypeIndex type)
 /*
@@ -18817,6 +18817,9 @@ Validate that the given type is a fundamental type representing a class.
   }  /* switch */
 }  /* validate_is_class_type */
 
+#endif /* CHECKING */
+
+#if DEBUG
 
 void an_ifc_module::db_ifc_file_header() const
 /*

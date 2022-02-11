@@ -3258,8 +3258,10 @@ public:
                                   a_token_cache_ptr              cache,
                                   an_ifc_DeclSort_Specialization *decl,
                                   a_byte_il_entry_kind           *kind);
-#if DEBUG
+#if CHECKING
   void validate_is_class_type(ifc_TypeIndex type);
+#endif /* CHECKING */
+#if DEBUG
   void db_ifc_file_header() const;
   void db_ifc_scope(ifc_ScopeIndex scope);
   void db_ifc_declaration(ifc_DeclIndex decl);

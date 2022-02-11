@@ -16038,7 +16038,7 @@ a pointer over a reference type or creating an array of references.
             goto make_new_type;
           }  /* if */
         }  /* if */
-#if EXPENSIVE_CHECKING
+#if DEBUG && EXPENSIVE_CHECKING
         /* The return type is not substituted when doing partial ordering. */
         if (!is_partial_order_check && !rtsp->trailing_return_type) {
           /* Because we check for a dependent return type above, we should
@@ -16060,7 +16060,7 @@ a pointer over a reference type or creating an array of references.
                                       "unexpected difference in return type");
           }  /* if */
         }  /* if */
-#endif /* EXPENSIVE_CHECKING */
+#endif /* DEBUG && EXPENSIVE_CHECKING */
         /* Falling through to here means that no substitutions are required
            for this type.  Therefore it can simply be reused. */
         new_type = type;
