@@ -83,9 +83,9 @@ An implementation of an "optional" type.  This type allows representing
 a value that may or may not be present and is thus "optional."
 
 Before dereferencing to retrieve the value, consuming code should check that
-the optional has a stored value (via a call to "has_value").  In debug modes,
-this contract is strictly enforced to ensure that the calling logic doesn't
-accidentally forget a check.
+the optional has a stored value (via a call to "has_value").  When checking is
+enabled, this contract is strictly enforced to ensure that the calling logic
+doesn't accidentally forget a check.
 */
 template<typename a_Value_type>
 struct Opt {
@@ -121,12 +121,12 @@ private:
                            value can be uninitialized, and construction
                            destruction is manually managed. */
   };
-#if DEBUG
+#if CHECKING
   a_boolean
                 value_presence_checked = FALSE;
                         /* TRUE if there was a call to has_value for this
                            instance of Opt, FALSE otherwise. */
-#endif /* DEBUG */
+#endif /* CHECKING */
 };
 
 
@@ -179,11 +179,11 @@ inline a_boolean Opt<a_Value_type>::has_value() const
 Return TRUE if this optional is storing a value, otherwise return FALSE.
 */
 {
-#if DEBUG
+#if CHECKING
   /* In debug builds break constness to record that the presence of a value was
      checked for before being accessed. */
   const_cast<Opt<a_Value_type>*>(this)->value_presence_checked = TRUE;
-#endif /* DEBUG */
+#endif /* CHECKING */
   return storing_value;
 }  /* ~Opt */
 
@@ -275,11 +275,11 @@ is returned.
   } else {
     this->clear();
   }  /* if */
-#if DEBUG
+#if CHECKING
   /* Reset the "checked" status as the value has been updated by an operation
      where the previous answer to has_value may have changed. */
   value_presence_checked = FALSE;
-#endif /* DEBUG */
+#endif /* CHECKING */
   return *this;
 }  /* operator= */
 
@@ -300,11 +300,11 @@ is returned.
   } else {
     this->clear();
   }  /* if */
-#if DEBUG
+#if CHECKING
   /* Reset the "checked" status as the value has been updated by an operation
      where the previous answer to has_value may have changed. */
   value_presence_checked = FALSE;
-#endif /* DEBUG */
+#endif /* CHECKING */
   return *this;
 }  /* operator= */
 
@@ -320,11 +320,11 @@ Reset the optional to an empty state.
     stored_value.~a_Value_type();
   }  /* if */
   storing_value = FALSE;
-#if DEBUG
+#if CHECKING
   /* Reset the "checked" status as the value has been updated by an operation
      where the previous answer to has_value may have changed. */
   value_presence_checked = FALSE;
-#endif /* DEBUG */
+#endif /* CHECKING */
 }  /* clear */
 
 
