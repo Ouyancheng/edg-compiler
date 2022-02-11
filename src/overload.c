@@ -12472,10 +12472,12 @@ wondering if it's available.
       if (is_error_operand(result)) {
         okay = FALSE;
       } else if (!in_potential_constant_constexpr_context() &&
+                 !(microsoft_mode || gpp_mode) &&
                  construct_not_allowed_in_cpp11_constant_expr(
                                                        ec_this_not_constant,
                                                        member_pos)) {
-        /* Use of "this" not allowed in C++11 constant expressions. */
+        /* Use of "this" not allowed in C++11 constant expressions, but
+           GCC and MSVC do permit it. */
         conv_to_error_operand(result);
         okay = FALSE;
       }  /* if */

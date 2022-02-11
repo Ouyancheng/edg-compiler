@@ -1,5 +1,26 @@
 Version 6.4
 
+2/11/22  [EDGcpfe/22972,EDGcpfe/25039]
+GNU and Microsoft C++ compatibility: "this" in constant expression contexts
+
+GCC and MSVC appear to accept the use of "this" in constant expression contexts
+even when the C++ standard doesn't permit it.  For example:
+
+  struct C { static int const value = 42; };
+  struct S {
+    C *p;
+    int g(int x) {
+      switch (x) {
+        case p->value: return 1;  // Now accepted in Microsoft and GNU modes.
+        default: return 0;
+      }
+    }
+};
+
+The front end now more closely emulates that behavior in its respective GNU and
+Microsoft C++ modes.
+
+
 2/11/22  [EDGcpfe/25066]
 --no_il_lowering and IL_SHOULD_BE_WRITTEN_TO_FILE
 
