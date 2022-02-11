@@ -50,9 +50,9 @@ typedef enum /*an_option_kind*/ {
   optk_C_dialect_pcc,
   optk_list_makefile_dependencies,
   optk_list_include_files,
-#if DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE
+#if DO_IL_LOWERING
   optk_write_unlowered_il,
-#endif /* DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE */
+#endif /* DO_IL_LOWERING */
 #if NEED_IL_DISPLAY
   optk_il_display,
 #endif /* NEED_IL_DISPLAY */

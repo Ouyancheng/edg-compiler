@@ -247,11 +247,11 @@ Initialize the option information table.
   add_option_description(optk_list_include_files, "trace_includes", 'H',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_none);
-#if DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE
+#if DO_IL_LOWERING
   add_option_description(optk_write_unlowered_il, "no_il_lowering", 'N',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
                          pchek_command_line);
-#endif /* DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE */
+#endif /* DO_IL_LOWERING */
 #if NEED_IL_DISPLAY
   add_option_description(optk_il_display, "il_display", '\0',
                          /*value=*/TRUE, /*arg_required=*/FALSE,
@@ -9892,7 +9892,7 @@ Process the arguments on the command line that invoked the compiler.
         list_included_files = TRUE;
         list_makefile_dependencies = FALSE;
         break;
-#if DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE
+#if DO_IL_LOWERING
       case optk_write_unlowered_il:
 	/* Suppress IL lowering and write an unlowered IL file. */
         check_assertion(opt_value == TRUE);
@@ -9900,7 +9900,7 @@ Process the arguments on the command line that invoked the compiler.
         suppress_back_end = TRUE;
         /* Note that suppress_il_file_write is not set. */
 	break;
-#endif /* DO_IL_LOWERING && IL_SHOULD_BE_WRITTEN_TO_FILE */
+#endif /* DO_IL_LOWERING */
 #if NEED_IL_DISPLAY
       case optk_il_display:
         /* Display IL before back end processing. */

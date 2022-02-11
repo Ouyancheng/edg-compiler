@@ -1,5 +1,13 @@
 Version 6.4
 
+2/11/22  [EDGcpfe/25066]
+--no_il_lowering and IL_SHOULD_BE_WRITTEN_TO_FILE
+
+Previously the --no_il_lowering command-line option was only available in
+configurations where IL_SHOULD_BE_WRITTEN_TO_FILE was TRUE.  That restriction
+has been lifted.
+
+
 2/10/22  [EDGcpfe/24993]
 Regression on folded GNU statement expression
 
