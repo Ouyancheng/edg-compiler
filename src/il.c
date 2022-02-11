@@ -24294,23 +24294,33 @@ with any statement expression.
          entries even though they were removed from the main list. */
       a_statement_ptr  stmt = expr->variant.statement;
       a_block_ptr      block = stmt->variant.block.extra_info;
-      a_scope_ptr      scope = block->assoc_scope,
+      a_scope_ptr      scope = block->assoc_scope, last_scope = NULL,
                        parent = scope != NULL ? scope->parent : NULL;
+      a_boolean        update_last_scope = FALSE;
       if (parent != NULL) {
         a_scope_ptr  *p_sp = &parent->scopes;
         if (*p_sp == NULL && parent->depth_in_scope_stack != NO_SCOPE_DEPTH) {
           /* In most cases, the scopes list is still pointed to by the scope
              stack instead of by the IL scope entry. */
           p_sp = &scope_stack[parent->depth_in_scope_stack].first_scope;
+          /* The scope_stack also has a last_scope pointer that needs to be
+             updated if it points to the scope that will be removed. */
+          if (scope_stack[parent->depth_in_scope_stack].last_scope == scope) {
+            update_last_scope = TRUE;
+          }  /* if */
         }  /* if */
         while (*p_sp != NULL) {
           if (*p_sp == scope) {
             *p_sp = scope->next;
             break;
           } else {
-            p_sp = &(*p_sp)->next;
+            last_scope = *p_sp;
+            p_sp = &last_scope->next;
           }  /* if */
         }  /* while */
+        if (update_last_scope) {
+          scope_stack[parent->depth_in_scope_stack].last_scope = last_scope;
+        }  /* if */
       }  /* if */
       /* Remove the list of source sequence entries spanning this statement
          expression. */

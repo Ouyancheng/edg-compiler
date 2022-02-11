@@ -1,5 +1,25 @@
 Version 6.4
 
+2/10/22  [EDGcpfe/24993]
+Regression on folded GNU statement expression
+
+The changes for EDGcpfe/23803 introduced a regression in version 6.3 of the
+front end, causing it to sometimes corrupt the list of scopes under a block
+scopes if a folded GNU statement expression appeared in that block scope.  This
+manifested as an IL write-read internal error.  For example:
+
+  void g(int);
+  void f(int a) {
+    g(({ int x = a; x; }));
+    g(({ int y = 0; y; }));  // This GNU statement expression is folded,
+    if (1) { int b; }
+  }
+
+In this example, the second GNU statement expression is folded, but that
+process caused the block scope containing "int b;" to be dropped from its
+scopes list.  That is now fixed.
+
+
 2/10/22  [EDGcpfe/25036]
 Regression on templates with __restrict parameters in Microsoft mode
 
