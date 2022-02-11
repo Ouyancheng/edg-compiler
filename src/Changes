@@ -5,7 +5,7 @@ Regression on folded GNU statement expression
 
 The changes for EDGcpfe/23803 introduced a regression in version 6.3 of the
 front end, causing it to sometimes corrupt the list of scopes under a block
-scopes if a folded GNU statement expression appeared in that block scope.  This
+scope if a folded GNU statement expression appeared in that block scope.  This
 manifested as an IL write-read internal error.  For example:
 
   void g(int);
@@ -16,8 +16,9 @@ manifested as an IL write-read internal error.  For example:
   }
 
 In this example, the second GNU statement expression is folded, but that
-process caused the block scope containing "int b;" to be dropped from its
-scopes list.  That is now fixed.
+process caused the block scope B containing "int b;" to be dropped from the
+list of scopes B belongs to (which is a list associated with the top-level
+function scope of f).  That is now fixed.
 
 
 2/10/22  [EDGcpfe/25036]
