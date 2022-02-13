@@ -1,5 +1,26 @@
 Version 6.4
 
+2/13/22  [EDGcpfe/25068]
+Command-line option to dump keyword-style command-line options
+
+To allow, for example, the bash "complete" command to be used to complete
+front end command-line options, the --dump_command_options has been added
+to the front end.
+
+Using this option with bash (for example) say:
+
+  complete -W "`$EDG_BASE/bin/edgcpfe --dump_comm`" edgcpfe
+
+This allows (modulo possible configuration differences) you to type
+"edgcpfe --no_v<tab><tab>" and have displayed:
+
+  --no_variadic_macros     --no_variadic_templates  --no_vla
+
+This was added to the front end rather than eccp so that this could be used
+by those who don't use eccp.  This functionality can be used with eccp (or
+other drivers) by just replacing edgcpfe with eccp in the "complete" command.
+
+
 2/11/22  [EDGcpfe/22972,EDGcpfe/25039]
 GNU and Microsoft C++ compatibility: "this" in constant expression contexts
 

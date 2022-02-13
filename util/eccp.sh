@@ -723,6 +723,7 @@ check_abbreviation()
 --diag_suppress
 --diag_warning
 --digit_separators
+--dump_command_options
 --dump_configuration
 --dump_legacy_as_target
 --display_error_number
@@ -1655,6 +1656,7 @@ process_option()
          --lambdas | \
          --no_lambdas | \
          --dump_configuration | \
+         --dump_command_options \
          --signed_bit_fields | \
          --unsigned_bit_fields | \
          --check_concatenations | \
@@ -1753,6 +1755,7 @@ process_option()
           ;;
         -v | --version | \
         --dump_configuration | \
+        --dump_command_options \
         --dump_legacy_as_target)
           # These options don't require a file name.
           source_file_name_optional=1

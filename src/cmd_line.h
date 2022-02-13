@@ -362,6 +362,7 @@ typedef enum /*an_option_kind*/ {
   optk_check_unicode_security,
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
   optk_old_id_chars,
+  optk_dump_command_options,
   optk_last		/* Must be last. */
 } an_option_kind;
 

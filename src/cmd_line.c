@@ -1674,6 +1674,9 @@ Initialize the option information table.
   add_option_description(optk_old_id_chars, "no_old_id_chars", '\0',
                          /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_dump_command_options, "dump_command_options",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_none);
 }  /* initialize_option_descriptions */
 
 
@@ -9703,6 +9706,26 @@ file.
 }  /* dump_configuration_macros */
 #endif /* DUMP_CONFIG_ENABLED */
 
+
+static void dump_command_options(void)
+/*
+Output all of the command-line options that can be specified using the
+--name style.  This is output stdout to make it simple to use with
+things like the bash complete command.  The "--" is included to simplify
+its use in such cases.
+*/
+{
+  an_option_description_ptr odp = NULL;
+  int                       n;
+
+  for (n = 0; n < option_descriptions_used; ++n) {
+    odp = &option_descriptions[n];
+    if (odp->keyword) {
+      printf("--%s ", odp->keyword);
+    }  /* if */
+  }  /* for */
+}  /* dump_command_options */
+
 static a_boolean
                 C_dialect_has_been_set;
                         /* Flag that is TRUE if the C_dialect has been
@@ -11334,7 +11357,13 @@ enable_microsoft_mode:
       case optk_old_id_chars:
         old_id_chars = opt_value;
         break;
-      default:
+      case optk_dump_command_options:
+        /* Display all of the command-line options that can be specified
+           using the --name format. */
+        dump_command_options();
+        source_file_name_optional = TRUE;
+        break; 
+     default:
         /* It should not be possible to get here. */
         unexpected_condition();
     }  /* switch */
