@@ -1755,7 +1755,7 @@ process_option()
           ;;
         -v | --version | \
         --dump_configuration | \
-        --dump_command_options \
+        --dump_command_options | \
         --dump_legacy_as_target)
           # These options don't require a file name.
           source_file_name_optional=1
