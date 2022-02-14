@@ -13243,12 +13243,12 @@ when gnu_version would ordinarily indicate they should not be.
           type_cast_to = orig_expr->type;
           type_before_cast = expr->type;
         }  /* if */
-      } else if (!C_mode() &&
+      } else if (!C_mode() && gnu_version_is(<40600) &&
                  is_operation_node(expr) &&
                  op == (an_expr_operator_kind)eok_dot_field &&
                  !expr->variant.operation.operands->is_lvalue) {
         /* A field selection out of an rvalue in C++ can be converted to an
-           lvalue selection. */
+           lvalue selection with GCC versions prior to 4.6.x. */
         an_expr_node_ptr texpr = expr->variant.operation.operands;
         an_expr_node_ptr texpr2 = texpr->next;
         a_field_ptr      field = node_field(texpr2);

@@ -1,5 +1,24 @@
 Version 6.4
 
+2/14/22  [EDGcpfe/25069]
+Microsoft and GCC compatibility: Field selection from prvalue
+
+The changes for EDGcpfe/24655 in version 6.3 of the front end introduced a
+regression in Microsoft C++ mode causing the front end to no longer allow
+taking the address of an expression that is a field selection from a prvalue.
+For example:
+
+  struct S { int i; };
+  S f();
+  int *p = &f().i;  // Now accepted again in Microsoft mode.
+                    // No longer accepted in GNU C++ mode with
+                    // gnu_version >= 40600.
+
+This is now accepted again in Microsoft modes.  Furthermore, this is no longer
+accepted in GNU C++ modes with gnu_version >= 40600 (to match the behavior of
+corresponding GCC versions).
+  
+
 2/13/22  [EDGcpfe/25068]
 Command-line option to dump keyword-style command-line options
 
