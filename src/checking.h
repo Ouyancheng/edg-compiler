@@ -30,6 +30,7 @@ NORETURN extern void assertion_failed(a_const_char *filename,
 /* Macro to test an assertion and generate an internal error if
    the condition is not TRUE.  The macro expands to nothing when checking
    code is not being used. */
+
 /*lint -emacro(774 506, check_assertion)*/
 #define check_assertion(test)                                           \
   (((test)) ? (void)0 :                                                 \
@@ -60,7 +61,6 @@ NORETURN extern void assertion_failed(a_const_char *filename,
 
 #define unexpected_condition_str2(string1, string2)                     \
   assertion_failed(__FILE__, __LINE__, __EDG_func__, string1, string2)
-
 #else /* !CHECKING */
 /* Terminate the compilation without a signoff message when encountering an
    unreachable condition. */
@@ -79,7 +79,6 @@ NORETURN extern void exit_unrecoverable_compilation();
 
 #define unexpected_condition_str2(string1, string2) \
   exit_unrecoverable_compilation()
-
 #endif /* CHECKING */
 
 /* Conditionally close the "edg" namespace. */
