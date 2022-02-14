@@ -337,7 +337,7 @@ extern void check_expected_errors(void);
                           (char *)NULL);\
   }
 /* Macros that are the same as above except that two strings are provided.
-   this is simply done to make it easier to use long strings as arguments. */
+   This is simply done to make it easier to use long strings as arguments. */
 /*lint -emacro(774 506, check_assertion_str2)*/
 #define check_assertion_str2(test, string1, string2)          \
   if (!(test))                                                \

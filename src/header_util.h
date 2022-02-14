@@ -180,8 +180,8 @@ Return TRUE if this optional is storing a value, otherwise return FALSE.
 */
 {
 #if CHECKING
-  /* In debug builds break constness to record that the presence of a value was
-     checked for before being accessed. */
+  /* In checking builds break constness to record that the presence of a value
+     was checked for before being accessed. */
   const_cast<Opt<a_Value_type>*>(this)->value_presence_checked = TRUE;
 #endif /* CHECKING */
   return storing_value;

@@ -35,26 +35,32 @@ NORETURN extern void assertion_failed(a_const_char *filename,
   (((test)) ? (void)0 :                                                 \
     assertion_failed(__FILE__, __LINE__, __EDG_func__,                  \
                      (char *)NULL, (char *)NULL))
+
 /*lint -emacro(774 506, check_assertion_str)*/
 #define check_assertion_str(test, string)                               \
   if (!(test))                                                          \
     assertion_failed(__FILE__, __LINE__, __EDG_func__, string, (char *)NULL)
+
 /* Macro that generates an assertion failed internal error.  Intended to
    be used in the else clause of an if statement or the default case of a
    switch statement that is not intended to be reached. */
 #define unexpected_condition()                                          \
   assertion_failed(__FILE__, __LINE__, __EDG_func__, (char *)NULL,      \
                    (char *)NULL)
+
 #define unexpected_condition_str(string)                                \
   assertion_failed(__FILE__, __LINE__, __EDG_func__, string, (char *)NULL)
+
 /* Macros that are the same as above except that two strings are provided.
-   this is simply done to make it easier to use long strings as arguments. */
+   This is simply done to make it easier to use long strings as arguments. */
 /*lint -emacro(774 506, check_assertion_str2)*/
 #define check_assertion_str2(test, string1, string2)                    \
   if (!(test))                                                          \
     assertion_failed(__FILE__, __LINE__, __EDG_func__, string1, string2)
+
 #define unexpected_condition_str2(string1, string2)                     \
   assertion_failed(__FILE__, __LINE__, __EDG_func__, string1, string2)
+
 #else /* !CHECKING */
 /* Terminate the compilation without a signoff message when encountering an
    unreachable condition. */
@@ -62,12 +68,18 @@ NORETURN extern void exit_unrecoverable_compilation();
 
 /* check_assertion must produce a void result. */
 #define check_assertion(test) ((void)0)
+
 #define check_assertion_str(test, string) /* Nothing */
+
 #define unexpected_condition() exit_unrecoverable_compilation()
+
 #define unexpected_condition_str(string) exit_unrecoverable_compilation()
+
 #define check_assertion_str2(test, string1, string2) /* Nothing */
+
 #define unexpected_condition_str2(string1, string2) \
   exit_unrecoverable_compilation()
+
 #endif /* CHECKING */
 
 /* Conditionally close the "edg" namespace. */
