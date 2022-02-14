@@ -1656,7 +1656,7 @@ process_option()
          --lambdas | \
          --no_lambdas | \
          --dump_configuration | \
-         --dump_command_options \
+         --dump_command_options | \
          --signed_bit_fields | \
          --unsigned_bit_fields | \
          --check_concatenations | \
