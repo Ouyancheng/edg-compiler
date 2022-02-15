@@ -4808,9 +4808,7 @@ principal associated IL entity.
                                              &kind)) {
               break;
             }  /* if */
-            init_dps(&dps, &idsvp->locus, idsvp->type, idsvp->traits,
-                     ifc_MsvcTraits_None, idsvp->specifiers, idsvp->access,
-                     idsvp->alignment, &psss);
+            init_decl_parse_state(&dps);
             /* Naming aside, setting this is required to allow the inline
                keyword on variable declarations. */
             dps.function_definition_allowed = TRUE;
@@ -9220,18 +9218,33 @@ FIXME: what other expressions can we get here?
         tp = type_for_type_index(iesptvp->type, /*kind=*/NULL);
         complete_type_is_needed(tp);
         cp = alloc_constant(ck_aggregate);
+#if DO_IL_LOWERING
+        /* This will be changed later if there are any actual fields that get
+           initialized. */
+        cp->initializes_empty_object = TRUE;
+#endif /* DO_IL_LOWERING */
         cp->type = tp;
         if (iesptvp->base_subobjects != 0) {
           a_constant_ptr sub_con =
                               constant_for_expr_index(iesptvp->base_subobjects,
                                                       /*default_type=*/NULL);
           add_constant_to_aggregate(sub_con, cp, NULL, NULL);
+#if DO_IL_LOWERING
+          if (!sub_con->initializes_empty_object) {
+            cp->initializes_empty_object = FALSE;
+          }  /* if */
+#endif /* DO_IL_LOWERING */
         }  /* if */
         if (iesptvp->members != 0) {
           a_constant_ptr mem_con =
                                 constant_for_expr_index(iesptvp->members,
                                                         /*default_type=*/NULL);
           add_constant_to_aggregate(mem_con, cp, NULL, NULL);
+#if DO_IL_LOWERING
+          if (!mem_con->initializes_empty_object) {
+            cp->initializes_empty_object = FALSE;
+          }  /* if */
+#endif /* DO_IL_LOWERING */
         }  /* if */
       }
       break;
