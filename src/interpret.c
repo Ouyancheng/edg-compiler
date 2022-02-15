@@ -10861,7 +10861,7 @@ the body of the (constructor) function proper.
             src_addr = (a_constexpr_address*)((a_byte**)arg_ptrs)[1];
             if (is_runtime_data_address(src_addr)) {
               info_with_pos(ec_constexpr_access_to_runtime_storage,
-                            &args->position, ips);
+                            args != NULL ? &args->position : pos, ips);
               do_constexpr_fail(result);
               break;
             } else if (!anon_union_field_is_active_field(fp, src_addr)) {

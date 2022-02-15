@@ -127,7 +127,7 @@ rvalue to a reference to non-const X).  That matches the behavior of the
 Microsoft compiler.
 
 
-2/9/22   [EDGcpfe/25028]
+2/9/22   [EDGcpfe/25071,EDGcpfe/25028]
 Abort on constant-evaluation of default constructor call
 
 Consider:
