@@ -4579,14 +4579,6 @@ template's IFC description structure.
     mep->entity.kind = iek_template;
     result = TRUE;
   }  /* if */
-  if (other_decls != NULL) {
-    /* Restore the module entity list representing other declarations of this
-       template or its partial specializations.
-       FIXME: Only do this if the template that was just processed was not a 
-       definition? */
-    end_other_decls->next = mep->next;
-    mep->next = other_decls;
-  }  /* if */
   /* Compute the DeclIndex of the current template and retrieve the sequence
      of explicit specializations and instantiations. */
   ifc_DeclIndex decl = ifc_mod->decl_index_of(mep);
@@ -5039,9 +5031,8 @@ principal associated IL entity.
               tag_kind = sk_union_tag;
 class_struct_union_case:
               /* A class/struct/union type. */
-              { a_type_ptr                  class_type;
-                a_class_type_supplement_ptr ctsp;
-                a_symbol_ptr                tag_sym;
+              { a_type_ptr    class_type;
+                a_symbol_ptr  tag_sym;
                 if (defer) {
                   defer_symbol_creation(mep, &loc);
                 } else {
@@ -5054,7 +5045,6 @@ class_struct_union_case:
                     break;
                   }  /* if */
                   class_type = alloc_type(type_kind);
-                  ctsp = class_type_supp(class_type);
                   if (itsfp->basis == ifc_TypeBasis_Interface) {
                     class_type->variant.class_struct_union.is_interface = TRUE;
                     class_type->variant.class_struct_union.abstract = TRUE;
@@ -5076,11 +5066,9 @@ class_struct_union_case:
                   /* FIXME: need to call record_symbol_declaration? */
                   add_to_types_list(class_type,
                                     mep->scope->depth_in_scope_stack);
-                  /* Mark the class as incomplete, but record the module and
-                     declaration so the class can be completed later (if
-                     referenced). */
+                  /* Mark the class as incomplete.  It can be completed later
+                     if needed. */
                   class_type->incomplete = TRUE;
-                  ctsp->module_entity = mep;
                   /* FIXME: idssp->alignment, idssp->pack_size, idssp->traits,
                             idssp->specifiers, all need to be set manually
                             here*/
@@ -5509,14 +5497,6 @@ class_struct_union_case:
               }  /* if */
               process_template_definition(mep, idstp, do_forward_decl,
                                           type_is(type, tk_routine));
-            }  /* if */
-            if (other_decls != NULL) {
-              /* Restore the module entity list representing other declarations
-                 of this template or its partial specializations. FIXME: Only
-                 do this if the template that was just processed was not a 
-                 definition? */
-              end_other_decls->next = mep->next;
-              mep->next = other_decls;
             }  /* if */
           }  /* if */
         }

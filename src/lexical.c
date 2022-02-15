@@ -25835,7 +25835,6 @@ C++/CLI delegate class types.)
                                       class_type->source_corresp.name_linkage;
   if (class_def_buffer == NULL) class_def_buffer = alloc_text_buffer(1024);
   reset_text_buffer(class_def_buffer);
-  check_assertion(ctsp->module_entity == NULL);
 #if CPPCLI_ENABLING_POSSIBLE
   /* Get the definition from metadata.  */
   size = class_def_buffer->allocated_size;

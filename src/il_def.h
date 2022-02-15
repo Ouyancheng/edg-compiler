@@ -8612,13 +8612,6 @@ typedef struct a_class_type_supplement {
 			   proxy class, this points back to the template
 			   parameter or decltype type for which the proxy
 			   class was created; otherwise, NULL. */
-  a_module_entity_ptr
-		module_entity;
-			/* When non-NULL, the class is defined in a module but
-			   is currently marked as incomplete (it is only loaded
-			   if the complete class is needed).  The information
-			   stored here allows the class to be completed from
-			   information stored in the module. */
 } a_class_type_supplement;
 
 enum a_template_param_type_kind_tag {

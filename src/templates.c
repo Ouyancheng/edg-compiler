@@ -4944,7 +4944,7 @@ be completed here.
       is_cli_generic_class_definition_symbol(instance_sym)) {
     /* Not a class based on a class template or the class that is generated
        to represent the definition of a C++/CLI generic class. */
-    if (class_type_supp(class_type)->module_entity != NULL) {
+    if (class_type->source_corresp.module_entity != NULL) {
       complete_definition_of_module_class(class_type);
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED

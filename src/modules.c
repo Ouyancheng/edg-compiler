@@ -670,18 +670,16 @@ definition.  Complete the given class's definition from the information
 contained in the module that provided the class.
 */
 {
-  a_class_type_supplement_ptr   ctsp = class_type_supp(class_type);
-  a_module_entity_ptr           mep = ctsp->module_entity;
-  a_boolean                     scope_pushed = FALSE;
+  a_module_entity_ptr  mep = class_type->source_corresp.module_entity;
 
   check_assertion(mep != NULL);
   if (!class_type->definition_pending && !mep->invalid) {
+    a_boolean  scope_pushed = FALSE;
     class_type->definition_pending = TRUE;
     scope_pushed = push_module_declaration_context(mep->scope);
-    mep->module_info->module_interface->
-                                      complete_definition_of_module_class(mep);
+    mep->module_info->module_interface
+                    ->complete_definition_of_module_class(mep);
     /* Once the class is defined, there is no need for this information. */
-    ctsp->module_entity = NULL;
     class_type->definition_pending = FALSE;
     pop_module_declaration_context(scope_pushed);
   }  /* if */
