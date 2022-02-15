@@ -2103,8 +2103,12 @@ accepted in C++/CLI mode.)  "final" is accepted in later Microsoft modes.
       } else {
         break;
       }  /* if */
-      if (!err && !dps->is_nonstatic_member_function_decl) {
-        pos_error(ec_member_function_modifier_on_static_member,
+      if (!err &&
+          (!dps->is_nonstatic_member_function_decl ||
+           (dps->is_template_declaration && !dps->is_generic_declaration))) {
+        pos_error(!dps->is_nonstatic_member_function_decl ?
+                                ec_member_function_modifier_on_static_member :
+                                ec_member_function_modifier_on_template,
                   &pos_curr_token);
 #if MICROSOFT_EXTENSIONS_ALLOWED
         func_info->new_member = FALSE;

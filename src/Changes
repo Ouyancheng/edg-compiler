@@ -1,5 +1,19 @@
 Version 6.4
 
+2/15/22  [EDGcpfe/25077]
+Missing error on member function modified applied to member function templates
+
+Consider:
+
+  struct S {
+    template<typename T> int f(T) final;  // Previously okay.  Now an error.
+  };
+
+The front end previously did not diagnose the meaningless "final" modifier in
+this example (and similarly with other modifiers, like "override").  That is
+now fixed.
+
+
 2/14/22  [EDGcpfe/25069]
 Microsoft and GCC compatibility: Field selection from prvalue
 
