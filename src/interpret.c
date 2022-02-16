@@ -30,6 +30,8 @@ interpret.c -- IL interpreter for constexpr functions
 
 #include "folding.h"
 
+#include "func_def.h"
+
 #if DO_IL_LOWERING
 #include "lower_il.h"
 #endif /* DO_IL_LOWERING */
@@ -10308,6 +10310,9 @@ otherwise, return FALSE and update *ips accordingly.
         /* The definition was stored in a module file. */
       } else {
         set_instance_required(symbol_for(callee), TRUE, SIR_CONSTANT_CONTEXT);
+        if (!callee->defined && callee->is_defaulted) {
+          force_definition_of_compiler_generated_routine(callee);
+        }  /* if */
       }  /* if */
     }  /* if */
     if (callee->function_def_number == NULL_function_def_number) {

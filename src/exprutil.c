@@ -20749,91 +20749,80 @@ necessary, this will involve creating a temporary and initializing it from the
 prvalue.  This routine is used only in C++ mode.
 */
 {
-  an_operand        orig_operand;
-  a_boolean         optimized_case;
-  an_expr_node_ptr  node;
 
   if (is_error_operand(operand)) {
     normalize_error_operand(operand);
   } else {
+    an_operand        orig_operand = *operand;
+    an_expr_node_ptr  node, top_cast = NULL, bottom_cast = NULL;
+    a_boolean         is_expr = is_expression_operand(operand);
+    /* The operand is a prvalue.  In general, we will have to copy the prvalue
+       to a temporary and use the address of the temporary.  However, there
+       are some cases that can be optimized. */
     check_assertion(is_a_prvalue(operand) &&
                     (is_class_struct_union_type(operand->type) ||
                      is_template_param_type(operand->type)));
-    /* The operand is a prvalue.  In general, we will have to copy the
-       prvalue to a temporary and use the address of the temporary.  However,
-       there are some cases that can be optimized. */
-    orig_operand = *operand;
-    optimized_case = FALSE;
-    if (is_expression_operand(operand)) {
-      node = operand->variant.expression;
+    node = make_node_from_operand(operand);
+    if (is_expr) {
       /* Change the prvalue to an lvalue if possible. */
-      node = conv_prvalue_expr_to_lvalue(node, &optimized_case,
+      a_boolean  processed = FALSE;
+      node = conv_prvalue_expr_to_lvalue(node, &processed,
                                          /*see_if_possible=*/FALSE,
                                          /*gcc_lvalue=*/FALSE,
                                          /*ignore_casts=*/FALSE,
                                          (a_type_ptr *)NULL);
-      if (optimized_case) {
+      if (processed) {
         /* The expression has been rewritten as an lvalue. */
         if (is_xvalue) {
           node->is_xvalue = TRUE;
           node->is_lvalue = FALSE;
         }  /* if */
         make_glvalue_expression_operand(node, operand);
+        goto done;
       }  /* if */
     }  /* if */
-    if (!optimized_case && !is_error_operand(operand)) {
-      /* Create a temporary, copy the prvalue into the temporary, and return
-         a glvalue for the temporary. */
+    /* Create a temporary, copy the prvalue into the temporary, and return
+       a glvalue for the temporary. */
+    if (is_expr) {
       /* Temporarily remove any class rvalue base class casts so that we make
          the temporary for the derived class without slicing.  The casts will
          be reattached to the new expression below. */
-      an_expr_node_ptr top_cast = NULL, bottom_cast = NULL;
-      if (is_expression_operand(operand)) {
-        node = operand->variant.expression;
-        node = strip_rvalue_base_class_casts(node, &top_cast, &bottom_cast);
-        if (top_cast != NULL) {
-          /* Some casts were removed, so make the temporary from the derived
-             class expression. */
-          make_expression_operand(node, operand);
-          restore_operand_details(operand, &orig_operand);
-        }  /* if */
-      } else {
-        node = make_node_from_operand(operand);
-      }  /* if */
-      node = glvalue_from_class_prvalue_node(node, is_xvalue);
-      if (top_cast != NULL) {
-        /* Restore the base class casts on top of the initialization of the
-           temporary. */
-        bottom_cast->variant.operation.operands = node;
-        node = top_cast;
-        /* Change the rvalue casts to glvalue casts. */
-        check_assertion(is_operation_node(node));
-        if (node_operator_is(node, eok_class_rvalue_adjust)) {
-          set_node_operator(node, (an_expr_operator_kind)eok_lvalue_adjust,
-                            node->type, /*is_lvalue=*/TRUE,
-                            node->variant.operation.operands);
-          if (is_xvalue) {
-            node->is_xvalue = TRUE;
-            node->is_lvalue = FALSE;
-          }  /* if */
-          node = node->variant.operation.operands;
-        }  /* if */
-        for (;;) {
-          check_assertion(is_operation_node(node) &&
-                          node_operator_is(node, eok_base_class_cast));
-          if (is_xvalue) {
-            node->is_xvalue = TRUE;
-          } else {
-            node->is_lvalue = TRUE;
-          }  /* if */
-          if (node == bottom_cast) break;
-          node = node->variant.operation.operands;
-          check_assertion(node != NULL);
-        }  /* for */
-        node = top_cast;
-      }  /* if */
-      make_glvalue_expression_operand(node, operand);
+      node = strip_rvalue_base_class_casts(node, &top_cast, &bottom_cast);
     }  /* if */
+    node = glvalue_from_class_prvalue_node(node, is_xvalue);
+    if (top_cast != NULL) {
+      /* Restore the base class casts on top of the initialization of the
+         temporary. */
+      bottom_cast->variant.operation.operands = node;
+      node = top_cast;
+      /* Change the rvalue casts to glvalue casts. */
+      check_assertion(is_operation_node(node));
+      if (node_operator_is(node, eok_class_rvalue_adjust)) {
+        set_node_operator(node, (an_expr_operator_kind)eok_lvalue_adjust,
+                          node->type, /*is_lvalue=*/TRUE,
+                          node->variant.operation.operands);
+        if (is_xvalue) {
+          node->is_xvalue = TRUE;
+          node->is_lvalue = FALSE;
+        }  /* if */
+        node = node->variant.operation.operands;
+      }  /* if */
+      for (;;) {
+        check_assertion(is_operation_node(node) &&
+                        node_operator_is(node, eok_base_class_cast));
+        if (is_xvalue) {
+          node->is_xvalue = TRUE;
+        } else {
+          node->is_lvalue = TRUE;
+        }  /* if */
+        if (node == bottom_cast) break;
+        node = node->variant.operation.operands;
+        check_assertion(node != NULL);
+      }  /* for */
+      node = top_cast;
+    }  /* if */
+    make_glvalue_expression_operand(node, operand);
+done:
     /* Restore the original source position, etc. */
     restore_operand_details(operand, &orig_operand);
   }  /* if */

@@ -1,5 +1,15 @@
 Version 6.4
 
+2/16/22  [EDGcpfe/24916]
+Abort after class prvalue is converted to a glvalue
+
+The front end sometimes converts a class prvalue to a glvalue.  The process to
+do this did not always record the information needed to allow SFINAE processing
+(in contexts potentially subject to SFINAE).  As a consequence, some (fairly
+complex) cases aborted with an internal error in get_expr_rescan_info (in
+exprutil.c).  That is now fixed.
+
+
 2/15/22  [EDGcpfe/25077]
 Missing error on member function modifier applied to member function templates
 
