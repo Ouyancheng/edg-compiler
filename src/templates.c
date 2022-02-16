@@ -7031,8 +7031,6 @@ cases).
       tssp->il_template_entry->source_corresp.module_entity != NULL) {
     /* A declaration but not a definition was loaded from a module file.
        Attempt to load the definition (and any specializations). */
-    // FIXME: Is this code still needed now that it is also done in
-    //        should_be_instantiated?
     load_template_definition_from_module(tssp->il_template_entry);
   }  /* if */
   func_info_ptr = func_info_for_template(tssp);
@@ -34759,6 +34757,17 @@ static a_boolean exported_definition_is_available(
 						a_template_instance_ptr	tip);
 
 
+static inline a_boolean module_definition_pending(a_template_ptr  templ)
+/*
+Return TRUE if the given template is being loaded from a module and that module
+is known to contain a template for the definition.
+*/
+{
+  return templ != NULL && templ->source_corresp.module_entity != NULL &&
+         templ->source_corresp.module_entity->has_definition;
+}  /* module_definition_pending */
+
+
 static a_boolean should_be_instantiated(
 			a_template_instance_ptr tip,
 			ARG_UNUSED a_boolean	implicit_inclusion_okay)
@@ -34827,16 +34836,10 @@ template entities.
       specialization_defined = specialized && tip->instance_sym->defined;
       template_sym = tip->template_sym;
       tssp = template_supplement_for_symbol(template_sym);
-      if (!template_sym->defined &&
-          tssp->il_template_entry != NULL &&
-          tssp->il_template_entry->source_corresp.module_entity != NULL) {
-        /* A declaration but not a definition was loaded from a module file.
-           Attempt to load the definition (and any specializations). */
-        load_template_definition_from_module(tssp->il_template_entry);
-      }  /* if */
       template_def = cache_for_template(tssp)->tokens.first_token != NULL ||
                      exported_definition_is_available(tip) ||
-                     rp->is_deleted || rp->is_defaulted;
+                     rp->is_deleted || rp->is_defaulted ||
+                     module_definition_pending(tssp->il_template_entry);
 #if INSTANTIATION_BY_IMPLICIT_INCLUSION
       if (!template_def && !specialized && !tip->suppress_instantiation &&
           implicit_inclusion_okay && implicit_template_inclusion_mode) {
@@ -34992,15 +34995,8 @@ this overrides an "extern template" directive.
     a_routine_ptr		      rp;
     rp = tip->instance_sym->variant.routine.ptr;
     specialized = rp->is_specialized;
-    template_def = cache_for_template(tssp)->tokens.first_token != NULL;
-    if (!template_def && tssp->il_template_entry != NULL &&
-        tssp->il_template_entry->source_corresp.module_entity != NULL &&
-        tssp->il_template_entry->source_corresp.module_entity
-                               ->has_definition) {
-      /* A declaration but not a definition was loaded from a module file, but
-         a definition is available if needed. */
-      template_def = TRUE;
-    }  /* if */
+    template_def = cache_for_template(tssp)->tokens.first_token != NULL ||
+                   module_definition_pending(tssp->il_template_entry);
     if (!template_def && !specialized && export_template_allowed) {
       /* When exported templates are being used, look for an exported
          definition of this template */
