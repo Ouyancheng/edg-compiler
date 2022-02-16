@@ -1,7 +1,7 @@
 Version 6.4
 
 2/15/22  [EDGcpfe/25077]
-Missing error on member function modified applied to member function templates
+Missing error on member function modifier applied to member function templates
 
 Consider:
 
