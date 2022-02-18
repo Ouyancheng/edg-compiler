@@ -2875,6 +2875,25 @@ Compute a hash for the given path.  The hash must be appropriate for Ptr_map.
 
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
+template<typename a_Linked_list_type, typename a_Predicate>
+inline unsigned count_list_elements(a_Linked_list_type list_head,
+                                    a_Predicate        predicate)
+/*
+Given the head of a linked list and a predicate, traverse the list and return
+the number of elements in the list where the predicate returns TRUE.
+*/
+{
+  unsigned count = 0;
+
+  for (a_Linked_list_type el = list_head; el != NULL; el = el->next) {
+    if (predicate(el)) {
+      ++count;
+    }  /* if */
+  }  /* if */
+  return count;
+}  /* count_list_elements */
+
+
 template<typename a_Linked_list_type>
 inline unsigned count_list_elements(a_Linked_list_type list_head)
 /*
@@ -2882,12 +2901,11 @@ Given the head of a linked list, traverse the list and return the number of
 elements in the list.
 */
 {
-  unsigned count = 0;
+  auto always_true = [](const a_Linked_list_type &el) -> a_boolean {
+    return TRUE;
+  };
 
-  for (a_Linked_list_type el = list_head; el != NULL; el = el->next) {
-    ++count;
-  }  /* if */
-  return count;
+  return count_list_elements(list_head, always_true);
 }  /* count_list_elements */
 
 /* Conditionally close the "edg" namespace. */

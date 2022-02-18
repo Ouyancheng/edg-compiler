@@ -3331,6 +3331,9 @@ ec_constexpr_too_many_nested_anonymous_types;;"member selection involves too man
 ec_no_common_type;;"there is no common type between the operands"
 ec_exp_pointer_to_member;;"expected a pointer-to-member"
 ec_lone_flexible_array_member;;"a flexible array member cannot be declared in an otherwise-empty type"
+ec_missing_gnu_srcloc_type;;"expected \"std::source_location::__impl\" to be defined to a class with only the data members \"_M_function_name\", \"_M_file_name\", \"_M_column\", \"_M_line\""
+ec_srcloc_column_bounds;;"during the initialization of \"std::source_location::__impl\", column number overflows member \"_M_column\" of type %t"
+ec_srcloc_line_bounds;;"during the initialization of \"std::source_location::__impl\", line number overflows member \"_M_line\" of type %t"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

@@ -127,6 +127,26 @@ extern void set_unsigned_integer_value(an_integer_value		*intval,
 extern void set_unsigned_integer_value(an_integer_value		*intval,
                                        const an_integer_value	&value);
 
+template<typename a_Host_integer_type>
+inline void set_host_integer_value(an_integer_value     *intval,
+                                   a_Host_integer_type  value)
+/*
+Set the integer value entry *intval to the value "value" (with the sign
+automatically detected).
+*/
+{
+  a_boolean  value_signed = a_Host_integer_type(-1) < a_Host_integer_type(0);
+
+  /* As the value of value_signed depends only on a constant (dependent on
+     instantiation), optimizers should reduce this to the correct branch. */
+  if (value_signed) {
+    set_integer_value(intval, (a_host_large_integer)value);
+  } else {
+    set_unsigned_integer_value(intval, (a_host_large_unsigned)value);
+  }  /* if */
+}  /* set_host_integer_value */
+
+
 extern void conv_integer_value_to_host_large_integer(
                                              an_integer_value        *intval,
                                              a_boolean               is_signed,

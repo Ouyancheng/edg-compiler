@@ -5300,6 +5300,7 @@ After the arguments are scanned, the routine pointed to by bcap->callback will
 be called to check and adjust the argument and routine types as needed.
 */
 {
+  a_boolean                requires_processing = TRUE;
   a_builtin_function_kind  bfk;
 
   /* Initialize all fields in *bcap (note that fields are initialized to
@@ -5471,15 +5472,21 @@ be called to check and adjust the argument and routine types as needed.
       /* Callback will validate arguments. */
       bcap->callback = adjust_builtin_zero_non_value_bits;
       break;
+    case bufk_source_location:
+      /* The source location builtin has been used, require and process the GNU
+         source location impl type here. */
+      gnu_source_location_impl_type();
+      requires_processing = FALSE;
+      break;
     default:
       /* No special processing is needed for most builtins. */
-      bcap->callback = nullptr;
+      requires_processing = FALSE;
       break;
   }  /* switch */
   if (bcap->is_c11_atomic) {
     bcap->replace_routine_type = TRUE;
   }  /* if */
-  return bcap->callback != nullptr || bcap->overloaded_function_symbol != NULL;
+  return requires_processing;
 }  /* builtin_call_needs_adjustment */
 
 
@@ -6161,7 +6168,6 @@ are expected to be NULL in that case.
   a_boolean         adl_suppressed_by_qualification = FALSE;
   a_boolean         found_through_adl = FALSE;
   a_boolean         has_overloaded_call_operator = FALSE;
-  a_boolean         builtin_needs_adjustment = FALSE;
   a_boolean         member_of_proto_inst = FALSE;
   a_boolean         saved_uses_this_operand = expr_stack->uses_this_operand;
 
@@ -6716,9 +6722,6 @@ are expected to be NULL in that case.
            function; use that symbol to do the overload resolution. */
         overloaded_function_symbol = bcap->overloaded_function_symbol;
         overloaded_function_case = TRUE;
-      } else {
-        /* Some adjustment is needed after scanning the arguments. */
-        builtin_needs_adjustment = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -6742,18 +6745,24 @@ are expected to be NULL in that case.
   /* Scan the arguments of the call.  For non-overloaded function calls,
      this checks the arguments against the parameter types and converts
      them as necessary. */
-  scan_call_arguments(orig_routine_type, routine,
-                      already_after_left_paren, &argument_list,
-                      (overloaded_function_case || builtin_needs_adjustment),
-                      unknown_dependent_function,
-                      /*args_will_be_discarded=*/is_error_operand(operand),
-                      /*is_custom_ms_attr_arg_list=*/FALSE,
-                      rcblock,
-                      /*arg_list_supplied=*/FALSE,
-                      (an_arg_list_elem *)NULL,
-                      &arg_list,
-                      (an_operand *)NULL, (a_boolean *)NULL,
-                      &closing_paren_position);
+  {
+    /* Enter a new scope to avoid issues with preceding goto statements. */
+    a_boolean  builtin_needs_adjustment = bcap != NULL &&
+                                          bcap->callback != NULL;
+
+    scan_call_arguments(orig_routine_type, routine,
+                        already_after_left_paren, &argument_list,
+                        (overloaded_function_case || builtin_needs_adjustment),
+                        unknown_dependent_function,
+                        /*args_will_be_discarded=*/is_error_operand(operand),
+                        /*is_custom_ms_attr_arg_list=*/FALSE,
+                        rcblock,
+                        /*arg_list_supplied=*/FALSE,
+                        (an_arg_list_elem *)NULL,
+                        &arg_list,
+                        (an_operand *)NULL, (a_boolean *)NULL,
+                        &closing_paren_position);
+  }
   if (rcblock != NULL &&
       (expr_stack->any_suppressed_error || rcblock->error_detected)) {
     /* If there were suppressed errors, the call is unreliable and further

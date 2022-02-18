@@ -11739,6 +11739,233 @@ call to this routine std::weak_equality is not appropriately declared).
 }  /* weak_equality_type */
 
 
+static a_type_ptr
+                il_source_location_impl_type;
+                        /* Pointer to the GNU libstdc++ standard library source
+                           location implementation type. */
+
+static struct gnu_source_location_field_info {
+  a_field_ptr
+                file,
+                function,
+                line,
+                column;
+                        /* Fixed pointers to GNU libstdc++ standard library
+                           source location implementation fields.  These
+                           pointers are valid only when
+                           has_gnu_source_location_impl_type returns TRUE. */
+} il_source_location_fields;
+                        /* Aggregate of cached fixed pointers to GNU libstdc++
+                           source location implementation fields. */
+
+
+static a_boolean map_to_gnu_source_location_field(
+                                        a_field_ptr                    input,
+                                        a_type_ptr                     cstr_ty,
+                                        gnu_source_location_field_info *fields)
+/*
+Given a field to examine and the c-string type, attempt to update the given
+field cache (fields).  Return TRUE if a field matches and was mapped to one of
+the currently unknown fields in the field cache; otherwise, return FALSE.
+*/
+{
+  a_boolean     mapped = FALSE;
+  a_const_char  *name = input->source_corresp.name;
+
+  /* Use the unique name lengths to reduce comparisons. */
+  switch (strlen(name)) {
+    case 16:
+      if (strcmp(name, "_M_function_name") == 0) {
+        if (fields->function == NULL && input->type == cstr_ty) {
+          fields->function = input;
+          mapped = TRUE;
+        }  /* if */
+      }
+      break;
+    case 12:
+      if (strcmp(name, "_M_file_name") == 0) {
+        if (fields->file == NULL && input->type == cstr_ty) {
+          fields->file = input;
+          mapped = TRUE;
+        }  /* if */
+      }  /* if */
+      break;
+    case 9:
+      if (strcmp(name, "_M_column") == 0) {
+        if (fields->column == NULL && is_integral_type(input->type)) {
+          fields->column = input;
+          mapped = TRUE;
+        }  /* if */
+      }  /* if */
+      break;
+    case 7:
+      if (strcmp(name, "_M_line") == 0) {
+        if (fields->line == NULL && is_integral_type(input->type)) {
+          fields->line = input;
+          mapped = TRUE;
+        }  /* if */
+      }  /* if */
+      break;
+    default:
+      break;
+  }  /* switch */
+  return mapped;
+}  /* map_to_gnu_source_location_field */
+
+
+static a_boolean check_gnu_source_location_impl_type(
+                                      a_type_ptr                     impl_type,
+                                      gnu_source_location_field_info *fields)
+/*
+Given a potential GNU libstdc++ std::source_location::__impl type, validate
+compatibility.  Additionally, map processed fields to the field info cache
+(fields).  Return TRUE if the type is compatible, FALSE otherwise.
+*/
+{
+  a_boolean                    valid = TRUE;
+  a_class_type_supplement_ptr  ctsp = class_type_supp(impl_type);
+  a_base_class_ptr             bcp = ctsp->base_classes;
+  a_variable_ptr               vp = ctsp->assoc_scope->variables;
+  a_routine_ptr                rp = ctsp->assoc_scope->routines;
+  auto is_user_declared_routine = [](a_routine_ptr el) -> a_boolean {
+    return !el->compiler_generated;
+  };
+
+  if (count_list_elements(bcp) > 0) {
+    /* Check to make sure there are no bases. */
+    valid = FALSE;
+  } else if (count_list_elements(vp) > 0) {
+    /* Check to make sure there are no static data members. */
+    valid = FALSE;
+  } else if (count_list_elements(rp, is_user_declared_routine) > 0) {
+    /* Check to make sure there are no user declared functions. */
+    valid = FALSE;
+  } else {
+    /* Check to make sure only the four expected fields are present. */
+    a_field_ptr  field_1 = fields_of(impl_type);
+    a_field_ptr  field_2 = field_1 == NULL ? NULL : field_1->next;
+    a_field_ptr  field_3 = field_2 == NULL ? NULL : field_2->next;
+    a_field_ptr  field_4 = field_3 == NULL ? NULL : field_3->next;
+    /* Retrieve the cstring type to match "string" fields against. */
+    a_type_ptr   cstr_ty = make_pointer_type(make_qualified_type(
+                                        integer_type((an_integer_kind)ik_char),
+                                        TQ_CONST));
+
+    /* Map the fields into the field cache.  As each mapping operation returns
+       TRUE only when an previously unknown field becomes mapped, this both
+       updates the fields cache and validates the fields. */
+    if (field_1 == NULL ||
+        !map_to_gnu_source_location_field(field_1, cstr_ty, fields)) {
+      /* Check that field #1 is present, and maps to one of the four missing
+         fields. */
+      valid = FALSE;
+    } else if (field_2 == NULL ||
+               !map_to_gnu_source_location_field(field_2, cstr_ty, fields)) {
+      /* Check that field #2 is present, and maps to one of the three missing
+         fields. */
+      valid = FALSE;
+    } else if (field_3 == NULL ||
+               !map_to_gnu_source_location_field(field_3, cstr_ty, fields)) {
+      /* Check that field #3 is present, and maps to one of the two missing
+         fields. */
+      valid = FALSE;
+    } else if (field_4 == NULL ||
+               !map_to_gnu_source_location_field(field_4, cstr_ty, fields)) {
+      /* Check that field #4 is present, and maps to the missing field. */
+      valid = FALSE;
+    } else if (field_4->next != NULL) {
+      /* Check that there is no field #5. */
+      valid = FALSE;
+    }  /* if */
+  }  /* if */
+  return valid;
+}  /* check_gnu_source_location_impl_type */
+
+
+a_type_ptr gnu_source_location_impl_type(void)
+/*
+Attempt to lookup and return a compatible GNU libstdc++ implementation type
+std::source_location::__impl.  If said type cannot be found, issue a diagnostic
+and return an error type.
+
+Additionally, upon successful resolution of the type, update cached field
+information.
+*/
+{
+  if (il_source_location_impl_type == NULL) {
+    /* Attempt to resolve the libstdc++ "source_location" type within the "std"
+       namespace. */
+    a_symbol_ptr  class_sym = look_up_name_string_in_std("source_location");
+    a_type_ptr    class_type = NULL;
+
+    if (class_sym != NULL && is_class_symbol(class_sym)) {
+      class_type = type_symbol_type(class_sym);
+    }  /* if */
+    /* Attempt to resolve the libstdc++ "__impl" type within the
+       "source_location" class. */
+    if (class_type != NULL) {
+      a_symbol_ptr impl_sym = look_up_name_string_in_class("__impl",
+                                                           class_type,
+                                                           IDL_NO_OPTIONS);
+
+      if (impl_sym != NULL && is_class_symbol(impl_sym)) {
+        a_type_ptr impl_type = type_symbol_type(impl_sym);
+
+        /* Check the implementation type matches expectations, and update the
+           fields cache.  If validation succeeds, use this type as the "__impl"
+           type. */
+        if (check_gnu_source_location_impl_type(impl_type,
+                                                &il_source_location_fields)) {
+          il_source_location_impl_type = impl_type;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+    /* If the type lookup or validation failed, diagnose and replace the type
+       with an error type so further calls don't repeat this process. */
+    if (il_source_location_impl_type == NULL) {
+      pos_error(ec_missing_gnu_srcloc_type, &error_position);
+      il_source_location_impl_type = error_type();
+    }  /* if */
+  }  /* if */
+  return il_source_location_impl_type;
+}  /* gnu_source_location_impl_type */
+
+
+a_boolean has_gnu_source_location_impl_type(void)
+/*
+Return TRUE if a compatible GNU libstdc++ implementation type
+std::source_location::__impl has previously been found; otherwise, return
+FALSE.
+*/
+{
+  return il_source_location_impl_type != NULL &&
+         !is_error_type(il_source_location_impl_type);
+}  /* has_gnu_source_location_impl_type */
+
+
+a_gnu_source_location_type_info gnu_source_location_impl(void)
+/*
+Return the aggregate type and field cache information.
+
+This function should only be called in contexts where its known that a
+compatible GNU libstdc++ implementation type std::source_location::__impl has
+previously been found.
+
+This function is used by the interpreter and all information is bundled to
+reduce the number of function calls required during source_location
+interpretation.
+*/
+{
+  check_assertion(il_source_location_impl_type != NULL);
+  return a_gnu_source_location_type_info{
+                         il_source_location_impl_type,
+                         il_source_location_fields.file,
+                         il_source_location_fields.function,
+                         il_source_location_fields.line,
+                         il_source_location_fields.column};
+}  /* gnu_source_location_impl */
+
+
 static a_constant_ptr get_constexpr_member_value(a_type_ptr    class_type,
                                                  a_const_char  *name)
 /*
@@ -31110,6 +31337,8 @@ need initialization for every (primary and secondary) translation unit.
   il_partial_ordering_type = NULL;
   il_strong_equality_type = NULL;
   il_weak_equality_type = NULL;
+  il_source_location_impl_type = NULL;
+  il_source_location_fields = {};
 #if MICROSOFT_EXTENSIONS_ALLOWED
   idisposable_dispose_routine = NULL;
   object_finalize_routine = NULL;

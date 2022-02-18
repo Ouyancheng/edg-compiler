@@ -1220,6 +1220,38 @@ extern a_type_ptr strong_equality_type(void);
 
 extern a_type_ptr weak_equality_type(void);
 
+/*
+A collection of information required to compatibly support the interpretation
+of the GNU libstdc++ standard library's source location type.
+*/
+typedef struct a_gnu_source_location_type_info {
+  a_type_ptr    impl_type;
+                        /* The type representing the GNU libstdc++ standard
+                           library source location implementation class. */
+  a_field_ptr   file_field;
+                        /* The field representing the source location
+                           implementation class's field for file name.
+                           Only valid if impl_type is a non-error type. */
+  a_field_ptr   function_field;
+                        /* The field representing the source location
+                           implementation class's field for function name.
+                           Only valid if impl_type is a non-error type. */
+  a_field_ptr   line_field;
+                        /* The field representing the source location
+                           implementation class's field for line number.
+                           Only valid if impl_type is a non-error type. */
+  a_field_ptr   column_field;
+                        /* The field representing the source location
+                           implementation class's field for column number.
+                           Only valid if impl_type is a non-error type. */
+} a_gnu_source_location_type_info;
+
+extern a_type_ptr gnu_source_location_impl_type(void);
+
+extern a_boolean has_gnu_source_location_impl_type(void);
+
+extern a_gnu_source_location_type_info gnu_source_location_impl(void);
+
 EXTERN a_constant_ptr
 		strong_ordering_equal,
 		strong_ordering_less,

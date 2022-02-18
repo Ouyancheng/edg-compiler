@@ -4592,6 +4592,10 @@ typedef struct a_constant {
 			   file scope memory region.  In that case,
 			   a_constant::expr will be NULL and the expression
 			   can be found using find_local_expr_node instead. */
+  a_bit_field	is_naturalized:1;
+			/* TRUE if this constant was originally constructed
+			   from an interpreter object, with static storage
+			   duration that wasn't explicitly declared. */
   a_constant_repr_kind
                 kind;
                         /* The kind of representation for the constant. */

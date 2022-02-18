@@ -467,7 +467,7 @@ typedef struct a_data_map_entry {
 
 
 /*
-Structure describing a data map.  (Implemented has a hash table with linear
+Structure describing a data map.  (Implemented as a hash table with linear
 probing.)
 */
 typedef struct a_data_map {
@@ -899,8 +899,19 @@ interpretation of a constexpr function and its callees.
 typedef struct an_interpreter_state {
   a_data_map
 		map;
-			/* Hash table mapping pointers into the IL onto
-			   associated data. */
+			/* A hash table mapping pointers into the IL onto
+			   associated data.  This hash table contains several
+			   categories of key value pairs:
+			   - Variable (including "this" and parameter
+			     variables) ptr to storage bytes ptr.
+			   - Current call frame ptr to this bytes ptr.
+			   - Constant ptr to constant bytes ptr.
+			   - Initializer ptr to constant bytes ptr.
+			   - Initializer expr ptr to constant ptr.
+			   - Reused init ptr to bytes ptr.
+			   - Complete object ptr - NATURALIZABLE_KEY_OFFSET to
+			     argument static_storage indicating the object can
+			     be naturalized. */
   a_storage_stack_state
 		storage_stack;
 			/* The current state of the storage stack. */
@@ -1019,6 +1030,10 @@ typedef struct an_interpreter_state {
 		dyn_allocations;
 			/* Pointer to a doubly-linked list of allocations
 			   performed during the evaluation. */
+  a_source_position
+		*srcloc_builtin_pos;
+			/* The current source location used for
+			   std::source_location. */
 } an_interpreter_state;
 
 
@@ -2362,6 +2377,7 @@ result of calls to std::is_constant_evaluated().
   ips->allow_consteval_routine_node = FALSE;
   ips->report_started = FALSE;
   ips->dyn_allocations = NULL;
+  ips->srcloc_builtin_pos = NULL;
   n_active_interpreter_states += 1;
 }  /* init_interpreter_state */
 
@@ -3365,6 +3381,58 @@ area.  The static storage is zeroed.
     mark_complete_class_object_if_needed(utp, data_ptr);                     \
   }  /* if */                                                                \
 }
+
+
+/*
+The offset from the complete object pointer.
+*/
+#define NATURALIZABLE_KEY_OFFSET   ((a_byte)0x01)
+
+
+static void mark_naturalizable_object(an_interpreter_state  *ips,
+                                      a_byte                *storage_ptr)
+/*
+Mark the given interpreter storage as eligible for naturalization into a
+runtime constant.
+*/
+{
+  map_ptr(&ips->map, storage_ptr - NATURALIZABLE_KEY_OFFSET,
+          (a_byte*)&ips->static_storage);
+}  /* mark_naturalizable_object */
+
+
+static void alloc_naturalizable_object(an_interpreter_state  *ips,
+                                       a_type_ptr            ty_ptr,
+                                       a_byte                **storage_ptr,
+                                       a_boolean             *p_result)
+/*
+Allocate a complete object of type ty_ptr in the interpreter's storage that's
+eligible for naturalization into a runtime constant.  The storage is zeroed.
+If a problem occurs during allocation, *p_result is set to FALSE.
+*/
+{
+  alloc_static_object(ips, ty_ptr, *storage_ptr, p_result);
+  if (p_result) {
+    mark_naturalizable_object(ips, *storage_ptr);
+  }  /* if */
+}  /* alloc_naturalizable_object */
+
+
+static a_boolean is_naturalizable_object(
+                                        an_interpreter_state  *ips,
+                                        a_byte                *complete_object)
+/*
+Return TRUE if the given complete object can be naturalized, otherwise return
+FALSE.
+*/
+{
+  a_byte  *mapped_bytes = NULL;
+
+  get_mapped_ptr(&ips->map, complete_object - NATURALIZABLE_KEY_OFFSET,
+                 mapped_bytes);
+  return mapped_bytes == (a_byte*)&ips->static_storage;
+}  /* is_naturalizable_object */
+
 
 /*
 Get the position of the bit representing whether a given byte position is
@@ -5104,6 +5172,9 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
                                                        con_bytes);
                 }  /* if */
                 if (!result) break;
+                if (cp->is_naturalized) {
+                  mark_naturalizable_object(ips, con_bytes);
+                }  /* if */
                 mark_complete_object_initialized(con_bytes);
                 /* Record a two-way mapping to ensure we always use the same
                    storage, and that we reproduce the original constant if this
@@ -8317,7 +8388,218 @@ done:
 }  /* do_constexpr_builtin_strcmp */
 
 
-static a_boolean do_constexpr_builtin_source_location(
+static a_boolean within_int_bounds(an_integer_value *input_int,
+                                   a_boolean        input_signed,
+                                   an_integer_kind  dest_kind,
+                                   a_boolean        dest_signed)
+/*
+Given an (possibly signed) integer value, check to see if it fits within the
+(possibly signed) destination integer kind.  Return TRUE if the input integer
+can be converted without loss, otherwise return FALSE.
+*/
+{
+  a_boolean over = cmp_integer_values(input_int, input_signed,
+                                      &max_integer_value_of_kind[dest_kind],
+                                      dest_signed) > 0;
+  a_boolean under = cmp_integer_values(input_int, input_signed,
+                                       &min_integer_value_of_kind[dest_kind],
+                                       dest_signed) < 0;
+
+  return !over && !under;
+}
+
+
+template<typename a_Host_integer_type>
+static a_boolean safely_set_host_integer_value(
+                                          a_type_ptr           result_type,
+                                          a_byte               *result_storage,
+                                          a_Host_integer_type  value)
+/*
+Given the result type and the associated storage for the result, convert and
+store the given host value.  Return TRUE if successfully converted and stored
+without any integer bounding issues; otherwise, return FALSE.
+*/
+{
+  /* As all integers types are currently stored by the interpreter using the
+     same representation, assume there's no overflow or underflow, and store
+     the integer in the "universal representation". */
+  set_host_integer_value((an_integer_value*)result_storage, value);
+  /* Then compute the signs and the destination int type. */
+  a_boolean        input_value_signed = a_Host_integer_type(-1) <
+                                                        a_Host_integer_type(0);
+  a_boolean        result_value_signed = is_signed_integral_type(result_type);
+  an_integer_kind  int_kind = result_type->variant.integer.int_kind;
+
+  /* Using the aforementioned information, check that the completed operation
+     wasn't lossy. */
+  return within_int_bounds((an_integer_value*)result_storage,
+                           input_value_signed, int_kind, result_value_signed);
+}  /* safely_set_host_integer_value */
+
+
+static void do_constexpr_write_source_column(
+                                          an_interpreter_state *ips,
+                                          a_source_position    *use_pos,
+                                          a_type_ptr           result_type,
+                                          a_byte               *result_storage,
+                                          a_boolean            *p_result)
+/*
+Given the result type and the associated storage and interpreter state for the
+result, convert and store the column number associated with the given position
+(use_pos).  If any problems are encountered, the pointee of p_result will be
+set to FALSE.
+*/
+{
+#if EXPENSIVE_CHECKING
+  check_assertion(is_integral_type(result_type));
+#endif /* EXPENSIVE_CHECKING */
+  if (!safely_set_host_integer_value(result_type, result_storage,
+                                     use_pos->column)) {
+    info_with_pos_type(ec_srcloc_column_bounds, use_pos, result_type, ips);
+    do_constexpr_fail(*p_result);
+  }  /* if */
+}  /* do_constexpr_write_source_column */
+
+
+static void do_constexpr_write_source_line(
+                                          an_interpreter_state *ips,
+                                          a_source_position    *use_pos,
+                                          a_type_ptr           result_type,
+                                          a_byte               *result_storage,
+                                          a_boolean            *p_result)
+/*
+Given the result type and the associated storage and interpreter state for the
+result, convert and store the line number associated with the given position
+(use_pos).  If any problems are encountered, the pointee of p_result will be
+set to FALSE.
+*/
+{
+  a_line_number  line_number;
+  a_boolean      at_end_of_source;
+  a_const_char   *file_name, *full_name;
+
+  (void)conv_seq_to_file_and_line(use_pos->seq, &file_name, &full_name,
+                                  &line_number, &at_end_of_source);
+#if EXPENSIVE_CHECKING
+  check_assertion(is_integral_type(result_type));
+#endif /* EXPENSIVE_CHECKING */
+  if (!safely_set_host_integer_value(result_type, result_storage,
+                                     line_number)) {
+    info_with_pos_type(ec_srcloc_line_bounds, use_pos, result_type, ips);
+    do_constexpr_fail(*p_result);
+  }  /* if */
+}  /* do_constexpr_write_source_line */
+
+
+static void do_constexpr_write_cstring(an_interpreter_state *ips,
+                                       a_const_char         *result_string,
+                                       a_byte               *result_storage,
+                                       a_boolean            *p_result)
+/*
+Given the associated storage and interpreter state for the resulting c-string,
+convert and store the given string (result_string).  If any problems are
+encountered, the pointee of p_result will be set to FALSE.
+*/
+{
+  a_constant_ptr  cp;
+  a_type_ptr      type;
+  a_byte_count    length, k;
+  a_byte          *string_bytes;
+  a_boolean       result = TRUE;
+
+  /* Obtain a shareable ck_string constant for the name. */
+  cp = shareable_fs_string_constant(result_string);
+  type = cp->type;
+  length = (a_byte_count)cp->variant.string.length;
+  /* Do we have an interpreter version of the string already? */
+  get_stack_bytes(ips, cp->variant.string.value, string_bytes);
+  if (string_bytes == NULL) {
+    /* First time seeing this string; allocate it in static storage. */
+    alloc_static_object(ips, type, string_bytes, &result);
+    if (result) {
+      /* Copy the string from host format to interpreter format (i.e.,
+         an integer for each character). */
+      a_type_ptr     etp = skip_typerefs(type->variant.array.element_type);
+      a_byte_count   elem_size = value_bytes_for_type(ips, etp, &result);
+      a_targ_size_t  char_size = etp->size;
+      a_const_char   *char_ptr = cp->variant.string.value;
+      a_byte         *elem = string_bytes;
+
+      if (result) {
+        for (k = 0; k<length; ++k, elem += elem_size) {
+          unsigned long char_val = extract_character_from_string(
+                                                      char_ptr,
+                                                      (unsigned int)char_size);
+          set_integer_value((an_integer_value*)elem,
+                            (a_host_large_integer)char_val);
+          char_ptr += char_size;
+          mark_subobject_initialized(elem, string_bytes);
+        }  /* for */
+        mark_complete_object_initialized(string_bytes);
+        /* Create a mapping to the string so the original IL constant
+           can be found. */
+        map_stack_bytes(ips, string_bytes, (a_byte*)cp);
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (result) {
+    /* Return the result. */
+    clear_address(result_storage, string_bytes);
+    ((a_constexpr_address*)result_storage)->flags |=
+                                           CA_CONST_STORAGE | CA_ARRAY_ELEMENT;
+    ((a_constexpr_address*)result_storage)->length = length;
+  } else {
+    *p_result = FALSE;
+  }  /* if */
+}  /* do_constexpr_write_cstring */
+
+
+static void do_constexpr_write_source_file(
+                                          an_interpreter_state *ips,
+                                          a_source_position    *use_pos,
+                                          a_byte               *result_storage,
+                                          a_boolean            *p_result)
+/*
+Given the associated storage and interpreter state for the resulting c-string,
+convert and store the source file name associated with the given position
+(use_pos).  If any problems are encountered, the pointee of p_result will be
+set to FALSE.
+*/
+{
+  a_line_number  line_number;
+  a_boolean      at_end_of_source;
+  a_const_char   *file_name, *full_name;
+
+  (void)conv_seq_to_file_and_line(use_pos->seq, &file_name,
+                                  &full_name, &line_number,
+                                  &at_end_of_source);
+  do_constexpr_write_cstring(ips, file_name, result_storage, p_result);
+}  /* do_constexpr_write_source_line */
+
+
+static void do_constexpr_write_source_function(
+                                          an_interpreter_state *ips,
+                                          a_source_position    *use_pos,
+                                          a_byte               *result_storage,
+                                          a_boolean            *p_result)
+/*
+Given the associated storage and interpreter state for the resulting c-string,
+convert and store the source function name associated with the given position
+(use_pos).  When the given position doesn't have an associated function, an
+empty c-string is instead stored.  If any problems are encountered, the pointee
+of p_result will be set to FALSE.
+*/
+{
+  /* Use the same string as if using __func__. */
+  a_const_char  *func_name = get_string_for_function_name(
+                                                      tok_func_name,
+                                                      /*include_quote=*/FALSE);
+
+  do_constexpr_write_cstring(ips, func_name, result_storage, p_result);
+}  /* do_constexpr_write_source_function */
+
+
+static a_boolean do_constexpr_builtin_source_pos_func(
                                           an_interpreter_state *ips,
                                           a_routine_ptr        callee,
                                           a_byte               *result_storage,
@@ -8332,13 +8614,7 @@ occurs in i_copy_expr_tree when the expression is being copied, and for
 default member initializers, lowering does the work.
 */
 {
-  a_boolean       result = TRUE;
-  a_const_char    *result_string, *file_name, *full_name;
-  a_line_number   line_number;
-  a_boolean       at_end_of_source;
-  a_byte_count    length, k;
-  a_type_ptr      type;
-  a_byte          *string_bytes;
+  a_boolean  result = TRUE;
 
   if ((expr_stack != NULL &&
        expr_stack->is_default_arg_expression &&
@@ -8351,7 +8627,8 @@ default member initializers, lowering does the work.
     /* Determine the appropriate source position for this invocation and
        convert it to the appropriate integer (COLUMN, LINE) or string (FILE,
        FUNCTION). */
-    a_source_position *use_pos;
+    a_source_position  *use_pos;
+
     if (ips->curr_call_frame == NULL ||
         ips->curr_call_frame->routine == NULL) {
       /* This is the usual case: The __builtin_... is folded right away when
@@ -8367,84 +8644,40 @@ default member initializers, lowering does the work.
     }  /* if */
     switch (callee->variant.builtin_function_kind) {
       case bfk_COLUMN:
-        set_integer_value((an_integer_value*)result_storage,
-                          (a_host_large_integer)use_pos->column);
+        { an_integer_kind col_int_kind = (an_integer_kind)ik_unsigned_int;
+
+          do_constexpr_write_source_column(ips, use_pos,
+                                           integer_type(col_int_kind),
+                                           result_storage, p_result);
+        }
         break;
       case bfk_LINE:
-        (void)conv_seq_to_file_and_line(use_pos->seq, &file_name, &full_name,
-                                        &line_number, &at_end_of_source);
-        set_integer_value((an_integer_value*)result_storage,
-                          (a_host_large_integer)line_number);
+        { an_integer_kind line_int_kind = (an_integer_kind)ik_unsigned_long;
+
+          do_constexpr_write_source_line(ips, use_pos,
+                                         integer_type(line_int_kind),
+                                         result_storage, p_result);
+        }
         break;
       case bfk_FILE:
+        do_constexpr_write_source_file(ips, use_pos, result_storage, p_result);
+        if (p_result) {
+          mark_complete_object_initialized(result_storage);
+        }  /* if */
+        break;
       case bfk_FUNCTION:
-        {
-          a_constant_ptr  cp;
-          if (callee->variant.builtin_function_kind ==
-                                           (a_builtin_function_kind)bfk_FILE) {
-            (void)conv_seq_to_file_and_line(use_pos->seq, &file_name,
-                                            &full_name, &line_number,
-                                            &at_end_of_source);
-            result_string = file_name;
-          } else {
-            /* Use the same string as if using __func__. */
-            result_string = get_string_for_function_name(tok_func_name,
-                                                      /*include_quote=*/FALSE);
-          }  /* if */
-          /* Obtain a shareable ck_string constant for the name. */
-          cp = shareable_fs_string_constant(result_string);
-          type = cp->type;
-          length = (a_byte_count)cp->variant.string.length;
-          /* Do we have an interpreter version of the string already? */
-          get_stack_bytes(ips, cp->variant.string.value, string_bytes);
-          if (string_bytes == NULL) {
-            /* First time seeing this string; allocate it in static storage. */
-            alloc_static_object(ips, type, string_bytes, &result);
-            if (result) {
-              /* Copy the string from host format to interpreter format (i.e.,
-                 an integer for each character). */
-              a_type_ptr     etp =
-                               skip_typerefs(type->variant.array.element_type);
-              a_byte_count   elem_size =
-                                       value_bytes_for_type(ips, etp, &result);
-              a_targ_size_t  char_size = etp->size;
-              a_const_char   *char_ptr = cp->variant.string.value;
-              a_byte         *elem = string_bytes;
-              if (result) {
-                for (k = 0; k<length; ++k, elem += elem_size) {
-                  unsigned long char_val = extract_character_from_string(
-                                                      char_ptr,
-                                                      (unsigned int)char_size);
-                  set_integer_value((an_integer_value*)elem,
-                                    (a_host_large_integer)char_val);
-                  char_ptr += char_size;
-                  mark_subobject_initialized(elem, string_bytes);
-                }  /* for */
-                mark_complete_object_initialized(string_bytes);
-                /* Create a mapping to the string so the original IL constant
-                   can be found. */
-                map_stack_bytes(ips, string_bytes, (a_byte*)cp);
-              }  /* if */
-            }  /* if */
-          }  /* if */
-          if (result) {
-            /* Return the result. */
-            clear_address(result_storage, string_bytes);
-            mark_complete_object_initialized(result_storage);
-            ((a_constexpr_address*)result_storage)->flags |=
-                                          CA_CONST_STORAGE | CA_ARRAY_ELEMENT;
-            ((a_constexpr_address*)result_storage)->length = length;
-          } else {
-            *p_result = FALSE;
-          }  /* if */
-        }
+        do_constexpr_write_source_function(ips, use_pos, result_storage,
+                                           p_result);
+        if (p_result) {
+          mark_complete_object_initialized(result_storage);
+        }  /* if */
         break;
       default:
         unexpected_condition();
     }  /* switch */
   }  /* if */
   return result;
-}  /* do_constexpr_builtin_source_location */
+}  /* do_constexpr_builtin_source_pos_func */
 
 
 static a_boolean do_constexpr_builtin_function(
@@ -9003,6 +9236,84 @@ to FALSE and the reason for the failure is recorded in *ips.
         }  /* if */
       }  /* if */
       break;
+    case bufk_source_location:
+      {
+        if (expr_stack != NULL && expr_stack->is_default_arg_expression) {
+          do_constexpr_fail(*p_result);
+        } else {
+          a_gnu_source_location_type_info interp_inf;
+
+          /* Load the type information, if the type is invalid, silently fail
+             the interpretation (this has already been diagnosed). */
+          interp_inf = gnu_source_location_impl();
+          if (is_error_type(interp_inf.impl_type)) {
+            do_constexpr_fail(*p_result);
+          } else {
+            a_byte  *obj_storage;
+
+            interpreted = TRUE;
+            /* Allocate the source location __impl object. */
+            alloc_naturalizable_object(ips, interp_inf.impl_type, &obj_storage,
+                                       p_result);
+            if (*p_result) {
+              a_source_position *use_pos = ips->srcloc_builtin_pos;
+
+              /* This can occur when the builtin is used raw, fallback to the
+                 error position. */
+              if (use_pos == NULL) {
+                use_pos = &error_position;
+              }  /* if */
+
+              /* Populate the source location __impl object with the values for
+                 use_pos.  Note that the fields (and their associated types)
+                 are guaranteed to have been validated upon use of the
+                 builtin. */
+              a_field_ptr   file_name_fp = interp_inf.file_field;
+              a_byte_count  file_name_f_offset;
+              get_mapped_byte_count(&persistent_map, file_name_fp,
+                                  file_name_f_offset);
+              a_byte        *file_name_f_bytes = obj_storage +
+                                                            file_name_f_offset;
+              do_constexpr_write_source_file(ips, use_pos, file_name_f_bytes,
+                                             p_result);
+              mark_subobject_initialized(file_name_f_bytes, obj_storage);
+
+              a_field_ptr   function_name_fp = interp_inf.function_field;
+              a_byte_count  function_name_f_offset;
+              get_mapped_byte_count(&persistent_map, function_name_fp,
+                                    function_name_f_offset);
+              a_byte        *function_name_f_bytes = obj_storage +
+                                                        function_name_f_offset;
+              do_constexpr_write_source_function(ips, use_pos,
+                                                 function_name_f_bytes,
+                                                 p_result);
+              mark_subobject_initialized(function_name_f_bytes, obj_storage);
+
+              a_field_ptr   line_fp = interp_inf.line_field;
+              a_byte_count  line_f_offset;
+              get_mapped_byte_count(&persistent_map, line_fp, line_f_offset);
+              a_byte        *line_f_bytes = obj_storage + line_f_offset;
+              do_constexpr_write_source_line(ips, use_pos, line_fp->type,
+                                             line_f_bytes, p_result);
+              mark_subobject_initialized(line_f_bytes, obj_storage);
+
+              a_field_ptr   column_fp = interp_inf.column_field;
+              a_byte_count  column_f_offset;
+              get_mapped_byte_count(&persistent_map, column_fp,
+                                    column_f_offset);
+              a_byte        *column_f_bytes = obj_storage + column_f_offset;
+              do_constexpr_write_source_column(ips, use_pos, column_fp->type,
+                                               column_f_bytes, p_result);
+              mark_subobject_initialized(column_f_bytes, obj_storage);
+
+              /* Update the pointer to point to the allocated object. */
+              clear_address(result_storage, obj_storage);
+              mark_complete_object_initialized(result_storage);
+            }  /* if */
+          }  /* if */
+        }  /* if */
+      }
+      break;
     case bfk_COLUMN:
     case bfk_LINE:
     case bfk_FILE:
@@ -9012,7 +9323,7 @@ to FALSE and the reason for the failure is recorded in *ips.
       if (args != NULL) {
         unexpected_condition();
       } else {
-        if (do_constexpr_builtin_source_location(ips, callee, result_storage,
+        if (do_constexpr_builtin_source_pos_func(ips, callee, result_storage,
                                                  p_result)) {
           interpreted = TRUE;
         } else {
@@ -10167,6 +10478,13 @@ otherwise, return FALSE and update *ips accordingly.
          member call). */
       if (result &&
           (!eval_right_to_left || is_member_call || arg->next == NULL)) {
+        Value_saver<a_source_position*>  src_pointer(&ips->srcloc_builtin_pos);
+
+        /* Since non-default argument cases are folded as they're parsed, only
+           the default argument case needs handled. */
+        if (ips->srcloc_builtin_pos == NULL && arg->generated_default_arg) {
+          ips->srcloc_builtin_pos = &call_node->position;
+        }  /* if */
         if (!do_constexpr_expression(ips, arg, arg_bytes, arg_bytes)) {
           do_constexpr_fail(result);
         }  /* if */
@@ -14053,6 +14371,11 @@ the value representation of the integer value.
 		      reinterpret_runtime_address(opnd1_value, tp)) {
                     *(a_constexpr_address*)result_storage =
                                            *(a_constexpr_address*)opnd1_value;
+                  } else if (has_gnu_source_location_impl_type() &&
+                             type_is(utp2, tk_void) &&
+                             utp1 == gnu_source_location_impl_type()) {
+                    /* This is okay, GCC allows conversion from the source
+                       location __impl type to "void*". */
                   } else {
                     info_with_pos_type2(ec_constexpr_invalid_type_conversion,
                                         &expr->position, opnd1_type, tp, ips);
@@ -18914,6 +19237,50 @@ static a_boolean copy_interpreter_object_to_constant(
                                        a_byte                *object,
                                        a_byte                *complete_object,
                                        a_type_ptr            type,
+                                       a_constant_ptr        con);
+
+
+static a_boolean alloc_const_for_object(
+                                        an_interpreter_state  *ips,
+                                        a_constexpr_address   *cap,
+                                        a_constant_ptr        *result)
+/*
+Allocate a new constant at the current memory region for the interpreter object
+pointed to by cap, for the interpreter state ips.  Resulted is updated to point
+to the allocated constant. Return TRUE when the allocation operation is
+successful, FALSE otherwise.
+*/
+{
+  a_boolean       success = TRUE;
+  a_constant_ptr  cp;
+
+  /* Set up a reverse mapping, so other address constants into this
+     object can use the same constant entry (see the case where mptr
+     points to a non-ck_address entry above). */
+  cp = *result = alloc_constant((a_constant_repr_kind)ck_error);
+  map_stack_bytes(ips, cap->complete_object, (a_byte*)cp);
+  /* Create an IL representation of the pointed-to-object.  In some
+     cases, we may be pointing to a subobject; the representation is
+     still needed for the complete object, however. */
+  { a_type_ptr  otp = complete_object_type(cap->complete_object);
+    if (is_const_storage(cap)) {
+      otp = make_qualified_type(otp, (a_type_qualifier_set)TQ_CONST);
+    }  /* if */
+    if (!copy_interpreter_object_to_constant(
+                               ips, cap->complete_object, cap->complete_object,
+                               otp, cp)) {
+      success = FALSE;
+    }  /* if */
+  }
+  return success;
+}  /* alloc_const_for_object */
+
+
+static a_boolean copy_interpreter_object_to_constant(
+                                       an_interpreter_state  *ips,
+                                       a_byte                *object,
+                                       a_byte                *complete_object,
+                                       a_type_ptr            type,
                                        a_constant_ptr        con)
 /*
 The storage pointed to by object holds a representation of a value of the given
@@ -19095,7 +19462,6 @@ diagnostic in *ips.
           } else {
             /* Create an abk_constant or abk_temporary entry. */
             a_byte  *base_address;
-            cp = alloc_constant((a_constant_repr_kind)ck_error);
             if (is_const_qualified_type(utp)) {
               cap->flags |= CA_CONST_STORAGE;
             }  /* if */
@@ -19129,24 +19495,10 @@ diagnostic in *ips.
             } else {
               base_address = cap->address;
             }  /* if */
-            /* Set up a reverse mapping, so other address constants into this
-               object can use the same constant entry (see the case where mptr
-               points to a non-ck_address entry above). */
-            map_stack_bytes(ips, cap->complete_object, (a_byte*)cp);
-            /* Create an IL representation of the pointed-to-object.  In some
-               cases, we may be pointing to a subobject; the representation is
-               still needed for the complete object, however. */
-            { a_type_ptr  otp = complete_object_type(cap->complete_object);
-              if (is_const_storage(cap)) {
-                otp = make_qualified_type(otp, (a_type_qualifier_set)TQ_CONST);
-              }  /* if */
-              if (!copy_interpreter_object_to_constant(
-                              ips, cap->complete_object, cap->complete_object,
-                              otp, cp)) {
-                do_constexpr_fail(result);
-                break;
-              }  /* if */
-            }
+            if (!alloc_const_for_object(ips, cap, &cp)) {
+              do_constexpr_fail(result);
+              break;
+            }  /* if */
           }  /* if */
           if (is_array_element(cap)) {
             /* Taking the address of an array implies a pointer-to-array
@@ -19224,10 +19576,43 @@ diagnostic in *ips.
               if (!((cap->flags & CA_LIFETIME_EXTENDED) ||
                     cap->alloc_seq_number == 0) ||
                   (!ips->static_lifetime_init && !permit_local_temp)) {
-                /* The address of a temporary results in a dangling pointer. */
-                do_constexpr_fail(result);
-                info_with_pos(ec_constexpr_expiring_temporary,
-                              &ips->position, ips);
+                /* If the complete object is a naturalizable, it can be
+                   promoted from a temporary. */
+                if (is_naturalizable_object(ips, cap->complete_object)) {
+#if EXPENSIVE_CHECKING
+                  /* The allocation sequence number should always represent
+                     static storage (i.e., be 0). */
+                  check_assertion(cap->alloc_seq_number == 0);
+#endif /* EXPENSIVE_CHECKING */
+                  con->variant.address.kind =
+                                            (an_address_base_kind)abk_constant;
+                  /* If the current memory region isn't the file scope region
+                     the allocated constant may be freed prematurely.  To avoid
+                     this, switch to the file scope region, and recreate the
+                     constant. */
+                  if (curr_il_region_number != file_scope_region_number) {
+                    a_memory_region_number  region_to_switch_back_to;
+
+                    switch_to_file_scope_region(&region_to_switch_back_to);
+                    /* Unmap the constant, and replace it with one in the file
+                       scope memory region. */
+                    unmap_stack_bytes(ips, cap->complete_object);
+                    a_boolean alloced = alloc_const_for_object(ips, cap, &cp);
+                    switch_back_to_original_region(region_to_switch_back_to);
+                    /* Only break after restoring the memory region. */
+                    if (!alloced) {
+                      do_constexpr_fail(result);
+                      break;
+                    }  /* if */
+                  }  /* if */
+                  cp->is_naturalized = TRUE;
+                } else {
+                  /* The address of a temporary results in a dangling
+                     pointer. */
+                  do_constexpr_fail(result);
+                  info_with_pos(ec_constexpr_expiring_temporary,
+                                &ips->position, ips);
+                }  /* if */
               }  /* if */
             }  /* if */
             con->variant.address.variant.constant = cp;

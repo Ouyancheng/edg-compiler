@@ -231,6 +231,7 @@ enum a_builtin_user_function_kind_tag {
   bufk_u8memchr,                  /* __builtin_u8memchr */
   bufk_u8memcmp,                  /* __builtin_u8memcmp */
   bufk_u8strlen,                  /* __builtin_u8strlen */
+  bufk_source_location,           /* __builtin_source_location */
   bufk_last                       /* final entry */
 };
 
@@ -258,6 +259,11 @@ to be kept sorted).
 EXTERN a_builtin_user_descr builtin_user_table[]
 #if VAR_INITIALIZERS
 = {
+  /* Support for std::source_location.  This built-in is expected to
+     appear in GCC 10.1 and likely soon in other versions as well. */
+  { "__builtin_source_location", "g+(100000-)s+(202002-)",
+    "void* () __edg_throw__()", bufk_source_location },
+
   /* GCC 9.x implements std::is_constexpr_evaluated using an intrinsic function
      __builtin_is_constexpr_evaluated.  We accept it in all modes, but the
      front end also recognizes std::is_constexpr_evaluated directly. */

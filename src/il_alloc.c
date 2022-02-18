@@ -1007,6 +1007,7 @@ associated variant fields to default values.
   cp->constant_for_base_class_from_constexpr_folding = FALSE;
   cp->part_of_constexpr_master_expr = FALSE;
   cp->local_expr_ref = FALSE;
+  cp->is_naturalized = FALSE;
   set_constant_kind(cp, kind);
 }  /* clear_constant */
 
