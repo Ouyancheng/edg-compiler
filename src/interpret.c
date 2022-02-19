@@ -4131,7 +4131,7 @@ anonymous union or struct object.  If for_ctor_init is TRUE, this selection is
 for a ctor-initializer: In that context, selection from anonymous structs (a
 nonstandard extension) is implicit.  If for_ctor_init is FALSE, this selection
 is for a field selection in an expression context, where anonymous struct field
-selections are represented explicitly, and this do no have to be handled here.
+selections are represented explicitly, and thus do not have to be handled here.
 This routine currently handles at most 30 selection steps (i.e., at most 29
 anonymous nested types): If more are needed, FALSE is returned and the caller
 is responsible for recording a failing evaluation.
@@ -5867,7 +5867,7 @@ static a_boolean do_array_constructor_copy(an_interpreter_state  *ips,
 /*
 The given dik_constructor dynamic initialization entry has its is_array_copy
 flag set to TRUE.  Perform the array copy it represents (to storage indicated
-by cap).  Return TRUE is successful.  Otherwise, return FALSE and update *ips
+by cap).  Return TRUE if successful.  Otherwise, return FALSE and update *ips
 accordingly.  Associate diagnostics with the given position.
 */
 {   
@@ -10915,7 +10915,7 @@ the body of the (constructor) function proper.
             do_constexpr_fail(result);
             break;
           }  /* if */
-          /* The call to add_to-variant_path adjusted dst_addr to point to
+          /* The call to add_to_variant_path adjusted dst_addr to point to
              the innermost anonymous union enclosing fp. */
           get_mapped_byte_count(&persistent_map, orig_fp, offset);
           dst_addr.address += offset;
