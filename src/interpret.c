@@ -2265,7 +2265,24 @@ interpreter value at targ_addr (or a null pointer).
   memzero((char *)(addr) /*lint -e668*/, sizeof(a_constexpr_address));   \
   ((a_constexpr_address *)(addr))->address = (targ_addr);                \
   ((a_constexpr_address *)(addr))->complete_object = (targ_addr)
-  
+
+
+static inline void set_active_address(an_interpreter_state  *ips,
+                                      a_constexpr_address   *addr,
+                                      a_byte                *value,
+                                      a_byte                *compl_obj = NULL)
+/*
+Set the given interpreter address to point to value, with the current state's
+active allocation sequence number.  compl_obj is the address of the associated
+complete object.
+*/
+{
+  addr->address = value;
+  addr->flags = 0;
+  addr->length = 0;
+  addr->alloc_seq_number = active_alloc_seq(ips);
+  addr->complete_object = compl_obj;
+}  /* set_active_address */
 
 /*
 Macro to initialize a constant address at addr referring to the function
@@ -4098,101 +4115,102 @@ Mark the complete object at the given address as not fully initialized.
   clear_complete_obj_flag(obj, COMPLETE_OBJ_INITIALIZED)
 
 
-static void make_anon_union_path(a_symbol_ptr              au_sym,
-                                 a_variant_path_entry_ptr  *p_last_entry,
-                                 a_byte                    **p_addr)
+static a_boolean add_to_variant_path(
+                                   a_constexpr_address  *addr,
+                                   a_field_ptr          union_field,
+                                   a_type_ptr           top_type,
+                                   a_boolean            for_ctor_init = FALSE)
 /*
-au_sym represents an anonymous union parent field being selected in an object
-at address *p_addr.  Update *p_addr to point to the address of the anonymous
-union parent object.  au_sym may itself be a member of anonymous enclosing
-anonymous unions; if so, append to *p_last_entry a variant path corresponding
-to those anonymous union objects.
+The given field is being selected in the given type, from an object or
+subobject stored at the given interpreter address.  The type is a union type
+or the field is a member of an anonymous union or struct.  If needed, update
+the variant path of addr to reflect all union selections involved (potentially
+this can include the selection from top_type itself and any number of nested
+anonymous unions).  Also, adjust addr->address to the address of the innermost
+anonymous union or struct object.  If for_ctor_init is TRUE, this selection is
+for a ctor-initializer: In that context, selection from anonymous structs (a
+nonstandard extension) is implicit.  If for_ctor_init is FALSE, this selection
+is for a field selection in an expression context, where anonymous struct field
+selections are represented explicitly, and this do no have to be handled here.
+This routine currently handles at most 30 selection steps (i.e., at most 29
+anonymous nested types): If more are needed, FALSE is returned and the caller
+is responsible for recording a failing evaluation.
 */
 {
-  a_variant_path_entry_ptr  vpep, last_entry;
-  a_field_ptr               aufp = au_sym->variant.field.ptr;
+#define MAX_LEVELS 30
+  a_boolean                 result = TRUE;
+  a_variant_path_entry_ptr  path = NULL, *p_last = &path;
   a_symbol_ptr              au_parent;
-  a_byte_count              offset;
+  a_field_ptr               fields[MAX_LEVELS];
+  uint32_t                  n = 0;
+  a_type_ptr                curr_type = top_type;
+  a_byte_count              total_offset = 0;
 
-  au_parent = au_sym->variant.field.anonymous_parent_object;
-  if (au_parent != NULL && symbol_is(au_parent, sk_field)) {
-    a_type_ptr  au_type = au_parent->variant.field.ptr->type;
-    if (au_type->kind == (a_type_kind)tk_union &&
-        !au_type->variant.class_struct_union.is_nonstd_anonymous_union_type) {
-      /* aufp is not the top-most anonymous union.  Recurse to determine its
-         parent's address, then append a variant entry to select it. */
-      make_anon_union_path(au_parent, p_last_entry, p_addr);
-    }  /* if */
-  }  /* if */
-  last_entry = *p_last_entry;
-  vpep = alloc_variant_path_entry();
-  vpep->next = NULL;
-  last_entry->next = vpep;
-  if (parent_class_of(aufp)->kind == (a_type_kind)tk_union) {
-    /* aufp is a member of a union itself (always the case in recursive calls,
-       but also if the original call is for a member of an ordinary union). */
-    last_entry->field = aufp;
-    last_entry->base_address = *p_addr;
-  }  /* if */
-  *p_last_entry = vpep;
-  get_mapped_byte_count(&persistent_map, aufp, offset);
-  *p_addr += offset;
-}  /* make_anon_union_path */
-
-
-static void add_to_variant_path(a_constexpr_address  *addr,
-                                a_field_ptr          union_field,
-                                a_type_ptr           top_type)
-/*
-The given field of a union object or subobject pointed to by addr is being
-selected.  Add that field to the variant path associated with addr (and, if
-this is the first field added to the path, also add a prefix field for array
-element selections).  If union_field is a standard anonymous union field,
-addr->address is adjusted to the innermost anonymous union parent and
-additional variant path entries are added for nested anonymous unions if
-needed.  top_type is the top-most class type in the selection: It may not
-be a union type if union_field is an anonymous union field.
-*/
-{
-  a_variant_path_entry_ptr  last_entry, vpep;
-  a_symbol_ptr              au_parent;
-
-  if (addr->flags & CA_VARIANT_PATH) {
-    /* This entry already has a variant path: Find its end. */
-    last_entry = addr->variant.variant_path->next;
-    while (last_entry->next != NULL) {
-      last_entry = last_entry->next;
-    }  /* while */
-  } else {
-    /* No entries yet: Create a first entry to record an array base address if
-       needed. */
-    addr->variant.variant_path = alloc_variant_path_entry();
-    last_entry = addr->variant.variant_path;
-    last_entry->next = NULL;
-    last_entry->field = NULL;
-    last_entry->base_address = NULL;
-    addr->flags |= CA_VARIANT_PATH;
-  }  /* if */
-  if (top_type->kind == (a_type_kind)tk_union) {
-    /* An ordinary union member.  Just add a new entry. */
-    vpep = alloc_variant_path_entry();
-    vpep->next = NULL;
-    last_entry->next = vpep;
-    last_entry = vpep;
-  }  /* if */
+  fields[n++] = union_field;
+  /* Collect the (potential) chain of anonymous parent fields: */
   au_parent = symbol_for(union_field)->variant.field.anonymous_parent_object;
-  if (au_parent != NULL && symbol_is(au_parent, sk_field)) {
-    a_type_ptr  au_type = au_parent->variant.field.ptr->type;
-    if (au_type->kind == (a_type_kind)tk_union &&
-        !au_type->variant.class_struct_union.is_nonstd_anonymous_union_type) {
-      make_anon_union_path(au_parent, &last_entry, &addr->address);
+  while (au_parent != NULL && symbol_is(au_parent, sk_field)) {
+    /* The field is a member of an anonymous union or struct. */
+    if (!for_ctor_init &&
+        !type_is(skip_typerefs(au_parent->variant.field.ptr->type),
+                 tk_union)) {
+      /* For member selection in expression contexts, anonymous structs are
+         explicitly represented in the IL.  Do not re-apply the corresponding
+         adjustments here. */
+      break;
     }  /* if */
+    fields[n++] = au_parent->variant.field.ptr;
+    if (n == MAX_LEVELS) {
+      result = FALSE;
+      goto done;
+    }  /* if */
+    au_parent = au_parent->variant.field.anonymous_parent_object;
+  }  /* while */
+  /* Traverse the fields from outer-to-inner, updating the path and the
+     offset. */
+  while (--n >= 0) {
+    a_field_ptr   fp = fields[n];
+    a_byte_count  offset;
+    if (type_is(curr_type, tk_union)) {
+      *p_last = alloc_variant_path_entry();
+      (*p_last)->next = NULL;
+      (*p_last)->field = fp;
+      (*p_last)->base_address = addr->address+total_offset;
+      p_last = &(*p_last)->next;
+    }  /* if */
+    if (n == 0) break;
+    get_mapped_byte_count(&persistent_map, fp, offset);
+    total_offset += offset;
+    curr_type = skip_typerefs(fp->type);
+  }  /* while */
+  addr->address += total_offset;
+  if (path != NULL) {
+    /* There are actual variant selections.  Record them. */
+    a_variant_path_entry_ptr  last_entry;
+    if (addr->flags & CA_VARIANT_PATH) {
+      /* This entry already has a variant path: Find its end. */
+      last_entry = addr->variant.variant_path->next;
+      while (last_entry->next != NULL) {
+        last_entry = last_entry->next;
+      }  /* while */
+    } else {
+      /* No entries yet: Create a first entry to record an array base address
+         if needed. */
+      addr->variant.variant_path = alloc_variant_path_entry();
+      last_entry = addr->variant.variant_path;
+      last_entry->next = NULL;
+      last_entry->field = NULL;
+      last_entry->base_address = NULL;
+      addr->flags |= CA_VARIANT_PATH;
+    }  /* if */
+    last_entry->next = path;
   }  /* if */
-  last_entry->field = union_field;
-  last_entry->base_address = addr->address;
 #if EXPENSIVE_CHECKING
   check_no_variant_path_cycle(addr->variant.variant_path);
 #endif /* EXPENSIVE_CHECKING */
+done:
+  return result;
+#undef MAX_LEVELS
 }  /* add_to_variant_path */
 
 
@@ -4477,9 +4495,7 @@ static a_boolean do_constexpr_expression(
 static a_boolean do_constexpr_ctor(an_interpreter_state  *ips,
                                    a_dynamic_init_ptr    dip,
                                    a_source_position     *pos,
-                                   a_byte                *result_storage,
-                                   a_byte                *complete_object,
-                                   an_alloc_seq_number   alloc_seq,
+                                   a_constexpr_address   *cap,
                                    a_constexpr_address   *implied_src);
 
 
@@ -4494,9 +4510,7 @@ static a_boolean do_constexpr_dynamic_init(
                                    an_interpreter_state  *ips,
                                    a_dynamic_init_ptr    dip,
                                    a_source_position     *pos,
-                                   a_byte                *result_storage,
-                                   a_byte                *complete_object,
-                                   an_alloc_seq_number   alloc_seq,
+                                   a_constexpr_address   *dst_addr,
                                    a_constexpr_address   *implied_src = NULL);
 
 
@@ -4963,9 +4977,12 @@ by implied_src.
                       if (dyn_init_is(dip, dik_constant)) {
                         cp = dip->variant.constant.ptr;
                       } else {
+                        a_constexpr_address  var_addr;
+                        clear_address(&var_addr, var_bytes);
+                        var_addr.alloc_seq_number = 0;
+                        var_addr.complete_object = var_bytes;
                         result = do_constexpr_dynamic_init(
-                                                     ips, dip, &ips->position,
-                                                     var_bytes, var_bytes, 0);
+                                         ips, dip, &ips->position, &var_addr);
                       }  /* if */
                     } else {
                       an_init_kind    init_kind;
@@ -4979,9 +4996,12 @@ by implied_src.
                         if (dyn_init_is(dip, dik_constant)) {
                           cp = dip->variant.constant.ptr;
                         } else {
+                          a_constexpr_address  var_addr;
+                          clear_address(&var_addr, var_bytes);
+                          var_addr.alloc_seq_number = 0;
+                          var_addr.complete_object = var_bytes;
                           result = do_constexpr_dynamic_init(
-                                                     ips, dip, &ips->position,
-                                                     var_bytes, var_bytes, 0);
+                                         ips, dip, &ips->position, &var_addr);
                         }  /* if */
                       } else {
                         /* In GNU C++ mode, the initializer may not be
@@ -5175,10 +5195,11 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
       break;
     case ck_dynamic_init:
       {
+        a_constexpr_address  dst_addr;
+        set_active_address(ips, &dst_addr, value, complete_object);
         result = do_constexpr_dynamic_init(ips, con->variant.dynamic_init.ptr,
                                            &con->source_corresp.decl_position,
-                                           value, complete_object,
-                                           active_alloc_seq(ips), implied_src);
+                                           &dst_addr, implied_src);
       }
       break;
     case ck_string:
@@ -5589,11 +5610,12 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
              The whole copy (including the iteration for each element of the
              array) will be handled by the interpretation of the dynamic
              initializer entry. */
+          a_constexpr_address  dst_addr;
+          set_active_address(ips, &dst_addr, value, complete_object);
           if (!do_constexpr_dynamic_init(
                                       ips, elem_con->variant.dynamic_init.ptr,
                                       &elem_con->source_corresp.decl_position,
-                                      value, complete_object,
-                                      active_alloc_seq(ips))) {
+                                      &dst_addr)) {
             do_constexpr_fail(result);
           }  /* if */
         } else {
@@ -5838,19 +5860,15 @@ mapping if there was one.
 }  /* do_constexpr_unmap_variable */
 
 
-static a_boolean do_array_constructor_copy(
-                                       an_interpreter_state  *ips,
-                                       a_dynamic_init_ptr    dip,
-                                       a_source_position     *pos,
-                                       a_byte                *result_storage,
-                                       a_byte                *complete_object,
-                                       an_alloc_seq_number   alloc_seq)
+static a_boolean do_array_constructor_copy(an_interpreter_state  *ips,
+                                           a_dynamic_init_ptr    dip,
+                                           a_source_position     *pos,
+                                           a_constexpr_address   *cap)
 /*
 The given dik_constructor dynamic initialization entry has its is_array_copy
 flag set to TRUE.  Perform the array copy it represents (to storage indicated
-by result_storage, part of the complete object represented by complete_object;
-the storage lifetime is represented by alloc_seq).  Return TRUE is successful.
-Otherwise, return FALSE and update *ips accordingly.
+by cap).  Return TRUE is successful.  Otherwise, return FALSE and update *ips
+accordingly.  Associate diagnostics with the given position.
 */
 {   
   a_boolean            result = TRUE, clear_lvalue = FALSE;
@@ -5910,13 +5928,14 @@ Otherwise, return FALSE and update *ips accordingly.
     } else {
       src_addr->variant.base_address = src_addr->address;
     }  /* if */
+    a_constexpr_address  dst_addr = *cap;
     for (k = 0; k<length; ++k) {
-      if (!do_constexpr_ctor(ips, &dip_copy, pos, result_storage+k*elem_size,
-                             complete_object, alloc_seq, src_addr)) {
+      if (!do_constexpr_ctor(ips, &dip_copy, pos, &dst_addr, src_addr)) {
         do_constexpr_fail(result);
         goto done;
       } else {
         src_addr->address += elem_size;
+        dst_addr.address += elem_size;
       }  /* if */
     }  /* for */
   }  /* if */
@@ -5940,16 +5959,14 @@ static a_boolean do_constexpr_dynamic_init(
                                         an_interpreter_state  *ips,
                                         a_dynamic_init_ptr    dip,
                                         a_source_position     *pos,
-                                        a_byte                *result_storage,
-                                        a_byte                *complete_object,
-                                        an_alloc_seq_number   alloc_seq,
+                                        a_constexpr_address   *dst_addr,
                       /* Defaulted: */  a_constexpr_address   *implied_src)
 /*
-Evaluate the given dynamic initialization for the storage described by
-result_storage, complete_object, and alloc_seq.  ips is the interpreter state
-and pos the default position for diagnostics.  If implied_src is non-NULL,
-this is being invoked from the evaluation of a copy or move constructor and
-the source object is stored at the location indicated by implied_src.
+Evaluate the given dynamic initialization of the storage described by dst_addr.
+ips is the interpreter state and pos the default position for diagnostics.  If
+implied_src is non-NULL, this is being invoked from the evaluation of a copy
+or move constructor and the source object is stored at the location indicated
+by implied_src.
 */
 {
   a_boolean  result = FALSE;
@@ -5958,13 +5975,13 @@ the source object is stored at the location indicated by implied_src.
     case dik_constant:
     case dik_nonconstant_aggregate:
       result = copy_val_from_constant(ips, dip->variant.constant.ptr,
-                                      result_storage, complete_object,
-                                      implied_src);
+                                      dst_addr->address,
+                                      dst_addr->complete_object, implied_src);
       break;
     case dik_lambda:
       if (constexpr_lambdas_enabled) {
-        result = do_constexpr_lambda(ips, dip, pos,
-                                     result_storage, complete_object);
+        result = do_constexpr_lambda(ips, dip, pos, dst_addr->address,
+                                      dst_addr->complete_object);
       } else {
         info_with_pos(ec_lambda_not_constant_expr, pos, ips);
         do_constexpr_fail(result);
@@ -5973,15 +5990,14 @@ the source object is stored at the location indicated by implied_src.
     case dik_expression:
     case dik_class_result_via_ctor:
       result = do_constexpr_expression(ips, dip->variant.expression,
-                                       result_storage, complete_object);
+                                       dst_addr->address,
+                                       dst_addr->complete_object);
       break;
     case dik_constructor:
       if (dip->variant.constructor.is_array_copy) {
-        result = do_array_constructor_copy(ips, dip, pos, result_storage,
-                                           complete_object, alloc_seq);
+        result = do_array_constructor_copy(ips, dip, pos, dst_addr);
       } else {
-        result = do_constexpr_ctor(ips, dip, pos, result_storage,
-                                   complete_object, alloc_seq, implied_src);
+        result = do_constexpr_ctor(ips, dip, pos, dst_addr, implied_src);
       }  /* if */
       break;
     case dik_bitwise_copy:
@@ -5993,8 +6009,8 @@ the source object is stored at the location indicated by implied_src.
             restore_lvalue = TRUE;
             source_expr->is_lvalue = FALSE;
           }  /* if */
-          result = do_constexpr_expression(ips, source_expr, result_storage,
-                                           complete_object);
+          result = do_constexpr_expression(ips, source_expr, dst_addr->address,
+                                           dst_addr->complete_object);
           if (restore_lvalue) source_expr->is_lvalue = TRUE;
         } else {
           /* An implicit source: The caller should catch those cases. */
@@ -6013,7 +6029,7 @@ the source object is stored at the location indicated by implied_src.
   if (dip->is_reused_value && result) {
     /* Record the location of a value to reuse. */
     a_byte  *discard;
-    map_or_replace_ptr(&ips->map, dip, result_storage, discard);
+    map_or_replace_ptr(&ips->map, dip, dst_addr->address, discard);
     *(a_byte**)&discard = discard;
                         /* To avoid spurious warnings from certain
                            compilers and tools. */
@@ -6125,14 +6141,15 @@ otherwise, this routine will look up that storage in ips->map.
   if (dyn_init_is(dip, dik_zero)) {
     init_subobject_to_zero(ips, storage, tp, storage);
   } else {
-    a_boolean  saved_is_constant_evaluated = ips->is_constant_evaluated;
+    a_boolean            saved_is_constant_evaluated =
+                                                   ips->is_constant_evaluated;
+    a_constexpr_address  dst_addr;
+    set_active_address(ips, &dst_addr, storage, storage);
     if (vp->init_kind == (an_init_kind)initk_static ||
-        (tp->kind == (a_type_kind)tk_integer &&
-         is_const_qualified_type(vp->type))) {
+        (type_is(tp, tk_integer) && is_const_qualified_type(vp->type))) {
       ips->is_constant_evaluated = TRUE;
     }  /* if */
-    if (do_constexpr_dynamic_init(ips, dip, pos, storage, storage,
-                                  active_alloc_seq(ips))) {
+    if (do_constexpr_dynamic_init(ips, dip, pos, &dst_addr)) {
       if (!is_immediate_class_type(tp) && !type_is(tp, tk_array)) {
         mark_complete_object_initialized(storage);
       }  /* if */
@@ -6665,10 +6682,10 @@ Interpret the given range-based for-statement.
   if (!result) goto unmap_storage;
   /* Initialize the range and its delimiters: */
   for (k = 1; k<4; ++k) {
+    a_constexpr_address  var_addr;
+    set_active_address(ips, &var_addr, var_storage[k], var_storage[k]);
     dip = vp[k]->initializer.dynamic;
-    if (!do_constexpr_dynamic_init(ips, dip, &stmt->position,
-                                   var_storage[k], var_storage[k],
-                                   active_alloc_seq(ips))) {
+    if (!do_constexpr_dynamic_init(ips, dip, &stmt->position, &var_addr)) {
       do_constexpr_fail(result);
       break;
     }  /* if */
@@ -6716,9 +6733,10 @@ Interpret the given range-based for-statement.
         get_int_val_from(expr_value, tp, bool_val, ovfl);
         if (!ovfl && bool_val) {
           /* Initialize the iterator variable: */
+          a_constexpr_address  var_addr;
+          set_active_address(ips, &var_addr, var_storage[0], var_storage[0]);
           if (!do_constexpr_dynamic_init(ips, dip, &stmt->position,
-                                         var_storage[0], var_storage[0],
-                                         active_alloc_seq(ips))) {
+                                         &var_addr)) {
             do_constexpr_fail(result);
             break;
           }  /* if */
@@ -7194,9 +7212,10 @@ successfully interpreted, FALSE otherwise.
             tp = skip_typerefs(fn_type->variant.routine.return_type);
             init_subobject_to_zero(ips, result_storage, tp, complete_obj);
           } else {
+            a_constexpr_address  dst_addr;
+            set_active_address(ips, &dst_addr, result_storage, complete_obj);
             result = do_constexpr_dynamic_init(ips, dip, &stmt->position, 
-                                               result_storage, complete_obj,
-                                               active_alloc_seq(ips));
+                                               &dst_addr);
           }  /* if */
         } else {
           /* Return without a value. */
@@ -7243,9 +7262,10 @@ done_with_return_statement:
             tp = skip_typerefs(frame->variant.expr->type);
             init_subobject_to_zero(ips, result_storage, tp, complete_obj);
           } else {
+            a_constexpr_address  dst_addr;
+            set_active_address(ips, &dst_addr, result_storage, complete_obj);
             result = do_constexpr_dynamic_init(ips, dip, &stmt->position, 
-                                               result_storage, complete_obj,
-                                               active_alloc_seq(ips));
+                                               &dst_addr);
           }  /* if */
         }  /* if */
       }
@@ -9851,9 +9871,8 @@ by this_bytes.
     }  /* if */
     mark_complete_object_initialized(class_bytes);
     /* Store the address of the class in *this_bytes. */
-    clear_address(this_bytes, class_bytes);
-    ((a_constexpr_address *)this_bytes)->alloc_seq_number =
-                                                        active_alloc_seq(ips);
+    set_active_address(ips, (a_constexpr_address*)this_bytes,
+                       class_bytes, class_bytes);
   }  /* if */
   mark_complete_object_initialized(this_bytes);
 done:
@@ -10497,7 +10516,9 @@ of the original *p_fp field in the representation of the returned *p_fp field.
 
   aufp_sym = symbol_for(fp)->variant.field.anonymous_parent_object;
   if (symbol_is(aufp_sym, sk_field)) {
+    a_type_ptr  au_type;
     aufp = aufp_sym->variant.field.ptr;
+    au_type = skip_typerefs(aufp->type);
     get_mapped_byte_count(&persistent_map, aufp, offset);
     if (aufp_sym->variant.field.anonymous_parent_object != NULL) {
       /* aufp is not the top-most anonymous union.  Recurse to determine its
@@ -10505,7 +10526,12 @@ of the original *p_fp field in the representation of the returned *p_fp field.
       offset += record_anon_union_active_field(&aufp, storage, complete_obj);
     }  /* if */
     mark_subobject_initialized(storage+offset, complete_obj);  
-    *(a_field_ptr*)(storage+offset) = fp;
+    if (type_is(au_type, tk_union)) {
+      *(a_field_ptr*)(storage+offset) = fp;
+    } else {
+      /* Nonstandard anonymous "unions" can be "anonymous structs". */
+      record_subobject_derivation(storage+offset, NULL);
+    }  /* if */
     *p_fp = aufp;
   } else {
     offset = 0;
@@ -10564,9 +10590,7 @@ to 10 nested anonymous unions.
 static a_boolean do_constexpr_ctor(an_interpreter_state  *ips,
                                    a_dynamic_init_ptr    dip,
                                    a_source_position     *pos,
-                                   a_byte                *result_storage,
-                                   a_byte                *complete_object,
-                                   an_alloc_seq_number   alloc_seq,
+                                   a_constexpr_address   *cap,
                                    a_constexpr_address   *implied_src)
 /*
 Interpret the constructor call represented by the given dynamic initialization
@@ -10623,6 +10647,8 @@ the body of the (constructor) function proper.
                          &ips->diag_list);
     do_constexpr_fail(result);
   } else {
+    a_byte               *result_storage = cap->address;
+    a_byte               *complete_object = cap->complete_object;
     a_scope_ptr          callee_scope = scope_for_routine(callee);
     a_statement_ptr      block_stmt = callee_scope->assoc_block;
     a_call_frame         frame;
@@ -10790,9 +10816,7 @@ the body of the (constructor) function proper.
       add_to_live_set(&ips->live_set, alloc_seq_number);
       with_postfix_bytes = this_n_bytes+sizeof(a_var_postfix);
       alloc_complete_object(ips, with_postfix_bytes, this_type, this_bytes);
-      clear_address(this_bytes, result_storage);
-      ((a_constexpr_address *)this_bytes)->complete_object = complete_object;
-      ((a_constexpr_address *)this_bytes)->alloc_seq_number = alloc_seq;
+      *(a_constexpr_address*)this_bytes = *cap;
       mark_complete_object_initialized(this_bytes);
       postfix = (a_var_postfix*)(this_bytes+this_n_bytes);
       postfix->alloc_seq_number = alloc_seq_number;
@@ -10830,14 +10854,14 @@ the body of the (constructor) function proper.
     /* Run the constructor initializers. */
     ctor_init = callee_scope->variant.routine.constructor_inits;
     for (; ctor_init != NULL; ctor_init = ctor_init->next) {
-      a_byte_count        offset;
-      a_dynamic_init_ptr  sub_dip;
-      a_type_ptr          tp;
-      a_boolean           record_param_ref = FALSE;
+      a_byte_count         offset;
+      a_constexpr_address  dst_addr = *cap;
+      a_dynamic_init_ptr   sub_dip;
+      a_type_ptr           tp;
+      a_boolean            record_param_ref = FALSE;
       if (ctor_init->kind == (a_constructor_init_kind)cik_field) {
         a_field_ptr  fp = ctor_init->variant.field;
         tp = skip_typerefs(fp->type);
-        get_mapped_byte_count(&persistent_map, fp, offset);
         if (ctor_init->use_field_initializer) {
           sub_dip = fp->initializer;
           /* Field initializers may contain enk_param_ref nodes representing
@@ -10870,21 +10894,44 @@ the body of the (constructor) function proper.
               do_constexpr_fail(result);
               break;
             } else if (!anon_union_field_is_active_field(fp, src_addr)) {
+              /* fp does not designate the active field in the source.  So
+                 don't attempt to copy it. */
               continue;
             }  /* if */
           }  /* if */
-          offset += record_anon_union_active_field(&fp, result_storage,
-                                                   complete_object);
+          a_field_ptr   orig_fp = fp;
+          /* Activate any needed anonymous union fields. */
+          (void)record_anon_union_active_field(&fp, result_storage,
+                                               complete_object);
+          /* fp now points to the outermost anonymous parent object.  If
+             class_type is a union, that is used below to set the active
+             field of that union. */
+          /* Update dst_addr for any anonymous union/structs (including the
+             variant path). */
+          if (!add_to_variant_path(&dst_addr, orig_fp, class_type,
+                                   /*for_ctor_init=*/TRUE)) {
+            info_with_pos(ec_constexpr_too_many_nested_anonymous_types, pos, 
+                          ips);
+            do_constexpr_fail(result);
+            break;
+          }  /* if */
+          /* The call to add_to-variant_path adjusted dst_addr to point to
+             the innermost anonymous union enclosing fp. */
+          get_mapped_byte_count(&persistent_map, orig_fp, offset);
+          dst_addr.address += offset;
+          offset = dst_addr.address - cap->address;
+        } else {
+          get_mapped_byte_count(&persistent_map, fp, offset);
+          dst_addr.address += offset;
         }  /* if */
-        if (class_type->kind == (a_type_kind)tk_union) {
+        if (type_is(class_type, tk_union)) {
           /* Record the active field for the enclosing union. */
           *(a_field_ptr*)result_storage = fp;
         }  /* if */
-        mark_complete_class_object_if_needed(tp, result_storage+offset);
+        mark_complete_class_object_if_needed(tp, dst_addr.address);
       } else if (ctor_init->kind == (a_constructor_init_kind)cik_delegation) {
         result = do_constexpr_dynamic_init(ips, ctor_init->initializer, pos,
-                                           result_storage, complete_object,
-                                           alloc_seq);
+                                           cap);
         break;
       } else {
         a_base_class_ptr  bcp = ctor_init->variant.base_class;
@@ -10895,8 +10942,9 @@ the body of the (constructor) function proper.
           /* Inherited constructors may involve indirect base classes. */
           offset = compute_interpreter_base_offset(bcp, &bcp);
         }  /* if */
+        dst_addr.address += offset;
         /* Record the derivation step. */
-        record_subobject_derivation(result_storage+offset, bcp);
+        record_subobject_derivation(dst_addr.address, bcp);
         sub_dip = ctor_init->initializer;
       }  /* if */
       if (dyn_init_is(sub_dip, dik_bitwise_copy) &&
@@ -10916,7 +10964,7 @@ the body of the (constructor) function proper.
                                      args != NULL ? &args->position : pos,
                                      src_addr->address+offset,
                                      src_addr->complete_object,
-                                     result_storage+offset, complete_object)) {
+                                     dst_addr.address, complete_object)) {
             do_constexpr_fail(result);
             break;
           }  /* if */
@@ -10942,13 +10990,11 @@ the body of the (constructor) function proper.
             adjusted_src_addr.address += offset;
             if (!do_constexpr_ctor(ips, sub_dip,
                                    &callee->source_corresp.decl_position,
-                                   result_storage+offset, complete_object,
-                                   alloc_seq, &adjusted_src_addr)) {
+                                   &dst_addr, &adjusted_src_addr)) {
               do_constexpr_fail(result);
               break;
             } else {
-              mark_subobject_initialized(result_storage+offset,
-                                         complete_object);
+              mark_subobject_initialized(dst_addr.address, complete_object);
             }  /* if */
           }  /* if */
         } else if (dyn_init_is(sub_dip, dik_zero) ||
@@ -10956,8 +11002,7 @@ the body of the (constructor) function proper.
           /* Just zero the storage (for the dik_zero case) and record the
              derivation structure (which is needed even for the dik_none
              case). */
-          init_subobject_to_zero(ips, result_storage+offset, tp,
-                                 complete_object);
+          init_subobject_to_zero(ips, dst_addr.address, tp, complete_object);
         } else {
           a_byte               *prev_this_bytes = NULL;
           a_constexpr_address  *src_addr = NULL;
@@ -10975,15 +11020,13 @@ the body of the (constructor) function proper.
             map_or_replace_ptr(&ips->map, &ips->curr_call_frame, this_bytes,
                                prev_this_bytes);
           }  /* if */
-          if (!do_constexpr_dynamic_init(
-                                       ips, sub_dip,
-                                       &callee->source_corresp.decl_position,
-                                       result_storage+offset, complete_object,
-                                       alloc_seq, src_addr)) {
+          if (!do_constexpr_dynamic_init(ips, sub_dip,
+                                         &callee->source_corresp.decl_position,
+                                         &dst_addr, src_addr)) {
             do_constexpr_fail(result);
             break;
           } else {
-            mark_subobject_initialized(result_storage+offset, complete_object);
+            mark_subobject_initialized(dst_addr.address, complete_object);
           }  /* if */
           if (src_addr != NULL) src_addr->address -= offset;
           if (record_param_ref) {
@@ -12288,9 +12331,9 @@ is within the given complete_object.
              case). */
           init_subobject_to_zero(ips, dst_bytes, ftp, complete_object);
         } else {
-          if (do_constexpr_dynamic_init(ips, sub_dip, pos,
-                                        dst_bytes, complete_object,
-                                        active_alloc_seq(ips))) {
+          a_constexpr_address  dst_addr;
+          set_active_address(ips, &dst_addr, dst_bytes, complete_object);
+          if (do_constexpr_dynamic_init(ips, sub_dip, pos, &dst_addr)) {
             mark_subobject_initialized(dst_bytes, complete_object);
           } else {
             result = FALSE;
@@ -12332,9 +12375,9 @@ is within the given complete_object.
             mark_complete_class_object_if_needed(src_fp->type, dst_bytes);
           }  /* if */
         } else {
-          if (do_constexpr_dynamic_init(ips, sub_dip, pos,
-                                        dst_bytes, complete_object,
-                                        active_alloc_seq(ips))) {
+          a_constexpr_address  dst_addr;
+          set_active_address(ips, &dst_addr, dst_bytes, complete_object);
+          if (do_constexpr_dynamic_init(ips, sub_dip, pos, &dst_addr)) {
             mark_subobject_initialized(dst_bytes, complete_object);
             mark_complete_class_object_if_needed(ftp, dst_bytes);
           } else {
@@ -12429,9 +12472,9 @@ is within the given complete_object.
               do_constexpr_fail(result);
             }  /* if */
           } else if (dyn_init_is(sub_dip, dik_constructor)) {
-            if (!do_constexpr_ctor(ips, sub_dip, pos, dst_bytes,
-                                   complete_object, active_alloc_seq(ips),
-                                   &var_addr)) {
+            a_constexpr_address  dst_addr;
+            set_active_address(ips, &dst_addr, dst_bytes, complete_object);
+            if (!do_constexpr_ctor(ips, sub_dip, pos, &dst_addr, &var_addr)) {
               do_constexpr_fail(result);
             }  /* if */
           } else if (dyn_init_is(sub_dip, dik_expression)) {
@@ -13346,11 +13389,15 @@ Evaluate the given new-expression.
          information for such entries. */
       if (dyn_init_is(dip, dik_zero)) {
         init_subobject_to_zero(ips, elem, elem_type, complete_obj);
-      } else if (!do_constexpr_dynamic_init(ips, dip, &expr->position, elem,
-                                            complete_obj,
-                                            cap->alloc_seq_number)) {
-        result = FALSE;
-        break;
+      } else {
+        a_constexpr_address  dst_addr;
+        clear_address(&dst_addr, elem);
+        dst_addr.alloc_seq_number = cap->alloc_seq_number;
+        dst_addr.complete_object = complete_obj;
+        if (!do_constexpr_dynamic_init(ips, dip, &expr->position, &dst_addr)) {
+          result = FALSE;
+          break;
+        }  /* if */
       }  /* if */
       mark_subobject_initialized(elem, complete_obj);
       mark_complete_class_object_if_needed(elem_type, complete_obj);
@@ -17946,7 +17993,12 @@ the value representation of the integer value.
                               ips);
               } else {
                 if (parent_class_of(field)->kind == (a_type_kind)tk_union) {
-                  add_to_variant_path(&result_addr, field, opnd1_type);
+                  if (!add_to_variant_path(&result_addr, field, opnd1_type)) {
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_too_many_nested_anonymous_types,
+                                  &expr->position, ips);
+                    break;
+                  }  /* if */
                 }  /* if */
                 get_mapped_byte_count(&persistent_map, field, offset);
                 result_addr.address += offset;
@@ -18047,7 +18099,12 @@ the value representation of the integer value.
                               ips);
               } else {
                 if (parent_class_of(field)->kind == (a_type_kind)tk_union) {
-                  add_to_variant_path(&result_addr, field, opnd1_type);
+                  if (!add_to_variant_path(&result_addr, field, opnd1_type)) {
+                    do_constexpr_fail(result);
+                    info_with_pos(ec_constexpr_too_many_nested_anonymous_types,
+                                  &expr->position, ips);
+                    break;
+                  }  /* if */
                 }  /* if */
                 if (!adjust_this_address(ips, &result_addr, pm_value,
                                          opnd1_type, expr)) {
@@ -18436,10 +18493,15 @@ the value representation of the integer value.
         }  /* if */
         if (dyn_init_is(dip, dik_zero)) {
           init_subobject_to_zero(ips, tmp_bytes, tp, tmp_complete_obj);
-        } else if (!do_constexpr_dynamic_init(
-                       ips, dip, &expr->position, tmp_bytes, tmp_complete_obj,
-                       alloc_seq_number)) {
-          do_constexpr_fail(result);
+        } else {
+          a_constexpr_address  dst_addr;
+          clear_address(&dst_addr, tmp_bytes);
+          dst_addr.alloc_seq_number = alloc_seq_number;
+          dst_addr.complete_object = tmp_complete_obj;
+          if (!do_constexpr_dynamic_init(ips, dip, &expr->position,
+                                         &dst_addr)) {
+            do_constexpr_fail(result);
+          }  /* if */
         }  /* if */
         if (expr->is_lvalue || expr->is_xvalue) {
           if (!is_immediate_class_type(tp) && !type_is(tp, tk_array)) {
@@ -18522,11 +18584,13 @@ the value representation of the integer value.
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
     case enk_initializer:
-      if (!do_constexpr_dynamic_init(ips, expr->variant.initializer.dyn_init,
-                                     &expr->position, result_storage,
-                                     complete_object, active_alloc_seq(ips))) {
-        result = FALSE;
-      }  /* if */
+      { a_constexpr_address  dst_addr;
+        set_active_address(ips, &dst_addr, result_storage, complete_object);
+        if (!do_constexpr_dynamic_init(ips, expr->variant.initializer.dyn_init,
+                                       &expr->position, &dst_addr)) {
+          result = FALSE;
+        }  /* if */
+      }
       break;
     case enk_concept_id:
       { a_boolean  fatal = FALSE;
@@ -19815,14 +19879,19 @@ if the caller has determined that reinterpret_cast expressions can be folded
     if (dyn_init_is(dip, dik_zero)) {
       init_subobject_to_zero(&ips, result_storage, result_type,
                              result_storage);
-    } else if (!do_constexpr_dynamic_init(&ips, dip, pos, result_storage,
-                                          result_storage, 1)) {
-      if (ips.input_error) {
-        /* Interpretation failed due to an error node in the IL.  Continue
-           with an error constant, but treat interpretation as successful. */
-        set_error_constant(result_con);
-      } else {
-        do_constexpr_fail(result);
+    } else {
+      a_constexpr_address  dst_addr;
+      clear_address(&dst_addr, result_storage);
+      dst_addr.alloc_seq_number = 1;
+      dst_addr.complete_object = result_storage;
+      if (!do_constexpr_dynamic_init(&ips, dip, pos, &dst_addr)) {
+        if (ips.input_error) {
+          /* Interpretation failed due to an error node in the IL.  Continue
+             with an error constant, but treat interpretation as successful. */
+          set_error_constant(result_con);
+        } else {
+          do_constexpr_fail(result);
+        }  /* if */
       }  /* if */
     }  /* if */
     if (result && !ips.input_error) {
@@ -19985,8 +20054,11 @@ position associated with the call.
       ips.permit_address_of_local_temporary = TRUE;
     }  /* if */
     alloc_complete_object(&ips, n_bytes, result_type, result_storage);
-    if (!do_constexpr_ctor(&ips, dip, pos, result_storage, result_storage, 1,
-                           /*implied_src=*/NULL)) {
+    a_constexpr_address  dst_addr;
+    clear_address(&dst_addr, result_storage);
+    dst_addr.alloc_seq_number = 1;
+    dst_addr.complete_object = result_storage;
+    if (!do_constexpr_ctor(&ips, dip, pos, &dst_addr, /*implied_src=*/NULL)) {
       if (ips.input_error) {
         /* Interpretation failed due to an error node in the IL.  Continue
            with an error constant, but treat interpretation as successful. */

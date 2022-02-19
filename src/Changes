@@ -1,5 +1,29 @@
 Version 6.4
 
+2/18/22  [EDGcpfe/25020]
+Handling of anonymous union member initialization
+
+The constant-evaluation interpreter sometimes severely mishandled the
+initialization of anonymous union members.  That could lead to invalid results
+or internal errors.  For example:
+
+  struct X {
+    constexpr X(): i(0), p(&i) { }
+    int i;
+    int *p;
+  };
+  struct S {
+    constexpr C(): x() { }
+    union {
+      X x;
+    };
+  };
+  S s;  // Previously triggered an internal error.  Now okay.
+
+This is now fixed.  (This particular example previously triggered an internal
+error in find_subobject_for_interpreter_address, in interpret.c.)
+
+
 2/16/22  [EDGcpfe/24916]
 Abort after class prvalue is converted to a glvalue
 
