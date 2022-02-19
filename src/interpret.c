@@ -4142,7 +4142,7 @@ is responsible for recording a failing evaluation.
   a_variant_path_entry_ptr  path = NULL, *p_last = &path;
   a_symbol_ptr              au_parent;
   a_field_ptr               fields[MAX_LEVELS];
-  uint32_t                  n = 0;
+  int32_t                   n = 0;
   a_type_ptr                curr_type = top_type;
   a_byte_count              total_offset = 0;
 
@@ -4168,8 +4168,8 @@ is responsible for recording a failing evaluation.
   }  /* while */
   /* Traverse the fields from outer-to-inner, updating the path and the
      offset. */
-  while (--n >= 0) {
-    a_field_ptr   fp = fields[n];
+  for (;;) {
+    a_field_ptr   fp = fields[--n];
     a_byte_count  offset;
     if (type_is(curr_type, tk_union)) {
       *p_last = alloc_variant_path_entry();
