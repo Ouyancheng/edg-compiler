@@ -800,6 +800,9 @@ the character position of the error.
         kind = (a_float_kind)fk_std_float128;
         actual_end -= 4;
         break;
+      default:
+        /* Not an extended type suffix. */
+        break;
     }  /* switch */
   } else {
     /* No suffix.  Default is double. */

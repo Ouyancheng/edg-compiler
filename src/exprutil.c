@@ -11187,12 +11187,12 @@ If both fkind_1 and fkind_2 are fk_last, then fk_last is returned.
     if (num_mantissa_bits[(int)result] == num_mantissa_bits[(int)other] &&
         max_exponent[(int)result] == max_exponent[(int)other] &&
         flt_type_size[(int)result] == flt_type_size[(int)other] &&
-        (other == (a_float_kind)fk_float &&
-         num_mantissa_bits[(int)fk_float] ==
+        ((other == (a_float_kind)fk_float &&
+          num_mantissa_bits[(int)fk_float] ==
                                           num_mantissa_bits[(int)fk_double]) ||
-        (other == (a_float_kind)fk_double &&
-         num_mantissa_bits[(int)fk_double] ==
-                                     num_mantissa_bits[(int)fk_long_double])) {
+         (other == (a_float_kind)fk_double &&
+          num_mantissa_bits[(int)fk_double] ==
+                                    num_mantissa_bits[(int)fk_long_double]))) {
       /* If an extended floating point type has the same representation as
          more than one traditional type, the common type is "double". */
       result = (a_float_kind)fk_double;
