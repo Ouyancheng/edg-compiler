@@ -79,11 +79,16 @@ BEGIN_EDG_NAMESPACE
 #define MANGLING_STRING_FOR_LONG_DOUBLE "e"
 #define MANGLING_STRING_FOR_FLOAT80 "u7float80"
 #define MANGLING_STRING_FOR_FLOAT128 "g"
-#define MANGLING_STRING_FOR_STD_BFLOAT16 "u8bfloat16"
-#define MANGLING_STRING_FOR_STD_FLOAT16 "u7float16"
-#define MANGLING_STRING_FOR_STD_FLOAT32 "u7float32"
-#define MANGLING_STRING_FOR_STD_FLOAT64 "u7float64"
-#define MANGLING_STRING_FOR_STD_FLOAT128 "u8float128"
+/*
+Note that extended floating-point types are given the same mangling as any
+type in the std namespace (i.e., <builtin-type> is not used).
+FIXME: This strategy doesn't fully work because of IA-64 substitutions.
+*/
+#define MANGLING_STRING_FOR_STD_BFLOAT16 "St8bfloat16"
+#define MANGLING_STRING_FOR_STD_FLOAT16 "St7float16"
+#define MANGLING_STRING_FOR_STD_FLOAT32 "St7float32"
+#define MANGLING_STRING_FOR_STD_FLOAT64 "St7float64"
+#define MANGLING_STRING_FOR_STD_FLOAT128 "St8float128"
 #if C99_IL_EXTENSIONS_SUPPORTED
 #define MANGLING_STRING_FOR_COMPLEX_FLOAT "Cf"
 #define MANGLING_STRING_FOR_COMPLEX_DOUBLE "Cd"
@@ -331,11 +336,15 @@ Z = template parameter (demangle_type_name)
 #define MANGLING_STRING_FOR_LONG_DOUBLE "r"
 #define MANGLING_STRING_FOR_FLOAT80 "mf10"
 #define MANGLING_STRING_FOR_FLOAT128 "mf16"
-#define MANGLING_STRING_FOR_STD_BFLOAT16 "mfsbf16"
-#define MANGLING_STRING_FOR_STD_FLOAT16 "mfsf16"
-#define MANGLING_STRING_FOR_STD_FLOAT32 "mfsf32"
-#define MANGLING_STRING_FOR_STD_FLOAT64 "mfsf64"
-#define MANGLING_STRING_FOR_STD_FLOAT128 "mfsf128"
+/*
+For extended floating-point types we use the same mangling as we would for any
+type in the std namespace.
+*/
+#define MANGLING_STRING_FOR_STD_BFLOAT16 "Q2_3std8bfloat16"
+#define MANGLING_STRING_FOR_STD_FLOAT16 "Q2_3std7float16"
+#define MANGLING_STRING_FOR_STD_FLOAT32 "Q2_3std7float32"
+#define MANGLING_STRING_FOR_STD_FLOAT64 "Q2_3std7float64"
+#define MANGLING_STRING_FOR_STD_FLOAT128 "Q2_3std8float128"
 #define MANGLING_STRING_FOR_COMPLEX_FLOAT "xf"
 #define MANGLING_STRING_FOR_COMPLEX_DOUBLE "xd"
 #define MANGLING_STRING_FOR_COMPLEX_LONG_DOUBLE "xr"
