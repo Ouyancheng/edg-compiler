@@ -184,7 +184,8 @@ a target configuration).
 #define kind_is_binary64(kind)                                                \
   ((kind) == (a_float_kind)fk_double ||                                       \
    ((kind) == (a_float_kind)fk_long_double &&                                 \
-    (long_double_is_double || !FP_HAS_LONG_DOUBLE)))
+    (long_double_is_double || !FP_HAS_LONG_DOUBLE)) ||                        \
+   (is_extended_flt_kind(kind) && flt_type_size[(int)kind] == 8))
 
 static a_boolean
                 long_double_is_double;
@@ -1959,37 +1960,9 @@ type, set inexact to TRUE.  If the exponent is out of range, set err to TRUE.
     /* When long double is mapped onto double, store this value as a double. */
     kind = (a_float_kind)fk_double;
   }  /* if */
-  switch (kind) {
-    case fk_float:
-      min_exp = targ_flt_min_exp;
-      max_exp = targ_flt_max_exp;
-      mant_dig = targ_flt_mant_dig;
-      break;
-    case fk_double:
-      min_exp = targ_dbl_min_exp;
-      max_exp = targ_dbl_max_exp;
-      mant_dig = targ_dbl_mant_dig;
-      break;
-    case fk_long_double:
-      min_exp = targ_ldbl_min_exp;
-      max_exp = targ_ldbl_max_exp;
-      mant_dig = targ_ldbl_mant_dig;
-      break;
-    case fk_float80:
-      min_exp = targ_flt80_min_exp;
-      max_exp = targ_flt80_max_exp;
-      mant_dig = targ_flt80_mant_dig;
-      break;
-    case fk_float128:
-      min_exp = targ_flt128_min_exp;
-      max_exp = targ_flt128_max_exp;
-      mant_dig = targ_flt128_mant_dig;
-      break;
-    default:
-      unexpected_condition_str2("check_and_denormalize_hex_fp_value:",
-                                "bad float kind");
-      break;
-  }  /* switch */
+  min_exp = min_exponent[(int)kind];
+  max_exp = max_exponent[(int)kind];
+  mant_dig = num_mantissa_bits[(int)kind];
   /* Note that the minimum and maximum exponent values are actually both
      one greater than the values that should be used.  This is strange, but
      it is the way those values are specified by the C standard. */
@@ -2236,7 +2209,10 @@ the long double kind will have already been mapped to double by the caller.
     /* We need a flag to indicate that we had a zero, because we can end up
        with a zero mantissa because of the possible presence of an implicit
        bit. */
-  } else if (kind == (a_float_kind)fk_float) {
+  } else if (kind == (a_float_kind)fk_float ||
+             (is_extended_flt_kind(kind) &&
+              num_mantissa_bits[(int)kind] <=
+                                           num_mantissa_bits[(int)fk_float])) {
     val = (an_fp_value_part)((mp->parts[0] >> 9) | ((exponent + 127) << 23));
     if (is_negative) val |= 0x80000000;
     memcpy((char*)float_value, (char*)&val, sizeof(val));
@@ -2280,7 +2256,8 @@ the long double kind will have already been mapped to double by the caller.
   } else if (((kind == (a_float_kind)fk_long_double &&
                targ_ldbl_mant_dig == 113) ||
               (kind == (a_float_kind)fk_float128 &&
-               targ_flt128_mant_dig == 113)) &&
+               targ_flt128_mant_dig == 113) ||
+              is_extended_flt_kind(kind)) &&
              /*lint --e(506)*/sizeof(a_host_fp_value) == sizeof(val)*4) {
     /* 128-bit representation. */
     /* Update the pointer to refer to the last 32-bit word of the value. */
@@ -2449,26 +2426,7 @@ because the exponent was out of range).
     /* When long double is mapped onto double, use double. */
     kind = (a_float_kind)fk_double;
   }  /* if */
-  switch (kind) {
-    case fk_float:
-      mant_dig = targ_flt_mant_dig;
-      break;
-    case fk_double:
-      mant_dig = targ_dbl_mant_dig;
-      break;
-    case fk_long_double:
-      mant_dig = targ_ldbl_mant_dig;
-      break;
-    case fk_float80:
-      mant_dig = targ_flt80_mant_dig;
-      break;
-    case fk_float128:
-      mant_dig = targ_flt128_mant_dig;
-      break;
-    default:
-      unexpected_condition();
-      break;
-  }  /* switch */
+  mant_dig = num_mantissa_bits[(int)kind];
   any_digits = number_of_bits_in_mantissa(mp, /*normalize=*/FALSE) != 0;
   /* Normalize the mantissa. */
   if (any_digits) {
@@ -2554,6 +2512,10 @@ fit in the indicated type.
     if (gnu_mode) *err = FALSE;
   }  /* if */
 #endif /* TARG_HAS_IEEE_FLOATING_POINT */
+  if (!*err && is_extended_flt_kind(kind) &&
+      exponent >= max_exponent[(int)kind]) {
+    *err = TRUE;
+  }  /* if */
 }  /* fp_hex_string_to_float */
 
 
@@ -2604,6 +2566,17 @@ before setting it if there are unused bits.
          was converted to zero. */
       /* Do not clear the error for large values that overflow. */
       if ((temp >= 0.0) ? temp < 1.0 : temp > -1.0) errno = 0;
+    }  /* if */
+  }  /* if */
+  if (errno == 0 && is_extended_flt_kind(kind) &&
+      max_exponent[(int)kind] <= max_exponent[(int)fk_std_float64] &&
+      min_exponent[(int)kind] >= min_exponent[(int)fk_std_float64]) {
+    /* Check for overflow. */
+    int exp;
+    (void)frexpl(temp, &exp);
+    if (exp >= max_exponent[(int)kind] ||
+        exp < min_exponent[(int)kind] - 1) {
+      errno = ERANGE;
     }  /* if */
   }  /* if */
   *err = (errno != 0);

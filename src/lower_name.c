@@ -79,6 +79,11 @@ BEGIN_EDG_NAMESPACE
 #define MANGLING_STRING_FOR_LONG_DOUBLE "e"
 #define MANGLING_STRING_FOR_FLOAT80 "u7float80"
 #define MANGLING_STRING_FOR_FLOAT128 "g"
+#define MANGLING_STRING_FOR_STD_BFLOAT16 "u8bfloat16"
+#define MANGLING_STRING_FOR_STD_FLOAT16 "u7float16"
+#define MANGLING_STRING_FOR_STD_FLOAT32 "u7float32"
+#define MANGLING_STRING_FOR_STD_FLOAT64 "u7float64"
+#define MANGLING_STRING_FOR_STD_FLOAT128 "u8float128"
 #if C99_IL_EXTENSIONS_SUPPORTED
 #define MANGLING_STRING_FOR_COMPLEX_FLOAT "Cf"
 #define MANGLING_STRING_FOR_COMPLEX_DOUBLE "Cd"
@@ -10253,6 +10258,21 @@ top_of_loop:
             break;
           case fk_float128:
             s = MANGLING_STRING_FOR_FLOAT128;
+            break;
+          case fk_std_bfloat16:
+            s = MANGLING_STRING_FOR_STD_BFLOAT16;
+            break;
+          case fk_std_float16:
+            s = MANGLING_STRING_FOR_STD_FLOAT16;
+            break;
+          case fk_std_float32:
+            s = MANGLING_STRING_FOR_STD_FLOAT32;
+            break;
+          case fk_std_float64:
+            s = MANGLING_STRING_FOR_STD_FLOAT64;
+            break;
+          case fk_std_float128:
+            s = MANGLING_STRING_FOR_STD_FLOAT128;
             break;
           default:
             unexpected_condition_str(

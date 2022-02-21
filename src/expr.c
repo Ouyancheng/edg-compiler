@@ -16406,7 +16406,8 @@ if the type is not appropriate.
     } else {
       check_assertion(is_floating_type(tp));
       if (tp->variant.float_kind == (a_float_kind)fk_float80 ||
-          tp->variant.float_kind == (a_float_kind)fk_float128) {
+          tp->variant.float_kind == (a_float_kind)fk_float128 ||
+          tp->variant.float_kind == (a_float_kind)fk_std_bfloat16) {
         if (expr_error_should_be_issued()) {
           pos_ty_error(ec_type_not_allowed_here, &operand.position, tp);
         }  /* if */

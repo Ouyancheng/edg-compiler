@@ -5238,16 +5238,32 @@ enum a_float_kind_tag {
      fk_float80 and/or fk_float128 respectively; otherwise, the standard
      float kinds are used (e.g., it is not uncommon for __float80 and
      "long double" to designate the same type -- if so, fk_long_double
-     is used in both cases). */
+     is used in both cases).  The extended floating-point types (described
+     in WG21 document P1467R8 at the time of this writing) must follow the
+     traditional types, as promoted_float_kind relies on this ordering.  If
+     you add floating point types to this enumeration, be sure to update
+     expr_init() with the new values for the num_mantissa_bits and
+     flt_type_size arrays in exprutil.c.
+*/
   fk_float,
   fk_double,
   fk_long_double,
   fk_float80,		/* __float80, if distinct. */
   fk_float128,		/* __float128, if distinct. */
-  fk_last
+  fk_first_extended_type,
+  fk_std_bfloat16 = fk_first_extended_type,
+  fk_std_float16,
+  fk_std_float32,
+  fk_std_float64,
+  fk_std_float128,
+  fk_last		/* Must be last. */
 };
 /* Define as "a_byte" to explicitly control storage size. */
 typedef a_byte a_float_kind;
+
+/* Macro to detect an extended floating point type. */
+#define is_extended_flt_kind(fk) (fk != (a_float_kind)fk_last && \
+                                  fk >= (a_float_kind)fk_first_extended_type)
 
 #if GNU_EXTENSIONS_ALLOWED
 

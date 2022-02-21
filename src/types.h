@@ -1304,6 +1304,11 @@ typedef struct a_std_conv_descr {
 			/* TRUE if this is a conversion of a braced-init-list
 			   to an array object.  See C++14 [over.ics.rank]p3
 			   last bullet, second sub-bullet. */
+  a_bit_field	flt_identical_representations:1;
+			/* TRUE if at least one of the types is an extended
+			   floating point type and the two types have the
+			   same representation; FALSE in all other
+			   cases. */
   a_targ_size_t	num_elements_initialized;
 			/* If conv_to_array is TRUE, contains the number of
 			   elements initialized by the braced-init-list. */

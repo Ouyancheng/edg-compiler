@@ -11151,41 +11151,6 @@ still provided).
 #define is_unsigned_int(ikind)                                        \
   ((ikind) == (an_integer_kind)ik_unsigned_int)
 
-static a_targ_size_t num_mantissa_bits(a_float_kind  fk)
-/*
-Return the number of mantissa bits associated with the given floating-point
-kind, or zero if fk == fk_last.
-*/
-{
-  a_targ_size_t  result;
-  
-  switch(fk) {
-    case fk_float:
-      result = targ_flt_mant_dig;
-      break;
-    case fk_double:
-      result = targ_dbl_mant_dig;
-      break;
-    case fk_long_double:
-      result = targ_ldbl_mant_dig;
-      break;
-    case fk_float80:
-      result = targ_flt80_mant_dig;
-      break;
-    case fk_float128:
-      result = targ_flt128_mant_dig;
-      break;
-    case fk_last:
-      result = 0;
-      break;
-    default:
-      result = 0;
-      unexpected_condition();
-  }  /* switch */
-  return result;
-}  /* num_mantissa_bits */
-
-
 static a_float_kind promoted_float_kind(a_float_kind  fkind_1,
                                         a_float_kind  fkind_2)
 /*
@@ -11197,21 +11162,49 @@ If both fkind_1 and fkind_2 are fk_last, then fk_last is returned.
 */
 {
   a_float_kind   result;
-  a_targ_size_t  m_bits_1 = num_mantissa_bits(fkind_1),
-                 m_bits_2 = num_mantissa_bits(fkind_2);
+  a_float_kind   other;
+  a_targ_size_t  m_bits_1 = num_mantissa_bits[(int)fkind_1],
+                 m_bits_2 = num_mantissa_bits[(int)fkind_2];
 
   /* The promoted kind is the one with the highest precision, except that
      fk_float is replaced by fk_double in pcc mode.  If two different kinds
-     have equivalent precisions, return the "higher" kind (e.g., if fk_double
-     and fk_long_double are given, fk_long_double is returned even with
-     configurations that use the same representation for both). */
+     have equivalent precisions, return the "higher" kind (e.g., if
+     fk_double and fk_long_double are given, fk_long_double is returned
+     even with configurations that use the same representation for both).
+     This also implements the preference for extended floating point types,
+     since their kinds follow those of the traditional floating point
+     types. */
   if (m_bits_1 > m_bits_2 ||
       (m_bits_1 == m_bits_2 && fkind_1 > fkind_2)) {
     result = fkind_1;
+    other = fkind_2;
   } else {
     result = fkind_2;
+    other = fkind_1;
   }  /* if */
-  if (C_dialect == C_dialect_pcc && result == (a_float_kind)fk_float) {
+  if (is_extended_flt_kind(result)) {
+    /* Special treatment of extended floating point types is required. */
+    if (num_mantissa_bits[(int)result] == num_mantissa_bits[(int)other] &&
+        max_exponent[(int)result] == max_exponent[(int)other] &&
+        flt_type_size[(int)result] == flt_type_size[(int)other] &&
+        (other == (a_float_kind)fk_float &&
+         num_mantissa_bits[(int)fk_float] ==
+                                          num_mantissa_bits[(int)fk_double]) ||
+        (other == (a_float_kind)fk_double &&
+         num_mantissa_bits[(int)fk_double] ==
+                                     num_mantissa_bits[(int)fk_long_double])) {
+      /* If an extended floating point type has the same representation as
+         more than one traditional type, the common type is "double". */
+      result = (a_float_kind)fk_double;
+    } else if (is_extended_flt_kind(other) && result != other &&
+               flt_type_size[(int)result] == flt_type_size[(int)other]) {
+      /* If two extended types have the same rank (size) but different
+         representations, no common type exists.  Report an error and
+         proceed with "double". */
+      diagnostic(es_error, ec_no_common_type);
+      result = (a_float_kind)fk_double;
+    }  /* if */
+  } else if (C_dialect == C_dialect_pcc && result == (a_float_kind)fk_float) {
     result = (a_float_kind)fk_double;
   }  /* if */
   return result;
@@ -26197,6 +26190,58 @@ for each compilation.
   construct(template_param_objects, /*mask_width=*/10);
   constraint_subst_cache = alloc_fe_of_type(a_constraint_subst_cache);
   construct(constraint_subst_cache, /*mask_width=*/10);
+  /* Initialize floating point data. */
+  num_mantissa_bits[(int)fk_float]        = targ_flt_mant_dig;
+  num_mantissa_bits[(int)fk_double]       = targ_dbl_mant_dig;
+  num_mantissa_bits[(int)fk_long_double]  = targ_ldbl_mant_dig;
+  num_mantissa_bits[(int)fk_float80]      = targ_flt80_mant_dig;
+  num_mantissa_bits[(int)fk_float128]     = targ_flt128_mant_dig;
+  num_mantissa_bits[(int)fk_std_bfloat16] = 8;
+  num_mantissa_bits[(int)fk_std_float16]  = 11;
+  num_mantissa_bits[(int)fk_std_float32]  = 24;
+  num_mantissa_bits[(int)fk_std_float64]  = 53;
+  num_mantissa_bits[(int)fk_std_float128] = 113;
+  num_mantissa_bits[(int)fk_last]         = 0;
+  flt_type_size[(int)fk_float]        = targ_sizeof_float;
+  flt_type_size[(int)fk_double]       = targ_sizeof_double;
+  flt_type_size[(int)fk_long_double]  = targ_sizeof_long_double;
+  flt_type_size[(int)fk_float80]      = targ_sizeof_float80;
+  flt_type_size[(int)fk_float128]     = targ_sizeof_float128;
+  flt_type_size[(int)fk_std_bfloat16] = 2;
+  flt_type_size[(int)fk_std_float16]  = 2;
+  flt_type_size[(int)fk_std_float32]  = 4;
+  flt_type_size[(int)fk_std_float64]  = 8;
+  flt_type_size[(int)fk_std_float128] = 16;
+  flt_type_size[(int)fk_last]         = 0;
+  min_exponent[(int)fk_float]        = targ_flt_min_exp;
+  min_exponent[(int)fk_double]       = targ_dbl_min_exp;
+  min_exponent[(int)fk_long_double]  = targ_ldbl_min_exp;
+  min_exponent[(int)fk_float80]      = targ_flt80_min_exp;
+  min_exponent[(int)fk_float128]     = targ_flt128_min_exp;
+  min_exponent[(int)fk_std_bfloat16] = -125;
+  min_exponent[(int)fk_std_float16]  = -13;
+  min_exponent[(int)fk_std_float32]  = -125;
+  min_exponent[(int)fk_std_float64]  = -1021;
+  min_exponent[(int)fk_std_float128] = -16381;
+  min_exponent[(int)fk_last]         = 0;
+  max_exponent[(int)fk_float]        = targ_flt_max_exp;
+  max_exponent[(int)fk_double]       = targ_dbl_max_exp;
+  max_exponent[(int)fk_long_double]  = targ_ldbl_max_exp;
+  max_exponent[(int)fk_float80]      = targ_flt80_max_exp;
+  max_exponent[(int)fk_float128]     = targ_flt128_max_exp;
+  /* Note that the following values are larger by one than the values given
+     for "emax, maximum exponent" in P1467R8.  Those values reflect the
+     actual value of the exponent for the largest floating point number in
+     the corresponding representation, while the front end convention
+     follows that of the C17 standard in 5.2.4.2.2, "maximum integer such
+     that FLT_RADIX raised ton one less than that power is a representable
+     finite floating-point number, e_max." */
+  max_exponent[(int)fk_std_bfloat16] = 128;
+  max_exponent[(int)fk_std_float16]  = 16;
+  max_exponent[(int)fk_std_float32]  = 128;
+  max_exponent[(int)fk_std_float64]  = 1024;
+  max_exponent[(int)fk_std_float128] = 16384;
+  max_exponent[(int)fk_last]         = 0;
   /* Do initialization for overload.c: */
   overload_init();
 }  /* expr_init */

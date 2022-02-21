@@ -7119,6 +7119,18 @@ in [over.ics.rank].
     }  /* if */
     goto have_cmp;
   }  /* if */
+  if (conv1->flt_identical_representations !=
+                                        conv2->flt_identical_representations) {
+    /* A match between an extended floating point type and another floating
+       point type with the same representation is better than a match
+       between different representations. */
+    if (conv1->flt_identical_representations) {
+      cmp = 1;
+    } else {
+      cmp = -1;
+    }  /* if */
+    goto have_cmp;
+  }  /* if */
   if (bool_is_keyword) {
     /* A cast of a pointer or pointer-to-member to bool is worse than
        another conversion that isn't such a cast. */
@@ -7420,7 +7432,17 @@ apply that would make one better than the other, and return
 
     /* Some arguments have no parameter type (e.g., an ellipsis match). */
     if (param_type1 != NULL && param_type2 != NULL) {
-      if (any_cfront_mode()) {
+      if (arg_match1->conversion.std.flt_identical_representations !=
+          arg_match2->conversion.std.flt_identical_representations) {
+        /* A match between an extended floating point type and another
+           floating point type with the same representation is better than
+           a match between different representations. */
+        if (arg_match1->conversion.std.flt_identical_representations) {
+          cmp = 1;
+        } else {
+          cmp = -1;
+        }  /* if */
+      } else if (any_cfront_mode()) {
         /* cfront has a very simple tiebreaker test for adding cv-qualifiers.
            It applies only when both are pointers or references (except in
            cfront 2.1 mode), and either the match is exact, or it's a

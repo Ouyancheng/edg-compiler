@@ -26,6 +26,7 @@ types.c -- Utility routines that check types.
 #if !STANDALONE_UTILITY_PROGRAM
 #include "class_decl.h"
 #include "decls.h"
+#include "expr.h"
 #include "folding.h"
 #include "symbol_ref.h"
 #include "templates.h"
@@ -5051,25 +5052,34 @@ set, leave it alone.  Also compute and set the alignment requirement.
       case tk_complex:
       case tk_imaginary:
 #endif /* C99_IL_EXTENSIONS_SUPPORTED */
+        size = flt_type_size[(int)type_ptr->variant.float_kind];
         switch (type_ptr->variant.float_kind) {
           case fk_float:
-            size = targ_sizeof_float;
             alignment = targ_alignof_float;
             break;
           case fk_double:
-            size = targ_sizeof_double;
             alignment = targ_alignof_double;
             break;
           case fk_long_double:
-            size = targ_sizeof_long_double;
             alignment = targ_alignof_long_double;
             break;
           case fk_float80:
-            size = targ_sizeof_float80;
             alignment = targ_alignof_float80;
             break;
           case fk_float128:
-            size = targ_sizeof_float128;
+            alignment = targ_alignof_float128;
+            break;
+          case fk_std_bfloat16:
+          case fk_std_float16:
+            alignment = 2;
+            break;
+          case fk_std_float32:
+            alignment = targ_alignof_float;
+            break;
+          case fk_std_float64:
+            alignment = targ_alignof_double;
+            break;
+          case fk_std_float128:
             alignment = targ_alignof_float128;
             break;
           default:
@@ -11203,25 +11213,7 @@ type.
   if (is_floating_type(type)) {
     /* Includes complex types, if enabled; in that case, the result will be
        the number of mantissa bits in the real part. */
-    switch (type->variant.float_kind) {
-      case fk_float:
-        num_bits = targ_flt_mant_dig;
-        break;
-      case fk_double:
-        num_bits = targ_dbl_mant_dig;
-        break;
-      case fk_long_double:
-        num_bits = targ_ldbl_mant_dig;
-        break;
-      case fk_float80:
-        num_bits = targ_flt80_mant_dig;
-        break;
-      case fk_float128:
-        num_bits = targ_flt128_mant_dig;
-        break;
-      default:
-        unexpected_condition();
-    }  /* switch */
+    num_bits = num_mantissa_bits[(int)type->variant.float_kind];
 #if FIXED_POINT_ALLOWED
   } else if (is_fixed_point_type(type)) {
     num_bits = non_fractional_bits_for_fixed_point(&type->variant.fixed_point);
@@ -11444,8 +11436,30 @@ See conversion_possible.
     } else if (is_arithmetic_or_unscoped_enum(source_type)) {
       /* Arithmetic or unscoped enum --> arithmetic (including enum in C). */
       okay = TRUE;
-      if (warning_on_lossy_conversion && !source_is_constant &&
-          !is_bool(dest_type) && !identical_types(source_type, dest_type)) {
+      if (is_floating_type(source_type) && is_floating_type(dest_type) &&
+          (is_extended_flt_kind(source_type->variant.float_kind) ||
+           is_extended_flt_kind(dest_type->variant.float_kind))) {
+        a_targ_size_t src_mant_bits =
+                       num_mantissa_bits[(int)source_type->variant.float_kind];
+        a_targ_size_t src_max_exponent =
+                            max_exponent[(int)source_type->variant.float_kind];
+        a_targ_size_t dst_mant_bits =
+                         num_mantissa_bits[(int)dest_type->variant.float_kind];
+        a_targ_size_t dst_max_exponent =
+                              max_exponent[(int)dest_type->variant.float_kind];
+        if (src_mant_bits > dst_mant_bits ||
+            src_max_exponent > dst_max_exponent) {
+          /* Lossy conversions involving extended floating point types
+             cannot be implicit. */
+          okay = FALSE;
+          std_conv->warning_suggested = ec_lossy_conversion;
+        } else if (src_mant_bits == dst_mant_bits &&
+                   src_max_exponent == dst_max_exponent) {
+          std_conv->flt_identical_representations = TRUE;
+        }  /* if */
+      } else if (warning_on_lossy_conversion && !source_is_constant &&
+                 !is_bool(dest_type) &&
+                 !identical_types(source_type, dest_type)) {
         if (num_significant_bits(dest_type) <
                                            num_significant_bits(source_type) ||
             (is_floating_type(source_type) && !is_floating_type(dest_type))) {

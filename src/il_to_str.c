@@ -1348,11 +1348,16 @@ with "**BAD" for a bad float kind.
   a_const_char *p;
 
   switch (kind) {
-    case fk_float:       p = "float";              break;
-    case fk_double:      p = "double";             break;
-    case fk_long_double: p = "long double";        break;
-    case fk_float80:     p = "__float80";          break;
-    case fk_float128:    p = "__float128";         break;
+    case fk_float:        p = "float";              break;
+    case fk_double:       p = "double";             break;
+    case fk_long_double:  p = "long double";        break;
+    case fk_float80:      p = "__float80";          break;
+    case fk_float128:     p = "__float128";         break;
+    case fk_std_bfloat16: p = "std::bfloat16_t";    break;
+    case fk_std_float16:  p = "std::float16_t";     break;
+    case fk_std_float32:  p = "std::float32_t";     break;
+    case fk_std_float64:  p = "std::float64_t";     break;
+    case fk_std_float128: p = "std::float128_t";    break;
     default:             p = "**BAD-FLOAT-KIND**";
   }  /* switch */
   return p;
@@ -5219,6 +5224,21 @@ it represents a backing expression for the floating-point constant value.
       gnu_builtin_suffix = "q";
       max_exp = targ_flt128_max_exp;
 #endif /* (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && BUILTIN_... */
+    } else if (fkind == (a_float_kind)fk_std_bfloat16) {
+      suffix = "bf16";
+      max_exp = 127;
+    } else if (fkind == (a_float_kind)fk_std_float16) {
+      suffix = "f16";
+      max_exp = 15;
+    } else if (fkind == (a_float_kind)fk_std_float32) {
+      suffix = "f32";
+      max_exp = 127;
+    } else if (fkind == (a_float_kind)fk_std_float64) {
+      suffix = "f64";
+      max_exp = 1023;
+    } else if (fkind == (a_float_kind)fk_std_float128) {
+      suffix = "f128";
+      max_exp = 16383;
     }  /* if */
     if (octl->part_of_ud_literal) {
       /* Suppress the suffix on the numeric part of a user-defined literal

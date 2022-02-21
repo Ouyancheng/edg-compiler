@@ -2752,6 +2752,12 @@ EXTERN a_boolean
 			   in C++ should reflect earlier C++ Standards.
 			   Currently ignored for C identifiers. */
 
+EXTERN a_boolean
+		extended_float_types;
+			/* TRUE if the extended floating-point types
+			   described in WG21 document P1467R8 are
+			   supported. */
+
 /* Process the command line arguments. */
 extern void proc_command_line(int argc, char *argv[]);
 #if COMPILE_MULTIPLE_SOURCE_FILES

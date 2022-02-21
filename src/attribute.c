@@ -6519,13 +6519,13 @@ pos.
         /* Some base floating point types are already specified above; if not,
            look for the smallest floating-point type that matches the size. */
         for (fkind = (a_float_kind)0;
-             fkind < (a_float_kind)fk_last;
+             fkind < (a_float_kind)fk_first_extended_type;
              fkind = (a_float_kind)((int)fkind + 1)) {
           if (float_type(fkind)->size == size) {
             break; 
           }  /* if */
         }  /* for */
-        if (fkind == (a_float_kind)fk_last) {
+        if (fkind == (a_float_kind)fk_first_extended_type) {
           pos_error(ec_no_type_of_specified_width, pos);
           type = error_type();
         }  /* if */

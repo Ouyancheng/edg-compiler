@@ -2312,6 +2312,7 @@ static a_flag_name
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   { "skip_il_read", &skip_il_read },
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
+  { "extended_float_types", &extended_float_types },
   { NULL, NULL }  /* must be last */
 };
 

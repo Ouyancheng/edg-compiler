@@ -3328,6 +3328,7 @@ ec_ifc_bad_function_param_counts_multi_single;;"%d1 parameters were specified by
 ec_ifc_missing_function_definition;;"The IFC representation of the definition of function %sq is missing"
 ec_member_function_modifier_on_template;;"function modifier does not apply to member template declaration"
 ec_constexpr_too_many_nested_anonymous_types;;"member selection involves too many nested anonymous types"
+ec_no_common_type;;"there is no common type between the operands"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

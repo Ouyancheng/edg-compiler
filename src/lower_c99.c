@@ -1214,7 +1214,7 @@ but on complex types with different underlying floating-point types.  Used
 when calling select_name_from_float_kind.  The order of elements corresponds
 to float, double, long double, __float80, and __float128 types.
 */
-typedef a_const_char *a_library_name_array[(int)fk_last];
+typedef a_const_char *a_library_name_array[(int)fk_first_extended_type];
 
 static a_const_char* select_name_from_float_kind(a_float_kind         fkind,
                                                  a_library_name_array names)
@@ -1224,7 +1224,7 @@ Return names[fkind] (a string naming the given floating-point precision).
 {
   a_const_char *result;
 
-  check_assertion((int)fkind < (int)fk_last);
+  check_assertion((int)fkind < (int)fk_first_extended_type);
   result = names[(int)fkind];
   check_assertion(result != NULL);
   return result;
@@ -1339,25 +1339,25 @@ single field in the struct for the lowered version of the type.
 
 
 /* Complex arithmetic and comparison routines. */
-static a_routine_ptr  xnegate_routine[(int)fk_last];
-static a_routine_ptr  xadd_routine[(int)fk_last];
-static a_routine_ptr  xsubtract_routine[(int)fk_last];
-static a_routine_ptr  xmultiply_routine[(int)fk_last];
-static a_routine_ptr  xdivide_routine[(int)fk_last];
-static a_routine_ptr  xeq_routine[(int)fk_last];
-static a_routine_ptr  xne_routine[(int)fk_last];
-static a_routine_ptr  rtoc_routine[(int)fk_last];
-static a_routine_ptr  ctor_routine[(int)fk_last];
-static a_routine_ptr  itoc_routine[(int)fk_last];
-static a_routine_ptr  ctoi_routine[(int)fk_last];
-static a_routine_ptr  cast_float_routine[(int)fk_last];
-static a_routine_ptr  cast_double_routine[(int)fk_last];
-static a_routine_ptr  cast_long_double_routine[(int)fk_last];
+static a_routine_ptr  xnegate_routine[(int)fk_first_extended_type];
+static a_routine_ptr  xadd_routine[(int)fk_first_extended_type];
+static a_routine_ptr  xsubtract_routine[(int)fk_first_extended_type];
+static a_routine_ptr  xmultiply_routine[(int)fk_first_extended_type];
+static a_routine_ptr  xdivide_routine[(int)fk_first_extended_type];
+static a_routine_ptr  xeq_routine[(int)fk_first_extended_type];
+static a_routine_ptr  xne_routine[(int)fk_first_extended_type];
+static a_routine_ptr  rtoc_routine[(int)fk_first_extended_type];
+static a_routine_ptr  ctor_routine[(int)fk_first_extended_type];
+static a_routine_ptr  itoc_routine[(int)fk_first_extended_type];
+static a_routine_ptr  ctoi_routine[(int)fk_first_extended_type];
+static a_routine_ptr  cast_float_routine[(int)fk_first_extended_type];
+static a_routine_ptr  cast_double_routine[(int)fk_first_extended_type];
+static a_routine_ptr  cast_long_double_routine[(int)fk_first_extended_type];
 #if FLOAT80_ENABLING_POSSIBLE
-static a_routine_ptr  cast_float80_routine[(int)fk_last];
+static a_routine_ptr  cast_float80_routine[(int)fk_first_extended_type];
 #endif /* FLOAT80_ENABLING_POSSIBLE */
 #if FLOAT128_ENABLING_POSSIBLE
-static a_routine_ptr  cast_float128_routine[(int)fk_last];
+static a_routine_ptr  cast_float128_routine[(int)fk_first_extended_type];
 #endif /* FLOAT128_ENABLING_POSSIBLE */
 
 
@@ -1958,7 +1958,7 @@ negating one part in the "-" case.
 #if C99_IL_EXTENSIONS_SUPPORTED
 
 /* Complex conjugation routines. */
-static a_routine_ptr  xconj_routine[(int)fk_last];
+static a_routine_ptr  xconj_routine[(int)fk_first_extended_type];
 
 /* Names of the complex conjugation runtime routines. */
 static a_library_name_array xconj_routine_name = {
@@ -2442,14 +2442,14 @@ static a_library_name_array float_fixed_conv_routine_name = {
                                                          "_Fixed_from_ldouble",
                                                          NULL,
                                                          NULL};
-static a_routine_ptr float_fixed_conv_routine[(int)fk_last];
+static a_routine_ptr float_fixed_conv_routine[(int)fk_first_extended_type];
 static a_library_name_array fixed_float_conv_routine_name = {
                                                            "_Fixed_to_float",
                                                            "_Fixed_to_double",
                                                            "_Fixed_to_ldouble",
                                                            NULL,
                                                            NULL};
-static a_routine_ptr fixed_float_conv_routine[(int)fk_last];
+static a_routine_ptr fixed_float_conv_routine[(int)fk_first_extended_type];
 
 
 static void lower_c99_fixed_point_cast(an_expr_node_ptr expr)
@@ -4977,7 +4977,7 @@ for each translation unit.
 {
 #if LOWER_COMPLEX
   { int k;
-    for (k = 0; k < (int)fk_last; ++k) {
+    for (k = 0; k < (int)fk_first_extended_type; ++k) {
       xnegate_routine[k] = NULL;
       xadd_routine[k] = NULL;
       xsubtract_routine[k] = NULL;
@@ -5027,7 +5027,7 @@ for each translation unit.
   fixed_incr_routine = NULL;
   fixed_decr_routine = NULL;
   { int k;
-    for (k = 0; k < (int)fk_last; ++k) {
+    for (k = 0; k < (int)fk_first_extended_type; ++k) {
       float_fixed_conv_routine[k] = NULL;
       fixed_float_conv_routine[k] = NULL;
     }  /* for */
