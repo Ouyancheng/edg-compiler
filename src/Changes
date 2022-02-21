@@ -1,5 +1,26 @@
 Version 6.4
 
+2/21/22  [EDGcpfe/25030]
+Regression: Abort when re-declaring builtin __va_list_tag
+
+In version 6.3 of the front end, additional checking was added when pushing a
+scope for a class/struct/union to ensure that it was not clobbering an already-
+created scope.  In some configurations (where a builtin __va_list_tag struct is
+generated), this caused an abort when processing a re-declaration of
+__va_list_tag.  For example:
+
+  struct __va_list_tag {  // Previously triggered an abort
+    unsigned int gp_offset;
+    unsigned int fp_offset;
+    char *overflow_arg_area;
+    char *reg_save_area;
+  };
+
+This represents an error state that was previously missed, and the front end
+now issues a diagnostic instead of aborting.  Note that this may still appear
+to be as a regression, as this was silently accepted.
+
+
 2/18/22  [EDGcpfe/25020]
 Handling of anonymous union member initialization
 

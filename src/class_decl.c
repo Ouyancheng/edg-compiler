@@ -34286,6 +34286,7 @@ Create and return the __va_list_tag struct type that is predefined by certain
   add_field_to_generated_type("reg_save_area", voidptr_type);
   /* Wrap up the definition. */
   complete_class_definition(type, DEPTH_OF_FILE_SCOPE, &class_state);
+  sym->defined = TRUE;
   pop_scope();
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Restore the previous state wrt. generating source sequence entries. */
