@@ -1144,14 +1144,6 @@ variable lists.
       fwrite_with_check(address, psvp->var_size, f_pch_output);
     }  /* for */
   }  /* for */
-  /* We need to save the current source line so that it can be restored, but
-     this cannot be added as part of the saved variables array, due to its
-     mutable size. */
-  sizeof_t curr_source_line_size =
-                              after_end_of_curr_source_line - curr_source_line;
-  fwrite_with_check(&curr_source_line_size, sizeof(curr_source_line_size),
-                    f_pch_output);
-  fwrite_with_check(curr_source_line, curr_source_line_size, f_pch_output);
   db_exit();
 }  /* write_saved_variables */
 
@@ -1165,7 +1157,6 @@ variable lists.
   int				i;
   a_pch_saved_variable_ptr	psvp;
 
-  db_enter(4, "read_saved_variables");
   check_file_section_id(pfs_saved_variables);
   for (i = 0; i < num_of_saved_variable_lists; ++i) {
     for (psvp = saved_variable_array_list[i];
@@ -1188,15 +1179,6 @@ variable lists.
       fread_with_check(address, psvp->var_size, f_pch_input);
     }  /* for */
   }  /* for */
-  /* We need to restore the "current" source line as of the time the PCH was
-     being written.  This can't be done as part of the saved variables array,
-     due to its mutable size. */
-  sizeof_t curr_source_line_size;
-  fread_with_check(&curr_source_line_size, sizeof(curr_source_line_size),
-                   f_pch_input);
-  ensure_min_curr_source_line_length(curr_source_line_size);
-  fread_with_check(curr_source_line, curr_source_line_size, f_pch_input);
-  db_exit();
 }  /* read_saved_variables */
 
 

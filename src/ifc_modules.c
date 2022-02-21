@@ -3596,7 +3596,8 @@ been confirmed to exist and the path stored in midp.
   check_assertion(mod->name != NULL && mod->full_name != NULL);
   check_assertion(mod->module_interface == this);
   if (open_and_map_ifc_module_file(midp, /*issue_diag=*/TRUE)) {
-    result = initialize_members_from_ifc_module_file(midp);
+    result = initialize_members_from_ifc_module_file(midp,
+                                                     /*issue_diag=*/TRUE);
     if (!result) {
       close();
       goto done;
@@ -3795,12 +3796,14 @@ module.  Note that the mmap-ed address does not need to be at the same
 location as the original.
 */
 {
-  if (!open_and_map_ifc_module_file(midp, /*issue_diag=*/TRUE)) {
+  /* Any diagnostics related to opening the module file were already issued
+     when the PCH file was first created. */
+  if (!open_and_map_ifc_module_file(midp, /*issue_diag=*/FALSE)) {
     /* This shouldn't happen (the PCH processing checks the existence and
        modification time of module files). */
     unexpected_condition();
   }  /* if */
-  if (!initialize_members_from_ifc_module_file(midp)) {
+  if (!initialize_members_from_ifc_module_file(midp, /*issue_diag=*/FALSE)) {
     /* This shouldn't happen (the original initialization succeeded). */
     unexpected_condition();
   }  /* if */
@@ -6132,7 +6135,8 @@ void an_ifc_module::init_string_table_and_header()
 
 
 a_boolean an_ifc_module::initialize_members_from_ifc_module_file(
-                                                 a_module_import_decl_ptr midp)
+                                           a_module_import_decl_ptr midp,
+                                           a_boolean                issue_diag)
 {
   unsigned int i;
   a_module_ptr mod = midp->module_info;
@@ -6142,13 +6146,17 @@ a_boolean an_ifc_module::initialize_members_from_ifc_module_file(
   set_name(mod->name, is_header_unit(mod));
   init_string_table_and_header();
   if (!check_ifc_version(header.major_version, header.minor_version)) {
+    an_error_severity sev;
     if (skip_module_version_check) {
-      emit_unsupported_ifc_version_diagnostic(midp, /*mod_iface=*/this,
-                                              /*severity=*/es_warning);
+      sev = es_warning;
     } else {
-      emit_unsupported_ifc_version_diagnostic(midp, /*mod_iface=*/this,
-                                              /*severity=*/es_catastrophe);
+      sev = es_catastrophe;
       result = FALSE;
+    }  /* if */
+    if (issue_diag) {
+      emit_unsupported_ifc_version_diagnostic(midp, /*mod_iface=*/this, sev);
+    }  /* if */
+    if (!result) {
       goto done;
     }  /* if */
   }  /* if */
@@ -6181,7 +6189,9 @@ a_boolean an_ifc_module::initialize_members_from_ifc_module_file(
     check_assertion(ifc_pp->cardinality != 0 && ifc_pp->offset != 0);
     map_ptr = find_ifc_partition(name_str);
     if (map_ptr == NULL) {
-      str_warning(ec_unknown_ifc_partition, name_str);
+      if (issue_diag) {
+        str_warning(ec_unknown_ifc_partition, name_str);
+      }  /* if */
     } else {
       check_assertion_str(map_ptr->kind != ifc_last,
                           "no mapping for IFC partition");
