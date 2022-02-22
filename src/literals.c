@@ -802,6 +802,7 @@ the character position of the error.
         break;
       default:
         /* Not an extended type suffix. */
+        kind = (a_float_kind)fk_double;
         break;
     }  /* switch */
   } else {

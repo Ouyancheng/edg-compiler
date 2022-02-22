@@ -5226,19 +5226,14 @@ it represents a backing expression for the floating-point constant value.
 #endif /* (BACK_END_IS_C_GEN_BE || BACK_END_IS_CP_GEN_BE) && BUILTIN_... */
     } else if (fkind == (a_float_kind)fk_std_bfloat16) {
       suffix = "bf16";
-      max_exp = 127;
     } else if (fkind == (a_float_kind)fk_std_float16) {
       suffix = "f16";
-      max_exp = 15;
     } else if (fkind == (a_float_kind)fk_std_float32) {
       suffix = "f32";
-      max_exp = 127;
     } else if (fkind == (a_float_kind)fk_std_float64) {
       suffix = "f64";
-      max_exp = 1023;
     } else if (fkind == (a_float_kind)fk_std_float128) {
       suffix = "f128";
-      max_exp = 16383;
     }  /* if */
     if (octl->part_of_ud_literal) {
       /* Suppress the suffix on the numeric part of a user-defined literal
