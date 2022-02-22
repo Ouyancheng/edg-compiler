@@ -4206,7 +4206,9 @@ is responsible for recording a failing evaluation.
     last_entry->next = path;
   }  /* if */
 #if EXPENSIVE_CHECKING
-  check_no_variant_path_cycle(addr->variant.variant_path);
+  if (is_variant_path(addr)) {
+    check_no_variant_path_cycle(addr->variant.variant_path);
+  }  /* if */
 #endif /* EXPENSIVE_CHECKING */
 done:
   return result;
