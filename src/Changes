@@ -1,5 +1,18 @@
 Version 6.4
 
+2/22/22  [EDGcpfe/25071]
+Spurious error with default concept arguments
+
+The front end previously ignored default concept arguments in some situations,
+leading to spurious errors.  For example:
+
+  template<typename, typename U = int> concept C = sizeof(U) > 1;
+  C auto x = 1;  // Previously a spurious error claiming the constraint
+                 // failed.  Now okay.
+
+That is now fixed.
+
+
 2/21/22  [EDGcpfe/25030]
 Regression: Abort when re-declaring builtin __va_list_tag
 

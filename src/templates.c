@@ -14123,13 +14123,14 @@ a_template_arg_ptr copy_template_arg_list_with_substitution(
 			a_boolean		*copy_error,
 			a_ctws_state_ptr	ctws_state)
 /*
-Copy the template argument list arg_list_to_copy, and return a pointer
-to the copy.  In the process of copying, replace any template parameters
-with the corresponding values from the template argument list templ_arg_list.
-templ_param_list is the template parameter list for which templ_arg_list
-is an argument list.  template_sym is the template with which the parameter
-list and new argument list are associated, and can be NULL if a real
-template is not available.
+Copy the template argument list arg_list_to_copy, and return a pointer to the
+ copy.  In the process of copying, replace any template parameters with the
+corresponding values from the template argument list templ_arg_list.
+templ_param_list is the template parameter list for which templ_arg_list is an
+argument list.  templ_arg_list and templ_param_list can be NULL if no actual
+substitution is needed, but default template arguments may need to be added.
+template_sym is the template with which the parameter list and new argument
+list are associated, and can be NULL if a real template is not available.
 
 param_list_for_copy gives the corresponding template parameter list,
 or is NULL if the parameter list is not known (e.g., for a nonreal
@@ -16330,7 +16331,17 @@ copy_template_arg_list_with_substitution.
       arg_list_to_copy = new_args;
     }  /* for */
   } else {
-    new_args = copy_template_arg_list(arg_list_to_copy);
+    /* Copy the list: Substitution in this case is only needed to fill in
+       any default arguments.  E.g.:
+         template<typename, typename U = long> concept C = sizeof(U) > 1;
+         C auto x = 1;
+       The deduced argument list will be <int>, but we must return
+       <int, long>.
+    */
+    new_args = copy_template_arg_list_with_substitution(
+                   template_sym, arg_list_to_copy, param_list_for_copy,
+                   ttp_list_for_copy, NULL, NULL, source_pos, options,
+                   copy_error, ctws_state);
   }  /* if */
   return new_args;
 }  /* templ_args_after_substitutions */
