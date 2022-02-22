@@ -17,9 +17,9 @@ That is now fixed.
 Regression: Abort when re-declaring builtin __va_list_tag
 
 In version 6.3 of the front end, additional checking was added when pushing a
-scope for a class/struct/union to ensure that it was not clobbering an already-
-created scope.  In some configurations (where a builtin __va_list_tag struct is
-generated), this caused an abort when processing a re-declaration of
+scope for a class/struct/union to ensure that it was not overwriting an
+already-created scope.  In some configurations (where a builtin __va_list_tag
+struct is generated), this caused an abort when processing a re-declaration of
 __va_list_tag.  For example:
 
   struct __va_list_tag {  // Previously triggered an abort
