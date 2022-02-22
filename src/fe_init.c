@@ -726,6 +726,16 @@ modes.
     enter_keyword((a_token_kind)tok_is_assignable_no_precondition_check,
                   "__is_assignable_no_precondition_check");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    /* Enter keywords in support of P0466R5 ("Layout-compatibility and
+       Pointer-interconvertibility Traits", part of C++20). */
+    enter_keyword((a_token_kind)tok_is_layout_compatible,
+                  "__is_layout_compatible");
+    enter_keyword((a_token_kind)tok_is_pointer_interconvertible_base_of,
+                  "__is_pointer_interconvertible_base_of");
+    enter_keyword((a_token_kind)tok_is_pointer_interconvertible_with_class,
+                  "__is_pointer_interconvertible_with_class");
+    enter_keyword((a_token_kind)tok_is_corresponding_member,
+                  "__is_corresponding_member");
   }  /* if */
   enter_keyword((a_token_kind)tok_has_nothrow_assign,
                 "__has_nothrow_assign");
@@ -1238,13 +1248,6 @@ Install the keywords in the symbol table.
     enter_builtin_keyword((a_token_kind)tok_builtin_bit_cast,
                           "__builtin_bit_cast");
   }  /* if */
-  /* Enter keywords in support of P0466R5 ("Layout-compatibility and
-     Pointer-interconvertibility Traits", part of C++20). */
-  enter_builtin_keyword((a_token_kind)tok_builtin_is_layout_compatible,
-                        "__builtin_is_layout_compatible");
-  enter_builtin_keyword(
-                 (a_token_kind)tok_builtin_is_pointer_interconvertible_base_of,
-                 "__builtin_is_pointer_interconvertible_base_of");
   if (nullability_qualifiers_enabled) {
     enter_keyword((a_token_kind)tok_nullable, "_Nullable");
     enter_keyword((a_token_kind)tok_nonnull, "_Nonnull");

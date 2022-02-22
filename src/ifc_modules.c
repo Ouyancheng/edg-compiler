@@ -10534,18 +10534,16 @@ Sentence containing keyword.
       cache_token(cache, tok_builtin_bit_cast, &pos);
       break;
     case ifc_SourceKeyword_MsvcBuiltinIsLayoutCompatible:
-      cache_token(cache, tok_builtin_is_layout_compatible, &pos);
+      cache_token(cache, tok_is_layout_compatible, &pos);
       break;
     case ifc_SourceKeyword_MsvcBuiltinIsPointerInterconvertibleBaseOf:
-      cache_token(cache, tok_builtin_is_pointer_interconvertible_base_of,&pos);
+      cache_token(cache, tok_is_pointer_interconvertible_base_of, &pos);
       break;
     case ifc_SourceKeyword_MsvcBuiltinIsPointerInterconvertibleWithClass:
-      cache_identifier(cache,
-                       "__builtin_is_pointer_interconvertible_with_class",
-                       &pos);
+      cache_token(cache, tok_is_pointer_interconvertible_with_class, &pos);
       break;
     case ifc_SourceKeyword_MsvcBuiltinIsCorrespondingMember:
-      cache_identifier(cache, "__builtin_is_corresponding_member", &pos);
+      cache_token(cache, tok_is_corresponding_member, &pos);
       break;
     case ifc_SourceKeyword_MsvcIsRefClass:
       cache_token(cache, tok_is_ref_class, &pos);

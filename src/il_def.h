@@ -1348,8 +1348,10 @@ enum a_token_kind_tag {
   tok_concept,
   tok_builtin_has_attribute,
   tok_builtin_bit_cast,
-  tok_builtin_is_layout_compatible,
-  tok_builtin_is_pointer_interconvertible_base_of,
+  tok_is_layout_compatible,
+  tok_is_pointer_interconvertible_base_of,
+  tok_is_pointer_interconvertible_with_class,
+  tok_is_corresponding_member,
   tok_is_array,
   tok_array_rank,
   tok_array_extent,
@@ -1576,8 +1578,10 @@ EXTERN a_const_char
    "requires", "concept",
    "__builtin_has_attribute",
    "__builtin_bit_cast",
-   "__builtin_is_layout_compatible",
-   "__builtin_is_pointer_interconvertible_base_of",
+   "__is_layout_compatible",
+   "__is_pointer_interconvertible_base_of",
+   "__is_pointer_interconvertible_with_class",
+   "__is_corresponding_member",
    "__is_array",
    "__array_rank",
    "__array_extent",
@@ -13540,10 +13544,16 @@ typedef enum a_builtin_operation_kind_tag {
                            arguments). */
   bok_builtin_bit_cast, /* __builtin_bit_cast.  First operand is a type and the
                            second is an object. */
-  bok_builtin_is_layout_compatible,
+  bok_is_layout_compatible,
 			/* Two type operands. */
-  bok_builtin_is_pointer_interconvertible_base_of,
+  bok_is_pointer_interconvertible_base_of,
 			/* Two type operands. */
+  bok_is_pointer_interconvertible_with_class,
+                        /* A class type operand and a pointer-to-member
+                           argument. */
+  bok_is_corresponding_member,
+                        /* Two class type operands and two pointer-to-member
+                           arguments. */
   bok_is_array,		/* __is_array. One type operand. */
   bok_array_rank,       /* __array_rank (Clang).  One type operand (returns
                            size_t). */
@@ -18089,8 +18099,10 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__is_function",
   "__builtin_has_attribute",
   "__builtin_bit_cast",
-  "__builtin_is_layout_compatible",
-  "__builtin_is_pointer_interconvertible_base_of",
+  "__is_layout_compatible",
+  "__is_pointer_interconvertible_base_of",
+  "__is_pointer_interconvertible_with_class",
+  "__is_corresponding_member",
   "__is_array",
   "__array_rank",
   "__array_extent",

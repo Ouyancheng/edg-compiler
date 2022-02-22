@@ -9003,86 +9003,6 @@ to FALSE and the reason for the failure is recorded in *ips.
         }  /* if */
       }  /* if */
       break;
-    case bufk_is_pointer_interconvertible_with_class:
-      /* Some type checking was already performed by the front end. */
-      {
-        a_type_ptr    tp = skip_typerefs(args->type);
-        a_byte_count  n_bytes = value_bytes_for_type(ips, tp, p_result);
-        interpreted = TRUE;
-        if (!*p_result || !type_is(tp, tk_ptr_to_member)) {
-          do_constexpr_fail(*p_result);
-        } else {
-          alloc_complete_object(ips, n_bytes, tp, arg1_bytes);
-          if (!do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes)) {
-            /* The argument did not have a constexpr value. */
-            do_constexpr_fail(*p_result);
-          } else {
-            a_constexpr_ptr_to_mem  *pm_value;
-            a_type_ptr              class_type;
-            pm_value = (a_constexpr_ptr_to_mem*)arg1_bytes;
-            class_type = tp->variant.ptr_to_member.class_of_which_a_member;
-            if (pm_value->is_ptr_to_mem_function ||
-                pm_value->variant.field == NULL ||
-                pm_value->variant.field->offset != 0 ||
-                !class_symbol_supp(symbol_for(class_type))->standard_layout) {
-              /* Non-standard-layout classes and pointer-to-member functions
-                 elicit a "false" result.  If a field is designated but its
-                 offset is not zero, its address is not "interconvertible"
-                 with that of its parent object. */
-              *(an_integer_value*)result_storage = zero_int;
-            } else {
-              *(an_integer_value*)result_storage = one_int;
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      }
-      break;
-    case bufk_is_corresponding_member:
-      /* Some type checking was already performed by the front end. */
-      {
-        a_type_ptr    tp1 = skip_typerefs(args->type),
-                      tp2 = skip_typerefs(args->next->type);
-        a_byte_count  n_bytes = value_bytes_for_type(ips, tp1, p_result);
-        interpreted = TRUE;
-        if (!*p_result || !type_is(tp1, tk_ptr_to_member) ||
-            !type_is(tp2, tk_ptr_to_member)) {
-          do_constexpr_fail(*p_result);
-        } else {
-          alloc_complete_object(ips, n_bytes, tp1, arg1_bytes);
-          alloc_complete_object(ips, n_bytes, tp2, arg2_bytes);
-          if (!do_constexpr_expression(ips, args, arg1_bytes, arg1_bytes) ||
-              !do_constexpr_expression(ips, args, arg2_bytes, arg2_bytes)) {
-            /* The arguments did not have a constexpr value. */
-            do_constexpr_fail(*p_result);
-          } else {
-            a_constexpr_ptr_to_mem  *pm_value1, *pm_value2;
-            a_type_ptr              class_type1, class_type2;
-            pm_value1 = (a_constexpr_ptr_to_mem*)arg1_bytes;
-            pm_value2 = (a_constexpr_ptr_to_mem*)arg2_bytes;
-            class_type1 = tp1->variant.ptr_to_member.class_of_which_a_member;
-            class_type2 = tp2->variant.ptr_to_member.class_of_which_a_member;
-            if (pm_value1->is_ptr_to_mem_function ||
-                pm_value2->is_ptr_to_mem_function ||
-                pm_value1->variant.field == NULL ||
-                pm_value2->variant.field == NULL ||
-                !class_symbol_supp(symbol_for(class_type1))->standard_layout ||
-                !class_symbol_supp(symbol_for(class_type2))->standard_layout ||
-                pm_value1->variant.field->offset !=
-                                           pm_value2->variant.field->offset ||
-                pm_value1->variant.field->offset >=
-                   common_initial_sequence_limit(class_type1, class_type2)) {
-              /* Non-standard-layout classes and pointer-to-member functions
-                 elicit a "false" result.  Members "correspond" if they are
-                 within the "common initial sequence" and have the same
-                 offset. */
-              *(an_integer_value*)result_storage = zero_int;
-            } else {
-              *(an_integer_value*)result_storage = one_int;
-            }  /* if */
-          }  /* if */
-        }  /* if */
-      }
-      break;
     case bfk_COLUMN:
     case bfk_LINE:
     case bfk_FILE:
@@ -11757,6 +11677,129 @@ complete_object).  Otherwise, return FALSE and record a diagnostic in *ips.
 }  /* do_constexpr_builtin_bit_cast */
 
 
+static a_boolean do_constexpr_is_pointer_interconvertible_with_class(
+                                        an_interpreter_state  *ips,
+                                        an_expr_node_ptr      expr,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_object)
+/*
+Evaluate, if possible, the given __is_pointer_interconvertible_with_class
+expression.  If successful, return TRUE and store the result in *result_storage
+(which is a subobject of complete_object).  Otherwise, return FALSE (a
+diagnostic will be generated by the caller).
+*/
+{
+  a_boolean         result = TRUE;
+  an_expr_node_ptr  args = expr->variant.builtin_operation.operands;
+
+  /* Some type checking was already performed by the front end. */
+  check_assertion(args != NULL && args->next != NULL &&
+                  args->next->next == NULL &&
+                  args->kind == (an_expr_node_kind)enk_type_operand);
+  a_type_ptr        tp = skip_typerefs(args->variant.type_operand.type);
+  an_expr_node_ptr  pm = args->next;
+  a_type_ptr        pm_type = skip_typerefs(pm->type);
+  a_byte_count      n_bytes = value_bytes_for_type(ips, pm_type, &result);
+  if (result &&
+      is_class_struct_union_type(tp) &&
+      type_is(pm_type, tk_ptr_to_member)) {
+    a_byte *arg_bytes;
+    alloc_complete_object(ips, n_bytes, tp, arg_bytes);
+    if (!do_constexpr_expression(ips, pm, arg_bytes, arg_bytes)) {
+      /* The argument did not have a constexpr value. */
+      result = FALSE;
+    } else {
+      a_constexpr_ptr_to_mem  *pm_value;
+      pm_value = (a_constexpr_ptr_to_mem*)arg_bytes;
+      if (pm_value->is_ptr_to_mem_function ||
+          pm_value->variant.field == NULL ||
+          pm_value->variant.field->offset != 0 ||
+          !class_symbol_supp(symbol_for(tp))->standard_layout) {
+        /* Non-standard-layout classes and pointer-to-member functions
+           elicit a "false" result.  If a field is designated but its
+           offset is not zero, its address is not "interconvertible"
+           with that of its parent object. */
+        *(an_integer_value*)result_storage = zero_int;
+      } else {
+        *(an_integer_value*)result_storage = one_int;
+      }  /* if */
+    }  /* if */
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* do_constexpr_is_pointer_interconvertible_with_class */
+
+
+static a_boolean do_constexpr_is_corresponding_member(
+                                        an_interpreter_state  *ips,
+                                        an_expr_node_ptr      expr,
+                                        a_byte                *result_storage,
+                                        a_byte                *complete_object)
+/*
+Evaluate, if possible, the given __is_corresponding_member expression.  If
+successful, return TRUE and store the result in *result_storage (which is a
+subobject of complete_object).  Otherwise, return FALSE (the caller will
+generate a diagnostic).
+*/
+{
+  a_boolean         result = TRUE;
+  an_expr_node_ptr  arg = expr->variant.builtin_operation.operands;
+
+  /* Some type checking was already performed by the front end. */
+  check_assertion(arg != NULL && arg->next != NULL &&
+                  arg->next->next != NULL && arg->next->next->next != NULL &&
+                  arg->next->next->next->next == NULL &&
+                  arg->kind == (an_expr_node_kind)enk_type_operand &&
+                  arg->next->kind == (an_expr_node_kind)enk_type_operand);
+  a_type_ptr        tp1 = skip_typerefs(arg->variant.type_operand.type),
+                    tp2 = skip_typerefs(arg->next->variant.type_operand.type);
+  an_expr_node_ptr  pm1 = arg->next->next,
+                    pm2 = pm1->next;
+  a_type_ptr        pm_type1 = skip_typerefs(pm1->type),
+                    pm_type2 = skip_typerefs(pm2->type);
+  a_byte_count      n_bytes = value_bytes_for_type(ips, pm_type1, &result);
+  if (result &&
+      is_class_struct_union_type(tp1) &&
+      is_class_struct_union_type(tp2) &&
+      type_is(pm_type1, tk_ptr_to_member) &&
+      type_is(pm_type2, tk_ptr_to_member)) {
+    a_byte *arg3_bytes, *arg4_bytes;
+    alloc_complete_object(ips, n_bytes, pm_type1, arg3_bytes);
+    alloc_complete_object(ips, n_bytes, pm_type2, arg4_bytes);
+    if (!do_constexpr_expression(ips, pm1, arg3_bytes, arg3_bytes) ||
+        !do_constexpr_expression(ips, pm2, arg4_bytes, arg4_bytes)) {
+      /* The arguments did not have a constexpr value. */
+      result = FALSE;
+    } else {
+      a_constexpr_ptr_to_mem  *pm_value1, *pm_value2;
+      pm_value1 = (a_constexpr_ptr_to_mem*)arg3_bytes;
+      pm_value2 = (a_constexpr_ptr_to_mem*)arg4_bytes;
+      if (pm_value1->is_ptr_to_mem_function ||
+          pm_value2->is_ptr_to_mem_function ||
+          pm_value1->variant.field == NULL ||
+          pm_value2->variant.field == NULL ||
+          !class_symbol_supp(symbol_for(tp1))->standard_layout ||
+          !class_symbol_supp(symbol_for(tp2))->standard_layout ||
+          pm_value1->variant.field->offset !=
+                                            pm_value2->variant.field->offset ||
+          pm_value1->variant.field->offset >=
+                                     common_initial_sequence_limit(tp1, tp2)) {
+        /* Non-standard-layout classes and pointer-to-member functions
+           elicit a "false" result.  Members "correspond" if they are within
+           the "common initial sequence" and have the same offset. */
+        *(an_integer_value*)result_storage = zero_int;
+      } else {
+        *(an_integer_value*)result_storage = one_int;
+      }  /* if */
+    }  /* if */
+  } else {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* do_constexpr_is_corresponding_member */
+
+
 static a_boolean do_constexpr_builtin_operation(
                                        an_interpreter_state  *ips,
                                        an_expr_node_ptr      orig_expr,
@@ -11799,6 +11842,18 @@ storage within the given complete object).  Otherwise, return FALSE and update
     case bok_builtin_bit_cast:
       if (!do_constexpr_builtin_bit_cast(ips, expr, result_storage,
                                          complete_object)) {
+        do_constexpr_fail(result);
+      }  /* if */
+      break;
+    case bok_is_pointer_interconvertible_with_class:
+      if (!do_constexpr_is_pointer_interconvertible_with_class(ips, expr,
+                                            result_storage, complete_object)) {
+        do_constexpr_fail(result);
+      }  /* if */
+      break;
+    case bok_is_corresponding_member:
+      if (!do_constexpr_is_corresponding_member(ips, expr, result_storage,
+                                                complete_object)) {
         do_constexpr_fail(result);
       }  /* if */
       break;

@@ -1,5 +1,19 @@
 Version 6.4
 
+2/22/22  [EDGcpfe/23851,EDGcpfe/24514,EDGcpfe/25002,EDGcpfe/25070]
+Microsoft compatibility: layout builtins
+
+The builtins originally introduced by the changes for EDGcpfe/22295 have
+been re-worked.
+
+Specifically:
+- __builtin_is_pointer_interconvertible_base_of and
+  __builtin_is_layout_compatible have been removed.
+- In Microsoft mode, the following builtins have been added:
+  __is_layout_compatible, __is_pointer_interconvertible_base_of,
+  __is_pointer_interconvertible_with_class, and __is_corresponding_member.
+
+
 2/22/22  [EDGcpfe/25101]
 Instantiation of variable templates initialized with requires-expressions
 
@@ -12704,8 +12718,8 @@ layout-compatibility:
   - __builtin_is_layout_compatible(T1, T2):
     T1 and T2 denote types.  This operator produces a true value if and
     only if the given types are layout-compatible.
-  - __builtin_is_pointer_interconvertible_base_of(D, B):
-    D and B denote types.  If either type is not a non-union class type,
+  - __builtin_is_pointer_interconvertible_base_of(B, D):
+    B and D denote types.  If either type is not a non-union class type,
     the result is false.  Otherwise, if the two types are identical,
     the result is true.  Otherwise, the result is true if and only if B
     is an unambiguous nonvirtual base class type of D at offset zero in D.

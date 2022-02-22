@@ -9389,12 +9389,11 @@ is TRUE, the backing expression for the returned constant will be set as well.
 }  /* fold_builtin_has_attribute */
 
 
-static void fold_builtin_is_layout_compatible(
-                                       an_expr_node_ptr   expr,
-                                       a_constant_ptr     constant,
-                                       a_boolean          maintain_expression)
+static void fold_is_layout_compatible(an_expr_node_ptr   expr,
+                                      a_constant_ptr     constant,
+                                      a_boolean          maintain_expression)
 /*
-expr is an enk_builtin_operation node for a __builtin_is_layout_compatible
+expr is an enk_builtin_operation node for an __is_layout_compatible
 operation.  If the operand types are nondependent, store a boolean constant in
 *constant.  The boolean constant will have value "true" if the two operands
 (types) are layout-compatible.  If either of the operand types is dependent,
@@ -9425,16 +9424,16 @@ will be set as well.
     if (maintain_expression) constant->expr = expr;
   }  /* if */
   constant->type = expr->type;
-}  /* fold_builtin_is_layout_compatible */
+}  /* fold_is_layout_compatible */
 
 
-static void fold_builtin_is_pointer_interconvertible_base_of(
+static void fold_is_pointer_interconvertible_base_of(
                                        an_expr_node_ptr   expr,
                                        a_constant_ptr     constant,
                                        a_boolean          maintain_expression)
 /*
 expr is an enk_builtin_operation node for a
-__builtin_is_pointer_interconvertible_base_of operation.  If the operand types
+__is_pointer_interconvertible_base_of operation.  If the operand types
 are nondependent, store a boolean constant in *constant.  Let B denote the
 first operand (type) and D the second one.  The boolean constant will have
 value "true" if:
@@ -9470,7 +9469,7 @@ expression for the returned constant will be set as well.
       } else {
         /* Pointer-interconvertibility is characterized by a zero offset in
            this case. */
-        a_base_class  *bcp = find_base_class_of(type1, type2);
+        a_base_class  *bcp = find_base_class_of(type2, type1);
         if (bcp != NULL && !bcp->ambiguous && !bcp->is_virtual &&
             bcp->offset == 0) {
           result = TRUE;
@@ -9483,7 +9482,197 @@ expression for the returned constant will be set as well.
     if (maintain_expression) constant->expr = expr;
   }  /* if */
   constant->type = expr->type;
-}  /* fold_builtin_is_pointer_interconvertible_base_of */
+}  /* fold_is_pointer_interconvertible_base_of */
+
+
+static void fold_is_pointer_interconvertible_with_class(
+                                          an_expr_node_ptr expr,
+                                          a_constant_ptr   constant,
+                                          a_boolean        maintain_expression,
+                                          a_boolean        *not_a_constant)
+/*
+expr is an enk_builtin_operation node for an
+__is_pointer_interconvertible_with_class operation.  If the operand types
+are such that the operation can be folded, store a boolean constant in
+*constant.  If the pointer-to-member operand is non-constant (e.g., a
+variable), set *not_a_constant to indicate that the builtin cannot be folded
+here (though it may be folded later in the interpreter when the value of the
+variable is known).
+
+The caller has verified that there are two arguments but additional error
+checking is performed here.
+*/
+{
+  an_expr_node_ptr  arg1 = expr->variant.builtin_operation.operands,
+                    arg2 = arg1->next;
+  a_type_ptr        type1, type2;
+  a_boolean         result, err = FALSE;
+
+  check_assertion(arg1 != NULL && arg2 != NULL && arg2->next == NULL &&
+                  arg1->kind == (an_expr_node_kind)enk_type_operand);
+  type1 = arg1->variant.type_operand.type;
+  type2 = arg2->type;
+  /* Caller has already checked for error nodes. */
+  if (is_template_dependent_type(type1) ||
+      is_template_dependent_type(type2)) {
+    make_template_param_expr_constant(expr, constant);
+  } else {
+    type1 = skip_typerefs(type1);
+    type2 = skip_typerefs(type2);
+    if (!is_class_struct_union_type(type1)) {
+      expr_pos_error(ec_exp_class_type, &arg1->position);
+      err = TRUE;
+    } else if (is_incomplete_type(type1)) {
+      expr_pos_error(incomplete_type_err_code(type1), &arg1->position);
+      err = TRUE;
+    } else if (!type_is(type2, tk_ptr_to_member)) {
+      expr_pos_error(ec_exp_pointer_to_member, &arg2->position);
+      err = TRUE;
+    } else {
+      err = FALSE;
+      a_type_ptr class_type =
+                          type2->variant.ptr_to_member.class_of_which_a_member;
+      a_constant_ptr pmcon = node_constant(arg2);
+      if (!is_constant_node(arg2) ||
+          !constant_is(node_constant(arg2), ck_ptr_to_member)) {
+        /* Can't fold if the argument isn't constant. */
+        *not_a_constant = TRUE;
+        result = FALSE;
+      } else if (find_base_class_of(type1, class_type) != NULL) {
+        /* Types are not related. */
+        result = FALSE;
+      } else if (pmcon->variant.ptr_to_member.is_function_ptr ||
+                 pmcon->variant.ptr_to_member.variant.field == NULL ||
+                 pmcon->variant.ptr_to_member.variant.field->offset != 0 ||
+                 !class_symbol_supp(symbol_for(class_type))->standard_layout ||
+                 !class_symbol_supp(symbol_for(type1))->standard_layout) {
+        /* Non-standard-layout classes and pointer-to-member functions
+           elicit a "false" result.  If a field is designated but its
+           offset is not zero, its address is not "interconvertible"
+           with that of its parent object. */
+        result = FALSE;
+      } else {
+        result = TRUE;
+      }  /* if */
+      clear_constant(constant, (a_constant_repr_kind)ck_integer);
+      set_integer_value(&constant->variant.integer_value,
+                        (a_host_large_integer)result);
+      if (maintain_expression) constant->expr = expr;
+    }  /* if */
+  }  /* if */
+  if (err) {
+    set_error_constant(constant);
+  }  /* if */
+  constant->type = expr->type;
+}  /* fold_is_pointer_interconvertible_with_class */
+
+
+static void fold_is_corresponding_member(an_expr_node_ptr expr,
+                                         a_constant_ptr   constant,
+                                         a_boolean        maintain_expression,
+                                         a_boolean        *not_a_constant)
+/*
+expr is an enk_builtin_operation node for an __is_corresponding_member
+operation.  If the operand types are nondependent, store a boolean constant in
+*constant that corresponds to the result of the std::is_corresponding_member
+function.  If the pointer-to-member operands are non-constant (e.g., a
+variable), set *not_a_constant to indicate that the builtin cannot be folded
+here (though it may be folded later in the interpreter when the value of the
+variable is known).
+
+The caller has verified that there are four arguments (two types and two
+expressions) but additional error checking is performed here.
+*/
+{
+  an_expr_node_ptr  arg = expr->variant.builtin_operation.operands;
+  an_expr_node_ptr  pm1, pm2;
+  a_type_ptr        class1, class2, pm_type1, pm_type2;
+  a_boolean         result, err = FALSE;
+
+  check_assertion(arg != NULL && arg->next != NULL &&
+                  arg->next->next != NULL && arg->next->next->next != NULL &&
+                  arg->next->next->next->next == NULL &&
+                  arg->kind == (an_expr_node_kind)enk_type_operand &&
+                  arg->next->kind == (an_expr_node_kind)enk_type_operand);
+  class1 = arg->variant.type_operand.type;
+  class2 = arg->next->variant.type_operand.type;
+  pm1 = arg->next->next;
+  pm2 = pm1->next;
+  pm_type1 = pm1->type;
+  pm_type2 = pm2->type;
+  /* Caller has already checked for error nodes. */
+  if (is_template_dependent_type(class1) ||
+      is_template_dependent_type(class2) ||
+      is_template_dependent_type(pm_type1) ||
+      is_template_dependent_type(pm_type2)) {
+    make_template_param_expr_constant(expr, constant);
+  } else {
+    class1 = skip_typerefs(class1);
+    class2 = skip_typerefs(class2);
+    pm_type1 = skip_typerefs(pm_type1);
+    pm_type2 = skip_typerefs(pm_type2);
+    if (!is_class_struct_union_type(class1)) {
+      expr_pos_error(ec_exp_class_type, &arg->position);
+      err = TRUE;
+    } else if (is_incomplete_type(class1)) {
+      expr_pos_error(incomplete_type_err_code(class1), &arg->position);
+      err = TRUE;
+    } else if (!is_class_struct_union_type(class2)) {
+      expr_pos_error(ec_exp_class_type, &arg->next->position);
+      err = TRUE;
+    } else if (is_incomplete_type(class2)) {
+      expr_pos_error(incomplete_type_err_code(class2), &arg->next->position);
+      err = TRUE;
+    } else if (!type_is(pm_type1, tk_ptr_to_member)) {
+      expr_pos_error(ec_exp_pointer_to_member, &pm1->position);
+      err = TRUE;
+    } else if (!type_is(pm_type2, tk_ptr_to_member)) {
+      expr_pos_error(ec_exp_pointer_to_member, &pm2->position);
+      err = TRUE;
+    } else {
+      err = FALSE;
+      if (!is_constant_node(pm1) || !is_constant_node(pm2) ||
+          !constant_is(node_constant(pm1), ck_ptr_to_member) ||
+          !constant_is(node_constant(pm2), ck_ptr_to_member)) {
+        /* Can't fold if the arguments aren't constant. */
+        *not_a_constant = TRUE;
+        result = FALSE;
+      } else if (find_base_class_of(pm_type1, class1) != NULL ||
+                 find_base_class_of(pm_type2, class2) != NULL) {
+        /* Types are not related. */
+        result = FALSE;
+      } else {
+        a_constant_ptr pmcon1 = node_constant(pm1);
+        a_constant_ptr pmcon2 = node_constant(pm2);
+        if (pmcon1->variant.ptr_to_member.is_function_ptr ||
+            pmcon2->variant.ptr_to_member.is_function_ptr ||
+            pmcon1->variant.ptr_to_member.variant.field == NULL ||
+            pmcon2->variant.ptr_to_member.variant.field == NULL ||
+            !class_symbol_supp(symbol_for(class1))->standard_layout ||
+            !class_symbol_supp(symbol_for(class2))->standard_layout ||
+            pmcon1->variant.ptr_to_member.variant.field->offset !=
+                         pmcon2->variant.ptr_to_member.variant.field->offset ||
+            pmcon1->variant.ptr_to_member.variant.field->offset >=
+                               common_initial_sequence_limit(class1, class2)) {
+          /* Non-standard-layout classes and pointer-to-member functions
+             elicit a "false" result.  Members "correspond" if they are
+             within the "common initial sequence" and have the same offset. */
+          result = FALSE;
+        } else {
+          result = TRUE;
+        }  /* if */
+      }  /* if */
+      clear_constant(constant, (a_constant_repr_kind)ck_integer);
+      set_integer_value(&constant->variant.integer_value,
+                        (a_host_large_integer)result);
+      if (maintain_expression) constant->expr = expr;
+    }  /* if */
+  }  /* if */
+  if (err) {
+    set_error_constant(constant);
+  }  /* if */
+  constant->type = expr->type;
+}  /* fold_is_corresponding_member */
 
 
 static void fold_array_intrinsic(an_expr_node_ptr   expr,
@@ -9734,12 +9923,21 @@ constant is set as well.
       case bok_builtin_has_attribute:
         fold_builtin_has_attribute(expr, constant, maintain_expression);
         break;
-      case bok_builtin_is_layout_compatible:
-        fold_builtin_is_layout_compatible(expr, constant, maintain_expression);
+      case bok_is_layout_compatible:
+        fold_is_layout_compatible(expr, constant, maintain_expression);
         break;
-      case bok_builtin_is_pointer_interconvertible_base_of:
-        fold_builtin_is_pointer_interconvertible_base_of(
+      case bok_is_pointer_interconvertible_base_of:
+        fold_is_pointer_interconvertible_base_of(
                                           expr, constant, maintain_expression);
+        break;
+      case bok_is_pointer_interconvertible_with_class:
+        fold_is_pointer_interconvertible_with_class(expr, constant,
+                                                    maintain_expression,
+                                                    not_a_constant);
+        break;
+      case bok_is_corresponding_member:
+        fold_is_corresponding_member(expr, constant, maintain_expression,
+                                     not_a_constant);
         break;
       case bok_array_rank:
       case bok_array_extent:

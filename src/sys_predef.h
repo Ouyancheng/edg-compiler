@@ -231,10 +231,6 @@ enum a_builtin_user_function_kind_tag {
   bufk_u8memchr,                  /* __builtin_u8memchr */
   bufk_u8memcmp,                  /* __builtin_u8memcmp */
   bufk_u8strlen,                  /* __builtin_u8strlen */
-  bufk_is_pointer_interconvertible_with_class,
-                          /* __builtin_is_pointer_interconvertible_with_class */
-  bufk_is_corresponding_member,
-                                  /* __builtin_is_corresponding_member */
   bufk_last                       /* final entry */
 };
 
@@ -262,19 +258,6 @@ to be kept sorted).
 EXTERN a_builtin_user_descr builtin_user_table[]
 #if VAR_INITIALIZERS
 = {
-  /* Support for std::is_corresponding_member.  This built-in is expected to
-     appear in MSVC 19.27 and likely soon in other versions as well. */
-  { "__builtin_is_corresponding_member",
-    "g+(100000-)L+(100000-)s+(202002-)m+(1927-)", "bool (...) __edg_throw__()",
-    bufk_is_corresponding_member },
-
-  /* Support for std::is_pointer_interconvertible_with_class.  This built-in is
-     expected to appear in MSVC 19.27 and likely soon in other versions as
-     well. */
-  { "__builtin_is_pointer_interconvertible_with_class",
-    "g+(100000-)L+(100000-)s+(202002-)m+(1927-)", "bool (...) __edg_throw__()",
-    bufk_is_pointer_interconvertible_with_class },
-
   /* GCC 9.x implements std::is_constexpr_evaluated using an intrinsic function
      __builtin_is_constexpr_evaluated.  We accept it in all modes, but the
      front end also recognizes std::is_constexpr_evaluated directly. */

@@ -5195,9 +5195,7 @@ typedef a_routine_ptr a_builtin_call_adjustment_callback(
 /* The following are function declarations (despite looking like variables). */
 static a_builtin_call_adjustment_callback
 		adjust_sync_atomic_builtin,
-		adjust_builtin_zero_non_value_bits,
-		adjust_builtin_is_pointer_interconvertible_with_class,
-		adjust_builtin_is_corresponding_member;
+		adjust_builtin_zero_non_value_bits;
 
 /*
 Structure used to pass information from builtin_call_needs_adjustment to
@@ -5461,14 +5459,6 @@ be called to check and adjust the argument and routine types as needed.
     case bfk_zero_non_value_bits:
       /* Callback will validate arguments. */
       bcap->callback = adjust_builtin_zero_non_value_bits;
-      break;
-    case bufk_is_pointer_interconvertible_with_class:
-      /* Callback will validate arguments. */
-      bcap->callback = adjust_builtin_is_pointer_interconvertible_with_class;
-      break;
-    case bufk_is_corresponding_member:
-      /* Callback will validate arguments. */
-      bcap->callback = adjust_builtin_is_corresponding_member;
       break;
     default:
       /* No special processing is needed for most builtins. */
@@ -5989,117 +5979,6 @@ be a pointer to a complete type and may not be const-qualified.
   }  /* if */
   return routine_from_function_operand(target);
 }  /* adjust_builtin_zero_non_value_bits */
-
-
-static a_routine_ptr adjust_builtin_is_pointer_interconvertible_with_class(
-                  an_operand                           *target,
-                  an_arg_list_elem_ptr                 args,
-                  a_source_position                    *closing_paren_position,
-                  ARG_UNUSED a_builtin_call_adjustment *bcap,
-                  an_expr_node_ptr                     *arg_list)
-/*
-Adjust a call to __builtin_is_pointer_interconvertible_with_class and diagnose
-type errors.  It is declared as having type "bool (...) noexcept", but any call
-must pass in exactly one pointer-to-member value.
-*/
-{
-  a_routine_ptr  result = NULL;
-
-  *arg_list = NULL;
-  if (args == NULL) {
-    /* Must have at least one argument. */
-    expr_pos_error(ec_too_few_arguments, closing_paren_position);
-  } else if (args->next != NULL) {
-    /* Must have exactly one argument. */
-    expr_pos_error(ec_too_many_arguments, init_component_pos(args->next));
-  } else {
-    a_type_ptr  arg_type;
-    a_boolean   err = FALSE;
-    an_operand  *operand;
-    check_arg_list_elem_is_expression(args);
-    operand = operand_of_arg_list_elem(args);
-    if (is_an_lvalue(operand)) {
-      /* An rvalue is needed. */
-      conv_glvalue_to_prvalue(operand);
-    }  /* if */
-    arg_type = operand->type;
-    if (is_ptr_to_member_type(arg_type)) {
-      a_type_ptr  class_type = pm_class_type(arg_type);
-      if (class_type->incomplete) {
-        expr_pos_ty_diagnostic(es_error, ec_ptr_to_mem_of_incomplete_class,
-                               init_component_pos(args), class_type);
-        err = TRUE;
-      }  /* if */
-    } else if (!is_template_dependent_type(arg_type)) {
-      /* The operand must be a pointer-to-member. */
-      expr_pos_error(ec_expr_not_ptr_to_member, init_component_pos(args));
-      err = TRUE;
-    }  /* if */
-    if (!err) {
-      *arg_list = make_node_from_operand_for_expr_list(operand);
-      result = routine_from_function_operand(target);
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* adjust_builtin_is_pointer_interconvertible_with_class */
-
-
-static a_routine_ptr adjust_builtin_is_corresponding_member(
-                  an_operand                           *target,
-                  an_arg_list_elem_ptr                 args,
-                  a_source_position                    *closing_paren_position,
-                  ARG_UNUSED a_builtin_call_adjustment *bcap,
-                  an_expr_node_ptr                     *arg_list)
-/*
-Adjust a call to __builtin_is_corresponding_member and diagnose type errors.
-It is declared as having type "bool (...) noexcept", but any call must pass in
-exactly two pointer-to-member values.
-*/
-{
-  a_routine_ptr  result = NULL;
-
-  *arg_list = NULL;
-  if (args == NULL || args->next == NULL) {
-    /* Must have at least two arguments. */
-    expr_pos_error(ec_too_few_arguments, closing_paren_position);
-  } else if (args->next->next != NULL) {
-    /* Must have exactly two arguments. */
-    expr_pos_error(ec_too_many_arguments, init_component_pos(args->next));
-  } else {
-    a_type_ptr  arg_type;
-    a_boolean   err = FALSE;
-    an_operand  *operand;
-    for (; args != NULL && !err; args = args->next) {
-      check_arg_list_elem_is_expression(args);
-      operand = operand_of_arg_list_elem(args);
-      if (is_an_lvalue(operand)) {
-        /* An rvalue is needed. */
-        conv_glvalue_to_prvalue(operand);
-      }  /* if */
-      arg_type = operand->type;
-      if (is_ptr_to_member_type(arg_type)) {
-        a_type_ptr  class_type = pm_class_type(arg_type);
-        if (class_type->incomplete) {
-          expr_pos_ty_diagnostic(es_error, ec_ptr_to_mem_of_incomplete_class,
-                                 init_component_pos(args), class_type);
-          err = TRUE;
-        }  /* if */
-      } else if (!is_template_dependent_type(arg_type)) {
-        /* The operand must be a pointer-to-member. */
-        expr_pos_error(ec_expr_not_ptr_to_member, init_component_pos(args));
-        err = TRUE;
-      }  /* if */
-      if (!err) {
-        *arg_list = make_node_from_operand_for_expr_list(operand);
-        arg_list = &(*arg_list)->next;
-      }  /* if */
-    }  /* for */
-    if (!err) {
-      result = routine_from_function_operand(target);
-    }  /* if */
-  }  /* if */
-  return result;
-}  /* adjust_builtin_is_corresponding_member */
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
@@ -13508,16 +13387,28 @@ previously-scanned __builtin_addressof expression, and return the result in
 }  /* scan_builtin_addressof */
 
 
+/*
+Enumeration used when scanning various arguments to builtin operations.
+Describes the various argument types that can occur.
+*/
+enum a_builtin_arg_kind {
+  bak_none,       /* Used to indicate no argument. */
+  bak_type,       /* A type argument is expected. */
+  bak_any_expr,   /* An expression (possibly an lvalue) is expected. */
+  bak_prvalue     /* A prvalue expression is expected. */
+};
+
+
 static an_expr_node_ptr scan_builtin_operation_arg(
                                                a_rescan_control_block *rcblock,
-                                               an_il_entry_kind       arg_kind)
+                                               a_builtin_arg_kind     arg_kind)
 /*
 Scan a single argument of a constant-expression of the form
 	operation-name ( <comma-separated-list-of-arguments> )
-The argument kind should be iek_type if the argument is a type name,
-iek_constant if it is a constant-expression, or iek_expr_node if it is an
-arbitrary expression.  If rcblock is non-NULL, redo semantic analysis
-on a previously-scanned argument given by rcblock->argument_list.
+arg_kind specifies the kind of argument that is to be scanned (see the
+description of a_builtin_arg_kind for the various kinds).  If rcblock is
+non-NULL, redo semantic analysis on a previously-scanned argument given by
+rcblock->argument_list.
 */
 {
   an_expr_node_ptr  result = NULL;
@@ -13529,7 +13420,7 @@ on a previously-scanned argument given by rcblock->argument_list.
     add_stop_token(tok_comma);
   }  /* if */
   switch (arg_kind) {
-    case iek_type:
+    case bak_type:
       { a_type_ptr  type;
         if (rcblock != NULL) {
           /* Get the type by doing substitution on the previously-scanned
@@ -13551,7 +13442,8 @@ on a previously-scanned argument given by rcblock->argument_list.
         record_type_operand_position_for_rescan(result, &start_position);
       }
       break;
-    case iek_expr_node:
+    case bak_prvalue:
+    case bak_any_expr:
       { an_operand          operand;
         if (rcblock != NULL) {
           /* Expression case.  Rescan the operand. */
@@ -13562,12 +13454,13 @@ on a previously-scanned argument given by rcblock->argument_list.
           a_local_expr_options_set local_options = EOPT_NO_OPTIONS;
           scan_expr(&operand, PREC_PREFIX, local_options);
         }  /* if */
+        if (arg_kind == bak_prvalue) {
+          /* Transform into a prvalue. */
+          do_operand_transformations(&operand, TOPT_NO_OPTIONS);
+        }  /* if */
         result = make_node_from_operand(&operand);
       }
       break;
-    case iek_constant:
-      unexpected_condition_str(
-                            "unimplemented constant operation argument kind");
     default:
       unexpected_condition();
   }  /* switch */
@@ -13585,26 +13478,26 @@ static void scan_call_like_builtin_operation(
                                    a_rescan_control_block         *rcblock,
                                    a_builtin_operation_kind_tag   kind,
                                    a_type_ptr                     type,
-                                   an_il_entry_kind               arg1_kind,
-                                   an_il_entry_kind               arg2_kind,
+                                   a_builtin_arg_kind             arg1_kind,
+                                   a_builtin_arg_kind             arg2_kind,
                                    a_boolean                      arg2_repeats,
                                    an_operand                     *result)
 /*
-Scan a constant operation of the general form
+Scan an operation of the general form
 	operation-name ( <comma-separated-list-of-arguments> )
-with arguments described by arg1_kind and arg2_kind (argX_kind
-is iek_none if there is no corresponding parameter, iek_type if the
-argument should be a type name, iek_constant if it should be a constant-
-expression, and iek_expr_node if it can be any expression.).  An
-operation with one or more arguments is allowed if arg2_repeats is TRUE,
-in which case the first argument is described by arg1_kind, and
-arguments after that are described by arg2_kind.  Produce a constant
-operand of the given type in *result.  (Although an
-enk_builtin_operation node can represent a non-constant operation,
-this routine is only meant to handle the constant cases.)  If rcblock
-is non-NULL, redo semantic analysis on a previously-scanned builtin
-operation expression, and return the result in *result (or an error
-indication in *rcblock).
+with arguments described by arg1_kind and arg2_kind (and possibly others).  See
+the definition of a_builtin_arg_kind for valid values for arguments.  An
+operation with one or more arguments is allowed if arg2_repeats is TRUE, in
+which case the first argument is described by arg1_kind, and arguments after
+that are described by arg2_kind.  (An exception is made for
+bok_is_corresponding_member where a total of four arguments are scanned.)
+Typically, the result of the operation is folded into a constant operand of the
+given type in *result, but in certain cases (i.e., when the folding operation
+returns not_a_constant == TRUE), the operation will not be folded and the
+*result operation will contain an expression for the builtin call.  If rcblock
+is non-NULL, redo semantic analysis on a previously-scanned builtin operation
+expression, and return the result in *result (or an error indication in
+*rcblock).
 */
 {
   a_boolean          err = FALSE;
@@ -13636,88 +13529,96 @@ indication in *rcblock).
     (void)required_token(tok_lparen, ec_exp_lparen);
     add_matching_stop_token(tok_rparen);
   }  /* if */
-  if (arg1_kind != iek_none) {
-    arg1 = scan_builtin_operation_arg(rcblock, arg1_kind);
-    err |= (int)is_error_node(arg1);
-    if (arg2_kind != iek_none) {
-      if (arg2_repeats) {
-        /* A (possibly empty) list of arguments after the first. */
-        an_expr_node_ptr                 argn, last_arg = arg1;
-        a_boolean                        any_more;
-        an_expr_rescan_info_entry_ptr    eriep;
-        a_pack_expansion_descr_ptr       pedep;
-        a_pack_expansion_stack_entry_ptr pesep;
-        if (rcblock != NULL) {
-          /* Rescanning. */
-          an_expr_node_ptr arg_expr = rcblock->argument_list;
-          for (; arg_expr != NULL && !err; arg_expr = arg_expr->next) {
-            if (arg_expr->is_pack_expansion) {
-              eriep = get_expr_rescan_info(arg_expr,
-                                           (an_expr_rescan_info_entry *)NULL);
-              pedep = eriep->saved_operand.pack_expansion_descr;
-              check_assertion(pedep != NULL);
-              any_more = begin_rescan_pack_expansion_context(
-                                                 pedep,
-                                                 rcblock->template_param_list,
-                                                 rcblock->template_arg_list,
-                                                 &pesep, rcblock->options,
-                                                 rcblock->ctws_state, &err);
-              while (any_more) {
-                /* Rescan each member of the pack expansion. */
-                rcblock->argument_list = arg_expr;
-                argn = scan_builtin_operation_arg(rcblock, arg2_kind);
-                err |= (int)is_error_node(argn);
-                last_arg->next = argn;
-                last_arg = argn;
-                (void)end_potential_pack_expansion_context(
-                                                      pesep,
-                                                      /*is_declarator=*/FALSE);
-                any_more = advance_to_next_pack_element(pesep);
-              }  /* while */
-            } else {
-              /* Not a pack expansion.  Rescan one argument. */
-              argn = scan_builtin_operation_arg(rcblock, arg2_kind);
-              err |= (int)is_error_node(argn);
-              last_arg->next = argn;
-              last_arg = argn;
-            }  /* if */
-          }  /* while */
-        } else {
-          /* Scanning from source or a token cache. */
-          while (curr_token == tok_comma) {
-            (void)required_token(tok_comma, ec_exp_comma);
-            any_more = begin_potential_pack_expansion_context(&pesep);
+  check_assertion(arg1_kind != bak_none);
+  arg1 = scan_builtin_operation_arg(rcblock, arg1_kind);
+  err |= (int)is_error_node(arg1);
+  if (arg2_kind != bak_none) {
+    if (arg2_repeats) {
+      /* A (possibly empty) list of arguments after the first. */
+      an_expr_node_ptr                 argn, last_arg = arg1;
+      a_boolean                        any_more;
+      an_expr_rescan_info_entry_ptr    eriep;
+      a_pack_expansion_descr_ptr       pedep;
+      a_pack_expansion_stack_entry_ptr pesep;
+      if (rcblock != NULL) {
+        /* Rescanning. */
+        an_expr_node_ptr arg_expr = rcblock->argument_list;
+        for (; arg_expr != NULL && !err; arg_expr = arg_expr->next) {
+          if (arg_expr->is_pack_expansion) {
+            eriep = get_expr_rescan_info(arg_expr,
+                                         (an_expr_rescan_info_entry *)NULL);
+            pedep = eriep->saved_operand.pack_expansion_descr;
+            check_assertion(pedep != NULL);
+            any_more = begin_rescan_pack_expansion_context(
+                                               pedep,
+                                               rcblock->template_param_list,
+                                               rcblock->template_arg_list,
+                                               &pesep, rcblock->options,
+                                               rcblock->ctws_state, &err);
             while (any_more) {
+              /* Rescan each member of the pack expansion. */
+              rcblock->argument_list = arg_expr;
               argn = scan_builtin_operation_arg(rcblock, arg2_kind);
               err |= (int)is_error_node(argn);
               last_arg->next = argn;
               last_arg = argn;
-              pedep = end_potential_pack_expansion_context(
-                                                      pesep,
-                                                      /*is_declarator=*/FALSE);
-              if (pedep != NULL && !is_error_node(argn)) {
-                /* This element is a variadic template pack expansion, i.e.,
-                   it's followed by "...".  Furthermore, we're in the prototype
-                   instantiation, so we record the expansion information on the
-                   element. */
-                argn->is_pack_expansion = TRUE;
-                if (expr_stack->possible_rescan_context) {
-                  an_expr_rescan_info_entry_ptr
-                                        rescan_info = argn->extra.rescan_info;
-                  check_assertion(rescan_info != NULL);
-                  rescan_info->saved_operand.pack_expansion_descr = pedep;
-                }  /* if */
-              }  /* if */
+              (void)end_potential_pack_expansion_context(
+                                                    pesep,
+                                                    /*is_declarator=*/FALSE);
               any_more = advance_to_next_pack_element(pesep);
             }  /* while */
-          }  /* while */
-        }  /* if */
+          } else {
+            /* Not a pack expansion.  Rescan one argument. */
+            argn = scan_builtin_operation_arg(rcblock, arg2_kind);
+            err |= (int)is_error_node(argn);
+            last_arg->next = argn;
+            last_arg = argn;
+          }  /* if */
+        }  /* while */
       } else {
-        /* Two arguments, no repeat. */
+        /* Scanning from source or a token cache. */
+        while (curr_token == tok_comma) {
+          (void)required_token(tok_comma, ec_exp_comma);
+          any_more = begin_potential_pack_expansion_context(&pesep);
+          while (any_more) {
+            argn = scan_builtin_operation_arg(rcblock, arg2_kind);
+            err |= (int)is_error_node(argn);
+            last_arg->next = argn;
+            last_arg = argn;
+            pedep = end_potential_pack_expansion_context(
+                                                    pesep,
+                                                    /*is_declarator=*/FALSE);
+            if (pedep != NULL && !is_error_node(argn)) {
+              /* This element is a variadic template pack expansion, i.e.,
+                 it's followed by "...".  Furthermore, we're in the prototype
+                 instantiation, so we record the expansion information on the
+                 element. */
+              argn->is_pack_expansion = TRUE;
+              if (expr_stack->possible_rescan_context) {
+                an_expr_rescan_info_entry_ptr
+                                      rescan_info = argn->extra.rescan_info;
+                check_assertion(rescan_info != NULL);
+                rescan_info->saved_operand.pack_expansion_descr = pedep;
+              }  /* if */
+            }  /* if */
+            any_more = advance_to_next_pack_element(pesep);
+          }  /* while */
+        }  /* while */
+      }  /* if */
+    } else {
+      /* Two arguments, no repeat. */
+      if (rcblock == NULL) (void)required_token(tok_comma, ec_exp_comma);
+      arg2 = scan_builtin_operation_arg(rcblock, arg2_kind);
+      err |= (int)is_error_node(arg2);
+      arg1->next = arg2;
+      if (kind == bok_is_corresponding_member) {
+        /* Scan two additional expression arguments. */
         if (rcblock == NULL) (void)required_token(tok_comma, ec_exp_comma);
-        arg2 = scan_builtin_operation_arg(rcblock, arg2_kind);
-        err |= (int)is_error_node(arg2);
-        arg1->next = arg2;
+        arg2->next = scan_builtin_operation_arg(rcblock, bak_prvalue);
+        err |= (int)is_error_node(arg2->next);
+        if (rcblock == NULL) (void)required_token(tok_comma, ec_exp_comma);
+        arg2->next->next = scan_builtin_operation_arg(rcblock, bak_prvalue);
+        err |= (int)is_error_node(arg2->next->next);
       }  /* if */
     }  /* if */
   }  /* if */
@@ -13739,9 +13640,15 @@ indication in *rcblock).
                      expr, &result->variant.constant,
                      curr_expr_kind_is_one_in_which_const_exprs_are_recorded(),
                      &start_position, &not_a_constant);
-    check_assertion(!not_a_constant);
-    result->type = result->variant.constant.type;
-    result->state = (an_operand_state)os_prvalue;
+    if (!not_a_constant) {
+      /* Typical case: the result is a constant. */
+      result->type = result->variant.constant.type;
+      result->state = (an_operand_state)os_prvalue;
+    } else {
+      /* Couldn't coerce the builtin invocation into a constant, return the
+         builtin expression (it might be able to be interpreted later). */
+      make_expression_operand(expr, result);
+    }  /* if */
   } else {
     make_error_operand(result);
     if (rcblock != NULL) subst_fail(rcblock->error_detected);
@@ -13757,6 +13664,29 @@ indication in *rcblock).
   set_operand_position(result, &start_position, &end_position,
                        &start_position);
 }  /* scan_call_like_builtin_operation */
+
+
+static a_type_ptr type_traits_helper_check(a_builtin_operation_kind_tag kind)
+/*
+Issue an error if type traits helpers are not enabled.  Returns the
+result type for the operation.  kind specifies the builtin operation kind
+being checked (and is used only for the error message).
+*/
+{
+  a_type_ptr result;
+
+  if (!type_traits_helpers_enabled) {
+    /* Type traits helpers are not accepted in some modes. */
+    if (expr_error_should_be_issued()) {
+      pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
+                   builtin_operation_names[(int)kind]);
+    }  /* if */
+    result = boolean_result_type();
+  } else {
+    result = bool_type();
+  }  /* if */
+  return result;
+}  /* type_traits_helper_check */
 
 
 static void scan_is_constructible(a_builtin_operation_kind_tag kind,
@@ -13784,19 +13714,9 @@ expression, and return the result in *result (or an error indication in
 {
   a_type_ptr  result_type;
 
-  if (!type_traits_helpers_enabled) {
-    /* __is_constructible is not accepted in some modes. */
-    if (expr_error_should_be_issued()) {
-      check_assertion(rcblock == NULL);
-      pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
-                   builtin_operation_names[(int)kind]);
-    }  /* if */
-    result_type = boolean_result_type();
-  } else {
-    result_type = bool_type();
-  }  /* if */
+  result_type = type_traits_helper_check(kind);
   scan_call_like_builtin_operation(rcblock, kind, result_type,
-                                   iek_type, iek_type, /*arg2_repeats=*/TRUE,
+                                   bak_type, bak_type, /*arg2_repeats=*/TRUE,
                                    result);
   if (!type_traits_helpers_enabled) {
     /* Turn the operand into an error operand to avoid any surprises later
@@ -13831,19 +13751,9 @@ expression, and return the result in *result (or an error indication in
 {
   a_type_ptr  result_type;
 
-  if (!type_traits_helpers_enabled) {
-    /* Type traits helpers are not accepted in some modes. */
-    if (expr_error_should_be_issued()) {
-      check_assertion(rcblock == NULL);
-      pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
-                   builtin_operation_names[(int)kind]);
-    }  /* if */
-    result_type = boolean_result_type();
-  } else {
-    result_type = bool_type();
-  }  /* if */
+  result_type = type_traits_helper_check(kind);
   scan_call_like_builtin_operation(rcblock, kind, result_type,
-                                   iek_type, iek_none, /*arg2_repeats=*/FALSE,
+                                   bak_type, bak_none, /*arg2_repeats=*/FALSE,
                                    result);
   if (!type_traits_helpers_enabled) {
     /* Turn the operand into an error operand to avoid any surprises later
@@ -13864,19 +13774,9 @@ where T denotes a type.
 {
   a_type_ptr  result_type;
 
-  if (!type_traits_helpers_enabled) {
-    /* Type traits helpers are not accepted in some modes. */
-    if (expr_error_should_be_issued()) {
-      check_assertion(rcblock == NULL);
-      pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
-                   builtin_operation_names[(int)kind]);
-    }  /* if */
-    result_type = boolean_result_type();
-  } else {
-    result_type = bool_type();
-  }  /* if */
+  result_type = type_traits_helper_check(kind);
   scan_call_like_builtin_operation(rcblock, kind, result_type,
-                                   iek_type, iek_none, /*arg2_repeats=*/FALSE,
+                                   bak_type, bak_none, /*arg2_repeats=*/FALSE,
                                    result);
   if (!type_traits_helpers_enabled) {
     /* Turn the operand into an error operand to avoid any surprises later
@@ -13908,19 +13808,9 @@ return the result in *result (or an error indication in *rcblock).
 {
   a_type_ptr  result_type;
 
-  if (!type_traits_helpers_enabled) {
-    /* Type traits helpers are not accepted in some modes. */
-    if (expr_error_should_be_issued()) {
-      check_assertion(rcblock == NULL);
-      pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
-                   builtin_operation_names[(int)kind]);
-    }  /* if */
-    result_type = boolean_result_type();
-  } else {
-    result_type = bool_type();
-  }  /* if */
+  result_type = type_traits_helper_check(kind);
   scan_call_like_builtin_operation(rcblock, kind, result_type,
-                                   iek_type, iek_type, /*arg2_repeats=*/FALSE,
+                                   bak_type, bak_type, /*arg2_repeats=*/FALSE,
                                    result);
   if (!type_traits_helpers_enabled) {
     /* Turn the operand into an error operand to avoid any surprises later
@@ -13969,29 +13859,22 @@ previously-scanned construct of this kind.  Either way, return the result in
       case tok_reference_binds_to_temporary:
         bok = bok_reference_binds_to_temporary;
         break;
-      case tok_builtin_is_layout_compatible:
-        bok = bok_builtin_is_layout_compatible;
+      case tok_is_layout_compatible:
+        bok = bok_is_layout_compatible;
         break;
-      case tok_builtin_is_pointer_interconvertible_base_of:
-        bok = bok_builtin_is_pointer_interconvertible_base_of;
+      case tok_is_pointer_interconvertible_base_of:
+        bok = bok_is_pointer_interconvertible_base_of;
+        break;
+      case tok_is_pointer_interconvertible_with_class:
+        bok = bok_is_pointer_interconvertible_with_class;
         break;
       default:
         unexpected_condition();
     }  /* switch */
   }  /* if */
-  if (!type_traits_helpers_enabled) {
-    /* Type traits helpers are not accepted in some modes. */
-    if (expr_error_should_be_issued()) {
-      check_assertion(rcblock == NULL);
-      pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
-                   builtin_operation_names[(int)bok]);
-    }  /* if */
-    result_type = boolean_result_type();
-  } else {
-    result_type = bool_type();
-  }  /* if */
+  result_type = type_traits_helper_check(bok);
   scan_call_like_builtin_operation(rcblock, bok, result_type,
-                                   iek_type, iek_type, /*arg2_repeats=*/FALSE,
+                                   bak_type, bak_type, /*arg2_repeats=*/FALSE,
                                    result);
   if (!type_traits_helpers_enabled) {
     /* Turn the operand into an error operand to avoid any surprises later
@@ -13999,6 +13882,81 @@ previously-scanned construct of this kind.  Either way, return the result in
     conv_to_error_operand(result);
   }  /* if */
 }  /* scan_binary_type_trait_helper */
+
+
+static void scan_is_pointer_interconvertible_with_class(
+                                               a_rescan_control_block *rcblock,
+                                               an_operand             *result)
+/*
+Scan a call to __is_pointer_interconvertible_with_class:
+
+  __is_pointer_interconvertible_with_class( <type>,  <ptr-to-member> )
+
+Note that the operation may not be able to be folded here (e.g., because
+the second argument is a variable and not a constant).  In that case, the
+interpreter may be able to "fold" the expression later.
+*/
+{
+  a_type_ptr                    result_type;
+
+  if (rcblock != NULL) {
+    an_expr_node_ptr expr = rcblock->expr;
+    check_assertion(expr != NULL &&
+                    expr->kind == (an_expr_node_kind)enk_builtin_operation);
+  } else {
+    check_assertion(curr_token == tok_is_pointer_interconvertible_with_class);
+  }  /* if */
+  result_type = type_traits_helper_check(
+                                   bok_is_pointer_interconvertible_with_class);
+  scan_call_like_builtin_operation(rcblock,
+                                   bok_is_pointer_interconvertible_with_class,
+                                   result_type, bak_type, bak_prvalue,
+                                   /*arg2_repeats=*/FALSE, result);
+  if (!type_traits_helpers_enabled) {
+    /* Turn the operand into an error operand to avoid any surprises later
+       on. */
+    conv_to_error_operand(result);
+  }  /* if */
+}  /* scan_is_pointer_interconvertible_with_class */
+
+
+static void scan_is_corresponding_member(a_rescan_control_block *rcblock,
+                                         an_operand             *result)
+/*
+Scan a call to __is_corresponding_member:
+
+  __is_corresponding_member( <type1>,  <type2>, <ptr-to-mbr1>, <ptr-to_mbr2> )
+
+Note that the operation may not be able to be folded here (e.g., because
+the second or third argument is a variable and not a constant).  In that case,
+the interpreter may be able to "fold" the expression later.
+*/
+{
+  a_type_ptr                    result_type;
+
+  if (rcblock != NULL) {
+    an_expr_node_ptr expr = rcblock->expr;
+    check_assertion(expr != NULL &&
+                    expr->kind == (an_expr_node_kind)enk_builtin_operation &&
+                    expr->variant.builtin_operation.kind ==
+                        (a_builtin_operation_kind)bok_is_corresponding_member);
+  } else {
+    check_assertion(curr_token == tok_is_corresponding_member);
+  }  /* if */
+  result_type = type_traits_helper_check(bok_is_corresponding_member);
+  /* Note that this builtin takes four arguments and there is special code in
+     scan_call_like_builtin_operation to handle the third and fourth
+     arguments. */
+  scan_call_like_builtin_operation(rcblock,
+                                   bok_is_corresponding_member,
+                                   result_type, bak_type, bak_type,
+                                   /*arg2_repeats=*/FALSE, result);
+  if (!type_traits_helpers_enabled) {
+    /* Turn the operand into an error operand to avoid any surprises later
+       on. */
+    conv_to_error_operand(result);
+  }  /* if */
+}  /* scan_is_corresponding_member */
 
 
 static void scan_array_type_trait_helper(a_rescan_control_block *rcblock,
@@ -14032,19 +13990,12 @@ in *result (or an error indication in *rcblock).
       bok = bok_array_extent;
     }  /* if */
   }  /* if */
-  if (!type_traits_helpers_enabled) {
-    /* Type traits helpers are not accepted in some modes. */
-    if (expr_error_should_be_issued()) {
-      check_assertion(rcblock == NULL);
-      pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
-                   builtin_operation_names[(int)bok]);
-    }  /* if */
-  }  /* if */
+  (void)type_traits_helper_check(bok);
   scan_call_like_builtin_operation(rcblock, bok, 
                                    integer_type(targ_size_t_int_kind),
-                                   iek_type,
-                                   bok == bok_array_rank ? iek_none :
-                                                           iek_expr_node,
+                                   bak_type,
+                                   bok == bok_array_rank ? bak_none :
+                                                           bak_any_expr,
                                    /*arg2_repeats=*/FALSE,
                                    result);
   if (!type_traits_helpers_enabled) {
@@ -14168,19 +14119,9 @@ indication in *rcblock).
         unexpected_condition();
     }  /* switch */
   }  /* if */
-  if (!type_traits_helpers_enabled) {
-    /* These pseudo-functions are not accepted in this mode. */
-    if (expr_error_should_be_issued()) {
-      check_assertion(rcblock == NULL);
-      pos_st_error(ec_feature_not_allowed_in_current_mode, &pos_curr_token,
-                   builtin_operation_names[(int)bok]);
-    }  /* if */
-    result_type = boolean_result_type();
-  } else {
-    result_type = bool_type();
-  }  /* if */
+  result_type = type_traits_helper_check(bok);
   scan_call_like_builtin_operation(rcblock, bok, result_type,
-                                   iek_type, iek_none, /*arg2_repeats=*/FALSE,
+                                   bak_type, bak_none, /*arg2_repeats=*/FALSE,
                                    result);
   if (!type_traits_helpers_enabled) {
     /* Turn the operand into an error operand to avoid any surprises later
@@ -14212,7 +14153,7 @@ is returned through *result.
   }  /* if */
   scan_call_like_builtin_operation((a_rescan_control_block *)NULL,
                                    bok_types_compatible, result_type,
-                                   iek_type, iek_type, /*arg2_repeats=*/FALSE,
+                                   bak_type, bak_type, /*arg2_repeats=*/FALSE,
                                    result);
   if (!C_mode()) {
     /* Turn the operand into an error operand to avoid any surprises later
@@ -33588,9 +33529,11 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_is_same_as:
     case tok_builtin_has_attribute:
     case tok_builtin_bit_cast:
-    case tok_builtin_is_layout_compatible:
-    case tok_builtin_is_pointer_interconvertible_base_of:
     case tok_builtin_addressof:
+    case tok_is_layout_compatible:
+    case tok_is_pointer_interconvertible_base_of:
+    case tok_is_pointer_interconvertible_with_class:
+    case tok_is_corresponding_member:
     case tok_requires:
     case tok_array_rank:
     case tok_array_extent:
@@ -39599,11 +39542,22 @@ handle_identifier:
     case tok_is_base_of:
     case tok_is_convertible_to:
     case tok_reference_binds_to_temporary:
-    case tok_builtin_is_layout_compatible:
-    case tok_builtin_is_pointer_interconvertible_base_of:
+    case tok_is_layout_compatible:
+    case tok_is_pointer_interconvertible_base_of:
       /* Various binary type traits helper constructs: */
       scan_binary_type_trait_helper((a_rescan_control_block *)NULL,
                                     &local_result);
+      break;
+
+    case tok_is_pointer_interconvertible_with_class:
+      scan_is_pointer_interconvertible_with_class(
+                                                (a_rescan_control_block *)NULL,
+                                                &local_result);
+      break;
+
+    case tok_is_corresponding_member:
+      scan_is_corresponding_member((a_rescan_control_block *)NULL,
+                                   &local_result);
       break;
 
     case tok_array_rank:
@@ -47778,11 +47732,17 @@ TRUE if the operator is a unary operator, FALSE otherwise.
     case bok_reference_binds_to_temporary:
       operator_token = tok_reference_binds_to_temporary;
       break;
-    case bok_builtin_is_layout_compatible:
-      operator_token = tok_builtin_is_layout_compatible;
+    case bok_is_layout_compatible:
+      operator_token = tok_is_layout_compatible;
       break;
-    case bok_builtin_is_pointer_interconvertible_base_of:
-      operator_token = tok_builtin_is_pointer_interconvertible_base_of;
+    case bok_is_pointer_interconvertible_base_of:
+      operator_token = tok_is_pointer_interconvertible_base_of;
+      break;
+    case bok_is_pointer_interconvertible_with_class:
+      operator_token = tok_is_pointer_interconvertible_with_class;
+      break;
+    case bok_is_corresponding_member:
+      operator_token = tok_is_corresponding_member;
       break;
     case bok_builtin_has_attribute:
       operator_token = tok_builtin_has_attribute;
@@ -48666,9 +48626,15 @@ a enclosing expression).
       case tok_is_base_of:
       case tok_is_convertible_to:
       case tok_reference_binds_to_temporary:
-      case tok_builtin_is_layout_compatible:
-      case tok_builtin_is_pointer_interconvertible_base_of:
+      case tok_is_layout_compatible:
+      case tok_is_pointer_interconvertible_base_of:
         scan_binary_type_trait_helper(rcblock, result);
+        break;
+      case tok_is_pointer_interconvertible_with_class:
+        scan_is_pointer_interconvertible_with_class(rcblock, result);
+        break;
+      case tok_is_corresponding_member:
+        scan_is_corresponding_member(rcblock, result);
         break;
       case tok_intaddr:
         scan_intaddr_operator(rcblock, result);
