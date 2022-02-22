@@ -1,5 +1,17 @@
 Version 6.4
 
+2/22/22  [EDGcpfe/25101]
+Instantiation of variable templates initialized with requires-expressions
+
+Consider:
+
+  template<typename T> bool x = requires { typename T::X; };
+  auto z = x<int>;  // Previously a spurious syntax error.  Now okay.
+
+Previously, the instantiation of x<int> triggered a spurious syntax error about
+a missing semicolon.  That is now fixed.
+
+
 2/22/22  [EDGcpfe/25097]
 Spurious error with default concept arguments
 

@@ -38363,6 +38363,8 @@ Record the representation or the requires-expression in *result.
     } else {
       an_expr_node  *node = alloc_expr_node((an_expr_node_kind)enk_requires),
                     **p_last_req = &node->variant.requires_expr.requirements;
+      a_token_sequence_number
+                    rbrace_tsn;
       node->variant.requires_expr.parameters = params;
       if (curr_token == tok_rbrace) {
         expr_pos_diagnostic(es_discretionary_error,
@@ -38398,8 +38400,9 @@ done_with_requirements:
       node->type = bool_type();
       node->position = start_pos;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
-      curr_construct_end_position = pos_curr_token;
+      curr_construct_end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
+      rbrace_tsn = curr_token_sequence_number;
       (void)required_token(tok_rbrace, ec_exp_rbrace, ec_matching_lbrace,
                            &lbrace_pos);
       if (!is_template_dependent_context() &&
@@ -38419,10 +38422,14 @@ done_with_requirements:
       }  /*if */
       if (scope_stack[depth_scope_stack].in_prototype_instantiation) {
         /* Associate with the token sequence number of the "requires" token
-           the sequence number of the token following the requires expression.
-           This is used to skip the clause in instantiations (see the
-           token-skipping loop below). */
-        rrd.next_tsn = curr_token_sequence_number;
+           the sequence number of the right brace closing the requires
+           expression and with the generic requires-expression node.  The
+           token sequence number is used to skip the clause in instantiations
+           (see the token-skipping loop below): Note that we cannot use the
+           next token's sequence number (even if that would otherwise be
+           slightly more convenient) because there might not be a next token
+           (e.g., when rescanning a variable template initializer). */
+        rrd.next_tsn = rbrace_tsn;
         rrd.requires_expr = node;
         (void)requires_ranges->map_or_replace(requires_tsn, rrd);
       }  /* if */
@@ -38444,10 +38451,10 @@ done_with_requirements:
        with template parameters mapped to real arguments), we substitute it. */
     check_assertion(rrd.next_tsn != a_token_sequence_number() &&
                     is_nonspecialized_instantiation_context());
-    while (curr_token_sequence_number < rrd.next_tsn &&
-           curr_token != tok_end_of_source) {
+    do {
       (void)get_token();
-    }  /* while */
+    } while (curr_token_sequence_number <= rrd.next_tsn &&
+             curr_token != tok_end_of_source);
     if (is_prototype_instantiation_context() ||
         is_alias_in_template_decl_context() ||
         (scope_stack_top().in_nonreal_instantiation &&
