@@ -1,6 +1,6 @@
 Version 6.4
 
-2/22/22  [EDGcpfe/25071]
+2/22/22  [EDGcpfe/25097]
 Spurious error with default concept arguments
 
 The front end previously ignored default concept arguments in some situations,
