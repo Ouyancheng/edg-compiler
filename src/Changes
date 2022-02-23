@@ -1,5 +1,20 @@
 Version 6.4
 
+2/22/22  [EDGcpfe/25102]
+Placeholder constraints and structured bindings
+
+The front end previously failed to check placeholder constraints on a
+structured binding declaration initialized with an array.  For example:
+
+  template<typename T> concept C = sizeof(T) > sizeof(int[1]);
+  void g() {
+    int x[] = { 42 };
+    C auto [e] = x;   // Previously accepted.  Now an error.
+  }
+
+That is now fixed.
+
+
 2/22/22  [EDGcpfe/23851,EDGcpfe/24514,EDGcpfe/25002,EDGcpfe/25070]
 Microsoft compatibility: layout builtins
 

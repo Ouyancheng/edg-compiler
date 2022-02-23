@@ -903,7 +903,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
     }  /* if */
     if (dps->is_struct_binding_decl &&
         icp != NULL && is_expression_component(icp) &&
-        dps->type->kind != (a_type_kind)tk_pointer &&
+        !type_is(dps->type, tk_pointer) &&
         is_array_type(operand_of_arg_list_elem(icp)->type)) {
       /* For a declaration like "auto [x, y] = array;" where there is no
          ref-qualifier (i.e., no "&" or "&&" preceding the "["), the type
@@ -915,6 +915,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
       tp = make_qualified_type(tp, tqs);
       dps->type = tp;
       dps->specifiers_type = tp;
+      check_deduced_auto_type(dps);
     } else if (!deduce_placeholder_type(dps->decltype_auto_specifier_seen,
                                         dps->has_deducible_class_templ_args,
                                         (dps->has_direct_initializer ||
@@ -954,7 +955,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
     } else {
       /* Deduction succeeded. */
       if (dps->deduced_auto_type != NULL &&
-          dps->deduced_auto_type->kind != (a_type_kind)tk_unknown &&
+          !type_is(dps->deduced_auto_type, tk_unknown) &&
           !identical_types(dps->deduced_auto_type, deduced_auto_type)) {
         /* This is a declaration with multiple declarators and the type deduced
            for a previous declarator is not consistent with the current
