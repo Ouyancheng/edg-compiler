@@ -2270,7 +2270,7 @@ interpreter value at targ_addr (or a null pointer).
 static inline void set_active_address(an_interpreter_state  *ips,
                                       a_constexpr_address   *addr,
                                       a_byte                *value,
-                                      a_byte                *compl_obj = NULL)
+                                      a_byte                *compl_obj)
 /*
 Set the given interpreter address to point to value, with the current state's
 active allocation sequence number.  compl_obj is the address of the associated
