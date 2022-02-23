@@ -13900,6 +13900,7 @@ interpreter may be able to "fold" the expression later.
 {
   a_type_ptr                    result_type;
 
+#if CHECKING
   if (rcblock != NULL) {
     an_expr_node_ptr expr = rcblock->expr;
     check_assertion(expr != NULL &&
@@ -13907,6 +13908,7 @@ interpreter may be able to "fold" the expression later.
   } else {
     check_assertion(curr_token == tok_is_pointer_interconvertible_with_class);
   }  /* if */
+#endif /* CHECKING */
   result_type = type_traits_helper_check(
                                    bok_is_pointer_interconvertible_with_class);
   scan_call_like_builtin_operation(rcblock,
@@ -13935,6 +13937,7 @@ the interpreter may be able to "fold" the expression later.
 {
   a_type_ptr                    result_type;
 
+#if CHECKING
   if (rcblock != NULL) {
     an_expr_node_ptr expr = rcblock->expr;
     check_assertion(expr != NULL &&
@@ -13944,6 +13947,7 @@ the interpreter may be able to "fold" the expression later.
   } else {
     check_assertion(curr_token == tok_is_corresponding_member);
   }  /* if */
+#endif /* CHECKING */
   result_type = type_traits_helper_check(bok_is_corresponding_member);
   /* Note that this builtin takes four arguments and there is special code in
      scan_call_like_builtin_operation to handle the third and fourth
