@@ -14877,7 +14877,7 @@ Lower a call to __is_corresponding_member.
 */
 {
   a_type_ptr       class_type1, class_type2;
-  an_expr_node_ptr args = expr->variant.operation.operands;
+  an_expr_node_ptr args = expr->variant.builtin_operation.operands;
   check_assertion(args != NULL &&
                   args->next != NULL &&
                   args->next->next != NULL &&
@@ -14953,7 +14953,7 @@ static void lower_is_pointer_interconvertible_with_class(an_expr_node_ptr expr)
 Lower a call to __is_pointer_interconvertible_with_class.
 */
 {
-  an_expr_node_ptr args = expr->variant.operation.operands;
+  an_expr_node_ptr args = expr->variant.builtin_operation.operands;
   check_assertion(args != NULL &&
                   args->next != NULL &&
                   args->next->next == NULL &&
