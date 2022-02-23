@@ -19,14 +19,11 @@ That is now fixed.
 Microsoft compatibility: layout builtins
 
 The builtins originally introduced by the changes for EDGcpfe/22295 have
-been re-worked.
-
-Specifically:
-- __builtin_is_pointer_interconvertible_base_of and
-  __builtin_is_layout_compatible have been removed.
-- In Microsoft mode, the following builtins have been added:
-  __is_layout_compatible, __is_pointer_interconvertible_base_of,
-  __is_pointer_interconvertible_with_class, and __is_corresponding_member.
+been re-worked.  The __builtin_is_pointer_interconvertible_base_of and
+__builtin_is_layout_compatible builtins have been removed.  In Microsoft mode,
+the following builtins have been added: __is_layout_compatible,
+__is_pointer_interconvertible_base_of, __is_corresponding_member, and
+__is_pointer_interconvertible_with_class.
 
 
 2/22/22  [EDGcpfe/25101]
