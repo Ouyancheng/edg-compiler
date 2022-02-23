@@ -34,6 +34,7 @@ for a production version.
 #include <float.h>
 #if USE_HOST_FP_CONVERSION_ROUTINES
 #include <errno.h>
+#include <math.h>
 #endif /* USE_HOST_FP_CONVERSION_ROUTINES */
 
 #if USE_QUADMATH_LIBRARY
