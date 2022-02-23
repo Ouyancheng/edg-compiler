@@ -14124,7 +14124,7 @@ a_template_arg_ptr copy_template_arg_list_with_substitution(
 			a_ctws_state_ptr	ctws_state)
 /*
 Copy the template argument list arg_list_to_copy, and return a pointer to the
- copy.  In the process of copying, replace any template parameters with the
+copy.  In the process of copying, replace any template parameters with the
 corresponding values from the template argument list templ_arg_list.
 templ_param_list is the template parameter list for which templ_arg_list is an
 argument list.  templ_arg_list and templ_param_list can be NULL if no actual
