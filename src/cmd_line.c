@@ -2309,6 +2309,8 @@ static a_flag_name
   { "null_template_ptr_arg_enabled", &null_template_ptr_arg_enabled },
   { "skip_module_imports", &skip_module_imports },
   { "skip_module_version_check", &skip_module_version_check },
+  { "elevate_module_unsupported_severity",
+    &elevate_module_unsupported_severity },
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   { "skip_il_read", &skip_il_read },
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
@@ -12863,6 +12865,7 @@ variables declared in cmd_line.h.
   lazy_symbols_may_be_visible = FALSE;
   skip_module_imports = FALSE;
   skip_module_version_check = FALSE;
+  elevate_module_unsupported_severity = FALSE;
   gnu_imaginary_literals_allowed = FALSE;
 #if UNICODE_VULNERABILITY_DETECTION_SUPPORTED
   check_unicode_security = FALSE;
