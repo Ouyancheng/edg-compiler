@@ -3971,6 +3971,7 @@ executable file.
         } else {
           /* Create a constant for the IL entry. */
           a_memory_region_number region_to_switch_back_to;
+          (void)do_expression_level_string_literal_concatenation();
           switch_to_file_scope_region(&region_to_switch_back_to);
           cp = alloc_unshared_constant(&const_for_curr_token);
           switch_back_to_original_region(region_to_switch_back_to);

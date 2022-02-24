@@ -1146,6 +1146,8 @@ extern void prescan_parenthesized_mem_init_expr(
 extern a_const_char *get_string_for_function_name(a_token_kind token,
                                                   a_boolean    include_quote);
 
+extern a_boolean do_expression_level_string_literal_concatenation(void);
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 

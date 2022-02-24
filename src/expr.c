@@ -36979,7 +36979,7 @@ rather than a static variable.
 }  /* token_is_function_name_string_literal */
 
 
-static a_boolean do_expression_level_string_literal_concatenation(void)
+a_boolean do_expression_level_string_literal_concatenation(void)
 /*
 The current token is a string literal and the current context is
 expression-like.  Check whether the string literal is followed
