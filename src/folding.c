@@ -9468,9 +9468,10 @@ expression for the returned constant will be set as well.
         result = TRUE;
       } else {
         /* Pointer-interconvertibility is characterized by a zero offset in
-           this case. */
+           this case (when the derived class has standard layout). */
         a_base_class  *bcp = find_base_class_of(type2, type1);
         if (bcp != NULL && !bcp->ambiguous && !bcp->is_virtual &&
+            symbol_supplement_for_class(type2)->standard_layout &&
             bcp->offset == 0) {
           result = TRUE;
         }  /* if */
