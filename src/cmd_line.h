@@ -881,11 +881,6 @@ EXTERN a_boolean
 			   that it is a supported version. */
 
 EXTERN a_boolean
-		elevate_module_unsupported_severity;
-			/* TRUE when the front end should increase the severity
-			   of unsupported construct diagnostics in modules. */
-
-EXTERN a_boolean
 		vla_enabled;
 			/* TRUE if support for variable length arrays (VLAs)
 			   is enabled.  Controlled by command-line options

@@ -1404,10 +1404,6 @@ with the diagnostic.
                       ec_module_file_contains_unsupported_constructs,
                       &null_source_position, assoc_module_info->name);
     unhandled_node_diag_issued = TRUE;
-    /* We only need to check and set this once. */
-    if (elevate_module_unsupported_severity) {
-      unhandled_ifc_node_severity = es_warning;
-    }  /* if */
   }  /* if */
   pos_st_diagnostic(unhandled_ifc_node_severity, ec_unhandled_ifc_construct,
                     pos, node);
