@@ -13486,12 +13486,15 @@ static void scan_call_like_builtin_operation(
 /*
 Scan an operation of the general form
 	operation-name ( <comma-separated-list-of-arguments> )
-with arguments described by arg1_kind and arg2_kind (and possibly others).  See
-the definition of a_builtin_arg_kind for valid values for arguments.  An
-operation with one or more arguments is allowed if arg2_repeats is TRUE, in
-which case the first argument is described by arg1_kind, and arguments after
-that are described by arg2_kind.  (An exception is made for
-bok_is_corresponding_member where a total of four arguments are scanned.)
+with one or more arguments as described by arg1_kind and arg2_kind.  See
+the definition of a_builtin_arg_kind for valid values for arguments.  arg1_kind
+(which cannot be bak_none) describes the first argument to be scanned.
+arg2_kind (which may be bak_none) describes the second argument to be scanned.
+If arg2_repeats is TRUE, additional arguments (as described by arg2_kind) are
+scanned until a closing parenthesis is found.  An exception is made for
+bok_is_corresponding_member where a total of four arguments are scanned (the
+third and fourth arguments are scanned as bak_prvalues).
+
 Typically, the result of the operation is folded into a constant operand of the
 given type in *result, but in certain cases (i.e., when the folding operation
 returns not_a_constant == TRUE), the operation will not be folded and the
@@ -13550,12 +13553,11 @@ expression, and return the result in *result (or an error indication in
                                          (an_expr_rescan_info_entry *)NULL);
             pedep = eriep->saved_operand.pack_expansion_descr;
             check_assertion(pedep != NULL);
-            any_more = begin_rescan_pack_expansion_context(
-                                               pedep,
-                                               rcblock->template_param_list,
-                                               rcblock->template_arg_list,
-                                               &pesep, rcblock->options,
-                                               rcblock->ctws_state, &err);
+            any_more = begin_rescan_pack_expansion_context(pedep,
+                                                  rcblock->template_param_list,
+                                                  rcblock->template_arg_list,
+                                                  &pesep, rcblock->options,
+                                                  rcblock->ctws_state, &err);
             while (any_more) {
               /* Rescan each member of the pack expansion. */
               rcblock->argument_list = arg_expr;
@@ -13931,7 +13933,7 @@ Scan a call to __is_corresponding_member:
   __is_corresponding_member( <type1>,  <type2>, <ptr-to-mbr1>, <ptr-to_mbr2> )
 
 Note that the operation may not be able to be folded here (e.g., because
-the second or third argument is a variable and not a constant).  In that case,
+the third or fourth argument is a variable and not a constant).  In that case,
 the interpreter may be able to "fold" the expression later.
 */
 {
