@@ -1632,18 +1632,13 @@ infinite recursion.
   if (type->variant.typeref.is_template_alias) {
     /* Check that the target type does not appear in the template arguments
        of the alias template instance. */
-    ttt_flags = TTT_TEMPLATE_ARGS | TTT_STOP_AT_TYPEDEFS;
+    ttt_flags = TTT_TEMPLATE_ARGS;
     has_circularity = traverse_type_tree(type, ttt_check_type_match,
                                          ttt_flags);
   }  /* if */
   if (!has_circularity && type->source_corresp.is_class_member) {
     a_type_ptr parent_class = parent_class_of(type);
-    ttt_flags = (TTT_TEMPLATE_ARGS | TTT_SKIP_TYPEREFS | TTT_PARENT_CLASSES);
-    /* We skip typerefs in the comparison to allow for cv-qualification.
-       That results in a more conservative approach than is absolutely
-       necessary, as a given template argument might be an accessible
-       typedef instead of its inaccessible target type, but it's better to
-       be safe than sorry. */
+    ttt_flags = (TTT_TEMPLATE_ARGS | TTT_PARENT_CLASSES);
     has_circularity = traverse_type_tree(parent_class, ttt_check_type_match,
                                          ttt_flags);
   }  /* if */

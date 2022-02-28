@@ -1,5 +1,28 @@
 Version 6.4
 
+2/28/22  [EDGcpfe/25091,EDGcpfe/25098]
+C++-generating back end: unbounded recursion with alias template
+
+In certain complex cases, the C++-generating back end could overflow the
+call stack with an unbounded recursion when generating code involving an
+alias template.  This is now fixed.  For example:
+
+  template<typename T> using A = T;
+  template<typename T> A<T> f(T);
+  struct B {
+    void g() { f(c.d); }
+  private:
+    struct C {
+      struct D { } d;
+    } c;
+    friend struct E;
+  };
+  struct E {
+    using T = B::C::D;  // Previously caused unbounded recursion involving
+                        // A<B::C::D>
+  };
+
+
 2/24/22  [EDGcpfe/25059]
 Microsoft compatibility: string literal concatenation in comment _Pragma
 
