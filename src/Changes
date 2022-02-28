@@ -40,7 +40,7 @@ previously resulted in an error expecting a ")" at the __FUNCTION__ token
 but now is accepted and is equivalent to
 
   void foo() {
-    _Pragma("comment(linker, \"/EXPORT:foo=_Z3foov)")
+    _Pragma("comment(linker, \"/EXPORT:foo=_Z3foov\")")
   }
 
 
