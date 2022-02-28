@@ -7647,12 +7647,19 @@ it is an external definition).
 #endif /* !GENERATE_EH_TABLES */
       /* Do not insert code here. */
       {
-        /* This is an externally-linked variable that has been defined, or
-           it is a variable local to this translation unit but with
-           dynamic initialization, in which case it is treated as "needed"
-           because the initialization may have side effects.  Mark it as
-           needed now. */
-        is_needed = TRUE;
+        if (var->is_inline && var->is_constexpr) {
+          /* The definition of an inline constexpr variable is only needed
+             if it is odr-used.  If only its value is used in this
+             translation unit, it is not needed here. */
+        } else {
+          /* This is an externally-linked non-inline variable that has been
+             defined in this translation unit, or it is a variable local to
+             this translation unit but with dynamic initialization, in
+             which case it is treated as "needed" because the
+             initialization may have side effects.  Mark it as needed
+             now. */
+          is_needed = TRUE;
+        }  /* if */
       }  /* if */
 #if GNU_EXTENSIONS_ALLOWED || MICROSOFT_EXTENSIONS_ALLOWED
     } else if (var->section != NULL) {

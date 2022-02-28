@@ -1,5 +1,24 @@
 Version 6.4
 
+2/28/22  [EDGcpfe/22304]
+"needed" flag for inline constexpr variables
+
+The definition of an inline constexpr variable is not needed in a
+translation unit that uses only its value.  In configurations with
+MAINTAIN_NEEDED_FLAGS set to TRUE, however, the front end previously
+unconditionally set the "needed" flag for inline constexpr variables,
+regardless of whether the definition is required in the current translation
+unit or not.  A change has been made so that the "needed" flag is set only
+if the definition is required.  For example, with --c++17:
+
+  struct S {
+    static constexpr bool b = false;  // Implicitly inline
+  };
+  bool f() {
+    return S::b;  // Uses only the value, does not make S::b "needed"
+  }
+
+
 2/28/22  [EDGcpfe/25091,EDGcpfe/25098]
 C++-generating back end: unbounded recursion with alias template
 
