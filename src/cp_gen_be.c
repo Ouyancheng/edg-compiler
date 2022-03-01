@@ -1582,6 +1582,18 @@ exclude dependent bases from unqualified name lookup.
   return member_of_curr_instantiation;
 }  /* entity_is_member_of_current_instantiation */
 
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+static int	traversal_size;
+			/* Counter of the number of type entries visited
+			   during the type tree traversal.  When generated
+			   instances are included in the IL, complex
+			   template use can make it impractical to scan for
+			   actual circularities, so we place an arbitrary
+			   limit on the size of the type tree and assume we
+			   shouldn't create uses of typedefs that are more
+			   complex than that limit. */
+#define MAX_TYPE_TRAVERSAL 4000
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
 static a_type_ptr
 		type_to_match;
@@ -1598,6 +1610,14 @@ target_type_has_circularity.  If type matches type_to_match, it sets
 */
 {
   a_boolean found_match = FALSE;
+
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  if (++traversal_size > MAX_TYPE_TRAVERSAL) {
+    found_match = TRUE;
+    *end_traversal = TRUE;
+  } else
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
+  /* Do not insert code here. */
   if (standalone_identical_types(type, type_to_match)) {
     found_match = TRUE;
     *end_traversal = TRUE;
@@ -1628,6 +1648,9 @@ infinite recursion.
   a_type_tree_traversal_flag_set ttt_flags;
 
   check_assertion(type->kind == (a_type_kind)tk_typeref);
+#if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
+  traversal_size = 0;
+#endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
   type_to_match = skip_typerefs(type->variant.typeref.type);
   if (type->variant.typeref.is_template_alias) {
     /* Check that the target type does not appear in the template arguments
