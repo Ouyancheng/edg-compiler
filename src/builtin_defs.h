@@ -18485,6 +18485,7 @@ EXTERN a_builtin_descr builtin_table[]
   { "__builtin_ia32_selectw_512", bfci_1885733069, bfti_4d6b0cf554, bfk_ia32_selectw_512 },
   { "__builtin_ia32_senduipi", bfci_2ada77ff95, bfti_4b4582c555, bfk_ia32_senduipi },
   { "__builtin_ia32_senduipi", bfci_f0892cd42c, bfti_1f5f913fa4, bfk_ia32_senduipi },
+  { "__builtin_ia32_serialize", bfci_cdce0d2180, bfti_cb9f72e7da, bfk_ia32_serialize },
   { "__builtin_ia32_serialize", bfci_d0df5649d4, bfti_b861cd456c, bfk_ia32_serialize },
   { "__builtin_ia32_setssbsy", bfci_e55047361b, bfti_cb9f72e7da, bfk_ia32_setssbsy },
   { "__builtin_ia32_setssbsy", bfci_f0ca9ebb2a, bfti_b861cd456c, bfk_ia32_setssbsy },

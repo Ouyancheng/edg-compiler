@@ -1,5 +1,12 @@
 Version 6.4
 
+3/2/22   [EDGcpfe/25110]
+GNU compatibility: __builtin_ia32_serialize builtin
+
+The __builtin_ia32_serialize builtin is now available (when gnu_version >=
+110100).
+
+
 3/2/22   [EDGcpfe/24574,EDGcpfe/25115]
 GNU C++ compatibility: Decay of static data member array in template
 
