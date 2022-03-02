@@ -22206,6 +22206,17 @@ current mode -- just do it.
 
   orig_operand = *operand;
   expr = make_node_from_operand(operand);
+  if (is_variable_node(expr)) {
+    /* In some modes, in-class static data member initializer instantiations
+       are deferred until use.  If decay is needed, the initializer should be
+       instantiated so that the resulting pointer points to a defined variable
+       object. */
+    a_variable_ptr  vp = node_variable(expr);
+    if (vp->initializer_in_class && vp->is_template_variable &&
+        vp->init_kind == (an_init_kind)initk_none) {
+      ensure_inclass_static_member_constant_initializer_is_scanned(vp);
+    }  /* if */
+  }  /* if */
   if (gnu_mode && !is_glvalue_node(expr) &&
       is_constant_node(skip_parens(expr)) &&
       (!curr_expr_kind_is_const() || curr_expr_kind_is_traditional_const())) {

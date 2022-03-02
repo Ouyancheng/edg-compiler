@@ -1847,8 +1847,11 @@ sdm_sym.  This is currently only used in GNU mode.
     check_assertion(proto_sdmsp != NULL);
     if (proto_sdmsp->token_sequence_number == curr_token_sequence_number) {
       sdmsp->token_cache = proto_sdmsp->token_cache;
-      check_assertion(proto_sdmsp->token_cache != NULL);
-      sdmsp->prototype_member = sym;
+      if (proto_sdmsp->token_cache != NULL) {
+        sdmsp->prototype_member = sym;
+      } else {
+        expect_error();
+      }  /* if */
     } else {
       /* Some error occurred that caused us to be in an unexpected location.
          Set the member initializer to an error constant. */

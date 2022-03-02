@@ -1,5 +1,26 @@
 Version 6.4
 
+3/2/22   [EDGcpfe/24574,EDGcpfe/25115]
+GNU C++ compatibility: Decay of static data member array in template
+
+Consider:
+
+  template<typename T> struct S {
+    static constexpr int arr[] = { 0, 1, 2 };
+  };
+  int main() {
+    return S<void>::arr[1] != 1;  // Previously returned 1.  Now returns 0.
+  }
+
+IN GNU C++ mode, the instantiation of S<void> does not automatically trigger
+the instantiation of the static data member S<void>::arr.  Instead, that member
+is instantiated on demand.  However, in this case, the front end failed to
+perform that instantiation when the subscript operator implicitly triggered the
+"decay" of S<void>::arr to a pointer to int value.  As a result, the IL did not
+reflect the correct initialization of S<void::arr and code generated from it
+produced invalid results.  That is now fixed.
+
+
 3/2/22   [EDGcpfe/24975]
 C++-generating back end: missing "typename" in dependent using-declaration
 
