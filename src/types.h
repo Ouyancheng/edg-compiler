@@ -1671,11 +1671,6 @@ typedef int a_type_tree_traversal_flag_set;
 			/* TRUE if the type of nontype template arguments
 			   should be traversed.  This forces the type to
 			   be considered a deduced context. */
-#define TTT_SCAN_ALIAS_TEMPLATE_ARGS 0x4000
-			/* TRUE if the template arguments of an alias
-			   template or alias template specialization should
-			   be scanned (if requested by the relevant flags),
-			   even if TTT_STOP_AT_TYPEDEFS is TRUE. */
 
 
 /* Type of service function called by traverse_type_tree to return TRUE or
