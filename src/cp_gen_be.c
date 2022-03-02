@@ -18512,6 +18512,12 @@ Generate code for a class member or nonmember using-declaration.
         write_tok_str("using ");
       }  /* if */
 #endif /* USING_DECLARATIONS_IN_GENERATED_CODE */
+      if (class_type->variant.class_struct_union.is_nonreal_class &&
+          entry_kind == iek_type) {
+        /* This is a dependent member type, so the "typename" keyword is
+           required. */
+        write_tok_str("typename ");
+      }  /* if */
       /* Write the access declaration, which is just a qualified name. (Note:
          although this is not a "bound member" access, names in
          using-declarations are subject to the same restrictions on the form

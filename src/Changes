@@ -1,5 +1,24 @@
 Version 6.4
 
+3/2/22   [EDGcpfe/24975]
+C++-generating back end: missing "typename" in dependent using-declaration
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end failed to use the
+"typename" keyword in a dependent using-declaration naming a type.  For
+example:
+
+  template<typename> struct A {
+    using type = int;
+  };
+  template<typename T> struct B : A<T> {
+    using typename A<T>::type;  // Previously omitted "typename" in generated
+                                // code, resulting in an error in the
+                                // instantiation of B<int>
+  };
+  B<int> bi;
+
+
 2/28/22  [EDGcpfe/22304]
 "needed" flag for inline constexpr variables
 
