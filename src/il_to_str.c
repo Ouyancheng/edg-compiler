@@ -1358,7 +1358,7 @@ with "**BAD" for a bad float kind.
     case fk_std_float32:  p = "std::float32_t";     break;
     case fk_std_float64:  p = "std::float64_t";     break;
     case fk_std_float128: p = "std::float128_t";    break;
-    default:             p = "**BAD-FLOAT-KIND**";
+    default:              p = "**BAD-FLOAT-KIND**";
   }  /* switch */
   return p;
 }  /* float_kind_name */

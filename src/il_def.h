@@ -5240,14 +5240,14 @@ enum a_float_kind_tag {
      typedefs to designate floating point types.  If those types are
      distinct from the standard types, they are represented using
      fk_float80 and/or fk_float128 respectively; otherwise, the standard
-     float kinds are used (e.g., it is not uncommon for __float80 and
-     "long double" to designate the same type -- if so, fk_long_double
-     is used in both cases).  The extended floating-point types (described
-     in WG21 document P1467R8 at the time of this writing) must follow the
+     float kinds are used (e.g., it is not uncommon for __float80 and "long
+     double" to designate the same type -- if so, fk_long_double is used in
+     both cases).  The extended floating-point types (described in WG21
+     document P1467R8 at the time of this writing) must follow the
      traditional types, as promoted_float_kind relies on this ordering.  If
      you add floating point types to this enumeration, be sure to update
-     expr_init() with the new values for the num_mantissa_bits and
-     flt_type_size arrays in exprutil.c.
+     expr_init() with the new values for the size, mantissa bits, and
+     min/max exponent arrays in exprutil.c.
 */
   fk_float,
   fk_double,
