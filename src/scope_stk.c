@@ -6238,7 +6238,6 @@ curr_routine points to the routine entry; otherwise, it is NULL.
   a_boolean                suppress_warning;
   an_init_kind             init_kind;
   an_initializer_ptr       ip;
-  an_error_severity        severity = es_warning;
 
   switch (sym->kind) {
     case sk_variable:
@@ -6272,6 +6271,7 @@ curr_routine points to the routine entry; otherwise, it is NULL.
            declarations, and an error for missing definitions that were
            referenced. */
         if (!sym->referenced && !var_ptr->source_corresp.maybe_unused) {
+          an_error_severity severity = es_warning;
           get_variable_initializer(var_ptr,
                                    scope_stack[depth_scope_stack].il_scope,
                                    &init_kind, &ip);
@@ -6391,8 +6391,9 @@ curr_routine points to the routine entry; otherwise, it is NULL.
             !type->variables_are_implicitly_referenced &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
             !is_error_type(type)) {
-          an_error_code       error_code;
-          a_boolean           suppress_diagnostic = FALSE;
+          an_error_code     error_code;
+          an_error_severity severity = es_warning;
+          a_boolean         suppress_diagnostic = FALSE;
 
           /* Check for a dynamic initialization that has side effects (such as
              a constructor call).  If such an initialization exists, suppress
