@@ -1584,14 +1584,14 @@ exclude dependent bases from unqualified name lookup.
 
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
 static int     traversal_size;
-                       /* Counter of the number of type entries visited
-                          during the type tree traversal.  When generated
-                          instances are included in the IL, complex
-                          template use can make it impractical to scan for
-                          actual circularities, so we place an arbitrary
-                          limit on the size of the type tree and just avoid
-                          creating uses of typedefs that are more complex
-                          than that limit. */
+			/* Counter of the number of type entries visited
+			   during the type tree traversal.  When generated
+			   instances are included in the IL, complex
+			   template use can make it impractical to scan for
+			   actual circularities, so we place an arbitrary
+			   limit on the size of the type tree and just avoid
+			   creating uses of typedefs that are more complex
+			   than that limit. */
 #define MAX_TYPE_TRAVERSAL 4000
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
@@ -1661,7 +1661,9 @@ infinite recursion.
   if (type->variant.typeref.is_template_alias) {
     /* Check that the target type does not appear in the template arguments
        of the alias template instance. */
-    ttt_flags = TTT_TEMPLATE_ARGS;
+    ttt_flags = TTT_TEMPLATE_ARGS
+              | TTT_STOP_AT_TYPEDEFS
+              | TTT_SCAN_ALIAS_TEMPLATE_ARGS;
     has_circularity = traverse_type_tree(type, ttt_check_type_match,
                                          ttt_flags);
   }  /* if */

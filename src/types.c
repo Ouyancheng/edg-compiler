@@ -14915,6 +14915,7 @@ its parameters?).
   a_boolean                      status = FALSE;
   a_routine_type_supplement_ptr  rtsp;
   a_typeref_type_supplement_ptr  ttsp;
+  a_boolean                      scan_alias_template_args = FALSE;
 
   if (type_ptr == NULL) {
     /* If a NULL pointer was passed in, simply return FALSE. */
@@ -14937,6 +14938,10 @@ its parameters?).
         type_ptr->kind == (a_type_kind)tk_typeref &&
         typeref_is_typedef(type_ptr)) {
       force_end_of_traversal = TRUE;
+      if ((flags & TTT_SCAN_ALIAS_TEMPLATE_ARGS) != 0 &&
+          type_ptr->variant.typeref.is_template_alias) {
+        scan_alias_template_args = TRUE;
+      }  /* if */
     }  /* if */
   }  /* if */
   if (!force_end_of_traversal) {
@@ -14944,7 +14949,7 @@ its parameters?).
   } else {
     status = FALSE;
   }  /* if */
-  if (force_end_of_traversal) {
+  if (force_end_of_traversal && !scan_alias_template_args) {
     /* The function has determined that no further traversal is appropriate;
        return the current status to the caller. */
   } else {
@@ -15050,11 +15055,13 @@ its parameters?).
       case tk_typeref:
         tp = type_ptr->variant.typeref.type;
         ttsp = type_ptr->variant.typeref.extra_info;
-        status = traverse_type_tree(tp, func, flags);
-        if (!status && flags & TTT_DECLTYPE_AND_TYPEOF_EXPRS &&
-            ttsp->expr != NULL) {
-          /* Traverse the expression under the decltype or typeof. */
-          status = traverse_types_for_expr(ttsp->expr, func, flags);
+        if (!force_end_of_traversal) {
+          status = traverse_type_tree(tp, func, flags);
+          if (!status && flags & TTT_DECLTYPE_AND_TYPEOF_EXPRS &&
+              ttsp->expr != NULL) {
+            /* Traverse the expression under the decltype or typeof. */
+            status = traverse_types_for_expr(ttsp->expr, func, flags);
+          }  /* if */
         }  /* if */
         if (!status &&
             (flags & TTT_TEMPLATE_ARGS ||
