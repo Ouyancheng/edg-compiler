@@ -1,5 +1,24 @@
 Version 6.4
 
+3/3/22   [EDGcpfe/24905]
+Nontype template arguments bound to a reference
+
+In some cases, a template-dependent nontype template argument bound to a
+reference was folded to a constant and then erroneously implicitly cast to a
+corresponding pointer type.  That resulted in the C++-generating back end
+incorrectly rendering the argument.  For example:
+
+  template<typename T> struct S {
+    static inline T const V{};
+    template<unsigned> struct N;
+  };
+  template<auto const&, unsigned> struct XX {};
+  template<typename T> template<unsigned I> struct S<T>::N {
+    template<auto const &F> using X = ::XX<F, I>;
+    X<S::V> Z;  // Previously misrendered as "X<&S::V>".  Now okay.
+  };
+
+
 3/2/22   [EDGcpfe/24868]
 Variables defined in unnamed namespaces and never referenced
 

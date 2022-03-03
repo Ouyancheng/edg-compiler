@@ -19869,10 +19869,8 @@ in the source (and *operator_position gives its position).
             /* A glvalue with a constant address (in C++ constant-expression
                contexts, that includes Microsoft-mode dllimport variables). */
             if (cpp11_sfinae_enabled &&
-                conaddr->kind == (a_constant_repr_kind)ck_template_param &&
-                conaddr->variant.template_param.kind ==
-                                (a_template_param_constant_kind)tpck_address &&
-                !is_implicit) {
+                constant_is(conaddr, ck_template_param) &&
+                tpck_is(conaddr, tpck_address) && !is_implicit) {
               /* The address of a member is better represented as a
                  tpck_expression constant, so we can have a "&" in
                  the IL tree so it can be rescanned. */
@@ -19890,6 +19888,17 @@ in the source (and *operator_position gives its position).
                     new_type = make_reference_type(new_type);
                   }  /* if */
                   conaddr->type = new_type;
+                  if (constant_is(conaddr, ck_template_param) &&
+                      tpck_is(conaddr, tpck_expression)) {
+                    /* Propagate the new type to the underlying expression. */
+                    an_expr_node_ptr  node;
+                    node = expr_node_from_tpck_expression(conaddr);
+                    node->type = new_type;
+                    node = strip_implicit_operations(node);
+                    if (is_constant_node(node)) {
+                      node_constant(node)->type = new_type;
+                    }  /* if */
+                  }  /* if */
                 }  /* if */
               }  /* if */
               make_constant_operand(conaddr, operand);
