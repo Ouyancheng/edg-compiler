@@ -1583,15 +1583,16 @@ exclude dependent bases from unqualified name lookup.
 }  /* entity_is_member_of_current_instantiation */
 
 #if CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-static int     traversal_size;
+static int	traversal_size;
 			/* Counter of the number of type entries visited
 			   during the type tree traversal.  When generated
-			   instances are included in the IL, complex
-			   template use can make it impractical to scan for
-			   actual circularities, so we place an arbitrary
-			   limit on the size of the type tree and just avoid
-			   creating uses of typedefs that are more complex
-			   than that limit. */
+			   instances are included in the source sequence
+			   list, complex template use can make it
+			   impractical to scan for actual circularities, so
+			   we place an arbitrary limit on the size of the
+			   type tree and just avoid creating uses of
+			   typedefs that are more complex than that
+			   limit. */
 #define MAX_TYPE_TRAVERSAL 4000
 #endif /* CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 
