@@ -4090,6 +4090,14 @@ information in the specified id-linkage block.
               /* An entity initially declared "static" is now being declared
                  without "static".  But it still has internal linkage. */
               idlbp->linkage = idl_internal;
+            } else if (local_storage_class == (a_storage_class)sc_extern &&
+                       idlbp->within_unnamed_namespace && gpp_mode &&
+                       prior_decl->explicit_linkage_specifier) {
+              /* Extern "C" declarations in unnamed namespaces are given
+                 external linkage by g++/clang (see above); subsequent
+                 declarations (without the "extern C") are also given external
+                 linkage. */
+              idlbp->linkage = idl_external;
             }  /* if */
           }  /* if */
         }  /* if */

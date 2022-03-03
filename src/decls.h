@@ -119,7 +119,7 @@ typedef enum /*an_id_linkage_kind*/ {
 			   compilation with this name. */
   idl_external		/* Identifier is the same as others in the same
 			   compilation and in other compilations for
-			   the same program */
+			   the same program. */
 } an_id_linkage_kind;
 
 
