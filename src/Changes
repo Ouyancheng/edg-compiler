@@ -1,5 +1,27 @@
 Version 6.4
 
+3/3/22   [EDGcpfe/25127]
+Multiple translation units: Assertion failure with variable templates
+
+When compiling multiple translation units that use variable templates, where
+the primary TU contained a declaration only while a secondary TU contains an
+initializer, the front end could encounter an assertion failure in
+check_correspondences, due to a lacking canonical source correspondence entry.
+For example, if the primary TU contains:
+
+  namespace std {
+    template <class...> bool d;
+  }
+
+and a secondary TU contains:
+
+  namespace std {
+    template <class...> bool d = d<>;
+  }
+
+this would trigger an abort.  This is now fixed.
+
+
 3/3/22   [EDGcpfe/24905]
 Nontype template arguments bound to a reference
 

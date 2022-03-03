@@ -607,9 +607,17 @@ exact criteria).
         case iek_variable:
           {
             a_variable_ptr  var = (a_variable_ptr)entity;
-            if (var->is_template_variable &&
-                !parent_class_of(var)
-                    ->variant.class_struct_union.is_prototype_instantiation) {
+            a_boolean       is_prototype_inst = FALSE;
+
+            if (var->is_template_variable) {
+              if (var->source_corresp.is_class_member) {
+                is_prototype_inst = parent_class_of(var)
+                       ->variant.class_struct_union.is_prototype_instantiation;
+              } else {
+                is_prototype_inst = var->is_prototype_instantiation;
+              }  /* if */
+            }  /* if */
+            if (!is_prototype_inst) {
               a_symbol_ptr
                    new_sym = symbol_for(var),
                    old_sym = symbol_for((a_variable_ptr)old_ce);
@@ -2124,6 +2132,13 @@ tssp.
       set_no_trans_unit_corresp(iek_routine, routine);
     } else {
       check_assertion(canonical_il_entry_of(routine) == (char*)routine);
+    }  /* if */
+  } else if (is_template_variable_symbol(inst)) {
+    a_variable_ptr  var = variable_for_symbol(inst);
+    if (trans_unit_corresp_of(var) == NULL) {
+      set_no_trans_unit_corresp(iek_variable, var);
+    } else {
+      check_assertion(canonical_il_entry_of(var) == (char*)var);
     }  /* if */
   }  /* if */
 }  /* mark_canonical_instantiation */
