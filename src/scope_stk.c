@@ -6227,14 +6227,18 @@ scope containing the symbol.  If the scope that is ending is for a function,
 curr_routine points to the routine entry; otherwise, it is NULL.
 */
 {
-  a_storage_class storage_class;
-  a_type_ptr      var_type;
-  a_variable_ptr  var_ptr;
-  a_routine_ptr   rout_ptr;
-  a_boolean       anon_ns_mem;
+  a_storage_class          storage_class;
+  a_type_ptr               var_type;
+  a_variable_ptr           var_ptr;
+  a_routine_ptr            rout_ptr;
+  a_boolean                anon_ns_mem;
 #if CHECKING
   a_source_correspondence  *scp = NULL;
 #endif /* CHECKING */
+  a_boolean                suppress_warning;
+  an_init_kind             init_kind;
+  an_initializer_ptr       ip;
+  an_error_severity        severity = es_warning;
 
   switch (sym->kind) {
     case sk_variable:
@@ -6268,8 +6272,17 @@ curr_routine points to the routine entry; otherwise, it is NULL.
            declarations, and an error for missing definitions that were
            referenced. */
         if (!sym->referenced && !var_ptr->source_corresp.maybe_unused) {
-          report_unreferenced(sym, ec_declared_but_not_referenced,
-                              es_warning);
+          get_variable_initializer(var_ptr,
+                                   scope_stack[depth_scope_stack].il_scope,
+                                   &init_kind, &ip);
+          if (init_kind == (an_init_kind)initk_dynamic &&
+              (dynamic_init_has_side_effects(ip->dynamic,
+                                             /*for_unused_var=*/TRUE,
+                                             &suppress_warning) ||
+               suppress_warning)) {
+            severity = es_remark;
+          }  /* if */
+          report_unreferenced(sym, ec_declared_but_not_referenced, severity);
         } else if ((var_ptr->used || sym->value_has_been_set) &&
                    !sym->defined) {
           an_error_severity severity = es_discretionary_error;
@@ -6378,11 +6391,7 @@ curr_routine points to the routine entry; otherwise, it is NULL.
             !type->variables_are_implicitly_referenced &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
             !is_error_type(type)) {
-          a_boolean           suppress_warning;
           an_error_code       error_code;
-          an_error_severity   severity = es_warning;
-          an_init_kind        init_kind;
-          an_initializer_ptr  ip;
           a_boolean           suppress_diagnostic = FALSE;
 
           /* Check for a dynamic initialization that has side effects (such as
