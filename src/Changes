@@ -1,5 +1,31 @@
 Version 6.4
 
+3/4/22   [EDGcpfe/24219]
+IA64-ABI: Inheriting constructors with alternate entry points
+
+In configurations with IA64_ABI and DO_IL_LOWERING set to TRUE, the generation
+of alternate entry points for inheriting constructors would copy the
+"is_inheriting_ctor" field, but not the pointer to the inherited constructor.
+This could cause any calls to "get_inh_ctor_originator" for this alternate
+entry point to segfault.  For example:
+
+  struct a {
+    typedef int b;
+  };
+  template <class> struct c : a {};
+  template <typename...> class d {
+  public:
+    template <class e> d(e, typename c<e>::b = 0);
+  };
+  using f = d<>;
+  struct g : f {
+    using f::f; // Generated alternate entry point routine has NULL originator
+  };
+  void h(g) { h(0); }
+
+This is now fixed.
+
+
 3/4/22   [EDGcpfe/20942,EDGcpfe/24610,EDGcpfe/24934,EDGcpfe/24946]
 Matching of variadic template template parameters
 

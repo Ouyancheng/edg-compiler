@@ -5612,6 +5612,10 @@ routine will be the same as the one passed in.
       new_routine->explicit_do_not_instantiate =
                                           routine->explicit_do_not_instantiate;
       new_routine->is_inheriting_ctor = routine->is_inheriting_ctor;
+      if (new_routine->is_inheriting_ctor) {
+        new_routine->friends_or_originator.inherited_routine =
+                              routine->friends_or_originator.inherited_routine;
+      }  /* if */
       new_rtsp = new_routine->type->variant.routine.extra_info;
       new_rtsp->this_class = rtsp->this_class;
       new_rtsp->has_this_param = rtsp->has_this_param;
