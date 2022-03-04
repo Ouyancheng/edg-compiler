@@ -1,5 +1,19 @@
 Version 6.4
 
+3/4/22   [EDGcpfe/20942,EDGcpfe/24610,EDGcpfe/24934,EDGcpfe/24946]
+Matching of variadic template template parameters
+
+Consider:
+
+  template<template<typename...> class X> int f();
+  template<typename, int> struct S {};
+  int r = f<S>();  // Previously accepted.  Now an error.
+
+The front end previously failed to notice that the <typename, int> parameter
+kinds of struct S cannot match the <typename...> parameter list of the
+corresponding parameter.  That is now fixed.
+
+
 3/3/22   [EDGcpfe/24845]
 Coroutines: unneeded copy with operator co_await returning prvalue
 

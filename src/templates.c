@@ -11109,7 +11109,7 @@ provided argument list).
   a_template_arg_ptr    *tap = arg_list, sop_entry;
   a_template_param_ptr  tpp;
   a_boolean             in_pack = FALSE;
-  a_boolean             not_enough_args = FALSE;
+  a_boolean             not_enough_args = FALSE, kind_mismatch = FALSE;
   a_template_param_ptr	param_list;
   a_template_symbol_supplement_ptr
                         tssp = class_templ->variant.template_info;
@@ -11117,12 +11117,21 @@ provided argument list).
 
   tpp = tssp->variant.class_template.initial_decl_cache.decl_info->parameters;
   param_list = tpp;
-  for (;;) {
+  while (tpp != NULL) {
     if (*tap != NULL) {
-      if (is_start_of_pack_expansion_templ_arg(*tap)) tap_is_pack = TRUE;
-    }  /* if */
-    if (tpp == NULL) {
-      break;
+      if (is_start_of_pack_expansion_templ_arg(*tap)) {
+        tap_is_pack = TRUE;
+      } else if ((*tap)->kind !=
+                    templ_arg_kind_for_symbol_kind(tpp->param_symbol->kind)) {
+        /* Do not match, e.g., a nontype template argument with a type template
+           parameter.  E.g.:
+             template<template<typename...> class X> int f();
+             template<typename, int> struct S {};
+             int r = f<S>();  // Error.
+        */
+        kind_mismatch = TRUE;
+        break;
+      }  /* if */
     }  /* if */
     if (!tpp->is_pack) {
       if (*tap == NULL) {
@@ -11131,8 +11140,7 @@ provided argument list).
             /* No argument is provided by the caller, the template parameter
                has a default. */
             a_templ_arg_kind  arg_kind;
-            arg_kind =
-                      templ_arg_kind_for_symbol_kind(tpp->param_symbol->kind);
+            arg_kind = templ_arg_kind_for_symbol_kind(tpp->param_symbol->kind);
             *tap = alloc_template_arg(arg_kind);
             get_template_arg_value_from_default(class_templ, *tap, tpp,
                                                 param_list);
@@ -11162,7 +11170,7 @@ provided argument list).
       tap = &(*tap)->next;
     }  /* if */
   }  /* for */
-  if (!not_enough_args) {
+  if (!not_enough_args && !kind_mismatch) {
     sym = find_template_class(class_templ, arg_list,
                               /*any_prototype_allowed=*/FALSE,
                               /*specific_prototype_allowed=*/NULL,
