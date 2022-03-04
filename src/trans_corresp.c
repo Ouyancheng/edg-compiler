@@ -609,15 +609,13 @@ exact criteria).
             a_variable_ptr  var = (a_variable_ptr)entity;
             a_boolean       is_prototype_inst = FALSE;
 
-            if (var->is_template_variable) {
-              if (var->source_corresp.is_class_member) {
-                is_prototype_inst = parent_class_of(var)
+            if (var->source_corresp.is_class_member) {
+              is_prototype_inst = parent_class_of(var)
                        ->variant.class_struct_union.is_prototype_instantiation;
-              } else {
-                is_prototype_inst = var->is_prototype_instantiation;
-              }  /* if */
+            } else {
+              is_prototype_inst = var->is_prototype_instantiation;
             }  /* if */
-            if (!is_prototype_inst) {
+            if (!is_prototype_inst && var->is_template_variable) {
               a_symbol_ptr
                    new_sym = symbol_for(var),
                    old_sym = symbol_for((a_variable_ptr)old_ce);
