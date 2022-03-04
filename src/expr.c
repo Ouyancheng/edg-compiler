@@ -42595,7 +42595,7 @@ suspend point.
                                  operand, &processed);
   /* Prepare the calls to await_ready and friends. */
   if (is_a_prvalue(operand) && !is_void_type(operand->type)) {
-    temp_init_from_operand(operand, /*result_is_lvalue*/TRUE);
+    conv_class_prvalue_operand_to_glvalue(operand, /*is_xvalue=*/FALSE);
   } else if (is_an_xvalue(operand)) {
     conv_xvalue_to_lvalue(operand);
   }  /* if */

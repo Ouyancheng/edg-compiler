@@ -1,5 +1,16 @@
 Version 6.4
 
+3/3/22   [EDGcpfe/24845]
+Coroutines: unneeded copy with operator co_await returning prvalue
+
+When the class type of the operand of a co_await expression has an operator
+co_await() member function that returns a prvalue, the front end previously
+created an explicit temporary for use in the co_await expression and copied
+the result of the operator co_await() call to that temporary.  This
+unnecessary copy operation has now been been eliminated, and the co_await
+expression uses the result of the operator co_await() call directly.
+
+
 3/3/22   [EDGcpfe/25127]
 Multiple translation units: Assertion failure with variable templates
 
