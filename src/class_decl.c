@@ -24484,7 +24484,8 @@ constructor.
         add_to_inline_function_list(new_rp);
       }  /* if */
       if (!new_rp->is_deleted &&
-          suppress_inh_ctor_default_ctor(cdsp->class_type)) {
+          (brp->is_deleted ||
+           suppress_inh_ctor_default_ctor(cdsp->class_type))) {
         new_rp->is_deleted = TRUE;
         new_rp->defined = TRUE;
       }  /* if */

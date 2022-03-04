@@ -1,5 +1,13 @@
 Version 6.4
 
+3/4/22   [EDGcpfe/24911]
+Inheriting deleted constructors
+
+In some relatively complex cases, inheriting a deleted constructor resulted in
+the front end treating the "inherited constructor" as non-deleted.  That is now
+fixed.
+
+
 3/4/22   [EDGcpfe/24219]
 IA64-ABI: Inheriting constructors with alternate entry points
 
