@@ -19165,7 +19165,10 @@ no_applicable_operator_function:
                                      /*qualified_function_name=*/FALSE,
                                      found_through_adl,
                                      /*uses_operator_syntax=*/TRUE,
-                                     operator_position, result,
+                                     /*start_position=*/&null_source_position,
+                                     operator_position,
+                                     /*end_position=*/&null_source_position,
+                                     result,
                                      &folded_to_constant,
                                      &call_node);
               if (call_node != NULL) {
@@ -21383,7 +21386,10 @@ the temporary.
                        /*qualified_function_name=*/FALSE,
                        /*found_through_adl=*/FALSE,
                        /*uses_operator_syntax=*/FALSE,
-                       &orig_operand.position, operand,
+                       /*start_position=*/&null_source_position,
+                       /*operator_position=*/&orig_operand.position,
+                       /*end_position=*/&null_source_position,
+                       operand,
                        /*p_folded=*/(a_boolean*)NULL,
                        &conv_function_call_node);
     if (dest_type == NULL) {

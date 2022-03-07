@@ -4794,7 +4794,10 @@ rcblock provides the associated rescan information.
                        /*arg_dep_lookup_suppressed=*/FALSE,
                        /*qualified_function_name=*/FALSE,
                        /*found_through_adl=*/FALSE,
-                       /*uses_operator_syntax=*/FALSE, &func_op->position,
+                       /*uses_operator_syntax=*/FALSE,
+                       /*start_position=*/&null_source_position,
+                       /*operator_position=*/&func_op->position,
+                       /*end_position=*/&null_source_position,
                        result, /*p_folded=*/(a_boolean*)NULL, &node);
   }  /* if */
 }  /* scan_and_process_builtin_launder_arg */
@@ -5082,7 +5085,10 @@ call, and rcblock->argument_list to the previously-scanned argument list.
                                /*qualified_function_name=*/FALSE,
                                /*found_through_adl=*/FALSE,
                                /*uses_operator_syntax=*/FALSE,
-                               &operand->position, result_op,
+                               /*start_position=*/&null_source_position,
+                               /*operator_position=*/&operand->position,
+                               /*end_position=*/&null_source_position,
+                               result_op,
                                /*p_folded=*/(a_boolean*)NULL,
                                (an_expr_node_ptr *)NULL);
         if (is_constant_operand(&arg) || in_constant_expression ||
@@ -5136,7 +5142,10 @@ call, and rcblock->argument_list to the previously-scanned argument list.
                                    /*qualified_function_name=*/FALSE,
                                    /*found_through_adl=*/FALSE,
                                    /*uses_operator_syntax=*/FALSE,
-                                   &operand->position, result_op,
+                                   /*start_position=*/&null_source_position,
+                                   /*operator_position=*/&operand->position,
+                                   /*end_position=*/&null_source_position,
+                                   result_op,
                                    /*p_folded=*/(a_boolean*)NULL,
                                    (an_expr_node_ptr *)NULL);
           }  /* if */
@@ -6152,10 +6161,7 @@ are expected to be NULL in that case.
   a_boolean         adl_suppressed_by_qualification = FALSE;
   a_boolean         found_through_adl = FALSE;
   a_boolean         has_overloaded_call_operator = FALSE;
-  an_expr_node_ptr  function_call_node = NULL;
-  an_expr_node_ptr  operand_node;
   a_boolean         builtin_needs_adjustment = FALSE;
-  a_boolean         result_operand_is_call;
   a_boolean         member_of_proto_inst = FALSE;
   a_boolean         saved_uses_this_operand = expr_stack->uses_this_operand;
 
@@ -6881,7 +6887,6 @@ are expected to be NULL in that case.
       }  /* if */
     }  /* if */
   }  /* if */
-  result_operand_is_call = FALSE;
   if (vacuous_destructor_case) {
     /* Vacuous destructor case; leave the original operand alone. */
     copy_operand(operand, result);
@@ -6917,14 +6922,21 @@ are expected to be NULL in that case.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
     }  /* if */
+    an_expr_node_ptr  function_call_node = NULL;
     assemble_function_call(operand, bound_function_selector, argument_list,
                            /*compiler_generated=*/FALSE,
                            arg_dep_lookup_suppressed,
                            adl_suppressed_by_qualification,
                            found_through_adl, uses_operator_syntax,
-                           &call_position, result, &call_folded_to_constant,
-                           &function_call_node);
-    result_operand_is_call = TRUE;
+                           &start_position, &operator_position,
+                           &closing_paren_position, result,
+                           &call_folded_to_constant, &function_call_node);
+    if (function_call_node != NULL) {
+      record_operator_position_in_expr_rescan_info(function_call_node,
+                                                   &operator_position,
+                                                  opening_paren_tok_seq_number,
+                                                   &closing_paren_position);
+    }  /* if */
   }  /* if */
   if (saved_uses_this_operand && !expr_stack->uses_this_operand) {
     /* If the surrounding expression used "this", restore that information for
@@ -6933,22 +6945,6 @@ are expected to be NULL in that case.
   }  /* if */
   set_operand_position(result, &start_position, &closing_paren_position,
                        &operator_position);
-  if (result_operand_is_call) {
-    if (function_call_node != NULL) {
-      record_operator_position_in_expr_rescan_info(function_call_node,
-                                                   &operator_position,
-                                                  opening_paren_tok_seq_number,
-                                                   &closing_paren_position);
-    }  /* if */
-  }  /* if */
-  operand_node = expr_node_from_operand(operand);
-  if (function_call_node != NULL && function_call_node != operand_node) {
-    /* Some additional operations (e.g., enk_temp_init, eok_ref_indirect)
-       were added on top of the call node.  Make sure the call node has
-       the correct positions as well. */
-    set_expr_position(function_call_node, &start_position,
-                      &closing_paren_position, &operator_position);
-  }  /* if */
 #if BUILTIN_FUNCTIONS_ENABLED
   if (!call_folded_to_constant)
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
@@ -6963,6 +6959,7 @@ are expected to be NULL in that case.
          calls. */
       cast_operand(bcap->result_type, result, /*is_implicit_cast=*/TRUE);
     }  /* if */
+    an_expr_node_ptr  operand_node = expr_node_from_operand(operand);
     if (bcap->name_reference != NULL && operand_node != NULL) {
       /* The builtin call has been replaced by a call to the appropriate
          operator new/delete; use a name reference to communicate this to the
@@ -38811,7 +38808,7 @@ Scan a user-defined literal and return an operand for it in *operand.
     /* We pass dummy_bound_function_selector rather than a null pointer
                constant to avoid a spurious diagnostic by Gimpel lint. */
 #endif /* ifdef _lint */
-    assemble_function_call(&func_operand, 
+    assemble_function_call(&func_operand,
                            &dummy_bound_function_selector,
                            arg_list,
                            /*compiler_generated=*/TRUE,
@@ -38819,7 +38816,9 @@ Scan a user-defined literal and return an operand for it in *operand.
                            /*is_qualified_name=*/FALSE,
                            /*found_through_adl=*/FALSE,
                            /*uses_operator_syntax=*/TRUE,
-                           &pos_curr_token,
+                           /*start_position=*/&null_source_position,
+                           /*operator_position=*/&pos_curr_token,
+                           /*end_position=*/&null_source_position,
                            result, &folded, &function_call_node);
     if (!folded) {
       rule_out_expr_kinds(ROEK_CONSTANT, result);
@@ -42215,15 +42214,17 @@ for-each (otherwise it's a range-based-for).
                                       &function_operand,
                                       &argument_list)) {
     /* Generate the expression for the member function call. */
-    assemble_function_call(&function_operand, 
-                           bound_function_selector, 
+    assemble_function_call(&function_operand,
+                           bound_function_selector,
                            argument_list,
                            /*compiler_generated=*/TRUE,
                            /*arg_dep_lookup_suppressed=*/FALSE,
                            /*is_qualified_name=*/FALSE,
                            /*found_through_adl=*/FALSE,
                            /*uses_operator_syntax=*/FALSE,
-                           expr_position,
+                           /*start_position=*/&null_source_position,
+                           /*operator_position=*/expr_position,
+                           /*end_position=*/&null_source_position,
                            result,
                            /*p_folded=*/(a_boolean*)NULL,
                            &func_call_node);
@@ -44150,7 +44151,9 @@ This function is largely based on check_range_based_for_default_case.
                              /*is_qualified_name=*/TRUE,
                              /*found_through_adl=*/FALSE,
                              /*uses_operator_syntax=*/FALSE,
-                             pos, 
+                             /*start_position=*/&null_source_position,
+                             /*operator_position=*/pos,
+                             /*end_position=*/&null_source_position,
                              &result,
                              /*p_folded=*/(a_boolean*)NULL,
                              &func_call_node);

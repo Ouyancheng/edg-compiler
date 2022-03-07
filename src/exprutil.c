@@ -18705,45 +18705,45 @@ void make_function_call(an_expr_node_ptr  function_node,
                         a_boolean         qualified_function_name,
                         a_boolean         found_through_adl,
                         a_boolean         uses_operator_syntax,
-                        a_source_position *call_pos,
+                        a_source_position *start_position,
+                        a_source_position *operator_position,
+                        a_source_position *end_position,
                         an_operand        *result,
                         a_boolean         *p_folded,
                         an_expr_node_ptr  *p_function_call_node)
 /*
-Make an operand for a call of the function indicated by function_node,
-whose type is function_type, and which is to be called virtually if
-is_virtual is TRUE, or a pointer-to-member-function call if the type
-of function_node is pointer-to-member-function.  The arguments of the
-call are already attached to function_node.  A skip_typerefs need not
-have been done on function_type.  function_type can be a template
-parameter type or class type in a case where the function to be called
-is not known because the call is dependent.  If virtual_suppressed is
-TRUE, the function was named in some way that would suppress calling
-it as virtual (if indeed it is virtual); that's also reflected in
-is_virtual, but knowing that the user did it explicitly controls
-whether a diagnostic is put out in some cases.
-selector_is_object_pointer is TRUE if the call is a nonstatic member
-function call and the source form was "->" (or "->*" for the
-pointer-to-member case) rather than "." (or ".*").  compiler_generated
-is TRUE if this is a compiler-generated call (e.g., for an implicit
-conversion via a conversion function).  is_conversion is TRUE for a
-call generated for an explicit or implicit conversion (e.g., a
-conversion function call).  arg_dep_lookup_suppressed is TRUE if
-argument-dependent lookup was suppressed on the call because the
-function name was not followed by a left parenthesis.
-qualified_function_name is TRUE if argument-dependent lookup was
-suppressed because the function name was qualified.  found_through_adl
-is TRUE if the call was resolved only through argument-dependent
-lookup (i.e., ordinary lookup did not yield the called function).
-uses_operator_syntax is TRUE when a call to an overloaded operator is
-the result of operator notation ("a+b") rather than an explicit
-function call.  *call_pos gives the source position of the call.  If
-non-NULL, p_function_call_node is the address of an expression node
-pointer that will be set to point to the actual call node itself
-(which might be below the expression in the result because of
-transformations on the return value).  It is returned NULL for some
-error cases.  If p_folded is non-NULL, *p_folded is set to reflect
-whether the call was folded or not.
+Make an operand for a call of the function indicated by function_node, whose
+type is function_type, and which is to be called virtually if is_virtual is
+TRUE, or a pointer-to-member-function call if the type of function_node is
+pointer-to-member-function.  The arguments of the call are already attached to
+function_node.  A skip_typerefs need not have been done on function_type.
+function_type can be a template parameter type or class type in a case where
+the function to be called is not known because the call is dependent.  If
+virtual_suppressed is TRUE, the function was named in some way that would
+suppress calling it as virtual (if indeed it is virtual); that's also reflected
+in is_virtual, but knowing that the user did it explicitly controls whether a
+diagnostic is put out in some cases.  selector_is_object_pointer is TRUE if the
+call is a nonstatic member function call and the source form was "->" (or "->*"
+for the pointer-to-member case) rather than "." (or ".*").  compiler_generated
+is TRUE if this is a compiler-generated call (e.g., for an implicit conversion
+via a conversion function).  is_conversion is TRUE for a call generated for an
+explicit or implicit conversion (e.g., a conversion function call).
+arg_dep_lookup_suppressed is TRUE if argument-dependent lookup was suppressed
+on the call because the function name was not followed by a left parenthesis.
+qualified_function_name is TRUE if argument-dependent lookup was suppressed
+because the function name was qualified.  found_through_adl is TRUE if the call
+was resolved only through argument-dependent lookup (i.e., ordinary lookup did
+not yield the called function).  uses_operator_syntax is TRUE when a call to an
+overloaded operator is the result of operator notation ("a+b") rather than an
+explicit function call.  start_position gives the source position of the
+leftmost character in the postfix-expression that names the function being
+called.  operator_position gives the source position of the left paren of the
+call.  end_position gives the source position of the right paren of the call.
+If non-NULL, p_function_call_node is the address of an expression node pointer
+that will be set to point to the actual call node itself (which might be below
+the expression in the result because of transformations on the return value).
+It is returned NULL for some error cases.  If p_folded is non-NULL, *p_folded
+is set to reflect whether the call was folded or not.
 */
 {
   an_expr_node_ptr call_node, rout_node;
@@ -18772,11 +18772,13 @@ whether the call was folded or not.
                              compiler_generated,
                              is_conversion, arg_dep_lookup_suppressed,
                              qualified_function_name, found_through_adl,
-                             uses_operator_syntax, call_pos,
+                             uses_operator_syntax, operator_position,
                              p_function_call_node);
+  set_expr_position(call_node, start_position, end_position,
+                    operator_position);
   /* Make an operand for the overall call (etc.). */
   make_expression_operand(call_node, result);
-  result->position = *call_pos;
+  result->position = *operator_position;
   /* A function call returning a reference is an lvalue. */
   if (is_any_reference_type(result->type)) {
     a_boolean is_rvalue_ref = is_rvalue_reference_type(result->type);
@@ -18905,34 +18907,36 @@ void assemble_function_call(an_operand        *function_operand,
                             a_boolean         qualified_function_name,
                             a_boolean         found_through_adl,
                             a_boolean         uses_operator_syntax,
-                            a_source_position *call_position,
+                            a_source_position *start_position,
+                            a_source_position *operator_position,
+                            a_source_position *end_position,
                             an_operand        *result,
                             a_boolean         *p_folded,
                             an_expr_node_ptr  *function_call_node)
 /*
-Assemble a function call from the various pieces.  *function_operand
-identifies the function to be called.  It can identify an unknown
-dependent function if the call is dependent.  If a selector object is
-needed, it is provided by *bound_function_selector.  argument_list
-points to the (explicit) argument list.  compiler_generated is TRUE if
-this is a compiler- generated call (e.g., to an overloaded operator
-function).  The call is not of a conversion function.
-arg_dep_lookup_suppressed is TRUE if argument-dependent lookup was
-suppressed on the call because the function name was not followed by a
-left parenthesis.  qualified_function_name is TRUE if
-argument-dependent lookup was suppressed because the function name was
-qualified.  found_through_adl is TRUE if the function to be called was
-only found through argument-dependent lookup (not through ordinary
-lookup).  uses_operator_syntax is TRUE when a call to an overloaded
-operator is the result of operator notation ("a+b") rather than an
-explicit function call.  call_position gives the source position of
-the call.  An operand for the overall call is constructed in *result.
-If non-NULL, function_call_node is the address of an expression node
-pointer that will be set to point to the actual call node itself
-(which might be below the expression in the result because of
-transformations on the return value).  It is returned NULL for some
-error cases.  If p_folded is non-NULL, *p_folded is set to reflect
-whether the call was folded or not.
+Assemble a function call from the various pieces.  *function_operand identifies
+the function to be called.  It can identify an unknown dependent function if
+the call is dependent.  If a selector object is needed, it is provided by
+*bound_function_selector.  argument_list points to the (explicit) argument
+list.  compiler_generated is TRUE if this is a compiler- generated call (e.g.,
+to an overloaded operator function).  The call is not of a conversion function.
+arg_dep_lookup_suppressed is TRUE if argument-dependent lookup was suppressed
+on the call because the function name was not followed by a left parenthesis.
+qualified_function_name is TRUE if argument-dependent lookup was suppressed
+because the function name was qualified.  found_through_adl is TRUE if the
+function to be called was only found through argument-dependent lookup (not
+through ordinary lookup).  uses_operator_syntax is TRUE when a call to an
+overloaded operator is the result of operator notation ("a+b") rather than an
+explicit function call.  start_position gives the source position of the
+leftmost character in the postfix-expression that names the function being
+called.  operator_position gives the source position of the left paren of the
+call.  end_position gives the source position of the right paren of the call.
+An operand for the overall call is constructed in *result.  If non-NULL,
+function_call_node is the address of an expression node pointer that will be
+set to point to the actual call node itself (which might be below the
+expression in the result because of transformations on the return value).  It
+is returned NULL for some error cases.  If p_folded is non-NULL, *p_folded is
+set to reflect whether the call was folded or not.
 */
 {
   an_expr_node_ptr function_node;
@@ -19089,15 +19093,16 @@ dependent_case:;
     /* Make the call node. */
     function_node->next = argument_list;
     make_function_call(function_node, function_type,
-                       (a_boolean)function_operand->virtual_function, 
+                       (a_boolean)function_operand->virtual_function,
                        (a_boolean)function_operand->is_qualified_name,
                        selector_is_object_pointer,
                        compiler_generated, /*is_conversion=*/FALSE,
                        arg_dep_lookup_suppressed, qualified_function_name,
                        found_through_adl, uses_operator_syntax,
-                       call_position, result, p_folded, function_call_node);
+                       start_position, operator_position, end_position, result,
+                       p_folded, function_call_node);
   }  /* if */
-  result->position = *call_position;
+  result->position = *operator_position;
 }  /* assemble_function_call */
 
 
@@ -23004,7 +23009,10 @@ If get_routine is non-NULL, *get_routine is set to a pointer to the
                              orig_operand.is_qualified_name,
                              /*found_through_adl=*/FALSE,
                              /*uses_operator_syntax=*/FALSE,
-                             &operand_position, operand,
+                             /*start_position=*/&null_source_position,
+                             /*operator_position=*/&operand_position,
+                             /*end_position=*/&null_source_position,
+                             operand,
                              /*p_folded=*/(a_boolean*)NULL,
                              &func_call_node);
       if (func_call_node != NULL) {
@@ -23199,8 +23207,11 @@ to TRUE and *result becomes an error operand.
                                /*qualified_function_name=*/FALSE,
                                /*found_through_adl=*/FALSE,
                                /*uses_operator_syntax=*/FALSE,
-                               operator_pos, result,
-                               /*p_folded=*/(a_boolean*)NULL, &func_call_node);
+                               /*start_position=*/&null_source_position,
+                               operator_pos,
+                               /*end_position=*/&null_source_position,
+                               result, /*p_folded=*/(a_boolean*)NULL,
+                               &func_call_node);
 #if !DO_IL_LOWERING
         if (func_call_node != NULL) {
           an_expr_node_ptr opnd = func_call_node->variant.operation.operands;
@@ -23431,8 +23442,10 @@ orig_operand to the function operand created before assembling the final call.
                              /*qualified_function_name=*/FALSE,
                              /*found_through_adl=*/FALSE,
                              /*uses_operator_syntax=*/FALSE,
-                             &selector_operand->position, result,
-                             /*p_folded=*/(a_boolean*)NULL,
+                             /*start_position=*/&null_source_position,
+                             /*operator_position=*/&selector_operand->position,
+                             /*end_position=*/&null_source_position,
+                             result, /*p_folded=*/(a_boolean*)NULL,
                              &func_call_node);
       if (nonreal_case && func_call_node != NULL &&
           node_operator_is(func_call_node, eok_call)) {
@@ -23527,7 +23540,7 @@ call.
     /* We pass dummy_bound_function_selector rather than a null pointer
        constant to avoid a spurious diagnostic by Gimpel lint. */
 #endif /* ifdef _lint */
-    assemble_function_call(&function_operand, 
+    assemble_function_call(&function_operand,
                            &dummy_bound_function_selector,
                            arg_nodes,
                            /*compiler_generated=*/TRUE,
@@ -23535,7 +23548,9 @@ call.
                            /*is_qualified_name=*/FALSE,
                            found_through_adl,
                            /*uses_operator_syntax=*/FALSE,
-                           pos,
+                           /*start_position=*/&null_source_position,
+                           /*operator_position=*/pos,
+                           /*end_position=*/&null_source_position,
                            result,
                            /*p_folded=*/(a_boolean*)NULL,
                            call_node);

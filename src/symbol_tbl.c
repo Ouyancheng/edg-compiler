@@ -9800,8 +9800,12 @@ and if so, resolve and record the appropriate call.
                          /*arg_dep_lookup_suppressed=*/FALSE,
                          /*qualified_function_name=*/TRUE,
                          /*found_through_adl=*/FALSE,
-                         /*uses_operator_syntax=*/FALSE, pos, &operand,
-                         /*p_folded=*/NULL, /*p_function_call_node=*/NULL);
+                         /*uses_operator_syntax=*/FALSE,
+                         /*start_position=*/&null_source_position,
+                         /*operator_position=*/pos,
+                         /*end_position=*/&null_source_position,
+                         &operand, /*p_folded=*/NULL,
+                         /*p_function_call_node=*/NULL);
       if (is_class_struct_union_type(coroutine->type->
                                                 variant.routine.return_type)) {
         prep_elision_initializer_operand(&operand, coroutine->type->
