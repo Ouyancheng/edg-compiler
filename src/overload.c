@@ -2394,15 +2394,15 @@ binding (and not any underlying conversion); otherwise the reference
 is not already accounted for in the conversion.
 */
 {
-  a_type_ptr conversion_type;
+  a_type_ptr conversion_type, param_utp = skip_typerefs(param_type);
 
   arg_summary->match_level = aml_user_conversion;
   arg_summary->conversion = *conversion;
   if (!param_is_reference) {
-    if (mandatory_copy_elision && is_immediate_class_type(param_type) &&
+    if (mandatory_copy_elision && is_immediate_class_type(param_utp) &&
         conversion->routine != NULL &&
         identical_types_ignoring_qualifiers(
-                     param_type, return_type_of(conversion->routine->type))) {
+                     param_utp, return_type_of(conversion->routine->type))) {
       arg_summary->conversion.should_elide_ctor = TRUE;
     }  /* if */
   } else if (!conv_accounts_for_ref) {
@@ -2413,7 +2413,7 @@ is not already accounted for in the conversion.
     /* For reference parameters, see if any type qualifiers were added under
        the reference relative to the output type of the conversion function.
        That serves as a tie-breaker in overload resolution. */
-    param_type = type_pointed_to(param_type);
+    param_type = type_pointed_to(param_utp);
     check_assertion(arg_summary->conversion.routine != NULL);
     /* Get the return type of the conversion routine. */
     conversion_type = return_type_of(arg_summary->conversion.routine->type);

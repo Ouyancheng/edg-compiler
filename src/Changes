@@ -1,5 +1,14 @@
 Version 6.4
 
+3/7/22   [EDGcpfe/24844]
+Missing copy elision after user-defined conversion
+
+In relatively obscure cases, the front end failed to perform copy elision on
+an initialization with the result of an implicit call to a conversion operator
+if the destination (class) type was expressed using a typedef-name.  That is
+now fixed.
+
+
 3/7/22   [EDGcpfe/25081]
 C++-generating back end: abort with constexpr variable template with CTAD type
 
