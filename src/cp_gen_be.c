@@ -21130,6 +21130,7 @@ this one is such a continuation.
   }  /* if */
   check_assertion_str(var_type != NULL,
                       "gen_variable_decl: declared_type is NULL");
+  unqual_var_type = skip_typerefs(var->type);
   /* Advance past the source sequence entry for the variable. */
   adv_curr_source_sequence_entry();
   if (curr_name_context_is_a_class()) {
@@ -21437,20 +21438,21 @@ this one is such a continuation.
   if (force_unqualified_name) {
     gd_options |= GDO_FORCE_UNQUALIFIED_NAME;
   }  /* if */
-  if (is_class_template_placeholder_type(var_type) && var->type != var_type) {
+  if (is_class_template_placeholder_type(var_type) &&
+      unqual_var_type != var_type) {
     /* The name of the template may have been hidden by an intervening
        declaration.  Reflect that fact from the template entry to the
-       placeholder type.  (If the types are different, var->type designates
-       the template instance that is the deduced type of the variable, so
-       we can use it to find the potentially-hidden template entry.  Both
-       types will be the same if the deduced variable type is
+       placeholder type.  (If the types are different, unqual_var_type
+       designates the template instance that is the deduced type of the
+       variable, so we can use it to find the potentially-hidden template
+       entry.  Both types will be the same if the deduced variable type is
        dependent.) */
-    a_type_ptr actual_type = skip_typerefs(var->type);
-    check_assertion(is_immediate_class_type(actual_type) &&
-                    actual_type->variant.class_struct_union.is_template_class);
+    check_assertion(is_immediate_class_type(unqual_var_type) &&
+                    unqual_var_type->
+                                 variant.class_struct_union.is_template_class);
     var_type->source_corresp.qualification_needed =
-           actual_type->variant.class_struct_union.extra_info->assoc_template->
-                                           source_corresp.qualification_needed;
+           unqual_var_type->variant.class_struct_union.extra_info->
+                           assoc_template->source_corresp.qualification_needed;
   }  /* if */
   /* Output the variable name and its type.  Do not put out a name for
      anonymous union variables. */
@@ -21526,7 +21528,6 @@ this one is such a continuation.
     adjust_current_namespace(orig_scope, common_scope);
   }  /* if */
   var->declaration_has_been_put_out = TRUE;
-  unqual_var_type = skip_typerefs(var->type);
   if (var->declared_with_auto_type_specifier &&
       is_immediate_class_type(unqual_var_type) &&
       unqual_var_type->variant.class_struct_union.extra_info->
