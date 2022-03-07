@@ -976,6 +976,7 @@ swallowed); otherwise, it's "="-form or "{...}" form.
       /* Check that the actual (deduced) type of the declaration is applicable
          to the declared entity (in particular, this checks for compatibility
          with previous declarations of the same entity). */
+      check_assertion(dps->sym != NULL);
       check_deduced_auto_type(dps);
     }  /* if */
   }  /* if */

@@ -19972,8 +19972,7 @@ options.
             a_constant_ptr      sizeof_expr_con = local_constant();
             a_constant_ptr      alloc_sizeof_expr_con;
             a_ctws_options_set  extra_ctws_options = CTWS_NON_CONSTANT_EXPR;
-            if (con->variant.template_param.kind ==
-                              (a_template_param_constant_kind)tpck_noexcept) {
+            if (tpck_is(con, tpck_noexcept)) {
               extra_ctws_options |= CTWS_IS_RESCAN_OF_NOEXCEPT_OPERAND;
             }  /* if */
             expr = copy_template_param_expr(expr,
@@ -20043,23 +20042,21 @@ options.
             new_type = skip_typerefs(new_type);
             complete_type_is_needed(new_type);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-            if (con->variant.template_param.kind ==
-                                 (a_template_param_constant_kind)tpck_uuidof) {
+            if (tpck_is(con, tpck_uuidof)) {
               /* __uuidof. */
               make_uuidof_constant(new_type, constant);
             } else 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
             /* Do not insert code here. */
-            if (con->variant.template_param.kind ==
-                                 (a_template_param_constant_kind)tpck_typeid) {
+            if (tpck_is(con, tpck_typeid)) {
               /* typeid(...). */
               a_boolean is_cli_typeid = FALSE;
+              check_assertion(expr != NULL);
 #if MICROSOFT_EXTENSIONS_ALLOWED
               is_cli_typeid = cli_or_cx_enabled && expr->is_cli_typeid;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               make_typeid_constant(new_type, is_cli_typeid, constant);
-            } else if (con->variant.template_param.kind ==
-                               (a_template_param_constant_kind)tpck_noexcept) {
+            } else if (tpck_is(con, tpck_noexcept)) {
               /* noexcept(...). */
               check_assertion(expr != NULL);
               set_unsigned_integer_constant(
@@ -20074,8 +20071,7 @@ options.
                 subst_fail(*copy_error);
               } else {
                 a_boolean template_case, is_sizeof;
-                is_sizeof = (con->variant.template_param.kind ==
-                                  (a_template_param_constant_kind)tpck_sizeof);
+                is_sizeof = tpck_is(con, tpck_sizeof);
                 set_unsigned_integer_constant(
                                   constant, is_sizeof ?
                                     (a_host_large_unsigned)new_type->size :
