@@ -1,5 +1,18 @@
 Version 6.4
 
+3/7/22   [EDGcpfe/25134]
+C++-generating back end: Selecting from compound literals
+
+Consider in Clang C++ mode:
+
+  struct S { int i[3]; };
+  int *p = (S){ {1, 2, 3} }.i;
+
+The processing of the initializer for p previously caused the initializer as a
+whole to be marked as a compound literal, which resulted in the C++-generating
+back end mis-rendering that initializer.  That is now fixed.
+
+
 3/7/22   [EDGcpfe/24844]
 Missing copy elision after user-defined conversion
 

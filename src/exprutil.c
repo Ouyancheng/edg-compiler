@@ -22208,7 +22208,7 @@ rvalue of array type.  Don't check whether this decay is valid in the
 current mode -- just do it.
 */
 {
-  an_expr_node_ptr expr;
+  an_expr_node_ptr expr, base_expr;
   a_constant_ptr   conaddr = local_constant();
   an_operand       orig_operand;
   a_boolean        need_expr = FALSE, need_expr_for_constant = FALSE;
@@ -22226,9 +22226,11 @@ current mode -- just do it.
       ensure_inclass_static_member_constant_initializer_is_scanned(vp);
     }  /* if */
   }  /* if */
-  if (gnu_mode && !is_glvalue_node(expr) &&
-      is_constant_node(skip_parens(expr)) &&
-      (!curr_expr_kind_is_const() || curr_expr_kind_is_traditional_const())) {
+  base_expr = skip_parens(expr);
+  if (gnu_mode && !is_glvalue_node(base_expr) &&
+      is_constant_node(base_expr) &&
+      (!curr_expr_kind_is_const() || curr_expr_kind_is_traditional_const()) &&
+      node_constant(base_expr)->is_compound_literal) {
     /* In GNU mode, some compound literals are taken as array prvalue
        constants.  Convert such a constant to an lvalue for a temporary
        containing the constant, so we can do array decay on that.  Don't do
@@ -22237,8 +22239,8 @@ current mode -- just do it.
        be copied to a file-scope-allocated constant (as done by
        make_lvalue_operand_from_compound_constant), and (b) the expression
        might be folded below by a call to fold_constexpr_expr. */
-    expr = skip_parens(expr);
-    make_lvalue_operand_from_compound_constant(node_constant(expr), operand);
+    make_lvalue_operand_from_compound_constant(node_constant(base_expr),
+                                               operand);
     /* Restore the source position in case we give an error. */
     restore_operand_details(operand, &orig_operand);
     expr = make_node_from_operand(operand);
