@@ -2402,7 +2402,7 @@ is not already accounted for in the conversion.
     if (mandatory_copy_elision && is_immediate_class_type(param_utp) &&
         conversion->routine != NULL &&
         identical_types_ignoring_qualifiers(
-                     param_utp, return_type_of(conversion->routine->type))) {
+                       param_utp, return_type_of(conversion->routine->type))) {
       arg_summary->conversion.should_elide_ctor = TRUE;
     }  /* if */
   } else if (!conv_accounts_for_ref) {
