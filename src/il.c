@@ -20051,9 +20051,10 @@ options.
             if (tpck_is(con, tpck_typeid)) {
               /* typeid(...). */
               a_boolean is_cli_typeid = FALSE;
-              check_assertion(expr != NULL);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-              is_cli_typeid = cli_or_cx_enabled && expr->is_cli_typeid;
+              if (cli_or_cx_enabled && expr != NULL && expr->is_cli_typeid) {
+                is_cli_typeid = TRUE;
+              }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
               make_typeid_constant(new_type, is_cli_typeid, constant);
             } else if (tpck_is(con, tpck_noexcept)) {
