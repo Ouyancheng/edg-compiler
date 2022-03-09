@@ -116,6 +116,9 @@ of the host system.
 #ifndef MSVC_SUN_CONFIG
 #define MSVC_SUN_CONFIG 1
 #endif /* ifndef MSVC_SUN_CONFIG */
+#ifndef MSVC_IA64_CONFIG
+#define MSVC_IA64_CONFIG 0
+#endif /* MSVC_IA64_CONFIG */
 
 /* Base configuration. */
 #define OPTIMIZED_VERSION 0
@@ -197,6 +200,11 @@ of the host system.
 #define DEFAULT_SUN_COMPATIBILITY 0
 #define DEFAULT_SUN_LINKER_SCOPE_ALLOWED 0
 #endif /* MSVC_SUN_CONFIG */
+
+#if MSVC_IA64_CONFIG
+#define IA64_ABI 1
+#define INCLUDE_ADDITIONAL_TARGET_CONFIGURATION 0
+#endif /* MSVC_IA64_CONFIG */
 
 #endif /* MSVC_IDE_VERSION */
 
@@ -1055,10 +1063,6 @@ command-line when compiling system headers.
 #else /* !(defined(__APPLE__) && defined(__MACH__)) */
 #ifdef __CYGWIN__
 
-#ifndef INCLUDE_ADDITIONAL_TARGET_CONFIGURATIONS
-#define INCLUDE_ADDITIONAL_TARGET_CONFIGURATIONS 0
-#endif /* INCLUDE_ADDITIONAL_TARGET_CONFIGURATIONS */
-
 /* Options for Windows/Cygwin version. */
 #ifndef DEFAULT_INSTANTIATION_MODE
 #define DEFAULT_INSTANTIATION_MODE tim_all
@@ -1238,7 +1242,7 @@ command-line when compiling system headers.
 
 #endif /* defined(__x86_64) */
 
-#if INCLUDE_ADDITIONAL_TARGET_CONFIGURATIONS
+#if INCLUDE_ADDITIONAL_TARGET_CONFIGURATION
 #define LEGACY_TARGET_CONFIGURATION_NAME "cygwin"
 
 /* Target configuration: win64 */
@@ -1886,7 +1890,7 @@ command-line when compiling system headers.
 #define TARG_ZERO_WIDTH_BIT_FIELD_AFFECTS_STRUCT_ALIGNMENT_linux_i686 1
 #define TARG_ZERO_WIDTH_BIT_FIELD_ALIGNMENT_linux_i686 4
 
-#endif /* INCLUDE_ADDITIONAL_TARGET_CONFIGURATIONS */
+#endif /* INCLUDE_ADDITIONAL_TARGET_CONFIGURATION */
 
 #else /* ifndef __CYGWIN__ */
 /* Options for UnixWare test version. */
