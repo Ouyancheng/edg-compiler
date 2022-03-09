@@ -4881,14 +4881,15 @@ position is available.
     if (is->init_con != NULL) {
       is->init_con->is_pack_expansion = TRUE;
     } else if (is->init_dip != NULL) {
-      if (is->init_dip->kind == (a_dynamic_init_kind)dik_expression ||
-          is->init_dip->kind ==
-                              (a_dynamic_init_kind)dik_class_result_via_ctor) {
+      if (dyn_init_is(is->init_dip, dik_expression) ||
+          dyn_init_is(is->init_dip, dik_class_result_via_ctor)) {
         is->init_dip->variant.expression->is_pack_expansion = TRUE;
-      } else if (is->init_dip->kind == (a_dynamic_init_kind)dik_constant ||
-                 is->init_dip->kind ==
-                              (a_dynamic_init_kind)dik_nonconstant_aggregate) {
+      } else if (dyn_init_is(is->init_dip, dik_constant) ||
+                 dyn_init_is(is->init_dip, dik_nonconstant_aggregate)) {
         is->init_dip->variant.constant.ptr->is_pack_expansion = TRUE;
+      } else if (dyn_init_is(is->init_dip, dik_constructor) &&
+                 is->init_dip->variant.constructor.args != NULL) {
+        is->init_dip->variant.constructor.args->is_pack_expansion = TRUE;
       }  /* if */
     }  /* if */
   }  /* if */
