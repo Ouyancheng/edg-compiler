@@ -1,5 +1,23 @@
 Version 6.4
 
+3/8/22   [EDGcpfe/25131]
+C++-generating back end: Variadic construction arguments
+
+Consider:
+
+  struct S { int i; };
+  template<typename... Ts> S h(Ts ...ps) {
+    S x(ps...);  // Previously misrendered as "S x(ps);"
+    return x;
+  }
+  template S h();
+
+The front end previously did not correctly record that the argument to the
+initialization of x is a pack expansion.  In turn, that caused the C++-
+generating back end to erroneously leave out the pack expansion ellipsis.
+That is now fixed.
+
+
 3/7/22   [EDGcpfe/25134]
 C++-generating back end: Selecting from compound literals
 

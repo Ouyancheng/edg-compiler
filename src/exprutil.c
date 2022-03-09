@@ -15287,7 +15287,7 @@ e.g., if the source operand is an lvalue.
                                   /*lvalue_expected=*/TRUE,
                                   /*rvalue_expected=*/FALSE);
       }  /* if */
-      if (source_form == csf_functional) {
+      if (source_form == csf_functional || source_form == csf_none) {
         opexpr = make_node_from_operand_for_expr_list(operand);
       } else {
         opexpr = make_node_from_operand(operand);
