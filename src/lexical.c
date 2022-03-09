@@ -27004,6 +27004,8 @@ of the front end.
   num_id_representations_allocated = 0;
   num_spelling_storage_buffers_allocated = 0;
   spelling_storage_buffer_space = 0;
+  spelling_storage_buffer_head = NULL;
+  spelling_storage_buffer_tail = NULL;
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
 #endif /* DEBUG */
 #if EXPENSIVE_CHECKING

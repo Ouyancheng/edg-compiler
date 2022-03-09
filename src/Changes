@@ -1,5 +1,13 @@
 Version 6.4
 
+3/9/22   [EDGcpfe/25138]
+Multiple compilations with Unicode vulnerability checking
+
+The changes for EDGcpfe/24995 failed to reinitialize certain static
+variables for successive translation units, likely leading to aborts and
+other incorrect behavior.  This is now fixed.
+
+
 3/8/22   [EDGcpfe/25131]
 C++-generating back end: Variadic construction arguments
 
