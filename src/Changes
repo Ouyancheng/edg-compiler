@@ -1,5 +1,17 @@
 Version 6.4
 
+3/9/22   [EDGcpfe/25139]
+Spurious const qualification of temporary in lowered variable initialization
+
+Lowering of aggregate constants can sometimes result in the creation of a
+temporary variable to hold the aggregate constant and in some cases that
+variable had been erroneously const-qualified, resulting in diagnostics when
+compiling the generated C code.  For example (with --clang_version 110100):
+
+  struct S { int i[3]; };
+  int *p = (S){ {1, 2, 3} }.i;
+
+
 3/9/22   [EDGcpfe/25138]
 Multiple compilations with Unicode vulnerability checking
 
