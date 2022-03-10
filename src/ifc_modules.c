@@ -3832,6 +3832,8 @@ associated storage for the final token seen during parsing.
   decl_state->starting_token_sequence_number = curr_token_sequence_number;
   decl_state->final_token_ptr = final_token;
   decl_state->enclosing_scope = encl_scope;
+  decl_state->orig_decl_level = decl_scope_level;
+  decl_state->effective_decl_level = decl_scope_level;
 }  /* prepare_cached_template_parse */
 
 

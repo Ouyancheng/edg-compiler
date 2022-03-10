@@ -18150,7 +18150,9 @@ template declaration and is NULL otherwise.
     } else {
       /* For variable templates, the variable is created by the call to
          create_variable_template_symbol.  Fill in the type now. */
-      sym = create_variable_template_symbol(templ_state, locator);
+      check_assertion(!templ_state->is_partial_specialization);
+      sym = create_variable_template_symbol(templ_state, locator,
+                                            NO_SCOPE_NUMBER);
     }  /* if */
     var_templ_tssp = sym->variant.template_info;
     var = var_templ_tssp->variant.variable.prototype_variable;

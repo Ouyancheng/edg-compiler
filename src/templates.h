@@ -1206,8 +1206,9 @@ extern a_symbol_ptr variable_template_partial_specialization(
 				a_symbol_locator	*locator);
 
 extern a_symbol_ptr create_variable_template_symbol(
-                                  a_tmpl_decl_state_ptr            decl_state,
-                                  a_symbol_locator                 *locator);
+                                  a_tmpl_decl_state_ptr    decl_state,
+                                  a_symbol_locator         *locator,
+                                  a_scope_number           primary_decl_scope);
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern a_boolean is_start_of_generic_decl(void);

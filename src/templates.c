@@ -27909,11 +27909,14 @@ Create the variable entry variable template specified by template_sym.
 
 
 a_symbol_ptr create_variable_template_symbol(
-                                  a_tmpl_decl_state_ptr            decl_state,
-                                  a_symbol_locator                 *locator)
+                                  a_tmpl_decl_state_ptr     decl_state,
+                                  a_symbol_locator          *locator,
+                                  a_scope_number            primary_decl_scope)
 /*
 Create the symbol entry, template symbol supplement, etc. for the
-variable template specified by locator.  Return the symbol.
+variable template specified by locator.  Return the symbol.  If this is for a
+partial specialization, primary_decl_scope is the scope number associated with
+the primary template entry.
 */
 {
   a_symbol_ptr				sym;
@@ -27927,6 +27930,11 @@ variable template specified by locator.  Return the symbol.
     sym = alloc_symbol((a_symbol_kind)sk_variable_template,
                        locator->symbol_header,
                        &locator->source_position);
+    /* The call to alloc_symbol doesn't set decl_scope, and the below call to
+       create_prototype_variable will propagate that to the prototype
+       instantiation.  Set it here to ensure the prototype instantiation has
+       the correct decl_scope. */
+    sym->decl_scope = primary_decl_scope;
   }  /* if */
   set_membership_of_template(decl_state, sym);
   tssp = sym->variant.template_info;
@@ -28014,7 +28022,9 @@ and returned.  Otherwise, NULL is returned.
     decl_state->decl_scope_err = TRUE;
   } else if (sym == NULL) {
     /* Create the symbol and associated entries for the variable template. */
-    sym = create_variable_template_symbol(decl_state, locator);
+    check_assertion(!decl_state->is_partial_specialization);
+    sym = create_variable_template_symbol(decl_state, locator,
+                                          NO_SCOPE_NUMBER);
     decl_state->is_var_templ_initial_decl = TRUE;
   }  /* if */
   return sym;
@@ -28046,7 +28056,8 @@ return an error variable template symbol.
                  orig_sym);
     decl_state->decl_scope_err = TRUE;
     set_to_named_error_locator(*locator);
-    ps_sym = create_variable_template_symbol(decl_state, locator);
+    ps_sym = create_variable_template_symbol(decl_state, locator,
+                                             NO_SCOPE_NUMBER);
   } else {
     a_symbol_ptr			primary_sym;
     a_template_symbol_supplement_ptr	primary_tssp;
@@ -28075,8 +28086,8 @@ return an error variable template symbol.
       a_variable_ptr			ps_var;
       a_template_symbol_supplement_ptr	tssp;
       decl_state->decl_parse->first_decl = TRUE;
-      ps_sym = create_variable_template_symbol(decl_state, locator);
-      ps_sym->decl_scope = primary_sym->decl_scope;
+      ps_sym = create_variable_template_symbol(decl_state, locator,
+                                               primary_sym->decl_scope);
       tssp = ps_sym->variant.template_info;
       tssp->primary_template_sym = primary_sym;
       ps_var = variable_for_symbol(ps_sym);
@@ -28325,7 +28336,8 @@ supplement for this template should be returned to the caller.
   }  /* if */
   if (err) {
     set_to_named_error_locator(*locator);
-    sym = create_variable_template_symbol(decl_state, locator);
+    sym = create_variable_template_symbol(decl_state, locator,
+                                          NO_SCOPE_NUMBER);
     decl_state->decl_scope_err = TRUE;
   } else {
     dps->sym = var_sym;
