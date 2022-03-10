@@ -31963,7 +31963,8 @@ that case.
          to be able to compile the GCC standard library, libstdc++). */
       result_is_a_glvalue = TRUE;
       result_is_an_xvalue = TRUE;
-    } else if (!gpp_version_is(<100000) &&
+    } else if (!(gpp_version_is(<100000) &&
+                 (is_an_lvalue(&operand_2) || is_an_lvalue(&operand_3))) &&
                (!microsoft_mode || ms_strict_ternary) &&
                (is_throw_operand(&operand_2) ? !is_throw_operand(&operand_3)
                                              : is_throw_operand(&operand_3))) {

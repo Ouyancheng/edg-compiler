@@ -1,5 +1,23 @@
 Version 6.4
 
+3/10/22  [EDGcpfe/23957]
+GNU C++ compatibility: Value category of conditional operator
+
+Consider:
+
+  struct S { S(S&&) = delete; };
+  void g(bool b, S s) {
+    S &&rr = b ? (S&&)s : throw "except";  // Previously an error in some
+  }                                        // GNU C++11 modes.
+
+The conditional expression in this example is an xvalue, but in GNU C++11 modes
+with gnu_version < 100000 it was previously treated as a prvalue, and thus
+triggered an error for attempting to call the move constructor of S.  That is
+now fixed.  (GCC versions prior to 10.x exhibit some nonstandard value category
+behavior in related cases, and the front end continues to handle those cases
+like GCC in the matching GCC modes.)
+
+
 3/9/22   [EDGcpfe/25139]
 Spurious const qualification of temporary in lowered variable initialization
 
