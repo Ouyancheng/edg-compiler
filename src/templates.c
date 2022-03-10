@@ -33436,8 +33436,7 @@ differs between function and nonfunction declarations.
     ssep = scope_stack_entry_for(ssep->decl_scope_level);
   }  /* while */
   depth = scope_depth_of(ssep);
-  decl_state->is_member_decl =
-                           ssep->kind == (a_scope_kind)sck_class_struct_union;
+  decl_state->is_member_decl = scope_is(ssep, sck_class_struct_union);
   /* Save the depth we found for potential use in error recovery before
      it might be changed below. */
   decl_state->err_decl_level = depth;

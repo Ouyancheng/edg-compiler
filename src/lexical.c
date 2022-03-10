@@ -26225,8 +26225,11 @@ formatting.
       fprintf(f_debug, "%s", add_new_line ? ";\n" : ";");
       do_indent(&k);
     } else if (temp_text_buffer[k] == '\n') {
-      (void)fputc('\n', f_debug);
-      do_indent(&k);
+      if (k<2 || temp_text_buffer[k-1] != '\n' ||
+          temp_text_buffer[k-2] != '\n') { 
+        (void)fputc('\n', f_debug);
+        do_indent(&k);
+      }  /* if */
     } else {
       /* Just put out the character. */
       (void)fputc(temp_text_buffer[k], f_debug);

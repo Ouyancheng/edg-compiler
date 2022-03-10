@@ -4572,17 +4572,43 @@ template's IFC description structure.
       idstp->properties & ifc_ReachableProperties_Initializer) {
     /* The template has a reachable definition (IFC files sometimes include
        definitions even when they are not reachable): Load it. */
-    a_token_cache  cache;
-    a_boolean      saved_suppress_default_arguments =
+    a_template_ptr  templ;
+    a_token_cache   cache;
+    a_boolean       saved_suppress_default_arguments =
                                           ifc_mod->suppress_default_arguments;
     ifc_mod->suppress_default_arguments = already_declared;
     clear_token_cache(&cache, /*reusable=*/FALSE);
     ifc_mod->cache_decl_template(&cache, idstp);
     terminate_token_cache(&cache);
     ifc_mod->suppress_default_arguments = saved_suppress_default_arguments;
-    mep->entity.ptr = (char*)parse_cached_template(&cache, mep->scope);
+    templ = parse_cached_template(&cache, mep->scope);
+    mep->entity.ptr = (char*)templ;
     mep->entity.kind = iek_template;
     result = TRUE;
+    if (templ != NULL && templ->kind == (a_template_kind)templk_class) {
+      /* For a class template, check if it has any associated deduction guides.
+         Deduction guides are associated to the template through the IFC traits
+         mechanism. */
+      an_ifc_module  *itf = (an_ifc_module*)mep->module_info->module_interface;
+      ifc_DeclIndex  decl = itf->decl_index_of(mep);
+      Opt<an_ifc_Node<an_ifc_Trait_DeductionGuides>>
+                     opt_itdg;
+      find_trait<ifc_trait_deduction_guides>(&opt_itdg, itf, decl);
+      if (opt_itdg.has_value()) {
+        ifc_DeclIndex  guides_idx = (*opt_itdg)->trait;
+        a_module_entity_ptr  guides_mep =
+                                  itf->get_ifc_module_entity_ptr(guides_idx);
+        /* A single guide will have an ifc_DeclSort_Template entry directly
+           associated with it, but it doesn't record the parent scope: So set
+           it here (a guide is required to be declared in the same scope as the
+           class template).  If there are multiple guides, guides_mep will
+           be for an ifc_DeclSort_Tuple entry instead (and its treatment will
+           propagate the parent scope). */
+        guides_mep->scope = templ->source_corresp.parent_scope;
+        itf->process_ifc_declaration(guides_mep, /*defer=*/FALSE,
+                                      (a_type*)NULL);
+      }  /* if */
+    }  /* if */
   }  /* if */
   /* Compute the DeclIndex of the current template and retrieve the sequence
      of explicit specializations and instantiations. */
@@ -5317,7 +5343,8 @@ class_struct_union_case:
                                                 ifc_DeclSort_Enumerator,
                                                 idsep->initializer.start + i));
                 emep->scope = enum_scope;
-                process_ifc_declaration(emep, /*defer=*/FALSE, enum_type);
+                this->process_ifc_declaration(emep, /*defer=*/FALSE,
+                                              enum_type);
               }  /* for */
               integer_type_supp(enum_type)->enumerator_list_seen = TRUE;
             }  /* if */
@@ -5401,12 +5428,20 @@ class_struct_union_case:
         break;
       case ifc_DeclSort_Template:
         { an_ifc_DeclSort_Template idst, *idstp;
+          a_boolean                is_deduction_guide = FALSE;
           idstp = get_DeclSort_Template(&idst);
           if (!init_decl_locator(idstp, &loc)) {
             goto invalid;
           }  /* if */
+          if (idstp->type == 0) {
+            /* Deduction guide templates have no associated type.  They are
+               driven by the IFC "traits" system instead of by lookup (which
+               means they are never "deferred"). */
+            is_deduction_guide = TRUE;
+            check_assertion(!defer);
+          }  /* if */
           /* FIXME: This should be a soft failure. */
-          check_assertion(idstp->name != 0);
+          check_assertion(idstp->name != 0 || is_deduction_guide);
           if (defer) {
             defer_symbol_creation(mep, &loc);
           } else {
@@ -5427,8 +5462,10 @@ class_struct_union_case:
               mep->scope = get_ifc_home_scope(idstp);
               scope_pushed = push_module_declaration_context(mep->scope);
             }  /* if */
-            type = type_for_type_index(idstp->type, &nt_kind);
-            if (!type_is(type, tk_routine)) {
+            type = is_deduction_guide ?
+                                   NULL :
+                                   type_for_type_index(idstp->type, &nt_kind);
+            if (!is_deduction_guide && !type_is(type, tk_routine)) {
               /* Do not call ifc_decl_is_ignorable_redecl here for function
                  templates since they can be overloaded. */
               if (ifc_decl_is_ignorable_redecl(&loc, mep, &error_position,
@@ -5845,12 +5882,23 @@ class_struct_union_case:
           goto unhandled;
         }
       case ifc_DeclSort_Tuple:
-        { an_ifc_DeclSort_Tuple idst;
-          get_DeclSort_Tuple(&idst);
-          /* FIXME: Need a proper source position here. */
-          error_position = null_source_position;
-          goto unhandled;
+        { an_ifc_DeclSort_Tuple idst, *idstp;
+          idstp = get_DeclSort_Tuple(&idst);
+          for (unsigned k = 0; k < idstp->cardinality; ++k) {
+            a_module_entity_ptr  emep;
+            ifc_DeclIndex        declidx;
+            declidx = (ifc_DeclIndex)read_index_from_heap(ifc_heap_decl,
+                                                          idstp->start+k);
+            emep = get_ifc_module_entity_ptr(declidx);
+            /* In at least some cases (the handling of deduction guides), the
+               caller will have filled-in mep-scope and that should be
+               propagated to the individual associated declarations. */
+            emep->scope = mep->scope;
+            this->process_ifc_declaration(emep, /*defer=*/FALSE,
+                                          (a_type*)NULL);
+          }  /* for */
         }
+        break;
       case ifc_DeclSort_Expansion:
         { an_ifc_DeclSort_Expansion idse, *idsep;
           idsep = get_DeclSort_Expansion(&idse);
@@ -13085,13 +13133,13 @@ if there is no offset/the offset is not needed.
   /* Reconstruct the template-head. */
   cache_template_head(cache, decl->chart, &pos);
   /* FIXME: Handle attributes. */
-  type = type_for_type_index(decl->type, &kind);
-  check_assertion(type != NULL);
-  if (type_is(type, tk_unknown)) {
+  type = decl->type == 0 ? (a_type_ptr)NULL
+                         : type_for_type_index(decl->type, &kind);
+  if (type != NULL && type_is(type, tk_unknown)) {
     /* As of IFC 0.31, this should no longer be encountered (alias templates
        are now handled by DeclSort::Alias). */
     unexpected_condition_str("Unexpected alias template");
-  } else if (is_class_struct_union_type(type)) {
+  } else if (type != NULL && is_class_struct_union_type(type)) {
     cache_type(cache, decl->type, &decl->locus);
     offset = try_cache_class_attributes_from_body(cache, decl->entity.body);
     cache_name(cache, decl->name, &decl->locus);
