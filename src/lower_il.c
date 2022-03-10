@@ -4336,8 +4336,13 @@ constant is being assigned, e.g.,
     troublesome = TRUE;
     /* See if the variable has been allocated already.  If so, a pointer to
        the variable will have been stored in the constant; otherwise one
-       will be created. */
-    assoc_var = assoc_var_for_constant(constant, /*const_okay=*/FALSE);
+       will be created.  Use a const-qualified variable for the (possibly
+       lowered) ptr-to-mbr and string cases (but not for aggregates). */
+    a_boolean const_okay = !constant_is(constant, ck_aggregate);
+    if (is_or_was_ptr_to_member_function_type(constant->type)) {
+      const_okay = TRUE;
+    }  /* if */
+    assoc_var = assoc_var_for_constant(constant, const_okay);
   }  /* if */
   *temp_var = assoc_var;
   return troublesome;
