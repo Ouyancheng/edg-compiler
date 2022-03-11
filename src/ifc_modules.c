@@ -4595,7 +4595,7 @@ template's IFC description structure.
                      opt_itdg;
       find_trait<ifc_trait_deduction_guides>(&opt_itdg, itf, decl);
       if (opt_itdg.has_value()) {
-        ifc_DeclIndex  guides_idx = (*opt_itdg)->trait;
+        ifc_DeclIndex        guides_idx = (*opt_itdg)->trait;
         a_module_entity_ptr  guides_mep =
                                   itf->get_ifc_module_entity_ptr(guides_idx);
         /* A single guide will have an ifc_DeclSort_Template entry directly
@@ -5891,7 +5891,7 @@ class_struct_union_case:
                                                           idstp->start+k);
             emep = get_ifc_module_entity_ptr(declidx);
             /* In at least some cases (the handling of deduction guides), the
-               caller will have filled-in mep-scope and that should be
+               caller will have filled in mep->scope and that should be
                propagated to the individual associated declarations. */
             emep->scope = mep->scope;
             this->process_ifc_declaration(emep, /*defer=*/FALSE,
