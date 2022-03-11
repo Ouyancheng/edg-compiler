@@ -1,5 +1,28 @@
 Version 6.4
 
+3/11/22  [EDGcpfe/19139,EDGcpfe/24638,EDGcpfe/24919]
+Range-based for iteration driven by arithmetic types
+
+Consider:
+
+  struct S {
+    struct It {
+      operator int&();
+      int operator*() const;
+    };
+    It begin(), end();
+  };
+  void g() {
+    for (int x : S{}) {}  // Previously an error.  Now okay.
+  }
+
+Previously, the example resulted in an error because the "iterator increment"
+operation implied by the range-based for loop only considered user-defined
+operator++ implementations or the increment operator being applied to a pointer
+type.  In this example, however, it is validly applied to type int (after a
+user-defined conversion from type S::It).  That is now fixed.
+
+
 3/10/22  [EDGcpfe/23957]
 GNU C++ compatibility: Value category of conditional operator
 
