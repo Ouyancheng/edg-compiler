@@ -12868,6 +12868,7 @@ variables declared in cmd_line.h.
   check_unicode_security = FALSE;
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
   old_id_chars = FALSE;
+  keep_restrict_in_signatures = FALSE;
 }  /* cmd_line_static_var_init */
 
 

@@ -1,5 +1,14 @@
 Version 6.4
 
+3/11/22  [EDGcpfe/25146]
+keep_restrict_in_signatures not being initialized properly
+
+The changes for EDGcpfe/24520 (in version 6.3) did not initialize the global
+variable keep_restrict_in_signatures properly, which could cause spurious
+errors in configurations where MAKE_FRONT_END_CALLABLE is TRUE and a C program
+was compiled before a C++ program (within the same process).  Now fixed.
+
+
 3/11/22  [EDGcpfe/19139,EDGcpfe/24638,EDGcpfe/24919]
 Range-based for iteration driven by arithmetic types
 
