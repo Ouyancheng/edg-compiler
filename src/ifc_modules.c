@@ -13836,19 +13836,21 @@ specialization.
 
 
 template<typename an_ifc_DeclSort_T>
-static a_boolean has_function_definition(an_ifc_DeclSort_T *decl)
+static a_boolean function_is_user_defined(an_ifc_DeclSort_T *decl)
 /*
-Return TRUE if the given function-like IFC declaration node has a definition;
-otherwise, return FALSE.
+Return TRUE if the given function-like IFC declaration node has a definition
+that is not "= default" or "= delete"; otherwise, return FALSE.
 */
 {
   /* For the IFC to provide a function definition, the function must be
      constexpr and the definition must be exported (marked by the presence of a
      reachable initializer property). */
-  return decl->properties & ifc_ReachableProperties_Initializer &&
+  return (decl->properties & ifc_ReachableProperties_Initializer) &&
+         !(decl->traits & (ifc_FunctionTraits_Defaulted |
+                           ifc_FunctionTraits_Deleted)) &&
          (decl->traits & ifc_FunctionTraits_Constexpr ||
           decl->traits & ifc_FunctionTraits_Immediate);
-}  /* has_function_definition */
+}  /* function_is_user_defined */
 
 
 void an_ifc_module::cache_decl(a_token_cache_ptr cache,
@@ -14202,7 +14204,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
                             (ifc_FunctionTypeTraits)0, vendor_traits,
                             (ifc_TypeIndex)0, *opt_name_ref, params,
                             itstp->source, &itstp->eh_spec, &idscp->locus);
-        if (has_function_definition(idscp)) {
+        if (function_is_user_defined(idscp)) {
           /* A body is likely available: Record this availability using a
              pseudo-token that will be translated when the declaration is
              parsed. */
@@ -14239,7 +14241,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
                             (ifc_FunctionTypeTraits)0, vendor_traits,
                             (ifc_TypeIndex)0, *opt_name_ref, (ifc_ChartIndex)0,
                             (ifc_TypeIndex)0, &idsdp->eh_spec, &idsdp->locus);
-        if (has_function_definition(idsdp)) {
+        if (function_is_user_defined(idsdp)) {
           /* A body is likely available: Record this availability using a
              pseudo-token that will be translated when the declaration is
              parsed. */
