@@ -1,5 +1,26 @@
 Version 6.4
 
+3/14/22  [EDGcpfe/23960]
+Overloaded function templates and explicit template parameters
+
+When a function template is overloaded with a non-template function and
+used with an explicit template argument list in a context that does not
+permit overload resolution, the front end reported a spurious error instead
+of using the explicit template argument list to disambiguate the reference
+to the function template.  This is now fixed.  For example:
+
+  template<typename... _Args> void x(_Args&& ...);
+
+  int foo(int);
+
+  int bar(int);
+  template<int (*F)(int)> int bar(int);  // Overloaded with non-template bar
+
+  void f() {
+    x(bar<foo>);  // Previously "no instance of 'x' matches" error, now okay
+  }
+
+
 3/11/22  [EDGcpfe/25146]
 keep_restrict_in_signatures not being initialized properly
 

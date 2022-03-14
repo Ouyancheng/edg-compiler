@@ -35380,6 +35380,46 @@ the result is not constant) set *fatal to TRUE.
 }  /* concept_id_value */
 
 
+static a_symbol_ptr reduce_ovld_set_to_func_template(a_symbol_ptr     sym,
+                                                     a_symbol_locator *locator)
+/*
+If the overload set designated by sym contains a single function template
+for which the template argument list in *locator identifies a single
+specialization, return that template's symbol; otherwise, return NULL.
+*/
+{
+  a_symbol_ptr                    result = NULL;
+  an_overload_set_traversal_block ostblock;
+
+  check_assertion(symbol_is(sym, sk_overloaded_function) &&
+                  locator->is_template_id);
+  for (a_symbol_ptr proj_sym = set_up_overload_set_traversal_simple(sym,
+                                                                    &ostblock);
+       proj_sym != NULL;
+       proj_sym = next_symbol_in_overload_set(&ostblock)) {
+    a_symbol_ptr       base_sym = fundamental_symbol_of(proj_sym);
+    a_template_arg_ptr new_template_arg_list;
+    if (symbol_is(base_sym, sk_function_template) &&
+        explicit_arg_list_identifies_specialization(base_sym,
+                                                    locator->template_arg_list,
+                                                    &new_template_arg_list) !=
+                                                                        NULL) {
+      if (result != NULL) {
+        /* There is more than one matching function template in the
+           overload set; full overload resolution will be necessary. */
+        result = NULL;
+        break;
+      } else {
+        /* This is the first matching function template in the set.
+           Tentatively assume it is the only one. */
+        result = proj_sym;
+      }  /* if */
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* reduce_ovld_set_to_func_template */
+
+
 static void scan_identifier(an_operand               *result,
                             a_local_expr_options_set local_options,
                             int                      prec_level,
@@ -35499,6 +35539,22 @@ if rescan_is_template_id is TRUE, and return the result in *operand
     sym_ptr = coalesce_and_lookup_generalized_identifier(gid_options, ilm_expr,
                                                          &err);
     locator = locator_for_curr_id;
+    if (locator.is_template_id &&
+        symbol_is(sym_ptr, sk_overloaded_function)) {
+      /* An explicit template argument list was supplied.  If name lookup
+         returned an overload set, any ordinary functions are irrelevant.
+         If the overload set contains a single function template for which
+         the supplied argument list is sufficient to identify a single
+         specialization, replace the overload set by that function
+         template's symbol in order to avoid spurious overload resolution
+         errors. */
+      a_symbol_ptr template_sym = reduce_ovld_set_to_func_template(sym_ptr,
+                                                                   &locator);
+      if (template_sym != NULL) {
+        sym_ptr = template_sym;
+        locator.specific_symbol = template_sym;
+      }  /* if */
+    }  /* if */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
