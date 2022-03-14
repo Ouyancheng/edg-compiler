@@ -4282,9 +4282,11 @@ empty, the pointed to pointer should be NULL.
 
     clear_locator(&sym_loc, &pos);
     (void)find_symbol(name, strlen(name), &sym_loc);
-    add_to_param_id_list(&sym_loc, ptp->type, &pos, (a_storage_class)sc_auto,
-                         func_info, (a_source_sequence_entry_ptr)NULL,
-                         last_param_id, ptp->is_pack_element);
+    add_to_param_id_list(&sym_loc,
+                         make_qualified_type(ptp->type, ptp->qualifiers),
+                         &pos, (a_storage_class)sc_auto, func_info,
+                         (a_source_sequence_entry_ptr)NULL, last_param_id,
+                         ptp->is_pack_element);
     /* Merge the parameter with the corresponding type information. */
     a_param_id_ptr new_param_id = *last_param_id;
     new_param_id->declared_type = ptp->type;
