@@ -16184,7 +16184,7 @@ implicitly declared member functions.
       /* User-defined conversion function. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       a_param_type_ptr  ptp = rtsp->param_type_list;
-      if (is_static_member && ptp != NULL &&
+      if (is_static_member && ptp != NULL && !has_explicit_this &&
           !valid_static_conversion_class_type(ptp->type, class_type)) {
         /* A static conversion function for a conversion to the enclosing
            class type (instead of from the enclosing class type). */
