@@ -35539,7 +35539,7 @@ if rescan_is_template_id is TRUE, and return the result in *operand
     sym_ptr = coalesce_and_lookup_generalized_identifier(gid_options, ilm_expr,
                                                          &err);
     locator = locator_for_curr_id;
-    if (locator.is_template_id &&
+    if (locator.is_template_id && sym_ptr != NULL &&
         symbol_is(sym_ptr, sk_overloaded_function)) {
       /* An explicit template argument list was supplied.  If name lookup
          returned an overload set, any ordinary functions are irrelevant.
