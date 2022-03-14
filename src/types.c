@@ -6772,6 +6772,11 @@ for more information.
     identical = TRUE;
     goto done;
   }  /* if */
+  if (type_1 == NULL || type_2 == NULL) {
+    /* If one type or the other is not known, they cannot be identical. */
+    identical = FALSE;
+    goto done;
+  }  /* if */
   /* Now check for typeref equivalence: This includes type qualifiers and
      decltype/typeof constructs. */
 check_typerefs:
