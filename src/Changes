@@ -1,5 +1,20 @@
 Version 6.4
 
+3/14/22  [EDGcpfe/25150]
+GNU C++ compatibility: Flexible array members
+
+The changes for EDGcpfe/22387 (see entry of 10/20/20) introduced a GNU C++-mode
+regression in version 6.2 for the following case:
+
+  struct S {
+    int x[];  // Previously an error in GNU C++ mode.  Now okay.
+  };
+
+In C, a flexible array member cannot be the only member of a struct, and that
+restriction was accidentally carried over to GNU C++ mode by the changes of
+EDGcpfe/22387.  That is now fixed.
+
+
 3/11/22  [EDGcpfe/25146]
 keep_restrict_in_signatures not being initialized properly
 

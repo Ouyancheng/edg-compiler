@@ -20118,12 +20118,12 @@ declarations.
           /* The field has an incomplete array type, and it's a member of a
              struct or class.  This can sometimes be okay -- in Microsoft
              mode (both C and C++), Clang C++ mode, and, as long as it's not
-             the first named field, in C99 mode, Clang C mode, and GNU modes.
+             the first named field, in C99 mode, Clang C mode, and GNU C modes.
              As an extension, this is supported in other C modes (except in
              strict C89 mode). */
           if ((!class_state->is_first_field &&
                class_state->any_fields_other_than_unnamed_bitfields) ||
-              ms_extensions || (clang_mode && !C_mode())) {
+              ms_extensions || (clang_mode && !C_mode()) || gpp_mode) {
             /* A further restriction is that the incomplete array has to be
                the last field in the struct or class.  This can't always be
                determined simply by looking at the next token, so set a flag
