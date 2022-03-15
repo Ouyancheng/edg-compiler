@@ -17632,16 +17632,18 @@ there was an error.
   a_routine_ptr dtor_routine;
 
   dtor_routine = select_destructor_full(
-                                     class_type,
-                                     object_class_type,
-                                     position,
-                                     honor_virtual,
-                                     curr_expr_is_potentially_evaluated(),
-                                     /*instantiate=*/
-                                        (error_detected == NULL) &&
-                                        !expr_stack->is_default_arg_expression,
-                                     expr_access_checking_should_be_done(),
-                                     error_detected);
+                                    class_type,
+                                    object_class_type,
+                                    position,
+                                    honor_virtual,
+                                    expr_stack != NULL &&
+                                         curr_expr_is_potentially_evaluated(),
+                                    /*instantiate=*/
+                                    (error_detected == NULL) &&
+                                     (expr_stack == NULL ||
+                                      !expr_stack->is_default_arg_expression),
+                                    expr_access_checking_should_be_done(),
+                                    error_detected);
   return dtor_routine;
 }  /* expr_select_destructor_b */
 
@@ -17661,7 +17663,9 @@ Supplies some arguments from expression stack values.
 
   /* If errors are suppressed, get a returned variable instead of issuing
      any error. */
-  if (expr_stack->suppress_diagnostics) p_error_detected = &error_detected;
+  if (expr_stack != NULL && expr_stack->suppress_diagnostics) {
+    p_error_detected = &error_detected;
+  }  /* if */
   dtor_routine = expr_select_destructor_b(class_type,
                                           object_class_type,
                                           position,
@@ -17694,7 +17698,8 @@ set_temp_init_dynamic_init_lifetime, among others).
   if (expr_stack == NULL || !expr_stack->in_cctor_elision_initializer) {
     dtor = expr_select_destructor(class_type, object_class_type, position,
                                   /*honor_virtual=*/FALSE);
-    record_dtor_in_dynamic_init(dtor, dip, expr_stack->potentially_evaluated);
+    record_dtor_in_dynamic_init(dtor, dip, expr_stack == NULL ||
+                                           expr_stack->potentially_evaluated);
   } else {
     /* In a cctor elision expression.  Put the destructor in the entry,
        but do not do the access checking etc. at this time.  Build a fixup

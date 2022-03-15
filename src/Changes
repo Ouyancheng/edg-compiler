@@ -1,5 +1,25 @@
 Version 6.4
 
+3/15/22  [EDGcpfe/24790,EDGcpfe/25149]
+Default member initializers and destructor instantiations
+
+Consider:
+
+  template<typename T> struct X {
+    X(T*);
+    ~X() { sizeof(T); }
+  };
+  struct Undefined;
+  struct S {
+    X<Undefined> m{nullptr};  // Previously an error.  Now okay.
+  };
+
+Previously, this elicited an error from the front end because the destructor
+needed for the destruction of S::m was instantiated when parsing the default
+member initializer.  Now, that instantiation is delayed until the destructor
+is actually needed.
+
+
 3/14/22  [EDGcpfe/25150]
 GNU C++ compatibility: Flexible array members
 

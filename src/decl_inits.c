@@ -6181,7 +6181,7 @@ expressions.  For the latter, see init_capture_initializer below.)
     /* Scan the initializer. */
     braced_initializer(dtype, (an_init_component*)NULL, is,
                        (a_decl_parse_state*)NULL,
-                       /*fill_in_dtor=*/exceptions_enabled,
+                       /*fill_in_dtor=*/FALSE,
                        (an_init_component**)NULL, &init_pos);
   } else if (curr_token == tok_removed_expr) {
     /* We can get here with severe syntax errors.  Use an error constant to
@@ -9167,6 +9167,13 @@ initialized.  These are addressed in the course of the processing.
           has_field_init = TRUE;
           /* Ensure the field initializer is scanned if necessary. */
           scan_field_initializer_if_needed(field, class_type);
+          if (field->initializer != NULL) {
+            a_type_ptr  uftp = skip_typerefs(skip_array_types(field->type));
+            if (is_immediate_class_type(uftp)) {
+              add_dtor_to_dynamic_init(field->initializer, uftp, uftp,
+                                       &err_pos);
+            }  /* if */
+          }  /* if */
           if (user_defined && ctor_rout->is_constexpr) {
             if (field->initializer == NULL) {
               a_memory_region_number  saved_region;
