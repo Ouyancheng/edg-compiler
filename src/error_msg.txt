@@ -3330,6 +3330,7 @@ ec_member_function_modifier_on_template;;"function modifier does not apply to me
 ec_constexpr_too_many_nested_anonymous_types;;"member selection involves too many nested anonymous types"
 ec_no_common_type;;"there is no common type between the operands"
 ec_exp_pointer_to_member;;"expected a pointer-to-member"
+ec_lone_flexible_array_member;;"a flexible array member cannot be declared in an otherwise-empty type"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

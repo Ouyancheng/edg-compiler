@@ -26,13 +26,14 @@ GNU C++ compatibility: Flexible array members
 The changes for EDGcpfe/22387 (see entry of 10/20/20) introduced a GNU C++-mode
 regression in version 6.2 for the following case:
 
-  struct S {
+  struct B { int i; };
+  struct D: B {
     int x[];  // Previously an error in GNU C++ mode.  Now okay.
   };
 
-In C, a flexible array member cannot be the only member of a struct, and that
-restriction was accidentally carried over to GNU C++ mode by the changes of
-EDGcpfe/22387.  That is now fixed.
+In C, a flexible array member cannot be the only direct member of a struct, and
+that restriction was accidentally carried over to GNU C++ mode by the changes
+of EDGcpfe/22387.  That is now fixed: Inherited members are also considered.
 
 
 3/11/22  [EDGcpfe/25146]
