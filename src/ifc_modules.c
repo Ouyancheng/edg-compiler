@@ -5066,6 +5066,10 @@ class_struct_union_case:
               /* A class/struct/union type. */
               { a_type_ptr    class_type;
                 a_symbol_ptr  tag_sym;
+                if (idssp->properties & ifc_ReachableProperties_Initializer) {
+                  /* Record the presence of a definition. */
+                  mep->has_definition = TRUE;
+                }  /* if */
                 if (defer) {
                   defer_symbol_creation(mep, &loc);
                 } else {

@@ -8063,12 +8063,27 @@ redo:
                             ec_global_module_source_conflict, &error_position,
                             this_sym);
         }  /* if */
-      } else if (same_source_file(pos, &this_sym->decl_position)) {
+      } else if (same_source_file(pos, &this_sym->decl_position) ||
+                 is_class_struct_union_symbol(this_sym)) {
         /* The new entity is from a named module, but is likely compiled from
            the same source code "text" as the existing declaration.  This is
-           not valid, but accept it with a warning. */
+           not valid, but accept it with a warning.  Also, MSVC accepts the
+           declaration of a class type in one module and defining it in
+           another; again, that is not valid, but we accept it with a
+           warning. */
         pos_stsy_warning(ec_named_module_source_conflict, &error_position,
                          mep->module_info->name, this_sym);
+        if (is_class_struct_union_symbol(this_sym)) {
+          /* If we're seeing to class type entries, ensure that we'll handle
+             the one that has a definition associated with it. */
+          a_type_ptr  class_type = this_sym->variant.class_struct_union.type;
+          if (class_type->source_corresp.module_entity != NULL &&
+              !class_type->source_corresp.module_entity->has_definition) {
+            /* The existing entry has no definition associated with it.  So
+               continue with this new one. */
+            result = FALSE;
+          }  /* if */
+        }  /* if */
       } else {
         pos_stsy_diagnostic(es_discretionary_error,
                             ec_named_module_source_conflict, &error_position,
