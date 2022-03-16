@@ -16122,7 +16122,7 @@ into
                                   : temp2 < temp1 ? RT(1)
                                                   : RT(0)
 or, for pointer to function, pointer to member, and nullptr_t types:
-	x == y ? RT(0) ? RT(1)
+	x == y ? RT(0) : RT(1)
 */
 {
   an_expr_node_ptr  op1 = expr->variant.operation.operands;
@@ -16140,7 +16140,7 @@ or, for pointer to function, pointer to member, and nullptr_t types:
 #endif /* GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX */
       type_kind == (a_type_kind)tk_nullptr) {
     /* <=> just tests equality.  Replace x <=> y by:
-	     x == y ? RT(0) ? RT(1)
+	     x == y ? RT(0) : RT(1)
     */
     cmp = make_operator_node((an_expr_operator_kind)eok_eq,
                              integer_type((an_integer_kind)ik_int), op1);
