@@ -26020,6 +26020,7 @@ entry is needed.)
                              (a_scope_ptr)parent->entity.ptr);
       /* Don't add the current entry to the parent's list of children, and
          don't update the sibling pointer. */
+      parent->has_implicit_child = TRUE;
     } else if (in_file_scope(olp) == in_file_scope(parent)) {
       /* If the parent already has a list of children, add the new entry to
          the front of the list. */
