@@ -8074,14 +8074,14 @@ redo:
         pos_stsy_warning(ec_named_module_source_conflict, &error_position,
                          mep->module_info->name, this_sym);
         if (is_class_struct_union_symbol(this_sym)) {
-          /* If we're seeing to class type entries, ensure that we'll handle
+          /* If we're seeing two class type entries, ensure that we'll handle
              the one that has a definition associated with it. */
           a_type_ptr  class_type = this_sym->variant.class_struct_union.type;
           if (class_type->source_corresp.module_entity != NULL &&
               !class_type->source_corresp.module_entity->has_definition) {
             /* The existing entry has no definition associated with it.  So
                continue with this new one. */
-            result = FALSE;
+            result = NULL;
           }  /* if */
         }  /* if */
       } else {
