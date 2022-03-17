@@ -1,5 +1,23 @@
 Version 6.4
 
+3/17/22  [EDGcpfe/23962]
+Member functions in unnamed namespaces referenced in unevaluated contexts
+
+The front end previously issued a "declared but never referenced" warning
+for class member functions (but not for nonmember functions) declared in an
+unnamed namespace and referenced only in an unevaluated context.  This is
+now fixed, and member functions are treated like nonmember functions with
+respect to these warnings.  For example:
+
+  namespace {
+  struct S {
+    void f() { }
+  };
+  typedef decltype(S().f()) v;  // Previously did not suppress the "never
+                                // referenced" warning for S::f
+  }
+
+
 3/15/22  [EDGcpfe/24790,EDGcpfe/25149]
 Default member initializers and destructor instantiations
 

@@ -6040,7 +6040,7 @@ the outermost class was defined in an unnamed namespace.
                                          : ec_never_defined,
                           &rp->source_corresp.decl_position, rout_sym);
       }  /* if */
-    } else if (!rp->source_corresp.referenced &&
+    } else if (!rout_sym->referenced &&
                !rp->compiler_generated &&
                !rp->is_virtual &&
                !rp->is_defaulted &&
