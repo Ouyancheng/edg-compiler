@@ -1,5 +1,22 @@
 Version 6.4
 
+3/18/22  [EDGcpfe/23943]
+Assertion failure in type_is_lambda_in_default_argument
+
+An assertion failure (in type_is_lambda_in_default_argument) had occurred
+during the mangling of some lambdas that occur in default arguments and is now
+fixed.  For example (with --c++14):
+
+  struct B {
+    virtual ~B() = default;
+  };
+  template <typename T> struct D : B { };
+  template <typename T> D<T> f(const T&) {
+    return D<T>();
+  }
+  void foo(const B& xxx = f([](){})) {}
+
+
 3/17/22  [EDGcpfe/23962]
 Member functions in unnamed namespaces referenced in unevaluated contexts
 

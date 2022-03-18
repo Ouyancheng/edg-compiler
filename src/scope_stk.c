@@ -8371,6 +8371,41 @@ in the same order in which they were originally encountered.
 #endif /* MODULE_ID_NEEDED && !STANDALONE_UTILITY_PROGRAM */
 #if NEED_NAME_MANGLING
 
+static a_boolean ttt_has_parentless_lambda_in_default_argument(
+                                                     a_type_ptr type,
+                                                     a_boolean  *end_traversal)
+/*
+Return TRUE (and stop the type traversal) if the specified type (type) is
+a lambda type that is defined in a default argument but its parent pointer
+has not yet been set.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (type_is_lambda_closure(type) &&
+      symbol_supplement_for_class(type)->
+                            lambda_immediately_inside_default_arg_expression &&
+      class_type_supp(type)->lambda_parent.routine == NULL) {
+    *end_traversal = TRUE;
+    result = TRUE;
+  }  /* if */
+  return result;
+}  /* ttt_has_parentless_lambda_in_default_argument */
+
+
+static inline a_boolean has_parentless_lambda_in_default_argument(
+                                                               a_type_ptr type)
+/*
+Traverse the type to see if any template arguments contain lambdas in
+default arguments where the parent of the lambda has not yet been identified.
+*/
+{
+  return traverse_type_tree(type,
+                            ttt_has_parentless_lambda_in_default_argument,
+                            TTT_TEMPLATE_ARGS | TTT_SKIP_TYPEREFS);
+}  /* has_parentless_lambda_in_default_argument */
+
+
 static a_boolean must_wait_for_mangling_reasons(a_routine_ptr routine)
 /*
 Returns TRUE if the specified routine cannot be lowered at the present time
@@ -8428,6 +8463,12 @@ information that is not known yet.
                                                  is_struct_binding_container) {
         /* The mangled name for this lambda will depend on the names of
            binding variables and they aren't known yet. */
+        result = TRUE;
+        break;
+      }  /* if */
+      if (has_parentless_lambda_in_default_argument(type)) {
+        /* The mangling for a lambda in a default argument needs a parent
+           pointer, but that pointer may not be set yet. */
         result = TRUE;
         break;
       }  /* if */
