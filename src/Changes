@@ -1,5 +1,20 @@
 Version 6.4
 
+3/18/22  [EDGcpfe/25125]
+Microsoft compatibility: Enabling additional features
+
+Two changes have been made to be more compatible with later versions of
+Visual Studio.  Two C++23 features ("Deducing this" -- see EDGcpfe/24781, and
+"if consteval" -- see EDGcpfe/24773) are now enabled when --ms_c++latest is
+specified and microsoft_version >= 1932.
+
+Additionally, a new command-line option, --[no_]ms_stdc, is introduced to
+emulate the /Zc:__STDC__ Visual Studio command-line option.  When --ms_stdc
+is specified, the __STDC__ macro is defined to the value 1 (and is left unset
+when --no_ms_stdc is specified).  See also the DEFINE_STDC_IN_MICROSOFT_MODE
+configuration macro for the default behavior.
+
+
 3/18/22  [EDGcpfe/23943]
 Assertion failure in type_is_lambda_in_default_argument
 

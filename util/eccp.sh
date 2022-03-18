@@ -811,6 +811,7 @@ check_abbreviation()
 --ms_permissive
 --ms_rvalue_cast
 --ms_std_preprocessor
+--ms_stdc
 --ms_strict_ternary
 --ms_translate_include
 --mscorlib_file_name
@@ -902,6 +903,7 @@ check_abbreviation()
 --no_ms_mod_interface
 --no_ms_permissive
 --no_ms_rvalue_cast
+--no_ms_stdc
 --no_ms_strict_ternary
 --no_ms_translate_include
 --no_multibyte_chars
@@ -1467,6 +1469,8 @@ process_option()
          --ms_c11 | \
          --ms_c17 | \
          --ms_compatibility | \
+         --ms_stdc | \
+         --no_ms_stdc | \
          --ms_std_preprocessor | \
          --no_ms_compatibility | \
          --no_ms_std_preprocessor | \

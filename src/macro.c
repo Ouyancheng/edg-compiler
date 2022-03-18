@@ -10935,14 +10935,18 @@ command line -D options.
     if (stdc_zero_in_nonstrict_mode) {
       /* In this mode, __STDC__ is 1 in strict mode and 0 otherwise. */
       stdc_value = strict_ansi_mode;
+#if MICROSOFT_EXTENSIONS_ALLOWED
     } else if (microsoft_mode) {
-      /* The Microsoft compiler does not define __STDC__ in either C or
-         C++ mode when it supports extensions.  In some configurations,
-         defining __STDC__ in Microsoft emulation mode may be desirable,
-         particularly on Linux systems when GNU headers are used
-         (not defining __STDC__ can lead to "const" being defined as a
-         NULL macro when stdio.h is included). */
-      define_stdc = DEFINE_STDC_IN_MICROSOFT_MODE;
+      /* Early versions of the Microsoft compiler did not define __STDC__ in
+         either C or C++ mode when it supports extensions.  Recently, the
+         /Zc:__STDC__ command-line option has been added (emulated by the
+         --ms_stdc EDG command-line option) to force this definition.  In some
+         configurations, defining __STDC__ in Microsoft emulation mode may be
+         desirable, particularly on Linux systems when GNU headers are used
+         (not defining __STDC__ can lead to "const" being defined as a NULL
+         macro when stdio.h is included). */
+      define_stdc = ms_stdc;
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if OLD_STYLE_PREPROCESSING_IN_CFRONT_MODE
     } else if (any_cfront_mode()) {
       /* If configured to use old-style preprocessing in cfront

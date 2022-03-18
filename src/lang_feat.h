@@ -165,7 +165,8 @@ FALSE (as Microsoft compilers do not define it in either C or C++ mode),
 but should be set to TRUE in configurations where the system header files
 may be expecting it to be set (e.g., GNU headers on non-Windows platforms).
 Some versions of GNU's libio.h -- included by stdio.h -- define "const" to a
-NULL macro if __STDC__ isn't defined.
+NULL macro if __STDC__ isn't defined.  This is the default value for the
+ms_stdc global variable.
 */
 #ifndef DEFINE_STDC_IN_MICROSOFT_MODE
 #if EDG_WIN32

@@ -631,6 +631,12 @@ Initialize the option information table.
                          "no_ms_cplusplus_std_value",
                          '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
                          pchek_command_line);
+  add_option_description(optk_ms_stdc, "ms_stdc",
+                         '\0', /*value=*/TRUE, /*arg_required=*/FALSE,
+                         pchek_command_line);
+  add_option_description(optk_ms_stdc, "no_ms_stdc",
+                         '\0', /*value=*/FALSE, /*arg_required=*/FALSE,
+                         pchek_command_line);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if NEAR_AND_FAR_ALLOWED
   add_option_description(optk_far_data_pointers, "far_data_pointers",
@@ -3087,6 +3093,13 @@ option values if they were not already set by a command line option.
         /* Visual Studio versions 16.10 and 16.11. */
         if (ms_cpplatest_mode) {
           msvc_lang = "202004L";
+        }  /* if */
+      }  /* if */
+      if (microsoft_version >= 1932) {
+        if (ms_cpplatest_mode) {
+          /* These C++23 features are enabled in this mode. */
+          if_consteval_enabled = TRUE;
+          explicit_this_param_enabled = TRUE;
         }  /* if */
       }  /* if */
     } else {
@@ -10556,6 +10569,12 @@ enable_microsoft_mode:
         ms_cplusplus_std_value = opt_value;
         opt_value = TRUE;
         goto enable_microsoft_mode;
+      case optk_ms_stdc:
+        /* Emulate Microsoft's /Zc:__STDC__ switch (which also implies
+           Microsoft mode). */
+        ms_stdc = opt_value;
+        opt_value = TRUE;
+        goto enable_microsoft_mode;
       case optk_ms_std_preproc:
         ms_std_preproc = opt_value;
         opt_value = TRUE;
@@ -12524,6 +12543,7 @@ variables declared in cmd_line.h.
   variable_templates_enabled = FALSE;
   constexpr_if_enabled = FALSE;
   if_consteval_enabled = FALSE;
+  explicit_this_param_enabled = FALSE;
   alignas_enabled = FALSE;
   alignof_enabled = FALSE;
   pragma_pack_enabled = TRUE;
@@ -12759,6 +12779,7 @@ variables declared in cmd_line.h.
   ms_permissive = DEFAULT_MS_PERMISSIVE;
   ms_treat_copy_init_as_direct_init = FALSE;
   for_each_statement_enabled = FALSE;
+  ms_stdc = DEFINE_STDC_IN_MICROSOFT_MODE;
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 #ifdef _lint
   microsoft_mode = FALSE;

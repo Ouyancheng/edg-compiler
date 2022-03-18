@@ -315,6 +315,7 @@ typedef enum /*an_option_kind*/ {
   optk_ms_strict_ternary,
   optk_ms_cplusplus_std_value,
   optk_vcmeta_directory_name,
+  optk_ms_stdc,
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   optk_cpp03_mode,
   optk_func_prototype_tags,
@@ -1838,6 +1839,12 @@ EXTERN a_boolean
 			/* TRUE if MSVC's behavior of often treating copy
 			   initialization as direct initialization should be
 			   emulated. */
+
+EXTERN a_boolean
+		ms_stdc;
+			/* TRUE if __STDC__ should be defined.  Set via the
+			   --ms_stdc command-line option (or the
+			   DEFINE_STDC_IN_MICROSOFT_MODE macro). */
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
