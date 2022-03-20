@@ -1,5 +1,21 @@
 Version 6.4
 
+3/20/22  [EDGcpfe/25051]
+C++-generating back end: dependent function non-type template arguments
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end could add an "&" to
+a dependent function passed as to a non-type template parameter, even when
+there is no "&" in the original source.  This is now fixed.  For example:
+
+  template<typename T, T> struct b;
+  template<typename T> struct c {
+    static T f() {
+      b<T, f> d;  // Previously generated as b<a, &f>
+    }
+  };
+
+
 3/18/22  [EDGcpfe/25125]
 Microsoft compatibility: Enabling additional features
 
