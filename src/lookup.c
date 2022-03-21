@@ -3253,6 +3253,8 @@ NULL.
         result_sym = new_sym;
       }  /* if */
     } else {
+      /* An expression context: Instantiate each candidate and produce an
+         ad-hoc overload set if needed to combine those candidates. */
       a_partial_order_candidate_ptr  candidate = candidate_list,
                                      next_candidate;
       a_symbol_ptr                   instance_sym, new_sym, ovld_sym;
@@ -3265,10 +3267,13 @@ NULL.
                                            (a_boolean)locator->is_template_id,
                                            &locator->source_position);
         if (next_candidate == NULL && result_sym == NULL) {
+          /* There is only one candidate.  So we can use the symbol
+             directly. */
           result_sym = instance_sym;
         } else {
-          /* Make a copy since we may have to synthesize an overload set for
-             this case. */
+          /* Make a copy of the instance symbol since we may have to
+             synthesize an overload set for this case (which would overwrite
+             the "next" pointer of the original symbol). */
           new_sym = alloc_symbol((a_symbol_kind)sk_member_function,
                                  instance_sym->header,
                                  &instance_sym->decl_position);
