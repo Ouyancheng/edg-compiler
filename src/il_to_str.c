@@ -4659,6 +4659,54 @@ parentheses are not needed.
 }  /* form_lvalue_for_addressed_entity */
 
 
+static ttt_is_template_param_or_nonreal_type(a_type_ptr tp,
+                                             a_boolean *end_traversal)
+/*
+This function is called via traverse_type_tree from is_dependent_type.  If
+tp designates a tk_template_param type or a nonreal type, it sets
+*end_traversal to TRUE and returns TRUE; otherwise, it returns FALSE.
+*/
+{
+  a_boolean result = FALSE;
+
+  if (type_is(tp, tk_template_param) ||
+      (is_immediate_class_type(tp) &&
+       tp->variant.class_struct_union.is_nonreal_class) ||
+      (type_is(tp, tk_typeref) &&
+       (tp->variant.typeref.is_nonreal || tp->variant.typeref.is_dependent)) ||
+      (type_is(tp, tk_integer) &&
+       (tp->variant.integer.is_nonreal))) {
+    result = TRUE;
+    *end_traversal = TRUE;
+  }  /* if */
+  return result;
+}  /* ttt_is_template_param_or_nonreal_type */
+
+
+static a_boolean standalone_is_dependent_type(a_type_ptr  type_ptr)
+/*
+Return TRUE if the type pointed to by type_ptr is template-dependent, i.e.,
+it is a tk_template_param type, a nonreal type, or a dependent typeref.
+*/
+{
+  a_boolean result = FALSE;
+
+  /* Template parameter types come up only in C++ mode. */
+  if (!C_mode()) {
+    a_type_tree_traversal_flag_set ttt_flags = (TTT_RETURN_TYPE |
+                                                TTT_THIS_PARAM_TYPE |
+                                                TTT_PARAM_TYPES |
+                                                TTT_NONREAL_TEMPLATE_ARGS |
+                                                TTT_PARENT_CLASSES);
+
+    result = traverse_type_tree(type_ptr, 
+                                ttt_is_template_param_or_nonreal_type,
+                                ttt_flags);
+  }  /* if */
+  return result;
+}  /* standalone_is_dependent_type */
+
+
 static void form_address_constant(
                           a_constant_ptr                        constant,
                           a_boolean                             form_lvalue,
@@ -4794,7 +4842,7 @@ precedence confusion.  Do the output in the way described by octl.
   } else if (type_decay_used && octl->processing_nontype_template_argument &&
              is_pointer_type(orig_type) && desired_type != NULL &&
              is_function_type(desired_type) &&
-             !is_template_dependent_type(desired_type)) {
+             !standalone_is_dependent_type(desired_type)) {
     /* In case the template argument is being passed to a deduced template
        parameter, add the "&" to ensure that the constant has a pointer
        type in the generated code.  (The exclusion of dependent types is
