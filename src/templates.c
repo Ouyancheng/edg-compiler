@@ -13565,20 +13565,41 @@ This routine calls matches_template_type to determine whether the
 type specified by "type" matches the type specified by "templ_type" with
 appropriate substitution of the template parameters in "templ_type".
 We return TRUE if the types match.  This routine is an interface to
-matches template type that is used to evaluate the match for a
+matches_template_type that is used to evaluate the match for a
 single function parameter and then discard any template arguments that
 may have been deduced.  templ_arg_list is used in some nonstandard modes
 to introduce knowledge from previous arguments; in the standard case,
 it is always NULL.
 */
 {
-  a_boolean result;
+  a_boolean            result;
+  a_pack_reference_ptr prp = NULL;
+  a_template_arg_ptr   saved_prev_tap;
+  a_template_arg_ptr   saved_curr_tap;
 
   db_enter(5, "tentatively_matches_template_type");
+  /* Avoid changing any existing template arguments as a result of this
+     tentative comparison. */
   templ_arg_list = copy_template_arg_list(templ_arg_list);
+  if (pack_expansion_stack != NULL &&
+      pack_expansion_stack->instantiation_descr->pack_status->
+                                                   prev_template_arg != NULL) {
+    prp = pack_expansion_stack->instantiation_descr->pack_status;
+    saved_prev_tap = prp->prev_template_arg;
+    saved_curr_tap = prp->curr_argument.template_arg;
+    prp->prev_template_arg = copy_template_arg_list(prp->prev_template_arg);
+    prp->curr_argument.template_arg = prp->prev_template_arg->next;
+  }  /* if */
+  /* Check for a match. */
   result = matches_template_type(type, templ_type, &templ_arg_list,
                                  templ_param_list, MTT_NO_FLAGS);
+  /* Restore the previous template argument environment. */
   if (templ_arg_list != NULL) free_template_arg_list(templ_arg_list);
+  if (prp != NULL) {
+    free_template_arg_list(prp->prev_template_arg);
+    prp->prev_template_arg = saved_prev_tap;
+    prp->curr_argument.template_arg = saved_curr_tap;
+  }  /* if */
   db_exit();
   return result;
 }  /* tentatively_matches_template_type */
