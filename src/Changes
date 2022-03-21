@@ -1,5 +1,25 @@
 Version 6.4
 
+3/21/22  [EDGcpfe/24352,EDGcpfe/24727]
+Spurious ambiguity error on conversion function template
+
+Consider:
+
+  template<typename...> struct X {};
+  template<typename T, typename U> struct X<T, U> {
+    template<typename T> operator X<T>() = delete;
+    template<typename T> operator X<T>() const;
+    template<typename T> X<T> f() const {
+      return operator X<T>();  // (1)
+    }
+  };
+  X<int, char> xic;
+  X<int> xi = xic.f<int>();
+
+Previously, the instantiation of line (1) resulted in a spurious ambiguity
+error regarding the conversion function template.  That is now fixed.
+
+
 3/21/22  [EDGcpfe/23960]
 Explicit template argument list in overloaded nontype template argument to an
 rvalue reference parameter pack

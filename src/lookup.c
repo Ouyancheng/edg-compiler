@@ -3146,15 +3146,17 @@ a_symbol_ptr find_conversion_template_instance(
                         a_boolean                       match_fn_qualifiers,
                         a_type_qualifier_set            fn_qualifiers)
 /*
-locator is a symbol locator for a conversion function.
-conversion_templates is a list of conversion templates for the class
-in which the lookup is being done.  Go through the conversion template
-list and find any templates that can supply an appropriate conversion
-function.  If match_fn_qualifiers is TRUE, the conversion template must
-have the indicated qualifiers.
-Return the symbol for the matching function.  If more than one match is
-found, create an ambiguous symbol and return a pointer.
-If no match is found, return NULL.
+locator is a symbol locator for a conversion function.  conversion_templates
+is a list of conversion templates for the class in which the lookup is being
+done.  Go through the conversion template list and find any templates that can
+supply an appropriate conversion function.  If match_fn_qualifiers is TRUE,
+this is a declarative context and the conversion template must have the
+indicated qualifiers.  Otherwise, this is an expression context and multiple
+matches should be resolved through overload resolution.  Return the symbol for
+the matching function or an overloaded function symbol if there are multiple
+matches.  If more than one match is found and match_fn_qualifiers is TRUE,
+create an ambiguous symbol and return a pointer.  If no match is found, return
+NULL.
 */
 {
   a_symbol_list_entry_ptr	slep;
@@ -3172,8 +3174,7 @@ If no match is found, return NULL.
       goto done;
     }  /* if */
   }  /* if */
-  /* Loop though each of the templates.  Stop if we determine that the
-     lookup is ambiguous. */
+  /* Loop though each of the templates. */
   for (slep = conversion_templates; slep != NULL; slep = slep->next) {
     a_symbol_ptr			sym;
     a_symbol_ptr			fund_sym;
@@ -3227,29 +3228,76 @@ If no match is found, return NULL.
     a_boolean		ambiguous = FALSE;
     a_symbol_ptr	matching_sym = NULL;
     a_template_arg_ptr	matching_arg_list = NULL;
-    /* Select the best matching candidate and its template argument list. */
-    select_best_partial_order_candidate(candidate_list, (a_symbol_ptr)NULL,
-                                        &matching_sym, &matching_arg_list,
-                                        &ambiguous);
-    /* Find or create the template instance that matches the type needed.
-       Note that the template argument list is freed in the called function. */
-    result_sym = find_template_function(matching_sym, &matching_arg_list,
-					(a_boolean)locator->is_template_id,
-                                        &locator->source_position);
-    if (ambiguous || matching_sym->ambiguous) {
-      /* Create a copy of the result_sym and mark that copy as
-         ambiguous. */
-      a_symbol_ptr	new_sym;
-      new_sym = alloc_symbol((a_symbol_kind)sk_member_function,
-                             result_sym->header,
-                             &locator->source_position);
-      set_class_membership(new_sym, (a_source_correspondence*)NULL,
-                           sym_parent_class(result_sym));
-      new_sym->ambiguous = TRUE;
-      new_sym->variant.routine.ptr = result_sym->variant.routine.ptr;
-      new_sym->variant.routine.instance_ptr =
+    if (match_fn_qualifiers) {
+      /* Select the best matching candidate and its template argument list. */
+      select_best_partial_order_candidate(candidate_list, (a_symbol_ptr)NULL,
+                                          &matching_sym, &matching_arg_list,
+                                          &ambiguous);
+      /* Find or create the template instance that matches the type needed.
+         Note that the template argument list is freed in the called
+         function. */
+      result_sym = find_template_function(matching_sym, &matching_arg_list,
+                                          (a_boolean)locator->is_template_id,
+                                          &locator->source_position);
+      if (ambiguous || matching_sym->ambiguous) {
+        a_symbol_ptr  new_sym;
+        /* Create a copy of the result_sym and mark that copy as ambiguous. */
+        new_sym = alloc_symbol((a_symbol_kind)sk_member_function,
+                               result_sym->header, &locator->source_position);
+        set_class_membership(new_sym, (a_source_correspondence*)NULL,
+                             sym_parent_class(result_sym));
+        new_sym->ambiguous = TRUE;
+        new_sym->variant.routine.ptr = result_sym->variant.routine.ptr;
+        new_sym->variant.routine.instance_ptr =
                                      result_sym->variant.routine.instance_ptr;
-      result_sym = new_sym;
+        result_sym = new_sym;
+      }  /* if */
+    } else {
+      a_partial_order_candidate_ptr  candidate = candidate_list,
+                                     next_candidate;
+      a_symbol_ptr                   instance_sym, new_sym, ovld_sym;
+      for (; candidate != NULL; candidate = next_candidate) {
+        next_candidate = candidate->next;
+        candidate->next = NULL;
+        instance_sym = find_template_function(
+                                           candidate->symbol,
+                                           &candidate->template_arg_list,
+                                           (a_boolean)locator->is_template_id,
+                                           &locator->source_position);
+        if (next_candidate == NULL && result_sym == NULL) {
+          result_sym = instance_sym;
+        } else {
+          /* Make a copy since we may have to synthesize an overload set for
+             this case. */
+          new_sym = alloc_symbol((a_symbol_kind)sk_member_function,
+                                 instance_sym->header,
+                                 &instance_sym->decl_position);
+          *new_sym = *instance_sym;
+          new_sym->next = NULL;
+          new_sym->do_not_reuse = TRUE;
+          if (result_sym == NULL) {
+            result_sym = new_sym;
+          } else {
+            if (!symbol_is(result_sym, sk_overloaded_function)) {
+              ovld_sym = alloc_symbol((a_symbol_kind)sk_overloaded_function,
+                                      new_sym->header,
+                                      &locator->source_position);
+              ovld_sym->decl_scope = new_sym->decl_scope;
+              ovld_sym->decl_seq = new_sym->decl_seq;
+              set_class_membership(ovld_sym, (a_source_correspondence*)NULL,
+                                   sym_parent_class(result_sym));
+              ovld_sym->potentially_overloaded =
+                                              new_sym->potentially_overloaded;
+              ovld_sym->variant.overloaded_function.symbols = result_sym;
+              result_sym = ovld_sym;
+            }  /* if */
+            new_sym->next = result_sym->variant.overloaded_function.symbols;
+            result_sym->variant.overloaded_function.symbols = new_sym;
+            result_sym->potentially_overloaded |=
+                                              new_sym->potentially_overloaded;
+          }  /* if */
+        }  /* if */
+      }  /* if */
     }  /* if */
   }  /* if */
 done:
