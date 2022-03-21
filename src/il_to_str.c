@@ -4659,8 +4659,9 @@ parentheses are not needed.
 }  /* form_lvalue_for_addressed_entity */
 
 
-static ttt_is_template_param_or_nonreal_type(a_type_ptr tp,
-                                             a_boolean *end_traversal)
+static a_boolean ttt_is_template_param_or_nonreal_type(
+                                                     a_type_ptr tp,
+                                                     a_boolean  *end_traversal)
 /*
 This function is called via traverse_type_tree from is_dependent_type.  If
 tp designates a tk_template_param type or a nonreal type, it sets
