@@ -4659,13 +4659,13 @@ parentheses are not needed.
 }  /* form_lvalue_for_addressed_entity */
 
 
-static a_boolean ttt_is_template_param_or_nonreal_type(
-                                                     a_type_ptr tp,
-                                                     a_boolean  *end_traversal)
+static a_boolean ttt_is_dependent_type(a_type_ptr tp,
+                                       a_boolean  *end_traversal)
 /*
-This function is called via traverse_type_tree from is_dependent_type.  If
-tp designates a tk_template_param type or a nonreal type, it sets
-*end_traversal to TRUE and returns TRUE; otherwise, it returns FALSE.
+This function is called via traverse_type_tree from
+standalone_is_dependent_type.  If tp designates a tk_template_param type, a
+nonreal type, or a dependent type operator, it sets *end_traversal to TRUE
+and returns TRUE; otherwise, it returns FALSE.
 */
 {
   a_boolean result = FALSE;
@@ -4681,7 +4681,7 @@ tp designates a tk_template_param type or a nonreal type, it sets
     *end_traversal = TRUE;
   }  /* if */
   return result;
-}  /* ttt_is_template_param_or_nonreal_type */
+}  /* ttt_is_dependent_type */
 
 
 static a_boolean standalone_is_dependent_type(a_type_ptr  type_ptr)
@@ -4700,8 +4700,7 @@ it is a tk_template_param type, a nonreal type, or a dependent typeref.
                                                 TTT_NONREAL_TEMPLATE_ARGS |
                                                 TTT_PARENT_CLASSES);
 
-    result = traverse_type_tree(type_ptr, 
-                                ttt_is_template_param_or_nonreal_type,
+    result = traverse_type_tree(type_ptr, ttt_is_dependent_type,
                                 ttt_flags);
   }  /* if */
   return result;
