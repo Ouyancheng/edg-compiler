@@ -617,11 +617,11 @@ entries for this symbol header and process declarations for any that match the
 scope.
 */
 {
-  a_boolean           scope_pushed = FALSE;
-  a_module_entity_ptr mep, *mepp = &(sym_hdr->deferred_module_entities);
+  a_module_scope_push_kind scope_push_status = mspk_unattempted;
+  a_module_entity_ptr      mep, *mepp = &(sym_hdr->deferred_module_entities);
 
   check_assertion(sym_hdr->deferred_module_entities != NULL);
-  scope_pushed = push_module_declaration_context(scope);
+  push_module_declaration_context(scope, &scope_push_status);
   while (*mepp != NULL) {
     if ((*mepp)->scope == scope) {
 #if DEBUG
@@ -658,7 +658,7 @@ scope.
       mepp = &(*mepp)->next;
     }  /* if */
   }  /* for */
-  pop_module_declaration_context(scope_pushed);
+  pop_module_declaration_context(scope_push_status);
 }  /* define_names_from_scope */
 
 
@@ -674,14 +674,15 @@ contained in the module that provided the class.
 
   check_assertion(mep != NULL);
   if (!class_type->definition_pending && !mep->invalid) {
-    a_boolean  scope_pushed = FALSE;
+    a_module_scope_push_kind scope_push_status = mspk_unattempted;
+
     class_type->definition_pending = TRUE;
-    scope_pushed = push_module_declaration_context(mep->scope);
+    push_module_declaration_context(mep->scope, &scope_push_status);
     mep->module_info->module_interface
                     ->complete_definition_of_module_class(mep);
     /* Once the class is defined, there is no need for this information. */
     class_type->definition_pending = FALSE;
-    pop_module_declaration_context(scope_pushed);
+    pop_module_declaration_context(scope_push_status);
   }  /* if */
 }  /* complete_definition_of_module_class */
 

@@ -2206,9 +2206,18 @@ extern void make_class_definition_context_visible(void);
 
 extern void pop_namespace_scope(void);
 
-extern a_boolean push_module_declaration_context(a_scope_ptr scope);
+typedef enum /* a_module_scope_push_kind */ {
+  mspk_unattempted,     /* No push was performed. */
+  mspk_unneccessary,    /* The required scope was already in use. */
+  mspk_new              /* A new scope was pushed. */
+} a_module_scope_push_kind;
 
-extern void pop_module_declaration_context(a_boolean scope_pushed);
+extern void push_module_declaration_context(
+                                  a_scope_ptr              scope,
+                                  a_module_scope_push_kind *scope_push_status);
+
+extern void pop_module_declaration_context(
+                                   a_module_scope_push_kind scope_push_status);
 
 extern void set_template_decl_info_for_class_definition(
 				a_template_decl_info_ptr	tdip,

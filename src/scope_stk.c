@@ -3789,16 +3789,23 @@ scope.  A pointers block to be used for the scope may be specified (or NULL).
 
 /* FIXME: These routines are probably overly simplistic and probably have other
    cases to account for. */
-a_boolean push_module_declaration_context(a_scope_ptr scope)
+void push_module_declaration_context(
+                                   a_scope_ptr              scope,
+                                   a_module_scope_push_kind *scope_push_status)
 /*
 A reference to an entity in a module can occur in any scope and the reference
-has triggered the need to declare/define a module entity the scope specified
-by the argument.  If needed, push the new scope(s) and return TRUE.
+has triggered the need to declare/define a module entity the scope specified by
+the argument.  The scope_push_status should be a pointer to a result variable
+initialized to mspk_unattempted (the default initialization is important to
+verify the result variable is not being unintentionally recycled).  If needed,
+this function will push new scope(s) and set *scope_push_status to mspk_new;
+otherwise, *scope_push_status will be set to mspk_unneccessary.
 */
 {
-  a_boolean               result = FALSE;
-  a_scope_stack_entry_ptr ssep = &scope_stack_top();
+  a_scope_stack_entry_ptr  ssep = &scope_stack_top();
 
+  /* This should always be a fresh attempt, detect unintended reuse. */
+  check_assertion(*scope_push_status == mspk_unattempted);
   check_assertion(scope != NULL);
   if (ssep->il_scope != scope) {
     /* FIXME: This pushes an instantiation context, that's not an accurate
@@ -3842,7 +3849,7 @@ by the argument.  If needed, push the new scope(s) and return TRUE.
       ssep->il_scope = scope;
     }
     push_lexical_state_stack();
-    result = TRUE;
+    *scope_push_status = mspk_new;
   } else {
     ssep->module_load_context_count++;
     if (ssep->module_load_context_count == 1) {
@@ -3851,24 +3858,27 @@ by the argument.  If needed, push the new scope(s) and return TRUE.
       ssep->saved_curr_construct_pragmas = ssep->curr_construct_pragmas;
       ssep->curr_construct_pragmas = NULL;
     }  /* if */
+    *scope_push_status = mspk_unneccessary;
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   source_sequence_entries_disallowed = TRUE;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   check_assertion(ssep->module_load_context_count > 0);
   check_assertion(ssep->curr_construct_pragmas == NULL);
-  return result;
 }  /* push_module_declaration_context */
 
 
-void pop_module_declaration_context(a_boolean scope_pushed)
+void pop_module_declaration_context(a_module_scope_push_kind scope_push_status)
 /*
-If scope_pushed is TRUE, pop the scope(s) that have been pushed by
-push_module_declaration_context.
+If scope_push_status is mspk_new, pop the scope(s) that have been pushed by
+push_module_declaration_context.  If scope_push_status is mspk_unneccessary
+update the associated bookkeeping information.  This function should not be
+called if scope_push_status is mspk_unattempted.
 */
 {
+  check_assertion(scope_push_status != mspk_unattempted);
   process_deferred_class_fixups_and_instantiations(/*for_instantiation=*/TRUE);
-  if (scope_pushed) {
+  if (scope_push_status == mspk_new) {
     /* "Unwind" the scope stack removing the corresponding pushed scopes. */
     /* Remove the lexical scope. */
     pop_lexical_state_stack();

@@ -4660,16 +4660,16 @@ module, but its definition hasn't been loaded yet.  Load the definition now.
       a_module_entity_ptr       saved_mep = curr_module_entity;
       an_ifc_DeclSort_Template  idst, *idstp;
       a_curr_token_preserver    guard;
-      a_boolean                 scope_pushed;
+      a_module_scope_push_kind  scope_push_status = mspk_unattempted;
       curr_module_entity = mep;
-      scope_pushed = push_module_declaration_context(mep->scope);
+      push_module_declaration_context(mep->scope, &scope_push_status);
       idstp = ifc_mod->get_DeclSort_Template(&idst);
       result = an_ifc_module::process_template_definition(
                              templ->source_corresp.module_entity,
                              idstp,
                              /*already_declared=*/TRUE,
                              templ->kind == (a_template_kind)templk_function);
-      pop_module_declaration_context(scope_pushed);
+      pop_module_declaration_context(scope_push_status);
       curr_module_entity = saved_mep;
       error_position = saved_error_position;
     }  /* if */
@@ -4737,8 +4737,7 @@ principal associated IL entity.
                            psss;
   char                     *il_entity = NULL;
   a_byte_il_entry_kind     kind = iek_none;
-  a_boolean                scope_pushed = FALSE;
-  a_boolean                skip_pop = FALSE;
+  a_module_scope_push_kind scope_push_status = mspk_unattempted;
   a_diagnostic_suppression diag_suppress(&this->suppressed_diagnostics,
                                          !display_module_import_diagnostics);
   Value_saver<a_boolean>   checking_pragma_saver(&no_checking_pragmas, TRUE);
@@ -4770,6 +4769,7 @@ principal associated IL entity.
   if (!mep->imminent && mep->entity.ptr == NULL) {
     a_source_position   saved_error_position = error_position;
     a_module_entity_ptr saved_mep = curr_module_entity;
+
     curr_module_entity = mep;
     /* Read from the proper partition for this declaration. */
     {
@@ -4785,7 +4785,6 @@ principal associated IL entity.
       }  /* if */
       /* If the read failed, immediately skip to an invalid state. */
       if (!read_result) {
-        skip_pop = TRUE;
         goto invalid;
       }  /* if */
     }
@@ -4794,10 +4793,9 @@ principal associated IL entity.
     if (!defer) {
       mep->imminent = TRUE;
       if (mep->scope != NULL) {
-        /* If this module entity has a scope, re-activate it now (note that
-           if it's already activated, scope_pushed will be FALSE).  If it
-           does not already have a scope, one may be created below. */
-        scope_pushed = push_module_declaration_context(mep->scope);
+        /* If this module entity has a scope, attempt to re-activate it now.
+           If it does not already have a scope, one may be created below. */
+        push_module_declaration_context(mep->scope, &scope_push_status);
       }  /* if */
     }  /* if */
     switch (tag) {
@@ -4826,7 +4824,7 @@ principal associated IL entity.
             }  /* if */
             if (mep->scope == NULL) {
               mep->scope = get_ifc_home_scope(idsvp);
-              scope_pushed = push_module_declaration_context(mep->scope);
+              push_module_declaration_context(mep->scope, &scope_push_status);
             }  /* if */
             if (ifc_decl_is_ignorable_redecl(&loc, mep, &error_position,
                                              iek_variable, &il_entity,
@@ -4876,7 +4874,7 @@ principal associated IL entity.
                returning a lambda declared within the function). */
             if (mep->scope == NULL) {
               mep->scope = get_ifc_home_scope(idsfp);
-              scope_pushed = push_module_declaration_context(mep->scope);
+              push_module_declaration_context(mep->scope, &scope_push_status);
             }  /* if */
             init_dps(&dps, &idsfp->locus, idsfp->type, ifc_ObjectTraits_None,
                      ifc_MsvcTraits_None, idsfp->specifiers, idsfp->access,
@@ -4956,7 +4954,7 @@ principal associated IL entity.
           }  /* if */
           if (mep->scope == NULL) {
             mep->scope = get_ifc_home_scope(idssp);
-            scope_pushed = push_module_declaration_context(mep->scope);
+            push_module_declaration_context(mep->scope, &scope_push_status);
           }  /* if */
           if (scope_is(mep->scope, sck_class_struct_union)) {
             /* This is a child class.  It will have already been entered as a
@@ -5144,7 +5142,8 @@ class_struct_union_case:
                 /* A type alias; declare a typedef for this case. */
                 if (mep->scope == NULL) {
                   mep->scope = get_ifc_home_scope(idstap);
-                  scope_pushed = push_module_declaration_context(mep->scope);
+                  push_module_declaration_context(mep->scope,
+                                                  &scope_push_status);
                 }  /* if */
                 if (ifc_decl_is_ignorable_redecl(&loc, mep, &error_position,
                                                  iek_type, &il_entity,
@@ -5181,7 +5180,8 @@ class_struct_union_case:
               /* An alias template; declare a typedef for this case. */
               if (mep->scope == NULL) {
                 mep->scope = get_ifc_home_scope(idstap);
-                scope_pushed = push_module_declaration_context(mep->scope);
+                push_module_declaration_context(mep->scope,
+                                                &scope_push_status);
               }  /* if */
               if (ifc_decl_is_ignorable_redecl(
                                            &loc, mep, &error_position,
@@ -5236,7 +5236,7 @@ class_struct_union_case:
             if (defer) {
               defer = FALSE;
               mep->imminent = TRUE;
-              scope_pushed = push_module_declaration_context(mep->scope);
+              push_module_declaration_context(mep->scope, &scope_push_status);
             }  /* if */
           } else if (itsfp->basis == ifc_TypeBasis_Class ||
                      itsfp->basis == ifc_TypeBasis_Struct) {
@@ -5266,7 +5266,7 @@ class_struct_union_case:
             check_assertion(idsep->base != 0);
             if (mep->scope == NULL) {
               mep->scope = get_ifc_home_scope(idsep);
-              scope_pushed = push_module_declaration_context(mep->scope);
+              push_module_declaration_context(mep->scope, &scope_push_status);
             }  /* if */
             check_assertion(mep->scope != NULL);
             enum_scope = mep->scope;
@@ -5466,7 +5466,7 @@ class_struct_union_case:
             }  /* if */
             if (mep->scope == NULL) {
               mep->scope = get_ifc_home_scope(idstp);
-              scope_pushed = push_module_declaration_context(mep->scope);
+              push_module_declaration_context(mep->scope, &scope_push_status);
             }  /* if */
             type = is_deduction_guide ?
                                    NULL :
@@ -5647,12 +5647,9 @@ class_struct_union_case:
           il_entity = dmep->entity.ptr;
           kind = dmep->entity.kind;
           /* The module entity pointer sometimes already has a scope (e.g.,
-             from lighter nested-name-specified processing).  Check that the
-             scope is either not already set, or is equivalent. */
-          check_assertion(mep->scope == NULL || mep->scope == dmep->scope);
+             from lighter nested-name-specified processing). */
+          check_assertion(mep->scope == NULL || dmep->scope == mep->scope);
           mep->scope = dmep->scope;
-          /* We didn't push a context here, so don't pop it either. */
-          skip_pop = TRUE;
         }
         break;
       case ifc_DeclSort_Method:
@@ -5691,7 +5688,7 @@ class_struct_union_case:
           } else {
             ifc_DeclIndex decl_idx = decl_index_of(mep);
 
-            scope_pushed = lazy_push_module_scope(idspsp, mep);
+            lazy_push_module_scope(idspsp, mep, &scope_push_status);
             /* FIXME: Is it feasible to detect ignorable redeclarations of
                partial specializations? */
             if (idspsp->entity.body != 0) {
@@ -5740,7 +5737,7 @@ class_struct_union_case:
             a_token_cache cache;
             ifc_DeclIndex decl_idx = decl_index_of(mep);
 
-            scope_pushed = lazy_push_module_scope(idssp, mep);
+            lazy_push_module_scope(idssp, mep, &scope_push_status);
             clear_token_cache(&cache, /*reuseable=*/FALSE);
             cache_decl_specialization(&cache, decl_idx, idssp);
             terminate_token_cache(&cache);
@@ -5774,7 +5771,7 @@ class_struct_union_case:
             }  /* if */
             if (mep->scope == NULL) {
               mep->scope = get_ifc_home_scope(idscp);
-              scope_pushed = push_module_declaration_context(mep->scope);
+              push_module_declaration_context(mep->scope, &scope_push_status);
             }  /* if */
             if (ifc_decl_is_ignorable_redecl(&loc, mep, &error_position,
                                              iek_template, &il_entity,
@@ -5951,8 +5948,9 @@ cleanup:
         db_module_entity(mep);
       }  /* if */
 #endif /* DEBUG */
-      if (!skip_pop) {
-        pop_module_declaration_context(scope_pushed);
+      /* If a scope was pushed, scope popping should always occur. */
+      if (scope_push_status != mspk_unattempted) {
+        pop_module_declaration_context(scope_push_status);
       }  /* if */
     }  /* if */
     curr_module_entity = saved_mep;
@@ -6014,10 +6012,10 @@ Complete the definition of the class referred to by mep (if needed).
     a_scope_depth            saved_non_local_class_fixup_depth =
                                                    non_local_class_fixup_depth;
     a_source_position        saved_error_position = error_position;
-    a_boolean                scope_pushed = FALSE;
+    a_module_scope_push_kind scope_push_status = mspk_unattempted;
     a_curr_token_preserver   guard;
 
-    scope_pushed = push_module_declaration_context(mep->scope);
+    push_module_declaration_context(mep->scope, &scope_push_status);
     source_position_from_locus(&error_position, &idssp->locus);
     clear_token_cache(&cache, /*reusable=*/FALSE);
     cache_class_definition(&cache, idssp);
@@ -6076,7 +6074,7 @@ Complete the definition of the class referred to by mep (if needed).
     non_local_class_fixup_depth = saved_non_local_class_fixup_depth;
     pop_template_instantiation_scope();
     free_template_decl_info(tdip);
-    pop_module_declaration_context(scope_pushed);
+    pop_module_declaration_context(scope_push_status);
     error_position = saved_error_position;
   }  /* if */
 }  /* complete_definition_of_module_class */
@@ -6534,19 +6532,19 @@ in the IFC scope will be members of scope and their definitions will be
 deferred until they are referenced.
 */
 {
-  an_ifc_Scope_Member     ism, *ismp;
-  unsigned int            i;
-  a_boolean               scope_pushed;
-  a_module_entity_ptr     dmep;
+  an_ifc_Scope_Member ism, *ismp;
+  unsigned int        i;
+  a_module_entity_ptr dmep;
 
   /* A scope index of 0 indicates a missing scope, in which case there
      is nothing further to do. */
   if (scope_index != 0) {
-    scope_pushed = push_module_declaration_context(scope);
     /* Scope indices are 1-based, so subtract one. */
     if (read_partition_element_shallow(ifc_scope_desc, scope_index - 1)) {
-      an_ifc_Scope_Descriptor isd, *isdp;
+      a_module_scope_push_kind scope_push_status = mspk_unattempted;
+      an_ifc_Scope_Descriptor  isd, *isdp;
 
+      push_module_declaration_context(scope, &scope_push_status);
       isdp = get_Scope_Descriptor(&isd);
       for (i = 0; i < isdp->cardinality; i++) {
         /* Re-enable access to scope.member partition (it changes during the
@@ -6560,7 +6558,7 @@ deferred until they are referenced.
           process_ifc_declaration(dmep, /*defer=*/TRUE, (a_type_ptr)NULL);
         }  /* if */
       }  /* for */
-      pop_module_declaration_context(scope_pushed);
+      pop_module_declaration_context(scope_push_status);
     }  /* if */
   }  /* if */
 }  /* process_ifc_scope */
@@ -9100,21 +9098,23 @@ Return TRUE if a scope was set.
 
 
 template<typename an_ifc_DeclSort_T>
-inline a_boolean an_ifc_module::lazy_push_module_scope(
-                                                     an_ifc_DeclSort_T   *decl,
-                                                     a_module_entity_ptr mep)
+inline void an_ifc_module::lazy_push_module_scope(
+                                   an_ifc_DeclSort_T        *decl,
+                                   a_module_entity_ptr      mep,
+                                   a_module_scope_push_kind *scope_push_status)
 /*
 If the given module entity pointer's scope is not yet set, set the scope and
-push the module declaration context.  Return TRUE if a scope was pushed.
+push the module declaration context.  Update scope_push_status to
+mspk_unattempted if no scope push was attempted, mspk_unnecessary if the
+current scope is already the correct scope, or mspk_new if a new scope was
+pushed.
 */
 {
   a_boolean scope_initialized = lazy_init_module_scope(decl, mep);
-  a_boolean scope_pushed = FALSE;
 
   if (scope_initialized) {
-    scope_pushed = push_module_declaration_context(mep->scope);
+    push_module_declaration_context(mep->scope, scope_push_status);
   }  /* if */
-  return scope_pushed;
 } /* lazy_init_module_scope */
 
 
