@@ -5646,10 +5646,7 @@ class_struct_union_case:
           dmep = get_and_process_ifc_decl_from_other_module(idsrp);
           il_entity = dmep->entity.ptr;
           kind = dmep->entity.kind;
-          /* The module entity pointer sometimes already has a scope (e.g.,
-             from lighter nested-name-specified processing).  Check that the
-             scope is either not already set, or is equivalent. */
-          check_assertion(mep->scope == NULL || mep->scope == dmep->scope);
+          check_assertion(mep->scope == NULL);
           mep->scope = dmep->scope;
           /* We didn't push a context here, so don't pop it either. */
           skip_pop = TRUE;
