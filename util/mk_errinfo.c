@@ -78,7 +78,7 @@ static a_const_char *message_prefix = "mk_errinfo";
 
 
 
-static void me_internal_error(a_const_char* error_string)
+NORETURN static void me_internal_error(a_const_char* error_string)
 /*
 Prints an internal error message and exits with a catastrophic error
 exit status.
