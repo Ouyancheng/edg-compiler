@@ -4595,7 +4595,7 @@ by that default argument.
   a_type_ptr        rtp1 = rp1->type, rtp2 = rp2->type;
 
   check_assertion(rtp1->kind == (a_type_kind)tk_routine &&
-                  rtp1->kind == (a_type_kind)tk_routine);
+                  rtp2->kind == (a_type_kind)tk_routine);
   if (rp1 == rp2) {
     /* rp1 is canonical: Entities defined by the default argument are
        canonical too. */

@@ -16315,7 +16315,7 @@ the value representation of the integer value.
               a_constexpr_address  *ptr2 = (a_constexpr_address*)opnd2_value;
               if (compatible_address_kinds(ptr1, ptr2)) {
                 if (is_function_address(ptr1) || is_function_address(ptr2)) {
-                  if (is_function_address(ptr2) && is_function_address(ptr2) &&
+                  if (is_function_address(ptr1) && is_function_address(ptr2) &&
                       ptr1->variant.routine == ptr2->variant.routine) {
                     *(an_integer_value *)result_storage = zero_int;
                   } else {

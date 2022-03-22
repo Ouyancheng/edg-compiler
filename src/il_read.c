@@ -960,7 +960,7 @@ build the in-memory version.
   /* Read and check the magic string. */
   (void)sprintf(magic_string, IL_FILE_MAGIC_STRING, IL_VERSION_NUMBER);
   fread_with_check(check_string, sizeof(check_string));
-  if (strcmp(check_string, magic_string) != 0) {
+  if (memcmp(check_string, magic_string, sizeof(check_string)) != 0) {
     catastrophe(ec_bad_il_file);
   }  /* if */
   /* Read the number of regions. */
