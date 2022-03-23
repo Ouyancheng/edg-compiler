@@ -737,6 +737,9 @@ typedef unsigned int an_mtt_flag_set;
 #define MTT_NESTED_TYPE_MATCH 0x400
 			/* TRUE when matching a type in a template
 			   argument list. */
+#define MTT_TEMPL_TEMPL_ARG_MATCH 0x800
+			/* TRUE when checking whether the arguments of a
+			   deduced template template parameter match. */
 
 
 extern a_boolean matches_template_type_with_qualification_conversion(

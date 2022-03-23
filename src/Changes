@@ -1,5 +1,24 @@
 Version 6.4
 
+3/23/22  [EDGcpfe/24912]
+Spurious deduction match
+
+Consider:
+
+  template<typename ... Ts> struct X {
+    static_assert(sizeof...(Ts) != 1);
+  };
+  template<typename T> int g(T);
+  template<typename E> int g(X<E>);  // (1)
+  X<int, int> xii;
+  int r = g(xii);  // Previously triggered an error.  Now okay.
+
+Previously, the front end's deduction process for call g(xii) incorrectly
+matched xii with X<E>, thus causing the instantiation of X<int>, which in turn
+leads to a failing static assert.  This was a regression introduced by the
+changes for EDGcpfe/17558,EDGcpfe/19264 in version 5.0.  That is now fixed.
+
+
 3/21/22  [EDGcpfe/24352,EDGcpfe/24727]
 Spurious ambiguity error on conversion function template
 
