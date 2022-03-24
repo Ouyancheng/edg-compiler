@@ -9238,6 +9238,7 @@ to FALSE and the reason for the failure is recorded in *ips.
       break;
     case bufk_source_location:
       {
+        interpreted = FALSE;
         if (expr_stack != NULL && expr_stack->is_default_arg_expression) {
           do_constexpr_fail(*p_result);
         } else {
