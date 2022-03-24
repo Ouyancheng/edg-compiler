@@ -3800,7 +3800,7 @@ scope_push_status should be a pointer to a result variable initialized to
 mspk_unattempted (the default initialization is important to verify the result
 variable is not being unintentionally recycled).  If the current scope doesn't
 match the given scope, this function will push new scope(s) and set
-*scope_push_status to mspk_new; otherwise, *scope_push_status will be to
+*scope_push_status to mspk_new; otherwise, *scope_push_status will be set to
 mspk_unneccessary.
 */
 {
