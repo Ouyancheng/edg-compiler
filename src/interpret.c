@@ -3412,7 +3412,7 @@ If a problem occurs during allocation, *p_result is set to FALSE.
 */
 {
   alloc_static_object(ips, ty_ptr, *storage_ptr, p_result);
-  if (p_result) {
+  if (*p_result) {
     mark_naturalizable_object(ips, *storage_ptr);
   }  /* if */
 }  /* alloc_naturalizable_object */
