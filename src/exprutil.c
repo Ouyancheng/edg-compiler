@@ -11201,7 +11201,7 @@ If both fkind_1 and fkind_2 are fk_last, then fk_last is returned.
       /* If two extended types have the same rank (size) but different
          representations, no common type exists.  Report an error and
          proceed with "double". */
-      diagnostic(es_error, ec_no_common_type);
+      expr_pos_error(ec_no_common_type, &error_position);
       result = (a_float_kind)fk_double;
     }  /* if */
   } else if (C_dialect == C_dialect_pcc && result == (a_float_kind)fk_float) {
