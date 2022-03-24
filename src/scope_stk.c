@@ -3793,13 +3793,15 @@ void push_module_declaration_context(
                                    a_scope_ptr              scope,
                                    a_module_scope_push_kind *scope_push_status)
 /*
-A reference to an entity in a module can occur in any scope and the reference
-has triggered the need to declare/define a module entity the scope specified by
-the argument.  The scope_push_status should be a pointer to a result variable
-initialized to mspk_unattempted (the default initialization is important to
-verify the result variable is not being unintentionally recycled).  If needed,
-this function will push new scope(s) and set *scope_push_status to mspk_new;
-otherwise, *scope_push_status will be set to mspk_unneccessary.
+Module entities have an associated scope but may be loaded from any scope.
+This function is used to ensure the front end's current scope is the given
+scope (primarily for the declaration or definition of a module entity).
+scope_push_status should be a pointer to a result variable initialized to
+mspk_unattempted (the default initialization is important to verify the result
+variable is not being unintentionally recycled).  If the current scope doesn't
+match the given scope, this function will push new scope(s) and set
+*scope_push_status to mspk_new; otherwise, *scope_push_status will be to
+mspk_unneccessary.
 */
 {
   a_scope_stack_entry_ptr  ssep = &scope_stack_top();
