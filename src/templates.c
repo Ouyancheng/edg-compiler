@@ -12573,7 +12573,6 @@ partial specialization.
                A<int, void> a;
                f(a);
              }
-
       */
       match = TRUE;
     } else {
