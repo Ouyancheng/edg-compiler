@@ -6747,9 +6747,11 @@ are expected to be NULL in that case.
      them as necessary. */
   {
     /* Enter a new scope to avoid issues with preceding goto statements. */
-    a_boolean  builtin_needs_adjustment = bcap != NULL &&
-                                          bcap->callback != NULL;
+    a_boolean  builtin_needs_adjustment = FALSE;
 
+#if BUILTIN_FUNCTIONS_ENABLED
+    builtin_needs_adjustment = bcap != NULL && bcap->callback != NULL;
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
     scan_call_arguments(orig_routine_type, routine,
                         already_after_left_paren, &argument_list,
                         (overloaded_function_case || builtin_needs_adjustment),

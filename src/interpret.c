@@ -3382,6 +3382,13 @@ area.  The static storage is zeroed.
   }  /* if */                                                                \
 }
 
+#if BUILTIN_FUNCTIONS_ENABLED
+
+/*
+The naturalizable functions below while not specifically tied to builtin
+functions are currently only used by builtin functions.  Thus, only include
+them when builtin functions are enabled.
+*/
 
 /*
 The offset from the complete object pointer.
@@ -3433,6 +3440,7 @@ FALSE.
   return mapped_bytes == (a_byte*)&ips->static_storage;
 }  /* is_naturalizable_object */
 
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 /*
 Get the position of the bit representing whether a given byte position is
@@ -5172,9 +5180,11 @@ END_DISABLE_GCC_WARNING_STR_OVERFLOW
                                                        con_bytes);
                 }  /* if */
                 if (!result) break;
+#if BUILTIN_FUNCTIONS_ENABLED
                 if (cp->is_naturalized) {
                   mark_naturalizable_object(ips, con_bytes);
                 }  /* if */
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
                 mark_complete_object_initialized(con_bytes);
                 /* Record a two-way mapping to ensure we always use the same
                    storage, and that we reproduce the original constant if this
@@ -19577,6 +19587,7 @@ diagnostic in *ips.
               if (!((cap->flags & CA_LIFETIME_EXTENDED) ||
                     cap->alloc_seq_number == 0) ||
                   (!ips->static_lifetime_init && !permit_local_temp)) {
+#if BUILTIN_FUNCTIONS_ENABLED
                 /* If the complete object is a naturalizable, it can be
                    promoted from a temporary. */
                 if (is_naturalizable_object(ips, cap->complete_object)) {
@@ -19607,7 +19618,10 @@ diagnostic in *ips.
                     }  /* if */
                   }  /* if */
                   cp->is_naturalized = TRUE;
-                } else {
+                } else
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
+                /* Do not add code here. */
+                {
                   /* The address of a temporary results in a dangling
                      pointer. */
                   do_constexpr_fail(result);
