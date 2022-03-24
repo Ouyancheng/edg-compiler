@@ -20804,6 +20804,9 @@ and the output of the type name.
         }  /* if */
       }
       break;
+    case dik_lambda:
+      gen_lambda(dip->variant.constant.lambda);
+      break;
     default:
       unexpected_condition_str("gen_paren_or_brace_dynamic_init: bad kind");
   }  /* switch */

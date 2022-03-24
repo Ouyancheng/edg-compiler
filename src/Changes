@@ -1,5 +1,18 @@
 Version 6.4
 
+5/23/22  [EDGcpfe/25166]
+C++-generating back end: assertion failure with lambda variable
+
+The C++-generating back end sometimes aborted with an assertion failure in
+gen_paren_or_brace_dynamic_init when a variable is initialized with a
+lambda expression.  This is now fixed.  For example, with --c++11:
+
+  void f() {
+    int i;
+    auto l{[&i]{}};  // Previously aborted
+  }
+
+
 3/23/22  [EDGcpfe/24912]
 Spurious deduction match
 
