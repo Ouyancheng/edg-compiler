@@ -2210,7 +2210,7 @@ enum a_module_scope_push_kind {
   mspk_unattempted,     /* No push was performed. */
   mspk_unneccessary,    /* The required scope was already in use. */
   mspk_new              /* A new scope was pushed. */
-};
+};  /* a_module_scope_push_kind */
 
 extern void push_module_declaration_context(
                                   a_scope_ptr              scope,
