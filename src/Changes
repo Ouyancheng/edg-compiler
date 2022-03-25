@@ -1,5 +1,19 @@
 Version 6.4
 
+3/25/22  [EDGcpfe/25153]
+Lowering of <=> operator applied to pointer operands
+
+Consider:
+
+  #include <compare>
+  void *p1 = nullptr, *p2 = nullptr;
+  auto r = p1 <=> p2;  // Previously lowered to just an equality check.
+
+Previously, the front end incorrectly lowered the spaceship applied to all
+pointer operands to just an equality check, instead of handling object pointers
+(including void*) as a three-way comparison.  That is now fixed.
+
+
 5/23/22  [EDGcpfe/25166]
 C++-generating back end: assertion failure with lambda variable
 

@@ -16133,7 +16133,8 @@ or, for pointer to function, pointer to member, and nullptr_t types:
   
   one = spaceship_result_constant_expr(1, expr->type);
   zero = spaceship_result_constant_expr(0, expr->type);
-  if (type_kind == (a_type_kind)tk_pointer ||
+  if ((type_kind == (a_type_kind)tk_pointer &&
+       is_pointer_to_function_type(op1->type)) ||
       type_kind == (a_type_kind)tk_ptr_to_member ||
 #if GNU_EXTENSIONS_ALLOWED && LOWER_COMPLEX
       type_kind == (a_type_kind)tk_complex ||
