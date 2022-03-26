@@ -7246,8 +7246,8 @@ end_arg_expansion:;
           concatenates_inert_macro = TRUE;
         }  /* if */
         sect_len = 0;
-        if ((inert_escape = find_final_inert_escape(rescan_loc, src_loc)) !=
-                                                                        NULL) {
+        inert_escape = find_final_inert_escape(rescan_loc, src_loc);
+        if (inert_escape != NULL) {
           /* We're about to concatenate something to the name of an inert
              macro, so presumably the result of the concatenation will no
              longer be the macro name.  Overwrite the inert macro escape

@@ -12,7 +12,7 @@ second time.  This is now fixed.  For example, with --c++11:
 
   #define A x.y.A
   #define B(...) C(__VA_ARGS__)
-  #define C(z, ...) f(z ##__VA_ARGS__)
+  #define C(z, ...) f(z ## __VA_ARGS__)
 
   void g() {
     B(i, e->A);  // Should be "f(ie ->x . y . A", previously expanded to
