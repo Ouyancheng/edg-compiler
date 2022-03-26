@@ -1,5 +1,25 @@
 Version 6.4
 
+3/25/22  [EDGcpfe/25168]
+Concatenation and inert macros
+
+According to the C and C++ Standards, a macro name appearing inside the
+expansion of an invocation of that macro is not a recursive invocation of
+the macro.  However, when the macro name appears as the last token in the
+replacement and that replacement is the right-hand operand of the ##
+concatenation operator, the front end incorrectly invoked the macro a
+second time.  This is now fixed.  For example, with --c++11:
+
+  #define A x.y.A
+  #define B(...) C(__VA_ARGS__)
+  #define C(z, ...) f(z ##__VA_ARGS__)
+
+  void g() {
+    B(i, e->A);  // Should be "f(ie ->x . y . A", previously expanded to
+                 // "f(ie ->x . y . x . y . A"
+  }
+
+
 3/25/22  [EDGcpfe/25153]
 Lowering of <=> operator applied to pointer operands
 

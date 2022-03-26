@@ -3963,32 +3963,34 @@ position after the end of the function-name keyword.
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
-static char *find_final_inert_escape(char     *text_loc,
-                                     sizeof_t sect_len)
+static char *find_final_inert_escape(a_const_char *replacement_text,
+                                     a_const_char *end_replacement_text)
 /*
-text_loc points to a string of replacement text for an rt_raw_argument
-insertion, of length sect_len.  If there is an inert-macro escape at the
-end of the string (followed by an identifier, but no other escapes), return
-a pointer to it.  Otherwise, return NULL.  (Note that this processing does
-not apply to temporarily-inert macro escapes, which will be removed in the
-expansion of the top-level macro invocation.)
+We are about to concatenate some text to the end of the replacement text
+beginning at replacement_text and ending with the character preceding
+end_replacement_text.  Check to see if the last token in the existing
+replacement text is preceded by an inert macro marker.  If so, presumably
+the concatenation will change that identifier so that it no longer names
+the inert macro, and we return a pointer to the LE_INERT_MACRO character of
+the lexical escape so it can be disabled.  Otherwise, return NULL.  (Note
+that this processing does not apply to temporarily-inert macro escapes,
+which will be removed in the expansion of the top-level macro invocation.)
 */
 {
-  char     *final_inert_escape = NULL;
-  sizeof_t len;
+  char *result = NULL;
 
-  for (len = sect_len; len > 0; len--) {
-    if (text_loc[len-1] == LE_ESCAPE) {
-      if (text_loc[len] == LE_INERT_MACRO) {
-        final_inert_escape = text_loc+len-1;
+  while (--end_replacement_text > replacement_text) {
+    if (end_replacement_text[-1] == LE_ESCAPE) {
+      if (*end_replacement_text == LE_INERT_MACRO) {
+        result = (char *)end_replacement_text;
         break;
-      } else if (text_loc[len] == LE_END_OF_TOKEN) {
+      } else if (*end_replacement_text == LE_END_OF_TOKEN) {
         /* There's no inert-macro escape on the last token. */
         break;
       }  /* if */
     }  /* if */
-  }  /* for */
-  return final_inert_escape;
+  }  /* while */
+  return result;
 }  /* find_final_inert_escape */
 
 
@@ -7236,6 +7238,7 @@ end_arg_expansion:;
                              this_macro_invocation_record);
 #endif /* FULLY_RESOLVED_MACRO_POSITIONS */
       } else if (rts_kind == rt_paste) {
+        char *inert_escape;
         if (prev_section_is_va_arg_substitution) {
           concatenates_va_args = TRUE;
         }  /* if */
@@ -7243,6 +7246,15 @@ end_arg_expansion:;
           concatenates_inert_macro = TRUE;
         }  /* if */
         sect_len = 0;
+        if ((inert_escape = find_final_inert_escape(rescan_loc, src_loc)) !=
+                                                                        NULL) {
+          /* We're about to concatenate something to the name of an inert
+             macro, so presumably the result of the concatenation will no
+             longer be the macro name.  Overwrite the inert macro escape
+             with an end of token so that the result of the concatenation
+             will be recognized as a macro name, if it is. */
+          *inert_escape = LE_END_OF_TOKEN;
+        }  /* if */
       } else if (rts_kind == rt_microsoft_magic_arg_marker) {
         sect_len = 0;
       } else if (rts_kind == rt_optional_text) {
@@ -7253,7 +7265,6 @@ end_arg_expansion:;
         }  /* if */
         sect_len = 0;
       } else {
-        char *final_inert_escape;
         /* Other section kinds have an associated parameter number. */
         get_arg_value(rts_number, map);
         if (prev_section_is_paste && map->contains_inert_macro) {
@@ -7327,39 +7338,6 @@ end_arg_expansion:;
               }  /* if */
             }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-            final_inert_escape = find_final_inert_escape(text_loc, sect_len);
-            if (final_inert_escape != NULL) {
-              /* Remove an LE_INERT_MACRO escape preceding an identifier
-                 at the end if present, since the token is being pasted
-                 to another one. */
-              /* Replace the inert-macro escape by an end-of-token escape to
-                 keep the overall length the same (repl_text_len has already
-                 been determined). */
-              /* Copy the part before the escape here, and copy the part
-                 after the escape (the identifier name) in the normal
-                 code below. */
-              sizeof_t initial_len = final_inert_escape - text_loc;
-              if (initial_len > 0) {
-#if FULLY_RESOLVED_MACRO_POSITIONS
-                /* Copy the map entries for the text preceding the escape. */
-                clone_macro_text_map_entries(&map->raw_text_map,
-                                             (sizeof_t)(text_loc -
-                                                        map->raw_text),
-                                             initial_len - 1,
-                                             &macro_text_map,
-                                             (sizeof_t)(src_loc -
-                                                        rescan_loc),
-                                             this_macro_invocation_record);
-#endif /* FULLY_RESOLVED_MACRO_POSITIONS */
-                (void)memcpy(src_loc, text_loc,
-                             size_t_arg(initial_len)); /*lint !e668 */
-                src_loc += initial_len;
-              }  /* if */
-              *src_loc++ = LE_ESCAPE;
-              *src_loc++ = LE_END_OF_TOKEN;
-              text_loc = final_inert_escape+LE_ESCAPE_LEN;
-              sect_len -= initial_len+LE_ESCAPE_LEN;
-            }  /* if */
 #if FULLY_RESOLVED_MACRO_POSITIONS
             /* Copy the rest of the map entries (or all of them, if none were
                copied above). */
