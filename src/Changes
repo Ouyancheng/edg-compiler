@@ -1,5 +1,14 @@
 Version 6.4
 
+3/26/22  [EDGcpfe/25178]
+Clang compatibility: Incorporate clang 14.0.0 builtins
+
+New builtin function signatures from clang 14.0.0 have been incorporated.
+In conjunction with this change, builtins that use the _Float16 type have
+been mapped to a 16-bit floating-point type (i.e., binary16) as are builtins
+with the __fp16 type.
+
+
 3/25/22  [EDGcpfe/25168]
 Concatenation and inert macros
 

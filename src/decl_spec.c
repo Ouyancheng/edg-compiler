@@ -11549,13 +11549,12 @@ process_enum_specifier:
         basic_type = bt_typedef;
         break;
       case tok_edg_fp16_type:
-        /* An EDG-specific way to specify a __fp16 type.  This is currently
-           not implemented, so substitute a typedef for "float" for now (so
-           builtins can be scanned -- even if not used). */
+        /* An EDG-specific way to specify a __fp16 or _Float16 type.  Clang
+           uses IEEE 754-2008 binary16 for both types. */
         if (edg_fp16_typedef == NULL) {
           edg_fp16_typedef = alloc_type((a_type_kind)tk_typeref);
           edg_fp16_typedef->variant.typeref.type =
-                                          float_type((a_float_kind)fk_float);
+                                      float_type((a_float_kind)fk_std_float16);
           set_source_corresp_name(&(edg_fp16_typedef->source_corresp),
                                   locator_for_curr_id.symbol_header);
           add_to_types_list(edg_fp16_typedef, decl_scope_level);
