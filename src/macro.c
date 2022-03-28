@@ -8540,8 +8540,9 @@ Scan and process a #define directive.
          locator is being used.  This suppresses the creation of a
          macro IL entry.  It also prevents us from calling mark_defined
          on an error symbol. */
-      copy_source_position(pos_curr_token,
-                           locator_for_curr_id.source_position);
+      /* Use start_pos instead of pos_curr_token to address potential position
+         differences due to whether or not we're scanning a module macro. */
+      copy_source_position(start_pos, locator_for_curr_id.source_position);
       /* The macro symbol is entered in file scope, unless it is a macro
          resulting from a "-D" command-line option or from the predefined
          macro file. */

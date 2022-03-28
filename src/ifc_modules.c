@@ -16263,7 +16263,12 @@ cache_spelling:
       { an_ifc_FormSort_Pragma ifsp, *ifspp;
         ifspp = get_FormSort_Pragma(&ifsp);
         source_position_from_locus(&pos, &ifspp->locus);
-        cache_pp_token(cache, "_Pragma", /*len=*/7, &pos);
+        if (form_tag(ifspp->operand) == ifc_FormSort_String) {
+          cache_pp_token(cache, "_Pragma", /*len=*/7, &pos);
+        } else {
+          check_assertion(form_tag(ifspp->operand) == ifc_FormSort_Tuple);
+          cache_pp_token(cache, "__pragma", /*len=*/8, &pos);
+        }  /* if */
         cache_token(cache, tok_lparen, &pos);
         cache_form(cache, ifspp->operand);
         cache_token(cache, tok_rparen, &pos);
