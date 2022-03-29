@@ -1596,6 +1596,10 @@ the actual number of converted characters may be less than num_chars.  */
             /* ch contained a character code that cannot be encoded in a
                single char16_t character. */
             bad_character = TRUE;
+            if (encoding_length > 1) {
+              /* Use the low-order code unit. */
+              ch = (unsigned long)char16_t_vals[encoding_length - 1];
+            }  /* if */
           }  /* if */
         }  /* if */
         break;
@@ -1654,10 +1658,21 @@ the actual number of converted characters may be less than num_chars.  */
     num_chars = 1;
   }  /* if */
   if (bad_character) {
-    *err_code = ec_no_char16_t_representation;
-    *err_pos = start_of_curr_token + 2;
-    /* Return an error constant. */
-    set_error_constant(&const_for_curr_token);
+    if (C_mode()) {
+      /* In C, a character that cannot be represented in one UTF-16 code
+         unit has an implementation-defined value, typically the low-order
+         16 bits.  Issue a warning about the truncation. */
+      conv_line_loc_to_source_pos(start_of_curr_token, &error_position);
+      pos_warning(ec_utf16_char_lit_too_long, &error_position);
+      *err_code = ec_no_error;
+      *err_pos = NULL;
+    } else {
+      /* An unrepresentable character is an error in C++. */
+      *err_code = ec_no_char16_t_representation;
+      *err_pos = start_of_curr_token + 2;
+      /* Return an error constant. */
+      set_error_constant(&const_for_curr_token);
+    }  /* if */
   } else if (too_many_chars) {
     if (utf8_literal) {
       *err_code = ec_utf8_char_lit_too_long;
@@ -1688,6 +1703,8 @@ the actual number of converted characters may be less than num_chars.  */
       conv_line_loc_to_source_pos(start_of_curr_token, &error_position);
       pos_warning(wcode, &error_position);
     }  /* if */
+  }  /* if */
+  if (*err_code == ec_no_error) {
     clear_constant(&const_for_curr_token, (a_constant_repr_kind)ck_integer);
     const_for_curr_token.type = con_type;
     const_for_curr_token.variant.integer_value = number;
