@@ -1,5 +1,25 @@
 Version 6.4
 
+3/29/22  [EDGcpfe/24578]
+GNU/Clang compatibility: __is_trivial
+
+Consider:
+
+  struct B {
+    B() = default;
+    B(int = 0);
+  };
+  struct D: B {};
+  static_assert(!__is_trivial(D), "Unexpected!");  // Now an error in
+                                                   // GNU/Clang mode.
+
+D is not a "trivial class" because its default constructor is deleted (because
+the underlying default construction of B is ambiguous).  However, Clang and GCC
+do no implement that rule yet (the definition of "trivial class" has changed
+over time).  The front end now emulates GCC and Clang in the corresponding
+modes.
+
+
 3/29/22  [EDGcpfe/24572]
 Out-of-range C UTF-16 character constants
 

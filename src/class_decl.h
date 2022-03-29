@@ -201,6 +201,30 @@ extern void def_arg_and_eh_spec_fixup_for_class(
 extern void scan_field_initializer_if_needed(a_field_ptr  field,
                                              a_type_ptr   class_type);
 
+extern
+a_symbol_ptr get_generated_default_ctor(a_class_symbol_supplement_ptr  cssp);
+
+inline a_boolean has_any_trivial_default_ctor(
+                                           a_class_symbol_supplement_ptr cssp)
+/*
+Return TRUE if any of the default constructors associated with cssp is trivial.
+(This is unlike has_trivial_default_constructor, which produces FALSE if some
+default constructors are trivial and some are not.
+*/
+{
+  a_boolean  result;
+
+  if (has_trivial_default_constructor(cssp)) {
+    result = TRUE;
+  } else {
+    a_symbol_ptr  sym = get_generated_default_ctor(cssp);
+    result = sym != NULL &&
+             sym->variant.routine.ptr->is_trivial_default_constructor;
+  }  /* if */
+  return result;
+}  /* has_any_trivial_default_ctor */
+
+
 extern void update_class_for_last_parsed_field_initializer(
                                                       a_type_ptr  class_type);
 

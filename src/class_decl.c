@@ -3964,8 +3964,7 @@ parameters, except perhaps for an ellipsis parameter.
 }  /* is_simple_default_constructor */
 
 
-static a_symbol_ptr get_generated_default_ctor(
-                                          a_class_symbol_supplement_ptr  cssp)
+a_symbol_ptr get_generated_default_ctor(a_class_symbol_supplement_ptr  cssp)
 /*
 Return the symbol representing a generated (i.e., compiler-generated or
 defaulted) default constructor associated with cssp, or NULL if there is none.
@@ -9644,14 +9643,13 @@ to FALSE before returning).
     }  /* if */
     class_state->cpp03_POD_ruled_out = TRUE;
   }  /* if */
-  /* The implied default constructor of the current class will be
-     nontrivial if any of its base classes is virtual or has a nontrivial
-     default constructor itself.  The current class requires a destructor
-     if any of its base classes has a destructor.  Record such
-     requirements, if any, at this time. */
-  if ((is_virtual || !has_trivial_default_constructor(bcp_cssp)) &&
-      !is_value_class) {
-    class_state->default_ctor_is_nontrivial = TRUE;
+  if (!is_value_class && !class_state->default_ctor_is_nontrivial) {
+    /* The implied default constructor of the current class will be
+       nontrivial if any of its base classes is virtual or does not itself
+       have a trivial default constructor itself. */
+    if (is_virtual || !has_any_trivial_default_ctor(bcp_cssp)) {
+      class_state->default_ctor_is_nontrivial = TRUE;
+    }  /* if */
   }  /* if */
   if (deleted_functions_enabled) {
     /* If a copy constructor or assignment operator may be deleted, ensure it
@@ -9663,6 +9661,8 @@ to FALSE before returning).
       class_state->needs_assignment_symbol = TRUE;
     }  /* if */
   }  /* if */
+  /* The current class requires a destructor if any of its base classes has a
+     destructor. */
   if (has_nontrivial_destructor(bcp_cssp)) {
     class_state->base_destruction_required = TRUE;
   } else if (bcp_cssp->destructor != NULL &&
@@ -20822,7 +20822,7 @@ be entered.
            class is also required to have a nontrivial default constructor
            and/or destructor.  Do the check at this time, and record the
            requirement, if any. */
-        if (!has_trivial_default_constructor(member_cssp)) {
+        if (!has_any_trivial_default_ctor(member_cssp)) {
           class_state->default_ctor_is_nontrivial = TRUE;
         }  /* if */
         if (deleted_functions_enabled) {

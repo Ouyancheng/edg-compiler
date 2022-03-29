@@ -2286,17 +2286,31 @@ Return TRUE if the given class type is a "trivial class", which is a trivially
 copyable class type with an eligible (non-deleted) default constructor.
 */
 {
-  a_boolean  result;
+  a_boolean  result = FALSE;
 
   if (is_immediate_class_type(tp)) {
     a_class_symbol_supplement_ptr  cssp = class_symbol_supp(symbol_for(tp));
-    result = has_trivial_default_constructor(cssp) &&
-             is_trivially_copyable_type(tp);
-    if (result && cssp->trivial_default_constructor != NULL) {
-      a_symbol_ptr   sym = cssp->trivial_default_constructor;
+    a_symbol_ptr                   sym = cssp->trivial_default_constructor;
+    result = is_trivially_copyable_type(tp);
+    if (!is_trivially_copyable_type(tp)) {
+      /* Leave result to FALSE. */
+    } else if (sym != NULL || has_trivial_default_constructor(cssp)) {
+      /* There is a trivial default constructor (and no nontrivial default
+         constructor). */
+      result = TRUE;
+    } else {
+      /* There may be both a trivial default constructor (generated) and one
+         or more nontrivial default constructors.  Check the former. */
+      sym = get_generated_default_ctor(cssp);
+      if (sym == NULL ||
+          !sym->variant.routine.ptr->is_trivial_default_constructor) {
+        result = FALSE;
+      }  /* if */
+    }  /* if */
+    if (result && sym != NULL) {
       a_routine_ptr  rp = sym->variant.routine.ptr;
       if ((rp->is_deleted &&
-           !(gpp_version_is(>=50000) || clang_mode || microsoft_mode)) ||
+           !(gpp_version_is(any_version) || clang_mode || microsoft_mode)) ||
           is_ineligible(sym)) {
         /* A deleted trivial default constructor makes the type non-trivial
            (N4878 [class.prop]/2: "... has one or more eligible default
@@ -2307,7 +2321,6 @@ copyable class type with an eligible (non-deleted) default constructor.
       }  /* if */
     }  /* if */
   } else {
-    result = FALSE;  /* To silence spurious compiler warnings. */
     unexpected_condition();
   }  /* if */
   return result;
