@@ -9646,7 +9646,7 @@ to FALSE before returning).
   if (!is_value_class && !class_state->default_ctor_is_nontrivial) {
     /* The implied default constructor of the current class will be
        nontrivial if any of its base classes is virtual or does not itself
-       have a trivial default constructor itself. */
+       have a trivial default constructor. */
     if (is_virtual || !has_any_trivial_default_ctor(bcp_cssp)) {
       class_state->default_ctor_is_nontrivial = TRUE;
     }  /* if */

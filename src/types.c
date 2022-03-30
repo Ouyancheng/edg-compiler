@@ -2293,7 +2293,7 @@ copyable class type with an eligible (non-deleted) default constructor.
     a_symbol_ptr                   sym = cssp->trivial_default_constructor;
     result = is_trivially_copyable_type(tp);
     if (!is_trivially_copyable_type(tp)) {
-      /* Leave result to FALSE. */
+      /* Leave result set to FALSE. */
     } else if (sym != NULL || has_trivial_default_constructor(cssp)) {
       /* There is a trivial default constructor (and no nontrivial default
          constructor). */

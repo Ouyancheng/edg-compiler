@@ -209,7 +209,7 @@ inline a_boolean has_any_trivial_default_ctor(
 /*
 Return TRUE if any of the default constructors associated with cssp is trivial.
 (This is unlike has_trivial_default_constructor, which produces FALSE if some
-default constructors are trivial and some are not.
+default constructors are trivial and some are not.)
 */
 {
   a_boolean  result;
