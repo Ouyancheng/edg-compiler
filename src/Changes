@@ -1,5 +1,13 @@
 Version 6.4
 
+3/29/22  [EDGcpfe/24991]
+Assertion failure in get_enclosing_template_params_and_args
+
+In certain complex cases involving nontype template arguments that are
+functions with parameter packs the front end could abort with a failed
+assertion in get_enclosing_template_params_and_args.  This is now fixed.
+
+
 3/29/22  [EDGcpfe/24578]
 GNU/Clang compatibility: __is_trivial
 
