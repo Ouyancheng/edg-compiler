@@ -2947,10 +2947,6 @@ Otherwise it is zero.
                                          templ_param_list, ctws_options,
                                          param_count)) {
     /* Substitute the template arguments in the routine type. */
-    if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH) {
-      scope_stack_entry_for(depth_innermost_instantiation_scope)->
-	template_arg_list = *templ_arg_list;
-    }  /* if */
     new_type = substitute_template_arguments(rout_templ_sym, *templ_arg_list,
                                              (a_template_arg_ptr*)NULL,
                                              templ_param_list, ctws_options);
