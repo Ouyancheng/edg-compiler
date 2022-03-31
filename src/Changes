@@ -1,5 +1,20 @@
 Version 6.4
 
+3/31/22  [EDGcpfe/22219]
+Concatenation involving UTF-encoded and ordinary string literals
+
+Consider a source file with UTF-8 encoding like the following:
+
+  char16_t s[] = u"X" "Y";
+
+where X and Y represent Unicode characters whose UTF-8 encoding requires
+more than one byte.  For the result of the concatenation, the front end
+previously produced a string in which the first character was the correct
+UTF-16 representation of X but the succeeding characters were simply the
+bytes of the UTF-8 encoding of Y, each widened to 16 bits.  This is now
+fixed, resulting in a string equivalent to u"XY".
+
+
 3/30/22  [EDGcpfe/24267]
 Concatenation involving UTF-8 string literals, function name identifiers
 

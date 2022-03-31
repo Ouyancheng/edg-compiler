@@ -1998,6 +1998,8 @@ the given character kind, or a mix of the given kind and chk_char.
   a_boolean          produce_error_constant = FALSE;
   a_constant_ptr     concat_con, con;
   char               *new_str;
+  a_const_char       *saved_curr_char_loc = curr_char_loc;
+  int                lit_kind;
 
   db_enter(4, "concat_string_literals");
   if (first_token == NULL) {
@@ -2006,6 +2008,19 @@ the given character kind, or a mix of the given kind and chk_char.
   /* Determine the length of the terminating null on strings.  It's usually 1,
      but it may be bigger for wide string literals. */
   null_len = character_size[character_kind];
+  /* Determine the literal kind associated with the character kind in
+     case ordinary string literals must be rescanned to match the result
+     kind. */
+  switch (character_kind) {
+    case chk_char:     lit_kind = SCLK_ORDINARY_LITERAL; break;
+    case chk_wchar_t:  lit_kind = SCLK_WIDE_LITERAL;     break;
+    case chk_char8_t:  lit_kind = SCLK_UTF8_LITERAL;     break;
+    case chk_char16_t: lit_kind = SCLK_CHAR16_T_LITERAL; break;
+    case chk_char32_t: lit_kind = SCLK_CHAR32_T_LITERAL; break;
+    default:
+      unexpected_condition();
+  }  /* switch */
+  lit_kind |= SCLK_STRING_LITERAL;
   /* Determine the length of the concatenation. */
   for (ctp = first_token; ctp != NULL; ctp = ctp->next) {
     /* Ignore pragma entries. */
@@ -2067,23 +2082,27 @@ the given character kind, or a mix of the given kind and chk_char.
         continue;
       }  /* if */
       con = ctp->variant.constant;
+      if (con->character_kind != character_kind) {
+        /* A string like "xyz" in L"abc" "xyz" must be rescanned as the
+           correct kind of literal, effectively resulting in L"abc" L"xyz".
+           const_for_curr_token will replace the cached constant. */
+        check_assertion(con->character_kind == (a_character_kind)chk_char);
+        curr_char_loc = con->variant.string.value;
+        ((char *)curr_char_loc)[con->variant.string.length - 1] = '\"';
+        (void)scan_string_literal(lit_kind);
+        con = &const_for_curr_token;
+      }  /* if */
       /* Determine the length of this string literal. */
       str_len = con->variant.string.length;
-      /* Except on the last constant, subtract out the space for the
-         final null in the string. */
-      if (ctp->next != NULL) str_len -= character_size[con->character_kind];
+      /* Except on the last constant, subtract out the space for the final
+         null in the string. */
+      if (ctp->next != NULL) {
+        str_len -= character_size[con->character_kind];
+      }  /* if */
       /* Copy the string text (including the final null, if that's
          appropriate). */
-      if (con->character_kind != character_kind) {
-        /* A string like "xyz" in L"abc" "xyz" needs widening. */
-        check_assertion(con->character_kind == (a_character_kind)chk_char);
-        widening_copy(con->variant.string.value, new_str+total_len, 
-                      str_len, character_kind);
-        str_len *= null_len;
-      } else {
-        (void)memcpy(new_str+total_len, con->variant.string.value,
-                     size_t_arg(str_len));
-      }  /* if */
+      (void)memcpy(new_str+total_len, con->variant.string.value,
+                   size_t_arg(str_len));
       /* Keep track of the total length so far, which is also the offset for
          storing into the concatenation. */
       total_len += str_len;
@@ -2104,6 +2123,7 @@ the given character kind, or a mix of the given kind and chk_char.
                                            (a_targ_size_t)total_len/null_len);
     concat_con->character_kind = character_kind;
   }  /* if */
+  curr_char_loc = saved_curr_char_loc;
   db_exit();
 }  /* concat_string_literals */
 
