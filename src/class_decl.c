@@ -20807,9 +20807,9 @@ be entered.
       if (tp->variant.class_struct_union.has_zero_init_component) {
         class_type->variant.class_struct_union.has_zero_init_component = TRUE;
       }  /* if */
-      if (C_dialect == C_dialect_cplusplus) {
-        a_class_symbol_supplement_ptr  member_cssp =
-                                              symbol_supplement_for_class(tp);
+      if (!C_mode()) {
+        a_class_symbol_supplement_ptr
+                              member_cssp = class_symbol_supp(symbol_for(tp));
         if (!member_cssp->standard_layout) {
           cssp->standard_layout = FALSE;
         }  /* if */
@@ -20833,6 +20833,12 @@ be entered.
           }  /* if */
           if (member_cssp->assignment_operator != NULL) {
             class_state->needs_assignment_symbol = TRUE;
+          }  /* if */
+          /* Similarly for a deleted trivial default constructor. */
+          if (member_cssp->trivial_default_constructor != NULL &&
+              member_cssp->trivial_default_constructor
+                         ->variant.routine.ptr->is_deleted) {
+            class_state->needs_constructor_symbol = TRUE;
           }  /* if */
         }  /* if */
         if (has_nontrivial_destructor(member_cssp)) {
@@ -22571,6 +22577,7 @@ classes in the suppression determination.
     a_base_class_ptr  bcp;
     a_class_symbol_supplement_ptr
                       mcssp, cssp = class_symbol_supp(symbol_for(class_type));
+    a_boolean         has_field = FALSE, has_nonconst_field = FALSE;
     /* First, scan through all the nonstatic data members, using the symbol
        list rather than the field list to be sure that only user-defined
        fields are checked and to be sure that anonymous union fields are
@@ -22579,10 +22586,11 @@ classes in the suppression determination.
       if (symbol_is(sym, sk_field)) {
         a_field_ptr  field = sym->variant.field.ptr;
         a_type_ptr   tp = field->type, utp;
-        a_boolean    const_member_okay = FALSE;
+        has_field = TRUE;
         if (field->has_initializer) {
           /* Fields with a C++11-style in-class initializer are initialized
              by that initializer rather than "default initialized". */
+          has_nonconst_field = TRUE;
           continue;
         } else if (field_is_property_or_event(field)) {
           /* Property fields and events do not affect the special member
@@ -22599,40 +22607,66 @@ classes in the suppression determination.
         }  /* if */
         utp = skip_typerefs(tp);
         if (is_immediate_class_type(utp)) {
+          a_boolean  const_member_okay = FALSE;
           /* Check that the member can be default-initialized. */
-          a_boolean  error_detected, err;
           mcssp = class_symbol_supp(symbol_for(utp));
-          (void)select_default_constructor_full(utp, &pos_curr_token, utp,
-                                                /*declarative_context=*/TRUE,
-                                                /*evaluated=*/TRUE,
-                                                /*check_access=*/TRUE,
-                                                /*no_explicit=*/FALSE,
-                                                &error_detected, &err);
-          if (error_detected) {
-            gsfd->suppress_default_ctor = TRUE;
-            break;
-          } else if (mcssp->has_user_provided_default_constructor ||
-                     (gpp_mode && !clang_mode)) {
+          if (mcssp->trivial_default_constructor != NULL) {
+            /* A trivial default constructor (which will not be returned by
+               selected_default_constructor_full) can be deleted. */
+            if (mcssp->trivial_default_constructor
+                     ->variant.routine.ptr->is_deleted) {
+              gsfd->suppress_default_ctor = TRUE;
+              break;
+            }  /* if */
+          } else {
+            a_boolean  error_detected, err;
+            (void)select_default_constructor_full(utp, &pos_curr_token, utp,
+                                                  /*declarative_context=*/TRUE,
+                                                  /*evaluated=*/TRUE,
+                                                  /*check_access=*/TRUE,
+                                                  /*no_explicit=*/FALSE,
+                                                  &error_detected, &err);
+            if (error_detected) {
+              gsfd->suppress_default_ctor = TRUE;
+              break;
+            }  /* if */
+          }  /* if */
+          if (mcssp->has_user_provided_default_constructor ||
+              (gpp_mode && !clang_mode)) {
             const_member_okay = TRUE;
           }  /* if */
-          if (!const_member_okay && is_const_qualified_type(tp) &&
-              (clang_mode || !is_const_default_constructible(utp))) {
-            /* Default initialization of a const member is only allowed if its
-               type is const-default-constructible (N4861 [class.default.ctor]
-               bullet (2.4)), but Clang still requires a user-provided default
-               constructor (verified for Clang 10.0). */
-            gsfd->suppress_default_ctor = TRUE;
-            break;
+          if (!const_member_okay && is_const_qualified_type(tp)) {
+            if (clang_mode || !is_const_default_constructible(utp)) {
+              /* Default initialization of a const member is only allowed for
+                 const-default-constructible types (N4861 [class.default.ctor]
+                 bullet (2.4)), but Clang still requires a user-provided
+                 default constructor (verified for Clang 10.0). */
+              gsfd->suppress_default_ctor = TRUE;
+              break;
+            }  /* if */
+          } else {
+            has_nonconst_field = TRUE;
           }  /* if */
-        } else if (is_const_qualified_type(tp) &&
-                   !type_is(parent_class_of(field), tk_union)) {
-          /* A const non-variant member causes a generated default constructor
-             to be deleted (N4842 [class.default.ctor] bullet (2.4)). */
-          gsfd->suppress_default_ctor = TRUE;
-          break;
+        } else {
+          if (is_const_qualified_type(tp)) {
+            if (!type_is(parent_class_of(field), tk_union)) {
+              /* A const non-variant member causes a generated default
+                 constructor to be deleted (N4842 [class.default.ctor]
+                 bullet (2.4)). */
+              gsfd->suppress_default_ctor = TRUE;
+              break;
+            }  /* if */
+          } else {
+            has_nonconst_field = TRUE;
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* for */
+    if (!has_nonconst_field && type_is(class_type, tk_union) && has_field) {
+      /* If a union is not empty and has only const fields, its default
+         constructor should be suppressed. */
+      gsfd->suppress_default_ctor = TRUE;
+    }  /* if */
     if (check_bases && !gsfd->suppress_default_ctor) {
       /* Now scan through all the direct base classes of this class. */
       a_boolean  abstract = class_type->variant.class_struct_union.abstract;

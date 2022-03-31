@@ -1,5 +1,29 @@
 Version 6.4
 
+3/31/22  [EDGcpfe/24925]
+Unions with const members and default constructibility
+
+Consider:
+
+  template<typename T> struct DefaultConstructible {
+    template<typename U, typename = decltype(U())> static char test(int);
+    template<typename> static int test(...);
+    static constexpr bool value = sizeof(test<T>(0)) == sizeof(char);
+  };
+  struct S {
+    union {
+      const int n;
+    } u;
+  };
+  static_assert(!DefaultConstructible<S>::value, "Error");
+                                          // Previously failed.  Now okay.
+
+Struct S is not default-constructible because it contains a union with members
+that are all "const" and are not const-default-constructible.  The front end
+previously failed to establish that, in turn causing the static_assert in the
+example to fail.  That is now fixed.
+
+
 3/31/22  [EDGcpfe/25158]
 Assertion failure in lower_question_operand
 
