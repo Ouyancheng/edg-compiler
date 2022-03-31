@@ -1952,26 +1952,6 @@ the string.
 }  /* conv_string_literal */
 
 
-static void widening_copy(a_const_char      *src,
-                          char              *dst,
-                          a_targ_size_t     len,
-                          a_character_kind  kind)
-/*
-Copy an ordinary character string of length len pointed to by src to a
-character string pointed to by dst.  dst already points to storage that is
-sufficient to hold len characters of the indicated kind.
-*/
-{
-  a_targ_size_t  k = 0;
-  unsigned int   char_size = (unsigned int)character_size[kind];
-
-  for (k = 0; k < len; ++k) {
-    unsigned long ch = (unsigned long)(unsigned char)src[k];
-    put_wide_char_into_string(ch, &dst, char_size);
-  }  /* for */
-}  /* widening_copy */
-
-
 void concat_string_literals(a_token_cache_ptr cache,
                             a_character_kind  character_kind,
           /* Defaulted: */  a_cached_token    *first_token)
