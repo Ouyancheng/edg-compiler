@@ -1,5 +1,32 @@
 Version 6.4
 
+3/31/22  [EDGcpfe/25180]
+Constant-evaluation of pointer-to-member values
+
+The constexpr interpreter previously did not always correctly reconstruct
+pointer-to-member a_constant entries after computing their values.  This became
+more prominent after the changes for EDGcpfe/22472,EDGcpfe/23539,EDGcpfe/23840
+in version 6.3 (which caused more pointer-to-member expressions to be evaluated
+successfully) and thus resulted in regressions in that version of the front
+end.  For example:
+
+  struct A { int m; };
+  struct B : A {};
+  struct C {
+    virtual ~C();
+  };
+  struct D : C, B {
+    void mf(int);
+  };
+ int g(void (B::*)());
+ int r = g( (void(B::*)()) (void(B::*)(int)) &D::mf);
+
+The casts in the argument to the call to g were evaluated by the interpreter,
+but the latter failed to record the "casting_base_class" field in the
+a_constant entry representing the evaluation's final result.  That is now
+fixed.
+
+
 3/31/22  [EDGcpfe/24925]
 Unions with const members and default constructibility
 

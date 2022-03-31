@@ -14322,7 +14322,7 @@ the value representation of the integer value.
             if (tp->kind == opnd1_type->kind) {
               /* The type kinds are the same, so the representation is
                  the same, and we can just copy the opnd1 value. */
-              if (tp->kind == (a_type_kind)tk_integer) {
+              if (type_is(tp, tk_integer)) {
                 /* Integers: Somewhat surprisingly, narrowing conversions are
                    valid here ("implementation-defined").  So we don't check
                    that the result is in range. */
@@ -14360,7 +14360,7 @@ the value representation of the integer value.
                                 &expr->position, ips);
                   do_constexpr_fail(result);
                 }  /* if */
-              } else if (tp->kind == (a_type_kind)tk_pointer) {
+              } else if (type_is(tp, tk_pointer)) {
                 /* E.g., a conversion from X* to X const* or X* to void*. */
                 a_type_ptr  utp1 = skip_typerefs(tp->variant.pointer.type);
                 a_type_ptr  utp2;
@@ -14396,7 +14396,7 @@ the value representation of the integer value.
                 }  /* if */
                 *(a_constexpr_address*)result_storage =
                                            *(a_constexpr_address*)opnd1_value;
-              } else if (tp->kind == (a_type_kind)tk_ptr_to_member) {
+              } else if (type_is(tp, tk_ptr_to_member)) {
                 if (!expr->variant.operation.is_reinterpret_cast) {
                   *(a_constexpr_ptr_to_mem*)result_storage =
                                         *(a_constexpr_ptr_to_mem*)opnd1_value;
@@ -14405,7 +14405,7 @@ the value representation of the integer value.
                                       &expr->position, opnd1_type, tp, ips);
                   do_constexpr_fail(result);
                 }  /* if */
-              } else if (tp->kind == (a_type_kind)tk_void) {
+              } else if (type_is(tp, tk_void)) {
                 release_address_structures(opnd1, opnd1_type, opnd1_value);
 #if C99_IL_EXTENSIONS_SUPPORTED
               } else if (tp->kind == (a_type_kind)tk_complex) {
@@ -19243,6 +19243,31 @@ done:;
 }  /* translate_interpreter_offset */
 
 
+static a_byte_count interpreter_base_offset_of(a_base_class_ptr  bcp)
+/*
+Return the interpreter offset with the derived class for the given base.
+*/
+{
+  a_byte_count  result;
+
+  if (bcp->is_virtual || bcp->direct) {
+    get_mapped_byte_count(&persistent_map, bcp, result);
+  } else {
+    a_derivation_step_ptr  step = bcp->derivation->path;
+    a_type_ptr             tp = step->base_class->type;
+    get_mapped_byte_count(&persistent_map, step->base_class, result);
+    for (step = step->next; step != NULL; step = step->next) {
+      a_byte_count  offset;
+      bcp = find_base_in_type(tp, step->base_class->type);
+      get_mapped_byte_count(&persistent_map, bcp, offset);
+      result += offset;
+      tp = step->base_class->type;
+    }  /* for */
+  }  /* if */
+  return result;
+}  /* interpreter_base_offset_of */
+
+
 static a_boolean copy_interpreter_object_to_constant(
                                        an_interpreter_state  *ips,
                                        a_byte                *object,
@@ -19657,6 +19682,22 @@ diagnostic in *ips.
           }  /* if */
         } else {
           con->variant.ptr_to_member.variant.field = pm_value->variant.field;
+        }  /* if */
+        if (pm_value->this_class_adjustment != 0) {
+          a_type_ptr        dtype = pm_value->is_ptr_to_mem_function ?
+                                  parent_class_of(pm_value->variant.routine) :
+                                  parent_class_of(pm_value->variant.field);
+          a_base_class_ptr  bcp = base_classes_of(dtype);
+          con->variant.ptr_to_member.cast_to_base =
+                                                pm_value->subtract_adjustment;
+          for (; bcp != NULL; bcp = bcp->next) {
+            if (interpreter_base_offset_of(bcp) ==
+                                            pm_value->this_class_adjustment) {
+              con->variant.ptr_to_member.casting_base_class = bcp;
+              con->implicit_cast = TRUE;
+              break;
+            }  /* if */
+          }  /* for */
         }  /* if */
       }
       break;
