@@ -14126,9 +14126,17 @@ tok_ud_literal; otherwise, return tok_string_literal.
   character_kind = const_for_curr_token.character_kind;
   if (start_of_curr_token != NULL) {
     lit_kind = scan_encoding_prefix(start_of_curr_token);
-    encoding = literal_encoding_prefix(lit_kind);
-    raw_string_seen = (lit_kind & SCLK_RAW_STRING_LITERAL) != 0;
+    if (lit_kind == SCLK_NOT_A_LITERAL) {
+      /* This must be one of the function name identifiers.  Treat it as
+         an ordinary character string literal. */
+      check_assertion(function_name_case);
+      lit_kind = SCLK_ORDINARY_STRING_LITERAL;
+    }  /* if */
+  } else {
+    lit_kind = const_for_curr_token.variant.string.literal_kind;
   }  /* if */
+  encoding = literal_encoding_prefix(lit_kind);
+  raw_string_seen = (lit_kind & SCLK_RAW_STRING_LITERAL) != 0;
   /* Start a token cache in which we will accumulate all the adjacent
      string literals.  Usually, this will be just a single string literal. */
   clear_token_cache(&cache, /*reusable=*/FALSE);
@@ -14232,7 +14240,8 @@ tok_ud_literal; otherwise, return tok_string_literal.
            as the first literal is handled in expression processing;
            cases where they appear after a string are handled by
            calling here. */
-        set_curr_token_to_function_name_string(/*do_concat=*/FALSE, lit_kind);
+        set_curr_token_to_function_name_string(/*do_concat=*/FALSE,
+                                               SCLK_ORDINARY_STRING_LITERAL);
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (is_microsoft_string_prefix_operator(curr_token)) {
         /* Similar handling for the Microsoft __xPREFIX operators. */
@@ -14260,18 +14269,34 @@ tok_ud_literal; otherwise, return tok_string_literal.
          some modes (C99, C++11, and GNU), this may be okay if one of the
          two kinds is "char" (the concatenation results in the other kind);
          however, a UTF-8 literal cannot be concatenated with a wide
-         literal.  In other modes, it is a discretionary error.  If two
-         different non-char character types are mixed (e.g., U"A" L"B") a
-         non-discretionary error is issued in all modes. */
+         literal.  (The check below for SCLK_UTF8_LITERAL is redundant in
+         C++20, since UTF-8 string literals have the distinct character
+         kind chk_char8_t; in earlier dialects, however, the character kind
+         is chk_char and the prefix must be checked explicitly.)  In other
+         modes, it is a discretionary error.  If two different non-char
+         character types are mixed (e.g., U"A" L"B") a non-discretionary
+         error is issued in all modes. */
       an_error_severity  sev;
-      if ((character_kind != (a_character_kind)chk_char &&
-           const_for_curr_token.character_kind !=
-                                                 (a_character_kind)chk_char) ||
-          encoding == SCLK_UTF8_LITERAL ||
-          next_encoding == SCLK_UTF8_LITERAL) {
-        sev = es_error;
+      if (mixed_string_concat_enabled) {
+        if (character_kind == (a_character_kind)chk_char &&
+            encoding != SCLK_UTF8_LITERAL) {
+          sev = es_none;
+          character_kind = const_for_curr_token.character_kind;
+        } else if (const_for_curr_token.character_kind ==
+                                                  (a_character_kind)chk_char &&
+                   next_encoding != SCLK_UTF8_LITERAL) {
+          sev = es_none;
+        } else {
+          sev = es_error;
+        }  /* if */
       } else {
-        sev = mixed_string_concat_enabled ? es_none : es_discretionary_error;
+        if (character_kind != (a_character_kind)chk_char &&
+            const_for_curr_token.character_kind !=
+                                                  (a_character_kind)chk_char) {
+          sev = es_error;
+        } else {
+          sev = es_discretionary_error;
+        }  /* if */
         if (character_kind == (a_character_kind)chk_char) {
           character_kind = const_for_curr_token.character_kind;
         }  /* if */

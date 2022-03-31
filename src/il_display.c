@@ -1315,6 +1315,9 @@ Display the indicated constant entry.
                    (a_host_large_unsigned)ptr->variant.string.sequence_number);
       }  /* if */
 #endif /* DO_IL_LOWERING && ASSIGN_STRING_LITERAL_SEQUENCE_NUMBERS */
+      disp_name("literal_kind");
+      (void)printf("%s\n",
+                   readable_literal_kind(ptr->variant.string.literal_kind));
       disp_name("value");
 display_constant_value:
       summarize_constant(ptr);

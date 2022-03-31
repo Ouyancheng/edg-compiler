@@ -2754,6 +2754,56 @@ extern a_boolean check_context_sensitive_keyword(a_token_kind  tok_kind,
       : 0) /* 0 for no prefix */                                             \
    + 1 /* 1 for quoting character */)
 
+inline a_const_char *readable_literal_kind(int lit_kind)
+/*
+Return a character string with a human-readable version of the specified
+literal kind.  Uses a local buffer in order to be usable in standalone
+utilities that do not have memory management code.
+*/
+{
+#define add_str(s) { strcpy(buff + len, s); len += sizeof(s) - 1; }
+  static char buff[64];
+  int len = 0;
+
+  if (lit_kind == SCLK_NOT_A_LITERAL) {
+    add_str("not a literal");
+  } else {
+    if (lit_kind & SCLK_RAW_STRING_LITERAL) {
+      add_str("raw ");
+    }  /* if */
+    switch (literal_encoding_prefix(lit_kind)) {
+      case SCLK_ORDINARY_LITERAL:
+        add_str("ordinary ");
+        break;
+      case SCLK_UTF8_LITERAL:
+        add_str("UTF8 ");
+        break;
+      case SCLK_CHAR16_T_LITERAL:
+        add_str("char16_t ");
+        break;
+      case SCLK_CHAR32_T_LITERAL:
+        add_str("char32_t ");
+        break;
+      case SCLK_WIDE_LITERAL:
+        add_str("wide ");
+        break;
+      default:
+        add_str("** UNKNOWN KIND ** ");
+        break;
+    }  /* switch */
+    if (lit_kind & SCLK_FUNCTION_NAME) {
+      add_str("function name ");
+    } else if (lit_kind & SCLK_STRING_LITERAL) {
+      add_str("string ");
+    } else {
+      add_str("character ");
+    }  /* if */
+    add_str("literal");
+  }  /* if */
+  return buff;
+#undef add_str
+}  /* readable_literal_kind */
+
 extern a_string_or_char_literal_kind scan_encoding_prefix(a_const_char *loc);
 
 extern a_constant_ptr alloc_cached_constant();
