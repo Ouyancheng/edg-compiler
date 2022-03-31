@@ -1,5 +1,21 @@
 Version 6.4
 
+3/31/22  [EDGcpfe/25158]
+Assertion failure in lower_question_operand
+
+The changes for EDGcpfe/20535,EDGcpfe/23410 (in version 6.2) introduced
+a couple of regressions (one in lower_question_operand) for cases like the
+ones below.  Now fixed:
+
+  const int a = 1;
+  const int b = 2;
+  void f(bool x) {
+    x ? (*((volatile int*)0) = a) : b;
+    0 ? (*((volatile int*)0) = a) : b;
+    1 ? (*((volatile int*)0) = a) : b;
+  }
+
+
 3/31/22  [EDGcpfe/22219]
 Concatenation involving UTF-encoded and ordinary string literals
 

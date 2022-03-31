@@ -15553,6 +15553,17 @@ careful to call the appropriate routines when lowering expressions.
       throw_op = op3;
     }  /* if */
   }  /* if */
+  if (!expr->is_lvalue) {
+    /* In certain cases (e.g., "x ? (*((volatile int*)0) = a) : b;"), the
+       lvalue-ness of the operands may differ from that of the operation itself
+       -- change the lvalue-ness of the operands in that case. */
+    if (op2->is_lvalue) {
+      overwrite_node(op2, rvalue_expr_for_lvalue(op2));
+    }  /* if */
+    if (op3->is_lvalue) {
+      overwrite_node(op3, rvalue_expr_for_lvalue(op3));
+    }  /* if */
+  }  /* if */
   /* Lower the conditional first (increases the chance that the value will be
      recognized as known at compile time). */
   lower_any_boolean_controlling_expr(op1, /*is_full_expr=*/FALSE);
@@ -15577,7 +15588,8 @@ careful to call the appropriate routines when lowering expressions.
         throw_op = NULL;
       }  /* if */
       lower_any_expr_full(replacement_op, assume_expr_is_non_null);
-      check_assertion(il_identical_types(expr->type, replacement_op->type));
+      /* Typically no cast is necessary, but in some cases it is. */
+      replacement_op = add_cast_if_necessary(replacement_op, expr->type);
       overwrite_node(expr, replacement_op);
     } else {
       /* Make sure the entire expression is lowered. */
