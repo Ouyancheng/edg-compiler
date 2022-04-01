@@ -18752,7 +18752,7 @@ for the union type (class_type).
   if (gpp_mode || clang_mode) {
     initializer_overrides_ctor = has_initializer;
     /* initializer_overrides_other_ctor already FALSE */
-  } else if (!microsoft_mode) {
+  } else if (!ms_version_is(<1927)) {
     initializer_overrides_other_ctor = initializer_overrides_ctor =
                  has_initializer || parent_cssp->union_member_with_initializer;
   }

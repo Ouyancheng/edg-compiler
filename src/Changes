@@ -1,5 +1,21 @@
 Version 6.4
 
+4/1/22   [EDGcpfe/23023,EDGcpfe/24612]
+Microsoft compatibility: Default initializers for anonymous union members
+
+Consider:
+
+  struct S { S() {} };
+  class C {
+    union { S s{}; };
+  } c;  // Now valid in Microsoft C++ modes with microsoft_version >= 1927.
+
+The default initializer for anonymous union member C::s makes this valid, but
+earlier versions of the Microsoft compiler did not accept this case.  MSVC
+19.27, however, fixed that and the front end now emulates that behavior in
+corresponding Microsoft modes (i.e., when microsoft_version >= 1927).
+
+
 4/1/22   [EDGcpfe/25103]
 Abort after lookup ambiguity for certain operators
 
