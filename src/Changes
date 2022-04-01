@@ -1,5 +1,14 @@
 Version 6.4
 
+4/1/22   [EDGcpfe/24640,EDGcpfe/25019]
+Incorrect handling of reference binding in SFINAE constant-expressions
+
+The changes for EDGcpfe/17211 introduced a regression in Microsoft mode for
+certain complex situations involving binding a reference in a constant-
+expression context during template deduction (SFINAE).  The problem occurred
+in particular in some uses of the Boost.asio library.  It is now fixed.
+
+
 4/1/22   [EDGcpfe/23023,EDGcpfe/24612]
 Microsoft compatibility: Default initializers for anonymous union members
 

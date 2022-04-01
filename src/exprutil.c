@@ -19854,7 +19854,8 @@ in the source (and *operator_position gives its position).
                  member for sure.  Create a tpck_expression constant for
                  "&" applied to it. */
               template_constant = TRUE;
-            } else if (microsoft_mode && is_template_dependent_context()) {
+            } else if (microsoft_mode && is_template_dependent_context() &&
+                       !scope_stack_top().is_rescan) {
               /* MSVC accepts many nonconstant forms in templates.  Emulate
                  this by representing the expression via a tpck_expression
                  constant. */
