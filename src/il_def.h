@@ -14300,6 +14300,13 @@ typedef struct an_expr_node {
 		is_consteval_call:1;
 			/* TRUE if this is a call to a "consteval" function.
 			   For use by the front end only. */
+#if BACK_END_IS_CP_GEN_BE
+      a_bit_field
+		suppress_top_level_parens:1;
+			/* TRUE if no parentheses should be placed around
+			   this expression, even if they otherwise would be
+			   emitted. */
+#endif /* BACK_END_IS_CP_GEN_BE */
       an_expr_node_ptr  
                 operands;
                         /* The list of operands. */

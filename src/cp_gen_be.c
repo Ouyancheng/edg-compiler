@@ -14462,17 +14462,19 @@ return FALSE and let the caller generate the code normally.
            overloadable_operator_precedence table. */
         operator_precedence = overloadable_operator_precedence[op];
       }  /* if */
-
-      /* For postfix operators, there's no need to enclose the generated
-         expression in parentheses because the precedence is already higher
-         than all the other operators. */
-      outer_parens_needed = !(op == (an_opname_kind)onk_function_call ||
-                              op == (an_opname_kind)onk_subscript ||
-                              op == (an_opname_kind)onk_arrow ||
-                              ((op == (an_opname_kind)onk_plus_plus ||
-                                op == (an_opname_kind)onk_minus_minus) &&
-                               arg->next != NULL));
-
+      if (expr->variant.operation.suppress_top_level_parens) {
+        outer_parens_needed = FALSE;
+      } else {
+        /* For postfix operators, there's no need to enclose the generated
+           expression in parentheses because the precedence is already
+           higher than all the other operators. */
+        outer_parens_needed = !(op == (an_opname_kind)onk_function_call ||
+                                op == (an_opname_kind)onk_subscript ||
+                                op == (an_opname_kind)onk_arrow ||
+                                ((op == (an_opname_kind)onk_plus_plus ||
+                                  op == (an_opname_kind)onk_minus_minus) &&
+                                 arg->next != NULL));
+      }  /* if */
       /* For most operators we can use the opname_names table to get the
          operator representation.  Function call and subscript operators,
          however, come in two parts, one before the second operand and one
@@ -16194,6 +16196,8 @@ gen_expr that might end up generating this expr as a temporary.
       } else if (op == (an_expr_operator_kind)eok_parens) {
         /* No extra parentheses around parentheses. */
         need_parens = FALSE;
+      } else if (expr->variant.operation.suppress_top_level_parens) {
+        need_parens = FALSE;
       }  /* if */
       if (need_parens) m_write_tok_ch('(');
       switch (op) {
@@ -17467,6 +17471,11 @@ Generate code for the indicated "for" statement.
   }  /* if */
   /* Generate the termination-test expression if there is one. */
   if (statement->expr != NULL) {
+    if (is_operation_node(statement->expr)) {
+      /* Parentheses are not needed for the condition because it is
+         delimited by semicolons. */
+      statement->expr->variant.operation.suppress_top_level_parens = TRUE;
+    }  /* if */
     gen_condition(statement);
   }  /* if */
   write_tok_ch(';');
@@ -17478,6 +17487,12 @@ Generate code for the indicated "for" statement.
     check_result_not_used_flag(incr);
 #endif /* CHECKING */
     write_space();
+    if (is_operation_node(incr)) {
+      /* Parentheses are not needed for the increment expression because it
+         is preceded by a semicolon and followed by the closing parenthesis
+         of the statement. */
+      incr->variant.operation.suppress_top_level_parens = TRUE;
+    }  /* if */
     gen_full_expression(incr);
   }  /* if */
 #if UPC_EXTENSIONS_ALLOWED

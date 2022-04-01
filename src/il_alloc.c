@@ -3506,6 +3506,9 @@ fields to default values.
       node->variant.operation.eval_left_to_right = FALSE;
       node->variant.operation.eval_right_to_left = FALSE;
       node->variant.operation.is_consteval_call = FALSE;
+#if BACK_END_IS_CP_GEN_BE
+      node->variant.operation.suppress_top_level_parens = FALSE;
+#endif /* BACK_END_IS_CP_GEN_BE */
       node->variant.operation.operands = NULL;
       break;
     case enk_constant:
