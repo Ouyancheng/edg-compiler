@@ -20834,11 +20834,17 @@ be entered.
           if (member_cssp->assignment_operator != NULL) {
             class_state->needs_assignment_symbol = TRUE;
           }  /* if */
-          /* Similarly for a deleted trivial default constructor. */
-          if (member_cssp->trivial_default_constructor != NULL &&
-              member_cssp->trivial_default_constructor
-                         ->variant.routine.ptr->is_deleted) {
-            class_state->needs_constructor_symbol = TRUE;
+          /* Similarly for a deleted or nonpublic trivial default
+             constructor. */
+          if (member_cssp->trivial_default_constructor != NULL) {
+            a_routine_ptr  trivial_def_ctor = 
+                                      member_cssp->trivial_default_constructor
+                                                 ->variant.routine.ptr;
+            if (trivial_def_ctor->is_deleted ||
+                trivial_def_ctor->source_corresp.access !=
+                                             (an_access_specifier)as_public) {
+              class_state->needs_constructor_symbol = TRUE;
+            }  /* if */
           }  /* if */
         }  /* if */
         if (has_nontrivial_destructor(member_cssp)) {
@@ -22614,7 +22620,8 @@ classes in the suppression determination.
             /* A trivial default constructor (which will not be returned by
                selected_default_constructor_full) can be deleted. */
             if (mcssp->trivial_default_constructor
-                     ->variant.routine.ptr->is_deleted) {
+                     ->variant.routine.ptr->is_deleted ||
+                !have_access_to_symbol(mcssp->trivial_default_constructor)) {
               gsfd->suppress_default_ctor = TRUE;
               break;
             }  /* if */
