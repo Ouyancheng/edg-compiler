@@ -17841,13 +17841,7 @@ This function is called to deal with "reversed" candidates for comparison
 operators.
 */
 {
-  an_arg_match_summary_ptr  amsp = cfp->arg_matches;
-
-  if (amsp->next != NULL) {
-    cfp->arg_matches = amsp->next;
-    cfp->arg_matches->next = amsp;
-    amsp->next = NULL;
-  }  /* if */
+  cfp->arg_matches = reverse_simple_list(cfp->arg_matches);
 }  /* reverse_binary_match_descriptions */
 
 
@@ -18457,6 +18451,7 @@ select_best_function:
         candidate_functions->supplemental_reversed_candidate &&
         candidate_functions->function_symbol != NULL &&
         candidate_functions->function_symbol->is_class_member &&
+        candidate_functions->arg_matches != NULL &&
         same_candidate_types(candidate_functions, candidate_functions->next) &&
         identical_types_ignoring_qualifiers(operand_1->type,
                                             operand_2->type)) {
@@ -18465,6 +18460,8 @@ select_best_function:
          have identical types.  For example:
              struct X { bool operator==(const X &b); };  // non-const(!)
              bool b = X() == X();
+         (Note: The check candidate_functions->arg_matches != NULL excludes a
+         lookup ambiguity, which is unrelated to the ambiguity handled here.)
          C++20 made this an ambiguity error between the declared operator==
          and the synthesized "reversed-parameter" candidate.  Common practice
          is to accept such code, however.  (Note that the reversed candidate

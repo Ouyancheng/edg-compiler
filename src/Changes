@@ -1,5 +1,28 @@
 Version 6.4
 
+4/1/22   [EDGcpfe/25103]
+Abort after lookup ambiguity for certain operators
+
+Consider:
+
+  struct B1 {
+    bool operator==(B1 const&) const;
+  };
+  struct B2 {
+    bool operator==(B2 const&) const;
+  };
+  struct D: B1, B2 {} d;
+  bool operator==(D const&, D const&);
+  auto r = d == d;  // Previously aborted.  Now an ambiguity error.
+
+The processing of "d == d" previously resulted in a segmentation fault in
+reverse_binary_match_descriptions (overload.c).  That is now fixed.  The front
+end now treats this case as an ambiguity because the lookup of operator== in
+D is ambiguous.  Although that appears to be what the standard requires, the
+standard wording is not 100% clear about it, and some implementations behave
+differently.  The issue has been raised with the C++ standardization committee.
+
+
 3/31/22  [EDGcpfe/25194]
 C++-generating back end: parenthesized expressions in "for" statements
 
