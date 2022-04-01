@@ -2087,7 +2087,7 @@ the given character kind, or a mix of the given kind and chk_char.
       /* Except on the last constant, subtract out the space for the final
          null in the string. */
       if (ctp->next != NULL) {
-        str_len -= character_size[con->character_kind];
+        str_len -= null_len;
       }  /* if */
       /* Copy the string text (including the final null, if that's
          appropriate). */
