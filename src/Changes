@@ -1,5 +1,30 @@
 Version 6.4
 
+3/31/22  [EDGcpfe/25194]
+C++-generating back end: parenthesized expressions in "for" statements
+
+The C++-generating back end previously emitted the condition and increment
+expressions of a "for" statement enclosed in redundant parentheses when
+they are operator-notation function calls.  Although correct, these
+parentheses interfered with some uses of the generated code, so they are
+now suppressed.  For example:
+
+  struct I {
+    void operator++();
+    bool operator<(const I&);
+  };
+  struct S {
+    I& begin();
+    I& end();
+  } s;
+  void f() {
+    for (I i = s.begin();
+         i < s.end();     // Previously generated as (i < s.end())
+         ++i)             // Previously generated as (++i)
+      { }
+  }
+
+
 3/31/22  [EDGcpfe/25180]
 Constant-evaluation of pointer-to-member values
 
