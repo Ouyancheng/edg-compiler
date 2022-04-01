@@ -130,7 +130,7 @@ bytes of the UTF-8 encoding of Y, each widened to 16 bits.  This is now
 fixed, resulting in a string equivalent to u"XY".
 
 
-3/30/22  [EDGcpfe/24267]
+3/30/22  [EDGcpfe/24287]
 Concatenation involving UTF-8 string literals, function name identifiers
 
 According to the C++ Standard, it is permitted to concatenate a string
