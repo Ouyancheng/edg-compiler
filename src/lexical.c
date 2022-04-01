@@ -14215,6 +14215,7 @@ tok_ud_literal; otherwise, return tok_string_literal.
     }  /* if */
     /* Save the current token (a string literal) by adding it to the token
        cache. */
+    const_for_curr_token.variant.string.literal_kind = lit_kind;
     cache_curr_token(&cache);
     /* Remember the first string token (there may be pragma entries preceding
        it in the cache). */

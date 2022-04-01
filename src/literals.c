@@ -2066,10 +2066,20 @@ the given character kind, or a mix of the given kind and chk_char.
         /* A string like "xyz" in L"abc" "xyz" must be rescanned as the
            correct kind of literal, effectively resulting in L"abc" L"xyz".
            const_for_curr_token will replace the cached constant. */
+        a_const_char  *old_val = con->variant.string.value;
+        an_error_code err_code;
+        a_const_char  *err_loc;
+        int           this_lit_kind = lit_kind;
         check_assertion(con->character_kind == (a_character_kind)chk_char);
-        curr_char_loc = con->variant.string.value;
-        ((char *)curr_char_loc)[con->variant.string.length - 1] = '\"';
-        (void)scan_string_literal(lit_kind);
+        if (con->variant.string.literal_kind != SCLK_NOT_A_LITERAL) {
+          /* Ensure correct treatment of escapes in the existing string
+             value. */
+          this_lit_kind |= (con->variant.string.literal_kind &
+                            SCLK_RAW_STRING_LITERAL);
+        }  /* if */
+        conv_string_literal(old_val, old_val + con->variant.string.length - 1,
+                            this_lit_kind, con->variant.string.length - 1,
+                            &err_code, &err_loc);
         con = &const_for_curr_token;
       }  /* if */
       /* Determine the length of this string literal. */
