@@ -2741,7 +2741,7 @@ extern a_boolean check_context_sensitive_keyword(a_token_kind  tok_kind,
 #define SCLK_ORDINARY_STRING_LITERAL \
                                   (SCLK_ORDINARY_LITERAL | SCLK_STRING_LITERAL)
 
-/* Extract the encoding prefix from a_string_or_literal_kind. */
+/* Extract the encoding prefix from a_string_or_char_literal_kind. */
 #define literal_encoding_prefix(k) ((k) & 0x7)
 
 /* Return the offset of the first character following the prefix (if any)
@@ -2754,7 +2754,8 @@ extern a_boolean check_context_sensitive_keyword(a_token_kind  tok_kind,
       : 0) /* 0 for no prefix */                                             \
    + 1 /* 1 for quoting character */)
 
-inline a_const_char *readable_literal_kind(int lit_kind)
+inline a_const_char *readable_literal_kind(
+                                        a_string_or_char_literal_kind lit_kind)
 /*
 Return a character string with a human-readable version of the specified
 literal kind.  Uses a local buffer in order to be usable in standalone
