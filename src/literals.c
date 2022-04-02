@@ -1973,13 +1973,13 @@ the concatenated string; see ANSI C 3.1.4.  The cached strings either all have
 the given character kind, or a mix of the given kind and chk_char.
 */
 {
-  a_targ_size_t      total_len = 0, str_len, null_len;
-  a_cached_token_ptr ctp, first_string_token = NULL;
-  a_boolean          produce_error_constant = FALSE;
-  a_constant_ptr     concat_con, con;
-  char               *new_str;
-  a_const_char       *saved_curr_char_loc = curr_char_loc;
-  int                lit_kind;
+  a_targ_size_t                 total_len = 0, str_len, null_len;
+  a_cached_token_ptr            ctp, first_string_token = NULL;
+  a_boolean                     produce_error_constant = FALSE;
+  a_constant_ptr                concat_con, con;
+  char                          *new_str;
+  a_const_char                  *saved_curr_char_loc = curr_char_loc;
+  a_string_or_char_literal_kind lit_kind;
 
   db_enter(4, "concat_string_literals");
   if (first_token == NULL) {
@@ -2066,10 +2066,10 @@ the given character kind, or a mix of the given kind and chk_char.
         /* A string like "xyz" in L"abc" "xyz" must be rescanned as the
            correct kind of literal, effectively resulting in L"abc" L"xyz".
            const_for_curr_token will replace the cached constant. */
-        a_const_char  *old_val = con->variant.string.value;
-        an_error_code err_code;
-        a_const_char  *err_loc;
-        int           this_lit_kind = lit_kind;
+        a_const_char                  *old_val = con->variant.string.value;
+        an_error_code                 err_code;
+        a_const_char                  *err_loc;
+        a_string_or_char_literal_kind this_lit_kind = lit_kind;
         check_assertion(con->character_kind == (a_character_kind)chk_char);
         if (con->variant.string.literal_kind != SCLK_NOT_A_LITERAL) {
           /* Ensure correct treatment of escapes in the existing string
