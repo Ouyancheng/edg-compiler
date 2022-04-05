@@ -20834,7 +20834,7 @@ be entered.
           if (member_cssp->assignment_operator != NULL) {
             class_state->needs_assignment_symbol = TRUE;
           }  /* if */
-          /* Similarly for a deleted or nonpublic trivial default
+          /* Similarly for a deleted or inaccessible trivial default
              constructor. */
           if (member_cssp->trivial_default_constructor != NULL) {
             a_routine_ptr  trivial_def_ctor = 
