@@ -9629,8 +9629,9 @@ being popped.
           (a_scope_kind)sck_template_instantiation &&
           scope_stack[scope_depth].template_decl_info->parameters ==
                                               template_decl_info->parameters &&
-          !symbol_is(scope_stack[scope_depth].template_sym,
-                     sk_function_template)) {
+          (symbol_is(scope_stack[scope_depth].template_sym,
+                     sk_class_template) ||
+           scope_stack[scope_depth].template_sym == ssep->template_sym)) {
         prev_depth = scope_depth;
         break;
       }  /* if */
