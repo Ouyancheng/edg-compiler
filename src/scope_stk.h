@@ -1334,6 +1334,12 @@ typedef struct a_scope_stack_entry {
                 template_arg_list;
                         /* When kind == sck_template_instantiation, contains
                            a pointer to a template argument list. */
+  a_template_arg_ptr
+		deduced_template_args;
+			/* When kind == scl_template_instantiation, set to
+			   point to the deduced template arguments when
+			   function template argument deduction is
+			   complete. */
   a_source_position
 		source_position;
 			/* The source position when the scope was pushed

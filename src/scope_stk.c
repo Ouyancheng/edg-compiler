@@ -2923,6 +2923,7 @@ the scope being pushed.
   ssep->instance_sym             = instance_sym;
   ssep->template_sym             = template_sym;
   ssep->template_arg_list        = template_arg_list;
+  ssep->deduced_template_args    = NULL;
   ssep->source_position          = pos_curr_token;
   ssep->depth_innermost_function_scope = depth_innermost_function_scope;
   ssep->template_decl_info       = template_decl_info;
@@ -9628,10 +9629,7 @@ being popped.
       if (scope_stack[scope_depth].kind ==
           (a_scope_kind)sck_template_instantiation &&
           scope_stack[scope_depth].template_decl_info->parameters ==
-                                              template_decl_info->parameters &&
-          (symbol_is(scope_stack[scope_depth].template_sym,
-                     sk_class_template) ||
-           scope_stack[scope_depth].template_sym == ssep->template_sym)) {
+                                              template_decl_info->parameters) {
         prev_depth = scope_depth;
         break;
       }  /* if */
@@ -10985,7 +10983,14 @@ NULL template parameter list and argument lists are returned.
     tdip = ssep->template_decl_info;
     *templ_param_list = tdip->parameters;
     check_assertion(*templ_param_list != NULL);
-    *templ_arg_list = ssep->template_arg_list;
+    if (ssep->template_arg_list != NULL) {
+      *templ_arg_list = ssep->template_arg_list;
+    } else {
+      /* If we are in the midst of substituting into the type of a
+         just-deduced template instance, the argument list will be found
+         in deduced_template_args. */
+      *templ_arg_list = ssep->deduced_template_args;
+    }  /* if */
     check_assertion(*templ_arg_list != NULL);
     break;
   }  /* for */

@@ -2949,7 +2949,6 @@ Otherwise it is zero.
                                          templ_param_list, ctws_options,
                                          param_count)) {
     /* Substitute the template arguments in the routine type. */
-    a_template_arg_ptr *arg_list_to_restore = NULL;
     if (depth_innermost_instantiation_scope != NO_SCOPE_DEPTH &&
         scope_stack_entry_for(depth_innermost_instantiation_scope)->
                                               template_sym == rout_templ_sym &&
@@ -2958,17 +2957,12 @@ Otherwise it is zero.
       /* We know the template arguments for this instance now; save them in
          the scope stack entry in case they are needed for the substitution
          below. */
-      arg_list_to_restore =
-                  &scope_stack_entry_for(depth_innermost_instantiation_scope)->
-                                                             template_arg_list;
-      *arg_list_to_restore = *templ_arg_list;
+      scope_stack_entry_for(depth_innermost_instantiation_scope)->
+                                       deduced_template_args = *templ_arg_list;
     }  /* if */
     new_type = substitute_template_arguments(rout_templ_sym, *templ_arg_list,
                                              (a_template_arg_ptr*)NULL,
                                              templ_param_list, ctws_options);
-    if (arg_list_to_restore != NULL) {
-      *arg_list_to_restore = NULL;
-    }  /* if */
     if (new_type != NULL && (microsoft_mode || gpp_mode)) {
       /* Normally, a function type will have been considered invalid if
          a parameter or return type was an abstract class type, but in
