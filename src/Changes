@@ -1,5 +1,29 @@
 Version 6.4
 
+4/6/22   [EDGcpfe/20055,EDGcpfe/20157,EDGcpfe/20168,EDGcpfe/20170,
+          EDGcpfe/23813,EDGcpfe/24944]
+Implicit deduction guides for nested class templates
+
+Consider (in C++17 mode):
+
+  template<typename T> struct X {
+    template<typename U> struct N { N(U); };
+    X() {
+      N v(0);  // Previously an error.  Now okay.
+    }
+  };
+  struct S {};
+  X<S> xs;
+
+A strict reading of the C++ standard makes the use of class template argument
+deduction for the declaration "N v(0);" invalid.  However, core issue 2471 was
+opened to review that and the committee's core working group appear inclined
+to make that example valid.  Furthermore, GCC already accepts such examples.
+The front end also accepts the case (in C++17 and later modes); previously, it
+issued an error due to a failure to construct the associated implicit deduction
+guide.
+
+
 4/1/22   [EDGcpfe/24640,EDGcpfe/25019]
 Incorrect handling of reference binding in SFINAE constant-expressions
 

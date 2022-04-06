@@ -1222,8 +1222,11 @@ itself recursively to process classes nested within this class.
        that a virtual function table might be put out.  All instances are
        placed on the instantiation list.  In tim_all mode the instantiations
        will be generated even if the instantiation required flag is not set. */
-    rout = ctsp->assoc_scope->routines;
-    while (rout != NULL) {
+    for (rout = ctsp->assoc_scope->routines; rout != NULL; rout = rout->next) {
+      if (special_kind_is(rout, sfk_deduction_guide)) {
+        /* Ignore deduction guides.  They aren't callable entities. */
+        continue;
+      }  /* if */
       sym = symbol_for(rout);
       tip = sym->variant.routine.instance_ptr;
       if (tip == NULL) {
@@ -1289,7 +1292,6 @@ itself recursively to process classes nested within this class.
 #endif /* !CLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
-      rout = rout->next;
     }  /* while */
     
     /* Static data members are eligible for a compiler-generated definition
@@ -41250,16 +41252,48 @@ fails.
 }  /* substitute_template_param_list */
 
 
+static void substitute_templ_params(
+				a_template_param_ptr	   list_to_subst,
+				a_symbol_ptr		   template_sym,
+                                a_subst_pairs_array const  &subst_pairs,
+				a_boolean		   *copy_error)
+/*
+Apply all the substitutions described in subst_pairs to list_to_subst (which
+is a template parameter list associated with template_sym).  Set *copy_error
+to TRUE if a substitution error occurs; in that case, some substitution may
+not be completed.
+*/
+{
+  int  levels = (int)subst_pairs.length();
+
+  if (levels != 0) {
+    for (int k = 0; k < levels && !*copy_error; ++k) {
+      a_subst_pairs_descr const  *spd = &subst_pairs[k];
+      substitute_template_param_list(template_sym, list_to_subst,
+                                     spd->params, spd->args, copy_error);
+      if (*copy_error) break;
+    }  /* for */
+  }  /* if */
+}  /* substitute_templ_params */
+
+
 static a_symbol_ptr make_implicit_deduction_guide_template(
 			a_symbol_ptr				ct_sym,
-			a_template_symbol_supplement_ptr	ct_tssp,
 			a_type_ptr				proto_type,
-			a_symbol_ptr				ctor_sym)
+			a_symbol_ptr				ctor_sym,
+			a_symbol_ptr				orig_ct_sym)
 /*
 This routine creates the symbol and associated template data structures
 for an implicit deduction guide.  The basic information is filled in
 here.  Additional information (such as the template parameter list and
 function parameter list) will be completed later.
+
+orig_ct_sym describes the class template for which a deduction guide template
+entry is to be created.  ct_sym and ct_tssp describe the associated prototype
+template (if this is not for a nested class template, ct_sym and orig_ct_sym
+will be identical).  proto_type is the prototype instantiation of that class
+template and ctor_sym is the constructor for which a guide is being
+synthesized.
 */
 {
   a_template_decl_info_ptr		tdip;
@@ -41269,6 +41303,8 @@ function parameter list) will be completed later.
   a_template_cache_ptr			tcp;
   a_template_ptr			templ;
   a_boolean				is_hypothetical = FALSE;
+  a_template_symbol_supplement_ptr	ct_tssp =
+                                                ct_sym->variant.template_info;
 
   /* The constructor for a hypothetical constructor won't have a template
      instance. */
@@ -41282,7 +41318,7 @@ function parameter list) will be completed later.
   sym = alloc_symbol((a_symbol_kind)sk_function_template,
                      ctor_sym->header,
                      &null_source_position);
-  sym->decl_scope = ct_sym->decl_scope;
+  sym->decl_scope = orig_ct_sym->decl_scope;
   tssp = sym->variant.template_info;
   tdip = alloc_template_decl_info();
   tssp->cache.decl_info = tdip;
@@ -41300,7 +41336,15 @@ function parameter list) will be completed later.
   if (!is_hypothetical) {
     tssp->variant.function.constructor_symbol_for_guide = ctor_sym;
   }  /* if */
-  tdip->enclosing_scope = parent_scope_of(proto_type);
+  if (orig_ct_sym == ct_sym) {
+    tdip->enclosing_scope = parent_scope_of(proto_type);
+  } else {
+    /* A case of nested template classes.  ct_sym represents the prototype
+       class template (which contains the constructors from which the guides
+       are generated), but the guide must become a member of orig_ct_sym. */
+    a_type_ptr  parent_class = sym_parent_class(orig_ct_sym);
+    tdip->enclosing_scope = class_type_supp(parent_class)->assoc_scope;
+  }  /* if */
   tdip->enclosing_template_decl = tcp->decl_info->enclosing_template_decl;
   templ = alloc_template();
   tssp->il_template_entry = templ;
@@ -41314,17 +41358,20 @@ function parameter list) will be completed later.
 
 static a_symbol_ptr make_template_implicit_deduction_guide(
 			a_symbol_ptr				ct_sym,
-			a_template_symbol_supplement_ptr	ct_tssp,
 			a_type_ptr				proto_type,
-			a_symbol_ptr				ctor_sym)
+			a_symbol_ptr				ctor_sym,
+			a_symbol_ptr				orig_ct_sym)
 /*
-Create a function template to be used as an implicit deduction guide.
-The guide that is created has the template parameter list of the enclosing
-class template (specified by ct_sym and ct_tssp) and the function template
-parameter list of the constructor template specified by ctor_sym (if it is
-a template).  proto_type is the prototype instantiation of ct_sym.  The
-symbol of the generated template is returned.  If a substitution failure
-occurs during the creation of the template, a NULL symbol is returned.
+Create a function template to be used as an implicit deduction guide.  The
+guide that is created has the template parameter list of the enclosing class
+template (specified by ct_sym) and the function template parameter list of the
+constructor template specified by ctor_sym (if it is a template).  proto_type
+is the prototype instantiation of ct_sym.  The symbol of the generated template
+is returned.  If a substitution failure occurs during the creation of the
+template, a NULL symbol is returned.  For nested class templates, ct_sym
+represents the prototype template; the specific template for which a guide is
+needed is orig_ct_sym in that case (in other cases orig_ct_sym and ct_sym are
+identical).
 */
 {
   a_template_decl_info_ptr		tdip;
@@ -41349,7 +41396,9 @@ occurs during the creation of the template, a NULL symbol is returned.
   a_ctws_state				ctws_state;
   a_symbol_ptr				return_type_sym;
   a_boolean				ctor_is_template;
+  a_template_symbol_supplement_ptr	ct_tssp;
 
+  ct_tssp = ct_sym->variant.template_info;
   if (symbol_is(ctor_sym, sk_member_function)) {
     ctor_is_template = FALSE;
     ctor_tssp = NULL;
@@ -41364,8 +41413,8 @@ occurs during the creation of the template, a NULL symbol is returned.
      below. */
   push_instantiation_scope_for_rescan(ct_sym);
   if (ctor_tssp != NULL && ctor_tssp->is_error) goto done;
-  sym = make_implicit_deduction_guide_template(ct_sym, ct_tssp, proto_type,
-                                               ctor_sym);
+  sym = make_implicit_deduction_guide_template(ct_sym, proto_type,
+                                               ctor_sym, orig_ct_sym);
   sym->decl_position = ctor_sym->decl_position;
   /* Add the template parameters of the class to the new template parameter
      list that is being created. */
@@ -41376,16 +41425,26 @@ occurs during the creation of the template, a NULL symbol is returned.
   /* Create the argument list corresponding to the class's parameters. */
   class_templ_args = create_prototype_arg_list(ct_sym, templ_param_list,
                                                /*add_pack_descr=*/TRUE);
-  /* Substitute the new class template parameters in the copy of the
-     parameter list from the class template. */
-  substitute_template_param_list(ct_sym, templ_param_list,
-                                 orig_class_templ_params,
-                                 class_templ_args, &copy_error);
+  { /* Substitute the new class template parameters in the copy of the
+       parameter list from the class template. */
+    a_subst_pairs_array  subst_pairs(1);
+    a_subst_pairs_descr  spd = { orig_class_templ_params, class_templ_args,
+                                 FALSE, FALSE };
+    if (ct_sym != orig_ct_sym) {
+      /* If this is a nested class template, also substitute the enclosing
+         class templates. */
+      check_assertion(orig_ct_sym->is_class_member);
+      get_all_class_subst_pairs(sym_parent_class(orig_ct_sym), &subst_pairs);
+    }  /* if */
+    subst_pairs.push_back(spd);
+    substitute_templ_params(templ_param_list, ct_sym, subst_pairs,
+                            &copy_error);
+  }
   /* Get the return type based on the class template argument list.
      The list is copied first because it may be discarded by
      find_class_template_simple. */
   tap = copy_template_arg_list(class_templ_args);
-  return_type_sym = find_template_class_simple(ct_sym, &tap);
+  return_type_sym = find_template_class_simple(orig_ct_sym, &tap);
   return_type = type_symbol_type(return_type_sym);
   if (ctor_is_template) {
     orig_ctor_templ_params =
@@ -41456,10 +41515,11 @@ occurs during the creation of the template, a NULL symbol is returned.
   }  /* if */
 #endif /* DEBUG */
   tssp->variant.function.routine = rout;
-  set_membership_in_source_corresp(&rout->source_corresp, ct_sym);
+  set_membership_in_source_corresp(&rout->source_corresp, orig_ct_sym);
   set_routine_special_kind(rout,
                            (a_special_function_kind)sfk_deduction_guide);
-  rout->variant.class_template = ct_tssp->il_template_entry;
+  rout->variant.class_template = orig_ct_sym->variant.template_info
+                                            ->il_template_entry;
   rout->compiler_generated = TRUE;
   rout->source_corresp.decl_position = ctor_rout->source_corresp.decl_position;
   /* The routine uses nonreal types, so consider it a prototype
@@ -41476,7 +41536,6 @@ done:
 
 static a_symbol_ptr add_guide_for_param_type_list(
 			a_symbol_ptr                        ct_sym,
-			a_template_symbol_supplement_ptr    ct_tssp,
 			a_type_ptr                          proto_type,
 			a_param_type_ptr                    params)
 /*
@@ -41484,9 +41543,9 @@ Create a function template to be used as an implicit deduction guide
 for an invented constructor based on the parameter type list specified by
 params, which can be NULL if there are no parameters.  The guide is either
 for a hypothetical constructor or for an aggregate deduction candidate.
-The guide that is created has the template parameter list of the
-enclosing class template (specified by ct_sym and ct_tssp).  proto_type is the
-prototype instantiation of ct_sym.  If a guide is successfully created,
+The guide that is created has the template parameter list of the enclosing
+class template (specified by ct_sym).  proto_type is the prototype
+instantiation of ct_sym.  If a guide is successfully created,
 return the symbol pointer for the guide.  Otherwise, return NULL.
 */
 {
@@ -41526,11 +41585,13 @@ return the symbol pointer for the guide.  Otherwise, return NULL.
   rout->special_kind = (a_special_function_kind)sfk_constructor;
   ctor_sym->variant.routine.ptr = rout;
   /* Transform the constructor into an implicit deduction guide. */
-  new_sym = make_template_implicit_deduction_guide(ct_sym, ct_tssp, proto_type,
-                                                   ctor_sym);
+  a_symbol_ptr  pct_sym = prototype_template_of(ct_sym);
+  new_sym = make_template_implicit_deduction_guide(
+                                       pct_sym, proto_type, ctor_sym, ct_sym);
   if (new_sym != NULL) {
     add_deduction_guide(new_sym,
-                        &ct_tssp->variant.class_template.deduction_guides);
+                        &ct_sym->variant.template_info
+                               ->variant.class_template.deduction_guides);
   }  /* if */
   return new_sym;
 }  /* add_guide_for_param_type_list */
@@ -41538,7 +41599,6 @@ return the symbol pointer for the guide.  Otherwise, return NULL.
 
 static void add_guide_for_hypothetical_constructor(
 			a_symbol_ptr				ct_sym,
-			a_template_symbol_supplement_ptr	ct_tssp,
 			a_type_ptr				proto_type,
 			a_type_ptr				param_type)
 /*
@@ -41556,38 +41616,40 @@ prototype instantiation of ct_sym.
     ptp = alloc_param_type(param_type);
     ptp->param_num = 1;
   }  /* if */
-  (void)add_guide_for_param_type_list(ct_sym, ct_tssp, proto_type, ptp);
+  (void)add_guide_for_param_type_list(ct_sym, proto_type, ptp);
 }  /* add_guide_for_hypothetical_constructor */
 
 
 static void create_implicit_deduction_guide(
-			a_symbol_ptr				ct_sym,
-			a_template_symbol_supplement_ptr	ct_tssp,
-			a_type_ptr				proto_type,
-			a_symbol_ptr				ctor_sym)
+                               a_symbol_ptr                      ct_sym,
+                               a_type_ptr                        proto_type,
+                               a_symbol_ptr                      ctor_sym,
+                               a_symbol_ptr                      orig_ct_sym)
 /*
-ctor_sym is a constructor of the class template specified by ct_sym and
-ct_tssp.  proto_type is the prototype instantiation of ct_sym.  Create an
-implicit deduction guide for that constructor.
+ctor_sym is a constructor of the class template specified by ct_sym.
+proto_type is the prototype instantiation of ct_sym.  Create an implicit
+deduction guide for that constructor.  For nested class templates, ct_sym,
+proto_type, and ctor_sym are produced from the prototype class template; the
+original class template for which deduction guides are needed is orig_ct_sym.
 */
 {
   a_symbol_ptr	new_sym;
 
-  new_sym = make_template_implicit_deduction_guide(ct_sym, ct_tssp,
-                                                   proto_type, ctor_sym);
+  new_sym = make_template_implicit_deduction_guide(ct_sym, proto_type,
+                                                   ctor_sym, orig_ct_sym);
   if (new_sym != NULL) {
     add_deduction_guide(new_sym,
-                        &ct_tssp->variant.class_template.deduction_guides);
+                        &orig_ct_sym->variant.template_info
+                                    ->variant.class_template.deduction_guides);
   }  /* if */
 }  /* create_implicit_deduction_guide */
 
 
-static void create_implicit_deduction_guides(
-			a_symbol_ptr				ct_sym,
-			a_template_symbol_supplement_ptr	ct_tssp)
+static void create_implicit_deduction_guides(a_symbol_ptr  orig_ct_sym)
 /*
-Go through the constructors of the class template specified by ct_sym and
-ct_tssp and create implicit deduction guides for each constructor.
+Go through the constructors of the class template specified by orig_ct_sym 
+and create implicit deduction guides for each constructor.  orig_ct_sym may
+not be a prototype template when dealing with nested class templates.
 */
 {
   a_symbol_ptr			proto_sym;
@@ -41596,7 +41658,11 @@ ct_tssp and create implicit deduction guides for each constructor.
   a_symbol_ptr			ctor_set_sym;
   a_symbol_ptr			ctor_sym;
   a_boolean			is_list = FALSE;
+  a_symbol_ptr                  ct_sym = prototype_template_of(orig_ct_sym);
+  a_template_symbol_supplement_ptr
+                                ct_tssp;
 
+  ct_tssp = template_supplement_for_symbol(ct_sym);
   proto_sym = ct_tssp->variant.class_template.prototype_instantiation;
   proto_cssp = class_symbol_supp(proto_sym);
   proto_type = type_symbol_type(proto_sym);
@@ -41609,21 +41675,21 @@ ct_tssp and create implicit deduction guides for each constructor.
     ctor_sym = ctor_set_sym;
   }  /* if */
   for (; ctor_sym != NULL; ctor_sym = is_list ? ctor_sym->next : NULL) {
-    create_implicit_deduction_guide(ct_sym, ct_tssp, proto_type, ctor_sym);
+    create_implicit_deduction_guide(ct_sym, proto_type, ctor_sym, orig_ct_sym);
   }  /* for */
   if (ctor_set_sym == NULL) {
     /* If there are no constructors, create a guide for a default
        constructor. */
-    add_guide_for_hypothetical_constructor(ct_sym, ct_tssp, proto_type,
+    add_guide_for_hypothetical_constructor(orig_ct_sym, proto_type,
                                            (a_type_ptr)NULL);
     /* If the class template is incomplete, the default constructor guide
        should be removed if and when the class template is completed. */
-    ct_tssp->variant.class_template.interim_implicit_deduction_guides =
+    orig_ct_sym->variant.template_info
+               ->variant.class_template.interim_implicit_deduction_guides =
                                                 is_incomplete_type(proto_type);
   }  /* if */
   /* Add the copy deduction candidate. */
-  add_guide_for_hypothetical_constructor(ct_sym, ct_tssp, proto_type,
-                                         proto_type);
+  add_guide_for_hypothetical_constructor(orig_ct_sym, proto_type, proto_type);
 }  /* create_implicit_deduction_guides */
 
 
@@ -41703,7 +41769,7 @@ up-to-date.
       remove_hypothetical_default_guide(ct_sym);
     }  /* if */
     /* Generate guides from constructors. */
-    create_implicit_deduction_guides(ct_sym, ct_tssp);
+    create_implicit_deduction_guides(ct_sym);
     ct_tssp->variant.class_template.implicit_deduction_guides_added = TRUE;
   }  /* if */
 }  /* update_implicit_deduction_guides */
@@ -41727,7 +41793,7 @@ template and return a symbol for it.
 
   proto_sym = ct_tssp->variant.class_template.prototype_instantiation;
   proto_type = type_symbol_type(proto_sym);
-  guide = add_guide_for_param_type_list(ct_sym, ct_tssp, proto_type, params);
+  guide = add_guide_for_param_type_list(ct_sym, proto_type, params);
   return guide;
 }  /* make_aggregate_deduction_candidate */
 

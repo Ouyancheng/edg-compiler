@@ -28766,6 +28766,7 @@ set to TRUE and FALSE is returned.
          situations may also end up here.*/
       expect_error();
       *deduced_placeholder = error_type();
+      result = FALSE;
       goto done;
     } else {
       *deduced_placeholder = deduced_type;
