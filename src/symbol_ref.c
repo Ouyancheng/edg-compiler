@@ -2547,6 +2547,22 @@ check_label_decl_seq:
           /* This is called for inline variables to make sure that we know
              a definition of the inline instance may be needed. */
           set_instance_required(sym_ptr, TRUE, SIR_DEFER_INLINE);
+          if (vp->template_info != NULL) {
+            /* Mark the template and its prototype instantiation as
+               referenced as well. */
+            a_template_ptr tplp = vp->template_info->assoc_template;
+            a_variable_ptr proto_tplp = tplp->prototype_instantiation.variable;
+            symbol_for(tplp)->referenced = TRUE;
+            if (update_il_entry) {
+              tplp->source_corresp.referenced = TRUE;
+            }  /* if */
+            if (proto_tplp != NULL) {
+              symbol_for(proto_tplp)->referenced = TRUE;
+              if (update_il_entry) {
+                proto_tplp->source_corresp.referenced = TRUE;
+              }  /* if */
+            }  /* if */
+          }  /* if */
         }  /* if */
       }  /* if */
     }  /* if */
