@@ -41246,11 +41246,10 @@ fails.
 }  /* substitute_template_param_list */
 
 
-static void substitute_templ_params(
-				a_template_param_ptr	   list_to_subst,
-				a_symbol_ptr		   template_sym,
-                                a_subst_pairs_array const  &subst_pairs,
-				a_boolean		   *copy_error)
+static void substitute_templ_params(a_template_param_ptr       list_to_subst,
+                                    a_symbol_ptr               template_sym,
+                                    a_subst_pairs_array const  &subst_pairs,
+                                    a_boolean                  *copy_error)
 /*
 Apply all the substitutions described in subst_pairs to list_to_subst (which
 is a template parameter list associated with template_sym).  Set *copy_error
@@ -41283,22 +41282,19 @@ here.  Additional information (such as the template parameter list and
 function parameter list) will be completed later.
 
 orig_ct_sym describes the class template for which a deduction guide template
-entry is to be created.  ct_sym and ct_tssp describe the associated prototype
-template (if this is not for a nested class template, ct_sym and orig_ct_sym
-will be identical).  proto_type is the prototype instantiation of that class
-template and ctor_sym is the constructor for which a guide is being
-synthesized.
+entry is to be created.  ct_sym describe the associated prototype template (if
+this is not for a nested class template, ct_sym and orig_ct_sym will be
+identical).  proto_type is the prototype instantiation of that class template
+and ctor_sym is the constructor for which a guide is being synthesized.
 */
 {
-  a_template_decl_info_ptr		tdip;
-  a_symbol_ptr				sym;
-  a_template_symbol_supplement_ptr	tssp;
-  a_template_symbol_supplement_ptr	ctor_tssp = NULL;
-  a_template_cache_ptr			tcp;
-  a_template_ptr			templ;
-  a_boolean				is_hypothetical = FALSE;
-  a_template_symbol_supplement_ptr	ct_tssp =
-                                                ct_sym->variant.template_info;
+  a_template_decl_info_ptr          tdip;
+  a_symbol_ptr                      sym;
+  a_template_cache_ptr              tcp;
+  a_template_ptr                    templ;
+  a_boolean                         is_hypothetical = FALSE;
+  a_template_symbol_supplement_ptr  tssp, ctor_tssp = NULL,
+                                    ct_tssp = ct_sym->variant.template_info;
 
   /* The constructor for a hypothetical constructor won't have a template
      instance. */
@@ -41596,12 +41592,11 @@ static void add_guide_for_hypothetical_constructor(
 			a_type_ptr				proto_type,
 			a_type_ptr				param_type)
 /*
-Create a function template to be used as an implicit deduction guide
-for a hypothetical constructor.  The guide that is created has the
-template parameter list of the enclosing class template (specified by
-ct_sym and ct_tssp).  The constructor has either no parameter (if param_type
-is NULL) or one parameter whose type is param_type.  proto_type is the
-prototype instantiation of ct_sym.
+Create a function template to be used as an implicit deduction guide for a
+hypothetical constructor.  The guide that is created has the template parameter
+list of the enclosing class template (specified by ct_sym).  The constructor
+has either no parameter (if param_type is NULL) or one parameter whose type is
+param_type.  proto_type is the prototype instantiation of ct_sym.
 */
 {
   a_param_type_ptr		ptp = NULL;
@@ -41646,16 +41641,14 @@ and create implicit deduction guides for each constructor.  orig_ct_sym may
 not be a prototype template when dealing with nested class templates.
 */
 {
-  a_symbol_ptr			proto_sym;
-  a_class_symbol_supplement_ptr	proto_cssp;
-  a_type_ptr			proto_type;
-  a_symbol_ptr			ctor_set_sym;
-  a_symbol_ptr			ctor_sym;
-  a_boolean			is_list = FALSE;
-  a_symbol_ptr                  ct_sym = prototype_template_of(orig_ct_sym);
+  a_symbol_ptr        		 proto_sym, ctor_set_sym, ctor_sym, ct_sym;
+  a_class_symbol_supplement_ptr  proto_cssp;
+  a_type_ptr        		 proto_type;
+  a_boolean        		 is_list = FALSE;
   a_template_symbol_supplement_ptr
-                                ct_tssp;
+                                 ct_tssp;
 
+  ct_sym = prototype_template_of(orig_ct_sym);
   ct_tssp = template_supplement_for_symbol(ct_sym);
   proto_sym = ct_tssp->variant.class_template.prototype_instantiation;
   proto_cssp = class_symbol_supp(proto_sym);
