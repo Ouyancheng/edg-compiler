@@ -4577,10 +4577,10 @@ Assumes ctor_init has not been lowered yet.
 }  /* copy_ctor_init_with_remap */
 
 
-static void copy_ctor_inits(a_scope_ptr         from_scope,
-                            a_scope_ptr         to_scope,
-                            a_boolean           remove_originals,
-                            a_ctor_or_dtor_kind kind)
+static void copy_ctor_inits(a_scope_ptr             from_scope,
+                            a_scope_ptr             to_scope,
+                            a_boolean               remove_originals,
+                            a_constructor_init_kind kind)
 /*
 This routine copies constructor initializers of type "kind" from the
 specified "from_scope" to the specified "to_scope" (both of which must be
@@ -5079,7 +5079,7 @@ operator of a no-capture lambda.
       copy_ctor_inits(scope_for_routine(routine),
                       scope_for_routine(complete_routine),
                       remove_originals,
-                      (a_constructor_init_kind)cik_virtual_base_class);
+                      cik_virtual_base_class);
       /* Start an object lifetime. */
       begin_block_object_lifetime(new_routine_scope->lifetime,
                                   &insert_location);

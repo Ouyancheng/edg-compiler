@@ -12018,7 +12018,7 @@ typedef struct a_routine {
 			   mangled name of the routine.	 TRUE only for
 			   routines with definitions, never for (e.g.)
 			   external references. */
-  a_bit_field /* a_ctor_or_dtor_kind */
+  a_ctor_or_dtor_kind
 		ctor_dtor_kind:3;
 			/* The kind of constructor or destructor.  cdk_none
 			   for other kinds of routines.  All constructors and

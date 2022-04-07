@@ -3901,7 +3901,7 @@ add mangling for an eok_address_of operation.
            specific function is to be used). */
 #if ABI_COMPATIBILITY_VERSION >= 402
         if (!emulate_gnu_abi_bugs &&
-            rinfo->special_kind != (an_opname_kind)onk_none) {
+            rinfo->special_kind != sfk_none) {
           /* This is some type of special function; make sure it receives
              the proper mangling treatment within an "sr" mangling. */
           mangled_operator_or_special_function(rinfo->opname_kind,
