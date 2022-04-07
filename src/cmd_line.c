@@ -8149,6 +8149,11 @@ file.
 #else /* !defined(NUM_BITS_FOR_CHARACTER_KIND) */
   comment_undefined_macro_name(NUM_BITS_FOR_CHARACTER_KIND);
 #endif /* defined(NUM_BITS_FOR_CHARACTER_KIND) */
+#if defined(NUM_BITS_FOR_EXPR_NODE_KIND)
+  define_numeric_valued_macro(NUM_BITS_FOR_EXPR_NODE_KIND);
+#else /* !defined(NUM_BITS_FOR_EXPR_NODE_KIND) */
+  comment_undefined_macro_name(NUM_BITS_FOR_EXPR_NODE_KIND);
+#endif /* defined(NUM_BITS_FOR_EXPR_NODE_KIND) */
 #if defined(NUM_BITS_FOR_NAMED_ADDRESS_SPACE)
   define_numeric_valued_macro(NUM_BITS_FOR_NAMED_ADDRESS_SPACE);
 #else /* !defined(NUM_BITS_FOR_NAMED_ADDRESS_SPACE) */
@@ -9507,11 +9512,6 @@ file.
 #else /* !defined(TYPE_FOR_A_SIGNED_INTEGER_VALUE) */
   comment_undefined_macro_name(TYPE_FOR_A_SIGNED_INTEGER_VALUE);
 #endif /* defined(TYPE_FOR_A_SIGNED_INTEGER_VALUE) */
-#if defined(TYPE_FOR_A_SMALL_TOKEN_KIND)
-  define_string_valued_macro(TYPE_FOR_A_SMALL_TOKEN_KIND);
-#else /* !defined(TYPE_FOR_A_SMALL_TOKEN_KIND) */
-  comment_undefined_macro_name(TYPE_FOR_A_SMALL_TOKEN_KIND);
-#endif /* defined(TYPE_FOR_A_SMALL_TOKEN_KIND) */
 #if defined(TYPE_FOR_PREFIX_ENTRY_NUMBER)
   define_string_valued_macro(TYPE_FOR_PREFIX_ENTRY_NUMBER);
 #else /* !defined(TYPE_FOR_PREFIX_ENTRY_NUMBER) */

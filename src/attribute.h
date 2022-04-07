@@ -80,36 +80,33 @@ Return TRUE if the upcoming tokens introduce Microsoft attributes.
 Return TRUE if the given attribute is of the form [[...]] or alignas(...).
 */
 #define is_std_attribute(ap)                                                 \
-  ((ap)->family == (a_byte_attribute_family)af_std ||                        \
-   (ap)->family == (a_byte_attribute_family)af_alignas)
+  ((ap)->family == af_std || (ap)->family == af_alignas)
 
 /*
 Return TRUE if the given attribute is unrecognized or an empty attribute.
 Such attributes cannot be "applied" to any entities.
 */
 #define is_unapplicable_attr(ap)                                             \
-  ((ap)->kind == (a_byte_attribute_kind)ak_unrecognized ||                   \
-   (ap)->kind == (a_byte_attribute_kind)ak_empty_attr)
+  ((ap)->kind == ak_unrecognized || (ap)->kind == ak_empty_attr)
 
 /*
 Return TRUE if the given attribute is unrecognized.
 */
 #define is_unrecognized_attr(ap)                                             \
-  ((ap)->kind == (a_byte_attribute_kind)ak_unrecognized)
+  ((ap)->kind == ak_unrecognized)
 
 /*
 Reclassify the given attribute as "unrecognized".
 */
 #define make_attr_unrecognized(ap)                                           \
-  { (ap)->kind = (a_byte_attribute_kind)ak_unrecognized; }
+  { (ap)->kind = ak_unrecognized; }
 
 /*
 Return TRUE if the given attribute is an af_gnu attribute or an af_std
 attribute in the "gnu" namespace.
 */
 #define is_gcc_attribute(ap)                                                 \
-  ((ap)->family == (a_byte_attribute_family)af_gnu ||                        \
-   (ap)->is_std_gcc_attribute)
+  ((ap)->family == af_gnu || (ap)->is_std_gcc_attribute)
 
 extern void reset_attr_family_seen(an_attribute_ptr ap);
 
@@ -239,9 +236,8 @@ Return TRUE if the given attribute was applied directly to a class type or
 enum type.
 */
 #define is_tag_attribute(ap)                                                 \
-  ((ap)->syntactic_location == (a_byte_attribute_location)al_tag_name ||     \
-   (ap)->syntactic_location ==                                               \
-                        (a_byte_attribute_location)al_post_tag_definition)
+  ((ap)->syntactic_location == al_tag_name ||                                \
+   (ap)->syntactic_location == al_post_tag_definition)
 
 
 extern void mark_primary_decl_attributes(an_attribute_ptr  attributes);
@@ -334,9 +330,9 @@ extern a_boolean process_multiversion_function(
                                              a_boolean        *found_existing);
 #endif /* GNU_FUNCTION_MULTIVERSIONING */
 
-extern an_attribute_ptr make_module_attribute(a_const_char            *name,
-                                              a_byte_attribute_family family,
-                                              an_attribute_ptr        next);
+extern an_attribute_ptr make_module_attribute(a_const_char        *name,
+                                              an_attribute_family family,
+                                              an_attribute_ptr    next);
 
 /*
 Opaque pointer to the result of looking up an attribute name.

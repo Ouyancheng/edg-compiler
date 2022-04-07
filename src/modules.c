@@ -748,7 +748,7 @@ the specified module.
     (*p)->module_info = mod;
     (*p)->scope = NULL;
     (*p)->entity.ptr = NULL;
-    (*p)->entity.kind = (a_byte_il_entry_kind)iek_none;
+    (*p)->entity.kind = iek_none;
     (*p)->file_offset = file_offset;
     (*p)->imminent = FALSE;
     (*p)->invalid = FALSE;

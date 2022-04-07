@@ -504,22 +504,22 @@ Generate the file containing the error code enumeration.
 {
   int	i;
 
-  fprintf(codes_output_file, "typedef enum /*an_error_code*/ {\n");
+  fprintf(codes_output_file, "enum an_error_code {\n");
   for (i = 0; i < number_of_errors; ++i) {
     /* If this is not the first time through, terminate the previous line. */
     if (i != 0) fprintf(codes_output_file, ",\n");
     fprintf(codes_output_file, "  %s /* = %0d */",
             error_info[i].enumerator, i);
   }  /* for */
-  fprintf(codes_output_file, "\n} an_error_code;\n\n");
+  fprintf(codes_output_file, "\n};\n\n");
 }  /* me_write_error_codes */
 
-typedef enum /*a_font_kind*/ {
+enum a_font_kind {
   fk_none,
   fk_normal,
   fk_tt,
   fk_em
-} a_font_kind;
+};
 
 
 static a_font_kind curr_font;

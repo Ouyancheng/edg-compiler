@@ -3804,7 +3804,7 @@ state.
       /* No variant fields to set. */
       break;
     case sk_keyword:
-      sym_ptr->variant.keyword.token = (a_small_token_kind)tok_error;
+      sym_ptr->variant.keyword.token = tok_error;
       sym_ptr->variant.keyword.is_preprocessing_op_or_punc = FALSE;
       sym_ptr->variant.keyword.diagnostic_issued_if_used = ec_no_error;
       break;
@@ -8194,7 +8194,7 @@ token that corresponds to it.
 
   sym_ptr = full_enter_symbol(keyword, (sizeof_t)(strlen(keyword)),
 			      (a_symbol_kind)sk_keyword, NO_SCOPE_DEPTH);
-  sym_ptr->variant.keyword.token = (a_small_token_kind)token;
+  sym_ptr->variant.keyword.token = token;
 }  /* enter_keyword */
 
 
@@ -8210,7 +8210,7 @@ __has_builtin to return TRUE when queried for the builtin.
 
   sym_ptr = full_enter_symbol(keyword, (sizeof_t)(strlen(keyword)),
 			      (a_symbol_kind)sk_keyword, NO_SCOPE_DEPTH);
-  sym_ptr->variant.keyword.token = (a_small_token_kind)token;
+  sym_ptr->variant.keyword.token = token;
 #if BUILTIN_FUNCTIONS_ENABLED
   sym_ptr->header->is_builtin_function = TRUE;
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
@@ -9076,13 +9076,13 @@ Many of these symbols will be accessible through the cli_symbols array.
   int  csk;
 
 #if CHECKING
-  /* Check that the a_cli_symbol_kind_tag enumeration is correctly defined. */
+  /* Check that the a_cli_symbol_kind enumeration is correctly defined. */
   /*lint -e{506,1564}*/
   if ((int)csk_last_integer - (int)csk_first_integer !=
                                                  (int)ik_unsigned_long_long ||
       (int)csk_last_float - (int)csk_first_float != (int)fk_long_double) {
     internal_error(
-         "init_cli_symbols: incorrect a_cli_symbol_kind_tag");
+         "init_cli_symbols: incorrect a_cli_symbol_kind");
   }  /* if */
   /* Check that the cli_symbol_names array is correctly initialized. */
   if (cli_symbol_names[(int)csk_last].name == NULL ||
@@ -10524,7 +10524,7 @@ Return the symbol header for the specified identifier.
 void init_cli_operator_headers(void)
 /*
 Create symbol headers for the CLI operator names.  This is used to map the
-operator name to an a_cli_operator_kind_tag entry and the associated
+operator name to an a_cli_operator_kind entry and the associated
 a_cli_operator_info structure.  Furthermore, it provides a mechanism to
 readily detect when the operator name is used in a context in which the name
 is reserved.
@@ -16275,7 +16275,7 @@ declaration modifiers.
 void add_to_dependent_type_fixup_list(a_type_ptr                   type_ptr,
                                       a_dependent_type_fixup_kind  fixup_kind,
                                       char                         *entity_ptr,
-                                      a_byte_il_entry_kind         entity_kind,
+                                      an_il_entry_kind             entity_kind,
                                       a_source_position            *pos)
 /*
 type_ptr is a pointer an incomplete class/struct/union or enum type, and
@@ -16368,16 +16368,14 @@ can be completed for the dependent types, too.
         next_dtfp = dtfp->next;
         switch (dtfp->fixup_kind) {
           case dtfk_arg_transfer_method:
-            check_assertion(dtfp->entity.kind ==
-                                    (a_byte_il_entry_kind)iek_param_type);
+            check_assertion(dtfp->entity.kind == iek_param_type);
             /* A parameter of class type.  Set the flag indicating whether
                passing it requires a copy constructor call. */
             set_arg_transfer_method_flag((a_param_type_ptr)dtfp->entity.ptr,
                                            &dtfp->decl_position);
             break;
           case dtfk_array_type_size:
-            check_assertion(dtfp->entity.kind ==
-                                    (a_byte_il_entry_kind)iek_type);
+            check_assertion(dtfp->entity.kind == iek_type);
             tp = (a_type_ptr)dtfp->entity.ptr;
             if (!is_error_type(tp)) {
               check_assertion(is_array_type(tp));
@@ -16397,8 +16395,7 @@ can be completed for the dependent types, too.
             }  /* if */
             break;
           case dtfk_array_of_abstract_class_check:
-            check_assertion(dtfp->entity.kind ==
-                                    (a_byte_il_entry_kind)iek_type);
+            check_assertion(dtfp->entity.kind == iek_type);
             tp = (a_type_ptr)dtfp->entity.ptr;
             if (!is_error_type(tp)) {
               /* Check if this was an array of an incomplete class type and
@@ -16412,8 +16409,7 @@ can be completed for the dependent types, too.
             }  /* if */
             break;
           case dtfk_routine_calling_method:
-            check_assertion(dtfp->entity.kind ==
-                                    (a_byte_il_entry_kind)iek_type);
+            check_assertion(dtfp->entity.kind == iek_type);
             tp = (a_type_ptr)dtfp->entity.ptr;
             if (!is_error_type(tp)) {
               check_assertion(is_function_type(tp));

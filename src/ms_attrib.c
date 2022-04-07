@@ -254,7 +254,7 @@ return a pointer to the entry.
   msapp->next = NULL;
   msapp->name = NULL;
   msapp->values = NULL;
-  msapp->kind = (an_ms_attribute_kind)msaak_none;
+  msapp->kind = msaak_none;
   msapp->is_unnamed = FALSE;
   return msapp;
 }  /* alloc_ms_attribute_param */
@@ -290,7 +290,7 @@ case.
     curr_attribute_descr->parameters_tail->next = msapp;
   }  /* if */
   curr_attribute_descr->parameters_tail = msapp;
-  if (kind == (an_ms_attribute_kind)msaak_enumeration && values != NULL) {
+  if (kind == msaak_enumeration && values != NULL) {
     /* Convert the specified list of values from a comma-separated list into
        an array of acceptable values. */
     int          num_elements = 1;
@@ -2554,7 +2554,7 @@ The given Microsoft attribute represents the "uuid" attribute applied to a
 class type.  Record the associated uuid string in the class type.
 */
 {
-  check_assertion(msap->entity.kind == (a_byte_il_entry_kind)iek_type &&
+  check_assertion(msap->entity.kind == iek_type &&
                   is_immediate_class_type((a_type_ptr)msap->entity.ptr) &&
                   msap->variant.info.arg_list != NULL &&
                   msap->variant.info.arg_list->kind ==
@@ -2697,7 +2697,7 @@ successful; otherwise, issue any appropriate diagnostics and return FALSE.
 #endif /* INCLUDE_EDG_TEST_ATTRIBUTES */
     case msak_coclass:
       /* Set a flag on the class to mark it for subsequent processing. */
-      check_assertion(msap->entity.kind == (a_byte_il_entry_kind)iek_type &&
+      check_assertion(msap->entity.kind == iek_type &&
                       is_immediate_class_type((a_type_ptr)msap->entity.ptr));
       class_type_supp((a_type_ptr)msap->entity.ptr)->
                                                   has_coclass_attribute = TRUE;
@@ -2918,7 +2918,7 @@ no attribute can be applied to the entity.
       new_tail = msap;
       if (record_entity_in_attribute) {
         /* Update the entity pointer in the attribute. */
-        msap->entity.kind = (a_byte_il_entry_kind)kind;
+        msap->entity.kind = kind;
         msap->entity.ptr = entity;
         if (msap->kind > (an_ms_attribute_kind)msak_misc && !is_error) {
           /* An attribute for which special processing is needed. */

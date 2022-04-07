@@ -995,7 +995,7 @@ An indicator of the type of annotation.  In a diagnostic, will follow the
 DIAG_ANNOTATION_INDICATOR character.  The da_reset always indicates the
 end of a previous annotation (i.e., annotations are not nested).
 */
-enum a_diagnostic_annotation_kind : char {
+enum a_diagnostic_annotation_kind : a_byte {
   da_reset = 1, /* Indicates end of a previous annotation (avoid NULL). */
   da_error,     /* Beginning of "error" or error-like word. */
   da_warning,   /* Beginning of "warning". */

@@ -93,11 +93,9 @@ BEGIN_EDG_NAMESPACE
 
 /* We still have to define a_type_mode_kind because it appears in some
    function declarations. */
-
-enum a_type_mode_kind_tag {
+enum a_type_mode_kind : a_byte {
   tmk_none
 };
-typedef a_byte a_type_mode_kind;
 
 #endif /* !GNU_EXTENSIONS_ALLOWED */
 
@@ -5990,7 +5988,7 @@ source sequence entry (NULL if no such reference was recorded).
        was used for the primary declaration (if any). */
     a_source_correspondence_ptr  scp;
     if (curr_source_sequence_entry->entity.kind ==
-                           (a_byte_il_entry_kind)iek_instantiation_directive) {
+                                                 iek_instantiation_directive) {
       /* For an explicit template instantiation, we need the source
          correspondence of the entry pointed to. */
       an_instantiation_directive_ptr  idp =
@@ -6492,23 +6490,22 @@ Generate the given attribute (not including the attribute group delimiters).
 */
 {
 #if GNU_EXTENSIONS_ALLOWED
-  if (ap->kind == (a_byte_attribute_kind)ak_abi_tag &&
-      ap->is_implicit_abi_tag_attribute) {
+  if (ap->kind == ak_abi_tag && ap->is_implicit_abi_tag_attribute) {
     /* This attribute has been added during name mangling and doesn't appear
        in the source. */
   } else
 #endif /* GNU_EXTENSIONS_ALLOWED */
   /* Do not insert code here. */
   {
-    if (ap->kind == (a_byte_attribute_kind)ak_attr_using_prefix) {
+    if (ap->kind == ak_attr_using_prefix) {
       /* There's a "using" prefix on this attribute group. */
-      check_assertion(ap->family == (a_byte_attribute_family)af_std);
+      check_assertion(ap->family == af_std);
       write_tok_str("using ");
       write_tok_str(ap->name);
       write_tok_ch(':');
-    } else if (ap->kind != (a_byte_attribute_kind)ak_empty_attr) {
+    } else if (ap->kind != ak_empty_attr) {
       if (ap->namespace_name != NULL && !ap->namespace_from_using) {
-        check_assertion(ap->family == (a_byte_attribute_family)af_std);
+        check_assertion(ap->family == af_std);
         write_tok_str(ap->namespace_name);
         write_tok_str("::");
       }  /* if */
@@ -6534,10 +6531,9 @@ al_id_equivalent attributes.
   set_output_position(&ap->group->position);
   /* Depending on the syntactic location, a space is added at the front or
      the end of the group (for aesthetic reasons). */
-  if (ap->syntactic_location != (a_byte_attribute_location)al_prefix &&
-      ap->syntactic_location != (a_byte_attribute_location)al_base_specifier &&
-      (ap->syntactic_location != (a_byte_attribute_location)al_id_equivalent ||
-       postfix_position)) {
+  if (ap->syntactic_location != al_prefix &&
+      ap->syntactic_location != al_base_specifier &&
+      (ap->syntactic_location != al_id_equivalent || postfix_position)) {
     write_space();
   }  /* if */
   switch (ap->family) {
@@ -6585,10 +6581,9 @@ al_id_equivalent attributes.
   }  /* switch */
   /* Depending on the syntactic location, a space is added at the front or
      the end of the group (for aesthetic reasons). */
-  if (ap->syntactic_location == (a_byte_attribute_location)al_prefix ||
-      ap->syntactic_location == (a_byte_attribute_location)al_base_specifier ||
-      (ap->syntactic_location == (a_byte_attribute_location)al_id_equivalent &&
-       !postfix_position)) {
+  if (ap->syntactic_location == al_prefix ||
+      ap->syntactic_location == al_base_specifier ||
+      (ap->syntactic_location == al_id_equivalent && !postfix_position)) {
     write_space();
   }  /* if */
 }  /* gen_attribute_group_end */
@@ -6618,21 +6613,19 @@ is TRUE, do not generate attributes associated with the primary declaration.
   }  /* if */
   for (ap = attributes; ap != NULL; ap = ap->next) {
     /* Internal attributes didn't appear in the source: Don't render them. */
-    if (ap->family == (a_byte_attribute_family)af_internal) continue;
+    if (ap->family == af_internal) continue;
     /* Don't render attributes that the target compiler will not parse. */
     if (msvc_is_generated_code_target &&
-        ap->family == (a_byte_attribute_family)af_gnu) {
+        ap->family == af_gnu) {
       continue;
     }  /* if */
     /* al_explicit indicates that all non-implicit attributes should be
        rendered (except GNU "predeclarator" attributes which must be handled
        separately). */
-    if (ap->syntactic_location !=
-                              (a_byte_attribute_location)syntactic_location &&
+    if (ap->syntactic_location != syntactic_location &&
         !(syntactic_location == al_explicit &&
-          ap->syntactic_location != (a_byte_attribute_location)al_implicit &&
-          ap->syntactic_location !=
-                               (a_byte_attribute_location)al_predeclarator)) {
+          ap->syntactic_location != al_implicit &&
+          ap->syntactic_location != al_predeclarator)) {
       continue;
     }  /* if */
     if ((primary_only && !ap->on_primary_declaration) ||
@@ -6648,7 +6641,7 @@ is TRUE, do not generate attributes associated with the primary declaration.
     }  /* if */
     gen_attribute(ap);
     /* Suppress a comma following a "using" prefix "attribute". */
-    suppress_comma = (ap->kind == (a_byte_attribute_kind)ak_attr_using_prefix);
+    suppress_comma = (ap->kind == ak_attr_using_prefix);
     if (ap->next == NULL || ap->group != ap->next->group) {
       gen_attribute_group_end(ap, postfix_position);
     }  /* if */
@@ -6690,8 +6683,8 @@ aren't definitions.  However, the Microsoft __declspec attributes "uuid" and
     a_boolean         declspec_started = FALSE, uuid_issued = FALSE,
                       deprecated_issued = FALSE;
     for (; ap != NULL; ap = ap->next) {
-      if (ap->syntactic_location == (a_byte_attribute_location)al_tag_name &&
-          ap->family == (a_byte_attribute_family)af_ms_declspec &&
+      if (ap->syntactic_location == al_tag_name &&
+          ap->family == af_ms_declspec &&
           !ap->on_primary_declaration) {
         switch (ap->kind) {
           case ak_deprecated:
@@ -10372,7 +10365,7 @@ pragma, construct a #pragma pack with the type's alignment.
 
 #if SUN_EXTENSIONS_ALLOWED
 
-static void gen_sun_link_scope_specifiers(a_decl_modifier  flags)
+static void gen_sun_link_scope_specifiers(a_decl_modifier_set  flags)
 /*
 Generate the __global, __symbolic, or __hidden keyword according to the value
 of flags.  Only generate the keyword if we target a Sun compiler. 
@@ -18501,7 +18494,7 @@ Generate code for a class member or nonmember using-declaration.
     set_output_position(&udp->position);
     /* Get the source correspondence entry for the entity. */
     entry_kind = (an_il_entry_kind)udp->entity.kind;
-    if (udp->entity.kind == (a_byte_il_entry_kind)iek_base_class) {
+    if (udp->entity.kind == iek_base_class) {
       a_base_class_ptr bcp = (a_base_class_ptr)udp->entity.ptr;
       scp = &bcp->type->source_corresp;
     } else {
@@ -23001,7 +22994,7 @@ handle_as_definition:
              was explicitly specified in the source or not. */
           an_attribute_ptr ap;
           for (ap = attributes; ap != NULL; ap = ap->next) {
-            if (ap->kind == (a_byte_attribute_kind)ak_gnu_inline) {
+            if (ap->kind == ak_gnu_inline) {
               break;
             }  /* if */
           }  /* for */

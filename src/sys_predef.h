@@ -25,7 +25,7 @@ BEGIN_EDG_NAMESPACE
 /*
 To add a user-defined builtin function, follow these steps:
 
-  - Add a new enumeration value to a_builtin_user_function_kind_tag below.
+  - Add a new enumeration value to a_builtin_user_function_kind below.
   - Add a new entry in builtin_user_table below.  See the description for
     a_builtin_user_descr which details the values of each of the fields.
 */
@@ -120,7 +120,7 @@ typedef struct a_builtin_user_descr {
                         /* A unique identifier for this builtin function.  It
                            should be an enumeration value from
                            a_builtin_function_kind_tag or
-                           a_builtin_user_function_kind_tag. */
+                           a_builtin_user_function_kind. */
 } a_builtin_user_descr;
 
 /*
@@ -221,7 +221,7 @@ An enumeration of unique user-defined builtin functions.  This is effectively
 a continuation of the automatically-generated a_builtin_function_kind_tag
 enumeration.
 */
-enum a_builtin_user_function_kind_tag {
+enum a_builtin_user_function_kind {
   bufk_is_constant_evaluated = (int)bfk_is_constant_evaluated,
                                   /* __builtin_is_constant_evaluated --
                                      for backward compatibility only. */
@@ -478,7 +478,7 @@ to mvak_unknown and a warning is issued (which is suppressed in system
 headers).  An error is issued if an mvak_unknown routine is needed by a
 lowering-created resolver routine.
 */
-enum a_multiversion_arch_kind_tag {
+enum a_multiversion_arch_kind : signed char {
   mvak_invalid = -1,                /* An invalid entry. */
   mvak_unknown = 0,                 /* Not otherwise on this list. */
   mvak_lowest_cpu,                  /* Lowest CPU architecture entry. */
@@ -516,9 +516,6 @@ enum a_multiversion_arch_kind_tag {
   mvak_highest_isa = mvak_isa_avx512f, /* Marks last ISA entry. */
   mvak_last                         /* Must be last. */
 };
-
-/* Type to hold an a_target_architecture enumeration value. */
-typedef signed char a_multiversion_arch_kind;
 
 /*
 Macro that returns TRUE if the specified architecture corresponds to a

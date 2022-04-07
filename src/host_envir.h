@@ -2527,7 +2527,7 @@ multibyte character sequences may be invalid UTF-8 values).
 /*
 Indication of the kind of Unicode encoding being used for a source file.
 */
-typedef enum a_unicode_source_kind_tag {
+enum a_unicode_source_kind {
   usk_none,		/* Source is not Unicode.  When
 			   NATIVE_MULTIBYTE_CHARS_SUPPORTED_WITH_UNICODE
 			   is TRUE, the source file may still contain
@@ -2536,7 +2536,8 @@ typedef enum a_unicode_source_kind_tag {
   usk_utf16LE,		/* Source is UTF-16 encoded, little-endian. */
   usk_utf16BE		/* Source is UTF-16 encoded, big-endian. */
   /* NOTE: getc_source requires that the UTF-16 codes be at the end. */
-} a_unicode_source_kind;
+};
+
 
 #if UNICODE_SOURCE_SUPPORTED
 /*
@@ -3497,7 +3498,7 @@ extern void identify_source_file(void);
 /*
 Internal coding used for error severities.
 */
-typedef enum : a_byte {
+enum an_error_severity : a_byte {
   es_default,	/* Must be zero. */
   es_once,	/* Used internally to issue certain diagnostics only once. */
   es_more_info,	/* Used to mark "more information" diagnostics. */
@@ -3510,7 +3511,7 @@ typedef enum : a_byte {
   es_catastrophe,
   es_command_line_error,
   es_internal_error
-} an_error_severity;
+};
 
 /* Terminate the compilation. */
 /*lint -sem(term_compilation, r_no)*/
@@ -3973,7 +3974,7 @@ EXTERN a_boolean
 			/* TRUE if name references should be created in
 			   template deduction contexts. */
 
-typedef enum a_predef_macro_mode {
+enum a_predef_macro_mode {
   pmm_none,
   pmm_gnu,		/* Any GNU mode. */
   pmm_gcc,		/* gcc mode. */
@@ -3987,7 +3988,7 @@ typedef enum a_predef_macro_mode {
   pmm_cpp,		/* Compiling C++. */
   pmm_all,		/* Define in all modes. */
   pmm_last
-} a_predef_macro_mode;
+};
 
 EXTERN a_boolean
 		predef_macro_mode_values[(int)pmm_last];

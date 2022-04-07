@@ -52,7 +52,7 @@ standard-attribute syntax).
 */
 {
   a_type_ptr                      type = *p_type;
-  enum an_attribute_location_tag  syn_loc;
+  an_attribute_location           syn_loc;
   an_attribute_ptr                attributes;
   a_boolean                       error_issued = FALSE;
 
@@ -102,10 +102,8 @@ standard-attribute syntax).
     do {
       ap = *p_from;
       if ((is_gcc_attribute(ap) ||
-           ((gnu_mode || ms_extensions) &&
-            ap->family == (a_byte_attribute_family)af_alignas)) &&
-          !is_type_transforming_attribute(ap) &&
-          ap->kind != (a_byte_attribute_kind)ak_enable_if) {
+           ((gnu_mode || ms_extensions) && ap->family == af_alignas)) &&
+          !is_type_transforming_attribute(ap) && ap->kind != ak_enable_if) {
         /* GNU attributes following nested array or function declarators elicit
            an error in GCC. */
         if (dps->in_nested_declarator && !error_issued &&
@@ -117,9 +115,8 @@ standard-attribute syntax).
         /* The GNU "aligned" attribute is treated as a type transforming
            attribute in some pointer/reference declarator contexts, but it
            doesn't actually modify the underlying type entry. */
-        if (ap->kind == (a_byte_attribute_kind)ak_align &&
-            is_gcc_attribute(ap) && syn_loc == al_post_ptr_or_ref &&
-            !dps->in_class_scope) {
+        if (ap->kind == ak_align && is_gcc_attribute(ap) &&
+            syn_loc == al_post_ptr_or_ref && !dps->in_class_scope) {
           make_attr_unrecognized(ap);
           ap->transforms_type_specifier = TRUE;
           p_from = &ap->next;
@@ -130,27 +127,24 @@ standard-attribute syntax).
            are recorded as al_id_equivalent. */
         if (!dps->in_nested_declarator &&
             (syn_loc == al_post_func || syn_loc == al_post_array)) {
-          ap->syntactic_location = (a_byte_attribute_location)al_postfix;
+          ap->syntactic_location = al_postfix;
         } else {
-          ap->syntactic_location =
-                                (a_byte_attribute_location)al_id_equivalent;
+          ap->syntactic_location = al_id_equivalent;
         }  /* if */
         *p_to = ap;
         p_to = &ap->next;
         ap->next = NULL;
-      } else if (ap->family == (a_byte_attribute_family)af_ms_declspec &&
-                 dps->is_lambda) {
+      } else if (ap->family == af_ms_declspec && dps->is_lambda) {
         /* The only kind of __declspec attributes allowed on declarators are
            al_post_func attributes on lambdas. */
-        check_assertion(ap->syntactic_location ==
-                                   (a_byte_attribute_location)al_post_func);
-        ap->syntactic_location = (a_byte_attribute_location)al_id_equivalent;
+        check_assertion(ap->syntactic_location == al_post_func);
+        ap->syntactic_location = al_id_equivalent;
         *p_from = ap->next;
         *p_to = ap;
         p_to = &ap->next;
       } else {
         if (dps->in_nested_declarator &&
-            ap->syntactic_location == (a_byte_attribute_location)al_postfix) {
+            ap->syntactic_location == al_postfix) {
           /* A non-GNU attribute after a nested declarator is not valid. */
           if (!error_issued) {
             pos_error(ec_invalid_attribute_location, &ap->position);
@@ -169,7 +163,7 @@ standard-attribute syntax).
        to by "attributes" (and about to be applied). */
     an_attribute_ptr  *p_ap = &dps->prefix_attributes, to_move;
     for (;;) {
-      if ((*p_ap)->kind == (a_byte_attribute_kind)ak_enable_if) {
+      if ((*p_ap)->kind == ak_enable_if) {
         to_move = *p_ap;
         *p_ap = to_move->next;
         to_move->next = attributes;
@@ -187,7 +181,7 @@ standard-attribute syntax).
        that appear as the first construct in a nested declarator. */
     an_attribute_ptr  ap = attributes;
     for (; ap != NULL; ap = ap->next) {
-      if ((ap->family == (a_byte_attribute_family)af_ms_declspec &&
+      if ((ap->family == af_ms_declspec &&
            !(syn_loc == al_post_func && dps->is_lambda)) ||
           (is_std_attribute(ap) && syn_loc == al_specifier)) {
         if (!error_issued) {
@@ -1064,7 +1058,7 @@ the specifiers and declarator that formed the new type.
                                      (a_dependent_type_fixup_kind)
                                             dtfk_array_of_abstract_class_check,
                                      (char*)(*bottom_derived_type),
-                                     (a_byte_il_entry_kind)iek_type,
+                                     iek_type,
                                      &error_position);
             }  /* if */
           }  /* if */
@@ -6019,14 +6013,15 @@ attributes are applied to the underlying type).
          entry itself). */
       an_attribute_ptr  ap, tt_attributes = NULL;
       an_attribute_ptr  *p_from = &attributes, *p_to = &tt_attributes;
-      a_byte_attribute_location  to_syn_loc;
+      an_attribute_location
+                        to_syn_loc;
       switch (skip_typerefs_not_typedefs(dps->declared_type)->kind) {
         case tk_pointer:
         case tk_ptr_to_member:
-          to_syn_loc = (a_byte_attribute_location)al_post_ptr_or_ref;
+          to_syn_loc = al_post_ptr_or_ref;
           break;
         default:
-          to_syn_loc = (a_byte_attribute_location)al_specifier;
+          to_syn_loc = al_specifier;
       }  /* switch */
       /* Extract (and reclassify) type transforming GNU attributes. */
       do {

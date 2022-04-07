@@ -422,7 +422,7 @@ of the largest supported floating-point type.
 /*
 Flags for special values of floating-point numbers.
 */
-typedef enum an_fp_type {
+enum an_fp_type {
   fpt_invalid,
   fpt_approx,  /* for fast_dec2bin_xxx */
   fpt_number,
@@ -431,7 +431,7 @@ typedef enum an_fp_type {
   fpt_overflow,
   fpt_zero,
   fpt_underflow
-} an_fp_type;
+};
 
 /*
 Internally the floating-point software works primarily with broken-down
@@ -521,7 +521,7 @@ Return codes for conversion functions.  Negative codes indicate an error
 condition, zero or positive returns indicate success (with non-zero positive
 returns indicating some unusual condition).
 */
-typedef enum an_fp_return_type {
+enum an_fp_return_type {
   fp_ret_invalid = -3,
   fp_ret_too_small = -2,
   fp_ret_not_formatted = -1,  /* Used internally. */
@@ -531,7 +531,7 @@ typedef enum an_fp_return_type {
   fp_ret_neg_infinity = 3,
   fp_ret_overflow = 4,
   fp_ret_underflow = 5
-} an_fp_return_type;
+};
 
 /*
 Macros to test the return value of the read/write routines.  fp_is_error

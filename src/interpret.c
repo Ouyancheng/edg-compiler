@@ -6279,7 +6279,7 @@ successful.
       /* Allocate storage for any variables. */
       an_il_entity_list_entry_ptr  p = init->variant.decl.entities;
       for (; p != NULL; p = p->next) {
-        if (p->entity.kind == (a_byte_il_entry_kind)iek_variable) {
+        if (p->entity.kind == iek_variable) {
           a_variable_ptr  vp = (a_variable_ptr)p->entity.ptr;
           (void)do_constexpr_alloc_variable(ips, vp, &result);
           if (!result) break;
@@ -6327,7 +6327,7 @@ destructor evaluation).
       /* Unmap storage for all declared variables. */
       an_il_entity_list_entry_ptr  p = init->variant.decl.entities;
       for (; p != NULL; p = p->next) {
-        if (p->entity.kind == (a_byte_il_entry_kind)iek_variable) {
+        if (p->entity.kind == iek_variable) {
           a_variable_ptr  vp = (a_variable_ptr)p->entity.ptr;
           do_constexpr_unmap_variable(ips, vp);
         }  /* if */
@@ -6367,7 +6367,7 @@ skip_typerefs(expr->type).
         /* Evaluate the initializer of each variable. */
         an_il_entity_list_entry_ptr  p = init->variant.decl.entities;
         for (; p != NULL; p = p->next) {
-          if (p->entity.kind == (a_byte_il_entry_kind)iek_variable) {
+          if (p->entity.kind == iek_variable) {
             a_variable_ptr  vp = (a_variable_ptr)p->entity.ptr;
             if (!do_constexpr_init_variable(
                                          ips, vp, (a_byte*)NULL,
@@ -6444,7 +6444,7 @@ loop constructs they may be needed again).
       /* Clean up side structures for any declared variables. */
       an_il_entity_list_entry_ptr  p = init->variant.decl.entities;
       for (; p != NULL; p = p->next) {
-        if (p->entity.kind == (a_byte_il_entry_kind)iek_variable) {
+        if (p->entity.kind == iek_variable) {
           a_variable_ptr  vp = (a_variable_ptr)p->entity.ptr;
           if (skip_typerefs(vp->type)->kind == (a_type_kind)tk_pointer) {
             a_byte               *var_bytes;
@@ -19074,15 +19074,15 @@ that are needed for the operation of the interpreter.
   valid_placement_new_type = NULL;
   if (!useful_constants_initialized) {
     /* Initialize useful constants. */
-    a_float_kind fk;
+    a_byte       fk;
     a_boolean    dummy;
     set_integer_value(&zero_int, (a_host_large_integer)0);
     set_integer_value(&one_int, (a_host_large_integer)1);
-    for (fk = (a_float_kind)fk_float; fk < (a_float_kind)fk_last; ++fk) {
-      fp_host_large_integer_to_float(fk, (a_host_large_integer)0,
-                                     &zero_flt[(int)fk], &dummy);
-      fp_host_large_integer_to_float(fk, (a_host_large_integer)1,
-                                     &one_flt[(int)fk], &dummy);
+    for (fk = fk_float; fk < fk_last; ++fk) {
+      fp_host_large_integer_to_float((a_float_kind)fk, (a_host_large_integer)0,
+                                     &zero_flt[fk], &dummy);
+      fp_host_large_integer_to_float((a_float_kind)fk, (a_host_large_integer)1,
+                                     &one_flt[fk], &dummy);
     }  /* for */
     generic_ptr_type = make_pointer_type(void_type());
     useful_constants_initialized = TRUE;
@@ -20645,8 +20645,8 @@ storage available for another compilation, if any).
 }  /* clean_up_interpreter */
 
 
-void register_constexpr_intrinsic(a_constexpr_intrinsic_tag  tag,
-                                  a_routine_ptr              rp)
+void register_constexpr_intrinsic(a_constexpr_intrinsic  tag,
+                                  a_routine_ptr          rp)
 /*
 Mark the given routine as a "constexpr intrinsic" (i.e., a function that is
 treated specially when invoked at compile time) and associate it with the given

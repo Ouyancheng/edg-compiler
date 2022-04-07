@@ -80,7 +80,7 @@ EXTERN a_name_linkage_kind
 		default_routine_name_linkage;
 
 /* The various type_info types. */
-enum a_type_info_kind_tag {
+enum a_type_info_kind {
   tik_user,             /* The user-visible std::type_info type.  This
 			   type must be first. */
   /* tik_implementation is the type used by the runtime to implement
@@ -113,7 +113,7 @@ enum a_type_info_kind_tag {
 #endif /* !IA64_ABI */
   tik_last
 };
-typedef enum a_type_info_kind_tag a_type_info_kind;
+
 
 /* Names of type_info types. */
 EXTERN a_const_char
@@ -3338,11 +3338,8 @@ extern void enter_predeclared_class(a_type_ptr         predeclared_type,
 
 extern a_targ_alignment alignment_of_variable(a_variable_ptr  vp);
 
-extern an_attribute_ptr f_find_attribute(a_byte_attribute_kind  kind,
-                                         an_attribute_ptr       attributes);
-
-#define find_attribute(kind, attributes)                                     \
-  (f_find_attribute((a_byte_attribute_kind)(kind), (attributes)))
+extern an_attribute_ptr find_attribute(an_attribute_kind  kind,
+                                       an_attribute_ptr   attributes);
 
 #if GNU_FUNCTION_MULTIVERSIONING
 extern an_attribute_ptr find_last_target_attribute(

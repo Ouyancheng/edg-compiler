@@ -103,7 +103,7 @@ typedef struct an_operand *an_operand_ptr;
 Enumeration of the kinds of initializer values described by
 an_init_component.
 */
-enum an_init_component_kind_tag {
+enum an_init_component_kind : a_byte {
   ick_expression,	/* An expression. */
   ick_braced,		/* A brace-enclosed list. */
   ick_designator,	/* A designator (for C99-style or GNU-style
@@ -112,8 +112,6 @@ enum an_init_component_kind_tag {
 			   elements of a brace-enclosed list should be
 			   parsed. */
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte an_init_component_kind;
 
 
 /*
@@ -1052,8 +1050,8 @@ node) is "op".
   ((node)->variant.operation.kind == (an_expr_operator_kind)(op))
 
 
-inline a_boolean node_is_operator(an_expr_node_ptr           node,
-                                  an_expr_operator_kind_tag  kind)
+inline a_boolean node_is_operator(an_expr_node_ptr       node,
+                                  an_expr_operator_kind  kind)
 /*
 Return TRUE if (and only if) the given node is an enk_operator node for the
 given operator kind.

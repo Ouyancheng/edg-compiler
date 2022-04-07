@@ -2757,7 +2757,7 @@ by the caller (including token, source_position, and extra_info_kind).
   ctp->token_handle = NO_CACHED_TOKEN_HANDLE;                           \
   ctp->next = NULL;                                                     \
   ctp->extra_info_kind = (a_token_extra_info_kind)teik_none;            \
-  ctp->token = (a_small_token_kind)tok_error;                           \
+  ctp->token = tok_error;                                               \
   ctp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;                \
   ctp->ending_token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;         \
   ctp->token_handle = NO_CACHED_TOKEN_HANDLE;                           \
@@ -2886,7 +2886,7 @@ associated with the current token.
      is used. */
   ctp->end_source_position = ctp->source_position;
 #endif /*  EXTRA_SOURCE_POSITIONS_IN_IL */
-  ctp->token = (a_small_token_kind)tok_error;
+  ctp->token = tok_error;
   ctp->token_sequence_number = NO_TOKEN_SEQUENCE_NUMBER;
   add_cached_token_to_cache(ctp, cache);
 #if DEBUG
@@ -3029,7 +3029,7 @@ Save an end-of-source token on the end of the list of tokens saved in *cache.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   ctp->end_source_position = pos_curr_token;
 #endif /*  EXTRA_SOURCE_POSITIONS_IN_IL */
-  ctp->token = (a_small_token_kind)tok_end_of_source;
+  ctp->token = tok_end_of_source;
   /* Copy the token sequence number from the final token of the cache into
      the cache terminator. */
   ctp->token_sequence_number = cache->last_token == NULL
@@ -3056,7 +3056,7 @@ the newly created token.
 
   /* Build an entry for the end-of-source token. */
   alloc_cached_token(ctp);
-  ctp->token = (a_small_token_kind)kind;
+  ctp->token = kind;
   ctp->token_sequence_number = sequence_number;
   ctp->ending_token_sequence_number = sequence_number;
   ctp->source_position = *position;
@@ -3170,7 +3170,7 @@ This is used to save tokens for later rescanning.
   }  /* if */
   /* Build an entry for the current token itself. */
   alloc_cached_token(ctp);
-  ctp->token = (a_small_token_kind)curr_token;
+  ctp->token = curr_token;
   ctp->source_position = pos_curr_token;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   ctp->end_source_position = end_pos_curr_token;
@@ -3385,7 +3385,7 @@ If include_last_token is TRUE, last_tsn is included in the cache.
   if (adjust_final_token) {
     /* Change the last token copied from a ">>" to a ">". */
     check_assertion((a_token_kind)copy_ctp->token == tok_shift_right);
-    copy_ctp->token = (a_small_token_kind)tok_gt;
+    copy_ctp->token = tok_gt;
   }  /* if */
 }  /* copy_tokens_from_cache */
 
@@ -3405,7 +3405,7 @@ Replace the current token with new_token.
     a_cached_token_ptr ctp;
     ctp = curr_lexical_state_stack_entry->cache.last_token;
     if (ctp->token_sequence_number == curr_token_sequence_number) {
-      ctp->token = (a_small_token_kind)new_token;
+      ctp->token = new_token;
     }  /* if */
   }  /* if */
 }  /* replace_curr_token */
@@ -13557,7 +13557,7 @@ position of the __if_exists or __if_not_exists token.
     } else {     
       entity = il_entry_for_symbol(sym, &kind);
       msiep->entity.ptr = entity;
-      msiep->entity.kind = (a_byte_il_entry_kind)kind;
+      msiep->entity.kind = kind;
       if (record_name_references_in_context()) {
         msiep->name_reference = qualifiable_name_reference(
                                              &locator_for_curr_id,
@@ -17773,7 +17773,7 @@ identifier, else to NULL.
   /* If there is no cached token or if the token is the end-of-source token
      which is used to terminate the token cache, then disregard this token
      and fetch the next token using the slower method. */
-  if (ctp != NULL && ctp->token != (a_small_token_kind)tok_end_of_source) {
+  if (ctp != NULL && ctp->token != tok_end_of_source) {
     /* There is a cached token from which we can get then token kind. */
     ntoken = (a_token_kind)ctp->token;
     /* If seq is not NULL, return the sequence number of the next token. */
@@ -17867,7 +17867,7 @@ cannot be used when fetching raw preprocessing tokens.
   /* If there is no cached token or if the token is the end-of-source token
      which is used to terminate the token cache, then disregard this token
      and fetch the next token using the slower method. */
-  if (ctp != NULL && ctp->token != (a_small_token_kind)tok_end_of_source) {
+  if (ctp != NULL && ctp->token != tok_end_of_source) {
     /* There is a cached token from which we can get then token kind. */
     ntoken = (a_token_kind)ctp->token;
     if (ntoken != first_token_must_be) {
@@ -17882,7 +17882,7 @@ cannot be used when fetching raw preprocessing tokens.
                                  (a_token_extra_info_kind)teik_pragma) {
         ctp = ctp->next;
       }  /* while */
-      if (ctp != NULL && ctp->token != (a_small_token_kind)tok_end_of_source) {
+      if (ctp != NULL && ctp->token != tok_end_of_source) {
         /* We have found the next token in the cache that can be used to
            return the value of token_2.  Return the value and set tokens_found
            to indicate that no further processing is needed. */
@@ -25588,7 +25588,7 @@ and < end_tsn are included in the string.
     /* Stop if we've reached the specified ending token sequence number. */
     if (end_tsn != NO_TOKEN_SEQUENCE_NUMBER &&
         ctp->token_sequence_number >= end_tsn) break;
-    if (ctp->token == (a_small_token_kind)tok_removed_expr) {
+    if (ctp->token == tok_removed_expr) {
       /* A special token that indicates the location of a removed
          default argument or exception specification.  The actual default
          argument tokens should still be used for purposes of generating
@@ -25628,8 +25628,7 @@ and < end_tsn are included in the string.
         }  /* if */
         /* This semicolon was inserted, and so should be suppressed if the body
            is output above. */
-        add_orig_token = ctp->token !=
-                               (a_small_token_kind)tok_removed_template_body &&
+        add_orig_token = ctp->token != tok_removed_template_body &&
                          (!add_body_string ||
                           !ctp->variant.extracted_template.semicolon_inserted);
         if (add_orig_token) {
@@ -25648,7 +25647,7 @@ and < end_tsn are included in the string.
       put_str_to_temp_text_buffer("\n");
     } else {
       /* A normal token (including, possibly, a pp-token). */
-      if (ctp->token == (a_small_token_kind)tok_removed_template_body) {
+      if (ctp->token == tok_removed_template_body) {
         /* If a removed template body token is re-cached, it may not have
            the extra info.  Replace it with a semicolon. */
         put_ch_to_temp_text_buffer(';');
@@ -26588,10 +26587,11 @@ are handled in lexical_init.)
   size_input_stack = 0;
   in_pcc_mode_half_comment = FALSE;
 #if CHECKING
-  /* Make sure there are not too many tokens to fit into a_small_token_kind. */
-  if ((sizeof(a_small_token_kind) * CHAR_BIT) == 8 /*lint --e(506,1564)*/ &&
-      (int)tok_last > 255 /*lint --e(845)*/) {
-    internal_error("lexical_one_time_init: a_small_token_kind is too small");
+  /* Make sure there are not too many expr kinds to fit into an_expr_node_kind
+     once the bit field restriction has been applied. */
+  if ((0x1 << NUM_BITS_FOR_EXPR_NODE_KIND) <= enk_last) {
+    internal_error("lexical_one_time_init: "
+                   "NUM_BITS_FOR_EXPR_NODE_KIND is too small");
   }  /* if */
   /* Check that the table of token names is correctly initialized.  This
      guards against someone changing the enumeration and forgetting to

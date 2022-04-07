@@ -388,13 +388,81 @@ typedef int	a_scope_depth;
 #define NO_SCOPE_DEPTH (-1)
 #define DEPTH_OF_FILE_SCOPE 0
 
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_storage_class;
 
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte an_opname_kind;
+/*
+Data structures related to variables:
+*/
+enum a_storage_class : a_byte {
+  /* Possible storage classes for variables and functions (see 3.5.1). */
+  /* Note that this represents the C concept of storage class.  In C++,
+     the keyword "static" is also used to indicate static members of
+     classes.  That kind of "static" is reflected in things other than
+     the storage class, e.g., the this_class field for routines. */
+  sc_unspecified,       /* No explicit storage class was given.  This implies
+                           an external definition.  Note that an unspecified
+                           storage class in the source program will be
+                           mapped to something else (extern or auto) when
+                           that is possible, and the sc_unspecified value
+                           only remains for external definitions.  (This
+                           must be the first enumerator, because we rely
+                           on memzero producing this value.) */
+  sc_extern,            /* External.  This implies a reference to something
+                           defined in another compilation unit. */
+  sc_static,            /* Static. */
+  sc_auto,              /* Local, stack-based.  Includes parameters. */
+  sc_typedef,           /* Not ever used in variables or functions, but
+                           in this enumeration for convenience when scanning
+                           declarations. */
+  sc_register,          /* Register, a special case of local.  Includes
+                           parameters declared "register". */
+  sc_asm,               /* An asm function.  Only used if ASM_FUNCTION_ALLOWED
+                           is TRUE. */
+  sc_last
+};
 
-enum an_access_specifier_tag {
+
+/*
+An enumeration of C++ operator kinds to identify user-defined overloaded
+operators; they apply only to functions with a special function kind of
+sfk_operator.
+*/
+enum an_opname_kind : a_byte {
+  onk_none,
+  onk_new,               /* "new" */    onk_delete,            /* "delete" */
+  onk_array_new,         /* "new[]" */	onk_array_delete,      /* "delete[]" */
+  onk_plus,              /* "+" */      onk_minus,             /* "-" */
+  onk_star,              /* "*" */      onk_divide,            /* "/" */
+  onk_remainder,         /* "%" */      onk_excl_or,           /* "^" */
+  onk_ampersand,         /* "&" */      onk_or,                /* "|" */
+  onk_compl,             /* "~" */      onk_not,               /* "!" */
+  onk_assign,            /* "=" */      onk_lt,                /* "<" */
+  onk_gt,                /* ">" */      onk_plus_assign,       /* "+=" */
+  onk_minus_assign,      /* "-=" */     onk_times_assign,      /* "*=" */
+  onk_divide_assign,     /* "/=" */     onk_remainder_assign,  /* "%=" */
+  onk_excl_or_assign,    /* "^=" */     onk_and_assign,        /* "&=" */
+  onk_or_assign,         /* "|=" */     onk_shift_left,        /* "<<" */
+  onk_shift_right,       /* ">>" */     onk_shift_right_assign,/* ">>=" */
+  onk_shift_left_assign, /* "<<=" */    onk_eq,                /* "==" */
+  onk_ne,                /* "!=" */     onk_le,                /* "<=" */
+  onk_ge,                /* ">=" */     onk_spaceship,         /* <=> */
+  onk_and_and,           /* "&&" */     onk_or_or,             /* "||" */
+  onk_plus_plus,         /* "++" */     onk_minus_minus,       /* "--" */
+  onk_comma,             /* "," */      onk_arrow_star,        /* "->*" */
+  onk_arrow,             /* "->" */     onk_function_call,     /* "()" */
+  onk_subscript,         /* "[]" */
+  onk_question,          /* "?" -- only used in front end. */
+  onk_gnu_min,           /* "<?" */     onk_gnu_max,           /* ">?" */
+  onk_await,             /* co_await */ onk_last
+};
+
+#define is_new_operator(op)                                         \
+  ((op) == onk_new || (op) == onk_array_new)
+
+#define is_delete_operator(op)                                      \
+  ((op) == onk_delete || (op) == onk_array_delete)
+
+
+enum an_access_specifier : a_byte {
   /* C++ access control:  "public", "private", or "protected" for class
      members or "public" (meaning no access control) for other entities. */
   as_public,            /* No access restrictions. */
@@ -407,21 +475,18 @@ enum an_access_specifier_tag {
   as_inaccessible	/* Entity cannot be accessed.  (This value is used
 			   in the symbol table but not in the IL.) */
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte an_access_specifier;
+
 #define is_more_accessible(access1, access2) ((int)(access1) < (int)(access2))
 
 /*
 C++/CLI assembly visibility kinds.
 */
-enum an_assembly_visibility_tag {
+enum an_assembly_visibility : a_byte {
   av_none,		/* No assembly visibility applicable. */
   av_public,		/* Assembly member publicly visible. */
   av_private		/* Assembly member not publicly visible. */
 };
 
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte an_assembly_visibility;
 
 /* Kind of name linkage (e.g., external name visibility).  Note that
    "name linkage" applies to names (in some implementations it controls
@@ -433,7 +498,7 @@ typedef a_byte an_assembly_visibility;
    routine_linkages_are_compatible and routine_linkages_are_identical
    (in types.c) and macros is_custom_name_linkage_kind_for_rout_type
    and is_name_linkage_kind_subject_to_name_mangling. */
-enum a_name_linkage_kind_tag {
+enum a_name_linkage_kind : a_byte {
   nlk_none,		/* No linkage, as for a local variable. */
   nlk_internal,		/* Internal linkage, as for a file-scope static. */
   nlk_cplusplus_external,
@@ -449,6 +514,7 @@ enum a_name_linkage_kind_tag {
 #endif /* ifdef CUSTOM_NAME_LINKAGE_KINDS */
   nlk_last
 };
+
 /* If CUSTOM_NAME_LINKAGE_KINDS is defined, a few other macros should be
    defined as well. */
 #ifdef CUSTOM_NAME_LINKAGE_KINDS
@@ -465,11 +531,8 @@ enum a_name_linkage_kind_tag {
 /* Number of bits required to hold a name linkage.  nlk_last need not be
    accounted for. */
 #ifndef NUM_BITS_FOR_NAME_LINKAGE
-#define NUM_BITS_FOR_NAME_LINKAGE 2
+#define NUM_BITS_FOR_NAME_LINKAGE 3
 #endif /* ifndef NUM_BITS_FOR_NAME_LINKAGE */
-
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_name_linkage_kind;
 
 /* Name linkage kinds are applied both to names and to routine types, yet
    only certain of them are appropriate for routine types.  For example, the
@@ -525,7 +588,7 @@ List of all IL entry kinds:
 */
 /* If you change this, also change il_entry_kind_names and sizeof_il_entry
    in this file. */
-typedef enum /*an_il_entry_kind*/ {
+enum an_il_entry_kind : a_byte {
   iek_none,		/* Skip zero value; it's used as a marker. */
   iek_source_file,	/* a_source_file */
   iek_constant,		/* a_constant */
@@ -725,10 +788,7 @@ typedef enum /*an_il_entry_kind*/ {
   iek_module_import_decl,
 			/* a_module_import_decl */
   iek_last		/* Marks the end of the list. */
-} an_il_entry_kind;
-
-/* For storing an IL entry kind more compactly. */
-typedef a_byte a_byte_il_entry_kind;
+};
 
 /* Macro to test whether or not an entry kind is a string kind. */
 #define is_string_entry_kind(entry_kind) \
@@ -910,7 +970,7 @@ token that either (a) is not visible in the source (like an end-of-source
 token), or (b) has a large number of distinct forms (like identifiers,
 numbers, etc.).
 */
-enum a_token_kind_tag {
+enum a_token_kind : unsigned short {
   /* Complex tokens: */
   tok_error                 /* Error token. */,
   tok_identifier,
@@ -1378,16 +1438,7 @@ enum a_token_kind_tag {
   /* Place-holder for last position in enumeration. */
   tok_last
 };
-typedef a_token_kind_tag a_token_kind;
 
-/*
-Define the type to be used as a more compact representation of a_token_kind.
-*/
-#ifndef TYPE_FOR_A_SMALL_TOKEN_KIND
-#define TYPE_FOR_A_SMALL_TOKEN_KIND unsigned short
-#endif /* ifndef TYPE_FOR_A_SMALL_TOKEN_KIND */
-
-typedef TYPE_FOR_A_SMALL_TOKEN_KIND a_small_token_kind;
 
 /*
 Table of names corresponding to token kinds.
@@ -1649,7 +1700,7 @@ EXTERN a_source_range
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL || !NULL_POINTER_IS_ZERO */
 
 
-enum an_element_position_kind_tag {
+enum an_element_position_kind : a_byte {
   epk_error = 0,		/* Error representation. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   epk_specialization_header,	/* "template" keyword in "template<> ...". */
@@ -1658,7 +1709,6 @@ enum an_element_position_kind_tag {
   epk_last
 };
 
-typedef a_byte an_element_position_kind;
 
 /* Structure to record a single position of an element of a construct
    (e.g., the "template" keyword in an explicit template specialization). */
@@ -1759,16 +1809,13 @@ typedef unsigned short a_gnu_init_priority;
 /*
 ELF visibility kinds (for the GNU "visibility" attribute).
 */
-enum an_ELF_visibility_kind_tag {
+enum an_ELF_visibility_kind : a_byte {
   evk_unspecified,
   evk_hidden,
   evk_protected,
   evk_internal,
   evk_default
 };
-
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte an_ELF_visibility_kind;
 
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -1785,7 +1832,7 @@ it can be used, the pointer must be cast (based on the kind) to a pointer to
 a specific entity.
 */
 typedef struct a_tagged_pointer {
-  a_byte_il_entry_kind
+  an_il_entry_kind
 		kind;
 			/* The kind of entry. */
   char		*ptr;
@@ -2133,7 +2180,7 @@ typedef struct a_linkage_spec_block {
 		name_string;
 			/* A constant representing the string-literal in the
 			   construct. */
-  a_bit_field /* a_name_linkage_kind */
+  a_name_linkage_kind
 		name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
 			/* The name linkage associated with this construct. */
   a_source_position
@@ -2313,7 +2360,7 @@ An enumeration of C++ special function kinds.  These may be user written
 or compiler generated functions for which special rules may apply.  (See
 ARM chapter 12.)
 */
-enum a_special_function_kind_tag {
+enum a_special_function_kind : a_byte {
   sfk_none,		/* Not a special function. */
   sfk_constructor,	/* A constructor. */
   sfk_destructor,	/* A destructor. */
@@ -2373,9 +2420,6 @@ enum a_special_function_kind_tag {
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
   sfk_last		/* Must be last. */
 };
-
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_special_function_kind;
 
 
 /*
@@ -2486,7 +2530,7 @@ typedef struct an_attribute_group {
 } an_attribute_group;
 
 
-enum an_attribute_arg_kind_tag {
+enum an_attribute_arg_kind : a_byte {
   /* An attribute argument entry can represent several kinds of arguments. */
   aak_empty,		/* If an attribute has an empty argument list, that
 			   list is represented by a single aak_empty entry.
@@ -2508,8 +2552,6 @@ enum an_attribute_arg_kind_tag {
   aak_last
 };
 
-typedef a_byte an_attribute_arg_kind;
-
 
 typedef struct an_attribute_arg *an_attribute_arg_ptr;
 typedef struct an_attribute_arg {
@@ -2519,7 +2561,7 @@ typedef struct an_attribute_arg {
   an_attribute_arg_ptr
 		next;
 			/* Next in a linked list of attribute arguments. */
-  a_small_token_kind
+  a_token_kind
 		token_kind;
 			/* For aak_token or aak_raw_token entries, the token
 			   kind that was scanned.  Otherwise, tok_last. */
@@ -2562,7 +2604,7 @@ typedef struct an_attribute_arg {
 } an_attribute_arg;
 
 
-typedef enum an_attribute_family_tag {
+enum an_attribute_family : a_byte {
   /* Attributes can be specified using different syntactical constructs.  Each
      construct kind corresponds to a "family" of attributes. */
   af_internal,		/* To annotate IL properties that do not come from an
@@ -2580,17 +2622,14 @@ typedef enum an_attribute_family_tag {
 			   the __has_cpp_attribute macro (where the attribute
 			   family is not known by the context). */
   af_last
-} an_attribute_family;
-
-/* For storing an attribute family more compactly. */
-typedef a_byte a_byte_attribute_family;
+};
 
 
 /*
 An enumeration describing where (syntactically) in a construct an attribute
 was encountered.
 */
-typedef enum an_attribute_location_tag {
+enum an_attribute_location : a_byte {
   al_implicit,		/* The attribute did not appear explicitly in the
 			   source. */
   al_prefix,		/* The attribute is the first element of a declaration
@@ -2659,13 +2698,11 @@ typedef enum an_attribute_location_tag {
   al_module,		/* The attribute follows a module-name in a module-
 			   import-declaration.  (Standard attributes only.) */
   al_last
-} an_attribute_location;
-
-typedef a_byte a_byte_attribute_location;
+};
 
 
 /* When adding attributes here, also update disp_attribute. */
-typedef enum an_attribute_kind_tag {
+enum an_attribute_kind : a_byte {
   ak_unrecognized,	/* For unrecognized attributes. */
   ak_empty_attr,	/* A pseudo-attribute marking the presence of an empty
 			   attribute.  Usually this appears in entirely empty
@@ -2846,9 +2883,8 @@ typedef enum an_attribute_kind_tag {
 			   value of "#pragma pack(n)" directives in some
 			   cases. */
   ak_last
-} an_attribute_kind;
+};
 
-typedef a_byte a_byte_attribute_kind;
 
 /*
 Data structure describing an "attribute" as it appeared in the source.
@@ -2863,13 +2899,13 @@ typedef struct an_attribute {
   an_attribute_ptr
 		next;
 			/* Next in a linked list of attributes. */
-  a_byte_attribute_kind
+  an_attribute_kind
 		kind;
 			/* The specific of attribute that was encountered. */
-  a_byte_attribute_family
+  an_attribute_family
 		family;	/* The kind of construct that was used to express the
 			   attribute in the source. */
-  a_byte_attribute_location
+  an_attribute_location
 		syntactic_location;
 			/* The syntactic location of the attribute. */
   a_bit_field	on_primary_declaration:1;
@@ -3037,14 +3073,14 @@ typedef struct a_source_correspondence {
 			   used by back ends as it is sometimes cleared
 			   (when using multiple translation units, for
 			   example). */
-  a_bit_field /* an_access_specifier */
+  an_access_specifier
 		access:2;
 			/* The access control specified at the point of
 			   declaration.	 Restricted access may be indicated
 			   for class members only; all other entities are
 			   "public" by default.	 In C mode, always "public". */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_bit_field /* an_access_specifier */
+  an_access_specifier
 		assembly_access:2;
 			/* Access outside of the parent assembly.  (C++/CLI
 			   only.) */
@@ -3070,7 +3106,7 @@ typedef struct a_source_correspondence {
 			   optimization -- if it is FALSE, the entity is a
 			   candidate to be optimized away. */
 #endif /* MAINTAIN_NEEDED_FLAGS */
-  a_bit_field /* a_name_linkage_kind */
+  a_name_linkage_kind
 		name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
 			/* Kind of linkage for the name, e.g., is it
 			   externally visible. */
@@ -3303,7 +3339,7 @@ typedef struct a_source_correspondence {
 /*
 Data structures related to constants:
 */
-enum a_constant_repr_kind_tag {
+enum a_constant_repr_kind : a_byte {
   /* In a constant entry, there are several possible representations
      for a constant: */
   ck_error,             /* Error. */
@@ -3352,10 +3388,9 @@ enum a_constant_repr_kind_tag {
 			   kind represents such cases. */
   ck_last
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_constant_repr_kind;
 
-enum an_address_base_kind_tag {
+
+enum an_address_base_kind : a_byte {
   /* When a constant is an address, there are several types of things that can
      be pointed to. */
   abk_routine,          /* Pointer to a function. */
@@ -3380,8 +3415,7 @@ enum an_address_base_kind_tag {
 			   GNU address-of-label extension. */
   abk_last
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte an_address_base_kind;
+
 
 #if C99_IL_EXTENSIONS_SUPPORTED
 typedef struct an_internal_complex_value *an_internal_complex_value_ptr;
@@ -3631,7 +3665,7 @@ A dynamic init entry of kind dik_none is created for an object that does not
 actually require initialization but does have a destructor that must be
 called when its lifetime terminates.
 */
-enum a_dynamic_init_kind_tag {
+enum a_dynamic_init_kind : a_byte {
   dik_none,		/* No dynamic initialization. */
   dik_zero,		/* Initialization to zero, defined to be the same
 			   as default initialization of a static object.
@@ -3664,8 +3698,7 @@ enum a_dynamic_init_kind_tag {
 			   to be copied lacks a copy constructor.  C++ only. */
   dik_lambda		/* Initial value of a lambda object.  C++ only. */
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_dynamic_init_kind;
+
 
 typedef struct a_dynamic_init *a_dynamic_init_ptr;
 typedef struct a_dynamic_init {
@@ -4070,7 +4103,7 @@ typedef struct a_dynamic_init {
 } a_dynamic_init;
 
 
-enum a_template_param_constant_kind_tag {
+enum a_template_param_constant_kind : a_byte {
   /* When a constant is marked as a template parameter it may have one of
      several kinds (front end only except when PROTOTYPE_INSTANTIATIONS_IN_IL
      is TRUE). */
@@ -4137,7 +4170,7 @@ enum a_template_param_constant_kind_tag {
   tpck_destructor	/* The template param constant represents a destructor
 			   of a nonreal class. */
 };
-typedef a_byte a_template_param_constant_kind;
+
 
 typedef uint32_t a_template_param_list_pos;
 			/* A ordinal position number within a template
@@ -4204,7 +4237,7 @@ typedef struct a_template_param_coordinate {
 } a_template_param_coordinate;
 
 
-enum a_character_kind_tag {
+enum a_character_kind : a_byte {
   /* String and character literals can involve one of several character kinds
      represented by the following enumerator constants. */
   chk_char,		/* The "normal" string or character literal,
@@ -4226,6 +4259,7 @@ enum a_character_kind_tag {
   chk_last		/* Must be last. */
 };
 
+
 /* Number of bits required to hold a character code kind.  chk_last need not
    be accounted for. */
 #ifndef NUM_BITS_FOR_CHARACTER_KIND
@@ -4234,9 +4268,6 @@ enum a_character_kind_tag {
 #if NUM_BITS_FOR_CHARACTER_KIND < 3
  #error -- NUM_BITS_FOR_CHARACTER_KIND cannot be less than 3
 #endif /* NUM_BITS_FOR_CHARACTER_KIND < 3 */
-
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_character_kind;
 
 #if DEBUG
 /*
@@ -4393,7 +4424,8 @@ typedef struct a_constant {
                            wide string literal constants that are rewritten to
                            refer to a variable.  NULL otherwise. */
 #endif /* DO_IL_LOWERING */
-  a_bit_field	character_kind:NUM_BITS_FOR_CHARACTER_KIND;
+  a_character_kind
+		character_kind:NUM_BITS_FOR_CHARACTER_KIND;
 			/* If this constant represents a character or string
 			   literal, this field indicates the character kind
 			   (e.g., chk_wchar_t for L"..." strings).  Otherwise,
@@ -5067,7 +5099,7 @@ typedef struct a_constant {
 /*
 Data structures related to types:
 */
-enum a_type_kind_tag {
+enum a_type_kind : a_byte {
   /* Basic kinds of types: */
   tk_error,             /* Error. */
   tk_void,              /* Void -- has no type. */
@@ -5112,10 +5144,9 @@ enum a_type_kind_tag {
 			   details. */
   tk_unknown		/* Unknown. */
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_type_kind;
 
-enum an_integer_kind_tag {
+
+enum an_integer_kind : a_byte {
   /* Enumeration of the possible integer kinds.  Some of these may be
      the same on the target, but they are kept distinct in the front end.
      These must be listed in order of increasing size (or at least
@@ -5143,8 +5174,7 @@ enum an_integer_kind_tag {
   ik_last,
   ik_none = ik_last
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte an_integer_kind;
+
 
 /* Array that indicates, for each integer kind, whether or not it is signed. */
 EXTERN a_byte_boolean
@@ -5197,15 +5227,15 @@ EXTERN an_integer_kind
   (an_integer_kind)ik_unsigned_int128,		/* ik_int128 */
   (an_integer_kind)ik_unsigned_int128,		/* ik_unsigned_int128 */
 #endif /* INT128_EXTENSIONS_ALLOWED */
-  111		/* ik_last ("111" is just an unusual value used to check the
-		   correctness of the initialization order) */
+  (an_integer_kind)111	/* ik_last ("111" is just an unusual value used to
+                           check the correctness of the initialization order)*/
 }
 #endif /* VAR_INITIALIZERS */
 ;
 
 #if FIXED_POINT_ALLOWED
 
-enum a_fixed_point_precision_tag {
+enum a_fixed_point_precision : a_byte {
   /* Enumeration of the fixed-point precisions (listed according to
      increasing size). */
   fpp_short,
@@ -5214,7 +5244,6 @@ enum a_fixed_point_precision_tag {
   fpp_last
 };
 
-typedef a_byte a_fixed_point_precision;
 
 typedef struct a_fixed_point_type_descr {
   /* Description of the characteristics of a fixed-point type. */
@@ -5237,7 +5266,7 @@ typedef struct a_fixed_point_type_descr {
 
 #endif /* FIXED_POINT_ALLOWED */
 
-enum a_float_kind_tag {
+enum a_float_kind : a_byte {
   /* Enumeration of the possible float kinds.  The first three designate
      distinct standard types (that may or may not share a target
      representation).  Some platforms support __float80 and __float128
@@ -5266,8 +5295,7 @@ enum a_float_kind_tag {
   fk_std_float128,
   fk_last		/* Must be last. */
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_float_kind;
+
 
 /* Macro to detect an extended floating point type. */
 #define is_extended_flt_kind(fk) (fk != (a_float_kind)fk_last && \
@@ -5279,7 +5307,7 @@ typedef a_byte a_float_kind;
 Enumeration of type modes, i.e., sizes of types.  Some of these modes
 may not be available on some machines.
 */
-enum a_type_mode_kind_tag {
+enum a_type_mode_kind : a_byte {
   tmk_error,          /* An erroneous mode. */
   tmk_first,
   tmk_QI = tmk_first, /* 1-byte integers. */
@@ -5298,8 +5326,7 @@ enum a_type_mode_kind_tag {
   tmk_none,
   tmk_last = tmk_none
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_type_mode_kind;
+
 
 /*
 Names of machine modes.
@@ -5335,7 +5362,7 @@ constraints; any modifier that can appear multiple times in a constraint
 string is listed here.  Also update asm_operand_constraint_letters when adding
 new entries here.
 */
-enum an_asm_operand_constraint_kind_tag {
+enum an_asm_operand_constraint_kind : a_byte {
   aoc_invalid = 0,
   aoc_end_of_constraint,/* ,: For cases with multiple constraints, indicates
                               the end of the current constraint (other
@@ -5408,7 +5435,6 @@ enum an_asm_operand_constraint_kind_tag {
 #endif /* GNU_X86_ASM_EXTENSIONS_ALLOWED */
   aoc_last
 };
-typedef a_byte an_asm_operand_constraint_kind;
 
 /*
 Names of operand constraints.  Used by il_display.c.
@@ -5496,22 +5522,21 @@ typedef struct an_asm_operand_constraint {
 Modifiers to asm operand strings.  These are all machine independent.
 Note that these are bitmasks, and that aom_input + aom_output == aom_modify.
 Note also that some "modifiers" are treated internally as "constraints"
-(see an_asm_operand_constraint_kind_tag).  Specifically, those modifiers
+(see an_asm_operand_constraint_kind).  Specifically, those modifiers
 that can appear multiple times in a single constraint string, e.g., for
 multiple alternative constraints, are treated as constraints.
 */
-enum an_asm_operand_modifier_tag {
+enum an_asm_operand_modifier : a_byte {
   aom_invalid           = 0x00, /* error */
   aom_input             = 0x01, /* no mod: input operand */
   aom_output            = 0x02, /* =: output operand */
   aom_modify            = 0x03  /* +: read-mod-write operand */
 };
-typedef a_byte an_asm_operand_modifier;
 
 #endif /* !RECORD_RAW_ASM_OPERAND_DESCRIPTIONS */
 
 /* Enumeration of registers and their names. All machine-specific. */
-enum a_named_register_tag {
+enum a_named_register : a_byte {
   anr_invalid = 0,
   anr_memory,                         /* memory */
 #if GNU_X86_ASM_EXTENSIONS_ALLOWED
@@ -5539,7 +5564,7 @@ enum a_named_register_tag {
 #endif /* ACCEPT_UNRECOGNIZED_GNU_ASM_OPERANDS */
   anr_last
 };
-typedef a_byte a_named_register;
+
 
 /*
 Names of named registers.  Note that the user is allowed to
@@ -5686,7 +5711,7 @@ typedef unsigned int a_type_qualifier_set;
 Enumeration of type qualifiers that are accepted.  The enumeration values
 are used to create bit masks that are used to represent the qualifiers.
 */
-enum a_type_qualifier_tag {
+enum a_type_qualifier {
   tqt_const,		/* Const qualifier. */
   tqt_volatile,		/* Volatile qualifier. */
   tqt_restrict,		/* Restrict qualifier. */
@@ -5788,35 +5813,26 @@ to represent a type qualifier set.
 For a "#pragma UPC ...", indicates the specific kind of UPC predefined
 pragma that is being used.
 */
-enum a_upc_pragma_kind_tag {
+enum a_upc_pragma_kind : a_byte {
   upc_pk_access,
   upc_pk_coherence
 };
 
-/* Storage size to be used to hold a UPC pragma kind. */
-typedef a_byte a_upc_pragma_kind;
-
 
 /* Tag values indicating the specific UPC access setting. */
-enum a_upc_access_method_tag {
+enum a_upc_access_method : a_byte {
   upc_access_unspecified,
   upc_access_strict,
   upc_access_relaxed
 };
 
-/* Storage size to be used to hold the UPC access setting. */
-typedef a_byte a_upc_access_method;
-
 
 /* Tag values indicating UPC coherence stack operations. */
-enum a_upc_coherence_stack_operation_tag {
+enum a_upc_coherence_stack_operation : a_byte {
   upc_coherence_stack_noop,
   upc_coherence_stack_save,
   upc_coherence_stack_restore
 };
-
-/* Storage size to be used to hold the UPC coherence stack operations. */
-typedef a_byte a_upc_coherence_stack_operation;
 
 #endif /* UPC_EXTENSIONS_ALLOWED */
 
@@ -5998,7 +6014,7 @@ typedef struct a_param_type {
 For a "#pragma STDC ...", indicates the specific kind of C99 predefined
 pragma that is being used.
 */
-enum a_stdc_pragma_kind_tag {
+enum a_stdc_pragma_kind : a_byte {
   stdc_pk_none,
   stdc_pk_fp_contract,
   stdc_pk_fenv_access,
@@ -6011,8 +6027,6 @@ enum a_stdc_pragma_kind_tag {
   stdc_pk_last
 };
 
-/* Storage size to be used to hold a STDC pragma kind. */
-typedef a_byte a_stdc_pragma_kind;
 
 /* Number of bits required to hold a STDC pragma value. */
 #if FIXED_POINT_ALLOWED
@@ -6024,7 +6038,7 @@ typedef a_byte a_stdc_pragma_kind;
 /*
 For a "#pragma STDC ...", indicates the value specified by the pragma.
 */
-enum a_stdc_pragma_value_tag {
+enum a_stdc_pragma_value : a_byte {
   stdc_pv_none,
   stdc_pv_off,
   stdc_pv_on,
@@ -6036,16 +6050,13 @@ enum a_stdc_pragma_value_tag {
   stdc_pv_default
 };
 
-/* Storage size to be used to hold a STDC pragma value. */
-typedef a_byte a_stdc_pragma_value;
-
 
 #if GNU_EXTENSIONS_ALLOWED
 /*
 For a "#pragma GCC ...", indicates the specific kind of GCC predefined pragma
 that is being used.
 */
-enum a_gcc_pragma_kind_tag {
+enum a_gcc_pragma_kind : a_byte {
   gcc_pk_none,			/* Used for unrecognized GCC pragmas. */
   gcc_pk_system_header,		/* #pragma GCC system_header */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
@@ -6058,9 +6069,6 @@ enum a_gcc_pragma_kind_tag {
   gcc_pk_reset_options,         /* #pragma GCC reset_options */
   gcc_pk_last
 };
-
-/* Storage size to be used to hold a GCC pragma kind. */
-typedef a_byte a_gcc_pragma_kind;
 
 
 /*
@@ -6089,7 +6097,7 @@ typedef struct a_gcc_pragma_descr {
    by the implementation.  Some may refer to pragmas for which entries of
    type a_pragma are added to the IL for processing by the back end, but
    some may be for front-end processing only. */
-enum a_pragma_kind_tag {
+enum a_pragma_kind : a_byte {
   pk_none,
   pk_printf_args,	/* Next function declaration has a printf-style format
 			   string that should be checked against the arguments
@@ -6229,8 +6237,6 @@ enum a_pragma_kind_tag {
 
   pk_last		/* Must be last. */
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_pragma_kind;
 
 
 EXTERN a_const_char *pragma_ids[(int)pk_last + 1]
@@ -6325,7 +6331,7 @@ EXTERN a_const_char *pragma_ids[(int)pk_last + 1]
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
-enum a_microsoft_pragma_comment_type_tag {
+enum a_microsoft_pragma_comment_type : a_byte {
   /* Code for comment types in a Microsoft #pragma comment. */
   mpct_compiler,
   mpct_exestr,
@@ -6335,17 +6341,13 @@ enum a_microsoft_pragma_comment_type_tag {
   /* Must be last: */
   mpct_last
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_microsoft_pragma_comment_type;
 
 
-enum a_microsoft_pragma_conform_kind_tag {
+enum a_microsoft_pragma_conform_kind : a_byte {
   /* Code for conformance switch in a Microsoft "#pragma conform(...)".
      Currently only "forScope" is a valid switch. */
   mpck_forScope
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_microsoft_pragma_conform_kind;
 
 
 EXTERN a_const_char *microsoft_pragma_comment_ids[(int)mpct_last + 1]
@@ -6645,11 +6647,15 @@ typedef struct an_exception_specification {
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
 } an_exception_specification;
 
-#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
-enum a_calling_convention_tag {
+/* This type exists even if the Microsoft keywords are not allowed,
+   to permit routines that deal with types to have a predictable number of
+   parameters (they can return a calling convention via a parameter even
+   though it is never used). */
+enum a_calling_convention : a_byte {
 /* Microsoft-specific calling convention specifiers. */
   cc_default,		/* Default (unspecified) calling convention, which
 			   is the same as/compatible with one of the others. */
+#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
   cc_cdecl,		/* __cdecl calling convention. */
   cc_fastcall,		/* __fastcall calling convention. */
   cc_stdcall,		/* __stdcall calling convention. */
@@ -6657,14 +6663,10 @@ enum a_calling_convention_tag {
   cc_vectorcall,	/* __vectorcall calling convention. */
   cc_clrcall,		/* __clrcall calling convention. */
   cc_last		/* Must be last. */
-};
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
-/* Define as "a_byte" to explicitly control storage size. */
-/* This type exists even if the Microsoft keywords are not allowed,
-   to permit routines that deal with types to have a predictable number of
-   parameters (they can return a calling convention via a parameter even
-   though it is never used). */
-typedef a_byte a_calling_convention;
+};
+
+
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
 /* Display names for calling conventions. */
 EXTERN a_const_char *calling_convention_names[(int)cc_last]
@@ -6679,7 +6681,7 @@ EXTERN a_const_char *calling_convention_names[(int)cc_last]
 Enumeration of declaration modifiers that are accepted.  The enumeration values
 are used to create bit masks that are used to represent the modifiers.
 */
-enum a_decl_modifier_tag {
+enum a_decl_modifier : a_byte {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   dmt_dllimport,
   dmt_dllexport,
@@ -6706,10 +6708,6 @@ enum a_decl_modifier_tag {
   dmt_last
 };
 
-/*
-Type used to represent a set of decl modifiers.
-*/
-typedef unsigned int a_decl_modifier;
 
 #if DECL_MODIFIERS_IN_USE
 EXTERN a_const_char *decl_modifier_names[(int)dmt_last + 1]
@@ -6746,63 +6744,65 @@ EXTERN a_const_char *decl_modifier_names[(int)dmt_last + 1]
 A bit set whose values are used to supply additional declarative information
 about variables and routines.
 */
-#define DM_NONE		((a_decl_modifier)0x0)
+typedef unsigned int a_decl_modifier_set;
+#define DM_NONE		((a_decl_modifier_set)0x0)
 			/* No decl modifiers. */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-#define DM_DLLIMPORT	((a_decl_modifier)(1 << (int)dmt_dllimport))
+#define DM_DLLIMPORT	((a_decl_modifier_set)(1 << dmt_dllimport))
 			/* TRUE if the declaration includes the
 			   Microsoft __declspec(dllimport) specifier. */
-#define DM_DLLEXPORT	((a_decl_modifier)(1 << (int)dmt_dllexport))
+#define DM_DLLEXPORT	((a_decl_modifier_set)(1 << dmt_dllexport))
 			/* TRUE if the declaration includes the
 			   Microsoft __declspec(dllexport) specifier. */
-#define DM_DLLFLAGS	(DM_DLLIMPORT | DM_DLLEXPORT)
+#define DM_DLLFLAGS	((a_decl_modifier_set)(DM_DLLIMPORT | DM_DLLEXPORT))
 			/* Convenience macro to select DLL-related flags. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
-#define DM_THREAD	((a_decl_modifier)(1 << (int)dmt_thread))
+#define DM_THREAD	((a_decl_modifier_set)(1 << dmt_thread))
 			/* TRUE if the declaration includes the __thread or
 			   __declspec(thread) specifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED || THREAD_LOCAL_STORAGE_SPECIFIER_... */
 #if MICROSOFT_EXTENSIONS_ALLOWED
 #define DM_MICROSOFT_INLINE						\
-			((a_decl_modifier)(1 << (int)dmt_microsoft_inline))
+			((a_decl_modifier_set)(1 << dmt_microsoft_inline))
 			/* TRUE if the declaration includes the
 			   Microsoft __inline specifier. */
-#define DM_FORCEINLINE	((a_decl_modifier)(1 << (int)dmt_forceinline))
+#define DM_FORCEINLINE	((a_decl_modifier_set)(1 << dmt_forceinline))
 			/* TRUE if the declaration includes the
 			   Microsoft __forceinline specifier. */
-#define DM_SELECTANY	((a_decl_modifier)(1 << (int)dmt_selectany))
+#define DM_SELECTANY	((a_decl_modifier_set)(1 << dmt_selectany))
 			/* TRUE if the declaration includes the Microsoft
 			   __declspec(selectany) specifier. */
-#define DM_NOVTABLE	((a_decl_modifier)(1 << (int)dmt_novtable))
+#define DM_NOVTABLE	((a_decl_modifier_set)(1 << dmt_novtable))
 			/* TRUE if the declaration includes the Microsoft
 			   __declspec(novtable) specifier. */
-#define DM_NOALIAS	((a_decl_modifier)(1 << (int)dmt_noalias))
+#define DM_NOALIAS	((a_decl_modifier_set)(1 << dmt_noalias))
 			/* TRUE if the declaration includes the Microsoft
 			   __declspec(noalias) specifier. */
-#define DM_RESTRICT	((a_decl_modifier)(1 << (int)dmt_restrict))
+#define DM_RESTRICT	((a_decl_modifier_set)(1 << dmt_restrict))
 			/* TRUE if the declaration includes the Microsoft
 			   __declspec(restrict) specifier. */
-#define DM_SAFEBUFFERS	((a_decl_modifier)(1 << (int)dmt_safebuffers))
+#define DM_SAFEBUFFERS	((a_decl_modifier_set)(1 << dmt_safebuffers))
 			/* TRUE if the declaration includes the Microsoft
 			   __declspec(safebuffers) specifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
 #define DM_GLOBAL_LINK_SCOPE \
-			((a_decl_modifier)(1 << (int)dmt_global_link_scope))
+			((a_decl_modifier_set)(1 << dmt_global_link_scope))
 			/* TRUE if the declaration includes the Sun __global
 			   specifier. */
 #define DM_SYMBOLIC_LINK_SCOPE \
-			((a_decl_modifier)(1 << (int)dmt_symbolic_link_scope))
+			((a_decl_modifier_set)(1 << dmt_symbolic_link_scope))
 			/* TRUE if the declaration includes the Sun __symbolic
 			   specifier. */
 #define DM_HIDDEN_LINK_SCOPE \
-			((a_decl_modifier)(1 << (int)dmt_hidden_link_scope))
+			((a_decl_modifier_set)(1 << dmt_hidden_link_scope))
 			/* TRUE if the declaration includes the Sun __hidden
 			   specifier. */
-#define DM_ANY_SUN_LINK_SCOPE	(DM_GLOBAL_LINK_SCOPE |    \
+#define DM_ANY_SUN_LINK_SCOPE	((a_decl_modifier_set)     \
+				(DM_GLOBAL_LINK_SCOPE |    \
 				 DM_SYMBOLIC_LINK_SCOPE |  \
-				 DM_HIDDEN_LINK_SCOPE)
+				 DM_HIDDEN_LINK_SCOPE))
 			/* TRUE if the entity was declared with any Sun link
 			   scope specifier. */
 #endif /* SUN_EXTENSIONS_ALLOWED */
@@ -6818,13 +6818,11 @@ be bound to lvalues and rvalues.  For example:
     void h();     // In x.h() x can be an lvalue or an rvalue.
   };
 */
-enum a_ref_qualifier_kind_tag {
+enum a_ref_qualifier_kind : a_byte {
   rqk_default,
   rqk_lvalue,
   rqk_rvalue
 };
-
-typedef a_byte a_ref_qualifier_kind;
 
 
 /* Entry containing additional information about a routine type
@@ -6933,7 +6931,7 @@ typedef struct a_routine_type_supplement {
 			   diagnostics will not be issued on subsequent uses
 			   (though diagnostics on function definitions are not
 			   affected).  (Intended for front-end use only.) */
-  a_bit_field /* a_name_linkage_kind */
+  a_name_linkage_kind
 		routine_name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
 			/* The default name linkage at the point the function
 			   type was declared.  The front end makes this
@@ -6966,11 +6964,11 @@ typedef struct a_routine_type_supplement {
 			   In the unmodified front end, only the TQ_RESTRICT
 			   qualifier is recorded here (for restrict-qualified
 			   member functions). */
-  a_bit_field /* a_ref_qualifier_kind */
+  a_ref_qualifier_kind
 		ref_qualifiers:2;
 			/* Used for nonstatic member functions: The
 			   ref-qualification of the member function type.
-			   (See a_ref_qualifier_kind_tag above for details.) */
+			   (See a_ref_qualifier_kind above for details.) */
   a_bit_field	does_not_return:1;
 			/* TRUE if this is the type of function that is known
 			   not to return normally (it can still "return" via an
@@ -7097,7 +7095,7 @@ A template argument may be a type, nontype, or template argument.  This
 enumeration is used to specify which variant of the template argument
 entry is being used.
 */
-enum a_templ_arg_kind_tag {
+enum a_templ_arg_kind : a_byte {
   tak_type,
   tak_nontype,
   tak_template,
@@ -7106,9 +7104,6 @@ enum a_templ_arg_kind_tag {
 			   of a (possibly empty) sequence of template arguments
 			   provided for a parameter pack. */
 };
-
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_templ_arg_kind;
 
 
 typedef struct a_template_arg {
@@ -7754,13 +7749,11 @@ typedef struct a_constant_list_entry {
 } a_constant_list_entry;
 
 
-enum an_anonymous_union_kind_tag {
+enum an_anonymous_union_kind : a_byte {
   auk_none,		/* Not an anonymous union. */
   auk_variable,		/* Anonymous union is associated with a variable. */
   auk_field		/* Anonymous union is associated with a field. */
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte an_anonymous_union_kind;
 
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -7769,7 +7762,7 @@ Enumeration describing the set of inheritance kinds that can be specified for
 a class, corresponding to different pointer-to-member representations.  The
 order is significant: single < multiple < virtual.
 */
-enum an_inheritance_kind_tag {
+enum an_inheritance_kind : a_byte {
   ihk_none,		/* No inheritance kind specified. */
   ihk_single,		/* Single inheritance specified. */
   ihk_multiple,		/* Multiple inheritance specified. */
@@ -7779,7 +7772,6 @@ enum an_inheritance_kind_tag {
 			   specifiers have been seen). */
   ihk_last = ihk_incomplete
 };
-typedef a_byte an_inheritance_kind;
 
 
 /*
@@ -7801,7 +7793,7 @@ EXTERN a_const_char *inheritance_kind_names[(int)ihk_last+1]
 /*
 Class type kinds to distinguish the various kinds of C++/CLI class types.
 */
-enum a_cli_class_type_kind_tag {
+enum a_cli_class_type_kind : a_byte {
   cctk_standard,	/* Standard classes, structs, and unions. */
   cctk_value,		/* C++/CLI value classes and structs. */
   cctk_ref,		/* C++/CLI ref classes and structs. */
@@ -7810,9 +7802,6 @@ enum a_cli_class_type_kind_tag {
 			   used in an assembly being imported comes from
 			   another assembly that has not been imported. */
 };
-
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_cli_class_type_kind;
 
 
 typedef struct a_property_index_type *a_property_index_type_ptr;
@@ -7834,15 +7823,12 @@ typedef struct a_property_index_type {
 } a_property_index_type;
 
 
-enum a_property_or_event_kind_tag {
+enum a_property_or_event_kind : a_byte {
   /* Kinds of properties and events. */
   pek_declspec_property,
   pek_cli_property,
   pek_cli_event
 };
-
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_property_or_event_kind;
 
 
 typedef struct a_property_or_event_descr {
@@ -7967,7 +7953,7 @@ typedef struct a_property_or_event_descr {
 Values for the rewritten_property_reference_kind field, indicating
 the original kind of operator rewritten as a property reference.
 */
-enum a_rewritten_property_reference_kind_tag {
+enum a_rewritten_property_reference_kind : a_byte {
   rprk_none,
   rprk_compound_assignment,
 			/* Compound assignment, e.g., a.p += 1. */
@@ -7982,8 +7968,6 @@ enum a_rewritten_property_reference_kind_tag {
 			   operand is generated (i.e., not part of the
 			   source). */
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_rewritten_property_reference_kind;
 
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
@@ -8233,7 +8217,7 @@ typedef struct a_class_type_supplement {
 			   argument of a uuid decl-modifier. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if DECL_MODIFIERS_IN_USE
-  a_decl_modifier
+  a_decl_modifier_set
 		decl_modifiers;
 			/* Additional declaration information representing
 			   Microsoft-style __declspec modifiers that are
@@ -8265,15 +8249,18 @@ typedef struct a_class_type_supplement {
   a_bit_field	has_direct_property_or_event:1;
 			/* TRUE if this class contains a direct (i.e., not
 			   inherited) C++/CLI property or event. */
-  a_bit_field   declared_assembly_visibility:2;
-                        /* Visibility of this type at the assembly level as
+  an_assembly_visibility
+		declared_assembly_visibility:2;
+			/* Visibility of this type at the assembly level as
 			   explicitly declared in the source (av_none if no
 			   visibility was explicitly specified).  
 			   (C++/CLI only.) */
-  a_bit_field   assembly_visibility:2;
-                        /* Effective visibility of this type at the assembly
+  an_assembly_visibility
+		assembly_visibility:2;
+			/* Effective visibility of this type at the assembly
 			   level.  (C++/CLI only.) */
-  a_bit_field   cli_class_type_kind:3;
+  a_cli_class_type_kind
+		cli_class_type_kind:3;
 			/* The class type kind of this class.  In non-C++/CLI
 			   modes, it is always cctk_standard.  In C++/CLI mode,
 			   other kinds of classes (e.g., "ref classes") are
@@ -8304,7 +8291,8 @@ typedef struct a_class_type_supplement {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  a_bit_field   ELF_visibility:3;
+  an_ELF_visibility_kind
+		ELF_visibility:3;
 			/* The visibility of the class members in the generated
 			   ELF object code. */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
@@ -8638,7 +8626,7 @@ typedef struct a_class_type_supplement {
 			   class was created; otherwise, NULL. */
 } a_class_type_supplement;
 
-enum a_template_param_type_kind_tag {
+enum a_template_param_type_kind : a_byte {
   /* When a type is marked as a template parameter it may have one of several
      kinds (C++ front end only). */
   tptk_param,		/* The template param type represents a simple
@@ -8671,7 +8659,6 @@ enum a_template_param_type_kind_tag {
 			   template parameter values, and whose real type
 			   cannot be known. */
 };
-typedef a_byte a_template_param_type_kind;
 
 
 /*
@@ -8857,13 +8844,15 @@ typedef struct an_integer_type_supplement {
 			   counterpart of the actual underlying type. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_bit_field   declared_assembly_visibility:2;
-                        /* Visibility of this type at the assembly level as
+  an_assembly_visibility
+		declared_assembly_visibility:2;
+			/* Visibility of this type at the assembly level as
 			   explicitly declared in the source (av_none if no
 			   visibility was explicitly specified).  (Enumeration
 			   types in C++/CLI mode only.) */
-  a_bit_field   assembly_visibility:2;
-                        /* Effective visibility of this type at the assembly
+  an_assembly_visibility
+		assembly_visibility:2;
+			/* Effective visibility of this type at the assembly
 			   level  (Enumeration types in C++/CLI mode only.) */
   an_assembly_scope_index
 		assembly_scope_index;
@@ -8917,7 +8906,7 @@ Entry pointed to by the based_types field of a_type entries.  A list
 of these entries gives pointers to types based on the type entry, e.g.,
 pointer-to type entry.
 */
-enum a_based_type_kind_tag {
+enum a_based_type_kind : a_byte {
   /* Indication of the relationship between the based type and the base
      type. */
   btk_qualified,	/* A (const, volatile, const-volatile, etc.) qualified
@@ -8945,8 +8934,7 @@ enum a_based_type_kind_tag {
 			/* A function type without its noexcept exception spec
 			   (C++ only). */
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_based_type_kind;
+
 
 typedef struct a_based_type_list_member *a_based_type_list_member_ptr;
 typedef struct a_based_type_list_member {
@@ -8978,7 +8966,7 @@ are used to create bit masks that are used to represent the various modifiers.
 Note that -- unlike type qualifiers -- pointer modifiers are not dropped by
 calls to skip_typerefs.
 */
-enum a_pointer_modifier_tag {
+enum a_pointer_modifier {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   pmt_ptr32,		/* __ptr32 modifier. */
   pmt_ptr64,		/* __ptr64 modifier. */
@@ -9340,7 +9328,7 @@ typedef struct a_type {
 			/* TRUE for enum instances that were explicitly
 			   specialized. */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-      a_bit_field
+      an_ELF_visibility_kind
 		ELF_visibility:3;
 			/* The visibility of the enum type. */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
@@ -9958,7 +9946,7 @@ typedef struct a_type {
 			   type. */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 #if BACK_END_IS_CP_GEN_BE
-      a_bit_field
+      a_name_linkage_kind
 		surrounding_name_linkage_state:NUM_BITS_FOR_NAME_LINKAGE;
 			/* Name linkage in effect when this typedef
 			   appeared. */
@@ -10173,38 +10161,6 @@ typedef struct a_type {
 } a_type;
 
 
-/*
-Data structures related to variables:
-*/
-enum a_storage_class_tag {
-  /* Possible storage classes for variables and functions (see 3.5.1). */
-  /* Note that this represents the C concept of storage class.  In C++,
-     the keyword "static" is also used to indicate static members of
-     classes.  That kind of "static" is reflected in things other than
-     the storage class, e.g., the this_class field for routines. */
-  sc_unspecified,       /* No explicit storage class was given.  This implies
-                           an external definition.  Note that an unspecified
-                           storage class in the source program will be
-                           mapped to something else (extern or auto) when
-                           that is possible, and the sc_unspecified value
-                           only remains for external definitions.  (This
-                           must be the first enumerator, because we rely
-                           on memzero producing this value.) */
-  sc_extern,            /* External.  This implies a reference to something
-                           defined in another compilation unit. */
-  sc_static,            /* Static. */
-  sc_auto,              /* Local, stack-based.  Includes parameters. */
-  sc_typedef,           /* Not ever used in variables or functions, but
-                           in this enumeration for convenience when scanning
-                           declarations. */
-  sc_register,          /* Register, a special case of local.  Includes
-                           parameters declared "register". */
-  sc_asm,               /* An asm function.  Only used if ASM_FUNCTION_ALLOWED
-                           is TRUE. */
-  sc_last
-};
-/* a_storage_class has already been defined as a_byte. */
-
 #if DEBUG
 /*
 Table of storage class names, for debug purposes.
@@ -10218,7 +10174,7 @@ EXTERN a_const_char *db_storage_class_names[(int)sc_last + 1]
 ;
 #endif /* DEBUG */
 
-enum an_init_kind_tag {
+enum an_init_kind : a_byte {
   /* Kinds of initialization of a variable: */
   initk_none,		/* No initialization. */
   initk_static,		/* Static initialization to a constant. */
@@ -10238,8 +10194,6 @@ enum an_init_kind_tag {
 			   set while prescanning the initializer.  (Used in
 			   the front end only.) */
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte an_init_kind;
 
 
 typedef union an_initializer *an_initializer_ptr;
@@ -10484,7 +10438,7 @@ typedef struct a_variable {
 			   with that declaration. */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if DECL_MODIFIERS_IN_USE
-  a_decl_modifier
+  a_decl_modifier_set
 		decl_modifiers;
 			/* Additional declaration information supplied by
 			   nonstandard language features such as the
@@ -10536,7 +10490,8 @@ typedef struct a_variable {
 			   out of scope.  (Currently, the front end does not
 			   make that call explicit in any way.) */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  a_bit_field   ELF_visibility:3;
+  an_ELF_visibility_kind
+		ELF_visibility:3;
 			/* The visibility of the variable in the generated
 			   ELF object code. */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
@@ -11300,53 +11255,11 @@ typedef struct a_field {
 } a_field;
 
 
-/*
-An enumeration of C++ operator kinds to identify user-defined overloaded
-operators; they apply only to functions with a special function kind of
-sfk_operator.
-*/
-enum an_opname_kind_tag {
-  onk_none,
-  onk_new,               /* "new" */    onk_delete,            /* "delete" */
-  onk_array_new,         /* "new[]" */	onk_array_delete,      /* "delete[]" */
-  onk_plus,              /* "+" */      onk_minus,             /* "-" */
-  onk_star,              /* "*" */      onk_divide,            /* "/" */
-  onk_remainder,         /* "%" */      onk_excl_or,           /* "^" */
-  onk_ampersand,         /* "&" */      onk_or,                /* "|" */
-  onk_compl,             /* "~" */      onk_not,               /* "!" */
-  onk_assign,            /* "=" */      onk_lt,                /* "<" */
-  onk_gt,                /* ">" */      onk_plus_assign,       /* "+=" */
-  onk_minus_assign,      /* "-=" */     onk_times_assign,      /* "*=" */
-  onk_divide_assign,     /* "/=" */     onk_remainder_assign,  /* "%=" */
-  onk_excl_or_assign,    /* "^=" */     onk_and_assign,        /* "&=" */
-  onk_or_assign,         /* "|=" */     onk_shift_left,        /* "<<" */
-  onk_shift_right,       /* ">>" */     onk_shift_right_assign,/* ">>=" */
-  onk_shift_left_assign, /* "<<=" */    onk_eq,                /* "==" */
-  onk_ne,                /* "!=" */     onk_le,                /* "<=" */
-  onk_ge,                /* ">=" */     onk_spaceship,         /* <=> */
-  onk_and_and,           /* "&&" */     onk_or_or,             /* "||" */
-  onk_plus_plus,         /* "++" */     onk_minus_minus,       /* "--" */
-  onk_comma,             /* "," */      onk_arrow_star,        /* "->*" */
-  onk_arrow,             /* "->" */     onk_function_call,     /* "()" */
-  onk_subscript,         /* "[]" */
-  onk_question,          /* "?" -- only used in front end. */
-  onk_gnu_min,           /* "<?" */     onk_gnu_max,           /* ">?" */
-  onk_await,             /* co_await */ onk_last
-};
-
-#define is_new_operator(op)                                         \
-  ((op) == (an_opname_kind)onk_new ||                               \
-   (op) == (an_opname_kind)onk_array_new)
-
-#define is_delete_operator(op)                                      \
-  ((op) == (an_opname_kind)onk_delete ||                            \
-   (op) == (an_opname_kind)onk_array_delete)
-
 #if BUILTIN_FUNCTIONS_ENABLED
 
 /* Type used to store an enumeration value used to identify the kind of
    builtin function.  Must be large enough to accommodate enum values from both
-   a_builtin_function_kind_tag and a_builtin_user_function_kind_tag.  */
+   a_builtin_function_kind_tag and a_builtin_user_function_kind.  */
 typedef unsigned short a_builtin_function_kind;
 
 /* Type used for an index into builtin_table.  Defined as "unsigned short"
@@ -11361,7 +11274,7 @@ points.  These alternate entry points are generated by IL lowering for
 the IA64 ABI.  See also is_inheriting_ctor as that flag also dictates different
 variations of constructors.
 */
-enum a_ctor_or_dtor_kind_tag {
+enum a_ctor_or_dtor_kind : a_byte {
   cdk_none,		/* A constructor or destructor as originally created
 			   by lowering. */
 #if IA64_ABI
@@ -11382,8 +11295,6 @@ enum a_ctor_or_dtor_kind_tag {
 #endif /* IA64_ABI */
   cdk_last
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_ctor_or_dtor_kind;
 
 
 typedef struct a_requires_clause *a_requires_clause_ptr;
@@ -11798,7 +11709,8 @@ typedef struct a_routine {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  a_bit_field	ELF_visibility:3;
+  an_ELF_visibility_kind
+		ELF_visibility:3;
 			/* The visibility of the routine in the generated
 			   ELF object code. */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
@@ -11959,7 +11871,8 @@ typedef struct a_routine {
 			/* TRUE if an explicit template argument list was ever
 			   used in naming this (template) function. */
 #if BACK_END_IS_CP_GEN_BE
-  a_bit_field	surrounding_name_linkage_state:NUM_BITS_FOR_NAME_LINKAGE;
+  a_name_linkage_kind
+		surrounding_name_linkage_state:NUM_BITS_FOR_NAME_LINKAGE;
 			/* Name linkage in effect when this routine was
 			   defined.  Used by the C++-generating back end to
 			   reconstruct name linkage blocks when appropriate
@@ -12055,23 +11968,29 @@ typedef struct a_routine {
 			   is needed, e.g., because its address was taken, or
 			   it was named in an explicit instantiation
 			   directive. */
-  a_bit_field	fp_contract:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+  a_stdc_pragma_value
+		fp_contract:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
 			/* In C99 mode, the setting of the fp_contract mode
 			   at the point that this routine was defined. */
-  a_bit_field	fenv_access:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+  a_stdc_pragma_value
+		fenv_access:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
 			/* In C99 mode, the setting of the fenv_access mode
 			   at the point that this routine was defined. */
-  a_bit_field	cx_limited_range:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+  a_stdc_pragma_value
+		cx_limited_range:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
 			/* In C99 mode, the setting of the cx_limited_range
 			   mode at the point that this routine was defined. */
 #if FIXED_POINT_ALLOWED
-  a_bit_field	fx_full_precision:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+  a_stdc_pragma_value
+		fx_full_precision:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
 			/* The setting of the fx_full_precision state at the
 			   the point that this routine was defined. */
-  a_bit_field	fx_fract_overflow:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+  a_stdc_pragma_value
+		fx_fract_overflow:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
 			/* The setting of the fx_fract_overflow state at the
 			   the point that this routine was defined. */
-  a_bit_field	fx_accum_overflow:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+  a_stdc_pragma_value
+		fx_accum_overflow:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
 			/* The setting of the fx_accum_overflow state at the
 			   the point that this routine was defined. */
 #endif /* FIXED_POINT_ALLOWED */
@@ -12254,7 +12173,7 @@ typedef struct a_routine {
 			   therefore always be queried through the function
 			   is_ineligible. */
 #if DECL_MODIFIERS_IN_USE
-  a_decl_modifier
+  a_decl_modifier_set
 		decl_modifiers;
 			/* Additional declaration information supplied by
 			   nonstandard language features such as the
@@ -12425,7 +12344,7 @@ typedef struct a_routine {
 #if USE_X86_FUNCTION_MULTIVERSIONING
 /*
 GNU multiversion target set; this is a bitset where the bit positions
-correspond to a_multiversion_arch_kind_tag enumeration values.
+correspond to a_multiversion_arch_kind enumeration values.
 */
 typedef uint32_t a_mv_target_bitset;
 #endif /* USE_X86_FUNCTION_MULTIVERSIONING */
@@ -12709,7 +12628,14 @@ typedef unsigned long a_cleanup_region_number;
 /*
 Data structures related to expressions:
 */
-enum an_expr_node_kind_tag {
+/*
+Originally, this enum was declared with the underlying type of a_byte in order
+to control storage size, however, declaring it as a bit field (and then
+constraining the number of bits to 8) results in a better layout with some
+compilers).
+*/
+#define NUM_BITS_FOR_EXPR_NODE_KIND 8
+enum an_expr_node_kind : a_bit_field {
   enk_error,            /* Error. */
   enk_operation,        /* An operator and n operands; see
                            an_expr_operator_kind. */
@@ -12833,13 +12759,12 @@ enum an_expr_node_kind_tag {
   enk_nested_req,	/* A nested-requirement. */
   enk_last
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte an_expr_node_kind;
+
 
 #if DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING
 /* Modifier for enk_lowered_eh_construct nodes, indicating the kind of
    node. */
-enum a_lowered_eh_construct_kind_tag {
+enum a_lowered_eh_construct_kind : a_byte {
   leck_caught_object_address,
 			/* Address of the object caught at the current active
 			   catch clause. */
@@ -12876,12 +12801,10 @@ enum a_lowered_eh_construct_kind_tag {
 			   executed if an exception is thrown while executing
 			   an expression. */
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_lowered_eh_construct_kind;
 
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 
-enum an_expr_operator_kind_tag {
+enum an_expr_operator_kind : a_byte {
   /* When the expression node kind is "enk_operation", these are the possible
      operators. */
   /* If you add operators to this list, be sure to update:
@@ -13409,11 +13332,9 @@ enum an_expr_operator_kind_tag {
                            operands. */
   eok_last              /* Marks the end of the list. */
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte an_expr_operator_kind;
 
 
-typedef enum a_builtin_operation_kind_tag {
+enum a_builtin_operation_kind : a_byte {
   /* When the expression node kind is "enk_builtin_operation", these are the
      possible operations. */
   /* If you add an operation to this list, also update builtin_operation_names
@@ -13590,9 +13511,7 @@ typedef enum a_builtin_operation_kind_tag {
   bok_is_void,          /* __is_void (Clang).  One type operand. */
   bok_is_volatile,      /* __is_volatile (Clang).  One type operand. */
   bok_last              /* Marks the end of the list. */
-} a_builtin_operation_kind_tag;
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_builtin_operation_kind;
+};
 
 
 #if !ABI_CHANGES_FOR_RTTI
@@ -13839,7 +13758,7 @@ typedef struct an_eh_prologue_supplement {
 #endif /* DO_IL_LOWERING && !DO_FULL_PORTABLE_EH_LOWERING */
 
 
-enum a_local_expr_node_ref_kind_tag {
+enum a_local_expr_node_ref_kind : a_byte {
   lerk_none,		/* Used for initialization only. */
   lerk_typeof,		/* An expression used as an argument for a typeof
 			   construct. */
@@ -13864,7 +13783,6 @@ enum a_local_expr_node_ref_kind_tag {
   lerk_constant_expr	/* The backing expression of a constant entry. */
 };
 
-typedef a_byte a_local_expr_node_ref_kind;
 
 typedef struct a_local_expr_node_ref *a_local_expr_node_ref_ptr;
 typedef struct a_local_expr_node_ref {
@@ -13919,14 +13837,10 @@ typedef struct an_expr_node {
                         /* When this node is part of a list of operands, this
                            field is used to link them together; otherwise it is
                            NULL. */
-  a_bit_field
-		kind:8;
-                        /* Identifies what kind of node this is.  This field
-                           determines which member of the union to use.
-			   (Originally, this field was declared as an ordinary
-			   field of type an_expr_node_kind, but declaring it as
-			   a bit field produces a better layout with some
-			   compilers.) */
+  an_expr_node_kind
+		kind:NUM_BITS_FOR_EXPR_NODE_KIND;
+			/* Identifies what kind of node this is.  This field
+			   determines which member of the union to use. */
   a_bit_field	is_lvalue:1;
 			/* TRUE if the expression is an lvalue.  FALSE if the
 			   expression is something else, e.g., an rvalue or an
@@ -14243,7 +14157,7 @@ typedef struct an_expr_node {
 			   FALSE is not a virtual call (perhaps because the
 			   function was named with a qualified name). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      a_bit_field /* a_rewritten_property_reference_kind */
+      a_rewritten_property_reference_kind
 		rewritten_property_reference_kind:3;
 			/* If this is the "put" call in a rewritten
 			   Microsoft property reference involving a
@@ -14743,7 +14657,7 @@ typedef struct an_expr_node {
 /*
 Data structures related to statements:
 */
-enum a_statement_kind_tag {
+enum a_statement_kind : a_byte {
   /* Kinds of statements. */
   stmk_expr,		/* Evaluate expression, throw away its value. */
   stmk_if,		/* if-then-else. */
@@ -14803,8 +14717,6 @@ enum a_statement_kind_tag {
 #endif /* GNU_EXTENSIONS_ALLOWED */
   stmk_last
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte  a_statement_kind;
 
 
 /* Extra information about a statement of kind stmk_block (block statement). */
@@ -14976,7 +14888,7 @@ typedef struct a_range_based_for_loop {
 /*
 Kind of pattern for a collection type in a for-each statement. 
 */
-enum a_for_each_pattern_kind_tag {
+enum a_for_each_pattern_kind : a_byte {
   sfepk_none,
   sfepk_stl_pattern,    /* The collection type conforms to the STL pattern. */
   sfepk_cli_pattern,    /* The collection type conforms to the C++/CLI 
@@ -14986,8 +14898,6 @@ enum a_for_each_pattern_kind_tag {
                            case of the CLI collection pattern). */
   sfepk_array_pattern   /* The collection type is an array. */
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_for_each_pattern_kind;
 
 
 /*
@@ -15804,7 +15714,7 @@ typedef struct a_statement {
    constructors, only one entry representing the delegation is recorded. */
 /* A list of these is also used on destructors to indicate destructor
    calls that must be made for base classes and members. */
-enum a_constructor_init_kind_tag {
+enum a_constructor_init_kind : a_byte {
   /* The order of the following constants matters: It reflects the order in
      which class subobjects are initialized (virtual base classes are
      initialized before nonvirtual direct base classes, and all base classes
@@ -15818,8 +15728,6 @@ enum a_constructor_init_kind_tag {
   cik_delegation	/* Initialization is delegated to another
 			   constructor. */
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_constructor_init_kind;
 
 
 typedef struct a_constructor_init *a_constructor_init_ptr;
@@ -16020,7 +15928,7 @@ typedef struct a_hidden_name {
 /*
 Generic constraint kinds.
 */
-enum a_generic_constraint_kind_tag {
+enum a_generic_constraint_kind : a_byte {
   gck_none,		/* Used to specify an unknown or invalid kind. */
   gck_type,		/* Used for class and interface constraints. */
   gck_naked_type_param,	/* Used for naked type parameter constraints. */
@@ -16033,8 +15941,6 @@ enum a_generic_constraint_kind_tag {
 			   types. */
 };
 
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_generic_constraint_kind;
 
 /*
 Entry used to represent a constraint item of a constraint clause.
@@ -16108,14 +16014,12 @@ typedef struct a_generic_constraint_clause {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 /* Kind of template parameter. */
-enum a_template_parameter_kind_tag {
+enum a_template_parameter_kind : a_byte {
   tpk_error,
   tpk_type,
   tpk_nontype,
   tpk_template
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_template_parameter_kind;
 
 
 typedef struct a_template_parameter *a_template_parameter_ptr;
@@ -16226,7 +16130,7 @@ typedef struct a_template_decl {
 The kind of template that is recorded in the IL template representation
 (C++ only).
 */
-enum a_template_kind_tag {
+enum a_template_kind : a_byte {
   templk_none,		/* Undefined. */
   templk_class,		/* Class template. */
   templk_function,	/* Function template. */
@@ -16245,8 +16149,6 @@ enum a_template_kind_tag {
   templk_concept
 			/* A concept template. */
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_template_kind;
 
 
 /*
@@ -16572,7 +16474,7 @@ il_header.root_macro_invocation_record_block).
   }
 #endif /* RECORD_MACRO_INVOCATIONS */
 
-enum an_object_lifetime_kind_tag {
+enum an_object_lifetime_kind : a_byte {
   olk_global_static,	/* Lifetime of file-scope global variables. */
   olk_block,		/* Lifetime of block-scope automatic entities (plus,
 			   when long_lifetime_temps is TRUE, certain
@@ -16599,8 +16501,6 @@ enum an_object_lifetime_kind_tag {
   olk_expr_temporary,	/* Lifetime of expression temporaries. */
   olk_try_block		/* Lifetime of a try block. */
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte an_object_lifetime_kind;
 
 /* Return TRUE if the given object lifetime kind indicates a static
    lifetime. */
@@ -16715,7 +16615,7 @@ typedef struct an_object_lifetime {
 /*
 Value that identifies a kind of Microsoft attribute.
 */
-enum an_ms_attribute_kind_tag {
+enum an_ms_attribute_kind : a_byte {
   msak_none,		/* Must be first. */
   msak_unrecognized,	/* Used to represent unrecognized attributes. */
   msak_misc,		/* Used for predefined attributes that don't require
@@ -16730,14 +16630,12 @@ enum an_ms_attribute_kind_tag {
   msak_last		/* Must be last. */
 };
 
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte an_ms_attribute_kind;
 
 /*
 Value that identifies the kind of argument value accepted for a given
 Microsoft attribute argument.
 */
-enum an_ms_attribute_arg_kind_tag {
+enum an_ms_attribute_arg_kind : a_byte {
   msaak_none,		/* No argument kind has been specified yet. */
   msaak_integer,	/* An integer constant. */
   msaak_boolean,	/* A boolean constant. */
@@ -16748,8 +16646,6 @@ enum an_ms_attribute_arg_kind_tag {
 			   version of a set of tokens. */
 };
 
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte an_ms_attribute_arg_kind;
 
 /*
 Entry used to describe an argument of a given Microsoft attribute.
@@ -17159,7 +17055,7 @@ typedef struct a_local_scope_ref {
 } a_local_scope_ref;
 
 
-enum a_scope_kind_tag {
+enum a_scope_kind : a_byte {
   /* Kinds of scopes. */
   sck_file,		/* File scope. */
   sck_func_prototype,   /* Function prototype scope, used also during function
@@ -17242,8 +17138,7 @@ enum a_scope_kind_tag {
   sck_function,		/* Function scope. */
   sck_none		/* No scope kind or scope kind not known. */
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_scope_kind;
+
 
 typedef struct a_scope {
   /* Definition of a name scope.  There is one of these for the file
@@ -17649,11 +17544,12 @@ If you add any pointers, be sure to update the precompiled header
 processing routines that fix up the IL header after restoring
 a precompiled header file.
 */
-typedef enum /* a_source_language */ {
+enum a_source_language {
   /* Code for source language. */
   sl_Cplusplus,
   sl_C
-} a_source_language;
+};
+
 typedef struct an_il_header {
   a_source_file_ptr
 		primary_source_file;

@@ -91,7 +91,7 @@ static a_memory_region_number
 /*
 Kinds of diagnostic fill-ins that can be represented by a_diag_fill_in.
 */
-typedef enum a_diag_fill_in_kind {
+enum a_diag_fill_in_kind {
   dfk_number,
 			/* An integer value. */
   dfk_position,
@@ -106,7 +106,7 @@ typedef enum a_diag_fill_in_kind {
 			/* A template argument list. */
 			/*lint -esym(749,*a_diag_fill_in_kind::dfk_last)*/
   dfk_last		/* Must be last. */
-} a_diag_fill_in_kind;
+};
 
 
 /*
@@ -203,7 +203,7 @@ typedef struct a_diag_fill_in {
 Category codes for the various parts of the processing for multi-line
 diagnostics:
 */
-typedef enum a_diagnostic_kind {
+enum a_diagnostic_kind {
   dck_primary,			/* A top-level normal diagnostic, also used
 				   for "more information" messages, which
 				   are treated mostly like primary
@@ -217,7 +217,7 @@ typedef enum a_diagnostic_kind {
 				   error context information. */
   dck_macro_context		/* Similar to dck_context, but for macro
 				   context stack trace information. */
-} a_diagnostic_kind;
+};
 
 
 /*

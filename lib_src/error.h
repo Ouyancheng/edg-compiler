@@ -27,7 +27,7 @@ Declarations relating to error.c - runtime error handling.
 #ifndef ERROR_H
 #define ERROR_H 1
 
-typedef enum /* an_error_code */ {
+enum an_error_code {
   ec_none,
   ec_abort_header,
   ec_terminate_called,
@@ -44,7 +44,7 @@ typedef enum /* an_error_code */ {
   ec_deleted_virtual_called,
   ec_thread_registration_failed,
   ec_last
-} an_error_code;
+};
 
 EXTERN_C NORETURN void __abort_execution(an_error_code err_code);
 

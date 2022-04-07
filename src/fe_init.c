@@ -198,7 +198,7 @@ Dummy function to fill last entry in function_pointers array.
 
 /*
 Statically initialize the list of function pointers that corresponds to
-the a_function_number_tag enumeration.  This is a list of functions that are
+the a_function_number enumeration.  This is a list of functions that are
 referred to by data structures that might appear in a pre-compiled header file,
 and therefore whose address might change from one invocation of the front end
 to another on operating systems that implement Address Space Layout
@@ -667,7 +667,7 @@ specifies a diagnostic message to be issued if the keyword is used.
 
   sym_ptr = full_enter_symbol(keyword, (sizeof_t)(strlen(keyword)),
 			      (a_symbol_kind)sk_keyword, NO_SCOPE_DEPTH);
-  sym_ptr->variant.keyword.token = (a_small_token_kind)tok_unimplemented;
+  sym_ptr->variant.keyword.token = tok_unimplemented;
   sym_ptr->variant.keyword.diagnostic_issued_if_used = error_code;
 }  /* enter_unimplemented_keyword */
 
@@ -683,7 +683,7 @@ preprocessing directives (i.e., operators like "and").
 
   sym_ptr = full_enter_symbol(keyword, (sizeof_t)(strlen(keyword)),
 			      (a_symbol_kind)sk_keyword, NO_SCOPE_DEPTH);
-  sym_ptr->variant.keyword.token = (a_small_token_kind)token;
+  sym_ptr->variant.keyword.token = token;
   sym_ptr->variant.keyword.is_preprocessing_op_or_punc = TRUE;
 }  /* enter_preproc_op_keyword */
 

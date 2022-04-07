@@ -63,7 +63,7 @@ a_boolean interpret_constexpr_ctor(a_dynamic_init_ptr  dip,
                                    a_constant_ptr      result_con,
                                    a_diag_list_ptr     diag_list);
 
-typedef enum a_constexpr_intrinsic_tag {
+enum a_constexpr_intrinsic {
   cit_error,
   cit_std_is_constant_evaluated,
   cit_std_allocator_allocate,
@@ -72,10 +72,10 @@ typedef enum a_constexpr_intrinsic_tag {
   cit_std_destroy_at,
   cit_std_report_constexpr_value,
   cit_last
-} a_constexpr_intrinsic_tag;
+};
 
-void register_constexpr_intrinsic(a_constexpr_intrinsic_tag  tag,
-                                  a_routine_ptr              rp);
+void register_constexpr_intrinsic(a_constexpr_intrinsic  tag,
+                                  a_routine_ptr          rp);
 
 #if DEBUG
 uintptr_t db_hash_ptr(void  *ptr);

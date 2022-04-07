@@ -2850,9 +2850,9 @@ Return TRUE if and only if the two corresponding routines have incompatible
 declaration modifiers.
 */
 {
-  a_boolean        result = FALSE;
+  a_boolean            result = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_decl_modifier  dm_mask = (a_decl_modifier)(DM_DLLFLAGS | DM_FORCEINLINE);
+  a_decl_modifier_set  dm_mask = (DM_DLLFLAGS | DM_FORCEINLINE);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -2922,8 +2922,8 @@ only contain closure types.)
   for (; ep1 != NULL && ep2 != NULL; ep1 = ep1->next, ep2 = ep2->next) {
     /* Currently we expect only closure types here. */
     a_type_ptr  tp1;
-    check_assertion(ep1->entity.kind == (a_byte_il_entry_kind)iek_type &&
-                    ep2->entity.kind == (a_byte_il_entry_kind)iek_type);
+    check_assertion(ep1->entity.kind == iek_type &&
+                    ep2->entity.kind == iek_type);
     tp1 = (a_type_ptr)ep1->entity.ptr;
     check_assertion(type_is_lambda_closure(tp1));
     (void)verify_type_correspondence(tp1);
@@ -3234,9 +3234,9 @@ Return TRUE if and only if the two corresponding variables have incompatible
 declaration modifiers.
 */
 {
-  a_boolean        result = FALSE;
+  a_boolean            result = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_decl_modifier  dm_mask = (a_decl_modifier)(DM_DLLFLAGS | DM_SELECTANY);
+  a_decl_modifier_set  dm_mask = (DM_DLLFLAGS | DM_SELECTANY);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -3342,8 +3342,8 @@ is in fact valid.
         !(var->is_weak || corresp_var->is_weak) &&
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-        !((var->decl_modifiers & (a_decl_modifier)DM_SELECTANY) &&
-          (corresp_var->decl_modifiers & (a_decl_modifier)DM_SELECTANY)) &&
+        !((var->decl_modifiers & DM_SELECTANY) &&
+          (corresp_var->decl_modifiers & DM_SELECTANY)) &&
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
         (!C_mode() ||
          (var->init_kind != (an_init_kind)initk_none &&
@@ -3549,27 +3549,27 @@ Return TRUE if the given using declarations refer to corresponding entities.
                          ud2->qualifier.class_type)) {
       /* If the qualifiers are not equivalent, there is no match. */
       result = FALSE;
-    } else if (ud1->entity.kind == (a_byte_il_entry_kind)iek_base_class) {
+    } else if (ud1->entity.kind == iek_base_class) {
       /* Using-declarations that represent inherited constructors.  See if
          the inherited constructor class types are the same. */
       check_assertion(ud1->is_inheriting_ctor && ud2->is_inheriting_ctor);
       result = (identical_types(((a_base_class_ptr)ud1->entity.ptr)->type,
                                 ((a_base_class_ptr)ud2->entity.ptr)->type));
-    } else if (ud1->entity.kind == (a_byte_il_entry_kind)iek_type ||
-               ud1->entity.kind == (a_byte_il_entry_kind)iek_routine ||
-               ud1->entity.kind == (a_byte_il_entry_kind)iek_variable ||
-               ud1->entity.kind == (a_byte_il_entry_kind)iek_template) {
+    } else if (ud1->entity.kind == iek_type ||
+               ud1->entity.kind == iek_routine ||
+               ud1->entity.kind == iek_variable ||
+               ud1->entity.kind == iek_template) {
       a_type_ptr tp1, tp2;
-      if (ud1->entity.kind == (a_byte_il_entry_kind)iek_type) {
+      if (ud1->entity.kind == iek_type) {
         tp1 = (a_type_ptr)ud1->entity.ptr;
         tp2 = (a_type_ptr)ud2->entity.ptr;
-      } else if (ud1->entity.kind == (a_byte_il_entry_kind)iek_routine) {
+      } else if (ud1->entity.kind == iek_routine) {
         tp1 = ((a_routine_ptr)ud1->entity.ptr)->type;
         tp2 = ((a_routine_ptr)ud2->entity.ptr)->type;
-      } else if (ud1->entity.kind == (a_byte_il_entry_kind)iek_variable) {
+      } else if (ud1->entity.kind == iek_variable) {
         tp1 = ((a_variable_ptr)ud1->entity.ptr)->type;
         tp2 = ((a_variable_ptr)ud2->entity.ptr)->type;
-      } else /*ud1->entity.kind == (a_byte_il_entry_kind)iek_template*/ {
+      } else /*ud1->entity.kind == iek_template*/ {
         a_template_ptr templ1, templ2;
         templ1 = (a_template_ptr)ud1->entity.ptr;
         templ2 = (a_template_ptr)ud2->entity.ptr;
@@ -3600,7 +3600,7 @@ Return TRUE if the given using declarations refer to corresponding entities.
     } else {
       /* In all other dependent base class cases, the entity is represented
          as a (nonreal) "constant". */
-      check_assertion(ud1->entity.kind == (a_byte_il_entry_kind)iek_constant);
+      check_assertion(ud1->entity.kind == iek_constant);
       result = eq_constants((a_constant_ptr)ud1->entity.ptr, 
                             (a_constant_ptr)ud2->entity.ptr);
     }  /* if */
@@ -3610,7 +3610,7 @@ Return TRUE if the given using declarations refer to corresponding entities.
        correspondence data immediately associated with the pointer, so some
        additional work is required. */
     char *entity1, *entity2;
-    if (ud1->entity.kind == (a_byte_il_entry_kind)iek_base_class) {
+    if (ud1->entity.kind == iek_base_class) {
       entity1=canonical_il_entry_of(((a_base_class_ptr)ud1->entity.ptr)->type);
       entity2=canonical_il_entry_of(((a_base_class_ptr)ud2->entity.ptr)->type);
     } else {
@@ -4510,7 +4510,7 @@ the lists only contain closure types.)
   for (; ep != NULL; ep = ep->next) {
     /* Currently we expect only closure types here. */
     a_type_ptr  tp;
-    check_assertion(ep->entity.kind == (a_byte_il_entry_kind)iek_type);
+    check_assertion(ep->entity.kind == iek_type);
     tp = (a_type_ptr)ep->entity.ptr;
     check_assertion(type_is_lambda_closure(tp));
     clear_type_correspondence(tp, /*visited=*/TRUE);
@@ -4528,8 +4528,8 @@ second list (ep2).  (Currently, the lists only contain closure types.)
   for (; ep1 != NULL && ep2 != NULL; ep1 = ep1->next, ep2 = ep2->next) {
     /* Currently we expect only closure types here. */
     a_type_ptr  tp1, tp2;
-    check_assertion(ep1->entity.kind == (a_byte_il_entry_kind)iek_type &&
-                    ep2->entity.kind == (a_byte_il_entry_kind)iek_type);
+    check_assertion(ep1->entity.kind == iek_type &&
+                    ep2->entity.kind == iek_type);
     tp1 = (a_type_ptr)ep1->entity.ptr;
     tp2 = (a_type_ptr)ep2->entity.ptr;
     check_assertion(type_is_lambda_closure(tp1) &&

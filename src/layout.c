@@ -4982,7 +4982,7 @@ issue a diagnostic if such a reduction is invalid or ignored.
       /* Find the attribute that results in the indicated alignment. */
       an_attribute_ptr  ap = class_type->source_corresp.attributes;
       for (; ap != NULL; ap = ap->next) {
-        if (ap->kind == (a_byte_attribute_kind)ak_align) {
+        if (ap->kind == ak_align) {
           an_attribute_arg_ptr  aap = ap->arguments;
           if (aap->kind == (an_attribute_arg_kind)aak_constant) {
             a_boolean  ovflo;

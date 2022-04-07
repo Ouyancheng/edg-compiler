@@ -200,7 +200,7 @@ static void enter_builtin_function(a_const_char            *name,
 Enter a builtin function with the given name and type (which must be a
 tk_routine type -- possibly with a typeref that describes attributes).  The
 builtin function corresponds to the (a_builtin_function_kind_tag or
-a_builtin_user_function_kind_tag) kind.  If non-NULL, loc specifies the symbol
+a_builtin_user_function_kind) kind.  If non-NULL, loc specifies the symbol
 locator for name.  The routine is given C name linkage (and the routine type is
 updated accordingly).
 */
@@ -1247,15 +1247,13 @@ str whose length is strlen (str may not be NULL terminated).  If no attribute
 is found, mvak_unknown is returned.
 */
 {
-  a_multiversion_arch_kind result = (a_multiversion_arch_kind)mvak_unknown;
-  a_multiversion_arch_kind arch;
+  a_multiversion_arch_kind result = mvak_unknown;
+  signed char              arch;
 
-  for (arch = (a_multiversion_arch_kind)mvak_lowest_cpu;
-       arch < (a_multiversion_arch_kind)mvak_last;
-       arch++) {
+  for (arch = mvak_lowest_cpu; arch < mvak_last; arch++) {
     if (strlen(target_attributes[arch]) == str_len &&
         strncmp(str, target_attributes[arch], str_len) == 0) {
-      result = arch;
+      result = (a_multiversion_arch_kind)arch;
       break;
     }  /* if */
   }  /* for */
@@ -1332,16 +1330,13 @@ determining the highest.  Set *cpu_arch to the CPU architecture (there can
 be at most one) if one is found (and to mvak_invalid otherwise).
 */
 {
-  a_multiversion_arch_kind arch;
-  a_multiversion_arch_kind result_isa =
-                                     (a_multiversion_arch_kind)mvak_lowest_isa;
+  signed char              arch;
+  a_multiversion_arch_kind result_isa = mvak_lowest_isa;
 
   *cpu_arch = (a_multiversion_arch_kind)mvak_invalid;
   /* First, check if there's a CPU architecture specified in the bitset.
      If there is, get the highest architecture supported by the arch. */
-  for (arch = (a_multiversion_arch_kind)mvak_lowest_cpu;
-       arch <= (a_multiversion_arch_kind)mvak_highest_cpu;
-       arch++) {
+  for (arch = mvak_lowest_cpu; arch <= mvak_highest_cpu; arch++) {
     a_multiversion_arch_kind arch_isa = (a_multiversion_arch_kind)mvak_invalid;
     switch (arch) {
       case mvak_cpu_bdver1:
@@ -1358,20 +1353,19 @@ be at most one) if one is found (and to mvak_invalid otherwise).
       case mvak_cpu_atom:
         arch_isa = (a_multiversion_arch_kind)mvak_isa_ssse3;
         break;
-      default_is_unexpected();
+      default:
+        unexpected_condition();
     }  /* switch */
     if (bitset & ((a_mv_target_bitset)1<<arch)) {
       result_isa = arch_isa;
-      *cpu_arch = arch;
+      *cpu_arch = (a_multiversion_arch_kind)arch;
       break;
     }  /* if */
   }  /* for */
   /* Check all the ISAs specified in the bitset, and choose the highest. */
-  for (arch = (a_multiversion_arch_kind)mvak_lowest_isa;
-       arch <= (a_multiversion_arch_kind)mvak_highest_isa;
-       arch++) {
+  for (arch = mvak_lowest_isa; arch <= mvak_highest_isa; arch++) {
     if ((bitset & ((a_mv_target_bitset)1<<arch)) && result_isa < arch) {
-      result_isa = arch;
+      result_isa = (a_multiversion_arch_kind)arch;
     }  /* if */
   }  /* for */
   return result_isa;
@@ -1586,8 +1580,7 @@ result to an allocated area.
   a_const_char       *arch_name;
   a_mv_target_bitset bs =
              gnu_routine_supp(routine)->mv_info.targeted_version.target_bitset;
-  a_multiversion_arch_kind
-                     arch;
+  signed char        arch;
 
   check_assertion(gnu_routine_supp(routine)->is_target_specific_version);
   if (is_unknown_targ_bitset(bs)) {
@@ -1612,11 +1605,9 @@ result to an allocated area.
     buff_idx = len;
   } else {
     /* This loop adds the CPU architecture name (if any). */
-    for (arch = (a_multiversion_arch_kind)mvak_lowest_cpu;
-         arch <= (a_multiversion_arch_kind)mvak_highest_cpu;
-         arch++) {
+    for (arch = mvak_lowest_cpu; arch <= mvak_highest_cpu; arch++) {
       if (bs & ((a_mv_target_bitset)1<<arch)) {
-        arch_name = target_distinction(arch);
+        arch_name = target_distinction((a_multiversion_arch_kind)arch);
         is_first = FALSE;
         check_assertion(buff_idx == 0);
         if (strlen(arch_name) >= STATIC_BUFFER_SIZE) goto done;
@@ -1632,7 +1623,7 @@ result to an allocated area.
          i++) {
       arch = isa_alphabetic_order[i];
       if (bs & ((a_mv_target_bitset)1<<arch)) {
-        arch_name = target_distinction(arch);
+        arch_name = target_distinction((a_multiversion_arch_kind)arch);
         if (is_first) {
           is_first = FALSE;
         } else {
@@ -1804,7 +1795,7 @@ The default version of this routine does not parse the arguments and issues a
 warning that the attribute is effectively being ignored.
 */
 {
-  check_assertion(ap->kind == (a_byte_attribute_kind)ak_availability);
+  check_assertion(ap->kind == ak_availability);
   pos_warning(ec_availability_attribute_ignored, &ap->position);
   return TRUE;
 }  /* if */

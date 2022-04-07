@@ -38,7 +38,7 @@ If this list is updated, be sure to change pp_directive_kind_names below.
 Note that the "import", "export", and "module" preprocessor directives are
 handled outside of this framework (see is_module_pp_directive).
 */
-typedef enum /*a_pp_directive_kind*/ {
+enum a_pp_directive_kind {
   /* Enumeration of preprocessing directives. */
   ppd_if, ppd_ifdef, ppd_ifndef, ppd_elif, ppd_else,
   ppd_endif, ppd_include, ppd_define, ppd_undef, ppd_line,
@@ -59,7 +59,7 @@ typedef enum /*a_pp_directive_kind*/ {
   ppd_include_next,
   ppd_warning,
   ppd_not_valid
-} a_pp_directive_kind;
+};
 
 #if DEBUG
 /*

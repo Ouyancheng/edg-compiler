@@ -2858,7 +2858,7 @@ Provide mangling for a enk_sizeof_pack (sizeof...) expression.
   a_boolean                   suppress_address_of = FALSE;
   a_boolean                   no_mangling = FALSE;
 
-  check_assertion(expr->kind == (an_expression_kind)enk_sizeof_pack);
+  check_assertion(expr->kind == enk_sizeof_pack);
 #if IA64_ABI
   /* GNU appears to use the encodings for sizeof rather than for sizeof...
      (at least in current versions).  We'd try to emulate that here, but we'd
@@ -2886,9 +2886,8 @@ Provide mangling for a enk_sizeof_pack (sizeof...) expression.
     coordinates = &expr->variant.sizeof_pack.variant.templ->coordinates;
   } else if (expr->variant.sizeof_pack.is_type) {
     a_type_ptr type = skip_typerefs(expr->variant.sizeof_pack.variant.type);
-    if (type->kind == (a_type_kind)tk_template_param &&
-        type->variant.template_param.kind ==
-                                  (a_template_param_constant_kind)tptk_param) {
+    if (type->kind == tk_template_param &&
+        type->variant.template_param.kind == tptk_param) {
       /* A type (template parameter). */
       coordinates = &type->variant.template_param.extra_info->coordinates;
     } else {
@@ -4857,9 +4856,8 @@ call that has no arguments).
              /* In the Cfront ABI, compiler generated casts are not typically
                 removed, except for ones that are going to cause mangling
                 problems (i.e., casts to a tptk_unknown type). */
-             ((expr->type->kind == (a_type_kind)tk_template_param &&
-               expr->type->variant.template_param.kind == 
-                               (a_template_param_constant_kind)tptk_unknown) ||
+             ((expr->type->kind == tk_template_param &&
+               expr->type->variant.template_param.kind == tptk_unknown) ||
               /* Also remove base class casts in the Cfront ABI. */
               (op == (an_expr_operator_kind)eok_base_class_cast ||
                op == (an_expr_operator_kind)eok_pm_base_class_cast)) &&
@@ -5753,7 +5751,7 @@ expression.
          the expression used in the internal representation. */
       selector = NULL;
     } else {
-      if (operand->kind == (an_expression_kind)enk_param_ref &&
+      if (operand->kind == enk_param_ref &&
           operand->variant.param_ref.param_num == 0) {
         /* A compiler-generated implicit use of "this". */
 #if IA64_ABI
@@ -6300,9 +6298,8 @@ mangle nontype template parameters of class type.
   add_to_mangled_name('O', mctl);
 #endif /* !IA64_ABI */
   if (type == NULL ||
-      (type->kind == (a_type_kind)tk_template_param &&
-       type->variant.template_param.kind ==
-                               (a_template_param_constant_kind)tptk_unknown)) {
+      (type->kind == tk_template_param &&
+       type->variant.template_param.kind == tptk_unknown)) {
     /* Mangle as an initializer list. */
     add_str_to_mangled_name("il", mctl);
   } else {
@@ -7677,9 +7674,8 @@ caller.
   a_type_ptr nested_type;
 
   check_assertion(!has_name(type) &&
-                  type->kind == (a_type_kind)tk_template_param &&
-                  type->variant.template_param.kind == 
-                                  (a_template_param_constant_kind)tptk_member);
+                  type->kind == tk_template_param &&
+                  type->variant.template_param.kind ==  tptk_member);
   nested_type = type->variant.template_param.extra_info->orig_nested_type;
   if (nested_type != NULL) {
     if (is_immediate_class_type(nested_type) ||
@@ -11326,7 +11322,7 @@ is added as a prefix in the Cfront case and a suffix in the IA-64 ABI case
 
   check_assertion(ap != NULL);
   for (; ap != NULL; ap = ap->next) {
-    if (ap->kind != (a_byte_attribute_kind)ak_abi_tag) {
+    if (ap->kind != ak_abi_tag) {
       /* Ignore non-abi_tag attributes. */
     } else {
       for (aap = ap->arguments; aap != NULL; aap = aap->next) {
@@ -11466,7 +11462,7 @@ by *list.  Any constant that is already on the list is skipped.
 {
   an_attribute_arg_ptr  aap;
 
-  check_assertion(ap->kind == (a_byte_attribute_kind)ak_abi_tag);
+  check_assertion(ap->kind == ak_abi_tag);
   for (aap = ap->arguments; aap != NULL; aap = aap->next) {
     check_assertion(aap->kind == (an_attribute_arg_kind)aak_constant &&
                     aap->variant.constant->kind ==
@@ -11530,7 +11526,7 @@ by ttt_scp_for_implicit_abi_tags, otherwise terminate the walk.
       }  /* if */
 #endif /* DEBUG */
       for (ap = scp->attributes; ap != NULL; ap = ap->next) {
-        if (ap->kind == (a_byte_attribute_kind)ak_abi_tag) {
+        if (ap->kind == ak_abi_tag) {
           for (aap = ap->arguments; aap != NULL; aap = aap->next) {
             check_assertion(aap->kind == (an_attribute_arg_kind)aak_constant &&
                             aap->variant.constant->kind ==
@@ -11682,7 +11678,7 @@ any related entities that would appear in the mangled name of the entity.
          suppressed. */
       an_attribute_ptr ap;
       for (ap = scp->attributes; ap != NULL; ap = ap->next) {
-        if (ap->kind == (a_byte_attribute_kind)ak_abi_tag) {
+        if (ap->kind == ak_abi_tag) {
           add_abi_tag_attributes_to_list(ap, &implicit_tag_list);
         }  /* if */
       }  /* for */
@@ -12978,8 +12974,7 @@ to the mangled name.
          sb_entity = sb_entity->next) {
       a_source_correspondence *sb_scp =
                                (a_source_correspondence*)sb_entity->entity.ptr;
-      check_assertion(sb_entity->entity.kind ==
-                                          (a_byte_il_entry_kind)iek_variable &&
+      check_assertion(sb_entity->entity.kind == iek_variable &&
                       unmangled_name_of(sb_scp) != NULL);
       add_str_to_mangled_name(unmangled_name_of(sb_scp), mctl);
       add_str_to_mangled_name("__", mctl);
@@ -13081,8 +13076,7 @@ to the mangled name.
          sb_entity = sb_entity->next) {
       a_source_correspondence *sb_scp =
                                (a_source_correspondence*)sb_entity->entity.ptr;
-      check_assertion(sb_entity->entity.kind ==
-                                          (a_byte_il_entry_kind)iek_variable &&
+      check_assertion(sb_entity->entity.kind == iek_variable &&
                       unmangled_name_of(sb_scp) != NULL);
       mangled_name_with_length(unmangled_name_of(sb_scp), mctl);
     }  /* for */
@@ -13362,9 +13356,8 @@ is what mangled_type_name generates, plus a prefix.
     if ((is_immediate_class_type(type) || is_immediate_enum_type(type)) &&
         unnamed_type_has_no_discriminator(type)) {
       (void)give_unnamed_class_or_enum_a_name(type, &mctl);
-    } else if (type->kind == (a_type_kind)tk_template_param &&
-               type->variant.template_param.kind == 
-                                 (a_template_param_constant_kind)tptk_member) {
+    } else if (type->kind == tk_template_param &&
+               type->variant.template_param.kind == tptk_member) {
       give_unnamed_template_param_member_a_name(type, &mctl);
     }  /* if */
   }  /* if */

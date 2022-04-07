@@ -247,7 +247,7 @@ the data structures that will be written out.
 /* Enumeration of sections of the PCH file.  This is used to make sure that
    the file is positioned at the correct location before a section of the
    file is read. */
-typedef enum /* a_pch_file_section */ {
+enum a_pch_file_section {
   pfs_cmd_line_events,
   pfs_other_events,
   pfs_include_file_info,
@@ -255,7 +255,7 @@ typedef enum /* a_pch_file_section */ {
   pfs_saved_variables,
   pfs_memory_regions,
   pfs_last		/* Must be last. */
-} a_pch_file_section;
+};
 
 #if DEBUG
 static a_const_char

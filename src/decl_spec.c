@@ -276,8 +276,8 @@ given position.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-void add_flags_from_dll_attributes(a_decl_modifier   *p_flags,
-                                   an_attribute_ptr  ap)
+void add_flags_from_dll_attributes(a_decl_modifier_set  *p_flags,
+                                   an_attribute_ptr     ap)
 /*
 Set the DM_DLLIMPORT or DM_DLLEXPORT flag if the corresponding attribute is
 present in the list pointed to by ap, except if doing so would cause both
@@ -285,13 +285,13 @@ flags to be set (in that case, issue a warning).
 */
 {
   for (; ap != NULL; ap = ap->next) {
-    if (ap->kind == (a_byte_attribute_kind)ak_dllimport) {
+    if (ap->kind == ak_dllimport) {
       if (*p_flags & DM_DLLEXPORT) {
         pos_warning(ec_bad_combination_of_dll_attributes, &ap->position);
       } else {
         *p_flags |= DM_DLLIMPORT;
       }  /* if */
-    } else if (ap->kind == (a_byte_attribute_kind)ak_dllexport) {
+    } else if (ap->kind == ak_dllexport) {
       if (*p_flags & DM_DLLIMPORT) {
         pos_warning(ec_bad_combination_of_dll_attributes, &ap->position);
       } else {
@@ -302,11 +302,11 @@ flags to be set (in that case, issue a warning).
 }  /* flags_from_dll_attributes */
 
 
-void update_dll_info_for_class(a_type_ptr         class_type,
-                               a_decl_modifier    flags,
-                               a_boolean          explicit_inst,
-                               a_boolean          adjust_template_base,
-                               a_source_position  *err_pos)
+void update_dll_info_for_class(a_type_ptr           class_type,
+                               a_decl_modifier_set  flags,
+                               a_boolean            explicit_inst,
+                               a_boolean            adjust_template_base,
+                               a_source_position    *err_pos)
 /*
 Update the given class type to reflect any dllimport/dllexport flags recorded
 in flags.  If explicit_inst is TRUE, this routine is called for the explicit
@@ -315,7 +315,7 @@ base class of a class being defined with a DLL interface: If class_type is a
 template class, its DLL interface may need to be adjusted implicitly.
 */
 {
-  a_decl_modifier  new_dll_flags = (flags & DM_DLLFLAGS);
+  a_decl_modifier_set  new_dll_flags = (flags & DM_DLLFLAGS);
 
   /* dllimport and dllexport should never be set together. */
   check_assertion(new_dll_flags != DM_DLLFLAGS);
@@ -337,7 +337,7 @@ template class, its DLL interface may need to be adjusted implicitly.
       /* Either an explicit instantiation or a template class used as a base
          class of a derived class with a DLL interface: Update the flags on
          the members if needed. */
-      a_decl_modifier  old_dll_flags = (ctsp->decl_modifiers & DM_DLLFLAGS);
+      a_decl_modifier_set old_dll_flags = (ctsp->decl_modifiers & DM_DLLFLAGS);
       if (adjust_template_base &&
           (!class_type->variant.class_struct_union.is_template_class ||
            class_type->variant.class_struct_union.is_specialized)) {
@@ -536,7 +536,7 @@ of class_type.  err_pos is a pointer to a source position used for diagnostics.
        (See also scan_extended_decl_modifiers which rejects C++-only modifiers
        in C mode.) */
 #if DECL_MODIFIERS_IN_USE
-    a_decl_modifier  flags = extended_decl_info->decl_modifiers.flags;
+    a_decl_modifier_set  flags = extended_decl_info->decl_modifiers.flags;
 #endif /* DECL_MODIFIERS_IN_USE */
 #if NEAR_AND_FAR_ALLOWED
     ctsp->qualifiers = extended_decl_info->qualifiers;
@@ -551,9 +551,9 @@ of class_type.  err_pos is a pointer to a source position used for diagnostics.
     if (flags != DM_NONE) {
       /* The following processing is more complicated than it needs to be so as
          to allow for the easy addition of decl-modifiers. */
-      a_boolean        invalid_modifier;
-      int              bit_number;
-      a_decl_modifier  modifier_value;
+      a_boolean            invalid_modifier;
+      int                  bit_number;
+      a_decl_modifier_set  modifier_value;
       for (bit_number = 0; bit_number < (int)dmt_last; ++bit_number) {
         modifier_value = (1 << bit_number);
         if ((flags & modifier_value) != 0) {
@@ -2134,7 +2134,7 @@ passed to the call to decl_specifiers.
 
 
 static void record_sun_link_scope_for_class(a_type_ptr              class_type,
-                                            a_decl_modifier         link_scope,
+                                            a_decl_modifier_set     link_scope,
                                             a_source_position       *err_pos)
 /*
 The given class type is declared with the given link scope.  Record the new
@@ -2149,7 +2149,7 @@ previous specification.  For example:
   if (link_scope < (ctsp->decl_modifiers & DM_ANY_SUN_LINK_SCOPE)) {
     pos_error(ec_link_scope_relaxation, err_pos);
   }  /* if */
-  ctsp->decl_modifiers &= ~(a_decl_modifier)DM_ANY_SUN_LINK_SCOPE;
+  ctsp->decl_modifiers &= ~DM_ANY_SUN_LINK_SCOPE;
   ctsp->decl_modifiers |= link_scope;
 }  /* record_sun_linker_scope_for_class */
 
@@ -2623,9 +2623,8 @@ reclassified as al_tag_name).
   /* Collect the "__declspec(align(...))" attributes. */
   while (*p_prefix_attributes != NULL) {
     an_attribute_ptr  ap = *p_prefix_attributes;
-    if (ap->kind == (a_byte_attribute_kind)ak_align &&
-        ap->family == (a_byte_attribute_family)af_ms_declspec) {
-      ap->syntactic_location = (a_byte_attribute_location)al_tag_name;
+    if (ap->kind == ak_align && ap->family == af_ms_declspec) {
+      ap->syntactic_location = al_tag_name;
       *p_end_moved = ap;
       p_end_moved = &ap->next;
       *p_prefix_attributes = ap->next;
@@ -2671,8 +2670,7 @@ issued in some cases.
   } else {
     an_attribute_ptr  ap = dps->tag_attributes;
     for (; ap != NULL; ap = ap->next) {
-      if (ap->kind == (a_byte_attribute_kind)ak_align &&
-          ap->family == (a_byte_attribute_family)af_ms_declspec) {
+      if (ap->kind == ak_align && ap->family == af_ms_declspec) {
         pos_st_warning(ec_attribute_ignored_on_nondefinition, &ap->position,
                        ap->name);
         make_attr_unrecognized(ap);
@@ -3123,8 +3121,7 @@ and move the remaining attributes to dps->specifier_attributes.
       default:
         /* Move all other attributes to the specifiers list. */
         *p_to = *p_from;
-        (*p_from)->syntactic_location =
-                                      (a_byte_attribute_location)al_specifier;
+        (*p_from)->syntactic_location = al_specifier;
         *p_from = (*p_from)->next;
         p_to = &(*p_to)->next;
     }  /* switch */
@@ -3278,7 +3275,7 @@ one af_ms_declspec attribute.
   a_boolean result = FALSE;
 
   for (; ap != NULL; ap = ap->next) {
-    if (ap->family == (a_byte_attribute_family)af_ms_declspec) {
+    if (ap->family == af_ms_declspec) {
       result = TRUE;
       break;
     }  /* if */
@@ -4628,8 +4625,8 @@ defined.  Detailed position information is recorded in *decl_pos_block.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
   if (sun_linker_scope_allowed) {
-    a_decl_modifier  link_scope = (extended_decl_info.decl_modifiers.flags &
-                                   DM_ANY_SUN_LINK_SCOPE);
+    a_decl_modifier_set link_scope = extended_decl_info.decl_modifiers.flags &
+                                     DM_ANY_SUN_LINK_SCOPE;
     if (link_scope != 0) {
       record_sun_link_scope_for_class(class_type, link_scope, &pos_link_scope);
     }  /* if */
@@ -4919,8 +4916,7 @@ Handle an "__event __interface" declaration in (a COM) class_type.
                                  scope_stack_top().end_of_source_sequence_list;
           a_src_seq_secondary_decl_ptr sssd;
           if (sse != NULL) {
-            check_assertion(sse->entity.kind ==
-                             (a_byte_il_entry_kind)iek_src_seq_secondary_decl);
+            check_assertion(sse->entity.kind == iek_src_seq_secondary_decl);
             sssd = (a_src_seq_secondary_decl_ptr)sse->entity.ptr;
             sssd->is_event_interface = TRUE;
           }  /* if */
@@ -5904,8 +5900,7 @@ is updated to reflect relevant positions of this definition.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   /* Add a source sequence entry marking the end of the enum definition. */
-  add_end_of_construct_source_sequence_entry((char *)enum_type,
-                                             (a_byte_il_entry_kind)iek_type);
+  add_end_of_construct_source_sequence_entry((char *)enum_type, iek_type);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   set_enum_representation(enum_type, &enum_type->source_corresp.decl_position,
                           diag_range, explicit_base_kind,
@@ -7318,7 +7313,7 @@ constructor).
 /* Enumerations used by decl_specifiers for its internal processing and
    for calls to its subroutines. */
 /* The basic type (without qualifiers or other specifiers). */
-typedef enum {
+enum a_basic_type {
   bt_none,
   bt_void,
   bt_char,
@@ -7341,15 +7336,17 @@ typedef enum {
   bt_auto,
   bt_no_type,
   bt_error
-} a_basic_type;
+};
+
 /* The sign specifier. */
-typedef enum {
+enum a_type_sign {
   sign_none,
   sign_signed,
   sign_unsigned
-} a_type_sign;
+};
+
 /* The size specifier. */
-typedef enum {
+enum a_type_size {
   size_none,
   size_short,
   size_long
@@ -7365,13 +7362,14 @@ typedef enum {
 #if INT128_EXTENSIONS_ALLOWED
   , size_int128
 #endif /* INT128_EXTENSIONS_ALLOWED */
-} a_type_size;
+};
+
 /* C99 complex modifiers. */
-typedef enum {
+enum a_complex_attribute {
   cxa_none,
   cxa_complex,
   cxa_imaginary
-} a_complex_attribute;
+};
 #if !C99_IL_EXTENSIONS_SUPPORTED
 /*lint -esym(749,cxa_complex)*/
 /*lint -esym(749,cxa_imaginary)*/
@@ -8883,7 +8881,7 @@ otherwise.
          attributes are being processed). */
       an_attribute_ptr ap;
       for (ap = vp->source_corresp.attributes; ap != NULL; ap = ap->next) {
-        if (ap->kind == (a_byte_attribute_kind)ak_init_priority) {
+        if (ap->kind == ak_init_priority) {
           pos_warning(ec_attribute_ignored_for_thread_local, &ap->position);
         }  /* if */
       }  /* for */
@@ -9608,8 +9606,7 @@ location are treated as though they appeared in the prefix position.
         drop_attribute = TRUE;
       } else if (is_std_attribute(*p_ap) &&
                  !treat_as_prefix &&
-                 !(c11_mode &&
-                   ap->family == (a_byte_attribute_family)af_alignas)) {
+                 !(c11_mode && ap->family == af_alignas)) {
         if (disallow_std) {
           drop_attribute = TRUE;
         } else {
@@ -9722,13 +9719,13 @@ dps->specifier_attributes list.
         /* Move the attribute to the prefix attributes list. */
         an_attribute_ptr  ap = *p_ap;
         if (is_std_attribute(ap) && !ap->is_std_gcc_attribute &&
-            !(c11_mode && ap->family == (a_byte_attribute_family)af_alignas)) {
+            !(c11_mode && ap->family == af_alignas)) {
           report_bad_attribute_target(gpp_mode ? es_warning : es_error, ap);
         }  /* if */
         *p_ap = ap->next;
         ap->next = NULL;
-        ap->syntactic_location = (a_byte_attribute_location)al_prefix;
-        if (ap->kind == (a_byte_attribute_kind)ak_enable_if) {
+        ap->syntactic_location = al_prefix;
+        if (ap->kind == ak_enable_if) {
           dps->pending_prefix_enable_if_attr = TRUE;
         }  /* if */
         *end_to_prefix = ap;
@@ -9752,11 +9749,11 @@ dps->specifier_attributes list.
         }  /* if */
         *p_ap = ap->next;
         ap->next = NULL;
-        ap->syntactic_location = (a_byte_attribute_location)al_specifier;
+        ap->syntactic_location = al_specifier;
         *end_to_specifier = ap;
         end_to_specifier = &ap->next;
       } else {
-        if ((*p_ap)->kind == (a_byte_attribute_kind)ak_enable_if) {
+        if ((*p_ap)->kind == ak_enable_if) {
           dps->pending_prefix_enable_if_attr = TRUE;
         }  /* if */
         /* Proceed to the next attribute. */
@@ -10159,7 +10156,7 @@ attribute.
   check_assertion(curr_token == tok_lparen);
   /* Scan a parenthesized boolean constant-expression.  The parenthesized value
      is represented as an internal attribute on the (eventual) routine type. */
-  ap->kind = (a_byte_attribute_kind)ak_conditional_explicit;
+  ap->kind = ak_conditional_explicit;
   ap->name = copy_string_to_region(file_scope_region_number, "explicit");
   ap->position = pos_curr_token;
   ap->arguments = aap;

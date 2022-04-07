@@ -267,7 +267,7 @@ typedef struct an_overload_set_traversal_block {
 /*
 Argument match levels for overloaded function call resolution; See ARM 13.2.
 */
-typedef enum /*an_arg_match_level*/ {
+enum an_arg_match_level {
   aml_exact,		/* Exact match or trivial conversions. */
   aml_promotion,	/* Match with promotions. */
   aml_std_conversion,	/* Match with standard conversions. */
@@ -276,7 +276,7 @@ typedef enum /*an_arg_match_level*/ {
   aml_ellipsis,		/* Match with ellipsis. */
   aml_error,		/* Match with error type (not in ARM). */
   aml_none		/* No match.  Must be last (highest value). */
-} an_arg_match_level;
+};
 
 /*
 Entry describing how well an actual argument to a function call matches
@@ -538,11 +538,11 @@ EXTERN unsigned long
 Enumeration indicating the state on return from a scan of a printf format
 string.
 */
-typedef enum /*a_printf_scan_state*/ {
+enum a_printf_scan_state {
   pss_new_specifier,	/* Look for new specifier next time. */
   pss_after_field_width,/* Start after field width next time. */
   pss_after_precision	/* Start after precision next time. */
-} a_printf_scan_state;
+};
 
 
 /*

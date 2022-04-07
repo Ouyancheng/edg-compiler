@@ -37,7 +37,7 @@ BEGIN_EDG_NAMESPACE
 /*
 List of all command-line option kinds.
 */
-typedef enum /*an_option_kind*/ {
+enum an_option_kind {
   optk_none,
   optk_strict_ansi_error,
   optk_strict_ansi_warning,
@@ -365,7 +365,7 @@ typedef enum /*an_option_kind*/ {
   optk_old_id_chars,
   optk_dump_command_options,
   optk_last		/* Must be last. */
-} an_option_kind;
+};
 
 /* C_dialect is in basics.h. */
 
@@ -545,11 +545,11 @@ should be defined cannot conclusively make such a determination,
 vfd_suppress indicates that the definition should NOT be made, and
 vfd_force indicates that it should.
 */
-typedef enum /* a_virtual_function_definition_mode */ {
+enum a_virtual_function_definition_mode {
   vfd_normal,
   vfd_suppress,
   vfd_force
-} a_virtual_function_definition_mode;
+};
 
 EXTERN a_virtual_function_definition_mode
 		virtual_function_table_definition;
@@ -1176,7 +1176,7 @@ EXTERN a_boolean
 			   name references may still be recorded (e.g.,
 			   if needed for ABI purposes). */
 
-typedef enum /*a_template_instantiation_mode*/ {
+enum a_template_instantiation_mode {
   /* Defines the methods of handling template instantiation.  Used to
      determine which template functions and member functions of
      template classes should be instantiated.  This specifies a general
@@ -1199,7 +1199,7 @@ typedef enum /*a_template_instantiation_mode*/ {
 		   instantiation required list to be entered with the
 		   instantiation required flag set to FALSE.  This option
 		   cannot be specified on the command line. */
-} a_template_instantiation_mode;
+};
 
 
 EXTERN a_template_instantiation_mode

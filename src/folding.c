@@ -2531,13 +2531,13 @@ for any diagnostics issued.
          effectively like converting an integer 0, i.e., an old-style
          null pointer constant. */
       check_assertion(constant->kind == (a_constant_repr_kind)ck_integer);
-      if (new_type->kind == (a_constant_repr_kind)tk_pointer) {
+      if (new_type->kind == tk_pointer) {
         conv_integer_to_pointer(constant, new_constant, is_implicit_cast,
                                 &err_code, &err_severity);
-      } else if (new_type->kind == (a_constant_repr_kind)tk_ptr_to_member) {
+      } else if (new_type->kind == tk_ptr_to_member) {
         conv_integer_to_ptr_to_member(constant, new_constant,
                                       is_implicit_cast);
-      } else if (new_type->kind == (a_constant_repr_kind)tk_integer) {
+      } else if (new_type->kind == tk_integer) {
         conv_integer_to_integer(constant, new_constant, is_implicit_cast,
                                 &err_code, &err_severity);
       } else {

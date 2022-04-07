@@ -49,7 +49,7 @@ it is encountered in a context that is being cached to be scanned later.
 "Processed when rescanned" means that the pragma is processed when the
 token with which it is associated is rescanned from a cache.
 */
-typedef enum a_pragma_binding_kind {
+enum a_pragma_binding_kind {
   pbk_none,
 		/* Used by some routines to indicate that no binding kind
 		   was specified. */
@@ -77,7 +77,7 @@ typedef enum a_pragma_binding_kind {
 		   scanned. */
   pbk_last
 		/* Must be last. */
-} a_pragma_binding_kind;
+};
 
 
 /*

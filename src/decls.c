@@ -615,8 +615,8 @@ available entries.
 }  /* free_auto_param_descriptions */
 
 
-an_attribute_ptr f_find_decl_attribute(a_byte_attribute_kind  kind,
-                                       a_decl_parse_state     *dps)
+an_attribute_ptr find_decl_attribute(an_attribute_kind  kind,
+                                     a_decl_parse_state *dps)
 /*
 If the lists dps->prefix_attributes or dps->id_attributes include an attribute
 entry of the given kind, return one of those entries.
@@ -628,7 +628,7 @@ entry of the given kind, return one of those entries.
     ap = find_attribute(kind, dps->id_attributes);
   }  /* if */
   return ap;
-}  /* f_find_decl_attribute */
+}  /* find_decl_attribute */
 
 
 void disallow_attributes(an_attribute_ptr  *p_attributes,
@@ -677,7 +677,7 @@ entity.  Issue diagnostics as appropriate.
        attributes only trigger a warning). */
     for (; ap != NULL; ap = ap->next) {
       if (is_std_attribute(ap) &&
-          ap->kind != (a_byte_attribute_kind)ak_empty_attr &&
+          ap->kind != ak_empty_attr &&
           !gnu_mode) {
         sev = es_error;
         err_ap = ap;
@@ -5006,7 +5006,7 @@ created; the caller must set it.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 void update_dll_info_for_routine(a_routine_ptr         routine,
-                                 a_decl_modifier       flags,
+                                 a_decl_modifier_set   flags,
                                  a_boolean             is_inline,
                                  a_boolean             is_redecl,
                                  a_boolean             is_definition,
@@ -5020,8 +5020,8 @@ declaration is a definition, is_definition is set to TRUE.  Diagnostics should
 be issued at the given position.
 */
 {
-  a_decl_modifier  old_dll_flags = (routine->decl_modifiers & DM_DLLFLAGS);
-  a_decl_modifier  new_dll_flags = (flags & DM_DLLFLAGS);
+  a_decl_modifier_set  old_dll_flags = (routine->decl_modifiers & DM_DLLFLAGS);
+  a_decl_modifier_set  new_dll_flags = (flags & DM_DLLFLAGS);
 
   /* dllimport and dllexport should never be set together. */
   check_assertion(new_dll_flags != DM_DLLFLAGS);
@@ -5135,7 +5135,7 @@ be issued at the given position.
     }  /* if */
     if (clear_dll_import && (routine->decl_modifiers & DM_DLLIMPORT) != 0) {
       /* Drop any previous dllimport attribute. */
-      routine->decl_modifiers &= ~(a_decl_modifier)DM_DLLIMPORT;
+      routine->decl_modifiers &= ~DM_DLLIMPORT;
       routine->definition_for_inlining_only = FALSE;
       new_dll_export = ((routine->decl_modifiers & DM_DLLEXPORT) != 0);
     }  /* if */
@@ -5181,7 +5181,7 @@ declaration specified by routine.  position is used as the error position for
 any diagnostics.
 */
 {
-  a_decl_modifier  flags = new_modifiers->flags;
+  a_decl_modifier_set  flags = new_modifiers->flags;
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
   /* Handle dllexport and dllimport separately. */
@@ -5189,8 +5189,7 @@ any diagnostics.
                               is_definition, position);
   /* Set the Microsoft-specific inlining flags. */
   routine->decl_modifiers |= (flags & (DM_MICROSOFT_INLINE | DM_FORCEINLINE));
-  flags &= ~(a_decl_modifier)(DM_DLLFLAGS |
-                              DM_MICROSOFT_INLINE | DM_FORCEINLINE);
+  flags &= ~(DM_DLLFLAGS | DM_MICROSOFT_INLINE | DM_FORCEINLINE);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if SUN_EXTENSIONS_ALLOWED
   /* If any of the Sun link scope specifiers were seen, handle them now. */
@@ -5210,11 +5209,11 @@ any diagnostics.
         /* An explicit instantiation may include a link scope different from
            that recorded in the template.  Therefore, we clear any existing
            link scope recorded in the entry. */
-        routine->decl_modifiers &= (a_decl_modifier)~DM_ANY_SUN_LINK_SCOPE;
+        routine->decl_modifiers &= ~DM_ANY_SUN_LINK_SCOPE;
         routine->decl_modifiers |= (flags & DM_ANY_SUN_LINK_SCOPE);
       }  /* if */
     }  /* if */
-    flags &= (a_decl_modifier)~DM_ANY_SUN_LINK_SCOPE;
+    flags &= ~DM_ANY_SUN_LINK_SCOPE;
   }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
@@ -5222,7 +5221,7 @@ any diagnostics.
     /* The "thread" specifier can only be applied to variables with a static
        lifetime. */
     pos_error(ec_cannot_use_thread_local_storage, position);
-    flags &= (a_decl_modifier)~DM_THREAD;
+    flags &= ~DM_THREAD;
   }  /* if */
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED */
   check_assertion(flags == 0 || is_at_least_one_error());
@@ -5231,7 +5230,7 @@ any diagnostics.
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
 void update_dll_info_for_variable(a_variable_ptr        var,
-                                  a_decl_modifier       flags,
+                                  a_decl_modifier_set   flags,
                                   a_boolean             is_redecl,
                                   a_boolean             is_definition,
                                   a_source_position     *diag_pos)
@@ -5242,8 +5241,8 @@ is_definition is set to TRUE.  If the current declaration is a redeclaration,
 is_redecl is set to TRUE.  Diagnostics should be issued at the given
 position. */
 {
-  a_decl_modifier  old_dll_flags = (var->decl_modifiers & DM_DLLFLAGS);
-  a_decl_modifier  new_dll_flags = (flags & DM_DLLFLAGS);
+  a_decl_modifier_set  old_dll_flags = (var->decl_modifiers & DM_DLLFLAGS);
+  a_decl_modifier_set  new_dll_flags = (flags & DM_DLLFLAGS);
 
   /* dllimport and dllexport should never be set together. */
   check_assertion(new_dll_flags != DM_DLLFLAGS);
@@ -5342,7 +5341,7 @@ position. */
     }  /* if */
     if (clear_dll_import && (var->decl_modifiers & DM_DLLIMPORT) != 0) {
       /* Drop any previous dllimport attribute. */
-      var->decl_modifiers &= ~(a_decl_modifier)DM_DLLIMPORT;
+      var->decl_modifiers &= ~DM_DLLIMPORT;
       new_dll_export = ((var->decl_modifiers & DM_DLLEXPORT) != 0);
     }  /* if */
     if (new_dll_export &&
@@ -5366,8 +5365,8 @@ notably, most __declspec attributes -- are applied through the general
 attribute application mechanism.)
 */
 {
-  a_variable_ptr   variable = NULL;
-  a_decl_modifier  flags;
+  a_variable_ptr       variable = NULL;
+  a_decl_modifier_set  flags;
 
   if (dps->sym->kind == (a_symbol_kind)sk_variable) {
     variable = dps->sym->variant.variable.ptr;
@@ -5399,8 +5398,7 @@ attribute application mechanism.)
                       &dps->declarator_pos,
                       decl_modifier_names[(int)dmt_forceinline]);
   }  /* if */
-  flags &= ~(a_decl_modifier)(DM_DLLFLAGS |
-                              DM_MICROSOFT_INLINE | DM_FORCEINLINE);
+  flags &= ~(DM_DLLFLAGS | DM_MICROSOFT_INLINE | DM_FORCEINLINE);
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
   flags = dps->decl_modifiers.flags;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
@@ -5422,7 +5420,7 @@ attribute application mechanism.)
         variable->decl_modifiers |= (flags & DM_ANY_SUN_LINK_SCOPE);
       }  /* if */
     }  /* if */
-    flags &= (a_decl_modifier)~DM_ANY_SUN_LINK_SCOPE;
+    flags &= ~DM_ANY_SUN_LINK_SCOPE;
   }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
@@ -5438,7 +5436,7 @@ attribute application mechanism.)
     } else {
       variable->decl_modifiers |= DM_THREAD;
     }  /* if */
-    flags &= (a_decl_modifier)~DM_THREAD;
+    flags &= ~DM_THREAD;
   } else if (!ms_extensions && !dps->first_decl &&
              (variable->decl_modifiers & DM_THREAD) != 0) {
     /* Issue an error when a variable previously declared as thread-local does
@@ -5453,7 +5451,7 @@ attribute application mechanism.)
   if ((variable->decl_modifiers & DM_DLLFLAGS) &&
       (variable->decl_modifiers & DM_THREAD)) {
     pos_error(ec_dll_thread_conflict, &dps->declarator_pos);
-    variable->decl_modifiers &= ~(a_decl_modifier)DM_THREAD;
+    variable->decl_modifiers &= ~DM_THREAD;
   }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 }  /* update_variable_decl_modifiers */
@@ -8828,7 +8826,7 @@ a "constexpr intrinsic" (i.e., a function handled specially by the constexpr
 interpreter) and if so mark it as such.
 */
 {
-  a_constexpr_intrinsic_tag  tag = cit_last;
+  a_constexpr_intrinsic  tag = cit_last;
 
   if (is_namespace_member(rp) &&
       is_member_of_namespace(symbol_for(rp), symbol_for_namespace_std)) {
@@ -10418,7 +10416,7 @@ skip_overloading:;
                     &locator->source_position);
       }  /* if */
       /* Set the DLL flags to what is already recorded for this routine. */
-      decl_modifiers->flags &= ~(a_decl_modifier)DM_DLLFLAGS;
+      decl_modifiers->flags &= ~DM_DLLFLAGS;
       decl_modifiers->flags |= (routine_ptr->decl_modifiers & DM_DLLFLAGS);
     }  /* if */
   }  /* if */
@@ -10599,7 +10597,7 @@ skip_overloading:;
        (non-target) attributes are applied to the representative as well. */
     for (an_attribute_ptr ap = routine_ptr->source_corresp.attributes;
          ap != NULL; ap = ap->next) {
-      if (ap->kind == (a_byte_attribute_kind)ak_target) continue;
+      if (ap->kind == ak_target) continue;
       copy_attribute(ap, *next_ap);
       next_ap = &(*next_ap)->next;
     }  /* for */
@@ -11933,20 +11931,20 @@ Issue a diagnostic if the modifier is invalid.
 */
 {
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED || SUN_EXTENSIONS_ALLOWED
-  a_decl_modifier    flags = state->decl_modifiers.flags;
-  a_source_position  *pos = &state->start_pos;
+  a_decl_modifier_set  flags = state->decl_modifiers.flags;
+  a_source_position    *pos = &state->start_pos;
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED || SUN_EXTENSIONS_ALLOWED */
   
 #if THREAD_LOCAL_STORAGE_SPECIFIER_ALLOWED
   if (flags & DM_THREAD) {
     pos_error(ec_cannot_use_thread_local_storage, pos);
-    flags &= ~(a_decl_modifier)DM_THREAD;
+    flags &= ~DM_THREAD;
   }  /* if */
 #endif /* THREAD_LOCAL_STORAGE_SPECIFIER_... */
 #if SUN_EXTENSIONS_ALLOWED
   if (flags & DM_ANY_SUN_LINK_SCOPE) {
     pos_diagnostic(es_discretionary_error, ec_invalid_link_scope, pos);
-    flags &= ~(a_decl_modifier)DM_ANY_SUN_LINK_SCOPE;
+    flags &= ~DM_ANY_SUN_LINK_SCOPE;
   }  /* if */
 #endif /* SUN_EXTENSIONS_ALLOWED */
 }  /* diagnose_decl_modifiers_on_type_declaration */
@@ -12985,7 +12983,7 @@ Other attributes are invalid and are diagnosed.
     an_attribute_ptr *prev_link = &dps->prefix_attributes, ap_next;
     for (ap = dps->prefix_attributes; ap != NULL; ap = ap_next) {
       ap_next = ap->next;
-      if (ap->family == (a_byte_attribute_family)af_alignas) {
+      if (ap->family == af_alignas) {
         ap->next = NULL;
         *f_last_attribute_link(dps->deferred_alignas_attributes) = ap;
         *prev_link = ap_next;
@@ -13933,8 +13931,8 @@ specifier is restored.  dps describes the linkage-specification declaration.
 #if GENERATE_SOURCE_SEQUENCE_LISTS && GENERATE_LINKAGE_SPEC_BLOCKS
     /* Add a source sequence entry marking the end of the namespace
        definition. */
-    add_end_of_construct_source_sequence_entry(
-                  (char *)lsbp, (a_byte_il_entry_kind)iek_linkage_spec_block);
+    add_end_of_construct_source_sequence_entry((char *)lsbp,
+                                               iek_linkage_spec_block);
     lsbp->end_position = pos_curr_token;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS && GENERATE_LINKAGE_SPEC_BLOCKS */
     /* Check for the final right brace of the linkage specification block,
@@ -15127,7 +15125,7 @@ this using-directive.
   /* Create the using-directive entry. */
   udp = alloc_using_decl();
   udp->position = *pos;
-  udp->entity.kind = (a_byte_il_entry_kind)iek_namespace;
+  udp->entity.kind = iek_namespace;
   udp->entity.ptr = (char *)nsp;
   udp->is_using_directive = TRUE;
   udp->compiler_generated = compiler_generated;
@@ -15819,9 +15817,7 @@ it's a definition and NULL otherwise).
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Add a source sequence entry marking the end of the namespace
        definition. */
-    add_end_of_construct_source_sequence_entry(
-                                        (char *)nsp,
-                                        (a_byte_il_entry_kind)iek_namespace);
+    add_end_of_construct_source_sequence_entry((char *)nsp, iek_namespace);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
     if (is_enclosing_namespace_specifier) {
       /* Any pragmas are only processed at the bottom of the recursion. */
@@ -15866,7 +15862,7 @@ it's a definition and NULL otherwise).
   /* If (because of an error) an empty source-sequence entry was left in the
      list, remove it now. */
   if (namespace_ssep != NULL &&
-      namespace_ssep->entity.kind == (a_byte_il_entry_kind)iek_none) {
+      namespace_ssep->entity.kind == iek_none) {
     remove_from_src_seq_list(namespace_ssep);
     namespace_ssep = NULL;
   }  /* if */
@@ -16019,7 +16015,7 @@ placed.
                       "make_using_decl: no IL entry for symbol");
   /* Allocate a using-decl entry, and make it point to the IL entity. */
   udp = alloc_using_decl();
-  udp->entity.kind = (a_byte_il_entry_kind)kind;
+  udp->entity.kind = kind;
   udp->entity.ptr = entity;
   udp->position = *pos;
   /* Attach it the list for the current scope. */
@@ -17057,8 +17053,7 @@ issue an error.
   if (dps->id_attributes != NULL && gnu_attributes_enabled && !clang_mode) {
     an_attribute_ptr  ap = dps->id_attributes;
     for (; ap != NULL; ap = ap->next) {
-      if (is_gcc_attribute(ap) &&
-          ap->syntactic_location == (a_byte_attribute_location)al_postfix) {
+      if (is_gcc_attribute(ap) && ap->syntactic_location == al_postfix) {
         pos_error(ec_attributes_in_rout_defn, &ap->group->position);
         break;
       }  /* if */
@@ -17112,7 +17107,7 @@ declaration modifiers recorded in *dps.
 
 #endif /* DECL_MODIFIERS_IN_USE */
 
-typedef enum an_end_of_decl_action {
+enum an_end_of_decl_action {
   /* An enumeration type to represent the final steps in parsing a declaration.
      Used for a switch-statement in declaration(...). */
   eoda_not_at_end,	/* The end of the declaration hasn't been reached. */
@@ -17126,7 +17121,7 @@ typedef enum an_end_of_decl_action {
   eoda_skip_final_token,
 			/* Consume the last token (without checking it). */
   eoda_done		/* The declaration is fully parsed. */
-} an_end_of_decl_action;
+};
 
 #if GENERATE_SOURCE_SEQUENCE_LISTS
 
@@ -17843,8 +17838,7 @@ function parameter declaration: This routine does nothing in that case.
       ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr)
                                     ->embedded_source_sequence_entries = TRUE;
     }  /* if */
-    add_end_of_construct_source_sequence_entry(
-                              (char *)vp, (a_byte_il_entry_kind)iek_variable);
+    add_end_of_construct_source_sequence_entry((char *)vp, iek_variable);
   }  /* if */
 }  /* add_src_seq_end_of_variable_if_needed */
 
@@ -17876,8 +17870,7 @@ embedded struct declaration.
       ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr)
                                     ->embedded_source_sequence_entries = TRUE;
     }  /* if */
-    add_end_of_construct_source_sequence_entry(
-                               (char *)rp, (a_byte_il_entry_kind)iek_routine);
+    add_end_of_construct_source_sequence_entry((char *)rp, iek_routine);
   }  /* if */
 }  /* add_src_seq_end_of_routine */
 
@@ -17909,8 +17902,7 @@ embedded struct declaration.
       ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr)->
                                        embedded_source_sequence_entries = TRUE;
     }  /* if */
-    add_end_of_construct_source_sequence_entry(
-                                   (char *)tp, (a_byte_il_entry_kind)iek_type);
+    add_end_of_construct_source_sequence_entry((char *)tp, iek_type);
   }  /* if */
 }  /* add_src_seq_end_of_type_alias_if_needed */
 
@@ -18525,7 +18517,7 @@ early so that cases like "auto [x] = x;" are diagnosed.
       vp->declared_with_auto_type_specifier = TRUE;
       vp->variant.container = container;
       vp->init_kind = (an_init_kind)initk_deducing;
-      list_entry->entity.kind = (a_byte_il_entry_kind)iek_variable;
+      list_entry->entity.kind = iek_variable;
       list_entry->entity.ptr = (char*)vp;
       *p_end_bindings = list_entry;
       p_end_bindings = &list_entry->next;

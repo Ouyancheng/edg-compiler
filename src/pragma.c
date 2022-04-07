@@ -544,8 +544,7 @@ Return a pending pragma entry to the available list.
   /* If this source sequence entry was never bound to another IL entry,
      remove it from the source sequence list. */
   if (ppp->source_sequence_entry != NULL &&
-      ppp->source_sequence_entry->entity.kind ==
-                                      (a_byte_il_entry_kind)iek_none) {
+      ppp->source_sequence_entry->entity.kind == iek_none) {
     remove_from_src_seq_list(ppp->source_sequence_entry);
     ppp->source_sequence_entry = NULL;
   }  /* if */
@@ -947,7 +946,7 @@ there is additional processing to be done.
     pp->is_microsoft_pragma_operator = ppp->is_microsoft_pragma_operator;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (entity_ptr != NULL) {
-      pp->entity.kind = (a_byte_il_entry_kind)entity_kind;
+      pp->entity.kind = entity_kind;
       pp->entity.ptr = entity_ptr;
     }  /* if */
 #if DEBUG
@@ -1481,8 +1480,7 @@ the pragmas may be applied to each instance of a template.
     if (ppp->source_sequence_entry != NULL) {
       /* If this source sequence entry was never bound to another IL entry,
          remove it from the source sequence list. */
-      check_assertion_str2(ppp->source_sequence_entry->entity.kind ==
-                                             (a_byte_il_entry_kind)iek_none,
+      check_assertion_str2(ppp->source_sequence_entry->entity.kind == iek_none,
                            "extract_curr_construct_pragmas:",
                            "source sequence entry already in use");
       remove_from_src_seq_list(ppp->source_sequence_entry);

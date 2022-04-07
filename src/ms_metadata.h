@@ -19,7 +19,7 @@ BEGIN_EDG_NAMESPACE
 /*
 C++/CLI metadata import flags.
 */
-enum a_cpp_cli_import_flag_tag {
+enum a_cpp_cli_import_flag {
   cpp_cli_none                   = 0x0000,
                         /* Default import behavior. */
   cpp_cli_as_friend_assembly     = 0x0001,

@@ -4355,7 +4355,7 @@ Information about an entity in the mangled name that may be reused
 by referring back to it by number as a "substitution".
 */
 /* Code for type of syntactic object substituted for: */
-typedef enum a_substitution_kind {
+enum a_substitution_kind {
   subk_unscoped_template_name,
 			/* An <unscoped-template-name>. */
   subk_prefix,		/* A <prefix>. */
@@ -4363,7 +4363,7 @@ typedef enum a_substitution_kind {
   subk_type,		/* A <type>. */
   subk_template_template_param
 			/* A <template-template-param>. */
-} a_substitution_kind;
+};
 
 typedef struct a_substitution_location {
   a_const_char	*start;	/* First character of the encoding of the entity. */

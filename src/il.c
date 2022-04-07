@@ -1027,7 +1027,7 @@ Dump information on a using-decl entry, for debug purposes.
 
   if (!udp->is_using_directive) {
     /* A using-declaration. */
-    if (udp->entity.kind == (a_byte_il_entry_kind)iek_base_class) {
+    if (udp->entity.kind == iek_base_class) {
       sc = &((a_base_class_ptr)udp->entity.ptr)->type->source_corresp;
     } else {
       sc = source_corresp_for_il_entry(udp->entity.ptr,
@@ -1071,7 +1071,7 @@ Dump information on a using-decl entry, for debug purposes.
       }  /* if */
       db_name_full(sc, (an_il_entry_kind)udp->entity.kind);
       if (udp->hidden) fprintf(f_debug, ", hidden");
-      if (udp->entity.kind == (a_byte_il_entry_kind)iek_routine) {
+      if (udp->entity.kind == iek_routine) {
         fputs(",\n        ", f_debug);
         db_type(((a_routine_ptr)udp->entity.ptr)->type);
       }  /* if */
@@ -9777,7 +9777,7 @@ diagnostic if the parameter type is an abstract class.
                                          (a_dependent_type_fixup_kind)
                                                  dtfk_arg_transfer_method,
                                          (char *)ptp,
-                                         (a_byte_il_entry_kind)iek_param_type,
+                                         iek_param_type,
                                          err_pos);
       } else {
         a_class_symbol_supplement_ptr cssp =
@@ -13625,51 +13625,51 @@ The expression can then be recovered using find_local_expr_node.
   switch (kind) {
 #if GNU_EXTENSIONS_ALLOWED
     case lerk_typeof:
-      new_ref->referrer.kind = (a_byte_il_entry_kind)iek_type;
+      new_ref->referrer.kind = iek_type;
       break;
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
     case lerk_generic_sizeof:
-      new_ref->referrer.kind = (a_byte_il_entry_kind)iek_constant;
+      new_ref->referrer.kind = iek_constant;
       check_assertion(!((a_constant_ptr)referrer)
                                       ->variant.template_param.local_expr_ref);
       ((a_constant_ptr)referrer)->variant.template_param.local_expr_ref = TRUE;
       break;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     case lerk_array_bound:
-      new_ref->referrer.kind = (a_byte_il_entry_kind)iek_type;
+      new_ref->referrer.kind = iek_type;
       check_assertion(!((a_type_ptr)referrer)->variant.array.
                              constant_bound_expr_in_local_expr_node_ref);
       ((a_type_ptr)referrer)->variant.array.
                              constant_bound_expr_in_local_expr_node_ref = TRUE;
       break;
     case lerk_dep_array_bound:
-      new_ref->referrer.kind = (a_byte_il_entry_kind)iek_type;
+      new_ref->referrer.kind = iek_type;
       check_assertion(!((a_type_ptr)referrer)->variant.array.
                          dep_constant_bound_expr_in_local_expr_node_ref);
       ((a_type_ptr)referrer)->variant.array.
                          dep_constant_bound_expr_in_local_expr_node_ref = TRUE;
       break;
     case lerk_decltype:
-      new_ref->referrer.kind = (a_byte_il_entry_kind)iek_type;
+      new_ref->referrer.kind = iek_type;
       break;
 #if PROTOTYPE_INSTANTIATIONS_IN_IL
     case lerk_tpl_param_expr:
-      new_ref->referrer.kind = (a_byte_il_entry_kind)iek_constant;
+      new_ref->referrer.kind = iek_constant;
       check_assertion(!((a_constant_ptr)referrer)
                                       ->variant.template_param.local_expr_ref);
       ((a_constant_ptr)referrer)->variant.template_param.local_expr_ref = TRUE;
       break;
 #endif /* PROTOTYPE_INSTANTIATIONS_IN_IL */
     case lerk_bit_field_width:
-      new_ref->referrer.kind = (a_byte_il_entry_kind)iek_field;
+      new_ref->referrer.kind = iek_field;
       check_assertion(!((a_field_ptr)referrer)->
                                 bit_size_constant_expr_in_local_expr_node_ref);
       ((a_field_ptr)referrer)->bit_size_constant_expr_in_local_expr_node_ref =
                                                                           TRUE;
       break;
     case lerk_constant_expr:
-      new_ref->referrer.kind = (a_byte_il_entry_kind)iek_constant;
+      new_ref->referrer.kind = iek_constant;
       check_assertion(!((a_constant_ptr)referrer)->local_expr_ref);
       ((a_constant_ptr)referrer)->local_expr_ref = TRUE;
       break;
@@ -13848,7 +13848,7 @@ The scope can then be recovered using find_local_scope.
   new_ref->next = func_scope->scope_refs;
   new_ref->scope = scope;
   new_ref->referrer.ptr = referrer;
-  new_ref->referrer.kind = (a_byte_il_entry_kind)referrer_kind;
+  new_ref->referrer.kind = referrer_kind;
   check_assertion(!in_file_scope(new_ref));
   func_scope->scope_refs = new_ref;
 }  /* make_local_scope_ref */
@@ -14463,8 +14463,7 @@ field in the new parameter types will be NULL.
          incomplete class type. */
       /* Pass the NULL source position since no errors should be issued about
          this type. */
-      add_to_dependent_type_fixup_list(tp, dtf_kind, (char *)to,
-                                       (a_byte_il_entry_kind)iek_type,
+      add_to_dependent_type_fixup_list(tp, dtf_kind, (char *)to, iek_type,
                                        &null_source_position);
     }  /* if */
   } else if (from_kind == (a_type_kind)tk_typeref) {
@@ -24007,7 +24006,7 @@ indicated new or delete, or NULL if the routine cannot be determined.
   a_routine_ptr               rout = NULL;
   a_new_delete_supplement_ptr ndsp;
 
-  check_assertion(expr->kind == (an_expression_kind)enk_new_delete);
+  check_assertion(expr->kind == enk_new_delete);
   ndsp = expr->variant.new_delete;
   rout = ndsp->routine;
   if (rout == NULL) {
@@ -24470,7 +24469,7 @@ Called from traverse_expr to check whether the expression is a
 statement expression.
 */
 {
-  if (expr->kind == (a_statement_kind)enk_statement) {
+  if (expr->kind == enk_statement) {
     /* This expression is a statement expression.  Stop the tree walk. */
     tblock->result = TRUE;
     tblock->terminate = TRUE;
@@ -24509,7 +24508,7 @@ Called from traverse_expr to remove the source sequence entries associated
 with any statement expression.
 */
 {
-  if (expr->kind == (a_statement_kind)enk_statement) {
+  if (expr->kind == enk_statement) {
     a_source_sequence_entry_ptr
                         head = expr->variant.statement->source_sequence_entry;
     if (head != NULL) {
@@ -25002,8 +25001,7 @@ the case if the return type was incomplete at the point of definition.
           add_to_dependent_type_fixup_list(return_type,
                                            (a_dependent_type_fixup_kind)
                                                   dtfk_routine_calling_method,
-                                           (char *)routine_type,
-                                           (a_byte_il_entry_kind)iek_type,
+                                           (char *)routine_type, iek_type,
                                            err_pos);
       }  /* if */
     }  /* if */
@@ -25797,7 +25795,7 @@ about it).
   }  /* switch */
   fprintf(f_debug, "%s [", str);
   if (olp->kind == (an_object_lifetime_kind)olk_block_after_label) {
-    if (olp->entity.kind == (a_byte_il_entry_kind)iek_statement) {
+    if (olp->entity.kind == iek_statement) {
       a_statement_ptr  sp = (a_statement_ptr)olp->entity.ptr;
       if (sp->kind == (a_statement_kind)stmk_label) {
         fputc('"', f_debug);
@@ -25816,12 +25814,12 @@ about it).
   }  /* if */
   if (olp == NULL) {
     fputs("<null>", f_debug);
-  } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope) {
+  } else if (olp->entity.kind == iek_scope) {
     db_scope((a_scope_ptr)olp->entity.ptr);
-  } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_expr_node) {
+  } else if (olp->entity.kind == iek_expr_node) {
     fprintf(f_debug, "expr-node@%p:", (a_void_ptr)olp->entity.ptr);
     db_expr_summary((an_expr_node_ptr)(olp->entity.ptr));
-  } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_none) {
+  } else if (olp->entity.kind == iek_none) {
     fputs("<unbound>", f_debug);
   } else {
     fprintf(f_debug, "%s@%p", il_entry_kind_names[(int)olp->entity.kind],
@@ -26144,7 +26142,7 @@ lifetimes, since those are never bound.
   }  /* if */
 #endif /* CHECKING */
   /* Point the object lifetime at the IL entry. */
-  olp->entity.kind = (a_byte_il_entry_kind)entity_kind;
+  olp->entity.kind = entity_kind;
   olp->entity.ptr = entity_ptr;
   if (olp->kind != (an_object_lifetime_kind)olk_block_after_label) {
     /* Get the address of the appropriate field of the IL entry and point
@@ -26177,7 +26175,7 @@ it points.
     *lifetime_addr = NULL;
   }  /* if */
   /* Clear the fields in the object lifetime, too. */
-  olp->entity.kind = (a_byte_il_entry_kind)iek_none;
+  olp->entity.kind = iek_none;
   olp->entity.ptr = NULL;
 }  /* unbind_object_lifetime */
 
@@ -26361,7 +26359,7 @@ with it.  Entries associated with scopes must also have no child entries.
         break;
       case olk_block:
         do_child_check = TRUE;
-        if (olp->entity.kind == (a_byte_il_entry_kind)iek_scope) {
+        if (olp->entity.kind == iek_scope) {
           a_scope_ptr  sp = (a_scope_ptr)olp->entity.ptr;
           if (sp->kind == (a_scope_kind)sck_block &&
               sp->variant.assoc_handler != NULL) {
@@ -26401,15 +26399,14 @@ with it.  Entries associated with scopes must also have no child entries.
             do_child_check = FALSE;
           }  /* if */
         } else if (exceptions_enabled &&
-                   olp->entity.kind ==
-                        (a_byte_il_entry_kind)iek_local_static_variable_init) {
+                   olp->entity.kind == iek_local_static_variable_init) {
           /* A lifetime that surrounds the initialization of a local static
              variable is kept when exceptions are enabled, because it
              delimits the region within which the initialization must be
              undone and set up to restart if an exception is thrown during
              the initialization. */
           do_child_check = FALSE;
-        } else if (olp->entity.kind == (a_byte_il_entry_kind)iek_block &&
+        } else if (olp->entity.kind == iek_block &&
                    olp->child_lifetime != NULL &&
                    depth_innermost_function_scope == depth_scope_stack &&
                    innermost_function_scope->variant.routine.ptr->
@@ -26549,7 +26546,7 @@ longer be in the tree because their parent no longer is.
      scope object lifetime cannot be removed. */
   check_assertion(parent != NULL);
   /* Unbind the lifetime unless it's already unbound. */
-  if (lifetime->entity.kind != (a_byte_il_entry_kind)iek_none) {
+  if (lifetime->entity.kind != iek_none) {
     unbind_object_lifetime(lifetime);
   }  /* if */
   /* Remove the lifetime from its parent's child list. */
@@ -26683,7 +26680,7 @@ okay if a lifetime being left in the IL is not bound to an IL entry.
   /* Do additional processing connected with whether the entry remains in
      the IL or should be removed. */
   if (olp->kind == (an_object_lifetime_kind)olk_block &&
-      olp->entity.kind == (a_byte_il_entry_kind)iek_scope &&
+      olp->entity.kind == iek_scope &&
       ((a_scope_ptr)olp->entity.ptr)->kind == (a_scope_kind)sck_function) {
     /* This is an object lifetime for a function scope; its parent pointer
        is the file scope lifetime entry, but it's an "implicit" child of the
@@ -28389,7 +28386,7 @@ eliminated, if appropriate.
                               (an_il_entry_kind)hnp->entity.kind)) {
       fprintf(f_debug, "%semoving hidden name entry for ",
               il_entry_prefix_of(hnp->entity.ptr).keep_in_il ? "Not r" : "R");
-      if (hnp->entity.kind == (a_byte_il_entry_kind)iek_type) {
+      if (hnp->entity.kind == iek_type) {
         db_abbreviated_type((a_type_ptr)hnp->entity.ptr);
       } else {
         db_name_full(source_corresp_for_il_entry(hnp->entity.ptr,
@@ -29442,12 +29439,11 @@ scan_alignof_operator for details).
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 
-an_attribute_ptr f_find_attribute(a_byte_attribute_kind  kind,
-                                  an_attribute_ptr       attributes)
+an_attribute_ptr find_attribute(an_attribute_kind  kind,
+                                  an_attribute_ptr   attributes)
 /*
 Return the first attribute of the given kind in the given list of attributes,
-or NULL if there is no such item.  (Use the macro find_attribute to avoid an
-explicit cast to a_byte_attribute_kind.)
+or NULL if there is no such item.
 */
 {
   an_attribute_ptr  ap;
@@ -29456,7 +29452,7 @@ explicit cast to a_byte_attribute_kind.)
     if (ap->kind == kind) break;
   }  /* for */
   return ap;
-}  /* f_find_attribute */
+}  /* find_attribute */
 
 #if GNU_FUNCTION_MULTIVERSIONING
 
@@ -29472,7 +29468,7 @@ attributes are later processed for the non-string cases).
   an_attribute_ptr  ap, last = NULL;
 
   for (ap = attributes; ap != NULL; ap = ap->next) {
-    if (ap->kind == (a_byte_attribute_kind)ak_target) {
+    if (ap->kind == ak_target) {
       an_attribute_arg_ptr  aap = ap->arguments;
       if (aap->kind == (an_attribute_arg_kind)aak_raw_token &&
           aap->variant.token[0] == '"') {
@@ -30607,7 +30603,7 @@ be used, but there are exceptions.
                module id. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-          } else if (variable->decl_modifiers & (a_decl_modifier)DM_SELECTANY){
+          } else if (variable->decl_modifiers & DM_SELECTANY){
             /* Variables defined as "selectany" may be defined in multiple
                translation units.  Do not use them for the module id. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */

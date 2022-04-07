@@ -1144,8 +1144,7 @@ scope that will contain the variable declaration.
     stmt->next->parent = stmt->parent;
     stmt = stmt->next;
     stmt->variant.decl.entities = alloc_il_entity_list_entry();
-    stmt->variant.decl.entities->entity.kind =
-                                            (a_byte_il_entry_kind)iek_variable;
+    stmt->variant.decl.entities->entity.kind = iek_variable;
     stmt->variant.decl.entities->entity.ptr = (char*)var;
     /* Allocate the initializer statement for the variable. */
     stmt->next = alloc_statement((a_statement_kind)stmk_init);

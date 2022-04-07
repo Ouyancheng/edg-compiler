@@ -5731,9 +5731,9 @@ Allocate an attribute in file scope memory and return a pointer to it.
 
   ap = alloc_il_of_type(an_attribute);
   ap->next = NULL;
-  ap->kind = (a_byte_attribute_kind)ak_unrecognized;
-  ap->family = (a_byte_attribute_family)af_internal;
-  ap->syntactic_location = (a_byte_attribute_location)al_implicit;
+  ap->kind = ak_unrecognized;
+  ap->family = af_internal;
+  ap->syntactic_location = al_implicit;
   ap->on_primary_declaration = FALSE;
   ap->transforms_type_specifier = FALSE;
   ap->must_be_preserved_in_trans_unit_copy = FALSE;
@@ -5770,7 +5770,7 @@ Allocate an attribute argument in file scope memory and return a pointer to it.
 
   aap = alloc_il_of_type(an_attribute_arg);
   aap->next = NULL;
-  aap->token_kind = (a_small_token_kind)tok_error;
+  aap->token_kind = tok_error;
   aap->kind = (an_attribute_arg_kind)aak_empty;
   aap->is_pack_expansion = FALSE;
   aap->pack_expansion_descr = NULL;

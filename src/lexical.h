@@ -216,7 +216,7 @@ typedef int an_identifier_options_set;
 /* Lookup modes supported by coalesce_and_lookup_generalized_identifier.
    If this list is changed the corresponding array of ID lookup options
    in lexical.c must also be changed.  */
-typedef enum /* an_identifier_lookup_mode */ {
+enum an_identifier_lookup_mode {
   ilm_normal,		/* Find any symbol. */
   ilm_tag,		/* Find only tag names. */
   ilm_tentative_type,	/* Uses IDL_TENTATIVE_TYPE_LOOKUP to do the lookup. */
@@ -249,7 +249,7 @@ typedef enum /* an_identifier_lookup_mode */ {
   ilm_template_template_arg,
 			/* Uses IDL_TREAT_AS_TEMPLATE_ID. */
   ilm_last
-} an_identifier_lookup_mode;
+};
 
 
 typedef struct a_token_cache {
@@ -1326,12 +1326,12 @@ curr_source_line into its fully preprocessed form (with macros expanded,
 etc.).
 */
 
-typedef enum /*an_orig_line_modif_kind*/ {
+enum an_orig_line_modif_kind {
   olm_trigraph,
   olm_line_splice,
   olm_multiline_string_splice,
   olm_null		/* Null (zero) character in source line. */
-} an_orig_line_modif_kind;
+};
 
 typedef struct an_orig_line_modif {
   /* A modification (trigraph or line splice) that has been made to the
@@ -2051,7 +2051,7 @@ Data structure used to save information about a token so that the token
 can be cached and then rescanned.  Note that this is never done with
 pp-tokens.  See cache_curr_token et al.
 */
-enum a_token_extra_info_kind_tag {
+enum a_token_extra_info_kind : a_byte {
   /* Kind of additional information saved in a cached token entry. */
   teik_none,		/* No extra information, i.e., normal token. */
   teik_identifier,	/* Extra information for an identifier. */
@@ -2065,8 +2065,8 @@ enum a_token_extra_info_kind_tag {
   teik_ifc_decl         /* Extra information for a pseudo-token referring to
                            a declaration stored in an IFC module. */
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_token_extra_info_kind;
+
+
 typedef struct a_cached_token {
   /* Information on a single token, saved for later rescanning of the
      token. */
@@ -2082,7 +2082,7 @@ typedef struct a_cached_token {
 			   the source position of the last character of the
 			   token. */
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  a_small_token_kind
+  a_token_kind
 		token;
 			/* The token kind (e.g., tok_identifier).  Not valid
 			   when extra_info_kind == teik_pragma. */

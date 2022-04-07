@@ -429,8 +429,7 @@ memory region.
 #endif /* !STANDALONE_UTILITY_PROGRAM */
 
 #define clear_tagged_ptr(tagged_ptr)                                        \
-  (((tagged_ptr).kind = (a_byte_il_entry_kind)iek_none),                    \
-   ((tagged_ptr).ptr = NULL))
+  (((tagged_ptr).kind = iek_none), ((tagged_ptr).ptr = NULL))
 
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE

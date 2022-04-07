@@ -369,7 +369,7 @@ a class template in Microsoft mode.
     /* No existing entry.  Allocate a new one. */
     hnp = make_new_hidden_name(sp);
     hnp->entity.ptr = entity;
-    hnp->entity.kind = (a_byte_il_entry_kind)kind;
+    hnp->entity.kind = kind;
     hnp->is_class_member = hidden_sym->is_class_member;
     if (hidden_by != NULL) {
       if (hidden_by->kind == (a_symbol_kind)sk_type &&
@@ -672,7 +672,7 @@ flags cleared.  Note that this happens even if no hiding had occurred.
           fundamental_symbol_of(locator.specific_symbol) == sym_ptr) {
         hnp = make_new_hidden_name(sp);
         hnp->entity.ptr = il_entry_for_symbol(sym_ptr, &entity_kind);
-        hnp->entity.kind = (a_byte_il_entry_kind)entity_kind;
+        hnp->entity.kind = entity_kind;
       }  /* if */
     }  /* if */
   } else if (sp->kind == (a_scope_kind)sck_function ||
@@ -686,7 +686,7 @@ flags cleared.  Note that this happens even if no hiding had occurred.
           var->storage_class == (a_storage_class)sc_unspecified) {
         hnp = make_new_hidden_name(sp);
         hnp->entity.ptr = il_entry_for_symbol(sym_ptr, &entity_kind);
-        hnp->entity.kind = (a_byte_il_entry_kind)entity_kind;
+        hnp->entity.kind = entity_kind;
       }  /* if */
     } else if (sym_ptr->kind == (a_symbol_kind)sk_routine) {
       a_routine_ptr  routine = sym_ptr->variant.routine.ptr;
@@ -694,7 +694,7 @@ flags cleared.  Note that this happens even if no hiding had occurred.
           routine->storage_class == (a_storage_class)sc_unspecified) {
         hnp = make_new_hidden_name(sp);
         hnp->entity.ptr = il_entry_for_symbol(sym_ptr, &entity_kind);
-        hnp->entity.kind = (a_byte_il_entry_kind)entity_kind;
+        hnp->entity.kind = entity_kind;
       }  /* if */
     } else if (sym_ptr->kind == (a_symbol_kind)sk_overloaded_function) {
       /* Each member of the overload set must be separately "unhidden". */
@@ -766,7 +766,7 @@ This allows the following example to work:
     switch_back_to_original_region(region_to_switch_back_to);
     hidden_sym = (a_symbol_ptr)bcp->type->source_corresp.assoc_info;
     hnp->entity.ptr = il_entry_for_symbol(hidden_sym, &kind);
-    hnp->entity.kind = (a_byte_il_entry_kind)kind;
+    hnp->entity.kind = kind;
     hnp->qualification_needed = TRUE;
     /* Add it to the start of the hidden_names list for the current scope. */
     hnp->next = scope->hidden_names;
@@ -1058,7 +1058,7 @@ hidden name checking on its own members, too.
                  udp != NULL && !found_using_decl;
                  udp = udp->next) {
               a_source_correspondence *sdp;
-              if (udp->entity.kind == (a_byte_il_entry_kind)iek_base_class) {
+              if (udp->entity.kind == iek_base_class) {
                 a_base_class_ptr udp_bcp = (a_base_class_ptr)udp->entity.ptr;
                 sdp = &udp_bcp->type->source_corresp;
               } else {
@@ -1858,7 +1858,7 @@ secondary status.
           }  /* if */
           /* Set the fields. */
           sssdp->decl_position = *pos;
-          sssdp->entity.kind = (a_byte_il_entry_kind)kind;
+          sssdp->entity.kind = kind;
           sssdp->entity.ptr = il_entry_ptr;
           /* Change the parameter values accordingly. */
           kind = iek_src_seq_secondary_decl;

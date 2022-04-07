@@ -94,7 +94,7 @@ typedef struct an_instance_lookup_entry {
 Enumeration used to specify the kind of template information file line to
 be written.
 */
-typedef enum /* a_template_info_line_type */ {
+enum a_template_info_line_type {
   /* Lint comments to disable warnings that the driver line types are
      not used. */
   /*lint -esym(749,*tilt_command_line)*/
@@ -118,7 +118,7 @@ typedef enum /* a_template_info_line_type */ {
   tilt_dependency,
   tilt_entry_point,
   tilt_last
-} a_template_info_line_type;
+};
 
 /*
 The template information line type string to be written to the
@@ -143,7 +143,7 @@ static a_const_char
 Enumeration used to specify the kind of template information file line to
 be written.
 */
-typedef enum /* an_exported_template_line_type */ {
+enum an_exported_template_line_type {
   etlt_none,
   etlt_file_name,
   etlt_template_name,
@@ -152,7 +152,7 @@ typedef enum /* an_exported_template_line_type */ {
   etlt_macro_undef,
   etlt_end,
   etlt_last
-} an_exported_template_line_type;
+};
 
 /*
 The template information line type string to be written to the
@@ -902,7 +902,7 @@ that secondary source sequence entry.
     sssdp->entity = ssep->entity;
     sssdp->decl_position = tp->source_corresp.decl_position;
     ssep->entity.ptr = (char *)sssdp;
-    ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
+    ssep->entity.kind = iek_src_seq_secondary_decl;
   } else {
     sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
   }  /* if */
@@ -5571,7 +5571,7 @@ list passed in.  The pointer to the start of the list is returned.
 #endif /* DEBUG */
     }  /* if */
     if (start_found_list != NULL &&
-        ctp->token != (a_small_token_kind)tok_end_of_source &&
+        ctp->token != tok_end_of_source &&
         (ctp->token_sequence_number == start_found_list->last_token_number ||
          (ctp->next != NULL && ctp->next->token_sequence_number >
                                       start_found_list->last_token_number) ||
@@ -5627,7 +5627,7 @@ repl_token_kind, add repl_token_kind to the cache.
      there. */
   ctp = tcsp->last_token->next;
   if (ctp != NULL) {
-    if (ctp->token != (a_small_token_kind)repl_token_kind) {
+    if (ctp->token != repl_token_kind) {
       insert_token = TRUE;
     } else {
       body_repl_token = ctp;
@@ -39405,7 +39405,7 @@ processing.
     idp = alloc_instantiation_directive();
     idp->position = dps->start_pos;
     idp->entity.ptr = il_entry_for_symbol(sym, &kind);
-    idp->entity.kind = (a_byte_il_entry_kind)kind;
+    idp->entity.kind = kind;
     if (pragma_kind == (a_pragma_kind)pk_do_not_instantiate) {
       idp->do_not_instantiate = TRUE;
     }  /* if */
@@ -39754,7 +39754,7 @@ instantiation.
                specified explicitly, the DLL interface declared in the template
                applies.  That includes the "do not instantiate" meaning of
                "dllimport". */
-            a_decl_modifier  dllflags =
+            a_decl_modifier_set  dllflags =
                     new_sym->variant.routine.ptr->decl_modifiers & DM_DLLFLAGS;
             dps->decl_modifiers.flags |= dllflags;
             if ((dllflags & DM_DLLIMPORT) != 0) {
@@ -39844,7 +39844,7 @@ final_check:;
   run_end_of_parse_actions(dps, /*more_declarators=*/FALSE);
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   if (!is_pragma) {
-    if (ssep != NULL && ssep->entity.kind == (a_byte_il_entry_kind)iek_none) {
+    if (ssep != NULL && ssep->entity.kind == iek_none) {
       remove_from_src_seq_list(ssep);
     }  /* if */
   }  /* if */

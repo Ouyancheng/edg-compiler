@@ -2132,7 +2132,7 @@ of GNU statement expressions in the expression).
                                (an_il_entry_kind)iek_src_seq_secondary_decl) {
           a_src_seq_secondary_decl_ptr  sssdp;
           sssdp = ss_entry_ptr(ss_ptr, a_src_seq_secondary_decl_ptr);
-          if (sssdp->entity.kind == (a_byte_il_entry_kind)iek_type &&
+          if (sssdp->entity.kind == iek_type &&
               ((a_type_ptr)(sssdp->entity.ptr))
                            ->source_corresp.source_sequence_entry == ss_ptr) {
             ((a_type_ptr)(sssdp->entity.ptr))
@@ -2293,7 +2293,7 @@ allocated in file scope memory; otherwise, the current memory region is used.
     an_il_entity_list_entry_ptr  ep;
     if (in_file_scope) switch_to_file_scope_region(&region_to_switch_back_to);
     ep = alloc_il_entity_list_entry();
-    ep->entity.kind = (a_byte_il_entry_kind)kind;
+    ep->entity.kind = kind;
     ep->entity.ptr = (char*)entity;
     *expr_stack->p_end_of_entities_defined_in_expression = ep;
     expr_stack->p_end_of_entities_defined_in_expression = &ep->next;

@@ -13486,7 +13486,7 @@ rcblock->argument_list.
 
 static void scan_call_like_builtin_operation(
                                    a_rescan_control_block         *rcblock,
-                                   a_builtin_operation_kind_tag   kind,
+                                   a_builtin_operation_kind       kind,
                                    a_type_ptr                     type,
                                    a_builtin_arg_kind             arg1_kind,
                                    a_builtin_arg_kind             arg2_kind,
@@ -13678,7 +13678,7 @@ expression, and return the result in *result (or an error indication in
 }  /* scan_call_like_builtin_operation */
 
 
-static a_type_ptr type_traits_helper_check(a_builtin_operation_kind_tag kind)
+static a_type_ptr type_traits_helper_check(a_builtin_operation_kind kind)
 /*
 Issue an error if type traits helpers are not enabled.  Returns the
 result type for the operation.  kind specifies the builtin operation kind
@@ -13701,9 +13701,9 @@ being checked (and is used only for the error message).
 }  /* type_traits_helper_check */
 
 
-static void scan_is_constructible(a_builtin_operation_kind_tag kind,
-                                  a_rescan_control_block       *rcblock,
-                                  an_operand                   *result)
+static void scan_is_constructible(a_builtin_operation_kind  kind,
+                                  a_rescan_control_block    *rcblock,
+                                  an_operand                *result)
 /*
 Scan a constant-expression having one of the following forms:
       __is_constructible( T , Args... )
@@ -13738,9 +13738,9 @@ expression, and return the result in *result (or an error indication in
 }  /* scan_is_constructible */
 
 
-static void scan_is_destructible(a_builtin_operation_kind_tag kind,
-                                 a_rescan_control_block       *rcblock,
-                                 an_operand                   *result)
+static void scan_is_destructible(a_builtin_operation_kind  kind,
+                                 a_rescan_control_block    *rcblock,
+                                 an_operand                *result)
 /*
 Scan a constant-expression having one of the following forms:
       __is_destructible( T )
@@ -13775,9 +13775,9 @@ expression, and return the result in *result (or an error indication in
 }  /* scan_is_destructible */
 
 
-static void scan_is_valid_winrt_type(a_builtin_operation_kind_tag kind,
-                                     a_rescan_control_block       *rcblock,
-                                     an_operand                   *result)
+static void scan_is_valid_winrt_type(a_builtin_operation_kind  kind,
+                                     a_rescan_control_block    *rcblock,
+                                     an_operand                *result)
 /*
 Scan a constant-expression of the form
     __is_valid_winrt_type (T)
@@ -13798,9 +13798,9 @@ where T denotes a type.
 }  /* scan_is_valid_winrt_type */
 
 
-static void scan_is_assignable(a_builtin_operation_kind_tag kind,
-                               a_rescan_control_block       *rcblock,
-                               an_operand                   *result)
+static void scan_is_assignable(a_builtin_operation_kind  kind,
+                               a_rescan_control_block    *rcblock,
+                               an_operand                *result)
 /*
 Scan a constant-expression having one of the following forms:
       __is_assignable( T , U )
@@ -13846,14 +13846,14 @@ previously-scanned construct of this kind.  Either way, return the result in
 *result (or an error indication in *rcblock).
 */
 {
-  a_type_ptr                    result_type;
-  a_builtin_operation_kind_tag  bok = bok_last;
+  a_type_ptr                result_type;
+  a_builtin_operation_kind  bok = bok_last;
 
   if (rcblock != NULL) {
     an_expr_node_ptr expr = rcblock->expr;
     check_assertion(expr != NULL &&
                     expr->kind == (an_expr_node_kind)enk_builtin_operation);
-    bok = (a_builtin_operation_kind_tag)expr->variant.builtin_operation.kind;
+    bok = expr->variant.builtin_operation.kind;
   } else {
     switch (curr_token) {
       case tok_is_same:
@@ -13991,13 +13991,13 @@ on a previously-scanned construct of this kind.  Either way, return the result
 in *result (or an error indication in *rcblock).
 */
 {
-  a_builtin_operation_kind_tag  bok = bok_last;
+  a_builtin_operation_kind  bok = bok_last;
 
   if (rcblock != NULL) {
     an_expr_node_ptr expr = rcblock->expr;
     check_assertion(expr != NULL &&
                     expr->kind == (an_expr_node_kind)enk_builtin_operation);
-    bok = (a_builtin_operation_kind_tag)expr->variant.builtin_operation.kind;
+    bok = expr->variant.builtin_operation.kind;
   } else {
     if (curr_token == tok_array_rank) {
       bok = bok_array_rank;
@@ -14036,14 +14036,14 @@ trait expression, and return the result in *result (or an error
 indication in *rcblock).
 */
 {
-  a_type_ptr                    result_type;
-  a_builtin_operation_kind_tag  bok = bok_last;
+  a_type_ptr                result_type;
+  a_builtin_operation_kind  bok = bok_last;
 
   if (rcblock != NULL) {
     an_expr_node_ptr expr = rcblock->expr;
     check_assertion(expr != NULL &&
                     expr->kind == (an_expr_node_kind)enk_builtin_operation);
-    bok = (a_builtin_operation_kind_tag)expr->variant.builtin_operation.kind;
+    bok = expr->variant.builtin_operation.kind;
   } else {
     switch (curr_token) {
       case tok_has_assign:              bok = bok_has_assign; break;
@@ -14297,8 +14297,7 @@ cases).
       make_zero_of_proper_type(bool_type(), con);
       cp = alloc_unshared_constant(con);
       cp->source_corresp.attributes = ap;
-      ap->syntactic_location =
-                           (a_byte_attribute_location)al_builtin_has_attribute;
+      ap->syntactic_location = al_builtin_has_attribute;
       arg1->next = alloc_expr_node((an_expr_node_kind)enk_constant);
       arg1->next->variant.constant.ptr = cp;
       arg1->next->type = cp->type;
@@ -15680,8 +15679,7 @@ name.  We do not advance to the token after the decltype in this case.
     update_source_sequence_list((char*)result, (an_il_entry_kind)iek_type,
                                 ssep);
     /* Add the trailing (end-of-construct) source sequence entry. */
-    add_end_of_construct_source_sequence_entry((char*)result,
-                                               (a_byte_il_entry_kind)iek_type);
+    add_end_of_construct_source_sequence_entry((char*)result, iek_type);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (rcblock == NULL) {
@@ -16196,8 +16194,7 @@ the expression-processing routines.
     update_source_sequence_list((char*)result, (an_il_entry_kind)iek_type,
                                 ssep);
     /* Add the trailing (end-of-construct) source sequence entry. */
-    add_end_of_construct_source_sequence_entry((char*)result,
-                                               (a_byte_il_entry_kind)iek_type);
+    add_end_of_construct_source_sequence_entry((char*)result, iek_type);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (!is_type) {
@@ -29075,8 +29072,7 @@ NULL, return in *p_none_viable whether no viable spaceship operator was found.
       op_type = determine_arithmetic_conversions(opnd1, opnd2);
       check_narrowing_for_spaceship_opnd(opnd1, op_type);
       check_narrowing_for_spaceship_opnd(opnd2, op_type);
-      change_binary_operand_types(op_type, opnd1, opnd2,
-                                  (an_expr_node_kind)eok_spaceship);
+      change_binary_operand_types(op_type, opnd1, opnd2, eok_spaceship);
       if (is_integral_or_enum_type(op_type)) {
         result_type = strong_ordering_type();
       } else if (is_real_floating_type(op_type)) {
@@ -29574,8 +29570,8 @@ P2002R1 specifies a defaulted secondary operator@ to be deleted if:
 /*
 A type representing comparison categories (N4810 [cmp.categories]).
 */
-/*lint -esym(753,a_comparison_category_set_tag)*/
-enum a_comparison_category_set_tag {
+/*lint -esym(753,a_comparison_category)*/
+enum a_comparison_category {
   ccs_none = 0x0,
   ccs_strong_ordering = 0x1,
   ccs_weak_ordering = 0x2,

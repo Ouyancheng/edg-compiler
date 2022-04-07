@@ -2256,14 +2256,12 @@ void const_ints_init(void)
 Initialize static variables related to const_ints.c.
 */
 {
-  an_integer_kind ikind;
+  a_byte ikind;
 
   /* Initialize the arrays of minimum and maximum values for the various
      integer kinds. */
-  for (ikind = (an_integer_kind)ik_char;
-       ikind < (an_integer_kind)ik_last;
-       ikind++) {
-    init_int_kind_min_max_values(ikind);
+  for (ikind = ik_char; ikind < ik_last; ikind++) {
+    init_int_kind_min_max_values((an_integer_kind)ikind);
   }  /* for */
 }  /* const_ints_init */
 

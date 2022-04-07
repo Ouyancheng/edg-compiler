@@ -864,7 +864,7 @@ initializer, sym represents that data member (otherwise, it is NULL).
   a_discriminator  last_n = 0;
 
   for (; elp != NULL; elp = elp->next) {
-    if (elp->entity.kind == (a_byte_il_entry_kind)iek_type) {
+    if (elp->entity.kind == iek_type) {
       a_type_ptr  tp = (a_type_ptr)elp->entity.ptr;
       a_class_type_supplement_ptr
                   ctsp;
@@ -912,7 +912,7 @@ may be NULL in error cases.)
 */
 {
   for (; elp != NULL; elp = elp->next) {
-    if (elp->entity.kind == (a_byte_il_entry_kind)iek_type) {
+    if (elp->entity.kind == iek_type) {
       a_type_ptr  tp = (a_type_ptr)elp->entity.ptr;
       a_class_type_supplement_ptr
                   ctsp;
@@ -1591,7 +1591,7 @@ using-directives specified after the point of definition of the template.
   a_scope_depth			 	new_depth;
   a_namespace_symbol_supplement_ptr	nssp;
 
-  check_assertion(udp->entity.kind == (a_byte_il_entry_kind)iek_namespace);
+  check_assertion(udp->entity.kind == iek_namespace);
   /* Get a pointer to the namespace to be used. */
   nsp = skip_namespace_aliases((a_namespace_ptr)udp->entity.ptr);
   ns_sym = (a_symbol_ptr)nsp->source_corresp.assoc_info;
@@ -3967,7 +3967,7 @@ file scope if it refers to the namespace being popped.
   while (udp != NULL) {
     a_namespace_ptr	udp_nsp;
     check_assertion(udp->is_using_directive);
-    check_assertion(udp->entity.kind == (a_byte_il_entry_kind)iek_namespace);
+    check_assertion(udp->entity.kind == iek_namespace);
     /* Get a pointer to the namespace to be used. */
     udp_nsp = skip_namespace_aliases((a_namespace_ptr)udp->entity.ptr);
     if (!end_of_scope || udp_nsp == nsp) {
@@ -6524,7 +6524,7 @@ curr_routine points to the routine entry; otherwise, it is NULL.
                           sssdp->decl_position.column ==
                                                   scp->decl_position.column);
 #endif /* CHECKING */
-          ssep->entity.kind = (a_byte_il_entry_kind)iek_variable;
+          ssep->entity.kind = iek_variable;
           ssep->entity.ptr = (char *)var_ptr;
           check_assertion(var_ptr->declared_type == NULL);
           var_ptr->declared_type = sssdp->declared_type;

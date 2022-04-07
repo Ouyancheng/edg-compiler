@@ -463,7 +463,7 @@ static FILE	*f_informational;
 			   messages. */
 			
 
-typedef enum /* an_nm_format_kind */ {
+enum an_nm_format_kind {
 	nmfk_default,
 		/* SunOS 4.1. */
 	nmfk_solaris,
@@ -484,7 +484,7 @@ typedef enum /* an_nm_format_kind */ {
 		/* Apple MacOS X 64 bit (i.e., Snow Leopard and
 		   beyond). */
 	nmfk_lst
-} an_nm_format_kind;
+};
 
 static an_nm_format_kind
 		nm_format = nmfk_default;
@@ -656,7 +656,7 @@ Get the current directory name and save it in curr_dir_name.
 }  /* pl_get_curr_dir_name */
 
 
-typedef enum /*a_pl_error_code*/ {
+enum a_pl_error_code {
   pl_ec_no_longer_needed,
   pl_ec_assigned_to_file,
   pl_ec_message_prefix,
@@ -689,7 +689,7 @@ typedef enum /*a_pl_error_code*/ {
   pl_ec_out_of_date,
   pl_ec_corrupted_template_info_file,
   pl_ec_last 	/* must be last */
-} a_pl_error_code;
+};
 
 
 static a_const_char *pl_error_text(a_pl_error_code error_code)

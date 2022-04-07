@@ -962,12 +962,12 @@ typedef struct a_simple_source_position {
 		column;
 } a_simple_source_position;
 
-typedef enum /*a_C_dialect*/ {
+enum a_C_dialect {
   /* Possible C/C++ dialects to compile. */
   C_dialect_ANSI,	/* ANSI C. */
   C_dialect_pcc,	/* UNIX pcc C. */
   C_dialect_cplusplus	/* C++. */
-} a_C_dialect;
+};
 
 
 EXTERN a_C_dialect

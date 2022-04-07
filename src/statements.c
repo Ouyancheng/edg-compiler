@@ -1992,8 +1992,7 @@ body of a constexpr function or constructor.
        declaration.  E.g., without the marker, there would be no distinction
        between "for (int i = 0; int j = 3; --j);" and
        "for (int i = 0, j = 3; ; --j);". */
-    add_end_of_construct_source_sequence_entry(
-                              (char*)sp, (a_byte_il_entry_kind)iek_statement);
+    add_end_of_construct_source_sequence_entry((char*)sp, iek_statement);
   }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   if (*sssep->p_declared_entities != NULL) {
@@ -2001,7 +2000,7 @@ body of a constexpr function or constructor.
     sssep->p_declared_entities = NULL;
     sp->variant.decl.entities = ielep;
     for (; ielep != NULL; ielep = ielep->next) {
-      if (ielep->entity.kind == (a_byte_il_entry_kind)iek_variable) {
+      if (ielep->entity.kind == iek_variable) {
         a_variable_ptr  vp = (a_variable_ptr)ielep->entity.ptr;
         if (var_has_static_or_thread_storage_duration(vp)) {
           sp->variant.decl.has_static_or_thread_variable = TRUE;
@@ -2122,7 +2121,7 @@ function prototype scope are not recorded).
       *p = alloc_il_entity_list_entry();
       switch_back_to_original_region(region_to_switch_back_to);
       (*p)->entity.ptr = il_entry_for_symbol(sym, &entity_kind);
-      (*p)->entity.kind = (a_byte_il_entry_kind)entity_kind;
+      (*p)->entity.kind = entity_kind;
     }  /* if */
   }  /* if */
 }  /* record_entity_in_decl_stmt_if_needed */
@@ -3638,8 +3637,7 @@ statement implicitly defines a local scope.
 #if GENERATE_SOURCE_SEQUENCE_LISTS
     /* Add a source sequence entry marking the end of the compiler-generated
        block that was added to surround the dependent statement. */
-    add_end_of_construct_source_sequence_entry(
-                         (char *)block, (a_byte_il_entry_kind)iek_statement);
+    add_end_of_construct_source_sequence_entry((char *)block, iek_statement);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   }  /* if */
   db_exit();
@@ -3693,7 +3691,7 @@ error).
 */
 {
   for  (; entry != NULL; entry = entry->next) {
-    if (entry->entity.kind == (a_byte_il_entry_kind)iek_variable) {
+    if (entry->entity.kind == iek_variable) {
       a_variable_ptr  vp = (a_variable_ptr)entry->entity.ptr;
       if (vp->init_kind == (an_init_kind)initk_dynamic) {
         a_control_flow_descr_ptr  cfdp = alloc_control_flow_descr(
@@ -3807,8 +3805,8 @@ scope and an enk_condition node (the node is attached to sp).
            and
              if (int i = 0, j = 3; j);
          */
-        add_end_of_construct_source_sequence_entry(
-                         (char*)decl_sp, (a_byte_il_entry_kind)iek_statement);
+        add_end_of_construct_source_sequence_entry((char*)decl_sp,
+                                                   iek_statement);
       }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       decl_sp->variant.decl.entities = *sssep->p_declared_entities;
@@ -4608,8 +4606,7 @@ See also 3.6.5.2.
   /* Add an end-of-construct source sequence entry to indicate the location of
      the "while" clause.  This allows pragmas and such to be represented when
      they occur between the dependent statement and the "while" keyword. */
-  add_end_of_construct_source_sequence_entry((char *)sp,
-                                          (a_byte_il_entry_kind)iek_statement);
+  add_end_of_construct_source_sequence_entry((char *)sp, iek_statement);
   if (!source_sequence_entries_disallowed) {
     /* Retrieve the end-of-construct entry just created and modify its
        position to point to the "while" keyword (it currently points to the
@@ -4617,8 +4614,7 @@ See also 3.6.5.2.
     a_source_sequence_entry_ptr     ssep;
     a_src_seq_end_of_construct_ptr  sseocp;
     ssep = scope_stack[depth_scope_stack].end_of_source_sequence_list;
-    check_assertion(ssep->entity.kind ==
-                           (a_byte_il_entry_kind)iek_src_seq_end_of_construct);
+    check_assertion(ssep->entity.kind == iek_src_seq_end_of_construct);
     sseocp = (a_src_seq_end_of_construct_ptr)ssep->entity.ptr;
     sseocp->position = saved_while_position;
   }  /* if */
@@ -8298,8 +8294,7 @@ is being parsed within the context of the __extension__ keyword.
      were temporarily disallowed, but pushing and popping the scope stack may
      have lost the flag that indicates that.  Restore it now. */
   source_sequence_entries_disallowed = saved_sses_disallowed;
-  add_end_of_construct_source_sequence_entry(
-                           (char *)block, (a_byte_il_entry_kind)iek_statement);
+  add_end_of_construct_source_sequence_entry((char *)block, iek_statement);
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   block->end_position = end_pos_curr_token;

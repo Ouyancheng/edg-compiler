@@ -4778,8 +4778,7 @@ and a diagnostic is issued (unless suppress_error is TRUE).
     add_to_dependent_type_fixup_list(underlying_elem_type,
                                      (a_dependent_type_fixup_kind)
                                                 dtfk_array_type_size,
-                                     (char *)array_type,
-                                     (a_byte_il_entry_kind)iek_type,
+                                     (char *)array_type, iek_type,
                                      &error_position);
     array_type->incomplete = TRUE;
     array_type->size = 0;

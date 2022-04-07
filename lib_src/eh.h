@@ -345,7 +345,7 @@ typedef struct an_exception_type_specification {
 
 
 /* The kinds of stack entries that may exist. */
-enum an_eh_stack_entry_kind_tag {
+enum an_eh_stack_entry_kind : a_byte {
   ehsek_old_try_block,	/* Used for a try block up to version 3.10. */
   ehsek_function,
   ehsek_throw_spec,
@@ -355,7 +355,6 @@ enum an_eh_stack_entry_kind_tag {
   ehsek_noexcept
 };
 
-typedef a_byte an_eh_stack_entry_kind;
 
 typedef struct an_eh_stack_entry *an_eh_stack_entry_ptr;
 typedef struct an_eh_stack_entry {

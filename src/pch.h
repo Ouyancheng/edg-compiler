@@ -33,7 +33,7 @@ Enumeration used to specify the kinds of precompiled header events that
 can be recorded.  If this list is updated, be sure to change
 pch_event_kind_names below.
 */
-typedef enum /* a_pch_event_kind */ {
+enum a_pch_event_kind {
   pchek_none,
 			/* The event kind is not yet known, or there is
                            no event. */
@@ -42,7 +42,7 @@ typedef enum /* a_pch_event_kind */ {
   pchek_pp_directive,
 			/* A preprocessing directive. */
   pchek_last		/* Must be last. */
-} a_pch_event_kind;
+};
 
 #if DEBUG
 /*

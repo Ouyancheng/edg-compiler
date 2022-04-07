@@ -2578,8 +2578,8 @@ do_set_proper_definition_needed_flag:
         /* a_param_type entries and a_base_class entries have no needed flags
            but point back to their associated Microsoft attributes.  Don't
            process those entries since it would cause a recursive loop. */
-        if (eptr->entity.kind != (a_byte_il_entry_kind)iek_param_type &&
-            eptr->entity.kind != (a_byte_il_entry_kind)iek_base_class)
+        if (eptr->entity.kind != iek_param_type &&
+            eptr->entity.kind != iek_base_class)
 #endif /* NEEDED_FLAG_WALK */
         /* Do not insert code here. */
         {

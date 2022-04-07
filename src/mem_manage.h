@@ -417,7 +417,7 @@ When adding an entry in this enumeration, also make a similar change
 in function_pointers (in fe_init.c).
 */
 
-enum a_function_number_tag {
+enum a_function_number : a_byte {
   fn_null,                             /* Indicates a NULL function pointer. */
   fn_hash_attribute_kind,
   fn_compare_for_attr_corresp_checking_map,
@@ -512,8 +512,7 @@ enum a_function_number_tag {
 #endif /* UNICODE_VULNERABILITY_DETECTION_SUPPORTED */
   fn_last
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_function_number;
+
 
 /* Generic function pointer type. */
 typedef void (*a_function_pointer)();

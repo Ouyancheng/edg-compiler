@@ -1472,7 +1472,7 @@ typeinfo variable in a COMDAT group.
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* If the typeinfo object has internal linkage, we cannot make it dllimport
        or dllexport. */
-    typeinfo_var->decl_modifiers &= ~(a_decl_modifier)DM_DLLFLAGS;
+    typeinfo_var->decl_modifiers &= ~DM_DLLFLAGS;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     typeinfo_var->ELF_visibility = (an_ELF_visibility_kind)evk_unspecified;
@@ -1480,7 +1480,7 @@ typeinfo variable in a COMDAT group.
 #if SUN_EXTENSIONS_ALLOWED
     /* If the typeinfo object has  internal linkage, we cannot give it a Sun
        link scope. */
-    typeinfo_var->decl_modifiers &= ~(a_decl_modifier)DM_ANY_SUN_LINK_SCOPE;
+    typeinfo_var->decl_modifiers &= ~DM_ANY_SUN_LINK_SCOPE;
 #endif /* SUN_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if ((typeinfo_var->decl_modifiers & DM_DLLIMPORT) != 0) {
@@ -4613,7 +4613,7 @@ static a_field_ptr
 Values for the "kind" field of eh_stack_entry.  This must match the runtime's
 definition of these values.
 */
-typedef enum {
+enum an_eh_stack_entry_kind {
   ehsek_old_try_block,	/* Used for a try block up to version 3.10. */
   ehsek_function,
   ehsek_throw_spec,
@@ -4628,7 +4628,7 @@ typedef enum {
   /*lint -esym(749,*ehsek_old_try_block)*/
 #endif /* ABI_COMPATIBILITY_VERSION <= 310 */
   ehsek_noexcept
-} an_eh_stack_entry_kind;
+};
 
 
 static a_type_ptr make_eh_stack_entry_type(void)
@@ -5498,7 +5498,7 @@ with zero is built, and a pointer to it is returned in *setjmp_compare_node.
     for (ap = rp->source_corresp.attributes;
          ap != NULL;
          ap = ap->next) {
-      if (ap->kind == (a_byte_attribute_kind)ak_always_inline) {
+      if (ap->kind == ak_always_inline) {
         rp->always_inline = FALSE;
         pos_remark(ec_always_inline_suppressed, &ap->position);
         if (prev == NULL) {

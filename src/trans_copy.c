@@ -1193,7 +1193,7 @@ not being eliminated.
     for (entry = param->entities_defined_in_default_arg;
          entry != NULL;
          entry = entry->next) {
-      if (entry->entity.kind == (a_byte_il_entry_kind)iek_type) {
+      if (entry->entity.kind == iek_type) {
         a_type_ptr  tp = (a_type_ptr)entry->entity.ptr;
         if (type_is_lambda_closure(tp)) {
           class_symbol_supp(symbol_for(tp))

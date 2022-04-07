@@ -1361,8 +1361,7 @@ the attribute string past the closing "]" or "}".
          "gnu" namespace attributes when they appear in attributes, but
          sometimes not when querying for them with __has_cpp_attribute.
          Err on the side of accepting them. */
-      if (!(clang_mode && ap->family ==
-                              (a_byte_attribute_family)af_has_cpp_attribute) &&
+      if (!(clang_mode && ap->family == af_has_cpp_attribute) &&
           gnu_mode && is_attr_in_gnu_namespace(ap)) {
         match = TRUE;
         /* *cond doesn't need to be updated. */
@@ -1524,25 +1523,25 @@ there is an applicable one; otherwise, return NULL.
   an_attr_descr_ptr           result = NULL;
   an_attr_name_map_entry_ptr  *p_ep, ep = NULL;
   a_const_char                *name = ap->name;
-  a_byte_attribute_family     family = ap->family;
+  an_attribute_family         family = ap->family;
 
   if (gnu_mode && gnu_version >= 40800 &&
-      family == (a_byte_attribute_family)af_std &&
+      family == af_std &&
       ap->namespace_name != NULL &&
       !ms_extensions &&
       is_attr_in_gnu_namespace(ap)) {
     /* Starting with version 4.8, GCC maps standard attributes of the form
        [[ gnu::xyz(...) ]] to __attribute((xyz(...))).  This includes
        attribute names with added underscores (see below). */
-    family = (a_byte_attribute_family)af_gnu;
+    family = af_gnu;
     ap->is_std_gcc_attribute = TRUE;
   } else if (clang_mode &&
-             family == (a_byte_attribute_family)af_std &&
+             family == af_std &&
              ap->namespace_name != NULL &&
              !ms_extensions &&
              strcmp(ap->namespace_name, "clang") == 0) {
     /* Clang also maps [[ clang::xyz(...) ]] to __attribute((xyz(...))). */
-    family = (a_byte_attribute_family)af_gnu;
+    family = af_gnu;
     ap->is_std_gcc_attribute = TRUE;
   }  /* if */
   p_ep = lookup_attribute_name(name, (an_attribute_family)family);
@@ -1574,12 +1573,12 @@ search_done:
          fields in the attribute accordingly. */
       an_attr_appl_descr  *aadp;
       result = ep->descr;
-      ap->kind = (a_byte_attribute_kind)result->attr_kind;
+      ap->kind = result->attr_kind;
       aadp = &known_attr_appl_table[(int)ap->kind];
       ap->transforms_type_specifier = (aadp->target_constraints[0] == 'T');
       /* Check that the attribute application table contains the correct
          entry at the expected index. */
-      check_attr_config((a_byte_attribute_kind)aadp->kind == ap->kind, ap,
+      check_attr_config(aadp->kind == ap->kind, ap,
                         "known_attr_appl_table misconfigured");
     }  /* if */
   }  /* if */
@@ -1784,7 +1783,7 @@ ak_unrecognized, and return NULL.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
     aap->end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-    aap->token_kind = (a_small_token_kind)curr_token;
+    aap->token_kind = curr_token;
     aap->variant.token = il_string_for_curr_token();
     (void)get_token();
   } else {
@@ -1809,7 +1808,7 @@ token is consumed by a call to get_token.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   aap->end_position = end_pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-  aap->token_kind = (a_small_token_kind)curr_token;
+  aap->token_kind = curr_token;
   aap->variant.token = il_string_for_curr_token();
   (void)get_token();
   return aap;
@@ -2193,7 +2192,7 @@ that of the current token.
 {
   an_attribute_ptr  ap = alloc_attribute();
 
-  ap->family = (a_byte_attribute_family)family;
+  ap->family = family;
   ap->position = pos_curr_token;
   return ap;
 }  /* make_attribute */
@@ -2226,7 +2225,7 @@ track end positions).
        won't work in cases where SUPPRESS_RESTRICT_IN_GENERATED_CODE is TRUE,
        so handle that as a special case here. */
     ap->name = copy_string_to_region(file_scope_region_number, "restrict");
-  } else if (ap->family == (a_byte_attribute_family)af_alignas && C_mode()) { 
+  } else if (ap->family == af_alignas && C_mode()) {
     /* In C mode, the "alignas" attribute is spelled "_Alignas". */
     ap->name = copy_string_to_region(file_scope_region_number, "_Alignas");
   } else {
@@ -2325,12 +2324,12 @@ be used as the implicit attribute namespace name for this attribute.
                          &ap->position);
         }  /* if */
       } else if (!record_unrecognized_attributes ||
-                 ap->family == (a_byte_attribute_family)af_ms_declspec) {
+                 ap->family == af_ms_declspec) {
         /* If we are not recording unrecognized attributes, drop unrecognized
            attributes with a warning.  Always issue a discretionary error for
            unrecognized Microsoft __declspec attributes. */
         an_error_severity  sev = es_warning;
-        if (ap->family == (a_byte_attribute_family)af_ms_declspec) {
+        if (ap->family == af_ms_declspec) {
           sev = es_discretionary_error;
         }  /* if */
         if (ap->is_invalid_namespace) {
@@ -2349,9 +2348,9 @@ be used as the implicit attribute namespace name for this attribute.
 }  /* scan_attribute */
 
 
-an_attribute_ptr make_module_attribute(a_const_char            *name,
-                                       a_byte_attribute_family family,
-                                       an_attribute_ptr        next)
+an_attribute_ptr make_module_attribute(a_const_char        *name,
+                                       an_attribute_family family,
+                                       an_attribute_ptr    next)
 /*
 Utility to create an attribute with the specified name and family.  Used to
 create an_attribute entries for entities defined in modules.  The newly-
@@ -2395,7 +2394,7 @@ that appeared in a previous "using" prefix.  Can return NULL on error.
       if (curr_token == end_token || curr_token == tok_comma) {
         /* An empty attribute: Create a placeholder attribute entry for it. */
         *p_attribute = make_attribute(af);
-        (*p_attribute)->kind = (a_byte_attribute_kind)ak_empty_attr;
+        (*p_attribute)->kind = ak_empty_attr;
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         (*p_attribute)->end_position = pos_curr_token;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
@@ -2408,7 +2407,7 @@ that appeared in a previous "using" prefix.  Can return NULL on error.
            recognize them.  We just record them as "unrecognized"
            attributes. */
         *p_attribute = make_attribute(af);
-        (*p_attribute)->kind = (a_byte_attribute_kind)ak_unrecognized;
+        (*p_attribute)->kind = ak_unrecognized;
         if (const_for_curr_token.kind == (a_constant_repr_kind)ck_error) {
           /* A malformed string literal: An error has already been issued. */
           expect_error();
@@ -2470,7 +2469,7 @@ that appeared in a previous "using" prefix.  Can return NULL on error.
     }  /* if */
   }  /* for */
   for (ap = attributes; ap != NULL; ap = ap->next) {
-    ap->syntactic_location = (a_byte_attribute_location)loc;
+    ap->syntactic_location = loc;
     /* Clear the attr_family_seen array. */
     reset_attr_family_seen(ap);
   }  /* for */
@@ -2545,8 +2544,8 @@ location in which the group appears.
         }  /* if */
       }  /* if */
       using_ns_ap = make_attribute(af_std);
-      using_ns_ap->kind = (a_byte_attribute_kind)ak_attr_using_prefix;
-      using_ns_ap->syntactic_location = (a_byte_attribute_location)loc;
+      using_ns_ap->kind = ak_attr_using_prefix;
+      using_ns_ap->syntactic_location = loc;
       record_attribute_name(using_ns_ap);
       check_for_unrecognized_attribute_namespace(using_ns_ap);
       (void)get_token();
@@ -2582,9 +2581,9 @@ af_alignas and the attribute name is "alignas".
   a_source_position  group_pos;
 
   check_assertion(curr_token == tok_alignas);
-  ap->kind = (a_byte_attribute_kind)ak_align;
+  ap->kind = ak_align;
   record_attribute_name(ap);
-  ap->syntactic_location = (a_byte_attribute_location)loc;
+  ap->syntactic_location = loc;
   group_pos = pos_curr_token;
   /* Skip over "alignas". */
   (void)get_token();
@@ -2685,7 +2684,7 @@ is made.
     attributes = unscanned_attributes;
     /* Update the syntactic location to the given one. */
     for (ap = attributes; ap != NULL; ap = ap->next) {
-      ap->syntactic_location = (a_byte_attribute_location)loc;
+      ap->syntactic_location = loc;
     }  /* for */
     unscanned_attributes = NULL;
     unscanned_attributes_active = FALSE;
@@ -2835,7 +2834,7 @@ doesn't apply to the entity on which it is specified.  The given attribute is
 turned into an ak_unrecognized attribute.
 */
 {
-  if (ap->family == (a_byte_attribute_family)af_alignas) {
+  if (ap->family == af_alignas) {
     pos_diagnostic(sev, ec_wrong_entity_for_alignas, &ap->position);
   } else {
     pos_st_diagnostic(sev, ec_wrong_entity_for_attribute, &ap->position,
@@ -3426,9 +3425,8 @@ appropriate and set ap->kind to ak_unrecognized).
     an_error_severity  sev = es_error;
     if (match_found && weak_mismatch) {
       sev = es_warning;
-    } else if (ap->family == (a_byte_attribute_family)af_ms_declspec &&
-               ap->syntactic_location ==
-                                     (a_byte_attribute_location)al_tag_name) {
+    } else if (ap->family == af_ms_declspec &&
+               ap->syntactic_location == al_tag_name) {
       /* Microsoft compilers ignore recognized attributes on tag names.
          We issue a warning. */
       sev = es_warning;
@@ -3439,7 +3437,7 @@ appropriate and set ap->kind to ak_unrecognized).
          applied to types.  (However, a hard error is still issued on a type-
          transforming attribute applied to a class or enumeration type.) */
       sev = es_warning;
-    } else if (ap->family != (a_byte_attribute_family)af_alignas &&
+    } else if (ap->family != af_alignas &&
                entity != NULL &&
                (clang_mode || gnu_version_is(>=40300))) {
       /* Clang and recent versions of GNU are more forgiving about most
@@ -3535,7 +3533,7 @@ Output the given attribute to f_debug.
       unexpected_condition();
   }  /* switch */
   (void)fprintf(f_debug, "%s", str);
-  if (ap->kind == (a_byte_attribute_kind)ak_attr_using_prefix) {
+  if (ap->kind == ak_attr_using_prefix) {
     (void)fprintf(f_debug, "\"using\" ");
   }  /* if */
   if (ap->namespace_name != NULL) {
@@ -4260,7 +4258,7 @@ their syntactic location recorded as al_implicit.
       copy_attribute(ap, *p_attr);
       (*p_attr)->next = NULL;
       (*p_attr)->assoc_info = NULL;
-      (*p_attr)->syntactic_location = (a_byte_attribute_location)al_implicit;
+      (*p_attr)->syntactic_location = al_implicit;
       p_attr = &(*p_attr)->next;
     }  /* if */
   }  /* for */
@@ -4384,7 +4382,7 @@ and make new_attr unrecognized.
   an_attribute_ptr  ap = *get_attribute_link(entity, entity_kind);
 
   for (; ap != NULL && ap != new_attr; ap = ap->next) {
-    if (ap->kind == (a_byte_attribute_kind)kind) {
+    if (ap->kind == kind) {
       pos_st2_error(ec_attribute_conflict, &new_attr->position,
                     attribute_display_name(ap),
                     new_attr->name);
@@ -4446,17 +4444,17 @@ and C11 _Alignas specifiers.
     } else {
       constr = "c|e|v:-r!-h!|d:-b!";
     }  /* if */
-    if (c11_mode && ap->family == (a_byte_attribute_family)af_alignas) {
+    if (c11_mode && ap->family == af_alignas) {
       /* C11 allows _Alignas in syntactic locations different from C++11's
          alignas. */
-      if (ap->syntactic_location != (a_byte_attribute_location)al_prefix &&
-          ap->syntactic_location != (a_byte_attribute_location)al_specifier) {
+      if (ap->syntactic_location != al_prefix &&
+          ap->syntactic_location != al_specifier) {
         pos_diagnostic(es_discretionary_error, ec_attribute_not_allowed,
                        &ap->position);
       }  /* if */
     }  /* if */
   } else {
-    check_assertion(ap->family == (a_byte_attribute_family)af_ms_declspec);
+    check_assertion(ap->family == af_ms_declspec);
     constr = "c|e|t|v|d|r";
   }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -4481,7 +4479,7 @@ and C11 _Alignas specifiers.
       } else if (aap->kind == (an_attribute_arg_kind)aak_empty) {
         /* alignas accepts pack expansions.  We may get here with an empty
            expansions: The attribute has no effect in that case. */
-        check_assertion(ap->family == (a_byte_attribute_family)af_alignas);
+        check_assertion(ap->family == af_alignas);
         break;
       } else if (aap->kind == (an_attribute_arg_kind)aak_type) {
         a_type_ptr  tp = aap->variant.type;
@@ -4588,7 +4586,7 @@ and C11 _Alignas specifiers.
            integral type, is performed the value indicated here will be
            honored.  Note that this attribute applies to a typedef itself, not
            to its underlying type. */
-        if (ap->family == (a_byte_attribute_family)af_ms_declspec) {
+        if (ap->family == af_ms_declspec) {
           if (type_is_typedef(tp) &&
               alignment < alignment_of_type(tp->variant.typeref.type)) {
             pos_warning(ec_declspec_align_reduction_ignored, &ap->position);
@@ -4667,8 +4665,7 @@ of the ratified C++11 standard.  A warning is issued in strict mode.
 */
 {
   if (strict_ansi_mode) {
-    check_assertion(ap->family == (a_byte_attribute_family)af_std &&
-                    cpp11_mode);
+    check_assertion(ap->family == af_std && cpp11_mode);
     pos_diagnostic(es_warning, ec_attribute_is_nonstandard,
                    &ap->position);
   }  /* if */
@@ -4902,9 +4899,8 @@ The given entity must be a variable, routine, type, or field.  Apply the
     a_type_ptr  tp = (a_type_ptr)entity;
     if (!(is_tag_type(tp) || type_is_typedef(tp))) {
       report_bad_attribute_target(es_warning, ap);
-    } else if (ap->family == (a_byte_attribute_family)af_ms_declspec &&
-               ap->syntactic_location ==
-                                     (a_byte_attribute_location)al_tag_name) {
+    } else if (ap->family == af_ms_declspec &&
+               ap->syntactic_location == al_tag_name) {
       /* Microsoft compilers ignore the attribute on enum types and on
          unnamed classes. */
       if (is_immediate_enum_type(tp)) {
@@ -4919,7 +4915,7 @@ The given entity must be a variable, routine, type, or field.  Apply the
   } else if (entity_kind == iek_param_type) {
     /* Note that when the entity is a parameter type, the attribute is later
        transferred to the corresponding parameter variable. */
-    if (ap->family == (a_byte_attribute_family)af_ms_declspec) {
+    if (ap->family == af_ms_declspec) {
       /* Microsoft appears to accept and then discard the attribute. */
       make_attr_unrecognized(ap);
     }  /* if */
@@ -4936,9 +4932,9 @@ The given entity must be a variable, routine, type, or field.  Apply the
       check_assertion(cp->kind == (a_constant_repr_kind)ck_string);
       check_assertion(
                cp->variant.string.value[cp->variant.string.length-1] == '\0');
-      if ((ap->family == (a_byte_attribute_family)af_ms_declspec &&
+      if ((ap->family == af_ms_declspec &&
            microsoft_mode && microsoft_version < 1400) ||
-          (ap->family == (a_byte_attribute_family)af_gnu &&
+          (ap->family == af_gnu &&
            gnu_mode && gnu_version < 40500)) {
         /* Only Microsoft and GNU compilers of recent vintage allow an
            optional string argument. */
@@ -4971,7 +4967,7 @@ only the first such matching attribute is returned.
   an_attribute_ptr  ap = scp->attributes;
 
   for (; ap != NULL; ap = ap->next) {
-    if (ap->kind == (a_byte_attribute_kind)kind &&
+    if (ap->kind == kind &&
         ap->arguments != NULL &&
         ap->arguments->next == NULL &&
         ap->arguments->kind == (an_attribute_arg_kind)aak_constant &&
@@ -5085,7 +5081,7 @@ entity.
     an_error_severity  sev;
     sev = (microsoft_mode && microsoft_version < 1400) ? es_warning : es_error;
     report_bad_attribute_target(sev, ap);
-  } else if (ap->family == (a_byte_attribute_family)af_std) {
+  } else if (ap->family == af_std) {
     /* The standard attribute has more constraints than the corresponding GNU
        attribute: It can appear on a routine only, and it must appear on the
        first declaration of that routine. */
@@ -5326,7 +5322,7 @@ attribute currently has no effect in the front end.
     a_statement_ptr sp = (a_statement_ptr)entity;
     if (sp->is_likely || sp->is_unlikely) {
       err = TRUE;
-    } else if (ap->kind == (a_byte_attribute_kind)ak_likely) {
+    } else if (ap->kind == ak_likely) {
       sp->is_likely = TRUE;
     } else {
       sp->is_unlikely = TRUE;
@@ -5335,7 +5331,7 @@ attribute currently has no effect in the front end.
     a_label_ptr lp = (a_label_ptr)entity;
     if (lp->is_likely || lp->is_unlikely) {
       err = TRUE;
-    } else if (ap->kind == (a_byte_attribute_kind)ak_likely) {
+    } else if (ap->kind == ak_likely) {
       lp->is_likely = TRUE;
     } else {
       lp->is_unlikely = TRUE;
@@ -5419,7 +5415,7 @@ to it and return the entity.
          attribute is present. */
       rtp->variant.routine.extra_info->has_enable_if_attribute = TRUE;
     }  /* if */
-    if (ap->kind == (a_byte_attribute_kind)ak_enable_if) {
+    if (ap->kind == ak_enable_if) {
       add_end_of_parse_action(deferred_check_enable_if_attr, dps,
                               /*secondary_decls=*/TRUE);
     }  /* if */
@@ -5535,7 +5531,7 @@ or Microsoft "allocate" attribute to it and return the entity.
   arg = aap->variant.constant;
   check_assertion(arg->kind == (a_constant_repr_kind)ck_string);
   str = arg->variant.string.value;
-  if (ap->family == (a_byte_attribute_family)af_ms_declspec) {
+  if (ap->family == af_ms_declspec) {
     /* Microsoft compilers disallow different section names on different
        declarations.  (GNU compilers retain the last section name.)  Also,
        unlike GNU compilers, Microsoft only allows a section name to appear
@@ -5605,7 +5601,7 @@ return the routine or variable.  This function may also be called for the
         pos_error(ec_ifunc_cant_be_alias, &ap->position);
       } else {
         rp->implicit_alias = FALSE;
-        if (ap->kind == (a_byte_attribute_kind)ak_alias) {
+        if (ap->kind == ak_alias) {
           rp->is_gnu_alias = TRUE;
         }  /* if */
         add_alias_fixup(symbol_for(rp), (char*)NULL, arg->variant.string.value,
@@ -5621,7 +5617,7 @@ return the routine or variable.  This function may also be called for the
                    attribute_display_name(ap));
       make_attr_unrecognized(ap);
     } else {
-      if (ap->kind == (a_byte_attribute_kind)ak_alias) {
+      if (ap->kind == ak_alias) {
         vp->is_gnu_alias = TRUE;
       }  /* if */
       add_alias_fixup(symbol_for(vp), (char*)NULL, arg->variant.string.value,
@@ -5895,7 +5891,7 @@ cases return zero (in error cases, also set ap->kind to ak_unrecognized).
                            (a_host_large_integer)65535, &attr_priority)) {
     if (attr_priority < 101) {
       /* Priorities less than 101 are reserved for internal use. */
-      pos_warning(ap->kind == (a_byte_attribute_kind)ak_init_priority ?
+      pos_warning(ap->kind == ak_init_priority ?
                         ec_init_priority_reserved :
                         ec_ctor_dtor_priority_reserved,
                   &ap->position);
@@ -7448,10 +7444,8 @@ attribute to it and return the entity.
          it will call check_transparent_union to make sure that the attribute
          is legal. */
       tp->variant.class_struct_union.is_transparent = TRUE;
-    } else if (ap->syntactic_location !=
-                                (a_byte_attribute_location)al_prefix &&
-               (ap->syntactic_location !=
-                                (a_byte_attribute_location)al_declarator_id ||
+    } else if (ap->syntactic_location != al_prefix &&
+               (ap->syntactic_location != al_declarator_id ||
                 !type_is_typedef(type) ||
                 is_incomplete_type(tp))) {
       pos_warning(ec_transparent_attribute_ignored, &ap->position);
@@ -8260,7 +8254,7 @@ to match GNU's behavior).
         make_attr_unrecognized(ap);
       }  /* if */
     }  /* if */
-    if (ap->kind == (a_byte_attribute_kind)ak_abi_tag) {
+    if (ap->kind == ak_abi_tag) {
       /* See if there are any previous abi_tag attributes on this entity (there
          should at least be the current abi_tag attribute). */
       prev = find_attribute(ak_abi_tag, scp->attributes);
@@ -8312,7 +8306,7 @@ to match GNU's behavior).
         }  /* if */
       }  /* if */
     }  /* if */
-    if (ap->kind == (a_byte_attribute_kind)ak_abi_tag) {
+    if (ap->kind == ak_abi_tag) {
       /* If the attribute hasn't been marked as unrecognized, set the
          corresponding flag in the entity. */
       gnu_abi_tag_attribute_seen = TRUE;
@@ -8353,7 +8347,7 @@ head of the attribute list for the entity).
   check_assertion(gnu_abi_tag_attribute_seen &&
                   con->kind == (a_constant_repr_kind)ck_string);
   for (ap = scp->attributes; ap != NULL; ap = ap->next) {
-    if (ap->kind == (a_byte_attribute_kind)ak_abi_tag) {
+    if (ap->kind == ak_abi_tag) {
       for (aap = ap->arguments; aap != NULL; aap = aap->next) {
         check_assertion(aap->kind == (an_attribute_arg_kind)aak_constant &&
                         aap->variant.constant->kind ==
@@ -8372,7 +8366,7 @@ head of the attribute list for the entity).
   if (scp->attributes == NULL ||
       !scp->attributes->is_implicit_abi_tag_attribute) {
     implicit_ap = make_attribute((an_attribute_family)af_gnu);
-    implicit_ap->kind = (a_byte_attribute_kind)ak_abi_tag;
+    implicit_ap->kind = ak_abi_tag;
     implicit_ap->name = copy_string_to_region(file_scope_region_number,
                                               "abi_tag");
     implicit_ap->is_implicit_abi_tag_attribute = TRUE;
@@ -8432,7 +8426,7 @@ index and the metadata type-def token that it refers to.
   a_constant_ptr  arg, arg2;
   a_boolean       ovflo;
 
-  check_assertion(ap->kind == (a_byte_attribute_kind)ak_assembly_info);
+  check_assertion(ap->kind == ak_assembly_info);
   check_assertion(ap->arguments != NULL && 
                   ap->arguments->kind == (an_attribute_arg_kind)aak_constant &&
                   ap->arguments->next != NULL &&
@@ -8524,8 +8518,7 @@ The given entity is returned.
 */
 {
   if (entity_kind == iek_type) {
-    check_assertion(ap->syntactic_location ==
-                                      (a_byte_attribute_location)al_tag_name);
+    check_assertion(ap->syntactic_location == al_tag_name);
     /* The warnings generated here appear to be generated only by earlier
        versions of Microsoft Visual Studio. */
     if (microsoft_version < 1200) {
@@ -8761,14 +8754,14 @@ stream.
       /* Skip the "=" that should follow. */
       check_assertion(aap != NULL);
       if (aap->kind != (an_attribute_arg_kind)aak_raw_token ||
-          aap->token_kind != (a_small_token_kind)tok_assign) {
+          aap->token_kind != tok_assign) {
         errcode = ec_exp_assign;
         break;
       }  /* if */
       aap = aap->next;
       /* An identifier should be next: Record it in the field entry. */
       check_assertion(aap != NULL);
-      if (aap->token_kind != (a_small_token_kind)tok_identifier) {
+      if (aap->token_kind != tok_identifier) {
         errcode = ec_exp_identifier;
         break;
       } else if (!is_get && !is_put) {
@@ -8795,7 +8788,7 @@ stream.
         break;
       } else {
         check_assertion(aap->kind == (an_attribute_arg_kind)aak_raw_token);
-        if (aap->token_kind == (a_small_token_kind)tok_comma) {
+        if (aap->token_kind == tok_comma) {
           /* A comma: Continue the loop. */
           aap = aap->next;
         } else {
@@ -9691,7 +9684,7 @@ with standard attributes given preference.
       /* Allocate a dummy attribute for matching. */
       dummy_attr = alloc_attribute();
     }  /* if */
-    dummy_attr->family = (a_byte_attribute_kind)family;
+    dummy_attr->family = family;
     dummy_attr->name = name;
     dummy_attr->namespace_name = namespace_name;
     /* Scan through the attributes with this name to see if one meets the
@@ -9768,7 +9761,7 @@ strictest alignment.
   an_attribute_ptr      ap;
 
   for (ap = *oap; ap != NULL; ap = ap->next) {
-    if (ap->kind == (a_byte_attribute_kind)ak_align) {
+    if (ap->kind == ak_align) {
       if (attribute_is_template_dependent(ap)) {
         /* A dependent alignment can have any value; assume it is the
            strictest. */
@@ -9862,7 +9855,7 @@ is_definition is TRUE if the new attribute (new_ap) appears on a definition.
              accomplished by marking them unrecognized (the new attributes will
              be added as part of the normal processing). */
           do {
-            if (old_ap->kind == (a_byte_attribute_kind)ak_align) {
+            if (old_ap->kind == ak_align) {
               make_attr_unrecognized(old_ap);
             }  /* if */
             old_ap = old_ap->next;
@@ -9904,8 +9897,7 @@ attributes from new_list are applied to tssp->attributes.
      the new list. */
   for (app = &tssp->attributes; *app != NULL; app = &(*app)->next) {
     old_ap = *app;
-    if (is_std_attribute(old_ap) ||
-        old_ap->kind == (a_byte_attribute_kind)ak_align) {
+    if (is_std_attribute(old_ap) || old_ap->kind == ak_align) {
       switch (old_ap->kind) {
         case ak_align:
           /* Issue an error if the alignment attribute(s) are not equivalent

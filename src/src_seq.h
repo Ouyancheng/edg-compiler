@@ -83,9 +83,8 @@ extern void f_update_source_sequence_list(char                    *entity_ptr,
 
 extern a_source_sequence_entry_ptr add_empty_source_sequence_entry(void);
 
-extern void add_end_of_construct_source_sequence_entry(
-                                                char                   *ptr,
-                                                a_byte_il_entry_kind   kind);
+extern void add_end_of_construct_source_sequence_entry(char             *ptr,
+                                                       an_il_entry_kind kind);
 
 extern a_source_sequence_entry_ptr matching_end_of_construct(
                                            a_source_sequence_entry_ptr  head);

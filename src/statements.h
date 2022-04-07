@@ -53,7 +53,7 @@ a_control_flow_descr is an entry used in tracking gotos, labels, and
 initializing declarations in order to diagnose errors in transferring
 control past an initialization.
 */
-enum a_control_flow_descr_kind_tag {
+enum a_control_flow_descr_kind : a_byte {
   cfdk_block,		/* Start of a block. */
   cfdk_init,		/* Refers to an stmk_init, stmk_set_vla_size, or
                            stmk_vla_decl statement. */
@@ -62,8 +62,6 @@ enum a_control_flow_descr_kind_tag {
   cfdk_case_label,	/* Case label in switch statement. */
   cfdk_end_of_block	/* End of a block. */
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_control_flow_descr_kind;
 
 
 typedef struct a_control_flow_descr {
@@ -250,7 +248,7 @@ Stack indicating nesting of structured statements.  There is an entry
 on this stack for each current structured statement.  A structured statement
 is one that can contain other statements.
 */
-typedef enum /*a_struct_stmt_kind*/ {
+enum a_struct_stmt_kind {
   /* Types of structured statements. */
   ssk_compound,		/* Compound statement, i.e., { ... }. */
   ssk_if,		/* if (...) statement. */
@@ -265,7 +263,7 @@ typedef enum /*a_struct_stmt_kind*/ {
   ssk_microsoft_try,	/* Microsoft try-except or try-finally. */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   ssk_try_block		/* try compound-stmt handler-seq statement. */
-} a_struct_stmt_kind;
+};
 
 typedef struct a_struct_stmt_stack_entry *a_struct_stmt_stack_entry_ptr;
 typedef struct a_struct_stmt_stack_entry {

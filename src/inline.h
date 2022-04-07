@@ -34,12 +34,12 @@ BEGIN_EDG_NAMESPACE
 Entry used to record information about the remapping to be done on a variable
 while expanding an inline function call.
 */
-typedef enum /*a_variable_remapping_kind*/ {
+enum a_variable_remapping_kind {
   vrk_none,		/* No remapping. */
   vrk_temporary,	/* Variable is remapped to a temporary variable. */
   vrk_constant_expr	/* Variable is remapped to a constant-valued
 			   expression. */
-} a_variable_remapping_kind;
+};
 typedef struct a_variable_remapping_for_inlining
                                         *a_variable_remapping_for_inlining_ptr;
 typedef struct a_variable_remapping_for_inlining {

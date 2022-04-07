@@ -4475,7 +4475,7 @@ on the scope types list.
        */
     an_attribute_ptr ap;
     for (ap = type->source_corresp.attributes; ap != NULL; ap = ap->next) {
-      if (ap->kind == (a_byte_attribute_kind)ak_mode) {
+      if (ap->kind == ak_mode) {
         make_attr_unrecognized(ap);
       }  /* if */
     }  /* for */
@@ -4693,7 +4693,7 @@ Return the integer type that is the lowered form of the indicated
 fixed-point type.
 */
 {
-  an_integer_kind  ikind;
+  a_byte           ikind;
   a_targ_size_t    int_size;
   a_targ_alignment int_alignment;
   a_type_ptr       int_type;
@@ -4711,7 +4711,8 @@ fixed-point type.
       continue;
     }  /* if */
 #endif /* INT128_EXTENSIONS_ALLOWED */
-    get_integer_size_and_alignment(ikind, &int_size, &int_alignment);
+    get_integer_size_and_alignment((an_integer_kind)ikind, &int_size,
+                                   &int_alignment);
     if (int_size == fx_type->size &&
         int_alignment == fx_type->alignment &&
         int_kind_is_signed[(int)ikind] ==
@@ -4720,7 +4721,7 @@ fixed-point type.
       break;
     }  /* if */
   }  /* for */
-  int_type = integer_type(ikind);
+  int_type = integer_type((an_integer_kind)ikind);
   return int_type;
 }  /* lowered_integer_type_for_fixed_point_type */
 
@@ -4772,14 +4773,12 @@ static void lower_c99_fixed_point_types(void)
 Replace the fixed-point types by their lowered representations.
 */
 {
-  a_fixed_point_precision  precision;
+  a_byte                   precision;
   a_boolean                is_unsigned, is_fract_type, saturating;
   a_fixed_point_type_descr descr;
 
-  for (precision = (a_fixed_point_precision)fpp_short;
-       precision < (a_fixed_point_precision)fpp_last;
-       precision++) {
-    descr.precision = precision;
+  for (precision = fpp_short; precision < fpp_last; precision++) {
+    descr.precision = (a_fixed_point_precision)precision;
     for (is_unsigned = FALSE;; is_unsigned = TRUE) {
       descr.is_unsigned = is_unsigned;
       for (is_fract_type = FALSE;; is_fract_type = TRUE) {

@@ -103,7 +103,7 @@ a nested construct.
 
 
 /* Define the categories of expressions that are allowed. */
-enum an_expression_kind_tag {
+enum an_expression_kind : a_byte {
   /* Note that the constant expression kinds must appear at the beginning
      of the list so that one can determine if an expression is constant
      by a "<=" comparison instead of several "==" comparisons.  See
@@ -120,8 +120,7 @@ enum an_expression_kind_tag {
   ek_sizeof		/* The operand of sizeof.  This is almost the same
 			   as a normal expression. */
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte an_expression_kind;
+
 
 /*
 Kinds of expressions again, this time as bits in a set used to
@@ -140,7 +139,7 @@ typedef a_byte a_ruled_out_expr_kind_set;
 /*
 Kinds of source forms for casts.
 */
-typedef enum a_cast_source_form {
+enum a_cast_source_form {
   csf_none,
   csf_old_style,	/* Old-style cast, (T)x */
   csf_functional,	/* Functional-notation cast, T(x) */
@@ -149,7 +148,7 @@ typedef enum a_cast_source_form {
   csf_reinterpret_cast,	/* reinterpret_cast<T>(x) */
   csf_safe_cast,	/* safe_cast<T>(x) -- C++/CLI mode. */
   csf_dynamic_cast	/* dynamic_cast<T>(x) */
-} a_cast_source_form;
+};
 
 
 /*
@@ -159,7 +158,7 @@ are called.  This decides determines what kind of error messages might be
 issued when overload resolution fails.  In some cases it can also decide other
 aspects of the call resolution (such as lookup).
 */
-typedef enum an_overload_context {
+enum an_overload_context {
   oc_default,                 /* Ordinary function or member function calls
                                  (e.g., scan_function_call). */
   oc_constructor,             /* Calls to constructors (see
@@ -182,7 +181,7 @@ typedef enum an_overload_context {
   oc_reversed_cmp_candidate,   /* Set when checking the viability of a
                                   "reversed" comparison operator candidate. */
   oc_last
-} an_overload_context;
+};
 
 
 #if BUILTIN_FUNCTIONS_ENABLED
@@ -192,7 +191,7 @@ These values are returned by __builtin_classify_type.  Order matters;
 the values of these enumeration constants must match those used by
 GCC.
 */
-typedef enum a_type_class_kind {
+enum a_type_class_kind {
   tck_none = -1,
   tck_void,             /* void */
   tck_integer,          /* short, int, long, long long */
@@ -216,7 +215,7 @@ typedef enum a_type_class_kind {
   tck_file
   tck_lang
 */
-} a_type_class_kind;
+};
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
@@ -271,7 +270,7 @@ typedef struct a_ref_entry {
 } a_ref_entry;
 
 /* Kinds of operands: */
-enum an_operand_kind_tag {
+enum an_operand_kind : a_byte {
   ok_error,		/* Error. */
   ok_expression,	/* An expression tree. */
   ok_constant,		/* A constant value. */
@@ -309,8 +308,7 @@ enum an_operand_kind_tag {
 			   declaration or a genuine undefined symbol.
 			   Has a very limited lifetime. */
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte an_operand_kind;
+
 
 /*
 Operand states (lvalue versus rvalue, etc.).  In C++, glvalues encompass
@@ -320,14 +318,13 @@ A "function designator" is an expression of function type; in C++, those
 are lvalues, but is_an_lvalue does not indicate that (see function
 is_a_cplusplus_lvalue instead).
 */
-enum an_operand_state_tag {
+enum an_operand_state : a_byte {
   os_none,
   os_glvalue,
   os_prvalue,
   os_function_designator
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte an_operand_state;
+
 
 /* Data structure used to represent an expression within the expression
    routines: */

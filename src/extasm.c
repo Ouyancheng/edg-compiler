@@ -461,8 +461,12 @@ for that number on subsequent invocations).
   for (p = cstring; *p != '\0'; p++) {
     switch (*p) {
       /* Modifiers valid only at beginning of constraint string. */
-      case '=': modifiers |= (an_asm_operand_modifier)aom_output; break;
-      case '+': modifiers |= (an_asm_operand_modifier)aom_modify; break;
+      case '=':
+        modifiers = (an_asm_operand_modifier)(modifiers | aom_output);
+        break;
+      case '+':
+        modifiers = (an_asm_operand_modifier)(modifiers | aom_modify);
+        break;
       default:
         goto done_with_modifiers;
     }  /* switch */
@@ -1320,7 +1324,7 @@ extended asm statements.
   /* Start with i = 1 since anr_invalid is not copied. */
   for (i = 1; i < (int)anr_last; i++) { /*lint !e681*/
     regmap[i-1].name = named_register_names[i];
-    regmap[i-1].reg = i;
+    regmap[i-1].reg = (a_named_register)i;
   }  /* for */
   /* Copy the extra register information. */
   (void)memcpy((char*)&regmap[(int)anr_last-1], (char*)extra_reg_names,

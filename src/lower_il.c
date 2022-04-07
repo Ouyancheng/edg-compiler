@@ -930,8 +930,7 @@ Free a list of temporary list entries by putting them on the available list.
     /* Find the last entry on the list. */
     a_temporary_list_entry_ptr tlep_last = tlep;
     while (tlep_last->next != NULL) {
-      check_assertion(tlep_last->var->init_kind ==
-                                                (a_dynamic_init_kind)dik_none);
+      check_assertion(tlep_last->var->init_kind == initk_none);
       tlep_last = tlep_last->next;
     }  /* while */
     /* Put the whole list on the front of the available list. */
@@ -7919,7 +7918,7 @@ for the same virtual function table variable; see note below.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       /* If the table has internal linkage, we cannot make it dllimport or
          dllexport. */
-      vtbl_var->decl_modifiers &= ~(a_decl_modifier)DM_DLLFLAGS;
+      vtbl_var->decl_modifiers &= ~DM_DLLFLAGS;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
       vtbl_var->ELF_visibility = (an_ELF_visibility_kind)evk_unspecified;
@@ -7927,7 +7926,7 @@ for the same virtual function table variable; see note below.
 #if SUN_EXTENSIONS_ALLOWED
       /* If the table has internal linkage, we cannot give it a Sun link
          scope. */
-      vtbl_var->decl_modifiers &= ~(a_decl_modifier)DM_ANY_SUN_LINK_SCOPE;
+      vtbl_var->decl_modifiers &= ~DM_ANY_SUN_LINK_SCOPE;
 #endif /* SUN_EXTENSIONS_ALLOWED */
     } else if (definition_needed) {
       /* For an externally-linked class whose definition is needed, change the
@@ -9461,7 +9460,7 @@ Do IL lowering of the indicated type and everything under it.
           for (ap = type->source_corresp.attributes;
                ap != NULL;
                ap = ap->next) {
-            if (ap->kind == (a_byte_attribute_kind)ak_mode) {
+            if (ap->kind == ak_mode) {
               make_attr_unrecognized(ap);
             }  /* if */
           }  /* for */
@@ -17129,7 +17128,7 @@ at the end of a full expression.
          tlep != NULL;
          tlep = tlep->next) {
       tlep->in_use = FALSE;
-      check_assertion(tlep->var->init_kind == (a_dynamic_init_kind)dik_none);
+      check_assertion(tlep->var->init_kind == initk_none);
     }  /* for */
   }  /* if */
 }  /* release_reusable_temporaries */
@@ -17693,7 +17692,7 @@ associated with a label in a block or a switch case statement.
   an_insert_location insert_location;
 
   /* Get the statement pointer from the lifetime. */
-  check_assertion(lifetime->entity.kind==(a_byte_il_entry_kind)iek_statement);
+  check_assertion(lifetime->entity.kind == iek_statement);
   stmt = (a_statement_ptr)(lifetime->entity.ptr);
   set_insert_location(stmt, &insert_location);
   /* Visit all object lifetimes in this lifetime, and all destructions
@@ -19107,7 +19106,7 @@ stmk_init statements.
 */
 {
   for (; ielep != NULL; ielep = ielep->next) {
-    if (ielep->entity.kind == (a_byte_il_entry_kind)iek_variable) {
+    if (ielep->entity.kind == iek_variable) {
       a_variable_ptr vp = (a_variable_ptr)(ielep->entity.ptr);
       if (vp->init_kind == (an_init_kind)initk_dynamic) {
         a_statement_ptr init_stmt
@@ -20827,7 +20826,7 @@ declaration statements (e.g., in casts).
       /* Traverse the entities list and remove the entries referring to
          types. */
       while (*p_entry != NULL && n_types > 0) {
-        if ((*p_entry)->entity.kind == (a_byte_il_entry_kind)iek_type) {
+        if ((*p_entry)->entity.kind == iek_type) {
           n_types -= 1;
           *p_entry = (*p_entry)->next;
         } else {
@@ -21233,7 +21232,7 @@ of variables that have been promoted.
       /* Traverse the entities list and remove the entries referring to
          static variables. */
       while (*p_entry != NULL && n_vars > 0) {
-        if ((*p_entry)->entity.kind == (a_byte_il_entry_kind)iek_variable &&
+        if ((*p_entry)->entity.kind == iek_variable &&
             var_has_static_or_thread_storage_duration(
                                       ((a_variable*)(*p_entry)->entity.ptr))) {
           n_vars -= 1;
@@ -22628,7 +22627,7 @@ so they're not reachable.  Do nothing if olp is NULL.
       if (olp->kind != (an_object_lifetime_kind)olk_block_after_label) {
         /* Watch out for lifetimes that have already been unbound (e.g., those
            associated with enk_object_lifetime nodes). */
-        if (olp->entity.kind != (a_byte_il_entry_kind)iek_none) {
+        if (olp->entity.kind != iek_none) {
           unbind_object_lifetime(olp);
         }  /* if */
       }  /* if */

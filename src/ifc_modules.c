@@ -2737,9 +2737,11 @@ struct a_partial_scope_stack_state {
   a_byte_boolean
 		name_linkage_is_explicit;
 			/* Previous name_linkage_is_explicit setting. */
-  a_bit_field	default_name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
+  a_name_linkage_kind
+		default_name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
 			/* Previous default_name_linkage setting. */
-  a_bit_field	current_access:2;
+  an_access_specifier
+		current_access:2;
 			/* Previous current_access setting. */
 };  /* a_partial_scope_stack_state */
 
@@ -4684,7 +4686,7 @@ static inline a_boolean ifc_decl_is_ignorable_redecl(
                                          a_source_position_ptr pos,
                                          an_il_entry_kind      expected_kind,
                                          char                  **redecl_entity,
-                                         a_byte_il_entry_kind  *redecl_kind)
+                                         an_il_entry_kind      *redecl_kind)
 /*
 An entity described in a compiled module file is considered for loading into
 the IL.  loc describes the name of that entity, mep its location and early
@@ -4736,7 +4738,7 @@ principal associated IL entity.
   a_partial_scope_stack_state
                            psss;
   char                     *il_entity = NULL;
-  a_byte_il_entry_kind     kind = iek_none;
+  an_il_entry_kind         kind = iek_none;
   a_module_scope_push_kind scope_push_status = mspk_unattempted;
   a_diagnostic_suppression diag_suppress(&this->suppressed_diagnostics,
                                          !display_module_import_diagnostics);
@@ -7232,7 +7234,7 @@ Given a scope index find and return the associated scope.
     a_module_entity_ptr mep = get_ifc_module_entity_ptr(scope_index);
     a_type_ptr          assoc_type = NULL;
     process_ifc_declaration(mep, /*defer=*/FALSE, /*enumeration_type=*/NULL);
-    if (mep->entity.kind == (a_byte_il_entry_kind)iek_type) {
+    if (mep->entity.kind == iek_type) {
       assoc_type = (a_type_ptr)mep->entity.ptr;
       ensure_type_has_scope(assoc_type);
     }  /* if */
@@ -8874,24 +8876,19 @@ this routine need to handle the case where dps->alignment is 0.
       unexpected_condition(); /* FIXME */
     }  /* if */
     if (msvc_traits & ifc_MsvcTraits_SelectAny) {
-      ap = make_module_attribute("selectany",
-                                 (a_byte_attribute_family)af_ms_declspec, ap);
+      ap = make_module_attribute("selectany", af_ms_declspec, ap);
     }  /* if */
     if (msvc_traits & ifc_MsvcTraits_Process) {
-      ap = make_module_attribute("process",
-                                 (a_byte_attribute_family)af_ms_declspec, ap);
+      ap = make_module_attribute("process", af_ms_declspec, ap);
     }  /* if */
     if (msvc_traits & ifc_MsvcTraits_DllExport) {
-      ap = make_module_attribute("dllexport",
-                                 (a_byte_attribute_family)af_ms_declspec, ap);
+      ap = make_module_attribute("dllexport", af_ms_declspec, ap);
     }  /* if */
     if (msvc_traits & ifc_MsvcTraits_DllImport) {
-      ap = make_module_attribute("dllimport",
-                                 (a_byte_attribute_family)af_ms_declspec, ap);
+      ap = make_module_attribute("dllimport", af_ms_declspec, ap);
     }  /* if */
     if (msvc_traits & ifc_MsvcTraits_Allocate) {
-      ap = make_module_attribute("allocate",
-                                 (a_byte_attribute_family)af_ms_declspec, ap);
+      ap = make_module_attribute("allocate", af_ms_declspec, ap);
     }  /* if */
   }  /* if */
   if (specifiers != ifc_BasicSpecifiers_Cxx) {
@@ -8914,8 +8911,7 @@ this routine need to handle the case where dps->alignment is 0.
       dps->storage_class = sc_extern;
     }  /* if */
     if (specifiers & ifc_BasicSpecifiers_Deprecated) {
-      ap = make_module_attribute("deprecated",
-                                 (a_byte_attribute_family)af_std, ap);
+      ap = make_module_attribute("deprecated", af_std, ap);
     }  /* if */
     if (specifiers & ifc_BasicSpecifiers_InitializedInClass) {
       /* FIXME: Anything to do here? */
@@ -18784,7 +18780,8 @@ the declaration of the entity.
 }  /* record_pending_explicit_specialization */
 
 
-static char *get_il_entity(a_symbol_ptr sym, a_byte_il_entry_kind *kind)
+static char *get_il_entity(a_symbol_ptr     sym,
+                           an_il_entry_kind *kind)
 /*
 Return the associated IL entity and update kind with the associated entity kind
 for the given symbol (sym).
@@ -18825,7 +18822,7 @@ FIXME: This should likely be extracted as a general function for symbols.
 char *an_ifc_module::parse_cached_explicit_instantiation(
                                           a_token_cache_ptr              cache,
                                           an_ifc_DeclSort_Specialization *decl,
-                                          a_byte_il_entry_kind           *kind)
+                                          an_il_entry_kind               *kind)
 /*
 Parse the tokens corresponding to the given explicit instantiation
 declaration's (decl) cache.  Return a pointer to the corresponding

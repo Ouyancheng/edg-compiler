@@ -421,7 +421,7 @@ typedef struct a_return_memo {
 Entry used to describe an insert location within a statement or expression
 tree.
 */
-typedef enum an_insert_location_kind {
+enum an_insert_location_kind {
   /* Kind of insert location: */
   ilk_after_statement,	/* Insert after a statement. */
   ilk_block_start,	/* Insert at the start of a block. */
@@ -432,7 +432,7 @@ typedef enum an_insert_location_kind {
   ilk_after_expr,	/* Insert after an expression. */
   ilk_expr_creation	/* Create a new expression (first insert provides the
 			   expression). */
-} an_insert_location_kind;
+};
 
 /* Test for the insertion kinds for insertions within expressions. */
 #define is_expr_insert_location_kind(kind)                            \

@@ -3443,7 +3443,7 @@ where "options" is a list of optionally-parenthesized strings.
               ap->name = copy_string_to_region(file_scope_region_number,
                                                "GCC-target");
             }  /* if */
-            ap->kind = (a_byte_attribute_kind)ak_target;
+            ap->kind = ak_target;
             ap->arguments = aap;
           } else {
             check_assertion(last_aap != NULL && last_aap->next == NULL);

@@ -275,7 +275,7 @@ octl.
 */
 {
   for (; ap != NULL; ap = ap->next) {
-    if (ap->family == (a_byte_attribute_family)af_alignas) {
+    if (ap->family == af_alignas) {
       if (need_leading_space) {
         octl->output_str(" ", octl);
       }  /* if */
@@ -371,8 +371,7 @@ Return TRUE if the given type has a "predeclarator" attribute attached to it.
   an_attribute_ptr  ap = type->source_corresp.attributes;
 
   for (; ap != NULL; ap = ap->next) {
-    if (ap->syntactic_location ==
-                                (a_byte_attribute_location)al_predeclarator) {
+    if (ap->syntactic_location == al_predeclarator) {
       result = TRUE;
       break;
     }  /* if */
@@ -6425,7 +6424,7 @@ precedence confusion.  Do the output in the way described by octl.
           }
           break;
         case tpck_expression:
-          if (constant->type->kind == (a_constant_repr_kind)tk_integer &&
+          if (constant->type->kind == tk_integer &&
               constant->type->variant.integer.enum_type &&
               has_name(constant) &&
               !octl->suppress_name_in_template_cast_enum_const) {
@@ -7372,7 +7371,7 @@ Output an asm register name for a variable in the way described by octl.
     BACK_END_IS_CP_GEN_BE
 
 void form_sun_link_scope_specifiers(
-                                 a_decl_modifier                        flags,
+                                 a_decl_modifier_set                    flags,
                                  an_il_to_str_output_control_block_ptr  octl)
 /*
 Output the Sun link scope specifiers as indicated by flags (in the way

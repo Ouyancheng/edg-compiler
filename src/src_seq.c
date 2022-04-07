@@ -143,7 +143,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
             fputs("::", f_debug);
           }  /* if */
         }  /* if */
-        if (udp->entity.kind == (a_byte_il_entry_kind)iek_type) {
+        if (udp->entity.kind == iek_type) {
           db_type_name((a_type_ptr)udp->entity.ptr);
         } else {
           db_name(&((a_field_ptr)udp->entity.ptr)->source_corresp);
@@ -160,7 +160,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
       fprintf(f_debug, " (at %lu", (unsigned long)idp->position.seq);
       if (idp->do_not_instantiate) fputs(", do not instantiate", f_debug);
       fputs("): \"", f_debug);
-      if (idp->entity.kind == (a_byte_il_entry_kind)iek_type) {
+      if (idp->entity.kind == iek_type) {
         db_type_name((a_type_ptr)idp->entity.ptr);
       } else {
         db_name(source_corresp_for_il_entry(idp->entity.ptr,
@@ -232,7 +232,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           if (sssdp->declared_in_func_prototype) func_prototype_decl = TRUE;
           if (sssdp->specialized_with_new_syntax) new_specialization = TRUE;
           if (sssdp->first_declaration) first_decl = TRUE;
-          if (sssdp->entity.kind == (a_byte_il_entry_kind)iek_type) {
+          if (sssdp->entity.kind == iek_type) {
             type_entry_type = (a_type_ptr)sssdp->entity.ptr;
           }  /* if */
         } else {
@@ -350,7 +350,7 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
         fputc('"', f_debug);
         if (sssdp != NULL) {
           /* Secondary declaration. */
-          if (sssdp->entity.kind != (a_byte_il_entry_kind)iek_namespace) {
+          if (sssdp->entity.kind != iek_namespace) {
             declared_type = sssdp->declared_type;
             if (type_entry_type == NULL ||
                 (declared_type != NULL &&
@@ -560,7 +560,7 @@ separate sublists.
                              &region_to_switch_back_to);
       new_ssep = alloc_source_sequence_entry();
       switch_back_to_original_region(region_to_switch_back_to);
-      new_ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_sublist;
+      new_ssep->entity.kind = iek_src_seq_sublist;
       new_ssep->entity.ptr  = (char *)sublist;
       /* Add new_ssep to the main list and detach the rest of the list
          (ssep and its successors) from the main list and move it onto the
@@ -915,7 +915,7 @@ entry that has already been created and linked in for this entity.
     switch_back_to_original_region(region_to_switch_back_to);
   }  /* if */
   /* Point the source sequence entry at the entity. */
-  new_ssep->entity.kind = (a_byte_il_entry_kind)kind;
+  new_ssep->entity.kind = kind;
   new_ssep->entity.ptr = entity_ptr;
   /* Then point the entity back to the source sequence entry. */
   if (kind == (an_il_entry_kind)iek_src_seq_secondary_decl) {
@@ -1030,7 +1030,7 @@ region -- and then add it to the end of the source sequence list.
                     scope_stack[depth_scope_stack].kind !=
                                        (a_scope_kind)sck_func_prototype);
     ssep = alloc_source_sequence_entry();
-    ssep->entity.kind = (a_byte_il_entry_kind)iek_none;
+    ssep->entity.kind = iek_none;
     /* Note that the entity.ptr field is left NULL. */
     add_source_sequence_entry_to_list(ssep);
   }  /* if */
@@ -1039,8 +1039,8 @@ region -- and then add it to the end of the source sequence list.
 }  /* add_empty_source_sequence_entry */
 
 
-void add_end_of_construct_source_sequence_entry(char                   *ptr,
-                                                a_byte_il_entry_kind   kind)
+void add_end_of_construct_source_sequence_entry(char               *ptr,
+                                                an_il_entry_kind   kind)
 /*
 Allocate two entries, an end-of-construct entry and a source sequence entry
 that points to it.  The former is made to have the specified kind and point
@@ -1070,7 +1070,7 @@ sequence list.
     /* Allocate and fill in the src-seq end of construct entry. */
     sseocp = alloc_src_seq_end_of_construct();
     sseocp->position = pos_curr_token;
-    if (kind == (a_byte_il_entry_kind)iek_statement) {
+    if (kind == iek_statement) {
       a_statement_ptr  sp = (a_statement_ptr)ptr;
       if (sp->kind == (a_statement_kind)stmk_block && sp->position.seq == 0) {
         /* This construct is a compiler-generated block surrounding a
@@ -1083,7 +1083,7 @@ sequence list.
     sseocp->entity.ptr = ptr;
     /* Allocate and fill in the source sequence entry. */
     ssep = alloc_source_sequence_entry();
-    ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_end_of_construct;
+    ssep->entity.kind = iek_src_seq_end_of_construct;
     ssep->entity.ptr = (char *)sseocp;
     /* Add the source sequence entry to the list. */
     add_source_sequence_entry_to_list(ssep);
@@ -1098,7 +1098,7 @@ sequence list.
        Move the list to the template symbol supplement. */
     if (!prototype_instantiations_in_il &&
         scope_stack[depth_scope_stack].in_prototype_instantiation &&
-        kind == (a_byte_il_entry_kind)iek_type) {
+        kind == iek_type) {
       a_type_ptr                        tp = (a_type_ptr)ptr;
       a_source_sequence_entry_ptr       ss_list;
       a_template_symbol_supplement_ptr  tssp;
@@ -1397,7 +1397,7 @@ entry.  Set its declared type to the indicated type.
   sssdp = alloc_src_seq_secondary_decl();
   switch_back_to_original_region(region_to_switch_back_to);
   sssdp->entity.ptr = ptr;
-  sssdp->entity.kind = (a_byte_il_entry_kind)kind;
+  sssdp->entity.kind = kind;
   sssdp->declared_type = declared_type;
   return sssdp;
 }  /* make_source_sequence_secondary_decl */
@@ -2079,7 +2079,7 @@ declared_type points to a type that should be recorded in the entry.
     switch_to_file_scope_region(&region_to_switch_back_to);
     ssep = alloc_source_sequence_entry();
     switch_back_to_original_region(region_to_switch_back_to);
-    ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
+    ssep->entity.kind = iek_src_seq_secondary_decl;
     ssep->entity.ptr  = (char *)sssdp;
 #if NONCLASS_TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     if (kind == iek_routine && is_or_contains_member_of_uncompleted_class(
@@ -2304,11 +2304,11 @@ return NULL.
         break;
       case iek_src_seq_secondary_decl:
         sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
-        if (sssdp->entity.kind == (a_byte_il_entry_kind)iek_variable ||
-            sssdp->entity.kind == (a_byte_il_entry_kind)iek_routine) {
+        if (sssdp->entity.kind == iek_variable ||
+            sssdp->entity.kind == iek_routine) {
           tp = sssdp->declared_type;
           break;
-        } else if (sssdp->entity.kind == (a_byte_il_entry_kind)iek_type) {
+        } else if (sssdp->entity.kind == iek_type) {
           tp = (a_type_ptr)sssdp->entity.ptr;
           if (tp->kind == (a_type_kind)tk_typeref) {
             /* For a typedef, drop the typedef itself to get to the declared
@@ -2443,8 +2443,7 @@ may do fixup on entities pointed to by source-sequence entries it removes.
                                "drop_tag_def_from_src_seq_list:",
                                "bad entity kind");
           sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
-          check_assertion(sssdp->entity.kind ==
-                                          (a_byte_il_entry_kind)iek_type);
+          check_assertion(sssdp->entity.kind == iek_type);
           tp = (a_type_ptr)sssdp->entity.ptr;
           if (tp->kind == (a_type_kind)tk_typeref) {
             check_assertion(is_class_struct_union_type(tp));
@@ -2512,7 +2511,7 @@ may do fixup on entities pointed to by source-sequence entries it removes.
                     (an_il_entry_kind)iek_src_seq_secondary_decl) {
         sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
         if (sssdp->friend_decl) {
-          if (sssdp->entity.kind == (a_byte_il_entry_kind)iek_routine) {
+          if (sssdp->entity.kind == iek_routine) {
             a_routine_ptr rp = (a_routine_ptr)sssdp->entity.ptr;
             if (rp->source_corresp.source_sequence_entry == ssep) {
               rp->source_corresp.source_sequence_entry =
@@ -2523,8 +2522,7 @@ may do fixup on entities pointed to by source-sequence entries it removes.
                    il_entry_prefix_of(ssep).keep_in_il) {
           /* Link around a needed type declaration that appears inside this
              class/struct/union body. */
-          check_assertion(sssdp->entity.kind ==
-                                          (a_byte_il_entry_kind)iek_type &&
+          check_assertion(sssdp->entity.kind == iek_type &&
                           !((a_type_ptr)sssdp->entity.ptr)->
                                               source_corresp.is_class_member);
           *prev_link_addr = ssep;
@@ -2612,8 +2610,7 @@ here).
         { a_src_seq_secondary_decl_ptr  sssdp =
                              ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
           a_type_ptr                    tp;
-          check_assertion(sssdp->entity.kind ==
-                                              (a_byte_il_entry_kind)iek_type);
+          check_assertion(sssdp->entity.kind == iek_type);
           tp = (a_type_ptr)sssdp->entity.ptr;
           check_assertion(is_tag_type(tp));
           if (!il_entry_prefix_of(tp).keep_in_il) {
@@ -2738,7 +2735,7 @@ sequence entry that follows the entry or entries removed.
   a_source_sequence_entry_ptr  next_ssep;
 
   db_enter(5, "drop_from_fs_src_seq_list");
-  if (ssep->entity.kind == (a_byte_il_entry_kind)iek_type &&
+  if (ssep->entity.kind == iek_type &&
       is_tag_type(ss_entry_ptr(ssep, a_type_ptr))
 #if MICROSOFT_EXTENSIONS_ALLOWED
       && !is_immediate_delegate_type(ss_entry_ptr(ssep, a_type_ptr))
@@ -2963,7 +2960,7 @@ for an out-of-class definition of a static data member).
         sssdp = alloc_src_seq_secondary_decl();
         sssdp->entity = ssep->entity;
         ssep->entity.ptr = (char *)sssdp;
-        ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
+        ssep->entity.kind = iek_src_seq_secondary_decl;
         sssdp->decl_position = vp->source_corresp.decl_position;
         /* Move the declared type pointer from the variable into the source
            sequence entry, clearing the variable's pointer (since vp no longer
@@ -2995,7 +2992,7 @@ turn it into one.
     sssdp = alloc_src_seq_secondary_decl();
     sssdp->entity = ssep->entity;
     ssep->entity.ptr = (char *)sssdp;
-    ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
+    ssep->entity.kind = iek_src_seq_secondary_decl;
     sssdp->decl_position = rp->source_corresp.decl_position;
     /* Move the declared type pointer from the routine into the
        source-sequence entry, clearing the routine's pointer (since
@@ -3168,7 +3165,7 @@ class type.
       sssdp = alloc_src_seq_secondary_decl();
       sssdp->entity = ssep->entity;
       ssep->entity.ptr = (char *)sssdp;
-      ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
+      ssep->entity.kind = iek_src_seq_secondary_decl;
       sssdp->decl_position = class_type->source_corresp.decl_position;
       sssdp->declared_type = class_type;
       sssdp->autonomous_tag_decl = TRUE;
@@ -3250,7 +3247,7 @@ successor of ssep.
   switch (ss_entry_kind(ssep)) {
     case iek_src_seq_end_of_construct:
       sseocp = ss_entry_ptr(ssep, a_src_seq_end_of_construct_ptr);
-      if (sseocp->entity.kind == (a_byte_il_entry_kind)iek_type) {
+      if (sseocp->entity.kind == iek_type) {
         /* ssep is the end of a type construct. */
         tag_type = (a_type_ptr)sseocp->entity.ptr;
         if (tag_type->kind == (a_type_kind)tk_typeref &&
@@ -3269,7 +3266,7 @@ successor of ssep.
     case iek_src_seq_secondary_decl:
       sssdp = ss_entry_ptr(ssep, a_src_seq_secondary_decl_ptr);
       if (!sssdp->autonomous_tag_decl && !sssdp->declared_in_func_prototype) {
-        if (sssdp->entity.kind == (a_byte_il_entry_kind)iek_type) {
+        if (sssdp->entity.kind == iek_type) {
           /* ssep is a nonautonomous secondary declaration of a tag or
              typedef.  We're only interested in the former. */
           tag_type = (a_type_ptr)sssdp->entity.ptr;
@@ -3379,7 +3376,7 @@ check_next_ssep:
                   typeof(struct S { int i; }) x;
              Such tag definitions are not autonomous. */
           sseocp = ss_entry_ptr(next_ssep, a_src_seq_end_of_construct_ptr);
-          if (sseocp->entity.kind == (a_byte_il_entry_kind)iek_type) {
+          if (sseocp->entity.kind == iek_type) {
             /* ssep is the end of a type construct. */
             a_type_ptr  etp = (a_type_ptr)sseocp->entity.ptr;
             if (etp->kind == (a_type_kind)tk_typeref &&
@@ -3530,9 +3527,9 @@ scope that are not really needed in the IL.
        the keep_in_il setting of the source sequence entry and that of the
        IL entry to which it corresponds will be the same. */
     if (!il_entry_prefix_of(ssep).keep_in_il) {
-      a_byte_il_entry_kind  kind = ssep->entity.kind;
+      an_il_entry_kind  kind = ssep->entity.kind;
       check_assertion(!il_entry_prefix_of(ssep->entity.ptr).keep_in_il);
-      if (kind == (a_byte_il_entry_kind)iek_src_seq_secondary_decl) {
+      if (kind == iek_src_seq_secondary_decl) {
         sssdp = (a_src_seq_secondary_decl_ptr)ssep->entity.ptr;
         kind = sssdp->entity.kind;
         check_assertion(!il_entry_prefix_of(sssdp->entity.ptr).keep_in_il);
@@ -3542,10 +3539,8 @@ scope that are not really needed in the IL.
       } else {
         sssdp = NULL;
       }  /* if */
-      if (kind == (a_byte_il_entry_kind)iek_variable ||
-          kind == (a_byte_il_entry_kind)iek_routine ||
-          kind == (a_byte_il_entry_kind)iek_type ||
-          kind == (a_byte_il_entry_kind)iek_instantiation_directive) {
+      if (kind == iek_variable || kind == iek_routine || kind == iek_type ||
+          kind == iek_instantiation_directive) {
 #if DEBUG
         if (debug_level >= 4 || db_flag_is_set("dump_ss_full")) {
           fputs("dropping: ", f_debug);
@@ -3561,15 +3556,14 @@ scope that are not really needed in the IL.
           if (!sssdp->is_decl_after_first_in_comma_list) {
             adjust_secondary_declarator = TRUE;
           }  /* if */
-        } else if (kind != (a_byte_il_entry_kind)iek_instantiation_directive) {
+        } else if (kind != iek_instantiation_directive) {
           if (!ss_entry_ptr(ssep, a_source_correspondence_ptr)
                                          ->is_decl_after_first_in_comma_list) {
             adjust_secondary_declarator = TRUE;
           }  /* if */
         }  /* if */
         next_ssep = drop_from_fs_src_seq_list(ssep);
-        if (!C_mode() && sssdp != NULL &&
-            kind == (a_byte_il_entry_kind)iek_routine) {
+        if (!C_mode() && sssdp != NULL && kind == iek_routine) {
           /* ssep is a source-sequence entry representing a routine
              declaration (not a definition).  If any tag was introduced in
              its parameter list, it should be marked as autonomous.  Note

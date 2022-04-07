@@ -2674,7 +2674,7 @@ information is given by scp.
 
 #if MICROSOFT_EXTENSIONS_ALLOWED
 
-static void dump_microsoft_decl_modifiers(a_decl_modifier decl_modifiers)
+static void dump_microsoft_decl_modifiers(a_decl_modifier_set decl_modifiers)
 /*
 Print a set of Microsoft declaration modifiers.
 */
@@ -8626,7 +8626,7 @@ parameters.
 #if MICROSOFT_EXTENSIONS_ALLOWED
       if (microsoft_dialect_is_generated_code_target) {
         /* Microsoft-specific keywords. */
-        a_decl_modifier decl_modifiers = variable->decl_modifiers;
+        a_decl_modifier_set decl_modifiers = variable->decl_modifiers;
         /* __declspec(selectany) applies only to definitions. */
         if (!dump_initializers && init_con != NULL) {
           decl_modifiers &= ~DM_SELECTANY;
@@ -10737,44 +10737,38 @@ declare_routine:
       dump_decl_associated_pragmas(&rout->source_corresp);
       if (is_definition) {
         /* Generate any needed standard C99 pragma. */
-        if (rout->fp_contract != (a_stdc_pragma_value)stdc_pv_none &&
+        if (rout->fp_contract != stdc_pv_none &&
             rout->fp_contract != curr_default_fp_contract) {
-          dump_stdc_pragma((a_stdc_pragma_value)stdc_pk_fp_contract,
-                           rout->fp_contract);
+          dump_stdc_pragma(stdc_pk_fp_contract, rout->fp_contract);
         }  /* if */
-        if (rout->fenv_access != (a_stdc_pragma_value)stdc_pv_none &&
+        if (rout->fenv_access != stdc_pv_none &&
             rout->fenv_access != curr_default_fenv_access) {
-          dump_stdc_pragma((a_stdc_pragma_value)stdc_pk_fenv_access,
-                           rout->fenv_access);
+          dump_stdc_pragma(stdc_pk_fenv_access, rout->fenv_access);
         }  /* if */
-        if (rout->cx_limited_range != (a_stdc_pragma_value)stdc_pv_none &&
+        if (rout->cx_limited_range != stdc_pv_none &&
             rout->cx_limited_range != curr_default_cx_limited_range) {
-          dump_stdc_pragma((a_stdc_pragma_value)stdc_pk_cx_limited_range,
-                           rout->cx_limited_range);
+          dump_stdc_pragma(stdc_pk_cx_limited_range, rout->cx_limited_range);
         }  /* if */
 #if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
         /* Generate any needed fixed-point pragma. */
-        if (rout->fx_full_precision != (a_stdc_pragma_value)stdc_pv_none &&
+        if (rout->fx_full_precision != stdc_pv_none &&
             rout->fx_full_precision != curr_default_fx_full_precision) {
-          dump_stdc_pragma((a_stdc_pragma_value)stdc_pk_fx_full_precision,
-                           rout->fx_full_precision);
+          dump_stdc_pragma(stdc_pk_fx_full_precision, rout->fx_full_precision);
         }  /* if */
-        if (rout->fx_fract_overflow != (a_stdc_pragma_value)stdc_pv_none &&
+        if (rout->fx_fract_overflow != stdc_pv_none &&
             rout->fx_fract_overflow != curr_default_fx_fract_overflow) {
-          dump_stdc_pragma((a_stdc_pragma_value)stdc_pk_fx_fract_overflow,
-                           rout->fx_fract_overflow);
+          dump_stdc_pragma(stdc_pk_fx_fract_overflow, rout->fx_fract_overflow);
         }  /* if */
-        if (rout->fx_accum_overflow != (a_stdc_pragma_value)stdc_pv_none &&
+        if (rout->fx_accum_overflow != stdc_pv_none &&
             rout->fx_accum_overflow != curr_default_fx_accum_overflow) {
-          dump_stdc_pragma((a_stdc_pragma_value)stdc_pk_fx_accum_overflow,
-                           rout->fx_accum_overflow);
+          dump_stdc_pragma(stdc_pk_fx_accum_overflow, rout->fx_accum_overflow);
         }  /* if */
 #endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
 #if UPC_EXTENSIONS_ALLOWED
         if (rout->upc_access_method !=
                                 (a_upc_access_method)upc_access_unspecified &&
             rout->upc_access_method != curr_default_upc_access_method) {
-          dump_upc_pragma(rout->upc_access_method);
+          dump_upc_pragma((a_upc_access_method)rout->upc_access_method);
         }  /* if */
 #endif /* UPC_EXTENSIONS_ALLOWED */
       }  /* if */
@@ -10856,7 +10850,7 @@ declare_routine:
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (microsoft_dialect_is_generated_code_target) {
       /* Microsoft-specific keywords. */
-      a_decl_modifier decl_modifiers = rout->decl_modifiers;
+      a_decl_modifier_set decl_modifiers = rout->decl_modifiers;
       if (is_definition && rout->is_inline && msvc_is_generated_code_target) {
         /* If the routine was "inline", force the keyword "__inline". */
         decl_modifiers |= DM_MICROSOFT_INLINE;

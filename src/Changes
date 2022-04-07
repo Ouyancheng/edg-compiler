@@ -1,5 +1,32 @@
 Version 6.4
 
+4/7/22   [EDGcpfe/25208,EDGcpfe/15949]
+Removal of enum "tags" in favor of scoped enums
+
+The front end used an enum "tag" paradigm where most enumerations were declared
+with a tag + typedef combination, where the enumeration itself contained the
+"tags", but data structures used the associated typedef.  This was necessary
+prior to the switch to C++11 (in version 6.0) as there was no way to control
+the underlying type of the enumeration.  This paradigm has been eliminated in
+favor of scoped enums for increased type safety.  Redundant casts to the enum
+have been retained to avoid unnecessary merge conflicts, and the following
+additional types have been removed, in addition to the global renaming of all
+"tag" enums (replacements in parentheses):
+
+ - a_byte_attribute_kind     (an_attribute_kind)
+ - a_byte_attribute_family   (an_attribute_family)
+ - a_byte_attribute_location (an_attribute_location)
+ - a_byte_il_entry_kind      (an_il_entry_kind)
+ - a_small_token_kind        (a_token_kind)
+ - a_decl_modifier           (a_decl_modifier_set)
+
+In addition, the TYPE_FOR_A_SMALL_TOKEN_KIND configuration macro has been
+removed and the default setting of NUM_BITS_FOR_NAME_LINKAGE has been increased
+from 2 to 3.  A new configuration macro - NUM_BITS_FOR_EXPR_NODE_KIND - has
+been added, as some compilers need an_expr_node_kind declared in a special way
+to be able to achieve a better layout of the an_expr_node struct.
+
+
 4/7/22   [EDGcpfe/25201]
 Variable template "referenced" flag
 

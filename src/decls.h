@@ -112,7 +112,7 @@ Kinds of linkage, meaning whether or not an identifier declared in
 a certain way is linked to (the same as) some other like-named identifier
 declared elsewhere.  See 3.1.2.2.
 */
-typedef enum /*an_id_linkage_kind*/ {
+enum an_id_linkage_kind {
   idl_none,		/* Identifier is different from others of the same
 			   name. */
   idl_internal,		/* Identifier is the same as others in the same
@@ -120,7 +120,7 @@ typedef enum /*an_id_linkage_kind*/ {
   idl_external		/* Identifier is the same as others in the same
 			   compilation and in other compilations for
 			   the same program. */
-} an_id_linkage_kind;
+};
 
 
 extern a_boolean type_constraint_followed_by_auto(
@@ -1520,11 +1520,8 @@ extern void discard_end_of_parse_actions(
                                   a_decl_parse_callback  *until_action = NULL);
 
 
-extern an_attribute_ptr f_find_decl_attribute(a_byte_attribute_kind  kind,
-                                              a_decl_parse_state     *dps);
-
-#define find_decl_attribute(kind, dps)                                       \
-  (f_find_decl_attribute((a_byte_attribute_kind)(kind), (dps)))
+extern an_attribute_ptr find_decl_attribute(an_attribute_kind  kind,
+                                            a_decl_parse_state *dps);
 
 extern void attach_parse_state_to_attributes(a_decl_parse_state  *dps);
 
@@ -1877,14 +1874,14 @@ extern void make_using_directive(a_namespace_ptr    nsp,
 #if DECL_MODIFIERS_IN_USE
 #if MICROSOFT_EXTENSIONS_ALLOWED
 extern void update_dll_info_for_routine(a_routine_ptr         routine,
-                                        a_decl_modifier       flags,
+                                        a_decl_modifier_set   flags,
                                         a_boolean             is_inline,
                                         a_boolean             is_redecl,
                                         a_boolean             is_definition,
                                         a_source_position     *err_pos);
 
-extern void update_dll_info_for_variable(a_variable_ptr       var,
-                                         a_decl_modifier       flags,
+extern void update_dll_info_for_variable(a_variable_ptr        var,
+                                         a_decl_modifier_set   flags,
                                          a_boolean             is_redecl,
                                          a_boolean             is_definition,
                                          a_source_position     *err_pos);

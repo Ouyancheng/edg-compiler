@@ -6365,7 +6365,7 @@ overriding of which orep is a part.
   a_symbol_header_ptr  header = orep->overridden_sym->header;
 
   for (; udecl != NULL; udecl = udecl->next) {
-    if (udecl->entity.kind == (a_byte_il_entry_kind)iek_routine) {
+    if (udecl->entity.kind == iek_routine) {
       a_routine_ptr  routine = (a_routine_ptr)udecl->entity.ptr;
       if (symbol_for(routine)->header == header) {
         result = TRUE;
@@ -9391,7 +9391,7 @@ issue an error and return FALSE.
              attributes of a derived class to any base class type that is an
              implicit class template specialization (unless a DLL interface
              was already specified on that type). */
-          a_decl_modifier  flags = class_type_supp(type)->decl_modifiers &
+          a_decl_modifier_set flags = class_type_supp(type)->decl_modifiers &
                                                                   DM_DLLFLAGS;
           if (flags != 0) {
             update_dll_info_for_class(base_class_type, flags,
@@ -11553,7 +11553,7 @@ instantiations are recorded in the IL.
     rp->declared_storage_class = dps->declared_storage_class;
     rp->trailing_requires_clause = dps->trailing_requires_clause;
     if (ssep != NULL && prototype_instantiations_in_il) {
-      ssep->entity.kind = (a_byte_il_entry_kind)iek_routine;
+      ssep->entity.kind = iek_routine;
       ssep->entity.ptr  = (char *)rp;
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -11591,7 +11591,7 @@ instantiations are recorded in the IL.
            gotten here. */
         sssdp->specialized_with_new_syntax = TRUE;
       }  /* if */
-      ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
+      ssep->entity.kind = iek_src_seq_secondary_decl;
       ssep->entity.ptr  = (char *)sssdp;
     }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -13000,8 +13000,7 @@ enabled.
   check_assertion(rtsp->exception_specification == NULL);
   if (rp->is_inheriting_ctor) {
     first_param = NULL;
-    check_assertion(rp->generating_using_decl->entity.kind ==
-                                         (a_byte_il_entry_kind)iek_base_class);
+    check_assertion(rp->generating_using_decl->entity.kind == iek_base_class);
     generating_base_type =
                ((a_base_class_ptr)rp->generating_using_decl->entity.ptr)->type;
   } else {
@@ -13166,7 +13165,7 @@ Check for compatibility regarding the DM_DLLIMPORT/DM_DLLEXPORT flags and
 update *dps based on the two.
 */
 {
-  a_decl_modifier  decl_modifiers, class_decl_modifiers;
+  a_decl_modifier_set  decl_modifiers, class_decl_modifiers;
 
   class_decl_modifiers = class_type_supp(class_type)->decl_modifiers;
   /* Only dllimport and dllexport are applied to members, so strip off any
@@ -13180,7 +13179,7 @@ update *dps based on the two.
          member declaration, too. */
       pos_diagnostic(es_discretionary_error,
                      ec_class_and_member_have_dll_interface, &dps->start_pos);
-      decl_modifiers &= ~(a_decl_modifier)DM_DLLFLAGS;
+      decl_modifiers &= ~DM_DLLFLAGS;
     }  /* if */
     if (dps->is_definition && (class_decl_modifiers & DM_DLLIMPORT)) {
       /* Put no dll attribute on an inline member function. */
@@ -13496,7 +13495,7 @@ to (with its overridden_functions field).
     rp->number.virtual_function = base_rp->number.virtual_function;
     check_assertion(curr_il_region_number == file_scope_region_number);
     rp->overridden_functions = alloc_il_entity_list_entry();
-    rp->overridden_functions->entity.kind = (a_byte_il_entry_kind)iek_routine;
+    rp->overridden_functions->entity.kind = iek_routine;
     rp->overridden_functions->entity.ptr = (char*)base_rp;
     rp->compiler_generated = TRUE;
     /* The symbol must be entered in the symbol table so it can be encountered
@@ -14709,13 +14708,13 @@ list of an IL entry of type a_routine.
   check_assertion(curr_il_region_number == file_scope_region_number);
   entry = alloc_il_entity_list_entry();
   if (sym->kind == (a_symbol_kind)sk_member_function) {
-    entry->entity.kind = (a_byte_il_entry_kind)iek_routine;
+    entry->entity.kind = iek_routine;
     entry->entity.ptr = (char*)sym->variant.routine.ptr;
   } else {
     check_assertion(is_nontype_template_param_symbol(sym) &&
                     sym->variant.constant->variant.template_param.kind ==
                                  (a_template_param_constant_kind)tpck_member);
-    entry->entity.kind = (a_byte_il_entry_kind)iek_constant;
+    entry->entity.kind = iek_constant;
     entry->entity.ptr = (char*)sym->variant.constant;
   }  /* if */
   return entry;
@@ -24254,7 +24253,7 @@ templates from that base template.
   an_access_specifier   saved_access = cdsp->access;
 
   check_assertion(symbol_is(bctor, sk_function_template));
-  check_assertion(udp->entity.kind == (a_byte_il_entry_kind)iek_base_class);
+  check_assertion(udp->entity.kind == iek_base_class);
   bcp = (a_base_class_ptr)udp->entity.ptr;
   btssp = bctor->variant.template_info;
   btpl = btssp->variant.function.decl_cache.decl_info->parameters;
@@ -24434,7 +24433,7 @@ constructor.
   a_boolean            copy_move_case = FALSE;
 
   check_assertion(symbol_is(bctor, sk_member_function));
-  check_assertion(udp->entity.kind == (a_byte_il_entry_kind)iek_base_class);
+  check_assertion(udp->entity.kind == iek_base_class);
   bcp = (a_base_class_ptr)udp->entity.ptr;
   brp = bctor->variant.routine.ptr;
   brtp = skip_typerefs(brp->type);
@@ -24576,7 +24575,7 @@ Generate those constructors.
   a_type_ptr       base_class;
   a_base_class_ptr bcp;
 
-  check_assertion(udp->entity.kind == (a_byte_il_entry_kind)iek_base_class);
+  check_assertion(udp->entity.kind == iek_base_class);
   bcp = (a_base_class_ptr)udp->entity.ptr;
   base_class = skip_typerefs(bcp->type);
   if (is_immediate_class_type(base_class)) {
@@ -25078,7 +25077,7 @@ TRUE.
   /* Traverse the list looking for a name and qualifier match. */
   for (; udp != NULL; udp = udp->next) {
     if (same_entities(udp->qualifier.class_type, sym_parent_class(sym))) {
-      if (udp->entity.kind == (a_byte_il_entry_kind)iek_base_class) {
+      if (udp->entity.kind == iek_base_class) {
         a_base_class_ptr bcp = (a_base_class_ptr)udp->entity.ptr;
         scp = &bcp->type->source_corresp;
       } else {
@@ -25413,10 +25412,10 @@ Otherwise, *result will be NULL.
       udp->is_class_member = TRUE;
       udp->qualifier.class_type = parent_class;
       if (bcp != NULL) {
-        udp->entity.kind = (a_byte_il_entry_kind)iek_base_class;
+        udp->entity.kind = iek_base_class;
         udp->entity.ptr = (char*)bcp;
       } else {
-        udp->entity.kind = (a_byte_il_entry_kind)iek_type;
+        udp->entity.kind = iek_type;
         udp->entity.ptr = (char*)parent_class;
       }  /* if */
       udp->position = *pos;
@@ -26304,7 +26303,7 @@ Check that this is a valid type and if so make member_type a friend.
                                (a_type_ptr)NULL);
           sssdp->friend_decl = TRUE;
           sssdp->decl_position = state->start_pos;
-          ssep->entity.kind = (a_byte_il_entry_kind)iek_src_seq_secondary_decl;
+          ssep->entity.kind = iek_src_seq_secondary_decl;
           ssep->entity.ptr  = (char *)sssdp;
         }  /* if */
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
@@ -31851,7 +31850,7 @@ alignment of those fields).
       set_unsigned_integer_constant(
                          constant, (a_host_large_unsigned)max_member_alignment,
                          (an_integer_kind)ik_unsigned_long);
-      ap->kind = (a_byte_attribute_kind)ak_pragma_pack_state;
+      ap->kind = ak_pragma_pack_state;
       ap->on_primary_declaration = TRUE;
       ap->arguments = aap;
       aap->kind = (an_attribute_arg_kind)aak_constant;
@@ -32783,10 +32782,9 @@ next_declaration:
       /* This is a prototype instantiation of a class template. */
       add_end_of_construct_source_sequence_entry(
                                         (char *)il_template_entry,
-                                        (a_byte_il_entry_kind)iek_template);
+                                        iek_template);
     } else {
-      add_end_of_construct_source_sequence_entry(
-                         (char *)class_type, (a_byte_il_entry_kind)iek_type);
+      add_end_of_construct_source_sequence_entry((char *)class_type, iek_type);
     }  /* if */
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
     /* Clear the modified ss-list instantiation insert point for the scope to
@@ -34026,10 +34024,7 @@ generated by lowering if needed.)
     a_class_type_supplement_ptr   ctsp = class_type_supp(class_type);
     ctsp->has_lambda_conversion_function = TRUE;
     if (!microsoft_mode) {
-      a_calling_convention  call_conv = 0;
-#if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
-      call_conv = (a_calling_convention)cc_default;
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED */
+      a_calling_convention  call_conv = cc_default;
       generate_lambda_conversion_function(lambda, cdsp, func_info, call_conv);
 #if MICROSOFT_EXTENSIONS_ALLOWED || GNU_X86_ATTRIBUTES_ALLOWED
     } else {

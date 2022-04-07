@@ -75,11 +75,11 @@ extern void set_cli_visibility(a_type_ptr              type,
                                a_source_position_ptr   diag_pos,
                                a_boolean               is_definition);
 
-extern void update_dll_info_for_class(a_type_ptr         class_type,
-                                      a_decl_modifier    flags,
-                                      a_boolean          explicit_inst,
-                                      a_boolean          adjust_template_base,
-                                      a_source_position  *err_pos);
+extern void update_dll_info_for_class(a_type_ptr          class_type,
+                                      a_decl_modifier_set flags,
+                                      a_boolean           explicit_inst,
+                                      a_boolean           adjust_template_base,
+                                      a_source_position   *err_pos);
 
 extern a_boolean record_uuid_for_class(a_type_ptr         class_type,
                                        a_const_char       *uuid_string,
@@ -109,8 +109,8 @@ extern void check_inheritance_kind(a_type_ptr           class_type,
                                    an_inheritance_kind  inheritance_kind,
                                    a_source_position    *err_pos);
 
-extern void add_flags_from_dll_attributes(a_decl_modifier   *p_flags,
-                                          an_attribute_ptr  ap);
+extern void add_flags_from_dll_attributes(a_decl_modifier_set  *p_flags,
+                                          an_attribute_ptr     ap);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 
 extern void scan_enumerator_list(a_type_ptr           enum_type,

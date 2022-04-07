@@ -302,7 +302,7 @@ typedef struct a_scope_pointers_block {
 /*
 Value that identifies the kind of entity represented by a pack reference.
 */
-typedef enum /* a_pack_reference_kind */ {
+enum a_pack_reference_kind {
   prk_template_param,	/* A template parameter pack */
   prk_variable,		/* An argument pack represented by a parameter
 			   variable. */
@@ -311,7 +311,7 @@ typedef enum /* a_pack_reference_kind */ {
   prk_init_capture,	/* An init-capture that is a pack. */
   prk_bases		/* A generated pack that represents a g++ __bases
 			   or __direct_bases trait. */
-} a_pack_reference_kind;
+};
 
 
 /*
@@ -686,7 +686,7 @@ typedef struct a_scope_stack_entry {
 			/* Kind of scope (file, function, block, function
 			   prototype, etc.).  See the definition of
 			   a_scope_kind in il_def.h. */
-  a_bit_field /*an_access_specifier*/
+  an_access_specifier
 		current_access:2;
 			/* The access control specification that currently
 			   prevails for declarations in the current scope;
@@ -697,7 +697,7 @@ typedef struct a_scope_stack_entry {
 			   constants may be derived from the setting of this
 			   field.) */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  a_bit_field /*an_access_specifier*/
+  an_access_specifier
 		current_assembly_access:2;
 			/* The assembly access that currently prevails for
 			   declarations in the current scope: as_protected for
@@ -900,7 +900,7 @@ typedef struct a_scope_stack_entry {
 			   This flag is set in the last scope pushed by
 			   push_template_instantiation_scope, which is
 			   not necessarily a template instantiation scope. */
-  a_bit_field /* a_name_linkage_kind */
+  a_name_linkage_kind
 		default_name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
 			/* The default language linkage (e.g., extern "C++" or
 			   extern "C") for declarations in the current scope
@@ -950,16 +950,22 @@ typedef struct a_scope_stack_entry {
 			   when popped.  Specifically, this is used for
 			   function scopes of duplicate definitions of explicit
 			   specializations in some Microsoft modes. */
-  a_bit_field	fp_contract_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
-  a_bit_field	fenv_access_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
-  a_bit_field	cx_limited_range_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+  a_stdc_pragma_value
+		fp_contract_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+  a_stdc_pragma_value
+		fenv_access_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+  a_stdc_pragma_value
+		cx_limited_range_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
 			/* Saved values of the current state of the C99
 			   STDC pragma values.  These are saved when a scope
 			   is entered and restored when the scope is left. */
 #if FIXED_POINT_ALLOWED
-  a_bit_field	fx_full_precision_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
-  a_bit_field	fx_fract_overflow_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
-  a_bit_field	fx_accum_overflow_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+  a_stdc_pragma_value
+		fx_full_precision_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+  a_stdc_pragma_value
+		fx_fract_overflow_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
+  a_stdc_pragma_value
+		fx_accum_overflow_state:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
 			/* Saved values of the current state of the fixed-
 			   point STDC pragma values.  These are saved when a
 			   scope is entered and restored when the scope is

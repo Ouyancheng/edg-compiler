@@ -461,7 +461,7 @@ Kinds of symbols in the symbol table.
 If this is changed, the definitions for name_space_for_symbol_kind
 and symbol_kind_names should also be changed.
 */
-enum a_symbol_kind_tag {
+enum a_symbol_kind : a_byte {
   sk_keyword,    	/* Language keyword. */
   sk_macro,       	/* Preprocessor macro. */
   sk_constant,		/* Constant (enumerator). */
@@ -513,8 +513,6 @@ enum a_symbol_kind_tag {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   sk_last
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_symbol_kind;
 
 
 /*
@@ -553,7 +551,7 @@ There are different "name spaces" in each scope (see standard, 3.1.2.3).
 The following define the name spaces and a mapping from symbol kind to
 the associated name space.
 */
-typedef enum /*a_name_space_kind*/ {
+enum a_name_space_kind {
   nsk_label,		/* Code labels. */
   nsk_tag,		/* Struct, union, and enum tags, in C.  (In C++,
 			   those have kind nsk_other, and this kind is
@@ -567,7 +565,7 @@ typedef enum /*a_name_space_kind*/ {
 			   a given external name are equivalent. */
   nsk_member		/* Members (fields) of structs and unions.  Used in
 			   C mode only. */
-} a_name_space_kind;
+};
 
 EXTERN a_name_space_kind
 		name_space_for_symbol_kind[(int)sk_last+1];
@@ -674,7 +672,7 @@ each of which defines some part of the replacement text of the macro.
 A null follows the last sequence and ends the repl_text string.  The
 sequences are:
 */
-typedef enum /*a_repl_text_seq_kind*/ {
+enum a_repl_text_seq_kind {
   rt_null,      	/* Equivalent to '\0' (null), marks end of string. */
   rt_text,
 			/* Raw text.  Followed by 3 bytes containing a
@@ -728,7 +726,7 @@ typedef enum /*a_repl_text_seq_kind*/ {
 			   the byte following this section header to the
 			   start of the next section) if __VA_ARGS__ is
 			   empty. */
-} a_repl_text_seq_kind;
+};
 
 
 /*
@@ -762,7 +760,7 @@ to the first byte of the number; it is advanced past the number on return.
 /*
 Kinds of fixup to be performed on entries in the dependent type fixup list.
 */
-enum a_dependent_type_fixup_kind_tag {
+enum a_dependent_type_fixup_kind : a_byte {
   dtfk_arg_transfer_method,	
 			/* Set the arg transfer method flag in a param type. */
   dtfk_routine_calling_method,
@@ -774,8 +772,7 @@ enum a_dependent_type_fixup_kind_tag {
 			   an array of an abstract class type when that class
 			   type was completed. */
 };
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_dependent_type_fixup_kind;
+
 
 /*
 Entries identifying array types, routine types, and parameters that are
@@ -2061,7 +2058,7 @@ IL entries after the appropriate checking is done.
 */
 typedef struct a_decl_modifiers_block *a_decl_modifiers_block_ptr;
 typedef struct a_decl_modifiers_block {
-  a_decl_modifier
+  a_decl_modifier_set
 		flags;
 			/* A bit-vector of flags representing additional
 			   declarative information (e.g.,  via the __declspec
@@ -2941,7 +2938,7 @@ typedef struct a_template_symbol_supplement {
 			   instantiation is in progress.  Used for alias
 			   templates to detect uses of the alias name within
 			   its definition. */
-      a_bit_field /* a_name_linkage_kind */
+      a_name_linkage_kind
 		name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
 			/* The name linkage associated with this class
 			   template -- typically C++ linkage, but internal
@@ -3677,7 +3674,7 @@ typedef struct a_symbol {
     /* When kind == sk_undefined, no variant fields. */
     /* When kind == sk_keyword: */
     struct {
-      a_small_token_kind
+      a_token_kind
 		token;
 			/* For keywords, the token identifying the keyword. */
       a_bit_field
@@ -3841,7 +3838,7 @@ typedef struct a_symbol {
       a_projection_descr_ptr
 		extra_info;
 			/* Additional information about the projection. */
-      a_bit_field /*an_access_specifier*/
+      an_access_specifier
 		access:2;
 			/* Access to the base class member in the scope of the
 			   derived class.  This may differ from the access
@@ -4093,7 +4090,7 @@ An enumeration of CLI operators that may appear in metadata.  This enumeration
 corresponds to the list of operators in ECMA-372.  Note that not all of these
 operators have C++/CLI counterparts.
 */
-enum a_cli_operator_kind_tag {
+enum a_cli_operator_kind : a_byte {
   cok_none,                            /* No operator. */
   cok_first,
   cok_addition = cok_first,            /* "op_Addition" */
@@ -4148,9 +4145,6 @@ enum a_cli_operator_kind_tag {
   cok_last
 };
 
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_cli_operator_kind;
-
 
 typedef struct a_cli_operator_info *a_cli_operator_info_ptr;
 typedef struct a_cli_operator_info {
@@ -4166,7 +4160,7 @@ typedef struct a_cli_operator_info {
 
 /*
 Table of a_cli_operator_info structures corresponding to each entry in 
-a_cli_operator_kind_tag.
+a_cli_operator_kind.
 */
 EXTERN a_cli_operator_info cli_operator_info[(int)cok_last + 1]
 #if VAR_INITIALIZERS
@@ -5037,7 +5031,7 @@ used to look up and initialize the corresponding cli_symbol entry.  If the
 symbol requires special initialization, leave the corresponding
 cli_symbol_names entry set to NULL.
 */
-enum a_cli_symbol_kind_tag {
+enum a_cli_symbol_kind : a_byte {
   csk_none,
   csk_first,
   csk_first_namespace = csk_first,
@@ -5112,18 +5106,16 @@ enum a_cli_symbol_kind_tag {
   csk_last_type = (int)csk_last - 1 /*lint !e488*/
 };
 
-/* Define as "a_byte" to explicitly control storage size. */
-typedef a_byte a_cli_symbol_kind;
 
 EXTERN a_symbol_ptr
 		cli_symbols[(int)csk_last];
 			/* Contains pointers to various well-known C++/CLI
 			   symbols (e.g. System::Object, System::Int) and is
-			   indexed by the a_cli_symbol_kind_tag enumeration.
-			   See the a_cli_symbol_kind_tag enumeration for more
+			   indexed by the a_cli_symbol_kind enumeration. See
+			   the a_cli_symbol_kind enumeration for more
 			   information. */
 
-EXTERN enum a_cli_symbol_kind_tag cli_fallback_symbols[]
+EXTERN a_cli_symbol_kind cli_fallback_symbols[]
 /*
 The csk_none-terminated set of symbols to perform "dual-lookup" on
 in C++/CLI mode.
@@ -5139,7 +5131,7 @@ in C++/CLI mode.
 ;
 
 
-EXTERN enum a_cli_symbol_kind_tag cppcx_fallback_symbols[]
+EXTERN a_cli_symbol_kind cppcx_fallback_symbols[]
 /*
 The csk_none-terminated set of symbols to perform "dual-lookup" on in
 C++/CX mode.
@@ -5198,7 +5190,7 @@ cli_symbols.
 */
 typedef struct {
   a_const_char	*name;	/* Unqualified name of the symbol. */
-  enum a_cli_symbol_kind_tag
+  a_cli_symbol_kind
                 namespace_kind;
                         /* Enum value for the parent namespace for the symbol
                            or csk_none. */
@@ -5206,7 +5198,7 @@ typedef struct {
                         /* Unqualified name of the symbol in C++/CX mode.
                            NULL if the name does not differ from the C++/CLI
                            name.*/
-  enum a_cli_symbol_kind_tag
+  a_cli_symbol_kind
                 cppcx_namespace_kind;
                         /* Enum value for the parent namespace for the symbol
                            in C++/CX mode.  csk_none if the parent
@@ -5219,8 +5211,8 @@ typedef struct {
 EXTERN a_cli_symbol_name
 		cli_symbol_names[(int)csk_last + 1]
 			/* Array of symbol names corresponding to each entry
-			   in a_cli_symbol_kind_tag, respectively.  See
-			   a_cli_symbol_kind_tag for more information. */
+			   in a_cli_symbol_kind, respectively.  See
+			   a_cli_symbol_kind for more information. */
 #if VAR_INITIALIZERS
 = {
   { NULL, csk_none, NULL, csk_none, CISF_DEFAULT },
@@ -5396,7 +5388,7 @@ arrays.
 
 /*
 Macros to return a cli_symbols entry given one of
-a_cli_symbol_kind_tag/an_integer_kind/a_float_kind respectively.
+a_cli_symbol_kind/an_integer_kind/a_float_kind respectively.
 */
 #define cli_symbol_from_kind(csk) (cli_symbols[(int)(csk)])
 #define cli_symbol_from_integer_kind(ik)                              \
@@ -6069,7 +6061,7 @@ extern void add_to_dependent_type_fixup_list(
                                       a_type_ptr                   type_ptr,
                                       a_dependent_type_fixup_kind  fixup_kind,
                                       char                         *entity_ptr,
-                                      a_byte_il_entry_kind         entity_kind,
+                                      an_il_entry_kind             entity_kind,
                                       a_source_position            *pos);
 
 extern void defer_exception_spec_error(a_func_info_block  *func_info,

@@ -52,7 +52,7 @@ BEGIN_EDG_NAMESPACE
 The structure defining the linked list of routines from which debug information
 has been requested.
 */
-typedef enum /*a_debug_action*/ {
+enum a_debug_action {
   da_none,
   da_set_level,
   da_increase_level,
@@ -62,7 +62,7 @@ typedef enum /*a_debug_action*/ {
   da_alloc_seq,
 #endif /* MAINTAIN_ALLOCATION_SEQUENCE_NUMBER */
   da_name
-} a_debug_action;
+};
 
 /*
 A command line debug request.

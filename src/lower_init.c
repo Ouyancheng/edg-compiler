@@ -19895,19 +19895,17 @@ builtin functions to determine the underlying CPU characteristics.
 {
   a_mv_target_bitset        bs;
   an_expr_node_ptr          result = NULL;
-  a_multiversion_arch_kind  arch;
+  signed char               arch;
 
   check_assertion(gnu_routine_supp(routine)->is_target_specific_version &&
                   builtin_cpu_supports_routine != NULL &&
                   builtin_cpu_is_routine != NULL);
   bs = gnu_routine_supp(routine)->mv_info.targeted_version.target_bitset;
   /* Loop through each potential architecture (both CPU and ISA). */
-  for (arch = (a_multiversion_arch_kind)mvak_lowest_cpu;
-       arch <= (a_multiversion_arch_kind)mvak_highest_isa;
-       arch++) {
+  for (arch = mvak_lowest_cpu; arch <= mvak_highest_isa; arch++) {
     if (bs & ((a_mv_target_bitset)1<<arch)) {
       an_expr_node_ptr str_node = make_expr_for_string_literal(
-                                               target_name_for_builtin(arch));
+                      target_name_for_builtin((a_multiversion_arch_kind)arch));
       if (is_mv_cpu_arch(arch)) {
         /* Generate a call to match the specified CPU architecture.  Note that
            there can be at most one CPU architecture and it'll be before any
