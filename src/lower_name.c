@@ -4896,10 +4896,10 @@ call that has no arguments).
               break;
             } else if (is_operation_node(child)) {
               if (child->compiler_generated &&
-                  ((op == (an_expr_operator_kind)eok_address_of &&
-                    child->kind == (an_expr_operator_kind)eok_indirect) ||
-                   (op == (an_expr_operator_kind)eok_indirect &&
-                    child->kind == (an_expr_operator_kind)eok_address_of))) {
+                  ((op == eok_address_of &&
+                    child->variant.operation.kind == eok_indirect) ||
+                   (op == eok_indirect &&
+                    child->variant.operation.kind == eok_address_of))) {
                 /* Remove compiler-generated "&*" or "*&" sequences. */
                 expr = child->variant.operation.operands;
               }  /* if */
