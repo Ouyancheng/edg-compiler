@@ -1,5 +1,28 @@
 Version 6.4
 
+4/8/22   [EDGcpfe/25209]
+Handling of uninitialized aggregate class objects in C++20 constant evaluation
+
+Consider:
+
+  struct S { int x, y; };
+  constexpr S xchange(S p) {
+    S r;  // Uninitialized (okay in C++20).
+    r.x = p.y;
+    r.y = p.x;
+    return r;
+  }
+  constexpr S s = xchange(S{ 1, 2 });  // Previously an error.  Now okay
+                                       // in C++20 mode.
+
+Prior to C++20, local variables declarations in constexpr function had to
+include an initializer.  In C++20 that is no longer required, but for aggregate
+class variables the front end failed to failed to treat such variables as
+initialized even if all their subobjects were initialized.  In the example
+above that meant an error was issued because the "return r;" statement was
+mistakenly thought to return an uninitialized object.  That is now fixed.
+
+
 4/7/22   [EDGcpfe/25208,EDGcpfe/15949]
 Removal of enum "tags" in favor of scoped enums
 

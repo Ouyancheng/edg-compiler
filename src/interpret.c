@@ -5764,9 +5764,15 @@ any subobject that is not initialized (the diagnostic is associated with pos).
   if (subobject_is_initialized(src_bytes, complete_src)) {
     mark_subobject_initialized(dst_bytes, complete_dst);  
   } else if (is_immediate_class_type(tp) &&
-             tp->variant.class_struct_union.is_empty_class) {
-    /* Empty class type objects are always considered "initialized". */
-    goto done;
+             (tp->variant.class_struct_union.is_empty_class ||
+              (cpp20_mode && !type_is(tp, tk_union)))) {
+    /* Empty class type objects are always considered "initialized".
+       Furthermore, in C++20, a class type can be initialized by initializing
+       each member individually, which might not cause the whole class to be
+       marked as initialized (if it is not a union). */
+    if (tp->variant.class_struct_union.is_empty_class) {
+      goto done;
+    }  /* if */
   } else {
     do_constexpr_fail(result);
     info_with_pos(ec_object_not_initialized, pos, ips);
