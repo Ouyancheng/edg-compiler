@@ -233,15 +233,18 @@ TRUE, coalesce any identifiers.
 */
 {
   a_token_set_array  stop_token_array;
+  a_cts_flag_set     options = CTS_IS_EXPRESSION;
 
+  if (coalesce) {
+    options |= CTS_COALESCE_IDS;
+  }  /* if */
   clear_token_set_array(stop_token_array);
   incr_token_set_array_element(stop_token_array, stop_token);
   /* Also stop on a right brace or semicolon to keep from caching too far
      in error cases. */
   incr_token_set_array_element(stop_token_array, tok_rbrace);
   incr_token_set_array_element(stop_token_array, tok_semicolon);
-  cache_token_stream_full((a_token_cache_ptr)NULL, stop_token_array,
-                          coalesce ? CTS_COALESCE_IDS : CTS_NO_OPTIONS);
+  cache_token_stream_full((a_token_cache_ptr)NULL, stop_token_array, options);
 }  /* cache_tokens_until */
 
 

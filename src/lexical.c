@@ -3831,7 +3831,7 @@ Interface to cache_token_stream_full that does not
 cause identifiers to be coalesced.
 */
 {
-  cache_token_stream_full(cache, stop_tokens, CTS_NO_OPTIONS);
+  cache_token_stream_full(cache, stop_tokens, CTS_IS_EXPRESSION);
 }  /* cache_token_stream */
 
 
@@ -3842,7 +3842,8 @@ Interface to cache_token_stream_full that causes
 identifiers to be coalesced.
 */
 {
-  cache_token_stream_full(cache, stop_tokens, CTS_COALESCE_IDS);
+  cache_token_stream_full(cache, stop_tokens,
+                          CTS_COALESCE_IDS | CTS_IS_EXPRESSION);
 }  /* cache_token_stream_coalesce_identifiers */
 
 

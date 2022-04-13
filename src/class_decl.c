@@ -33586,7 +33586,8 @@ whether this is a lambda.  Return TRUE if it is.
            in error cases. */
         incr_token_set_array_element(stop_token_array, tok_rbrace);
         incr_token_set_array_element(stop_token_array, tok_semicolon);
-        cache_token_stream_full(&cache, stop_token_array, CTS_COALESCE_IDS);
+        cache_token_stream_full(&cache, stop_token_array,
+                                CTS_COALESCE_IDS | CTS_IS_EXPRESSION);
       }  /* if */
       if (curr_token != tok_comma) {
         break;
