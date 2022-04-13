@@ -25972,9 +25972,10 @@ represents the associated concept template.
     /* Skip past the equals sign. */
     (void)get_token();
     /* Cache the tokens that make up the default argument expression. */
-    prescan_default_arg_expr(&def_arg_cache, /*is_template_param=*/TRUE,
+    prescan_default_argument(&def_arg_cache, /*is_template_param=*/TRUE,
                              /*is_function_template=*/FALSE,
-			     /*is_friend_decl=*/FALSE);
+                             /*is_friend_decl=*/FALSE,
+                             /*is_expression=*/FALSE);
     if (ignore_default) {
       /* Ignore the default for a parameter pack. */
     } else if (ms_extensions && !class_template_arg_deduction_enabled &&
@@ -26277,7 +26278,7 @@ depends on a template parameter.
     /* Skip past the equals sign. */
     (void)get_token();
     /* Cache the tokens that make up the default argument expression. */
-    prescan_default_arg_expr(&def_arg_cache, /*is_template_param=*/TRUE,
+    prescan_default_argument(&def_arg_cache, /*is_template_param=*/TRUE,
                              /*is_function_template=*/FALSE,
 			     /*is_friend_decl=*/FALSE);
     if (ignore_default) {
@@ -26565,9 +26566,10 @@ depends on a another template parameter.
     /* Skip past the equals sign. */
     (void)get_token();
     /* Cache the tokens that make up the default argument expression. */
-    prescan_default_arg_expr(&def_arg_cache, /*is_template_param=*/TRUE,
+    prescan_default_argument(&def_arg_cache, /*is_template_param=*/TRUE,
                              /*is_function_template=*/FALSE,
-			     /*is_friend_decl=*/FALSE);
+                             /*is_friend_decl=*/FALSE,
+                             /*is_expression=*/FALSE);
     /* Record whether the prototype instantiation of this default argument
        should be done later when the template parameter information
        is completed. */

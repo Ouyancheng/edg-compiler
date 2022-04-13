@@ -62,10 +62,11 @@ typedef struct a_def_arg_expr_fixup {
 } a_def_arg_expr_fixup;
 
 extern
-void prescan_default_arg_expr(a_token_cache_ptr	token_cache,
-			      a_boolean		is_template_param,
-			      a_boolean		is_function_template,
-			      a_boolean		is_friend_decl);
+void prescan_default_argument(a_token_cache_ptr	token_cache,
+                              a_boolean		is_template_param,
+                              a_boolean		is_function_template,
+                              a_boolean		is_friend_decl,
+                              a_boolean		is_expression = TRUE);
 
 extern
 void prescan_default_function_arg_expr(
