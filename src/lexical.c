@@ -3272,13 +3272,11 @@ Get a token and, if it is a tok_identifier and coalesce_ids is TRUE, call
 is_generalized_identifier_start to coalesce it in case it is the beginning
 of something like a qualified name.
 */
-#define get_token_and_coalesce_if_needed(coalesce_ids, is_expr)		\
+#define get_token_and_coalesce_if_needed(coalesce_ids)			\
   if (coalesce_ids) {							\
-    an_identifier_options_set expr_opt = is_expr ? GID_IS_EXPR_CONTEXT	\
-                                                 : GID_NO_OPTIONS;	\
     (void)get_token();							\
     (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |	\
-					  expr_opt);			\
+					  GID_IS_EXPR_CONTEXT);		\
   } else {								\
     (void)get_token();							\
   }
@@ -3597,7 +3595,6 @@ not NULL, any fetched tokens will be added to cache.
   a_boolean	done = FALSE;
   a_boolean	err = FALSE;
   a_boolean	coalesce_ids = (options & CTS_COALESCE_IDS) != 0;
-  a_boolean	is_expr = (options & CTS_IS_EXPRESSION) != 0;
   a_boolean	add_tokens_to_cache = !coalesce_ids && cache != NULL;
   a_boolean	stop_on_statement_end =
                                    (options & CTS_STOP_ON_STATEMENT_END) != 0;
@@ -3623,7 +3620,7 @@ not NULL, any fetched tokens will be added to cache.
   }  /* switch */
   /* Cache the current token, and advance to its successor. */
   if (add_tokens_to_cache) cache_curr_token(cache);
-  get_token_and_coalesce_if_needed(coalesce_ids, is_expr);
+  get_token_and_coalesce_if_needed(coalesce_ids);
   /* Keep looping through successive tokens until the corresponding closing
      token is found at level zero (i.e., not within a nesting of parens,
      brackets, or braces). */
@@ -3688,7 +3685,7 @@ not NULL, any fetched tokens will be added to cache.
     if (curr_token == tok_end_of_source) break;
     /* None of the conditions was satisfied, so keep going. */
     if (add_tokens_to_cache) cache_curr_token(cache);
-    get_token_and_coalesce_if_needed(coalesce_ids, is_expr);
+    get_token_and_coalesce_if_needed(coalesce_ids);
     if (curr_token == tok_shift_right && closing_token == tok_gt &&
         right_shift_can_be_angle_brackets) {
       /* A right shift token may need to be treated as two closing angle
@@ -3747,14 +3744,12 @@ a template argument list or is just a less-than sign.
   a_boolean			prev_token_was_template = FALSE;
   a_boolean			add_tokens_to_cache;
   a_boolean			coalesce_ids;
-  a_boolean			is_expr;
 
   db_enter(4, "cache_token_stream_full");
   /* Set a flag that indicates that the tokens being scanned are to be
      cached. */
   caching_tokens = TRUE;
   coalesce_ids = (options & CTS_COALESCE_IDS) != 0;
-  is_expr = (options & CTS_IS_EXPRESSION) != 0;
   add_tokens_to_cache = !coalesce_ids && cache != NULL;
   /* Start caching of tokens when we are coalescing ids.   This is needed
      because when coalescing ids not all tokens are fetched directly by
@@ -3804,7 +3799,7 @@ a template argument list or is just a less-than sign.
     if (curr_token == tok_end_of_source) break;
     /* Add the current token to the cache and advance to its successor. */
     if (add_tokens_to_cache) cache_curr_token(cache);
-    get_token_and_coalesce_if_needed(coalesce_ids, is_expr);
+    get_token_and_coalesce_if_needed(coalesce_ids);
   }  /* while */
   /* Leave error_position associated with what is now curr_token. */
   set_err_pos_to_curr_token();
@@ -23219,25 +23214,23 @@ selection operator, in which case it points to the type of the left operand.
                  argument list. */
               lookup_options |= IDL_TYPENAME_LOOKUP;
               if ((next_tok == tok_lt || is_template) &&
-                  (gpp_mode || microsoft_mode || use_implicit_typename())) {
-                /* When implicit typename is used, and in g++ and Microsoft
-                   modes, in a name prefixed by "typename", treat a "<" as
-                   the start of a template argument list. */
+                  (gpp_mode || use_implicit_typename())) {
+                /* When implicit typename is used, and in g++ mode, in a
+                   name prefixed by "typename", treat a "<" as the start
+                   of a template argument list. */
                 lookup_options |= IDL_TREAT_AS_TEMPLATE_ID;
               }  /* if */
-            } else if ((use_implicit_typename() || microsoft_mode ||
+            } else if ((use_implicit_typename() ||
                               (gpp_mode && gnu_version <= 40100 &&
                                qualifier_is_type &&
                                gpp_omitted_template_okay(qualifier_type))) &&
                        (options & GID_IS_EXPR_CONTEXT) == 0) {
-              /* If this is a name being used in a declarative context
-                 (i.e., not in an expression, and we are in implicit
-                 typename mode, and the name is followed by a "<", set the
-                 "treat as template ID" flag to indicate that if a nonreal
-                 class member needs to be created, it should be created as
-                 a template name.  This is also done in Microsoft mode,
-                 which makes the "template" keyword optional, even in
-                 non-permissive mode, and in certain cases in g++ mode (see
+              /* If this is a name being used in a declarative context (i.e.,
+                 not in an expression, and we are in implicit typename mode,
+                 and the name is followed by a "<", set the "treat as template
+                 ID" flag to indicate that if a nonreal class member needs
+                 to be created, it should be created as a template name.
+                 This is also done in certain cases in g++ mode (see
                  gpp_omitted_template_okay for more information). */
               if (next_tok == tok_lt || is_template) {
                 lookup_options |= IDL_TREAT_AS_TEMPLATE_ID;

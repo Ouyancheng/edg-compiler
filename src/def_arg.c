@@ -120,19 +120,18 @@ available-list.
 }  /* free_def_arg_expr_fixup */
 
 
-void prescan_default_argument(a_token_cache_ptr  token_cache,
-                              a_boolean          is_template_param,
-                              a_boolean          is_function_template,
-                              a_boolean          is_friend_decl,
-            /* Defaulted: */  a_boolean          is_expression)
+void prescan_default_arg_expr(a_token_cache_ptr		token_cache,
+			      a_boolean			is_template_param,
+			      a_boolean			is_function_template,
+			      a_boolean			is_friend_decl)
 /*
-Place the tokens for a default argument - an expression if is_expression is
-TRUE (the default value) - into a token cache, to await actual processing
-at a later point.  is_template_param is TRUE for the default argument for a
-template parameter.  is_function_template is TRUE for the default argument
-for a function template function parameter.  is_friend_decl is TRUE for a
-default argument in a friend declaration; it must be FALSE when either
-is_function_template or is_template_param are FALSE.
+Place the tokens for a default argument expression into a token cache, to
+await actual processing at a later point.  is_template_param is TRUE
+if the expression is the default for a nontype template parameter.
+is_function_template is TRUE if the expression is the default for a
+function template function parameter.  is_friend_decl is TRUE if the
+expression is the default for a friend declaration; it must be FALSE
+when either is_function_template or is_template_param are FALSE.
 */
 {
   a_token_set_array		stop_tokens;
@@ -142,14 +141,14 @@ is_function_template or is_template_param are FALSE.
   a_source_position		start_pos;
   a_cts_flag_set		cts_options;
 
-  db_enter(3, "prescan_default_argument");
+  db_enter(3, "prescan_default_arg_expr");
   /* Initialize a local stop token set. */
   clear_token_set_array(stop_tokens);
   /* Save the token sequence number of the first token to be cached. */
   first_tsn = curr_token_sequence_number;
-  /* In the normal case we will scan the default argument and encounter a
-     comma or right parenthesis.  If both of these are omitted, terminate
-     the token stream when some likely delimiter is reached. */
+  /* In the normal case we will scan an expression and encounter a comma
+     or right parenthesis.  If both of these are omitted, terminate the token
+     stream when some likely delimiter is reached. */
   incr_token_set_array_element(stop_tokens, tok_comma);
   if (!is_template_param && !is_variadic_template_context()) {
     incr_token_set_array_element(stop_tokens, tok_ellipsis);
@@ -170,9 +169,6 @@ is_function_template or is_template_param are FALSE.
   cts_options = CTS_COALESCE_IDS;
   if (is_template_param && !lambda_allowed_in_uneval_context) {
     cts_options |= CTS_STOP_ON_STATEMENT_END;
-  }  /* if */
-  if (is_expression) {
-    cts_options |= CTS_IS_EXPRESSION;
   }  /* if */
   cache_token_stream_full((a_token_cache_ptr)NULL, stop_tokens, cts_options);
   end_caching_fetched_tokens();
@@ -228,7 +224,7 @@ is_function_template or is_template_param are FALSE.
      the cache. */
   terminate_token_cache(token_cache);
   db_exit();
-}  /* prescan_default_argument */
+}  /* prescan_default_arg_expr */
 
 
 void prescan_default_function_arg_expr(
@@ -250,7 +246,7 @@ scan the default argument expression but discard the token cache.
 
   db_enter(3, "prescan_default_function_arg_expr");
   /* Scan the default argument expression. */
-  prescan_default_argument(&token_cache, /*is_template_param=*/FALSE,
+  prescan_default_arg_expr(&token_cache, /*is_template_param=*/FALSE,
                            is_function_template, is_friend_decl);
   if (list == NULL || ptp == NULL) {
     /* Either no list pointer, or no param type pointer was passed by

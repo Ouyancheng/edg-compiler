@@ -2245,11 +2245,6 @@ typedef unsigned int a_cts_flag_set;
 			   or mismatched right brace is encountered.  This
 			   is used to avoid excessive caching in programs
 			   with certain kinds of syntax errors. */
-#define CTS_IS_EXPRESSION	  0X4
-			/* TRUE if the stream being cached represents an
-			   expression.  Used to determine the setting of
-			   GID_IS_EXPR_CONTEXT while coalescing
-			   identifiers. */
 
 
 inline void assign_curr_token_sequence_number()
