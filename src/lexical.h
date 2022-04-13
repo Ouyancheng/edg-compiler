@@ -2236,8 +2236,8 @@ typedef struct a_reusable_cache_entry {
 Bit vector used to pass flags into the cache token stream routines.
 */
 typedef unsigned int a_cts_flag_set;
-#define CTS_NO_OPTIONS		  0x0
-#define CTS_COALESCE_IDS	  0x1
+#define CTS_NO_OPTIONS            0x0
+#define CTS_COALESCE_IDS          0x1
 			/* TRUE if identifiers should be coalesced during
 			   the caching process. */
 #define CTS_STOP_ON_STATEMENT_END 0x2
@@ -2245,7 +2245,7 @@ typedef unsigned int a_cts_flag_set;
 			   or mismatched right brace is encountered.  This
 			   is used to avoid excessive caching in programs
 			   with certain kinds of syntax errors. */
-#define CTS_IS_EXPRESSION	  0X4
+#define CTS_IS_EXPRESSION         0X4
 			/* TRUE if the stream being cached represents an
 			   expression.  Used to determine the setting of
 			   GID_IS_EXPR_CONTEXT while coalescing

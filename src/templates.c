@@ -26280,7 +26280,7 @@ depends on a template parameter.
     /* Cache the tokens that make up the default argument expression. */
     prescan_default_argument(&def_arg_cache, /*is_template_param=*/TRUE,
                              /*is_function_template=*/FALSE,
-			     /*is_friend_decl=*/FALSE);
+                             /*is_friend_decl=*/FALSE);
     if (ignore_default) {
       /* Ignore the default for a parameter pack. */
     } else if (const_type_involves_template_param) {

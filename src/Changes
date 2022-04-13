@@ -5,7 +5,7 @@ Omitted "template" keyword in template type parameter default argument
 
 The front end previously always interpreted a "<" following a dependent
 qualified name appearing in a template type parameter default argument as
-the "less than" operator when the "template" keyword does not appear. MSVC
+the "less than" operator when the "template" keyword does not appear.  MSVC
 and g++, however, interpret it as the beginning of a template argument
 list.  The front end now does the same in the corresponding emulation modes.
 For example, the front end previously issued errors for the following

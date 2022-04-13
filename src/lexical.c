@@ -3278,7 +3278,7 @@ of something like a qualified name.
                                                  : GID_IS_TYPENAME;         \
     (void)get_token();                                                      \
     (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |      \
-					  expr_type_opt);                   \
+                                          expr_type_opt);                   \
   } else {                                                                  \
     (void)get_token();                                                      \
   }
@@ -23231,7 +23231,7 @@ selection operator, in which case it points to the type of the left operand.
                                gpp_omitted_template_okay(qualifier_type))) &&
                        (options & GID_IS_EXPR_CONTEXT) == 0) {
               /* If this is a name being used in a declarative context
-                 (i.e., not in an expression, and we are in implicit
+                 (i.e., not in an expression), and we are in implicit
                  typename mode, and the name is followed by a "<", set the
                  "treat as template ID" flag to indicate that if a nonreal
                  class member needs to be created, it should be created as
