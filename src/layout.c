@@ -3306,7 +3306,7 @@ Also, in Microsoft mode we must skip over property fields.
                                              (an_access_specifier)as_public) {
         break;
       } else if (field->source_corresp.access < access) {
-        access = field->source_corresp.access;
+        access = enum_cast<an_access_specifier>(field->source_corresp.access);
         result = field;
       }  /* if */
       field = field->next;

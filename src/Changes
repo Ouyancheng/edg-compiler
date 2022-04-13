@@ -43,17 +43,17 @@ mistakenly thought to return an uninitialized object.  That is now fixed.
 
 
 4/7/22   [EDGcpfe/25208,EDGcpfe/15949]
-Removal of enum "tags" in favor of scoped enums
+Removal of enum "tags" in favor of enums with fixed underlying types
 
 The front end used an enum "tag" paradigm where most enumerations were declared
 with a tag + typedef combination, where the enumeration itself contained the
 "tags", but data structures used the associated typedef.  This was necessary
 prior to the switch to C++11 (in version 6.0) as there was no way to control
 the underlying type of the enumeration.  This paradigm has been eliminated in
-favor of scoped enums for increased type safety.  Redundant casts to the enum
-have been retained to avoid unnecessary merge conflicts, and the following
-additional types have been removed, in addition to the global renaming of all
-"tag" enums (replacements in parentheses):
+favor of enums with fixed underlying types for increased type safety.
+Redundant casts to the enum have been retained to avoid unnecessary merge
+conflicts, and the following additional types have been removed, in addition to
+the global renaming of all "tag" enums (replacements in parentheses):
 
  - a_byte_attribute_kind     (an_attribute_kind)
  - a_byte_attribute_family   (an_attribute_family)

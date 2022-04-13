@@ -256,21 +256,22 @@ sym.
   a_type_ptr           routine_type;
   a_requires_clause    *trcp;
 
-  check_assertion(sym->kind == (a_symbol_kind)sk_routine ||
-                  sym->kind == (a_symbol_kind)sk_member_function ||
-                  sym->kind == (a_symbol_kind)sk_variable);
+  check_assertion(sym->kind == sk_routine || sym->kind == sk_member_function ||
+                  sym->kind == sk_variable);
   /* All of the hard work is done by find_external_symbol; we just have
      to pass it the appropriate linkage and type. */
-  if (sym->kind != (a_symbol_kind)sk_variable) {
+  if (sym->kind != sk_variable) {
     /* An ordinary function or a member function. */
     a_routine_ptr  routine = sym->variant.routine.ptr;
-    name_linkage = routine->source_corresp.name_linkage;
+    name_linkage = enum_cast<a_name_linkage_kind>(
+                                         routine->source_corresp.name_linkage);
     routine_type = routine->type;
     trcp = routine->trailing_requires_clause;
   } else {
     /* A variable symbol. */
     a_variable_ptr  variable = sym->variant.variable.ptr;
-    name_linkage = variable->source_corresp.name_linkage;
+    name_linkage = enum_cast<a_name_linkage_kind>(
+                                        variable->source_corresp.name_linkage);
     routine_type = NULL;
     trcp = NULL;
   }  /* if */

@@ -6156,7 +6156,8 @@ characters.  The constant is updated in place.
 */
 {
   if (con->kind == (a_constant_repr_kind)ck_string) {
-    a_character_kind  char_kind = con->character_kind;
+    a_character_kind  char_kind = enum_cast<a_character_kind>(
+                                                          con->character_kind);
     unsigned int      char_size = (unsigned int)character_size[char_kind];
     a_targ_size_t     i, len = con->variant.string.length;
     a_const_char      *str = con->variant.string.value;
@@ -6191,7 +6192,8 @@ a_targ_size_t string_constant_length(a_constant_ptr  con)
 Return the number of characters in the given ck_string entry.
 */
 {
-  a_character_kind  char_kind = con->character_kind;
+  a_character_kind  char_kind = enum_cast<a_character_kind>(
+                                                          con->character_kind);
   unsigned int      char_size = (unsigned int)character_size[char_kind];
   a_targ_size_t     len = con->variant.string.length;
 
@@ -21047,7 +21049,7 @@ Allocate a copy of an expression node and return a pointer to it.
 */
 {
   an_expr_node_ptr              expr_copy;
-  an_expr_node_kind             kind = expr->kind;
+  an_expr_node_kind             kind =enum_cast<an_expr_node_kind>(expr->kind);
   a_new_delete_supplement_ptr   copy_new_delete = NULL;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   a_gcnew_supplement_ptr        copy_gcnew = NULL;
@@ -28886,11 +28888,13 @@ Return the top-level C++/CLI visibility of the given type (if any).
   an_assembly_visibility  result;
 
   if (is_immediate_class_type(type)) {
-    result = class_type_supp(type)->assembly_visibility;
+    result = enum_cast<an_assembly_visibility>(
+                                   class_type_supp(type)->assembly_visibility);
   } else if (type->kind == (a_type_kind)tk_integer) {
-    result = integer_type_supp(type)->assembly_visibility;
+    result = enum_cast<an_assembly_visibility>(
+                                 integer_type_supp(type)->assembly_visibility);
   } else {
-    result = (an_assembly_visibility)av_none;
+    result = av_none;
   }  /* if */
   return result;
 }  /* an_assembly_visibility */

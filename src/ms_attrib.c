@@ -1669,7 +1669,8 @@ is set to TRUE.  Note that "err" is not TRUE for an unexpected token kind.
     } else {
       src = const_for_curr_token.variant.string.value;
       /* Determine if the source constant is a wide string literal. */
-      char_kind = const_for_curr_token.character_kind;
+      char_kind = enum_cast<a_character_kind>(
+                                          const_for_curr_token.character_kind);
       char_size = character_size[char_kind];
       /* Subtract one character to ignore the null terminator. */
       len = const_for_curr_token.variant.string.length - char_size;

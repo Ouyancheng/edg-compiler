@@ -10739,29 +10739,39 @@ declare_routine:
         /* Generate any needed standard C99 pragma. */
         if (rout->fp_contract != stdc_pv_none &&
             rout->fp_contract != curr_default_fp_contract) {
-          dump_stdc_pragma(stdc_pk_fp_contract, rout->fp_contract);
+          dump_stdc_pragma(stdc_pk_fp_contract,
+                           enum_cast<a_stdc_pragma_value>(rout->fp_contract));
         }  /* if */
         if (rout->fenv_access != stdc_pv_none &&
             rout->fenv_access != curr_default_fenv_access) {
-          dump_stdc_pragma(stdc_pk_fenv_access, rout->fenv_access);
+          dump_stdc_pragma(stdc_pk_fenv_access,
+                           enum_cast<a_stdc_pragma_value>(rout->fenv_access));
         }  /* if */
         if (rout->cx_limited_range != stdc_pv_none &&
             rout->cx_limited_range != curr_default_cx_limited_range) {
-          dump_stdc_pragma(stdc_pk_cx_limited_range, rout->cx_limited_range);
+          dump_stdc_pragma(stdc_pk_cx_limited_range,
+                           enum_cast<a_stdc_pragma_value>(
+                                                      rout->cx_limited_range));
         }  /* if */
 #if FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT
         /* Generate any needed fixed-point pragma. */
         if (rout->fx_full_precision != stdc_pv_none &&
             rout->fx_full_precision != curr_default_fx_full_precision) {
-          dump_stdc_pragma(stdc_pk_fx_full_precision, rout->fx_full_precision);
+          dump_stdc_pragma(stdc_pk_fx_full_precision,
+                           enum_cast<a_stdc_pragma_value>(
+                                                     rout->fx_full_precision));
         }  /* if */
         if (rout->fx_fract_overflow != stdc_pv_none &&
             rout->fx_fract_overflow != curr_default_fx_fract_overflow) {
-          dump_stdc_pragma(stdc_pk_fx_fract_overflow, rout->fx_fract_overflow);
+          dump_stdc_pragma(stdc_pk_fx_fract_overflow,
+                           enum_cast<a_stdc_pragma_value>(
+                                                     rout->fx_fract_overflow));
         }  /* if */
         if (rout->fx_accum_overflow != stdc_pv_none &&
             rout->fx_accum_overflow != curr_default_fx_accum_overflow) {
-          dump_stdc_pragma(stdc_pk_fx_accum_overflow, rout->fx_accum_overflow);
+          dump_stdc_pragma(stdc_pk_fx_accum_overflow,
+                           enum_cast<a_stdc_pragma_value>(
+                                                     rout->fx_accum_overflow));
         }  /* if */
 #endif /* FIXED_POINT_ALLOWED && !LOWER_FIXED_POINT */
 #if UPC_EXTENSIONS_ALLOWED

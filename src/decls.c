@@ -3264,7 +3264,8 @@ internal linkage).
          modes, a block-extern declaration in a function declared with an
          explicit name-linkage specification still takes its name linkage from
          a prior declaration. */
-      idlbp->name_linkage = ssep->default_name_linkage;
+      idlbp->name_linkage =
+                    enum_cast<a_name_linkage_kind>(ssep->default_name_linkage);
       idlbp->name_linkage_is_explicit = TRUE;
     } else {
       /* No explicit linkage specification.  Use the prior declaration (if
@@ -3296,10 +3297,11 @@ internal linkage).
        /* Use the linkage specifier from the prior declaration. */
         scp = source_corresp_entry_for_symbol(prior_decl);
         check_assertion(scp != NULL);
-        idlbp->name_linkage = scp->name_linkage;
+        idlbp->name_linkage =enum_cast<a_name_linkage_kind>(scp->name_linkage);
       } else {
         /* Use the default. */
-        idlbp->name_linkage = ssep->default_name_linkage;
+        idlbp->name_linkage =
+                    enum_cast<a_name_linkage_kind>(ssep->default_name_linkage);
       }  /* if */
     }  /* if */
     if (idlbp->type->kind == (a_type_kind)tk_routine &&
@@ -4720,7 +4722,7 @@ created; the caller must set it.
            linkage. */
         a_name_linkage_kind  rtn_name_linkage;
         if (ext_sym->kind == (a_symbol_kind)sk_extern_routine) {
-          rtn_name_linkage = scp->name_linkage;
+          rtn_name_linkage = enum_cast<a_name_linkage_kind>(scp->name_linkage);
         } else {
           rtn_name_linkage = idlbp->name_linkage;
         }  /* if */
@@ -5996,8 +5998,9 @@ the routine-name-linkages of the two declarations are compatible.
   if (rtsp->routine_name_linkage_is_explicit) {
     rout_type = skip_typerefs(rout_type);
     compat = routine_linkages_are_compatible(
-                  rtsp->routine_name_linkage,
-                  rout_type->variant.routine.extra_info->routine_name_linkage,
+                  enum_cast<a_name_linkage_kind>(rtsp->routine_name_linkage),
+                  enum_cast<a_name_linkage_kind>(rout_type->
+                             variant.routine.extra_info->routine_name_linkage),
                   /*is_impl_conv=*/FALSE);
   }  /* if */
   return compat;
@@ -7301,8 +7304,8 @@ for use in generating cross-reference output describing this declaration.
         linkage = idl_external;
         if (dps->is_linkage_spec_decl) {
           idlb.name_linkage_is_explicit = TRUE;
-          idlb.name_linkage =
-                           scope_stack[decl_scope_level].default_name_linkage;
+          idlb.name_linkage = enum_cast<a_name_linkage_kind>(
+                           scope_stack[decl_scope_level].default_name_linkage);
           orig_var->source_corresp.name_linkage = idlb.name_linkage;
         }  /* if */
         linked_symbol->defined = FALSE;
@@ -7616,7 +7619,8 @@ for use in generating cross-reference output describing this declaration.
   }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   /* Update the ELF visibility if applicable. */
-  { an_ELF_visibility_kind  visibility = variable_ptr->ELF_visibility;
+  { an_ELF_visibility_kind  visibility = enum_cast<an_ELF_visibility_kind>(
+                                                 variable_ptr->ELF_visibility);
     update_for_default_ELF_visibility(&visibility, /*is_class_member=*/FALSE);
     variable_ptr->ELF_visibility = visibility;
   }
@@ -10449,7 +10453,8 @@ skip_overloading:;
   }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
   /* Update the ELF visibility if applicable. */
-  { an_ELF_visibility_kind  visibility = routine_ptr->ELF_visibility;
+  { an_ELF_visibility_kind  visibility = enum_cast<an_ELF_visibility_kind>(
+                                                  routine_ptr->ELF_visibility);
     update_for_default_ELF_visibility(&visibility, /*is_class_member=*/FALSE);
     routine_ptr->ELF_visibility = visibility;
   }
@@ -11869,7 +11874,8 @@ typedef, we must make sure to propagate that to its members.
   a_routine_ptr        routine;
   a_variable_ptr       var;
   a_type_ptr           type;
-  a_name_linkage_kind  name_linkage = tp->source_corresp.name_linkage;
+  a_name_linkage_kind  name_linkage = enum_cast<a_name_linkage_kind>(
+                                              tp->source_corresp.name_linkage);
 
   check_assertion(!C_mode() && is_immediate_class_type(tp));
   scope = tp->variant.class_struct_union.extra_info->assoc_scope;
@@ -13887,7 +13893,8 @@ specifier is restored.  dps describes the linkage-specification declaration.
     /* If there's an error on this linkage-specification declaration, leave
        the default name linkage kind unchanged.  But to simplify processing,
        the push and pop will still be done. */
-    kind = scope_stack[depth_scope_stack].default_name_linkage;
+    kind = enum_cast<a_name_linkage_kind>(
+                          scope_stack[depth_scope_stack].default_name_linkage);
   }  /* if */
   /* Save the current default linkage and set the new one. */
   push_name_linkage(kind);

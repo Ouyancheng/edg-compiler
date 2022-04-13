@@ -9601,11 +9601,13 @@ generate "public " or "private " accordingly.
 {
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (!type->source_corresp.is_class_member) {
-    an_assembly_visibility  declared_vis = (an_assembly_visibility)av_none;
+    an_assembly_visibility  declared_vis = av_none;
     if (is_immediate_class_type(type)) {
-      declared_vis = class_type_supp(type)->declared_assembly_visibility;
-    } else if (type->kind == (a_type_kind)tk_integer) {
-      declared_vis = integer_type_supp(type)->declared_assembly_visibility;
+      declared_vis = enum_cast<an_assembly_visibility>(
+                          class_type_supp(type)->declared_assembly_visibility);
+    } else if (type->kind == tk_integer) {
+      declared_vis = enum_cast<an_assembly_visibility>(
+                        integer_type_supp(type)->declared_assembly_visibility);
     }  /* if */
     switch (declared_vis) {
       case av_none:     /* Nothing to do. */        break;
@@ -9883,20 +9885,18 @@ preceding declaration by a semicolon in such cases.
       next_entry_kind = ss_entry_kind(ssep);
       another_decl_follows = next_scp->is_decl_after_first_in_comma_list;
     }  /* if */
-    if (another_decl_follows &&
-        surrounding_name_linkage != (a_name_linkage_kind)nlk_none) {
-      a_name_linkage_kind  next_surrounding_name_linkage =
-                                                (a_name_linkage_kind)nlk_none;
+    if (another_decl_follows && surrounding_name_linkage != nlk_none) {
+      a_name_linkage_kind  next_surrounding_name_linkage = nlk_none;
       if (next_entry_kind == iek_type) {
         a_type_ptr  type = (a_type_ptr)next_scp;
-        check_assertion(type->kind == (a_type_kind)tk_typeref);
-        next_surrounding_name_linkage =
-                         type->variant.typeref.surrounding_name_linkage_state;
+        check_assertion(type->kind == tk_typeref);
+        next_surrounding_name_linkage = enum_cast<a_name_linkage_kind>(
+                         type->variant.typeref.surrounding_name_linkage_state);
       } else if (next_entry_kind == iek_routine) {
-        next_surrounding_name_linkage =
-                    ((a_routine_ptr)next_scp)->surrounding_name_linkage_state;
+        next_surrounding_name_linkage = enum_cast<a_name_linkage_kind>(
+                    ((a_routine_ptr)next_scp)->surrounding_name_linkage_state);
       }  /* if */
-      if (next_surrounding_name_linkage != (a_name_linkage_kind)nlk_none &&
+      if (next_surrounding_name_linkage != nlk_none &&
           surrounding_name_linkage != next_surrounding_name_linkage) {
         another_decl_follows = FALSE;
       }  /* if */
@@ -10737,8 +10737,9 @@ declaration following this one is such a continuation.
 #endif /* GNU_EXTENSIONS_ALLOWED && C99_IL_EXTENSIONS_SUPPORTED */
     }  /* if */
     /* See if there are comma-separated declarations attached to this one. */
-    *another_decl_in_comma_list = another_declaration_in_comma_list_follows(
-                        type->variant.typeref.surrounding_name_linkage_state);
+    *another_decl_in_comma_list =
+      another_declaration_in_comma_list_follows(enum_cast<a_name_linkage_kind>(
+                        type->variant.typeref.surrounding_name_linkage_state));
   }  /* if */
   gen_attributes(attributes, al_postfix, sec_decl != NULL);
   gen_attributes(attributes, al_id_equivalent_as_postfix, sec_decl != NULL);
@@ -14424,15 +14425,15 @@ return FALSE and let the caller generate the code normally.
     } else
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (expr->variant.operation.rewritten_property_reference_kind !=
-                              (a_rewritten_property_reference_kind)rprk_none) {
+                                                                   rprk_none) {
       /* This is a compound assignment operation that was decomposed into
          calls to the simple assignment and corresponding simple operation
          via operator synthesis.  Generate it in the original form. */
       gen_prop_event_or_op_synth_call(
-                     (an_expr_node_ptr)NULL, rp, arg,
-                     (a_property_or_event_descr_ptr)NULL,
-                     (a_special_function_kind)sfk_none,
-                     expr->variant.operation.rewritten_property_reference_kind,
+                  (an_expr_node_ptr)NULL, rp, arg,
+                  (a_property_or_event_descr_ptr)NULL, sfk_none,
+                  enum_cast<a_rewritten_property_reference_kind>(expr->
+                          variant.operation.rewritten_property_reference_kind),
                      /*is_virtual_call=*/FALSE);
       handled = TRUE;
     } else 
@@ -15234,7 +15235,8 @@ call.
         }  /* if */
         gen_prop_event_or_op_synth_call(
                      obj_expr, rout, args, pedp, special_kind,
-                     expr->variant.operation.rewritten_property_reference_kind,
+                     enum_cast<a_rewritten_property_reference_kind>(expr->
+                          variant.operation.rewritten_property_reference_kind),
                      expr->variant.operation.is_virtual_call);
         if (need_close_paren) {
           write_tok_ch(')');
@@ -16586,15 +16588,15 @@ gen_expr that might end up generating this expr as a temporary.
         case eok_assign:
 #if MICROSOFT_EXTENSIONS_ALLOWED
           if (expr->variant.operation.rewritten_property_reference_kind !=
-                              (a_rewritten_property_reference_kind)rprk_none) {
+                                                                   rprk_none) {
             /* This assignment is the result of decomposing a compound
                assignment operation into its simple components via operator
                synthesis.  Generate it in the original form. */
             gen_prop_event_or_op_synth_call(
                      (an_expr_node_ptr)NULL, (a_routine_ptr)NULL, operand_1,
-                     (a_property_or_event_descr_ptr)NULL,
-                     (a_special_function_kind)sfk_none,
-                     expr->variant.operation.rewritten_property_reference_kind,
+                     (a_property_or_event_descr_ptr)NULL, sfk_none,
+                     enum_cast<a_rewritten_property_reference_kind>(expr->
+                          variant.operation.rewritten_property_reference_kind),
                      /*is_virtual_call=*/FALSE);
             goto done_with_operation;
           }  /* if */
@@ -18859,7 +18861,7 @@ Generate a braced linkage specifier block like
      specifier. */
   adv_curr_source_sequence_entry();
   saved_default_name_linkage = curr_default_name_linkage;
-  curr_default_name_linkage = lsbp->name_linkage;
+  curr_default_name_linkage=enum_cast<a_name_linkage_kind>(lsbp->name_linkage);
   /* Generate all embedded declarations. */
   while (ss_entry_kind(curr_source_sequence_entry) !=
                                                 iek_src_seq_end_of_construct) {
@@ -21228,13 +21230,12 @@ this one is such a continuation.
   if (var->is_initonly) write_tok_str("initonly ");
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   /* Check for linkage specifiers.  This applies even on a definition. */
-  var_nlk = var->source_corresp.name_linkage;
+  var_nlk = enum_cast<a_name_linkage_kind>(var->source_corresp.name_linkage);
 #if GENERATE_LINKAGE_SPEC_BLOCKS
   if (curr_default_name_linkage != var_nlk &&
       !var->source_corresp.is_class_member &&
       innermost_function_scope == NULL &&
-      var_nlk != (a_name_linkage_kind)nlk_none &&
-      var_nlk != (a_name_linkage_kind)nlk_internal &&
+      var_nlk != nlk_none && var_nlk != nlk_internal &&
       !(is_definition && var->declaration_has_been_put_out)) {
     /* The current default name linkage kind is different from the one on
        the variable, so a non-braced linkage specifier may be needed.  Don't
@@ -22776,8 +22777,7 @@ handle_as_definition:
   if (!C_mode() && !decl_within_class && !decl_within_function &&
       !friend_decl && template_decl == NULL &&
       !(rout->source_corresp.is_class_member &&
-        rout->source_corresp.name_linkage ==
-                               (a_name_linkage_kind)nlk_cplusplus_external) &&
+        rout->source_corresp.name_linkage == nlk_cplusplus_external) &&
       (!is_definition || rout->definition_has_direct_linkage_specifier)) {
     /* If the current default name linkage kind is different from the one on
        the routine, a non-braced linkage specification may be needed.  (This
@@ -22790,12 +22790,13 @@ handle_as_definition:
        because a linkage specification on a definition affects the language
        linkage of nested declarations in the function body and we need to
        maintain the original source interpretations. */
-    a_name_linkage_kind  nlk = rout->source_corresp.name_linkage;
+    a_name_linkage_kind  nlk = enum_cast<a_name_linkage_kind>(
+                                            rout->source_corresp.name_linkage);
     if (gen_linkage_specification_if_needed(nlk)) {
-      if (storage_class == (a_storage_class)sc_extern) {
+      if (storage_class == sc_extern) {
         /* Suppress the storage class if it's "extern", because that's implied
            by the linkage specification that was rendered. */
-        storage_class = (a_storage_class)sc_unspecified;
+        storage_class = sc_unspecified;
       }  /* if */
     }  /* if */
   }  /* if */
@@ -23165,7 +23166,7 @@ handle_as_definition:
     }  /* if */
     /* See if there are comma-separated declarations attached to this one. */
     *another_decl_in_comma_list = another_declaration_in_comma_list_follows(
-                                         rout->surrounding_name_linkage_state);
+         enum_cast<a_name_linkage_kind>(rout->surrounding_name_linkage_state));
     write_end_of_declaration_punctuation(*another_decl_in_comma_list);
   } else {
     /* The definition of the routine. */

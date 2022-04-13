@@ -5953,8 +5953,9 @@ A pointer to the head of the list is returned in tcsp.
        allow any attributes on the definition to take effect.  If no visibility
        attributes are applied, the default visibility is restored below. */
     a_class_type_supplement_ptr  ctsp = class_type_supp(prototype_type);
-    an_ELF_visibility_kind       ELF_visibility = ctsp->ELF_visibility;
-    ctsp->ELF_visibility = (an_ELF_visibility_kind)evk_unspecified;
+    an_ELF_visibility_kind       ELF_visibility =
+                       enum_cast<an_ELF_visibility_kind>(ctsp->ELF_visibility);
+    ctsp->ELF_visibility = evk_unspecified;
 #endif /* GNU_EXTENSIONS_ALLOWED && GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     attach_tag_attributes(tssp->attributes, prototype_type,
                           decl_state->decl_parse, /*is_definition=*/TRUE,
@@ -6600,40 +6601,41 @@ Determine whether any of the arguments in arg_list have internal linkage.
   a_boolean result = FALSE;
 
   for (; arg_list != NULL; arg_list = arg_list->next) {
-    a_name_linkage_kind linkage = (a_name_linkage_kind)nlk_none;
-    if (arg_list->kind == (a_templ_arg_kind)tak_type) {
-      linkage = skip_typerefs(arg_list->variant.type)->
-                                                   source_corresp.name_linkage;
-    } else if (arg_list->kind == (a_templ_arg_kind)tak_nontype &&
+    a_name_linkage_kind linkage = nlk_none;
+    if (arg_list->kind == tak_type) {
+      linkage = enum_cast<a_name_linkage_kind>(
+           skip_typerefs(arg_list->variant.type)->source_corresp.name_linkage);
+    } else if (arg_list->kind == tak_nontype &&
                !arg_list->is_array_bound_of_unknown_type) {
       a_source_correspondence_ptr scp;
       scp = nontype_templ_arg_constant_corresp(arg_list->variant.constant);
       if (scp != NULL) {
-        linkage = scp->name_linkage;
+        linkage = enum_cast<a_name_linkage_kind>(scp->name_linkage);
       }  /* if */
-    } else if (arg_list->kind == (a_templ_arg_kind)tak_template) {
+    } else if (arg_list->kind == tak_template) {
       a_template_ptr tmpl = arg_list->variant.templ.ptr;
       if (tmpl->template_info == NULL) continue;
       switch (tmpl->kind) {
         case templk_class:
         case templk_member_class:
         case templk_member_enum:
-          linkage = tmpl->template_info->variant.class_template.name_linkage;
+          linkage = enum_cast<a_name_linkage_kind>(
+                     tmpl->template_info->variant.class_template.name_linkage);
           break;
         case templk_function:
         case templk_member_function:
-          linkage = tmpl->template_info->variant.function.routine->
-                                                   source_corresp.name_linkage;
+          linkage = enum_cast<a_name_linkage_kind>(tmpl->template_info->
+                        variant.function.routine->source_corresp.name_linkage);
           break;
         case templk_variable:
         case templk_static_data_member:
-          linkage = tmpl->template_info->variant.variable.prototype_variable->
-                                                   source_corresp.name_linkage;
+          linkage = enum_cast<a_name_linkage_kind>(tmpl->template_info->
+             variant.variable.prototype_variable->source_corresp.name_linkage);
           break;
         default:;
       }  /* switch */
     }  /* if */
-    if (linkage == (a_name_linkage_kind)nlk_internal) {
+    if (linkage == nlk_internal) {
       result = TRUE;
       break;
     }  /* if */
@@ -18051,7 +18053,8 @@ routine sets it to the newly created entry.
      the current one. */
   info->enclosing_template_decl = *p_templ_decl_info;
   /* Record the default name linkage at the point of declaration. */
-  info->name_linkage = scope_stack[depth_scope_stack].default_name_linkage;
+  info->name_linkage = enum_cast<a_name_linkage_kind>(
+                          scope_stack[depth_scope_stack].default_name_linkage);
   /* Push a new scope for the template parameters. */
   push_template_declaration_scope_full(
                       info, NO_SCOPE_NUMBER, state->is_template_template_param,
@@ -24969,10 +24972,11 @@ friend_template_checks_done:
                              ->variant.class_struct_union.type;
         a_class_type_supplement_ptr
                   ctsp = class_type_supp(class_type);
-        if (ctsp->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
+        if (ctsp->ELF_visibility == evk_unspecified) {
           /* If no ELF visibility was explicitly specified, use that of the
              enclosing class or namespace (if any). */
-          an_ELF_visibility_kind  visibility = ctsp->ELF_visibility;
+          an_ELF_visibility_kind  visibility =
+                       enum_cast<an_ELF_visibility_kind>(ctsp->ELF_visibility);
           update_for_default_ELF_visibility(
                      &visibility, class_type->source_corresp.is_class_member);
           ctsp->ELF_visibility = visibility;
@@ -32638,20 +32642,21 @@ that follows.
         }  /* if */
         if (dps->prefix_attributes != NULL || dps->id_attributes != NULL) {
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-          an_ELF_visibility_kind  saved_ELF_visibility = rp->ELF_visibility;
+          an_ELF_visibility_kind  saved_ELF_visibility =
+                         enum_cast<an_ELF_visibility_kind>(rp->ELF_visibility);
           if (!already_specialized) {
             /* Clear any ELF visibility implied by the template in case the
                attributes on the specialization specify a new visibility.
                (This only applies to the first declaration of an explicit
                specialization.  Subsequent declarations must keep the
                visibility specified or implied by the first.) */
-            rp->ELF_visibility = (an_ELF_visibility_kind)evk_unspecified;
+            rp->ELF_visibility = evk_unspecified;
           }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
           attach_decl_attributes(dps, dps->is_definition);
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
           if (!already_specialized &&
-              rp->ELF_visibility == (an_ELF_visibility_kind)evk_unspecified) {
+              rp->ELF_visibility == evk_unspecified) {
             /* If no visibility attribute was specified on the specialization,
                restore any visibility that was applied to the partial
                instance. */
@@ -33490,7 +33495,7 @@ differs between function and nonfunction declarations.
     /* If this template declaration is within a class definition,
        save a pointer to the class in which the definition appears. */
     decl_state->class_declared_in = ssep->assoc_type;
-    decl_state->access = ssep->current_access;
+    decl_state->access = enum_cast<an_access_specifier>(ssep->current_access);
     /* If the current context is variadic, set is_variadic.  Note that
        it could already be set based on the template parameters. */
     if (ssep->in_variadic_template) decl_state->is_variadic = TRUE;
@@ -34269,7 +34274,8 @@ with the lambda declarator.
     }  /* if */
   }  /* if */
   /* Record the default name linkage at the point of declaration. */
-  template_decl_info->name_linkage = scope_stack_top().default_name_linkage;
+  template_decl_info->name_linkage =
+        enum_cast<a_name_linkage_kind>(scope_stack_top().default_name_linkage);
   template_decl_info->decl_seq = ++*curr_decl_seq_counter();
   push_template_declaration_scope(template_decl_info,
                                   /*is_template_param_rescan=*/FALSE);
@@ -40146,8 +40152,7 @@ directive_start_pos points to the beginning of the directive or declaration
        This is a template declaration or a specialization using the standard
        specialization syntax. */
     a_scope_stack_entry_ptr  ssep = &scope_stack[depth_scope_stack];
-    a_name_linkage_kind      saved_name_linkage =
-                                                 (a_name_linkage_kind)nlk_none;
+    a_name_linkage_kind      saved_name_linkage = nlk_none;
     a_boolean                err = FALSE;
     a_boolean                saved_name_linkage_is_explicit = FALSE;
 
@@ -40160,13 +40165,14 @@ directive_start_pos points to the beginning of the directive or declaration
       pos_error(ec_inline_not_allowed, directive_start_pos);
     }  /* if */
     /* Issue an error if this declaration has C linkage. */
-    if (ssep->default_name_linkage == (a_name_linkage_kind)nlk_external) {
+    if (ssep->default_name_linkage == nlk_external) {
       pos_error(ec_bad_linkage_for_decl, &pos_curr_token);
       err = TRUE;
       /* Save the current default linkage. */
-      saved_name_linkage = ssep->default_name_linkage;
+      saved_name_linkage =
+                    enum_cast<a_name_linkage_kind>(ssep->default_name_linkage);
       saved_name_linkage_is_explicit = ssep->name_linkage_is_explicit;
-      ssep->default_name_linkage = (a_name_linkage_kind)nlk_cplusplus_external;
+      ssep->default_name_linkage = nlk_cplusplus_external;
       ssep->name_linkage_is_explicit = FALSE;
     }  /* if */
     /* Scan the declaration. */
@@ -40976,7 +40982,8 @@ pointed to by state.  dps is the parse state for the member template.
   templ_decl_info = alloc_template_decl_info();
   state->decl_info = templ_decl_info;
   templ_decl_info->enclosing_scope = state->enclosing_scope;
-  templ_decl_info->name_linkage = ssep->default_name_linkage;
+  templ_decl_info->name_linkage =
+                    enum_cast<a_name_linkage_kind>(ssep->default_name_linkage);
 }  /* init_tmpl_decl_state_for_generated_member_template */
 
 

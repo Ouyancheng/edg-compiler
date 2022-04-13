@@ -14129,7 +14129,8 @@ tok_ud_literal; otherwise, return tok_string_literal.
   /* Start with the character kind of the first literal.  If this is a
      normal char string, the kind of the result may still change if a
      subsequent literal has a different character kind. */
-  character_kind = const_for_curr_token.character_kind;
+  character_kind = enum_cast<a_character_kind>(
+                                          const_for_curr_token.character_kind);
   if (start_of_curr_token != NULL) {
     lit_kind = scan_encoding_prefix(start_of_curr_token);
     if (lit_kind == SCLK_NOT_A_LITERAL) {
@@ -14285,27 +14286,26 @@ tok_ud_literal; otherwise, return tok_string_literal.
          error is issued in all modes. */
       an_error_severity  sev;
       if (mixed_string_concat_enabled) {
-        if (character_kind == (a_character_kind)chk_char &&
-            encoding != SCLK_UTF8_LITERAL) {
+        if (character_kind == chk_char && encoding != SCLK_UTF8_LITERAL) {
           sev = es_none;
-          character_kind = const_for_curr_token.character_kind;
-        } else if (const_for_curr_token.character_kind ==
-                                                  (a_character_kind)chk_char &&
+          character_kind = enum_cast<a_character_kind>(
+                                          const_for_curr_token.character_kind);
+        } else if (const_for_curr_token.character_kind == chk_char &&
                    next_encoding != SCLK_UTF8_LITERAL) {
           sev = es_none;
         } else {
           sev = es_error;
         }  /* if */
       } else {
-        if (character_kind != (a_character_kind)chk_char &&
-            const_for_curr_token.character_kind !=
-                                                  (a_character_kind)chk_char) {
+        if (character_kind != chk_char &&
+            const_for_curr_token.character_kind != chk_char) {
           sev = es_error;
         } else {
           sev = es_discretionary_error;
         }  /* if */
-        if (character_kind == (a_character_kind)chk_char) {
-          character_kind = const_for_curr_token.character_kind;
+        if (character_kind == chk_char) {
+          character_kind = enum_cast<a_character_kind>(
+                                          const_for_curr_token.character_kind);
         }  /* if */
       }  /* if */
       if (sev != es_none) {

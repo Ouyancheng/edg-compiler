@@ -5124,7 +5124,8 @@ entity.
         a_symbol_locator  loc, eloc;
         a_symbol_ptr      esym;
         make_locator_for_symbol(symbol_for(rp), &loc);
-        esym = find_external_symbol(&loc, rp->source_corresp.name_linkage,
+        esym = find_external_symbol(&loc, enum_cast<a_name_linkage_kind>(
+                                              rp->source_corresp.name_linkage),
                                     rp->type, rp->trailing_requires_clause,
                                     &eloc);
         check_assertion(esym != NULL &&

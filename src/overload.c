@@ -4009,7 +4009,8 @@ kind of mismatch here.
   }  /* if */
 done:
   match_summary->is_match_for_this_param = TRUE;
-  match_summary->ref_qualifier = rtsp->ref_qualifiers;
+  match_summary->ref_qualifier =
+                         enum_cast<a_ref_qualifier_kind>(rtsp->ref_qualifiers);
 }  /* determine_selector_match_level */
 
 

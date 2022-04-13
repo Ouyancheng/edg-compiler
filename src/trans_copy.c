@@ -2067,11 +2067,12 @@ the secondary translation unit IL).
   a_symbol_ptr sym = (a_symbol_ptr)(rout->source_corresp.assoc_info);
   do_saves_for_overwrite(primary_rout, a_routine_ptr);
 #if IA64_ABI && DO_IL_LOWERING
-  if (primary_rout->special_kind == (a_special_function_kind)sfk_constructor ||
-      primary_rout->special_kind == (a_special_function_kind)sfk_destructor) {
+  if (primary_rout->special_kind == sfk_constructor ||
+      primary_rout->special_kind == sfk_destructor) {
     saved_alternate_entry_points =
                         primary_rout->variant.ctor_dtor.alternate_entry_points;
-    saved_ctor_dtor_kind = primary_rout->ctor_dtor_kind;
+    saved_ctor_dtor_kind =
+                  enum_cast<a_ctor_or_dtor_kind>(primary_rout->ctor_dtor_kind);
   }  /* if */
 #endif /* IA64_ABI && DO_IL_LOWERING */
   transfer_routine_flags(primary_rout, rout);

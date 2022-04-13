@@ -4608,7 +4608,8 @@ defined.  Detailed position information is recorded in *decl_pos_block.
       /* If no ELF visibility was explicitly specified, use that of the
          enclosing class or namespace (if any). */
       a_class_type_supplement_ptr  ctsp = class_type_supp(class_type);
-      an_ELF_visibility_kind       visibility = ctsp->ELF_visibility;
+      an_ELF_visibility_kind       visibility =
+                       enum_cast<an_ELF_visibility_kind>(ctsp->ELF_visibility);
       update_for_default_ELF_visibility(
                      &visibility, class_type->source_corresp.is_class_member);
       ctsp->ELF_visibility = visibility;
@@ -6026,9 +6027,11 @@ template.  dsi_flags is the set of input flags passed to decl_specifiers.
   *declares_something = FALSE;
   if (scope_is(&scope_stack[decl_scope_level], sck_class_struct_union)) {
     class_of_which_a_member = scope_stack[decl_scope_level].assoc_type;
-    access = scope_stack[decl_scope_level].current_access;
+    access = enum_cast<an_access_specifier>(
+                                 scope_stack[decl_scope_level].current_access);
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    assembly_access = scope_stack[decl_scope_level].current_assembly_access;
+    assembly_access = enum_cast<an_access_specifier>(
+                        scope_stack[decl_scope_level].current_assembly_access);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     inside_class_definition = TRUE;
   } else {

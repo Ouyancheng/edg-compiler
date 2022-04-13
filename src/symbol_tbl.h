@@ -2938,7 +2938,7 @@ typedef struct a_template_symbol_supplement {
 			   instantiation is in progress.  Used for alias
 			   templates to detect uses of the alias name within
 			   its definition. */
-      a_name_linkage_kind
+      ENUM_TYPE_FOR_BIT_FIELD(a_name_linkage_kind)
 		name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
 			/* The name linkage associated with this class
 			   template -- typically C++ linkage, but internal
@@ -2957,7 +2957,7 @@ typedef struct a_template_symbol_supplement {
 			   enclosing template because it is part of the
 			   declaration of some other entity in the enclosing
 			   class.  For example, "struct { ... } a;". */
-      a_bit_field /* an_access_specifier */
+      ENUM_TYPE_FOR_BIT_FIELD(an_access_specifier)
 		access:2;
 			/* If the template is a member of a class, this
                            specifies the access for the member. */
@@ -3838,7 +3838,7 @@ typedef struct a_symbol {
       a_projection_descr_ptr
 		extra_info;
 			/* Additional information about the projection. */
-      an_access_specifier
+      ENUM_TYPE_FOR_BIT_FIELD(an_access_specifier)
 		access:2;
 			/* Access to the base class member in the scope of the
 			   derived class.  This may differ from the access

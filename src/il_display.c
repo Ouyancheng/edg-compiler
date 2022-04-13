@@ -1906,8 +1906,11 @@ Display the indicated integer type supplement.
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
   disp_assembly_visibility("declared_assembly_visibility",
-                           ptr->declared_assembly_visibility);
-  disp_assembly_visibility("assembly_visibility", ptr->assembly_visibility);
+                           enum_cast<an_assembly_visibility>(
+                                           ptr->declared_assembly_visibility));
+  disp_assembly_visibility("assembly_visibility",
+                           enum_cast<an_assembly_visibility>(
+                                                    ptr->assembly_visibility));
   if (ptr->uuid_string != NULL) {
     disp_string_ptr("uuid_string", ptr->uuid_string,
                     iek_other_text, (sizeof_t)0);
@@ -2165,9 +2168,9 @@ Display the indicated type entry.
           disp_boolean("is_specialized", TRUE);
         }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-        if (ptr->variant.integer.ELF_visibility !=
-                                     (an_ELF_visibility_kind)evk_unspecified) {
-          disp_ELF_visibility_kind(ptr->variant.integer.ELF_visibility);
+        if (ptr->variant.integer.ELF_visibility != evk_unspecified) {
+          disp_ELF_visibility_kind(enum_cast<an_ELF_visibility_kind>(
+                                         ptr->variant.integer.ELF_visibility));
         }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
         if (integer_type_is_scoped_enum(ptr)) {
@@ -2890,8 +2893,9 @@ Display the indicated variable.
     disp_ptr("cleanup_routine", (char *)ptr->cleanup_routine, iek_routine);
   }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  if (ptr->ELF_visibility != (an_ELF_visibility_kind)evk_unspecified) {
-    disp_ELF_visibility_kind(ptr->ELF_visibility);
+  if (ptr->ELF_visibility != evk_unspecified) {
+    disp_ELF_visibility_kind(enum_cast<an_ELF_visibility_kind>(
+                                                         ptr->ELF_visibility));
   }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   if (ptr->is_weak) { 
@@ -3681,8 +3685,9 @@ Display the indicated routine.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  if (ptr->ELF_visibility != (an_ELF_visibility_kind)evk_unspecified) {
-    disp_ELF_visibility_kind(ptr->ELF_visibility);
+  if (ptr->ELF_visibility != evk_unspecified) {
+    disp_ELF_visibility_kind(enum_cast<an_ELF_visibility_kind>(
+                                                         ptr->ELF_visibility));
   }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   if (ptr->is_initialization_routine) {
@@ -3792,25 +3797,35 @@ Display the indicated routine.
   }  /* if */
   if (il_header.source_language == (a_source_language)sl_C &&
       il_header.std_version >= 199901) {
-    if (ptr->fp_contract != (a_stdc_pragma_value)stdc_pv_default) {
-      disp_stdc_pragma_value("fp_contract", ptr->fp_contract);
+    if (ptr->fp_contract != stdc_pv_default) {
+      disp_stdc_pragma_value("fp_contract", enum_cast<a_stdc_pragma_value>(
+                                                            ptr->fp_contract));
     }  /* if */
-    if (ptr->fenv_access != (a_stdc_pragma_value)stdc_pv_default) {
-      disp_stdc_pragma_value("fenv_access", ptr->fenv_access);
+    if (ptr->fenv_access != stdc_pv_default) {
+      disp_stdc_pragma_value("fenv_access", enum_cast<a_stdc_pragma_value>(
+                                                            ptr->fenv_access));
     }  /* if */
-    if (ptr->cx_limited_range != (a_stdc_pragma_value)stdc_pv_default) {
-      disp_stdc_pragma_value("cx_limited_range", ptr->cx_limited_range);
+    if (ptr->cx_limited_range != stdc_pv_default) {
+      disp_stdc_pragma_value("cx_limited_range",
+                             enum_cast<a_stdc_pragma_value>(
+                                                       ptr->cx_limited_range));
     }  /* if */
   }  /* if */
 #if FIXED_POINT_ALLOWED
-  if (ptr->fx_full_precision != (a_stdc_pragma_value)stdc_pv_default) {
-    disp_stdc_pragma_value("fx_full_precision", ptr->fx_full_precision);
+  if (ptr->fx_full_precision != stdc_pv_default) {
+    disp_stdc_pragma_value("fx_full_precision",
+                           enum_cast<a_stdc_pragma_value>(
+                                                      ptr->fx_full_precision));
   }  /* if */
-  if (ptr->fx_fract_overflow != (a_stdc_pragma_value)stdc_pv_default) {
-    disp_stdc_pragma_value("fx_fract_overflow", ptr->fx_fract_overflow);
+  if (ptr->fx_fract_overflow != stdc_pv_default) {
+    disp_stdc_pragma_value("fx_fract_overflow",
+                           enum_cast<a_stdc_pragma_value>(
+                                                      ptr->fx_fract_overflow));
   }  /* if */
-  if (ptr->fx_accum_overflow != (a_stdc_pragma_value)stdc_pv_default) {
-    disp_stdc_pragma_value("fx_accum_overflow", ptr->fx_accum_overflow);
+  if (ptr->fx_accum_overflow != stdc_pv_default) {
+    disp_stdc_pragma_value("fx_accum_overflow",
+                           enum_cast<a_stdc_pragma_value>(
+                                                      ptr->fx_accum_overflow));
   }  /* if */
 #endif /* FIXED_POINT_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
@@ -3827,9 +3842,10 @@ Display the indicated routine.
   if (ptr->use_comdat) {
     disp_boolean("use_comdat", TRUE);
   }  /* if */
-  if (ptr->ctor_dtor_kind != (a_ctor_or_dtor_kind)cdk_none) {
+  if (ptr->ctor_dtor_kind != cdk_none) {
     disp_name("ctor_dtor_kind");
-    disp_ctor_or_dtor_kind_name(ptr->ctor_dtor_kind);
+    disp_ctor_or_dtor_kind_name(
+                          enum_cast<a_ctor_or_dtor_kind>(ptr->ctor_dtor_kind));
     (void)printf("\n");
   }  /* if */
   if (ptr->is_alias_entry) {
@@ -7229,9 +7245,14 @@ Display the indicated class type supplement entry.
     disp_boolean("has_direct_property_or_event", TRUE);
   }  /* if */
   disp_assembly_visibility("declared_assembly_visibility",
-                           ptr->declared_assembly_visibility);
-  disp_assembly_visibility("assembly_visibility", ptr->assembly_visibility);
-  disp_cli_class_type_kind("cli_class_type_kind", ptr->cli_class_type_kind);
+                           enum_cast<an_assembly_visibility>(
+                                           ptr->declared_assembly_visibility));
+  disp_assembly_visibility("assembly_visibility",
+                           enum_cast<an_assembly_visibility>(
+                                                    ptr->assembly_visibility));
+  disp_cli_class_type_kind("cli_class_type_kind",
+                           enum_cast<a_cli_class_type_kind>(
+                                                    ptr->cli_class_type_kind));
   if (ptr->is_hide_by_sig) {
     disp_boolean("is_hide_by_sig", TRUE);
   }  /* if */
@@ -7255,8 +7276,9 @@ Display the indicated class type supplement entry.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  if (ptr->ELF_visibility != (an_ELF_visibility_kind)evk_unspecified) {
-    disp_ELF_visibility_kind(ptr->ELF_visibility);
+  if (ptr->ELF_visibility != evk_unspecified) {
+    disp_ELF_visibility_kind(enum_cast<an_ELF_visibility_kind>(
+                                                         ptr->ELF_visibility));
   }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
 #endif /* GNU_EXTENSIONS_ALLOWED */
@@ -7267,10 +7289,10 @@ Display the indicated class type supplement entry.
   }  /* if */
 #endif /* NEAR_AND_FAR_ALLOWED */
 #if BACK_END_IS_CP_GEN_BE
-  if (ptr->surrounding_name_linkage_state != (a_name_linkage_kind)nlk_none) {
+  if (ptr->surrounding_name_linkage_state != nlk_none) {
     disp_name_linkage("surrounding_name_linkage_state",
-                      (a_name_linkage_kind)ptr->
-                                              surrounding_name_linkage_state);
+                      enum_cast<a_name_linkage_kind>(
+                                         ptr->surrounding_name_linkage_state));
   }  /* if */
 #endif /* BACK_END_IS_CP_GEN_BE */
 #if DO_IL_LOWERING

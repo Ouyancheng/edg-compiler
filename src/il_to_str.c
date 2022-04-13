@@ -3074,7 +3074,8 @@ in the way described by octl.
        default, add the linkage string after the closing parenthesis.  This
        is done only for non-compilable code. */
     if (!octl->gen_compilable_code) {
-      a_name_linkage_kind linkage = rtsp->routine_name_linkage;
+      a_name_linkage_kind linkage =
+                    enum_cast<a_name_linkage_kind>(rtsp->routine_name_linkage);
       if (linkage != (a_name_linkage_kind)nlk_internal &&
           linkage != (a_name_linkage_kind)nlk_none &&
           !routine_linkages_are_compatible(linkage,
@@ -6133,7 +6134,9 @@ precedence confusion.  Do the output in the way described by octl.
         a_const_char  *str = constant->variant.string.value, *prefix = NULL;
         a_targ_size_t len = constant->variant.string.length;
         int           out_len = 0;
-        a_character_kind  character_kind = constant->character_kind;
+        a_character_kind
+                      character_kind =
+                         enum_cast<a_character_kind>(constant->character_kind);
 #if BACK_END_IS_C_GEN_BE
         if (octl->c_generating_back_end && constant->assoc_var != NULL &&
             !is_normal_character_kind(character_kind)) {
@@ -6971,10 +6974,12 @@ described by octl.
     }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     if (is_immediate_class_type(type) && !octl->c_generating_back_end) {
-      form_ELF_visibility_attribute(class_type_supp(type)->ELF_visibility,
+      form_ELF_visibility_attribute(enum_cast<an_ELF_visibility_kind>(
+                                        class_type_supp(type)->ELF_visibility),
                                     &need_leading_space, octl);
     } else if (is_immediate_enum_type(type) && !octl->c_generating_back_end) {
-      form_ELF_visibility_attribute(type->variant.integer.ELF_visibility,
+      form_ELF_visibility_attribute(enum_cast<an_ELF_visibility_kind>(
+                                         type->variant.integer.ELF_visibility),
                                     &need_leading_space, octl);
     }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
@@ -7054,8 +7059,9 @@ Do the output in the way described by octl.
                                 var->source_corresp.attributes,
                                 &need_leading_space, octl);
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-    form_ELF_visibility_attribute(var->ELF_visibility, &need_leading_space,
-                                  octl);
+    form_ELF_visibility_attribute(enum_cast<an_ELF_visibility_kind>(
+                                                          var->ELF_visibility),
+                                  &need_leading_space, octl);
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     if (var->is_weak && !var->is_weakref) {
       /* The "weakref" attribute implies the "weak" attribute: We don't need
@@ -7296,8 +7302,9 @@ Do the output in the way described by octl.
                                   &need_leading_space, octl);
     }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-    form_ELF_visibility_attribute(rout->ELF_visibility, &need_leading_space,
-                                  octl);
+    form_ELF_visibility_attribute(enum_cast<an_ELF_visibility_kind>(
+                                                         rout->ELF_visibility),
+                                  &need_leading_space, octl);
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
   }  /* if */
   return need_leading_space;

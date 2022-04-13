@@ -2180,7 +2180,7 @@ typedef struct a_linkage_spec_block {
 		name_string;
 			/* A constant representing the string-literal in the
 			   construct. */
-  a_name_linkage_kind
+  ENUM_TYPE_FOR_BIT_FIELD(a_name_linkage_kind)
 		name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
 			/* The name linkage associated with this construct. */
   a_source_position
@@ -3073,14 +3073,14 @@ typedef struct a_source_correspondence {
 			   used by back ends as it is sometimes cleared
 			   (when using multiple translation units, for
 			   example). */
-  an_access_specifier
+  ENUM_TYPE_FOR_BIT_FIELD(an_access_specifier)
 		access:2;
 			/* The access control specified at the point of
 			   declaration.	 Restricted access may be indicated
 			   for class members only; all other entities are
 			   "public" by default.	 In C mode, always "public". */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  an_access_specifier
+  ENUM_TYPE_FOR_BIT_FIELD(an_access_specifier)
 		assembly_access:2;
 			/* Access outside of the parent assembly.  (C++/CLI
 			   only.) */
@@ -3106,7 +3106,7 @@ typedef struct a_source_correspondence {
 			   optimization -- if it is FALSE, the entity is a
 			   candidate to be optimized away. */
 #endif /* MAINTAIN_NEEDED_FLAGS */
-  a_name_linkage_kind
+  ENUM_TYPE_FOR_BIT_FIELD(a_name_linkage_kind)
 		name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
 			/* Kind of linkage for the name, e.g., is it
 			   externally visible. */
@@ -4424,7 +4424,7 @@ typedef struct a_constant {
                            wide string literal constants that are rewritten to
                            refer to a variable.  NULL otherwise. */
 #endif /* DO_IL_LOWERING */
-  a_character_kind
+  ENUM_TYPE_FOR_BIT_FIELD(a_character_kind)
 		character_kind:NUM_BITS_FOR_CHARACTER_KIND;
 			/* If this constant represents a character or string
 			   literal, this field indicates the character kind
@@ -6931,7 +6931,7 @@ typedef struct a_routine_type_supplement {
 			   diagnostics will not be issued on subsequent uses
 			   (though diagnostics on function definitions are not
 			   affected).  (Intended for front-end use only.) */
-  a_name_linkage_kind
+  ENUM_TYPE_FOR_BIT_FIELD(a_name_linkage_kind)
 		routine_name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
 			/* The default name linkage at the point the function
 			   type was declared.  The front end makes this
@@ -6964,7 +6964,7 @@ typedef struct a_routine_type_supplement {
 			   In the unmodified front end, only the TQ_RESTRICT
 			   qualifier is recorded here (for restrict-qualified
 			   member functions). */
-  a_ref_qualifier_kind
+  ENUM_TYPE_FOR_BIT_FIELD(a_ref_qualifier_kind)
 		ref_qualifiers:2;
 			/* Used for nonstatic member functions: The
 			   ref-qualification of the member function type.
@@ -8249,17 +8249,17 @@ typedef struct a_class_type_supplement {
   a_bit_field	has_direct_property_or_event:1;
 			/* TRUE if this class contains a direct (i.e., not
 			   inherited) C++/CLI property or event. */
-  an_assembly_visibility
+  ENUM_TYPE_FOR_BIT_FIELD(an_assembly_visibility)
 		declared_assembly_visibility:2;
 			/* Visibility of this type at the assembly level as
 			   explicitly declared in the source (av_none if no
 			   visibility was explicitly specified).  
 			   (C++/CLI only.) */
-  an_assembly_visibility
+  ENUM_TYPE_FOR_BIT_FIELD(an_assembly_visibility)
 		assembly_visibility:2;
 			/* Effective visibility of this type at the assembly
 			   level.  (C++/CLI only.) */
-  a_cli_class_type_kind
+  ENUM_TYPE_FOR_BIT_FIELD(a_cli_class_type_kind)
 		cli_class_type_kind:3;
 			/* The class type kind of this class.  In non-C++/CLI
 			   modes, it is always cctk_standard.  In C++/CLI mode,
@@ -8291,7 +8291,7 @@ typedef struct a_class_type_supplement {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  an_ELF_visibility_kind
+  ENUM_TYPE_FOR_BIT_FIELD(an_ELF_visibility_kind)
 		ELF_visibility:3;
 			/* The visibility of the class members in the generated
 			   ELF object code. */
@@ -8303,7 +8303,8 @@ typedef struct a_class_type_supplement {
 			   as in "class __far A {}". */
 #endif /* NEAR_AND_FAR_ALLOWED */
 #if BACK_END_IS_CP_GEN_BE
-  a_bit_field	surrounding_name_linkage_state:NUM_BITS_FOR_NAME_LINKAGE;
+  ENUM_TYPE_FOR_BIT_FIELD(a_name_linkage_kind)
+		surrounding_name_linkage_state:NUM_BITS_FOR_NAME_LINKAGE;
 			/* Name linkage in effect when this class was defined.
 			   Used by the C++-generating back end to reconstruct
 			   name linkage blocks when appropriate. */
@@ -8844,13 +8845,13 @@ typedef struct an_integer_type_supplement {
 			   counterpart of the actual underlying type. */
 #endif /* GNU_EXTENSIONS_ALLOWED */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-  an_assembly_visibility
+  ENUM_TYPE_FOR_BIT_FIELD(an_assembly_visibility)
 		declared_assembly_visibility:2;
 			/* Visibility of this type at the assembly level as
 			   explicitly declared in the source (av_none if no
 			   visibility was explicitly specified).  (Enumeration
 			   types in C++/CLI mode only.) */
-  an_assembly_visibility
+  ENUM_TYPE_FOR_BIT_FIELD(an_assembly_visibility)
 		assembly_visibility:2;
 			/* Effective visibility of this type at the assembly
 			   level  (Enumeration types in C++/CLI mode only.) */
@@ -9328,7 +9329,7 @@ typedef struct a_type {
 			/* TRUE for enum instances that were explicitly
 			   specialized. */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-      an_ELF_visibility_kind
+      ENUM_TYPE_FOR_BIT_FIELD(an_ELF_visibility_kind)
 		ELF_visibility:3;
 			/* The visibility of the enum type. */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
@@ -9946,7 +9947,7 @@ typedef struct a_type {
 			   type. */
 #endif /* LOWER_VARIABLE_LENGTH_ARRAYS */
 #if BACK_END_IS_CP_GEN_BE
-      a_name_linkage_kind
+      ENUM_TYPE_FOR_BIT_FIELD(a_name_linkage_kind)
 		surrounding_name_linkage_state:NUM_BITS_FOR_NAME_LINKAGE;
 			/* Name linkage in effect when this typedef
 			   appeared. */
@@ -10490,7 +10491,7 @@ typedef struct a_variable {
 			   out of scope.  (Currently, the front end does not
 			   make that call explicit in any way.) */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  an_ELF_visibility_kind
+  ENUM_TYPE_FOR_BIT_FIELD(an_ELF_visibility_kind)
 		ELF_visibility:3;
 			/* The visibility of the variable in the generated
 			   ELF object code. */
@@ -11709,7 +11710,7 @@ typedef struct a_routine {
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
 #if GNU_EXTENSIONS_ALLOWED
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
-  an_ELF_visibility_kind
+  ENUM_TYPE_FOR_BIT_FIELD(an_ELF_visibility_kind)
 		ELF_visibility:3;
 			/* The visibility of the routine in the generated
 			   ELF object code. */
@@ -11871,7 +11872,7 @@ typedef struct a_routine {
 			/* TRUE if an explicit template argument list was ever
 			   used in naming this (template) function. */
 #if BACK_END_IS_CP_GEN_BE
-  a_name_linkage_kind
+  ENUM_TYPE_FOR_BIT_FIELD(a_name_linkage_kind)
 		surrounding_name_linkage_state:NUM_BITS_FOR_NAME_LINKAGE;
 			/* Name linkage in effect when this routine was
 			   defined.  Used by the C++-generating back end to
@@ -11968,28 +11969,28 @@ typedef struct a_routine {
 			   is needed, e.g., because its address was taken, or
 			   it was named in an explicit instantiation
 			   directive. */
-  a_stdc_pragma_value
+  ENUM_TYPE_FOR_BIT_FIELD(a_stdc_pragma_value)
 		fp_contract:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
 			/* In C99 mode, the setting of the fp_contract mode
 			   at the point that this routine was defined. */
-  a_stdc_pragma_value
+  ENUM_TYPE_FOR_BIT_FIELD(a_stdc_pragma_value)
 		fenv_access:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
 			/* In C99 mode, the setting of the fenv_access mode
 			   at the point that this routine was defined. */
-  a_stdc_pragma_value
+  ENUM_TYPE_FOR_BIT_FIELD(a_stdc_pragma_value)
 		cx_limited_range:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
 			/* In C99 mode, the setting of the cx_limited_range
 			   mode at the point that this routine was defined. */
 #if FIXED_POINT_ALLOWED
-  a_stdc_pragma_value
+  ENUM_TYPE_FOR_BIT_FIELD(a_stdc_pragma_value)
 		fx_full_precision:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
 			/* The setting of the fx_full_precision state at the
 			   the point that this routine was defined. */
-  a_stdc_pragma_value
+  ENUM_TYPE_FOR_BIT_FIELD(a_stdc_pragma_value)
 		fx_fract_overflow:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
 			/* The setting of the fx_fract_overflow state at the
 			   the point that this routine was defined. */
-  a_stdc_pragma_value
+  ENUM_TYPE_FOR_BIT_FIELD(a_stdc_pragma_value)
 		fx_accum_overflow:NUM_BITS_FOR_STDC_PRAGMA_VALUE;
 			/* The setting of the fx_accum_overflow state at the
 			   the point that this routine was defined. */
@@ -12018,7 +12019,7 @@ typedef struct a_routine {
 			   mangled name of the routine.	 TRUE only for
 			   routines with definitions, never for (e.g.)
 			   external references. */
-  a_ctor_or_dtor_kind
+  ENUM_TYPE_FOR_BIT_FIELD(a_ctor_or_dtor_kind)
 		ctor_dtor_kind:3;
 			/* The kind of constructor or destructor.  cdk_none
 			   for other kinds of routines.  All constructors and
@@ -13837,7 +13838,7 @@ typedef struct an_expr_node {
                         /* When this node is part of a list of operands, this
                            field is used to link them together; otherwise it is
                            NULL. */
-  an_expr_node_kind
+  ENUM_TYPE_FOR_BIT_FIELD(an_expr_node_kind)
 		kind:NUM_BITS_FOR_EXPR_NODE_KIND;
 			/* Identifies what kind of node this is.  This field
 			   determines which member of the union to use. */
@@ -14157,7 +14158,7 @@ typedef struct an_expr_node {
 			   FALSE is not a virtual call (perhaps because the
 			   function was named with a qualified name). */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-      a_rewritten_property_reference_kind
+      ENUM_TYPE_FOR_BIT_FIELD(a_rewritten_property_reference_kind)
 		rewritten_property_reference_kind:3;
 			/* If this is the "put" call in a rewritten
 			   Microsoft property reference involving a

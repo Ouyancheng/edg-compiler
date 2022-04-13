@@ -116,7 +116,8 @@ standard C behavior of trimming the terminating null character if needed),
 {
   a_type_ptr     array_type;
   a_character_kind
-                 char_kind = string_con->character_kind;
+                 char_kind =
+                       enum_cast<a_character_kind>(string_con->character_kind);
   a_targ_size_t  char_size = character_size[char_kind];
   a_targ_size_t  num_elems, array_length;
   a_boolean      is_template_dependent = is_template_dependent_type(*dst_type);
@@ -513,8 +514,8 @@ vp had an incomplete array type that has been completed by an initializer.
        unified with other declarations. */
     make_locator_for_symbol(symbol_ptr, &locator);
     if (!is_error_locator(locator)) {
-      name_linkage = symbol_ptr->
-                           variant.variable.ptr->source_corresp.name_linkage;
+      name_linkage = enum_cast<a_name_linkage_kind>(symbol_ptr->
+                           variant.variable.ptr->source_corresp.name_linkage);
       ext_sym = find_external_symbol(&locator, name_linkage, (a_type_ptr)NULL,
                                      (a_requires_clause*)NULL,&ext_locator);
       check_assertion(ext_sym != NULL);

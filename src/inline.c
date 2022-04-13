@@ -740,7 +740,7 @@ because of remapped variables.  *inlining_failed is set to TRUE if the
 expression can't be inlined.
 */
 {
-  an_expr_node_kind     kind = expr->kind;
+  an_expr_node_kind     kind = enum_cast<an_expr_node_kind>(expr->kind);
   a_type_ptr            expr_type = expr->type;
   a_variable_remapping_for_inlining_ptr
                         vrip;

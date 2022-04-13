@@ -3736,8 +3736,8 @@ emitted into metadata) in C++/CX mode.
   if (sym->is_class_member && is_managed_class_type(sym->parent.class_type)) {
     /* Any member inside a C++/CX type with a declared assembly access of
       "public" or "protected" is considered externally visible. */
-    an_access_specifier  assembly_access;
-    assembly_access = source_corresp_entry_for_symbol(sym)->assembly_access;
+    an_access_specifier  assembly_access = enum_cast<an_access_specifier>(
+                        source_corresp_entry_for_symbol(sym)->assembly_access);
     result = is_cppcx_externally_visible_assembly_access(assembly_access);
   }  /* if */
   return result;
@@ -12460,47 +12460,45 @@ It cannot be used for checking access (see have_access_to_symbol).
 {
   an_access_specifier access;
 
-  if (fundamental_symbol_of(sym_ptr)->kind ==
-                                       (a_symbol_kind)sk_overloaded_function) {
+  if (fundamental_symbol_of(sym_ptr)->kind == sk_overloaded_function) {
     /* Overloaded function.  Cannot tell what the access is; leave it
        to be checked later.  This may not be necessary because overloaded
        functions shouldn't get into the main portion of the access checking
        code. */
-    access = (an_access_specifier)as_public;
+    access = as_public;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   } else if (symbol_is(fundamental_symbol_of(sym_ptr), sk_property_set)) {
     /* In general, we can only tell the access once we know which property in
        the set is selected. */
-    access = (an_access_specifier)as_public;
+    access = as_public;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-  } else if (sym_ptr->kind == (a_symbol_kind)sk_projection) {
+  } else if (sym_ptr->kind == sk_projection) {
     /* Projection symbol. */
-    access = sym_ptr->variant.projection.access;
-  } else if (sym_ptr->kind == (a_symbol_kind)sk_class_template) {
+    access =enum_cast<an_access_specifier>(sym_ptr->variant.projection.access);
+  } else if (sym_ptr->kind == sk_class_template) {
     /* Access for class templates is stored in the template symbol
        supplement. */
-    access = (an_access_specifier)sym_ptr->
-                         variant.template_info->variant.class_template.access;
-  } else if (sym_ptr->kind == (a_symbol_kind)sk_function_template) {
+    access = enum_cast<an_access_specifier>(sym_ptr->
+                         variant.template_info->variant.class_template.access);
+  } else if (sym_ptr->kind == sk_function_template) {
     /* Access for function templates is stored in routine entry pointed to
        by the template symbol supplement. */
-    access = sym_ptr->variant.template_info->
-                              variant.function.routine->source_corresp.access;
-  } else if (sym_ptr->kind == (a_symbol_kind)sk_type &&
+    access = enum_cast<an_access_specifier>(sym_ptr->variant.template_info->
+                              variant.function.routine->source_corresp.access);
+  } else if (sym_ptr->kind == sk_type &&
              sym_ptr->variant.type.is_injected_class_name) {
     /* Symbols for injected class names are always public. */
-    access = (an_access_specifier)as_public;
-  } else if (sym_ptr->kind == (a_symbol_kind)sk_undefined) {
+    access = as_public;
+  } else if (sym_ptr->kind == sk_undefined) {
     /* Error case; assume public. */
-    access = (an_access_specifier)as_public;
+    access = as_public;
   } else {
     /* Normal symbol (not projection or overloaded function). */
     a_source_correspondence *scp = source_corresp_entry_for_symbol(sym_ptr);
-    check_assertion_str2(sym_ptr->kind
-                                    != (a_symbol_kind)sk_namespace_projection,
+    check_assertion_str2(sym_ptr->kind != sk_namespace_projection,
                          "access_for_symbol:", "invalid symbol kind");
     check_assertion(scp != NULL);
-    access = scp->access;
+    access = enum_cast<an_access_specifier>(scp->access);
 #if MICROSOFT_EXTENSIONS_ALLOWED
     if (cli_or_cx_enabled && sym_ptr->is_class_member &&
         sym_ptr->parent.class_type != NULL &&
@@ -12509,7 +12507,7 @@ It cannot be used for checking access (see have_access_to_symbol).
                                                          curr_assembly_index) {
       /* The symbol comes from an assembly different from the active assembly;
          set access to the (more limited) assembly access value. */
-      access = scp->assembly_access;
+      access = enum_cast<an_access_specifier>(scp->assembly_access);
     }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
   }  /* if */
@@ -13033,7 +13031,8 @@ for a description of virtual_step_stack.
     if (same_entities(sym_parent_class(proj_sym), viewpoint_class)) {
       /* The step we are looking at is the first one, so the effective
          access is available from the projection symbol. */
-      access = proj_sym->variant.projection.access;
+      access = enum_cast<an_access_specifier>(
+                                          proj_sym->variant.projection.access);
       need_to_compute_access = FALSE;
     } else if (proj_sym->variant.projection.any_intervening_using_decl) {
       /* There is a using declaration somewhere on some derivation path, so
@@ -13056,7 +13055,8 @@ for a description of virtual_step_stack.
              which is good, because once we get past the using declarations
              we can use the faster technique. */
           proj_sym = step_proj_sym;
-          access = proj_sym->variant.projection.access;
+          access = enum_cast<an_access_specifier>(
+                                          proj_sym->variant.projection.access);
           need_to_compute_access = FALSE;
           break;
         }  /* if */
@@ -14784,10 +14784,11 @@ the lookup should consider C++/CLI interface classes.
 #endif /* DEBUG */
     progenitor = alloc_progenitor();
     progenitor->sym = sym;
-    if (sym->kind == (a_symbol_kind)sk_overloaded_function) {
+    if (sym->kind == sk_overloaded_function) {
       progenitor->access = max_access_of_overloaded_function(sym);
-    } else if (sym->kind == (a_symbol_kind)sk_projection) {
-      progenitor->access = sym->variant.projection.access;
+    } else if (sym->kind == sk_projection) {
+      progenitor->access =
+                enum_cast<an_access_specifier>(sym->variant.projection.access);
     } else {
       progenitor->access = access_for_symbol(sym);
     }  /* if */
@@ -14810,7 +14811,8 @@ the lookup should consider C++/CLI interface classes.
       pp->path = make_derivation_step(base_class, pp->path);
     }  /* if */
     if (using_decl_sym != NULL) {
-      pp->access = using_decl_sym->variant.projection.access;
+      pp->access = enum_cast<an_access_specifier>(
+                                    using_decl_sym->variant.projection.access);
     }  /* if */
     pp->access = compute_access(pp->access,
                                 preferred_derivation_of(base_class)->access);
@@ -15371,7 +15373,8 @@ interface classes.
             prog_is_type == is_type_symbol(fundamental_symbol_of(pp->sym))) {
           progenitor = pp;
           progenitor_sym = progenitor->sym;
-          prog_access = progenitor_sym->variant.projection.access;
+          prog_access = enum_cast<an_access_specifier>(
+                                    progenitor_sym->variant.projection.access);
         }  /* if */
       }  /* for */
       *ambiguous = TRUE;

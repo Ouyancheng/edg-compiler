@@ -9567,6 +9567,11 @@ file.
 #else /* !defined(USE_EMPTY_STRUCT_IN_GENERATED_C) */
   comment_undefined_macro_name(USE_EMPTY_STRUCT_IN_GENERATED_C);
 #endif /* defined(USE_EMPTY_STRUCT_IN_GENERATED_C) */
+#if defined(USE_ENUMS_IN_BITFIELDS)
+  define_numeric_valued_macro(USE_ENUMS_IN_BITFIELDS);
+#else /* !defined(USE_ENUMS_IN_BITFIELDS) */
+  comment_undefined_macro_name(USE_ENUMS_IN_BITFIELDS);
+#endif /* defined(USE_ENUMS_IN_BITFIELDS) */
 #if defined(USE_FIXED_ADDRESS_FOR_MMAP)
   define_numeric_valued_macro(USE_FIXED_ADDRESS_FOR_MMAP);
 #else /* !defined(USE_FIXED_ADDRESS_FOR_MMAP) */

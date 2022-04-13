@@ -9659,8 +9659,8 @@ the selection, not an operator token for the call.
         a_type_ptr member_type = pm_member_type(operand_2_type);
         member_type = skip_typerefs(member_type);
         if (is_function_type(member_type)) {
-          a_ref_qualifier_kind ref_qual =
-                       member_type->variant.routine.extra_info->ref_qualifiers;
+          a_ref_qualifier_kind ref_qual = enum_cast<a_ref_qualifier_kind>(
+                      member_type->variant.routine.extra_info->ref_qualifiers);
           if (ref_qual == (a_ref_qualifier_kind)rqk_rvalue) {
             if (is_arrow_operator || is_an_lvalue(operand_1)) {
               err = TRUE;
@@ -38742,7 +38742,8 @@ passed).
          a raw version of those), the number of code units (not including the
          terminating null character) is passed as a second argument to the
          literal operator. */
-      a_character_kind  char_kind = const_for_curr_token.character_kind;
+      a_character_kind  char_kind = enum_cast<a_character_kind>(
+                                          const_for_curr_token.character_kind);
       a_targ_size_t     length = const_for_curr_token.variant.string.length,
                         char_size = character_size[char_kind];
       op2 = alloc_init_component((an_init_component_kind)ick_expression);

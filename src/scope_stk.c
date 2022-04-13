@@ -1774,7 +1774,8 @@ value.  The value will be restored when pop_name_linkage is called.
     avail_name_linkage_stack_entries = nlsep->next;
   }  /* if */
   /* Save the values for the current scope. */
-  nlsep->saved_name_linkage = ssep->default_name_linkage;
+  nlsep->saved_name_linkage =
+                    enum_cast<a_name_linkage_kind>(ssep->default_name_linkage);
   nlsep->saved_name_linkage_is_explicit = ssep->name_linkage_is_explicit;
   /* Add the new entry to the name linkage stack. */
   nlsep->next = name_linkage_stack;
@@ -5558,7 +5559,8 @@ class_type by get_definition_of_class.
 {
   if (class_type != NULL) {
     tdip->enclosing_scope = class_type->source_corresp.parent_scope;
-    tdip->name_linkage = class_type->source_corresp.name_linkage;
+    tdip->name_linkage =
+       enum_cast<a_name_linkage_kind>(class_type->source_corresp.name_linkage);
   }  /* if */
 }  /* set_template_decl_info_for_class_definition */
 
@@ -9399,14 +9401,20 @@ being popped.
   }  /* if */
   if (ssep->kind != (a_scope_kind)sck_file) {
     /* Restore the C99 and C++11 STDC pragma state. */
-    curr_fp_contract_state      = ssep->fp_contract_state;
-    curr_fenv_access_state      = ssep->fenv_access_state;
-    curr_cx_limited_range_state = ssep->cx_limited_range_state;
+    curr_fp_contract_state      =
+                       enum_cast<a_stdc_pragma_value>(ssep->fp_contract_state);
+    curr_fenv_access_state      =
+                       enum_cast<a_stdc_pragma_value>(ssep->fenv_access_state);
+    curr_cx_limited_range_state =
+                  enum_cast<a_stdc_pragma_value>(ssep->cx_limited_range_state);
 #if FIXED_POINT_ALLOWED
     /* Restore the fixed-point STDC pragma state. */
-    curr_fx_full_precision_state = ssep->fx_full_precision_state;
-    curr_fx_fract_overflow_state = ssep->fx_fract_overflow_state;
-    curr_fx_accum_overflow_state = ssep->fx_accum_overflow_state;
+    curr_fx_full_precision_state =
+                 enum_cast<a_stdc_pragma_value>(ssep->fx_full_precision_state);
+    curr_fx_fract_overflow_state =
+                 enum_cast<a_stdc_pragma_value>(ssep->fx_fract_overflow_state);
+    curr_fx_accum_overflow_state =
+                 enum_cast<a_stdc_pragma_value>(ssep->fx_accum_overflow_state);
 #endif /* FIXED_POINT_ALLOWED */
   }  /* if */
 #if GENERATE_SOURCE_SEQUENCE_LISTS

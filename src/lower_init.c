@@ -2596,8 +2596,9 @@ dip->variant.constructor.args has already been lowered.
     if (is_target_ctor_call) {
       /* Invoke the corresponding target constructor kind for this delegating
          constructor. */
-      kind = innermost_function_scope->variant.routine.ptr->ctor_dtor_kind;
-      if (kind == (a_ctor_or_dtor_kind)cdk_subobject) {
+      kind = enum_cast<a_ctor_or_dtor_kind>(innermost_function_scope->
+                                          variant.routine.ptr->ctor_dtor_kind);
+      if (kind == cdk_subobject) {
         /* The VTT parameter gets passed as an implied argument. */
         implied_arg_list = end_implied_arg_list = var_rvalue_expr(
                    innermost_function_scope->variant.routine.parameters->next);

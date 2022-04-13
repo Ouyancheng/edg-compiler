@@ -7656,9 +7656,10 @@ table.
             /* Use the alternate entry point for the primary routine as the
                overridden function for the deleting destructor. */
             a_routine_ptr arouto = alternate_entry_point(
-                                           override_list->primary_function,
-                                           second_func_to_call->ctor_dtor_kind,
-                                           /*define_now=*/FALSE);
+                                      override_list->primary_function,
+                                      enum_cast<a_ctor_or_dtor_kind>(
+                                          second_func_to_call->ctor_dtor_kind),
+                                      /*define_now=*/FALSE);
             second_func_to_call = make_wrapper_routine(second_func_to_call,
                                                        arouto, rabcp, delta,
                                                        vcall_index);
@@ -21701,7 +21702,8 @@ will be put out later.
               if (arout->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_complete ||
                   arout->ctor_dtor_kind == (a_ctor_or_dtor_kind)cdk_deleting) {
                 arouto = alternate_entry_point(ovf->primary_function,
-                                               arout->ctor_dtor_kind,
+                                               enum_cast<a_ctor_or_dtor_kind>(
+                                                        arout->ctor_dtor_kind),
                                                /*define_now=*/FALSE);
                 (void)make_wrapper_routine(arout,
                                            arouto,

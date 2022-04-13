@@ -15366,7 +15366,8 @@ issued at the given position.
      which they are members.  (In cfront mode that may mean internal
      linkage -- if and when its linkage is promoted to C++, the linkage of
      the member functions will also be changed. */
-  def_name_linkage = class_type->source_corresp.name_linkage;
+  def_name_linkage = enum_cast<a_name_linkage_kind>(
+                                      class_type->source_corresp.name_linkage);
 #if GNU_EXTENSIONS_ALLOWED
   if (class_type->variant.class_struct_union.has_internal_linkage_attribute) {
     /* The member function is in a class with the "internal_linkage"
@@ -19110,7 +19111,8 @@ nonstandard anonymous unions is_nonstd is TRUE.
     case sk_field:
       au_field = assoc_object_sym->variant.field.ptr;
       assoc_object_type = au_field->type;
-      assoc_object_access = au_field->source_corresp.access;
+      assoc_object_access = enum_cast<an_access_specifier>(
+                                              au_field->source_corresp.access);
       if (au_field->is_mutable) {
         /* No storage class is allowed at all, but the others are diagnosed
            elsewhere already. */
@@ -24373,7 +24375,7 @@ templates from that base template.
     /* Save a pointer to the template declaration information in the scope
        stack entry. */
     scope_stack_top().tmpl_decl_state = &templ_decl_state;
-    cdsp->access = brp->source_corresp.access;
+    cdsp->access = enum_cast<an_access_specifier>(brp->source_corresp.access);
     decl_member_function_template(&loc, new_tpl,
                                   templ_decl_state.il_template_entry,
                                   &func_info, cdsp, &decl_info);
@@ -24518,7 +24520,7 @@ constructor.
       make_locator_for_symbol(symbol_for(cdsp->class_type), &loc);
       change_class_locator_into_constructor_locator(&loc, &udp->position,
                                                     /*is_static_ctor=*/FALSE);
-      cdsp->access = brp->source_corresp.access;
+      cdsp->access =enum_cast<an_access_specifier>(brp->source_corresp.access);
       decl_member_function(&loc, &func_info, cdsp, &decl_info,
                            /*compiler_generated=*/TRUE);
       new_rp = decl_info.decl_state.sym->variant.routine.ptr;
@@ -24700,7 +24702,7 @@ declared, declare one that matches the spaceship operator.
     decl_info.decl_state.type = rtp;
     if (routine_type_is_nonstatic_member_function(srp->type)) {
       an_access_specifier  saved_access = cdsp->access;
-      cdsp->access = srp->source_corresp.access;
+      cdsp->access =enum_cast<an_access_specifier>(srp->source_corresp.access);
       decl_member_function(&loc, &func_info, cdsp, &decl_info,
                            /*compiler_generated=*/TRUE);
       cdsp->access = saved_access;
@@ -28405,8 +28407,9 @@ innermost class being defined.
        started (it might have changed inside the braces). */
     scp = pedp->is_static ? &pedp->variant.variable->source_corresp
                           : &pedp->variant.field->source_corresp;
-    class_state->access = scp->access;
-    class_state->assembly_access = scp->assembly_access;
+    class_state->access = enum_cast<an_access_specifier>(scp->access);
+    class_state->assembly_access =
+                          enum_cast<an_access_specifier>(scp->assembly_access);
   }  /* if */
 }  /* check_cli_accessor_decl */
 
@@ -31080,7 +31083,8 @@ from TRUE to FALSE.
     if (first_field != NULL) {
       /* All fields of a standard layout type must be declared with the same
          access. */
-      an_access_specifier  access = first_field->source_corresp.access;
+      an_access_specifier  access =
+            enum_cast<an_access_specifier>(first_field->source_corresp.access);
       a_field_ptr          fp = first_field->next;
       for (; fp != NULL; fp = fp->next) {
         if (fp->source_corresp.access != access) {
@@ -32310,7 +32314,8 @@ classes.
     }  /* if */
 #if GNU_VISIBILITY_ATTRIBUTE_ALLOWED
     if (!C_mode()) {
-      scope_stack_top().ELF_visibility = ctsp->ELF_visibility;
+      scope_stack_top().ELF_visibility =
+                       enum_cast<an_ELF_visibility_kind>(ctsp->ELF_visibility);
     }  /* if */
 #endif /* GNU_VISIBILITY_ATTRIBUTE_ALLOWED */
     /* Begin a new stop token state. */
@@ -34636,10 +34641,10 @@ the change on the contained type.
            name linkage updated. */
         /* Avoid infinite recursion by temporarily giving the anonymous union
            type linkage. */
-        a_name_linkage_kind  saved_nlk = type->source_corresp.name_linkage;
-        if (saved_nlk != (a_name_linkage_kind)nlk_cplusplus_external) {
-          type->source_corresp.name_linkage =
-                                  (a_name_linkage_kind)nlk_cplusplus_external;
+        a_name_linkage_kind  saved_nlk =
+             enum_cast<a_name_linkage_kind>(type->source_corresp.name_linkage);
+        if (saved_nlk != nlk_cplusplus_external) {
+          type->source_corresp.name_linkage = nlk_cplusplus_external;
           make_class_components_externally_linked(type, count);
           type->source_corresp.name_linkage = saved_nlk;
         }  /* if */

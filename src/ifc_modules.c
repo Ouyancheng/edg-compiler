@@ -2737,10 +2737,10 @@ struct a_partial_scope_stack_state {
   a_byte_boolean
 		name_linkage_is_explicit;
 			/* Previous name_linkage_is_explicit setting. */
-  a_name_linkage_kind
+  ENUM_TYPE_FOR_BIT_FIELD(a_name_linkage_kind)
 		default_name_linkage:NUM_BITS_FOR_NAME_LINKAGE;
 			/* Previous default_name_linkage setting. */
-  an_access_specifier
+  ENUM_TYPE_FOR_BIT_FIELD(an_access_specifier)
 		current_access:2;
 			/* Previous current_access setting. */
 };  /* a_partial_scope_stack_state */

@@ -13774,7 +13774,8 @@ C++ mode.
   new_extra_info = new_type->variant.routine.extra_info;
   new_this_class = new_extra_info->this_class;
   new_this_qualifiers = new_extra_info->qualifiers;
-  new_ref_qualifiers = new_extra_info->ref_qualifiers;
+  new_ref_qualifiers =
+               enum_cast<a_ref_qualifier_kind>(new_extra_info->ref_qualifiers);
   do {
     if (symbol_is(old_sym_ptr, sk_projection) ||
         symbol_is(old_sym_ptr, sk_namespace_projection)) {
@@ -13812,10 +13813,11 @@ C++ mode.
        distinguishable by overload resolution. */
     /* Note that the code here must match determine_arg_match_level. */
     old_this_class = old_extra_info->this_class;
-    old_ref_qualifiers = old_extra_info->ref_qualifiers;
+    old_ref_qualifiers =
+               enum_cast<a_ref_qualifier_kind>(old_extra_info->ref_qualifiers);
     if (old_ref_qualifiers != new_ref_qualifiers) {
-      if (old_ref_qualifiers != (a_ref_qualifier_kind)rqk_default &&
-          new_ref_qualifiers != (a_ref_qualifier_kind)rqk_default) {
+      if (old_ref_qualifiers != rqk_default &&
+          new_ref_qualifiers != rqk_default) {
         /* "&" and "&&" ref-qualifiers are distinguishable, but other
            combinations are not.  In particular, if two declarations only
            differ in ref-qualifiers and one declaration has no explicit
@@ -16254,9 +16256,11 @@ than recorded so far.
   an_ELF_visibility_kind  curr_visibility = evk_unspecified;
 
   if (is_immediate_class_type(type)) {
-    curr_visibility = class_type_supp(type)->ELF_visibility;
+    curr_visibility = enum_cast<an_ELF_visibility_kind>(
+                                        class_type_supp(type)->ELF_visibility);
   } else if (is_immediate_enum_type(type)) {
-    curr_visibility = type->variant.integer.ELF_visibility;
+    curr_visibility = enum_cast<an_ELF_visibility_kind>(
+                                         type->variant.integer.ELF_visibility);
   }  /* if */
   if (ELF_visibility_strictness(curr_visibility) >
          ELF_visibility_strictness(strictest_ELF_visibility_in_traversal)) {

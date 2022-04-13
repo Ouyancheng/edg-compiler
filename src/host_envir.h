@@ -4049,6 +4049,54 @@ extern unsigned long strtoul_interface(a_const_char *str,
                                        a_boolean    *err);
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
+/*
+Versions of GCC older than 9.1 have a bug where enumerations with a fixed
+underlying type are assumed to be able to store all possible values that the
+underlying type can, regardless of what the enumerators actually specify.  This
+causes spurious warnings when these enumerations are used in bit fields, and
+unfortunately, the warnings are not suppressible via the command line.
+*/
+#if !defined(USE_ENUMS_IN_BITFIELDS)
+#if defined(__GNUC__) && \
+    (__GNUC__ < 9 || (__GNUC__ == 9 && __GNUC_MINOR__ < 1))
+#define USE_ENUMS_IN_BITFIELDS FALSE
+#else /* !defined(__GNUC__) || [GNU_VERSION >= 9.1] */
+#define USE_ENUMS_IN_BITFIELDS TRUE
+#endif /* defined(__GNUC__) && [GNU_VERSION < 9.1] */
+#endif /* !defined(USE_ENUMS_IN_BITFIELDS) */
+
+#if USE_ENUMS_IN_BITFIELDS
+
+#define ENUM_TYPE_FOR_BIT_FIELD(type) type
+
+template<typename Enum_type>
+constexpr Enum_type enum_cast(Enum_type val)
+/*
+In this mode, enumerations can be used in bit fields, and no cast is needed.
+Do nothing and return the value, unmodified.
+*/
+{
+  return val;
+}  /* enum_cast */
+
+#else /* !USE_ENUMS_IN_BITFIELDS */
+
+#define ENUM_TYPE_FOR_BIT_FIELD(type) a_bit_field
+
+template<typename Enum_type, typename Param_type>
+constexpr Enum_type enum_cast(Param_type val)
+/*
+In this mode, enumerations cannot be used in bit fields, and so those bit
+fields must be cast to the enumeration before they can be assigned to an
+instance of that enumeration.  Perform the cast and return the (otherwise
+unmodified) value.
+*/
+{
+  return (Enum_type)val;
+}  /* enum_cast */
+
+#endif /* USE_ENUMS_IN_BITFIELDS */
+
 /* Conditionally close the "edg" namespace. */
 END_EDG_NAMESPACE
 

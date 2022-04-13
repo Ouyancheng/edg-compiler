@@ -207,8 +207,8 @@ updated accordingly).
 {
   a_symbol_ptr        sym;
   a_symbol_locator    local_loc;
-  a_name_linkage_kind saved_name_linkage =
-                           scope_stack[decl_scope_level].default_name_linkage;
+  a_name_linkage_kind saved_name_linkage = enum_cast<a_name_linkage_kind>(
+                           scope_stack[decl_scope_level].default_name_linkage);
 
   /* In cases where attributes are part of the function type, a typeref
      may be present here; skip it (the attributes are already reflected in
