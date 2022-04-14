@@ -2248,8 +2248,8 @@ typedef unsigned int a_cts_flag_set;
 #define CTS_IS_EXPRESSION         0X4
 			/* TRUE if the stream being cached represents an
 			   expression.  Used to determine the setting of
-			   GID_IS_EXPR_CONTEXT while coalescing
-			   identifiers. */
+			   GID_IS_EXPR_CONTEXT and GID_IS_TYPENAME while
+			   coalescing identifiers. */
 
 
 inline void assign_curr_token_sequence_number()

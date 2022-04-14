@@ -3275,7 +3275,7 @@ of something like a qualified name.
 #define get_token_and_coalesce_if_needed(coalesce_ids, is_expr)             \
   if (coalesce_ids) {                                                       \
     an_identifier_options_set expr_type_opt = is_expr ? GID_IS_EXPR_CONTEXT \
-                                                 : GID_IS_TYPENAME;         \
+                                                      : GID_IS_TYPENAME;    \
     (void)get_token();                                                      \
     (void)is_generalized_identifier_start(GID_TEMPLATE_ARGS_OPTIONAL |      \
                                           expr_type_opt);                   \
