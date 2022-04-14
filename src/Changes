@@ -34,10 +34,10 @@ Consider:
   constexpr S s = xchange(S{ 1, 2 });  // Previously an error.  Now okay
                                        // in C++20 mode.
 
-Prior to C++20, local variables declarations in constexpr function had to
+Prior to C++20, local variable declarations in constexpr functions had to
 include an initializer.  In C++20 that is no longer required, but for aggregate
-class variables the front end failed to failed to treat such variables as
-initialized even if all their subobjects were initialized.  In the example
+class variables the front end failed to treat such variables as initialized
+even if none of their subobjects remain uninitialized.  In the example
 above that meant an error was issued because the "return r;" statement was
 mistakenly thought to return an uninitialized object.  That is now fixed.
 
