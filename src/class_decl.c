@@ -2820,6 +2820,35 @@ the delayed scan of the noexcept operand now.
 }  /* early_eh_spec_fixup */
 
 
+void copy_inh_ctor_default_args_if_needed(a_routine_ptr  drp,
+                                          a_boolean      is_copy_or_move_ctor)
+/*
+drp is an inheriting constructor (a copy or move constructor if the flag
+is_copy_or_move_ctor is TRUE).  Copy the default arguments of the progenitor
+routine to the type of drp (if there are any).
+*/
+{
+  a_routine_ptr  brp = inh_ctor_inherited_ctor(drp);
+
+  check_assertion(brp != NULL);
+  if (is_copy_or_move_ctor) {
+    /* Copy/move constructors can only be inherited if they have more than one
+       parameter (implying that the second one has a default argument).  Ensure
+       that the default argument from the second parameter of the inherited
+       constructor is not copied to the inheriting constructor, in accord with
+       the restriction in [over.match.funcs.general] paragraph 9 (N4885)
+       prohibiting an inherited copy constructor from being used to initialize
+       an object of the derived class from an object of the base or derived
+       type. */
+    rout_type_supp(brp->type)->param_type_list->next->has_default_arg = FALSE;
+  }  /* if */
+  copy_routine_type_default_args(brp->type, drp->type);
+  if (is_copy_or_move_ctor) {
+    rout_type_supp(brp->type)->param_type_list->next->has_default_arg = TRUE;
+  }  /* if */
+}  /* copy_inh_ctor_default_args_if_needed */
+
+
 void def_arg_and_eh_spec_fixup_for_class(a_type_ptr  class_type,
                                          a_boolean   is_template_based,
                                          a_boolean   template_second_pass)
@@ -3199,28 +3228,9 @@ fixup_declared_type: ;
 #endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
       }  /* if */
       if (rfp->inheriting_ctor) {
-        a_routine_ptr ctor, inh_ctor;
+        a_routine_ptr ctor;
         ctor = sym->variant.routine.ptr;
-        inh_ctor = inh_ctor_inherited_ctor(ctor);
-        check_assertion(inh_ctor != NULL);
-        if (rfp->inh_copy_move_ctor) {
-          /* Copy/move constructors can only be inherited if they have more
-             than one parameter (implying that the second one has a default
-             argument).  Ensure that the default argument from the second
-             parameter of the inherited constructor is not copied to the
-             inheriting constructor, in accord with the restriction in
-             [over.match.funcs.general] paragraph 9 (N4885) prohibiting an
-             inherited copy constructor from being used to initialize an
-             object of the derived class from an object of the base or
-             derived type. */
-          inh_ctor->type->variant.routine.extra_info->param_type_list->
-                                                 next->has_default_arg = FALSE;
-        }  /* if */
-        copy_routine_type_default_args(inh_ctor->type, ctor->type);
-        if (rfp->inh_copy_move_ctor) {
-          inh_ctor->type->variant.routine.extra_info->param_type_list->
-                                                  next->has_default_arg = TRUE;
-        }  /* if */
+        copy_inh_ctor_default_args_if_needed(ctor, rfp->inh_copy_move_ctor);
       }  /* if */
     }  /* for */
     if (curr_scope_class_type != NULL) {

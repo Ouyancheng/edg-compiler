@@ -5268,6 +5268,21 @@ match.
   a_param_type_ptr         param;
   a_boolean                param_pack_seen = FALSE;
 
+  /* The default arguments for an inheriting constructor may be pending (i.e.,
+     a routine fixup might exist to copy them from the base class constructor).
+     If so, copy the default arguments early so that overload resolution
+     proceeds correctly. */
+  if (routine != NULL && routine->is_inheriting_ctor) {
+    a_type_ptr  parent = parent_class_of(routine);
+    if (class_symbol_supp(symbol_for(parent))->routine_fixup_list != NULL) {
+      a_type_qualifier_set  *p_quals = NULL;
+      copy_inh_ctor_default_args_if_needed(routine,
+                                           is_copy_constructor(
+                                             routine, parent, p_quals,
+                                             /*include_move_ctors=*/TRUE,
+                                             /*is_declarative_context=*/TRUE));
+    }  /* if */
+  }  /* if */
   routine_type = skip_typerefs(routine_type);
   rtsp = routine_type->variant.routine.extra_info;
   param = rtsp->param_type_list;

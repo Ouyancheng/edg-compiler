@@ -1,5 +1,14 @@
 Version 6.4
 
+4/15/22  [EDGcpfe/25087]
+Inheriting constructors with default arguments
+
+The changes for EDGcpfe/24210 in version 6.3 introduced a regression by
+deferring the propagation of inherited default arguments: In some complex
+cases, that deferral went past the point at which the default arguments are
+needed for the resolution of a constructor invocation.  That is now fixed.
+
+
 4/15/22  [EDGcpfe/19782,EDGcpfe/19783]
 Pointers to subobjects as nontype template arguments
 

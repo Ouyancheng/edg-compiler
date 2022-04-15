@@ -193,6 +193,10 @@ extern a_lambda_ptr scan_lambda(void);
 extern void early_eh_spec_fixup(a_routine_ptr                   rp,
                                 an_exception_specification_ptr  esp);
 
+extern
+void copy_inh_ctor_default_args_if_needed(a_routine_ptr  drp,
+                                          a_boolean      is_copy_or_move_ctor);
+
 extern void def_arg_and_eh_spec_fixup_for_class(
                                             a_type_ptr  class_type,
                                             a_boolean   is_template_based,
