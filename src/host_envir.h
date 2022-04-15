@@ -4050,7 +4050,7 @@ extern unsigned long strtoul_interface(a_const_char *str,
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 
 /*
-Versions of GCC older than 9.1 have a bug where enumerations with a fixed
+Versions of GCC older than 9.3 have a bug where enumerations with a fixed
 underlying type are assumed to be able to store all possible values that the
 underlying type can, regardless of what the enumerators actually specify.  This
 causes spurious warnings when these enumerations are used in bit fields, and
@@ -4058,11 +4058,11 @@ unfortunately, the warnings are not suppressible via the command line.
 */
 #if !defined(USE_ENUMS_IN_BITFIELDS)
 #if defined(__GNUC__) && \
-    (__GNUC__ < 9 || (__GNUC__ == 9 && __GNUC_MINOR__ < 1))
+    (__GNUC__ < 9 || (__GNUC__ == 9 && __GNUC_MINOR__ < 3))
 #define USE_ENUMS_IN_BITFIELDS FALSE
-#else /* !defined(__GNUC__) || [GNU_VERSION >= 9.1] */
+#else /* !defined(__GNUC__) || [GNU_VERSION >= 9.3] */
 #define USE_ENUMS_IN_BITFIELDS TRUE
-#endif /* defined(__GNUC__) && [GNU_VERSION < 9.1] */
+#endif /* defined(__GNUC__) && [GNU_VERSION < 9.3] */
 #endif /* !defined(USE_ENUMS_IN_BITFIELDS) */
 
 #if USE_ENUMS_IN_BITFIELDS

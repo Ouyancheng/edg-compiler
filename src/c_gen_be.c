@@ -3446,18 +3446,18 @@ padding in the generated code.
               alignment_of_type(eff_type) > union_alignment) {
             /* Find the largest integral type with the right signedness that
                will fit in the union. */
-            an_integer_kind  ikind, eff_ikind;
+            a_byte           ikind;
+            an_integer_kind  eff_ikind;
             a_targ_size_t    int_size;
             a_targ_alignment int_alignment;
-            for (ikind = (an_integer_kind)ik_unsigned_int; ; ikind--) {
-              get_integer_size_and_alignment(ikind, &int_size,
+            for (ikind = ik_unsigned_int; ; ikind--) {
+              get_integer_size_and_alignment((an_integer_kind)ikind, &int_size,
                                              &int_alignment);
               if (int_size <= union_size &&
                   int_alignment <= union_alignment &&
-                  int_kind_is_signed[(int)ikind] ==
-                                                field->bit_field_is_signed) {
+                  int_kind_is_signed[ikind] == field->bit_field_is_signed) {
                 /* This size is okay. */
-                eff_ikind = ikind;
+                eff_ikind = (an_integer_kind)ikind;
                 break;
               }  /* if */
             }  /* for */
