@@ -1,5 +1,15 @@
 Version 6.4
 
+4/15/22  [EDGcpfe/25213]
+Nonreal class template instantiations and virtual function override ambiguities
+
+The function report_virtual_function_ambiguities was previously invoked for
+nonreal class template instantiations (such as prototype instantiations).  This
+was not needed and could in some cases involving template parameter packs
+result in invalid memory accesses.  The function is now only called for
+nontemplate classes and for real class template instantiations.
+
+
 4/15/22  [EDGcpfe/25087]
 Inheriting constructors with default arguments
 

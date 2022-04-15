@@ -4887,11 +4887,8 @@ ambiguity.
   a_base_class_ptr                    bcp;
   an_overriding_virtual_function_ptr  ovfp;
   a_routine_ptr                       vfp;
-  a_boolean                           is_nonreal_instantiation;
 
   db_enter(4, "report_virtual_function_ambiguities");
-  is_nonreal_instantiation =
-                       class_type->variant.class_struct_union.is_nonreal_class;
   /* Make a pass over all the base classes (direct and indirect both) of
      the class indicated by class_type. */
   for (bcp = base_classes_of(class_type); bcp != NULL; bcp = bcp->next) {
@@ -4943,8 +4940,7 @@ ambiguity.
             break;
           }  /* if */
         }  /* for */
-        if (!is_nonreal_instantiation &&
-            !(overriders_in_unambiguous_bases <= 1 &&
+        if (!(overriders_in_unambiguous_bases <= 1 &&
               (microsoft_bugs || sun_mode || any_cfront_mode()))) {
           a_symbol_ptr sym = (a_symbol_ptr)vfp->source_corresp.assoc_info;
           sym_diagnostic(es_discretionary_error,
@@ -31722,7 +31718,7 @@ wrap_up_class_definition.
       } else
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       /* Do not insert code here. */
-      {
+      if (!class_type->variant.class_struct_union.is_nonreal_class) {
         report_virtual_function_ambiguities(class_type);
       }  /* if */
     } else if (!is_template_dependent_context()) {
