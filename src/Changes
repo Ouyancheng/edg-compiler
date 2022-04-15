@@ -1,5 +1,22 @@
 Version 6.4
 
+4/15/22  [EDGcpfe/19782,EDGcpfe/19783]
+Pointers to subobjects as nontype template arguments
+
+The C++ Standard requires that the argument for a nontype template
+parameter of type pointer or reference to object must designate a complete
+object.  The front end previously failed to enforce that rule for pointers.
+This is now fixed.  For example, with --c++11:
+
+  struct B { };
+  struct D : B {} d;
+  template <const B*> void f();
+  void g() {
+    constexpr B *bp = &d;
+    f<bp>();  // Previously incorrectly accepted, now an error
+  }
+
+
 4/12/22  [EDGcpfe/25200]
 Omitted "template" keyword in template type parameter default argument
 

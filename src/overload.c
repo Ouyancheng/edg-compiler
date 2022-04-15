@@ -21610,10 +21610,14 @@ is_transparent.  conv_context describes the context of the conversion.
       /* Some conversions are not allowed on a nontype template argument.
          (Note that if an explicit cast was applied to the template argument,
          those restrictions do not apply.) */
-      a_type_ptr      src_type = source_operand->type, eff_src_type = src_type;
-      an_operand      src_copy, *src_to_test;
-      a_boolean       constant_src = FALSE;
-      a_constant_ptr  con = local_constant(), con_to_test = NULL;
+      a_type_ptr         src_type = source_operand->type;
+      a_type_ptr         eff_src_type = src_type;
+      an_operand         src_copy, *src_to_test;
+      a_boolean          constant_src = FALSE;
+      a_constant_ptr     con = local_constant(), con_to_test = NULL;
+      a_boolean          points_to_subobject = FALSE;
+      an_error_severity  sev = es_discretionary_error;
+
       if (!is_prototype_instantiation_context()) {
         force_operand_to_constant_if_possible_full(
                               source_operand, /*is_constant_evaluated=*/TRUE);
@@ -21643,22 +21647,31 @@ is_transparent.  conv_context describes the context of the conversion.
         constant_src = TRUE;
         con_to_test = con;
       }  /* if */
-      if (!conversion->is_explicit_cast &&
-          !conversion_allowed_for_nontype_template_argument(
-                                           &conversion->std,
-                                           eff_src_type,
-                                           constant_src, con_to_test,
-                                           dest_type,
-                                           &err_code) &&
-          (constant_src ||
-           !operand_is_instantiation_dependent(source_operand))) {
-        if (expr_diagnostic_should_be_issued(es_discretionary_error,
-                                             err_code, err_pos)) {
-          an_error_severity  sev = es_discretionary_error;
-          if (gpp_version_is(<90000)) {
-            sev = es_warning;
+      if (con_to_test != NULL && con->kind == ck_address &&
+          con->variant.address.subobject_path != NULL) {
+        points_to_subobject = TRUE;
+        err_code = ec_template_arg_cannot_point_to_subobject;
+        sev = es_error;
+      }  /* if */
+      if (points_to_subobject ||
+          (!conversion->is_explicit_cast &&
+           !conversion_allowed_for_nontype_template_argument(&conversion->std,
+                                                             eff_src_type,
+                                                             constant_src,
+                                                             con_to_test,
+                                                             dest_type,
+                                                             &err_code) &&
+           (constant_src ||
+            !operand_is_instantiation_dependent(source_operand)))) {
+        if (expr_diagnostic_should_be_issued(sev, err_code, err_pos)) {
+          if (points_to_subobject) {
+            pos_diagnostic(sev, err_code, err_pos);
+          } else {
+            if (gpp_version_is(<90000)) {
+              sev = es_warning;
+            }  /* if */
+            pos_ty2_diagnostic(sev, err_code, err_pos, src_type, dest_type);
           }  /* if */
-          pos_ty2_diagnostic(sev, err_code, err_pos, src_type, dest_type);
           if (is_effective_error(err_code, sev, err_pos)) {
             /* Avoid duplicate errors. */
             make_error_operand(source_operand);
