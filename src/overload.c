@@ -21663,6 +21663,7 @@ is_transparent.  conv_context describes the context of the conversion.
         con_to_test = con;
       }  /* if */
       if (con_to_test != NULL && con->kind == ck_address &&
+          is_pointer_type(dest_type) &&
           con->variant.address.subobject_path != NULL) {
         points_to_subobject = TRUE;
         err_code = ec_template_arg_cannot_point_to_subobject;
