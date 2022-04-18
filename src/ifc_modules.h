@@ -698,8 +698,10 @@ enum ifc_TypeBasis : uint8_t {
   ifc_TypeBasis_Function,
   ifc_TypeBasis_Empty,
   ifc_TypeBasis_VariableTemplate,
+  ifc_TypeBasis_Concept,
   ifc_TypeBasis_Auto,
   ifc_TypeBasis_DecltypeAuto,
+  ifc_TypeBasis_Overload
 };
 
 /* Enumeration for TypePrecision (i.e., sizes of fundamental types). */
@@ -770,7 +772,7 @@ enum ifc_DeclSort : ifc_Sort_type {
 enum ifc_SpecializationSort : ifc_Sort_type {
   ifc_SpecializationSort_Implicit,
   ifc_SpecializationSort_Explicit,
-  ifc_SpecializationSort_Instantiation,
+  ifc_SpecializationSort_Instantiation
 };
 
 /* Functions used to access NameIndex::tag and NameIndex::value. */
@@ -2709,6 +2711,12 @@ struct an_ifc_module : public a_module_interface {
 			   indexed by a NameSort::SourceFile index.
 			   Dynamically allocated (in front end memory) once
 			   the number of source files is known. */
+  a_boolean
+		caching_class_definition = FALSE;
+			/* */
+  Bi_vec<ifc_DeclIndex, 16>
+		namespace_deferred_decls;
+			/* */
 private:
 #if USE_MMAP_FOR_MEMORY_REGIONS
   unsigned char
@@ -2752,7 +2760,6 @@ private:
 			   cached and must not be recached. */
   Ptr_map<ifc_DeclIndex, a_symbol_ptr>
 		decl_map;
-
 public:
   an_ifc_module() : a_module_interface((a_module_kind)mk_ifc),
                     referenced_modules(/*mask_width=*/4),
@@ -2847,6 +2854,7 @@ public:
   struct decl_name_visitor;
   struct decl_locus_visitor;
   struct decl_home_scope_decl_visitor;
+  struct decl_semantic_home_scope_decl_visitor;
   struct decl_access_visitor;
   /* IFC NameIndex readers. */
   template<typename an_ifc_DeclSort_T>
@@ -2877,26 +2885,7 @@ public:
   inline ifc_SourceLocation get_ifc_locus(an_ifc_DeclSort_T *decl)
     { return get_ifc_locus(decl, Overload_priority<1>()); }
   ifc_SourceLocation get_ifc_locus(ifc_DeclIndex decl_index);
-  /* IFC Home Scope Decl readers. */
-  template<typename an_ifc_DeclSort_T>
-  inline ifc_DeclIndex get_ifc_home_scope_decl(an_ifc_DeclSort_T *decl,
-                                               Overload_priority<0>)
-    { unexpected_condition_str("Home scope decl resolution unknown"); }
-  template<typename an_ifc_DeclSort_T>
-  inline auto get_ifc_home_scope_decl(an_ifc_DeclSort_T *decl,
-                                      Overload_priority<1>)
-                          -> Is_same<decltype(decl->home_scope), ifc_DeclIndex>
-    { return decl->home_scope; }
-  template<typename an_ifc_DeclSort_T>
-  inline Opt<an_ifc_Ref<ifc_DeclIndex>> get_ifc_home_scope_decl(
-                                                      an_ifc_DeclSort_T *decl);
-  Opt<an_ifc_Ref<ifc_DeclIndex>> get_ifc_home_scope_decl(
-                                                     ifc_DeclIndex decl_index);
   /* IFC Scope readers. */
-  a_scope_ptr get_ifc_scope(ifc_DeclIndex scope_index);
-  template<typename an_ifc_DeclSort_T>
-  inline a_scope_ptr get_ifc_home_scope(an_ifc_DeclSort_T *decl);
-  inline a_scope_ptr get_ifc_home_scope(ifc_DeclIndex decl_index);
   a_boolean is_home_scope_readable(ifc_DeclIndex decl_index);
   /* IFC Access readers. */
   template<typename an_ifc_DeclSort_T>
@@ -2963,9 +2952,6 @@ public:
   void cache_scope_member_sequence(a_token_cache_ptr         cache,
                                    an_ifc_Ref<ifc_DeclIndex> scope_decl,
                                    ifc_Sequence              seq);
-  void cache_scope(a_token_cache_ptr  cache,
-                   ifc_ScopeIndex     scope,
-                   ifc_SourceLocation *locus);
   template<typename a_Name_Cache_Fn, typename a_Scope_Cache_Fn>
   inline void cache_scope_decl(a_token_cache_ptr  cache,
                                ifc_DeclIndex      decl_idx,
@@ -3086,8 +3072,6 @@ public:
   void cache_string(a_token_cache_ptr  cache,
                     ifc_StringIndex    string,
                     ifc_SourceLocation *locus);
-  void cache_class_definition(a_token_cache_ptr     cache,
-                              an_ifc_DeclSort_Scope *decl);
   uint32_t try_cache_class_attributes_from_body(
                                              a_token_cache_ptr cache,
                                              ifc_SentenceIndex body_sentence);
@@ -3314,23 +3298,15 @@ inline Opt<an_ifc_Ref<ifc_NameIndex>> an_ifc_module::get_ifc_name(
                                          an_ifc_DeclSort_Specialization *decl);
 template<>
 inline Opt<an_ifc_Ref<ifc_NameIndex>> an_ifc_module::get_ifc_name(
+                                               an_ifc_DeclSort_Template *decl);
+template<>
+inline Opt<an_ifc_Ref<ifc_NameIndex>> an_ifc_module::get_ifc_name(
                                               an_ifc_DeclSort_Reference *decl);
 
 /* Explicit specializations of an_ifc_module::get_ifc_locus. */
 template<>
 inline ifc_SourceLocation an_ifc_module::get_ifc_locus(
                                          an_ifc_DeclSort_Specialization *decl);
-
-/* Explicit specializations of an_ifc_module::get_ifc_home_scope_decl. */
-template<>
-inline Opt<an_ifc_Ref<ifc_DeclIndex>> an_ifc_module::get_ifc_home_scope_decl(
-                                  an_ifc_DeclSort_PartialSpecialization *decl);
-template<>
-inline Opt<an_ifc_Ref<ifc_DeclIndex>> an_ifc_module::get_ifc_home_scope_decl(
-                                         an_ifc_DeclSort_Specialization *decl);
-template<>
-inline Opt<an_ifc_Ref<ifc_DeclIndex>> an_ifc_module::get_ifc_home_scope_decl(
-                                              an_ifc_DeclSort_Reference *decl);
 
 extern void record_pending_ifc_function_body(a_routine_ptr  rp,
                                              ifc_DeclIndex  decl_idx,
