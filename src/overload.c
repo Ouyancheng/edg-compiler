@@ -11778,19 +11778,19 @@ the case where the left operand is a C++/CLI handle.
           a_symbol_ptr sym, fund_sym;
           an_overload_set_traversal_block
                        ostblock;
+          member_sym = NULL;
           for (sym = set_up_overload_set_traversal_simple(
                                                         projection_member_sym,
                                                         &ostblock);
-               ;
+               sym != NULL;
                sym = next_symbol_in_overload_set(&ostblock)) {
-            check_assertion(sym != NULL);
             fund_sym = fundamental_symbol_of(sym);
             /* If the symbol is a member function template, see if the
                function_symbol is an instance of the template. */
             if (fund_sym->kind == (a_symbol_kind)sk_function_template &&
                 fund_member_sym->variant.routine.instance_ptr != NULL &&
-                fund_member_sym->variant.routine.instance_ptr->
-                                                    template_sym == fund_sym) {
+                fund_member_sym->variant.routine.instance_ptr
+                               ->template_sym == fund_sym) {
               member_sym = sym;
               break;
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -11823,6 +11823,10 @@ the case where the left operand is a C++/CLI handle.
             member_sym = fund_sym;
           }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+          if (member_sym == NULL) {
+            expect_error();
+            goto done;
+          }  /* if */
           /* Remove any namespace projection symbols. */
           while (member_sym->kind == (a_symbol_kind)sk_namespace_projection) {
             member_sym = namespace_projection_fundamental_symbol(sym);
@@ -11850,6 +11854,7 @@ the case where the left operand is a C++/CLI handle.
       }  /* if */
     }  /* if */
   }  /* if */
+done:;
 }  /* cast_pointer_for_field_selection */
 
 
