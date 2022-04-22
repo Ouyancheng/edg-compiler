@@ -11774,10 +11774,10 @@ the case where the left operand is a C++/CLI handle.
              class and no projection symbol exists for it.  Look for the
              member of the overload set of projection_member_sym that is
              the appropriate projection symbol. */
-          a_symbol_ptr fund_member_sym = fundamental_symbol_of(member_sym);
-          a_symbol_ptr sym, fund_sym;
+          a_symbol_ptr  fund_member_sym = fundamental_symbol_of(member_sym),
+                        sym, fund_sym = NULL;
           an_overload_set_traversal_block
-                       ostblock;
+                        ostblock;
           member_sym = NULL;
           for (sym = set_up_overload_set_traversal_simple(
                                                         projection_member_sym,
