@@ -33009,9 +33009,9 @@ scanned yet.
       pos_ty_error(ec_both_ref_and_value_constraints, pos, param_type);
       any_errors = TRUE;
     }  /* if */
-    if (kind == (a_generic_constraint_kind)gck_naked_type_param) {
-      a_generic_constraint_ptr	sub_list;
-      a_generic_constraint_ptr	sub_gcp;
+    if (kind == (a_generic_constraint_kind)gck_naked_type_param &&
+        type != NULL) {
+      a_generic_constraint_ptr  sub_list, sub_gcp;
       /* For a new naked type parameter check the indirect constraints
          against the current list. */
       sub_list = type->variant.template_param.extra_info->generic_constraints;
