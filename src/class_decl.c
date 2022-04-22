@@ -9850,7 +9850,7 @@ to FALSE before returning).
 #if DEBUG
         if (debug_level >= 4) {
           fputs("new base class ", f_debug);
-          db_base_class(bcp, FALSE);
+          db_base_class(new_bcp, FALSE);
           db_virtual_function_override_list(new_bcp);
         }  /* if */
 #endif /* DEBUG */
