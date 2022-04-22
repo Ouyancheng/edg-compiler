@@ -5206,7 +5206,8 @@ typedef a_routine_ptr a_builtin_call_adjustment_callback(
 /* The following are function declarations (despite looking like variables). */
 static a_builtin_call_adjustment_callback
 		adjust_sync_atomic_builtin,
-		adjust_builtin_zero_non_value_bits;
+		adjust_builtin_zero_non_value_bits,
+		adjust_elementwise_or_reduce_builtin;
 
 /*
 Structure used to pass information from builtin_call_needs_adjustment to
@@ -5281,6 +5282,12 @@ typedef struct a_builtin_call_adjustment {
                            call to a routine of the same name with a
                            _1, _2, _4, _8, or _16 suffix as determined by the
                            type pointed to by the first argument. */
+  a_boolean   is_elementwise;
+                        /* TRUE if this is a clang __builtin_elementwise_*
+                           builtin. */
+  a_boolean   is_reduce;
+                        /* TRUE if this is a clang __builtin_reduce_*
+                           builtin. */
   a_boolean   has_trailing_n;
                         /* TRUE if this is a GCC atomic function with a
                            trailing "_n" in its name (which is replaced by the
@@ -5316,6 +5323,8 @@ be called to check and adjust the argument and routine types as needed.
   bcap->is_sync = FALSE;
   bcap->is_atomic = FALSE;
   bcap->is_generic = FALSE;
+  bcap->is_elementwise = FALSE;
+  bcap->is_reduce = FALSE;
   bcap->has_trailing_n = FALSE;
   bfk = rout->variant.builtin_function_kind;
   /* Set fields of *bcap as determined by the particular builtin. */
@@ -5478,6 +5487,30 @@ be called to check and adjust the argument and routine types as needed.
       gnu_source_location_impl_type();
       requires_processing = FALSE;
       break;
+    case bfk_elementwise_abs:
+    case bfk_elementwise_ceil:
+    case bfk_elementwise_floor:
+    case bfk_elementwise_roundeven:
+    case bfk_elementwise_trunc:
+      bcap->n_args = 1;
+      bcap->is_elementwise = TRUE;
+      bcap->callback = adjust_elementwise_or_reduce_builtin;
+      break;
+    case bfk_elementwise_max:
+    case bfk_elementwise_min:
+      bcap->n_args = 2;
+      bcap->is_elementwise = TRUE;
+      bcap->callback = adjust_elementwise_or_reduce_builtin;
+      break;
+    case bfk_reduce_and:
+    case bfk_reduce_max:
+    case bfk_reduce_min:
+    case bfk_reduce_or:
+    case bfk_reduce_xor:
+      bcap->n_args = 1;
+      bcap->is_reduce = TRUE;
+      bcap->callback = adjust_elementwise_or_reduce_builtin;
+      break;
     default:
       /* No special processing is needed for most builtins. */
       requires_processing = FALSE;
@@ -5524,6 +5557,58 @@ string, or NULL if there is no such function.
   }  /* for */
   return sym;
 }  /* gnu_builtin_func_by_name */
+
+
+static a_symbol_ptr builtin_with_particular_type(a_routine_ptr rout,
+                                                 a_type_ptr    new_rout_type)
+/*
+Given a builtin routine, return the symbol (created if needed) of a builtin
+with the same name but the specified type.  This is needed because some
+builtins can take many different types, e.g.,
+  T __builtin_elementwise_max(T x, T y)
+can be called with integer, floating-point or vector types and the front end
+generates a concrete routine for each separate type.
+*/
+{
+  a_symbol_ptr     sym;
+  a_symbol_locator loc;
+
+  /* See if a version of this routine with the specified type has
+     already been created; if so, reuse that routine. */
+  clear_locator(&loc, &null_source_position);
+  (void)find_symbol(rout->source_corresp.name, 
+                strlen(unmangled_or_fabricated_name_of(&rout->source_corresp)),
+                &loc);
+  for (sym = loc.symbol_header->symbol; sym != NULL; sym = sym->next) {
+    if (sym->kind == (a_symbol_kind)sk_routine &&
+        sym->is_invisible &&
+        identical_types(new_rout_type, sym->variant.routine.ptr->type)) {
+      break;
+    }  /* if */
+  }  /* for */
+  if (sym == NULL) {
+    /* Create a new routine with the type as determined above and the
+       same name for the concrete routine to use for this call.  Back
+       ends will need to deal with multiple routines with the same name
+       and different types.  Create an invisible symbol for the new
+       routine (so it won't be found on subsequent lookups). */
+    a_routine_ptr     new_rout, save_next;
+    new_rout = make_routine(new_rout_type, (a_storage_class)sc_extern,
+                            DEPTH_OF_FILE_SCOPE);
+    save_next = new_rout->next;
+    *new_rout = *rout;
+    new_rout->type = new_rout_type;
+    new_rout->next = save_next;
+    sym = alloc_symbol((a_symbol_kind)sk_routine, loc.symbol_header,
+                       &loc.source_position);
+    sym->variant.routine.ptr = new_rout;
+    sym->is_invisible = TRUE;
+    new_rout->source_corresp.assoc_info = (char*)sym;
+    add_symbol_to_symbol_table(sym, DEPTH_OF_FILE_SCOPE,
+                               /*suppress_error=*/TRUE);
+  }  /* if */
+  return sym;
+}  /* builtin_with_particular_type */
 
 
 static a_routine_ptr adjust_sync_atomic_builtin(
@@ -5669,8 +5754,6 @@ indicated type.
       /* Find or create the concrete routine to dispatch the operation to. */
       a_symbol_ptr      sym;
       an_operand        orig_operand;
-      sizeof_t          name_len =
-                strlen(unmangled_or_fabricated_name_of(&rout->source_corresp));
       a_name_reference  *nrp = alloc_name_reference();
       if (bcap->replace_routine_type) {
         /* The type of the builtin is dynamic and depends on the "dispatch
@@ -5678,8 +5761,6 @@ indicated type.
            builtins.  Based on the dispatch type, create a new routine (with a
            new type) if one doesn't already exist and use that when validating
            arguments. */
-        a_routine_ptr     new_rout, save_next;
-        a_symbol_locator  loc;
         a_type_ptr        rout_type = NULL, pA_type = NULL, C_type = NULL;
         a_type_ptr        M_type = NULL, MO_type = NULL;
         if (bcap->is_c11_atomic) {
@@ -5750,42 +5831,15 @@ indicated type.
           default:
             unexpected_condition();
         }  /* switch */
-        /* See if a version of this routine with the specified type has
-           already been created; if so, reuse that routine. */
-        clear_locator(&loc, &null_source_position);
-        (void)find_symbol(rout->source_corresp.name, name_len, &loc);
-        for (sym = loc.symbol_header->symbol; sym != NULL; sym = sym->next) {
-          if (sym->kind == (a_symbol_kind)sk_routine &&
-              sym->is_invisible &&
-              identical_types(rout_type, sym->variant.routine.ptr->type)) {
-            break;
-          }  /* if */
-        }  /* for */
-        if (sym == NULL) {
-          /* Create a new routine with the type as determined above and the
-             same name for the concrete routine to use for this call.  Back
-             ends will need to deal with multiple routines with the same name
-             and different types.  Create an invisible symbol for the new
-             routine (so it won't be found on subsequent lookups). */
-          new_rout = make_routine(rout_type, (a_storage_class)sc_extern,
-                                  DEPTH_OF_FILE_SCOPE);
-          save_next = new_rout->next;
-          *new_rout = *rout;
-          new_rout->type = rout_type;
-          new_rout->next = save_next;
-          sym = alloc_symbol((a_symbol_kind)sk_routine, loc.symbol_header,
-                             &loc.source_position);
-          sym->variant.routine.ptr = new_rout;
-          sym->is_invisible = TRUE;
-          new_rout->source_corresp.assoc_info = (char*)sym;
-          add_symbol_to_symbol_table(sym, DEPTH_OF_FILE_SCOPE,
-                                     /*suppress_error=*/TRUE);
-        }  /* if */
+        /* Create a routine with the desired type. */
+        sym = builtin_with_particular_type(rout, rout_type);
       } else {
         /* For __sync_* and __atomic_* builtins, construct the concrete
            routine's name by appending the proper suffix and then look for that
            builtin function. */
         char              name[100];
+        sizeof_t          name_len =
+                strlen(unmangled_or_fabricated_name_of(&rout->source_corresp));
         check_assertion(name_len < 90 && is_sync_or_atomic);
         strcpy(name, unmangled_or_fabricated_name_of(&rout->source_corresp));
         if (bcap->has_trailing_n) {
@@ -5997,6 +6051,170 @@ be a pointer to a complete type and may not be const-qualified.
   }  /* if */
   return routine_from_function_operand(target);
 }  /* adjust_builtin_zero_non_value_bits */
+
+
+static a_routine_ptr adjust_elementwise_or_reduce_builtin(
+                             an_operand                *target,
+                             an_arg_list_elem_ptr      args,
+                             a_source_position         *closing_paren_position,
+                             a_builtin_call_adjustment *bcap,
+                             an_expr_node_ptr          *arg_list)
+/*
+Perform special processing for the clang __builtin_elementwise_* and
+__builtin_reduce_* builtins.  Some checking of arguments is performed and the
+resulting return type is determined for the routine.
+*/
+{
+  a_boolean     err = FALSE;
+  a_type_ptr    return_type = error_type();
+  a_type_ptr    arg1_type = NULL;
+  a_type_ptr    arg2_type = NULL;
+  a_routine_ptr rout = routine_from_function_operand(target);
+  an_operand    *op1, *op2 = NULL;
+
+  *arg_list = NULL;
+  check_assertion(bcap->n_args == 1 || bcap->n_args == 2);
+  if (args == NULL) {
+    /* Must have at least one argument. */
+    expr_pos_error(ec_too_few_arguments, closing_paren_position);
+    err = TRUE;
+  } else if (bcap->n_args == 1 && args->next != NULL) {
+    /* Must have exactly one argument. */
+    expr_pos_error(ec_too_many_arguments, init_component_pos(args->next));
+    err = TRUE;
+  } else if (bcap->n_args == 2 && args->next->next != NULL) {
+    /* Must have exactly two arguments. */
+    expr_pos_error(ec_too_many_arguments,init_component_pos(args->next->next));
+    err = TRUE;
+  } else {
+    check_arg_list_elem_is_expression(args);
+    op1 = operand_of_arg_list_elem(args);
+    if (is_an_lvalue(op1)) {
+      /* An rvalue is needed. */
+      conv_glvalue_to_prvalue(op1);
+    }  /* if */
+    arg1_type = skip_typerefs(op1->type);
+    if (bcap->is_elementwise) {
+      /* __builtin_elementwise_* case (with either one or two arguments).
+         The return type is the same as the types of the argument(s). */
+      if (bcap->n_args == 2) {
+        op2 = operand_of_arg_list_elem(args->next);
+        arg2_type = skip_typerefs(op2->type);
+        if (is_an_lvalue(op2)) {
+          /* An rvalue is needed. */
+          conv_glvalue_to_prvalue(op2);
+        }  /* if */
+        if (is_error_type(arg1_type) || is_error_type(arg2_type) ||
+            (is_template_dependent_context() &&
+             (is_template_dependent_type(arg1_type) ||
+              is_template_dependent_type(arg2_type)))) {
+          return_type = arg1_type;
+        } else if (!identical_types(arg1_type, arg2_type)) {
+          /* Both arguments must be the same type. */
+          expr_pos_error(ec_both_arguments_must_have_same_type,
+                         init_component_pos(args));
+          err = TRUE;
+        }  /* if */
+      }  /* if */
+      return_type = arg1_type;
+    } else {
+      /* __builtin_reduce_* case.  The return type is the element type of the
+         vector type. */
+      check_assertion(bcap->is_reduce);
+      if (is_vector_type(arg1_type)) {
+#if GNU_VECTOR_TYPES_ALLOWED
+        return_type = skip_typerefs(arg1_type)->variant.vector.element_type;
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+      } else if (is_error_type(arg1_type) ||
+                 (is_template_dependent_context() &&
+                  is_template_dependent_type(arg1_type))) {
+        return_type = arg1_type;
+      } else {
+        /* Invalid type. */
+        expr_pos_ty_error(ec_vector_type_required, init_component_pos(args),
+                          arg1_type);
+        err = TRUE;
+      }  /* if */
+    }  /* if */
+    if (!err) {
+      a_type_ptr type = arg1_type;
+      if (is_error_type(type) || is_template_dependent_type(type)) {
+        /* No need to check. */
+      } else {
+        /* Check that the type of the first operand is acceptable.  If there's
+           a second operand, we already know that it's the same as the first so
+           no need to check it here.  Some of these builtins can operate on
+           vectors or scalars of the specified type. */
+#if GNU_VECTOR_TYPES_ALLOWED
+        if (is_vector_type(type)) {
+          type = skip_typerefs(type)->variant.vector.element_type;
+        }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
+        switch (rout->variant.builtin_function_kind) {
+          case bfk_elementwise_abs:
+            err = !(is_signed_integral_type(type) || is_floating_type(type));
+            break;
+          case bfk_elementwise_ceil:
+          case bfk_elementwise_floor:
+          case bfk_elementwise_roundeven:
+          case bfk_elementwise_trunc:
+            err = !is_floating_type(type);
+            break;
+          case bfk_elementwise_max:
+          case bfk_elementwise_min:
+          case bfk_reduce_max:
+          case bfk_reduce_min:
+            err = !(is_integral_type(type) || is_floating_type(type));
+            break;
+          case bfk_reduce_and:
+          case bfk_reduce_or:
+          case bfk_reduce_xor:
+            err = !is_integral_type(type);
+            break;
+          default:
+            unexpected_condition();
+        }  /* switch */
+        if (err) {
+          expr_pos_ty_error(ec_invalid_type_for_builtin,
+                            init_component_pos(args),
+                            type);
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (!err) {
+    a_type_ptr rout_type = make_routine_type(return_type, arg1_type, arg2_type,
+                                             (a_type_ptr)NULL,
+                                             (a_type_ptr)NULL,
+                                             (a_type_ptr)NULL);
+    /* Create a routine with the desired type. */
+    a_symbol_ptr sym = builtin_with_particular_type(rout, rout_type);
+    rout = sym->variant.routine.ptr;
+    /* Update the operand: */
+    an_operand orig_operand = *target;
+    make_function_designator_operand(sym, target->is_qualified_name,
+                                     /*compiler_generated=*/FALSE,
+                                     &orig_operand.position,
+                                     end_position_of_operand(&orig_operand),
+                                     target->ref_entries_list, target);
+    if (is_error_operand(target)) {
+      err = TRUE;
+    } else {
+      check_assertion(is_expression_operand(target) &&
+                      is_routine_node(target->variant.expression));
+      conv_function_designator_to_ptr_to_function(target,
+                                                  (a_source_position *)NULL,
+                                                  /*allow_ctor=*/FALSE,
+                                                  /*will_call=*/TRUE);
+    }  /* if */
+    /* Convert the argument(s). */
+    *arg_list = make_node_from_operand_for_expr_list(op1);
+    if (op2 != NULL) {
+      (*arg_list)->next = make_node_from_operand_for_expr_list(op2);
+    }  /* if */
+  }  /* if */
+  return rout;
+}  /* adjust_elementwise_or_reduce_builtin */
 
 #endif /* BUILTIN_FUNCTIONS_ENABLED */
 

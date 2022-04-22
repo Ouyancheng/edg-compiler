@@ -1,5 +1,13 @@
 Version 6.4
 
+4/22/22  [EDGcpfe/25204]
+Clang compatibility: __builtin_elementwise_* and __builtin_reduce_*
+
+The new builtins added by EDGcpfe/25178 for clang 14.0.0 compatibility also
+introduced some new clang vector builtins (i.e., __builtin_elementwise_* and
+__builtin_reduce_*) that required some additional changes to the front end.
+
+
 4/15/22  [EDGcpfe/25213]
 Nonreal class template instantiations and virtual function override ambiguities
 
