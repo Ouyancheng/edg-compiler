@@ -6073,7 +6073,8 @@ resulting return type is determined for the routine.
   an_operand    *op1, *op2 = NULL;
 
   *arg_list = NULL;
-  check_assertion(bcap->n_args == 1 || bcap->n_args == 2);
+  check_assertion(rout != NULL &&
+                  (bcap->n_args == 1 || bcap->n_args == 2));
   if (args == NULL) {
     /* Must have at least one argument. */
     expr_pos_error(ec_too_few_arguments, closing_paren_position);
