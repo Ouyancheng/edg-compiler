@@ -1,5 +1,13 @@
 Version 6.4
 
+4/24/22  [EDGcpfe/25232]
+Performance with large number of splices in a single logical source line
+
+The front end previously exhibited poor performance when processing a file
+in which a single logical source line consists of many physical lines
+spliced together.  This is now fixed.
+
+
 4/22/22  [EDGcpfe/25204]
 Clang compatibility: __builtin_elementwise_* and __builtin_reduce_*
 

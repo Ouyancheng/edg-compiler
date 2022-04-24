@@ -8314,6 +8314,14 @@ needed to convert to a logical column number.
 
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
 
+static an_orig_line_modif_ptr
+		last_splice_olmp;
+			/* If non-NULL, points to the orig line
+			   modification for the rightmost line splice or
+			   multi-line character string line break processed
+			   by conv_line_loc_to_source_pos in the current
+			   line. */
+
 void conv_line_loc_to_source_pos(a_const_char      *loc_in_line,
                                  a_source_position *position_var)
 /*
@@ -8436,6 +8444,14 @@ macro_line_loc_to_source_pos should be used when speed is critical.
   }  /* if */
   /* We now have in adj_loc_in_line a position within curr_source_line, which
      must be converted to the corresponding source position. */
+  if (last_splice_olmp != NULL &&
+      last_splice_olmp->line_loc <= adj_loc_in_line) {
+    /* We don't need to scan through all the modifications but can start
+       from the nearest preceding line splice.  This can save a huge amount
+       of time in pathological cases with thousands of line splices in a
+       single logical line. */
+    olmp = last_splice_olmp;
+  }  /* if */
   if (olmp != NULL) {
     /* There are trigraphs and/or line splices, so the position
        must be determined by finding where adj_loc_in_line falls relative
@@ -8453,14 +8469,21 @@ macro_line_loc_to_source_pos should be used when speed is critical.
            of a file ends with a backslash. */
         if (*adj_loc_in_line   == LE_ESCAPE &&
             adj_loc_in_line[1] == LE_NEWLINE &&
-            adj_loc_in_line == olmp->line_loc) break;
+            adj_loc_in_line == olmp->line_loc) {
+          break;
+        }  /* if */
         /* Keep track of the current physical line. */
         start_of_curr_phys_line = olmp->line_loc;
         if (olmp->kind == olm_multiline_string_splice) {
           start_of_curr_phys_line += 2;
         }  /* if */
-        seq_number              = olmp->variant.line_splice_seq_number;
-        column_adjustment       = logical_column_offset(olmp->line_loc);
+        seq_number = olmp->variant.line_splice_seq_number;
+        column_adjustment = logical_column_offset(olmp->line_loc);
+        if (last_splice_olmp == NULL ||
+            last_splice_olmp->line_loc < olmp->line_loc) {
+          /* Remember the rightmost splice as an optimization. */
+          last_splice_olmp = olmp;
+        }  /* if */
       } else if (adj_loc_in_line == olmp->line_loc) {
         /* This position matches the position in the current entry, so
            the position we have is right. */
@@ -8880,6 +8903,7 @@ literals in C++11.
       free_orig_line_modif(&olmp);
     }  while (orig_line_modif_list != NULL);
     end_orig_line_modif_list = NULL;
+    last_splice_olmp = NULL;
   }  /* if */
   if (source_line_modif_list != NULL) {
     a_source_line_modif_ptr slmp, next_slmp;
@@ -26881,6 +26905,7 @@ done to determine whether a precompiled header may be used.
   }  /* if */
   orig_line_modif_list = NULL;
   end_orig_line_modif_list = NULL;
+  last_splice_olmp = NULL;
   source_line_modif_list = NULL;
   line_start_source_line_modif = NULL;
   sequence_id_for_source_line_modifs = 0;
