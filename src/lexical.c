@@ -8463,13 +8463,13 @@ macro_line_loc_to_source_pos should be used when speed is critical.
         break;
       } else if (olmp->kind == olm_line_splice ||
                  olmp->kind == olm_multiline_string_splice) {
-        /* In the case that a line splice is followed by the end of the
-           logical source line, use the position of the "\" on the current
-           line as the error position.  This is useful when the last line
-           of a file ends with a backslash. */
         if (*adj_loc_in_line   == LE_ESCAPE &&
             adj_loc_in_line[1] == LE_NEWLINE &&
             adj_loc_in_line == olmp->line_loc) {
+          /* In the case that a line splice is followed by the end of the
+             logical source line, use the position of the "\" on the
+             current line as the error position.  This is useful when the
+             last line of a file ends with a backslash. */
           break;
         }  /* if */
         /* Keep track of the current physical line. */
