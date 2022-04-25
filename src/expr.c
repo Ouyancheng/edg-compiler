@@ -5577,8 +5577,9 @@ generates a concrete routine for each separate type.
      already been created; if so, reuse that routine. */
   clear_locator(&loc, &null_source_position);
   (void)find_symbol(rout->source_corresp.name, 
-                strlen(unmangled_or_fabricated_name_of(&rout->source_corresp)),
-                &loc);
+                    strlen(unmangled_or_fabricated_name_of(
+                                                       &rout->source_corresp)),
+                    &loc);
   for (sym = loc.symbol_header->symbol; sym != NULL; sym = sym->next) {
     if (sym->kind == (a_symbol_kind)sk_routine &&
         sym->is_invisible &&
@@ -6098,6 +6099,7 @@ resulting return type is determined for the routine.
     if (bcap->is_elementwise) {
       /* __builtin_elementwise_* case (with either one or two arguments).
          The return type is the same as the types of the argument(s). */
+      return_type = arg1_type;
       if (bcap->n_args == 2) {
         op2 = operand_of_arg_list_elem(args->next);
         arg2_type = skip_typerefs(op2->type);
@@ -6109,7 +6111,7 @@ resulting return type is determined for the routine.
             (is_template_dependent_context() &&
              (is_template_dependent_type(arg1_type) ||
               is_template_dependent_type(arg2_type)))) {
-          return_type = arg1_type;
+          /* An error or template dependent argument. */
         } else if (!identical_types(arg1_type, arg2_type)) {
           /* Both arguments must be the same type. */
           expr_pos_error(ec_both_arguments_must_have_same_type,
@@ -6117,7 +6119,6 @@ resulting return type is determined for the routine.
           err = TRUE;
         }  /* if */
       }  /* if */
-      return_type = arg1_type;
     } else {
       /* __builtin_reduce_* case.  The return type is the element type of the
          vector type. */
@@ -6198,9 +6199,7 @@ resulting return type is determined for the routine.
                                      &orig_operand.position,
                                      end_position_of_operand(&orig_operand),
                                      target->ref_entries_list, target);
-    if (is_error_operand(target)) {
-      err = TRUE;
-    } else {
+    if (!is_error_operand(target)) {
       check_assertion(is_expression_operand(target) &&
                       is_routine_node(target->variant.expression));
       conv_function_designator_to_ptr_to_function(target,
