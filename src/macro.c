@@ -4440,7 +4440,7 @@ static a_feature_support feature_support_list[] = {
     0,
     &concepts_enabled,
     "__cpp_concepts",
-    "201907L" },
+    "202002L" },
   { "",
     0,
     &conditional_explicit_enabled,

@@ -1,5 +1,14 @@
 Version 6.4
 
+4/25/22  [EDGcpfe/25074,EDGcpfe/25227]
+Value of __cpp_concepts feature-test macro
+
+As specified in WG21 committee document P2493R0, the value of the
+__cpp_concepts feature test macro has been changed to 202002L to reflect
+implementation of the features in document P0848R3 ("Conditionally Trivial
+Special Member Functions").
+
+
 4/24/22  [EDGcpfe/25232]
 Performance with large number of splices in a single logical source line
 
