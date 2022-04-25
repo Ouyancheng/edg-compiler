@@ -4,8 +4,8 @@ Version 6.4
 Performance with large number of splices in a single logical source line
 
 The front end previously exhibited poor performance when processing a file
-in which a single logical source line consists of many physical lines
-spliced together.  This is now fixed.
+in which a single logical source line consists of many (more than a few
+thousand) physical lines spliced together.  This is now fixed.
 
 
 4/22/22  [EDGcpfe/25204]
