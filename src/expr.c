@@ -47419,6 +47419,7 @@ free_arg_operand_list to free the entry.
   an_object_lifetime     *saved_curr_object_lifetime = curr_object_lifetime;
   a_memory_region_number region_to_switch_back_to;
   an_operand             *opnd;
+  a_constant_ptr         con = NULL;
 
   db_enter(3, "scan_nontype_template_argument");
 
@@ -47434,6 +47435,32 @@ free_arg_operand_list to free the entry.
   opnd = &arg_operand->operand;
   scan_expr(opnd, PREC_LOWEST, EOPT_DISALLOW_COMMA_OPERATOR);
   check_nontype_template_argument_type(opnd);
+  if (is_constant_operand(opnd)) {
+    con = &opnd->variant.constant;
+  } else if (is_expression_operand(opnd)) {
+    if (is_constant_node(opnd->variant.expression)) {
+      con = node_constant(opnd->variant.expression);
+    } else if (is_variable_node(opnd->variant.expression)) {
+      a_variable_ptr var = node_variable(opnd->variant.expression);
+      if (is_ptr_or_ref_type(var->type) && var->is_constexpr) {
+        an_initializer_ptr initializer;
+        an_init_kind       init_kind;
+        get_variable_initializer(var, get_parent_scope_of(var),
+                                 &init_kind, &initializer);
+        if (init_kind == initk_static) {
+          con = initializer->constant;
+        } else if (init_kind == initk_dynamic &&
+                   initializer->dynamic->kind == dik_constant) {
+          con = initializer->dynamic->variant.constant.ptr;
+        }  /* if */
+      }  /* if */
+    }  /* if */
+  }  /* if */
+  if (con != NULL && con->kind == ck_address &&
+      !is_valid_ptr_or_ptr_to_member_templ_arg_constant(con)) {
+    type_error_in_operand(ec_invalid_nontype_template_argument, opnd,
+                          con->type);
+  }  /* if */
   /* Don't do final processing on the attached cross-reference entries.
      They are given to the caller. */
   curr_expr_ref_entries = NULL;
@@ -47441,7 +47468,6 @@ free_arg_operand_list to free the entry.
 #if EXTRA_SOURCE_POSITIONS_IN_IL
   curr_construct_end_position = opnd->end_position;
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
-
 #if DEBUG
   if (debug_level >= 3) {
     db_operand(opnd);
