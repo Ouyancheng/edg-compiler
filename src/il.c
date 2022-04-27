@@ -2712,6 +2712,16 @@ destructor_on_next_line:
       fputs("lambda:\n", f_debug);
       db_lambda_initializer(dip, level);
       goto destructor_on_next_line;
+    case dik_module:
+      fputs("module:\n", f_debug);
+      db_indent(level);
+      if (dip->variant.constant.ptr != NULL) {
+        db_static_initializer(dip->variant.constant.ptr);
+        (void)fputc('\n', f_debug);
+      } else {
+        fputs("<Initializer unavailable>\n", f_debug);
+      }  /* if */
+      goto destructor_on_next_line;
     case dik_constructor:
       db_constructor_initializer(dip, level);
       break;
@@ -2774,7 +2784,17 @@ Dump the initializer of a variable for debug purposes.
       (void)fputc('\n', f_debug);
     } else if (var->init_kind == (an_init_kind)initk_zero) {
       fprintf(f_debug, "zero init\n");
+    } else if (var->init_kind == initk_module) {
+      a_constant_ptr cp;
+      fprintf(f_debug, "module init: ");
+      cp = var->initializer.dynamic->variant.constant.ptr;
+      if (cp == NULL) {
+        fprintf(f_debug, "<Initializer unavailable>");
+      } else {
+        db_static_initializer(cp);
+      }  /* if */
     } else {
+      check_assertion(var->init_kind == initk_dynamic);
       fprintf(f_debug, "dynamic init: ");
       db_dynamic_initializer(var->initializer.dynamic, level + 2);
     }  /* if */
@@ -15527,6 +15547,7 @@ options for the copy.  cblock is a control block for the copy.
                        i_copy_list_of_expr_trees(dip->variant.constructor.args,
                                                  options, cblock);
       break;
+    case dik_module:
     case dik_lambda:
     case dik_constant:
     case dik_nonconstant_aggregate:
@@ -15535,11 +15556,15 @@ options for the copy.  cblock is a control block for the copy.
         options_unshared = (options &
                             ~(an_expr_copy_options_set)
                                             CE_COPIED_CONSTANTS_MAY_BE_SHARED);
-        new_dip->variant.constant.ptr =
+        /* Dynamic initializers of kind dik_module may have a NULL constant
+           associated with them. */
+        if (dip->variant.constant.ptr != NULL) {
+          new_dip->variant.constant.ptr =
                                i_copy_constant_full(dip->variant.constant.ptr,
                                                     (a_constant *)NULL,
                                                     options_unshared,
                                                     cblock);
+        }  /* if */
         if (dip->variant.constant.lambda != NULL) {
           new_dip->variant.constant.lambda =
                                     copy_lambda(dip->variant.constant.lambda,
@@ -16000,6 +16025,9 @@ constant; otherwise, return NULL.
       }  /* if */
 #endif /* !STANDALONE_UTILITY_PROGRAM */
     }  /* if */
+  } else if (init_kind == initk_module) {
+    check_assertion(dyn_init_is(init->dynamic, dik_module));
+    con_val = init->dynamic->variant.constant.ptr;
   } else if (init_kind == (an_init_kind)initk_binding) {
     /* Bindings cannot currently produce constant values. */
     con_val = NULL;

@@ -2405,6 +2405,7 @@ the associated variant fields to default values.
     case dik_zero:
       break;
     case dik_lambda:
+    case dik_module:
     case dik_constant:
     case dik_nonconstant_aggregate:
       dip->variant.constant.ptr = NULL;

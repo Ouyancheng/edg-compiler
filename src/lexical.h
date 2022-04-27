@@ -317,6 +317,7 @@ EXTERN an_opname_kind opname_kind_for_token[(int)tok_last+1]
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
    (an_opname_kind)onk_none,          /* tok_decltype_construct */
    (an_opname_kind)onk_none,          /* tok_pending_ifc_func_body */
+   (an_opname_kind)onk_none,          /* tok_pending_ifc_var_init */
    (an_opname_kind)onk_none,          /* tok_unimplemented */
    (an_opname_kind)onk_subscript,     /* operator[] starts with tok_lbracket */
    (an_opname_kind)onk_none,          /* tok_rbracket */
@@ -2062,9 +2063,30 @@ enum a_token_extra_info_kind : a_byte {
   teik_asm_string,	/* Extra information for a Microsoft asm block. */
   teik_insert_string,   /* Extra information for an inserted token string. */
   teik_ud_lit,          /* Extra information for a user-defined literal. */
-  teik_ifc_decl         /* Extra information for a pseudo-token referring to
+  teik_ifc_index        /* Extra information for a pseudo-token referring to
                            a declaration stored in an IFC module. */
 };
+
+
+typedef struct an_ifc_index {
+  /* Information on an IFC index to be used in conjunction with a_cached_token
+     below, saved for later rescanning.  Separated from a_cached_token to allow
+     for making this information available upon rescanning (see
+     ifc_index_for_curr_token). */
+  uint32_t	index;
+			/* The index in the IFC file of the declaration being
+			   referred to. */
+  const void
+		*module;
+			/* An opaque pointer to the IFC module (an_ifc_module)
+			   containing this declaration. */
+} an_ifc_index;
+
+EXTERN an_ifc_index
+		ifc_index_for_curr_token;
+			/* If the current token is a pseudotoken indicating an
+			   index into an IFC module (i.e., extra_info_kind is
+			   teik_ifc_index), this is the associated index. */
 
 
 typedef struct a_cached_token {
@@ -2170,16 +2192,11 @@ typedef struct a_cached_token {
 			   find_literal_operator when repeating the operator
 			   lookup for a cached token. */
     } ud_lit;
-    /* When extra_info_kind == teik_ifc_decl: */
-    struct {
-      uint32_t	index;
-			/* The index in the IFC file of the declaration being
-			   referred to. */
-      const void
-		*module;
-			/* An opaque pointer to the IFC module (an_ifc_module)
-			   containing this declaration. */
-    } ifc_decl;
+    /* When extra_info_kind == teik_ifc_index: */
+    an_ifc_index
+		ifc_index;
+			/* An index into the IFC module containing additional
+			   information. */
   } variant;
 } a_cached_token;
 

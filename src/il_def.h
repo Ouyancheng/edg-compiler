@@ -1004,6 +1004,10 @@ enum a_token_kind : unsigned short {
                                that the declaration for a function also has
                                an associated function body (elsewhere in the
                                IFC file). */
+  tok_pending_ifc_var_init,
+                            /* Generated when reading an IFC file to indicate
+                               that the declaration for a variable has an
+                               initializer that hasn't yet been processed. */
   tok_unimplemented         /* Token used to indicate keywords that are not
                                yet implemented. */,
   tok_last_complex_token = tok_unimplemented,
@@ -1454,7 +1458,8 @@ EXTERN a_const_char
 #if MICROSOFT_EXTENSIONS_ALLOWED
    "cli typeid",
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
-   "decltype construct", "pending IFC body", "unimplemented",
+   "decltype construct", "pending IFC body", "pending IFC var init",
+   "unimplemented",
    "[", "]", "(", ")", ".", "->", "++", "--", "&", "*", "+", "-",
    "~", "!", "/", "%", "<<", ">>", "<", ">", "<=", ">=", "==", "!=", "<=>",
    "^", "|", "&&", "||", "?", ":", "=", "*=", "/=", "%=",
@@ -3696,7 +3701,10 @@ enum a_dynamic_init_kind : a_byte {
 			   used, for example, for member-wise copy inside a
 			   copy constructor, when the field or base class
 			   to be copied lacks a copy constructor.  C++ only. */
-  dik_lambda		/* Initial value of a lambda object.  C++ only. */
+  dik_lambda,		/* Initial value of a lambda object.  C++ only. */
+  dik_module,		/* Initial value originates from a separate (module)
+			   TU and may not be available (but is known to
+			   otherwise exist). */
 };
 
 
@@ -3951,7 +3959,8 @@ typedef struct a_dynamic_init {
 #endif /* BACK_END_IS_CP_GEN_BE */
   union {
     /* When kind == dik_none or dik_zero: no variant fields. */
-    /* When kind == dik_constant, dik_nonconstant_aggregate, or dik_lambda: */
+    /* When kind == dik_constant, dik_nonconstant_aggregate, dik_lambda, or
+       dik_module: */
     struct {
       a_constant_ptr
 		ptr;	/* The constant initial value.  Always an unshared
@@ -10191,9 +10200,12 @@ enum an_init_kind : a_byte {
   initk_binding,	/* For the bindings in a structured binding, the
 			   lvalue expression they stand for.  (This is not
 			   an "initialization" in the traditional sense.) */
-  initk_deducing	/* For placeholder variables, the initialization kind
+  initk_deducing,	/* For placeholder variables, the initialization kind
 			   set while prescanning the initializer.  (Used in
 			   the front end only.) */
+  initk_module, 	/* For module variables, the initialization kind
+			   set when an initializer is present (but not
+			   necessarily visible in this TU). */
 };
 
 
@@ -10212,7 +10224,7 @@ typedef union an_initializer {
 			   is truly constant, i.e., one that does not contain
 			   ck_dynamic_init constants.  Only used for static
 			   variables.  The constant is unshared. */
-  /* When the initialization kind is initk_dynamic: */
+  /* When the initialization kind is initk_dynamic or initk_module: */
   a_dynamic_init_ptr
 		dynamic;
 			/* Pointer to an entry describing the dynamic

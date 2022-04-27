@@ -6189,6 +6189,10 @@ expressions.  For the latter, see init_capture_initializer below.)
        proceed. */
     expect_error();
     is->init_dip = make_error_constant_dynamic_init();
+  } else if (curr_token == tok_pending_ifc_var_init) {
+    is->init_dip = load_variable_init_from_module(dtype,
+                                                  &ifc_index_for_curr_token);
+    (void)get_token();
   } else {
     unexpected_condition();
   }  /* if */

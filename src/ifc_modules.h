@@ -3294,6 +3294,10 @@ extern a_boolean load_routine_definition_from_ifc_module(a_routine_ptr  rp);
 extern
 a_boolean load_template_definition_from_ifc_module(a_template_ptr  templ);
 
+extern a_dynamic_init_ptr load_variable_init_from_ifc_module(
+                                                    a_type_ptr    tp,
+                                                    ifc_ExprIndex init_expr,
+                                                    an_ifc_module *ifc_module);
 
 /* Explicit specializations of an_ifc_module::get_ifc_name. */
 template<>
@@ -3327,8 +3331,6 @@ inline Opt<an_ifc_Ref<ifc_DeclIndex>> an_ifc_module::get_ifc_home_scope_decl(
 template<>
 inline Opt<an_ifc_Ref<ifc_DeclIndex>> an_ifc_module::get_ifc_home_scope_decl(
                                               an_ifc_DeclSort_Reference *decl);
-
-/* Explicit specializations of an_ifc_module::get_ifc_home_scope. */
 
 extern void record_pending_ifc_function_body(a_routine_ptr  rp,
                                              ifc_DeclIndex  decl_idx,

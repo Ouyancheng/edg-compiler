@@ -18391,6 +18391,21 @@ template declaration and is NULL otherwise.
     if (skip_cache_terminator && curr_token == tok_end_of_source) {
       (void)get_token();
     }  /* if */
+  } else if (curr_token == tok_pending_ifc_var_init) {
+    /* The initializer exists and is in a separate (module) TU.  It may or may
+       not have a constant value associated with it. */
+    a_dynamic_init_ptr dip;
+    decl_state->has_initializer = TRUE;
+    var->has_explicit_initializer = TRUE;
+    var->constant_valued = TRUE;
+    /* Do not set var->initializer_in_class, as the original source may not
+       have had an in-class initializer, despite it now appearing as if it
+       does. */
+    var->init_kind = initk_module;
+    dip = load_variable_init_from_module(var->type, &ifc_index_for_curr_token);
+    dip->variable = var;
+    var->initializer.dynamic = dip;
+    (void)get_token();
   } else if ((gpp_mode ||
               (decl_info->is_member_template &&
                class_state->is_template_instantiation &&
@@ -21038,6 +21053,7 @@ information about the member declaration, respectively.
                          (!decl_info->is_bit_field || cpp20_mode) &&
                          (curr_token == tok_assign ||
                           curr_token == tok_lbrace ||
+                          curr_token == tok_pending_ifc_var_init ||
                           curr_token == tok_removed_expr) &&
                          !locator->is_error;
   /* Create the IL for the field, enter the symbol (if needed), etc. */

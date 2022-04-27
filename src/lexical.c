@@ -3208,6 +3208,10 @@ This is used to save tokens for later rescanning.
        (e.g., a string) has been allocated in the file scope and doesn't
        need to be copied. */
     copy_constant(&const_for_curr_token, ctp->variant.constant);
+  } else if (curr_token == tok_pending_ifc_var_init) {
+    /* This token has an associated index. */
+    ctp->extra_info_kind = teik_ifc_index;
+    ctp->variant.ifc_index = ifc_index_for_curr_token;
   } else if (curr_token == tok_ud_literal) {
       /* Save the information needed to restore the user-defined literal
          from the cache. */
@@ -4300,6 +4304,8 @@ is set to TRUE in that case, FALSE otherwise.
                                 strlen(ctp->variant.ud_lit.suffix),
                                 &locator_for_curr_id, &pos_curr_token);
     ud_lit_type_for_curr_token = ctp->variant.ud_lit.type;
+  } else if (ctp->extra_info_kind == teik_ifc_index) {
+    ifc_index_for_curr_token = ctp->variant.ifc_index;
   }  /* if */
   free_cached_token(ctp);
 done:
@@ -4451,6 +4457,8 @@ an equivalent change.
                                      /*from_cache=*/TRUE,
                                      (a_diagnostic_ptr)NULL);
     ud_lit_type_for_curr_token = ctp->variant.ud_lit.type;
+  } else if (ctp->extra_info_kind == teik_ifc_index) {
+    ifc_index_for_curr_token = ctp->variant.ifc_index;
   }  /* if */
   /* Check whether we have reached the end of this cache. */
   while (reusable_cache_stack->next_cached_token == NULL &&
@@ -17985,8 +17993,8 @@ the given routine with that pending function body.
   if (ctp != NULL && ctp->token == tok_pending_ifc_func_body) {
     record_pending_ifc_function_body(
                            rout_sym->variant.routine.ptr,
-                           (ifc_DeclIndex)ctp->variant.ifc_decl.index,
-                           (an_ifc_module*)ctp->variant.ifc_decl.module);
+                           (ifc_DeclIndex)ctp->variant.ifc_index.index,
+                           (an_ifc_module*)ctp->variant.ifc_index.module);
     result = TRUE;
   }  /* if */
   return result;
@@ -25673,7 +25681,7 @@ and < end_tsn are included in the string.
         ctp = ctp->variant.extracted_template.next_in_token_string;
         put_ch_to_temp_text_buffer(';');
       }  /* if */
-    } else if (teik_kind == (a_token_extra_info_kind)teik_ifc_decl) {
+    } else if (teik_kind == teik_ifc_index) {
       put_str_to_temp_text_buffer("// ");
       add_token_to_string(ctp);
       put_str_to_temp_text_buffer("\n");
@@ -26105,7 +26113,7 @@ Display a single cached token.
       case teik_extracted_body: s = "extracted_body"; break;
       case teik_asm_string:     s = "asm_string"; break;
       case teik_ud_lit:         s = "ud_lit"; break;
-      case teik_ifc_decl:       s = "ifc_decl"; break;
+      case teik_ifc_index:      s = "ifc_index"; break;
       default:                  unexpected_condition();
     }  /* switch */
     fprintf(f_debug, "  extra_info_kind: %s\n", s);

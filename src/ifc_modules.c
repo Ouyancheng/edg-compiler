@@ -25,6 +25,7 @@ ifc_modules.c -- Microsoft-specific IFC module code
 #include "pch.h"
 #include "symbol_ref.h"
 #include "macro.h"
+#include "interpret.h"
 
 #if MICROSOFT_EXTENSIONS_ALLOWED && !STANDALONE_UTILITY_PROGRAM
 
@@ -9173,6 +9174,9 @@ FIXME: what other expressions can we get here?
   curr_module_entity = NULL;
   /* Prepare to read from the proper partition for this expression. */
   read_prechecked_partition_element(expr_index);
+  /* FIXME: Can this entire thing be replaced via caching the expression and
+     then calling scan_expr_or_braced_init_list, as is done for
+     ifc_ExprSort_Tokens below? */
   switch (tag) {
     case ifc_ExprSort_Literal:
       { an_ifc_ExprSort_Literal iesl, *ieslp;
@@ -9336,6 +9340,95 @@ FIXME: what other expressions can we get here?
         scan_constant_initializer_expression(tp, &dps, cp);
         check_assertion(curr_token == tok_end_of_source);
         (void)get_token();
+      }
+      break;
+    case ifc_ExprSort_Tokens:
+      { an_ifc_ExprSort_Tokens iest, *iestp;
+        a_token_cache          cache;
+        a_decl_parse_state     dps;
+        a_type_ptr             tp;
+        an_init_component_ptr  icp;
+        an_expr_stack_entry    expr_stack_entry, *saved_expr_stack;
+
+        iestp = get_ExprSort_Tokens(&iest);
+        init_decl_parse_state(&dps);
+        clear_token_cache(&cache, /*reusable=*/FALSE);
+        cp = alloc_constant(ck_error);
+        if (iestp->type != 0) {
+          tp = type_for_type_index(iestp->type, /*kind=*/NULL);
+        } else {
+          tp = default_type;
+        }  /* if */
+        check_assertion(tp != NULL);
+        complete_type_is_needed(tp);
+        cache_sentence(&cache, iestp->words);
+        terminate_token_cache(&cache);
+        rescan_cached_tokens(&cache);
+        /* FIXME: Does this indicate copy vs. value initialization, or is it
+           just an IFC artifact? */
+        if (curr_token == tok_assign) {
+          (void)get_token();
+        }  /* if */
+        dps.type = tp;
+        dps.init_state.initializer_must_be_constant = TRUE;
+        push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
+                                        ek_integral_constant,
+                                        /*is_full_expr=*/TRUE,
+                                        &dps, (an_init_state *)NULL);
+        icp = scan_expr_or_braced_init_list(/*bundle=*/FALSE,
+                                            /*always_allow_braced=*/TRUE);
+        /* is_var_init is set to FALSE here, as otherwise it expects dps.sym
+           to be non-NULL and point to a variable symbol, which we do not have
+           available here. */
+        convert_initializer(icp, dps.type, /*is_var_init=*/FALSE,
+                            /*fill_in_dtor=*/TRUE, &dps.init_state);
+        if (dps.init_state.init_error) {
+          set_error_constant(cp);
+        } else if (dps.init_state.init_dip != NULL) {
+          a_diag_list     diag_list;
+          clear_diag_list(&diag_list);
+          if (!interpret_dynamic_init(dps.init_state.init_dip,
+                                      init_component_pos(icp), dps.type,
+                                      /*is_constant_evaluated=*/TRUE,
+                                      cp, &diag_list)) {
+            set_error_constant(cp);
+          }  /* if */
+          discard_more_info_list(&diag_list);
+        } else {
+          check_assertion(dps.init_state.init_con != NULL);
+          copy_constant(dps.init_state.init_con, cp);
+        }  /* if */
+        free_init_component_list(icp);
+        pop_expr_stack_for_initializer(saved_expr_stack,
+                                       /*is_full_expr=*/TRUE,
+                                       &dps, (an_init_state *)NULL);
+        if (curr_token == tok_semicolon) {
+          (void)get_token();
+        }  /* if */
+        check_assertion(curr_token == tok_end_of_source);
+        (void)get_token();
+      }
+      break;
+    case ifc_ExprSort_String:
+      { an_ifc_ExprSort_String iess, *iessp;
+        an_ifc_String_Literal  str_lit, *p_lit;
+        char                   *str_val;
+        sizeof_t               length;
+        iessp = get_ExprSort_String(&iess);
+        read_prechecked_partition_element(ifc_const_str,
+                                          str_value(iessp->string_index));
+        p_lit = get_String_Literal(&str_lit);
+        length = (sizeof_t)p_lit->length;
+        str_val = alloc_text_of_string_literal(length);
+        (void)memcpy(str_val, get_string_at_offset(p_lit->start), length);
+        check_assertion(str_val != NULL);
+        cp = alloc_constant(ck_string);
+        cp->type = type_for_type_index(iessp->type, /*kind=*/NULL);
+        cp->variant.string.length = length;
+        cp->variant.string.value  = str_val;
+#if EXTRA_SOURCE_POSITIONS_IN_IL
+        source_position_from_locus(&cp->end_position, &iessp->locus);
+#endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
       }
       break;
     default:
@@ -9546,6 +9639,45 @@ position of the constant.
   cache->last_token->variant.constant = alloc_cached_constant();
   copy_constant(cp, cache->last_token->variant.constant);
 }  /* cache_aggr_constant */
+
+
+static void cache_var_initializer(a_token_cache_ptr     cache,
+                                  ifc_ExprIndex         init_expr,
+                                  an_ifc_module         *mod,
+                                  a_source_position_ptr pos)
+/*
+Add a tok_pending_ifc_var_init token to cache, and associate it with init_expr.
+mod is the module associated with init_expr, and pos is the position of the
+initializer.
+*/
+{
+  cache_token(cache, tok_pending_ifc_var_init, pos);
+  cache->last_token->extra_info_kind = teik_ifc_index;
+  cache->last_token->variant.ifc_index.index = init_expr;
+  cache->last_token->variant.ifc_index.module = mod;
+}  /* cache_var_initializer */
+
+
+a_dynamic_init_ptr load_variable_init_from_ifc_module(
+                                                     a_type_ptr    tp,
+                                                     ifc_ExprIndex init_expr,
+                                                     an_ifc_module *ifc_module)
+/*
+Return the initializer for a variable or field (not provided) of given type tp,
+with the initializer expression referred to by init_expr.  ifc_module is the
+module indexed by init_expr.
+*/
+{
+  a_dynamic_init_ptr result;
+  a_constant_ptr     cp;
+
+  result = alloc_dynamic_init(dik_module);
+  cp = ifc_module->constant_for_expr_index(init_expr, tp);
+  if (cp != NULL && !is_error_constant(cp)) {
+    result->variant.constant.ptr = alloc_unshared_constant(cp);
+  }  /* if */
+  return result;
+}  /* load_variable_init_from_ifc_module */
 
 
 static void cache_pragma(a_token_cache_ptr     cache,
@@ -12898,10 +13030,30 @@ initializer expression.  locus is the source location for the declaration.
       cache_token(cache, tok_semicolon, pos);
     }  /* if */
   };
-  cache_variable_decl(cache, decl_idx, is_class_member, access,
-                      /*cache_access_spec=*/TRUE, specifiers, traits,
-                      alignment, type, cache_name_fn, width,
-                      cache_init_fn, locus);
+  auto cache_class_mem_init_fn =
+                  [this, cache, initializer, type](a_source_position_ptr pos) {
+    if (initializer != 0) {
+      /* This is an initializer for a member variable of a class.  This is
+         already stored in the object file associated with the module TU, and
+         is only needed for member variables that are eligible to be used in
+         a constant expression.  These initializers may include recursive
+         self-references.  Cache a special pseudo-token to indicate that such
+         an initializer exists, along with its constant value. */
+      cache_var_initializer(cache, initializer, this, pos);
+    }  /* if */
+    cache_token(cache, tok_semicolon, pos);
+  };
+  if (is_class_member || access != ifc_Access_None) {
+    cache_variable_decl(cache, decl_idx, is_class_member, access,
+                        /*cache_access_spec=*/TRUE, specifiers, traits,
+                        alignment, type, cache_name_fn, width,
+                        cache_class_mem_init_fn, locus);
+  } else {
+    cache_variable_decl(cache, decl_idx, is_class_member, access,
+                        /*cache_access_spec=*/TRUE, specifiers, traits,
+                        alignment, type, cache_name_fn, width,
+                        cache_init_fn, locus);
+  }  /* if */
 }  /* cache_variable_decl */
 
 
@@ -14180,9 +14332,9 @@ Add the tokens corresponding to the given declaration (decl) to cache.
              pseudo-token that will be translated when the declaration is
              parsed. */
           cache_token(cache, tok_pending_ifc_func_body, &null_source_position);
-          cache->last_token->extra_info_kind = teik_ifc_decl;
-          cache->last_token->variant.ifc_decl.index = decl;
-          cache->last_token->variant.ifc_decl.module = this;
+          cache->last_token->extra_info_kind = teik_ifc_index;
+          cache->last_token->variant.ifc_index.index = decl;
+          cache->last_token->variant.ifc_index.module = this;
         }  /* if */
       }
       break;
@@ -14214,9 +14366,9 @@ Add the tokens corresponding to the given declaration (decl) to cache.
              pseudo-token that will be translated when the declaration is
              parsed. */
           cache_token(cache, tok_pending_ifc_func_body, &null_source_position);
-          cache->last_token->extra_info_kind = teik_ifc_decl;
-          cache->last_token->variant.ifc_decl.index = decl;
-          cache->last_token->variant.ifc_decl.module = this;
+          cache->last_token->extra_info_kind = teik_ifc_index;
+          cache->last_token->variant.ifc_index.index = decl;
+          cache->last_token->variant.ifc_index.module = this;
         }  /* if */
       }
       break;
@@ -14251,9 +14403,9 @@ Add the tokens corresponding to the given declaration (decl) to cache.
              pseudo-token that will be translated when the declaration is
              parsed. */
           cache_token(cache, tok_pending_ifc_func_body, &null_source_position);
-          cache->last_token->extra_info_kind = teik_ifc_decl;
-          cache->last_token->variant.ifc_decl.index = decl;
-          cache->last_token->variant.ifc_decl.module = this;
+          cache->last_token->extra_info_kind = teik_ifc_index;
+          cache->last_token->variant.ifc_index.index = decl;
+          cache->last_token->variant.ifc_index.module = this;
         }  /* if */
       }
       break;

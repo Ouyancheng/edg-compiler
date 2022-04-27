@@ -5048,11 +5048,14 @@ by implied_src.
                   map_stack_bytes(ips, vp, var_bytes);
                   if (result) {
                     a_constant_ptr  cp = NULL;
-                    if (vp->init_kind == (an_init_kind)initk_static) {
+                    if (vp->init_kind == initk_static) {
                       cp = vp->initializer.constant;
-                    } else if (vp->init_kind == (an_init_kind)initk_dynamic) {
+                    } else if (vp->init_kind == initk_dynamic ||
+                               vp->init_kind == initk_module) {
                       a_dynamic_init_ptr  dip = vp->initializer.dynamic;
-                      if (dyn_init_is(dip, dik_constant)) {
+                      if (dyn_init_is(dip, dik_constant) ||
+                          (dyn_init_is(dip, dik_module) &&
+                           dip->variant.constant.ptr != NULL)) {
                         cp = dip->variant.constant.ptr;
                       } else {
                         a_constexpr_address  var_addr;
@@ -6077,6 +6080,17 @@ by implied_src.
       } else {
         info_with_pos(ec_lambda_not_constant_expr, pos, ips);
         do_constexpr_fail(result);
+      }  /* if */
+      break;
+    case dik_module:
+      if (dip->variant.constant.ptr == NULL) {
+        /* The initializer exists in another TU, but isn't available to us. */
+        do_constexpr_fail(result);
+      } else {
+        result = copy_val_from_constant(ips, dip->variant.constant.ptr,
+                                        dst_addr->address,
+                                        dst_addr->complete_object,
+                                        implied_src);
       }  /* if */
       break;
     case dik_expression:

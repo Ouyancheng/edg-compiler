@@ -66,7 +66,7 @@ struct a_module_entity {
 			/* TRUE if this is an entity owned by the "global
 			   module". */
   a_bit_field	has_definition:1;
-  			/* TRUE if the presence of a definition ("body") has
+			/* TRUE if the presence of a definition ("body") has
 			   been recorded. */
   union {
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -257,6 +257,9 @@ extern void import_module(a_module_import_decl_ptr midp,
 extern a_boolean load_routine_definition_from_module(a_routine_ptr  rp);
 
 extern a_boolean load_template_definition_from_module(a_template_ptr  templ);
+
+extern a_dynamic_init_ptr load_variable_init_from_module(a_type_ptr tp,
+                                                         an_ifc_index *index);
 
 #if DEBUG
 extern void db_module(a_module_ptr mod);

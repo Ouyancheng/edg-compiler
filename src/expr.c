@@ -51,9 +51,6 @@ static a_boolean cast_type_pre_check(
                                  a_boolean         has_explicit_cv_qualifiers,
                                  a_boolean         allow_array,
                                  a_boolean         allow_unk_bound_array);
-static an_init_component_ptr scan_expr_or_braced_init_list(
-                                                a_boolean bundle,
-                                                a_boolean always_allow_braced);
 static an_init_component_ptr parse_braced_init_list(a_boolean bundle);
 static void scan_braced_init_list_as_operand(an_operand *operand);
 static
@@ -41129,7 +41126,7 @@ return an init-component for it.
 }  /* cache_expression */
 
 
-static an_init_component_ptr scan_expr_or_braced_init_list(
+an_init_component_ptr scan_expr_or_braced_init_list(
                                                  a_boolean bundle,
                                                  a_boolean always_allow_braced)
 /*

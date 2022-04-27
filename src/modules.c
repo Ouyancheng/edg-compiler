@@ -1139,6 +1139,25 @@ and process that definition now, and return TRUE.  Otherwise, return FALSE.
   return result;
 }  /* load_template_definition_from_module */
 
+
+a_dynamic_init_ptr load_variable_init_from_module(
+                                                ARG_UNUSED a_type_ptr tp,
+                                                ARG_UNUSED an_ifc_index *index)
+/*
+Load and process the initializer for a variable or field from an IFC module.
+tp is the type of the variable or field, index is the index associated with the
+initializer.
+*/
+{
+  a_dynamic_init_ptr result = NULL;
+
+#if MICROSOFT_EXTENSIONS_ALLOWED
+  result = load_variable_init_from_ifc_module(tp, (ifc_ExprIndex)index->index,
+                                              (an_ifc_module*)index->module);
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+  return result;
+}  /* load_variable_init_from_module */
+
 #if DEBUG
 
 void db_module(a_module_ptr mod)
