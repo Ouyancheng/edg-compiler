@@ -14,8 +14,9 @@ Pointers to subobjects as nontype template arguments for function templates
 
 The C++ Standard requires that the argument for a nontype template
 parameter of type pointer or reference to object must designate a complete
-object.  The front end previously failed to enforce that rule for pointers.
-This is now fixed.  For example, with --c++11:
+object.  The front end previously failed to enforce that rule for pointers
+in explicit template arguments for function templates.  This is now fixed.
+For example, with --c++11:
 
   struct B { };
   struct D : B {} d;
