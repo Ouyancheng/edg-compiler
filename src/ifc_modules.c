@@ -1392,68 +1392,56 @@ an ifc module.
 
 static ifc_DeclIndex get_pattern_entity(
                                    an_ifc_DeclSort_PartialSpecialization *decl)
+/*
+This function serves as an overload for template programming against IFC
+specializations.  Return the associated pattern entity for this partial
+specialization.
+*/
 {
   return decl->entity.decl;
 }  /* get_pattern_entity */
 
 
 static ifc_DeclIndex get_pattern_entity(an_ifc_DeclSort_Specialization *decl)
+/*
+This function serves as an overload for template programming against IFC
+specializations.  Return the associated pattern entity for this specialization.
+*/
 {
   return decl->decl;
 }  /* get_pattern_entity */
 
 
 template<typename an_ifc_Node_type>
-static a_boolean requires_external_specialization(an_ifc_Node_type *node)
-{
-  a_boolean     result;
-  ifc_DeclIndex pattern_entity = get_pattern_entity(node);
-  ifc_DeclSort  tag = decl_tag(pattern_entity);
-
-  switch (tag) {
-    case ifc_DeclSort_Constructor:
-    case ifc_DeclSort_Method:
-    case ifc_DeclSort_Variable:
-      result = TRUE;
-      break;
-    default:
-      result = FALSE;
-      break;
-  }  /* if */
-  return result;
-}  /* requires_external_specialization */
-
-
-template<typename an_ifc_Node_type>
-static ifc_DeclIndex get_ifc_semantic_home_scope_decl(an_ifc_Node_type *decl,
+static ifc_DeclIndex get_ifc_home_scope_decl(an_ifc_Node_type *decl,
                                                       Overload_priority<0>)
 /*
-An overload of get_ifc_semantic_home_scope_decl to fallback to if the default
+An overload of get_ifc_home_scope_decl to fallback to if the default
 case (the decl having a home_scope field) isn't applicable, and
 no specialization is provided for the corresponding an_ifc_Node_type.
 
 This function should only be called by
-get_semantic_ifc_home_scope_decl_decl(an_ifc_module, an_ifc_DeclSort_T).
+get_ifc_home_scope_decl(an_ifc_module, an_ifc_Node_type).
 */
 {
   unexpected_condition_str("Home scope decl resolution unknown");
-}  /* get_ifc_semantic_home_scope_decl */
+}  /* get_ifc_home_scope_decl */
 
 
 template<typename an_ifc_Node_type>
-static auto get_ifc_semantic_home_scope_decl(an_ifc_Node_type *decl,
+static auto get_ifc_home_scope_decl(an_ifc_Node_type *decl,
                                     Overload_priority<1>)
                         -> Is_same<decltype(decl->home_scope), ifc_DeclIndex>
 /*
-An overload of get_ifc_semantic_home_scope_decl providing the default case (the
+An overload of get_ifc_home_scope_decl providing the default case (the
 decl having a home_scope field).
 
 This function should only be called by
-get_ifc_semantic_home_scope_decl(an_ifc_module, an_ifc_DeclSort_T).
+get_ifc_home_scope_decl(an_ifc_module, an_ifc_Node_type).
 */
 {
   return decl->home_scope;
-}  /* get_ifc_semantic_home_scope_decl */
+}  /* get_ifc_home_scope_decl */
 
 
 static a_boolean is_home_scope_specialization_wrapper(ifc_DeclIndex decl)
@@ -1497,7 +1485,7 @@ if there are no intervening abstractions).
 
 
 template<typename an_ifc_Node_type>
-static Opt<an_ifc_Ref<ifc_DeclIndex>> get_ifc_semantic_home_scope_decl(
+static Opt<an_ifc_Ref<ifc_DeclIndex>> get_ifc_home_scope_decl(
                                                     an_ifc_module    *mod,
                                                     an_ifc_Node_type *decl)
 /*
@@ -1510,22 +1498,22 @@ retrieved.  mod is the corresponding module "owning" it.
 */
 {
   ifc_DeclIndex index =
-                get_ifc_semantic_home_scope_decl(decl, Overload_priority<1>());
+                get_ifc_home_scope_decl(decl, Overload_priority<1>());
 
   return skip_scope_abstractions(an_ifc_Ref<ifc_DeclIndex>(mod, index));
-}  /* get_ifc_semantic_home_scope_decl */
+}  /* get_ifc_home_scope_decl */
 
 
-static Opt<an_ifc_Ref<ifc_DeclIndex>> get_ifc_semantic_home_scope_decl(
+static Opt<an_ifc_Ref<ifc_DeclIndex>> get_ifc_home_scope_decl(
                                            an_ifc_Ref<ifc_DeclIndex> decl_ref);
 
 
 template<>
-Opt<an_ifc_Ref<ifc_DeclIndex>> get_ifc_semantic_home_scope_decl(
+Opt<an_ifc_Ref<ifc_DeclIndex>> get_ifc_home_scope_decl(
                                               an_ifc_module              *mod,
                                               an_ifc_DeclSort_Enumerator *decl)
 /*
-Return the home scope of the declaration represented at decl.
+Return the home scope of the declaration represented at decl in module mod.
 */
 {
   Opt<an_ifc_Ref<ifc_DeclIndex>> result;
@@ -1541,14 +1529,16 @@ Return the home scope of the declaration represented at decl.
   }  /* if */
   /* FIXME: Add diagnostic for else case. */
   return result;
-}  /* get_ifc_semantic_home_scope_decl<an_ifc_DeclSort_Enumerator> */
+}  /* get_ifc_home_scope_decl<an_ifc_DeclSort_Enumerator> */
 
 
 template<typename an_ifc_Specialization_node_type>
-static Opt<an_ifc_Ref<ifc_DeclIndex>> get_semantic_specialization_home_scope_decl(
+static Opt<an_ifc_Ref<ifc_DeclIndex>> get_ifc_specialization_home_scope_decl(
                                          an_ifc_module                   *mod,
                                          an_ifc_Specialization_node_type *decl)
 /*
+Return the home scope of the specialization declaration represented at decl
+in module mod.
 */
 {
   Opt<an_ifc_Ref<ifc_DeclIndex>> result;
@@ -1556,45 +1546,45 @@ static Opt<an_ifc_Ref<ifc_DeclIndex>> get_semantic_specialization_home_scope_dec
      correct.  Recurse on the associated declaration. */
   an_ifc_Ref<ifc_DeclIndex>      pattern(mod, get_pattern_entity(decl));
   Opt<an_ifc_Ref<ifc_DeclIndex>> opt_assoc_decl =
-                                     get_ifc_semantic_home_scope_decl(pattern);
+                                     get_ifc_home_scope_decl(pattern);
 
   if (opt_assoc_decl.has_value()) {
     result = skip_scope_abstractions(*opt_assoc_decl);
   }  /* if */
   return result;
-}  /* get_specialization_home_scope_decl */
+}  /* get_ifc_specialization_home_scope_decl */
 
 
 template<>
-Opt<an_ifc_Ref<ifc_DeclIndex>> get_ifc_semantic_home_scope_decl(
+Opt<an_ifc_Ref<ifc_DeclIndex>> get_ifc_home_scope_decl(
                                    an_ifc_module                         *mod,
                                    an_ifc_DeclSort_PartialSpecialization *decl)
 /*
-Return the home scope of the declaration represented at decl.
+Return the home scope of the declaration represented at decl in module mod.
 */
 {
-  return get_semantic_specialization_home_scope_decl(mod, decl);
-}  /* get_ifc_semantic_home_scope_decl<an_ifc_DeclSort_PartialSpecialization> */
+  return get_ifc_specialization_home_scope_decl(mod, decl);
+}  /* get_ifc_home_scope_decl<an_ifc_DeclSort_PartialSpecialization> */
 
 
 template<>
-Opt<an_ifc_Ref<ifc_DeclIndex>> get_ifc_semantic_home_scope_decl(
+Opt<an_ifc_Ref<ifc_DeclIndex>> get_ifc_home_scope_decl(
                                           an_ifc_module                  *mod,
                                           an_ifc_DeclSort_Specialization *decl)
 /*
-Return the home scope of the declaration represented at decl.
+Return the home scope of the declaration represented at decl in module mod.
 */
 {
-  return get_semantic_specialization_home_scope_decl(mod, decl);
-}  /* get_ifc_semantic_home_scope_decl<an_ifc_DeclSort_Specialization> */
+  return get_ifc_specialization_home_scope_decl(mod, decl);
+}  /* get_ifc_home_scope_decl<an_ifc_DeclSort_Specialization> */
 
 
 template<>
-Opt<an_ifc_Ref<ifc_DeclIndex>> get_ifc_semantic_home_scope_decl(
+Opt<an_ifc_Ref<ifc_DeclIndex>> get_ifc_home_scope_decl(
                                                an_ifc_module             *mod,
                                                an_ifc_DeclSort_Reference *decl)
 /*
-Return the home scope of the declaration represented at decl.
+Return the home scope of the declaration represented at decl in module mod.
 */
 {
   /* References are a special case where we need to delegate to a foreign
@@ -1605,70 +1595,8 @@ Return the home scope of the declaration represented at decl.
   /* Get the name from the referenced module. */
   an_ifc_Ref<ifc_DeclIndex> assoc_decl_ref(assoc_mod,
                                            assoc_mod->decl_index_of(dmep));
-  return get_ifc_semantic_home_scope_decl(assoc_decl_ref);
-}  /* get_ifc_semantic_home_scope_decl<an_ifc_DeclSort_Reference> */
-
-
-static Opt<an_ifc_Ref<ifc_DeclIndex>> get_ifc_home_scope_decl(
-                                           an_ifc_Ref<ifc_DeclIndex> decl_ref);
-
-
-template<typename an_ifc_Node_type>
-static Opt<an_ifc_Ref<ifc_DeclIndex>> get_ifc_home_scope_decl(
-                                                        an_ifc_module    *mod,
-                                                        an_ifc_Node_type *decl)
-/*
-*/
-{
-  return get_ifc_semantic_home_scope_decl(mod, decl);
-}  /* get_ifc_home_scope_decl */
-
-
-template<typename an_ifc_Specialization_node_type>
-static Opt<an_ifc_Ref<ifc_DeclIndex>> get_syntactic_specialization_home_scope_decl(
-                                         an_ifc_module                   *mod,
-                                         an_ifc_Specialization_node_type *decl)
-/*
-*/
-{
-  Opt<an_ifc_Ref<ifc_DeclIndex>> result = get_ifc_semantic_home_scope_decl(mod, decl);
-
-  /* If this specialization must be performed outside of a class, get
-     the first namespace scope. */
-  if (requires_external_specialization(decl)) {
-    while (result.has_value() && is_class_scope(*result)) {
-      result = get_ifc_semantic_home_scope_decl(*result);
-    }  /* result */
-  }  /* if */
-  /* Make a copy to enforce has_value checking (as it's possible has_value has
-     already been called on the current value, providing no protection/enforced
-     check for the caller). */
-  return Opt<an_ifc_Ref<ifc_DeclIndex>>(result);
-}  /* get_specialization_home_scope_decl */
-
-
-template<>
-Opt<an_ifc_Ref<ifc_DeclIndex>> get_ifc_home_scope_decl(
-                                   an_ifc_module                         *mod,
-                                   an_ifc_DeclSort_PartialSpecialization *decl)
-/*
-Return the home scope of the declaration represented at decl.
-*/
-{
-  return get_syntactic_specialization_home_scope_decl(mod, decl);
-}  /* get_ifc_home_scope_decl<an_ifc_DeclSort_PartialSpecialization> */
-
-
-template<>
-Opt<an_ifc_Ref<ifc_DeclIndex>> get_ifc_home_scope_decl(
-                                          an_ifc_module                  *mod,
-                                          an_ifc_DeclSort_Specialization *decl)
-/*
-Return the home scope of the declaration represented at decl.
-*/
-{
-  return get_syntactic_specialization_home_scope_decl(mod, decl);
-}  /* get_ifc_home_scope_decl<an_ifc_DeclSort_Specialization> */
+  return get_ifc_home_scope_decl(assoc_decl_ref);
+}  /* get_ifc_home_scope_decl<an_ifc_DeclSort_Reference> */
 
 
 /* A CRT (curiously recursive template) visitor class for dispatching to a
@@ -1779,24 +1707,6 @@ struct an_ifc_module::decl_home_scope_decl_visitor
 
 
 /* An implementation of Decl_value_visitor with the visit function "overridden"
-   to facilitate retrieval of a declaration's home scope decl. */
-struct an_ifc_module::decl_semantic_home_scope_decl_visitor
-  : public an_ifc_module::Decl_value_visitor<
-                         Opt<an_ifc_Ref<ifc_DeclIndex>>,
-                         an_ifc_module::decl_semantic_home_scope_decl_visitor>
-{
-  using base = an_ifc_module::Decl_value_visitor<
-                        Opt<an_ifc_Ref<ifc_DeclIndex>>,
-                        an_ifc_module::decl_semantic_home_scope_decl_visitor>;
-  using base::base;
-
-  template<typename an_ifc_DeclSort_T>
-  inline auto visit(an_ifc_DeclSort_T *decl) -> Opt<an_ifc_Ref<ifc_DeclIndex>>
-    { return get_ifc_semantic_home_scope_decl(ifc_mod, decl); }
-};  /* decl_semantic_home_scope_decl_visitor */
-
-
-/* An implementation of Decl_value_visitor with the visit function "overridden"
    to facilitate retrieval of a declaration's access. */
 struct an_ifc_module::decl_access_visitor
   : public an_ifc_module::Decl_value_visitor<
@@ -1824,18 +1734,6 @@ Given a declaration reference find and return its home scope decl.
 
   return visitor.visit_index(decl_ref.index);
 }  /* get_ifc_home_scope_decl */
-
-
-static Opt<an_ifc_Ref<ifc_DeclIndex>> get_ifc_semantic_home_scope_decl(
-                                            an_ifc_Ref<ifc_DeclIndex> decl_ref)
-/*
-Given a declaration reference find and return its semantic home scope decl.
-*/
-{
-  an_ifc_module::decl_semantic_home_scope_decl_visitor visitor(decl_ref.mod);
-
-  return visitor.visit_index(decl_ref.index);
-}  /* get_ifc_semantic_home_scope_decl */
 
 
 static inline void ensure_type_has_scope(a_type_ptr tp)
@@ -1892,41 +1790,6 @@ Given a scope reference find and return the associated scope.
   }  /* if */
   return result;
 }  /* get_ifc_scope */
-
-
-template<typename an_ifc_Node_type>
-static a_scope_ptr get_ifc_semantic_home_scope(an_ifc_module    *mod,
-                                               an_ifc_Node_type *decl)
-/*
-Return the associated scope for the given declaration.
-*/
-{
-  Opt<an_ifc_Ref<ifc_DeclIndex>> opt_decl_ref =
-                                   get_ifc_semantic_home_scope_decl(mod, decl);
-  a_scope_ptr result = NULL;
-
-  if (opt_decl_ref.has_value()) {
-    result = get_ifc_scope(*opt_decl_ref);
-  }  /* if */
-  return result;
-}  /* get_ifc_semantic_home_scope */
-
-
-static a_scope_ptr get_ifc_semantic_home_scope(
-                                            an_ifc_Ref<ifc_DeclIndex> decl_ref)
-/*
-Return the associated scope for the given declaration index.
-*/
-{
-  Opt<an_ifc_Ref<ifc_DeclIndex>> opt_decl_ref =
-                                    get_ifc_semantic_home_scope_decl(decl_ref);
-  a_scope_ptr result = NULL;
-
-  if (opt_decl_ref.has_value()) {
-    result = get_ifc_scope(*opt_decl_ref);
-  }  /* if */
-  return result;
-}  /* get_ifc_semantic_home_scope */
 
 
 template<typename an_ifc_Node_type>
@@ -6620,10 +6483,6 @@ the member declarations).
 {
   a_source_position      pos;
 
-  /* The caller is responsible for ensuring flags about class definition
-     caching are set, and any namespace deferred entities are appropriately
-     handled. */
-  check_assertion(mod->caching_class_definition);
   mod->source_position_from_locus(&pos, &decl->locus);
   if (decl->base != 0) {
     cache_token(cache, tok_colon, &pos);
@@ -6633,18 +6492,6 @@ the member declarations).
   cache_token(cache, tok_semicolon, &pos);
 }  /* cache_class_definition */
 
-namespace {
-
-struct an_ifc_class_deferral {
-  an_ifc_class_deferral()
-    : old_caching_class_definition()
-  { }
-  inline ~an_ifc_class_deferral();
-private:
-  a_boolean old_caching_class_definition;
-};
-
-}
 
 void an_ifc_module::complete_definition_of_module_class(
                                                        a_module_entity_ptr mep)
@@ -6674,9 +6521,6 @@ Complete the definition of the class referred to by mep (if needed).
     push_module_declaration_context(mep->scope, &scope_push_status);
     source_position_from_locus(&error_position, &idssp->locus);
     clear_token_cache(&cache, /*reusable=*/FALSE);
-
-    Value_saver<a_boolean> saved_caching_class_def(
-                                        &this->caching_class_definition, TRUE);
     cache_class_definition(this, &cache, idssp);
     terminate_token_cache(&cache);
 #if DEBUG
@@ -6734,19 +6578,6 @@ Complete the definition of the class referred to by mep (if needed).
     pop_template_instantiation_scope();
     free_template_decl_info(tdip);
     pop_module_declaration_context(scope_push_status);
-    {
-      Value_saver<a_boolean> saved_caching_class_def_two(
-                                       &this->caching_class_definition, FALSE);
-
-      /* FIXME: This is probably wrong for nested classes. */
-      for (ifc_DeclIndex idx : namespace_deferred_decls) {
-        a_module_entity_ptr deferred_mep = get_ifc_module_entity_ptr(idx);
-
-        process_ifc_declaration(deferred_mep, /*DEFER=*/FALSE,
-                                (a_type_ptr)NULL);
-      }  /* for */
-      namespace_deferred_decls.clear();
-    }
     error_position = saved_error_position;
   }  /* if */
 }  /* complete_definition_of_module_class */
@@ -7419,7 +7250,8 @@ static Opt<an_ifc_Ref<ifc_NameIndex>> get_ifc_name_from_scope(
                                                        an_ifc_module     *mod,
                                                        an_ifc_DeclSort_T *decl)
 /*
-Return the name of the enclosing scope of the declaration represented at decl.
+Return the name of the enclosing scope of the declaration represented at decl
+in module mod.
 */
 {
   Opt<an_ifc_Ref<ifc_DeclIndex>> opt_scope =
@@ -7632,7 +7464,7 @@ scope.  If it is, return the access level of the declaration.
   /* Check if the home scope of the given declaration is a class scope.  If it
      is, return the access level of the declaration. */
   Opt<an_ifc_Ref<ifc_DeclIndex>> opt_scope_ref =
-                                  get_ifc_semantic_home_scope_decl(this, decl);
+                                  get_ifc_home_scope_decl(this, decl);
   Opt<ifc_Access>                result;
 
   if (opt_scope_ref.has_value() && is_class_scope(*opt_scope_ref)) {
@@ -7706,7 +7538,7 @@ can currently be qualified.
         an_ifc_Ref<ifc_DeclIndex>      decl_ref(this, decl_index);
         Opt<an_ifc_Ref<ifc_DeclIndex>> opt_home_scope;
 
-        opt_home_scope = get_ifc_semantic_home_scope_decl(decl_ref);
+        opt_home_scope = get_ifc_home_scope_decl(decl_ref);
         if (opt_home_scope.has_value()) {
           result = !is_class_scope(*opt_home_scope);
         }  /* if */
@@ -11628,22 +11460,8 @@ to this call -- so that we can determine if caching of a given declaration in
 {
   /* Provide a consumer function that accepts a given scope member and caches
      the associated IFC declaration into the cache. */
-  auto decl_consumer = [this, cache, scope_decl](an_ifc_Scope_Member *ismp) {
-    an_ifc_Ref<ifc_DeclIndex>      scope_mem_ref(this, ismp->index);
-    Opt<an_ifc_Ref<ifc_DeclIndex>> opt_scope_ref =
-                                        get_ifc_home_scope_decl(scope_mem_ref);
-
-    if (opt_scope_ref.has_value()) {
-      an_ifc_module *mem_mod = scope_mem_ref.mod;
-      ifc_DeclIndex mem_idx = scope_mem_ref.index;
-
-      if (*opt_scope_ref == scope_decl) {
-        mem_mod->cache_decl(cache, mem_idx);
-      } else {
-        check_assertion(mem_mod->caching_class_definition);
-        mem_mod->namespace_deferred_decls.push_back(mem_idx);
-      }  /* if */
-    }  /* if */
+  auto decl_consumer = [this, cache](an_ifc_Scope_Member *ismp) {
+    this->cache_decl(cache, ismp->index);
   };
   /* Iterate over the sequence calling decl_consumer for each element. */
   traverse_scope_member_sequence(seq, decl_consumer);
@@ -13804,9 +13622,8 @@ indexed in the IFC by decl_idx) to cache.
 
           idsvp = get_DeclSort_Variable(&idsv);
           { /* Reconstruct the templated declaration. */
-            auto cache_name_fn = [this, cache, decl, decl_idx, idsvp](
+            auto cache_name_fn = [this, cache, decl, idsvp](
                                               a_source_position_ptr decl_pos) {
-              cache_nested_name_specifier_from_decl(cache, decl_idx, decl_pos);
               cache_simple_template_id(cache, decl->form, &idsvp->locus);
             };
             auto cache_spec_init_fn = [this, cache, idsvp](
@@ -13827,7 +13644,7 @@ indexed in the IFC by decl_idx) to cache.
             {
               Opt<an_ifc_Ref<ifc_DeclIndex>> opt_scope_ref;
 
-              opt_scope_ref = get_ifc_semantic_home_scope_decl(this, idsvp);
+              opt_scope_ref = get_ifc_home_scope_decl(this, idsvp);
               /* FIXME: This should be a soft failure. */
               check_assertion(opt_scope_ref.has_value());
               /* Disable spurious GCC warning about uninitialized usage of
@@ -13879,7 +13696,7 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
             {
               Opt<an_ifc_Ref<ifc_DeclIndex>> opt_scope_ref;
 
-              opt_scope_ref = get_ifc_semantic_home_scope_decl(this, idsfp);
+              opt_scope_ref = get_ifc_home_scope_decl(this, idsfp);
               /* FIXME: This should be a soft failure. */
               check_assertion(opt_scope_ref.has_value());
               /* Disable spurious GCC warning about uninitialized usage of
@@ -13904,9 +13721,8 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 
           idsmp = get_DeclSort_Method(&idsm);
           { /* Reconstruct the templated declaration. */
-            auto cache_name_fn = [this, cache, decl_idx, decl, idsmp](
+            auto cache_name_fn = [this, cache, decl, idsmp](
                                               a_source_position_ptr decl_pos) {
-              cache_nested_name_specifier_from_decl(cache, decl_idx, decl_pos);
               cache_simple_template_id(cache, decl->form, &idsmp->locus);
             };
             an_ifc_TypeSort_Method itsm, *itsmp;
@@ -13936,9 +13752,8 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 
           idscp = get_DeclSort_Constructor(&idsc);
           { /* Reconstruct the templated declaration. */
-            auto cache_name_fn = [this, cache, decl_idx, decl, idscp](
+            auto cache_name_fn = [this, cache, decl, idscp](
                                               a_source_position_ptr decl_pos) {
-              cache_nested_name_specifier_from_decl(cache, decl_idx, decl_pos);
               cache_simple_template_id(cache, decl->form, &idscp->locus);
             };
             an_ifc_TypeSort_Tor itst, *itstp;
@@ -14478,18 +14293,12 @@ Add the tokens corresponding to the given declaration (decl) to cache.
     case ifc_DeclSort_PartialSpecialization:
       { an_ifc_DeclSort_PartialSpecialization idsps, *idspsp;
         idspsp = get_DeclSort_PartialSpecialization(&idsps);
-
-        check_assertion(!caching_class_definition ||
-                        !requires_external_specialization(idspsp));
         cache_decl_partial_specialization(cache, decl, idspsp);
       }
       break;
     case ifc_DeclSort_Specialization:
       { an_ifc_DeclSort_Specialization idss, *idssp;
         idssp = get_DeclSort_Specialization(&idss);
-
-        check_assertion(!caching_class_definition ||
-                        !requires_external_specialization(idssp));
         cache_decl_specialization(cache, decl, idssp);
       }
       break;
@@ -16422,18 +16231,13 @@ nested-name-specifier to cache.  pos is the position of the qualified-id this
 nested-name-specifier is part of.
 */
 {
-//   a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl);
-//   if (mep->scope == NULL) {
-//     /* Load the module entity pointer scope if not already processed. */
-//     an_ifc_Ref<ifc_DeclIndex> decl_ref(this, decl);
-//     mep->scope = get_ifc_home_scope(decl_ref);
-//   }  /* if */
-//   cache_scope_as_nested_name_specifier(cache, mep->scope, pos);
-  /* Load the semantic scope for the associated decl. */
-  an_ifc_Ref<ifc_DeclIndex> decl_ref(this, decl);
-  a_scope_ptr               sem_scope = get_ifc_semantic_home_scope(decl_ref);
-
-  cache_scope_as_nested_name_specifier(cache, sem_scope, pos);
+  a_module_entity_ptr mep = get_ifc_module_entity_ptr(decl);
+  if (mep->scope == NULL) {
+    /* Load the module entity pointer scope if not already processed. */
+    an_ifc_Ref<ifc_DeclIndex> decl_ref(this, decl);
+    mep->scope = get_ifc_home_scope(decl_ref);
+  }  /* if */
+  cache_scope_as_nested_name_specifier(cache, mep->scope, pos);
 }  /* cache_nested_name_specifier_from_decl */
 
 

@@ -2711,12 +2711,6 @@ struct an_ifc_module : public a_module_interface {
 			   indexed by a NameSort::SourceFile index.
 			   Dynamically allocated (in front end memory) once
 			   the number of source files is known. */
-  a_boolean
-		caching_class_definition = FALSE;
-			/* */
-  Bi_vec<ifc_DeclIndex, 16>
-		namespace_deferred_decls;
-			/* */
 private:
 #if USE_MMAP_FOR_MEMORY_REGIONS
   unsigned char
