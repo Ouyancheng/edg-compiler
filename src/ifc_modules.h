@@ -2605,7 +2605,10 @@ position.
 struct an_ifc_partition_position {
   an_ifc_partition_kind
                 partition;
-  size_t        file_offset;
+                        /* */
+  size_t
+                file_offset;
+                        /* */
   inline an_ifc_partition_position(const an_ifc_module *mod,
                                    a_module_entity_ptr mep);
   /* Index based utility constructors. */

@@ -5173,6 +5173,40 @@ already in the IL.
 }  /* ifc_decl_is_ignorable_redecl */
 
 
+namespace {
+
+/*
+An RAII object to temporarily enable microsoft extensions even if not enabled
+otherwise.  This allows for MS specific IFC decls to be correctly processed.
+*/
+struct an_ms_extensions_parse {
+  an_ms_extensions_parse()
+    : old_ms_extensions(ms_extensions), old_ms_compat(ms_compat),
+      old_allow_in_class_specializations(allow_in_class_specializations) {
+    ms_extensions = TRUE;
+    ms_compat = TRUE;
+    allow_in_class_specializations = TRUE;
+  }
+  ~an_ms_extensions_parse() {
+    allow_in_class_specializations = old_allow_in_class_specializations;
+    ms_compat = old_ms_compat;
+    ms_extensions = old_ms_extensions;
+  }
+private:
+  a_boolean
+                old_ms_extensions;
+                        /* */
+  a_boolean
+                old_ms_compat;
+                        /* */
+  a_boolean
+                old_allow_in_class_specializations;
+                        /* */
+};  /* an_ms_extensions_parse */
+
+}  /* namespace */
+
+
 /* FIXME: might be able to get rid of enumeration_type now that enums aren't
    deferred */
 void an_ifc_module::process_ifc_declaration(
@@ -6417,28 +6451,6 @@ cleanup:
   }  /* if */
 #endif /* DEBUG */
 }  /* process_ifc_declaration */
-
-
-namespace {
-/* An RAII object to temporarily enable microsoft extensions even if not
-   enabled otherwise.  This allows for MS specific IFC decls to be correctly
-   processed.
-*/
-struct an_ms_extensions_parse {
-  an_ms_extensions_parse() : old_ms_extensions(ms_extensions),
-                             old_ms_compat(ms_compat) {
-    ms_extensions = TRUE;
-    ms_compat = TRUE;
-  }
-  ~an_ms_extensions_parse() {
-    ms_compat = old_ms_compat;
-    ms_extensions = old_ms_extensions;
-  }
-private:
-  a_boolean old_ms_extensions;
-  a_boolean old_ms_compat;
-};  /* an_ms_extensions_parse */
-}  /* namespace */
 
 
 static void cache_scope(an_ifc_module      *mod,
