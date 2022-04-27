@@ -1,5 +1,14 @@
 Version 6.4
 
+4/26/22  [EDGcpfe/19782]
+Assertion failure in walk_entry.h
+
+In certain configurations and with certain command-line options, a source
+file in which an explicit argument is passed to a pointer or reference
+non-type template argument, the front end could abort with an assertion
+failure in walk_entry.h.  This is now fixed.
+
+
 4/26/22  [EDGcpfe/19783]
 Pointers to subobjects as nontype template arguments for function templates
 

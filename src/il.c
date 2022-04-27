@@ -6421,6 +6421,11 @@ suggest a deep copy is needed.
      constant isn't the one directly associated with the source entity,
      if any. */
   break_constant_source_corresp(ucp);
+  if (cp->kind == ck_address && cp->variant.address.subobject_path != NULL) {
+    /* The subobject path should not be shared between the constants. */
+    ucp->variant.address.subobject_path =
+                       copy_subobject_path(cp->variant.address.subobject_path);
+  }  /* if */
   fix_memory_region_problems_in_copied_constant(ucp);
   return ucp;
 }  /* alloc_unshared_constant_full */
