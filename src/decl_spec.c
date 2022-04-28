@@ -1491,7 +1491,12 @@ caution when modifying this routine.
         }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
       } else if (microsoft_mode && !C_mode() &&
-                 computed_decl_level == DEPTH_OF_FILE_SCOPE) {
+                 computed_decl_level == DEPTH_OF_FILE_SCOPE &&
+                 /* FIXME: This should not be NULL while microsoft_mode is
+                    enabled.  However, we don't currently have a nice place to
+                    factor initialization of this type to make lazy
+                    initialization available for IFC modules. */
+                 type_of_guid != NULL) {
         /* Similarly, check for predeclared "struct _GUID". */
         a_symbol_ptr  guid_sym;
         check_assertion(type_of_guid != NULL);

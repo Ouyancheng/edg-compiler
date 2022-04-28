@@ -5183,33 +5183,80 @@ already in the IL.
 namespace {
 
 /*
-An RAII object to temporarily enable microsoft extensions even if not enabled
+An RAII object to temporarily enable Microsoft features even if not enabled
 otherwise.  This allows for MS specific IFC decls to be correctly processed.
 */
-struct an_ms_extensions_parse {
-  an_ms_extensions_parse()
-    : old_ms_extensions(ms_extensions), old_ms_compat(ms_compat),
-      old_allow_in_class_specializations(allow_in_class_specializations) {
-    ms_extensions = TRUE;
-    ms_compat = TRUE;
-    allow_in_class_specializations = TRUE;
-  }
-  ~an_ms_extensions_parse() {
-    allow_in_class_specializations = old_allow_in_class_specializations;
-    ms_compat = old_ms_compat;
-    ms_extensions = old_ms_extensions;
-  }
+struct a_ms_mode_parse {
+  inline a_ms_mode_parse(an_ifc_module *mod);
+  inline ~a_ms_mode_parse();
 private:
   a_boolean
+                old_microsoft_mode;
+                        /* The previous value of "microsoft_mode". */
+  unsigned long
+                old_microsoft_version;
+                        /* The previous value of "microsoft_version". */
+  a_boolean
                 old_ms_extensions;
-                        /* */
+                        /* The previous value of "ms_extensions". */
   a_boolean
                 old_ms_compat;
-                        /* */
+                        /* The previous value of "ms_compat". */
   a_boolean
                 old_allow_in_class_specializations;
-                        /* */
-};  /* an_ms_extensions_parse */
+                        /* The previous value of
+                           "allow_in_class_specializations". */
+  a_boolean
+                old_allow_in_class_instantiations;
+                        /* The previous value of
+                           "allow_in_class_instantiations". */
+};  /* a_ms_mode_parse */
+
+
+unsigned long get_microsoft_version(an_ifc_module *mod)
+/*
+Given an IFC module, determine the appropriate version level of Microsoft mode
+to emulate.
+*/
+{
+  /* FIXME: This should depend on version information in the IFC file. */
+  return 1928;
+}  /* get_microsoft_version */
+
+
+a_ms_mode_parse::a_ms_mode_parse(an_ifc_module *mod)
+    : old_microsoft_mode(microsoft_mode),
+      old_microsoft_version(microsoft_version),
+      old_ms_extensions(ms_extensions), old_ms_compat(ms_compat),
+      old_allow_in_class_specializations(allow_in_class_specializations),
+      old_allow_in_class_instantiations(allow_in_class_instantiations)
+/*
+Temporarily enter a limit Microsoft mode that's catered to the compiler used to
+produce the IFC file to process Microsoft specific features in context.
+*/
+{
+  microsoft_mode = TRUE;
+  microsoft_version = get_microsoft_version(mod);
+  ms_extensions = TRUE;
+  ms_compat = TRUE;
+  allow_in_class_specializations = TRUE;
+  allow_in_class_instantiations = TRUE;
+}  /* a_ms_mode_parse */
+
+
+a_ms_mode_parse::~a_ms_mode_parse()
+/*
+Restore to the previous compiler modes.
+*/
+{
+  allow_in_class_instantiations = old_allow_in_class_instantiations;
+  allow_in_class_specializations = old_allow_in_class_specializations;
+  ms_compat = old_ms_compat;
+  ms_extensions = old_ms_extensions;
+  microsoft_version = old_microsoft_version;
+  microsoft_mode = old_microsoft_mode;
+}  /* ~a_ms_mode_parse */
+
 
 }  /* namespace */
 
@@ -5272,6 +5319,7 @@ principal associated IL entity.
   if (!mep->imminent && mep->entity.ptr == NULL) {
     a_source_position   saved_error_position = error_position;
     a_module_entity_ptr saved_mep = curr_module_entity;
+    a_ms_mode_parse     tmp_ms_parse(this);
 
     curr_module_entity = mep;
     /* Read from the proper partition for this declaration. */
@@ -6536,6 +6584,7 @@ Complete the definition of the class referred to by mep (if needed).
     a_source_position        saved_error_position = error_position;
     a_module_scope_push_kind scope_push_status = mspk_unattempted;
     a_curr_token_preserver   guard;
+    a_ms_mode_parse          tmp_ms_parse(this);
 
     push_module_declaration_context(mep->scope, &scope_push_status);
     source_position_from_locus(&error_position, &idssp->locus);
@@ -6569,19 +6618,16 @@ Complete the definition of the class referred to by mep (if needed).
        the class. */
     scope_stack_top().default_name_linkage =
                                        class_type->source_corresp.name_linkage;
-    {
-      an_ms_extensions_parse tmp_parse;
-      (void)scan_class_definition(class_type, (a_decl_parse_state*)NULL,
-                                  depth_innermost_namespace_scope,
-                                  /*is_partial=*/FALSE,
-                                  /*is_local_class=*/FALSE,
-                                  /*delayed_nested_class_def=*/
-                                    class_type->source_corresp.is_class_member,
-                                  /*is_template_instantiation=*/FALSE,
-                                  /*is_template_specialization=*/FALSE,
-                                  (a_template_ptr)NULL,
-                                  (a_decl_pos_block_ptr)NULL);
-    }
+    (void)scan_class_definition(class_type, (a_decl_parse_state*)NULL,
+                                depth_innermost_namespace_scope,
+                                /*is_partial=*/FALSE,
+                                /*is_local_class=*/FALSE,
+                                /*delayed_nested_class_def=*/
+                                class_type->source_corresp.is_class_member,
+                                /*is_template_instantiation=*/FALSE,
+                                /*is_template_specialization=*/FALSE,
+                                (a_template_ptr)NULL,
+                                (a_decl_pos_block_ptr)NULL);
     process_deferred_class_fixups_and_instantiations(
                                                    /*for_instantiation=*/TRUE);
     {
@@ -19018,17 +19064,14 @@ explicitly-instantiated entity and update kind with the associated entity kind.
   push_stop_token_stack();
   rescan_cached_tokens(cache);
   source_position_from_locus(&template_kw_pos, &template_locus);
-  {
-    an_ms_extensions_parse      tmp_parse;
-    a_template_decl_options_set options = TDO_EXTERN;
-    /* An explicit instantiation in a module means that the module clients can
-       handle the equivalent of an "extern template" directive.  However, when
-       importing a header unit (which should behave more like a #include) the
-       explicit instantiation directive should remain an ordinary instantiation
-       directive. */
-    if (is_header_unit(this->assoc_module_info)) options = TDO_NO_OPTIONS;
-    explicit_instantiation(&dps, options, &template_kw_pos);
-  }
+  a_template_decl_options_set options = TDO_EXTERN;
+  /* An explicit instantiation in a module means that the module clients can
+     handle the equivalent of an "extern template" directive.  However, when
+     importing a header unit (which should behave more like a #include) the
+     explicit instantiation directive should remain an ordinary instantiation
+     directive. */
+  if (is_header_unit(this->assoc_module_info)) options = TDO_NO_OPTIONS;
+  explicit_instantiation(&dps, options, &template_kw_pos);
   finish_cached_template_parse(&final_token);
   return get_il_entity(dps.sym, kind);
 }  /* parse_cached_explicit_instantiation */
