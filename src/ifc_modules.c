@@ -13210,7 +13210,7 @@ initializer expression.  locus is the source location for the declaration.
     }  /* if */
   };
   auto cache_class_mem_init_fn =
-                  [this, cache, initializer, type](a_source_position_ptr pos) {
+                        [this, cache, initializer](a_source_position_ptr pos) {
     if (initializer != 0) {
       /* This is an initializer for a member variable of a class.  This is
          already stored in the object file associated with the module TU, and
