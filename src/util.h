@@ -1652,7 +1652,7 @@ Uses branchless partitioning.
   }  /* if */
 
   /* The following branchless partitioning is derived from "BlockQuicksort:
-     How Branch Mispredictions don’t affect Quicksort" by Stefan Edelkamp
+     How Branch Mispredictions don't affect Quicksort" by Stefan Edelkamp
      and Armin Weiss. */
   a_byte  offsets_l_storage[BLOCK_SIZE+CACHE_LINE_SIZE],
           offsets_r_storage[BLOCK_SIZE+CACHE_LINE_SIZE];
