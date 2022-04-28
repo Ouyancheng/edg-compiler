@@ -46,21 +46,25 @@ struct an_ifc_module;
 A small wrapper template that binds an index with its associated module.  This
 is used for queries where the resulting index might be in a referenced module.
 */
-template<typename an_Index_Type>
+template<typename an_Index_type>
 struct an_ifc_Ref {
   an_ifc_module *mod;
                         /* The associated module containing the referenced
                            index. */
-  an_Index_Type index;
+  an_Index_type index;
                         /* The referenced index. */
 
-  an_ifc_Ref(an_ifc_module *mod_val, an_Index_Type index_val)
+  an_ifc_Ref()
+    : mod(NULL), index((an_Index_type)0)
+    {}
+
+  an_ifc_Ref(an_ifc_module *mod_val, an_Index_type index_val)
     : mod(mod_val), index(index_val)
     {}
 
-  a_boolean operator==(const an_ifc_Ref<an_Index_Type> &other) const
+  a_boolean operator==(const an_ifc_Ref<an_Index_type> &other) const
     { return this->mod == other.mod && this->index == other.index; }
-  a_boolean operator!=(const an_ifc_Ref<an_Index_Type> &other) const
+  a_boolean operator!=(const an_ifc_Ref<an_Index_type> &other) const
     { return !(this == other); }
 };  /* an_ifc_Ref */
 
@@ -3232,9 +3236,6 @@ public:
                              a_token_cache_ptr              cache,
                              a_scope_ptr                    encl_scope,
                              an_ifc_DeclSort_Specialization *decl);
-  void record_pending_explicit_specialization(
-                                 a_decl_parse_state             *dps,
-                                 an_ifc_DeclSort_Specialization *decl);
   char *parse_cached_explicit_instantiation(
                                   a_token_cache_ptr              cache,
                                   an_ifc_DeclSort_Specialization *decl,

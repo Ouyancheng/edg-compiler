@@ -32762,6 +32762,18 @@ that follows.
           /* Update xref info on param ids. */
           record_param_id_list_declarations(&func_info);
         }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+        if (curr_token == tok_semicolon && pending_ifc_func_body_next(sym)) {
+          /* A semicolon was followed by a pseudo-token indicating that the
+             just-declared member is from an IFC file that also stores a
+             definition for that member.  Skip the semicolon and the pseudo-
+             token (the call to pending_ifc_func_body_next will have recorded
+             the information from the pseudo-token required to load the
+             definition later on if needed). */
+          (void)get_token();
+          (void)get_token();
+        }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
     }  /* if */
 done:

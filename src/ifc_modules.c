@@ -4374,20 +4374,9 @@ containing the partial specialization declaration.
 
 
 namespace {
-/*
-A simple structure that can be used to locate the body of a function stored in
-an IFC module file.
-*/
-struct an_ifc_function_body {
-  ifc_DeclIndex decl;
-                        /* The IFC "DeclIndex" of the routine. */
-  an_ifc_module *ifc_module;
-                        /* The IFC module descriptor that this body is
-                           associated with. */
-};
 
-
-using an_ifc_function_body_map = Ptr_map<a_routine_ptr, an_ifc_function_body>;
+using an_ifc_function_body_map =
+                             Ptr_map<a_routine_ptr, an_ifc_Ref<ifc_DeclIndex>>;
                         /* The type of a map that associates IFC function
                            bodies with IL routine entries. */
 
@@ -4401,6 +4390,24 @@ an_ifc_function_body_map
 }  /* namespace */
 
 
+template<typename an_ifc_DeclSort_T>
+static a_boolean function_is_user_defined(an_ifc_DeclSort_T *decl)
+/*
+Return TRUE if the given function-like IFC declaration node has a definition
+that is not "= default" or "= delete"; otherwise, return FALSE.
+*/
+{
+  /* For the IFC to provide a function definition, the function must be
+     constexpr and the definition must be exported (marked by the presence of a
+     reachable initializer property). */
+  return (decl->properties & ifc_ReachableProperties_Initializer) &&
+         !(decl->traits & (ifc_FunctionTraits_Defaulted |
+                           ifc_FunctionTraits_Deleted)) &&
+         (decl->traits & ifc_FunctionTraits_Constexpr ||
+          decl->traits & ifc_FunctionTraits_Immediate);
+}  /* function_is_user_defined */
+
+
 void record_pending_ifc_function_body(a_routine_ptr  rp,
                                       ifc_DeclIndex  decl_idx,
                                       an_ifc_module  *ifc_module)
@@ -4409,8 +4416,9 @@ Record the information needed to retrieve a definition for rp if it turns out
 to be needed later on.
 */
 {
-  (void)ifc_function_bodies->map_or_replace(
-                            rp, an_ifc_function_body{ decl_idx, ifc_module });
+  an_ifc_Ref<ifc_DeclIndex> decl_ref(ifc_module, decl_idx);
+
+  (void)ifc_function_bodies->map_or_replace(rp, decl_ref);
 #if CHECKING
   // FIXME: We should check that rp is from a header unit.  That should be the
   //        only way we can reach two definitions for the same routine.
@@ -4916,10 +4924,10 @@ If the given routine has a definition in a currently-imported IFC module
 process that definition and return TRUE.
 */
 {
-  a_boolean             result = FALSE;
-  an_ifc_function_body  ifb = ifc_function_bodies->get(rp);
+  a_boolean                  result = FALSE;
+  an_ifc_Ref<ifc_DeclIndex>  ifb = ifc_function_bodies->get(rp);
 
-  if (ifb.ifc_module != NULL) {
+  if (ifb.mod != NULL) {
     a_func_info_block  func_info;
     a_token_cache      def_cache;
     a_decl_flag_set    flags = SFB_NEW_STRUCT_STMT_STACK_REQUIRED;
@@ -4931,8 +4939,7 @@ process that definition and return TRUE.
     clear_token_cache(&def_cache, /*reusable=*/FALSE);
     clear_func_info(&func_info);
     push_new_top_level_declaration();
-    if (ifb.ifc_module->cache_function_body(&def_cache, ifb.decl, rp,
-                                            &func_info)) {
+    if (ifb.mod->cache_function_body(&def_cache, ifb.index, rp, &func_info)) {
       rescan_cached_tokens(&def_cache);
       scan_function_body(rp, &func_info, flags);
       if (curr_token == tok_rbrace) {
@@ -5390,7 +5397,7 @@ principal associated IL entity.
             rp = dps.sym->variant.routine.ptr;
             il_entity = (char *)rp;
             kind = iek_routine;
-            if (idsfp->properties & ifc_ReachableProperties_Initializer) {
+            if (function_is_user_defined(idsfp)) {
               /* A body is available: Record this availability in case it is
                  needed. */
               ifc_DeclIndex decl_idx = decl_index_of(mep);
@@ -13335,6 +13342,35 @@ declaration.
 }  /* cache_function_decl */
 
 
+template<typename an_ifc_Node_type>
+static void maybe_cache_function_def(an_ifc_module     *mod,
+                                     a_token_cache_ptr cache,
+                                     ifc_DeclIndex     decl_idx,
+                                     an_ifc_Node_type  *decl)
+/*
+For a function declaration (identified by decl_idx) in the module mod, if the
+IFC provides a definition for said function, cache a token indicating the
+presence of a lazy-loadable definition.
+*/
+{
+  if (function_is_user_defined(decl)) {
+    /* A body is likely available: Record this availability using a
+       pseudo-token that will be translated when the declaration is
+       parsed. */
+    cache_token(cache, tok_pending_ifc_func_body, &null_source_position);
+    cache->last_token->extra_info_kind = teik_ifc_index;
+    cache->last_token->variant.ifc_index.index = decl_idx;
+    cache->last_token->variant.ifc_index.module = mod;
+    /* FIXME: We cache a new semicolon here to avoid complicating
+       full_specialization logic (which does not provide an easy way to
+       suppress the simicolon check), it might be better to rework this logic
+       to "insert" the tok_pending_ifc_func_body before the existing
+       simicolon. */
+    cache_token(cache, tok_semicolon, &null_source_position);
+  }  /* if */
+}  /* maybe_cache_function_def */
+
+
 uint32_t an_ifc_module::try_cache_class_attributes_from_body(
                                                a_token_cache_ptr cache,
                                                ifc_SentenceIndex body_sentence)
@@ -13745,6 +13781,7 @@ BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
                                   cache_name_fn, params, itsfp->source,
                                   &itsfp->eh_spec, &idsfp->locus);
 END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
+              maybe_cache_function_def(this, cache, templated_decl_idx, idsfp);
             }
           }
         }
@@ -13777,6 +13814,7 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
                                 itsmp->traits, vendor_traits, itsmp->target,
                                 cache_name_fn, params, itsmp->source,
                                 &itsmp->eh_spec, &idsmp->locus);
+            maybe_cache_function_def(this, cache, templated_decl_idx, idsmp);
           }
         }
         break;
@@ -13811,6 +13849,7 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
                                 (ifc_FunctionTypeTraits)0, vendor_traits,
                                 (ifc_TypeIndex)0, cache_name_fn, params,
                                 itstp->source, &itstp->eh_spec, &idscp->locus);
+            maybe_cache_function_def(this, cache, templated_decl_idx, idscp);
           }
         }
         break;
@@ -14063,24 +14102,6 @@ specialization.
     cache_chart(cache, chart_idx, pos);
   }  /* if */
 }  /* cache_template_head */
-
-
-template<typename an_ifc_DeclSort_T>
-static a_boolean function_is_user_defined(an_ifc_DeclSort_T *decl)
-/*
-Return TRUE if the given function-like IFC declaration node has a definition
-that is not "= default" or "= delete"; otherwise, return FALSE.
-*/
-{
-  /* For the IFC to provide a function definition, the function must be
-     constexpr and the definition must be exported (marked by the presence of a
-     reachable initializer property). */
-  return (decl->properties & ifc_ReachableProperties_Initializer) &&
-         !(decl->traits & (ifc_FunctionTraits_Defaulted |
-                           ifc_FunctionTraits_Deleted)) &&
-         (decl->traits & ifc_FunctionTraits_Constexpr ||
-          decl->traits & ifc_FunctionTraits_Immediate);
-}  /* function_is_user_defined */
 
 
 void an_ifc_module::cache_decl(a_token_cache_ptr cache,
@@ -14401,15 +14422,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
                             itsmp->traits, vendor_traits, target, idsmp->name,
                             params, itsmp->source, &itsmp->eh_spec,
                             &idsmp->locus);
-        if (idsmp->properties & ifc_ReachableProperties_Initializer) {
-          /* A body is likely available: Record this availability using a
-             pseudo-token that will be translated when the declaration is
-             parsed. */
-          cache_token(cache, tok_pending_ifc_func_body, &null_source_position);
-          cache->last_token->extra_info_kind = teik_ifc_index;
-          cache->last_token->variant.ifc_index.index = decl;
-          cache->last_token->variant.ifc_index.module = this;
-        }  /* if */
+        maybe_cache_function_def(this, cache, decl, idsmp);
       }
       break;
     case ifc_DeclSort_Constructor:
@@ -14435,15 +14448,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
                             (ifc_FunctionTypeTraits)0, vendor_traits,
                             (ifc_TypeIndex)0, *opt_name_ref, params,
                             itstp->source, &itstp->eh_spec, &idscp->locus);
-        if (function_is_user_defined(idscp)) {
-          /* A body is likely available: Record this availability using a
-             pseudo-token that will be translated when the declaration is
-             parsed. */
-          cache_token(cache, tok_pending_ifc_func_body, &null_source_position);
-          cache->last_token->extra_info_kind = teik_ifc_index;
-          cache->last_token->variant.ifc_index.index = decl;
-          cache->last_token->variant.ifc_index.module = this;
-        }  /* if */
+        maybe_cache_function_def(this, cache, decl, idscp);
       }
       break;
     case ifc_DeclSort_InheritedConstructor:
@@ -14472,15 +14477,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
                             (ifc_FunctionTypeTraits)0, vendor_traits,
                             (ifc_TypeIndex)0, *opt_name_ref, (ifc_ChartIndex)0,
                             (ifc_TypeIndex)0, &idsdp->eh_spec, &idsdp->locus);
-        if (function_is_user_defined(idsdp)) {
-          /* A body is likely available: Record this availability using a
-             pseudo-token that will be translated when the declaration is
-             parsed. */
-          cache_token(cache, tok_pending_ifc_func_body, &null_source_position);
-          cache->last_token->extra_info_kind = teik_ifc_index;
-          cache->last_token->variant.ifc_index.index = decl;
-          cache->last_token->variant.ifc_index.module = this;
-        }  /* if */
+        maybe_cache_function_def(this, cache, decl, idsdp);
       }
       break;
     case ifc_DeclSort_Reference:
@@ -18948,79 +18945,12 @@ declaration.
   check_assertion(decl->sort == ifc_SpecializationSort_Explicit);
   prepare_cached_template_parse(cache, encl_scope,
                                 &dps, &decl_state, &final_token);
-  {
-    an_ms_extensions_parse tmp_parse;
-    template_or_specialization_declaration_full(&decl_state,
-                                                /*is_generic=*/FALSE,
-                                                /*orig_dps=*/NULL);
-  }
+  template_or_specialization_declaration_full(&decl_state,
+                                              /*is_generic=*/FALSE,
+                                              /*orig_dps=*/NULL);
   finish_cached_template_parse(&final_token);
-  record_pending_explicit_specialization(&dps, decl);
   return decl_state.il_template_entry;
 }  /* parse_cached_explicit_specialization */
-
-
-void an_ifc_module::record_pending_explicit_specialization(
-                                          a_decl_parse_state             *dps,
-                                          an_ifc_DeclSort_Specialization *decl)
-/*
-Record the presence of a pending explicit specialization declaration's (decl)
-definition if any.  dps is the associated decl parse state from the parsing of
-the declaration of the entity.
-*/
-{
-  ifc_DeclIndex templated_decl_idx = decl->decl;
-
-  check_assertion(decl->sort == ifc_SpecializationSort_Explicit);
-  switch (decl_tag(templated_decl_idx)) {
-  case ifc_DeclSort_Scope:
-    { /* We're reconstructing a class. */
-      /* FIXME: We should be handling classes definitions lazily here. */
-    }
-    break;
-  case ifc_DeclSort_Variable:
-    { /* We're reconstructing a variable. */
-      /* FIXME: We should be handling variable initializers lazily here. */
-    }
-    break;
-  case ifc_DeclSort_Function:
-    { /* We're reconstructing a function. */
-      /* FIXME: Ideally checking for a symbol is unnecessary.  In practice,
-         because we have code generation issues and we don't always create
-         something that can be parsed, this prevents crashes. */
-      if (dps->sym != NULL && dps->sym->kind == sk_routine) {
-        an_ifc_Node<an_ifc_DeclSort_Function> idsf;
-        a_routine_ptr                         rp =
-                                                 dps->sym->variant.routine.ptr;
-
-        construct_node_prechecked(&idsf, this, templated_decl_idx);
-        if (idsf->properties & ifc_ReachableProperties_Initializer) {
-          record_pending_ifc_function_body(rp, templated_decl_idx, this);
-        }  /* if */
-      }
-    }
-    break;
-  case ifc_DeclSort_Constructor:
-  case ifc_DeclSort_Method:
-    { /* We're reconstructing a function. */
-      /* FIXME: Ideally checking for a symbol is unnecessary.  In practice,
-         because we have code generation issues and we don't always create
-         something that can be parsed, this prevents crashes. */
-      if (dps->sym != NULL && dps->sym->kind == sk_member_function) {
-        an_ifc_Node<an_ifc_DeclSort_Method> idsm;
-        a_routine_ptr                       rp = dps->sym->variant.routine.ptr;
-
-        construct_node_prechecked(&idsm, this, templated_decl_idx);
-        if (idsm->properties & ifc_ReachableProperties_Initializer) {
-          record_pending_ifc_function_body(rp, templated_decl_idx, this);
-        }  /* if */
-      }
-    }
-    break;
-  default:
-    unexpected_condition_str("Unexpected DeclSort");
-  }  /* switch */
-}  /* record_pending_explicit_specialization */
 
 
 static char *get_il_entity(a_symbol_ptr     sym,

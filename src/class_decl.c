@@ -30007,7 +30007,6 @@ that is provided if this is a member template declaration.
              definition later on if needed). */
           (void)get_token();
           (void)get_token();
-          *skip_semicolon_check = TRUE;
         }  /* if */
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       }  /* if */
