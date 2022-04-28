@@ -12460,6 +12460,7 @@ variables declared in cmd_line.h.
   long_preserving_rules = DEFAULT_LONG_PRESERVING_RULES;
   type_keyword_in_dtor_allowed = FALSE;
   allow_in_class_specializations = FALSE;
+  allow_in_class_instantiations = FALSE;
   record_form_of_name_reference = DEFAULT_RECORD_FORM_OF_NAME_REFERENCE;
   defs_from_cmd_line = NULL;
   allow_dollar_in_id_chars = DEFAULT_ALLOW_DOLLAR_IN_ID_CHARS;
