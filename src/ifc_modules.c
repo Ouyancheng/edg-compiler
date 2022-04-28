@@ -14439,6 +14439,7 @@ Add the tokens corresponding to the given declaration (decl) to cache.
                             itsfp->traits, vendor_traits, itsfp->target,
                             idsfp->name, params, itsfp->source,
                             &itsfp->eh_spec, &idsfp->locus);
+        maybe_cache_function_def(this, cache, decl, idsfp);
       }
       break;
     case ifc_DeclSort_Method:
