@@ -21451,14 +21451,14 @@ this one is such a continuation.
     gd_options |= GDO_FORCE_UNQUALIFIED_NAME;
   }  /* if */
   if (is_class_template_placeholder_type(var_type) &&
-      unqual_var_type != var_type) {
+      !is_class_template_placeholder_type(unqual_var_type)) {
     /* The name of the template may have been hidden by an intervening
        declaration.  Reflect that fact from the template entry to the
-       placeholder type.  (If the types are different, unqual_var_type
-       designates the template instance that is the deduced type of the
-       variable, so we can use it to find the potentially-hidden template
-       entry.  Both types will be the same if the deduced variable type is
-       dependent.) */
+       placeholder type.  (If the declared type is a placeholder type but
+       the variable type is not, unqual_var_type designates the template
+       instance that is the deduced type of the variable, so we can use it
+       to find the potentially-hidden template entry.  Both types will be
+       placeholder types if the deduced variable type is dependent.) */
     check_assertion(is_immediate_class_type(unqual_var_type) &&
                     unqual_var_type->
                                  variant.class_struct_union.is_template_class);
