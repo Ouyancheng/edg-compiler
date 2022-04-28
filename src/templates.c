@@ -38934,6 +38934,29 @@ directive.
 }  /* sym_can_be_instantiated */
 
 
+static a_boolean check_in_class_instantiation(a_symbol_ptr            sym,
+                                              a_scope_stack_entry_ptr ssep)
+/*
+In class instantiation is permitted in some contexts (namely for simplicity
+while processing class member explicit instantiations for IFC modules).  Return
+TRUE if in class instantiation is allowed, otherwise return FALSE.
+*/
+{
+  a_boolean result = TRUE;
+
+  if (!scope_is(ssep, sck_class_struct_union)) {
+    result = FALSE;
+  } else if (!allow_in_class_instantiations) {
+    result = FALSE;
+  } else if (!sym->is_class_member) {
+    result = FALSE;
+  } else if (sym_parent_class(sym) != ssep->assoc_type) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* is_in_class_instantiation */
+
+
 static void check_instantiation_scope(a_symbol_ptr sym)
 /*
 An explicit instantiation is permitted where an explicit specialization
@@ -38941,8 +38964,10 @@ of the template would be permitted, which is to say in a namespace that
 is or contains the namespace in which the template was declared.
 */
 {
-  a_scope_stack_entry_ptr	ssep = &scope_stack[depth_scope_stack];
-  if (!namespace_is_enclosed_by_scope(sym, ssep)) {
+  a_scope_stack_entry_ptr  ssep = &scope_stack[decl_scope_level];
+
+  if (!namespace_is_enclosed_by_scope(sym, ssep) &&
+      !check_in_class_instantiation(sym, ssep)) {
     sym_diagnostic(es_discretionary_error,
                    ec_bad_scope_for_explicit_instantiation, sym);
   }  /* if */
@@ -40035,12 +40060,11 @@ directive_start_pos points to the beginning of the directive (e.g., for
       ssep->kind != (a_scope_kind)sck_namespace_extension) {
     an_error_severity	severity = es_error;
     /* Some versions of the Microsoft compiler allow an explicit instantiation
-       in class scope.  They can also appear in code rendered from IFC
-       files. */
-    if (microsoft_mode && scope_is(ssep, sck_class_struct_union)) {
-      if (scope_stack_top().module_load_context_count != 0) {
+       in class scope. */
+    if (scope_is(ssep, sck_class_struct_union)) {
+      if (allow_in_class_instantiations) {
         severity = es_none;
-      } else if (microsoft_version < 1600) {
+      } else if (microsoft_mode && microsoft_version < 1600) {
         severity = es_warning;
       }  /* if */
     }  /* if */

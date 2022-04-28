@@ -1170,6 +1170,11 @@ EXTERN a_boolean
 			   should be allowed. */
 
 EXTERN a_boolean
+		allow_in_class_instantiations;
+			/* TRUE if processing a Microsoft IFC in-class
+			   instantiation. */
+
+EXTERN a_boolean
 		record_form_of_name_reference;
 			/* TRUE if the form of all name references should be
 			   recorded in the IL.  When this is FALSE, some
