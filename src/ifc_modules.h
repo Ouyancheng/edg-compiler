@@ -3078,9 +3078,6 @@ public:
                                       a_boolean                add_semicolon);
   void cache_decl_template(a_token_cache_ptr        cache,
                            an_ifc_DeclSort_Template *decl);
-  void cache_simple_template_id(a_token_cache_ptr  cache,
-                                ifc_FormSpecIndex  form_idx,
-                                ifc_SourceLocation *locus);
   void cache_decl_partial_specialization_declaration(
                                 a_token_cache_ptr                     cache,
                                 ifc_DeclIndex                         decl_idx,

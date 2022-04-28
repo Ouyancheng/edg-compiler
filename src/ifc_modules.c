@@ -13432,38 +13432,61 @@ Add the tokens corresponding to the given template declaration (decl) to cache.
 }  /* cache_decl_template */
 
 
-void an_ifc_module::cache_simple_template_id(a_token_cache_ptr  cache,
-                                             ifc_FormSpecIndex  form_idx,
-                                             ifc_SourceLocation *locus)
+static void cache_template_name(an_ifc_module      *mod,
+                                a_token_cache_ptr  cache,
+                                ifc_FormSpecIndex  form_idx,
+                                ifc_SourceLocation *locus)
+/*
+Add the tokens for the template-name portion of a simple-template-id following
+via the associated form spec (form_idx) to the cache.  locus is the location of
+the simple-template-id.  mod is the module where the form_idx and locus were
+encoded.
+*/
+{
+  Opt<an_ifc_Ref<ifc_NameIndex>> opt_name_ref =
+                             get_ifc_name_from_primary_template(mod, form_idx);
+
+  /* FIXME: This should be a soft failure. */
+  check_assertion(opt_name_ref.has_value());
+  EDG_PREFIX::cache_name(cache, *opt_name_ref, locus);
+}  /* cache_template_name */
+
+
+static void cache_template_argument_list(an_ifc_module      *mod,
+                                         a_token_cache_ptr  cache,
+                                         ifc_FormSpecIndex  form_idx,
+                                         ifc_SourceLocation *locus)
+/*
+Add the tokens for the portion of a simple-template-id following the
+template-name (i.e., '<' template-argument-listopt '>') via the associated form
+spec (form_idx) to the cache.  locus is the location of the simple-template-id.
+mod is the module where the form_idx and locus were encoded.
+*/
+{
+  a_source_position pos;
+
+  mod->source_position_from_locus(&pos, locus);
+  cache_token(cache, tok_lt, &pos);
+
+  /* Load the argument list from the specialization form. */
+  an_ifc_Node<an_ifc_Form_Spec> ifs;
+  construct_node_prechecked(&ifs, mod, form_idx);
+  mod->cache_expr(cache, ifs->arguments);
+  cache_token(cache, tok_gt, &pos);
+}  /* cache_template_argument_list */
+
+
+static void cache_simple_template_id(an_ifc_module      *mod,
+                                     a_token_cache_ptr  cache,
+                                     ifc_FormSpecIndex  form_idx,
+                                     ifc_SourceLocation *locus)
 /*
 Add the tokens for a simple-template-id via the associated form spec (form_idx)
 to the cache.  locus is the location of the simple-template-id.
 */
 {
-  an_ifc_Form_Spec ifs, *ifsp;
-
-  /* Load the specialization form to figure out what the primary
-     template's declaration is. */
-  read_prechecked_partition_element(form_idx);
-  ifsp = get_Form_Spec(&ifs);
-  /* Reconstruct the template-name. */
-  {
-    Opt<an_ifc_Ref<ifc_NameIndex>> opt_name_ref;
-
-    opt_name_ref = get_ifc_name_from_primary_template(this, form_idx);
-    /* FIXME: This should be a soft failure. */
-    check_assertion(opt_name_ref.has_value());
-    EDG_PREFIX::cache_name(cache, *opt_name_ref, locus);
-  }
-  /* Reconstruct the template-argument-list and enclosing angle
-     brackets. */
-  {
-    a_source_position pos;
-    source_position_from_locus(&pos, locus);
-    cache_token(cache, tok_lt, &pos);
-    cache_expr(cache, ifsp->arguments);
-    cache_token(cache, tok_gt, &pos);
-  }
+  cache_template_name(mod, cache, form_idx, locus);
+  cache_template_argument_list(mod, cache, form_idx, locus);
 }  /* cache_simple_template_id */
 
 
@@ -13503,7 +13526,7 @@ Add the tokens corresponding to the given partial specialization declaration
           { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idssp](
                                               a_source_position_ptr decl_pos) {
-              cache_simple_template_id(cache, decl->form, &idssp->locus);
+              cache_simple_template_id(this, cache, decl->form, &idssp->locus);
             };
             auto cache_scope_fn = [this, cache, decl](
                                               a_source_position_ptr decl_pos) {
@@ -13525,7 +13548,7 @@ Add the tokens corresponding to the given partial specialization declaration
           { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idsvp](
                                               a_source_position_ptr decl_pos) {
-              cache_simple_template_id(cache, decl->form, &idsvp->locus);
+              cache_simple_template_id(this, cache, decl->form, &idsvp->locus);
             };
             auto cache_init_fn = [this, cache, decl](
                                               a_source_position_ptr decl_pos) {
@@ -13603,7 +13626,7 @@ indexed in the IFC by decl_idx) to cache.
           { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idssp](
                                               a_source_position_ptr decl_pos) {
-              cache_simple_template_id(cache, decl->form, &idssp->locus);
+              cache_simple_template_id(this, cache, decl->form, &idssp->locus);
             };
             auto cache_spec_scope_fn = [this, cache, idssp](
                                               a_source_position_ptr decl_pos) {
@@ -13636,7 +13659,7 @@ indexed in the IFC by decl_idx) to cache.
           { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idsvp](
                                               a_source_position_ptr decl_pos) {
-              cache_simple_template_id(cache, decl->form, &idsvp->locus);
+              cache_simple_template_id(this, cache, decl->form, &idsvp->locus);
             };
             auto cache_spec_init_fn = [this, cache, idsvp](
                                               a_source_position_ptr decl_pos) {
@@ -13693,7 +13716,7 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
           { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idsfp](
                                               a_source_position_ptr decl_pos) {
-              cache_simple_template_id(cache, decl->form, &idsfp->locus);
+              cache_simple_template_id(this, cache, decl->form, &idsfp->locus);
             };
             an_ifc_TypeSort_Function itsf, *itsfp;
             ifc_ChartIndex           params = (ifc_ChartIndex)0;
@@ -13735,7 +13758,7 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
           { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idsmp](
                                               a_source_position_ptr decl_pos) {
-              cache_simple_template_id(cache, decl->form, &idsmp->locus);
+              cache_simple_template_id(this, cache, decl->form, &idsmp->locus);
             };
             an_ifc_TypeSort_Method itsm, *itsmp;
             ifc_ChartIndex         params = (ifc_ChartIndex)0;
@@ -13766,7 +13789,10 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
           { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idscp](
                                               a_source_position_ptr decl_pos) {
-              cache_simple_template_id(cache, decl->form, &idscp->locus);
+              /* Constructors specializations are special cases that don't
+                 include the template argument list.  Call the lower level
+                 cache_template_name instead of cache_simple_template_id. */
+              cache_template_name(this, cache, decl->form, &idscp->locus);
             };
             an_ifc_TypeSort_Tor itst, *itstp;
             ifc_ChartIndex      params = (ifc_ChartIndex)0;
