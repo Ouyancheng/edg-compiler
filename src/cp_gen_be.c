@@ -5372,6 +5372,51 @@ no such type can be found, the original qualifier.
 }  /* accessible_qualifier */
 
 
+static a_boolean scope_has_using_enum_for(a_scope_ptr    sp,
+                                          a_constant_ptr con)
+/*
+Return TRUE if the given scope contains a using-declaration that makes the
+given scoped enumeration constant usable in that scope without
+qualification.
+*/
+{
+  a_boolean result = FALSE;
+
+  for (a_using_decl_ptr udp = sp->using_declarations; !result && udp != NULL;
+       udp = udp->next) {
+    result = (udp->entity.kind == iek_constant &&
+              ((a_constant_ptr)udp->entity.ptr)->source_corresp.name ==
+                                                    con->source_corresp.name &&
+              ((a_constant_ptr)udp->entity.ptr)->source_corresp.parent_scope ==
+                                             con->source_corresp.parent_scope);
+  }  /* for */
+  return result;
+}  /* scope_has_using_enum_for */
+
+
+static a_boolean curr_scope_has_using_enum_for(a_constant_ptr con)
+/*
+Return TRUE if the current class or one of its bases contains a
+using-declaration that makes the given scoped enumeration constant usable
+in its scope without qualification.
+*/
+{
+  a_boolean result = scope_has_using_enum_for(curr_name_context->assoc_scope,
+                                              con);
+
+  check_assertion(curr_name_context->class_type != NULL);
+  for (a_base_class_ptr bcp = class_type_supp(curr_name_context->class_type)->
+                                                                 base_classes;
+       !result && bcp != NULL; bcp = bcp->next) {
+    a_scope_ptr base_class_scope = class_type_supp(bcp->type)->assoc_scope;
+    if (base_class_scope != NULL) {
+      result = scope_has_using_enum_for(base_class_scope, con);
+    }  /* if */
+  }  /* for */
+  return result;
+}  /* curr_scope_has_using_enum_for */
+
+
 static void gen_name(a_source_correspondence *scp,
                      an_il_entry_kind        entry_kind,
                      a_gen_name_options_set  options,
@@ -5596,7 +5641,8 @@ GN_PARENS_IF_GLOBAL_QUALIFIER is not set.
       if (is_enum_constant(con) && integer_type_is_scoped_enum(con->type)) {
         if (curr_name_context->assoc_scope !=
                             con->type->variant.integer.enum_info.assoc_scope &&
-            !curr_name_context->field_selection_context) {
+            !(curr_name_context->field_selection_context &&
+              curr_scope_has_using_enum_for(con))) {
           gen_enum_qualifier(con->type,
                              options & GN_PARENS_IF_GLOBAL_QUALIFIER,
                              need_closing_paren);
