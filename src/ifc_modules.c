@@ -7931,6 +7931,18 @@ corresponding type, set *kind to the appropriate non-type kind and return NULL.
               check_assertion(itsfp->precision == ifc_TypePrecision_Default);
               result = type_of_unknown_templ_param_nontype;
               break;
+            case ifc_TypeBasis_Concept:
+              /* FIXME: Currently unsupported. */
+              issue_unsupported_node_diag("TypeBasis::Concept",
+                                          &error_position);
+              result = error_type();
+              break;
+            case ifc_TypeBasis_Overload:
+              /* FIXME: Currently unsupported. */
+              issue_unsupported_node_diag("TypeBasis::Overload",
+                                          &error_position);
+              result = error_type();
+              break;
             default_is_unexpected_str("Unexpected TypeBasis kind");
           }  /* switch */
         }
