@@ -1,5 +1,23 @@
 Version 6.4
 
+4/28/22  [EDGcpfe/25256]
+C++-generating back end: missing qualification for scoped enumerators
+
+In some cases in which the source code refers to a scoped enumerator, the
+C++-generating back end omitted the necessary enumeration name qualifier in
+the generated code.  This is now fixed.  For example, with --c++20:
+
+  enum class E { z, o };
+  template<typename> struct A {
+    template<E> int h();
+  };
+  template<typename T> struct B : A<T> {
+    void g() {
+      int j = this->template h<E::z>();  // Previously omitted "E::"
+    }
+  };
+
+
 4/26/22  [EDGcpfe/19782]
 Assertion failure in walk_entry.h
 
