@@ -11847,6 +11847,16 @@ this is needed.
             cache_token(cache, tok_auto_type, &pos);
             cache_token(cache, tok_rparen, &pos);
             break;
+          case ifc_TypeBasis_Concept:
+            /* FIXME: Currently unsupported. */
+            issue_unsupported_node_diag("TypeBasis::Concept",
+                                        &error_position);
+            break;
+          case ifc_TypeBasis_Overload:
+            /* FIXME: Currently unsupported. */
+            issue_unsupported_node_diag("TypeBasis::Overload",
+                                        &error_position);
+            break;
           default_is_unexpected_str("Unexpected TypeBasis");
         }  /* switch */
       }
