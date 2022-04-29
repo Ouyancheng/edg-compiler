@@ -5385,6 +5385,10 @@ qualification.
   for (a_using_decl_ptr udp = sp->using_declarations; !result && udp != NULL;
        udp = udp->next) {
     result = (udp->entity.kind == iek_constant &&
+              /* We cannot simply compare the pointers, because con may be
+                 a copy of the enumerator in, e.g., a template argument,
+                 while the the constant in the using-declaration will
+                 designate the original enumerator. */
               ((a_constant_ptr)udp->entity.ptr)->source_corresp.name ==
                                                     con->source_corresp.name &&
               ((a_constant_ptr)udp->entity.ptr)->source_corresp.parent_scope ==
