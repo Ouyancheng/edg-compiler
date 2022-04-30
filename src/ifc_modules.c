@@ -9593,39 +9593,51 @@ FIXME: what other expressions can we get here?
         cache_sentence(&cache, iestp->words);
         terminate_token_cache(&cache);
         rescan_cached_tokens(&cache);
-        /* FIXME: Does this indicate copy vs. value initialization, or is it
-           just an IFC artifact? */
         if (curr_token == tok_assign) {
+          dps.init_state.direct_init = FALSE;
           (void)get_token();
+        } else {
+          dps.init_state.direct_init = TRUE;
         }  /* if */
         dps.type = tp;
         dps.init_state.initializer_must_be_constant = TRUE;
         push_expr_stack_for_initializer(&expr_stack_entry, &saved_expr_stack,
                                         ek_integral_constant,
                                         /*is_full_expr=*/TRUE,
-                                        &dps, (an_init_state *)NULL);
+                                        &dps, &dps.init_state);
         icp = scan_expr_or_braced_init_list(/*bundle=*/FALSE,
                                             /*always_allow_braced=*/TRUE);
-        /* is_var_init is set to FALSE here, as otherwise it expects dps.sym
-           to be non-NULL and point to a variable symbol, which we do not have
-           available here. */
-        convert_initializer(icp, dps.type, /*is_var_init=*/FALSE,
-                            /*fill_in_dtor=*/TRUE, &dps.init_state);
-        if (dps.init_state.init_error) {
-          set_error_constant(cp);
-        } else if (dps.init_state.init_dip != NULL) {
-          a_diag_list     diag_list;
-          clear_diag_list(&diag_list);
-          if (!interpret_dynamic_init(dps.init_state.init_dip,
-                                      init_component_pos(icp), dps.type,
-                                      /*is_constant_evaluated=*/TRUE,
-                                      cp, &diag_list)) {
-            set_error_constant(cp);
-          }  /* if */
-          discard_more_info_list(&diag_list);
+        an_operand_ptr operand = is_expression_component(icp) ?
+                                          operand_of_arg_list_elem(icp) : NULL;
+        /* FIXME: This is done to work around initializing array types with
+           string literals, as we run into "initializing an array with an
+           array" errors.  It's possible it's better to use initializer()
+           directly, however, surgery is required to make that work. */
+        if (operand != NULL && operand->kind == ok_constant &&
+            identical_types(tp, operand->type)) {
+          copy_constant(&operand->variant.constant, cp);
         } else {
-          check_assertion(dps.init_state.init_con != NULL);
-          copy_constant(dps.init_state.init_con, cp);
+          /* is_var_init is set to FALSE here, as otherwise it expects dps.sym
+             to be non-NULL and point to a variable symbol, which we do not
+             have available here. */
+          convert_initializer(icp, dps.type, /*is_var_init=*/FALSE,
+                              /*fill_in_dtor=*/FALSE, &dps.init_state);
+          if (dps.init_state.init_error) {
+            set_error_constant(cp);
+          } else if (dps.init_state.init_dip != NULL) {
+            a_diag_list     diag_list;
+            clear_diag_list(&diag_list);
+            if (!interpret_dynamic_init(dps.init_state.init_dip,
+                                        init_component_pos(icp), dps.type,
+                                        /*is_constant_evaluated=*/TRUE,
+                                        cp, &diag_list)) {
+              set_error_constant(cp);
+            }  /* if */
+            discard_more_info_list(&diag_list);
+          } else {
+            check_assertion(dps.init_state.init_con != NULL);
+            copy_constant(dps.init_state.init_con, cp);
+          }  /* if */
         }  /* if */
         free_init_component_list(icp);
         pop_expr_stack_for_initializer(saved_expr_stack,

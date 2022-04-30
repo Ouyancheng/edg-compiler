@@ -1141,7 +1141,7 @@ and process that definition now, and return TRUE.  Otherwise, return FALSE.
 
 
 a_dynamic_init_ptr load_variable_init_from_module(
-                                                ARG_UNUSED a_type_ptr tp,
+                                                ARG_UNUSED a_type_ptr   tp,
                                                 ARG_UNUSED an_ifc_index *index)
 /*
 Load and process the initializer for a variable or field from an IFC module.
