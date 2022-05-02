@@ -2609,10 +2609,12 @@ position.
 struct an_ifc_partition_position {
   an_ifc_partition_kind
                 partition;
-                        /* */
+                        /* The partition that stores the desired partition
+                           element. */
   size_t
                 file_offset;
-                        /* */
+                        /* The offset from the start of the memory mapping that
+                           marks the start of the desired partition element. */
   inline an_ifc_partition_position(const an_ifc_module *mod,
                                    a_module_entity_ptr mep);
   /* Index based utility constructors. */

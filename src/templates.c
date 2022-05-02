@@ -38949,9 +38949,9 @@ directive.
 static a_boolean check_in_class_instantiation(a_symbol_ptr            sym,
                                               a_scope_stack_entry_ptr ssep)
 /*
-In class instantiation is permitted in some contexts (namely for simplicity
+In-class instantiation is permitted in some contexts (namely for simplicity
 while processing class member explicit instantiations for IFC modules).  Return
-TRUE if in class instantiation is allowed, otherwise return FALSE.
+TRUE if in-class instantiation is allowed, otherwise return FALSE.
 */
 {
   a_boolean result = TRUE;

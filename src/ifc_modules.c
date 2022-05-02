@@ -1112,7 +1112,7 @@ static an_ifc_Node<an_ifc_Node_type> construct_node_from_module(
 Using the previously initialized and validated module source buffer, initialize
 and return a new IFC node of the given type.
 
-Direct use of this function is discouraged, prefer one of the other consturct_
+Direct use of this function is discouraged, prefer one of the other construct_
 functions that build upon this call.
 */
 {
@@ -1414,7 +1414,7 @@ specializations.  Return the associated pattern entity for this specialization.
 
 template<typename an_ifc_Node_type>
 static ifc_DeclIndex get_ifc_home_scope_decl(an_ifc_Node_type *decl,
-                                                      Overload_priority<0>)
+                                             Overload_priority<0>)
 /*
 An overload of get_ifc_home_scope_decl to fallback to if the default
 case (the decl having a home_scope field) isn't applicable, and
@@ -1431,7 +1431,7 @@ get_ifc_home_scope_decl(an_ifc_module, an_ifc_Node_type).
 template<typename an_ifc_Node_type>
 static auto get_ifc_home_scope_decl(an_ifc_Node_type *decl,
                                     Overload_priority<1>)
-                        -> Is_same<decltype(decl->home_scope), ifc_DeclIndex>
+                          -> Is_same<decltype(decl->home_scope), ifc_DeclIndex>
 /*
 An overload of get_ifc_home_scope_decl providing the default case (the
 decl having a home_scope field).
@@ -1486,19 +1486,18 @@ if there are no intervening abstractions).
 
 template<typename an_ifc_Node_type>
 static Opt<an_ifc_Ref<ifc_DeclIndex>> get_ifc_home_scope_decl(
-                                                    an_ifc_module    *mod,
-                                                    an_ifc_Node_type *decl)
+                                                        an_ifc_module    *mod,
+                                                        an_ifc_Node_type *decl)
 /*
 The default function for resolving the home scope of a given declaration.
 When default generation fails to provide a correct home scope, this template
 should be explicitly specialized to provide the correct behavior.
 
-decl is a pointer to the memory representing the node who's home scope should
+decl is a pointer to the memory representing the node whose home scope should
 retrieved.  mod is the corresponding module "owning" it.
 */
 {
-  ifc_DeclIndex index =
-                get_ifc_home_scope_decl(decl, Overload_priority<1>());
+  ifc_DeclIndex index = get_ifc_home_scope_decl(decl, Overload_priority<1>());
 
   return skip_scope_abstractions(an_ifc_Ref<ifc_DeclIndex>(mod, index));
 }  /* get_ifc_home_scope_decl */
@@ -1603,7 +1602,7 @@ Return the home scope of the declaration represented at decl in module mod.
    visit function that should be "overridden" by implementing derived
    classes. */
 /* FIXME: Upon moving to C++14 this class and its derivatives can be replaced
-   by a lambda based dispatch function template.  C++11 does not provide the
+   by a lambda based-dispatch function template.  C++11 does not provide the
    generic lambda facilities required to allow this implementation scheme. */
 template<typename a_Result_T, typename a_Derived_T>
 struct an_ifc_module::Decl_value_visitor {
@@ -1770,7 +1769,7 @@ Given a scope reference find and return the associated scope.
     a_type_ptr          assoc_type = NULL;
 
     scope_ref.mod->process_ifc_declaration(mep, /*defer=*/FALSE,
-                                            /*enumeration_type=*/NULL);
+                                           /*enumeration_type=*/NULL);
     if (!mep->invalid) {
       if (mep->entity.kind == iek_type) {
         assoc_type = (a_type_ptr)mep->entity.ptr;
@@ -5231,8 +5230,8 @@ a_ms_mode_parse::a_ms_mode_parse(an_ifc_module *mod)
       old_allow_in_class_specializations(allow_in_class_specializations),
       old_allow_in_class_instantiations(allow_in_class_instantiations)
 /*
-Temporarily enter a limit Microsoft mode that's catered to the compiler used to
-produce the IFC file to process Microsoft specific features in context.
+Temporarily enter a limited Microsoft mode that's catered to the compiler used
+to produce the IFC file to process Microsoft specific features in context.
 */
 {
   microsoft_mode = TRUE;
@@ -7529,7 +7528,7 @@ scope.  If it is, return the access level of the declaration.
   /* Check if the home scope of the given declaration is a class scope.  If it
      is, return the access level of the declaration. */
   Opt<an_ifc_Ref<ifc_DeclIndex>> opt_scope_ref =
-                                  get_ifc_home_scope_decl(this, decl);
+                                           get_ifc_home_scope_decl(this, decl);
   Opt<ifc_Access>                result;
 
   if (opt_scope_ref.has_value() && is_class_scope(*opt_scope_ref)) {
@@ -13443,9 +13442,9 @@ presence of a lazy-loadable definition.
     cache->last_token->variant.ifc_index.module = mod;
     /* FIXME: We cache a new semicolon here to avoid complicating
        full_specialization logic (which does not provide an easy way to
-       suppress the simicolon check), it might be better to rework this logic
+       suppress the semicolon check), it might be better to rework this logic
        to "insert" the tok_pending_ifc_func_body before the existing
-       simicolon. */
+       semicolon. */
     cache_token(cache, tok_semicolon, &null_source_position);
   }  /* if */
 }  /* maybe_cache_function_def */
@@ -13553,9 +13552,9 @@ static void cache_template_name(an_ifc_module      *mod,
                                 ifc_FormSpecIndex  form_idx,
                                 ifc_SourceLocation *locus)
 /*
-Add the tokens for the template-name portion of a simple-template-id following
-via the associated form spec (form_idx) to the cache.  locus is the location of
-the simple-template-id.  mod is the module where the form_idx and locus were
+Add the tokens for the template-name portion of a simple-template-id via the
+associated form spec (form_idx) to the cache.  locus is the location of the
+simple-template-id.  mod is the module where the form_idx and locus were
 encoded.
 */
 {
@@ -13598,7 +13597,8 @@ static void cache_simple_template_id(an_ifc_module      *mod,
                                      ifc_SourceLocation *locus)
 /*
 Add the tokens for a simple-template-id via the associated form spec (form_idx)
-to the cache.  locus is the location of the simple-template-id.
+to the cache.  locus is the location of the simple-template-id.  mod is the
+module where the form_idx and locus were encoded.
 */
 {
   cache_template_name(mod, cache, form_idx, locus);
@@ -13907,7 +13907,7 @@ END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
           { /* Reconstruct the templated declaration. */
             auto cache_name_fn = [this, cache, decl, idscp](
                                               a_source_position_ptr decl_pos) {
-              /* Constructors specializations are special cases that don't
+              /* Constructor specializations are special cases that don't
                  include the template argument list.  Call the lower level
                  cache_template_name instead of cache_simple_template_id. */
               cache_template_name(this, cache, decl->form, &idscp->locus);
