@@ -1743,7 +1743,7 @@ scope associated with it, it will continue to not have an associated scope.
 */
 {
   /* FIXME: Do we need to worry about scoped enums here? */
-  if (is_class_struct_union_type(tp)) {
+  if (is_immediate_class_type(tp)) {
     a_class_type_supplement_ptr ctsp;
     ctsp = class_type_supp(tp);
     if (ctsp->assoc_scope == NULL) {
