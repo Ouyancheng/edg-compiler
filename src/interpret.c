@@ -2432,13 +2432,24 @@ the interpreter's current call stack.
 
   if (frame != NULL) {
     for (; frame->parent != NULL; frame = frame->parent) {
-      if (frame->routine == NULL) {
+      a_routine_ptr  rp = frame->routine;
+      if (rp == NULL) {
         /* Ignore frames not associated with an actual call (this can happen
            with GNU statement expressions). */
         continue;
       }  /* if */
-      more_info_diagnostic(ec_constexpr_called_from, frame->variant.position,
-                           &ips->diag_list);
+      if (is_module_imported(rp)) {
+        /* Ordinarily, we just issue a note pointing to the call site.
+           However, for call sites imported from modules, we have no access to
+           the source code and so it is useful to actually name the calling
+           function. */
+        more_info_sym_diagnostic(ec_constexpr_called_from_rout,
+                                 frame->variant.position, symbol_for(rp),
+                                 &ips->diag_list);
+      } else {
+        more_info_diagnostic(ec_constexpr_called_from, frame->variant.position,
+                             &ips->diag_list);
+      }  /* if */
     }  /* for */
   }  /* if */
 }  /* info_call_stack */

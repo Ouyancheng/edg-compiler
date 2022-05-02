@@ -444,6 +444,34 @@ member, and NULL otherwise.
   ((ptr)->source_corresp.is_class_member ? parent_class_of(ptr)             \
                                          : (a_type_ptr)NULL)
 
+
+inline a_boolean scp_is_module_imported(a_source_correspondence  *scp)
+/*
+Return TRUE if the given source correspondence is for an entity imported from
+a module.
+*/
+{
+  a_boolean  result;
+
+  if (!scp->is_class_member) {
+    result = scp->module_entity != NULL;
+  } else {
+    a_type_ptr  parent_class = scp_parent_class(scp);
+    while (parent_class->source_corresp.is_class_member) {
+      parent_class = parent_class_of(parent_class);
+    }  /* if */
+    result = parent_class->source_corresp.module_entity != NULL;
+  }  /* if */
+  return result;
+}  /* scp_is_module_imported */
+
+/*
+Macro to determine whether an entity was imported from a module.
+*/
+#define is_module_imported(entry)                                            \
+  (scp_is_module_imported(&(entry)->source_corresp))
+
+
 /*
 Return TRUE if a dynamic_initializer is of a given kind.
 */

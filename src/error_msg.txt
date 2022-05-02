@@ -3337,6 +3337,7 @@ ec_srcloc_line_bounds;;"during the initialization of \"std::source_location::__i
 ec_utf16_char_lit_too_long;;"a UTF-16 character constant cannot occupy more than one code unit; value truncated"
 ec_both_arguments_must_have_same_type;;"both arguments must have the same type"
 ec_invalid_type_for_builtin;;"type %t is invalid as an argument for this builtin"
+ec_constexpr_called_from_rout;;"called from %nd:"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #
