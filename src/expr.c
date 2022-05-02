@@ -6018,8 +6018,8 @@ be a pointer to a complete type and may not be const-qualified.
   } else {
     check_arg_list_elem_is_expression(args);
     operand = operand_of_arg_list_elem(args);
-    if (is_an_lvalue(operand)) {
-      /* An rvalue is needed. */
+    if (is_a_glvalue(operand)) {
+      /* An prvalue is needed. */
       conv_glvalue_to_prvalue(operand);
     }  /* if */
     a_type_ptr arg_type = operand->type;
@@ -6088,8 +6088,8 @@ resulting return type is determined for the routine.
   } else {
     check_arg_list_elem_is_expression(args);
     op1 = operand_of_arg_list_elem(args);
-    if (is_an_lvalue(op1)) {
-      /* An rvalue is needed. */
+    if (is_a_glvalue(op1)) {
+      /* An prvalue is needed. */
       conv_glvalue_to_prvalue(op1);
     }  /* if */
     arg1_type = skip_typerefs(op1->type);
@@ -6100,8 +6100,8 @@ resulting return type is determined for the routine.
       if (bcap->n_args == 2) {
         op2 = operand_of_arg_list_elem(args->next);
         arg2_type = skip_typerefs(op2->type);
-        if (is_an_lvalue(op2)) {
-          /* An rvalue is needed. */
+        if (is_a_glvalue(op2)) {
+          /* An prvalue is needed. */
           conv_glvalue_to_prvalue(op2);
         }  /* if */
         if (is_error_type(arg1_type) || is_error_type(arg2_type) ||
