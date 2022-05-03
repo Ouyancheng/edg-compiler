@@ -6,7 +6,7 @@ GNU C++ compatibility: Relaxed checking for abstract class types
 C++20 relaxed the rules requiring that a function return type or parameter type
 be not abstract (see the entry for EDGcpfe/20032,EDGcpfe/21890).  However, GCC
 and Clang did not yet implement those revised rules.  GCC 11.x, however, has
-since implemented that relaxation and the front end now emulated that behavior
+since implemented that relaxation and the front end now emulates that behavior
 when gnu_version >= 110000.
 
 
