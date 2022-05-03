@@ -3,9 +3,10 @@ Version 6.4
 5/3/22   [EDGcpfe/22610,EDGcpfe/24792,EDGcpfe/25267]
 Abort on default argument for template declared with abbreviated syntax
 
-The front end previously aborted (null pointer indirection) when processing a
-default argument for a function template declared with abbreviated syntax.  For
-example (in C++20 mode):
+The front end previously aborted (null pointer indirection in function
+prescan_function_default_arg_expr, in class_decl.c) when processing a default
+argument for a function template declared with abbreviated syntax.  For example
+(in C++20 mode):
 
   void f(auto p, int q = {}) {}  // Previously aborted.  Now okay.
 
