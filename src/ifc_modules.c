@@ -1602,7 +1602,7 @@ Return the home scope of the declaration represented at decl in module mod.
    visit function that should be "overridden" by implementing derived
    classes. */
 /* FIXME: Upon moving to C++14 this class and its derivatives can be replaced
-   by a lambda based-dispatch function template.  C++11 does not provide the
+   by a lambda-based dispatch function template.  C++11 does not provide the
    generic lambda facilities required to allow this implementation scheme. */
 template<typename a_Result_T, typename a_Derived_T>
 struct an_ifc_module::Decl_value_visitor {
