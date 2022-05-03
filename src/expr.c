@@ -4914,6 +4914,8 @@ Only available in C mode.
   scan_expr_for_builtin_choose_expr(node, result, &err);
   if (err) {
     make_error_operand(result);
+  } else {
+    force_operand_to_constant_if_possible(result);
   }  /* if */
 }  /* scan_and_process_builtin_choose_expr_args */
 

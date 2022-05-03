@@ -1,5 +1,18 @@
 Version 6.4
 
+5/3/22   [EDGcpfe/23030,EDGcpfe/25062,EDGcpfe/25269]
+Failure to fold __builtin_choose_expr expression
+
+Consider in GNU C mode:
+
+  void g(void) {
+    static char buf[__builtin_choose_expr(1, 2, 3)];  // Previously an error.
+  }                                                   // Now okay.
+
+The front end previously failed to fold the call to __builtin_choose_expr,
+which in turn triggered an error.  That is now fixed.
+
+
 5/3/22   [EDGcpfe/22610,EDGcpfe/24792,EDGcpfe/25267]
 Abort on default argument for template declared with abbreviated syntax
 

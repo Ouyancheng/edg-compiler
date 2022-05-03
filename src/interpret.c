@@ -19069,6 +19069,18 @@ the value representation of the integer value.
         }  /* if */
       }
       break;
+#if BUILTIN_FUNCTIONS_ENABLED
+    case enk_builtin_choose_expr:
+      { an_expr_node_ptr  active_expr = expr->variant.builtin_choose_expr
+                                                     .operands->next;
+        if (!expr->variant.builtin_choose_expr.choose_first) {
+          active_expr = active_expr->next;
+        }  /* if */
+        result = do_constexpr_expression(ips, active_expr, result_storage,
+                                         complete_object);
+      }
+      break;
+#endif /* BUILTIN_FUNCTIONS_ENABLED */
     case enk_error:
       ips->input_error = TRUE;
       FALLTHROUGH
