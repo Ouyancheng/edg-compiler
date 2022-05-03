@@ -487,9 +487,13 @@ action to scan the cached tokens when the declaration is complete.
 
 *dps keeps track of the declaration of the function or member function (that
 declaration is not completed yet), and ptp represents the parameter associated
-with the default argument.  ptp->has_default_arg is set to TRUE at this time.
+with the default argument (or is NULL if the default argument should be
+ignored).  If ptp is non-NULL, ptp->has_default_arg is set to TRUE at this
+time.
 */
 {
+  uint32_t  param_num = 0;
+
   if (dps->routine_fixup == NULL) {
     /* This is the first default argument for this declaration: Allocate the
        associated routine fixup entry. */
@@ -500,11 +504,12 @@ with the default argument.  ptp->has_default_arg is set to TRUE at this time.
     add_end_of_parse_action(scan_cached_default_args, dps,
                             /*secondary_decls=*/FALSE);
   }  /* if */
+  if (ptp != NULL) param_num = ptp->param_num;
   prescan_default_function_arg_expr(
                             ptp, &dps->routine_fixup->def_arg_expr_fixup_list,
                             /*is_function_template=*/FALSE,
-                            /*is_friend_decl=*/FALSE, ptp->param_num);
-  ptp->has_default_arg = TRUE;
+                            /*is_friend_decl=*/FALSE, param_num);
+  if (ptp != NULL) ptp->has_default_arg = TRUE;
 }  /* prescan_function_default_arg_expr */
 
 
