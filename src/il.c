@@ -25006,7 +25006,7 @@ the case if the return type was incomplete at the point of definition.
            for abstract classes.  Also note that this logic assumes that
            value_returned_by_cctor will never be set elsewhere. */
         if (return_type->variant.class_struct_union.abstract) {
-          if (err_pos->seq == 0 || relaxed_abstract_checking ||
+          if (err_pos->seq == 0 || (gpp_version_is(>=110000) && cpp20_mode) ||
               gpp_version_is(<50000) || clang_mode) {
             /* A null error position indicates a routine type for which
                there is no corresponding source position -- e.g., a type is

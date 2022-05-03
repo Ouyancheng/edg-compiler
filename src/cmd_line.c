@@ -5483,8 +5483,7 @@ before this routine is called.
       relaxed_specialization_access_checking = TRUE;
     }  /* if */
   }  /* if */
-  if (!option_kind_used[(int)optk_relaxed_abstract_checking] &&
-      !gpp_version_is(>= 110000)) {
+  if (!option_kind_used[(int)optk_relaxed_abstract_checking]) {
     /* g++ (9.2) and clang (9.0) do not yet implement P0929R2. */
     relaxed_abstract_checking = FALSE;
   }  /* if */
