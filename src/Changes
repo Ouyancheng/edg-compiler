@@ -15,7 +15,8 @@ Consider in Microsoft C++ mode:
 
 Previously, this aborted with an internal error in expr.c (in function
 prep_new_object_init_no_initializer, with message "scan_new_operator: non-POD
-class has neither actual nor assumed ctor").  That is now fixed.
+class has neither actual nor assumed ctor").  That is now fixed.  In some other
+cases, the problem manifested as a spurious error instead of an internal error.
 
 
 5/4/22   [EDGcpfe/25082]
