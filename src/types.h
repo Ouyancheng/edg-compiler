@@ -277,6 +277,8 @@ extern a_boolean is_class_or_handle_to_class_type(a_type_ptr  tp);
 #else /* !MICROSOFT_EXTENSIONS_ALLOWED */
 /*lint -emacro(506,is_immediate_managed_class_type)*/
 #define is_immediate_managed_class_type(tp) FALSE
+#define is_immediate_standard_class_type(tp)                                 \
+  is_immediate_class_type(tp)
 /*lint -emacro(506,is_value_class_type)*/
 #define is_value_class_type(tp) FALSE
 #define is_class_or_handle_to_class_type(tp)  is_class_struct_union_type(tp)
