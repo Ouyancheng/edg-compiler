@@ -1,5 +1,23 @@
 Version 6.4
 
+5/4/22   [EDGcpfe/18060,EDGcpfe/25226]
+Abort or spurious error on Microsoft-mode new-expression
+
+Consider in Microsoft C++ mode:
+
+  struct S {
+    union {
+      int const ic ;
+      int i;
+    } u;
+  };
+  auto p = new S;  // Previously triggered an internal error.  Now okay.
+
+Previously, this aborted with an internal error in expr.c (in function
+prep_new_object_init_no_initializer, with message "scan_new_operator: non-POD
+class has neither actual nor assumed ctor").  That is now fixed.
+
+
 5/4/22   [EDGcpfe/25082]
 C++-generating back end: template parameter names with generic nested lambda
 

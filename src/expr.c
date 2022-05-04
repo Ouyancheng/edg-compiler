@@ -21454,7 +21454,12 @@ initializer was provided.
       }  /* if */
     } else if (expr_reference_to_trivial_default_constructor(
                                                        nps->base_new_type,
-                                                       &nps->type_position)) {
+                                                       &nps->type_position) ||
+               (nps->cssp != NULL &&
+                nps->cssp->trivial_default_constructor == NULL &&
+                has_trivial_default_constructor(nps->cssp) &&
+                !is_const_qualified_type(nps->new_type) &&
+                is_immediate_standard_class_type(nps->unqual_base_new_type))) {
       /* The class has an assumed trivial default constructor. */
       do_const_test = TRUE;
       is_generated_ctor = TRUE;
