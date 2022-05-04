@@ -1,5 +1,23 @@
 Version 6.4
 
+5/4/22   [EDGcpfe/25082]
+C++-generating back end: template parameter names with generic nested lambda
+
+In configurations in which the definition of a template is generated from
+the prototype instantiation IL, the presence of a nested generic lambda
+with an explicit template parameter list could cause subsequent uses of the
+template parameters of the containing template to be put out as the names
+of the corresponding parameters of the nested generic lambda instead of
+their correct names.  This is now fixed.  For example, with --c++20
+--parse_templates:
+
+  template <typename T> bool test = true;
+  template <typename U> constexpr void f() {
+    auto l = []<typename LT>() {};
+    if constexpr (test<U>);   // Previously generated as test<LT>
+  }
+
+
 5/3/22   [EDGcpfe/23030,EDGcpfe/25062,EDGcpfe/25269]
 Failure to fold __builtin_choose_expr expression
 

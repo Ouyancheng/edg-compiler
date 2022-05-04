@@ -1674,13 +1674,16 @@ static a_template_nesting_depth template_param_map_max_level;
 /*
 The following structure is used to record the previous mapping for a
 template parameter name so it can be restored after being overwritten by a
-friend declaration inside a class template.  This happens when the friend
-declaration is matched to an existing template declaration: the coordinates
-will be those of the original declaration of the friend, so the mappings
-from the friend declaration overwrite those of the class template
-containing the friend declaration, and they must be restored so that
-subsequent references to the containing class template's parameters will
-use the correct names.
+nested template (friend template or generic lambda) inside another
+template.  This happens when a friend declaration is matched to an existing
+template declaration: the coordinates will be those of the original
+declaration of the friend, so the mappings from the friend declaration
+overwrite those of the class template containing the friend declaration,
+and they must be restored so that subsequent references to the containing
+class template's parameters will use the correct names.  A similar problem
+occurs when a generic lambda with an explicit template parameter list
+appears inside another template, as the lambda's parameters' coordinates
+can be the same as those of the containing template.
 */
 typedef struct a_saved_template_param_mapping
                                            *a_saved_template_param_mapping_ptr;
