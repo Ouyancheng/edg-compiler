@@ -1,5 +1,28 @@
 Version 6.4
 
+5/5/22   [EDGcpfe/25271]
+Spurious constant-evaluation error on generic GNU-mode initializer
+
+Consider, in GNU C++14 mode:
+
+  struct S {
+    char c;
+    constexpr S() : c{'a'} {}
+    constexpr S(char c) : c{c} {}
+  };
+  template<typename> constexpr void g() {
+    constexpr S sa[]{'a'};              // (1)
+    static_assert(sa[0].a == 'a', "");  // Previously an error.  Now okay.
+  }
+
+In GNU C++ mode, the initializer in (1) is not matched to the destination type.
+That makes it impossible for the constant-evaluator to correctly evaluate the
+static_assert expression that follows, and previously that resulted in a
+spurious assertion failure.  Now, the static_assert condition is essentially
+treated as dependent during the prototype instantiation of g() and thus no
+error is emitted.
+
+
 5/5/22   [EDGcpfe/24382,EDGcpfe/25266]
 GNU compatibility: Enable VLAs with --ms_extensions
 

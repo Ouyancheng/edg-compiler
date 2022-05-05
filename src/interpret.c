@@ -4880,11 +4880,19 @@ extract_value_from_constant for the meaning of the parameters.
   a_boolean  result;
 
   if (constant_is(con, ck_integer) && !con->implicit_cast) {
-    *(an_integer_value *)value = con->variant.integer_value;
-    result = TRUE;
+    if (con->is_generic_initializer) {
+      do_constexpr_fail(result);
+    } else {
+      *(an_integer_value *)value = con->variant.integer_value;
+      result = TRUE;
+    }  /* if */
   } else if (constant_is(con, ck_float)) {
-    *fp_value(value) = (con)->variant.float_value;
-    result = TRUE;
+    if (con->is_generic_initializer) {
+      do_constexpr_fail(result);
+    } else {
+      *fp_value(value) = (con)->variant.float_value;
+      result = TRUE;
+    }  /* if */
   } else {
     result = extract_value_from_constant(ips, con,
                                          value, complete_object,

@@ -8876,7 +8876,8 @@ alloc_shareable_constant would return a shareable constant.
                 "constant_is_shareable: implicitly-cast const has assoc_info");
     }  /* if */
 #endif /* CHECKING */
-  } else if (cp->expr != NULL || cp->source_corresp.decl_position.seq != 0) {
+  } else if (cp->expr != NULL || cp->source_corresp.decl_position.seq != 0 ||
+             cp->is_generic_initializer) {
     /* Constants with backing expressions or associated with specific
        source positions should not be shared. */
     shareable = FALSE;
@@ -20577,6 +20578,14 @@ options.
       }  /* if */
       con_copy = NULL;
     }  /* if */
+  } else if (con->is_generic_initializer) {
+    /* If the original constant was treated as a "generic initializer", create
+       a copy without that flag since the substitution removes the "generic"
+       aspect of that value. */
+    copy_constant(con, constant);
+    constant->expr = NULL;
+    constant->is_generic_initializer = FALSE;
+    con_copy = NULL;
   } else {
     /* The original constant is returned. */
     copy_constant_for_rescan_if_needed(&con_copy, constant, options);
@@ -24657,7 +24666,7 @@ Called from traverse_expr to check whether the constant is
 instantiation-dependent.
 */
 {
-  if (constant_is(con, ck_template_param)) {
+  if (constant_is(con, ck_template_param) || con->is_generic_initializer) {
     tblock->result = TRUE;
     tblock->terminate = TRUE;
   } else if (constant_is(con, ck_address)) {
