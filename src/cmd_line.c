@@ -11692,6 +11692,11 @@ enable_microsoft_mode:
       microsoft_version = 1900;
     }  /* if */
     set_microsoft_mode_flags();
+#if VLA_ALLOWED
+    if (!(option_kind_used[(int)optk_vla])) {
+      vla_enabled = TRUE;
+    }  /* if */
+#endif /* VLA_ALLOWED */
     if (!C_mode()) {
       /* Reset flags that were set in check_and_set_default_cpp11_extensions
          as appropriate. */
