@@ -15038,7 +15038,8 @@ the value representation of the integer value.
             break;
           case eok_vector_fill:
             /* Copy the operand to every slot of the result. */
-            { int     k, len = tp->size/opnd1_type->size;
+            { a_type_ptr  etp = skip_typerefs(tp->variant.vector.element_type);
+              int         k, len = tp->size/etp->size;
               a_byte  *dst = result_storage;
               for (k = 0; k<len; ++k) {
                 (void)memcpy(dst, opnd1_value, opnd_n_bytes);
