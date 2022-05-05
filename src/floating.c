@@ -482,7 +482,10 @@ end of frac.
   the_byte = *(pos - 1) & MASK_BITS(zbits);
   while (pos != frac && *--pos == 0) {
     zbits += BYTE_SIZE;
-    the_byte = *(pos - 1);
+    if (pos != frac) {
+      /* Prevent reading byte before buffer. */
+      the_byte = *(pos - 1);
+    }  /* if */
   }  /* while */
   if (*pos == 0) {
     /* All bits are zero, and we've overestimated the value. */
