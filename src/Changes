@@ -1,6 +1,6 @@
 Version 6.4
 
-5/4/22   [EDGcpfe/18060,EDGcpfe/25226]
+5/4/22   [EDGcpfe/25226]
 Abort or spurious error on Microsoft-mode new-expression
 
 Consider in Microsoft C++ mode:
