@@ -1,5 +1,19 @@
 Version 6.4
 
+5/5/22   [EDGcpfe/25275]
+Comparison on NaN values
+
+Consider (in GNU C++ modes):
+
+  constexpr float g() { return __builtin_nan(""); }
+  static_assert(g() != 0.0f, "");  // Previously an error.  Now okay.
+
+Previously, the front end treated any comparison against a not-a-number (NaN)
+constant as non-constant, and thus the static_assert above failed due to its
+condition not being constant.  Now, the comparisons against non NaN values are
+always treated as not-equal and the example above is accepted.
+
+
 5/5/22   [EDGcpfe/25281]
 Problems with very long macro definitions
 

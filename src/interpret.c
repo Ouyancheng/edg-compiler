@@ -16244,16 +16244,10 @@ the value representation of the integer value.
               if (fp_compare(opnd1_type->variant.float_kind,
                              fp_value(opnd1_value),
                              fp_value(opnd2_value),
-                             &unord) == 0) {
+                             &unord) == 0 && !unord) {
                 *(an_integer_value *)result_storage = one_int;
               } else {
                 *(an_integer_value *)result_storage = zero_int;
-              }  /* if */
-              if (unord) {
-                /* The floating-point values are not comparable. */
-                info_with_pos(ec_constexpr_fp_values_not_comparable,
-                              &expr->position, ips);
-                do_constexpr_fail(result);
               }  /* if */
             } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
               /* Pointer operands. */
@@ -16352,16 +16346,10 @@ the value representation of the integer value.
               if (fp_compare(opnd1_type->variant.float_kind,
                              fp_value(opnd1_value),
                              fp_value(opnd2_value),
-                             &unord) != 0) {
+                             &unord) != 0 || unord) {
                 *(an_integer_value *)result_storage = one_int;
               } else {
                 *(an_integer_value *)result_storage = zero_int;
-              }  /* if */
-              if (unord) {
-                /* The floating-point values are not comparable. */
-                info_with_pos(ec_constexpr_fp_values_not_comparable,
-                              &expr->position, ips);
-                do_constexpr_fail(result);
               }  /* if */
             } else if (opnd1_type->kind == (a_type_kind)tk_pointer) {
               /* Pointer operands. */
