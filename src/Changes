@@ -1,7 +1,7 @@
 Version 6.4
 
 5/5/22   [EDGcpfe/25275]
-Comparison on NaN values
+Comparison against NaN values
 
 Consider (in GNU C++ modes):
 
@@ -10,7 +10,7 @@ Consider (in GNU C++ modes):
 
 Previously, the front end treated any comparison against a not-a-number (NaN)
 constant as non-constant, and thus the static_assert above failed due to its
-condition not being constant.  Now, the comparisons against non NaN values are
+condition not being constant.  Now, comparisons against non-NaN values are
 always treated as not-equal and the example above is accepted.
 
 
