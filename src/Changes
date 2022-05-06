@@ -1,5 +1,19 @@
 Version 6.4
 
+5/6/22   [EDGcpfe/21959,EDGcpfe/25279]
+Qualified unnamed bit field types
+
+The resolution of Core issue 2229 has made const/volatile-qualified types
+invalid for unnamed bit fields.  Most compilers appear not to enforce this
+constraint, but Clang does.  The front end now issues a discretionary error
+when the constraint is violated in strict mode or in Clang modes with
+clang_version >= 70000.  In other modes, a warning is issued.  For example:
+
+  struct S {
+    int const : 5;  // Now a warning or discretionary error, depending on
+  };                // the mode.
+
+
 5/6/22   [EDGcpfe/25283]
 Microsoft-mode braced default argument
 
