@@ -14,19 +14,6 @@ condition not being constant.  Now, the comparisons against non NaN values are
 always treated as not-equal and the example above is accepted.
 
 
-5/5/22   [EDGcpfe/25281]
-Problems with very long macro definitions
-
-The front end previously did not correctly process extremely large macro
-definitions (several million bytes, at a minimum).  The resulting problems
-could range from incorrect macro expansions to, in configurations with
-RECORD_MACROS_IN_IL set to TRUE, assertion failures in make_il_macro_entry.
-This problem has been addressed by increasing the size of offsets within
-the internal macro representation from 24 to 32 bits and, in configurations
-with EXPENSIVE_CHECKING set to TRUE, validating each offset appearing in
-the macro representation to ensure that it has the intended value.
-
-
 5/5/22   [EDGcpfe/25276]
 Incorrect constant-evaluation of vector-fill operation
 

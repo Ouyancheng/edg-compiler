@@ -734,29 +734,15 @@ Fetch a multi-byte number from a macro-definition string.  Return it in
 num.  rtp points to the first byte of the number; it is advanced
 past the number on return.
 */
-#define NUM_BYTES_IN_MULTI_BYTE_REPL_TEXT_NUMBER 4
-#define get_macro_repl_text_number(num, rtp)                     \
+#define NUM_BYTES_IN_MULTI_BYTE_REPL_TEXT_NUMBER 3
+#define get_macro_repl_text_number(num, rtp)                          \
 { sizeof_t temp = 0;                                             \
   temp  = (sizeof_t)*(a_byte *)rtp++;                            \
   temp |= (sizeof_t)(*(a_byte *)rtp++) << CHAR_BIT;              \
   temp |= (sizeof_t)(*(a_byte *)rtp++) << (CHAR_BIT*2);          \
-  temp |= (sizeof_t)(*(a_byte *)rtp++) << (CHAR_BIT*3);          \
-  num = temp;                                                    \
+  num = temp;                                                         \
 }  /* get_macro_repl_text_number */
 
-#if EXPENSIVE_CHECKING
-/* Make sure that the number just written is the same as the source. */
-#define verify_macro_repl_text_number(orig_num, rtp)                    \
-{ a_byte   *local_rtp;                                                  \
-  sizeof_t written_num = 0;                                             \
-  local_rtp = (a_byte *)rtp - NUM_BYTES_IN_MULTI_BYTE_REPL_TEXT_NUMBER; \
-  get_macro_repl_text_number(written_num, local_rtp);                   \
-  check_assertion_str(written_num == orig_num,                          \
-                      "macro replacement number format too small");     \
-}  /* verify_macro_repl_text_number */
-#else /* !EXPENSIVE_CHECKING */
-#define verify_macro_repl_text_number(orig_num, rtp)  /* nothing */
-#endif /* EXPENSIVE_CHECKING */
 
 /*
 Put a multi-byte number (num) into a macro-definition string. rtp points
@@ -764,12 +750,10 @@ to the first byte of the number; it is advanced past the number on return.
 */
 #define PN_BYTE_MASK ((1 << CHAR_BIT) - 1)
 #define put_macro_repl_text_number(num, rtp)                          \
-{ sizeof_t temp = num;                                                \
+{ sizeof_t temp = num;                                           \
   *(a_byte *)rtp++ = (a_byte)(temp                   & PN_BYTE_MASK); \
   *(a_byte *)rtp++ = (a_byte)((temp >> CHAR_BIT)     & PN_BYTE_MASK); \
   *(a_byte *)rtp++ = (a_byte)((temp >> (CHAR_BIT*2)) & PN_BYTE_MASK); \
-  *(a_byte *)rtp++ = (a_byte)((temp >> (CHAR_BIT*3)) & PN_BYTE_MASK); \
-  verify_macro_repl_text_number(num, rtp);                            \
 }  /* put_macro_repl_text_number */
 
 
