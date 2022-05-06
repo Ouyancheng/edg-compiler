@@ -5786,7 +5786,7 @@ any subobject that is not initialized (the diagnostic is associated with pos).
   if (subobject_is_initialized(src_bytes, complete_src)) {
     mark_subobject_initialized(dst_bytes, complete_dst);  
   } else if (is_immediate_class_type(tp) &&
-             (tp->variant.class_struct_union.is_empty_class ||
+             (tp->variant.class_struct_union.no_proper_data ||
               (cpp20_mode && !type_is(tp, tk_union)))) {
     /* Empty class type objects are always considered "initialized".  Also, in
        C++20, a class type object is not considered uninitialized if each 
@@ -12428,9 +12428,7 @@ conversion to an rvalue is forced externally.
   } else if (expr->volatile_fetch) {
     do_constexpr_fail(result);
     info_with_pos(ec_constexpr_volatile_fetch, &expr->position, ips);
-  } else if (!is_initialized(cap) &&
-             !(is_immediate_class_type(tp) &&
-               tp->variant.class_struct_union.is_empty_class)) {
+  } else if (!is_initialized(cap) && !is_immediate_class_type(tp)) {
     do_constexpr_fail(result);
     info_with_pos(ec_object_not_initialized, &expr->position, ips);
   } else if (is_variant_path(cap) &&

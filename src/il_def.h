@@ -9799,6 +9799,11 @@ typedef struct a_type {
 			   Computed in do_class_layout.  In GNU C mode, this
 			   is also TRUE for zero-sized classes. */
       a_bit_field
+		no_proper_data:1;
+			/* TRUE if this class has no non-inherited data members
+			   (excluding unnamed bit fields) and no virtual
+			   functions or virtual base classes. */
+      a_bit_field
 		has_zero_init_component:1;
 			/* TRUE if an object of this type has no nontrivial
 			   default constructor, or if a call to that

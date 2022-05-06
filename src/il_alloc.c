@@ -1861,6 +1861,7 @@ incomplete (which affects the recorded size and alignment).
   class_type->variant.class_struct_union.
                                nested_class_defined_outside_of_parent = FALSE;
   class_type->variant.class_struct_union.is_empty_class = FALSE;
+  class_type->variant.class_struct_union.no_proper_data = FALSE;
 #if MICROSOFT_EXTENSIONS_ALLOWED
     /* A delegate must be a defined ref class.  If the definition is discarded,
        it should be treated as an ordinary ref class. */

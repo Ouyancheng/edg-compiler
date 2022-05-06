@@ -1291,6 +1291,10 @@ typedef struct a_class_def_state {
 			   been seen. */
   a_bit_field	defaulted_spaceship:1;
 			/* TRUE if a defaulted operator<=> has been seen. */
+  a_bit_field	has_proper_data:1;
+			/* TRUE if the class has a non-inherited data member
+			   other than an unnamed bit field or a Microsoft
+			   "property" field. */
   an_access_specifier
 		access;
 			/* The current access. */
@@ -1379,6 +1383,7 @@ class being defined.
   cdsp->has_inheriting_constructors = FALSE;
   cdsp->any_defaulted_special_members = FALSE;
   cdsp->defaulted_spaceship = FALSE;
+  cdsp->has_proper_data = FALSE;
   cdsp->access = (an_access_specifier)as_public;
 #if MICROSOFT_EXTENSIONS_ALLOWED
   cdsp->assembly_access = (an_access_specifier)as_public;
@@ -1399,7 +1404,6 @@ class being defined.
 }  /* initialize_class_def_state */
 
 /* Forward declarations. */
-static void wrapup_base_classes(a_class_def_state_ptr  class_state);
 
 static void complete_class_definition(a_type_ptr         class_type,
                                       a_scope_depth      effective_decl_level,
@@ -20823,7 +20827,7 @@ be entered.
         cssp->makes_move_assignment_nontrivial = TRUE;
       }  /* if */
     }  /* if */
-  }
+  }  /* if */
   /* Note if any member (or member of a member, recursively) has a
      volatile-qualified type, to handle side effects and warnings
      correctly. */
@@ -20947,9 +20951,13 @@ be entered.
           class_state->cpp03_POD_ruled_out = TRUE;
         }  /* if */
       }  /* if */
+      if (!tp->variant.class_struct_union.is_empty_class) {
+        class_state->has_proper_data = TRUE;
+      }  /* if */
     } else {
       /* The field's type is an array of nonclass elements. */
       class_type->variant.class_struct_union.has_zero_init_component = TRUE;
+      class_state->has_proper_data = TRUE;
     }  /* if */
   } else {
     if (!(unnamed_field && field->is_bit_field)) {
@@ -20957,6 +20965,7 @@ be entered.
          do not have a class (or array of class) type may need to be zero-
          initialized. */
       class_type->variant.class_struct_union.has_zero_init_component = TRUE;
+      class_state->has_proper_data = TRUE;
     }  /* if */
     if (!C_mode() && !class_state->cpp03_POD_ruled_out) {
       if (is_any_reference_type(member_type)) {
@@ -31723,6 +31732,12 @@ wrap_up_class_definition.
        appropriate. */
     set_shares_virtual_function_info_flag(class_type,
                                           (a_base_class_ptr)NULL);
+  }  /* if */
+  if (!class_state->has_proper_data &&
+      !class_type->variant.class_struct_union.any_virtual_base_classes &&
+      !class_type->variant.class_struct_union
+                          .any_virtual_functions_including_in_base_classes) {
+    class_type->variant.class_struct_union.no_proper_data = TRUE;
   }  /* if */
   /* Do subobject allocation and compute the size and alignment of the
      class. */

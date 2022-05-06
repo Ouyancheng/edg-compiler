@@ -1,5 +1,26 @@
 Version 6.4
 
+5/6/22   [EDGcpfe/25242]
+Spurious error on constant-evaluation access of derivation with no data
+
+Consider:
+
+  template <typename T> constexpr void g(T) {}
+  template<typename T> struct B {
+    constexpr B() : c{} {
+      g(*static_cast<T*>(this));  // (1)
+    }
+    char c;
+  };
+  struct D : B<D> {};
+  constexpr D d = D{};  // Previously an error.  Now okay.
+
+Previously, this triggered an error because the evaluation of line (1) required
+the copying of a class value of type D that was not technically completely
+initialized (since the constructor of D itself had not completed).  Now, such
+code is accepted because D has no actual data of its own.
+
+
 5/6/22   [EDGcpfe/21959,EDGcpfe/25279]
 Qualified unnamed bit field types
 

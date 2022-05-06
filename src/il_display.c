@@ -2418,6 +2418,9 @@ Display the indicated type entry.
       if (ptr->variant.class_struct_union.is_empty_class) {
         disp_boolean("is_empty_class", TRUE);
       }  /* if */
+      if (ptr->variant.class_struct_union.no_proper_data) {
+        disp_boolean("no_proper_data", TRUE);
+      }  /* if */
       if (ptr->variant.class_struct_union.has_zero_init_component) {
         disp_boolean("has_zero_init_component", TRUE);
       }  /* if */
