@@ -54,8 +54,8 @@ error is emitted.
 5/5/22   [EDGcpfe/24382,EDGcpfe/25266]
 GNU compatibility: Enable VLAs with --ms_extensions
 
-A change has been made to enable VLAs with in GNU and Clang emulation modes
-when using --ms_extensions.
+A change has been made to enable VLAs in GNU and Clang emulation modes when
+using --ms_extensions.
 
 
 5/4/22   [EDGcpfe/25226]
