@@ -8878,8 +8878,9 @@ alloc_shareable_constant would return a shareable constant.
 #endif /* CHECKING */
   } else if (cp->expr != NULL || cp->source_corresp.decl_position.seq != 0 ||
              cp->is_generic_initializer) {
-    /* Constants with backing expressions or associated with specific
-       source positions should not be shared. */
+    /* Constants with backing expressions or associated with specific source
+       positions should not be shared.  Similarly, a constant that is used as
+       a generic initializer is context-specific and should not be shared. */
     shareable = FALSE;
   } else {
     switch (cp->kind) {
