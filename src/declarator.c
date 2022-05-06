@@ -3425,8 +3425,7 @@ an error if a default argument expression is encountered.
           /* Note: whether to remove top-level qualifiers is sensitive to the
              ABI version because qualifiers are reflected in mangled names. */
           check_assertion(!C_mode());
-          param_qualifiers = get_top_level_type_qualifiers(
-                                                   param_state.declared_type);
+          param_qualifiers = get_top_level_type_qualifiers(param_state.type);
           param_state.type = make_unqualified_type(param_state.type);
           if (param_qualifiers & TQ_C11_ATOMIC) {
             param_state.type = make_qualified_type(param_state.type,
@@ -4480,19 +4479,22 @@ constant.
                                          (a_upc_block_size *)NULL);
     if (top_level_param_decl) {
       /* This is a top-level declaration of a function parameter type. */
-      /* Only C99 mode allows cv-qualifiers.  restrict is allowed in
-         any mode where the keyword is enabled.  Named-address space
-         qualifiers are not allowed in any mode. */
+      /* Only C99 mode allows cv-qualifiers.  restrict and Clang nullability
+         qualifiers are allowed in any mode where they are enabled.  Named-
+         address space qualifiers are not allowed in any mode. */
+      a_type_qualifier_set  mask = TQ_RESTRICT | TQ_NULLABILITY;
+      if (c99_mode) {
+        mask |= TQ_CONST | TQ_VOLATILE;
+      }  /* if */
 #if NAMED_ADDRESS_SPACES_ALLOWED
       if (named_address_space_from_qualifier_set(qualifiers) != 0) {
         pos_error(ec_named_address_space_not_allowed, &qualifier_pos);
         qualifiers = simple_qualifiers(qualifiers);
       }  /* if */
 #endif /* NAMED_ADDRESS_SPACES_ALLOWED */
-      if (!c99_mode && ((qualifiers & TQ_RESTRICT) != qualifiers)) {
+      if ((qualifiers & mask) != qualifiers) {
         pos_error(ec_type_qualifier_not_allowed, &qualifier_pos);
-        qualifiers &= c99_mode ? TQ_RESTRICT | TQ_CONST | TQ_VOLATILE
-                               : TQ_RESTRICT;
+        qualifiers &= mask;
       }  /* if */
     } else {
       /* This is not a top-level declarator for a parameter, so "restrict"
