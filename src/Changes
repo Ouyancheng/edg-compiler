@@ -1,5 +1,18 @@
 Version 6.4
 
+5/6/22   [EDGcpfe/25283]
+Microsoft-mode braced default argument
+
+Consider in C++20:
+
+  void f(auto p, int q = {}) {}  // Now also accepted in Microsoft C++20 mode.
+
+The changes for EDGcpfe/22610,EDGcpfe/24792,EDGcpfe/25267 eliminated an abort
+on the default argument and caused the example to be accepted is default C++20
+mode.  However, in Microsoft C++20 mode, a spurious error was issued.  That is
+now also fixed.
+
+
 5/5/22   [EDGcpfe/25275]
 Comparison against NaN values
 

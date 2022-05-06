@@ -45448,7 +45448,9 @@ function.
                             (a_conv_descr_ptr)NULL,
                             ec_bad_default_arg_type);
     }  /* if */
-  } else {
+  } else if (!is_braced_init_list_operand(&result)) {
+    /* The default argument is ignored, but we still apply default operand
+       transformations. */
     do_operand_transformations(&result, TOPT_NO_OPTIONS);
   }  /* if */
   node = make_node_from_operand(&result);
