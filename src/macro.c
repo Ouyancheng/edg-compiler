@@ -7985,7 +7985,7 @@ a new section if the current one is full.
     rtp = *curr_text_section + 1;
     get_macro_repl_text_number(sect_len, rtp);
     if (MAX_REPL_TEXT_NUMBER - sect_len < length) {
-      /* Adding the next text would exceed the maximum size for a section.
+      /* Adding this string would exceed the maximum size for a section.
          Start a new one. */
       *curr_text_section = NULL;
     }  /* if */
