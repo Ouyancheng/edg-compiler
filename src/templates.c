@@ -25271,14 +25271,12 @@ declaration is a friend declaration.
 }  /* cache_template_declaration */
 
 
-static a_template_nesting_depth template_nesting_depth(
-                                                a_boolean only_class_templates)
+static a_template_nesting_depth template_nesting_depth(void)
 /*
-Computes the nesting depth of the current template declaration scope.  The
-nesting depth indicates the number of template instantiation scopes
-(excluding non-class template scopes if only_class_templates is TRUE) that
-enclose the current one.  If no template instantiation scopes are present,
-the nesting depth "0" is used.
+Computes the nesting depth of the current template declaration scope.
+The nesting depth indicates the number of template instantiation scopes
+that enclose the current one.  If no template instantiation scopes are
+present, the nesting depth "0" is used. 
 */
 {
   a_template_nesting_depth	curr_depth = 0;
@@ -25288,13 +25286,11 @@ the nesting depth "0" is used.
      because only active instantiation scopes will be on the linked
      list of previous scopes that are examined.  Microsoft specialization
      scopes are ignored because they represent specializations and not
-     actual instantiations.  Ignore scopes without types as they are used to
-     establish contexts for the definitions of entities, such as C++/CLI
-     generics. */
+     actual instantiations. */
   for (; ssep != NULL; ssep = previous_scope_of(ssep)) {
     if (ssep->kind == (a_scope_kind)sck_template_instantiation) {
       if (!ssep->microsoft_specialization_instantiation_scope &&
-          (ssep->assoc_type != NULL || !only_class_templates)) {
+          ssep->template_arg_list != NULL) {
         curr_depth++;
       }  /* if */
     }  /* if */
@@ -33563,8 +33559,7 @@ declaration.  Set the nesting_depth assuming we are not in a friend
 declaration.  This will be updated later, if needed.
 */
 {
-  decl_state->nesting_depth =
-                         template_nesting_depth(/*only_class_templates=*/TRUE);
+  decl_state->nesting_depth = template_nesting_depth();
 #if MICROSOFT_EXTENSIONS_ALLOWED
   if (decl_state->is_generic) {
     /* For generic declarations, determine the number of enclosing generic
@@ -34269,9 +34264,9 @@ with the lambda declarator.
   templ_state->in_generic_definition = scope_stack_top().in_generic_definition;
   templ_state->enclosing_scope = scope_stack_top().il_scope;
   /* Determine the nesting depth to be used for the member template. */
-  templ_state->nesting_depth =
-                    template_nesting_depth(/*class_templates_only=*/FALSE) + 1;
+  nesting_depth_of_template(templ_state);
   /* Create the template parameters. */
+  templ_state->nesting_depth += 1;
   templ_state->number_of_template_param_clauses += 1;
   /* Background caching was already started by top-level lambda processing. */
   templ_state->caching_tokens = TRUE;
