@@ -1674,16 +1674,13 @@ static a_template_nesting_depth template_param_map_max_level;
 /*
 The following structure is used to record the previous mapping for a
 template parameter name so it can be restored after being overwritten by a
-nested template (friend template or generic lambda) inside another
-template.  This happens when a friend declaration is matched to an existing
-template declaration: the coordinates will be those of the original
-declaration of the friend, so the mappings from the friend declaration
-overwrite those of the class template containing the friend declaration,
-and they must be restored so that subsequent references to the containing
-class template's parameters will use the correct names.  A similar problem
-occurs when a generic lambda with an explicit template parameter list
-appears inside another template, as the lambda's parameters' coordinates
-can be the same as those of the containing template.
+friend declaration inside a class template.  This happens when the friend
+declaration is matched to an existing template declaration: the coordinates
+will be those of the original declaration of the friend, so the mappings
+from the friend declaration overwrite those of the class template
+containing the friend declaration, and they must be restored so that
+subsequent references to the containing class template's parameters will
+use the correct names.
 */
 typedef struct a_saved_template_param_mapping
                                            *a_saved_template_param_mapping_ptr;
@@ -1691,8 +1688,6 @@ typedef struct a_saved_template_param_mapping {
   a_saved_template_param_mapping_ptr
 		next;	/* Points to the next saved mapping, either on the
 			   active or the free list. */
-  int		depth;	/* The value of saved_mappings_depth to which this
-			   record corresponds. */
   a_template_param_coordinate
 		coord;	/* The coordinates of the mapped parameter. */
   a_source_correspondence_ptr
@@ -1711,14 +1706,11 @@ static a_saved_template_param_mapping_ptr
 			/* Free template parameter mappings that are
 			   available for reuse. */
 
-static int	saved_mappings_depth;
-			/* The number of calls to
-			   save_template_param_mappings for which the
-			   corresponding call to
-			   restore_template_param_mappings has not yet
-			   occurred.  When non-zero, remap_template_param
-			   will save the existing mapping before
-			   overwriting it with the new mapping. */
+static a_boolean
+		saving_template_param_mappings;
+			/* When TRUE, remap_template_param will save the
+			   existing mapping before overwriting it with the
+			   new mapping. */
 
 
 void save_template_param_mappings(void)
@@ -1727,7 +1719,8 @@ Begin saving the existing template parameter mappings before overwriting
 them in remap_template_param.
 */
 {
-  ++saved_mappings_depth;
+  check_assertion(!saving_template_param_mappings);
+  saving_template_param_mappings = TRUE;
 }  /* save_template_param_mappings */
 
 
@@ -1739,11 +1732,11 @@ remap_template_param.
 {
   a_template_param_map_level_ptr level;
 
-  check_assertion(saved_mappings_depth > 0);
-  /* Loop through the active mappings for the current depth and restore the
-     overwritten mappings to their saved values. */
-  while (saved_template_param_mappings != NULL &&
-         saved_template_param_mappings->depth == saved_mappings_depth) {
+  check_assertion(saving_template_param_mappings);
+  saving_template_param_mappings = FALSE;
+  /* Loop through the active mappings and restore the table to its previous
+     contents. */
+  while (saved_template_param_mappings != NULL) {
     a_saved_template_param_mapping_ptr saved_mapping =
                                                  saved_template_param_mappings;
     saved_template_param_mappings = saved_mapping->next;
@@ -1757,7 +1750,6 @@ remap_template_param.
     saved_mapping->next = avail_template_param_mappings;
     avail_template_param_mappings = saved_mapping;
   }  /* while */
-  --saved_mappings_depth;
 }  /* restore_template_param_mappings */
 
 
@@ -1814,7 +1806,7 @@ correspondence entry.
                       sizeof(a_source_correspondence_ptr)*level->max_position);
       level->max_position = new_max_pos;
     }  /* if */
-    if (saved_mappings_depth != 0) {
+    if (saving_template_param_mappings) {
       /* Save the old mapping so it can be restored later. */
       if (avail_template_param_mappings != NULL) {
         /* Reuse an existing entry. */
@@ -1828,7 +1820,6 @@ correspondence entry.
       /* Link the entry to the active list. */
       saved_mapping->next = saved_template_param_mappings;
       saved_template_param_mappings = saved_mapping;
-      saved_mapping->depth = saved_mappings_depth;
       saved_mapping->coord = *coord;
       saved_mapping->scp = level->source_corresp[coord->position-1];
     }  /* if */
@@ -7544,7 +7535,7 @@ file is processed.
   }  /* if */
 #if BACK_END_IS_CP_GEN_BE
   saved_template_param_mappings = NULL;
-  saved_mappings_depth = 0;
+  saving_template_param_mappings = FALSE;
 #endif /* BACK_END_IS_CP_GEN_BE */
 }  /* il_to_str_init */
 

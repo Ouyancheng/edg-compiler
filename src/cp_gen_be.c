@@ -15674,9 +15674,8 @@ static void gen_lambda(a_lambda_ptr lambda)
 Render code for the given lambda.
 */
 {
-  a_scope_ptr   closure_scope;
-  a_routine_ptr rp = lambda->lambda_routine;
-  a_boolean     template_param_mappings_saved = FALSE;
+  a_scope_ptr             closure_scope;
+  a_routine_ptr           rp = lambda->lambda_routine;
 
   gen_lambda_captures(lambda);
   closure_scope = class_type_supp(lambda->closure_class)->assoc_scope;
@@ -15745,8 +15744,6 @@ Render code for the given lambda.
              ones. */
           a_template_parameter_ptr next = last_expl_param->next;
           last_expl_param->next = NULL;
-          save_template_param_mappings();
-          template_param_mappings_saved = TRUE;
           gen_template_header(rp->assoc_template->template_decl,
                               /*parent_class=*/NULL,
                               /*is_cppcli_generic=*/FALSE,
@@ -15778,9 +15775,6 @@ Render code for the given lambda.
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
     /* Pop the name context for the closure class. */
     pop_name_context();
-    if (template_param_mappings_saved) {
-      restore_template_param_mappings();
-    }  /* if */
   }  /* if */
   lambda->closure_class->has_been_defined = TRUE;
 }  /* gen_lambda */
