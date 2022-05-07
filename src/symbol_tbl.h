@@ -735,12 +735,18 @@ num.  rtp points to the first byte of the number; it is advanced
 past the number on return.
 */
 #define NUM_BYTES_IN_MULTI_BYTE_REPL_TEXT_NUMBER 3
-#define get_macro_repl_text_number(num, rtp)                          \
-{ sizeof_t temp = 0;                                             \
-  temp  = (sizeof_t)*(a_byte *)rtp++;                            \
-  temp |= (sizeof_t)(*(a_byte *)rtp++) << CHAR_BIT;              \
-  temp |= (sizeof_t)(*(a_byte *)rtp++) << (CHAR_BIT*2);          \
-  num = temp;                                                         \
+
+#define MAX_REPL_TEXT_NUMBER                                                  \
+(NUM_BYTES_IN_MULTI_BYTE_REPL_TEXT_NUMBER >= sizeof(sizeof_t)                 \
+ ? (sizeof_t)(-1)                                                             \
+ : ~((sizeof_t)(-1) << (CHAR_BIT * NUM_BYTES_IN_MULTI_BYTE_REPL_TEXT_NUMBER)))
+
+#define get_macro_repl_text_number(num, rtp)            \
+{ sizeof_t temp = 0;                                    \
+  temp  = (sizeof_t)*(a_byte *)rtp++;                   \
+  temp |= (sizeof_t)(*(a_byte *)rtp++) << CHAR_BIT;     \
+  temp |= (sizeof_t)(*(a_byte *)rtp++) << (CHAR_BIT*2); \
+  num = temp;                                           \
 }  /* get_macro_repl_text_number */
 
 
@@ -750,7 +756,8 @@ to the first byte of the number; it is advanced past the number on return.
 */
 #define PN_BYTE_MASK ((1 << CHAR_BIT) - 1)
 #define put_macro_repl_text_number(num, rtp)                          \
-{ sizeof_t temp = num;                                           \
+{ sizeof_t temp = num;                                                \
+  check_assertion(temp <= MAX_REPL_TEXT_NUMBER);                      \
   *(a_byte *)rtp++ = (a_byte)(temp                   & PN_BYTE_MASK); \
   *(a_byte *)rtp++ = (a_byte)((temp >> CHAR_BIT)     & PN_BYTE_MASK); \
   *(a_byte *)rtp++ = (a_byte)((temp >> (CHAR_BIT*2)) & PN_BYTE_MASK); \

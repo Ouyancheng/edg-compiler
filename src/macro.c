@@ -7974,26 +7974,36 @@ static void put_raw_text(a_const_char *str,
 Put the given raw-text string into the macro buffer.
 next_avail_in_macro_buffer is the current output position.
 *curr_text_section points to the first byte of the current
-text section, if there is one, or is NULL otherwise.
+text section, if there is one, or is NULL otherwise.  Start
+a new section if the current one is full.
 */
 {
   char     *rtp;
   sizeof_t sect_len;
 
+  if (*curr_text_section != NULL) {
+    rtp = *curr_text_section + 1;
+    get_macro_repl_text_number(sect_len, rtp);
+    if (MAX_REPL_TEXT_NUMBER - sect_len < length) {
+      /* Adding the next text would exceed the maximum size for a section.
+         Start a new one. */
+      *curr_text_section = NULL;
+    }  /* if */
+  }  /* if */
   if (*curr_text_section == NULL) {
-    /* There is no current text section.  Start a new text section. */
+    /* There is no current text section or the current one is full.  Start
+       a new text section. */
     *curr_text_section = next_avail_in_macro_buffer;
-    /* The length is specified as zero; it will be incremented below. */
-    put_start_of_section(rt_text, 0);
+    /* The length is specified as zero; it will be updated below. */
+    sect_len = 0;
+    put_start_of_section(rt_text, sect_len);
   }  /* if */
   ensure_macro_buffer_space(length);
   (void)memcpy(next_avail_in_macro_buffer, str, size_t_arg(length));
   next_avail_in_macro_buffer += length;
-  /* Increment number of characters in current text section. */
-  rtp = *curr_text_section+1;
-  get_macro_repl_text_number(sect_len, rtp);
+  /* Update the number of characters in the current text section. */
+  rtp = *curr_text_section + 1;
   sect_len += length;
-  rtp = *curr_text_section+1;
   put_macro_repl_text_number(sect_len, rtp);
 }  /* put_raw_text */
 
