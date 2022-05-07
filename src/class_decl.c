@@ -20411,8 +20411,7 @@ declarations.
         }  /* if */
       } else {
         /* C++ mode. */
-        if (is_bit_field && decl_info->is_unnamed_field &&
-            is_qualified_type(field_type)) {
+        if (decl_info->is_unnamed_field && is_qualified_type(field_type)) {
           /* The resolution of Core issue 2229 makes qualified bit field types
              ill-formed for unnamed bit fields. */
           pos_diagnostic((strict_ansi_mode || clang_version_is(>= 70000)) ?
