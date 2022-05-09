@@ -1,5 +1,26 @@
 Version 6.4
 
+5/9/22   [EDGcpfe/25287]
+Inherited initializer list constructor templates
+
+Consider:
+
+  #include <initializer_list>
+  template<typename U> struct B {
+    template<typename T> B(std::initializer_list<T>, U = U{});
+  };
+  template<typename T> struct D: B<T> {
+    using B<T>::B;
+    D();
+  };
+  D<int> d{1, 2, 3};  // Previously an error.  Now okay.
+
+Previously, the front end failed to see that an initializer list constructor is
+being inherited by D<int>, and as a result the initializer-list initialization
+was not successfully resolved and a spurious error resulted.  That is now fixed
+and the example is now accepted.
+
+
 5/6/22   [EDGcpfe/25281]
 Very large macro definitions
 

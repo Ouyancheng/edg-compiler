@@ -24296,8 +24296,8 @@ templates from that base template.
   a_template_symbol_supplement_ptr
                         btssp, dtssp, new_tssp;
   a_template_param_ptr  btpl, dtpl, new_tpl;
-  a_type_ptr            new_tp;
-  a_symbol_ptr          dctor;
+  a_type_ptr            new_tp, class_type = cdsp->class_type;
+  a_symbol_ptr          class_sym = symbol_for(class_type), dctor;
   a_base_class_ptr      bcp;
   an_access_specifier   saved_access = cdsp->access;
 
@@ -24307,10 +24307,10 @@ templates from that base template.
   btssp = bctor->variant.template_info;
   btpl = btssp->variant.function.decl_cache.decl_info->parameters;
   brp = btssp->variant.function.routine;
-  new_tp = create_inheriting_ctor_type(brp, cdsp->class_type);
+  new_tp = create_inheriting_ctor_type(brp, class_type);
   /* Check if the derived class already contains a user-declared constructor
      with this signature: */
-  dctor = class_symbol_supp(symbol_for(cdsp->class_type))->constructor;
+  dctor = class_symbol_supp(class_sym)->constructor;
   if (dctor != NULL && symbol_is(dctor, sk_overloaded_function)) {
     dctor = dctor->variant.overloaded_function.symbols;
   }  /* if */
@@ -24386,13 +24386,12 @@ templates from that base template.
       decl_info.decl_state.dso_flags |= (a_decl_flag_set)DSO_CONSTEVAL;
     }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
-    merge_dll_flags_from_parent_class(cdsp->class_type,
-                                      &decl_info.decl_state);
+    merge_dll_flags_from_parent_class(class_type, &decl_info.decl_state);
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     clear_func_info(&func_info);
     func_info = btssp->variant.function.func_info;
     func_info.is_inline = TRUE;
-    make_locator_for_symbol(symbol_for(cdsp->class_type), &loc);
+    make_locator_for_symbol(class_sym, &loc);
     change_class_locator_into_constructor_locator(&loc, &udp->position,
                                                   /*is_static_ctor=*/FALSE);
     init_tmpl_decl_state_for_generated_member_template(&templ_decl_state,
@@ -24437,12 +24436,15 @@ templates from that base template.
     if (brp->is_explicit_constructor) {
       new_rp->is_explicit_constructor = TRUE;
     }  /* if */
+    if (brp->is_initializer_list_ctor) {
+      new_rp->is_initializer_list_ctor = TRUE;
+      class_type_supp(class_type)->has_initializer_list_ctor = TRUE;
+    }  /* if */
     new_tssp->variant.function.decl_cache.decl_info=templ_decl_state.decl_info;
     curr_default_args = NULL;
     complete_generated_member_template(&templ_decl_state, &func_info,
                                        decl_info.decl_state.sym);
-    add_routine_fixup_for_inheriting_ctor(symbol_for(new_rp),
-                                          cdsp->class_type,
+    add_routine_fixup_for_inheriting_ctor(symbol_for(new_rp), class_type,
                                           /*copy_move_ctor=*/FALSE);
     pop_scope();
     done_with_func_info(func_info);
@@ -24503,12 +24505,12 @@ constructor.
     }  /* if */
   }  /* if */
   if (okay_to_inherit) {
-    a_type_ptr        new_tp;
-    a_symbol_ptr      dctor;
-    new_tp = create_inheriting_ctor_type(brp, cdsp->class_type);
+    a_type_ptr    class_type = cdsp->class_type,
+                  new_tp = create_inheriting_ctor_type(brp, class_type);
+    a_symbol_ptr  class_sym = symbol_for(class_type), dctor;
     /* Check if the derived class already contains a constructor with this
        signature: */
-    dctor = class_symbol_supp(symbol_for(cdsp->class_type))->constructor;
+    dctor = class_symbol_supp(class_sym)->constructor;
     if (dctor != NULL && symbol_is(dctor, sk_overloaded_function)) {
       dctor = dctor->variant.overloaded_function.symbols;
     }  /* if */
@@ -24533,7 +24535,7 @@ constructor.
           (bcp->is_virtual || inh_ctor_inherits_virtually(brp)) &&
           inh_ctor_inherits_virtually(drp)) {
         if (get_inh_ctor_originator(brp, /*ignore_virtual=*/FALSE) ==
-            get_inh_ctor_originator(drp, /*ignore_virtual=*/FALSE)) {
+                     get_inh_ctor_originator(drp, /*ignore_virtual=*/FALSE)) {
           /* Don't inherit inheriting constructors that both inherit the same
              original routine from a virtual base class. */
           break;
@@ -24564,7 +24566,7 @@ constructor.
       }  /* if */
       clear_func_info(&func_info);
       func_info.is_inline = TRUE;
-      make_locator_for_symbol(symbol_for(cdsp->class_type), &loc);
+      make_locator_for_symbol(class_sym, &loc);
       change_class_locator_into_constructor_locator(&loc, &udp->position,
                                                     /*is_static_ctor=*/FALSE);
       cdsp->access =enum_cast<an_access_specifier>(brp->source_corresp.access);
@@ -24578,7 +24580,7 @@ constructor.
       }  /* if */
       if (brp->is_initializer_list_ctor) {
         new_rp->is_initializer_list_ctor = TRUE;
-        class_type_supp(cdsp->class_type)->has_initializer_list_ctor = TRUE;
+        class_type_supp(class_type)->has_initializer_list_ctor = TRUE;
       }  /* if */
       /* This may be a member function of a template class - copy the needed
          bits to ensure we can do things like instantiate default arguments. */
@@ -24598,13 +24600,12 @@ constructor.
         add_to_inline_function_list(new_rp);
       }  /* if */
       if (!new_rp->is_deleted &&
-          (brp->is_deleted ||
-           suppress_inh_ctor_default_ctor(cdsp->class_type))) {
+          (brp->is_deleted || suppress_inh_ctor_default_ctor(class_type))) {
         new_rp->is_deleted = TRUE;
         new_rp->defined = TRUE;
       }  /* if */
-      add_routine_fixup_for_inheriting_ctor(symbol_for(new_rp),
-                                            cdsp->class_type, copy_move_case);
+      add_routine_fixup_for_inheriting_ctor(symbol_for(new_rp), class_type,
+                                            copy_move_case);
     }  /* if */
   }  /* if */
   cdsp->access = saved_access;
