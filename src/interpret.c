@@ -5785,16 +5785,24 @@ any subobject that is not initialized (the diagnostic is associated with pos).
 
   if (subobject_is_initialized(src_bytes, complete_src)) {
     mark_subobject_initialized(dst_bytes, complete_dst);  
-  } else if (is_immediate_class_type(tp) &&
-             (tp->variant.class_struct_union.no_proper_data ||
-              (cpp20_mode && !type_is(tp, tk_union)))) {
-    /* Empty class type objects are always considered "initialized".  Also, in
-       C++20, a class type object is not considered uninitialized if each 
-       subobject has been given a value (e.g., via assignment); in such cases,
-       the whole class might not have been marked as initialized (if it is not
-       a union; for members of unions the more complex processing of active
-       fields ensures the union itself is marked initialized when its active
-       field is given a value). */
+  } else if (type_is(tp, tk_union)) {
+    /* An empty union is always considered initialized.  Any other
+       uninitialized union is an error. */
+    if (!tp->variant.class_struct_union.is_empty_class) {
+      do_constexpr_fail(result);
+      info_with_pos(ec_object_not_initialized, pos, ips);
+    }  /* if */
+    goto done;
+  } else if ((type_is(tp, tk_struct) || type_is(tp, tk_class)) &&
+             (tp->variant.class_struct_union.no_proper_data || cpp20_mode)) {
+    /* Empty struct/class type objects are always considered "initialized":
+       We check "no_proper_data" rather than "is_empty_class" here because the
+       decision should be made independently for subobjects (i.e., a derived
+       class that adds no data can be copied if it has no metadata and its
+       subobjects are initialized).  Also, in C++20, a struct/class type object
+       is not considered uninitialized if each subobject has been given a value
+       (e.g., via assignment); in such cases, the whole class might not have
+       been marked as initialized. */
     if (tp->variant.class_struct_union.is_empty_class) {
       goto done;
     }  /* if */
@@ -12436,12 +12444,12 @@ conversion to an rvalue is forced externally.
     /* An attempt to dereference an inactive variant path. */
     do_constexpr_fail(result);
   } else {
-    result = TRUE;
     if (is_immediate_class_type(tp) || type_is(tp, tk_array)) {
       result = constexpr_copy_object(ips, tp, &expr->position,
                                      cap->address, cap->complete_object,
                                      result_storage, complete_object);
     } else {
+      result = TRUE;
       (void)memcpy(result_storage, value_bytes_at(cap), size_t_arg(n_bytes));
       if (type_is(tp, tk_pointer)) {
         /* If a pointer value is loaded from a glvalue, give the copy its own
