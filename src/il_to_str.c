@@ -5851,12 +5851,16 @@ precedence confusion.  Do the output in the way described by octl.
       a_boolean need_cast = FALSE;
 #if BACK_END_IS_CP_GEN_BE
       if (octl->gen_compilable_code && is_enum_type(con_type) &&
+          !constant_is(constant, ck_template_param) &&
           con_type->has_been_declared && !con_type->has_been_defined &&
           !con_type->variant.integer.originally_unnamed) {
-        /* The type is an opaque enumeration whose enumerators have not
-           yet been defined, so even if the value is the same as an
-           enumerator of the type, we must put it out as a cast of a
-           numeric constant rather than as the name of that enumerator. */
+        /* The type is an opaque enumeration whose enumerators have not yet
+           been defined, so even if the value is the same as an enumerator
+           of the type, we must put it out as a cast of a numeric constant
+           rather than as the name of that enumerator.  (This does not
+           apply when the constant is a non-type template argument of the
+           enumeration's type; in that case, an explicit cast can result in
+           uncompilable code.) */
         need_cast = TRUE;
         is_undefined_opaque_enum = TRUE;
       } else

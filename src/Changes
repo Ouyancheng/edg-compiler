@@ -1,5 +1,28 @@
 Version 6.4
 
+5/9/22   [EDGcpfe/25284]
+C++-generating back end: dependent opaque enumeration values as non-type
+template arguments
+
+In configurations in which template definitions are generated from the
+prototype instantiation IL, the C++-generating back end put out dependent
+values of an opaque enumeration type using a cast to the enumeration type.
+This unnecessary cast could interfere with template argument deduction.
+For example, with --c++11:
+
+  enum E : int;
+  template<E> struct A { };
+
+  template <typename T> struct B {
+    template <E e> void f(A<e>) { }  // Previously generated as A<(E)e>
+  };
+
+  void g() {
+    B<int> bi;
+    bi.f(A<(E)0>{});  // Previously failed because of cast in f's declaration
+  }
+
+
 5/9/22   [EDGcpfe/25287]
 Inherited initializer list constructor templates
 
