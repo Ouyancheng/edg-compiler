@@ -13,8 +13,8 @@ For example, with --c++11:
   enum E : int;
   template<E> struct A { };
 
-  template <typename T> struct B {
-    template <E e> void f(A<e>) { }  // Previously generated as A<(E)e>
+  template<typename T> struct B {
+    template<E e> void f(A<e>) { }  // Previously generated as A<(E)e>
   };
 
   void g() {
