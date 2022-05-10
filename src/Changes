@@ -1,5 +1,19 @@
 Version 6.4
 
+5/10/22  [EDGcpfe/25295]
+Type trait helpers and requires-clauses
+
+Consider in C++20 mode:
+
+  template<typename T> T f() requires __is_class(T); // Previously an error.
+                                                     // Now okay.
+
+Previously, this elicited an error because "__is_class(T)" is not a so-called
+"primary expression" (as required by the standard).  However, GCC and Clang
+both accept such cases as an extension and the front end now does so also in
+its nonstrict modes.
+
+
 5/9/22   [EDGcpfe/25284]
 C++-generating back end: dependent opaque enumeration values as non-type
 template arguments

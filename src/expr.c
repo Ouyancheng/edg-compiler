@@ -31045,6 +31045,111 @@ of:
 }  /* token_starts_primary_expression */
 
 
+static a_boolean token_is_trait_name(a_token_kind  tok)
+/*
+Return TRUE if the given token kind represents a "trait" name (like
+"__is_class").
+*/
+{
+  a_boolean  result;
+
+  switch (tok) {
+    case tok_has_assign:
+    case tok_has_copy:
+    case tok_has_nothrow_assign:
+    case tok_has_nothrow_constructor:
+    case tok_has_nothrow_copy:
+    case tok_has_trivial_assign:
+    case tok_has_trivial_constructor:
+    case tok_has_trivial_copy:
+    case tok_has_trivial_destructor:
+    case tok_has_user_destructor:
+    case tok_has_virtual_destructor:
+    case tok_is_abstract:
+    case tok_is_base_of:
+    case tok_is_class:
+    case tok_is_convertible_to:
+    case tok_is_empty:
+    case tok_is_enum:
+    case tok_is_function:
+    case tok_is_array:
+    case tok_is_pod:
+    case tok_is_polymorphic:
+    case tok_is_union:
+    case tok_is_trivial:
+    case tok_is_standard_layout:
+    case tok_is_trivially_copyable:
+    case tok_is_literal_type:
+    case tok_has_trivial_move_constructor:
+    case tok_has_trivial_move_assign:
+    case tok_has_nothrow_move_assign:
+    case tok_is_constructible:
+    case tok_is_nothrow_constructible:
+    case tok_is_trivially_constructible:
+    case tok_is_destructible:
+    case tok_is_nothrow_destructible:
+    case tok_is_trivially_destructible:
+    case tok_is_assignable:
+    case tok_is_nothrow_assignable:
+    case tok_is_trivially_assignable:
+    case tok_is_final:
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    case tok_has_finalizer:
+    case tok_is_delegate:
+    case tok_is_interface_class:
+    case tok_is_ref_array:
+    case tok_is_ref_class:
+    case tok_is_sealed:
+    case tok_is_simple_value_class:
+    case tok_is_value_class:
+    case tok_is_win_class:
+    case tok_is_win_interface:
+    case tok_is_trivially_copy_assignable:
+    case tok_is_assignable_no_precondition_check:
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+    case tok_is_valid_winrt_type:
+    case tok_has_unique_object_representations:
+    case tok_is_aggregate:
+    case tok_reference_binds_to_temporary:
+    case tok_is_same:
+    case tok_is_same_as:
+    case tok_builtin_has_attribute:
+    case tok_builtin_bit_cast:
+    case tok_builtin_addressof:
+    case tok_is_layout_compatible:
+    case tok_is_pointer_interconvertible_base_of:
+    case tok_is_pointer_interconvertible_with_class:
+    case tok_is_corresponding_member:
+    case tok_is_arithmetic:
+    case tok_is_complete_type:
+    case tok_is_compound:
+    case tok_is_const:
+    case tok_is_floating_point:
+    case tok_is_fundamental:
+    case tok_is_integral:
+    case tok_is_lvalue_reference:
+    case tok_is_member_function_pointer:
+    case tok_is_member_object_pointer:
+    case tok_is_member_pointer:
+    case tok_is_object:
+    case tok_is_pointer:
+    case tok_is_reference:
+    case tok_is_rvalue_reference:
+    case tok_is_scalar:
+    case tok_is_signed:
+    case tok_is_unsigned:
+    case tok_is_void:
+    case tok_is_volatile:
+      result = TRUE;
+      break;
+    default:
+      result = FALSE;
+      break;
+  }  /* switch */
+  return result;
+}  /* token_is_trait_name */
+
+
 static void check_and_adjust_constraint_expression(an_expr_node_ptr  expr)
 /*
 The given expression is a constraint expression (i.e., the expression from a
@@ -31249,7 +31354,8 @@ and whether the operator appears at the top level of a requires clause.
     saved_cpp11_constant_expr_ruled_out = expr_stack->constant_expr_ruled_out;
     expr_stack->inside_conditional_expression = TRUE;
     if ((local_options & EOPT_REQUIRES_CLAUSE) != 0) {
-      if (!token_starts_primary_expression(curr_token)) {
+      if (!token_starts_primary_expression(curr_token) &&
+          !(token_is_trait_name(curr_token) || strict_ansi_mode)) {
         pos_error(ec_invalid_start_of_requires_clause_expr, &pos_curr_token);
       } else {
         local_options |= EOPT_REQUIRES_CLAUSE;
@@ -47633,7 +47739,8 @@ If discard is FALSE, return a pointer to the scanned representation.
                     /*force_object_lifetime=*/FALSE,
                     /*suppress_object_lifetime=*/TRUE);
     expr_stack_entry.possible_rescan_context = TRUE;
-    if (!token_starts_primary_expression(curr_token)) {
+    if (!token_starts_primary_expression(curr_token) &&
+        !(token_is_trait_name(curr_token) || strict_ansi_mode)) {
       pos_error(ec_invalid_start_of_requires_clause_expr, &pos_curr_token);
     }  /* if */
     scan_expr(&opnd, PREC_QUEST_MARK,
