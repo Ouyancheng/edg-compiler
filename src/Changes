@@ -1,5 +1,18 @@
 Version 6.4
 
+5/10/22  [EDGcpfe/25282]
+Implicit function declarations and source sequence entries (IL CHANGE)
+
+In C mode, when a function is implicitly declared because of an apparent call,
+the front end created a source sequence entry for that declaration and marked
+that entry with the "implicit_decl" flag to make sure the entry was otherwise
+ignored (in configurations with GENERATE_SOURCE_SEQUENCE_LISTS).  However, that
+still could result in surprises (in part because the source sequence entry
+could appear among entries associated with an expression).  Now, the front end
+no longer generates that entry at all since it does not actually represent a
+source-level declaration.  That is an IL CHANGE.
+
+
 5/10/22  [EDGcpfe/25295]
 Type trait helpers and requires-clauses
 

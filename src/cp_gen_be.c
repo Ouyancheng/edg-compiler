@@ -2862,36 +2862,6 @@ and *is_definition to TRUE if the declaration is a definition.
 }  /* curr_src_seq_entry_is_type_decl */
 
 
-static a_boolean curr_src_seq_entry_is_routine_decl(
-                                        a_routine_ptr                *rout,
-                                        a_src_seq_secondary_decl_ptr *sec_decl)
-/*
-Return TRUE if the current source sequence entry is for a routine declaration
-(including a secondary declaration).  If so, set *rout to the routine, and
-*sec_decl to the secondary declaration entry (or NULL if this is a
-primary declaration).
-*/
-{
-  a_boolean is_routine_decl = FALSE;
-
-  *rout = NULL;
-  *sec_decl = NULL;
-  if (curr_source_sequence_entry != NULL) {
-    if (ss_entry_kind(curr_source_sequence_entry) == iek_routine) {
-      /* A primary declaration for a routine. */
-      *rout = ss_entry_ptr(curr_source_sequence_entry, a_routine_ptr);
-      is_routine_decl = TRUE;
-    } else if (curr_src_seq_entry_is_secondary_decl(sec_decl) &&
-               ss_entry_kind(*sec_decl) == iek_routine) {
-      /* This is a secondary declaration for a routine. */
-      *rout = ss_entry_ptr(*sec_decl, a_routine_ptr);
-      is_routine_decl = TRUE;
-    }  /* if */
-  }  /* if */
-  return is_routine_decl;
-}  /* curr_src_seq_entry_is_routine_decl */
-
-
 static a_boolean is_autonomous_decl(a_type_ptr                   type,
                                     a_src_seq_secondary_decl_ptr sec_decl)
 /*
@@ -3142,8 +3112,7 @@ autonomous may be skipped.  E.g.:
 {
   a_type_ptr                   type;
   a_src_seq_secondary_decl_ptr sec_decl;
-  a_boolean                    is_definition, found_decl, is_routine, is_type;
-  a_routine_ptr                rout;
+  a_boolean                    is_definition, found_decl, is_type;
 
   for (; curr_source_sequence_entry != NULL;) {
     a_source_sequence_scan_state saved_state;
@@ -3151,7 +3120,7 @@ autonomous may be skipped.  E.g.:
     /* Skip past macros, etc.  We come back and process these entries if
        there's actually a declaration following them. */
     advance_past_preprocessing_directives();
-    found_decl = is_routine = is_type = FALSE;
+    found_decl = is_type = FALSE;
     if (curr_src_seq_entry_is_type_decl(&type, &sec_decl, &is_definition)) {
       /* An autonomous type declaration stops the scan, unless an end-of-
          construct marker is expected*/
@@ -3164,11 +3133,6 @@ autonomous may be skipped.  E.g.:
     } else if (curr_src_seq_entry_is_for_statement_expression()) {
       found_decl = TRUE;
 #endif /* GNU_EXTENSIONS_ALLOWED */
-    } else if (C_mode() &&
-               curr_src_seq_entry_is_routine_decl(&rout, &sec_decl) &&
-               sec_decl != NULL && sec_decl->implicit_decl) {
-      /* An implicit declaration of a function. */
-      found_decl = is_routine = TRUE;
     }  /* if */
     /* Go back to before any preprocessing entries skipped. */
     restore_source_sequence_scan_state(&saved_state);
@@ -3180,10 +3144,6 @@ autonomous may be skipped.  E.g.:
          a cast in an expression).  Skip it and mark it for later
          processing. */
       skip_type_and_delay_definition(type, is_definition);
-    } else if (is_routine) {
-      /* An implicit declaration of a function.  Ignore the source
-         sequence entry. */
-      adv_curr_source_sequence_entry();
 #if GNU_EXTENSIONS_ALLOWED
     } else {
       skip_block_statement();

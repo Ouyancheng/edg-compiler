@@ -162,26 +162,23 @@ typedef unsigned int an_sssd_flag_set;
 #define SSSD_FRIEND_DECL ((an_sssd_flag_set)0x2)
 			/* If this bit is set, set friend_decl in the
 			   secondary-decl entry. */
-#define SSSD_IMPLICIT_DECL ((an_sssd_flag_set)0x4)
-			/* If this bit is set, set implicit_decl in the
-			   secondary-decl entry. */
-#define SSSD_DECLARED_IN_FUNC_PROTOTYPE ((an_sssd_flag_set)0x8)
+#define SSSD_DECLARED_IN_FUNC_PROTOTYPE ((an_sssd_flag_set)0x4)
 			/* If this bit is set, set declared_in_func_prototype
 			   in the secondary-decl entry. */
-#define SSSD_SPECIALIZED_WITH_NEW_SYNTAX ((an_sssd_flag_set)0x10)
+#define SSSD_SPECIALIZED_WITH_NEW_SYNTAX ((an_sssd_flag_set)0x08)
 			/* If this bit is set, set specialized_with_new_syntax
 			   in the secondary-decl entry. */
-#define SSSD_FIRST_DECLARATION ((an_sssd_flag_set)0x20)
+#define SSSD_FIRST_DECLARATION ((an_sssd_flag_set)0x10)
 			/* If this bit is set, set first_declaration in the
 			   secondary-decl entry. */
 #if TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS
-#define SSSD_ORIGINALLY_NONAUTONOMOUS_DEFINITION ((an_sssd_flag_set)0x40)
+#define SSSD_ORIGINALLY_NONAUTONOMOUS_DEFINITION ((an_sssd_flag_set)0x20)
 			/* If this bit is set, set
 			   originally_nonautonomous_definition in the
 			   secondary-decl entry. */
 #endif /* TEMPLATE_INSTANTIATIONS_IN_SOURCE_SEQUENCE_LISTS */
 #if GNU_EXTENSIONS_ALLOWED
-#define SSSD_MARKED_AS_GNU_EXTENSION ((an_sssd_flag_set)0x80)
+#define SSSD_MARKED_AS_GNU_EXTENSION ((an_sssd_flag_set)0x40)
 			/* If this bit it set, set marked_as_gnu_extension in
 			   the secondary-decl entry. */
 #endif /* GNU_EXTENSIONS_ALLOWED */

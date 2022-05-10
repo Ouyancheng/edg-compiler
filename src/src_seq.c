@@ -228,7 +228,6 @@ Display the source-sequence entry pointed to by ssep, for debugging purposes.
           pos = &sssdp->decl_position;
           if (sssdp->autonomous_tag_decl) autonomous = TRUE;
           if (sssdp->friend_decl) is_friend = TRUE;
-          if (sssdp->implicit_decl) is_implicit = TRUE;
           if (sssdp->declared_in_func_prototype) func_prototype_decl = TRUE;
           if (sssdp->specialized_with_new_syntax) new_specialization = TRUE;
           if (sssdp->first_declaration) first_decl = TRUE;
@@ -2200,9 +2199,6 @@ in the secondary source sequence entry that need to be set.
       }  /* if */
       if (flags & SSSD_FRIEND_DECL) {
         sssdp->friend_decl = TRUE;
-      }  /* if */
-      if (flags & SSSD_IMPLICIT_DECL) {
-        sssdp->implicit_decl = TRUE;
       }  /* if */
       if (flags & SSSD_DECLARED_IN_FUNC_PROTOTYPE) {
         sssdp->declared_in_func_prototype = TRUE;

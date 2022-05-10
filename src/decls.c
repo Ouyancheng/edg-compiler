@@ -10540,7 +10540,6 @@ skip_overloading:;
       declared_type = func_info->declared_type;
     }  /* if */
     if (is_friend_decl) flags |= SSSD_FRIEND_DECL;
-    if (func_info->is_implicit_declaration) flags |= SSSD_IMPLICIT_DECL;
     if (dps->first_decl) flags |= SSSD_FIRST_DECLARATION;
 #if GNU_EXTENSIONS_ALLOWED
     if (decl_modifiers->marked_as_gnu_extension) {
@@ -12560,6 +12559,10 @@ symbol has already been entered as an undefined symbol.
   a_memory_region_number region_to_switch_back_to;
   a_func_info_block      func_info;
   a_decl_parse_state     dps;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_boolean              saved_sses_disallowed =
+                                           source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   db_enter(4, "decl_default_function");
   /* Change the symbol kind to routine.  Note that the symbol has already
@@ -12583,6 +12586,11 @@ symbol has already been entered as an undefined symbol.
   /* All IL routines and their types must be at the file scope level, so switch
      to that memory region if necessary. */
   switch_to_file_scope_region(&region_to_switch_back_to);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Since this isn't a declaration that appears in the source code, do not
+     emit a source sequence entry for it. */
+  source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   /* Generate the function type.  In C mode indicate it has an old-style
      no-information parameter list and a return type of "int".  See 3.3.2.2,
      semantics.  In C++ this must be an error, so give it a return type of
@@ -12619,6 +12627,9 @@ symbol has already been entered as an undefined symbol.
   /* Set the referenced flag on the routine entry.  The implicit declaration
      is also an immediate reference. */
   dps.sym->variant.routine.ptr->source_corresp.referenced = TRUE;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  source_sequence_entries_disallowed = saved_sses_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   switch_back_to_original_region(region_to_switch_back_to);
 #if DEBUG
   if (debug_level >= 3) {

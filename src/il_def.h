@@ -1973,9 +1973,6 @@ typedef struct a_src_seq_secondary_decl {
 			/* TRUE when the declaration is a friend declaration;
 			   "entity" will refer to a routine or class.  (In
 			   some modes, it may refer to other types as well.) */
-  a_bit_field	implicit_decl:1;
-			/* TRUE when this declaration is an implicit function
-			   declaration. */
   a_bit_field	declared_in_func_prototype:1;
 			/* TRUE when the scope of this declaration is a
 			   function prototype scope -- e.g.,

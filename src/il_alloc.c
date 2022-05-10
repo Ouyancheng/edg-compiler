@@ -4882,7 +4882,6 @@ and return a pointer to it.
   sssdp->autonomous_tag_decl         = FALSE;
   sssdp->embedded_source_sequence_entries = FALSE;
   sssdp->friend_decl                 = FALSE;
-  sssdp->implicit_decl               = FALSE;
   sssdp->declared_in_func_prototype  = FALSE;
   sssdp->specialized_with_new_syntax = FALSE;
   sssdp->first_declaration           = FALSE;

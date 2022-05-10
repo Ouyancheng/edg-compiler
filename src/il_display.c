@@ -7628,7 +7628,6 @@ Display the indicated source sequence secondary declaration entry.
     disp_boolean("embedded_source_sequence_entries", TRUE);
   }  /* if */
   if (sssdp->friend_decl) disp_boolean("friend_decl", TRUE);
-  if (sssdp->implicit_decl) disp_boolean("implicit_decl", TRUE);
   if (sssdp->declared_in_func_prototype) {
     disp_boolean("declared_in_func_prototype", TRUE);
   }  /* if */
