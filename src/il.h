@@ -2272,6 +2272,9 @@ typedef int a_conv_context_set;
 #define CCO_EXPLICIT_CAST ((a_conv_context_set)0x1000000)
 			/* Used in combination with CCO_CAST to indicate that
 			   a cast appeared explicitly in the source code. */
+#define CCO_BUILTIN_OP ((a_conv_context_set)0x2000000)
+			/* Used to indicate that this is a conversion for a
+			   built-in operator. */
 
 
 /*

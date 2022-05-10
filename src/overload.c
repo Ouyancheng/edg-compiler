@@ -15603,26 +15603,26 @@ not_direct_binding_case:
                                     ec_no_error, &std_conversion)) {
         compatible = FALSE;
       }  /* if */
-#if MICROSOFT_EXTENSIONS_ALLOWED
-      if (microsoft_mode && type_is_lambda_closure(conv_funcs_class) &&
-          is_pointer_to_function_type(return_type)) {
-        /* Microsoft compilers create a set of lambda conversion functions for
-           different calling conventions.  Ordinarily, that would create an
-           ambiguity for something like:
-             auto p = +[]{};
-           but for the special case of a closure MSVC appears to prefer the
-           default and cdecl calling conventions (effectively ignoring the
-           other conversion operators). */
-        a_type_ptr  rtp = skip_typerefs(type_pointed_to(return_type));
-        a_calling_convention
-                    cconv = rout_type_supp(rtp)->calling_convention;
-        if (cconv != (a_calling_convention)cc_default &&
-            cconv != (a_calling_convention)cc_cdecl) {
-          compatible = FALSE;
-        }  /* if */
-      }  /* if */
-#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     }  /* if */
+#if MICROSOFT_EXTENSIONS_ALLOWED
+    if (microsoft_mode && (conv_context & CCO_BUILTIN_OP) != 0 &&
+        type_is_lambda_closure(conv_funcs_class) &&
+        is_pointer_to_function_type(return_type)) {
+      /* Microsoft compilers create a set of lambda conversion functions for
+         different calling conventions.  Ordinarily, that would create an
+         ambiguity for something like:
+           auto p = +[]{};
+         but for the special case of a closure MSVC appears to prefer the
+         default and cdecl calling conventions (effectively ignoring the other
+         conversion operators). */
+      a_type_ptr            rtp = skip_typerefs(type_pointed_to(return_type));
+      a_calling_convention  cconv = rout_type_supp(rtp)->calling_convention;
+      if (cconv != (a_calling_convention)cc_default &&
+          cconv != (a_calling_convention)cc_cdecl) {
+        compatible = FALSE;
+      }  /* if */
+    }  /* if */
+#endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     /* Give up on this function if it does not return a type we can use. */
     if (!compatible) goto reject_function;
     if (need_lvalue_result && !result_is_an_lvalue) {
@@ -16565,6 +16565,7 @@ the target type to be used).
 #if DEBUG
   unsigned long            narg;
 #endif /* DEBUG */
+  a_conv_context_set       conv_context = CCO_BUILTIN_OP;
 
   /* This routine is similar to try_overloaded_function_match (but it only
      looks at one type pattern per call). */
@@ -16675,7 +16676,7 @@ the target type to be used).
                                      /*is_copy_initialization=*/TRUE,
                                      (kind != (an_opname_kind)onk_or_or &&
                                       kind != (an_opname_kind)onk_and_and),
-                                     CCO_DEFAULT,
+                                     conv_context,
                                      &conversion,
                                      &ambiguous,
                                      (a_candidate_function_ptr *)NULL) ||
@@ -16789,7 +16790,7 @@ the target type to be used).
                                          /*orig_is_copy_initialization=*/TRUE,
                                          /*ref_binding_type=*/(a_type*)NULL,
                                          /*is_direct_binding=*/FALSE,
-                                         CCO_DEFAULT,
+                                         conv_context,
                                          &conversion,
                                          (a_conv_descr *)NULL,
                                          &ambiguous,
@@ -16822,6 +16823,9 @@ the target type to be used).
            the specific type (which is a non-class type).  In C++/CLI
            mode, a handle is treated the same way, but not if a standard
            conversion is possible below. */
+        if (allow_any_cv_qual_on_ptr) {
+          conv_context |= CCO_ANY_CV_QUAL_ON_PTR_ALLOWED;
+        }  /* if */
         if (conversion_from_class_or_handle_possible(
                                           operand,
                                           eff_specific_type,
@@ -16829,9 +16833,7 @@ the target type to be used).
                                           need_lvalue_result,
                                           /*is_copy_initialization=*/TRUE,
                                           /*orig_is_copy_initialization=*/TRUE,
-                                          allow_any_cv_qual_on_ptr ?
-                                            CCO_ANY_CV_QUAL_ON_PTR_ALLOWED :
-                                            CCO_DEFAULT,
+                                          conv_context,
                                           &conversion,
                                           &ambiguous,
                                           (a_candidate_function_ptr *)NULL) ||

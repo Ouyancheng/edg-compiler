@@ -1,5 +1,20 @@
 Version 6.4
 
+5/10/22  [EDGcpfe/24436,EDGcpfe/25294]
+Implicit closure conversion in conditional operator in Microsoft modes
+
+The changes for EDGcpfe/20909,EDGcpfe/24300,EDGcpfe/24540 failed to handle
+conditional operators.  That caused the following example to fail in Microsoft
+C++ modes:
+
+  auto f1 = [](int a, int b) { return a < b; };
+  auto f2 = [](int a, int b) { return a > b; };
+  auto r = true ? f1 : f2;  // Previously ambiguous in Microsoft C++ modes.
+                            // Now okay.
+
+That is now fixed.
+
+
 5/10/22  [EDGcpfe/25282]
 Implicit function declarations and source sequence entries (IL CHANGE)
 
