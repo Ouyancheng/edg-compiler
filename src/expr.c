@@ -31355,7 +31355,7 @@ and whether the operator appears at the top level of a requires clause.
     expr_stack->inside_conditional_expression = TRUE;
     if ((local_options & EOPT_REQUIRES_CLAUSE) != 0) {
       if (!token_starts_primary_expression(curr_token) &&
-          !(token_is_trait_name(curr_token) || strict_ansi_mode)) {
+          (!token_is_trait_name(curr_token) || strict_ansi_mode)) {
         pos_error(ec_invalid_start_of_requires_clause_expr, &pos_curr_token);
       } else {
         local_options |= EOPT_REQUIRES_CLAUSE;
@@ -47740,7 +47740,7 @@ If discard is FALSE, return a pointer to the scanned representation.
                     /*suppress_object_lifetime=*/TRUE);
     expr_stack_entry.possible_rescan_context = TRUE;
     if (!token_starts_primary_expression(curr_token) &&
-        !(token_is_trait_name(curr_token) || strict_ansi_mode)) {
+        (!token_is_trait_name(curr_token) || strict_ansi_mode)) {
       pos_error(ec_invalid_start_of_requires_clause_expr, &pos_curr_token);
     }  /* if */
     scan_expr(&opnd, PREC_QUEST_MARK,
