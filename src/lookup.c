@@ -1240,6 +1240,10 @@ should be used to satisfy the lookup.
   a_symbol_ptr           ext_sym;
   a_func_info_block      func_info;
   a_decl_parse_state     dps;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  a_boolean              saved_sses_disallowed =
+                                           source_sequence_entries_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
 
   /* This routine must only be called in ANSI C mode. */
   check_assertion(C_dialect == C_dialect_ANSI);
@@ -1256,8 +1260,16 @@ should be used to satisfy the lookup.
   clear_func_info(&func_info);
   func_info.is_implicit_declaration = TRUE;
   if (exceptions_enabled) func_info.throw_position = locator->source_position;
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  /* Since this isn't a declaration that appears in the source code, do not
+     emit a source sequence entry for it. */
+  source_sequence_entries_disallowed = TRUE;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   decl_routine(locator, &dps, &func_info, (SRK_DECLARATION | SRK_IMPLICIT),
                &linkage, &old_type, &ext_sym, (a_decl_pos_block_ptr)NULL);
+#if GENERATE_SOURCE_SEQUENCE_LISTS
+  source_sequence_entries_disallowed = saved_sses_disallowed;
+#endif /* GENERATE_SOURCE_SEQUENCE_LISTS */
   done_with_func_info(func_info);
   /* Set the referenced flag on the routine entry.  The implicit declaration
      is also an immediate reference. */
