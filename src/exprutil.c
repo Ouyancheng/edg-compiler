@@ -21170,6 +21170,34 @@ the value there, and return the address of the new constant.
 }  /* fold_constant_base_class_cast */
 
 
+a_type_ptr prvalue_conversion_type(a_type_ptr  tp)
+/*
+For a glvalue has type tp, return the type of that glvalue after
+glvalue-to-prvalue conversion.
+*/
+{
+  a_type_ptr  result;
+
+  if (is_function_type(tp)) {
+    /* Function types decay to the corresponding pointer-to-function type. */
+    result = make_pointer_type(tp);
+  } else if (is_array_type(tp)) {
+    /* In the unlikely event we convert an array glvalue to an array prvalue
+       (we do that with the result of a function call that returns an
+       rvalue reference to array, for example), keep the array type as
+       it is -- don't drop cv-qualifiers on the element type. */
+    result = tp;
+  } else if (is_managed_nullptr_type(tp)) {
+    /* The Microsoft C++/CLI compiler converts the managed nullptr type to
+       std::nullptr_t in a glvalue-to-prvalue conversion. */
+    result = standard_nullptr_type();
+  } else {
+    result = prvalue_type(tp);
+  }  /* if */
+  return result;
+}  /* prvalue_conversion_type */
+
+
 an_expr_node_ptr conv_glvalue_expr_to_prvalue(an_expr_node_ptr  node,
                                               a_boolean         *constant_case,
                                               a_constant_ptr    *con_value,
@@ -21218,23 +21246,7 @@ it might produce an error).
   /* Constant folding can be done only within the expression routines. */
   check_assertion(constant_case == NULL || expr_stack != NULL);
   /* Determine the type for the node after conversion to a prvalue. */
-  if (is_function_type(node->type)) {
-    /* Function designator (C) or function lvalue (C++): the conversion to
-       prvalue adds a "pointer to". */
-    prvalue_node_type = make_pointer_type(node->type);
-  } else if (is_array_type(node->type)) {
-    /* In the unlikely event we convert an array glvalue to an array prvalue
-       (we do that with the result of a function call that returns an
-       rvalue reference to array, for example), keep the array type as
-       it is -- don't drop cv-qualifiers on the element type. */
-    prvalue_node_type = node->type;
-  } else if (is_managed_nullptr_type(node->type)) {
-    /* The Microsoft C++/CLI compiler converts the managed nullptr type to
-       std::nullptr_t in a glvalue-to-prvalue conversion. */
-    prvalue_node_type = standard_nullptr_type();
-  } else {
-    prvalue_node_type = prvalue_type(node->type);
-  }  /* if */
+  prvalue_node_type = prvalue_conversion_type(node->type);
   /* No skip_parens here.  Parentheses are handled under the enk_operation
      case. */
   if (is_variable_node(node)) {

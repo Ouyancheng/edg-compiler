@@ -26947,6 +26947,14 @@ previously-scanned braced initializer.
     make_integer_constant_operand(result, (a_host_large_integer)0L);
     cast_operand_to_void(result, type_cast_to);
   } else {
+    if (is_auto_type(type_cast_to) && is_braced_init_component(icp) &&
+        icp->variant.braced.list != NULL &&
+        next_elem(icp->variant.braced.list) == NULL) {
+      an_operand  *opnd = operand_of_arg_list_elem(icp->variant.braced.list);
+      if (!is_template_dependent_type(opnd->type)) {
+        type_cast_to = prvalue_conversion_type(opnd->type);
+      }  /* if */
+    }  /* if */
     prep_list_initializer(icp, type_cast_to,
                           /*is_direct_init=*/TRUE,
                           error_on_narrowing,
@@ -27125,7 +27133,7 @@ freed by this routine.
   a_boolean                     err = FALSE;
   a_symbol_ptr                  ctor_sym = NULL;
   a_boolean                     ctor_case = FALSE, force_dependent = FALSE;
-  a_boolean                     could_be_dependent = FALSE;
+  a_boolean                     could_be_dependent = FALSE, is_auto_cast;
   a_class_symbol_supplement_ptr cssp = NULL;
   an_operand                    local_bound_function_selector;
   a_boolean                     allow_ms_array = microsoft_bugs && !C_mode();
@@ -27144,8 +27152,7 @@ freed by this routine.
 #endif /* BACK_END_IS_CP_GEN_BE */
   an_init_component_ptr         braced_init_list = NULL;
   a_boolean                     saved_allow_call_with_incomplete_return_type;
-  an_initializer_cache
-                                *saved_initializer_cache = NULL;
+  an_initializer_cache          *saved_initializer_cache = NULL;
 
   db_enter(4, "scan_functional_notation_type_conversion");
 
@@ -27330,7 +27337,9 @@ freed by this routine.
       }  /* if */
     }  /* if */
   }  /* if */
-  could_be_dependent = could_be_dependent_class_type(type_cast_to);
+  is_auto_cast = is_auto_type(type_cast_to);
+  could_be_dependent = !is_auto_cast &&
+                       could_be_dependent_class_type(type_cast_to);
   if (gpp_mode && !clang_mode && !could_be_dependent &&
       is_prototype_instantiation_context() &&
       ((!expr_stack->possible_rescan_context &&
@@ -27556,7 +27565,7 @@ empty_parentheses:
       if (err) {
         /* Some previous error. */
         make_error_operand(result);
-      } else if (is_any_reference_type(type_cast_to)) {
+      } else if (is_any_reference_type(type_cast_to) || is_auto_cast) {
         /* Disallow a cast to a reference type without operands; you
            can't default-initialize a reference. */
         expr_pos_error(ec_bad_cast, start_position);
@@ -27739,6 +27748,11 @@ non_ctor_case_after_expr_scan:
         generic_cast_operand(result, type_cast_to, csf_functional,
                              /*is_implicit_cast=*/FALSE);
       } else {
+        if (is_auto_cast) {
+          /* auto(x) and auto{x} cast to the corresponding prvalue type (after
+             function/array decay). */
+          type_cast_to = prvalue_conversion_type(result->type);
+        }  /* if */
         /* Check compatibility of the types and do the cast. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
         if (scanning_source) end_position = end_pos_curr_token;
@@ -33910,6 +33924,10 @@ Return TRUE if the indicated token is one that could start an expression.
       /* Possible start of lambda. */
       is_expr_start = lambdas_enabled;
       break;
+    case tok_auto:
+      /* In C++23 "auto(x)" and "auto{x}" are permitted. */
+      is_expr_start = cpp23_mode;
+      break;
     default:
       if (!C_mode() &&
           (is_type_keyword(tok) ||
@@ -40079,6 +40097,12 @@ handle_trapped_left_paren:
                         local_options);
       break;
 
+    case tok_auto:
+      if (cpp23_mode) {
+         goto type_start;
+      } else {
+        goto bad_start_of_primary;
+      }  /* if */
 #if MICROSOFT_EXTENSIONS_ALLOWED
     case tok_const:
     case tok_volatile:
@@ -40178,6 +40202,10 @@ type_start:
                                              /*might_be_id_start=*/FALSE);
         } else if (curr_token == tok_decltype_construct) {
           cast_type = locator_for_curr_id.variant.decltype_type;
+          (void)get_token();
+        } else if (curr_token == tok_auto) {
+          cast_type = make_auto_type(&pos_curr_token, 
+                                     /*is_decltype_auto=*/FALSE);
           (void)get_token();
         } else if (curr_token == tok_underlying_type) {
           cast_type = scan_underlying_type_operator();

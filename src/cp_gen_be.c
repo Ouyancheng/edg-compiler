@@ -8187,7 +8187,7 @@ tag, a typedef, or a dependent type.  A reference is not the definition.
       }  /* if */
     }  /* if */
   } else if (is_tag_type(type) ||
-             type->kind == (a_type_kind)tk_template_param) {
+             (type_is(type, tk_template_param) && !is_auto_type(type))) {
     /* A class, struct, union, enum, or dependent type. */
     a_boolean use_elab_type_spec = FALSE;
     /* In C++, don't use "class X" instead of "X" unless that is required,
@@ -13365,7 +13365,8 @@ is_reinterpret_cast indicate it.
     write_tok_ch(')');
   } else if (operand_1->is_pack_expansion ||
              expr_is_braced_init_list(operand_1) ||
-             is_class_template_placeholder_type(dest_type)) {
+             is_class_template_placeholder_type(dest_type) ||
+             is_auto_type(dest_type)) {
     /* This is something like "int(x...)", which cannot be generated as an
        old-style cast.  Use a function-style cast instead. */
     if (operand_1->kind == (an_expr_node_kind)enk_temp_init &&

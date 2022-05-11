@@ -1887,6 +1887,8 @@ extern an_expr_node_ptr conv_glvalue_expr_to_prvalue_external(
                                             a_source_position  *err_pos,
                                             a_ctws_options_set options);
 
+extern a_type_ptr prvalue_conversion_type(a_type_ptr  tp);
+
 extern void conv_glvalue_to_prvalue(an_operand *operand);
 
 extern a_type_ptr determine_arithmetic_conversions(an_operand *operand_1,

@@ -1,5 +1,23 @@
 Version 6.4
 
+5/11/22  [EDGcpfe/25075]
+C++23: auto(x) and auto {x}
+
+In C++23 mode, the front end now accepts functional-style casts to type "auto",
+which primarily has the effect of converting glvalues to prvalues, including
+decaying array and function glvalues to pointer prvalues.  For example:
+
+  struct S {};
+  S& g();
+  int f(S&);  // (1)
+  int f(S&&); // (2)
+  int x = f(g()),        // Calls (1).
+      y = f(auto(g()));  // Calls (2), materializing a temporary.
+
+This feature was added to C++23 through the standardization committee's paper
+P0849R8.
+
+
 5/10/22  [EDGcpfe/24436,EDGcpfe/25294]
 Implicit closure conversion in conditional operator in Microsoft modes
 
