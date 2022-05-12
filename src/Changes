@@ -1,5 +1,14 @@
 Version 6.4
 
+5/12/22  [EDGcpfe/25292]
+GNU compatibility: Incorporate GCC 12.1.0 builtins
+
+New builtin function signatures from GCC 12.1.0 have been incorporated.
+In conjunction with this change, builtins that use the _Float16 type have
+been mapped to a 16-bit floating-point type (i.e., binary16).  The _Float16
+type has not been implemented yet.
+
+
 5/11/22  [EDGcpfe/25075]
 C++23: auto(x) and auto {x}
 
