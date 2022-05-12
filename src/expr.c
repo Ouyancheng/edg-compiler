@@ -26954,7 +26954,8 @@ previously-scanned braced initializer.
           next_elem(icp->variant.braced.list) == NULL) {
         an_operand  *opnd = operand_of_arg_list_elem(icp->variant.braced.list);
         if (!is_template_dependent_type(opnd->type)) {
-          type_cast_to = prvalue_conversion_type(opnd->type);
+          type_cast_to = do_implicit_type_transformations(opnd->type,
+                                                          (an_operand*)NULL);
         }  /* if */
       } else {
         expr_pos_error(ec_bad_cast, init_component_pos(icp));
@@ -27742,7 +27743,8 @@ non_ctor_case_after_expr_scan:
           err = TRUE;
         }  /* if */
       } else if (is_template_dependent_context() &&
-                 (is_template_dependent_type(type_cast_to) ||
+                 ((is_template_dependent_type(type_cast_to) &&
+                   !is_auto_cast) ||
                   operand_is_instantiation_dependent(result))) {
         if (result->bound_function) {
           /* Make sure the bound function is handled now and not returned to
@@ -27757,7 +27759,8 @@ non_ctor_case_after_expr_scan:
         if (is_auto_cast) {
           /* auto(x) and auto{x} cast to the corresponding prvalue type (after
              function/array decay). */
-          type_cast_to = prvalue_conversion_type(result->type);
+          type_cast_to = do_implicit_type_transformations(result->type,
+                                                          (an_operand*)NULL);
         }  /* if */
         /* Check compatibility of the types and do the cast. */
 #if EXTRA_SOURCE_POSITIONS_IN_IL
