@@ -1,5 +1,13 @@
 Version 6.4
 
+5/12/22  [EDGcpfe/25298]
+GNU compatibility: Additional __float128 builtins
+
+Previously the tool that created the builtin table had eliminated all builtins
+whose signature contained a reference to a __float128 type.  That restriction
+has been eliminated and as a result additional builtins have been enabled.
+
+
 5/12/22  [EDGcpfe/25292]
 GNU compatibility: Incorporate GCC 12.1.0 builtins
 
