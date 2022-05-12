@@ -26947,12 +26947,18 @@ previously-scanned braced initializer.
     make_integer_constant_operand(result, (a_host_large_integer)0L);
     cast_operand_to_void(result, type_cast_to);
   } else {
-    if (is_auto_type(type_cast_to) && is_braced_init_component(icp) &&
-        icp->variant.braced.list != NULL &&
-        next_elem(icp->variant.braced.list) == NULL) {
-      an_operand  *opnd = operand_of_arg_list_elem(icp->variant.braced.list);
-      if (!is_template_dependent_type(opnd->type)) {
-        type_cast_to = prvalue_conversion_type(opnd->type);
+    if (is_auto_type(type_cast_to)) {
+      if (is_braced_init_component(icp) &&
+          icp->variant.braced.list != NULL &&
+          is_expression_component(icp->variant.braced.list) &&
+          next_elem(icp->variant.braced.list) == NULL) {
+        an_operand  *opnd = operand_of_arg_list_elem(icp->variant.braced.list);
+        if (!is_template_dependent_type(opnd->type)) {
+          type_cast_to = prvalue_conversion_type(opnd->type);
+        }  /* if */
+      } else {
+        expr_pos_error(ec_bad_cast, init_component_pos(icp));
+        type_cast_to = error_type();
       }  /* if */
     }  /* if */
     prep_list_initializer(icp, type_cast_to,

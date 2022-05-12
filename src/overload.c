@@ -26157,7 +26157,7 @@ will be an lvalue instead of the usual prvalue.
            is allowed. */
         if (arg_match != NULL) {
           arg_match_err = TRUE;
-        } else {
+        } else if (!is_error_type(dest_type)) {
           expr_pos_ty_diagnostic(es_discretionary_error,
                                  ec_extra_braces_on_simple_init,
                                  init_component_pos(list),
