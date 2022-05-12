@@ -1182,7 +1182,9 @@ and associated routines.
   }  /* if */
   if ((is_type_specifier() &&
        !(is_expr_context && list_init_enabled &&
-         is_type_keyword(curr_token) && next_token() == tok_lbrace)) ||
+         (is_type_keyword(curr_token) ||
+          (cpp23_mode && curr_token == tok_auto)) &&
+         next_token() == tok_lbrace)) ||
       is_type_qualifier() || is_function_specifier() ||
       curr_token == tok_constexpr || curr_token == tok_consteval ||
       curr_token == tok_constinit || curr_token == tok_friend) {

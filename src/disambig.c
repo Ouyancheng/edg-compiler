@@ -1669,11 +1669,12 @@ types separated by commas (when single_type_required is FALSE).
      to make sure we didn't guess incorrectly about this being a type.
      In normal mode, we assume this to be a cast when the type start is
      not followed by a "(". */
-  if (curr_token == tok_auto || curr_token == tok_c11_atomic) {
-    /* "auto" is a type specifier, but it cannot be part of a function-style
-       cast; "auto(" is only valid as part of a declarative construct
-       involving a trailing return type (e.g., "auto(*)()->int").  Similarly,
-       "_Atomic(" is the start of a type specifier, not a cast. */
+  if ((curr_token == tok_auto && !cpp23_mode) ||
+      curr_token == tok_c11_atomic) {
+    /* "auto" is a type specifier, but prior to C++23 it cannot be part of a
+       function-style cast; "auto(" is only valid as part of a declarative
+       construct involving a trailing return type (e.g., "auto(*)()->int")
+       Similarly, "_Atomic(" is the start of a type specifier, not a cast. */
   } else if (curr_token == tok_typename ||
              ((next_tok == tok_lparen ||
                (is_cast(flags) && /* See note above */
