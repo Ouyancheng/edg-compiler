@@ -25490,7 +25490,9 @@ Otherwise, *result will be NULL.
 }  /* record_inheriting_ctor_using_decl */
 
 
-static void member_using_or_alias_declaration(a_class_def_state_ptr  cdsp)
+static void member_using_or_alias_declaration(
+                               a_class_def_state_ptr  cdsp,
+                               ARG_UNUSED a_boolean   marked_as_gnu_extension)
 /*
 Scan what is either a using-declaration (possibly introducing one or more
 inheriting constructors), an alias declaration, or (if tok_using is not the
@@ -25558,6 +25560,11 @@ declaration from a using-declaration.)
       init_decl_parse_state(&dps);
       dps.in_class_scope = TRUE;
       dps.start_pos = using_pos;
+#if GNU_EXTENSIONS_ALLOWED
+      if (marked_as_gnu_extension) {
+        dps.marked_as_gnu_extension = TRUE;
+      }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
       alias_declaration(&dps, &end_of_using_pos);
       goto done;
     }  /* if */
@@ -29329,6 +29336,7 @@ static a_symbol_ptr class_member_declaration(
              a_tmpl_decl_state_ptr              templ_state,
              ARG_UNUSED an_ms_attribute_ptr     ms_attributes,
              a_boolean                          is_member_template,
+             ARG_UNUSED a_boolean               marked_as_gnu_extension,
              a_template_param_ptr               templ_param_list,
              a_boolean                          *skip_semicolon_check,
              a_type_ptr                         *member_template_instance_type,
@@ -29339,14 +29347,18 @@ static a_symbol_ptr class_member_declaration(
 Scan a member declaration appearing inside a class definition.  class_state
 points to a block of information tracking general information about the class.
 ms_attributes points to a list of Microsoft attributes that have already been
-parsed for this declaration (if any). *skip_semicolon_check is returned TRUE
-if the caller should suppress the check for a semicolon following the member
-declaration.  templ_param_list is non-NULL for function template declarations.
-decl_pos_block_ptr is non-NULL when then extra source position information
-collected during this declaration needs to be returned to the caller.
-If prototype instantiations are recorded in the IL, the template header is
-passed via il_template_entry.  templ_state points to a block of information
-that is provided if this is a member template declaration.
+parsed for this declaration (if any).  If is_member_template is TRUE, this is
+called for a member template declaration (e.g., from the function
+class_member_template_declaration).  If marked_as_gnu_extensions is TRUE, the
+caller already consumed a GNU __extension__ keyword (this function may also
+consume such a keyword, possibly after collecting prefix attributes).
+*skip_semicolon_check is returned TRUE if the caller should suppress the check
+for a semicolon following the member declaration.  templ_param_list is non-NULL
+for function template declarations.  decl_pos_block_ptr is non-NULL when then
+extra source position information collected during this declaration needs to be
+returned to the caller.  If prototype instantiations are recorded in the IL,
+the template header is passed via il_template_entry.  templ_state points to a
+block of information that is provided if this is a member template declaration.
 */
 {
   a_type_ptr           class_type = class_state->class_type;
@@ -29391,6 +29403,11 @@ that is provided if this is a member template declaration.
   dps->is_lambda = type_is_lambda_closure(class_type);
   dps->is_implicit_type_context = TRUE;
   dps->function_definition_allowed = TRUE;
+#if GNU_EXTENSIONS_ALLOWED
+  if (marked_as_gnu_extension) {
+    dps->marked_as_gnu_extension = TRUE;
+  }  /* if */
+#endif /*GNU_EXTENSIONS_ALLOWED */
   if (!dps->is_lambda) {
     /* Normal case: Scan attributes and declaration specifiers. */
     if (!C_mode() && !is_member_template && !is_member_template_rescan) {
@@ -30305,6 +30322,7 @@ template so far.
   sym = class_member_declaration(class_state_ptr, templ_state,
                                  dps->ms_attributes,
                                  /*is_member_template=*/TRUE,
+                                 /*marked_as_gnu_extension=*/FALSE,
                                  templ_param_list, &skip_semicolon_check,
                                  &dummy_type, (a_template_instance_ptr)NULL,
                                  il_template_entry,
@@ -30361,6 +30379,7 @@ instance record associated with this instantiation.
                                  (a_tmpl_decl_state_ptr)NULL,
                                  (an_ms_attribute_ptr)NULL,
                                  /*is_member_template=*/FALSE,
+                                 /*marked_as_gnu_extension=*/FALSE,
                                  (a_template_param_ptr)NULL,
                                  &skip_semicolon_check,
                                  &member_template_instance_type, instance,
@@ -32501,11 +32520,18 @@ classes.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
       do {
         an_ms_attribute_ptr  ms_attributes = NULL;
-        a_boolean            bad_export = FALSE;
         a_source_position    export_pos;
 #if MICROSOFT_EXTENSIONS_ALLOWED
         a_source_position    decl_start_pos;
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        a_boolean            bad_export = FALSE,
+                             marked_as_gnu_extension = FALSE;
+#if GNU_EXTENSIONS_ALLOWED
+        if (curr_token == tok_extension) {
+          marked_as_gnu_extension = TRUE;
+          (void)get_token();
+        }  /* if */
+#endif /* GNU_EXTENSIONS_ALLOWED */
         add_stop_token(tok_semicolon);
         if (curr_token == tok_export) {
           bad_export = TRUE;
@@ -32646,7 +32672,8 @@ classes.
               using_enum_declaration(class_type, class_state.access);
               cannot_bind_to_curr_construct();
             } else {
-              member_using_or_alias_declaration(&class_state);
+              member_using_or_alias_declaration(&class_state,
+                                                marked_as_gnu_extension);
             }  /* if */
             goto next_declaration;
           }  /* if */
@@ -32672,7 +32699,8 @@ classes.
             /* This looks syntactically like an access adjustment declaration.
                Be sure the semantics are correct.  Its semantics are the same
                as a using-declaration. */
-            member_using_or_alias_declaration(&class_state);
+            member_using_or_alias_declaration(&class_state,
+                                              marked_as_gnu_extension);
             goto next_declaration;
           }  /* if */
           /* Check for template declaration. */
@@ -32730,6 +32758,7 @@ classes.
                                        (a_tmpl_decl_state_ptr)NULL,
                                        ms_attributes,
                                        /*is_member_template=*/FALSE,
+                                       marked_as_gnu_extension,
                                        (a_template_param_ptr)NULL,
                                        &skip_semicolon_check, &dummy_type,
                                        (a_template_instance_ptr)NULL,
