@@ -1,5 +1,22 @@
 Version 6.4
 
+5/13/22  [EDGcpfe/25324]
+Performance issue due to checking of duplicate friendship
+
+Consider:
+
+  template<typename T> struct S {
+    template<typename> friend class S;
+  };
+
+Every instantiation S<X> of S is added as a befriending class to every other
+instantiation of S.  That in itself is a quadratic process, but an additional
+inner loop checking for duplicate friendship actually resulted in a cubic
+process overall.  In situations with many instances of S, this resulted in
+prohibitive processing times.  A change was made to avoid the cubic process;
+we hope to address the quadratic process in the future.
+
+
 5/12/22  [EDGcpfe/25298]
 GNU compatibility: Additional __float128 builtins
 

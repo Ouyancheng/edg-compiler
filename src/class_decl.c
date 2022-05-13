@@ -10835,7 +10835,6 @@ ordinary friend class declaration.  decl_pos_block describes extra position
 information (if available; it may be NULL).
 */
 {
-  a_class_list_entry_ptr       clep;
   a_class_type_supplement_ptr  ctsp;
 #if GENERATE_SOURCE_SEQUENCE_LISTS
   a_type_ptr                   declared_type = friend_class_type;
@@ -10869,15 +10868,19 @@ information (if available; it may be NULL).
          is specialized. */
       pos_warning(ec_self_friendship, &error_position);
     } else {
+      a_class_list_entry_ptr  clep = NULL;
       ctsp = friend_class_type->variant.class_struct_union.extra_info;
-      /* Issue a remark if this is a duplicate friend declaration. */
-      for (clep = ctsp->befriending_classes; clep != NULL; clep = clep->next) {
-        if (clep->class_type == class_type) {
-          pos_remark(ec_duplicate_friend_decl, &error_position);
-          break;
-        }  /* if */
-      }  /* for */
-      /* No duplication was detected. */
+      /* Issue a remark if this is a duplicate friend declaration.  Don't test
+         that for friend template substitutions. */
+      if (!for_friend_template) {
+        clep = ctsp->befriending_classes;
+        for (; clep != NULL; clep = clep->next) {
+          if (clep->class_type == class_type) {
+            pos_remark(ec_duplicate_friend_decl, &error_position);
+            break;
+          }  /* if */
+        }  /* for */
+      }  /* if */
       clep = alloc_list_entry_for_class_full(
                                            &friend_class_type->source_corresp);
       clep->class_type = class_type;
