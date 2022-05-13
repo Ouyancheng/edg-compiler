@@ -14879,26 +14879,38 @@ becomes:
 
 static void lower_is_corresponding_member(an_expr_node_ptr expr)
 /*
-Lower a call to __is_corresponding_member.
+Lower a call to __is_corresponding_member or __builtin_is_corresponding_member.
 */
 {
   a_type_ptr       class_type1, class_type2;
-  an_expr_node_ptr args = expr->variant.builtin_operation.operands;
-  check_assertion(args != NULL &&
-                  args->next != NULL &&
-                  args->next->next != NULL &&
-                  args->next->next->next != NULL &&
-                  args->next->next->next->next == NULL &&
-                  node_is(args, enk_type_operand) &&
-                  node_is(args->next, enk_type_operand));
-  class_type1 = skip_typerefs(args->variant.type_operand.type),
-  class_type2 = skip_typerefs(args->next->variant.type_operand.type);
-  an_expr_node_ptr pm1 = args->next->next,
-                   pm2 = args->next->next->next;
+  an_expr_node_ptr pm_args, args = expr->variant.builtin_operation.operands;
+  a_builtin_operation_kind op = expr->variant.builtin_operation.kind;
+  
+  check_assertion(args != NULL && args->next != NULL);
+  if (op == bok_is_corresponding_member) {
+    check_assertion(args->next->next != NULL &&
+                    args->next->next->next != NULL &&
+                    args->next->next->next->next == NULL &&
+                    node_is(args, enk_type_operand) &&
+                    node_is(args->next, enk_type_operand));
+    class_type1 = skip_typerefs(args->variant.type_operand.type),
+    class_type2 = skip_typerefs(args->next->variant.type_operand.type);
+    pm_args = args->next->next;
+  } else {
+    check_assertion(op == bok_builtin_is_corresponding_member &&
+                    args->next->next == NULL);
+    pm_args = args;
+  }  /* if */
+  an_expr_node_ptr pm1 = pm_args,
+                   pm2 = pm1->next;
   check_assertion((is_or_was_ptr_to_data_member_type(pm1->type) ||
                    is_or_was_ptr_to_member_function_type(pm1->type)) &&
                   (is_or_was_ptr_to_data_member_type(pm2->type) ||
                    is_or_was_ptr_to_member_function_type(pm2->type)));
+  if (op == bok_builtin_is_corresponding_member) {
+    class_type1 = pm1->type->variant.ptr_to_member.class_of_which_a_member;
+    class_type2 = pm2->type->variant.ptr_to_member.class_of_which_a_member;
+  }  /* if */
   if (is_or_was_ptr_to_member_function_type(pm1->type) ||
       is_or_was_ptr_to_member_function_type(pm2->type) ||
       !class_symbol_supp(symbol_for(class_type1))->standard_layout ||
@@ -14956,16 +14968,29 @@ Lower a call to __is_corresponding_member.
 
 static void lower_is_pointer_interconvertible_with_class(an_expr_node_ptr expr)
 /*
-Lower a call to __is_pointer_interconvertible_with_class.
+Lower a call to __is_pointer_interconvertible_with_class or
+__builtin_is_pointer_interconvertible_with_class.
 */
 {
   an_expr_node_ptr args = expr->variant.builtin_operation.operands;
-  check_assertion(args != NULL &&
-                  args->next != NULL &&
-                  args->next->next == NULL &&
-                  node_is(args, enk_type_operand));
-  a_type_ptr       class_type = skip_typerefs(args->variant.type_operand.type);
-  an_expr_node_ptr pm = args->next;
+  a_builtin_operation_kind op = expr->variant.builtin_operation.kind;
+  a_type_ptr       class_type;
+  an_expr_node_ptr pm;
+
+  if (op == bok_is_pointer_interconvertible_with_class) {
+    check_assertion(args != NULL &&
+                    args->next != NULL &&
+                    args->next->next == NULL &&
+                    node_is(args, enk_type_operand));
+    class_type = skip_typerefs(args->variant.type_operand.type);
+    pm = args->next;
+  } else {
+    check_assertion(op == bok_builtin_is_pointer_interconvertible_with_class &&
+                    args != NULL && args->next == NULL);
+    pm = args;
+    class_type = skip_typerefs(pm->type);
+    class_type = class_type->variant.ptr_to_member.class_of_which_a_member;
+  }  /* if */
   check_assertion(is_or_was_ptr_to_data_member_type(pm->type) ||
                   is_or_was_ptr_to_member_function_type(pm->type));
   if (is_or_was_ptr_to_member_function_type(pm->type) ||
@@ -15029,9 +15054,11 @@ bok_offsetof, which can include nonconstant subscripts.
       lower_builtin_bit_cast(expr);
       break;
     case bok_is_corresponding_member:
+    case bok_builtin_is_corresponding_member:
       lower_is_corresponding_member(expr);
       break;
     case bok_is_pointer_interconvertible_with_class:
+    case bok_builtin_is_pointer_interconvertible_with_class:
       lower_is_pointer_interconvertible_with_class(expr);
       break;
     default:

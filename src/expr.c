@@ -14115,32 +14115,45 @@ static void scan_is_pointer_interconvertible_with_class(
                                                a_rescan_control_block *rcblock,
                                                an_operand             *result)
 /*
-Scan a call to __is_pointer_interconvertible_with_class:
+Scan a call to __is_pointer_interconvertible_with_class (MS):
 
   __is_pointer_interconvertible_with_class( <type>,  <ptr-to-member> )
 
+or (GCC):
+
+  __builtin_is_pointer_interconvertible_with_class( <ptr-to-member> )
+
 Note that the operation may not be able to be folded here (e.g., because
-the second argument is a variable and not a constant).  In that case, the
-interpreter may be able to "fold" the expression later.
+the ptr-to-member argument is a variable and not a constant).  In that case,
+the interpreter may be able to "fold" the expression later.
 */
 {
   a_type_ptr                    result_type;
+  a_builtin_operation_kind      op;
 
-#if CHECKING
   if (rcblock != NULL) {
     an_expr_node_ptr expr = rcblock->expr;
-    check_assertion(expr != NULL &&
-                    expr->kind == (an_expr_node_kind)enk_builtin_operation);
+    check_assertion(expr != NULL && expr->kind == enk_builtin_operation);
+    op = expr->variant.builtin_operation.kind;
   } else {
-    check_assertion(curr_token == tok_is_pointer_interconvertible_with_class);
+    if (curr_token == tok_is_pointer_interconvertible_with_class) {
+      op = bok_is_pointer_interconvertible_with_class;
+    } else {
+      op = bok_builtin_is_pointer_interconvertible_with_class;
+    }  /* if */
   }  /* if */
-#endif /* CHECKING */
-  result_type = type_traits_helper_check(
-                                   bok_is_pointer_interconvertible_with_class);
-  scan_call_like_builtin_operation(rcblock,
-                                   bok_is_pointer_interconvertible_with_class,
-                                   result_type, bak_type, bak_prvalue,
-                                   /*arg2_repeats=*/FALSE, result);
+  check_assertion(op == bok_is_pointer_interconvertible_with_class ||
+                  op == bok_builtin_is_pointer_interconvertible_with_class);
+  result_type = type_traits_helper_check(op);
+  if (op == bok_is_pointer_interconvertible_with_class) {
+    scan_call_like_builtin_operation(rcblock, op, result_type,
+                                     bak_type, bak_prvalue,
+                                     /*arg2_repeats=*/FALSE, result);
+  } else {
+    scan_call_like_builtin_operation(rcblock, op, result_type,
+                                     bak_prvalue, bak_none,
+                                     /*arg2_repeats=*/FALSE, result);
+  }  /* if */
   if (!type_traits_helpers_enabled) {
     /* Turn the operand into an error operand to avoid any surprises later
        on. */
@@ -14152,36 +14165,48 @@ interpreter may be able to "fold" the expression later.
 static void scan_is_corresponding_member(a_rescan_control_block *rcblock,
                                          an_operand             *result)
 /*
-Scan a call to __is_corresponding_member:
+Scan a call to __is_corresponding_member (MS):
 
   __is_corresponding_member( <type1>,  <type2>, <ptr-to-mbr1>, <ptr-to_mbr2> )
 
-Note that the operation may not be able to be folded here (e.g., because
-the third or fourth argument is a variable and not a constant).  In that case,
-the interpreter may be able to "fold" the expression later.
+or (GCC):
+
+  __builtin_is_corresponding_member( <ptr-to-mbr1>, <ptr-to_mbr2> )
+
+Note that the operation may not be able to be folded here (e.g., because the
+pointer-to-member arguments may be a variable and not a constant).  In that
+case, the interpreter may be able to "fold" the expression later.
 */
 {
   a_type_ptr                    result_type;
+  a_builtin_operation_kind      op;
 
-#if CHECKING
   if (rcblock != NULL) {
     an_expr_node_ptr expr = rcblock->expr;
-    check_assertion(expr != NULL &&
-                    expr->kind == (an_expr_node_kind)enk_builtin_operation &&
-                    expr->variant.builtin_operation.kind ==
-                        (a_builtin_operation_kind)bok_is_corresponding_member);
+    check_assertion(expr != NULL && expr->kind == enk_builtin_operation);
+    op = expr->variant.builtin_operation.kind;
   } else {
-    check_assertion(curr_token == tok_is_corresponding_member);
+    if (curr_token == tok_is_corresponding_member) {
+      op = bok_is_corresponding_member;
+    } else {
+      op = bok_builtin_is_corresponding_member;
+    }  /* if */
   }  /* if */
-#endif /* CHECKING */
-  result_type = type_traits_helper_check(bok_is_corresponding_member);
-  /* Note that this builtin takes four arguments and there is special code in
-     scan_call_like_builtin_operation to handle the third and fourth
-     arguments. */
-  scan_call_like_builtin_operation(rcblock,
-                                   bok_is_corresponding_member,
-                                   result_type, bak_type, bak_type,
-                                   /*arg2_repeats=*/FALSE, result);
+  check_assertion(op == bok_is_corresponding_member ||
+                  op == bok_builtin_is_corresponding_member);
+  result_type = type_traits_helper_check(op);
+  if (op == bok_is_corresponding_member) {
+    /* Note that this builtin takes four arguments and there is special code in
+       scan_call_like_builtin_operation to handle the third and fourth
+       arguments. */
+    scan_call_like_builtin_operation(rcblock, op, result_type,
+                                     bak_type, bak_type,
+                                     /*arg2_repeats=*/FALSE, result);
+  } else {
+    scan_call_like_builtin_operation(rcblock, op, result_type,
+                                     bak_prvalue, bak_prvalue,
+                                     /*arg2_repeats=*/FALSE, result);
+  }  /* if */
   if (!type_traits_helpers_enabled) {
     /* Turn the operand into an error operand to avoid any surprises later
        on. */
@@ -31142,7 +31167,9 @@ Return TRUE if the given token kind represents a "trait" name (like
     case tok_is_layout_compatible:
     case tok_is_pointer_interconvertible_base_of:
     case tok_is_pointer_interconvertible_with_class:
+    case tok_builtin_is_pointer_interconvertible_with_class:
     case tok_is_corresponding_member:
+    case tok_builtin_is_corresponding_member:
     case tok_is_arithmetic:
     case tok_is_complete_type:
     case tok_is_compound:
@@ -33895,7 +33922,9 @@ Return TRUE if the indicated token is one that could start an expression.
     case tok_is_layout_compatible:
     case tok_is_pointer_interconvertible_base_of:
     case tok_is_pointer_interconvertible_with_class:
+    case tok_builtin_is_pointer_interconvertible_with_class:
     case tok_is_corresponding_member:
+    case tok_builtin_is_corresponding_member:
     case tok_requires:
     case tok_array_rank:
     case tok_array_extent:
@@ -39919,12 +39948,14 @@ handle_identifier:
       break;
 
     case tok_is_pointer_interconvertible_with_class:
+    case tok_builtin_is_pointer_interconvertible_with_class:
       scan_is_pointer_interconvertible_with_class(
                                                 (a_rescan_control_block *)NULL,
                                                 &local_result);
       break;
 
     case tok_is_corresponding_member:
+    case tok_builtin_is_corresponding_member:
       scan_is_corresponding_member((a_rescan_control_block *)NULL,
                                    &local_result);
       break;
@@ -48158,8 +48189,14 @@ TRUE if the operator is a unary operator, FALSE otherwise.
     case bok_is_pointer_interconvertible_with_class:
       operator_token = tok_is_pointer_interconvertible_with_class;
       break;
+    case bok_builtin_is_pointer_interconvertible_with_class:
+      operator_token = tok_builtin_is_pointer_interconvertible_with_class;
+      break;
     case bok_is_corresponding_member:
       operator_token = tok_is_corresponding_member;
+      break;
+    case bok_builtin_is_corresponding_member:
+      operator_token = tok_builtin_is_corresponding_member;
       break;
     case bok_builtin_has_attribute:
       operator_token = tok_builtin_has_attribute;
@@ -49048,9 +49085,11 @@ a enclosing expression).
         scan_binary_type_trait_helper(rcblock, result);
         break;
       case tok_is_pointer_interconvertible_with_class:
+      case tok_builtin_is_pointer_interconvertible_with_class:
         scan_is_pointer_interconvertible_with_class(rcblock, result);
         break;
       case tok_is_corresponding_member:
+      case tok_builtin_is_corresponding_member:
         scan_is_corresponding_member(rcblock, result);
         break;
       case tok_intaddr:

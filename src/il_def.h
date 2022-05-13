@@ -1415,7 +1415,9 @@ enum a_token_kind : unsigned short {
   tok_is_layout_compatible,
   tok_is_pointer_interconvertible_base_of,
   tok_is_pointer_interconvertible_with_class,
+  tok_builtin_is_pointer_interconvertible_with_class,
   tok_is_corresponding_member,
+  tok_builtin_is_corresponding_member,
   tok_is_array,
   tok_array_rank,
   tok_array_extent,
@@ -1637,7 +1639,9 @@ EXTERN a_const_char
    "__is_layout_compatible",
    "__is_pointer_interconvertible_base_of",
    "__is_pointer_interconvertible_with_class",
+   "__builtin_is_pointer_interconvertible_with_class",
    "__is_corresponding_member",
+   "__builtin_is_corresponding_member",
    "__is_array",
    "__array_rank",
    "__array_extent",
@@ -10085,7 +10089,7 @@ typedef struct a_type {
 		class_of_which_a_member;
 			/* Type of the class to which the member pointed to
 			   belongs.  This cannot be a typeref (but the front
-			   occasionally temporarily makes this point to a
+			   end occasionally temporarily makes this point to a
 			   typeref until "type" is set). */
       a_type_ptr
 		type;
@@ -13490,10 +13494,14 @@ enum a_builtin_operation_kind : a_byte {
 			/* Two type operands. */
   bok_is_pointer_interconvertible_with_class,
                         /* A class type operand and a pointer-to-member
-                           argument. */
+                           argument. (Visual Studio) */
+  bok_builtin_is_pointer_interconvertible_with_class,
+                        /* One pointer-to-member argument. (GCC) */
   bok_is_corresponding_member,
                         /* Two class type operands and two pointer-to-member
-                           arguments. */
+                           arguments. (Visual Studio) */
+  bok_builtin_is_corresponding_member,
+                        /* Two pointer-to-member arguments. (GCC) */
   bok_is_array,		/* __is_array. One type operand. */
   bok_array_rank,       /* __array_rank (Clang).  One type operand (returns
                            size_t). */
@@ -18024,7 +18032,9 @@ EXTERN a_const_char *builtin_operation_names[(int)bok_last+1]
   "__is_layout_compatible",
   "__is_pointer_interconvertible_base_of",
   "__is_pointer_interconvertible_with_class",
+  "__builtin_is_pointer_interconvertible_with_class",
   "__is_corresponding_member",
+  "__builtin_is_corresponding_member",
   "__is_array",
   "__array_rank",
   "__array_extent",
