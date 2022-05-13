@@ -1,5 +1,26 @@
 Version 6.4
 
+5/13/22  [EDGcpfe/25322]
+
+Consider (in C++14 mode):
+
+  struct S {
+    mutable int x;
+    int y[100];
+    int z;
+  };
+  constexpr S s = { 1, 2, 3 };
+  int main() {
+    if (s.y != 0) return 1;
+  }
+
+The front end attempts to constant-evaluate s.y, but the handling of the
+mutable member x when loading the value of s for that expression contained a
+bug that subsequently resulted in an access beyond the bounds of the
+representation of the value of s in the interpreter.  That could result in
+arbitrary results and/or aborts.  That bug is now fixed.
+
+
 5/13/22  [EDGcpfe/25311,EDGcpfe/25328]
 GNU C++11 compatibility: __extension__ prefix for member using-declaration
 
