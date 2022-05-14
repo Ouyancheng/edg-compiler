@@ -1746,7 +1746,8 @@ void conv_string_literal(a_const_char                  *start_of_string_value,
                          a_string_or_char_literal_kind lit_kind,
                          unsigned long                 num_chars,
                          an_error_code                 *err_code,
-                         a_const_char                  **err_pos)
+                         a_const_char                  **err_pos,
+       /* Defaulted: */  a_boolean                     process_escapes)
 /*
 Convert a string literal from external form to internal form.
 start_of_string_value and end_of_string_value point to the first character
@@ -1761,7 +1762,9 @@ num_chars indicates the number of characters contained within the quotes
 (after escape processing, and in wide characters if the string is wide).
 If the string is a char16_t string of the form u"...", num_chars may be
 larger (but not smaller) than the number of characters needed to represent
-the string.
+the string.  Process_escapes is TRUE (the default value) if character
+escapes should be recognized and translated; it will be set to FALSE if
+lit_kind indicates a raw string literal.
 */
 {
   unsigned long                 i, ch, centity_mask;
@@ -1855,6 +1858,7 @@ the string.
   mbc_scan_init_if_multibyte_chars_in_source_enabled();
 #endif /* MULTIBYTE_CHARS_IN_SOURCE_SUPPORTED */
   if (lit_kind & SCLK_RAW_STRING_LITERAL) {
+    process_escapes = FALSE;
     /* Set up to reverse any original line modifications (trigraphs, line
        splices) that appear in the raw string. */
     for (conv_state.next_orig_line_modif = orig_line_modif_list;
@@ -1895,10 +1899,7 @@ the string.
       case chk_wchar_t:
       case chk_char16_t:
       case chk_char32_t:
-        conv_single_wide_char(
-                 &conv_state,
-                 /*process_escapes=*/(lit_kind & SCLK_RAW_STRING_LITERAL) == 0,
-                 &ch, centity_mask);
+        conv_single_wide_char(&conv_state, process_escapes, &ch, centity_mask);
         put_wide_char_into_string(ch, &pstr, char_size);
         break;
       default:
@@ -2071,15 +2072,9 @@ the given character kind, or a mix of the given kind and chk_char.
         a_const_char                  *err_loc;
         a_string_or_char_literal_kind this_lit_kind = lit_kind;
         check_assertion(con->character_kind == (a_character_kind)chk_char);
-        if (con->variant.string.literal_kind != SCLK_NOT_A_LITERAL) {
-          /* Ensure correct treatment of escapes in the existing string
-             value. */
-          this_lit_kind |= (con->variant.string.literal_kind &
-                            SCLK_RAW_STRING_LITERAL);
-        }  /* if */
         conv_string_literal(old_val, old_val + con->variant.string.length - 1,
                             this_lit_kind, con->variant.string.length - 1,
-                            &err_code, &err_loc);
+                            &err_code, &err_loc, /*process_escapes=*/FALSE);
         con = &const_for_curr_token;
       }  /* if */
       /* Determine the length of this string literal. */

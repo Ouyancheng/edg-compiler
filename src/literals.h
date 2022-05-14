@@ -153,12 +153,13 @@ extern void conv_char_literal(unsigned long num_chars,
                               an_error_code *err_code,
                               a_const_char  **err_pos);
 extern void conv_string_literal(
-                          a_const_char                  *start_of_string_value,
-                          a_const_char                  *end_of_string_value,
-                          a_string_or_char_literal_kind lit_kind,
-                          unsigned long                 num_chars,
-                          an_error_code                 *err_code,
-                          a_const_char                  **err_pos);
+                         a_const_char                  *start_of_string_value,
+                         a_const_char                  *end_of_string_value,
+                         a_string_or_char_literal_kind lit_kind,
+                         unsigned long                 num_chars,
+                         an_error_code                 *err_code,
+                         a_const_char                  **err_pos,
+                         a_boolean                     process_escapes = TRUE);
 
 extern void concat_string_literals(a_token_cache_ptr cache,
                                    a_character_kind  kind,
