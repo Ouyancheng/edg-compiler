@@ -9640,6 +9640,8 @@ additional error checking is performed here.
       class2 = error_type(); /* Error issued below. */
     }  /* if */
   }  /* if */
+  /* Disable spurious warnings about class1 and class2 being uninitialized. */
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
   if (is_template_dependent_type(class1) ||
       is_template_dependent_type(class2) ||
       is_template_dependent_type(pm_type1) ||
@@ -9705,6 +9707,7 @@ additional error checking is performed here.
       if (maintain_expression) constant->expr = expr;
     }  /* if */
   }  /* if */
+END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
   if (err) {
     set_error_constant(constant);
   }  /* if */

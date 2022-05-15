@@ -14911,6 +14911,9 @@ Lower a call to __is_corresponding_member or __builtin_is_corresponding_member.
     class_type1 = pm1->type->variant.ptr_to_member.class_of_which_a_member;
     class_type2 = pm2->type->variant.ptr_to_member.class_of_which_a_member;
   }  /* if */
+  /* Disable spurious warnings about class_type1 and class_type2 being
+     uninitialized. */
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
   if (is_or_was_ptr_to_member_function_type(pm1->type) ||
       is_or_was_ptr_to_member_function_type(pm2->type) ||
       !class_symbol_supp(symbol_for(class_type1))->standard_layout ||
@@ -14963,6 +14966,7 @@ Lower a call to __is_corresponding_member or __builtin_is_corresponding_member.
     overwrite_node(expr, make_operator_node((an_expr_operator_kind)eok_land,
                                             int_type, expr_eq));
   }  /* if */
+END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
 }  /* lower_is_corresponding_member */
 
 

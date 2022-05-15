@@ -12183,6 +12183,8 @@ diagnostic).
       result = FALSE;
     }  /* if */
   }  /* if */
+  /* Disable spurious warning about tp1 and tp2 being uninitialized. */
+BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
   if (result &&
       is_class_struct_union_type(tp1) &&
       is_class_struct_union_type(tp2) &&
@@ -12220,6 +12222,7 @@ diagnostic).
   } else {
     result = FALSE;
   }  /* if */
+END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
   return result;
 }  /* do_constexpr_is_corresponding_member */
 
