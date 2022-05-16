@@ -28,8 +28,9 @@ In GNU C++11 mode, the front end now accepts the __extension__ prefix for
 member using-declarations.  For example:
 
   struct S {
-    __extension using T = int;  // Previously an error.  Now accepted in
-  };                            // GNU C++11 modes.
+    __extension__ using T = int;  // Previously an error.  Now accepted in
+  };                              // GNU C++11 modes.
+
 
 5/13/22  [EDGcpfe/25324]
 Performance issue due to checking of duplicate friendship
