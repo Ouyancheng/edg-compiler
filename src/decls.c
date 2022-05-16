@@ -271,6 +271,7 @@ be restored).
 #endif /* EXTRA_SOURCE_POSITIONS_IN_IL */
     dps->next = NULL;
     dps->type_constraint = NULL;
+    dps->is_exported = FALSE;
   } else {
     /* Set field values specifically for a secondary declarator. */
     dps->secondary_declarator = TRUE;
@@ -3938,7 +3939,7 @@ information in the specified id-linkage block.
       idlbp->linkage = idl_internal;
     } else if (!C_mode() && is_object &&
                is_const_qualified_type(idlbp->type) &&
-               (dps->dso_flags & DSO_INLINE) == 0 &&
+               (dps->dso_flags & DSO_INLINE) == 0 && !dps->is_exported &&
                decl_scope_level == depth_innermost_namespace_scope &&
                idlbp->storage_class == (a_storage_class)sc_unspecified &&
 #if MICROSOFT_EXTENSIONS_ALLOWED
@@ -19553,6 +19554,7 @@ An export declaration can take the following forms:
 
   add_stop_token(tok_semicolon);
   if (cursory_modules_check()) {
+    a_decl_parse_state  dps;
     /* Advance past the "export" token. */
     (void)get_token();
     if (curr_token == tok_lbrace) {
@@ -19582,11 +19584,13 @@ An export declaration can take the following forms:
       add_stop_token(tok_rbrace);
       (void)get_token();
       while (curr_token != tok_rbrace && curr_token != tok_end_of_source) {
+        init_decl_parse_state(&dps);
+        dps.is_exported = TRUE;
         declaration(/*function_definition_allowed=*/TRUE,
                     /*is_old_style_param_decl=*/FALSE,
                     /*is_top_level_declaration=*/FALSE,
                     /*marked_as_gnu_extension=*/FALSE,
-                    (a_param_id_ptr)NULL, (a_source_range *)NULL);
+                    (a_param_id_ptr)NULL, (a_source_range *)NULL, &dps);
       }  /* while */
       remove_stop_token(tok_rbrace);
       (void)required_token(tok_rbrace, ec_exp_rbrace, ec_matching_lbrace,
@@ -19596,11 +19600,13 @@ An export declaration can take the following forms:
       }  /* if */
       scope_stack_top().in_export_block = saved_in_export_block;
     } else {
+      init_decl_parse_state(&dps);
+      dps.is_exported = TRUE;
       declaration(/*function_definition_allowed=*/TRUE,
                   /*is_old_style_param_decl=*/FALSE,
                   /*is_top_level_declaration=*/FALSE,
                   /*marked_as_gnu_extension=*/FALSE,
-                  (a_param_id_ptr)NULL, (a_source_range *)NULL);
+                  (a_param_id_ptr)NULL, (a_source_range *)NULL, &dps);
     }  /* if */
     if (!scope_stack_top().in_export_block) {
       scope_stack_top().exporting_decl = FALSE;
@@ -21469,11 +21475,12 @@ void declaration(a_boolean              function_definition_allowed,
                  a_boolean              marked_as_gnu_extension,
                  a_param_id_ptr         param_id_list,
                  a_source_range         *linkage_spec_range_ptr,
-                 a_decl_parse_state_ptr dps)
+/* Defaulted: */ a_decl_parse_state_ptr dps)
 /*
 Wrapper function for scan_nonmember_declaration that sets up a declaration
 parse state with fields described by the corresponding given parameters.  If
-dps is non-NULL, use it instead of a locally stored copy.
+dps (which is NULL by default) is non-NULL, use it instead of a locally stored
+copy.
 */
 {
   a_decl_parse_state  local_dps, *pdps = &local_dps;
