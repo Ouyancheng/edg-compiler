@@ -27185,6 +27185,7 @@ freed by this routine.
   an_init_component_ptr         braced_init_list = NULL;
   a_boolean                     saved_allow_call_with_incomplete_return_type;
   an_initializer_cache          *saved_initializer_cache = NULL;
+  a_decl_parse_state            dps;
 
   db_enter(4, "scan_functional_notation_type_conversion");
 
@@ -27241,13 +27242,16 @@ freed by this routine.
     /* We have to prescan the operand of the cast in order to deduce the
        actual type cast to (in the C++17 case involving class template
        argument deduction). */
-    a_decl_parse_state  dps;
 #if BACK_END_IS_CP_GEN_BE
     uses_class_templ_arg_deduction = TRUE;
 #endif /* BACK_END_IS_CP_GEN_BE */
     init_decl_parse_state(&dps);
     type_cast_to = normalized_class_template_placeholder_type(type_cast_to,
                                                               &type_position);
+    /* Note that although dps is seemingly only referenced in this block, it
+       might get referenced by the expression stack (see the potential call to
+       set_up_initializer_rescan below).  Therefore, dps must be defined at the
+       outer block scope so that it remains live until we are done with it. */
     dps.type = type_cast_to;
     dps.declared_type = type_cast_to;
     dps.auto_type = type_cast_to;

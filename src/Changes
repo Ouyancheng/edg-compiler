@@ -1,5 +1,16 @@
 Version 6.4
 
+5/16/22  [EDGcpfe/25323]
+Use of out-of-scope variable in scan_expr_list
+
+The function scan_functional_notation_type_conversion sometimes set up an
+expression stack pointer to a block-scope variable (of type a_decl_parse_state)
+and later caused that pointer to be dereferenced in scan_expr_list after
+leaving the block scope in which that variable was defined.  This problem
+(discovered by a static analysis tool) resulted in undefined behavior.  That is
+now fixed.
+
+
 5/13/22  [EDGcpfe/25322]
 
 Consider (in C++14 mode):
