@@ -25499,10 +25499,11 @@ inheriting constructors), an alias declaration, or (if tok_using is not the
 current token) a deprecated access-adjustment declaration.  The semantics and
 representation of using-declarations (excluding the inheriting constructors
 case) and access-adjustment declarations are identical.  cdsp describes the
-class being defined.  (The alias declaration case is almost entirely handled
-by a call to alias_declaration.  The latter call is made in this routine
-because the tok_using token must be consumed to distinguish an alias
-declaration from a using-declaration.)
+class being defined.  marked_as_gnu_extension is TRUE if the caller already
+consumed a GNU __extension__ keyword.  (The alias declaration case is almost
+entirely handled by a call to alias_declaration.  The latter call is made in
+this routine because the tok_using token must be consumed to distinguish an
+alias declaration from a using-declaration.)
 */
 {
   a_type_ptr           class_type = cdsp->class_type;
@@ -29354,7 +29355,7 @@ caller already consumed a GNU __extension__ keyword (this function may also
 consume such a keyword, possibly after collecting prefix attributes).
 *skip_semicolon_check is returned TRUE if the caller should suppress the check
 for a semicolon following the member declaration.  templ_param_list is non-NULL
-for function template declarations.  decl_pos_block_ptr is non-NULL when then
+for function template declarations.  decl_pos_block_ptr is non-NULL when the
 extra source position information collected during this declaration needs to be
 returned to the caller.  If prototype instantiations are recorded in the IL,
 the template header is passed via il_template_entry.  templ_state points to a

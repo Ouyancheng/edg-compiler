@@ -24,8 +24,8 @@ arbitrary results and/or aborts.  That bug is now fixed.
 5/13/22  [EDGcpfe/25311,EDGcpfe/25328]
 GNU C++11 compatibility: __extension__ prefix for member using-declaration
 
-In GNU C++11 mode, the front end now accepts the __extension__prefix for member
-using-declarations.  For example:
+In GNU C++11 mode, the front end now accepts the __extension__ prefix for
+member using-declarations.  For example:
 
   struct S {
     __extension using T = int;  // Previously an error.  Now accepted in
