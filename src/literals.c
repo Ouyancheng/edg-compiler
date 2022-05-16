@@ -1762,9 +1762,9 @@ num_chars indicates the number of characters contained within the quotes
 (after escape processing, and in wide characters if the string is wide).
 If the string is a char16_t string of the form u"...", num_chars may be
 larger (but not smaller) than the number of characters needed to represent
-the string.  Process_escapes is TRUE (the default value) if character
-escapes should be recognized and translated; it will be set to FALSE if
-lit_kind indicates a raw string literal.
+the string.  process_escapes is TRUE (the default value) if character
+escapes should be recognized and translated.  (Even if passed in as TRUE,
+it will be set to FALSE below if lit_kind indicates a raw string literal.)
 */
 {
   unsigned long                 i, ch, centity_mask;
