@@ -13311,16 +13311,19 @@ this one.
                intervening using-declaration, change sym to refer to that
                instead of the fundamental symbol so we check the effective
                access of the using-declaration. */
-            for (a_using_decl_ptr udp = bcp->type->variant.class_struct_union.
-                                   extra_info->assoc_scope->using_declarations;
-                 udp != NULL; udp = udp->next) {
-              a_source_correspondence_ptr ud_scp =
-                                  (a_source_correspondence_ptr)udp->entity.ptr;
-              a_symbol_ptr udsym = (a_symbol_ptr)ud_scp->assoc_info;
-              if (fundamental_symbol_of(udsym) == sym) {
-                sym = udsym;
-              }  /* if */
-            }  /* for */
+            a_class_symbol_supplement_ptr base_cssp =
+                                      class_symbol_supp(symbol_for(bcp->type));
+            if (base_cssp->pointers_block.last_using_declaration != NULL) {
+              for (a_symbol_ptr mbr_sym = base_cssp->symbols; mbr_sym != NULL;
+                   mbr_sym = mbr_sym->next_in_scope) {
+                if (symbol_is(mbr_sym, sk_projection) &&
+                    mbr_sym->variant.projection.is_using_decl &&
+                    fundamental_symbol_of(mbr_sym) == sym) {
+                  sym = mbr_sym;
+                  break;
+                }  /* if */
+              }  /* for */
+            }  /* if */
           }  /* if */
           if (have_access_across_path(sym, bcp->type, path_next,
                                       local_bcdp, proj_sym,
