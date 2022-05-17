@@ -13186,14 +13186,6 @@ this one.
        to the fundamental base class, continuing as long as the base
        class at each step is accessible from the original class, and we
        check for special access at each step. */
-    if (proj_sym->kind == (a_symbol_kind)sk_projection &&
-        proj_sym->variant.projection.any_intervening_using_decl &&
-        proj_sym->parent.class_type == viewpoint_class) {
-      /* If there is an intervening using-declaration, do the remaining part
-         of the access check on the using-declaration in place of the original
-         symbol. */
-      sym = proj_sym;
-    }  /* if */
     if (path == NULL) {
       /* If sym is the specific symbol chosen from an overload set
          designated by proj_sym, it might be a projection symbol itself.
@@ -13313,6 +13305,23 @@ this one.
           }  /* while */
           /* Do a recursive call to see if the member is accessible in the
              base class. */
+          if (proj_sym->kind == sk_projection &&
+              proj_sym->variant.projection.any_intervening_using_decl) {
+            /* If the class scope we are about to check contains the
+               intervening using-declaration, change sym to refer to that
+               instead of the fundamental symbol so we check the effective
+               access of the using-declaration. */
+            for (a_using_decl_ptr udp = bcp->type->variant.class_struct_union.
+                                   extra_info->assoc_scope->using_declarations;
+                 udp != NULL; udp = udp->next) {
+              a_source_correspondence_ptr ud_scp =
+                                  (a_source_correspondence_ptr)udp->entity.ptr;
+              a_symbol_ptr udsym = (a_symbol_ptr)ud_scp->assoc_info;
+              if (fundamental_symbol_of(udsym) == sym) {
+                sym = udsym;
+              }  /* if */
+            }  /* for */
+          }  /* if */
           if (have_access_across_path(sym, bcp->type, path_next,
                                       local_bcdp, proj_sym,
                                       local_virtual_step_stack)) {
