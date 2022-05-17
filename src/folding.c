@@ -9602,7 +9602,8 @@ additional error checking is performed here.
 {
   an_expr_node_ptr  arg = expr->variant.builtin_operation.operands;
   an_expr_node_ptr  pm1, pm2, pm_args;
-  a_type_ptr        class1, class2, pm_type1, pm_type2;
+  a_type_ptr        class1 = error_type(), class2 = error_type();
+  a_type_ptr        pm_type1, pm_type2;
   a_boolean         result, err = FALSE;
   a_builtin_operation_kind op = expr->variant.builtin_operation.kind;
 
@@ -9631,17 +9632,11 @@ additional error checking is performed here.
     /* Get class types from the pointer-to-member arguments. */
     if (type_is(pm_type1, tk_ptr_to_member)) {
       class1 = pm_type1->variant.ptr_to_member.class_of_which_a_member;
-    } else {
-      class1 = error_type(); /* Error issued below. */
     }  /* if */
     if (type_is(pm_type2, tk_ptr_to_member)) {
       class2 = pm_type2->variant.ptr_to_member.class_of_which_a_member;
-    } else {
-      class2 = error_type(); /* Error issued below. */
     }  /* if */
   }  /* if */
-  /* Disable spurious warnings about class1 and class2 being uninitialized. */
-BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
   if (is_template_dependent_type(class1) ||
       is_template_dependent_type(class2) ||
       is_template_dependent_type(pm_type1) ||
@@ -9707,7 +9702,6 @@ BEGIN_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
       if (maintain_expression) constant->expr = expr;
     }  /* if */
   }  /* if */
-END_DISABLE_GCC_WARNING_MAYBE_UNITIALIZED
   if (err) {
     set_error_constant(constant);
   }  /* if */
