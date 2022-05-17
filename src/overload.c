@@ -6178,6 +6178,7 @@ next_argument:
 #if MICROSOFT_EXTENSIONS_ALLOWED
         param->is_cli_param_array ||
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
+        !param->has_unevaluated_template_default ||
         param->has_default_arg)) {
     unexpected_condition_str(
                      "determine_function_viability: no param, no default arg");

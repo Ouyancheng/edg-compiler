@@ -1,5 +1,13 @@
 Version 6.4
 
+5/17/22  [EDGcpfe/25338]
+Abort in determine_function_viability
+
+In some complex cases involving inherited constructors and default arguments
+the front end could abort in determine_function_viability with an internal
+error ("no param, no default arg", in overload.c).  That is now fixed.
+
+
 5/17/22  [EDGcpfe/24818]
 Access checking with using-declarations
 
