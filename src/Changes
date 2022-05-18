@@ -1,5 +1,24 @@
 Version 6.4
 
+5/17/22  [EDGcpfe/25341]
+Microsoft compatibility: Copy-elision after user-defined conversion
+
+Consider in C++17 mode:
+
+  struct D {
+    D() = default;
+    D(D const&) = delete;
+  };
+  struct S { operator D(); };
+  D d(S{});  // Previously an error in Microsoft mode.  Now okay if
+             // microsoft_version >= 1933.
+
+Earlier versions of the Microsoft compiler did not perform copy elision when
+transferring the result of the S::operator D() conversion to d, and the front
+end emulated that behavior.  However, MSVC 19.33 does perform that elision and
+the front end now matches that when microsoft_version >= 1933.
+
+
 5/17/22  [EDGcpfe/25338]
 Abort in determine_function_viability
 

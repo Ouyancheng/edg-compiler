@@ -3731,7 +3731,7 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
         handle_elided_copy_constructor(source_type, routine, source_pos);
         optimized = TRUE;
       } else if ((conv_routine = arg_match->conversion.routine) != NULL &&
-                 (!microsoft_bugs ||
+                 (!(microsoft_bugs && microsoft_version < 1933) ||
                   special_kind_is(conv_routine, sfk_constructor)) && 
                  ((special_kind_is(conv_routine, sfk_constructor) &&
                    f_same_entities(parent_class_of(conv_routine),
@@ -3746,9 +3746,9 @@ will be equal to init_list_ctor_arg_list->variant.braced.list.
         /* The argument will be a temporary of the right type after the
            user-defined conversion indicated for the argument is applied,
            and elision can be done on that. */
-        /* MSVC++ doesn't do this optimization if the user-defined conversion
-           calls a conversion operator (as opposed to a constructor), at least
-           not in 7.1 and 8.0 beta. */
+        /* MSVC++ prior to version 19.33 doesn't do this optimization if the
+           user-defined conversion calls a conversion operator (as opposed to
+           a constructor). */
         is_temp_after_conv = TRUE;
         arg_match->conversion.class_object_adjustment_required = FALSE;
         optimized = TRUE;
