@@ -13307,10 +13307,10 @@ this one.
              base class. */
           if (proj_sym->kind == sk_projection &&
               proj_sym->variant.projection.any_intervening_using_decl) {
-            /* If the class scope we are about to check contains the
-               intervening using-declaration, change sym to refer to that
-               instead of the fundamental symbol so we check the effective
-               access of the using-declaration. */
+            /* If the class scope we are about to check contains an
+               intervening using-declaration for sym, change sym to refer
+               to that instead of the fundamental symbol so we check the
+               effective access of the using-declaration. */
             a_class_symbol_supplement_ptr base_cssp =
                                       class_symbol_supp(symbol_for(bcp->type));
             if (base_cssp->pointers_block.last_using_declaration != NULL) {
