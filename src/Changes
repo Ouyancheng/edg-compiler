@@ -1,5 +1,19 @@
 Version 6.4
 
+5/18/22  [EDGcpfe/22662,EDGcpfe/25336]
+GNU compatibility: Mixed scalar-vector operations
+
+In GNU modes the front end accepted mixed scalar-vector operations only if the
+vector element type matched the scalar type exactly.  Now, such operations are
+also accepted if those types differ.  For example:
+
+  typedef float V4F __attribute__((vector_size(16)));
+  float g(V5F rgb) {
+    rgb *= 255;  // Previously an error.  Now okay.
+    return rgb[0];
+  }
+
+
 5/17/22  [EDGcpfe/25341]
 Microsoft compatibility: Copy-elision after user-defined conversion
 

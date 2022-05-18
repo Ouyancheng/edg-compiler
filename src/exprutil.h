@@ -1921,9 +1921,10 @@ extern a_boolean determine_imaginary_operation_type
 extern a_type_ptr make_integer_vector_result_type(a_type_ptr operand_type);
 
 extern a_boolean vector_and_scalar_types_are_compatible(
-                                                    a_type_ptr     vec_type,
-                                                    a_type_ptr     scalar_type,
-                                                    a_constant_ptr scalar_con);
+                                              a_type_ptr      vec_type,
+                                              a_type_ptr      scalar_type,
+                                              a_constant_ptr  scalar_con,
+                                              a_boolean       narrowing_okay);
 
 extern void make_vector_fill_operand(an_operand *operand,
                                      a_type_ptr vec_type);

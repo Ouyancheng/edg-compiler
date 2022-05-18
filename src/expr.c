@@ -32542,7 +32542,8 @@ that case.
                                               operand_2.type,
                                               is_constant_operand(&operand_2) ?
                                                 &operand_2.variant.constant :
-                                                (a_constant_ptr)NULL)) {
+                                                (a_constant_ptr)NULL,
+                                              /*narrowing_okay=*/FALSE)) {
         /* Operand 1 is a vector and operands 2 and 3 have the same scalar
            type.  The result is a vector.  */
         make_vector_fill_operand(&operand_2, operand_1->type);
@@ -32783,7 +32784,8 @@ that case.
                                               operand_3.type,
                                               is_constant_operand(&operand_3) ?
                                                 &operand_3.variant.constant :
-                                                (a_constant_ptr)NULL)) {
+                                                (a_constant_ptr)NULL,
+                                              /*narrowing_okay=*/FALSE)) {
         /* A vector and a scalar. */
         make_vector_fill_operand(&operand_3, operand_2.type);
         result_type = skip_typerefs(operand_2.type);
@@ -32795,7 +32797,8 @@ that case.
                                               operand_2.type,
                                               is_constant_operand(&operand_2) ?
                                                 &operand_2.variant.constant :
-                                                (a_constant_ptr)NULL)) {
+                                                (a_constant_ptr)NULL,
+                                              /*narrowing_okay=*/FALSE)) {
         /* A scalar and a vector. */
         make_vector_fill_operand(&operand_2, operand_3.type);
         result_type = skip_typerefs(operand_3.type);

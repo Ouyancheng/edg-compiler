@@ -11841,17 +11841,20 @@ matches that of the operand vector elements.
 
 a_boolean vector_and_scalar_types_are_compatible(a_type_ptr     vec_type,
                                                  a_type_ptr     scalar_type,
-                                                 a_constant_ptr scalar_con)
+                                                 a_constant_ptr scalar_con,
+                                                 a_boolean      narrowing_okay)
 /*
 Returns TRUE if the specified vector type and the scalar type can be mixed
 in an operation.  In cases where scalar_type is the type of a constant being
 used in the operation, scalar_con is the constant (which can be NULL).  Used
 for operations like "a = b + 1" which corresponds to "a = b + {1,1,1,1}"
-assuming "a" and "b" are vectors of four integer types.
+assuming "a" and "b" are vectors of four integer types.  narrowing_okay is TRUE
+if a narrowing conversion from the scalar type to the vector element type is
+acceptable.
 */
 {
-  a_boolean  result;
-  a_type_ptr elem_type;
+  a_boolean   result;
+  a_type_ptr  elem_type;
 
   check_assertion(is_vector_type(vec_type));
   vec_type = skip_typerefs(vec_type);
@@ -11859,13 +11862,15 @@ assuming "a" and "b" are vectors of four integer types.
   if (is_template_param_type(elem_type) ||
       is_template_param_type(scalar_type)) {
     result = TRUE;
-  } else if ((elem_type->kind == (a_type_kind)tk_integer ||
-              elem_type->kind == (a_type_kind)tk_float) &&
-             elem_type->kind == scalar_type->kind &&
+  } else if ((type_is(elem_type, tk_integer) ||
+              type_is(elem_type, tk_float)) &&
+             (elem_type->kind == scalar_type->kind ||
+              scalar_type->kind == (a_type_kind)tk_integer) &&
              !is_immediate_enum_type(scalar_type) &&
-             !is_narrowing_conversion(scalar_type, scalar_con, elem_type,
-                                      /*check_enum_target=*/FALSE,
-                                      (an_error_code*)NULL)) {
+             (narrowing_okay ||
+              !is_narrowing_conversion(scalar_type, scalar_con, elem_type,
+                                       /*check_enum_target=*/FALSE,
+                                       (an_error_code*)NULL))) {
     result = TRUE;
   } else {
     result = FALSE;
@@ -11892,6 +11897,12 @@ on top of the operand (in place) unless the operand is a template parameter
 
   check_assertion(!is_vector_type(operand->type) && is_vector_type(vec_type));
   if (!is_template_param_type(operand->type)) {
+    a_type_ptr  elem_type =
+                         skip_typerefs(vec_type)->variant.vector.element_type;
+    if (!identical_types_ignoring_qualifiers(operand->type, elem_type)) {
+      /* Convert the scalar operand type to the type of the vector element. */
+      cast_operand(elem_type, operand, /*is_implicit_cast=*/TRUE);
+    }  /* if */
     expr = make_node_from_operand(operand);
     expr = make_operator_node((an_expr_operator_kind)eok_vector_fill, vec_type,
                               expr);
@@ -11976,8 +11987,10 @@ by the caller and not here) may be different than the type of the operation.
        "a = b + {1, 1, 1, 1}" for a vector of four integers).  If the types
        are found to be "compatible", use an eok_vector_fill operation to
        "promote" the scalar to a vector type. */
-    a_type_ptr vec_type, scalar_type;
-    a_constant_ptr con = NULL;
+    a_type_ptr      vec_type, scalar_type;
+    a_constant_ptr  con = NULL;
+    a_boolean       narrowing_okay = (op_token == tok_shift_left ||
+                                      op_token == tok_shift_right);
     if (op1_is_vec) {
       vec_type = op1_type;
       scalar_type = op2_type;
@@ -12000,7 +12013,7 @@ by the caller and not here) may be different than the type of the operation.
       *operation_type = vec_type;
       *op = which_binary_operator(op_token, *operation_type);
     } else if (vector_and_scalar_types_are_compatible(vec_type, scalar_type,
-                                                      con)) {
+                                                      con, narrowing_okay)) {
       /* The vector and scalar types are compatible.  Convert the scalar
          operand to a vector. */
       make_vector_fill_operand(op1_is_vec ? operand_2 : operand_1, vec_type);
