@@ -3339,6 +3339,7 @@ ec_both_arguments_must_have_same_type;;"both arguments must have the same type"
 ec_invalid_type_for_builtin;;"type %t is invalid as an argument for this builtin"
 ec_constexpr_called_from_rout;;"called from %nd:"
 ec_qualified_unnamed_bit_field_type;;"a qualified type is nonstandard for anonymous bit fields"
+ec_bad_vector_conditional_size;;"the element type of the vector condition (%t1) must have the same size as the element type of the result (%t2)"
 ###############################################################################
 #                                                             \  ___  /       #
 #                                                               /   \         #

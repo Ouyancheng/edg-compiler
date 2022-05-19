@@ -32846,6 +32846,27 @@ that case.
       /* Cast operands 2 and 3 to the result type if necessary. */
       if (!err) {
         change_binary_operand_types(result_type, &operand_2, &operand_3, op);
+#if GNU_VECTOR_TYPES_ALLOWED
+        if (op == (an_expr_operator_kind)eok_vector_question) {
+          if (!is_vector_type(result_type)) {
+            /* For "vec ? scal1 : scal2", promote the scalars to vectors. */
+            result_type = make_vector_type(
+                           result_type, num_vector_elements(operand_1->type));
+            make_vector_fill_operand(&operand_2, result_type);
+            make_vector_fill_operand(&operand_3, result_type);
+          }  /* if */
+          /* A vector conditional operation requires that the width of the
+             vector elements of the condition matches that of the result
+             value. */
+          a_type_ptr  ctp, vtp;
+          ctp = skip_typerefs(operand_1->type)->variant.vector.element_type;
+          vtp = skip_typerefs(result_type)->variant.vector.element_type;
+          if (skip_typerefs(ctp)->size != skip_typerefs(vtp)->size) {
+            pos_ty2_error(ec_bad_vector_conditional_size, &question_position,
+                          ctp, vtp);
+          }  /* if */
+        }  /* if */
+#endif /* GNU_VECTOR_TYPES_ALLOWED */
       }  /* if */
     }  /* if */
   }  /* if */
