@@ -2041,6 +2041,13 @@ extern a_field_ptr next_applicable_field(a_field_ptr              field,
               (a_next_field_options_set)(NF_SKIP_OPTIMIZED_EMPTY_CLASS |      \
                                          NF_SKIP_PROPERTY_OR_EVENT)))
 
+/* Utility macro to return only fields not added by lowering. */
+#define next_proper_field(field)                                \
+  (next_applicable_field((field),                                             \
+              (a_next_field_options_set)(NF_SKIP_FIELDS_ADDED_BY_LOWERING |   \
+                                         NF_SKIP_PROPERTY_OR_EVENT)))
+
+
 #if MICROSOFT_EXTENSIONS_ALLOWED
 /*
 Macros to examine property and event members (and their accessor functions).

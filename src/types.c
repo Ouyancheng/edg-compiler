@@ -10883,6 +10883,35 @@ Return TRUE if the given fields have the same offset, same bit field length
 }  /* fields_are_layout_compatible */
 
 
+static a_boolean base_classes_are_layout_compatible(a_type_ptr tp1,
+                                                    a_type_ptr tp2)
+/*
+Returns TRUE if the base classes (if any) for the class types are layout-
+compatible.
+*/
+{
+  a_boolean result = TRUE;
+  a_base_class_ptr bcp1 = base_classes_of(tp1),
+                   bcp2 = base_classes_of(tp2);
+
+  while (bcp1 != NULL) {
+    if (bcp2 == NULL) {
+      result = FALSE;
+      break;
+    } else if (!types_are_layout_compatible(bcp1->type, bcp2->type)) {
+      result = FALSE;
+      break;
+    }  /* if */
+    bcp1 = bcp1->next;
+    bcp2 = bcp2->next;
+  }  /* if */
+  if (bcp2 != NULL) {
+    result = FALSE;
+  }  /* if */
+  return result;
+}  /* base_classes_are_layout_compatible */
+
+
 a_boolean types_are_layout_compatible(a_type_ptr  tp1,
                                       a_type_ptr  tp2)
 /*
@@ -10906,6 +10935,10 @@ conservatively.
   tp2 = skip_typerefs(tp2);
   if (tp1->kind != tp2->kind) {
     result = FALSE;
+  } else if (gnu_mode && tp1->alignment != tp2->alignment) {
+    /* For GCC at least, having different alignments disqualifies types
+       from being layout-compatible. */
+    result = FALSE;
   } else if (is_immediate_enum_type(tp1) && is_immediate_enum_type(tp2)) {
     result = tp1->variant.integer.int_kind == tp2->variant.integer.int_kind;
   } else if (is_immediate_class_type(tp1) && is_immediate_class_type(tp2)) {
@@ -10913,7 +10946,7 @@ conservatively.
          cssp1 = class_symbol_supp(symbol_for(tp1)),
          cssp2 = class_symbol_supp(symbol_for(tp2));
     if (cssp1->standard_layout && cssp2->standard_layout &&
-        base_classes_of(tp1) == NULL && base_classes_of(tp2) == NULL) {
+        base_classes_are_layout_compatible(tp1, tp2)) {
       a_field_ptr  fp1 = fields_of(tp1), fp2;
       result = TRUE;
       fp1 = next_proper_initializable_field(fp1);
@@ -11000,8 +11033,8 @@ pointer-to-data members.
     }  /* if */
     /* Move the limit one beyond the current field offsets. */
     result = fp1->offset+1;
-    fp1 = next_proper_initializable_field(fp1->next);
-    fp2 = next_proper_initializable_field(fp2->next);
+    fp1 = next_proper_field(fp1->next);
+    fp2 = next_proper_field(fp2->next);
   }  /* while */
   return result;
 }  /* common_initial_sequence_limit */
