@@ -1,6 +1,6 @@
 Version 6.4
 
-5/18/22  [EDGcpfe/22662,EDGcpfe/25336]
+5/18/22  [EDGcpfe/22662,EDGcpfe/23699,EDGcpfe/25336]
 GNU compatibility: Mixed scalar-vector operations
 
 In GNU modes the front end accepted mixed scalar-vector operations only if the
