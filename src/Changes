@@ -1,5 +1,29 @@
 Version 6.4
 
+5/23/22  [EDGcpfe/25225]
+Microsoft C++ compatibility: By-value passing of const class object
+
+Consider:
+
+  struct R {};
+  struct S {
+    S(S&);
+    operator const R() const;
+  };
+  int  g(S);         // (1)
+  int  g(R const&);  // (2)
+  extern S const sc;
+  int r = g(sc);  // Normally an error.  Now okay in Microsoft C++ modes.
+
+Ordinarily, this is an error because candidate (1) is considered by standard
+C++ to be an exact match for the argument sc of type S const.  However, passing
+sc that way is invalid because the copy constructor of S takes a reference to
+non-const S.  Microsoft compilers, however, take this constructor mismatch into
+account during overload resolution, thus discarding candidate (1).  Candidate
+(2) is called instead (it matches via a user-defined conversion).  The front
+end now emulates that behavior in Microsoft mode.
+
+
 5/18/22  [EDGcpfe/22662,EDGcpfe/23699,EDGcpfe/25336]
 GNU compatibility: Mixed scalar-vector operations
 

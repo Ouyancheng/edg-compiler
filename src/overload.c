@@ -6081,6 +6081,40 @@ in a new-expression).
         if (!first_pass) arg_match->next = saved_arg_match_next;
         /* If no match is possible, go on to the next function. */
         if (arg_match->match_level == aml_none) goto reject_function;
+        if (microsoft_bugs && arg_match->match_level == aml_exact &&
+            arg_match->conversion
+                      .user_conversion_for_class_copy_must_be_determined) {
+          an_operand   *opnd = operand_of_arg_list_elem(arg_list_elem);
+          a_boolean    ambiguous;
+          a_conv_descr conversion;
+          if (is_const_qualified_type(opnd->type) &&
+              !is_trivially_copy_constructible_type(param->type) &&
+              identical_types_ignoring_qualifiers(param->type, opnd->type) &&
+              !conversion_to_class_possible(
+                                          (an_operand*)NULL, arg_list_elem,
+                                          param->type,
+                                          /*try_bitwise_copy=*/TRUE,
+                                          /*is_copy_initialization=*/TRUE,
+                                          /*orig_is_copy_initialization=*/TRUE,
+                                          /*ref_binding_type=*/(a_type*)NULL,
+                                          /*is_direct_binding=*/FALSE,
+                                          CCO_DEFAULT,
+                                          &conversion, (a_conv_descr*)NULL,
+                                          &ambiguous,
+                                          (a_candidate_function_ptr *)NULL)) {
+            /* Microsoft takes into account whether by-value passing of a const
+               class value is actually possible.  For example:
+                   struct R {};
+                   struct S { S(S&); operator const R() const; };
+                   int  g(S);         // (1)
+                   int  g(R const&);  // (2)
+                   extern S const sc;
+                   int r = g(sc);  // Normally an error attempting to call (1).
+                                   // Okay in Microsoft mode and calls (2).
+            */
+            goto reject_function;
+          }  /* if */
+        }  /* if */
       }  /* if */
 next_parameter:
       /* Go on to the next parameter. */
