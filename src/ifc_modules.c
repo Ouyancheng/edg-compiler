@@ -15015,7 +15015,9 @@ second operand of an assignment.
             }
             break;
           default:
-            unexpected_condition();
+            issue_unsupported_node_diag("TriadicOperator::???",
+                                        &error_position);
+            break;
         }  /* switch */
       }
       break;
