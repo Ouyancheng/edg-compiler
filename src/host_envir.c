@@ -2631,7 +2631,7 @@ a_const_char *get_base_name(a_const_char *file_name)
 /*
 Given a file_name, return a pointer to the start of the base name.  No copying
 is performed - if the base name is desired to be kept separate, the caller must
-perform the copy.  If the final character is a directory separator, return
+perform the copy.  If the final character is a directory separator, return an
 empty string.
 */
 {
