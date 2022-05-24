@@ -180,6 +180,9 @@ enum an_overload_context {
   oc_tuple_like_binding,       /* "get<N>" for tuple-like binding. */
   oc_reversed_cmp_candidate,   /* Set when checking the viability of a
                                   "reversed" comparison operator candidate. */
+  oc_conv_to_class_check,      /* Set when doing constructor overload
+                                  resolution in a call to function
+                                  conversion_to_class_possible. */
   oc_last
 };
 

@@ -6083,7 +6083,13 @@ in a new-expression).
         if (arg_match->match_level == aml_none) goto reject_function;
         if (microsoft_bugs && arg_match->match_level == aml_exact &&
             arg_match->conversion
-                      .user_conversion_for_class_copy_must_be_determined) {
+                      .user_conversion_for_class_copy_must_be_determined &&
+            ovl_context != oc_conv_to_class_check &&
+            is_expression_component(arg_list_elem)) {
+          /* Microsoft compilers perform a nonstandard change on some exact
+             matches (because such matches may still require a user-defined
+             conversion).  The check again oc_conv_to_class_check is to avoid
+             unbounded recursion. */
           an_operand   *opnd = operand_of_arg_list_elem(arg_list_elem);
           a_boolean    ambiguous;
           a_conv_descr conversion;
@@ -19574,7 +19580,7 @@ error.  conv_context describes the context of the conversion.
                                     /*ignore_templates=*/FALSE,
                                     /*known_to_be_visible=*/FALSE,
                                     /*is_overloaded_operator=*/FALSE,
-                                    conv_context, oc_default,
+                                    conv_context, oc_conv_to_class_check,
                                     &candidate_functions,
                                     /*inaccessible_match=*/(a_symbol **)NULL,
                                     &matched_except_for_missing_selector,
