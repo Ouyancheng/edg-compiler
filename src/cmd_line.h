@@ -1563,6 +1563,12 @@ EXTERN a_boolean
 			   in a header map. */
 
 EXTERN a_boolean
+		ignore_absolute_paths_for_header_units;
+			/* TRUE if module header units that are imported with
+			   an absolute path should ignore the path and search
+			   as if only the base name is specified. */
+
+EXTERN a_boolean
 		lazy_symbols_may_be_visible;
 			/* TRUE if symbols may be "lazily loaded" (i.e.,
 			   because modules are being imported). */

@@ -2315,6 +2315,8 @@ static a_flag_name
   { "null_template_ptr_arg_enabled", &null_template_ptr_arg_enabled },
   { "skip_module_imports", &skip_module_imports },
   { "skip_module_version_check", &skip_module_version_check },
+  { "ignore_absolute_paths_for_header_units",
+    &ignore_absolute_paths_for_header_units },
 #if IL_SHOULD_BE_WRITTEN_TO_FILE
   { "skip_il_read", &skip_il_read },
 #endif /* IL_SHOULD_BE_WRITTEN_TO_FILE */
@@ -12892,6 +12894,7 @@ variables declared in cmd_line.h.
   module_keywords_enabled = FALSE;
   tu_is_module_interface = FALSE;
   import_includes_from_header_map = FALSE;
+  ignore_absolute_paths_for_header_units = FALSE;
   lazy_symbols_may_be_visible = FALSE;
   skip_module_imports = FALSE;
   skip_module_version_check = FALSE;

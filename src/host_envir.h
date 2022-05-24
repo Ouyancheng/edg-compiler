@@ -3417,6 +3417,9 @@ extern a_boolean is_directory(a_const_char *file_name);
 
 extern a_boolean is_absolute_file_name(a_const_char *file_name);
 
+/* Get path subsets. */
+extern a_const_char *get_base_name(a_const_char *file_name);
+
 /* Open a source file. */
 extern
 FILE *open_source_file(a_const_char          *file_name,

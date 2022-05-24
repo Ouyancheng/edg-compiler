@@ -550,8 +550,13 @@ indicated by kind.  Return TRUE if a module file was found, FALSE otherwise.
   }  /* if */
   if (mod->kind == (a_module_kind)mk_header) {
     a_const_char *header_path;
+    a_const_char *name_for_search = mod->name;
 
-    header_path = resolve_header(mod->name, mod->is_sys_include,
+    if (ignore_absolute_paths_for_header_units &&
+        is_absolute_file_name(name_for_search)) {
+      name_for_search = get_base_name(name_for_search);
+    }  /* if */
+    header_path = resolve_header(name_for_search, mod->is_sys_include,
                                  /*is_include_next=*/FALSE,
                                  /*suppress_diagnostics=*/FALSE);
     if (header_path == NULL) {

@@ -2579,6 +2579,19 @@ system that supports chdir.
 }  /* is_directory */
 #endif /* ifndef IS_DIRECTORY_DEFINED */
 
+
+static inline a_boolean is_dir_separator(a_const_char ch)
+/*
+Return TRUE if "ch" is a directory separator character, FALSE otherwise.
+*/
+{
+  return
+#if BACKSLASH_IS_ALSO_DIR_SEPARATOR
+    (ch == '\\') ||
+#endif /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
+    (ch == DIRECTORY_SEPARATOR);
+}  /* is_dir_separator */
+
 #if WINDOWS_PATHS_ALLOWED
 
 a_boolean has_drive_specification(a_const_char *file_name)
@@ -2612,6 +2625,31 @@ Test whether or not a file name is absolute (a full path name).
 #endif /* WINDOWS_PATHS_ALLOWED */
         (file_name)[0] == DIRECTORY_SEPARATOR;
 }  /* is_absolute_file_name */
+
+
+a_const_char *get_base_name(a_const_char *file_name)
+/*
+Given a file_name, return a pointer to the start of the base name.  No copying
+is performed - if the base name is desired to be kept separate, the caller must
+perform the copy.  If the final character is a directory separator, return
+empty string.
+*/
+{
+  a_const_char *result;
+
+#if WINDOWS_PATHS_ALLOWED
+  if (has_drive_specification(file_name)) {
+    file_name += 2;
+  }  /* if */
+#endif /* WINDOWS_PATHS_ALLOWED */
+  result = file_name;
+  while (*file_name != NULL) {
+    if (is_dir_separator(*file_name++)) {
+      result = file_name;
+    }  /* if */
+  }  /* if */
+  return result;
+}  /* get_base_name */
 
 
 /* Header comment for get_file_name_from_dir. */
@@ -4506,18 +4544,6 @@ of the encoding: Target-size issues (such as endianness) are handled elsewhere
 }  /* ucn_to_utf16 */
 
 #if !STANDALONE_UTILITY_PROGRAM
-
-/*
-Macro that returns TRUE if "ch" is a directory separator character.
-*/
-#if BACKSLASH_IS_ALSO_DIR_SEPARATOR
-#define is_dir_separator(ch)						\
-  ((ch) == DIRECTORY_SEPARATOR ||					\
-   (ch) == '\\')
-#else /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
-#define is_dir_separator(ch)						\
-  ((ch) == DIRECTORY_SEPARATOR)
-#endif /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
 
 static void append_dir_name(a_text_buffer_ptr	buf,
 			    a_const_char	*dir_name)

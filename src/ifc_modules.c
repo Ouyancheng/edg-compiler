@@ -4074,7 +4074,7 @@ been confirmed to exist and the path stored in midp.
     lazy_symbols_may_be_visible = TRUE;
     /* Process all declarations in the global scope. */
     process_ifc_scope(header.global_scope, il_header.primary_scope);
-    if (is_header_unit(mod)) {
+    if (!mod->suppress_macro_export && is_header_unit(mod)) {
       export_ifc_macros();
     }  /* if */
   }  /* if */
@@ -4108,6 +4108,13 @@ Given a module reference, import the referenced module.
       midp->module_info = alloc_module((a_module_kind)mk_header);
       midp->module_info->name = copy_string_to_region(FILE_SCOPE_REGION_NUMBER,
                                                       part_name);
+      /* A non-header-unit module cannot leak macros, but may transitively
+         import a header unit.  Ensure that the transitive import does not leak
+         macro definitions. */
+      if (this->assoc_module_info->suppress_macro_export ||
+          !is_header_unit(this->assoc_module_info)) {
+        midp->module_info->suppress_macro_export = TRUE;
+      }  /* if */
       import_header_module(midp);
     } else {
       a_symbol_ptr module_sym = make_module_symbol(prim_name, part_name,

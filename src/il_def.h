@@ -17530,6 +17530,12 @@ typedef struct a_module {
 			   import <foo.h>), and FALSE if it used user header
 			   import syntax (e.g., import "foo.h").  This field is
 			   meaningless when kind != mk_header. */
+  a_bit_field	suppress_macro_export : 1;
+			/* When kind == mk_header, this is FALSE if macros
+			   exposed by the header unit should be exported.
+			   Normally a header unit will export macros, but not
+			   when the header unit is being transitively imported
+			   via another non-header-unit module. */
 } a_module;
 
 
