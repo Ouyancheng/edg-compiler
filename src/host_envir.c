@@ -2643,7 +2643,7 @@ empty string.
   }  /* if */
 #endif /* WINDOWS_PATHS_ALLOWED */
   result = file_name;
-  while (*file_name != NULL) {
+  while (*file_name != '\0') {
     if (is_dir_separator(*file_name++)) {
       result = file_name;
     }  /* if */
