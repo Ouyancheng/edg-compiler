@@ -1,5 +1,25 @@
 Version 6.4
 
+5/25/22  [EDGcpfe/25251]
+Abort with local requires-expression with parameters
+
+In some configurations and modes, the front end could abort with an internal
+error in push_or_repush_object_lifetime (il.c, "parent is in file scope memory,
+ new olp is not").  For example:
+
+  struct V { unsigned n; };
+  struct X {
+    template<typename T>
+    static constexpr void f() {
+      if constexpr (requires (const T &t) { V(t); }) {  // Previously sometimes
+        return;                                         // aborted.  Now okay.
+      }
+    }
+  };
+
+That is now fixed.
+
+
 5/23/22  [EDGcpfe/25225]
 Microsoft C++ compatibility: By-value passing of const class object
 
