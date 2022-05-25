@@ -38719,8 +38719,15 @@ Record the representation or the requires-expression in *result.
       scope_stack_top().in_template_deduction_context = TRUE;
     }  /* if */
     if (il_region != file_scope_region_number) {
+      /* Pushing the function-prototype scope activated the file scope memory
+         region and the object lifetime associated with the file scope.
+         However, if the requires expression appears in a local scope the
+         requirements should be processed with the associated memory region
+         and object lifetime (to avoid memory region violations). */
       switch_il_region(il_region);
       scope_stack_top().il_memory_region = il_region;
+      curr_object_lifetime = scope_stack_top().saved_curr_object_lifetime;
+      scope_stack_top().curr_scope_object_lifetime = curr_object_lifetime;
     }  /* if */
     lbrace_pos = (curr_token == tok_lbrace) ? pos_curr_token
                                             : null_source_position;

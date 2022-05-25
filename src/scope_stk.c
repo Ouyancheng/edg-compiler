@@ -9354,9 +9354,13 @@ being popped.
                kind == (a_scope_kind)sck_class_struct_union ||
                kind == (a_scope_kind)sck_class_reactivation ||
                kind == (a_scope_kind)sck_module_decl_import) {
+      /* These scopes usually are associated with the global object lifetime,
+         but an exception is the function prototype scope for a requires
+         expression. */
       check_assertion_str2(curr_object_lifetime ==
-                                   scope_stack[DEPTH_OF_FILE_SCOPE].
-                                                   curr_scope_object_lifetime,
+                              scope_stack[DEPTH_OF_FILE_SCOPE]
+                                                .curr_scope_object_lifetime ||
+                           scope_stack_top().outside_parameter_list,
                            "pop_scope: curr_object_lifetime is not that of",
                            "file scope");
       curr_object_lifetime = ssep->saved_curr_object_lifetime;
