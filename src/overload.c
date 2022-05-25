@@ -6086,9 +6086,9 @@ in a new-expression).
                       .user_conversion_for_class_copy_must_be_determined &&
             ovl_context != oc_conv_to_class_check &&
             is_expression_component(arg_list_elem)) {
-          /* Microsoft compilers perform a nonstandard change on some exact
+          /* Microsoft compilers perform a nonstandard check on some exact
              matches (because such matches may still require a user-defined
-             conversion).  The check again oc_conv_to_class_check is to avoid
+             conversion).  The test against oc_conv_to_class_check is to avoid
              unbounded recursion. */
           an_operand   *opnd = operand_of_arg_list_elem(arg_list_elem);
           a_boolean    ambiguous;
