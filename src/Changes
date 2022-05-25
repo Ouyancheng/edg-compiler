@@ -102,6 +102,7 @@ now fixed.
 
 
 5/13/22  [EDGcpfe/25322]
+Constant-evaluation of a constexpr variable with mutable member
 
 Consider (in C++14 mode):
 
