@@ -549,8 +549,11 @@ indicated by kind.  Return TRUE if a module file was found, FALSE otherwise.
     goto done;
   }  /* if */
   if (mod->kind == (a_module_kind)mk_header) {
-    a_const_char *header_path;
-    a_const_char *name_for_search = mod->name;
+    Value_saver<a_boolean> windows_path_saver(&windows_paths_allowed, TRUE);
+    Value_saver<a_boolean> backslash_saver(&backslash_is_also_dir_separator,
+                                           TRUE);
+    a_const_char           *header_path;
+    a_const_char           *name_for_search = mod->name;
 
     if (ignore_absolute_paths_for_header_units &&
         is_absolute_file_name(name_for_search)) {

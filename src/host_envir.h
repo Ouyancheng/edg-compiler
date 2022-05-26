@@ -3370,6 +3370,16 @@ handling code to be tested on a non-Microsoft system.
 #endif /* !BACKSLASH_IS_ALSO_DIR_SEPARATOR */
 #endif /* WINDOWS_PATHS_ALLOWED */
 
+EXTERN a_boolean
+		backslash_is_also_dir_separator;
+			/* Initialized to BACKSLASH_IS_ALSO_DIR_SEPARATOR but
+			   may be changed during execution. */
+
+EXTERN a_boolean
+		windows_paths_allowed;
+			/* Initialized to WINDOWS_PATHS_ALLOWED but may be
+			   changed during execution. */
+
 /* Add a component to a path name. */
 extern void append_to_path_name(a_text_buffer_ptr	buffer,
 				a_const_char		*name);

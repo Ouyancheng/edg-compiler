@@ -779,9 +779,7 @@ used to represent stdin; it must return  NULL.
 */
 {
   a_const_char *last_slash;
-#if BACKSLASH_IS_ALSO_DIR_SEPARATOR
   a_const_char *last_backslash;
-#endif /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
 
   if (strcmp(file_name, FILE_NAME_FOR_STDIN) == 0) {
     /* Special pseudo-name used for stdin; no directory. */
@@ -794,20 +792,20 @@ used to represent stdin; it must return  NULL.
 #else /* !__VMS__ */
     /* UNIX-like system -- check for last slash. */
     last_slash = mbc_strrchr(file_name, DIRECTORY_SEPARATOR);
-#if BACKSLASH_IS_ALSO_DIR_SEPARATOR
-    /* Allow backslash as an alternative to "/". */
-    last_backslash = mbc_strrchr(file_name, '\\');
-    if (last_slash == NULL || last_backslash > last_slash) {
-      last_slash = last_backslash;
+    if (backslash_is_also_dir_separator) {
+      /* Allow backslash as an alternative to "/". */
+      last_backslash = mbc_strrchr(file_name, '\\');
+      if (last_slash == NULL || last_backslash > last_slash) {
+        last_slash = last_backslash;
+      }  /* if */
     }  /* if */
-#endif /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
-#if WINDOWS_PATHS_ALLOWED
-    /* Check for the ":" of a disk name. */
-    if (last_slash == NULL && strlen(file_name) >= 2 && file_name[1] == ':') {
-      /* Disk name is specified, as in "c:abc". */
-      last_slash = file_name+1;
+    if (windows_paths_allowed) {
+      /* Check for the ":" of a disk name. */
+      if (last_slash == NULL && strlen(file_name) >= 2 && file_name[1] == ':'){
+        /* Disk name is specified, as in "c:abc". */
+        last_slash = file_name+1;
+      }  /* if */
     }  /* if */
-#endif /* WINDOWS_PATHS_ALLOWED */
 #endif /* __VMS__ */
   }  /* if */
   return(last_slash);
@@ -1047,10 +1045,10 @@ Add "name" to the path name in "buffer".
     need_to_add_slash = FALSE;
 #else /* !__VMS__ */
     need_to_add_slash = (last_char != DIRECTORY_SEPARATOR);
-#if BACKSLASH_IS_ALSO_DIR_SEPARATOR
-    /* Under MSDOS, both kinds of slashes need to be checked. */
-    need_to_add_slash = need_to_add_slash && (last_char != '\\');
-#endif /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
+    if (backslash_is_also_dir_separator) {
+      /* Under MSDOS, both kinds of slashes need to be checked. */
+      need_to_add_slash = need_to_add_slash && (last_char != '\\');
+    }  /* if */
 #endif /* __VMS__ */
   } /* if */
   if (need_to_add_slash) {
@@ -2585,16 +2583,12 @@ static inline a_boolean is_dir_separator(a_const_char ch)
 Return TRUE if "ch" is a directory separator character, FALSE otherwise.
 */
 {
-  return
-#if BACKSLASH_IS_ALSO_DIR_SEPARATOR
-    (ch == '\\') ||
-#endif /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
-    (ch == DIRECTORY_SEPARATOR);
+  return (backslash_is_also_dir_separator && ch == '\\') ||
+         ch == DIRECTORY_SEPARATOR;
 }  /* is_dir_separator */
 
-#if WINDOWS_PATHS_ALLOWED
 
-a_boolean has_drive_specification(a_const_char *file_name)
+static a_boolean has_drive_specification(a_const_char *file_name)
 /*
 Test whether or not a file name includes a drive specification.  A drive
 specification is normally something like "X:" but for UNC file names
@@ -2609,21 +2603,15 @@ the prefix of "\\" is treated as a drive specification.
   return result;
 }  /* has_drive_specification */
 
-#endif /* WINDOWS_PATHS_ALLOWED */
 
 a_boolean is_absolute_file_name(a_const_char *file_name)
 /*
 Test whether or not a file name is absolute (a full path name).
 */
 {
-  return /*lint !e1791 no token following return */
-#if BACKSLASH_IS_ALSO_DIR_SEPARATOR
-         ((file_name)[0] == '\\') ||
-#endif /* BACKSLASH_IS_ALSO_DIR_SEPARATOR */
-#if WINDOWS_PATHS_ALLOWED
-         has_drive_specification(file_name) ||
-#endif /* WINDOWS_PATHS_ALLOWED */
-        (file_name)[0] == DIRECTORY_SEPARATOR;
+  return (backslash_is_also_dir_separator && (file_name)[0] == '\\') ||
+         (windows_paths_allowed && has_drive_specification(file_name)) ||
+         (file_name)[0] == DIRECTORY_SEPARATOR;
 }  /* is_absolute_file_name */
 
 
@@ -2637,11 +2625,9 @@ empty string.
 {
   a_const_char *result;
 
-#if WINDOWS_PATHS_ALLOWED
-  if (has_drive_specification(file_name)) {
+  if (windows_paths_allowed && has_drive_specification(file_name)) {
     file_name += 2;
   }  /* if */
-#endif /* WINDOWS_PATHS_ALLOWED */
   result = file_name;
   while (*file_name != '\0') {
     if (is_dir_separator(*file_name++)) {
@@ -4556,12 +4542,11 @@ Add "dir_name" to the end of the directory name specified by "buf".
   int		length;
   a_boolean	starts_with_separator;
 
-#if WINDOWS_PATHS_ALLOWED
   /* If this is a UNC path, add one now as multiple are collapsed. */
-  if (is_dir_separator(dir_name[0]) && is_dir_separator(dir_name[1])) {
+  if (windows_paths_allowed &&
+      is_dir_separator(dir_name[0]) && is_dir_separator(dir_name[1])) {
     add_char_to_text_buffer(buf, DIRECTORY_SEPARATOR);
   }  /* if */
-#endif /* WINDOWS_PATHS_ALLOWED */
   while (*ptr != '\0') {
     /* Skip past any delimiter characters. */
     starts_with_separator = is_dir_separator(*ptr);
@@ -4581,11 +4566,10 @@ Add "dir_name" to the end of the directory name specified by "buf".
       char	*buf_end = &buf->buffer[buf->size - 1];
       if (buf->size == 0) {
         /* We are already at the start of the buffer. */
-#if WINDOWS_PATHS_ALLOWED
-      } else if (buf->size == 2 && has_drive_specification(buf->buffer)) {
+      } else if (windows_paths_allowed && buf->size == 2 &&
+                 has_drive_specification(buf->buffer)) {
         /* On Windows, we are back to something like "C:".  Don't go any
            further. */
-#endif /* WINDOWS_PATHS_ALLOWED */
       } else {
         /* Back up to the start of the previous directory component.  This
            actually needs to be done by scanning from the start of the
@@ -6037,6 +6021,8 @@ This is done before command line processing.
   sys_incl_search_path = NULL;
   put_dir_of_each_opened_source_file_on_incl_search_path = TRUE;
   stack_referenced_include_directories = STACK_REFERENCED_INCLUDE_DIRECTORIES;
+  backslash_is_also_dir_separator = BACKSLASH_IS_ALSO_DIR_SEPARATOR;
+  windows_paths_allowed = WINDOWS_PATHS_ALLOWED;
   module_search_path = NULL;
   end_module_search_path = NULL;
   mod_map_search_path = NULL;

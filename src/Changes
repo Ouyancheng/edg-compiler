@@ -1,5 +1,20 @@
 Version 6.4
 
+5/26/22  [EDGcpfe/25374]
+Support Windows paths on non-Windows systems
+
+The latest work on modules has exposed a need for being able to handle Windows
+paths on non-Windows systems, where WINDOWS_PATHS_ALLOWED and
+BACKSLASH_IS_ALSO_DIR_SEPARATOR are typically set to FALSE.  The front end now
+provides analogous booleans - windows_paths_allowed and
+backslash_is_also_dir_separator that are used instead.  The configuration
+macros now instead set the default value of these variables, rather than
+directly controlling behavior.  This allows for dynamically changing the
+behavior of routines that need to discriminate between Windows and non-Windows
+paths (e.g., when handling a module file that was produced on Windows), while
+still retaining original behavior elsewhere.
+
+
 5/26/22  [EDGcpfe/25126,EDGcpfe/25318]
 GNU compatibility: Layout-compatibility and pointer-interconvertibility traits
 
