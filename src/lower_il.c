@@ -22979,6 +22979,7 @@ for each compilation.
                                                /*is_signed=*/TRUE
 #endif /* IA64_ABI */                                
                                                                  );
+  check_assertion(targ_ptr_to_data_member_int_kind != ik_last);
   /* name_lower_init is called from fe_init.c because name mangling can
      be used separately from the rest of IL lowering. */
   /* Do lower_init.c initialization. */

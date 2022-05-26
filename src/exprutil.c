@@ -11832,8 +11832,14 @@ matches that of the operand vector elements.
     int_kind = int_kind_for_size_and_alignment(elem_type->size,
                                                elem_type->alignment,
                                                /*is_signed=*/TRUE);
-    result = make_vector_type(integer_type(int_kind),
-                              num_vector_elements(operand_type));
+    if (int_kind == ik_last) {
+      pos_ty_error(ec_bad_vector_float_operand_size, &error_position,
+                   operand_type);
+      result = error_type();
+    } else {
+      result = make_vector_type(integer_type(int_kind),
+                                num_vector_elements(operand_type));
+    }  /* if */
   }  /* if */
   return result;
 }  /* make_integer_vector_result_type */

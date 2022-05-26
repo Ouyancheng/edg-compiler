@@ -2067,8 +2067,8 @@ an_integer_kind int_kind_for_size_and_alignment(a_targ_size_t    size,
                                                 a_boolean        is_signed)
 /*
 Return the integer kind that corresponds to the given size and alignment,
-signed if is_signed is TRUE, unsigned otherwise.  There must be such an
-integer kind -- an internal error is issued otherwise.
+signed if is_signed is TRUE, unsigned otherwise.  If there is no such
+integer kind, return ik_last.
 */
 {
   an_integer_kind  int_kind;
@@ -2084,14 +2084,9 @@ integer kind -- an internal error is issued otherwise.
     if (int_size == size && int_alignment == alignment &&
         int_signed == is_signed) {
       /* This is the kind to use. */
-      goto have_kind;
+      break;
     }  /* if */
   }  /* for */
-#if CHECKING
-  internal_error(
-        "int_kind_for_size_and_alignment: no integer of right size/alignment");
-#endif /* CHECKING */
-have_kind:;
   return int_kind;
 }  /* int_kind_for_size_and_alignment */
 

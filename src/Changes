@@ -1,5 +1,21 @@
 Version 6.4
 
+5/26/22  [EDGcpfe/25370]
+GNU compatibility: Comparison of floating-point vector types
+
+Consider in GNU C++14 mode:
+
+  typedef long double __attribute((vector_size(16))) VLD;
+  auto f(VLD x, VLD y) {
+    return x < y;  // Error in some mode.
+  }
+
+The result type of "x < y" must be a vector of integer type whose element
+types have the same width as the operand element types ("long double" in this
+case).  Previously, if no such type exists, an internal error was triggered.
+Now, an ordinary error is issued instead.
+
+
 5/25/22  [EDGcpfe/25251]
 Abort with local requires-expression with parameters
 
