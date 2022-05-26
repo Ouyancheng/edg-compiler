@@ -11055,7 +11055,9 @@ pointer-to-data members.
   a_targ_size_t    result = 0;
 
   if (class_symbol_supp(symbol_for(tp1))->standard_layout &&
-      class_symbol_supp(symbol_for(tp2))->standard_layout) {
+      class_symbol_supp(symbol_for(tp2))->standard_layout &&
+      !is_union_type(tp1) &&
+      !is_union_type(tp2)) {
     a_base_class_ptr bcp1 = base_classes_of(tp1),
                      bcp2 = base_classes_of(tp2);
     a_field_ptr      fp1, fp2;
