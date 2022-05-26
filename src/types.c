@@ -10890,7 +10890,7 @@ Returns TRUE if the base classes (if any) for the class types are layout-
 compatible.
 */
 {
-  a_boolean result = TRUE;
+  a_boolean        result = TRUE;
   a_base_class_ptr bcp1 = base_classes_of(tp1),
                    bcp2 = base_classes_of(tp2);
 
@@ -11016,6 +11016,34 @@ conservatively.
 }  /* types_are_layout_compatible */
 
 
+static a_field_ptr next_comon_initial_sequence_field(a_type_ptr       tp,
+                                                     a_base_class_ptr *bcp,
+                                                     a_field_ptr      fp)
+/*
+Return the "next" field in class type tp that is applicable to the common
+initial sequence of standard layout types.  When fp is NULL, indicates the
+first field in the base class *bcp, or if NULL, tp should be returned.  Updates
+*bcp (to point to the next base class) when all fields have been exhausted in
+*bcp.
+*/
+{
+  if (fp == NULL) {
+    if (*bcp == NULL) {
+      fp = fields_of(tp);
+    } else {
+      fp = fields_of((*bcp)->type);
+    }  /* if */
+  } else {
+    fp = next_proper_field(fp->next);
+  }  /* if */
+  if (fp == NULL && *bcp != NULL) {
+    *bcp = (*bcp)->next;
+    fp = next_comon_initial_sequence_field(tp, bcp, NULL);
+  }  /* if */
+  return fp;
+}  /* next_comon_initial_sequence_field */
+
+
 a_targ_size_t common_initial_sequence_limit(a_type_ptr  tp1,
                                             a_type_ptr  tp2)
 /*
@@ -11024,18 +11052,32 @@ Currently this does not handle bit field offsets because it is only used for
 pointer-to-data members.
 */
 {
-  a_targ_size_t  result = 0;
-  a_field_ptr    fp1 = fields_of(tp1), fp2 = fields_of(tp2);
+  a_targ_size_t    result = 0;
 
-  while (fp1 != NULL && fp2 != NULL) {
-    if (!fields_are_layout_compatible(fp1, fp2)) {
-      break;
-    }  /* if */
-    /* Move the limit one beyond the current field offsets. */
-    result = fp1->offset+1;
-    fp1 = next_proper_field(fp1->next);
-    fp2 = next_proper_field(fp2->next);
-  }  /* while */
+  if (class_symbol_supp(symbol_for(tp1))->standard_layout &&
+      class_symbol_supp(symbol_for(tp2))->standard_layout) {
+    a_base_class_ptr bcp1 = base_classes_of(tp1),
+                     bcp2 = base_classes_of(tp2);
+    a_field_ptr      fp1, fp2;
+    fp1 = next_comon_initial_sequence_field(tp1, &bcp1, NULL);
+    fp2 = next_comon_initial_sequence_field(tp2, &bcp2, NULL);
+    while (fp1 != NULL && fp2 != NULL) {
+      if (!fields_are_layout_compatible(fp1, fp2)) {
+        break;
+      }  /* if */
+      if (!microsoft_mode &&
+          fp1->has_no_unique_address_attribute !=
+                                        fp2->has_no_unique_address_attribute) {
+        /* Must have same [[no_unique_address]] setting (Microsoft appears to
+           ignore this). */
+        break;
+      }  /* if */
+      /* Move the limit one beyond the current field offsets. */
+      result = fp1->offset+1;
+      fp1 = next_comon_initial_sequence_field(tp1, &bcp1, fp1);
+      fp2 = next_comon_initial_sequence_field(tp2, &bcp2, fp2);
+    }  /* while */
+  }  /* if */
   return result;
 }  /* common_initial_sequence_limit */
 
