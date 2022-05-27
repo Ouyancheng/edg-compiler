@@ -10541,13 +10541,16 @@ case.
 #endif /* MICROSOFT_EXTENSIONS_ALLOWED */
     if (C_dialect == C_dialect_cplusplus && !property_ref_case &&
         is_overloadable_type_first_operand(operand)) {
-      a_boolean allow_one_arg = (allow_anachronisms || microsoft_mode);
+      a_boolean allow_one_arg = (allow_anachronisms || ms_version_is(<1900));
       a_boolean has_predef_meaning = is_enum_type(operand->type);
       /* Look for C++ operator overloading cases. */
       /* Note that postfix ++/-- use a two-argument function to distinguish
          them from the prefix ++/--, which use a one-argument function.
          See ARM 13.4.7.  The second compiler-supplied argument is an
-         integer zero. */
+         integer zero.  Earlier versions of Cfront used the single-argument
+         operator for postfix ++/--, and earlier versions of Microsoft's
+         compiler supported that also (indicated by the variable allow_one_arg
+         above). */
       make_integer_constant_operand(&zero_operand, (a_host_large_integer)0L);
 #if EXTRA_SOURCE_POSITIONS_IN_IL
       zero_operand.end_position = end_position;

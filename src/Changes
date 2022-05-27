@@ -1,5 +1,26 @@
 Version 6.4
 
+5/27/22  [EDGcpfe/25210]
+Microsoft C++ compatibility: postfix ++/-- overloading
+
+Consider:
+
+  struct S { S operator++(); };
+  int main() {
+    S s;
+    s++;  // Ordinarily an error but previously accepted in all Microsoft C++
+  }       // modes.  Now an error when microsoft_version >= 1900.
+
+In standard C++, overloading a postfix operator ++ or -- requires an operator
+that accepts an additional int argument (e.g., by adding "S operator++(int)"
+as a member of struct S above).  Thus the example above is not valid C++.
+However, earlier Microsoft compilers supported an old anachronism where a
+prefix operator++/operator-- (i.e., one without the extra parameter) was also
+considered for postfix operations and the front end emulated that in all
+Microsoft modes.  Now that emulation is limited to Microsoft C++ modes with
+microsoft_version < 1900 since MSVC 19.00 stopped supporting the anachronism.
+  
+
 5/27/22  [EDGcpfe/25364]
 Rename "concat" macro to "EDG_CONCAT"
 
