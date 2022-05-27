@@ -9740,13 +9740,17 @@ Add a tok_identifier for name to cache.  pos is the position of the identifier.
 */
 {
   a_symbol_locator  loc;
+  sizeof_t          len;
 
   check_assertion(name != NULL);
-  clear_locator(&loc, pos);
-  (void)find_symbol(name, (sizeof_t)strlen(name), &loc);
-  cache_token(cache, tok_identifier, pos);
-  cache->last_token->extra_info_kind =(a_token_extra_info_kind)teik_identifier;
-  cache->last_token->variant.locator = loc;
+  len = strlen(name);
+  if (strncmp(name, "<unnamed-tag>", len) != 0) {
+    clear_locator(&loc, pos);
+    (void)find_symbol(name, len, &loc);
+    cache_token(cache, tok_identifier, pos);
+    cache->last_token->extra_info_kind = teik_identifier;
+    cache->last_token->variant.locator = loc;
+  }  /* if */
 }  /* cache_identifier */
 
 
